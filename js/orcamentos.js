@@ -81,11 +81,14 @@ function ordenarOrcamentos(colunaIndex) {
     }
 }
 
-function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
+function pesquisarOrcamentos({ ultimoStatus, col, texto } = {}) {
     if (ultimoStatus) filtro = ultimoStatus
 
     if (col !== undefined && col !== null)
         filtrosOrcamento[col] = String(texto).toLowerCase().trim()
+
+    if (filtrosOrcamento.status_col_1)
+        localStorage.setItem('salvo', JSON.stringify(filtrosOrcamento.status_col_1))
 
     const body = document.getElementById('linhas')
     const linhas = body.querySelectorAll('.linha-orcamento-tabela')
@@ -95,7 +98,8 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
     const listaStatus = new Set(['TODOS', 'CHAMADO'])
     const containersInfo = new Map()
 
-    // primeiro loop: processa todas as linhas
+    const ignorarStatusCol1 = ultimoStatus && ultimoStatus !== 'CHAMADO'
+
     for (const linha of linhas) {
         const status = linha.querySelector('[name="status"]')?.value || ''
         const statusKey = status || 'SEM STATUS'
@@ -109,7 +113,6 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
         listaStatus.add(statusKey)
         if (isChamado) listaStatus.add('CHAMADO')
 
-        // armazena info de container
         if (container) {
             if (!containersInfo.has(container))
                 containersInfo.set(container, { linhas: [], temChamado: false })
@@ -117,12 +120,33 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
             if (isChamado) containersInfo.get(container).temChamado = true
         }
 
-        // filtro de texto normal (ainda não aplica display)
         let visivel = true
+
+        for (const key of Object.keys(filtrosOrcamento).filter(k => k.startsWith('status_col_'))) {
+            if (ignorarStatusCol1 && key === 'status_col_1') continue
+
+            const valores = filtrosOrcamento[key]
+            const coluna = parseInt(key.replace('status_col_', ''))
+            const cel = linha.querySelectorAll('.celula')[coluna]
+            if (!cel) continue
+
+            const select = cel.querySelector('select')
+            const valor = select ? select.value : cel.textContent.trim()
+
+            const incluirBranco = Array.isArray(valores) && valores.includes('SEM STATUS')
+
+            if (incluirBranco) {
+                if (!(valor === '' || valores.includes(valor))) visivel = false
+            } else {
+                if (!valores.includes(valor)) visivel = false
+            }
+        }
+
         const celulas = linha.querySelectorAll('.celula')
         for (const chave in filtrosOrcamento) {
             const termo = filtrosOrcamento[chave]
-            if (!termo) continue
+            if (!termo || chave.startsWith('status_col_')) continue
+
             const celula = celulas[chave]
             if (!celula) continue
 
@@ -142,7 +166,7 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
             }
         }
 
-        linha.dataset._visivel = visivel ? 'S' : 'N' // marca provisoriamente
+        linha.dataset._visivel = visivel ? 'S' : 'N'
     }
 
     for (const [container, info] of containersInfo) {
@@ -154,11 +178,11 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
             const statusKey = status || 'SEM STATUS'
             const chamado = linha.dataset.chamado || 'N'
             const isChamado = chamado === 'S'
-            let visivel = linha.dataset._visivel === 'S' // resultado do filtro de texto
+
+            let visivel = linha.dataset._visivel === 'S'
 
             if (filtro && filtro !== 'TODOS') {
                 if (filtro === 'CHAMADO') {
-                    // mantém as linhas do container do chamado, mas respeita busca textual
                     visivel = temChamado && visivel
                 } else if (filtro === 'SEM STATUS') {
                     visivel = visivel && statusKey === 'SEM STATUS'
@@ -176,25 +200,25 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
             }
         }
 
-        // container só aparece se alguma linha dentro dele estiver visível
         container.style.display = mostrarContainer ? '' : 'none'
     }
 
-    // --- toolbar ---
     const toolbar = document.getElementById('toolbar')
     toolbar.innerHTML = ''
     const tempFluxograma = ['CHAMADO', 'TODOS', ...fluxograma]
+
     if (listaStatus.has('SEM STATUS') && !tempFluxograma.includes('SEM STATUS'))
         tempFluxograma.push('SEM STATUS')
 
     for (const st of tempFluxograma) {
         if (!listaStatus.has(st)) continue
+
         const ativo = filtro ? filtro === st : st === 'TODOS'
         const opacity = ativo ? 1 : 0.5
 
         toolbar.insertAdjacentHTML('beforeend', `
             <div style="opacity:${opacity}" class="aba-toolbar"
-                 onclick="filtrarOrcamentos({ultimoStatus:'${st}'})">
+                 onclick="pesquisarOrcamentos({ultimoStatus:'${st}'})">
                 <label>${inicialMaiuscula(st)}</label>
                 <span>${ativo ? visiveis[st] ?? 0 : totais[st] ?? 0}</span>
             </div>
@@ -206,6 +230,9 @@ async function telaOrcamentos(semOverlay) {
 
     atualizarToolbar(true) // GCS no título
 
+    const salvo = JSON.parse(localStorage.getItem('salvo')) // Filtro Status
+    if (salvo) filtrosOrcamento.status_col_1 = salvo
+
     funcaoTela = 'telaOrcamentos'
 
     if (!semOverlay) overlayAguarde()
@@ -213,20 +240,22 @@ async function telaOrcamentos(semOverlay) {
     const colunasCFiltro = ['Status', 'Tags', 'Chamado', 'Cidade', 'Valor']
     const cabecs = ['Data/LPU', 'Status', 'Pedido', 'Notas', 'Tags', 'Chamado', 'Cidade', 'Responsáveis', 'Indicadores', 'Valor', 'Ações']
     let ths = ''
-    let tsh = ''
+    let pesquisa = ''
     cabecs.forEach((cab, i) => {
 
         ths += `
-        <div class="ths-orcamento">
-            <span>${cab}</span>
-            ${colunasCFiltro.includes(cab)
-                ? `<img onclick="ordenarOrcamentos('${i}')" src="imagens/filtro.png">`
-                : ''}
-        </div>`
-        tsh += `<div
-            class="ths-orcamento">
+            <div class="ths-orcamento">
+                <span>${cab}</span>
+                ${cab == 'Status'
+                ? `<img src="imagens/filtro.png" onclick="filtroStatus(${i}, this)">`
+                : colunasCFiltro.includes(cab)
+                    ? `<img onclick="ordenarOrcamentos('${i}')" src="imagens/filtro.png">`
+                    : ''}
+            </div>`
+        pesquisa += `
+            <div class="ths-orcamento">
                 ${(cab !== 'Ações' && cab !== 'Status' && cab !== 'Indicadores')
-                ? `<input placeholder="Pesquisar" name="col_${i}"  oninput="filtrarOrcamentos({col: ${i}, texto: this.value})" >`
+                ? `<input placeholder="Pesquisar" name="col_${i}"  oninput="pesquisarOrcamentos({col: ${i}, texto: this.value})" >`
                 : ''}
             </div>`
 
@@ -244,7 +273,7 @@ async function telaOrcamentos(semOverlay) {
             <div class="div-tabela" style="overflow-x: hidden;">
                 <div class="cabecalho">
                     <div class="linha-orcamento-tabela" style="padding: 0px; background-color: #d2d2d2;">${ths}</div>
-                    <div class="linha-orcamento-tabela" style="padding: 0px;">${tsh}</div>
+                    <div class="linha-orcamento-tabela" style="padding: 0px;">${pesquisa}</div>
                 </div>
                 <div id="linhas"></div>
             </div>
@@ -320,7 +349,7 @@ async function telaOrcamentos(semOverlay) {
         }
     }
 
-    filtrarOrcamentos()
+    pesquisarOrcamentos()
 
     criarMenus('orcamentos')
 
@@ -333,6 +362,120 @@ async function telaOrcamentos(semOverlay) {
     if (!semOverlay) removerOverlay()
 
 }
+
+function filtroStatus(col) {
+
+    const filtro = document.querySelector('.filtro')
+    if (filtro) filtro.remove()
+
+    const body = document.getElementById('linhas')
+    const linhas = body.querySelectorAll('.linha-orcamento-tabela')
+
+    let termos = []
+    linhas.forEach(l => {
+        const cel = l.querySelectorAll('.celula')[col]
+        if (!cel) return
+        const select = cel.querySelector('select')
+        const valor = select ? select.value : cel.textContent.trim()
+        if (valor) termos.push(valor)
+    })
+
+    termos = [...new Set(termos)]
+    const colKey = `status_col_${col}`
+    filtrosOrcamento[colKey] ||= []
+
+    let htmlMarcadas = `
+        <div class="opcao">
+            <input type="checkbox"
+                    onchange="marcarTodosStatus('${colKey}', this)"
+                    ${filtrosOrcamento[colKey].length === termos.length ? 'checked' : ''}>
+            <label>Marcar todos</label>
+        </div>
+    `
+    let htmlDesmarcadas = ''
+
+    termos.forEach(op => {
+        const marcado = filtrosOrcamento[colKey].includes(op)
+        const bloco = `
+            <div class="opcao">
+                <input type="checkbox"
+                       onchange="acumularStatus('${colKey}', '${op}', this)"
+                       ${marcado ? 'checked' : ''}>
+                <label>${op}</label>
+            </div>
+        `
+        if (marcado) htmlMarcadas += bloco
+        else htmlDesmarcadas += bloco
+    })
+
+    const box = `
+        <div style="${vertical}; min-width: 300px; gap: 0.5rem; background-color: #d2d2d2; padding: 1rem;">
+
+            <div style="${horizontal}; padding-left: 0.5rem; padding-right: 0.5rem; margin: 5px; background-color: white; border-radius: 10px;">
+                <input oninput="filtrarOpcoes(this)" placeholder="Pesquisar itens" style="width: 100%;">
+                <img src="imagens/pesquisar4.png" style="width: 2rem; padding: 0.5rem;"> 
+            </div>
+
+            <div id="caixaOpcoes">
+                ${htmlMarcadas}
+                ${htmlDesmarcadas}
+            </div>
+
+        </div>
+    `
+    popup(box, 'Filtrar por Status', true)
+}
+
+
+function acumularStatus(colKey, valor, input) {
+    if (!filtrosOrcamento[colKey]) filtrosOrcamento[colKey] = []
+
+    if (input.checked) {
+        if (!filtrosOrcamento[colKey].includes(valor))
+            filtrosOrcamento[colKey].push(valor)
+    } else {
+        filtrosOrcamento[colKey] = filtrosOrcamento[colKey].filter(v => v !== valor)
+    }
+
+    filtrarStatusAplicar()
+}
+
+function marcarTodosStatus(colKey, inputTodos) {
+    const caixa = document.getElementById('caixaOpcoes')
+    const checks = caixa.querySelectorAll('input[type="checkbox"]')
+
+    filtrosOrcamento[colKey] = []
+
+    checks.forEach(c => {
+        c.checked = inputTodos.checked
+        if (c.checked) filtrosOrcamento[colKey].push(c.nextElementSibling.textContent)
+    })
+
+    if (filtrosOrcamento[colKey].length == 0) delete filtrosOrcamento[colKey]
+
+    filtrarStatusAplicar()
+}
+
+function filtrarStatusAplicar() {
+    const keys = Object.keys(filtrosOrcamento).filter(k => k.startsWith('status_col_'))
+
+    if (keys.length === 0) {
+        filtro = null
+        return pesquisarOrcamentos()
+    }
+
+    const colKey = keys[0]
+    const valores = filtrosOrcamento[colKey]
+
+    if (!valores.length) {
+        filtro = null
+        return pesquisarOrcamentos()
+    }
+
+    filtro = null
+    pesquisarOrcamentos({})
+}
+
 
 function scrollar(direcao) {
 
@@ -407,7 +550,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         `
         : numOrcamento
 
-    const [ data, hora ] = (dados_orcam?.data || '-/-/-, --:--').split(', ')
+    const [data, hora] = (dados_orcam?.data || '-/-/-, --:--').split(', ')
 
     const celulas = `
         ${cel(`
@@ -606,7 +749,7 @@ async function associarClienteOrcamento(idOrcamento) {
 
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
 
-    filtrarOrcamentos()
+    pesquisarOrcamentos()
 
     removerPopup()
 
@@ -681,7 +824,7 @@ async function telaPDA() {
         <th>
             <div style="${horizontal}; justify-content: space-between; width: 100%; gap: 1rem;">
                 <span>${op}</span>
-                <img onclick="filtrarAAZ('${i}', 'linhas')" src="imagens/down.png" style="width: 1rem;">
+                <img onclick="filtrarAAZ('${i}', 'linhas')" src="imagens/down.png" style="width: 1.5rem;">
             </div>
         </th>`
         pesquisa += `<th oninput="pesquisarGenerico('${i}', this.textContent, filtroPDA, 'linhas')" style="background-color: white; text-align: left;" contentEditable="true"></th>`
