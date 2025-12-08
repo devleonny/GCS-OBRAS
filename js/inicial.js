@@ -1,8 +1,18 @@
 const filtroPda = {}
 let pdas = {}
 let guiaAtual = null
+const coments = (comentario, campo, id) => {
+
+    if (!comentario) comentario = ''
+    return `
+        <div style="${horizontal}; gap: 5px;">
+            <div class="comentario-padrao" oninput="mostrarBtn(this)" contentEditable="true">${comentario.replace('\n', '<br>') || ''}</div>
+            <img data-campo="${campo}" onclick="atualizarPda(this, '${id}')" style="display: none; width: 1.5rem;" src="imagens/concluido.png">
+        </div>
+    `
+}
 const dtPrazo = (data) => {
-    if (!data) return {}
+    if (!data) return { data: '', estilo: '' }
 
     const [ano, mes, dia] = data.split('-')
     const dataPrazo = new Date(`${ano}-${mes}-${dia}T00:00:00`)
@@ -25,7 +35,7 @@ async function telaInicial() {
     tagsTemporarias = await recuperarDados('tags_orcamentos')
     pdas = await recuperarDados('pda')
 
-    const guias = ['Indicadores', 'PDA', 'Técnicos x Obra']
+    const guias = ['Indicadores', 'PDA', 'Técnicos']
 
     const acumulado = `
         <div id="loading" style="${horizontal};">
@@ -70,6 +80,84 @@ async function telaInicial() {
 
 function tabelaTecnicos() {
 
+    let linhas = ''
+
+    for (const [idPda, pda] of Object.entries(pdas)) {
+
+        console.log(pda)
+
+        const orcamento = dados_orcamentos?.[idPda]
+        const codCliente = orcamento?.dados_orcam?.omie_cliente || ''
+        const cliente = dados_clientes?.[codCliente] || {}
+
+        const existente = `
+        <div style="${vertical}; gap: 2px; text-align: left;">
+            <span><b>Número: </b>${orcamento?.dados_orcam?.contrato || ''}</span>
+            <span><b>Cliente: </b>${cliente?.nome || '...'}</span>
+            <span><b>Data: </b>${orcamento?.dados_orcam?.data || '...'}</span>
+            <span><b>Cidade: </b>${cliente?.cidade || '...'}</span>
+            <span><b>Valor: </b> ${dinheiro(orcamento?.total_geral)}</span>
+        </div>
+    `
+        const novo = `
+        <div style="${horizontal}; gap: 5px;">
+            <img src="imagens/projeto.png" onclick="criarOrcamentoPda('${idPda}')">
+            <textarea class="etiquetas" style="width: 100%;" oninput="mostrarBtn(this)">${pda.nome || ''}</textarea>
+            <img data-campo="nome" onclick="atualizarPda(this, '${idPda}')" style="display: none; width: 1.5rem;" src="imagens/concluido.png">
+        </div>
+    `
+
+        const codTecs = dados_orcamentos?.[idPda]?.checklist?.tecnicos || []
+
+        const tecnicos = codTecs.map(cod => {
+            const cli = dados_clientes?.[cod] || {}
+            return `<span>${cli.nome || '...'}</span>`
+        }).join('')
+
+        linhas += `
+        <tr>
+            <td>
+                <div style="${vertical}; gap: 2px;">
+                    ${tecnicos || 'Sem Técnicos'}
+                </div>
+            </td>
+            <td>
+                ${orcamento ? existente : novo}
+            </td>
+            <td>${dtPrazo(pda.inicio).data}</td>
+            <td>${dtPrazo(pda.termino).data}</td>
+            <td>${coments(pda?.comentario, 'comentario', idPda)}</td>
+        </tr>
+        `
+    }
+
+    const colunas = ['Técnicos', 'Projeto', 'Início', 'Término', 'Comentários']
+
+    const acumulado = `
+        <div style="${vertical}; width: 100%;">
+            <div class="topo-tabela">
+                <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
+                    <img src="imagens/atualizar3.png" onclick="sincronizarPda()">
+                </div>
+            </div>
+            <div class="div-tabela">
+                <table class="tabela">
+                    <thead>
+                        <tr>${colunas.map(op => `<th>${op}</th>`).join('')}</tr>
+                    </thead>
+                    <tbody>${linhas}</tbody>
+                </table>
+            </div>
+            <div class="rodape-tabela"></div>
+        </div>
+    `
+
+    const chave = 'tabela-Técnicos'
+    const tTecnicos = document.querySelector(`.${chave}`)
+    if (tTecnicos) return tTecnicos.innerHTML = acumulado
+
+    return `<div class="${chave}" name="tabela">${acumulado}</div>`
+
 }
 
 function indicadores() {
@@ -83,6 +171,9 @@ function indicadores() {
     const tUsuario = {}
 
     for (const [, pda] of Object.entries(pdas || {})) {
+
+        console.log(pda);
+
         for (const [, acao] of Object.entries(pda?.acoes || {})) {
             const dt = acao?.status == 'concluído'
                 ? 'concluido'
@@ -90,8 +181,8 @@ function indicadores() {
 
             totais[dt]++
 
-            tUsuario[acao.responsavel] ??={}
-            tUsuario[acao.responsavel][dt] ??=0
+            tUsuario[acao.responsavel] ??= {}
+            tUsuario[acao.responsavel][dt] ??= 0
             tUsuario[acao.responsavel][dt]++
 
         }
@@ -129,12 +220,12 @@ function indicadores() {
 
     const acumulado = `
     <div style="${horizontal}; align-items: start; justify-content: start; width: 100%;">
-        <div style="${vertical}">
+        <div style="${vertical}; width: 50%;">
             ${indi(totais, 'Geral')}
             ${indi(tUsuario[acesso?.usuario], acesso.usuario || '...')}
         </div>
 
-        <div style="${vertical}; padding: 1rem; width: 100%;">
+        <div style="${vertical}; padding: 1rem; width: 50%;">
             <span>Tabela geral de Ações</span>
             <div class="topo-tabela"></div>
             <div class="div-tabela">
@@ -192,7 +283,7 @@ async function sincronizarPda() {
 
 function carregarPDA() {
 
-    const colunas = ['Cliente', 'Tags', 'Técnicos', 'Início', 'Término', 'Serviço', 'Comentários', 'Ação Necessário', 'Detalhes', 'Excluir']
+    const colunas = ['Cliente', 'Tags', 'Técnicos', 'Início', 'Término', 'Comentários', 'Ação Necessário', 'Checklist', 'Detalhes', 'Excluir']
 
     const ths = colunas.map(col => `<th>${col}</th>`).join('')
 
@@ -246,7 +337,7 @@ function linPda(idOrcamento, dados) {
     const tecs = (orcamento?.checklist?.tecnicos || [])
         .map(codTec => {
             const cliente = dados_clientes?.[codTec] || {}
-            return `<div class="etiquetas">${cliente?.nome || '...'}</div>`
+            return `<div class="etiquetas" style="min-width: 100px;">${cliente?.nome || '...'}</div>`
         }).join('')
 
     const acoes = Object.entries(dados.acoes || {})
@@ -283,7 +374,7 @@ function linPda(idOrcamento, dados) {
     const novo = `
         <div style="${horizontal}; gap: 5px;">
             <img src="imagens/projeto.png" onclick="criarOrcamentoPda('${idOrcamento}')">
-            <textarea class="etiquetas" style="width: 100%;" oninput="mostrarBtn(this)">${dados.nome || ''}</textarea>
+            <div class="etiquetas" style="width: 100%;" oninput="mostrarBtn(this)" contentEditable="true">${dados.nome || ''}</div>
             <img data-campo="nome" onclick="atualizarPda(this, '${idOrcamento}')" style="display: none; width: 1.5rem;" src="imagens/concluido.png">
         </div>
     `
@@ -331,28 +422,27 @@ function linPda(idOrcamento, dados) {
             value="${dados?.termino || ''}" 
             onchange="alterarDatas(this, 'termino', '${idOrcamento}')">
         </td>
+
+        <td>${coments(dados?.comentario, 'comentario', idOrcamento)}</td>
+
         <td>
-            <div style="${horizontal}; gap: 5px;">
-                <textarea oninput="mostrarBtn(this)"></textarea>
-                <img data-campo="servico" onclick="atualizarPda(this, '${idOrcamento}')" style="display: none; width: 1.5rem;" src="imagens/concluido.png">
-            </div>
-        </td>
-        <td>
-            <div style="${horizontal}; gap: 5px;">
-                <textarea oninput="mostrarBtn(this)"></textarea>
-                <img data-campo="comentario" onclick="atualizarPda(this, '${idOrcamento}')" style="display: none; width: 1.5rem;" src="imagens/concluido.png">
-            </div>
-        </td>
-        <td>
-            <div style="${horizontal}; justify-content: start; align-items: start; gap: 2px; min-width: 300px;">
+            <div style="${horizontal}; justify-content: start; align-items: start; gap: 2px;">
                 <img onclick="formAcao('${idOrcamento}')" src="imagens/baixar.png" style="width: 1.5rem;">
-                <div style="${vertical}; gap: 2px; width: 100%;">
+                <div class="bloco-acoes">
                     ${acoes}
                 </div>
             </div>
         </td>
         <td>
-            <img onclick="abrirAtalhos('${idOrcamento}')" src="imagens/pesquisar2.png" style="width: 1.5rem;">
+            <div style="${vertical}; width: 100%; gap: 2px;">
+                ${orcamento?.checklist?.andamento
+            ? divPorcentagem(orcamento.checklist.andamento)
+            : ''
+        }
+            </div>
+        </td>
+        <td>
+            ${orcamento ? `<img onclick="abrirAtalhos('${idOrcamento}')" src="imagens/pesquisar2.png" style="width: 1.5rem;">` : ''}
         </td>
         <td>
             <img onclick="confirmarExcluirPda('${idOrcamento}')" src="imagens/cancel.png" style="width: 1.5rem;">
@@ -396,8 +486,8 @@ async function excluirPda(idOrcamento) {
 
 async function atualizarPda(img, idOrcamento) {
 
-    const textarea = img.previousElementSibling
-    const info = textarea.value
+    const div = img.previousElementSibling
+    const info = div.textContent
     const campo = img.dataset.campo
 
     const pda = await recuperarDado('pda', idOrcamento)
