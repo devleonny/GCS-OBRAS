@@ -1,10 +1,31 @@
 const filtroPda = {}
+let pdas = {}
+let guiaAtual = null
+const dtPrazo = (data) => {
+    if (!data) return {}
+
+    const [ano, mes, dia] = data.split('-')
+    const dataPrazo = new Date(`${ano}-${mes}-${dia}T00:00:00`)
+    const hoje = new Date()
+    hoje.setHours(0, 0, 0, 0)
+
+    const atrasado = hoje > dataPrazo
+
+    return {
+        data: `${dia}/${mes}/${ano}`,
+        estilo: atrasado ? 'atrasado' : 'pendente'
+    }
+}
 
 async function telaInicial() {
 
     document.querySelector('[name="titulo"]').textContent = 'GCS'
+    dados_clientes = await recuperarDados('dados_clientes')
+    dados_orcamentos = await recuperarDados('dados_orcamentos')
+    tagsTemporarias = await recuperarDados('tags_orcamentos')
+    pdas = await recuperarDados('pda')
 
-    const guias = ['Acompanhamento Obras', 'PDA']
+    const guias = ['Indicadores', 'PDA', 'Técnicos x Obra']
 
     const acumulado = `
         <div id="loading" style="${horizontal};">
@@ -20,7 +41,9 @@ async function telaInicial() {
                     `).join('')}
             </div>
             <div id="tabelas" style="width: 100%;">
+                ${indicadores()}
                 ${carregarPDA()}
+                ${tabelaTecnicos()}
             </div>
         </div>
     `
@@ -31,13 +54,9 @@ async function telaInicial() {
         criarMenus('inicial')
     }
 
-    dados_clientes = await recuperarDados('dados_clientes')
-    dados_orcamentos = await recuperarDados('dados_orcamentos')
-    tagsTemporarias = await recuperarDados('tags_orcamentos')
-    const pda = await recuperarDados('pda')
     const ativos = []
 
-    for (const [idOrcamento, dados] of Object.entries(pda)) {
+    for (const [idOrcamento, dados] of Object.entries(pdas)) {
         ativos.push(idOrcamento)
         linPda(idOrcamento, dados)
     }
@@ -45,11 +64,100 @@ async function telaInicial() {
     const trs = document.querySelectorAll('#pda tr')
     for (const tr of trs) if (!ativos.includes(tr.id)) tr.remove()
 
-    mostrarGuia('PDA')
+    mostrarGuia()
 
 }
 
-function mostrarGuia(nomeGuia) {
+function tabelaTecnicos() {
+
+}
+
+function indicadores() {
+
+    const totais = {
+        pendente: 0,
+        atrasado: 0,
+        concluido: 0
+    }
+
+    const tUsuario = {}
+
+    for (const [, pda] of Object.entries(pdas || {})) {
+        for (const [, acao] of Object.entries(pda?.acoes || {})) {
+            const dt = acao?.status == 'concluído'
+                ? 'concluido'
+                : dtPrazo(acao?.prazo).estilo || 'pendente'
+
+            totais[dt]++
+
+            tUsuario[acao.responsavel] ??={}
+            tUsuario[acao.responsavel][dt] ??=0
+            tUsuario[acao.responsavel][dt]++
+
+        }
+    }
+
+    const box = (titulo, valor, cor) => `
+    <div class="ind" style="border-left: 6px solid ${cor};">
+        <span style="font-size: 14px; color:#444;">${titulo}</span>
+        <strong style="font-size: 22px; margin-top:5px;">${valor}</strong>
+    </div>`
+
+    const indi = (totais, texto) => {
+
+        return `
+            <div style="${vertical}; gap: 5px; padding: 0.5rem;">
+                <span>Contador de ações <b>${texto}</b></span>
+                <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
+                    ${box("Pendente", totais.pendente, "#41a6ff")}
+                    ${box("Atrasado", totais.atrasado, "#ff0000")}
+                    ${box("Concluído", totais.concluido, "#008000")}
+                </div>
+            </div>
+        `
+    }
+
+    const linhas = Object.entries(tUsuario)
+        .map(([usuario, totais]) => `
+            <tr>
+                <td>${usuario}</td>
+                <td>${totais?.pendente || 0}</td>
+                <td>${totais?.atrasado || 0}</td>
+                <td>${totais?.concluido || 0}</td>
+            </tr>
+        `).join('')
+
+    const acumulado = `
+    <div style="${horizontal}; align-items: start; justify-content: start; width: 100%;">
+        <div style="${vertical}">
+            ${indi(totais, 'Geral')}
+            ${indi(tUsuario[acesso?.usuario], acesso.usuario || '...')}
+        </div>
+
+        <div style="${vertical}; padding: 1rem; width: 100%;">
+            <span>Tabela geral de Ações</span>
+            <div class="topo-tabela"></div>
+            <div class="div-tabela">
+                <table class="tabela">
+                    <thead>
+                        <tr>${['Usuários', 'Pendente', 'Atrasado', 'Concluído'].map(op => `<th>${op}</th>`).join('')}</tr>
+                    </thead>
+                    <tbody>${linhas}</tbody>
+                </table>
+            </div>
+            <div class="rodape-tabela"></div>
+        </div>
+    </div>
+    `
+    const tIndicadores = document.querySelector('.tabela-Indicadores')
+    if (tIndicadores) return tIndicadores.innerHTML = acumulado
+
+    return `<div class="tabela-Indicadores" name="tabela">${acumulado}</div>`
+}
+
+function mostrarGuia(nomeGuia = guiaAtual || 'Indicadores') {
+
+    guiaAtual = nomeGuia
 
     // Todas as guias e abas ocultadas;
     const tabelas = document.querySelectorAll('[name="tabela"]')
@@ -63,7 +171,7 @@ function mostrarGuia(nomeGuia) {
     aba.style.opacity = 1
 
     const tabela = document.querySelector(`.tabela-${nomeGuia}`)
-    tabela.style.display = 'flex'
+    if (tabela) tabela.style.display = 'flex'
 
     const loading = document.getElementById('loading')
     if (loading) loading.style.display = 'none'
@@ -140,22 +248,6 @@ function linPda(idOrcamento, dados) {
             const cliente = dados_clientes?.[codTec] || {}
             return `<div class="etiquetas">${cliente?.nome || '...'}</div>`
         }).join('')
-
-    const dtPrazo = (data) => {
-        if (!data) return {}
-
-        const [ano, mes, dia] = data.split('-')
-        const dataPrazo = new Date(`${ano}-${mes}-${dia}T00:00:00`)
-        const hoje = new Date()
-        hoje.setHours(0, 0, 0, 0)
-
-        const atrasado = hoje > dataPrazo
-
-        return {
-            data: `${dia}/${mes}/${ano}`,
-            estilo: atrasado ? 'atrasado' : 'pendente'
-        }
-    }
 
     const acoes = Object.entries(dados.acoes || {})
         .map(([idAcao, dados]) => {
