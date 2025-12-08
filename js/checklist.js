@@ -1111,7 +1111,7 @@ async function registrarChecklist(codigo) {
 
     // Bloqueio por excesso de quantidade;
     quantidadeRealizadoItem = 0
-    quantidadeItem = orcamento?.dados_composicoes?.[codigo]?.qtde || orcamento?.checklist?.avulso?.[codigo].qtde || 0
+    quantidadeItem = orcamento?.checklist?.qReal[codigo]?.qtde || orcamento?.dados_composicoes?.[codigo]?.qtde || orcamento?.checklist?.avulso?.[codigo].qtde || 0
 
     for (const [idLancamento, dados] of Object.entries(itens)) {
 
