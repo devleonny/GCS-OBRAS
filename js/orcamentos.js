@@ -202,6 +202,11 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
     }
 }
 
+async function rstTelaOrcamentos() {
+    tela.innerHTML = ''
+    await telaOrcamentos()
+}
+
 async function telaOrcamentos(semOverlay) {
 
     const pda = document.querySelector('.tela-gerenciamento')

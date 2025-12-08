@@ -1986,6 +1986,7 @@ input[type=range]::-moz-range-thumb {
 }
 
 .tabela td {
+    vertical-align: top;
     text-align: center;
     padding: 8px;
     overflow: hidden;

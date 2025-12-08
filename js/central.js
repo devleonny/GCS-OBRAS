@@ -152,7 +152,7 @@ function criarMenus(chave) {
 
 const esquemaBotoes = {
     inicial: [
-        { nome: 'Orçamentos', funcao: `telaOrcamentos`, img: 'projeto' },
+        { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'projeto' },
         { nome: 'Composições', funcao: `telaComposicoes`, img: 'composicoes' },
         { nome: 'Chamados', funcao: `telaChamados`, img: 'chamados' },
         { nome: 'Veículos', funcao: `telaVeiculos`, img: 'veiculo' },
@@ -168,14 +168,14 @@ const esquemaBotoes = {
         { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
         { nome: 'Salvar Orçamento', funcao: `enviarDadosOrcamento`, img: 'salvo' },
         { nome: 'Apagar Orçamento', funcao: `apagarOrcamento`, img: 'remover' },
-        { nome: 'Voltar', funcao: `telaOrcamentos`, img: 'voltar_2' }
+        { nome: 'Voltar', funcao: `rstTelaOrcamentos`, img: 'voltar_2' }
     ],
     criarOrcamentosAluguel: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
         { nome: 'Salvar Orçamento', funcao: `enviarDadosAluguel`, img: 'salvo' },
         { nome: 'Apagar Orçamento', funcao: `apagarOrcamentoAluguel`, img: 'remover' },
-        { nome: 'Voltar', funcao: `telaOrcamentos`, img: 'voltar_2' }
+        { nome: 'Voltar', funcao: `rstTelaOrcamentos`, img: 'voltar_2' }
     ],
     orcamentos: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
@@ -1173,41 +1173,69 @@ async function continuar() {
 }
 
 function pesquisarGenerico(coluna, texto, filtro, id) {
-    filtro[coluna] = String(texto).toLowerCase().replace('.', '').trim();
 
-    let tbody = document.getElementById(id);
-    let trs = tbody.querySelectorAll('tr');
-    let contador = 0;
+    filtro[coluna] = String(texto).toLowerCase().replace(/\./g, '').trim()
 
-    trs.forEach(function (tr) {
-        let tds = tr.querySelectorAll('td');
-        let mostrarLinha = true;
+    const tbody = document.getElementById(id)
+    if (!tbody) return
 
-        for (var col in filtro) {
-            let filtroTexto = filtro[col];
+    const trs = tbody.querySelectorAll('tr')
+    let contador = 0
 
-            if (filtroTexto && col < tds.length) {
-                let element = tds[col].querySelector('input')
-                    || tds[col].querySelector('textarea')
-                    || tds[col].querySelector('select')
-                    || tds[col].textContent;
+    // pega todo o conteúdo útil da td (inputs, selects, textos)
+    function extrairTexto(td) {
+        let partes = []
 
-                let conteudoCelula = element.value ? element.value : element;
-                let texto_campo = String(conteudoCelula).toLowerCase().replace('.', '').trim();
+        // pega textos diretos
+        partes.push(td.textContent || '')
 
-                if (!texto_campo.includes(filtroTexto)) {
-                    mostrarLinha = false;
-                    break;
-                }
+        // inputs
+        td.querySelectorAll('input').forEach(inp => {
+            partes.push(inp.value || '')
+        })
+
+        // textareas
+        td.querySelectorAll('textarea').forEach(tx => {
+            partes.push(tx.value || '')
+        })
+
+        // selects
+        td.querySelectorAll('select').forEach(sel => {
+            let opt = sel.options[sel.selectedIndex]
+            partes.push(opt ? opt.text : sel.value)
+        })
+
+        // join e normaliza
+        return partes.join(' ').replace(/\s+/g, ' ').trim()
+    }
+
+    trs.forEach(tr => {
+        const tds = tr.querySelectorAll('td')
+        let mostrar = true
+
+        for (const col in filtro) {
+            const filtroTexto = filtro[col]
+            if (!filtroTexto) continue
+
+            if (col >= tds.length) {
+                mostrar = false
+                break
+            }
+
+            const conteudoTd = extrairTexto(tds[col]).toLowerCase().replace(/\./g, '').trim()
+
+            if (!conteudoTd.includes(filtroTexto)) {
+                mostrar = false
+                break
             }
         }
 
-        if (mostrarLinha) contador++;
-        tr.style.display = mostrarLinha ? '' : 'none';
-    });
+        if (mostrar) contador++
+        tr.style.display = mostrar ? '' : 'none'
+    })
 
-    const contagem = document.getElementById('contagem');
-    if (contagem) contagem.textContent = contador;
+    const contagem = document.getElementById('contagem')
+    if (contagem) contagem.textContent = contador
 }
 
 async function salvarLevantamento(idOrcamento, idElemento) {
