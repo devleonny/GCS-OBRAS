@@ -289,7 +289,8 @@ async function despoluicaoGCS() {
     }
 
     localStorage.setItem('atualizado', true)
-    telaInicial()
+    tela.innerHTML = ''
+    await telaInicial()
     removerOverlay()
 
 }

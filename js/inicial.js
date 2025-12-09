@@ -174,6 +174,13 @@ function auxMapa(base) {
 
         for (const [idPda, pda] of Object.entries(pdas)) {
 
+            const orc = dados_orcamentos?.[idPda]
+            const historico = orc?.status?.historicoStatus || {}
+            const concluido = Object.values(historico).some(h => h?.para === 'CONCLUÍDO')
+
+            // Ignorar Orçamentos concluídos
+            if (concluido) continue
+
             const codOmie = dados_orcamentos?.[idPda]?.dados_orcam?.omie_cliente
             const cliente = dados_clientes[codOmie]
             const estado = cliente?.estado || pda?.estado || null
@@ -199,11 +206,19 @@ function carregarTecnicos() {
 
         const orc = dados_orcamentos?.[idPda]
         const listaTecs = orc?.checklist?.tecnicos || pda?.tecnicos || []
+
         const historico = orc?.status?.historicoStatus || {}
+        let concluido = false
 
         for (const [, dados] of Object.entries(historico)) {
-            if (dados?.para == 'CONCLUÍDO') break
+            if (dados?.para == 'CONCLUÍDO') {
+                concluido = true
+                break
+            }
         }
+
+        // se não quiser contar projetos concluídos:
+        if (concluido) continue
 
         for (const codTec of listaTecs) {
 
@@ -218,6 +233,7 @@ function carregarTecnicos() {
             tecnicosMap[codTec].projetos.push(idPda)
         }
     }
+
 
     let linhas = ''
 
@@ -306,9 +322,9 @@ function indicadores() {
 
     for (const [idOrcamento, pda] of Object.entries(pdas || {})) {
 
-
         for (const [idAcao, dados] of Object.entries(pda?.acoes || {})) {
-            const dt = dados?.status == 'concluído'
+
+            const dt = dados?.status === 'concluído'
                 ? 'concluido'
                 : dtPrazo(dados?.prazo).estilo || 'pendente'
 
@@ -318,26 +334,26 @@ function indicadores() {
             tUsuario[dados.responsavel][dt] ??= 0
             tUsuario[dados.responsavel][dt]++
 
-            if (dados?.responsavel == acesso.usuario || permitidos.includes(acesso.permissao)) {
+            // Filtragem por acesso
+            if (dados.responsavel == acesso.usuario || permitidos.includes(acesso.permissao)) {
 
-                if (dados.status == 'concluído') continue
+                if (dados.status === 'concluído') continue
 
                 const formato = dtPrazo(dados?.prazo)
 
                 acoes += `
-                <div style="${horizontal}; width: 100%; gap: 0.5rem;">
-                    <div class="etiqueta-${formato.estilo}">
-                        <span><b>Ação:</b> ${dados?.acao || ''}</span>
-                        <span><b>Responsável:</b> ${dados?.responsavel || ''}</span>
-                        <span><b>Prazo:</b> ${formato.data}</span>
-                        ${dados.registro
+            <div style="${horizontal}; width: 100%; gap: 0.5rem;">
+                <div class="etiqueta-${formato.estilo}">
+                    <span><b>Ação:</b> ${dados?.acao || ''}</span>
+                    <span><b>Responsável:</b> ${dados?.responsavel || ''}</span>
+                    <span><b>Prazo:</b> ${formato.data}</span>
+                    ${dados.registro
                         ? `<span><b>criado em: </b>${new Date(dados.registro).toLocaleString('pt-BR')}</span>`
                         : ''}
-                    </div>
-                    <img src="imagens/editar.png" style="width: 1.5rem;" onclick="formAcao('${idOrcamento}', '${idAcao}')">
-                </div>`
+                </div>
+                <img src="imagens/editar.png" style="width: 1.5rem;" onclick="formAcao('${idOrcamento}', '${idAcao}')">
+            </div>`
             }
-
         }
     }
 
