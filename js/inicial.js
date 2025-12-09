@@ -378,20 +378,8 @@ function indicadores() {
     }
 
     const acumulado = `
-    <div style="${horizontal}; align-items: start; justify-content: start; width: 100%;">
-        <div style="${vertical}; width: 50%;">
+    <div class="painel-indicadores">
 
-            ${indi(totais, 'Geral')}
-            ${tUsuario[acesso?.usuario] ? indi(tUsuario[acesso?.usuario], acesso.usuario || '...') : ''}
-            <div style="${vertical}; padding: 1rem; gap: 0.5rem; width: 100%;">
-                <span>Ações pendentes do Usuário</span>
-                <div class="acoes">
-                    ${acoes}
-                </div>
-            </div>
-            
-        </div>
-        
         <div style="${vertical}; align-items: center; padding: 0.5rem;">
             <div style="${horizontal}; gap: 0.5rem;">
                 <img src="imagens/atualizar3.png" onclick="sincronizarPda()">
@@ -402,6 +390,18 @@ function indicadores() {
                 <img src="imagens/mapa.png" class="mapa">
                 <svg id="mapaOverlay" width="600" height="600" style="position: absolute; top: 0; left: 0;"></svg>
             </div>
+        </div>
+        <div style="${vertical};">
+
+            ${indi(totais, 'Geral')}
+            ${tUsuario[acesso?.usuario] ? indi(tUsuario[acesso?.usuario], acesso.usuario || '...') : ''}
+            <div style="${vertical}; padding: 1rem; gap: 0.5rem; width: 100%;">
+                <span>Ações pendentes do Usuário</span>
+                <div class="acoes">
+                    ${acoes}
+                </div>
+            </div>
+            
         </div>
 
     </div>

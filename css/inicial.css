@@ -8,7 +8,7 @@
 }
 
 .ind {
-    width: 150px;
+    width: max-content;
     border: solid 1px #989898;
     background: #efefef;
     border-radius: 8px;
@@ -133,4 +133,14 @@
 .mapa {
     filter: drop-shadow(1px 1px 3px #222);
     width: 600px;
+}
+
+.painel-indicadores {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    width: max-content;
+    max-width: 90vw;
+    padding: 2rem;
+    overflow-x: auto;
 }
