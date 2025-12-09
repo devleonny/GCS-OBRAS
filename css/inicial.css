@@ -1,5 +1,6 @@
 .tela-gerenciamento {
-    width: 90vw;
+    width: max-content;
+    max-width: 90vw;
     display: none;
     align-items: start;
     justify-content: start;
@@ -8,6 +9,7 @@
 
 .ind {
     width: 150px;
+    border: solid 1px #989898;
     background: #efefef;
     border-radius: 8px;
     padding: 15px;
@@ -23,9 +25,9 @@
     flex-direction: column;
     border: solid 1px #797979;
     width: 100%;
-    background-color: white;
+    background-color: rgba(255, 255, 255, 0.878);
     border-radius: 5px;
-    height: 70vh;
+    min-height: 70vh;
     display: flex;
     align-items: start;
     justify-content: start;
@@ -99,4 +101,36 @@
     width: 300px;
     height: 100px;
     overflow: auto;
+}
+
+.acoes {
+    overflow-y: auto;
+    resize: vertical;
+    width: 90%;
+    height: 300px;
+    overflow-y: auto;
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+    background-color: #efefef;
+    border: solid 1px #989898;
+    display: flex;
+    align-items: start;
+    flex-direction: column;
+    align-items: start;
+    padding: 1rem;
+    gap: 2px;
+}
+
+.fundo-mapa {
+    position: relative;
+    width: 600px;
+    height: 600px;
+    background-color: #efefef;
+    border-radius: 5px;
+    border: solid 1px #797979;
+}
+
+.mapa {
+    filter: drop-shadow(1px 1px 3px #222);
+    width: 600px;
 }

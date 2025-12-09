@@ -67,7 +67,7 @@ async function telaChecklist() {
                     </div>
 
                     <div class="opcoes-orcamento">
-                        ${modeloBotoes('gerente', 'Técnicos na Obra', `tecnicosAtivos()`)}
+                        ${modeloBotoes('gerente', 'Técnicos na Obra', `tecPda = false; tecnicosAtivos()`)}
                         ${modeloBotoes('cancel', 'Remover Itens Selecionados', `removerItensEmMassaChecklist()`)}
                         ${modeloBotoes('checklist', 'Ver Itens Removidos', `verItensRemovidos()`)}
                         ${modeloBotoes('baixar', 'Serviço Avulso', `adicionarServicoAvulso()`)}
@@ -288,28 +288,30 @@ async function tagsChecklist(codigo) {
 
 async function tecnicosAtivos() {
 
-    const acumulado = `
-        <div style="${vertical}; padding: 1rem; background-color: #d2d2d2;">
-            <span>Gerencie abaixo os envolvidos na Obra</span>
-            <hr>
-            <div class="painel-clientes">
-                <div id="blocoTecnicos" style="${vertical};"></div>
-            </div>
-        </div>
+    const orcamento = dados_orcamentos?.[id_orcam]
+    const pda = pdas[id_orcam]
+    const listaTecs = orcamento?.checklist?.tecnicos || pda?.tecnicos || []
+    let tecs = ''
 
-        <div class="rodape-painel-clientes">
-            ${botaoRodape('maisTecnico()', 'Adicionar', 'baixar')}
-            ${botaoRodape('salvarTecnicos()', 'Salvar', 'concluido')}
-        </div>
-    `
-    popup(acumulado, 'Técnicos na Obra', true)
-
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-
-    for (const codTec of orcamento?.checklist?.tecnicos || []) {
-        const dados = await recuperarDado('dados_clientes', codTec)
-        maisTecnico(codTec, dados?.nome || 'N/A')
+    for (const codTec of listaTecs) {
+        const dados = dados_clientes?.[codTec] || {}
+        tecs += maisTecnico(codTec, dados?.nome || 'N/A', true)
     }
+
+    const linhas = [
+        {
+            elemento: `<div id="blocoTecnicos" style="${vertical};">${tecs}</div>`
+        }
+    ]
+
+    const botoes = [
+        { texto: 'Adicionar', img: 'baixar', funcao: `maisTecnico()` },
+        { texto: 'Salvar', img: 'concluido', funcao: `salvarTecnicos()` },
+    ]
+
+    const form = new formulario({ linhas, botoes, titulo: 'Técnicos na Obra' })
+    form.abrirFormulario()
+
 }
 
 async function salvarTecnicos() {
@@ -321,16 +323,26 @@ async function salvarTecnicos() {
 
     for (const span of spans) {
         if (!span.id) continue
-        if (tecnicos.includes[span.id]) continue
+        if (tecnicos.includes(span.id)) continue
         tecnicos.push(span.id)
     }
 
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    orcamento.checklist ??= {}
-    orcamento.checklist.tecnicos = tecnicos
+    if (tecPda) {
+        // Se forem preenchidos com base em um pda, sem orçamento, salvo no objeto pda provisoriamente;
+        const pda = await recuperarDado('pda', id_orcam)
+        pda.tecnicos = tecnicos
+        enviar(`pda/${id_orcam}/tecnicos`, tecnicos)
+        await inserirDados({ [id_orcam]: pda }, 'pda')
+        await telaInicial()
 
-    enviar(`dados_orcamentos/${id_orcam}/checklist/tecnicos`, tecnicos)
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    } else {
+        // Caso seja com base no orçamento;
+        const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+        orcamento.checklist ??= {}
+        orcamento.checklist.tecnicos = tecnicos
+        enviar(`dados_orcamentos/${id_orcam}/checklist/tecnicos`, tecnicos)
+        await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    }
 
     removerPopup()
 
@@ -1224,7 +1236,7 @@ async function alterarQuantidadeChecklist(img, idLancamento, codigo, qtdeAnterio
 
 }
 
-function maisTecnico(cod, nome) {
+function maisTecnico(cod, nome, devolver) {
     const blocoTecnicos = document.getElementById('blocoTecnicos')
     cod = cod || ID5digitos()
     nome = nome || 'Selecione'
@@ -1238,6 +1250,7 @@ function maisTecnico(cod, nome) {
         </div>
     `
 
+    if (devolver) return modelo
     if (blocoTecnicos) blocoTecnicos.insertAdjacentHTML('beforeend', modelo)
 }
 

@@ -2106,7 +2106,6 @@ input[type=range]::-moz-range-thumb {
 }
 
 .contorno-botoes {
-    border: solid 1px #222;
     background-color: #222222e3;
     display: flex;
     width: 100%;

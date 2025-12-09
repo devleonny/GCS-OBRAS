@@ -1,6 +1,7 @@
 const filtroPda = {}
 let pdas = {}
 let guiaAtual = null
+let tecPda = null
 const coments = (comentario, campo, id) => {
 
     if (!comentario) comentario = ''
@@ -11,6 +12,69 @@ const coments = (comentario, campo, id) => {
         </div>
     `
 }
+
+const posicoesEstados = {
+    "AC": { x: 80, y: 230 },
+    "AL": { x: 575, y: 225 },
+    "AP": { x: 340, y: 60 },
+    "AM": { x: 150, y: 150 },
+    "BA": { x: 480, y: 270 },
+    "CE": { x: 515, y: 150 },
+    "DF": { x: 395, y: 322 },
+    "ES": { x: 500, y: 380 },
+    "GO": { x: 365, y: 325 },
+    "MA": { x: 435, y: 155 },
+    "MG": { x: 450, y: 360 },
+    "MS": { x: 295, y: 390 },
+    "MT": { x: 280, y: 280 },
+    "PA": { x: 320, y: 165 },
+    "PB": { x: 580, y: 190 },
+    "PE": { x: 540, y: 210 },
+    "PI": { x: 470, y: 200 },
+    "PR": { x: 345, y: 455 },
+    "RJ": { x: 470, y: 420 },
+    "RN": { x: 570, y: 155 },
+    "RO": { x: 175, y: 250 },
+    "RR": { x: 200, y: 60 },
+    "RS": { x: 320, y: 530 },
+    "SC": { x: 365, y: 495 },
+    "SE": { x: 565, y: 255 },
+    "SP": { x: 385, y: 415 },
+    "TO": { x: 390, y: 240 }
+}
+
+function preencherMapa(estado, numero) {
+    const svg = document.getElementById("mapaOverlay")
+    const pos = posicoesEstados[estado]
+    if (!pos) return
+
+    const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+
+    const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect")
+    bg.setAttribute("x", pos.x - 18)
+    bg.setAttribute("y", pos.y - 14)
+    bg.setAttribute("width", "36")
+    bg.setAttribute("height", "28")
+    bg.setAttribute("rx", "8")
+    bg.setAttribute("fill", "#ffffff")
+    bg.setAttribute("stroke", "#333")
+    bg.setAttribute("stroke-width", "1.2")
+
+    const texto = document.createElementNS("http://www.w3.org/2000/svg", "text")
+    texto.setAttribute("x", pos.x)
+    texto.setAttribute("y", pos.y + 2)
+    texto.setAttribute("font-size", "16")
+    texto.setAttribute("font-weight", "bold")
+    texto.setAttribute("fill", "#333")
+    texto.setAttribute("text-anchor", "middle")
+    texto.setAttribute("dominant-baseline", "middle")
+    texto.textContent = numero
+
+    group.appendChild(bg)
+    group.appendChild(texto)
+    svg.appendChild(group)
+}
+
 const dtPrazo = (data) => {
     if (!data) return { data: '', estilo: '' }
 
@@ -35,7 +99,7 @@ async function telaInicial() {
     tagsTemporarias = await recuperarDados('tags_orcamentos')
     pdas = await recuperarDados('pda')
 
-    const guias = ['Indicadores', 'PDA', 'Técnicos']
+    const guias = ['Indicadores', 'PDA', 'CONCLUÍDO', 'Técnicos']
 
     const acumulado = `
         <div id="loading" style="${horizontal};">
@@ -53,7 +117,7 @@ async function telaInicial() {
             <div id="tabelas" style="width: 100%;">
                 ${indicadores()}
                 ${carregarPDA()}
-                ${tabelaTecnicos()}
+                ${carregarTecnicos()}
             </div>
         </div>
     `
@@ -76,62 +140,127 @@ async function telaInicial() {
 
     mostrarGuia()
 
+    auxMapa('pda')
+
 }
 
-function tabelaTecnicos() {
+function auxMapa(base) {
 
-    let linhas = ''
+    // Preencher o mapa de orçamentos x estado;
+    const contadores = {}
+
+    const mapaOverlay = document.getElementById('mapaOverlay')
+    mapaOverlay.innerHTML = ''
+
+    const tools = document.querySelectorAll('[name="toolbar-mapas"]')
+    for (const tool of tools) {
+        const tipo = tool.dataset.tipo
+        tool.style.opacity = tipo == base ? 1 : 0.5
+    }
+
+    if (base == 'orcamento') {
+        for (const [, orcamento] of Object.entries(dados_orcamentos)) {
+            const codOmie = orcamento?.dados_orcam?.omie_cliente
+            const cliente = dados_clientes[codOmie]
+
+            if (!cliente) continue
+            if (!cliente.estado) continue
+
+            contadores[cliente.estado] ??= 0
+            contadores[cliente.estado]++
+        }
+
+    } else {
+
+        for (const [idPda, pda] of Object.entries(pdas)) {
+
+            const codOmie = dados_orcamentos?.[idPda]?.dados_orcam?.omie_cliente
+            const cliente = dados_clientes[codOmie]
+            const estado = cliente?.estado || pda?.estado || null
+
+            if (!estado) continue
+
+            contadores[estado] ??= 0
+            contadores[estado]++
+        }
+
+    }
+
+    for (const [estado, total] of Object.entries(contadores)) {
+        preencherMapa(estado, total)
+    }
+}
+
+function carregarTecnicos() {
+
+    const tecnicosMap = {}   // { codTec: { nome, projetos: [] } }
 
     for (const [idPda, pda] of Object.entries(pdas)) {
 
-        console.log(pda)
+        const orc = dados_orcamentos?.[idPda]
+        const listaTecs = orc?.checklist?.tecnicos || pda?.tecnicos || []
+        const historico = orc?.status?.historicoStatus || {}
 
-        const orcamento = dados_orcamentos?.[idPda]
-        const codCliente = orcamento?.dados_orcam?.omie_cliente || ''
-        const cliente = dados_clientes?.[codCliente] || {}
+        for (const [, dados] of Object.entries(historico)) {
+            if (dados?.para == 'CONCLUÍDO') break
+        }
 
-        const existente = `
-        <div style="${vertical}; gap: 2px; text-align: left;">
-            <span><b>Número: </b>${orcamento?.dados_orcam?.contrato || ''}</span>
-            <span><b>Cliente: </b>${cliente?.nome || '...'}</span>
-            <span><b>Data: </b>${orcamento?.dados_orcam?.data || '...'}</span>
-            <span><b>Cidade: </b>${cliente?.cidade || '...'}</span>
-            <span><b>Valor: </b> ${dinheiro(orcamento?.total_geral)}</span>
-        </div>
-    `
-        const novo = `
-        <div style="${horizontal}; gap: 5px;">
-            <img src="imagens/projeto.png" onclick="criarOrcamentoPda('${idPda}')">
-            <textarea class="etiquetas" style="width: 100%;" oninput="mostrarBtn(this)">${pda.nome || ''}</textarea>
-            <img data-campo="nome" onclick="atualizarPda(this, '${idPda}')" style="display: none; width: 1.5rem;" src="imagens/concluido.png">
-        </div>
-    `
+        for (const codTec of listaTecs) {
 
-        const codTecs = dados_orcamentos?.[idPda]?.checklist?.tecnicos || []
+            if (!tecnicosMap[codTec]) {
+                const tec = dados_clientes?.[codTec] || {}
+                tecnicosMap[codTec] = {
+                    nome: tec.nome || 'Sem Nome',
+                    projetos: []
+                }
+            }
 
-        const tecnicos = codTecs.map(cod => {
-            const cli = dados_clientes?.[cod] || {}
-            return `<span>${cli.nome || '...'}</span>`
-        }).join('')
+            tecnicosMap[codTec].projetos.push(idPda)
+        }
+    }
+
+    let linhas = ''
+
+    for (const [codTec, dadosTec] of Object.entries(tecnicosMap)) {
+
+        let projetosHtml = ''
+
+        for (const idPda of dadosTec.projetos) {
+
+            const pda = pdas[idPda]
+            const orc = dados_orcamentos?.[idPda]
+            const codCliente = orc?.dados_orcam?.omie_cliente || ''
+            const cliente = dados_clientes?.[codCliente] || {}
+
+            const blocoProjeto = orc
+                ? `
+                <div class="etiquetas">
+                    <span><b>Número: </b>${orc?.dados_orcam?.contrato || ''}</span>
+                    <span><b>Cliente: </b>${cliente?.nome || '...'}</span>
+                    <span><b>Data: </b>${orc?.dados_orcam?.data || '...'}</span>
+                    <span><b>Cidade: </b>${cliente?.cidade || '...'}</span>
+                    <span><b>Valor: </b>${dinheiro(orc?.total_geral)}</span>
+                </div>`
+                : `
+                <div style="${horizontal}; gap: 5px; margin-bottom:8px;">
+                    <img src="imagens/projeto.png" onclick="criarOrcamentoPda('${idPda}')">
+                    <textarea class="etiquetas" style="width:100%;" oninput="mostrarBtn(this)">${pda.nome || ''}</textarea>
+                    <img data-campo="nome" onclick="atualizarPda(this, '${idPda}')" style="display:none; width:1.5rem;" src="imagens/concluido.png">
+                </div>
+            `
+
+            projetosHtml += blocoProjeto
+        }
 
         linhas += `
-        <tr>
-            <td>
-                <div style="${vertical}; gap: 2px;">
-                    ${tecnicos || 'Sem Técnicos'}
-                </div>
-            </td>
-            <td>
-                ${orcamento ? existente : novo}
-            </td>
-            <td>${dtPrazo(pda.inicio).data}</td>
-            <td>${dtPrazo(pda.termino).data}</td>
-            <td>${coments(pda?.comentario, 'comentario', idPda)}</td>
+        <tr data-tecnico="${codTec}">
+            <td>${dadosTec.nome}</td>
+            <td><div style="${vertical}; gap: 2px;">${projetosHtml}</div></td>
         </tr>
         `
     }
 
-    const colunas = ['Técnicos', 'Projeto', 'Início', 'Término', 'Comentários']
+    const colunas = ['Técnico', 'Projetos']
 
     const acumulado = `
         <div style="${vertical}; width: 100%;">
@@ -140,27 +269,31 @@ function tabelaTecnicos() {
                     <img src="imagens/atualizar3.png" onclick="sincronizarPda()">
                 </div>
             </div>
+
             <div class="div-tabela">
                 <table class="tabela">
                     <thead>
-                        <tr>${colunas.map(op => `<th>${op}</th>`).join('')}</tr>
+                        <tr>${colunas.map(c => `<th>${c}</th>`).join('')}</tr>
                     </thead>
                     <tbody>${linhas}</tbody>
                 </table>
             </div>
+
             <div class="rodape-tabela"></div>
         </div>
     `
 
     const chave = 'tabela-Técnicos'
-    const tTecnicos = document.querySelector(`.${chave}`)
-    if (tTecnicos) return tTecnicos.innerHTML = acumulado
+    const t = document.querySelector(`.${chave}`)
+    if (t) return t.innerHTML = acumulado
 
     return `<div class="${chave}" name="tabela">${acumulado}</div>`
-
 }
 
+
 function indicadores() {
+
+    const permitidos = ['adm', 'gerente', 'diretoria']
 
     const totais = {
         pendente: 0,
@@ -169,21 +302,41 @@ function indicadores() {
     }
 
     const tUsuario = {}
+    let acoes = ''
 
-    for (const [, pda] of Object.entries(pdas || {})) {
+    for (const [idOrcamento, pda] of Object.entries(pdas || {})) {
 
-        console.log(pda);
 
-        for (const [, acao] of Object.entries(pda?.acoes || {})) {
-            const dt = acao?.status == 'concluído'
+        for (const [idAcao, dados] of Object.entries(pda?.acoes || {})) {
+            const dt = dados?.status == 'concluído'
                 ? 'concluido'
-                : dtPrazo(acao?.prazo).estilo || 'pendente'
+                : dtPrazo(dados?.prazo).estilo || 'pendente'
 
             totais[dt]++
 
-            tUsuario[acao.responsavel] ??= {}
-            tUsuario[acao.responsavel][dt] ??= 0
-            tUsuario[acao.responsavel][dt]++
+            tUsuario[dados.responsavel] ??= {}
+            tUsuario[dados.responsavel][dt] ??= 0
+            tUsuario[dados.responsavel][dt]++
+
+            if (dados?.responsavel == acesso.usuario || permitidos.includes(acesso.permissao)) {
+
+                if (dados.status == 'concluído') continue
+
+                const formato = dtPrazo(dados?.prazo)
+
+                acoes += `
+                <div style="${horizontal}; width: 100%; gap: 0.5rem;">
+                    <div class="etiqueta-${formato.estilo}">
+                        <span><b>Ação:</b> ${dados?.acao || ''}</span>
+                        <span><b>Responsável:</b> ${dados?.responsavel || ''}</span>
+                        <span><b>Prazo:</b> ${formato.data}</span>
+                        ${dados.registro
+                        ? `<span><b>criado em: </b>${new Date(dados.registro).toLocaleString('pt-BR')}</span>`
+                        : ''}
+                    </div>
+                    <img src="imagens/editar.png" style="width: 1.5rem;" onclick="formAcao('${idOrcamento}', '${idAcao}')">
+                </div>`
+            }
 
         }
     }
@@ -200,44 +353,41 @@ function indicadores() {
             <div style="${vertical}; gap: 5px; padding: 0.5rem;">
                 <span>Contador de ações <b>${texto}</b></span>
                 <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
-                    ${box("Pendente", totais.pendente, "#41a6ff")}
-                    ${box("Atrasado", totais.atrasado, "#ff0000")}
-                    ${box("Concluído", totais.concluido, "#008000")}
+                    ${box("Pendente", totais?.pendente || 0, "#41a6ff")}
+                    ${box("Atrasado", totais?.atrasado || 0, "#ff0000")}
+                    ${box("Concluído", totais?.concluido || 0, "#008000")}
                 </div>
             </div>
         `
     }
 
-    const linhas = Object.entries(tUsuario)
-        .map(([usuario, totais]) => `
-            <tr>
-                <td>${usuario}</td>
-                <td>${totais?.pendente || 0}</td>
-                <td>${totais?.atrasado || 0}</td>
-                <td>${totais?.concluido || 0}</td>
-            </tr>
-        `).join('')
-
     const acumulado = `
     <div style="${horizontal}; align-items: start; justify-content: start; width: 100%;">
         <div style="${vertical}; width: 50%;">
+
             ${indi(totais, 'Geral')}
-            ${indi(tUsuario[acesso?.usuario], acesso.usuario || '...')}
+            ${tUsuario[acesso?.usuario] ? indi(tUsuario[acesso?.usuario], acesso.usuario || '...') : ''}
+            <div style="${vertical}; padding: 1rem; gap: 0.5rem; width: 100%;">
+                <span>Ações pendentes do Usuário</span>
+                <div class="acoes">
+                    ${acoes}
+                </div>
+            </div>
+            
+        </div>
+        
+        <div style="${vertical}; align-items: center; padding: 0.5rem;">
+            <div style="${horizontal}; gap: 0.5rem;">
+                <img src="imagens/atualizar3.png" onclick="sincronizarPda()">
+                <div class="aba-toolbar" name="toolbar-mapas" data-tipo="pda" onclick="auxMapa('pda')">Orçamentos em PDA</div>
+                <div class="aba-toolbar" name="toolbar-mapas" data-tipo="orcamento" onclick="auxMapa('orcamento')">Orçamentos x Estado</div>
+            </div>
+            <div class="fundo-mapa">
+                <img src="imagens/mapa.png" class="mapa">
+                <svg id="mapaOverlay" width="600" height="600" style="position: absolute; top: 0; left: 0;"></svg>
+            </div>
         </div>
 
-        <div style="${vertical}; padding: 1rem; width: 50%;">
-            <span>Tabela geral de Ações</span>
-            <div class="topo-tabela"></div>
-            <div class="div-tabela">
-                <table class="tabela">
-                    <thead>
-                        <tr>${['Usuários', 'Pendente', 'Atrasado', 'Concluído'].map(op => `<th>${op}</th>`).join('')}</tr>
-                    </thead>
-                    <tbody>${linhas}</tbody>
-                </table>
-            </div>
-            <div class="rodape-tabela"></div>
-        </div>
     </div>
     `
     const tIndicadores = document.querySelector('.tabela-Indicadores')
@@ -303,7 +453,23 @@ function carregarPDA() {
                         <tr>${ths}</tr>
                         <tr>${pesquisas}</tr>
                     </thead>
-                    <tbody id="pda"></tbody>
+                    <tbody id="bodyPDA"></tbody>
+                </table>
+            </div>
+            <div class="rodape-tabela"></div>
+        </div>
+        <div class="tabela-CONCLUÍDO" name="tabela" style="flex-direction: column;">
+            <div class="topo-tabela">
+                <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
+                    <img src="imagens/atualizar3.png" onclick="sincronizarPda()">
+                </div>
+            </div>
+            <div class="div-tabela">
+                <table class="tabela">
+                    <thead>
+                        <tr>${ths}</tr>
+                    </thead>
+                    <tbody id="bodyCONCLUÍDO"></tbody>
                 </table>
             </div>
             <div class="rodape-tabela"></div>
@@ -334,7 +500,10 @@ function linPda(idOrcamento, dados) {
     const st = orcamento?.status?.atual || ''
     const opcoes = ['', ...fluxograma].map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`).join('')
 
-    const tecs = (orcamento?.checklist?.tecnicos || [])
+    const pda = pdas[idOrcamento]
+    const listaTecs = orcamento?.checklist?.tecnicos || pda?.tecnicos || []
+
+    const tecs = listaTecs
         .map(codTec => {
             const cliente = dados_clientes?.[codTec] || {}
             return `<div class="etiquetas" style="min-width: 100px;">${cliente?.nome || '...'}</div>`
@@ -374,7 +543,14 @@ function linPda(idOrcamento, dados) {
     const novo = `
         <div style="${horizontal}; gap: 5px;">
             <img src="imagens/projeto.png" onclick="criarOrcamentoPda('${idOrcamento}')">
-            <div class="etiquetas" style="width: 100%;" oninput="mostrarBtn(this)" contentEditable="true">${dados.nome || ''}</div>
+            <div style="${vertical}; gap: 2px;">
+                <span>Estado</span>
+                <select class="etiquetas" onchange="atualizarEstado(this, '${idOrcamento}')">
+                    <option></option>
+                    ${Object.keys(posicoesEstados).map(estado => `<option ${dados.estado == estado ? 'selected' : ''}>${estado}</option>`).join('')}
+                </select>
+            </div>
+            <div class="etiquetas" style="width: 100%; height: 50px;" oninput="mostrarBtn(this)" contentEditable="true">${dados.nome || ''}</div>
             <img data-campo="nome" onclick="atualizarPda(this, '${idOrcamento}')" style="display: none; width: 1.5rem;" src="imagens/concluido.png">
         </div>
     `
@@ -400,7 +576,7 @@ function linPda(idOrcamento, dados) {
         </td>
         <td>
             <div style="${horizontal}; justify-content: start; align-items: start; gap: 2px;">
-                <img onclick="id_orcam = '${idOrcamento}'; tecnicosAtivos()" src="imagens/baixar.png" style="width: 1.5rem;">
+                <img onclick="id_orcam = '${idOrcamento}'; tecPda = true; tecnicosAtivos()" src="imagens/baixar.png" style="width: 1.5rem;">
                 <div style="${vertical}; gap: 2px; width: 100%;">
                     ${tecs}
                 </div>
@@ -449,15 +625,53 @@ function linPda(idOrcamento, dados) {
         </td>
     `
 
-    const trExistente = document.getElementById(idOrcamento)
-    if (trExistente) return trExistente.innerHTML = tds
+    const historico = orcamento?.status?.historicoStatus || {}
+    let concluido = false
 
-    document.getElementById('pda').insertAdjacentHTML('beforeend', `<tr id="${idOrcamento}">${tds}</tr>`)
+    for (const [, dados] of Object.entries(historico)) {
+        if (dados?.para == 'CONCLUÍDO') {
+            concluido = true
+            break
+        }
+    }
+
+    const aba = concluido ? 'CONCLUÍDO' : 'PDA'
+    const destino = document.getElementById(`body${aba}`)
+    const idTr = `PDA_${idOrcamento}`
+    let tr = document.getElementById(idTr)
+
+    if (tr) {
+        const statusAtual = tr.dataset.status
+        const deveriaSer = concluido ? 'S' : 'N'
+
+        // linha está na aba errada → mover
+        if (statusAtual !== deveriaSer) {
+            tr.remove()
+            tr = null
+        }
+    }
+
+    if (!tr) {
+        // criar nova na aba correta
+        destino.insertAdjacentHTML(
+            'beforeend',
+            `<tr data-status="${concluido ? 'S' : 'N'}" id="PDA_${idOrcamento}">${tds}</tr>`
+        )
+    } else {
+        // atualizar conteúdo se ela já estava na aba correta
+        tr.dataset.status = concluido ? 'S' : 'N'
+        tr.innerHTML = tds
+    }
+
 }
 
 async function criarOrcamentoPda(id) {
 
-    const orcamento = { id }
+    const orcamento = {
+        id,
+        checklist: { tecnicos: pdas?.[id].tecnicos || {} }
+    }
+
     baseOrcamento(orcamento)
     await telaCriarOrcamento()
 
@@ -481,6 +695,17 @@ async function excluirPda(idOrcamento) {
     deletar(`pda/${idOrcamento}`)
     await telaInicial()
     removerPopup()
+
+}
+
+async function atualizarEstado(select, idOrcamento) {
+
+    const pda = await recuperarDado('pda', idOrcamento)
+    const estado = select.value
+    pda.estado = estado
+
+    await inserirDados({ [idOrcamento]: pda }, 'pda')
+    enviar(`pda/${idOrcamento}/estado`, estado)
 
 }
 
@@ -639,7 +864,7 @@ function adicionarLinPda() {
     ]
 
     const botoes = [
-        { texto: 'Salvar', img: 'salvo', funcao: `salvarCartao()` }
+        { texto: 'Salvar', img: 'concluido', funcao: `salvarCartao()` }
     ]
 
     const form = new formulario({ linhas, botoes, titulo: 'Adicionar linha' })
@@ -675,16 +900,22 @@ async function salvarCartao() {
     overlayAguarde()
 
     const elemento = document.querySelector('[name="orcamento"]')
-    if (!elemento.id) return
+    if (!elemento.id) {
+        removerPopup()
+        return
+    }
+
     const idOrcamento = elemento.id
-    const dados = {}
+    const dados = {
+        usuario: acesso.usuario
+    }
 
     if (elemento.tagName === 'TEXTAREA') dados.nome = elemento.value
 
     await inserirDados({ [idOrcamento]: dados }, 'pda')
-    enviar(`pda/${idOrcamento}`, dados)
-
     await telaInicial()
+
+    enviar(`pda/${idOrcamento}`, dados)
 
     removerPopup()
 

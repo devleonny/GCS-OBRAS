@@ -266,6 +266,7 @@ async function despoluicaoGCS() {
     logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
 
     const bases = [
+        'pda',
         'tags',
         'tags_orcamentos',
         'departamentos_AC',
@@ -2423,11 +2424,9 @@ async function salvarDadosCliente() {
 
     overlayAguarde()
 
-    const edicaoClienteOrcamento = document.getElementById('edicaoClienteOrcamento')
-    const idOrcamento = edicaoClienteOrcamento?.textContent || null
-    let orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-
+    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
     let orcamentoBase = orcamento || baseOrcamento()
+    const idOrcamento = id_orcam
 
     const el = (id) => {
         const elemento = document.getElementById(id)

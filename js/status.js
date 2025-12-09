@@ -1408,7 +1408,7 @@ function elementosEspecificos(chave, historico) {
     if (funcaoEditar !== '') {
         acumulado += `
         <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" class="contorno-botoes" onclick="${funcaoEditar}">
-            <img src="imagens/editar4.png">
+            <img src="imagens/editar4.png" style="width: 1rem;">
             <label>Editar</label>
         </div>
         `
