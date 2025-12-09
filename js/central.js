@@ -168,14 +168,14 @@ const esquemaBotoes = {
         { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
         { nome: 'Salvar Orçamento', funcao: `enviarDadosOrcamento`, img: 'salvo' },
         { nome: 'Apagar Orçamento', funcao: `apagarOrcamento`, img: 'remover' },
-        { nome: 'Voltar', funcao: `rstTelaOrcamentos`, img: 'voltar_2' }
+        { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'voltar_2' }
     ],
     criarOrcamentosAluguel: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
         { nome: 'Salvar Orçamento', funcao: `enviarDadosAluguel`, img: 'salvo' },
         { nome: 'Apagar Orçamento', funcao: `apagarOrcamentoAluguel`, img: 'remover' },
-        { nome: 'Voltar', funcao: `rstTelaOrcamentos`, img: 'voltar_2' }
+        { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'voltar_2' }
     ],
     orcamentos: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
