@@ -1686,8 +1686,8 @@ async function confirmarRelancamento(idPagamento) {
     await inserirDados({ [idPagamento]: pagamento }, 'lista_pagamentos')
     await abrirDetalhesPagamentos(idPagamento)
 
-    const textoPrincipal = resposta?.mensagem?.descricao_status || JSON.stringify(resposta)
-    const infoAdicional = resposta?.mensagem?.exclusaoPagamento || ''
+    const textoPrincipal = resposta?.objeto?.descricao_status || JSON.stringify(resposta)
+    const infoAdicional = resposta?.objeto?.exclusaoPagamento || ''
     const texto = `
         <div style="${vertical}; gap: 5px; text-align: left;">
             <span>${textoPrincipal}</span>
@@ -2775,6 +2775,8 @@ async function auxDepartamentos() {
 
         const codDep = orcamento.departamento.AC.codigo
         const codCliente = orcamento?.dados_orcam?.omie_cliente || ''
+
+        if (!departamentos[codDep]) continue
 
         if (!departamentos[codDep]) continue
 

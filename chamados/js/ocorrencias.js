@@ -741,11 +741,20 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
                 ${equipamentos}
             </div>`},
         { elemento: `${await blocoAuxiliarFotos(correcao?.fotos || {}, true)}` },
-        { texto: 'Anexos', elemento: `<input type="file" style="display: none;" onchange="anexosOcorrencias(this, '${idOcorrencia}', '${idCorrecao ? idCorrecao : 'novo'}')">` },
         {
-            elemento: `<div id="anexos" style="${vertical};">
-                ${Object.entries(correcao?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual({ nome: anexo.nome, link: anexo.link, funcao: `removerAnexo(this, '${idAnexo}', '${idOcorrencia}', '${idCorrecao}')` })).join('')}
-            </div>`}
+            texto: 'Anexos',
+            elemento: `
+            <div style="${vertical}; gap: 5px;">
+                <label class="campos">
+                    Clique aqui
+                    <input type="file" style="display: none;" onchange="anexosOcorrencias(this, '${idOcorrencia}', '${idCorrecao ? idCorrecao : 'novo'}')">
+                </label>
+                <div id="anexos" style="${vertical};">
+                    ${Object.entries(correcao?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual({ nome: anexo.nome, link: anexo.link, funcao: `removerAnexo(this, '${idAnexo}', '${idOcorrencia}', '${idCorrecao}')` })).join('')}
+                </div>
+            </div>
+            `
+        }
     ]
     const botoes = [{ img: 'concluido', texto: 'Salvar', funcao }]
     const form = new formulario({ linhas, botoes, titulo: 'Gerenciar Correção' })

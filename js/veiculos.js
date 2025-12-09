@@ -593,7 +593,8 @@ async function painelValores(idCusto, duplicar) {
     ]
 
     const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: !idCusto ? `salvarValores()` : duplicar ? `salvarValores(false)` : `salvarValores('${idCusto}')` }
+        { texto: 'Salvar', img: 'concluido', funcao: !idCusto ? `salvarValores()` : duplicar ? `salvarValores(false)` : `salvarValores('${idCusto}')` },
+        { texto: 'Atualizar', img: 'atualizar3', funcao: `atualizarDadosVeiculos()`},
     ]
 
     const form = new formulario({ linhas, botoes, titulo: 'Gerenciar Custo' })
