@@ -604,7 +604,7 @@ async function abrirAdicionais(codigo) {
                             <tbody id="linhasManutencao"></tbody>
                         </table>
                     </div>
-                <div class="rodapeTabela"></div>
+                <div class="rodape-tabela"></div>
             </div>
             `}
     ]
@@ -1192,7 +1192,7 @@ async function painelCustos() {
                             <tbody id="bodyCustos"></tbody>
                         </table>
                     </div>
-                    <div class="rodapeTabela"></div>
+                    <div class="rodape-tabela"></div>
                 </div>
             </div>
 
@@ -1207,7 +1207,7 @@ async function painelCustos() {
                             <tbody>${linhasPagamentos}</tbody>
                         </table>
                     </div>
-                    <div class="rodapeTabela"></div>
+                    <div class="rodape-tabela"></div>
                 </div>
             </div>
 
@@ -1407,7 +1407,7 @@ function elementosEspecificos(chave, historico) {
     if (funcaoEditar !== '') {
         acumulado += `
         <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" class="contorno-botoes" onclick="${funcaoEditar}">
-            <img src="imagens/editar4.png">
+            <img src="imagens/editar4.png" style="width: 1rem;">
             <label>Editar</label>
         </div>
         `
@@ -1771,7 +1771,7 @@ async function mostrarHistoricoStatus() {
                         </tbody>
                     </table>
                 </div>
-                <div class="rodapeTabela"></div>
+                <div class="rodape-tabela"></div>
             </div>
         </div>
     `

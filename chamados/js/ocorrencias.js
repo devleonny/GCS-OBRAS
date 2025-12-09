@@ -377,7 +377,7 @@ async function abrirCorrecoes(idOcorrencia) {
 
                 <div class="tabelaCorrecoes"></div>
 
-                <div class="rodapeTabela"></div>
+                <div class="rodape-tabela"></div>
             </div>
 
         </div>
@@ -475,7 +475,7 @@ async function telaOcorrencias(abertos) {
 
             <div class="tabela1"></div>
 
-            <div class="rodapeTabela"></div>
+            <div class="rodape-tabela"></div>
         </div>
     `
 

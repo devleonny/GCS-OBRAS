@@ -107,7 +107,7 @@ async function telaVeiculos() {
                         <tbody id="bodyVeiculos"></tbody>
                     </table>
                 </div>
-                <div class="rodapeTabela"></div>
+                <div class="rodape-tabela"></div>
             </div>
 
         </div>
@@ -159,7 +159,7 @@ function auxMotoristas() {
                     <button onclick="novoMotorista()">Adicionar</button>
                 </div>
                 <div id="motorista" class="fundoPainelLateral">${linhas}</div>
-                <div class="rodapeTabela"></div>
+                <div class="rodape-tabela"></div>
             </div>
 
         </div>
@@ -191,7 +191,7 @@ function auxVeiculos() {
                 <button onclick="novoVeiculo()">Adicionar</button>
             </div>
             <div id="veículo" class="fundoPainelLateral">${linhas}</div>
-            <div class="rodapeTabela"></div>
+            <div class="rodape-tabela"></div>
         </div>
     `
 
@@ -571,7 +571,7 @@ async function painelValores(idCusto, duplicar) {
                     <tbody id="distribuicao"></tbody>
                 </table>
             </div>
-            <div class="rodapeTabela"></div>
+            <div class="rodape-tabela"></div>
         </div>
     `
 

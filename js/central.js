@@ -152,7 +152,7 @@ function criarMenus(chave) {
 
 const esquemaBotoes = {
     inicial: [
-        { nome: 'Orçamentos', funcao: `telaOrcamentos`, img: 'projeto' },
+        { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'projeto' },
         { nome: 'Composições', funcao: `telaComposicoes`, img: 'composicoes' },
         { nome: 'Chamados', funcao: `telaChamados`, img: 'chamados' },
         { nome: 'Veículos', funcao: `telaVeiculos`, img: 'veiculo' },
@@ -163,26 +163,19 @@ const esquemaBotoes = {
         { nome: 'Ocorrências', funcao: `redirecionarChamados`, img: 'LG' },
         { nome: 'Desconectar', funcao: `deslogarUsuario`, img: 'sair' }
     ],
-    pda: [
-        { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
-        { nome: 'Atualizar', funcao: 'atualizarOrcamentos', img: 'atualizar3' },
-        { nome: 'Layout Tradicional', funcao: 'telaOrcamentos', img: 'trocar' },
-        { nome: 'Criar Orçamento', funcao: 'telaCriarOrcamento', img: 'projeto' },
-        { nome: 'Orçamento de Aluguel', funcao: 'telaCriarOrcamentoAluguel', img: 'projeto' },
-    ],
     criarOrcamentos: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
         { nome: 'Salvar Orçamento', funcao: `enviarDadosOrcamento`, img: 'salvo' },
         { nome: 'Apagar Orçamento', funcao: `apagarOrcamento`, img: 'remover' },
-        { nome: 'Voltar', funcao: `telaOrcamentos`, img: 'voltar_2' }
+        { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'voltar_2' }
     ],
     criarOrcamentosAluguel: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
         { nome: 'Salvar Orçamento', funcao: `enviarDadosAluguel`, img: 'salvo' },
         { nome: 'Apagar Orçamento', funcao: `apagarOrcamentoAluguel`, img: 'remover' },
-        { nome: 'Voltar', funcao: `telaOrcamentos`, img: 'voltar_2' }
+        { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'voltar_2' }
     ],
     orcamentos: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
@@ -191,8 +184,7 @@ const esquemaBotoes = {
         { nome: 'Criar Orçamento', funcao: 'telaCriarOrcamento', img: 'projeto' },
         { nome: 'Orçamento de Aluguel', funcao: 'telaCriarOrcamentoAluguel', img: 'projeto' },
         { nome: 'Orçamentos Aquivados', funcao: 'filtrarArquivados', img: 'desarquivar' },
-        { nome: 'Meus Orçamentos', funcao: 'filtrarMeus', img: 'painelcustos' },
-        { nome: 'Layout PDA', funcao: `telaPDA`, img: 'planilha' }
+        { nome: 'Meus Orçamentos', funcao: 'filtrarMeus', img: 'painelcustos' }
     ],
     composicoes: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
@@ -274,6 +266,7 @@ async function despoluicaoGCS() {
     logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
 
     const bases = [
+        'pda',
         'tags',
         'tags_orcamentos',
         'departamentos_AC',
@@ -296,7 +289,8 @@ async function despoluicaoGCS() {
     }
 
     localStorage.setItem('atualizado', true)
-    telaInicial()
+    tela.innerHTML = ''
+    await telaInicial()
     removerOverlay()
 
 }
@@ -567,7 +561,7 @@ async function configs() {
                     <tbody id="tbodyUsuarios">${linhas}</tbody>
                 </table>
                 </div>
-            <div class="rodapeTabela"></div>
+            <div class="rodape-tabela"></div>
         </div>
     `
 
@@ -1181,41 +1175,69 @@ async function continuar() {
 }
 
 function pesquisarGenerico(coluna, texto, filtro, id) {
-    filtro[coluna] = String(texto).toLowerCase().replace('.', '').trim();
 
-    let tbody = document.getElementById(id);
-    let trs = tbody.querySelectorAll('tr');
-    let contador = 0;
+    filtro[coluna] = String(texto).toLowerCase().replace(/\./g, '').trim()
 
-    trs.forEach(function (tr) {
-        let tds = tr.querySelectorAll('td');
-        let mostrarLinha = true;
+    const tbody = document.getElementById(id)
+    if (!tbody) return
 
-        for (var col in filtro) {
-            let filtroTexto = filtro[col];
+    const trs = tbody.querySelectorAll('tr')
+    let contador = 0
 
-            if (filtroTexto && col < tds.length) {
-                let element = tds[col].querySelector('input')
-                    || tds[col].querySelector('textarea')
-                    || tds[col].querySelector('select')
-                    || tds[col].textContent;
+    // pega todo o conteúdo útil da td (inputs, selects, textos)
+    function extrairTexto(td) {
+        let partes = []
 
-                let conteudoCelula = element.value ? element.value : element;
-                let texto_campo = String(conteudoCelula).toLowerCase().replace('.', '').trim();
+        // pega textos diretos
+        partes.push(td.textContent || '')
 
-                if (!texto_campo.includes(filtroTexto)) {
-                    mostrarLinha = false;
-                    break;
-                }
+        // inputs
+        td.querySelectorAll('input').forEach(inp => {
+            partes.push(inp.value || '')
+        })
+
+        // textareas
+        td.querySelectorAll('textarea').forEach(tx => {
+            partes.push(tx.value || '')
+        })
+
+        // selects
+        td.querySelectorAll('select').forEach(sel => {
+            let opt = sel.options[sel.selectedIndex]
+            partes.push(opt ? opt.text : sel.value)
+        })
+
+        // join e normaliza
+        return partes.join(' ').replace(/\s+/g, ' ').trim()
+    }
+
+    trs.forEach(tr => {
+        const tds = tr.querySelectorAll('td')
+        let mostrar = true
+
+        for (const col in filtro) {
+            const filtroTexto = filtro[col]
+            if (!filtroTexto) continue
+
+            if (col >= tds.length) {
+                mostrar = false
+                break
+            }
+
+            const conteudoTd = extrairTexto(tds[col]).toLowerCase().replace(/\./g, '').trim()
+
+            if (!conteudoTd.includes(filtroTexto)) {
+                mostrar = false
+                break
             }
         }
 
-        if (mostrarLinha) contador++;
-        tr.style.display = mostrarLinha ? '' : 'none';
-    });
+        if (mostrar) contador++
+        tr.style.display = mostrar ? '' : 'none'
+    })
 
-    const contagem = document.getElementById('contagem');
-    if (contagem) contagem.textContent = contador;
+    const contagem = document.getElementById('contagem')
+    if (contagem) contagem.textContent = contador
 }
 
 async function salvarLevantamento(idOrcamento, idElemento) {
@@ -1885,7 +1907,7 @@ async function verAprovacoes() {
                     <tbody ${tabela == 'todos' ? 'id="tbodyPendencias"' : ''}>${objeto.linhas}</tbody>
                 </table>
             </div>
-            <div class="rodapeTabela"></div>
+            <div class="rodape-tabela"></div>
         </div>
         `
     }
@@ -2012,7 +2034,7 @@ async function verPedidoAprovacao(idOrcamento) {
                         <tbody>${objeto.linhas}</tbody>
                     </table>
                 </div>
-                <div class="rodapeTabela"></div>
+                <div class="rodape-tabela"></div>
             </div>
             `
     }
@@ -2403,11 +2425,9 @@ async function salvarDadosCliente() {
 
     overlayAguarde()
 
-    const edicaoClienteOrcamento = document.getElementById('edicaoClienteOrcamento')
-    const idOrcamento = edicaoClienteOrcamento?.textContent || null
-    let orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-
+    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
     let orcamentoBase = orcamento || baseOrcamento()
+    const idOrcamento = id_orcam
 
     const el = (id) => {
         const elemento = document.getElementById(id)
@@ -2449,6 +2469,9 @@ async function salvarDadosCliente() {
 
     baseOrcamento(orcamentoBase)
     removerPopup()
+
+    const orcamentoPadrao = document.getElementById('orcamento_padrao')
+    if (!orcamentoPadrao) return
 
     if (orcamentoBase.lpu_ativa === 'MODALIDADE LIVRE') {
         total_v2()
@@ -2538,7 +2561,7 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
         return valor
     }
 
-    let base = await recuperarDados(nomeBase)
+    const base = await recuperarDados(nomeBase)
     let opcoesDiv = ''
 
     for (const [cod, dado] of Object.entries(base)) {
@@ -2548,7 +2571,7 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
         const labels = campos
             .map(campo => {
                 const valor = getValorPorCaminho(dado, campo)
-                return valor ? `<label>${valor}</label>` : ''
+                return valor ? `<div>${valor}</div>` : ''
             })
             .join('')
 
@@ -2558,7 +2581,7 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
         <div 
             name="camposOpcoes" 
             class="atalhos-opcoes" 
-            onclick="selecionar('${name}', '${cod}', '${descricao.replace('"', '')}', ${funcaoAux ? `'${funcaoAux}'` : false})">
+            onclick="selecionar('${name}', '${cod}', '${encodeURIComponent(descricao)}', ${funcaoAux ? `'${funcaoAux}'` : false})">
             <img src="${dado.imagem || 'imagens/LG.png'}" style="width: 3rem;">
             <div style="${vertical}; gap: 2px;">
                 ${labels}
@@ -2585,6 +2608,7 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
 }
 
 async function selecionar(name, id, termo, funcaoAux) {
+    termo = decodeURIComponent(termo)
     const elemento = document.querySelector(`[name='${name}']`)
     elemento.textContent = termo
     elemento.id = id
@@ -2751,6 +2775,8 @@ async function auxDepartamentos() {
 
         const codDep = orcamento.departamento.AC.codigo
         const codCliente = orcamento?.dados_orcam?.omie_cliente || ''
+
+        if (!departamentos[codDep]) continue
 
         if (!departamentos[codDep]) continue
 

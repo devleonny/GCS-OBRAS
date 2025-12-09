@@ -115,7 +115,7 @@ async function telaChamados() {
                     <tbody id="bodyChamados"></tbody>
                 </table>
             </div>
-            <div class="rodapeTabela"></div>
+            <div class="rodape-tabela"></div>
         </div>
     `
 
@@ -254,7 +254,7 @@ async function criarManutencao(id) {
                         <tbody id="linhasManutencao"></tbody>
                     </table>
                 </div>
-            <div class="rodapeTabela"></div>
+            <div class="rodape-tabela"></div>
         </div>
     `
 

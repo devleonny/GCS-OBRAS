@@ -57,7 +57,7 @@ async function telaComposicoes(recriar) {
                     <tbody id="linhasComposicoes"></tbody>
                 </table>
             </div>
-            <div class="rodapeTabela"></div>
+            <div class="rodape-tabela"></div>
         </div>
         `
 
@@ -422,7 +422,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
                         <tbody>${linhas}</tbody>
                     </table>
                 </div>
-            <div class="rodapeTabela"></div>
+            <div class="rodape-tabela"></div>
         </div>
     `
 
@@ -451,7 +451,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
                             <tbody>${linhas}</tbody>
                         </table>
                     </div>
-                <div class="rodapeTabela"></div>
+                <div class="rodape-tabela"></div>
             </div>
         `
     }
@@ -611,7 +611,7 @@ function gerarTabelas(objeto) {
                         <tbody>${linhas}</tbody>
                     </table>
                 </div>
-                <div class="rodapeTabela"></div>
+                <div class="rodape-tabela"></div>
             </div>
         `
 
@@ -1270,7 +1270,7 @@ async function verAgrupamento(codigo) {
                         <tbody id="linhasAgrupamento"></tbody>
                     </table>
                 </div>
-                <div class="rodapeTabela"></div>
+                <div class="rodape-tabela"></div>
             </div>
 
         </div>
@@ -1429,7 +1429,7 @@ async function precosDesatualizados(calculo) {
                         <tbody id="linhasPrecos"></tbody>
                     </table>
                 </div>
-                <div class="rodapeTabela"></div>
+                <div class="rodape-tabela"></div>
             </div>
         </div>
     `

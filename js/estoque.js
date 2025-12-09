@@ -43,7 +43,7 @@ async function telaEstoque() {
                     <tbody id="bodyEstoque"></tbody>
                 </table>
             </div>
-            <div class="rodapeTabela"></div>
+            <div class="rodape-tabela"></div>
         </div>
     `
     const bodyEstoque = document.getElementById('bodyEstoque')
@@ -482,7 +482,7 @@ async function abrirValores(codigo) {
                             <tbody style="color: #222;">${linhas}</tbody>
                         </table>
                     </div>
-                <div class="rodapeTabela"></div>
+                <div class="rodape-tabela"></div>
             </div>
         `
     }
@@ -700,7 +700,7 @@ async function abrirEstoque(codigo, stq) {
                             <tbody style="color: #222;">${linhas}</tbody>
                         </table>
                     </div>
-                <div class="rodapeTabela"></div>
+                <div class="rodape-tabela"></div>
             </div>
         `
     }
@@ -1135,7 +1135,7 @@ async function atualizarDadosRelatorio() {
                         <tbody id="body2">${linhas}</tbody>
                     </table>
                 </div>
-            <div class="rodapeTabela"></div>
+            <div class="rodape-tabela"></div>
         </div>
         `
 

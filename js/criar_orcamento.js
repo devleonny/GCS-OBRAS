@@ -754,7 +754,7 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
                     <tbody id="bodyComposicoes"></tbody>
                 </table>
             </div>
-            <div class="rodapeTabela"></div>
+            <div class="rodape-tabela"></div>
         </div>
         `
     let bodyComposicoes = document.getElementById('bodyComposicoes')
