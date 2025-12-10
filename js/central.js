@@ -167,14 +167,14 @@ const esquemaBotoes = {
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
         { nome: 'Salvar Orçamento', funcao: `enviarDadosOrcamento`, img: 'salvo' },
-        { nome: 'Apagar Orçamento', funcao: `apagarOrcamento`, img: 'remover' },
+        { nome: 'Apagar Orçamento', funcao: `apagarOrcamento`, img: 'cancel' },
         { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'voltar_2' }
     ],
     criarOrcamentosAluguel: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
         { nome: 'Salvar Orçamento', funcao: `enviarDadosAluguel`, img: 'salvo' },
-        { nome: 'Apagar Orçamento', funcao: `apagarOrcamentoAluguel`, img: 'remover' },
+        { nome: 'Apagar Orçamento', funcao: `apagarOrcamentoAluguel`, img: 'cancel' },
         { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'voltar_2' }
     ],
     orcamentos: [
@@ -2425,9 +2425,7 @@ async function salvarDadosCliente() {
 
     overlayAguarde()
 
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    let orcamentoBase = orcamento || baseOrcamento()
-    const idOrcamento = id_orcam
+    const orcamentoBase = telaAtiva == 'orcamento' ? await recuperarDado('dados_orcamentos', id_orcam) : baseOrcamento()
 
     const el = (id) => {
         const elemento = document.getElementById(id)
@@ -2457,13 +2455,13 @@ async function salvarDadosCliente() {
     const filtroChamado = el('filtroChamado')
     orcamentoBase.chamado = filtroChamado.checked
 
-    if (idOrcamento) {
-        enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamentoBase.dados_orcam)
-        enviar(`dados_orcamentos/${idOrcamento}/chamado`, filtroChamado.checked)
-        await inserirDados({ [idOrcamento]: orcamentoBase }, 'dados_orcamentos')
+    if (telaAtiva == 'orcamento') {
+        enviar(`dados_orcamentos/${id_orcam}/dados_orcam`, orcamentoBase.dados_orcam)
+        enviar(`dados_orcamentos/${id_orcam}/chamado`, filtroChamado.checked)
+        await inserirDados({ [id_orcam]: orcamentoBase }, 'dados_orcamentos')
         await telaOrcamentos()
         removerPopup()
-        abrirAtalhos(idOrcamento)
+        abrirAtalhos(id_orcam)
         return
     }
 
