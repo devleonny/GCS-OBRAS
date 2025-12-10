@@ -368,7 +368,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
                     <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
                         <div onclick="ir_pdf('${pagamento.id_orcamento}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 15vw;">
                             <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
-                            <label style="cursor: pointer;"><strong>Orçamento disponível</strong></label>
+                            <label style="cursor: pointer;"><b>Orçamento disponível</b></label>
                         </div>
                     </div>
                 `
@@ -397,7 +397,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
                     <div class="camposFinanceiro">
 
                         <div style="display: flex; gap: 5px; align-items: center; justify-content: left; width: 100%;">
-                            <label class="contorno-botoes" for="anexo_${campo}" style="justify-content: start; border-radius: 50%;">
+                            <label for="anexo_${campo}" style="justify-content: start; border-radius: 50%;">
                                 <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
                                 <input type="file" id="anexo_${campo}" style="display: none;" onchange="salvarAnexosParceiros(this, '${campo}','${pagamento.id_pagamento}')">
                             </label>
@@ -1025,7 +1025,7 @@ function carregarTabelaCustoParceiro(dados = {}) {
     const botaoAtualizar = resumo
         ? `
         <div id="atualizarResumo">
-            ${botao('Atualizar', `atualizarResumo('${id_pagamento}')`, 'green')}
+            <button onclick="atualizarResumo('${id_pagamento}')">Atualizar</button>
         </div>
         `
         : ''
