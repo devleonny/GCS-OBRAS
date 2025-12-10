@@ -380,8 +380,12 @@ async function telaPrincipal(reset) {
     // Após atualização;
     acesso = await recuperarDado('dados_setores', acesso.usuario) || {}
 
+    // Links para cada botão/status Correção;
+    const btnsCorrecao = auxBotoesOcorrencias() || {}
+
     const menus = {
         'Atualizar': { img: 'atualizar', funcao: 'atualizarOcorrencias()', proibidos: [] },
+        btnsCorrecao,
         'Abertos': { id: 'abertos', img: 'configuracoes', funcao: 'telaOcorrencias(true)', proibidos: [] },
         'Relatório de Ocorrências': { img: 'projeto', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] },
         'Usuários': { img: 'perfil', funcao: 'telaUsuarios()', proibidos: ['user', 'técnico', 'analista', 'visitante'] },
@@ -413,6 +417,11 @@ async function telaPrincipal(reset) {
 
     mostrarQuantidades() // De novo, porque os elementos são incluídos após o mostrarQuantidades do atualizar;
 
+}
+
+function auxBotoesOcorrencias() {
+
+    
 }
 
 async function telaUsuarios() {

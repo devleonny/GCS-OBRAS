@@ -13,7 +13,6 @@ let opcoesValidas = {
     finalizado: new Set()
 }
 let emAtualizacao = false
-let ocorrenciasAbertas = null
 
 const labelBotao = (name, nomebase, id, nome) => {
     return `
@@ -425,7 +424,7 @@ async function carregarLinhaCorrecao(idCorrecao, correcao, idOcorrencia) {
         <div style="${vertical}; padding: 0.5rem;">
             ${imagens !== ''
             ? `<div class="fotos" style="display: grid;">${imagens}</div>`
-            : '<span>Sem Imagens</span>'}
+            : '<img src="imagens/img.png" style="width: 4rem;">'}
 
             <div id="anexos" style="${vertical};">
                 ${Object.entries(correcao?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual({ nome: anexo.nome, link: anexo.link, funcao: `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')` })).join('')}
@@ -440,10 +439,7 @@ async function carregarLinhaCorrecao(idCorrecao, correcao, idOcorrencia) {
 
 }
 
-async function telaOcorrencias(abertos) {
-
-    if (abertos !== undefined) ocorrenciasAbertas = abertos
-    if (abertos == undefined && ocorrenciasAbertas !== null) abertos = ocorrenciasAbertas
+async function telaOcorrencias() {
 
     mostrarMenus(false)
 
