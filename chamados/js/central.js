@@ -40,8 +40,6 @@ async function despoluicaoGCS() {
 
     sincronizarApp({ remover: true })
 
-    mostrarQuantidades()
-
 }
 
 function esquemaLinhas(base, id) {
@@ -64,8 +62,8 @@ const modelo = (valor1, valor2) => `
 
 const modeloCampos = (valor1, elemento) => `
     <div style="${horizontal}; justify-content: start; gap: 5px;">
-        <label><b>${valor1}</b></label>
-        <div style="text-align: justify; padding-right: 1vw;">${elemento}</div>
+        <label><b>${valor1}:</b></label>
+        <div style="text-align: justify;">${elemento}</div>
     </div>`
 
 const botao = (texto, funcao, bgColor) => `<button style="background-color: ${bgColor}" onclick="${funcao}">${texto}</button>`
@@ -128,9 +126,10 @@ const btnRodape = (texto, funcao) => `
 const btnPadrao = (texto, funcao) => `
         <span class="btnPadrao" onclick="${funcao}">${texto}</span>
 `
-const btn = ({ img, nome, funcao, id }) => `
+const btn = ({ img, nome, funcao, id, elemento }) => `
     <div class="btnLateral" ${id ? `id="${id}"` : ''} onclick="${funcao}">
-        <img src="imagens/${img}.png">
+        ${img ? `<img src="imagens/${img}.png">` : ''}
+        ${elemento || ''}
         <div>${nome}</div>
     </div>
 `
@@ -318,7 +317,7 @@ function overlayAguarde() {
         <div class="aguarde">
             <img src="gifs/loading.gif">
         </div>
-    `;
+    `
     document.body.insertAdjacentHTML('beforeend', elemento);
 
     const style = document.createElement('style');
@@ -354,11 +353,9 @@ function irGCS() {
     window.location.href = '../index.html'
 }
 
-async function telaPrincipal(reset) {
+async function telaPrincipal() {
 
-    toolbar.style.display = 'flex';
-
-    const blq = ['cliente', 'técnico']
+    toolbar.style.display = 'flex'
 
     const acumulado = `
         <div class="menu-container">
@@ -374,19 +371,33 @@ async function telaPrincipal(reset) {
         </div>
     `
 
-    tela.innerHTML = acumulado;
-    await atualizarOcorrencias(reset)
+    tela.innerHTML = acumulado
+    await atualizarOcorrencias()
 
     // Após atualização;
     acesso = await recuperarDado('dados_setores', acesso.usuario) || {}
 
+}
+
+
+function carregarMenus() {
+
+    const blq = ['cliente', 'técnico']
     // Links para cada botão/status Correção;
-    const btnsCorrecao = auxBotoesOcorrencias() || {}
+    const badge = (numero) => `<span class="pill alert-abertos">${numero}</span>`
+    auxBotoesOcorrencias()
+    const btnsCorrecao = {}
+    for (const [tipo, ocorrencias] of Object.entries(ocorrenciasFiltradas)) {
+        btnsCorrecao[tipo] = {
+            proibidos: [],
+            funcao: `telaOcorrencias('${tipo}')`,
+            elemento: badge(Object.keys(ocorrencias).length)
+        }
+    }
 
     const menus = {
         'Atualizar': { img: 'atualizar', funcao: 'atualizarOcorrencias()', proibidos: [] },
-        btnsCorrecao,
-        'Abertos': { id: 'abertos', img: 'configuracoes', funcao: 'telaOcorrencias(true)', proibidos: [] },
+        ...btnsCorrecao,
         'Relatório de Ocorrências': { img: 'projeto', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] },
         'Usuários': { img: 'perfil', funcao: 'telaUsuarios()', proibidos: ['user', 'técnico', 'analista', 'visitante'] },
         'Cadastros': { img: 'ajustar', funcao: 'telaCadastros()', proibidos: ['user', 'técnico', 'visitante'] },
@@ -412,17 +423,35 @@ async function telaPrincipal(reset) {
         ${stringMenus}
     `
     document.querySelector('.botoesMenu').innerHTML = botoes
-
-    if (acesso?.empresa == '') popup(mensagem('<b>Usuário sem empresa vinculada:</b> O relatório sairá sem dados.'), 'Sem empresa vinculada', true)
-
-    mostrarQuantidades() // De novo, porque os elementos são incluídos após o mostrarQuantidades do atualizar;
-
 }
 
 function auxBotoesOcorrencias() {
 
-    
+    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias)) {
+
+        const lista = Object.values(ocorrencia.correcoes || {})
+
+        // Sem correções
+        if (lista.length === 0) {
+            ocorrenciasFiltradas["SEM CORREÇÃO"] ??= {}
+            ocorrenciasFiltradas["SEM CORREÇÃO"][idOcorrencia] = ocorrencia
+            continue
+        }
+
+        // Ordena pela data (mais recente primeiro)
+        const ultima = lista.sort((a, b) => new Date(b.data) - new Date(a.data))[0]
+
+        let nomeCorrecao =
+            correcoes[ultima?.tipoCorrecao]?.nome?.toUpperCase() ||
+            "CORREÇÃO EM BRANCO"
+
+        if (nomeCorrecao == 'SOLUCIONADA') continue
+
+        ocorrenciasFiltradas[nomeCorrecao] ??= {}
+        ocorrenciasFiltradas[nomeCorrecao][idOcorrencia] = ocorrencia
+    }
 }
+
 
 async function telaUsuarios() {
 
@@ -585,8 +614,8 @@ async function gerenciarUsuario(id) {
         .map(op => `<option ${usuario?.setor == op ? 'selected' : ''}>${op}</option>`).join('')
 
     const linhas = [
-        { texto: 'Nome', elemento: `<span>${usuario?.nome_completo || '--'}</span>` },
-        { texto: 'E-mail', elemento: `<span>${usuario?.email || '--'}</span>` },
+        { texto: 'Nome', elemento: `<span>${usuario?.nome_completo || '-'}</span>` },
+        { texto: 'E-mail', elemento: `<span>${usuario?.email || '-'}</span>` },
         { texto: 'Permissão', elemento: `<select onchange="configuracoes('${id}', 'permissao', this.value)">${permissoes}</select>` },
         { texto: 'Setor', elemento: `<select onchange="configuracoes('${id}', 'setor', this.value)">${setores}</select>` },
         { texto: 'Empresa', elemento: `<select onchange="configuracoes('${id}', 'empresa', this.value)">${empresasOpcoes}</select>` }

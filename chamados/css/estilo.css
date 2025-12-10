@@ -668,9 +668,9 @@ input[type="file"] {
 }
 
 .fotos {
+    display: grid;
+    grid-template-rows: repeat(3, auto);
     padding: 5px;
-    display: none;
-    grid-template-columns: repeat(3, 1fr);
     align-items: start;
     gap: 2px;
     background-color: #7f7f7f;
@@ -886,6 +886,7 @@ input[type="file"] {
     display: inline-flex;
     gap: 6px;
     align-items: center;
+    margin-left: 1rem;
     padding: 6px 10px;
     border-radius: 999px;
     background: #333;

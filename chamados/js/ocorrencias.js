@@ -6,6 +6,7 @@ let empresas = {}
 let correcoes = {}
 let dados_clientes = {}
 let dados_ocorrencias = {}
+let ocorrenciasFiltradas = {}
 let opcoesValidas = {
     solicitante: new Set(),
     executor: new Set(),
@@ -224,7 +225,7 @@ function ampliarImagem(img, idFoto) {
 
 function dtAuxOcorrencia(dt) {
 
-    if (!dt || '') return '--'
+    if (!dt || '') return '-'
 
     const [ano, mes, dia] = dt.split('-')
 
@@ -310,8 +311,6 @@ async function gerenciarCliente(idCliente) {
 
 async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
 
-    const qtdeCorrecoes = Object.keys(ocorrencia?.correcoes || {}).length
-
     const btnExclusao = (acesso.permissao == 'adm' || ocorrencia.usuario == acesso.usuario)
         ? botaoImg('fechar', `confirmarExclusao('${idOcorrencia}')`)
         : ''
@@ -322,32 +321,27 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
     const corAssinatura = ocorrencia.assinatura ? '#008000' : '#d30000'
 
     const partes = `
-        <div class="linha-parte-1">
+        <div class="bloco-linha">
             <div style="${horizontal}; justify-content: start; gap: 1px; padding: 5px;">
                 ${btnEditar}
                 ${btnExclusao}
-                <div class="contador" onclick="abrirCorrecoes('${idOcorrencia}')">
-                    <img src="imagens/configuracoes.png" style="width: 2.5rem;">
-                    <span>${qtdeCorrecoes}</span>
-                </div>
                 <img src="imagens/pdf.png" style="width: 2.5rem;" onclick="telaOS('${idOcorrencia}')">
 
                 <div style="border: solid 1px ${corAssinatura}; border-radius: 3px; padding: 2px; background-color: ${corAssinatura}52;" onclick="coletarAssinatura('${idOcorrencia}')">
                     <img src="imagens/assinatura.png" style="width: 1.5rem;">
                 </div>
             </div>
-
-            ${botao('Incluir Correção', `formularioCorrecao('${idOcorrencia}')`, '#e47a00')}
-
+            
+            ${modeloCampos('Empresa', empresas[ocorrencia?.empresa]?.nome || '-')}
+            
             <div style="${vertical};">
-                <span><b>Descrição</b></span>
+                <span><b>Descrição:</b></span>
                 <span style="text-align: justify;">${ocorrencia?.descricao || '...'}</span>
             </div>
         </div>
 
-        <div class="linha-parte-2">
-            ${modeloCampos('Empresa', empresas[ocorrencia?.empresa]?.nome || '--')}
-            ${modeloCampos('Número', idOcorrencia)}
+        <div class="bloco-linha">
+            <span class="etiqueta-chamado">${idOcorrencia}</span>
             ${modeloCampos('Última Correção', status)}
             ${modeloCampos('Data Registro', ocorrencia?.dataRegistro || '')}
             ${modeloCampos('Data Limite', dtAuxOcorrencia(ocorrencia?.dataLimiteExecucao))}
@@ -356,94 +350,76 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
             ${modeloCampos('Sistema', sistemas?.[ocorrencia?.sistema]?.nome || '...')}
             ${modeloCampos('Prioridade', prioridades?.[ocorrencia?.prioridade]?.nome || '...')}
         </div>
-    `
 
+        <div class="bloco-linha">
+            ${carregarCorrecoes(idOcorrencia, ocorrencia?.correcoes || {})}
+        </div>
+    `
     const divExistente = document.getElementById(idOcorrencia)
     if (divExistente) return divExistente.innerHTML = partes
 
     document.querySelector('.tabela1').insertAdjacentHTML('beforeend', `<div id="${idOcorrencia}" class="div-linha">${partes}</div>`)
 }
 
-async function abrirCorrecoes(idOcorrencia) {
+function carregarCorrecoes(idOcorrencia, correcoes = {}) {
 
-    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
+    let divsCorrecoes = ''
+    for (const [idCorrecao, correcao] of Object.entries(correcoes)) {
 
-    const acumulado = `
-        <div class="detalhamento-correcoes">
+        const imagens = Object.entries(correcao?.fotos || {})
+            .map(([link,]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/GCS/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
+            .join('')
 
-            <div style="${vertical}">
-                <div class="painelBotoes"></div>
-
-                <div class="tabela-correcoes"></div>
-
-                <div class="rodape-tabela"></div>
-            </div>
-
-        </div>
-    `
-
-    if (Object.keys(ocorrencia?.correcoes || {}).length == 0) {
-        return popup(mensagem('Ainda sem correções'), 'Alerta')
-    }
-
-    const detalhamento = document.querySelector('.detalhamento-correcoes')
-    if (!detalhamento) popup(acumulado, 'Correções', true)
-
-    for (const [idCorrecao, correcao] of Object.entries(ocorrencia?.correcoes || {})) {
-        await carregarLinhaCorrecao(idCorrecao, correcao, idOcorrencia)
-    }
-
-}
-
-async function carregarLinhaCorrecao(idCorrecao, correcao, idOcorrencia) {
-
-    const imagens = Object.entries(correcao?.fotos || {})
-        .map(([link,]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/GCS/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
-        .join('')
-
-    const edicao = (correcao.executor == acesso.usuario || acesso.permissao == 'adm')
-        ? `
-        <div style="${vertical}; gap: 2px; padding: 0.5rem;"> 
+        const edicao = (correcao.executor == acesso.usuario || acesso.permissao == 'adm')
+            ? `
+        <div style="${horizontal}; justify-content: end; width: 100%; gap: 2px; padding: 0.5rem;"> 
             <button onclick="formularioCorrecao('${idOcorrencia}', '${idCorrecao}')">Editar</button>
             <button style="background-color: #B12425;" onclick="confirmarExclusao('${idOcorrencia}', '${idCorrecao}')">Excluir</button>
         </div>
         `
-        : ''
+            : ''
 
-    const divLinha = `
-        ${edicao}
+        divsCorrecoes += `
+            <div class="detalhes-correcoes-1">
 
-        <div style="${vertical}; padding: 0.5rem;">
-            ${modelo('Data da Correção', `<span>${dtFormatada(correcao?.dtCorrecao)}</span>`)}
-            ${modelo('Executor', `<span>${correcao.executor}</span>`)}
-            ${modelo('Correção', `<span>${correcoes?.[correcao.tipoCorrecao]?.nome || '...'}</span>`)}
-            ${modelo('Descrição', `<div style="text-align: justify;">${correcao.descricao}</div>`)}
-            ${modelo('Criado em', `<span>${correcao?.data || 'S/D'}</span>`)}
-        </div>
+                <div style="${vertical}; padding: 0.5rem;">
+                    ${modelo('Data da Correção', `<span>${dtFormatada(correcao?.dtCorrecao)}</span>`)}
+                    ${modelo('Executor', `<span>${correcao.executor}</span>`)}
+                    ${modelo('Correção', `<span>${correcoes?.[correcao.tipoCorrecao]?.nome || '...'}</span>`)}
+                    ${modelo('Descrição', `<div style="text-align: justify;">${correcao.descricao}</div>`)}
+                    ${modelo('Criado em', `<span>${correcao?.data || 'S/D'}</span>`)}
+                </div>
 
-        <div style="${vertical}; padding: 0.5rem;">
-            ${imagens !== ''
-            ? `<div class="fotos" style="display: grid;">${imagens}</div>`
-            : '<img src="imagens/img.png" style="width: 4rem;">'}
 
-            <div id="anexos" style="${vertical};">
-                ${Object.entries(correcao?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual({ nome: anexo.nome, link: anexo.link, funcao: `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')` })).join('')}
-            </div>
+                <div style="${horizontal}">
+                    ${edicao}
+                    <div style="${vertical}; padding: 0.5rem;">
+                        ${imagens !== ''
+                    ? `<div class="fotos" style="display: flex;">${imagens}</div>`
+                    : '<img src="imagens/img.png" style="width: 4rem;">'}
+
+                        <div id="anexos" style="${vertical};">
+                            ${Object.entries(correcao?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual({ nome: anexo.nome, link: anexo.link, funcao: `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')` })).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>`
+    }
+
+    const acumulado = `
+        ${botao('Incluir Correção', `formularioCorrecao('${idOcorrencia}')`, '#e47a00')}
+        <div class="detalhamento-correcoes">
+            ${divsCorrecoes}
         </div>
     `
-    const existente = document.getElementById(idCorrecao)
 
-    if (existente) return existente.innerHTML = divLinha
-
-    document.querySelector('.tabela-correcoes').insertAdjacentHTML('beforeend', `<div class="detalhes-correcoes-1" id="${idCorrecao}">${divLinha}</div>`)
+    return acumulado
 
 }
 
-async function telaOcorrencias() {
+async function telaOcorrencias(tipoCorrecao = 'SEM CORREÇÃO') {
 
     mostrarMenus(false)
-
-    await mostrarQuantidades()
 
     overlayAguarde()
     empresas = await recuperarDados('empresas')
@@ -455,7 +431,7 @@ async function telaOcorrencias() {
 
     const empresaAtiva = empresas[acesso?.empresa]?.nome || 'Desatualizado'
 
-    titulo.innerHTML = `${abertos ? 'ABERTOS' : 'SOLUCIONADOS'} • ${empresaAtiva}`
+    titulo.innerHTML = `${tipoCorrecao} • ${empresaAtiva}`
 
     const acumulado = `
         <div class="tela-ocorrencias">
@@ -480,11 +456,10 @@ async function telaOcorrencias() {
     const telaInterna = document.querySelector('.telaInterna')
     telaInterna.innerHTML = acumulado
 
-    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias).reverse()) {
+    const filtrados = ocorrenciasFiltradas?.[tipoCorrecao] || {}
+    for (const [idOcorrencia, ocorrencia] of Object.entries(filtrados).reverse()) {
 
-        if (abertos && ocorrencia.tipoCorrecao !== 'WRuo2' || !abertos && ocorrencia.tipoCorrecao == 'WRuo2') {
-            await criarLinhaOcorrencia(idOcorrencia, ocorrencia)
-        }
+        await criarLinhaOcorrencia(idOcorrencia, ocorrencia)
 
     }
 
@@ -506,39 +481,7 @@ function pesquisarOcorrencias(termo) {
     }
 }
 
-async function mostrarQuantidades() {
-    let contador = {
-        abertos: 0,
-        solucionados: 0
-    }
-
-    dados_ocorrencias = await recuperarDados('dados_ocorrencias')
-
-    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias)) {
-
-        contador[ocorrencia.tipoCorrecao == 'WRuo2' ? 'solucionados' : 'abertos']++
-
-    }
-
-    criarBadge(contador.abertos, 'abertos')
-    criarBadge(contador.solucionados, 'solucionados')
-}
-
-function criarBadge(numero, idPai) {
-
-    const idBadge = `badge_${idPai}`
-    const badgeExistente = document.getElementById(idBadge)
-    if (badgeExistente) badgeExistente.remove()
-
-    const badge = `<span id="${idBadge}" class="pill alert-${idPai}">${numero}</span>`
-    const elementoPai = document.getElementById(idPai)
-    if (elementoPai) elementoPai.insertAdjacentHTML('beforeend', badge)
-
-}
-
 async function atualizarOcorrencias() {
-
-    await mostrarQuantidades()
 
     if (emAtualizacao) return
 
@@ -577,10 +520,9 @@ async function atualizarOcorrencias() {
     sincronizarApp({ remover: true })
 
     emAtualizacao = false
-
+    correcoes = await recuperarDados('correcoes')
     dados_ocorrencias = await recuperarDados('dados_ocorrencias')
-    await mostrarQuantidades()
-
+    carregarMenus()
 }
 
 function sincronizarApp({ atual, total, remover } = {}) {
@@ -590,7 +532,6 @@ function sincronizarApp({ atual, total, remover } = {}) {
         setTimeout(async () => {
             const loader = document.querySelector('.circular-loader')
             if (loader) loader.remove()
-            if (ocorrenciasAbertas !== null) await telaOcorrencias()
             return
         }, 1000)
 

@@ -261,8 +261,13 @@
 }
 
 .detalhamento-correcoes {
-    background-color: #d2d2d2;
-    padding: 1rem;
+    overflow: auto;
+    height: 180px;
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+    border: solid 1px #797979;
+    background-color: #cbcbcb;
+    padding: 0.5rem;
 }
 
 .div-linha {
@@ -293,14 +298,17 @@
 }
 
 .tabela-correcoes {
+    max-height: 70vh;
+    overflow-x: hidden;
+    overflow-y: auto;
     width: 90vw;
 }
 
 .detalhes-correcoes-1 {
-    background-color: white;
     width: 100%;
+    background-color: white;
     display: flex;
-    align-items: center;
+    align-items: start;
     justify-content: space-between;
     flex-direction: column;
     gap: 1rem;
@@ -311,8 +319,33 @@
     border-bottom: none;
 }
 
+.etiqueta-chamado {
+    width: max-content;
+    flex-direction: column;
+    justify-content: start;
+    align-items: start;
+    display: flex;
+    padding: 3px;
+    border: solid 1px #ff0000;
+    border-radius: 5px;
+    background-color: #f7c5c5;
+}
+
+.bloco-linha {
+    gap: 2px;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    width: 100%;
+}
+
 @media screen and (orientation: landscape),
 screen and (min-aspect-ratio: 13/9) {
+
+    .bloco-linha {
+        width: 100%;
+    }
 
     .tela-ocorrencias {
         min-width: 70vw;
@@ -320,10 +353,6 @@ screen and (min-aspect-ratio: 13/9) {
 
     .tabela-correcoes {
         width: 50vw;
-    }
-
-    .detalhes-correcoes-1 {
-        flex-direction: row;
     }
 
     .linha-parte-1 {
