@@ -188,10 +188,6 @@
     color: red;
 }
 
-.tabelaCorrecoes {
-    width: 100%;
-}
-
 .campos {
     border: solid 1px #249f41;
     text-align: center;
@@ -296,13 +292,23 @@
     flex-direction: column;
 }
 
+.tabela-correcoes {
+    width: 90vw;
+}
+
 .detalhes-correcoes-1 {
+    background-color: white;
     width: 100%;
     display: flex;
-    align-items: start;
+    align-items: center;
     justify-content: space-between;
     flex-direction: column;
     gap: 1rem;
+    border-bottom: solid 1px #797979;
+}
+
+.detalhes-correcoes-1:last-child {
+    border-bottom: none;
 }
 
 @media screen and (orientation: landscape),
@@ -310,6 +316,10 @@ screen and (min-aspect-ratio: 13/9) {
 
     .tela-ocorrencias {
         min-width: 70vw;
+    }
+
+    .tabela-correcoes {
+        width: 50vw;
     }
 
     .detalhes-correcoes-1 {

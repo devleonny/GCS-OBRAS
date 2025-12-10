@@ -76,7 +76,7 @@ const botaoImg = (img, funcao) => `
     </div>`
 
 const dtFormatada = (data) => {
-    if (!data) return '--'
+    if (!data) return '-'
     const [ano, mes, dia] = data.split('-')
     return `${dia}/${mes}/${ano}`
 }
@@ -258,7 +258,7 @@ function popup(elementoHTML, titulo, naoRemoverAnteriores) {
     const acumulado = `
         <div id="tempPop" class="overlay">
 
-            <div class="janela_fora">
+            <div class="janela-fora">
                 
                 <div class="toolbarPopup">
 
@@ -272,6 +272,8 @@ function popup(elementoHTML, titulo, naoRemoverAnteriores) {
                     ${elementoHTML}
 
                 </div>
+
+                <div class="janela-rodape"></div>
 
             </div>
 
@@ -381,11 +383,12 @@ async function telaPrincipal(reset) {
     const menus = {
         'Atualizar': { img: 'atualizar', funcao: 'atualizarOcorrencias()', proibidos: [] },
         'Abertos': { id: 'abertos', img: 'configuracoes', funcao: 'telaOcorrencias(true)', proibidos: [] },
-        'Solucionados': { id: 'solucionados', img: 'configuracoes', funcao: 'telaOcorrencias(false)', proibidos: [] },
-        'Relatório': { img: 'projeto', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] },
+        'Relatório de Ocorrências': { img: 'projeto', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] },
         'Usuários': { img: 'perfil', funcao: 'telaUsuarios()', proibidos: ['user', 'técnico', 'analista', 'visitante'] },
         'Cadastros': { img: 'ajustar', funcao: 'telaCadastros()', proibidos: ['user', 'técnico', 'visitante'] },
-    };
+    }
+
+    // Colocar em outro lugar 'Solucionados': { id: 'solucionados', img: 'configuracoes', funcao: 'telaOcorrencias(false)', proibidos: [] },
 
     if (!blq.includes(acesso.permissao)) {
         menus.GCS = { img: 'LG', funcao: 'irGCS()', proibidos: ['técnico', 'visitante'] }
@@ -957,18 +960,20 @@ async function cxOpcoes(name, nomeBase, funcaoAux) {
     }
 
     const acumulado = `
-        <div style="${horizontal}; justify-content: left; background-color: #b1b1b1;">
+        <div style="${vertical};">
+            <div style="${horizontal}; justify-content: left; background-color: #b1b1b1;">
 
-            <div class="pesquisa">
-                <input oninput="pesquisarCX(this)" placeholder="Pesquisar" style="width: 100%;">
-                <img src="imagens/pesquisar2.png">
+                <div class="pesquisa">
+                    <input oninput="pesquisarCX(this)" placeholder="Pesquisar" style="width: 100%;">
+                    <img src="imagens/pesquisar2.png">
+                </div>
+
             </div>
-
+            <div class="gavetaOpcoes">
+                ${opcoesDiv}
+            </div>
+            <div class="rodape-tabela"></div>
         </div>
-        <div class="gavetaOpcoes">
-            ${opcoesDiv}
-        </div>
-        <div class="rodape-tabela"></div>
     `
 
     popup(acumulado, 'Selecione o item', true)
@@ -998,27 +1003,6 @@ function pesquisarCX(input) {
 
     }
 
-}
-
-async function mobi7({ base, usuarioMobi7, dtInicial, dtFinal }) {
-    return new Promise((resolve, reject) => {
-        fetch(`${api}/mobi7`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ base, usuarioMobi7, dtInicial, dtFinal })
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                resolve(data);
-            })
-            .catch(error => reject(error));
-
-    })
 }
 
 function inicialMaiuscula(string) {

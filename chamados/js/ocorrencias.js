@@ -367,7 +367,7 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
 
 async function abrirCorrecoes(idOcorrencia) {
 
-    let ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
+    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
 
     const acumulado = `
         <div class="detalhamento-correcoes">
@@ -375,7 +375,7 @@ async function abrirCorrecoes(idOcorrencia) {
             <div style="${vertical}">
                 <div class="painelBotoes"></div>
 
-                <div class="tabelaCorrecoes"></div>
+                <div class="tabela-correcoes"></div>
 
                 <div class="rodape-tabela"></div>
             </div>
@@ -403,22 +403,26 @@ async function carregarLinhaCorrecao(idCorrecao, correcao, idOcorrencia) {
         .join('')
 
     const edicao = (correcao.executor == acesso.usuario || acesso.permissao == 'adm')
-        ? `<button onclick="formularioCorrecao('${idOcorrencia}', '${idCorrecao}')">Editar</button>`
+        ? `
+        <div style="${vertical}; gap: 2px; padding: 0.5rem;"> 
+            <button onclick="formularioCorrecao('${idOcorrencia}', '${idCorrecao}')">Editar</button>
+            <button style="background-color: #B12425;" onclick="confirmarExclusao('${idOcorrencia}', '${idCorrecao}')">Excluir</button>
+        </div>
+        `
         : ''
 
     const divLinha = `
-    <div class="detalhes-correcoes-1">
+        ${edicao}
 
-        <div style="${vertical}">
-            ${edicao}
-            <br>
-            ${modelo('Data e Hora', `<span>${correcao?.data || 'S/D'}</span>`)}
+        <div style="${vertical}; padding: 0.5rem;">
+            ${modelo('Data da Correção', `<span>${dtFormatada(correcao?.dtCorrecao)}</span>`)}
             ${modelo('Executor', `<span>${correcao.executor}</span>`)}
             ${modelo('Correção', `<span>${correcoes?.[correcao.tipoCorrecao]?.nome || '...'}</span>`)}
             ${modelo('Descrição', `<div style="text-align: justify;">${correcao.descricao}</div>`)}
+            ${modelo('Criado em', `<span>${correcao?.data || 'S/D'}</span>`)}
         </div>
 
-        <div style="${vertical}">
+        <div style="${vertical}; padding: 0.5rem;">
             ${imagens !== ''
             ? `<div class="fotos" style="display: grid;">${imagens}</div>`
             : '<span>Sem Imagens</span>'}
@@ -427,14 +431,12 @@ async function carregarLinhaCorrecao(idCorrecao, correcao, idOcorrencia) {
                 ${Object.entries(correcao?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual({ nome: anexo.nome, link: anexo.link, funcao: `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')` })).join('')}
             </div>
         </div>
-
-    </div>
     `
     const existente = document.getElementById(idCorrecao)
 
     if (existente) return existente.innerHTML = divLinha
 
-    document.querySelector('.tabelaCorrecoes').insertAdjacentHTML('beforeend', `<div class="div-linha" id="${idCorrecao}">${divLinha}</div>`)
+    document.querySelector('.tabela-correcoes').insertAdjacentHTML('beforeend', `<div class="detalhes-correcoes-1" id="${idCorrecao}">${divLinha}</div>`)
 
 }
 
@@ -731,7 +733,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
     for (const [, equip] of Object.entries(correcao?.equipamentos || {})) equipamentos += await maisLabel(equip)
 
     const linhas = [
-        { texto: 'Data', elemento: `<input type="date" value="${correcao?.dtInformada || ''}">` },
+        { texto: 'Data', elemento: `<input name="dtCorrecao" type="date" value="${correcao?.dtCorrecao || ''}">` },
         { texto: 'Status da Correção', elemento: labelBotao('tipoCorrecao', 'correcoes', correcao?.tipoCorrecao, correcoes[correcao?.tipoCorrecao]?.nome) },
         { texto: 'Quem fará a atividade?', elemento: labelBotao('executor', 'dados_setores', correcao?.executor || acesso.usuario, correcao?.executor || acesso.usuario) },
         { texto: 'Descrição', elemento: `<textarea style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" rows="7" class="campos">${correcao?.descricao || ''}</textarea>` },
@@ -798,7 +800,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao) {
 
     if (!idCorrecao) idCorrecao = ID5digitos()
 
-    let ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
+    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
 
     if (!ocorrencia.correcoes) ocorrencia.correcoes = {}
 
@@ -808,6 +810,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao) {
     const tipoCorrecao = obter('tipoCorrecao').id
 
     Object.assign(correcao, {
+        dtCorrecao: obter('dtCorrecao').value,
         executor: obter('executor').id,
         data: new Date().toLocaleString(),
         tipoCorrecao,

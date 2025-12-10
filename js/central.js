@@ -915,7 +915,7 @@ function popup(elementoHTML, titulo, nao_remover_anteriores) {
     justify-content: center;
     background-color: rgba(0, 0, 0, 0.7);">
 
-        <div class="janela_fora">
+        <div class="janela-fora">
             
             <div class="topo_popup">
 

@@ -1243,7 +1243,7 @@ button {
     border-bottom-right-radius: 10px;
 }
 
-.janela_fora {
+.janela-fora {
     position: relative;
     display: flex;
     flex-direction: column;

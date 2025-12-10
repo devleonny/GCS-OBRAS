@@ -17,12 +17,13 @@ async function telaRelatorio() {
             'Empresa',
             'Chamado',
             'Status',
-            'Abertura',
+            'Data Abertura',
+            'Hora Abertura',
             'Data Limite',
             'Data da Correção',
             'Dias',
             'Solicitante',
-            'Executor',
+            'Executores',
             'Tipo Correção',
             'Loja',
             'Sistema',
@@ -53,12 +54,12 @@ async function telaRelatorio() {
                         <span>Data de abertura</span>
                         <input id="de" type="date" onchange="pesquisarDatas()">
                         <input id="ate" type="date" onchange="pesquisarDatas()">
-                        <span onclick="paraExcel()"><u>Baixar em Excel</u></span>
+                        <span onclick="paraExcel()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
                     </div>
 
                     <div style="${horizontal}; gap: 0.5rem;">
                         ${modelo('Total', 'totalChamados', '#222')}
-                        ${modelo('Finalizados', 'finalizados', '#1d7e45')}
+                        ${modelo('Solucionados', 'solucionados', '#1d7e45')}
                         ${modelo('Em Aberto', 'emAberto', '#b12425')}
                     </div>
                 </div>
@@ -107,6 +108,12 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
 
     const calculos = verificarDtSolucao()
 
+    const [dtAb, hrAb] = ocorrencia.dataRegistro.split(', ')
+
+    const executores = Object.values(ocorrencia?.correcoes|| {})
+        .map(correcao => `<span>${correcao.executor}</span>`)
+        .join('')
+
     const tds = `
         <td>
             <div style="${horizontal}">
@@ -118,7 +125,8 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
         <td>
             <span class="${estilo}">${status}</span>
         </td>
-        <td>${ocorrencia?.dataRegistro || ''}</td>
+        <td>${dtAb}</td>
+        <td>${hrAb}</td>
         <td>${dtAuxOcorrencia(ocorrencia?.dataLimiteExecucao)}</td>
         <td>${calculos.dtSolucaoStr}</td>
         <td> 
@@ -131,8 +139,10 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
             : 'Sem Previsão'
         }
         </td>
-        <td>${ocorrencia?.solicitante || ''}</td>
-        <td>${ocorrencia?.executor || ''}</td>
+        <td>${ocorrencia?.usuario || ''}</td>
+        <td>
+            <div style="${vertical}; gap: 2px;">${executores}</div>
+        </td>
         <td>${tipos?.[ocorrencia?.tipo]?.nome || '...'}</td>
         <td>${dados_clientes?.[ocorrencia?.unidade]?.nome || '...'}</td>
         <td>${sistemas?.[ocorrencia?.sistema]?.nome || '...'}</td>
@@ -189,7 +199,7 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
 function calcularResumo() {
     const totais = {
         totalChamados: 0,
-        finalizados: 0,
+        solucionados: 0,
         emAberto: 0
     }
 
@@ -200,12 +210,12 @@ function calcularResumo() {
         if (tr.style.display == 'none') continue
 
         const tds = tr.querySelectorAll('td')
-        const solucionado = tds[3].textContent == 'Solucionada'
+        const solucionado = tds[3].querySelector('span').textContent == 'Solucionada'
 
         totais.totalChamados++
 
         if (solucionado) {
-            totais.finalizados++
+            totais.solucionados++
         } else {
             totais.emAberto++
         }
