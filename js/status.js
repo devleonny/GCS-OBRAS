@@ -11,6 +11,7 @@ const fluxograma = [
     'ORC PENDENTE',
     'ORC ENVIADO',
     'ORC APROVADO',
+    'ACORDO FINANCEIRO',
     'PENDENTE CERTIFICADO',
     'REQUISIÇÃO',
     'PEND INFRA',
