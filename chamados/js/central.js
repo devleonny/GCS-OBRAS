@@ -9,6 +9,7 @@ let acesso = {}
 const api = `https://api.gcs.app.br`
 let progressCircle = null
 let percentageText = null
+let telaInterna = null
 
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F8') despoluicaoGCS()
@@ -153,8 +154,8 @@ if (isAndroid) {
 
 } else {
 
-    connectWebSocket();
-    telaLogin();
+    connectWebSocket()
+    telaLogin()
 
 }
 
@@ -354,6 +355,11 @@ function irGCS() {
 async function telaPrincipal() {
 
     toolbar.style.display = 'flex'
+    const planoFundo = `
+        <div class="planoFundo">
+            <img src="imagens/BG.png">
+        </div>
+        `
 
     const acumulado = `
         <div class="menu-container">
@@ -362,22 +368,21 @@ async function telaPrincipal() {
                 <div class="botoesMenu"></div>
             </div>
             <div class="telaInterna">
-                <div class="planoFundo">
-                    <img src="imagens/BG.png">
-                </div>
+                ${planoFundo}
             </div>
         </div>
     `
+    if (!telaInterna) tela.innerHTML = acumulado
+    telaInterna = document.querySelector('.telaInterna')
 
-    tela.innerHTML = acumulado
+    telaInterna.innerHTML = planoFundo
+    
     mostrarMenus(true)
 
     await atualizarOcorrencias()
 
     // Após atualização;
     acesso = await recuperarDado('dados_setores', acesso.usuario) || {}
-
-
 
 }
 
@@ -454,7 +459,6 @@ function auxBotoesOcorrencias() {
     }
 }
 
-
 async function telaUsuarios() {
 
     overlayAguarde()
@@ -465,7 +469,6 @@ async function telaUsuarios() {
     const colunas = ['Nome', 'Empresa', 'Setor', 'Permissão', '']
     const base = 'dados_setores'
     const dados_setores = await recuperarDados(base)
-    const telaInterna = document.querySelector('.telaInterna')
     const body = document.getElementById('b-users')
     if (!body) telaInterna.innerHTML = modeloTabela({ colunas, base, body: 'b-users' })
 

@@ -244,7 +244,6 @@ async function telaOS(idOcorrencia) {
         </div>
     `
 
-    const telaInterna = document.querySelector('.telaInterna')
     telaInterna.innerHTML = acumulado
 
 }

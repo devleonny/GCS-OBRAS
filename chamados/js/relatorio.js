@@ -69,7 +69,6 @@ async function telaRelatorio() {
         </div>
     `
 
-    const telaInterna = document.querySelector('.telaInterna')
     telaInterna.innerHTML = acumulado
 
     removerOverlay()

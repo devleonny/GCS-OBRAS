@@ -30,7 +30,7 @@ async function carregarElementosPagina(nomeBase, colunas, tela) {
 
     overlayAguarde()
     const dados = await recuperarDados(nomeBase)
-    const telaInterna = document.querySelector(`.${tela ? tela : 'telaInterna'}`)
+    telaInterna = document.querySelector(`.${tela ? tela : 'tela-interna'}`)
     telaInterna.innerHTML = modeloTabela({ colunas, base: nomeBase })
 
     if (nomeBase !== 'dados_composicoes' && nomeBase !== 'dados_clientes') {
@@ -89,7 +89,6 @@ async function salvarNomeAuxiliar(nomeBase, id) {
 async function telaCadastros() {
     mostrarMenus(false)
     titulo.textContent = 'Cadastros'
-    const telaInterna = document.querySelector('.telaInterna')
     const bases = ['empresas', 'tipos', 'sistemas', 'prioridades', 'correcoes']
     const acumulado = `
         <div style="${vertical}; gap: 2px;">
@@ -451,7 +450,6 @@ async function telaOcorrencias(tipoCorrecao = 'SEM CORREÇÃO') {
         </div>
     `
 
-    const telaInterna = document.querySelector('.telaInterna')
     telaInterna.innerHTML = acumulado
 
     const filtrados = ocorrenciasFiltradas?.[tipoCorrecao] || {}
