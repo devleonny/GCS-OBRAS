@@ -496,7 +496,6 @@ async function paraExcel() {
     document.body.removeChild(link)
 }
 
-
 async function telaRelatorioCorrecoes() {
 
     filtroOcorrencias = {}

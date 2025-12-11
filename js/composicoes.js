@@ -1416,13 +1416,13 @@ async function precosDesatualizados(calculo) {
             <hr>
 
             <span style="${horizontal}">Clique no ícone <img src="imagens/atualizar3.png" style="padding: 5px; width: 1.5rem"> para manter o preço por mais 60 dias</span>
-
+            <span style="cursor: pointer;" onclick="excelProdutosDesatualizados()"><u>Baixar em Excel</u></span>
             <hr>
 
             <div id="tabelaPrecosDesatualizados" class="borda-tabela">
                 <div class="topo-tabela"></div>
                 <div class="div-tabela">
-                    <table class="tabela" id="tabela_composicoes">
+                    <table class="tabela" id="produtos_desatualizados">
                         <thead>
                             <tr>${colunas.map(th => `<th>${th}</th>`).join('')}</tr>
                         </thead>
@@ -1545,5 +1545,78 @@ async function manterPreco(tabela, codigo) {
     removerOverlay()
 
     precosDesatualizados(true) //Atualiza apenas a quantidade;
+
+}
+
+async function excelProdutosDesatualizados() {
+
+    const workbook = new ExcelJS.Workbook()
+    const worksheet = workbook.addWorksheet('Produtos Desatualizados')
+    const trs = document.querySelectorAll('#produtos_desatualizados tr')
+
+    for (let rowIndex = 0; rowIndex < trs.length; rowIndex++) {
+        const tr = trs[rowIndex]
+        const tds = tr.querySelectorAll('td, th')
+        let row = []
+
+        for (let colIndex = 1; colIndex < tds.length; colIndex++) {
+            const td = tds[colIndex]
+
+            const select = td.querySelector('select')
+            const input = td.querySelector('input')
+
+            if (select) row.push(select.value)
+            else if (input) row.push(input.value)
+            else row.push(td.textContent.trim())
+        }
+
+        worksheet.addRow(row)
+    }
+
+    // ====== ESTILOS ======
+    worksheet.eachRow((row, rowNumber) => {
+        row.eachCell((cell, colNumber) => {
+            cell.alignment = { vertical: 'middle', horizontal: 'center' }
+
+            cell.border = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' }
+            }
+
+            if (rowNumber === 1) {
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFD9D9D9' }
+                }
+
+                cell.font = { bold: true }
+            }
+        })
+    })
+
+    // LARGURAS AUTOMÁTICAS
+    worksheet.columns.forEach(col => {
+        let max = 10
+        col.eachCell(cell => {
+            const len = String(cell.value || '').length
+            if (len > max) max = len
+        })
+        col.width = max + 2
+    })
+
+    const buffer = await workbook.xlsx.writeBuffer()
+    const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    })
+
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `produtos-desatualizados-${Date.now()}.xlsx`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
 
 }
