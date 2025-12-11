@@ -28,7 +28,8 @@ async function telaRelatorio() {
             'Loja',
             'Sistema',
             'Prioridade'
-        ], funcao: `atualizarRelatorio()`
+        ],
+        funcao: `atualizarRelatorio()`
     })
 
     const modelo = (texto, name, cor) => `
@@ -73,7 +74,7 @@ async function telaRelatorio() {
 
     removerOverlay()
 
-    titulo.textContent = 'Acompanhamento de Chamados'
+    titulo.textContent = 'Relatório de Ocorrências'
 
     for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias).reverse()) criarLinhaRelatorio(idOcorrencia, ocorrencia)
 
@@ -102,14 +103,14 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
     const estilo = status == 'Solucionada'
         ? 'fin'
         : status == 'Não analisada'
-            ? 'na' 
+            ? 'na'
             : 'and'
 
     const calculos = verificarDtSolucao()
 
     const [dtAb, hrAb] = ocorrencia.dataRegistro.split(', ')
 
-    const executores = Object.values(ocorrencia?.correcoes|| {})
+    const executores = Object.values(ocorrencia?.correcoes || {})
         .map(correcao => `<span>${correcao.executor}</span>`)
         .join('')
 
@@ -491,4 +492,108 @@ async function paraExcel() {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+}
+
+
+async function telaRelatorioCorrecoes() {
+
+    overlayAguarde()
+
+    dados_clientes = await recuperarDados('dados_clientes')
+    empresas = await recuperarDados('empresas')
+    tipos = await recuperarDados('tipos')
+    sistemas = await recuperarDados('sistemas')
+    correcoes = await recuperarDados('correcoes')
+    prioridades = await recuperarDados('prioridades')
+    dados_ocorrencias = await recuperarDados('dados_ocorrencias')
+    const tabela = modeloTabela({
+        colunas: [
+            'Empresa',
+            'Chamado',
+            'Tipo Correção',
+            'Descrição',
+            'Data Registro',
+            'Hora Registro',
+            'Executor',
+            'Loja',
+            'Sistema'
+        ],
+        funcao: `atualizarRelatorio()`
+    })
+
+    const modelo = (texto, name, cor) => `
+        <div style="background-color: ${cor};" class="balao-totais">
+            <label>${texto}</label>
+
+            <div style="${horizontal}; gap: 1rem;">
+                <label name="${name}" style="font-size: 2rem;"></label>
+                ${name !== 'totalChamados' ? `<label name="porc_${name}"></label>` : ''}
+            </div>
+
+        </div>
+    `
+
+    const acumulado = `
+        <div class="pagina-relatorio">
+            <div class="toolbar-relatorio">
+
+                <img src="imagens/GrupoCostaSilva.png" style="width: 10rem;">
+
+                <div class="toolbar-itens">
+                    <div style="${vertical}; gap: 0.5rem;">
+                        <span>Data de abertura</span>
+                        <input id="de" type="date" onchange="pesquisarDatas()">
+                        <input id="ate" type="date" onchange="pesquisarDatas()">
+                        <span onclick="paraExcel()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
+                    </div>
+                </div>
+
+            </div>
+            ${tabela}
+        </div>
+    `
+
+    telaInterna.innerHTML = acumulado
+
+    removerOverlay()
+
+    titulo.textContent = 'Relatório de Correções'
+
+    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias).reverse()) {
+        criarLinhasCorrecoes(idOcorrencia, ocorrencia)
+    }
+
+    mostrarMenus(false)
+
+}
+
+function criarLinhasCorrecoes(idOcorrencia, ocorrencia) {
+
+    const cliente = dados_clientes?.[ocorrencia?.unidade] || {}
+
+    for (const [idCorrecao, correcao] of Object.entries(ocorrencia?.correcoes || {})) {
+
+        const [data, hora] = correcao.data ? correcao.data.split(', ') : ['-', '-']
+
+        const tds = `
+        <td>${empresas?.[ocorrencia?.empresa]?.nome || '-'}</td>
+        <td>${idOcorrencia}</td>
+        <td>${correcoes?.[correcao?.tipoCorrecao]?.nome || '-'}</td>
+        <td>${correcao?.descricao || ''}
+        <td>${data}</td>
+        <td>${hora}</td>
+        <td>${correcao?.executor || '-'}</td>
+        <td>${cliente?.nome || '-'}</td>
+        <td>${sistemas?.[ocorrencia?.sistema]?.nome || '-'}</td>
+        `
+
+        const trExistente = document.getElementById(idCorrecao)
+        if (trExistente) {
+            trExistente.innerHTML = tds
+            continue
+        }
+
+        document.getElementById('body').insertAdjacentHTML('beforeend', `<tr id="${idCorrecao}">${tds}</tr>`)
+    }
+
 }

@@ -10,6 +10,7 @@ const api = `https://api.gcs.app.br`
 let progressCircle = null
 let percentageText = null
 let telaInterna = null
+let filtrosPagina = {}
 
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F8') despoluicaoGCS()
@@ -78,12 +79,13 @@ const dtFormatada = (data) => {
     return `${dia}/${mes}/${ano}`
 }
 
-const modeloTabela = ({ colunas, base, funcao, btnExtras = '', body = 'body' }) => {
+const modeloTabela = ({ removerPesquisa = false, colunas, base, funcao, btnExtras = '', body = 'body' }) => {
 
-    const ths = colunas
-        .map(col => `<th>${col}</th>`).join('')
+    const ths = colunas.map(col => `<th>${col}</th>`).join('')
 
-    const thead = (colunas && colunas.length > 0) ? `<thead>${ths}</thead>` : ''
+    const tPesquisa = colunas
+        .map((col, i) => `<th style="text-align: left;" contentEditable="true" oninput="pesquisarGenerico('${i}', this.textContent)"></th>`)
+        .join('')
 
     const btnAtualizar = base
         ? `<img class="atualizar" src="imagens/atualizar.png" onclick="atualizarDados('${base}')">`
@@ -95,17 +97,16 @@ const modeloTabela = ({ colunas, base, funcao, btnExtras = '', body = 'body' }) 
     <div class="blocoTabela">
         <div class="painelBotoes">
             <div class="botoes">
-                <div class="pesquisa">
-                    <input oninput="pesquisar(this, 'body')" placeholder="Pesquisar" style="width: 100%;">
-                    <img src="imagens/pesquisar2.png">
-                </div>
                 ${btnExtras}
             </div>
             ${btnAtualizar}
         </div>
         <div class="recorteTabela">
             <table class="tabela" ${colunas.length == 2 ? 'style="width: 100%;"' : ''}>
-                ${thead}
+                <thead>
+                    <tr>${ths}</tr>
+                    ${removerPesquisa ? '' : `<tr>${tPesquisa}</tr>`}
+                </thead>
                 <tbody id="${body}"></tbody>
             </table>
         </div>
@@ -156,6 +157,67 @@ if (isAndroid) {
 
     connectWebSocket()
     telaLogin()
+
+}
+
+function pesquisarGenerico(coluna, texto) {
+
+    filtrosPagina[coluna] = String(texto).toLowerCase().replace(/\./g, '').trim()
+
+    const trs = document.querySelectorAll('#body tr')
+    let contador = 0
+
+    // pega todo o conteúdo útil da td (inputs, selects, textos)
+    function extrairTexto(td) {
+        let partes = []
+
+        // pega textos diretos
+        partes.push(td.textContent || '')
+
+        // inputs
+        td.querySelectorAll('input').forEach(inp => {
+            partes.push(inp.value || '')
+        })
+
+        // textareas
+        td.querySelectorAll('textarea').forEach(tx => {
+            partes.push(tx.value || '')
+        })
+
+        // selects
+        td.querySelectorAll('select').forEach(sel => {
+            let opt = sel.options[sel.selectedIndex]
+            partes.push(opt ? opt.text : sel.value)
+        })
+
+        // join e normaliza
+        return partes.join(' ').replace(/\s+/g, ' ').trim()
+    }
+
+    trs.forEach(tr => {
+        const tds = tr.querySelectorAll('td')
+        let mostrar = true
+
+        for (const col in filtrosPagina) {
+            const filtroTexto = filtrosPagina[col]
+            if (!filtroTexto) continue
+
+            if (col >= tds.length) {
+                mostrar = false
+                break
+            }
+
+            const conteudoTd = extrairTexto(tds[col]).toLowerCase().replace(/\./g, '').trim()
+
+            if (!conteudoTd.includes(filtroTexto)) {
+                mostrar = false
+                break
+            }
+        }
+
+        if (mostrar) contador++
+        tr.style.display = mostrar ? '' : 'none'
+    })
 
 }
 
@@ -376,7 +438,7 @@ async function telaPrincipal() {
     telaInterna = document.querySelector('.telaInterna')
 
     telaInterna.innerHTML = planoFundo
-    
+
     mostrarMenus(true)
 
     await atualizarOcorrencias()
@@ -405,7 +467,8 @@ function carregarMenus() {
     const menus = {
         'Atualizar': { img: 'atualizar', funcao: 'telaPrincipal()', proibidos: [] },
         ...btnsCorrecao,
-        'Relatório de Ocorrências': { img: 'projeto', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] },
+        'Relatório de Ocorrências': { img: 'planilha', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] },
+        'Relatório de Correções': { img: 'planilha', funcao: 'telaRelatorioCorrecoes()', proibidos: ['user', 'técnico', 'visitante'] },
         'Usuários': { img: 'perfil', funcao: 'telaUsuarios()', proibidos: ['user', 'técnico', 'analista', 'visitante'] },
         'Cadastros': { img: 'ajustar', funcao: 'telaCadastros()', proibidos: ['user', 'técnico', 'visitante'] },
     }
