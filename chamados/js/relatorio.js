@@ -2,6 +2,8 @@ let filtroOcorrencias = {}
 
 async function telaRelatorio() {
 
+    filtroOcorrencias = {}
+
     overlayAguarde()
 
     dados_clientes = await recuperarDados('dados_clientes')
@@ -497,6 +499,8 @@ async function paraExcel() {
 
 async function telaRelatorioCorrecoes() {
 
+    filtroOcorrencias = {}
+
     overlayAguarde()
 
     dados_clientes = await recuperarDados('dados_clientes')
@@ -579,7 +583,11 @@ function criarLinhasCorrecoes(idOcorrencia, ocorrencia) {
         <td>${empresas?.[ocorrencia?.empresa]?.nome || '-'}</td>
         <td>${idOcorrencia}</td>
         <td>${correcoes?.[correcao?.tipoCorrecao]?.nome || '-'}</td>
-        <td>${correcao?.descricao || ''}
+        <td>
+            <div>
+                ${String(correcao?.descricao || '').replace('\n', '<br>')}
+            </div>
+        </td>
         <td>${data}</td>
         <td>${hora}</td>
         <td>${correcao?.executor || '-'}</td>

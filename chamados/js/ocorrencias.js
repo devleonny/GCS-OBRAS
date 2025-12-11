@@ -26,12 +26,12 @@ const labelBotao = (name, nomebase, id, nome) => {
         `
 }
 
-async function carregarElementosPagina(nomeBase, colunas, tela) {
+async function carregarElementosPagina(nomeBase, colunas) {
 
     overlayAguarde()
     const dados = await recuperarDados(nomeBase)
-    telaInterna = document.querySelector(`.${tela ? tela : 'tela-interna'}`)
-    telaInterna.innerHTML = modeloTabela({ colunas, base: nomeBase })
+    telaInferior = document.querySelector('.telaInferior')
+    telaInferior.innerHTML = modeloTabela({ colunas, base: nomeBase })
 
     if (nomeBase !== 'dados_composicoes' && nomeBase !== 'dados_clientes') {
         const adicionar = `<button onclick="editarBaseAuxiliar('${nomeBase}')">Adicionar</button>`
@@ -47,7 +47,7 @@ async function carregarElementosPagina(nomeBase, colunas, tela) {
 async function carregarBasesAuxiliares(nomeBase) {
     titulo.textContent = inicialMaiuscula(nomeBase)
     const colunas = ['Nome', '']
-    await carregarElementosPagina(nomeBase, colunas, 'telaInferior')
+    await carregarElementosPagina(nomeBase, colunas)
 }
 
 async function editarBaseAuxiliar(nomeBase, id) {
@@ -87,6 +87,9 @@ async function salvarNomeAuxiliar(nomeBase, id) {
 }
 
 async function telaCadastros() {
+
+    filtrosPagina = {}
+    
     mostrarMenus(false)
     titulo.textContent = 'Cadastros'
     const bases = ['empresas', 'tipos', 'sistemas', 'prioridades', 'correcoes']

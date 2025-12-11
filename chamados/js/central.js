@@ -524,6 +524,8 @@ function auxBotoesOcorrencias() {
 
 async function telaUsuarios() {
 
+    filtroOcorrencias = {}
+
     overlayAguarde()
 
     titulo.textContent = 'Usuários'
@@ -532,8 +534,8 @@ async function telaUsuarios() {
     const colunas = ['Nome', 'Empresa', 'Setor', 'Permissão', '']
     const base = 'dados_setores'
     const dados_setores = await recuperarDados(base)
-    const body = document.getElementById('b-users')
-    if (!body) telaInterna.innerHTML = modeloTabela({ colunas, base, body: 'b-users' })
+    const body = document.getElementById('body')
+    if (!body) telaInterna.innerHTML = modeloTabela({ colunas, base })
 
     for (const [user, dados] of Object.entries(dados_setores)) {
         criarLinhaUsuario(user, dados)
@@ -556,7 +558,7 @@ function criarLinhaUsuario(user, dados) {
     const trExistente = document.getElementById(user)
     if (trExistente) return trExistente.innerHTML = tds
 
-    document.getElementById('b-users').insertAdjacentHTML('beforeend', `<tr id="${user}">${tds}</tr>`)
+    document.getElementById('body').insertAdjacentHTML('beforeend', `<tr id="${user}">${tds}</tr>`)
 }
 
 async function criarLinha(dados, id, nomeBase) {
