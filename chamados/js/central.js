@@ -17,8 +17,6 @@ document.addEventListener('keydown', function (event) {
 
 async function despoluicaoGCS() {
 
-    mostrarMenus(true)
-
     sincronizarApp()
     let total = 8
     let atual = 1
@@ -372,10 +370,14 @@ async function telaPrincipal() {
     `
 
     tela.innerHTML = acumulado
+    mostrarMenus(true)
+
     await atualizarOcorrencias()
 
     // Após atualização;
     acesso = await recuperarDado('dados_setores', acesso.usuario) || {}
+
+
 
 }
 
@@ -396,7 +398,7 @@ function carregarMenus() {
     }
 
     const menus = {
-        'Atualizar': { img: 'atualizar', funcao: 'atualizarOcorrencias()', proibidos: [] },
+        'Atualizar': { img: 'atualizar', funcao: 'telaPrincipal()', proibidos: [] },
         ...btnsCorrecao,
         'Relatório de Ocorrências': { img: 'projeto', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] },
         'Usuários': { img: 'perfil', funcao: 'telaUsuarios()', proibidos: ['user', 'técnico', 'analista', 'visitante'] },
@@ -455,7 +457,6 @@ function auxBotoesOcorrencias() {
 
 async function telaUsuarios() {
 
-    mostrarMenus(false)
     overlayAguarde()
 
     titulo.textContent = 'Usuários'
@@ -999,7 +1000,7 @@ async function cxOpcoes(name, nomeBase, funcaoAux) {
 
     const acumulado = `
         <div style="${vertical};">
-            <div style="${horizontal}; justify-content: left; background-color: #b1b1b1;">
+            <div style="${horizontal}; width: 100%; justify-content: left; background-color: #b1b1b1;">
 
                 <div class="pesquisa">
                     <input oninput="pesquisarCX(this)" placeholder="Pesquisar" style="width: 100%;">
@@ -1010,7 +1011,6 @@ async function cxOpcoes(name, nomeBase, funcaoAux) {
             <div class="gavetaOpcoes">
                 ${opcoesDiv}
             </div>
-            <div class="rodape-tabela"></div>
         </div>
     `
 

@@ -160,7 +160,7 @@
 .tabela1 {
     width: 100%;
     height: max-content;
-    max-height: 70vh;
+    max-height: 75vh;
     overflow: auto;
 }
 
@@ -228,7 +228,7 @@
     align-items: start;
     justify-content: start;
     gap: 1px;
-    background-color: #d2d2d2;
+    background-color: #797979;
     width: 100%;
     max-height: 40vh;
     height: max-content;
@@ -378,10 +378,6 @@ screen and (min-aspect-ratio: 13/9) {
     .tabelaRelatorio img {
         padding: 1vw;
         width: 3vw;
-    }
-
-    .tabela1 {
-        max-height: 60vh;
     }
 
     .tabela1 table {

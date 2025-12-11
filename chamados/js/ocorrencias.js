@@ -419,8 +419,6 @@ function carregarCorrecoes(idOcorrencia, correcoes = {}) {
 
 async function telaOcorrencias(tipoCorrecao = 'SEM CORREÇÃO') {
 
-    mostrarMenus(false)
-
     overlayAguarde()
     empresas = await recuperarDados('empresas')
     sistemas = await recuperarDados('sistemas')
@@ -486,8 +484,6 @@ async function atualizarOcorrencias() {
     if (emAtualizacao) return
 
     emAtualizacao = true
-
-    mostrarMenus(true)
     sincronizarApp()
     let status = { total: 9, atual: 1 }
 
