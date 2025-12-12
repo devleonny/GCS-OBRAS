@@ -503,7 +503,7 @@ async function painelAtalhos(idCusto) {
     <div style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 1rem;">
         ${modeloBotoes('duplicar', 'Duplicar Pagamento', `painelValores('${idCusto}', true)`)}
         ${modeloBotoes('editar', 'Editar Pagamento', `painelValores('${idCusto}')`)}
-        ${(acesso.permissao == 'adm' || acesso.usuario == custo.usuario) ? modeloBotoes('excluir', 'Excluir Pagamento', `painelExcluir('${idCusto}')`) : ''}
+        ${(acesso.permissao == 'adm' || acesso.usuario == custo.usuario) ? modeloBotoes('cancel', 'Excluir Pagamento', `painelExcluir('${idCusto}')`) : ''}
     </div>
     `
     popup(acumulado, 'Atalhos')
