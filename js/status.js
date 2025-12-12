@@ -592,9 +592,9 @@ async function abrirAdicionais(codigo) {
         .join('')
 
     const botoes = [
-        {texto: 'Adicionar Peça', img: 'chamados', funcao: `criarLinhaPeca()`},
-        {texto: 'Sincronizar Estoque', img: 'estoque', funcao: `sincronizarDados('dados_estoque')`},
-        {texto: 'Salvar', img: 'concluido', funcao: `salvarAdicionais('${codigo}')`}
+        { texto: 'Adicionar Peça', img: 'chamados', funcao: `criarLinhaPeca()` },
+        { texto: 'Sincronizar Estoque', img: 'estoque', funcao: `sincronizarDados('dados_estoque')` },
+        { texto: 'Salvar', img: 'concluido', funcao: `salvarAdicionais('${codigo}')` }
     ]
 
     const linhas = [
@@ -869,7 +869,7 @@ async function abrirAtalhos(id) {
         ${modeloBotoes('chave', 'Delegar outro analista', `usuariosAutorizados()`)}
         ${modeloBotoes('apagar', 'Excluir Orçamento', `confirmarExclusaoOrcamentoBase('${id}')`)}
         ${modeloBotoes('editar', 'Editar Orçamento', `editar('${id}')`)}
-        <div></div>
+        ${acesso.permissao == 'adm' ? modeloBotoes('editar3', 'Alterar ORC > novo', `mudarNumORC('${id}')`) : '<div></div>'}
         ${modeloBotoes('gerente', 'Editar Dados do Cliente', `painelClientes('${id}')`)}
         `
     }
@@ -891,6 +891,16 @@ async function abrirAtalhos(id) {
 
     popup(`<div class="menu-opcoes-orcamento">${acumulado}</div>`, 'Opções do Orçamento')
 
+}
+
+async function mudarNumORC(id) {
+
+    overlayAguarde()
+
+    await numORC(id)
+
+    removerOverlay()
+    
 }
 
 async function abrirOS(idOrcamento) {
@@ -1734,7 +1744,7 @@ async function alterarStatus(select, id) {
 
     if (novoSt == 'ORC APROVADO') criarDepartamento(id_orcam)
 
-    if (funcaoAtiva == 'telaOrcamentos') filtrarOrcamentos({ ultimoStatus: filtro })
+    if (funcaoAtiva == 'telaOrcamentos') await telaOrcamentos(true)
 }
 
 async function mostrarHistoricoStatus() {

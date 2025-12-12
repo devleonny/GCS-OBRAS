@@ -664,7 +664,7 @@ async function ativarChamado(input, idOrcamento) {
 
     const linha = document.getElementById(idOrcamento)
     if (linha) linha.dataset.chamado = input.checked ? 'S' : 'N'
-    filtrarOrcamentos()
+    await telaOrcamentos(true)
 
 }
 

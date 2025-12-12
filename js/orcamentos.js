@@ -30,7 +30,7 @@ async function atualizarOrcamentos() {
     await sincronizarDados('dados_composicoes')
     await sincronizarDados('dados_clientes')
     await sincronizarDados('tags_orcamentos')
-    await sincronizarDados('tags')
+    await sincronizarDados('dados_ocorrencias')
     await telaOrcamentos()
 
 }
@@ -292,9 +292,15 @@ async function telaOrcamentos(semOverlay) {
     const tabelaOrcamento = document.getElementById('tabelaOrcamento')
     if (!tabelaOrcamento) tela.innerHTML = acumulado
 
+    departamentos = await recuperarDados('departamentos_AC') || {}
     dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     dados_clientes = await recuperarDados('dados_clientes') || {}
     tagsTemporarias = await recuperarDados('tags_orcamentos')
+
+    for (const [, obj] of Object.entries(departamentos)) {
+        const chave = obj.descricao
+        depPorDesc[chave] = obj
+    }
 
     const parseData = data => {
         if (!data || typeof data !== 'string') return 0
@@ -356,7 +362,7 @@ async function telaOrcamentos(semOverlay) {
         }
     }
 
-    pesquisarOrcamentos()
+    if (!semOverlay) pesquisarOrcamentos()
 
     criarMenus('orcamentos')
 
@@ -538,10 +544,11 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
 
     const revisao = orcamento?.revisoes?.atual || null
     const labelRevisao = revisao ? `<label class="etiqueta-revisao">${revisao}</label>` : ''
+    const numOficial = dados_orcam?.chamado || dados_orcam?.contrato || '-'
 
     const numOrcamento = `
         <div style="${horizontal}; gap: 5px;">
-            <span><b>${dados_orcam.contrato}</b></span>
+            <span><b>${numOficial}</b></span>
             <div name="icone"></div>
             ${labelRevisao}
         </div>
@@ -568,11 +575,14 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
             </div>
         `)}
         ${cel(`
-            <div style="${horizontal}; gap: 5px;">
-                ${orcamento.departamento ? `<img src="imagens/esquema.png">` : ''}
+            <div style="${vertical}; gap: 5px;">
                 <select name="status" class="opcoesSelect" onchange="alterarStatus(this, '${idOrcamento}')">
                     ${opcoes}
                 </select>
+                <div style="${horizontal}; width: 100%; justify-content: end; gap: 5px;">
+                    <span>Departamento</span>
+                    <img src="imagens/${depPorDesc[numOficial] ? 'concluido' : 'cancel'}.png" style="width: 1.5rem;">
+                </div>
             </div>
         `)}
         ${cel(`<div class="bloco-etiquetas">${labels.PEDIDO}</div>`)}

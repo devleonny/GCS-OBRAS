@@ -2105,6 +2105,13 @@ input[type=range]::-moz-range-thumb {
     color: #000
 }
 
+.campo-chamado {
+    gap: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+}
+
 .contorno-botoes {
     background-color: #222222e3;
     display: flex;

@@ -16,6 +16,7 @@ let overlayTimeout;
 let semOverlay = false
 let dados_clientes = {}
 let dados_orcamentos = {}
+let depPorDesc = {}
 
 const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
 const botaoRodape = (funcao, texto, img) => `
@@ -1535,7 +1536,9 @@ function connectWebSocket() {
         if (data.tipo == 'exclusao') { // Só se for no nível
             await deletarDB(data.tabela, data.id)
             await refletir()
-        } else if (data.tipo == 'atualizacao') {
+        }
+
+        if (data.tipo == 'atualizacao') {
             await inserirDados({ [data.id]: data.dados }, data.tabela)
             await refletir()
         }
@@ -2238,6 +2241,7 @@ async function verificarNF(numero, tipo, app) {
 
 async function atualizarBaseClientes() {
     await sincronizarDados('dados_clientes')
+    await sincronizarDados('dados_ocorrencias')
 }
 
 async function painelClientes(idOrcamento) {
@@ -2266,20 +2270,27 @@ async function painelClientes(idOrcamento) {
 
     const botoes = [
         { texto: 'Salvar Dados', img: 'concluido', funcao: `salvarDadosCliente()` },
-        { texto: 'Atualizar Clientes', img: 'atualizar3', funcao: `atualizarBaseClientes()` },
+        { texto: 'Atualizar', img: 'atualizar3', funcao: `atualizarBaseClientes()` },
     ]
 
     if (idOrcamento) botoes.push({ texto: 'Limpar Campos', img: 'limpar', funcao: 'executarLimparCampos()' })
 
     const linhas = [
         {
-            texto: 'Chamado', elemento: `
-                <div style="${horizontal}; gap: 3px;">
-                    <input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" value="${dados_orcam?.contrato || ''}">
-                    <input ${styChek} id="chamado_off" onchange="chamadoSequencial(this)" type="checkbox" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
-                    <label>Sem Chamado</label>
+            texto: 'Chamado',
+            elemento: `
+                <div style="${horizontal}; gap: 1rem;">
+                    <span 
+                        class="opcoes" 
+                        name="chamado"
+                        ${dados_orcam?.chamado ? `id="${dados_orcam?.chamado}"` : ''}
+                        onclick="cxOpcoes('chamado', 'dados_ocorrencias', ['id'])">
+                            ${dados_orcam?.chamado || 'Selecione'}
+                    </span>
+                    <input value="${dados_orcam?.contrato || 'ORC ...'}" readOnly>
                 </div>
-            ` },
+            `
+        },
         {
             elemento: `
             <div style="${horizontal}; gap: 3px;">
@@ -2365,15 +2376,15 @@ async function painelClientes(idOrcamento) {
             ` },
         {
             texto: 'Analista', elemento: `
-            <input id="analista" oninput="salvarContatos(this)" value="${dados_orcam?.analista || acesso.nome_completo}">
+            <input id="analista" value="${dados_orcam?.analista || acesso.nome_completo}">
             ` },
         {
             texto: 'E-mail', elemento: `
-            <input id="email_analista" oninput="salvarContatos(this)" value="${dados_orcam?.email_analista || acesso.email}">
+            <input id="email_analista" value="${dados_orcam?.email_analista || acesso.email}">
             ` },
         {
             texto: 'Telefone', elemento: `
-            <input id="telefone_analista" oninput="salvarContatos(this)" value="${dados_orcam?.telefone_analista || acesso.telefone}">
+            <input id="telefone_analista" value="${dados_orcam?.telefone_analista || acesso.telefone}">
             ` },
         {
             texto: 'Empresa', elemento: `
@@ -2385,23 +2396,6 @@ async function painelClientes(idOrcamento) {
 
     const form = new formulario({ linhas, botoes, titulo: 'Dados do Cliente' })
     form.abrirFormulario()
-
-}
-
-function salvarContatos(span) {
-
-    let orcamento = baseOrcamento()
-    if (!orcamento.dados_orcam) orcamento.dados_orcam = {}
-    orcamento.dados_orcam[span.id] = span.textContent
-    baseOrcamento(orcamento)
-
-}
-
-function chamadoSequencial(input) {
-
-    const contrato = document.getElementById('contrato')
-    if (contrato) contrato.style.display = input.checked ? 'none' : 'flex'
-    if (contrato) contrato.value = input.checked ? 'sequencial' : ''
 
 }
 
@@ -2425,7 +2419,7 @@ async function salvarDadosCliente() {
 
     overlayAguarde()
 
-    const orcamentoBase = telaAtiva == 'orcamento' ? await recuperarDado('dados_orcamentos', id_orcam) : baseOrcamento()
+    const orcamentoBase = telaAtiva == 'orcamentos' ? await recuperarDado('dados_orcamentos', id_orcam) : baseOrcamento()
 
     const el = (id) => {
         const elemento = document.getElementById(id)
@@ -2439,7 +2433,6 @@ async function salvarDadosCliente() {
     orcamentoBase.dados_orcam = {
         ...orcamentoBase.dados_orcam,
         omie_cliente,
-        contrato: el('contrato').value,
         condicoes: el('condicoes').value,
         consideracoes: String(el('consideracoes').textContent).toUpperCase(),
         data: new Date().toLocaleString('pt-BR'),
@@ -2452,10 +2445,16 @@ async function salvarDadosCliente() {
         telefone_analista: el('telefone_analista').value
     }
 
+    // Se não existir a chave contrato; sequencial fará que o servidor crie;
+    if (!orcamentoBase.dados_orcam.contrato) orcamentoBase.dados_orcam.contrato = 'sequencial'
+
+    const chamado = document.querySelector('[name="chamado"]').id
+    if (chamado) orcamentoBase.dados_orcam.chamado = chamado
+
     const filtroChamado = el('filtroChamado')
     orcamentoBase.chamado = filtroChamado.checked
 
-    if (telaAtiva == 'orcamento') {
+    if (telaAtiva == 'orcamentos') {
         enviar(`dados_orcamentos/${id_orcam}/dados_orcam`, orcamentoBase.dados_orcam)
         enviar(`dados_orcamentos/${id_orcam}/chamado`, filtroChamado.checked)
         await inserirDados({ [id_orcam]: orcamentoBase }, 'dados_orcamentos')
@@ -2784,4 +2783,21 @@ async function auxDepartamentos() {
 
     await inserirDados(departamentos, 'departamentos_AC')
 
+}
+
+async function numORC(idOrcamento) {
+    try {
+        const response = await fetch(`${api}/prox-num-orc`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idOrcamento })
+        })
+
+        if (!response.ok)
+            throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`)
+
+        return await response.json()
+    } catch (error) {
+        return { mensagem: error.messagem || error.mensage || error }
+    }
 }
