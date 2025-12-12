@@ -905,9 +905,14 @@ input[type="file"] {
     animation: ping-1 1.6s infinite;
 }
 
-.pill.alert-solucionados {
+.pill.alert-solucionada {
     background: linear-gradient(90deg, #c4ef91, #3c9f15);
     animation: ping-2 1.6s infinite
+}
+
+.pill.alert-total {
+    background: linear-gradient(90deg, #5588ff, #004cff);
+    animation: ping-3 1.6s infinite
 }
 
 .timer {
@@ -932,6 +937,20 @@ input[type="file"] {
 @keyframes ping-2 {
     0% {
         box-shadow: 0 0 0 0 #3c9f15
+    }
+
+    70% {
+        box-shadow: 0 0 0 12px #d6344700
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 #d6344700
+    }
+}
+
+@keyframes ping-3 {
+    0% {
+        box-shadow: 0 0 0 0 #004cff
     }
 
     70% {

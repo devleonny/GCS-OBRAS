@@ -1,8 +1,6 @@
-let filtroOcorrencias = {}
-
 async function telaRelatorio() {
 
-    filtroOcorrencias = {}
+    filtrosPagina = {}
 
     overlayAguarde()
 
@@ -151,10 +149,10 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
         <td>${prioridades?.[ocorrencia?.prioridade]?.nome || '...'}</td>
     `
 
-    const trExistente = document.getElementById(idOcorrencia)
+    const trExistente = document.getElementById(`OCOR_${idOcorrencia}`)
     if (trExistente) return trExistente.innerHTML = linha
 
-    document.getElementById('body').insertAdjacentHTML('beforeend', `<tr id="${idOcorrencia}">${tds}</tr>`)
+    document.getElementById('body').insertAdjacentHTML('beforeend', `<tr id="OCOR_${idOcorrencia}">${tds}</tr>`)
 
     function verificarDtSolucao() {
         if (!ocorrencia.dataLimiteExecucao) {
@@ -498,7 +496,7 @@ async function paraExcel() {
 
 async function telaRelatorioCorrecoes() {
 
-    filtroOcorrencias = {}
+    filtrosPagina = {}
 
     overlayAguarde()
 
@@ -523,18 +521,6 @@ async function telaRelatorioCorrecoes() {
         ],
         funcao: `atualizarRelatorio()`
     })
-
-    const modelo = (texto, name, cor) => `
-        <div style="background-color: ${cor};" class="balao-totais">
-            <label>${texto}</label>
-
-            <div style="${horizontal}; gap: 1rem;">
-                <label name="${name}" style="font-size: 2rem;"></label>
-                ${name !== 'totalChamados' ? `<label name="porc_${name}"></label>` : ''}
-            </div>
-
-        </div>
-    `
 
     const acumulado = `
         <div class="pagina-relatorio">
@@ -594,13 +580,13 @@ function criarLinhasCorrecoes(idOcorrencia, ocorrencia) {
         <td>${sistemas?.[ocorrencia?.sistema]?.nome || '-'}</td>
         `
 
-        const trExistente = document.getElementById(idCorrecao)
+        const trExistente = document.getElementById(`CORR_${idCorrecao}`)
         if (trExistente) {
             trExistente.innerHTML = tds
             continue
         }
 
-        document.getElementById('body').insertAdjacentHTML('beforeend', `<tr id="${idCorrecao}">${tds}</tr>`)
+        document.getElementById('body').insertAdjacentHTML('beforeend', `<tr id="CORR_${idCorrecao}">${tds}</tr>`)
     }
 
 }

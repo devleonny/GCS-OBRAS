@@ -453,15 +453,32 @@ function carregarMenus() {
 
     const blq = ['cliente', 'técnico']
     // Links para cada botão/status Correção;
-    const badge = (numero) => `<span class="pill alert-abertos">${numero}</span>`
+    const badge = (numero, c) => `<span class="pill alert-${c || 'abertos'}">${numero}</span>`
     auxBotoesOcorrencias()
     const btnsCorrecao = {}
-    for (const [tipo, ocorrencias] of Object.entries(ocorrenciasFiltradas)) {
+
+    const chaves = Object.keys(ocorrenciasFiltradas)
+        .filter(k => k !== 'SOLUCIONADA')
+        .concat(Object.keys(ocorrenciasFiltradas).includes('SOLUCIONADA') ? ['SOLUCIONADA'] : [])
+
+    for (const tipo of chaves) {
+        const ocorrencias = ocorrenciasFiltradas[tipo]
         btnsCorrecao[tipo] = {
             proibidos: [],
             funcao: `telaOcorrencias('${tipo}')`,
-            elemento: badge(Object.keys(ocorrencias).length)
+            elemento: badge(Object.keys(ocorrencias).length, tipo == 'SOLUCIONADA' ? 'solucionada' : null)
         }
+    }
+
+    let total = 0
+    for (const oc of Object.values(ocorrenciasFiltradas)) {
+        total += Object.keys(oc).length
+    }
+
+    btnsCorrecao['TODOS OS CHAMADOS'] = {
+        proibidos: [],
+        funcao: `telaOcorrencias()`,
+        elemento: badge(total, 'total')
     }
 
     const menus = {
@@ -514,8 +531,6 @@ function auxBotoesOcorrencias() {
         let nomeCorrecao =
             correcoes[ultima?.tipoCorrecao]?.nome?.toUpperCase() ||
             "CORREÇÃO EM BRANCO"
-
-        if (nomeCorrecao == 'SOLUCIONADA') continue
 
         ocorrenciasFiltradas[nomeCorrecao] ??= {}
         ocorrenciasFiltradas[nomeCorrecao][idOcorrencia] = ocorrencia

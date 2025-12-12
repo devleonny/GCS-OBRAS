@@ -89,7 +89,7 @@ async function salvarNomeAuxiliar(nomeBase, id) {
 async function telaCadastros() {
 
     filtrosPagina = {}
-    
+
     mostrarMenus(false)
     titulo.textContent = 'Cadastros'
     const bases = ['empresas', 'tipos', 'sistemas', 'prioridades', 'correcoes']
@@ -321,6 +321,11 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
         : ''
     const status = correcoes[ocorrencia?.tipoCorrecao]?.nome || 'Não analisada'
     const corAssinatura = ocorrencia.assinatura ? '#008000' : '#d30000'
+    const estilo = status == 'Solucionada'
+        ? 'fin'
+        : status == 'Não analisada'
+            ? 'na'
+            : 'and'
 
     const partes = `
         <div class="bloco-linha">
@@ -344,7 +349,7 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
 
         <div class="bloco-linha">
             <span class="etiqueta-chamado">${idOcorrencia}</span>
-            ${modeloCampos('Última Correção', status)}
+            ${modeloCampos('Última Correção', `<span class="${estilo}">${status}</span>`)}
             ${modeloCampos('Data Registro', ocorrencia?.dataRegistro || '')}
             ${modeloCampos('Data Limite', dtAuxOcorrencia(ocorrencia?.dataLimiteExecucao))}
             ${modeloCampos('Tipo', tipos?.[ocorrencia?.tipo]?.nome || '...')}
@@ -363,10 +368,17 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
     document.querySelector('.tabela1').insertAdjacentHTML('beforeend', `<div id="${idOcorrencia}" class="div-linha">${partes}</div>`)
 }
 
-function carregarCorrecoes(idOcorrencia, correcoes = {}) {
+function carregarCorrecoes(idOcorrencia, dadosCorrecao = {}) {
 
     let divsCorrecoes = ''
-    for (const [idCorrecao, correcao] of Object.entries(correcoes)) {
+    for (const [idCorrecao, correcao] of Object.entries(dadosCorrecao)) {
+
+        const status = correcoes?.[correcao?.tipoCorrecao]?.nome || 'Não analisada'
+        const estilo = status == 'Solucionada'
+            ? 'fin'
+            : status == 'Não analisada'
+                ? 'na'
+                : 'and'
 
         const imagens = Object.entries(correcao?.fotos || {})
             .map(([link,]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/GCS/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
@@ -387,7 +399,7 @@ function carregarCorrecoes(idOcorrencia, correcoes = {}) {
                 <div style="${vertical}; padding: 0.5rem;">
                     ${modelo('Data da Correção', `<span>${dtFormatada(correcao?.dtCorrecao)}</span>`)}
                     ${modelo('Executor', `<span>${correcao.executor}</span>`)}
-                    ${modelo('Correção', `<span>${correcoes?.[correcao.tipoCorrecao]?.nome || '...'}</span>`)}
+                    ${modelo('Correção', `<span class="${estilo}">${status}</span>`)}
                     ${modelo('Descrição', `<div style="text-align: justify;">${correcao.descricao}</div>`)}
                     ${modelo('Criado em', `<span>${correcao?.data || 'S/D'}</span>`)}
                 </div>
@@ -397,8 +409,8 @@ function carregarCorrecoes(idOcorrencia, correcoes = {}) {
                     ${edicao}
                     <div style="${vertical}; padding: 0.5rem;">
                         ${imagens !== ''
-                    ? `<div class="fotos" style="display: flex;">${imagens}</div>`
-                    : '<img src="imagens/img.png" style="width: 4rem;">'}
+                ? `<div class="fotos" style="display: flex;">${imagens}</div>`
+                : '<img src="imagens/img.png" style="width: 4rem;">'}
 
                         <div id="anexos" style="${vertical};">
                             ${Object.entries(correcao?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual({ nome: anexo.nome, link: anexo.link, funcao: `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')` })).join('')}
@@ -419,7 +431,9 @@ function carregarCorrecoes(idOcorrencia, correcoes = {}) {
 
 }
 
-async function telaOcorrencias(tipoCorrecao = 'SEM CORREÇÃO') {
+async function telaOcorrencias(tipoCorrecao = 'TODOS OS CHAMADOS') {
+
+    mostrarMenus(false)
 
     overlayAguarde()
     empresas = await recuperarDados('empresas')
@@ -455,7 +469,7 @@ async function telaOcorrencias(tipoCorrecao = 'SEM CORREÇÃO') {
 
     telaInterna.innerHTML = acumulado
 
-    const filtrados = ocorrenciasFiltradas?.[tipoCorrecao] || {}
+    const filtrados = ocorrenciasFiltradas?.[tipoCorrecao] || dados_ocorrencias
     for (const [idOcorrencia, ocorrencia] of Object.entries(filtrados).reverse()) {
 
         await criarLinhaOcorrencia(idOcorrencia, ocorrencia)

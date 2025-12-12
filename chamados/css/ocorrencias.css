@@ -261,6 +261,7 @@
 }
 
 .detalhamento-correcoes {
+    width: 90%;
     overflow: auto;
     height: 180px;
     border-top-left-radius: 5px;
