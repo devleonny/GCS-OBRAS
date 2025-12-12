@@ -35,7 +35,7 @@ async function atualizarOrcamentos() {
         'departamentos_AC'
     ]
 
-    for(const tabela of tabelas) await sincronizarDados(tabela)
+    for (const tabela of tabelas) await sincronizarDados(tabela)
     await auxDepartamentos()
     await telaOrcamentos()
 
@@ -87,7 +87,7 @@ function ordenarOrcamentos(colunaIndex) {
     }
 }
 
-function pesquisarOrcamentos({ ultimoStatus = 'TODOS', col, texto } = {}) {
+function pesquisarOrcamentos({ ultimoStatus = filtro || 'TODOS', col, texto } = {}) {
 
     filtro = ultimoStatus
 
@@ -553,10 +553,11 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         </div>
     `
     const orcamentoMaster = dados_orcamentos?.[orcamento?.hierarquia] || {}
+    const numOficialMaster = orcamentoMaster?.dados_orcam?.chamado || orcamentoMaster?.dados_orcam?.contrato || '-'
     const orcamentosVinculados = orcamento.hierarquia
         ? `
         <div style="${horizontal}; gap: 5px;">
-            <span><b>${orcamentoMaster?.dados_orcam?.contrato || '--'}</b></span>
+            <span><b>${numOficialMaster}</b></span>
             <img src="imagens/link.png" onclick="confirmarRemoverVinculo('${idOrcamento}')" style="width: 1.5rem;">
             ${numOrcamento}
         </div>
