@@ -2762,25 +2762,34 @@ async function criarDepartamento(idOrcamento) {
 
 async function auxDepartamentos() {
 
-    const dados_orcamentos = await recuperarDados('dados_orcamentos')
-    const dados_clientes = await recuperarDados('dados_clientes')
-    const departamentos = await recuperarDados('departamentos_AC')
+    dados_orcamentos = await recuperarDados('dados_orcamentos')
+    dados_clientes = await recuperarDados('dados_clientes')
+    departamentos = await recuperarDados('departamentos_AC')
 
-    for (const [, orcamento] of Object.entries(dados_orcamentos)) {
+    // Objeto global para consultas;
+    for (const [, obj] of Object.entries(departamentos)) {
+        const chave = obj.descricao
+        depPorDesc[chave] = obj
+    }
 
-        if (!orcamento.departamento) continue
+    const orcPorNum = {}
+    for (const [, obj] of Object.entries(dados_orcamentos)) {
+        const numFinal = obj?.dados_orcam?.chamado || obj?.dados_orcam?.contrato
+        if(!numFinal) continue
+        orcPorNum[numFinal] = obj
+    }
 
-        const codDep = orcamento.departamento.AC.codigo
-        const codCliente = orcamento?.dados_orcam?.omie_cliente || ''
+    for (const [, dep] of Object.entries(departamentos)) {
 
-        if (!departamentos[codDep]) continue
-
-        if (!departamentos[codDep]) continue
-
+        const nomeDep = dep.descricao
+        if(depPorDesc[])
+        const cliente = 
+        dep.cliente = 
         departamentos[codDep].cliente = dados_clientes?.[codCliente] || {}
 
     }
 
+    // Aqui será usado nas cxs de Opções, então preciso dele na BDados;
     await inserirDados(departamentos, 'departamentos_AC')
 
 }

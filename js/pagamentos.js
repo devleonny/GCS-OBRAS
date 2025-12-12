@@ -447,7 +447,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
     const bEspeciais = acesso.permissao == 'adm'
         ? `
         ${btnDetalhes('editar', 'Editar Pagamento', `editarPagamento('${id_pagamento}')`)}
-        ${btnDetalhes('remover', 'Excluir pagamento', `confirmarExclusaoPagamento('${id_pagamento}')`)}
+        ${btnDetalhes('cancel', 'Excluir pagamento', `confirmarExclusaoPagamento('${id_pagamento}')`)}
         ${btnDetalhes('concluido', 'Lançar pagamento', `relancarPagamento('${id_pagamento}')`)}
         ${btnDetalhes('anexo', 'Reimportar Anexos no Omie', `reprocessarAnexos('${id_pagamento}')`)}`
         : ''

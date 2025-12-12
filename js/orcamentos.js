@@ -292,15 +292,8 @@ async function telaOrcamentos(semOverlay) {
     const tabelaOrcamento = document.getElementById('tabelaOrcamento')
     if (!tabelaOrcamento) tela.innerHTML = acumulado
 
-    departamentos = await recuperarDados('departamentos_AC') || {}
-    dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    dados_clientes = await recuperarDados('dados_clientes') || {}
+    await auxDepartamentos()
     tagsTemporarias = await recuperarDados('tags_orcamentos')
-
-    for (const [, obj] of Object.entries(departamentos)) {
-        const chave = obj.descricao
-        depPorDesc[chave] = obj
-    }
 
     const parseData = data => {
         if (!data || typeof data !== 'string') return 0
