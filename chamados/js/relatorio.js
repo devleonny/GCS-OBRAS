@@ -26,6 +26,8 @@ async function telaRelatorio() {
             'Executores',
             'Tipo Correção',
             'Loja',
+            'Cidade',
+            'Estado',
             'Sistema',
             'Prioridade'
         ],
@@ -114,6 +116,8 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
         .map(correcao => `<span>${correcao.executor}</span>`)
         .join('')
 
+    const cliente = dados_clientes?.[ocorrencia?.unidade] || {}
+
     const tds = `
         <td>
             <div style="${horizontal}">
@@ -144,7 +148,9 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
             <div style="${vertical}; gap: 2px;">${executores}</div>
         </td>
         <td>${tipos?.[ocorrencia?.tipo]?.nome || '...'}</td>
-        <td>${dados_clientes?.[ocorrencia?.unidade]?.nome || '...'}</td>
+        <td>${cliente?.nome || '-'}</td>
+        <td>${cliente?.cidade || '-'}</td>
+        <td>${cliente?.estado || '-'}</td>
         <td>${sistemas?.[ocorrencia?.sistema]?.nome || '...'}</td>
         <td>${prioridades?.[ocorrencia?.prioridade]?.nome || '...'}</td>
     `

@@ -328,6 +328,7 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
         : status == 'Não analisada'
             ? 'na'
             : 'and'
+    const cliente = dados_clientes?.[ocorrencia?.unidade] || {}
 
     const partes = `
         <div class="bloco-linha">
@@ -341,21 +342,24 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
                 </div>
             </div>
             
-            ${modeloCampos('Empresa', empresas[ocorrencia?.empresa]?.nome || '-')}
-            
             <div style="${vertical};">
                 <span><b>Descrição:</b></span>
                 <span style="text-align: justify;">${ocorrencia?.descricao || '...'}</span>
             </div>
+            <br>
+            ${modeloCampos('Unidade', cliente?.nome || '...')}
+            ${modeloCampos('Endereço', cliente?.bairro || '...')}
+            ${modeloCampos('Cidade', cliente?.cidade || '...')}
+            ${modeloCampos('CNPJ', cliente?.cnpj || '...')}
         </div>
 
         <div class="bloco-linha">
             <span class="etiqueta-chamado">${idOcorrencia}</span>
             ${modeloCampos('Última Correção', `<span class="${estilo}">${status}</span>`)}
+            ${modeloCampos('Empresa', empresas[ocorrencia?.empresa]?.nome || '-')}
             ${modeloCampos('Data Registro', ocorrencia?.dataRegistro || '')}
             ${modeloCampos('Data Limite', dtAuxOcorrencia(ocorrencia?.dataLimiteExecucao))}
             ${modeloCampos('Tipo', tipos?.[ocorrencia?.tipo]?.nome || '...')}
-            ${modeloCampos('Unidade', dados_clientes?.[ocorrencia?.unidade]?.nome || '...')}
             ${modeloCampos('Sistema', sistemas?.[ocorrencia?.sistema]?.nome || '...')}
             ${modeloCampos('Prioridade', prioridades?.[ocorrencia?.prioridade]?.nome || '...')}
         </div>
@@ -766,10 +770,6 @@ async function salvarCorrecao(idOcorrencia, idCorrecao) {
         tipoCorrecao,
         descricao: obter('descricao').value
     })
-
-    if (tipoCorrecao == 'WRuo2' && !ocorrencia.assinatura) {
-        return coletarAssinatura(idOcorrencia)
-    }
 
     const local = await capturarLocalizacao() || { latitude: null, longitude: null }
 
