@@ -51,21 +51,23 @@ async function carregarBasesAuxiliares(nomeBase) {
 }
 
 async function editarBaseAuxiliar(nomeBase, id) {
+
     const dados = await recuperarDado(nomeBase, id)
     const funcao = id ? `salvarNomeAuxiliar('${nomeBase}', '${id}')` : `salvarNomeAuxiliar('${nomeBase}')`
-    const acumulado = `
-        <div class="painel-cadastro">
-            <span>Nome</span>
-            <input name="nome" placeholder="${inicialMaiuscula(nomeBase)}" value="${dados?.nome || ''}">
-        </div>
-        <div class="rodape-formulario">
-            <button onclick="${funcao}">Salvar</button>
-            <span style="margin-left: 5vw;" name="timer"></span>
-        </div>
-    `
 
-    popup(acumulado, 'Gerenciar', true)
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao }
+    ]
 
+    const linhas = [
+        {
+            texto: 'Nome',
+            elemento: `<input name="nome" placeholder="${inicialMaiuscula(nomeBase)}" value="${dados?.nome || ''}">`
+        }
+    ]
+
+    const form = new formulario({ linhas, botoes, titulo: `Gerenciar ${inicialMaiuscula(nomeBase)}` })
+    form.abrirFormulario()
 }
 
 async function salvarNomeAuxiliar(nomeBase, id) {

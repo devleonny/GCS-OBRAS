@@ -333,8 +333,6 @@ function popup(elementoHTML, titulo, naoRemoverAnteriores) {
 
                 </div>
 
-                <div class="janela-rodape"></div>
-
             </div>
 
         </div>`
