@@ -264,8 +264,6 @@ button {
 
 .janela {
     max-height: 80vh;
-    border-bottom-left-radius: 8px;
-    border-bottom-right-radius: 8px;
 }
 
 .janela-fora {
@@ -277,6 +275,7 @@ button {
     text-align: center;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
     border-radius: 10px;
+    overflow: hidden;
 }
 
 .painel-cadastro {

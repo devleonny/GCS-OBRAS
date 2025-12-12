@@ -481,6 +481,7 @@ function carregarMenus() {
 
     const menus = {
         'Atualizar': { img: 'atualizar', funcao: 'telaPrincipal()', proibidos: [] },
+        'Criar Ocorrência': { img: 'baixar', funcao: 'formularioOcorrencia()', proibidos: [] },
         ...btnsCorrecao,
         'Relatório de Ocorrências': { img: 'planilha', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] },
         'Relatório de Correções': { img: 'planilha', funcao: 'telaRelatorioCorrecoes()', proibidos: ['user', 'técnico', 'visitante'] },
@@ -1092,6 +1093,7 @@ async function cxOpcoes(name, nomeBase, funcaoAux) {
             <div class="gavetaOpcoes">
                 ${opcoesDiv}
             </div>
+            <div class="rodape-tabela"></div>
         </div>
     `
 

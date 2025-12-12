@@ -295,24 +295,6 @@ async function excluirOcorrenciaCorrecao(idOcorrencia, idCorrecao) {
 
 }
 
-async function gerenciarCliente(idCliente) {
-
-    const cliente = await recuperarDado('dados_clientes', idCliente)
-
-    const acumulado = `
-        <div class="painel-cadastro">
-            ${modelo('Nome', cliente.nome)}
-            ${modelo('CNPJ', cliente.cnpj)}
-            ${modelo('Cidade', cliente.cidade)}
-            ${modelo('Endereço', cliente.bairro)}
-            ${modelo('Cep', cliente.cep)}
-        <div>
-    `
-
-    popup(acumulado, 'Gerenciar Cliente')
-
-}
-
 async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
 
     const btnExclusao = (acesso.permissao == 'adm' || ocorrencia.usuario == acesso.usuario)
@@ -460,9 +442,6 @@ async function telaOcorrencias(tipoCorrecao = 'TODOS OS CHAMADOS') {
                     <div class="pesquisa">
                         <input oninput="pesquisarOcorrencias(this.value)" placeholder="Pesquisar" style="width: 100%;">
                         <img src="imagens/pesquisar2.png">
-                    </div>
-                    <div style="${horizontal}; gap: 5px;">
-                        ${botao('Nova Ocorrência', 'formularioOcorrencia()')}
                     </div>
                 </div>
             </div>
@@ -670,7 +649,9 @@ async function formularioOcorrencia(idOcorrencia) {
 
     const botoes = [{ img: 'concluido', texto: 'Salvar', funcao }]
 
-    const form = new formulario({ linhas, botoes, titulo: 'Gerenciar Ocorrência' })
+    const titulo = idOcorrencia ? 'Editar Ocorrência' : 'Criar Ocorrência'
+
+    const form = new formulario({ linhas, botoes, titulo })
     form.abrirFormulario()
 
     visibilidadeFotos()
@@ -840,6 +821,10 @@ async function salvarOcorrencia(idOcorrencia) {
     const ocorrencia = idOcorrencia
         ? await recuperarDado('dados_ocorrencias', idOcorrencia)
         : {}
+
+    const codEmpresa = obter('empresa')?.id
+
+    if (codEmpresa == '0') return popup(mensagem('O campo empresa "GERAL" está bloqueado!'), 'Geral não disponível', true)
 
     const novo = {
         empresa: obter('empresa')?.id || '',
