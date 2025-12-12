@@ -2762,36 +2762,50 @@ async function criarDepartamento(idOrcamento) {
 
 async function auxDepartamentos() {
 
+    dados_ocorrencias = await recuperarDados('dados_ocorrencias')
     dados_orcamentos = await recuperarDados('dados_orcamentos')
     dados_clientes = await recuperarDados('dados_clientes')
     departamentos = await recuperarDados('departamentos_AC')
 
-    // Objeto global para consultas;
-    for (const [, obj] of Object.entries(departamentos)) {
-        const chave = obj.descricao
-        depPorDesc[chave] = obj
+    // Map por descrição (mais rápido que ficar iterando)
+    for (const dep of Object.values(departamentos)) {
+        depPorDesc[dep.descricao] = dep
     }
 
+    // Map orçamento por número final (chamado ou contrato)
     const orcPorNum = {}
-    for (const [, obj] of Object.entries(dados_orcamentos)) {
-        const numFinal = obj?.dados_orcam?.chamado || obj?.dados_orcam?.contrato
-        if(!numFinal) continue
-        orcPorNum[numFinal] = obj
+    for (const orc of Object.values(dados_orcamentos)) {
+        const numFinal = orc?.dados_orcam?.chamado || orc?.dados_orcam?.contrato
+        if (numFinal) orcPorNum[numFinal] = orc
     }
 
-    for (const [, dep] of Object.entries(departamentos)) {
+    // Processa departamentos
+    for (const dep of Object.values(departamentos)) {
 
         const nomeDep = dep.descricao
-        if(depPorDesc[])
-        const cliente = 
-        dep.cliente = 
-        departamentos[codDep].cliente = dados_clientes?.[codCliente] || {}
 
+        // Se existe ocorrência com o nome do dep
+        const ocorrencia = dados_ocorrencias[nomeDep]
+        if (ocorrencia) {
+            const cliente = dados_clientes[ocorrencia?.unidade]
+            if (cliente) dep.cliente = cliente
+        }
+
+        // Se existe orçamento com o nome do dep
+        const orcamento = orcPorNum[nomeDep]
+        if (orcamento) {
+
+            const codOmie = orcamento?.dados_orcam?.omie_cliente
+            const cliente = dados_clientes[codOmie]
+
+            if (cliente) dep.cliente = cliente
+
+            dep.total = dinheiro(orcamento?.total_geral)
+        }
     }
 
-    // Aqui será usado nas cxs de Opções, então preciso dele na BDados;
+    // Atualiza banco
     await inserirDados(departamentos, 'departamentos_AC')
-
 }
 
 async function numORC(idOrcamento) {

@@ -26,11 +26,17 @@ const meses = {
 
 async function atualizarOrcamentos() {
 
-    await sincronizarDados('dados_orcamentos')
-    await sincronizarDados('dados_composicoes')
-    await sincronizarDados('dados_clientes')
-    await sincronizarDados('tags_orcamentos')
-    await sincronizarDados('dados_ocorrencias')
+    const tabelas = [
+        'dados_orcamentos',
+        'dados_composicoes',
+        'dados_clientes',
+        'tags_orcamentos',
+        'dados_ocorrencias',
+        'departamentos_AC'
+    ]
+
+    for(const tabela of tabelas) await sincronizarDados(tabela)
+    await auxDepartamentos()
     await telaOrcamentos()
 
 }

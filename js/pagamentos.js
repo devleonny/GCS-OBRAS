@@ -52,7 +52,6 @@ async function recuperarPagamentos() {
     ]
 
     for (const tabela of tabelas) await sincronizarDados(tabela)
-    await auxDepartamentos() // Resgatar dados do orçamento no objeto
 
     await telaPagamentos()
 
@@ -92,9 +91,7 @@ async function telaPagamentos() {
 
     overlayAguarde()
 
-    dados_clientes = await recuperarDados('dados_clientes')
-    dados_orcamentos = await recuperarDados('dados_orcamentos')
-    departamentos = await recuperarDados('departamentos_AC')
+    await auxDepartamentos() // Orcs, deps e clis;
     dados_setores = await recuperarDados('dados_setores')
 
     const lista_pagamentos = await filtrarPagamentos() // Filtrar de acordo com o usuário atual;
@@ -194,10 +191,16 @@ function criarLinhaPagamento(pagamento) {
     const setorCriador = usuario?.setor || ''
     const codDep = pagamento?.param[0]?.distribuicao?.[0]?.cCodDep
     const dep = departamentos?.[codDep] || {}
+    const nomeCliente = dep?.cliente?.nome || ''
 
     const tds = `
         <td>${pagamento.param[0].data_vencimento}</td>
-        <td>${dep?.descricao || ''} • ${dep?.cliente?.nome || ''}</td>
+        <td>
+            <div style="${vertical}; gap: 2px; text-align: left;">
+                <span><b>${dep?.descricao || ''}</b></span>
+                <span>${nomeCliente}</span>
+            </div>
+        </td>
         <td>${pagamento?.app || 'AC'}</td>
         <td style="white-space: nowrap; text-align: left;">${dinheiro(pagamento.param[0].valor_documento)}</td>
         <td>
