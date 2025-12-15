@@ -65,7 +65,7 @@ async function acessoLogin() {
     const url = `${api}/acesso`
 
     if (inputs[0].value == '' || inputs[1].value == '') {
-        popup(mensagem('Senha e/ou usuário não informado(s)'), 'ALERTA', true)
+        popup(mensagem('Senha e/ou usuário não informado(s)'), 'Alerta', true)
         divAcesso.style.display = 'flex'
 
     } else {
@@ -98,15 +98,13 @@ async function acessoLogin() {
             } else if (data.usuario) {
                 localStorage.setItem('acesso', JSON.stringify(data));
                 acesso = data
-                telaPrincipal()
+                await telaPrincipal()
                 removerOverlay()
             }
-
         } catch (e) {
             divAcesso.style.display = 'flex'
-            popup(mensagem(e), 'Alerta', true);
+            popup(mensagem(`${e}::lin106`), 'Alerta', true);
         }
-
     }
 }
 

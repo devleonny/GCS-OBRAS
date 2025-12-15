@@ -418,8 +418,7 @@ async function telaPrincipal() {
     const planoFundo = `
         <div class="planoFundo">
             <img src="imagens/BG.png">
-        </div>
-        `
+        </div>`
 
     const acumulado = `
         <div class="menu-container">
@@ -432,9 +431,11 @@ async function telaPrincipal() {
             </div>
         </div>
     `
-    if (!telaInterna) tela.innerHTML = acumulado
-    telaInterna = document.querySelector('.telaInterna')
 
+    telaInterna = document.querySelector('.telaInterna')
+    if (!telaInterna) tela.innerHTML = acumulado
+
+    telaInterna = document.querySelector('.telaInterna')
     telaInterna.innerHTML = planoFundo
 
     mostrarMenus(true)
@@ -485,8 +486,8 @@ function carregarMenus() {
         ...btnsCorrecao,
         'Relatório de Ocorrências': { img: 'planilha', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] },
         'Relatório de Correções': { img: 'planilha', funcao: 'telaRelatorioCorrecoes()', proibidos: ['user', 'técnico', 'visitante'] },
-        'Usuários': { img: 'perfil', funcao: 'telaUsuarios()', proibidos: ['user', 'técnico', 'analista', 'visitante'] },
-        'Cadastros': { img: 'ajustar', funcao: 'telaCadastros()', proibidos: ['user', 'técnico', 'visitante'] },
+        'Usuários': { img: 'perfil', funcao: 'telaUsuarios()', proibidos: ['user', 'cliente', 'técnico', 'analista', 'visitante'] },
+        'Cadastros': { img: 'ajustar', funcao: 'telaCadastros()', proibidos: ['user', 'técnico', 'cliente', 'visitante'] },
     }
 
     // Colocar em outro lugar 'Solucionados': { id: 'solucionados', img: 'configuracoes', funcao: 'telaOcorrencias(false)', proibidos: [] },

@@ -430,6 +430,7 @@ async function telaOcorrencias(tipoCorrecao = 'TODOS OS CHAMADOS') {
     prioridades = await recuperarDados('prioridades')
     correcoes = await recuperarDados('correcoes')
     dados_clientes = await recuperarDados('dados_clientes')
+    dados_ocorrencias = await recuperarDados('dados_ocorrencias')
 
     const empresaAtiva = empresas[acesso?.empresa]?.nome || 'Desatualizado'
 
@@ -455,10 +456,17 @@ async function telaOcorrencias(tipoCorrecao = 'TODOS OS CHAMADOS') {
     telaInterna.innerHTML = acumulado
 
     const filtrados = ocorrenciasFiltradas?.[tipoCorrecao] || dados_ocorrencias
+    const oAtivas = new Set()
+
     for (const [idOcorrencia, ocorrencia] of Object.entries(filtrados).reverse()) {
-
+        oAtivas.add(idOcorrencia)
         await criarLinhaOcorrencia(idOcorrencia, ocorrencia)
+    }
 
+    const linhas = document.querySelectorAll('.div-linha')
+    for (const linha of linhas) {
+        const idLinha = linha?.id
+        if (!idLinha || !oAtivas.has(idLinha)) linha.remove()
     }
 
     removerOverlay()
@@ -505,7 +513,7 @@ async function atualizarOcorrencias() {
         'prioridades',
         'correcoes',
         'tipos'
-    ];
+    ]
 
     for (const base of basesAuxiliares) {
         sincronizarApp(status)
@@ -516,6 +524,7 @@ async function atualizarOcorrencias() {
     sincronizarApp({ remover: true })
 
     emAtualizacao = false
+    empresas = await recuperarDados('empresas')
     correcoes = await recuperarDados('correcoes')
     dados_ocorrencias = await recuperarDados('dados_ocorrencias')
     carregarMenus()
@@ -624,8 +633,12 @@ async function formularioOcorrencia(idOcorrencia) {
     const oc = idOcorrencia ? await recuperarDado('dados_ocorrencias', idOcorrencia) : {}
     const funcao = idOcorrencia ? `salvarOcorrencia('${idOcorrencia}')` : 'salvarOcorrencia()'
 
+    const elEmpresa = acesso.empresa == 0
+        ? labelBotao('empresa', 'empresas', oc?.empresa, empresas[oc?.empresa]?.nome)
+        : `<span class="campos" name="empresa" id="${acesso.empresa}">${empresas?.[acesso?.empresa]?.nome || '...'}</span>`
+
     const linhas = [
-        { texto: 'Empresa', elemento: labelBotao('empresa', 'empresas', oc?.empresa, empresas[oc?.empresa]?.nome) },
+        { texto: 'Empresa', elemento: elEmpresa },
         { texto: 'Unidade de Manutenção', elemento: labelBotao('unidade', 'dados_clientes', oc?.unidade, dados_clientes[oc?.unidade]?.nome) },
         { texto: 'Sistema', elemento: labelBotao('sistema', 'sistemas', oc?.sistema, sistemas[oc?.sistema]?.nome) },
         { texto: 'Prioridade', elemento: labelBotao('prioridade', 'prioridades', oc?.prioridade, prioridades[oc?.prioridade]?.nome) },
