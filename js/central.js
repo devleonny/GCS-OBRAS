@@ -1746,7 +1746,7 @@ async function lancarPagamento({ pagamento, call, dataFixa }) {
             })
             .then(data => {
                 data = JSON.parse(data)
-                resolve(data);
+                resolve(data)
             })
             .catch(err => reject(err))
     })

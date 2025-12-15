@@ -47,43 +47,50 @@ async function sincronizarReabrir() {
     await abrirEsquema(id_orcam)
 }
 
+function aprovadoEmail(input) {
+
+    const pedido = document.getElementById('pedido')
+    pedido.value = input.checked ? 'Aprovado Via E-mail' : ''
+    pedido.contentEditable = !input.checked
+
+}
+
 async function painelAdicionarPedido() {
 
-    const acumulado = `
-        <div style="background-color: #d2d2d2; padding: 2vw;">
+    const opcoes = ['Locação', 'Serviço', 'Venda', 'Venda + Serviço', 'POC']
+    const linhas = [
+        {
+            texto: 'Tipo de Pedido',
+            elemento: `
+                <select id="tipo">
+                    ${opcoes.map(op => `<option>${op}</option>`).join('')}
+                </select>
+            `
+        },
+        {
+            texto: 'Aprovado por E-mail',
+            elemento: '<input type="checkbox" style="width: 2rem; height: 2rem;" onclick="aprovadoEmail(this)">'
+        },
+        {
+            texto: 'Número do Pedido',
+            elemento: `<input type="text" id="pedido">`
+        },
+        {
+            texto: 'Valor do Pedido',
+            elemento: `<input type="number" id="valor">`
+        },
+        {
+            texto: 'Comentário',
+            elemento: '<textarea rows="5" id="comentario_status"></textarea>'
+        }
+    ]
 
-            <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px; padding: 10px">
+    const botoes = [
+        { texto: 'Salvar', funcao: 'salvarPedido()', img: 'concluido' }
+    ]
 
-                ${modelo('Tipo de Pedido', `
-                    <select id="tipo" class="pedido">
-                        ${['Selecione', 'Locação', 'Serviço', 'Venda', 'Venda + Serviço'].map(op => `<option>${op}</option>`).join('')}
-                    </select>
-                    `)}
-
-                ${modelo('', `
-                <div style="display: flex; gap: 10px; align-items: center; justify-content: start;">
-                    <input type="checkbox" onchange="aprovadoEmail(this)" style="cursor: pointer; width: 30px; height: 30px;">
-                    <label>Aprovado Via E-mail</label>
-                </div>`)}
-
-                <div id="divPedido">
-                    ${modelo('Número do Pedido', '<input type="text" class="pedido" id="pedido">')}
-                </div>
-
-                ${modelo('Valor do Pedido', '<input type="number" class="pedido" id="valor">')}
-                
-                ${modelo('Comentário', '<textarea rows="5" id="comentario_status"></textarea>')}
-
-                <hr style="width: 100%">
-
-                <button style="background-color: #4CAF50;" onclick="salvarPedido()">Salvar</button>
-
-            </div>
-
-        </div>
-    `
-
-    popup(acumulado, 'Novo Pedido', true)
+    const form = new formulario({ linhas, botoes, titulo: 'Novo Pedido' })
+    form.abrirFormulario()
 
 }
 
@@ -318,16 +325,6 @@ function maisPagamentos(botao) {
     let label = divAnterior.querySelector('label')
     if (label.textContent != '') return
     divAnterior.insertAdjacentHTML('afterend', divAnterior.outerHTML);
-}
-
-function aprovadoEmail(input) {
-
-    const pedido = document.getElementById('pedido')
-    const divPedido = document.getElementById('divPedido')
-
-    divPedido.style.display = input.checked ? 'none' : 'flex'
-    pedido.value = input.checked ? 'Aprovado Via E-mail' : ''
-
 }
 
 async function calcularRequisicao(sincronizar) {
@@ -900,7 +897,7 @@ async function mudarNumORC(id) {
     await numORC(id)
 
     removerOverlay()
-    
+
 }
 
 async function abrirOS(idOrcamento) {
