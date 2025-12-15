@@ -79,12 +79,12 @@ const dtFormatada = (data) => {
     return `${dia}/${mes}/${ano}`
 }
 
-const modeloTabela = ({ removerPesquisa = false, colunas, base, funcao, btnExtras = '', body = 'body' }) => {
+const modeloTabela = ({ minWidth, removerPesquisa = false, colunas, base, funcao, btnExtras = '', body = 'body' }) => {
 
     const ths = colunas.map(col => `<th>${col}</th>`).join('')
 
     const tPesquisa = colunas
-        .map((col, i) => `<th style="text-align: left;" contentEditable="true" oninput="pesquisarGenerico('${i}', this.textContent)"></th>`)
+        .map((col, i) => `<th style="text-align: left;" contentEditable="true" oninput="pesquisarGenerico('${i}', this.textContent, '${body}')"></th>`)
         .join('')
 
     const btnAtualizar = base
@@ -94,7 +94,7 @@ const modeloTabela = ({ removerPesquisa = false, colunas, base, funcao, btnExtra
             : ''
 
     return `
-    <div class="blocoTabela">
+    <div class="blocoTabela" ${minWidth ? `style="min-width: ${minWidth}"` : ''}>
         <div class="painelBotoes">
             <div class="botoes">
                 ${btnExtras}
@@ -160,12 +160,12 @@ if (isAndroid) {
 
 }
 
-function pesquisarGenerico(coluna, texto) {
+function pesquisarGenerico(coluna, texto, tbody = 'body') {
 
-    filtrosPagina[coluna] = String(texto).toLowerCase().replace(/\./g, '').trim()
+    filtrosPagina[tbody] ??= {}
+    filtrosPagina[tbody][coluna] = String(texto).toLowerCase().replace(/\./g, '').trim()
 
-    const trs = document.querySelectorAll('#body tr')
-    let contador = 0
+    const trs = document.querySelectorAll(`#${tbody} tr`)
 
     // pega todo o conteúdo útil da td (inputs, selects, textos)
     function extrairTexto(td) {
@@ -198,8 +198,10 @@ function pesquisarGenerico(coluna, texto) {
         const tds = tr.querySelectorAll('td')
         let mostrar = true
 
-        for (const col in filtrosPagina) {
-            const filtroTexto = filtrosPagina[col]
+        const filtros = filtrosPagina[tbody]
+
+        for (const [col, filtroTexto] of Object.entries(filtros)) {
+
             if (!filtroTexto) continue
 
             if (col >= tds.length) {
@@ -215,7 +217,6 @@ function pesquisarGenerico(coluna, texto) {
             }
         }
 
-        if (mostrar) contador++
         tr.style.display = mostrar ? '' : 'none'
     })
 
@@ -545,12 +546,15 @@ async function telaUsuarios() {
 
     titulo.textContent = 'Usuários'
 
+    mostrarMenus(false)
+
     empresas = await recuperarDados('empresas')
     const colunas = ['Nome', 'Empresa', 'Setor', 'Permissão', '']
     const base = 'dados_setores'
     const dados_setores = await recuperarDados(base)
-    const body = document.getElementById('body')
-    if (!body) telaInterna.innerHTML = modeloTabela({ colunas, base })
+
+    const tbody = document.getElementById('tabela_usuarios')
+    if (!tbody) telaInterna.innerHTML = modeloTabela({ colunas, base, body: 'tabela_usuarios' })
 
     for (const [user, dados] of Object.entries(dados_setores)) {
         criarLinhaUsuario(user, dados)
@@ -573,7 +577,7 @@ function criarLinhaUsuario(user, dados) {
     const trExistente = document.getElementById(user)
     if (trExistente) return trExistente.innerHTML = tds
 
-    document.getElementById('body').insertAdjacentHTML('beforeend', `<tr id="${user}">${tds}</tr>`)
+    document.getElementById('tabela_usuarios').insertAdjacentHTML('beforeend', `<tr id="${user}">${tds}</tr>`)
 }
 
 async function criarLinha(dados, id, nomeBase) {
@@ -822,7 +826,8 @@ async function receber(chave, reset = false) {
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            chave: chave,
+            chave,
+            usuario: acesso.usuario,
             timestamp
         })
     };

@@ -26,90 +26,6 @@ const labelBotao = (name, nomebase, id, nome) => {
         `
 }
 
-async function carregarElementosPagina(nomeBase, colunas) {
-
-    overlayAguarde()
-    const dados = await recuperarDados(nomeBase)
-    telaInferior = document.querySelector('.telaInferior')
-    telaInferior.innerHTML = modeloTabela({ colunas, base: nomeBase })
-
-    if (nomeBase !== 'dados_composicoes' && nomeBase !== 'dados_clientes') {
-        const adicionar = `<button onclick="editarBaseAuxiliar('${nomeBase}')">Adicionar</button>`
-        const painelBotoes = document.querySelector('.botoes')
-        painelBotoes.insertAdjacentHTML('beforeend', adicionar)
-    }
-
-    for (const [id, objeto] of Object.entries(dados)) criarLinha(objeto, id, nomeBase)
-    removerOverlay()
-
-}
-
-async function carregarBasesAuxiliares(nomeBase) {
-    titulo.textContent = inicialMaiuscula(nomeBase)
-    const colunas = ['Nome', '']
-    await carregarElementosPagina(nomeBase, colunas)
-}
-
-async function editarBaseAuxiliar(nomeBase, id) {
-
-    const dados = await recuperarDado(nomeBase, id)
-    const funcao = id ? `salvarNomeAuxiliar('${nomeBase}', '${id}')` : `salvarNomeAuxiliar('${nomeBase}')`
-
-    const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao }
-    ]
-
-    const linhas = [
-        {
-            texto: 'Nome',
-            elemento: `<input name="nome" placeholder="${inicialMaiuscula(nomeBase)}" value="${dados?.nome || ''}">`
-        }
-    ]
-
-    const form = new formulario({ linhas, botoes, titulo: `Gerenciar ${inicialMaiuscula(nomeBase)}` })
-    form.abrirFormulario()
-}
-
-async function salvarNomeAuxiliar(nomeBase, id) {
-
-    overlayAguarde()
-
-    id = id || ID5digitos()
-
-    const nome = document.querySelector('[name="nome"]')
-    await enviar(`${nomeBase}/${id}/nome`, nome.value)
-
-    let dado = await recuperarDado(nomeBase, id) || {}
-    dado.nome = nome.value
-    await inserirDados({ [id]: dado }, nomeBase)
-    await criarLinha(dado, id, nomeBase)
-
-    removerPopup()
-
-}
-
-async function telaCadastros() {
-
-    filtrosPagina = {}
-
-    mostrarMenus(false)
-    titulo.textContent = 'Cadastros'
-    const bases = ['empresas', 'tipos', 'sistemas', 'prioridades', 'correcoes']
-    const acumulado = `
-        <div style="${vertical}; gap: 2px;">
-            <div class="painel-superior-cadastros">
-                ${bases.map(base => `<button onclick="carregarBasesAuxiliares('${base}')">${inicialMaiuscula(base)}</button>`).join('')}
-            </div>
-            <div class="telaInferior"></div>
-        </div>
-    `
-
-    telaInterna.innerHTML = acumulado
-
-    await carregarBasesAuxiliares('empresas')
-
-}
-
 function pararCam() {
     const cameraDiv = document.querySelector('.cameraDiv');
     if (cameraDiv) cameraDiv.style.display = 'none'
@@ -517,7 +433,7 @@ async function atualizarOcorrencias() {
 
     for (const base of basesAuxiliares) {
         sincronizarApp(status)
-        await sincronizarDados(base, true)
+        await sincronizarDados(base, true, base == 'dados_clientes') // Resetar sempre;
         status.atual++
     }
 
@@ -527,6 +443,7 @@ async function atualizarOcorrencias() {
     empresas = await recuperarDados('empresas')
     correcoes = await recuperarDados('correcoes')
     dados_ocorrencias = await recuperarDados('dados_ocorrencias')
+    dados_clientes = await recuperarDados('dados_clientes')
     carregarMenus()
 }
 

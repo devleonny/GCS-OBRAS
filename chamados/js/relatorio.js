@@ -110,7 +110,7 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
 
     const calculos = verificarDtSolucao()
 
-    const [dtAb, hrAb] = ocorrencia.dataRegistro.split(', ')
+    const [dtAb, hrAb] = ocorrencia.dataRegistro ? ocorrencia.dataRegistro.split(', ') : ['', '']
 
     const executores = Object.values(ocorrencia?.correcoes || {})
         .map(correcao => `<span>${correcao.executor}</span>`)
