@@ -566,7 +566,7 @@ async function formularioOcorrencia(idOcorrencia) {
             texto: 'Anexos', elemento: `
                 <label class="campos">
                     Clique aqui
-                    <input type="file" style="display: none;" onchange="anexosOcorrencias(this, '${idOcorrencia ? idOcorrencia : 'novo'}')">
+                    <input type="file" style="display: none;" onchange="anexosOcorrencias(this, '${idOcorrencia ? idOcorrencia : 'novo'}')" multiple>
                 </label>
             ` },
         {
@@ -614,7 +614,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
             <div style="${vertical}; gap: 5px;">
                 <label class="campos">
                     Clique aqui
-                    <input type="file" style="display: none;" onchange="anexosOcorrencias(this, '${idOcorrencia}', '${idCorrecao ? idCorrecao : 'novo'}')">
+                    <input type="file" style="display: none;" onchange="anexosOcorrencias(this, '${idOcorrencia}', '${idCorrecao ? idCorrecao : 'novo'}')" multiple>
                 </label>
                 <div id="anexos" style="${vertical};">
                     ${Object.entries(correcao?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual({ nome: anexo.nome, link: anexo.link, funcao: `removerAnexo(this, '${idAnexo}', '${idOcorrencia}', '${idCorrecao}')` })).join('')}
