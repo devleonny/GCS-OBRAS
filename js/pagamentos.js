@@ -787,7 +787,12 @@ async function criarPagamento() {
             <hr style="width: 100%;">
 
             ${modeloCampos('cc', 'Centro de Custo', `
-                    <span class="opcoes" name="cc" onclick="cxOpcoes('cc', 'departamentos_AC', ['cliente/nome', 'descricao', 'cliente/cidade', 'cliente/cnpj'], 'calculadoraPagamento()')">Selecionar</span>
+                    <span 
+                    class="opcoes" 
+                    name="cc" 
+                    onclick="cxOpcoes('cc', 'departamentos_AC', ['cliente/nome', 'descricao', 'cliente/cidade', 'cliente/cnpj'], 'calculadoraPagamento()')">
+                        Selecionar
+                    </span>
                 `)}
 
             ${modeloCampos('recebedor', 'Recebedor', `

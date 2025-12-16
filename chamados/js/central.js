@@ -1071,17 +1071,17 @@ async function cxOpcoes(name, nomeBase, funcaoAux) {
     const campos = nomeBase == 'dados_setores' ? ['nome_completo', 'setor'] : esquemaLinhas(nomeBase).colunas
     const base = await recuperarDados(nomeBase)
     let opcoesDiv = ''
-
-    for ([cod, dado] of Object.entries(base)) {
+    
+    for (const [cod, dado] of Object.entries(base)) {
 
         const labels = campos
             .map(campo => `${(dado[campo] && dado[campo] !== '') ? `<label>${dado[campo]}</label>` : ''}`)
             .join('')
 
-        const valorSeguro = (dado[campos[0]] || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\r?\n|\r/g, "\\n");
+        const termo = encodeURIComponent(dado?.[campos[0]] || '')
 
         opcoesDiv += `
-            <div name="camposOpcoes" class="atalhos" onclick="selecionar('${name}', '${cod}', '${valorSeguro}' ${funcaoAux ? `, '${funcaoAux}'` : ''})">
+            <div name="camposOpcoes" class="atalhos" onclick="selecionar('${name}', '${cod}', '${termo}' ${funcaoAux ? `, '${funcaoAux}'` : ''})">
                 ${labels}
             </div>`
     }
@@ -1108,6 +1108,7 @@ async function cxOpcoes(name, nomeBase, funcaoAux) {
 }
 
 async function selecionar(name, id, termo, funcaoAux) {
+    termo = decodeURIComponent(termo)
     const elemento = document.querySelector(`[name='${name}']`)
     elemento.textContent = termo
     elemento.id = id

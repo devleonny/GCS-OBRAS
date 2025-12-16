@@ -13,6 +13,7 @@ let opcoesValidas = {
     tipoCorrecao: new Set(),
     finalizado: new Set()
 }
+
 let emAtualizacao = false
 
 const labelBotao = (name, nomebase, id, nome) => {
