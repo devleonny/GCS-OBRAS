@@ -290,7 +290,7 @@ async function salvarNota() {
 
     let dados = {
         status: 'FATURADO',
-        data: obterDatas('completa'),
+        data: new Date().toLocaleString(),
         executor: acesso.usuario,
         comentario
     }
@@ -733,7 +733,7 @@ async function salvarPedido() {
     if (!orcamento.status.historico[chave]) orcamento.status.historico[chave] = {}
 
     const dados = {
-        data: obterDatas('completa'),
+        data: new Date().toLocaleString(),
         executor: acesso.usuario,
         comentario: comentario_status.value,
         valor: Number(valor.value),
@@ -768,7 +768,7 @@ async function salvar_requisicao(chave) {
 
     let novo_lancamento = {
         status: 'REQUISIÇÃO',
-        data: obterDatas('completa'),
+        data: new Date().toLocaleString(),
         transportadora: document.getElementById('transportadora').value,
         volumes: document.getElementById('volumes').value,
         executor: acesso.usuario,
@@ -1101,7 +1101,7 @@ async function arquivarOrcamento(idOrcamento) {
 
         const dados = {
             usuario: acesso.usuario,
-            data: obterDatas('completa')
+            data: new Date().toLocaleString()
         }
 
         orcamento.arquivado = dados
@@ -1850,7 +1850,7 @@ async function registrarEnvioMaterial(chave) {
     let st = 'MATERIAL ENVIADO'
 
     status.executor = acesso.usuario
-    status.data = obterDatas('completa')
+    status.data = new Date().toLocaleString()
     status.status = st
 
     historico[chave] = status
@@ -1929,7 +1929,7 @@ async function salvar_comentario(chave) {
     const comentario = {
         id,
         comentario: textarea.value,
-        data: obterDatas('completa'),
+        data: new Date().toLocaleString(),
         usuario: acesso.usuario
     }
 

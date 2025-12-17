@@ -209,7 +209,7 @@ const esquemaBotoes = {
     pagamentos: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Atualizar', funcao: 'recuperarPagamentos', img: 'atualizar3' },
-        { nome: 'Solicitar Pagamento', funcao: 'criarPagamento', img: 'pagamento' }
+        { nome: 'Solicitar Pagamento', funcao: 'formularioPagamento', img: 'pagamento' }
     ],
     estoque: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
@@ -962,11 +962,11 @@ function criarAnexoVisual(nome, link, funcao) {
     return `
         <div class="contornoAnexos" name="${link}">
             <div onclick="abrirArquivo('${link}')" class="contorno_interno" style="width: 100%; display: flex; align-items: center; justify-content: start; gap: 2px;">
-                <img src="imagens/anexo2.png">
+                <img src="imagens/anexo2.png" style="width: 1.5rem;">
                 <label style="font-size: 0.7rem; cursor: pointer;" title="${nome}">${nomeFormatado}</label>
             </div>
-            <img src="imagens/cancel.png" style="display: ${displayExcluir}; width: 1.5vw; cursor: pointer;" onclick="${funcao}">
-        </div>`;
+            <img src="imagens/cancel.png" style="display: ${displayExcluir}; width: 1.5rem; cursor: pointer;" onclick="${funcao}">
+        </div>`
 }
 
 function dicionario(item) {
@@ -1522,7 +1522,7 @@ function connectWebSocket() {
 
     socket.onopen = () => {
         if (acesso) socket.send(JSON.stringify({ tipo: 'autenticar', usuario: acesso.usuario }))
-        console.log(`🟢🟢🟢 WS ${obterDatas('completa')} 🟢🟢🟢`)
+        console.log(`🟢🟢🟢 WS ${new Date().toLocaleString()} 🟢🟢🟢`)
     }
 
     socket.onmessage = async (event) => {
@@ -1557,7 +1557,7 @@ function connectWebSocket() {
     }
 
     socket.onclose = () => {
-        console.log(`🔴🔴🔴 WS ${obterDatas('completa')} 🔴🔴🔴`);
+        console.log(`🔴🔴🔴 WS ${new Date().toLocaleString()} 🔴🔴🔴`);
         console.log(`Tentando reconectar em ${reconnectInterval / 1000} segundos...`)
         setTimeout(connectWebSocket, reconnectInterval);
     }
@@ -1802,34 +1802,6 @@ function sincronizar(script) {
             });
 
     })
-}
-
-function obterDatas(estilo) {
-    let dataAtual = new Date();
-
-    if (dataAtual.getDay() === 5 && dataAtual.getHours() >= 11) {
-        dataAtual.setDate(dataAtual.getDate() + 3);
-    } else if (dataAtual.getDay() === 6) {
-        dataAtual.setDate(dataAtual.getDate() + 2);
-    } else if (dataAtual.getDay() === 0) {
-        dataAtual.setDate(dataAtual.getDate() + 1);
-    } else if (dataAtual.getHours() >= 11) {
-        dataAtual.setDate(dataAtual.getDate() + 1);
-    }
-
-    if (estilo === 'completa') {
-        const dataFormatada = new Date().toLocaleString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
-        return dataFormatada;
-    } else if (estilo === 'curta') {
-        return dataAtual.toLocaleDateString('pt-BR');
-    }
 }
 
 async function verAprovacoes() {
@@ -2130,7 +2102,7 @@ async function respostaAprovacao(botao, idOrcamento, status) {
     let justificativa = botao.parentElement.parentElement.querySelector('textarea').value
     let dados = {
         usuario: acesso.usuario,
-        data: obterDatas('completa'),
+        data: new Date().toLocaleString(),
         status,
         justificativa
     }

@@ -979,7 +979,7 @@ async function salvarPreco(codigo, lpu, cotacao) {
 
     historico[cotacao] = {
         valor: obValComp('preco_venda'),
-        data: obterDatas('completa'),
+        data: new Date().toLocaleString(),
         usuario: acesso.usuario,
         nota: obValComp('nota'),
         comentario: obValComp('comentario'),

@@ -24,13 +24,11 @@
     justify-content: start;
     flex-direction: column;
     border: solid 1px #797979;
-    width: 100%;
+    width: 90vw;
+    overflow: auto;
     background-color: rgba(255, 255, 255, 0.878);
     border-radius: 5px;
     min-height: 70vh;
-    display: flex;
-    align-items: start;
-    justify-content: start;
 }
 
 .etiqueta-atrasado {
@@ -139,8 +137,5 @@
     display: flex;
     align-items: start;
     justify-content: start;
-    width: max-content;
-    max-width: 90vw;
     padding: 2rem;
-    overflow-x: auto;
 }
