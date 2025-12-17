@@ -654,11 +654,11 @@ function calcularValorCombustivel() {
     const valor = (totalKM / kml) * combustivel
 
     document.getElementById('km').value = totalKM
-    document.getElementById('litros').value = Math.ceil(totalKM / kml)
+    document.getElementById('litros').value = totalKM ? Math.ceil(totalKM / kml) : 0
 
     const ct = document.getElementById('custo_total')
 
-    ct.value = Math.ceil(valor / 10) * 10
+    ct.value = valor ? Math.ceil(valor / 10) * 10 : 0
 }
 
 
