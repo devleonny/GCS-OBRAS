@@ -1175,9 +1175,11 @@ async function continuar() {
     }
 }
 
-function pesquisarGenerico(coluna, texto, filtro, id) {
+function pesquisarGenerico(indice, texto, filtro, id) {
 
-    filtro[coluna] = String(texto).toLowerCase().replace(/\./g, '').trim()
+    indice = `coluna_${indice}`
+
+    filtro[indice] = String(texto).toLowerCase().replace(/\./g, '').trim()
 
     const tbody = document.getElementById(id)
     if (!tbody) return
