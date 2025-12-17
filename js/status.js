@@ -1136,8 +1136,8 @@ async function painelCustos() {
     const ths = colunas.map(op => `<th>${op}</th>`).join('')
     const pesquisa = colunas.map((op, i) => `
         <th contentEditable="true" 
-        style="text-align: left; background-color: white;" 
-        oninput="pesquisarGenerico('${i}', this.textContent, filtroCustos, 'bodyCustos')">
+        style="text-align: left; background-color: white;"
+        oninput="pesquisarGenerico('${i}', this.textContent, 'bodyCustos')">
         </th>
     `)
         .join('')

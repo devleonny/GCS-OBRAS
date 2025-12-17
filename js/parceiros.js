@@ -21,7 +21,7 @@ async function modalLPUParceiro(chave) {
     cabecalhos.forEach((cabecalho, i) => {
         thHead += `<th>${cabecalho}</th>`;
         thSearch +=
-            `<th style="background-color: white; text-align: left;" contentEditable="true" oninput="pesquisarGenerico(${i}, this.textContent, filtrosTabelaParceiros, 'bodyTabela')"></th>`;
+            `<th style="background-color: white; text-align: left;" contentEditable="true" oninput="pesquisarGenerico(${i}, this.textContent, 'bodyTabela')"></th>`;
     });
 
     const tabela = `
