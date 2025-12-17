@@ -2221,7 +2221,7 @@ async function painelClientes(idOrcamento) {
     overlayAguarde()
 
     const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-    const orcamentoBase = orcamento || baseOrcamento()
+    const orcamentoBase = idOrcamento ? orcamento : baseOrcamento()
 
     const dados_orcam = orcamentoBase?.dados_orcam || {}
     const idCliente = dados_orcam?.omie_cliente
