@@ -1,5 +1,3 @@
-let filtrosAtivosEstoques = {}
-let filtrosRelatorio = {}
 let filtrosComplexos = {}
 let colunasEstoque = ['editar', 'partnumber', 'categoria', 'marca', 'descricao', 'estoque', 'estoque_usado', 'estoque_sp', 'valor_compra']
 
@@ -27,7 +25,7 @@ async function telaEstoque() {
                 </div>
             </th>
             `
-        ths += `<th style="background-color: #c1c1c1; border: solid 1px white; text-align: left;" ${col !== 'excluir' ? `oninput="pesquisarGenerico(${i}, this.textContent, filtrosAtivosEstoques, 'bodyEstoque')" contentEditable="true"` : ''}></th>`
+        ths += `<th style="background-color: #c1c1c1; border: solid 1px white; text-align: left;" ${col !== 'excluir' ? `oninput="pesquisarGenerico(${i}, this.textContent, 'bodyEstoque')" contentEditable="true"` : ''}></th>`
 
     })
 
@@ -1111,7 +1109,7 @@ async function atualizarDadosRelatorio() {
 
         colunas.forEach((coluna, i) => {
             ths += `<th>${coluna}</th>`
-            thsearch += `<th style="background-color: white; text-align: left;" contentEditable="true" oninput="pesquisarGenerico(${i}, this.textContent, filtrosRelatorio, 'body2')"></th>`
+            thsearch += `<th style="background-color: white; text-align: left;" contentEditable="true" oninput="pesquisarGenerico(${i}, this.textContent, 'bodyRelatorio')"></th>`
         })
 
         if (linhas == '') {
@@ -1132,7 +1130,7 @@ async function atualizarDadosRelatorio() {
                             <tr>${ths}</tr>
                             <tr style="background-color: white;">${thsearch}</tr>
                         <thead>
-                        <tbody id="body2">${linhas}</tbody>
+                        <tbody id="bodyRelatorio">${linhas}</tbody>
                     </table>
                 </div>
             <div class="rodape-tabela"></div>

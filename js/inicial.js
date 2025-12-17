@@ -129,6 +129,8 @@ async function telaInicial() {
     const ativos = []
 
     for (const [idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
+        console.log(orcamento.pda)
+        
         if(!orcamento.pda) continue
         ativos.push(idOrcamento)
         linPda(idOrcamento, orcamento)
@@ -453,8 +455,7 @@ function carregarPDA() {
     const colunas = ['Cliente', 'Tags', 'Técnicos', 'Início', 'Término', 'Comentários', 'Ação Necessário', 'Checklist', 'Detalhes', 'Excluir']
 
     const ths = colunas.map(col => `<th>${col}</th>`).join('')
-
-    const pesquisas = colunas.map((op, i) => `<th style="background-color: white; text-align: left;" oninput="pesquisarGenerico('${i}', this.textContent, filtroPda, 'pda')" contentEditable="true"></th>`).join('')
+    const pesquisas = colunas.map((op, i) => `<th style="background-color: white; text-align: left;" oninput="pesquisarGenerico('${i}', this.textContent, 'bodyPDA')" contentEditable="true"></th>`).join('')
 
     const acumulado = `
         <div class="tabela-PDA" name="tabela">

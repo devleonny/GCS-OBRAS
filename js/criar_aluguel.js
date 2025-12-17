@@ -223,7 +223,7 @@ function pesquisarProdutosAluguel(col, texto) {
 
     const pagina = 'aluguel'
     filtrosPagina[pagina] ??= {}
-    pesquisarGenerico(col, texto, filtrosPagina[pagina], `linhasProdAluguel`)
+    pesquisarGenerico(col, texto, `linhasProdAluguel`)
 
 }
 

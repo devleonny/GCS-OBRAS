@@ -7,8 +7,7 @@ let funcaoAtiva = null
 let funcaoTela = null
 let acesso = null
 let dados_setores = {}
-let filtrosUsuarios = {}
-let filtrosPendencias = {}
+const filtrosPesquisa = {}
 const paginasBloqueadas = ['PDF', 'OS']
 const horizontal = `display: flex; align-items: center; justify-content: center;`
 const vertical = `display: flex; align-items: start; justify-content: start; flex-direction: column;`
@@ -547,7 +546,7 @@ async function configs() {
     let cabecalhos = ['Usuário', 'Permissão', 'Setores', 'Vendedor']
     cabecalhos.forEach((cabecalho, i) => {
         ths += `<th>${cabecalho}</th>`
-        tbusca += `<th contentEditable="true" style="background-color: white; text-align: left;" oninput="pesquisarGenerico(${i}, this.textContent, filtrosUsuarios, 'tbodyUsuarios')"></th>`
+        tbusca += `<th contentEditable="true" style="background-color: white; text-align: left;" oninput="pesquisarGenerico(${i}, filtrosUsuarios, 'tbodyUsuarios')"></th>`
     })
 
     const tabela = `
@@ -1175,72 +1174,76 @@ async function continuar() {
     }
 }
 
-function pesquisarGenerico(indice, texto, filtro, id) {
+function pesquisarGenerico(indice, texto, idTbody) {
 
-    indice = `coluna_${indice}`
+    filtrosPesquisa[idTbody] ??= {}
+    const filtroAtual = filtrosPesquisa[idTbody]
 
-    filtro[indice] = String(texto).toLowerCase().replace(/\./g, '').trim()
+    filtroAtual[indice] = String(texto)
+        .toLowerCase()
+        .replace(/\./g, '')
+        .trim()
 
-    const tbody = document.getElementById(id)
+    const tbody = document.getElementById(idTbody)
     if (!tbody) return
 
+    const table = tbody.closest('table')
+    const ths = table?.querySelectorAll('thead tr')[1]?.querySelectorAll('th') || []
+
+    ths.forEach((th, col) => {
+
+        const valorFiltro = filtroAtual[col] || ''
+
+        th.style.backgroundColor = valorFiltro ? '#ffe48f' : 'white'
+
+        if (col == indice) {
+            th.style.backgroundColor = texto ? '#ffe48f' : 'white'
+            return
+        }
+
+        if (valorFiltro) {
+            th.textContent = valorFiltro
+        }
+    })
+
     const trs = tbody.querySelectorAll('tr')
-    let contador = 0
 
-    // pega todo o conteúdo útil da td (inputs, selects, textos)
     function extrairTexto(td) {
-        let partes = []
+        if (!td) return ''
 
-        // pega textos diretos
+        let partes = []
         partes.push(td.textContent || '')
 
-        // inputs
-        td.querySelectorAll('input').forEach(inp => {
-            partes.push(inp.value || '')
+        td.querySelectorAll('input').forEach(i => partes.push(i.value || ''))
+        td.querySelectorAll('textarea').forEach(t => partes.push(t.value || ''))
+        td.querySelectorAll('select').forEach(s => {
+            const opt = s.options[s.selectedIndex]
+            partes.push(opt ? opt.text : s.value)
         })
 
-        // textareas
-        td.querySelectorAll('textarea').forEach(tx => {
-            partes.push(tx.value || '')
-        })
-
-        // selects
-        td.querySelectorAll('select').forEach(sel => {
-            let opt = sel.options[sel.selectedIndex]
-            partes.push(opt ? opt.text : sel.value)
-        })
-
-        // join e normaliza
         return partes.join(' ').replace(/\s+/g, ' ').trim()
     }
 
-    trs.forEach(tr => {
+    for (const tr of trs) {
         const tds = tr.querySelectorAll('td')
         let mostrar = true
 
-        for (const col in filtro) {
-            const filtroTexto = filtro[col]
+        for (const [col, filtroTexto] of Object.entries(filtroAtual)) {
             if (!filtroTexto) continue
 
-            if (col >= tds.length) {
-                mostrar = false
-                break
-            }
+            const conteudo = extrairTexto(tds[col])
+                .toLowerCase()
+                .replace(/\./g, '')
+                .trim()
 
-            const conteudoTd = extrairTexto(tds[col]).toLowerCase().replace(/\./g, '').trim()
-
-            if (!conteudoTd.includes(filtroTexto)) {
+            if (!conteudo.includes(filtroTexto)) {
                 mostrar = false
                 break
             }
         }
 
-        if (mostrar) contador++
         tr.style.display = mostrar ? '' : 'none'
-    })
-
-    const contagem = document.getElementById('contagem')
-    if (contagem) contagem.textContent = contador
+    }
 }
 
 async function salvarLevantamento(idOrcamento, idElemento) {
@@ -1829,7 +1832,7 @@ async function verAprovacoes() {
         cabecalho == 'Detalhes'
             ? tsh += '<th style="background-color: white;"></th>'
             : tsh += `
-            <th contentEditable="true" style="background-color: white; text-align: left;" oninput="pesquisarGenerico(${i}, this.textContent, filtrosPendencias, 'tbodyPendencias')"></th>
+            <th contentEditable="true" style="background-color: white; text-align: left;" oninput="pesquisarGenerico(${i}, this.textContent, 'tbodyPendencias')"></th>
         `
     })
 

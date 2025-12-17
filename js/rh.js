@@ -1,4 +1,3 @@
-let filtrosRH = {}
 let pessoas = {}
 let tituloRH = null
 let pastaAberta = null
@@ -465,11 +464,11 @@ async function telaRHTabela() {
         .map((op, col) => {
 
             let pesquisa = `
-                <input style="padding: 5px;" placeholder="${inicialMaiuscula(op)}" oninput="pesquisarGenerico('${col}', this.value, filtrosRH, 'bodyRH')">
+                <input style="padding: 5px;" placeholder="${inicialMaiuscula(op)}" oninput="pesquisarGenerico('${col}', this.value, 'bodyRH')">
             `
 
             if (op == 'Expiração') {
-                pesquisa = `<select style="cursor: pointer;" oninput="pesquisarGenerico('${col}', this.value, filtrosRH, 'bodyRH')">
+                pesquisa = `<select style="cursor: pointer;" oninput="pesquisarGenerico('${col}', this.value, 'bodyRH')">
                     ${['', 'Desconhecido', 'Próximo', 'Vencido', 'Ativo'].map(op2 => `<option>${op2}</option>`).join('')}
                 </select>`
             }

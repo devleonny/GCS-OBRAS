@@ -1,5 +1,4 @@
 let idP = null
-let filtrosAtivosPagamentos = {}
 let departamentos = {}
 const opcoesStatus = [
     '',
@@ -105,7 +104,7 @@ async function telaPagamentos() {
         if (coluna == 'Detalhes') {
             cabecalho2 += `<th style="background-color: white; border-radius: 0px;"></th>`
         } else {
-            cabecalho2 += `<th contentEditable="true" style="background-color: white; text-align: left;" oninput="pesquisarGenerico(${i}, this.textContent, filtrosAtivosPagamentos, 'body')"></th>`
+            cabecalho2 += `<th contentEditable="true" style="background-color: white; text-align: left;" oninput="pesquisarGenerico(${i}, this.textContent, 'bodyPagamentos')"></th>`
         }
     })
 
@@ -122,7 +121,7 @@ async function telaPagamentos() {
                             <tr>${cabecalho1}</tr>
                             <tr>${cabecalho2}</tr>
                         </thead>
-                        <tbody id="body"></tbody>
+                        <tbody id="bodyPagamentos"></tbody>
                     </table>
                 </div>
                 <div class="rodape-tabela"></div>
@@ -157,7 +156,7 @@ async function telaPagamentos() {
 
             titulos += `
 
-            <div class="balao-pagamentos" onclick="pesquisarGenerico(4, '${nomeStatus == 'TODOS' ? '' : nomeStatus}', filtrosAtivosPagamentos, 'body')">
+            <div class="balao-pagamentos" onclick="pesquisarGenerico(4, '${nomeStatus == 'TODOS' ? '' : nomeStatus}', 'body')">
                 
                 <div class="dir">
                     <div style="${vertical};">
@@ -228,7 +227,7 @@ function criarLinhaPagamento(pagamento) {
     const tr = document.getElementById(idLinha)
     if (tr) return tr.innerHTML = tds
 
-    document.getElementById('body').insertAdjacentHTML('beforeend', `<tr id="${pagamento.id_pagamento}">${tds}</tr>`)
+    document.getElementById('bodyPagamentos').insertAdjacentHTML('beforeend', `<tr id="${pagamento.id_pagamento}">${tds}</tr>`)
 }
 
 function iconePagamento(status) {
@@ -1385,7 +1384,7 @@ async function duplicarPagamento(id_pagamento) {
 
     localStorage.setItem('ultimoPagamento', JSON.stringify(pagamento))
 
-    await criarPagamento()
+    await formularioPagamento()
 
     removerOverlay()
 
@@ -1402,7 +1401,7 @@ async function editarPagamento(id_pagamento) {
 
     localStorage.setItem('ultimoPagamento', JSON.stringify(pagamento))
 
-    await criarPagamento()
+    await formularioPagamento()
 
     removerOverlay()
 

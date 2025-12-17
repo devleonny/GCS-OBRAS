@@ -1,5 +1,4 @@
 .tela-gerenciamento {
-    width: max-content;
     max-width: 90vw;
     display: none;
     align-items: start;
@@ -24,11 +23,11 @@
     justify-content: start;
     flex-direction: column;
     border: solid 1px #797979;
-    width: 90vw;
-    overflow: auto;
     background-color: rgba(255, 255, 255, 0.878);
     border-radius: 5px;
-    min-height: 70vh;
+    max-height: 80vh;
+    width: 90vw;
+    overflow: auto;
 }
 
 .etiqueta-atrasado {
@@ -134,8 +133,13 @@
 }
 
 .painel-indicadores {
+
     display: flex;
     align-items: start;
     justify-content: start;
     padding: 2rem;
+}
+
+.tabela-PDA {
+    min-width: 90vw;
 }

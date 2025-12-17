@@ -1,5 +1,3 @@
-let filtrosAtivos = {}
-let filtroAgrupamentos = {}
 let dados_composicoes = null
 let divComposicoes = document.getElementById('composicoes')
 let cabecalhos = []
@@ -42,7 +40,7 @@ async function telaComposicoes(recriar) {
     let pesquisa = ''
     cabecalhos.forEach((cab, i) => {
         ths += `<th name="${cab}" data-indice="${i}"  onclick="filtrarAAZ('${i}', 'tabela_composicoes', this)" style="position: relative; cursor: pointer; text-align: left;">${inicialMaiuscula(cab)}</th>`
-        pesquisa += `<th style="text-align: left; background-color: white;" oninput="pesquisarGenerico('${i}', this.textContent, filtrosAtivos, 'linhasComposicoes')" contentEditable="true"></th>`
+        pesquisa += `<th style="text-align: left; background-color: white;" oninput="pesquisarGenerico('${i}', this.textContent, 'linhasComposicoes')" contentEditable="true"></th>`
     });
 
     const acumulado = `

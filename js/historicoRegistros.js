@@ -1,4 +1,3 @@
-let filtroAlteracoes = {}
 async function recuperarRegistros() {
     overlayAguarde()
     await sincronizarDados('registrosAlteracoes')    
@@ -25,7 +24,7 @@ async function carregarRegistros() {
         thSearch += `
         <th style="background-color: white">
             <div style="display: flex; justify-content:space-between; align-items: center">
-                <input oninput="pesquisarGenerico(${i}, this.value, filtroAlteracoes, 'bodyTabela' )" style="text-align: left; width: 100%">
+                <input oninput="pesquisarGenerico(${i}, this.value, 'bodyTabela' )" style="text-align: left; width: 100%">
                 <img src="imagens/pesquisar2.png" style="width: 1vw;">
             </div>
         </th>`

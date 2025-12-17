@@ -6,8 +6,6 @@ let tecnicos = {}
 let quantidadeItem = 0
 let quantidadeRealizadoItem = 0
 let finalizados = 0
-let filtroChecklist = {}
-let filtroRelatorioChecklist = {}
 let primeiroDia = null
 let tagsPainel = null
 
@@ -41,7 +39,7 @@ async function telaChecklist() {
             pesquisa += `<th style="background-color: white;"></th>`
 
         } else {
-            pesquisa += `<th style="background-color: white; text-align: left;" contentEditable="true" oninput="pesquisarGenerico('${i}', this.textContent, filtroChecklist, 'bodyChecklist'); calcularTempos()"></th>`
+            pesquisa += `<th style="background-color: white; text-align: left;" contentEditable="true" oninput="pesquisarGenerico('${i}', this.textContent, 'bodyChecklist'); calcularTempos()"></th>`
             ths += `
             <th>
                 <div style="${horizontal}; justify-content: space-between; width: 100%; gap: 10px;">
@@ -361,7 +359,7 @@ async function relatorioChecklist() {
             <th 
                 style="background-color: white; text-align: left;" 
                 contentEditable="true" 
-                oninput="pesquisarGenerico('${i}', this.textContent, filtroRelatorioChecklist, 'relatorioChecklist'); auxiliarTotaisRelatorio();">
+                oninput="pesquisarGenerico('${i}', this.textContent, 'relatorioChecklist'); auxiliarTotaisRelatorio();">
             </th>`
 
         })
@@ -461,7 +459,7 @@ function criarCalendario(datas) {
 
     let calendarios = ''
 
-    const pesqAuto = (texto) => `pesquisarGenerico('0', '${texto}', filtroRelatorioChecklist, 'relatorioChecklist'); auxiliarTotaisRelatorio()`
+    const pesqAuto = (texto) => `pesquisarGenerico('0', '${texto}', 'relatorioChecklist'); auxiliarTotaisRelatorio()`
 
     for (const chave in grupos) {
         const { ano, mes, dias } = grupos[chave]
