@@ -129,8 +129,7 @@ async function telaInicial() {
     const ativos = []
 
     for (const [idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
-        console.log(orcamento.pda)
-        
+
         if(!orcamento.pda) continue
         ativos.push(idOrcamento)
         linPda(idOrcamento, orcamento)

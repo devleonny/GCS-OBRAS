@@ -413,6 +413,8 @@ async function atualizarOcorrencias() {
     let status = { total: 9, atual: 1 }
 
     sincronizarApp(status)
+
+    // Especial: sincronismo das ocorrências;
     const nuvem = await baixarOcorrencias()
     if (nuvem.dados && nuvem.resetar) {
         const base = 'dados_ocorrencias'
