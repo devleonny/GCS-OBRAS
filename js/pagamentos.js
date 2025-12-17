@@ -156,7 +156,7 @@ async function telaPagamentos() {
 
             titulos += `
 
-            <div class="balao-pagamentos" onclick="pesquisarGenerico(4, '${nomeStatus == 'TODOS' ? '' : nomeStatus}', 'body')">
+            <div class="balao-pagamentos" onclick="pesquisarGenerico(4, '${nomeStatus == 'TODOS' ? '' : nomeStatus}', 'bodyPagamentos')">
                 
                 <div class="dir">
                     <div style="${vertical};">

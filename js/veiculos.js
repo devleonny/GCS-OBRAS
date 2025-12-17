@@ -376,39 +376,45 @@ async function enviarOmie() {
     const data = dt(inpData)
     const idPagamento = unicoID()
 
-    const param = [
-        {
+    const distribuicao = {}
+    for (let [cCodDep, nValDep] of Object.entries(totalDepartamentos)) {
+
+        cCodDep = Number(cCodDep) // Em número;
+
+        if (!distribuicao[cCodDep]) {
+            distribuicao[cCodDep] = { cCodDep, nValDep }
+        } else {
+            distribuicao[cCodDep].nValDep += nValDep
+        }
+
+        totalGeral += nValDep
+    }
+
+    // Salvamento da taxa > Código dep EMPRESA; 
+    totalGeral += taxa
+    if(!distribuicao[6689610735]) {
+        distribuicao[6689610735] = { cCodDep: 6689610735, nValDep: taxa }
+    } else {
+        distribuicao[6689610735].nValDep += taxa
+    }
+
+    const pagamento = {
+        app,
+        param: [{
             codigo_cliente_fornecedor: 6066446384,
             codigo_lancamento_integracao: idPagamento,
             data_vencimento: data,
             data_previsao: data,
-            distribuicao: [],
+            distribuicao: Object.values(distribuicao),
             observacao,
-            valor_documento: 0,
+            valor_documento: totalGeral,
             categorias: [
                 {
                     codigo_categoria: '2.03.97',
                     percentual: 100
                 }
             ]
-        }
-    ]
-
-    for (const [cCodDep, nValDep] of Object.entries(totalDepartamentos)) {
-
-        totalGeral += nValDep
-        param[0].distribuicao.push({ cCodDep, nValDep })
-
-    }
-
-    // Salvamento da taxa > Código dep EMPRESA; 
-    param[0].distribuicao.push({ cCodDep: 6689610735, nValDep: taxa })
-    totalGeral += taxa
-    param[0].valor_documento = totalGeral
-
-    const pagamento = {
-        param,
-        app
+        }]
     }
 
     const resposta = await lancarPagamento({ pagamento, dataFixa: true })
@@ -594,7 +600,7 @@ async function painelValores(idCusto, duplicar) {
 
     const botoes = [
         { texto: 'Salvar', img: 'concluido', funcao: !idCusto ? `salvarValores()` : duplicar ? `salvarValores(false)` : `salvarValores('${idCusto}')` },
-        { texto: 'Atualizar', img: 'atualizar3', funcao: `atualizarDadosVeiculos()`},
+        { texto: 'Atualizar', img: 'atualizar3', funcao: `atualizarDadosVeiculos()` },
     ]
 
     const form = new formulario({ linhas, botoes, titulo: 'Gerenciar Custo' })

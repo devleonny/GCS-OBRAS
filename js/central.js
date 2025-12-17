@@ -546,7 +546,7 @@ async function configs() {
     let cabecalhos = ['Usuário', 'Permissão', 'Setores', 'Vendedor']
     cabecalhos.forEach((cabecalho, i) => {
         ths += `<th>${cabecalho}</th>`
-        tbusca += `<th contentEditable="true" style="background-color: white; text-align: left;" oninput="pesquisarGenerico(${i}, filtrosUsuarios, 'tbodyUsuarios')"></th>`
+        tbusca += `<th contentEditable="true" style="background-color: white; text-align: left;" oninput="pesquisarGenerico(${i}, this.textContent, 'tbodyUsuarios')"></th>`
     })
 
     const tabela = `
@@ -1725,7 +1725,7 @@ async function reprocessarAnexos(idPagamento) {
             })
             .then(data => {
                 console.log(JSON.parse(data))
-                popup(mensagem('Finalizado', 'imagens/concluido.png'), 'alerta', true)
+                popup(mensagem('Finalizado', 'imagens/concluido.png'), 'Alerta', true)
                 resolve(data);
             })
             .catch(err => {
