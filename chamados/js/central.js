@@ -516,22 +516,11 @@ function carregarMenus() {
 function auxBotoesOcorrencias() {
 
     for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias)) {
-
-        const lista = Object.values(ocorrencia.correcoes || {})
-
-        // Sem correções
-        if (lista.length === 0) {
-            ocorrenciasFiltradas["SEM CORREÇÃO"] ??= {}
-            ocorrenciasFiltradas["SEM CORREÇÃO"][idOcorrencia] = ocorrencia
-            continue
-        }
-
-        // Ordena pela data (mais recente primeiro)
-        const ultima = lista.sort((a, b) => new Date(b.data) - new Date(a.data))[0]
-
-        let nomeCorrecao =
-            correcoes[ultima?.tipoCorrecao]?.nome?.toUpperCase() ||
-            "CORREÇÃO EM BRANCO"
+        console.log(ocorrencia)
+        
+        const ultCorrCod = ocorrencia?.tipoCorrecao
+        const nomeUltCorr = correcoes?.[ultCorrCod]?.nome
+        const nomeCorrecao = nomeUltCorr ? nomeUltCorr.toUpperCase() : "CORREÇÃO EM BRANCO"
 
         ocorrenciasFiltradas[nomeCorrecao] ??= {}
         ocorrenciasFiltradas[nomeCorrecao][idOcorrencia] = ocorrencia
@@ -780,7 +769,7 @@ async function enviar(caminho, info, idEvento) {
             .then(data => {
                 if (data.mensagem) {
                     msgQuedaConexao()
-                    return resolve(data) // só um resolve, com retorno
+                    return resolve(data) // Só um resolve, com retorno;
                 }
                 resolve(data)
             })
@@ -789,7 +778,7 @@ async function enviar(caminho, info, idEvento) {
                     return reject({ mensagem: 'Sem conexão rede/servidor, tente novamente em alguns minutos' })
                 }
                 salvarOffline(objeto, 'enviar', idEvento)
-                resolve({ mensagem: 'Offline' }) // retorna algo definido
+                resolve({ mensagem: 'Offline' }) // Retorna algo definido;
             })
     })
 }
@@ -850,7 +839,7 @@ async function receber(chave, reset = false) {
             })
             .catch(err => {
                 console.log(err)
-                
+
                 msgQuedaConexao()
 
                 sincronizarApp({ remover: true })
@@ -1043,7 +1032,7 @@ function criarAnexoVisual({ nome, link, funcao }) {
         <div class="contornoAnexos" name="${link}">
             <div onclick="abrirArquivo('${link}', '${nome}')" class="contornoInterno">
                 <img src="imagens/anexo2.png">
-                <label title="${nome}">${nome}</label>
+                <label title="${nome}">${nome.slice(0, 15)}...</label>
             </div>
             <img src="imagens/cancel.png" style="display: ${displayExcluir};" onclick="${funcao}">
         </div>
@@ -1073,7 +1062,7 @@ async function cxOpcoes(name, nomeBase, funcaoAux) {
     const campos = nomeBase == 'dados_setores' ? ['nome_completo', 'setor'] : esquemaLinhas(nomeBase).colunas
     const base = await recuperarDados(nomeBase)
     let opcoesDiv = ''
-    
+
     for (const [cod, dado] of Object.entries(base)) {
 
         const labels = campos
