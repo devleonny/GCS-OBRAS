@@ -517,7 +517,7 @@ function auxBotoesOcorrencias() {
     ocorrenciasFiltradas = {}
 
     for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias)) {
-  
+
         const ultCorrCod = ocorrencia?.tipoCorrecao
         const nomeUltCorr = correcoes?.[ultCorrCod]?.nome
         const nomeCorrecao = nomeUltCorr ? nomeUltCorr.toUpperCase() : "CORREÇÃO EM BRANCO"
@@ -1057,11 +1057,24 @@ function abrirArquivo(link, nome) {
 
 async function cxOpcoes(name, nomeBase, funcaoAux) {
 
-    const campos = nomeBase == 'dados_setores' ? ['nome_completo', 'setor'] : esquemaLinhas(nomeBase).colunas
-    const base = await recuperarDados(nomeBase)
+    const campos = nomeBase === 'dados_setores'
+        ? ['nome_completo', 'setor']
+        : esquemaLinhas(nomeBase).colunas
+
+    const base = Object.entries(await recuperarDados(nomeBase))
+
+    base.sort(([, a], [, b]) => {
+        const campo = campos[0]
+
+        if (!(campo in a) || !(campo in b)) return 0
+
+        return String(a[campo])
+            .localeCompare(String(b[campo]), 'pt-BR', { sensitivity: 'base' })
+    })
+
     let opcoesDiv = ''
 
-    for (const [cod, dado] of Object.entries(base)) {
+    for (const [cod, dado] of base) {
 
         const labels = campos
             .map(campo => `${(dado[campo] && dado[campo] !== '') ? `<label>${dado[campo]}</label>` : ''}`)
