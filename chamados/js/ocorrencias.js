@@ -255,6 +255,7 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
         <div class="bloco-linha">
             <span class="etiqueta-chamado">${idOcorrencia}</span>
             ${modeloCampos('Última Correção', `<span class="${estilo}">${status}</span>`)}
+            ${modeloCampos('Criado por', ocorrencia?.usuario || '-')}
             ${modeloCampos('Empresa', empresas[ocorrencia?.empresa]?.nome || '-')}
             ${modeloCampos('Data Registro', ocorrencia?.dataRegistro || '')}
             ${modeloCampos('Data Limite', dtAuxOcorrencia(ocorrencia?.dataLimiteExecucao))}
