@@ -353,7 +353,7 @@ async function identificacaoUser() {
     acesso = JSON.parse(localStorage.getItem('acesso'))
 
     if (document.title == 'Política de Privacidade') return
-    if (bloq.includes(acesso.permissao) || !acesso) return retornar()
+    if ((acesso && bloq.includes(acesso.permissao)) || !acesso) return retornar()
 
     const toolbar = `
         <div class="toolbar-top">
