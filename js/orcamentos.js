@@ -239,6 +239,9 @@ async function rstTelaOrcamentos() {
 
 async function telaOrcamentos(semOverlay) {
 
+    // Ocultar a barra de rolagem
+    document.body.style.overflow = 'hidden'
+
     const pda = document.querySelector('.tela-gerenciamento')
     if (pda) return await telaInicial()
 

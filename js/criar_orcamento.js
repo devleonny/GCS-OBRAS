@@ -71,6 +71,9 @@ async function confirmarExclusaoOrcamento() {
 
 async function telaCriarOrcamento() {
 
+    // Mostrar a barra de rolagem
+    document.body.style.overflow = 'auto'
+
     funcaoTela = 'telaCriarOrcamento'
     modo = ''
 
