@@ -415,12 +415,14 @@ async function atualizarOcorrencias() {
     sincronizarApp(status)
 
     // Especial: sincronismo das ocorrências;
+    const base = 'dados_ocorrencias'
     const nuvem = await baixarOcorrencias()
-    if (nuvem.dados && nuvem.resetar) {
-        const base = 'dados_ocorrencias'
-        if (nuvem.resetar == 1) await inserirDados({}, base, true)
-        await inserirDados(nuvem.dados, base)
-    }
+    
+    if (nuvem.resetar && nuvem.resetar == 1) 
+        await inserirDados({}, base, true)
+
+    await inserirDados(nuvem.dados, base)
+
     status.atual++
 
     const basesAuxiliares = [
@@ -525,9 +527,10 @@ async function baixarOcorrencias() {
                     popup(mensagem(data.mensagem), 'Alerta', true)
                     reject()
                 }
-                resolve(data);
+
+                resolve(data)
             })
-            .catch(error => reject(error));
+            .catch(error => reject(error))
 
     })
 }

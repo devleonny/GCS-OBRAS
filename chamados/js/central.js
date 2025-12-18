@@ -794,12 +794,12 @@ async function enviar(caminho, info, idEvento) {
     })
 }
 
-function msgQuedaConexao() {
+function msgQuedaConexao(msg = '<b>Falha na atualização:</b> tente novamente em alguns minutos.') {
 
     const acumulado = `
         <div class="msg-queda-conexao">
             <img src="gifs/alerta.gif" style="width: 2rem;">
-            <span><b>Falha na atualização:</b> tente novamente em alguns minutos.</span>
+            <span>${msg}</span>
         </div>
     `
     const msgAtiva = document.querySelector('.msg-queda-conexao')
@@ -843,12 +843,14 @@ async function receber(chave, reset = false) {
             })
             .then(data => {
                 if (data.mensagem) {
-                    msgQuedaConexao()
+                    msgQuedaConexao(data.mensagem)
                     resolve({})
                 }
                 resolve(data);
             })
             .catch(err => {
+                console.log(err)
+                
                 msgQuedaConexao()
 
                 sincronizarApp({ remover: true })

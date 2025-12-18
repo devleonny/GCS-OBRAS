@@ -346,12 +346,14 @@ function retornar() {
 
 async function identificacaoUser() {
 
+    const bloq = ['cliente', 'técnico', 'visitante']
+
     if (document.title !== 'GCS') return
 
     acesso = JSON.parse(localStorage.getItem('acesso'))
 
     if (document.title == 'Política de Privacidade') return
-    if (!acesso) return retornar()
+    if (bloq.includes(acesso.permissao) || !acesso) return retornar()
 
     const toolbar = `
         <div class="toolbar-top">
