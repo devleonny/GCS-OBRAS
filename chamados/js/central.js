@@ -448,7 +448,6 @@ async function telaPrincipal() {
 
 }
 
-
 function carregarMenus() {
 
     const blq = ['cliente', 'técnico']
@@ -515,9 +514,10 @@ function carregarMenus() {
 
 function auxBotoesOcorrencias() {
 
+    ocorrenciasFiltradas = {}
+
     for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias)) {
-        console.log(ocorrencia)
-        
+  
         const ultCorrCod = ocorrencia?.tipoCorrecao
         const nomeUltCorr = correcoes?.[ultCorrCod]?.nome
         const nomeCorrecao = nomeUltCorr ? nomeUltCorr.toUpperCase() : "CORREÇÃO EM BRANCO"
@@ -838,8 +838,6 @@ async function receber(chave, reset = false) {
                 resolve(data);
             })
             .catch(err => {
-                console.log(err)
-
                 msgQuedaConexao()
 
                 sincronizarApp({ remover: true })
