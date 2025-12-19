@@ -1,7 +1,6 @@
 const filtroPda = {}
 let tags_orcamentos = {}
 let guiaAtual = null
-let tecPda = null
 const abas = ['PDA', 'POC', 'INFRA', 'LOGÍSTICA', 'CONCLUÍDO']
 const coments = (comentario, campo, id) => {
 
@@ -132,7 +131,7 @@ async function telaInicial() {
 
     for (const [idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
 
-        if (!orcamento.pda) continue
+        if (!orcamento.aba) continue
         ativos.push(idOrcamento)
         linPda(idOrcamento, orcamento)
     }
@@ -626,7 +625,7 @@ function linPda(idOrcamento, orcamento) {
         </td>
         <td>
             <div style="${horizontal}; justify-content: start; align-items: start; gap: 2px;">
-                <img onclick="id_orcam = '${idOrcamento}'; tecPda = true; tecnicosAtivos()" src="imagens/baixar.png" style="width: 1.5rem;">
+                <img onclick="id_orcam = '${idOrcamento}'; tecnicosAtivos()" src="imagens/baixar.png" style="width: 1.5rem;">
                 <div style="${vertical}; gap: 2px; width: 100%;">
                     ${tecs}
                 </div>
@@ -678,21 +677,21 @@ function linPda(idOrcamento, orcamento) {
     const aba = orcamento.aba || 'PDA'
     const tbody = document.getElementById(`body${aba}`)
     const trExistente = document.getElementById(idOrcamento)
+    const timestamp = trExistente?.dataset?.timestamp
     const trAba = trExistente?.dataset?.aba || 'PDA'
 
     if (trExistente) {
-
         if (trAba == aba) {
-            return trExistente.innerHTML = tds
+            if (!orcamento.timestamp || orcamento.timestamp !== timestamp)
+                trExistente.innerHTML = tds
         } else {
             trExistente.remove()
         }
-
     }
 
     tbody.insertAdjacentHTML(
         'beforeend',
-        `<tr data-aba="${aba}" id="${idOrcamento}">${tds}</tr>`
+        `<tr id="${idOrcamento}" ...>${tds}</tr>`
     )
 
 }
@@ -700,10 +699,11 @@ function linPda(idOrcamento, orcamento) {
 function confirmarCriarOrcamento() {
     const acumulado = `
         <div style="${horizontal}; gap: 1rem; background-color: #d2d2d2; padding: 1rem;">
-            <span>Deseja transformar esse item em um orçamento?</span>
+            <span>Deseja transformar esse item em orçamento?</span>
             <button onclick="criarOrcamentoPda('${idOrcamento}')">Confirmar</button>
         </div>
     `
+    popup(acumulado, 'Transformar em Orçamento', true)
 }
 
 async function criarOrcamentoPda(id) {

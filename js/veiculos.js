@@ -662,14 +662,12 @@ function calcularValorCombustivel() {
 }
 
 
-async function salvarValores(idCusto) {
+async function salvarValores(idCusto = ID5digitos()) {
 
     overlayAguarde()
 
     const idMotorista = document.querySelector('[name="nameMotorista"]').id
     const motorista = await recuperarDado('motoristas', idMotorista)
-    idCusto = idCusto || ID5digitos()
-
     const custo_total = obterValores('custo_total')
     const data_pagamento = obterValores('data_pagamento')
 

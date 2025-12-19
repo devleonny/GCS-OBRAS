@@ -314,6 +314,14 @@ async function f2() {
 
             ${botao('Sincronizar Pagamentos', `respostaSincronizacao('pagamentos')`)}
 
+            <div style="${vertical}; gap: 2px;">
+                <span>Criar Departamento</span>
+                <div style="${horizontal}; gap: 0.5rem;">
+                    <input class="etiquetas" oninput="this.nextElementSibling.style.display = ''">
+                    <img src="imagens/concluido.png" onclick="salvarDepartamento(this)" style="display: none;">
+                </div>
+            </div>
+
             <div id="localResposta"></div>
 
             <hr style="width: 100%;">
@@ -321,6 +329,24 @@ async function f2() {
         </div>
     `
     popup(acumulado, 'Ferramentas', true)
+}
+
+async function salvarDepartamento(img) { //29
+
+    overlayAguarde()
+
+    const input = img.previousElementSibling
+    const nome = input.value
+
+    if (!nome) return popup(mensagem('Nome em branco'), 'Alerta', true)
+
+    const resposta = await criarDepDiretamente(nome)
+
+    if (resposta.mensagem) return popup(mensagem(resposta.mensagem), 'Alerta', true)
+    input.value = ''
+    img.style.display = 'none'
+
+    popup(mensagem('Salvo com sucesso'), 'Alerta', true)
 }
 
 async function respostaSincronizacao(script) {
@@ -2553,7 +2579,9 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
             })
             .join('')
 
-        const descricao = String(getValorPorCaminho(dado, campos[0]))
+        const descricao = campos
+            .map(c => getValorPorCaminho(dado, c))
+            .find(v => v !== undefined && v !== null && v !== '')
 
         opcoesDiv += `
         <div 
@@ -2588,7 +2616,7 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
 async function selecionar(name, id, termo, funcaoAux) {
     termo = decodeURIComponent(termo)
     const elemento = document.querySelector(`[name='${name}']`)
-    elemento.textContent = termo
+    elemento.textContent = termo || id
     elemento.id = id
     removerPopup()
 
@@ -2795,6 +2823,23 @@ async function numORC(idOrcamento) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ idOrcamento })
+        })
+
+        if (!response.ok)
+            throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`)
+
+        return await response.json()
+    } catch (error) {
+        return { mensagem: error.messagem || error.mensage || error }
+    }
+}
+
+async function criarDepDiretamente(nome) {
+    try {
+        const response = await fetch(`${api}/criar-departamento-diretamente`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome, usuario: acesso.usuario })
         })
 
         if (!response.ok)

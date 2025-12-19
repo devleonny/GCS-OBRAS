@@ -65,7 +65,7 @@ async function telaChecklist() {
                     </div>
 
                     <div class="opcoes-orcamento">
-                        ${modeloBotoes('gerente', 'Técnicos na Obra', `tecPda = false; tecnicosAtivos()`)}
+                        ${modeloBotoes('gerente', 'Técnicos na Obra', `tecnicosAtivos()`)}
                         ${modeloBotoes('cancel', 'Remover Itens Selecionados', `removerItensEmMassaChecklist()`)}
                         ${modeloBotoes('checklist', 'Ver Itens Removidos', `verItensRemovidos()`)}
                         ${modeloBotoes('baixar', 'Serviço Avulso', `adicionarServicoAvulso()`)}
@@ -287,8 +287,7 @@ async function tagsChecklist(codigo) {
 async function tecnicosAtivos() {
 
     const orcamento = dados_orcamentos?.[id_orcam]
-    const pda = pdas[id_orcam]
-    const listaTecs = orcamento?.checklist?.tecnicos || pda?.tecnicos || []
+    const listaTecs = orcamento?.checklist?.tecnicos || []
     let tecs = ''
 
     for (const codTec of listaTecs) {
@@ -325,22 +324,14 @@ async function salvarTecnicos() {
         tecnicos.push(span.id)
     }
 
-    if (tecPda) {
-        // Se forem preenchidos com base em um pda, sem orçamento, salvo no objeto pda provisoriamente;
-        const pda = await recuperarDado('pda', id_orcam)
-        pda.tecnicos = tecnicos
-        enviar(`pda/${id_orcam}/tecnicos`, tecnicos)
-        await inserirDados({ [id_orcam]: pda }, 'pda')
-        await telaInicial()
+    // Caso seja com base no orçamento;
+    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    orcamento.checklist ??= {}
+    orcamento.checklist.tecnicos = tecnicos
+    enviar(`dados_orcamentos/${id_orcam}/checklist/tecnicos`, tecnicos)
+    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
 
-    } else {
-        // Caso seja com base no orçamento;
-        const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-        orcamento.checklist ??= {}
-        orcamento.checklist.tecnicos = tecnicos
-        enviar(`dados_orcamentos/${id_orcam}/checklist/tecnicos`, tecnicos)
-        await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    }
+    recarregarLinhas()
 
     removerPopup()
 
