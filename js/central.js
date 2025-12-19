@@ -585,7 +585,7 @@ async function alterarUsuario({ campo, usuario, select, valor }) {
 
     const alteracao = await configuracoes(usuario, campo, valor) // Se alterar no servidor, altera localmente;
 
-    if (alteracao?.status) {
+    if (alteracao?.sucess) {
         dados_setores[usuario][campo] = select ? select.value : valor
     } else {
         popup(mensagem(`Não foi possível alterar: ${alteracao?.erro || 'Tente novamente mais tarde'}`), 'ALERTA', true)
