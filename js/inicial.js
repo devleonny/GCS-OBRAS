@@ -463,6 +463,7 @@ async function sincronizarPda() {
     await sincronizarDados('pda')
     await sincronizarDados('dados_clientes')
     await sincronizarDados('dados_orcamentos')
+    await sincronizarTags()
     await telaInicial()
     removerOverlay()
 }
