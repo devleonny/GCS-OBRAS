@@ -1137,10 +1137,12 @@ function maisAba() {
     window.open(window.location.href, '_blank', 'toolbar=no, menubar=no');
 }
 
-async function ir_pdf(orcam_) {
+async function irPdf(orcam_, emAnalise) {
 
-    dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    localStorage.setItem('pdf', JSON.stringify(dados_orcamentos[orcam_]));
+    const orcamento = dados_orcamentos[orcam_]
+    orcamento.emAnalise = emAnalise
+
+    localStorage.setItem('pdf', JSON.stringify(orcamento))
 
     window.open('pdf.html', '_blank')
 

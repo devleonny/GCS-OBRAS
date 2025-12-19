@@ -376,7 +376,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
                 docsExistentes += `
                     <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-                        <div onclick="ir_pdf('${pagamento.id_orcamento}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 15vw;">
+                        <div onclick="irPdf('${pagamento.id_orcamento}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 15vw;">
                             <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
                             <label style="cursor: pointer;"><b>Orçamento disponível</b></label>
                         </div>

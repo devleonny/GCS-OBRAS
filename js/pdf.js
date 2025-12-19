@@ -94,7 +94,12 @@ async function atualizarDadosPdf() {
 async function preencher() {
 
     const dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    const orcamentoBase = JSON.parse(localStorage.getItem('pdf')) || {};
+    const orcamentoBase = JSON.parse(localStorage.getItem('pdf')) || {}
+
+    if (orcamentoBase.emAnalise)
+        document.body.classList.add('marca-ativa')
+    else
+        document.body.classList.remove('marca-ativa')
 
     // LÓGICA DOS DADOS
     const cliente = await recuperarDado('dados_clientes', orcamentoBase?.dados_orcam?.omie_cliente) || {}

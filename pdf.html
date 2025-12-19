@@ -11,7 +11,6 @@
     <title>PDF</title>
 </head>
 <style>
-
     .nome-chamado {
         display: flex;
         align-items: center;
@@ -84,6 +83,26 @@
         margin: 0;
         padding: 0;
         width: 100vw;
+    }
+
+    body::before {
+        content: '';
+    }
+
+    body.marca-ativa::before {
+        content: "ORÇAMENTO NÃO APROVADO";
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 7vw;
+        font-weight: 700;
+        color: rgba(0, 0, 0, 0.2);
+        pointer-events: none;
+        z-index: 9999;
+        transform: rotate(306deg);
+        white-space: nowrap;
     }
 
     .label_itens {
@@ -337,8 +356,8 @@
 
 </body>
 
-<script src="js/central.js?v=1.10"></script>
+<script src="js/central.js?v=1.11"></script>
 <script src="js/gerar_excel.js"></script>
-<script src="js/pdf.js?v=1.11"></script>
+<script src="js/pdf.js?v=1.12"></script>
 
 </html>
