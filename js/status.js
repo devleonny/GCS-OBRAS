@@ -832,7 +832,7 @@ async function abrirAtalhos(id) {
     const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
     const cliente = await recuperarDado('dados_clientes', omie_cliente)
     const emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
-    let botoesDisponiveis = modeloBotoes('pdf', 'Abrir Orçamento em PDF', `irPdf('${id}', ${emAnalise})`)
+    let botoesDisponiveis = ''
     let termoArquivar = 'Arquivar Orçamento'
     let iconeArquivar = 'pasta'
 
@@ -841,10 +841,17 @@ async function abrirAtalhos(id) {
         iconeArquivar = 'desarquivar'
     }
 
-    if (!emAnalise) {
+    // Gambiarra para não mudar a posição das paradas;
+    if (!emAnalise)
         botoesDisponiveis += `
         ${modeloBotoes('esquema', 'Histórico', `abrirEsquema('${id}')`)}
-        ${modeloBotoes('painelcustos', 'Painel de Custos', `painelCustos('${id}')`)}
+        ${modeloBotoes('painelcustos', 'Painel de Custos', `painelCustos('${id}')`)}`
+
+
+    botoesDisponiveis += modeloBotoes('pdf', 'Abrir Orçamento em PDF', `irPdf('${id}', ${emAnalise})`)
+
+    if (!emAnalise) {
+        botoesDisponiveis += `
         ${modeloBotoes('checklist', 'CHECKLIST', `telaChecklist()`)}
         ${modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`)}
         ${modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)}

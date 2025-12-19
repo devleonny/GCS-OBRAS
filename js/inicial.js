@@ -727,11 +727,13 @@ function confirmarExcluirPda(idOrcamento) {
     popup(acumulado, 'Pense bem...', true)
 }
 
-async function excluirPda(idOrcamento) {
+async function excluirPda(idOrcamento) { //29
 
     overlayAguarde()
-    await deletarDB('pda', idOrcamento)
-    deletar(`pda/${idOrcamento}`)
+
+    const orcamento = dados_orcamentos[idOrcamento]
+    delete orcamento.aba
+    
     await telaInicial()
     removerPopup()
 
