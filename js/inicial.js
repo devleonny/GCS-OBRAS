@@ -460,11 +460,10 @@ function mostrarGuia(nomeGuia = guiaAtual || 'INDICADORES') {
 
 async function sincronizarPda() {
     overlayAguarde()
-    await sincronizarDados('pda')
     await sincronizarDados('dados_clientes')
     await sincronizarDados('dados_orcamentos')
-    await sincronizarTags()
     await telaInicial()
+    await sincronizarTags()
     removerOverlay()
 }
 

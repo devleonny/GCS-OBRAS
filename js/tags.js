@@ -25,7 +25,9 @@ function renderAtivas({ idOrcamento, recarregarPainel }) {
             const branco = isDark(cor) ? 'color: #fff;' : ''
 
             return `
-                <div name="${id}" class="tag"
+                <div  
+                    data-id="${id}"
+                    class="tag"
                     style="${cLinear(cor)}; ${branco}"
                     title="${info.usuario} - ${info.data}"
                     onclick="confirmarRemocaoTag({idTag: '${id}', idOrcamento: '${idOrcamento}', recarregarPainel: ${recarregarPainel}})">
@@ -190,27 +192,25 @@ async function recarregarLinhas() {
     if (telaAtiva == 'inicial') telaInicial()
     if (telaAtiva == 'orcamentos') telaOrcamentos()
 }
-/*
-`                <div class="tag"
-                    style="${cLinear(cor)}; ${branco}"
-                    title="${info.usuario} - ${info.data}"
-                    onclick="confirmarRemocaoTag({idTag: '${id}', idOrcamento: '${idOrcamento}', recarregarPainel: ${recarregarPainel}})">
-                    <span>${tag.nome || '--'}</span>
-                </div>
-`
+
 async function sincronizarTags() {
     await sincronizarDados('tags_orcamentos')
-    tags_orcamentos = await inserirDados('tags_orcamentos')
+    tags_orcamentos = await recuperarDados('tags_orcamentos')
 
-    for(const [idTag, tag] of Object.entries(tags_orcamentos)) {
-        const todas = document.querySelectorAll(`[´name="${idTag}"]`)
+    for (const [idTag, tag] of Object.entries(tags_orcamentos)) {
+        const todas = document.querySelectorAll(`.tag[data-id="${idTag}"]`)
+        if (!todas.length) continue
 
-        for(const t of todas) {
-            t.style.background = ``
+        const cor = tag.cor || '#999'
+        const branco = isDark(cor)
+
+        for (const t of todas) {
+            t.style.background = `linear-gradient(90deg, ${cor} 0%, ${cor}91 85%)`
+            t.style.color = branco ? '#fff' : ''
+            t.querySelector('span').textContent = tag.nome || '--'
         }
     }
 }
-    */
 
 // Outra parada;
 

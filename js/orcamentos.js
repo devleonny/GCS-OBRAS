@@ -30,14 +30,15 @@ async function atualizarOrcamentos() {
         'dados_orcamentos',
         'dados_composicoes',
         'dados_clientes',
-        'tags_orcamentos',
         'dados_ocorrencias',
         'departamentos_AC'
     ]
 
     for (const tabela of tabelas) await sincronizarDados(tabela)
+    
     await auxDepartamentos()
     await telaOrcamentos()
+    await sincronizarTags()
 
 }
 
