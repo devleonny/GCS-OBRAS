@@ -141,7 +141,7 @@ async function telaInicial() {
 
     mostrarGuia()
     contadores()
-    auxMapa('pda')
+    auxMapa('PDA')
 
 }
 
@@ -162,7 +162,18 @@ function contadores() {
     }
 }
 
-function auxMapa(base) {
+function auxMapa(aba) {
+
+    const tMapas = document.querySelector('.toolbar-mapas')
+    tMapas.innerHTML = ''
+
+    for (const aba of [...abas, 'ORÇAMENTOS']) {
+
+        const toolbar = `
+            <div class="aba-toolbar" name="toolbar-mapas" data-tipo="${aba}" onclick="auxMapa('${aba}')">${aba}</div>
+        `
+        tMapas.insertAdjacentHTML('beforeend', toolbar)
+    }
 
     // Preencher o mapa de orçamentos x estado;
     const contadores = {}
@@ -173,10 +184,10 @@ function auxMapa(base) {
     const tools = document.querySelectorAll('[name="toolbar-mapas"]')
     for (const tool of tools) {
         const tipo = tool.dataset.tipo
-        tool.style.opacity = tipo == base ? 1 : 0.5
+        tool.style.opacity = tipo == aba ? 1 : 0.5
     }
 
-    if (base == 'orcamento') {
+    if (aba == 'ORÇAMENTOS') {
         for (const [, orcamento] of Object.entries(dados_orcamentos)) {
             const codOmie = orcamento?.dados_orcam?.omie_cliente
             const cliente = dados_clientes[codOmie]
@@ -192,17 +203,13 @@ function auxMapa(base) {
 
         for (const [idOrcamento, orc] of Object.entries(dados_orcamentos)) {
 
-            if (!orc.pda) continue
-
-            const historico = orc?.status?.historicoStatus || {}
-            const concluido = Object.values(historico).some(h => h?.para === 'CONCLUÍDO')
-
-            // Ignorar Orçamentos concluídos
-            if (concluido) continue
+            if (!orc.aba) continue
+            if (orc.aba == 'CONCLUÍDO') continue
+            if (orc.aba !== aba) continue
 
             const codOmie = dados_orcamentos?.[idOrcamento]?.dados_orcam?.omie_cliente
             const cliente = dados_clientes[codOmie]
-            const estado = cliente?.estado || ''
+            const estado = cliente?.estado || orc?.pda?.estado || ''
 
             if (!estado) continue
 
@@ -397,14 +404,11 @@ function indicadores() {
     }
 
     const acumulado = `
+    <img style="position: absolute; top: 5px; right: 5px;" src="imagens/atualizar3.png" onclick="sincronizarPda()">
     <div class="painel-indicadores">
 
         <div style="${vertical}; align-items: center; padding: 0.5rem;">
-            <div style="${horizontal}; gap: 0.5rem;">
-                <img src="imagens/atualizar3.png" onclick="sincronizarPda()">
-                <div class="aba-toolbar" name="toolbar-mapas" data-tipo="pda" onclick="auxMapa('pda')">Orçamentos em PDA</div>
-                <div class="aba-toolbar" name="toolbar-mapas" data-tipo="orcamento" onclick="auxMapa('orcamento')">Orçamentos x Estado</div>
-            </div>
+            <div class="toolbar-mapas"></div>
             <div class="fundo-mapa">
                 <img src="imagens/mapa.png" class="mapa">
                 <svg id="mapaOverlay" width="600" height="600" style="position: absolute; top: 0; left: 0;"></svg>
@@ -468,15 +472,17 @@ async function sincronizarPda() {
 
 function carregarPDA() {
 
-    const colunas = ['Cliente', 'Tags', 'Técnicos', 'Início', 'Término', 'Comentários', 'Ação Necessário', 'Checklist', 'Detalhes', 'Excluir']
+    const colunas = ['Cliente', 'Tags', 'Técnicos', 'Início', 'Término', 'Comentários', 'Ação Necessário', 'Checklist', 'Detalhes', 'Remover']
 
     const ths = colunas.map(col => `<th>${col}</th>`).join('')
-    const pesquisas = colunas.map((op, i) => `
-    <th style="background-color: white; text-align: left;" 
-    oninput="pesquisarGenerico('${i}', this.textContent, 'bodyPDA'); contadores()" 
-    contentEditable="true"></th>`).join('')
 
-    const mod = (aba) => `
+    const mod = (aba) => {
+        const pesquisas = colunas.map((op, i) => `
+            <th style="background-color: white; text-align: left;" 
+            oninput="pesquisarGenerico('${i}', this.textContent, 'body${aba}'); contadores()" 
+            contentEditable="true"></th>`).join('')
+
+        return `
         <div name="tabela-${aba}" class="tabelas-pda">
             <div class="topo-tabela">
                 <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
@@ -495,7 +501,7 @@ function carregarPDA() {
             </div>
             <div class="rodape-tabela"></div>
         </div>
-    `
+    `}
 
     const tabelas = document.getElementById('tabelas')
 
@@ -563,7 +569,7 @@ function linPda(idOrcamento, orcamento) {
             `}).join('')
 
     const selectAbas = `
-        <select class="etiquetas" data-campo="aba" onchange="atualizarCampo(this, '${idOrcamento}')">
+        <select class="etiquetas" onchange="atualizarAba(this, '${idOrcamento}')">
             ${abas.map(aba => `<option ${orcamento?.aba == aba ? 'selected' : ''}>${aba}</option>`).join('')}
         </select>
     `
@@ -587,7 +593,6 @@ function linPda(idOrcamento, orcamento) {
     const novo = `
         <div style="${vertical}; gap: 5px;">
             <span><b>Projeto:</b> ${orcamento?.projeto || 'Projeto sem nome'}</span>
-            <hr>
             <div style="${horizontal}; justify-content: end; align-items: end; gap: 5px;">
 
                 ${mod('Estado', `
@@ -674,7 +679,7 @@ function linPda(idOrcamento, orcamento) {
         </td>
     `
 
-    const aba = orcamento.aba || 'PDA'
+    const aba = orcamento.aba
     const tbody = document.getElementById(`body${aba}`)
     const trExistente = document.getElementById(idOrcamento)
     const timestamp = trExistente?.dataset?.timestamp
@@ -689,10 +694,17 @@ function linPda(idOrcamento, orcamento) {
         }
     }
 
-    tbody.insertAdjacentHTML(
-        'beforeend',
-        `<tr id="${idOrcamento}" ...>${tds}</tr>`
-    )
+    // Separado mesmo; Pois posso ter removido antes de algum lugar;
+    if (!trExistente) {
+        tbody.insertAdjacentHTML(
+            'beforeend',
+            `<tr id="${idOrcamento}"
+            data-timestamp="${orcamento.timestamp || ''}"
+            data-aba="${aba}">
+                ${tds}
+        </tr>`
+        )
+    }
 
 }
 
@@ -719,38 +731,53 @@ async function criarOrcamentoPda(id) {
 function confirmarExcluirPda(idOrcamento) {
     const acumulado = `
     <div style="background-color: #d2d2d2; gap: 1rem; padding: 1rem; ${horizontal};">
-        <span>Tem certeza?</span>
+        <span>Este item será apenas removido das tabelas, <br>Ele não será excluído dos orçamentos</span>
         <button onclick="excluirPda('${idOrcamento}')">Confirmar</buttton>
     </div>
     `
 
-    popup(acumulado, 'Pense bem...', true)
+    popup(acumulado, 'Remover dos PDAs', true)
 }
 
-async function excluirPda(idOrcamento) { //29
-
-    overlayAguarde()
+async function excluirPda(idOrcamento) {
 
     const orcamento = dados_orcamentos[idOrcamento]
-    delete orcamento.aba
-    
-    await telaInicial()
+
+    const trExistente = document.getElementById(idOrcamento)
+    enviar(`dados_orcamentos/${idOrcamento}/aba`, '')
     removerPopup()
 
+    if (trExistente) trExistente.remove()
+    contadores()
+
+    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
+
+}
+
+async function atualizarAba(select, idOrcamento) {
+
+    const orcamento = dados_orcamentos[idOrcamento]
+    const valor = select.value
+    orcamento.aba = valor
+
+    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${idOrcamento}/aba`, valor)
+
+    await telaInicial()
 }
 
 async function atualizarCampo(select, idOrcamento) {
 
     const campo = select.dataset.campo
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
+    const orcamento = dados_orcamentos[idOrcamento]
     const valor = select.value
-    orcamento[campo] = valor
+    orcamento.pda ??= {}
+    orcamento.pda[campo] = valor
 
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${idOrcamento}/${campo}`, valor)
+    enviar(`dados_orcamentos/${idOrcamento}/pda/${campo}`, valor)
 
     await telaInicial()
-
 }
 
 async function atualizarPda(img, idOrcamento) {
@@ -759,13 +786,14 @@ async function atualizarPda(img, idOrcamento) {
     const info = div.textContent
     const campo = img.dataset.campo
 
-    const pda = await recuperarDado('pda', idOrcamento)
-    pda[campo] = info
-
-    await inserirDados({ [idOrcamento]: pda }, 'pda')
-    enviar(`pda/${idOrcamento}/${campo}`, info)
+    const orcamento = dados_orcamentos[idOrcamento]
+    orcamento.pda ??= {}
+    orcamento.pda[campo] = info
 
     img.style.display = 'none'
+
+    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${idOrcamento}/pda/${campo}`, info)
 
 }
 
@@ -900,7 +928,7 @@ function editarLinPda({ idOrcamento, aba = 'PDA' }) {
             texto: 'Estado',
             elemento: `
                 <select name="estado">
-                    ${Object.keys(posicoesEstados).map(estado => `<option ${orcamento?.estado == estado ? 'selected' : ''}>${estado}</option>`).join('')}
+                    ${Object.keys(posicoesEstados).map(estado => `<option ${orcamento?.pda?.estado == estado ? 'selected' : ''}>${estado}</option>`).join('')}
                 </select>
             `
         },
@@ -911,7 +939,7 @@ function editarLinPda({ idOrcamento, aba = 'PDA' }) {
                     ${abas.map(a => `<option ${(aba || orcamento?.aba) == a ? 'selected' : ''}>${a}</option>`).join('')}
                 </select>
             `
-        },
+        }
     ]
 
     const funcao = idOrcamento ? `salvarCartao('${idOrcamento}')` : 'salvarCartao()'
