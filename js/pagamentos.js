@@ -757,13 +757,10 @@ async function formularioPagamento() {
 
     dados_clientes = await recuperarDados('dados_clientes')
     const ulP = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
-    const { anexos = {} } = ulP
     const { observacao = '', categorias = [], distribuicao = [], valor_documento = 0, data_vencimento, codigo_cliente_fornecedor = '' } = ulP?.param?.[0] || {}
     const { nome = 'Selecionar' } = dados_clientes?.[codigo_cliente_fornecedor] || {}
     const [dia, mes, ano] = data_vencimento ? data_vencimento.split('/') : ''
     const dtVencimento = `${ano}-${mes}-${dia}`
-
-    console.log(ulP)
 
     const linhas = [
         {
@@ -829,7 +826,7 @@ async function formularioPagamento() {
                             style="display: none;" onchange="salvarAnexosPagamentos(this)">
                     </label>
                     <div id="anexosDiversos" style="${vertical}; gap: 2px;">
-                        ${Object.values(anexos).map(anexo => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoTemporario('${anexo.link}')`)).join('')}
+                        ${Object.values(ulP.anexos || {}).map(anexo => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoTemporario('${anexo.link}')`)).join('')}
                     </div>
                 </div>
             `

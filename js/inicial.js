@@ -1,6 +1,8 @@
 const filtroPda = {}
+let tags_orcamentos = {}
 let guiaAtual = null
 let tecPda = null
+const abas = ['PDA', 'POC', 'INFRA', 'LOGÍSTICA', 'CONCLUÍDO']
 const coments = (comentario, campo, id) => {
 
     if (!comentario) comentario = ''
@@ -95,9 +97,7 @@ async function telaInicial() {
     document.querySelector('[name="titulo"]').textContent = 'GCS'
     dados_clientes = await recuperarDados('dados_clientes')
     dados_orcamentos = await recuperarDados('dados_orcamentos')
-    tagsTemporarias = await recuperarDados('tags_orcamentos')
-
-    const guias = ['Indicadores', 'PDA', 'CONCLUÍDO', 'Técnicos']
+    tags_orcamentos = await recuperarDados('tags_orcamentos')
 
     const acumulado = `
         <div id="loading" style="${horizontal};">
@@ -106,17 +106,14 @@ async function telaInicial() {
         </div>
         <div class="tela-gerenciamento">
             <div style="${horizontal}; gap: 5px; width: 100%;">
-                ${guias.map(guia => `
-                    <div style="opacity: 0.5;" class="aba-toolbar" id="toolbar-${guia}" onclick="mostrarGuia('${guia}')">
-                        <label>${guia}</label>
+                ${['INDICADORES', 'TÉCNICOS', ...abas].map(aba => `
+                    <div style="opacity: 0.5; height: 3rem;" class="aba-toolbar" id="toolbar-${aba}" onclick="mostrarGuia('${aba}')">
+                        <label>${aba}</label>
+                        ${aba !== 'INDICADORES' ? `<span id="contador-${aba}"></span>` : ''}
                     </div>
                     `).join('')}
             </div>
-            <div id="tabelas" style="width: 100%;">
-                ${indicadores()}
-                ${carregarPDA()}
-                ${carregarTecnicos()}
-            </div>
+            <div id="tabelas" style="width: 100%;"></div>
         </div>
     `
 
@@ -126,11 +123,16 @@ async function telaInicial() {
         criarMenus('inicial')
     }
 
+    // Carregar tabelas;
+    indicadores()
+    carregarPDA()
+    carregarTecnicos()
+
     const ativos = []
 
     for (const [idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
 
-        if(!orcamento.pda) continue
+        if (!orcamento.pda) continue
         ativos.push(idOrcamento)
         linPda(idOrcamento, orcamento)
     }
@@ -139,9 +141,26 @@ async function telaInicial() {
     for (const tr of trs) if (!ativos.includes(tr.id)) tr.remove()
 
     mostrarGuia()
-
+    contadores()
     auxMapa('pda')
 
+}
+
+function contadores() {
+
+    for (const aba of [...abas, 'TÉCNICOS']) {
+        const trs = document.querySelectorAll(`#body${aba} tr`)
+        let contador = 0
+
+        for (const tr of trs) {
+            const display = tr.style.display
+            if (display !== 'none') contador++
+        }
+
+        const spanContador = document.getElementById(`contador-${aba}`)
+        if (spanContador) spanContador.textContent = contador
+
+    }
 }
 
 function auxMapa(base) {
@@ -174,7 +193,7 @@ function auxMapa(base) {
 
         for (const [idOrcamento, orc] of Object.entries(dados_orcamentos)) {
 
-            if(!orc.pda) continue
+            if (!orc.pda) continue
 
             const historico = orc?.status?.historicoStatus || {}
             const concluido = Object.values(historico).some(h => h?.para === 'CONCLUÍDO')
@@ -205,7 +224,7 @@ function carregarTecnicos() {
 
     for (const [idOrcamento, orc] of Object.entries(dados_orcamentos)) {
 
-        if(!orc.pda) continue
+        if (!orc.pda) continue
 
         const listaTecs = orc?.checklist?.tecnicos || []
         const historico = orc?.status?.historicoStatus || {}
@@ -257,10 +276,8 @@ function carregarTecnicos() {
                     <span><b>Valor: </b>${dinheiro(orc?.total_geral)}</span>
                 </div>`
                 : `
-                <div style="${horizontal}; gap: 5px; margin-bottom:8px;">
-                    <img src="imagens/projeto.png" onclick="criarOrcamentoPda('${idOrcamento}')">
-                    <textarea class="etiquetas" style="width:100%;" oninput="mostrarBtn(this)">${cliente.nome || ''}</textarea>
-                    <img data-campo="nome" onclick="atualizarPda(this, '${idOrcamento}')" style="display:none; width:1.5rem;" src="imagens/concluido.png">
+                <div class="etiquetas">
+                    <span>${orc.projeto || 'Projeto sem nome'}</span>
                 </div>
             `
 
@@ -290,7 +307,7 @@ function carregarTecnicos() {
                     <thead>
                         <tr>${colunas.map(c => `<th>${c}</th>`).join('')}</tr>
                     </thead>
-                    <tbody>${linhas}</tbody>
+                    <tbody id="bodyTÉCNICOS">${linhas}</tbody>
                 </table>
             </div>
 
@@ -298,11 +315,12 @@ function carregarTecnicos() {
         </div>
     `
 
-    const chave = 'tabela-Técnicos'
-    const t = document.querySelector(`.${chave}`)
-    if (t) return t.innerHTML = acumulado
+    const tabelas = document.getElementById('tabelas')
+    const tabTec = document.querySelector('[name="tabela-TÉCNICOS"]')
 
-    return `<div class="${chave}" name="tabela">${acumulado}</div>`
+    if (tabTec) return tabTec.innerHTML = acumulado
+    tabelas.insertAdjacentHTML('beforeend', `<div class="tabelas-pda" name="tabela-TÉCNICOS">${acumulado}</div>`)
+
 }
 
 
@@ -321,7 +339,7 @@ function indicadores() {
 
     for (const [idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
 
-        if(!orcamento.pda) continue
+        if (!orcamento.pda) continue
         const acoes = orcamento?.pda?.acoes || {}
 
         for (const [idAcao, dados] of Object.entries(acoes)) {
@@ -344,17 +362,17 @@ function indicadores() {
                 const formato = dtPrazo(dados?.prazo)
 
                 strgAcoes += `
-            <div style="${horizontal}; width: 100%; gap: 0.5rem;">
-                <div class="etiqueta-${formato.estilo}">
-                    <span><b>Ação:</b> ${dados?.acao || ''}</span>
-                    <span><b>Responsável:</b> ${dados?.responsavel || ''}</span>
-                    <span><b>Prazo:</b> ${formato.data}</span>
-                    ${dados.registro
+                    <div style="${horizontal}; width: 100%; gap: 0.5rem;">
+                        <div class="etiqueta-${formato.estilo}">
+                            <span><b>Ação:</b> ${dados?.acao || ''}</span>
+                            <span><b>Responsável:</b> ${dados?.responsavel || ''}</span>
+                            <span><b>Prazo:</b> ${formato.data}</span>
+                            ${dados.registro
                         ? `<span><b>criado em: </b>${new Date(dados.registro).toLocaleString('pt-BR')}</span>`
                         : ''}
-                </div>
-                <img src="imagens/editar.png" style="width: 1.5rem;" onclick="formAcao('${idOrcamento}', '${idAcao}')">
-            </div>`
+                        </div>
+                        <img src="imagens/editar.png" style="width: 1.5rem;" onclick="formAcao('${idOrcamento}', '${idAcao}')">
+                    </div>`
             }
         }
     }
@@ -408,18 +426,18 @@ function indicadores() {
 
     </div>
     `
+    const tabelas = document.getElementById('tabelas')
     const tIndicadores = document.querySelector('.tabela-Indicadores')
     if (tIndicadores) return tIndicadores.innerHTML = acumulado
-
-    return `<div class="tabela-Indicadores" name="tabela">${acumulado}</div>`
+    tabelas.insertAdjacentHTML('beforeend', `<div class="tabela-indicadores" name="tabela-INDICADORES">${acumulado}</div>`)
 }
 
-function mostrarGuia(nomeGuia = guiaAtual || 'Indicadores') {
+function mostrarGuia(nomeGuia = guiaAtual || 'INDICADORES') {
 
     guiaAtual = nomeGuia
 
     // Todas as guias e abas ocultadas;
-    const tabelas = document.querySelectorAll('[name="tabela"]')
+    const tabelas = document.querySelectorAll('[name^="tabela-"]')
     for (const t of tabelas) t.style.display = 'none'
 
     const guias = document.querySelectorAll('.aba-toolbar')
@@ -429,7 +447,7 @@ function mostrarGuia(nomeGuia = guiaAtual || 'Indicadores') {
     const aba = document.getElementById(`toolbar-${nomeGuia}`)
     aba.style.opacity = 1
 
-    const tabela = document.querySelector(`.tabela-${nomeGuia}`)
+    const tabela = document.querySelector(`[name=tabela-${nomeGuia}]`)
     if (tabela) tabela.style.display = 'flex'
 
     const loading = document.getElementById('loading')
@@ -454,13 +472,16 @@ function carregarPDA() {
     const colunas = ['Cliente', 'Tags', 'Técnicos', 'Início', 'Término', 'Comentários', 'Ação Necessário', 'Checklist', 'Detalhes', 'Excluir']
 
     const ths = colunas.map(col => `<th>${col}</th>`).join('')
-    const pesquisas = colunas.map((op, i) => `<th style="background-color: white; text-align: left;" oninput="pesquisarGenerico('${i}', this.textContent, 'bodyPDA')" contentEditable="true"></th>`).join('')
+    const pesquisas = colunas.map((op, i) => `
+    <th style="background-color: white; text-align: left;" 
+    oninput="pesquisarGenerico('${i}', this.textContent, 'bodyPDA'); contadores()" 
+    contentEditable="true"></th>`).join('')
 
-    const acumulado = `
-        <div class="tabela-PDA" name="tabela">
+    const mod = (aba) => `
+        <div name="tabela-${aba}" class="tabelas-pda">
             <div class="topo-tabela">
                 <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
-                    <img src="imagens/baixar.png" onclick="adicionarLinPda()">
+                    <img src="imagens/baixar.png" onclick="editarLinPda({aba: '${aba}'})">
                     <img src="imagens/atualizar3.png" onclick="sincronizarPda()">
                 </div>
             </div>
@@ -470,30 +491,21 @@ function carregarPDA() {
                         <tr>${ths}</tr>
                         <tr>${pesquisas}</tr>
                     </thead>
-                    <tbody id="bodyPDA"></tbody>
-                </table>
-            </div>
-            <div class="rodape-tabela"></div>
-        </div>
-        <div class="tabela-CONCLUÍDO" name="tabela" style="flex-direction: column;">
-            <div class="topo-tabela">
-                <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
-                    <img src="imagens/atualizar3.png" onclick="sincronizarPda()">
-                </div>
-            </div>
-            <div class="div-tabela">
-                <table class="tabela">
-                    <thead>
-                        <tr>${ths}</tr>
-                    </thead>
-                    <tbody id="bodyCONCLUÍDO"></tbody>
+                    <tbody id="body${aba}"></tbody>
                 </table>
             </div>
             <div class="rodape-tabela"></div>
         </div>
     `
 
-    return acumulado
+    const tabelas = document.getElementById('tabelas')
+
+    for (const aba of abas) {
+        const tab = mod(aba)
+        const existente = document.getElementById(`body${aba}`)
+        if (!existente) tabelas.insertAdjacentHTML('beforeend', tab)
+    }
+
 }
 
 function auxCliPda(codOmie) {
@@ -512,7 +524,7 @@ function auxCliPda(codOmie) {
 function linPda(idOrcamento, orcamento) {
 
     const codCliente = orcamento?.dados_orcam?.omie_cliente || ''
-    const cliente = dados_clientes?.[codCliente] || {}
+    const cliente = dados_clientes?.[codCliente]
     const st = orcamento?.status?.atual || ''
     const opcoes = ['', ...fluxograma].map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`).join('')
 
@@ -524,6 +536,13 @@ function linPda(idOrcamento, orcamento) {
             const cliente = dados_clientes?.[codTec] || {}
             return `<div class="etiquetas" style="min-width: 100px;">${cliente?.nome || '...'}</div>`
         }).join('')
+
+    const mod = (texto, elemento) => `
+        <div style="${vertical}; gap: 2px;">
+            <span><b>${texto}:</b></span>
+            ${elemento}
+        </div>
+    `
 
     const strAcoes = Object.entries(pda.acoes || {})
         .map(([idAcao, dados]) => {
@@ -537,12 +556,18 @@ function linPda(idOrcamento, orcamento) {
                     <span><b>Responsável:</b> ${dados?.responsavel || ''}</span>
                     <span><b>Prazo:</b> ${formato.data}</span>
                     ${dados.registro
-                    ? `<span><b>criado em: </b>${new Date(dados.registro).toLocaleString('pt-BR')}</span>`
+                    ? `<span><b>criado em:</b> ${new Date(dados.registro).toLocaleString('pt-BR')}</span>`
                     : ''}
                 </div>
                 <img src="imagens/editar.png" style="width: 1.5rem;" onclick="formAcao('${idOrcamento}', '${idAcao}')">
             </div>
             `}).join('')
+
+    const selectAbas = `
+        <select class="etiquetas" data-campo="aba" onchange="atualizarCampo(this, '${idOrcamento}')">
+            ${abas.map(aba => `<option ${orcamento?.aba == aba ? 'selected' : ''}>${aba}</option>`).join('')}
+        </select>
+    `
 
     const existente = `
         <div style="${vertical}; gap: 2px; text-align: left;">
@@ -551,44 +576,53 @@ function linPda(idOrcamento, orcamento) {
             <span><b>Data: </b>${orcamento?.dados_orcam?.data || '...'}</span>
             <span><b>Cidade: </b>${cliente?.cidade || '...'}</span>
             <span><b>Valor: </b> ${dinheiro(orcamento?.total_geral)}</span>
-            <select name="status" class="etiquetas" onchange="alterarStatus(this, '${idOrcamento}')">
-                ${opcoes}
-            </select>
+
+            ${mod('Status', `
+                <select name="status" class="etiquetas" onchange="alterarStatus(this, '${idOrcamento}')">
+                    ${opcoes}
+                </select>
+                `)}
+
         </div>
     `
     const novo = `
-        <div style="${horizontal}; gap: 5px;">
-            <img src="imagens/projeto.png" onclick="criarOrcamentoPda('${idOrcamento}')">
-            <div style="${vertical}; gap: 2px;">
-                <span>Estado</span>
-                <select class="etiquetas" onchange="atualizarEstado(this, '${idOrcamento}')">
-                    <option></option>
-                    ${Object.keys(posicoesEstados).map(estado => `<option ${pda.estado == estado ? 'selected' : ''}>${estado}</option>`).join('')}
-                </select>
+        <div style="${vertical}; gap: 5px;">
+            <span><b>Projeto:</b> ${orcamento?.projeto || 'Projeto sem nome'}</span>
+            <hr>
+            <div style="${horizontal}; justify-content: end; align-items: end; gap: 5px;">
+
+                ${mod('Estado', `
+                    <select class="etiquetas" data-campo="estado" onchange="atualizarCampo(this, '${idOrcamento}')">
+                        <option></option>
+                        ${Object.keys(posicoesEstados).map(estado => `<option ${pda.estado == estado ? 'selected' : ''}>${estado}</option>`).join('')}
+                    </select>
+                    `)}
+                
+                <img src="imagens/editar.png" onclick="editarLinPda({idOrcamento:'${idOrcamento}'})">
+                <img src="imagens/projeto.png" onclick="confirmarCriarOrcamento('${idOrcamento}')">
             </div>
-            <div class="etiquetas" style="width: 100%; height: 50px;" oninput="mostrarBtn(this)" contentEditable="true">${pda.nome || ''}</div>
-            <img data-campo="nome" onclick="atualizarPda(this, '${idOrcamento}')" style="display: none; width: 1.5rem;" src="imagens/concluido.png">
         </div>
     `
 
-    const tags = `
+    const strTags = `
         <div style="${horizontal}; justify-content: space-between; width: 100%; align-items: start; gap: 2px;">
             <div name="tags" style="${vertical}; gap: 1px;">
-                ${gerarLabelsAtivas(orcamento?.tags || {})}
+                ${renderAtivas({ idOrcamento, recarregarPainel: false })}
             </div>
             <img 
                 src="imagens/etiqueta.png" 
                 style="width: 1.2rem;" 
-                onclick="tagsOrcamento('${idOrcamento}')">
+                onclick="renderPainel('${idOrcamento}')">
         </div>
     `
 
     const tds = `
         <td>
-            ${orcamento ? existente : novo}
+            ${cliente ? existente : novo}
+            ${mod('Aba', selectAbas)}
         </td>
         <td>
-            ${orcamento ? tags : ''}
+            ${orcamento ? strTags : ''}
         </td>
         <td>
             <div style="${horizontal}; justify-content: start; align-items: start; gap: 2px;">
@@ -641,53 +675,41 @@ function linPda(idOrcamento, orcamento) {
         </td>
     `
 
-    const historico = orcamento?.status?.historicoStatus || {}
-    let concluido = false
+    const aba = orcamento.aba || 'PDA'
+    const tbody = document.getElementById(`body${aba}`)
+    const trExistente = document.getElementById(idOrcamento)
+    const trAba = trExistente?.dataset?.aba || 'PDA'
 
-    for (const [, dados] of Object.entries(historico)) {
-        if (dados?.para == 'CONCLUÍDO') {
-            concluido = true
-            break
+    if (trExistente) {
+
+        if (trAba == aba) {
+            return trExistente.innerHTML = tds
+        } else {
+            trExistente.remove()
         }
+
     }
 
-    const aba = concluido ? 'CONCLUÍDO' : 'PDA'
-    const destino = document.getElementById(`body${aba}`)
-    const idTr = `PDA_${idOrcamento}`
-    let tr = document.getElementById(idTr)
+    tbody.insertAdjacentHTML(
+        'beforeend',
+        `<tr data-aba="${aba}" id="${idOrcamento}">${tds}</tr>`
+    )
 
-    if (tr) {
-        const statusAtual = tr.dataset.status
-        const deveriaSer = concluido ? 'S' : 'N'
+}
 
-        // linha está na aba errada → mover
-        if (statusAtual !== deveriaSer) {
-            tr.remove()
-            tr = null
-        }
-    }
-
-    if (!tr) {
-        // criar nova na aba correta
-        destino.insertAdjacentHTML(
-            'beforeend',
-            `<tr data-status="${concluido ? 'S' : 'N'}" id="PDA_${idOrcamento}">${tds}</tr>`
-        )
-    } else {
-        // atualizar conteúdo se ela já estava na aba correta
-        tr.dataset.status = concluido ? 'S' : 'N'
-        tr.innerHTML = tds
-    }
-
+function confirmarCriarOrcamento() {
+    const acumulado = `
+        <div style="${horizontal}; gap: 1rem; background-color: #d2d2d2; padding: 1rem;">
+            <span>Deseja transformar esse item em um orçamento?</span>
+            <button onclick="criarOrcamentoPda('${idOrcamento}')">Confirmar</button>
+        </div>
+    `
 }
 
 async function criarOrcamentoPda(id) {
 
-    const orcamento = {
-        id,
-        pda: {},
-        checklist: { tecnicos: [] }
-    }
+    const orcamento = dados_orcamentos[id]
+    orcamento.id = id
 
     baseOrcamento(orcamento)
     await telaCriarOrcamento()
@@ -715,14 +737,17 @@ async function excluirPda(idOrcamento) {
 
 }
 
-async function atualizarEstado(select, idOrcamento) {
+async function atualizarCampo(select, idOrcamento) {
 
-    const pda = await recuperarDado('pda', idOrcamento)
-    const estado = select.value
-    pda.estado = estado
+    const campo = select.dataset.campo
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
+    const valor = select.value
+    orcamento[campo] = valor
 
-    await inserirDados({ [idOrcamento]: pda }, 'pda')
-    enviar(`pda/${idOrcamento}/estado`, estado)
+    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${idOrcamento}/${campo}`, valor)
+
+    await telaInicial()
 
 }
 
@@ -860,79 +885,77 @@ async function salvarAcao(idOrcamento, idAcao) {
     await telaInicial()
 }
 
-function adicionarLinPda() {
+function editarLinPda({ idOrcamento, aba = 'PDA' }) {
+
+    const orcamento = dados_orcamentos[idOrcamento]
 
     const linhas = [
         {
-            texto: 'Orçamento',
+            texto: 'Nome do Projeto',
+            elemento: `<textarea name="projeto"></textarea>`
+        },
+        {
+            texto: 'Estado',
             elemento: `
-            <div style="${horizontal}; gap: 5px;">
-                <div id="caixaSelecaoOrcamento" data-existente="S">
-                    <span 
-                    class="opcoes" name="orcamento" 
-                    onclick="cxOpcoes('orcamento', 'dados_orcamentos', ['dados_orcam/contrato', 'dados_orcam/omie_cliente[auxCliPda]', 'total_geral[dinheiro]'])">
-                        Selecione
-                    </span>
-                </div>
-                <img onclick="alterarModo()" src="imagens/ajustar.png">
-            </div>
+                <select name="estado">
+                    ${Object.keys(posicoesEstados).map(estado => `<option ${orcamento?.estado == estado ? 'selected' : ''}>${estado}</option>`).join('')}
+                </select>
             `
-        }
+        },
+        {
+            texto: 'Aba',
+            elemento: `
+                <select name="aba">
+                    ${abas.map(a => `<option ${(aba || orcamento?.aba) == a ? 'selected' : ''}>${a}</option>`).join('')}
+                </select>
+            `
+        },
     ]
+
+    const funcao = idOrcamento ? `salvarCartao('${idOrcamento}')` : 'salvarCartao()'
 
     const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: `salvarCartao()` }
+        { texto: 'Salvar', img: 'concluido', funcao }
     ]
 
-    const form = new formulario({ linhas, botoes, titulo: 'Adicionar linha' })
+    const titulo = idOrcamento ? 'Editar item' : 'Adicionar item'
+
+    const form = new formulario({ linhas, botoes, titulo })
     form.abrirFormulario()
 
 }
 
-function alterarModo() {
-
-    const cxSel = document.getElementById('caixaSelecaoOrcamento')
-    const existente = cxSel.dataset.existente
-
-    if (existente == 'S') {
-        const id = unicoID()
-        cxSel.innerHTML = `<textarea name="orcamento" id="${id}"></textarea>`
-        cxSel.dataset.existente = 'N'
-
-    } else {
-        cxSel.innerHTML = `
-            <span 
-            class="opcoes" name="orcamento" 
-            onclick="cxOpcoes('orcamento', 'dados_orcamentos', ['dados_orcam/contrato', 'dados_orcam/omie_cliente[auxCliPda]', 'total_geral[dinheiro]'])">
-                Selecione
-            </span>
-        `
-        cxSel.dataset.existente = 'S'
-    }
-
-}
-
-async function salvarCartao() {
+async function salvarCartao(idOrcamento) {
 
     overlayAguarde()
 
-    const elemento = document.querySelector('[name="orcamento"]')
-    if (!elemento.id) {
-        removerPopup()
-        return
-    }
-
-    const idOrcamento = elemento.id
+    const projeto = document.querySelector('[name="projeto"]').value
+    const estado = document.querySelector('[name="estado"]').value
+    const aba = document.querySelector('[name="aba"]').value
     const dados = {
+        projeto,
+        estado,
+        aba,
+        checklist: { tecnicos: [] },
         usuario: acesso.usuario
     }
 
-    if (elemento.tagName === 'TEXTAREA') dados.nome = elemento.value
+    const orcamento = {
+        ...dados_orcamentos[idOrcamento] || {},
+        ...dados
+    }
 
-    await inserirDados({ [idOrcamento]: dados }, 'pda')
+    if (idOrcamento) {
+        enviar(`dados_orcamentos/${idOrcamento}/projeto`, projeto)
+        enviar(`dados_orcamentos/${idOrcamento}/estado`, estado)
+        enviar(`dados_orcamentos/${idOrcamento}/aba`, aba)
+    } else {
+        idOrcamento = `PDA_${unicoID()}`
+        enviar(`dados_orcamentos/${idOrcamento}`, dados)
+    }
+
+    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
     await telaInicial()
-
-    enviar(`pda/${idOrcamento}`, dados)
 
     removerPopup()
 

@@ -302,7 +302,7 @@ async function telaOrcamentos(semOverlay) {
     if (!tabelaOrcamento) tela.innerHTML = acumulado
 
     await auxDepartamentos()
-    tagsTemporarias = await recuperarDados('tags_orcamentos')
+    tags_orcamentos = await recuperarDados('tags_orcamentos')
 
     const parseData = data => {
         if (!data || typeof data !== 'string') return 0
@@ -593,12 +593,12 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         ${cel(`
             <div style="${horizontal}; justify-content: space-between; width: 100%; align-items: start; gap: 2px;">
                 <div name="tags" style="${vertical}; gap: 1px;">
-                    ${gerarLabelsAtivas(orcamento?.tags || {})}
+                    ${renderAtivas({ idOrcamento, recarregarPainel: false })}
                 </div>
                 <img 
                     src="imagens/etiqueta.png" 
                     style="width: 1.2rem;" 
-                    onclick="tagsOrcamento('${idOrcamento}')">
+                    onclick="renderPainel('${idOrcamento}')">
             </div>
             `)}
         ${cel(`
@@ -702,18 +702,6 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
 
         document.getElementById('linhas').insertAdjacentHTML('afterbegin', novaLinha)
     }
-}
-
-async function tagsOrcamento(idOrcamento) {
-
-    tagsPainel = await new TagsPainel({
-        baseTags: 'tags_orcamentos',
-        idRef: idOrcamento,
-        baseRef: 'dados_orcamentos',
-        funcao: 'telaOrcamentos'
-    }).init()
-
-    tagsPainel.painelTags()
 }
 
 async function painelAlteracaoCliente(idOrcamento) {

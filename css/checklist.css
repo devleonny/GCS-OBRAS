@@ -83,21 +83,16 @@
 .resultados {
     width: 50%;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     grid-gap: 10px;
 }
 
 .etiquetas-organizadas {
-    width: 100%;
+    width: max-content;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-gap: 3px;
-}
-
-.span-estiqueta {
-    cursor: pointer;
-    border-radius: 5px;
-    padding: 5px;
+    grid-template-rows: repeat(7, auto);
+    grid-auto-flow: column;
+    gap: 3px;
 }
 
 .painel-adicionar-etiqueta {
@@ -115,7 +110,10 @@
 }
 
 .painel-etiquetas {
-    min-width: 300px;
+    max-height: 60vh;
+    max-width: 60vw;
+    overflow-x: hidden;
+    overflow-y: auto;
     display: flex;
     justify-content: start;
     align-items: start;
@@ -129,4 +127,34 @@
     padding: 1rem;
     background-color: white;
     border-radius: 3px;
+}
+
+.tag {
+    border: solid 1px #222;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 3px 0 3px 0;
+}
+
+.tag span {
+    text-align: left;
+    margin: 0 1rem 0 1rem;
+}
+
+.tag img {
+    margin-right: 0.5rem;
+}
+
+.tags-janela {
+    width: 95%;
+    background-color: #efefef;
+    border: solid 1px #222;
+    height: 100%;
+    padding: 0.5rem;
+    overflow-x: auto;
 }
