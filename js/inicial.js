@@ -692,8 +692,6 @@ function linPda(idOrcamento, orcamento) {
     const timestamp = trExistente?.dataset?.timestamp
     const trAba = trExistente?.dataset?.aba || 'PDA'
 
-    console.log(trAba, aba);
-
     if (trExistente && trAba !== aba) {
         trExistente.remove()
         trExistente = null

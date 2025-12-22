@@ -968,54 +968,48 @@ async function pesquisarProdutos(chave, pesquisa) {
 
 async function converterEsquema() {
 
-    return new Promise(resolve => {
+    const orcamento = baseOrcamento()
+    const origem = JSON.parse(JSON.stringify(orcamento.esquema_composicoes || {}))
 
-        let orcamento = baseOrcamento()
+    orcamento.dados_composicoes = {}
 
-        const copiaEsquema = JSON.parse(JSON.stringify(orcamento.esquema_composicoes || {}))
-        let totaisSlaves = {}
-        let composicoes = {}
+    function acumular(codigo, item) {
 
-        for (const [codigo, dados] of Object.entries(copiaEsquema)) {
-
-            for (const [codigoSlave, dadosSlave] of Object.entries(dados.agrupamento || {})) {
-
-                if (!totaisSlaves[codigoSlave]) totaisSlaves[codigoSlave] = { total: 0, qtde: 0, desconto: 0 }
-
-                const item = totaisSlaves[codigoSlave]
-
-                if (dadosSlave.tipo_desconto) {
-                    const desconto = dadosSlave.tipo_desconto.toLowerCase() === 'dinheiro'
-                        ? dadosSlave.desconto
-                        : ((dadosSlave.desconto / 100) * dadosSlave.custo) * dadosSlave.qtde
-                    item.desconto += desconto || 0
-                }
-
-                item.qtde += dadosSlave.qtde
-                item.total += (dadosSlave.custo * dadosSlave.qtde)
-
-                composicoes[codigoSlave] = dadosSlave
+        if (!orcamento.dados_composicoes[codigo]) {
+            orcamento.dados_composicoes[codigo] = {
+                ...item,
+                qtde: 0,
+                desconto: 0,
+                tipo_desconto: 'dinheiro'
             }
-
-            composicoes[codigo] = { ...dados }
-            delete composicoes[codigo].agrupamento
         }
 
-        // aplica o desconto acumulado em dinheiro nos itens principais
-        for (const [codigo, dados] of Object.entries(totaisSlaves)) {
-            const item = composicoes[codigo]
-            if (!item) continue
+        const destino = orcamento.dados_composicoes[codigo]
 
-            item.custo = dados.total / dados.qtde
-            item.qtde = dados.qtde
-            item.tipo_desconto = 'Dinheiro'
-            item.desconto = dados.desconto
+        destino.qtde += item.qtde
+
+        // desconto
+        if (item.desconto) {
+            if (item.tipo_desconto === 'Porcentagem') {
+                destino.desconto += (item.custo * item.qtde) * (item.desconto / 100)
+            } else {
+                destino.desconto += item.desconto
+            }
         }
+    }
 
-        orcamento.dados_composicoes = composicoes
-        baseOrcamento(orcamento)
-        resolve()
-    })
+    for (const [codigoMaster, master] of Object.entries(origem)) {
+
+        const m = { ...master }
+        delete m.agrupamento
+        acumular(codigoMaster, m)
+
+        for (const [codigoSlave, slave] of Object.entries(master.agrupamento || {})) {
+            acumular(codigoSlave, slave)
+        }
+    }
+
+    baseOrcamento(orcamento)
 }
 
 function verificarData(data, codigo) {
