@@ -136,7 +136,7 @@ async function telaInicial() {
         linPda(idOrcamento, orcamento)
     }
 
-    const trs = document.querySelectorAll('#pda tr')
+    const trs = document.querySelectorAll('#tabelas tr')
     for (const tr of trs) if (!ativos.includes(tr.id)) tr.remove()
 
     mostrarGuia()
@@ -570,6 +570,7 @@ function linPda(idOrcamento, orcamento) {
 
     const selectAbas = `
         <select class="etiquetas" onchange="atualizarAba(this, '${idOrcamento}')">
+            <option></option>
             ${abas.map(aba => `<option ${orcamento?.aba == aba ? 'selected' : ''}>${aba}</option>`).join('')}
         </select>
     `
@@ -763,7 +764,8 @@ async function atualizarAba(select, idOrcamento) {
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
     enviar(`dados_orcamentos/${idOrcamento}/aba`, valor)
 
-    await telaInicial()
+    if (telaAtiva == 'inicial') await telaInicial()
+    if (telaAtiva == 'orcamentos') await telaOrcamentos(true)
 }
 
 async function atualizarCampo(select, idOrcamento) {

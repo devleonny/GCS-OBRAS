@@ -573,12 +573,17 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
     // De orçamentos Pendentes;
     const info = Object.values(orcamento?.status?.historicoStatus || {}).filter(s => s.info)
 
+    const opcoesPda = abas.map(aba => `<option ${orcamento.aba == aba ? 'selected' : ''}>${aba}</option>`).join('')
+
     const celulas = `
         ${cel(`
-            <div style="${vertical}; padding-left: 5px;">
+            <div style="${vertical}; gap: 2px;">
                 <label><b>${orcamento.lpu_ativa}</b></label>
-                <label>${hora}</label>
                 <span>${data}</span>
+                <select name="aba" class="opcoesSelect" onchange="atualizarAba(this, '${idOrcamento}')">
+                    <option></option>
+                    ${opcoesPda}
+                </select>
             </div>
         `)}
         ${cel(`
@@ -707,7 +712,9 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
             <div class="linha-slaves"></div>
         </div>`
 
-        document.getElementById('linhas').insertAdjacentHTML('afterbegin', novaLinha)
+        const divLinhas = document.getElementById('linhas')
+        if(!divLinhas) return
+        divLinhas.insertAdjacentHTML('afterbegin', novaLinha)
     }
 }
 

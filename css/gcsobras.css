@@ -1857,7 +1857,7 @@ input[type=range]::-moz-range-thumb {
 }
 
 .opcoesSelect {
-    width: 100%;
+    width: 80%;
     cursor: pointer;
     background-color: #f2f2f2;
     padding: 3px;
