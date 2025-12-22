@@ -603,14 +603,14 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         ${cel(`<div class="bloco-etiquetas">${labels.PEDIDO}</div>`)}
         ${cel(`<div class="bloco-etiquetas">${labels.FATURADO}</div>`)}
         ${cel(`
-            <div style="${horizontal}; justify-content: space-between; width: 100%; align-items: start; gap: 2px;">
-                <div name="tags" style="${vertical}; gap: 1px;">
-                    ${renderAtivas({ idOrcamento, recarregarPainel: false })}
-                </div>
+            <div style="${vertical}; gap: 2px;">
                 <img 
                     src="imagens/etiqueta.png" 
                     style="width: 1.2rem;" 
                     onclick="renderPainel('${idOrcamento}')">
+                <div name="tags" style="${vertical}; gap: 1px;">
+                    ${renderAtivas({ idOrcamento, recarregarPainel: false })}
+                </div>
             </div>
             `)}
         ${cel(`
