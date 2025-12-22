@@ -136,8 +136,10 @@ async function telaInicial() {
         linPda(idOrcamento, orcamento)
     }
 
-    const trs = document.querySelectorAll('#tabelas tr')
-    for (const tr of trs) if (!ativos.includes(tr.id)) tr.remove()
+    for (const aba of abas) {
+        const trs = document.querySelectorAll(`#body${aba} tr`)
+        for (const tr of trs) if (!ativos.includes(tr.id)) tr.remove()
+    }
 
     mostrarGuia()
     contadores()
@@ -348,6 +350,8 @@ function indicadores() {
         if (!orcamento.pda) continue
         const acoes = orcamento?.pda?.acoes || {}
 
+        const chamado = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato || '-'
+
         for (const [idAcao, dados] of Object.entries(acoes)) {
 
             const dt = dados?.status === 'concluído'
@@ -370,6 +374,8 @@ function indicadores() {
                 strgAcoes += `
                     <div style="${horizontal}; width: 100%; gap: 0.5rem;">
                         <div class="etiqueta-${formato.estilo}">
+                            <span><b>ID:</b> ${chamado}</span>
+                            <span><b>Aba:</b> ${orcamento.aba || ''}</span>
                             <span><b>Ação:</b> ${dados?.acao || ''}</span>
                             <span><b>Responsável:</b> ${dados?.responsavel || ''}</span>
                             <span><b>Prazo:</b> ${formato.data}</span>
