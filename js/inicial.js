@@ -692,23 +692,25 @@ function linPda(idOrcamento, orcamento) {
     const timestamp = trExistente?.dataset?.timestamp
     const trAba = trExistente?.dataset?.aba || 'PDA'
 
-    if (trExistente) {
-        if (trAba == aba) {
-            if (!orcamento.timestamp || orcamento.timestamp !== timestamp)
-                trExistente.innerHTML = tds
-        } else {
-            trExistente.remove()
-        }
+    console.log(trAba, aba);
+
+    if (trExistente && trAba !== aba) {
+        trExistente.remove()
+        trExistente = null
     }
 
-    // Separado mesmo; Pois posso ter removido antes de algum lugar;
-    if (!trExistente) {
+    if (trExistente) {
+        if (!orcamento.timestamp || orcamento.timestamp !== timestamp) {
+            trExistente.innerHTML = tds
+            trExistente.dataset.timestamp = orcamento.timestamp || ''
+        }
+    } else {
         tbody.insertAdjacentHTML(
             'beforeend',
             `<tr id="${idOrcamento}"
             data-timestamp="${orcamento.timestamp || ''}"
             data-aba="${aba}">
-                ${tds}
+            ${tds}
         </tr>`
         )
     }
