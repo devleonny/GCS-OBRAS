@@ -1520,7 +1520,7 @@ async function abrirEsquema(id) {
 
             <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 2px;">
                 <label>Status atual</label>
-                <select onchange="alterarStatus(this, '${id_orcam}')" style="border-radius: 3px; padding: 3px;">
+                <select onchange="alterarStatus(this)" style="border-radius: 3px; padding: 3px;">
                     ${['', ...fluxograma].map(fluxo => `
                         <option ${orcamento?.status?.atual == fluxo ? 'selected' : ''}>${fluxo}</option>
                     `).join('')}
@@ -1714,18 +1714,26 @@ function mostrarConfirmacao(elemento) {
     img.style.display = 'block'
 }
 
-async function alterarStatus(select, id) {
-
-    if (id) id_orcam = id
+async function alterarStatus(select) {
 
     const orcamento = dados_orcamentos[id_orcam]
     orcamento.status ??= {}
     orcamento.status.historicoStatus ??= {}
+    const statusAnterior = orcamento.status?.atual || ''
 
     const novoSt = select.value
     if (orcamento.status?.atual == novoSt) return
 
-    const statusAnterior = orcamento.status?.atual || '--'
+    const bloq = ['REQUISIÇÃO', 'CONCLUÍDO']
+
+    const temPedido = Object.values(orcamento?.status?.historico || {}).some(s => s.status == 'PEDIDO')
+
+    if (!temPedido && bloq.includes(novoSt)) {
+        select.value = statusAnterior
+        popup(mensagem('Não é possível ir para <b>REQUISIÇÃO</b> ou <b>CONCLUÍDO</b> se o orçamento não tiver Pedido'), 'Aviso', true)
+        return
+    }
+
     const idStatus = ID5digitos()
 
     const registroStatus = {
@@ -1742,9 +1750,32 @@ async function alterarStatus(select, id) {
     enviar(`dados_orcamentos/${id_orcam}/status/atual`, novoSt)
     enviar(`dados_orcamentos/${id_orcam}/status/historicoStatus/${idStatus}`, registroStatus)
 
-    if (novoSt == 'ORC APROVADO') criarDepartamento(id_orcam)
+    if (novoSt == 'ORC PENDENTE') {
+        const linhas = [
+            {
+                texto: 'Por que <b>ORC PENDENTE</b>?',
+                elemento: `<textarea name="info"></textarea>`
+            }
+        ]
+        const funcao = `salvarInfoAdicional('${idStatus}')`
+        const botoes = [{ texto: 'Salvar', img: 'concluido', funcao }]
+        const form = new formulario({ linhas, botoes, titulo: 'Informação adicional' })
+        form.abrirFormulario()
+    }
 
+    if (novoSt == 'ORC APROVADO') criarDepartamento(id_orcam)
     if (funcaoAtiva == 'telaOrcamentos') await telaOrcamentos(true)
+}
+
+async function salvarInfoAdicional(idStatus) {
+
+    overlayAguarde()
+    const info = document.querySelector('[name="info"]').value
+    const orcamento = dados_orcamentos[id_orcam]
+    orcamento.status.historicoStatus[idStatus].info = info
+    enviar(`dados_orcamentos/${id_orcam}/status/historicoStatus/${idStatus}/info`, info)
+    removerPopup()
+
 }
 
 async function mostrarHistoricoStatus() {

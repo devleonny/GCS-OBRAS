@@ -1,32 +1,20 @@
 .linha-orcamento-tabela {
     display: grid;
     grid-template-columns:
-        /* Data */
-        1fr
-        /* Status */
-        1fr
-        /* Pedido */
-        1fr
-        /* Notas */
-        1fr
-        /* Etiquetas */
-        1fr
-        /* Chamado */
-        1.5fr
-        /* Cidade */
-        1fr
-        /* Analista & Resp*/
-        1fr
-        /* Checklist */
-        1fr
-        /* Valor */
-        1fr
-        /* Ações */
-        0.5fr;
+        minmax(70px, 1fr)
+        minmax(70px, 1fr)
+        minmax(80px, 1fr)
+        minmax(70px, 1fr)
+        minmax(90px, 1fr)
+        minmax(120px, 1.5fr)
+        minmax(90px, 1fr)
+        minmax(120px, 1fr)
+        minmax(90px, 1fr)
+        minmax(90px, 1fr)
+        minmax(50px, 0.5fr);
     align-items: center;
     background: #ffffff;
     border-bottom: 1px solid #b3b3b3;
-    width: 100%;
     font-size: 0.7rem;
 }
 

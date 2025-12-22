@@ -568,7 +568,7 @@ async function formularioOcorrencia(idOcorrencia) {
         { texto: 'Prioridade', elemento: labelBotao('prioridade', 'prioridades', oc?.prioridade, prioridades[oc?.prioridade]?.nome) },
         { texto: 'Tipo', elemento: labelBotao('tipo', 'tipos', oc?.tipo, tipos[oc?.tipo]?.nome) },
         { texto: 'Descrição', elemento: `<textarea rows="7" style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" class="campos">${oc?.descricao || ''}</textarea>` },
-        { texto: 'Data Limite para a Execução', elemento: `<input name="dataLimiteExecucao" class="campos" type="date" value="${oc?.dataLimiteExecucao || ''}">` },
+        { texto: 'Data Limite para a Execução', elemento: `<input min="${new Date().toISOString().split('T')[0]}" name="dataLimiteExecucao" class="campos" type="date" value="${oc?.dataLimiteExecucao || ''}">` },
         {
             texto: 'Anexos', elemento: `
                 <label class="campos">

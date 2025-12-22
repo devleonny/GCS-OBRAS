@@ -1120,19 +1120,19 @@ async function selecionar(name, id, termo, funcaoAux) {
 }
 
 function pesquisarCX(input) {
+    const termoPesquisa = String(input.value)
+        .toLowerCase()
+        .replace(/[./-]/g, ''); // remove ponto, traço e barra
 
-    const termoPesquisa = String(input.value).toLowerCase()
-
-    const divs = document.querySelectorAll(`[name='camposOpcoes']`)
+    const divs = document.querySelectorAll(`[name='camposOpcoes']`);
 
     for (const div of divs) {
+        const termoDiv = String(div.textContent)
+            .toLowerCase()
+            .replace(/[./-]/g, ''); // mesma limpeza no conteúdo
 
-        const termoDiv = String(div.textContent).toLocaleLowerCase()
-
-        div.style.display = (termoDiv.includes(termoPesquisa) || termoPesquisa == '') ? '' : 'none'
-
+        div.style.display = (termoDiv.includes(termoPesquisa) || termoPesquisa === '') ? '' : 'none';
     }
-
 }
 
 function inicialMaiuscula(string) {

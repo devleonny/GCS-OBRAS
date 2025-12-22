@@ -35,7 +35,7 @@ async function atualizarOrcamentos() {
     ]
 
     for (const tabela of tabelas) await sincronizarDados(tabela)
-    
+
     await auxDepartamentos()
     await telaOrcamentos()
     await sincronizarTags()
@@ -570,6 +570,9 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
 
     const [data, hora] = (dados_orcam?.data || '-/-/-, --:--').split(', ')
 
+    // De orçamentos Pendentes;
+    const info = Object.values(orcamento?.status?.historicoStatus || {}).filter(s => s.info)
+
     const celulas = `
         ${cel(`
             <div style="${vertical}; padding-left: 5px;">
@@ -580,9 +583,12 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         `)}
         ${cel(`
             <div style="${vertical}; gap: 5px;">
-                <select name="status" class="opcoesSelect" onchange="alterarStatus(this, '${idOrcamento}')">
-                    ${opcoes}
-                </select>
+                <div style="${horizontal}; gap: 2px;">
+                    <select name="status" class="opcoesSelect" onchange="id_orcam = '${idOrcamento}'; alterarStatus(this)">
+                        ${opcoes}
+                    </select>
+                    ${(info.length > 0 && st == 'ORC PENDENTE') ? `<img onclick="mostrarInfo('${idOrcamento}')" src="gifs/interrogacao.gif">` : ''}
+                </div>
                 <div style="${horizontal}; width: 100%; justify-content: end; gap: 5px;">
                     <span>Departamento</span>
                     <img src="imagens/${depPorDesc[numOficial] ? 'concluido' : 'cancel'}.png" style="width: 1.5rem;">
@@ -703,6 +709,29 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
 
         document.getElementById('linhas').insertAdjacentHTML('afterbegin', novaLinha)
     }
+}
+
+function mostrarInfo(idOrcamento) {
+
+    const orcamento = dados_orcamentos[idOrcamento]
+    const info = Object.values(orcamento?.status?.historicoStatus || {}).filter(s => s.info)
+
+    const infoElementos = info.map(i => `
+        <div class="etiquetas">
+            <span><b>Data:</b> ${i.data}</span>
+            <span><b>Usuário:</b> ${i.usuario}</span>
+            <span>${i.info}</span>
+        </div>
+        `).join('')
+
+    const acumulado = `
+        <div style="${vertical}; background-color: #d2d2d2; padding: 1rem;">
+            ${infoElementos}
+        </div>
+    `
+
+    popup(acumulado, 'Informações', true)
+
 }
 
 async function painelAlteracaoCliente(idOrcamento) {

@@ -583,7 +583,7 @@ function linPda(idOrcamento, orcamento) {
             <span><b>Valor: </b> ${dinheiro(orcamento?.total_geral)}</span>
 
             ${mod('Status', `
-                <select name="status" class="etiquetas" onchange="alterarStatus(this, '${idOrcamento}')">
+                <select name="status" class="etiquetas" onchange="id_orcam = '${idOrcamento}'; alterarStatus(this)">
                     ${opcoes}
                 </select>
                 `)}
