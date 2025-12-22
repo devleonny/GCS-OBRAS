@@ -12,11 +12,13 @@
         minmax(90px, 1fr)
         minmax(90px, 1fr)
         minmax(50px, 0.5fr);
+    width: fit-content; 
     align-items: center;
-    background: #ffffff;
+    background: #fff;
     border-bottom: 1px solid #b3b3b3;
     font-size: 0.7rem;
 }
+
 
 .celula {
     height: 100%;
