@@ -2249,6 +2249,7 @@ async function verificarNF(numero, tipo, app) {
 async function atualizarBaseClientes() {
     await sincronizarDados('dados_clientes')
     await sincronizarDados('dados_ocorrencias')
+    await auxDepartamentos()
 }
 
 async function painelClientes(idOrcamento) {
@@ -2771,6 +2772,7 @@ async function criarDepartamento(idOrcamento) {
 
 async function auxDepartamentos() {
 
+    await sincronizarDados('departamentos_AC')
     dados_ocorrencias = await recuperarDados('dados_ocorrencias')
     dados_orcamentos = await recuperarDados('dados_orcamentos')
     dados_clientes = await recuperarDados('dados_clientes')
