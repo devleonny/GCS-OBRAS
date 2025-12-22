@@ -595,7 +595,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
                     ${(info.length > 0 && st == 'ORC PENDENTE') ? `<img onclick="mostrarInfo('${idOrcamento}')" src="gifs/interrogacao.gif">` : ''}
                 </div>
                 <div style="${horizontal}; width: 100%; justify-content: end; gap: 5px;">
-                    <span>Departamento</span>
+                    <span>Dep</span>
                     <img src="imagens/${depPorDesc[numOficial] ? 'concluido' : 'cancel'}.png" style="width: 1.5rem;">
                 </div>
             </div>
