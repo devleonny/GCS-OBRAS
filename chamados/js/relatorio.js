@@ -113,7 +113,7 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
     const [dtAb, hrAb] = ocorrencia.dataRegistro ? ocorrencia.dataRegistro.split(', ') : ['', '']
 
     const executores = Object.values(ocorrencia?.correcoes || {})
-        .map(correcao => `<span>${correcao.executor}</span>`)
+        .map(correcao => `<span>• ${correcao.executor}</span>`)
         .join('')
 
     const cliente = dados_clientes?.[ocorrencia?.unidade] || {}
