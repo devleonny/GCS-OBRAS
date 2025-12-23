@@ -73,7 +73,7 @@ async function editarBaseAuxiliar(nomeBase, id) {
     const linhas = [
         {
             texto: 'Nome',
-            elemento: `<input name="nome" placeholder="${inicialMaiuscula(nomeBase)}" value="${dados?.nome || ''}">`
+            elemento: `<textarea name="nome" placeholder="${inicialMaiuscula(nomeBase)}">${dados?.nome || ''}</textarea>`
         }
     ]
 
@@ -81,11 +81,9 @@ async function editarBaseAuxiliar(nomeBase, id) {
     form.abrirFormulario()
 }
 
-async function salvarNomeAuxiliar(nomeBase, id) {
+async function salvarNomeAuxiliar(nomeBase, id = ID5digitos()) {
 
     overlayAguarde()
-
-    id = id || ID5digitos()
 
     const nome = document.querySelector('[name="nome"]')
     await enviar(`${nomeBase}/${id}/nome`, nome.value)
