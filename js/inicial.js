@@ -143,7 +143,7 @@ async function telaInicial() {
 
     mostrarGuia()
     contadores()
-    auxMapa('PDA')
+    auxMapa('ORÇAMENTOS')
 
 }
 
