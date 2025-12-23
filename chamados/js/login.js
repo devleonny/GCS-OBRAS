@@ -173,54 +173,67 @@ async function salvarSenha() {
 }
 
 // NOVO USUÁRIO;
+
+function cadastrar() {
+
+    const campos = ['Nome Completo', 'Usuário', 'Senha', 'E-mail', 'Telefone']
+    const linhas = []
+
+    campos.forEach(campo => {
+        linhas.push({
+            texto: campo,
+            elemento: `<input name="${campo}">`
+        })
+    })
+
+    const funcao = `salvarCadastro()`
+
+    const botoes = [
+        { texto: 'Criar Acesso', img: 'concluido', funcao }
+    ]
+
+    const form = new formulario({ linhas, botoes, titulo: 'Cadastro' })
+    form.abrirFormulario()
+
+}
+
 async function salvarCadastro() {
 
     overlayAguarde()
 
-    let camposCadastro = document.querySelector('.camposCadastro')
-    let campos = camposCadastro.querySelectorAll('input')
-    let nome_completo = campos[0].value
-    let usuario = campos[1].value
-    let senha = campos[2].value
-    let email = campos[3].value
-    let telefone = campos[4].value
-
-    if (usuario == "" || senha == "" || email == "") {
-
-        popup(mensagem('Senha, usuário ou e-mail não informado(s)'), 'AVISO', true)
-
-    } else {
-
-        let requisicao = {
-            tipoAcesso: 'cadastro',
-            dados: {
-                usuario,
-                senha,
-                email,
-                nome_completo,
-                telefone
-            }
-        }
-
-        try {
-            const response = await fetch(`${api}/acesso`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(requisicao)
-            })
-            if (!response.ok) {
-                const err = await response.json()
-                throw err
-            }
-
-            const data = await response.json()
-            return popup(mensagem(data.mensagem), 'Alerta');
-
-        } catch (e) {
-            popup(mensagem(e), 'Alerta', true);
-        }
-
+    const obVal = (n) => {
+        const el = document.querySelector(`[name="${n}"]`)
+        return el ? el.value : ''
     }
+
+    const dados = {
+        nome_completo: obVal('Nome Completo'),
+        usuario: obVal('Usuário'),
+        senha: obVal('Senha'),
+        email: obVal('E-mail'),
+        telefone: obVal('Telefone')
+    }
+
+    if (dados.usuario == '' || dados.senha == '' || dados.email == '') return popup(mensagem('Senha, usuário ou e-mail não informado(s)'), 'Aviso', true)
+
+    try {
+        const response = await fetch(`${api}/acesso`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tipoAcesso: 'cadastro', dados })
+        })
+        if (!response.ok) {
+            const err = await response.json()
+            throw err
+        }
+
+        const data = await response.json()
+        return popup(mensagem(data.mensagem), 'Alerta')
+
+    } catch (err) {
+        popup(mensagem(err.message), 'Alerta')
+    }
+
 
 }
 

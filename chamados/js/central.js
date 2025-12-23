@@ -265,29 +265,6 @@ function exibirSenha(img) {
 
 }
 
-function cadastrar() {
-
-    const campos = ['Nome Completo', 'Usuário', 'Senha', 'E-mail', 'Telefone']
-
-    const modelo = (texto) => `
-        <div style="${vertical};">
-            <span>${texto}</span>
-            <input placeholder="${texto}">
-        </div>
-    `
-
-    const acumulado = `
-        <div class="camposCadastro">
-            ${campos.map(campo => `${modelo(campo)}`).join('')}
-            <hr style="width: 100%;">
-            ${btnPadrao('Criar acesso', 'salvarCadastro()')}
-        </div>
-        `
-
-    popup(acumulado, 'Cadastro')
-
-}
-
 async function capturarLocalizacao() {
     return new Promise((resolve) => {
         if (!("geolocation" in navigator)) {
