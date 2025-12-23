@@ -13,15 +13,30 @@ let telaInterna = null
 let filtrosPagina = {}
 
 document.addEventListener('keydown', function (event) {
-    if (event.key === 'F8') despoluicaoGCS()
+    if (event.key === 'F8') resetarBases()
     if (event.key === 'F5') location.reload()
 })
 
-async function despoluicaoGCS() {
 
-    sincronizarApp()
-    let total = 8
-    let atual = 1
+async function resetarBases() {
+
+    overlayAguarde(true)
+
+    const divMensagem = document.querySelector('.div-mensagem')
+
+    divMensagem.innerHTML = `
+        <div style="${vertical}; gap: 1vh;">
+            <label><b>GCS</b>: Por favor, aguarde...</label>
+            <br>
+            
+            <div id="logs" style="${vertical}; gap: 1vh;"></div>
+        </div>
+    `
+
+    const logs = document.getElementById('logs')
+
+    logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
+
     const bases = [
         'dados_clientes',
         'prioridades',
@@ -33,14 +48,15 @@ async function despoluicaoGCS() {
     ]
 
     for (const base of bases) {
-        await sincronizarDados(base, true, true)
-        sincronizarApp({ atual, total })
-        atual++
+        await sincronizarDados(base, true, true) // Nome base, overlay off e resetar bases;
+        logs.insertAdjacentHTML('beforeend', `<label>Sincronizando: ${base}</label>`)
     }
 
-    sincronizarApp({ remover: true })
+    telaPrincipal()
+    removerOverlay()
 
 }
+
 
 function esquemaLinhas(base, id) {
 
@@ -347,43 +363,26 @@ function removerOverlay() {
 }
 
 function overlayAguarde() {
-    const aguarde = document.querySelector('.aguarde');
-    if (aguarde) aguarde.remove();
+
+    const aguarde = document.querySelector('.aguarde')
+    if (aguarde) aguarde.remove()
 
     const elemento = `
         <div class="aguarde">
+            <div class="div-mensagem"></div>
             <img src="gifs/loading.gif">
         </div>
     `
-    document.body.insertAdjacentHTML('beforeend', elemento);
+    document.body.insertAdjacentHTML('beforeend', elemento)
 
-    const style = document.createElement('style');
-    style.innerHTML = `
-        .aguarde {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(0,0,0,0.5);
-            z-index: 9999;
-        }
+    let pageHeight = Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight
+    );
 
-        .aguarde img {
-            max-width: 100px;
-        }
-    `;
-    document.head.appendChild(style);
+    document.querySelector('.aguarde').style.height = `${pageHeight}px`;
+
 }
-
-const msgteste = (msg) => `
-    <div style="background-color: #d2d2d2;">
-        ${msg}
-    </div>
-`
 
 function irGCS() {
     localStorage.setItem('app', 'GCS')
