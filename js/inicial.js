@@ -436,7 +436,7 @@ function indicadores() {
     </div>
     `
     const tabelas = document.getElementById('tabelas')
-    const tIndicadores = document.querySelector('.tabela-Indicadores')
+    const tIndicadores = document.querySelector('.tabela-indicadores')
     if (tIndicadores) return tIndicadores.innerHTML = acumulado
     tabelas.insertAdjacentHTML('beforeend', `<div class="tabela-indicadores" name="tabela-INDICADORES">${acumulado}</div>`)
 }
@@ -880,8 +880,10 @@ async function excluirAcao(idAcao) {
 
     delete orcamento.pda.acoes[idAcao]
 
+    dados_orcamentos[id_orcam] = orcamento
+
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    deletar(`dados_orcamentos/${id_orcam}/acoes/${idAcao}`)
+    deletar(`dados_orcamentos/${id_orcam}/pda/acoes/${idAcao}`)
 
     await telaInicial()
 
@@ -920,7 +922,7 @@ async function salvarAcao(idOrcamento, idAcao) {
     orcamento.pda.acoes[idAcao] = a
 
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${idOrcamento}/acoes/${idAcao}`, a)
+    enviar(`dados_orcamentos/${idOrcamento}/pda/acoes/${idAcao}`, a)
 
     removerPopup()
     await telaInicial()
