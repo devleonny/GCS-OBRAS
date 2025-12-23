@@ -303,7 +303,6 @@ async function preencher() {
             </div>
         </div>
         <br>
-
         `
 
         if (totais[tab].linhas != '') {
@@ -347,7 +346,7 @@ async function preencher() {
     `;
 
     html_orcamento.innerHTML = `
-    <label>Salvador, Bahia, ${carimboData()}</label>
+    ${carimboData(orcamentoBase?.dados_orcam)}
 
     <div style="${horizontal};">
         ${blocoHtml('Dados da Proposta', dadosPorBloco['Dados da Proposta'])}
@@ -382,12 +381,36 @@ async function preencher() {
 
 }
 
-function carimboData() {
-    const dataAtual = new Date();
-    const opcoes = { day: 'numeric', month: 'long', year: 'numeric' };
-    const dataFormatada = dataAtual.toLocaleDateString('pt-BR', opcoes);
+function carimboData(dados_orcam) {
 
-    return dataFormatada
+    if (!dados_orcam?.data) return ''
+
+    const validade = Number(dados_orcam.validade || 30)
+
+    // espera: "dd/mm/aaaa, hh:mm"
+    const [dataStr, horaStr = '00:00'] = dados_orcam.data.split(',').map(s => s.trim())
+    const [dia, mes, ano] = dataStr.split('/').map(Number)
+    const [hh, mm] = horaStr.split(':').map(Number)
+
+    const dataBase = new Date(ano, mes - 1, dia, hh, mm)
+
+    // soma os dias de validade
+    const dataValidade = new Date(dataBase)
+    dataValidade.setDate(dataValidade.getDate() + validade)
+
+    const fmt = d => 
+        `${String(d.getDate()).padStart(2, '0')}/` +
+        `${String(d.getMonth() + 1).padStart(2, '0')}/` +
+        `${d.getFullYear()}, ` +
+        `${String(d.getHours()).padStart(2, '0')}:` +
+        `${String(d.getMinutes()).padStart(2, '0')}`
+
+    return `
+        <div style="${vertical}; gap: 3px;">
+            <span>Salvador, Bahia, ${fmt(dataBase)}</span>
+            <span>Válido até: ${fmt(dataValidade)}</span>
+        </div>
+    `
 }
 
 function ocultarElementos() {

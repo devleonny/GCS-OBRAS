@@ -2308,7 +2308,8 @@ async function painelClientes(idOrcamento) {
             `
         },
         {
-            texto: 'Cliente', elemento: `
+            texto: 'Cliente',
+            elemento: `
             <div style="${horizontal}; gap: 3px">
                 ${bloq ? `<img src="imagens/proibido.png">` : ''}
                 <span ${dados_orcam.omie_cliente
@@ -2322,35 +2323,41 @@ async function painelClientes(idOrcamento) {
             </div>
             ` },
         {
-            texto: 'CNPJ/CPF', elemento: `
-            <span id="cnpj">${cliente?.cnpj || ''}</span>
-            ` },
+            texto: 'CNPJ/CPF',
+            elemento: `<span id="cnpj">${cliente?.cnpj || ''}</span>`
+        },
         {
-            texto: 'Endereço', elemento: `
-            <span id="bairro">${cliente?.bairro || ''}</span>
-            ` },
+            texto: 'Endereço',
+            elemento: `<span id="bairro">${cliente?.bairro || ''}</span>`
+        },
         {
             texto: 'CEP', elemento: `
             <span id="cep">${cliente?.cep || ''}</span>
             ` },
         {
-            texto: 'Cidade', elemento: `
+            texto: 'Cidade',
+            elemento: `
             <span id="cidade">${cliente?.cidade || ''}</span>
-            ` },
+            `
+        },
         {
-            texto: 'Estado', elemento: `
+            texto: 'Estado',
+            elemento: `
             <span id="estado">${cliente?.estado || ''}</span>
-            ` },
+            `
+        },
         {
-            texto: 'Tipo de Frete', elemento: `
+            texto: 'Tipo de Frete',
+            elemento: `
             <select id="tipo_de_frete">
                 ${['--', 'CIF', 'FOB'].map(op => `<option ${dados_orcam?.tipo_de_frete == op ? 'selected' : ''}>${op}</option>`).join('')}
             </select>
-            ` },
+            `
+        },
         {
-            texto: 'Transportadora', elemento: `
-            <input type="text" id="transportadora" value="${dados_orcam?.transportadora || '--'}">
-            ` },
+            texto: 'Transportadora',
+            elemento: `<input type="text" id="transportadora" value="${dados_orcam?.transportadora || '--'}">`
+        },
         {
             elemento: `
             <div class="linha-clientes" style="${vertical}; gap: 5px; width: 100%;">
@@ -2373,29 +2380,39 @@ async function painelClientes(idOrcamento) {
                 ${levantamentos}
             </div>`},
         {
-            texto: 'Pagamento', elemento: `
+            texto: 'Pagamento',
+            elemento: `
             <select id="condicoes">
                 ${parcelas.map(op => `<option ${dados_orcam?.condicoes == op ? 'selected' : ''}>${op}</option>`).join('')}
             </select>
             ` },
         {
-            texto: 'Garantia', elemento: `
-            <input id="garantia" value="${dados_orcam?.garantia || 'Conforme tratativa Comercial'}">
-            ` },
+            texto: 'Garantia',
+            elemento: `<input id="garantia" value="${dados_orcam?.garantia || 'Conforme tratativa Comercial'}">`
+        },
         {
-            texto: 'Analista', elemento: `
-            <input id="analista" value="${dados_orcam?.analista || acesso.nome_completo}">
-            ` },
+            texto: 'Validade da Proposta',
+            elemento: `<div style="${horizontal}; gap: 3px;"><input id="validade" style="width: 3rem;" type="number" value="${dados_orcam?.validade || 30}"> <span>dias</span></div>`
+        },
         {
-            texto: 'E-mail', elemento: `
-            <input id="email_analista" value="${dados_orcam?.email_analista || acesso.email}">
-            ` },
+            texto: 'Garantia',
+            elemento: `<input id="garantia" value="${dados_orcam?.garantia || 'Conforme tratativa Comercial'}">`
+        },
         {
-            texto: 'Telefone', elemento: `
-            <input id="telefone_analista" value="${dados_orcam?.telefone_analista || acesso.telefone}">
-            ` },
+            texto: 'Analista',
+            elemento: `<input id="analista" value="${dados_orcam?.analista || acesso.nome_completo}">`
+        },
         {
-            texto: 'Empresa', elemento: `
+            texto: 'E-mail',
+            elemento: `<input id="email_analista" value="${dados_orcam?.email_analista || acesso.email}">`
+        },
+        {
+            texto: 'Telefone',
+            elemento: `<input id="telefone_analista" value="${dados_orcam?.telefone_analista || acesso.telefone}">`
+        },
+        {
+            texto: 'Empresa',
+            elemento: `
                 <select id="emissor">
                     ${['AC SOLUÇÕES', 'IAC', 'HNW', 'HNK'].map(op => `<option ${dados_orcam?.emissor == op ? 'selected' : ''}>${op}</option>`).join('')}
                 </select>
@@ -2445,6 +2462,7 @@ async function salvarDadosCliente() {
         consideracoes: String(el('consideracoes').textContent).toUpperCase(),
         data: new Date().toLocaleString('pt-BR'),
         garantia: el('garantia').value,
+        validade: Number(el('validade').value),
         transportadora: el('transportadora').value,
         tipo_de_frete: el('tipo_de_frete').value,
         emissor: el('emissor').value,

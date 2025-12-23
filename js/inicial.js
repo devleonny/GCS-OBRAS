@@ -598,7 +598,7 @@ function linPda(idOrcamento, orcamento) {
         </div>
     `
     const novo = `
-        <div style="${vertical}; gap: 5px;">
+        <div style="${vertical}; gap: 5px; text-align: left;">
             <span><b>Projeto:</b> ${orcamento?.projeto || 'Projeto sem nome'}</span>
             <div style="${horizontal}; justify-content: end; align-items: end; gap: 5px;">
 
@@ -715,7 +715,7 @@ function linPda(idOrcamento, orcamento) {
 
 }
 
-function confirmarCriarOrcamento() {
+function confirmarCriarOrcamento(idOrcamento) {
     const acumulado = `
         <div style="${horizontal}; gap: 1rem; background-color: #d2d2d2; padding: 1rem;">
             <span>Deseja transformar esse item em orçamento?</span>
@@ -725,7 +725,9 @@ function confirmarCriarOrcamento() {
     popup(acumulado, 'Transformar em Orçamento', true)
 }
 
-async function criarOrcamentoPda(id) {
+async function criarOrcamentoPda(id) {  
+
+    removerPopup()
 
     const orcamento = dados_orcamentos[id]
     orcamento.id = id

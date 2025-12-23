@@ -2037,14 +2037,11 @@ async function excluirAnexo(chave, id_anexo, img) {
 
 async function confirmarExclusaoOrcamentoBase(id) {
     popup(`
-        <div style="background-color: #d2d2d2; padding: 2vw;">
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Deseja realmente excluir o orçamento?</label>
-            </div>
-            <button style="background-color: green;" onclick="excluirOrcamentoBase('${id}')">Confirmar</button>
+        <div style="background-color: #d2d2d2; padding: 1rem;">
+            <label>Deseja realmente excluir o orçamento?</label>
+            <button onclick="excluirOrcamentoBase('${id}')">Confirmar</button>
         </div>
-        `)
+        `,'Excluir Orçamento')
 }
 
 async function excluirOrcamentoBase(idOrcamento) {
