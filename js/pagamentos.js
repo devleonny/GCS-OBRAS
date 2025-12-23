@@ -715,9 +715,9 @@ async function salvarPagamento() {
 
     // Verificar se na observação contém a primeira linha "Solicitante"
     const observacao = ultimoPagamento.param[0].observacao
-    const identificacao = `Solicitante: ${acesso.usuario}`
+    const identificacao = 'Solicitante:'
     if (!observacao.includes(identificacao))
-        ultimoPagamento.param[0].observacao = `${identificacao} \n ${observacao}`
+        ultimoPagamento.param[0].observacao = `${identificacao} ${acesso.usuario} \n ${observacao}`
 
     if (!id_pagamento) {
 
