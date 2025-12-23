@@ -115,12 +115,14 @@ async function preencher() {
     imgLogo.style.width = informacoes?.emissor == 'IAC' ? '100px' : '10rem'
 
     // Nome orçamento atual;
-    let nomeChamado = orcamentoBase?.dados_orcam?.contrato ? `<label>${orcamentoBase?.dados_orcam?.contrato}</label>` : ''
+    const chamContrato = orcamentoBase?.dados_orcam?.chamado || orcamentoBase?.dados_orcam?.contrato || ''
+    let nomeChamado = `<label>${chamContrato}</label>`
 
     // Chamado Master;
     if (orcamentoBase.hierarquia) {
         const orcamentoRef = await recuperarDado('dados_orcamentos', orcamentoBase.hierarquia)
-        if (orcamentoRef?.dados_orcam?.contrato) nomeChamado += `<label class="etiqueta-chamado"><b>cham.</b> ${orcamentoRef.dados_orcam.contrato}</label>`
+        const chamContrato = orcamentoRef?.dados_orcam?.chamado || orcamentoRef?.dados_orcam?.contrato || ''
+        if (chamContrato) nomeChamado += `<label class="etiqueta-chamado"><b>cham.</b> ${chamContrato}</label>`
     }
 
     // Revisão atual, se existir;
