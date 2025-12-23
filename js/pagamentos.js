@@ -713,6 +713,12 @@ async function salvarPagamento() {
     const permissao = acesso.permissao
     let id_pagamento = ultimoPagamento.id_pagamento
 
+    // Verificar se na observação contém a primeira linha "Solicitante"
+    const observacao = ultimoPagamento.param[0].observacao
+    const identificacao = `Solicitante: ${acesso.usuario}`
+    if (!observacao.includes(identificacao))
+        ultimoPagamento.param[0].observacao = `${identificacao} \n ${observacao}`
+
     if (!id_pagamento) {
 
         id_pagamento = unicoID()
@@ -778,7 +784,7 @@ async function formularioPagamento() {
         {
             texto: 'Observação <br>ou Chave Pix <br>ou Boleto',
             elemento: `
-            <textarea rows="3" style="resize: vertical; width: 70%;" name="observacao" oninput="calculadoraPagamento()">${observacao || `Solicitante: ${acesso.usuario}`}</textarea>`
+            <textarea rows="3" style="resize: vertical; width: 70%;" name="observacao" oninput="calculadoraPagamento()">${observacao || ''}</textarea>`
         },
         {
             texto: 'Centro de Custo',
