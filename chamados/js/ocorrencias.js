@@ -597,7 +597,7 @@ async function formularioOcorrencia(idOcorrencia) {
 
 async function formularioCorrecao(idOcorrencia, idCorrecao) {
 
-    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
+    const ocorrencia = dados_ocorrencias[idOcorrencia]
     const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
     const funcao = idCorrecao ? `salvarCorrecao('${idOcorrencia}', '${idCorrecao}')` : `salvarCorrecao('${idOcorrencia}')`
 
@@ -672,7 +672,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao) {
 
     if (!idCorrecao) idCorrecao = ID5digitos()
 
-    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
+    const ocorrencia = dados_ocorrencias[idOcorrencia]
 
     if (!ocorrencia.correcoes) ocorrencia.correcoes = {}
 
@@ -685,6 +685,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao) {
         dtCorrecao: obter('dtCorrecao').value,
         executor: obter('executor').id,
         data: new Date().toLocaleString(),
+        usuario: acesso.usuario,
         tipoCorrecao,
         descricao: obter('descricao').value
     })
@@ -741,8 +742,6 @@ async function salvarCorrecao(idOcorrencia, idCorrecao) {
 
     anexosProvisorios = {}
     removerPopup()
-
-    await abrirCorrecoes(idOcorrencia)
 
 }
 
