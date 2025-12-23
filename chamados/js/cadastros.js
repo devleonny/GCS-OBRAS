@@ -93,7 +93,7 @@ async function salvarNomeAuxiliar(nomeBase, id) {
     let dado = await recuperarDado(nomeBase, id) || {}
     dado.nome = nome.value
     await inserirDados({ [id]: dado }, nomeBase)
-    await criarLinha(dado, id, nomeBase)
+    await criarLinhaCadastro(id, dado, nomeBase)
 
     removerPopup()
 
