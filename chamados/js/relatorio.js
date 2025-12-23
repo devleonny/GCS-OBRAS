@@ -521,6 +521,7 @@ async function telaRelatorioCorrecoes() {
             'Descrição',
             'Data Registro',
             'Hora Registro',
+            'Solicitante',
             'Executor',
             'Loja',
             'Sistema'
@@ -581,6 +582,7 @@ function criarLinhasCorrecoes(idOcorrencia, ocorrencia) {
         </td>
         <td>${data}</td>
         <td>${hora}</td>
+        <td>${correcao?.usuario || '-'}</td>
         <td>${correcao?.executor || '-'}</td>
         <td>${cliente?.nome || '-'}</td>
         <td>${sistemas?.[ocorrencia?.sistema]?.nome || '-'}</td>

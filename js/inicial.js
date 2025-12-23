@@ -725,7 +725,7 @@ function confirmarCriarOrcamento(idOrcamento) {
     popup(acumulado, 'Transformar em Orçamento', true)
 }
 
-async function criarOrcamentoPda(id) {  
+async function criarOrcamentoPda(id) {
 
     removerPopup()
 
@@ -914,12 +914,13 @@ async function salvarAcao(idOrcamento, idAcao) {
         registro: new Date().getTime()
     }
 
-    const pda = await recuperarDado('pda', idOrcamento)
-    pda.acoes ??= {}
-    pda.acoes[idAcao] = a
+    const orcamento = dados_orcamentos[idOrcamento]
+    orcamento.pda ??= {}
+    orcamento.pda.acoes ??= {}
+    orcamento.pda.acoes[idAcao] = a
 
-    await inserirDados({ [idOrcamento]: pda }, 'pda')
-    enviar(`pda/${idOrcamento}/acoes/${idAcao}`, a)
+    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${idOrcamento}/acoes/${idAcao}`, a)
 
     removerPopup()
     await telaInicial()

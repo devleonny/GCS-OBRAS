@@ -11,6 +11,7 @@ let paginaComposicoes = 1
 let totalPaginas = null
 let precosAntigos = null
 const porPagina = 100
+let pesqAtiva = null
 
 const metaforas = [
     "Um monitor sem imagens para exibir",
