@@ -434,14 +434,12 @@ async function paraExcel() {
     const worksheet = workbook.addWorksheet('Ocorrências')
     const trs = tabela.querySelectorAll('tr')
 
-    for (let rowIndex = 0; rowIndex < trs.length; rowIndex++) {
-        const tr = trs[rowIndex]
-        const tds = tr.querySelectorAll('td, th')
-        let row = []
+    for (let i = 0; i < trs.length; i++) {
+        const tds = trs[i].querySelectorAll('td, th')
+        const row = []
 
-        for (let colIndex = 1; colIndex < tds.length; colIndex++) {
-            const td = tds[colIndex]
-
+        for (let j = 1; j < tds.length; j++) {
+            const td = tds[j]
             const select = td.querySelector('select')
             const input = td.querySelector('input')
 
@@ -453,11 +451,14 @@ async function paraExcel() {
         worksheet.addRow(row)
     }
 
-    // ====== ESTILOS ======
-    worksheet.eachRow((row, rowNumber) => {
-        row.eachCell((cell, colNumber) => {
-            cell.alignment = { vertical: 'middle', horizontal: 'center' }
+    worksheet.autoFilter = {
+        from: { row: 1, column: 1 },
+        to: { row: 1, column: worksheet.columnCount }
+    }
 
+    worksheet.eachRow((row, rowNumber) => {
+        row.eachCell(cell => {
+            cell.alignment = { vertical: 'top', horizontal: 'left' }
             cell.border = {
                 top: { style: 'thin' },
                 left: { style: 'thin' },
@@ -471,25 +472,23 @@ async function paraExcel() {
                     pattern: 'solid',
                     fgColor: { argb: 'FFD9D9D9' }
                 }
-
                 cell.font = { bold: true }
             }
         })
     })
 
-    // LARGURAS AUTOMÁTICAS
     worksheet.columns.forEach(col => {
         let max = 10
         col.eachCell(cell => {
             const len = String(cell.value || '').length
             if (len > max) max = len
         })
-        col.width = max + 2
+        col.width = Math.min(max + 2, 45)
     })
 
     const buffer = await workbook.xlsx.writeBuffer()
     const blob = new Blob([buffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     })
 
     const link = document.createElement('a')
