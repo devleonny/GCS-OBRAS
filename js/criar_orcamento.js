@@ -468,7 +468,6 @@ async function pesquisarNoOrcamento() {
     const bodyOrcamento = document.getElementById('bodyOrcamento')
     const linhas = bodyOrcamento.querySelectorAll('.linha-orcamento')
     filtrarPorTipo()
-    document.querySelectorAll('.total-linha').forEach(el => el.style.display = 'none')
 
     linhas.forEach(linha => {
         const texto = linha.textContent.toLowerCase()
@@ -478,7 +477,10 @@ async function pesquisarNoOrcamento() {
         linha.style.borderRadius = '8px'
     })
 
-    if (termoPesquisa.value == '') await totalOrcamento()
+    // Filtro que irá ocultar o exibir subtotais;
+    pesqAtiva = !termoPesquisa.value == ''
+
+    await totalOrcamento()
 
 }
 
@@ -1409,6 +1411,16 @@ async function totalOrcamento() {
             </div>`
         )
     }
+
+    // Mostrar ou ocultar subtotais;
+    if (pesqAtiva) {
+        const bodyOrcamento = document.getElementById('bodyOrcamento')
+        bodyOrcamento.querySelectorAll('.linha-orcamento').forEach(el => {
+            el.style.borderRadius = '8px'
+            el.style.backgroundColor = 'white'
+        })
+    }
+    document.querySelectorAll('.total-linha').forEach(el => el.style.display = pesqAtiva ? 'none' : '')
 
     // Remover toolbars inativas;
     const divs = toolbarSuperior.querySelectorAll('div')
