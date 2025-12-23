@@ -809,15 +809,15 @@ async function atualizarPda(img, idOrcamento) {
 
 async function alterarDatas(input, campo, idOrcamento) {
 
-    const pda = await recuperarDado('pda', idOrcamento)
+    const orcamento = dados_orcamentos[idOrcamento]
     const data = input.value
 
     input.classList = data ? 'etiqueta-ok' : 'etiqueta-pendente'
 
-    pda[campo] = data
+    orcamento[campo] = data
 
-    await inserirDados({ [idOrcamento]: pda }, 'pda')
-    enviar(`pda/${idOrcamento}/${campo}`, data)
+    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${idOrcamento}/${campo}`, data)
 
 }
 
@@ -825,8 +825,8 @@ async function formAcao(idOrcamento, idAcao) {
 
     id_orcam = idOrcamento
 
-    const pda = await recuperarDado('pda', idOrcamento)
-    const dados = pda?.acoes?.[idAcao] || {}
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
+    const dados = orcamento?.pda?.acoes?.[idAcao] || {}
 
     const linhas = [
         { texto: 'Ação', elemento: `<textarea name="acao">${dados?.acao || ''}</textarea>` },
@@ -876,12 +876,12 @@ async function excluirAcao(idAcao) {
 
     overlayAguarde()
 
-    const pda = await recuperarDado('pda', id_orcam)
+    const orcamento = dados_orcamentos[id_orcam]
 
-    delete pda.acoes[idAcao]
+    delete orcamento.pda.acoes[idAcao]
 
-    await inserirDados({ [id_orcam]: pda }, 'pda')
-    deletar(`pda/${id_orcam}/acoes/${idAcao}`)
+    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    deletar(`dados_orcamentos/${id_orcam}/acoes/${idAcao}`)
 
     await telaInicial()
 
