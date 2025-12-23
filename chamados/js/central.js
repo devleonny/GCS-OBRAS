@@ -510,17 +510,18 @@ async function telaUsuarios() {
 
     overlayAguarde()
 
-    titulo.textContent = 'Usuários'
+    titulo.textContent = 'Gerenciar Usuários'
 
     mostrarMenus(false)
 
     empresas = await recuperarDados('empresas')
     const colunas = ['Nome', 'Empresa', 'Setor', 'Permissão', '']
-    const base = 'dados_setores'
-    const dados_setores = await recuperarDados(base)
+
+    const dados_setores = await recuperarDados('dados_setores')
+    const btnExtras = `<img onclick="atualizarUsuarios()" src="imagens/atualizar.png">`
 
     const tbody = document.getElementById('tabela_usuarios')
-    if (!tbody) telaInterna.innerHTML = modeloTabela({ colunas, base, body: 'tabela_usuarios' })
+    if (!tbody) telaInterna.innerHTML = modeloTabela({ btnExtras, colunas, body: 'tabela_usuarios' })
 
     for (const [user, dados] of Object.entries(dados_setores)) {
         criarLinhaUsuario(user, dados)
@@ -528,6 +529,14 @@ async function telaUsuarios() {
 
     removerOverlay()
 
+}
+
+async function atualizarUsuarios() {
+
+    await sincronizarDados('dados_setores')
+    await sincronizarDados('empresas')
+    await telaUsuarios()
+    
 }
 
 function criarLinhaUsuario(user, dados) {

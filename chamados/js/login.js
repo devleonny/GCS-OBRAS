@@ -176,12 +176,12 @@ async function salvarSenha() {
 
 function cadastrar() {
 
-    const campos = ['Nome Completo', 'Usuário', 'Senha', 'E-mail', 'Telefone']
+    const campos = ['nome_completo', 'usuario', 'senha', 'e-mail', 'telefone']
     const linhas = []
 
     campos.forEach(campo => {
         linhas.push({
-            texto: campo,
+            texto: inicialMaiuscula(campo),
             elemento: `<input name="${campo}">`
         })
     })
@@ -207,11 +207,11 @@ async function salvarCadastro() {
     }
 
     const dados = {
-        nome_completo: obVal('Nome Completo'),
-        usuario: obVal('Usuário'),
-        senha: obVal('Senha'),
-        email: obVal('E-mail'),
-        telefone: obVal('Telefone')
+        nome_completo: obVal('nome_completo'),
+        usuario: obVal('usuario'),
+        senha: obVal('senha'),
+        email: obVal('e-mail'),
+        telefone: obVal('telefone')
     }
 
     if (dados.usuario == '' || dados.senha == '' || dados.email == '') return popup(mensagem('Senha, usuário ou e-mail não informado(s)'), 'Aviso', true)
