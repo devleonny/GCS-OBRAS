@@ -209,7 +209,9 @@ async function enviarDadosAluguel() {
         }
     }
 
-    if (!orcamentoBase.id) orcamentoBase.id = 'ORCA_' + unicoID();
+    if (!orcamentoBase.id) orcamentoBase.id = 'ORCA_' + unicoID()
+
+    orcamentoBase.usuario = acesso.usuario
 
     popup(mensagem('Aguarde... redirecionando...', 'imagens/concluido.png'), 'Processando...')
 
