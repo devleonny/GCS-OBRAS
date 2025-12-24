@@ -1,5 +1,4 @@
 let filtrosOrcamento = {}
-let filtroPDA = {}
 let intervaloCompleto
 let intervaloCurto
 let filtro;
@@ -31,7 +30,8 @@ async function atualizarOrcamentos() {
         'dados_composicoes',
         'dados_clientes',
         'dados_ocorrencias',
-        'departamentos_AC'
+        'departamentos_AC',
+        'hierarquia'
     ]
 
     for (const tabela of tabelas) await sincronizarDados(tabela)
@@ -253,6 +253,7 @@ async function telaOrcamentos(semOverlay) {
 
     funcaoTela = 'telaOrcamentos'
 
+    hierarquia = await recuperarDados('hierarquia')
     if (!semOverlay) overlayAguarde()
 
     const colunasCFiltro = ['Status', 'Tags', 'Chamado', 'Cidade', 'Valor']
@@ -305,40 +306,13 @@ async function telaOrcamentos(semOverlay) {
     await auxDepartamentos()
     tags_orcamentos = await recuperarDados('tags_orcamentos')
 
-    const parseData = data => {
-        if (!data || typeof data !== 'string') return 0
-
-        const partes = data.split(',').map(p => p.trim())
-        const d = partes[0]
-        const t = partes[1] || '00:00'
-
-        const [dia, mes, ano] = d.split('/').map(Number)
-        if (!dia || !mes || !ano) return 0
-
-        const [hora, minuto] = t.split(':').map(Number)
-        const h = isNaN(hora) ? 0 : hora
-        const m = isNaN(minuto) ? 0 : minuto
-
-        const date = new Date(ano, mes - 1, dia, h, m)
-        return isNaN(date.getTime()) ? 0 : date.getTime()
-    }
-
-    const hierarquizado = Object.fromEntries(
-        Object.entries(dados_orcamentos).sort(([, a], [, b]) => {
-            const hA = a?.hierarquia ? 1 : 0
-            const hB = b?.hierarquia ? 1 : 0
-            if (hA !== hB) return hA - hB
-
-            const tA = parseData(a?.dados_orcam?.data)
-            const tB = parseData(b?.dados_orcam?.data)
-
-            return tA - tB
-        })
-    )
-
     let idsAtivos = []
 
-    for (const [idOrcamento, orcamento] of Object.entries(hierarquizado)) {
+    const orgTimestamp = Object
+        .entries(dados_orcamentos)
+        .sort(([, a], [, b]) => b.timestamp - a.timestamp)
+
+    for (const [idOrcamento, orcamento] of orgTimestamp) {
         if (orcamento.origem !== origem) continue
         if (naoArquivados && orcamento.arquivado) continue
         if (!naoArquivados && !orcamento.arquivado) continue
@@ -360,8 +334,7 @@ async function telaOrcamentos(semOverlay) {
         if (!idsAtivos.includes(idAtual)) {
             const el = document.getElementById(idAtual)
             if (!el) continue
-            const container = el.closest('.linha-master') || el
-            container.remove()
+            el.remove()
         }
     }
 
@@ -376,6 +349,8 @@ async function telaOrcamentos(semOverlay) {
     }
 
     if (!semOverlay) removerOverlay()
+
+    organizarHierarquia()
 
 }
 
@@ -514,7 +489,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         FATURADO: ''
     }
 
-    for (const [, historico] of Object.entries(orcamento?.status?.historico || {})) {
+    for (const historico of Object.values(orcamento?.status?.historico || {})) {
 
         if (labels[historico.status] == undefined) continue
         if (historico.tipo == 'Remessa') continue
@@ -545,30 +520,21 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
 
     const cel = (elementos) => `<div class="celula">${elementos}</div>`
 
-    const revisao = orcamento?.revisoes?.atual || null
-    const labelRevisao = revisao ? `<label class="etiqueta-revisao">${revisao}</label>` : ''
     const numOficial = dados_orcam?.chamado || dados_orcam?.contrato || '-'
-
-    const numOrcamento = `
-        <div style="${horizontal}; gap: 5px;">
-            <span><b>${numOficial}</b></span>
-            <div name="icone"></div>
-            ${labelRevisao}
-        </div>
-    `
-    const orcamentoMaster = dados_orcamentos?.[orcamento?.hierarquia] || {}
+    const idMaster = hierarquia?.[idOrcamento]?.idMaster
+    const orcamentoMaster = dados_orcamentos[idMaster]
     const numOficialMaster = orcamentoMaster?.dados_orcam?.chamado || orcamentoMaster?.dados_orcam?.contrato || '-'
-    const orcamentosVinculados = orcamento.hierarquia
+    const orcamentosVinculados = idMaster
         ? `
-        <div style="${horizontal}; gap: 5px;">
+        <div style="${horizontal}; gap: 3px;">
+            ${numOficial}
+            <img src="imagens/link2.png" onclick="confirmarRemoverVinculo('${idOrcamento}')" style="width: 1.5rem;">
             <span><b>${numOficialMaster}</b></span>
-            <img src="imagens/link.png" onclick="confirmarRemoverVinculo('${idOrcamento}')" style="width: 1.5rem;">
-            ${numOrcamento}
         </div>
         `
-        : numOrcamento
+        : numOficial
 
-    const [data, hora] = (dados_orcam?.data || '-/-/-, --:--').split(', ')
+    const data = new Date(orcamento.timestamp).toLocaleDateString()
 
     // De orçamentos Pendentes;
     const info = Object.values(orcamento?.status?.historicoStatus || {}).filter(s => s.info)
@@ -651,71 +617,55 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         ${cel(`<img onclick="abrirAtalhos('${idOrcamento}')" src="imagens/pesquisar2.png" style="width: 1.5rem;">`)}
         `
 
-    if (orcamento.hierarquia) { // slaves;
-
-        // Verificar o slave em outro master; (Sim) Remove a linha;
-        const slaveExistenteIDFIXO = document.getElementById(idOrcamento)
-        if (slaveExistenteIDFIXO) {
-            const idMaster = slaveExistenteIDFIXO.dataset.master
-            if (idMaster !== orcamento.hierarquia) slaveExistenteIDFIXO.remove()
-        }
-
-        const existente = document.getElementById(orcamento.hierarquia)
-        const linhaSlave = existente.nextElementSibling
-
-        // Cor e ícone no elemento Master;
-        existente.style.backgroundColor = '#ffdea4ff'
-        const divIcone = existente.querySelector('[name="icone"]')
-        divIcone.innerHTML = `<img src="imagens/pasta.png" style="width: 1.5rem;">`
-
-        const slaveExistente = linhaSlave.querySelector(`#${idOrcamento}`)
-
-        if (slaveExistente) return slaveExistente.innerHTML = celulas
-
-        const novaLinhaSlave = `
-            <div 
-                style="background-color: #ffe5b7;"
-                class="linha-orcamento-tabela"
-                data-chamado="${orcamento?.chamado ? 'S' : 'N'}"
-                data-master="${orcamento.hierarquia}"
-                data-hierarquia="slave"
-                data-timestamp="${orcamento?.timestamp}"
-                id="${idOrcamento}">
+    const novaLinha = `
+        <div class="linha-master"
+            data-chamado="${orcamento?.chamado ? 'S' : 'N'}"
+            data-timestamp="${orcamento?.timestamp}" 
+            id="${idOrcamento}">
+                <div class="linha-orcamento-tabela">
                     ${celulas}
-            </div>`
-
-        linhaSlave.insertAdjacentHTML('beforeend', novaLinhaSlave)
-
-    } else { // masters
-
-        const existente = document.getElementById(idOrcamento)
-        if (existente) {
-            if (existente.dataset.timestamp == orcamento.timestamp) return
-
-            if (orcamento?.master == '') {
-                existente.style.backgroundColor = 'white'
-                existente.style.marginTop = '0px'
-            }
-            return existente.innerHTML = celulas
-        }
-
-        const novaLinha = `
-        <div class="linha-master">
-            <div 
-                class="linha-orcamento-tabela"
-                data-hierarquia="master"
-                data-chamado="${orcamento?.chamado ? 'S' : 'N'}"
-                data-timestamp="${orcamento?.timestamp}" 
-                id="${idOrcamento}">
-                    ${celulas}
-            </div>
-            <div class="linha-slaves"></div>
+                </div>
+                <div class="linha-slaves"></div>
         </div>`
 
-        const divLinhas = document.getElementById('linhas')
-        if(!divLinhas) return
-        divLinhas.insertAdjacentHTML('afterbegin', novaLinha)
+    const trExistente = document.getElementById(idOrcamento)
+    const timestamp = Number(trExistente?.dataset?.timestamp)
+    if (trExistente) {
+        if (timestamp !== orcamento.timestamp) {
+            const linha = trExistente.querySelector('.linha-orcamento-tabela')
+            linha.innerHTML = celulas
+        }
+        return
     }
+    const divLinhas = document.getElementById('linhas')
+    divLinhas.insertAdjacentHTML('afterbegin', novaLinha)
+
+}
+
+async function organizarHierarquia() {
+
+    for (const [idSlave, dados] of Object.entries(hierarquia)) {
+
+        const linhaSlave = document.getElementById(idSlave)
+
+        if (!linhaSlave) continue
+        const idMaster = dados.idMaster
+        const linhaMaster = document.getElementById(idMaster)
+
+        if (!linhaMaster) continue
+        if (linhaSlave.contains(linhaMaster)) continue
+
+        const divSlaves = linhaMaster.querySelector('.linha-slaves')
+        divSlaves.append(linhaSlave)
+
+        // Master;
+        const linha1 = linhaMaster.querySelector('.linha-orcamento-tabela')
+        linha1.style.backgroundColor = '#ffdea4'
+        // Slave
+        const linha2 = linhaSlave.querySelector('.linha-orcamento-tabela')
+        linha2.style.backgroundColor = '#fbe9caff'
+    }
+
 }
 
 function mostrarInfo(idOrcamento) {

@@ -1,4 +1,3 @@
-const filtroPda = {}
 let tags_orcamentos = {}
 let guiaAtual = null
 const abas = ['PDA', 'POC', 'INFRA', 'LOGÍSTICA', 'CONCLUÍDO']
@@ -94,9 +93,6 @@ const dtPrazo = (data) => {
 async function telaInicial() {
 
     document.querySelector('[name="titulo"]').textContent = 'GCS'
-    dados_clientes = await recuperarDados('dados_clientes')
-    dados_orcamentos = await recuperarDados('dados_orcamentos')
-    tags_orcamentos = await recuperarDados('tags_orcamentos')
 
     const acumulado = `
         <div id="loading" style="${horizontal};">
@@ -121,6 +117,10 @@ async function telaInicial() {
         tela.innerHTML = acumulado
         criarMenus('inicial')
     }
+
+    dados_clientes = await recuperarDados('dados_clientes')
+    dados_orcamentos = await recuperarDados('dados_orcamentos')
+    tags_orcamentos = await recuperarDados('tags_orcamentos')
 
     // Carregar tabelas;
     indicadores()

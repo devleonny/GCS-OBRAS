@@ -955,14 +955,25 @@ async function confirmarVinculo(idOrcamento) {
     overlayAguarde()
 
     const orcamentoMaster = document.querySelector('[name="orcamento"]')
+    const idMaster = orcamentoMaster.id
 
-    if (!orcamentoMaster.id) return popup(mensagem('Escolha um orçamento'), 'Alerta', true)
+    if (!idMaster) return popup(mensagem('Escolha um orçamento'), 'Alerta', true)
 
-    const resposta = vincularAPI({ idMaster: orcamentoMaster.id, idSlave: idOrcamento })
+    const resposta = await vincularAPI({ idMaster, idSlave: idOrcamento })
+
     if (resposta.mensagem) return popup(mensagem(resposta.mensagem), 'Alerta', true)
 
+    // Na API será salvo os elementos;
+    const dados = { idMaster }
+    hierarquia[idOrcamento] = dados
+    await inserirDados({ [idOrcamento]: dados }, 'hierarquia')
+
     removerPopup()
     removerPopup()
+
+    const trExistente = document.getElementById(idOrcamento)
+    if (trExistente) trExistente.dataset.timestamp = ''
+    await telaOrcamentos()
 
 }
 
@@ -2041,7 +2052,7 @@ async function confirmarExclusaoOrcamentoBase(id) {
             <label>Deseja realmente excluir o orçamento?</label>
             <button onclick="excluirOrcamentoBase('${id}')">Confirmar</button>
         </div>
-        `,'Excluir Orçamento')
+        `, 'Excluir Orçamento')
 }
 
 async function excluirOrcamentoBase(idOrcamento) {

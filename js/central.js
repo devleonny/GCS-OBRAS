@@ -6,7 +6,6 @@ let telaAtiva = null
 let funcaoAtiva = null
 let funcaoTela = null
 let acesso = null
-let dados_setores = {}
 const filtrosPesquisa = {}
 const paginasBloqueadas = ['PDF', 'OS']
 const horizontal = `display: flex; align-items: center; justify-content: center;`
@@ -15,6 +14,8 @@ let overlayTimeout;
 let semOverlay = false
 let dados_clientes = {}
 let dados_orcamentos = {}
+let dados_setores = {}
+let hierarquia = {}
 let depPorDesc = {}
 
 const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
@@ -266,7 +267,7 @@ async function despoluicaoGCS() {
     logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
 
     const bases = [
-        'pda',
+        'hierarquia',
         'tags',
         'tags_orcamentos',
         'departamentos_AC',
