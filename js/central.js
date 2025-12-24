@@ -197,7 +197,8 @@ const esquemaBotoes = {
     chamados: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Atualizar', funcao: 'atualizarManutencoes', img: 'atualizar3' },
-        { nome: 'Criar Manutenção', funcao: 'criarManutencao', img: 'chamados' }
+        { nome: 'Criar Manutenção', funcao: 'criarManutencao', img: 'chamados' },
+        { nome: 'Baixar em Excel', funcao: 'excelChamados', img: 'excel' }
     ],
     veiculos: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },

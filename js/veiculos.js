@@ -277,7 +277,7 @@ function criarLinhaVeiculo({ custo, nome, veiculo, idCusto }) {
 
         <td>
             <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
-                <img src="imagens/pesquisar2.png" style="width: 1.5vw; cursor: pointer;" onclick="painelAtalhos('${idCusto}')">
+                <img src="imagens/pesquisar2.png" onclick="painelAtalhos('${idCusto}')">
             </div>
         </td>`
 
@@ -599,7 +599,7 @@ async function painelValores(idCusto, duplicar) {
     ]
 
     const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: !idCusto ? `salvarValores()` : duplicar ? `salvarValores(false)` : `salvarValores('${idCusto}')` },
+        { texto: 'Salvar', img: 'concluido', funcao: (!idCusto || duplicar) ? `salvarValores()` : `salvarValores('${idCusto}')` },
         { texto: 'Atualizar', img: 'atualizar3', funcao: `atualizarDadosVeiculos()` },
     ]
 

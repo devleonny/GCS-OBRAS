@@ -240,7 +240,7 @@ function excluirRevisao() {
     const revisao = document.querySelector('[name="revisao"]').value
 
     const acumulado = `
-        <div style="${horizontal}; background-color: #d2d2d2; padding: 2rem;">
+        <div style="${horizontal}; background-color: #d2d2d2; padding: 1rem;">
             <span>Deseja excluir a <b>${revisao}</b>?
             <button onclick="confirmarExclusaoRevisao()">Confirmar</button>
         </div>
@@ -251,30 +251,25 @@ function excluirRevisao() {
 function confirmarExclusaoRevisao() {
     const revisao = document.querySelector('[name="revisao"]').value
     const orcamento = baseOrcamento()
-
+    orcamento.revisoes ??= {}
+    
+    if(!orcamento?.revisoes?.historico?.[revisao]) return
+    
     delete orcamento.revisoes.historico[revisao]
+    const chavesRevisoes = Object.keys(orcamento?.revisoes?.historico || {})
+    const RX = chavesRevisoes[0]
+    orcamento.esquema_composicoes = orcamento?.revisoes?.historico?.[RX] || {}
+    orcamento.revisoes.atual = RX
 
-    const revisoes = Object.keys(orcamento.revisoes?.historico || {})
-        .map(r => Number(r.replace('R', '')))
-        .sort((a, b) => a - b)
-
-    // determina a nova revisão ativa
-    const numAtual = Number(revisao.replace('R', ''))
-    let anterior = revisoes
-        .filter(n => n < numAtual)
-        .pop()
-
-    // se não houver anterior, tenta próxima; se não houver nenhuma, zera
-    if (!anterior) anterior = revisoes.find(n => n > numAtual)
-    orcamento.revisoes.atual = anterior ? `R${anterior}` : null
+    revisao.innerHTML = chavesRevisoes.map(r => `<option ${r == RX ? 'selected' : ''}>${r}</option>`).join('')
 
     baseOrcamento(orcamento)
 
     atualizarToolbar()
     reiniciarLinhas()
-
     removerPopup()
 }
+
 
 async function alterarRevisao() {
     const revisao = document.querySelector('[name="revisao"]').value
@@ -294,20 +289,18 @@ async function salvarRevisao() {
     orcamento.revisoes ??= {}
     orcamento.revisoes.historico ??= {}
 
-    const codsRevisoes = Object.keys(orcamento.revisoes.historico)
+    const numeros = Object.keys(orcamento.revisoes.historico)
         .map(r => Number(r.replace('R', '')))
-        .sort((a, b) => a - b)
-
-    let proximoNumero = 1
-    for (const n of codsRevisoes) {
-        if (n !== proximoNumero) break
-        proximoNumero++
-    }
+    
+    const proximoNumero = numeros.length
+        ? Math.max(...numeros) + 1
+        : 1
 
     const numeroRevisao = `R${proximoNumero}`
 
     orcamento.revisoes.atual = numeroRevisao
-    orcamento.revisoes.historico[numeroRevisao] = orcamento.esquema_composicoes
+    orcamento.revisoes.historico[numeroRevisao] =
+        structuredClone(orcamento.esquema_composicoes)
 
     baseOrcamento(orcamento)
     await atualizarToolbar()

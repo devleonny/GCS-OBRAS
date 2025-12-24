@@ -668,9 +668,7 @@ async function autorizarPagamentos(resposta, id_pagamento) {
         } else if (permissao == 'fin' || (permissao == 'gerente' && setor == 'FINANCEIRO')) {
             status = `Aprovado pelo ${setor}`;
             lancarPagamento({ pagamento });
-        } else if (permissao !== 'qualidade' && setorUsuarioPagamento == 'INFRA' && pagamentoParceiroAtivo) {
-            status = 'Aguardando aprovação da Qualidade';
-        } else if (permissao == 'gerente' || permissao == 'qualidade') {
+        } else if (permissao == 'gerente') {
             status = 'Aguardando aprovação da Diretoria';
         } else {
             status = 'Aguardando aprovação da Gerência';

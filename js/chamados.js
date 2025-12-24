@@ -659,3 +659,77 @@ function modoKit(input) {
     chamado.parentElement.parentElement.style.display = ativar ? 'none' : 'flex'
     chamado.value = ativar ? 'KIT TÉCNICO' : ''
 }
+
+
+async function excelChamados() {
+    const tabela = document.querySelector('.tabela')
+    if (!tabela) return
+
+    const workbook = new ExcelJS.Workbook()
+    const worksheet = workbook.addWorksheet('Chamados')
+    const trs = tabela.querySelectorAll('tr')
+
+    for (let i = 0; i < trs.length; i++) {
+        const tds = trs[i].querySelectorAll('td, th')
+        const row = []
+
+        for (let j = 1; j < tds.length; j++) {
+            const td = tds[j]
+            const select = td.querySelector('select')
+            const input = td.querySelector('input')
+
+            if (select) row.push(select.value)
+            else if (input) row.push(input.value)
+            else row.push(td.textContent.trim())
+        }
+
+        worksheet.addRow(row)
+    }
+
+    worksheet.autoFilter = {
+        from: { row: 1, column: 1 },
+        to: { row: 1, column: worksheet.columnCount }
+    }
+
+    worksheet.eachRow((row, rowNumber) => {
+        row.eachCell(cell => {
+            cell.alignment = { vertical: 'top', horizontal: 'left' }
+            cell.border = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' }
+            }
+
+            if (rowNumber === 1) {
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFD9D9D9' }
+                }
+                cell.font = { bold: true }
+            }
+        })
+    })
+
+    worksheet.columns.forEach(col => {
+        let max = 10
+        col.eachCell(cell => {
+            const len = String(cell.value || '').length
+            if (len > max) max = len
+        })
+        col.width = Math.min(max + 2, 45)
+    })
+
+    const buffer = await workbook.xlsx.writeBuffer()
+    const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    })
+
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `relatorio-${Date.now()}.xlsx`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+}
