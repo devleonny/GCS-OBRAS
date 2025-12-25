@@ -333,7 +333,7 @@ async function f2() {
     popup(acumulado, 'Ferramentas', true)
 }
 
-async function salvarDepartamento(img) { //29
+async function salvarDepartamento(img) {
 
     overlayAguarde()
 
@@ -2871,4 +2871,38 @@ async function criarDepDiretamente(nome) {
     } catch (error) {
         return { mensagem: error.messagem || error.mensage || error }
     }
+}
+
+natal()
+function natal() {
+
+    const imgs = ['b1', 'b2', 'b3', 'b4', 'b5']
+    const especial = `
+    <div class="topo-natal">
+        ${imgs.map(img => `
+            <div class="pendurada">
+                <span class="fio"></span>
+                <img src="imagens/${img}.png">
+            </div>
+            `).join('')
+        }
+        </div>
+    `
+    
+    document.body.insertAdjacentHTML('beforeend', especial)
+
+    document.querySelectorAll('.pendurada').forEach(el => {
+        let timer
+
+        el.addEventListener('mouseenter', () => {
+            clearTimeout(timer)
+            el.classList.add('balancando')
+        })
+
+        el.addEventListener('mouseleave', () => {
+            timer = setTimeout(() => {
+                el.classList.remove('balancando')
+            }, 15000) //15s
+        })
+    })
 }

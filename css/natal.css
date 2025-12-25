@@ -1,0 +1,77 @@
+.topo-natal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+    pointer-events: none;
+    z-index: 9999;
+}
+
+.pendurada {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: auto;
+    transform-origin: top center;
+}
+
+.fio {
+    width: 1px;
+    height: 45px;
+    background: #555;
+    transform-origin: top center;
+}
+
+.pendurada img {
+    width: 3rem;
+    margin-top: -18px;
+}
+
+/* ativa animações */
+.pendurada.balancando {
+    animation: balanco 1.2s ease-in-out infinite;
+}
+
+.pendurada.balancando .fio {
+    animation: fioOndula 0.6s ease-in-out infinite;
+}
+
+/* movimento geral */
+@keyframes balanco {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    25% {
+        transform: rotate(-6deg);
+    }
+
+    50% {
+        transform: rotate(6deg);
+    }
+
+    75% {
+        transform: rotate(-4deg);
+    }
+
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
+/* tremulação do fio */
+@keyframes fioOndula {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    50% {
+        transform: rotate(3deg);
+    }
+
+    100% {
+        transform: rotate(0deg);
+    }
+}
