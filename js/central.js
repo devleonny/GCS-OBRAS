@@ -155,6 +155,7 @@ const esquemaBotoes = {
     inicial: [
         { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'projeto' },
         { nome: 'Composições', funcao: `telaComposicoes`, img: 'composicoes' },
+        { nome: 'Clientes/Fornecedores', funcao: `telaClientes`, img: 'cadastro' },
         { nome: 'Chamados', funcao: `telaChamados`, img: 'chamados' },
         { nome: 'Veículos', funcao: `telaVeiculos`, img: 'veiculo' },
         { nome: 'Reembolsos', funcao: `telaPagamentos`, img: 'reembolso' },
@@ -232,11 +233,10 @@ const esquemaBotoes = {
         { nome: 'Baixar em Excel', funcao: 'rhExcel', img: 'excel' },
         { nome: 'Adicionar Local', funcao: 'adicionarPessoa', img: 'baixar' }
     ],
-    agenda: [
+    clientes: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
-        { nome: 'Atualizar', funcao: 'atualizarAgenda', img: 'atualizar3' },
-        { nome: 'Distribuição por Funcionário', funcao: 'distribuicaoFuncionario', img: 'gerente' },
-        { nome: 'Novo Funcionário', funcao: 'abrirOpcoes', img: 'baixar' },
+        { nome: 'Atualizar', funcao: '', img: 'atualizar3' },
+        { nome: 'Novo Cliente', funcao: 'formularioCliente', img: 'baixar' },
     ]
 }
 
@@ -2658,102 +2658,6 @@ function pesquisarCX(input) {
 
         div.style.display = (termoDiv.includes(termoPesquisa) || termoPesquisa === '') ? '' : 'none';
     }
-}
-
-async function cadastrarCliente() {
-
-    const acumulado = `
-        <div style="padding: 1rem; ${vertical}; align-items: start; background-color: #d2d2d2; min-width: max-content;">
-
-            <div style="${horizontal}; gap: 1rem;">
-                <div style="${vertical}">
-                    ${modelo('Nome', `<textarea id="nome_fantasia" rows="5"></textarea>`)}
-                </div>
-
-                <div style="${vertical}">
-                    ${modelo('CNPJ ou CPF', `<input id="cnpj_cpf">`)}
-                    ${modelo('Nº do endereço', `<input id="endereco_numero">`)}
-                    ${modelo('CEP', `<input id="cep">`)}
-                </div>
-            </div>
-
-            <hr style="width: 100%;">
-
-            <button onclick="salvarCliente()">Salvar</button>
-        </div>`
-
-    popup(acumulado, 'Cadastro de Cliente e Empresa', true)
-
-}
-
-async function salvarCliente() {
-
-    overlayAguarde()
-
-    const campos = ['nome_fantasia', 'cnpj_cpf', 'endereco_numero', 'cep'];
-    let param = {
-        codigo_cliente_integracao: unicoID()
-    };
-
-    for (const campo of campos) {
-        const el = document.getElementById(campo);
-        if (el && el.value !== '') param[campo] = el.value;
-    }
-
-    if (!param.nome_fantasia) return popup(mensagem('Escreva o nome do Cliente'), 'Alerta', true)
-
-    param.nome_fantasia = param.nome_fantasia.toUpperCase()
-    if (param.cep) param.pesquisar_cep = 'S'
-    param.razao_social = param.nome_fantasia
-
-    try {
-        const opcoes = {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ param })
-        };
-
-        const resposta = await fetch(`${api}/cadastrar-cliente`, opcoes);
-        const dados = await resposta.json();
-
-        if (!resposta.ok) {
-
-            if (dados.mensagem && dados.mensagem.includes('Cliente já cadastrado')) {
-
-                const regex = /\[([^\]]+)\]/g;
-                const matches = [...dados.mensagem.matchAll(regex)].map(m => m[1]);
-                const idOmie = matches[1];
-
-                await sincronizarDados('dados_clientes')
-
-                const cliente = await recuperarDado('dados_clientes', idOmie);
-                const acumulado = `
-                    <div style="${vertical}; background-color: #d2d2d2; padding: 1rem;">
-                        <span>Cliente já cadastrado:</span>
-                        <hr style="width: 100%">
-                        <span>${cliente?.nome || ''}</span>
-                        <span>${cliente?.bairro || ''}</span>
-                        <span>${cliente?.cpf_cnpj || ''}</span>
-                        <span>${cliente?.cep || ''}</span>
-                        <span>${cliente?.cidade || ''}</span>
-                    </div>`
-
-                return popup(acumulado, 'Cliente existente', true)
-            }
-
-            return popup(mensagem(dados?.mensagem || 'Falha no cadastro, tente novamente'), 'Alerta', true);
-
-        }
-
-        removerPopup()
-        return popup(mensagem(dados.mensagem, 'imagens/concluido.png'), 'Cadastrado com sucesso', true);
-
-    } catch (err) {
-
-        return popup(mensagem(err.message || String(err)), 'Alerta', true);
-
-    }
-
 }
 
 async function vincularAPI({ idMaster, idSlave }) {

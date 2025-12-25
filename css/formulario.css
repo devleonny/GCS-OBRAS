@@ -22,6 +22,10 @@
     transition: 0.15s ease;
 }
 
+.painel-padrao textarea {
+    resize: vertical;
+}
+
 .painel-padrao input:focus,
 .painel-padrao select:focus,
 .painel-padrao textarea:focus {
