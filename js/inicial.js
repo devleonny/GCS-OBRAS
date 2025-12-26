@@ -519,19 +519,6 @@ function carregarPDA() {
 
 }
 
-function auxCliPda(codOmie) {
-
-    const cliente = dados_clientes[codOmie] || {}
-
-    if (!cliente) return
-
-    return `
-    ${cliente.nome}<br>
-    ${cliente.cnpj}<br>
-    ${cliente.cidade}<br>
-    `
-}
-
 function linPda(idOrcamento, orcamento) {
 
     const codCliente = orcamento?.dados_orcam?.omie_cliente || ''

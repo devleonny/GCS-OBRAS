@@ -434,7 +434,8 @@ function carregarMenus() {
 
     const chaves = Object.keys(ocorrenciasFiltradas)
         .filter(k => k !== 'SOLUCIONADA')
-        .concat(Object.keys(ocorrenciasFiltradas).includes('SOLUCIONADA') ? ['SOLUCIONADA'] : [])
+        .sort((a, b) => a.localeCompare(b))
+        .concat(ocorrenciasFiltradas.SOLUCIONADA ? ['SOLUCIONADA'] : [])
 
     for (const tipo of chaves) {
         const ocorrencias = ocorrenciasFiltradas[tipo]
@@ -495,11 +496,10 @@ function auxBotoesOcorrencias() {
     for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias)) {
 
         const ultCorrCod = ocorrencia?.tipoCorrecao
-        const nomeUltCorr = correcoes?.[ultCorrCod]?.nome
-        const nomeCorrecao = nomeUltCorr ? nomeUltCorr.toUpperCase() : "CORREÇÃO EM BRANCO"
+        const nomeUltCorr = correcoes?.[ultCorrCod] ? correcoes?.[ultCorrCod].nome.toUpperCase() : 'NÃO ANALISADA'
 
-        ocorrenciasFiltradas[nomeCorrecao] ??= {}
-        ocorrenciasFiltradas[nomeCorrecao][idOcorrencia] = ocorrencia
+        ocorrenciasFiltradas[nomeUltCorr] ??= {}
+        ocorrenciasFiltradas[nomeUltCorr][idOcorrencia] = ocorrencia
     }
 }
 
@@ -535,7 +535,7 @@ async function atualizarUsuarios() {
     await sincronizarDados('dados_setores')
     await sincronizarDados('empresas')
     await telaUsuarios()
-    
+
 }
 
 function criarLinhaUsuario(user, dados) {
