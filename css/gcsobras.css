@@ -2411,3 +2411,13 @@ input[type="file"]#input-anexos:hover {
     min-width: 70vw;
     padding: 1rem;
 }
+
+.tag-filtro {
+    gap: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    border-radius: 3px;
+    padding: 3px;
+}

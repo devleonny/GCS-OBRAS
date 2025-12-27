@@ -184,8 +184,7 @@ const esquemaBotoes = {
         { nome: 'Baixar em Excel', funcao: 'excelOrcamentos', img: 'excel' },
         { nome: 'Criar Orçamento', funcao: 'telaCriarOrcamento', img: 'projeto' },
         { nome: 'Orçamento de Aluguel', funcao: 'telaCriarOrcamentoAluguel', img: 'projeto' },
-        { nome: 'Orçamentos Aquivados', funcao: 'filtrarArquivados', img: 'desarquivar' },
-        { nome: 'Meus Orçamentos', funcao: 'filtrarMeus', img: 'painelcustos' }
+        { nome: 'Orçamentos Aquivados', funcao: 'filtrarArquivados', img: 'desarquivar' }
     ],
     composicoes: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
@@ -2480,7 +2479,7 @@ async function salvarDadosCliente() {
     if (chamado) orcamentoBase.dados_orcam.chamado = chamado
 
     const filtroChamado = el('filtroChamado')
-    orcamentoBase.chamado = filtroChamado.checked
+    orcamentoBase.chamado = filtroChamado.checked ? 'S' : 'N'
 
     if (telaAtiva == 'orcamentos') {
         enviar(`dados_orcamentos/${id_orcam}/dados_orcam`, orcamentoBase.dados_orcam)

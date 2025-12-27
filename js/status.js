@@ -1105,29 +1105,18 @@ async function arquivarOrcamento(idOrcamento) {
 
     overlayAguarde()
 
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
 
-    if (orcamento.arquivado) {
-        delete orcamento.arquivado
-        enviar(`dados_orcamentos/${idOrcamento}/arquivado`, null)
-
-    } else {
-
-        const dados = {
-            usuario: acesso.usuario,
-            data: new Date().toLocaleString()
-        }
-
-        orcamento.arquivado = dados
-        enviar(`dados_orcamentos/${idOrcamento}/arquivado`, dados)
-    }
+    const arquivamento = orcamento?.arquivado == 'S' ? 'N' : 'S'
+    orcamento.arquivado = arquivamento
+    enviar(`dados_orcamentos/${idOrcamento}/arquivado`, arquivamento)
 
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
     await telaOrcamentos()
+    
     removerOverlay()
 
     const img = orcamento.arquivado ? 'desarquivar' : 'pasta'
-
     popup(mensagem(`${orcamento.arquivado ? 'Arquivado' : 'Desarquivado'} com sucesso!`, `imagens/${img}.png`), 'Arquivamento', true)
 
 }

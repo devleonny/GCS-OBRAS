@@ -1,12 +1,12 @@
-let filtrosOrcamento = {}
-let intervaloCompleto
-let intervaloCurto
-let filtro;
-let naoArquivados = true
-let meusOrcamentos = true
+let filtro
+let arquivado = 'N'
 let auxiliarFaturamento = {}
-let baloes = document.querySelector('.baloes-top')
-let layout = null
+let pAtual = 1
+const itensPorPagina = 100
+let tPaginas = 1
+const baloes = document.querySelector('.baloes-top')
+let orcsFiltrados = {}
+let orcsHierarquia = {}
 
 const meses = {
     '01': 'Janeiro',
@@ -88,193 +88,50 @@ function ordenarOrcamentos(colunaIndex) {
     }
 }
 
-function pesquisarOrcamentos({ ultimoStatus = filtro || 'TODOS', col, texto } = {}) {
-
-    filtro = ultimoStatus
-
-    if (col !== undefined && col !== null)
-        filtrosOrcamento[col] = String(texto).toLowerCase().trim()
-
-    if (filtrosOrcamento.status_col_1)
-        localStorage.setItem('salvo', JSON.stringify(filtrosOrcamento.status_col_1))
-
-    const body = document.getElementById('linhas')
-    const linhas = body.querySelectorAll('.linha-orcamento-tabela')
-
-    const totais = { CHAMADO: 0, TODOS: 0, 'SEM STATUS': 0 }
-    const visiveis = { CHAMADO: 0, TODOS: 0, 'SEM STATUS': 0 }
-    const listaStatus = new Set(['TODOS', 'CHAMADO'])
-    const containersInfo = new Map()
-
-    const ignorarStatusCol1 = ultimoStatus !== 'CHAMADO'
-
-    for (const linha of linhas) {
-        const status = linha.querySelector('[name="status"]')?.value || ''
-        const statusKey = status || 'SEM STATUS'
-        const chamado = linha.dataset.chamado || 'N'
-        const isChamado = chamado === 'S'
-        const container = linha.closest('.linha-master')
-        if (!container) continue
-
-        totais[statusKey] = (totais[statusKey] || 0) + 1
-        totais.TODOS++
-        if (isChamado) totais.CHAMADO = (totais.CHAMADO || 0) + 1
-        listaStatus.add(statusKey)
-        if (isChamado) listaStatus.add('CHAMADO')
-
-        if (!containersInfo.has(container))
-            containersInfo.set(container, { linhas: [], temChamado: false })
-        containersInfo.get(container).linhas.push(linha)
-        if (isChamado) containersInfo.get(container).temChamado = true
-
-        let visivel = true
-
-        for (const key of Object.keys(filtrosOrcamento).filter(k => k.startsWith('status_col_'))) {
-            if (ignorarStatusCol1 && key === 'status_col_1') continue
-
-            const valores = filtrosOrcamento[key]
-            const coluna = parseInt(key.replace('status_col_', ''))
-            const cel = linha.querySelectorAll('.celula')[coluna]
-            if (!cel) continue
-
-            const select = cel.querySelector('select')
-            const valor = select ? select.value : cel.textContent.trim()
-
-            const incluirBranco = Array.isArray(valores) && valores.includes('SEM STATUS')
-
-            if (incluirBranco) {
-                if (!(valor === '' || valores.includes(valor))) visivel = false
-            } else {
-                if (!valores.includes(valor)) visivel = false
-            }
-        }
-
-        const celulas = linha.querySelectorAll('.celula')
-        for (const chave in filtrosOrcamento) {
-            const termo = filtrosOrcamento[chave]
-            if (!termo || chave.startsWith('status_col_')) continue
-
-            const celula = celulas[chave]
-            if (!celula) continue
-
-            const valor = Array.from(celula.querySelectorAll('*'))
-                .map(el => {
-                    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') return el.value
-                    if (el.tagName === 'SELECT') return el.options[el.selectedIndex]?.text || ''
-                    return el.textContent
-                })
-                .join(' ')
-                .toLowerCase()
-                .trim()
-
-            if (!valor.includes(termo)) {
-                visivel = false
-                break
-            }
-        }
-
-        linha.dataset._visivel = visivel ? 'S' : 'N'
-    }
-
-    for (const [container, info] of containersInfo) {
-        const { linhas, temChamado } = info
-        let mostrarContainer = false
-
-        for (const linha of linhas) {
-            const status = linha.querySelector('[name="status"]')?.value || ''
-            const statusKey = status || 'SEM STATUS'
-            const chamado = linha.dataset.chamado || 'N'
-            const isChamado = chamado === 'S'
-
-            let visivel = linha.dataset._visivel === 'S'
-
-            if (filtro && filtro !== 'TODOS') {
-                if (filtro === 'CHAMADO') {
-                    visivel = temChamado && visivel
-                } else if (filtro === 'SEM STATUS') {
-                    visivel = visivel && statusKey === 'SEM STATUS'
-                } else {
-                    visivel = visivel && statusKey === filtro
-                }
-            }
-
-            linha.style.display = visivel ? '' : 'none'
-            if (visivel) {
-                mostrarContainer = true
-                visiveis[statusKey] = (visiveis[statusKey] || 0) + 1
-                visiveis.TODOS = (visiveis.TODOS || 0) + 1
-                if (isChamado) visiveis.CHAMADO = (visiveis.CHAMADO || 0) + 1
-            }
-        }
-
-        container.style.display = mostrarContainer ? '' : 'none'
-    }
-
-    const toolbar = document.getElementById('toolbar')
-    toolbar.innerHTML = ''
-    const tempFluxograma = ['CHAMADO', 'TODOS', ...fluxograma]
-
-    if (listaStatus.has('SEM STATUS') && !tempFluxograma.includes('SEM STATUS'))
-        tempFluxograma.push('SEM STATUS')
-
-    for (const st of tempFluxograma) {
-        if (!listaStatus.has(st)) continue
-
-        const ativo = filtro ? filtro === st : st === 'TODOS'
-        const opacity = ativo ? 1 : 0.5
-
-        toolbar.insertAdjacentHTML('beforeend', `
-            <div style="opacity:${opacity}" class="aba-toolbar"
-                 onclick="pesquisarOrcamentos({ultimoStatus:'${st}'})">
-                <label>${inicialMaiuscula(st)}</label>
-                <span>${ativo ? visiveis[st] ?? 0 : totais[st] ?? 0}</span>
-            </div>
-        `)
-    }
-}
-
 async function rstTelaOrcamentos() {
     tela.innerHTML = ''
     await telaOrcamentos()
 }
 
-async function telaOrcamentos(semOverlay) {
+async function telaOrcamentos() {
 
     // Ocultar a barra de rolagem
+    document.documentElement.scrollTop = 0
+    document.body.scrollTop = 0
     document.body.style.overflow = 'hidden'
+
+    // Inicializar filtros com base na origem;
+    filtrosPesquisa.orcamentos ??= {}
+    filtrosPesquisa.orcamentos.origem = origem
+    filtrosPesquisa.orcamentos.arquivado = arquivado
 
     const pda = document.querySelector('.tela-gerenciamento')
     if (pda) return await telaInicial()
 
     atualizarToolbar(true) // GCS no título
 
-    const salvo = JSON.parse(localStorage.getItem('salvo')) // Filtro Status
-    if (salvo) filtrosOrcamento.status_col_1 = salvo
-
     funcaoTela = 'telaOrcamentos'
 
     hierarquia = await recuperarDados('hierarquia')
-    if (!semOverlay) overlayAguarde()
 
-    const colunasCFiltro = ['Status', 'Tags', 'Chamado', 'Cidade', 'Valor']
-    const cabecs = ['Data/LPU', 'Status', 'Pedido', 'Notas', 'Tags', 'Chamado', 'Cidade', 'Responsáveis', 'Indicadores', 'Valor', 'Ações']
+    const colunasCFiltro = ['status', 'tags', 'chamado', 'cidade', 'valor']
+    const cabecs = ['data', 'status', 'pedido', 'notas', 'tags', 'contrato', 'cidade', 'responsaveis', 'indicadores', 'valor', 'ações']
+    const filtrosOff = ['status', 'ações', 'indicadores']
     let ths = ''
     let pesquisa = ''
     cabecs.forEach((cab, i) => {
 
         ths += `
             <div class="ths-orcamento">
-                <span>${cab}</span>
-                ${cab == 'Status'
-                ? `<img src="imagens/filtro.png" onclick="filtroStatus(${i}, this)">`
-                : colunasCFiltro.includes(cab)
-                    ? `<img onclick="ordenarOrcamentos('${i}')" src="imagens/filtro.png">`
-                    : ''}
+                <span>${inicialMaiuscula(cab)}</span>
+                ${colunasCFiltro.includes(cab)
+                ? `<img onclick="ordenarOrcamentos('${i}')" src="imagens/filtro.png">`
+                : ''}
             </div>`
         pesquisa += `
             <div class="ths-orcamento">
-                ${(cab !== 'Ações' && cab !== 'Status' && cab !== 'Indicadores')
-                ? `<input placeholder="Pesquisar" name="col_${i}"  oninput="pesquisarOrcamentos({col: ${i}, texto: this.value})" >`
+                ${!filtrosOff.includes(cab)
+                ? `<input placeholder="Pesquisar" name="col_${i}" onkeydown="if(event.key === 'Enter') renderizar('${cab}', this.value)">`
                 : ''}
             </div>`
 
@@ -288,7 +145,7 @@ async function telaOrcamentos(semOverlay) {
         </div>
 
         <div id="tabelaOrcamento" data-ordem="asc" style="${vertical}; width: 95vw;">
-            <div class="topo-tabela"></div>
+            <div class="topo-tabela" style="background-color: #707070;"></div>
             <div class="div-tabela" style="overflow-x: hidden;">
                 <div class="cabecalho">
                     <div class="linha-orcamento-tabela" style="width: 100%; padding: 0px; background-color: #d2d2d2;">${ths}</div>
@@ -306,167 +163,20 @@ async function telaOrcamentos(semOverlay) {
     await auxDepartamentos()
     tags_orcamentos = await recuperarDados('tags_orcamentos')
 
-    let idsAtivos = []
+    orcsFiltrados = {}
+    orcsHierarquia = {}
 
-    const orgTimestamp = Object
-        .entries(dados_orcamentos)
-        .sort(([, a], [, b]) => b.timestamp - a.timestamp)
-
-    for (const [idOrcamento, orcamento] of orgTimestamp) {
-        if (orcamento.origem !== origem) continue
-        if (naoArquivados && orcamento.arquivado) continue
-        if (!naoArquivados && !orcamento.arquivado) continue
-        if (!meusOrcamentos && orcamento?.dados_orcam?.analista !== acesso?.nome_completo) continue
-
-        idsAtivos.push(idOrcamento)
+    for (const [idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
         criarLinhaOrcamento(idOrcamento, orcamento)
     }
 
-    const body = document.getElementById('linhas')
-    if (!body) return
-
-    const linhas = body.querySelectorAll('.linha-orcamento-tabela')
-    const idsAtuais = Array.from(linhas)
-        .map(l => l.id)
-        .filter(Boolean)
-
-    for (const idAtual of idsAtuais) {
-        if (!idsAtivos.includes(idAtual)) {
-            const el = document.getElementById(idAtual)
-            if (!el) continue
-            el.remove()
-        }
-    }
-
-    if (!semOverlay) pesquisarOrcamentos()
-
     criarMenus('orcamentos')
 
-    // Devolver as pesquisas;
-    for (const [col, termo] of Object.entries(filtrosOrcamento)) {
-        const cabechalho = document.querySelector(`[name="col_${col}"]`)
-        if (cabechalho) cabechalho.value = termo
-    }
-
-    if (!semOverlay) removerOverlay()
-
-    organizarHierarquia()
+    pAtual = 1
+    aplicarFiltrosEPaginacao()
+    renderizar('status', 'todos')
 
 }
-
-function filtroStatus(col) {
-
-    const filtro = document.querySelector('.filtro')
-    if (filtro) filtro.remove()
-
-    const body = document.getElementById('linhas')
-    const linhas = body.querySelectorAll('.linha-orcamento-tabela')
-
-    let termos = []
-    linhas.forEach(l => {
-        const cel = l.querySelectorAll('.celula')[col]
-        if (!cel) return
-        const select = cel.querySelector('select')
-        const valor = select ? select.value : cel.textContent.trim()
-        if (valor) termos.push(valor)
-    })
-
-    termos = [...new Set(termos)]
-    const colKey = `status_col_${col}`
-    filtrosOrcamento[colKey] ||= []
-
-    let htmlMarcadas = `
-        <div class="opcao">
-            <input type="checkbox"
-                    onchange="marcarTodosStatus('${colKey}', this)"
-                    ${filtrosOrcamento[colKey].length === termos.length ? 'checked' : ''}>
-            <label>Marcar todos</label>
-        </div>
-    `
-    let htmlDesmarcadas = ''
-
-    termos.forEach(op => {
-        const marcado = filtrosOrcamento[colKey].includes(op)
-        const bloco = `
-            <div class="opcao">
-                <input type="checkbox"
-                       onchange="acumularStatus('${colKey}', '${op}', this)"
-                       ${marcado ? 'checked' : ''}>
-                <label>${op}</label>
-            </div>
-        `
-        if (marcado) htmlMarcadas += bloco
-        else htmlDesmarcadas += bloco
-    })
-
-    const box = `
-        <div style="${vertical}; min-width: 300px; gap: 0.5rem; background-color: #d2d2d2; padding: 1rem;">
-
-            <div style="${horizontal}; padding-left: 0.5rem; padding-right: 0.5rem; margin: 5px; background-color: white; border-radius: 10px;">
-                <input oninput="filtrarOpcoes(this)" placeholder="Pesquisar itens" style="width: 100%;">
-                <img src="imagens/pesquisar4.png" style="width: 2rem; padding: 0.5rem;"> 
-            </div>
-
-            <div id="caixaOpcoes">
-                ${htmlMarcadas}
-                ${htmlDesmarcadas}
-            </div>
-
-        </div>
-    `
-    popup(box, 'Filtrar por Status', true)
-}
-
-
-function acumularStatus(colKey, valor, input) {
-    if (!filtrosOrcamento[colKey]) filtrosOrcamento[colKey] = []
-
-    if (input.checked) {
-        if (!filtrosOrcamento[colKey].includes(valor))
-            filtrosOrcamento[colKey].push(valor)
-    } else {
-        filtrosOrcamento[colKey] = filtrosOrcamento[colKey].filter(v => v !== valor)
-    }
-
-    filtrarStatusAplicar()
-}
-
-function marcarTodosStatus(colKey, inputTodos) {
-    const caixa = document.getElementById('caixaOpcoes')
-    const checks = caixa.querySelectorAll('input[type="checkbox"]')
-
-    filtrosOrcamento[colKey] = []
-
-    checks.forEach(c => {
-        c.checked = inputTodos.checked
-        if (c.checked) filtrosOrcamento[colKey].push(c.nextElementSibling.textContent)
-    })
-
-    if (filtrosOrcamento[colKey].length == 0) delete filtrosOrcamento[colKey]
-
-    filtrarStatusAplicar()
-}
-
-function filtrarStatusAplicar() {
-    const keys = Object.keys(filtrosOrcamento).filter(k => k.startsWith('status_col_'))
-
-    if (keys.length === 0) {
-        filtro = null
-        return pesquisarOrcamentos()
-    }
-
-    const colKey = keys[0]
-    const valores = filtrosOrcamento[colKey]
-
-    if (!valores.length) {
-        filtro = null
-        return pesquisarOrcamentos()
-    }
-
-    filtro = null
-    pesquisarOrcamentos({})
-}
-
 
 function scrollar(direcao) {
 
@@ -530,6 +240,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
             ${numOficial}
             <img src="imagens/link2.png" onclick="confirmarRemoverVinculo('${idOrcamento}')" style="width: 1.5rem;">
             <span><b>${numOficialMaster}</b></span>
+            <span style="display: none;">vinculado</span>
         </div>
         `
         : numOficial
@@ -540,6 +251,8 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
     const info = Object.values(orcamento?.status?.historicoStatus || {}).filter(s => s.info)
 
     const opcoesPda = abas.map(aba => `<option ${orcamento.aba == aba ? 'selected' : ''}>${aba}</option>`).join('')
+
+    const tags = renderAtivas({ idOrcamento, recarregarPainel: false })
 
     const celulas = `
         ${cel(`
@@ -575,15 +288,12 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
                     style="width: 1.2rem;" 
                     onclick="renderPainel('${idOrcamento}')">
                 <div name="tags" style="${vertical}; gap: 1px;">
-                    ${renderAtivas({ idOrcamento, recarregarPainel: false })}
+                    ${tags}
                 </div>
             </div>
             `)}
         ${cel(`
         <div style="${vertical};">
-            ${(acesso.permissao && dados_orcam.cliente_selecionado)
-            ? `*<img onclick="painelAlteracaoCliente('${idOrcamento}')" src="gifs/alerta.gif" style="width: 1.5vw; cursor: pointer;">`
-            : ''}
             ${orcamentosVinculados}
             <span>${cliente?.nome || ''}</span>
         </div>`)}
@@ -597,15 +307,15 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         ${cel(`
             <div style="${vertical}; width: 100%; gap: 2px;">
                 ${orcamento?.checklist?.andamento
-                    ? `
+            ? `
                     <span>Checklist</span>
                     ${divPorcentagem(orcamento.checklist.andamento)}`
-                    : ''}
+            : ''}
                 ${orcamento.dados_custos
-                    ? `
+            ? `
                     <span>LC %</span>
                     ${divPorcentagem(lucratividadePorcentagem)}`
-                    : ''}
+            : ''}
             </div>
             `)}
         ${cel(`
@@ -617,7 +327,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         ${cel(`<img onclick="abrirAtalhos('${idOrcamento}')" src="imagens/pesquisar2.png" style="width: 1.5rem;">`)}
         `
 
-    const novaLinha = `
+    const linha = `
         <div class="linha-master"
             data-chamado="${orcamento?.chamado ? 'S' : 'N'}"
             data-timestamp="${orcamento?.timestamp}" 
@@ -628,22 +338,214 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
                 <div class="linha-slaves"></div>
         </div>`
 
-    const trExistente = document.getElementById(idOrcamento)
-    const timestamp = Number(trExistente?.dataset?.timestamp)
-    if (trExistente) {
-        if (timestamp !== orcamento.timestamp) {
-            const linha = trExistente.querySelector('.linha-orcamento-tabela')
-            linha.innerHTML = celulas
-        }
-        return
-    }
-    const divLinhas = document.getElementById('linhas')
-    divLinhas.insertAdjacentHTML('afterbegin', novaLinha)
+    const status = orcamento?.status?.atual || 'SEM STATUS'
+    const chamados = (orcamento?.chamado == 'S' && (status == 'SEM STATUS' || status == 'ORC ENVIADO'))
+        ? 'S'
+        : 'N'
 
+    if (idMaster) {
+        orcsHierarquia[idMaster] ??= []
+        orcsHierarquia[idMaster].push(idOrcamento)
+    }
+
+    orcsFiltrados[idOrcamento] = {
+        idMaster,
+        timestamp: orcamento.timestamp,
+        linha,
+        arquivado: orcamento?.arquivado || 'N',
+        status,
+        chamados,
+        origem: orcamento?.origem || 'novos',
+        responsaveis: `${orcamento.usuario} ${responsaveis}`,
+        cidade: cliente?.cidade,
+        contrato: `${cliente?.nome} ${orcamentosVinculados}`,
+        pedido: labels.PEDIDO,
+        notas: labels.FATURADO,
+        data,
+        valor: orcamento?.total_geral || 0,
+        tags
+    }
+
+}
+
+function aplicarFiltrosEPaginacao(resetar = false) {
+
+    mostrarMenus(false)
+
+    const body = document.getElementById('linhas')
+    body.innerHTML = ''
+
+    const filtrados = Object.values(orcsFiltrados).filter(dados => {
+        return Object.entries(filtrosPesquisa.orcamentos || {})
+            .every(([campoFiltro, valorFiltro]) => {
+
+                if (campoFiltro === 'chamados') {
+                    return dados.chamados === valorFiltro
+                }
+
+                if (campoFiltro === 'arquivado') {
+                    return dados.arquivado === valorFiltro
+                }
+
+                const valor = dados?.[campoFiltro]
+                if (valor == null) return false
+
+                return String(valor)
+                    .toLowerCase()
+                    .includes(String(valorFiltro).toLowerCase())
+            })
+    })
+
+    carregarToolbar(filtrados, resetar)
+
+    tPaginas = Math.max(1, Math.ceil(filtrados.length / itensPorPagina))
+
+    const inicio = (pAtual - 1) * itensPorPagina
+    const fim = inicio + itensPorPagina
+
+    filtrados
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(inicio, fim)
+        .forEach(d => body.insertAdjacentHTML('beforeend', d.linha))
+
+    renderizarControlesPagina()
+
+    organizarHierarquia()
+}
+
+function renderizarControlesPagina() {
+    const topo = document.querySelector('.topo-tabela')
+    if (!topo) return
+
+    topo.innerHTML = `
+        <div style="display: flex; align-items:center; gap:10px; padding: 0.2rem;">
+            <img src="imagens/seta.png" style="width: 1.5rem;" onclick="pgAnterior()" ${pAtual === 1 ? 'disabled' : ''}>
+            <span style="color: white;">Página ${pAtual} de ${tPaginas}</span>
+            <img src="imagens/seta.png" style="transform: rotate(180deg); width: 1.5rem;" onclick="pgSeguinte()" ${pAtual === tPaginas ? 'disabled' : ''}>
+            <span style="color: white;">Dê um <b>ENTER</b> para pesquisar</span>
+        </div>
+    `
+}
+
+function pgAnterior() {
+    if (pAtual > 1) {
+        pAtual--
+        aplicarFiltrosEPaginacao()
+    }
+}
+
+function pgSeguinte() {
+    if (pAtual < tPaginas) {
+        pAtual++
+        aplicarFiltrosEPaginacao()
+    }
+}
+
+function carregarToolbar(dados, resetar) {
+
+    if (!dados) return
+
+    contToolbar = {
+        chamados: 0,
+        todos: 0
+    }
+
+    for (const orcamento of dados) {
+
+        const status = orcamento?.status || 'SEM STATUS'
+
+        contToolbar[status] ??= 0
+        contToolbar[status]++
+        contToolbar.todos++
+
+        if (orcamento?.chamados == 'S') contToolbar.chamados++
+    }
+
+    const toolbar = document.getElementById('toolbar')
+    if (resetar) toolbar.innerHTML = ''
+
+    for (const [campo, contagem] of Object.entries(contToolbar)) {
+        const tool = toolbar.querySelector(`[name="${campo}"]`)
+        if (tool) {
+            tool.querySelector('span').textContent = contagem
+            continue
+        }
+
+        const funcao = campo == 'chamados'
+            ? `delete filtrosPesquisa.orcamentos.status; renderizar('chamados', 'S')`
+            : `delete filtrosPesquisa.orcamentos.chamados; renderizar('status', '${campo}')`
+
+        const novaTool = `
+            <div 
+            style="opacity: 0.5; height: 3rem;" 
+                class="aba-toolbar"
+                data-status="${campo}"
+                name="${campo}" 
+                onclick="${funcao}">
+                <label>${campo.toUpperCase()}</label>
+                <span>${contagem}</span>
+            </div>
+        `
+        toolbar.insertAdjacentHTML('beforeend', novaTool)
+    }
+
+}
+
+function renderizar(campo, texto) {
+
+    if (texto !== '' && (campo == 'chamados' || campo == 'status')) {
+        const tools = document.querySelectorAll('.aba-toolbar')
+        tools.forEach(t => t.style.opacity = 0.5)
+        const tool = document.querySelector(`[name="${campo == 'chamados' ? 'chamados' : texto}"]`)
+        tool.style.opacity = 1
+    }
+
+    if (texto == 'todos') texto = ''
+
+    if (campo) {
+        if (texto === '' || texto == null) {
+            delete filtrosPesquisa.orcamentos[campo]
+        } else {
+            filtrosPesquisa.orcamentos[campo] =
+                (campo === 'arquivado' || campo === 'chamados')
+                    ? texto
+                    : String(texto).toLowerCase()
+        }
+    }
+
+    pAtual = 1
+    aplicarFiltrosEPaginacao()
 }
 
 async function organizarHierarquia() {
 
+    const divLinhas = document.getElementById('linhas')
+
+    const divsCompl = divLinhas.querySelectorAll('.linha-master')
+
+    for (const div of divsCompl) {
+
+        const idOrcamento = div.id
+
+        if (!orcsHierarquia[idOrcamento]) continue
+        const linha = div.querySelector('.linha-orcamento-tabela')
+        linha.style.backgroundColor = '#ffdea4'
+
+        const divSlaves = div.querySelector('.linha-slaves')
+        const slaves = orcsHierarquia[idOrcamento]
+
+        for (const idSlave of slaves) {
+            // Remove o existe, ele só aparecerá com seu Master;
+            const existente = document.getElementById(idSlave)
+            if(existente) existente.remove()
+
+            const dados = orcsFiltrados[idSlave]
+            divSlaves.insertAdjacentHTML('beforeend', dados.linha)
+        }
+
+    }
+
+    /*
     for (const [idSlave, dados] of Object.entries(hierarquia)) {
 
         const linhaSlave = document.getElementById(idSlave)
@@ -665,7 +567,7 @@ async function organizarHierarquia() {
         const linha2 = linhaSlave.querySelector('.linha-orcamento-tabela')
         linha2.style.backgroundColor = '#fbe9caff'
     }
-
+    */
 }
 
 function mostrarInfo(idOrcamento) {
@@ -743,8 +645,6 @@ async function associarClienteOrcamento(idOrcamento) {
     enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamento.dados_orcam)
 
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-
-    pesquisarOrcamentos()
 
     removerPopup()
 

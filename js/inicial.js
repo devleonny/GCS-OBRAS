@@ -92,6 +92,8 @@ const dtPrazo = (data) => {
 
 async function telaInicial() {
 
+    mostrarMenus(false)
+
     document.querySelector('[name="titulo"]').textContent = 'GCS'
 
     const acumulado = `
@@ -100,14 +102,20 @@ async function telaInicial() {
             <span style="color: white;">Carregando tabelas...</span>
         </div>
         <div class="tela-gerenciamento">
-            <div style="${horizontal}; gap: 5px; width: 100%;">
-                ${['INDICADORES', 'TÉCNICOS', ...abas].map(aba => `
-                    <div style="opacity: 0.5; height: 3rem;" class="aba-toolbar" id="toolbar-${aba}" onclick="mostrarGuia('${aba}')">
-                        <label>${aba}</label>
-                        ${aba !== 'INDICADORES' ? `<span id="contador-${aba}"></span>` : ''}
-                    </div>
-                    `).join('')}
+
+            <div style="${horizontal}; width: 80vw;">
+                <img src="imagens/nav.png" style="width: 2rem;" onclick="scrollar('prev')">
+                <div id="toolbar">
+                    ${['INDICADORES', 'TÉCNICOS', ...abas].map(aba => `
+                        <div style="opacity: 0.5; height: 3rem;" class="aba-toolbar" id="toolbar-${aba}" onclick="mostrarGuia('${aba}')">
+                            <label>${aba}</label>
+                            ${aba !== 'INDICADORES' ? `<span id="contador-${aba}"></span>` : ''}
+                        </div>
+                        `).join('')}
+                </div>
+                <img src="imagens/nav.png" style="width: 2rem; transform: rotate(180deg);" onclick="scrollar('next')">
             </div>
+
             <div id="tabelas" style="width: 100%;"></div>
         </div>
     `
@@ -1050,51 +1058,30 @@ function interruptorCliente(mostrar, inicial) {
 
 }
 
-async function filtrarArquivados(remover) {
+
+async function filtrarArquivados() {
+
+    arquivado = arquivado === 'S' ? 'N' : 'S'
+    filtrosPesquisa.orcamentos.arquivado = arquivado
+
+    pAtual = 1
+    aplicarFiltrosEPaginacao(true) // Resetar a toolbar;
+    renderizar('todos', '')
+
     const tagArquivado = document.querySelector('[name="tagArquivado"]')
-    if (remover) {
-        naoArquivados = true
-    } else {
-        naoArquivados = naoArquivados ? false : true
+
+    if (arquivado === 'N') {
+        tagArquivado?.remove()
+        return
     }
 
-    if (!naoArquivados) {
+    if (!tagArquivado) {
         const balao = `
-        <div name="tagArquivado" class="tag">
-            <img style="width: 1.5rem;" src="imagens/desarquivar.png">
-            <span>Arquivados</span>
-            <img style="width: 1.2rem;" src="imagens/cancel.png" onclick="filtrarArquivados(true)">
-        </div>
+            <div name="tagArquivado" class="tag-filtro">
+                <img style="width: 1.5rem;" src="imagens/desarquivar.png">
+                <img style="width: 1.2rem;" src="imagens/cancel.png" onclick="filtrarArquivados()">
+            </div>
         `
         baloes.insertAdjacentHTML('beforeend', balao)
-    } else {
-        tagArquivado.remove()
     }
-
-    await telaOrcamentos()
 }
-
-async function filtrarMeus(remover) {
-    const tagMeus = document.querySelector('[name="tagMeus"]')
-    if (remover) {
-        meusOrcamentos = true
-    } else {
-        meusOrcamentos = meusOrcamentos ? false : true
-    }
-
-    if (!meusOrcamentos) {
-        const balao = `
-        <div name="tagMeus" class="tag">
-            <img style="width: 1.5rem;" src="imagens/painelcustos.png">
-            <span>Meus orcaçamentos</span>
-            <img style="width: 1.2rem;" src="imagens/cancel.png" onclick="filtrarMeus(true)">
-        </div>
-        `
-        baloes.insertAdjacentHTML('beforeend', balao)
-    } else {
-        tagMeus.remove()
-    }
-
-    await telaOrcamentos()
-}
-
