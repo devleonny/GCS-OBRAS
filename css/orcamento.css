@@ -312,3 +312,13 @@
     justify-content: start;
     flex-direction: column;
 }
+
+.filtros-orcamentos {
+    gap: 1rem;
+    background-color: white;
+    border-radius: 3px;
+    padding: 3px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}

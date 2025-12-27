@@ -607,7 +607,7 @@ async function enviarDadosOrcamento() {
     await converterEsquema()
 
     let orcamentoBase = baseOrcamento()
-    orcamentoBase.origem = origem
+    orcamentoBase.origem = 'novos'
 
     // Salvar o usuário na primeira vez apenas;
     if (!orcamentoBase.usuario) orcamentoBase.usuario = acesso.usuario

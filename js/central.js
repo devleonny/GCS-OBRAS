@@ -1,7 +1,6 @@
 const api = `https://api.gcs.app.br`
 const tela = document.querySelector('.tela')
 const menus = document.querySelector('.side-menu')
-let origem = 'novos'
 let telaAtiva = null
 let funcaoAtiva = null
 let funcaoTela = null
@@ -136,8 +135,6 @@ async function executar(nomeFuncao) {
 
 function criarMenus(chave) {
     telaAtiva = chave
-    const chaves = ['orcamentos', 'composicoes', 'pda', 'telaCriarOrcamento', 'telaCriarOrcamentosAluguel']
-    interruptorCliente(chaves.includes(chave), true)
 
     const atalhos = esquemaBotoes[chave]
     let atalhosString = `
@@ -183,8 +180,7 @@ const esquemaBotoes = {
         { nome: 'Atualizar', funcao: 'atualizarOrcamentos', img: 'atualizar3' },
         { nome: 'Baixar em Excel', funcao: 'excelOrcamentos', img: 'excel' },
         { nome: 'Criar Orçamento', funcao: 'telaCriarOrcamento', img: 'projeto' },
-        { nome: 'Orçamento de Aluguel', funcao: 'telaCriarOrcamentoAluguel', img: 'projeto' },
-        { nome: 'Orçamentos Aquivados', funcao: 'filtrarArquivados', img: 'desarquivar' }
+        { nome: 'Orçamento de Aluguel', funcao: 'telaCriarOrcamentoAluguel', img: 'projeto' }
     ],
     composicoes: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },

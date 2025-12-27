@@ -1121,7 +1121,7 @@ async function salvarServidor(codigo) {
         ...item,
         ...novosDados,
         codigo: String(codigo),
-        origem
+        origem: 'novos'
     }
 
     enviar(`dados_composicoes/${codigo}`, final)
@@ -1445,8 +1445,6 @@ async function precosDesatualizados(calculo) {
         const historico = produto?.[tabela]?.historico || {}
         const ativo = produto?.[tabela]?.ativo || ''
         const preco = historico?.[ativo] || null
-
-        if (origem == 'antigos') continue
 
         if (!preco) {
             if (trExistente) trExistente.remove()

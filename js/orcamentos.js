@@ -100,10 +100,14 @@ async function telaOrcamentos() {
     document.body.scrollTop = 0
     document.body.style.overflow = 'hidden'
 
+
     // Inicializar filtros com base na origem;
+    const f = JSON.parse(sessionStorage.getItem('filtros')) || {}
     filtrosPesquisa.orcamentos ??= {}
-    filtrosPesquisa.orcamentos.origem = origem
-    filtrosPesquisa.orcamentos.arquivado = arquivado
+    filtrosPesquisa.orcamentos.origem = f?.origem || ''
+    filtrosPesquisa.orcamentos.arquivado = f?.arquivado || ''
+    filtrosPesquisa.orcamentos.meus_orcamentos = f?.meus_orcamentos || ''
+
 
     const pda = document.querySelector('.tela-gerenciamento')
     if (pda) return await telaInicial()
@@ -145,7 +149,10 @@ async function telaOrcamentos() {
         </div>
 
         <div id="tabelaOrcamento" data-ordem="asc" style="${vertical}; width: 95vw;">
-            <div class="topo-tabela" style="background-color: #707070;"></div>
+            <div class="topo-tabela" style="justify-content: space-between; width: 100%; background-color: #707070;">
+                <div id="paginacao"></div>
+                <span style="color: white; cursor: pointer;" onclick="filtroOrcamentos()">Filtros ☰</span>
+            </div>
             <div class="div-tabela" style="overflow-x: hidden;">
                 <div class="cabecalho">
                     <div class="linha-orcamento-tabela" style="width: 100%; padding: 0px; background-color: #d2d2d2;">${ths}</div>
@@ -176,6 +183,84 @@ async function telaOrcamentos() {
     aplicarFiltrosEPaginacao()
     renderizar('status', 'todos')
 
+}
+
+function filtroOrcamentos() {
+
+    const salvo = JSON.parse(sessionStorage.getItem('filtros')) || {}
+
+    const filtros = {
+        arquivado: salvo.arquivado || '',
+        origem: salvo.origem || '',
+        meus_orcamentos: salvo.meus_orcamentos || ''
+    }
+
+    const linhas = []
+
+    const interruptor = (chave, ativo) => `
+        <label style="position: relative; display: inline-block; width: 50px; height: 24px;">
+            <input 
+                type="checkbox"
+                ${ativo ? 'checked' : ''}
+                name="filtros"
+                onchange="mudarInterruptor(this)"
+                data-chave="${chave}"
+                style="opacity:0; width:0; height:0;">
+            <span class="track" style="background-color:${ativo ? '#4caf50' : '#ccc'}"></span>
+            <span class="thumb" style="transform:translateX(${ativo ? '26px' : '0'})"></span>
+        </label>
+        `
+
+    for (const [chave, valor] of Object.entries(filtros)) {
+        linhas.push({
+            texto: inicialMaiuscula(chave),
+            elemento: interruptor(chave, valor == 'S')
+        })
+    }
+
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: 'salvarFiltrosApp()' }
+    ]
+
+    const form = new formulario({ linhas, botoes, titulo: 'Gerenciar Filtro' })
+    form.abrirFormulario()
+
+}
+
+function salvarFiltrosApp() {
+
+    const filtros = document.querySelectorAll('[name="filtros"]')
+
+    const salvo = {}
+
+    for (const f of filtros) {
+        const chave = f.dataset.chave
+        const st = f.checked ? 'S' : 'N'
+        salvo[chave] = st
+        renderizar(chave, st)
+    }
+
+    sessionStorage.setItem('filtros', JSON.stringify(salvo))
+
+    removerPopup()
+
+}
+
+function mudarInterruptor(toggle) {
+
+    const label = toggle.closest('label')
+    const track = label.querySelector('.track')
+    const thumb = label.querySelector('.thumb')
+
+    if (!track || !thumb) return
+
+    if (toggle.checked) {
+        track.style.backgroundColor = "#4caf50"
+        thumb.style.transform = "translateX(26px)"
+    } else {
+        track.style.backgroundColor = "#ccc"
+        thumb.style.transform = "translateX(0)"
+    }
 }
 
 function scrollar(direcao) {
@@ -348,15 +433,18 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         orcsHierarquia[idMaster].push(idOrcamento)
     }
 
+    const participantes = `${orcamento.usuario} ${responsaveis}`
+
     orcsFiltrados[idOrcamento] = {
+        meus_orcamentos: participantes.includes(acesso.usuario) ? 'S' : 'N',
         idMaster,
         timestamp: orcamento.timestamp,
         linha,
         arquivado: orcamento?.arquivado || 'N',
         status,
         chamados,
-        origem: orcamento?.origem || 'novos',
-        responsaveis: `${orcamento.usuario} ${responsaveis}`,
+        origem: orcamento?.origem == 'novos' ? 'S' : 'N',
+        responsaveis: participantes,
         cidade: cliente?.cidade,
         contrato: `${cliente?.nome} ${orcamentosVinculados}`,
         pedido: labels.PEDIDO,
@@ -375,16 +463,15 @@ function aplicarFiltrosEPaginacao(resetar = false) {
     const body = document.getElementById('linhas')
     body.innerHTML = ''
 
+    const f = JSON.parse(sessionStorage.getItem('filtros')) || {}
+
     const filtrados = Object.values(orcsFiltrados).filter(dados => {
         return Object.entries(filtrosPesquisa.orcamentos || {})
             .every(([campoFiltro, valorFiltro]) => {
 
-                if (campoFiltro === 'chamados') {
-                    return dados.chamados === valorFiltro
-                }
-
-                if (campoFiltro === 'arquivado') {
-                    return dados.arquivado === valorFiltro
+                // Filtro binário (S / N)
+                if (valorFiltro === 'S' || valorFiltro === 'N') {
+                    return dados[campoFiltro] === valorFiltro
                 }
 
                 const valor = dados?.[campoFiltro]
@@ -414,7 +501,7 @@ function aplicarFiltrosEPaginacao(resetar = false) {
 }
 
 function renderizarControlesPagina() {
-    const topo = document.querySelector('.topo-tabela')
+    const topo = document.getElementById('paginacao')
     if (!topo) return
 
     topo.innerHTML = `
@@ -502,12 +589,14 @@ function renderizar(campo, texto) {
 
     if (texto == 'todos') texto = ''
 
+    const f = JSON.parse(sessionStorage.getItem('filtros')) || {}
+
     if (campo) {
         if (texto === '' || texto == null) {
             delete filtrosPesquisa.orcamentos[campo]
         } else {
             filtrosPesquisa.orcamentos[campo] =
-                (campo === 'arquivado' || campo === 'chamados')
+                f[campo]
                     ? texto
                     : String(texto).toLowerCase()
         }
@@ -537,7 +626,7 @@ async function organizarHierarquia() {
         for (const idSlave of slaves) {
             // Remove o existe, ele só aparecerá com seu Master;
             const existente = document.getElementById(idSlave)
-            if(existente) existente.remove()
+            if (existente) existente.remove()
 
             const dados = orcsFiltrados[idSlave]
             divSlaves.insertAdjacentHTML('beforeend', dados.linha)
