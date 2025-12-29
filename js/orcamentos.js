@@ -181,7 +181,8 @@ async function telaOrcamentos() {
 
     pAtual = 1
     aplicarFiltrosEPaginacao()
-    renderizar('status', 'todos')
+
+    if (!tabelaOrcamento) renderizar('status', 'todos')
 
 }
 
@@ -634,29 +635,6 @@ async function organizarHierarquia() {
 
     }
 
-    /*
-    for (const [idSlave, dados] of Object.entries(hierarquia)) {
-
-        const linhaSlave = document.getElementById(idSlave)
-
-        if (!linhaSlave) continue
-        const idMaster = dados.idMaster
-        const linhaMaster = document.getElementById(idMaster)
-
-        if (!linhaMaster) continue
-        if (linhaSlave.contains(linhaMaster)) continue
-
-        const divSlaves = linhaMaster.querySelector('.linha-slaves')
-        divSlaves.append(linhaSlave)
-
-        // Master;
-        const linha1 = linhaMaster.querySelector('.linha-orcamento-tabela')
-        linha1.style.backgroundColor = '#ffdea4'
-        // Slave
-        const linha2 = linhaSlave.querySelector('.linha-orcamento-tabela')
-        linha2.style.backgroundColor = '#fbe9caff'
-    }
-    */
 }
 
 function mostrarInfo(idOrcamento) {

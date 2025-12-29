@@ -1113,7 +1113,7 @@ async function arquivarOrcamento(idOrcamento) {
 
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
     await telaOrcamentos()
-    
+
     removerOverlay()
 
     const img = orcamento.arquivado ? 'desarquivar' : 'pasta'
@@ -1750,21 +1750,23 @@ async function alterarStatus(select) {
     enviar(`dados_orcamentos/${id_orcam}/status/atual`, novoSt)
     enviar(`dados_orcamentos/${id_orcam}/status/historicoStatus/${idStatus}`, registroStatus)
 
-    if (novoSt == 'ORC PENDENTE') {
-        const linhas = [
-            {
-                texto: 'Por que <b>ORC PENDENTE</b>?',
-                elemento: `<textarea name="info"></textarea>`
-            }
-        ]
-        const funcao = `salvarInfoAdicional('${idStatus}')`
-        const botoes = [{ texto: 'Salvar', img: 'concluido', funcao }]
-        const form = new formulario({ linhas, botoes, titulo: 'Informação adicional' })
-        form.abrirFormulario()
-    }
-
+    if (novoSt == 'ORC PENDENTE') formularioOrcPendente()
     if (novoSt == 'ORC APROVADO') criarDepartamento(id_orcam)
+        
     if (funcaoAtiva == 'telaOrcamentos') await telaOrcamentos(true)
+}
+
+function formularioOrcPendente() {
+    const linhas = [
+        {
+            texto: 'Por que <b>ORC PENDENTE</b>?',
+            elemento: `<textarea name="info"></textarea>`
+        }
+    ]
+    const funcao = `salvarInfoAdicional('${idStatus}')`
+    const botoes = [{ texto: 'Salvar', img: 'concluido', funcao }]
+    const form = new formulario({ linhas, botoes, titulo: 'Informação adicional' })
+    form.abrirFormulario()
 }
 
 async function salvarInfoAdicional(idStatus) {
