@@ -456,14 +456,14 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
 
     orcsFiltrados[idOrcamento] = {
         prioridade: prioridade !== 3 ? 'S' : '',
-        meus_orcamentos: participantes.includes(acesso.usuario) ? 'S' : 'N',
+        meus_orcamentos: participantes.includes(acesso.usuario) ? 'S' : '',
+        arquivado: orcamento?.arquivado || 'N',
+        origem: orcamento?.origem == 'novos' ? 'S' : '',
         idMaster,
         timestamp: orcamento.timestamp,
         linha,
-        arquivado: orcamento?.arquivado || 'N',
         status,
         chamados,
-        origem: orcamento?.origem == 'novos' ? 'S' : 'N',
         responsaveis: participantes,
         cidade: cliente?.cidade,
         contrato: `${cliente?.nome} ${orcamentosVinculados}`,
@@ -487,8 +487,18 @@ function aplicarFiltrosEPaginacao(resetar = false) {
         return Object.entries(filtrosPesquisa.orcamentos || {})
             .every(([campoFiltro, valorFiltro]) => {
 
-                if (valorFiltro === 'N') return true
+                if (valorFiltro === '' || valorFiltro == null) return true
+
+                // campo com regra especial
+                if (campoFiltro === 'arquivado') {
+                    if (valorFiltro === 'S') return dados.arquivado === 'S'
+                    if (valorFiltro === 'N') return dados.arquivado !== 'S'
+                    return true
+                }
+
+                // regra padrão
                 if (valorFiltro === 'S') return dados[campoFiltro] === 'S'
+                if (valorFiltro === 'N') return true
 
                 const valor = dados?.[campoFiltro]
                 if (valor == null) return false
