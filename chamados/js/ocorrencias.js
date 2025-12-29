@@ -13,6 +13,7 @@ let opcoesValidas = {
     tipoCorrecao: new Set(),
     finalizado: new Set()
 }
+const autE = ['adm', 'gerente', 'diretoria']
 
 let emAtualizacao = false
 
@@ -217,7 +218,7 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
     const btnExclusao = (acesso.permissao == 'adm' || ocorrencia.usuario == acesso.usuario)
         ? botaoImg('fechar', `confirmarExclusao('${idOcorrencia}')`)
         : ''
-    const btnEditar = (acesso.permissao == 'adm' || ocorrencia.usuario == acesso.usuario)
+    const btnEditar = autE.includes(acesso.permissao)
         ? botaoImg('lapis', `formularioOcorrencia('${idOcorrencia}')`)
         : ''
     const status = correcoes[ocorrencia?.tipoCorrecao]?.nome || 'Não analisada'
@@ -418,8 +419,8 @@ async function atualizarOcorrencias() {
     // Especial: sincronismo das ocorrências;
     const base = 'dados_ocorrencias'
     const nuvem = await baixarOcorrencias()
-    
-    if (nuvem.resetar && nuvem.resetar == 1) 
+
+    if (nuvem.resetar && nuvem.resetar == 1)
         await inserirDados({}, base, true)
 
     await inserirDados(nuvem.dados, base)
