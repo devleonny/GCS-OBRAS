@@ -787,48 +787,46 @@ async function excelOrcamentos() {
     const workbook = new ExcelJS.Workbook()
     const worksheet = workbook.addWorksheet('Orçamentos')
 
-    // Encontra todas as linhas da tabela
-    const linhas = document.querySelectorAll('.linha-orcamento-tabela')
+    // Cabeçalho;
+    worksheet.addRow([
+        'Data',
+        'Hora',
+        'Status',
+        'Tags',
+        'Cliente',
+        'Cidade',
+        'Estado',
+        'Usuário',
+        'Origem',
+        'Valor'
+    ])
 
-    for (let rowIndex = 0; rowIndex < linhas.length; rowIndex++) {
+    for (const orcamento of Object.values(dados_orcamentos)) {
 
-        if (rowIndex == 1) continue
+        const codCliente = orcamento?.dados_orcam?.omie_cliente
+        const cliente = dados_clientes[codCliente] || {}
 
-        const linha = linhas[rowIndex]
-        // Seleciona tanto os cabeçalhos (ths-orcamento) quanto as células normais (celula)
-        const celulas = linha.querySelectorAll('.ths-orcamento, .celula')
-        let row = []
+        const dt = orcamento?.dados_orcam?.data
+        const [data, hora] = dt ? dt.split(', ') : ['', '']
 
-        for (let colIndex = 0; colIndex < celulas.length; colIndex++) {
-            const celula = celulas[colIndex]
-            const select = celula.querySelector('select')
-            const input = celula.querySelector('input')
-            const textarea = celula.querySelector('textarea')
+        const nomesTag = Object.keys(orcamento?.tags || {})
+            .map(cod => {
+                return tags_orcamentos[cod] ? tags_orcamentos[cod].nome : ''
+            }).join(', ')
 
-            if (select) {
-                row.push(select.value)
-            } else if (input) {
-                // Verifica o tipo do input
-                if (input.type === 'checkbox') {
-                    row.push(input.checked ? 'Sim' : 'Não')
-                } else if (input.type === 'number') {
-                    row.push(parseFloat(input.value) || 0)
-                } else if (input.type === 'date') {
-                    row.push(input.value)
-                } else {
-                    row.push(input.value)
-                }
-            } else if (textarea) {
-                row.push(textarea.value)
-            } else {
+        const row = [
+            data,
+            hora,
+            orcamento?.status?.atual || 'SEM STATUS',
+            nomesTag,
+            cliente?.nome || '',
+            cliente?.cidade || '',
+            cliente?.estado || '',
+            orcamento?.usuario || '',
+            orcamento?.origem || '',
+            orcamento?.total_geral || 0,
+        ]
 
-                const clone = celula.cloneNode(true)
-                clone.querySelectorAll('label').forEach(l => l.remove())
-                const texto = clone.textContent.replace(/\s+/g, ' ').trim()
-
-                row.push(texto)
-            }
-        }
         worksheet.addRow(row)
     }
 
@@ -866,6 +864,12 @@ async function excelOrcamentos() {
             }
         })
     })
+
+    // Filtro no cabeçalho
+    worksheet.autoFilter = {
+        from: 'A1',
+        to: 'J1'
+    }
 
     // Ajuste automático de largura das colunas
     worksheet.columns.forEach(col => {
