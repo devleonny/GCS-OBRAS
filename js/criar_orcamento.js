@@ -254,9 +254,9 @@ function confirmarExclusaoRevisao() {
     const revisao = document.querySelector('[name="revisao"]').value
     const orcamento = baseOrcamento()
     orcamento.revisoes ??= {}
-    
-    if(!orcamento?.revisoes?.historico?.[revisao]) return
-    
+
+    if (!orcamento?.revisoes?.historico?.[revisao]) return
+
     delete orcamento.revisoes.historico[revisao]
     const chavesRevisoes = Object.keys(orcamento?.revisoes?.historico || {})
     const RX = chavesRevisoes[0]
@@ -293,7 +293,7 @@ async function salvarRevisao() {
 
     const numeros = Object.keys(orcamento.revisoes.historico)
         .map(r => Number(r.replace('R', '')))
-    
+
     const proximoNumero = numeros.length
         ? Math.max(...numeros) + 1
         : 1
@@ -616,11 +616,11 @@ async function enviarDadosOrcamento() {
         return painelClientes()
     }
 
-    const dados_orcam = orcamentoBase.dados_orcam;
+    const dados_orcam = orcamentoBase.dados_orcam
 
-    if (dados_orcam.cliente_selecionado === '') return popup(mensagem('Cliente em branco'), 'Alerta')
+    if (dados_orcam.omie_cliente == '') return popup(mensagem('Cliente em branco'), 'Alerta')
 
-    if (dados_orcam.contrato === '') return popup(mensagem('Chamado em branco'), 'Alerta')
+    if (dados_orcam.contrato == '') return popup(mensagem('Chamado em branco'), 'Alerta')
 
     if (orcamentoBase.total_desconto > 0) {
         orcamentoBase.aprovacao = {
@@ -629,7 +629,7 @@ async function enviarDadosOrcamento() {
         }
     }
 
-    if (!orcamentoBase.id) orcamentoBase.id = 'ORCA_' + unicoID();
+    if (!orcamentoBase.id) orcamentoBase.id = 'ORCA_' + unicoID()
 
     const resposta = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoBase)
 
@@ -1347,12 +1347,8 @@ async function totalOrcamento() {
     }
 
     // Caso tenha algum item com preço desatualizado;
-    if (!orcamentoBase.status) orcamentoBase.status = {}
-    if (statusCotacao) {
-        orcamentoBase.status.atual = 'COTAÇÃO'
-    } else {
-        delete orcamentoBase.status.atual
-    }
+    orcamentoBase.status ??= {}
+    if (statusCotacao && !orcamentoBase?.status?.atual) orcamentoBase.status.atual = 'COTAÇÃO'
 
     const painel_desconto = document.getElementById('desconto_total')
     const diferencaDinheiro = totais.GERAL.valor - totais.GERAL.bruto
