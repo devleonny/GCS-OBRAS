@@ -19,19 +19,11 @@
     pointer-events: none;
     z-index: 0;
 
-    animation: alerta 3s ease-in-out infinite;
+    animation: alerta 2s ease-in-out infinite;
 }
 
 @keyframes alerta {
-    /* parado (5s) */
     0%   { opacity: 0 }
-    80%  { opacity: 0 }
-
-    /* piscada */
-    85%  { opacity: 1 }
-    90%  { opacity: .2 }
-    95%  { opacity: 1 }
-
-    /* volta a parar */
+    50%  { opacity: 1 }
     100% { opacity: 0 }
 }

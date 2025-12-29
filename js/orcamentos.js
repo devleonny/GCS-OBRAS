@@ -107,6 +107,7 @@ async function telaOrcamentos() {
     filtrosPesquisa.orcamentos.origem = f?.origem || ''
     filtrosPesquisa.orcamentos.arquivado = f?.arquivado || ''
     filtrosPesquisa.orcamentos.meus_orcamentos = f?.meus_orcamentos || ''
+    filtrosPesquisa.orcamentos.prioridade = f?.prioridade || ''
 
 
     const pda = document.querySelector('.tela-gerenciamento')
@@ -199,7 +200,8 @@ function filtroOrcamentos() {
     const filtros = {
         arquivado: salvo.arquivado || '',
         origem: salvo.origem || '',
-        meus_orcamentos: salvo.meus_orcamentos || ''
+        meus_orcamentos: salvo.meus_orcamentos || '',
+        prioridade: salvo.prioridade || ''
     }
 
     const linhas = []
@@ -453,9 +455,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
     const participantes = `${orcamento.usuario} ${responsaveis}`
 
     orcsFiltrados[idOrcamento] = {
-        urgente: prioridade == 0 ? 'S' : '',
-        proximo: prioridade == 1 ? 'S' : '',
-        breve: prioridade == 2 ? 'S' : '',
+        prioridade: prioridade !== 3 ? 'S' : '',
         meus_orcamentos: participantes.includes(acesso.usuario) ? 'S' : 'N',
         idMaster,
         timestamp: orcamento.timestamp,
@@ -483,13 +483,10 @@ function aplicarFiltrosEPaginacao(resetar = false) {
     const body = document.getElementById('linhas')
     body.innerHTML = ''
 
-    const f = JSON.parse(sessionStorage.getItem('filtros')) || {}
-
-    const filtrados = Object.values(orcsFiltrados).filter(dados => {
+    let filtrados = Object.values(orcsFiltrados).filter(dados => {
         return Object.entries(filtrosPesquisa.orcamentos || {})
             .every(([campoFiltro, valorFiltro]) => {
 
-                // Filtro binário (S / N)
                 if (valorFiltro === 'N') return true
                 if (valorFiltro === 'S') return dados[campoFiltro] === 'S'
 
@@ -502,6 +499,13 @@ function aplicarFiltrosEPaginacao(resetar = false) {
             })
     })
 
+    // prioridade sempre no topo + ordenação por data
+    filtrados.sort((a, b) => {
+        if (a.prioridade === 'S' && b.prioridade !== 'S') return -1
+        if (a.prioridade !== 'S' && b.prioridade === 'S') return 1
+        return b.timestamp - a.timestamp
+    })
+
     carregarToolbar(filtrados, resetar)
 
     tPaginas = Math.max(1, Math.ceil(filtrados.length / itensPorPagina))
@@ -510,14 +514,13 @@ function aplicarFiltrosEPaginacao(resetar = false) {
     const fim = inicio + itensPorPagina
 
     filtrados
-        .sort((a, b) => b.timestamp - a.timestamp)
         .slice(inicio, fim)
         .forEach(d => body.insertAdjacentHTML('beforeend', d.linha))
 
     renderizarControlesPagina()
-
     organizarHierarquia()
 }
+
 
 function renderizarControlesPagina() {
     const topo = document.getElementById('paginacao')
