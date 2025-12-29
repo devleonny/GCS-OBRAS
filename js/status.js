@@ -2,6 +2,7 @@ let itensAdicionais = {}
 let id_orcam = ''
 let dadosNota = {}
 let dados_estoque = {}
+const origem = 'novos'
 
 const fluxograma = [
     'SEM STATUS',
@@ -1752,7 +1753,7 @@ async function alterarStatus(select) {
 
     if (novoSt == 'ORC PENDENTE') formularioOrcPendente()
     if (novoSt == 'ORC APROVADO') criarDepartamento(id_orcam)
-        
+
     if (funcaoAtiva == 'telaOrcamentos') await telaOrcamentos(true)
 }
 
