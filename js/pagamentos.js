@@ -1008,7 +1008,9 @@ async function calculadoraPagamento(ultimaValidacao) {
 
     localStorage.setItem('ultimoPagamento', JSON.stringify(ulP))
 
-    const dif = totais.cat !== totais.dep
+    const dif =
+        Math.round(totais.cat * 100) !== Math.round(totais.dep * 100)
+
     if (ultimaValidacao && dif) return { mensagem: 'Existe uma diferença entre Centro de custo x Categorias' }
     if (ultimaValidacao && valor_documento == 0) return { mensagem: 'Pagamento sem valor' }
 
