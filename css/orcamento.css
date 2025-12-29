@@ -322,3 +322,12 @@
     justify-content: center;
     align-items: center;
 }
+
+.etiqueta-revisao {
+    cursor: pointer;
+    color: white;
+    border-radius: 3px;
+    border: solid 1px #ff0000;
+    background-color: #ff0000b0;
+    padding: 0 3px 0 3px;
+}

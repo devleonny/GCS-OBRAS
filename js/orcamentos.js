@@ -101,13 +101,14 @@ async function telaOrcamentos() {
     document.body.style.overflow = 'hidden'
 
 
-    // Inicializar filtros com base na origem;
+    // Inicializar filtros com base na origem; //28
     const f = JSON.parse(sessionStorage.getItem('filtros')) || {}
     filtrosPesquisa.orcamentos ??= {}
     filtrosPesquisa.orcamentos.origem = f?.origem || ''
     filtrosPesquisa.orcamentos.arquivado = f?.arquivado || ''
     filtrosPesquisa.orcamentos.meus_orcamentos = f?.meus_orcamentos || ''
     filtrosPesquisa.orcamentos.prioridade = f?.prioridade || ''
+    filtrosPesquisa.orcamentos.vinculado = f?.vinculado || ''
 
 
     const pda = document.querySelector('.tela-gerenciamento')
@@ -195,13 +196,14 @@ async function telaOrcamentos() {
 
 function filtroOrcamentos() {
 
-    const salvo = JSON.parse(sessionStorage.getItem('filtros')) || {}
+    const salvo = JSON.parse(sessionStorage.getItem('filtros')) || {} //28
 
     const filtros = {
         arquivado: salvo.arquivado || '',
         origem: salvo.origem || '',
         meus_orcamentos: salvo.meus_orcamentos || '',
-        prioridade: salvo.prioridade || ''
+        prioridade: salvo.prioridade || '',
+        vinculado: salvo.vinculado || ''
     }
 
     const linhas = []
@@ -324,7 +326,10 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
 
     const cel = (elementos) => `<div class="celula">${elementos}</div>`
 
+    // Labels do campo Contrato [Revisão, chamado, cliente, etc]
     const numOficial = dados_orcam?.chamado || dados_orcam?.contrato || '-'
+    const rAtual = orcamento?.revisoes?.atual
+    const etiqRevAtual = rAtual ? `<span class="etiqueta-revisao">${rAtual}</span>` : ''
     const idMaster = hierarquia?.[idOrcamento]?.idMaster
     const orcamentoMaster = dados_orcamentos[idMaster]
     const numOficialMaster = orcamentoMaster?.dados_orcam?.chamado || orcamentoMaster?.dados_orcam?.contrato || '-'
@@ -334,10 +339,17 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
             ${numOficial}
             <img src="imagens/link2.png" onclick="confirmarRemoverVinculo('${idOrcamento}')" style="width: 1.5rem;">
             <span><b>${numOficialMaster}</b></span>
-            <span style="display: none;">vinculado</span>
         </div>
         `
         : numOficial
+
+    const finalElemento = `
+        <div style="${vertical}; gap: 2px;">
+            ${etiqRevAtual}
+            ${orcamentosVinculados}
+            <span>${cliente?.nome || ''}</span>
+        </div>
+    `
 
     const data = new Date(orcamento.timestamp).toLocaleDateString()
 
@@ -386,11 +398,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
                 </div>
             </div>
             `)}
-        ${cel(`
-        <div style="${vertical};">
-            ${orcamentosVinculados}
-            <span>${cliente?.nome || ''}</span>
-        </div>`)}
+        ${cel(finalElemento)}
         ${cel(`${cliente?.cidade || ''}`)}
         ${cel(`
             <div style="${vertical}">
@@ -455,6 +463,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
     const participantes = `${orcamento.usuario} ${responsaveis}`
 
     orcsFiltrados[idOrcamento] = {
+        vinculado: idMaster ? 'S' : '',
         prioridade: prioridade !== 3 ? 'S' : '',
         meus_orcamentos: participantes.includes(acesso.usuario) ? 'S' : '',
         arquivado: orcamento?.arquivado || 'N',
@@ -466,7 +475,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         chamados,
         responsaveis: participantes,
         cidade: cliente?.cidade,
-        contrato: `${cliente?.nome} ${orcamentosVinculados}`,
+        contrato: finalElemento,
         pedido: labels.PEDIDO,
         notas: labels.FATURADO,
         data,
