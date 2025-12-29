@@ -771,6 +771,7 @@ async function excelOrcamentos() {
         'Hora',
         'Status',
         'Tags',
+        'Chamado',
         'Cliente',
         'Cidade',
         'Estado',
@@ -791,12 +792,14 @@ async function excelOrcamentos() {
             .map(cod => {
                 return tags_orcamentos[cod] ? tags_orcamentos[cod].nome : ''
             }).join(', ')
+        const chamado = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato || ''
 
         const row = [
             data,
             hora,
             orcamento?.status?.atual || 'SEM STATUS',
             nomesTag,
+            chamado,
             cliente?.nome || '',
             cliente?.cidade || '',
             cliente?.estado || '',
