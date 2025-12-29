@@ -471,9 +471,8 @@ function aplicarFiltrosEPaginacao(resetar = false) {
             .every(([campoFiltro, valorFiltro]) => {
 
                 // Filtro binário (S / N)
-                if (valorFiltro === 'S' || valorFiltro === 'N') {
-                    return dados[campoFiltro] === valorFiltro
-                }
+                if (valorFiltro === 'N') return true
+                if (valorFiltro === 'S') return dados[campoFiltro] === 'S'
 
                 const valor = dados?.[campoFiltro]
                 if (valor == null) return false

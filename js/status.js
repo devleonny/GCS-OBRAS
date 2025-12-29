@@ -874,6 +874,8 @@ async function abrirAtalhos(id) {
         `
     }
 
+    botoesDisponiveis += modeloBotoes('alerta', 'Definir Prioridade', `formularioOrcAprovado('${id}')`)
+
     const acumulado = `
         <label style="color: #222; font-size: 1rem; text-align: left;" id="cliente_status">${cliente?.nome || '??'}</label>
         <hr>
@@ -1751,11 +1753,56 @@ async function alterarStatus(select) {
     enviar(`dados_orcamentos/${id_orcam}/status/atual`, novoSt)
     enviar(`dados_orcamentos/${id_orcam}/status/historicoStatus/${idStatus}`, registroStatus)
 
-    if (novoSt == 'ORC PENDENTE') formularioOrcPendente()
-    if (novoSt == 'ORC APROVADO') criarDepartamento(id_orcam)
+    if (novoSt == 'ORC PENDENTE') formularioOrcPendente(id_orcam)
+    if (novoSt == 'ORC APROVADO') {
+        formularioOrcAprovado()
+        criarDepartamento(id_orcam)
+    }
 
     if (funcaoAtiva == 'telaOrcamentos') await telaOrcamentos(true)
 }
+
+function formularioOrcAprovado(idOrcamento) {
+
+    const linhas = [
+        {
+            texto: 'Qual a previsão de início?',
+            elemento: `
+                <div style="${horizontal}; gap: 1rem;">
+                    <input name="prioridade" oninput="mostrarPrioridade()" type="date">
+                    <div id="indicador"></div>
+                </div>
+                `
+        }
+    ]
+
+    const funcao = `salvarPrioridade('${idOrcamento}')`
+    const botoes = [{ texto: 'Salvar', img: 'concluido', funcao }]
+    const form = new formulario({ linhas, botoes, titulo: 'Prioridade do Orçamento' })
+    form.abrirFormulario()
+}
+
+function mostrarPrioridade() {
+    const div = document.getElementById('indicador')
+    const input = document.querySelector('[name="prioridade"]')
+
+    if (!div || !input || !input.value) return
+
+    const hoje = new Date()
+    const data = new Date(input.value)
+
+    const diffDias = Math.abs(hoje - data) / (1000 * 60 * 60 * 24)
+
+    let img = ''
+
+    if (diffDias < 7) img = 'gifs/atencao.gif'
+    else if (diffDias < 14) img = 'gifs/alerta.gif'
+    else if (diffDias < 21) img = 'imagens/pendente.png'
+    else img = 'imagens/online.png'
+
+    div.innerHTML = `<img src="${img}">`
+}
+
 
 function formularioOrcPendente() {
     const linhas = [
@@ -1764,10 +1811,16 @@ function formularioOrcPendente() {
             elemento: `<textarea name="info"></textarea>`
         }
     ]
-    const funcao = `salvarInfoAdicional('${idStatus}')`
+    const funcao = `salvarDtInicio('${idStatus}')`
     const botoes = [{ texto: 'Salvar', img: 'concluido', funcao }]
     const form = new formulario({ linhas, botoes, titulo: 'Informação adicional' })
     form.abrirFormulario()
+}
+
+async function salvarDtInicio() {
+
+    //const orcamento = dados_orcamentos[]
+    
 }
 
 async function salvarInfoAdicional(idStatus) {
