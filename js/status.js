@@ -12,7 +12,6 @@ const fluxograma = [
     'ORC ENVIADO',
     'ORC APROVADO',
     'ACORDO FINANCEIRO',
-    'PENDENTE CERTIFICADO',
     'REQUISIÇÃO',
     'PEND INFRA',
     'PEND ASSISTÊNCIA TÉCNICA',
@@ -21,6 +20,7 @@ const fluxograma = [
     'ENTREGUE',
     'AGENDAMENTO',
     'EM ANDAMENTO',
+    'PENDENTE PEDIDO',
     'OBRA PARALISADA',
     'PENDENTE OS/RELATÓRIO',
     'CONCLUÍDO',
@@ -869,12 +869,12 @@ async function abrirAtalhos(id) {
         ${modeloBotoes('chave', 'Delegar outro analista', `usuariosAutorizados()`)}
         ${modeloBotoes('apagar', 'Excluir Orçamento', `confirmarExclusaoOrcamentoBase('${id}')`)}
         ${modeloBotoes('editar', 'Editar Orçamento', `editar('${id}')`)}
-        ${acesso.permissao == 'adm' ? modeloBotoes('editar3', 'Alterar ORC > novo', `mudarNumORC('${id}')`) : '<div></div>'}
+        ${modeloBotoes('alerta', 'Definir Prioridade', `formularioOrcAprovado('${id}')`)}
         ${modeloBotoes('gerente', 'Editar Dados do Cliente', `painelClientes('${id}')`)}
         `
     }
 
-    botoesDisponiveis += modeloBotoes('alerta', 'Definir Prioridade', `formularioOrcAprovado('${id}')`)
+    if (acesso.permissao == 'adm') botoesDisponiveis += modeloBotoes('editar3', 'Alterar ORC > novo', `mudarNumORC('${id}')`)
 
     const acumulado = `
         <label style="color: #222; font-size: 1rem; text-align: left;" id="cliente_status">${cliente?.nome || '??'}</label>
@@ -1764,12 +1764,14 @@ async function alterarStatus(select) {
 
 function formularioOrcAprovado(idOrcamento) {
 
+    const orcamento = dados_orcamentos[idOrcamento]
+
     const linhas = [
         {
             texto: 'Qual a previsão de início?',
             elemento: `
                 <div style="${horizontal}; gap: 1rem;">
-                    <input name="prioridade" oninput="mostrarPrioridade()" type="date">
+                    <input name="prioridade" oninput="mostrarPrioridade()" type="date" value="${orcamento.inicio || ''}">
                     <div id="indicador"></div>
                 </div>
                 `
@@ -1780,6 +1782,23 @@ function formularioOrcAprovado(idOrcamento) {
     const botoes = [{ texto: 'Salvar', img: 'concluido', funcao }]
     const form = new formulario({ linhas, botoes, titulo: 'Prioridade do Orçamento' })
     form.abrirFormulario()
+}
+
+async function salvarPrioridade(idOrcamento) {
+
+    const input = document.querySelector('[name="prioridade"]')
+    const orcamento = dados_orcamentos[idOrcamento]
+
+    if (!input.value) return removerPopup()
+
+    orcamento.inicio = input.value
+    removerPopup()
+
+    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${idOrcamento}/inicio`, input.value)
+
+    await telaOrcamentos()
+
 }
 
 function mostrarPrioridade() {
@@ -1811,16 +1830,10 @@ function formularioOrcPendente() {
             elemento: `<textarea name="info"></textarea>`
         }
     ]
-    const funcao = `salvarDtInicio('${idStatus}')`
+    const funcao = `salvarInfoAdicional('${idStatus}')`
     const botoes = [{ texto: 'Salvar', img: 'concluido', funcao }]
     const form = new formulario({ linhas, botoes, titulo: 'Informação adicional' })
     form.abrirFormulario()
-}
-
-async function salvarDtInicio() {
-
-    //const orcamento = dados_orcamentos[]
-    
 }
 
 async function salvarInfoAdicional(idStatus) {

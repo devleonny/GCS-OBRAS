@@ -135,7 +135,7 @@ async function telaOrcamentos() {
         pesquisa += `
             <div class="ths-orcamento">
                 ${!filtrosOff.includes(cab)
-                ? `<input placeholder="Pesquisar" name="col_${i}" onkeydown="if(event.key === 'Enter') renderizar('${cab}', this.value)">`
+                ? `<input placeholder="Pesquisar" name="${cab}" onkeydown="if(event.key === 'Enter') renderizar('${cab}', this.value)">`
                 : ''}
             </div>`
 
@@ -183,6 +183,12 @@ async function telaOrcamentos() {
     aplicarFiltrosEPaginacao()
 
     if (!tabelaOrcamento) renderizar('status', 'todos')
+
+    // Recuperar pesquisas
+    for (const [chave, info] of Object.entries(filtrosPesquisa?.orcamentos || {})) {
+        const inpCab = document.querySelector(`[name="${chave}"]`)
+        if (inpCab) inpCab.value = info
+    }
 
 }
 
@@ -412,13 +418,23 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
             `)}
         ${cel(`<img onclick="abrirAtalhos('${idOrcamento}')" src="imagens/pesquisar2.png" style="width: 1.5rem;">`)}
         `
+    // Prioridade;
+    const inicio = new Date(orcamento?.inicio)
+    let prioridade = 3
+    if (inicio) {
+        const hoje = new Date()
+        const diffDias = Math.abs(hoje - inicio) / (1000 * 60 * 60 * 24)
+        if (diffDias < 7) prioridade = 0
+        else if (diffDias < 14) prioridade = 1
+        else if (diffDias < 21) prioridade = 2
+    }
 
     const linha = `
         <div class="linha-master"
             data-chamado="${orcamento?.chamado ? 'S' : 'N'}"
             data-timestamp="${orcamento?.timestamp}" 
             id="${idOrcamento}">
-                <div class="linha-orcamento-tabela">
+                <div class="linha-orcamento-tabela" data-prioridade="${prioridade}">
                     ${celulas}
                 </div>
                 <div class="linha-slaves"></div>
@@ -437,6 +453,9 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
     const participantes = `${orcamento.usuario} ${responsaveis}`
 
     orcsFiltrados[idOrcamento] = {
+        urgente: prioridade == 0 ? 'S' : '',
+        proximo: prioridade == 1 ? 'S' : '',
+        breve: prioridade == 2 ? 'S' : '',
         meus_orcamentos: participantes.includes(acesso.usuario) ? 'S' : 'N',
         idMaster,
         timestamp: orcamento.timestamp,
@@ -617,8 +636,6 @@ async function organizarHierarquia() {
         const idOrcamento = div.id
 
         if (!orcsHierarquia[idOrcamento]) continue
-        const linha = div.querySelector('.linha-orcamento-tabela')
-        linha.style.backgroundColor = '#ffdea4'
 
         const divSlaves = div.querySelector('.linha-slaves')
         const slaves = orcsHierarquia[idOrcamento]

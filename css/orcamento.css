@@ -1,4 +1,5 @@
 .linha-orcamento-tabela {
+    position: relative;
     display: grid;
     grid-template-columns:
         minmax(70px, 1fr)
@@ -18,7 +19,6 @@
     border-bottom: 1px solid #b3b3b3;
     font-size: 0.7rem;
 }
-
 
 .celula {
     height: 100%;
