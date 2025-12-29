@@ -109,6 +109,7 @@ async function telaOrcamentos() {
     filtrosPesquisa.orcamentos.meus_orcamentos = f?.meus_orcamentos || ''
     filtrosPesquisa.orcamentos.prioridade = f?.prioridade || ''
     filtrosPesquisa.orcamentos.vinculado = f?.vinculado || ''
+    filtrosPesquisa.orcamentos.revisao = f?.revisao || ''
 
 
     const pda = document.querySelector('.tela-gerenciamento')
@@ -203,7 +204,8 @@ function filtroOrcamentos() {
         origem: salvo.origem || '',
         meus_orcamentos: salvo.meus_orcamentos || '',
         prioridade: salvo.prioridade || '',
-        vinculado: salvo.vinculado || ''
+        vinculado: salvo.vinculado || '',
+        revisao: salvo.revisao || ''
     }
 
     const linhas = []
@@ -463,6 +465,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
     const participantes = `${orcamento.usuario} ${responsaveis}`
 
     orcsFiltrados[idOrcamento] = {
+        revisao: rAtual ? 'S' : '',
         vinculado: idMaster ? 'S' : '',
         prioridade: prioridade !== 3 ? 'S' : '',
         meus_orcamentos: participantes.includes(acesso.usuario) ? 'S' : '',
