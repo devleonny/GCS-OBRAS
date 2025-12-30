@@ -2,7 +2,6 @@ let itensAdicionais = {}
 let id_orcam = ''
 let dadosNota = {}
 let dados_estoque = {}
-const origem = 'novos'
 
 const fluxograma = [
     'SEM STATUS',
@@ -865,7 +864,6 @@ async function abrirAtalhos(id) {
 
     if (orcamento?.usuario == acesso.usuario || permitidos.includes(acesso.permissao) || orcamento?.usuarios?.[acesso.usuario]) {
         botoesDisponiveis += `
-        ${modeloBotoes('trocar', 'Mudar (Novos ↔ Antigos)', `migrarOrcamento('${id}')`)}
         ${modeloBotoes('chave', 'Delegar outro analista', `usuariosAutorizados()`)}
         ${modeloBotoes('apagar', 'Excluir Orçamento', `confirmarExclusaoOrcamentoBase('${id}')`)}
         ${modeloBotoes('editar', 'Editar Orçamento', `editar('${id}')`)}
@@ -1084,23 +1082,6 @@ async function carregarAutorizados() {
         .join('')
 
     document.getElementById('autorizados').innerHTML = liberados ? liberados : 'Sem usuários autorizados por enquanto'
-
-}
-
-async function migrarOrcamento(idOrcamento) {
-
-    overlayAguarde()
-
-    let orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-
-    const novaOrigem = origem == 'novos' ? 'antigos' : 'novos'
-    orcamento.origem = novaOrigem
-
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-
-    enviar(`dados_orcamentos/${idOrcamento}/origem`, novaOrigem)
-
-    await telaOrcamentos()
 
 }
 

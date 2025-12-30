@@ -17,6 +17,10 @@ let dados_setores = {}
 let hierarquia = {}
 let depPorDesc = {}
 
+// Temporário
+localStorage.removeItem('colunasComposicoes')
+localStorage.removeItem('orcamentos')
+
 const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
 const botaoRodape = (funcao, texto, img) => `
         <div class="botoesRodape" onclick="${funcao}">
@@ -532,7 +536,7 @@ async function configs() {
     let linhas = ''
     const listas = {
         permissoes: ['', 'adm', 'user', 'visitante', 'analista', 'gerente', 'coordenacao', 'diretoria', 'editor', 'log', 'qualidade', 'novo'],
-        setores: ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE']
+        setores: ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE', 'POC']
     }
 
     dados_setores = Object.keys(dados_setores)
@@ -2163,49 +2167,48 @@ async function configuracoes(usuario, campo, valor) {
         })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`)
                 }
-                return response.json();
+                return response.json()
             })
             .then(data => {
-                resolve(data);
+                resolve(data)
             })
             .catch(err => {
                 console.error(err)
                 reject()
-            });
+            })
     })
 }
 
-function baseOrcamento(orcamento, remover) {
-    let orcamentos = JSON.parse(localStorage.getItem('orcamentos')) || {};
-    if (!orcamentos) return {};
-
-    if (!orcamentos[origem]) orcamentos[origem] = {};
+function baseOrcamento(orcamento, remover = false) {
+    let temporario = JSON.parse(localStorage.getItem('temporario')) || {}
 
     const getModalidade = (orc) => {
         if (orc?.lpu_ativa) {
-            return orc.lpu_ativa === 'ALUGUEL' ? 'aluguel' : 'orcamento';
+            return orc.lpu_ativa === 'ALUGUEL' ? 'aluguel' : 'orcamento'
         }
-        return String(telaAtiva).includes('Aluguel') ? 'aluguel' : 'orcamento';
-    };
+        return String(telaAtiva).includes('Aluguel') ? 'aluguel' : 'orcamento'
+    }
 
-    let modalidade = orcamento ? getModalidade(orcamento) : getModalidade();
+    const modalidade = getModalidade(orcamento || temporario)
 
+    // remover
+    if (remover) {
+        delete temporario[modalidade]
+        localStorage.setItem('temporario', JSON.stringify(temporario))
+        return
+    }
+
+    // salvar
     if (orcamento) {
-        if (!orcamentos[origem][modalidade]) orcamentos[origem][modalidade] = {};
-        orcamentos[origem][modalidade] = orcamento;
-        localStorage.setItem('orcamentos', JSON.stringify(orcamentos));
+        temporario[modalidade] = orcamento
+        localStorage.setItem('temporario', JSON.stringify(temporario))
+        return
     }
-    else if (remover) {
-        if (orcamentos[origem][modalidade]) {
-            delete orcamentos[origem][modalidade];
-            localStorage.setItem('orcamentos', JSON.stringify(orcamentos));
-        }
-    }
-    else {
-        return orcamentos[origem][modalidade] || null;
-    }
+
+    // ler
+    return temporario[modalidade] || null
 }
 
 async function sincronizarDados(base, overlayOff, resetar) {
@@ -2585,8 +2588,6 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
     let opcoesDiv = ''
 
     for (const [cod, dado] of Object.entries(base)) {
-
-        if (dado.origem && origem !== dado?.origem) continue
 
         const labels = campos
             .map(campo => {

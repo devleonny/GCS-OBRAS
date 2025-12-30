@@ -27,10 +27,9 @@ async function telaComposicoes(recriar) {
         'editar',
         ...new Set(
             Object.values(dados_composicoes)
-                .filter(produto => produto.origem == origem)
                 .flatMap(obj =>
                     Object.keys(obj).filter(k =>
-                        !['excluido', 'preco_estado', 'timestamp', 'status', 'grupo', 'refid', 'sapid', 'subgrupo', 'locacao', 'parceiro', 'partnumber', 'id', 'material infra', 'setor', 'origem', 'agrupamentos', 'categoria de equipamento', 'descricaocarrefour'].includes(k)
+                        !['excluido', 'preco_estado', 'timestamp', 'status', 'grupo', 'refid', 'sapid', 'subgrupo', 'locacao', 'parceiro', 'partnumber', 'id', 'material infra', 'setor', 'agrupamentos', 'categoria de equipamento', 'descricaocarrefour'].includes(k)
                     )
                 )
         )
@@ -64,7 +63,6 @@ async function telaComposicoes(recriar) {
 
     let idsAtivos = []
     for (let [codigo, produto] of Object.entries(dados_composicoes).reverse()) {
-        if (produto.origem !== origem) continue
         idsAtivos.push(codigo)
         criarLinhaComposicao(codigo, produto)
     }
@@ -83,27 +81,25 @@ async function telaComposicoes(recriar) {
 }
 
 function esconderColunas() {
-    const visiveis = JSON.parse(localStorage.getItem('colunasComposicoes'))?.[origem] || 'novos';
-    if (!visiveis) return
-
-    const table = document.querySelector("#linhasComposicoes").closest("table");
-    if (!table) return;
+    const visiveis = JSON.parse(localStorage.getItem('colunas')) || []
+    const table = document.querySelector("#linhasComposicoes").closest("table")
+    if (!table) return
 
     for (const campo of cabecalhos) {
-        const th = table.querySelector(`th[name="${campo}"]`);
-        if (!th) continue;
+        const th = table.querySelector(`th[name="${campo}"]`)
+        if (!th) continue
 
         const idx = th.cellIndex;
-        const mostrar = visiveis.includes(campo);
+        const mostrar = visiveis.includes(campo)
 
-        th.style.display = mostrar ? "" : "none";
+        th.style.display = mostrar ? "" : "none"
 
         table.querySelectorAll("tr").forEach(tr => {
             const cell = tr.cells[idx];
             if (cell && cell !== th) {
-                cell.style.display = mostrar ? "" : "none";
+                cell.style.display = mostrar ? "" : "none"
             }
-        });
+        })
     }
 }
 
@@ -191,7 +187,7 @@ function criarLinhaComposicao(codigo, produto) {
 
 async function abrirFiltros() {
 
-    const colunas = JSON.parse(localStorage.getItem('colunasComposicoes'))?.[origem] || []
+    const colunas = JSON.parse(localStorage.getItem('colunas')) || []
     cabecalhos.sort()
     const opcoes = cabecalhos
         .map(cabecalho => `
@@ -270,11 +266,7 @@ async function aplicarFiltros() {
         }
     })
 
-    let colunasComposicoes = JSON.parse(localStorage.getItem('colunasComposicoes')) || {}
-    if (!colunasComposicoes[origem]) colunasComposicoes[origem] = []
-    colunasComposicoes[origem] = colunas
-
-    localStorage.setItem('colunasComposicoes', JSON.stringify(colunasComposicoes))
+    localStorage.setItem('colunas', JSON.stringify(colunas))
     removerPopup()
 
     await telaComposicoes()
@@ -1019,7 +1011,6 @@ function remover_esta_linha(elemento) {
 
 async function cadastrarItem(codigo) {
 
-    if (!origem) colunas.push('descricaocarrefour')
     const produto = await recuperarDado('dados_composicoes', codigo) || {}
     const funcao = codigo ? `salvarServidor('${codigo}')` : `salvarServidor()`
 
@@ -1120,8 +1111,7 @@ async function salvarServidor(codigo) {
     const final = {
         ...item,
         ...novosDados,
-        codigo: String(codigo),
-        origem: 'novos'
+        codigo: String(codigo)
     }
 
     enviar(`dados_composicoes/${codigo}`, final)

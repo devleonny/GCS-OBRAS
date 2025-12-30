@@ -198,7 +198,6 @@ async function removerItem(codigo, img) {
 
 async function enviarDadosAluguel() {
     let orcamentoBase = baseOrcamento()
-    orcamentoBase.origem = origem
 
     if (!orcamentoBase.dados_orcam) return painelClientes()
 
@@ -308,9 +307,6 @@ async function tabelaProdutosAluguel() {
     dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
     for (const [codigo, produto] of Object.entries(dados_composicoes)) {
-
-        if (origem !== produto.origem) continue
-
         criarLinhaProdAluguel(codigo, produto)
     }
 

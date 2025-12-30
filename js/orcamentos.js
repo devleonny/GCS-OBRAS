@@ -101,10 +101,9 @@ async function telaOrcamentos() {
     document.body.style.overflow = 'hidden'
 
 
-    // Inicializar filtros com base na origem; //28
+    // Inicializar filtros; //28
     const f = JSON.parse(sessionStorage.getItem('filtros')) || {}
     filtrosPesquisa.orcamentos ??= {}
-    filtrosPesquisa.orcamentos.origem = f?.origem || ''
     filtrosPesquisa.orcamentos.arquivado = f?.arquivado || ''
     filtrosPesquisa.orcamentos.meus_orcamentos = f?.meus_orcamentos || ''
     filtrosPesquisa.orcamentos.prioridade = f?.prioridade || ''
@@ -201,7 +200,6 @@ function filtroOrcamentos() {
 
     const filtros = {
         arquivado: salvo.arquivado || '',
-        origem: salvo.origem || '',
         meus_orcamentos: salvo.meus_orcamentos || '',
         prioridade: salvo.prioridade || '',
         vinculado: salvo.vinculado || '',
@@ -471,7 +469,6 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         prioridade: prioridade !== 3 ? 'S' : '',
         meus_orcamentos: participantes.includes(acesso.usuario) ? 'S' : '',
         arquivado: orcamento?.arquivado || 'N',
-        origem: orcamento?.origem == 'novos' ? 'S' : '',
         idMaster,
         timestamp: orcamento.timestamp,
         linha,
@@ -820,7 +817,6 @@ async function excelOrcamentos() {
         'Cidade',
         'Estado',
         'Usuário',
-        'Origem',
         'Valor'
     ])
 
@@ -848,7 +844,6 @@ async function excelOrcamentos() {
             cliente?.cidade || '',
             cliente?.estado || '',
             orcamento?.usuario || '',
-            orcamento?.origem || '',
             orcamento?.total_geral || 0,
         ]
 

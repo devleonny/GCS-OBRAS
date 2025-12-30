@@ -357,7 +357,6 @@ async function atualizarOpcoesLPU() {
     const LPUS = [
         ...new Set(
             Object.values(dados_composicoes)
-                .filter(produto => produto.origem == origem) // filtra os objetos primeiro
                 .flatMap(obj =>
                     Object.keys(obj)
                         .filter(key => key.toLowerCase().includes('lpu')) // só chaves "lpu"
@@ -607,7 +606,6 @@ async function enviarDadosOrcamento() {
     await converterEsquema()
 
     let orcamentoBase = baseOrcamento()
-    orcamentoBase.origem = 'novos'
 
     // Salvar o usuário na primeira vez apenas;
     if (!orcamentoBase.usuario) orcamentoBase.usuario = acesso.usuario
@@ -771,7 +769,7 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
     const cliente = dados_clientes?.[omie_cliente] || {}
     const estado = cliente?.estado || null
     const composicoesOrcamento = orcamentoBase?.esquema_composicoes || {}
-    const lpu = String(orcamentoBase.lpu_ativa).toLocaleLowerCase()
+    const lpu = orcamentoBase.lpu_ativa ? String(orcamentoBase.lpu_ativa).toLocaleLowerCase() : 'LPU HOPE'
 
     // Carregamentos dos itens && filtragem inicial;
     for (const [codigo, produto] of Object.entries(dadosFiltrados)) {
@@ -782,7 +780,6 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
         const itemValidoBoticario = preco !== 0 || produto.preco_estado
 
         const remover =
-            origem !== produto.origem ||
             !produto.tipo ||
             (lpu.includes('boticario') && !itemValidoBoticario)
 
