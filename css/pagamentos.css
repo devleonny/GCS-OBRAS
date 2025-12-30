@@ -176,6 +176,7 @@
 }
 
 .btnDetalhes {
+    text-align: left;
     min-height: 3vh;
     width: 50%;
     display: flex;

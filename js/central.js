@@ -2804,9 +2804,7 @@ async function auxDepartamentos() {
         const numFinal = orc?.dados_orcam?.chamado || orc?.dados_orcam?.contrato
         if (!numFinal) continue
 
-        if(numFinal == 'D16307') console.log(orc)
-
-        orcPorNum[numFinal] = orc
+        orcPorNum[numFinal] ??= {}
         orcPorNum[numFinal].ids ??= []
         orcPorNum[numFinal].ids.push(idOrcamento)
     }

@@ -279,15 +279,15 @@ function iconePagamento(status) {
 function justificativaHTML(idPagamento) {
 
     return `
-        <div class="balao" style="display: flex; align-items: center; justify-content: center; width: 100%;">
+        <div class="balao" style="${horizontal}; width: 100%;">
 
-            <img src="gifs/alerta.gif" style="width: 2rem;">
+            <img src="gifs/alerta.gif" style="width: 3rem;">
 
             <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; width: 100%; gap: 3px;">
-                <label style="font-size: 1.0rem;">Aprovação do pagamento</label>
+                <label>Aprovação do pagamento</label>
 
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px; width: 70%;">
-                    <textarea id="justificativa" style="width: 100%; font-size: 0.8vw;" placeholder="Descreva o motivo da aprovação/reprovação" oninput="auxiliar(this)"></textarea>
+                    <textarea id="justificativa" style="width: 100%;" placeholder="Descreva o motivo da aprovação/reprovação" oninput="auxiliar(this)"></textarea>
                     <button id="aprovar" style="display: none; background-color: green; padding: 5px;" onclick="autorizarPagamentos(true, '${idPagamento}')">Aprovar</button>
                     <button id="reprovar" onclick="autorizarPagamentos(false, '${idPagamento}')" style="display: none; padding: 5px;">Reprovar</button>
                 </div>
@@ -301,6 +301,13 @@ async function abrirDetalhesPagamentos(id_pagamento) {
     idP = id_pagamento
 
     overlayAguarde()
+
+    const modelo = (texto1, elemento) => `
+        <div style="${vertical}; gap: 2px;">
+            <span><b>${texto1}</b></span>
+            <div>${elemento}</div>
+        </div>
+    `
 
     let valores = ''
     let painelParceiro = false
@@ -437,36 +444,50 @@ async function abrirDetalhesPagamentos(id_pagamento) {
             `
     }
 
-    let divStatus = `<label>${pagamento.status}</label>`
-    if (permissao == 'adm') {
-        let opcoes = ''
-        opcoesStatus.forEach(op => {
-            opcoes += `<option ${pagamento.status == op ? 'selected' : ''}>${op}</option>`
-        })
+    // Edição de Status;
+    const divStatus = (permissao == 'adm')
+        ? `
+        <select class="selectStatus" onchange="alterarStatusPagamento('${id_pagamento}', this)">
+            ${opcoesStatus.map(op => `<option ${pagamento.status == op ? 'selected' : ''}>${op}</option>`).join('')}
+        </select>`
+        : `<label>${pagamento.status}</label>`;
 
-        divStatus = `
-            <select class="selectStatus" onchange="alterarStatusPagamento('${id_pagamento}', this)">
-                ${opcoes}
-            </select>
-        `
+    const depPagam = pagamento?.param?.[0]?.distribuicao || []
+    const orcsVinculados = []
+
+    for (const dep of depPagam) {
+        const cc = departamentos[dep.cCodDep]
+        if (!cc?.ids?.length) continue
+        for (const id of cc.ids) orcsVinculados.push(id)
     }
 
-    const codDep = pagamento?.param?.[0]?.distribuicao?.[0]?.cCodDep
-    const cc = departamentos[codDep] || {}
+    const btnsOrcamentos = orcsVinculados
+        .map(id => {
+            const orc = dados_orcamentos[id] || {}
+            const idCli = orc.dados_orcam.omie_cliente
+            const cli = dados_clientes[idCli] || {}
+            return btnDetalhes('pasta', `${cli?.nome || '...'} <br>${dinheiro(orc?.total_geral)}`, `abrirAtalhos('${id}')`)
+        }).join('')
 
-    if(cc.ids) console.log(cc.ids)
-
-    const btnsOrcamentos = (cc.ids || [])
-        .map(id => btnDetalhes('pasta', 'Consultar Orçamento', `abrirAtalhos('${id}')`))
-        .join('')
-
-    const bEspeciais = acesso.permissao == 'adm'
+    const bEspeciais = permissao == 'adm'
         ? `
         ${btnDetalhes('editar', 'Editar Pagamento', `editarPagamento('${id_pagamento}')`)}
         ${btnDetalhes('cancel', 'Excluir pagamento', `confirmarExclusaoPagamento('${id_pagamento}')`)}
         ${btnDetalhes('concluido', 'Lançar pagamento', `relancarPagamento('${id_pagamento}')`)}
         ${btnDetalhes('anexo', 'Reimportar Anexos no Omie', `reprocessarAnexos('${id_pagamento}')`)}`
         : ''
+
+    const deps = (pagamento?.param[0]?.distribuicao || [])
+        .map(dep => {
+            const departamento = departamentos?.[dep.cCodDep] || {}
+            const nomeCliente = departamento?.cliente?.nome || ''
+            return `
+                <div style="${vertical}; gap: 2px; text-align: left;">
+                    <span>• <b>${departamento?.descricao || ''}</b></span>
+                    <span>${nomeCliente}</span>
+                </div>
+            `
+        }).join('')
 
     const acumulado = `
         ${justificativaHTML(id_pagamento)}
@@ -480,17 +501,13 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
             </div>
 
-            <hr style="width: 100%;">
+            <hr>
 
-            <div style="${vertical}; width: 100%;">
-                <span><b>Departamento/Centro de Custo</b></span>
-                <span>Desativado...</span>
-            </div>
-
-            ${modelo('Status Atual', `${divStatus}`)}
-            ${modelo('Quem recebe', `${cliente.nome}`)}
-            ${modelo('Data de Solicitação', `${pagamento.data_registro}`)}
-            ${modelo('Data de Pagamento', `${pagamento.param[0].data_vencimento}`)}
+            ${modelo('Departamentos', deps)}
+            ${modelo('Status Atual', divStatus)}
+            ${modelo('Quem recebe', cliente.nome)}
+            ${modelo('Data de Solicitação', pagamento.data_registro)}
+            ${modelo('Data de Pagamento', pagamento.param[0].data_vencimento)}
 
             ${divValores}
 
