@@ -96,7 +96,7 @@ async function telaVeiculos() {
                         <label>Total de pagamento <b>Realizado</b> • </label>
                         <span name="total">--</span>
                     </div>
-                    ${acesso.permissao == 'adm' ? `<div id="viabilidade"></div>` : ''}
+                    ${(acesso.permissao == 'adm' || acesso.setor == 'FINANCEIRO') ? `<div id="viabilidade"></div>` : ''}
                 </div>
                 <div class="div-tabela">
                     <table class="tabela">
@@ -392,7 +392,7 @@ async function enviarOmie() {
 
     // Salvamento da taxa > Código dep EMPRESA; 
     totalGeral += taxa
-    if(!distribuicao[6689610735]) {
+    if (!distribuicao[6689610735]) {
         distribuicao[6689610735] = { cCodDep: 6689610735, nValDep: taxa }
     } else {
         distribuicao[6689610735].nValDep += taxa

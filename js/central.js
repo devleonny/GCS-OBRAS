@@ -2800,9 +2800,15 @@ async function auxDepartamentos() {
 
     // Map orçamento por número final (chamado ou contrato)
     const orcPorNum = {}
-    for (const orc of Object.values(dados_orcamentos)) {
+    for (const [idOrcamento, orc] of Object.entries(dados_orcamentos)) {
         const numFinal = orc?.dados_orcam?.chamado || orc?.dados_orcam?.contrato
-        if (numFinal) orcPorNum[numFinal] = orc
+        if (!numFinal) continue
+
+        if(numFinal == 'D16307') console.log(orc)
+
+        orcPorNum[numFinal] = orc
+        orcPorNum[numFinal].ids ??= []
+        orcPorNum[numFinal].ids.push(idOrcamento)
     }
 
     // Processa departamentos
@@ -2820,6 +2826,9 @@ async function auxDepartamentos() {
         // Se existe orçamento com o nome do dep
         const orcamento = orcPorNum[nomeDep]
         if (orcamento) {
+
+            // Listagem de Ids, Orçamentos
+            dep.ids = orcamento.ids
 
             const codOmie = orcamento?.dados_orcam?.omie_cliente
             const cliente = dados_clientes[codOmie]
@@ -2883,7 +2892,7 @@ function natal() {
         }
         </div>
     `
-    
+
     document.body.insertAdjacentHTML('beforeend', especial)
 
     document.querySelectorAll('.pendurada').forEach(el => {

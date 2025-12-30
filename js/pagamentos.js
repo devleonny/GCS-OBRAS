@@ -454,6 +454,12 @@ async function abrirDetalhesPagamentos(id_pagamento) {
     const codDep = pagamento?.param?.[0]?.distribuicao?.[0]?.cCodDep
     const cc = departamentos[codDep] || {}
 
+    if(cc.ids) console.log(cc.ids)
+
+    const btnsOrcamentos = (cc.ids || [])
+        .map(id => btnDetalhes('pasta', 'Consultar Orçamento', `abrirAtalhos('${id}')`))
+        .join('')
+
     const bEspeciais = acesso.permissao == 'adm'
         ? `
         ${btnDetalhes('editar', 'Editar Pagamento', `editarPagamento('${id_pagamento}')`)}
@@ -467,7 +473,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
         <div class="detalhesPagamento">
             <div style="${vertical}; gap: 1px; width: 100%;">
-                ${cc?.id_orcamento ? btnDetalhes('pasta', 'Consultar Orçamento', `abrirAtalhos('${cc?.id_orcamento}')`) : ''}
+                ${btnsOrcamentos}
                 ${btnDetalhes('reembolso', 'Duplicar Pagamento', `duplicarPagamento('${id_pagamento}')`)}
 
                 ${bEspeciais}
