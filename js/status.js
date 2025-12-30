@@ -1456,7 +1456,7 @@ async function abrirEsquema(id) {
 
                     <div class="escondido" style="display: none;">
                         <div class="contorno-botoes" style="background-color: ${cor}">
-                            <img src="imagens/anexo2.png">
+                            <img src="imagens/anexo2.png" style="width: 1rem;">
                             <label>Anexo
                                 <input type="file" style="display: none;" onchange="salvar_anexo('${chave}', this)" multiple>  
                             </label>
@@ -1467,7 +1467,7 @@ async function abrirEsquema(id) {
                         </div>
 
                         <div class="contorno-botoes" onclick="toggle_comentario('comentario_${chave}')" style="background-color: ${cor};">
-                            <img src="imagens/comentario.png">
+                            <img src="imagens/comentario.png" style="width: 1rem;">
                             <label>Comentário</label>
                         </div>
 
