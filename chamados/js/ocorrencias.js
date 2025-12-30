@@ -215,7 +215,7 @@ async function excluirOcorrenciaCorrecao(idOcorrencia, idCorrecao) {
 
 async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
 
-    const btnExclusao = (acesso.permissao == 'adm' || ocorrencia.usuario == acesso.usuario)
+    const btnExclusao = autE.includes(acesso.permissao)
         ? botaoImg('fechar', `confirmarExclusao('${idOcorrencia}')`)
         : ''
     const btnEditar = autE.includes(acesso.permissao)
