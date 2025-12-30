@@ -467,6 +467,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
     orcsFiltrados[idOrcamento] = {
         revisao: rAtual ? 'S' : '',
         vinculado: idMaster ? 'S' : '',
+        valor_prioridade: prioridade,
         prioridade: prioridade !== 3 ? 'S' : '',
         meus_orcamentos: participantes.includes(acesso.usuario) ? 'S' : '',
         arquivado: orcamento?.arquivado || 'N',
@@ -523,8 +524,10 @@ function aplicarFiltrosEPaginacao(resetar = false) {
 
     // prioridade sempre no topo + ordenação por data
     filtrados.sort((a, b) => {
-        if (a.prioridade === 'S' && b.prioridade !== 'S') return -1
-        if (a.prioridade !== 'S' && b.prioridade === 'S') return 1
+        const pa = Number(a.valor_prioridade ?? 3)
+        const pb = Number(b.valor_prioridade ?? 3)
+
+        if (pa !== pb) return pa - pb // 0,1,2,3 (0 no topo)
         return b.timestamp - a.timestamp
     })
 

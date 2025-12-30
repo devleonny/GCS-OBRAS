@@ -2875,6 +2875,13 @@ async function criarDepDiretamente(nome) {
     }
 }
 
+function ocultarTemp(balao) {
+    balao.style.display = 'none'
+    setTimeout(() => {
+        balao.style.display = ''
+    }, 15000);
+}
+
 natal()
 function natal() {
 
@@ -2882,7 +2889,7 @@ function natal() {
     const especial = `
     <div class="topo-natal">
         ${imgs.map(img => `
-            <div class="pendurada">
+            <div class="pendurada" onclick="ocultarTemp(this)">
                 <span class="fio"></span>
                 <img src="imagens/${img}.png">
             </div>
