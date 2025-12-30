@@ -657,7 +657,7 @@ function abrirArquivo(link) {
 
 function deslogarUsuario() {
     popup(`
-        <div style="background-color: #d2d2d2; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 2vw;">
+        <div style="background-color: #d2d2d2; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 1rem;">
             <label>Deseja Sair?</label>
             <button onclick="sair()">Sim</button>
         </div>

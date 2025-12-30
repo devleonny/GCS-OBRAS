@@ -353,8 +353,8 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
 
     const data = new Date(orcamento.timestamp).toLocaleDateString()
 
-    // De orçamentos Pendentes;
-    const info = Object.values(orcamento?.status?.historicoStatus || {}).filter(s => s.info)
+    // Comentários nos status;
+    const info = Object.values(orcamento?.status?.historicoStatus || {}).filter(s => (s.info && s.info !== ''))
 
     const opcoesPda = abas.map(aba => `<option ${orcamento.aba == aba ? 'selected' : ''}>${aba}</option>`).join('')
 
@@ -374,10 +374,10 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         ${cel(`
             <div style="${vertical}; gap: 5px;">
                 <div style="${horizontal}; gap: 2px;">
+                    <img onclick="mostrarInfo('${idOrcamento}')" src="imagens/observacao${info.length > 0 ? '' : '_off'}.png">
                     <select name="status" class="opcoesSelect" onchange="id_orcam = '${idOrcamento}'; alterarStatus(this)">
                         ${opcoes}
                     </select>
-                    ${(info.length > 0 && st == 'ORC PENDENTE') ? `<img onclick="mostrarInfo('${idOrcamento}')" src="gifs/interrogacao.gif">` : ''}
                 </div>
                 <div style="${horizontal}; width: 100%; justify-content: end; gap: 5px;">
                     <span>Dep</span>
@@ -675,29 +675,6 @@ async function organizarHierarquia() {
         }
 
     }
-
-}
-
-function mostrarInfo(idOrcamento) {
-
-    const orcamento = dados_orcamentos[idOrcamento]
-    const info = Object.values(orcamento?.status?.historicoStatus || {}).filter(s => s.info)
-
-    const infoElementos = info.map(i => `
-        <div class="etiquetas">
-            <span><b>Data:</b> ${i.data}</span>
-            <span><b>Usuário:</b> ${i.usuario}</span>
-            <span>${i.info}</span>
-        </div>
-        `).join('')
-
-    const acumulado = `
-        <div style="${vertical}; background-color: #d2d2d2; padding: 1rem;">
-            ${infoElementos}
-        </div>
-    `
-
-    popup(acumulado, 'Informações', true)
 
 }
 

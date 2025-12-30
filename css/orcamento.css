@@ -2,18 +2,8 @@
     position: relative;
     display: grid;
     grid-template-columns:
-        minmax(70px, 1fr)
-        minmax(70px, 1fr)
-        minmax(80px, 1fr)
-        minmax(70px, 1fr)
-        minmax(120px, 1fr)
-        minmax(120px, 1.5fr)
-        minmax(90px, 1fr)
-        minmax(120px, 1fr)
-        minmax(90px, 1fr)
-        minmax(90px, 1fr)
-        minmax(50px, 0.5fr);
-    width: fit-content; 
+        minmax(70px, 1fr) minmax(70px, 1fr) minmax(80px, 1fr) minmax(70px, 1fr) minmax(120px, 1fr) minmax(120px, 1.5fr) minmax(90px, 1fr) minmax(120px, 1fr) minmax(90px, 1fr) minmax(90px, 1fr) minmax(50px, 0.5fr);
+    width: fit-content;
     align-items: center;
     background: #fff;
     border-bottom: 1px solid #b3b3b3;
@@ -330,4 +320,19 @@
     border: solid 1px #ff0000;
     background-color: #ff0000b0;
     padding: 0 3px 0 3px;
+}
+
+.comentario-orcamento {
+    min-width: 300px;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    height: max-content;
+    max-height: 60vh;
+    overflow: auto;
+    overflow-x: hidden;
+    gap: 2px;
+    background-color: #d2d2d2;
+    padding: 1rem;
 }

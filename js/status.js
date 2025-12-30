@@ -1734,7 +1734,9 @@ async function alterarStatus(select) {
     enviar(`dados_orcamentos/${id_orcam}/status/atual`, novoSt)
     enviar(`dados_orcamentos/${id_orcam}/status/historicoStatus/${idStatus}`, registroStatus)
 
-    if (novoSt == 'ORC PENDENTE') formularioOrcPendente(id_orcam)
+    dados_orcamentos[id_orcam] = orcamento
+
+    if (novoSt == 'ORC PENDENTE') formularioOrcPendente(idStatus)
     if (novoSt == 'ORC APROVADO') {
         formularioOrcAprovado()
         criarDepartamento(id_orcam)
@@ -1803,12 +1805,62 @@ function mostrarPrioridade() {
     div.innerHTML = `<img src="${img}">`
 }
 
+function mostrarInfo(idOrcamento) {
 
-function formularioOrcPendente() {
+    id_orcam = idOrcamento
+    const orcamento = dados_orcamentos[idOrcamento]
+
+    const historico = Object.entries(orcamento?.status?.historicoStatus || {})
+        .sort(([, a], [, b]) => {
+            const aTemInfo = !!a?.info
+            const bTemInfo = !!b?.info
+
+            if (aTemInfo && !bTemInfo) return -1
+            if (!aTemInfo && bTemInfo) return 1
+            return 0
+        })
+
+    let campos = ''
+
+    for (const [chave, his] of historico) {
+
+        campos += `
+        <div id="${chave}" class="etiquetas" style="${vertical}; gap: 2px; padding: 0.5rem;">
+            <span>${his.para} • ${his.data}</span>
+            <div name="info" oninput="editarHistorico('${chave}')" class="comentario-padrao" contentEditable="true">${his.info || ''}</div>
+            <div style="${horizontal}; gap: 1rem;">
+                <span name="responsavel">${his.usuario}</span>
+                <img name="confirmar" onclick="salvarInfoAdicional('${chave}')" src="imagens/concluido.png" style="display: none;">
+            </div>
+        </div>
+        `
+    }
+
+    const acumulado = `
+        <div class="comentario-orcamento">
+            ${campos || 'Sem histórico de Status'}
+        </div>
+    `
+
+    popup(acumulado, 'Informações', true)
+
+}
+
+function editarHistorico(chave) {
+    const div = document.getElementById(chave)
+    div.querySelector('[name="responsavel"]').textContent = acesso.usuario
+    div.querySelector('[name="confirmar"]').style.display = ''
+}
+
+function formularioOrcPendente(idStatus) {
     const linhas = [
         {
             texto: 'Por que <b>ORC PENDENTE</b>?',
-            elemento: `<textarea name="info"></textarea>`
+            elemento: `
+            <div id="${idStatus}">
+                <div class="comentario-padrao" name="info" contentEditable="true"></div>
+            </div>
+            `
         }
     ]
     const funcao = `salvarInfoAdicional('${idStatus}')`
@@ -1820,10 +1872,14 @@ function formularioOrcPendente() {
 async function salvarInfoAdicional(idStatus) {
 
     overlayAguarde()
-    const info = document.querySelector('[name="info"]').value
+    const div = document.getElementById(idStatus)
+    const info = div.querySelector('[name="info"]').textContent
     const orcamento = dados_orcamentos[id_orcam]
     orcamento.status.historicoStatus[idStatus].info = info
+    orcamento.status.historicoStatus[idStatus].usuario = acesso.usuario
+    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
     enviar(`dados_orcamentos/${id_orcam}/status/historicoStatus/${idStatus}/info`, info)
+    enviar(`dados_orcamentos/${id_orcam}/status/historicoStatus/${idStatus}/usuario`, acesso.usuario)
     removerPopup()
 
 }
