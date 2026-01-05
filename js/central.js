@@ -2883,7 +2883,7 @@ function ocultarTemp(balao) {
     }, 15000);
 }
 
-natal()
+// natal() 
 function natal() {
 
     const imgs = ['b1', 'b2', 'b3', 'b4', 'b5']
