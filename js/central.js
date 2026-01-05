@@ -2251,6 +2251,16 @@ async function atualizarBaseClientes() {
     await auxDepartamentos()
 }
 
+function removerCliente() {
+    const spanCliente = document.querySelector('[name="cliente"]')
+
+    if(!spanCliente) return
+    
+    spanCliente.textContent = 'Selecione'
+    spanCliente.removeAttribute('id')
+    buscarDadosCliente()
+}
+
 async function painelClientes(idOrcamento) {
 
     overlayAguarde()
@@ -2310,7 +2320,11 @@ async function painelClientes(idOrcamento) {
             texto: 'Cliente',
             elemento: `
             <div style="${horizontal}; gap: 3px">
-                ${bloq ? `<img src="imagens/proibido.png">` : ''}
+                ${bloq
+                    ? `<img src="imagens/proibido.png">`
+                    : dados_orcam.omie_cliente
+                        ? `<img src="imagens/cancel.png" onclick="removerCliente()">`
+                        : ''}
                 <span ${dados_orcam.omie_cliente
                     ? `id="${dados_orcam.omie_cliente}"`
                     : ''} 
