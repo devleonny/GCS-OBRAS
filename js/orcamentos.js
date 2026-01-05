@@ -158,7 +158,7 @@ async function telaOrcamentos() {
             <div class="div-tabela" style="overflow-x: hidden;">
                 <div class="cabecalho">
                     <div class="linha-orcamento-tabela" style="width: 100%; padding: 0px; background-color: #d2d2d2;">${ths}</div>
-                    <div class="linha-orcamento-tabela" style="padding: 0px;">${pesquisa}</div>
+                    <div class="linha-orcamento-tabela" style="width: 100%; padding: 0px;">${pesquisa}</div>
                 </div>
                 <div id="linhas"></div>
             </div>
