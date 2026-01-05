@@ -304,10 +304,12 @@ function viabilidadeOmie() {
         if (deps.length == 0) possibilidade = false
 
         for (const dep of deps) {
+            const valor = Number(dep.dataset.valor)
+            if (valor == 0) continue
             const codigo = Number(dep.dataset.codigo)
 
             totalDepartamentos[codigo] ??= 0
-            totalDepartamentos[codigo] += Number(dep.dataset.valor)
+            totalDepartamentos[codigo] += valor
         }
 
     }
