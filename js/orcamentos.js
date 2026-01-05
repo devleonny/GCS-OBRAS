@@ -481,9 +481,13 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         notas: labels.FATURADO,
         data,
         valor: orcamento?.total_geral || 0,
-        tags
+        tags: pegarSpans(tags)
     }
 
+}
+
+function pegarSpans(texto) {
+  return [...texto.matchAll(/<span[^>]*>(.*?)<\/span>/g)].map(m => m[1])
 }
 
 function aplicarFiltrosEPaginacao(resetar = false) {
