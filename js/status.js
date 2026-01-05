@@ -1220,8 +1220,6 @@ async function painelCustos() {
         criarLinhaCusto(codigo, item)
     }
 
-    console.log(dados)
-
 }
 
 function criarLinhaCusto(codigo, item) {
@@ -1379,9 +1377,9 @@ function elementosEspecificos(chave, historico) {
             ${labelDestaque('Tipo', historico.tipo)}
         `
 
-        if (historico.notaOriginal) {
-            let tipo = historico.tipo == 'Serviço' ? 'serviço' : 'venda_remessa'
-            let codOmieNF = tipo == 'venda_remessa' ? historico.notaOriginal.compl.nIdNF : historico.notaOriginal.Cabecalho.nCodNF
+        const codOmieNF = historico?.codOmie || historico?.notaOriginal?.compl?.nIdNF || historico?.notaOriginal?.Cabecalho?.nCodNF
+        if (codOmieNF) {
+            const tipo = historico.tipo == 'Serviço' ? 'serviço' : 'venda_remessa'
             botaoDANFE = balaoPDF(historico.nf, historico.tipo, codOmieNF, tipo, historico.app)
         }
 
