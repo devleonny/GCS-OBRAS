@@ -565,14 +565,13 @@ async function configs() {
             <td style="text-align: left;">${usuario}</td>
             ${tdPreenchida('permissao', opcoesPermissao, usuario)}
             ${tdPreenchida('setor', opcoesSetores, usuario)}
-            <td><input onchange="alterarUsuario({campo: 'vendedor', usuario: '${usuario}', valor: this.checked})" type="checkbox" ${dados?.vendedor ? 'checked' : ''}></td>
         </tr>
         `
     }
 
     let ths = ''
     let tbusca = ''
-    let cabecalhos = ['Usuário', 'Permissão', 'Setores', 'Vendedor']
+    let cabecalhos = ['Usuário', 'Permissão', 'Setores']
     cabecalhos.forEach((cabecalho, i) => {
         ths += `<th>${cabecalho}</th>`
         tbusca += `<th contentEditable="true" style="background-color: white; text-align: left;" oninput="pesquisarGenerico(${i}, this.textContent, 'tbodyUsuarios')"></th>`

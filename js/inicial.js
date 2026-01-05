@@ -1,6 +1,6 @@
 let tags_orcamentos = {}
 let guiaAtual = null
-const abas = ['PDA', 'POC', 'INFRA', 'LOGÍSTICA', 'CONCLUÍDO']
+const abas = ['PDA', 'POC', 'INFRA', 'LOGÍSTICA', 'EM_ANDAMENTO', 'CONCLUÍDO']
 const coments = (comentario, campo, id) => {
 
     if (!comentario) comentario = ''
@@ -108,7 +108,7 @@ async function telaInicial() {
                 <div id="toolbar">
                     ${['INDICADORES', 'TÉCNICOS', ...abas].map(aba => `
                         <div style="opacity: 0.5; height: 3rem;" class="aba-toolbar" id="toolbar-${aba}" onclick="mostrarGuia('${aba}')">
-                            <label>${aba}</label>
+                            <label>${aba.replace('_', ' ')}</label>
                             ${aba !== 'INDICADORES' ? `<span id="contador-${aba}"></span>` : ''}
                         </div>
                         `).join('')}
@@ -177,10 +177,10 @@ function auxMapa(aba) {
     const tMapas = document.querySelector('.toolbar-mapas')
     tMapas.innerHTML = ''
 
-    for (const aba of [...abas, 'ORÇAMENTOS']) {
+    for (const aba of [...abas]) {
 
         const toolbar = `
-            <div class="aba-toolbar" name="toolbar-mapas" data-tipo="${aba}" onclick="auxMapa('${aba}')">${aba}</div>
+            <div class="aba-toolbar" name="toolbar-mapas" data-tipo="${aba}" onclick="auxMapa('${aba}')">${aba.replace('_', ' ')}</div>
         `
         tMapas.insertAdjacentHTML('beforeend', toolbar)
     }
