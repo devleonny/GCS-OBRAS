@@ -82,19 +82,20 @@ async function blocoAuxiliarFotos(fotos) {
 }
 
 async function abrirCamera() {
-    const cameraDiv = document.querySelector('.cameraDiv');
-    const video = cameraDiv.querySelector('video');
+    const cameraDiv = document.querySelector('.cameraDiv')
+    const video = cameraDiv.querySelector('video')
 
-    setInterval(pararCam, 5 * 60 * 1000);
+    setInterval(pararCam, 1 * 60 * 1000) // 1 minuto;
 
     try {
-        const modo = isAndroid ? { facingMode: { exact: "environment" } } : true
-        stream = await navigator.mediaDevices.getUserMedia({ video: modo });
-        video.srcObject = stream;
-        cameraDiv.style.display = 'flex';
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' } }
+        })
+        video.srcObject = stream
+        cameraDiv.style.display = 'flex'
 
     } catch (err) {
-        popup(mensagem('Erro ao acessar a câmera: ' + err.message), 'Alerta', true);
+        popup(mensagem('Erro ao acessar a câmera: ' + err.message), 'Alerta', true)
     }
 }
 
