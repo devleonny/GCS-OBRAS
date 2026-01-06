@@ -614,15 +614,19 @@ function carregarToolbar(dados) {
             ? `delete filtrosPesquisa.orcamentos.status; renderizar('chamados', 'S')`
             : `delete filtrosPesquisa.orcamentos.chamados; renderizar('status', '${campo}')`
 
+        const f = campo == 'VENDA DIRETA'
+            ? { 1: 'style="background: linear-gradient(45deg, #222, #b12425);"' }
+            : {}
+
         const novaTool = `
             <div 
-            style="opacity: 0.5; height: 3rem;" 
+            style="opacity: 0.5; height: 3rem;"
                 class="aba-toolbar"
                 data-status="${campo}"
-                name="${campo}" 
+                name="${campo}"
                 onclick="${funcao}">
                 <label>${campo.toUpperCase()}</label>
-                <span>${contagem}</span>
+                <span ${f[1]}>${contagem}</span>
             </div>
         `
         toolbar.insertAdjacentHTML('beforeend', novaTool)
