@@ -96,6 +96,8 @@ async function preencher() {
     const dados_composicoes = await recuperarDados('dados_composicoes') || {}
     const orcamentoBase = JSON.parse(localStorage.getItem('pdf')) || {}
 
+    document.getElementById('codigo_orcamento').textContent = orcamentoBase?.id || '---'
+
     if (orcamentoBase.emAnalise)
         document.body.classList.add('marca-ativa')
     else
