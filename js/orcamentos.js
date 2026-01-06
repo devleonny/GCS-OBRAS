@@ -487,10 +487,10 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
 }
 
 function pegarSpans(texto) {
-  return [...texto.matchAll(/<span[^>]*>(.*?)<\/span>/g)].map(m => m[1])
+    return [...texto.matchAll(/<span[^>]*>(.*?)<\/span>/g)].map(m => m[1])
 }
 
-function aplicarFiltrosEPaginacao(resetar = false) {
+function aplicarFiltrosEPaginacao() {
 
     mostrarMenus(false)
 
@@ -532,7 +532,7 @@ function aplicarFiltrosEPaginacao(resetar = false) {
         return b.timestamp - a.timestamp
     })
 
-    carregarToolbar(filtrados, resetar)
+    carregarToolbar(filtrados)
 
     tPaginas = Math.max(1, Math.ceil(filtrados.length / itensPorPagina))
 
@@ -576,7 +576,7 @@ function pgSeguinte() {
     }
 }
 
-function carregarToolbar(dados, resetar) {
+function carregarToolbar(dados) {
 
     if (!dados) return
 
@@ -597,9 +597,13 @@ function carregarToolbar(dados, resetar) {
     }
 
     const toolbar = document.getElementById('toolbar')
-    if (resetar) toolbar.innerHTML = ''
 
-    for (const [campo, contagem] of Object.entries(contToolbar)) {
+    const fluxogramaCompleto = ['chamados', 'todos', ...fluxograma]
+
+    for (const campo of fluxogramaCompleto) {
+
+        const contagem = contToolbar[campo] || 0
+
         const tool = toolbar.querySelector(`[name="${campo}"]`)
         if (tool) {
             tool.querySelector('span').textContent = contagem
