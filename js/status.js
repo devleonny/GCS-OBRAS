@@ -1420,6 +1420,7 @@ async function abrirEsquema(id) {
     if (id) id_orcam = id
 
     const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const oficial = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato
     const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
     const cliente = await recuperarDado('dados_clientes', omie_cliente)
     let blocosStatus = {}
@@ -1436,11 +1437,11 @@ async function abrirEsquema(id) {
             : ''
 
         blocosStatus[statusCartao] += `
-            <div class="bloko" style="gap: 0px; border: 1px solid ${cor}; background-color: white; justify-content: center;">
+            <div class="bloco-status" style="border: 1px solid ${cor};">
 
-                <div style="cursor: pointer; display: flex; align-items: start; flex-direction: column; background-color: ${cor}1f; padding: 3px; border-top-right-radius: 3px; border-top-left-radius: 3px;">
+                <div style="${vertical}; background-color: ${cor}1f; padding: 3px; border-top-right-radius: 3px; border-top-left-radius: 3px;">
                     ${excluir}
-                    ${labelDestaque('Chamado', orcamento.dados_orcam.contrato)}
+                    ${labelDestaque('Chamado', oficial)}
                     ${labelDestaque('Executor', historico.executor)}
                     ${labelDestaque('Data', historico.data)}
                     ${labelDestaque('Comentário', `
@@ -1500,7 +1501,7 @@ async function abrirEsquema(id) {
 
             <img onclick="sincronizarReabrir()" src="imagens/atualizar3.png">
 
-            <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 2px;">
+            <div style="${vertical}; gap: 2px;">
                 <label>Status atual</label>
                 <select onchange="alterarStatus(this)" style="border-radius: 3px; padding: 3px;">
                     ${['', ...fluxograma].map(fluxo => `
@@ -1511,7 +1512,7 @@ async function abrirEsquema(id) {
  
             <img onclick="mostrarHistoricoStatus()" src="imagens/historico.png">
 
-            <label style="font-size: 1.5rem;">${orcamento.dados_orcam.contrato} - ${cliente?.nome || '??'}</label>
+            <label style="font-size: 1.5rem;">${oficial} - ${cliente?.nome || '??'}</label>
 
         </div>
         `
@@ -1551,7 +1552,7 @@ async function abrirEsquema(id) {
     }
 
     const acumulado = `
-        <div style="display: flex; flex-direction: column; gap: 10px; padding: 3px;">
+        <div style="${vertical}; gap: 10px; padding: 3px;">
 
             ${linha1}
 
