@@ -2,6 +2,8 @@ let itensAdicionais = {}
 let id_orcam = ''
 let dadosNota = {}
 let dados_estoque = {}
+const altNumOrc = ['adm', 'analista']
+
 
 const fluxograma = [
     'SEM STATUS',
@@ -872,7 +874,7 @@ async function abrirAtalhos(id) {
         `
     }
 
-    if (acesso.permissao == 'adm') botoesDisponiveis += modeloBotoes('editar3', 'Alterar ORC > novo', `mudarNumORC('${id}')`)
+    if (altNumOrc.includes(acesso.permissao)) botoesDisponiveis += modeloBotoes('editar3', 'Alterar ORC > novo', `mudarNumORC('${id}')`)
 
     const acumulado = `
         <label style="color: #222; font-size: 1rem; text-align: left;" id="cliente_status">${cliente?.nome || '??'}</label>
