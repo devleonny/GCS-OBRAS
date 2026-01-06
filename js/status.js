@@ -6,13 +6,13 @@ let dados_estoque = {}
 const fluxograma = [
     'SEM STATUS',
     'COTAÇÃO',
-    'LEVANTAMENTO',
     'ORC PENDENTE',
     'ORC ENVIADO',
-    'VENDA DIRETA',
-    'ORC REPROVADO',
     'ORC APROVADO',
+    'ORC REPROVADO',
+    'VENDA DIRETA',
     'REQUISIÇÃO',
+    'NFE VENDA',
     'PEND INFRA',
     'PEND ASSISTÊNCIA TÉCNICA',
     'ENVIADO',
@@ -21,15 +21,14 @@ const fluxograma = [
     'EM ANDAMENTO',
     'OBRA PARALISADA',
     'PENDENTE OS/RELATÓRIO',
-    'CONCLUÍDO',
-    'PENDENTE PEDIDO',
     'ACORDO FINANCEIRO',
+    'PENDENTE PEDIDO',
+    'CONCLUÍDO',
     'FATURADO',
-    'NFE VENDA',
     'ATRASADO',
     'PAG RECEBIDO',
     'LOCAÇÃO',
-    'LPU PARCEIRO',
+    'GARANTIA'
 ]
 
 const coresST = {
