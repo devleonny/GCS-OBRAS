@@ -1252,9 +1252,11 @@ async function salvarQuantidade(codigo) {
 
     for (const span of spanTecnicos) if (!tecnicos.includes(span.id)) tecnicos.push(span.id)
 
-    const quantidade = Number(document.querySelector('[name="quantidadeForm"]').value)
-    const data = document.querySelector('[name="data"]').value
-    const comentario = document.querySelector('[name="comentario"]').value
+    const form = document.querySelector('.form-checklist')
+
+    const quantidade = Number(form.querySelector('[name="quantidadeForm"]').value)
+    const data = form.querySelector('[name="data"]').value
+    const comentario = form.querySelector('[name="comentario"]').value
 
     // Bloqueios;
     if ((quantidadeRealizadoItem + quantidade) > quantidadeItem) return popup(mensagem('Não é possível exceder a quantidade orçada'), 'Alerta', true)

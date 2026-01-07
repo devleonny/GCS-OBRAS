@@ -75,7 +75,7 @@ function preencherMapa(estado, numero) {
 }
 
 const dtPrazo = (data) => {
-    if (!data) return { data: '', estilo: '' }
+    if (!data) return ''
 
     const [ano, mes, dia] = data.split('-')
     const dataPrazo = new Date(`${ano}-${mes}-${dia}T00:00:00`)
@@ -83,11 +83,7 @@ const dtPrazo = (data) => {
     hoje.setHours(0, 0, 0, 0)
 
     const atrasado = hoje > dataPrazo
-
-    return {
-        data: `${dia}/${mes}/${ano}`,
-        estilo: atrasado ? 'atrasado' : 'pendente'
-    }
+    return atrasado
 }
 
 async function telaInicial() {
@@ -151,7 +147,7 @@ async function telaInicial() {
 
     mostrarGuia()
     contadores()
-    auxMapa('ORÇAMENTOS')
+    auxMapa('EM_ANDAMENTO')
 
 }
 
@@ -347,7 +343,7 @@ function indicadores() {
     const totais = {
         pendente: 0,
         atrasado: 0,
-        concluido: 0
+        concluído: 0
     }
 
     const tUsuario = {}
@@ -358,35 +354,36 @@ function indicadores() {
         if (!orcamento.pda) continue
         const acoes = orcamento?.pda?.acoes || {}
 
-        const chamado = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato || '-'
+        const chamado = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato || orcamento?.projeto || '-'
 
         for (const [idAcao, dados] of Object.entries(acoes)) {
 
-            const dt = dados?.status === 'concluído'
-                ? 'concluido'
-                : dtPrazo(dados?.prazo).estilo || 'pendente'
+            const estilo = dados?.status === 'concluído'
+                ? 'concluído'
+                : dtPrazo(dados?.prazo)
+                    ? 'atrasado'
+                    : 'pendente'
 
-            totais[dt]++
+            totais[estilo]++
 
             tUsuario[dados.responsavel] ??= {}
-            tUsuario[dados.responsavel][dt] ??= 0
-            tUsuario[dados.responsavel][dt]++
+            tUsuario[dados.responsavel][estilo] ??= 0
+            tUsuario[dados.responsavel][estilo]++
 
             // Filtragem por acesso
             if (dados.responsavel == acesso.usuario || permitidos.includes(acesso.permissao)) {
 
-                if (dados.status === 'concluído') continue
-
-                const formato = dtPrazo(dados?.prazo)
+                const [ano, mes, dia] = dados.prazo.split('-')
+                const prazo = `${dia}/${mes}/${ano}`
 
                 strgAcoes += `
-                    <div style="${horizontal}; width: 100%; gap: 0.5rem;">
-                        <div class="etiqueta-${formato.estilo}">
+                    <div name="acao" data-estilo="${estilo}" class="bloco-acao">
+                        <div class="etiqueta-${estilo}">
                             <span><b>ID:</b> ${chamado}</span>
                             <span><b>Aba:</b> ${orcamento.aba || ''}</span>
-                            <span><b>Ação:</b> ${dados?.acao || ''}</span>
+                            <span style=""><b>Ação:</b> ${dados?.acao || ''}</span>
                             <span><b>Responsável:</b> ${dados?.responsavel || ''}</span>
-                            <span><b>Prazo:</b> ${formato.data}</span>
+                            <span><b>Prazo:</b> ${prazo}</span>
                             ${dados.registro
                         ? `<span><b>criado em: </b>${new Date(dados.registro).toLocaleString('pt-BR')}</span>`
                         : ''}
@@ -398,7 +395,7 @@ function indicadores() {
     }
 
     const box = (titulo, valor, cor) => `
-    <div class="ind" style="border-left: 6px solid ${cor};">
+    <div class="ind" style="border-left: 6px solid ${cor};" onclick="filtrarAcoes('${titulo}')">
         <span style="font-size: 14px; color:#444;">${titulo}</span>
         <strong style="font-size: 22px; margin-top:5px;">${valor}</strong>
     </div>`
@@ -411,7 +408,7 @@ function indicadores() {
                 <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
                     ${box("Pendente", totais?.pendente || 0, "#41a6ff")}
                     ${box("Atrasado", totais?.atrasado || 0, "#ff0000")}
-                    ${box("Concluído", totais?.concluido || 0, "#008000")}
+                    ${box("Concluído", totais?.concluído || 0, "#008000")}
                 </div>
             </div>
         `
@@ -447,6 +444,22 @@ function indicadores() {
     const tIndicadores = document.querySelector('.tabela-indicadores')
     if (tIndicadores) return tIndicadores.innerHTML = acumulado
     tabelas.insertAdjacentHTML('beforeend', `<div class="tabela-indicadores" name="tabela-INDICADORES">${acumulado}</div>`)
+
+    filtrarAcoes('pendente')
+
+}
+
+function filtrarAcoes(titulo) {
+
+    titulo = String(titulo).toLowerCase()
+
+    const divs = document.querySelectorAll(`[name="acao"]`)
+
+    for (const div of divs) {
+        div.style.display = div.dataset.estilo !== titulo ? 'none' : ''
+    }
+
+
 }
 
 function mostrarGuia(nomeGuia = guiaAtual || 'INDICADORES') {
@@ -553,14 +566,21 @@ function linPda(idOrcamento, orcamento) {
     const strAcoes = Object.entries(pda.acoes || {})
         .map(([idAcao, dados]) => {
 
-            const formato = dtPrazo(dados?.prazo)
+            const [ano, mes, dia] = dados.prazo.split('-')
+            const prazo = `${dia}/${mes}/${ano}`
+
+            const estilo = dados?.status === 'concluído'
+                ? 'concluído'
+                : dtPrazo(dados?.prazo)
+                    ? 'atrasado'
+                    : 'pendente'
 
             return `
             <div style="${horizontal}; text-align: left; width: 100%; gap: 0.5rem;">
-                <div class="etiqueta-${dados?.status == 'concluído' ? 'ok' : formato.estilo}">
+                <div class="etiqueta-${estilo}">
                     <span><b>Ação:</b> ${dados?.acao || ''}</span>
                     <span><b>Responsável:</b> ${dados?.responsavel || ''}</span>
-                    <span><b>Prazo:</b> ${formato.data}</span>
+                    <span><b>Prazo:</b> ${prazo}</span>
                     ${dados.registro
                     ? `<span><b>criado em:</b> ${new Date(dados.registro).toLocaleString('pt-BR')}</span>`
                     : ''}
@@ -902,6 +922,8 @@ async function salvarAcao(idOrcamento, idAcao) {
     const acao = el('acao').value
     const prazo = el('prazo').value
     const status = el('statusAcao').value
+
+    if (!prazo || !responsavel) return popup(mensagem('Preencha o prazo e/ou responsável da ação'), 'Alerta', true)
 
     const a = {
         responsavel,

@@ -59,12 +59,12 @@ const mensagem = (mensagem, img) => `
         <label>${mensagem}</label>
     </div>
     `
-const balaoPDF = (nf, info, codOmie, tipo, app) => {
+const balaoPDF = ({ nf, tipo, codOmie, app }) => {
     return `
     <div class="balaoNF" onclick="abrirDANFE('${codOmie}', '${tipo}', '${app}')">
         <div class="balao1">
             <label>${nf}</label>
-            <label><b>${info}</b></label>
+            <label><b>${tipo}</b></label>
         </div>
         <div class="balao2">
             PDF
@@ -2310,7 +2310,7 @@ async function painelClientes(idOrcamento) {
             texto: 'Cliente',
             elemento: `
             <div style="${horizontal}; gap: 3px">
-                ${bloq 
+                ${bloq
                     ? `<img src="imagens/proibido.png">` : ''}
                 <span ${dados_orcam.omie_cliente
                     ? `id="${dados_orcam.omie_cliente}"`

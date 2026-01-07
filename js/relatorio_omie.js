@@ -212,7 +212,7 @@ function criarLinhaRelatorio(codOmie, dados) {
 
     const tds = `
         <td name="categoria">${dados.categoria}</td>
-        <td>${balaoPDF(dados.nota, dados.dataRegistro, dados.codOmie, dados.categoria)}</td>
+        <td>${balaoPDF({ nf: dados.nota, codOmie: dados.codOmie, tipo: dados.categoria })}</td>
         <td style="white-space: nowrap;">${dinheiro(dados.total)}</td>
         <td><div style="${vertical}; gap: 1px;">${parcelas(dados?.parcelas)}</div></td>
         <td>

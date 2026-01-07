@@ -215,13 +215,13 @@ async function buscarNFOmie(elemento) {
     overlayAguarde()
 
     let numero = elemento.previousElementSibling.previousElementSibling.previousElementSibling.value
-    let tipo = elemento.previousElementSibling.previousElementSibling.value == 'Venda/Remessa' ? 'venda_remessa' : 'serviço'
+    let tipo = elemento.previousElementSibling.previousElementSibling.value == 'serviço' ? 'serviço' : 'venda_remessa'
     let app = elemento.previousElementSibling.value
 
     let detalhesNF = document.getElementById('detalhesNF')
     detalhesNF.innerHTML = ''
 
-    let resultado = await verificarNF(numero, tipo, app)
+    const resultado = await verificarNF(numero, tipo, app)
 
     if (resultado.faultstring) {
 
@@ -1378,10 +1378,10 @@ function elementosEspecificos(chave, historico) {
             ${labelDestaque('Tipo', historico.tipo)}
         `
 
-        const codOmieNF = historico?.codOmie || historico?.notaOriginal?.compl?.nIdNF || historico?.notaOriginal?.Cabecalho?.nCodNF
-        if (codOmieNF) {
-            const tipo = historico.tipo == 'Serviço' ? 'serviço' : 'venda_remessa'
-            botaoDANFE = balaoPDF(historico.nf, historico.tipo, codOmieNF, tipo, historico.app)
+        const codOmie = historico?.codOmie || historico?.notaOriginal?.compl?.nIdNF || historico?.notaOriginal?.Cabecalho?.nCodNF
+        if (codOmie) {
+            const tipo = historico.tipo.toLowerCase() == 'serviço' ? 'serviço' : 'venda_remessa'
+            botaoDANFE = balaoPDF({ nf: historico.nf, codOmie, tipo, app: historico.app })
         }
 
         acumulado = `

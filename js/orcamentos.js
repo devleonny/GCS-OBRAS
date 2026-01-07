@@ -429,15 +429,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         ${cel(`<img onclick="abrirAtalhos('${idOrcamento}')" src="imagens/pesquisar2.png" style="width: 1.5rem;">`)}
         `
     // Prioridade;
-    const inicio = new Date(orcamento?.inicio)
-    let prioridade = 3
-    if (inicio) {
-        const hoje = new Date()
-        const diffDias = Math.abs(hoje - inicio) / (1000 * 60 * 60 * 24)
-        if (diffDias < 7) prioridade = 0
-        else if (diffDias < 14) prioridade = 1
-        else if (diffDias < 21) prioridade = 2
-    }
+    const prioridade = verificarPrioridade(orcamento)
 
     const linha = `
         <div class="linha-master"
@@ -484,6 +476,35 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         tags: pegarSpans(tags)
     }
 
+}
+
+function verificarPrioridade(orcamento) {
+
+    const acoes = orcamento?.pda?.acoes || {}
+    const stLista = ['EM ANDAMENTO', 'CONCLUÍDO']
+    let prioridade = 3 // Baixa prioridade;
+
+    const souResponsavel = Object
+        .values(acoes)
+        .some(a => a.responsavel == acesso.usuario && a.status == 'pendente')
+
+    // Sou responsável e a ação está pendente; TRUE
+    if (souResponsavel) return 0
+
+    const stLiberado = Object
+        .values(orcamento?.status?.historicoStatus || {})
+        .some(h => stLista.includes(h.para))
+
+    if (stLiberado) return prioridade
+
+    const inicio = new Date(orcamento?.inicio)
+    const hoje = new Date()
+    const diffDias = Math.abs(hoje - inicio) / (1000 * 60 * 60 * 24)
+    if (diffDias < 7) prioridade = 0
+    else if (diffDias < 14) prioridade = 1
+    else if (diffDias < 21) prioridade = 2
+
+    return prioridade
 }
 
 function pegarSpans(texto) {
