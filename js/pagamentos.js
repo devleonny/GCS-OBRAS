@@ -1,5 +1,6 @@
 let idP = null
 let departamentos = {}
+let dados_categorias_AC = {}
 const opcoesStatus = [
     '',
     'Aguardando aprovação da Diretoria',
@@ -43,7 +44,7 @@ async function recuperarPagamentos() {
 
     const tabelas = [
         'departamentos_AC', // Referência;
-        'dados_categorias',
+        'dados_categorias_AC', // Referência;
         'lista_pagamentos',
         'dados_setores',
         'dados_clientes',
@@ -72,14 +73,14 @@ async function filtrarPagamentos() {
         ) {
             if (pagamento.mes && acesso.permissao != 'adm') continue;
 
-            pagamentosFiltrados[idPagamento] = pagamento;
+            pagamentosFiltrados[idPagamento] = pagamento
 
         } else if (
             pagamento.criado == acesso.usuario ||
             (acesso.permissao == 'gerente' && pagamento.status.includes('Gerência')) ||
             (acesso.permissao == 'qualidade' && pagamento.status.includes('Qualidade'))
         ) {
-            pagamentosFiltrados[idPagamento] = pagamento;
+            pagamentosFiltrados[idPagamento] = pagamento
         }
     }
 
@@ -92,6 +93,7 @@ async function telaPagamentos() {
 
     await auxDepartamentos() // Orcs, deps e clis;
     dados_setores = await recuperarDados('dados_setores')
+    dados_categorias_AC = await recuperarDados('dados_categorias_AC')
 
     const lista_pagamentos = await filtrarPagamentos() // Filtrar de acordo com o usuário atual;
     let colunas = ['Data de Previsão', 'Departamentos', 'APP', 'Valor', 'Status', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
@@ -311,7 +313,6 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
     let valores = ''
     let painelParceiro = false
-    const dados_categorias = await recuperarDados('dados_categorias')
     const permissao = acesso.permissao
     const pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
     const cliente_omie = pagamento.param[0].codigo_cliente_fornecedor
@@ -341,7 +342,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
     pagamento.param[0].categorias.forEach(item => {
 
-        const nomeCategoria = dados_categorias?.[item.codigo_categoria]?.categoria || 'Categoria Desativada'
+        const nomeCategoria = dados_categorias_AC?.[item.codigo_categoria]?.categoria || 'Categoria Desativada'
         valores += `
             <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
                 <label><strong>${dinheiro(item.valor)}</strong> - ${nomeCategoria}</label>
@@ -820,8 +821,8 @@ async function formularioPagamento() {
             texto: 'Categorias',
             elemento: `
                 <div style="${horizontal}; gap: 1rem;">
-                    <img src="imagens/baixar.png" style="width: 1.5rem; cursor: pointer;" onclick="maisCampo({ base: 'dados_categorias'})">
-                    <div class="central-dados_categorias"></div>
+                    <img src="imagens/baixar.png" style="width: 1.5rem; cursor: pointer;" onclick="maisCampo({ base: 'dados_categorias_AC'})">
+                    <div class="central-dados_categorias_AC"></div>
                 </div>
             `
         },
@@ -833,7 +834,7 @@ async function formularioPagamento() {
             texto: '<span style="padding-right: 2rem;"><b>IAC</b> Apenas reembolso para funcionário</span>',
             elemento: `
                 <select name="app" onchange="calculadoraPagamento()">
-                    ${['IAC', 'AC'].map(op => `<option ${ulP?.app == op ? 'selected' : ''}>${op}</option>`).join('')}
+                    ${['IAC', 'AC', 'HNK'].map(op => `<option ${ulP?.app == op ? 'selected' : ''}>${op}</option>`).join('')}
                 </select>
             `
         },
@@ -872,7 +873,7 @@ async function formularioPagamento() {
 
     // Categorias;
     for (const categoria of categorias)
-        await maisCampo({ atualizar: false, id: categoria.codigo_categoria, base: 'dados_categorias', valor: categoria.valor })
+        await maisCampo({ atualizar: false, id: categoria.codigo_categoria, base: 'dados_categorias_AC', valor: categoria.valor })
 
     // Departamentos;
     for (const departamento of distribuicao)
@@ -952,7 +953,7 @@ async function calculadoraPagamento(ultimaValidacao) {
     }
 
     // Categorias
-    const inputsCat = document.querySelectorAll('[name="dados_categorias"]')
+    const inputsCat = document.querySelectorAll('[name="dados_categorias_AC"]')
     for (const input of inputsCat) {
         const span = input.parentElement.nextElementSibling
         if (ultimaValidacao && !span.id) return { mensagem: 'Não deixe Categorias em branco' }
@@ -1076,12 +1077,12 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
     const elemento = await recuperarDado(base, id)
 
     const spans = {
-        dados_categorias: `
+        dados_categorias_AC: `
         <span 
             class="opcoes" 
             name="${aleatorio}" 
             ${id ? `id="${id}"` : ''}
-            onclick="cxOpcoes('${aleatorio}', 'dados_categorias', ['categoria'], 'calculadoraPagamento()')">
+            onclick="cxOpcoes('${aleatorio}', 'dados_categorias_AC', ['categoria'], 'calculadoraPagamento()')">
                 ${elemento?.categoria || 'Selecionar'}
         </span>
         `,

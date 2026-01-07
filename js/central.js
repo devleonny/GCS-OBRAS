@@ -279,7 +279,7 @@ async function despoluicaoGCS() {
         'dados_clientes',
         'lista_pagamentos',
         'dados_manutencao',
-        'dados_categorias',
+        'dados_categorias_AC',
         'dados_estoque',
         'pessoas'
     ]
@@ -1694,7 +1694,7 @@ async function relancarPagamento(idPagamento) {
             <div style="${horizontal}; gap: 1rem;">
                 <span>Qual APP deve ser relançado?</span>
                 <select class="opcoesSelect" id="app">
-                    ${['AC', 'IAC'].map(op => `<option>${op}</option>`).join('')}
+                    ${['IAC', 'AC', 'HNK'].map(op => `<option>${op}</option>`).join('')}
                 </select>
             </div>
             <hr style="width: 100%;">
@@ -2529,9 +2529,9 @@ async function abrirDANFE(codOmieNF, tipo, app) {
     removerOverlay()
 
     try {
-        shell.openExternal(resposta);
+        shell.openExternal(resposta)
     } catch {
-        window.open(resposta, '_blank');
+        window.open(resposta, '_blank')
     }
 }
 

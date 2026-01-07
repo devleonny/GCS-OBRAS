@@ -2138,7 +2138,6 @@ input[type=range]::-moz-range-thumb {
     display: flex;
     position: relative;
     flex-direction: column;
-    gap: 3px;
     border-radius: 3px;
     font-size: 0.7rem;
     height: max-content;
