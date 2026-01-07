@@ -12,6 +12,8 @@ const coments = (comentario, campo, id) => {
     `
 }
 
+let ultimoTitulo = null
+
 const posicoesEstados = {
     "AC": { x: 80, y: 230 },
     "AL": { x: 575, y: 225 },
@@ -449,7 +451,9 @@ function indicadores() {
 
 }
 
-function filtrarAcoes(titulo) {
+function filtrarAcoes(titulo = ultimoTitulo) {
+
+    ultimoTitulo = titulo
 
     titulo = String(titulo).toLowerCase()
 
