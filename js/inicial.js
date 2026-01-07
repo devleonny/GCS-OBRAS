@@ -666,7 +666,7 @@ function linPda(idOrcamento, orcamento) {
             <input 
             style="width: max-content;"
             type="date" 
-            class="etiqueta-${orcamento.inicio ? 'ok' : 'pendente'}"
+            class="etiqueta-${orcamento.inicio ? 'concluído' : 'pendente'}"
             value="${orcamento?.inicio || ''}" 
             onchange="alterarDatas(this, 'inicio', '${idOrcamento}')">
         </td>
@@ -674,7 +674,7 @@ function linPda(idOrcamento, orcamento) {
             <input 
             style="width: max-content;"
             type="date" 
-            class="etiqueta-${orcamento.termino ? 'ok' : 'pendente'}"
+            class="etiqueta-${orcamento.termino ? 'concluído' : 'pendente'}"
             value="${orcamento?.termino || ''}" 
             onchange="alterarDatas(this, 'termino', '${idOrcamento}')">
         </td>
