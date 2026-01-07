@@ -831,7 +831,7 @@ async function alterarDatas(input, campo, idOrcamento) {
     const orcamento = dados_orcamentos[idOrcamento]
     const data = input.value
 
-    input.classList = data ? 'etiqueta-ok' : 'etiqueta-pendente'
+    input.classList = data ? 'etiqueta-concluído' : 'etiqueta-pendente'
 
     orcamento[campo] = data
 
