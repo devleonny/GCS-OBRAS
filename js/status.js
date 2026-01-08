@@ -3,7 +3,7 @@ let id_orcam = ''
 let dadosNota = {}
 let dados_estoque = {}
 const altNumOrc = ['adm', 'analista']
-
+const opcoesPedidos = ['Locação', 'Serviço', 'Venda', 'Venda + Serviço', 'POC']
 
 const fluxograma = [
     'SEM STATUS',
@@ -58,13 +58,12 @@ function aprovadoEmail(input) {
 
 async function painelAdicionarPedido() {
 
-    const opcoes = ['Locação', 'Serviço', 'Venda', 'Venda + Serviço', 'POC']
     const linhas = [
         {
             texto: 'Tipo de Pedido',
             elemento: `
                 <select id="tipo">
-                    ${opcoes.map(op => `<option>${op}</option>`).join('')}
+                    ${opcoesPedidos.map(op => `<option>${op}</option>`).join('')}
                 </select>
             `
         },
@@ -904,7 +903,7 @@ async function abrirAtalhos(id) {
         else if (diffDias < 14) prioridade = 1
         else if (diffDias < 21) prioridade = 2
     }
-    
+
     const prioridadeAtalho = prioridade < 3 ? modAlerta('Obra começará em breve! <br><small>Mude o status para <b>Finalizado</b> ou <b>Em andamento</b> para remover</small>') : ''
 
     const acumulado = `
@@ -1027,7 +1026,7 @@ async function confirmarRemoverVinculo(idOrcamento) {
 
 }
 
-async function desfazerVinculo(idOrcamento) {
+async function desfazerVinculo(idOrcamento) {// 29 verificar o desfazer;
 
     overlayAguarde()
     const linha = document.getElementById(idOrcamento)
@@ -1370,10 +1369,10 @@ function elementosEspecificos(chave, historico) {
     } else if (historico.status == 'PEDIDO') {
 
         const modeloCampos = (valor1, campo, titulo) => {
-            let opcoes = ['Serviço', 'Venda', 'Venda + Serviço']
+            const opcoes = opcoesPedidos
                 .map(op => `<option ${valor1 == op ? 'selected' : ''}>${op}</option>`)
                 .join('');
-            let estilo = `border-radius: 2px; font-size: 0.7vw; padding: 5px; cursor: pointer;`
+            const estilo = `border-radius: 2px; font-size: 0.7vw; padding: 5px; cursor: pointer;`
             return `
                 <div style="display: flex; align-items: start; justify-content: start; flex-direction: column; gap: 5px;">
                     <label><strong>${titulo}:</strong></label>

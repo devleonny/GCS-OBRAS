@@ -568,7 +568,6 @@ function aplicarFiltrosEPaginacao() {
     organizarHierarquia()
 }
 
-
 function renderizarControlesPagina() {
     const topo = document.getElementById('paginacao')
     if (!topo) return
