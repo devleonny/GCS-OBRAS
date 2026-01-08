@@ -240,12 +240,12 @@ async function preencher() {
             <b>${itemComposicao?.fabricante || ''}</b>
             ${itemComposicao?.modelo || ''}
         `
-
+        
         tds[1] = `<td>${item.codigo}</td>`
         tds[2] = `
         <td>
             <div style="${vertical}; text-align: left;">
-                ${item?.tipo_desconto == 'Venda Direta' ? `
+                ${item?.cnpj ? `
                     <div style="${vertical}; gap: 2px; text-align: left;">
                         <label><b>Venda Direta</b></label>
                         <label><b>Razão Social</b> ${item?.razaoSocial || '--'}</label>
