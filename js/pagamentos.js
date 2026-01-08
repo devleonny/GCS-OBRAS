@@ -1,6 +1,7 @@
 let idP = null
 let departamentos = {}
 let dados_categorias_AC = {}
+let departamentos_AC = {}
 const opcoesStatus = [
     '',
     'Aguardando aprovação da Diretoria',
@@ -1091,11 +1092,10 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
             class="opcoes"
             name="${aleatorio}"
             ${id ? `id="${id}"` : ''}
-            onclick="cxOpcoes('${aleatorio}', 'departamentos_AC', ['cliente/nome', 'descricao', 'cliente/cnpj', 'total'], 'calculadoraPagamento()')">
-                ${elemento?.cliente?.nome || 'Selecionar'}
+            onclick="cxOpcoes('${aleatorio}', 'departamentos_AC', ['descricao', 'cliente/nome', 'cliente/cnpj', 'total'], 'calculadoraPagamento()')">
+                ${elemento?.descricao || 'Selecionar'}
         </span>
-    `
-    }
+    `}
 
     const campoAdicional = `
         <div style="${horizontal}; justify-content: start; margin-right: 1rem;">
