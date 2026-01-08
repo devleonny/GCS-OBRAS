@@ -2152,6 +2152,19 @@ input[type=range]::-moz-range-thumb {
     overflow-x: auto;
 }
 
+.alerta-pendencia {
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+    padding: 0.5rem;
+    gap: 1rem;
+    background-color: rgba(255, 0, 0, 0.315);
+    border: solid 1px red;
+}
+
 .centralCategorias {
     display: flex;
     flex-direction: column;

@@ -208,9 +208,10 @@ async function enviarDadosAluguel() {
         }
     }
 
-    if (!orcamentoBase.id) orcamentoBase.id = 'ORCA_' + unicoID()
+    // Salvar o usuário na primeira vez apenas;
+    if (!orcamentoBase.usuario) orcamentoBase.usuario = acesso.usuario
 
-    orcamentoBase.usuario = acesso.usuario
+    if (!orcamentoBase.id) orcamentoBase.id = 'ORCA_' + unicoID()
 
     popup(mensagem('Aguarde... redirecionando...', 'imagens/concluido.png'), 'Processando...')
 

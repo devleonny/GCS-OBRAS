@@ -92,7 +92,7 @@
     gap: 2px;
     resize: vertical;
     width: 300px;
-    max-height: 100px;
+    height: 100px;
     overflow: auto;
 }
 

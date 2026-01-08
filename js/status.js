@@ -861,6 +861,7 @@ async function abrirAtalhos(id) {
         ${modeloBotoes('link', 'Vincular Orçamento', `vincularOrcamento('${id}')`)}
         ${modeloBotoes('LG', 'OS em PDF', `abrirOS('${id}')`)}
         ${modeloBotoes('projeto', 'Criar Orçamento Vinculado', `criarOrcamentoVinculado('${id}')`)}
+        ${modeloBotoes('alerta', 'Definir Prioridade', `formularioOrcAprovado('${id}')`)}
         `
     }
 
@@ -869,12 +870,42 @@ async function abrirAtalhos(id) {
         ${modeloBotoes('chave', 'Delegar outro analista', `usuariosAutorizados()`)}
         ${modeloBotoes('apagar', 'Excluir Orçamento', `confirmarExclusaoOrcamentoBase('${id}')`)}
         ${modeloBotoes('editar', 'Editar Orçamento', `editar('${id}')`)}
-        ${modeloBotoes('alerta', 'Definir Prioridade', `formularioOrcAprovado('${id}')`)}
         ${modeloBotoes('gerente', 'Editar Dados do Cliente', `painelClientes('${id}')`)}
         `
     }
 
     if (altNumOrc.includes(acesso.permissao)) botoesDisponiveis += modeloBotoes('editar3', 'Alterar ORC > novo', `mudarNumORC('${id}')`)
+
+    const modAlerta = (texto) => `
+        <div class="alerta-pendencia" onclick="irORC('${id}')">
+            <img src="gifs/alerta.gif">
+            <span>${texto}</span>
+        </div>
+    `
+    // Alertas
+    const souResponsavel = Object
+        .values(orcamento?.pda?.acoes || {})
+        .some(a => a.responsavel == acesso.usuario && a.status == 'pendente')
+
+    const atalho = souResponsavel
+        ? modAlerta('Você tem <b>ações</b> pendentes! <br><small>Clique <b>aqui</b> para ver mais</small>')
+        : ''
+
+    let prioridade = 3
+    const stLiberado = Object
+        .values(orcamento?.status?.historicoStatus || {})
+        .some(h => stLista.includes(h.para))
+
+    if (!stLiberado) {
+        const inicio = new Date(orcamento?.inicio)
+        const hoje = new Date()
+        const diffDias = Math.abs(hoje - inicio) / (1000 * 60 * 60 * 24)
+        if (diffDias < 7) prioridade = 0
+        else if (diffDias < 14) prioridade = 1
+        else if (diffDias < 21) prioridade = 2
+    }
+    
+    const prioridadeAtalho = prioridade < 3 ? modAlerta('Obra começará em breve! <br><small>Mude o status para <b>Finalizado</b> ou <b>Em andamento</b> para remover</small>') : ''
 
     const acumulado = `
         <label style="color: #222; font-size: 1rem; text-align: left;" id="cliente_status">${cliente?.nome || '??'}</label>
@@ -886,6 +917,9 @@ async function abrirAtalhos(id) {
         <hr>
         ${emAnalise ? mensagem('Este orçamento precisa ser aprovado!') : ''}
         <div class="opcoes-orcamento">${botoesDisponiveis}</div>
+
+        ${atalho}
+        ${prioridadeAtalho}
     `
 
     const menuOpcoesOrcamento = document.querySelector('.menu-opcoes-orcamento')
@@ -1606,30 +1640,24 @@ async function mostrarItensPendentes() {
     let acumulado = ''
     let linhas = ''
 
-    if (orcamento.status && orcamento.status.historico) {
+    for (const item of Object.values(orcamento?.status?.historico || {})) {
 
-        Object.values(orcamento.status.historico).forEach(item => {
+        if (!item.status.includes('REQUISIÇÃO')) continue
 
-            if (item.status.includes("REQUISIÇÃO")) {
+        item.requisicoes.forEach(item2 => {
 
-                item.requisicoes.forEach(item2 => {
+            if (valoresTotais[item2.codigo]) {
 
-                    if (valoresTotais[item2.codigo]) {
+                valoresTotais[item2.codigo].qtdeTotal += Number(item2.qtde_enviar);
 
-                        valoresTotais[item2.codigo].qtdeTotal += Number(item2.qtde_enviar);
+            } else {
 
-                    } else {
+                valoresTotais[item2.codigo] = {
 
-                        valoresTotais[item2.codigo] = {
+                    qtdeTotal: Number(item2.qtde_enviar),
+                    codigoRequisicao: item2.codigo
 
-                            qtdeTotal: Number(item2.qtde_enviar),
-                            codigoRequisicao: item2.codigo
-
-                        }
-
-                    }
-
-                })
+                }
 
             }
 
@@ -1781,7 +1809,29 @@ async function salvarPrioridade(idOrcamento) {
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
     enviar(`dados_orcamentos/${idOrcamento}/inicio`, input.value)
 
+    await abrirAtalhos(idOrcamento)
     await telaOrcamentos()
+
+}
+
+async function irORC(idOrcamento) {
+
+    const orcamento = dados_orcamentos[idOrcamento]
+    const aba = orcamento.aba || ''
+
+    if (!aba) return popup(mensagem('Coloque o orçamento em uma <b>aba</b> antes!'), 'Orçamento sem aba definida', true)
+
+    removerPopup()
+    await telaInicial()
+
+    mostrarGuia(aba)
+
+    const tbody = document.querySelector(`#body${aba}`)
+    const trs = tbody.querySelectorAll('tr')
+
+    for (const tr of trs) {
+        tr.style.display = tr.id !== idOrcamento ? 'none' : ''
+    }
 
 }
 

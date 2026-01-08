@@ -7,6 +7,7 @@ let tPaginas = 1
 const baloes = document.querySelector('.baloes-top')
 let orcsFiltrados = {}
 let orcsHierarquia = {}
+const stLista = ['EM ANDAMENTO', 'CONCLUÍDO']
 
 const meses = {
     '01': 'Janeiro',
@@ -481,7 +482,6 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
 function verificarPrioridade(orcamento) {
 
     const acoes = orcamento?.pda?.acoes || {}
-    const stLista = ['EM ANDAMENTO', 'CONCLUÍDO']
     let prioridade = 3 // Baixa prioridade;
 
     const souResponsavel = Object

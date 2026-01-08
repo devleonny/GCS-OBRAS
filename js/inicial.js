@@ -373,6 +373,7 @@ function indicadores() {
             tUsuario[dados.responsavel][estilo]++
 
             // Filtragem por acesso
+
             if (dados.responsavel == acesso.usuario || permitidos.includes(acesso.permissao)) {
 
                 const [ano, mes, dia] = dados.prazo.split('-')
@@ -390,9 +391,10 @@ function indicadores() {
                         ? `<span><b>criado em: </b>${new Date(dados.registro).toLocaleString('pt-BR')}</span>`
                         : ''}
                         </div>
-                        <img src="imagens/editar.png" style="width: 1.5rem;" onclick="formAcao('${idOrcamento}', '${idAcao}')">
+                        <img src="imagens/pesquisar2.png" style="width: 2rem;" onclick="irORC('${idOrcamento}')">
                     </div>`
             }
+
         }
     }
 
@@ -416,6 +418,8 @@ function indicadores() {
         `
     }
 
+    const indiGeral = permitidos.includes(acesso.permissao) ? indi(totais, 'Geral') : ''
+
     const acumulado = `
     <img style="position: absolute; top: 5px; right: 5px;" src="imagens/atualizar3.png" onclick="sincronizarPda()">
     <div class="painel-indicadores">
@@ -429,7 +433,7 @@ function indicadores() {
         </div>
         <div style="${vertical};">
 
-            ${indi(totais, 'Geral')}
+            ${indiGeral}
             ${tUsuario[acesso?.usuario] ? indi(tUsuario[acesso?.usuario], acesso.usuario || '...') : ''}
             <div style="${vertical}; padding: 1rem; gap: 0.5rem; width: 100%;">
                 <span>Ações pendentes do Usuário</span>
@@ -462,7 +466,6 @@ function filtrarAcoes(titulo = ultimoTitulo) {
     for (const div of divs) {
         div.style.display = div.dataset.estilo !== titulo ? 'none' : ''
     }
-
 
 }
 
@@ -917,8 +920,9 @@ async function salvarAcao(idOrcamento, idAcao) {
 
     idAcao = idAcao || ID5digitos()
 
+    const painel = document.querySelector('.painel-padrao')
     const el = (nome) => {
-        const elem = document.querySelector(`[name="${nome}"]`)
+        const elem = painel.querySelector(`[name="${nome}"]`)
         return elem
     }
 
