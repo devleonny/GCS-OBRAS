@@ -7,7 +7,7 @@ let tPaginas = 1
 const baloes = document.querySelector('.baloes-top')
 let orcsFiltrados = {}
 let orcsHierarquia = {}
-const stLista = ['EM ANDAMENTO', 'CONCLUÍDO']
+const stLista = ['EM ANDAMENTO', 'OBRA PARALISADA', 'CONCLUÍDO']
 
 const meses = {
     '01': 'Janeiro',

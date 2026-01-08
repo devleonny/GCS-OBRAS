@@ -904,7 +904,7 @@ async function abrirAtalhos(id) {
         else if (diffDias < 21) prioridade = 2
     }
 
-    const prioridadeAtalho = prioridade < 3 ? modAlerta('Obra começará em breve! <br><small>Mude o status para <b>Finalizado</b> ou <b>Em andamento</b> para remover</small>') : ''
+    const prioridadeAtalho = prioridade < 3 ? modAlerta('Obra começará em breve! <br><small>Mude o status para <b>Finalizado</b>, <br><b>Obra paralisada</b> ou <b>Em andamento</b> para remover</small>') : ''
 
     const acumulado = `
         <label style="color: #222; font-size: 1rem; text-align: left;" id="cliente_status">${cliente?.nome || '??'}</label>
