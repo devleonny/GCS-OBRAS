@@ -2214,6 +2214,8 @@ async function sincronizarDados(base, overlayOff, resetar) {
 
     if (!overlayOff) overlayAguarde()
 
+    if (base == 'hierarquia') resetar = true
+
     if (resetar) await inserirDados({}, base, resetar)
 
     let nuvem = await receber(base) || {}

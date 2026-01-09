@@ -958,7 +958,7 @@ async function vincularOrcamento(idOrcamento) {
             <div style="${horizontal}; gap: 1rem;">
                 <span class="opcoes"
                 name="orcamento"
-                onclick="cxOpcoes('orcamento', 'dados_orcamentos', ['dados_orcam/contrato', 'dados_orcam/analista', 'total_geral[dinheiro]'])">
+                onclick="cxOpcoes('orcamento', 'dados_orcamentos', ['dados_orcam/chamado', 'dados_orcam/contrato', 'dados_orcam/analista', 'total_geral[dinheiro]'])">
                     Selecione
                 </span>
                 <img src="imagens/concluido.png" style="width: 2rem;" onclick="confirmarVinculo('${idOrcamento}')">
