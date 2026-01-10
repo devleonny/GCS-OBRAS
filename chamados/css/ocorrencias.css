@@ -10,6 +10,17 @@
     flex-direction: column;
 }
 
+.topo-ocorrencias {
+    gap: 1rem;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    padding: 0.5rem;
+    width: 90vw;
+    overflow-x: auto;
+}
+
 .rodape-formulario {
     color: white;
     display: flex;
@@ -37,6 +48,30 @@
 
 .itemFiltro img {
     width: 5vw;
+}
+
+.botao-reagendar {
+    border-radius: 8px;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: solid 1px #222;
+    background-color: #22222231;
+}
+
+.filtros {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 0.5rem;
+}
+
+.filtros select {
+    width: 150px;
+    border: solid 1px #afafaf;
+    padding: 5px;
+    border-radius: 50px;
 }
 
 .atalhosRelatorio {
@@ -246,7 +281,7 @@
 }
 
 .paginacao img {
-    width: 6vw;
+    width: 2rem;
 }
 
 .telaInferior {
@@ -261,9 +296,10 @@
 }
 
 .detalhamento-correcoes {
+    resize: vertical;
     width: 90%;
     overflow: auto;
-    height: 180px;
+    height: 300px;
     border-top-left-radius: 5px;
     border-bottom-left-radius: 5px;
     border: solid 1px #797979;
@@ -341,8 +377,45 @@
     width: 100%;
 }
 
+.painel-pendencias {
+    gap: 2px;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+}
+
+.agendamentos {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.agendamentos img {
+    width: 1.5rem;
+}
+
+.agendamentos span {
+    text-decoration-line: line-through;
+    text-decoration-color: #0000003d;
+}
+
 @media screen and (orientation: landscape),
 screen and (min-aspect-ratio: 13/9) {
+
+
+    .topo-ocorrencias {
+        flex-direction: row;
+    }
+
+    .filtros {
+        display: grid;
+        grid-template-rows: repeat(2, auto);
+        grid-auto-flow: column;
+        gap: 0.5rem;
+    }
 
     .bloco-linha {
         width: 100%;
@@ -370,10 +443,6 @@ screen and (min-aspect-ratio: 13/9) {
 
     .painel-superior-cadastros {
         display: flex;
-    }
-
-    .paginacao img {
-        width: 2vw;
     }
 
     .tabelaRelatorio img {

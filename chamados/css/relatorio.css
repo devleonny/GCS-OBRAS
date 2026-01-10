@@ -64,6 +64,7 @@
 }
 
 .na {
+    text-align: center;
     display: inline-block;
     padding-left: 1vw;
     padding-right: 1vw;
@@ -73,6 +74,7 @@
 }
 
 .fin {
+    text-align: center;
     display: inline-block;
     padding-left: 1vw;
     padding-right: 1vw;
@@ -82,6 +84,7 @@
 }
 
 .and {
+    text-align: center;
     display: inline-block;
     padding-left: 1vw;
     padding-right: 1vw;

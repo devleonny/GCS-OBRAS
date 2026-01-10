@@ -11,12 +11,12 @@ let progressCircle = null
 let percentageText = null
 let telaInterna = null
 let filtrosPagina = {}
+const extensoes = ['jpg', 'jpeg', 'png']
 
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F8') resetarBases()
     if (event.key === 'F5') location.reload()
 })
-
 
 async function resetarBases() {
 
@@ -28,7 +28,6 @@ async function resetarBases() {
         <div style="${vertical}; gap: 1vh;">
             <label><b>GCS</b>: Por favor, aguarde...</label>
             <br>
-            
             <div id="logs" style="${vertical}; gap: 1vh;"></div>
         </div>
     `
@@ -282,29 +281,31 @@ function exibirSenha(img) {
 }
 
 async function capturarLocalizacao() {
-    return new Promise((resolve) => {
-        if (!("geolocation" in navigator)) {
-            resolve(false);
-            return;
+    return new Promise(resolve => {
+        if (!('geolocation' in navigator)) {
+            localStorage.setItem('geo_permitido', '0')
+            return resolve(null)
         }
 
         navigator.geolocation.getCurrentPosition(
-            (position) => {
+            pos => {
+                localStorage.setItem('geo_permitido', '1')
                 resolve({
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                });
+                    latitude: pos.coords.latitude,
+                    longitude: pos.coords.longitude
+                })
             },
-            (error) => {
-                resolve(false);
+            () => {
+                localStorage.setItem('geo_permitido', '0')
+                resolve(null)
             },
             {
                 enableHighAccuracy: true,
                 timeout: 5000,
-                maximumAge: 0,
+                maximumAge: 0
             }
-        );
-    });
+        )
+    })
 }
 
 function popup(elementoHTML, titulo, naoRemoverAnteriores) {
@@ -394,7 +395,7 @@ async function telaPrincipal() {
     toolbar.style.display = 'flex'
     const planoFundo = `
         <div class="planoFundo">
-            <img src="imagens/BG.png">
+            <img src="gifs/loading.gif" style="width: 8rem;">
         </div>`
 
     const acumulado = `
@@ -417,57 +418,32 @@ async function telaPrincipal() {
 
     mostrarMenus(true)
 
+    carregarMenus()
     await atualizarOcorrencias()
 
     // Após atualização;
     acesso = await recuperarDado('dados_setores', acesso.usuario) || {}
+    // Recuperar Filtros;
+    filtrosAtivos = JSON.parse(localStorage.getItem('filtrosAtivos')) || {}
+
+    if (!document.querySelector('.planoFundo')) return
+    filtrarPorCampo()
 
 }
 
 function carregarMenus() {
 
     const blq = ['cliente', 'técnico']
-    // Links para cada botão/status Correção;
-    const badge = (numero, c) => `<span class="pill alert-${c || 'abertos'}">${numero}</span>`
-    auxBotoesOcorrencias()
-    const btnsCorrecao = {}
-
-    const chaves = Object.keys(ocorrenciasFiltradas)
-        .filter(k => k !== 'SOLUCIONADA')
-        .sort((a, b) => a.localeCompare(b))
-        .concat(ocorrenciasFiltradas.SOLUCIONADA ? ['SOLUCIONADA'] : [])
-
-    for (const tipo of chaves) {
-        const ocorrencias = ocorrenciasFiltradas[tipo]
-        btnsCorrecao[tipo] = {
-            proibidos: [],
-            funcao: `telaOcorrencias('${tipo}')`,
-            elemento: badge(Object.keys(ocorrencias).length, tipo == 'SOLUCIONADA' ? 'solucionada' : null)
-        }
-    }
-
-    let total = 0
-    for (const oc of Object.values(ocorrenciasFiltradas)) {
-        total += Object.keys(oc).length
-    }
-
-    btnsCorrecao['TODOS OS CHAMADOS'] = {
-        proibidos: [],
-        funcao: `telaOcorrencias()`,
-        elemento: badge(total, 'total')
-    }
 
     const menus = {
-        'Atualizar': { img: 'atualizar', funcao: 'telaPrincipal()', proibidos: [] },
+        'Atualizar': { img: 'atualizar', funcao: 'atualizarOcorrencias()', proibidos: [] },
         'Criar Ocorrência': { img: 'baixar', funcao: 'formularioOcorrencia()', proibidos: [] },
-        ...btnsCorrecao,
+        'Ocorrências': { img: 'configuracoes', funcao: 'telaOcorrencias()', proibidos: [] },
         'Relatório de Ocorrências': { img: 'planilha', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] },
         'Relatório de Correções': { img: 'planilha', funcao: 'telaRelatorioCorrecoes()', proibidos: ['user', 'técnico', 'visitante'] },
         'Usuários': { img: 'perfil', funcao: 'telaUsuarios()', proibidos: ['user', 'cliente', 'técnico', 'analista', 'visitante'] },
         'Cadastros': { img: 'ajustar', funcao: 'telaCadastros()', proibidos: ['user', 'técnico', 'cliente', 'visitante'] },
     }
-
-    // Colocar em outro lugar 'Solucionados': { id: 'solucionados', img: 'configuracoes', funcao: 'telaOcorrencias(false)', proibidos: [] },
 
     if (!blq.includes(acesso.permissao)) {
         menus.GCS = { img: 'LG', funcao: 'irGCS()', proibidos: ['técnico', 'visitante'] }
@@ -484,23 +460,13 @@ function carregarMenus() {
         <div class="nomeUsuario">
             <span><strong>${inicialMaiuscula(acesso.permissao)}</strong> ${acesso.usuario}</span>
         </div>
+        <br>
+        <div class="painel-pendencias"></div>
+        <br>
         ${stringMenus}
+
     `
     document.querySelector('.botoesMenu').innerHTML = botoes
-}
-
-function auxBotoesOcorrencias() {
-
-    ocorrenciasFiltradas = {}
-
-    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias)) {
-
-        const ultCorrCod = ocorrencia?.tipoCorrecao
-        const nomeUltCorr = correcoes?.[ultCorrCod] ? correcoes?.[ultCorrCod].nome.toUpperCase() : 'NÃO ANALISADA'
-
-        ocorrenciasFiltradas[nomeUltCorr] ??= {}
-        ocorrenciasFiltradas[nomeUltCorr][idOcorrencia] = ocorrencia
-    }
 }
 
 async function telaUsuarios() {

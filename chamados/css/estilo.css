@@ -134,11 +134,10 @@ img {
     justify-content: start;
     flex-direction: column;
     padding: 5px;
-    gap: 5px;
+    gap: 1rem;
 }
 
 .botoesMenu {
-    margin-top: 5rem;
     display: flex;
     align-items: center;
     justify-content: start;
@@ -211,11 +210,6 @@ img {
 
 .olho {
     width: 2rem;
-}
-
-select {
-    padding: 5px;
-    border-radius: 3px;
 }
 
 input,
@@ -617,7 +611,7 @@ input[type="file"] {
     background-color: #d2d2d2;
     display: flex;
     gap: 10px;
-    padding: 2vw;
+    padding: 1rem;
     align-items: center;
     justify-content: center;
 }
@@ -627,6 +621,7 @@ input[type="file"] {
 }
 
 .pesquisa {
+    border: solid 1px #afafaf;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -687,7 +682,7 @@ input[type="file"] {
     padding: 5px;
     align-items: start;
     gap: 2px;
-    background-color: #7f7f7f;
+    background-color: #dddddd;
     border-radius: 3px;
 }
 
@@ -696,8 +691,9 @@ input[type="file"] {
 }
 
 .capturar {
+    cursor: pointer;
     border-radius: 3px;
-    background-color: #b8b8b8;
+    background-color: #dddddd;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -896,84 +892,58 @@ input[type="file"] {
 }
 
 .pill {
-    z-index: 222;
-    display: inline-flex;
-    gap: 6px;
-    align-items: center;
-    margin-left: 1rem;
-    padding: 6px 10px;
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: 35% 1fr;
+    align-items: stretch;
     border-radius: 999px;
-    background: #333;
+    overflow: hidden;
+    font-size: .85rem;
+    font-weight: 500;
+    line-height: 1.2;
+    width: 95%;
+    margin-left: 5px;
+}
+
+.pill>span {
+    padding: .35rem .75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    word-break: break-word;
+}
+
+/* Parte esquerda */
+.pill-a {
     color: #fff;
-    font-weight: 600
 }
 
-.pill svg {
-    width: 14px;
-    height: 14px;
-    opacity: .9
+/* Parte direita */
+.pill-b {
+    background: #e0e0e0;
+    color: #333;
 }
 
-.pill.alert-abertos {
-    background: linear-gradient(90deg, #d7a6a6, #f50404);
-    animation: ping-1 1.6s infinite;
-}
+#contador {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 
-.pill.alert-solucionada {
-    background: linear-gradient(90deg, #c4ef91, #3c9f15);
-    animation: ping-2 1.6s infinite
-}
+    min-width: 2.2em;
+    height: 2.2em;
+    padding: 0 .5em;
 
-.pill.alert-total {
-    background: linear-gradient(90deg, #5588ff, #004cff);
-    animation: ping-3 1.6s infinite
-}
+    border-radius: 999px;
+    background: #004cff;
+    color: #fff;
 
-.timer {
-    margin-left: 2rem;
-    margin-right: 2rem;
-}
-
-@keyframes ping-1 {
-    0% {
-        box-shadow: 0 0 0 0 #f50404
-    }
-
-    70% {
-        box-shadow: 0 0 0 12px #d6344700
-    }
-
-    100% {
-        box-shadow: 0 0 0 0 #d6344700
-    }
-}
-
-@keyframes ping-2 {
-    0% {
-        box-shadow: 0 0 0 0 #3c9f15
-    }
-
-    70% {
-        box-shadow: 0 0 0 12px #d6344700
-    }
-
-    100% {
-        box-shadow: 0 0 0 0 #d6344700
-    }
-}
-
-@keyframes ping-3 {
-    0% {
-        box-shadow: 0 0 0 0 #004cff
-    }
-
-    70% {
-        box-shadow: 0 0 0 12px #d6344700
-    }
-
-    100% {
-        box-shadow: 0 0 0 0 #d6344700
-    }
+    font-size: .9rem;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    font-size: 1.3rem;
+    width: 90%;
 }
 
 @media screen and (orientation: landscape),

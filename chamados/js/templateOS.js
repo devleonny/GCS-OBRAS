@@ -12,10 +12,22 @@ async function telaOS(idOcorrencia) {
             <img style="width: 15rem;" src="${api}/uploads/GCS/${ocorrencia.assinatura}">
         `
     }
-    
-    let imagens = Object.entries(ocorrencia?.fotos || {})
+
+    let imagens = ''
+
+    imagens = Object.entries(ocorrencia?.fotos || {})
         .map(([link,]) => `<img id="${link}" src="${api}/uploads/GCS/${link}" onclick="ampliarImagem(this, '${link}')">`)
         .join('')
+
+    // Anexos
+        imagens = Object.values(ocorrencia?.anexos || {})
+            .map(foto => {
+                const link = foto.link
+                const extensao = link.split('.').pop().toLowerCase()
+                if (!extensoes.includes(extensao)) return ''
+                return `<img name="foto" id="${link}" src="${api}/uploads/GCS/${link}" onclick="ampliarImagem(this, '${link}')">`
+            })
+            .join('')
 
     if (imagens == '') imagens = `
         <div class="horizontal-1">
@@ -30,12 +42,13 @@ async function telaOS(idOcorrencia) {
             <span>${texto2}</span>
         </div>
     `
-
+    
+    const descFinal = ocorrencia.descricao || 'Sem comentários'
     const linha1 = `
         <div class="painel-1">
 
             <div class="painel-0">
-                <p><b>Chamado nº ${idOcorrencia}:</b> ${ocorrencia.descricao || 'Sem comentários'}</p>
+                <b>Chamado nº ${idOcorrencia}:</b> ${descFinal.replace('\n', '<br>')}
             </div>
 
             <div class="horizontal-2">
@@ -46,23 +59,22 @@ async function telaOS(idOcorrencia) {
 
                 <div class="vertical">
                     ${modelo('Status Ocorrência', correcoes?.[ocorrencia.tipoCorrecao]?.nome || '')}
-                    ${modelo('Prioridade', prioridades?.[ocorrencia.prioridade]?.nome || '')}
-                    ${modelo('Tipo Ocorrência', tipos?.[ocorrencia.tipo]?.nome || '')}
+                    ${modelo('Prioridade', prioridades?.[ocorrencia.prioridade]?.nome || 'Em branco')}
+                    ${modelo('Tipo Ocorrência', tipos?.[ocorrencia.tipo]?.nome || 'Em branco')}
                     ${modelo('Data/Hora da Abertura', ocorrencia.dataRegistro)}
                 </div>
 
                 <div class="vertical">
                     ${modelo('Unidade de Manutenção', cliente?.nome || '')}
-                    ${cliente.cnpj}<br>
-                    ${cliente.bairro}<br>
-                    ${cliente.cidade}<br>
-                    ${cliente.cep}<br>
+                    ${cliente?.cnpj || ''}<br>
+                    ${cliente?.bairro || ''}<br>
+                    ${cliente?.cidade || ''}<br>
+                    ${cliente?.cep || ''}<br>
                 </div>
 
                 <div class="vertical">
                     ${modelo('Sistema', sistemas?.[ocorrencia.sistema]?.nome || '')}
-                    ${modelo('Solicitante', ocorrencia.solicitante)}
-                    ${modelo('Executor', ocorrencia.usuario)}
+                    ${modelo('Criado por', ocorrencia?.usuario || '...')}
                 </div>
 
             </div>
@@ -74,8 +86,19 @@ async function telaOS(idOcorrencia) {
 
     for (const [, correcao] of Object.entries(ocorrencia?.correcoes || {})) {
 
-        let imagens = Object.entries(correcao?.fotos || {})
+        let imagens = ''
+
+        imagens = Object.entries(correcao?.fotos || {})
             .map(([link,]) => `<img id="${link}" src="${api}/uploads/GCS/${link}" onclick="ampliarImagem(this, '${link}')">`)
+            .join('')
+
+        imagens = Object.values(correcao?.anexos || {})
+            .map(foto => {
+                const link = foto.link
+                const extensao = link.split('.').pop().toLowerCase()
+                if (!extensoes.includes(extensao)) return ''
+                return `<img name="foto" id="${link}" src="${api}/uploads/GCS/${link}" onclick="ampliarImagem(this, '${link}')">`
+            })
             .join('')
 
         if (imagens == '') imagens = `
@@ -92,7 +115,7 @@ async function telaOS(idOcorrencia) {
                     ${imagens}
                 </div>
 
-                <div class="vertical">
+                <div class="vertical" style="width: 100%;">
 
                     <span><b>Correção</b></span>
                     <div class="campo-descricao" style="width: 70%;">
@@ -104,7 +127,7 @@ async function telaOS(idOcorrencia) {
                     <div class="horizontal" style="gap: 1rem;">
                         ${modelo('Status da Correção', correcoes?.[correcao.tipoCorrecao]?.nome || '')}
                         ${modelo('Registrado em', correcao?.data || '--')}
-                        ${modelo('Executor', ocorrencia.usuario)}
+                        ${modelo('Executor', correcao.usuario)}
                     </div>
                 </div>
 
@@ -193,7 +216,7 @@ async function telaOS(idOcorrencia) {
                 }
 
                 .painel-1 {
-                    width: 100%;
+                    width: 95%;
                     padding: 0.5rem;
                     background-color: #22874454;
                     border-radius: 5px;
@@ -205,7 +228,7 @@ async function telaOS(idOcorrencia) {
                 }
 
                 .painel-2 {
-                    width: 100%;
+                    width: 95%;
                     gap: 0.5rem;
                     padding: 0.5rem;
                     border-radius: 5px;
@@ -274,44 +297,44 @@ async function gerarPdfOnline(htmlString, nome) {
             headers: { "Content-Type": "application/octet-stream" },
             body: compressed
         })
-        .then(response => response.blob())
-        .then(async blob => {
-            if (isAndroid) {
+            .then(response => response.blob())
+            .then(async blob => {
+                if (isAndroid) {
 
-                const data = await blob.arrayBuffer();
-                const bytes = new Uint8Array(data);
+                    const data = await blob.arrayBuffer();
+                    const bytes = new Uint8Array(data);
 
-                window.resolveLocalFileSystemURL(
-                    cordova.file.externalRootDirectory + "Download/",
-                    dir => {
-                        dir.getFile(nome + ".pdf", { create: true }, fileEntry => {
-                            fileEntry.createWriter(fileWriter => {
-                                fileWriter.write(new Blob([bytes], { type: "application/pdf" }));
+                    window.resolveLocalFileSystemURL(
+                        cordova.file.externalRootDirectory + "Download/",
+                        dir => {
+                            dir.getFile(nome + ".pdf", { create: true }, fileEntry => {
+                                fileEntry.createWriter(fileWriter => {
+                                    fileWriter.write(new Blob([bytes], { type: "application/pdf" }));
 
-                                // abre o PDF depois de salvar
-                                cordova.plugins.fileOpener2.open(
-                                    fileEntry.nativeURL,
-                                    'application/pdf'
-                                );
+                                    // abre o PDF depois de salvar
+                                    cordova.plugins.fileOpener2.open(
+                                        fileEntry.nativeURL,
+                                        'application/pdf'
+                                    );
 
-                                resolve(fileEntry.nativeURL);
+                                    resolve(fileEntry.nativeURL);
+                                });
                             });
-                        });
-                    },
-                    reject
-                );
-            } else {
-                // navegador
-                const link = document.createElement("a");
-                link.href = URL.createObjectURL(blob);
-                link.download = `${nome}.pdf`;
-                link.click();
-                resolve();
-            }
-        })
-        .catch(err => {
-            console.error("Erro ao gerar PDF:", err);
-            reject(err);
-        });
+                        },
+                        reject
+                    );
+                } else {
+                    // navegador
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `${nome}.pdf`;
+                    link.click();
+                    resolve();
+                }
+            })
+            .catch(err => {
+                console.error("Erro ao gerar PDF:", err);
+                reject(err);
+            });
     });
 }

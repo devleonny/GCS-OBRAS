@@ -247,9 +247,21 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
     for (let [, correcao] of Object.entries(correcoesOC)) {
         const st = correcoes[correcao.tipoCorrecao].nome
         let registros = ''
+        let imagens = ''
 
-        const imagens = Object.entries(correcao?.fotos || {})
+        // Fotos
+        imagens = Object.entries(correcao?.fotos || {})
             .map(([link, foto]) => `<img name="foto" id="${link}" src="${api}/uploads/GCS/${link}" onclick="ampliarImagem(this, '${link}')">`)
+            .join('')
+
+        // Anexos
+        imagens = Object.values(correcao?.anexos || {})
+            .map(foto => {
+                const link = foto.link
+                const extensao = link.split('.').pop().toLowerCase()
+                if (!extensoes.includes(extensao)) return ''
+                return `<img name="foto" id="${link}" src="${api}/uploads/GCS/${link}" onclick="ampliarImagem(this, '${link}')">`
+            })
             .join('')
 
 
