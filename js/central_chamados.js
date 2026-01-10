@@ -1,55 +1,4 @@
 
-
-async function resetarBases() {
-
-    overlayAguarde(true)
-
-    const divMensagem = document.querySelector('.div-mensagem')
-
-    divMensagem.innerHTML = `
-        <div style="${vertical}; gap: 1vh;">
-            <label><b>GCS</b>: Por favor, aguarde...</label>
-            <br>
-            <div id="logs" style="${vertical}; gap: 1vh;"></div>
-        </div>
-    `
-
-    const logs = document.getElementById('logs')
-
-    logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
-
-    const bases = [
-        'dados_clientes',
-        'prioridades',
-        'tipos',
-        'correcoes',
-        'sistemas',
-        'empresas',
-        'dados_setores'
-    ]
-
-    for (const base of bases) {
-        await sincronizarDados(base, true, true) // Nome base, overlay off e resetar bases;
-        logs.insertAdjacentHTML('beforeend', `<label>Sincronizando: ${base}</label>`)
-    }
-
-    telaPrincipal()
-    removerOverlay()
-
-}
-
-function esquemaLinhas(base, id) {
-
-    const esquema = {
-        'dados_clientes': { colunas: ['nome', 'cnpj', 'cidade'], funcao: `gerenciarCliente('${id}')` },
-        'dados_composicoes': { colunas: ['descricao', 'codigo', 'unidade', 'modelo', 'fabricante'], funcao: `` },
-        'dados_setores': { colunas: ['nome_completo', 'empresa', 'setor', 'permissao'], funcao: `gerenciarUsuario('${id}')` },
-        default: { colunas: ['nome'], funcao: `editarBaseAuxiliar('${base}', '${id}')` }
-    }
-
-    return esquema?.[base] || esquema.default
-}
-
 const modelo = (valor1, valor2) => `
     <div style="${horizontal}; gap: 1rem; margin-bottom: 5px; width: 100%;">
         <label style="width: 30%; text-align: right;"><b>${valor1}</b></label>
@@ -122,14 +71,6 @@ const btn = ({ img, nome, funcao, id, elemento }) => `
         <div>${nome}</div>
     </div>
 `
-
-document.addEventListener('keydown', function (event) {
-    if (event.key === 'F5') f5()
-})
-
-function f5() {
-    location.reload();
-}
 
 telaLogin()
 
@@ -272,6 +213,8 @@ function irGCS() {
 }
 
 async function telaPrincipal() {
+
+    bReset = 2 // ocorrências
 
     atribuirVariaveis()
 

@@ -34,11 +34,10 @@ function connectWebSocket() {
                 user.status = data.status
                 await inserirDados({ [data.usuario]: user }, 'dados_setores')
             }
-            
-            try {
-                usuariosToolbar()
-                balaoUsuario(data.status, data.usuario)
-            } catch { }
+
+            if (bReset == 2) return
+            usuariosToolbar()
+            balaoUsuario(data.status, data.usuario)
         }
 
     }
@@ -50,6 +49,7 @@ function connectWebSocket() {
     }
 
     async function refletir() {
+        if (bReset == 2) return
         semOverlay = true
         await executar(funcaoTela)
         semOverlay = false

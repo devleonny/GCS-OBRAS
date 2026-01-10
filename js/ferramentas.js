@@ -36,6 +36,7 @@ let dados_ocorrencias = {}
 let dados_setores = {}
 let hierarquia = {}
 let depPorDesc = {}
+let bReset = null
 const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
 
 function atribuirVariaveis() {
@@ -47,27 +48,87 @@ function atribuirVariaveis() {
 
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F2') f2()
-    if (event.key === 'F8') despoluicaoGCS()
+    if (event.key === 'F8') resetarBases()
     if (event.key === 'F5') location.reload()
 })
 
+async function resetarBases() {
+
+    overlayAguarde(true)
+
+    const divMensagem = document.querySelector('.div-mensagem')
+
+    divMensagem.innerHTML = `
+        <div style="${vertical}; gap: 1vh;">
+            <label><b>GCS</b>: Por favor, aguarde...</label>
+            <br>
+            <div id="logs" style="${vertical}; gap: 1vh;"></div>
+        </div>
+    `
+
+    const logs = document.getElementById('logs')
+
+    logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
+
+    const bases = {
+            1: [
+            'hierarquia',
+            'tags',
+            'tags_orcamentos',
+            'departamentos_AC',
+            'dados_orcamentos',
+            'custo_veiculos',
+            'motoristas',
+            'veiculos',
+            'dados_composicoes',
+            'dados_clientes',
+            'lista_pagamentos',
+            'dados_manutencao',
+            'dados_categorias_AC',
+            'dados_estoque',
+            'pessoas'
+        ],
+        2: [
+            'dados_clientes',
+            'prioridades',
+            'tipos',
+            'correcoes',
+            'sistemas',
+            'empresas',
+            'dados_setores'
+        ]
+    }
+
+    if (!bReset) return
+
+    for (const base of bases[bReset]) {
+        await sincronizarDados(base, true, true) // Nome base, overlay off e resetar bases;
+        logs.insertAdjacentHTML('beforeend', `<label>Sincronizando: <small>${base}</small></label>`)
+    }
+
+    location.reload() // Recarregar a página;
+
+    removerOverlay()
+
+}
+
 async function f2() {
 
+    const scripts = ['clientes', 'categorias', 'departamentos', 'pagamentos']
+
+    const botoes = scripts
+        .map(s => `<button onclick="respostaSincronizacao('${s}')">Sincronizar ${inicialMaiuscula(s)}</button>`)
+        .join('')
+
     const acumulado = `
-        <div style="padding: 1rem; background-color: #d2d2d2; ${vertical}; gap: 5px;">
+        <div class="ferramentas">
 
-            ${botao('Sincronizar Clientes', `respostaSincronizacao('clientes')`)}
-
-            ${botao('Sincronizar Categorias', `respostaSincronizacao('categorias')`)}
-
-            ${botao('Sincronizar Departamentos', `respostaSincronizacao('departamentos')`)}
-
-            ${botao('Sincronizar Pagamentos', `respostaSincronizacao('pagamentos')`)}
+            ${botoes}
 
             <div style="${vertical}; gap: 2px;">
                 <span>Criar Departamento</span>
                 <div style="${horizontal}; gap: 0.5rem;">
-                    <input class="etiquetas" oninput="this.nextElementSibling.style.display = ''">
+                    <input oninput="this.nextElementSibling.style.display = ''">
                     <img src="imagens/concluido.png" onclick="salvarDepartamento(this)" style="display: none;">
                 </div>
             </div>
@@ -175,20 +236,21 @@ function popup(elementoHTML, titulo, nra = true) {
 
 }
 
-async function removerPopup({ id, nra }) {
-
+async function removerPopup({ id, nra } = {}) {
     const popups = document.querySelectorAll('.popup')
 
-    if (nra) {
+    if (id) {
         const p = document.getElementById(id)
         if (p) p.remove()
     } else {
-        for (const p of popups) p.remove()
+        if (nra) {
+            popups[popups.length - 1]?.remove()
+        } else {
+            for (const p of popups) p.remove()
+        }
     }
 
-    const aguarde = document.querySelector('.aguarde')
-    if (aguarde) aguarde.remove()
-
+    document.querySelector('.aguarde')?.remove()
 }
 
 function verificarClique(event) {

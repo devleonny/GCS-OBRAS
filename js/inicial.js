@@ -90,6 +90,8 @@ const dtPrazo = (data) => {
 
 async function telaInicial() {
 
+    bReset = 1 // gcs
+
     atribuirVariaveis()
 
     mostrarMenus(false)

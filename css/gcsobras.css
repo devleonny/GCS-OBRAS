@@ -1069,13 +1069,13 @@ select {
 }
 
 button {
+    padding: 7px;
+    color: #f5f5f5;
     cursor: pointer;
-    margin: 5px;
     background-color: #249f41;
-    color: white;
-    border: none;
-    padding: 10px;
     border-radius: 5px;
+    border: none;
+    white-space: nowrap;
 }
 
 .retangulo {
@@ -1879,11 +1879,6 @@ input[type=range]::-moz-range-thumb {
     align-items: center;
     background-color: #797979;
     z-index: 10005;
-}
-
-.div-mensagem {
-    font-size: 1.2rem;
-    color: white;
 }
 
 .aguarde {

@@ -66,3 +66,27 @@
 .popup-top span:hover {
     background-color: #ff2a2a;
 }
+
+.div-mensagem {
+    font-size: 1.2rem;
+    color: white;
+}
+
+.ferramentas {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    padding: 1rem;
+    background-color: #d2d2d2;
+    gap: 5px;
+}
+
+.ferramentas input {
+    background-color: #f0efef;
+    display: block;
+    padding: 1vw;
+    margin: 1vw 0;
+    border-radius: 5px;
+    border: 1px solid #888;
+}
