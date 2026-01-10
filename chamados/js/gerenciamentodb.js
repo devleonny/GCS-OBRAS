@@ -77,76 +77,64 @@ async function recuperarDado(nomeBase, id) {
 }
 
 // Mecânicas para o navegador;
-async function inserirDadosIndexedDB(dados, nomeBase, resetar) {
-
+async function inserirDadosIndexedDB(dados, nomeBase, resetar = false) {
     const versao = await new Promise((resolve, reject) => {
-
-        const req = indexedDB.open(nomeBaseCentral);
+        const req = indexedDB.open(nomeBaseCentral)
         req.onsuccess = () => {
-            const db = req.result;
-            const precisaCriar = !db.objectStoreNames.contains(nomeStore);
-            const versaoAtual = db.version;
-            db.close();
-            resolve(precisaCriar ? versaoAtual + 1 : versaoAtual);
-        };
-        req.onerror = (e) => {
-            reject(e.target.error);
-        };
-    });
+            const db = req.result
+            const precisaCriar = !db.objectStoreNames.contains(nomeStore)
+            const versaoAtual = db.version
+            db.close()
+            resolve(precisaCriar ? versaoAtual + 1 : versaoAtual)
+        }
+        req.onerror = e => reject(e.target.error)
+    })
 
     const db = await new Promise((resolve, reject) => {
-        const req = indexedDB.open(nomeBaseCentral, versao);
-        req.onupgradeneeded = (e) => {
-            const db = e.target.result;
+        const req = indexedDB.open(nomeBaseCentral, versao)
+        req.onupgradeneeded = e => {
+            const db = e.target.result
             if (!db.objectStoreNames.contains(nomeStore)) {
-                db.createObjectStore(nomeStore, { keyPath: 'id' });
+                db.createObjectStore(nomeStore, { keyPath: 'id' })
             }
-        };
-        req.onsuccess = () => {
-            resolve(req.result);
-        };
-        req.onerror = (e) => {
-            reject(e.target.error);
-        };
-    });
+        }
+        req.onsuccess = () => resolve(req.result)
+        req.onerror = e => reject(e.target.error)
+    })
 
-    const tx = db.transaction(nomeStore, 'readwrite');
-    const store = tx.objectStore(nomeStore);
+    const tx = db.transaction(nomeStore, 'readwrite')
+    const store = tx.objectStore(nomeStore)
 
     let dadosMesclados = {}
 
-    if (!resetar) {
-        const antigo = await new Promise((resolve, reject) => {
-            const req = store.get(nomeBase);
-            req.onsuccess = () => {
-                resolve(req.result?.dados || {});
-            };
-            req.onerror = (e) => {
-                reject(e.target.error);
-            };
-        });
-
-        dadosMesclados = { ...antigo, ...dados };
-    } else {
+    if (resetar) {
+        await new Promise((resolve, reject) => {
+            const req = store.delete(nomeBase)
+            req.onsuccess = () => resolve()
+            req.onerror = e => reject(e.target.error)
+        })
         dadosMesclados = dados
+    } else {
+        const antigo = await new Promise((resolve, reject) => {
+            const req = store.get(nomeBase)
+            req.onsuccess = () => resolve(req.result?.dados || {})
+            req.onerror = e => reject(e.target.error)
+        })
+        dadosMesclados = { ...antigo, ...dados }
     }
 
     dadosMesclados = Object.fromEntries(
-        Object.entries(dadosMesclados).filter(([_, valor]) => !valor?.excluido)
-    );
+        Object.entries(dadosMesclados).filter(([_, v]) => !v?.excluido)
+    )
 
-    await store.put({ id: nomeBase, dados: dadosMesclados });
+    await store.put({ id: nomeBase, dados: dadosMesclados })
 
     await new Promise((resolve, reject) => {
-        tx.oncomplete = () => {
-            resolve();
-        };
-        tx.onerror = (e) => {
-            reject(e.target.error);
-        };
-    });
+        tx.oncomplete = () => resolve()
+        tx.onerror = e => reject(e.target.error)
+    })
 
-    db.close();
+    db.close()
 }
 
 async function recuperarDadosIndexedDB(nomeBase) {
