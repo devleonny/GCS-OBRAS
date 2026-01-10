@@ -34,9 +34,11 @@ function connectWebSocket() {
                 user.status = data.status
                 await inserirDados({ [data.usuario]: user }, 'dados_setores')
             }
-
-            usuariosToolbar()
-            balaoUsuario(data.status, data.usuario)
+            
+            try {
+                usuariosToolbar()
+                balaoUsuario(data.status, data.usuario)
+            } catch { }
         }
 
     }

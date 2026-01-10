@@ -141,35 +141,20 @@ async function reprocessarOffline() {
     }
 }
 
-function popup(elementoHTML, titulo, nra) {
+function popup(elementoHTML, titulo, nra = true) {
 
+    const idPopup = ID5digitos()
     const p = `
-    <div id="temp_pop" 
-    style="
-    position: fixed;
-    z-index: 10001;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: rgba(0, 0, 0, 0.7);">
+    <div 
+        id="${idPopup}"
+        class="popup">
 
         <div class="janela-fora">
             
             <div class="popup-top">
 
                 <label style="background-color: transparent; color: white; margin-left: 1rem;">${titulo || 'GCS'}</label>
-
-                <div style="${horizontal};">
-
-                    <div class="popup-botao" style="border-top-right-radius: 5px; background-color: #b12425;" onclick="removerPopup()">
-                        <label>×</label>
-                    </div>
-
-                </div>
+                <span onclick="removerPopup({id:'${idPopup}', nra: ${nra}})">×</span>
 
             </div>
             
@@ -183,34 +168,31 @@ function popup(elementoHTML, titulo, nra) {
 
     </div>`
 
-    removerPopup(nra) // nra - não remover anteriores
-    removerOverlay()
+    const aguarde = document.querySelector('.aguarde')
+    if (aguarde) aguarde.remove()
+
     document.body.insertAdjacentHTML('beforeend', p)
 
 }
 
-async function removerPopup(naoRemoverAnteriores) {
+async function removerPopup({ id, nra }) {
 
-    const popUps = document.querySelectorAll('#temp_pop')
+    const popups = document.querySelectorAll('.popup')
 
-    if (naoRemoverAnteriores) return
-
-    if (popUps.length > 1) {
-        popUps[popUps.length - 1].remove()
-
+    if (nra) {
+        const p = document.getElementById(id)
+        if (p) p.remove()
     } else {
-        popUps.forEach(pop => {
-            pop.remove()
-        })
+        for (const p of popups) p.remove()
     }
 
-    const aguarde = document.getElementById('aguarde')
+    const aguarde = document.querySelector('.aguarde')
     if (aguarde) aguarde.remove()
 
 }
 
 function verificarClique(event) {
-    const menu = document.getElementById('side-menu');
+    const menu = document.querySelector('.side-menu')
     if (menu && menu.classList.contains('active') && !menu.contains(event.target)) menu.classList.remove('active')
 }
 
