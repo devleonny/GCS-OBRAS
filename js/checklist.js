@@ -70,7 +70,7 @@ async function telaChecklist() {
                         ${modeloBotoes('checklist', 'Ver Itens Removidos', `verItensRemovidos()`)}
                         ${modeloBotoes('baixar', 'Serviço Avulso', `adicionarServicoAvulso()`)}
                         ${modeloBotoes('relatorio', 'Relatório', `relatorioChecklist()`)}
-                        ${modeloBotoes('atualizar3', 'Atualizar', `atualizarChecklist()`)}
+                        ${modeloBotoes('atualizar', 'Atualizar', `atualizarChecklist()`)}
                     </div>
                 </div>
 
@@ -907,7 +907,7 @@ async function verItensRemovidos() {
 
         itens += `
             <div style="${horizontal}; gap: 10px;">
-                <img onclick="recuperarItem('${codigo}', this)" src="imagens/atualizar3.png" style="width: 1.2rem;">
+                <img onclick="recuperarItem('${codigo}', this)" src="imagens/atualizar.png" style="width: 1.2rem;">
                 <span>${descricao}</span> 
             </div>
         `

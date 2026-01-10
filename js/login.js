@@ -5,7 +5,7 @@ function telaLogin() {
 
     if (acesso) {
 
-        if (app == 'GCS') return window.location.href = '../index.html'
+        if (app == 'GCS') return window.location.href = 'index.html'
         return telaPrincipal()
 
     }

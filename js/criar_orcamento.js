@@ -718,7 +718,7 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
 
     const botoes = `
 
-        ${btn('atualizar_2', 'recuperarComposicoesOrcamento()', 'Atualizar')}
+        ${btn('atualizar', 'recuperarComposicoesOrcamento()', 'Atualizar')}
 
         ${moduloComposicoes
             ? btn('add', 'cadastrarItem()', 'Criar Item')

@@ -314,7 +314,7 @@ async function criarManutencao(id) {
             ${layoutBotao('Adicionar Peça', 'criarLinhaPeca()', 'chamados')}
             ${layoutBotao('Salvar', `enviarManutencao('${idManutencao}')`, 'concluido')}
             ${layoutBotao('Sincronizar Estoque', `sincronizarDados('dados_estoque')`, 'estoque')}
-            ${layoutBotao('Sincronizar Clientes/Técnicos', `recuperarClientes()`, 'atualizar3')}
+            ${layoutBotao('Sincronizar Clientes/Técnicos', `recuperarClientes()`, 'atualizar')}
             ${layoutBotao('PDF', `gerarPDFChamados()`, 'pdf')}
             ${manutencao ? layoutBotao('Excluir Manutenção', `confirmarExclusaoManutencao('${idManutencao}')`, 'cancel') : ''}
 

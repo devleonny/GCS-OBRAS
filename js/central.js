@@ -181,59 +181,59 @@ const esquemaBotoes = {
     ],
     orcamentos: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
-        { nome: 'Atualizar', funcao: 'atualizarOrcamentos', img: 'atualizar3' },
+        { nome: 'Atualizar', funcao: 'atualizarOrcamentos', img: 'atualizar' },
         { nome: 'Baixar em Excel', funcao: 'excelOrcamentos', img: 'excel' },
         { nome: 'Criar Orçamento', funcao: 'telaCriarOrcamento', img: 'projeto' },
         { nome: 'Orçamento de Aluguel', funcao: 'telaCriarOrcamentoAluguel', img: 'projeto' }
     ],
     composicoes: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
-        { nome: 'Atualizar', funcao: 'atualizarComposicoes', img: 'atualizar3' },
+        { nome: 'Atualizar', funcao: 'atualizarComposicoes', img: 'atualizar' },
         { nome: 'Cadastrar Item', funcao: 'cadastrarItem', img: 'baixar' },
         { nome: 'Baixar em Excel', funcao: 'exportarParaExcel', img: 'excel' },
         { nome: 'Filtrar Campos', funcao: 'abrirFiltros', img: 'pesquisar2' }
     ],
     chamados: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
-        { nome: 'Atualizar', funcao: 'atualizarManutencoes', img: 'atualizar3' },
+        { nome: 'Atualizar', funcao: 'atualizarManutencoes', img: 'atualizar' },
         { nome: 'Criar Manutenção', funcao: 'criarManutencao', img: 'chamados' },
         { nome: 'Baixar em Excel', funcao: 'excelChamados', img: 'excel' }
     ],
     veiculos: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
-        { nome: 'Atualizar', funcao: 'atualizarDadosVeiculos', img: 'atualizar3' },
+        { nome: 'Atualizar', funcao: 'atualizarDadosVeiculos', img: 'atualizar' },
         { nome: 'Adicionar Combustível', funcao: 'painelValores', img: 'combustivel' },
         { nome: 'Motoristas', funcao: 'auxMotoristas', img: 'motorista' },
         { nome: 'Veículos', funcao: 'auxVeiculos', img: 'veiculo' },
     ],
     pagamentos: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
-        { nome: 'Atualizar', funcao: 'recuperarPagamentos', img: 'atualizar3' },
+        { nome: 'Atualizar', funcao: 'recuperarPagamentos', img: 'atualizar' },
         { nome: 'Solicitar Pagamento', funcao: 'formularioPagamento', img: 'pagamento' }
     ],
     estoque: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
-        { nome: 'Atualizar', funcao: 'atualizarEstoque', img: 'atualizar3' },
+        { nome: 'Atualizar', funcao: 'atualizarEstoque', img: 'atualizar' },
         { nome: 'Cadastrar Item', funcao: 'incluirItemEstoque', img: 'baixar' },
         { nome: 'Relatório de Movimentos', funcao: 'relatorioMovimento', img: 'projeto' },
         { nome: 'Baixar em Excel', funcao: `exportarParaExcel`, img: 'excel' },
     ],
     relatorio: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
-        { nome: 'Atualizar', funcao: 'atualizarRelatorio', img: 'atualizar3' },
+        { nome: 'Atualizar', funcao: 'atualizarRelatorio', img: 'atualizar' },
         { nome: 'Baixar em Excel', funcao: 'excelRecebimento', img: 'excel' },
         { nome: 'Limpar Filtros', funcao: 'limparFiltros', img: 'limpar' },
     ],
     rh: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
-        { nome: 'Atualizar', funcao: 'telaRH', img: 'atualizar3' },
+        { nome: 'Atualizar', funcao: 'telaRH', img: 'atualizar' },
         { nome: 'Tabela', funcao: 'telaRHTabela', img: 'todos' },
         { nome: 'Baixar em Excel', funcao: 'rhExcel', img: 'excel' },
         { nome: 'Adicionar Local', funcao: 'adicionarPessoa', img: 'baixar' }
     ],
     agenda: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
-        { nome: 'Atualizar', funcao: 'atualizarAgenda', img: 'atualizar3' },
+        { nome: 'Atualizar', funcao: 'atualizarAgenda', img: 'atualizar' },
         { nome: 'Distribuição por Funcionário', funcao: 'distribuicaoFuncionario', img: 'gerente' },
         { nome: 'Novo Funcionário', funcao: 'abrirOpcoes', img: 'baixar' },
     ]
@@ -364,11 +364,11 @@ async function respostaSincronizacao(script) {
 
 function redirecionarChamados() {
     localStorage.setItem('app', '')
-    window.location.href = 'chamados/index.html'
+    window.location.href = 'chamados.html'
 }
 
 function retornar() {
-    window.location.href = 'chamados/index.html'
+    window.location.href = 'chamados.html'
 }
 
 async function identificacaoUser() {
@@ -1732,7 +1732,7 @@ async function confirmarRelancamento(idPagamento) {
             <span>${infoAdicional}</span>
         </div>
     `
-    popup(mensagem(texto, 'imagens/atualizar3.png'), 'Resposta', true)
+    popup(mensagem(texto, 'imagens/atualizar.png'), 'Resposta', true)
 
     telaPagamentos()
 
@@ -2279,7 +2279,7 @@ async function painelClientes(idOrcamento) {
 
     const botoes = [
         { texto: 'Salvar Dados', img: 'concluido', funcao: `salvarDadosCliente()` },
-        { texto: 'Atualizar', img: 'atualizar3', funcao: `atualizarBaseClientes()` },
+        { texto: 'Atualizar', img: 'atualizar', funcao: `atualizarBaseClientes()` },
     ]
 
     if (idOrcamento) botoes.push({ texto: 'Limpar Campos', img: 'limpar', funcao: 'executarLimparCampos()' })

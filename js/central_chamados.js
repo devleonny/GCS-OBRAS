@@ -11,6 +11,7 @@ let progressCircle = null
 let percentageText = null
 let telaInterna = null
 let filtrosPagina = {}
+let pExecucao = true
 const extensoes = ['jpg', 'jpeg', 'png']
 
 document.addEventListener('keydown', function (event) {
@@ -55,7 +56,6 @@ async function resetarBases() {
     removerOverlay()
 
 }
-
 
 function esquemaLinhas(base, id) {
 
@@ -387,7 +387,7 @@ function overlayAguarde() {
 
 function irGCS() {
     localStorage.setItem('app', 'GCS')
-    window.location.href = '../index.html'
+    window.location.href = 'index.html'
 }
 
 async function telaPrincipal() {
@@ -416,18 +416,19 @@ async function telaPrincipal() {
     telaInterna = document.querySelector('.telaInterna')
     telaInterna.innerHTML = planoFundo
 
-    mostrarMenus(true)
+    mostrarMenus(false)
 
-    carregarMenus()
-    await atualizarOcorrencias()
+    if (pExecucao) {
+        mostrarMenus(true)
+        carregarMenus()
+        pExecucao = false
+        await atualizarOcorrencias()
+        // Após atualização;
+        acesso = await recuperarDado('dados_setores', acesso.usuario) || {}
+        // Recuperar Filtros;
+        filtrosAtivos = JSON.parse(localStorage.getItem('filtrosAtivos')) || {}
+    }
 
-    // Após atualização;
-    acesso = await recuperarDado('dados_setores', acesso.usuario) || {}
-    // Recuperar Filtros;
-    filtrosAtivos = JSON.parse(localStorage.getItem('filtrosAtivos')) || {}
-
-    if (!document.querySelector('.planoFundo')) return
-    filtrarPorCampo()
 
 }
 
@@ -437,6 +438,7 @@ function carregarMenus() {
 
     const menus = {
         'Atualizar': { img: 'atualizar', funcao: 'atualizarOcorrencias()', proibidos: [] },
+        'Início': { img: 'home', funcao: 'telaPrincipal()', proibidos: [] },
         'Criar Ocorrência': { img: 'baixar', funcao: 'formularioOcorrencia()', proibidos: [] },
         'Ocorrências': { img: 'configuracoes', funcao: 'telaOcorrencias()', proibidos: [] },
         'Relatório de Ocorrências': { img: 'planilha', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] },

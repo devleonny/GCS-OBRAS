@@ -126,7 +126,7 @@ async function verItensRemovidosLPU() {
 
         itens += `
             <div style="${horizontal}; gap: 10px;">
-                <img onclick="recuperarItemLPU('${codigo}', this)" src="imagens/atualizar3.png" style="width: 1.2rem;">
+                <img onclick="recuperarItemLPU('${codigo}', this)" src="imagens/atualizar.png" style="width: 1.2rem;">
                 <span>${composicao.descricao}</span> 
             </div>
         `

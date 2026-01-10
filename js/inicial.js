@@ -312,7 +312,7 @@ function carregarTecnicos() {
         <div style="${vertical}; width: 100%;">
             <div class="topo-tabela">
                 <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
-                    <img src="imagens/atualizar3.png" onclick="sincronizarPda()">
+                    <img src="imagens/atualizar.png" onclick="sincronizarPda()">
                 </div>
             </div>
 
@@ -421,7 +421,7 @@ function indicadores() {
     const indiGeral = permitidos.includes(acesso.permissao) ? indi(totais, 'Geral') : ''
 
     const acumulado = `
-    <img style="position: absolute; top: 5px; right: 5px;" src="imagens/atualizar3.png" onclick="sincronizarPda()">
+    <img style="position: absolute; top: 5px; right: 5px;" src="imagens/atualizar.png" onclick="sincronizarPda()">
     <div class="painel-indicadores">
 
         <div style="${vertical}; align-items: center; padding: 0.5rem;">
@@ -521,7 +521,7 @@ function carregarPDA() {
             <div class="topo-tabela">
                 <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
                     <img src="imagens/baixar.png" onclick="editarLinPda({aba: '${aba}'})">
-                    <img src="imagens/atualizar3.png" onclick="sincronizarPda()">
+                    <img src="imagens/atualizar.png" onclick="sincronizarPda()">
                 </div>
             </div>
             <div class="div-tabela">

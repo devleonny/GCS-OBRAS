@@ -1543,7 +1543,7 @@ async function abrirEsquema(id) {
     const linha1 = `
         <div style="${horizontal}; gap: 2rem;">
 
-            <img onclick="sincronizarReabrir()" src="imagens/atualizar3.png">
+            <img onclick="sincronizarReabrir()" src="imagens/atualizar.png">
 
             <div style="${vertical}; gap: 2px;">
                 <label>Status atual</label>

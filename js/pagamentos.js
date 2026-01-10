@@ -864,7 +864,7 @@ async function formularioPagamento() {
 
     const botoes = [
         { texto: 'Salvar Pagamento', img: 'concluido', funcao: 'salvarPagamento()' },
-        { texto: 'Atualizar', img: 'atualizar3', funcao: 'recuperarPagamentos()' },
+        { texto: 'Atualizar', img: 'atualizar', funcao: 'recuperarPagamentos()' },
         { texto: 'Regras', img: 'alerta', funcao: 'duvidas()' },
         { texto: 'Recomeçar', img: 'cancel', funcao: 'apagarPagamento()' }
     ]

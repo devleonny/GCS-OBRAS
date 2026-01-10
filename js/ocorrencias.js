@@ -298,7 +298,7 @@ function uCorrecao(correcoes) {
         const dateObj = new Date(`${ano}-${mes}-${dia}T${h}`)
 
         if (tipoCorrecao == 'WRuo2') solucionado = true
-        
+
         if (!maisRecente || dateObj > maisRecente) {
             maisRecente = dateObj
             tipo = tipoCorrecao
@@ -366,7 +366,7 @@ function carregarCorrecoes(idOcorrencia, dadosCorrecao = {}) {
                     ${modelo('Solicitante', `<span>${correcao.usuario}</span>`)}
                     ${modelo('Executor', `<span>${correcao.executor}</span>`)}
                     ${modelo('Correção', `<span class="${estilo}">${status}</span>`)}
-                    ${modelo('Descrição', `<div style="text-align: justify;">${correcao.descricao}</div>`)}
+                    ${modelo('Descrição', `<div style="white-space: pre-wrap;">${correcao.descricao}</div>`)}
                     ${modelo('Criado em', `<span>${correcao?.data || 'S/D'}</span>`)}
                 </div>
 
@@ -447,7 +447,7 @@ async function filtrarPorCampo(campo, valor) {
     if (!valor) {
         delete filtrosAtivos[campo]
     } else {
-        filtrosAtivos[campo] = valor
+        filtrosAtivos[campo] = valor == 'Todos' ? '' : valor
     }
 
     // Backup Filtros;
@@ -559,6 +559,11 @@ function renderizarPaginacao() {
     }
 }
 
+function limparFiltros() {
+    filtrosAtivos = {}
+    filtrarPorCampo()
+}
+
 async function renderizarPagina(pagina) {
 
     paginaAtual = pagina
@@ -582,7 +587,6 @@ async function renderizarPagina(pagina) {
             return 0
         })
 
-    if (fatia.length == 0) return
 
     const tabela = document.querySelector('.tabela1')
     tabela.innerHTML = ''
@@ -590,6 +594,9 @@ async function renderizarPagina(pagina) {
 
     const contadorPagina = document.getElementById('contador')
     if (contadorPagina) contadorPagina.textContent = Object.keys(base).length
+
+    if (fatia.length == 0) 
+        return contadorPagina.innerHTML = `<div onclick="limparFiltros()" style="${horizontal}; gap: 1rem; cursor: pointer;"><span>Sem resultados</span> • <span>Limpar</span></div>`
 
     // Lançamento das linhas na página //29
     for (const dados of fatia) {
@@ -764,9 +771,10 @@ async function atualizarOcorrencias() {
     dados_ocorrencias = await recuperarDados('dados_ocorrencias')
     dados_clientes = await recuperarDados('dados_clientes')
 
+    const tOcorrencias = document.querySelector('.tela-ocorrencias')
+    if (tOcorrencias) filtrarPorCampo() // Atualizar as linhas;
+
     carregarMenus()
-    await telaOcorrencias()
-    filtrarPorCampo() // Atualizar as linhas;
     auxPendencias() // Atualizar os tópicos do menu lateral;
 }
 

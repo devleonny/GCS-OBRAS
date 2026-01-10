@@ -265,7 +265,7 @@ async function tabelaProdutosAluguel() {
     let botoes = `
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
                 onclick="recuperarComposicoesAluguel()">
-                <img src="imagens/atualizar_2.png" style="width: 30px; cursor: pointer;">
+                <img src="imagens/atualizar.png" style="width: 30px; cursor: pointer;">
                 <label style="color: white; cursor: pointer;">Atualizar</label>
             </div>`
 

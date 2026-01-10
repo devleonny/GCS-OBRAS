@@ -1403,7 +1403,7 @@ async function precosDesatualizados(calculo) {
 
             <hr>
 
-            <span style="${horizontal}">Clique no ícone <img src="imagens/atualizar3.png" style="padding: 5px; width: 1.5rem"> para manter o preço por mais 60 dias</span>
+            <span style="${horizontal}">Clique no ícone <img src="imagens/atualizar.png" style="padding: 5px; width: 1.5rem"> para manter o preço por mais 60 dias</span>
             <span style="cursor: pointer;" onclick="excelProdutosDesatualizados()"><u>Baixar em Excel</u></span>
             <hr>
 
@@ -1453,7 +1453,7 @@ async function precosDesatualizados(calculo) {
             <td>
                 <div style="${horizontal}; justify-content: space-between; width: 100%; gap: 5px;">
                     <span>${preco?.data.split(',')[0]}</span>
-                    <img onclick="confirmarAtualizarData('${tabela}', '${codigo}')" src="imagens/atualizar3.png" style="width: 1.5rem;">
+                    <img onclick="confirmarAtualizarData('${tabela}', '${codigo}')" src="imagens/atualizar.png" style="width: 1.5rem;">
                 </div>
             </td>
             <td>${preco?.fornecedor || '--'}</td>

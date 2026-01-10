@@ -602,7 +602,7 @@ async function painelValores(idCusto, duplicar) {
 
     const botoes = [
         { texto: 'Salvar', img: 'concluido', funcao: (!idCusto || duplicar) ? `salvarValores()` : `salvarValores('${idCusto}')` },
-        { texto: 'Atualizar', img: 'atualizar3', funcao: `atualizarDadosVeiculos()` },
+        { texto: 'Atualizar', img: 'atualizar', funcao: `atualizarDadosVeiculos()` },
     ]
 
     const form = new formulario({ linhas, botoes, titulo: 'Gerenciar Custo' })
