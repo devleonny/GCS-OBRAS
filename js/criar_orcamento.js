@@ -1,10 +1,3 @@
-let filtrosPagina = {}
-let pagina
-let modo
-let moduloComposicoes = {}
-let tabelaAtiva
-let tipoAtivo = 'TODOS'
-let titulo = null
 let memoriaFiltro = null
 let lpuATIVA = null
 let paginaComposicoes = 1

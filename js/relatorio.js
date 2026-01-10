@@ -121,7 +121,7 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
     const tds = `
         <td>
             <div style="${horizontal}">
-                <img src="imagens/pesquisar.png" style="width: 2rem; cursor: pointer;" onclick="abrirCorrecaoRelatorio('${idOcorrencia}')">
+                <img src="imagens/pesquisar2.png" style="width: 2rem; cursor: pointer;" onclick="abrirCorrecaoRelatorio('${idOcorrencia}')">
             </div>
         </td>
         <td>${empresas[ocorrencia?.empresa]?.nome || '-'}</td>

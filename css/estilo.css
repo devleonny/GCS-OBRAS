@@ -12,6 +12,26 @@ html {
     font-size: 0.9rem;
 }
 
+.b-painel {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 2rem;
+    background-color: rgba(255, 255, 255, 0.104);
+    padding: 1rem;
+}
+
+.b-atalhos {
+    width: 100%;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    gap: 2px;
+}
+
 hr {
     width: 100%;
 }
@@ -28,7 +48,7 @@ img {
     margin-top: 5rem;
 }
 
-#tela {
+.tela {
     margin-top: 7vh;
 }
 
@@ -64,9 +84,11 @@ img {
 }
 
 .planoFundo {
+    gap: 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-direction: column;
     height: 80vh;
     width: 90vw;
     background-color: #0000005e;
@@ -254,22 +276,6 @@ button {
     border-radius: 5px;
     border: none;
     white-space: nowrap;
-}
-
-.janela {
-    max-height: 80vh;
-}
-
-.janela-fora {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: start;
-    text-align: center;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    border-radius: 10px;
-    overflow: hidden;
 }
 
 .painel-cadastro {
@@ -513,27 +519,6 @@ button {
     left: 0;
 }
 
-.div-mensagem {
-    font-size: 1.2rem;
-    color: white;
-}
-
-.aguarde {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: rgba(0, 0, 0, 0.7);
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    z-index: 10005;
-}
-
-.aguarde img {
-    width: 35vw;
-}
-
 .painelBotoes {
     border: solid 1px #ababab;
     min-height: 2rem;
@@ -772,7 +757,7 @@ input[type="file"] {
     padding: 0.5rem;
 }
 
-.toolbar {
+.toolbar-top {
     min-height: 6vh;
     display: flex;
     align-items: center;
@@ -784,7 +769,7 @@ input[type="file"] {
     z-index: 333;
 }
 
-.toolbar span {
+.toolbar-top span {
     color: white;
 }
 
@@ -949,6 +934,14 @@ input[type="file"] {
 
 @media screen and (orientation: landscape),
 screen and (min-aspect-ratio: 13/9) {
+
+    .b-painel {
+        flex-direction: row;
+    }
+
+    .b-atalhos {
+        width: 50%;
+    }
 
     .painel-cadastro {
         min-width: 40vw;

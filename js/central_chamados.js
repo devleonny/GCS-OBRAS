@@ -1,23 +1,4 @@
-const tela = document.getElementById('tela')
-const toolbar = document.querySelector('.toolbar')
-const titulo = toolbar.querySelector('span')
-const horizontal = `display: flex; align-items: center; justify-content: center;`
-const vertical = `display: flex; align-items: start; justify-content: start; flex-direction: column`
-const nomeBaseCentral = 'GCSMob'
-const nomeStore = 'Bases'
-let acesso = {}
-const api = `https://api.gcs.app.br`
-let progressCircle = null
-let percentageText = null
-let telaInterna = null
-let filtrosPagina = {}
-let pExecucao = true
-const extensoes = ['jpg', 'jpeg', 'png']
 
-document.addEventListener('keydown', function (event) {
-    if (event.key === 'F8') resetarBases()
-    if (event.key === 'F5') location.reload()
-})
 
 async function resetarBases() {
 
@@ -102,19 +83,12 @@ const modeloTabela = ({ minWidth, removerPesquisa = false, colunas, base, funcao
         .map((col, i) => `<th style="text-align: left;" contentEditable="true" oninput="pesquisarGenerico('${i}', this.textContent, '${body}')"></th>`)
         .join('')
 
-    const btnAtualizar = base
-        ? `<img class="atualizar" src="imagens/atualizar.png" onclick="atualizarDados('${base}')">`
-        : funcao
-            ? `<img class="atualizar" src="imagens/atualizar.png" onclick="${funcao}">`
-            : ''
-
     return `
     <div class="blocoTabela" ${minWidth ? `style="min-width: ${minWidth}"` : ''}>
         <div class="painelBotoes">
             <div class="botoes">
                 ${btnExtras}
             </div>
-            ${btnAtualizar}
         </div>
         <div class="recorteTabela">
             <table class="tabela" ${colunas.length == 2 ? 'style="width: 100%;"' : ''}>
@@ -157,23 +131,7 @@ function f5() {
     location.reload();
 }
 
-if (isAndroid) {
-
-    document.addEventListener('deviceready', async () => {
-
-        await solicitarPermissoes();
-
-        connectWebSocket();
-        telaLogin();
-
-    }, false);
-
-} else {
-
-    connectWebSocket()
-    telaLogin()
-
-}
+telaLogin()
 
 function pesquisarGenerico(coluna, texto, tbody = 'body') {
 
@@ -308,89 +266,14 @@ async function capturarLocalizacao() {
     })
 }
 
-function popup(elementoHTML, titulo, naoRemoverAnteriores) {
-
-    const acumulado = `
-        <div id="tempPop" class="overlay">
-
-            <div class="janela-fora">
-                
-                <div class="toolbarPopup">
-
-                    <div class="title">${titulo || 'Popup'}</div>
-                    <span class="close" onclick="removerPopup()">×</span>
-
-                </div>
-                
-                <div class="janela">
-
-                    ${elementoHTML}
-
-                </div>
-
-            </div>
-
-        </div>`
-
-    removerPopup(naoRemoverAnteriores)
-    removerOverlay()
-    document.body.insertAdjacentHTML('beforeend', acumulado);
-
-}
-
-async function removerPopup(naoRemoverAnteriores) {
-
-    const popUps = document.querySelectorAll('#tempPop')
-
-    if (naoRemoverAnteriores) return
-
-    if (popUps.length > 1) {
-        popUps[popUps.length - 1].remove()
-
-    } else {
-        popUps.forEach(pop => {
-            pop.remove()
-        })
-    }
-
-    const aguarde = document.querySelector('.aguarde')
-    if (aguarde) aguarde.remove()
-
-}
-
-function removerOverlay() {
-    let aguarde = document.querySelector('.aguarde')
-    if (aguarde) aguarde.remove()
-}
-
-function overlayAguarde() {
-
-    const aguarde = document.querySelector('.aguarde')
-    if (aguarde) aguarde.remove()
-
-    const elemento = `
-        <div class="aguarde">
-            <div class="div-mensagem"></div>
-            <img src="gifs/loading.gif">
-        </div>
-    `
-    document.body.insertAdjacentHTML('beforeend', elemento)
-
-    let pageHeight = Math.max(
-        document.body.scrollHeight,
-        document.documentElement.scrollHeight
-    );
-
-    document.querySelector('.aguarde').style.height = `${pageHeight}px`;
-
-}
-
 function irGCS() {
     localStorage.setItem('app', 'GCS')
     window.location.href = 'index.html'
 }
 
 async function telaPrincipal() {
+
+    atribuirVariaveis()
 
     toolbar.style.display = 'flex'
     const planoFundo = `
@@ -400,7 +283,7 @@ async function telaPrincipal() {
 
     const acumulado = `
         <div class="menu-container">
-            <div class="side-menu" id="sideMenu">
+            <div class="side-menu">
                 <div class="progresso"></div>
                 <div class="botoesMenu"></div>
             </div>
@@ -429,7 +312,82 @@ async function telaPrincipal() {
         filtrosAtivos = JSON.parse(localStorage.getItem('filtrosAtivos')) || {}
     }
 
+    await criarElementosIniciais()
 
+}
+
+async function criarElementosIniciais() {
+
+    await telaOcorrencias(true) // Apenas para carregar o objeto listaOcorrencias;
+
+    const totais = {}
+    let atradados = 0
+
+    for (const ocorrencia of Object.values(listaOcorrencias)) {
+
+        if (ocorrencia.criador !== acesso.usuario) continue
+
+        const { ultima_correcao, atrasado } = ocorrencia
+
+        if (ultima_correcao == 'Solucionada') continue
+
+        totais[ultima_correcao] ??= 0
+        totais[ultima_correcao]++
+
+        if (atrasado == 'Sim') atradados++
+
+    }
+
+    const pFundo = document.querySelector('.planoFundo')
+    const m = (funcao, texto, total) => `
+        <div class="pill" onclick="${funcao}">
+            <span class="pill-a" style="background: #b12425;">${total}</span>
+            <span class="pill-b">${texto}</span>
+        </div>
+    `
+
+    if (!Object.keys(totais).length && !atradados.length) return pFundo.innerHTML = `<img src="imagens/BG.png">`
+
+    const atalhoCorrecoes = Object.entries(totais)
+        .map(([correcao, total]) => m(`atalhoPendencias('ultima_correcao', '${correcao}')`, correcao, total))
+        .join('')
+
+    const hora = new Date().getHours()
+    const saudacao = hora > 18
+        ? 'Boa noite'
+        : hora > 12
+            ? 'Boa tarde'
+            : 'Bom dia'
+
+    const dAtrasados = `
+        <div class="b-atalhos">
+            ${m(`atalhoPendencias('atrasado', 'Sim')`, 'Atrasados', atradados)}
+        </div>
+    `
+
+    const dAtalhos = `
+        <div class="b-atalhos">
+            ${atalhoCorrecoes}
+        </div>
+    `
+
+    pFundo.innerHTML = `
+        <span style="padding: 1rem; font-size: 1rem; color: white;">
+            <b>${saudacao}</b>,<br> logo abaixo veja alguns atalhos para ocorrências que precisam de atenção:
+        </span>
+        <div class="b-painel">
+            ${Object.keys(totais).length ? dAtalhos : ''}
+            ${atradados.length ? dAtrasados : ''}
+        </div>
+    `
+}
+
+function atalhoPendencias(campo, valor) {
+    const nFiltro = { criador: acesso.usuario }
+    nFiltro[campo] = valor
+    localStorage.setItem('filtrosAtivos', JSON.stringify(nFiltro))
+
+    filtrarPorCampo()
 }
 
 function carregarMenus() {
@@ -484,7 +442,7 @@ async function telaUsuarios() {
     empresas = await recuperarDados('empresas')
     const colunas = ['Nome', 'Empresa', 'Setor', 'Permissão', '']
 
-    const dados_setores = await recuperarDados('dados_setores')
+    dados_setores = await recuperarDados('dados_setores')
     const btnExtras = `<img onclick="atualizarUsuarios()" src="imagens/atualizar.png">`
 
     const tbody = document.getElementById('tabela_usuarios')
@@ -522,74 +480,6 @@ function criarLinhaUsuario(user, dados) {
     document.getElementById('tabela_usuarios').insertAdjacentHTML('beforeend', `<tr id="${user}">${tds}</tr>`)
 }
 
-async function criarLinha(dados, id, nomeBase) {
-
-    const modelo = (texto) => {
-        return `
-        <td>
-            <div class="camposTd">
-                <span>${texto}</span>
-            </div>
-        </td>`
-    }
-
-    let tds = ''
-
-    const esquema = esquemaLinhas(nomeBase, id)
-
-    for (const linha of esquema.colunas) tds += modelo(dados?.[linha] || '...')
-
-    const linha = `
-        ${tds}
-        <td class="detalhes">
-            <img onclick="${esquema.funcao}" src="imagens/pesquisar.png">
-        </td>
-    `
-
-    const tr = document.getElementById(id)
-    if (tr) return tr.innerHTML = linha
-    const body = document.getElementById('body')
-    body.insertAdjacentHTML('beforeend', `<tr id="${id}">${linha}</tr>`)
-
-}
-
-function verificarClique(event) {
-    const menu = document.getElementById('sideMenu');
-    if (menu && menu.classList.contains('active') && !menu.contains(event.target)) menu.classList.remove('active')
-}
-
-async function sincronizarDados(base, overlayOff, reset) {
-
-    if (!overlayOff) overlayAguarde()
-
-    if (reset) await inserirDados({}, base, true)
-    const nuvem = await receber(base) || {}
-    await inserirDados(nuvem, base)
-
-    if (!overlayOff) removerOverlay()
-}
-
-async function atualizarDados(base) {
-
-    overlayAguarde()
-
-    // Mecânica para atualização/inclusão de linhas;
-    const dados = await recuperarDados(base)
-    for (const [id, objeto] of Object.entries(dados).reverse()) criarLinha(objeto, id, base)
-
-    // Mecânica para remoção de linhas de dados excluídos;
-    const chavesAtivas = Object.keys(dados)
-    const tbody = document.getElementById('body')
-    if (tbody) {
-        const trs = tbody.querySelectorAll('tr')
-        for (const tr of trs) {
-            if (!chavesAtivas.includes(tr.id)) tr.remove()
-        }
-    }
-    removerOverlay()
-
-}
-
 function popupNotificacao(msg) {
 
     const idNot = ID5digitos()
@@ -603,30 +493,6 @@ function popupNotificacao(msg) {
         document.getElementById(idNot).remove()
     }, 5000);
 
-}
-
-function deslogar() {
-
-    const acumulado = `
-        <div style="${horizontal}; gap: 10px; background-color: #d2d2d2; padding: 1rem;">
-            <span>Tem certeza?</span>
-            <button onclick="confirmarDeslogar()">Sim</button>
-        </div>
-    `
-    popup(acumulado, 'Sair do GCS', true)
-}
-
-async function confirmarDeslogar() {
-    removerPopup()
-    localStorage.removeItem('acesso')
-    telaLogin()
-    await inserirDados({}, 'dados_ocorrencias', true) // resetar a base para o próximo usuário;
-}
-
-function mostrarMenus(operacao) {
-    const menu = document.getElementById('sideMenu').classList
-    if (operacao == 'toggle') return menu.toggle('active')
-    operacao ? menu.add('active') : menu.remove('active')
 }
 
 async function gerenciarUsuario(id) {
@@ -654,228 +520,6 @@ async function gerenciarUsuario(id) {
     const form = new formulario({ linhas, titulo: 'Gerenciar Usuário' })
     form.abrirFormulario()
 
-}
-
-function unicoID() {
-    var d = new Date().getTime();
-    if (window.performance && typeof window.performance.now === "function") {
-        d += performance.now();
-    }
-    var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        var r = (d + Math.random() * 16) % 16 | 0;
-        d = Math.floor(d / 16);
-        return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-    });
-    return uuid;
-}
-
-// API
-setInterval(async function () {
-    await reprocessarOffline()
-}, 30 * 1000)
-
-async function reprocessarOffline() {
-    let dados_offline = JSON.parse(localStorage.getItem('dados_offline')) || {};
-
-    for (let [operacao, operacoes] of Object.entries(dados_offline)) {
-        const ids = Object.keys(operacoes);
-
-        for (let idEvento of ids) {
-            const evento = operacoes[idEvento];
-
-            if (operacao === 'enviar') {
-                await enviar(evento.caminho, evento.valor, idEvento);
-            } else if (operacao === 'deletar', idEvento) {
-                await deletar(evento.chave, idEvento);
-            }
-
-        }
-    }
-}
-
-function removerOffline(operacao, idEvento) {
-    let dados_offline = JSON.parse(localStorage.getItem('dados_offline'))
-    delete dados_offline?.[operacao]?.[idEvento]
-    localStorage.setItem('dados_offline', JSON.stringify(dados_offline))
-}
-
-function salvarOffline(objeto, operacao, idEvento) {
-    let dados_offline = JSON.parse(localStorage.getItem('dados_offline')) || {}
-    idEvento = idEvento || ID5digitos()
-
-    if (!dados_offline[operacao]) dados_offline[operacao] = {}
-    dados_offline[operacao][idEvento] = objeto
-
-    localStorage.setItem('dados_offline', JSON.stringify(dados_offline))
-}
-
-async function enviar(caminho, info, idEvento) {
-    return new Promise((resolve, reject) => {
-        const objeto = { caminho, valor: info }
-
-        fetch(`${api}/salvar`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(objeto)
-        })
-            .then(res => res.json())
-            .then(data => {
-                if (data.mensagem) {
-                    msgQuedaConexao()
-                    return resolve(data) // Só um resolve, com retorno;
-                }
-                resolve(data)
-            })
-            .catch(err => {
-                if (caminho.includes('0000')) {
-                    return reject({ mensagem: 'Sem conexão rede/servidor, tente novamente em alguns minutos' })
-                }
-                salvarOffline(objeto, 'enviar', idEvento)
-                resolve({ mensagem: 'Offline' }) // Retorna algo definido;
-            })
-    })
-}
-
-function msgQuedaConexao(msg = '<b>Falha na atualização:</b> tente novamente em alguns minutos.') {
-
-    const acumulado = `
-        <div class="msg-queda-conexao">
-            <img src="gifs/alerta.gif" style="width: 2rem;">
-            <span>${msg}</span>
-        </div>
-    `
-    const msgAtiva = document.querySelector('.msg-queda-conexao')
-    if (msgAtiva) return
-    popup(acumulado, 'Alerta', true)
-}
-
-async function receber(chave, reset = false) {
-
-    const chavePartes = chave.split('/')
-    const dados = await recuperarDados(chavePartes[0]) || {}
-    let timestamp = 0
-
-    if (!reset) {
-        for (const [, objeto] of Object.entries(dados)) {
-            if (objeto.timestamp && objeto.timestamp > timestamp) timestamp = objeto.timestamp
-        }
-    }
-
-    const rota = chavePartes[0] == 'dados_clientes' ? 'clientes-validos' : 'dados'
-    const obs = {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            chave,
-            usuario: acesso.usuario,
-            timestamp
-        })
-    };
-
-    return new Promise((resolve, reject) => {
-        fetch(`${api}/${rota}`, obs)
-            .then(response => {
-
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.mensagem) {
-                    msgQuedaConexao(data.mensagem)
-                    resolve({})
-                }
-                resolve(data);
-            })
-            .catch(err => {
-                msgQuedaConexao()
-
-                sincronizarApp({ remover: true })
-                emAtualizacao = false
-
-                resolve({})
-            });
-    })
-}
-
-async function deletar(caminho, idEvento) {
-    const url = `${api}/deletar`
-
-    try {
-        const response = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ caminho, usuario: acesso.usuario })
-        });
-
-        let data;
-        try {
-            data = await response.json();
-        } catch (parseError) {
-            console.error("Resposta não é JSON válido:", parseError);
-            salvarOffline(objeto, 'deletar', idEvento);
-            return null;
-        }
-
-        if (!response.ok) {
-            console.error("Erro HTTP:", response.status, data);
-            salvarOffline(objeto, 'deletar', idEvento);
-            return null;
-        }
-
-        if (idEvento) removerOffline('deletar', idEvento);
-
-        return data;
-    } catch (erro) {
-        console.error("Erro na requisição:", erro);
-        salvarOffline(objeto, 'deletar', idEvento);
-        return null;
-    }
-}
-
-async function configuracoes(usuario, campo, valor) {
-
-    const resposta = comunicacaoServ({ usuario, campo, valor })
-
-    if (resposta.mensagem) return popup(mensagem(resposta.mensagem), 'Alerta', true)
-
-    const dadosUsuario = await recuperarDado('dados_setores', usuario)
-    dadosUsuario[campo] = valor
-
-    if (campo == 'permissao' && valor == 'desativado') {
-        removerPopup()
-        await deletarDB('dados_setores', usuario)
-        const tr = document.getElementById(usuario)
-        if (tr) tr.remove()
-    } else {
-        await inserirDados({ [usuario]: dadosUsuario }, 'dados_setores')
-        await telaUsuarios()
-    }
-}
-
-async function comunicacaoServ({ usuario, campo, valor }) {
-    return new Promise((resolve, reject) => {
-        fetch(`${api}/configuracoes`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ usuario, campo, valor })
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`)
-                }
-                return response.json()
-            })
-            .then(data => {
-                resolve(data)
-            })
-            .catch(err => {
-                reject({ mensagem: err })
-            })
-    })
 }
 
 function pesquisar(input) {
@@ -906,35 +550,6 @@ function pesquisar(input) {
             tr.style.display = 'none'; // oculta
         }
     });
-}
-
-function conversor(stringMonetario) {
-    if (typeof stringMonetario === 'number') {
-        return stringMonetario;
-    } else if (!stringMonetario || stringMonetario.trim() === "") {
-        return 0;
-    } else {
-        stringMonetario = stringMonetario.trim();
-        stringMonetario = stringMonetario.replace(/[^\d,]/g, '');
-        stringMonetario = stringMonetario.replace(',', '.');
-        var valorNumerico = parseFloat(stringMonetario);
-
-        if (isNaN(valorNumerico)) {
-            return 0;
-        }
-
-        return valorNumerico;
-    }
-}
-
-function ID5digitos() {
-    const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let id = '';
-    for (let i = 0; i < 5; i++) {
-        const indiceAleatorio = Math.floor(Math.random() * caracteres.length);
-        id += caracteres.charAt(indiceAleatorio);
-    }
-    return id;
 }
 
 function base64ToBlob(base64) {
@@ -971,129 +586,4 @@ async function importarAnexos({ input, foto }) {
         popup(mensagem(`Erro na API: ${err}`));
         throw err;
     }
-}
-
-function criarAnexoVisual({ nome, link, funcao }) {
-
-    let displayExcluir = 'flex'
-
-    if (!funcao) displayExcluir = 'none'
-
-    return `
-        <div class="contornoAnexos" name="${link}">
-            <div onclick="abrirArquivo('${link}', '${nome}')" class="contornoInterno">
-                <img src="imagens/anexo2.png">
-                <label title="${nome}">${nome.slice(0, 15)}...</label>
-            </div>
-            <img src="imagens/cancel.png" style="display: ${displayExcluir};" onclick="${funcao}">
-        </div>
-    `
-}
-
-function abrirArquivo(link, nome) {
-    link = `${api}/uploads/${link}`;
-    const imagens = ['png', 'jpg', 'jpeg'];
-
-    const extensao = nome.split('.').pop().toLowerCase(); // pega sem o ponto
-
-    if (imagens.includes(extensao)) {
-        const acumulado = `
-            <div class="fundoImagens">
-                <img src="${link}" style="width: 100%;">
-            </div>
-        `
-        return popup(acumulado, nome, true);
-    }
-
-    window.open(link, '_blank');
-}
-
-async function cxOpcoes(name, nomeBase, funcaoAux) {
-
-    const campos = nomeBase === 'dados_setores'
-        ? ['nome_completo', 'setor']
-        : esquemaLinhas(nomeBase).colunas
-
-    const base = Object.entries(await recuperarDados(nomeBase))
-
-    base.sort(([, a], [, b]) => {
-        const campo = campos[0]
-
-        if (!(campo in a) || !(campo in b)) return 0
-
-        return String(a[campo])
-            .localeCompare(String(b[campo]), 'pt-BR', { sensitivity: 'base' })
-    })
-
-    let opcoesDiv = ''
-
-    for (const [cod, dado] of base) {
-
-        const labels = campos
-            .map(campo => `${(dado[campo] && dado[campo] !== '') ? `<label>${dado[campo]}</label>` : ''}`)
-            .join('')
-
-        const termo = encodeURIComponent(dado?.[campos[0]] || '')
-
-        opcoesDiv += `
-            <div name="camposOpcoes" class="atalhos" onclick="selecionar('${name}', '${cod}', '${termo}' ${funcaoAux ? `, '${funcaoAux}'` : ''})">
-                ${labels}
-            </div>`
-    }
-
-    const acumulado = `
-        <div style="${vertical};">
-            <div style="${horizontal}; width: 100%; justify-content: left; background-color: #b1b1b1;">
-
-                <div class="pesquisa">
-                    <input oninput="pesquisarCX(this)" placeholder="Pesquisar" style="width: 100%;">
-                    <img src="imagens/pesquisar2.png">
-                </div>
-
-            </div>
-            <div class="gavetaOpcoes">
-                ${opcoesDiv}
-            </div>
-            <div class="rodape-tabela"></div>
-        </div>
-    `
-
-    popup(acumulado, 'Selecione o item', true)
-
-}
-
-async function selecionar(name, id, termo, funcaoAux) {
-    termo = decodeURIComponent(termo)
-    const elemento = document.querySelector(`[name='${name}']`)
-    elemento.textContent = termo
-    elemento.id = id
-    removerPopup()
-
-    if (funcaoAux) await eval(funcaoAux)
-}
-
-function pesquisarCX(input) {
-    const termoPesquisa = String(input.value)
-        .toLowerCase()
-        .replace(/[./-]/g, ''); // remove ponto, traço e barra
-
-    const divs = document.querySelectorAll(`[name='camposOpcoes']`);
-
-    for (const div of divs) {
-        const termoDiv = String(div.textContent)
-            .toLowerCase()
-            .replace(/[./-]/g, ''); // mesma limpeza no conteúdo
-
-        div.style.display = (termoDiv.includes(termoPesquisa) || termoPesquisa === '') ? '' : 'none';
-    }
-}
-
-function inicialMaiuscula(string) {
-    if (string == undefined) {
-        return ''
-    }
-    string.includes('_') ? string = string.split('_').join(' ') : ''
-
-    if (string.includes('lpu')) return string.toUpperCase()
-    return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
 }

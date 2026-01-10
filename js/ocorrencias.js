@@ -1,11 +1,3 @@
-let anexosProvisorios = {}
-let sistemas = {}
-let tipos = {}
-let prioridades = {}
-let empresas = {}
-let correcoes = {}
-let dados_clientes = {}
-let dados_ocorrencias = {}
 let opcoesValidas = {
     solicitante: new Set(),
     executor: new Set(),
@@ -520,7 +512,7 @@ function renderizarPaginacao() {
                 onkeydown="if (event.key === 'Enter') filtrarPorCampo('${campo}', this.value)"
                 placeholder="${inicialMaiuscula(campo)}"
                 style="width: 100%;">
-            <img src="imagens/pesquisar2.png">
+            <img src="imagens/pesquisar4.png">
         </div>`
 
     const camposLivres = ['chamado', 'cidade', 'descricao', 'unidade']
@@ -595,7 +587,7 @@ async function renderizarPagina(pagina) {
     const contadorPagina = document.getElementById('contador')
     if (contadorPagina) contadorPagina.textContent = Object.keys(base).length
 
-    if (fatia.length == 0) 
+    if (fatia.length == 0)
         return contadorPagina.innerHTML = `<div onclick="limparFiltros()" style="${horizontal}; gap: 1rem; cursor: pointer;"><span>Sem resultados</span> • <span>Limpar</span></div>`
 
     // Lançamento das linhas na página //29
@@ -619,13 +611,12 @@ async function renderizarPagina(pagina) {
     renderizarPaginacao()
 }
 
-async function telaOcorrencias() {
+async function telaOcorrencias(apenasObjeto = false) {
 
     mostrarMenus(false)
 
     filtrosAtivos = JSON.parse(localStorage.getItem('filtrosAtivos')) || {}
 
-    overlayAguarde()
     empresas = await recuperarDados('empresas')
     sistemas = await recuperarDados('sistemas')
     tipos = await recuperarDados('tipos')
@@ -635,8 +626,15 @@ async function telaOcorrencias() {
     dados_ocorrencias = await recuperarDados('dados_ocorrencias')
 
     const empresaAtiva = empresas[acesso?.empresa]?.nome || 'Desatualizado'
-
     titulo.innerHTML = empresaAtiva
+
+    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias).reverse()) {
+        criarLinhaOcorrencia(idOcorrencia, ocorrencia)
+    }
+
+    if (apenasObjeto) return
+
+    filtrarPorCampo()
 
     const acumulado = `
         <div class="tela-ocorrencias">
@@ -658,13 +656,7 @@ async function telaOcorrencias() {
 
     telaInterna.innerHTML = acumulado
 
-    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias).reverse()) {
-        criarLinhaOcorrencia(idOcorrencia, ocorrencia)
-    }
-
     await renderizarPagina(1)
-
-    removerOverlay()
 
     auxPendencias()
 

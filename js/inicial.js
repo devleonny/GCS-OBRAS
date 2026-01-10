@@ -90,6 +90,8 @@ const dtPrazo = (data) => {
 
 async function telaInicial() {
 
+    atribuirVariaveis()
+
     mostrarMenus(false)
 
     document.querySelector('[name="titulo"]').textContent = 'GCS'
@@ -384,7 +386,7 @@ function indicadores() {
                         <div class="etiqueta-${estilo}">
                             <span><b>ID:</b> ${chamado}</span>
                             <span><b>Aba:</b> ${orcamento.aba || ''}</span>
-                            <span style=""><b>Ação:</b> ${dados?.acao || ''}</span>
+                            <div style="white-space: pre-wrap;"><b>Ação:</b> ${dados?.acao || ''}</div>
                             <span><b>Responsável:</b> ${dados?.responsavel || ''}</span>
                             <span><b>Prazo:</b> ${prazo}</span>
                             ${dados.registro
@@ -421,7 +423,6 @@ function indicadores() {
     const indiGeral = permitidos.includes(acesso.permissao) ? indi(totais, 'Geral') : ''
 
     const acumulado = `
-    <img style="position: absolute; top: 5px; right: 5px;" src="imagens/atualizar.png" onclick="sincronizarPda()">
     <div class="painel-indicadores">
 
         <div style="${vertical}; align-items: center; padding: 0.5rem;">
@@ -436,7 +437,10 @@ function indicadores() {
             ${indiGeral}
             ${tUsuario[acesso?.usuario] ? indi(tUsuario[acesso?.usuario], acesso.usuario || '...') : ''}
             <div style="${vertical}; padding: 1rem; gap: 0.5rem; width: 100%;">
-                <span>Ações pendentes do Usuário</span>
+                <div style="${horizontal}; gap: 2rem;">
+                    <span>Ações pendentes do Usuário</span>
+                    <img src="imagens/atualizar.png" onclick="sincronizarPda()">
+                </div>
                 <div class="acoes">
                     ${strgAcoes}
                 </div>

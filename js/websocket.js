@@ -1,40 +1,56 @@
 let socket;
 let reconnectInterval = 30000;
+connectWebSocket();
 
 function connectWebSocket() {
-    socket = new WebSocket(`${api}:8443`);
+    socket = new WebSocket(`${api}:8443`)
 
     socket.onopen = () => {
-        if (acesso) socket.send(JSON.stringify({ tipo: 'autenticar', usuario: acesso.usuario }));
-        console.log(`🟢🟢🟢 WS ${new Date().toLocaleString('pt-BR')} 🟢🟢🟢`);
-    };
+        if (acesso) socket.send(JSON.stringify({ tipo: 'autenticar', usuario: acesso.usuario }))
+        console.log(`🟢🟢🟢 WS ${new Date().toLocaleString()} 🟢🟢🟢`)
+    }
 
     socket.onmessage = async (event) => {
-        const data = JSON.parse(event.data);
 
-        if (data.tipo == 'dados_setores' && data.usuario == acesso.usuario) {
-            popup(mensagem('Seu acesso foi atualizado', 'imagens/concluido.png'), 'Configurações')
-            await telaPrincipal(true) // Reset na base de Ocorrências;
+        const data = JSON.parse(event.data)
+
+        if (data.tabela == 'dados_orcamentos') {
+            verificarPendencias()
         }
 
-        if (data.base == 'dados_ocorrencias' && acesso.usuario) {          
-            const ocorrencia = dados_ocorrencias?.[data.id] || {}
-            const idEmpresa = (data.objeto && data.objeto.empresa) ? data.objeto.empresa : ocorrencia?.empresa || ''
-            const usuarioOcorrencia = (data.objeto && data.objeto.usuario) ? data.objeto.usuario : ocorrencia.usuario
-            const solicitante = (data.objeto && data.objeto.solicitante) ? data.objeto.solicitante : ocorrencia.solicitante
-            
-            if (usuarioOcorrencia !== acesso.usuario) return
-            
-            notificacoes(`Chamado ${data.id} atualizado`, `${empresas?.[idEmpresa]?.nome || '??'} - Solicitado por ${solicitante || '??'}`)
+        if (data.tipo == 'exclusao') { // Só se for no nível
+            await deletarDB(data.tabela, data.id)
+            await refletir()
+        }
 
+        if (data.tipo == 'atualizacao') {
+            await inserirDados({ [data.id]: data.dados }, data.tabela)
+            await refletir()
+        }
+
+        if (data.tipo == 'status') {
+            const user = await recuperarDado('dados_setores', data.usuario)
+            if (user) {
+                user.status = data.status
+                await inserirDados({ [data.usuario]: user }, 'dados_setores')
+            }
+
+            usuariosToolbar()
+            balaoUsuario(data.status, data.usuario)
         }
 
     }
 
     socket.onclose = () => {
-        console.log(`🔴🔴🔴 WS ${new Date().toLocaleString('pt-BR')} 🔴🔴🔴`);
-        console.log(`Tentando reconectar em ${reconnectInterval / 1000} segundos...`);
+        console.log(`🔴🔴🔴 WS ${new Date().toLocaleString()} 🔴🔴🔴`);
+        console.log(`Tentando reconectar em ${reconnectInterval / 1000} segundos...`)
         setTimeout(connectWebSocket, reconnectInterval);
-    };
+    }
+
+    async function refletir() {
+        semOverlay = true
+        await executar(funcaoTela)
+        semOverlay = false
+    }
 
 }

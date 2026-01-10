@@ -1,0 +1,56 @@
+.janela {
+    min-width: fit-content;
+    max-width: 90vw;
+    overflow: auto;
+    max-height: 90vh;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+.janela-fora {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: start;
+    max-width: 90vw;
+    text-align: center;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.popup-top {
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    background-color: #3b444c;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #d2d2d2;
+    font-size: 0.7rem;
+}
+
+.popup-top label {
+    font-size: 1rem;
+}
+
+.popup-botao {
+    background-color: #3b444c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3vw;
+    height: 4vh;
+    cursor: pointer;
+}
+
+.popup-botao img {
+    width: 1.0vw;
+}
+
+.popup-botao label {
+    cursor: pointer;
+    color: white;
+    font-size: 1.2rem;
+}
