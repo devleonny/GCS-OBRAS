@@ -67,7 +67,12 @@
 }
 
 .div-mensagem {
-    font-size: 1.2rem;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 1rem;
     color: white;
 }
 

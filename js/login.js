@@ -2,14 +2,12 @@ async function telaLogin() {
 
     atribuirVariaveis()
 
-    const app = localStorage.getItem('app')
     acesso = JSON.parse(localStorage.getItem('acesso'))
 
     if (acesso) {
-
+        const app = localStorage.getItem('app')
         if (app == 'GCS') return window.location.href = 'index.html'
         return await telaPrincipal()
-
     }
 
     toolbar.style.display = 'none'
@@ -98,10 +96,14 @@ async function acessoLogin() {
                 return popup(mensagem(data.mensagem), 'Alerta', true);
 
             } else if (data.usuario) {
-
-                
-                localStorage.setItem('acesso', JSON.stringify(data))
                 acesso = data
+                const app = permCham.includes(acesso.permissao) ? 'OCORRÊNCIAS' : 'GCS'
+
+                localStorage.setItem('app', app)
+                localStorage.setItem('acesso', JSON.stringify(data))
+
+                if (app == 'GCS') return window.location.href = 'index.html'
+
                 indexedDB.deleteDatabase(nomeBaseCentral)
                 await telaPrincipal()
                 connectWebSocket()

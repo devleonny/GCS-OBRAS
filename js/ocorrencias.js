@@ -5,7 +5,6 @@ let opcoesValidas = {
     finalizado: new Set()
 }
 const autE = ['adm', 'gerente', 'diretoria']
-let emAtualizacao = false
 let paginaAtual = 1
 const LIMITE = 100
 let filtrosAtivos = {}
@@ -401,7 +400,7 @@ function reagendarCorrecao() {
 
 }
 
-async function salvarDataCorrecao() { //29
+async function salvarDataCorrecao() {
 
     const novaData = document.getElementById('dt_reag')
     if (!novaData) return
@@ -715,6 +714,7 @@ function auxPendencias() {
 async function atualizarOcorrencias() {
 
     if (emAtualizacao) return
+    mostrarMenus(true)
 
     emAtualizacao = true
     sincronizarApp()
@@ -757,6 +757,10 @@ async function atualizarOcorrencias() {
     correcoes = await recuperarDados('correcoes')
     dados_ocorrencias = await recuperarDados('dados_ocorrencias')
     dados_clientes = await recuperarDados('dados_clientes')
+
+    // Após atualização;
+    acesso = await recuperarDado('dados_setores', acesso.usuario) || {}
+    localStorage.setItem('acesso', JSON.stringify(acesso))
 
     const tOcorrencias = document.querySelector('.tela-ocorrencias')
     if (tOcorrencias) filtrarPorCampo() // Atualizar as linhas;
@@ -958,12 +962,12 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
     const executor = correcao?.executor
     const linhas = [
         { texto: 'Data Limite Execução', elemento: `<input oninput="bloqAnterior(this)" name="dtCorrecao" type="date" value="${correcao?.dtCorrecao || ''}">` },
-        { 
-            texto: 'Status da Correção', 
+        {
+            texto: 'Status da Correção',
             elemento: `<span class="campos" ${correcao?.tipoCorrecao ? `id="${correcao?.tipoCorrecao}"` : ''} name="tipoCorrecao" onclick="cxOpcoes('tipoCorrecao', 'correcoes', ['nome'])">${tipoCorrecao || 'Selecione'}</span>`
         },
-        { 
-            texto: 'Quem fará a atividade?', 
+        {
+            texto: 'Quem fará a atividade?',
             elemento: `<span class="campos" ${executor ? `id="${executor}"` : ''} name="executor" onclick="cxOpcoes('executor', 'dados_setores', ['usuario'])">${executor || 'Selecione'}</span>`
         },
         { texto: 'Descrição', elemento: `<textarea style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" rows="7" class="campos">${correcao?.descricao || ''}</textarea>` },
@@ -1039,11 +1043,11 @@ async function salvarCorrecao(idOcorrencia, idCorrecao) {
     const tipoCorrecao = obter('tipoCorrecao').id
     const dtCorrecao = obter('dtCorrecao').value
 
-    if(tipoCorrecao == 'WRuo2' && !ocorrencia.assinatura && acesso.permissao == 'técnico') {
+    if (tipoCorrecao == 'WRuo2' && !ocorrencia.assinatura && acesso.permissao == 'técnico') {
         coletarAssinatura(idOcorrencia)
         return
     }
-    
+
     overlayAguarde()
 
     if (!tipoCorrecao || !dtCorrecao) return popup(mensagem('Não deixe em branco <b>Data Limite</b> ou o <b>Tipo de Correção</b>'), 'Em branco', true)

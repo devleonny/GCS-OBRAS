@@ -96,7 +96,8 @@ async function telaInicial() {
 
     mostrarMenus(false)
 
-    document.querySelector('[name="titulo"]').textContent = 'GCS'
+    titulo.textContent = 'GCS'
+    localStorage.setItem('app', 'GCS')
 
     const acumulado = `
         <div id="loading" style="${horizontal};">

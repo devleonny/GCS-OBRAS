@@ -22,7 +22,7 @@ async function carregarOS() {
             <div class="campos" contentEditable="true">${valor2 || ''}</div>
         </div>`}
 
-    let acumulado = `
+    const acumulado = `
         <div style="${horizontal}; justify-content: space-between; width: 100%; gap: 1vw;">
             <div style="${vertical}; gap: 5px; width: 50%;">
                 ${modelo('LOCAL', cliente.cidade)}

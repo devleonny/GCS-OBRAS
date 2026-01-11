@@ -1,44 +1,76 @@
 let socket;
 let reconnectInterval = 30000;
+let emAtualizacao = false
 connectWebSocket()
 
 function connectWebSocket() {
     socket = new WebSocket(`${api}:8443`)
 
+    function status(s) {
+        const i = s == 'online'
+            ? `🟢🟢🟢 Online ${new Date().toLocaleString()}`
+            : s == 'pendente'
+                ? '🟠🟠🟠 Validando...'
+                : '🔴🔴🔴 Offline'
+
+        const divMensagem = document.querySelector('.div-mensagem')
+        if (divMensagem) divMensagem.insertAdjacentHTML('beforeend', `<span>${i}</span>`)
+        console.log(i)
+    }
+
+    function msg(dados) {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify(dados))
+        }
+    }
+
     socket.onopen = () => {
-        if (acesso) socket.send(JSON.stringify({ tipo: 'autenticar', usuario: acesso.usuario }))
-        console.log(`🟢🟢🟢 WS ${new Date().toLocaleString()} 🟢🟢🟢`)
+        if (acesso) msg({ tipo: 'validar', usuario: acesso.usuario })
     }
 
     socket.onmessage = async (event) => {
-
         const data = JSON.parse(event.data)
-        if (data.ok) {
-            if (emAtualizacao) return
-            mostrarMenus(true)
-            await atualizarOcorrencias()
-            // Após atualização;
-            acesso = await recuperarDado('dados_setores', acesso.usuario) || {}
-            localStorage.setItem('acesso', JSON.stringify(acesso))
-            await criarElementosIniciais()
-            // Recuperar Filtros;
-            filtrosAtivos = JSON.parse(localStorage.getItem('filtrosAtivos')) || {}
-        }
 
-        if (data.tipo == 'resetar' && !emAtualizacao) {
-            emAtualizacao = true
-            mostrarMenus(true)
-            socket.send(JSON.stringify({
-                usuario: acesso.usuario,
-                tipo: 'confirmacao_reset'
-            }))
+        if (data.desconectar) {
+            acesso = {}
+            localStorage.removeItem('acesso')
             indexedDB.deleteDatabase(nomeBaseCentral)
-            await resetarBases()
-            emAtualizacao = false
+            telaLogin()
+            popup(mensagem('Usuário removido do servidor'), 'GCS')
             return
         }
 
-        if (data.tabela == 'dados_orcamentos') {
+        if (data.validado) {
+
+            if (data.validado == 'Sim') {
+                status('online')
+
+                if (bReset !== 2) return
+                // Seguir este fluxo apenas em Ocorrências;
+
+                await atualizarOcorrencias()
+                await criarElementosIniciais()
+
+                // Recuperar Filtros;
+                filtrosAtivos = JSON.parse(localStorage.getItem('filtrosAtivos')) || {}
+
+            } else if (bReset == 1) {
+                status('online')
+            } else {
+                overlayAguarde()
+                status('offline')
+                indexedDB.deleteDatabase(nomeBaseCentral)
+                msg({ tipo: 'confirmado', usuario: acesso.usuario })
+                status('pendente')
+                await atualizarOcorrencias()
+                status('online')
+                removerOverlay()
+                return
+            }
+
+        }
+
+        if (bReset == 1 && data.tabela == 'dados_orcamentos') {
             verificarPendencias()
         }
 
@@ -67,8 +99,7 @@ function connectWebSocket() {
     }
 
     socket.onclose = () => {
-        console.log(`🔴🔴🔴 WS ${new Date().toLocaleString()} 🔴🔴🔴`);
-        console.log(`Tentando reconectar em ${reconnectInterval / 1000} segundos...`)
+        status('offline')
         setTimeout(connectWebSocket, reconnectInterval);
     }
 

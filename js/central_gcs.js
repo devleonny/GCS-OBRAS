@@ -899,7 +899,7 @@ async function painelUsuarios() {
             <div class="usuarioOnline">
                 <img src="imagens/${status}.png" style="width: 1.5rem;">
                 <label>${usuario}</label>
-                <label style="font-size: 0.6rem;"><b>${objeto?.setor || '??'}</b></label>
+                <label style="font-size: 0.6rem;"><b>${objeto?.permissao || '??'}</b></label>
             </div>
         `
     }

@@ -7,6 +7,7 @@ const esquemas = {
     'categoria de equipamento': ['', 'IP', 'ANALÓGICO', 'ALARME', 'CONTROLE DE ACESSO'],
     'tipo': ['VENDA', 'SERVIÇO', 'USO E CONSUMO']
 }
+const permCham = ['técnico', 'cliente', 'visitante']
 let anexosProvisorios = {}
 const extensoes = ['jpg', 'jpeg', 'png']
 let acesso = {}
@@ -77,7 +78,7 @@ async function resetarBases() {
     logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
 
     const bases = {
-            1: [
+        1: [
             'hierarquia',
             'tags',
             'tags_orcamentos',

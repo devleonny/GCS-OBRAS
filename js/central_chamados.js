@@ -214,6 +214,7 @@ function irGCS() {
 
 async function telaPrincipal() {
 
+    localStorage.setItem('app', 'OCORRÊNCIAS')
     bReset = 2 // ocorrências
 
     atribuirVariaveis()
@@ -327,7 +328,7 @@ function carregarMenus() {
     const blq = ['cliente', 'técnico']
 
     const menus = {
-        'Atualizar': { img: 'atualizar', funcao: 'atualizarOcorrencias()', proibidos: [] },
+        'Atualizar': { img: 'atualizar', funcao: 'connectWebSocket()', proibidos: [] },
         'Início': { img: 'home', funcao: 'telaPrincipal()', proibidos: [] },
         'Criar Ocorrência': { img: 'baixar', funcao: 'formularioOcorrencia()', proibidos: [] },
         'Ocorrências': { img: 'configuracoes', funcao: 'telaOcorrencias()', proibidos: [] },
