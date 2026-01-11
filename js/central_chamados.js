@@ -259,6 +259,14 @@ async function telaPrincipal() {
 
 }
 
+function especial() { //29
+    for(const o of Object.values(listaOcorrencias)) {
+        if(o.ultima_correcao == 'Agendada') {
+            console.log(o)
+        }
+    }
+}
+
 async function criarElementosIniciais() {
 
     await telaOcorrencias(true) // Apenas para carregar o objeto listaOcorrencias;

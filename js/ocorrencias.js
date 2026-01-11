@@ -289,7 +289,13 @@ function uCorrecao(correcoes) {
         const [dia, mes, ano] = d.split('/')
         const dateObj = new Date(`${ano}-${mes}-${dia}T${h}`)
 
-        if (tipoCorrecao == 'WRuo2') solucionado = true
+        if (tipoCorrecao == 'WRuo2')  {
+            solucionado = true
+            maisRecente = dateObj
+            tipo = tipoCorrecao
+            dtBase = dtCorrecao
+            continue
+        }
 
         if (!maisRecente || dateObj > maisRecente) {
             maisRecente = dateObj

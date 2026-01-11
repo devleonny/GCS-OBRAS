@@ -101,7 +101,9 @@ function dtAuxOcorrencia(dt) {
 
 async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
 
-    const status = correcoes[ocorrencia?.tipoCorrecao]?.nome || 'Não analisada'
+    const uc = uCorrecao(ocorrencia?.correcoes || {})
+    const tipo = uc.tipo
+    const status = correcoes?.[tipo]?.nome || 'Não analisada'
     const estilo = status == 'Solucionada'
         ? 'fin'
         : status == 'Não analisada'
