@@ -244,27 +244,8 @@ async function telaPrincipal() {
 
     mostrarMenus(false)
 
-    if (pExecucao) {
-        mostrarMenus(true)
-        carregarMenus()
-        pExecucao = false
-        await atualizarOcorrencias()
-        // Após atualização;
-        acesso = await recuperarDado('dados_setores', acesso.usuario) || {}
-        // Recuperar Filtros;
-        filtrosAtivos = JSON.parse(localStorage.getItem('filtrosAtivos')) || {}
-    }
-
     await criarElementosIniciais()
 
-}
-
-function especial() { //29
-    for(const o of Object.values(listaOcorrencias)) {
-        if(o.ultima_correcao == 'Agendada') {
-            console.log(o)
-        }
-    }
 }
 
 async function criarElementosIniciais() {
@@ -360,13 +341,13 @@ function carregarMenus() {
         menus.GCS = { img: 'LG', funcao: 'irGCS()', proibidos: ['técnico', 'visitante'] }
     }
 
-    menus.Desconectar = { img: 'sair', funcao: 'deslogar()', proibidos: [] }
+    menus.Desconectar = { img: 'sair', funcao: 'deslogarUsuario()', proibidos: [] }
 
     const stringMenus = Object.entries(menus)
         .filter(([_, dados]) => !dados.proibidos.includes(acesso.permissao))
         .map(([nome, dados]) => btn({ ...dados, nome }))
         .join('');
-
+     
     const botoes = `
         <div class="nomeUsuario">
             <span><strong>${inicialMaiuscula(acesso.permissao)}</strong> ${acesso.usuario}</span>
@@ -422,7 +403,7 @@ function criarLinhaUsuario(user, dados) {
         <td>${empresas?.[dados?.empresa]?.nome || '...'}</td>
         <td>${dados.setor || '...'}</td>
         <td>${dados.permissao || '...'}</td>
-        <td><img onclick="gerenciarUsuario('${user}')" src="imagens/pesquisar.png"></td>
+        <td><img onclick="gerenciarUsuario('${user}')" src="imagens/pesquisar2.png"></td>
     `
 
     const trExistente = document.getElementById(user)

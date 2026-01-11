@@ -466,14 +466,13 @@ span[name="titulo"] {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0.5vw;
+    padding: 3px;
     border-radius: 2px;
-    font-size: 0.9vw;
     color: white;
 }
 
 .painelAprovacoes {
-    width: 70vw;
+    width: max-content;
     background-color: #d2d2d2;
     color: #222;
     padding: 5px;
@@ -629,47 +628,6 @@ span[name="titulo"] {
     background-color: #b1b1b1;
     gap: 2px;
     width: 100%;
-}
-
-.atalhos {
-    text-align: left;
-    display: flex;
-    align-items: center;
-    justify-content: start;
-    cursor: pointer;
-    gap: 10px;
-    background-color: white;
-    font-size: 0.8rem;
-}
-
-.atalhos label {
-    padding-right: 0.5rem;
-}
-
-.atalhos img,
-.atalhos-opcoes img {
-    padding: 0.2rem;
-    width: 2rem;
-}
-
-.atalhos:hover,
-.atalhos-opcoes:hover {
-    color: white;
-    background-color: #323940;
-}
-
-.atalhos-opcoes {
-    width: 100%;
-    text-align: left;
-    display: flex;
-    align-items: center;
-    justify-content: start;
-    cursor: pointer;
-    gap: 10px;
-    background-color: #efefef;
-    padding: 3px;
-    border-radius: 2px;
-    font-size: 0.8rem;
 }
 
 .img_ag {
@@ -1790,6 +1748,7 @@ input[type=range]::-moz-range-thumb {
 }
 
 .opcoesSelect {
+    min-width: 100px;
     width: 80%;
     cursor: pointer;
     background-color: #f2f2f2;
@@ -1914,10 +1873,6 @@ input[type=range]::-moz-range-thumb {
     border: solid 1px #d2d2d2;
     color: #222;
     padding: 8px;
-}
-
-.tabela th input {
-    background-color: transparent;
 }
 
 .tabela td {
@@ -2370,3 +2325,7 @@ input[type="file"]#input-anexos:hover {
     border-radius: 3px;
     padding: 3px;
 }
+
+@media screen and (orientation: portrait) {
+
+}   

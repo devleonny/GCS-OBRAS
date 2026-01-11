@@ -1,29 +1,21 @@
-.linha-orcamento-tabela[data-prioridade="0"] {
+.linha-master[data-prioridade="0"] {
     --alerta-cor: rgba(255, 0, 0, 0.35);
 }
 
-.linha-orcamento-tabela[data-prioridade="1"] {
+.linha-master[data-prioridade="1"] {
     --alerta-cor: rgba(255, 165, 0, 0.35);
 }
 
-.linha-orcamento-tabela[data-prioridade="2"] {
+.linha-master[data-prioridade="2"] {
     --alerta-cor: rgba(0, 128, 255, 0.35);
 }
 
-.linha-orcamento-tabela::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-color: var(--alerta-cor, transparent);
-    opacity: 0;
-    pointer-events: none;
-    z-index: 1;
-
-    animation: alerta 2s ease-in-out infinite;
+.linha-master {
+    animation: alerta-bg 2s ease-in-out infinite;
 }
 
-@keyframes alerta {
-    0%   { opacity: 0 }
-    50%  { opacity: 1 }
-    100% { opacity: 0 }
+@keyframes alerta-bg {
+    0%   { background-color: transparent }
+    50%  { background-color: var(--alerta-cor) }
+    100% { background-color: transparent }
 }

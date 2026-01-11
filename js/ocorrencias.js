@@ -14,16 +14,6 @@ let recorteOcorrencias = {}
 let listas = {}
 let oAtual = { idCorrecao: null, idOcorrencia: null }
 
-const labelBotao = (name, nomebase, id, nome) => {
-    return `
-        <label 
-        class="campos" 
-        name="${name}"
-        ${id ? `id="${id}"` : ''} onclick="cxOpcoes('${name}', '${nomebase}')">
-            ${nome ? nome : 'Selecione'} 
-        </label>
-        `
-}
 
 function pararCam() {
     const cameraDiv = document.querySelector('.cameraDiv');
@@ -289,7 +279,7 @@ function uCorrecao(correcoes) {
         const [dia, mes, ano] = d.split('/')
         const dateObj = new Date(`${ano}-${mes}-${dia}T${h}`)
 
-        if (tipoCorrecao == 'WRuo2')  {
+        if (tipoCorrecao == 'WRuo2') {
             solucionado = true
             maisRecente = dateObj
             tipo = tipoCorrecao
@@ -880,17 +870,42 @@ async function formularioOcorrencia(idOcorrencia) {
     const oc = idOcorrencia ? await recuperarDado('dados_ocorrencias', idOcorrencia) : {}
     const funcao = idOcorrencia ? `salvarOcorrencia('${idOcorrencia}')` : 'salvarOcorrencia()'
 
-    const elEmpresa = acesso.empresa == 0
-        ? labelBotao('empresa', 'empresas', oc?.empresa, empresas[oc?.empresa]?.nome)
-        : `<span class="campos" name="empresa" id="${acesso.empresa}">${empresas?.[acesso?.empresa]?.nome || '...'}</span>`
-
+    const lib = acesso.empresa == 0
+    const empresa = empresas?.[oc.empresa || acesso?.empresa]?.nome
+    const unidade = dados_clientes[oc?.unidade]?.nome
+    const sistema = sistemas[oc?.sistema]?.nome
+    const prioridade = prioridades[oc?.prioridade]?.nome
+    const tipo = tipos[oc?.tipo]?.nome
     const linhas = [
-        { texto: 'Empresa', elemento: elEmpresa },
-        { texto: 'Unidade de Manutenção', elemento: labelBotao('unidade', 'dados_clientes', oc?.unidade, dados_clientes[oc?.unidade]?.nome) },
-        { texto: 'Sistema', elemento: labelBotao('sistema', 'sistemas', oc?.sistema, sistemas[oc?.sistema]?.nome) },
-        { texto: 'Prioridade', elemento: labelBotao('prioridade', 'prioridades', oc?.prioridade, prioridades[oc?.prioridade]?.nome) },
-        { texto: 'Tipo', elemento: labelBotao('tipo', 'tipos', oc?.tipo, tipos[oc?.tipo]?.nome) },
-        { texto: 'Descrição', elemento: `<textarea rows="7" style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" class="campos">${oc?.descricao || ''}</textarea>` },
+        {
+            texto: 'Empresa',
+            elemento: `
+            <span 
+                class="campos" 
+                name="empresa" ${oc.empresa ? `id="${oc.empresa}"` : `id="${acesso.empresa}"`} 
+                ${lib ? `onclick="cxOpcoes('empresa', 'empresas', ['nome'])"` : ''}>${empresa || 'Selecione'}
+            </span>`
+        },
+        {
+            texto: 'Unidade de Manutenção',
+            elemento: `<span ${oc?.unidade ? `id="${oc?.unidade}"` : ''} class="campos" name="unidade" onclick="cxOpcoes('unidade', 'dados_clientes', ['nome', 'cidade', 'endereco', 'cnpj'])">${unidade || 'Selecione'}</span>`
+        },
+        {
+            texto: 'Sistema',
+            elemento: `<span ${oc?.sistema ? `id="${oc?.sistema}"` : ''} class="campos" name="sistema" onclick="cxOpcoes('sistema', 'sistemas', ['nome'])">${sistema || 'Selecione'}</span>`
+        },
+        {
+            texto: 'Prioridade',
+            elemento: `<span ${oc?.prioridade ? `id="${oc?.prioridade}"` : ''} class="campos" name="prioridade" onclick="cxOpcoes('prioridade', 'prioridades', ['nome'])">${prioridade || 'Selecione'}</span>`
+        },
+        {
+            texto: 'Tipo',
+            elemento: `<span ${oc?.tipo ? `id="${oc?.tipo}"` : ''} class="campos" name="tipo" onclick="cxOpcoes('tipo', 'tipos', ['nome'])">${tipo || 'Selecione'}</span>`
+        },
+        {
+            texto: 'Descrição',
+            elemento: `<textarea rows="7" style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" class="campos">${oc?.descricao || ''}</textarea>`
+        },
         {
             texto: 'Anexos', elemento: `
                 <label class="campos">
@@ -940,10 +955,18 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
     let equipamentos = ''
     for (const [, equip] of Object.entries(correcao?.equipamentos || {})) equipamentos += await maisLabel(equip)
 
+    const tipoCorrecao = correcoes[correcao?.tipoCorrecao]?.nome //29
+    const executor = correcao?.executor
     const linhas = [
         { texto: 'Data Limite Execução', elemento: `<input oninput="bloqAnterior(this)" name="dtCorrecao" type="date" value="${correcao?.dtCorrecao || ''}">` },
-        { texto: 'Status da Correção', elemento: labelBotao('tipoCorrecao', 'correcoes', correcao?.tipoCorrecao, correcoes[correcao?.tipoCorrecao]?.nome) },
-        { texto: 'Quem fará a atividade?', elemento: labelBotao('executor', 'dados_setores', correcao?.executor || acesso.usuario, correcao?.executor || acesso.usuario) },
+        { 
+            texto: 'Status da Correção', 
+            elemento: `<span class="campos" ${correcao?.tipoCorrecao ? `id="${correcao?.tipoCorrecao}"` : ''} name="tipoCorrecao" onclick="cxOpcoes('tipoCorrecao', 'correcoes', ['nome'])">${tipoCorrecao || 'Selecione'}</span>`
+        },
+        { 
+            texto: 'Quem fará a atividade?', 
+            elemento: `<span class="campos" ${executor ? `id="${executor}"` : ''} name="executor" onclick="cxOpcoes('executor', 'dados_setores', ['usuario'])">${executor || 'Selecione'}</span>`
+        },
         { texto: 'Descrição', elemento: `<textarea style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" rows="7" class="campos">${correcao?.descricao || ''}</textarea>` },
         { texto: 'Equipamentos usados', elemento: `<img src="imagens/baixar.png" class="olho" onclick="maisLabel()">` },
         {
@@ -992,7 +1015,7 @@ async function maisLabel({ codigo, quantidade, unidade } = {}) {
         <div style="${horizontal}; gap: 5px;">
             <img src="imagens/cancel.png" class="olho" onclick="this.parentElement.remove()">
             <div style="${vertical}; gap: 5px;">
-                <label class="campos" name="${temporario}" ${codigo ? `id="${codigo}"` : ''} onclick="cxOpcoes('${temporario}', 'dados_composicoes')">${nome}</label>
+                <label class="campos" name="${temporario}" ${codigo ? `id="${codigo}"` : ''} onclick="cxOpcoes('${temporario}', 'dados_composicoes', ['descricao', 'tipo', 'marca', 'fabricante'])">${nome}</label>
                 <div style="${horizontal}; gap: 5px; width: 100%;">
                     <input style="width: 100%;" class="campos" type="number" value="${quantidade || ''}">
                     <select class="campos">${opcoes}</select>
@@ -1007,8 +1030,6 @@ async function maisLabel({ codigo, quantidade, unidade } = {}) {
 
 async function salvarCorrecao(idOcorrencia, idCorrecao) {
 
-    overlayAguarde()
-
     if (!idCorrecao) idCorrecao = ID5digitos()
 
     const ocorrencia = dados_ocorrencias[idOcorrencia]
@@ -1018,6 +1039,13 @@ async function salvarCorrecao(idOcorrencia, idCorrecao) {
     let correcao = ocorrencia.correcoes[idCorrecao]
     const tipoCorrecao = obter('tipoCorrecao').id
     const dtCorrecao = obter('dtCorrecao').value
+
+    if(tipoCorrecao == 'WRuo2' && !ocorrencia.assinatura && acesso.permissao == 'técnico') {
+        coletarAssinatura(idOcorrencia)
+        return
+    }
+    
+    overlayAguarde()
 
     if (!tipoCorrecao || !dtCorrecao) return popup(mensagem('Não deixe em branco <b>Data Limite</b> ou o <b>Tipo de Correção</b>'), 'Em branco', true)
 

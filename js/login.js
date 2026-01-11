@@ -1,4 +1,6 @@
-function telaLogin() {
+async function telaLogin() {
+
+    atribuirVariaveis()
 
     const app = localStorage.getItem('app')
     acesso = JSON.parse(localStorage.getItem('acesso'))
@@ -6,7 +8,7 @@ function telaLogin() {
     if (acesso) {
 
         if (app == 'GCS') return window.location.href = 'index.html'
-        return telaPrincipal()
+        return await telaPrincipal()
 
     }
 
@@ -25,10 +27,10 @@ function telaLogin() {
                 
                 <div class="credenciais">
 
-                    <label>Usuário</label>
+                    <label>Digite seu usuário</label>
                     <input type="text" placeholder="Usuário">
 
-                    <label>Senha</label>
+                    <label>Digite sua senha</label>
                     <div style="${horizontal}; gap: 10px;">
                         <input type="password" placeholder="Senha">
                         <img src="imagens/olhoFechado.png" class="olho" onclick="exibirSenha(this)">
@@ -96,9 +98,11 @@ async function acessoLogin() {
                 return popup(mensagem(data.mensagem), 'Alerta', true);
 
             } else if (data.usuario) {
-                localStorage.setItem('acesso', JSON.stringify(data));
+                localStorage.setItem('acesso', JSON.stringify(data))
                 acesso = data
+                indexedDB.deleteDatabase(nomeBaseCentral)
                 await telaPrincipal()
+                connectWebSocket()
                 removerOverlay()
             }
         } catch (e) {

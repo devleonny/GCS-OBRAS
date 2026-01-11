@@ -49,49 +49,57 @@ async function atualizarOrcamentos() {
 }
 
 function ordenarOrcamentos(colunaIndex) {
-    const body = document.getElementById('linhas')
-    if (!body) return
+    const tbody = document.getElementById('linhas')
+    if (!tbody) return
 
-    const tabelaOrcamento = document.getElementById('tabelaOrcamento')
-    const ordem = tabelaOrcamento.dataset.ordem
-    tabelaOrcamento.dataset.ordem = ordem === 'asc' ? 'des' : 'asc'
+    const tabela = document.getElementById('tabelaOrcamento')
+    const ordem = tabela.dataset.ordem === 'asc' ? 'des' : 'asc'
+    tabela.dataset.ordem = ordem
 
-    // pega as linhas base
-    const linhas = Array.from(body.querySelectorAll('.linha-orcamento-tabela'))
+    // pega SOMENTE as linhas master
+    const masters = Array.from(
+        tbody.querySelectorAll('tr.linha-master')
+    )
 
-    // cria um mapeamento linha → container
-    const pares = linhas.map(linha => ({
-        linha,
-        container: linha.closest('.linha-master')
+    const pares = masters.map(master => ({
+        master,
+        slave: master.nextElementSibling?.classList.contains('linha-slave-container')
+            ? master.nextElementSibling
+            : null
     }))
 
     pares.sort((a, b) => {
-        const celA = a.linha.querySelectorAll('.celula')[colunaIndex]
-        const celB = b.linha.querySelectorAll('.celula')[colunaIndex]
+        const celA = a.master.cells[colunaIndex]
+        const celB = b.master.cells[colunaIndex]
 
-        const valA = celA?.querySelector('input, select')?.value?.trim() || celA?.textContent?.trim() || ''
-        const valB = celB?.querySelector('input, select')?.value?.trim() || celB?.textContent?.trim() || ''
+        const valA =
+            celA?.querySelector('input, select')?.value?.trim() ||
+            celA?.textContent?.trim() || ''
+
+        const valB =
+            celB?.querySelector('input, select')?.value?.trim() ||
+            celB?.textContent?.trim() || ''
 
         const numA = parseFloat(valA.replace(',', '.'))
         const numB = parseFloat(valB.replace(',', '.'))
 
-        if (!isNaN(numA) && !isNaN(numB))
+        if (!isNaN(numA) && !isNaN(numB)) {
             return ordem === 'asc' ? numA - numB : numB - numA
+        }
 
         return ordem === 'asc'
-            ? valA.localeCompare(valB, 'pt-BR', { numeric: true, sensitivity: 'base' })
-            : valB.localeCompare(valA, 'pt-BR', { numeric: true, sensitivity: 'base' })
+            ? valA.localeCompare(valB, 'pt-BR', { numeric: true })
+            : valB.localeCompare(valA, 'pt-BR', { numeric: true })
     })
 
-    // limpa e reinsere os containers ordenados (evita duplicar o mesmo container)
-    const vistos = new Set()
-    body.innerHTML = ''
-    for (const { container } of pares) {
-        if (container && !vistos.has(container)) {
-            body.appendChild(container)
-            vistos.add(container)
-        }
+    const frag = document.createDocumentFragment()
+
+    for (const { master, slave } of pares) {
+        frag.appendChild(master)
+        if (slave) frag.appendChild(slave)
     }
+
+    tbody.appendChild(frag)
 }
 
 async function rstTelaOrcamentos() {
@@ -129,25 +137,22 @@ async function telaOrcamentos() {
     const colunasCFiltro = ['status', 'tags', 'chamado', 'cidade', 'valor']
     const cabecs = ['data', 'status', 'pedido', 'notas', 'tags', 'contrato', 'cidade', 'responsaveis', 'indicadores', 'valor', 'ações']
     const filtrosOff = ['status', 'ações', 'indicadores']
-    let ths = ''
-    let pesquisa = ''
-    cabecs.forEach((cab, i) => {
-
-        ths += `
-            <div class="ths-orcamento">
-                <span>${inicialMaiuscula(cab)}</span>
-                ${colunasCFiltro.includes(cab)
-                ? `<img onclick="ordenarOrcamentos('${i}')" src="imagens/filtro.png">`
+    const ths = cabecs
+        .map((cab, i) => `
+            <th>
+                <div style="${vertical}; gap: 0.5rem;">
+                    <div style="${horizontal}; justify-content: space-between; gap: 1rem;">
+                        <span>${inicialMaiuscula(cab)}</span>
+                        ${colunasCFiltro.includes(cab)
+                ? `<img onclick="ordenarOrcamentos('${i}')" style="width: 1rem;" src="imagens/filtro.png">`
                 : ''}
-            </div>`
-        pesquisa += `
-            <div class="ths-orcamento">
-                ${!filtrosOff.includes(cab)
-                ? `<input placeholder="Pesquisar" name="${cab}" onkeydown="if(event.key === 'Enter') renderizar('${cab}', this.value)">`
+                    </div>
+                    ${!filtrosOff.includes(cab)
+                ? `<input class="p-orcamento" placeholder="Pesquisar" name="${cab}" onkeydown="if(event.key === 'Enter') renderizar('${cab}', this.value)">`
                 : ''}
-            </div>`
-
-    })
+                </div>
+            </th>`)
+        .join('')
 
     const acumulado = `
         <div style="${horizontal}; width: 95vw;">
@@ -159,14 +164,15 @@ async function telaOrcamentos() {
         <div id="tabelaOrcamento" data-ordem="asc" style="${vertical}; width: 95vw;">
             <div class="topo-tabela" style="justify-content: space-between; width: 100%; background-color: #707070;">
                 <div id="paginacao"></div>
-                <span style="color: white; cursor: pointer;" onclick="filtroOrcamentos()">Filtros ☰</span>
+                <span style="color: white; cursor: pointer; white-space: nowrap;" onclick="filtroOrcamentos()">Filtros ☰</span>
             </div>
-            <div class="div-tabela" style="overflow-x: hidden;">
-                <div class="cabecalho">
-                    <div class="linha-orcamento-tabela" style="width: 100%; padding: 0px; background-color: #d2d2d2;">${ths}</div>
-                    <div class="linha-orcamento-tabela" style="width: 100%; padding: 0px;">${pesquisa}</div>
-                </div>
-                <div id="linhas"></div>
+            <div class="div-tabela" style="overflow-x: auto;">
+                <table class="tabela">
+                    <thead style="box-shadow: 0px 0px 2px #222;">
+                        <tr>${ths}</tr>
+                    </thead>
+                    <tbody id="linhas"></tbody>
+                </table>
             </div>
             <div class="rodape-tabela"></div>
         </div>
@@ -184,7 +190,7 @@ async function telaOrcamentos() {
     for (const [idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
         criarLinhaOrcamento(idOrcamento, orcamento)
     }
-
+    
     criarMenus('orcamentos')
 
     pAtual = 1
@@ -202,7 +208,7 @@ async function telaOrcamentos() {
 
 function filtroOrcamentos() {
 
-    const salvo = JSON.parse(sessionStorage.getItem('filtros')) || {} //28
+    const salvo = JSON.parse(sessionStorage.getItem('filtros')) || {}
 
     const filtros = {
         arquivado: salvo.arquivado || '',
@@ -311,7 +317,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         const valor3 = conversor(historico.valor)
 
         labels[historico.status] += `
-            <div class="etiquetas"> 
+            <div class="etiquetas" style="text-align: left; min-width: 100px;"> 
                 <label>${valor1}</label>
                 <label>${valor2}</label>
                 ${historico.valor ? `<label>${dinheiro(valor3)}</label>` : ''}
@@ -330,10 +336,11 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         .map(([user,]) => user)
         .join(', ')
 
-    const cel = (elementos) => `<div class="celula">${elementos}</div>`
+    const cel = (elementos) => `<td class="celula">${elementos}</td>`
 
     // Labels do campo Contrato [Revisão, chamado, cliente, etc]
-    const numOficial = dados_orcam?.chamado || dados_orcam?.contrato || '-'
+    const contrato = dados_orcam?.contrato
+    const numOficial = dados_orcam?.chamado || contrato || '-'
     const rAtual = orcamento?.revisoes?.atual
     const etiqRevAtual = rAtual ? `<span class="etiqueta-revisao">${rAtual}</span>` : ''
     const idMaster = hierarquia?.[idOrcamento]?.idMaster
@@ -354,6 +361,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
             ${etiqRevAtual}
             ${orcamentosVinculados}
             <span>${cliente?.nome || ''}</span>
+            ${contrato !== numOficial ? `<div style="${horizontal}; justify-content: end; width: 100%; color: #5f5f5f;"><small>${contrato}</small></div>` : ''}
         </div>
     `
 
@@ -438,15 +446,10 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
     const prioridade = verificarPrioridade(orcamento)
 
     const linha = `
-        <div class="linha-master"
-            data-chamado="${orcamento?.chamado ? 'S' : 'N'}"
-            data-timestamp="${orcamento?.timestamp}" 
-            id="${idOrcamento}">
-                <div class="linha-orcamento-tabela" data-prioridade="${prioridade}">
-                    ${celulas}
-                </div>
-                <div class="linha-slaves"></div>
-        </div>`
+        <tr class="linha-master" id="${idOrcamento}" data-prioridade="${prioridade}">
+            ${celulas}
+        </tr>
+    `
 
     const status = orcamento?.status?.atual || 'SEM STATUS'
     const chamados = (orcamento?.chamado == 'S' && (status == 'SEM STATUS' || status == 'ORC ENVIADO'))
@@ -461,6 +464,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
     const participantes = `${orcamento.usuario} ${responsaveis}`
 
     orcsFiltrados[idOrcamento] = {
+        id: idOrcamento,
         revisao: rAtual ? 'S' : '',
         vinculado: idMaster ? 'S' : '',
         valor_prioridade: prioridade,
@@ -529,14 +533,12 @@ function aplicarFiltrosEPaginacao() {
 
                 if (valorFiltro === '' || valorFiltro == null) return true
 
-                // campo com regra especial
                 if (campoFiltro === 'arquivado') {
                     if (valorFiltro === 'S') return dados.arquivado === 'S'
                     if (valorFiltro === 'N') return dados.arquivado !== 'S'
                     return true
                 }
 
-                // regra padrão
                 if (valorFiltro === 'S') return dados[campoFiltro] === 'S'
                 if (valorFiltro === 'N') return true
 
@@ -549,12 +551,11 @@ function aplicarFiltrosEPaginacao() {
             })
     })
 
-    // prioridade sempre no topo + ordenação por data
     filtrados.sort((a, b) => {
         const pa = Number(a.valor_prioridade ?? 3)
         const pb = Number(b.valor_prioridade ?? 3)
 
-        if (pa !== pb) return pa - pb // 0,1,2,3 (0 no topo)
+        if (pa !== pb) return pa - pb
         return b.timestamp - a.timestamp
     })
 
@@ -565,12 +566,34 @@ function aplicarFiltrosEPaginacao() {
     const inicio = (pAtual - 1) * itensPorPagina
     const fim = inicio + itensPorPagina
 
-    filtrados
-        .slice(inicio, fim)
-        .forEach(d => body.insertAdjacentHTML('beforeend', d.linha))
+    const jaInseridos = new Set()
+
+    filtrados.slice(inicio, fim).forEach(d => {
+
+        if (jaInseridos.has(d.id)) return
+
+        // remove se já existir no DOM
+        document.getElementById(d.id)?.remove()
+
+        body.insertAdjacentHTML('beforeend', d.linha)
+        jaInseridos.add(d.id)
+
+        // renderiza hierarquia se existir
+        const filhos = orcsHierarquia[d.id]
+
+        if (Array.isArray(filhos)) {
+            filhos.forEach(fid => {
+                const filho = orcsFiltrados[fid]  
+                if (!filho || jaInseridos.has(fid)) return
+
+                document.getElementById(fid)?.remove()
+                body.insertAdjacentHTML('beforeend', filho.linha)
+                jaInseridos.add(fid)
+            })
+        }
+    })
 
     renderizarControlesPagina()
-    organizarHierarquia()
 }
 
 function renderizarControlesPagina() {
@@ -699,7 +722,9 @@ async function organizarHierarquia() {
 
         if (!orcsHierarquia[idOrcamento]) continue
 
-        const divSlaves = div.querySelector('.linha-slaves')
+        const linhaSlave = document.querySelector(
+            `.linha-slaves[data-master="${idOrcamento}"] tbody`
+        )
         const slaves = orcsHierarquia[idOrcamento]
 
         for (const idSlave of slaves) {
@@ -708,7 +733,7 @@ async function organizarHierarquia() {
             if (existente) existente.remove()
 
             const dados = orcsFiltrados[idSlave]
-            divSlaves.insertAdjacentHTML('beforeend', dados.linha)
+            linhaSlave.insertAdjacentHTML('beforeend', dados.linha)
         }
 
     }

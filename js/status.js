@@ -860,6 +860,7 @@ async function abrirAtalhos(id) {
         ${modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`)}
         ${modeloBotoes('link', 'Vincular Orçamento', `vincularOrcamento('${id}')`)}
         ${modeloBotoes('LG', 'OS em PDF', `abrirOS('${id}')`)}
+        ${hierarquia[id] ? modeloBotoes('exclamacao', 'Desvincular Orçamento', `confirmarRemoverVinculo('${id}')`) : ''}
         ${modeloBotoes('projeto', 'Criar Orçamento Vinculado', `criarOrcamentoVinculado('${id}')`)}
         ${modeloBotoes('alerta', 'Definir Prioridade', `formularioOrcAprovado('${id}')`)}
         `
@@ -1035,17 +1036,18 @@ async function confirmarRemoverVinculo(idOrcamento) {
 
 }
 
-async function desfazerVinculo(idOrcamento) {// 29 verificar o desfazer;
+async function desfazerVinculo(idOrcamento) {
 
     overlayAguarde()
     const linha = document.getElementById(idOrcamento)
     if (linha) linha.remove()
 
     const resposta = vincularAPI({ idSlave: idOrcamento })
-    if (resposta.mensagem) {
-        await telaOrcamentos()
-        return popup(mensagem(resposta.mensagem), 'Alerta', true)
-    }
+    
+    if (resposta.mensagem) return popup(mensagem(resposta.mensagem), 'Alerta', true)
+
+    await deletarDB('hierarquia', idOrcamento)
+    await telaOrcamentos()
 
     removerPopup()
 

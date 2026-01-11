@@ -7,6 +7,7 @@ const esquemas = {
     'categoria de equipamento': ['', 'IP', 'ANALÓGICO', 'ALARME', 'CONTROLE DE ACESSO'],
     'tipo': ['VENDA', 'SERVIÇO', 'USO E CONSUMO']
 }
+let anexosProvisorios = {}
 const extensoes = ['jpg', 'jpeg', 'png']
 let acesso = {}
 let tela = null
@@ -39,6 +40,9 @@ let depPorDesc = {}
 let bReset = null
 const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
 
+//Temporário 
+indexedDB.deleteDatabase('GCSMob')
+
 function atribuirVariaveis() {
     toolbar = document.querySelector('.toolbar-top')
     titulo = toolbar.querySelector(`[name="titulo"]`)
@@ -68,6 +72,8 @@ async function resetarBases() {
 
     const logs = document.getElementById('logs')
 
+    indexedDB.deleteDatabase(nomeBaseCentral)
+    logs.insertAdjacentHTML('beforeend', '<label>Apagando <b>Base existente</b>...</label>')
     logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
 
     const bases = {
@@ -102,7 +108,7 @@ async function resetarBases() {
     if (!bReset) return
 
     for (const base of bases[bReset]) {
-        await sincronizarDados(base, true, true) // Nome base, overlay off e resetar bases;
+        await sincronizarDados(base, true)
         logs.insertAdjacentHTML('beforeend', `<label>Sincronizando: <small>${base}</small></label>`)
     }
 
@@ -235,19 +241,15 @@ function popup(elementoHTML, titulo, nra = true) {
     document.body.insertAdjacentHTML('beforeend', p)
 
 }
-
-async function removerPopup({ id, nra } = {}) {
+async function removerPopup({ id, nra = true } = {}) {
     const popups = document.querySelectorAll('.popup')
 
     if (id) {
-        const p = document.getElementById(id)
-        if (p) p.remove()
+        document.getElementById(id)?.remove()
+    } else if (nra) {
+        popups[popups.length - 1]?.remove()
     } else {
-        if (nra) {
-            popups[popups.length - 1]?.remove()
-        } else {
-            for (const p of popups) p.remove()
-        }
+        for (const p of popups) p.remove()
     }
 
     document.querySelector('.aguarde')?.remove()
@@ -384,6 +386,7 @@ function deslogarUsuario() {
 }
 
 function sair() {
+    indexedDB.deleteDatabase(nomeBaseCentral)
     removerPopup()
     const toolbar = document.querySelector('.toolbar-top')
     if (toolbar) toolbar.remove()
@@ -391,6 +394,15 @@ function sair() {
 
     localStorage.removeItem('acesso')
     retornar()
+}
+
+function redirecionarChamados() {
+    localStorage.setItem('app', '')
+    window.location.href = 'chamados.html'
+}
+
+function retornar() {
+    window.location.href = 'chamados.html'
 }
 
 function mostrarMenus(operacao) {
@@ -480,12 +492,12 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
     const acumulado = `
         <div style="${vertical}; justify-content: left; background-color: #b1b1b1;">
 
-            <div style="${horizontal}; padding-left: 0.5rem; padding-right: 0.5rem; margin: 5px; background-color: white; border-radius: 10px;">
+            <div class="cx-pesquisa">
                 <input oninput="pesquisarCX(this)" placeholder="Pesquisar itens" style="width: 100%;">
                 <img src="imagens/pesquisar4.png" style="width: 2rem; padding: 0.5rem;"> 
             </div>
 
-            <div style="padding: 1rem; gap: 5px; ${vertical}; background-color: #d2d2d2; width: 30vw; max-height: 40vh; height: max-content; overflow-y: auto; overflow-x: hidden;">
+            <div class="cx-opcoes">
                 ${opcoesDiv}
             </div>
 

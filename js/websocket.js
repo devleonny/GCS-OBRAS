@@ -1,6 +1,6 @@
 let socket;
 let reconnectInterval = 30000;
-connectWebSocket();
+connectWebSocket()
 
 function connectWebSocket() {
     socket = new WebSocket(`${api}:8443`)
@@ -13,6 +13,30 @@ function connectWebSocket() {
     socket.onmessage = async (event) => {
 
         const data = JSON.parse(event.data)
+        if (data.ok) {
+            if (emAtualizacao) return
+            mostrarMenus(true)
+            await atualizarOcorrencias()
+            // Após atualização;
+            acesso = await recuperarDado('dados_setores', acesso.usuario) || {}
+            localStorage.setItem('acesso', JSON.stringify(acesso))
+            await criarElementosIniciais()
+            // Recuperar Filtros;
+            filtrosAtivos = JSON.parse(localStorage.getItem('filtrosAtivos')) || {}
+        }
+
+        if (data.tipo == 'resetar' && !emAtualizacao) {
+            emAtualizacao = true
+            mostrarMenus(true)
+            socket.send(JSON.stringify({
+                usuario: acesso.usuario,
+                tipo: 'confirmacao_reset'
+            }))
+            indexedDB.deleteDatabase(nomeBaseCentral)
+            await resetarBases()
+            emAtualizacao = false
+            return
+        }
 
         if (data.tabela == 'dados_orcamentos') {
             verificarPendencias()

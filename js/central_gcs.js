@@ -280,15 +280,6 @@ async function respostaSincronizacao(script) {
 
 }
 
-function redirecionarChamados() {
-    localStorage.setItem('app', '')
-    window.location.href = 'chamados.html'
-}
-
-function retornar() {
-    window.location.href = 'chamados.html'
-}
-
 async function identificacaoUser() {
 
     const bloq = ['cliente', 'técnico', 'visitante']
@@ -424,15 +415,10 @@ async function usuariosToolbar() {
         .length
 
     const indicadorStatus = user?.status || 'offline'
-    const statusOpcoes = ['online', 'Em almoço', 'Não perturbe', 'Em reunião', 'Apenas Whatsapp']
-    if (user?.permissao == 'adm') statusOpcoes.push('Invisível')
 
     const usuariosToolbarString = `
         <div class="botaoUsuarios">
             <img name="imgStatus" onclick="painelUsuarios()" src="imagens/${indicadorStatus}.png">
-            <select onchange="mudarStatus(this)">
-                ${statusOpcoes.map(op => `<option ${indicadorStatus == op ? 'selected' : ''}>${op}</option>`).join('')}
-            </select>
             <label style="font-size: 1.2rem;">${usuariosOnline}</label>
         </div>
     `
@@ -899,11 +885,9 @@ function capturarValorCelula(celula) {
 async function painelUsuarios() {
 
     const stringUsuarios = {}
+    dados_setores = Object.entries(dados_setores).sort((a, b) => a[0].localeCompare(b[0]))
 
-    let dadosSetores = await recuperarDados('dados_setores') || {}
-    dadosSetores = Object.entries(dadosSetores).sort((a, b) => a[0].localeCompare(b[0]))
-
-    for (const [usuario, objeto] of dadosSetores) {
+    for (const [usuario, objeto] of dados_setores) {
 
         if (objeto.permissao == 'novo') continue
 
@@ -939,9 +923,16 @@ async function painelUsuarios() {
 
     const divOnline = document.querySelector('.divOnline')
     if (divOnline) return divOnline.innerHTML = info
+    const indicadorStatus = acesso?.status || 'offline'
+    const statusOpcoes = ['online', 'Em almoço', 'Não perturbe', 'Em reunião', 'Apenas Whatsapp']
+    if (acesso?.permissao == 'adm') statusOpcoes.push('Invisível')
 
     const acumulado = `
         <div class="conteinerOnline">
+            <span>Alterar Status</span>
+            <select class="opcoesSelect" onchange="mudarStatus(this)">
+                ${statusOpcoes.map(op => `<option ${indicadorStatus == op ? 'selected' : ''}>${op}</option>`).join('')}
+            </select>
             <div class="divOnline">
                 ${info}
             </div>
@@ -1163,19 +1154,19 @@ async function verAprovacoes() {
         <tr>
             <td style="text-align: left;">${dados_orcam?.contrato || '--'}</td>
             <td style="text-align: left;">${cliente?.nome || '--'}</td>
-            <td>${dinheiro(orcamento.total_bruto)}</td>
-            <td>${dinheiro(orcamento.total_geral)}</td>
+            <td style="white-space: nowrap;">${dinheiro(orcamento.total_bruto)}</td>
+            <td style="white-space: nowrap;">${dinheiro(orcamento.total_geral)}</td>
             <td><label class="labelAprovacao" style="background-color: ${porcentagemDiferenca > 0 ? 'green' : '#B12425'}">${porcentagemDiferenca}%</label></td>
             <td>${cliente?.cidade || ''}</td>
             <td>${aprovacao?.usuario || '--'}</td>
             <td>
                 <div style="display: flex; align-items: center; justify-content: start; gap: 1vw;">
-                    <img src="imagens/${status}.png" style="width: 2vw;">
+                    <img src="imagens/${status}.png">
                     <label>${status}</label>
                 </div>
             </td>
             <td>${aprovacao?.justificativa || '--'}</td>
-            <td><img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="verPedidoAprovacao('${idOrcamento}')"></td>
+            <td><img src="imagens/pesquisar2.png" onclick="verPedidoAprovacao('${idOrcamento}')"></td>
         </tr>
         `
     }
@@ -1185,12 +1176,12 @@ async function verAprovacoes() {
         if (objeto.linhas == '') continue
         tabelasString += `
         <br>
-        <hr style="width: 100%;">
+        <hr>
         <br>
         <div class="borda-tabela">
             <div class="topo-tabela"></div>
             <div class="div-tabela">
-                <table class="tabela" style="width: 100%;">
+                <table class="tabela">
                     <thead style="background-color: ${guia[tabela]};">
                         <tr>${ths}</tr>
                         ${tabela == 'todos' ? `<tr>${tsh}</tr>` : ''}
@@ -1287,11 +1278,11 @@ async function verPedidoAprovacao(idOrcamento) {
                 <td>${quantidade}</td>
                 <td>
                     <div style="${horizontal}; gap: 2rem;">
-                        <span>${labelCusto}</span>
+                        <span style="white-space: nowrap;">${labelCusto}</span>
                         <img src="imagens/preco.png" onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')" style="width: 2rem; cursor: pointer;">
                     </div>
                 </td>
-                <td>${labelTotal}</td>
+                <td style="white-space: nowrap;">${labelTotal}</td>
                 <td>
                     <div style="${vertical}; gap: 2px;">
                         ${composicao?.tipo_desconto == 'Venda Direta' ? '<label>Venda Direta</label>' : ''}
@@ -1311,7 +1302,7 @@ async function verPedidoAprovacao(idOrcamento) {
                     <label style="font-size: 1rem; padding: 0.5rem;"><b>${tabela}</b></label>
                 </div>
                 <div class="div-tabela">
-                    <table class="tabela" style="width: 100%;">
+                    <table class="tabela">
                         <thead>
                             <tr>
                                 <th>Descrição</th>
@@ -1333,8 +1324,8 @@ async function verPedidoAprovacao(idOrcamento) {
     const divOrganizada = (valor, termo) => {
         return `
             <div style="${vertical}; width: 100%; margin-bottom: 5px;">
-                <label>${termo}</label>
-                <label style="font-size: 1rem;"><b>${valor}</b></label>
+                <label style="text-align: left;"><b>${termo}</b></label>
+                <label style="text-align: left;"><small>${valor}</small></label>
             </div>
         `
     }
@@ -1373,7 +1364,7 @@ async function verPedidoAprovacao(idOrcamento) {
                 ${divTabelas}
             </div>
 
-            <hr style="width: 100%;">
+            <hr>
 
             <div style="width: 80%; position: relative; color: #222; border-radius: 3px; padding: 5px; display: flex; justify-content: center; align-items: start; flex-direction: column;">
                 <label>Comentar</label>

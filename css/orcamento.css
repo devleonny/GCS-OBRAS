@@ -1,73 +1,26 @@
-.linha-orcamento-tabela {
-    position: relative;
-    display: grid;
-    grid-template-columns:
-        minmax(70px, 1fr) minmax(70px, 1fr) minmax(80px, 1fr) minmax(70px, 1fr) minmax(120px, 1fr) minmax(120px, 1.5fr) minmax(90px, 1fr) minmax(120px, 1fr) minmax(90px, 1fr) minmax(90px, 1fr) minmax(50px, 0.5fr);
-    width: fit-content;
-    align-items: center;
-    background: #fff;
-    border-bottom: 1px solid #b3b3b3;
-    font-size: 0.7rem;
-}
-
-.celula {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: start;
-    border-right: 1px solid #b3b3b3;
-    padding: 4px;
-}
-
-.celula select {
-    font-size: 0.7rem;
-}
-
-/* remove a borda da última célula pra não duplicar */
-.celula:last-child {
-    border-right: none;
-}
-
-.linha-slaves {
-    width: 100%;
-}
-
-.ths-orcamento input {
-    padding: 5px 0 5px 0;
-    width: 100%;
-}
-
-.ths-orcamento {
-    width: 90%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 5px;
-    padding: 5px;
+.celula span {
     text-align: left;
 }
 
-.ths-orcamento img {
-    width: 1rem;
-}
-
-.linha-master {
-    display: flex;
-    align-items: start;
-    justify-content: start;
-    flex-direction: column;
-}
-
-.cabecalho {
-    z-index: 10;
+.tabela-orcamentos,
+.tabela-slaves {
     width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-    justify-content: start;
-    position: sticky;
-    top: 0;
-    box-shadow: 0px 0px 2px #222;
+    border-collapse: collapse;
+}
+
+.tabela-slaves {
+    background: #f4f4f4;
+}
+
+.linha-slaves td {
+    padding: 0;
+}
+
+.p-orcamento {
+    background-color: #f5f5f5;
+    border-radius: 3px;
+    padding: 2px;
+    border: solid 1px #7b7b7b;
 }
 
 .formato_status {
