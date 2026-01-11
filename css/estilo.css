@@ -20,7 +20,7 @@ html {
     flex-direction: column;
     gap: 2rem;
     background-color: rgba(255, 255, 255, 0.104);
-    padding: 1rem;
+    padding: 1rem 0 1rem 0;
 }
 
 .b-atalhos {
@@ -93,10 +93,6 @@ img {
     width: 90vw;
     background-color: #0000005e;
     border-radius: 5px;
-}
-
-.planoFundo img {
-    width: 60vw;
 }
 
 .contornoInterno {
@@ -954,10 +950,6 @@ screen and (min-aspect-ratio: 13/9) {
 
     .rodape-login button {
         padding: 1vw;
-    }
-
-    .planoFundo img {
-        width: 30vw;
     }
 
     .tabTarefas table {
