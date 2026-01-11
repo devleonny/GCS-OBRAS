@@ -98,6 +98,8 @@ async function acessoLogin() {
                 return popup(mensagem(data.mensagem), 'Alerta', true);
 
             } else if (data.usuario) {
+
+                
                 localStorage.setItem('acesso', JSON.stringify(data))
                 acesso = data
                 indexedDB.deleteDatabase(nomeBaseCentral)

@@ -331,7 +331,7 @@ function carregarCorrecoes(idOcorrencia, dadosCorrecao = {}) {
 
         const agendamentos = (correcao?.datas_agendadas || []).reverse()
             .map(data => {
-                const [ano, mes, dia] = data.split('-')
+                const [ano, mes, dia] = data ? data.split('-') : ['-', '-', '-']
                 return `<span>${dia}/${mes}/${ano}</span>`
             })
             .join('')
@@ -364,9 +364,8 @@ function carregarCorrecoes(idOcorrencia, dadosCorrecao = {}) {
                         ${imagens !== ''
                 ? `<div class="fotos" style="display: flex;">${imagens}</div>`
                 : '<img src="imagens/img.png" style="width: 4rem;">'}
-
                         <div id="anexos" style="${vertical};">
-                            ${Object.entries(correcao?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual({ nome: anexo.nome, link: anexo.link, funcao: `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')` })).join('')}
+                            ${Object.entries(correcao?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')`)).join('')}
                         </div>
                     </div>
                 </div>
