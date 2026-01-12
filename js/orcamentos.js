@@ -1,4 +1,4 @@
-let filtro
+let filtroRespost
 let arquivado = 'N'
 let auxiliarFaturamento = {}
 let pAtual = 1
@@ -349,12 +349,12 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
     const orcamentosVinculados = idMaster
         ? `
         <div style="${horizontal}; gap: 3px;">
-            ${numOficial}
+            <span style="text-align: left;">${numOficial}</span>
             <img src="imagens/link2.png" onclick="confirmarRemoverVinculo('${idOrcamento}')" style="width: 1.5rem;">
             <span><b>${numOficialMaster}</b></span>
         </div>
         `
-        : numOficial
+        : `<span style="text-align: left;">${numOficial}</span>`
 
     const finalElemento = `
         <div style="${vertical}; gap: 2px;">
