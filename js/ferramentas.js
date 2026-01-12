@@ -8,7 +8,6 @@ const esquemas = {
     'tipo': ['VENDA', 'SERVIÇO', 'USO E CONSUMO']
 }
 const permCham = ['técnico', 'cliente', 'visitante']
-let anexosProvisorios = {}
 const extensoes = ['jpg', 'jpeg', 'png']
 let acesso = {}
 let tela = null
