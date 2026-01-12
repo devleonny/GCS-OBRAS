@@ -29,12 +29,6 @@ const avisoHTML = (termo) => `
         <label>${termo}</label>
     </div>
     `
-const mensagem = (mensagem, img) => `
-    <div style="background-color: #d2d2d2; gap: 10px; padding: 1rem; ${horizontal};">
-        <img src="${img ? img : `gifs/alerta.gif`}" style="width: 3rem;">
-        <label>${mensagem}</label>
-    </div>
-    `
 const balaoPDF = ({ nf, tipo, codOmie, app }) => {
     return `
     <div class="balaoNF" onclick="abrirDANFE('${codOmie}', '${tipo}', '${app}')">

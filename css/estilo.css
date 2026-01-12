@@ -15,7 +15,7 @@ html {
 .b-painel {
     width: 100%;
     display: flex;
-    align-items: center;
+    align-items: start;
     justify-content: center;
     flex-direction: column;
     gap: 2rem;
@@ -24,6 +24,8 @@ html {
 }
 
 .b-atalhos {
+    max-height: 50vh;
+    overflow-y: auto;
     width: 100%;
     display: flex;
     align-items: start;
@@ -937,6 +939,7 @@ input[type="file"] {
 screen and (min-aspect-ratio: 13/9) {
 
     .b-painel {
+        gap: 0;
         flex-direction: row;
     }
 

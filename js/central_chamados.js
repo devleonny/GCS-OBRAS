@@ -52,12 +52,6 @@ const modeloTabela = ({ minWidth, removerPesquisa = false, colunas, base, funcao
     </div>`
 }
 
-const mensagem = (mensagem, imagem) => `
-    <div class="mensagem">
-        <img src="${imagem || 'gifs/alerta.gif'}">
-        <label>${mensagem}</label>
-    </div>
-    `
 const btnRodape = (texto, funcao) => `
     <button class="btnRodape" onclick="${funcao}">${texto}</button>
 `
@@ -251,6 +245,9 @@ async function telaPrincipal() {
 
 async function criarElementosIniciais() {
 
+    const pFundo = document.querySelector('.planoFundo')
+    if (!pFundo) return
+
     await telaOcorrencias(true) // Apenas para carregar o objeto listaOcorrencias;
 
     const totais = {}
@@ -267,7 +264,7 @@ async function criarElementosIniciais() {
 
             pUsuario.push(`
                 <div class="balao-correcao" 
-                onclick="atalhoPendencias([{campo: 'chamado', valor: '${chamado}'}, {campo: 'executor': valor: '${acesso.usuario}'}], false)">
+                onclick="atalhoPendencias([{campo: 'chamado', valor: '${chamado}'}, {campo: 'executor', valor: '${acesso.usuario}'}], false)">
                     <span>Solicitado por ${criador}</span>
                     <div style="${horizontal}; gap: 1rem;">
                         <img src="imagens/alerta.png">
@@ -290,7 +287,6 @@ async function criarElementosIniciais() {
 
     }
 
-    const pFundo = document.querySelector('.planoFundo')
     const m = (funcao, texto, total) => `
         <div class="pill" onclick="${funcao}">
             <span class="pill-a" style="background: #b12425;">${total}</span>
@@ -313,7 +309,7 @@ async function criarElementosIniciais() {
 
     const dAtrasados = `
         <div class="b-atalhos">
-            <span class="titul-1">Correção atrasada, reagendar</span>
+            <span class="titul-1">Atrasados, reagendar</span>
             ${m(`atalhoPendencias([{campo: 'atrasado', valor: 'Sim'}])`, 'Atrasados', atradados)}
         </div>
     `
@@ -325,7 +321,7 @@ async function criarElementosIniciais() {
         </div>
     `
     const paraUsuario = `<div class="b-atalhos">
-        <span class="titul-1">Correções abertas <b>para você</b></span>
+        <span class="titul-1">Correções <b>para você</b></span>
         ${pUsuario.map(o => o).join('')}
     </div>`
 
@@ -335,18 +331,19 @@ async function criarElementosIniciais() {
         </span>
         <div class="b-painel">
             ${Object.keys(totais).length ? dAtalhos : ''}
-            ${atradados.length ? dAtrasados : ''}
-            ${paraUsuario}
+            ${atradados > 0 ? dAtrasados : ''}
+            ${pUsuario.length > 0 ? paraUsuario : ''}
         </div>
     `
 }
 
 function atalhoPendencias(campos = [], eu = true) {
+    if (emAtualizacao) return popup(mensagem('Espere o término da atualização'), 'GCS', true)
     const nFiltro = {}
     if (eu) nFiltro.criador = acesso.usuario
 
     for (const c of campos) {
-        const {campo, valor} = c
+        const { campo, valor } = c
         nFiltro[campo] = valor
     }
 
@@ -354,83 +351,97 @@ function atalhoPendencias(campos = [], eu = true) {
     filtrarPorCampo()
 }
 
-    function carregarMenus() {
+function carregarMenus() {
 
-        const blq = ['cliente', 'técnico']
+    const blq = ['cliente', 'técnico']
 
-        const menus = {
-            'Atualizar': { img: 'atualizar', funcao: 'connectWebSocket()', proibidos: [] },
-            'Início': { img: 'home', funcao: 'telaPrincipal()', proibidos: [] },
-            'Criar Ocorrência': { img: 'baixar', funcao: 'formularioOcorrencia()', proibidos: [] },
-            'Ocorrências': { img: 'configuracoes', funcao: 'telaOcorrencias()', proibidos: [] },
-            'Relatório de Ocorrências': { img: 'planilha', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] },
-            'Relatório de Correções': { img: 'planilha', funcao: 'telaRelatorioCorrecoes()', proibidos: ['user', 'técnico', 'visitante'] },
-            'Usuários': { img: 'perfil', funcao: 'telaUsuarios()', proibidos: ['user', 'cliente', 'técnico', 'analista', 'visitante'] },
-            'Cadastros': { img: 'ajustar', funcao: 'telaCadastros()', proibidos: ['user', 'técnico', 'cliente', 'visitante'] },
-        }
+    const menus = {
+        'Atualizar': { img: 'atualizar', funcao: 'connectWebSocket()', proibidos: [] },
+        'Início': { img: 'home', funcao: 'telaPrincipal()', proibidos: [] },
+        'Criar Ocorrência': { img: 'baixar', funcao: 'formularioOcorrencia()', proibidos: [] },
+        'Ocorrências': { img: 'configuracoes', funcao: 'telaOcorrencias()', proibidos: [] },
+        'Relatório de Ocorrências': { img: 'planilha', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] },
+        'Relatório de Correções': { img: 'planilha', funcao: 'telaRelatorioCorrecoes()', proibidos: ['user', 'técnico', 'visitante'] },
+        'Usuários': { img: 'perfil', funcao: 'telaUsuarios()', proibidos: ['user', 'cliente', 'técnico', 'analista', 'visitante'] },
+        'Cadastros': { img: 'ajustar', funcao: 'telaCadastros()', proibidos: ['user', 'técnico', 'cliente', 'visitante'] },
+    }
 
-        if (!blq.includes(acesso.permissao)) {
-            menus.GCS = { img: 'LG', funcao: 'irGCS()', proibidos: ['técnico', 'visitante'] }
-        }
+    if (!blq.includes(acesso.permissao)) {
+        menus.GCS = { img: 'LG', funcao: 'irGCS()', proibidos: ['técnico', 'visitante'] }
+    }
 
-        menus.Desconectar = { img: 'sair', funcao: 'deslogarUsuario()', proibidos: [] }
+    menus.Desconectar = { img: 'sair', funcao: 'deslogarUsuario()', proibidos: [] }
 
-        const stringMenus = Object.entries(menus)
-            .filter(([_, dados]) => !dados.proibidos.includes(acesso.permissao))
-            .map(([nome, dados]) => btn({ ...dados, nome }))
-            .join('');
+    const stringMenus = Object.entries(menus)
+        .filter(([_, dados]) => !dados.proibidos.includes(acesso.permissao))
+        .map(([nome, dados]) => btn({ ...dados, nome }))
+        .join('');
 
-        const botoes = `
+    const botoes = `
         <div class="nomeUsuario">
             <span><strong>${inicialMaiuscula(acesso.permissao)}</strong> ${acesso.usuario}</span>
         </div>
         <br>
+       
+        <div style="${horizontal}; gap: 0.5rem;">
+            <img src="imagens/alerta.png" onclick="mostrarPendencias()">
+            <span style="color: white;">Ver atalhos</span>
+        </div>
         <div class="painel-pendencias"></div>
         <br>
         ${stringMenus}
 
     `
-        document.querySelector('.botoesMenu').innerHTML = botoes
+    document.querySelector('.botoesMenu').innerHTML = botoes
+}
+
+function mostrarPendencias() {
+    const p = document.querySelector('.painel-pendencias')
+    const visivel = p.style.display
+
+    p.style.display = (visivel === 'none' || visivel === '')
+        ? 'flex'
+        : 'none'
+}
+
+async function telaUsuarios() {
+
+    filtroOcorrencias = {}
+
+    overlayAguarde()
+
+    titulo.textContent = 'Gerenciar Usuários'
+
+    mostrarMenus(false)
+
+    empresas = await recuperarDados('empresas')
+    const colunas = ['Nome', 'Empresa', 'Setor', 'Permissão', '']
+
+    dados_setores = await recuperarDados('dados_setores')
+    const btnExtras = `<img onclick="atualizarUsuarios()" src="imagens/atualizar.png">`
+
+    const tbody = document.getElementById('tabela_usuarios')
+    if (!tbody) telaInterna.innerHTML = modeloTabela({ btnExtras, colunas, body: 'tabela_usuarios' })
+
+    for (const [user, dados] of Object.entries(dados_setores)) {
+        criarLinhaUsuario(user, dados)
     }
 
-    async function telaUsuarios() {
+    removerOverlay()
 
-        filtroOcorrencias = {}
+}
 
-        overlayAguarde()
+async function atualizarUsuarios() {
 
-        titulo.textContent = 'Gerenciar Usuários'
+    await sincronizarDados('dados_setores')
+    await sincronizarDados('empresas')
+    await telaUsuarios()
 
-        mostrarMenus(false)
+}
 
-        empresas = await recuperarDados('empresas')
-        const colunas = ['Nome', 'Empresa', 'Setor', 'Permissão', '']
+function criarLinhaUsuario(user, dados) {
 
-        dados_setores = await recuperarDados('dados_setores')
-        const btnExtras = `<img onclick="atualizarUsuarios()" src="imagens/atualizar.png">`
-
-        const tbody = document.getElementById('tabela_usuarios')
-        if (!tbody) telaInterna.innerHTML = modeloTabela({ btnExtras, colunas, body: 'tabela_usuarios' })
-
-        for (const [user, dados] of Object.entries(dados_setores)) {
-            criarLinhaUsuario(user, dados)
-        }
-
-        removerOverlay()
-
-    }
-
-    async function atualizarUsuarios() {
-
-        await sincronizarDados('dados_setores')
-        await sincronizarDados('empresas')
-        await telaUsuarios()
-
-    }
-
-    function criarLinhaUsuario(user, dados) {
-
-        const tds = `
+    const tds = `
         <td>${dados.nome_completo || '...'}</td>
         <td>${empresas?.[dados?.empresa]?.nome || '...'}</td>
         <td>${dados.setor || '...'}</td>
@@ -438,116 +449,116 @@ function atalhoPendencias(campos = [], eu = true) {
         <td><img onclick="gerenciarUsuario('${user}')" src="imagens/pesquisar2.png"></td>
     `
 
-        const trExistente = document.getElementById(user)
-        if (trExistente) return trExistente.innerHTML = tds
+    const trExistente = document.getElementById(user)
+    if (trExistente) return trExistente.innerHTML = tds
 
-        document.getElementById('tabela_usuarios').insertAdjacentHTML('beforeend', `<tr id="${user}">${tds}</tr>`)
-    }
+    document.getElementById('tabela_usuarios').insertAdjacentHTML('beforeend', `<tr id="${user}">${tds}</tr>`)
+}
 
-    function popupNotificacao(msg) {
+function popupNotificacao(msg) {
 
-        const idNot = ID5digitos()
-        const acumulado = `
+    const idNot = ID5digitos()
+    const acumulado = `
         <div id="${idNot}" class="notificacao">${msg}</div>
     `
 
-        document.body.insertAdjacentHTML('beforeend', acumulado)
+    document.body.insertAdjacentHTML('beforeend', acumulado)
 
-        setTimeout(() => {
-            document.getElementById(idNot).remove()
-        }, 5000);
+    setTimeout(() => {
+        document.getElementById(idNot).remove()
+    }, 5000);
 
-    }
+}
 
-    async function gerenciarUsuario(id) {
+async function gerenciarUsuario(id) {
 
-        const usuario = await recuperarDado('dados_setores', id)
+    const usuario = await recuperarDado('dados_setores', id)
 
-        const empresasOpcoes = Object.entries({ '': { nome: '' }, ...empresas }).sort()
-            .map(([id, empresa]) => `<option value="${id}" ${usuario?.empresa == id ? 'selected' : ''}>${empresa.nome}</option>`)
-            .join('')
+    const empresasOpcoes = Object.entries({ '': { nome: '' }, ...empresas }).sort()
+        .map(([id, empresa]) => `<option value="${id}" ${usuario?.empresa == id ? 'selected' : ''}>${empresa.nome}</option>`)
+        .join('')
 
-        const permissoes = ['novo', 'desativado', 'técnico', 'cliente']
-            .map(op => `<option ${usuario?.permissao == op ? 'selected' : ''}>${op}</option>`).join('')
+    const permissoes = ['novo', 'desativado', 'técnico', 'cliente']
+        .map(op => `<option ${usuario?.permissao == op ? 'selected' : ''}>${op}</option>`).join('')
 
-        const setores = ['', 'CHAMADOS', 'MATRIZ BA', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO']
-            .map(op => `<option ${usuario?.setor == op ? 'selected' : ''}>${op}</option>`).join('')
+    const setores = ['', 'CHAMADOS', 'MATRIZ BA', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO']
+        .map(op => `<option ${usuario?.setor == op ? 'selected' : ''}>${op}</option>`).join('')
 
-        const linhas = [
-            { texto: 'Nome', elemento: `<span>${usuario?.nome_completo || '-'}</span>` },
-            { texto: 'E-mail', elemento: `<span>${usuario?.email || '-'}</span>` },
-            { texto: 'Permissão', elemento: `<select onchange="configuracoes('${id}', 'permissao', this.value)">${permissoes}</select>` },
-            { texto: 'Setor', elemento: `<select onchange="configuracoes('${id}', 'setor', this.value)">${setores}</select>` },
-            { texto: 'Empresa', elemento: `<select onchange="configuracoes('${id}', 'empresa', this.value)">${empresasOpcoes}</select>` }
-        ]
+    const linhas = [
+        { texto: 'Nome', elemento: `<span>${usuario?.nome_completo || '-'}</span>` },
+        { texto: 'E-mail', elemento: `<span>${usuario?.email || '-'}</span>` },
+        { texto: 'Permissão', elemento: `<select onchange="configuracoes('${id}', 'permissao', this.value)">${permissoes}</select>` },
+        { texto: 'Setor', elemento: `<select onchange="configuracoes('${id}', 'setor', this.value)">${setores}</select>` },
+        { texto: 'Empresa', elemento: `<select onchange="configuracoes('${id}', 'empresa', this.value)">${empresasOpcoes}</select>` }
+    ]
 
-        const form = new formulario({ linhas, titulo: 'Gerenciar Usuário' })
-        form.abrirFormulario()
+    const form = new formulario({ linhas, titulo: 'Gerenciar Usuário' })
+    form.abrirFormulario()
 
-    }
+}
 
-    function pesquisar(input) {
-        const termo = input.value.trim().toLowerCase();
-        const tbody = document.querySelector('.tabela tbody');
-        const trs = tbody.querySelectorAll('tr');
+function pesquisar(input) {
+    const termo = input.value.trim().toLowerCase();
+    const tbody = document.querySelector('.tabela tbody');
+    const trs = tbody.querySelectorAll('tr');
 
-        trs.forEach(tr => {
-            const tds = tr.querySelectorAll('td');
-            let encontrou = false;
+    trs.forEach(tr => {
+        const tds = tr.querySelectorAll('td');
+        let encontrou = false;
 
-            tds.forEach(td => {
-                let texto = td.textContent.trim().toLowerCase();
+        tds.forEach(td => {
+            let texto = td.textContent.trim().toLowerCase();
 
-                const inputInterno = td.querySelector('input, textarea, select');
-                if (inputInterno) {
-                    texto += ' ' + inputInterno.value.trim().toLowerCase();
-                }
+            const inputInterno = td.querySelector('input, textarea, select');
+            if (inputInterno) {
+                texto += ' ' + inputInterno.value.trim().toLowerCase();
+            }
 
-                if (termo && texto.includes(termo)) {
-                    encontrou = true;
-                }
-            });
-
-            if (!termo || encontrou) {
-                tr.style.display = ''; // mostra
-            } else {
-                tr.style.display = 'none'; // oculta
+            if (termo && texto.includes(termo)) {
+                encontrou = true;
             }
         });
-    }
 
-    function base64ToBlob(base64) {
-        const arr = base64.split(',');
-        const mime = arr[0].match(/:(.*?);/)[1];
-        const bstr = atob(arr[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        while (n--) {
-            u8arr[n] = bstr.charCodeAt(n);
-        }
-        return new Blob([u8arr], { type: mime });
-    }
-
-    async function importarAnexos({ input, foto }) {
-        const formData = new FormData();
-
-        if (foto) {
-            const blob = base64ToBlob(foto);
-            formData.append('arquivos', blob);
+        if (!termo || encontrou) {
+            tr.style.display = ''; // mostra
         } else {
-            for (const file of input.files) {
-                formData.append('arquivos', file);
-            }
+            tr.style.display = 'none'; // oculta
         }
+    });
+}
 
-        try {
-            const response = await fetch(`${api}/upload`, {
-                method: 'POST',
-                body: formData
-            });
-            return await response.json();
-        } catch (err) {
-            popup(mensagem(`Erro na API: ${err}`));
-            throw err;
+function base64ToBlob(base64) {
+    const arr = base64.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+}
+
+async function importarAnexos({ input, foto }) {
+    const formData = new FormData();
+
+    if (foto) {
+        const blob = base64ToBlob(foto);
+        formData.append('arquivos', blob);
+    } else {
+        for (const file of input.files) {
+            formData.append('arquivos', file);
         }
     }
+
+    try {
+        const response = await fetch(`${api}/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        return await response.json();
+    } catch (err) {
+        popup(mensagem(`Erro na API: ${err}`));
+        throw err;
+    }
+}

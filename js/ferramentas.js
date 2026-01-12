@@ -40,6 +40,11 @@ let hierarquia = {}
 let depPorDesc = {}
 let bReset = null
 const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
+const mensagem = (mensagem, imagem = 'gifs/alerta.gif') => `
+    <div class="mensagem">
+        <img src="${imagem}">
+        <label>${mensagem}</label>
+    </div>`
 
 //Temporário 
 indexedDB.deleteDatabase('GCSMob')
