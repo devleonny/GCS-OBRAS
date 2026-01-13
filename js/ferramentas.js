@@ -48,6 +48,12 @@ const mensagem = (mensagem, imagem = 'gifs/alerta.gif') => `
 //Temporário 
 indexedDB.deleteDatabase('GCSMob')
 
+const link = document.createElement('link');
+link.rel = 'icon';
+link.type = 'imagens/png';
+link.href = 'imagens/LG.png';
+document.head.appendChild(link);
+
 function atribuirVariaveis() {
     toolbar = document.querySelector('.toolbar-top')
     titulo = toolbar.querySelector(`[name="titulo"]`)

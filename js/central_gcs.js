@@ -187,12 +187,6 @@ const esquemaBotoes = {
     ]
 }
 
-const link = document.createElement('link');
-link.rel = 'icon';
-link.type = 'imagens/png';
-link.href = 'imagens/LG.png';
-document.head.appendChild(link);
-
 identificacaoUser()
 
 async function despoluicaoGCS() {
