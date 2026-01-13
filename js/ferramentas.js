@@ -25,7 +25,7 @@ let funcaoTela = null
 const filtrosPesquisa = {}
 const paginasBloqueadas = ['PDF', 'OS']
 let overlayTimeout;
-let semOverlay = false
+let sOverlay = false
 let dados_clientes = {}
 let empresas = {}
 let correcoes = {}
@@ -69,7 +69,7 @@ document.addEventListener('keydown', function (event) {
 
 async function resetarBases() {
 
-    overlayAguarde(true)
+    overlayAguarde()
 
     const divMensagem = document.querySelector('.div-mensagem')
 
@@ -170,6 +170,8 @@ function inicialMaiuscula(string) {
 }
 
 function overlayAguarde() {
+
+    if (sOverlay) return
 
     const aguarde = document.querySelector('.aguarde')
     if (aguarde) aguarde.remove()

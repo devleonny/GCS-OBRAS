@@ -61,7 +61,7 @@ function connectWebSocket() {
                 status('offline')
                 status('pendente')
                 await resetarTudo()
-                await atualizarOcorrencias()
+                //await atualizarOcorrencias()
                 msg({ tipo: 'confirmado', usuario: acesso.usuario })
 
                 status('online')
@@ -106,9 +106,9 @@ function connectWebSocket() {
 
     async function refletir() {
         if (bReset == 2) return
-        semOverlay = true
+        sOverlay = true
         await executar(funcaoTela)
-        semOverlay = false
+        sOverlay = false
     }
 
 }
