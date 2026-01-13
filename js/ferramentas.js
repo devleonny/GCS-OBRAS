@@ -44,6 +44,34 @@ const mensagem = (mensagem, imagem = 'gifs/alerta.gif') => `
         <img src="${imagem}">
         <label>${mensagem}</label>
     </div>`
+const appBases = {
+    1: [
+        'hierarquia',
+        'tags',
+        'tags_orcamentos',
+        'departamentos_AC',
+        'dados_orcamentos',
+        'custo_veiculos',
+        'motoristas',
+        'veiculos',
+        'dados_composicoes',
+        'dados_clientes',
+        'lista_pagamentos',
+        'dados_manutencao',
+        'dados_categorias_AC',
+        'dados_estoque',
+        'pessoas'
+    ],
+    2: [
+        'dados_clientes',
+        'prioridades',
+        'tipos',
+        'correcoes',
+        'sistemas',
+        'empresas',
+        'dados_setores'
+    ]
+}
 
 //Temporário 
 indexedDB.deleteDatabase('GCSMob')
@@ -87,38 +115,9 @@ async function resetarBases() {
     logs.insertAdjacentHTML('beforeend', '<label>Apagando <b>Base existente</b>...</label>')
     logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
 
-    const bases = {
-        1: [
-            'hierarquia',
-            'tags',
-            'tags_orcamentos',
-            'departamentos_AC',
-            'dados_orcamentos',
-            'custo_veiculos',
-            'motoristas',
-            'veiculos',
-            'dados_composicoes',
-            'dados_clientes',
-            'lista_pagamentos',
-            'dados_manutencao',
-            'dados_categorias_AC',
-            'dados_estoque',
-            'pessoas'
-        ],
-        2: [
-            'dados_clientes',
-            'prioridades',
-            'tipos',
-            'correcoes',
-            'sistemas',
-            'empresas',
-            'dados_setores'
-        ]
-    }
-
     if (!bReset) return
 
-    for (const base of bases[bReset]) {
+    for (const base of appBases[bReset]) {
         await sincronizarDados({ base, resetar: true })
         logs.insertAdjacentHTML('beforeend', `<label>Sincronizando: <small>${base}</small></label>`)
     }
@@ -432,10 +431,12 @@ if (typeof window !== 'undefined' && window.process && window.process.type) {
 }
 
 function abrirArquivo(link, nome) {
-    link = `${api}/uploads/${link}`;
+    link = `${api}:4000/uploads/${link}`;
     const imagens = ['png', 'jpg', 'jpeg'];
 
-    const extensao = nome.split('.').pop().toLowerCase(); // pega sem o ponto
+    const extensao = !nome
+        ? ''
+        : nome.split('.').pop().toLowerCase(); // pega sem o ponto
 
     if (imagens.includes(extensao)) {
         const acumulado = `

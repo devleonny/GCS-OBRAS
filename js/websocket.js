@@ -57,19 +57,19 @@ function connectWebSocket() {
                 status('online')
             } else {
                 overlayAguarde()
-
                 status('offline')
                 status('pendente')
                 await resetarTudo()
-                //await atualizarOcorrencias()
+                await atualizarOcorrencias()
                 msg({ tipo: 'confirmado', usuario: acesso.usuario })
-
                 status('online')
                 removerOverlay()
                 return
             }
 
         }
+
+        if (!appBases[bReset].includes(data.tabela)) return
 
         if (bReset == 1 && data.tabela == 'dados_orcamentos') {
             verificarPendencias()
@@ -106,9 +106,9 @@ function connectWebSocket() {
 
     async function refletir() {
         if (bReset == 2) return
-        sOverlay = true
+        semOverlay = true
         await executar(funcaoTela)
-        sOverlay = false
+        semOverlay = false
     }
 
 }

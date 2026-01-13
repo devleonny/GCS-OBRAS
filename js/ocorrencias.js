@@ -784,20 +784,20 @@ async function atualizarOcorrencias(resetar = false) {
         'tipos'
     ]
 
-    const { permissao, empresa } = acesso
     const bCli = ['dados_clientes', 'dados_ocorrencias']
 
     for (const base of basesAuxiliares) {
 
         sincronizarApp(status)
 
-        const filtro = (bCli.includes(base) && permissao == 'cliente')
-            ? { empresa }
+        const filtro = (bCli.includes(base) && acesso.permissao == 'cliente')
+            ? { empresa: acesso.empresa }
             : {}
 
         await sincronizarDados({ base, filtro, resetar })
         status.atual++
 
+        // A tabela é a primeira: atualiza os dados da empresa atual antes da tabela de clientes;
         if (base == 'dados_setores') {
             acesso = await recuperarDado('dados_setores', acesso.usuario)
             localStorage.setItem('acesso', JSON.stringify(acesso))
@@ -952,7 +952,10 @@ async function formularioOcorrencia() {
         { elemento: await blocoAuxiliarFotos(fotos || {}, true) }
     ]
 
-    const botoes = [{ img: 'concluido', texto: 'Salvar', funcao: `salvarOcorrencia()` }]
+    const botoes = [
+        { img: 'concluido', texto: 'Salvar', funcao: `salvarOcorrencia()` },
+        { img: 'atualizar', texto: 'Atualizar', funcao: `atualizarOcorrencias()` },
+    ]
 
     const titulo = idOcorrencia ? 'Editar Ocorrência' : 'Criar Ocorrência'
 
@@ -1032,7 +1035,10 @@ async function formularioCorrecao() {
             `
         }
     ]
-    const botoes = [{ img: 'concluido', texto: 'Salvar', funcao: 'salvarCorrecao()' }]
+    const botoes = [
+        { img: 'concluido', texto: 'Salvar', funcao: 'salvarCorrecao()' },
+        { img: 'atualizar', texto: 'Atualizar', funcao: `atualizarOcorrencias()` },
+    ]
     const form = new formulario({ linhas, botoes, titulo: 'Gerenciar Correção' })
     form.abrirFormulario()
 
