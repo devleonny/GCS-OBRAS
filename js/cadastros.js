@@ -238,7 +238,7 @@ async function vincularEmpresas() {
         data = await response.json()
         if (data.mensagem) return popup(mensagem(data.mensagem), 'Alerta', true)
 
-        await sincronizarDados('dados_clientes')
+        await sincronizarDados({ base: 'dados_clientes' })
         await telaCadastros()
         removerPopup()
 

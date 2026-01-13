@@ -239,7 +239,7 @@ async function telaPrincipal() {
 
     mostrarMenus(false)
 
-    await criarElementosIniciais()
+    if (!emAtualizacao) await criarElementosIniciais()
 
 }
 
@@ -256,26 +256,35 @@ async function criarElementosIniciais() {
 
     for (const ocorrencia of Object.values(listaOcorrencias)) {
 
-        const { criador, executor, unidade, sistema, prioridade, ultima_correcao, atrasado, chamado } = ocorrencia
+        const { criador, unidade, sistema, prioridade, ultima_correcao, atrasado, chamado, correcoes } = ocorrencia
 
         if (ultima_correcao == 'Solucionada') continue
 
-        if (executor.includes(acesso.usuario)) {
+        // Percorrer cada correção;
+        for (const [idCorrecao, correcao] of Object.entries(correcoes)) {
+
+            if (correcao.executor !== acesso.usuario) continue
+            const respondida = Object
+                .values(correcoes)
+                .some(c => c.resposta == idCorrecao)
+
+            if (respondida) continue
 
             pUsuario.push(`
-                <div class="balao-correcao" 
-                onclick="atalhoPendencias([{campo: 'chamado', valor: '${chamado}'}, {campo: 'executor', valor: '${acesso.usuario}'}], false)">
+                <div class="balao-correcao"
+                    onclick="atalhoPendencias([{campo: 'chamado', valor: '${chamado}'}, {campo: 'executor', valor: '${acesso.usuario}'}], false)">
                     <span>Solicitado por ${criador}</span>
                     <div style="${horizontal}; gap: 1rem;">
                         <img src="imagens/alerta.png">
                         <div style="${vertical}">
-                            <span>${unidade}</span>
-                            <span>${sistema}</span>
-                            <span>${prioridade}</span>
+                            <span><b>Unidade:</b> ${unidade}</span>
+                            <span><b>Sistema:</b> ${sistema}</span>
+                            <span><b>Prioridade:</b> ${prioridade}</span>
+                            <span><b>Descrição:</b> ${correcao?.descricao || ''}</span>
                         </div>
                     </div>
-                </div>
-                `)
+                </div>`)
+
         }
 
         if (criador !== acesso.usuario) continue
@@ -358,7 +367,7 @@ function carregarMenus() {
     const menus = {
         'Atualizar': { img: 'atualizar', funcao: 'connectWebSocket()', proibidos: [] },
         'Início': { img: 'home', funcao: 'telaPrincipal()', proibidos: [] },
-        'Criar Ocorrência': { img: 'baixar', funcao: 'formularioOcorrencia()', proibidos: [] },
+        'Criar Ocorrência': { img: 'baixar', funcao: 'oAtual = {}; formularioOcorrencia()', proibidos: [] },
         'Ocorrências': { img: 'configuracoes', funcao: 'telaOcorrencias()', proibidos: [] },
         'Relatório de Ocorrências': { img: 'planilha', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] },
         'Relatório de Correções': { img: 'planilha', funcao: 'telaRelatorioCorrecoes()', proibidos: ['user', 'técnico', 'visitante'] },
@@ -383,7 +392,7 @@ function carregarMenus() {
         </div>
         <br>
        
-        <div style="${horizontal}; gap: 0.5rem;">
+        <div style="${horizontal}; gap: 0.5rem; margin-bottom: 0.5rem;">
             <img src="imagens/alerta.png" onclick="mostrarPendencias()">
             <span style="color: white;">Ver atalhos</span>
         </div>
@@ -433,8 +442,8 @@ async function telaUsuarios() {
 
 async function atualizarUsuarios() {
 
-    await sincronizarDados('dados_setores')
-    await sincronizarDados('empresas')
+    await sincronizarDados({ base: 'dados_setores' })
+    await sincronizarDados({ base: 'empresas'})
     await telaUsuarios()
 
 }

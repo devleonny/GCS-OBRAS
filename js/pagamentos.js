@@ -52,7 +52,7 @@ async function recuperarPagamentos() {
         'dados_orcamentos'
     ]
 
-    for (const tabela of tabelas) await sincronizarDados(tabela)
+    for (const base of tabelas) await sincronizarDados({ base })
 
     await telaPagamentos()
 
@@ -194,7 +194,7 @@ function criarLinhaPagamento(pagamento) {
 
     const deps = (pagamento?.param[0]?.distribuicao || [])
         .map(dep => {
-            const departamento = departamentos?.[dep.cCodDep] || {}
+            const departamento = departamentos_AC?.[dep.cCodDep] || {}
             const nomeCliente = departamento?.cliente?.nome || ''
             return `
                 <div style="${vertical}; gap: 2px; text-align: left;">

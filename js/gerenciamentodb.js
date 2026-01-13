@@ -39,7 +39,42 @@ async function deletarDB(base, idInterno) {
         tx.oncomplete = resolve;
     });
 
-    db.close();
+    db.close()
+}
+
+async function resetarTudo() {
+
+    // Limpar variáveis;
+    dados_clientes = {}
+    dados_ocorrencias = {}
+    listaOcorrencias = {}
+
+    const db = await new Promise((resolve, reject) => {
+        const req = indexedDB.open(nomeBaseCentral)
+        req.onsuccess = () => resolve(req.result)
+        req.onerror = e => reject(e.target.error)
+    })
+
+    const stores = [...db.objectStoreNames]
+
+    if (!stores.length) {
+        db.close()
+        return
+    }
+
+    const tx = db.transaction(stores, 'readwrite')
+
+    for (const nomeStore of stores) {
+        tx.objectStore(nomeStore).clear()
+    }
+
+    await new Promise((resolve, reject) => {
+        tx.oncomplete = resolve
+        tx.onerror = reject
+    })
+
+    db.close()
+
 }
 
 async function inserirDados(dados, nomeBase, resetar) {
@@ -166,18 +201,30 @@ async function recuperarDado(nomeBase, id) {
     return resultado;
 }
 
-async function sincronizarDados(base, overlayOff, resetar) {
+async function sincronizarDados({ base, overlay = false, resetar = false, filtro = {} }) {
 
-    if (!overlayOff) overlayAguarde()
+    if (overlay) overlayAguarde()
 
-    if (base == 'hierarquia') resetar = true
-
-    if (resetar) await inserirDados({}, base, resetar)
+    if (base === 'hierarquia') resetar = true
+    if (resetar) await inserirDados({}, base, true)
 
     let nuvem = await receber(base) || {}
+
+    if (Object.keys(filtro).length) {
+        nuvem = Object.fromEntries(
+            Object.entries(nuvem).filter(([_, obj]) =>
+                Object.entries(filtro).every(([campo, valor]) =>
+                    obj?.[campo] === valor
+                )
+            )
+        )
+    }
+
     await inserirDados(nuvem, base)
 
-    if (!overlayOff) removerOverlay()
+    if (overlay) removerOverlay()
+
+    return nuvem
 }
 
 // SERVIÇO DE ARMAZENAMENTO 

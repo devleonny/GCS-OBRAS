@@ -31,6 +31,8 @@ const meses = {
 
 async function atualizarOrcamentos() {
 
+    overlayAguarde()
+
     const tabelas = [
         'dados_orcamentos',
         'dados_composicoes',
@@ -40,11 +42,13 @@ async function atualizarOrcamentos() {
         'hierarquia'
     ]
 
-    for (const tabela of tabelas) await sincronizarDados(tabela)
+    for (const base of tabelas) await sincronizarDados({ base })
 
     await auxDepartamentos()
     await telaOrcamentos()
     await sincronizarTags()
+
+    removerOverlay()
 
 }
 
@@ -190,7 +194,7 @@ async function telaOrcamentos() {
     for (const [idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
         criarLinhaOrcamento(idOrcamento, orcamento)
     }
-    
+
     criarMenus('orcamentos')
 
     pAtual = 1
@@ -583,7 +587,7 @@ function aplicarFiltrosEPaginacao() {
 
         if (Array.isArray(filhos)) {
             filhos.forEach(fid => {
-                const filho = orcsFiltrados[fid]  
+                const filho = orcsFiltrados[fid]
                 if (!filho || jaInseridos.has(fid)) return
 
                 document.getElementById(fid)?.remove()

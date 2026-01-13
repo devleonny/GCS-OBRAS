@@ -3,7 +3,7 @@ let idManutencao = null
 let statusChamados = null
 
 async function atualizarManutencoes() {
-    await sincronizarDados('dados_manutencao')
+    await sincronizarDados({ base: 'dados_manutencao' })
     await telaChamados()
 }
 
@@ -120,12 +120,12 @@ async function telaChamados() {
     `
 
     const bodyChamados = document.getElementById('bodyChamados')
-    if(!bodyChamados) tela.innerHTML = acumulado
+    if (!bodyChamados) tela.innerHTML = acumulado
 
     let contadores = {}
     const dados_manutencao = await recuperarDados('dados_manutencao') || {}
     dados_clientes = await recuperarDados('dados_clientes') || {}
-    
+
     for (let [idManutencao, manutencao] of Object.entries(dados_manutencao).reverse()) {
         const cliente = dados_clientes[manutencao.codigo_cliente] || {};
         const tecnico = dados_clientes[manutencao.codigo_tecnico] || {};

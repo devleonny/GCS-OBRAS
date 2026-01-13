@@ -3,7 +3,7 @@ let colunasEstoque = ['editar', 'partnumber', 'categoria', 'marca', 'descricao',
 
 async function atualizarEstoque() {
 
-    await sincronizarDados('dados_estoque')
+    await sincronizarDados({ base: 'dados_estoque' })
     await telaEstoque()
 
 }
@@ -45,7 +45,7 @@ async function telaEstoque() {
         </div>
     `
     const bodyEstoque = document.getElementById('bodyEstoque')
-    if(!bodyEstoque) tela.innerHTML = acumulado
+    if (!bodyEstoque) tela.innerHTML = acumulado
 
     let idsAtivos = []
     const dados_estoque = await recuperarDados('dados_estoque') || {}

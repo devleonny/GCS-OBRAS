@@ -194,8 +194,8 @@ async function recarregarLinhas() {
 }
 
 async function sincronizarTags() {
-    await sincronizarDados('tags_orcamentos')
-    tags_orcamentos = await recuperarDados('tags_orcamentos')
+
+    tags_orcamentos = await sincronizarDados({ base: 'tags_orcamentos' })
 
     for (const [idTag, tag] of Object.entries(tags_orcamentos)) {
         const todas = document.querySelectorAll(`.tag[data-id="${idTag}"]`)

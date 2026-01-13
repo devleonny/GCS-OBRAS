@@ -233,7 +233,7 @@ async function despoluicaoGCS() {
     ]
 
     for (const base of bases) {
-        await sincronizarDados(base, true, true) // Nome base, overlay off e resetar bases;
+        await sincronizarDados({ base, overlay: true, resetar: true })
         logs.insertAdjacentHTML('beforeend', `<label>Sincronizando: ${base}</label>`)
     }
 
@@ -298,8 +298,8 @@ async function identificacaoUser() {
 
     document.body.insertAdjacentHTML('beforeend', toolbar)
 
-    await sincronizarDados('dados_setores', null, true)
-    dados_setores = await recuperarDados('dados_setores')
+    dados_setores = await sincronizarDados({ base: 'dados_setores', resetar: true })
+
     acesso = dados_setores[acesso.usuario]
 
     if (!acesso || !acesso.permissao || acesso.permissao == 'novo') {
@@ -426,10 +426,7 @@ async function usuariosToolbar() {
 
 async function configs() {
 
-    overlayAguarde()
-
-    await sincronizarDados('dados_setores')
-    dados_setores = await recuperarDados('dados_setores')
+    dados_setores = await sincronizarDados({ base: 'dados_setores', overlay: true })
 
     let linhas = ''
     const listas = {
@@ -649,7 +646,7 @@ async function irPdf(orcam_, emAnalise) {
 
 async function recuperarClientes() {
 
-    await sincronizarDados('dados_clientes')
+    await sincronizarDados({ base: 'dados_clientes', overlay: true })
 
 }
 
@@ -1204,8 +1201,8 @@ async function verificarPendencias() {
 
     if (!navigator.onLine) return
 
-    await sincronizarDados('dados_orcamentos', true)
-    dados_orcamentos = await recuperarDados('dados_orcamentos')
+    dados_orcamentos = await sincronizarDados({ base: 'dados_orcamentos', overlay: true })
+
     let contador = 0
 
     for ([idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
@@ -1408,8 +1405,8 @@ async function respostaAprovacao(botao, idOrcamento, status) {
         justificativa
     }
 
-    await sincronizarDados('dados_orcamentos')
-    let orcamento = await recuperarDado('dados_orcamentos', idOrcamento) || {}
+    const orcamento = dados_orcamentos[idOrcamento] || {}
+
     orcamento.aprovacao = {
         ...dados_orcamentos[idOrcamento].aprovacao,
         ...dados
@@ -1477,8 +1474,8 @@ async function verificarNF(numero, tipo, app) {
 }
 
 async function atualizarBaseClientes() {
-    await sincronizarDados('dados_clientes')
-    await sincronizarDados('dados_ocorrencias')
+    await sincronizarDados({ base: 'dados_clientes' })
+    await sincronizarDados({ base: 'dados_ocorrencias' })
     await auxDepartamentos()
 }
 
@@ -1790,102 +1787,6 @@ async function buscarDANFE(codOmieNF, tipo, app) {
     }
 }
 
-async function cadastrarCliente() {
-
-    const acumulado = `
-        <div style="padding: 1rem; ${vertical}; align-items: start; background-color: #d2d2d2; min-width: max-content;">
-
-            <div style="${horizontal}; gap: 1rem;">
-                <div style="${vertical}">
-                    ${modelo('Nome', `<textarea id="nome_fantasia" rows="5"></textarea>`)}
-                </div>
-
-                <div style="${vertical}">
-                    ${modelo('CNPJ ou CPF', `<input id="cnpj_cpf">`)}
-                    ${modelo('Nº do endereço', `<input id="endereco_numero">`)}
-                    ${modelo('CEP', `<input id="cep">`)}
-                </div>
-            </div>
-
-            <hr style="width: 100%;">
-
-            <button onclick="salvarCliente()">Salvar</button>
-        </div>`
-
-    popup(acumulado, 'Cadastro de Cliente e Empresa', true)
-
-}
-
-async function salvarCliente() {
-
-    overlayAguarde()
-
-    const campos = ['nome_fantasia', 'cnpj_cpf', 'endereco_numero', 'cep'];
-    let param = {
-        codigo_cliente_integracao: unicoID()
-    };
-
-    for (const campo of campos) {
-        const el = document.getElementById(campo);
-        if (el && el.value !== '') param[campo] = el.value;
-    }
-
-    if (!param.nome_fantasia) return popup(mensagem('Escreva o nome do Cliente'), 'Alerta', true)
-
-    param.nome_fantasia = param.nome_fantasia.toUpperCase()
-    if (param.cep) param.pesquisar_cep = 'S'
-    param.razao_social = param.nome_fantasia
-
-    try {
-        const opcoes = {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ param })
-        };
-
-        const resposta = await fetch(`${api}/cadastrar-cliente`, opcoes);
-        const dados = await resposta.json();
-
-        if (!resposta.ok) {
-
-            if (dados.mensagem && dados.mensagem.includes('Cliente já cadastrado')) {
-
-                const regex = /\[([^\]]+)\]/g;
-                const matches = [...dados.mensagem.matchAll(regex)].map(m => m[1]);
-                const idOmie = matches[1];
-
-                await sincronizarDados('dados_clientes')
-
-                const cliente = await recuperarDado('dados_clientes', idOmie);
-                const acumulado = `
-                    <div style="${vertical}; background-color: #d2d2d2; padding: 1rem;">
-                        <span>Cliente já cadastrado:</span>
-                        <hr style="width: 100%">
-                        <span>${cliente?.nome || ''}</span>
-                        <span>${cliente?.bairro || ''}</span>
-                        <span>${cliente?.cpf_cnpj || ''}</span>
-                        <span>${cliente?.cep || ''}</span>
-                        <span>${cliente?.cidade || ''}</span>
-                    </div>`
-
-                return popup(acumulado, 'Cliente existente', true)
-            }
-
-            return popup(mensagem(dados?.mensagem || 'Falha no cadastro, tente novamente'), 'Alerta', true);
-
-        }
-
-        removerPopup()
-        return popup(mensagem(dados.mensagem, 'imagens/concluido.png'), 'Cadastrado com sucesso', true);
-
-    } catch (err) {
-
-        return popup(mensagem(err.message || String(err)), 'Alerta', true);
-
-    }
-
-}
-
 async function vincularAPI({ idMaster, idSlave }) {
     try {
         const response = await fetch(`${api}/vincular`, {
@@ -1922,14 +1823,13 @@ async function criarDepartamento(idOrcamento) {
 
 async function auxDepartamentos() {
 
-    await sincronizarDados('departamentos_AC')
     dados_ocorrencias = await recuperarDados('dados_ocorrencias')
     dados_orcamentos = await recuperarDados('dados_orcamentos')
     dados_clientes = await recuperarDados('dados_clientes')
-    departamentos = await recuperarDados('departamentos_AC')
+    departamentos_AC = await sincronizarDados({ base: 'departamentos_AC' })
 
     // Map por descrição (mais rápido que ficar iterando)
-    for (const dep of Object.values(departamentos)) {
+    for (const dep of Object.values(departamentos_AC)) {
         depPorDesc[dep.descricao] = dep
     }
 
@@ -1945,7 +1845,7 @@ async function auxDepartamentos() {
     }
 
     // Processa departamentos
-    for (const dep of Object.values(departamentos)) {
+    for (const dep of Object.values(departamentos_AC)) {
 
         const nomeDep = dep.descricao
 
@@ -1959,7 +1859,6 @@ async function auxDepartamentos() {
         // Se existe orçamento com o nome do dep
         const orcamento = orcPorNum[nomeDep]
         if (orcamento) {
-
             // Listagem de Ids, Orçamentos
             dep.ids = orcamento.ids
 
@@ -1973,7 +1872,7 @@ async function auxDepartamentos() {
     }
 
     // Atualiza banco
-    await inserirDados(departamentos, 'departamentos_AC')
+    await inserirDados(departamentos_AC, 'departamentos_AC')
 }
 
 async function numORC(idOrcamento) {

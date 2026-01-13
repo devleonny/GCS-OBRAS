@@ -14,7 +14,7 @@ const alerta = (termo) => `
     `
 
 async function atualizarComposicoes() {
-    await sincronizarDados('dados_composicoes')
+    await sincronizarDados({ base: 'dados_composicoes' })
     await telaComposicoes(true)
 }
 

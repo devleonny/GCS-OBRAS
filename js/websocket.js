@@ -34,8 +34,8 @@ function connectWebSocket() {
         if (data.desconectar) {
             acesso = {}
             localStorage.removeItem('acesso')
-            indexedDB.deleteDatabase(nomeBaseCentral)
-            telaLogin()
+            await resetarTudo()
+            await telaLogin()
             popup(mensagem('Usuário removido do servidor'), 'GCS')
             return
         }
@@ -47,9 +47,8 @@ function connectWebSocket() {
 
                 if (bReset !== 2) return
                 // Seguir este fluxo apenas em Ocorrências;
-
+                listaOcorrencias = {}
                 await atualizarOcorrencias()
-                await criarElementosIniciais()
 
                 // Recuperar Filtros;
                 filtrosAtivos = JSON.parse(localStorage.getItem('filtrosAtivos')) || {}
@@ -58,11 +57,13 @@ function connectWebSocket() {
                 status('online')
             } else {
                 overlayAguarde()
+
                 status('offline')
-                indexedDB.deleteDatabase(nomeBaseCentral)
-                msg({ tipo: 'confirmado', usuario: acesso.usuario })
                 status('pendente')
+                await resetarTudo()
                 await atualizarOcorrencias()
+                msg({ tipo: 'confirmado', usuario: acesso.usuario })
+
                 status('online')
                 removerOverlay()
                 return

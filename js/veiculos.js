@@ -38,7 +38,7 @@ async function atualizarDadosVeiculos() {
         'custo_veiculos'
     ]
 
-    for (const tabela of tabelas) await sincronizarDados(tabela)
+    for (const base of tabelas) await sincronizarDados({ base })
     await auxDepartamentos() // Resgatar dados do orçamento no objeto departamentos;
 
     await telaVeiculos()

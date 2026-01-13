@@ -402,6 +402,7 @@
 }
 
 .painel-pendencias {
+    width: 100%;
     gap: 2px;
     display: none;
     align-items: start;

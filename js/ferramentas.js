@@ -77,7 +77,7 @@ async function resetarBases() {
 
     const logs = document.getElementById('logs')
 
-    indexedDB.deleteDatabase(nomeBaseCentral)
+    await resetarTudo()
     logs.insertAdjacentHTML('beforeend', '<label>Apagando <b>Base existente</b>...</label>')
     logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
 
@@ -113,7 +113,7 @@ async function resetarBases() {
     if (!bReset) return
 
     for (const base of bases[bReset]) {
-        await sincronizarDados(base, true)
+        await sincronizarDados({ base, resetar: true })
         logs.insertAdjacentHTML('beforeend', `<label>Sincronizando: <small>${base}</small></label>`)
     }
 
@@ -383,7 +383,7 @@ async function comunicacaoServ({ usuario, campo, valor }) {
 
 function deslogarUsuario() {
     popup(`
-        <div style="background-color: #d2d2d2; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 1rem;">
+        <div style="${horizontal}; min-width: 200px; background-color: #d2d2d2; gap: 10px; padding: 1rem;">
             <label>Deseja Sair?</label>
             <button onclick="sair()">Sim</button>
         </div>

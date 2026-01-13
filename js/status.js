@@ -591,7 +591,7 @@ async function abrirAdicionais(codigo) {
 
     const botoes = [
         { texto: 'Adicionar Peça', img: 'chamados', funcao: `criarLinhaPeca()` },
-        { texto: 'Sincronizar Estoque', img: 'estoque', funcao: `sincronizarDados('dados_estoque')` },
+        { texto: 'Sincronizar Estoque', img: 'estoque', funcao: `sincronizarDados({base: 'dados_estoque', overlay: true})` },
         { texto: 'Salvar', img: 'concluido', funcao: `salvarAdicionais('${codigo}')` }
     ]
 

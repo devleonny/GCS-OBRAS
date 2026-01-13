@@ -847,7 +847,7 @@ function ordenarLinhasPorData() {
 }
 
 async function atualizarChecklist() {
-    await sincronizarDados('dados_orcamentos')
+    await sincronizarDados({ base: 'dados_orcamentos' })
     await telaChecklist()
 }
 

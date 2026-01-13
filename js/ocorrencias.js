@@ -182,11 +182,20 @@ async function excluirOcorrenciaCorrecao(idOcorrencia, idCorrecao) {
 
 function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
 
+    // Caso seja técnico e não tenham correções, a linha de ocorrência não vai aparecer;
+    const divCorrecoes = carregarCorrecoes(idOcorrencia, ocorrencia?.correcoes || {})
+    if (!divCorrecoes) {
+        const existente = document.getElementById(idOcorrencia)
+        if (existente) existente.remove()
+        delete listaOcorrencias[idOcorrencia]
+        return
+    }
+
     const btnExclusao = autE.includes(acesso.permissao)
-        ? botaoImg('fechar', `confirmarExclusao('${idOcorrencia}')`)
+        ? botaoImg('fechar', `oAtual = {idOcorrencia: '${idOcorrencia}'}; confirmarExclusao()`)
         : ''
     const btnEditar = autE.includes(acesso.permissao)
-        ? botaoImg('lapis', `formularioOcorrencia('${idOcorrencia}')`)
+        ? botaoImg('lapis', `oAtual = {idOcorrencia: '${idOcorrencia}'}; formularioOcorrencia()`)
         : ''
     const uc = uCorrecao(ocorrencia?.correcoes || {})
     const codCorrecao = uc.tipo
@@ -233,7 +242,7 @@ function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
             </div>
 
             <div class="bloco-linha">
-                ${carregarCorrecoes(idOcorrencia, ocorrencia?.correcoes || {})}
+                ${divCorrecoes}
             </div>
         </div>`
 
@@ -247,6 +256,7 @@ function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
     const diffDias = uc.dias
 
     listaOcorrencias[idOcorrencia] = {
+        correcoes: ocorrencia.correcoes || {},
         atrasado: diffDias < 0 ? 'Sim' : 'Não',
         reagendado: reagendado ? 'Sim' : 'Não',
         executor,
@@ -306,7 +316,23 @@ function uCorrecao(correcoes) {
 function carregarCorrecoes(idOcorrencia, dadosCorrecao = {}) {
 
     let divsCorrecoes = ''
+    const aTec = acesso.permissao === 'técnico'
+
     for (const [idCorrecao, correcao] of Object.entries(dadosCorrecao).reverse()) {
+
+        const respondida = Object
+            .values(dadosCorrecao)
+            .some(c => c.resposta == idCorrecao)
+
+        if (aTec) {
+            // Só mostrar correções criadas para ele;
+            if (correcao.executor !== acesso.usuario)
+                continue
+
+            // Se já foi respondida, ignorar;
+            if (respondida)
+                continue
+        }
 
         const status = correcoes?.[correcao?.tipoCorrecao]?.nome || 'Não analisada'
         const estilo = status == 'Solucionada'
@@ -321,11 +347,14 @@ function carregarCorrecoes(idOcorrencia, dadosCorrecao = {}) {
 
         const edicao = (correcao.usuario == acesso.usuario || autE.includes(acesso.permissao))
             ? `
-            <div style="${horizontal}; justify-content: end; width: 100%; gap: 2px; padding: 0.5rem;"> 
-                <button onclick="formularioCorrecao('${idOcorrencia}', '${idCorrecao}')">Editar</button>
+                <button onclick="oAtual = {idOcorrencia: '${idOcorrencia}', idCorrecao: '${idCorrecao}'}; formularioCorrecao()">Editar</button>
                 <button style="background-color: #B12425;" onclick="confirmarExclusao('${idOcorrencia}', '${idCorrecao}')">Excluir</button>
-            </div>
             `
+            : ''
+
+        // Se já foi respondida, não mostrar;
+        const resposta = (!respondida && correcao.executor == acesso.usuario)
+            ? `<button style="background-color: #3e8bff;" onclick="oAtual = {idOcorrencia: '${idOcorrencia}', resposta: '${idCorrecao}'}; formularioCorrecao()">Responder</button>`
             : ''
 
         const agendamentos = (correcao?.datas_agendadas || []).reverse()
@@ -338,6 +367,11 @@ function carregarCorrecoes(idOcorrencia, dadosCorrecao = {}) {
         const imgR = (correcao.usuario == acesso.usuario || autE.includes(acesso.permissao))
             ? `<button onclick="oAtual = {idOcorrencia: '${idOcorrencia}', idCorrecao: '${idCorrecao}'}; reagendarCorrecao()" style="background-color: #249f41; color: white;">Reagendar</button>`
             : ''
+
+        const anexos = Object
+            .entries(correcao?.anexos || {})
+            .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}')`))
+            .join('')
 
         divsCorrecoes += `
             <div class="detalhes-correcoes-1">
@@ -358,13 +392,18 @@ function carregarCorrecoes(idOcorrencia, dadosCorrecao = {}) {
                 </div>
 
                 <div style="${horizontal}">
-                    ${edicao}
+
+                    <div style="${horizontal}; gap: 2px; padding: 0.5rem;"> 
+                        ${resposta}
+                        ${edicao}
+                    </div>
+
                     <div style="${vertical}; padding: 0.5rem;">
                         ${imagens !== ''
                 ? `<div class="fotos" style="display: flex;">${imagens}</div>`
                 : '<img src="imagens/img.png" style="width: 4rem;">'}
                         <div id="anexos" style="${vertical};">
-                            ${Object.entries(correcao?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')`)).join('')}
+                            ${anexos}
                         </div>
                     </div>
                 </div>
@@ -372,13 +411,16 @@ function carregarCorrecoes(idOcorrencia, dadosCorrecao = {}) {
     }
 
     const acumulado = `
-        ${botao('Incluir Correção', `formularioCorrecao('${idOcorrencia}')`, '#e47a00')}
+        ${botao('Incluir Correção', `oAtual = {idOcorrencia: '${idOcorrencia}'}; formularioCorrecao()`, '#e47a00')}
         <div class="detalhamento-correcoes">
             ${divsCorrecoes}
         </div>
     `
 
-    return acumulado
+    const solucionada = Object.values(dadosCorrecao)
+        .some(c => c.tipoCorrecao == 'WRuo2')
+
+    return (aTec && (solucionada || !divsCorrecoes)) ? null : acumulado
 
 }
 
@@ -622,7 +664,14 @@ async function telaOcorrencias(apenasObjeto = false) {
     const empresaAtiva = empresas[acesso?.empresa]?.nome || 'Desatualizado'
     titulo.innerHTML = empresaAtiva
 
-    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias).reverse()) {
+    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias).reverse()) { //29
+
+        // Se técnico, então ele precisa estar presente no processo;
+        const correcoes = Object.values(ocorrencia.correcoes || {})
+        const executor = correcoes.some(c => c.executor == acesso.usuario)
+        const criador = correcoes.some(c => c.usuario == acesso.usuario)
+        if (acesso.permissao == 'técnico' && (!executor && !criador)) continue
+
         criarLinhaOcorrencia(idOcorrencia, ocorrencia)
     }
 
@@ -660,14 +709,13 @@ function auxPendencias() {
 
     const contadores = { Todos: 0 }
 
-    for (const ocorrencia of Object.values(dados_ocorrencias)) {
+    for (const ocorrencia of Object.values(listaOcorrencias)) {
 
-        const codCorrecao = uCorrecao(ocorrencia?.correcoes || {}).tipo
-        const ultimaCorrecao = correcoes?.[codCorrecao]?.nome || 'Não analisada'
+        const { ultima_correcao } = ocorrencia
 
-        contadores[ultimaCorrecao] ??= 0
+        contadores[ultima_correcao] ??= 0
 
-        contadores[ultimaCorrecao]++
+        contadores[ultima_correcao]++
         contadores.Todos++
 
     }
@@ -711,25 +759,16 @@ function auxPendencias() {
 
 }
 
-async function atualizarOcorrencias() {
+async function atualizarOcorrencias(resetar = false) {
 
     if (emAtualizacao) return
     mostrarMenus(true)
 
     emAtualizacao = true
     sincronizarApp()
-    let status = { total: 9, atual: 1 }
+    const status = { total: 10, atual: 1 }
 
     sincronizarApp(status)
-
-    // Especial: sincronismo das ocorrências;
-    const base = 'dados_ocorrencias'
-    const nuvem = await baixarOcorrencias()
-
-    if (nuvem.resetar && nuvem.resetar == 1)
-        await inserirDados({}, base, true)
-
-    await inserirDados(nuvem.dados, base)
 
     status.atual++
 
@@ -737,6 +776,7 @@ async function atualizarOcorrencias() {
         'dados_setores',
         'empresas',
         'dados_composicoes',
+        'dados_ocorrencias',
         'dados_clientes',
         'sistemas',
         'prioridades',
@@ -744,10 +784,25 @@ async function atualizarOcorrencias() {
         'tipos'
     ]
 
+    const { permissao, empresa } = acesso
+    const bCli = ['dados_clientes', 'dados_ocorrencias']
+
     for (const base of basesAuxiliares) {
+
         sincronizarApp(status)
-        await sincronizarDados(base, true, base == 'dados_clientes') // Resetar sempre;
+
+        const filtro = (bCli.includes(base) && permissao == 'cliente')
+            ? { empresa }
+            : {}
+
+        await sincronizarDados({ base, filtro, resetar })
         status.atual++
+
+        if (base == 'dados_setores') {
+            acesso = await recuperarDado('dados_setores', acesso.usuario)
+            localStorage.setItem('acesso', JSON.stringify(acesso))
+        }
+
     }
 
     sincronizarApp({ remover: true })
@@ -758,14 +813,11 @@ async function atualizarOcorrencias() {
     dados_ocorrencias = await recuperarDados('dados_ocorrencias')
     dados_clientes = await recuperarDados('dados_clientes')
 
-    // Após atualização;
-    acesso = await recuperarDado('dados_setores', acesso.usuario) || {}
-    localStorage.setItem('acesso', JSON.stringify(acesso))
-
     const tOcorrencias = document.querySelector('.tela-ocorrencias')
     if (tOcorrencias) filtrarPorCampo() // Atualizar as linhas;
 
     carregarMenus()
+    await criarElementosIniciais()
     auxPendencias() // Atualizar os tópicos do menu lateral;
 }
 
@@ -812,46 +864,6 @@ function sincronizarApp({ atual, total, remover } = {}) {
 
 }
 
-async function baixarOcorrencias() {
-
-    const timestampOcorrencia = await maiorTimestamp('dados_ocorrencias')
-
-    async function maiorTimestamp(nomeBase) {
-
-        let timestamp = 0
-        const dados = await recuperarDados(nomeBase)
-        for (const [id, objeto] of Object.entries(dados)) {
-            if (objeto.timestamp && objeto.timestamp > timestamp) timestamp = objeto.timestamp
-        }
-
-        return timestamp
-    }
-
-    return new Promise((resolve, reject) => {
-        fetch(`${api}/ocorrencias`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ usuario: acesso.usuario, timestampOcorrencia })
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.mensagem) {
-                    popup(mensagem(data.mensagem), 'Alerta', true)
-                    reject()
-                }
-
-                resolve(data)
-            })
-            .catch(error => reject(error))
-
-    })
-}
-
 async function telaUnidades() {
 
     mostrarMenus(false)
@@ -868,63 +880,79 @@ async function telaEquipamentos() {
     await carregarElementosPagina('dados_composicoes', colunas)
 }
 
-async function formularioOcorrencia(idOcorrencia) {
+async function formularioOcorrencia() {
 
-    const oc = idOcorrencia ? await recuperarDado('dados_ocorrencias', idOcorrencia) : {}
-    const funcao = idOcorrencia ? `salvarOcorrencia('${idOcorrencia}')` : 'salvarOcorrencia()'
-
+    const { idOcorrencia } = oAtual
+    const ocorrencia = dados_ocorrencias[idOcorrencia] || {}
+    const { empresa, unidade, tipo, sistema, prioridade, anexos, fotos, descricao } = ocorrencia
     const lib = acesso.empresa == 0
-    const empresa = empresas?.[oc.empresa || acesso?.empresa]?.nome
-    const unidade = dados_clientes[oc?.unidade]?.nome
-    const sistema = sistemas[oc?.sistema]?.nome
-    const prioridade = prioridades[oc?.prioridade]?.nome
-    const tipo = tipos[oc?.tipo]?.nome
+    const nEmpresa = empresas?.[empresa || acesso?.empresa]?.nome
+    const nUnidade = dados_clientes[unidade]?.nome
+    const nSistema = sistemas[sistema]?.nome
+    const nPrioridade = prioridades[prioridade]?.nome
+    const nTipo = tipos[tipo]?.nome
+    const a = Object
+        .entries(anexos || {})
+        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}')`))
+        .join('')
+
     const linhas = [
         {
             texto: 'Empresa',
             elemento: `
             <span 
                 class="campos" 
-                name="empresa" ${oc.empresa ? `id="${oc.empresa}"` : `id="${acesso.empresa}"`} 
-                ${lib ? `onclick="cxOpcoes('empresa', 'empresas', ['nome'])"` : ''}>${empresa || 'Selecione'}
+                name="empresa" ${empresa ? `id="${empresa}"` : `id="${acesso.empresa}"`} 
+                ${lib ? `onclick="cxOpcoes('empresa', 'empresas', ['nome'])"` : ''}>${nEmpresa || 'Selecione'}
             </span>`
         },
         {
             texto: 'Unidade de Manutenção',
-            elemento: `<span ${oc?.unidade ? `id="${oc?.unidade}"` : ''} class="campos" name="unidade" onclick="cxOpcoes('unidade', 'dados_clientes', ['nome', 'cidade', 'endereco', 'cnpj'])">${unidade || 'Selecione'}</span>`
+            elemento: `<span ${unidade ? `id="${unidade}"` : ''} 
+                class="campos" name="unidade" onclick="cxOpcoes('unidade', 'dados_clientes', ['nome', 'cidade', 'endereco', 'cnpj'])">
+                ${nUnidade || 'Selecione'}
+            </span>`
         },
         {
             texto: 'Sistema',
-            elemento: `<span ${oc?.sistema ? `id="${oc?.sistema}"` : ''} class="campos" name="sistema" onclick="cxOpcoes('sistema', 'sistemas', ['nome'])">${sistema || 'Selecione'}</span>`
+            elemento: `<span ${sistema ? `id="${sistema}"` : ''} 
+            class="campos" name="sistema" onclick="cxOpcoes('sistema', 'sistemas', ['nome'])">
+                ${nSistema || 'Selecione'}
+            </span>`
         },
         {
             texto: 'Prioridade',
-            elemento: `<span ${oc?.prioridade ? `id="${oc?.prioridade}"` : ''} class="campos" name="prioridade" onclick="cxOpcoes('prioridade', 'prioridades', ['nome'])">${prioridade || 'Selecione'}</span>`
+            elemento: `<span ${prioridade ? `id="${prioridade}"` : ''} 
+            class="campos" name="prioridade" onclick="cxOpcoes('prioridade', 'prioridades', ['nome'])">
+                ${nPrioridade || 'Selecione'}
+            </span>`
         },
         {
             texto: 'Tipo',
-            elemento: `<span ${oc?.tipo ? `id="${oc?.tipo}"` : ''} class="campos" name="tipo" onclick="cxOpcoes('tipo', 'tipos', ['nome'])">${tipo || 'Selecione'}</span>`
+            elemento: `<span ${tipo ? `id="${tipo}"` : ''} 
+            class="campos" name="tipo" onclick="cxOpcoes('tipo', 'tipos', ['nome'])">
+                ${nTipo || 'Selecione'}
+            </span>`
         },
         {
             texto: 'Descrição',
-            elemento: `<textarea rows="7" style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" class="campos">${oc?.descricao || ''}</textarea>`
+            elemento: `<textarea rows="7" style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" class="campos">${descricao || ''}</textarea>`
         },
         {
-            texto: 'Anexos', elemento: `
-                <label class="campos">
-                    Clique aqui
-                    <input type="file" style="display: none;" onchange="anexosOcorrencias(this, '${idOcorrencia ? idOcorrencia : 'novo'}')" multiple>
-                </label>`
-        },
-        {
+            texto: 'Anexos',
             elemento: `
-            <div id="anexos" style="${vertical};">
-                ${Object.entries(oc?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual({ nome: anexo.nome, link: anexo.link, funcao: `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')` })).join('')}
-            </div>`},
-        { elemento: await blocoAuxiliarFotos(oc?.fotos || {}, true) }
+            <div style="${vertical}; gap: 3px;">
+                <input name="anexos" type="file" multiple>
+                <div id="anexos" style="${vertical};">
+                    ${a}
+                </div>
+            </div>
+            `
+        },
+        { elemento: await blocoAuxiliarFotos(fotos || {}, true) }
     ]
 
-    const botoes = [{ img: 'concluido', texto: 'Salvar', funcao }]
+    const botoes = [{ img: 'concluido', texto: 'Salvar', funcao: `salvarOcorrencia()` }]
 
     const titulo = idOcorrencia ? 'Editar Ocorrência' : 'Criar Ocorrência'
 
@@ -949,19 +977,26 @@ function bloqAnterior(input) {
     }
 }
 
-async function formularioCorrecao(idOcorrencia, idCorrecao) {
+async function formularioCorrecao() {
 
+    const { idOcorrencia, idCorrecao } = oAtual
     const ocorrencia = dados_ocorrencias[idOcorrencia]
     const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
-    const funcao = idCorrecao ? `salvarCorrecao('${idOcorrencia}', '${idCorrecao}')` : `salvarCorrecao('${idOcorrencia}')`
 
-    let equipamentos = ''
-    for (const [, equip] of Object.entries(correcao?.equipamentos || {})) equipamentos += await maisLabel(equip)
+    const equipamentos = (
+        await Promise.all(
+            Object.values(correcao?.equipamentos || {})
+                .map(equip => maisLabel(equip))
+        )
+    ).join('')
 
-    const tipoCorrecao = correcoes[correcao?.tipoCorrecao]?.nome //29
+    const tipoCorrecao = correcoes[correcao?.tipoCorrecao]?.nome
     const executor = correcao?.executor
     const linhas = [
-        { texto: 'Data Limite Execução', elemento: `<input oninput="bloqAnterior(this)" name="dtCorrecao" type="date" value="${correcao?.dtCorrecao || ''}">` },
+        {
+            texto: 'Data Limite Execução',
+            elemento: `<input oninput="bloqAnterior(this)" name="dtCorrecao" type="date" value="${correcao?.dtCorrecao || ''}">`
+        },
         {
             texto: 'Status da Correção',
             elemento: `<span class="campos" ${correcao?.tipoCorrecao ? `id="${correcao?.tipoCorrecao}"` : ''} name="tipoCorrecao" onclick="cxOpcoes('tipoCorrecao', 'correcoes', ['nome'])">${tipoCorrecao || 'Selecione'}</span>`
@@ -971,31 +1006,33 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
             elemento: `<span class="campos" ${executor ? `id="${executor}"` : ''} name="executor" onclick="cxOpcoes('executor', 'dados_setores', ['usuario'])">${executor || 'Selecione'}</span>`
         },
         { texto: 'Descrição', elemento: `<textarea style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" rows="7" class="campos">${correcao?.descricao || ''}</textarea>` },
-        { texto: 'Equipamentos usados', elemento: `<img src="imagens/baixar.png" class="olho" onclick="maisLabel()">` },
         {
+            texto: 'Equipamentos usados',
             elemento: `
+            <img src="imagens/baixar.png" class="olho" onclick="maisLabel()">
             <div style="${vertical}; gap: 2px;" id="equipamentos">
                 ${equipamentos}
             </div>
-            
-            `},
+            `
+        },
         { elemento: `${await blocoAuxiliarFotos(correcao?.fotos || {}, true)}` },
         {
             texto: 'Anexos',
             elemento: `
             <div style="${vertical}; gap: 5px;">
-                <label class="campos">
-                    Clique aqui
-                    <input type="file" style="display: none;" onchange="anexosOcorrencias(this, '${idOcorrencia}', '${idCorrecao ? idCorrecao : 'novo'}')" multiple>
-                </label>
+                <input name="anexos" type="file" multiple>
                 <div id="anexos" style="${vertical};">
-                    ${Object.entries(correcao?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual({ nome: anexo.nome, link: anexo.link, funcao: `removerAnexo(this, '${idAnexo}', '${idOcorrencia}', '${idCorrecao}')` })).join('')}
+                    ${Object
+                    .entries(correcao?.anexos || {})
+                    .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}')`))
+                    .join('')
+                }
                 </div>
             </div>
             `
         }
     ]
-    const botoes = [{ img: 'concluido', texto: 'Salvar', funcao }]
+    const botoes = [{ img: 'concluido', texto: 'Salvar', funcao: 'salvarCorrecao()' }]
     const form = new formulario({ linhas, botoes, titulo: 'Gerenciar Correção' })
     form.abrirFormulario()
 
@@ -1005,7 +1042,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
 
 async function maisLabel({ codigo, quantidade, unidade } = {}) {
 
-    let div = document.getElementById('equipamentos')
+    const div = document.getElementById('equipamentos')
     const opcoes = ['UND', 'METRO', 'CX'].map(op => `<option ${unidade == op ? `selected` : ''}>${op}</option>`).join('')
     const temporario = ID5digitos()
     let nome = 'Selecionar'
@@ -1031,9 +1068,9 @@ async function maisLabel({ codigo, quantidade, unidade } = {}) {
     div.insertAdjacentHTML('beforeend', label)
 }
 
-async function salvarCorrecao(idOcorrencia, idCorrecao) {
+async function salvarCorrecao() {
 
-    if (!idCorrecao) idCorrecao = ID5digitos()
+    const { idOcorrencia, idCorrecao = ID5digitos(), resposta } = oAtual
 
     const ocorrencia = dados_ocorrencias[idOcorrencia]
     ocorrencia.correcoes ??= {}
@@ -1053,6 +1090,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao) {
     if (!tipoCorrecao || !dtCorrecao) return popup(mensagem('Não deixe em branco <b>Data Limite</b> ou o <b>Tipo de Correção</b>'), 'Em branco', true)
 
     Object.assign(correcao, {
+        resposta,
         dtCorrecao,
         executor: obter('executor').id,
         data: new Date().toLocaleString(),
@@ -1072,9 +1110,12 @@ async function salvarCorrecao(idOcorrencia, idCorrecao) {
         longitude: local.longitude
     }
 
+    const input = obter('anexos')
+    const anexos = await anexosOcorrencias(input)
+
     correcao.anexos = {
         ...correcao.anexos,
-        ...anexosProvisorios
+        ...anexos
     }
 
     const fotos = document.querySelector('.fotos')
@@ -1112,8 +1153,6 @@ async function salvarCorrecao(idOcorrencia, idCorrecao) {
     await telaOcorrencias()
     enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, correcao)
     enviar(`dados_ocorrencias/${idOcorrencia}/tipoCorrecao`, correcao.tipoCorrecao)
-
-    anexosProvisorios = {}
     removerPopup()
 
 }
@@ -1123,18 +1162,18 @@ function obter(name) {
     return elemento
 }
 
-async function salvarOcorrencia(idOcorrencia) {
+async function salvarOcorrencia() {
 
     overlayAguarde()
 
-    const ocorrencia = idOcorrencia
-        ? await recuperarDado('dados_ocorrencias', idOcorrencia)
-        : {}
-
+    const { idOcorrencia } = oAtual
+    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
     const codEmpresa = obter('empresa')?.id
 
     if (codEmpresa == '0') return popup(mensagem('O campo empresa "GERAL" está bloqueado!'), 'Geral não disponível', true)
 
+    const input = obter('anexos')
+    const anexos = await anexosOcorrencias(input)
     const novo = {
         empresa: obter('empresa')?.id || '',
         unidade: obter('unidade')?.id || '',
@@ -1146,7 +1185,7 @@ async function salvarOcorrencia(idOcorrencia) {
         usuario: acesso.usuario,
         anexos: {
             ...ocorrencia.anexos,
-            ...anexosProvisorios
+            ...anexos
         }
     }
 
@@ -1194,60 +1233,38 @@ async function salvarOcorrencia(idOcorrencia) {
         }
     }
 
-    anexosProvisorios = {}
 }
 
-async function anexosOcorrencias(input, idOcorrencia, idCorrecao) {
-
-    overlayAguarde()
-
-    const divAnexos = document.getElementById('anexos')
-    let ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
-    let objeto = {}
-    const anexos = await importarAnexos({ input })
-    const novo = (idCorrecao == 'novo' || idOcorrencia == 'novo')
-
-    if (novo) {
-        objeto = anexosProvisorios
-    } else if (idCorrecao) {
-        if (!ocorrencia.correcoes[idCorrecao].anexos) ocorrencia.correcoes[idCorrecao].anexos = {}
-        objeto = ocorrencia.correcoes[idCorrecao].anexos
-    } else {
-        if (!ocorrencia.anexos) ocorrencia.anexos = {}
-        objeto = ocorrencia.anexos
-    }
-
+async function anexosOcorrencias(input) {
+    const anexos = await importarAnexos({ input }) || []
+    const objeto = {}
     anexos.forEach(anexo => {
         const idAnexo = ID5digitos()
         objeto[idAnexo] = anexo
-
-        if (divAnexos) divAnexos.insertAdjacentHTML('beforeend', criarAnexoVisual({ nome: anexo.nome, link: anexo.link, funcao: `removerAnexo(this, '${idAnexo}', '${idOcorrencia}' ${idCorrecao ? `, '${idCorrecao}'` : ''})` }))
-
     })
 
-    if (!novo) await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
-
-    removerOverlay()
-
+    return objeto
 }
 
-
-async function removerAnexo(img, idAnexo, idOcorrencia, idCorrecao) {
+async function removerAnexo(img, idAnexo) {
 
     overlayAguarde()
 
-    let ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
+    const { idOcorrencia, idCorrecao } = oAtual
+    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
 
-    if (idCorrecao) {
+    if (idCorrecao) { // Se correção
         delete ocorrencia.correcoes[idCorrecao].anexos[idAnexo]
-    } else {
+        deletar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}/anexos/${idAnexo}`)
+    } else { // Se ocorrência
         delete ocorrencia.anexos[idAnexo]
+        deletar(`dados_ocorrencias/${idOcorrencia}/anexos/${idAnexo}`)
     }
 
     await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
+    await telaOcorrencias()
 
     img.parentElement.remove()
-
     removerOverlay()
 
 }

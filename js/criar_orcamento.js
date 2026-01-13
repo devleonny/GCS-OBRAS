@@ -662,8 +662,7 @@ async function ativarChamado(input, idOrcamento) {
 
 async function recuperarComposicoesOrcamento() {
 
-    await sincronizarDados('dados_composicoes')
-    dados_composicoes = await recuperarDados('dados_composicoes')
+    dados_composicoes = await sincronizarDados({ base: 'dados_composicoes' })
     await tabelaProdutosOrcamentos()
 
 }

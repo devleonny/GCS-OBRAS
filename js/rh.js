@@ -13,8 +13,7 @@ const modeloRH = (valor1, elemento, funcao) => {
 
 async function telaRH() {
 
-    await sincronizarDados('pessoas')
-    pessoas = await recuperarDados('pessoas')
+    pessoas = await sincronizarDados({ base: 'pessoas' })
 
     let stringPessoas = ''
 
@@ -58,7 +57,7 @@ async function telaRH() {
     divPessoas = document.querySelector('.divPessoas')
     divPessoas.innerHTML = stringPessoas
 
-    if(pastaAberta) mostrarPastas(pastaAberta)
+    if (pastaAberta) mostrarPastas(pastaAberta)
 
     await telaRHTabela()
 }
@@ -152,7 +151,7 @@ async function abrirPastas(idPessoa, idPasta) {
     `
 
     const painel = document.querySelector('.painel-pessoa')
-    if(painel) return painel.innerHTML = acumulado
+    if (painel) return painel.innerHTML = acumulado
 
     popup(acumulado, pessoa.nome, true)
 

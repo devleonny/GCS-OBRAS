@@ -74,8 +74,8 @@ async function atualizarDadosPdf() {
 
         semOverlay = true
 
-        await sincronizarDados('dados_orcamentos')
-        await sincronizarDados('dados_composicoes')
+        await sincronizarDados({ base: 'dados_orcamentos' })
+        await sincronizarDados({ base: 'dados_composicoes' })
 
         const pdf = JSON.parse(localStorage.getItem('pdf'))
         const orcamentoBase = await recuperarDado('dados_orcamentos', pdf.id)
@@ -240,7 +240,7 @@ async function preencher() {
             <b>${itemComposicao?.fabricante || ''}</b>
             ${itemComposicao?.modelo || ''}
         `
-        
+
         tds[1] = `<td>${item.codigo}</td>`
         tds[2] = `
         <td>
@@ -400,7 +400,7 @@ function carimboData(dados_orcam) {
     const dataValidade = new Date(dataBase)
     dataValidade.setDate(dataValidade.getDate() + validade)
 
-    const fmt = d => 
+    const fmt = d =>
         `${String(d.getDate()).padStart(2, '0')}/` +
         `${String(d.getMonth() + 1).padStart(2, '0')}/` +
         `${d.getFullYear()}, ` +

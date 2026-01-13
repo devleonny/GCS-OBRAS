@@ -104,7 +104,7 @@ async function acessoLogin() {
 
                 if (app == 'GCS') return window.location.href = 'index.html'
 
-                indexedDB.deleteDatabase(nomeBaseCentral)
+                await resetarTudo()
                 await telaPrincipal()
                 connectWebSocket()
                 removerOverlay()
