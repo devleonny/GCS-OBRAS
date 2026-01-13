@@ -31,6 +31,8 @@ function connectWebSocket() {
     socket.onmessage = async (event) => {
         const data = JSON.parse(event.data)
 
+        console.log(data)
+
         if (data.desconectar) {
             acesso = {}
             localStorage.removeItem('acesso')
@@ -71,13 +73,11 @@ function connectWebSocket() {
 
         if (!appBases[bReset].includes(data.tabela)) return
 
-        console.log(data)
-
         if (bReset == 1 && data.tabela == 'dados_orcamentos') {
             verificarPendencias()
         }
 
-        if (data.tipo == 'exclusao') { // Só se for no nível
+        if (data.tipo == 'exclusao') { // Só se for no nível;
             await deletarDB(data.tabela, data.id)
             await refletir()
         }
@@ -89,12 +89,12 @@ function connectWebSocket() {
 
         if (data.tipo == 'status') {
             const user = await recuperarDado('dados_setores', data.usuario)
+
             if (user) {
                 user.status = data.status
                 await inserirDados({ [data.usuario]: user }, 'dados_setores')
             }
-
-            if (bReset == 2) return
+            
             usuariosToolbar()
             balaoUsuario(data.status, data.usuario)
         }
