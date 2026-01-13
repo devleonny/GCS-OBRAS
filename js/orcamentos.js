@@ -135,22 +135,32 @@ async function telaOrcamentos() {
     const colunasCFiltro = ['status', 'tags', 'chamado', 'cidade', 'valor']
     const cabecs = ['data', 'status', 'pedido', 'notas', 'tags', 'contrato', 'cidade', 'responsaveis', 'indicadores', 'valor', 'ações']
     const filtrosOff = ['status', 'ações', 'indicadores']
+
     const ths = cabecs
-        .map((cab, i) => `
-            <th>
-                <div style="${vertical}; gap: 0.5rem;">
-                    <div style="${horizontal}; justify-content: space-between; gap: 1rem;">
-                        <span>${inicialMaiuscula(cab)}</span>
-                        ${colunasCFiltro.includes(cab)
-                ? `<img onclick="ordenarOrcamentos('${i}')" style="width: 1rem;" src="imagens/filtro.png">`
-                : ''}
+        .map((cab, i) => {
+            const filtroIcone = colunasCFiltro.includes(cab)
+                ? `<img src="imagens/filtro.png" style="width:1rem; cursor:pointer;" onclick="ordenarOrcamentos('${i}')">`
+                : ''
+
+            const pesquisaCampo = !filtrosOff.includes(cab)
+                ? `<input class="p-orcamento"
+                    name="${cab}"
+                    onkeydown="if(event.key==='Enter') renderizar('${cab}', this.value)">`
+                : `<input readOnly class="p-orcamento">`
+
+            return `
+                <th style="padding: 0px;">
+                    <div class="th-wrap">
+                        <div style="${horizontal}; gap:1rem;">
+                            <span>${inicialMaiuscula(cab)}</span>
+                            ${filtroIcone}
+                        </div>
+                        ${pesquisaCampo}
                     </div>
-                    ${!filtrosOff.includes(cab)
-                ? `<input class="p-orcamento" placeholder="Pesquisar" name="${cab}" onkeydown="if(event.key === 'Enter') renderizar('${cab}', this.value)">`
-                : ''}
-                </div>
-            </th>`)
+                </th>`
+        })
         .join('')
+
 
     const acumulado = `
         <div style="${horizontal}; width: 95vw;">
@@ -173,8 +183,7 @@ async function telaOrcamentos() {
                 </table>
             </div>
             <div class="rodape-tabela"></div>
-        </div>
-        `
+        </div>`
 
     const tabelaOrcamento = document.getElementById('tabelaOrcamento')
     if (!tabelaOrcamento) tela.innerHTML = acumulado
@@ -219,18 +228,18 @@ function filtroOrcamentos() {
     const linhas = []
 
     const interruptor = (chave, ativo) => `
-        <label style="position: relative; display: inline-block; width: 50px; height: 24px;">
-            <input 
-                type="checkbox"
-                ${ativo ? 'checked' : ''}
-                name="filtros"
-                onchange="mudarInterruptor(this)"
-                data-chave="${chave}"
-                style="opacity:0; width:0; height:0;">
-            <span class="track" style="background-color:${ativo ? '#4caf50' : '#ccc'}"></span>
-            <span class="thumb" style="transform:translateX(${ativo ? '26px' : '0'})"></span>
-        </label>
-        `
+                <label style="position: relative; display: inline-block; width: 50px; height: 24px;">
+                    <input
+                        type="checkbox"
+                        ${ativo ? 'checked' : ''}
+                        name="filtros"
+                        onchange="mudarInterruptor(this)"
+                        data-chave="${chave}"
+                        style="opacity:0; width:0; height:0;">
+                        <span class="track" style="background-color:${ativo ? '#4caf50' : '#ccc'}"></span>
+                        <span class="thumb" style="transform:translateX(${ativo ? '26px' : '0'})"></span>
+                </label>
+                `
 
     for (const [chave, valor] of Object.entries(filtros)) {
         linhas.push({
@@ -315,12 +324,12 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         const valor3 = conversor(historico.valor)
 
         labels[historico.status] += `
-            <div class="etiquetas" style="text-align: left; min-width: 100px;"> 
-                <label>${valor1}</label>
-                <label>${valor2}</label>
-                ${historico.valor ? `<label>${dinheiro(valor3)}</label>` : ''}
-            </div>
-            `
+                <div class="etiquetas" style="text-align: left; min-width: 100px;">
+                    <label>${valor1}</label>
+                    <label>${valor2}</label>
+                    ${historico.valor ? `<label>${dinheiro(valor3)}</label>` : ''}
+                </div>
+                `
     }
 
     const st = orcamento?.status?.atual || ''
@@ -346,22 +355,22 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
     const numOficialMaster = orcamentoMaster?.dados_orcam?.chamado || orcamentoMaster?.dados_orcam?.contrato || '-'
     const orcamentosVinculados = idMaster
         ? `
-        <div style="${horizontal}; gap: 3px;">
-            <span style="text-align: left;">${numOficial}</span>
-            <img src="imagens/link2.png" onclick="confirmarRemoverVinculo('${idOrcamento}')" style="width: 1.5rem;">
-            <span><b>${numOficialMaster}</b></span>
-        </div>
-        `
+                <div style="${horizontal}; gap: 3px;">
+                    <span style="text-align: left;">${numOficial}</span>
+                    <img src="imagens/link2.png" onclick="confirmarRemoverVinculo('${idOrcamento}')" style="width: 1.5rem;">
+                        <span><b>${numOficialMaster}</b></span>
+                </div>
+                `
         : `<span style="text-align: left;">${numOficial}</span>`
 
     const finalElemento = `
-        <div style="${vertical}; gap: 2px;">
-            ${etiqRevAtual}
-            ${orcamentosVinculados}
-            <span>${cliente?.nome || ''}</span>
-            ${contrato !== numOficial ? `<div style="${horizontal}; justify-content: end; width: 100%; color: #5f5f5f;"><small>${contrato}</small></div>` : ''}
-        </div>
-    `
+                <div style="${vertical}; gap: 2px;">
+                    ${etiqRevAtual}
+                    ${orcamentosVinculados}
+                    <span>${cliente?.nome || ''}</span>
+                    ${contrato !== numOficial ? `<div style="${horizontal}; justify-content: end; width: 100%; color: #5f5f5f;"><small>${contrato}</small></div>` : ''}
+                </div>
+                `
 
     const data = new Date(orcamento.timestamp).toLocaleDateString()
 
@@ -373,7 +382,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
     const tags = renderAtivas({ idOrcamento, recarregarPainel: false })
 
     const celulas = `
-        ${cel(`
+                ${cel(`
             <div style="${vertical}; gap: 2px;">
                 <label><b>${orcamento.lpu_ativa}</b></label>
                 <span>${data}</span>
@@ -383,7 +392,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
                 </select>
             </div>
         `)}
-        ${cel(`
+                ${cel(`
             <div style="${vertical}; gap: 5px;">
                 <div style="${horizontal}; gap: 2px;">
                     <img onclick="mostrarInfo('${idOrcamento}')" src="imagens/observacao${info.length > 0 ? '' : '_off'}.png">
@@ -397,9 +406,9 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
                 </div>
             </div>
         `)}
-        ${cel(`<div class="bloco-etiquetas">${labels.PEDIDO}</div>`)}
-        ${cel(`<div class="bloco-etiquetas">${labels.FATURADO}</div>`)}
-        ${cel(`
+                ${cel(`<div class="bloco-etiquetas">${labels.PEDIDO}</div>`)}
+                ${cel(`<div class="bloco-etiquetas">${labels.FATURADO}</div>`)}
+                ${cel(`
             <div style="${vertical}; gap: 2px;">
                 <img 
                     src="imagens/etiqueta.png" 
@@ -410,15 +419,15 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
                 </div>
             </div>
             `)}
-        ${cel(finalElemento)}
-        ${cel(`${cliente?.cidade || ''}`)}
-        ${cel(`
+                ${cel(finalElemento)}
+                ${cel(`${cliente?.cidade || ''}`)}
+                ${cel(`
             <div style="${vertical}">
                 <span>${orcamento?.usuario || '--'}</span>
                 <span>${responsaveis}</span>
             </div>
         `)}
-        ${cel(`
+                ${cel(`
             <div style="${vertical}; width: 100%; gap: 2px;">
                 ${orcamento?.checklist?.andamento
             ? `
@@ -432,22 +441,22 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
             : ''}
             </div>
             `)}
-        ${cel(`
+                ${cel(`
             <div style="${vertical}; width: 100%;">
                 <input style="display: none;" type="number" value="${orcamento.total_geral}">
                 <span style="font-size: 0.8rem; white-space: nowrap;">${dinheiro(orcamento.total_geral)}</span>
             </div>
             `)}
-        ${cel(`<img onclick="abrirAtalhos('${idOrcamento}')" src="imagens/pesquisar2.png" style="width: 1.5rem;">`)}
-        `
+                ${cel(`<img onclick="abrirAtalhos('${idOrcamento}')" src="imagens/pesquisar2.png" style="width: 1.5rem;">`)}
+                `
     // Prioridade;
     const prioridade = verificarPrioridade(orcamento)
 
     const linha = `
-        <tr class="linha-master" id="${idOrcamento}" data-prioridade="${prioridade}">
-            ${celulas}
-        </tr>
-    `
+                <tr class="linha-master" id="${idOrcamento}" data-prioridade="${prioridade}">
+                    ${celulas}
+                </tr>
+                `
 
     const status = orcamento?.status?.atual || 'SEM STATUS'
     const chamados = (orcamento?.chamado == 'S' && (status == 'SEM STATUS' || status == 'ORC ENVIADO'))
@@ -599,13 +608,13 @@ function renderizarControlesPagina() {
     if (!topo) return
 
     topo.innerHTML = `
-        <div style="display: flex; align-items:center; gap:10px; padding: 0.2rem;">
-            <img src="imagens/seta.png" style="width: 1.5rem;" onclick="pgAnterior()" ${pAtual === 1 ? 'disabled' : ''}>
-            <span style="color: white;">Página ${pAtual} de ${tPaginas}</span>
-            <img src="imagens/seta.png" style="transform: rotate(180deg); width: 1.5rem;" onclick="pgSeguinte()" ${pAtual === tPaginas ? 'disabled' : ''}>
-            <span style="color: white;">Dê um <b>ENTER</b> para pesquisar</span>
-        </div>
-    `
+                <div style="display: flex; align-items:center; gap:10px; padding: 0.2rem;">
+                    <img src="imagens/seta.png" style="width: 1.5rem;" onclick="pgAnterior()" ${pAtual === 1 ? 'disabled' : ''}>
+                        <span style="color: white;">Página ${pAtual} de ${tPaginas}</span>
+                        <img src="imagens/seta.png" style="transform: rotate(180deg); width: 1.5rem;" onclick="pgSeguinte()" ${pAtual === tPaginas ? 'disabled' : ''}>
+                            <span style="color: white;">Dê um <b>ENTER</b> para pesquisar</span>
+                        </div>
+                        `
 }
 
 function pgAnterior() {
@@ -665,16 +674,16 @@ function carregarToolbar(dados) {
             : {}
 
         const novaTool = `
-            <div 
-            style="opacity: 0.5; height: 3rem;"
-                class="aba-toolbar"
-                data-status="${campo}"
-                name="${campo}"
-                onclick="${funcao}">
-                <label>${campo.toUpperCase()}</label>
-                <span ${f[1]}>${contagem}</span>
-            </div>
-        `
+                        <div
+                            style="opacity: 0.5; height: 3rem;"
+                            class="aba-toolbar"
+                            data-status="${campo}"
+                            name="${campo}"
+                            onclick="${funcao}">
+                            <label>${campo.toUpperCase()}</label>
+                            <span ${f[1]}>${contagem}</span>
+                        </div>
+                        `
         toolbar.insertAdjacentHTML('beforeend', novaTool)
     }
 
@@ -749,23 +758,23 @@ async function painelAlteracaoCliente(idOrcamento) {
         .join('')
 
     const acumulado = `
-    <div style="display: flex; align-items: start; flex-direction: column; justify-content: center; padding: 2vw; background-color: #d2d2d2;">
+                        <div style="display: flex; align-items: start; flex-direction: column; justify-content: center; padding: 2vw; background-color: #d2d2d2;">
 
-        ${modelo('Cliente', orcamento.dados_orcam.cliente_selecionado)}
-        ${modelo('Cliente', orcamento.dados_orcam.cnpj)}
-        ${modelo('Cliente', orcamento.dados_orcam.cidade)}
+                            ${modelo('Cliente', orcamento.dados_orcam.cliente_selecionado)}
+                            ${modelo('Cliente', orcamento.dados_orcam.cnpj)}
+                            ${modelo('Cliente', orcamento.dados_orcam.cidade)}
 
-        <hr style="width: 100%;">
+                            <hr style="width: 100%;">
 
-        <label for="clientes">Clientes Omie</label>
-        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-            <input style="padding: 5px; width: 100%; border-radius: 3px;" list="clientes" id="cliente">
-            <datalist id="clientes">${opcoes}</datalist>
-            ${botao('Salvar', `associarClienteOrcamento('${idOrcamento}')`, 'green')}
-        </div>
+                                <label for="clientes">Clientes Omie</label>
+                                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                    <input style="padding: 5px; width: 100%; border-radius: 3px;" list="clientes" id="cliente">
+                                        <datalist id="clientes">${opcoes}</datalist>
+                                        ${botao('Salvar', `associarClienteOrcamento('${idOrcamento}')`, 'green')}
+                                </div>
 
-    </div>
-    `
+                        </div>
+                        `
 
     popup(acumulado, 'ATUALIZAR CLIENTE')
 }

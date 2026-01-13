@@ -31,6 +31,8 @@ function connectWebSocket() {
     socket.onmessage = async (event) => {
         const data = JSON.parse(event.data)
 
+        console.log(data)
+
         if (data.desconectar) {
             acesso = {}
             localStorage.removeItem('acesso')
@@ -106,9 +108,9 @@ function connectWebSocket() {
 
     async function refletir() {
         if (bReset == 2) return
-        semOverlay = true
+        sOverlay = true
         await executar(funcaoTela)
-        semOverlay = false
+        sOverlay = false
     }
 
 }
