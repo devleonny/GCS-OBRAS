@@ -394,11 +394,11 @@ function balaoUsuario(st, texto) {
 
 async function usuariosToolbar() {
 
+    dados_setores = await recuperarDados('dados_setores') || {}
     const user = await recuperarDado('dados_setores', acesso.usuario)
-    const dadosSetores = await recuperarDados('dados_setores') || {}
 
     // Conta quantos usuários estão online (status !== 'offline')
-    const usuariosOnline = Object.values(dadosSetores)
+    const usuariosOnline = Object.values(dados_setores)
         .filter(u => u.status && u.status !== 'offline')
         .length
 
@@ -428,12 +428,10 @@ async function configs() {
         setores: ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE', 'POC']
     }
 
-    dados_setores = Object.keys(dados_setores)
-        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
-        .reduce((obj, chave) => {
-            obj[chave] = dados_setores[chave];
-            return obj;
-        }, {});
+    const organizados = Object.values(dados_setores)
+        .sort((a, b) =>
+            (a.usuario || '').localeCompare(b.usuario || '', undefined, { sensitivity: 'base' })
+        )
 
     const tdPreenchida = (coluna, opcoes, usuario) => `
         <td>
@@ -441,13 +439,15 @@ async function configs() {
         </td>
     `
 
-    for (const [usuario, dados] of Object.entries(dados_setores)) {
+    for (const dados of organizados) {
+
+        const { permissao, setor, usuario } = dados
 
         const opcoesPermissao = listas.permissoes
-            .map(permissao => `<option value="${permissao}" ${dados?.permissao == permissao ? 'selected' : ''}>${permissao}</option>`).join('')
+            .map(p => `<option value="${p}" ${permissao == p ? 'selected' : ''}>${p}</option>`).join('')
 
         const opcoesSetores = listas.setores
-            .map(setor => `<option value="${setor}" ${dados?.setor == setor ? 'selected' : ''}>${setor}</option>`).join('')
+            .map(s => `<option value="${s}" ${setor == s ? 'selected' : ''}>${s}</option>`).join('')
 
         linhas += `
         <tr>
@@ -1587,9 +1587,7 @@ async function painelClientes(idOrcamento) {
                 <div class="escopo" 
                     id="consideracoes" 
                     contentEditable="true"
-                    style="resize: vertical; overflow: auto; text-align: left; text-transform: uppercase;">
-                    ${dados_orcam?.consideracoes || 'ESCOPO: '}
-                </div>
+                    style="resize: vertical; overflow: auto; text-align: left; text-transform: uppercase;">${dados_orcam?.consideracoes || 'ESCOPO: '}</div>
 
                 <div class="contorno-botoes" style="background-color: #222;">
                     <img src="imagens/anexo.png" style="width: 1.2rem;">

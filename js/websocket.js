@@ -31,8 +31,6 @@ function connectWebSocket() {
     socket.onmessage = async (event) => {
         const data = JSON.parse(event.data)
 
-        console.log(data)
-
         if (data.desconectar) {
             acesso = {}
             localStorage.removeItem('acesso')
@@ -72,6 +70,8 @@ function connectWebSocket() {
         }
 
         if (!appBases[bReset].includes(data.tabela)) return
+
+        console.log(data)
 
         if (bReset == 1 && data.tabela == 'dados_orcamentos') {
             verificarPendencias()

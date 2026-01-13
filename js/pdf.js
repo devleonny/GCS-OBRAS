@@ -50,7 +50,7 @@ function blocoHtml(titulo, dados = {}) {
         linhas += `
         <div style="${vertical}; gap: 5px;">
             <label><b>${chave}</b></label> 
-            <div>${dado}</div>
+            <div style="white-space: pre-wrap;">${dado}</div>
         </div>`
 
     }

@@ -423,6 +423,10 @@ span[name="titulo"] {
     text-align: left;
 }
 
+.escopo {
+    white-space: pre-wrap;
+}
+
 .linha-clientes input,
 .linha-clientes .escopo,
 .linha-clientes select,
