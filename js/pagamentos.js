@@ -769,12 +769,12 @@ async function salvarPagamento() {
         if (divPagamentos) criarLinhaPagamento(ultimoPagamento)
 
         localStorage.removeItem('ultimoPagamento')
+        removerPopup()
         popup(mensagem('Pagamento Salvo', 'imagens/concluido.png'), 'Sucesso')
 
     } catch (e) {
         console.log(e)
         popup(mensagem('Não foi possível salvar o pagamento, tente novamente.'), 'Alerta', true)
-
     }
 
 }
