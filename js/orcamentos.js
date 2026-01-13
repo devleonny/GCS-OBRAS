@@ -113,12 +113,6 @@ async function rstTelaOrcamentos() {
 
 async function telaOrcamentos() {
 
-    // Ocultar a barra de rolagem
-    document.documentElement.scrollTop = 0
-    document.body.scrollTop = 0
-    document.body.style.overflow = 'hidden'
-
-
     // Inicializar filtros; //28
     const f = JSON.parse(sessionStorage.getItem('filtros')) || {}
     filtrosPesquisa.orcamentos ??= {}

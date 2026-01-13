@@ -19,9 +19,6 @@ async function confirmarExclusaoAluguel() {
 
 async function telaCriarOrcamentoAluguel() {
 
-    // Mostrar a barra de rolagem
-    document.body.style.overflow = 'auto'
-
     funcaoTela = 'telaCriarOrcamentoAluguel'
 
     modo = 'ALUGUEL'

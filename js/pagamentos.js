@@ -97,7 +97,7 @@ async function telaPagamentos() {
     dados_categorias_AC = await recuperarDados('dados_categorias_AC')
 
     const lista_pagamentos = await filtrarPagamentos() // Filtrar de acordo com o usuário atual;
-    let colunas = ['Data de Previsão', 'Departamentos', 'APP', 'Valor', 'Status', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
+    const colunas = ['Data de Previsão', 'Departamentos', 'APP', 'Valor', 'Status', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
     let cabecalho1 = ''
     let cabecalho2 = ''
     colunas.forEach((coluna, i) => {
@@ -114,9 +114,9 @@ async function telaPagamentos() {
     const acumulado = `
         <div class="divPagamentos">
 
-            <div class="painelEsquerdo" style="width: 20vw;"></div>
+            <div class="painelEsquerdo" style="min-width: 200px;"></div>
 
-            <div style="${vertical}; width: 70vw;">
+            <div style="${vertical}; width: 100%;">
                 <div class="painelBotoes"></div>
                 <div class="div-tabela">
                     <table id="pagamentos" class="tabela">
@@ -284,15 +284,16 @@ function justificativaHTML(idPagamento) {
     return `
         <div class="balao" style="${horizontal}; width: 100%;">
 
-            <img src="gifs/alerta.gif" style="width: 3rem;">
+            <img src="gifs/alerta.gif">
 
-            <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; width: 100%; gap: 3px;">
+            <div style="${vertical}; width: 100%; gap: 3px;">
                 <label>Aprovação do pagamento</label>
 
-                <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px; width: 70%;">
-                    <textarea id="justificativa" style="width: 100%;" placeholder="Descreva o motivo da aprovação/reprovação" oninput="auxiliar(this)"></textarea>
-                    <button id="aprovar" style="display: none; background-color: green; padding: 5px;" onclick="autorizarPagamentos(true, '${idPagamento}')">Aprovar</button>
-                    <button id="reprovar" onclick="autorizarPagamentos(false, '${idPagamento}')" style="display: none; padding: 5px;">Reprovar</button>
+                <textarea id="justificativa" placeholder="Descreva o motivo da aprovação/reprovação"></textarea>
+
+                <div style="${horizontal}; gap: 1rem">
+                    <button onclick="autorizarPagamentos(true, '${idPagamento}')">Aprovar</button>
+                    <button style="background-color: #b12425 ;" onclick="autorizarPagamentos(false, '${idPagamento}')">Reprovar</button>
                 </div>
             </div>
         </div>
@@ -313,7 +314,6 @@ async function abrirDetalhesPagamentos(id_pagamento) {
     `
 
     let valores = ''
-    let painelParceiro = false
     const permissao = acesso.permissao
     const pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
     const cliente_omie = pagamento.param[0].codigo_cliente_fornecedor
@@ -337,7 +337,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
                     <label><strong>Data </strong>${justificativa.data}</label>
                     <label><strong>Justificativa</strong> ${justificativa.justificativa.replace(/\n/g, "<br>")}</label>
                 </div>
-                <img src="${imagemEspecifica(justificativa).imagem}" style="width: 3vw;">
+                <img src="${imagemEspecifica(justificativa).imagem}">
             </div>`)
         .join('')
 
@@ -349,7 +349,6 @@ async function abrirDetalhesPagamentos(id_pagamento) {
                 <label><strong>${dinheiro(item.valor)}</strong> - ${nomeCategoria}</label>
             </div>
         `
-        if (nomeCategoria.includes('Parceiros')) painelParceiro = true
 
     })
 
@@ -364,87 +363,6 @@ async function abrirDetalhesPagamentos(id_pagamento) {
         </div>
         <hr style="width: 100%;">
         `
-
-    let formParceiros = ''
-
-    if (painelParceiro) {
-
-        const campos = {
-            pedido: 'PDF do pedido do Cliente',
-            lpu_parceiro: 'LPU do parceiro de serviço & material',
-            orcamento: 'Orçamento GCS ou orçamento externo',
-            relatorio_fotografico: 'Relatório Fotográfico',
-            os: 'Ordem de Serviço',
-            medicao: 'Paga sobre medição?'
-        }
-
-        let infos = ''
-        for (let campo in campos) {
-            let docsExistentes = ''
-            if (campo == 'orcamento' && orcamento) {
-
-                docsExistentes += `
-                    <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-                        <div onclick="irPdf('${pagamento.id_orcamento}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 15vw;">
-                            <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
-                            <label style="cursor: pointer;"><b>Orçamento disponível</b></label>
-                        </div>
-                    </div>
-                `
-            }
-
-            if (campo == 'pedido') {
-                docsExistentes = ''
-
-                const historico = orcamento?.status?.historico || {}
-
-                for (let [chave, his] of Object.entries(historico)) {
-
-                    if (!chave.includes('PEDIDO')) continue
-
-                    const anexos = his?.anexos || {}
-
-                    for (const [, anexo] of Object.entries(anexos)) {
-                        docsExistentes += criarAnexoVisual(anexo.nome, anexo.link);
-                    }
-                }
-            }
-
-            infos += `
-                <div class="balao2025">
-                    <label class="numero"></label>
-                    <div class="camposFinanceiro">
-
-                        <div style="display: flex; gap: 5px; align-items: center; justify-content: left; width: 100%;">
-                            <label for="anexo_${campo}" style="justify-content: start; border-radius: 50%;">
-                                <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
-                                <input type="file" id="anexo_${campo}" style="display: none;" onchange="salvarAnexosParceiros(this, '${campo}','${pagamento.id_pagamento}')">
-                            </label>
-                            <label style="text-align: left;">${campos[campo]}</label>
-                        </div> 
-                    
-                        <div id="div${campo}" class="container">
-                            ${docsExistentes}
-                        </div>
-
-                    </div> 
-                </div>
-            `
-        }
-
-        formParceiros = `
-            <div style="${vertical}; gap: 5px; width: 90%;">
-                ${infos}
-
-                <div class="balao2025">
-                    <span name="tabelaParceiro" class="numero"></span>
-                    <div class="camposFinanceiro">
-                        ${carregarTabelaCustoParceiro({ resumo: pagamento.resumo, id_pagamento: pagamento.id_pagamento })}
-                    </div>
-                </div>
-            </div>
-            `
-    }
 
     // Edição de Status;
     const divStatus = (permissao == 'adm')
@@ -513,8 +431,6 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
             ${divValores}
 
-            ${formParceiros}
-
             <div id="comentario" class="contorno" style="width: 90%;">
                 <div class="contorno_interno" style="background-color: #ffffffde;">
                     <label style="width: 100%; text-align: left;"><strong>Observações </strong><br> ${pagamento.param[0].observacao.replace(/\||\n/g, "<br>")}</label>
@@ -540,33 +456,12 @@ async function abrirDetalhesPagamentos(id_pagamento) {
             ${historico}
 
         </div>
+        <div class="rodape-detalhes"></div>
     `
 
     const telaDetalhes = document.querySelector('.tela-detalhes')
     if (telaDetalhes) return telaDetalhes.innerHTML = acumulado
     popup(`<div class="tela-detalhes">${acumulado}</div>`, 'Detalhes do Pagamento', true)
-
-    // Depois que se abre o pagamento, percorra os anexos e preencha cada item;
-    if (pagamento.anexos_parceiros) {
-
-        let itens = pagamento.anexos_parceiros
-
-        for (item in itens) {
-            let anexos_on = itens[item]
-
-            for (anx in anexos_on) {
-
-                let anexo = anexos_on[anx]
-
-                let element = criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoParceiro('${id_pagamento}', '${item}', '${anx}')`);
-
-                document.getElementById(`div${item}`).insertAdjacentHTML('beforeend', element)
-
-            }
-        }
-    }
-
-    calcularCusto()
 
 }
 
@@ -623,48 +518,6 @@ async function removerAnexoParceiro(id_pagamento, campo, anx) {
         await abrirDetalhesPagamentos(id_pagamento)
 
     }
-
-}
-
-function colorirParceiros() {
-    const contornoBotaoLiberacao = document.querySelector('.contornoBotaoLiberacao')
-    const numeros = document.querySelectorAll('.numero')
-    const divs = document.querySelectorAll('div.container')
-    let i = 0
-
-    if (!contornoBotaoLiberacao) {
-
-        for (const numero of numeros) {
-            numero.textContent = i + 1
-
-            if (!divs[i]) continue
-
-            const balao = numero?.parentElement
-            if (balao) {
-                balao.style.background = `linear-gradient(to right, ${divs[i].children.length == 0 ? '#B12425' : 'green'} 10%, #f0f0f0 10%)`
-            }
-
-            i++
-        }
-    }
-
-    const v_orcado = document.getElementById('v_orcado')
-    const el = document.querySelector('[name="tabelaParceiro"]')
-    const balao = el?.parentElement
-    if (!contornoBotaoLiberacao) el.textContent = i + 1
-
-    if (balao) {
-        balao.style.background = `linear-gradient(to right, ${v_orcado.value == 0 ? '#B12425' : 'green'} 10%, #f0f0f0 10%)`
-    }
-}
-
-function auxiliar(elemento) {
-
-    const aprovar = document.getElementById('aprovar')
-    const reprovar = document.getElementById('reprovar')
-
-    aprovar.style.display = elemento.value == '' ? 'none' : 'block'
-    reprovar.style.display = elemento.value == '' ? 'none' : 'block'
 
 }
 
@@ -1134,7 +987,7 @@ async function apagarPagamento() {
 
 function duvidas() {
     const acumulado = `
-        <div style="${vertical}; padding: 2vw; background-color: #d2d2d2;">
+        <div style="${vertical}; padding: 1rem; text-align: left; background-color: #d2d2d2;">
             <label>• Se faltar algo, Clique em <strong>Atualizar GCS</strong> no botão azul para atualizar tudo;</label>
             <label>• Se o botão <strong>"Salvar"</strong> não apareceu, é porque falta preencher algum campo;</label>
             <label>• Após às <strong>11h</strong> será lançado no dia útil seguinte;</label>
@@ -1199,49 +1052,6 @@ async function removerAnexoTemporario(link) {
 
 }
 
-function incluirCamposAdicionais() {
-
-    const campos = {
-        pedido: { titulo: 'Pedido' },
-        lpu_parceiro: { titulo: 'LPU do parceiro de serviço & material' },
-        os: { titulo: 'Ordem de Serviço' },
-        relatorio_fotografico: { titulo: 'Relatório de Fotográfico' },
-        medicao: { titulo: 'Tem medição para anexar?' },
-    }
-
-    let camposHtml = ''
-    for (const campo in campos) {
-
-        let conteudo = campos[campo]
-        camposHtml += `
-            <div class="balao2025">
-                <span name="${campo}Numero" class="numero"></span>
-                <div class="camposFinanceiro" style="justify-content: space-between;">
-                    <div style="width: 30%; text-align: left;">${conteudo.titulo}</div>
-                    <label class="opcoes" for="anexo_${campo}" style="justify-content: center;">
-                        Selecionar
-                        <input type="file" id="anexo_${campo}" style="display: none;" onchange="salvarAnexosParceiros(this, '${campo}')" multiple>
-                    </label>
-                    <div id="div${campo}" style="${vertical}"></div>
-                </div>
-            </div>
-            `
-    }
-
-    const acumulado = `
-        ${camposHtml}
-        <br>
-        <div class="balao2025">
-            <span name="tabelaParceiro" class="numero"></span>
-            <div class="camposFinanceiro">
-                ${carregarTabelaCustoParceiro()}
-            </div>
-        </div>
-        <br>
-    `
-    return acumulado
-}
-
 async function atualizarResumo(id_pagamento) {
 
     const divAtualizar = document.getElementById('atualizarResumo')
@@ -1272,59 +1082,6 @@ async function atualizarResumo(id_pagamento) {
         divAtualizar.innerHTML = `${botao('Atualizar', `atualizarResumo('${id_pagamento}')`, 'green')}`
     }, 3000)
 
-}
-
-function calcularCusto() {
-
-    if (!document.getElementById('v_pago')) return
-
-    let v_pago = conversor(document.getElementById('v_pago').textContent)
-    let v_lpu = Number(document.getElementById('v_lpu').value)
-    let v_orcado = Number(document.getElementById('v_orcado').value)
-
-    document.getElementById('res_VO').innerHTML = v_orcado !== 0 ? `${((v_lpu / v_orcado) * 100).toFixed(0)}%` : '--'
-    document.getElementById('res_ORAP').innerHTML = v_orcado !== 0 ? `${((v_pago / v_orcado) * 100).toFixed(0)}%` : '--'
-
-    colorirParceiros()
-}
-
-function carregarTabelaCustoParceiro(dados = {}) {
-
-    const { resumo, id_pagamento } = dados
-
-    if (resumo && isNaN(resumo.v_pago)) resumo.v_pago = conversor(resumo.v_pago)
-
-    const botaoAtualizar = resumo
-        ? `
-        <div id="atualizarResumo">
-            <button onclick="atualizarResumo('${id_pagamento}')">Atualizar</button>
-        </div>
-        `
-        : ''
-
-    return `
-            <div style="${vertical}; padding: 5px;">
-                ${botaoAtualizar}
-                <table class="tabela">
-                    <thead>
-                        <th>Valor Orçado</th>
-                        <th>LPU do Parceiro</th>
-                        <th>% LPU x VO</th>
-                        <th>A Pagar</th>
-                        <th>% A Pagar x LPU</th>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><input value="${resumo?.v_orcado || ''}" id="v_orcado" type="number" placeholder="Orçado" oninput="calcularCusto()"></td>
-                            <td><input value="${resumo?.v_lpu || ''}" id="v_lpu" type="number" placeholder="LPU do Parceiro" oninput="calcularCusto()"></td>
-                            <td id="res_VO"></td>
-                            <td id="v_pago" style="white-space: nowrap;">${dinheiro(resumo?.v_pago) || ''}</td>
-                            <td id="res_ORAP"></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        `
 }
 
 function compararDatas(data1, data2) {

@@ -221,10 +221,10 @@ async function sincronizarDados({ base, overlay = false, resetar = false, filtro
     }
 
     await inserirDados(nuvem, base)
-
     if (overlay) removerOverlay()
 
-    return nuvem
+    const dados = await recuperarDados(base)
+    return dados
 }
 
 // SERVIÇO DE ARMAZENAMENTO 

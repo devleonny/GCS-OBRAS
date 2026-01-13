@@ -48,6 +48,8 @@
 .rodape-padrao {
     overflow: hidden;
     display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
     background-color: #757575;
@@ -57,17 +59,22 @@
     border-radius: 0 0 10px 10px;
 }
 
+
 /* Botões */
 .botoes-rodape {
-    width: 100%;
+    flex: 1 1 120px;
     cursor: pointer;
     padding: 5px;
     background-color: #d2d2d2;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: start;
     gap: 10px;
     height: 5vh;
+}
+
+.botoes-rodape img {
+    margin-left: 0;
 }
 
 .botoes-rodape img {
@@ -78,4 +85,14 @@
     transition: ease-in-out 0.1s;
     background-color: #3e8bff;
     color: white;
+}
+
+@media screen and (orientation: portrait) {
+    .botoes-rodape {
+        flex: 1 1 100%;
+    }
+
+    .botoes-rodape img {
+        margin-left: 1rem;
+    }
 }
