@@ -284,7 +284,7 @@ function criarAnexoVisual(nome, link, funcao) {
         : nome;
 
     return `
-        <div class="contornoAnexos" name="${link}">
+        <div class="contorno-anexos" name="${link}">
             <div onclick="abrirArquivo('${link}')" class="contorno_interno" style="width: 100%; display: flex; align-items: center; justify-content: start; gap: 2px;">
                 <img src="imagens/anexo2.png" style="width: 1.5rem;">
                 <label style="font-size: 0.7rem; cursor: pointer;" title="${nome}">${nomeFormatado}</label>
@@ -362,7 +362,7 @@ async function configuracoes(usuario, campo, valor) {
         if (tr) tr.remove()
     } else {
         await inserirDados({ [usuario]: dadosUsuario }, 'dados_setores')
-        await telaUsuarios()
+        if (app == 'OCORRÊNCIAS') await telaUsuarios()
     }
 }
 

@@ -245,7 +245,7 @@ async function preencher() {
         tds[2] = `
         <td>
             <div style="${vertical}; text-align: left;">
-                ${item?.cnpj ? `
+                ${item?.cnpj !== undefined ? `
                     <div style="${vertical}; gap: 2px; text-align: left;">
                         <label><b>Venda Direta</b></label>
                         <label><b>Razão Social</b> ${item?.razaoSocial || '--'}</label>

@@ -753,7 +753,7 @@ async function salvarPedido() {
 
 }
 
-async function salvar_requisicao(chave) {
+async function salvarRequisicao(chave) {
 
     overlayAguarde()
 
@@ -1043,7 +1043,7 @@ async function desfazerVinculo(idOrcamento) {
     if (linha) linha.remove()
 
     const resposta = vincularAPI({ idSlave: idOrcamento })
-    
+
     if (resposta.mensagem) return popup(mensagem(resposta.mensagem), 'Alerta', true)
 
     await deletarDB('hierarquia', idOrcamento)
@@ -2257,40 +2257,44 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
 
     if (!apenas_visualizar) {
         toolbar += `
-        <div style="display: flex; gap: 10px; justify-content: center; align-items: center; background-color: #151749; border-top-left-radius: 5px; border-top-right-radius: 5px">
-            <img src="imagens/pesquisar.png" style="width: 25px; height: 25px; padding: 5px;">
+        <div class="requisicao-pesquisa">
+            <img src="imagens/pesquisar.png" style="padding: 5px;">
             <input id="pesquisa1" style="padding: 10px; border-radius: 5px; margin: 10px; width: 50%;" placeholder="Pesquisar" oninput="pesquisar_na_requisicao()">
         </div>
         `
 
+        const opcoes = ['JAMEF', 'CORREIOS', 'JADLOG', 'OUTROS']
+            .map(op => `<option ${cartao?.transportadora == op ? 'selected' : ''}>${op}</option>`)
+            .join('')
+
         campos = `
-        <div class="contorno" style="width: 500px;">
-            <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; font-size: 1.0em;">Dados da Requisição</div>
-            <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; display: flex; flex-direction: column; background-color: #99999940; padding: 10px;">
+        <div class="requisicao-contorno" style="width: 500px;">
+            <div class="requisicao-titulo">Dados da Requisição</div>
+            <div class="requisicao-dados">
                 
-                ${modelo('Transportadora', `
-                <select id="transportadora" style="padding: 5px; border-radius: 2px;">
+                <div style="${vertical}; width: 100%;">
+                    <select id="transportadora">
+                        ${opcoes}
+                    </select>
+                </div>
 
-                ${['JAMEF', 'CORREIOS', 'JADLOG', 'OUTROS']
-                .map(op => `<option ${cartao?.transportadora == op ? 'selected' : ''}>${op}</option>`)
-                .join('')}
-                
-                </select>`)}
+                <div style="${vertical}; width: 100%;">
+                    <span>Volumes</span>
+                    <input value="${cartao?.volumes || ''}" id="volumes" type="number">
+                </div>
 
-                ${modelo('Volumes', `<input value="${cartao?.volumes || ''}" id="volumes" style="padding: 5px; border-radius: 2px;" type="number">`)}
-
-                <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
-                    <label><strong>Comentário</strong></label>
+                <div style="${vertical}; width: 100%;">
+                    <label>Comentário</label>
                     <textarea rows="3" id="comentario_status" style="width: 80%;">${comentarioExistente}</textarea>
                 </div>
 
-                <label class="contorno-botoes" style="background-color: #4CAF50; " onclick="salvar_requisicao('${chave}')">Salvar Requisição</label>
+                <button onclick="salvarRequisicao('${chave}')">Salvar Requisição</button>
             </div>
         </div>
         `
     }
 
-    let modeloLabel = (valor1, valor2) => `
+    const modeloLabel = (valor1, valor2) => `
         <label style="color: #222; text-align: left;"><strong>${valor1}</strong> ${valor2}</label>
     `
 
@@ -2298,24 +2302,22 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
         .map(col => `<th>${col}</th>`).join('')
 
     const acumulado = `
-    <div style="background-color: white;">
+    <div class="requisicao-tela">
+
         ${menu_flutuante}
 
-        <div style="display: flex; align-items: center; justify-content: center; width: 100%; background-color: #151749;">
-            <img src="https://i.imgur.com/AYa4cNv.png" style="width: 10rem;">
+        <div style="${horizontal}; width: 100%;">
+            <img src=""
+            <span>REQUISIÇÃO DE COMPRA DE MATERIAL</span>
         </div>
 
-        <div style="display: flex; align-items: center; justify-content: center; width: 100%;">
-            <h1>REQUISIÇÃO DE COMPRA DE MATERIAL</h1>
-        </div>
-
-        <div style="display: flex; justify-content: left; align-items: center; margin: 10px;">
+        <div style="${horizontal}; margin: 10px;">
 
             ${campos}
                 
-            <div class="contorno">
-                <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; font-size: 1.0em;">Dados do Cliente</div>
-                <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; justify-content: start; align-items: start; display: flex; flex-direction: column; background-color: #99999940; padding: 10px;">
+            <div class="requisicao-contorno">
+                <div class="requisicao-titulo">Dados do Cliente</div>
+                <div class="requisicao-dados">
 
                     ${modeloLabel('Cliente', cliente?.nome || '')}
                     ${modeloLabel('CNPJ', cliente?.cnpj || '')}
@@ -2327,12 +2329,10 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
                 </div>
             </div>
 
-            <div class="contorno">
-                <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">Total</div>
-                <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; display: flex; flex-direction: column; background-color: #99999940; padding: 10px;">
-                    <div style="display: flex; gap: 10px;">
-                        <label id="total_requisicao"></label> 
-                    </div>
+            <div class="requisicao-contorno">
+                <div class="requisicao-titulo">Total</div>
+                <div class="requisicao-dados">
+                    <label id="total_requisicao"></label> 
                 </div>
             </div>
 
@@ -2340,11 +2340,10 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
 
         <div id="tabela_itens" style="width: 100%; display: flex; flex-direction: column; align-items: left;">
 
-        <div class="contorno">
+        <div class="requisicao-contorno">
             ${toolbar}
             <table class="tabela" id="tabela_requisicoes" style="width: 100%; font-size: 0.8em; table-layout: auto; border-radius: 0px;">
-                <thead>${colunas}</thead>
-                
+                <thead style="background-color: #f1f1f1;">${colunas}</thead>
                 <tbody>
                     ${await carregar_itens(apenas_visualizar, tipoRequisicao, chave)}
                 </tbody>
