@@ -427,7 +427,7 @@ function pesquisar_na_requisicao() {
     }
 }
 
-async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
+async function carregarItensRequisicao(apVisualizar, tipoRequisicao, chave) {
 
     const dados_composicoes = await recuperarDados('dados_composicoes') || {};
     let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
@@ -450,7 +450,7 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
         requisicao = orcamento.status.historico[chave].requisicoes
     }
 
-    if (apenas_visualizar) {
+    if (apVisualizar) {
 
         for (id in requisicao) {
             let item = requisicao[id]
@@ -518,71 +518,70 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
         itensFiltrados = todos_os_itens.infra
     }
 
-    const opcoes = ['Nada a fazer', 'Venda Direta', 'Estoque AC', 'Comprar', 'Enviar do CD', 'Fornecido pelo Cliente']
-        .map(op => `<option>${op}</option>`)
-        .join('')
-
-    const tOpcoes = ['SEVIÇO', 'VENDA', 'USO E CONSUMO', 'LOCAÇÃO']
-        .map(op => `<option value="${op}" ${tipo == op ? 'selected' : ''}>${op}</option>`)
-        .join('')
 
     for (item of itensFiltrados) {
 
         const { tipo, codigo, qtde_enviar, requisicao, descricao } = item
         const omie = dados_composicoes[codigo]?.omie || dados_composicoes[codigo]?.partnumber || ''
+        const tOpcoes = ['SEVIÇO', 'VENDA', 'USO E CONSUMO', 'LOCAÇÃO']
+            .map(op => `<option value="${op}" ${tipo == op ? 'selected' : ''}>${op}</option>`)
+            .join('')
+        const rOpcoes = ['Nada a fazer', 'Venda Direta', 'Estoque AC', 'Comprar', 'Enviar do CD', 'Fornecido pelo Cliente']
+            .map(op => `<option ${requisicao == op ? 'selected' : ''}>${op}</option>`)
+            .join('')
 
         linhas += `
-    <tr class="lin_req">
-        <td style="text-align: center; font-size: 1.2em; white-space: nowrap;"><label>${codigo}</label></td>
-        <td style="text-align: center;">
-            ${apenas_visualizar
+            <tr class="lin_req">
+                <td style="text-align: center; font-size: 1.2em; white-space: nowrap;"><label>${codigo}</label></td>
+                <td style="text-align: center;">
+                    ${apVisualizar
                 ? `<label style="font-size: 1.2em;">${omie}</label>`
                 : `<input class="campoRequisicao" value="${omie}">`
             }
-        </td>
-        <td>
-            <div style="${horizontal}; justify-content: space-between; width: 100%;">
-                <div style="${vertical}; gap: 2px;">
-                    <label><strong>DESCRIÇÃO</strong></label>
-                    <label style="text-align: left;">${descricao || 'N/A'}</label>
-                </div>
-                ${apenas_visualizar
+                </td>
+                <td>
+                    <div style="${horizontal}; justify-content: space-between; width: 100%;">
+                        <div style="${vertical}; gap: 2px;">
+                            <label><strong>DESCRIÇÃO</strong></label>
+                            <label style="text-align: left;">${descricao || 'N/A'}</label>
+                        </div>
+                        ${apVisualizar
                 ? ''
                 : `<img src="imagens/construcao.png" onclick="abrirAdicionais('${codigo}')">`}
-            </div>
-        </td>
-        <td>
-            ${apenas_visualizar
+                    </div>
+                </td>
+                <td>
+                    ${apVisualizar
                 ? `<label>${tipo || ''}</label>`
                 : tOpcoes
             }
-        </td>
-        <td style="text-align: center;">
-            ${apenas_visualizar
+                </td>
+                <td style="text-align: center;">
+                    ${apVisualizar
                 ? `<label style="font-size: 1.2em;">${qtde_enviar || 0}</label>`
                 : `
-            <div style="${horizontal}; gap: 5px;">
-                <div style="${vertical}; gap: 5px;">
-                    <label>Quantidade a enviar</label>
-                    <input class="campoRequisicao" type="number" oninput="calcularRequisicao()" min="0" value="${qtde_enviar || ''}">
-                </div>
-                <label class="num">${itensOrcamento[codigo]?.qtde || 0}</label>
-            </div>
-            `}
-        </td>
-        <td style="white-space: nowrap;">
-            <label></label>
-        </td>
-        <td style="white-space: nowrap;">
-            <label></label>
-        </td>
-        <td>
-            ${apenas_visualizar
+                    <div style="${horizontal}; gap: 5px;">
+                        <div style="${vertical}; gap: 5px;">
+                            <label>Quantidade a enviar</label>
+                            <input class="campoRequisicao" type="number" oninput="calcularRequisicao()" min="0" value="${qtde_enviar || ''}">
+                        </div>
+                        <label class="num">${itensOrcamento[codigo]?.qtde || 0}</label>
+                    </div>
+                    `}
+                </td>
+                <td style="white-space: nowrap;">
+                    <label></label>
+                </td>
+                <td style="white-space: nowrap;">
+                    <label></label>
+                </td>
+                <td>
+                    ${apVisualizar
                 ? `<label>${requisicao || ''}</label>`
-                : `<select class="opcoesSelect">${opcoes}</select>`
+                : `<select class="opcoesSelect">${rOpcoes}</select>`
             }
-        </td>
-    </tr>
+                </td>
+            </tr>
         `
     }
 
@@ -2232,12 +2231,11 @@ async function excluirOrcamentoBase(idOrcamento) {
     removerPopup()
 }
 
-async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
+async function detalharRequisicao(chave, tipoRequisicao, apVisualizar) {
 
     if (!chave) chave = ID5digitos()
 
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    const dados_clientes = await recuperarDados('dados_clientes') || {}
+    const orcamento = dados_orcamentos[id_orcam]
     const cliente = dados_clientes?.[orcamento.dados_orcam.omie_cliente] || {}
     const cartao = orcamento?.status?.historico?.[chave] || {}
     let btnFlutuante = ''
@@ -2246,17 +2244,6 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
     itensAdicionais = {}
     let comentarioExistente = ''
 
-    if (apenas_visualizar) {
-        btnFlutuante = `
-            <div class="btnFlutuante" id="btnFlutuante">
-                <div class="icone" onclick="gerarPdfRequisicao('${cliente.nome || 'xx'}')">
-                    <img src="imagens/pdf.png">
-                    <label>PDF</label>
-                </div>
-            </div>
-            `
-    }
-
     if (cartao.adicionais) itensAdicionais = cartao.adicionais
     if (cartao.comentario) comentarioExistente = cartao.comentario
     if (cartao.requisicoes) requisicoesExistente = cartao.requisicoes
@@ -2264,7 +2251,7 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
     let campos = ''
     let toolbar = ''
 
-    if (!apenas_visualizar) {
+    if (!apVisualizar) {
         toolbar += `
         <div class="requisicao-pesquisa">
             <img src="imagens/pesquisar.png" style="padding: 5px;">
@@ -2305,7 +2292,7 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
 
     const modeloLabel = (valor1, valor2) => `<label><strong>${valor1}</strong> ${valor2}</label>`
 
-    const colunas = ['Código', 'OMIE /Partnumber', 'Informações do Item', 'Tipo', 'Quantidade', 'Valor Unitário', 'Valor Total', 'Requisição']
+    const colunas = ['Cod GCS', 'Cod OMIE', 'Informações do Item', 'Tipo', 'Quantidade', 'Valor Unitário', 'Valor Total', 'Requisição']
         .map(col => `<th>${col}</th>`)
         .join('')
 
@@ -2322,7 +2309,7 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
             </div>
         </div>
 
-        <div style="${horizontal}; margin: 10px;">
+        <div style="${horizontal}; gap: 2rem; margin: 10px;">
 
             ${campos}
                 
@@ -2347,6 +2334,11 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
                 </div>
             </div>
 
+            ${apVisualizar 
+                ? `<img id="bPdf" src="imagens/pdf.png" onclick="gerarPdfRequisicao('${cliente.nome || '-'}')">`
+                : ''
+            }
+
         </div>
 
         <div id="tabela_itens" style="width: 100%; display: flex; flex-direction: column; align-items: left;">
@@ -2356,7 +2348,7 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
             <table class="tabela" id="tabela_requisicoes" style="width: 100%; font-size: 0.8em; table-layout: auto; border-radius: 0px;">
                 <thead style="background-color: #f1f1f1;">${colunas}</thead>
                 <tbody>
-                    ${await carregar_itens(apenas_visualizar, tipoRequisicao, chave)}
+                    ${await carregarItensRequisicao(apVisualizar, tipoRequisicao, chave)}
                 </tbody>
             </table>
         <div>

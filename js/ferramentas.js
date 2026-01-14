@@ -431,12 +431,12 @@ if (typeof window !== 'undefined' && window.process && window.process.type) {
 }
 
 function abrirArquivo(link, nome) {
-    link = `${api}:4000/uploads/${link}`;
-    const imagens = ['png', 'jpg', 'jpeg'];
+    link = `${api}/uploads/${link}`
+    const imagens = ['png', 'jpg', 'jpeg']
 
     const extensao = !nome
         ? ''
-        : nome.split('.').pop().toLowerCase(); // pega sem o ponto
+        : nome.split('.').pop().toLowerCase() // pega sem o ponto
 
     if (imagens.includes(extensao)) {
         const acumulado = `
@@ -561,7 +561,10 @@ async function gerarPdfRequisicao(nome) {
 async function pdf({ id, config, estilos = [], nome = 'documento' }) {
 
     const htmlPdf = document.getElementById(id)
+    const bPdf = document.getElementById('bPdf')
     if (!id || !htmlPdf) return
+
+    if (bPdf) bPdf.style.display = 'none'
 
     config = config || `@page {
                         size: A4;
@@ -618,5 +621,7 @@ async function pdf({ id, config, estilos = [], nome = 'documento' }) {
     } catch (err) {
         popup(mensagem(err?.message || 'Falhei... '), 'Alerta', true)
     }
+
+    if (bPdf) bPdf.style.display = ''
 
 }
