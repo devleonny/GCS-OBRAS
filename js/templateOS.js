@@ -16,7 +16,7 @@ async function telaOS(idOcorrencia) {
     let imagens = ''
 
     imagens = Object.entries(ocorrencia?.fotos || {})
-        .map(([link,]) => `<img id="${link}" src="${api}/uploads/GCS/${link}" onclick="ampliarImagem(this, '${link}')">`)
+        .map(([link,]) => `<img id="${link}" src="${api}/uploads/${link}" onclick="ampliarImagem(this, '${link}')">`)
         .join('')
 
     // Anexos
@@ -25,7 +25,7 @@ async function telaOS(idOcorrencia) {
                 const link = foto.link
                 const extensao = link.split('.').pop().toLowerCase()
                 if (!extensoes.includes(extensao)) return ''
-                return `<img name="foto" id="${link}" src="${api}/uploads/GCS/${link}" onclick="ampliarImagem(this, '${link}')">`
+                return `<img name="foto" id="${link}" src="${api}/uploads/${link}" onclick="ampliarImagem(this, '${link}')">`
             })
             .join('')
 
@@ -89,7 +89,7 @@ async function telaOS(idOcorrencia) {
         let imagens = ''
 
         imagens = Object.entries(correcao?.fotos || {})
-            .map(([link,]) => `<img id="${link}" src="${api}/uploads/GCS/${link}" onclick="ampliarImagem(this, '${link}')">`)
+            .map(([link,]) => `<img id="${link}" src="${api}/uploads/${link}" onclick="ampliarImagem(this, '${link}')">`)
             .join('')
 
         imagens = Object.values(correcao?.anexos || {})
@@ -97,7 +97,7 @@ async function telaOS(idOcorrencia) {
                 const link = foto.link
                 const extensao = link.split('.').pop().toLowerCase()
                 if (!extensoes.includes(extensao)) return ''
-                return `<img name="foto" id="${link}" src="${api}/uploads/GCS/${link}" onclick="ampliarImagem(this, '${link}')">`
+                return `<img name="foto" id="${link}" src="${api}/uploads/${link}" onclick="ampliarImagem(this, '${link}')">`
             })
             .join('')
 

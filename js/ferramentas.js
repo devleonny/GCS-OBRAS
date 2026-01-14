@@ -560,7 +560,7 @@ async function gerarPdfRequisicao(nome) {
 
 async function pdf({ id, config, estilos = [], nome = 'documento' }) {
 
-    const htmlPdf = document.querySelector(id)
+    const htmlPdf = document.getElementById(id)
     if (!id || !htmlPdf) return
 
     config = config || `@page {
@@ -577,7 +577,7 @@ async function pdf({ id, config, estilos = [], nome = 'documento' }) {
         <html>
             <head>
                 <meta charset="UTF-8">
-                ${e}
+                ${estilos}
                 <style>
 
                     ${config}

@@ -518,64 +518,73 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
         itensFiltrados = todos_os_itens.infra
     }
 
-    let opcoes = ['Nada a fazer', 'Venda Direta', 'Estoque AC', 'Comprar', 'Enviar do CD', 'Fornecido pelo Cliente']
+    const opcoes = ['Nada a fazer', 'Venda Direta', 'Estoque AC', 'Comprar', 'Enviar do CD', 'Fornecido pelo Cliente']
         .map(op => `<option>${op}</option>`)
         .join('')
 
+    const tOpcoes = ['SEVIÇO', 'VENDA', 'USO E CONSUMO', 'LOCAÇÃO']
+        .map(op => `<option value="${op}" ${tipo == op ? 'selected' : ''}>${op}</option>`)
+        .join('')
+
     for (item of itensFiltrados) {
-        let codigo = item.codigo
-        let tipo = item.tipo
-        let omie = dados_composicoes[codigo]?.omie || dados_composicoes[codigo]?.partnumber || ''
+
+        const { tipo, codigo, qtde_enviar, requisicao, descricao } = item
+        const omie = dados_composicoes[codigo]?.omie || dados_composicoes[codigo]?.partnumber || ''
+
         linhas += `
-            <tr class="lin_req" style="background-color: white;">
-                <td style="text-align: center; font-size: 1.2em; white-space: nowrap;"><label>${codigo}</label></td>
-                <td style="text-align: center;">
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${omie}</label>` :
-                `<input class="campoRequisicao" value="${omie}">`}
-                </td>
-                <td style="position: relative;">
-                    <div style="position: relative; display: flex; flex-direction: column; gap: 5px; align-items: start;">
-                        <label style="font-size: 0.8vw;"><strong>DESCRIÇÃO</strong></label>
-                        <label style="text-align: left;">${item?.descricao || 'N/A'}</label>
-                    </div>
-                    ${apenas_visualizar ? '' : `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrirAdicionais('${codigo}')">`}
-                </td>
-                <td style="text-align: center; font-size: 0.8em;">
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em; margin: 10px;">${item?.tipo || ''}</label>` : `
-                        <select onchange="calcularRequisicao()" class="opcoesSelect">
-                            <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
-                            <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
-                            <option value="USO E CONSUMO" ${tipo === 'USO E CONSUMO' ? 'selected' : ''}>USO E CONSUMO</option>
-                        </select>
-                    `}
-                </td>
-                <td style="text-align: center;">
-                    ${apenas_visualizar
-                ? `<label style="font-size: 1.2em;">${item?.qtde_enviar || 0}</label>`
+    <tr class="lin_req">
+        <td style="text-align: center; font-size: 1.2em; white-space: nowrap;"><label>${codigo}</label></td>
+        <td style="text-align: center;">
+            ${apenas_visualizar
+                ? `<label style="font-size: 1.2em;">${omie}</label>`
+                : `<input class="campoRequisicao" value="${omie}">`
+            }
+        </td>
+        <td>
+            <div style="${horizontal}; justify-content: space-between; width: 100%;">
+                <div style="${vertical}; gap: 2px;">
+                    <label><strong>DESCRIÇÃO</strong></label>
+                    <label style="text-align: left;">${descricao || 'N/A'}</label>
+                </div>
+                ${apenas_visualizar
+                ? ''
+                : `<img src="imagens/construcao.png" onclick="abrirAdicionais('${codigo}')">`}
+            </div>
+        </td>
+        <td>
+            ${apenas_visualizar
+                ? `<label>${tipo || ''}</label>`
+                : tOpcoes
+            }
+        </td>
+        <td style="text-align: center;">
+            ${apenas_visualizar
+                ? `<label style="font-size: 1.2em;">${qtde_enviar || 0}</label>`
                 : `
-                        <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
-                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
-                                <label>Quantidade a enviar</label>
-                                <input class="campoRequisicao" type="number" oninput="calcularRequisicao()" min="0" value="${item?.qtde_enviar || ''}">
-                            </div>
-                            <label class="num">${itensOrcamento[codigo]?.qtde || 0}</label>
-                        </div>
-                    `}
-                </td>
-                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                    <label></label>
-                </td>
-                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                    <label></label>
-                </td>
-                <td>
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.requisicao || ''}</label>` : `
-                        <select class="opcoesSelect">${opcoes}</select>
-                    `}
-                </td>
-            </tr>
+            <div style="${horizontal}; gap: 5px;">
+                <div style="${vertical}; gap: 5px;">
+                    <label>Quantidade a enviar</label>
+                    <input class="campoRequisicao" type="number" oninput="calcularRequisicao()" min="0" value="${qtde_enviar || ''}">
+                </div>
+                <label class="num">${itensOrcamento[codigo]?.qtde || 0}</label>
+            </div>
+            `}
+        </td>
+        <td style="white-space: nowrap;">
+            <label></label>
+        </td>
+        <td style="white-space: nowrap;">
+            <label></label>
+        </td>
+        <td>
+            ${apenas_visualizar
+                ? `<label>${requisicao || ''}</label>`
+                : `<select class="opcoesSelect">${opcoes}</select>`
+            }
+        </td>
+    </tr>
         `
-    };
+    }
 
     return linhas;
 
@@ -2231,15 +2240,15 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
     const dados_clientes = await recuperarDados('dados_clientes') || {}
     const cliente = dados_clientes?.[orcamento.dados_orcam.omie_cliente] || {}
     const cartao = orcamento?.status?.historico?.[chave] || {}
-    let menu_flutuante = ''
+    let btnFlutuante = ''
 
     // Carrega os itens adicionais se existirem
     itensAdicionais = {}
     let comentarioExistente = ''
 
     if (apenas_visualizar) {
-        menu_flutuante = `
-            <div class="menu_flutuante" id="menu_flutuante">
+        btnFlutuante = `
+            <div class="btnFlutuante" id="btnFlutuante">
                 <div class="icone" onclick="gerarPdfRequisicao('${cliente.nome || 'xx'}')">
                     <img src="imagens/pdf.png">
                     <label>PDF</label>
@@ -2294,17 +2303,18 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
         `
     }
 
-    const modeloLabel = (valor1, valor2) => `
-        <label style="color: #222; text-align: left;"><strong>${valor1}</strong> ${valor2}</label>
-    `
+    const modeloLabel = (valor1, valor2) => `<label><strong>${valor1}</strong> ${valor2}</label>`
 
     const colunas = ['Código', 'OMIE /Partnumber', 'Informações do Item', 'Tipo', 'Quantidade', 'Valor Unitário', 'Valor Total', 'Requisição']
-        .map(col => `<th>${col}</th>`).join('')
+        .map(col => `<th>${col}</th>`)
+        .join('')
 
     const acumulado = `
+
+    ${btnFlutuante}
+
     <div id="pdf" class="requisicao-tela">
 
-        ${menu_flutuante}
         <div class="requisicao-contorno" style="width: 98%">
             <div class="requisicao-cabecalho">
                 <img src="https://i.imgur.com/5zohUo8.png">

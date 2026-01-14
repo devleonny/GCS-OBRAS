@@ -34,7 +34,7 @@ async function blocoAuxiliarFotos(fotos) {
     if (fotos) {
 
         const imagens = Object.entries(fotos)
-            .map(([link, foto]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/GCS/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
+            .map(([link, foto]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
             .join('')
 
         const painel = `
@@ -342,7 +342,7 @@ function carregarCorrecoes(idOcorrencia, dadosCorrecao = {}) {
                 : 'and'
 
         const imagens = Object.entries(correcao?.fotos || {})
-            .map(([link,]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/GCS/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
+            .map(([link,]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
             .join('')
 
         const edicao = (correcao.usuario == acesso.usuario || autE.includes(acesso.permissao))
