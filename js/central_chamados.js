@@ -424,7 +424,7 @@ async function telaUsuarios() {
     mostrarMenus(false)
 
     empresas = await recuperarDados('empresas')
-    const colunas = ['Nome', 'Empresa', 'Setor', 'Permissão', '']
+    const colunas = ['Usuário', 'Nome', 'Empresa', 'Setor', 'Permissão', '']
 
     dados_setores = await recuperarDados('dados_setores')
     const btnExtras = `<img onclick="atualizarUsuarios()" src="imagens/atualizar.png">`
@@ -451,6 +451,7 @@ async function atualizarUsuarios() {
 function criarLinhaUsuario(user, dados) {
 
     const tds = `
+        <td>${user}</td>
         <td>${dados.nome_completo || '...'}</td>
         <td>${empresas?.[dados?.empresa]?.nome || '...'}</td>
         <td>${dados.setor || '...'}</td>

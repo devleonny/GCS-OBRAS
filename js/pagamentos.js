@@ -376,7 +376,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
     const orcsVinculados = []
 
     for (const dep of depPagam) {
-        const cc = departamentos[dep.cCodDep]
+        const cc = departamentos_AC[dep.cCodDep]
         if (!cc?.ids?.length) continue
         for (const id of cc.ids) orcsVinculados.push(id)
     }
@@ -399,7 +399,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
     const deps = (pagamento?.param[0]?.distribuicao || [])
         .map(dep => {
-            const departamento = departamentos?.[dep.cCodDep] || {}
+            const departamento = departamentos_AC?.[dep.cCodDep] || {}
             const nomeCliente = departamento?.cliente?.nome || ''
             return `
                 <div style="${vertical}; gap: 2px; text-align: left;">

@@ -118,23 +118,24 @@ async function acessoLogin() {
 
 function recuperarSenha() {
 
-    const acumulado = `
-        <div class="painel-recuperacao">
-            <span>Digite o Usuário</span>
-            <input name="identificador">
-            <hr>
-            <button onclick="solicitarCodigo()">Solicitar</button>
-        </div>
-    `
+    const linhas = [
+        {
+            texto: 'Digite o Usuário',
+            elemento: `<input name="identificador">`
+        }
+    ]
 
-    popup(acumulado, 'Recuperar acesso', true)
+    const botoes = [
+        { texto: 'Solicitar Código', img: 'chave', funcao: `solicitarCodigo()` }
+    ]
 
+    const form = new formulario({ linhas, botoes, titulo: 'Recuperar acesso' })
+    form.abrirFormulario()
 }
 
 async function solicitarCodigo() {
 
     const identificador = document.querySelector('[name="identificador"]')
-
     if (!identificador) return
 
     overlayAguarde()
@@ -143,19 +144,24 @@ async function solicitarCodigo() {
 
     if (resposta.sucess) {
 
-        const acumulado = `
-            <div class="painel-recuperacao">
-                <span>Preencha com os números recebidos no e-mail</span>
-                <hr>
-                <div style="${horizontal}; gap: 0.5rem;">
-                    <input id="identificador" style="display: none;" value="${identificador.value}">
-                    <input id="codigo" placeholder="Código" class="camp-1" type="number">
-                    <input id="novaSenha" placeholder="Nova Senha" class="camp-1">
-                    <button onclick="salvarSenha()">Confirmar</button>
-                </div>
-            </div>
-        `
-        popup(acumulado, 'Informe o código')
+        removerPopup()
+        const linhas = [
+            {
+                texto: 'Preencha com os números recebidos no e-mail',
+                elemento: `
+                <input id="identificador" style="display: none;" value="${identificador.value}">
+                <input id="codigo" placeholder="Código" class="camp-1" type="number">
+                <input id="novaSenha" placeholder="Nova Senha" class="camp-1">`
+            }
+        ]
+
+        const botoes = [
+            { texto: 'Confirmar', img: 'concluido', funcao: `salvarSenha()` }
+        ]
+
+        const form = new formulario({ linhas, botoes, titulo: 'Recuperar acesso' })
+        form.abrirFormulario()
+
     } else {
         popup(mensagem(resposta.mensagem || 'Falha na solicitação'), 'Alerta')
     }
