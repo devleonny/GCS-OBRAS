@@ -558,7 +558,7 @@ async function gerarPdfRequisicao(nome) {
     await pdf({ id, estilos, nome })
 }
 
-async function pdf({ id, config, estilos = [], nome = 'documento' }) {
+async function pdf({ id, estilos = [], nome = 'documento' }) {
 
     const htmlPdf = document.getElementById(id)
     const bPdf = document.getElementById('bPdf')
@@ -566,10 +566,6 @@ async function pdf({ id, config, estilos = [], nome = 'documento' }) {
 
     if (bPdf) bPdf.style.display = 'none'
 
-    config = config || `@page {
-                        size: A4;
-                        margin: 5mm;}
-                        `
     overlayAguarde()
 
     estilos = estilos
@@ -583,7 +579,15 @@ async function pdf({ id, config, estilos = [], nome = 'documento' }) {
                 ${estilos}
                 <style>
 
-                    ${config}
+                    @page {
+                        size: A4;
+                        margin: 10mm;
+                    }
+
+                    html, body {
+                        margin: 0;
+                        padding: 0;
+                    }
 
                     body {
                         font-family: 'Poppins', sans-serif;

@@ -312,22 +312,6 @@ async function salvarNota() {
     itensAdicionais = {}
 }
 
-function removerPagamento(botao) {
-    let div = botao.parentElement.parentElement.parentElement
-    let labelAnterior = div.previousElementSibling.querySelector('label')
-
-    if (labelAnterior.textContent != '') return
-
-    div.remove()
-}
-
-function maisPagamentos(botao) {
-    let divAnterior = botao.previousElementSibling;
-    let label = divAnterior.querySelector('label')
-    if (label.textContent != '') return
-    divAnterior.insertAdjacentHTML('afterend', divAnterior.outerHTML);
-}
-
 async function calcularRequisicao(sincronizar) {
 
     let tabela_requisicoes = document.getElementById('tabela_requisicoes')
@@ -397,34 +381,33 @@ async function calcularRequisicao(sincronizar) {
 
 }
 
-function pesquisar_na_requisicao() {
+function pesqRequisicao() {
 
-    var pesquisa1 = document.getElementById('pesquisa1');
+    const pesquisa1 = document.getElementById('pesquisa1')
 
-    if (pesquisa1) {
+    if (!pesquisa1) return
 
-        var tabela = document.getElementById('tabela_requisicoes');
-        var tbody = tabela.querySelector('tbody');
-        var trs = tbody.querySelectorAll('tr');
+        const tabela = document.getElementById('tabela_requisicoes')
+        const tbody = tabela.querySelector('tbody')
+        const trs = tbody.querySelectorAll('tr')
 
         trs.forEach(tr => {
 
-            var tds = tr.querySelectorAll('td');
-            var mostrar_linha = false;
+            const tds = tr.querySelectorAll('td')
+            let mostrar = false
 
             tds.forEach(td => {
 
-                var select = td.querySelector('select');
-                var conteudo = select ? select.value : td.textContent;
+                const select = td.querySelector('select')
+                const conteudo = select ? select.value : td.textContent;
 
                 if (String(conteudo).toLowerCase().includes(String(pesquisa1.value).toLowerCase()) || pesquisa1.value == '') {
-                    mostrar_linha = true;
+                    mostrar = true
                 }
-            });
+            })
 
-            tr.style.display = mostrar_linha ? 'table-row' : 'none';
-        });
-    }
+            tr.style.display = mostrar ? 'table-row' : 'none'
+        })
 }
 
 async function carregarItensRequisicao(apVisualizar, tipoRequisicao, chave) {
@@ -526,6 +509,7 @@ async function carregarItensRequisicao(apVisualizar, tipoRequisicao, chave) {
         const tOpcoes = ['SEVIÇO', 'VENDA', 'USO E CONSUMO', 'LOCAÇÃO']
             .map(op => `<option value="${op}" ${tipo == op ? 'selected' : ''}>${op}</option>`)
             .join('')
+
         const rOpcoes = ['Nada a fazer', 'Venda Direta', 'Estoque AC', 'Comprar', 'Enviar do CD', 'Fornecido pelo Cliente']
             .map(op => `<option ${requisicao == op ? 'selected' : ''}>${op}</option>`)
             .join('')
@@ -553,7 +537,7 @@ async function carregarItensRequisicao(apVisualizar, tipoRequisicao, chave) {
                 <td>
                     ${apVisualizar
                 ? `<label>${tipo || ''}</label>`
-                : tOpcoes
+                : `<select>${tOpcoes}</option>`
             }
                 </td>
                 <td style="text-align: center;">
@@ -2254,8 +2238,8 @@ async function detalharRequisicao(chave, tipoRequisicao, apVisualizar) {
     if (!apVisualizar) {
         toolbar += `
         <div class="requisicao-pesquisa">
-            <img src="imagens/pesquisar.png" style="padding: 5px;">
-            <input id="pesquisa1" style="padding: 10px; border-radius: 5px; margin: 10px; width: 50%;" placeholder="Pesquisar" oninput="pesquisar_na_requisicao()">
+            <img src="imagens/pesquisar4.png" style="padding: 5px;">
+            <input id="pesquisa1" placeholder="Pesquisar" oninput="pesqRequisicao()">
         </div>
         `
 
