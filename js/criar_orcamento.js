@@ -710,7 +710,7 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
         ${btn('atualizar', 'recuperarComposicoesOrcamento()', 'Atualizar')}
 
         ${moduloComposicoes
-            ? btn('add', 'cadastrarItem()', 'Criar Item')
+            ? btn('baixar', 'cadastrarItem()', 'Criar Item')
             : ''}
         `
 
@@ -1142,14 +1142,8 @@ async function totalOrcamento() {
         let codigoMaster = null
 
         if (hierarquia == 'master') {
-            if (!orcamentoBase.esquema_composicoes[codigo]) orcamentoBase.esquema_composicoes[codigo] = {}
+            orcamentoBase.esquema_composicoes[codigo] ??= {}
             itemSalvo = orcamentoBase.esquema_composicoes[codigo]
-            qtdeFilhos = Object.keys(itemSalvo?.agrupamento || {}).length
-
-            if (qtdeFilhos == 0) {
-                linha.style.borderBottomLeftRadius = '8px'
-                linha.style.borderBottomRightRadius = '8px'
-            }
 
             linha.style.borderTopLeftRadius = '8px'
             linha.style.borderTopRightRadius = '8px'
@@ -1157,7 +1151,7 @@ async function totalOrcamento() {
         } else {
             const cods = String(linha.id).split('_')
             codigoMaster = cods[0]
-            if (!orcamentoBase.esquema_composicoes[codigoMaster].agrupamento) orcamentoBase.esquema_composicoes[codigoMaster].agrupamento = {}
+            orcamentoBase.esquema_composicoes[codigoMaster].agrupamento ??= {}
             itemSalvo = orcamentoBase.esquema_composicoes[codigoMaster].agrupamento[codigo]
         }
 

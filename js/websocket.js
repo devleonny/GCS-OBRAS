@@ -4,6 +4,8 @@ let emAtualizacao = false
 connectWebSocket()
 
 function connectWebSocket() {
+    
+    app = localStorage.getItem('app') || null
     socket = new WebSocket(`${api}:8443`)
 
     function status(s) {
@@ -46,6 +48,8 @@ function connectWebSocket() {
                 status('online')
 
                 if (app == 'GCS') return
+                console.log(app);
+                
                 // Seguir este fluxo apenas em Ocorrências;
                 listaOcorrencias = {}
                 await atualizarOcorrencias()
