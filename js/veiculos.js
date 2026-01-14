@@ -423,7 +423,7 @@ async function enviarOmie() {
     if (resposta.mensagem) return popup(mensagem(resposta.mensagem), 'Alerta', true)
 
     removerPopup()
-    popup(mensagem('Realizado com sucesso', 'imagens/concluido.png'), 'Enviado', true)
+    popup(mensagem('Realizado com successo', 'imagens/concluido.png'), 'Enviado', true)
 
 }
 

@@ -1147,7 +1147,7 @@ async function arquivarOrcamento(idOrcamento) {
     removerOverlay()
 
     const img = orcamento.arquivado ? 'desarquivar' : 'pasta'
-    popup(mensagem(`${orcamento.arquivado ? 'Arquivado' : 'Desarquivado'} com sucesso!`, `imagens/${img}.png`), 'Arquivamento', true)
+    popup(mensagem(`${orcamento.arquivado ? 'Arquivado' : 'Desarquivado'} com successo!`, `imagens/${img}.png`), 'Arquivamento', true)
 
 }
 

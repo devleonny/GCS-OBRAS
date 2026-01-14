@@ -142,16 +142,18 @@ async function solicitarCodigo() {
 
     const resposta = await recAC(identificador.value)
 
-    if (resposta.sucess) {
+    if (resposta.success) {
 
         removerPopup()
         const linhas = [
             {
                 texto: 'Preencha com os números recebidos no e-mail',
                 elemento: `
-                <input id="identificador" style="display: none;" value="${identificador.value}">
-                <input id="codigo" placeholder="Código" class="camp-1" type="number">
-                <input id="novaSenha" placeholder="Nova Senha" class="camp-1">`
+                <div style="${vertical}; gap: 2px;">
+                    <input id="identificador" style="display: none;" value="${identificador.value}">
+                    <input id="codigo" placeholder="Código" class="camp-1" type="number">
+                    <input id="novaSenha" placeholder="Nova Senha" class="camp-1">
+                </div>`
             }
         ]
 
@@ -178,9 +180,8 @@ async function salvarSenha() {
 
     const resposta = await salvarNovaSenha({ identificador, novaSenha, codigo })
 
-    if (resposta.sucess) {
-        return popup(mensagem(resposta.mensagem), 'GCS')
-    }
+    if (resposta.success)
+        return popup(mensagem(resposta.mensagem, 'imagens/concluido.png'), 'GCS')
 
     if (resposta.mensagem) popup(mensagem(resposta.mensagem), 'GCS', true)
 
@@ -248,7 +249,6 @@ async function salvarCadastro() {
     } catch (err) {
         popup(mensagem(err.message), 'Alerta')
     }
-
 
 }
 

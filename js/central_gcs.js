@@ -253,7 +253,7 @@ async function salvarDepartamento(img) {
     input.value = ''
     img.style.display = 'none'
 
-    popup(mensagem('Salvo com sucesso'), 'Alerta', true)
+    popup(mensagem('Salvo com successo'), 'Alerta', true)
 }
 
 async function respostaSincronizacao(script) {
@@ -501,7 +501,7 @@ async function alterarUsuario({ campo, usuario, select, valor }) {
 
     const alteracao = await configuracoes(usuario, campo, valor) // Se alterar no servidor, altera localmente;
 
-    if (alteracao?.sucess) {
+    if (alteracao?.success) {
         dados_setores[usuario][campo] = select ? select.value : valor
     } else {
         popup(mensagem(`Não foi possível alterar: ${alteracao?.erro || 'Tente novamente mais tarde'}`), 'ALERTA', true)
@@ -911,7 +911,7 @@ async function painelUsuarios() {
 
     const divOnline = document.querySelector('.divOnline')
     if (divOnline) return divOnline.innerHTML = info
-    
+
     const indicadorStatus = acesso?.status || 'offline'
     const statusOpcoes = ['online', 'Em almoço', 'Não perturbe', 'Em reunião', 'Apenas Whatsapp']
     if (acesso?.permissao == 'adm') statusOpcoes.push('Invisível')
@@ -1127,7 +1127,11 @@ async function verAprovacoes() {
         `
     })
 
-    for (let [idOrcamento, orcamento] of Object.entries(dados_orcamentos).reverse()) {
+    const organizado = Object
+        .entries(dados_orcamentos)
+        .sort(([, a], [, b]) => (b.timestamp || 0) - (a.timestamp || 0))
+
+    for (let [idOrcamento, orcamento] of organizado) {
 
         if (!orcamento.aprovacao) continue
         if (!orcamento.dados_orcam) continue
@@ -1141,7 +1145,11 @@ async function verAprovacoes() {
 
         tabelas[status == 'pendente' ? 'pendente' : 'todos'].linhas += `
         <tr>
-            <td style="text-align: left;">${dados_orcam?.contrato || '--'}</td>
+            <td style="text-align: left;">
+                ${dados_orcam?.chamado || ''}<br>
+                ${dados_orcam?.contrato || ''}<br>
+                ${dados_orcam?.data || ''}
+            </td>
             <td style="text-align: left;">${cliente?.nome || '--'}</td>
             <td style="white-space: nowrap;">${dinheiro(orcamento.total_bruto)}</td>
             <td style="white-space: nowrap;">${dinheiro(orcamento.total_geral)}</td>

@@ -623,7 +623,7 @@ async function salvarPagamento() {
 
         localStorage.removeItem('ultimoPagamento')
         removerPopup()
-        popup(mensagem('Pagamento Salvo', 'imagens/concluido.png'), 'Sucesso')
+        popup(mensagem('Pagamento Salvo', 'imagens/concluido.png'), 'successo')
 
     } catch (e) {
         console.log(e)
