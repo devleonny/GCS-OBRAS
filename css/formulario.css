@@ -68,7 +68,7 @@
     background-color: #d2d2d2;
     display: flex;
     align-items: center;
-    justify-content: start;
+    justify-content: center;
     gap: 10px;
     height: 5vh;
 }
@@ -89,6 +89,7 @@
 
 @media screen and (orientation: portrait) {
     .botoes-rodape {
+        justify-content: start;
         flex: 1 1 100%;
     }
 
