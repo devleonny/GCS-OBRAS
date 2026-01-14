@@ -253,8 +253,7 @@ function popup(elementoHTML, titulo, nra = true) {
     document.body.insertAdjacentHTML('beforeend', p)
 
 }
-async function removerPopup({ id, nra }) {
-
+async function removerPopup({ id, nra = true } = {}) {
     const popups = document.querySelectorAll('.popup')
 
     if (id) {
