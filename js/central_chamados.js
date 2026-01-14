@@ -464,21 +464,6 @@ function criarLinhaUsuario(user, dados) {
     document.getElementById('tabela_usuarios').insertAdjacentHTML('beforeend', `<tr id="${user}">${tds}</tr>`)
 }
 
-function popupNotificacao(msg) {
-
-    const idNot = ID5digitos()
-    const acumulado = `
-        <div id="${idNot}" class="notificacao">${msg}</div>
-    `
-
-    document.body.insertAdjacentHTML('beforeend', acumulado)
-
-    setTimeout(() => {
-        document.getElementById(idNot).remove()
-    }, 5000);
-
-}
-
 async function gerenciarUsuario(id) {
 
     const usuario = await recuperarDado('dados_setores', id)

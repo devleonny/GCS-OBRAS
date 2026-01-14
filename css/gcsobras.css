@@ -1843,22 +1843,6 @@ input[type=range]::-moz-range-thumb {
     z-index: 10005;
 }
 
-.aguarde {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: rgba(0, 0, 0, 0.7);
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    z-index: 10005;
-}
-
-.aguarde img {
-    width: 5rem;
-}
-
 .tabela {
     min-width: 100%;
     background-color: white;

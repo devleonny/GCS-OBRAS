@@ -87,6 +87,22 @@
     color: white;
 }
 
+.aguarde {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.7);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 10005;
+}
+
+.aguarde img {
+    width: 5rem;
+}
+
 @media screen and (orientation: portrait) {
     .botoes-rodape {
         justify-content: start;

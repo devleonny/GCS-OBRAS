@@ -595,10 +595,6 @@ input[type="file"] {
     z-index: 10005;
 }
 
-.aguarde img {
-    width: 35vw;
-}
-
 .pesquisa {
     border: solid 1px #afafaf;
     display: flex;

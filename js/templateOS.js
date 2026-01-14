@@ -299,38 +299,14 @@ async function gerarPdfOnline(htmlString, nome) {
         })
             .then(response => response.blob())
             .then(async blob => {
-                if (isAndroid) {
 
-                    const data = await blob.arrayBuffer();
-                    const bytes = new Uint8Array(data);
+                // navegador
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = `${nome}.pdf`;
+                link.click();
+                resolve();
 
-                    window.resolveLocalFileSystemURL(
-                        cordova.file.externalRootDirectory + "Download/",
-                        dir => {
-                            dir.getFile(nome + ".pdf", { create: true }, fileEntry => {
-                                fileEntry.createWriter(fileWriter => {
-                                    fileWriter.write(new Blob([bytes], { type: "application/pdf" }));
-
-                                    // abre o PDF depois de salvar
-                                    cordova.plugins.fileOpener2.open(
-                                        fileEntry.nativeURL,
-                                        'application/pdf'
-                                    );
-
-                                    resolve(fileEntry.nativeURL);
-                                });
-                            });
-                        },
-                        reject
-                    );
-                } else {
-                    // navegador
-                    const link = document.createElement("a");
-                    link.href = URL.createObjectURL(blob);
-                    link.download = `${nome}.pdf`;
-                    link.click();
-                    resolve();
-                }
             })
             .catch(err => {
                 console.error("Erro ao gerar PDF:", err);
