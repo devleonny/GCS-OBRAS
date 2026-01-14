@@ -113,15 +113,13 @@ async function rstTelaOrcamentos() {
 
 async function telaOrcamentos() {
 
-    // Inicializar filtros; //28
+    // Inicializar filtros;
     const f = JSON.parse(sessionStorage.getItem('filtros')) || {}
     filtrosPesquisa.orcamentos ??= {}
-    filtrosPesquisa.orcamentos.arquivado = f?.arquivado || ''
-    filtrosPesquisa.orcamentos.meus_orcamentos = f?.meus_orcamentos || ''
-    filtrosPesquisa.orcamentos.prioridade = f?.prioridade || ''
-    filtrosPesquisa.orcamentos.vinculado = f?.vinculado || ''
-    filtrosPesquisa.orcamentos.revisao = f?.revisao || ''
-
+    filtrosPesquisa.orcamentos = {
+        ...filtrosPesquisa.orcamentos,
+        ...f
+    }
 
     const pda = document.querySelector('.tela-gerenciamento')
     if (pda) return await telaInicial()
@@ -261,17 +259,17 @@ function salvarFiltrosApp() {
 
     const filtros = document.querySelectorAll('[name="filtros"]')
 
-    const salvo = {}
+    filtrosPesquisa.orcamentos ??= {}
 
     for (const f of filtros) {
         const chave = f.dataset.chave
         const st = f.checked ? 'S' : 'N'
-        salvo[chave] = st
-        renderizar(chave, st)
+        filtrosPesquisa.orcamentos[chave] = st
     }
 
-    sessionStorage.setItem('filtros', JSON.stringify(salvo))
+    sessionStorage.setItem('filtros', JSON.stringify(filtrosPesquisa.orcamentos))
 
+    telaOrcamentos()
     removerPopup()
 
 }
@@ -608,13 +606,12 @@ function renderizarControlesPagina() {
     if (!topo) return
 
     topo.innerHTML = `
-                <div style="display: flex; align-items:center; gap:10px; padding: 0.2rem;">
-                    <img src="imagens/seta.png" style="width: 1.5rem;" onclick="pgAnterior()" ${pAtual === 1 ? 'disabled' : ''}>
-                        <span style="color: white;">Página ${pAtual} de ${tPaginas}</span>
-                        <img src="imagens/seta.png" style="transform: rotate(180deg); width: 1.5rem;" onclick="pgSeguinte()" ${pAtual === tPaginas ? 'disabled' : ''}>
-                            <span style="color: white;">Dê um <b>ENTER</b> para pesquisar</span>
-                        </div>
-                        `
+        <div style="display: flex; align-items:center; gap:10px; padding: 0.2rem;">
+            <img src="imagens/seta.png" style="width: 1.5rem;" onclick="pgAnterior()" ${pAtual === 1 ? 'disabled' : ''}>
+            <span style="color: white;">Página ${pAtual} de ${tPaginas}</span>
+            <img src="imagens/seta.png" style="transform: rotate(180deg); width: 1.5rem;" onclick="pgSeguinte()" ${pAtual === tPaginas ? 'disabled' : ''}>
+            <span style="color: white;">Dê um <b>ENTER</b> para pesquisar</span>
+        </div>`
 }
 
 function pgAnterior() {

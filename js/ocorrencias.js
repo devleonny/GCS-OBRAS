@@ -5,14 +5,11 @@ let opcoesValidas = {
     finalizado: new Set()
 }
 const autE = ['adm', 'gerente', 'diretoria']
-let paginaAtual = 1
-const LIMITE = 100
 let filtrosAtivos = {}
 let listaOcorrencias = {}
 let recorteOcorrencias = {}
 let listas = {}
 let oAtual = { idCorrecao: null, idOcorrencia: null }
-
 
 function pararCam() {
     const cameraDiv = document.querySelector('.cameraDiv');
@@ -531,7 +528,7 @@ function renderizarPaginacao() {
         ? recorteOcorrencias
         : listaOcorrencias
 
-    const totalPaginas = Math.ceil(Object.keys(base).length / LIMITE)
+    const totalPaginas = Math.ceil(Object.keys(base).length / limitePorPagina)
 
     document.querySelector('.paginacao').innerHTML = `
     <img src="imagens/esq.png" ${paginaAtual === 1 ? 'disabled' : ''} onclick="renderizarPagina(${paginaAtual - 1})">
@@ -595,8 +592,8 @@ function limparFiltros() {
 async function renderizarPagina(pagina) {
 
     paginaAtual = pagina
-    const inicio = (pagina - 1) * LIMITE
-    const fim = inicio + LIMITE
+    const inicio = (pagina - 1) * limitePorPagina
+    const fim = inicio + limitePorPagina
     const base = recorteOcorrencias !== null
         ? recorteOcorrencias
         : listaOcorrencias

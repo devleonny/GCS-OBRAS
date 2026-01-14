@@ -46,7 +46,6 @@
 }
 
 .botoesRodape label {
-    font-size: 0.7vw;
     cursor: pointer;
 }
 
@@ -54,10 +53,6 @@
     transition: ease-in-out 0.1s;
     background-color: #097fe6;
     color: white;
-}
-
-.botoesRodape img {
-    width: 2vw;
 }
 
 .formato_status {

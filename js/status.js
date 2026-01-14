@@ -387,27 +387,27 @@ function pesqRequisicao() {
 
     if (!pesquisa1) return
 
-        const tabela = document.getElementById('tabela_requisicoes')
-        const tbody = tabela.querySelector('tbody')
-        const trs = tbody.querySelectorAll('tr')
+    const tabela = document.getElementById('tabela_requisicoes')
+    const tbody = tabela.querySelector('tbody')
+    const trs = tbody.querySelectorAll('tr')
 
-        trs.forEach(tr => {
+    trs.forEach(tr => {
 
-            const tds = tr.querySelectorAll('td')
-            let mostrar = false
+        const tds = tr.querySelectorAll('td')
+        let mostrar = false
 
-            tds.forEach(td => {
+        tds.forEach(td => {
 
-                const select = td.querySelector('select')
-                const conteudo = select ? select.value : td.textContent;
+            const select = td.querySelector('select')
+            const conteudo = select ? select.value : td.textContent;
 
-                if (String(conteudo).toLowerCase().includes(String(pesquisa1.value).toLowerCase()) || pesquisa1.value == '') {
-                    mostrar = true
-                }
-            })
-
-            tr.style.display = mostrar ? 'table-row' : 'none'
+            if (String(conteudo).toLowerCase().includes(String(pesquisa1.value).toLowerCase()) || pesquisa1.value == '') {
+                mostrar = true
+            }
         })
+
+        tr.style.display = mostrar ? 'table-row' : 'none'
+    })
 }
 
 async function carregarItensRequisicao(apVisualizar, tipoRequisicao, chave) {
@@ -537,8 +537,8 @@ async function carregarItensRequisicao(apVisualizar, tipoRequisicao, chave) {
                 <td>
                     ${apVisualizar
                 ? `<label>${tipo || ''}</label>`
-                : `<select class="opcoesSelect">${tOpcoes}</option>`
-            }
+                : `<select class="opcoesSelect">${tOpcoes}</option>
+                `}
                 </td>
                 <td style="text-align: center;">
                     ${apVisualizar
@@ -2318,10 +2318,10 @@ async function detalharRequisicao(chave, tipoRequisicao, apVisualizar) {
                 </div>
             </div>
 
-            ${apVisualizar 
-                ? `<img id="bPdf" src="imagens/pdf.png" onclick="gerarPdfRequisicao('${cliente.nome || '-'}')">`
-                : ''
-            }
+            ${apVisualizar
+            ? `<img id="bPdf" src="imagens/pdf.png" onclick="gerarPdfRequisicao('${cliente.nome || '-'}')">`
+            : ''
+        }
 
         </div>
 

@@ -38,6 +38,8 @@ let dados_setores = {}
 let hierarquia = {}
 let depPorDesc = {}
 let app = null
+let paginaAtual = 1
+const limitePorPagina = 100
 const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
 const mensagem = (mensagem, imagem = 'gifs/alerta.gif') => `
     <div class="mensagem">

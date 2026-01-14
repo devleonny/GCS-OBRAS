@@ -2,8 +2,6 @@ let filtroRelatorio = {}
 let datas = { de: '', ate: '' }
 let apps = []
 let appName = ''
-let paginaAtual = 1
-const limitePorPagina = 100
 let dadosFiltrados = null
 let dados_relatorio = {}
 

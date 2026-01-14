@@ -18,7 +18,7 @@
 
 .p-orcamento {
     border: solid 1px #898989;
-    padding: 5px;
+    padding: 5px 0 5px 0;
     background-color: white;
     text-align: left;
     min-height: 18px;
