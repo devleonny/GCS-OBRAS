@@ -31,7 +31,7 @@ async function telaOS(idOcorrencia) {
 
     if (imagens == '') imagens = `
         <div class="horizontal-1">
-            <img src="${api}/uploads/GCS/img.png" style="width: 2rem;">
+            <img src="${api}/uploads/img.png" style="width: 2rem;">
             <span>Sem Imagens</span>
         </div>
     `
@@ -103,7 +103,7 @@ async function telaOS(idOcorrencia) {
 
         if (imagens == '') imagens = `
             <div class="horizontal-1">
-                <img src="${api}/uploads/GCS/img.png" style="width: 2rem;">
+                <img src="${api}/uploads/img.png" style="width: 2rem;">
                 <span>Sem Imagens</span>
             </div>
         `
