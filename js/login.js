@@ -180,8 +180,11 @@ async function salvarSenha() {
 
     const resposta = await salvarNovaSenha({ identificador, novaSenha, codigo })
 
-    if (resposta.success)
-        return popup(mensagem(resposta.mensagem, 'imagens/concluido.png'), 'GCS')
+    if (resposta.success) {
+        removerPopup()
+        popup(mensagem(resposta.mensagem, 'imagens/concluido.png'), 'GCS')
+        return
+    }
 
     if (resposta.mensagem) popup(mensagem(resposta.mensagem), 'GCS', true)
 

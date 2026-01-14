@@ -621,6 +621,9 @@ async function enviarDadosOrcamento() {
 
     const resposta = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoBase)
 
+    console.log(resposta);
+    
+
     if (resposta.success) {
 
         delete orcamentoBase.dados_orcam.contrato
