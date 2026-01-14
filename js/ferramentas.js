@@ -37,7 +37,7 @@ let dados_ocorrencias = {}
 let dados_setores = {}
 let hierarquia = {}
 let depPorDesc = {}
-let bReset = null
+let app = null
 const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
 const mensagem = (mensagem, imagem = 'gifs/alerta.gif') => `
     <div class="mensagem">
@@ -45,7 +45,7 @@ const mensagem = (mensagem, imagem = 'gifs/alerta.gif') => `
         <label>${mensagem}</label>
     </div>`
 const appBases = {
-    1: [
+    'GCS': [
         'hierarquia',
         'tags',
         'tags_orcamentos',
@@ -62,7 +62,7 @@ const appBases = {
         'dados_estoque',
         'pessoas'
     ],
-    2: [
+    'OCORRÊNCIAS': [
         'dados_clientes',
         'prioridades',
         'tipos',
@@ -115,9 +115,9 @@ async function resetarBases() {
     logs.insertAdjacentHTML('beforeend', '<label>Apagando <b>Base existente</b>...</label>')
     logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
 
-    if (!bReset) return
+    if (!app) return
 
-    for (const base of appBases[bReset]) {
+    for (const base of appBases[app]) {
         await sincronizarDados({ base, resetar: true })
         logs.insertAdjacentHTML('beforeend', `<label>Sincronizando: <small>${base}</small></label>`)
     }

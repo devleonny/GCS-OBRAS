@@ -428,7 +428,8 @@ async function configs() {
         setores: ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE', 'POC']
     }
 
-    const organizados = Object.values(dados_setores)
+    const organizados = Object
+        .values(dados_setores)
         .sort((a, b) =>
             (a.usuario || '').localeCompare(b.usuario || '', undefined, { sensitivity: 'base' })
         )
@@ -870,9 +871,11 @@ function capturarValorCelula(celula) {
 async function painelUsuarios() {
 
     const stringUsuarios = {}
-    dados_setores = Object.entries(dados_setores).sort((a, b) => a[0].localeCompare(b[0]))
+    const organizados = Object
+        .entries(dados_setores)
+        .sort((a, b) => a[0].localeCompare(b[0]))
 
-    for (const [usuario, objeto] of dados_setores) {
+    for (const [usuario, objeto] of organizados) {
 
         if (objeto.permissao == 'novo') continue
 
@@ -908,6 +911,7 @@ async function painelUsuarios() {
 
     const divOnline = document.querySelector('.divOnline')
     if (divOnline) return divOnline.innerHTML = info
+    
     const indicadorStatus = acesso?.status || 'offline'
     const statusOpcoes = ['online', 'Em almoço', 'Não perturbe', 'Em reunião', 'Apenas Whatsapp']
     if (acesso?.permissao == 'adm') statusOpcoes.push('Invisível')

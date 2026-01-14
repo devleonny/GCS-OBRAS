@@ -90,15 +90,14 @@ const dtPrazo = (data) => {
 
 async function telaInicial() {
 
-    bReset = 1 // gcs
-
     atribuirVariaveis()
 
     mostrarMenus(false)
 
     titulo.textContent = 'GCS'
     localStorage.setItem('app', 'GCS')
-
+    app = 'GCS'
+    
     const acumulado = `
         <div id="loading" style="${horizontal};">
             <img src="gifs/loading.gif" style="width: 5rem;">

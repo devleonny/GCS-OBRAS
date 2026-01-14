@@ -209,7 +209,7 @@ function irGCS() {
 async function telaPrincipal() {
 
     localStorage.setItem('app', 'OCORRÊNCIAS')
-    bReset = 2 // ocorrências
+    app = 'OCORRÊNCIAS'
 
     atribuirVariaveis()
 

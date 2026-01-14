@@ -5,7 +5,7 @@ async function telaLogin() {
     acesso = JSON.parse(localStorage.getItem('acesso'))
 
     if (acesso) {
-        const app = localStorage.getItem('app')
+        app = localStorage.getItem('app')
         if (app == 'GCS') return window.location.href = 'index.html'
         return await telaPrincipal()
     }

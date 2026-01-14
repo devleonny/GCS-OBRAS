@@ -31,8 +31,6 @@ function connectWebSocket() {
     socket.onmessage = async (event) => {
         const data = JSON.parse(event.data)
 
-        console.log(data)
-
         if (data.desconectar) {
             acesso = {}
             localStorage.removeItem('acesso')
@@ -47,7 +45,7 @@ function connectWebSocket() {
             if (data.validado == 'Sim') {
                 status('online')
 
-                if (bReset !== 2) return
+                if (app == 'GCS') return
                 // Seguir este fluxo apenas em Ocorrências;
                 listaOcorrencias = {}
                 await atualizarOcorrencias()
@@ -55,8 +53,9 @@ function connectWebSocket() {
                 // Recuperar Filtros;
                 filtrosAtivos = JSON.parse(localStorage.getItem('filtrosAtivos')) || {}
 
-            } else if (bReset == 1) {
+            } else if (app == 'GCS') {
                 status('online')
+
             } else {
                 overlayAguarde()
                 status('offline')
@@ -71,9 +70,7 @@ function connectWebSocket() {
 
         }
 
-        if (!appBases[bReset].includes(data.tabela)) return
-
-        if (bReset == 1 && data.tabela == 'dados_orcamentos') {
+        if (app == 'GCS' && data.tabela == 'dados_orcamentos') {
             verificarPendencias()
         }
 
@@ -94,7 +91,7 @@ function connectWebSocket() {
                 user.status = data.status
                 await inserirDados({ [data.usuario]: user }, 'dados_setores')
             }
-            
+
             usuariosToolbar()
             balaoUsuario(data.status, data.usuario)
         }
@@ -107,10 +104,11 @@ function connectWebSocket() {
     }
 
     async function refletir() {
-        if (bReset == 2) return
+        if (app !== 'GCS') return
         sOverlay = true
         await executar(funcaoTela)
         sOverlay = false
+
     }
 
 }
