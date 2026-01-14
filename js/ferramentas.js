@@ -546,3 +546,77 @@ function pesquisarCX(input) {
         div.style.display = (termoDiv.includes(termoPesquisa) || termoPesquisa === '') ? '' : 'none';
     }
 }
+
+async function gerarPdfRequisicao(nome) {
+
+    const id = 'pdf'
+    const estilos = [
+        'gcsobras',
+        'status'
+    ]
+
+    await pdf({ id, estilos, nome })
+}
+
+async function pdf({ id, config, estilos = [], nome = 'documento' }) {
+
+    const htmlPdf = document.querySelector(id)
+    if (!id || !htmlPdf) return
+
+    config = config || `@page {
+                        size: A4;
+                        margin: 5mm;}
+                        `
+    overlayAguarde()
+
+    estilos = estilos
+        .map(estilo => `<link rel="stylesheet" href="https://devleonny.github.io/GCS-OBRAS/css/${estilo}.css">`)
+        .join('')
+
+    const html = `
+        <html>
+            <head>
+                <meta charset="UTF-8">
+                ${e}
+                <style>
+
+                    ${config}
+
+                    body {
+                        font-family: 'Poppins', sans-serif;
+                        background: white;
+                    }
+
+                </style>
+            </head>
+            <body>
+                ${htmlPdf.outerHTML}
+            </body>
+        </html>`
+
+    try {
+
+        const response = await fetch(`${api}/pdf-vers2`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ html })
+        })
+
+        const blob = await response.blob()
+        const url = URL.createObjectURL(blob)
+
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${nome}.pdf`
+        a.click()
+
+        URL.revokeObjectURL(url)
+
+        removerOverlay()
+    } catch (err) {
+        popup(mensagem(err?.message || 'Falhei... '), 'Alerta', true)
+    }
+
+}

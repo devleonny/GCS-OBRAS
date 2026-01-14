@@ -2240,7 +2240,7 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
     if (apenas_visualizar) {
         menu_flutuante = `
             <div class="menu_flutuante" id="menu_flutuante">
-                <div class="icone" onclick="gerarpdf('${cliente.nome || 'xx'}', '${orcamento?.dados_orcam?.contrato || 'xx'}')">
+                <div class="icone" onclick="gerarPdfRequisicao('${cliente.nome || 'xx'}')">
                     <img src="imagens/pdf.png">
                     <label>PDF</label>
                 </div>
@@ -2302,13 +2302,14 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
         .map(col => `<th>${col}</th>`).join('')
 
     const acumulado = `
-    <div class="requisicao-tela">
+    <div id="pdf" class="requisicao-tela">
 
         ${menu_flutuante}
-
-        <div style="${horizontal}; width: 100%;">
-            <img src=""
-            <span>REQUISIÇÃO DE COMPRA DE MATERIAL</span>
+        <div class="requisicao-contorno" style="width: 98%">
+            <div class="requisicao-cabecalho">
+                <img src="https://i.imgur.com/5zohUo8.png">
+                <span>REQUISIÇÃO DE COMPRA DE MATERIAL</span>
+            </div>
         </div>
 
         <div style="${horizontal}; margin: 10px;">
