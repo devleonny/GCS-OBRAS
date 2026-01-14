@@ -53,10 +53,13 @@ function connectWebSocket() {
                 // Recuperar Filtros;
                 filtrosAtivos = JSON.parse(localStorage.getItem('filtrosAtivos')) || {}
 
-            } else if (app == 'GCS') {
-                status('online')
-
             } else {
+
+                if (app == 'GCS') {
+                    status('online')
+                    return
+                }
+
                 overlayAguarde()
                 status('offline')
                 status('pendente')

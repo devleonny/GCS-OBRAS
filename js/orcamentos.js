@@ -384,7 +384,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
     const celulas = `
                 ${cel(`
             <div style="${vertical}; gap: 2px;">
-                <label><b>${orcamento.lpu_ativa}</b></label>
+                <label style="text-align: left;"><b>${orcamento.lpu_ativa}</b></label>
                 <span>${data}</span>
                 <select name="aba" class="opcoesSelect" onchange="atualizarAba(this, '${idOrcamento}')">
                     <option></option>

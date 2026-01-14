@@ -227,7 +227,7 @@ async function despoluicaoGCS() {
     ]
 
     for (const base of bases) {
-        await sincronizarDados({ base, overlay: true, resetar: true })
+        await sincronizarDados({ base, resetar: true })
         logs.insertAdjacentHTML('beforeend', `<label>Sincronizando: ${base}</label>`)
     }
 
@@ -1199,7 +1199,7 @@ async function verificarPendencias() {
 
     if (!navigator.onLine) return
 
-    dados_orcamentos = await sincronizarDados({ base: 'dados_orcamentos', overlay: true })
+    dados_orcamentos = await sincronizarDados({ base: 'dados_orcamentos' })
 
     let contador = 0
 
