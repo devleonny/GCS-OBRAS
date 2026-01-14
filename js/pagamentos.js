@@ -91,7 +91,7 @@ async function filtrarPagamentos() {
 async function telaPagamentos() {
 
     overlayAguarde()
-
+    mostrarMenus(false)
     await auxDepartamentos() // Orcs, deps e clis;
     dados_setores = await recuperarDados('dados_setores')
     dados_categorias_AC = await recuperarDados('dados_categorias_AC')
