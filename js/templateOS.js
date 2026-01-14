@@ -9,7 +9,7 @@ async function telaOS(idOcorrencia) {
         assinatura = `
             <br>
             <span>Assinatura do Cliente/Responsável</span><br>
-            <img style="width: 15rem;" src="${api}/uploads/GCS/${ocorrencia.assinatura}">
+            <img style="width: 15rem;" src="${api}/uploads/${ocorrencia.assinatura}">
         `
     }
 
