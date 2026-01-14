@@ -163,16 +163,6 @@ span[name="titulo"] {
     gap: 20px;
 }
 
-.campoRequisicao {
-    padding: 0.5rem 0 0.5rem 0;
-    width: 5rem;
-    text-align: center;
-    background-color: #b2e2b4;
-    font-size: 1rem;
-    border-radius: 3px;
-    cursor: pointer;
-}
-
 .usuarioOnline {
     width: 100%;
     display: flex;

@@ -65,7 +65,7 @@ async function modalLPUParceiro(chave) {
 
                 <div style="${vertical}">
                     ${stringHtml('Técnico', `<span ${tecnico ? `id="${status.tecnico}"` : ''} class="opcoes" name="tecnico" onclick="cxOpcoes('tecnico', 'dados_clientes', ['nome', 'cnpj_cpf', 'bairro'])">${tecnico?.nome || 'Selecione'}</span>`)}
-                    ${stringHtml('Margem Geral (%)', `<input id="margem_lpu" class="campoRequisicao" style="background-color: white;" value="${status?.margem || '40'}" oninput="calcularLpuParceiro()">`)}
+                    ${stringHtml('Margem Geral (%)', `<input id="margem_lpu" class="requisicao-campo" style="background-color: white;" value="${status?.margem || '40'}" oninput="calcularLpuParceiro()">`)}
                     ${stringHtml('Comentário', `<textarea id="comentario">${status?.comentario || ''}</textarea>`)}
                 </div>
         
@@ -167,14 +167,14 @@ async function adicionarLinhaParceiro(codigo, composicao) {
         <td>${composicao.descricao}</td>
         <td>${composicao.unidade}</td>
         <td>
-            <input class="campoRequisicao" oninput="calcularLpuParceiro()" type="number" value="${composicao.qtde}">
+            <input class="requisicao-campo" oninput="calcularLpuParceiro()" type="number" value="${composicao.qtde}">
         </td>
         <td>${dinheiro(composicao?.custo || composicao?.valor_orcado || 0)}</td>
         <td></td>
         <td></td>
         <td></td>
         <td>
-            <input class="campoRequisicao" oninput="calcularLpuParceiro()" type="number" value="${composicao?.valor_parceiro_unitario || ''}">
+            <input class="requisicao-campo" oninput="calcularLpuParceiro()" type="number" value="${composicao?.valor_parceiro_unitario || ''}">
         </td>
         <td></td>
         <td>

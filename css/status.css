@@ -63,6 +63,13 @@
     border-top-right-radius: 5px
 }
 
+.requisicao-campo {
+    padding: 0.5rem 0 0.5rem 0;
+    background-color: #b2e2b4;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
 .requisicao-pesquisa input {
     border-radius: 5px;
     padding: 10px;

@@ -520,7 +520,7 @@ async function carregarItensRequisicao(apVisualizar, tipoRequisicao, chave) {
                 <td style="text-align: center;">
                     ${apVisualizar
                 ? `<label style="font-size: 1.2em;">${omie}</label>`
-                : `<input class="campoRequisicao" value="${omie}">`
+                : `<input class="requisicao-campo" value="${omie}">`
             }
                 </td>
                 <td>
@@ -537,7 +537,7 @@ async function carregarItensRequisicao(apVisualizar, tipoRequisicao, chave) {
                 <td>
                     ${apVisualizar
                 ? `<label>${tipo || ''}</label>`
-                : `<select>${tOpcoes}</option>`
+                : `<select class="opcoesSelect">${tOpcoes}</option>`
             }
                 </td>
                 <td style="text-align: center;">
@@ -547,7 +547,7 @@ async function carregarItensRequisicao(apVisualizar, tipoRequisicao, chave) {
                     <div style="${horizontal}; gap: 5px;">
                         <div style="${vertical}; gap: 5px;">
                             <label>Quantidade a enviar</label>
-                            <input class="campoRequisicao" type="number" oninput="calcularRequisicao()" min="0" value="${qtde_enviar || ''}">
+                            <input class="requisicao-campo" type="number" oninput="calcularRequisicao()" min="0" value="${qtde_enviar || ''}">
                         </div>
                         <label class="num">${itensOrcamento[codigo]?.qtde || 0}</label>
                     </div>
