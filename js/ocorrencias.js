@@ -141,26 +141,26 @@ function dtAuxOcorrencia(dt) {
     return `${dia}/${mes}/${ano}`
 }
 
-function confirmarExclusao(idOcorrencia, idCorrecao) {
-
-    const funcao = idCorrecao ? `excluirOcorrenciaCorrecao('${idOcorrencia}', '${idCorrecao}')` : `excluirOcorrenciaCorrecao('${idOcorrencia}')`
+function confirmarExclusao() {
 
     const acumulado = `
         <div style="background-color: #d2d2d2; ${horizontal}; padding: 1rem; gap: 10px;">
 
             <label>Você tem certeza que deseja excluir?</label>
 
-            <button onclick="${funcao}">Confirmar</button>
+            <button onclick="excluirOcorrenciaCorrecao()">Confirmar</button>
 
         </div>
     `
     popup(acumulado, 'Aviso', true)
 }
 
-async function excluirOcorrenciaCorrecao(idOcorrencia, idCorrecao) {
+async function excluirOcorrenciaCorrecao() {
 
     removerPopup()
     overlayAguarde()
+
+    const { idOcorrencia, idCorrecao } = oAtual
 
     if (idCorrecao) {
 
@@ -348,7 +348,7 @@ function carregarCorrecoes(idOcorrencia, dadosCorrecao = {}) {
         const edicao = (correcao.usuario == acesso.usuario || autE.includes(acesso.permissao))
             ? `
                 <button onclick="oAtual = {idOcorrencia: '${idOcorrencia}', idCorrecao: '${idCorrecao}'}; formularioCorrecao()">Editar</button>
-                <button style="background-color: #B12425;" onclick="confirmarExclusao('${idOcorrencia}', '${idCorrecao}')">Excluir</button>
+                <button style="background-color: #B12425;" onclick="oAtual = {idOcorrencia: '${idOcorrencia}', idCorrecao: '${idCorrecao}'}; confirmarExclusao()">Excluir</button>
             `
             : ''
 
