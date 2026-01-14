@@ -4,7 +4,7 @@ let emAtualizacao = false
 connectWebSocket()
 
 function connectWebSocket() {
-    
+
     app = localStorage.getItem('app') || null
     socket = new WebSocket(`${api}:8443`)
 
@@ -48,8 +48,6 @@ function connectWebSocket() {
                 status('online')
 
                 if (app == 'GCS') return
-                console.log(app);
-                
                 // Seguir este fluxo apenas em Ocorrências;
                 listaOcorrencias = {}
                 await atualizarOcorrencias()
@@ -76,6 +74,9 @@ function connectWebSocket() {
             }
 
         }
+
+        // Se a base não pertencer ao app, retornar;
+        if (!appBases[app].includes(data.tabela)) return
 
         if (app == 'GCS' && data.tabela == 'dados_orcamentos') {
             verificarPendencias()
