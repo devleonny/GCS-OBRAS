@@ -259,28 +259,6 @@
     box-sizing: border-box;
 }
 
-.atalhos {
-    text-align: left;
-    width: 100%;
-    display: flex;
-    align-items: start;
-    justify-content: start;
-    flex-direction: column;
-    gap: 1px;
-    cursor: pointer;
-    background-color: #c7c7c7ff;
-    padding: 0.5rem;
-}
-
-.atalhos label {
-    margin-left: 2vw;
-}
-
-.atalhos:hover {
-    color: white;
-    background-color: #323940;
-}
-
 .gavetaOpcoes {
     display: flex;
     flex-direction: column;

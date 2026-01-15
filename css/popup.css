@@ -101,9 +101,8 @@
     align-items: center;
     justify-content: start;
     cursor: pointer;
-    gap: 10px;
+    gap: 1px;
     background-color: white;
-    font-size: 0.8rem;
 }
 
 .atalhos label {

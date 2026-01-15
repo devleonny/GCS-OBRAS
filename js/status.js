@@ -1609,7 +1609,6 @@ async function abrirEsquema(id) {
                 
                 ${botao('LPU Parceiro', `modalLPUParceiro()`, '#0062d5')}
 
-                ${botao('Produtos sem Requisição', `mostrarItensPendentes()`, '')}
             </div>
         </div>
 
@@ -1628,83 +1627,8 @@ async function abrirEsquema(id) {
         janelaAtiva.innerHTML = acumulado
         return
     }
-    popup(`<div class="painel-historico">${acumulado}</div>`, 'Histórico do Orçamento')
-
-}
-
-async function mostrarItensPendentes() {
-
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    let itens_no_orcamento = orcamento.dados_composicoes
-    let valoresTotais = {}
-
-    let acumulado = ''
-    let linhas = ''
-
-    for (const item of Object.values(orcamento?.status?.historico || {})) {
-
-        if (!item.status.includes('REQUISIÇÃO')) continue
-
-        item.requisicoes.forEach(item2 => {
-
-            if (valoresTotais[item2.codigo]) {
-
-                valoresTotais[item2.codigo].qtdeTotal += Number(item2.qtde_enviar);
-
-            } else {
-
-                valoresTotais[item2.codigo] = {
-
-                    qtdeTotal: Number(item2.qtde_enviar),
-                    codigoRequisicao: item2.codigo
-
-                }
-
-            }
-
-        })
-
-    }
-
-    Object.values(itens_no_orcamento).forEach(item => {
-
-        let deduzirTotal = 0
-
-        if (valoresTotais[item.codigo]) {
-
-            deduzirTotal = valoresTotais[item.codigo].qtdeTotal
-
-        }
-
-        linhas += `
-        
-            <tr style="border: 1px solid black;">
-                <td>${item.codigo}</td>
-                <td>${dados_composicoes[item?.codigo]?.descricao}</td>
-                <td>${item.qtde}</td>
-                <td>${item.qtde - deduzirTotal}</td>
-            </tr>
-
-        `
-
-    })
-
-    acumulado += `
-
-        <table class="tabela">
-            <thead>
-                <th>Codigo</th>
-                <th>Item</th>
-                <th>Itens Orçados</th>
-                <th>Itens Pendentes</th>
-            </thead>
-            <tbody>${linhas}</tbody>
-        </table>
     
-    `
-
-    popup(acumulado, "Itens Pendentes", true)
+    popup(`<div class="painel-historico">${acumulado}</div>`, 'Histórico do Orçamento')
 
 }
 
