@@ -18,12 +18,6 @@ const botaoImg = (img, funcao) => `
         <img src="imagens/${img}.png" onclick="${funcao}">
     </div>`
 
-const dtFormatada = (data) => {
-    if (!data) return '-'
-    const [ano, mes, dia] = data.split('-')
-    return `${dia}/${mes}/${ano}`
-}
-
 const modeloTabela = ({ minWidth, removerPesquisa = false, colunas, base, funcao, btnExtras = '', body = 'body' }) => {
 
     const ths = colunas.map(col => `<th>${col}</th>`).join('')

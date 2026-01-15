@@ -104,3 +104,21 @@
     justify-content: start;
     gap: 1rem;
 }
+
+.status-botoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.status-correcoes {
+    background: white;
+    padding: 1rem;
+    min-width: 500px;
+}
+
+@media screen and (orientation: portrait) {
+    .status-correcoes {
+        min-width: 90vw;
+    }
+}

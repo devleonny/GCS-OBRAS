@@ -180,7 +180,9 @@ async function excluirOcorrenciaCorrecao() {
 function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
 
     // Caso seja técnico e não tenham correções, a linha de ocorrência não vai aparecer;
-    const divCorrecoes = carregarCorrecoes(idOcorrencia, ocorrencia?.correcoes || {})
+    oAtual = { idOcorrencia }
+    const divCorrecoes = carregarCorrecoes()
+
     if (!divCorrecoes) {
         const existente = document.getElementById(idOcorrencia)
         if (existente) existente.remove()
@@ -310,7 +312,18 @@ function uCorrecao(correcoes) {
     return { tipo, dias }
 }
 
-function carregarCorrecoes(idOcorrencia, dadosCorrecao = {}) {
+function carregarCorrecoes() {
+
+    const modelo = (valor1, valor2) => `
+        <div style="${horizontal}; gap: 1rem; margin-bottom: 5px; width: 100%;">
+            <label style="width: 30%; text-align: right;"><b>${valor1}</b></label>
+            <div style="width: 70%; text-align: left;">${valor2}</div>
+        </div>`
+
+    const { idOcorrencia } = oAtual
+
+    const ocorrencia = dados_ocorrencias?.[idOcorrencia]
+    const dadosCorrecao = ocorrencia?.correcoes || {}
 
     let divsCorrecoes = ''
     const aTec = acesso.permissao === 'técnico'
@@ -810,12 +823,18 @@ async function atualizarOcorrencias(resetar = false) {
     sincronizarApp({ remover: true })
 
     emAtualizacao = false
+
+    dados_setores = await recuperarDados('dados_setores')
     empresas = await recuperarDados('empresas')
-    correcoes = await recuperarDados('correcoes')
+    dados_composicoes = await recuperarDados('dados_composicoes')
     dados_ocorrencias = await recuperarDados('dados_ocorrencias')
     dados_clientes = await recuperarDados('dados_clientes')
+    sistemas = await recuperarDados('sistemas')
+    prioridades = await recuperarDados('prioridades')
+    correcoes = await recuperarDados('correcoes')
+    tipos = await recuperarDados('tipos')
 
-    if(app == 'GCS') return
+    if (app == 'GCS') return
 
     const tOcorrencias = document.querySelector('.tela-ocorrencias')
     if (tOcorrencias) filtrarPorCampo() // Atualizar as linhas;

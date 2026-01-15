@@ -75,6 +75,12 @@ const appBases = {
     ]
 }
 
+const dtFormatada = (data) => {
+    if (!data) return '-'
+    const [ano, mes, dia] = data.split('-')
+    return `${dia}/${mes}/${ano}`
+}
+
 //Temporário 
 indexedDB.deleteDatabase('GCSMob')
 

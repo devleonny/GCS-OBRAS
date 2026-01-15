@@ -1458,7 +1458,7 @@ async function abrirEsquema(id = id_orcam) {
     id_orcam = id
 
     const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    const contrado = orcamento?.dados_orcam?.contrato
+    const contrato = orcamento?.dados_orcam?.contrato
     const oficial = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato
     const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
     const cliente = await recuperarDado('dados_clientes', omie_cliente)
@@ -1626,7 +1626,9 @@ async function abrirEsquema(id = id_orcam) {
         </div>`
         }).join('')
 
-    const funcao = liberado ? `oAtual = {idOcorrencia: '${contrado}'}; formularioOcorrencia()` : ''
+    const existente = dados_ocorrencias[contrato]
+    const f1 = liberado ? `oAtual = {idOcorrencia: '${contrato}'}; formularioOcorrencia()` : ''
+    const f2 = existente ? `oAtual = {idOcorrencia: '${contrato}'}; formularioCorrecao()` : ''
 
     const pChamado = `
         <div class="status-check-ocorrencias">
@@ -1635,7 +1637,11 @@ async function abrirEsquema(id = id_orcam) {
             <hr>
             ${checks}
             <hr>
-            <button onclick="${funcao}" style="opacity: ${liberado ? '1' : '0.5'};">Abrir chamado</button>
+            <div style="${horizontal}; gap: 1rem;">
+                <button onclick="${f1}" style="opacity: ${liberado ? '1' : '0.5'};">Abrir chamado</button>
+                <button onclick="${f2}" style="background-color: #e47a00; opacity: ${liberado ? '1' : '0.5'};">Incluir correção</button>
+                ${existente ? `<img src="imagens/pesquisar2.png" onclick="oAtual = { idOcorrencia: '${contrato}' }; verCorrecoes()">` : ''}
+            </div>
         </div>
     `
 
@@ -1646,7 +1652,7 @@ async function abrirEsquema(id = id_orcam) {
 
             <hr>
 
-            <div style="${horizontal}; gap: 5px;">
+            <div class="status-botoes">
                 
                 ${botao('Novo Pedido', `painelAdicionarPedido()`, '#4CAF50')}
                 ${botao('Requisição Materiais', `detalharRequisicao(undefined, 'infraestrutura')`, '#B12425')}
@@ -1682,6 +1688,16 @@ async function abrirEsquema(id = id_orcam) {
 
     popup(`<div class="painel-historico">${acumulado}</div>`, 'Histórico do Orçamento')
 
+}
+
+async function verCorrecoes() {
+
+    const acumulado = `
+        <div class="status-correcoes">
+            ${carregarCorrecoes()}
+        </div>
+    `
+    popup(acumulado, 'Correções', true)
 }
 
 async function atualizarPedido(chave, campo, imgSelect) {
