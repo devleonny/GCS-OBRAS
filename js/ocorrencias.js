@@ -584,9 +584,12 @@ function renderizarPaginacao() {
     }
 }
 
-function limparFiltros() {
+async function limparFiltros() {
+    overlayAguarde()
+    await telaOcorrencias(true)
     filtrosAtivos = {}
     filtrarPorCampo()
+    removerOverlay()
 }
 
 async function renderizarPagina(pagina) {
@@ -645,6 +648,8 @@ async function renderizarPagina(pagina) {
 }
 
 async function telaOcorrencias(apenasObjeto = false) {
+
+    if (app == 'GCS') return
 
     mostrarMenus(false)
 
@@ -810,6 +815,8 @@ async function atualizarOcorrencias(resetar = false) {
     dados_ocorrencias = await recuperarDados('dados_ocorrencias')
     dados_clientes = await recuperarDados('dados_clientes')
 
+    if(app == 'GCS') return
+
     const tOcorrencias = document.querySelector('.tela-ocorrencias')
     if (tOcorrencias) filtrarPorCampo() // Atualizar as linhas;
 
@@ -820,6 +827,8 @@ async function atualizarOcorrencias(resetar = false) {
 
 function sincronizarApp({ atual, total, remover } = {}) {
 
+    const progresso = document.querySelector('.progresso')
+
     if (remover) {
 
         setTimeout(async () => {
@@ -828,9 +837,11 @@ function sincronizarApp({ atual, total, remover } = {}) {
             return
         }, 1000)
 
-        return
+        return removerOverlay()
 
     } else if (atual) {
+
+        if (!progresso) return overlayAguarde()
 
         const circumference = 2 * Math.PI * 50;
         const percent = (atual / total) * 100;
@@ -852,7 +863,8 @@ function sincronizarApp({ atual, total, remover } = {}) {
                 <div class="percentage">0%</div>
             </div>
         `
-        const progresso = document.querySelector('.progresso')
+
+        if (!progresso) return
         progresso.innerHTML = carregamentoHTML
 
         progressCircle = document.querySelector('.circular-loader .progress');

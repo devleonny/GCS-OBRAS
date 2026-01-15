@@ -631,3 +631,42 @@ async function pdf({ id, estilos = [], nome = 'documento' }) {
     if (bPdf) bPdf.style.display = ''
 
 }
+
+function base64ToBlob(base64) {
+    const arr = base64.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+}
+
+async function importarAnexos({ input, foto }) {
+
+    if (!foto && !input?.files?.length) return []
+
+    const formData = new FormData()
+
+    if (foto) {
+        const blob = base64ToBlob(foto);
+        formData.append('arquivos', blob);
+    } else {
+        for (const file of input.files) {
+            formData.append('arquivos', file);
+        }
+    }
+
+    try {
+        const response = await fetch(`${api}/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        return await response.json();
+    } catch (err) {
+        popup(mensagem(`Erro na API: ${err}`));
+        throw err;
+    }
+}

@@ -735,13 +735,11 @@ async function salvarLevantamento(idOrcamento, idElemento) {
 
     overlayAguarde()
 
-    const elemento = document.getElementById(idElemento || 'adicionar_levantamento')
+    const input = document.getElementById(idElemento || 'adicionar_levantamento')
     const marcador = elemento?.dataset?.finalizado == 'S'
 
-    if (!elemento || !elemento.files || elemento.files.length === 0) return
-
     try {
-        const anexos = await importarAnexos(elemento) // Nova função de upload
+        const anexos = await importarAnexos({ input }) // Nova função de upload
 
         const anexoDados = {}
         anexos.forEach(anexo => {
@@ -1056,29 +1054,6 @@ async function lancarPagamento({ pagamento, call, dataFixa }) {
             })
             .catch(err => reject(err))
     })
-}
-
-async function importarAnexos(arquivoInput) {
-    return new Promise((resolve, reject) => {
-        const formData = new FormData();
-
-        for (let i = 0; i < arquivoInput.files.length; i++) {
-            formData.append('arquivos', arquivoInput.files[i]);
-        }
-
-        fetch(`${api}/upload`, {
-            method: 'POST',
-            body: formData
-        })
-            .then(response => response.json())
-            .then(data => {
-                resolve(data);
-            })
-            .catch(error => {
-                popup(mensagem('O Servidor caiu... solicite que um ADM reinicie o serviço'), 'Alerta', true)
-                reject();
-            });
-    });
 }
 
 function sincronizar(script) {
@@ -1820,8 +1795,8 @@ async function criarDepartamento(idOrcamento) {
             throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`)
 
         return await response.json()
-    } catch (error) {
-        return { mensagem: error.messagem || error.mensage || error }
+    } catch (err) {
+        return { mensagem: err.mensage || 'Falha na criação do departamento' }
     }
 }
 

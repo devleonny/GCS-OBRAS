@@ -615,7 +615,7 @@ async function enviarManutencao() {
     if (!novaManutencao.anexos) novaManutencao.anexos = {}
 
     const anexos = document.getElementById('anexos')
-    const importacao = await importarAnexos(anexos)
+    const importacao = await importarAnexos({ anexos })
 
     for (const anexo of importacao) {
         novaManutencao.anexos[anexo.link] = anexo

@@ -894,26 +894,6 @@ async function removerAnexo(idCusto, idAnexo, img) {
     img.parentElement.remove()
 }
 
-async function salvarAnexoCusto(input) {
-
-    let dadosAnexos = await importarAnexos(input)
-    let custo_veiculos = await recuperarDados('custo_veiculos')
-    let idCusto = input.id
-    let custo = custo_veiculos[idCusto]
-
-    if (!custo.anexos) custo.anexos = {}
-
-    dadosAnexos.forEach(anexo => {
-        let idAnexo = ID5digitos()
-        custo.anexos[idAnexo] = anexo
-        input.nextElementSibling.insertAdjacentHTML('afterend', criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo('${idCusto}', '${idAnexo}', this)`))
-        enviar(`custo_veiculos/${idCusto}/anexos/${idAnexo}`, anexo)
-    })
-
-    await inserirDados(custo_veiculos, 'custo_veiculos')
-
-}
-
 async function veiculosExcel() {
 
     const tabela = document.querySelector('.tabela')

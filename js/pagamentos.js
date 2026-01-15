@@ -1003,7 +1003,7 @@ function duvidas() {
 }
 
 async function salvarAnexosPagamentos(input, id_pagamento) {
-    const anexos = await importarAnexos(input);
+    const anexos = await importarAnexos({ input })
 
     if (id_pagamento !== undefined) {
         let pagamento = await recuperarDado('lista_pagamentos', id_pagamento);
@@ -1095,7 +1095,7 @@ function compararDatas(data1, data2) {
 
 async function salvarAnexosParceiros(input, campo, id_pagamento) {
 
-    const anexos = await importarAnexos(input)
+    const anexos = await importarAnexos({ input })
 
     if (id_pagamento == undefined) { // O anexo do parceiro é incluído no formulário de pagamento; (Pagamento ainda não existe)
         let ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}

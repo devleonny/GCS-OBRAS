@@ -622,7 +622,7 @@ async function enviarDadosOrcamento() {
     const resposta = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoBase)
 
     console.log(resposta);
-    
+
 
     if (resposta.success) {
 
@@ -649,14 +649,26 @@ async function enviarDadosOrcamento() {
 
 async function ativarChamado(input, idOrcamento) {
 
-    if (idOrcamento) return
+    if (!idOrcamento) return
 
-    const resposta = await enviar(`dados_orcamentos/${idOrcamento}/chamado`, input.checked)
-    if (resposta.mensagem) popup(mensagem(resposta.mensagem), 'Alerta', true)
+    const ativo = input.checked ? 'S' : 'N'
+    overlayAguarde()
+    const resposta = await enviar(`dados_orcamentos/${idOrcamento}/chamado`, ativo)
+    if (resposta.mensagem) {
+        input.checked = !ativo
+        return popup(mensagem(resposta.mensagem), 'Alerta', true)
+    }
+
+    dados_orcamentos[idOrcamento].chamado = ativo
+    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
 
     const linha = document.getElementById(idOrcamento)
-    if (linha) linha.dataset.chamado = input.checked ? 'S' : 'N'
+    if (linha) linha.dataset.chamado = ativo
     await telaOrcamentos(true)
+    const pHistorico = document.querySelector('.painel-historico')
+
+    removerOverlay()
+    if (pHistorico) await abrirEsquema(idOrcamento)
 
 }
 

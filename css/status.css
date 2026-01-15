@@ -85,3 +85,22 @@
     align-items: start;
     flex-direction: column;
 }
+
+.status-check-ocorrencias {
+    border: solid 1px;
+    border-radius: 3px;
+    padding: 0.5rem;
+    background-color: white;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.status-check-item {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 1rem;
+}

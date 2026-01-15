@@ -328,7 +328,7 @@ async function adicionarAnexo(input, idPessoa, idPasta) {
 
     overlayAguarde()
 
-    const anexos = await importarAnexos(input)
+    const anexos = await importarAnexos({ input })
 
     let pessoa = await recuperarDado('pessoas', idPessoa)
     let pasta = pessoa.pastas[idPasta]

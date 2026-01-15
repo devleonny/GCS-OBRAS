@@ -909,11 +909,11 @@ async function abrirAtalhos(id) {
         : ''
 
     const acumulado = `
-        <label style="color: #222; font-size: 1rem; text-align: left;" id="cliente_status">${cliente?.nome || '??'}</label>
+        <label style="color: #222; text-align: left;" id="cliente_status">${cliente?.nome || '??'}</label>
         <hr>
         <div style="${horizontal}; gap: 5px;">
             <span>Classificar como <b>CHAMADO</b></span>
-            <input ${orcamento?.chamado ? 'checked' : ''} onclick="ativarChamado(this, '${id}')" ${styChek} type="checkbox">
+            <input ${orcamento?.chamado == 'S' ? 'checked' : ''} onclick="ativarChamado(this, '${id}')" ${styChek} type="checkbox">
         </div>
         <hr>
         ${emAnalise ? mensagem('Este orçamento precisa ser aprovado!') : ''}
@@ -1451,13 +1451,14 @@ function elementosEspecificos(chave, historico) {
 
 }
 
-async function abrirEsquema(id) {
+async function abrirEsquema(id = id_orcam) {
 
     overlayAguarde()
 
-    if (id) id_orcam = id
+    id_orcam = id
 
     const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const contrado = orcamento?.dados_orcam?.contrato
     const oficial = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato
     const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
     const cliente = await recuperarDado('dados_clientes', omie_cliente)
@@ -1589,6 +1590,55 @@ async function abrirEsquema(id) {
             </div>`
     }
 
+    // Checklist chamado;
+    const enviado = Object.values(orcamento?.status?.historicoStatus || {})
+        .some(h => h.para == 'ORC ENVIADO')
+    const aprovado = Object.values(orcamento?.status?.historicoStatus || {})
+        .some(h => h.para == 'ORC APROVADO')
+    const pedido = Object.values(orcamento?.status?.historico || {})
+        .some(h => h.status == 'PEDIDO')
+    const chamado = orcamento?.chamado == 'S'
+    const etapas = [//29
+        {
+            texto: `
+                <div style="${horizontal}; gap: 5px;">
+                    <span>Classificar como <b>CHAMADO</b></span>
+                    <input ${chamado ? 'checked' : ''} onclick="ativarChamado(this, '${id}')" ${styChek} type="checkbox">
+                </div>
+            `,
+            status: chamado
+        },
+        { texto: 'Orçamento enviado', status: enviado },
+        { texto: 'Orçamento aprovado', status: aprovado },
+        { texto: 'Criar um pedido', status: pedido }
+    ]
+
+    let liberado = true
+    const checks = etapas
+        .map(e => {
+
+            if (!e.status) liberado = false
+
+            return `
+        <div class="status-check-item">
+            <img src="imagens/${e.status ? 'concluido' : 'cancel'}.png">
+            <div>${e.texto}</div>
+        </div>`
+        }).join('')
+
+    const funcao = liberado ? `oAtual = {idOcorrencia: '${contrado}'}; formularioOcorrencia()` : ''
+
+    const pChamado = `
+        <div class="status-check-ocorrencias">
+            <span>Para abrir a <b>OCORRÊNCIA</b><br></span>
+            <span>Realize as etapas abaixo:</span>
+            <hr>
+            ${checks}
+            <hr>
+            <button onclick="${funcao}" style="opacity: ${liberado ? '1' : '0.5'};">Abrir chamado</button>
+        </div>
+    `
+
     const acumulado = `
         <div style="${vertical}; gap: 10px; padding: 3px;">
 
@@ -1614,6 +1664,8 @@ async function abrirEsquema(id) {
 
         <div class="container-blocos">
             <div style="${vertical}; witdth: 100%; gap: 0.5rem;">
+                ${pChamado}
+                <hr>
                 ${divLevantamentos()}
                 <hr>
                 ${divLevantamentos(true)}
@@ -1627,7 +1679,7 @@ async function abrirEsquema(id) {
         janelaAtiva.innerHTML = acumulado
         return
     }
-    
+
     popup(`<div class="painel-historico">${acumulado}</div>`, 'Histórico do Orçamento')
 
 }
@@ -1694,10 +1746,14 @@ async function alterarStatus(select) {
     if (novoSt == 'ORC PENDENTE') formularioOrcPendente(idStatus)
     if (novoSt == 'ORC APROVADO') {
         formularioOrcAprovado()
-        criarDepartamento(id_orcam)
+        const resposta = await criarDepartamento(id_orcam)
+        if (resposta.mensagem) popup(mensagem(resposta.mensagem), 'Alerta', true)
     }
 
-    if (funcaoAtiva == 'telaOrcamentos') await telaOrcamentos(true)
+    if (telaAtiva == 'orcamentos') await telaOrcamentos(true)
+
+    const pHistorico = document.querySelector('.painel-historico')
+    if (pHistorico) await abrirEsquema(idOrcamento)
 }
 
 function formularioOrcAprovado(idOrcamento) {
@@ -1920,7 +1976,11 @@ async function excluirHiStatus(idStatus) {
     if (trExistente) trExistente.remove()
 
     deletar(`dados_orcamentos/${id_orcam}/status/historicoStatus/${idStatus}`)
+    delete dados_orcamentos[id_orcam].status.historicoStatus[idStatus]
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+
+    const pHistorico = document.querySelector('.painel-historico')
+    if (pHistorico) await abrirEsquema(idOrcamento)
 
     removerOverlay()
 
@@ -2278,7 +2338,7 @@ async function salvar_anexo(chave, input) {
         return;
     }
 
-    let anexos = await importarAnexos(input) // Retorna uma lista [{}, {}]
+    let anexos = await importarAnexos({ input }) // Retorna uma lista [{}, {}]
 
     anexos.forEach(anexo => {
 

@@ -616,6 +616,11 @@ input[type="file"] {
     background-color: transparent;
 }
 
+.tela-usuarios {
+    display: flex;
+    width: 95vw;
+}
+
 .barra {
     width: 15vw;
     flex: 1;
