@@ -736,7 +736,7 @@ async function salvarLevantamento(idOrcamento, idElemento) {
     overlayAguarde()
 
     const input = document.getElementById(idElemento || 'adicionar_levantamento')
-    const marcador = elemento?.dataset?.finalizado == 'S'
+    const marcador = input?.dataset?.finalizado == 'S'
 
     try {
         const anexos = await importarAnexos({ input }) // Nova função de upload

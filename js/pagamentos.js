@@ -346,7 +346,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
         const nomeCategoria = dados_categorias_AC?.[item.codigo_categoria]?.categoria || 'Categoria Desativada'
         valores += `
             <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
-                <label><strong>${dinheiro(item.valor)}</strong> - ${nomeCategoria}</label>
+                <label style="text-align: left;"><strong>${dinheiro(item.valor)}</strong> - ${nomeCategoria}</label>
             </div>
         `
 
@@ -412,7 +412,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
     const acumulado = `
         ${justificativaHTML(id_pagamento)}
 
-        <div class="detalhesPagamento">
+        <div class="detalhes-pagamento">
             <div style="${vertical}; gap: 1px; width: 100%;">
                 ${btnsOrcamentos}
                 ${btnDetalhes('reembolso', 'Duplicar Pagamento', `duplicarPagamento('${id_pagamento}')`)}
