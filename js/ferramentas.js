@@ -46,6 +46,7 @@ const mensagem = (mensagem, imagem = 'gifs/alerta.gif') => `
         <img src="${imagem}">
         <label>${mensagem}</label>
     </div>`
+
 const appBases = {
     'GCS': [
         'hierarquia',
@@ -62,6 +63,7 @@ const appBases = {
         'dados_manutencao',
         'dados_categorias_AC',
         'dados_estoque',
+        'dados_setores',
         'pessoas'
     ],
     'OCORRÊNCIAS': [
@@ -124,6 +126,11 @@ async function resetarBases() {
     logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
 
     if (!app) return
+
+    const bases = [
+        ...appBases[app],
+        ...(app == 'GCS' ? appBases['OCORRÊNCIAS'] : [])
+    ]
 
     for (const base of appBases[app]) {
         await sincronizarDados({ base, resetar: true })

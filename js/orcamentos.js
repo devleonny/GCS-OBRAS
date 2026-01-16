@@ -37,13 +37,14 @@ async function atualizarOrcamentos() {
         'dados_orcamentos',
         'dados_composicoes',
         'dados_clientes',
-        'dados_ocorrencias',
+        'tags_orcamentos',
         'departamentos_AC',
         'hierarquia'
     ]
 
     for (const base of tabelas) await sincronizarDados({ base })
 
+    await atualizarOcorrencias() // Módulo de ocorrências;
     await auxDepartamentos()
     await telaOrcamentos()
     await sincronizarTags()

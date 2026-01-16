@@ -1627,7 +1627,7 @@ async function abrirEsquema(id = id_orcam) {
         }).join('')
 
     const existente = dados_ocorrencias[contrato]
-    const f1 = liberado ? `oAtual = {idOcorrencia: '${contrato}'}; formularioOcorrencia()` : ''
+    const f1 = liberado ? `oAtual = {idOcorrencia: '${contrato}', oUnidade: '${omie_cliente}'}; formularioOcorrencia()` : ''
     const f2 = existente ? `oAtual = {idOcorrencia: '${contrato}'}; formularioCorrecao()` : ''
 
     const pChamado = `

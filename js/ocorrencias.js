@@ -208,6 +208,7 @@ function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
     const descricao = ocorrencia?.descricao || 'Em branco'
     const unidade = cliente?.nome || 'Em branco'
     const cidade = cliente?.cidade || 'Em branco'
+    const empresa = empresas[ocorrencia?.empresa]?.nome || 'Em branco'
 
     const modeloCampos = (valor1, elemento) => `
         <div style="${horizontal}; width: 100%; gap: 0.5rem;">
@@ -234,7 +235,7 @@ function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
                 ${modeloCampos('Descrição', descricao)}
                 ${modeloCampos('Criado por', criador)}
                 ${modeloCampos('Data Registro', ocorrencia?.dataRegistro || '')}
-                ${modeloCampos('Empresa', empresas[ocorrencia?.empresa]?.nome || '')}
+                ${modeloCampos('Empresa', empresa)}
                 ${modeloCampos('Tipo', tipo)}
                 ${modeloCampos('Sistema', sistema)}
                 ${modeloCampos('Prioridade', prioridade)}
@@ -255,6 +256,7 @@ function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
     const diffDias = uc.dias
 
     listaOcorrencias[idOcorrencia] = {
+        empresa,
         correcoes: ocorrencia.correcoes || {},
         atrasado: diffDias < 0 ? 'Sim' : 'Não',
         reagendado: reagendado ? 'Sim' : 'Não',
@@ -639,13 +641,13 @@ async function renderizarPagina(pagina) {
     if (fatia.length == 0)
         return contadorPagina.innerHTML = `<div onclick="limparFiltros()" style="${horizontal}; gap: 1rem; cursor: pointer;"><span>Sem resultados</span> • <span>Limpar</span></div>`
 
-    // Lançamento das linhas na página //29
+    // Lançamento das linhas na página;
     for (const dados of fatia) {
-        const { criador, tipo, sistema, partes, prioridade, ultima_correcao, executor, reagendado, atrasado } = dados
+        const { criador, tipo, sistema, partes, prioridade, ultima_correcao, executor, reagendado, atrasado, empresa } = dados
 
         tabela.insertAdjacentHTML('beforeend', partes)
 
-        for (const [chave, valor] of Object.entries({ criador, tipo, sistema, prioridade, ultima_correcao, executor, reagendado, atrasado })) {
+        for (const [chave, valor] of Object.entries({ criador, tipo, sistema, prioridade, ultima_correcao, executor, reagendado, atrasado, empresa })) {
             const set = (listas[chave] ??= new Set())
 
             if (Array.isArray(valor)) {
@@ -835,9 +837,12 @@ async function atualizarOcorrencias(resetar = false) {
     tipos = await recuperarDados('tipos')
 
     if (app == 'GCS') return
-
+    
     const tOcorrencias = document.querySelector('.tela-ocorrencias')
-    if (tOcorrencias) filtrarPorCampo() // Atualizar as linhas;
+    if (tOcorrencias) {
+        await telaOcorrencias(true) // Recriar apenas objeto linhas - true;
+        filtrarPorCampo() // Atualizar as linhas;
+    }
 
     carregarMenus()
     await criarElementosIniciais()
@@ -910,9 +915,10 @@ async function telaEquipamentos() {
 
 async function formularioOcorrencia() {
 
-    const { idOcorrencia } = oAtual
+    // Caso seja informada a unidade no momento do orçamento;
+    const { idOcorrencia, oUnidade } = oAtual
     const ocorrencia = dados_ocorrencias[idOcorrencia] || {}
-    const { empresa, unidade, tipo, sistema, prioridade, anexos, fotos, descricao } = ocorrencia
+    const { empresa, unidade = oUnidade, tipo, sistema, prioridade, anexos, fotos, descricao } = ocorrencia
     const lib = acesso.empresa == 0
     const nEmpresa = empresas?.[empresa || acesso?.empresa]?.nome
     const nUnidade = dados_clientes[unidade]?.nome
