@@ -206,13 +206,19 @@ async function sincronizarDados({ base, overlay = false, resetar = false, filtro
     if (overlay) overlayAguarde()
 
     if (base === 'hierarquia') resetar = true
-    if (resetar) await inserirDados({}, base, true)
 
-    let nuvem = await receber(base) || {}
+    const local = resetar ? {} : await recuperarDados(base) || {}
+    const nuvem = await receber(base) || {}
+
+    const combinado = { ...local, ...nuvem }
+
+    await inserirDados({}, base, true)
+
+    let filtrado = combinado
 
     if (Object.keys(filtro).length) {
-        nuvem = Object.fromEntries(
-            Object.entries(nuvem).filter(([_, obj]) =>
+        filtrado = Object.fromEntries(
+            Object.entries(combinado).filter(([_, obj]) =>
                 Object.entries(filtro).every(([campo, valor]) =>
                     obj?.[campo] === valor
                 )
@@ -220,11 +226,11 @@ async function sincronizarDados({ base, overlay = false, resetar = false, filtro
         )
     }
 
-    await inserirDados(nuvem, base)
+    await inserirDados(filtrado, base)
+
     if (overlay) removerOverlay()
 
-    const dados = await recuperarDados(base)
-    return dados
+    return filtrado
 }
 
 // SERVIÇO DE ARMAZENAMENTO 

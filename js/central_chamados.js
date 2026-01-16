@@ -18,7 +18,7 @@ const botaoImg = (img, funcao) => `
         <img src="imagens/${img}.png" onclick="${funcao}">
     </div>`
 
-const modeloTabela = ({ minWidth, removerPesquisa = false, colunas, base, funcao, btnExtras = '', body = 'body' }) => {
+const modeloTabela = ({ minWidth, removerPesquisa = false, colunas, btnExtras = '', body = 'body' }) => {
 
     const ths = colunas.map(col => `<th>${col}</th>`).join('')
 

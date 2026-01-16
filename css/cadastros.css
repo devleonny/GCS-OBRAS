@@ -1,12 +1,17 @@
 .tabela-cadastro {
-    background-color: rgb(245, 245, 245);
-    padding: 1rem;
-    display: flex;
-    justify-content: start;
-    align-items: start;
-    gap: 0.5rem;
-    width: 90vw;
-    height: 80vh;
     overflow: auto;
-    border-radius: 3px;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.tabela-cadastro-recorte {
+    font-size: 0.8rem;
+    background: linear-gradient(45deg, black, transparent);
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    gap: 2rem;
+    padding: 2rem;
+    width: 90vw;
+    overflow: auto;
 }

@@ -9,15 +9,15 @@ async function telaCadastros() {
     titulo.textContent = 'Cadastros'
 
     const acumulado = `
-        <div style="${vertical}; gap: 2px;">
-            <div class="tabela-cadastro"></div>
-        </div>
+    <div class="tabela-cadastro">
+        <div class="tabela-cadastro-recorte"></div>
+    </div>
     `
 
     const bases = ['empresas', 'tipos', 'sistemas', 'prioridades', 'correcoes']
-    let tabs = document.querySelector('.tabela-cadastro')
+    let tabs = document.querySelector('.tabela-cadastro-recorte')
     if (!tabs) telaInterna.innerHTML = acumulado
-    tabs = document.querySelector('.tabela-cadastro')
+    tabs = document.querySelector('.tabela-cadastro-recorte')
 
     for (const b of bases) {
         const colunas = ['Nome', '']
@@ -103,11 +103,11 @@ async function tabelaClientes() {
     const colunas = [
         `<input onclick="checksCliente(this)" style="width: 1.5rem; height: 1.5rem;" type="checkbox">`,
         'Nome',
+        'Empresa',
         'CNPJ',
         'Cidade',
         'Endereço',
         'Estado',
-        'Empresa',
         ''
     ]
 
@@ -125,7 +125,7 @@ async function tabelaClientes() {
         body: `tabela_dados_clientes`
     })
 
-    const tabs = document.querySelector('.tabela-cadastro')
+    const tabs = document.querySelector('.tabela-cadastro-recorte')
     const tabClientes = document.getElementById('tabela_dados_clientes')
     if (!tabClientes) tabs.insertAdjacentHTML('beforeend', htmlTab)
 
@@ -147,18 +147,18 @@ function criarLinhaCliente(idCliente, { nome, cnpj, cidade, bairro, estado, empr
         name="empresa">
     </td>
     <td>${nome || ''}</td>
-    <td>${cnpj || ''}</td>
+    <td>${empresas?.[empresa]?.nome || ''}</td>
+    <td style="white-space: nowrap;">${cnpj || ''}</td>
     <td>${cidade || ''}</td>
     <td>${bairro || ''}</td>
     <td>${estado || ''}</td>
-    <td>${empresas?.[empresa]?.nome || ''}</td>
     <td>
-        <img src="imagens/pesquisar.png" onclick="">
+        <img src="imagens/pesquisar2.png" onclick="">
     </td>
     `
 
     const trExistente = document.getElementById(idCliente)
-    if (trExistente) trExistente.innerHTML = tds
+    if (trExistente) return trExistente.innerHTML = tds
 
     const tbody = document.getElementById('tabela_dados_clientes')
     tbody.insertAdjacentHTML('beforeend', `<tr id="${idCliente}">${tds}</tr>`)
@@ -193,6 +193,7 @@ function classificarUnidades() {
     if (unidades.length == 0) return popup(mensagem('Marque pelo menos 1 unidade'), 'Alerta', true)
 
     const opcoes = Object.entries(empresas)
+        .sort(([, a], [, b]) => a.nome.localeCompare(b.nome))
         .map(([idEmpresa, empresa]) => {
             if (idEmpresa == 0) return ''
             return `<option value="${idEmpresa}">${empresa.nome}</option>`
@@ -239,7 +240,7 @@ async function vincularEmpresas() {
         if (data.mensagem) return popup(mensagem(data.mensagem), 'Alerta', true)
 
         await sincronizarDados({ base: 'dados_clientes' })
-        await telaCadastros()
+        await tabelaClientes()
         removerPopup()
 
     } catch (e) {

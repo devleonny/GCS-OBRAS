@@ -208,7 +208,7 @@ function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
     const descricao = ocorrencia?.descricao || 'Em branco'
     const unidade = cliente?.nome || 'Em branco'
     const cidade = cliente?.cidade || 'Em branco'
-    const empresa = empresas[ocorrencia?.empresa]?.nome || 'Em branco'
+    const empresa = empresas[cliente?.empresa]?.nome || 'Em branco'
 
     const modeloCampos = (valor1, elemento) => `
         <div style="${horizontal}; width: 100%; gap: 0.5rem;">
@@ -932,9 +932,7 @@ async function formularioOcorrencia() {
     // Caso seja informada a unidade no momento do orçamento;
     const { idOcorrencia, oUnidade } = oAtual
     const ocorrencia = dados_ocorrencias[idOcorrencia] || {}
-    const { empresa, unidade = oUnidade, tipo, sistema, prioridade, anexos, fotos, descricao } = ocorrencia
-    const lib = acesso.empresa == 0
-    const nEmpresa = empresas?.[empresa || acesso?.empresa]?.nome
+    const { unidade = oUnidade, tipo, sistema, prioridade, anexos, fotos, descricao } = ocorrencia
     const nUnidade = dados_clientes[unidade]?.nome
     const nSistema = sistemas[sistema]?.nome
     const nPrioridade = prioridades[prioridade]?.nome
@@ -945,15 +943,6 @@ async function formularioOcorrencia() {
         .join('')
 
     const linhas = [
-        {
-            texto: 'Empresa',
-            elemento: `
-            <span 
-                class="campos" 
-                name="empresa" ${empresa ? `id="${empresa}"` : `id="${acesso.empresa}"`} 
-                ${lib ? `onclick="cxOpcoes('empresa', 'empresas', ['nome'])"` : ''}>${nEmpresa || 'Selecione'}
-            </span>`
-        },
         {
             texto: 'Unidade de Manutenção',
             elemento: `<span ${unidade ? `id="${unidade}"` : ''} 
@@ -1222,14 +1211,9 @@ async function salvarOcorrencia() {
 
     const { idOcorrencia } = oAtual
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
-    const codEmpresa = obter('empresa')?.id
-
-    if (codEmpresa == '0') return popup(mensagem('O campo empresa "GERAL" está bloqueado!'), 'Geral não disponível', true)
-
     const input = obter('anexos')
     const anexos = await anexosOcorrencias(input)
     const novo = {
-        empresa: obter('empresa')?.id || '',
         unidade: obter('unidade')?.id || '',
         sistema: obter('sistema')?.id || '',
         prioridade: obter('prioridade')?.id || '',
