@@ -546,8 +546,8 @@ function renderizarPaginacao() {
     const totalPaginas = Math.ceil(Object.keys(base).length / limitePorPagina)
 
     document.querySelector('.paginacao').innerHTML = `
-    <img src="imagens/esq.png" ${paginaAtual === 1 ? 'disabled' : ''} onclick="renderizarPagina(${paginaAtual - 1})">
-    <img src="imagens/dir.png" ${paginaAtual === totalPaginas ? 'disabled' : ''} onclick="renderizarPagina(${paginaAtual + 1})">
+    <img src="imagens/esq.png" onclick="renderizarPagina(${paginaAtual - 1})">
+    <img src="imagens/dir.png" onclick="renderizarPagina(${paginaAtual + 1})">
     <span style="white-space: nowrap;">${paginaAtual} de ${totalPaginas}</span>
   `
     const divFiltros = document.querySelector('.filtros')
@@ -609,12 +609,22 @@ async function limparFiltros() {
 
 async function renderizarPagina(pagina) {
 
-    paginaAtual = pagina
-    const inicio = (pagina - 1) * limitePorPagina
-    const fim = inicio + limitePorPagina
     const base = recorteOcorrencias !== null
         ? recorteOcorrencias
         : listaOcorrencias
+
+    const totalPaginas = Math.max(
+        1,
+        Math.ceil(Object.keys(base).length / limitePorPagina)
+    )
+
+    if (pagina < 1) pagina = 1
+    if (pagina > totalPaginas) pagina = totalPaginas
+
+    paginaAtual = pagina
+
+    const inicio = (pagina - 1) * limitePorPagina
+    const fim = inicio + limitePorPagina
 
     const fatia = Object
         .values(base)
@@ -642,10 +652,15 @@ async function renderizarPagina(pagina) {
         return contadorPagina.innerHTML = `<div onclick="limparFiltros()" style="${horizontal}; gap: 1rem; cursor: pointer;"><span>Sem resultados</span> • <span>Limpar</span></div>`
 
     // Lançamento das linhas na página;
-    for (const dados of fatia) {
-        const { criador, tipo, sistema, partes, prioridade, ultima_correcao, executor, reagendado, atrasado, empresa } = dados
-
+    for (const dados of fatia) { 
+        const { partes } = dados
         tabela.insertAdjacentHTML('beforeend', partes)
+    }
+
+    // Carregar os selects separadamente;
+    for (const dados of Object.values(base)) {
+
+        const { criador, tipo, sistema, prioridade, ultima_correcao, executor, reagendado, atrasado, empresa } = dados
 
         for (const [chave, valor] of Object.entries({ criador, tipo, sistema, prioridade, ultima_correcao, executor, reagendado, atrasado, empresa })) {
             const set = (listas[chave] ??= new Set())
@@ -656,7 +671,6 @@ async function renderizarPagina(pagina) {
                 set.add(valor)
             }
         }
-
     }
 
     renderizarPaginacao()
@@ -837,7 +851,7 @@ async function atualizarOcorrencias(resetar = false) {
     tipos = await recuperarDados('tipos')
 
     if (app == 'GCS') return
-    
+
     const tOcorrencias = document.querySelector('.tela-ocorrencias')
     if (tOcorrencias) {
         await telaOcorrencias(true) // Recriar apenas objeto linhas - true;
