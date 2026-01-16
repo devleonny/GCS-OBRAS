@@ -1397,7 +1397,7 @@ async function precosDesatualizados(calculo) {
         <div style="${vertical}; background-color: #d2d2d2; padding: 2rem;">
 
             <div style="${horizontal}; gap: 1rem;">
-                <span class="contador" id="totalItens"></span>
+                <span class="contador-produtos" id="totalItens"></span>
                 <span style="font-size: 1.5rem;">Produtos com mais de <b>60 dias</b> sem atualização</span>
             </div>
 

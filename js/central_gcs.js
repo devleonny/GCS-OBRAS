@@ -110,7 +110,9 @@ const esquemaBotoes = {
     inicial: [
         { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'projeto' },
         { nome: 'Composições', funcao: `telaComposicoes`, img: 'composicoes' },
-        { nome: 'Clientes & Fornecedores', funcao: `telaClientes`, img: 'projeto' },
+        /*
+        { nome: 'Clientes & Fornecedores', funcao: `telaClientes`, img: 'projeto' }
+            */
         { nome: 'Chamados', funcao: `telaChamados`, img: 'chamados' },
         { nome: 'Veículos', funcao: `telaVeiculos`, img: 'veiculo' },
         { nome: 'Reembolsos', funcao: `telaPagamentos`, img: 'reembolso' },
@@ -192,10 +194,10 @@ const esquemaBotoes = {
         { nome: 'Distribuição por Funcionário', funcao: 'distribuicaoFuncionario', img: 'gerente' },
         { nome: 'Novo Funcionário', funcao: 'abrirOpcoes', img: 'baixar' },
     ],
-    ...( acesso.permissao == 'adm' ? {clientes: [
+    clientes: [
         atalhoInicial,
         { nome: 'Novo cadastro', funcao: 'formularioCliente', img: 'baixar' },
-    ]} : {})
+    ]
 }
 
 async function salvarDepartamento(img) {
@@ -381,12 +383,12 @@ async function alterarUsuario({ campo, usuario, select, valor }) {
 
     valor = select ? select.value : valor
 
-    const alteracao = await configuracoes(usuario, campo, valor) // Se alterar no servidor, altera localmente;
+    const alteracao = await comunicacaoServ({ usuario, campo, valor }) // Se alterar no servidor, altera localmente;
 
     if (alteracao?.success) {
         dados_setores[usuario][campo] = select ? select.value : valor
     } else {
-        popup(mensagem(`Não foi possível alterar: ${alteracao?.erro || 'Tente novamente mais tarde'}`), 'ALERTA', true)
+        popup(mensagem(`Não foi possível alterar: ${alteracao?.mensagem || 'Tente novamente mais tarde'}`), 'ALERTA', true)
         if (select) select.value = dados_setores[usuario][campo] // Devolve a informação anterior pro elemento;
     }
 

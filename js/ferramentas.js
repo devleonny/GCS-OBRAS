@@ -399,7 +399,7 @@ async function comunicacaoServ({ usuario, campo, valor }) {
                 resolve(data)
             })
             .catch(err => {
-                reject({ mensagem: err })
+                reject(err)
             })
     })
 }
