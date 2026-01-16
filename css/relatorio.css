@@ -93,7 +93,7 @@
     background-color: #ffeacf;
 }
 
-.toolbar-relatorio {
+.toolbar-relatorio-ocorrencias {
     width: 100%;
     display: flex;
     align-items: start;
@@ -118,7 +118,7 @@ screen and (min-aspect-ratio: 13/9) {
         width: max-content;
     }
 
-    .toolbar-relatorio,
+    .toolbar-relatorio-ocorrencias,
     .toolbar-itens {
         flex-direction: row;
     }

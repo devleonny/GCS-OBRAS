@@ -5,7 +5,7 @@ connectWebSocket()
 
 function connectWebSocket() {
 
-    app = localStorage.getItem('app') || null
+    app = localStorage.getItem('app') || 'OCORRÊNCIAS'
     socket = new WebSocket(`${api}:8443`)
 
     function status(s) {
@@ -26,8 +26,14 @@ function connectWebSocket() {
         }
     }
 
-    socket.onopen = () => {
-        if (acesso) msg({ tipo: 'validar', usuario: acesso.usuario })
+    socket.onopen = async () => {
+        acesso = JSON.parse(localStorage.getItem('acesso'))
+        if (acesso) {
+            msg({ tipo: 'validar', usuario: acesso.usuario })
+            await identificacaoUser()
+        } else {
+            telaLogin()
+        }
     }
 
     socket.onmessage = async (event) => {
@@ -76,7 +82,7 @@ function connectWebSocket() {
         }
 
         // Se a base não pertencer ao app, retornar;
-        if (!appBases[app].includes(data.tabela)) return
+        if (app == 'OCORRÊNCIAS') return
 
         if (app == 'GCS' && data.tabela == 'dados_orcamentos') {
             verificarPendencias()
@@ -119,4 +125,59 @@ function connectWebSocket() {
 
     }
 
+}
+
+async function identificacaoUser() {
+
+    dados_setores = await sincronizarDados({ base: 'dados_setores' })
+    acesso = dados_setores[acesso.usuario]
+
+    const bloq = ['cliente', 'técnico', 'visitante']
+    if ((acesso && bloq.includes(acesso.permissao)) || !acesso)
+        return telaPrincipal()
+
+
+    if (app == 'OCORRÊNCIAS') return
+    if (document.title == 'Política de Privacidade') return
+    if (!acesso || !acesso.permissao || acesso.permissao == 'novo') {
+        localStorage.removeItem('acesso')
+        return telaLogin()
+    }
+
+    await telaInicial()
+
+}
+
+async function carregarControles() {
+    const modelo = (imagem, funcao, idElemento) => {
+        return `
+        <div onclick="${funcao}" style="${vertical};">
+            <img src="imagens/${imagem}.png">
+            <div id="${idElemento}" style="display: none;" class="labelQuantidade"></div>
+        </div>
+        `
+    }
+
+    const permitidosAprovacoes = ['adm', 'diretoria']
+    const permitidosProdutos = ['LOGÍSTICA', 'SUPORTE', 'FINANCEIRO']
+
+    if (!paginasBloqueadas.includes(document.title) && acesso.usuario) {
+
+        const barraStatus = `
+            <div id="divUsuarios"></div>
+
+            ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
+            ${permitidosAprovacoes.includes(acesso.permissao) ? modelo('construcao', 'configs()', '') : ''}
+            ${permitidosProdutos.includes(acesso.setor) ? modelo('preco', 'precosDesatualizados()', 'contadorProdutos') : ''}
+
+            <img title="Abrir mais 1 aba" src="imagens/aba.png" onclick="maisAba()">
+        `
+        const cabecalhoUsuario = document.querySelector('.cabecalho-usuario')
+        if (cabecalhoUsuario) cabecalhoUsuario.innerHTML = barraStatus
+
+    }
+
+    verificarPendencias() // Pendencias de aprovação;
+    usuariosToolbar()
+    precosDesatualizados(true) //Atualiza apenas a quantidade;
 }

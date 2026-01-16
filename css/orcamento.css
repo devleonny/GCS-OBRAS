@@ -136,13 +136,6 @@
     margin: 5px;
 }
 
-.baloes-top {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px
-}
-
 #toolbar {
     margin-left: 5%;
     margin-right: 5%;

@@ -94,10 +94,11 @@ async function telaInicial() {
 
     mostrarMenus(false)
 
+    toolbar.style.display = ''
     titulo.textContent = 'GCS'
     localStorage.setItem('app', 'GCS')
     app = 'GCS'
-    
+
     const acumulado = `
         <div id="loading" style="${horizontal};">
             <img src="gifs/loading.gif" style="width: 5rem;">
@@ -133,6 +134,7 @@ async function telaInicial() {
     tags_orcamentos = await recuperarDados('tags_orcamentos')
 
     // Carregar tabelas;
+    carregarControles()
     indicadores()
     carregarPDA()
     carregarTecnicos()

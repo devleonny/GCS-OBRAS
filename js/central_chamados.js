@@ -1,17 +1,16 @@
 
+/*
 const modelo = (valor1, valor2) => `
     <div style="${horizontal}; gap: 1rem; margin-bottom: 5px; width: 100%;">
         <label style="width: 30%; text-align: right;"><b>${valor1}</b></label>
         <div style="width: 70%; text-align: left;">${valor2}</div>
     </div>`
-
+*/
 const modeloCampos = (valor1, elemento) => `
     <div style="${horizontal}; justify-content: start; gap: 5px;">
         <label><b>${valor1}:</b></label>
         <div style="text-align: justify;">${elemento}</div>
     </div>`
-
-const botao = (texto, funcao, bgColor) => `<button style="background-color: ${bgColor}" onclick="${funcao}">${texto}</button>`
 
 const botaoImg = (img, funcao) => `
     <div class="botaoImg">
@@ -59,8 +58,6 @@ const btn = ({ img, nome, funcao, id, elemento }) => `
         <div>${nome}</div>
     </div>
 `
-
-telaLogin()
 
 function pesquisarGenerico(coluna, texto, tbody = 'body') {
 
@@ -197,7 +194,7 @@ async function capturarLocalizacao() {
 
 function irGCS() {
     localStorage.setItem('app', 'GCS')
-    window.location.href = 'index.html'
+    telaInicial()
 }
 
 async function telaPrincipal() {
@@ -207,29 +204,28 @@ async function telaPrincipal() {
 
     atribuirVariaveis()
 
+    cUsuario.style.display = 'none'
+    toolbar.style.display = ''
     toolbar.style.display = 'flex'
+
     const planoFundo = `
         <div class="planoFundo">
             <img src="gifs/loading.gif" style="width: 8rem;">
         </div>`
 
-    const acumulado = `
-        <div class="menu-container">
-            <div class="side-menu">
-                <div class="progresso"></div>
-                <div class="botoesMenu"></div>
-            </div>
-            <div class="telaInterna">
-                ${planoFundo}
-            </div>
+    const bMenus = `
+        <div class="progresso"></div>
+        <div class="botoesMenu"></div>
+    `
+    const tInterna = `
+        <div class="telaInterna">
+            ${planoFundo}
         </div>
     `
-
+    tela.innerHTML = tInterna
     telaInterna = document.querySelector('.telaInterna')
-    if (!telaInterna) tela.innerHTML = acumulado
-
-    telaInterna = document.querySelector('.telaInterna')
-    telaInterna.innerHTML = planoFundo
+    document.querySelector('.side-menu').innerHTML = bMenus
+    carregarMenus()
 
     mostrarMenus(false)
 
@@ -443,7 +439,7 @@ async function telaUsuarios() {
 async function atualizarUsuarios() {
 
     await sincronizarDados({ base: 'dados_setores' })
-    await sincronizarDados({ base: 'empresas'})
+    await sincronizarDados({ base: 'empresas' })
     await telaUsuarios()
 
 }

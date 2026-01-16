@@ -114,9 +114,9 @@ async function telaPagamentos() {
     const acumulado = `
         <div class="divPagamentos">
 
-            <div class="painelEsquerdo" style="min-width: 200px;"></div>
+            <div class="painelEsquerdo"></div>
 
-            <div style="${vertical}; width: 100%;">
+            <div class="painelDireito">
                 <div class="painelBotoes"></div>
                 <div class="div-tabela">
                     <table id="pagamentos" class="tabela">

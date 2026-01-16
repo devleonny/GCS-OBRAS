@@ -100,142 +100,102 @@ function criarMenus(chave) {
     menus.innerHTML = atalhosString
 }
 
+const atalhoInicial = {
+    nome: 'Menu Inicial',
+    funcao: 'telaInicial',
+    img: 'LG'
+}
+
 const esquemaBotoes = {
     inicial: [
         { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'projeto' },
         { nome: 'Composições', funcao: `telaComposicoes`, img: 'composicoes' },
+        { nome: 'Clientes & Fornecedores', funcao: `telaClientes`, img: 'projeto' },
         { nome: 'Chamados', funcao: `telaChamados`, img: 'chamados' },
         { nome: 'Veículos', funcao: `telaVeiculos`, img: 'veiculo' },
         { nome: 'Reembolsos', funcao: `telaPagamentos`, img: 'reembolso' },
         { nome: 'Estoque', funcao: `telaEstoque`, img: 'estoque' },
         { nome: 'Faturamento NFs', funcao: `telaRelatorio`, img: 'relatorio' },
         { nome: 'RH', funcao: `telaRH`, img: 'gerente' },
-        { nome: 'Ocorrências', funcao: `redirecionarChamados`, img: 'LG' },
+        { nome: 'Ocorrências', funcao: `telaPrincipal`, img: 'LG' },
         { nome: 'Desconectar', funcao: `deslogarUsuario`, img: 'sair' }
     ],
     criarOrcamentos: [
-        { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
+        atalhoInicial,
         { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
         { nome: 'Salvar Orçamento', funcao: `enviarDadosOrcamento`, img: 'salvo' },
         { nome: 'Apagar Orçamento', funcao: `apagarOrcamento`, img: 'cancel' },
         { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'voltar_2' }
     ],
     criarOrcamentosAluguel: [
-        { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
+        atalhoInicial,
         { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
         { nome: 'Salvar Orçamento', funcao: `enviarDadosAluguel`, img: 'salvo' },
         { nome: 'Apagar Orçamento', funcao: `apagarOrcamentoAluguel`, img: 'cancel' },
         { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'voltar_2' }
     ],
     orcamentos: [
-        { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
+        atalhoInicial,
         { nome: 'Atualizar', funcao: 'atualizarOrcamentos', img: 'atualizar' },
         { nome: 'Baixar em Excel', funcao: 'excelOrcamentos', img: 'excel' },
         { nome: 'Criar Orçamento', funcao: 'telaCriarOrcamento', img: 'projeto' },
         { nome: 'Orçamento de Aluguel', funcao: 'telaCriarOrcamentoAluguel', img: 'projeto' }
     ],
     composicoes: [
-        { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
+        atalhoInicial,
         { nome: 'Atualizar', funcao: 'atualizarComposicoes', img: 'atualizar' },
         { nome: 'Cadastrar Item', funcao: 'cadastrarItem', img: 'baixar' },
         { nome: 'Baixar em Excel', funcao: 'exportarParaExcel', img: 'excel' },
         { nome: 'Filtrar Campos', funcao: 'abrirFiltros', img: 'pesquisar2' }
     ],
     chamados: [
-        { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
+        atalhoInicial,
         { nome: 'Atualizar', funcao: 'atualizarManutencoes', img: 'atualizar' },
         { nome: 'Criar Manutenção', funcao: 'criarManutencao', img: 'chamados' },
         { nome: 'Baixar em Excel', funcao: 'excelChamados', img: 'excel' }
     ],
     veiculos: [
-        { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
+        atalhoInicial,
         { nome: 'Atualizar', funcao: 'atualizarDadosVeiculos', img: 'atualizar' },
         { nome: 'Adicionar Combustível', funcao: 'painelValores', img: 'combustivel' },
         { nome: 'Motoristas', funcao: 'auxMotoristas', img: 'motorista' },
         { nome: 'Veículos', funcao: 'auxVeiculos', img: 'veiculo' },
     ],
     pagamentos: [
-        { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
+        atalhoInicial,
         { nome: 'Atualizar', funcao: 'recuperarPagamentos', img: 'atualizar' },
         { nome: 'Solicitar Pagamento', funcao: 'formularioPagamento', img: 'pagamento' }
     ],
     estoque: [
-        { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
+        atalhoInicial,
         { nome: 'Atualizar', funcao: 'atualizarEstoque', img: 'atualizar' },
         { nome: 'Cadastrar Item', funcao: 'incluirItemEstoque', img: 'baixar' },
         { nome: 'Relatório de Movimentos', funcao: 'relatorioMovimento', img: 'projeto' },
         { nome: 'Baixar em Excel', funcao: `exportarParaExcel`, img: 'excel' },
     ],
     relatorio: [
-        { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
+        atalhoInicial,
         { nome: 'Atualizar', funcao: 'atualizarRelatorio', img: 'atualizar' },
         { nome: 'Baixar em Excel', funcao: 'excelRecebimento', img: 'excel' },
         { nome: 'Limpar Filtros', funcao: 'limparFiltros', img: 'limpar' },
     ],
     rh: [
-        { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
+        atalhoInicial,
         { nome: 'Atualizar', funcao: 'telaRH', img: 'atualizar' },
         { nome: 'Tabela', funcao: 'telaRHTabela', img: 'todos' },
         { nome: 'Baixar em Excel', funcao: 'rhExcel', img: 'excel' },
         { nome: 'Adicionar Local', funcao: 'adicionarPessoa', img: 'baixar' }
     ],
     agenda: [
-        { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
+        atalhoInicial,
         { nome: 'Atualizar', funcao: 'atualizarAgenda', img: 'atualizar' },
         { nome: 'Distribuição por Funcionário', funcao: 'distribuicaoFuncionario', img: 'gerente' },
         { nome: 'Novo Funcionário', funcao: 'abrirOpcoes', img: 'baixar' },
-    ]
-}
-
-identificacaoUser()
-
-async function despoluicaoGCS() {
-
-    overlayAguarde(true)
-
-    const divMensagem = document.querySelector('.div-mensagem')
-
-    divMensagem.innerHTML = `
-        <div style="${vertical}; gap: 1vh;">
-            <label>GCS: Por favor, aguarde...</label>
-            <br>
-            
-            <div id="logs" style="${vertical}; gap: 1vh;"></div>
-        </div>
-    `
-
-    const logs = document.getElementById('logs')
-
-    logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
-
-    const bases = [
-        'hierarquia',
-        'tags',
-        'tags_orcamentos',
-        'departamentos_AC',
-        'dados_orcamentos',
-        'custo_veiculos',
-        'motoristas',
-        'veiculos',
-        'dados_composicoes',
-        'dados_clientes',
-        'lista_pagamentos',
-        'dados_manutencao',
-        'dados_categorias_AC',
-        'dados_estoque',
-        'pessoas'
-    ]
-
-    for (const base of bases) {
-        await sincronizarDados({ base, resetar: true })
-        logs.insertAdjacentHTML('beforeend', `<label>Sincronizando: ${base}</label>`)
-    }
-
-    localStorage.setItem('atualizado', true)
-    tela.innerHTML = ''
-    await telaInicial()
-    removerOverlay()
-
+    ],
+    ...( acesso.permissao == 'adm' ? {clientes: [
+        atalhoInicial,
+        { nome: 'Novo cadastro', funcao: 'formularioCliente', img: 'baixar' },
+    ]} : {})
 }
 
 async function salvarDepartamento(img) {
@@ -265,84 +225,6 @@ async function respostaSincronizacao(script) {
     const resposta = await sincronizar(script)
 
     localResposta.innerHTML = resposta.status
-
-}
-
-async function identificacaoUser() {
-
-    const bloq = ['cliente', 'técnico', 'visitante']
-
-    if (document.title !== 'GCS') return
-
-    acesso = JSON.parse(localStorage.getItem('acesso'))
-
-    if (document.title == 'Política de Privacidade') return
-    if ((acesso && bloq.includes(acesso.permissao)) || !acesso) return retornar()
-
-    const toolbar = `
-        <div class="toolbar-top">
-            <div style="${horizontal}; gap: 0.5rem;">
-                <span class="menu" onclick="mostrarMenus('toggle')">☰</span>
-                <span name="titulo"></span>
-            </div>
-            <div class="interruptor"></div>
-            <div class="baloes-top"></div>
-        </div>
-    `
-
-    document.body.insertAdjacentHTML('beforeend', toolbar)
-
-    dados_setores = await sincronizarDados({ base: 'dados_setores', resetar: true })
-
-    acesso = dados_setores[acesso.usuario]
-
-    if (!acesso || !acesso.permissao || acesso.permissao == 'novo') {
-        localStorage.removeItem('acesso')
-        return retornar()
-    }
-
-    if (acesso.permissao == 'visitante') return redirecionarChamados()
-
-    telaInicial()
-
-    localStorage.setItem('acesso', JSON.stringify(acesso))
-
-    verificarPendencias() // Pendencias de aprovação;
-
-    const modelo = (imagem, funcao, idElemento) => {
-        return `
-        <div onclick="${funcao}" style="${vertical};">
-            <img src="imagens/${imagem}.png">
-            <div id="${idElemento}" style="display: none;" class="labelQuantidade"></div>
-        </div>
-        `
-    }
-
-    const permitidosAprovacoes = ['adm', 'diretoria']
-    const permitidosProdutos = ['LOGÍSTICA', 'SUPORTE', 'FINANCEIRO']
-    const toolbarTop = document.querySelector('.toolbar-top')
-
-    if (!paginasBloqueadas.includes(document.title) && acesso.usuario) {
-
-        const barraStatus = `
-            <div class="cabecalhoUsuario">
-                <div id="divUsuarios"></div>
-
-                ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
-                ${permitidosAprovacoes.includes(acesso.permissao) ? modelo('construcao', 'configs()', '') : ''}
-                ${permitidosProdutos.includes(acesso.setor) ? modelo('preco', 'precosDesatualizados()', 'contadorProdutos') : ''}
-
-                <img title="Abrir mais 1 aba" src="imagens/aba.png" onclick="maisAba()">
-
-            </div>
-        `
-        const cabecalhoUsuario = document.querySelector('.cabecalhoUsuario')
-        if (cabecalhoUsuario) return cabecalhoUsuario.innerHTML = barraStatus
-        toolbarTop.insertAdjacentHTML('beforeend', barraStatus)
-    }
-
-    usuariosToolbar()
-    precosDesatualizados(true) //Atualiza apenas a quantidade;
 
 }
 

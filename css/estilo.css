@@ -54,10 +54,6 @@ img {
     margin-top: 5rem;
 }
 
-.tela {
-    margin-top: 7vh;
-}
-
 .contador {
     display: flex;
     align-items: center;
@@ -243,14 +239,6 @@ img {
     width: 2rem;
 }
 
-input,
-textarea {
-    display: block;
-    padding: 1vw;
-    margin: 1vw 0;
-    border: none;
-}
-
 .painel-recuperacao {
     display: flex;
     flex-direction: column;
@@ -422,57 +410,6 @@ button {
 .botaoPopup label {
     cursor: pointer;
     color: white;
-}
-
-.blocoTabela {
-    min-width: 20rem;
-    width: 100%;
-    display: flex;
-    align-items: start;
-    justify-content: start;
-    flex-direction: column;
-}
-
-.recorteTabela {
-    width: 100%;
-    height: max-content;
-    max-height: 65vh;
-    overflow: auto;
-}
-
-.tabela {
-    width: 100%;
-    background-color: white;
-    border-collapse: collapse;
-}
-
-.tabela thead input {
-    width: 100%;
-}
-
-.tabela th {
-    font-weight: lighter;
-    border: solid 1px #d2d2d2;
-    color: #222;
-    padding: 8px;
-}
-
-.tabela td {
-    text-align: left;
-    padding: 8px;
-    border: 1px solid #d2d2d2;
-}
-
-.tabela span {
-    margin-left: 10px;
-    text-align: left;
-}
-
-.tabela thead {
-    position: sticky;
-    top: 0;
-    box-shadow: 0 1px 0 #ccc;
-    background-color: #f1f1f1;
 }
 
 .btnLateral {
@@ -726,22 +663,6 @@ input[type="file"] {
     padding: 0.5rem;
 }
 
-.toolbar-top {
-    min-height: 6vh;
-    display: flex;
-    align-items: center;
-    justify-content: start;
-    background-color: #222222ec;
-    width: 100%;
-    position: fixed;
-    left: 0;
-    z-index: 333;
-}
-
-.toolbar-top span {
-    color: white;
-}
-
 .botaoImg {
     display: flex;
     align-items: center;
@@ -935,11 +856,6 @@ screen and (min-aspect-ratio: 13/9) {
         gap: 2vw;
     }
 
-    input {
-        padding: 0.2rem;
-        margin: 0.2rem 0;
-    }
-
     .baixoLogin {
         flex-direction: row;
     }
@@ -953,10 +869,6 @@ screen and (min-aspect-ratio: 13/9) {
     .btnExcel {
         gap: 10vw;
         display: flex;
-    }
-
-    .recorteTabela {
-        max-height: 70vh;
     }
 
     .camposCadastro {

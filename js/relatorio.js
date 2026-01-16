@@ -48,7 +48,7 @@ async function telaRelatorio() {
 
     const acumulado = `
         <div class="pagina-relatorio">
-            <div class="toolbar-relatorio">
+            <div class="toolbar-relatorio-ocorrencias">
 
                 <img src="imagens/GrupoCostaSilva.png" style="width: 10rem;">
 
@@ -544,7 +544,7 @@ async function telaRelatorioCorrecoes() {
 
     const acumulado = `
         <div class="pagina-relatorio">
-            <div class="toolbar-relatorio">
+            <div class="toolbar-relatorio-ocorrencias">
 
                 <img src="imagens/GrupoCostaSilva.png" style="width: 10rem;">
 

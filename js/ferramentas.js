@@ -93,6 +93,7 @@ link.href = 'imagens/LG.png';
 document.head.appendChild(link);
 
 function atribuirVariaveis() {
+    cUsuario = document.querySelector('.cabecalho-usuario')
     toolbar = document.querySelector('.toolbar-top')
     titulo = toolbar.querySelector(`[name="titulo"]`)
     menus = document.querySelector('.side-menu')
@@ -420,16 +421,7 @@ function sair() {
     mostrarMenus(false)
 
     localStorage.removeItem('acesso')
-    retornar()
-}
-
-function redirecionarChamados() {
-    localStorage.setItem('app', '')
-    window.location.href = 'chamados.html'
-}
-
-function retornar() {
-    window.location.href = 'chamados.html'
+    telaLogin()
 }
 
 function mostrarMenus(operacao) {

@@ -4,7 +4,6 @@ let auxiliarFaturamento = {}
 let pAtual = 1
 const itensPorPagina = 100
 let tPaginas = 1
-const baloes = document.querySelector('.baloes-top')
 let orcsFiltrados = {}
 let orcsHierarquia = {}
 const stLista = [
@@ -273,23 +272,6 @@ function salvarFiltrosApp() {
     telaOrcamentos()
     removerPopup()
 
-}
-
-function mudarInterruptor(toggle) {
-
-    const label = toggle.closest('label')
-    const track = label.querySelector('.track')
-    const thumb = label.querySelector('.thumb')
-
-    if (!track || !thumb) return
-
-    if (toggle.checked) {
-        track.style.backgroundColor = "#4caf50"
-        thumb.style.transform = "translateX(26px)"
-    } else {
-        track.style.backgroundColor = "#ccc"
-        thumb.style.transform = "translateX(0)"
-    }
 }
 
 function scrollar(direcao) {

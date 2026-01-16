@@ -6,9 +6,12 @@ async function telaLogin() {
 
     if (acesso) {
         app = localStorage.getItem('app')
-        if (app == 'GCS') return window.location.href = 'index.html'
+        if (app == 'GCS') return telaInicial()
         return await telaPrincipal()
     }
+
+    const tLogin = document.querySelector('.loginBloco')
+    if (tLogin) return
 
     toolbar.style.display = 'none'
 
@@ -102,7 +105,7 @@ async function acessoLogin() {
                 localStorage.setItem('app', app)
                 localStorage.setItem('acesso', JSON.stringify(data))
 
-                if (app == 'GCS') return window.location.href = 'index.html'
+                if (app == 'GCS') return telaInicial()
 
                 await resetarTudo()
                 await telaPrincipal()

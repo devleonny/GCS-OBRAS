@@ -20,16 +20,6 @@ img {
     cursor: pointer;
 }
 
-.gatilhos-interruptor {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.gatilhos-interruptor span {
-    color: white;
-}
-
 .track {
     position: absolute;
     top: 0;
@@ -58,7 +48,7 @@ img {
     justify-content: center;
     flex-direction: column;
     min-width: 100%;
-    margin: 5vh;
+    margin-top: 10vh;
 }
 
 .btnLateral {
@@ -202,7 +192,7 @@ span[name="titulo"] {
     flex-direction: column;
 }
 
-.cabecalhoUsuario {
+.cabecalho-usuario {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -211,11 +201,11 @@ span[name="titulo"] {
     border-radius: 15px;
 }
 
-.cabecalhoUsuario img {
+.cabecalho-usuario img {
     width: 2rem;
 }
 
-.cabecalhoUsuario label {
+.cabecalho-usuario label {
     font-size: 0.8rem;
 }
 
@@ -547,6 +537,12 @@ span[name="titulo"] {
     transition: 0.2s ease-in-out;
     border-radius: 3px;
     background-color: #4a4949;
+}
+
+.recorteTabela {
+    min-width: 300px;
+    overflow: auto;
+    max-height: 70vh;
 }
 
 .rodape-tabela {
@@ -1837,8 +1833,7 @@ input[type=range]::-moz-range-thumb {
     min-width: 100%;
     background-color: white;
     border-collapse: collapse;
-    table-layout: fixed;
-    font-size: 0.7rem;
+    font-size: 0.8rem;
 }
 
 .tabela thead input {
@@ -1846,9 +1841,9 @@ input[type=range]::-moz-range-thumb {
 }
 
 .tabela th {
+    background-color: #efefef;
     font-weight: lighter;
     border: solid 1px #d2d2d2;
-    color: #222;
     padding: 8px;
 }
 
@@ -2269,4 +2264,9 @@ input[type="file"]#input-anexos:hover {
     padding: 3px;
 }
 
-@media screen and (orientation: portrait) {}
+@media screen and (orientation: portrait) {
+
+    .blocoTabela {
+        width: 98%;
+    }
+}

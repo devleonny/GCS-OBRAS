@@ -545,7 +545,7 @@ function renderizarPaginacao() {
 
     const totalPaginas = Math.ceil(Object.keys(base).length / limitePorPagina)
 
-    document.querySelector('.paginacao').innerHTML = `
+    document.querySelector('.paginacao-ocorrencias').innerHTML = `
     <img src="imagens/esq.png" onclick="renderizarPagina(${paginaAtual - 1})">
     <img src="imagens/dir.png" onclick="renderizarPagina(${paginaAtual + 1})">
     <span style="white-space: nowrap;">${paginaAtual} de ${totalPaginas}</span>
@@ -652,7 +652,7 @@ async function renderizarPagina(pagina) {
         return contadorPagina.innerHTML = `<div onclick="limparFiltros()" style="${horizontal}; gap: 1rem; cursor: pointer;"><span>Sem resultados</span> • <span>Limpar</span></div>`
 
     // Lançamento das linhas na página;
-    for (const dados of fatia) { 
+    for (const dados of fatia) {
         const { partes } = dados
         tabela.insertAdjacentHTML('beforeend', partes)
     }
@@ -715,7 +715,7 @@ async function telaOcorrencias(apenasObjeto = false) {
             <div class="painelBotoes">
                 <div class="topo-ocorrencias">
                     <div style="${vertical};">
-                        <div class="paginacao"></div>
+                        <div class="paginacao-ocorrencias"></div>
                         <span id="contador"></span>
                     </div>
                     <div class="filtros"></div>
@@ -793,6 +793,12 @@ function auxPendencias() {
 async function atualizarOcorrencias(resetar = false) {
 
     if (emAtualizacao) return
+
+    if (!tela) {
+        await telaPrincipal()
+        return await atualizarOcorrencias()
+    }
+
     mostrarMenus(true)
 
     emAtualizacao = true

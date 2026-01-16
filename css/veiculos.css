@@ -91,16 +91,6 @@
     width: 90vw;
 }
 
-.botoes {
-    cursor: pointer;
-    text-align: center;
-    margin: 2px;
-    color: white;
-    background-color: #222;
-    padding: 5px;
-    border-radius: 3px;
-}
-
 .botoes label {
     white-space: nowrap;
     font-size: 1.0vw;
