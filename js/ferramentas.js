@@ -413,13 +413,14 @@ function deslogarUsuario() {
         `, 'Tem certeza?')
 }
 
-function sair() {
-    indexedDB.deleteDatabase(nomeBaseCentral)
+async function sair() {
+    await resetarTudo()
     removerPopup()
-    const toolbar = document.querySelector('.toolbar-top')
-    if (toolbar) toolbar.remove()
-    mostrarMenus(false)
 
+    toolbar.style.display = 'none'
+    mostrarMenus(false)
+    
+    acesso = null
     localStorage.removeItem('acesso')
     telaLogin()
 }

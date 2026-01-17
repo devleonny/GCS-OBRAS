@@ -53,17 +53,23 @@ function connectWebSocket() {
             if (data.validado == 'Sim') {
                 status('online')
 
-                if (app == 'GCS') return
-                // Seguir este fluxo apenas em Ocorrências;
-                listaOcorrencias = {}
-                await atualizarOcorrencias()
+                if (app == 'GCS') {
+                    await telaInicial()
+                    removerOverlay()
+                } else {
+                    // Seguir este fluxo apenas em Ocorrências;
+                    listaOcorrencias = {}
+                    await atualizarOcorrencias()
 
-                // Recuperar Filtros;
-                filtrosAtivos = JSON.parse(localStorage.getItem('filtrosAtivos')) || {}
+                    // Recuperar Filtros;
+                    filtrosAtivos = JSON.parse(localStorage.getItem('filtrosAtivos')) || {}
+                }
 
             } else {
 
                 if (app == 'GCS') {
+                    await telaInicial()
+                    removerOverlay()
                     status('online')
                     return
                 }

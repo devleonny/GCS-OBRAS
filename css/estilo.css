@@ -239,6 +239,13 @@ img {
     width: 2rem;
 }
 
+.telaInterna {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .painel-recuperacao {
     display: flex;
     flex-direction: column;
@@ -555,6 +562,8 @@ input[type="file"] {
 
 .tela-usuarios {
     display: flex;
+    justify-content: center;
+    align-items: center;
     width: 95vw;
 }
 

@@ -105,12 +105,8 @@ async function acessoLogin() {
                 localStorage.setItem('app', app)
                 localStorage.setItem('acesso', JSON.stringify(data))
 
-                if (app == 'GCS') return telaInicial()
+                await connectWebSocket()
 
-                await resetarTudo()
-                await telaPrincipal()
-                connectWebSocket()
-                removerOverlay()
             }
         } catch (e) {
             divAcesso.style.display = 'flex'

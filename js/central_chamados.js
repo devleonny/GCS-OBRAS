@@ -465,7 +465,9 @@ async function gerenciarUsuario(id) {
 
     const usuario = await recuperarDado('dados_setores', id)
 
-    const empresasOpcoes = Object.entries({ '': { nome: '' }, ...empresas }).sort()
+    const empresasOpcoes = Object
+        .entries({ '': { nome: '' }, ...empresas })
+        .sort(([, a], [, b]) => a.nome.localeCompare(b.nome))
         .map(([id, empresa]) => `<option value="${id}" ${usuario?.empresa == id ? 'selected' : ''}>${empresa.nome}</option>`)
         .join('')
 

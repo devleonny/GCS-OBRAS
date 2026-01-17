@@ -1067,6 +1067,8 @@ async function verificarPendencias() {
     if (!navigator.onLine) return
 
     dados_orcamentos = await sincronizarDados({ base: 'dados_orcamentos' })
+    tags_orcamentos = await sincronizarDados({ base: 'tags_orcamentos' })
+    dados_clientes = await sincronizarDados({ base: 'dados_clientes' })
 
     let contador = 0
 
