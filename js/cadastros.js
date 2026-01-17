@@ -6,8 +6,6 @@ async function telaCadastros() {
 
     mostrarMenus(false)
 
-    titulo.textContent = 'Cadastros'
-
     const acumulado = `
     <div class="tabela-cadastro">
         <div class="tabela-cadastro-recorte"></div>

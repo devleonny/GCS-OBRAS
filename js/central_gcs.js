@@ -87,7 +87,7 @@ async function executar(nomeFuncao) {
 
 function criarMenus(chave) {
     telaAtiva = chave
-
+    const botoesMenu = document.querySelector('.botoesMenu')
     const atalhos = esquemaBotoes[chave]
     let atalhosString = `
         <div class="nomeUsuario">
@@ -97,7 +97,10 @@ function criarMenus(chave) {
 
     for (const atalho of atalhos) atalhosString += criarAtalhoMenu(atalho)
 
-    menus.innerHTML = atalhosString
+    botoesMenu.innerHTML = `
+    <div style="margin-top: 7rem;"></div>
+    ${atalhosString}
+    `
 }
 
 const atalhoInicial = {
@@ -110,9 +113,7 @@ const esquemaBotoes = {
     inicial: [
         { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'projeto' },
         { nome: 'Composições', funcao: `telaComposicoes`, img: 'composicoes' },
-        /*
-        { nome: 'Clientes & Fornecedores', funcao: `telaClientes`, img: 'projeto' }
-            */
+        { nome: 'Clientes & Fornecedores', funcao: `telaClientes`, img: 'editar3' },
         { nome: 'Chamados', funcao: `telaChamados`, img: 'chamados' },
         { nome: 'Veículos', funcao: `telaVeiculos`, img: 'veiculo' },
         { nome: 'Reembolsos', funcao: `telaPagamentos`, img: 'reembolso' },
@@ -197,6 +198,7 @@ const esquemaBotoes = {
     clientes: [
         atalhoInicial,
         { nome: 'Novo cadastro', funcao: 'formularioCliente', img: 'baixar' },
+        { nome: 'Atualizar', funcao: 'atualizarClientes', img: 'atualizar' },
     ]
 }
 
@@ -1072,11 +1074,15 @@ async function verificarPendencias() {
 
     let contador = 0
 
-    for ([idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
-        if (orcamento.aprovacao && orcamento.aprovacao.status == 'pendente') contador++
+    for (const orcamento of Object.values(dados_orcamentos)) {
+        if (orcamento.aprovacao && orcamento.aprovacao.status == 'pendente') {
+            console.log(orcamento);
+
+            contador++
+        }
     }
 
-    let contadorPendencias = document.getElementById('contadorPendencias')
+    const contadorPendencias = document.getElementById('contadorPendencias')
     if (contadorPendencias) {
         contadorPendencias.style.display = contador == 0 ? 'none' : 'flex'
         contadorPendencias.textContent = contador
@@ -1414,7 +1420,8 @@ async function painelClientes(idOrcamento) {
                     name="cliente" 
                     ${bloq ? '' : `onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'bairro', 'cnpj'], 'buscarDadosCliente()')"`}>
                         ${cliente?.nome || 'Selecione'}
-                    </span>
+                </span>
+                ${bloq ? '' : `<img onclick="formularioCliente()" src="imagens/baixar.png">`}
             </div>
             ` },
         {
@@ -1773,7 +1780,6 @@ async function criarDepDiretamente(nome) {
         return { mensagem: error.messagem || error.mensage || error }
     }
 }
-
 
 // natal() 
 

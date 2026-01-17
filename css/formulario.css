@@ -62,7 +62,7 @@
 
 /* Botões */
 .botoes-rodape {
-    flex: 1 1 120px;
+    flex: 1 1 100px;
     cursor: pointer;
     padding: 5px;
     background-color: #d2d2d2;

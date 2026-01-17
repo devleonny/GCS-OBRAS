@@ -50,7 +50,6 @@ const mensagem = (mensagem, imagem = 'gifs/alerta.gif') => `
 const appBases = {
     'GCS': [
         'hierarquia',
-        'tags',
         'tags_orcamentos',
         'departamentos_AC',
         'dados_orcamentos',

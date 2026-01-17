@@ -204,20 +204,19 @@ async function recuperarDado(nomeBase, id) {
 async function sincronizarDados({ base, overlay = false, resetar = false, filtro = {} }) {
 
     if (overlay) overlayAguarde()
-
     if (base === 'hierarquia') resetar = true
 
     const local = resetar ? {} : await recuperarDados(base) || {}
     const nuvem = await receber(base) || {}
 
-    const combinado = { ...local, ...nuvem }
+    let combinado = { ...local, ...nuvem }
 
-    await inserirDados({}, base, true)
-
-    let filtrado = combinado
+    combinado = Object.fromEntries(
+        Object.entries(combinado).filter(([_, obj]) => !obj?.excluido)
+    )
 
     if (Object.keys(filtro).length) {
-        filtrado = Object.fromEntries(
+        combinado = Object.fromEntries(
             Object.entries(combinado).filter(([_, obj]) =>
                 Object.entries(filtro).every(([campo, valor]) =>
                     obj?.[campo] === valor
@@ -226,11 +225,12 @@ async function sincronizarDados({ base, overlay = false, resetar = false, filtro
         )
     }
 
-    await inserirDados(filtrado, base)
+    await inserirDados({}, base, true)
+    await inserirDados(combinado, base)
 
     if (overlay) removerOverlay()
 
-    return filtrado
+    return combinado
 }
 
 // SERVIÇO DE ARMAZENAMENTO 

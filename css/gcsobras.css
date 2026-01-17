@@ -64,40 +64,6 @@ img {
     background-color: #f3f3f3;
 }
 
-.side-menu {
-    padding-top: 4rem;
-    position: fixed;
-    top: 0;
-    left: -250px;
-    width: 250px;
-    height: 100%;
-    background: #222222ec;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
-    transition: 0.3s;
-    z-index: 200;
-    overflow: auto;
-    display: flex;
-    align-items: center;
-    justify-content: start;
-    flex-direction: column;
-    gap: 1px;
-    overflow-y: auto;
-}
-
-.side-menu::-webkit-scrollbar {
-    display: none;
-}
-
-.side-menu img {
-    cursor: pointer;
-    margin-left: 0.8rem;
-    width: 2rem;
-}
-
-.side-menu.active {
-    left: 0;
-}
-
 .menu {
     margin-left: 0.8rem;
     cursor: pointer;
@@ -542,7 +508,7 @@ span[name="titulo"] {
 .recorteTabela {
     min-width: 300px;
     overflow: auto;
-    max-height: 70vh;
+    max-height: 65vh;
 }
 
 .rodape-tabela {

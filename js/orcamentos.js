@@ -111,6 +111,15 @@ async function rstTelaOrcamentos() {
     await telaOrcamentos()
 }
 
+function confirmarPesquisa(e, coluna, el) {
+    if (e?.key && e.key !== 'Enter') return
+
+    if (e) e.preventDefault()
+
+    const termo = el.textContent.replace(/\n/g, '').trim().toLowerCase()
+    renderizar(coluna, termo)
+}
+
 async function telaOrcamentos() {
 
     // Inicializar filtros;
@@ -130,33 +139,29 @@ async function telaOrcamentos() {
 
     hierarquia = await recuperarDados('hierarquia')
 
-    const colunasCFiltro = ['status', 'tags', 'chamado', 'cidade', 'valor']
+    const fOn = ['status', 'tags', 'contrato', 'responsaveis', 'cidade', 'valor']
     const cabecs = ['data', 'status', 'pedido', 'notas', 'tags', 'contrato', 'cidade', 'responsaveis', 'indicadores', 'valor', 'ações']
     const filtrosOff = ['status', 'ações', 'indicadores']
 
     const ths = cabecs
-        .map((cab, i) => {
-            const filtroIcone = colunasCFiltro.includes(cab)
-                ? `<img src="imagens/filtro.png" style="width:1rem; cursor:pointer;" onclick="ordenarOrcamentos('${i}')">`
-                : ''
+        .map((th, i) => `
+            <th>
+                <div style="${horizontal}; width: 100%; justify-content: space-between;">
+                    <span>${inicialMaiuscula(th)}</span>    
+                    ${fOn.includes(th) ? `<img onclick="ordenarOrcamentos(${i})" src="imagens/filtro.png" style="width: 1rem;">` : ''}
+                </div>
+            </th>
+            `
+        )
+        .join('')
 
-            const pesquisaCampo = !filtrosOff.includes(cab)
-                ? `<input class="p-orcamento"
-                    name="${cab}"
-                    onkeydown="if(event.key==='Enter') renderizar('${cab}', this.value)">`
-                : `<input readOnly class="p-orcamento">`
-
-            return `
-                <th style="padding: 0px;">
-                    <div class="th-wrap">
-                        <div style="${horizontal}; gap:1rem;">
-                            <span>${inicialMaiuscula(cab)}</span>
-                            ${filtroIcone}
-                        </div>
-                        ${pesquisaCampo}
-                    </div>
-                </th>`
-        })
+    const pesquisa = cabecs
+        .map(th => `<th 
+                    style="background-color: white; text-align: left;"
+                    name="${th}"
+                    onkeydown="confirmarPesquisa(event, '${th}', this)"
+                    onblur="confirmarPesquisa(null, '${th}', this)"
+                    contentEditable="${!filtrosOff.includes(th)}"></th>`)
         .join('')
 
 
@@ -176,6 +181,7 @@ async function telaOrcamentos() {
                 <table class="tabela">
                     <thead style="box-shadow: 0px 0px 2px #222;">
                         <tr>${ths}</tr>
+                        <tr>${pesquisa}</tr>
                     </thead>
                     <tbody id="linhas"></tbody>
                 </table>

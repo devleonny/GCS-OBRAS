@@ -648,13 +648,16 @@ async function formularioPagamento() {
         {
             texto: 'Recebedor',
             elemento: `
-            <span 
-            class="opcoes" 
-            name="recebedor"
-            ${codigo_cliente_fornecedor ? `id="${codigo_cliente_fornecedor}"` : ''}
-            onclick="cxOpcoes('recebedor', 'dados_clientes', ['nome', 'cnpj'], 'calculadoraPagamento()')">
-                ${nome}
-            </span>
+            <div style="${horizontal}; gap: 1rem;">
+                <span 
+                class="opcoes" 
+                name="recebedor"
+                ${codigo_cliente_fornecedor ? `id="${codigo_cliente_fornecedor}"` : ''}
+                onclick="cxOpcoes('recebedor', 'dados_clientes', ['nome', 'cnpj'], 'calculadoraPagamento()')">
+                    ${nome}
+                </span>
+                <img onclick="formularioCliente()" src="imagens/baixar.png">
+            </div>
             `
         },
         {

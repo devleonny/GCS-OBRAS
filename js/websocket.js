@@ -1,6 +1,7 @@
 let socket;
 let reconnectInterval = 30000;
 let emAtualizacao = false
+let primeiraExecucao = true
 connectWebSocket()
 
 function connectWebSocket() {
@@ -48,15 +49,20 @@ function connectWebSocket() {
             return
         }
 
-        if (data.validado) {
+        if (data.validado) { // Resetar ao receber atualizações de usuário;
 
             if (data.validado == 'Sim') {
                 status('online')
 
                 if (app == 'GCS') {
-                    await telaInicial()
-                    removerOverlay()
+
+                    if (primeiraExecucao) {
+                        await telaInicial()
+                        primeiraExecucao = false
+                    }
+
                 } else {
+
                     // Seguir este fluxo apenas em Ocorrências;
                     listaOcorrencias = {}
                     await atualizarOcorrencias()
@@ -120,7 +126,7 @@ function connectWebSocket() {
 
     socket.onclose = () => {
         status('offline')
-        setTimeout(connectWebSocket, reconnectInterval);
+        setTimeout(connectWebSocket, reconnectInterval)
     }
 
     async function refletir() {
@@ -128,7 +134,6 @@ function connectWebSocket() {
         sOverlay = true
         await executar(funcaoTela)
         sOverlay = false
-
     }
 
 }
@@ -149,7 +154,7 @@ async function identificacaoUser() {
         return telaLogin()
     }
 
-    await telaInicial()
+    if (primeiraExecucao) await telaInicial()
 
 }
 
@@ -179,7 +184,7 @@ async function carregarControles() {
     const cabecalhoUsuario = document.querySelector('.cabecalho-usuario')
     if (cabecalhoUsuario) cabecalhoUsuario.innerHTML = barraStatus
 
-    verificarPendencias() // Pendencias de aprovação;
-    usuariosToolbar()
-    precosDesatualizados(true) //Atualiza apenas a quantidade;
+    await usuariosToolbar()
+    await precosDesatualizados(true) //Atualiza apenas a quantidade;
+    await verificarPendencias() // Pendencias de aprovação;
 }

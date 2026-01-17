@@ -31,52 +31,189 @@ const aEstados = [
 
 let clientesFiltrados = {}
 
-function pesquisarClientesEnter(e, coluna) {
-
+function pesquisarClientes(e, chave) {
     if (e.key !== 'Enter') return
+    if (e.repeat) return
+
     e.preventDefault()
+    e.target.blur()
 
     const termo = e.target.textContent.trim().toLowerCase()
 
-    if (!termo) clientesFiltrados = null
+    if (!chave) return
 
-    clientesFiltrados = Object.fromEntries(
-        Object.entries(dados_clientes).filter(([_, c]) => {
-            const campos = [
-                c.cnpj,
-                c.nome,
-                c.endereco,
-                c.enderecoEntrega?.endereco
-            ]
-            return campos[coluna]?.toLowerCase().includes(termo)
-        })
-    )
+    if (!termo) {
+        delete filtrosPesquisa.clientes[chave]
+    } else {
+        filtrosPesquisa.clientes[chave] = termo
+    }
 
     paginaAtual = 1
     renderizarClientesPagina()
 }
 
 
-async function telaClientes() {
+function aplicarFiltrosClientes() {
+    const filtros = filtrosPesquisa.clientes
 
-    mostrarMenus(false)
+    if (!Object.keys(filtros).length) return dados_clientes
+
+    return Object.fromEntries(
+        Object.entries(dados_clientes).filter(([_, c]) =>
+            Object.entries(filtros).every(([campo, termo]) => {
+                let valor = c?.[campo] || ''
+
+                if (campo === 'empresa') {
+                    valor = empresas?.[c.empresa]?.nome
+                }
+
+                if (campo == 'entrega' || campo == 'cadastro') {
+                    const dados = campo == 'entrega'
+                        ? c.enderecoEntrega || {}
+                        : c
+                    const chaves = ['endereco', 'cep', 'cidade', 'bairro', 'cep']
+                    valor = chaves.map(chave => dados?.[chave] || '').join(' ')
+                }
+
+                return String(valor || '')
+                    .toLowerCase()
+                    .includes(termo)
+            })
+        )
+    )
+}
+
+function checksCliente(inputM) {
+    const inputs = document.querySelectorAll('[name="empresa"]')
+
+    for (const input of inputs) {
+        const tr = input.closest('tr')
+        if (tr.style.display == 'none') continue
+
+        input.checked = inputM.checked
+    }
+}
+
+function classificarUnidades() {
+
+    const inputs = document.querySelectorAll('[name="empresa"]')
+    unidades = []
+
+    for (const input of inputs) {
+        const tr = input.closest('tr')
+        if (tr.style.display == 'none') continue
+        if (!input.checked) continue
+
+        const id = input.dataset.id
+        const nome = input.dataset.nome
+        unidades.push({ id, nome })
+    }
+
+    if (unidades.length == 0) return popup(mensagem('Marque pelo menos 1 unidade'), 'Alerta', true)
+
+    const opcoes = Object.entries(empresas)
+        .sort(([, a], [, b]) => a.nome.localeCompare(b.nome))
+        .map(([idEmpresa, empresa]) => {
+            if (idEmpresa == 0) return ''
+            return `<option value="${idEmpresa}">${empresa.nome}</option>`
+        }).join('')
+
+    const linhas = [
+        {
+            elemento: `
+            <div style="${vertical}; gap: 5px; padding: 0.5rem;">
+                <select id="selectEmp">
+                    <option value=""></option>
+                    ${opcoes}
+                </select>
+                ${unidades.map(u => `<span style="text-align: left; max-width: 30rem;">• ${u.nome}</span>`).join('')}
+            </div>
+            `
+        }
+    ]
+
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: 'vincularEmpresas()' }
+    ]
+
+    const form = new formulario({ linhas, botoes, titulo: `Vincular clientes` })
+    form.abrirFormulario()
+}
+
+async function vincularEmpresas() {
 
     overlayAguarde()
 
-    const colunas = ['CNPJ', 'Nome Fantasia', 'Endereço Cadastro', 'Endereço Entrega', '']
+    const selectEmp = document.getElementById('selectEmp')
+    if (!selectEmp) return
 
-    const ths = colunas.map(col => `<th>${col}</th>`).join('')
-    const pesquisa = colunas
-        .map((col, i) =>
+    const response = await fetch(`${api}/vincular-empresas`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ unidades, empresa: selectEmp.value })
+    })
+
+    let data
+    try {
+        data = await response.json()
+        if (data.mensagem) return popup(mensagem(data.mensagem), 'Alerta', true)
+
+        await sincronizarDados({ base: 'dados_clientes' })
+        await tabelaClientes()
+        removerPopup()
+
+    } catch (e) {
+        return { mensagem: e }
+    }
+
+}
+
+async function telaClientes() {
+
+    filtrosPesquisa.clientes ??= {}
+
+    const bodyClientes = document.getElementById('bodyClientes')
+
+    if (bodyClientes) {
+        renderizarClientesPagina(paginaAtual)
+        return
+    }
+
+    mostrarMenus(false)
+    overlayAguarde()
+
+    dados_clientes = await recuperarDados('dados_clientes')
+    empresas = await recuperarDados('empresas')
+
+    const colunas = {
+        'x': '<input onclick="checksCliente(this)" style="width: 1.5rem; height: 1.5rem;" type="checkbox">',
+        'cnpj': 'CPF / CNPJ',
+        'empresa': 'Empresa',
+        'nome': 'Nome Fantasia',
+        'cadastro': 'Endereço Cadastro',
+        'entrega': 'Endereço Entrega',
+        'y': 'Ações'
+    }
+
+    const ths = Object.values(colunas).map(col => `<th>${col}</th>`).join('')
+    const pesquisa = Object.entries(colunas)
+        .map(([chave,]) =>
             `<th contentEditable="true"
             style="background-color: white; text-align: left;"
-            onkeydown="pesquisarClientesEnter(event, ${i})">
+            onkeydown="pesquisarClientes(event, '${chave}')">
         </th>`
         ).join('')
 
     const acumulado = `
         <div style="${vertical}; width: 95vw;">
-            <div class="topo-tabela"></div>
+            <div class="topo-tabela">
+                <div class="paginacao-clientes"></div>
+                <div style="${horizontal}; margin-left: 3rem; gap: 0.5rem; height: 3rem;">
+                    <img src="imagens/trocar.png" onclick="classificarUnidades()">
+                    <img src="imagens/baixar.png" onclick="formularioCliente()">
+                    <img src="imagens/atualizar.png" onclick="atualizarClientes()">
+                </div>
+            </div>
             <div class="div-tabela">
                 <table class="tabela" id="tabela_composicoes">
                     <thead>
@@ -102,54 +239,63 @@ async function telaClientes() {
 
 }
 
-function criarLinhaCliente(idCliente, cliente) {
+function criarLinhaClienteGCS(idCliente, cliente) {
 
-    const enderecoCadastro = `
+    const { timestamp, nome, cnpj, endereco, bairro, cep, cidade, estado, empresa } = cliente
+    const enderecoEntrega = cliente.enderecoEntrega ?? {}
+
+    const eCadastro = `
         <div style="${vertical}; gap: 1px; text-align: left;">
-            <span><b>Endereço:</b> ${cliente.endereco || ''}</span>
-            <span><b>Bairro:</b> ${cliente.bairro || ''}</span>
-            <span><b>Cep:</b> ${cliente.cep || ''}</span>
-            <span><b>Cidade:</b> ${cliente.cidade || ''}</span>
-            <span><b>Estado:</b> ${cliente.estado || ''}</span>
+            <span><b>Endereço:</b> ${endereco || ''}</span>
+            <span><b>Bairro:</b> ${bairro || ''}</span>
+            <span><b>Cep:</b> ${cep || ''}</span>
+            <span><b>Cidade:</b> ${cidade || ''}</span>
+            <span><b>Estado:</b> ${estado || ''}</span>
         </div>
     `
-    const entrega = cliente.enderecoEntrega || {}
-    const enderecoEntrega = `
+    const eEntrega = `
         <div style="${vertical}; gap: 1px; text-align: left;">
-            <span><b>Endereço:</b> ${entrega.endereco || ''}</span>
-            <span><b>Bairro:</b> ${entrega.bairro || ''}</span>
-            <span><b>Cep:</b> ${entrega.cep || ''}</span>
-            <span><b>Cidade:</b> ${entrega.cidade || ''}</span>
-            <span><b>Estado:</b> ${entrega.estado || ''}</span>
+            <span><b>Endereço:</b> ${enderecoEntrega.endereco || ''}</span>
+            <span><b>Bairro:</b> ${enderecoEntrega.bairro || ''}</span>
+            <span><b>Cep:</b> ${enderecoEntrega.cep || ''}</span>
+            <span><b>Cidade:</b> ${enderecoEntrega.cidade || ''}</span>
+            <span><b>Estado:</b> ${enderecoEntrega.estado || ''}</span>
         </div>
     `
+    const nEmpresa = empresas?.[empresa]?.nome || ''
 
     const tds = `
         <td>
-            ${cliente?.cnpj || ''}
+            <input 
+            data-id="${idCliente}" 
+            data-nome="${nome}" 
+            type="checkbox" 
+            style="width: 1.5rem; height: 1.5rem;" 
+            name="empresa">
         </td>
-        <td>
-            ${cliente?.nome || ''}
-        </td>
-        <td>
-            ${enderecoCadastro}
-        </td>
-        <td>
-            ${enderecoEntrega}
-        </td>
+        <td style="white-space: nowrap;">${cnpj || ''}</td>
+        <td>${nEmpresa}</td>
+        <td style="text-align: left;">${nome || ''}</td>
+        <td>${eCadastro}</td>
+        <td>${eEntrega}</td>
         <td>
             <img src="imagens/pesquisar2.png" onclick="formularioCliente('${idCliente}')">
         </td>
     `
 
     const trExistente = document.getElementById(idCliente)
-    const timestamp = Number(trExistente?.dataset?.timestamp)
-    if (trExistente) {
-        if (cliente.timestamp !== timestamp) trExistente.innerHTML = tds
-        return
-    }
+    if (trExistente) return trExistente.innerHTML = tds
 
-    document.getElementById('bodyClientes').insertAdjacentHTML('beforeend', `<tr data-timestamp="${cliente?.timestamp}" id="${idCliente}">${tds}</tr>`)
+    document.getElementById('bodyClientes').insertAdjacentHTML('beforeend', `<tr data-timestamp="${timestamp}" id="${idCliente}">${tds}</tr>`)
+}
+
+async function atualizarClientes() {
+    overlayAguarde()
+    dados_clientes = await sincronizarDados({ base: 'dados_clientes' })
+    empresas = await sincronizarDados({ base: 'empresas' })
+    renderizarClientesPagina()
+    mostrarMenus(false)
+    removerOverlay()
 }
 
 async function formularioCliente(idCliente) {
@@ -233,27 +379,55 @@ async function formularioCliente(idCliente) {
     ]
 
     const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: idCliente ? `salvarCliente('${idCliente}')` : 'salvarCliente()' }
+        { texto: 'Salvar', img: 'concluido', funcao: idCliente ? `salvarCliente(${idCliente})` : 'salvarCliente()' }
     ]
 
-    const titulo = idCliente ? 'Salvar Cliente' : 'Editar Cliente'
+    if (idCliente) botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirCliente(${idCliente})` })
+
+    const titulo = idCliente
+        ? 'Editar Cliente'
+        : 'Criar Cliente'
 
     const form = new formulario({ linhas, botoes, titulo })
     form.abrirFormulario()
 
 }
 
-function renderizarClientesPagina(pagina = 1) {
+function confirmarExcluirCliente(idCliente) {
+    const acumulado = `
+        <div style="${horizontal}; gap: 0.5rem; background-color: #d2d2d2; padding: 1rem;">
+            <span>Tem certeza que deseja excluir?</span>
+            <button onclick="excluirCliente('${idCliente}')">Confirmar</button>
+        </div>
+    `
 
-    const base = clientesFiltrados || dados_clientes
+    popup(acumulado, 'Exclusão de cliente')
+}
+
+async function excluirCliente(idCliente) {
+
+    removerPopup({ nra: false })
+    overlayAguarde()
+
+    deletar(`dados_clientes/${idCliente}`)
+    await deletarDB(`dados_clientes/${idCliente}`)
+    delete clientesFiltrados[idCliente]
+    delete dados_clientes[idCliente]
+    const trExistente = document.getElementById(idCliente)
+    if (trExistente) trExistente.remove()
+
+    removerOverlay()
+
+}
+
+function renderizarClientesPagina(pagina = paginaAtual) {
+
+    const base = aplicarFiltrosClientes()
     const entries = Object.entries(base)
 
     const totalPaginas = Math.max(1, Math.ceil(entries.length / limitePorPagina))
 
-    if (pagina < 1) pagina = 1
-    if (pagina > totalPaginas) pagina = totalPaginas
-
-    paginaAtual = pagina
+    paginaAtual = Math.min(Math.max(1, pagina), totalPaginas)
 
     const inicio = (paginaAtual - 1) * limitePorPagina
     const fim = inicio + limitePorPagina
@@ -262,18 +436,18 @@ function renderizarClientesPagina(pagina = 1) {
     body.innerHTML = ''
 
     for (const [id, cliente] of entries.slice(inicio, fim)) {
-        criarLinhaCliente(id, cliente)
+        criarLinhaClienteGCS(id, cliente)
     }
 
-    document.querySelector('.rodape-tabela').innerHTML = `
-        <button onclick="renderizarClientesPagina(${paginaAtual - 1})" ${paginaAtual === 1 ? 'disabled' : ''}>◀</button>
-        <span>Página ${paginaAtual} / ${totalPaginas}</span>
-        <button onclick="renderizarClientesPagina(${paginaAtual + 1})" ${paginaAtual === totalPaginas ? 'disabled' : ''}>▶</button>
+    document.querySelector('.paginacao-clientes').innerHTML = `
+        <img src="imagens/esq.png" onclick="renderizarClientesPagina(${paginaAtual - 1})">
+        <img src="imagens/dir.png" onclick="renderizarClientesPagina(${paginaAtual + 1})">
+        <span>${paginaAtual} / ${totalPaginas}</span>
     `
 }
 
 
-async function salvarCliente(idCliente = unicoID()) {
+async function salvarCliente(idCliente = codCliAleatorio()) {
 
     overlayAguarde()
 
@@ -282,8 +456,14 @@ async function salvarCliente(idCliente = unicoID()) {
         return el ? el.value : ''
     }
 
+    const cnpj = obVal('cnpj')
+
+    const resposta = await verificarClienteExistente({ cnpj, idCliente })
+
+    if (resposta.mensagem) return popup(mensagem(resposta.mensagem), 'Alerta', true)
+
     const novo = {
-        cnpj: obVal('cnpj'),
+        cnpj,
         nome: obVal('nome'),
         endereco: obVal('endereco'),
         bairro: obVal('bairro'),
@@ -307,9 +487,12 @@ async function salvarCliente(idCliente = unicoID()) {
 
     dados_clientes[idCliente] = dados
     await inserirDados({ [idCliente]: dados }, 'dados_clientes')
-    enviar(`dados_clientes/${idCliente}`, dados)
-
     removerPopup()
+
+    if (telaAtiva !== 'clientes') return
+
+    criarLinhaClienteGCS(idCliente, dados)
+    enviar(`dados_clientes/${idCliente}`, dados)
 
 }
 
@@ -339,4 +522,30 @@ function formatarCnpj(input) {
     }
 
     input.value = v
+}
+
+function codCliAleatorio() {
+    const agora = Date.now() % 1e7
+    const rand = Math.floor(Math.random() * 1e3)
+    return Number(`${agora}${rand.toString().padStart(3, '0')}`)
+}
+
+async function verificarClienteExistente(dados) {
+
+    console.log(dados);
+
+    try {
+        const response = await fetch(`${api}/verificar-cliente-existente`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dados)
+        })
+
+        if (!response.ok)
+            throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`)
+
+        return await response.json()
+    } catch (error) {
+        return { mensagem: error.messagem || error.mensage || error }
+    }
 }
