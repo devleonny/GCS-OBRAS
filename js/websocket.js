@@ -142,7 +142,6 @@ async function identificacaoUser() {
     if ((acesso && bloq.includes(acesso.permissao)) || !acesso)
         return telaPrincipal()
 
-
     if (app == 'OCORRÊNCIAS') return
     if (document.title == 'Política de Privacidade') return
     if (!acesso || !acesso.permissao || acesso.permissao == 'novo') {
@@ -155,6 +154,8 @@ async function identificacaoUser() {
 }
 
 async function carregarControles() {
+
+    cUsuario.style.display = ''
     const modelo = (imagem, funcao, idElemento) => {
         return `
         <div onclick="${funcao}" style="${vertical};">
@@ -166,10 +167,7 @@ async function carregarControles() {
 
     const permitidosAprovacoes = ['adm', 'diretoria']
     const permitidosProdutos = ['LOGÍSTICA', 'SUPORTE', 'FINANCEIRO']
-
-    if (!paginasBloqueadas.includes(document.title) && acesso.usuario) {
-
-        const barraStatus = `
+    const barraStatus = `
             <div id="divUsuarios"></div>
 
             ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
@@ -178,10 +176,8 @@ async function carregarControles() {
 
             <img title="Abrir mais 1 aba" src="imagens/aba.png" onclick="maisAba()">
         `
-        const cabecalhoUsuario = document.querySelector('.cabecalho-usuario')
-        if (cabecalhoUsuario) cabecalhoUsuario.innerHTML = barraStatus
-
-    }
+    const cabecalhoUsuario = document.querySelector('.cabecalho-usuario')
+    if (cabecalhoUsuario) cabecalhoUsuario.innerHTML = barraStatus
 
     verificarPendencias() // Pendencias de aprovação;
     usuariosToolbar()
