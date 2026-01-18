@@ -285,7 +285,7 @@ async function usuariosToolbar() {
 
     // Conta quantos usuários estão online (status !== 'offline')
     const usuariosOnline = Object.values(dados_setores)
-        .filter(u => u.status && u.status !== 'offline')
+        .filter(u => u.status && u.status == 'online')
         .length
 
     const indicadorStatus = user?.status || 'offline'

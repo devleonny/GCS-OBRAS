@@ -1,7 +1,8 @@
 let socket;
 let reconnectInterval = 30000;
 let emAtualizacao = false
-let primeiraExecucao = true
+let priExeGCS = true
+let priExeOcorr = true
 connectWebSocket()
 
 function connectWebSocket() {
@@ -56,9 +57,9 @@ function connectWebSocket() {
 
                 if (app == 'GCS') {
 
-                    if (primeiraExecucao) {
+                    if (priExeGCS) {
                         await telaInicial()
-                        primeiraExecucao = false
+                        priExeGCS = false
                     }
 
                 } else {
@@ -118,7 +119,7 @@ function connectWebSocket() {
                 await inserirDados({ [data.usuario]: user }, 'dados_setores')
             }
 
-            usuariosToolbar()
+            await usuariosToolbar()
             balaoUsuario(data.status, data.usuario)
         }
 
@@ -154,7 +155,7 @@ async function identificacaoUser() {
         return telaLogin()
     }
 
-    if (primeiraExecucao) await telaInicial()
+    if (priExeGCS) await telaInicial()
 
 }
 

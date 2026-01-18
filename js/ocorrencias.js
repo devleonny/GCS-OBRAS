@@ -37,7 +37,7 @@ async function blocoAuxiliarFotos(fotos) {
         const painel = `
             <div class="fotos">${imagens}</div>
             <div class="capturar" onclick="blocoAuxiliarFotos()">
-                <img src="imagens/camera.png" class="olho">
+                <img src="imagens/camera.png">
                 <span>Abrir Câmera</span>
             </div>
         `
@@ -48,7 +48,7 @@ async function blocoAuxiliarFotos(fotos) {
         const popupCamera = `
             <div style="${vertical}; gap: 3px; background-color: #d2d2d2;">
                 <div class="capturar" style="position: fixed; bottom: 10px; left: 10px; z-index: 10003;" onclick="tirarFoto()">
-                    <img src="imagens/camera.png" class="olho">
+                    <img src="imagens/camera.png">
                     <span>Capturar Imagem</span>
                 </div>
 
@@ -917,22 +917,6 @@ function sincronizarApp({ atual, total, remover } = {}) {
 
 }
 
-async function telaUnidades() {
-
-    mostrarMenus(false)
-    titulo.textContent = 'Unidades'
-    const colunas = ['CNPJ', 'Cidade', 'Nome', '']
-    await carregarElementosPagina('dados_clientes', colunas)
-}
-
-async function telaEquipamentos() {
-
-    mostrarMenus(false)
-    titulo.textContent = 'Equipamentos'
-    const colunas = ['Descrição', 'Código', 'Unidade', 'Modelo', 'Fabricante', '']
-    await carregarElementosPagina('dados_composicoes', colunas)
-}
-
 async function formularioOcorrencia() {
 
     // Caso seja informada a unidade no momento do orçamento;
@@ -1055,7 +1039,7 @@ async function formularioCorrecao() {
         {
             texto: 'Equipamentos usados',
             elemento: `
-            <img src="imagens/baixar.png" class="olho" onclick="maisLabel()">
+            <img src="imagens/baixar.png" onclick="maisLabel()">
             <div style="${vertical}; gap: 2px;" id="equipamentos">
                 ${equipamentos}
             </div>
@@ -1092,19 +1076,21 @@ async function formularioCorrecao() {
 async function maisLabel({ codigo, quantidade, unidade } = {}) {
 
     const div = document.getElementById('equipamentos')
-    const opcoes = ['UND', 'METRO', 'CX'].map(op => `<option ${unidade == op ? `selected` : ''}>${op}</option>`).join('')
+    const opcoes = ['UND', 'METRO', 'CX']
+        .map(op => `<option ${unidade == op ? `selected` : ''}>${op}</option>`)
+        .join('')
     const temporario = ID5digitos()
     let nome = 'Selecionar'
     if (codigo) {
-        const produto = await recuperarDado('equipamentos', codigo)
+        const produto = await recuperarDado('dados_composicoes', codigo)
         nome = produto.descricao
     }
 
     const label = `
         <div style="${horizontal}; gap: 5px;">
-            <img src="imagens/cancel.png" class="olho" onclick="this.parentElement.remove()">
-            <div style="${vertical}; gap: 5px;">
-                <label class="campos" name="${temporario}" ${codigo ? `id="${codigo}"` : ''} onclick="cxOpcoes('${temporario}', 'dados_composicoes', ['descricao', 'tipo', 'marca', 'fabricante'])">${nome}</label>
+            <img src="imagens/cancel.png" onclick="this.parentElement.remove()">
+            <div name="equipamentos" style="${vertical}; gap: 5px;">
+                <span class="campos" name="${temporario}" ${codigo ? `id="${codigo}"` : ''} onclick="cxOpcoes('${temporario}', 'dados_composicoes', ['descricao', 'tipo', 'marca', 'fabricante'])">${nome}</span>
                 <div style="${horizontal}; gap: 5px; width: 100%;">
                     <input style="width: 100%;" class="campos" type="number" value="${quantidade || ''}">
                     <select class="campos">${opcoes}</select>
@@ -1178,21 +1164,19 @@ async function salvarCorrecao() {
         }
     }
 
-    const equipamentos = document.getElementById('equipamentos')
+    const divs = document.querySelectorAll('[name="equipamentos"]')
+    correcao.equipamentos = {}
 
-    if (equipamentos) {
-
-        const divs = equipamentos.querySelectorAll('div')
-        correcao.equipamentos = {}
-
-        for (const div of divs) {
-            const campos = div.querySelectorAll('.campos')
-            const idEquip = ID5digitos()
-            correcao.equipamentos[idEquip] = {
-                codigo: campos[0].id,
-                quantidade: Number(campos[1].value),
-                unidade: campos[2].value
-            }
+    for (const div of divs) {
+        console.log(div);
+        
+        const idEquip = div.querySelector('span').id
+        const quantidade = Number(div.querySelector('input').value)
+        const unidade = div.querySelector('select').value
+        correcao.equipamentos[idEquip] = {
+            codigo: idEquip,
+            quantidade,
+            unidade
         }
     }
 
