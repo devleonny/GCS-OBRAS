@@ -38,7 +38,10 @@ function pesquisarClientes(e, chave) {
     e.preventDefault()
     e.target.blur()
 
-    const termo = e.target.textContent.trim().toLowerCase()
+    const termo = e.target.textContent
+        .trim()
+        .toLowerCase()
+        .replace(/[./-]/g, ''); // Remove ponto, traço e barra
 
     if (!chave) return
 
@@ -51,7 +54,6 @@ function pesquisarClientes(e, chave) {
     paginaAtual = 1
     renderizarClientesPagina()
 }
-
 
 function aplicarFiltrosClientes() {
     const filtros = filtrosPesquisa.clientes
@@ -77,6 +79,7 @@ function aplicarFiltrosClientes() {
 
                 return String(valor || '')
                     .toLowerCase()
+                    .replace(/[./-]/g, '')
                     .includes(termo)
             })
         )
@@ -233,7 +236,7 @@ async function telaClientes() {
     paginaAtual = 1
     renderizarClientesPagina()
 
-    criarMenus('clientes')
+    if (app == 'GCS') criarMenus('clientes')
 
     removerOverlay()
 

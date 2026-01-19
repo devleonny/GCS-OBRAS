@@ -695,7 +695,7 @@ async function telaOcorrencias(apenasObjeto = false) {
     const empresaAtiva = empresas[acesso?.empresa]?.nome || 'Desatualizado'
     titulo.innerHTML = empresaAtiva
 
-    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias).reverse()) { //29
+    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias).reverse()) {
 
         // Se técnico, então ele precisa estar presente no processo;
         const correcoes = Object.values(ocorrencia.correcoes || {})
