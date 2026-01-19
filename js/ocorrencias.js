@@ -692,6 +692,8 @@ async function telaOcorrencias(apenasObjeto = false) {
     dados_clientes = await recuperarDados('dados_clientes')
     dados_ocorrencias = await recuperarDados('dados_ocorrencias')
 
+    console.log(acesso.empresa);
+    
     const empresaAtiva = empresas[acesso?.empresa]?.nome || 'Desatualizado'
     titulo.innerHTML = empresaAtiva
 

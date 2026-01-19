@@ -114,7 +114,7 @@ function classificarUnidades() {
     const opcoes = Object.entries(empresas)
         .sort(([, a], [, b]) => a.nome.localeCompare(b.nome))
         .map(([idEmpresa, empresa]) => {
-            if (idEmpresa == 0) return ''
+            if (idEmpresa == 'mQK7') return ''
             return `<option value="${idEmpresa}">${empresa.nome}</option>`
         }).join('')
 
