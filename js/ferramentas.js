@@ -9,6 +9,7 @@ const esquemas = {
 }
 const permCham = ['técnico', 'cliente', 'visitante']
 const extensoes = ['jpg', 'jpeg', 'png']
+let stream = null
 let acesso = {}
 let tela = null
 let toolbar = null

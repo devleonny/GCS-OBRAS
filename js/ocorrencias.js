@@ -813,8 +813,8 @@ async function atualizarOcorrencias(resetar = false) {
         'dados_setores',
         'empresas',
         'dados_composicoes',
-        'dados_ocorrencias',
         'dados_clientes',
+        'dados_ocorrencias',
         'sistemas',
         'prioridades',
         'correcoes',
@@ -1169,7 +1169,7 @@ async function salvarCorrecao() {
 
     for (const div of divs) {
         console.log(div);
-        
+
         const idEquip = div.querySelector('span').id
         const quantidade = Number(div.querySelector('input').value)
         const unidade = div.querySelector('select').value
