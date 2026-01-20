@@ -228,7 +228,7 @@ async function respostaSincronizacao(script) {
 
     const resposta = await sincronizar(script)
 
-    localResposta.innerHTML = resposta.status
+    localResposta.innerHTML = resposta.mensagem || 'Sem resposta'
 
 }
 

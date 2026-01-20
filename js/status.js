@@ -1051,8 +1051,8 @@ async function desfazerVinculo(idOrcamento) {
 
 async function usuariosAutorizados() {
 
-    const acumulado = `
-        <div style="${vertical}; padding: 2vw; background-color: #d2d2d2;">
+    const elemento = `
+        <div style="${vertical}; padding: 1rem;">
             
             <div style="${horizontal}; gap: 5px;">
                 <span class="opcoes" name="usuario" onclick="cxOpcoes('usuario', 'dados_setores', ['usuario', 'setor', 'permissao'])">Selecionar</span>
@@ -1065,7 +1065,7 @@ async function usuariosAutorizados() {
         </div>
     `
 
-    popup(acumulado, 'Autorizados', true)
+    popup({ elemento })
 
     carregarAutorizados()
 
@@ -1515,7 +1515,7 @@ async function abrirEsquema(id = id_orcam) {
 
                         <div id="comentario_${chave}" style="display: none; justify-content: space-evenly; align-items: center;">
                             <textarea placeholder="Comente algo aqui..."></textarea>
-                            <label class="contorno-botoes" style="background-color: green;" onclick="salvar_comentario('${chave}')">Salvar</label>
+                            <button onclick="salvar_comentario('${chave}')">Salvar</button>
                         </div>
                         <div id="caixa_comentarios_${chave}" style="display: flex; flex-direction: column;">
                             ${await carregar_comentarios(chave)}
@@ -1773,7 +1773,7 @@ async function alterarStatus(select) {
     if (telaAtiva == 'orcamentos') await telaOrcamentos(true)
 
     const pHistorico = document.querySelector('.painel-historico')
-    if (pHistorico) await abrirEsquema(idOrcamento)
+    if (pHistorico) await abrirEsquema(id_orcam)
 }
 
 function formularioOrcAprovado(idOrcamento) {
@@ -1824,7 +1824,7 @@ async function irORC(idOrcamento) {
     const orcamento = dados_orcamentos[idOrcamento]
     const aba = orcamento.aba || ''
 
-    if (!aba) 
+    if (!aba)
         return popup({ mensagem: 'Coloque o orçamento em uma <b>aba</b> antes!', titulo: 'Orçamento sem aba definida' })
 
     await telaInicial()
@@ -2005,7 +2005,7 @@ async function excluirHiStatus(idStatus) {
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
 
     const pHistorico = document.querySelector('.painel-historico')
-    if (pHistorico) await abrirEsquema(idOrcamento)
+    if (pHistorico) await abrirEsquema(id_orcam)
 
     removerOverlay()
 
@@ -2071,7 +2071,7 @@ function confirmarExclusao_comentario(id_comentario, chave) {
         { texto: 'Confirmar', img: 'concluido', funcao: `excluir_comentario('${id_comentario}', '${chave}')` }
     ]
 
-    popup({ elemento: 'Excluir o comentário?', botoes })
+    popup({ mensagem: 'Excluir o comentário?', botoes })
 }
 
 async function excluir_comentario(id_comentario, chave) {
