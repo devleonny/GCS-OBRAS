@@ -1053,7 +1053,7 @@ async function verAprovacoes() {
     }
 
     const elemento = `
-        <div style="${vertical}">
+        <div style="${vertical}; padding: 1rem;">
 
             <label style="font-size: 1.2rem;">Fila de Aprovação</label>
 

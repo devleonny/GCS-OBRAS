@@ -159,14 +159,15 @@ async function vincularEmpresas() {
     let data
     try {
         data = await response.json()
-        if (data.mensagem) return popup({ mensagem: data.mensagem })
+        if (data.mensagem) 
+            return popup({ mensagem: data.mensagem })
 
         await sincronizarDados({ base: 'dados_clientes' })
-        await tabelaClientes()
+        await atualizarClientes()
         removerPopup()
 
-    } catch (e) {
-        return { mensagem: e }
+    } catch (err) {
+        return popup({ mensagem: err.message || 'Falha no vínculo das empresas' })
     }
 
 }

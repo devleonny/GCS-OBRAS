@@ -1941,7 +1941,7 @@ async function mostrarHistoricoStatus() {
     }
 
     const elemento = `
-        <div class="borda-tabela">
+        <div style="${vertical}; padding: 1rem;">
             <div class="topo-tabela"></div>
             <div class="div-tabela">
                 <table class="tabela">
