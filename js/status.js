@@ -904,6 +904,14 @@ async function abrirAtalhos(id) {
             para remover</small>`)
         : ''
 
+    const aviso = emAnalise
+        ? `
+        <div style="${horizontal}; gap: 1rem; padding: 1rem;">
+            <img src="gifs/alerta.gif">
+            <span>Este orçamento precisa ser aprovado!</span>
+        </div>`
+        : ''
+
     const acumulado = `
         <label style="color: #222; text-align: left;" id="cliente_status">${cliente?.nome || '??'}</label>
         <hr>
@@ -912,7 +920,7 @@ async function abrirAtalhos(id) {
             <input ${orcamento?.chamado == 'S' ? 'checked' : ''} onclick="ativarChamado(this, '${id}')" ${styChek} type="checkbox">
         </div>
         <hr>
-        ${emAnalise ? mensagem('Este orçamento precisa ser aprovado!') : ''}
+        ${aviso}
         <div class="opcoes-orcamento">${botoesDisponiveis}</div>
 
         ${atalho}
@@ -1811,12 +1819,14 @@ async function salvarPrioridade(idOrcamento) {
 
 async function irORC(idOrcamento) {
 
+    overlayAguarde()
+
     const orcamento = dados_orcamentos[idOrcamento]
     const aba = orcamento.aba || ''
 
-    if (!aba) return popup({ mensagem: 'Coloque o orçamento em uma <b>aba</b> antes!', titulo: 'Orçamento sem aba definida' })
+    if (!aba) 
+        return popup({ mensagem: 'Coloque o orçamento em uma <b>aba</b> antes!', titulo: 'Orçamento sem aba definida' })
 
-    removerPopup()
     await telaInicial()
 
     mostrarGuia(aba)
@@ -1827,6 +1837,8 @@ async function irORC(idOrcamento) {
     for (const tr of trs) {
         tr.style.display = tr.id !== idOrcamento ? 'none' : ''
     }
+
+    removerPopup()
 
 }
 
