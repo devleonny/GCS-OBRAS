@@ -72,6 +72,20 @@ const appBases = {
     ]
 }
 
+document.addEventListener('click', verificarClique, true)
+
+function verificarClique(event) {
+    const menu = document.querySelector('.side-menu')
+    if (!menu) return
+
+    if (
+        menu.classList.contains('active') &&
+        !menu.contains(event.target)
+    ) {
+        menu.classList.remove('active')
+    }
+}
+
 const dtFormatada = (data) => {
     if (!data) return '-'
     const [ano, mes, dia] = data.split('-')

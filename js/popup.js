@@ -1,5 +1,3 @@
-
-
 function popup({
     tempo = null,
     elemento,
@@ -121,9 +119,4 @@ async function removerPopup({ id, nra = true } = {}) {
     }
 
     document.querySelector('.aguarde')?.remove()
-}
-
-function verificarClique(event) {
-    const menu = document.querySelector('.side-menu')
-    if (menu && menu.classList.contains('active') && !menu.contains(event.target)) menu.classList.remove('active')
 }
