@@ -62,10 +62,10 @@ async function recuperarPagamentos() {
 
 async function filtrarPagamentos() {
 
-    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
-    let usuariosPermitidos = ['diretoria', 'adm']
-    let setoresPermitidos = ['FINANCEIRO']
-    let pagamentosFiltrados = {}
+    const lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
+    const usuariosPermitidos = ['diretoria', 'adm']
+    const setoresPermitidos = ['FINANCEIRO']
+    const pagamentosFiltrados = {}
 
     for (let [idPagamento, pagamento] of Object.entries(lista_pagamentos)) {
 

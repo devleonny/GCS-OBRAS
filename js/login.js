@@ -47,9 +47,9 @@ async function telaLogin() {
 
             </div>
 
-            <div class="rodape-login">
-                <button onclick="acessoLogin()">Entrar</button>
-                <button style="background-color: #097fe6;" onclick="cadastrar()">Cadastrar</button>
+            <div class="rodape-padrao">
+                <label class="botoes-rodape" style="color: white; background-color: #249f41;" onclick="acessoLogin()">Entrar</label>
+                <label class="botoes-rodape" style="color: white; background-color: #097fe6;" onclick="cadastrar()">Cadastrar</label>
             </div>
 
         </div>
