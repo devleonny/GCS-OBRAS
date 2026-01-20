@@ -3,39 +3,64 @@ let reconnectInterval = 30000;
 let emAtualizacao = false
 let priExeGCS = true
 let priExeOcorr = true
+
 connectWebSocket()
 
 function connectWebSocket() {
 
-    app = localStorage.getItem('app') || 'OCORRÊNCIAS'
     socket = new WebSocket(`${api}:8443`)
 
-    function status(s) {
-        const i = s == 'online'
-            ? `🟢🟢🟢 Online ${new Date().toLocaleString()}`
-            : s == 'pendente'
-                ? '🟠🟠🟠 Validando...'
-                : '🔴🔴🔴 Offline'
-
-        const divMensagem = document.querySelector('.div-mensagem')
-        if (divMensagem) divMensagem.insertAdjacentHTML('beforeend', `<span>${i}</span>`)
-        console.log(i)
-    }
-
-    function msg(dados) {
-        if (socket && socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify(dados))
-        }
-    }
-
     socket.onopen = async () => {
-        acesso = JSON.parse(localStorage.getItem('acesso'))
-        if (acesso) {
-            msg({ tipo: 'validar', usuario: acesso.usuario })
-        } else {
-            telaLogin()
-        }
+        msgStatus('Online', 1)
+        await validarAcesso()
+        await comunicacao()
     }
+
+}
+
+async function validarAcesso() {
+
+    acesso = JSON.parse(localStorage.getItem('acesso'))
+    msgStatus('Validando acesso...')
+    if (acesso) {
+        msg({ tipo: 'validar', usuario: acesso.usuario })
+    } else {
+        telaLogin()
+    }
+
+}
+
+function msg(dados) {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify(dados))
+    }
+}
+
+function msgStatus(msg, s = 2) {
+
+    const simbolos = {
+        1: '🟢🟢🟢',
+        2: '🟠🟠🟠',
+        3: '🔴🔴🔴'
+    }
+
+    msg = `${simbolos[s]} ${msg} ${new Date().toLocaleString()}`
+
+    const divMensagem = document.querySelector('.div-mensagem')
+    if (divMensagem) divMensagem.insertAdjacentHTML('beforeend', `<span>${i}</span>`)
+    console.log(msg)
+}
+
+async function refletir() {
+    if (app !== 'GCS') return
+    sOverlay = true
+    await executar(funcaoTela)
+    sOverlay = false
+}
+
+async function comunicacao() {
+
+    app = localStorage.getItem('app') || 'OCORRÊNCIAS'
 
     socket.onmessage = async (event) => {
         const data = JSON.parse(event.data)
@@ -49,10 +74,16 @@ function connectWebSocket() {
             return
         }
 
-        if (data.validado) { // Resetar ao receber atualizações de usuário;
+        if (data.validado) {
+
+            // Sempre que atualizar a página será verificado o acesso;
+
+            // Se não existir mudanças no acesso;
+
+            msgStatus('Online', 1)
 
             if (data.validado == 'Sim') {
-                status('online')
+
 
                 if (app == 'GCS') {
 
@@ -65,6 +96,7 @@ function connectWebSocket() {
 
                     // Seguir este fluxo apenas em Ocorrências;
                     listaOcorrencias = {}
+                    await telaPrincipal()
                     await atualizarOcorrencias()
 
                     // Recuperar Filtros;
@@ -73,24 +105,22 @@ function connectWebSocket() {
 
             } else {
 
+                // Se existirem mudanças, um reset será feito apenas em Ocorrências;
+
                 if (app == 'GCS') {
                     await telaInicial()
-                    removerOverlay()
-                    status('online')
-                    return
+
+                } else {
+
+                    msgStatus('Offline', 3)
+                    msgStatus('Alteração no acesso recebida...')
+                    await resetarTudo()
+                    await atualizarOcorrencias()
+                    msg({ tipo: 'confirmado', usuario: acesso.usuario })
+                    msgStatus('Tudo certo', 1)
+
                 }
-
-                overlayAguarde()
-                status('offline')
-                status('pendente')
-                await resetarTudo()
-                await atualizarOcorrencias()
-                msg({ tipo: 'confirmado', usuario: acesso.usuario })
-                status('online')
-                removerOverlay()
-                return
             }
-
         }
 
         // Se a base não pertencer ao app, retornar;
@@ -125,16 +155,29 @@ function connectWebSocket() {
     }
 
     socket.onclose = () => {
-        status('offline')
+        msgStatus('Servidor offline', 3)
         setTimeout(connectWebSocket, reconnectInterval)
     }
 
-    async function refletir() {
-        if (app !== 'GCS') return
-        sOverlay = true
-        await executar(funcaoTela)
-        sOverlay = false
+}
+
+async function identificacaoUser() {
+
+    dados_setores = await sincronizarDados({ base: 'dados_setores' })
+    acesso = dados_setores[acesso.usuario]
+
+    const bloq = ['cliente', 'técnico', 'visitante']
+    if ((acesso && bloq.includes(acesso.permissao)) || !acesso)
+        return telaPrincipal()
+
+    if (app == 'OCORRÊNCIAS') return
+    if (document.title == 'Política de Privacidade') return
+    if (!acesso || !acesso.permissao || acesso.permissao == 'novo') {
+        localStorage.removeItem('acesso')
+        return telaLogin()
     }
+
+    if (priExeGCS) await telaInicial()
 
 }
 

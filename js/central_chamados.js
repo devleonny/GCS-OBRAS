@@ -356,7 +356,7 @@ function carregarMenus() {
     const blq = ['cliente', 'técnico']
 
     const menus = {
-        'Atualizar': { img: 'atualizar', funcao: 'connectWebSocket()', proibidos: [] },
+        'Atualizar': { img: 'atualizar', funcao: 'validarAcesso()', proibidos: [] },
         'Início': { img: 'home', funcao: 'telaPrincipal()', proibidos: [] },
         'Criar Ocorrência': { img: 'baixar', funcao: 'oAtual = {}; formularioOcorrencia()', proibidos: [] },
         'Ocorrências': { img: 'configuracoes', funcao: 'telaOcorrencias()', proibidos: [] },

@@ -93,6 +93,8 @@ function atribuirVariaveis() {
     titulo = toolbar.querySelector(`[name="titulo"]`)
     menus = document.querySelector('.side-menu')
     tela = document.querySelector('.tela')
+
+    toolbar.style.display = 'flex'
 }
 
 document.addEventListener('keydown', function (event) {
