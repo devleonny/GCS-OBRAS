@@ -306,7 +306,7 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
 
     const loja = dados_clientes?.[ocorrencia?.unidade] || {}
 
-    const acumulado = `
+    const elemento = `
         <div class="detalhes-correcao">
 
             <span style="font-size: 1.2rem;"><b>Dados da Loja</b></span>
@@ -341,23 +341,9 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
         </div>
         `
 
-    popup(acumulado, 'Correções')
+    popup({ elemento, titulo: 'Correções' })
 }
 
-
-function ampliarImagem(img) {
-
-    const acumulado = `
-        <div style="background-color: #d2d2d2; padding: 0.5rem;">
-
-            <img src="${img.src}" style="width: 100%;">
-
-        </div>
-    `
-
-    popup(acumulado, 'Imagem', true)
-
-}
 
 function pesquisarOcorrencias(coluna, texto, id) {
     filtroOcorrencias[coluna] = String(texto).toLowerCase().replace('.', '').trim();

@@ -72,14 +72,11 @@ async function mostrarPastas(idPessoa) {
 
 function confirmarExclusaoPessoa(idPessoa, nome) {
 
-    const acumulado = `
-        <div style="${horizontal}; padding: 2vw; background-color: #d2d2d2; gap: 1vw;">
-            <label>Tem certeza que deseja excluir ${nome}?</label>
-            <button onclick="excluirPessoaRH('${idPessoa}')">Confirmar</button>
-        </div>
-    `
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `excluirPessoaRH('${idPessoa}')` }
+    ]
 
-    popup(acumulado, 'ALERTA')
+    popup({ elemento: `Tem certeza que deseja excluir ${nome}?`, botoes })
 
 }
 
@@ -129,7 +126,7 @@ async function abrirPastas(idPessoa, idPasta) {
     let esquemaHTML = ''
     for (const idAnexo of Object.keys(anexos)) esquemaHTML += await pastaHTML(idPessoa, idPasta, idAnexo)
 
-    const acumulado = `
+    const elemento = `
         <div class="painel-pessoa">
             <div style="${horizontal}; gap: 5px;">
 
@@ -153,7 +150,7 @@ async function abrirPastas(idPessoa, idPasta) {
     const painel = document.querySelector('.painel-pessoa')
     if (painel) return painel.innerHTML = acumulado
 
-    popup(acumulado, pessoa.nome, true)
+    popup({ elemento, titulo: pessoa.nome })
 
 }
 
@@ -187,12 +184,12 @@ async function pastaHTML(idPessoa, idPasta, idAnexo, mostrarPopup) {
 
     if (!mostrarPopup) return pasta
 
-    const acumulado = `
-        <div style="${horizontal}; padding: 2vw; background-color: #d2d2d2;">
+    const elemento = `
+        <div style="${horizontal};">
             ${pasta}
         </div>
     `
-    popup(acumulado, pessoa.pastas[idPasta].nomePasta, true)
+    popup({ elemento, titulo: pessoa.pastas[idPasta].nomePasta })
 }
 
 async function calcularVencimento(idPessoa, idPasta, idAnexo, campo) {
@@ -226,14 +223,11 @@ async function calcularVencimento(idPessoa, idPasta, idAnexo, campo) {
 
 function confirmarExclusaoPasta(idPessoa, idPasta) {
 
-    const acumulado = `
-        <div style="${horizontal}; padding: 2vw; background-color: #d2d2d2; gap: 1vw;">
-            <label>Deseja excluir esta pasta?</label>
-            <button onclick="excluirPastaRH('${idPessoa}', '${idPasta}')">Confirmar</button>
-        </div>
-    `
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `excluirPastaRH('${idPessoa}', '${idPasta}')` }
+    ]
 
-    popup(acumulado, 'Tem certeza?', true)
+    popup({ elemento: 'Deseja excluir esta pasta?', botoes })
 
 }
 
@@ -293,14 +287,11 @@ async function salvarDadosDocumento(campo, idPessoa, idPasta, idAnexo) {
 
 function confirmarExclusaoAnexo(idPessoa, idPasta, idAnexo) {
 
-    const acumulado = `
-        <div style="${horizontal}; padding: 2vw; background-color: #d2d2d2; gap: 1vw;">
-            <label>Deseja excluir este anexo?</label>
-            ${botao('Confirmar', `excluirAnexoRH('${idPessoa}', '${idPasta}', '${idAnexo}')`, 'green')}
-        </div>
-    `
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `excluirAnexoRH('${idPessoa}', '${idPasta}', '${idAnexo}')` }
+    ]
 
-    popup(acumulado, 'Tem certeza?', true)
+    popup({ elemento: 'Deseja excluir este anexo?', botoes })
 
 }
 
@@ -352,15 +343,15 @@ async function adicionarPasta(idPessoa, idPasta) {
     const pessoa = await recuperarDado('pessoas', idPessoa)
     const pasta = pessoa?.pastas?.[idPasta] || {}
 
-    const acumulado = `
-        <div style="${horizontal}; padding: 1rem; background-color: #d2d2d2;">
+    const elemento = `
+        <div style="${horizontal};">
 
             <input style="padding: 5px; border-radius: 3px;" id="nomePasta" placeholder="Nome" value="${pasta?.nomePasta || ''}">
             <button onclick="${funcao}">Salvar</button>
 
         </div>
     `
-    popup(acumulado, 'Gerenciar Pasta')
+    popup({ elemento, titulo: 'Gerenciar Pasta' })
 }
 
 async function salvarPasta(idPessoa, idPasta) {
@@ -388,14 +379,13 @@ async function adicionarPessoa(idPessoa) {
 
     const pessoa = await recuperarDado('pessoas', idPessoa) || {}
 
-    const acumulado = `
-    <div style="padding: 2vw; background-color: #d2d2d2;">
-        ${modeloRH('Nome', `<input id="nome" value="${pessoa?.nome || ''}">`)}
-        <hr style="width: 100%;">
-        ${botao('Salvar', idPessoa ? `salvarPessoa('${idPessoa}')` : 'salvarPessoa()', 'green')}
-    </div>
-    `
-    popup(acumulado, 'Gerenciar Local')
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: idPessoa ? `salvarPessoa('${idPessoa}')` : 'salvarPessoa()' }
+    ]
+
+    const elemento = modeloRH('Nome', `<input id="nome" value="${pessoa?.nome || ''}">`)
+
+    popup({ botoes, elemento, titulo: 'Gerenciar Local' })
 }
 
 async function salvarPessoa(idPessoa) {
@@ -604,7 +594,7 @@ async function baixarArquivos() {
     overlayAguarde()
 
     const checkboxes = document.querySelectorAll('[name=docs]:checked')
-    if (checkboxes.length === 0) return popup(mensagem('Nenhum arquivo selecionado'), 'ALERTA')
+    if (checkboxes.length === 0) return popup({ mensagem: 'Nenhum arquivo selecionado' })
 
     const zip = new JSZip()
 
@@ -628,7 +618,7 @@ async function baixarArquivos() {
 async function rhExcel() {
 
     const tabela = document.querySelector('.tabela')
-    if (!tabela) return popup(mensagem('Tabela não encontrada'), 'Alerta', true)
+    if (!tabela) return popup({ mensagem: 'Tabela não encontrada' })
 
     const workbook = new ExcelJS.Workbook()
     const planilha = workbook.addWorksheet('Dados')

@@ -197,7 +197,7 @@ async function abrirFiltros() {
         `)
         .join('')
 
-    const acumulado = `
+    const elemento = `
         <div style="${vertical}; padding: 2vw; background-color: #d2d2d2;">
 
             <div style="${horizontal}; background-color: white; border-radius: 5px; padding-left: 1rem; border: solid 1px #797979;">
@@ -224,7 +224,7 @@ async function abrirFiltros() {
         </div>
     `
 
-    popup(acumulado, 'Filtrar Itens')
+    popup({ elemento, titulo: 'Filtrar Itens' })
 
 }
 
@@ -449,7 +449,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
     const historicoPreco = document.querySelector('.historico-preco')
     if (historicoPreco) return historicoPreco.innerHTML = acumulado
 
-    popup(`<div class="historico-preco">${acumulado}</div>`, 'Valores de Venda', true)
+    popup({ elemento: `<div class="historico-preco">${acumulado}</div>`, titulo: 'Valores de Venda' })
 
 }
 
@@ -747,7 +747,7 @@ async function adicionarCotacao(codigo, lpu, cotacao) {
     if (painelPrecos) {
         painelPrecos.innerHTML = acumulado
     } else {
-        popup(`<div class="painel-precos">${acumulado}</div>`, 'Gestão de Preço', true)
+        popup({ elemento: `<div class="painel-precos">${acumulado}</div>`, titulo: 'Gestão de Preço' })
     }
 
     calcular()
@@ -963,7 +963,8 @@ async function salvarPreco(codigo, lpu, cotacao) {
     let produto = await recuperarDado('dados_composicoes', codigo)
     let historico = produto[lpu]?.historico || {}
 
-    if (produto.tipo == 'VENDA' && icmsSaida !== '20,5%') return popup(mensagem('ICMS de saída por segurança não pode ser menor que <b>20,5%</b>.'), 'ICMS de Saída bloqueado', true)
+    if (produto.tipo == 'VENDA' && icmsSaida !== '20,5%')
+        return popup({ mensagem: 'ICMS de saída por segurança não pode ser menor que <b>20,5%</b>.', titulo: 'ICMS de Saída bloqueado' })
 
     cotacao = cotacao || ID5digitos()
 
@@ -986,7 +987,8 @@ async function salvarPreco(codigo, lpu, cotacao) {
     // Verificar antes se a porcentagem é aceitável;
     const permitidos = ['adm', 'diretoria']
     const resultado = calcular(undefined, historico[cotacao])
-    if (resultado.lucroPorcentagem < 10 && !permitidos.includes(acesso.permissao)) return popup(mensagem('Percentual de lucro não pode ser menor que 10%'), 'Alerta', true)
+    if (resultado.lucroPorcentagem < 10 && !permitidos.includes(acesso.permissao))
+        return popup({ mensagem: 'Percentual de lucro não pode ser menor que 10%' })
 
     produto[lpu] = produto[lpu] || { historico: {} };
     produto[lpu].historico = historico;
@@ -1021,7 +1023,7 @@ async function cadastrarItem(codigo) {
         </div>
     `
 
-    const acumulado = `
+    const elemento = `
         <div style="background-color: #d2d2d2; padding: 2vw;">
 
             <div class="elementos">
@@ -1050,7 +1052,7 @@ async function cadastrarItem(codigo) {
             </div>
         </div>
     `
-    popup(acumulado, 'Dados do Item')
+    popup({ elemento, titulo: 'Dados do Item' })
 }
 
 async function confirmarExclusao_item(codigo) {
@@ -1094,7 +1096,7 @@ async function salvarServidor(codigo) {
         const resposta = await verificarCodigoExistente();
 
         if (resposta.status == 'Falha') {
-            return popup(mensagem('Não foi possível cadastrar o item... tente novamente'), 'Aviso', true)
+            return popup({ mensagem: 'Não foi possível cadastrar o item... tente novamente' })
         }
 
         codigo = resposta.status // Aqui é retornado o último número sequencial +1 para cadasto;
@@ -1149,9 +1151,7 @@ function salvarNovaLPU() {
     let nomeLPU = inputLPU.value.trim();
     let texto_aviso = document.getElementById("texto-aviso")
 
-    if (nomeLPU === "") {
-        return popup('Digite um nome válido para a LPU!', 'Aviso', true);
-    }
+    if (nomeLPU === '') return popup({ mensagem: 'Digite um nome válido para a LPU!' })
 
     nomeLPU = nomeLPU.toLowerCase(); // Converte para maiúsculas
 
@@ -1231,7 +1231,7 @@ async function verAgrupamento(codigo) {
     codigoMaster = codigo
 
     const produto = await recuperarDado('dados_composicoes', codigo)
-    const acumulado = `
+    const elemento = `
         <div class="tela-agrupamento">
             <div style="${horizontal}; text-align: left; gap: 0.5rem;">
 
@@ -1264,7 +1264,7 @@ async function verAgrupamento(codigo) {
         </div>
     `
     const telaAgrupamento = document.querySelector('.tela-agrupamento')
-    if (!telaAgrupamento) popup(acumulado, 'Agrupamento', true)
+    if (!telaAgrupamento) popup({ elemento, titulo: 'Agrupamento' })
 
     const agrupamento = produto.agrupamento || {}
     for (const [cod, dados] of Object.entries(agrupamento)) {
@@ -1306,14 +1306,11 @@ async function criarLinhaAgrupamento(cod, dados) {
 
 async function confirmarRemoverAgrupamento(codSlave) {
 
-    const acumulado = `
-        <div style="${horizontal}; gap: 1rem; padding: 2rem; background-color: #d2d2d2;">
-            <span> Tem certeza que deseja remover este item adicional?</span>
-            <button onclick="removerAgrupamento('${codSlave}')">Confirmar</button>
-        </div>
-    `
+    const botoes = [
+        { texto: 'Confirmar', funcao: `removerAgrupamento('${codSlave}')`, img: 'concluido' }
+    ]
 
-    popup(acumulado, 'Tem certeza?', true)
+    popup({ botoes, mensagem: 'Tem certeza que deseja remover este item adicional?', titulo: 'Remoção item adicional' })
 
 }
 
@@ -1393,7 +1390,7 @@ async function precosDesatualizados(calculo) {
     let contador = 0
     const dados_composicoes = await recuperarDados('dados_composicoes')
     const colunas = ['Código', 'Descrição', 'Data', 'Fornecedor', 'tipo', 'Preço', 'Ver']
-    const acumulado = `
+    const elemento = `
         <div style="${vertical}; background-color: #d2d2d2; padding: 2rem;">
 
             <div style="${horizontal}; gap: 1rem;">
@@ -1424,7 +1421,7 @@ async function precosDesatualizados(calculo) {
 
     if (!calculo) {
         const tabelaPrecosDesatualizados = document.getElementById('tabelaPrecosDesatualizados')
-        if (!tabelaPrecosDesatualizados) popup(acumulado, 'Preços Desatualizados', true)
+        if (!tabelaPrecosDesatualizados) popup({ elemento, titulo: 'Preços Desatualizados' })
     }
 
     const linhasPrecos = document.getElementById('linhasPrecos')
@@ -1497,18 +1494,19 @@ async function confirmarAtualizarData(tabela, codigo) {
 
     const produto = await recuperarDado('dados_composicoes', codigo)
 
-    const acumulado = `
-        <div style="${vertical}; padding: 2rem; background-color: #d2d2d2;">
+    const elemento = `
+        <div style="${vertical};">
             <span>${produto.descricao}</span>
-            <hr>
-            <div style="${horizontal}; gap: 1rem;">
-                <span>Manter o preço por mais 60 dias?</span>
-                <button onclick="manterPreco('${tabela}', '${codigo}')">Confirmar</button>
-            </div>
+            <span>Manter o preço por mais 60 dias?</span>
         </div>
     `
 
-    popup(acumulado, 'Manter preço', true)
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `manterPreco('${tabela}', '${codigo}')` }
+    ]
+
+
+    popup({ elemento, botoes, titulo: 'Manter preço' })
 
 }
 

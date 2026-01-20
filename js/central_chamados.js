@@ -124,7 +124,7 @@ function pesquisarGenerico(coluna, texto, tbody = 'body') {
 function solicitarPermissoes() {
     return new Promise((resolve, reject) => {
         if (!(cordova.plugins && cordova.plugins.permissions)) {
-            popup(mensagem('Plugin de permissões não está disponível. Algumas funcionalidades podem não funcionar.'), 'Aviso');
+            popup({ mensagem: 'Plugin de permissões não está disponível. Algumas funcionalidades podem não funcionar.' })
             return resolve();
         }
 
@@ -143,13 +143,13 @@ function solicitarPermissoes() {
 
         permissions.requestPermissions(lista, (status) => {
             if (!status || typeof status.hasPermission === 'undefined') {
-                popup(mensagem(`Falha ao verificar permissões. Verifique as configurações do dispositivo.`), 'Aviso');
+                popup({ mensagem: `Falha ao verificar permissões. Verifique as configurações do dispositivo.` })
                 return reject(new Error('Verificação de permissões falhou'));
             }
 
             resolve();
         }, (error) => {
-            popup(mensagem(`Erro ao solicitar permissões: ${error}`), 'Erro');
+            popup({ mensagem: `Erro ao solicitar permissões: ${error}`, titulo: 'Erro' })
             reject(error);
         });
     });
@@ -225,10 +225,11 @@ async function telaPrincipal() {
     tela.innerHTML = tInterna
     telaInterna = document.querySelector('.telaInterna')
     document.querySelector('.side-menu').innerHTML = bMenus
+
     carregarMenus()
-
     mostrarMenus(false)
-
+    auxPendencias()
+    
     if (!emAtualizacao) await criarElementosIniciais()
 
 }
@@ -337,7 +338,7 @@ async function criarElementosIniciais() {
 }
 
 function atalhoPendencias(campos = [], eu = true) {
-    if (emAtualizacao) return popup(mensagem('Espere o término da atualização'), 'GCS', true)
+    if (emAtualizacao) return popup({ mensagem: 'Espere o término da atualização', titulo: 'GCS', nra: true })
     const nFiltro = {}
     if (eu) nFiltro.criador = acesso.usuario
 
@@ -486,8 +487,7 @@ async function gerenciarUsuario(id) {
         { texto: 'Empresa', elemento: `<select onchange="configuracoes('${id}', 'empresa', this.value)">${empresasOpcoes}</select>` }
     ]
 
-    const form = new formulario({ linhas, titulo: 'Gerenciar Usuário' })
-    form.abrirFormulario()
+    popup({ linhas, titulo: 'Gerenciar Usuário' })
 
 }
 

@@ -96,7 +96,7 @@ async function salvarAssinatura(idOcorrencia) {
         await telaOcorrencias()
 
     } catch (err) {
-        popup(mensagem(`Falha ao salvar: ${err}`), 'Alerta', true)
+        popup({ mensagem: `Falha ao salvar: ${err}`, nra: true })
     }
 
 }
@@ -117,7 +117,7 @@ async function coletarAssinatura(idOcorrencia) {
             <button class="small" onclick="salvarAssinatura('${idOcorrencia}')">Salvar</button>
         </div>
     `
-    popup(acumulado, `Assinatura do Cliente - ${idOcorrencia}`, true)
+    popup({ elemento: acumulado, titulo: `Assinatura do Cliente - ${idOcorrencia}`, nra: true })
 
     iniciarAuxiliares()
 

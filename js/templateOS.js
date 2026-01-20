@@ -20,14 +20,14 @@ async function telaOS(idOcorrencia) {
         .join('')
 
     // Anexos
-        imagens = Object.values(ocorrencia?.anexos || {})
-            .map(foto => {
-                const link = foto.link
-                const extensao = link.split('.').pop().toLowerCase()
-                if (!extensoes.includes(extensao)) return ''
-                return `<img name="foto" id="${link}" src="${api}/uploads/${link}" onclick="ampliarImagem(this, '${link}')">`
-            })
-            .join('')
+    imagens = Object.values(ocorrencia?.anexos || {})
+        .map(foto => {
+            const link = foto.link
+            const extensao = link.split('.').pop().toLowerCase()
+            if (!extensoes.includes(extensao)) return ''
+            return `<img name="foto" id="${link}" src="${api}/uploads/${link}" onclick="ampliarImagem(this, '${link}')">`
+        })
+        .join('')
 
     if (imagens == '') imagens = `
         <div class="horizontal-1">
@@ -42,7 +42,7 @@ async function telaOS(idOcorrencia) {
             <span>${texto2}</span>
         </div>
     `
-    
+
     const descFinal = ocorrencia.descricao || 'Sem comentários'
     const linha1 = `
         <div class="painel-1">
@@ -280,7 +280,7 @@ async function gerarOS(idOcorrencia) {
         const html = document.querySelector('.relatorio').innerHTML
         await gerarPdfOnline(html, `Relatório OS ${idOcorrencia}`)
     } catch (err) {
-        popup(mensagem(`Falha em baixar o PDF: ${err}`), 'Alerta', true)
+        popup({ mensagem: err.message || `Falha em baixar o PDF` })
     }
 
     removerOverlay()

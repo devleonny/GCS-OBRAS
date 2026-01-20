@@ -81,7 +81,7 @@ async function executar(nomeFuncao) {
     if (typeof window[nomeFuncao] === "function") {
         return await window[nomeFuncao]()
     } else {
-        popup(mensagem(`<b>Função não encontrada:</b> ${nomeFuncao}`), 'Alerta', true)
+        popup({ mensagem: `<b>Função não encontrada:</b> ${nomeFuncao}`, nra: true })
     }
 }
 
@@ -118,7 +118,7 @@ const esquemaBotoes = {
         { nome: 'Veículos', funcao: `telaVeiculos`, img: 'veiculo' },
         { nome: 'Reembolsos', funcao: `telaPagamentos`, img: 'reembolso' },
         { nome: 'Estoque', funcao: `telaEstoque`, img: 'estoque' },
-        { nome: 'Faturamento NFs', funcao: `telaRelatorio`, img: 'relatorio' },
+        //{ nome: 'Faturamento NFs', funcao: `telaRelatorioOmie`, img: 'relatorio' },
         { nome: 'RH', funcao: `telaRH`, img: 'gerente' },
         { nome: 'Ocorrências', funcao: `telaPrincipal`, img: 'LG' },
         { nome: 'Desconectar', funcao: `deslogarUsuario`, img: 'sair' }
@@ -178,7 +178,7 @@ const esquemaBotoes = {
     ],
     relatorio: [
         atalhoInicial,
-        { nome: 'Atualizar', funcao: 'atualizarRelatorio', img: 'atualizar' },
+        { nome: 'Atualizar', funcao: 'atualizarRelatorioOmie', img: 'atualizar' },
         { nome: 'Baixar em Excel', funcao: 'excelRecebimento', img: 'excel' },
         { nome: 'Limpar Filtros', funcao: 'limparFiltros', img: 'limpar' },
     ],
@@ -209,15 +209,15 @@ async function salvarDepartamento(img) {
     const input = img.previousElementSibling
     const nome = input.value
 
-    if (!nome) return popup(mensagem('Nome em branco'), 'Alerta', true)
+    if (!nome) return popup({ mensagem: 'Nome em branco', nra: true })
 
     const resposta = await criarDepDiretamente(nome)
 
-    if (resposta.mensagem) return popup(mensagem(resposta.mensagem), 'Alerta', true)
+    if (resposta.mensagem) return popup({ mensagem: resposta.mensagem, nra: true })
     input.value = ''
     img.style.display = 'none'
 
-    popup(mensagem('Salvo com successo'), 'Alerta', true)
+    popup({ mensagem: 'Salvo com successo', nra: true })
 }
 
 async function respostaSincronizacao(script) {
@@ -369,7 +369,7 @@ async function configs() {
         </div>
     `
 
-    const acumulado = `
+    const elemento = `
         <div style="${vertical}; background-color: #d2d2d2; padding: 0.5rem;">
             <label style="font-size: 1.2rem;">Gestão de Usuários</label>
             <hr style="width: 100%;">
@@ -377,7 +377,7 @@ async function configs() {
         </div>
     `
     removerPopup()
-    popup(acumulado, 'Configurações')
+    popup({ elemento, titulo: 'Configurações' })
 
 }
 
@@ -390,7 +390,7 @@ async function alterarUsuario({ campo, usuario, select, valor }) {
     if (alteracao?.success) {
         dados_setores[usuario][campo] = select ? select.value : valor
     } else {
-        popup(mensagem(`Não foi possível alterar: ${alteracao?.mensagem || 'Tente novamente mais tarde'}`), 'ALERTA', true)
+        popup({ mensagem: `Não foi possível alterar: ${alteracao?.mensagem || 'Tente novamente mais tarde'}`, nra: true })
         if (select) select.value = dados_setores[usuario][campo] // Devolve a informação anterior pro elemento;
     }
 
@@ -503,10 +503,10 @@ async function exportarParaExcel() {
         window.URL.revokeObjectURL(url);
 
         removerOverlay();
-    } catch (erro) {
-        console.error("Erro ao exportar:", erro);
+    } catch (err) {
+        console.error("Erro ao exportar:", err);
         removerOverlay();
-        popup(mensagem(erro), 'Alerta', true);
+        popup({ mensagem: err.message, nra: true })
     }
 }
 
@@ -668,7 +668,7 @@ async function salvarLevantamento(idOrcamento, idElemento) {
         if (idOrcamento) return await abrirEsquema(idOrcamento)
 
     } catch (error) {
-        popup(mensagem(`Erro ao fazer upload: ${error.message}`), 'ALERTA', true)
+        popup({ mensagem: `Erro ao fazer upload: ${error.message}`, nra: true })
     }
 }
 
@@ -800,7 +800,7 @@ async function painelUsuarios() {
     const statusOpcoes = ['online', 'Em almoço', 'Não perturbe', 'Em reunião', 'Apenas Whatsapp']
     if (acesso?.permissao == 'adm') statusOpcoes.push('Invisível')
 
-    const acumulado = `
+    const elemento = `
         <div class="conteinerOnline">
             <span>Alterar Status</span>
             <select class="opcoesSelect" onchange="mudarStatus(this)">
@@ -812,7 +812,7 @@ async function painelUsuarios() {
         </div>
     `
 
-    popup(acumulado, 'Usuários', true)
+    popup({ elemento, titulo: 'Usuários', nra: true })
 }
 
 async function gerarPdfOnline(htmlString, nome) {
@@ -843,7 +843,7 @@ async function gerarPdfOnline(htmlString, nome) {
 
 async function relancarPagamento(idPagamento) {
 
-    const acumulado = `
+    const elemento = `
         <div style="${vertical}; background-color: #d2d2d2; padding: 1rem;">
 
             <div style="${horizontal}; gap: 1rem;">
@@ -856,7 +856,7 @@ async function relancarPagamento(idPagamento) {
             <button onclick="confirmarRelancamento('${idPagamento}')">Confirmar</button>
         </div>
     `
-    popup(acumulado, 'Escolha o APP', true)
+    popup({ elemento, titulo: 'Escolha o APP', nra: true })
 }
 
 async function confirmarRelancamento(idPagamento) {
@@ -881,13 +881,13 @@ async function confirmarRelancamento(idPagamento) {
 
     const textoPrincipal = resposta?.objeto?.descricao_status || resposta?.mensagem || JSON.stringify(resposta)
     const infoAdicional = resposta?.objeto?.exclusaoPagamento || ''
-    const texto = `
+    const mensagem = `
         <div style="${vertical}; gap: 5px; text-align: left;">
             <span>${textoPrincipal}</span>
             <span>${infoAdicional}</span>
         </div>
     `
-    popup(mensagem(texto, 'imagens/atualizar.png'), 'Resposta', true)
+    popup({ mensagem, imagem: 'imagens/atualizar.png', titulo: 'Resposta' })
 
     telaPagamentos()
 
@@ -910,12 +910,12 @@ async function reprocessarAnexos(idPagamento) {
             })
             .then(data => {
                 console.log(JSON.parse(data))
-                popup(mensagem('Finalizado', 'imagens/concluido.png'), 'Alerta', true)
+                popup({ mensagem: 'Finalizado', imagem: 'imagens/concluido.png' })
                 resolve(data);
             })
             .catch(err => {
                 console.log(err)
-                popup(mensagem('Finalizado'), 'Alerta', true)
+                popup({ mensagem: 'Finalizado', imagem: 'imagens/concluido.png' })
                 reject(err)
             })
     })
@@ -1052,8 +1052,8 @@ async function verAprovacoes() {
         `
     }
 
-    const acumulado = `
-        <div style="background-color: #d2d2d2; padding: 5px;">
+    const elemento = `
+        <div style="${vertical}">
 
             <label style="font-size: 1.2rem;">Fila de Aprovação</label>
 
@@ -1061,7 +1061,7 @@ async function verAprovacoes() {
 
         </div>
     `
-    popup(acumulado, 'Aprovações de Orçamento', true)
+    popup({ elemento, titulo: 'Aprovações de Orçamento' })
 }
 
 async function verificarPendencias() {
@@ -1076,8 +1076,6 @@ async function verificarPendencias() {
 
     for (const orcamento of Object.values(dados_orcamentos)) {
         if (orcamento.aprovacao && orcamento.aprovacao.status == 'pendente') {
-            console.log(orcamento);
-
             contador++
         }
     }
@@ -1093,7 +1091,7 @@ async function verPedidoAprovacao(idOrcamento) {
 
     const permissao = acesso.permissao
     const pessoasPermitidas = ['adm', 'diretoria']
-    if (!pessoasPermitidas.includes(permissao)) return popup(mensagem('Você não tem acesso'), 'AVISO', true)
+    if (!pessoasPermitidas.includes(permissao)) return popup({ mensagem: 'Você não tem acesso' })
 
     let tabelas = {}
     let divTabelas = ''
@@ -1199,7 +1197,7 @@ async function verPedidoAprovacao(idOrcamento) {
     let diferencaDinheiro = totalGeral - totalBruto
     let diferencaPorcentagem = `${(diferencaDinheiro / totalBruto * 100).toFixed(2)}%`
 
-    const acumulado = `
+    const elemento = `
         <div class="painelAprovacoes">
             
             <div style="display: flex; align-items: center; justify-content: start; gap: 2vw;">
@@ -1243,7 +1241,7 @@ async function verPedidoAprovacao(idOrcamento) {
         </div>
     `
 
-    popup(acumulado, 'Detalhes', true)
+    popup({ elemento, titulo: 'Detalhes' })
 
 }
 
@@ -1519,8 +1517,7 @@ async function painelClientes(idOrcamento) {
             ` }
     ]
 
-    const form = new formulario({ linhas, botoes, titulo: 'Dados do Cliente' })
-    form.abrirFormulario()
+    popup({ linhas, botoes, titulo: 'Dados do Cliente' })
 
 }
 
@@ -1624,7 +1621,7 @@ async function abrirDANFE(codOmieNF, tipo, app) {
 
     console.log(resposta)
 
-    if (resposta.err) return popup(mensagem(`Provavelmente esta nota foi importada via XML e por enquanto não está disponível`), 'Alerta', true)
+    if (resposta.err) return popup({ mensagem: `Provavelmente esta nota foi importada via XML e por enquanto não está disponível` })
 
     removerOverlay()
 

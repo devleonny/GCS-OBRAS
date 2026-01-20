@@ -51,8 +51,8 @@ async function modalLPUParceiro(chave) {
             <div style="font-size: 1rem;">${valor}</div>
         </div>`
 
-    const acumulado = `
-        <div style="background-color: #d2d2d2; padding: 1rem; ${vertical};">
+    const elemento = `
+        <div style="${vertical};">
 
             <div style="${horizontal}; align-items: start; gap: 2rem;">
 
@@ -85,7 +85,7 @@ async function modalLPUParceiro(chave) {
     const bodyParceiros = document.getElementById('bodyParceiros')
     if (!bodyParceiros) {
         removidos = status?.removidos || {}
-        popup(acumulado, 'LPU Parceiro', true)
+        popup({ elemento, titulo: 'LPU Parceiro' })
     }
 
     const itens = status?.itens || orcamento?.dados_composicoes || {}
@@ -132,15 +132,15 @@ async function verItensRemovidosLPU() {
         `
     }
 
-    const acumulado = `
-        <div style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 2vw; min-width: 30vw;">
+    const elemento = `
+        <div style="${vertical}; gap: 5px; min-width: 30vw;">
 
             ${itens}
 
         </div>
     `
 
-    popup(acumulado, 'Itens Removidos', true)
+    popup({ elemento, titulo: 'Itens Removidos' })
 
 }
 
@@ -198,8 +198,8 @@ async function adicionarLinhaParceiro(codigo, composicao) {
 
 async function adicionarItemAdicional() {
 
-    const acumulado = `
-        <div style="${horizontal}; gap: 10px; background-color: #d2d2d2; padding: 2vw;">
+    const elemento = `
+        <div style="${horizontal}; gap: 10px;">
             ${modelo('Descrição', `<span name="descricao" class="opcoes" onclick="cxOpcoes('descricao', 'dados_composicoes', ['descricao'])">Selecione</span>`)}
             ${modelo('Quantidade', `<input name="qtde" type="number" style="padding: 5px; border-radius: 3px;">`)}
             ${modelo('Custo', `<input name="valor_orcado" type="number" style="padding: 5px; border-radius: 3px;">`)}
@@ -208,7 +208,7 @@ async function adicionarItemAdicional() {
         </div>
     `
 
-    popup(acumulado, 'Incluir Serviço', true)
+    popup({ elemento, titulo: 'Incluir Serviço' })
 }
 
 async function salvarAdicional() {
@@ -218,7 +218,8 @@ async function salvarAdicional() {
     const valor_orcado = Number(document.querySelector('[name="valor_orcado"]').value)
     const unidade = document.querySelector('[name="unidade"]').value
 
-    if (!qtde || !descricao || !valor_orcado || !unidade) return popup(mensagem('Não deixe campos em Branco'), 'Alerta', true)
+    if (!qtde || !descricao || !valor_orcado || !unidade)
+        return popup({ mensagem: 'Não deixe campos em Branco' })
 
     overlayAguarde()
     const codigo = ID5digitos()
@@ -495,7 +496,7 @@ async function exportarComoExcelHTML(chave) {
         URL.revokeObjectURL(url);
         removerOverlay()
     } catch (err) {
-        popup(mensagem(err), 'Alerta', true)
+        popup({ mensagem: err.message || 'Falha ao gerar Excel' })
     }
 }
 
@@ -611,15 +612,15 @@ async function detalharLpuParceiro(chave) {
         </div>
     `
 
-    const acumulado = `
-        <div style="padding: 1vw; background-color: #d2d2d2; padding: 1rem;">
+    const elemento = `
+        <div style="${vertical}">
             ${cabecalhoInfo}
             ${tabela}
         </div>
         ${botoes}
     `
 
-    popup(acumulado, 'Detalhamento Itens Parceiro', true);
+    popup({ elemento, titulo: 'Detalhamento Itens Parceiro' })
 
 }
 
@@ -720,6 +721,6 @@ async function gerarPdfParceiro(nome) {
         await gerarPdfOnline(htmlContent, `LPU PACEIRO ${nome}`);
         removerOverlay()
     } catch (err) {
-        popup(mensagem(err), 'Alerta', true)
+        popup({ mensagem: err.message || 'Falha ao gerar o PDF' })
     }
 }

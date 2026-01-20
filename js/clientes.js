@@ -112,7 +112,7 @@ function classificarUnidades() {
         unidades.push({ id, nome })
     }
 
-    if (unidades.length == 0) return popup(mensagem('Marque pelo menos 1 unidade'), 'Alerta', true)
+    if (unidades.length == 0) return popup({ mensagem: 'Marque pelo menos 1 unidade' })
 
     const opcoes = Object.entries(empresas)
         .sort(([, a], [, b]) => a.nome.localeCompare(b.nome))
@@ -139,8 +139,8 @@ function classificarUnidades() {
         { texto: 'Salvar', img: 'concluido', funcao: 'vincularEmpresas()' }
     ]
 
-    const form = new formulario({ linhas, botoes, titulo: `Vincular clientes` })
-    form.abrirFormulario()
+    popup({ linhas, botoes, titulo: `Vincular clientes` })
+
 }
 
 async function vincularEmpresas() {
@@ -159,7 +159,7 @@ async function vincularEmpresas() {
     let data
     try {
         data = await response.json()
-        if (data.mensagem) return popup(mensagem(data.mensagem), 'Alerta', true)
+        if (data.mensagem) return popup({ mensagem: data.mensagem })
 
         await sincronizarDados({ base: 'dados_clientes' })
         await tabelaClientes()
@@ -391,20 +391,17 @@ async function formularioCliente(idCliente) {
         ? 'Editar Cliente'
         : 'Criar Cliente'
 
-    const form = new formulario({ linhas, botoes, titulo })
-    form.abrirFormulario()
+    popup({ linhas, botoes, titulo })
 
 }
 
 function confirmarExcluirCliente(idCliente) {
-    const acumulado = `
-        <div style="${horizontal}; gap: 0.5rem; background-color: #d2d2d2; padding: 1rem;">
-            <span>Tem certeza que deseja excluir?</span>
-            <button onclick="excluirCliente('${idCliente}')">Confirmar</button>
-        </div>
-    `
 
-    popup(acumulado, 'Exclusão de cliente')
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `excluirCliente('${idCliente}')` }
+    ]
+
+    popup({ botoes, mensagem: 'Tem certeza que deseja excluir?', titulo: 'Exclusão de cliente' })
 }
 
 async function excluirCliente(idCliente) {
@@ -414,7 +411,7 @@ async function excluirCliente(idCliente) {
 
     deletar(`dados_clientes/${idCliente}`)
     await deletarDB(`dados_clientes/${idCliente}`)
-    delete clientesFiltrados[idCliente]
+
     delete dados_clientes[idCliente]
     const trExistente = document.getElementById(idCliente)
     if (trExistente) trExistente.remove()
@@ -463,7 +460,7 @@ async function salvarCliente(idCliente = codCliAleatorio()) {
 
     const resposta = await verificarClienteExistente({ cnpj, idCliente })
 
-    if (resposta.mensagem) return popup(mensagem(resposta.mensagem), 'Alerta', true)
+    if (resposta.mensagem) return popup({ mensagem: resposta.mensagem })
 
     const novo = {
         cnpj,

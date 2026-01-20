@@ -1,12 +1,4 @@
-.janela {
-    max-width: 90vw;
-    overflow: auto;
-    max-height: 90vh;
-    border-bottom-left-radius: 10px;
-    border-bottom-right-radius: 10px;
-}
-
-.janela-fora {
+.popup-janela-fora {
     position: relative;
     display: flex;
     flex-direction: column;
@@ -16,6 +8,13 @@
     text-align: center;
     border-radius: 10px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.janela {
+    min-width: 200px;
+    max-width: 90vw;
+    overflow: auto;
+    max-height: 90vh;
 }
 
 .popup {
@@ -130,7 +129,6 @@
     cursor: pointer;
     gap: 10px;
     background-color: #efefef;
-    padding: 3px;
     border-radius: 2px;
     font-size: 0.8rem;
 }
@@ -171,4 +169,119 @@
 
 .mensagem img {
     width: 2rem;
+}
+
+/* Painel */
+.painel-padrao {
+    background: linear-gradient(135deg, #249f41, #151749);
+    display: flex;
+    flex-direction: column;
+    max-height: 60vh;
+    max-width: 900px;
+    width: 100%;
+    overflow-y: auto;
+    padding: 1rem 0 1rem 0;
+}
+
+/* Campos */
+.painel-padrao input,
+.painel-padrao select,
+.painel-padrao textarea {
+    border-radius: 3px;
+    padding: 8px;
+    border: 1px solid #249f41;
+    background-color: #f9f9f9;
+    font-size: 14px;
+    transition: 0.15s ease;
+}
+
+.painel-padrao input:focus,
+.painel-padrao select:focus,
+.painel-padrao textarea:focus {
+    outline: none;
+    border-color: #3e8bff;
+    background-color: #fff;
+    box-shadow: 0 0 4px #3e8bff80;
+}
+
+/* Linha */
+.linha-padrao {
+    background-color: #ffffff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin: 0 1rem 0 1rem;
+    padding: 0.5rem;
+    border-bottom: 1px solid #ddd;
+    box-shadow: 0 3px 6px #00000015;
+}
+
+/* Rodapé */
+.rodape-padrao {
+    overflow: hidden;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    background-color: #757575;
+    gap: 1px;
+    width: 100%;
+    border-top: 1px solid #6a6a6a;
+    border-radius: 0 0 10px 10px;
+}
+
+
+/* Botões */
+.botoes-rodape {
+    flex: 1 1 100px;
+    cursor: pointer;
+    padding: 5px;
+    background-color: #d2d2d2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: 5vh;
+}
+
+.botoes-rodape img {
+    margin-left: 0;
+}
+
+.botoes-rodape img {
+    width: 2rem;
+}
+
+.botoes-rodape:hover {
+    transition: ease-in-out 0.1s;
+    background-color: #a9a9a9;
+}
+
+.aguarde {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.7);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 10005;
+}
+
+.aguarde img {
+    width: 5rem;
+}
+
+@media screen and (orientation: portrait) {
+    .botoes-rodape {
+        justify-content: start;
+        flex: 1 1 100%;
+    }
+
+    .botoes-rodape img {
+        margin-left: 1rem;
+    }
 }

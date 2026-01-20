@@ -47,13 +47,11 @@ function coresTabelas(tabela) {
 
 function apagarOrcamento() {
 
-    popup(`
-        <div style="display: flex; gap: 1vw; align-items: center; padding: 2vw; background-color: #d2d2d2;">
-            <label>Tem certeza que deseja apagar o Orçamento?</label>
-            <button onclick="confirmarExclusaoOrcamento()">Confirmar</button>
-        </div>
-        `, 'Alerta')
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `confirmarExclusaoOrcamento()` }
+    ]
 
+    popup({ botoes, elemento: 'Você quer limpar essa tela? <b>Isso não apagará o orçamento salvo*</b>' })
 }
 
 async function confirmarExclusaoOrcamento() {
@@ -148,7 +146,7 @@ async function manterPrecos() {
         </div>
     `
 
-    return popup(`
+    const elemento = `
         <div style="${vertical}; background-color: #d2d2d2; padding: 1rem; gap: 5px;">
 
             <p style="text-align: left;">
@@ -161,7 +159,9 @@ async function manterPrecos() {
             ${modelo('atrasado', true, 'Manter os preços antigos', '#e74642')}
 
         </div>
-        `, 'Marter Preços')
+        `
+
+    popup({ elemento, titulo: 'Manter Preços' })
 
 }
 
@@ -231,13 +231,12 @@ async function atualizarToolbar(remover) {
 function excluirRevisao() {
     const revisao = document.querySelector('[name="revisao"]').value
 
-    const acumulado = `
-        <div style="${horizontal}; background-color: #d2d2d2; padding: 1rem;">
-            <span>Deseja excluir a <b>${revisao}</b>?
-            <button onclick="confirmarExclusaoRevisao()">Confirmar</button>
-        </div>
-    `
-    popup(acumulado, 'Tem certeza?', true)
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `confirmarExclusaoRevisao()` }
+    ]
+
+    popup({ botoes, mensagem: `Deseja excluir a <b>${revisao}</b>?`, titulo: 'Tem certeza?' })
+
 }
 
 function confirmarExclusaoRevisao() {
@@ -606,9 +605,9 @@ async function enviarDadosOrcamento() {
 
     const dados_orcam = orcamentoBase.dados_orcam
 
-    if (dados_orcam.omie_cliente == '') return popup(mensagem('Cliente em branco'), 'Alerta')
+    if (dados_orcam.omie_cliente == '') return popup({ mensagem: 'Cliente em branco' })
 
-    if (dados_orcam.contrato == '') return popup(mensagem('Chamado em branco'), 'Alerta')
+    if (dados_orcam.contrato == '') return popup({ mensagem: 'Chamado em branco' })
 
     if (orcamentoBase.total_desconto > 0) {
         orcamentoBase.aprovacao = {
@@ -621,14 +620,11 @@ async function enviarDadosOrcamento() {
 
     const resposta = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoBase)
 
-    console.log(resposta);
-
-
     if (resposta.success) {
 
         delete orcamentoBase.dados_orcam.contrato
 
-        popup(mensagem('Aguarde... redirecionando...', 'imagens/concluido.png'), 'Processando...')
+        popup({ tempo: 3, mensagem: 'Aguarde... redirecionando...', imagem: 'imagens/concluido.png' })
 
         baseOrcamento(undefined, true)
         await telaOrcamentos(true)
@@ -642,7 +638,7 @@ async function enviarDadosOrcamento() {
         atualizarToolbar(true) // GCS no título
 
     } else {
-        popup(mensagem('Falha no salvamento, tente de novo em alguns minutos'), 'Alerta', true)
+        popup({ mensagem: 'Falha no salvamento, tente de novo em alguns minutos' })
     }
 
 }
@@ -656,7 +652,7 @@ async function ativarChamado(input, idOrcamento) {
     const resposta = await enviar(`dados_orcamentos/${idOrcamento}/chamado`, ativo)
     if (resposta.mensagem) {
         input.checked = !ativo
-        return popup(mensagem(resposta.mensagem), 'Alerta', true)
+        return popup({ mensagem: resposta.mensagem })
     }
 
     dados_orcamentos[idOrcamento].chamado = ativo
@@ -1445,7 +1441,7 @@ async function totalOrcamento() {
         if (avisoDesconto == 1) {
             painelClientes()
         } else {
-            popup(mensagem(avisos[avisoDesconto]), 'Alerta', true)
+            popup({ mensagem: avisos[avisoDesconto] })
         }
     }
 
@@ -1498,14 +1494,11 @@ async function alterarValorUnitario({ codigo, codigoMaster }) {
 
     const produto = dados_composicoes[codigo]
     const lpu = String(document.getElementById('lpu').value).toLowerCase()
-
-    if (lpu == 'lpu carrefour') return popup(mensagem('Carrefour não permite mudanças de valores'), 'AVISO')
-
     const ativo = produto?.[lpu]?.ativo || 0
     const historico = produto?.[lpu]?.historico || {}
     const precoOriginal = historico?.[ativo]?.valor || 0
 
-    const acumulado = `
+    const elemento = `
     <div style="width: 35vw; background-color: #d2d2d2; display: flex; align-items: center; justify-content: center; padding: 2vw; gap: 10px;">
         <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
             <label style="font-size: 1.2vw;"><strong>Descrição</strong></label>
@@ -1526,7 +1519,7 @@ async function alterarValorUnitario({ codigo, codigoMaster }) {
     </div>
     `
 
-    popup(acumulado, 'Aumentar o preço')
+    popup({ elemento, titulo: 'Aumentar o preço' })
 
 }
 
@@ -1541,7 +1534,9 @@ async function confirmarNovoPreco({ codigo, codigoMaster, precoOriginal, operaca
     if (operacao == 'incluir') {
         let valor = Number(document.getElementById('novoValor').value)
 
-        if (precoOriginal >= valor) return popup(mensagem('O valor precisa ser maior que o Original'), 'AVISO', true)
+        if (precoOriginal >= valor)
+            return popup({ mensagem: 'O valor precisa ser maior que o Original' })
+
         item.custo_original = precoOriginal
         item.custo = valor
         item.alterado = true

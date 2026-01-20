@@ -485,7 +485,7 @@ async function abrirValores(codigo) {
         `
     }
 
-    const acumulado = `
+    const elemento = `
         <div class="painel-registro">
         
             <div style="color: #222; display: flex; justify-content: start; align-items: center; margin: 2px; gap: 3vw;">
@@ -541,10 +541,9 @@ async function abrirValores(codigo) {
 
             ${tabela}
 
-        </div>
-    `
+        </div>`
 
-    popup(acumulado, 'Informar valor de Compra')
+    popup({ elemento, titulo: 'Informar valor de Compra' })
 }
 
 async function salvarDadosCompra(codigo, cpr, campo, img) {
@@ -703,7 +702,7 @@ async function abrirEstoque(codigo, stq) {
         `
     }
 
-    const acumulado = `
+    const elemento = `
 
     <div class="painel-registro">
 
@@ -765,7 +764,7 @@ async function abrirEstoque(codigo, stq) {
     </div>
     `
 
-    popup(acumulado, 'Movimentação de estoque')
+    popup({ elemento, titulo: 'Movimentação de estoque' })
 
 }
 
@@ -891,7 +890,7 @@ async function incluirItemEstoque(codigo) {
 
     const produto = dados_estoque?.[codigo] || {}
 
-    const acumulado = `
+    const elemento = `
         <div class="painel-registro">
 
             <div style="${horizontal}; gap: 15px;">
@@ -924,7 +923,7 @@ async function incluirItemEstoque(codigo) {
         </div>
     `
 
-    popup(acumulado, 'Cadastro de Item');
+    popup({ elemento, titulo: 'Cadastro de Item' })
 
 }
 
@@ -966,13 +965,18 @@ async function removerLinhaEstoque(codigo) {
 
     const item = await recuperarDado('dados_estoque', codigo)
 
-    popup(`
-        <div style="${vertical}; padding: 2vw; background-color: #d2d2d2;">
+    const mensagem = `
+        <div style="${vertical};">
             <label>Deseja excluir este item?</label>
             <label>${item.partnumber} - ${item.descricao}</label>
-            <button onclick="confirmarExclusaoEstoque('${codigo}')">Confirmar</button>
         </div>
-    `, 'Tem certeza?', true)
+    `
+
+    const botoes = [
+        { texto: 'Confirmar', funcao: `confirmarExclusaoEstoque('${codigo}')`, img: 'concluido' }
+    ]
+
+    popup({ mensagem, botoes, titulo: 'Remover item' })
 
 }
 
@@ -989,7 +993,7 @@ async function confirmarExclusaoEstoque(codigo) {
 
 function relatorioMovimento() {
 
-    const acumulado = `
+    const elemento = `
         <div class="painel-registro">
 
             <div style="${horizontal}; gap: 10px;">
@@ -1013,10 +1017,9 @@ function relatorioMovimento() {
 
             <div id="relatorio"></div>
 
-        </div>
-    `
+        </div>`
 
-    popup(acumulado, 'Relatório de Movimentos')
+    popup({ elemento, titulo: 'Relatório de Movimentos' })
 
 }
 

@@ -3,7 +3,7 @@ let idManutencao = null
 let statusChamados = null
 
 async function atualizarManutencoes() {
-    await sincronizarDados({ base: 'dados_manutencao' })
+    await sincronizarDados({ base: 'dados_manutencao', overlay: true })
     await telaChamados()
 }
 
@@ -334,7 +334,7 @@ async function criarManutencao(id) {
             </div>`)
         .join('')
 
-    const acumulado = `
+    const elemento = `
         <div style="${vertical}; background-color: #d2d2d2;">
             <div name="pdfChamado" style="${vertical}; width: 100%; height: 60vh; overflow: auto; padding: 2vw 0 2vw 0;">
                 ${formulario}
@@ -347,7 +347,7 @@ async function criarManutencao(id) {
         </div>
         `
 
-    popup(acumulado, `Requisição de Materiais`)
+    popup({ elemento, titulo: `Requisição de Materiais` })
 
     modoKit({ checked: kitTecnico })
 
@@ -630,13 +630,11 @@ async function enviarManutencao() {
 
 function confirmarExclusaoManutencao(id) {
 
-    popup(`
-        <div style="background-color: #d2d2d2; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 2vw;">
-            <img src="gifs/alerta.gif" style="width: 3vw;">
-            <label>Confirmar exclusão?</label>
-            <button style="font-size: 1vw; background-color: green;" onclick="excluirManutencao('${id}')">Confirmar</button>
-        </div>
-    `, 'Alerta', true)
+    const botoes = [
+        { texto: 'Confirmar', img: '', funcao: `excluirManutencao('${id}')` }
+    ]
+
+    popup({ mensagem: 'Confirmar exclusão?', botoes })
 
 }
 

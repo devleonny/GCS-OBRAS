@@ -2,28 +2,25 @@ function abrirImagem(codigo) {
 
     const localImagem = document.getElementsByName(codigo)[0] // Todos são iguais, então estou pegando o primeiro como exemplo;
 
-    let acumulado = `
-        <div style="background-color: #d2d2d2; display: flex; flex-direction: column; padding: 2vw; gap: 10px;">
+    const elemento = `
+        <div style="${vertical}">
             
             <img id="img" src="${localImagem.src}" style="background-color: white; width: 30vw; margin: auto; border-radius: 5px;">
             
-            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                <input id="fileInput" type="file" accept="image/*" style="display: none;" onchange="imagemSelecionada()">
+            <input id="fileInput" type="file" accept="image/*" style="display: none;" onchange="imagemSelecionada()">
 
-                <label for="fileInput" class="contorno-botoes" style="padding: 10px 20px; background-color: #007bff; color: white; border-radius: 5px; cursor: pointer; text-align: center;">
-                    Selecione uma Imagem
-                </label>
-
-                ${botao('Salvar', `importarImagem('${codigo}')"`, 'green')}
-
-            </div>
+            <button for="fileInput" class="contorno-botoes" style="background-color: #007bff;">
+                Selecione uma Imagem
+            </button>
                     
             <textarea id="base64Output" style="display: none;"></textarea>
         </div>
-    `;
+    `
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: `importarImagem('${codigo}')` }
+    ]
 
-
-    popup(acumulado, 'Imagem', true)
+    popup({ elemento, botoes, titulo: 'Imagem' })
 }
 
 async function importarImagem(codigo) {
@@ -33,7 +30,7 @@ async function importarImagem(codigo) {
     const apiUrl = 'https://api.imgur.com/3/image';
     const base64String = document.getElementById('base64Output').value;
 
-    if(base64String == '') return removerPopup()
+    if (base64String == '') return removerPopup()
 
     const response = await fetch(apiUrl, {
         method: 'POST',
@@ -49,7 +46,8 @@ async function importarImagem(codigo) {
 
     const responseData = await response.json();
 
-    if (responseData.data.error) return popup(mensagem('Ocorreu um erro no upload. Tente novamente'), 'AVISO', true)
+    if (responseData.data.error)
+        return popup({ mensagem: 'Ocorreu um erro no upload. Tente novamente' })
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
     let srcRetornado = responseData.data.link

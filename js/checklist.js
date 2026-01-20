@@ -52,8 +52,8 @@ async function telaChecklist() {
         i++
     }
 
-    const acumulado = `
-        <div style="${vertical}; padding: 1rem; background-color: #d2d2d2;">
+    const elemento = `
+        <div style="${vertical}; padding: 1rem;">
 
             <div class="toolbar-checklist">
 
@@ -102,7 +102,7 @@ async function telaChecklist() {
     const titulo = `Checklist - ${orcamento?.dados_orcam?.contrato || '--'} - ${cliente?.nome || '--'}`
 
     const tabelaCheklist = document.getElementById('tabelaCheklist')
-    if (!tabelaCheklist) popup(acumulado, titulo, true)
+    if (!tabelaCheklist) popup({ elemento, titulo })
 
     // Reset;
     quantidadeGeral = 0
@@ -306,8 +306,7 @@ async function tecnicosAtivos() {
         { texto: 'Salvar', img: 'concluido', funcao: `salvarTecnicos()` },
     ]
 
-    const form = new formulario({ linhas, botoes, titulo: 'Técnicos na Obra' })
-    form.abrirFormulario()
+    popup({ linhas, botoes, titulo: 'Técnicos na Obra' })
 
 }
 
@@ -363,7 +362,7 @@ async function relatorioChecklist() {
     `
     const ano = new Date().getFullYear()
 
-    const acumulado = `
+    const elemento = `
     
         <div style="background-color: #d2d2d2; padding: 2rem;">
 
@@ -406,7 +405,7 @@ async function relatorioChecklist() {
 
     `
 
-    popup(acumulado, 'Relatório Diário', true)
+    popup({ elemento, titulo: 'Relatório Diário' })
 
     mostrarPagina('relatorio')
     auxiliarTotaisRelatorio()
@@ -853,7 +852,7 @@ async function atualizarChecklist() {
 
 async function adicionarServicoAvulso() {
 
-    const acumulado = `
+    const elemento = `
         <div style="${horizontal}; gap: 10px; background-color: #d2d2d2; padding: 2rem;">
             ${modelo('Descrição', `<span name="codigo" onclick="cxOpcoes('codigo', 'dados_composicoes', ['descricao', 'codigo', 'tipo', 'modelo', 'fabricante'])" class="opcoes">Selecione</span>`)}
             ${modelo('Quantidade', `<input name="qtde" type="number" style="padding: 5px; border-radius: 3px;">`)}
@@ -861,7 +860,7 @@ async function adicionarServicoAvulso() {
         </div>
     `
 
-    popup(acumulado, 'Incluir Serviço', true)
+    popup({ elemento, titulo: 'Incluir Serviço' })
 }
 
 async function salvarAvulso() {
@@ -869,7 +868,7 @@ async function salvarAvulso() {
     const qtde = Number(document.querySelector('[name="qtde"]').value)
     const codigo = document.querySelector('[name="codigo"]').id
 
-    if (!qtde) return popup(mensagem('Não deixe a quantidade em Branco'), 'Alerta', true)
+    if (!qtde) return popup({ mensagem: 'Não deixe a quantidade em Branco' })
 
     overlayAguarde()
     const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
@@ -913,16 +912,15 @@ async function verItensRemovidos() {
         `
     }
 
-    const acumulado = `
-        <div style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 2vw; min-width: 30vw;">
+    const elemento = `
+        <div style="${vertical}; gap: 5px;">
 
             ${itens}
 
         </div>
-    
     `
 
-    popup(acumulado, 'Itens Removidos', true)
+    popup({ elemento, titulo: 'Itens Removidos' })
 
 }
 
@@ -1178,7 +1176,7 @@ async function registrarChecklist(codigo) {
     `
 
     const formChecklist = document.querySelector('.painel-registro-checklist')
-    if (!formChecklist) popup(`<div class="painel-registro-checklist">${acumulado}</div>`, 'Registrar', true)
+    if (!formChecklist) popup({ elemento: `<div class="painel-registro-checklist">${acumulado}</div>`, titulo: 'Registrar' })
     else formChecklist.innerHTML = acumulado
 
     for (const codTec of orcamento?.checklist?.tecnicos || []) {
@@ -1259,14 +1257,15 @@ async function salvarQuantidade(codigo) {
     const comentario = form.querySelector('[name="comentario"]').value
 
     // Bloqueios;
-    if ((quantidadeRealizadoItem + quantidade) > quantidadeItem) return popup(mensagem('Não é possível exceder a quantidade orçada'), 'Alerta', true)
+    if ((quantidadeRealizadoItem + quantidade) > quantidadeItem)
+        return popup({ mensagem: 'Não é possível exceder a quantidade orçada' })
 
     if (!tecnicos.length) {
         await registrarChecklist(codigo)
-        return popup(mensagem('É necessário ter pelo menos 1 técnico realizando a atividade...'), 'Ninguém fez?', true)
+        return popup({ mensagem: 'É necessário ter pelo menos 1 técnico realizando a atividade...', titulo: 'Ninguém fez?' })
     }
 
-    if (!quantidade || !data) return popup(mensagem('Preencha todos os campos'), 'Alerta', true)
+    if (!quantidade || !data) return popup({ mensagem: 'Preencha todos os campos' })
 
     const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
 

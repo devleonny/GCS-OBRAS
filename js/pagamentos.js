@@ -461,7 +461,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
     const telaDetalhes = document.querySelector('.tela-detalhes')
     if (telaDetalhes) return telaDetalhes.innerHTML = acumulado
-    popup(`<div class="tela-detalhes">${acumulado}</div>`, 'Detalhes do Pagamento', true)
+    popup({ elemento: `<div class="tela-detalhes">${acumulado}</div>`, titulo: 'Detalhes do Pagamento' })
 
 }
 
@@ -583,7 +583,7 @@ async function salvarPagamento() {
     overlayAguarde()
 
     const resposta = await calculadoraPagamento(true) // Última verificação antes de salvar;
-    if (resposta && resposta.mensagem) return popup(mensagem(resposta.mensagem), 'Atenção', true)
+    if (resposta && resposta.mensagem) return popup({ mensagem: resposta.mensagem })
 
     const ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
     const permissao = acesso.permissao
@@ -623,11 +623,11 @@ async function salvarPagamento() {
 
         localStorage.removeItem('ultimoPagamento')
         removerPopup()
-        popup(mensagem('Pagamento Salvo', 'imagens/concluido.png'), 'successo')
+        popup({ imagem: 'imagens/concluido.png', mensagem: 'Pagamento Salvo' })
 
     } catch (e) {
         console.log(e)
-        popup(mensagem('Não foi possível salvar o pagamento, tente novamente.'), 'Alerta', true)
+        popup({ mensagem: 'Não foi possível salvar o pagamento, tente novamente.' })
     }
 
 }
@@ -725,8 +725,7 @@ async function formularioPagamento() {
         { texto: 'Recomeçar', img: 'cancel', funcao: 'apagarPagamento()' }
     ]
 
-    const form = new formulario({ linhas, botoes, titulo: 'Solicitação de Pagamento' })
-    form.abrirFormulario()
+    popup({ linhas, botoes, titulo: 'Solicitação de Pagamento' })
 
     // Categorias;
     for (const categoria of categorias)
@@ -989,8 +988,8 @@ async function apagarPagamento() {
 }
 
 function duvidas() {
-    const acumulado = `
-        <div style="${vertical}; padding: 1rem; text-align: left; background-color: #d2d2d2;">
+    const elemento = `
+        <div style="${vertical};">
             <label>• Se faltar algo, Clique em <strong>Atualizar GCS</strong> no botão azul para atualizar tudo;</label>
             <label>• Se o botão <strong>"Salvar"</strong> não apareceu, é porque falta preencher algum campo;</label>
             <label>• Após às <strong>11h</strong> será lançado no dia útil seguinte;</label>
@@ -1002,7 +1001,7 @@ function duvidas() {
         </div>
     `
 
-    popup(acumulado, 'Informações Importantes', true)
+    popup({ elemento, titulo: 'Informações Importantes' })
 }
 
 async function salvarAnexosPagamentos(input, id_pagamento) {
@@ -1184,7 +1183,8 @@ async function editarPagamento(id_pagamento) {
 
     const omieStatus = ['A VENCER', 'PAGO', 'ATRASADO', 'VENCE HOJE']
 
-    if (omieStatus.includes(pagamento.status)) return popup(mensagem('Este pagamento já está no Omie e por isso não pode ser editado!'), 'AVISO', true)
+    if (omieStatus.includes(pagamento.status))
+        return popup({ mensagem: 'Este pagamento já está no Omie e por isso não pode ser editado!' })
 
     localStorage.setItem('ultimoPagamento', JSON.stringify(pagamento))
 

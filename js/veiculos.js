@@ -48,6 +48,8 @@ async function telaVeiculos() {
 
     overlayAguarde()
 
+    mostrarMenus(false)
+
     dados_clientes = await recuperarDados('dados_clientes') || {}
     departamentos = await recuperarDados('departamentos_AC') || {}
     veiculos = await recuperarDados('veiculos') || {}
@@ -150,8 +152,8 @@ function auxMotoristas() {
             `)
         .join('')
 
-    const acumulado = `
-        <div style="${vertical}; background-color: #d2d2d2; padding: 1rem;">
+    const elemento = `
+        <div style="${vertical}; padding: 1rem;">
             
             <div style="${vertical}">
                 <div class="painelBotoes">
@@ -165,7 +167,7 @@ function auxMotoristas() {
         </div>
     `
 
-    popup(acumulado, 'Motoristas', true)
+    popup({ elemento, titulo: 'Motoristas' })
 }
 
 function auxVeiculos() {
@@ -184,8 +186,8 @@ function auxVeiculos() {
             `)
         .join('')
 
-    const acumulado = `
-        <div style="${vertical}; background-color: #d2d2d2; padding: 1rem;">
+    const elemento = `
+        <div style="${vertical}; padding: 1rem;">
             <div class="painelBotoes">
                 ${pesquisa('veículo')}
                 <button onclick="novoVeiculo()">Adicionar</button>
@@ -195,7 +197,7 @@ function auxVeiculos() {
         </div>
     `
 
-    popup(acumulado, 'Veículos', true)
+    popup({ elemento, titulo: 'Veículos' })
 }
 
 function criarLinhaVeiculo({ custo, nome, veiculo, idCusto }) {
@@ -349,8 +351,7 @@ async function criarPagamentoVeiculo() {
         { img: 'salvo', funcao: 'enviarOmie()', texto: 'Enviar/Omie' }
     ]
 
-    const form = new formulario({ linhas, botoes, titulo: 'Criar pagamento no Omie' })
-    form.abrirFormulario()
+    popup({ linhas, botoes, titulo: 'Criar pagamento no Omie' })
 
 }
 
@@ -367,7 +368,9 @@ async function enviarOmie() {
     const taxa = Number(el('taxa'))
     const inpData = el('data')
 
-    if (!taxa || !inpData) return popup(mensagem('Preencha a data e/ou o valor da taxa'), 'Campo ausente', true)
+    if (!taxa || !inpData)
+        return popup({ mensagem: 'Preencha a data e/ou o valor da taxa' })
+
     overlayAguarde()
 
     const dt = (data) => {
@@ -420,10 +423,11 @@ async function enviarOmie() {
     }
 
     const resposta = await lancarPagamento({ pagamento, dataFixa: true })
-    if (resposta.mensagem) return popup(mensagem(resposta.mensagem), 'Alerta', true)
+    if (resposta.mensagem)
+        return popup({ mensagem: resposta.mensagem })
 
     removerPopup()
-    popup(mensagem('Realizado com successo', 'imagens/concluido.png'), 'Enviado', true)
+    popup({ tempo: 5, mensagem: 'Realizado com successo', imagem: 'imagens/concluido.png' })
 
 }
 
@@ -507,14 +511,14 @@ async function painelAtalhos(idCusto) {
 
     const custo = await recuperarDado('custo_veiculos', idCusto)
 
-    const acumulado = `
-    <div style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 1rem;">
-        ${modeloBotoes('duplicar', 'Duplicar Pagamento', `painelValores('${idCusto}', true)`)}
-        ${modeloBotoes('editar', 'Editar Pagamento', `painelValores('${idCusto}')`)}
-        ${(acesso.permissao == 'adm' || acesso.usuario == custo.usuario) ? modeloBotoes('cancel', 'Excluir Pagamento', `painelExcluir('${idCusto}')`) : ''}
-    </div>
+    const elemento = `
+        <div style="${vertical}; gap: 5px;">
+            ${modeloBotoes('duplicar', 'Duplicar Pagamento', `painelValores('${idCusto}', true)`)}
+            ${modeloBotoes('editar', 'Editar Pagamento', `painelValores('${idCusto}')`)}
+            ${(acesso.permissao == 'adm' || acesso.usuario == custo.usuario) ? modeloBotoes('cancel', 'Excluir Pagamento', `painelExcluir('${idCusto}')`) : ''}
+        </div>
     `
-    popup(acumulado, 'Atalhos')
+    popup({ elemento, titulo: 'Atalhos' })
 }
 
 function pesquisarBotoes(input, modalidade) {
@@ -537,14 +541,11 @@ function pesquisarBotoes(input, modalidade) {
 
 function painelExcluir(idCusto) {
 
-    const acumulado = `
-    <div style="${horizontal}; gap: 1rem; padding: 1rem; background-color: #d2d2d2;">
-        <label>Deseja excluir este lançamento?</label>
-        <button onclick="excluirCusto('${idCusto}')">Confirmar</button>
-    </div>
-    `
+    const botoes = [
+        { texto: 'Confirmar', img: 'conclido', funcao: `excluirCusto('${idCusto}')` }
+    ]
 
-    popup(acumulado, 'Tem certeza?')
+    popup({ botoes, mensagem: 'Deseja excluir este lançamento?' })
 }
 
 async function excluirCusto(idCusto) {
@@ -605,8 +606,7 @@ async function painelValores(idCusto, duplicar) {
         { texto: 'Atualizar', img: 'atualizar', funcao: `atualizarDadosVeiculos()` },
     ]
 
-    const form = new formulario({ linhas, botoes, titulo: 'Gerenciar Custo' })
-    form.abrirFormulario()
+    popup({ linhas, botoes, titulo: 'Gerenciar Custo' })
 
     for (const [codigo, km] of Object.entries(custo.distribuicao || {})) {
         const descricao = departamentos?.[codigo]?.cliente?.nome || 'Desatualizado...'
@@ -673,9 +673,14 @@ async function salvarValores(idCusto = ID5digitos()) {
     const custo_total = obterValores('custo_total')
     const data_pagamento = obterValores('data_pagamento')
 
-    if (!motorista) return popup(mensagem(`Preencha o motorista`), 'Alerta', true)
-    if (custo_total == '') return popup(mensagem(`Preencha o valor do pagamento`), 'Alerta', true)
-    if (data_pagamento == '') return popup(mensagem(`Preencha a data de pagamento`), 'Alerta', true)
+    if (!motorista)
+        return popup({ mensagem: `Preencha o motorista` })
+
+    if (custo_total == '')
+        return popup({ mensagem: `Preencha o valor do pagamento` })
+
+    if (data_pagamento == '')
+        return popup({ mensagem: `Preencha a data de pagamento` })
 
     const distribuicao = {}
     const linhas = document.querySelectorAll('#distribuicao tr')
@@ -684,7 +689,8 @@ async function salvarValores(idCusto = ID5digitos()) {
         const tds = linha.querySelectorAll('td')
         const span = tds[0].querySelector('span')
 
-        if (!span.id) return popup(mensagem('Departamento em branco'), 'Alerta', true)
+        if (!span.id)
+            return popup({ mensagem: 'Departamento em branco' })
 
         const dep = span.id
         const km = Number(linha.querySelector('[name="km"]').value)
@@ -734,8 +740,7 @@ async function novoVeiculo(idVeiculo) {
         { texto: 'Salvar', img: 'concluido', funcao }
     ]
 
-    const form = new formulario({ linhas, botoes, titulo: 'Gerenciar Veículo' })
-    form.abrirFormulario()
+    popup({ linhas, botoes, titulo: 'Gerenciar Veículo' })
 
 }
 
@@ -824,8 +829,7 @@ async function novoMotorista(idMotorista) {
 
     if (idMotorista) botoes.push({ texto: 'Excluir', img: 'cancel', funcao: 'confirmarExcluirItem()' })
 
-    const form = new formulario({ linhas, botoes, titulo: 'Gerenciar Motorista' })
-    form.abrirFormulario()
+    popup({ linhas, botoes, titulo: 'Gerenciar Motorista' })
 
 }
 
@@ -866,7 +870,8 @@ async function salvarMotorista() {
 
     overlayAguarde()
     const idMotorista = document.querySelector('[name="nameMotorista"]').id
-    if (!idMotorista) return popup(mensagem('Escolha um motorista'), 'AVISO', true)
+    if (!idMotorista)
+        return popup({ mensagem: 'Escolha um motorista' })
 
     const idVeiculo = document.querySelector('[name="nameVeiculo"]').id || null
     const motorista = {
@@ -897,7 +902,8 @@ async function removerAnexo(idCusto, idAnexo, img) {
 async function veiculosExcel() {
 
     const tabela = document.querySelector('.tabela')
-    if (!tabela) return popup(mensagem('Tabela não encontrada'), 'Alerta', true)
+    if (!tabela)
+        return popup({ mensagem: 'Tabela não encontrada' })
 
     const workbook = new ExcelJS.Workbook()
     const planilha = workbook.addWorksheet('Dados')

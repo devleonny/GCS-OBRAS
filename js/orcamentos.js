@@ -106,6 +106,17 @@ function ordenarOrcamentos(colunaIndex) {
     tbody.appendChild(frag)
 }
 
+function mudarInterruptor(el) {
+    const ativo = el.checked
+    const label = el.parentElement
+
+    const track = label.querySelector('.track')
+    const thumb = label.querySelector('.thumb')
+
+    if (track) track.style.backgroundColor = ativo ? '#4caf50' : '#ccc'
+    if (thumb) thumb.style.transform = ativo ? 'translateX(26px)' : 'translateX(0)'
+}
+
 async function rstTelaOrcamentos() {
     tela.innerHTML = ''
     await telaOrcamentos()
@@ -256,8 +267,7 @@ function filtroOrcamentos() {
         { texto: 'Salvar', img: 'concluido', funcao: 'salvarFiltrosApp()' }
     ]
 
-    const form = new formulario({ linhas, botoes, titulo: 'Gerenciar Filtro' })
-    form.abrirFormulario()
+    popup({ linhas, botoes, titulo: 'Gerenciar Filtro' })
 
 }
 
@@ -730,63 +740,6 @@ async function organizarHierarquia() {
         }
 
     }
-
-}
-
-async function painelAlteracaoCliente(idOrcamento) {
-
-    overlayAguarde()
-
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-    const dados_clientes = await recuperarDados('dados_clientes')
-    const opcoes = Object.entries(dados_clientes)
-        .map(([codOmie, cliente]) => `<option value="${codOmie}">${cliente.cnpj} - ${cliente.nome}</option>`)
-        .join('')
-
-    const acumulado = `
-                        <div style="display: flex; align-items: start; flex-direction: column; justify-content: center; padding: 2vw; background-color: #d2d2d2;">
-
-                            ${modelo('Cliente', orcamento.dados_orcam.cliente_selecionado)}
-                            ${modelo('Cliente', orcamento.dados_orcam.cnpj)}
-                            ${modelo('Cliente', orcamento.dados_orcam.cidade)}
-
-                            <hr style="width: 100%;">
-
-                                <label for="clientes">Clientes Omie</label>
-                                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                    <input style="padding: 5px; width: 100%; border-radius: 3px;" list="clientes" id="cliente">
-                                        <datalist id="clientes">${opcoes}</datalist>
-                                        ${botao('Salvar', `associarClienteOrcamento('${idOrcamento}')`, 'green')}
-                                </div>
-
-                        </div>
-                        `
-
-    popup(acumulado, 'ATUALIZAR CLIENTE')
-}
-
-async function associarClienteOrcamento(idOrcamento) {
-
-    overlayAguarde()
-
-    let orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-
-    const codOmie = document.getElementById('cliente').value
-
-    orcamento.dados_orcam.omie_cliente = Number(codOmie)
-    delete orcamento.dados_orcam.cliente_selecionado
-    delete orcamento.dados_orcam.cidade
-    delete orcamento.dados_orcam.cnpj
-    delete orcamento.dados_orcam.estado
-    delete orcamento.dados_orcam.cep
-    delete orcamento.dados_orcam.bairro
-    delete orcamento.dados_orcam.cliente_selecionado
-
-    enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamento.dados_orcam)
-
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-
-    removerPopup()
 
 }
 

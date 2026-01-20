@@ -68,7 +68,7 @@ async function acessoLogin() {
     const url = `${api}/acesso`
 
     if (inputs[0].value == '' || inputs[1].value == '') {
-        popup(mensagem('Senha e/ou usuário não informado(s)'), 'Alerta', true)
+        popup({ mensagem: 'Senha e/ou usuário não informado(s)' })
         divAcesso.style.display = 'flex'
 
     } else {
@@ -96,7 +96,7 @@ async function acessoLogin() {
 
             if (data.mensagem) {
                 divAcesso.style.display = 'flex'
-                return popup(mensagem(data.mensagem), 'Alerta', true);
+                return popup({ mensagem: data.mensagem });
 
             } else if (data.usuario) {
                 acesso = data
@@ -108,9 +108,9 @@ async function acessoLogin() {
                 await connectWebSocket()
 
             }
-        } catch (e) {
+        } catch (err) {
             divAcesso.style.display = 'flex'
-            popup(mensagem(`${e}::lin106`), 'Alerta', true);
+            popup({ imagem: 'gifs/dino.gif', mensagem: err.message || `Falha ao acessar o sistema, tente novamente em instantes` })
         }
     }
 }
@@ -128,8 +128,8 @@ function recuperarSenha() {
         { texto: 'Solicitar Código', img: 'chave', funcao: `solicitarCodigo()` }
     ]
 
-    const form = new formulario({ linhas, botoes, titulo: 'Recuperar acesso' })
-    form.abrirFormulario()
+    popup({ linhas, botoes, titulo: 'Recuperar acesso' })
+
 }
 
 async function solicitarCodigo() {
@@ -160,11 +160,10 @@ async function solicitarCodigo() {
             { texto: 'Confirmar', img: 'concluido', funcao: `salvarSenha()` }
         ]
 
-        const form = new formulario({ linhas, botoes, titulo: 'Recuperar acesso' })
-        form.abrirFormulario()
+        popup({ linhas, botoes, titulo: 'Recuperar acesso' })
 
     } else {
-        popup(mensagem(resposta.mensagem || 'Falha na solicitação'), 'Alerta')
+        popup({ mensagem: resposta.mensagem || 'Falha na solicitação' })
     }
 
 }
@@ -181,11 +180,11 @@ async function salvarSenha() {
 
     if (resposta.success) {
         removerPopup()
-        popup(mensagem(resposta.mensagem, 'imagens/concluido.png'), 'GCS')
+        popup({ mensagem: resposta.mensagem, imagem: 'imagens/concluido.png' })
         return
     }
 
-    if (resposta.mensagem) popup(mensagem(resposta.mensagem), 'GCS', true)
+    if (resposta.mensagem) popup({ mensagem: resposta.mensagem })
 
 }
 
@@ -209,8 +208,7 @@ function cadastrar() {
         { texto: 'Criar Acesso', img: 'concluido', funcao }
     ]
 
-    const form = new formulario({ linhas, botoes, titulo: 'Cadastro' })
-    form.abrirFormulario()
+    popup({ linhas, botoes, titulo: 'Cadastro' })
 
 }
 
@@ -231,7 +229,8 @@ async function salvarCadastro() {
         telefone: obVal('telefone')
     }
 
-    if (dados.usuario == '' || dados.senha == '' || dados.email == '') return popup(mensagem('Senha, usuário ou e-mail não informado(s)'), 'Aviso', true)
+    if (dados.usuario == '' || dados.senha == '' || dados.email == '')
+        return popup({ mensagem: 'Senha, usuário ou e-mail não informado(s)' })
 
     try {
         const response = await fetch(`${api}/acesso`, {
@@ -246,10 +245,10 @@ async function salvarCadastro() {
 
         const data = await response.json()
         removerPopup()
-        return popup(mensagem(data.mensagem), 'Alerta')
+        return popup({ mensagem: data.mensagem })
 
     } catch (err) {
-        popup(mensagem(err.message), 'Alerta')
+        popup({ mensagem: err.message })
     }
 
 }

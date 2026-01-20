@@ -22,7 +22,7 @@ function pararCam() {
         if (!video) return
         video.srcObject = null;
     } catch (err) {
-        popup(mensagem(`Falha no plugin: ${err}`))
+        popup({ mensagem: `Falha no plugin: ${err}` })
     }
 }
 
@@ -45,7 +45,7 @@ async function blocoAuxiliarFotos(fotos) {
 
     } else {
 
-        const popupCamera = `
+        const elemento = `
             <div style="${vertical}; gap: 3px; background-color: #d2d2d2;">
                 <div class="capturar" style="position: fixed; bottom: 10px; left: 10px; z-index: 10003;" onclick="tirarFoto()">
                     <img src="imagens/camera.png">
@@ -58,7 +58,7 @@ async function blocoAuxiliarFotos(fotos) {
                 </div>
             </div>
             `
-        popup(popupCamera, 'Captura', true)
+        popup({ elemento })
         await abrirCamera()
     }
 
@@ -78,7 +78,7 @@ async function abrirCamera() {
         cameraDiv.style.display = 'flex'
 
     } catch (err) {
-        popup(mensagem('Erro ao acessar a câmera: ' + err.message), 'Alerta', true)
+        popup({ mensagem: err.message || 'Erro ao acessar a câmera' })
     }
 }
 
@@ -116,16 +116,15 @@ function removerImagem(id) {
     visibilidadeFotos()
 }
 
-function ampliarImagem(img, idFoto) {
+function ampliarImagem(img) {
 
-    const acumulado = `
+    const elemento = `
         <div style="position: relative; background-color: #d2d2d2;">
-            <!-- <button style="position: absolute; top: 10px; left: 10px;" onclick="removerImagem('${idFoto}')">Remover Imagem</button> -->
             <img style="width: 95%;" src="${img.src}">
         </div>
     `
 
-    popup(acumulado, 'Imagem', true)
+    popup({ elemento })
 
 }
 
@@ -140,16 +139,11 @@ function dtAuxOcorrencia(dt) {
 
 function confirmarExclusao() {
 
-    const acumulado = `
-        <div style="background-color: #d2d2d2; ${horizontal}; padding: 1rem; gap: 10px;">
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `excluirOcorrenciaCorrecao()` }
+    ]
 
-            <label>Você tem certeza que deseja excluir?</label>
-
-            <button onclick="excluirOcorrenciaCorrecao()">Confirmar</button>
-
-        </div>
-    `
-    popup(acumulado, 'Aviso', true)
+    popup({ botoes, elemento: 'Você tem certeza que deseja excluir?' })
 }
 
 async function excluirOcorrenciaCorrecao() {
@@ -449,8 +443,7 @@ function reagendarCorrecao() {
         { img: 'concluido', texto: 'Salvar', funcao: `salvarDataCorrecao()` }
     ]
 
-    const form = new formulario({ linhas, botoes, titulo: 'Reagendar' })
-    form.abrirFormulario()
+    popup({ linhas, botoes, titulo: 'Reagendar' })
 
 }
 
@@ -691,7 +684,7 @@ async function telaOcorrencias(apenasObjeto = false) {
     correcoes = await recuperarDados('correcoes')
     dados_clientes = await recuperarDados('dados_clientes')
     dados_ocorrencias = await recuperarDados('dados_ocorrencias')
-    
+
     const empresaAtiva = empresas[acesso?.empresa]?.nome || 'Desatualizado'
     titulo.innerHTML = empresaAtiva
 
@@ -758,8 +751,8 @@ function auxPendencias() {
     const etiquetas = Object
         .entries(contadores)
         .sort((a, b) => {
-            const [nomeA, totalA] = a
-            const [nomeB, totalB] = b
+            const [nomeA] = a
+            const [nomeB] = b
 
             const priA = ordemFinal.includes(nomeA)
             const priB = ordemFinal.includes(nomeB)
@@ -767,7 +760,7 @@ function auxPendencias() {
             if (priA && !priB) return 1
             if (!priA && priB) return -1
 
-            return totalB - totalA // maior → menor
+            return nomeA.localeCompare(nomeB, 'pt-BR', { sensitivity: 'base' })
         })
         .map(([correcao, total]) => {
 
@@ -796,7 +789,8 @@ async function atualizarOcorrencias(resetar = false) {
 
     if (!tela) {
         await telaPrincipal()
-        return await atualizarOcorrencias()
+        await atualizarOcorrencias()
+        return
     }
 
     mostrarMenus(true)
@@ -986,8 +980,7 @@ async function formularioOcorrencia() {
 
     const titulo = idOcorrencia ? 'Editar Ocorrência' : 'Criar Ocorrência'
 
-    const form = new formulario({ linhas, botoes, titulo })
-    form.abrirFormulario()
+    popup({ linhas, botoes, titulo })
 
     visibilidadeFotos()
 
@@ -1066,8 +1059,8 @@ async function formularioCorrecao() {
         { img: 'concluido', texto: 'Salvar', funcao: 'salvarCorrecao()' },
         { img: 'atualizar', texto: 'Atualizar', funcao: `atualizarOcorrencias()` },
     ]
-    const form = new formulario({ linhas, botoes, titulo: 'Gerenciar Correção' })
-    form.abrirFormulario()
+
+    popup({ linhas, botoes, titulo: 'Gerenciar Correção' })
 
     visibilidadeFotos()
 
@@ -1122,7 +1115,8 @@ async function salvarCorrecao() {
 
     overlayAguarde()
 
-    if (!tipoCorrecao || !dtCorrecao) return popup(mensagem('Não deixe em branco <b>Data Limite</b> ou o <b>Tipo de Correção</b>'), 'Em branco', true)
+    if (!tipoCorrecao || !dtCorrecao)
+        return popup({ mensagem: 'Não deixe em branco <b>Data Limite</b> ou o <b>Tipo de Correção</b>' })
 
     Object.assign(correcao, {
         resposta,
@@ -1248,7 +1242,7 @@ async function salvarOcorrencia() {
             const resposta = await enviar('dados_ocorrencias/0000', novo)
 
             if (resposta.mensagem) {
-                popup(mensagem(resposta.mensagem), 'Alerta', true)
+                popup({ mensagem: resposta.mensagem })
             } else {
                 await salvarLocal(resposta.idOcorrencia, novo)
                 await telaOcorrencias()
@@ -1257,7 +1251,7 @@ async function salvarOcorrencia() {
             removerPopup()
 
         } catch (err) {
-            popup(mensagem(err.mensagem), 'Alerta', true)
+            popup({ mensagem: err.mensagem || 'Falha ao salvar a ocorrência, fale com o Suporte!' })
         }
     }
 

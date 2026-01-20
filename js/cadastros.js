@@ -73,8 +73,8 @@ async function editarBaseAuxiliar(nomeBase, id) {
         }
     ]
 
-    const form = new formulario({ linhas, botoes, titulo: `Gerenciar ${inicialMaiuscula(nomeBase)}` })
-    form.abrirFormulario()
+    popup({ linhas, botoes, titulo: `Gerenciar ${inicialMaiuscula(nomeBase)}` })
+
 }
 
 async function salvarNomeAuxiliar(nomeBase, id = ID5digitos()) {

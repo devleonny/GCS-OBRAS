@@ -5,11 +5,11 @@ let appName = ''
 let dadosFiltrados = null
 let dados_relatorio = {}
 
-async function atualizarRelatorio() {
+async function atualizarRelatorioOmie() {
     overlayAguarde()
     const nuvem = await baixarRelatorio()
-    await inserirDados(nuvem, 'dados_relatorio', true)
-    await telaRelatorio()
+    await inserirDados(nuvem, 'dados_relatorio')
+    await telaRelatorioOmie()
     removerOverlay()
 }
 
@@ -23,7 +23,7 @@ const imgSt = (status) => {
     return imagens?.[status] || 'reprovado'
 }
 
-async function telaRelatorio() {
+async function telaRelatorioOmie() {
     overlayAguarde()
 
     const colunas = ['categoria', 'nNota', 'total', 'parcelas', 'cliente']
@@ -31,7 +31,7 @@ async function telaRelatorio() {
     const thsPesquisa = colunas.map(coluna => `
         <th style="text-align:start;background-color:white;"
             contentEditable="true"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();renderizarPagina('${coluna}',this.textContent.trim())}">
+            onkeydown="if(event.key==='Enter'){event.preventDefault();renderizarPaginaRelatorioOmie('${coluna}',this.textContent.trim())}">
         </th>
     `).join('')
 
@@ -77,7 +77,7 @@ async function telaRelatorio() {
     // cria toolbar com apps únicos
     criarToolbarApps()
 
-    renderizarPagina()
+    renderizarPaginaRelatorioOmie()
     criarMenus('relatorio')
     removerOverlay()
 }
@@ -85,7 +85,7 @@ async function telaRelatorio() {
 function resetar() {
     filtroRelatorio = {}
     dadosFiltrados = dados_relatorio
-    renderizarPagina()
+    renderizarPaginaRelatorioOmie()
 }
 
 function criarToolbarApps() {
@@ -116,10 +116,10 @@ function filtrarApp(appSelecionado) {
     else filtroRelatorio.app = appSelecionado.toLowerCase()
 
     paginaAtual = 1
-    renderizarPagina()
+    renderizarPaginaRelatorioOmie()
 }
 
-function renderizarPagina(chave, pesquisa) {
+function renderizarPaginaRelatorioOmie(chave, pesquisa) {
 
     if (!dadosFiltrados || chave && pesquisa == undefined) {
         dadosFiltrados = Object.entries(dados_relatorio)
@@ -185,7 +185,7 @@ function mudarPagina(delta) {
     paginaAtual += delta
     if (paginaAtual < 1) paginaAtual = 1
     if (paginaAtual > totalPaginas) paginaAtual = totalPaginas
-    renderizarPagina()
+    renderizarPaginaRelatorioOmie()
 }
 
 function criarLinhaRelatorio(codOmie, dados) {
@@ -289,7 +289,7 @@ function atualizarResumo() {
             bloco = document.createElement('div')
             bloco.className = 'bloco'
             bloco.dataset.cat = cat
-            bloco.onclick = () => renderizarPagina('categoria', cat)
+            bloco.onclick = () => renderizarPaginaRelatorioOmie('categoria', cat)
             bloco.innerHTML = `
                 <div style="${vertical}">
                     <span style="font-size: 0.7rem;">${cat}</span> 
@@ -309,7 +309,7 @@ function atualizarResumo() {
             bloco = document.createElement('div')
             bloco.className = 'bloco'
             bloco.dataset.status = status
-            bloco.onclick = () => renderizarPagina('parcelas', status)
+            bloco.onclick = () => renderizarPaginaRelatorioOmie('parcelas', status)
             bloco.innerHTML = `
                 <img src="imagens/${imgSt(status)}.png">
                 <div style="${vertical}">

@@ -42,11 +42,6 @@ let app = null
 let paginaAtual = 1
 const limitePorPagina = 100
 const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
-const mensagem = (mensagem, imagem = 'gifs/alerta.gif') => `
-    <div class="mensagem">
-        <img src="${imagem}">
-        <label>${mensagem}</label>
-    </div>`
 
 const appBases = {
     'GCS': [
@@ -152,7 +147,7 @@ async function f2() {
         .map(s => `<button onclick="respostaSincronizacao('${s}')">Sincronizar ${inicialMaiuscula(s)}</button>`)
         .join('')
 
-    const acumulado = `
+    const elemento = `
         <div class="ferramentas">
 
             ${botoes}
@@ -169,9 +164,9 @@ async function f2() {
 
             <hr>
             <label style="cursor: pointer;">${new Date().getTime()}</label>
-        </div>
-    `
-    popup(acumulado, 'Ferramentas', true)
+        </div>`
+
+    popup({ elemento, titulo: 'Ferramentas' })
 }
 
 function inicialMaiuscula(string) {
@@ -234,58 +229,6 @@ async function reprocessarOffline() {
 
         }
     }
-}
-
-function popup(elementoHTML, titulo, nra = true) {
-
-    const idPopup = ID5digitos()
-    const p = `
-    <div 
-        id="${idPopup}"
-        class="popup">
-
-        <div class="janela-fora">
-            
-            <div class="popup-top">
-
-                <label style="background-color: transparent; color: white; margin-left: 1rem;">${titulo || 'GCS'}</label>
-                <span onclick="removerPopup({id:'${idPopup}', nra: ${nra}})">×</span>
-
-            </div>
-            
-            <div class="janela">
-
-                ${elementoHTML}
-
-            </div>
-
-        </div>
-
-    </div>`
-
-    const aguarde = document.querySelector('.aguarde')
-    if (aguarde) aguarde.remove()
-
-    document.body.insertAdjacentHTML('beforeend', p)
-
-}
-async function removerPopup({ id, nra = true } = {}) {
-    const popups = document.querySelectorAll('.popup')
-
-    if (id) {
-        document.getElementById(id)?.remove()
-    } else if (nra) {
-        popups[popups.length - 1]?.remove()
-    } else {
-        for (const p of popups) p.remove()
-    }
-
-    document.querySelector('.aguarde')?.remove()
-}
-
-function verificarClique(event) {
-    const menu = document.querySelector('.side-menu')
-    if (menu && menu.classList.contains('active') && !menu.contains(event.target)) menu.classList.remove('active')
 }
 
 function criarAnexoVisual(nome, link, funcao) {
@@ -366,7 +309,7 @@ async function configuracoes(usuario, campo, valor) {
 
     const resposta = comunicacaoServ({ usuario, campo, valor })
 
-    if (resposta.mensagem) return popup(mensagem(resposta.mensagem), 'Alerta', true)
+    if (resposta.mensagem) return popup({ mensagem: resposta.mensagem })
 
     const dadosUsuario = await recuperarDado('dados_setores', usuario)
     dadosUsuario[campo] = valor
@@ -405,12 +348,12 @@ async function comunicacaoServ({ usuario, campo, valor }) {
 }
 
 function deslogarUsuario() {
-    popup(`
-        <div style="${horizontal}; min-width: 200px; background-color: #d2d2d2; gap: 10px; padding: 1rem;">
-            <label>Deseja Sair?</label>
-            <button onclick="sair()">Sim</button>
-        </div>
-        `, 'Tem certeza?')
+
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `sair()` }
+    ]
+
+    popup({ mensagem: 'Deseja Sair?', botoes })
 }
 
 async function sair() {
@@ -419,7 +362,7 @@ async function sair() {
 
     toolbar.style.display = 'none'
     mostrarMenus(false)
-    
+
     acesso = null
     localStorage.removeItem('acesso')
     telaLogin()
@@ -447,12 +390,12 @@ function abrirArquivo(link, nome) {
         : nome.split('.').pop().toLowerCase() // pega sem o ponto
 
     if (imagens.includes(extensao)) {
-        const acumulado = `
+        const elemento = `
             <div class="fundoImagens">
                 <img src="${link}" style="width: 100%;">
             </div>
         `
-        return popup(acumulado, nome, true);
+        return popup({ elemento, titulo: nome })
     }
 
     window.open(link, '_blank');
@@ -511,7 +454,7 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
         </div>`
     }
 
-    const acumulado = `
+    const elemento = `
         <div style="${vertical}; justify-content: left; background-color: #b1b1b1;">
 
             <div class="cx-pesquisa">
@@ -526,7 +469,7 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
         </div>
     `
 
-    popup(acumulado, 'Selecione o item', true)
+    popup({ elemento, titulo: 'Selecione o item' })
 }
 
 async function selecionar(name, id, termo, funcaoAux) {
@@ -631,7 +574,7 @@ async function pdf({ id, estilos = [], nome = 'documento' }) {
 
         removerOverlay()
     } catch (err) {
-        popup(mensagem(err?.message || 'Falhei... '), 'Alerta', true)
+        popup({ mensagem: err?.message || 'Seu pdf não ficou bom, o GCS não gostou, tente de novo... (Falha no GCS)' })
     }
 
     if (bPdf) bPdf.style.display = ''
@@ -672,7 +615,7 @@ async function importarAnexos({ input, foto }) {
         });
         return await response.json();
     } catch (err) {
-        popup(mensagem(`Erro na API: ${err}`));
+        popup({ mensagem: `Erro na API: ${err}` })
         throw err;
     }
 }

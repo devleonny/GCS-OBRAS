@@ -91,12 +91,11 @@ async function renderPainel(idOrcamento) {
     const painel = document.querySelector('.painel-etiquetas')
     if (painel) return painel.innerHTML = acumulado
 
-    popup(`
-        <div class="painel-etiquetas">${acumulado}</div>
-        <div class="rodape-painel-clientes">
-            ${botaoRodape(`abrirEdicaoTag()`, 'Criar Etiqueta', 'etiqueta')}
-        </div>
-    `, 'Gerenciar Etiquetas', true)
+    const botoes = [
+        { texto: 'Criar Etiqueta', img: 'etiqueta', funcao: `abrirEdicaoTag()` }
+    ]
+
+    popup({ titulo: 'Gerenciar Etiquetas', elemento: `<div class="painel-etiquetas">${acumulado}</div>`, botoes })
 
 }
 
@@ -133,12 +132,12 @@ async function vincularTag(idTag) {
 }
 
 function confirmarRemocaoTag({ idTag, idOrcamento, recarregarPainel }) {
-    popup(`
-        <div style="${horizontal};gap:1rem;padding:1rem;background:#ddd">
-            <span>Remover tag?</span>
-            <button onclick="removerTag({idTag: '${idTag}', idOrcamento: '${idOrcamento}', recarregarPainel: ${recarregarPainel}})">Confirmar</button>
-        </div>
-    `, 'Confirmação', true)
+
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `removerTag({idTag: '${idTag}', idOrcamento: '${idOrcamento}', recarregarPainel: ${recarregarPainel}})` }
+    ]
+
+    popup({ mensagem: 'Remover tag?', botoes })
 }
 
 async function removerTag({ idTag, idOrcamento, recarregarPainel = true }) {
@@ -158,15 +157,17 @@ async function removerTag({ idTag, idOrcamento, recarregarPainel = true }) {
 function abrirEdicaoTag(id = ID5digitos()) {
     const tag = tags_orcamentos[id] || {}
 
-    popup(`
+    const elemento = `
         <div class="painel-adicionar-etiqueta">
             <input name="nome" placeholder="Nome" value="${tag.nome || ''}">
             <input name="cor" type="color" value="${tag.cor || '#999'}">
         </div>
-        <div class="rodape-painel-clientes">
-            ${botaoRodape(`salvarTag('${id}')`, 'Salvar', 'concluido')}
-        </div>
-    `, 'Tag', true)
+    `
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: `salvarTag('${id}')` }
+    ]
+
+    popup({ elemento, botoes, titulo: 'Tags' })
 }
 
 async function salvarTag(id) {

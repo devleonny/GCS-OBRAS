@@ -134,7 +134,6 @@ async function telaInicial() {
     tags_orcamentos = await recuperarDados('tags_orcamentos')
 
     // Carregar tabelas;
-    carregarControles()
     indicadores()
     carregarPDA()
     carregarTecnicos()
@@ -156,6 +155,8 @@ async function telaInicial() {
     mostrarGuia()
     contadores()
     auxMapa('EM_ANDAMENTO')
+
+    await carregarControles()
 
 }
 
@@ -746,13 +747,12 @@ function linPda(idOrcamento, orcamento) {
 }
 
 function confirmarCriarOrcamento(idOrcamento) {
-    const acumulado = `
-        <div style="${horizontal}; gap: 1rem; background-color: #d2d2d2; padding: 1rem;">
-            <span>Deseja transformar esse item em orçamento?</span>
-            <button onclick="criarOrcamentoPda('${idOrcamento}')">Confirmar</button>
-        </div>
-    `
-    popup(acumulado, 'Transformar em Orçamento', true)
+
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `criarOrcamentoPda('${idOrcamento}')` }
+    ]
+
+    popup({ botoes, elemento: 'Deseja transformar esse item em orçamento?', titulo: 'Transformar em Orçamento' })
 }
 
 async function criarOrcamentoPda(id) {
@@ -768,14 +768,14 @@ async function criarOrcamentoPda(id) {
 }
 
 function confirmarExcluirPda(idOrcamento) {
-    const acumulado = `
-    <div style="background-color: #d2d2d2; gap: 1rem; padding: 1rem; ${horizontal};">
-        <span>Este item será apenas removido das tabelas, <br>Ele não será excluído dos orçamentos</span>
-        <button onclick="excluirPda('${idOrcamento}')">Confirmar</buttton>
-    </div>
-    `
 
-    popup(acumulado, 'Remover dos PDAs', true)
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `excluirPda('${idOrcamento}')` }
+    ]
+
+    const elemento = `Este item será apenas removido das tabelas, <br>Ele não será excluído dos orçamentos`
+
+    popup({ botoes, elemento, titulo: 'Remover dos PDAs' })
 }
 
 async function excluirPda(idOrcamento) {
@@ -885,20 +885,17 @@ async function formAcao(idOrcamento, idAcao) {
 
     if (idAcao) botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirAcao('${idAcao}')` })
 
-    const form = new formulario({ linhas, botoes, titulo: 'Ações' })
-    form.abrirFormulario()
+    popup({ linhas, botoes, titulo: 'Ações' })
 
 }
 
 async function confirmarExcluirAcao(idAcao) {
 
-    const acumulado = `
-        <div style="${horizontal}; background-color: #d2d2d2; gap: 2rem; padding: 1rem;">
-            <span>Tem certeza?</span>
-            <button onclick="excluirAcao('${idAcao}')">Confirmar</button>
-        </div>
-    `
-    popup(acumulado, 'Pense bem...', true)
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `excluirAcao('${idAcao}')` }
+    ]
+
+    popup({ botoes, elemento: 'Tem certeza?', titulo: 'Pense bem...' })
 
 }
 
@@ -939,7 +936,7 @@ async function salvarAcao(idOrcamento, idAcao) {
     const prazo = el('prazo').value
     const status = el('statusAcao').value
 
-    if (!prazo || !responsavel) return popup(mensagem('Preencha o prazo e/ou responsável da ação'), 'Alerta', true)
+    if (!prazo || !responsavel) return popup({ mensagem: 'Preencha o prazo e/ou responsável da ação' })
 
     const a = {
         responsavel,
@@ -996,8 +993,7 @@ function editarLinPda({ idOrcamento, aba = 'PDA' }) {
 
     const titulo = idOrcamento ? 'Editar item' : 'Adicionar item'
 
-    const form = new formulario({ linhas, botoes, titulo })
-    form.abrirFormulario()
+    popup({ linhas, botoes, titulo })
 
 }
 

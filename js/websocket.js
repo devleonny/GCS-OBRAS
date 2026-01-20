@@ -32,7 +32,6 @@ function connectWebSocket() {
         acesso = JSON.parse(localStorage.getItem('acesso'))
         if (acesso) {
             msg({ tipo: 'validar', usuario: acesso.usuario })
-            await identificacaoUser()
         } else {
             telaLogin()
         }
@@ -46,7 +45,7 @@ function connectWebSocket() {
             localStorage.removeItem('acesso')
             await resetarTudo()
             await telaLogin()
-            popup(mensagem('Usuário removido do servidor'), 'GCS')
+            popup({ mensagem: 'Usuário removido do servidor' })
             return
         }
 
@@ -136,26 +135,6 @@ function connectWebSocket() {
         await executar(funcaoTela)
         sOverlay = false
     }
-
-}
-
-async function identificacaoUser() {
-
-    dados_setores = await sincronizarDados({ base: 'dados_setores' })
-    acesso = dados_setores[acesso.usuario]
-
-    const bloq = ['cliente', 'técnico', 'visitante']
-    if ((acesso && bloq.includes(acesso.permissao)) || !acesso)
-        return telaPrincipal()
-
-    if (app == 'OCORRÊNCIAS') return
-    if (document.title == 'Política de Privacidade') return
-    if (!acesso || !acesso.permissao || acesso.permissao == 'novo') {
-        localStorage.removeItem('acesso')
-        return telaLogin()
-    }
-
-    if (priExeGCS) await telaInicial()
 
 }
 

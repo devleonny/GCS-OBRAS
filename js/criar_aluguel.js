@@ -1,11 +1,12 @@
+
+
 function apagarOrcamentoAluguel() {
 
-    popup(`
-        <div style="display: flex; gap: 0.5rem; align-items: center; padding: 1rem; background-color: #d2d2d2;">
-            <label>Tem certeza que deseja apagar o Orçamento?</label>
-            <button onclick="confirmarExclusaoAluguel()">Confirmar</button>
-        </div>
-        `, 'Alerta')
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `confirmarExclusaoAluguel()` }
+    ]
+
+    popup({ elemento: 'Tem certeza que deseja apagar o Orçamento?', titulo: 'Limpar tela', botoes })
 
 }
 
@@ -210,7 +211,7 @@ async function enviarDadosAluguel() {
 
     if (!orcamentoBase.id) orcamentoBase.id = 'ORCA_' + unicoID()
 
-    popup(mensagem('Aguarde... redirecionando...', 'imagens/concluido.png'), 'Processando...')
+    popup({ tempo: 3, mensagem: 'Aguarde... redirecionando...', imagem: 'imagens/concluido.png' })
 
     await inserirDados({ [orcamentoBase.id]: orcamentoBase }, 'dados_orcamentos')
     await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoBase)

@@ -792,20 +792,24 @@ input[type="file"] {
 
 .pill>span {
     padding: .35rem .75rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
     word-break: break-word;
 }
 
 /* Parte esquerda */
 .pill-a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
     color: #fff;
 }
 
 /* Parte direita */
 .pill-b {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    text-align: start;
     background: #e0e0e0;
     color: #333;
 }

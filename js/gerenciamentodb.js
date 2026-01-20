@@ -235,47 +235,37 @@ async function sincronizarDados({ base, overlay = false, resetar = false, filtro
 
 // SERVIÇO DE ARMAZENAMENTO 
 async function receber(chave) {
+    try {
+        const chavePartes = chave.split('/')
+        const dados = await recuperarDados(chavePartes[0]) || {}
 
-    let chavePartes = chave.split('/')
-    let dados = await recuperarDados(chavePartes[0]) || {}
+        let timestamp = 0
+        for (const objeto of Object.values(dados)) {
+            if (objeto.timestamp > timestamp) timestamp = objeto.timestamp
+        }
 
-    let timestamp = 0
-    for (const [id, objeto] of Object.entries(dados)) {
-        if (objeto.timestamp && objeto.timestamp > timestamp) timestamp = objeto.timestamp
+        const response = await fetch(`${api}/dados`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chave, timestamp })
+        })
+
+        if (!response.ok) {
+            throw new Error(`Erro ${response.status}`)
+        }
+
+        const data = await response.json()
+
+        if (data?.mensagem) {
+            console.log(data.mensagem)
+            return {}
+        }
+
+        return data
+    } catch (err) {
+        console.log(err.message)
+        return {}
     }
-
-    const objeto = {
-        chave: chave,
-        timestamp: timestamp
-    };
-
-    const obs = {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(objeto)
-    };
-
-    return new Promise((resolve, reject) => {
-        fetch(`${api}/dados`, obs)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.mensagem) {
-                    console.log(data.mensagem)
-                    reject({})
-                }
-                resolve(data);
-            })
-            .catch(err => {
-                resolve({})
-            });
-    })
 }
 
 async function deletar(caminho, idEvento) {
@@ -370,7 +360,7 @@ function salvarOffline(objeto, operacao, idEvento) {
 
 function msgQuedaConexao(msg = '<b>Falha na atualização:</b> tente novamente em alguns minutos.') {
 
-    const acumulado = `
+    const elemento = `
         <div class="msg-queda-conexao">
             <img src="gifs/alerta.gif" style="width: 2rem;">
             <span>${msg}</span>
@@ -378,5 +368,5 @@ function msgQuedaConexao(msg = '<b>Falha na atualização:</b> tente novamente e
     `
     const msgAtiva = document.querySelector('.msg-queda-conexao')
     if (msgAtiva) return
-    popup(acumulado, 'Alerta', true)
+    popup({ elemento })
 }
