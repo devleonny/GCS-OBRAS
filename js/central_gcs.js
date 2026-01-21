@@ -280,7 +280,9 @@ function balaoUsuario(st, texto) {
 
 async function usuariosToolbar() {
 
-    dados_setores = await recuperarDados('dados_setores') || {}
+    if (!acesso) return
+
+    dados_setores = await sincronizarDados({ base: 'dados_setores' }) || {}
     const user = await recuperarDado('dados_setores', acesso.usuario)
 
     // Conta quantos usuários estão online (status !== 'offline')

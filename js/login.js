@@ -99,9 +99,10 @@ async function acessoLogin() {
                 return popup({ mensagem: data.mensagem });
 
             } else if (data.usuario) {
-                
-                acesso = data
 
+                priExeGCS = true
+                priExeOcorr = true
+                acesso = data
                 app = permCham.includes(acesso.permissao) ? 'OCORRÊNCIAS' : 'GCS'
                 localStorage.setItem('app', app)
                 localStorage.setItem('acesso', JSON.stringify(data))
