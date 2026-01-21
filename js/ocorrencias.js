@@ -436,7 +436,7 @@ async function salvarDataCorrecao() {
 
 }
 
-function filtrarPorCampo(campo, valor) {
+async function filtrarPorCampo(campo, valor) {
 
     if (!valor || !valor.trim()) {
         delete filtrosAtivos[campo]
@@ -627,7 +627,7 @@ function renderizarPaginacao(total) {
 
 async function telaOcorrencias() {
 
-    if (app == 'GCS') return
+    if (app == 'GCS') return telaInicial()
 
     mostrarMenus(false)
 
@@ -722,13 +722,20 @@ function criarPesquisas() {
     }
 }
 
+async function atalho(uc) {
+
+    const filtrosAtivos = JSON.parse(localStorage.getItem('filtrosAtivos'))
+    filtrosAtivos.ultima_correcao = uc == 'Todos' ? '' : uc
+    localStorage.setItem('filtrosAtivos', JSON.stringify(filtrosAtivos))
+
+    await telaOcorrencias()
+}
+
 function auxPendencias() {
 
     const contadores = { Todos: 0 }
 
     for (const [id, ocorrencia] of Object.entries(dados_ocorrencias)) {
-
-        if (!passaFiltros(id, ocorrencia, filtrosAtivos)) continue
 
         const uc = uCorrecao(ocorrencia.correcoes || {})
         const nome = correcoes?.[uc.tipo]?.nome || 'Não analisada'
@@ -766,7 +773,7 @@ function auxPendencias() {
                         : '#b12425'
 
             return `
-            <div class="pill" onclick="('ultima_correcao', '${correcao}')">
+            <div class="pill" onclick="atalho('${correcao}')">
                 <span class="pill-a" style="background: ${cor};">${total}</span>
                 <span class="pill-b">${correcao}</span>
             </div>`
