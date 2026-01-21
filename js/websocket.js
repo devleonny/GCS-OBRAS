@@ -126,7 +126,7 @@ async function comunicacao() {
         if (app == 'OCORRÊNCIAS') return
 
         if (app == 'GCS' && data.tabela == 'dados_orcamentos') {
-            verificarPendencias()
+            await verificarPendencias()
         }
 
         if (data.tipo == 'exclusao') { // Só se for no nível;

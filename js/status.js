@@ -2,6 +2,7 @@ let itensAdicionais = {}
 let id_orcam = ''
 let dadosNota = {}
 let dados_estoque = {}
+let unidadeOrc = null
 const altNumOrc = ['adm', 'analista']
 const opcoesPedidos = ['Locação', 'Serviço', 'Venda', 'Venda + Serviço', 'POC']
 
@@ -1631,8 +1632,8 @@ async function abrirEsquema(id = id_orcam) {
         }).join('')
 
     const existente = dados_ocorrencias[contrato]
-    const f1 = liberado ? `oAtual = {idOcorrencia: '${contrato}', oUnidade: '${omie_cliente}'}; formularioOcorrencia()` : ''
-    const f2 = existente ? `oAtual = {idOcorrencia: '${contrato}'}; formularioCorrecao()` : ''
+    const f1 = liberado ? `unidadeOrc = '${omie_cliente}'; formularioOcorrencia()` : ''
+    const f2 = existente ? `formularioCorrecao('${contrato}')` : ''
 
     const pChamado = `
         <div class="status-check-ocorrencias">
@@ -1644,7 +1645,7 @@ async function abrirEsquema(id = id_orcam) {
             <div style="${horizontal}; gap: 1rem;">
                 <button onclick="${f1}" style="opacity: ${liberado ? '1' : '0.5'};">Abrir chamado</button>
                 <button onclick="${f2}" style="background-color: #e47a00; opacity: ${liberado ? '1' : '0.5'};">Incluir correção</button>
-                ${existente ? `<img src="imagens/pesquisar2.png" onclick="oAtual = { idOcorrencia: '${contrato}' }; verCorrecoes()">` : ''}
+                ${existente ? `<img src="imagens/pesquisar2.png" onclick="verCorrecoes('${contrato}')">` : ''}
             </div>
         </div>
     `
@@ -1694,7 +1695,7 @@ async function abrirEsquema(id = id_orcam) {
 
 }
 
-async function verCorrecoes() {
+async function verCorrecoes(idOcorrencia) {
 
     const elemento = `
         <div class="status-correcoes">

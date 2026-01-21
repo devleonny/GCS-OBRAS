@@ -356,7 +356,7 @@ function carregarMenus() {
     const menus = {
         'Atualizar': { img: 'atualizar', funcao: 'validarAcesso()', proibidos: [] },
         'Início': { img: 'home', funcao: 'telaPrincipal()', proibidos: [] },
-        'Criar Ocorrência': { img: 'baixar', funcao: 'oAtual = {}; formularioOcorrencia()', proibidos: [] },
+        'Criar Ocorrência': { img: 'baixar', funcao: 'formularioOcorrencia()', proibidos: [] },
         'Ocorrências': { img: 'configuracoes', funcao: 'telaOcorrencias()', proibidos: [] },
         'Relatório de Ocorrências': { img: 'planilha', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] },
         'Relatório de Correções': { img: 'planilha', funcao: 'telaRelatorioCorrecoes()', proibidos: ['user', 'técnico', 'visitante'] },

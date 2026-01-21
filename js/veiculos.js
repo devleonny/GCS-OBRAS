@@ -886,19 +886,6 @@ async function salvarMotorista() {
     removerOverlay()
 }
 
-async function removerAnexo(idCusto, idAnexo, img) {
-
-    let custo_veiculos = await recuperarDados('custo_veiculos')
-    let custo = custo_veiculos[idCusto]
-
-    delete custo.anexos[idAnexo]
-
-    deletar(`custo_veiculos/${idCusto}/anexos/${idAnexo}`)
-    await inserirDados(custo_veiculos, 'custo_veiculos')
-
-    img.parentElement.remove()
-}
-
 async function veiculosExcel() {
 
     const tabela = document.querySelector('.tabela')
