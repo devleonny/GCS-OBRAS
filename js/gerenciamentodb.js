@@ -200,6 +200,57 @@ async function recuperarDado(nomeBase, id) {
     return resultado;
 }
 
+/* Funções auxiliares de filtro nos objetos;
+
+    "teste" → igual
+
+    "!teste" → diferente
+
+    "~teste" → contém
+
+    "!~teste" → não contém
+
+*/
+
+function comparar(valorAtual, valorFiltro) {
+    if (typeof valorFiltro === 'string') {
+        if (valorFiltro.startsWith('!~'))
+            return !String(valorAtual ?? '').includes(valorFiltro.slice(2))
+
+        if (valorFiltro.startsWith('!'))
+            return valorAtual !== valorFiltro.slice(1)
+
+        if (valorFiltro.startsWith('~'))
+            return String(valorAtual ?? '').includes(valorFiltro.slice(1))
+    }
+
+    return valorAtual === valorFiltro
+}
+
+function buscarCampo(obj, campo, valorFiltro, negativo = false) {
+    if (!obj || typeof obj !== 'object') return negativo
+
+    if (campo in obj) {
+        const ok = comparar(obj[campo], valorFiltro)
+        return negativo ? !ok : ok
+    }
+
+    return Object.values(obj).some(v =>
+        buscarCampo(v, campo, valorFiltro, negativo)
+    )
+}
+
+function contemCampoValor(obj, campo, valorFiltro) {
+    const negativo =
+        typeof valorFiltro === 'string' && valorFiltro.startsWith('!')
+
+    if (negativo) {
+        return !buscarCampo(obj, campo, valorFiltro.slice(1), false)
+    }
+
+    return buscarCampo(obj, campo, valorFiltro, false)
+}
+
 async function sincronizarDados({ base, overlay = false, resetar = false, filtro = {} }) {
 
     if (overlay) overlayAguarde()
@@ -218,7 +269,7 @@ async function sincronizarDados({ base, overlay = false, resetar = false, filtro
         combinado = Object.fromEntries(
             Object.entries(combinado).filter(([_, obj]) =>
                 Object.entries(filtro).every(([campo, valor]) =>
-                    obj?.[campo] === valor
+                    contemCampoValor(obj, campo, valor)
                 )
             )
         )

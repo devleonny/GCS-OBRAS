@@ -245,16 +245,25 @@ async function criarElementosIniciais() {
 
     for (const [chamado, ocorrencia] of Object.entries(dados_ocorrencias)) {
 
-        const { criador, unidade, sistema, prioridade, ultima_correcao, atrasado, correcoes } = ocorrencia
+        const { usuario, unidade, sistema, prioridade } = ocorrencia
+
+        const nUnidade = dados_clientes[unidade]?.nome
+        const nSistema = sistemas[sistema]?.nome
+        const nPrioridade = prioridades[prioridade]?.nome
+        const oCorrecoes = ocorrencia.correcoes || {}
+        const uc = uCorrecao(oCorrecoes)
+        const { tipo, dias = 0 } = uc
+        const atrasado = dias < 0
+        const ultima_correcao = correcoes?.[tipo].nome || 'Não analisada'
 
         if (ultima_correcao == 'Solucionada') continue
 
         // Percorrer cada correção;
-        for (const [idCorrecao, correcao] of Object.entries(correcoes || {})) {
+        for (const [idCorrecao, correcao] of Object.entries(oCorrecoes || {})) {
 
             if (correcao.executor !== acesso.usuario) continue
             const respondida = Object
-                .values(correcoes)
+                .values(oCorrecoes)
                 .some(c => c.resposta == idCorrecao)
 
             if (respondida) continue
@@ -262,13 +271,13 @@ async function criarElementosIniciais() {
             pUsuario.push(`
                 <div class="balao-correcao"
                     onclick="atalhoPendencias([{campo: 'chamado', valor: '${chamado}'}, {campo: 'executor', valor: '${acesso.usuario}'}], false)">
-                    <span>Solicitado por ${criador}</span>
+                    <span>Solicitado por ${usuario}</span>
                     <div style="${horizontal}; gap: 1rem;">
                         <img src="imagens/alerta.png">
                         <div style="${vertical}">
-                            <span><b>Unidade:</b> ${unidade}</span>
-                            <span><b>Sistema:</b> ${sistema}</span>
-                            <span><b>Prioridade:</b> ${prioridade}</span>
+                            <span><b>Unidade:</b> ${nUnidade}</span>
+                            <span><b>Sistema:</b> ${nSistema}</span>
+                            <span><b>Prioridade:</b> ${nPrioridade}</span>
                             <span><b>Descrição:</b> ${correcao?.descricao || ''}</span>
                         </div>
                     </div>
@@ -276,7 +285,7 @@ async function criarElementosIniciais() {
 
         }
 
-        if (criador !== acesso.usuario) continue
+        if (usuario !== acesso.usuario) continue
 
         totais[ultima_correcao] ??= 0
         totais[ultima_correcao]++
@@ -335,7 +344,7 @@ async function criarElementosIniciais() {
     `
 }
 
-function atalhoPendencias(campos = [], eu = true) {
+async function atalhoPendencias(campos = [], eu = true) {
     if (emAtualizacao) return popup({ mensagem: 'Espere o término da atualização', titulo: 'GCS', nra: true })
     const nFiltro = {}
     if (eu) nFiltro.criador = acesso.usuario
@@ -346,7 +355,7 @@ function atalhoPendencias(campos = [], eu = true) {
     }
 
     localStorage.setItem('filtrosAtivos', JSON.stringify(nFiltro))
-    filtrarPorCampo()
+    await telaOcorrencias()
 }
 
 function carregarMenus() {

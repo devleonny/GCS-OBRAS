@@ -327,7 +327,7 @@ function carregarCorrecoes(idOcorrencia) {
 
         // Se já foi respondida, não mostrar;
         const resposta = (!respondida && correcao.executor == acesso.usuario)
-            ? `<button style="background-color: #3e8bff;" onclick="formularioCorrecao('${idOcorrencia}', '${idCorrecao}')">Responder</button>`
+            ? `<button style="background-color: #3e8bff;" onclick="formularioCorrecao('${idOcorrencia}', null, '${idCorrecao}')">Responder</button>`
             : ''
 
         const agendamentos = (correcao?.datas_agendadas || []).reverse()
@@ -390,10 +390,7 @@ function carregarCorrecoes(idOcorrencia) {
         </div>
     `
 
-    const solucionada = Object.values(dadosCorrecao)
-        .some(c => c.tipoCorrecao == 'WRuo2')
-
-    return (aTec && (solucionada || !divsCorrecoes)) ? null : acumulado
+    return acumulado
 
 }
 
@@ -824,13 +821,15 @@ async function atualizarOcorrencias(resetar = false) {
 
         const filtro = (bCli.includes(base) && acesso.permissao == 'cliente')
             ? { empresa: acesso.empresa }
-            : {}
+            : (base == 'dados_ocorrencias' && acesso.permissao == 'técnico')
+                ? { executor: acesso.usuario, tipoCorrecao: '!WRuo2' } // Diferente de Solucionado;
+                : {}
 
         await sincronizarDados({ base, filtro, resetar })
         status.atual++
 
         // A tabela é a primeira: atualiza os dados da empresa atual antes da tabela de clientes;
-        if (base == 'dados_setores') {
+        if (!priExeOcorr && base == 'dados_setores') {
             acesso = await recuperarDado('dados_setores', acesso.usuario)
             localStorage.setItem('acesso', JSON.stringify(acesso))
         }
@@ -1001,7 +1000,7 @@ function bloqAnterior(input) {
     }
 }
 
-async function formularioCorrecao(idOcorrencia, idCorrecao) {
+async function formularioCorrecao(idOcorrencia, idCorrecao, resposta) {
 
     const ocorrencia = dados_ocorrencias[idOcorrencia]
     const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
@@ -1055,13 +1054,16 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
             `
         }
     ]
+
     const botoes = [
         {
             img: 'concluido',
             texto: 'Salvar',
             funcao: idCorrecao
                 ? `salvarCorrecao('${idOcorrencia}', '${idCorrecao}')`
-                : `salvarCorrecao('${idOcorrencia}')`
+                : resposta
+                    ? `salvarCorrecao('${idOcorrencia}', '${idCorrecao}', '${resposta}')`
+                    : `salvarCorrecao('${idOcorrencia}')`
         },
         { img: 'atualizar', texto: 'Atualizar', funcao: `atualizarOcorrencias()` },
     ]
@@ -1102,7 +1104,7 @@ async function maisLabel({ codigo, quantidade, unidade } = {}) {
     div.insertAdjacentHTML('beforeend', label)
 }
 
-async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
+async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos(), resposta) {
 
     const ocorrencia = dados_ocorrencias[idOcorrencia]
     ocorrencia.correcoes ??= {}
@@ -1123,6 +1125,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
         return popup({ mensagem: 'Não deixe em branco <b>Data Limite</b> ou o <b>Tipo de Correção</b>' })
 
     Object.assign(correcao, {
+        resposta,
         dtCorrecao,
         executor: obter('executor').id,
         data: new Date().toLocaleString(),

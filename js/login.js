@@ -100,9 +100,9 @@ async function acessoLogin() {
 
             } else if (data.usuario) {
 
+                acesso = data
                 priExeGCS = true
                 priExeOcorr = true
-                acesso = data
                 app = permCham.includes(acesso.permissao) ? 'OCORRÊNCIAS' : 'GCS'
                 localStorage.setItem('app', app)
                 localStorage.setItem('acesso', JSON.stringify(data))
@@ -113,7 +113,7 @@ async function acessoLogin() {
 
         } catch (err) {
             divAcesso.style.display = 'flex'
-            popup({ imagem: 'gifs/dino.gif', mensagem: err.message || `Falha ao acessar o sistema, tente novamente em instantes` })
+            popup({ mensagem: err.message || `Falha ao acessar o sistema, tente novamente em instantes` })
         }
     }
 }
