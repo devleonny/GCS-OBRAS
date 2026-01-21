@@ -47,7 +47,6 @@ async function resetarTudo() {
     // Limpar variáveis;
     dados_clientes = {}
     dados_ocorrencias = {}
-    listaOcorrencias = {}
 
     const db = await new Promise((resolve, reject) => {
         const req = indexedDB.open(nomeBaseCentral)

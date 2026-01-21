@@ -229,7 +229,7 @@ async function telaPrincipal() {
     carregarMenus()
     mostrarMenus(false)
     auxPendencias()
-    
+
     if (!emAtualizacao) await criarElementosIniciais()
 
 }
@@ -239,20 +239,18 @@ async function criarElementosIniciais() {
     const pFundo = document.querySelector('.planoFundo')
     if (!pFundo) return
 
-    await telaOcorrencias(true) // Apenas para carregar o objeto listaOcorrencias;
-
     const totais = {}
     const pUsuario = []
     let atradados = 0
 
-    for (const ocorrencia of Object.values(listaOcorrencias)) {
+    for (const [chamado, ocorrencia] of Object.entries(dados_ocorrencias)) {
 
-        const { criador, unidade, sistema, prioridade, ultima_correcao, atrasado, chamado, correcoes } = ocorrencia
+        const { criador, unidade, sistema, prioridade, ultima_correcao, atrasado, correcoes } = ocorrencia
 
         if (ultima_correcao == 'Solucionada') continue
 
         // Percorrer cada correção;
-        for (const [idCorrecao, correcao] of Object.entries(correcoes)) {
+        for (const [idCorrecao, correcao] of Object.entries(correcoes || {})) {
 
             if (correcao.executor !== acesso.usuario) continue
             const respondida = Object

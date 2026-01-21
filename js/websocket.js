@@ -95,7 +95,6 @@ async function comunicacao() {
                 } else {
 
                     // Seguir este fluxo apenas em Ocorrências;
-                    listaOcorrencias = {}
                     await telaPrincipal()
                     await atualizarOcorrencias()
 

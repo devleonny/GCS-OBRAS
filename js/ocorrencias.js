@@ -1,14 +1,16 @@
-let opcoesValidas = {
-    solicitante: new Set(),
+let opVal = {
+    criador: new Set(),
+    tipo: new Set(),
+    sistema: new Set(),
+    prioridade: new Set(),
+    ultima_correcao: new Set(),
     executor: new Set(),
-    tipoCorrecao: new Set(),
-    finalizado: new Set()
+    reagendado: new Set(),
+    atrasado: new Set(),
 }
+
 const autE = ['adm', 'gerente', 'diretoria']
 let filtrosAtivos = {}
-let listaOcorrencias = {}
-let recorteOcorrencias = {}
-let listas = {}
 let oAtual = { idCorrecao: null, idOcorrencia: null }
 
 function pararCam() {
@@ -160,7 +162,6 @@ async function excluirOcorrenciaCorrecao() {
         await inserirDados({ [idOcorrencia]: dados_ocorrencias[idOcorrencia] }, 'dados_ocorrencias')
     } else {
 
-        delete listaOcorrencias[idOcorrencia] // Remover do objeto temporário;
         await deletar(`dados_ocorrencias/${idOcorrencia}`)
         await deletarDB('dados_ocorrencias', idOcorrencia)
     }
@@ -174,15 +175,7 @@ async function excluirOcorrenciaCorrecao() {
 function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
 
     // Caso seja técnico e não tenham correções, a linha de ocorrência não vai aparecer;
-    oAtual = { idOcorrencia }
     const divCorrecoes = carregarCorrecoes()
-
-    if (!divCorrecoes) {
-        const existente = document.getElementById(idOcorrencia)
-        if (existente) existente.remove()
-        delete listaOcorrencias[idOcorrencia]
-        return
-    }
 
     const btnExclusao = autE.includes(acesso.permissao)
         ? botaoImg('fechar', `oAtual = {idOcorrencia: '${idOcorrencia}'}; confirmarExclusao()`)
@@ -190,9 +183,7 @@ function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
     const btnEditar = autE.includes(acesso.permissao)
         ? botaoImg('lapis', `oAtual = {idOcorrencia: '${idOcorrencia}'}; formularioOcorrencia()`)
         : ''
-    const uc = uCorrecao(ocorrencia?.correcoes || {})
-    const codCorrecao = uc.tipo
-    const ultima_correcao = correcoes?.[codCorrecao]?.nome || 'Não analisada'
+
     const corAssinatura = ocorrencia.assinatura ? '#008000' : '#d30000'
     const cliente = dados_clientes?.[ocorrencia?.unidade] || {}
     const tipo = tipos?.[ocorrencia?.tipo]?.nome || 'Em branco'
@@ -240,32 +231,7 @@ function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
             </div>
         </div>`
 
-    const executor = Object.values(ocorrencia?.correcoes || {})
-        .map(c => c.executor)
-        .filter(Boolean)
-
-    const reagendado = Object.values(ocorrencia?.correcoes || {})
-        .some(c => c.datas_agendadas)
-
-    const diffDias = uc.dias
-
-    listaOcorrencias[idOcorrencia] = {
-        empresa,
-        correcoes: ocorrencia.correcoes || {},
-        atrasado: diffDias < 0 ? 'Sim' : 'Não',
-        reagendado: reagendado ? 'Sim' : 'Não',
-        executor,
-        unidade,
-        ultima_correcao,
-        cidade,
-        chamado: idOcorrencia,
-        descricao,
-        partes,
-        criador,
-        tipo,
-        sistema,
-        prioridade
-    }
+    return partes
 
 }
 
@@ -467,82 +433,232 @@ async function salvarDataCorrecao() {
 
     removerPopup()
     await telaOcorrencias()
-    filtrarPorCampo()
 
 }
 
-async function filtrarPorCampo(campo, valor) {
+function filtrarPorCampo(campo, valor) {
 
-    const tAtiva = document.querySelector('.tela-ocorrencias')
-
-    if (!tAtiva) await telaOcorrencias()
-
-    if (!valor) {
+    if (!valor || !valor.trim()) {
         delete filtrosAtivos[campo]
     } else {
-        filtrosAtivos[campo] = valor == 'Todos' ? '' : valor
+        filtrosAtivos[campo] = valor.trim()
     }
 
-    // Backup Filtros;
     localStorage.setItem('filtrosAtivos', JSON.stringify(filtrosAtivos))
-
-    recorteOcorrencias = Object.keys(filtrosAtivos).length
-        ? recorteAcumulado(listaOcorrencias, filtrosAtivos)
-        : null
-
     renderizarPagina(1)
+}
+
+function passaFiltros(idOcorrencia, ocorrencia, filtros) {
+
+    const { usuario, tipo, prioridade, sistema } = ocorrencia
+    const oCorrecoes = ocorrencia.correcoes || {}
+
+    Object
+        .values(oCorrecoes)
+        .forEach(c => {
+            opVal.executor.add(c.executor || 'Em branco')
+        })
+
+    const reagendado = Object
+        .values(oCorrecoes)
+        .some(c => c.datas_agendadas)
+
+    const uc = uCorrecao(oCorrecoes)
+    const nTipo = tipos?.[tipo]?.nome || 'Em branco'
+    const nSistema = sistemas?.[sistema]?.nome || 'Em branco'
+    const nPrioridade = prioridades?.[prioridade]?.nome || 'Em branco'
+    const nUltimaCorrecao = correcoes?.[uc.tipo]?.nome || 'Não analisada'
+    const nReagendado = reagendado ? 'Sim' : 'Não'
+    const nAtrasado = uc?.dias < 0 ? 'Sim' : 'Não'
+
+    opVal.criador.add(usuario)
+    opVal.tipo.add(nTipo)
+    opVal.sistema.add(nSistema)
+    opVal.prioridade.add(nPrioridade)
+    opVal.ultima_correcao.add(nUltimaCorrecao)
+    opVal.reagendado.add(nReagendado)
+    opVal.atrasado.add(nAtrasado)
+
+    for (const [campo, termo] of Object.entries(filtros)) {
+        if (!termo) continue
+
+        let valor
+
+        switch (campo) {
+            case 'criador': valor = usuario; break
+            case 'tipo': valor = nTipo; break
+            case 'sistema': valor = nSistema; break
+            case 'prioridade': valor = nPrioridade; break
+            case 'ultima_correcao': valor = nUltimaCorrecao; break
+            case 'reagendado': valor = nReagendado; break
+            case 'atrasado': valor = nAtrasado; break
+
+            case 'chamado': valor = idOcorrencia; break
+            case 'cidade': valor = dados_clientes?.[ocorrencia.unidade]?.cidade; break
+            case 'unidade': valor = dados_clientes?.[ocorrencia.unidade]?.nome; break
+            case 'descricao': valor = ocorrencia.descricao; break
+            case 'empresa':
+                const cli = dados_clientes?.[ocorrencia.unidade]
+                valor = empresas?.[cli?.empresa]?.nome
+                break
+            default:
+                valor = ocorrencia[campo]
+        }
+
+        if (!valor) return false
+
+        if (Array.isArray(valor)) {
+            if (!valor.some(v => v?.toString().toLowerCase().includes(termo.toLowerCase())))
+                return false
+        } else {
+            if (!valor.toString().toLowerCase().includes(termo.toLowerCase()))
+                return false
+        }
+    }
+
+    return true
+}
+
+async function limparFiltros() {
+    filtrosAtivos = {}
+    filtrarPorCampo()
+    criarPesquisas()
+}
+
+async function renderizarPagina(pagina) {
+
+    const base = Object
+        .entries(dados_ocorrencias)
+        .filter(([id, o]) => passaFiltros(id, o, filtrosAtivos))
+
+    const totalPaginas = Math.max(
+        1,
+        Math.ceil(base.length / limitePorPagina)
+    )
+
+    paginaAtual = Math.min(Math.max(pagina, 1), totalPaginas)
+
+    const inicio = (paginaAtual - 1) * limitePorPagina
+    const fim = inicio + limitePorPagina
+
+    const fatia = base.slice(inicio, fim)
+
+    const tabela = document.querySelector('.tabela1')
+    tabela.innerHTML = ''
+    listas = {}
+
+    const contador = document.getElementById('contador')
+    if (contador) contador.textContent = base.length
+
+    if (fatia.length === 0) {
+        tabela.innerHTML = `
+            <div onclick="limparFiltros()" class="sem-resultados">
+                <img src="gifs/offline.gif">
+                •
+                <span>Sem resultados</span> 
+                •
+                <span>Limpar</span>
+            </div>`
+
+        renderizarPaginacao(0)
+        return
+    }
+
+    // render HTML somente do que passou
+    for (const [id, ocorrencia] of fatia) {
+        oAtual = { idOcorrencia: id }
+        const html = criarLinhaOcorrencia(id, ocorrencia)
+        if (html) tabela.insertAdjacentHTML('beforeend', html)
+    }
+
+    // popular selects (como antes)
+    for (const [, ocorrencia] of base) {
+        const cliente = dados_clientes?.[ocorrencia.unidade] || {}
+        const empresa = empresas?.[cliente.empresa]?.nome
+
+        const map = {
+            criador: ocorrencia.usuario,
+            tipo: tipos?.[ocorrencia.tipo]?.nome,
+            sistema: sistemas?.[ocorrencia.sistema]?.nome,
+            prioridade: prioridades?.[ocorrencia.prioridade]?.nome,
+            empresa
+        }
+
+        for (const [k, v] of Object.entries(map)) {
+            if (!v) continue
+            (listas[k] ??= new Set()).add(v)
+        }
+    }
+
+    renderizarPaginacao(base.length)
+}
+
+function renderizarPaginacao(total) {
+
+    const totalPaginas = Math.ceil(total / limitePorPagina)
+
+    document.querySelector('.paginacao-ocorrencias').innerHTML =
+        total == 0
+            ? ''
+            : `
+                <div style="${vertical}; align-items: center; gap: 3px;">
+                    <div style="${horizontal}; gap: 0.5rem;">
+                        <img src="imagens/esq.png" onclick="renderizarPagina(${paginaAtual - 1})">
+                        <img src="imagens/dir.png" onclick="renderizarPagina(${paginaAtual + 1})">
+                    </div>
+                    <span style="white-space: nowrap;">${paginaAtual} de ${totalPaginas}</span>
+                </div>`
+
+}
+
+async function telaOcorrencias() {
+
+    if (app == 'GCS') return
 
     mostrarMenus(false)
+
+    filtrosAtivos = JSON.parse(localStorage.getItem('filtrosAtivos')) || {}
+
+    empresas = await recuperarDados('empresas')
+    sistemas = await recuperarDados('sistemas')
+    tipos = await recuperarDados('tipos')
+    prioridades = await recuperarDados('prioridades')
+    correcoes = await recuperarDados('correcoes')
+    dados_clientes = await recuperarDados('dados_clientes')
+    dados_ocorrencias = await recuperarDados('dados_ocorrencias')
+
+    const empresaAtiva = empresas[acesso?.empresa]?.nome || 'Desatualizado'
+    titulo.innerHTML = empresaAtiva
+
+    const acumulado = `
+        <div class="tela-ocorrencias">
+            <div class="painelBotoes">
+                <div class="topo-ocorrencias">
+                    <div style="${vertical};">
+                        <div class="paginacao-ocorrencias"></div>
+                        <span id="contador"></span>
+                    </div>
+                    <div class="filtros"></div>
+                </div>
+            </div>
+
+            <div class="tabela1" style="height: max-content; max-height: 65vh;"></div>
+
+            <div class="rodape-tabela"></div>
+        </div>
+    `
+
+    telaInterna.innerHTML = acumulado
+
+    await renderizarPagina(1)
+
+    auxPendencias()
+    criarPesquisas()
+
 }
 
-function recorteAcumulado(base, filtros = {}) {
-    let resultado = base
+function criarPesquisas() {
 
-    for (const [chave, termo] of Object.entries(filtros)) {
-        if (!termo) continue
-        resultado = recortarOcorrencias(resultado, chave, termo)
-    }
-
-    return resultado
-}
-
-function recortarOcorrencias(base, chave, termo) {
-    if (!chave || !termo) return base
-
-    const t = termo.toString().toLowerCase().trim()
-
-    return Object.fromEntries(
-        Object.entries(base).filter(([, dados]) => {
-            const valor = dados?.[chave]
-            if (!valor) return false
-
-            if (Array.isArray(valor)) {
-                return valor.some(v =>
-                    v?.toString().toLowerCase().includes(t)
-                )
-            }
-
-            return valor
-                .toString()
-                .toLowerCase()
-                .includes(t)
-        })
-    )
-}
-
-function renderizarPaginacao() {
-
-    const base = recorteOcorrencias !== null
-        ? recorteOcorrencias
-        : listaOcorrencias
-
-    const totalPaginas = Math.ceil(Object.keys(base).length / limitePorPagina)
-
-    document.querySelector('.paginacao-ocorrencias').innerHTML = `
-    <img src="imagens/esq.png" onclick="renderizarPagina(${paginaAtual - 1})">
-    <img src="imagens/dir.png" onclick="renderizarPagina(${paginaAtual + 1})">
-    <span style="white-space: nowrap;">${paginaAtual} de ${totalPaginas}</span>
-  `
     const divFiltros = document.querySelector('.filtros')
 
     const modeloPesquisa = (campo) => `
@@ -570,7 +686,7 @@ function renderizarPaginacao() {
 
     }
 
-    for (let [campo, opcoes] of Object.entries(listas)) {
+    for (let [campo, opcoes] of Object.entries(opVal)) {
 
         opcoes = [...opcoes].sort((a, b) => a.localeCompare(b))
 
@@ -592,156 +708,20 @@ function renderizarPaginacao() {
     }
 }
 
-async function limparFiltros() {
-    overlayAguarde()
-    await telaOcorrencias(true)
-    filtrosAtivos = {}
-    filtrarPorCampo()
-    removerOverlay()
-}
-
-async function renderizarPagina(pagina) {
-
-    const base = recorteOcorrencias !== null
-        ? recorteOcorrencias
-        : listaOcorrencias
-
-    const totalPaginas = Math.max(
-        1,
-        Math.ceil(Object.keys(base).length / limitePorPagina)
-    )
-
-    if (pagina < 1) pagina = 1
-    if (pagina > totalPaginas) pagina = totalPaginas
-
-    paginaAtual = pagina
-
-    const inicio = (pagina - 1) * limitePorPagina
-    const fim = inicio + limitePorPagina
-
-    const fatia = Object
-        .values(base)
-        .slice(inicio, fim)
-        .sort((a, b) => {
-            const ga = /^G(\d+)/.exec(a.chamado)
-            const gb = /^G(\d+)/.exec(b.chamado)
-
-            if (ga && gb) return Number(gb[1]) - Number(ga[1])
-            if (ga) return -1
-            if (gb) return 1
-
-            return 0
-        })
-
-
-    const tabela = document.querySelector('.tabela1')
-    tabela.innerHTML = ''
-    listas = {}
-
-    const contadorPagina = document.getElementById('contador')
-    if (contadorPagina) contadorPagina.textContent = Object.keys(base).length
-
-    if (fatia.length == 0)
-        return contadorPagina.innerHTML = `<div onclick="limparFiltros()" style="${horizontal}; gap: 1rem; cursor: pointer;"><span>Sem resultados</span> • <span>Limpar</span></div>`
-
-    // Lançamento das linhas na página;
-    for (const dados of fatia) {
-        const { partes } = dados
-        tabela.insertAdjacentHTML('beforeend', partes)
-    }
-
-    // Carregar os selects separadamente;
-    for (const dados of Object.values(base)) {
-
-        const { criador, tipo, sistema, prioridade, ultima_correcao, executor, reagendado, atrasado, empresa } = dados
-
-        for (const [chave, valor] of Object.entries({ criador, tipo, sistema, prioridade, ultima_correcao, executor, reagendado, atrasado, empresa })) {
-            const set = (listas[chave] ??= new Set())
-
-            if (Array.isArray(valor)) {
-                valor.forEach(v => set.add(v))
-            } else {
-                set.add(valor)
-            }
-        }
-    }
-
-    renderizarPaginacao()
-}
-
-async function telaOcorrencias(apenasObjeto = false) {
-
-    if (app == 'GCS') return
-
-    mostrarMenus(false)
-
-    filtrosAtivos = JSON.parse(localStorage.getItem('filtrosAtivos')) || {}
-
-    empresas = await recuperarDados('empresas')
-    sistemas = await recuperarDados('sistemas')
-    tipos = await recuperarDados('tipos')
-    prioridades = await recuperarDados('prioridades')
-    correcoes = await recuperarDados('correcoes')
-    dados_clientes = await recuperarDados('dados_clientes')
-    dados_ocorrencias = await recuperarDados('dados_ocorrencias')
-
-    const empresaAtiva = empresas[acesso?.empresa]?.nome || 'Desatualizado'
-    titulo.innerHTML = empresaAtiva
-
-    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias).reverse()) {
-
-        // Se técnico, então ele precisa estar presente no processo;
-        const correcoes = Object.values(ocorrencia.correcoes || {})
-        const executor = correcoes.some(c => c.executor == acesso.usuario)
-        const criador = correcoes.some(c => c.usuario == acesso.usuario)
-        if (acesso.permissao == 'técnico' && (!executor && !criador)) continue
-
-        criarLinhaOcorrencia(idOcorrencia, ocorrencia)
-    }
-
-    if (apenasObjeto) return
-
-    filtrarPorCampo()
-
-    const acumulado = `
-        <div class="tela-ocorrencias">
-            <div class="painelBotoes">
-                <div class="topo-ocorrencias">
-                    <div style="${vertical};">
-                        <div class="paginacao-ocorrencias"></div>
-                        <span id="contador"></span>
-                    </div>
-                    <div class="filtros"></div>
-                </div>
-            </div>
-
-            <div class="tabela1" style="height: max-content; max-height: 65vh;"></div>
-
-            <div class="rodape-tabela"></div>
-        </div>
-    `
-
-    telaInterna.innerHTML = acumulado
-
-    await renderizarPagina(1)
-
-    auxPendencias()
-
-}
-
 function auxPendencias() {
 
     const contadores = { Todos: 0 }
 
-    for (const ocorrencia of Object.values(listaOcorrencias)) {
+    for (const [id, ocorrencia] of Object.entries(dados_ocorrencias)) {
 
-        const { ultima_correcao } = ocorrencia
+        if (!passaFiltros(id, ocorrencia, filtrosAtivos)) continue
 
-        contadores[ultima_correcao] ??= 0
+        const uc = uCorrecao(ocorrencia.correcoes || {})
+        const nome = correcoes?.[uc.tipo]?.nome || 'Não analisada'
 
-        contadores[ultima_correcao]++
+        contadores[nome] ??= 0
+        contadores[nome]++
         contadores.Todos++
-
     }
 
     const divPendencias = document.querySelector('.painel-pendencias')
@@ -772,7 +752,7 @@ function auxPendencias() {
                         : '#b12425'
 
             return `
-            <div class="pill" onclick="filtrarPorCampo('ultima_correcao', '${correcao}')">
+            <div class="pill" onclick="('ultima_correcao', '${correcao}')">
                 <span class="pill-a" style="background: ${cor};">${total}</span>
                 <span class="pill-b">${correcao}</span>
             </div>`
@@ -854,8 +834,7 @@ async function atualizarOcorrencias(resetar = false) {
 
     const tOcorrencias = document.querySelector('.tela-ocorrencias')
     if (tOcorrencias) {
-        await telaOcorrencias(true) // Recriar apenas objeto linhas - true;
-        filtrarPorCampo() // Atualizar as linhas;
+        await telaOcorrencias()
     }
 
     carregarMenus()
