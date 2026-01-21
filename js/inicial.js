@@ -94,7 +94,7 @@ async function telaInicial() {
 
     mostrarMenus(false)
 
-    toolbar.style.display = ''
+    toolbar.style.display = 'flex'
     titulo.textContent = 'GCS'
     localStorage.setItem('app', 'GCS')
     app = 'GCS'

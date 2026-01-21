@@ -99,15 +99,17 @@ async function acessoLogin() {
                 return popup({ mensagem: data.mensagem });
 
             } else if (data.usuario) {
+                
                 acesso = data
-                const app = permCham.includes(acesso.permissao) ? 'OCORRÊNCIAS' : 'GCS'
 
+                app = permCham.includes(acesso.permissao) ? 'OCORRÊNCIAS' : 'GCS'
                 localStorage.setItem('app', app)
                 localStorage.setItem('acesso', JSON.stringify(data))
 
                 await connectWebSocket()
 
             }
+
         } catch (err) {
             divAcesso.style.display = 'flex'
             popup({ imagem: 'gifs/dino.gif', mensagem: err.message || `Falha ao acessar o sistema, tente novamente em instantes` })

@@ -1,9 +1,8 @@
-let socket;
-let reconnectInterval = 30000;
+let socket
+let reconnectInterval = 30000
 let emAtualizacao = false
 let priExeGCS = true
 let priExeOcorr = true
-
 connectWebSocket()
 
 function connectWebSocket() {
@@ -12,8 +11,8 @@ function connectWebSocket() {
 
     socket.onopen = async () => {
         msgStatus('Online', 1)
-        await validarAcesso()
         await comunicacao()
+        await validarAcesso()
     }
 
 }
@@ -47,7 +46,7 @@ function msgStatus(msg, s = 2) {
     msg = `${simbolos[s]} ${msg} ${new Date().toLocaleString()}`
 
     const divMensagem = document.querySelector('.div-mensagem')
-    if (divMensagem) divMensagem.insertAdjacentHTML('beforeend', `<span>${i}</span>`)
+    if (divMensagem) divMensagem.insertAdjacentHTML('beforeend', `<span>${msg}</span>`)
     console.log(msg)
 }
 
@@ -80,10 +79,11 @@ async function comunicacao() {
 
             // Se não existir mudanças no acesso;
 
-            msgStatus('Online', 1)
+            app = localStorage.getItem('app') || 'OCORRÊNCIAS'
 
             if (data.validado == 'Sim') {
 
+                msgStatus('Acesso sem alterações')
 
                 if (app == 'GCS') {
 
@@ -98,8 +98,6 @@ async function comunicacao() {
                     await telaPrincipal()
                     await atualizarOcorrencias()
 
-                    // Recuperar Filtros;
-                    filtrosAtivos = JSON.parse(localStorage.getItem('filtrosAtivos')) || {}
                 }
 
             } else {
@@ -107,7 +105,11 @@ async function comunicacao() {
                 // Se existirem mudanças, um reset será feito apenas em Ocorrências;
 
                 if (app == 'GCS') {
-                    await telaInicial()
+
+                    if (priExeGCS) {
+                        await telaInicial()
+                        priExeGCS = false
+                    }
 
                 } else {
 
@@ -120,6 +122,9 @@ async function comunicacao() {
 
                 }
             }
+
+            removerOverlay()
+
         }
 
         // Se a base não pertencer ao app, retornar;
