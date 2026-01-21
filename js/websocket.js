@@ -62,8 +62,9 @@ async function comunicacao() {
     app = localStorage.getItem('app') || 'OCORRÊNCIAS'
 
     socket.onmessage = async (event) => {
+        
         const data = JSON.parse(event.data)
-
+        
         if (data.desconectar) {
             acesso = {}
             localStorage.removeItem('acesso')
@@ -113,6 +114,7 @@ async function comunicacao() {
 
                 } else {
 
+                    overlayAguarde()
                     msgStatus('Offline', 3)
                     msgStatus('Alteração no acesso recebida...')
                     await resetarTudo()

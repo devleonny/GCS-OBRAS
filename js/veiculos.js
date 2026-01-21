@@ -542,7 +542,7 @@ function pesquisarBotoes(input, modalidade) {
 function painelExcluir(idCusto) {
 
     const botoes = [
-        { texto: 'Confirmar', img: 'conclido', funcao: `excluirCusto('${idCusto}')` }
+        { texto: 'Confirmar', img: 'concluido', funcao: `excluirCusto('${idCusto}')` }
     ]
 
     popup({ botoes, mensagem: 'Deseja excluir este lançamento?' })

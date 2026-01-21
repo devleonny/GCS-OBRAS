@@ -9,6 +9,7 @@ let opVal = {
     atrasado: new Set(),
 }
 
+let respCorrecao = null
 const autE = ['adm', 'gerente', 'diretoria']
 let filtrosAtivos = {}
 
@@ -92,13 +93,13 @@ function visibilidadeFotos() {
 async function tirarFoto() {
 
     const fotos = document.querySelector('.fotos')
-    const cameraDiv = document.querySelector('.cameraDiv');
-    const canvas = cameraDiv.querySelector('canvas');
-    const video = cameraDiv.querySelector('video');
+    const cameraDiv = document.querySelector('.cameraDiv')
+    const canvas = cameraDiv.querySelector('canvas')
+    const video = cameraDiv.querySelector('video')
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d').drawImage(video, 0, 0)
 
     const idFoto = ID5digitos()
     const foto = `<img name="foto" id="${idFoto}" src="${canvas.toDataURL('image/png')}" class="foto" onclick="ampliarImagem(this, '${idFoto}')">`
@@ -177,7 +178,6 @@ async function excluirOcorrenciaCorrecao(idOcorrencia, idCorrecao) {
 
 function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
 
-    // Caso seja técnico e não tenham correções, a linha de ocorrência não vai aparecer;
     const divCorrecoes = carregarCorrecoes(idOcorrencia)
 
     const btnExclusao = autE.includes(acesso.permissao)
@@ -327,7 +327,7 @@ function carregarCorrecoes(idOcorrencia) {
 
         // Se já foi respondida, não mostrar;
         const resposta = (!respondida && correcao.executor == acesso.usuario)
-            ? `<button style="background-color: #3e8bff;" onclick="formularioCorrecao('${idOcorrencia}', null, '${idCorrecao}')">Responder</button>`
+            ? `<button style="background-color: #3e8bff;" onclick="respCorrecao = '${idCorrecao}'; formularioCorrecao('${idOcorrencia}')">Responder</button>`
             : ''
 
         const agendamentos = (correcao?.datas_agendadas || []).reverse()
@@ -449,8 +449,12 @@ async function filtrarPorCampo(campo, valor) {
 function passaFiltros(idOcorrencia, ocorrencia, filtros) {
 
     const { usuario, tipo, prioridade, sistema } = ocorrencia
-    const oCorrecoes = Object.values(ocorrencia.correcoes || {})
 
+    if (ocultarParaTecs(ocorrencia.correcoes || {})) return false
+
+    
+    const oCorrecoes = Object.values(ocorrencia.correcoes || {})
+    const uc = uCorrecao(oCorrecoes)
     const executores = oCorrecoes.map(c => c.executor)
     oCorrecoes.forEach(c => {
         opVal.executor.add(c.executor || 'Em branco')
@@ -459,11 +463,10 @@ function passaFiltros(idOcorrencia, ocorrencia, filtros) {
     const reagendado = oCorrecoes
         .some(c => c.datas_agendadas)
 
-    const uc = uCorrecao(oCorrecoes)
+    const nUltimaCorrecao = correcoes?.[uc.tipo]?.nome || 'Não analisada'
     const nTipo = tipos?.[tipo]?.nome || 'Em branco'
     const nSistema = sistemas?.[sistema]?.nome || 'Em branco'
     const nPrioridade = prioridades?.[prioridade]?.nome || 'Em branco'
-    const nUltimaCorrecao = correcoes?.[uc.tipo]?.nome || 'Não analisada'
     const nReagendado = reagendado ? 'Sim' : 'Não'
     const nAtrasado = uc?.dias < 0 ? 'Sim' : 'Não'
 
@@ -728,13 +731,46 @@ async function atalho(uc) {
     await telaOcorrencias()
 }
 
+function ocultarParaTecs(correcoes = {}) {
+
+    if (acesso.permissao !== 'técnico') return false
+
+    if (Object.values(correcoes).some(c => c.tipoCorrecao === 'WRuo2'))
+        return true
+
+    let tudoRespondido = true
+    let participou = false
+
+    for (const [id, c] of Object.entries(correcoes)) {
+        if (c.executor !== acesso.usuario) continue
+
+        participou = true
+
+        const respondida = Object
+            .values(correcoes)
+            .some(x => x.resposta === id)
+
+        if (!respondida) {
+            tudoRespondido = false
+            break
+        }
+    }
+
+    return participou && tudoRespondido
+}
+
+
 function auxPendencias() {
 
     const contadores = { Todos: 0 }
 
-    for (const [id, ocorrencia] of Object.entries(dados_ocorrencias)) {
+    for (const ocorrencia of Object.values(dados_ocorrencias)) {
 
-        const uc = uCorrecao(ocorrencia.correcoes || {})
+        const oCorrecoes = ocorrencia.correcoes || {}
+        if (ocultarParaTecs(oCorrecoes)) continue
+
+
+        const uc = uCorrecao(oCorrecoes)
         const nome = correcoes?.[uc.tipo]?.nome || 'Não analisada'
 
         contadores[nome] ??= 0
@@ -743,7 +779,6 @@ function auxPendencias() {
     }
 
     const divPendencias = document.querySelector('.painel-pendencias')
-
     const ordemFinal = ['Solucionada', 'Todos']
 
     const etiquetas = Object
@@ -829,9 +864,11 @@ async function atualizarOcorrencias(resetar = false) {
         status.atual++
 
         // A tabela é a primeira: atualiza os dados da empresa atual antes da tabela de clientes;
-        if (!priExeOcorr && base == 'dados_setores') {
+        if (base == 'dados_setores') {
+
             acesso = await recuperarDado('dados_setores', acesso.usuario)
             localStorage.setItem('acesso', JSON.stringify(acesso))
+
         }
 
     }
@@ -1000,7 +1037,7 @@ function bloqAnterior(input) {
     }
 }
 
-async function formularioCorrecao(idOcorrencia, idCorrecao, resposta) {
+async function formularioCorrecao(idOcorrencia, idCorrecao) {
 
     const ocorrencia = dados_ocorrencias[idOcorrencia]
     const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
@@ -1061,9 +1098,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, resposta) {
             texto: 'Salvar',
             funcao: idCorrecao
                 ? `salvarCorrecao('${idOcorrencia}', '${idCorrecao}')`
-                : resposta
-                    ? `salvarCorrecao('${idOcorrencia}', '${idCorrecao}', '${resposta}')`
-                    : `salvarCorrecao('${idOcorrencia}')`
+                : `salvarCorrecao('${idOcorrencia}')`
         },
         { img: 'atualizar', texto: 'Atualizar', funcao: `atualizarOcorrencias()` },
     ]
@@ -1104,7 +1139,7 @@ async function maisLabel({ codigo, quantidade, unidade } = {}) {
     div.insertAdjacentHTML('beforeend', label)
 }
 
-async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos(), resposta) {
+async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
 
     const ocorrencia = dados_ocorrencias[idOcorrencia]
     ocorrencia.correcoes ??= {}
@@ -1125,7 +1160,6 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos(), resposta)
         return popup({ mensagem: 'Não deixe em branco <b>Data Limite</b> ou o <b>Tipo de Correção</b>' })
 
     Object.assign(correcao, {
-        resposta,
         dtCorrecao,
         executor: obter('executor').id,
         data: new Date().toLocaleString(),
@@ -1179,7 +1213,8 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos(), resposta)
         }
     }
 
-    ocorrencia.tipoCorrecao = correcao.tipoCorrecao // Atualiza no objeto principal também;
+    if (respCorrecao) correcao.resposta = respCorrecao
+    respCorrecao = null
 
     await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
     await telaOcorrencias()
