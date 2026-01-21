@@ -206,18 +206,6 @@ async function atualizarToolbar(remover) {
 
             <img src="imagens/avanco.png" style="width: 1.5rem;">
 
-            ${modelo('Chamado Original', `
-            <span class="opcoes"
-                name="orcamento"
-                ${idMaster ? `id="${idMaster}"` : ''}
-                onclick="cxOpcoes('orcamento', 'dados_orcamentos', ['dados_orcam/contrato', 'dados_orcam/analista', 'total_geral[dinheiro]'], 'incluirMaster()')">
-                    ${orcamentoMaster?.dados_orcam?.contrato || 'Selecione'}
-            </span>
-            <img src="imagens/cancel.png" style="width: 1.5rem;" onclick="removerMaster()">
-            `)}
-
-            <img src="imagens/avanco.png" style="width: 1.5rem;">
-
             ${modelo('Revisões', `
                 ${revisoes.length !== 0 ? `<select onchange="alterarRevisao()" name="revisao" class="opcoes">${revisoes}</select>` : ''}
                 <img src="imagens/baixar.png" onclick="salvarRevisao()" style="width: 1.5rem;">
