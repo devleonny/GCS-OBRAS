@@ -145,7 +145,7 @@ function confirmarExclusao() {
         { texto: 'Confirmar', img: 'concluido', funcao: `excluirOcorrenciaCorrecao()` }
     ]
 
-    popup({ botoes, elemento: 'Você tem certeza que deseja excluir?' })
+    popup({ botoes, mensagem: 'Você tem certeza que deseja excluir?' })
 }
 
 async function excluirOcorrenciaCorrecao() {
@@ -451,17 +451,19 @@ function filtrarPorCampo(campo, valor) {
 function passaFiltros(idOcorrencia, ocorrencia, filtros) {
 
     const { usuario, tipo, prioridade, sistema } = ocorrencia
-    const oCorrecoes = ocorrencia.correcoes || {}
+    const oCorrecoes = Object.values(ocorrencia.correcoes || {})
 
-    Object
-        .values(oCorrecoes)
-        .forEach(c => {
-            opVal.executor.add(c.executor || 'Em branco')
-        })
+    const executores = oCorrecoes.map(c => c.executor)
+    oCorrecoes.forEach(c => {
+        opVal.executor.add(c.executor || 'Em branco')
+    })
 
-    const reagendado = Object
-        .values(oCorrecoes)
+    const reagendado = oCorrecoes
         .some(c => c.datas_agendadas)
+
+    const nExecutor = oCorrecoes
+        .map(c => c.executor)
+        .join(', ')
 
     const uc = uCorrecao(oCorrecoes)
     const nTipo = tipos?.[tipo]?.nome || 'Em branco'
@@ -492,6 +494,7 @@ function passaFiltros(idOcorrencia, ocorrencia, filtros) {
             case 'ultima_correcao': valor = nUltimaCorrecao; break
             case 'reagendado': valor = nReagendado; break
             case 'atrasado': valor = nAtrasado; break
+            case 'executor': valor = executores; break
 
             case 'chamado': valor = idOcorrencia; break
             case 'cidade': valor = dados_clientes?.[ocorrencia.unidade]?.cidade; break
@@ -525,11 +528,22 @@ async function limparFiltros() {
     criarPesquisas()
 }
 
+function parseDataBR(data) {
+    if (!data) return 0
+
+    const [d, t] = data.split(', ')
+    const [dia, mes, ano] = d.split('/')
+    return new Date(`${ano}-${mes}-${dia}T${t || '00:00:00'}`).getTime()
+}
+
 async function renderizarPagina(pagina) {
 
     const base = Object
         .entries(dados_ocorrencias)
         .filter(([id, o]) => passaFiltros(id, o, filtrosAtivos))
+        .sort(([, a], [, b]) =>
+            parseDataBR(b.dataRegistro) - parseDataBR(a.dataRegistro)
+        )
 
     const totalPaginas = Math.max(
         1,
