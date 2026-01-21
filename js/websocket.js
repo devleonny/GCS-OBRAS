@@ -62,9 +62,9 @@ async function comunicacao() {
     app = localStorage.getItem('app') || 'OCORRÊNCIAS'
 
     socket.onmessage = async (event) => {
-        
+
         const data = JSON.parse(event.data)
-        
+
         if (data.desconectar) {
             acesso = {}
             localStorage.removeItem('acesso')
@@ -129,10 +129,9 @@ async function comunicacao() {
 
         }
 
-        // Se a base não pertencer ao app, retornar;
-        if (app == 'OCORRÊNCIAS') return
+        if (app !== 'GCS') return
 
-        if (app == 'GCS' && data.tabela == 'dados_orcamentos') {
+        if (data.tabela == 'dados_orcamentos') {
             await verificarPendencias()
         }
 
@@ -154,8 +153,10 @@ async function comunicacao() {
                 await inserirDados({ [data.usuario]: user }, 'dados_setores')
             }
 
-            await usuariosToolbar()
-            balaoUsuario(data.status, data.usuario)
+            if (app == 'GCS') {
+                await usuariosToolbar()
+                balaoUsuario(data.status, data.usuario)
+            }
         }
 
     }
