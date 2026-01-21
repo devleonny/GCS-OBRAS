@@ -178,6 +178,8 @@ async function excluirOcorrenciaCorrecao(idOcorrencia, idCorrecao) {
 
 function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
 
+    const { anexos, usuario } = ocorrencia
+
     const divCorrecoes = carregarCorrecoes(idOcorrencia)
 
     const btnExclusao = autE.includes(acesso.permissao)
@@ -197,6 +199,11 @@ function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
     const unidade = cliente?.nome || 'Em branco'
     const cidade = cliente?.cidade || 'Em branco'
     const empresa = empresas[cliente?.empresa]?.nome || 'Em branco'
+    const podeExcluir = acesso.permissao == 'adm' || usuario == acesso.usuario
+    const divAnexos = Object
+        .entries(anexos || {})
+        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, podeExcluir ? `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')` : false))
+        .join('')
 
     const modeloCampos = (valor1, elemento) => `
         <div style="${horizontal}; width: 100%; gap: 0.5rem;">
@@ -227,6 +234,10 @@ function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
                 ${modeloCampos('Tipo', tipo)}
                 ${modeloCampos('Sistema', sistema)}
                 ${modeloCampos('Prioridade', prioridade)}
+
+                <div id="anexos" style="${vertical};">
+                    ${divAnexos}
+                </div>
             </div>
 
             <div class="bloco-linha">
@@ -452,7 +463,7 @@ function passaFiltros(idOcorrencia, ocorrencia, filtros) {
 
     if (ocultarParaTecs(ocorrencia.correcoes || {})) return false
 
-    
+
     const oCorrecoes = Object.values(ocorrencia.correcoes || {})
     const uc = uCorrecao(oCorrecoes)
     const executores = oCorrecoes.map(c => c.executor)
