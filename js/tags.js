@@ -86,7 +86,7 @@ async function renderPainel(idOrcamento) {
 
     `
 
-    recarregarLinhas()
+    await recarregarLinhas()
 
     const painel = document.querySelector('.painel-etiquetas')
     if (painel) return painel.innerHTML = acumulado
@@ -149,7 +149,7 @@ async function removerTag({ idTag, idOrcamento, recarregarPainel = true }) {
     deletar(`dados_orcamentos/${idOrcamento}/tags/${idTag}`)
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
 
-    recarregarLinhas()
+    await recarregarLinhas()
     removerPopup()
     if (recarregarPainel) renderPainel(idOrcamento)
 }
@@ -190,8 +190,8 @@ async function salvarTag(id) {
 }
 
 async function recarregarLinhas() {
-    if (telaAtiva == 'inicial') telaInicial()
-    if (telaAtiva == 'orcamentos') telaOrcamentos()
+    if (telaAtiva == 'inicial') await telaInicial()
+    if (telaAtiva == 'orcamentos') await telaOrcamentos()
 }
 
 async function sincronizarTags() {

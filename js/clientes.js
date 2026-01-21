@@ -278,7 +278,7 @@ function criarLinhaClienteGCS(idCliente, cliente) {
             name="empresa">
         </td>
         <td style="white-space: nowrap;">${cnpj || ''}</td>
-        <td>${nEmpresa}</td>
+        <td><span>${nEmpresa}</span></td>
         <td style="text-align: left;">${nome || ''}</td>
         <td>${eCadastro}</td>
         <td>${eEntrega}</td>

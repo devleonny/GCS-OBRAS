@@ -633,6 +633,7 @@ async function enviarDadosOrcamento() {
 
 async function ativarChamado(input, idOrcamento) {
 
+    // Tela de criação de orçamento, não precisa continuar, o salvar irá coletar a informação;
     if (!idOrcamento) return
 
     const ativo = input.checked ? 'S' : 'N'
@@ -644,7 +645,7 @@ async function ativarChamado(input, idOrcamento) {
     }
 
     dados_orcamentos[idOrcamento].chamado = ativo
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
+    await inserirDados({ [idOrcamento]: dados_orcamentos[idOrcamento] }, 'dados_orcamentos')
 
     const linha = document.getElementById(idOrcamento)
     if (linha) linha.dataset.chamado = ativo
