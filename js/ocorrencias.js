@@ -461,10 +461,6 @@ function passaFiltros(idOcorrencia, ocorrencia, filtros) {
     const reagendado = oCorrecoes
         .some(c => c.datas_agendadas)
 
-    const nExecutor = oCorrecoes
-        .map(c => c.executor)
-        .join(', ')
-
     const uc = uCorrecao(oCorrecoes)
     const nTipo = tipos?.[tipo]?.nome || 'Em branco'
     const nSistema = sistemas?.[sistema]?.nome || 'Em branco'
@@ -514,6 +510,10 @@ function passaFiltros(idOcorrencia, ocorrencia, filtros) {
             if (!valor.some(v => v?.toString().toLowerCase().includes(termo.toLowerCase())))
                 return false
         } else {
+
+            if (campo == 'ultima_correcao' && (valor !== termo))
+                return false
+
             if (!valor.toString().toLowerCase().includes(termo.toLowerCase()))
                 return false
         }
