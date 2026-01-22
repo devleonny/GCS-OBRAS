@@ -412,7 +412,6 @@ function pesqRequisicao() {
 
 async function carregarItensRequisicao(apVisualizar, tipoRequisicao, chave) {
 
-    const dados_composicoes = await recuperarDados('dados_composicoes') || {};
     let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
     let itensOrcamento = orcamento.dados_composicoes
     let linhas = '';
@@ -505,7 +504,7 @@ async function carregarItensRequisicao(apVisualizar, tipoRequisicao, chave) {
     for (item of itensFiltrados) {
 
         const { tipo, codigo, qtde_enviar, requisicao, descricao } = item
-        const omie = dados_composicoes[codigo]?.omie || dados_composicoes[codigo]?.partnumber || ''
+        const omie = db.dados_composicoes[codigo]?.omie || db.dados_composicoes[codigo]?.partnumber || ''
         const tOpcoes = ['SEVIÇO', 'VENDA', 'USO E CONSUMO', 'LOCAÇÃO']
             .map(op => `<option value="${op}" ${tipo == op ? 'selected' : ''}>${op}</option>`)
             .join('')
@@ -574,8 +573,6 @@ async function carregarItensRequisicao(apVisualizar, tipoRequisicao, chave) {
 }
 
 async function abrirAdicionais(codigo) {
-
-    dados_estoque = await recuperarDados('dados_estoque')
 
     const ths = ['Descrição', 'Quantidade', 'Comentário', '']
         .map(op => `<th>${op}</th>`)
@@ -819,7 +816,7 @@ async function abrirAtalhos(id) {
     const permitidos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
     id_orcam = id
 
-    const orcamento = dados_orcamentos[id_orcam]
+    const orcamento = db.dados_orcamentos[id_orcam]
     const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
     const cliente = await recuperarDado('dados_clientes', omie_cliente)
     const emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
@@ -849,8 +846,7 @@ async function abrirAtalhos(id) {
         ${modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`)}
         ${modeloBotoes('link', 'Vincular Orçamento', `vincularOrcamento('${id}')`)}
         ${modeloBotoes('LG', 'OS em PDF', `abrirOS('${id}')`)}
-        ${hierarquia[id] ? modeloBotoes('exclamacao', 'Desvincular Orçamento', `confirmarRemoverVinculo('${id}')`) : ''}
-        ${modeloBotoes('projeto', 'Criar Orçamento Vinculado', `criarOrcamentoVinculado('${id}')`)}
+        ${db.hierarquia[id] ? modeloBotoes('exclamacao', 'Desvincular Orçamento', `confirmarRemoverVinculo('${id}')`) : ''}
         ${modeloBotoes('alerta', 'Definir Prioridade', `formularioOrcAprovado('${id}')`)}
         `
     }
@@ -977,22 +973,6 @@ async function vincularOrcamento(idOrcamento) {
 
 }
 
-async function criarOrcamentoVinculado(idOrcamento) {
-
-    const orcamentoRef = await recuperarDado('dados_orcamentos', idOrcamento)
-    const orcamento = {
-        dados_orcam: {
-            omie_cliente: orcamentoRef.dados_orcam.omie_cliente
-        },
-        hierarquia: idOrcamento
-    }
-
-    baseOrcamento(orcamento)
-    removerPopup()
-
-    await telaCriarOrcamento()
-}
-
 async function confirmarVinculo(idOrcamento) {
 
     overlayAguarde()
@@ -1008,7 +988,7 @@ async function confirmarVinculo(idOrcamento) {
 
     // Na API será salvo os elementos;
     const dados = { idMaster }
-    hierarquia[idOrcamento] = dados
+    db.hierarquia[idOrcamento] = dados
     await inserirDados({ [idOrcamento]: dados }, 'hierarquia')
 
     removerPopup()
@@ -1631,7 +1611,7 @@ async function abrirEsquema(id = id_orcam) {
         </div>`
         }).join('')
 
-    const existente = dados_ocorrencias[contrato]
+    const existente = db.dados_ocorrencias[contrato]
     const f1 = liberado ? `unidadeOrc = '${omie_cliente}'; formularioOcorrencia()` : ''
     const f2 = existente ? `formularioCorrecao('${contrato}')` : ''
 
@@ -1728,7 +1708,7 @@ function mostrarConfirmacao(elemento) {
 
 async function alterarStatus(select) {
 
-    const orcamento = dados_orcamentos[id_orcam]
+    const orcamento = db.dados_orcamentos[id_orcam]
     orcamento.status ??= {}
     orcamento.status.historicoStatus ??= {}
     const statusAnterior = orcamento.status?.atual || ''
@@ -1762,7 +1742,7 @@ async function alterarStatus(select) {
     enviar(`dados_orcamentos/${id_orcam}/status/atual`, novoSt)
     enviar(`dados_orcamentos/${id_orcam}/status/historicoStatus/${idStatus}`, registroStatus)
 
-    dados_orcamentos[id_orcam] = orcamento
+    db.dados_orcamentos[id_orcam] = orcamento
 
     if (novoSt == 'ORC PENDENTE') formularioOrcPendente(idStatus)
     if (novoSt == 'ORC APROVADO') {
@@ -1779,7 +1759,7 @@ async function alterarStatus(select) {
 
 function formularioOrcAprovado(idOrcamento) {
 
-    const orcamento = dados_orcamentos[idOrcamento]
+    const orcamento = db.dados_orcamentos[idOrcamento]
 
     const linhas = [
         {
@@ -1803,7 +1783,7 @@ function formularioOrcAprovado(idOrcamento) {
 async function salvarPrioridade(idOrcamento) {
 
     const input = document.querySelector('[name="prioridade"]')
-    const orcamento = dados_orcamentos[idOrcamento]
+    const orcamento = db.dados_orcamentos[idOrcamento]
 
     if (!input.value) return removerPopup()
 
@@ -1822,7 +1802,7 @@ async function irORC(idOrcamento) {
 
     overlayAguarde()
 
-    const orcamento = dados_orcamentos[idOrcamento]
+    const orcamento = db.dados_orcamentos[idOrcamento]
     const aba = orcamento.aba || ''
 
     if (!aba)
@@ -1935,7 +1915,7 @@ async function salvarInfoAdicional(idStatus) {
     overlayAguarde()
     const div = document.getElementById(idStatus)
     const info = div.querySelector('[name="info"]').textContent
-    const orcamento = dados_orcamentos[id_orcam]
+    const orcamento = db.dados_orcamentos[id_orcam]
     orcamento.status.historicoStatus[idStatus].info = info
     orcamento.status.historicoStatus[idStatus].usuario = acesso.usuario
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
@@ -1993,7 +1973,7 @@ async function excluirHiStatus(idStatus) {
 
     overlayAguarde()
 
-    const orcamento = dados_orcamentos[id_orcam]
+    const orcamento = db.dados_orcamentos[id_orcam]
 
     delete orcamento.status.historicoStatus[idStatus]
 
@@ -2002,7 +1982,7 @@ async function excluirHiStatus(idStatus) {
     if (trExistente) trExistente.remove()
 
     deletar(`dados_orcamentos/${id_orcam}/status/historicoStatus/${idStatus}`)
-    delete dados_orcamentos[id_orcam].status.historicoStatus[idStatus]
+    delete db.dados_orcamentos[id_orcam].status.historicoStatus[idStatus]
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
 
     const pHistorico = document.querySelector('.painel-historico')
@@ -2225,8 +2205,8 @@ async function detalharRequisicao(chave, tipoRequisicao, apVisualizar) {
 
     if (!chave) chave = ID5digitos()
 
-    const orcamento = dados_orcamentos[id_orcam]
-    const cliente = dados_clientes?.[orcamento.dados_orcam.omie_cliente] || {}
+    const orcamento = db.dados_orcamentos[id_orcam]
+    const cliente = db.dados_clientes?.[orcamento.dados_orcam.omie_cliente] || {}
     const cartao = orcamento?.status?.historico?.[chave] || {}
     let btnFlutuante = ''
 

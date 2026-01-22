@@ -7,7 +7,6 @@ let quantidadeItem = 0
 let quantidadeRealizadoItem = 0
 let finalizados = 0
 let primeiroDia = null
-let tagsPainel = null
 
 const strHHMM = (minutosTotais, str) => {
 
@@ -95,8 +94,6 @@ async function telaChecklist() {
         </div>
     `
 
-    tagsTemporarias = await recuperarDados('tags')
-    const dados_composicoes = await recuperarDados('dados_composicoes')
     const omieCliente = orcamento?.dados_orcam?.omie_cliente || false
     const cliente = await recuperarDado('dados_clientes', omieCliente)
     const titulo = `Checklist - ${orcamento?.dados_orcam?.contrato || '--'} - ${cliente?.nome || '--'}`
@@ -121,7 +118,7 @@ async function telaChecklist() {
 
         const qReal = orcamento?.checklist?.qReal?.[codigo] || {}
         const check = orcamento?.checklist?.itens?.[codigo] || {}
-        const ref = dados_composicoes?.[codigo] || {}
+        const ref = db.dados_composicoes?.[codigo] || {}
         carregarLinhaChecklist({ codigo, produto, check, ref, qReal })
 
         for (const [id, dados] of Object.entries(check)) {
@@ -135,7 +132,7 @@ async function telaChecklist() {
             // Fim
 
             for (const idTec of dados?.tecnicos || []) {
-                const tecnico = dados_clientes?.[idTec] || {}
+                const tecnico = db.dados_clientes?.[idTec] || {}
                 tecnicos[idTec] = tecnico?.nome || 'Desatualizado...'
             }
 
@@ -273,25 +270,14 @@ async function salvarQtdReal(input, codigo) {
 
 }
 
-async function tagsChecklist(codigo) {
-    tagsPainel = await new TagsPainel({
-        funcao: 'telaChecklist',
-        baseTags: 'tags',
-        idRef: codigo,
-        baseRef: 'dados_composicoes'
-    }).init()
-
-    tagsPainel.painelTags()
-}
-
 async function tecnicosAtivos() {
 
-    const orcamento = dados_orcamentos?.[id_orcam]
+    const orcamento = db.dados_orcamentos?.[id_orcam]
     const listaTecs = orcamento?.checklist?.tecnicos || []
     let tecs = ''
 
     for (const codTec of listaTecs) {
-        const dados = dados_clientes?.[codTec] || {}
+        const dados = db.dados_clientes?.[codTec] || {}
         tecs += maisTecnico(codTec, dados?.nome || 'N/A', true)
     }
 
@@ -559,8 +545,6 @@ async function gerarRelatorioChecklist() {
     ]
     const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
     const itens = orcamento?.checklist?.itens || {}
-    const dados_clientes = await recuperarDados('dados_clientes')
-    const dados_composicoes = await recuperarDados('dados_composicoes')
 
     const dt = (iso) => {
         const [a, m, d] = iso.split('-')
@@ -582,7 +566,7 @@ async function gerarRelatorioChecklist() {
     for (const [codigo, lancamentos] of Object.entries(itens)) {
 
         const comp = atividades[codigo]
-        const produto = dados_composicoes?.[codigo] || {}
+        const produto = db.dados_composicoes?.[codigo] || {}
         const descricao = comp?.descricao || '...'
         const qtdeTotal = comp?.qtde || 0
 
@@ -599,7 +583,7 @@ async function gerarRelatorioChecklist() {
             datas.push(dLanc.getTime())
 
             const nomes = (dados.tecnicos || [])
-                .map(c => dados_clientes?.[c]?.nome || '...')
+                .map(c => db.dados_clientes?.[c]?.nome || '...')
                 .sort((a, b) => a.localeCompare(b))
 
             const equipeKey = nomes.join(', ') || 'Sem equipe'
@@ -742,8 +726,8 @@ async function gerarRelatorioChecklist() {
 
     for (const [cod, real] of Object.entries(quantidades)) {
 
-        const ref = dados_composicoes?.[cod] || {}
-        const qtOrc = orcamento?.dados_composicoes?.[cod]?.qtde || 0
+        const ref = db.dados_composicoes?.[cod] || {}
+        const qtOrc = orcamento?.db.dados_composicoes?.[cod]?.qtde || 0
         const label = ref.descricao || 'N/A'
 
         if (qtOrc > 20) {
@@ -902,7 +886,7 @@ async function verItensRemovidos() {
 
         if (!dados.removido) continue
 
-        const descricao = orcamento?.dados_composicoes?.[codigo]?.descricao || orcamento?.checklist?.avulso?.[codigo]?.descricao || '...'
+        const descricao = orcamento?.db.dados_composicoes?.[codigo]?.descricao || orcamento?.checklist?.avulso?.[codigo]?.descricao || '...'
 
         itens += `
             <div style="${horizontal}; gap: 10px;">
@@ -1098,7 +1082,7 @@ async function registrarChecklist(codigo) {
 
     overlayAguarde()
 
-    const orcamento = dados_orcamentos[id_orcam]
+    const orcamento = db.dados_orcamentos[id_orcam]
     const itens = orcamento?.checklist?.itens?.[codigo] || {}
 
     const data = (data) => {
@@ -1110,14 +1094,14 @@ async function registrarChecklist(codigo) {
 
     // Bloqueio por excesso de quantidade;
     quantidadeRealizadoItem = 0
-    quantidadeItem = orcamento?.checklist?.qReal[codigo]?.qtde || orcamento?.dados_composicoes?.[codigo]?.qtde || orcamento?.checklist?.avulso?.[codigo].qtde || 0
+    quantidadeItem = orcamento?.checklist?.qReal[codigo]?.qtde || orcamento?.db.dados_composicoes?.[codigo]?.qtde || orcamento?.checklist?.avulso?.[codigo].qtde || 0
 
     for (const [idLancamento, dados] of Object.entries(itens)) {
 
         quantidadeRealizadoItem += dados.quantidade
 
         const nomesTecnicos = (dados?.tecnicos || [])
-            .map(idTec => `<span>${dados_clientes?.[idTec]?.nome || '--'}</span>`)
+            .map(idTec => `<span>${db.dados_clientes?.[idTec]?.nome || '--'}</span>`)
             .join('')
 
         linhas += `
@@ -1180,7 +1164,7 @@ async function registrarChecklist(codigo) {
     else formChecklist.innerHTML = acumulado
 
     for (const codTec of orcamento?.checklist?.tecnicos || []) {
-        const dados = dados_clientes[codTec]
+        const dados = db.dados_clientes[codTec]
         maisTecnico(codTec, dados?.nome || 'N/A')
     }
 }
@@ -1212,7 +1196,7 @@ async function alterarQuantidadeChecklist(img, idLancamento, codigo, qtdeAnterio
 
     if (((quantidadeRealizadoItem - qtdeAnterior) + quantidade) > quantidadeItem) return input.value = qtdeAnterior
 
-    const orcamento = dados_orcamentos[id_orcam]
+    const orcamento = db.dados_orcamentos[id_orcam]
 
     orcamento.checklist.itens[codigo][idLancamento].quantidade = quantidade
 

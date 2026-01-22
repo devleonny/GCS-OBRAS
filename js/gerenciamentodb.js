@@ -3,18 +3,18 @@ const nomeStore = 'Bases'
 
 async function deletarDB(base, idInterno) {
 
-    const db = await new Promise((resolve, reject) => {
+    const dbGCS = await new Promise((resolve, reject) => {
         const request = indexedDB.open(nomeBaseCentral);
         request.onsuccess = () => resolve(request.result);
         request.onerror = (e) => reject(e.target.error);
     });
 
-    if (!db.objectStoreNames.contains(nomeStore)) {
-        db.close();
+    if (!dbGCS.objectStoreNames.contains(nomeStore)) {
+        dbGCS.close();
         return;
     }
 
-    const tx = db.transaction(nomeStore, 'readwrite');
+    const tx = dbGCS.transaction(nomeStore, 'readwrite');
     const store = tx.objectStore(nomeStore);
 
     // Pega o objeto inteiro da base
@@ -39,29 +39,29 @@ async function deletarDB(base, idInterno) {
         tx.oncomplete = resolve;
     });
 
-    db.close()
+    dbGCS.close()
 }
 
 async function resetarTudo() {
 
     // Limpar variáveis;
-    dados_clientes = {}
-    dados_ocorrencias = {}
+    db.dados_clientes = {}
+    db.dados_ocorrencias = {}
 
-    const db = await new Promise((resolve, reject) => {
+    const dbGCS = await new Promise((resolve, reject) => {
         const req = indexedDB.open(nomeBaseCentral)
         req.onsuccess = () => resolve(req.result)
         req.onerror = e => reject(e.target.error)
     })
 
-    const stores = [...db.objectStoreNames]
+    const stores = [...dbGCS.objectStoreNames]
 
     if (!stores.length) {
-        db.close()
+        dbGCS.close()
         return
     }
 
-    const tx = db.transaction(stores, 'readwrite')
+    const tx = dbGCS.transaction(stores, 'readwrite')
 
     for (const nomeStore of stores) {
         tx.objectStore(nomeStore).clear()
@@ -72,7 +72,7 @@ async function resetarTudo() {
         tx.onerror = reject
     })
 
-    db.close()
+    dbGCS.close()
 
 }
 
@@ -81,28 +81,28 @@ async function inserirDados(dados, nomeBase, resetar) {
     const versao = await new Promise((resolve, reject) => {
         const req = indexedDB.open(nomeBaseCentral);
         req.onsuccess = () => {
-            const db = req.result;
-            const precisaCriar = !db.objectStoreNames.contains(nomeStore);
-            const versaoAtual = db.version;
-            db.close();
+            const dbGCS = req.result;
+            const precisaCriar = !dbGCS.objectStoreNames.contains(nomeStore);
+            const versaoAtual = dbGCS.version;
+            dbGCS.close();
             resolve(precisaCriar ? versaoAtual + 1 : versaoAtual);
         };
         req.onerror = (e) => reject(e.target.error);
     });
 
-    const db = await new Promise((resolve, reject) => {
+    const dbGCS = await new Promise((resolve, reject) => {
         const req = indexedDB.open(nomeBaseCentral, versao);
         req.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains(nomeStore)) {
-                db.createObjectStore(nomeStore, { keyPath: 'id' });
+            const dbGCS = e.target.result;
+            if (!dbGCS.objectStoreNames.contains(nomeStore)) {
+                dbGCS.createObjectStore(nomeStore, { keyPath: 'id' });
             }
         };
         req.onsuccess = () => resolve(req.result);
         req.onerror = (e) => reject(e.target.error);
     });
 
-    const tx = db.transaction(nomeStore, 'readwrite');
+    const tx = dbGCS.transaction(nomeStore, 'readwrite');
     const store = tx.objectStore(nomeStore);
 
     let dadosMesclados = {}
@@ -136,23 +136,23 @@ async function inserirDados(dados, nomeBase, resetar) {
         tx.onerror = reject;
     });
 
-    db.close();
+    dbGCS.close();
 }
 
 async function recuperarDados(nomeBase) {
 
     const getDadosPorBase = async (base) => {
-        const db = await new Promise((resolve, reject) => {
+        const dbGCS = await new Promise((resolve, reject) => {
             const request = indexedDB.open(nomeBaseCentral);
             request.onsuccess = () => resolve(request.result);
             request.onerror = (e) => reject(e.target.error);
         });
 
-        if (!db.objectStoreNames.contains(nomeStore)) {
+        if (!dbGCS.objectStoreNames.contains(nomeStore)) {
             return {};
         }
 
-        const tx = db.transaction(nomeStore, 'readonly');
+        const tx = dbGCS.transaction(nomeStore, 'readonly');
         const store = tx.objectStore(nomeStore);
 
         const item = await new Promise((resolve, reject) => {
@@ -161,7 +161,7 @@ async function recuperarDados(nomeBase) {
             req.onerror = (e) => reject(e.target.error);
         });
 
-        db.close();
+        dbGCS.close();
 
         return item?.dados || {};
     };
@@ -178,10 +178,10 @@ async function recuperarDado(nomeBase, id) {
         });
     };
 
-    const buscar = async (db, base, id) => {
-        if (!db.objectStoreNames.contains(nomeStore)) return null;
+    const buscar = async (dbGCS, base, id) => {
+        if (!dbGCS.objectStoreNames.contains(nomeStore)) return null;
 
-        const tx = db.transaction(nomeStore, 'readonly');
+        const tx = dbGCS.transaction(nomeStore, 'readonly');
         const store = tx.objectStore(nomeStore);
 
         const registro = await new Promise((resolve, reject) => {
@@ -193,10 +193,10 @@ async function recuperarDado(nomeBase, id) {
         return registro?.dados?.[id] || null;
     };
 
-    const db = await abrirDB();
-    let resultado = await buscar(db, nomeBase, id);
+    const dbGCS = await abrirDB();
+    let resultado = await buscar(dbGCS, nomeBase, id);
 
-    db.close();
+    dbGCS.close();
     return resultado;
 }
 

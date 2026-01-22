@@ -11,16 +11,16 @@ function isDark(cor) {
 
 function renderAtivas({ idOrcamento, recarregarPainel }) {
 
-    const atv = dados_orcamentos?.[idOrcamento]?.tags || {}
+    const atv = db.dados_orcamentos?.[idOrcamento]?.tags || {}
 
     const acumulado = Object.entries(atv)
         .sort(([idA], [idB]) => {
-            const nomeA = tags_orcamentos?.[idA]?.nome || ''
-            const nomeB = tags_orcamentos?.[idB]?.nome || ''
+            const nomeA = db.tags_orcamentos?.[idA]?.nome || ''
+            const nomeB = db.tags_orcamentos?.[idB]?.nome || ''
             return nomeA.localeCompare(nomeB, 'pt-BR', { sensitivity: 'base' })
         })
         .map(([id, info]) => {
-            const tag = tags_orcamentos[id] || {}
+            const tag = db.tags_orcamentos[id] || {}
             const cor = tag.cor || '#999'
             const branco = isDark(cor) ? 'color: #fff;' : ''
 
@@ -43,7 +43,7 @@ function renderAtivas({ idOrcamento, recarregarPainel }) {
 
 function renderDisponiveis() {
 
-    const acumulado = Object.entries(tags_orcamentos)
+    const acumulado = Object.entries(db.tags_orcamentos)
         .sort(([, a], [, b]) =>
             (a.nome || '').localeCompare(b.nome || '', 'pt-BR', { sensitivity: 'base' })
         )
@@ -116,14 +116,14 @@ function pesquisarEtiqueta(input) {
 async function vincularTag(idTag) {
     overlayAguarde()
 
-    const orcamento = dados_orcamentos[id_orcam]
+    const orcamento = db.dados_orcamentos[id_orcam]
     orcamento.tags ??= {}
     orcamento.tags[idTag] = {
         data: new Date().toLocaleString(),
         usuario: acesso.usuario
     }
 
-    dados_orcamentos[id_orcam] = orcamento
+    db.dados_orcamentos[id_orcam] = orcamento
     enviar(`dados_orcamentos/${id_orcam}/tags/${idTag}`, orcamento.tags[idTag])
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
 
@@ -143,7 +143,7 @@ function confirmarRemocaoTag({ idTag, idOrcamento, recarregarPainel }) {
 async function removerTag({ idTag, idOrcamento, recarregarPainel = true }) {
     overlayAguarde()
 
-    const orcamento = dados_orcamentos[idOrcamento]
+    const orcamento = db.dados_orcamentos[idOrcamento]
     delete orcamento.tags?.[idTag]
 
     deletar(`dados_orcamentos/${idOrcamento}/tags/${idTag}`)
@@ -155,7 +155,7 @@ async function removerTag({ idTag, idOrcamento, recarregarPainel = true }) {
 }
 
 function abrirEdicaoTag(id = ID5digitos()) {
-    const tag = tags_orcamentos[id] || {}
+    const tag = db.tags_orcamentos[id] || {}
 
     const elemento = `
         <div class="painel-adicionar-etiqueta">
@@ -180,7 +180,7 @@ async function salvarTag(id) {
     if (!nome) return removerPopup()
 
     const tag = { nome, cor }
-    tags_orcamentos[id] = tag
+    db.tags_orcamentos[id] = tag
 
     enviar(`tags_orcamentos/${id}`, tag)
     await inserirDados({ [id]: tag }, 'dados_orcamentos')
@@ -196,9 +196,7 @@ async function recarregarLinhas() {
 
 async function sincronizarTags() {
 
-    tags_orcamentos = await sincronizarDados({ base: 'tags_orcamentos' })
-
-    for (const [idTag, tag] of Object.entries(tags_orcamentos)) {
+    for (const [idTag, tag] of Object.entries(db.tags_orcamentos)) {
         const todas = document.querySelectorAll(`.tag[data-id="${idTag}"]`)
         if (!todas.length) continue
 
@@ -229,16 +227,16 @@ async function excelEspecial() {
         { header: 'Itens', key: 'itens', width: 80 }
     ]
 
-    for (const orcamento of Object.values(dados_orcamentos)) {
+    for (const orcamento of Object.values(db.dados_orcamentos)) {
         const codOmie = orcamento?.dados_orcam?.omie_cliente
-        const cliente = dados_clientes?.[codOmie]
+        const cliente = db.dados_clientes?.[codOmie]
 
         if (!cliente || !orcamento.dados_composicoes) continue
         if (!cliente.nome.includes('BOTICARIO')) continue
 
         if (
-            orcamento.dados_composicoes?.['722'] &&
-            orcamento.dados_composicoes?.['762']
+            orcamento.db.dados_composicoes?.['722'] &&
+            orcamento.db.dados_composicoes?.['762']
         ) {
 
             const itens = Object.entries(orcamento.dados_composicoes)

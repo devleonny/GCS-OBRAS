@@ -49,10 +49,9 @@ async function importarImagem(codigo) {
     if (responseData.data.error)
         return popup({ mensagem: 'Ocorreu um erro no upload. Tente novamente' })
 
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
     let srcRetornado = responseData.data.link
 
-    dados_composicoes[codigo].imagem = srcRetornado
+    db.dados_composicoes[codigo].imagem = srcRetornado
 
     enviar(`dados_composicoes/${codigo}/imagem`, srcRetornado)
     await inserirDados(dados_composicoes, 'dados_composicoes')

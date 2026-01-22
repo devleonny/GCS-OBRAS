@@ -1,4 +1,3 @@
-let dados_composicoes = null
 let divComposicoes = document.getElementById('composicoes')
 let cabecalhos = []
 let colunas = []
@@ -21,12 +20,12 @@ async function atualizarComposicoes() {
 async function telaComposicoes(recriar) {
 
     overlayAguarde()
-    dados_composicoes = await recuperarDados('dados_composicoes')
+    mostrarMenus(false)
 
     cabecalhos = [
         'editar',
         ...new Set(
-            Object.values(dados_composicoes)
+            Object.values(db.dados_composicoes)
                 .flatMap(obj =>
                     Object.keys(obj).filter(k =>
                         !['excluido', 'preco_estado', 'timestamp', 'status', 'grupo', 'refid', 'sapid', 'subgrupo', 'locacao', 'parceiro', 'partnumber', 'id', 'material infra', 'setor', 'agrupamentos', 'categoria de equipamento', 'descricaocarrefour'].includes(k)
@@ -62,7 +61,7 @@ async function telaComposicoes(recriar) {
     if (recriar || !tabela_composicoes) tela.innerHTML = acumulado;
 
     let idsAtivos = []
-    for (let [codigo, produto] of Object.entries(dados_composicoes).reverse()) {
+    for (let [codigo, produto] of Object.entries(db.dados_composicoes).reverse()) {
         idsAtivos.push(codigo)
         criarLinhaComposicao(codigo, produto)
     }
@@ -142,12 +141,12 @@ function criarLinhaComposicao(codigo, produto) {
             let info = ''
 
             for (const [cod, dados] of Object.entries(conteudo || {})) {
-                const tipo = dados_composicoes[cod]?.tipo || '??'
+                const tipo = db.dados_composicoes[cod]?.tipo || '??'
                 info += `
                     <div style="${horizontal}; gap: 2px;">
                         <span class="balao-redondo-agrupamento" style="background-color: ${tipo == 'VENDA' ? '#B12425' : tipo == 'SERVIÇO' ? 'green' : '#24729d'}">${cod}</span>
                         <span class="balao-redondo-agrupamento">${dados.qtde}</span>
-                        <span>${String(dados_composicoes?.[cod]?.descricao || '??').slice(0, 10)}...</span>
+                        <span>${String(db.dados_composicoes?.[cod]?.descricao || '??').slice(0, 10)}...</span>
                     </div>`
             }
 
@@ -220,7 +219,7 @@ async function abrirFiltros() {
 
             <hr>
             
-            <button onclick="aplicarFiltros()">Salvar</button>
+            <button onclick="aplicarFiltrosComposicoes()">Salvar</button>
         </div>
     `
 
@@ -253,7 +252,7 @@ function marcarTodosComposicoes(inputTodos) {
 
 }
 
-async function aplicarFiltros() {
+async function aplicarFiltrosComposicoes() {
 
     let colunas = []
     let divFiltros = document.getElementById('filtrosColunas')
@@ -274,9 +273,8 @@ async function aplicarFiltros() {
 }
 
 async function alterarChave(codigo, chave, select) {
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
-    let produto = dados_composicoes[codigo]
+    let produto = db.dados_composicoes[codigo]
 
     produto[chave] = select.value
 
@@ -1016,61 +1014,42 @@ async function cadastrarItem(codigo) {
     const produto = await recuperarDado('dados_composicoes', codigo) || {}
     const funcao = codigo ? `salvarServidor('${codigo}')` : `salvarServidor()`
 
-    const modelo = (texto, elemento) => `
-        <div ${texto == 'Descrição' ? 'class="full"' : ''} style="display: flex; flex-direction: column; gap: 3px; align-items: start; justify-content: start;">
-            <label>${texto}</label>
-            ${elemento}
-        </div>
-    `
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao }
+    ]
 
-    const elemento = `
-        <div style="background-color: #d2d2d2; padding: 2vw;">
+    if (codigo) botoes.push({
+        texto: 'Excluir',
+        img: 'cancel',
+        funcao: `confirmarExclusao_item('${codigo}')`
+    })
 
-            <div class="elementos">
-                ${modelo('Descrição', `<textarea name="descricao" rows="5">${produto?.descricao || ''}</textarea>`)}
-                ${modelo('Fabricante', `<input name="fabricante" value="${produto?.fabricante || ''}">`)}
-                ${modelo('Modelo', `<input name="modelo" value="${produto?.modelo || ''}">`)}
-                ${modelo('Unidade', `<input name="unidade" value="${produto?.unidade || ''}">`)}
-                ${modelo('ncm', `<input name="ncm" value="${produto?.ncm || ''}">`)}
-                ${modelo('Omie / Partnumber', `<input name="omie" value="${produto?.omie || ''}">`)}
-                ${modelo('Tipo', `<select name="tipo">
-                ${esquemas.tipo
-            .map(op => `<option ${op == produto?.tipo ? 'selected' : ''}>${op}</option>`)
-            .join('')}
-                </select>`)}
-            </div>
+    const tipos = esquemas.tipo
+        .map(op => `<option ${op == produto?.tipo ? 'selected' : ''}>${op}</option>`)
+        .join('')
 
-            <br>
+    const linhas = [
+        { texto: 'Descrição', elemento: `<textarea name="descricao" rows="5">${produto?.descricao || ''}</textarea>` },
+        { texto: 'Fabricante', elemento: `<input name="fabricante" value="${produto?.fabricante || ''}">` },
+        { texto: 'Modelo', elemento: `<input name="modelo" value="${produto?.modelo || ''}">` },
+        { texto: 'Unidade', elemento: `<input name="unidade" value="${produto?.unidade || ''}">` },
+        { texto: 'ncm', elemento: `<input name="ncm" value="${produto?.ncm || ''}">` },
+        { texto: 'Omie', elemento: `<input name="omie" value="${produto?.omie || ''}">` },
+        { texto: 'Tipo', elemento: `<select name="tipo">${tipos}</select>` },
+    ]
 
-            <div style="${horizontal}; justify-content: space-between; width: 100%;">
-                <button style="background-color: #4CAF50; margin: 0px;" onclick="${funcao}">Salvar</buttton>
+    popup({ linhas, botoes, titulo: 'Dados do Item' })
 
-            ${codigo
-            ? `<button style="background-color: #B12425; margin: 0px;" onclick="confirmarExclusao_item('${codigo}')">Excluir item</buttton>`
-            : ''}
-                
-            </div>
-        </div>
-    `
-    popup({ elemento, titulo: 'Dados do Item' })
 }
 
 async function confirmarExclusao_item(codigo) {
 
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    const mensagem = `Tem certeza que deseja excluir este item?`
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `excluirItemComposicao('${codigo}')` }
+    ]
 
-    removerPopup()
-
-    popup(`
-        <div style="padding: 2vw; background-color: #d2d2d2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                <img src="gifs/alerta.gif">
-                <label>Tem certeza que deseja excluir este item?</label>
-            </div>
-            <label style="font-size: 0.7em;">${dados_composicoes[codigo].descricao}</label>
-            <button onclick="excluirItemComposicao('${codigo}')">Confirmar</button>
-        </div>
-        `, 'Tem certeza?')
+    popup({ botoes, mensagem, nra: false })
 
 }
 
@@ -1104,9 +1083,9 @@ async function salvarServidor(codigo) {
 
     const campos = ['descricao', 'unidade', 'fabricante', 'modelo', 'ncm', 'omie', 'tipo']
     let novosDados = {}
-    const elementos = document.querySelector('.elementos')
+    const painel = document.querySelector('.painel-padrao')
     for (const campo of campos) {
-        const el = elementos.querySelector(`[name="${campo}"]`);
+        const el = painel.querySelector(`[name="${campo}"]`)
         novosDados[campo] = el ? String(el.value).toUpperCase() : '';
     }
 
@@ -1275,9 +1254,7 @@ async function verAgrupamento(codigo) {
 
 async function criarLinhaAgrupamento(cod, dados) {
 
-    if (!dados_composicoes) dados_composicoes = await recuperarDados('dados_composicoes')
-
-    const produto = dados_composicoes[cod]
+    const produto = db.dados_composicoes[cod]
     const chaveUnica = ID5digitos()
 
     const tds = `
@@ -1316,7 +1293,7 @@ async function confirmarRemoverAgrupamento(codSlave) {
 
 async function removerAgrupamento(codSlave) {
 
-    let produto = dados_composicoes[codigoMaster]
+    let produto = db.dados_composicoes[codigoMaster]
     delete produto.agrupamento[codSlave]
     await inserirDados({ [codigoMaster]: produto }, 'dados_composicoes')
     deletar(`dados_composicoes/${codigoMaster}/agrupamento/${codSlave}`)
@@ -1346,7 +1323,7 @@ async function salvarAgrupamentosAutomatico() {
 
         tr.id = `AGRUP_${codigo}`
         tds[0].textContent = codigo
-        tds[2].textContent = dados_composicoes[codigo].tipo
+        tds[2].textContent = db.dados_composicoes[codigo].tipo
 
         if (qtde == 0) continue
         agrupamento[codigo] = { qtde }
@@ -1354,7 +1331,7 @@ async function salvarAgrupamentosAutomatico() {
     }
 
     // codigoMaster é uma variável global;
-    const produto = dados_composicoes[codigoMaster].agrupamento || {}
+    const produto = db.dados_composicoes[codigoMaster].agrupamento || {}
     produto.agrupamento = agrupamento
 
     if (Object.keys(agrupamento).length > 0) {
@@ -1388,7 +1365,6 @@ async function precosDesatualizados(calculo) {
 
     const tabela = 'lpu hope'
     let contador = 0
-    const dados_composicoes = await recuperarDados('dados_composicoes')
     const colunas = ['Código', 'Descrição', 'Data', 'Fornecedor', 'tipo', 'Preço', 'Ver']
     const elemento = `
         <div style="${vertical}; background-color: #d2d2d2; padding: 2rem;">
@@ -1426,7 +1402,7 @@ async function precosDesatualizados(calculo) {
 
     const linhasPrecos = document.getElementById('linhasPrecos')
 
-    for (const [codigo, produto] of Object.entries(dados_composicoes)) {
+    for (const [codigo, produto] of Object.entries(db.dados_composicoes)) {
 
         const trExistente = document.getElementById(`des_${codigo}`)
         const historico = produto?.[tabela]?.historico || {}

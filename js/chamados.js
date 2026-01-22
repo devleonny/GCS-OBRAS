@@ -3,7 +3,6 @@ let idManutencao = null
 let statusChamados = null
 
 async function atualizarManutencoes() {
-    await sincronizarDados({ base: 'dados_manutencao', overlay: true })
     await telaChamados()
 }
 
@@ -123,12 +122,10 @@ async function telaChamados() {
     if (!bodyChamados) tela.innerHTML = acumulado
 
     let contadores = {}
-    const dados_manutencao = await recuperarDados('dados_manutencao') || {}
-    dados_clientes = await recuperarDados('dados_clientes') || {}
 
-    for (let [idManutencao, manutencao] of Object.entries(dados_manutencao).reverse()) {
-        const cliente = dados_clientes[manutencao.codigo_cliente] || {};
-        const tecnico = dados_clientes[manutencao.codigo_tecnico] || {};
+    for (let [idManutencao, manutencao] of Object.entries(db.dados_manutencao).reverse()) {
+        const cliente = db.dados_clientes[manutencao.codigo_cliente] || {};
+        const tecnico = db.dados_clientes[manutencao.codigo_tecnico] || {};
         manutencao.cliente = cliente
         manutencao.tecnico = tecnico
 
@@ -237,7 +234,7 @@ async function criarManutencao(id) {
 
     idManutencao = id || ID5digitos()
 
-    const manutencao = await recuperarDado('dados_manutencao', idManutencao)
+    const manutencao = db.dados_manutencao[idManutencao] || {}
     const cliente = await recuperarDado('dados_clientes', manutencao?.codigo_cliente)
     const tecnico = await recuperarDado('dados_clientes', manutencao?.codigo_tecnico)
 
@@ -370,8 +367,7 @@ async function gerarPDFChamados() {
 
     overlayAguarde()
 
-    const dados_estoque = await recuperarDados('dados_estoque')
-    const manutencao = await recuperarDado('dados_manutencao', idManutencao)
+    const manutencao = db.dados_manutencao[idManutencao] || {}
     const campos = ['nome', 'cnpj', 'bairro', 'cep', 'cidade', 'estado']
     const pessoas = ['tecnico', 'cliente']
     let divs = ''
@@ -411,7 +407,7 @@ async function gerarPDFChamados() {
     let linhas = ''
     for (const [pc, peca] of Object.entries(manutencao?.pecas || {})) {
 
-        const item = dados_estoque?.[pc] || {}
+        const item = db.dados_estoque?.[pc] || {}
 
         linhas += `
         <tr>
@@ -564,7 +560,7 @@ async function enviarManutencao() {
     idManutencao = idManutencao || ID5digitos()
 
     overlayAguarde()
-    const dados_estoque = await recuperarDados('dados_estoque')
+
     const obVal = (name) => {
         const elemento = document.querySelector(`[name="${name}"]`)
         return elemento
@@ -576,7 +572,7 @@ async function enviarManutencao() {
     for (const tr of trs) {
         const tds = tr.querySelectorAll('td')
         const codigo = tds[0].querySelector('.opcoes').getAttribute('name')
-        const item = dados_estoque?.[codigo] || {}
+        const item = db.dados_estoque?.[codigo] || {}
 
         pecas[codigo] = {
             partnumber: item?.partnumber || '',
@@ -586,7 +582,7 @@ async function enviarManutencao() {
         }
     }
 
-    const manutencao = await recuperarDado('dados_manutencao', idManutencao)
+    const manutencao = db.dados_manutencao[idManutencao] || {}
     let novaManutencao = {
         ...manutencao,
         usuario: acesso.usuario,

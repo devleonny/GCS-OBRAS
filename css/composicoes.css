@@ -21,7 +21,6 @@
     justify-content: start;
     flex-direction: column;
     gap: 5px;
-    background-color: #d2d2d2;
     padding: 1rem;
     min-width: 80vw;
 }

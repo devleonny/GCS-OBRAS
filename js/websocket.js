@@ -53,8 +53,12 @@ function msgStatus(msg, s = 2) {
 async function refletir() {
     if (app !== 'GCS') return
     sOverlay = true
+    ignorarMenus = true
+    
     await executar(funcaoTela)
+
     sOverlay = false
+    ignorarMenus = false
 }
 
 async function comunicacao() {
@@ -86,20 +90,10 @@ async function comunicacao() {
 
                 msgStatus('Acesso sem alterações')
 
-                if (app == 'GCS') {
-
-                    if (priExeGCS) {
-                        await telaInicial()
-                        priExeGCS = false
-                    }
-
-                } else {
-
-                    // Seguir este fluxo apenas em Ocorrências;
+                if (app == 'GCS')
+                    await telaInicial()
+                else
                     await telaPrincipal()
-                    await atualizarOcorrencias()
-
-                }
 
             } else {
 

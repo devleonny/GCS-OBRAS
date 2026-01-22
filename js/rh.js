@@ -1,4 +1,3 @@
-let pessoas = {}
 let tituloRH = null
 let pastaAberta = null
 
@@ -13,13 +12,11 @@ const modeloRH = (valor1, elemento, funcao) => {
 
 async function telaRH() {
 
-    pessoas = await sincronizarDados({ base: 'pessoas' })
-
     let stringPessoas = ''
 
-    for (const [idPessoa, dados] of Object.entries(pessoas)) {
+    for (const [idPessoa, dados] of Object.entries(db.pessoas)) {
 
-        const pastas = pessoas[idPessoa]?.pastas || {}
+        const pastas = db.pessoas[idPessoa]?.pastas || {}
 
         const stringPastas = Object.entries(pastas)
             .map(([idPasta, pasta]) => `
@@ -98,9 +95,7 @@ async function excluirPessoaRH(idPessoa) {
 
 async function abrirPastas(idPessoa, idPasta) {
 
-    pessoas = await recuperarDados('pessoas')
-
-    const pessoa = pessoas[idPessoa]
+    const pessoa = db.pessoas[idPessoa]
     const pasta = pessoa.pastas[idPasta]
     const anexos = pasta?.anexos || {}
 
@@ -500,9 +495,8 @@ async function telaRHTabela() {
     const bodyRH = document.getElementById('bodyRH')
     if (!bodyRH) tela.innerHTML = acumulado
 
-    pessoas = await recuperarDados('pessoas')
     // Pessoas nesse contexto foi mudado para cidade-estado;
-    for (const [idPessoa, pessoa] of Object.entries(pessoas)) {
+    for (const [idPessoa, pessoa] of Object.entries(db.pessoas)) {
 
         const pastas = pessoa?.pastas || {}
 

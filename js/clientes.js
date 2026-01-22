@@ -58,7 +58,7 @@ function pesquisarClientes(e, chave) {
 function aplicarFiltrosClientes() {
     const filtros = filtrosPesquisa.clientes
 
-    if (!Object.keys(filtros).length) return dados_clientes
+    if (!Object.keys(filtros).length) return db.dados_clientes
 
     return Object.fromEntries(
         Object.entries(dados_clientes).filter(([_, c]) =>
@@ -66,7 +66,7 @@ function aplicarFiltrosClientes() {
                 let valor = c?.[campo] || ''
 
                 if (campo === 'empresa') {
-                    valor = empresas?.[c.empresa]?.nome
+                    valor = db.empresas?.[c.empresa]?.nome
                 }
 
                 if (campo == 'entrega' || campo == 'cadastro') {
@@ -186,9 +186,6 @@ async function telaClientes() {
     mostrarMenus(false)
     overlayAguarde()
 
-    dados_clientes = await recuperarDados('dados_clientes')
-    empresas = await recuperarDados('empresas')
-
     const colunas = {
         'x': '<input onclick="checksCliente(this)" style="width: 1.5rem; height: 1.5rem;" type="checkbox">',
         'cnpj': 'CPF / CNPJ',
@@ -266,7 +263,7 @@ function criarLinhaClienteGCS(idCliente, cliente) {
             <span><b>Estado:</b> ${enderecoEntrega.estado || ''}</span>
         </div>
     `
-    const nEmpresa = empresas?.[empresa]?.nome || ''
+    const nEmpresa = db.empresas?.[empresa]?.nome || ''
 
     const tds = `
         <td>
@@ -295,8 +292,6 @@ function criarLinhaClienteGCS(idCliente, cliente) {
 
 async function atualizarClientes() {
     overlayAguarde()
-    dados_clientes = await sincronizarDados({ base: 'dados_clientes' })
-    empresas = await sincronizarDados({ base: 'empresas' })
     renderizarClientesPagina()
     mostrarMenus(false)
     removerOverlay()
@@ -304,8 +299,8 @@ async function atualizarClientes() {
 
 async function formularioCliente(idCliente) {
 
-    const cliente = dados_clientes[idCliente] || {}
-    const enderecoEntrega = dados_clientes?.[idCliente]?.enderecoEntrega || {}
+    const cliente = db.dados_clientes[idCliente] || {}
+    const enderecoEntrega = db.dados_clientes?.[idCliente]?.enderecoEntrega || {}
 
     const linhas = [
         {
@@ -413,7 +408,7 @@ async function excluirCliente(idCliente) {
     deletar(`dados_clientes/${idCliente}`)
     await deletarDB(`dados_clientes/${idCliente}`)
 
-    delete dados_clientes[idCliente]
+    delete db.dados_clientes[idCliente]
     const trExistente = document.getElementById(idCliente)
     if (trExistente) trExistente.remove()
 
@@ -480,13 +475,13 @@ async function salvarCliente(idCliente = codCliAleatorio()) {
         }
     }
 
-    const cliente = dados_clientes[idCliente] || {}
+    const cliente = db.dados_clientes[idCliente] || {}
     const dados = {
         ...cliente,
         ...novo
     }
 
-    dados_clientes[idCliente] = dados
+    db.dados_clientes[idCliente] = dados
     await inserirDados({ [idCliente]: dados }, 'dados_clientes')
     removerPopup()
 

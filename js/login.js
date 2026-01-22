@@ -6,7 +6,9 @@ async function telaLogin() {
 
     if (acesso) {
         app = localStorage.getItem('app')
-        if (app == 'GCS') return telaInicial()
+        if (app == 'GCS') 
+            return await telaInicial()
+        
         return await telaPrincipal()
     }
 

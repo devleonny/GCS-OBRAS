@@ -93,7 +93,6 @@ async function atualizarDadosPdf() {
 
 async function preencher() {
 
-    const dados_composicoes = await recuperarDados('dados_composicoes') || {}
     const orcamentoBase = JSON.parse(localStorage.getItem('pdf')) || {}
 
     document.getElementById('codigo_orcamento').textContent = orcamentoBase?.id || '---'
@@ -199,7 +198,7 @@ async function preencher() {
     for (let [codigo, item] of Object.entries(itens)) {
 
         const colunas = config[item.tipo].colunas
-        const itemComposicao = dados_composicoes[codigo] || {}
+        const itemComposicao = db.dados_composicoes[codigo] || {}
         const lpu = String(orcamentoBase.lpu_ativa).toLowerCase()
         const tabelaPreco = itemComposicao?.[lpu]
         const estado = informacoes.estado
@@ -428,11 +427,10 @@ async function gerarPDF() {
     preencher()
     ocultarElementos()
 
-    let dados_clientes = await recuperarDados('dados_clientes') || {}
     const orcamentoBase = JSON.parse(localStorage.getItem('pdf')) || {}
     const contrato = orcamentoBase.dados_orcam.contrato
     let omie_cliente = orcamentoBase.dados_orcam?.omie_cliente || ''
-    let cliente = dados_clientes?.[omie_cliente]?.nome || ''
+    let cliente = db.dados_clientes?.[omie_cliente]?.nome || ''
 
     await gerarPdfOnline(document.documentElement.outerHTML, `Orcamento_${cliente}_${contrato}`)
     ocultarElementos()

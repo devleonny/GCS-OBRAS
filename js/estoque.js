@@ -2,8 +2,6 @@ let filtrosComplexos = {}
 let colunasEstoque = ['editar', 'partnumber', 'categoria', 'marca', 'descricao', 'estoque', 'estoque_usado', 'estoque_sp', 'valor_compra']
 
 async function atualizarEstoque() {
-
-    await sincronizarDados({ base: 'dados_estoque' })
     await telaEstoque()
 
 }
@@ -48,8 +46,8 @@ async function telaEstoque() {
     if (!bodyEstoque) tela.innerHTML = acumulado
 
     let idsAtivos = []
-    const dados_estoque = await recuperarDados('dados_estoque') || {}
-    for (const [codigo, item] of Object.entries(dados_estoque)) {
+
+    for (const [codigo, item] of Object.entries(db.dados_estoque)) {
         criarLinhaEstoque(codigo, item)
         idsAtivos.push(codigo)
     }
@@ -57,7 +55,11 @@ async function telaEstoque() {
     // Trecho para eleminar linhas incoerentes;
     const linhas = document.getElementById('bodyEstoque')
     const trs = linhas.querySelectorAll('tr')
-    const idsAtuais = Array.from(trs).map(tr => tr.id).filter(id => id)
+    const idsAtuais = Array
+        .from(trs)
+        .map(tr => tr.id)
+        .filter(id => id)
+
     for (const idAtual of idsAtuais) {
         if (!idsAtivos.includes(idAtual)) document.getElementById(idAtual).remove()
     }
@@ -70,7 +72,7 @@ async function telaEstoque() {
 
 function criarLinhaEstoque(codigo, item) {
 
-    const modelo = (texto) => `<td>${texto}</td>`
+    const modelo = (texto) => `<td>${texto || ''}</td>`
 
     const modeloEst = (qtde, nomeEstoque) => {
         const bg = qtde == 0 ? '' : qtde < 0 ? '#b36060bf' : '#4CAF50bf'
@@ -354,8 +356,7 @@ function calcular_maior(objeto) {
 
 async function abrirValores(codigo) {
 
-    const dados_estoque = await recuperarDados('dados_estoque') || {}
-    const item = dados_estoque[codigo]
+    const item = db.dados_estoque[codigo]
     let tabela = ''
     let opcoes = {
         resultados: {
@@ -368,8 +369,9 @@ async function abrirValores(codigo) {
         }
     }
 
-    for (produto in dados_estoque) {
-        let item = dados_estoque[produto]
+    for (const item of Object.values(db.dados_estoque)) {
+
+
         if (item.valor_compra && dicionario(item.valor_compra)) {
             for (compra in item.valor_compra) {
                 let compra_item = item.valor_compra[compra]
@@ -377,6 +379,7 @@ async function abrirValores(codigo) {
                 opcoes.resultados.comentario.push(compra_item.comentario)
             }
         }
+
     }
 
     opcoes.resultados.fornecedor = [...new Set(opcoes.resultados.fornecedor)]
@@ -547,16 +550,15 @@ async function abrirValores(codigo) {
 }
 
 async function salvarDadosCompra(codigo, cpr, campo, img) {
-    let dados_estoque = await recuperarDados('dados_estoque') || {}
 
-    let elemento = img.nextElementSibling
-    if (dados_estoque[codigo] && dados_estoque[codigo].valor_compra[cpr]) {
+    const elemento = img.nextElementSibling
+    if (db.dados_estoque[codigo] && db.dados_estoque[codigo].valor_compra[cpr]) {
 
         elemento = campo == 'conversao' ? conversor(elemento.value) : elemento.value
-        dados_estoque[codigo].valor_compra[cpr][campo] = elemento
+        db.dados_estoque[codigo].valor_compra[cpr][campo] = elemento
 
-        await inserirDados(dados_estoque, 'dados_estoque')
-        await enviar(`dados_estoque/${codigo}/valor_compra/${cpr}/${campo}`, elemento)
+        await inserirDados({ [codigo]: db.dados_estoque[codigo] }, 'dados_estoque')
+        enviar(`dados_estoque/${codigo}/valor_compra/${cpr}/${campo}`, elemento)
 
     }
 
@@ -565,14 +567,13 @@ async function salvarDadosCompra(codigo, cpr, campo, img) {
 }
 
 async function excluir_preco(codigo, cpr) {
-    let dados_estoque = await recuperarDados('dados_estoque') || {}
 
-    if (dados_estoque[codigo] && dados_estoque[codigo].valor_compra[cpr]) {
-        delete dados_estoque[codigo].valor_compra[cpr]
+    if (db.dados_estoque[codigo] && db.dados_estoque[codigo].valor_compra[cpr]) {
+        delete db.dados_estoque[codigo].valor_compra[cpr]
     }
 
     await deletar(`dados_estoque/${codigo}/valor_compra/${cpr}`)
-    await inserirDados(dados_estoque, 'dados_estoque')
+    await inserirDados({ [codigo]: db.dados_estoque[codigo] }, 'dados_estoque')
 
     removerPopup()
     await abrirValores(codigo)
@@ -785,14 +786,14 @@ function inputs(elemento) {
 }
 
 async function remover_historico(codigo, stq, chave) {
-    let dados_estoque = await recuperarDados('dados_estoque') || {}
-    let item = dados_estoque[codigo]
+
+    let item = db.dados_estoque[codigo]
 
     if (item[stq].historico && item[stq].historico[chave]) {
         delete item[stq].historico[chave]
     }
 
-    await inserirDados(dados_estoque, 'dados_estoque')
+    await inserirDados({ [codigo]: item }, 'dados_estoque')
     await deletar(`dados_estoque/${codigo}/${stq}/historico/${chave}`)
 
     removerPopup()
@@ -814,7 +815,7 @@ async function salvarMovimento(codigo, stq, inicial) {
         item[stq] = {
             historico: {},
             quantidade: 0
-        };
+        }
     }
 
     let estoque = item[stq]
@@ -879,51 +880,41 @@ function exibir_botao(elemento, chave) {
 
 async function incluirItemEstoque(codigo) {
 
-    const dados_estoque = await recuperarDados('dados_estoque')
     let categorias = []
     let marcas = []
 
-    for (const [codigo, produto] of Object.entries(dados_estoque)) {
+    for (const produto of Object.values(db.dados_estoque)) {
         if (produto.categoria && !categorias.includes(produto.categoria)) categorias.push(produto.categoria)
         if (produto.marca && !categorias.includes(produto.marca)) marcas.push(produto.marca)
     }
 
-    const produto = dados_estoque?.[codigo] || {}
+    const produto = db.dados_estoque?.[codigo] || {}
 
-    const elemento = `
-        <div class="painel-registro">
+    const linhas = [
+        { texto: 'Código Omie', elemento: `<input name="partnumber" value="${produto?.partnumber || ''}">` },
+        {
+            texto: 'Categoria',
+            elemento: `<input name="partnumber" value="${produto?.partnumber || ''}">
+            <datalist id="categorias">${categorias.map(op => `<option>${op}</option>`).join('')}</datalist>`
+        },
+        {
+            texto: 'Marca',
+            elemento: `<input name="marca" list="marcas" value="${produto?.marca || ''}">
+            <datalist id="marcas">${marcas.map(op => `<option>${op}</option>`).join('')}</datalist>
+        `},
+        { texto: 'Descriçõa', elemento: `<textarea name="descricao" rows="5">${produto?.descricao || ''}</textarea>` },
+    ]
 
-            <div style="${horizontal}; gap: 15px;">
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: `salvarItemEstoque(${codigo ? `'${codigo}'` : false})` }
+    ]
 
-                <div style="${vertical}">
-                
-                    ${modelo('Omie / Partnumber', `<input name="partnumber" value="${produto?.partnumber || ''}">`)}
-                    
-                    ${modelo('Categoria', `<input name="categoria" list="categorias" value="${produto?.categoria || ''}">`)}
+    if (codigo) botoes.push({
+        texto: 'Excluir', img: 'cancel', funcao: `removerLinhaEstoque('${codigo}')`
+    })
 
-                    <datalist id="categorias">${categorias.map(op => `<option>${op}</option>`).join('')}</datalist>
 
-                    ${modelo('Marca', `<input name="marca" list="marcas" value="${produto?.marca || ''}">`)}
-
-                    <datalist id="marcas">${marcas.map(op => `<option>${op}</option>`).join('')}</datalist>
-
-                </div>
-
-                ${modelo('Descrição', `<textarea name="descricao" rows="5">${produto?.descricao || ''}</textarea>`)}
-
-            </div>
-
-            <hr style="width: 100%;">
-
-            <div style="${horizontal}; justify-content: space-between; width: 100%;">
-                <button style="background-color: green;" onclick="salvarItemEstoque(${codigo ? `'${codigo}'` : false})">Salvar</button>
-                ${codigo ? `<button onclick="removerLinhaEstoque('${codigo}')">Excluir</button>` : ''}
-            </div>
-
-        </div>
-    `
-
-    popup({ elemento, titulo: 'Cadastro de Item' })
+    popup({ linhas, botoes, titulo: 'Cadastro de Item' })
 
 }
 
@@ -1025,7 +1016,6 @@ function relatorioMovimento() {
 
 async function atualizarDadosRelatorio() {
 
-    const dados_estoque = await recuperarDados('dados_estoque') || {}
     const relatorio = document.getElementById('relatorio')
 
     if (relatorio) {
@@ -1040,7 +1030,7 @@ async function atualizarDadosRelatorio() {
 
         let filtrados = []
 
-        for (const [codigo, produto] of Object.entries(dados_estoque)) {
+        for (const produto of Object.values(db.dados_estoque)) {
 
             if (produto.estoque && produto.estoque.historico) {
                 let historico = produto.estoque.historico

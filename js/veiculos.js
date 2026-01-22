@@ -1,6 +1,4 @@
 let filtroVeiculos = {}
-let motoristas = {}
-let veiculos = {}
 let totalDepartamentos = {}
 
 const modeloLabel = (valor1, elemento) => `
@@ -29,19 +27,10 @@ const categorias = {
 
 async function atualizarDadosVeiculos() {
 
-    const tabelas = [
-        'departamentos_AC', // Referência;
-        'dados_orcamentos',
-        'motoristas',
-        'dados_clientes',
-        'veiculos',
-        'custo_veiculos'
-    ]
-
-    for (const base of tabelas) await sincronizarDados({ base })
     await auxDepartamentos() // Resgatar dados do orçamento no objeto departamentos;
 
     await telaVeiculos()
+
 }
 
 async function telaVeiculos() {
@@ -50,16 +39,10 @@ async function telaVeiculos() {
 
     mostrarMenus(false)
 
-    dados_clientes = await recuperarDados('dados_clientes') || {}
-    departamentos = await recuperarDados('departamentos_AC') || {}
-    veiculos = await recuperarDados('veiculos') || {}
-    motoristas = await recuperarDados('motoristas') || {}
-    const custo_veiculos = await recuperarDados('custo_veiculos') || {}
-
     // Objeto genérico auxiliar para o form de custos;
     let tempMotoristas = {}
-    for (const omie of Object.keys(motoristas)) {
-        const cliente = dados_clientes[omie] || {}
+    for (const omie of Object.keys(db.motoristas)) {
+        const cliente = db.dados_clientes[omie] || {}
         tempMotoristas[omie] = {
             nome: cliente.nome || '???',
             cidade: cliente.cidade || '???'
@@ -121,9 +104,9 @@ async function telaVeiculos() {
 
     removerOverlay()
 
-    for (const [idCusto, custo] of Object.entries(custo_veiculos)) {
-        const nome = dados_clientes[custo.motorista].nome
-        const veiculo = veiculos[custo.veiculo]
+    for (const [idCusto, custo] of Object.entries(db.custo_veiculos)) {
+        const nome = db.dados_clientes[custo.motorista].nome
+        const veiculo = db.veiculos[custo.veiculo]
         criarLinhaVeiculo({ custo, nome, veiculo, idCusto })
     }
 
@@ -139,14 +122,14 @@ const pesquisa = (campo) => `
 
 function auxMotoristas() {
 
-    const linhas = Object.entries(motoristas)
+    const linhas = Object.entries(db.motoristas)
         .map(([idMotorista, motorista]) =>
             `<div class="diVeiculos" onclick="novoMotorista('${idMotorista}')">
-                <img src="imagens/${veiculos?.[motorista.veiculo]?.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1.5vw;">
+                <img src="imagens/${db.veiculos?.[motorista.veiculo]?.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1.5vw;">
 
                 <div style="${vertical}">
-                    <label name="motorista">${dados_clientes?.[idMotorista]?.nome || ''}</label>
-                    <label><strong>${veiculos?.[motorista.veiculo]?.modelo || ''}</strong> ${veiculos?.[motorista.veiculo]?.placa || 'Sem veículo'}</label>
+                    <label name="motorista">${db.dados_clientes?.[idMotorista]?.nome || ''}</label>
+                    <label><strong>${db.veiculos?.[motorista.veiculo]?.modelo || ''}</strong> ${db.veiculos?.[motorista.veiculo]?.placa || 'Sem veículo'}</label>
                 </div>
             </div>
             `)
@@ -172,7 +155,7 @@ function auxMotoristas() {
 
 function auxVeiculos() {
 
-    const linhas = Object.entries(veiculos)
+    const linhas = Object.entries(db.veiculos)
         .map(([idVeiculo, veiculo]) => `
             <div class="diVeiculos" onclick="novoVeiculo('${idVeiculo}')">
                 <img src="imagens/${veiculo.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1.5rem;">
@@ -216,7 +199,7 @@ function criarLinhaVeiculo({ custo, nome, veiculo, idCusto }) {
 
     const deps = Object.entries(custo?.distribuicao || {})
         .map(([codDep, km]) => {
-            const dep = departamentos?.[codDep] || {}
+            const dep = db.departamentos_AC?.[codDep] || {}
             const porcentagem = km / custo.km
             const valor = custo.realizado ? porcentagem * custo.realizado : ''
             return `
@@ -329,7 +312,7 @@ async function criarPagamentoVeiculo() {
     let totalDeps = 0
     const deps = Object.entries(totalDepartamentos)
         .map(([codigo, total]) => {
-            const dep = departamentos?.[codigo] || {}
+            const dep = db.departamentos_AC?.[codigo] || {}
             totalDeps += total
             return `
             <div class="etiquetas" style="flex-direction: row; gap: 0.5rem;">
@@ -609,7 +592,7 @@ async function painelValores(idCusto, duplicar) {
     popup({ linhas, botoes, titulo: 'Gerenciar Custo' })
 
     for (const [codigo, km] of Object.entries(custo.distribuicao || {})) {
-        const descricao = departamentos?.[codigo]?.cliente?.nome || 'Desatualizado...'
+        const descricao = db.departamentos_AC?.[codigo]?.cliente?.nome || 'Desatualizado...'
         linDist({ codigo, km, descricao })
     }
 
@@ -723,7 +706,7 @@ async function salvarValores(idCusto = ID5digitos()) {
 
 async function novoVeiculo(idVeiculo) {
 
-    const veiculo = veiculos[idVeiculo]
+    const veiculo = db.veiculos[idVeiculo]
     const opcoes = ['Locado', 'Devolvido']
         .map(op => `<option ${veiculo?.status == op ? 'selected' : ''}>${op}</opcoes>`)
         .join('')
@@ -756,7 +739,7 @@ function obterValores(id) {
 async function salvarVeiculo(idVeiculo) {
 
     overlayAguarde()
-    let veiculos = await recuperarDados('veiculos') || {}
+    
     idVeiculo = idVeiculo || ID5digitos()
     let veiculo = {
         modelo: obterValores('modelo'),
@@ -765,7 +748,7 @@ async function salvarVeiculo(idVeiculo) {
         cartao: obterValores('cartao')
     }
 
-    veiculos[idVeiculo] = veiculo
+    db.veiculos[idVeiculo] = veiculo
 
     enviar(`veiculos/${idVeiculo}`, veiculo)
     await inserirDados(veiculos, 'veiculos')
@@ -803,7 +786,7 @@ async function novoMotorista(idMotorista) {
     const cliente = await recuperarDado('dados_clientes', idMotorista)
     const motorista = await recuperarDado('motoristas', idMotorista) || {}
     const idVeiculo = motorista?.veiculo || ''
-    const veiculo = veiculos?.[idVeiculo] || {}
+    const veiculo = db.veiculos?.[idVeiculo] || {}
 
     const linhas = [
         {

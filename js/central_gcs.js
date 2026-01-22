@@ -81,8 +81,9 @@ async function executar(nomeFuncao) {
     if (typeof window[nomeFuncao] === "function") {
         return await window[nomeFuncao]()
     } else {
-        popup({ mensagem: `<b>Função não encontrada:</b> ${nomeFuncao}`, nra: true })
+        popup({ mensagem: `<b>Função não encontrada:</b> ${nomeFuncao}` })
     }
+
 }
 
 function criarMenus(chave) {
@@ -93,20 +94,91 @@ function criarMenus(chave) {
         <div class="nomeUsuario">
             <span><strong>${inicialMaiuscula(acesso.permissao)}</strong> ${acesso.usuario}</span>
         </div>
+        <div class="btnLateral" onclick="atualizarGCS()">
+            <img src="imagens/atualizar.png">
+            <div>Atualizar GCS</div>
+        </div>
     `
 
     for (const atalho of atalhos) atalhosString += criarAtalhoMenu(atalho)
 
-    botoesMenu.innerHTML = `
-    <div style="margin-top: 7rem;"></div>
-    ${atalhosString}
-    `
+    botoesMenu.innerHTML = atalhosString
+}
+
+async function atualizarGCS(resetar) {
+
+    if (emAtualizacao) return
+
+    mostrarMenus(true)
+
+    emAtualizacao = true
+    sincronizarApp()
+
+    const basesAuxiliares = [
+        'dados_setores',
+        'empresas',
+        'pessoas',
+        'veiculos',
+        'hierarquia',
+        'motoristas',
+        'dados_estoque',
+        'custo_veiculos',
+        'dados_composicoes',
+        'dados_clientes',
+        'dados_categorias_AC',
+        'dados_manutencao',
+        'dados_ocorrencias',
+        'dados_orcamentos',
+        'lista_pagamentos',
+        'tags_orcamentos',
+        'departamentos_AC'
+    ]
+
+    const status = { total: (basesAuxiliares.length + 1), atual: 1 }
+
+    sincronizarApp(status)
+
+    status.atual++
+
+    for (const base of basesAuxiliares) {
+
+        sincronizarApp(status)
+
+        const dados = await sincronizarDados({ base, resetar })
+        db[base] ??= {}
+        db[base] = dados
+
+        status.atual++
+
+        // A tabela é a primeira: atualiza os dados da empresa atual antes da tabela de clientes;
+        if (base == 'dados_setores') {
+            const existente = await recuperarDado('dados_setores', acesso.usuario)
+
+            if (!existente) continue
+
+            acesso = existente
+            localStorage.setItem('acesso', JSON.stringify(existente))
+
+        }
+
+    }
+
+    sincronizarApp({ remover: true })
+    emAtualizacao = false
+
+    await executar(funcaoTela)
+    
 }
 
 const atalhoInicial = {
     nome: 'Menu Inicial',
     funcao: 'telaInicial',
     img: 'LG'
+}
+
+async function irOcorrencias() {
+    priExeOcorr = true
+    await telaPrincipal()
 }
 
 const esquemaBotoes = {
@@ -120,7 +192,7 @@ const esquemaBotoes = {
         { nome: 'Estoque', funcao: `telaEstoque`, img: 'estoque' },
         //{ nome: 'Faturamento NFs', funcao: `telaRelatorioOmie`, img: 'relatorio' },
         { nome: 'RH', funcao: `telaRH`, img: 'gerente' },
-        { nome: 'Ocorrências', funcao: `telaPrincipal`, img: 'LG' },
+        { nome: 'Ocorrências', funcao: `irOcorrencias`, img: 'LG' },
         { nome: 'Desconectar', funcao: `deslogarUsuario`, img: 'sair' }
     ],
     criarOrcamentos: [
@@ -139,66 +211,51 @@ const esquemaBotoes = {
     ],
     orcamentos: [
         atalhoInicial,
-        { nome: 'Atualizar', funcao: 'atualizarOrcamentos', img: 'atualizar' },
         { nome: 'Baixar em Excel', funcao: 'excelOrcamentos', img: 'excel' },
         { nome: 'Criar Orçamento', funcao: 'telaCriarOrcamento', img: 'projeto' },
         { nome: 'Orçamento de Aluguel', funcao: 'telaCriarOrcamentoAluguel', img: 'projeto' }
     ],
     composicoes: [
         atalhoInicial,
-        { nome: 'Atualizar', funcao: 'atualizarComposicoes', img: 'atualizar' },
         { nome: 'Cadastrar Item', funcao: 'cadastrarItem', img: 'baixar' },
         { nome: 'Baixar em Excel', funcao: 'exportarParaExcel', img: 'excel' },
         { nome: 'Filtrar Campos', funcao: 'abrirFiltros', img: 'pesquisar2' }
     ],
     chamados: [
         atalhoInicial,
-        { nome: 'Atualizar', funcao: 'atualizarManutencoes', img: 'atualizar' },
         { nome: 'Criar Manutenção', funcao: 'criarManutencao', img: 'chamados' },
         { nome: 'Baixar em Excel', funcao: 'excelChamados', img: 'excel' }
     ],
     veiculos: [
         atalhoInicial,
-        { nome: 'Atualizar', funcao: 'atualizarDadosVeiculos', img: 'atualizar' },
         { nome: 'Adicionar Combustível', funcao: 'painelValores', img: 'combustivel' },
         { nome: 'Motoristas', funcao: 'auxMotoristas', img: 'motorista' },
         { nome: 'Veículos', funcao: 'auxVeiculos', img: 'veiculo' },
     ],
     pagamentos: [
         atalhoInicial,
-        { nome: 'Atualizar', funcao: 'recuperarPagamentos', img: 'atualizar' },
         { nome: 'Solicitar Pagamento', funcao: 'formularioPagamento', img: 'pagamento' }
     ],
     estoque: [
         atalhoInicial,
-        { nome: 'Atualizar', funcao: 'atualizarEstoque', img: 'atualizar' },
         { nome: 'Cadastrar Item', funcao: 'incluirItemEstoque', img: 'baixar' },
         { nome: 'Relatório de Movimentos', funcao: 'relatorioMovimento', img: 'projeto' },
         { nome: 'Baixar em Excel', funcao: `exportarParaExcel`, img: 'excel' },
     ],
     relatorio: [
         atalhoInicial,
-        { nome: 'Atualizar', funcao: 'atualizarRelatorioOmie', img: 'atualizar' },
         { nome: 'Baixar em Excel', funcao: 'excelRecebimento', img: 'excel' },
         { nome: 'Limpar Filtros', funcao: 'limparFiltros', img: 'limpar' },
     ],
     rh: [
         atalhoInicial,
-        { nome: 'Atualizar', funcao: 'telaRH', img: 'atualizar' },
         { nome: 'Tabela', funcao: 'telaRHTabela', img: 'todos' },
         { nome: 'Baixar em Excel', funcao: 'rhExcel', img: 'excel' },
         { nome: 'Adicionar Local', funcao: 'adicionarPessoa', img: 'baixar' }
     ],
-    agenda: [
-        atalhoInicial,
-        { nome: 'Atualizar', funcao: 'atualizarAgenda', img: 'atualizar' },
-        { nome: 'Distribuição por Funcionário', funcao: 'distribuicaoFuncionario', img: 'gerente' },
-        { nome: 'Novo Funcionário', funcao: 'abrirOpcoes', img: 'baixar' },
-    ],
     clientes: [
         atalhoInicial,
-        { nome: 'Novo cadastro', funcao: 'formularioCliente', img: 'baixar' },
-        { nome: 'Atualizar', funcao: 'atualizarClientes', img: 'atualizar' },
+        { nome: 'Novo cadastro', funcao: 'formularioCliente', img: 'baixar' }
     ]
 }
 
@@ -518,7 +575,7 @@ function maisAba() {
 
 async function irPdf(orcam_, emAnalise) {
 
-    const orcamento = dados_orcamentos[orcam_]
+    const orcamento = db.dados_orcamentos[orcam_]
     orcamento.emAnalise = emAnalise
 
     localStorage.setItem('pdf', JSON.stringify(orcamento))
@@ -964,8 +1021,8 @@ function sincronizar(script) {
 }
 
 async function verAprovacoes() {
-    dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    dados_clientes = await recuperarDados('dados_clientes') || {}
+    db.dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    db.dados_clientes = await recuperarDados('dados_clientes') || {}
 
     let guia = {
         pendente: '#ff8c1b',
@@ -991,7 +1048,7 @@ async function verAprovacoes() {
     })
 
     const organizado = Object
-        .entries(dados_orcamentos)
+        .entries(db.dados_orcamentos)
         .sort(([, a], [, b]) => (b.timestamp || 0) - (a.timestamp || 0))
 
     for (let [idOrcamento, orcamento] of organizado) {
@@ -1004,7 +1061,7 @@ async function verAprovacoes() {
         const status = aprovacao?.status || 'desconhecido'
         const porcentagemDiferenca = (((orcamento.total_geral - orcamento.total_bruto) / orcamento.total_bruto) * 100).toFixed(2)
         const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
-        const cliente = dados_clientes?.[omie_cliente] || {}
+        const cliente = db.dados_clientes?.[omie_cliente] || {}
 
         tabelas[status == 'pendente' ? 'pendente' : 'todos'].linhas += `
         <tr>
@@ -1070,13 +1127,13 @@ async function verificarPendencias() {
 
     if (!navigator.onLine) return
 
-    dados_orcamentos = await sincronizarDados({ base: 'dados_orcamentos' })
-    tags_orcamentos = await sincronizarDados({ base: 'tags_orcamentos' })
-    dados_clientes = await sincronizarDados({ base: 'dados_clientes' })
+    db.dados_orcamentos = await sincronizarDados({ base: 'dados_orcamentos' })
+    db.tags_orcamentos = await sincronizarDados({ base: 'tags_orcamentos' })
+    db.dados_clientes = await sincronizarDados({ base: 'dados_clientes' })
 
     let contador = 0
 
-    for (const orcamento of Object.values(dados_orcamentos)) {
+    for (const orcamento of Object.values(db.dados_orcamentos)) {
         if (orcamento.aprovacao && orcamento.aprovacao.status == 'pendente') {
             contador++
         }
@@ -1278,10 +1335,10 @@ async function respostaAprovacao(botao, idOrcamento, status) {
         justificativa
     }
 
-    const orcamento = dados_orcamentos[idOrcamento] || {}
+    const orcamento = db.dados_orcamentos[idOrcamento] || {}
 
     orcamento.aprovacao = {
-        ...dados_orcamentos[idOrcamento].aprovacao,
+        ...db.dados_orcamentos[idOrcamento].aprovacao,
         ...dados
     }
 
@@ -1346,12 +1403,6 @@ async function verificarNF(numero, tipo, app) {
     })
 }
 
-async function atualizarBaseClientes() {
-    await sincronizarDados({ base: 'dados_clientes' })
-    await sincronizarDados({ base: 'dados_ocorrencias' })
-    await auxDepartamentos()
-}
-
 async function painelClientes(idOrcamento) {
 
     overlayAguarde()
@@ -1378,7 +1429,7 @@ async function painelClientes(idOrcamento) {
 
     const botoes = [
         { texto: 'Salvar Dados', img: 'concluido', funcao: `salvarDadosCliente()` },
-        { texto: 'Atualizar', img: 'atualizar', funcao: `atualizarBaseClientes()` },
+        { texto: 'Atualizar', img: 'atualizar', funcao: `atualizarGCS()` },
     ]
 
     if (idOrcamento) botoes.push({ texto: 'Limpar Campos', img: 'limpar', funcao: 'executarLimparCampos()' })
@@ -1582,7 +1633,37 @@ async function salvarDadosCliente() {
     const ehChamado = filtroChamado.checked ? 'S' : 'N'
     orcamentoBase.chamado = ehChamado
 
+    // Lógica da tag automática;
+    const cliente = db?.db.dados_clientes?.[omie_cliente] || {}
+    const empresa = (db?.empresas?.[cliente?.empresa]?.nome || '').toLowerCase()
+    const tagAuto = Object
+        .values(db.tags_orcamentos || [])
+        .filter(tag => tag.nome.toLowerCase() == empresa)
+    let tag = {}
+    let tagsRemocao = []
+    if (tagAuto.length) {
+        orcamentoBase.tags ??= {}
+
+        // Remoção local de tags automáticas;
+        for (const [idTag, tag] of Object.entries(orcamentoBase.tags))
+            if (tag?.auto == 'S') {
+                tagsRemocao.push(idTag)
+                delete orcamentoBase.tags[idTag]
+            }
+
+        tag = { data: new Date().toLocaleDateString(), usuario: acesso.usuario, auto: 'S' }
+        orcamentoBase.tags[tagAuto[0].id] = tag
+    }
+
     if (telaAtiva == 'orcamentos') {
+
+        if (tagAuto.length) {
+            for (const idTag of tagsRemocao)
+                deletar(`dados_orcamentos/${id_orcam}/tags/${idTag}`)
+
+            enviar(`dados_orcamentos/${id_orcam}/tags/${tagAuto[0].id}`, tag)
+        }
+
         enviar(`dados_orcamentos/${id_orcam}/dados_orcam`, orcamentoBase.dados_orcam)
         enviar(`dados_orcamentos/${id_orcam}/chamado`, ehChamado)
         await inserirDados({ [id_orcam]: orcamentoBase }, 'dados_orcamentos')
@@ -1623,8 +1704,6 @@ async function abrirDANFE(codOmieNF, tipo, app) {
     overlayAguarde()
 
     const resposta = await buscarDANFE(codOmieNF, tipo, app)
-
-    console.log(resposta)
 
     if (resposta.err) return popup({ mensagem: `Provavelmente esta nota foi importada via XML e por enquanto não está disponível` })
 
@@ -1697,19 +1776,14 @@ async function criarDepartamento(idOrcamento) {
 
 async function auxDepartamentos() {
 
-    dados_ocorrencias = await recuperarDados('dados_ocorrencias')
-    dados_orcamentos = await recuperarDados('dados_orcamentos')
-    dados_clientes = await recuperarDados('dados_clientes')
-    departamentos_AC = await sincronizarDados({ base: 'departamentos_AC' })
-
     // Map por descrição (mais rápido que ficar iterando)
-    for (const dep of Object.values(departamentos_AC)) {
+    for (const dep of Object.values(db.departamentos_AC)) {
         depPorDesc[dep.descricao] = dep
     }
 
     // Map orçamento por número final (chamado ou contrato)
     const orcPorNum = {}
-    for (const [idOrcamento, orc] of Object.entries(dados_orcamentos)) {
+    for (const [idOrcamento, orc] of Object.entries(db.dados_orcamentos)) {
         const numFinal = orc?.dados_orcam?.chamado || orc?.dados_orcam?.contrato
         if (!numFinal) continue
 
@@ -1719,14 +1793,14 @@ async function auxDepartamentos() {
     }
 
     // Processa departamentos
-    for (const dep of Object.values(departamentos_AC)) {
+    for (const dep of Object.values(db.departamentos_AC)) {
 
         const nomeDep = dep.descricao
 
         // Se existe ocorrência com o nome do dep
-        const ocorrencia = dados_ocorrencias[nomeDep]
+        const ocorrencia = db.dados_ocorrencias[nomeDep]
         if (ocorrencia) {
-            const cliente = dados_clientes[ocorrencia?.unidade]
+            const cliente = db.dados_clientes[ocorrencia?.unidade]
             if (cliente) dep.cliente = cliente
         }
 
@@ -1737,7 +1811,7 @@ async function auxDepartamentos() {
             dep.ids = orcamento.ids
 
             const codOmie = orcamento?.dados_orcam?.omie_cliente
-            const cliente = dados_clientes[codOmie]
+            const cliente = db.dados_clientes[codOmie]
 
             if (cliente) dep.cliente = cliente
 
@@ -1746,7 +1820,7 @@ async function auxDepartamentos() {
     }
 
     // Atualiza banco
-    await inserirDados(departamentos_AC, 'departamentos_AC')
+    await inserirDados(db.departamentos_AC, 'departamentos_AC')
 }
 
 async function numORC(idOrcamento) {

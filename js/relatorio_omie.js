@@ -72,8 +72,6 @@ async function telaRelatorioOmie() {
     const bodyRelatorio = document.getElementById('bodyRelatorio')
     if (!bodyRelatorio) tela.innerHTML = acumulado
 
-    dados_relatorio = await recuperarDados('dados_relatorio') || {}
-
     // cria toolbar com apps únicos
     criarToolbarApps()
 

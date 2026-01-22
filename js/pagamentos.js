@@ -1,7 +1,5 @@
 let idP = null
-let departamentos = {}
-let dados_categorias_AC = {}
-let departamentos_AC = {}
+
 const opcoesStatus = [
     '',
     'Aguardando aprovação da Diretoria',
@@ -19,7 +17,7 @@ function imagemEspecifica(justificativa) {
     if (nomeStatus.includes('aprovado')) {
         cor = '#4CAF50'
         imagem = "imagens/concluido.png"
-    } else if (dados_setores[justificativa.usuario]?.permissao == 'qualidade') {
+    } else if (db.dados_setores[justificativa.usuario]?.permissao == 'qualidade') {
         cor = '#32a5e7'
         imagem = "imagens/qualidade.png"
     } else if (nomeStatus.includes('reprovado')) {
@@ -41,33 +39,17 @@ function imagemEspecifica(justificativa) {
 
 async function recuperarPagamentos() {
 
-    overlayAguarde()
-
-    const tabelas = [
-        'departamentos_AC', // Referência;
-        'dados_categorias_AC', // Referência;
-        'lista_pagamentos',
-        'dados_setores',
-        'dados_clientes',
-        'dados_orcamentos'
-    ]
-
-    for (const base of tabelas) await sincronizarDados({ base })
-
     await telaPagamentos()
-
-    removerOverlay()
 
 }
 
 async function filtrarPagamentos() {
 
-    const lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
     const usuariosPermitidos = ['diretoria', 'adm']
     const setoresPermitidos = ['FINANCEIRO']
     const pagamentosFiltrados = {}
 
-    for (let [idPagamento, pagamento] of Object.entries(lista_pagamentos)) {
+    for (let [idPagamento, pagamento] of Object.entries(db.lista_pagamentos)) {
 
         if (
             (usuariosPermitidos.includes(acesso.permissao) || setoresPermitidos.includes(acesso.setor))
@@ -93,10 +75,7 @@ async function telaPagamentos() {
     overlayAguarde()
     mostrarMenus(false)
     await auxDepartamentos() // Orcs, deps e clis;
-    dados_setores = await recuperarDados('dados_setores')
-    dados_categorias_AC = await recuperarDados('dados_categorias_AC')
 
-    const lista_pagamentos = await filtrarPagamentos() // Filtrar de acordo com o usuário atual;
     const colunas = ['Data de Previsão', 'Departamentos', 'APP', 'Valor', 'Status', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
     let cabecalho1 = ''
     let cabecalho2 = ''
@@ -139,7 +118,7 @@ async function telaPagamentos() {
     function preencherDados() {
 
         let contagens = { TODOS: { qtde: 0, valor: 0 } }
-        for (const [, pagamento] of Object.entries(lista_pagamentos).reverse()) {
+        for (const [, pagamento] of Object.entries(db.lista_pagamentos).reverse()) {
 
             if (!contagens[pagamento.status]) contagens[pagamento.status] = { qtde: 0, valor: 0 }
 
@@ -187,14 +166,14 @@ async function telaPagamentos() {
 
 function criarLinhaPagamento(pagamento) {
 
-    const cliente = dados_clientes?.[pagamento.param[0].codigo_cliente_fornecedor] || {}
+    const cliente = db.dados_clientes?.[pagamento.param[0].codigo_cliente_fornecedor] || {}
     const recebedor = cliente?.nome || ''
-    const usuario = dados_setores?.[pagamento.criado] || {}
+    const usuario = db.dados_setores?.[pagamento.criado] || {}
     const setorCriador = usuario?.setor || ''
 
     const deps = (pagamento?.param[0]?.distribuicao || [])
         .map(dep => {
-            const departamento = departamentos_AC?.[dep.cCodDep] || {}
+            const departamento = db.departamentos_AC?.[dep.cCodDep] || {}
             const nomeCliente = departamento?.cliente?.nome || ''
             return `
                 <div style="${vertical}; gap: 2px; text-align: left;">
@@ -315,7 +294,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
     let valores = ''
     const permissao = acesso.permissao
-    const pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
+    const pagamento = db.lista_pagamentos[id_pagamento]
     const cliente_omie = pagamento.param[0].codigo_cliente_fornecedor
     const cliente = await recuperarDado('dados_clientes', cliente_omie) || await recuperarDado('dados_clientes_IAC', cliente_omie)
     const anexos = Object.entries(pagamento?.anexos || {})
@@ -343,7 +322,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
     pagamento.param[0].categorias.forEach(item => {
 
-        const nomeCategoria = dados_categorias_AC?.[item.codigo_categoria]?.categoria || 'Categoria Desativada'
+        const nomeCategoria = db.dados_categorias_AC?.[item.codigo_categoria]?.categoria || 'Categoria Desativada'
         valores += `
             <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
                 <label style="text-align: left;"><strong>${dinheiro(item.valor)}</strong> - ${nomeCategoria}</label>
@@ -376,16 +355,16 @@ async function abrirDetalhesPagamentos(id_pagamento) {
     const orcsVinculados = []
 
     for (const dep of depPagam) {
-        const cc = departamentos_AC[dep.cCodDep]
+        const cc = db.departamentos_AC[dep.cCodDep]
         if (!cc?.ids?.length) continue
         for (const id of cc.ids) orcsVinculados.push(id)
     }
 
     const btnsOrcamentos = orcsVinculados
         .map(id => {
-            const orc = dados_orcamentos[id] || {}
+            const orc = db.dados_orcamentos[id] || {}
             const idCli = orc.dados_orcam.omie_cliente
-            const cli = dados_clientes[idCli] || {}
+            const cli = db.dados_clientes[idCli] || {}
             return btnDetalhes('pasta', `${cli?.nome || '...'} <br>${dinheiro(orc?.total_geral)}`, `abrirAtalhos('${id}')`)
         }).join('')
 
@@ -399,7 +378,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
     const deps = (pagamento?.param[0]?.distribuicao || [])
         .map(dep => {
-            const departamento = departamentos_AC?.[dep.cCodDep] || {}
+            const departamento = db.departamentos_AC?.[dep.cCodDep] || {}
             const nomeCliente = departamento?.cliente?.nome || ''
             return `
                 <div style="${vertical}; gap: 2px; text-align: left;">
@@ -467,7 +446,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
 async function alterarStatusPagamento(idPagamento, select) {
 
-    let pagamento = await recuperarDado('lista_pagamentos', idPagamento)
+    const pagamento = await recuperarDado('lista_pagamentos', idPagamento)
 
     pagamento.status = select.value
     enviar(`lista_pagamentos/${idPagamento}/status`, select.value)
@@ -493,7 +472,7 @@ async function confirmarExclusaoPagamento(id) {
 
 async function removerAnexoPagamento(id_pagamento, anx) {
 
-    let pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
+    const pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
 
     if (pagamento.anexos && pagamento.anexos[anx]) {
 
@@ -531,7 +510,6 @@ async function autorizarPagamentos(resposta, id_pagamento) {
     const permissao = acesso.permissao
     const setor = acesso.setor
     let status;
-    const setorUsuarioPagamento = dados_setores?.[pagamento.criado]?.setor || ''
 
     const categorias = pagamento.param[0].categorias
     let pagamentoParceiroAtivo = false
@@ -637,10 +615,9 @@ async function formularioPagamento() {
     const totalPagamento = document.getElementById('totalPagamento')
     if (totalPagamento) return
 
-    dados_clientes = await recuperarDados('dados_clientes')
     const ulP = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
     const { observacao = '', categorias = [], distribuicao = [], valor_documento = 0, data_vencimento, codigo_cliente_fornecedor = '' } = ulP?.param?.[0] || {}
-    const { nome = 'Selecionar' } = dados_clientes?.[codigo_cliente_fornecedor] || {}
+    const { nome = 'Selecionar' } = db.dados_clientes?.[codigo_cliente_fornecedor] || {}
     const [dia, mes, ano] = data_vencimento ? data_vencimento.split('/') : ''
     const dtVencimento = `${ano}-${mes}-${dia}`
 

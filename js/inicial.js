@@ -1,4 +1,3 @@
-let tags_orcamentos = {}
 let guiaAtual = null
 const abas = ['PDA', 'POC', 'INFRA', 'LOGÍSTICA', 'EM_ANDAMENTO', 'CONCLUÍDO']
 const coments = (comentario, campo, id) => {
@@ -99,6 +98,11 @@ async function telaInicial() {
     localStorage.setItem('app', 'GCS')
     app = 'GCS'
 
+    if (priExeGCS) {
+        await atualizarGCS()
+        priExeGCS = false
+    }
+
     const acumulado = `
         <div id="loading" style="${horizontal};">
             <img src="gifs/loading.gif" style="width: 5rem;">
@@ -129,10 +133,6 @@ async function telaInicial() {
         criarMenus('inicial')
     }
 
-    dados_clientes = await recuperarDados('dados_clientes')
-    dados_orcamentos = await recuperarDados('dados_orcamentos')
-    tags_orcamentos = await recuperarDados('tags_orcamentos')
-
     // Carregar tabelas;
     indicadores()
     carregarPDA()
@@ -140,7 +140,7 @@ async function telaInicial() {
 
     const ativos = []
 
-    for (const [idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
+    for (const [idOrcamento, orcamento] of Object.entries(db.dados_orcamentos)) {
 
         if (!orcamento.aba) continue
         ativos.push(idOrcamento)
@@ -203,9 +203,9 @@ function auxMapa(aba) {
     }
 
     if (aba == 'ORÇAMENTOS') {
-        for (const [, orcamento] of Object.entries(dados_orcamentos)) {
+        for (const [, orcamento] of Object.entries(db.dados_orcamentos)) {
             const codOmie = orcamento?.dados_orcam?.omie_cliente
-            const cliente = dados_clientes[codOmie]
+            const cliente = db.dados_clientes[codOmie]
 
             if (!cliente) continue
             if (!cliente.estado) continue
@@ -216,14 +216,14 @@ function auxMapa(aba) {
 
     } else {
 
-        for (const [idOrcamento, orc] of Object.entries(dados_orcamentos)) {
+        for (const [idOrcamento, orc] of Object.entries(db.dados_orcamentos)) {
 
             if (!orc.aba) continue
             if (orc.aba == 'CONCLUÍDO') continue
             if (orc.aba !== aba) continue
 
-            const codOmie = dados_orcamentos?.[idOrcamento]?.dados_orcam?.omie_cliente
-            const cliente = dados_clientes[codOmie]
+            const codOmie = db.dados_orcamentos?.[idOrcamento]?.dados_orcam?.omie_cliente
+            const cliente = db.dados_clientes[codOmie]
             const estado = cliente?.estado || orc?.pda?.estado || ''
 
             if (!estado) continue
@@ -243,7 +243,7 @@ function carregarTecnicos() {
 
     const tecnicosMap = {}   // { codTec: { nome, projetos: [] } }
 
-    for (const [idOrcamento, orc] of Object.entries(dados_orcamentos)) {
+    for (const [idOrcamento, orc] of Object.entries(db.dados_orcamentos)) {
 
         if (!orc.pda) continue
 
@@ -264,7 +264,7 @@ function carregarTecnicos() {
         for (const codTec of listaTecs) {
 
             if (!tecnicosMap[codTec]) {
-                const tec = dados_clientes?.[codTec] || {}
+                const tec = db.dados_clientes?.[codTec] || {}
                 tecnicosMap[codTec] = {
                     nome: tec.nome || 'Sem Nome',
                     projetos: []
@@ -283,9 +283,9 @@ function carregarTecnicos() {
 
         for (const idOrcamento of dadosTec.projetos) {
 
-            const orc = dados_orcamentos?.[idOrcamento]
+            const orc = db.dados_orcamentos?.[idOrcamento]
             const codCliente = orc?.dados_orcam?.omie_cliente || ''
-            const cliente = dados_clientes?.[codCliente] || {}
+            const cliente = db.dados_clientes?.[codCliente] || {}
 
             const blocoProjeto = orc
                 ? `
@@ -317,11 +317,7 @@ function carregarTecnicos() {
 
     const acumulado = `
         <div style="${vertical}; width: 100%;">
-            <div class="topo-tabela">
-                <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
-                    <img src="imagens/atualizar.png" onclick="sincronizarPda()">
-                </div>
-            </div>
+            <div class="topo-tabela"></div>
 
             <div class="div-tabela">
                 <table class="tabela">
@@ -358,7 +354,7 @@ function indicadores() {
     const tUsuario = {}
     let strgAcoes = ''
 
-    for (const [idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
+    for (const [idOrcamento, orcamento] of Object.entries(db.dados_orcamentos)) {
 
         if (!orcamento.pda) continue
         const acoes = orcamento?.pda?.acoes || {}
@@ -444,7 +440,6 @@ function indicadores() {
             <div style="${vertical}; padding: 1rem; gap: 0.5rem; width: 100%;">
                 <div style="${horizontal}; gap: 2rem;">
                     <span>Ações pendentes do Usuário</span>
-                    <img src="imagens/atualizar.png" onclick="sincronizarPda()">
                 </div>
                 <div class="acoes">
                     ${strgAcoes}
@@ -504,15 +499,6 @@ function mostrarGuia(nomeGuia = guiaAtual || 'INDICADORES') {
 
 }
 
-async function sincronizarPda() {
-    overlayAguarde()
-    await sincronizarDados({ base: 'dados_clientes' })
-    await sincronizarDados({ base: 'dados_orcamentos' })
-    await telaInicial()
-    await sincronizarTags()
-    removerOverlay()
-}
-
 function carregarPDA() {
 
     const colunas = ['Cliente', 'Tags', 'Técnicos', 'Início', 'Término', 'Comentários', 'Ação Necessário', 'Checklist', 'Detalhes', 'Remover']
@@ -530,7 +516,6 @@ function carregarPDA() {
             <div class="topo-tabela">
                 <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
                     <img src="imagens/baixar.png" onclick="editarLinPda({aba: '${aba}'})">
-                    <img src="imagens/atualizar.png" onclick="sincronizarPda()">
                 </div>
             </div>
             <div class="div-tabela">
@@ -559,7 +544,7 @@ function carregarPDA() {
 function linPda(idOrcamento, orcamento) {
 
     const codCliente = orcamento?.dados_orcam?.omie_cliente || ''
-    const cliente = dados_clientes?.[codCliente]
+    const cliente = db.dados_clientes?.[codCliente]
     const st = orcamento?.status?.atual || ''
     const opcoes = ['', ...fluxograma].map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`).join('')
 
@@ -568,7 +553,7 @@ function linPda(idOrcamento, orcamento) {
 
     const tecs = listaTecs
         .map(codTec => {
-            const cliente = dados_clientes?.[codTec] || {}
+            const cliente = db.dados_clientes?.[codTec] || {}
             return `<div class="etiquetas" style="min-width: 100px;">${cliente?.nome || '...'}</div>`
         }).join('')
 
@@ -759,7 +744,7 @@ async function criarOrcamentoPda(id) {
 
     removerPopup()
 
-    const orcamento = dados_orcamentos[id]
+    const orcamento = db.dados_orcamentos[id]
     orcamento.id = id
 
     baseOrcamento(orcamento)
@@ -780,7 +765,7 @@ function confirmarExcluirPda(idOrcamento) {
 
 async function excluirPda(idOrcamento) {
 
-    const orcamento = dados_orcamentos[idOrcamento]
+    const orcamento = db.dados_orcamentos[idOrcamento]
 
     const trExistente = document.getElementById(idOrcamento)
     enviar(`dados_orcamentos/${idOrcamento}/aba`, '')
@@ -795,7 +780,7 @@ async function excluirPda(idOrcamento) {
 
 async function atualizarAba(select, idOrcamento) {
 
-    const orcamento = dados_orcamentos[idOrcamento]
+    const orcamento = db.dados_orcamentos[idOrcamento]
     const valor = select.value
     orcamento.aba = valor
 
@@ -809,7 +794,7 @@ async function atualizarAba(select, idOrcamento) {
 async function atualizarCampo(select, idOrcamento) {
 
     const campo = select.dataset.campo
-    const orcamento = dados_orcamentos[idOrcamento]
+    const orcamento = db.dados_orcamentos[idOrcamento]
     const valor = select.value
     orcamento.pda ??= {}
     orcamento.pda[campo] = valor
@@ -826,7 +811,7 @@ async function atualizarPda(img, idOrcamento) {
     const info = div.textContent
     const campo = img.dataset.campo
 
-    const orcamento = dados_orcamentos[idOrcamento]
+    const orcamento = db.dados_orcamentos[idOrcamento]
     orcamento.pda ??= {}
     orcamento.pda[campo] = info
 
@@ -839,7 +824,7 @@ async function atualizarPda(img, idOrcamento) {
 
 async function alterarDatas(input, campo, idOrcamento) {
 
-    const orcamento = dados_orcamentos[idOrcamento]
+    const orcamento = db.dados_orcamentos[idOrcamento]
     const data = input.value
 
     input.classList = data ? 'etiqueta-concluído' : 'etiqueta-pendente'
@@ -903,11 +888,11 @@ async function excluirAcao(idAcao) {
 
     overlayAguarde()
 
-    const orcamento = dados_orcamentos[id_orcam]
+    const orcamento = db.dados_orcamentos[id_orcam]
 
     delete orcamento.pda.acoes[idAcao]
 
-    dados_orcamentos[id_orcam] = orcamento
+    db.dados_orcamentos[id_orcam] = orcamento
 
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
     deletar(`dados_orcamentos/${id_orcam}/pda/acoes/${idAcao}`)
@@ -946,7 +931,7 @@ async function salvarAcao(idOrcamento, idAcao) {
         registro: new Date().getTime()
     }
 
-    const orcamento = dados_orcamentos[idOrcamento]
+    const orcamento = db.dados_orcamentos[idOrcamento]
     orcamento.pda ??= {}
     orcamento.pda.acoes ??= {}
     orcamento.pda.acoes[idAcao] = a
@@ -960,7 +945,7 @@ async function salvarAcao(idOrcamento, idAcao) {
 
 function editarLinPda({ idOrcamento, aba = 'PDA' }) {
 
-    const orcamento = dados_orcamentos[idOrcamento]
+    const orcamento = db.dados_orcamentos[idOrcamento]
 
     const linhas = [
         {
@@ -1013,7 +998,7 @@ async function salvarCartao(idOrcamento) {
     }
 
     const orcamento = {
-        ...dados_orcamentos[idOrcamento] || {},
+        ...db.dados_orcamentos[idOrcamento] || {},
         ...dados
     }
 

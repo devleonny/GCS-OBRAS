@@ -396,8 +396,8 @@
 }
 
 .fotos {
-    display: grid;
-    grid-template-rows: repeat(3, auto);
+    display: flex;
+    flex-wrap: wrap;
     padding: 5px;
     align-items: start;
     gap: 2px;
