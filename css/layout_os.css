@@ -1,0 +1,97 @@
+.relatorio {
+    overflow: auto;
+}
+
+.campo-descricao {
+    background-color: #dfdfdf;
+    padding: 3px;
+    border-radius: 3px;
+}
+
+.horizontal-1 {
+    padding: 1rem;
+    display: flex;
+    justify-contet: center;
+    align-items: center;
+    gap: 2px;
+}
+
+.horizontal-2 {
+    display: flex;
+    justify-contet: center;
+    align-items: center;
+    gap: 2rem;
+}
+
+.horizontal-1 span {
+    white-space: nowrap;
+}
+
+.fotos-os {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.fotos-os img {
+    margin: 2px;
+    width: 5rem;
+}
+
+.corpo {
+    width: fit-content;
+    font-size: 0.8rem;
+    font-family: 'Poppins', sans-serif;
+    border-radius: 5px;
+    padding: 2rem;
+    background-color: white;
+}
+
+.horizontal {
+    gap: 3px;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+}
+
+.vertical {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+}
+
+.painel {
+    gap: 0.2rem;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+}
+
+.painel-1 {
+    width: 95%;
+    padding: 0.5rem;
+    background-color: #22874454;
+    border-radius: 5px;
+    border: solid 1px #228743;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+}
+
+.painel-2 {
+    width: 95%;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 5px;
+    border: solid 1px #757575ff;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+}
+
+.titulo-os {
+    font-weight: bold;
+    color: #228743;
+    font-size: 1.5rem;
+}
