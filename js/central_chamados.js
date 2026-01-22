@@ -254,7 +254,7 @@ async function criarElementosIniciais() {
         const uc = uCorrecao(oCorrecoes)
         const { tipo, dias = 0 } = uc
         const atrasado = dias < 0
-        const ultima_correcao = correcoes?.[tipo].nome || 'Não analisada'
+        const ultima_correcao = correcoes?.[tipo]?.nome || 'Não analisada'
 
         if (ultima_correcao == 'Solucionada') continue
 
