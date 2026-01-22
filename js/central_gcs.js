@@ -1403,7 +1403,7 @@ async function painelClientes(idOrcamento) {
             elemento: `
             <div style="${horizontal}; gap: 3px;">
                 <span>Classificar orçamento na aba de <b>CHAMADO</b></span>
-                <input id="filtroChamado" ${orcamentoBase?.chamado ? 'checked' : ''} ${styChek} type="checkbox">
+                <input id="filtroChamado" ${styChek} type="checkbox" ${orcamentoBase?.chamado == 'S' ? 'checked' : ''}>
             </div>
             `
         },
@@ -1573,15 +1573,18 @@ async function salvarDadosCliente() {
     // Se não existir a chave contrato; sequencial fará que o servidor crie;
     if (!orcamentoBase.dados_orcam.contrato) orcamentoBase.dados_orcam.contrato = 'sequencial'
 
+    // Número do chamado mesmo;
     const chamado = document.querySelector('[name="chamado"]').id
     if (chamado) orcamentoBase.dados_orcam.chamado = chamado
 
+    // Se o orçamento é chamado S / N;
     const filtroChamado = el('filtroChamado')
-    orcamentoBase.chamado = filtroChamado.checked ? 'S' : 'N'
+    const ehChamado = filtroChamado.checked ? 'S' : 'N'
+    orcamentoBase.chamado = ehChamado
 
     if (telaAtiva == 'orcamentos') {
         enviar(`dados_orcamentos/${id_orcam}/dados_orcam`, orcamentoBase.dados_orcam)
-        enviar(`dados_orcamentos/${id_orcam}/chamado`, filtroChamado.checked)
+        enviar(`dados_orcamentos/${id_orcam}/chamado`, ehChamado)
         await inserirDados({ [id_orcam]: orcamentoBase }, 'dados_orcamentos')
         await telaOrcamentos()
         removerPopup()
