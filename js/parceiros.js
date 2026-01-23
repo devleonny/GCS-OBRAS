@@ -308,7 +308,7 @@ async function salvarLpuParceiro() {
     enviar(`dados_orcamentos/${id_orcam}/status/historico/${chaveHistorico}`, status)
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
     removerPopup()
-    await abrirEsquema()
+    await abrirEsquema(id_orcam)
 }
 
 function calcularLpuParceiro() {

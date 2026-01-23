@@ -61,7 +61,7 @@ function aplicarFiltrosClientes() {
     if (!Object.keys(filtros).length) return db.dados_clientes
 
     return Object.fromEntries(
-        Object.entries(dados_clientes).filter(([_, c]) =>
+        Object.entries(db.dados_clientes).filter(([_, c]) =>
             Object.entries(filtros).every(([campo, termo]) => {
                 let valor = c?.[campo] || ''
 
@@ -114,7 +114,7 @@ function classificarUnidades() {
 
     if (unidades.length == 0) return popup({ mensagem: 'Marque pelo menos 1 unidade' })
 
-    const opcoes = Object.entries(empresas)
+    const opcoes = Object.entries(db.empresas)
         .sort(([, a], [, b]) => a.nome.localeCompare(b.nome))
         .map(([idEmpresa, empresa]) => {
             if (idEmpresa == 'mQK7') return ''

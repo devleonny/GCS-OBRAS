@@ -6,6 +6,30 @@
     margin: 5px;
 }
 
+.container-blocos {
+    display: flex;
+    gap: 1rem;
+    width: max-content;
+}
+
+.ver-mais {
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cartao-status {
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: center;
+    width: 200px;
+    gap: 10px;
+}
+
 .requisicao-cabecalho {
     display: flex;
     align-items: center;

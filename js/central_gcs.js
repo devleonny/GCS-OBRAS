@@ -1634,8 +1634,8 @@ async function salvarDadosCliente() {
     orcamentoBase.chamado = ehChamado
 
     // Lógica da tag automática;
-    const cliente = db?.db.dados_clientes?.[omie_cliente] || {}
-    const empresa = (db?.empresas?.[cliente?.empresa]?.nome || '').toLowerCase()
+    const cliente = db.dados_clientes?.[omie_cliente] || {}
+    const empresa = (db.empresas?.[cliente?.empresa]?.nome || '').toLowerCase()
     const tagAuto = Object
         .values(db.tags_orcamentos || [])
         .filter(tag => tag.nome.toLowerCase() == empresa)

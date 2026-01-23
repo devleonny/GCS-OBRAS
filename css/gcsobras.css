@@ -96,7 +96,7 @@ span[name="titulo"] {
     padding: 3px;
     border-radius: 2px;
     background-color: #b1b1b1;
-    margin-left: 2vw;
+    margin-left: 1rem;
     display: flex;
     flex-direction: column;
     justify-content: start;
@@ -1773,16 +1773,11 @@ input[type=range]::-moz-range-thumb {
 .blocoParcelas {
     padding: 5px;
     height: max-content;
-    max-height: 15vh;
-    overflow-y: auto;
     display: flex;
     justify-content: start;
     align-items: start;
     flex-direction: column;
     gap: 3px;
-    background-color: #aeaeae;
-    border-radius: 3px;
-    border: solid 1px #929292;
 }
 
 .detalhesValores {
@@ -1947,11 +1942,6 @@ input[type=range]::-moz-range-thumb {
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
     overflow-y: auto;
     flex-shrink: 0;
-}
-
-.container-blocos {
-    display: flex;
-    overflow-x: auto;
 }
 
 .alerta-pendencia {
@@ -2209,8 +2199,8 @@ input[type="file"]#input-anexos:hover {
 }
 
 .painel-historico {
-    min-height: max-content;
-    height: 70vh;
+    max-height: 70vh;
+    height: 80vh;
     overflow: auto;
     display: flex;
     flex-direction: column;
