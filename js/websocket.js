@@ -54,7 +54,7 @@ async function refletir() {
     if (app !== 'GCS') return
     sOverlay = true
     ignorarMenus = true
-    
+
     await executar(funcaoTela)
 
     sOverlay = false
@@ -68,8 +68,9 @@ async function comunicacao() {
     socket.onmessage = async (event) => {
 
         const data = JSON.parse(event.data)
+        const { tabela, desconectar, validado, tipo, id, dados, usuario, status } = data
 
-        if (data.desconectar) {
+        if (desconectar) {
             acesso = {}
             localStorage.removeItem('acesso')
             await resetarTudo()
@@ -78,7 +79,7 @@ async function comunicacao() {
             return
         }
 
-        if (data.validado) {
+        if (validado) {
 
             // Sempre que atualizar a página será verificado o acesso;
 
@@ -86,7 +87,7 @@ async function comunicacao() {
 
             app = localStorage.getItem('app') || 'OCORRÊNCIAS'
 
-            if (data.validado == 'Sim') {
+            if (validado == 'Sim') {
 
                 msgStatus('Acesso sem alterações')
 
@@ -125,31 +126,35 @@ async function comunicacao() {
 
         if (app !== 'GCS') return
 
-        if (data.tabela == 'dados_orcamentos') {
+        if (tabela == 'dados_orcamentos') {
             await verificarPendencias()
         }
 
-        if (data.tipo == 'exclusao') { // Só se for no nível;
-            await deletarDB(data.tabela, data.id)
+        if (tipo == 'exclusao') { // Só se for no nível;
+            delete db[tabela][id]
+            await deletarDB(tabela, id)
             await refletir()
         }
 
-        if (data.tipo == 'atualizacao') {
-            await inserirDados({ [data.id]: data.dados }, data.tabela)
+        if (tipo == 'atualizacao') {
+            db[tabela][id] = dados
+            await inserirDados({ [id]: dados }, tabela)
             await refletir()
         }
 
-        if (data.tipo == 'status') {
-            const user = await recuperarDado('dados_setores', data.usuario)
+        if (tipo == 'status') {
+            const tSetores = 'dados_setores'
+            const user = await recuperarDado(tSetores, usuario)
 
             if (user) {
-                user.status = data.status
-                await inserirDados({ [data.usuario]: user }, 'dados_setores')
+                user.status = status
+                db[tSetores][usuario] = user
+                await inserirDados({ [usuario]: user }, tSetores)
             }
 
             if (app == 'GCS') {
                 await usuariosToolbar()
-                balaoUsuario(data.status, data.usuario)
+                balaoUsuario(status, usuario)
             }
         }
 
@@ -164,8 +169,9 @@ async function comunicacao() {
 
 async function identificacaoUser() {
 
-    dados_setores = await sincronizarDados({ base: 'dados_setores' })
-    acesso = dados_setores[acesso.usuario]
+    acesso = db.dados_setores[acesso.usuario]
+
+    moduloComposicoes = permComposicoes.includes(acesso.permissao)
 
     const bloq = ['cliente', 'técnico', 'visitante']
     if ((acesso && bloq.includes(acesso.permissao)) || !acesso)

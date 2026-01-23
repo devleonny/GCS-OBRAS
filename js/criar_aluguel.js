@@ -20,6 +20,8 @@ async function confirmarExclusaoAluguel() {
 
 async function telaCriarOrcamentoAluguel() {
 
+    mostrarMenus(false)
+
     funcaoTela = 'telaCriarOrcamentoAluguel'
 
     modo = 'ALUGUEL'
@@ -27,7 +29,7 @@ async function telaCriarOrcamentoAluguel() {
     const acumulado = `
     <div class="contornoTela">
 
-        <div id="orcamento_padrao">
+        <div id="orcamento_aluguel">
 
             <div class="menu-superior">
 
@@ -68,8 +70,8 @@ async function telaCriarOrcamentoAluguel() {
 
     </div>
     `
-    const orcamentoPadrao = document.getElementById('orcamento_padrao')
-    if (!orcamentoPadrao) tela.innerHTML = acumulado
+    const orcamentoAluguel = document.getElementById('orcamento_aluguel')
+    if (!orcamentoAluguel) tela.innerHTML = acumulado
 
     criarMenus('criarOrcamentosAluguel')
     await carregarTabelasAluguel()
@@ -243,14 +245,6 @@ async function recuperarComposicoesAluguel() {
 }
 
 async function tabelaProdutosAluguel() {
-
-    const moduloComposicoes = (
-        acesso.permissao == 'adm' ||
-        acesso.permissao == 'log' ||
-        acesso.permissao == 'editor' ||
-        acesso.permissao == 'gerente' ||
-        acesso.permissao == 'diretor'
-    )
 
     const colunas = ['Código', 'Descrição', 'tipo', 'Quantidade', 'Imagem']
     let ths = ''

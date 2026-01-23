@@ -7,8 +7,20 @@
     padding: 5px;
 }
 
+.ver-agrupamento {
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    gap: 1rem;
+    color: white;
+    border-radius: 3px;
+    background-color: #b36060;
+    padding: 0.5rem;
+}
+
 .balao-redondo-agrupamento {
-    min-width: 1rem;
+    width: 2rem;
     background-color: #24729d;
     padding: 0 1rem 0 1rem;
     border-radius: 2px;
@@ -31,7 +43,6 @@
     justify-content: start;
     flex-direction: column;
     padding: 1rem;
-    background-color: #d2d2d2;
 }
 
 .painel-precos {
@@ -39,7 +50,6 @@
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    background-color: #d2d2d2;
     padding: 1rem;
 }
 

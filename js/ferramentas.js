@@ -7,6 +7,8 @@ const esquemas = {
     'categoria de equipamento': ['', 'IP', 'ANALÓGICO', 'ALARME', 'CONTROLE DE ACESSO'],
     'tipo': ['VENDA', 'SERVIÇO', 'USO E CONSUMO']
 }
+const permComposicoes = ['adm', 'log', 'gerente', 'diretoria', 'editor']
+let moduloComposicoes = null
 const permCham = ['técnico', 'cliente', 'visitante']
 const extensoes = ['jpg', 'jpeg', 'png']
 let stream = null
@@ -27,6 +29,7 @@ const filtrosPesquisa = {}
 const paginasBloqueadas = ['PDF', 'OS']
 let sOverlay = false
 let ignorarMenus = false
+
 
 // Central
 const db = {}

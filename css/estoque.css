@@ -1,9 +1,9 @@
 .label-estoque {
-    border-radius: 3px;
+    font-size: 1.1rem;
+    border-radius: 20px;
     padding: 5px 2vw 5px 2vw;
     width: 100%;
     cursor: pointer;
-    font-size: 0.9rem;
     white-space: nowrap;
 }
 
@@ -13,7 +13,7 @@
     justify-content: start;
     flex-direction: column;
     background-color: #d2d2d2;
-    padding: 2vw;
+    padding: 1rem;
 }
 
 .painel-registro textarea {

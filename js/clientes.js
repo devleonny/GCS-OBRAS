@@ -58,6 +58,12 @@ function pesquisarClientes(e, chave) {
 function aplicarFiltrosClientes() {
     const filtros = filtrosPesquisa.clientes
 
+    // Devolver as pesquisas para as colunas;
+    for (const [campo, valor] of Object.entries(filtros)) {
+        const th = document.getElementById(campo)
+        if (th) th.textContent = valor
+    }
+
     if (!Object.keys(filtros).length) return db.dados_clientes
 
     return Object.fromEntries(
@@ -200,6 +206,7 @@ async function telaClientes() {
     const pesquisa = Object.entries(colunas)
         .map(([chave,]) =>
             `<th contentEditable="true"
+            id="${chave}"
             style="background-color: white; text-align: left;"
             onkeydown="pesquisarClientes(event, '${chave}')">
         </th>`
@@ -438,7 +445,7 @@ function renderizarClientesPagina(pagina = paginaAtual) {
     document.querySelector('.paginacao-clientes').innerHTML = `
         <img src="imagens/esq.png" onclick="renderizarClientesPagina(${paginaAtual - 1})">
         <img src="imagens/dir.png" onclick="renderizarClientesPagina(${paginaAtual + 1})">
-        <span>${paginaAtual} / ${totalPaginas}</span>
+        <span>${paginaAtual} de ${totalPaginas}</span>
     `
 }
 

@@ -51,7 +51,7 @@ function apagarOrcamento() {
         { texto: 'Confirmar', img: 'concluido', funcao: `confirmarExclusaoOrcamento()` }
     ]
 
-    popup({ botoes, elemento: 'Você quer limpar essa tela? <b>Isso não apagará o orçamento salvo*</b>' })
+    popup({ botoes, mensagem: 'Você quer limpar essa tela? <b>Isso não apagará o orçamento salvo*</b>' })
 }
 
 async function confirmarExclusaoOrcamento() {

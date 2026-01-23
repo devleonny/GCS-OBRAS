@@ -10,6 +10,24 @@
     height: 5vh;
 }
 
+.bloco-chamados-principal {
+    width: 500px;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: row;
+    gap: 1rem;
+}
+
+.bloco-chamados {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    margin-left: 1rem;
+    width: 50%;
+}
+
 .arquivos {
     display: flex;
     align-items: start;
@@ -41,6 +59,7 @@
 .manutencao-formulario input,
 .manutencao-formulario select,
 .manutencao-formulario textarea {
+    border: solid 1px #d2d2d2;
     border-radius: 5px;
     padding: 5px;
 }
@@ -139,4 +158,16 @@
 
 input[type="file"]#input-anexos:hover {
     background: transparent;
+}
+
+@media screen and (orientation: portrait) {
+
+    .bloco-chamados-principal {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .bloco-chamados {
+        width: 100%;
+    }
 }

@@ -710,7 +710,6 @@ function linPda(idOrcamento, orcamento) {
 
     if (trExistente && trAba !== aba) {
         trExistente.remove()
-        trExistente = null
     }
 
     if (trExistente) {

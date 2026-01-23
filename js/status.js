@@ -1444,7 +1444,7 @@ async function abrirEsquema(id) {
     const contrato = orcamento?.dados_orcam?.contrato
     const oficial = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato
     const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
-    const cliente = await recuperarDado('dados_clientes', omie_cliente)
+    const cliente = db.dados_clientes[omie_cliente] || {}
     let blocosStatus = {}
 
     for (const [chave, historico] of Object.entries(orcamento?.status?.historico || {})) {
@@ -1452,7 +1452,7 @@ async function abrirEsquema(id) {
         const statusCartao = historico.status
         const cor = coresST?.[statusCartao]?.cor || '#808080'
 
-        if (!blocosStatus[statusCartao]) blocosStatus[statusCartao] = ''
+        blocosStatus[statusCartao] ??= ''
 
         const excluir = (historico.executor == acesso.usuario || acesso.permissao == 'adm')
             ? `<span class="close" style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" onclick="apagarStatusHistorico('${chave}')">&times;</span>`
@@ -1484,7 +1484,7 @@ async function abrirEsquema(id) {
                         </div>
 
                         <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
-                            ${await carregarAnexos(chave)}
+                            ${carregarAnexos(chave)}
                         </div>
 
                         <div class="contorno-botoes" onclick="toggle_comentario('comentario_${chave}')" style="background-color: ${cor};">
@@ -1497,7 +1497,7 @@ async function abrirEsquema(id) {
                             <button onclick="salvar_comentario('${chave}')">Salvar</button>
                         </div>
                         <div id="caixa_comentarios_${chave}" style="display: flex; flex-direction: column;">
-                            ${await carregar_comentarios(chave)}
+                            ${carregarComentarios(chave)}
                         </div>
                     </div>
                     <br>
@@ -1511,7 +1511,8 @@ async function abrirEsquema(id) {
         `
     }
 
-    const blocos = Object.values(blocosStatus)
+    const blocos = Object
+        .values(blocosStatus)
         .map(div => `
             <div class="cartao-status">
                 ${div}
@@ -2065,13 +2066,13 @@ async function excluir_comentario(id_comentario, chave) {
 
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
     deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/comentarios/${id_comentario}`)
-    await carregar_comentarios(chave)
+    carregarComentarios(chave)
     removerPopup()
 }
 
-async function carregar_comentarios(chave) {
+function carregarComentarios(chave) {
 
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const orcamento = db.dados_orcamentos[id_orcam]
     let comentss = ''
     if (orcamento.status.historico[chave]) {
         let comentarios = orcamento.status.historico[chave].comentarios || {}
@@ -2125,7 +2126,7 @@ async function salvar_comentario(chave) {
 
     enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/comentarios/${id}`, comentario)
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    await carregar_comentarios(chave)
+    await carregarComentarios(chave)
 }
 
 function toggle_comentario(id) {
@@ -2360,7 +2361,7 @@ async function salvar_anexo(chave, input) {
 
     let div = input.parentElement.parentElement.nextElementSibling // input > label > div pai > div seguinte;
 
-    div.innerHTML = await carregarAnexos(chave)
+    div.innerHTML = carregarAnexos(chave)
 
 }
 

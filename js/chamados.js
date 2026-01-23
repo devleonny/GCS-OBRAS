@@ -80,6 +80,8 @@ async function telaChamados() {
 
     overlayAguarde()
 
+    mostrarMenus(false)
+
     const colunas = ['Última alteração', 'Status', 'Chamado', 'Loja', 'Técnico', 'Analista', 'Previsão', 'Ações']
     let ths = ''
     let tsh = ''
@@ -102,11 +104,16 @@ async function telaChamados() {
     })
 
     const acumulado = `
-        <div style="margin-left: 10vw;" id="toolbar"></div>
+        <div style="${horizontal}; width: 95vw;">
+            <img src="imagens/nav.png" style="width: 2rem;" onclick="scrollar('prev')">
+            <div id="toolbar"></div>
+            <img src="imagens/nav.png" style="width: 2rem; transform: rotate(180deg);" onclick="scrollar('next')">
+        </div>
+
         <div style="${vertical}; width: 95vw;">
             <div class="topo-tabela"></div>
             <div class="div-tabela">
-                <table id="chamados" class="tabela" style="font-size: 0.8vw;">
+                <table id="chamados" class="tabela">
                     <thead>
                         <tr>${ths}</tr>
                         <tr>${tsh}</tr>
@@ -181,7 +188,7 @@ function criarLinhaManutencao(idManutencao, manutencao) {
             ${formatarData(manutencao?.previsao) || '--'}
         </td>
         <td style="text-align: center;">
-            <img onclick="criarManutencao('${idManutencao}')" src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;">
+            <img onclick="criarManutencao('${idManutencao}')" src="imagens/pesquisar2.png">
         </td>`
 
     const trExistente = document.getElementById(idManutencao)
@@ -267,9 +274,9 @@ async function criarManutencao(id) {
         `
     const kitTecnico = manutencao?.chamado == 'KIT TÉCNICO' ? true : false
     const formulario = `
-        <div style="${horizontal}; align-items: start; gap: 1vw; width: 100%; ">
+        <div class="bloco-chamados-principal">
             
-            <div style="${vertical}; width: 50%; margin-left: 1vw;">
+            <div class="bloco-chamados">
                 ${modelo('Cliente | Loja', `<span ${manutencao?.codigo_cliente ? `id="${manutencao?.codigo_cliente}"` : ''} class="opcoes" name="cliente" onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'cnpj', 'endereco'])">${cliente?.nome || 'Selecione'}</span>`)}
                 ${modelo('Técnico', `<span ${manutencao?.codigo_tecnico ? `id="${manutencao?.codigo_tecnico}"` : ''} class="opcoes" name="tecnico" onclick="cxOpcoes('tecnico', 'dados_clientes', ['nome', 'cnpj', 'endereco'])">${tecnico?.nome || 'Selecione'}</span>`)}
                 ${modelo('Comentário', `<textarea name="comentario" rows="7">${manutencao?.comentario || ''}</textarea>`)}
@@ -288,11 +295,11 @@ async function criarManutencao(id) {
                 
             </div>
 
-            <div style="${vertical}; width: 50%;">
+            <div class="bloco-chamados">
 
                 ${modelo('Status', `<select name="status_manutencao">${opcoes}</select>`)}
 
-                ${modelo('Kit Técnico', `<input ${kitTecnico ? 'checked' : ''} name="kitTecnico" type="checkbox" style="width: 2vw; height: 2vw; cursor: pointer;" onclick="modoKit(this)">`)}
+                ${modelo('Kit Técnico', `<input ${kitTecnico ? 'checked' : ''} name="kitTecnico" type="checkbox" style="width: 1.5rem; height: 1.5rem; cursor: pointer;" onclick="modoKit(this)">`)}
 
                 ${modelo('Chamado', `<input name="chamado" type="text" value="${manutencao?.chamado || ''}">`)}
 
@@ -305,23 +312,10 @@ async function criarManutencao(id) {
         </div>
         `
 
-    const botoes = `
-        <div style="${horizontal}; background-color: #868686ff; width: 100%; gap: 1px; border-top: solid 1px #868686ff;">
-
-            ${layoutBotao('Adicionar Peça', 'criarLinhaPeca()', 'chamados')}
-            ${layoutBotao('Salvar', `enviarManutencao('${idManutencao}')`, 'concluido')}
-            ${layoutBotao('Sincronizar Estoque', `sincronizarDados('dados_estoque')`, 'estoque')}
-            ${layoutBotao('Sincronizar Clientes/Técnicos', `recuperarClientes()`, 'atualizar')}
-            ${layoutBotao('PDF', `gerarPDFChamados()`, 'pdf')}
-            ${manutencao ? layoutBotao('Excluir Manutenção', `confirmarExclusaoManutencao('${idManutencao}')`, 'cancel') : ''}
-
-        </div>
-        `
-
     const historico = Object.entries(manutencao?.historico || {})
         .map(([id, dados]) => `
             <div class="item-historico">
-                <img src="imagens/${imgManut(dados.status_manutencao)}.png" style="width: 3vw">
+                <img src="imagens/${imgManut(dados.status_manutencao)}.png">
                 <div style="${vertical}">
                     ${modelo('Data', dados.data)}
                     ${modelo('Status', dados.status_manutencao)}
@@ -332,19 +326,24 @@ async function criarManutencao(id) {
         .join('')
 
     const elemento = `
-        <div style="${vertical}; background-color: #d2d2d2;">
-            <div name="pdfChamado" style="${vertical}; width: 100%; height: 60vh; overflow: auto; padding: 2vw 0 2vw 0;">
-                ${formulario}
-                <div style="${horizontal}; width: 100%;">${tabela}</div>
-                <br>
-                <hr style="width: 90%;">
-                <div style="${vertical}; width: 90%;">${historico}</div>
-            </div>
-            ${botoes}
+        <div name="pdfChamado" style="${vertical}; width: 100%; height: 50vh; overflow: auto; padding: 2rem 0 2rem 0;">
+            ${formulario}
+            <div style="${horizontal}; width: 100%;">${tabela}</div>
+            <br>
+            <hr style="width: 90%;">
+            <div style="${vertical}; width: 90%;">${historico}</div>
         </div>
         `
 
-    popup({ elemento, titulo: `Requisição de Materiais` })
+    const botoes = [
+        { texto: 'Adicionar Peça', img: 'chamados', funcao: `criarLinhaPeca()` },
+        { texto: 'Salvar', img: 'concluido', funcao: `enviarManutencao('${idManutencao}')` },
+        { texto: 'PDF', img: 'pdf', funcao: `gerarPDFChamados()` },
+    ]
+
+    if (manutencao) botoes.push({ texto: 'Excluir Manutenção', img: 'cancel', funcao: `confirmarExclusaoManutencao('${idManutencao}')` })
+
+    popup({ elemento, botoes, titulo: `Requisição de Materiais` })
 
     modoKit({ checked: kitTecnico })
 
@@ -399,7 +398,7 @@ async function gerarPDFChamados() {
     }
 
     let cabecalho = `
-        <div style="display: flex; align-items: start; justify-content: left; gap: 10vw;">
+        <div style="display: flex; align-items: start; justify-content: left; gap: 5rem;">
             ${divs}
         </div>
     `
@@ -510,7 +509,7 @@ function infoAnexos(input) {
     for (const file of input.files) {
         div.innerHTML += `
         <div style="${horizontal}; gap: 10px;">
-            <img src="imagens/anexo.png" style="width: 2vw;">
+            <img src="imagens/anexo.png">
             <span>${String(file.name).slice(0, 15)}...</span>
         </div>
         `
@@ -532,7 +531,7 @@ function criarLinhaPeca(id, peca) {
         </td>
         <td contentEditable="true">${peca?.quantidade || peca?.qtde || 0}</td>
         <td contentEditable="true">${peca?.comentario || ''}</td>
-        <td><img src="imagens/cancel.png" style="width: 2vw;" onclick="this.parentElement.parentElement.remove()"></td>
+        <td><img src="imagens/cancel.png" onclick="this.parentElement.parentElement.remove()"></td>
     `
     const trExistente = document.getElementById(id)
     if (trExistente) return trExistente.innerHTML = tds

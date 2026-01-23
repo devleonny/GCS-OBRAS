@@ -167,7 +167,7 @@ async function atualizarGCS(resetar) {
     emAtualizacao = false
 
     await executar(funcaoTela)
-    
+
 }
 
 const atalhoInicial = {
@@ -249,7 +249,6 @@ const esquemaBotoes = {
     ],
     rh: [
         atalhoInicial,
-        { nome: 'Tabela', funcao: 'telaRHTabela', img: 'todos' },
         { nome: 'Baixar em Excel', funcao: 'rhExcel', img: 'excel' },
         { nome: 'Adicionar Local', funcao: 'adicionarPessoa', img: 'baixar' }
     ],
@@ -1403,6 +1402,12 @@ async function verificarNF(numero, tipo, app) {
     })
 }
 
+async function attClientes() {
+    overlayAguarde()
+    await atualizarGCS()
+    removerOverlay()
+}
+
 async function painelClientes(idOrcamento) {
 
     overlayAguarde()
@@ -1429,7 +1434,7 @@ async function painelClientes(idOrcamento) {
 
     const botoes = [
         { texto: 'Salvar Dados', img: 'concluido', funcao: `salvarDadosCliente()` },
-        { texto: 'Atualizar', img: 'atualizar', funcao: `atualizarGCS()` },
+        { texto: 'Atualizar', img: 'atualizar', funcao: `attClientes()` },
     ]
 
     if (idOrcamento) botoes.push({ texto: 'Limpar Campos', img: 'limpar', funcao: 'executarLimparCampos()' })

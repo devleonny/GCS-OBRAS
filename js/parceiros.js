@@ -52,7 +52,7 @@ async function modalLPUParceiro(chave) {
         </div>`
 
     const elemento = `
-        <div style="${vertical};">
+        <div style="${vertical}; padding: 1rem;">
 
             <div style="${horizontal}; align-items: start; gap: 2rem;">
 

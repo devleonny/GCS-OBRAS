@@ -830,8 +830,12 @@ function ordenarLinhasPorData() {
 }
 
 async function atualizarChecklist() {
-    await sincronizarDados({ base: 'dados_orcamentos' })
+
+    overlayAguarde()
+    await atualizarGCS()
     await telaChecklist()
+    removerOverlay()
+    
 }
 
 async function adicionarServicoAvulso() {

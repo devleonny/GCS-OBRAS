@@ -12,6 +12,10 @@ const modeloRH = (valor1, elemento, funcao) => {
 
 async function telaRH() {
 
+    mostrarMenus(false)
+
+    criarMenus('rh')
+
     let stringPessoas = ''
 
     for (const [idPessoa, dados] of Object.entries(db.pessoas)) {
@@ -22,7 +26,7 @@ async function telaRH() {
             .map(([idPasta, pasta]) => `
                 <div class="btnPessoas" onclick="abrirPastas('${idPessoa}', '${idPasta}')">
                     <img src="imagens/pasta.png">
-                    <span>${pasta.nomePasta.slice(0, 15)}...</span>
+                    <span>${pasta.nomePasta}</span>
                 </div>`).join('')
 
         stringPessoas += `
@@ -39,20 +43,17 @@ async function telaRH() {
         `
     }
 
-    let divPessoas = document.querySelector('.divPessoas')
-    if (!divPessoas) criarMenus('rh')
-
-    menus.innerHTML += `
-        <div style="display: flex; align-items: start; justify-content: start; flex-direction: column; width: 100%;">
-
-            <br>
-
+    const acumulado = `
+        <div class="tela-rh">
+            <div class="esquema-pessoas">${stringPessoas}</div>
             <div class="divPessoas"></div>
         </div>
     `
 
-    divPessoas = document.querySelector('.divPessoas')
-    divPessoas.innerHTML = stringPessoas
+    const esquema = document.querySelector('.esquema-pessoas')
+    if(!esquema) tela.innerHTML = acumulado
+
+    document.querySelector('.esquema-pessoas').innerHTML = stringPessoas
 
     if (pastaAberta) mostrarPastas(pastaAberta)
 
@@ -378,9 +379,11 @@ async function adicionarPessoa(idPessoa) {
         { texto: 'Salvar', img: 'concluido', funcao: idPessoa ? `salvarPessoa('${idPessoa}')` : 'salvarPessoa()' }
     ]
 
-    const elemento = modeloRH('Nome', `<input id="nome" value="${pessoa?.nome || ''}">`)
-
-    popup({ botoes, elemento, titulo: 'Gerenciar Local' })
+    const linhas = [
+        {texto: 'Nome', elemento: `<input id="nome" value="${pessoa?.nome || ''}">`}
+    ]
+    
+    popup({ botoes, linhas, titulo: 'Gerenciar Local' })
 }
 
 async function salvarPessoa(idPessoa) {
@@ -469,16 +472,17 @@ async function telaRHTabela() {
 
 
     const acumulado = `
-        <div style="${vertical};">
-            <div class="painelBotoes" style="align-items: center; justify-content: end;">
+        <div class="blocoTabela">
+            <div class="painelBotoes">
 
-                <div style="${horizontal}; width: 20%; gap: 5px;">
+                <div style="${horizontal}; justify-content: end; width: 100%; gap: 5px;">
                     <label>Todos</label>
-                    <input type="checkbox" onclick="marcarTodosRH(this)" style="width: 1.5vw; height: 1.5vw;">
-                    ${botao('Baixar', `baixarArquivos()`, 'green')}
+                    <input type="checkbox" onclick="marcarTodosRH(this)" style="width: 1.5rem;">
+                    <button onclick="baixarArquivos()">Baixar</button>
                 </div>
+
             </div>
-            <div style="${vertical}; height: max-content; max-height: 70vh; overflow-y: auto;">
+            <div class="recorteTabela">
                 <table class="tabela">
                     <thead>
                         <tr>${colunas.th}</tr>
@@ -487,13 +491,13 @@ async function telaRHTabela() {
                     <tbody id="bodyRH"></tbody>
                 </table>
             </div>
+
             <div class="rodape-tabela"></div>
         </div>
     `
 
-    tela.style.display = 'flex'
-    const bodyRH = document.getElementById('bodyRH')
-    if (!bodyRH) tela.innerHTML = acumulado
+    const divPessoas = document.querySelector('.divPessoas')
+    divPessoas.innerHTML = acumulado
 
     // Pessoas nesse contexto foi mudado para cidade-estado;
     for (const [idPessoa, pessoa] of Object.entries(db.pessoas)) {
@@ -610,6 +614,9 @@ async function baixarArquivos() {
 }
 
 async function rhExcel() {
+
+    const telaRH = document.querySelector('.divPessoas')
+    if (!telaRH) return popup({ mensagem: 'Para gerar esse excel, vá até a tela de RH' })
 
     const tabela = document.querySelector('.tabela')
     if (!tabela) return popup({ mensagem: 'Tabela não encontrada' })

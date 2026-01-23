@@ -44,7 +44,7 @@ const btnPadrao = (texto, funcao) => `
         <span class="btnPadrao" onclick="${funcao}">${texto}</span>
 `
 const btn = ({ img, nome, funcao, id, elemento }) => `
-    <div class="btnLateral" ${id ? `id="${id}"` : ''} onclick="${funcao}">
+    <div class="botao-lateral" ${id ? `id="${id}"` : ''} onclick="${funcao}">
         ${img ? `<img src="imagens/${img}.png">` : ''}
         ${elemento || ''}
         <div>${nome}</div>
@@ -436,9 +436,10 @@ async function telaUsuarios() {
 
 async function atualizarUsuarios() {
 
-    await sincronizarDados({ base: 'dados_setores' })
-    await sincronizarDados({ base: 'empresas' })
+    overlayAguarde()
+    await atualizarOcorrencias()
     await telaUsuarios()
+    removerOverlay()
 
 }
 
@@ -464,7 +465,7 @@ async function gerenciarUsuario(id) {
     const usuario = await recuperarDado('dados_setores', id)
 
     const empresasOpcoes = Object
-        .entries({ '': { nome: '' }, ...empresas })
+        .entries({ '': { nome: '' }, ...db.empresas })
         .sort(([, a], [, b]) => a.nome.localeCompare(b.nome))
         .map(([id, empresa]) => `<option value="${id}" ${usuario?.empresa == id ? 'selected' : ''}>${empresa.nome}</option>`)
         .join('')
