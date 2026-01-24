@@ -1183,9 +1183,7 @@ async function verAgrupamento(codigo) {
             <hr style="width: 100%;">
 
             <div class="borda-tabela">
-                <div class="topo-tabela">
-                    <button onclick="criarLinhaAgrupamento()">Adicionar Item</button>
-                </div>
+                <div class="topo-tabela"></div>
                 <div class="div-tabela">
                     <table class="tabela" id="tabela_composicoes">
                         <thead>
@@ -1201,6 +1199,7 @@ async function verAgrupamento(codigo) {
     `
 
     const botoes = [
+        { texto: 'Adicionar Item', img: 'baixar', funcao: `criarLinhaAgrupamento()` },
         { texto: 'Salvar Agrupamento', img: 'concluido', funcao: `salvarAgrupamento()` }
     ]
 

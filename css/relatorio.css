@@ -20,14 +20,13 @@
 }
 
 .balao-totais {
-    width: 80%;
+    width: max-content;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    gap: 0.5rem;
     color: white;
-    padding: 20px;
+    padding: 0 1rem 0 1rem;
     text-align: center;
     border-radius: 8px;
 }
@@ -47,10 +46,10 @@
 }
 
 .pagina-relatorio {
-    width: 95vw;
+    width: 90vw;
     background-color: #ebebeb;
     border-radius: 8px;
-    padding: 1rem;
+    padding: 0.5rem;
     display: flex;
     align-items: start;
     justify-content: start;
@@ -98,29 +97,33 @@
     display: flex;
     align-items: start;
     justify-content: space-between;
-    flex-direction: column;
+    flex-direction: row;
     gap: 0.5rem;
-    padding: 0.5rem;
+    padding: 3px;
 }
 
 .toolbar-itens {
     display: flex;
-    align-items: start;
+    align-items: center;
     justify-content: space-between;
-    flex-direction: column;
+    flex-direction: row;
     gap: 0.5rem;
 }
 
-@media screen and (orientation: landscape),
-screen and (min-aspect-ratio: 13/9) {
+.relatorio {
+    margin: 2rem;
+}
+
+@media screen and (orientation: portrait) {
 
     .balao-totais {
-        width: max-content;
+        width: 80%;
     }
 
     .toolbar-relatorio-ocorrencias,
     .toolbar-itens {
-        flex-direction: row;
+        width: 100%;
+        flex-direction: column;
     }
 
 }

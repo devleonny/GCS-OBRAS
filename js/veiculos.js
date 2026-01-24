@@ -27,10 +27,13 @@ const categorias = {
 
 async function atualizarDadosVeiculos() {
 
-    await auxDepartamentos() // Resgatar dados do orçamento no objeto departamentos;
+    overlayAguarde()
 
+    await atualizarGCS()
+    auxDepartamentos()
     await telaVeiculos()
 
+    removerOverlay()
 }
 
 async function telaVeiculos() {
@@ -208,7 +211,7 @@ function criarLinhaVeiculo({ custo, nome, veiculo, idCusto }) {
                 name="departamento"
                 data-valor="${valor}"
                 data-codigo="${codDep}">
-                    <span>${dep?.descricao || 'Desatualizado...'}</span>
+                    <span>${dep?.descricao || codDep || 'Desatualizado...'}</span>
                     <span style="text-align: left;">${dep?.cliente?.nome || ''}</span>
                 </div>
             </div>
@@ -492,16 +495,17 @@ function pesquisarEmVeiculos({ coluna, texto } = {}) {
 
 async function painelAtalhos(idCusto) {
 
-    const custo = await recuperarDado('custo_veiculos', idCusto)
+    const custo = db.custo_veiculos[idCusto]
 
-    const elemento = `
-        <div style="${vertical}; gap: 5px;">
-            ${modeloBotoes('duplicar', 'Duplicar Pagamento', `painelValores('${idCusto}', true)`)}
-            ${modeloBotoes('editar', 'Editar Pagamento', `painelValores('${idCusto}')`)}
-            ${(acesso.permissao == 'adm' || acesso.usuario == custo.usuario) ? modeloBotoes('cancel', 'Excluir Pagamento', `painelExcluir('${idCusto}')`) : ''}
-        </div>
-    `
-    popup({ elemento, titulo: 'Atalhos' })
+    const botoes = [
+        { texto: 'Duplicar Pagamento', img: 'duplicar', funcao: `painelValores('${idCusto}', true)` },
+        { texto: 'Editar Pagamento', img: 'editar', funcao: `painelValores('${idCusto}')` },
+    ]
+
+    if ((acesso.permissao == 'adm' || acesso.usuario == custo.usuario))
+        botoes.push({ texto: 'Excluir Pagamento', img: 'cancel', funcao: `painelExcluir('${idCusto}')` })
+
+    popup({ botoes, mensagem: 'Escolha uma opção', titulo: 'Atalhos', nra: false })
 }
 
 function pesquisarBotoes(input, modalidade) {
@@ -739,7 +743,7 @@ function obterValores(id) {
 async function salvarVeiculo(idVeiculo) {
 
     overlayAguarde()
-    
+
     idVeiculo = idVeiculo || ID5digitos()
     let veiculo = {
         modelo: obterValores('modelo'),

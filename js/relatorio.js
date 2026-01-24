@@ -43,17 +43,20 @@ async function telaRelatorio() {
         <div class="pagina-relatorio">
             <div class="toolbar-relatorio-ocorrencias">
 
-                <img src="imagens/GrupoCostaSilva.png" style="width: 10rem;">
+                <img src="imagens/GrupoCostaSilva.png" style="width: 5rem;">
 
                 <div class="toolbar-itens">
                     <div style="${vertical}; gap: 0.5rem;">
                         <span>Data de abertura</span>
-                        <input id="de" type="date" onchange="pesquisarDatas()">
-                        <input id="ate" type="date" onchange="pesquisarDatas()">
                         <span onclick="paraExcel()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
                     </div>
 
-                    <div style="${horizontal}; gap: 0.5rem;">
+                    <div style="${vertical}; gap: 0.5rem;">
+                        <input id="de" type="date" onchange="pesquisarDatas()">
+                        <input id="ate" type="date" onchange="pesquisarDatas()">
+                    </div>
+
+                    <div class="toolbar-itens">
                         ${modelo('Total', 'totalChamados', '#222')}
                         ${modelo('Solucionados', 'solucionados', '#1d7e45')}
                         ${modelo('Em Aberto', 'emAberto', '#b12425')}
@@ -65,7 +68,7 @@ async function telaRelatorio() {
         </div>
     `
 
-    telaInterna.innerHTML = acumulado
+    tela.innerHTML = acumulado
 
     titulo.textContent = 'Relatório de Ocorrências'
 
@@ -497,8 +500,6 @@ async function telaRelatorioCorrecoes() {
 
     filtrosPagina = {}
 
-    overlayAguarde()
-
     const tabela = modeloTabela({
         colunas: [
             'Empresa',
@@ -519,14 +520,17 @@ async function telaRelatorioCorrecoes() {
         <div class="pagina-relatorio">
             <div class="toolbar-relatorio-ocorrencias">
 
-                <img src="imagens/GrupoCostaSilva.png" style="width: 10rem;">
+                <img src="imagens/GrupoCostaSilva.png" style="width: 5rem;">
 
                 <div class="toolbar-itens">
                     <div style="${vertical}; gap: 0.5rem;">
                         <span>Data de abertura</span>
+                        <span onclick="paraExcel()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
+                    </div>
+
+                    <div style="${vertical}; gap: 0.5rem;">
                         <input id="de" type="date" onchange="pesquisarDatas()">
                         <input id="ate" type="date" onchange="pesquisarDatas()">
-                        <span onclick="paraExcel()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
                     </div>
                 </div>
 
@@ -535,9 +539,7 @@ async function telaRelatorioCorrecoes() {
         </div>
     `
 
-    telaInterna.innerHTML = acumulado
-
-    removerOverlay()
+    tela.innerHTML = acumulado
 
     titulo.textContent = 'Relatório de Correções'
 

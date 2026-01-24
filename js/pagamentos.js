@@ -118,7 +118,11 @@ async function telaPagamentos() {
     function preencherDados() {
 
         let contagens = { TODOS: { qtde: 0, valor: 0 } }
-        for (const [, pagamento] of Object.entries(db.lista_pagamentos).reverse()) {
+
+        const organizado = Object.values(db.lista_pagamentos)
+            .sort((a, b) => b.timestamp - a.timestamp)
+
+        for (const pagamento of organizado) {
 
             if (!contagens[pagamento.status]) contagens[pagamento.status] = { qtde: 0, valor: 0 }
 

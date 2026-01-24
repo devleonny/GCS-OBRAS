@@ -665,7 +665,9 @@ async function telaOcorrencias() {
         </div>
     `
 
-    telaInterna.innerHTML = acumulado
+    const tOcorrencias = document.querySelector('.tela-ocorrencias')
+
+    if (!tOcorrencias) tela.innerHTML = acumulado
 
     await renderizarPagina(1)
 
@@ -903,7 +905,7 @@ async function formularioOcorrencia(idOcorrencia) {
     const nUnidade = db.dados_clientes[unidade]?.nome
     const nSistema = db.sistemas[sistema]?.nome
     const nPrioridade = db.prioridades[prioridade]?.nome
-    const nTipo =  db.tipos[tipo]?.nome
+    const nTipo = db.tipos[tipo]?.nome
     const a = Object
         .entries(anexos || {})
         .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')`))

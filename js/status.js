@@ -1423,7 +1423,7 @@ function elementosEspecificos(chave, historico) {
     if (funcaoEditar !== '') {
         acumulado += `
         <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" class="contorno-botoes" onclick="${funcaoEditar}">
-            <img src="imagens/editar4.png" style="width: 1rem;">
+            <img src="imagens/editar4.png" style="width: 1.5rem;">
             <label>Editar</label>
         </div>
         `
@@ -1449,6 +1449,8 @@ async function abrirEsquema(id) {
 
     for (const [chave, historico] of Object.entries(orcamento?.status?.historico || {})) {
 
+        const { anexos } = historico
+
         const statusCartao = historico.status
         const cor = coresST?.[statusCartao]?.cor || '#808080'
 
@@ -1457,6 +1459,10 @@ async function abrirEsquema(id) {
         const excluir = (historico.executor == acesso.usuario || acesso.permissao == 'adm')
             ? `<span class="close" style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" onclick="apagarStatusHistorico('${chave}')">&times;</span>`
             : ''
+
+        const stringAnexos = Object.entries(anexos || {})
+            .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('${chave}', '${idAnexo}', this)`))
+            .join('')
 
         blocosStatus[statusCartao] += `
             <div class="bloco-status" style="padding: 5px; border: 1px solid ${cor};">
@@ -1475,36 +1481,17 @@ async function abrirEsquema(id) {
 
                     ${elementosEspecificos(chave, historico)}
 
-                    <div class="escondido" style="display: none;">
-                        <div class="contorno-botoes" style="background-color: ${cor}">
-                            <img src="imagens/anexo2.png" style="width: 1rem;">
-                            <label>Anexo
-                                <input type="file" style="display: none;" onchange="salvar_anexo('${chave}', this)" multiple>  
-                            </label>
-                        </div>
-
-                        <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
-                            ${carregarAnexos(chave)}
-                        </div>
-
-                        <div class="contorno-botoes" onclick="toggle_comentario('comentario_${chave}')" style="background-color: ${cor};">
-                            <img src="imagens/comentario.png" style="width: 1rem;">
-                            <label>Comentário</label>
-                        </div>
-
-                        <div id="comentario_${chave}" style="display: none; justify-content: space-evenly; align-items: center;">
-                            <textarea placeholder="Comente algo aqui..."></textarea>
-                            <button onclick="salvar_comentario('${chave}')">Salvar</button>
-                        </div>
-                        <div id="caixa_comentarios_${chave}" style="display: flex; flex-direction: column;">
-                            ${carregarComentarios(chave)}
-                        </div>
+                    <div class="contorno-botoes" style="background-color: ${cor}">
+                        <img src="imagens/anexo2.png" style="width: 1.5rem;">
+                        <label>Anexo
+                            <input type="file" style="display: none;" onchange="salvarAnexo('${chave}', this)" multiple>  
+                        </label>
                     </div>
-                    <br>
-                </div>
 
-                <div class="ver-mais" style="background-color: ${cor};" onclick="exibirItens(this)">
-                    <label style="color: white;">ver mais</label>
+                    <div name="anexos_${chave}" style="${vertical};">
+                        ${stringAnexos}
+                    </div>
+
                 </div>
 
             </div>
@@ -1995,21 +1982,6 @@ async function excluirHiStatus(idStatus) {
 
 }
 
-function exibirItens(div) {
-
-    let elemento = div.previousElementSibling;
-    let label = div.querySelector('label')
-    let itens = elemento.querySelectorAll('.escondido');
-
-    itens.forEach(item => {
-        let exibir = item.style.display !== 'flex';
-        item.style.display = exibir ? 'flex' : 'none';
-
-        exibir ? label.textContent = 'menos' : label.textContent = 'ver mais'
-
-    });
-}
-
 async function registrarEnvioMaterial(chave) {
     let campos = ['rastreio', 'transportadora', 'custo_frete', 'nf', 'comentario_envio', 'volumes', 'data_saida', 'previsao']
     let status = {
@@ -2126,7 +2098,7 @@ async function salvar_comentario(chave) {
 
     enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/comentarios/${id}`, comentario)
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    await carregarComentarios(chave)
+    carregarComentarios(chave)
 }
 
 function toggle_comentario(id) {
@@ -2334,9 +2306,9 @@ async function detalharRequisicao(chave, tipoRequisicao, apVisualizar) {
     mostrarItensAdicionais()
 }
 
-async function salvar_anexo(chave, input) {
+async function salvarAnexo(chave, input) {
 
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
 
     if (input.files.length === 0) {
         popup({ elemento: 'Nenhum arquivo selecionado...' })
@@ -2357,23 +2329,16 @@ async function salvar_anexo(chave, input) {
         enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/anexos/${id}`, anexo)
     })
 
+    db.dados_orcamentos[id_orcam] = orcamento
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos');
 
-    let div = input.parentElement.parentElement.nextElementSibling // input > label > div pai > div seguinte;
+    const div = document.querySelector(`[name="anexos_${chave}"`)
 
-    div.innerHTML = carregarAnexos(chave)
-
-}
-
-async function carregarAnexos(chave) {
-
-    const orcamento = db.dados_orcamentos[id_orcam]
-
-    const stringAnexos = Object.entries(orcamento?.status?.historico?.[chave]?.anexos || {})
+    const stringAnexos = Object.entries(anexos || {})
         .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('${chave}', '${idAnexo}', this)`))
         .join('')
 
-    return stringAnexos
+    div.innerHTML = stringAnexos
 
 }
 

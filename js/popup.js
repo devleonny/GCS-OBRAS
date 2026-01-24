@@ -56,7 +56,7 @@ function popup({
     } else if (mensagem) {
 
         elemento = `
-        <div style="${arredondado} ${horizontal}; background-color: ${cor}; gap: 1rem; padding: 1rem;">
+        <div class="mensagem" style="${arredondado}; background-color: ${cor};">
             <img src="${imagem || 'gifs/alerta.gif'}">
             <label>${mensagem}</label>
         </div>`

@@ -45,8 +45,11 @@ async function deletarDB(base, idInterno) {
 async function resetarTudo() {
 
     // Limpar variáveis;
-    db.dados_clientes = {}
-    db.dados_ocorrencias = {}
+    db = {}
+
+    // Menus;
+    const menus = document.querySelector('.botoesMenu')
+    menus.innerHTML = ''
 
     const dbGCS = await new Promise((resolve, reject) => {
         const req = indexedDB.open(nomeBaseCentral)

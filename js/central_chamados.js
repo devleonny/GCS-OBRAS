@@ -185,8 +185,9 @@ async function capturarLocalizacao() {
 }
 
 async function irGCS() {
-    localStorage.setItem('app', 'GCS')
+    overlayAguarde()
     await telaInicial()
+    removerOverlay()
 }
 
 async function telaPrincipal() {
@@ -355,7 +356,7 @@ function carregarMenus() {
     const blq = ['cliente', 'técnico']
 
     const menus = {
-        'Atualizar': { img: 'atualizar', funcao: 'validarAcesso()', proibidos: [] },
+        'Atualizar': { img: 'atualizar', funcao: 'atualizarOcorrencias()', proibidos: [] },
         'Início': { img: 'home', funcao: 'telaPrincipal()', proibidos: [] },
         'Criar Ocorrência': { img: 'baixar', funcao: 'formularioOcorrencia()', proibidos: [] },
         'Ocorrências': { img: 'configuracoes', funcao: 'telaOcorrencias()', proibidos: [] },
@@ -424,7 +425,7 @@ async function telaUsuarios() {
     `
 
     const tbody = document.getElementById('tabela_usuarios')
-    if (!tbody) telaInterna.innerHTML = telaUsuario
+    if (!tbody) tela.innerHTML = telaUsuario
 
     for (const [user, dados] of Object.entries(db.dados_setores)) {
         criarLinhaUsuario(user, dados)

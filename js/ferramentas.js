@@ -32,7 +32,7 @@ let ignorarMenus = false
 
 
 // Central
-const db = {}
+let db = {}
 
 let depPorDesc = {}
 let app = null

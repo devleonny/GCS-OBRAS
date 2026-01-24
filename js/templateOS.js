@@ -130,7 +130,6 @@ async function telaOS(idOcorrencia) {
     }
 
     const acumulado = `
-
         <div id="pdf">
             <div class="botoes-flutuantes">
                 <img src="imagens/voltar.png" style="width: 2.5rem;" onclick="telaOcorrencias()">

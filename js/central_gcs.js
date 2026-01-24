@@ -61,7 +61,7 @@ const layoutBotao = (nome, funcao, img) => `
 
 function criarAtalhoMenu({ nome, img, funcao }) {
     const atalho = `
-    <div class="btnLateral" onclick="executar('${funcao}')">
+    <div class="botao-lateral" onclick="executar('${funcao}')">
         <img src="imagens/${img}.png">
         <div>${nome}</div>
     </div>
@@ -94,7 +94,7 @@ function criarMenus(chave) {
         <div class="nomeUsuario">
             <span><strong>${inicialMaiuscula(acesso.permissao)}</strong> ${acesso.usuario}</span>
         </div>
-        <div class="btnLateral" onclick="atualizarGCS()">
+        <div class="botao-lateral" onclick="atualizarGCS()">
             <img src="imagens/atualizar.png">
             <div>Atualizar GCS</div>
         </div>
@@ -177,8 +177,10 @@ const atalhoInicial = {
 }
 
 async function irOcorrencias() {
+    overlayAguarde()
     priExeOcorr = true
     await telaPrincipal()
+    removerOverlay()
 }
 
 const esquemaBotoes = {
@@ -218,8 +220,7 @@ const esquemaBotoes = {
     composicoes: [
         atalhoInicial,
         { nome: 'Cadastrar Item', funcao: 'cadastrarItem', img: 'baixar' },
-        { nome: 'Baixar em Excel', funcao: 'exportarParaExcel', img: 'excel' },
-        { nome: 'Filtrar Campos', funcao: 'abrirFiltros', img: 'pesquisar2' }
+        { nome: 'Baixar em Excel', funcao: 'exportarParaExcel', img: 'excel' }
     ],
     chamados: [
         atalhoInicial,
@@ -1125,10 +1126,6 @@ async function verAprovacoes() {
 async function verificarPendencias() {
 
     if (!navigator.onLine) return
-
-    db.dados_orcamentos = await sincronizarDados({ base: 'dados_orcamentos' })
-    db.tags_orcamentos = await sincronizarDados({ base: 'tags_orcamentos' })
-    db.dados_clientes = await sincronizarDados({ base: 'dados_clientes' })
 
     let contador = 0
 
