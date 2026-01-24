@@ -784,6 +784,16 @@ function passarFiltros(orcamento) {
                 continue
             }
 
+            case 'revisao': {
+                if (valor == 'S' && Object.keys(orcamento?.revisoes || []).length == 0) return false
+                continue
+            }
+
+            case 'vinculado': {
+                if (valor == 'S' && Object.keys(orcamento?.vinculados || []).length == 0) return false
+                continue
+            }
+
             // Filtros Livres;
 
             case 'cidade':
