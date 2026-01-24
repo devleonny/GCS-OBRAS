@@ -45,11 +45,6 @@ const coresST = {
     'MATERIAL ENTREGUE': { cor: '#b17724' }
 }
 
-async function sincronizarReabrir() {
-    await atualizarOrcamentos()
-    await abrirEsquema(id_orcam)
-}
-
 function aprovadoEmail(input) {
 
     const pedido = document.getElementById('pedido')
@@ -823,7 +818,7 @@ async function salvarRequisicao(chave) {
     await abrirEsquema(id_orcam)
 }
 
-async function abrirAtalhos(id) {
+async function abrirAtalhos(id, idMaster) {
 
     const permitidos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
     id_orcam = id
@@ -856,10 +851,12 @@ async function abrirAtalhos(id) {
         ${modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`)}
         ${modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)}
         ${modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`)}
-        ${modeloBotoes('link', 'Vincular Orçamento', `vincularOrcamento('${id}')`)}
         ${modeloBotoes('LG', 'OS em PDF', `abrirOS('${id}')`)}
-        ${db.hierarquia[id] ? modeloBotoes('exclamacao', 'Desvincular Orçamento', `confirmarRemoverVinculo('${id}')`) : ''}
         ${modeloBotoes('alerta', 'Definir Prioridade', `formularioOrcAprovado('${id}')`)}
+        ${idMaster
+                ? modeloBotoes('exclamacao', 'Desvincular Orçamento', `confirmarRemoverVinculo('${id}', '${idMaster}')`)
+                : modeloBotoes('link', 'Vincular Orçamento', `vincularOrcamento('${id}')`)
+            }
         `
     }
 
@@ -965,10 +962,8 @@ async function abrirOS(idOrcamento) {
 async function vincularOrcamento(idOrcamento) {
 
     const elemento = `
-        <div style="${vertical}">
+        <div style="${vertical}; padding: 1rem;">
             <span>Escolha o <b>Orçamento</b> para vincular</span>
-
-            <hr>
 
             <div style="${horizontal}; gap: 1rem;">
                 <span class="opcoes"
@@ -993,49 +988,46 @@ async function confirmarVinculo(idOrcamento) {
     const idMaster = orcamentoMaster.id
 
     if (!idMaster) return popup({ mensagem: 'Escolha um orçamento' })
+    if (idMaster == idOrcamento) return popup({ mensagem: 'Os orçamentos são iguais [O mesmo]' })
 
-    const resposta = await vincularAPI({ idMaster, idSlave: idOrcamento })
+    const dados = {
+        data: new Date().toLocaleString(),
+        usuario: acesso.usuario
+    }
 
-    if (resposta.mensagem) return popup({ mensagem: resposta.mensagem })
+    enviar(`dados_orcamentos/${idMaster}/vinculados/${idOrcamento}`, dados)
 
-    // Na API será salvo os elementos;
-    const dados = { idMaster }
-    db.hierarquia[idOrcamento] = dados
-    await inserirDados({ [idOrcamento]: dados }, 'hierarquia')
+    db.dados_orcamentos[idMaster].vinculados ??= {}
+    db.dados_orcamentos[idMaster].vinculados[idOrcamento] = dados
+    await inserirDados({ [idMaster]: db.dados_orcamentos[idMaster] }, 'dados_orcamentos')
 
     removerPopup()
     removerPopup()
 
-    const trExistente = document.getElementById(idOrcamento)
-    if (trExistente) trExistente.dataset.timestamp = ''
     await telaOrcamentos()
 
 }
 
-async function confirmarRemoverVinculo(idOrcamento) {
+async function confirmarRemoverVinculo(idOrcamento, master) {
 
-    const acumulado = `
-    <div style="${horizontal}; gap: 1rem; background-color: #d2d2d2; padding: 2rem;">
-        <span>Deseja desfazer vínculo?</span>
-        <button onclick="desfazerVinculo('${idOrcamento}')">Confirmar</button> 
-    </div>
-    `
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `desfazerVinculo('${idOrcamento}', '${master}')` }
+    ]
 
-    popup(acumulado, 'Tem certeza?', true)
+    popup({ botoes, mensagem: 'Deseja desfazer vínculo?', nra: true })
 
 }
 
-async function desfazerVinculo(idOrcamento) {
+async function desfazerVinculo(idOrcamento, master) {
 
     overlayAguarde()
-    const linha = document.getElementById(idOrcamento)
-    if (linha) linha.remove()
 
-    const resposta = vincularAPI({ idSlave: idOrcamento })
+    delete db.dados_orcamentos[master].vinculados[idOrcamento]
 
-    if (resposta.mensagem) return popup({ mensagem: resposta.mensagem })
+    deletar(`dados_orcamentos/${master}/vinculados/${idOrcamento}`)
 
-    await deletarDB('hierarquia', idOrcamento)
+    await inserirDados({ [master]: db.dados_orcamentos[master] }, 'dados_orcamentos')
+
     await telaOrcamentos()
 
     removerPopup()
@@ -1508,8 +1500,6 @@ async function abrirEsquema(id) {
 
     const linha1 = `
         <div style="${horizontal}; gap: 2rem;">
-
-            <img onclick="sincronizarReabrir()" src="imagens/atualizar.png">
 
             <div style="${vertical}; gap: 2px;">
                 <label>Status atual</label>

@@ -30,7 +30,7 @@ async function atualizarDadosVeiculos() {
     overlayAguarde()
 
     await atualizarGCS()
-    auxDepartamentos()
+    await auxDepartamentos() 
     await telaVeiculos()
 
     removerOverlay()

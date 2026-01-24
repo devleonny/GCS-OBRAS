@@ -378,12 +378,7 @@ function carregarMenus() {
         .map(([nome, dados]) => btn({ ...dados, nome }))
         .join('');
 
-    const botoes = `
-        <div class="nomeUsuario">
-            <span><strong>${inicialMaiuscula(acesso.permissao)}</strong> ${acesso.usuario}</span>
-        </div>
-        <br>
-       
+    const botoes = `       
         <div style="${horizontal}; gap: 0.5rem; margin-bottom: 0.5rem;">
             <img src="imagens/alerta.png" onclick="mostrarPendencias()">
             <span style="color: white;">Ver atalhos</span>

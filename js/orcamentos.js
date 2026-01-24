@@ -4,8 +4,7 @@ let auxiliarFaturamento = {}
 let pAtual = 1
 const itensPorPagina = 100
 let tPaginas = 1
-let orcsFiltrados = {}
-let orcsHierarquia = {}
+
 const stLista = [
     'EM ANDAMENTO',
     'OBRA PARALISADA',
@@ -26,30 +25,6 @@ const meses = {
     '10': 'Outubro',
     '11': 'Novembro',
     '12': 'Dezembro'
-}
-
-async function atualizarOrcamentos() {
-
-    overlayAguarde()
-
-    const tabelas = [
-        'dados_orcamentos',
-        'dados_composicoes',
-        'dados_clientes',
-        'tags_orcamentos',
-        'departamentos_AC',
-        'hierarquia'
-    ]
-
-    for (const base of tabelas) await sincronizarDados({ base })
-
-    await atualizarOcorrencias() // Módulo de ocorrências;
-    await auxDepartamentos()
-    await telaOrcamentos()
-    await sincronizarTags()
-
-    removerOverlay()
-
 }
 
 function ordenarOrcamentos(colunaIndex) {
@@ -134,12 +109,7 @@ function confirmarPesquisa(e, coluna, el) {
 async function telaOrcamentos() {
 
     // Inicializar filtros;
-    const f = JSON.parse(sessionStorage.getItem('filtros')) || {}
-    filtrosPesquisa.orcamentos ??= {}
-    filtrosPesquisa.orcamentos = {
-        ...filtrosPesquisa.orcamentos,
-        ...f
-    }
+    filtrosPesquisa.orcamentos ??= JSON.parse(localStorage.getItem('filtros')) || {}
 
     const pda = document.querySelector('.tela-gerenciamento')
     if (pda) return await telaInicial()
@@ -203,16 +173,8 @@ async function telaOrcamentos() {
 
     await auxDepartamentos()
 
-    orcsFiltrados = {}
-    orcsHierarquia = {}
-
-    for (const [idOrcamento, orcamento] of Object.entries(db.dados_orcamentos)) {
-        criarLinhaOrcamento(idOrcamento, orcamento)
-    }
-
     criarMenus('orcamentos')
 
-    pAtual = 1
     aplicarFiltrosEPaginacao()
 
     if (!tabelaOrcamento) renderizar('status', 'todos')
@@ -220,14 +182,14 @@ async function telaOrcamentos() {
     // Recuperar pesquisas
     for (const [chave, info] of Object.entries(filtrosPesquisa?.orcamentos || {})) {
         const inpCab = document.querySelector(`[name="${chave}"]`)
-        if (inpCab) inpCab.value = info
+        if (inpCab) inpCab.textContent = info
     }
 
 }
 
 function filtroOrcamentos() {
 
-    const salvo = JSON.parse(sessionStorage.getItem('filtros')) || {}
+    const salvo = JSON.parse(localStorage.getItem('filtros')) || {}
 
     const filtros = {
         arquivado: salvo.arquivado || '',
@@ -264,7 +226,7 @@ function filtroOrcamentos() {
         { texto: 'Salvar', img: 'concluido', funcao: 'salvarFiltrosApp()' }
     ]
 
-    popup({ linhas, botoes, titulo: 'Gerenciar Filtro' })
+    popup({ linhas, botoes, titulo: 'Gerenciar Filtro', nra: false })
 
 }
 
@@ -272,18 +234,13 @@ function salvarFiltrosApp() {
 
     const filtros = document.querySelectorAll('[name="filtros"]')
 
-    filtrosPesquisa.orcamentos ??= {}
-
     for (const f of filtros) {
         const chave = f.dataset.chave
         const st = f.checked ? 'S' : 'N'
         filtrosPesquisa.orcamentos[chave] = st
     }
 
-    sessionStorage.setItem('filtros', JSON.stringify(filtrosPesquisa.orcamentos))
-
-    telaOrcamentos()
-    removerPopup()
+    aplicarFiltrosEPaginacao()
 
 }
 
@@ -297,9 +254,12 @@ function scrollar(direcao) {
 
 }
 
-function criarLinhaOrcamento(idOrcamento, orcamento) {
+function criarLinhaOrcamento(idOrcamento, orcamento, master, idMaster) {
 
-    const dados_orcam = orcamento.dados_orcam
+    if (!orcamento) return
+
+    const { dados_orcam } = orcamento
+
     if (!dados_orcam) return
 
     const cliente = db.dados_clientes?.[dados_orcam.omie_cliente] || {}
@@ -344,27 +304,27 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
     const numOficial = dados_orcam?.chamado || contrato || '-'
     const rAtual = orcamento?.revisoes?.atual
     const etiqRevAtual = rAtual ? `<span class="etiqueta-revisao">${rAtual}</span>` : ''
-    const idMaster = db.hierarquia?.[idOrcamento]?.idMaster
-    const orcamentoMaster = db.dados_orcamentos[idMaster]
-    const numOficialMaster = orcamentoMaster?.dados_orcam?.chamado || orcamentoMaster?.dados_orcam?.contrato || '-'
-    const orcamentosVinculados = idMaster
+
+    const nomeVinculado = master
         ? `
-                <div style="${horizontal}; gap: 3px;">
-                    <span style="text-align: left;">${numOficial}</span>
-                    <img src="imagens/link2.png" onclick="confirmarRemoverVinculo('${idOrcamento}')" style="width: 1.5rem;">
-                        <span><b>${numOficialMaster}</b></span>
-                </div>
-                `
-        : `<span style="text-align: left;">${numOficial}</span>`
+        <div style="${horizontal}; gap: 5px;">
+            <span>${numOficial}</span>
+            <div class="viculado">
+                <img src="imagens/link2.png">
+                <span>${master}</span>
+            </div>
+        </div>
+        `
+        : `<span name="contrato">${numOficial}</span>`
 
     const finalElemento = `
-                <div style="${vertical}; gap: 2px;">
-                    ${etiqRevAtual}
-                    ${orcamentosVinculados}
-                    <span>${cliente?.nome || ''}</span>
-                    ${contrato !== numOficial ? `<div style="${horizontal}; justify-content: end; width: 100%; color: #5f5f5f;"><small>${contrato}</small></div>` : ''}
-                </div>
-                `
+        <div style="${vertical}; gap: 2px;">
+            ${nomeVinculado}
+            ${etiqRevAtual}
+            <span>${cliente?.nome || ''}</span>
+            ${contrato !== numOficial ? `<div style="${horizontal}; justify-content: end; width: 100%; color: #5f5f5f;"><small>${contrato}</small></div>` : ''}
+        </div>
+        `
 
     const data = new Date(orcamento.timestamp).toLocaleDateString()
 
@@ -441,51 +401,20 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
                 <span style="font-size: 0.8rem; white-space: nowrap;">${dinheiro(orcamento.total_geral)}</span>
             </div>
             `)}
-                ${cel(`<img onclick="abrirAtalhos('${idOrcamento}')" src="imagens/pesquisar2.png" style="width: 1.5rem;">`)}
+                ${cel(`<img 
+                    onclick="${idMaster ? `abrirAtalhos('${idOrcamento}', '${idMaster}')` : `abrirAtalhos('${idOrcamento}')`}"
+                    src="imagens/pesquisar2.png" 
+                    style="width: 1.5rem;">`)}
                 `
     // Prioridade;
     const prioridade = verificarPrioridade(orcamento)
 
     const linha = `
-                <tr class="linha-master" id="${idOrcamento}" data-prioridade="${prioridade}">
-                    ${celulas}
-                </tr>
-                `
+        <tr class="linha-master" id="${idOrcamento}" data-prioridade="${prioridade}">
+            ${celulas}
+        </tr>`
 
-    const status = orcamento?.status?.atual || 'SEM STATUS'
-    const chamados = (orcamento?.chamado == 'S' && (status == 'SEM STATUS' || status == 'ORC ENVIADO'))
-        ? 'S'
-        : 'N'
-
-    if (idMaster) {
-        orcsHierarquia[idMaster] ??= []
-        orcsHierarquia[idMaster].push(idOrcamento)
-    }
-
-    const participantes = `${orcamento.usuario} ${responsaveis}`
-
-    orcsFiltrados[idOrcamento] = {
-        id: idOrcamento,
-        revisao: rAtual ? 'S' : '',
-        vinculado: idMaster ? 'S' : '',
-        valor_prioridade: prioridade,
-        prioridade: prioridade !== 3 ? 'S' : '',
-        meus_orcamentos: participantes.includes(acesso.usuario) ? 'S' : '',
-        arquivado: orcamento?.arquivado || 'N',
-        idMaster,
-        timestamp: orcamento.timestamp,
-        linha,
-        status,
-        chamados,
-        responsaveis: participantes,
-        cidade: cliente?.cidade,
-        contrato: finalElemento,
-        pedido: labels.PEDIDO,
-        notas: labels.FATURADO,
-        data,
-        valor: orcamento?.total_geral || 0,
-        tags: pegarSpans(tags)
-    }
+    return linha
 
 }
 
@@ -517,10 +446,6 @@ function verificarPrioridade(orcamento) {
     return prioridade
 }
 
-function pegarSpans(texto) {
-    return [...texto.matchAll(/<span[^>]*>(.*?)<\/span>/g)].map(m => m[1])
-}
-
 function aplicarFiltrosEPaginacao() {
 
     mostrarMenus(false)
@@ -528,73 +453,73 @@ function aplicarFiltrosEPaginacao() {
     const body = document.getElementById('linhas')
     body.innerHTML = ''
 
-    let filtrados = Object.values(orcsFiltrados).filter(dados => {
-        return Object.entries(filtrosPesquisa.orcamentos || {})
-            .every(([campoFiltro, valorFiltro]) => {
+    const ids = Object.keys(db.dados_orcamentos)
+        .filter(id => passarFiltros(db.dados_orcamentos[id]))
 
-                if (valorFiltro === '' || valorFiltro == null) return true
+    ids.sort((a, b) => {
+        const oa = db.dados_orcamentos[a]
+        const ob = db.dados_orcamentos[b]
 
-                if (campoFiltro === 'arquivado') {
-                    if (valorFiltro === 'S') return dados.arquivado === 'S'
-                    if (valorFiltro === 'N') return dados.arquivado !== 'S'
-                    return true
-                }
-
-                if (valorFiltro === 'S') return dados[campoFiltro] === 'S'
-                if (valorFiltro === 'N') return true
-
-                const valor = dados?.[campoFiltro]
-                if (valor == null) return false
-
-                return String(valor)
-                    .toLowerCase()
-                    .includes(String(valorFiltro).toLowerCase())
-            })
-    })
-
-    filtrados.sort((a, b) => {
-        const pa = Number(a.valor_prioridade ?? 3)
-        const pb = Number(b.valor_prioridade ?? 3)
+        const pa = verificarPrioridade(oa)
+        const pb = verificarPrioridade(ob)
 
         if (pa !== pb) return pa - pb
-        return b.timestamp - a.timestamp
+        return ob.timestamp - oa.timestamp
     })
 
-    carregarToolbar(filtrados)
+    carregarToolbarPorIds(ids)
 
-    tPaginas = Math.max(1, Math.ceil(filtrados.length / itensPorPagina))
+    tPaginas = Math.max(1, Math.ceil(ids.length / itensPorPagina))
 
     const inicio = (pAtual - 1) * itensPorPagina
-    const fim = inicio + itensPorPagina
+    const pagina = ids.slice(inicio, inicio + itensPorPagina)
 
+    const frag = document.createDocumentFragment()
     const jaInseridos = new Set()
 
-    filtrados.slice(inicio, fim).forEach(d => {
+    for (const id of pagina) {
 
-        if (jaInseridos.has(d.id)) return
+        if (jaInseridos.has(id)) continue
 
-        // remove se já existir no DOM
-        document.getElementById(d.id)?.remove()
+        const orc = db.dados_orcamentos[id]
+        const { chamado, contrato } = orc?.dados_orcam || {}
 
-        body.insertAdjacentHTML('beforeend', d.linha)
-        jaInseridos.add(d.id)
+        // pai
+        let el = htmlParaElemento(criarLinhaOrcamento(id, orc))
+        if (el) frag.appendChild(el)
+        jaInseridos.add(id)
 
-        // renderiza hierarquia se existir
-        const filhos = orcsHierarquia[d.id]
+        // filhos (hierarquia)
+        for (const idFilho of Object.keys(orc.vinculados || {})) {
 
-        if (Array.isArray(filhos)) {
-            filhos.forEach(fid => {
-                const filho = orcsFiltrados[fid]
-                if (!filho || jaInseridos.has(fid)) return
+            if (jaInseridos.has(idFilho)) continue
 
-                document.getElementById(fid)?.remove()
-                body.insertAdjacentHTML('beforeend', filho.linha)
-                jaInseridos.add(fid)
-            })
+            const orcFilho = db.dados_orcamentos[idFilho]
+            if (!orcFilho) continue
+
+            const master = chamado || contrato
+
+            let elFilho = htmlParaElemento(criarLinhaOrcamento(idFilho, orcFilho, master, id))
+            if (elFilho) frag.appendChild(elFilho)
+            jaInseridos.add(idFilho)
         }
-    })
+
+    }
+
+    body.appendChild(frag)
 
     renderizarControlesPagina()
+
+    localStorage.setItem('filtros', JSON.stringify(filtrosPesquisa.orcamentos))
+}
+
+function htmlParaElemento(html) {
+
+    if (!html) return
+    const t = document.createElement('template')
+
+    t.innerHTML = html.trim()
+    return t.content.firstChild
 }
 
 function renderizarControlesPagina() {
@@ -624,63 +549,6 @@ function pgSeguinte() {
     }
 }
 
-function carregarToolbar(dados) {
-
-    if (!dados) return
-
-    contToolbar = {
-        chamados: 0,
-        todos: 0
-    }
-
-    for (const orcamento of dados) {
-
-        const status = orcamento?.status || 'SEM STATUS'
-
-        contToolbar[status] ??= 0
-        contToolbar[status]++
-        contToolbar.todos++
-
-        if (orcamento?.chamados == 'S') contToolbar.chamados++
-    }
-
-    const toolbar = document.getElementById('toolbar')
-
-    const fluxogramaCompleto = ['chamados', 'todos', ...fluxograma]
-
-    for (const campo of fluxogramaCompleto) {
-
-        const contagem = contToolbar[campo] || 0
-
-        const tool = toolbar.querySelector(`[name="${campo}"]`)
-        if (tool) {
-            tool.querySelector('span').textContent = contagem
-            continue
-        }
-
-        const funcao = campo == 'chamados'
-            ? `delete filtrosPesquisa.orcamentos.status; renderizar('chamados', 'S')`
-            : `delete filtrosPesquisa.orcamentos.chamados; renderizar('status', '${campo}')`
-
-        const f = campo == 'VENDA DIRETA'
-            ? { 1: 'style="background: linear-gradient(45deg, #222, #b12425);"' }
-            : {}
-
-        const novaTool = `
-                        <div
-                            style="opacity: 0.5; height: 3rem;"
-                            class="aba-toolbar"
-                            data-status="${campo}"
-                            name="${campo}"
-                            onclick="${funcao}">
-                            <label>${campo.toUpperCase()}</label>
-                            <span ${f[1]}>${contagem}</span>
-                        </div>
-                        `
-        toolbar.insertAdjacentHTML('beforeend', novaTool)
-    }
-
-}
 
 function renderizar(campo, texto) {
 
@@ -693,7 +561,7 @@ function renderizar(campo, texto) {
 
     if (texto == 'todos') texto = ''
 
-    const f = JSON.parse(sessionStorage.getItem('filtros')) || {}
+    const f = JSON.parse(localStorage.getItem('filtros')) || {}
 
     if (campo) {
         if (texto === '' || texto == null) {
@@ -708,36 +576,6 @@ function renderizar(campo, texto) {
 
     pAtual = 1
     aplicarFiltrosEPaginacao()
-}
-
-async function organizarHierarquia() {
-
-    const divLinhas = document.getElementById('linhas')
-
-    const divsCompl = divLinhas.querySelectorAll('.linha-master')
-
-    for (const div of divsCompl) {
-
-        const idOrcamento = div.id
-
-        if (!orcsHierarquia[idOrcamento]) continue
-
-        const linhaSlave = document.querySelector(
-            `.linha-slaves[data-master="${idOrcamento}"] tbody`
-        )
-        const slaves = orcsHierarquia[idOrcamento]
-
-        for (const idSlave of slaves) {
-            // Remove o existe, ele só aparecerá com seu Master;
-            const existente = document.getElementById(idSlave)
-            if (existente) existente.remove()
-
-            const dados = orcsFiltrados[idSlave]
-            linhaSlave.insertAdjacentHTML('beforeend', dados.linha)
-        }
-
-    }
-
 }
 
 async function editar(orcam_) {
@@ -901,4 +739,144 @@ async function excelOrcamentos() {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+}
+
+// v2
+
+function passarFiltros(orcamento) {
+
+    const f = filtrosPesquisa.orcamentos || {}
+    const dados = orcamento.dados_orcam || {}
+    const cliente = db.dados_clientes?.[dados.omie_cliente] || {}
+
+    for (const [campo, valor] of Object.entries(f)) {
+
+        if (valor == null || valor === '') continue
+
+        let v
+
+        switch (campo) {
+
+            // Filtros S ou N;
+            case 'status':
+                v = String(orcamento?.status?.atual || 'SEM STATUS').toLocaleLowerCase()
+                if (v !== valor) return false
+                continue
+
+            case 'arquivado': {
+                const arq = orcamento.arquivado === 'S' ? 'S' : 'N'
+                if (arq !== valor) return false
+                continue
+            }
+
+            case 'meus_orcamentos': {
+                const participantes = `${orcamento.usuario} ${Object.keys(orcamento.usuarios || {}).join(' ')}`
+                const proprio = participantes.includes(acesso.usuario)
+
+                if (valor == 'S' && !proprio) return false
+
+                continue
+            }
+
+            case 'prioridade': {
+                const prioridade = verificarPrioridade(orcamento)
+                if (valor == 'S' && prioridade >= 3) return false
+                continue
+            }
+
+            // Filtros Livres;
+
+            case 'cidade':
+                v = cliente.cidade
+                break
+
+            case 'pedido':
+                v = dados.chamado || dados.contrato
+                break
+
+            case 'contrato':
+                v = dados.contrato
+                break
+
+            case 'responsaveis':
+                v = `${orcamento.usuario} ${Object.keys(orcamento.usuarios || {}).join(' ')}`
+                break
+
+            case 'data':
+                v = new Date(orcamento.timestamp).toLocaleDateString()
+                break
+
+            case 'valor':
+                v = orcamento.total_geral
+                break
+
+            default:
+                continue
+        }
+
+        if (v == null) return false
+
+        if (!String(v).toLowerCase().includes(String(valor).toLowerCase()))
+            return false
+    }
+
+    return true
+}
+
+function carregarToolbarPorIds(ids) {
+
+    contToolbar = { chamados: 0, todos: 0 }
+
+    for (const id of ids) {
+
+        const orc = db.dados_orcamentos[id]
+        const status = orc?.status?.atual || 'SEM STATUS'
+
+        contToolbar[status] ??= 0
+        contToolbar[status]++
+        contToolbar.todos++
+
+        const chamados =
+            orc?.chamado == 'S' &&
+            (status == 'SEM STATUS' || status == 'ORC ENVIADO')
+
+        if (chamados) contToolbar.chamados++
+    }
+
+    const toolbar = document.getElementById('toolbar')
+
+    const fluxogramaCompleto = ['chamados', 'todos', ...fluxograma]
+
+    for (const campo of fluxogramaCompleto) {
+
+        const contagem = contToolbar[campo] || 0
+
+        const tool = toolbar.querySelector(`[name="${campo}"]`)
+        if (tool) {
+            tool.querySelector('span').textContent = contagem
+            continue
+        }
+
+        const funcao = campo == 'chamados'
+            ? `delete filtrosPesquisa.orcamentos.status; renderizar('chamados', 'S')`
+            : `delete filtrosPesquisa.orcamentos.chamados; renderizar('status', '${campo}')`
+
+        const f = campo == 'VENDA DIRETA'
+            ? { 1: 'style="background: linear-gradient(45deg, #222, #b12425);"' }
+            : {}
+
+        const novaTool = `
+                        <div
+                            style="opacity: 0.5; height: 3rem;"
+                            class="aba-toolbar"
+                            data-status="${campo}"
+                            name="${campo}"
+                            onclick="${funcao}">
+                            <label>${campo.toUpperCase()}</label>
+                            <span ${f[1]}>${contagem}</span>
+                        </div>
+                        `
+        toolbar.insertAdjacentHTML('beforeend', novaTool)
+    }
+
 }

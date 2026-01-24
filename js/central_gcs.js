@@ -91,9 +91,6 @@ function criarMenus(chave) {
     const botoesMenu = document.querySelector('.botoesMenu')
     const atalhos = esquemaBotoes[chave]
     let atalhosString = `
-        <div class="nomeUsuario">
-            <span><strong>${inicialMaiuscula(acesso.permissao)}</strong> ${acesso.usuario}</span>
-        </div>
         <div class="botao-lateral" onclick="atualizarGCS()">
             <img src="imagens/atualizar.png">
             <div>Atualizar GCS</div>
@@ -119,7 +116,6 @@ async function atualizarGCS(resetar) {
         'empresas',
         'pessoas',
         'veiculos',
-        'hierarquia',
         'motoristas',
         'dados_estoque',
         'custo_veiculos',
@@ -145,6 +141,7 @@ async function atualizarGCS(resetar) {
         sincronizarApp(status)
 
         const dados = await sincronizarDados({ base, resetar })
+
         db[base] ??= {}
         db[base] = dados
 
@@ -165,7 +162,6 @@ async function atualizarGCS(resetar) {
 
     sincronizarApp({ remover: true })
     emAtualizacao = false
-
     await executar(funcaoTela)
 
 }
@@ -1742,23 +1738,6 @@ async function buscarDANFE(codOmieNF, tipo, app) {
     }
 }
 
-async function vincularAPI({ idMaster, idSlave }) {
-    try {
-        const response = await fetch(`${api}/vincular`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idMaster, idSlave })
-        })
-
-        if (!response.ok)
-            throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`)
-
-        return await response.json()
-    } catch (error) {
-        return { mensagem: error.messagem || error.mensage || error }
-    }
-}
-
 async function criarDepartamento(idOrcamento) {
     try {
         const response = await fetch(`${api}/criar-departamento`, {
@@ -1800,7 +1779,7 @@ async function auxDepartamentos() {
         const nomeDep = dep.descricao
 
         // Se existe ocorrência com o nome do dep
-        const ocorrencia = db.dados_ocorrencias[nomeDep]
+        const ocorrencia = db.dados_ocorrencias?.[nomeDep] || 'Departamento Oculto'
         if (ocorrencia) {
             const cliente = db.dados_clientes[ocorrencia?.unidade]
             if (cliente) dep.cliente = cliente

@@ -289,3 +289,15 @@
     overflow-x: hidden;
     gap: 2px;
 }
+
+.viculado {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    cursor: pointer;
+    border-radius: 3px;
+    border: solid 1px #42a5f5;
+    background-color: #42a5f563;
+    padding: 0 2px 0 2px;
+}

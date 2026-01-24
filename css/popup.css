@@ -170,7 +170,12 @@
     padding: 1rem 0 1rem 0;
 }
 
+.mensagem label {
+    padding: 1rem;
+}
+
 .mensagem img {
+    padding: 1rem;
     width: 2rem;
 }
 

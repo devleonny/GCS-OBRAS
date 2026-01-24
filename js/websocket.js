@@ -121,7 +121,8 @@ async function comunicacao() {
             }
 
             removerOverlay()
-
+            nomeUsuario.innerHTML = `<span><strong>${inicialMaiuscula(acesso.permissao)}</strong> ${acesso.usuario}</span>`
+            
         }
 
         if (app !== 'GCS') return
@@ -164,27 +165,6 @@ async function comunicacao() {
         msgStatus('Servidor offline', 3)
         setTimeout(connectWebSocket, reconnectInterval)
     }
-
-}
-
-async function identificacaoUser() {
-
-    acesso = db.dados_setores[acesso.usuario]
-
-    moduloComposicoes = permComposicoes.includes(acesso.permissao)
-
-    const bloq = ['cliente', 'técnico', 'visitante']
-    if ((acesso && bloq.includes(acesso.permissao)) || !acesso)
-        return telaPrincipal()
-
-    if (app == 'OCORRÊNCIAS') return
-    if (document.title == 'Política de Privacidade') return
-    if (!acesso || !acesso.permissao || acesso.permissao == 'novo') {
-        localStorage.removeItem('acesso')
-        return telaLogin()
-    }
-
-    if (priExeGCS) await telaInicial()
 
 }
 

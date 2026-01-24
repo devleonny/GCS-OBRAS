@@ -47,10 +47,6 @@ async function resetarTudo() {
     // Limpar variáveis;
     db = {}
 
-    // Menus;
-    const menus = document.querySelector('.botoesMenu')
-    menus.innerHTML = ''
-
     const dbGCS = await new Promise((resolve, reject) => {
         const req = indexedDB.open(nomeBaseCentral)
         req.onsuccess = () => resolve(req.result)
@@ -257,15 +253,11 @@ function contemCampoValor(obj, campo, valorFiltro) {
 async function sincronizarDados({ base, overlay = false, resetar = false, filtro = {} }) {
 
     if (overlay) overlayAguarde()
-    if (base === 'hierarquia') resetar = true
 
-    const local = resetar ? {} : await recuperarDados(base) || {}
-    const nuvem = await receber(base) || {}
+    let nuvem = await receber(base, resetar) || {}
 
-    let combinado = { ...local, ...nuvem }
-
-    combinado = Object.fromEntries(
-        Object.entries(combinado).filter(([_, obj]) => !obj?.excluido)
+    nuvem = Object.fromEntries(
+        Object.entries(nuvem).filter(([_, obj]) => !obj?.excluido)
     )
 
     if (Object.keys(filtro).length) {
@@ -278,23 +270,25 @@ async function sincronizarDados({ base, overlay = false, resetar = false, filtro
         )
     }
 
-    await inserirDados({}, base, true)
-    await inserirDados(combinado, base)
+    await inserirDados(nuvem, base, resetar)
 
     if (overlay) removerOverlay()
 
-    return combinado
+    return await recuperarDados(base)
 }
 
 // SERVIÇO DE ARMAZENAMENTO 
-async function receber(chave) {
+async function receber(chave, resetar = false) {
     try {
-        const chavePartes = chave.split('/')
-        const dados = await recuperarDados(chavePartes[0]) || {}
 
         let timestamp = 0
-        for (const objeto of Object.values(dados)) {
-            if (objeto.timestamp > timestamp) timestamp = objeto.timestamp
+
+        if (!resetar) {
+            const chavePartes = chave.split('/')
+            const dados = await recuperarDados(chavePartes[0]) || {}
+            for (const objeto of Object.values(dados)) {
+                if (objeto.timestamp > timestamp) timestamp = objeto.timestamp
+            }
         }
 
         const response = await fetch(`${api}/dados`, {

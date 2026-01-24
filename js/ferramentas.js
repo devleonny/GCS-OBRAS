@@ -17,6 +17,7 @@ let tela = null
 let toolbar = null
 let titulo = null
 let menus = null
+let nomeUsuario = null
 let progressCircle = null
 let percentageText = null
 let telaInterna = null
@@ -42,7 +43,6 @@ const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
 
 const appBases = {
     'GCS': [
-        'hierarquia',
         'tags_orcamentos',
         'departamentos_AC',
         'dados_orcamentos',
@@ -89,9 +89,6 @@ const dtFormatada = (data) => {
     return `${dia}/${mes}/${ano}`
 }
 
-//Temporário 
-indexedDB.deleteDatabase('GCSMob')
-
 const link = document.createElement('link');
 link.rel = 'icon';
 link.type = 'imagens/png';
@@ -99,6 +96,8 @@ link.href = 'imagens/LG.png';
 document.head.appendChild(link);
 
 function atribuirVariaveis() {
+
+    nomeUsuario = document.querySelector('.nomeUsuario')
     cUsuario = document.querySelector('.cabecalho-usuario')
     toolbar = document.querySelector('.toolbar-top')
     titulo = toolbar.querySelector(`[name="titulo"]`)
@@ -117,34 +116,13 @@ document.addEventListener('keydown', function (event) {
 async function resetarBases() {
 
     overlayAguarde()
+    mostrarMenus(true)
+    if(app == 'GCS') 
+        await atualizarGCS(true) // Resetar;
+    else
+        await atualizarOcorrencias(true) // Resetar;
 
-    const divMensagem = document.querySelector('.div-mensagem')
 
-    divMensagem.innerHTML = `
-        <div style="${vertical}; gap: 1vh;">
-            <label><b>GCS</b>: Por favor, aguarde...</label>
-            <br>
-            <div id="logs" style="${vertical}; gap: 1vh;"></div>
-        </div>
-    `
-
-    const logs = document.getElementById('logs')
-
-    await resetarTudo()
-    logs.insertAdjacentHTML('beforeend', '<label>Apagando <b>Base existente</b>...</label>')
-    logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
-
-    if (!app) return
-
-    for (const base of appBases[app]) {
-
-        db[base] ??= {}
-        db[base] = await sincronizarDados({ base, resetar: true })
-
-        logs.insertAdjacentHTML('beforeend', `<label>Sincronizando: <small>${base}</small></label>`)
-    }
-
-    await executar(funcaoTela)
     removerOverlay()
 
 }
@@ -371,6 +349,7 @@ async function sair() {
     removerPopup()
 
     toolbar.style.display = 'none'
+    nomeUsuario.innerHTML = ''
     mostrarMenus(false)
 
     acesso = null

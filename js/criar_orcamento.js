@@ -612,10 +612,6 @@ async function enviarDadosOrcamento() {
         baseOrcamento(undefined, true)
         await telaOrcamentos(true)
 
-        if (orcamentoBase.hierarquia) {
-            await vincularAPI({ idMaster: orcamentoBase.hierarquia, idSlave: orcamentoBase.id })
-        }
-
         removerPopup()
 
         atualizarToolbar(true) // GCS no título
