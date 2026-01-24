@@ -4,13 +4,6 @@ async function telaRelatorio() {
 
     overlayAguarde()
 
-    dados_clientes = await recuperarDados('dados_clientes')
-    empresas = await recuperarDados('empresas')
-    tipos = await recuperarDados('tipos')
-    sistemas = await recuperarDados('sistemas')
-    correcoes = await recuperarDados('correcoes')
-    prioridades = await recuperarDados('prioridades')
-    dados_ocorrencias = await recuperarDados('dados_ocorrencias')
     const tabela = modeloTabela({
         colunas: [
             '',
@@ -50,17 +43,20 @@ async function telaRelatorio() {
         <div class="pagina-relatorio">
             <div class="toolbar-relatorio-ocorrencias">
 
-                <img src="imagens/GrupoCostaSilva.png" style="width: 10rem;">
+                <img src="imagens/GrupoCostaSilva.png" style="width: 5rem;">
 
                 <div class="toolbar-itens">
                     <div style="${vertical}; gap: 0.5rem;">
                         <span>Data de abertura</span>
-                        <input id="de" type="date" onchange="pesquisarDatas()">
-                        <input id="ate" type="date" onchange="pesquisarDatas()">
                         <span onclick="paraExcel()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
                     </div>
 
-                    <div style="${horizontal}; gap: 0.5rem;">
+                    <div style="${vertical}; gap: 0.5rem;">
+                        <input id="de" type="date" onchange="pesquisarDatas()">
+                        <input id="ate" type="date" onchange="pesquisarDatas()">
+                    </div>
+
+                    <div class="toolbar-itens">
                         ${modelo('Total', 'totalChamados', '#222')}
                         ${modelo('Solucionados', 'solucionados', '#1d7e45')}
                         ${modelo('Em Aberto', 'emAberto', '#b12425')}
@@ -72,16 +68,17 @@ async function telaRelatorio() {
         </div>
     `
 
-    telaInterna.innerHTML = acumulado
-
-    removerOverlay()
+    tela.innerHTML = acumulado
 
     titulo.textContent = 'Relatório de Ocorrências'
 
-    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias).reverse()) criarLinhaRelatorio(idOcorrencia, ocorrencia)
+    for (const [idOcorrencia, ocorrencia] of Object.entries(db.dados_ocorrencias).reverse()) 
+        criarLinhaRelatorio(idOcorrencia, ocorrencia)
 
     calcularResumo()
     mostrarMenus(false)
+
+    removerOverlay()
 
 }
 
@@ -103,7 +100,7 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
 
     const uc = uCorrecao(ocorrencia?.correcoes || {})
     const tipo = uc.tipo
-    const status = correcoes?.[tipo]?.nome || 'Não analisada'
+    const status = db.correcoes?.[tipo]?.nome || 'Não analisada'
     const estilo = status == 'Solucionada'
         ? 'fin'
         : status == 'Não analisada'
@@ -118,7 +115,7 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
         .map(correcao => `<span>• ${correcao.executor}</span>`)
         .join('')
 
-    const cliente = dados_clientes?.[ocorrencia?.unidade] || {}
+    const cliente = db.dados_clientes?.[ocorrencia?.unidade] || {}
 
     const tds = `
         <td>
@@ -126,7 +123,7 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
                 <img src="imagens/pesquisar2.png" style="width: 2rem; cursor: pointer;" onclick="abrirCorrecaoRelatorio('${idOcorrencia}')">
             </div>
         </td>
-        <td>${empresas[ocorrencia?.empresa]?.nome || '-'}</td>
+        <td>${ db.empresas[ocorrencia?.empresa]?.nome || '-'}</td>
         <td>${idOcorrencia}</td>
         <td>
             <span class="${estilo}">${status}</span>
@@ -149,12 +146,12 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
         <td>
             <div style="${vertical}; gap: 2px;">${executores}</div>
         </td>
-        <td>${tipos?.[ocorrencia?.tipo]?.nome || '...'}</td>
+        <td>${db.tipos?.[ocorrencia?.tipo]?.nome || '...'}</td>
         <td>${cliente?.nome || '-'}</td>
         <td>${cliente?.cidade || '-'}</td>
         <td>${cliente?.estado || '-'}</td>
-        <td>${sistemas?.[ocorrencia?.sistema]?.nome || '...'}</td>
-        <td>${prioridades?.[ocorrencia?.prioridade]?.nome || '...'}</td>
+        <td>${db.sistemas?.[ocorrencia?.sistema]?.nome || '...'}</td>
+        <td>${db.prioridades?.[ocorrencia?.prioridade]?.nome || '...'}</td>
     `
 
     const trExistente = document.getElementById(`OCOR_${idOcorrencia}`)
@@ -246,8 +243,8 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
         .join('')
 
     let linhas = ''
-    for (let [, correcao] of Object.entries(correcoesOC)) {
-        const st = correcoes[correcao.tipoCorrecao].nome
+    for (let correcao of Object.values(correcoesOC)) {
+        const st = db.correcoes[correcao.tipoCorrecao].nome
         let registros = ''
         let imagens = ''
 
@@ -304,7 +301,7 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
             </tr>`
     }
 
-    const loja = dados_clientes?.[ocorrencia?.unidade] || {}
+    const loja = db.dados_clientes?.[ocorrencia?.unidade] || {}
 
     const elemento = `
         <div class="detalhes-correcao">
@@ -503,15 +500,6 @@ async function telaRelatorioCorrecoes() {
 
     filtrosPagina = {}
 
-    overlayAguarde()
-
-    dados_clientes = await recuperarDados('dados_clientes')
-    empresas = await recuperarDados('empresas')
-    tipos = await recuperarDados('tipos')
-    sistemas = await recuperarDados('sistemas')
-    correcoes = await recuperarDados('correcoes')
-    prioridades = await recuperarDados('prioridades')
-    dados_ocorrencias = await recuperarDados('dados_ocorrencias')
     const tabela = modeloTabela({
         colunas: [
             'Empresa',
@@ -532,14 +520,17 @@ async function telaRelatorioCorrecoes() {
         <div class="pagina-relatorio">
             <div class="toolbar-relatorio-ocorrencias">
 
-                <img src="imagens/GrupoCostaSilva.png" style="width: 10rem;">
+                <img src="imagens/GrupoCostaSilva.png" style="width: 5rem;">
 
                 <div class="toolbar-itens">
                     <div style="${vertical}; gap: 0.5rem;">
                         <span>Data de abertura</span>
+                        <span onclick="paraExcel()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
+                    </div>
+
+                    <div style="${vertical}; gap: 0.5rem;">
                         <input id="de" type="date" onchange="pesquisarDatas()">
                         <input id="ate" type="date" onchange="pesquisarDatas()">
-                        <span onclick="paraExcel()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
                     </div>
                 </div>
 
@@ -548,13 +539,11 @@ async function telaRelatorioCorrecoes() {
         </div>
     `
 
-    telaInterna.innerHTML = acumulado
-
-    removerOverlay()
+    tela.innerHTML = acumulado
 
     titulo.textContent = 'Relatório de Correções'
 
-    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias).reverse()) {
+    for (const [idOcorrencia, ocorrencia] of Object.entries(db.dados_ocorrencias).reverse()) {
         criarLinhasCorrecoes(idOcorrencia, ocorrencia)
     }
 
@@ -564,16 +553,16 @@ async function telaRelatorioCorrecoes() {
 
 function criarLinhasCorrecoes(idOcorrencia, ocorrencia) {
 
-    const cliente = dados_clientes?.[ocorrencia?.unidade] || {}
+    const cliente = db.dados_clientes?.[ocorrencia?.unidade] || {}
 
     for (const [idCorrecao, correcao] of Object.entries(ocorrencia?.correcoes || {})) {
 
         const [data, hora] = correcao.data ? correcao.data.split(', ') : ['-', '-']
 
         const tds = `
-        <td>${empresas?.[ocorrencia?.empresa]?.nome || '-'}</td>
+        <td>${db.empresas?.[ocorrencia?.empresa]?.nome || '-'}</td>
         <td>${idOcorrencia}</td>
-        <td>${correcoes?.[correcao?.tipoCorrecao]?.nome || '-'}</td>
+        <td>${db.correcoes?.[correcao?.tipoCorrecao]?.nome || '-'}</td>
         <td>
             <div>
                 ${String(correcao?.descricao || '').replace('\n', '<br>')}
@@ -584,7 +573,7 @@ function criarLinhasCorrecoes(idOcorrencia, ocorrencia) {
         <td>${correcao?.usuario || '-'}</td>
         <td>${correcao?.executor || '-'}</td>
         <td>${cliente?.nome || '-'}</td>
-        <td>${sistemas?.[ocorrencia?.sistema]?.nome || '-'}</td>
+        <td>${db.sistemas?.[ocorrencia?.sistema]?.nome || '-'}</td>
         `
 
         const trExistente = document.getElementById(`CORR_${idCorrecao}`)

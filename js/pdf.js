@@ -2,6 +2,9 @@ function voltar() {
     window.history.back();
 }
 
+let orcamentoBase = {}
+let cliente = {}
+
 const dadosEmpresas = {
     'IAC': {
         'Razão Social': 'IAC',
@@ -74,11 +77,11 @@ async function atualizarDadosPdf() {
 
         semOverlay = true
 
-        await sincronizarDados({ base: 'dados_orcamentos' })
-        await sincronizarDados({ base: 'dados_composicoes' })
-
         const pdf = JSON.parse(localStorage.getItem('pdf'))
-        const orcamentoBase = await recuperarDado('dados_orcamentos', pdf.id)
+        
+        orcamentoBase = await recuperarDado('dados_orcamentos', pdf.id)
+        cliente = recuperarDado('dados_clientes', orcamentoBase?.dados_orcam?.omie_cliente) || {}
+
         localStorage.setItem('pdf', JSON.stringify(orcamentoBase))
         location.reload(true)
 
@@ -93,7 +96,6 @@ async function atualizarDadosPdf() {
 
 async function preencher() {
 
-    const dados_composicoes = await recuperarDados('dados_composicoes') || {}
     const orcamentoBase = JSON.parse(localStorage.getItem('pdf')) || {}
 
     document.getElementById('codigo_orcamento').textContent = orcamentoBase?.id || '---'
@@ -104,7 +106,7 @@ async function preencher() {
         document.body.classList.remove('marca-ativa')
 
     // LÓGICA DOS DADOS
-    const cliente = await recuperarDado('dados_clientes', orcamentoBase?.dados_orcam?.omie_cliente) || {}
+    cliente = await recuperarDado('dados_clientes', orcamentoBase?.dados_orcam?.omie_cliente) || {}
     const informacoes = {
         ...orcamentoBase.dados_orcam,
         ...cliente
@@ -199,7 +201,7 @@ async function preencher() {
     for (let [codigo, item] of Object.entries(itens)) {
 
         const colunas = config[item.tipo].colunas
-        const itemComposicao = dados_composicoes[codigo] || {}
+        const itemComposicao = await recuperarDado('dados_composicoes', codigo) || {}
         const lpu = String(orcamentoBase.lpu_ativa).toLowerCase()
         const tabelaPreco = itemComposicao?.[lpu]
         const estado = informacoes.estado
@@ -428,12 +430,10 @@ async function gerarPDF() {
     preencher()
     ocultarElementos()
 
-    let dados_clientes = await recuperarDados('dados_clientes') || {}
     const orcamentoBase = JSON.parse(localStorage.getItem('pdf')) || {}
     const contrato = orcamentoBase.dados_orcam.contrato
-    let omie_cliente = orcamentoBase.dados_orcam?.omie_cliente || ''
-    let cliente = dados_clientes?.[omie_cliente]?.nome || ''
+    const nomeCliente = cliente?.nome || new Date().getTime()
 
-    await gerarPdfOnline(document.documentElement.outerHTML, `Orcamento_${cliente}_${contrato}`)
+    await gerarPdfOnline(document.documentElement.outerHTML, `Orcamento_${nomeCliente}_${contrato}`)
     ocultarElementos()
 }

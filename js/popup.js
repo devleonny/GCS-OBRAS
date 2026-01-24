@@ -10,6 +10,8 @@ function popup({
     nra = true
 }) {
 
+    if (!elemento && !mensagem) mensagem = 'Função <b>inativa</b>. <br>Fale com o suporte para reativação.'
+
     const idPopup = ID5digitos()
 
     const arredondado = botoes.length
@@ -27,11 +29,18 @@ function popup({
             </div>`
     }
 
-    const botaoPadrao = ({ funcao, img, texto }) => `
-        <div onclick="${funcao}" class="botoes-rodape">
+    // Se img == concluido [ação de confirmar algo] && nra esteja falso [não manter anteriores]; Fechar todos os popups;
+    const botaoPadrao = ({ funcao, img, texto }) => {
+        const removerAnteriores = (!nra && img == 'concluido')
+            ? `removerPopup({nra: false})`
+            : ''
+
+        return `
+        <div onclick="${funcao}; ${removerAnteriores}" class="botoes-rodape">
             <img src="imagens/${img}.png">
             <span>${texto}</span>
         </div>`
+    }
 
     if (linhas.length) {
 
@@ -47,7 +56,7 @@ function popup({
     } else if (mensagem) {
 
         elemento = `
-        <div style="${arredondado} ${horizontal}; background-color: ${cor}; gap: 1rem; padding: 1rem;">
+        <div class="mensagem" style="${arredondado}; background-color: ${cor};">
             <img src="${imagem || 'gifs/alerta.gif'}">
             <label>${mensagem}</label>
         </div>`
@@ -80,7 +89,7 @@ function popup({
                 <div class="popup-top">
 
                     <label style="background-color: transparent; color: white; margin-left: 1rem;">${titulo || 'GCS'}</label>
-                    <span onclick="removerPopup({id:'${idPopup}', nra: ${nra}})">×</span>
+                    <span onclick="removerPopup({ id:'${idPopup}' })">×</span>
 
                 </div>
                 
@@ -110,12 +119,12 @@ function popup({
 async function removerPopup({ id, nra = true } = {}) {
     const popups = document.querySelectorAll('.popup')
 
-    if (id) {
+    if (nra === false) {
+        popups.forEach(p => p.remove())
+    } else if (id) {
         document.getElementById(id)?.remove()
-    } else if (nra) {
-        popups[popups.length - 1]?.remove()
     } else {
-        for (const p of popups) p.remove()
+        popups[popups.length - 1]?.remove()
     }
 
     document.querySelector('.aguarde')?.remove()

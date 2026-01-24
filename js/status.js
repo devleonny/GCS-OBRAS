@@ -58,64 +58,73 @@ function aprovadoEmail(input) {
 
 }
 
-async function painelAdicionarPedido() {
+async function painelAdicionarPedido(chave) {
+
+    const pedido = db.dados_orcamentos?.[id_orcam]?.status?.historico?.[chave] || {}
 
     const linhas = [
         {
             texto: 'Tipo de Pedido',
             elemento: `
                 <select id="tipo">
-                    ${opcoesPedidos.map(op => `<option>${op}</option>`).join('')}
+                    ${opcoesPedidos.map(op => `<option ${pedido.tipo == op ? 'selected' : ''}>${op}</option>`).join('')}
                 </select>
             `
         },
         {
             texto: 'Aprovado por E-mail',
-            elemento: '<input type="checkbox" style="width: 2rem; height: 2rem;" onclick="aprovadoEmail(this)">'
+            elemento: `<input type="checkbox" style="width: 2rem; height: 2rem;" onclick="aprovadoEmail(this)">`
         },
         {
             texto: 'Número do Pedido',
-            elemento: `<input type="text" id="pedido">`
+            elemento: `<input type="text" id="pedido" value="${pedido.pedido || ''}">`
         },
         {
             texto: 'Valor do Pedido',
-            elemento: `<input type="number" id="valor">`
+            elemento: `<input type="number" id="valor" value="${pedido?.valor || ''}">`
         },
         {
             texto: 'Comentário',
-            elemento: '<textarea rows="5" id="comentario_status"></textarea>'
+            elemento: `<textarea rows="5" id="comentario_status">${pedido.comentario || ''}</textarea>`
         }
     ]
 
     const botoes = [
-        { texto: 'Salvar', funcao: 'salvarPedido()', img: 'concluido' }
+        {
+            texto: 'Salvar',
+            funcao: chave
+                ? `salvarPedido('${chave}')`
+                : 'salvarPedido()',
+            img: 'concluido'
+        }
     ]
 
-    popup({ linhas, botoes, titulo: 'Novo Pedido' })
+    popup({ linhas, botoes, titulo: chave ? 'Editar Pedido' : 'Novo Pedido' })
 
 }
 
 async function painelAdicionarNotas() {
 
+    const tipos = ['Serviço', 'Venda', 'Remessa']
+    const apps = ['AC', 'HNK', 'HNW', 'IAC']
+
     const elemento = `
         <div id="painelNotas" style="${vertical};">
 
             <div style="width: 100%; ${horizontal}; gap: 5px;">
-                <input class="pedido" placeholder="Digite o número da NF">
+                
 
                 <select class="pedido">
-                    <option>Venda/Remessa</option>
-                    <option>Serviço</option>
+                    ${tipos.map(t => `<option>${t}</option>`).join('')}
                 </select>
 
                 <select class="pedido">
-                    <option>AC</option>
-                    <option>HNW</option>
-                    <option>HNK</option>
+                    ${apps.map(a => `<option>${a}</option>`).join('')}
                 </select>
+
                 <button onclick="buscarNFOmie(this)" style="background-color: #097fe6;">Buscar dados</button>
                 
-                <span style="width: 2vw;">ou</span>
+                <span>ou</span>
 
                 <button onclick="htmlFormularioAvulso()" style="background-color: #B12425;">Inserir Manualmente</button>
             </div>
@@ -131,27 +140,30 @@ async function painelAdicionarNotas() {
 
 function htmlFormularioAvulso() {
 
-    const painelNotas = document.getElementById('painelNotas')
+    const linhas = [
+        {
+            texto: 'Número da nota',
+            elemento: `<input id="nf" class="inputParcelas">`
+        },
+        {
+            texto: 'Tipo',
+            elemento: `<select id="tipo" class="inputParcelas">${['Venda', 'Serviço', 'Remessa'].map(op => `<option>${op}</option>`).join('')}</select>`
+        },
+        {
+            texto: 'Valor',
+            elemento: `R$ <input type="number" id="valor" placeholder="0,00" class="inputParcelas">`
+        },
+        {
+            texto: `<div style="${horizontal}; gap: 1rem;"><span>Parcelas</span> <img src="imagens/baixar.png" onclick="maisParcela()"></div>`,
+            elemento: `<div class="blocoParcelas"></div>`
+        }
+    ]
 
-    painelNotas.innerHTML = `
-        <hr style="width: 100%;">
-        <div style="${vertical}; gap: 5px;">
-            ${modelo('Número da Nota', '<input id="nf" class="inputParcelas">')}
-            ${modelo('Tipo', `<select id="tipo" class="inputParcelas">${['Venda', 'Serviço', 'Remessa'].map(op => `<option>${op}</option>`).join('')}</select>`)}
-            ${modelo('Valor', 'R$ <input type="number" id="valor" placeholder="0,00" class="inputParcelas">')}
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: `salvarNotaAvulsa()` }
+    ]
 
-            <hr style="width: 100%;">
-            <label style="${horizontal}; gap: 5px;">
-                <strong>Parcelas</strong> 
-                <img src="imagens/baixar.png" style="width: 1.5vw; cursor: pointer;" onclick="maisParcela()">
-            </label>
-            
-            <div class="blocoParcelas"></div>
-
-            <hr style="width: 100%;">
-            ${botao('Salvar', `salvarNotaAvulsa()`, 'green')}
-        </div>
-    `
+    popup({ linhas, botoes, titulo: 'Vincular Nota Fiscal' })
     maisParcela()
 }
 
@@ -162,7 +174,7 @@ function maisParcela() {
             <label>R$</label>
             <input type="number" placeholder="0,00" class="inputParcelas">
             <input type="date" class="inputParcelas">
-            <img src="imagens/cancel.png" style="width: 1.5vw; cursor: pointer;" onclick="this.parentElement.remove()">
+            <img src="imagens/cancel.png" onclick="this.parentElement.remove()">
         </div>
     `
 
@@ -412,7 +424,6 @@ function pesqRequisicao() {
 
 async function carregarItensRequisicao(apVisualizar, tipoRequisicao, chave) {
 
-    const dados_composicoes = await recuperarDados('dados_composicoes') || {};
     let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
     let itensOrcamento = orcamento.dados_composicoes
     let linhas = '';
@@ -505,7 +516,7 @@ async function carregarItensRequisicao(apVisualizar, tipoRequisicao, chave) {
     for (item of itensFiltrados) {
 
         const { tipo, codigo, qtde_enviar, requisicao, descricao } = item
-        const omie = dados_composicoes[codigo]?.omie || dados_composicoes[codigo]?.partnumber || ''
+        const omie = db.dados_composicoes[codigo]?.omie || db.dados_composicoes[codigo]?.partnumber || ''
         const tOpcoes = ['SEVIÇO', 'VENDA', 'USO E CONSUMO', 'LOCAÇÃO']
             .map(op => `<option value="${op}" ${tipo == op ? 'selected' : ''}>${op}</option>`)
             .join('')
@@ -574,8 +585,6 @@ async function carregarItensRequisicao(apVisualizar, tipoRequisicao, chave) {
 }
 
 async function abrirAdicionais(codigo) {
-
-    dados_estoque = await recuperarDados('dados_estoque')
 
     const ths = ['Descrição', 'Quantidade', 'Comentário', '']
         .map(op => `<th>${op}</th>`)
@@ -705,12 +714,12 @@ function mostrarItensAdicionais() {
     }
 }
 
-async function salvarPedido() {
+async function salvarPedido(chave = ID5digitos()) {
+
     const comentario_status = document.getElementById('comentario_status')
     const valor = document.getElementById('valor')
     const tipo = document.getElementById('tipo')
     const pedido = document.getElementById('pedido')
-    const chave = ID5digitos()
 
     if (valor.value == '' || tipo.value == 'Selecione' || pedido.value == '') {
 
@@ -718,7 +727,7 @@ async function salvarPedido() {
 
     }
 
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const orcamento = db.dados_orcamentos[id_orcam]
 
     if (!orcamento.status) orcamento.status = { historico: {} }
     if (!orcamento.status.historico) orcamento.status.historico = {}
@@ -819,7 +828,7 @@ async function abrirAtalhos(id) {
     const permitidos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
     id_orcam = id
 
-    const orcamento = dados_orcamentos[id_orcam]
+    const orcamento = db.dados_orcamentos[id_orcam]
     const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
     const cliente = await recuperarDado('dados_clientes', omie_cliente)
     const emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
@@ -849,8 +858,7 @@ async function abrirAtalhos(id) {
         ${modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`)}
         ${modeloBotoes('link', 'Vincular Orçamento', `vincularOrcamento('${id}')`)}
         ${modeloBotoes('LG', 'OS em PDF', `abrirOS('${id}')`)}
-        ${hierarquia[id] ? modeloBotoes('exclamacao', 'Desvincular Orçamento', `confirmarRemoverVinculo('${id}')`) : ''}
-        ${modeloBotoes('projeto', 'Criar Orçamento Vinculado', `criarOrcamentoVinculado('${id}')`)}
+        ${db.hierarquia[id] ? modeloBotoes('exclamacao', 'Desvincular Orçamento', `confirmarRemoverVinculo('${id}')`) : ''}
         ${modeloBotoes('alerta', 'Definir Prioridade', `formularioOrcAprovado('${id}')`)}
         `
     }
@@ -977,22 +985,6 @@ async function vincularOrcamento(idOrcamento) {
 
 }
 
-async function criarOrcamentoVinculado(idOrcamento) {
-
-    const orcamentoRef = await recuperarDado('dados_orcamentos', idOrcamento)
-    const orcamento = {
-        dados_orcam: {
-            omie_cliente: orcamentoRef.dados_orcam.omie_cliente
-        },
-        hierarquia: idOrcamento
-    }
-
-    baseOrcamento(orcamento)
-    removerPopup()
-
-    await telaCriarOrcamento()
-}
-
 async function confirmarVinculo(idOrcamento) {
 
     overlayAguarde()
@@ -1008,7 +1000,7 @@ async function confirmarVinculo(idOrcamento) {
 
     // Na API será salvo os elementos;
     const dados = { idMaster }
-    hierarquia[idOrcamento] = dados
+    db.hierarquia[idOrcamento] = dados
     await inserirDados({ [idOrcamento]: dados }, 'hierarquia')
 
     removerPopup()
@@ -1353,10 +1345,10 @@ function elementosEspecificos(chave, historico) {
             ${historico.transportadora ? labelDestaque('Transportadora', historico.transportadora) : ''}
             ${historico.volumes ? labelDestaque('Volumes', historico.volumes) : ''}
             <div onclick="detalharRequisicao('${chave}', undefined, true)" class="label_requisicao">
-                <img src="gifs/lampada.gif" style="width: 2vw;">
-                <div style="text-align: left; display: flex; flex-direction: column; align-items: start; justify-content: center; cursor: pointer;">
-                    <label style="font-size: 0.7vw;"><strong>REQUISIÇÃO DISPONÍVEL</strong></label>
-                    <label style="font-size: 0.7vw;">Clique Aqui</label>
+                <img src="gifs/lampada.gif" style="width: 2rem;">
+                <div style="${vertical}; text-align: left; cursor: pointer;">
+                    <label><strong>REQUISIÇÃO DISPONÍVEL</strong></label>
+                    <label>Clique Aqui</label>
                 </div>
             </div>
         `
@@ -1366,41 +1358,26 @@ function elementosEspecificos(chave, historico) {
 
         acumulado = `
             <div onclick="detalharLpuParceiro('${chave}')" class="label_requisicao">
-                <img src="gifs/lampada.gif" style="width: 2vw;">
-                <div style="text-align: left; display: flex; flex-direction: column; align-items: start; justify-content: center; cursor: pointer;">
-                    <label style="font-size: 0.7vw;"><strong>LPU DISPONÍVEL</strong></label>
-                    <label style="font-size: 0.7vw;">Clique Aqui</label>
+                <img src="gifs/lampada.gif" style="width: 2rem;">
+                <div style="${vertical}; text-align: left; cursor: pointer;">
+                    <label><strong>LPU DISPONÍVEL</strong></label>
+                    <label>Clique Aqui</label>
                 </div>
             </div>
         `
 
     } else if (historico.status == 'PEDIDO') {
 
-        const modeloCampos = (valor1, campo, titulo) => {
-            const opcoes = opcoesPedidos
-                .map(op => `<option ${valor1 == op ? 'selected' : ''}>${op}</option>`)
-                .join('');
-            const estilo = `border-radius: 2px; font-size: 0.7vw; padding: 5px; cursor: pointer;`
-            return `
-                <div style="display: flex; align-items: start; justify-content: start; flex-direction: column; gap: 5px;">
-                    <label><strong>${titulo}:</strong></label>
-                    <div style="${horizontal}; gap: 2px;">
-                        ${campo == 'tipo'
-                    ? `<select style="${estilo}" onchange="atualizarPedido('${chave}', '${campo}', this)">${opcoes}</select>`
-                    : `<input style="${estilo}" type="${campo == 'valor' ? 'number' : 'text'}" value="${valor1}" oninput="mostrarConfirmacao(this)">`}
-                        <img src="imagens/concluido.png" style="display: none; width: 1vw;" onclick="atualizarPedido('${chave}', '${campo}', this)">
-                    </div>
-                </div>
-            `
-        }
-
         acumulado = `
-            <div style="gap: 2px; display: flex; align-items: start; justify-content: center; flex-direction: column;">
-                ${modeloCampos(historico.pedido, 'pedido', 'Pedido')}
-                ${modeloCampos(historico.valor, 'valor', 'Valor')}
-                ${modeloCampos(historico.tipo, 'tipo', 'Tipo')}
+            <div style="${vertical}; gap: 2px;">
+                ${labelDestaque('Pedido', historico.pedido)}
+                ${labelDestaque('Valor', dinheiro(historico.valor))}
+                ${labelDestaque('Tipo', historico.tipo)}
             </div>
             `
+
+        funcaoEditar = `painelAdicionarPedido('${chave}')`
+
     } else if (historico.status == 'FATURADO') {
 
         let divPacelas = ''
@@ -1446,7 +1423,7 @@ function elementosEspecificos(chave, historico) {
     if (funcaoEditar !== '') {
         acumulado += `
         <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" class="contorno-botoes" onclick="${funcaoEditar}">
-            <img src="imagens/editar4.png" style="width: 1rem;">
+            <img src="imagens/editar4.png" style="width: 1.5rem;">
             <label>Editar</label>
         </div>
         `
@@ -1456,34 +1433,41 @@ function elementosEspecificos(chave, historico) {
 
 }
 
-async function abrirEsquema(id = id_orcam) {
+async function abrirEsquema(id) {
 
     overlayAguarde()
 
+    if (!id) return popup({ mensagem: 'Ué, não abriu? Tente novamente...' })
     id_orcam = id
 
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const orcamento = db.dados_orcamentos[id_orcam]
     const contrato = orcamento?.dados_orcam?.contrato
     const oficial = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato
     const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
-    const cliente = await recuperarDado('dados_clientes', omie_cliente)
+    const cliente = db.dados_clientes[omie_cliente] || {}
     let blocosStatus = {}
 
     for (const [chave, historico] of Object.entries(orcamento?.status?.historico || {})) {
 
+        const { anexos } = historico
+
         const statusCartao = historico.status
         const cor = coresST?.[statusCartao]?.cor || '#808080'
 
-        if (!blocosStatus[statusCartao]) blocosStatus[statusCartao] = ''
+        blocosStatus[statusCartao] ??= ''
 
         const excluir = (historico.executor == acesso.usuario || acesso.permissao == 'adm')
             ? `<span class="close" style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" onclick="apagarStatusHistorico('${chave}')">&times;</span>`
             : ''
 
-        blocosStatus[statusCartao] += `
-            <div class="bloco-status" style="border: 1px solid ${cor};">
+        const stringAnexos = Object.entries(anexos || {})
+            .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('${chave}', '${idAnexo}', this)`))
+            .join('')
 
-                <div style="${vertical}; background-color: ${cor}1f; padding: 3px; border-top-right-radius: 3px; border-top-left-radius: 3px;">
+        blocosStatus[statusCartao] += `
+            <div class="bloco-status" style="padding: 5px; border: 1px solid ${cor};">
+
+                <div style="${vertical}; background-color: ${cor}1f; padding: 5px; border-top-right-radius: 3px; border-top-left-radius: 3px;">
                     ${excluir}
                     ${labelDestaque('Chamado', oficial)}
                     ${labelDestaque('Executor', historico.executor)}
@@ -1497,45 +1481,27 @@ async function abrirEsquema(id = id_orcam) {
 
                     ${elementosEspecificos(chave, historico)}
 
-                    <div class="escondido" style="display: none;">
-                        <div class="contorno-botoes" style="background-color: ${cor}">
-                            <img src="imagens/anexo2.png" style="width: 1rem;">
-                            <label>Anexo
-                                <input type="file" style="display: none;" onchange="salvar_anexo('${chave}', this)" multiple>  
-                            </label>
-                        </div>
-
-                        <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
-                            ${await carregar_anexos(chave)}
-                        </div>
-
-                        <div class="contorno-botoes" onclick="toggle_comentario('comentario_${chave}')" style="background-color: ${cor};">
-                            <img src="imagens/comentario.png" style="width: 1rem;">
-                            <label>Comentário</label>
-                        </div>
-
-                        <div id="comentario_${chave}" style="display: none; justify-content: space-evenly; align-items: center;">
-                            <textarea placeholder="Comente algo aqui..."></textarea>
-                            <button onclick="salvar_comentario('${chave}')">Salvar</button>
-                        </div>
-                        <div id="caixa_comentarios_${chave}" style="display: flex; flex-direction: column;">
-                            ${await carregar_comentarios(chave)}
-                        </div>
+                    <div class="contorno-botoes" style="background-color: ${cor}">
+                        <img src="imagens/anexo2.png" style="width: 1.5rem;">
+                        <label>Anexo
+                            <input type="file" style="display: none;" onchange="salvarAnexo('${chave}', this)" multiple>  
+                        </label>
                     </div>
-                    <br>
-                </div>
 
-                <div style="cursor: pointer; background-color: ${cor}; display: flex; align-items: center; justify-content: center;" onclick="exibirItens(this)">
-                    <label style="color: white; font-size: 0.9vw;">ver mais</label>
+                    <div name="anexos_${chave}" style="${vertical};">
+                        ${stringAnexos}
+                    </div>
+
                 </div>
 
             </div>
         `
     }
 
-    const blocos = Object.entries(blocosStatus)
-        .map(([, div]) => `
-            <div style="display: flex; flex-direction: column; justify-content: start; align-items: center; width: 16vw; gap: 10px;">
+    const blocos = Object
+        .values(blocosStatus)
+        .map(div => `
+            <div class="cartao-status">
                 ${div}
             </div>`)
         .join('')
@@ -1603,7 +1569,7 @@ async function abrirEsquema(id = id_orcam) {
     const pedido = Object.values(orcamento?.status?.historico || {})
         .some(h => h.status == 'PEDIDO')
     const chamado = orcamento?.chamado == 'S'
-    const etapas = [//29
+    const etapas = [
         {
             texto: `
                 <div style="${horizontal}; gap: 5px;">
@@ -1631,7 +1597,7 @@ async function abrirEsquema(id = id_orcam) {
         </div>`
         }).join('')
 
-    const existente = dados_ocorrencias[contrato]
+    const existente = db.dados_ocorrencias[contrato]
     const f1 = liberado ? `unidadeOrc = '${omie_cliente}'; formularioOcorrencia()` : ''
     const f2 = existente ? `formularioCorrecao('${contrato}')` : ''
 
@@ -1707,7 +1673,9 @@ async function verCorrecoes(idOcorrencia) {
 
 async function atualizarPedido(chave, campo, imgSelect) {
 
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    overlayAguarde()
+
+    const orcamento = db.dados_orcamentos[id_orcam]
 
     const elemento = campo == 'tipo' ? imgSelect : imgSelect.previousElementSibling;
 
@@ -1719,6 +1687,8 @@ async function atualizarPedido(chave, campo, imgSelect) {
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
 
     campo !== 'tipo' ? imgSelect.style.display = 'none' : ''
+
+    removerOverlay()
 }
 
 function mostrarConfirmacao(elemento) {
@@ -1728,7 +1698,7 @@ function mostrarConfirmacao(elemento) {
 
 async function alterarStatus(select) {
 
-    const orcamento = dados_orcamentos[id_orcam]
+    const orcamento = db.dados_orcamentos[id_orcam]
     orcamento.status ??= {}
     orcamento.status.historicoStatus ??= {}
     const statusAnterior = orcamento.status?.atual || ''
@@ -1762,7 +1732,7 @@ async function alterarStatus(select) {
     enviar(`dados_orcamentos/${id_orcam}/status/atual`, novoSt)
     enviar(`dados_orcamentos/${id_orcam}/status/historicoStatus/${idStatus}`, registroStatus)
 
-    dados_orcamentos[id_orcam] = orcamento
+    db.dados_orcamentos[id_orcam] = orcamento
 
     if (novoSt == 'ORC PENDENTE') formularioOrcPendente(idStatus)
     if (novoSt == 'ORC APROVADO') {
@@ -1779,7 +1749,7 @@ async function alterarStatus(select) {
 
 function formularioOrcAprovado(idOrcamento) {
 
-    const orcamento = dados_orcamentos[idOrcamento]
+    const orcamento = db.dados_orcamentos[idOrcamento]
 
     const linhas = [
         {
@@ -1803,7 +1773,7 @@ function formularioOrcAprovado(idOrcamento) {
 async function salvarPrioridade(idOrcamento) {
 
     const input = document.querySelector('[name="prioridade"]')
-    const orcamento = dados_orcamentos[idOrcamento]
+    const orcamento = db.dados_orcamentos[idOrcamento]
 
     if (!input.value) return removerPopup()
 
@@ -1822,7 +1792,7 @@ async function irORC(idOrcamento) {
 
     overlayAguarde()
 
-    const orcamento = dados_orcamentos[idOrcamento]
+    const orcamento = db.dados_orcamentos[idOrcamento]
     const aba = orcamento.aba || ''
 
     if (!aba)
@@ -1935,7 +1905,7 @@ async function salvarInfoAdicional(idStatus) {
     overlayAguarde()
     const div = document.getElementById(idStatus)
     const info = div.querySelector('[name="info"]').textContent
-    const orcamento = dados_orcamentos[id_orcam]
+    const orcamento = db.dados_orcamentos[id_orcam]
     orcamento.status.historicoStatus[idStatus].info = info
     orcamento.status.historicoStatus[idStatus].usuario = acesso.usuario
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
@@ -1993,7 +1963,7 @@ async function excluirHiStatus(idStatus) {
 
     overlayAguarde()
 
-    const orcamento = dados_orcamentos[id_orcam]
+    const orcamento = db.dados_orcamentos[id_orcam]
 
     delete orcamento.status.historicoStatus[idStatus]
 
@@ -2002,7 +1972,7 @@ async function excluirHiStatus(idStatus) {
     if (trExistente) trExistente.remove()
 
     deletar(`dados_orcamentos/${id_orcam}/status/historicoStatus/${idStatus}`)
-    delete dados_orcamentos[id_orcam].status.historicoStatus[idStatus]
+    delete db.dados_orcamentos[id_orcam].status.historicoStatus[idStatus]
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
 
     const pHistorico = document.querySelector('.painel-historico')
@@ -2010,21 +1980,6 @@ async function excluirHiStatus(idStatus) {
 
     removerOverlay()
 
-}
-
-function exibirItens(div) {
-
-    let elemento = div.previousElementSibling;
-    let label = div.querySelector('label')
-    let itens = elemento.querySelectorAll('.escondido');
-
-    itens.forEach(item => {
-        let exibir = item.style.display !== 'flex';
-        item.style.display = exibir ? 'flex' : 'none';
-
-        exibir ? label.textContent = 'menos' : label.textContent = 'ver mais'
-
-    });
 }
 
 async function registrarEnvioMaterial(chave) {
@@ -2083,13 +2038,13 @@ async function excluir_comentario(id_comentario, chave) {
 
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
     deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/comentarios/${id_comentario}`)
-    await carregar_comentarios(chave)
+    carregarComentarios(chave)
     removerPopup()
 }
 
-async function carregar_comentarios(chave) {
+function carregarComentarios(chave) {
 
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const orcamento = db.dados_orcamentos[id_orcam]
     let comentss = ''
     if (orcamento.status.historico[chave]) {
         let comentarios = orcamento.status.historico[chave].comentarios || {}
@@ -2143,7 +2098,7 @@ async function salvar_comentario(chave) {
 
     enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/comentarios/${id}`, comentario)
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    await carregar_comentarios(chave)
+    carregarComentarios(chave)
 }
 
 function toggle_comentario(id) {
@@ -2225,8 +2180,8 @@ async function detalharRequisicao(chave, tipoRequisicao, apVisualizar) {
 
     if (!chave) chave = ID5digitos()
 
-    const orcamento = dados_orcamentos[id_orcam]
-    const cliente = dados_clientes?.[orcamento.dados_orcam.omie_cliente] || {}
+    const orcamento = db.dados_orcamentos[id_orcam]
+    const cliente = db.dados_clientes?.[orcamento.dados_orcam.omie_cliente] || {}
     const cartao = orcamento?.status?.historico?.[chave] || {}
     let btnFlutuante = ''
 
@@ -2351,9 +2306,9 @@ async function detalharRequisicao(chave, tipoRequisicao, apVisualizar) {
     mostrarItensAdicionais()
 }
 
-async function salvar_anexo(chave, input) {
+async function salvarAnexo(chave, input) {
 
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
 
     if (input.files.length === 0) {
         popup({ elemento: 'Nenhum arquivo selecionado...' })
@@ -2374,29 +2329,16 @@ async function salvar_anexo(chave, input) {
         enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/anexos/${id}`, anexo)
     })
 
+    db.dados_orcamentos[id_orcam] = orcamento
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos');
 
-    let div = input.parentElement.parentElement.nextElementSibling // input > label > div pai > div seguinte;
+    const div = document.querySelector(`[name="anexos_${chave}"`)
 
-    div.innerHTML = await carregar_anexos(chave)
+    const stringAnexos = Object.entries(anexos || {})
+        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('${chave}', '${idAnexo}', this)`))
+        .join('')
 
-}
-
-async function carregar_anexos(chave) {
-
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    let anexos_divs = ''
-    let anexos = orcamento.status.historico[chave]?.anexos || {}
-
-    if (anexos) {
-
-        for (id in anexos) {
-            var anexo = anexos[id]
-            anexos_divs += criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('${chave}', '${id}', this)`)
-        }
-    }
-
-    return anexos_divs
+    div.innerHTML = stringAnexos
 
 }
 
@@ -2414,11 +2356,11 @@ async function confirmarExclusaoStatus(chave) {
 
     removerPopup()
     overlayAguarde()
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    delete orcamento.status.historico[chave]
+
+    delete db.dados_orcamentos[id_orcam].status.historico[chave]
     deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`)
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    await abrirEsquema()
+    await inserirDados({ [id_orcam]: db.dados_orcamentos[id_orcam] }, 'dados_orcamentos')
+    await abrirEsquema(id_orcam)
 
 }
 

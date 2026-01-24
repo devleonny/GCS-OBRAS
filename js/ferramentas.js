@@ -7,6 +7,8 @@ const esquemas = {
     'categoria de equipamento': ['', 'IP', 'ANALÓGICO', 'ALARME', 'CONTROLE DE ACESSO'],
     'tipo': ['VENDA', 'SERVIÇO', 'USO E CONSUMO']
 }
+const permComposicoes = ['adm', 'log', 'gerente', 'diretoria', 'editor']
+let moduloComposicoes = null
 const permCham = ['técnico', 'cliente', 'visitante']
 const extensoes = ['jpg', 'jpeg', 'png']
 let stream = null
@@ -25,18 +27,13 @@ let funcaoAtiva = null
 let funcaoTela = null
 const filtrosPesquisa = {}
 const paginasBloqueadas = ['PDF', 'OS']
-let overlayTimeout;
 let sOverlay = false
-let dados_clientes = {}
-let empresas = {}
-let correcoes = {}
-let sistemas = {}
-let prioridades = {}
-let tipos = {}
-let dados_orcamentos = {}
-let dados_ocorrencias = {}
-let dados_setores = {}
-let hierarquia = {}
+let ignorarMenus = false
+
+
+// Central
+let db = {}
+
 let depPorDesc = {}
 let app = null
 let paginaAtual = 1
@@ -139,18 +136,15 @@ async function resetarBases() {
 
     if (!app) return
 
-    const bases = [
-        ...appBases[app],
-        ...(app == 'GCS' ? appBases['OCORRÊNCIAS'] : [])
-    ]
-
     for (const base of appBases[app]) {
-        await sincronizarDados({ base, resetar: true })
+
+        db[base] ??= {}
+        db[base] = await sincronizarDados({ base, resetar: true })
+
         logs.insertAdjacentHTML('beforeend', `<label>Sincronizando: <small>${base}</small></label>`)
     }
 
-    location.reload() // Recarregar a página;
-
+    await executar(funcaoTela)
     removerOverlay()
 
 }
@@ -385,7 +379,10 @@ async function sair() {
 }
 
 function mostrarMenus(operacao) {
+
     if (document.title !== 'GCS') return
+    if (ignorarMenus) return // Quando atualizações forem recebidas;
+
     const menu = document.querySelector('.side-menu').classList
     if (operacao == 'toggle') return menu.toggle('active')
     operacao ? menu.add('active') : menu.remove('active')
@@ -634,4 +631,52 @@ async function importarAnexos({ input, foto }) {
         popup({ mensagem: `Erro na API: ${err}` })
         throw err;
     }
+}
+
+function sincronizarApp({ atual, total, remover } = {}) {
+
+    const progresso = document.querySelector('.progresso')
+
+    if (remover) {
+
+        setTimeout(async () => {
+            const loader = document.querySelector('.circular-loader')
+            if (loader) loader.remove()
+            return
+        }, 1000)
+
+        return removerOverlay()
+
+    } else if (atual) {
+
+        if (!progresso) return overlayAguarde()
+
+        const circumference = 2 * Math.PI * 50;
+        const percent = (atual / total) * 100;
+        const offset = circumference - (circumference * percent / 100);
+        progressCircle.style.strokeDasharray = circumference;
+        progressCircle.style.strokeDashoffset = offset;
+        percentageText.textContent = `${percent.toFixed(0)}%`;
+
+        return
+
+    } else {
+
+        const carregamentoHTML = `
+            <div class="circular-loader">
+                <svg>
+                    <circle class="bg" cx="60" cy="60" r="50"></circle>
+                    <circle class="progress" cx="60" cy="60" r="50"></circle>
+                </svg>
+                <div class="percentage">0%</div>
+            </div>
+        `
+
+        if (!progresso) return
+        progresso.innerHTML = carregamentoHTML
+
+        progressCircle = document.querySelector('.circular-loader .progress');
+        percentageText = document.querySelector('.circular-loader .percentage');
+    }
+
 }

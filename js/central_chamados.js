@@ -1,11 +1,3 @@
-
-/*
-const modelo = (valor1, valor2) => `
-    <div style="${horizontal}; gap: 1rem; margin-bottom: 5px; width: 100%;">
-        <label style="width: 30%; text-align: right;"><b>${valor1}</b></label>
-        <div style="width: 70%; text-align: left;">${valor2}</div>
-    </div>`
-*/
 const modeloCampos = (valor1, elemento) => `
     <div style="${horizontal}; justify-content: start; gap: 5px;">
         <label><b>${valor1}:</b></label>
@@ -52,7 +44,7 @@ const btnPadrao = (texto, funcao) => `
         <span class="btnPadrao" onclick="${funcao}">${texto}</span>
 `
 const btn = ({ img, nome, funcao, id, elemento }) => `
-    <div class="btnLateral" ${id ? `id="${id}"` : ''} onclick="${funcao}">
+    <div class="botao-lateral" ${id ? `id="${id}"` : ''} onclick="${funcao}">
         ${img ? `<img src="imagens/${img}.png">` : ''}
         ${elemento || ''}
         <div>${nome}</div>
@@ -192,9 +184,10 @@ async function capturarLocalizacao() {
     })
 }
 
-function irGCS() {
-    localStorage.setItem('app', 'GCS')
-    telaInicial()
+async function irGCS() {
+    overlayAguarde()
+    await telaInicial()
+    removerOverlay()
 }
 
 async function telaPrincipal() {
@@ -208,15 +201,16 @@ async function telaPrincipal() {
     toolbar.style.display = ''
     toolbar.style.display = 'flex'
 
+    if (priExeOcorr) {
+        await atualizarOcorrencias()
+        priExeOcorr = false
+    }
+
     const planoFundo = `
         <div class="planoFundo">
             <img src="gifs/loading.gif" style="width: 8rem;">
         </div>`
 
-    const bMenus = `
-        <div class="progresso"></div>
-        <div class="botoesMenu"></div>
-    `
     const tInterna = `
         <div class="telaInterna">
             ${planoFundo}
@@ -224,7 +218,6 @@ async function telaPrincipal() {
     `
     tela.innerHTML = tInterna
     telaInterna = document.querySelector('.telaInterna')
-    document.querySelector('.side-menu').innerHTML = bMenus
 
     carregarMenus()
     mostrarMenus(false)
@@ -243,18 +236,18 @@ async function criarElementosIniciais() {
     const pUsuario = []
     let atradados = 0
 
-    for (const [chamado, ocorrencia] of Object.entries(dados_ocorrencias)) {
+    for (const [chamado, ocorrencia] of Object.entries(db.dados_ocorrencias)) {
 
         const { usuario, unidade, sistema, prioridade } = ocorrencia
 
-        const nUnidade = dados_clientes[unidade]?.nome
-        const nSistema = sistemas[sistema]?.nome
-        const nPrioridade = prioridades[prioridade]?.nome
+        const nUnidade = db.dados_clientes[unidade]?.nome
+        const nSistema = db.sistemas[sistema]?.nome
+        const nPrioridade = db.prioridades[prioridade]?.nome
         const oCorrecoes = ocorrencia.correcoes || {}
         const uc = uCorrecao(oCorrecoes)
         const { tipo, dias = 0 } = uc
         const atrasado = dias < 0
-        const ultima_correcao = correcoes?.[tipo]?.nome || 'Não analisada'
+        const ultima_correcao = db.correcoes?.[tipo]?.nome || 'Não analisada'
 
         if (ultima_correcao == 'Solucionada') continue
 
@@ -363,7 +356,7 @@ function carregarMenus() {
     const blq = ['cliente', 'técnico']
 
     const menus = {
-        'Atualizar': { img: 'atualizar', funcao: 'validarAcesso()', proibidos: [] },
+        'Atualizar': { img: 'atualizar', funcao: 'atualizarOcorrencias()', proibidos: [] },
         'Início': { img: 'home', funcao: 'telaPrincipal()', proibidos: [] },
         'Criar Ocorrência': { img: 'baixar', funcao: 'formularioOcorrencia()', proibidos: [] },
         'Ocorrências': { img: 'configuracoes', funcao: 'telaOcorrencias()', proibidos: [] },
@@ -422,10 +415,7 @@ async function telaUsuarios() {
 
     mostrarMenus(false)
 
-    empresas = await recuperarDados('empresas')
     const colunas = ['Usuário', 'Nome', 'Empresa', 'Setor', 'Permissão', '']
-
-    dados_setores = await recuperarDados('dados_setores')
     const btnExtras = `<img onclick="atualizarUsuarios()" src="imagens/atualizar.png">`
     const tUsuarios = modeloTabela({ btnExtras, colunas, body: 'tabela_usuarios' })
     const telaUsuario = `
@@ -435,9 +425,9 @@ async function telaUsuarios() {
     `
 
     const tbody = document.getElementById('tabela_usuarios')
-    if (!tbody) telaInterna.innerHTML = telaUsuario
+    if (!tbody) tela.innerHTML = telaUsuario
 
-    for (const [user, dados] of Object.entries(dados_setores)) {
+    for (const [user, dados] of Object.entries(db.dados_setores)) {
         criarLinhaUsuario(user, dados)
     }
 
@@ -447,9 +437,10 @@ async function telaUsuarios() {
 
 async function atualizarUsuarios() {
 
-    await sincronizarDados({ base: 'dados_setores' })
-    await sincronizarDados({ base: 'empresas' })
+    overlayAguarde()
+    await atualizarOcorrencias()
     await telaUsuarios()
+    removerOverlay()
 
 }
 
@@ -458,7 +449,7 @@ function criarLinhaUsuario(user, dados) {
     const tds = `
         <td>${user}</td>
         <td>${dados.nome_completo || '...'}</td>
-        <td>${empresas?.[dados?.empresa]?.nome || '...'}</td>
+        <td>${db.empresas?.[dados?.empresa]?.nome || '...'}</td>
         <td>${dados.setor || '...'}</td>
         <td>${dados.permissao || '...'}</td>
         <td><img onclick="gerenciarUsuario('${user}')" src="imagens/pesquisar2.png"></td>
@@ -475,7 +466,7 @@ async function gerenciarUsuario(id) {
     const usuario = await recuperarDado('dados_setores', id)
 
     const empresasOpcoes = Object
-        .entries({ '': { nome: '' }, ...empresas })
+        .entries({ '': { nome: '' }, ...db.empresas })
         .sort(([, a], [, b]) => a.nome.localeCompare(b.nome))
         .map(([id, empresa]) => `<option value="${id}" ${usuario?.empresa == id ? 'selected' : ''}>${empresa.nome}</option>`)
         .join('')

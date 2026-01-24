@@ -161,9 +161,9 @@ async function excluirOcorrenciaCorrecao(idOcorrencia, idCorrecao) {
 
     if (idCorrecao) {
 
-        delete dados_ocorrencias[idOcorrencia].correcoes[idCorrecao]
+        delete db.dados_ocorrencias[idOcorrencia].correcoes[idCorrecao]
         await deletar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`)
-        await inserirDados({ [idOcorrencia]: dados_ocorrencias[idOcorrencia] }, 'dados_ocorrencias')
+        await inserirDados({ [idOcorrencia]: db.dados_ocorrencias[idOcorrencia] }, 'dados_ocorrencias')
     } else {
 
         await deletar(`dados_ocorrencias/${idOcorrencia}`)
@@ -190,15 +190,15 @@ function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
         : ''
 
     const corAssinatura = ocorrencia.assinatura ? '#008000' : '#d30000'
-    const cliente = dados_clientes?.[ocorrencia?.unidade] || {}
-    const tipo = tipos?.[ocorrencia?.tipo]?.nome || 'Em branco'
-    const sistema = sistemas?.[ocorrencia?.sistema]?.nome || 'Em branco'
-    const prioridade = prioridades?.[ocorrencia?.prioridade]?.nome || 'Em branco'
+    const cliente = db.dados_clientes?.[ocorrencia?.unidade] || {}
+    const tipo = db.tipos?.[ocorrencia?.tipo]?.nome || 'Em branco'
+    const sistema = db.sistemas?.[ocorrencia?.sistema]?.nome || 'Em branco'
+    const prioridade = db.prioridades?.[ocorrencia?.prioridade]?.nome || 'Em branco'
     const criador = ocorrencia?.usuario || 'Em branco'
     const descricao = ocorrencia?.descricao || 'Em branco'
     const unidade = cliente?.nome || 'Em branco'
     const cidade = cliente?.cidade || 'Em branco'
-    const empresa = empresas[cliente?.empresa]?.nome || 'Em branco'
+    const empresa = db.empresas[cliente?.empresa]?.nome || 'Em branco'
     const podeExcluir = acesso.permissao == 'adm' || usuario == acesso.usuario
     const divAnexos = Object
         .entries(anexos || {})
@@ -296,7 +296,7 @@ function carregarCorrecoes(idOcorrencia) {
             <div style="width: 70%; text-align: left;">${valor2}</div>
         </div>`
 
-    const ocorrencia = dados_ocorrencias?.[idOcorrencia]
+    const ocorrencia = db.dados_ocorrencias?.[idOcorrencia]
     const dadosCorrecao = ocorrencia?.correcoes || {}
 
     let divsCorrecoes = ''
@@ -318,7 +318,7 @@ function carregarCorrecoes(idOcorrencia) {
                 continue
         }
 
-        const status = correcoes?.[correcao?.tipoCorrecao]?.nome || 'Não analisada'
+        const status = db.correcoes?.[correcao?.tipoCorrecao]?.nome || 'Não analisada'
         const estilo = status == 'Solucionada'
             ? 'fin'
             : status == 'Não analisada'
@@ -474,10 +474,10 @@ function passaFiltros(idOcorrencia, ocorrencia, filtros) {
     const reagendado = oCorrecoes
         .some(c => c.datas_agendadas)
 
-    const nUltimaCorrecao = correcoes?.[uc.tipo]?.nome || 'Não analisada'
-    const nTipo = tipos?.[tipo]?.nome || 'Em branco'
-    const nSistema = sistemas?.[sistema]?.nome || 'Em branco'
-    const nPrioridade = prioridades?.[prioridade]?.nome || 'Em branco'
+    const nUltimaCorrecao = db.correcoes?.[uc.tipo]?.nome || 'Não analisada'
+    const nTipo = db.tipos?.[tipo]?.nome || 'Em branco'
+    const nSistema = db.sistemas?.[sistema]?.nome || 'Em branco'
+    const nPrioridade = db.prioridades?.[prioridade]?.nome || 'Em branco'
     const nReagendado = reagendado ? 'Sim' : 'Não'
     const nAtrasado = uc?.dias < 0 ? 'Sim' : 'Não'
 
@@ -505,12 +505,12 @@ function passaFiltros(idOcorrencia, ocorrencia, filtros) {
             case 'executor': valor = executores; break
 
             case 'chamado': valor = idOcorrencia; break
-            case 'cidade': valor = dados_clientes?.[ocorrencia.unidade]?.cidade; break
-            case 'unidade': valor = dados_clientes?.[ocorrencia.unidade]?.nome; break
+            case 'cidade': valor = db.dados_clientes?.[ocorrencia.unidade]?.cidade; break
+            case 'unidade': valor = db.dados_clientes?.[ocorrencia.unidade]?.nome; break
             case 'descricao': valor = ocorrencia.descricao; break
             case 'empresa':
-                const cli = dados_clientes?.[ocorrencia.unidade]
-                valor = empresas?.[cli?.empresa]?.nome
+                const cli = db.dados_clientes?.[ocorrencia.unidade]
+                valor = db.empresas?.[cli?.empresa]?.nome
                 break
             default:
                 valor = ocorrencia[campo]
@@ -551,7 +551,7 @@ function parseDataBR(data) {
 async function renderizarPagina(pagina) {
 
     const base = Object
-        .entries(dados_ocorrencias)
+        .entries(db.dados_ocorrencias)
         .filter(([id, o]) => passaFiltros(id, o, filtrosAtivos))
         .sort(([, a], [, b]) =>
             parseDataBR(b.dataRegistro) - parseDataBR(a.dataRegistro)
@@ -598,14 +598,14 @@ async function renderizarPagina(pagina) {
 
     // popular selects (como antes)
     for (const [, ocorrencia] of base) {
-        const cliente = dados_clientes?.[ocorrencia.unidade] || {}
-        const empresa = empresas?.[cliente.empresa]?.nome
+        const cliente = db.dados_clientes?.[ocorrencia.unidade] || {}
+        const empresa = db.empresas?.[cliente.empresa]?.nome
 
         const map = {
             criador: ocorrencia.usuario,
-            tipo: tipos?.[ocorrencia.tipo]?.nome,
-            sistema: sistemas?.[ocorrencia.sistema]?.nome,
-            prioridade: prioridades?.[ocorrencia.prioridade]?.nome,
+            tipo: db.tipos?.[ocorrencia.tipo]?.nome,
+            sistema: db.sistemas?.[ocorrencia.sistema]?.nome,
+            prioridade: db.prioridades?.[ocorrencia.prioridade]?.nome,
             empresa
         }
 
@@ -638,21 +638,13 @@ function renderizarPaginacao(total) {
 
 async function telaOcorrencias() {
 
-    if (app == 'GCS') return telaInicial()
+    if (app == 'GCS') return await telaInicial()
 
     mostrarMenus(false)
 
     filtrosAtivos = JSON.parse(localStorage.getItem('filtrosAtivos')) || {}
 
-    empresas = await recuperarDados('empresas')
-    sistemas = await recuperarDados('sistemas')
-    tipos = await recuperarDados('tipos')
-    prioridades = await recuperarDados('prioridades')
-    correcoes = await recuperarDados('correcoes')
-    dados_clientes = await recuperarDados('dados_clientes')
-    dados_ocorrencias = await recuperarDados('dados_ocorrencias')
-
-    const empresaAtiva = empresas[acesso?.empresa]?.nome || 'Desatualizado'
+    const empresaAtiva = db.empresas[acesso?.empresa]?.nome || 'Desatualizado'
     titulo.innerHTML = empresaAtiva
 
     const acumulado = `
@@ -673,7 +665,9 @@ async function telaOcorrencias() {
         </div>
     `
 
-    telaInterna.innerHTML = acumulado
+    const tOcorrencias = document.querySelector('.tela-ocorrencias')
+
+    if (!tOcorrencias) tela.innerHTML = acumulado
 
     await renderizarPagina(1)
 
@@ -775,14 +769,14 @@ function auxPendencias() {
 
     const contadores = { Todos: 0 }
 
-    for (const ocorrencia of Object.values(dados_ocorrencias)) {
+    for (const ocorrencia of Object.values(db.dados_ocorrencias)) {
 
         const oCorrecoes = ocorrencia.correcoes || {}
         if (ocultarParaTecs(oCorrecoes)) continue
 
 
         const uc = uCorrecao(oCorrecoes)
-        const nome = correcoes?.[uc.tipo]?.nome || 'Não analisada'
+        const nome = db.correcoes?.[uc.tipo]?.nome || 'Não analisada'
 
         contadores[nome] ??= 0
         contadores[nome]++
@@ -841,11 +835,6 @@ async function atualizarOcorrencias(resetar = false) {
 
     emAtualizacao = true
     sincronizarApp()
-    const status = { total: 10, atual: 1 }
-
-    sincronizarApp(status)
-
-    status.atual++
 
     const basesAuxiliares = [
         'dados_setores',
@@ -859,6 +848,12 @@ async function atualizarOcorrencias(resetar = false) {
         'tipos'
     ]
 
+    const status = { total: (basesAuxiliares.length + 1), atual: 1 }
+
+    sincronizarApp(status)
+
+    status.atual++
+
     const bCli = ['dados_clientes', 'dados_ocorrencias']
 
     for (const base of basesAuxiliares) {
@@ -871,7 +866,10 @@ async function atualizarOcorrencias(resetar = false) {
                 ? { executor: acesso.usuario, tipoCorrecao: '!WRuo2' } // Diferente de Solucionado;
                 : {}
 
-        await sincronizarDados({ base, filtro, resetar })
+        const dados = await sincronizarDados({ base, filtro, resetar })
+        db[base] ??= {}
+        db[base] = dados
+
         status.atual++
 
         // A tabela é a primeira: atualiza os dados da empresa atual antes da tabela de clientes;
@@ -888,16 +886,6 @@ async function atualizarOcorrencias(resetar = false) {
 
     emAtualizacao = false
 
-    dados_setores = await recuperarDados('dados_setores')
-    empresas = await recuperarDados('empresas')
-    dados_composicoes = await recuperarDados('dados_composicoes')
-    dados_ocorrencias = await recuperarDados('dados_ocorrencias')
-    dados_clientes = await recuperarDados('dados_clientes')
-    sistemas = await recuperarDados('sistemas')
-    prioridades = await recuperarDados('prioridades')
-    correcoes = await recuperarDados('correcoes')
-    tipos = await recuperarDados('tipos')
-
     if (app == 'GCS') return
 
     const tOcorrencias = document.querySelector('.tela-ocorrencias')
@@ -910,62 +898,14 @@ async function atualizarOcorrencias(resetar = false) {
     auxPendencias() // Atualizar os tópicos do menu lateral;
 }
 
-function sincronizarApp({ atual, total, remover } = {}) {
-
-    const progresso = document.querySelector('.progresso')
-
-    if (remover) {
-
-        setTimeout(async () => {
-            const loader = document.querySelector('.circular-loader')
-            if (loader) loader.remove()
-            return
-        }, 1000)
-
-        return removerOverlay()
-
-    } else if (atual) {
-
-        if (!progresso) return overlayAguarde()
-
-        const circumference = 2 * Math.PI * 50;
-        const percent = (atual / total) * 100;
-        const offset = circumference - (circumference * percent / 100);
-        progressCircle.style.strokeDasharray = circumference;
-        progressCircle.style.strokeDashoffset = offset;
-        percentageText.textContent = `${percent.toFixed(0)}%`;
-
-        return
-
-    } else {
-
-        const carregamentoHTML = `
-            <div class="circular-loader">
-                <svg>
-                    <circle class="bg" cx="60" cy="60" r="50"></circle>
-                    <circle class="progress" cx="60" cy="60" r="50"></circle>
-                </svg>
-                <div class="percentage">0%</div>
-            </div>
-        `
-
-        if (!progresso) return
-        progresso.innerHTML = carregamentoHTML
-
-        progressCircle = document.querySelector('.circular-loader .progress');
-        percentageText = document.querySelector('.circular-loader .percentage');
-    }
-
-}
-
 async function formularioOcorrencia(idOcorrencia) {
 
-    const ocorrencia = dados_ocorrencias[idOcorrencia] || {}
+    const ocorrencia = db.dados_ocorrencias[idOcorrencia] || {}
     const { unidade = unidadeOrc, tipo, sistema, prioridade, anexos, fotos, descricao } = ocorrencia
-    const nUnidade = dados_clientes[unidade]?.nome
-    const nSistema = sistemas[sistema]?.nome
-    const nPrioridade = prioridades[prioridade]?.nome
-    const nTipo = tipos[tipo]?.nome
+    const nUnidade = db.dados_clientes[unidade]?.nome
+    const nSistema = db.sistemas[sistema]?.nome
+    const nPrioridade = db.prioridades[prioridade]?.nome
+    const nTipo = db.tipos[tipo]?.nome
     const a = Object
         .entries(anexos || {})
         .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')`))
@@ -1050,7 +990,7 @@ function bloqAnterior(input) {
 
 async function formularioCorrecao(idOcorrencia, idCorrecao) {
 
-    const ocorrencia = dados_ocorrencias[idOcorrencia]
+    const ocorrencia = db.dados_ocorrencias[idOcorrencia]
     const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
 
     const equipamentos = (
@@ -1060,7 +1000,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
         )
     ).join('')
 
-    const tipoCorrecao = correcoes[correcao?.tipoCorrecao]?.nome
+    const tipoCorrecao = db.correcoes[correcao?.tipoCorrecao]?.nome
     const executor = correcao?.executor
     const linhas = [
         {
@@ -1152,7 +1092,7 @@ async function maisLabel({ codigo, quantidade, unidade } = {}) {
 
 async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
 
-    const ocorrencia = dados_ocorrencias[idOcorrencia]
+    const ocorrencia = db.dados_ocorrencias[idOcorrencia]
     ocorrencia.correcoes ??= {}
     ocorrencia.correcoes[idCorrecao] ??= {}
 

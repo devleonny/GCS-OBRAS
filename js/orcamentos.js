@@ -148,8 +148,6 @@ async function telaOrcamentos() {
 
     funcaoTela = 'telaOrcamentos'
 
-    hierarquia = await recuperarDados('hierarquia')
-
     const fOn = ['status', 'tags', 'contrato', 'responsaveis', 'cidade', 'valor']
     const cabecs = ['data', 'status', 'pedido', 'notas', 'tags', 'contrato', 'cidade', 'responsaveis', 'indicadores', 'valor', 'ações']
     const filtrosOff = ['status', 'ações', 'indicadores']
@@ -204,12 +202,11 @@ async function telaOrcamentos() {
     if (!tabelaOrcamento) tela.innerHTML = acumulado
 
     await auxDepartamentos()
-    tags_orcamentos = await recuperarDados('tags_orcamentos')
 
     orcsFiltrados = {}
     orcsHierarquia = {}
 
-    for (const [idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
+    for (const [idOrcamento, orcamento] of Object.entries(db.dados_orcamentos)) {
         criarLinhaOrcamento(idOrcamento, orcamento)
     }
 
@@ -305,7 +302,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
     const dados_orcam = orcamento.dados_orcam
     if (!dados_orcam) return
 
-    const cliente = dados_clientes?.[dados_orcam.omie_cliente] || {}
+    const cliente = db.dados_clientes?.[dados_orcam.omie_cliente] || {}
     let labels = {
         PEDIDO: '',
         FATURADO: ''
@@ -347,8 +344,8 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
     const numOficial = dados_orcam?.chamado || contrato || '-'
     const rAtual = orcamento?.revisoes?.atual
     const etiqRevAtual = rAtual ? `<span class="etiqueta-revisao">${rAtual}</span>` : ''
-    const idMaster = hierarquia?.[idOrcamento]?.idMaster
-    const orcamentoMaster = dados_orcamentos[idMaster]
+    const idMaster = db.hierarquia?.[idOrcamento]?.idMaster
+    const orcamentoMaster = db.dados_orcamentos[idMaster]
     const numOficialMaster = orcamentoMaster?.dados_orcam?.chamado || orcamentoMaster?.dados_orcam?.contrato || '-'
     const orcamentosVinculados = idMaster
         ? `
@@ -805,17 +802,17 @@ async function excelOrcamentos() {
         'Valor'
     ])
 
-    for (const orcamento of Object.values(dados_orcamentos)) {
+    for (const orcamento of Object.values(db.dados_orcamentos)) {
 
         const codCliente = orcamento?.dados_orcam?.omie_cliente
-        const cliente = dados_clientes[codCliente] || {}
+        const cliente = db.dados_clientes[codCliente] || {}
 
         const dt = orcamento?.dados_orcam?.data
         const [data, hora] = dt ? dt.split(', ') : ['', '']
 
         const nomesTag = Object.keys(orcamento?.tags || {})
             .map(cod => {
-                return tags_orcamentos[cod] ? tags_orcamentos[cod].nome : ''
+                return db.tags_orcamentos[cod] ? db.tags_orcamentos[cod].nome : ''
             }).join(', ')
         const chamado = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato || ''
 

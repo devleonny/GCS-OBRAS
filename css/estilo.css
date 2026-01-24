@@ -419,7 +419,7 @@ button {
     color: white;
 }
 
-.btnLateral {
+.botao-lateral {
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -431,7 +431,7 @@ button {
     background-color: #f3f3f3;
 }
 
-.btnLateral img {
+.botao-lateral img {
     width: 2rem;
     margin-left: 10px
 }

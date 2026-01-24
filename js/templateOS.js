@@ -1,3 +1,9 @@
+const semImagem = `
+    <div class="horizontal-1">
+        <img src="${api}/uploads/img.png" style="width: 2rem;">
+        <span>Sem Imagens</span>
+    </div>
+`
 async function telaOS(idOcorrencia) {
 
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
@@ -15,12 +21,14 @@ async function telaOS(idOcorrencia) {
 
     let imagens = ''
 
-    imagens = Object.entries(ocorrencia?.fotos || {})
-        .map(([link,]) => `<img id="${link}" src="${api}/uploads/${link}" onclick="ampliarImagem(this, '${link}')">`)
+    imagens += Object.values(ocorrencia?.fotos || {})
+        .map(foto => {
+            return `<img id="${foto.link}" src="${api}/uploads/${foto.link}" onclick="ampliarImagem(this, '${foto.link}')">`
+        })
         .join('')
 
     // Anexos
-    imagens = Object.values(ocorrencia?.anexos || {})
+    imagens += Object.values(ocorrencia?.anexos || {})
         .map(foto => {
             const link = foto.link
             const extensao = link.split('.').pop().toLowerCase()
@@ -28,13 +36,6 @@ async function telaOS(idOcorrencia) {
             return `<img name="foto" id="${link}" src="${api}/uploads/${link}" onclick="ampliarImagem(this, '${link}')">`
         })
         .join('')
-
-    if (imagens == '') imagens = `
-        <div class="horizontal-1">
-            <img src="${api}/uploads/img.png" style="width: 2rem;">
-            <span>Sem Imagens</span>
-        </div>
-    `
 
     const modelo = (texto1, texto2) => `
         <div class="vertical">
@@ -54,13 +55,13 @@ async function telaOS(idOcorrencia) {
             <div class="horizontal-2">
 
                 <div class="fotos-os">
-                    ${imagens}
+                    ${imagens || semImagem}
                 </div>
 
                 <div class="vertical">
-                    ${modelo('Status Ocorrência', correcoes?.[ocorrencia.tipoCorrecao]?.nome || '')}
-                    ${modelo('Prioridade', prioridades?.[ocorrencia.prioridade]?.nome || 'Em branco')}
-                    ${modelo('Tipo Ocorrência', tipos?.[ocorrencia.tipo]?.nome || 'Em branco')}
+                    ${modelo('Status Ocorrência', db.correcoes?.[ocorrencia.tipoCorrecao]?.nome || '')}
+                    ${modelo('Prioridade', db.prioridades?.[ocorrencia.prioridade]?.nome || 'Em branco')}
+                    ${modelo('Tipo Ocorrência', db.tipos?.[ocorrencia.tipo]?.nome || 'Em branco')}
                     ${modelo('Data/Hora da Abertura', ocorrencia.dataRegistro)}
                 </div>
 
@@ -73,7 +74,7 @@ async function telaOS(idOcorrencia) {
                 </div>
 
                 <div class="vertical">
-                    ${modelo('Sistema', sistemas?.[ocorrencia.sistema]?.nome || '')}
+                    ${modelo('Sistema', db.sistemas?.[ocorrencia.sistema]?.nome || '')}
                     ${modelo('Criado por', ocorrencia?.usuario || '...')}
                 </div>
 
@@ -84,15 +85,15 @@ async function telaOS(idOcorrencia) {
 
     let linhasCorrecoes = ''
 
-    for (const [, correcao] of Object.entries(ocorrencia?.correcoes || {})) {
+    for (const correcao of Object.values(ocorrencia?.correcoes || {})) {
 
         let imagens = ''
 
-        imagens = Object.entries(correcao?.fotos || {})
-            .map(([link,]) => `<img id="${link}" src="${api}/uploads/${link}" onclick="ampliarImagem(this, '${link}')">`)
+        imagens += Object.values(correcao?.fotos || {})
+            .map(foto => `<img id="${foto.link}" src="${api}/uploads/${foto.link}" onclick="ampliarImagem(this, '${foto.link}')">`)
             .join('')
 
-        imagens = Object.values(correcao?.anexos || {})
+        imagens += Object.values(correcao?.anexos || {})
             .map(foto => {
                 const link = foto.link
                 const extensao = link.split('.').pop().toLowerCase()
@@ -101,18 +102,11 @@ async function telaOS(idOcorrencia) {
             })
             .join('')
 
-        if (imagens == '') imagens = `
-            <div class="horizontal-1">
-                <img src="${api}/uploads/img.png" style="width: 2rem;">
-                <span>Sem Imagens</span>
-            </div>
-        `
-
         linhasCorrecoes += `
             <div class="painel-2">
 
                 <div class="fotos-os" style="width: 30%;">
-                    ${imagens}
+                    ${imagens || semImagem}
                 </div>
 
                 <div class="vertical" style="width: 100%;">
@@ -125,7 +119,7 @@ async function telaOS(idOcorrencia) {
                     <br>
 
                     <div class="horizontal" style="gap: 1rem;">
-                        ${modelo('Status da Correção', correcoes?.[correcao.tipoCorrecao]?.nome || '')}
+                        ${modelo('Status da Correção', db.correcoes?.[correcao.tipoCorrecao]?.nome || '')}
                         ${modelo('Registrado em', correcao?.data || '--')}
                         ${modelo('Executor', correcao.usuario)}
                     </div>
@@ -136,134 +130,34 @@ async function telaOS(idOcorrencia) {
     }
 
     const acumulado = `
+        <div id="pdf">
+            <div class="botoes-flutuantes">
+                <img src="imagens/voltar.png" style="width: 2.5rem;" onclick="telaOcorrencias()">
+                <img src="imagens/pdf.png" style="width: 2.5rem;" onclick="gerarPdfOS('${idOcorrencia}')">
+            </div>
 
-        <div class="botoes-flutuantes">
-            <img src="imagens/voltar.png" style="width: 2.5rem;" onclick="telaOcorrencias()">
-            <img src="imagens/pdf.png" style="width: 2.5rem;" onclick="gerarOS('${idOcorrencia}')">
-        </div>
+            <div class="relatorio">
 
-        <div class="relatorio">
+                <div class="corpo">
 
-            <style>
-        
-                .relatorio {
-                    overflow: auto;
-                }
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span class="titulo-os">Relatório da Ocorrência</span>
+                        <img src="https://i.imgur.com/gUcc7iG.png" style="width: 3rem;">
+                    </div>
+                    <br>
+                    <div class="painel">
 
-                .campo-descricao {
-                    background-color: #dfdfdf;
-                    padding: 3px;
-                    border-radius: 3px;
-                }
+                        ${linha1}
 
-                .horizontal-1 {
-                    padding: 1rem;
-                    display: flex;
-                    justify-contet: center;
-                    align-items: center;
-                    gap: 2px;
-                }
+                        ${linhasCorrecoes}
 
-                .horizontal-2 {
-                    display: flex;
-                    justify-contet: center;
-                    align-items: center;
-                    gap: 2rem;
-                }
+                        ${assinatura}
 
-                .horizontal-1 span {
-                    white-space: nowrap;
-                }
-                
-                .fotos-os {
-                    grid-template-columns: repeat(2, 1fr);
-                }
+                    </div>
 
-                .fotos-os img {
-                    margin: 2px;
-                    width: 5rem;
-                }
-
-                .corpo {
-                    width: fit-content;
-                    font-size: 0.8rem;
-                    font-family: 'Poppins', sans-serif;
-                    border-radius: 5px;
-                    padding: 2rem;
-                    background-color: white;
-                }
-
-                .horizontal {
-                    gap: 3px;
-                    display: flex;
-                    align-items: start;
-                    justify-content: start;
-                }
-
-                .vertical {
-                    display: flex;
-                    align-items: start;
-                    justify-content: start;
-                    flex-direction: column;
-                }
-
-                .painel {
-                    gap: 0.2rem;
-                    display: flex;
-                    align-items: start;
-                    justify-content: start;
-                    flex-direction: column;
-                }
-
-                .painel-1 {
-                    width: 95%;
-                    padding: 0.5rem;
-                    background-color: #22874454;
-                    border-radius: 5px;
-                    border: solid 1px #228743;
-                    display: flex;
-                    align-items: start;
-                    justify-content: start;
-                    flex-direction: column;
-                }
-
-                .painel-2 {
-                    width: 95%;
-                    gap: 0.5rem;
-                    padding: 0.5rem;
-                    border-radius: 5px;
-                    border: solid 1px #757575ff;
-                    display: flex;
-                    align-items: center;
-                    justify-content: start;
-                }
-
-                .titulo-os {
-                    font-weight: bold;
-                    color: #228743;
-                    font-size: 1.5rem;
-                }
-
-            </style>
-
-            <div class="corpo">
-
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <span class="titulo-os">Relatório da Ocorrência</span>
-                    <img src="https://i.imgur.com/gUcc7iG.png" style="width: 3rem;">
-                </div>
-                <br>
-                <div class="painel">
-
-                    ${linha1}
-
-                    ${linhasCorrecoes}
-
-                    ${assinatura}
                 </div>
 
             </div>
-
         </div>
     `
 
@@ -271,46 +165,12 @@ async function telaOS(idOcorrencia) {
 
 }
 
-async function gerarOS(idOcorrencia) {
+async function gerarPdfOS(nome) {
 
-    overlayAguarde()
+    const id = 'pdf'
+    const estilos = [
+        'layout_os'
+    ]
 
-    try {
-
-        const html = document.querySelector('.relatorio').innerHTML
-        await gerarPdfOnline(html, `Relatório OS ${idOcorrencia}`)
-    } catch (err) {
-        popup({ mensagem: err.message || `Falha em baixar o PDF` })
-    }
-
-    removerOverlay()
-
-}
-
-async function gerarPdfOnline(htmlString, nome) {
-    return new Promise((resolve, reject) => {
-        let encoded = new TextEncoder().encode(htmlString);
-        let compressed = pako.gzip(encoded);
-
-        fetch(`${api}/pdf`, {
-            method: "POST",
-            headers: { "Content-Type": "application/octet-stream" },
-            body: compressed
-        })
-            .then(response => response.blob())
-            .then(async blob => {
-
-                // navegador
-                const link = document.createElement("a");
-                link.href = URL.createObjectURL(blob);
-                link.download = `${nome}.pdf`;
-                link.click();
-                resolve();
-
-            })
-            .catch(err => {
-                console.error("Erro ao gerar PDF:", err);
-                reject(err);
-            });
-    });
+    await pdf({ id, estilos, nome })
 }

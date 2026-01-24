@@ -51,7 +51,7 @@ function apagarOrcamento() {
         { texto: 'Confirmar', img: 'concluido', funcao: `confirmarExclusaoOrcamento()` }
     ]
 
-    popup({ botoes, elemento: 'Você quer limpar essa tela? <b>Isso não apagará o orçamento salvo*</b>' })
+    popup({ botoes, mensagem: 'Você quer limpar essa tela? <b>Isso não apagará o orçamento salvo*</b>' })
 }
 
 async function confirmarExclusaoOrcamento() {
@@ -119,8 +119,6 @@ async function telaCriarOrcamento() {
 
     <div id="orcamento_livre"></div>
     `
-
-    dados_clientes = await recuperarDados('dados_clientes') || {}
 
     const orcamentoPadrao = document.getElementById('orcamento_padrao')
     if (!orcamentoPadrao) tela.innerHTML = acumulado
@@ -328,12 +326,10 @@ function removerMaster() {
 
 async function atualizarOpcoesLPU() {
 
-    dados_composicoes = await recuperarDados('dados_composicoes') || {}
-
     let orcamentoBase = baseOrcamento() || {}
     const LPUS = [
         ...new Set(
-            Object.values(dados_composicoes)
+            Object.values(db.dados_composicoes)
                 .flatMap(obj =>
                     Object.keys(obj)
                         .filter(key => key.toLowerCase().includes('lpu')) // só chaves "lpu"
@@ -364,7 +360,6 @@ async function alterarTabelaLPU(tabelaLPU) {
 
 async function carregarTabelasOrcamento() {
 
-    dados_composicoes = await recuperarDados('dados_composicoes')
     let orcamentoBase = baseOrcamento()
 
     if (!orcamentoBase.esquema_composicoes) orcamentoBase.esquema_composicoes = orcamentoBase?.dados_composicoes || {}
@@ -644,8 +639,8 @@ async function ativarChamado(input, idOrcamento) {
         return popup({ mensagem: resposta.mensagem })
     }
 
-    dados_orcamentos[idOrcamento].chamado = ativo
-    await inserirDados({ [idOrcamento]: dados_orcamentos[idOrcamento] }, 'dados_orcamentos')
+    db.dados_orcamentos[idOrcamento].chamado = ativo
+    await inserirDados({ [idOrcamento]: db.dados_orcamentos[idOrcamento] }, 'dados_orcamentos')
 
     const linha = document.getElementById(idOrcamento)
     if (linha) linha.dataset.chamado = ativo
@@ -657,12 +652,6 @@ async function ativarChamado(input, idOrcamento) {
 
 }
 
-async function recuperarComposicoesOrcamento() {
-
-    dados_composicoes = await sincronizarDados({ base: 'dados_composicoes' })
-    await tabelaProdutosOrcamentos()
-
-}
 
 async function tabelaProdutosOrcamentos(dadosFiltrados) {
 
@@ -679,7 +668,7 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
     colunas.forEach((col, i) => {
         const borda = `border: solid 1px ${cor}db;`
         ths += `
-        <th style="padding: 0.5rem; ${borda}">
+        <th style="background-color: transparent; padding: 0.5rem; ${borda}">
             <div style="${horizontal}; color: white; justify-content: space-between; width: 100%; gap: 1rem;">
                 <span>${col}</span>
                 <img onclick="filtrarAAZ('${i}', 'bodyComposicoes')" src="imagens/down.png" style="width: 1rem;">
@@ -707,7 +696,7 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
 
     const botoes = `
 
-        ${btn('atualizar', 'recuperarComposicoesOrcamento()', 'Atualizar')}
+        ${btn('atualizar', 'atualizarGCS()', 'Atualizar')}
 
         ${moduloComposicoes
             ? btn('baixar', 'cadastrarItem()', 'Criar Item')
@@ -747,15 +736,14 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
         `
     let bodyComposicoes = document.getElementById('bodyComposicoes')
     if (!bodyComposicoes) {
-        dados_composicoes = await recuperarDados('dados_composicoes') || {}
         document.getElementById('tabelaItens').innerHTML = acumulado
     }
 
-    dadosFiltrados = dadosFiltrados || dados_composicoes
+    dadosFiltrados = dadosFiltrados || db.dados_composicoes
 
     const orcamentoBase = baseOrcamento()
     const omie_cliente = orcamentoBase?.dados_orcam?.omie_cliente || ''
-    const cliente = dados_clientes?.[omie_cliente] || {}
+    const cliente = db.dados_clientes?.[omie_cliente] || {}
     const estado = cliente?.estado || null
     const composicoesOrcamento = orcamentoBase?.esquema_composicoes || {}
     const lpu = orcamentoBase.lpu_ativa ? String(orcamentoBase.lpu_ativa).toLocaleLowerCase() : 'LPU HOPE'
@@ -934,7 +922,7 @@ async function pesquisarProdutos(chave, pesquisa) {
 
     const dadosFiltrados = {}
 
-    for (const [codigo, produto] of Object.entries(dados_composicoes)) {
+    for (const [codigo, produto] of Object.entries(db.dados_composicoes)) {
         const corresponde = filtrosAtivos.every(([coluna, termo]) => {
             const valor = String(produto[coluna] || '')
                 .normalize('NFD')
@@ -1112,7 +1100,7 @@ async function totalOrcamento() {
     let totalAcrescido = 0
     let descontoAcumulado = 0
     let statusCotacao = false
-    const cliente = dados_clientes?.[orcamentoBase.dados_orcam?.omie_cliente] || ''
+    const cliente = db.dados_clientes?.[orcamentoBase.dados_orcam?.omie_cliente] || ''
     const estado = cliente.estado || false
 
     if (!orcamentoBase.esquema_composicoes) orcamentoBase.esquema_composicoes = {}
@@ -1161,7 +1149,7 @@ async function totalOrcamento() {
         elo.innerHTML = `<img onclick="moverItem({codigoAmover: ${codigo}, codigoMaster: ${codigoMaster}})" src="imagens/elo.png" style="cursor: pointer; width: 1.5rem;">`
 
         itemSalvo.codigo = codigo
-        const refProduto = dados_composicoes?.[codigo] || itemSalvo
+        const refProduto = db.dados_composicoes?.[codigo] || itemSalvo
         const boticario = refProduto.preco_estado && lpu.includes('boticario')
 
         linha.dataset.tipo = refProduto.tipo
@@ -1460,7 +1448,7 @@ async function filtrarPorTipo(tipo) {
         let infoMaster = ''
         if (hierarquia == 'slave' && tipo !== 'GERAL') {
             const [codMaster,] = String(linha.id).split('_')
-            const prodMaster = dados_composicoes?.[codMaster] || {}
+            const prodMaster = db.dados_composicoes?.[codMaster] || {}
             infoMaster = `
                 <div style="${horizontal}; gap: 3px;">
                     <img src="imagens/link.png" style="width: 1.5rem;">
@@ -1481,7 +1469,7 @@ async function filtrarPorTipo(tipo) {
 
 async function alterarValorUnitario({ codigo, codigoMaster }) {
 
-    const produto = dados_composicoes[codigo]
+    const produto = db.dados_composicoes[codigo]
     const lpu = String(document.getElementById('lpu').value).toLowerCase()
     const ativo = produto?.[lpu]?.ativo || 0
     const historico = produto?.[lpu]?.historico || {}
@@ -1543,7 +1531,7 @@ async function confirmarNovoPreco({ codigo, codigoMaster, precoOriginal, operaca
 
 async function incluirItem(codigo, novaQuantidade) {
     let orcamentoBase = baseOrcamento()
-    const produto = dados_composicoes[codigo]
+    const produto = db.dados_composicoes[codigo]
     let agrupamento = orcamentoBase?.esquema_composicoes?.[codigo]?.agrupamento || {}
 
     // Ajustes dos agrupamentos;

@@ -20,6 +20,8 @@ async function confirmarExclusaoAluguel() {
 
 async function telaCriarOrcamentoAluguel() {
 
+    mostrarMenus(false)
+
     funcaoTela = 'telaCriarOrcamentoAluguel'
 
     modo = 'ALUGUEL'
@@ -27,7 +29,7 @@ async function telaCriarOrcamentoAluguel() {
     const acumulado = `
     <div class="contornoTela">
 
-        <div id="orcamento_padrao">
+        <div id="orcamento_aluguel">
 
             <div class="menu-superior">
 
@@ -68,8 +70,8 @@ async function telaCriarOrcamentoAluguel() {
 
     </div>
     `
-    const orcamentoPadrao = document.getElementById('orcamento_padrao')
-    if (!orcamentoPadrao) tela.innerHTML = acumulado
+    const orcamentoAluguel = document.getElementById('orcamento_aluguel')
+    if (!orcamentoAluguel) tela.innerHTML = acumulado
 
     criarMenus('criarOrcamentosAluguel')
     await carregarTabelasAluguel()
@@ -244,14 +246,6 @@ async function recuperarComposicoesAluguel() {
 
 async function tabelaProdutosAluguel() {
 
-    const moduloComposicoes = (
-        acesso.permissao == 'adm' ||
-        acesso.permissao == 'log' ||
-        acesso.permissao == 'editor' ||
-        acesso.permissao == 'gerente' ||
-        acesso.permissao == 'diretor'
-    )
-
     const colunas = ['Código', 'Descrição', 'tipo', 'Quantidade', 'Imagem']
     let ths = ''
     let pesquisa = ''
@@ -303,9 +297,7 @@ async function tabelaProdutosAluguel() {
     const tabelaItens = document.getElementById('tabelaItens')
     if (!linhasProdAluguel) tabelaItens.innerHTML = acumulado
 
-    dados_composicoes = await recuperarDados('dados_composicoes') || {}
-
-    for (const [codigo, produto] of Object.entries(dados_composicoes)) {
+    for (const [codigo, produto] of Object.entries(db.dados_composicoes)) {
         criarLinhaProdAluguel(codigo, produto)
     }
 
@@ -355,7 +347,6 @@ function criarLinhaProdAluguel(codigo, produto) {
 async function total() {
 
     let orcamentoBase = baseOrcamento() || {}
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let totais = { GERAL: { valor: 0, exibir: 'none', bruto: 0 } }
     let divTabelas = document.getElementById('tabelas')
     let tables = divTabelas.querySelectorAll('table')
@@ -397,7 +388,7 @@ async function total() {
 
                 let valorUnitario = Number(tdCusto.value)
                 let quantidade = Number(tdQuantidade.value)
-                let descricao = dados_composicoes[codigo]?.descricao || 'Atualize a base de Produtos'
+                let descricao = db.dados_composicoes[codigo]?.descricao || 'Atualize a base de Produtos'
                 let totalLinha = valorUnitario * quantidade
 
                 // Valor bruto sem desconto;
@@ -469,9 +460,9 @@ async function total() {
 }
 
 async function incluirItemAluguel(codigo, novaQuantidade) {
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+
     let orcamentoBase = baseOrcamento()
-    let produto = dados_composicoes[codigo]
+    let produto = db.dados_composicoes[codigo]
 
     let linha = `
         <tr>

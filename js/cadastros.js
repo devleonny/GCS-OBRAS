@@ -14,7 +14,7 @@ async function telaCadastros() {
 
     const bases = ['empresas', 'tipos', 'sistemas', 'prioridades', 'correcoes']
     let tabs = document.querySelector('.tabela-cadastro-recorte')
-    if (!tabs) telaInterna.innerHTML = acumulado
+    if (!tabs) tela.innerHTML = acumulado
     tabs = document.querySelector('.tabela-cadastro-recorte')
 
     for (const b of bases) {
