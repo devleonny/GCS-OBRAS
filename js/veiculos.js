@@ -108,7 +108,7 @@ async function telaVeiculos() {
     removerOverlay()
 
     for (const [idCusto, custo] of Object.entries(db.custo_veiculos)) {
-        const nome = db.dados_clientes[custo.motorista].nome
+        const nome = db.dados_clientes?.[custo?.motorista]?.nome || 'Não localizado...'
         const veiculo = db.veiculos[custo.veiculo]
         criarLinhaVeiculo({ custo, nome, veiculo, idCusto })
     }
@@ -505,7 +505,7 @@ async function painelAtalhos(idCusto) {
     if ((acesso.permissao == 'adm' || acesso.usuario == custo.usuario))
         botoes.push({ texto: 'Excluir Pagamento', img: 'cancel', funcao: `painelExcluir('${idCusto}')` })
 
-    popup({ botoes, mensagem: 'Escolha uma opção', titulo: 'Atalhos', nra: false })
+    popup({ botoes, mensagem: 'Escolha uma opção', titulo: 'Atalhos'})
 }
 
 function pesquisarBotoes(input, modalidade) {
@@ -532,18 +532,16 @@ function painelExcluir(idCusto) {
         { texto: 'Confirmar', img: 'concluido', funcao: `excluirCusto('${idCusto}')` }
     ]
 
-    popup({ botoes, mensagem: 'Deseja excluir este lançamento?' })
+    popup({ botoes, mensagem: 'Deseja excluir este lançamento?', nra: false })
 }
 
 async function excluirCusto(idCusto) {
 
-    removerPopup()
-    overlayAguarde()
+    delete db.custo_veiculos[idCusto]
     await deletarDB('custo_veiculos', idCusto)
     deletar(`custo_veiculos/${idCusto}`)
     const linha = document.getElementById(idCusto)
     if (linha) linha.remove()
-    removerOverlay()
 
 }
 
