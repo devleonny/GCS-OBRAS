@@ -805,7 +805,10 @@ function passarFiltros(orcamento) {
                 break
 
             case 'contrato':
-                v = dados.contrato
+                v = [dados.contrato,  cliente.nome, dados.chamdo].map(c => {
+                    if(!c) return ''
+                    return c || ''
+                }).join(' ')
                 break
 
             case 'responsaveis':
