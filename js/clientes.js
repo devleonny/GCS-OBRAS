@@ -169,7 +169,7 @@ async function vincularEmpresas() {
             return popup({ mensagem: data.mensagem })
 
         await sincronizarDados({ base: 'dados_clientes' })
-        await atualizarClientes()
+        await telaClientes()
         removerPopup()
 
     } catch (err) {
@@ -219,7 +219,6 @@ async function telaClientes() {
                 <div style="${horizontal}; margin-left: 3rem; gap: 0.5rem; height: 3rem;">
                     <img src="imagens/trocar.png" onclick="classificarUnidades()">
                     <img src="imagens/baixar.png" onclick="formularioCliente()">
-                    <img src="imagens/atualizar.png" onclick="atualizarClientes()">
                 </div>
             </div>
             <div class="div-tabela">
@@ -295,13 +294,6 @@ function criarLinhaClienteGCS(idCliente, cliente) {
     if (trExistente) return trExistente.innerHTML = tds
 
     document.getElementById('bodyClientes').insertAdjacentHTML('beforeend', `<tr data-timestamp="${timestamp}" id="${idCliente}">${tds}</tr>`)
-}
-
-async function atualizarClientes() {
-    overlayAguarde()
-    renderizarClientesPagina()
-    mostrarMenus(false)
-    removerOverlay()
 }
 
 async function formularioCliente(idCliente) {
