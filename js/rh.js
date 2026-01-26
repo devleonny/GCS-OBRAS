@@ -223,7 +223,7 @@ function confirmarExclusaoPasta(idPessoa, idPasta) {
         { texto: 'Confirmar', img: 'concluido', funcao: `excluirPastaRH('${idPessoa}', '${idPasta}')` }
     ]
 
-    popup({ elemento: 'Deseja excluir esta pasta?', botoes })
+    popup({ mensagem: 'Deseja excluir esta pasta?', botoes })
 
 }
 
