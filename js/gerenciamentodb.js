@@ -261,8 +261,8 @@ async function sincronizarDados({ base, overlay = false, resetar = false, filtro
     )
 
     if (Object.keys(filtro).length) {
-        combinado = Object.fromEntries(
-            Object.entries(combinado).filter(([_, obj]) =>
+        nuvem = Object.fromEntries(
+            Object.entries(nuvem).filter(([_, obj]) =>
                 Object.entries(filtro).every(([campo, valor]) =>
                     contemCampoValor(obj, campo, valor)
                 )
