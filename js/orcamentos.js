@@ -795,6 +795,36 @@ function passarFiltros(orcamento) {
             }
 
             // Filtros Livres;
+            case 'pedido':
+                v = Object
+                    .values(orcamento?.status?.historico || {})
+                    .filter(dados => dados?.status == 'PEDIDO')
+                    .map(dados => {
+
+                        return `${dados?.pedido} ${dados?.executor} ${dados?.tipo}`
+                    })
+                    .join(' ')
+                break
+
+            case 'notas':
+                v = Object
+                    .values(orcamento?.status?.historico || {})
+                    .filter(dados => dados?.status == 'FATURADO')
+                    .map(dados => {
+
+                        return `${dados?.nf} ${dados?.executor} ${dados?.tipo}`
+                    })
+                    .join(' ')
+                break
+
+            case 'tags':
+                v = Object
+                    .keys(orcamento.tags || {})
+                    .map(idTag => {
+                        return db.tags_orcamentos?.[idTag]?.nome || ''
+                    })
+                    .join(' ')
+                break
 
             case 'cidade':
                 v = cliente.cidade
@@ -805,8 +835,8 @@ function passarFiltros(orcamento) {
                 break
 
             case 'contrato':
-                v = [dados.contrato,  cliente.nome, dados.chamdo].map(c => {
-                    if(!c) return ''
+                v = [dados.contrato, cliente.nome, dados.chamdo].map(c => {
+                    if (!c) return ''
                     return c || ''
                 }).join(' ')
                 break
