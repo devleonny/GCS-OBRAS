@@ -6,8 +6,8 @@ const semImagem = `
 `
 async function telaOS(idOcorrencia) {
 
-    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
-    const cliente = await recuperarDado('dados_clientes', ocorrencia?.unidade)
+    const ocorrencia = db.dados_ocorrencias[idOcorrencia]
+    const cliente = db.dados_clientes[ocorrencia?.unidade]
 
     let assinatura = ''
 
@@ -161,7 +161,7 @@ async function telaOS(idOcorrencia) {
         </div>
     `
 
-    telaInterna.innerHTML = acumulado
+    tela.innerHTML = acumulado
 
 }
 
