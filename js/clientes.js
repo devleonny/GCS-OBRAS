@@ -316,7 +316,7 @@ async function formularioCliente(idCliente) {
         },
         {
             texto: 'Nome Fantasia',
-            elemento: `<textarea name="nome">${cliente.nome || ''}</textarea>`
+            elemento: `<textarea oninput="this.value = this.value.toUpperCase()" name="nome">${cliente.nome || ''}</textarea>`
         },
         {
             elemento: `
