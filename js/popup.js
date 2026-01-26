@@ -89,7 +89,7 @@ function popup({
                 <div class="popup-top">
 
                     <label style="background-color: transparent; color: white; margin-left: 1rem;">${titulo || 'GCS'}</label>
-                    <span onclick="removerPopup({ id:'${idPopup}' })">×</span>
+                    <span onclick="removerPopup('${idPopup}')">×</span>
 
                 </div>
                 
