@@ -1612,7 +1612,7 @@ async function abrirEsquema(id) {
             <hr>
             <div style="${horizontal}; gap: 1rem;">
                 <button onclick="${f1}" style="opacity: ${liberado ? '1' : '0.5'};">Abrir chamado</button>
-                <button onclick="${f2}" style="background-color: #e47a00; opacity: ${liberado ? '1' : '0.5'};">Incluir correção</button>
+                <button onclick="${f2}" style="background-color: #e47a00; opacity: ${existente ? '1' : '0.5'};">Incluir correção</button>
                 ${existente ? `<img src="imagens/pesquisar2.png" onclick="verCorrecoes('${contrato}')">` : ''}
             </div>
         </div>
@@ -1758,7 +1758,7 @@ function formularioOrcAprovado(idOrcamento) {
             texto: 'Qual a previsão de início?',
             elemento: `
                 <div style="${horizontal}; gap: 1rem;">
-                    <input name="prioridade" oninput="mostrarPrioridade()" type="date" value="${orcamento.inicio || ''}">
+                    <input name="prioridade" oninput="mostrarPrioridade()" type="date" value="${orcamento?.inicio || ''}">
                     <div id="indicador"></div>
                 </div>
                 `
