@@ -945,7 +945,19 @@ async function mudarNumORC(id) {
 
     overlayAguarde()
 
-    await numORC(id)
+    const resposta = await numORC(id)
+
+    if (resposta.mensagem)
+        return popup({ mensagem: resposta.mensagem })
+
+    if (resposta.numero) {
+
+        db.dados_orcamentos[id].dados_orcam.contrato = resposta.numero
+        await inserirDados({ [id]: db.dados_orcamentos[id] }, 'dados_orcamentos')
+        await telaOrcamentos()
+
+        popup({ mensagem: `Alterado para <b>${resposta.numero}</b>` })
+    }
 
     removerOverlay()
 

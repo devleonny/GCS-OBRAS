@@ -574,7 +574,7 @@ async function enviarDadosOrcamento() {
 
     overlayAguarde()
 
-    // esquema → dados_composicoes
+    // esquema → dados_composicoes;
     await converterEsquema()
 
     let orcamentoBase = baseOrcamento()
@@ -588,9 +588,11 @@ async function enviarDadosOrcamento() {
 
     const dados_orcam = orcamentoBase.dados_orcam
 
-    if (dados_orcam.omie_cliente == '') return popup({ mensagem: 'Cliente em branco' })
+    if (dados_orcam.omie_cliente == '')
+        return popup({ mensagem: 'Cliente em branco' })
 
-    if (dados_orcam.contrato == '') return popup({ mensagem: 'Chamado em branco' })
+    if (dados_orcam.contrato == '')
+        return popup({ mensagem: 'Chamado em branco' })
 
     if (orcamentoBase.total_desconto > 0) {
         orcamentoBase.aprovacao = {
@@ -605,19 +607,21 @@ async function enviarDadosOrcamento() {
 
     if (resposta.success) {
 
-        delete orcamentoBase.dados_orcam.contrato
+        popup({ tempo: 4, mensagem: 'Aguarde... redirecionando...', imagem: 'imagens/concluido.png' })
 
-        popup({ tempo: 3, mensagem: 'Aguarde... redirecionando...', imagem: 'imagens/concluido.png' })
+        db.dados_orcamentos = await sincronizarDados({ base: 'dados_orcamentos' })
 
-        baseOrcamento(undefined, true)
-        await telaOrcamentos(true)
+        baseOrcamento(undefined, true) // Limpeza do orçamento em edição;
+        await telaOrcamentos()
 
         removerPopup()
 
         atualizarToolbar(true) // GCS no título
 
     } else {
+
         popup({ mensagem: 'Falha no salvamento, tente de novo em alguns minutos' })
+
     }
 
 }
