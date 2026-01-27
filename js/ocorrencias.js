@@ -181,14 +181,6 @@ function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
     const { anexos, usuario } = ocorrencia
 
     const divCorrecoes = carregarCorrecoes(idOcorrencia)
-
-    const btnExclusao = autE.includes(acesso.permissao)
-        ? botaoImg('fechar', `confirmarExclusao('${idOcorrencia}')`)
-        : ''
-    const btnEditar = autE.includes(acesso.permissao)
-        ? botaoImg('lapis', `formularioOcorrencia('${idOcorrencia}')`)
-        : ''
-
     const corAssinatura = ocorrencia.assinatura ? '#008000' : '#d30000'
     const cliente = db.dados_clientes?.[ocorrencia?.unidade] || {}
     const tipo = db.tipos?.[ocorrencia?.tipo]?.nome || 'Em branco'
@@ -199,11 +191,18 @@ function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
     const unidade = cliente?.nome || 'Em branco'
     const cidade = cliente?.cidade || 'Em branco'
     const empresa = db.empresas[cliente?.empresa]?.nome || 'Em branco'
-    const podeExcluir = acesso.permissao == 'adm' || usuario == acesso.usuario
+    const podeGerenciar = autE.includes(acesso.permissao) || usuario == acesso.usuario
     const divAnexos = Object
         .entries(anexos || {})
-        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, podeExcluir ? `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')` : false))
+        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, podeGerenciar ? `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')` : false))
         .join('')
+
+    const btnExclusao = podeGerenciar
+        ? botaoImg('fechar', `confirmarExclusao('${idOcorrencia}')`)
+        : ''
+    const btnEditar = podeGerenciar
+        ? botaoImg('lapis', `formularioOcorrencia('${idOcorrencia}')`)
+        : ''
 
     const modeloCampos = (valor1, elemento) => `
         <div style="${horizontal}; width: 100%; gap: 0.5rem;">

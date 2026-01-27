@@ -114,6 +114,7 @@ async function telaVeiculos() {
     }
 
     pesquisarEmVeiculos()
+    
 }
 
 const pesquisa = (campo) => `
