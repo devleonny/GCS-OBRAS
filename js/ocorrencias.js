@@ -224,7 +224,8 @@ function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
                     </div>
                 </div>
                 ${modeloCampos('Unidade', unidade)}
-                ${modeloCampos('Endereço', cliente?.bairro || '...')}
+                ${modeloCampos('Endereço', cliente?.endereco || '...')}
+                ${modeloCampos('Bairro', cliente?.bairro || '...')}
                 ${modeloCampos('Cidade', cidade)}
                 ${modeloCampos('Descrição', descricao)}
                 ${modeloCampos('Criado por', criador)}

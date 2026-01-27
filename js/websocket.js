@@ -122,13 +122,18 @@ async function comunicacao() {
 
             removerOverlay()
             nomeUsuario.innerHTML = `<span><strong>${inicialMaiuscula(acesso.permissao)}</strong> ${acesso.usuario}</span>`
-            
+
         }
 
-        if (app !== 'GCS') return
+        if (app !== 'GCS') 
+            return
 
+        // Se for de origem orcamentos, sincroniza e encerra;
         if (tabela == 'dados_orcamentos') {
+            db.dados_orcamentos = await sincronizarDados({ base: 'dados_orcamentos' })
             await verificarPendencias()
+            await refletir()
+            return
         }
 
         if (tipo == 'exclusao') { // Só se for no nível;

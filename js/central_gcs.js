@@ -86,22 +86,6 @@ async function executar(nomeFuncao) {
 
 }
 
-function criarMenus(chave) {
-    telaAtiva = chave
-    const botoesMenu = document.querySelector('.botoesMenu')
-    const atalhos = esquemaBotoes[chave]
-    let atalhosString = `
-        <div class="botao-lateral" onclick="atualizarGCS()">
-            <img src="imagens/atualizar.png">
-            <div>Atualizar GCS</div>
-        </div>
-    `
-
-    for (const atalho of atalhos) atalhosString += criarAtalhoMenu(atalho)
-
-    botoesMenu.innerHTML = atalhosString
-}
-
 async function atualizarGCS(resetar) {
 
     if (emAtualizacao) return
@@ -170,11 +154,25 @@ async function atualizarGCS(resetar) {
 
 }
 
-const atalhoInicial = {
-    nome: 'Menu Inicial',
-    funcao: 'telaInicial',
-    img: 'LG'
+function criarMenus(chave) {
+    telaAtiva = chave
+    const botoesMenu = document.querySelector('.botoesMenu')
+    const atalhos = esquemaBotoes[chave]
+
+    const atalhosString = [...atalhoInicial, ...atalhos]
+        .map(atalho => criarAtalhoMenu(atalho))
+        .join('')
+
+    botoesMenu.innerHTML = atalhosString
 }
+
+const atalhoInicial = [
+    { nome: 'Atualizar GCS', funcao: 'atualizarGCS', img: 'atualizar' },
+    { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
+    { nome: 'Criar Orçamento', funcao: 'telaCriarOrcamento', img: 'baixar' },
+    { nome: 'Orçamento de Aluguel', funcao: 'telaCriarOrcamentoAluguel', img: 'baixar' },
+    { nome: 'Solicitar Pagamento', funcao: 'formularioPagamento', img: 'baixar' },
+]
 
 async function irOcorrencias() {
     overlayAguarde()
@@ -198,63 +196,48 @@ const esquemaBotoes = {
         { nome: 'Desconectar', funcao: `deslogarUsuario`, img: 'sair' }
     ],
     criarOrcamentos: [
-        atalhoInicial,
         { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
         { nome: 'Salvar Orçamento', funcao: `enviarDadosOrcamento`, img: 'salvo' },
         { nome: 'Apagar Orçamento', funcao: `apagarOrcamento`, img: 'cancel' },
         { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'voltar_2' }
     ],
     criarOrcamentosAluguel: [
-        atalhoInicial,
         { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
         { nome: 'Salvar Orçamento', funcao: `enviarDadosAluguel`, img: 'salvo' },
         { nome: 'Apagar Orçamento', funcao: `apagarOrcamentoAluguel`, img: 'cancel' },
         { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'voltar_2' }
     ],
     orcamentos: [
-        atalhoInicial,
-        { nome: 'Baixar em Excel', funcao: 'excelOrcamentos', img: 'excel' },
-        { nome: 'Criar Orçamento', funcao: 'telaCriarOrcamento', img: 'projeto' },
-        { nome: 'Orçamento de Aluguel', funcao: 'telaCriarOrcamentoAluguel', img: 'projeto' }
+        { nome: 'Baixar em Excel', funcao: 'excelOrcamentos', img: 'excel' }
     ],
     composicoes: [
-        atalhoInicial,
         { nome: 'Cadastrar Item', funcao: 'cadastrarItem', img: 'baixar' },
         { nome: 'Baixar em Excel', funcao: 'exportarParaExcel', img: 'excel' }
     ],
     chamados: [
-        atalhoInicial,
         { nome: 'Criar Manutenção', funcao: 'criarManutencao', img: 'chamados' },
         { nome: 'Baixar em Excel', funcao: 'excelChamados', img: 'excel' }
     ],
     veiculos: [
-        atalhoInicial,
         { nome: 'Adicionar Combustível', funcao: 'painelValores', img: 'combustivel' },
         { nome: 'Motoristas', funcao: 'auxMotoristas', img: 'motorista' },
         { nome: 'Veículos', funcao: 'auxVeiculos', img: 'veiculo' },
     ],
-    pagamentos: [
-        atalhoInicial,
-        { nome: 'Solicitar Pagamento', funcao: 'formularioPagamento', img: 'pagamento' }
-    ],
+    pagamentos: [],
     estoque: [
-        atalhoInicial,
         { nome: 'Cadastrar Item', funcao: 'incluirItemEstoque', img: 'baixar' },
         { nome: 'Relatório de Movimentos', funcao: 'relatorioMovimento', img: 'projeto' },
         { nome: 'Baixar em Excel', funcao: `exportarParaExcel`, img: 'excel' },
     ],
     relatorio: [
-        atalhoInicial,
         { nome: 'Baixar em Excel', funcao: 'excelRecebimento', img: 'excel' },
         { nome: 'Limpar Filtros', funcao: 'limparFiltros', img: 'limpar' },
     ],
     rh: [
-        atalhoInicial,
         { nome: 'Baixar em Excel', funcao: 'rhExcel', img: 'excel' },
         { nome: 'Adicionar Local', funcao: 'adicionarPessoa', img: 'baixar' }
     ],
     clientes: [
-        atalhoInicial,
         { nome: 'Novo cadastro', funcao: 'formularioCliente', img: 'baixar' }
     ]
 }

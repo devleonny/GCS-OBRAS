@@ -1740,7 +1740,8 @@ async function alterarStatus(select) {
     if (novoSt == 'ORC APROVADO') {
         formularioOrcAprovado()
         const resposta = await criarDepartamento(id_orcam)
-        if (resposta.mensagem) popup({ mensagem: resposta.mensagem })
+        if (resposta.mensagem) 
+            popup({ mensagem: resposta.mensagem })
     }
 
     if (telaAtiva == 'orcamentos') await telaOrcamentos(true)

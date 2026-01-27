@@ -399,3 +399,13 @@
   background-color: #FFF3C4;
   color: white;
 }
+
+.painel-manter-precos {
+  display: flex;
+  align-items: start;
+  justify-content: start;
+  flex-direction: column;
+  background-color: #d2d2d2;
+  padding: 1rem;
+  gap: 5px;
+}

@@ -133,6 +133,10 @@ async function manterPrecos() {
 
     const orcamento = baseOrcamento()
 
+    const painel = document.querySelector('.painel-manter-precos')
+    if (painel)
+        return
+
     if (precosAntigos !== null || Object.entries(orcamento?.esquema_composicoes || {}).length == 0) {
         return await atualizarOpcoesLPU()
     }
@@ -145,7 +149,7 @@ async function manterPrecos() {
     `
 
     const elemento = `
-        <div style="${vertical}; background-color: #d2d2d2; padding: 1rem; gap: 5px;">
+        <div class="painel-manter-precos">
 
             <p style="text-align: left;">
                 Decida se quer editar este orçamento considerando <br>
@@ -608,8 +612,6 @@ async function enviarDadosOrcamento() {
     if (resposta.success) {
 
         popup({ tempo: 4, mensagem: 'Aguarde... redirecionando...', imagem: 'imagens/concluido.png' })
-
-        db.dados_orcamentos = await sincronizarDados({ base: 'dados_orcamentos' })
 
         baseOrcamento(undefined, true) // Limpeza do orçamento em edição;
         await telaOrcamentos()
