@@ -2254,7 +2254,8 @@ async function detalharRequisicao(chave, tipoRequisicao, apVisualizar) {
 
                     ${modeloLabel('Cliente', cliente?.nome || '')}
                     ${modeloLabel('CNPJ', cliente?.cnpj || '')}
-                    ${modeloLabel('Endereço', cliente?.bairro || '')}
+                    ${modeloLabel('Endereço', cliente?.endereco || '')}
+                    ${modeloLabel('Bairro', cliente?.bairro || '')}
                     ${modeloLabel('Cidade', cliente?.cidade || '')}
                     ${modeloLabel('Chamado', orcamento.dados_orcam.contrato)}
                     ${modeloLabel('Condições', orcamento.dados_orcam.condicoes)}

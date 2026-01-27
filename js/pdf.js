@@ -146,7 +146,8 @@ async function preencher() {
             'Razão Social ou Nome Fantasia': informacoes?.nome || '--',
             'CNPJ': informacoes?.cnpj || '--',
             'CEP': informacoes?.cep || '--',
-            'Endereço': informacoes?.bairro || '--',
+            'Endereço': informacoes?.Endereço || '--',
+            'Bairro': informacoes?.bairro || '--',
             'Cidade': informacoes?.cidade || '--',
             'Estado': informacoes?.estado || '--'
         },

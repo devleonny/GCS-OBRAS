@@ -1480,6 +1480,10 @@ async function painelClientes(idOrcamento) {
         },
         {
             texto: 'Endereço',
+            elemento: `<span id="endereco">${cliente?.endereco || ''}</span>`
+        },
+        {
+            texto: 'Bairro',
             elemento: `<span id="bairro">${cliente?.bairro || ''}</span>`
         },
         {
@@ -1581,7 +1585,7 @@ async function buscarDadosCliente() {
     const omie_cliente = clienteName.id
 
     const cliente = await recuperarDado('dados_clientes', omie_cliente)
-    const campos = ['cnpj', 'bairro', 'cidade', 'estado', 'cep']
+    const campos = ['cnpj', 'endereco', 'bairro', 'cidade', 'estado', 'cep']
     for (const campo of campos) {
         const el = document.getElementById(campo)
         if (el) el.textContent = cliente?.[campo] || ''
