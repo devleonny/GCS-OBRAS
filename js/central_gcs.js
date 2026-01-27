@@ -112,6 +112,7 @@ async function atualizarGCS(resetar) {
     sincronizarApp()
 
     const basesAuxiliares = [
+        'informacoes',
         'dados_setores',
         'empresas',
         'pessoas',

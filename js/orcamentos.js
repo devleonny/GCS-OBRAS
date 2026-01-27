@@ -182,7 +182,7 @@ async function telaOrcamentos() {
     // Recuperar pesquisas
     for (const [chave, info] of Object.entries(filtrosPesquisa?.orcamentos || {})) {
         const inpCab = document.querySelector(`[name="${chave}"]`)
-        if (inpCab) inpCab.textContent = info
+        if (inpCab && !filtrosOff.includes(chave)) inpCab.textContent = info
     }
 
 }
@@ -202,18 +202,17 @@ function filtroOrcamentos() {
     const linhas = []
 
     const interruptor = (chave, ativo) => `
-                <label style="position: relative; display: inline-block; width: 50px; height: 24px;">
-                    <input
-                        type="checkbox"
-                        ${ativo ? 'checked' : ''}
-                        name="filtros"
-                        onchange="mudarInterruptor(this)"
-                        data-chave="${chave}"
-                        style="opacity:0; width:0; height:0;">
-                        <span class="track" style="background-color:${ativo ? '#4caf50' : '#ccc'}"></span>
-                        <span class="thumb" style="transform:translateX(${ativo ? '26px' : '0'})"></span>
-                </label>
-                `
+        <label style="position: relative; display: inline-block; width: 50px; height: 24px;">
+            <input
+                type="checkbox"
+                ${ativo ? 'checked' : ''}
+                name="filtros"
+                onchange="mudarInterruptor(this)"
+                data-chave="${chave}"
+                style="opacity:0; width:0; height:0;">
+                <span class="track" style="background-color:${ativo ? '#4caf50' : '#ccc'}"></span>
+                <span class="thumb" style="transform:translateX(${ativo ? '26px' : '0'})"></span>
+        </label>`
 
     for (const [chave, valor] of Object.entries(filtros)) {
         linhas.push({
@@ -559,24 +558,27 @@ function renderizar(campo, texto) {
         tool.style.opacity = 1
     }
 
-    if (texto == 'todos') texto = ''
+    // filtros exclusivos
+    if (campo === 'status') {
+        delete filtrosPesquisa.orcamentos.chamados
+    }
 
-    const f = JSON.parse(localStorage.getItem('filtros')) || {}
+    if (campo === 'chamados') {
+        delete filtrosPesquisa.orcamentos.status
+    }
 
-    if (campo) {
-        if (texto === '' || texto == null) {
-            delete filtrosPesquisa.orcamentos[campo]
-        } else {
-            filtrosPesquisa.orcamentos[campo] =
-                f[campo]
-                    ? texto
-                    : String(texto).toLowerCase()
-        }
+    if (texto === 'todos') texto = ''
+
+    if (!texto) {
+        delete filtrosPesquisa.orcamentos[campo]
+    } else {
+        filtrosPesquisa.orcamentos[campo] = String(texto).toLowerCase()
     }
 
     pAtual = 1
     aplicarFiltrosEPaginacao()
 }
+
 
 async function editar(orcam_) {
 
@@ -742,7 +744,6 @@ async function excelOrcamentos() {
 }
 
 // v2
-
 function passarFiltros(orcamento) {
 
     const f = filtrosPesquisa.orcamentos || {}
@@ -795,6 +796,10 @@ function passarFiltros(orcamento) {
             }
 
             // Filtros Livres;
+            case 'status':
+                v = String(orcamento?.status?.atual || 'SEM STATUS').toLocaleLowerCase()
+                if (v !== valor) return false
+
             case 'pedido':
                 v = Object
                     .values(orcamento?.status?.historico || {})
