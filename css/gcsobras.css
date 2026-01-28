@@ -20,6 +20,16 @@ img {
     cursor: pointer;
 }
 
+.painel-notas {
+    max-height: 60vh;
+    gap: 2px;
+    padding: 1rem;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+}
+
 .track {
     position: absolute;
     top: 0;

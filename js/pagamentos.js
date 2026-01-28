@@ -571,6 +571,14 @@ async function salvarPagamento() {
     const permissao = acesso.permissao
     let id_pagamento = ultimoPagamento.id_pagamento
 
+    const anexoPagamento = document.getElementById('anexoPagamento')
+    const anexos = await importarAnexos({ input: anexoPagamento })
+    
+    if (anexos.mensagem) return popup({ mensagem: anexos.mensagem })
+    ultimoPagamento.anexos = Object.fromEntries(
+        anexos.map(a => [a.link, a])
+    )
+
     // Verificar se na observação contém a primeira linha "Solicitante"
     const observacao = ultimoPagamento.param[0].observacao
     const identificacao = 'Solicitante:'
@@ -684,13 +692,9 @@ async function formularioPagamento() {
             texto: 'Anexos Diversos',
             elemento: `
                 <div style="${vertical}; align-items: end;">
-                    <label for="anexoPagamento" style="justify-content: start; border-radius: 50%;">
-                        <img src="imagens/anexo.png">
-                        <input 
-                            type="file" 
-                            id="anexoPagamento" 
-                            style="display: none;" onchange="salvarAnexosPagamentos(this)">
-                    </label>
+
+                    <input type="file" id="anexoPagamento" multiple>
+
                     <div id="anexosDiversos" style="${vertical}; gap: 2px;">
                         ${Object.values(ulP.anexos || {}).map(anexo => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoTemporario('${anexo.link}')`)).join('')}
                     </div>

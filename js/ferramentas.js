@@ -129,7 +129,7 @@ async function resetarBases() {
 
 async function f2() {
 
-    const scripts = ['clientes', 'categorias', 'departamentos', 'pagamentos']
+    const scripts = ['clientes', 'categorias', 'departamentos', 'pagamentos', 'notas']
 
     const botoes = scripts
         .map(s => `<button onclick="respostaSincronizacao('${s}')">Sincronizar ${inicialMaiuscula(s)}</button>`)
@@ -149,6 +149,8 @@ async function f2() {
             </div>
 
             <div id="localResposta"></div>
+
+            <button onclick="lembreteNotas()">Ver Notas Canceladas/Devolvidas</button>
 
             <hr>
             <label style="cursor: pointer;">${new Date().getTime()}</label>

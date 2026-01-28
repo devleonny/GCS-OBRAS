@@ -1,21 +1,53 @@
 let socket
 let reconnectInterval = 30000
+let reconnectTimeout = null
+let reconectando = false
+
 let emAtualizacao = false
 let priExeGCS = true
 let priExeOcorr = true
+
 connectWebSocket()
 
 function connectWebSocket() {
 
+    if (reconectando) return
+    reconectando = true
+
+    if (socket) {
+        try {
+            socket.onopen = null
+            socket.onmessage = null
+            socket.onerror = null
+            socket.onclose = null
+            socket.close()
+        } catch { }
+    }
+
     socket = new WebSocket(`${api}:8443`)
 
     socket.onopen = async () => {
+        reconectando = false
+        clearTimeout(reconnectTimeout)
+
         msgStatus('Online', 1)
         await comunicacao()
         await validarAcesso()
     }
 
+    socket.onerror = () => {
+        socket.close()
+    }
+
+    socket.onclose = () => {
+        reconectando = false
+        msgStatus('Servidor offline', 3)
+
+        clearTimeout(reconnectTimeout)
+        reconnectTimeout = setTimeout(connectWebSocket, reconnectInterval)
+    }
 }
+
 
 async function validarAcesso() {
 
@@ -81,24 +113,20 @@ async function comunicacao() {
 
         if (validado) {
 
-            // Sempre que atualizar a página será verificado o acesso;
-
-            // Se não existir mudanças no acesso;
-
             app = localStorage.getItem('app') || 'OCORRÊNCIAS'
 
             if (validado == 'Sim') {
 
                 msgStatus('Acesso sem alterações')
 
-                if (app == 'GCS')
-                    await telaInicial()
-                else
-                    await telaPrincipal()
+                if (!telaAtiva) {
+                    if (app == 'GCS')
+                        await telaInicial()
+                    else
+                        await telaPrincipal()
+                }
 
             } else {
-
-                // Se existirem mudanças, um reset será feito apenas em Ocorrências;
 
                 if (app == 'GCS') {
 
@@ -116,19 +144,15 @@ async function comunicacao() {
                     await atualizarOcorrencias()
                     msg({ tipo: 'confirmado', usuario: acesso.usuario })
                     msgStatus('Tudo certo', 1)
-
                 }
             }
 
             removerOverlay()
             nomeUsuario.innerHTML = `<span><strong>${inicialMaiuscula(acesso.permissao)}</strong> ${acesso.usuario}</span>`
-
         }
 
-        if (app !== 'GCS') 
-            return
+        if (app !== 'GCS') return
 
-        // Se for de origem orcamentos, sincroniza e encerra;
         if (tabela == 'dados_orcamentos') {
             db.dados_orcamentos = await sincronizarDados({ base: 'dados_orcamentos' })
             await verificarPendencias()
@@ -136,7 +160,7 @@ async function comunicacao() {
             return
         }
 
-        if (tipo == 'exclusao') { // Só se for no nível;
+        if (tipo == 'exclusao') {
             delete db[tabela][id]
             await deletarDB(tabela, id)
             await refletir()
@@ -163,15 +187,9 @@ async function comunicacao() {
                 balaoUsuario(status, usuario)
             }
         }
-
     }
-
-    socket.onclose = () => {
-        msgStatus('Servidor offline', 3)
-        setTimeout(connectWebSocket, reconnectInterval)
-    }
-
 }
+
 
 async function carregarControles() {
 

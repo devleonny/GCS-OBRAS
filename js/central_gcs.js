@@ -169,9 +169,9 @@ function criarMenus(chave) {
 const atalhoInicial = [
     { nome: 'Atualizar GCS', funcao: 'atualizarGCS', img: 'atualizar' },
     { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
-    { nome: 'Criar Orçamento', funcao: 'telaCriarOrcamento', img: 'baixar' },
-    { nome: 'Orçamento de Aluguel', funcao: 'telaCriarOrcamentoAluguel', img: 'baixar' },
-    { nome: 'Solicitar Pagamento', funcao: 'formularioPagamento', img: 'baixar' },
+    { nome: 'Criar Orçamento', funcao: 'telaCriarOrcamento', img: 'projeto' },
+    { nome: 'Criar Orçamento de Aluguel', funcao: 'telaCriarOrcamentoAluguel', img: 'projeto' },
+    { nome: 'Solicitar Pagamento', funcao: 'formularioPagamento', img: 'dinheiro' },
 ]
 
 async function irOcorrencias() {
@@ -242,6 +242,32 @@ const esquemaBotoes = {
     ]
 }
 
+async function lembreteNotas() {
+
+    const notas = Object
+        .values(db?.informacoes?.notas?.objeto || {})
+        .map(n => {
+            return `
+            <div style="${horizontal}; gap: 1rem;">
+                <img src="imagens/pesquisar2.png" onclick="abrirEsquema('${n.idOrcamento}')">
+                <span class="etiqueta-atrasado"><b>${n.nNota}</b> ${n.status} </span>
+            </div>
+            `
+        })
+        .join('')
+
+    const elemento = `
+        <div class="painel-notas">
+            <span>Notas Canceladas, etc</span>
+            <hr>
+            ${notas}
+        </div>
+    `
+
+    popup({ elemento })
+
+}
+
 async function salvarDepartamento(img) {
 
     overlayAguarde()
@@ -269,6 +295,8 @@ async function respostaSincronizacao(script) {
     const resposta = await sincronizar(script)
 
     localResposta.innerHTML = resposta.mensagem || 'Sem resposta'
+
+    if (resposta.mensagem == 'Sincronizado') await atualizarGCS()
 
 }
 
