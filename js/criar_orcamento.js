@@ -855,7 +855,7 @@ function atualizarControlesPaginacao(total) {
 async function pesquisarProdutos(chave, pesquisa) {
 
     if (chave === 'tipo') {
-        
+
         memoriaFiltro = pesquisa || null
         pesquisa = pesquisa === 'TODOS' ? '' : pesquisa
         tipoAtivo = pesquisa
@@ -1129,7 +1129,6 @@ async function totalOrcamento() {
 
         itemSalvo.codigo = codigo
         const refProduto = db.dados_composicoes?.[codigo] || itemSalvo
-        const boticario = refProduto.preco_estado && lpu.includes('boticario')
 
         linha.dataset.tipo = refProduto.tipo
 
@@ -1140,11 +1139,9 @@ async function totalOrcamento() {
         const precos = historico[ativo] || { custo: 0, lucro: 0 }
 
         // ORDEM: SE BOTICÁRIO > SE PREÇO ALTERADO > SE MANTER ANTIGOS;
-        const valorUnitario = boticario
-            ? refProduto.preco_estado[estado] || 0
-            : (itemSalvo.alterado || (precosAntigos && itemSalvo.custo))
-                ? itemSalvo.custo
-                : historico?.[ativo]?.valor || 0
+        const valorUnitario = (itemSalvo.alterado || (precosAntigos && itemSalvo.custo))
+            ? itemSalvo.custo
+            : historico?.[ativo]?.valor || 0
 
         const quantidade = Number(linha.querySelector('[name="quantidade"]').value)
 
@@ -1163,7 +1160,9 @@ async function totalOrcamento() {
         }
 
         // Aqui a possibilidade de desconto é tirada do usuário nas situações:
-        divDesconto.style.display = (itemSalvo.custo_original || boticario) ? 'none' : 'flex'
+        divDesconto.style.display = itemSalvo.custo_original
+            ? 'none'
+            : 'flex'
 
         if (tipoDesconto.value == 'Venda Direta' || valorDesconto.value != '') {
 
@@ -1195,7 +1194,12 @@ async function totalOrcamento() {
                 desconto = Number(valorDesconto.value)
             }
 
-            const icmsSaida = precos?.icms_creditado == 4 ? 4 : estado == 'BA' ? 20.5 : 12
+            const icmsSaida = precos?.icms_creditado == 4
+                ? 4
+                : estado == 'BA'
+                    ? 20.5
+                    : 12
+                    
             const dadosCalculo = {
                 custo: precos.custo,
                 valor: precos.valor - desconto / quantidade,
