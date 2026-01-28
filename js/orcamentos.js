@@ -759,6 +759,11 @@ function passarFiltros(orcamento) {
         switch (campo) {
 
             // Filtros S ou N;
+            case 'data':
+                v = String(orcamento.lpu_ativa).toLowerCase()
+                if (!v.includes(valor)) return false
+                continue
+
             case 'status':
                 v = String(orcamento?.status?.atual || 'SEM STATUS').toLocaleLowerCase()
                 if (v !== valor) return false

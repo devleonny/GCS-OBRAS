@@ -366,7 +366,8 @@ async function carregarTabelasOrcamento() {
 
     let orcamentoBase = baseOrcamento()
 
-    if (!orcamentoBase.esquema_composicoes) orcamentoBase.esquema_composicoes = orcamentoBase?.dados_composicoes || {}
+    orcamentoBase.esquema_composicoes ??= {}
+
     const esquemaComposicoes = orcamentoBase.esquema_composicoes
     const colunas = ['Código', 'Descrição', 'Medida', 'Quantidade', 'Custo Unitário', 'Desconto', 'Valor total', 'Imagem', 'Remover']
     const divTabelas = document.getElementById('tabelas')
@@ -401,16 +402,9 @@ async function carregarTabelasOrcamento() {
     // Salvando o orçamento com o esquema;
     baseOrcamento(orcamentoBase)
 
-    const ordenado = Object.entries(esquemaComposicoes)
-        .sort(([_, a], [__, b]) => {
-            const ta = a.ordem ?? 0
-            const tb = b.ordem ?? 0
-            return ta - tb
-        })
-
     lpuATIVA = String(orcamentoBase.lpu_ativa).toLowerCase()
 
-    for (const [codigoMaster, produto] of ordenado) {
+    for (const [codigoMaster, produto] of Object.entries(esquemaComposicoes)) {
         carregarLinhaOrcamento(codigoMaster, produto)
 
         for (const [codigoSlave, produtoSlave] of Object.entries(produto?.agrupamento || {})) {
@@ -737,33 +731,20 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
         </div>
         `
     let bodyComposicoes = document.getElementById('bodyComposicoes')
-    if (!bodyComposicoes) {
+    if (!bodyComposicoes)
         document.getElementById('tabelaItens').innerHTML = acumulado
-    }
 
     dadosFiltrados = dadosFiltrados || db.dados_composicoes
+    dadosFiltrados = { ...dadosFiltrados }
 
     const orcamentoBase = baseOrcamento()
     const omie_cliente = orcamentoBase?.dados_orcam?.omie_cliente || ''
     const cliente = db.dados_clientes?.[omie_cliente] || {}
     const estado = cliente?.estado || null
     const composicoesOrcamento = orcamentoBase?.esquema_composicoes || {}
-    const lpu = orcamentoBase.lpu_ativa ? String(orcamentoBase.lpu_ativa).toLocaleLowerCase() : 'LPU HOPE'
-
-    // Carregamentos dos itens && filtragem inicial;
-    for (const [codigo, produto] of Object.entries(dadosFiltrados)) {
-        const ativo = produto?.[lpu]?.ativo || ''
-        const historico = produto?.[lpu]?.historico || {}
-        const detalhes = historico?.[ativo] || {}
-        const preco = detalhes?.valor || 0
-        const itemValidoBoticario = preco !== 0 || produto.preco_estado
-
-        const remover =
-            !produto.tipo ||
-            (lpu.includes('boticario') && !itemValidoBoticario)
-
-        if (remover) delete dadosFiltrados[codigo]
-    }
+    const lpu = orcamentoBase.lpu_ativa
+        ? String(orcamentoBase.lpu_ativa).toLocaleLowerCase()
+        : 'lpu hope'
 
     const chaves = Object.keys(dadosFiltrados)
     const inicio = (paginaComposicoes - 1) * porPagina
@@ -771,18 +752,12 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
     const grupo = chaves.slice(inicio, fim)
 
     bodyComposicoes = document.getElementById('bodyComposicoes')
-    const linhasAtuais = [...bodyComposicoes.querySelectorAll('tr[id^="COMP_"]')]
-    const idsGrupo = new Set(grupo.map(codigo => `COMP_${codigo}`))
+    bodyComposicoes.innerHTML = ''
 
     for (const codigo of grupo) {
         const produto = dadosFiltrados[codigo]
         const qtdeOrcada = composicoesOrcamento?.[codigo]?.qtde || ''
         linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu })
-    }
-
-    // Remove as que não estão mais no grupo
-    for (const linha of linhasAtuais) {
-        if (!idsGrupo.has(linha.id)) linha.remove()
     }
 
     atualizarControlesPaginacao(chaves.length)
@@ -880,6 +855,8 @@ function atualizarControlesPaginacao(total) {
 async function pesquisarProdutos(chave, pesquisa) {
 
     if (chave === 'tipo') {
+        
+        memoriaFiltro = pesquisa || null
         pesquisa = pesquisa === 'TODOS' ? '' : pesquisa
         tipoAtivo = pesquisa
         const cor = coresTabelas(pesquisa)
