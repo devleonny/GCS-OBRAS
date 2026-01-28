@@ -397,36 +397,6 @@ async function abrirHistoricoPrecos(codigo, tabela) {
         </div>
     `
 
-    if (produto?.preco_estado) {
-
-        const linhas = Object.entries(produto?.preco_estado || {})
-            .map(([estado, preco]) => `
-                <tr>
-                    <td>${estado}</td>
-                    <td>${dinheiro(preco)}</td>
-                </tr>
-            `).join('')
-
-        acumulado += `
-            <hr style="width: 100%;">
-            
-            <div class="borda-tabela">
-                <div class="topo-tabela">
-                    <span>Preços por Estado</span>
-                </div>
-                    <div class="div-tabela">
-                        <table class="tabela">
-                            <thead>
-                                ${['Estado', 'Preço'].map(op => `<th>${op}</th>`).join('')}
-                            </thead>
-                            <tbody>${linhas}</tbody>
-                        </table>
-                    </div>
-                <div class="rodape-tabela"></div>
-            </div>
-        `
-    }
-
     const historicoPreco = document.querySelector('.historico-preco')
     if (historicoPreco) return historicoPreco.innerHTML = acumulado
 
@@ -1337,7 +1307,7 @@ async function precosDesatualizados(calculo) {
             <hr>
 
             <span style="${horizontal}">Clique no ícone <img src="imagens/atualizar.png" style="padding: 5px; width: 1.5rem"> para manter o preço por mais 60 dias</span>
-            <span style="cursor: pointer;" onclick="excelProdutosDesatualizados()"><u>Baixar em Excel</u></span>
+
             <hr>
 
             <div id="tabelaPrecosDesatualizados" class="borda-tabela">
@@ -1468,27 +1438,43 @@ async function manterPreco(tabela, codigo) {
 
 }
 
-async function excelProdutosDesatualizados() {
+async function exportarParaExcel() {
 
     const workbook = new ExcelJS.Workbook()
-    const worksheet = workbook.addWorksheet('Produtos Desatualizados')
-    const trs = document.querySelectorAll('#produtos_desatualizados tr')
+    const worksheet = workbook.addWorksheet('Composições')
 
-    for (let rowIndex = 0; rowIndex < trs.length; rowIndex++) {
-        const tr = trs[rowIndex]
-        const tds = tr.querySelectorAll('td, th')
-        let row = []
+    // Cabeçalho;
+    worksheet.addRow([
+        'Código',
+        'Descrição',
+        'ncm',
+        'tipo',
+        'Unidade',
+        'Fabricante',
+        'Modelo',
+        'Sistema',
+        'LPU HOPE',
+    ])
 
-        for (let colIndex = 1; colIndex < tds.length; colIndex++) {
-            const td = tds[colIndex]
+    for (const item of Object.values(db.dados_composicoes)) {
 
-            const select = td.querySelector('select')
-            const input = td.querySelector('input')
+        const { codigo, descricao, ncm, tipo, unidade, modelo, fabricante, sistema } = item
 
-            if (select) row.push(select.value)
-            else if (input) row.push(input.value)
-            else row.push(td.textContent.trim())
-        }
+        const lpuHOPE = item['lpu hope']
+        const ativo = lpuHOPE?.ativo || ''
+        const preco = lpuHOPE?.historico?.[ativo]?.valor || 0
+
+        const row = [
+            codigo,
+            descricao,
+            ncm,
+            tipo,
+            unidade,
+            fabricante,
+            modelo,
+            sistema,
+            preco
+        ]
 
         worksheet.addRow(row)
     }
@@ -1496,8 +1482,11 @@ async function excelProdutosDesatualizados() {
     // ====== ESTILOS ======
     worksheet.eachRow((row, rowNumber) => {
         row.eachCell((cell, colNumber) => {
-            cell.alignment = { vertical: 'middle', horizontal: 'center' }
-
+            cell.alignment = {
+                vertical: 'middle',
+                horizontal: 'center',
+                wrapText: true
+            }
             cell.border = {
                 top: { style: 'thin' },
                 left: { style: 'thin' },
@@ -1505,36 +1494,57 @@ async function excelProdutosDesatualizados() {
                 right: { style: 'thin' }
             }
 
+            // Cabeçalho (primeira linha)
             if (rowNumber === 1) {
                 cell.fill = {
                     type: 'pattern',
                     pattern: 'solid',
                     fgColor: { argb: 'FFD9D9D9' }
                 }
-
                 cell.font = { bold: true }
+            }
+
+            // Formatação para colunas numéricas
+            if (typeof cell.value === 'number') {
+                cell.numFmt = '#,##0.00'
+                if (rowNumber !== 1) {
+                    cell.alignment.horizontal = 'right'
+                }
             }
         })
     })
 
-    // LARGURAS AUTOMÁTICAS
+    // Filtro no cabeçalho
+    worksheet.autoFilter = {
+        from: 'A1',
+        to: 'J1'
+    }
+
+    // Ajuste automático de largura das colunas
     worksheet.columns.forEach(col => {
-        let max = 10
+        let maxLength = 10
         col.eachCell(cell => {
-            const len = String(cell.value || '').length
-            if (len > max) max = len
+            const cellLength = String(cell.value || '').length
+            if (cellLength > maxLength) {
+                maxLength = cellLength
+            }
         })
-        col.width = max + 2
+        col.width = Math.min(maxLength + 2, 50) // Limite máximo de 50
     })
 
+    // Ajusta altura das linhas para conteúdo com quebra
+    worksheet.eachRow(row => {
+        row.height = 20
+    })
+
+    // ====== GERAR ARQUIVO ======
     const buffer = await workbook.xlsx.writeBuffer()
     const blob = new Blob([buffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     })
-
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `produtos-desatualizados-${Date.now()}.xlsx`
+    link.download = `composicoes-${new Date().getTime()}.xlsx`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
