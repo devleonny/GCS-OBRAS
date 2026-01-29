@@ -792,7 +792,10 @@ async function tabelaProdutosOrcamentos() {
 
 function linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu }) {
 
-    const agrupamentoON = Object.keys(produto?.agrupamento || {}).length > 0 ? 'pos' : 'neg'
+    const agrupamentoON = Object.keys(produto?.agrupamento || {}).length > 0
+        ? 'pos'
+        : 'neg'
+
     const ativo = produto?.[lpu]?.ativo || ''
     const historico = produto?.[lpu]?.historico || {}
     const detalhes = historico?.[ativo] || {}
@@ -1180,8 +1183,6 @@ async function totalOrcamento() {
             itemSalvo = orcamentoBase.esquema_composicoes[codigoMaster].agrupamento[codigo]
         }
 
-        if (memoriaFiltro !== 'GERAL') filtrarPorTipo(memoriaFiltro)
-
         const elo = linha.querySelector('[name="elo"]')
         elo.innerHTML = `<img onclick="moverItem({codigoAmover: ${codigo}, codigoMaster: ${codigoMaster}})" src="imagens/elo.png" style="cursor: pointer; width: 1.5rem;">`
 
@@ -1463,49 +1464,44 @@ async function totalOrcamento() {
         }
     }
 
+    formatarLinhasOrcamento()
+
 }
 
-async function filtrarPorTipo(tipo) {
-
-    tipo = tipo || 'GERAL'
+function filtrarPorTipo(tipo) {
     memoriaFiltro = tipo
 
-    const divOrcamento = document.getElementById('bodyOrcamento')
-    const linhas = divOrcamento.querySelectorAll('.linha-orcamento')
-    document.getElementById('theadOrcamento').style.backgroundColor = coresTabelas(tipo)
-    document.querySelectorAll('.total-linha').forEach(el => el.style.display = 'none')
+    const linhas = document.querySelectorAll('#bodyOrcamento .linha-orcamento')
 
-    for (const linha of linhas) {
-
-        linha.style.display = (tipo == 'GERAL' || linha.dataset.tipo == tipo) ? '' : 'none'
-        linha.style.backgroundColor = 'white'
-
-        linha.style.borderRadius = '8px'
-
-        linha.querySelector('[name=tipo]').textContent = tipo == 'GERAL' ? linha.dataset.tipo : ''
-
-        const hierarquia = linha.dataset.hierarquia
-        let infoMaster = ''
-        if (hierarquia == 'slave' && tipo !== 'GERAL') {
-            const [codMaster,] = String(linha.id).split('_')
-            const prodMaster = db.dados_composicoes?.[codMaster] || {}
-            infoMaster = `
-                <div style="${horizontal}; gap: 3px;">
-                    <img src="imagens/link.png" style="width: 1.5rem;">
-                    <span>${prodMaster.descricao}</span>
-                </div>
-            `
-        } else {
-            infoMaster = ''
-        }
-
-        linha.querySelector('[name="master"]').innerHTML = infoMaster
-
-    }
-
-    if (tipo == 'GERAL') await totalOrcamento()
-
+    linhas.forEach(linha => {
+        const t = linha.dataset.tipo
+        linha.style.display =
+            !tipo || tipo === 'GERAL' || t === tipo
+                ? ''
+                : 'none'
+    })
 }
+
+
+function formatarLinhasOrcamento() {
+    const linhas = document.querySelectorAll('#bodyOrcamento .linha-orcamento')
+
+    linhas.forEach(linha => {
+        const hierarquia = linha.dataset.hierarquia
+
+        linha.style.backgroundColor = hierarquia === 'master'
+            ? 'white'
+            : '#fff8d3'
+
+        linha.style.borderRadius = '0'
+
+        if (hierarquia === 'master') {
+            linha.style.borderTopLeftRadius = '8px'
+            linha.style.borderTopRightRadius = '8px'
+        }
+    })
+}
+
 
 async function alterarValorUnitario({ codigo, codigoMaster }) {
 
