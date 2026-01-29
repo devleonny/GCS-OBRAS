@@ -229,6 +229,19 @@
   border-radius: 5px;
 }
 
+.tag-zerado {
+  margin: 2px;
+  background-color: #ffffff85;
+  padding: 3px;
+  border-radius: 3px;
+  border: solid 1px #d9d9d9;
+  color: black;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
 .contornoTela {
   width: 80vw;
   margin-top: 3vh;
