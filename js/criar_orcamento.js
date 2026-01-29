@@ -415,9 +415,7 @@ async function carregarTabelasOrcamento() {
 
     let orcamentoBase = baseOrcamento()
 
-    orcamentoBase.esquema_composicoes ??= {}
-
-    const esquemaComposicoes = orcamentoBase.esquema_composicoes
+    const esquemaComposicoes = orcamentoBase?.esquema_composicoes || orcamentoBase.dados_composicoes || {}
     const colunas = ['Código', 'Descrição', 'Medida', 'Quantidade', 'Custo Unitário', 'Desconto', 'Valor total', 'Imagem', 'Remover']
     const divTabelas = document.getElementById('tabelas')
     const bodyOrcamento = document.getElementById('bodyOrcamento')

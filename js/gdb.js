@@ -20,21 +20,6 @@ function criarBases() {
     }
 }
 
-function buscarDados({ base, chave }) {
-    const request = indexedDB.open(nomeBase, versao)
-
-    request.onsuccess = e => {
-
-        const db = e.target.result
-        const tx = db.transaction(base, 'readonly')
-        const store = tx.objectStore(base)
-
-        store.getAll().onsuccess = e => {
-            console.log(e.target.result)
-        }
-    }
-}
-
 function inserirDadosv2(dados, base) {
 
     const request = indexedDB.open(nomeBase, versao)
@@ -64,18 +49,18 @@ function obterPorID({ chave, base }) {
     }
 }
 
-function pesquisarUsuarios({ filtros = {}, page = 1, limit = 20 }) {
+function pesquisarUsuarios({ filtros = {}, base, page = 1, limit = 20 }) {
     const offset = (page - 1) * limit
     let pulados = 0
     let coletados = 0
     const resultado = []
 
-    const req = indexedDB.open('appDB', 1)
+    const req = indexedDB.open(nomeBase, versao)
 
     req.onsuccess = e => {
         const db = e.target.result
-        const tx = db.transaction('usuarios', 'readonly')
-        const store = tx.objectStore('usuarios')
+        const tx = db.transaction(base, 'readonly')
+        const store = tx.objectStore(base)
 
         store.openCursor().onsuccess = ev => {
             const cursor = ev.target.result
@@ -84,17 +69,13 @@ function pesquisarUsuarios({ filtros = {}, page = 1, limit = 20 }) {
                 return
             }
 
-            const u = cursor.value
+            const reg = cursor.value
 
-            // filtros
-            if (
-                (filtros.ativo === undefined || u.ativo === filtros.ativo) &&
-                (filtros.status === undefined || u.status === filtros.status)
-            ) {
+            if (passaFiltro(reg, filtros)) {
                 if (pulados < offset) {
                     pulados++
                 } else if (coletados < limit) {
-                    resultado.push(u)
+                    resultado.push(reg)
                     coletados++
                 }
             }
@@ -107,4 +88,31 @@ function pesquisarUsuarios({ filtros = {}, page = 1, limit = 20 }) {
             cursor.continue()
         }
     }
+}
+
+
+function getByPath(obj, path) {
+    return path.split('.').reduce((acc, key) => acc?.[key], obj)
+}
+
+function passaFiltro(reg, filtros) {
+    return Object.entries(filtros).every(([path, regra]) => {
+        const v = getByPath(reg, path)
+        if (v === undefined) return false
+
+        const { op, value } = regra
+
+        switch (op) {
+            case '=': return v === value
+            case '!=': return v !== value
+            case '>': return v > value
+            case '>=': return v >= value
+            case '<': return v < value
+            case '<=': return v <= value
+            case 'includes':
+                return String(v).toLowerCase().includes(String(value).toLowerCase())
+            default:
+                return true
+        }
+    })
 }
