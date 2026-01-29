@@ -300,7 +300,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento, master, idMaster) {
 
     // Labels do campo Contrato [Revisão, chamado, cliente, etc]
     const contrato = dados_orcam?.contrato
-    const numOficial = dados_orcam?.chamado || contrato || '-'
+    const numOficial = String(dados_orcam?.chamado || contrato || '-').trim()
     const rAtual = orcamento?.revisoes?.atual
     const etiqRevAtual = rAtual ? `<span class="etiqueta-revisao">${rAtual}</span>` : ''
 
@@ -333,6 +333,9 @@ function criarLinhaOrcamento(idOrcamento, orcamento, master, idMaster) {
     const opcoesPda = abas.map(aba => `<option ${orcamento.aba == aba ? 'selected' : ''}>${aba}</option>`).join('')
 
     const tags = renderAtivas({ idOrcamento, recarregarPainel: false })
+
+    if(numOficial == 'D16425') console.log(depPorDesc[numOficial])
+    
 
     const celulas = `
                 ${cel(`
