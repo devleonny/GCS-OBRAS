@@ -1441,6 +1441,8 @@ async function exportarParaExcel() {
     const workbook = new ExcelJS.Workbook()
     const worksheet = workbook.addWorksheet('Composições')
 
+    const lpus = ['lpu hope', 'lpu boticario', 'lpu romagnole', 'lpu gpa', 'lpu muffato', 'lpu eas muffato']
+
     // Cabeçalho;
     worksheet.addRow([
         'Código',
@@ -1451,16 +1453,20 @@ async function exportarParaExcel() {
         'Fabricante',
         'Modelo',
         'Sistema',
-        'LPU HOPE',
+        ...(lpus.map(l => l.toUpperCase()))
     ])
 
     for (const item of Object.values(db.dados_composicoes)) {
 
         const { codigo, descricao, ncm, tipo, unidade, modelo, fabricante, sistema } = item
 
-        const lpuHOPE = item['lpu hope']
-        const ativo = lpuHOPE?.ativo || ''
-        const preco = lpuHOPE?.historico?.[ativo]?.valor || 0
+        const precos = []
+        for (const lpu of lpus) {
+            const lpuHOPE = item[lpu]
+            const ativo = lpuHOPE?.ativo || ''
+            const preco = lpuHOPE?.historico?.[ativo]?.valor || 0
+            precos.push(preco)
+        }
 
         const row = [
             codigo,
@@ -1471,7 +1477,7 @@ async function exportarParaExcel() {
             fabricante,
             modelo,
             sistema,
-            preco
+            ...precos
         ]
 
         worksheet.addRow(row)
@@ -1481,8 +1487,8 @@ async function exportarParaExcel() {
     worksheet.eachRow((row, rowNumber) => {
         row.eachCell((cell, colNumber) => {
             cell.alignment = {
-                vertical: 'middle',
-                horizontal: 'center',
+                vertical: 'top',
+                horizontal: 'left',
                 wrapText: true
             }
             cell.border = {
