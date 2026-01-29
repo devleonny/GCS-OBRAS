@@ -2,9 +2,9 @@ let memoriaFiltro = null
 let lpuATIVA = null
 let paginaComposicoes = 1
 let totalPaginas = null
-let precosAntigos = null
 const porPagina = 100
 let pesqAtiva = null
+let removerZerado = true
 
 const metaforas = [
     "Um monitor sem imagens para exibir",
@@ -74,6 +74,7 @@ async function telaCriarOrcamento() {
             <span>${texto}</span>
         </div>
     `
+
     const acumulado = `
     <div class="contornoTela">
 
@@ -97,13 +98,14 @@ async function telaCriarOrcamento() {
 
                 <div id="desconto_total"></div>
 
-                <div style="${vertical}; gap: 3px;">
+                <div style="${vertical}; gap: 3px; margin-right: 0.5rem;">
                     <span>LEGENDAS</span>
                     <hr style="width: 100%;">
                     ${modelo('Preço Atualizado', 'preco')}
                     ${modelo('Preço Desatualizado', 'preco_neg')}
                     ${modelo('Juntar itens', 'elo')}
                     ${modelo('Aumentar o preço', 'ajustar')}
+                    <div id="chavePrecos"></div>
                 </div>
 
             </div>
@@ -124,29 +126,33 @@ async function telaCriarOrcamento() {
     if (!orcamentoPadrao) tela.innerHTML = acumulado
 
     criarMenus('criarOrcamentos')
-
+    carregarResposta()
     await manterPrecos()
 
 }
 
-async function manterPrecos() {
+async function manterPrecos(verificacao = true) {
 
-    const orcamento = baseOrcamento()
 
-    const painel = document.querySelector('.painel-manter-precos')
-    if (painel)
-        return
+    if (verificacao) {
+        const orcamento = baseOrcamento()
 
-    if (precosAntigos !== null || Object.entries(orcamento?.esquema_composicoes || {}).length == 0) {
-        return await atualizarOpcoesLPU()
+        const painel = document.querySelector('.painel-manter-precos')
+        if (painel)
+            return
+
+        // Se tiver respondido, pode passar;
+        if (orcamento?.manter_precos || !orcamento?.id) {
+            return await atualizarOpcoesLPU()
+        }
+
     }
 
     const modelo = (img, acao, texto, cor) => `
         <div style="${horizontal}; gap: 0.5rem;">
             <img src="imagens/${img}.png">
-            <button style="background-color: ${cor || ''}" onclick="removerPopup(); manterPrecosAntigos(${acao})">${texto}</button>
-        </div>
-    `
+            <button style="background-color: ${cor || ''}" onclick="removerPopup(); manterPrecosAntigos('${acao}')">${texto}</button>
+        </div>`
 
     const elemento = `
         <div class="painel-manter-precos">
@@ -157,8 +163,8 @@ async function manterPrecos() {
                 ou se prefere atualizar tudo: <br>
             </p>
             
-            ${modelo('atualizados', false, 'Atualizar os Preços')}
-            ${modelo('atrasado', true, 'Manter os preços antigos', '#e74642')}
+            ${modelo('atualizados', 'N', 'Atualizar os Preços')}
+            ${modelo('atrasado', 'S', 'Manter os preços antigos', '#e74642')}
 
         </div>
         `
@@ -167,11 +173,43 @@ async function manterPrecos() {
 
 }
 
+function carregarResposta() {
+
+    const orcamento = baseOrcamento()
+    const manterPrecos = orcamento?.manter_precos == 'S'
+    const chavePrecos = document.getElementById('chavePrecos')
+
+    const texto = manterPrecos
+        ? 'Preços Antigos'
+        : 'Preços Atualizados'
+
+    const img = manterPrecos
+        ? 'atrasado'
+        : 'atualizados'
+
+    chavePrecos.innerHTML = `
+        <div style="${horizontal}; gap: 1rem;">
+            <img ${orcamento?.id ? `onclick="manterPrecos(false)"` : ''} src="imagens/${img}.png">
+            <span style="text-align: left;">${texto}</span>
+        </div>
+    `
+}
+
 async function manterPrecosAntigos(resposta) {
 
-    precosAntigos = resposta
+    orcamento = baseOrcamento()
+
+    if (resposta == 'S') {
+        orcamento = db.dados_orcamentos[orcamento.id]
+    }
+
+    orcamento.manter_precos = resposta
+
+    baseOrcamento(orcamento)
 
     await atualizarOpcoesLPU()
+
+    carregarResposta()
 
 }
 
@@ -343,7 +381,17 @@ async function atualizarOpcoesLPU() {
     ];
 
     const lpu = document.getElementById('lpu')
-    if (lpu) lpu.innerHTML = LPUS.map(lpu => `<option ${orcamentoBase?.lpu_ativa == lpu ? 'selected' : ''}>${lpu}</option>`).join('')
+    if (lpu) {
+        lpu.innerHTML = LPUS
+            .sort((a, b) => {
+                if (a === 'LPU HOPE') return -1
+                if (b === 'LPU HOPE') return 1
+                return a.localeCompare(b)
+            })
+            .map(lpu => `<option ${orcamentoBase?.lpu_ativa == lpu ? 'selected' : ''}>${lpu}</option>`)
+            .join('')
+
+    }
 
     orcamentoBase.lpu_ativa = lpu.value
     baseOrcamento(orcamentoBase)
@@ -360,6 +408,7 @@ async function alterarTabelaLPU(tabelaLPU) {
     baseOrcamento(orcamentoBase)
     await tabelaProdutosOrcamentos()
     await carregarTabelasOrcamento()
+
 }
 
 async function carregarTabelasOrcamento() {
@@ -649,9 +698,7 @@ async function ativarChamado(input, idOrcamento) {
 }
 
 
-async function tabelaProdutosOrcamentos(dadosFiltrados) {
-
-    if (!dadosFiltrados && Object.keys(filtrosPagina).length > 0) return pesquisarProdutos()
+async function tabelaProdutosOrcamentos() {
 
     const cor = coresTabelas(null)
     let permissoes = ['adm', 'log', 'editor', 'gerente', 'diretoria', 'coordenacao']
@@ -707,7 +754,7 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
 
         <div style="${vertical};" id="tabela_composicoes">
             <div class="topo-tabela" style="border: none; background-color: ${cor};">
-                <div style="${horizontal}; justify-content: start; gap: 2rem; color: white;">
+                <div style="${horizontal}; justify-content: space-between; gap: 2rem; color: white; width: 100%;">
                     <div class="paginacao">
                         <img src="imagens/seta.png" id="btnAnterior" onclick="paginaAnterior()">
                         <span id="paginacaoInfo"></span>
@@ -715,6 +762,11 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
                     </div>
 
                     <span>Dê um <b>ENTER</b> para pesquisar</span>
+
+                    <div class="tag-zerado">
+                        <input ${removerZerado ? 'checked' : ''} onchange="removerZerado = this.checked; pesquisarProdutos()" type="checkbox" style="width: 1.5rem; height: 1.5rem;">
+                        <span>Remover R$ 0,00</span>
+                    </div>
 
                 </div>
             </div>
@@ -734,33 +786,7 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
     if (!bodyComposicoes)
         document.getElementById('tabelaItens').innerHTML = acumulado
 
-    dadosFiltrados = dadosFiltrados || db.dados_composicoes
-    dadosFiltrados = { ...dadosFiltrados }
-
-    const orcamentoBase = baseOrcamento()
-    const omie_cliente = orcamentoBase?.dados_orcam?.omie_cliente || ''
-    const cliente = db.dados_clientes?.[omie_cliente] || {}
-    const estado = cliente?.estado || null
-    const composicoesOrcamento = orcamentoBase?.esquema_composicoes || {}
-    const lpu = orcamentoBase.lpu_ativa
-        ? String(orcamentoBase.lpu_ativa).toLocaleLowerCase()
-        : 'lpu hope'
-
-    const chaves = Object.keys(dadosFiltrados)
-    const inicio = (paginaComposicoes - 1) * porPagina
-    const fim = inicio + porPagina
-    const grupo = chaves.slice(inicio, fim)
-
-    bodyComposicoes = document.getElementById('bodyComposicoes')
-    bodyComposicoes.innerHTML = ''
-
-    for (const codigo of grupo) {
-        const produto = dadosFiltrados[codigo]
-        const qtdeOrcada = composicoesOrcamento?.[codigo]?.qtde || ''
-        linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu })
-    }
-
-    atualizarControlesPaginacao(chaves.length)
+    await pesquisarProdutos()
 
 }
 
@@ -890,8 +916,9 @@ async function pesquisarProdutos(chave, pesquisa) {
 
     // Aplica os filtros existentes
     const filtrosAtivos = Object.entries(filtrosPagina).filter(([_, termo]) => termo)
-    if (filtrosAtivos.length === 0)
-        return await tabelaProdutosOrcamentos()
+    if (filtrosAtivos.length === 0) {
+        filtrosPagina = {}
+    }
 
     // Atualiza os campos visuais com os filtros ativos
     for (const [coluna, termo] of filtrosAtivos) {
@@ -902,6 +929,13 @@ async function pesquisarProdutos(chave, pesquisa) {
     const dadosFiltrados = {}
 
     for (const [codigo, produto] of Object.entries(db.dados_composicoes)) {
+
+        const lpu = String(document?.getElementById('lpu')?.value || '').toLowerCase()
+        const ativo = produto?.[lpu]?.ativo
+        const preco = produto?.[lpu]?.historico?.[ativo]?.valor || 0
+
+        if (removerZerado && preco == 0) continue
+
         const corresponde = filtrosAtivos.every(([coluna, termo]) => {
             const valor = String(produto[coluna] || '')
                 .normalize('NFD')
@@ -914,7 +948,30 @@ async function pesquisarProdutos(chave, pesquisa) {
         if (corresponde) dadosFiltrados[codigo] = produto
     }
 
-    await tabelaProdutosOrcamentos(dadosFiltrados)
+    const orcamentoBase = baseOrcamento()
+    const omie_cliente = orcamentoBase?.dados_orcam?.omie_cliente || ''
+    const cliente = db.dados_clientes?.[omie_cliente] || {}
+    const estado = cliente?.estado || null
+    const composicoesOrcamento = orcamentoBase?.esquema_composicoes || {}
+    const lpu = orcamentoBase.lpu_ativa
+        ? String(orcamentoBase.lpu_ativa).toLocaleLowerCase()
+        : 'lpu hope'
+
+    const chaves = Object.keys(dadosFiltrados)
+    const inicio = (paginaComposicoes - 1) * porPagina
+    const fim = inicio + porPagina
+    const grupo = chaves.slice(inicio, fim)
+
+    bodyComposicoes = document.getElementById('bodyComposicoes')
+    bodyComposicoes.innerHTML = ''
+
+    for (const codigo of grupo) {
+        const produto = dadosFiltrados[codigo]
+        const qtdeOrcada = composicoesOrcamento?.[codigo]?.qtde || ''
+        linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu }) //29
+    }
+
+    atualizarControlesPaginacao(chaves.length)
 }
 
 async function converterEsquema() {
@@ -1073,6 +1130,7 @@ async function totalOrcamento() {
     atualizarToolbar()
 
     const orcamentoBase = baseOrcamento()
+    const precosAntigos = orcamentoBase?.manter_precos == 'S'
     const lpu = String(orcamentoBase.lpu_ativa).toLowerCase()
     let totais = { GERAL: { valor: 0, bruto: 0 } }
     let avisoDesconto = 0
@@ -1199,7 +1257,7 @@ async function totalOrcamento() {
                 : estado == 'BA'
                     ? 20.5
                     : 12
-                    
+
             const dadosCalculo = {
                 custo: precos.custo,
                 valor: precos.valor - desconto / quantidade,
@@ -1405,7 +1463,6 @@ async function totalOrcamento() {
         }
     }
 
-    await tabelaProdutosOrcamentos()
 }
 
 async function filtrarPorTipo(tipo) {
