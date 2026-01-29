@@ -708,8 +708,8 @@ function filtrarAAZ(coluna, id) {
     let ascendente = (el.dataset.order ?? "desc") !== "asc"
 
     linhas.sort((a, b) => {
-        let valorA = capturarValorCelula(a.cells[coluna])
-        let valorB = capturarValorCelula(b.cells[coluna])
+        let valorA = capturarValorCelula(a.cells[coluna] || '')
+        let valorB = capturarValorCelula(b.cells[coluna] || '')
 
         // Normaliza números com "R$", vírgula etc.
         const parseValor = v => {
@@ -737,20 +737,18 @@ function filtrarAAZ(coluna, id) {
 }
 
 function capturarValorCelula(celula) {
-    let entrada = celula.querySelector('input') || celula.querySelector('textarea') || celula.querySelector('select')
-    if (entrada) {
-        return entrada.value.toLowerCase();
-    }
+    if (!celula) return ''
 
-    let valor = celula.innerText.toLowerCase();
+    let entrada =
+        celula.querySelector('input') ||
+        celula.querySelector('textarea') ||
+        celula.querySelector('select')
 
-    if (/^r\$\s[\d.,]+$/.test(valor)) {
-        valor = valor.replace("r$", "").trim().replace(/\./g, "").replace(",", ".");
-        return parseFloat(valor);
-    }
+    if (entrada) return entrada.value.toLowerCase()
 
-    return valor;
+    return celula.textContent.toLowerCase()
 }
+
 
 async function painelUsuarios() {
 

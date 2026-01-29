@@ -128,12 +128,11 @@ async function telaComposicoes() {
     let pesquisa = ''
     cabecalhos.forEach((cab, i) => {
         ths += `
-        <th 
-            name="${cab}" 
-            data-indice="${i}"  
-            onclick="filtrarAAZ('${i}', 'tabela_composicoes', this)" 
-            style="position: relative; cursor: pointer; text-align: left;">
-                ${cab.includes('lpu') ? cab.toUpperCase() : inicialMaiuscula(cab)}
+        <th name="${cab}">
+            <div style="${horizontal}; justify-content: space-between; width: 100%; gap: 1rem;">
+                <span>${cab.includes('lpu') ? cab.toUpperCase() : inicialMaiuscula(cab)}</span>
+                <img onclick="filtrarAAZ('${i}', 'tabela_composicoes')" style="width: 1rem;" src="imagens/filtro.png">
+            </div>
         </th>`
 
         pesquisa += `
@@ -1242,6 +1241,9 @@ async function salvarAgrupamento() {
 
     const trs = linhasAgrupamento.querySelectorAll('tr')
 
+    console.log(trs);
+    
+
     const agrupamento = {}
 
     for (const tr of trs) {
@@ -1249,13 +1251,12 @@ async function salvarAgrupamento() {
         const tds = tr.querySelectorAll('td')
         const spanDesc = tds[1].querySelector('span')
         const codigo = spanDesc.id
-        const qtde = Number(tds[3].querySelector('input').value)
+        const qtde = Number(tds[3].querySelector('input').value || 0)
 
         tr.id = `AGRUP_${codigo}`
         tds[0].textContent = codigo
         tds[2].textContent = db.dados_composicoes[codigo].tipo
 
-        if (qtde == 0) continue
         agrupamento[codigo] = { qtde }
 
     }
