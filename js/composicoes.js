@@ -1241,9 +1241,6 @@ async function salvarAgrupamento() {
 
     const trs = linhasAgrupamento.querySelectorAll('tr')
 
-    console.log(trs);
-    
-
     const agrupamento = {}
 
     for (const tr of trs) {
