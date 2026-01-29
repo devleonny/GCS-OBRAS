@@ -334,9 +334,6 @@ function criarLinhaOrcamento(idOrcamento, orcamento, master, idMaster) {
 
     const tags = renderAtivas({ idOrcamento, recarregarPainel: false })
 
-    if(numOficial == 'D16425') console.log(depPorDesc[numOficial])
-    
-
     const celulas = `
                 ${cel(`
             <div style="${vertical}; gap: 2px;">
