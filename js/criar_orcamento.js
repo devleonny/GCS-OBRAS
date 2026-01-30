@@ -800,6 +800,10 @@ function linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu }
     const preco = detalhes?.valor || produto?.preco_estado?.[estado] || 0
 
     const sinalizacao = verificarData(detalhes?.data, codigo)
+    const stgFabricante = produto?.fabricante
+        ? `<b>Fabricante</b>${produto?.fabricante || ''}<br>`
+        : ''
+
     const tds = `
         <td>
             <div class="campo-codigo-composicao">
@@ -814,8 +818,7 @@ function linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu }
             <div style="${vertical}; text-align: left;">
                 <b>Descrição</b>
                 ${produto?.descricao || ''}<br>
-                <b>Fabricante</b>
-                ${produto?.fabricante || ''}<br>
+                ${stgFabricante}
             </div>
         </td>
         <td>
