@@ -107,7 +107,7 @@ async function comunicacao() {
             localStorage.removeItem('acesso')
             await resetarTudo()
             await telaLogin()
-            popup({ mensagem: 'Usuário removido do servidor' })
+            popup({ mensagem: 'Usuário desconectado' })
             return
         }
 

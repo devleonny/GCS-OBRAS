@@ -361,7 +361,7 @@ function indicadores() {
 
         const chamado = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato || orcamento?.projeto || '-'
 
-        for (const [idAcao, dados] of Object.entries(acoes)) {
+        for (const dados of Object.values(acoes)) {
 
             const estilo = dados?.status === 'concluído'
                 ? 'concluído'

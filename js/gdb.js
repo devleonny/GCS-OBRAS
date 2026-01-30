@@ -75,7 +75,10 @@ async function atualizarGCS(resetar) {
 
         // A tabela é a primeira: atualiza os dados da empresa atual antes da tabela de clientes;
         if (base == 'dados_setores') {
-            const existente = obterPorID({ chave: 'usuario', base: 'dados_setores' })
+            const existente = await recuperarDado('usuario', 'dados_setores')
+
+            console.log(existente);
+            
 
             if (!existente) continue
 
@@ -118,7 +121,7 @@ async function sincronizarDados({ base, resetar = false }) {
         const response = await fetch(`${api}/dados`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chave, timestamp })
+            body: JSON.stringify({ chave: base, timestamp })
         })
 
         if (!response.ok) {
@@ -132,7 +135,7 @@ async function sincronizarDados({ base, resetar = false }) {
             return {}
         }
 
-        return inserirDados(data)
+        return inserirDados(data, base)
 
     } catch (err) {
         console.log(err.message)
@@ -160,60 +163,67 @@ function inserirDados(dados, base) {
 
 }
 
-function obterPorID({ chave, base }) {
-    const request = indexedDB.open(nomeBase, versao)
+function recuperarDado(chave, base) {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(nomeBase, versao)
 
-    request.onsuccess = e => {
-        const db = e.target.result
-        const tx = db.transaction(base, 'readonly')
-        const store = tx.objectStore(base)
+        request.onerror = () => reject(request.error)
 
-        const req = store.get(chave)
-        req.onsuccess = () => console.log(req.result)
-    }
+        request.onsuccess = e => {
+            const db = e.target.result
+            const tx = db.transaction(base, 'readonly')
+            const store = tx.objectStore(base)
+
+            const req = store.get(chave)
+            req.onsuccess = () => resolve(req.result)
+            req.onerror = () => reject(null)
+        }
+    })
 }
 
-function pesquisarUsuarios({ filtros = {}, base, page = 1, limit = 20 }) {
-    const offset = (page - 1) * limit
-    let pulados = 0
-    let coletados = 0
+function pesquisarDB({ filtros = {}, base, pagina = 1, limite = 100 }) {
+
+  return new Promise((resolve, reject) => {
+
+    const offset = (pagina - 1) * limite
+    let vistos = 0
     const resultado = []
 
     const req = indexedDB.open(nomeBase, versao)
 
+    req.onerror = () => reject(req.error)
+
     req.onsuccess = e => {
-        const db = e.target.result
-        const tx = db.transaction(base, 'readonly')
-        const store = tx.objectStore(base)
+      const db = e.target.result
+      const tx = db.transaction(base, 'readonly')
+      const store = tx.objectStore(base)
 
-        store.openCursor().onsuccess = ev => {
-            const cursor = ev.target.result
-            if (!cursor) {
-                console.log(resultado)
-                return
-            }
-
-            const reg = cursor.value
-
-            if (passaFiltro(reg, filtros)) {
-                if (pulados < offset) {
-                    pulados++
-                } else if (coletados < limit) {
-                    resultado.push(reg)
-                    coletados++
-                }
-            }
-
-            if (coletados === limit) {
-                console.log(resultado)
-                return
-            }
-
-            cursor.continue()
+      store.openCursor().onsuccess = ev => {
+        const cursor = ev.target.result
+        if (!cursor) {
+          resolve(resultado)
+          return
         }
-    }
-}
 
+        const reg = cursor.value
+
+        if (passaFiltro(reg, filtros)) {
+          if (vistos >= offset && resultado.length < limite) {
+            resultado.push(reg)
+          }
+          vistos++
+        }
+
+        if (resultado.length === limite) {
+          resolve(resultado)
+          return
+        }
+
+        cursor.continue()
+      }
+    }
+  })
+}
 
 function getByPath(obj, path) {
     return path.split('.').reduce((acc, key) => acc?.[key], obj)
@@ -239,4 +249,165 @@ function passaFiltro(reg, filtros) {
                 return true
         }
     })
+}
+
+function contarPorCampo({ base, path, filtros = {} }) {
+  return new Promise((resolve, reject) => {
+
+    const contagem = {}
+
+    const req = indexedDB.open(nomeBase, versao)
+    req.onerror = () => reject(req.error)
+
+    req.onsuccess = e => {
+      const db = e.target.result
+      const tx = db.transaction(base, 'readonly')
+      const store = tx.objectStore(base)
+
+      store.openCursor().onsuccess = ev => {
+        const cursor = ev.target.result
+        if (!cursor) {
+          resolve(contagem)
+          return
+        }
+
+        const reg = cursor.value
+
+        if (passaFiltro(reg, filtros)) {
+          const v = getByPath(reg, path)
+          if (v !== undefined) {
+            contagem[v] = (contagem[v] || 0) + 1
+          }
+        }
+
+        cursor.continue()
+      }
+    }
+  })
+}
+
+function deletarDB(id, base) {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(nomeBase)
+
+    req.onerror = () => reject(req.error)
+
+    req.onsuccess = e => {
+      const db = e.target.result
+      const tx = db.transaction(base, 'readwrite')
+      const store = tx.objectStore(base)
+
+      const del = store.delete(id)
+
+      del.onsuccess = () => resolve(true)
+      del.onerror = () => reject(del.error)
+
+      tx.oncomplete = () => db.close()
+    }
+  })
+}
+
+
+// SERVIÇO DE ARMAZENAMENTO 
+async function deletar(caminho, idEvento) {
+
+    const url = `${api}/deletar`
+
+    const objeto = {
+        caminho,
+        usuario: acesso.usuario
+    }
+
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(objeto)
+        })
+
+        if (!response.ok) {
+            console.error(`Falha ao deletar: ${response.status} ${response.statusText}`)
+            const erroServidor = await response.text()
+            console.error(`Resposta do servidor:`, erroServidor)
+            throw new Error(`Erro HTTP ${response.status}`)
+        }
+
+        const data = await response.json()
+
+        if (idEvento) removerOffline('deletar', idEvento)
+
+        return data
+    } catch (erro) {
+        console.error(`Erro ao tentar deletar '${caminho}':`, erro.message || erro)
+        salvarOffline(objeto, 'deletar', idEvento)
+        removerOverlay()
+        return null
+    }
+}
+
+function removerOffline(operacao, idEvento) {
+    let dados_offline = JSON.parse(localStorage.getItem('dados_offline'))
+    delete dados_offline?.[operacao]?.[idEvento]
+    localStorage.setItem('dados_offline', JSON.stringify(dados_offline))
+}
+
+async function enviar(caminho, info, idEvento) {
+    const url = `${api}/salvar`
+    const objeto = { caminho, valor: info };
+
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(objeto)
+        });
+
+        let data;
+        try {
+            data = await response.json();
+        } catch (parseError) {
+            // Erro ao tentar interpretar como JSON;
+            console.error("Resposta não é JSON válido:", parseError);
+            salvarOffline(objeto, 'enviar', idEvento);
+            return null;
+        }
+
+        if (!response.ok) {
+            // Se a API respondeu erro (ex: 400, 500);
+            console.error("Erro HTTP:", response.status, data);
+            salvarOffline(objeto, 'enviar', idEvento);
+            return null;
+        }
+
+        if (idEvento) removerOffline('enviar', idEvento);
+
+        return data;
+    } catch (erro) {
+        console.error("Erro na requisição:", erro);
+        salvarOffline(objeto, 'enviar', idEvento);
+        return null;
+    }
+}
+
+function salvarOffline(objeto, operacao, idEvento) {
+    let dados_offline = JSON.parse(localStorage.getItem('dados_offline')) || {}
+    idEvento = idEvento || ID5digitos()
+
+    if (!dados_offline[operacao]) dados_offline[operacao] = {}
+    dados_offline[operacao][idEvento] = objeto
+
+    localStorage.setItem('dados_offline', JSON.stringify(dados_offline))
+}
+
+function msgQuedaConexao(msg = '<b>Falha na atualização:</b> tente novamente em alguns minutos.') {
+
+    const elemento = `
+        <div class="msg-queda-conexao">
+            <img src="gifs/alerta.gif" style="width: 2rem;">
+            <span>${msg}</span>
+        </div>
+    `
+    const msgAtiva = document.querySelector('.msg-queda-conexao')
+    if (msgAtiva) return
+    popup({ elemento })
 }
