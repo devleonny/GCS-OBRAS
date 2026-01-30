@@ -701,8 +701,8 @@ async function tabelaProdutosOrcamentos() {
     const cor = coresTabelas(null)
     let permissoes = ['adm', 'log', 'editor', 'gerente', 'diretoria', 'coordenacao']
     moduloComposicoes = permissoes.includes(acesso.permissao)
-    const colunas = ['codigo', 'descricao', 'unidade', 'quantidade', 'valor', 'imagem']
-    const colLiberadas = ['codigo', 'descricao', 'unidade']
+    const colunas = ['codigo', 'descricao', 'modelo', 'unidade', 'quantidade', 'valor', 'imagem']
+    const colLiberadas = ['codigo', 'descricao', 'modelo', 'unidade']
     let ths = ''
     let tsh = ''
 
@@ -813,12 +813,13 @@ function linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu }
         <td>
             <div style="${vertical}; text-align: left;">
                 <b>Descrição</b>
-                ${produto?.descricao || '--'}<br>
+                ${produto?.descricao || ''}<br>
                 <b>Fabricante</b>
-                ${produto?.fabricante || '--'}<br>
-                <b>Modelo</b>
-                ${produto?.modelo || '--'}<br>
+                ${produto?.fabricante || ''}<br>
             </div>
+        </td>
+        <td>
+            ${produto?.modelo || ''}
         </td>
         <td>${produto?.unidade || ''}</td>
         <td>

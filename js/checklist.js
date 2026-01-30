@@ -890,7 +890,7 @@ async function verItensRemovidos() {
 
         if (!dados.removido) continue
 
-        const descricao = orcamento?.db.dados_composicoes?.[codigo]?.descricao || orcamento?.checklist?.avulso?.[codigo]?.descricao || '...'
+        const descricao = orcamento?.dados_composicoes?.[codigo]?.descricao || orcamento?.checklist?.avulso?.[codigo]?.descricao || '...'
 
         itens += `
             <div style="${horizontal}; gap: 10px;">
@@ -901,7 +901,7 @@ async function verItensRemovidos() {
     }
 
     const elemento = `
-        <div style="${vertical}; gap: 5px;">
+        <div style="${vertical}; gap: 5px; padding: 1rem;">
 
             ${itens}
 
