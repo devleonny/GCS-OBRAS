@@ -98,18 +98,10 @@ async function telaInicial() {
     localStorage.setItem('app', 'GCS')
     app = 'GCS'
 
-    if (priExeGCS) {
-        await atualizarGCS()
-        priExeGCS = false
-    }
+    //await atualizarGCS()
 
     const acumulado = `
-        <div id="loading" style="${horizontal};">
-            <img src="gifs/loading.gif" style="width: 5rem;">
-            <span style="color: white;">Carregando tabelas...</span>
-        </div>
         <div class="tela-gerenciamento">
-
             <div style="${horizontal}; width: 80vw;">
                 <img src="imagens/nav.png" style="width: 2rem;" onclick="scrollar('prev')">
                 <div id="toolbar">
@@ -134,50 +126,220 @@ async function telaInicial() {
     }
 
     // Carregar tabelas;
-    indicadores()
     carregarPDA()
-    carregarTecnicos()
+    await indicadores()
+    await carregarTecnicos()
 
-    const ativos = []
+    const pdas = await pesquisarDB({ base: 'dados_orcamentos', limite: 1000, filtros: { 'aba': {} } })
 
-    for (const [idOrcamento, orcamento] of Object.entries(db.dados_orcamentos)) {
-
-        if (!orcamento.aba) continue
-        ativos.push(idOrcamento)
-        linPda(idOrcamento, orcamento)
+    for (const orcamento of pdas.resultados) {
+        await linPda(orcamento)
     }
 
-    for (const aba of abas) {
-        const trs = document.querySelectorAll(`#body${aba} tr`)
-        for (const tr of trs) if (!ativos.includes(tr.id)) tr.remove()
-    }
+    await contadores()
 
-    mostrarGuia()
-    contadores()
-    auxMapa('EM_ANDAMENTO')
+    mostrarGuia('INDICADORES')
+
+    //auxMapa('EM_ANDAMENTO')
 
     await carregarControles()
 
 }
 
-function contadores() {
+async function linPda(orcamento) {
 
-    for (const aba of [...abas, 'TÉCNICOS']) {
-        const trs = document.querySelectorAll(`#body${aba} tr`)
-        let contador = 0
+    const { idOrcamento } = orcamento
+    const codCliente = orcamento?.dados_orcam?.omie_cliente || ''
+    const cliente = await recuperarDado('dados_clientes', codCliente)
 
-        for (const tr of trs) {
-            const display = tr.style.display
-            if (display !== 'none') contador++
+    const st = orcamento?.status?.atual || ''
+    const opcoes = ['', ...fluxograma]
+        .map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`)
+        .join('')
+
+    const pda = orcamento.pda || {}
+    const listaTecs = orcamento?.checklist?.tecnicos || pda?.tecnicos || []
+
+    const tecs = listaTecs
+        .map(codTec => {
+            const cliente = db.dados_clientes?.[codTec] || {}
+            return `<div class="etiquetas" style="min-width: 100px;">${cliente?.nome || '...'}</div>`
+        }).join('')
+
+    const mod = (texto, elemento) => `
+        <div style="${vertical}; gap: 2px;">
+            <span><b>${texto}:</b></span>
+            ${elemento}
+        </div>
+    `
+
+    const strAcoes = Object.entries(pda.acoes || {})
+        .map(([idAcao, dados]) => {
+
+            const [ano, mes, dia] = dados.prazo.split('-')
+            const prazo = `${dia}/${mes}/${ano}`
+
+            const estilo = dados?.status === 'concluído'
+                ? 'concluído'
+                : dtPrazo(dados?.prazo)
+                    ? 'atrasado'
+                    : 'pendente'
+
+            return `
+            <div style="${horizontal}; text-align: left; width: 100%; gap: 0.5rem;">
+                <div class="etiqueta-${estilo}">
+                    <span><b>Ação:</b> ${dados?.acao || ''}</span>
+                    <span><b>Responsável:</b> ${dados?.responsavel || ''}</span>
+                    <span><b>Prazo:</b> ${prazo}</span>
+                    ${dados.registro
+                    ? `<span><b>criado em:</b> ${new Date(dados.registro).toLocaleString('pt-BR')}</span>`
+                    : ''}
+                </div>
+                <img src="imagens/editar.png" style="width: 1.5rem;" onclick="formAcao('${idOrcamento}', '${idAcao}')">
+            </div>
+            `}).join('')
+
+    const selectAbas = `
+        <select class="etiquetas" onchange="atualizarAba(this, '${idOrcamento}')">
+            <option></option>
+            ${abas.map(aba => `<option ${orcamento?.aba == aba ? 'selected' : ''}>${aba}</option>`).join('')}
+        </select>
+    `
+
+    const existente = `
+        <div style="${vertical}; gap: 2px; text-align: left;">
+            <span><b>Número: </b>${orcamento?.dados_orcam?.contrato || ''}</span>
+            <span><b>Cliente: </b>${cliente?.nome || '...'}</span>
+            <span><b>Data: </b>${orcamento?.dados_orcam?.data || '...'}</span>
+            <span><b>Cidade: </b>${cliente?.cidade || '...'}</span>
+            <span><b>Valor: </b> ${dinheiro(orcamento?.total_geral)}</span>
+
+            ${mod('Status', `
+                <select name="status" class="etiquetas" onchange="id_orcam = '${idOrcamento}'; alterarStatus(this)">
+                    ${opcoes}
+                </select>
+                `)}
+
+        </div>
+    `
+    const novo = `
+        <div style="${vertical}; gap: 5px; text-align: left;">
+            <span><b>Projeto:</b> ${orcamento?.projeto || 'Projeto sem nome'}</span>
+            <div style="${horizontal}; justify-content: end; align-items: end; gap: 5px;">
+
+                ${mod('Estado', `
+                    <select class="etiquetas" data-campo="estado" onchange="atualizarCampo(this, '${idOrcamento}')">
+                        <option></option>
+                        ${Object.keys(posicoesEstados).map(estado => `<option ${pda.estado == estado ? 'selected' : ''}>${estado}</option>`).join('')}
+                    </select>
+                    `)}
+                
+                <img src="imagens/editar.png" onclick="editarLinPda({idOrcamento:'${idOrcamento}'})">
+                <img src="imagens/projeto.png" onclick="confirmarCriarOrcamento('${idOrcamento}')">
+            </div>
+        </div>
+    `
+
+    const strTags = `
+        <div style="${horizontal}; justify-content: space-between; width: 100%; align-items: start; gap: 2px;">
+            <div name="tags" style="${vertical}; gap: 1px;">
+                ${renderAtivas({ idOrcamento, recarregarPainel: false })}
+            </div>
+            <img 
+                src="imagens/etiqueta.png" 
+                style="width: 1.2rem;" 
+                onclick="renderPainel('${idOrcamento}')">
+        </div>
+    `
+
+    const tds = `
+        <td>
+            ${cliente ? existente : novo}
+            ${mod('Aba', selectAbas)}
+        </td>
+        <td>
+            ${orcamento ? strTags : ''}
+        </td>
+        <td>
+            <div style="${horizontal}; justify-content: start; align-items: start; gap: 2px;">
+                <img onclick="id_orcam = '${idOrcamento}'; tecnicosAtivos()" src="imagens/baixar.png" style="width: 1.5rem;">
+                <div style="${vertical}; gap: 2px; width: 100%;">
+                    ${tecs}
+                </div>
+            </div>
+        </td>
+        <td>
+            <input 
+            style="width: max-content;"
+            type="date" 
+            class="etiqueta-${orcamento.inicio ? 'concluído' : 'pendente'}"
+            value="${orcamento?.inicio || ''}" 
+            onchange="alterarDatas(this, 'inicio', '${idOrcamento}')">
+        </td>
+        <td>
+            <input 
+            style="width: max-content;"
+            type="date" 
+            class="etiqueta-${orcamento.termino ? 'concluído' : 'pendente'}"
+            value="${orcamento?.termino || ''}" 
+            onchange="alterarDatas(this, 'termino', '${idOrcamento}')">
+        </td>
+
+        <td>${coments(pda?.comentario, 'comentario', idOrcamento)}</td>
+
+        <td>
+            <div style="${horizontal}; justify-content: start; align-items: start; gap: 2px;">
+                <img onclick="formAcao('${idOrcamento}')" src="imagens/baixar.png" style="width: 1.5rem;">
+                <div class="bloco-acoes">
+                    ${strAcoes}
+                </div>
+            </div>
+        </td>
+        <td>
+            <div style="${vertical}; width: 100%; gap: 2px;">
+                ${orcamento?.checklist?.andamento
+            ? divPorcentagem(orcamento.checklist.andamento)
+            : ''
         }
+            </div>
+        </td>
+        <td>
+            ${orcamento ? `<img onclick="abrirAtalhos('${idOrcamento}')" src="imagens/pesquisar2.png" style="width: 1.5rem;">` : ''}
+        </td>
+        <td>
+            <img onclick="confirmarExcluirPda('${idOrcamento}')" src="imagens/cancel.png" style="width: 1.5rem;">
+        </td>
+    `
+
+    const aba = orcamento.aba
+    const tbody = document.getElementById(`body${aba}`)
+
+    tbody.insertAdjacentHTML(
+        'beforeend',
+        `<tr id="${idOrcamento}"
+        data-timestamp="${orcamento.timestamp || ''}"
+        data-aba="${aba}">
+        ${tds}
+    </tr>`
+    )
+
+}
+
+async function contadores() {
+
+    const contadores = await contarPorCampo({ base: 'dados_orcamentos', path: 'aba' })
+
+    for (const [aba, total] of Object.entries(contadores)) {
 
         const spanContador = document.getElementById(`contador-${aba}`)
-        if (spanContador) spanContador.textContent = contador
+        if (spanContador) spanContador.textContent = total
 
     }
 }
 
 function auxMapa(aba) {
+
+    return // Desativado
 
     const tMapas = document.querySelector('.toolbar-mapas')
     tMapas.innerHTML = ''
@@ -239,13 +401,14 @@ function auxMapa(aba) {
     }
 }
 
-function carregarTecnicos() {
+async function carregarTecnicos() {
 
     const tecnicosMap = {}   // { codTec: { nome, projetos: [] } }
+    const pdas = await pesquisarDB({ base: 'dados_orcamentos', limite: 1000, filtros: { 'pda': {} } })
 
-    for (const [idOrcamento, orc] of Object.entries(db.dados_orcamentos)) {
+    for (const orc of pdas.resultados) {
 
-        if (!orc.pda) continue
+        const { idOrcamento } = orc
 
         const listaTecs = orc?.checklist?.tecnicos || []
         const historico = orc?.status?.historicoStatus || {}
@@ -298,7 +461,7 @@ function carregarTecnicos() {
                 </div>`
                 : `
                 <div class="etiquetas">
-                    <span>${orc.projeto || 'Projeto sem nome'}</span>
+                    <span>${orc?.projeto || 'Projeto sem nome'}</span>
                 </div>
             `
 
@@ -341,7 +504,7 @@ function carregarTecnicos() {
 }
 
 
-function indicadores() {
+async function indicadores() {
 
     const permitidos = ['adm', 'gerente', 'diretoria']
 
@@ -354,9 +517,13 @@ function indicadores() {
     const tUsuario = {}
     let strgAcoes = ''
 
-    for (const [idOrcamento, orcamento] of Object.entries(db.dados_orcamentos)) {
+    const pdas = await pesquisarDB({ base: 'dados_orcamentos', limite: 1000, filtros: { 'pda': {} } })
+
+    for (const orcamento of pdas.resultados) {
 
         if (!orcamento.pda) continue
+
+        const { idOrcamento } = orcamento
         const acoes = orcamento?.pda?.acoes || {}
 
         const chamado = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato || orcamento?.projeto || '-'
@@ -541,195 +708,6 @@ function carregarPDA() {
 
 }
 
-function linPda(idOrcamento, orcamento) {
-
-    const codCliente = orcamento?.dados_orcam?.omie_cliente || ''
-    const cliente = db.dados_clientes?.[codCliente]
-    const st = orcamento?.status?.atual || ''
-    const opcoes = ['', ...fluxograma].map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`).join('')
-
-    const pda = orcamento.pda || {}
-    const listaTecs = orcamento?.checklist?.tecnicos || pda?.tecnicos || []
-
-    const tecs = listaTecs
-        .map(codTec => {
-            const cliente = db.dados_clientes?.[codTec] || {}
-            return `<div class="etiquetas" style="min-width: 100px;">${cliente?.nome || '...'}</div>`
-        }).join('')
-
-    const mod = (texto, elemento) => `
-        <div style="${vertical}; gap: 2px;">
-            <span><b>${texto}:</b></span>
-            ${elemento}
-        </div>
-    `
-
-    const strAcoes = Object.entries(pda.acoes || {})
-        .map(([idAcao, dados]) => {
-
-            const [ano, mes, dia] = dados.prazo.split('-')
-            const prazo = `${dia}/${mes}/${ano}`
-
-            const estilo = dados?.status === 'concluído'
-                ? 'concluído'
-                : dtPrazo(dados?.prazo)
-                    ? 'atrasado'
-                    : 'pendente'
-
-            return `
-            <div style="${horizontal}; text-align: left; width: 100%; gap: 0.5rem;">
-                <div class="etiqueta-${estilo}">
-                    <span><b>Ação:</b> ${dados?.acao || ''}</span>
-                    <span><b>Responsável:</b> ${dados?.responsavel || ''}</span>
-                    <span><b>Prazo:</b> ${prazo}</span>
-                    ${dados.registro
-                    ? `<span><b>criado em:</b> ${new Date(dados.registro).toLocaleString('pt-BR')}</span>`
-                    : ''}
-                </div>
-                <img src="imagens/editar.png" style="width: 1.5rem;" onclick="formAcao('${idOrcamento}', '${idAcao}')">
-            </div>
-            `}).join('')
-
-    const selectAbas = `
-        <select class="etiquetas" onchange="atualizarAba(this, '${idOrcamento}')">
-            <option></option>
-            ${abas.map(aba => `<option ${orcamento?.aba == aba ? 'selected' : ''}>${aba}</option>`).join('')}
-        </select>
-    `
-
-    const existente = `
-        <div style="${vertical}; gap: 2px; text-align: left;">
-            <span><b>Número: </b>${orcamento?.dados_orcam?.contrato || ''}</span>
-            <span><b>Cliente: </b>${cliente?.nome || '...'}</span>
-            <span><b>Data: </b>${orcamento?.dados_orcam?.data || '...'}</span>
-            <span><b>Cidade: </b>${cliente?.cidade || '...'}</span>
-            <span><b>Valor: </b> ${dinheiro(orcamento?.total_geral)}</span>
-
-            ${mod('Status', `
-                <select name="status" class="etiquetas" onchange="id_orcam = '${idOrcamento}'; alterarStatus(this)">
-                    ${opcoes}
-                </select>
-                `)}
-
-        </div>
-    `
-    const novo = `
-        <div style="${vertical}; gap: 5px; text-align: left;">
-            <span><b>Projeto:</b> ${orcamento?.projeto || 'Projeto sem nome'}</span>
-            <div style="${horizontal}; justify-content: end; align-items: end; gap: 5px;">
-
-                ${mod('Estado', `
-                    <select class="etiquetas" data-campo="estado" onchange="atualizarCampo(this, '${idOrcamento}')">
-                        <option></option>
-                        ${Object.keys(posicoesEstados).map(estado => `<option ${pda.estado == estado ? 'selected' : ''}>${estado}</option>`).join('')}
-                    </select>
-                    `)}
-                
-                <img src="imagens/editar.png" onclick="editarLinPda({idOrcamento:'${idOrcamento}'})">
-                <img src="imagens/projeto.png" onclick="confirmarCriarOrcamento('${idOrcamento}')">
-            </div>
-        </div>
-    `
-
-    const strTags = `
-        <div style="${horizontal}; justify-content: space-between; width: 100%; align-items: start; gap: 2px;">
-            <div name="tags" style="${vertical}; gap: 1px;">
-                ${renderAtivas({ idOrcamento, recarregarPainel: false })}
-            </div>
-            <img 
-                src="imagens/etiqueta.png" 
-                style="width: 1.2rem;" 
-                onclick="renderPainel('${idOrcamento}')">
-        </div>
-    `
-
-    const tds = `
-        <td>
-            ${cliente ? existente : novo}
-            ${mod('Aba', selectAbas)}
-        </td>
-        <td>
-            ${orcamento ? strTags : ''}
-        </td>
-        <td>
-            <div style="${horizontal}; justify-content: start; align-items: start; gap: 2px;">
-                <img onclick="id_orcam = '${idOrcamento}'; tecnicosAtivos()" src="imagens/baixar.png" style="width: 1.5rem;">
-                <div style="${vertical}; gap: 2px; width: 100%;">
-                    ${tecs}
-                </div>
-            </div>
-        </td>
-        <td>
-            <input 
-            style="width: max-content;"
-            type="date" 
-            class="etiqueta-${orcamento.inicio ? 'concluído' : 'pendente'}"
-            value="${orcamento?.inicio || ''}" 
-            onchange="alterarDatas(this, 'inicio', '${idOrcamento}')">
-        </td>
-        <td>
-            <input 
-            style="width: max-content;"
-            type="date" 
-            class="etiqueta-${orcamento.termino ? 'concluído' : 'pendente'}"
-            value="${orcamento?.termino || ''}" 
-            onchange="alterarDatas(this, 'termino', '${idOrcamento}')">
-        </td>
-
-        <td>${coments(pda?.comentario, 'comentario', idOrcamento)}</td>
-
-        <td>
-            <div style="${horizontal}; justify-content: start; align-items: start; gap: 2px;">
-                <img onclick="formAcao('${idOrcamento}')" src="imagens/baixar.png" style="width: 1.5rem;">
-                <div class="bloco-acoes">
-                    ${strAcoes}
-                </div>
-            </div>
-        </td>
-        <td>
-            <div style="${vertical}; width: 100%; gap: 2px;">
-                ${orcamento?.checklist?.andamento
-            ? divPorcentagem(orcamento.checklist.andamento)
-            : ''
-        }
-            </div>
-        </td>
-        <td>
-            ${orcamento ? `<img onclick="abrirAtalhos('${idOrcamento}')" src="imagens/pesquisar2.png" style="width: 1.5rem;">` : ''}
-        </td>
-        <td>
-            <img onclick="confirmarExcluirPda('${idOrcamento}')" src="imagens/cancel.png" style="width: 1.5rem;">
-        </td>
-    `
-
-    const aba = orcamento.aba
-    const tbody = document.getElementById(`body${aba}`)
-    const trExistente = document.getElementById(idOrcamento)
-    const timestamp = trExistente?.dataset?.timestamp
-    const trAba = trExistente?.dataset?.aba || 'PDA'
-
-    if (trExistente && trAba !== aba) {
-        trExistente.remove()
-    }
-
-    if (trExistente) {
-        if (!orcamento.timestamp || orcamento.timestamp !== timestamp) {
-            trExistente.innerHTML = tds
-            trExistente.dataset.timestamp = orcamento.timestamp || ''
-        }
-    } else {
-        tbody.insertAdjacentHTML(
-            'beforeend',
-            `<tr id="${idOrcamento}"
-            data-timestamp="${orcamento.timestamp || ''}"
-            data-aba="${aba}">
-            ${tds}
-        </tr>`
-        )
-    }
-
-}
-
 function confirmarCriarOrcamento(idOrcamento) {
 
     const botoes = [
@@ -771,7 +749,7 @@ async function excluirPda(idOrcamento) {
     removerPopup()
 
     if (trExistente) trExistente.remove()
-    contadores()
+    await contadores()
 
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
 

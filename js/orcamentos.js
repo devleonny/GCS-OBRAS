@@ -1,9 +1,14 @@
 let filtroRespost
 let arquivado = 'N'
 let auxiliarFaturamento = {}
-let pAtual = 1
-const itensPorPagina = 100
-let tPaginas = 1
+
+const controles = {
+    pagina: 1,
+    base: null,
+    totalPaginas: 1,
+    criarLinha: null,
+    body: null,
+}
 
 const stLista = [
     'EM ANDAMENTO',
@@ -27,60 +32,6 @@ const meses = {
     '12': 'Dezembro'
 }
 
-function ordenarOrcamentos(colunaIndex) {
-    const tbody = document.getElementById('linhas')
-    if (!tbody) return
-
-    const tabela = document.getElementById('tabelaOrcamento')
-    const ordem = tabela.dataset.ordem === 'asc' ? 'des' : 'asc'
-    tabela.dataset.ordem = ordem
-
-    // pega SOMENTE as linhas master
-    const masters = Array.from(
-        tbody.querySelectorAll('tr.linha-master')
-    )
-
-    const pares = masters.map(master => ({
-        master,
-        slave: master.nextElementSibling?.classList.contains('linha-slave-container')
-            ? master.nextElementSibling
-            : null
-    }))
-
-    pares.sort((a, b) => {
-        const celA = a.master.cells[colunaIndex]
-        const celB = b.master.cells[colunaIndex]
-
-        const valA =
-            celA?.querySelector('input, select')?.value?.trim() ||
-            celA?.textContent?.trim() || ''
-
-        const valB =
-            celB?.querySelector('input, select')?.value?.trim() ||
-            celB?.textContent?.trim() || ''
-
-        const numA = parseFloat(valA.replace(',', '.'))
-        const numB = parseFloat(valB.replace(',', '.'))
-
-        if (!isNaN(numA) && !isNaN(numB)) {
-            return ordem === 'asc' ? numA - numB : numB - numA
-        }
-
-        return ordem === 'asc'
-            ? valA.localeCompare(valB, 'pt-BR', { numeric: true })
-            : valB.localeCompare(valA, 'pt-BR', { numeric: true })
-    })
-
-    const frag = document.createDocumentFragment()
-
-    for (const { master, slave } of pares) {
-        frag.appendChild(master)
-        if (slave) frag.appendChild(slave)
-    }
-
-    tbody.appendChild(frag)
-}
-
 function mudarInterruptor(el) {
     const ativo = el.checked
     const label = el.parentElement
@@ -97,13 +48,23 @@ async function rstTelaOrcamentos() {
     await telaOrcamentos()
 }
 
-function confirmarPesquisa(e, coluna, el) {
+async function confirmarPesquisa(e, coluna, el) {
     if (e?.key && e.key !== 'Enter') return
 
     if (e) e.preventDefault()
 
     const termo = el.textContent.replace(/\n/g, '').trim().toLowerCase()
-    renderizar(coluna, termo)
+    
+    controles.pagina = 1
+    if(!termo) return   
+    controles.filtros = {
+        [coluna]:{
+            op: 'includes',
+            value: termo
+        }
+    }
+
+    await paginacao()
 }
 
 async function telaOrcamentos() {
@@ -125,7 +86,7 @@ async function telaOrcamentos() {
     const ths = cabecs
         .map((th, i) => `
             <th>
-                <div style="${horizontal}; width: 100%; justify-content: space-between;">
+                <div style="${horizontal}; width: 100%; justify-content: space-between; gap: 1rem;">
                     <span>${inicialMaiuscula(th)}</span>    
                     ${fOn.includes(th) ? `<img onclick="ordenarOrcamentos(${i})" src="imagens/filtro.png" style="width: 1rem;">` : ''}
                 </div>
@@ -171,19 +132,76 @@ async function telaOrcamentos() {
     const tabelaOrcamento = document.getElementById('tabelaOrcamento')
     if (!tabelaOrcamento) tela.innerHTML = acumulado
 
-    await auxDepartamentos()
+    //await auxDepartamentos()
 
+    await carregarToolbar()
     criarMenus('orcamentos')
+    mostrarMenus(false)
 
-    aplicarFiltrosEPaginacao()
+    controles.base = 'dados_orcamentos'
+    controles.criarLinha = 'criarLinhaOrcamento'
+    controles.body = 'linhas'
 
-    if (!tabelaOrcamento) renderizar('status', 'todos')
+    await paginacao()
 
-    // Recuperar pesquisas
-    for (const [chave, info] of Object.entries(filtrosPesquisa?.orcamentos || {})) {
-        const inpCab = document.querySelector(`[name="${chave}"]`)
-        if (inpCab && !filtrosOff.includes(chave)) inpCab.textContent = info
+}
+
+async function mudarPagina(valor) {
+
+    if (valor < 0) controles.pagina--
+    else controles.pagina++
+
+    await paginacao()
+
+}
+
+async function paginacao() {
+
+    const { pagina, base, body, criarLinha, filtros } = controles
+
+    if (!base || !criarLinha) return console.log('Base/CriarLinha não informado(s)')
+
+    const tbody = document.getElementById(body)
+    const tabela = tbody.parentElement
+    const cols = tabela.querySelectorAll('thead th').length
+    tbody.innerHTML = `
+    <tr> 
+        <td colspan="${cols}">
+            <div style="${horizontal};">
+                <img src="gifs/loading.gif" style="width: 5rem;">
+            </div>
+        </td>
+    <tr>`
+
+    const dados = await pesquisarDB({ base, pagina, filtros })
+    const p = document.getElementById('paginacao')
+    const paginaAtual = document.getElementById('paginaAtual')
+    const totalPaginas = document.getElementById('totalPaginas')
+
+    if (!paginaAtual) {
+        p.innerHTML = `
+            <div style="display: flex; align-items:center; gap:10px; padding: 0.2rem;">
+                <img src="imagens/esq.png" style="width: 2rem;" onclick="mudarPagina(-1)">
+                <span style="color: white;">
+                    Página 
+                    <span id="paginaAtual">${pagina}</span> de 
+                    <span id="totalPaginas">${dados.paginas}</span>
+                </span>
+                <img src="imagens/dir.png" style="width: 2rem;" onclick="mudarPagina(1)">
+                <span style="color: white;">Dê um <b>ENTER</b> para pesquisar</span>
+            </div>
+        `
+    } else {
+        paginaAtual.textContent = pagina
+        totalPaginas.textContent = dados.paginas
     }
+
+    let linhas = ''
+    for (const d of dados.resultados) {
+        linhas += await await window[criarLinha](d)
+    }
+
+    tbody.innerHTML = linhas
 
 }
 
@@ -239,8 +257,6 @@ function salvarFiltrosApp() {
         filtrosPesquisa.orcamentos[chave] = st
     }
 
-    aplicarFiltrosEPaginacao()
-
 }
 
 function scrollar(direcao) {
@@ -253,15 +269,11 @@ function scrollar(direcao) {
 
 }
 
-function criarLinhaOrcamento(idOrcamento, orcamento, master, idMaster) {
+async function criarLinhaOrcamento(orcamento, master, idMaster) {
 
-    if (!orcamento) return
+    const { id, dados_orcam } = orcamento
 
-    const { dados_orcam } = orcamento
-
-    if (!dados_orcam) return
-
-    const cliente = db.dados_clientes?.[dados_orcam.omie_cliente] || {}
+    const cliente = await recuperarDado('dados_clientes', dados_orcam?.omie_cliente) || {}
     let labels = {
         PEDIDO: '',
         FATURADO: ''
@@ -332,14 +344,14 @@ function criarLinhaOrcamento(idOrcamento, orcamento, master, idMaster) {
 
     const opcoesPda = abas.map(aba => `<option ${orcamento.aba == aba ? 'selected' : ''}>${aba}</option>`).join('')
 
-    const tags = renderAtivas({ idOrcamento, recarregarPainel: false })
+    const tags = renderAtivas({ id, recarregarPainel: false })
 
     const celulas = `
                 ${cel(`
             <div style="${vertical}; gap: 2px;">
                 <label style="text-align: left;"><b>${orcamento.lpu_ativa}</b></label>
                 <span>${data}</span>
-                <select name="aba" class="opcoesSelect" onchange="atualizarAba(this, '${idOrcamento}')">
+                <select name="aba" class="opcoesSelect" onchange="atualizarAba(this, '${id}')">
                     <option></option>
                     ${opcoesPda}
                 </select>
@@ -348,8 +360,8 @@ function criarLinhaOrcamento(idOrcamento, orcamento, master, idMaster) {
                 ${cel(`
             <div style="${vertical}; gap: 5px;">
                 <div style="${horizontal}; gap: 2px;">
-                    <img onclick="mostrarInfo('${idOrcamento}')" src="imagens/observacao${info.length > 0 ? '' : '_off'}.png">
-                    <select name="status" class="opcoesSelect" onchange="id_orcam = '${idOrcamento}'; alterarStatus(this)">
+                    <img onclick="mostrarInfo('${id}')" src="imagens/observacao${info.length > 0 ? '' : '_off'}.png">
+                    <select name="status" class="opcoesSelect" onchange="id_orcam = '${id}'; alterarStatus(this)">
                         ${opcoes}
                     </select>
                 </div>
@@ -366,7 +378,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento, master, idMaster) {
                 <img 
                     src="imagens/etiqueta.png" 
                     style="width: 1.2rem;" 
-                    onclick="renderPainel('${idOrcamento}')">
+                    onclick="renderPainel('${id}')">
                 <div name="tags" style="${vertical}; gap: 1px;">
                     ${tags}
                 </div>
@@ -401,7 +413,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento, master, idMaster) {
             </div>
             `)}
                 ${cel(`<img 
-                    onclick="${idMaster ? `abrirAtalhos('${idOrcamento}', '${idMaster}')` : `abrirAtalhos('${idOrcamento}')`}"
+                    onclick="${idMaster ? `abrirAtalhos('${id}', '${idMaster}')` : `abrirAtalhos('${id}')`}"
                     src="imagens/pesquisar2.png" 
                     style="width: 1.5rem;">`)}
                 `
@@ -409,7 +421,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento, master, idMaster) {
     const prioridade = verificarPrioridade(orcamento)
 
     const linha = `
-        <tr class="linha-master" id="${idOrcamento}" data-prioridade="${prioridade}">
+        <tr class="linha-master" id="${id}" data-prioridade="${prioridade}">
             ${celulas}
         </tr>`
 
@@ -444,141 +456,6 @@ function verificarPrioridade(orcamento) {
 
     return prioridade
 }
-
-function aplicarFiltrosEPaginacao() {
-
-    mostrarMenus(false)
-
-    const body = document.getElementById('linhas')
-    body.innerHTML = ''
-
-    const ids = Object.keys(db.dados_orcamentos)
-        .filter(id => passarFiltros(db.dados_orcamentos[id]))
-
-    ids.sort((a, b) => {
-        const oa = db.dados_orcamentos[a]
-        const ob = db.dados_orcamentos[b]
-
-        const pa = verificarPrioridade(oa)
-        const pb = verificarPrioridade(ob)
-
-        if (pa !== pb) return pa - pb
-        return ob.timestamp - oa.timestamp
-    })
-
-    carregarToolbarPorIds(ids)
-
-    tPaginas = Math.max(1, Math.ceil(ids.length / itensPorPagina))
-
-    const inicio = (pAtual - 1) * itensPorPagina
-    const pagina = ids.slice(inicio, inicio + itensPorPagina)
-
-    const frag = document.createDocumentFragment()
-    const jaInseridos = new Set()
-
-    for (const id of pagina) {
-
-        if (jaInseridos.has(id)) continue
-
-        const orc = db.dados_orcamentos[id]
-        const { chamado, contrato } = orc?.dados_orcam || {}
-
-        // pai
-        let el = htmlParaElemento(criarLinhaOrcamento(id, orc))
-        if (el) frag.appendChild(el)
-        jaInseridos.add(id)
-
-        // filhos (hierarquia)
-        for (const idFilho of Object.keys(orc.vinculados || {})) {
-
-            if (jaInseridos.has(idFilho)) continue
-
-            const orcFilho = db.dados_orcamentos[idFilho]
-            if (!orcFilho) continue
-
-            const master = chamado || contrato
-
-            let elFilho = htmlParaElemento(criarLinhaOrcamento(idFilho, orcFilho, master, id))
-            if (elFilho) frag.appendChild(elFilho)
-            jaInseridos.add(idFilho)
-        }
-
-    }
-
-    body.appendChild(frag)
-
-    renderizarControlesPagina()
-
-    localStorage.setItem('filtros', JSON.stringify(filtrosPesquisa.orcamentos))
-}
-
-function htmlParaElemento(html) {
-
-    if (!html) return
-    const t = document.createElement('template')
-
-    t.innerHTML = html.trim()
-    return t.content.firstChild
-}
-
-function renderizarControlesPagina() {
-    const topo = document.getElementById('paginacao')
-    if (!topo) return
-
-    topo.innerHTML = `
-        <div style="display: flex; align-items:center; gap:10px; padding: 0.2rem;">
-            <img src="imagens/seta.png" style="width: 1.5rem;" onclick="pgAnterior()" ${pAtual === 1 ? 'disabled' : ''}>
-            <span style="color: white;">Página ${pAtual} de ${tPaginas}</span>
-            <img src="imagens/seta.png" style="transform: rotate(180deg); width: 1.5rem;" onclick="pgSeguinte()" ${pAtual === tPaginas ? 'disabled' : ''}>
-            <span style="color: white;">Dê um <b>ENTER</b> para pesquisar</span>
-        </div>`
-}
-
-function pgAnterior() {
-    if (pAtual > 1) {
-        pAtual--
-        aplicarFiltrosEPaginacao()
-    }
-}
-
-function pgSeguinte() {
-    if (pAtual < tPaginas) {
-        pAtual++
-        aplicarFiltrosEPaginacao()
-    }
-}
-
-
-function renderizar(campo, texto) {
-
-    if (texto !== '' && (campo == 'chamados' || campo == 'status')) {
-        const tools = document.querySelectorAll('.aba-toolbar')
-        tools.forEach(t => t.style.opacity = 0.5)
-        const tool = document.querySelector(`[name="${campo == 'chamados' ? 'chamados' : texto}"]`)
-        tool.style.opacity = 1
-    }
-
-    // filtros exclusivos
-    if (campo === 'status') {
-        delete filtrosPesquisa.orcamentos.chamados
-    }
-
-    if (campo === 'chamados') {
-        delete filtrosPesquisa.orcamentos.status
-    }
-
-    if (texto === 'todos') texto = ''
-
-    if (!texto) {
-        delete filtrosPesquisa.orcamentos[campo]
-    } else {
-        filtrosPesquisa.orcamentos[campo] = String(texto).toLowerCase()
-    }
-
-    pAtual = 1
-    aplicarFiltrosEPaginacao()
-}
-
 
 async function editar(orcam_) {
 
@@ -743,158 +620,9 @@ async function excelOrcamentos() {
     document.body.removeChild(link)
 }
 
-// v2
-function passarFiltros(orcamento) {
+async function carregarToolbar() {
 
-    const f = filtrosPesquisa.orcamentos || {}
-    const dados = orcamento.dados_orcam || {}
-    const cliente = db.dados_clientes?.[dados.omie_cliente] || {}
-
-    for (const [campo, valor] of Object.entries(f)) {
-
-        if (valor == null || valor === '') continue
-
-        let v
-
-        switch (campo) {
-
-            // Filtros S ou N;
-            case 'data':
-                v = String(orcamento.lpu_ativa).toLowerCase()
-                if (!v.includes(valor)) return false
-                continue
-
-            case 'status':
-                v = String(orcamento?.status?.atual || 'SEM STATUS').toLocaleLowerCase()
-                if (v !== valor) return false
-                continue
-
-            case 'arquivado': {
-                const arq = orcamento.arquivado === 'S' ? 'S' : 'N'
-                if (arq !== valor) return false
-                continue
-            }
-
-            case 'meus_orcamentos': {
-                const participantes = `${orcamento.usuario} ${Object.keys(orcamento.usuarios || {}).join(' ')}`
-                const proprio = participantes.includes(acesso.usuario)
-
-                if (valor == 'S' && !proprio) return false
-
-                continue
-            }
-
-            case 'prioridade': {
-                const prioridade = verificarPrioridade(orcamento)
-                if (valor == 'S' && prioridade >= 3) return false
-                continue
-            }
-
-            case 'revisao': {
-                if (valor == 'S' && Object.keys(orcamento?.revisoes || []).length == 0) return false
-                continue
-            }
-
-            case 'vinculado': {
-                if (valor == 'S' && Object.keys(orcamento?.vinculados || []).length == 0) return false
-                continue
-            }
-
-            // Filtros Livres;
-            case 'status':
-                v = String(orcamento?.status?.atual || 'SEM STATUS').toLocaleLowerCase()
-                if (v !== valor) return false
-
-            case 'pedido':
-                v = Object
-                    .values(orcamento?.status?.historico || {})
-                    .filter(dados => dados?.status == 'PEDIDO')
-                    .map(dados => {
-
-                        return `${dados?.pedido} ${dados?.executor} ${dados?.tipo}`
-                    })
-                    .join(' ')
-                break
-
-            case 'notas':
-                v = Object
-                    .values(orcamento?.status?.historico || {})
-                    .filter(dados => dados?.status == 'FATURADO')
-                    .map(dados => {
-
-                        return `${dados?.nf} ${dados?.executor} ${dados?.tipo}`
-                    })
-                    .join(' ')
-                break
-
-            case 'tags':
-                v = Object
-                    .keys(orcamento.tags || {})
-                    .map(idTag => {
-                        return db.tags_orcamentos?.[idTag]?.nome || ''
-                    })
-                    .join(' ')
-                break
-
-            case 'cidade':
-                v = cliente.cidade
-                break
-
-            case 'pedido':
-                v = dados.chamado || dados.contrato
-                break
-
-            case 'contrato':
-                v = [dados.contrato, cliente.nome, dados.chamdo].map(c => {
-                    if (!c) return ''
-                    return c || ''
-                }).join(' ')
-                break
-
-            case 'responsaveis':
-                v = `${orcamento.usuario} ${Object.keys(orcamento.usuarios || {}).join(' ')}`
-                break
-
-            case 'data':
-                v = new Date(orcamento.timestamp).toLocaleDateString()
-                break
-
-            case 'valor':
-                v = orcamento.total_geral
-                break
-
-            default:
-                continue
-        }
-
-        if (v == null) return false
-
-        if (!String(v).toLowerCase().includes(String(valor).toLowerCase()))
-            return false
-    }
-
-    return true
-}
-
-function carregarToolbarPorIds(ids) {
-
-    contToolbar = { chamados: 0, todos: 0 }
-
-    for (const id of ids) {
-
-        const orc = db.dados_orcamentos[id]
-        const status = orc?.status?.atual || 'SEM STATUS'
-
-        contToolbar[status] ??= 0
-        contToolbar[status]++
-        contToolbar.todos++
-
-        const chamados =
-            orc?.chamado == 'S' &&
-            (status == 'SEM STATUS' || status == 'ORC ENVIADO')
-
-        if (chamados) contToolbar.chamados++
-    }
+    const contToolbar = await contarPorCampo({ base: 'dados_orcamentos', path: 'status.atual' })
 
     const toolbar = document.getElementById('toolbar')
 
@@ -911,8 +639,8 @@ function carregarToolbarPorIds(ids) {
         }
 
         const funcao = campo == 'chamados'
-            ? `delete filtrosPesquisa.orcamentos.status; renderizar('chamados', 'S')`
-            : `delete filtrosPesquisa.orcamentos.chamados; renderizar('status', '${campo}')`
+            ? `controles.filtros = {'chamado':{op:'=', value: 'S'}}; paginacao()`
+            : `controles.filtros = {'status.atual':{op:'=', value: '${campo}'}}; paginacao()`
 
         const f = campo == 'VENDA DIRETA'
             ? { 1: 'style="background: linear-gradient(45deg, #222, #b12425);"' }

@@ -171,14 +171,14 @@ function atualizarPaginacao() {
 
     topo.innerHTML = `
         <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:5px;">
-            <button onclick="mudarPagina(-1)" ${paginaAtual === 1 ? 'disabled' : ''}><</button>
+            <button onclick="mudarPaginas(-1)" ${paginaAtual === 1 ? 'disabled' : ''}><</button>
             <span>Página ${paginaAtual} / ${totalPaginas}</span>
-            <button onclick="mudarPagina(1)" ${paginaAtual === totalPaginas ? 'disabled' : ''}>></button>
+            <button onclick="mudarPaginas(1)" ${paginaAtual === totalPaginas ? 'disabled' : ''}>></button>
         </div>
     `
 }
 
-function mudarPagina(delta) {
+function mudarPaginas(delta) {
     const totalPaginas = Math.ceil(dadosFiltrados.length / limitePorPagina)
     paginaAtual += delta
     if (paginaAtual < 1) paginaAtual = 1

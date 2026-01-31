@@ -282,20 +282,18 @@ async function usuariosToolbar() {
 
     if (!acesso) return
 
-    dados_setores = await sincronizarDados({ base: 'dados_setores' }) || {}
     const user = await recuperarDado('dados_setores', acesso.usuario)
 
     // Conta quantos usuários estão online (status !== 'offline')
-    const usuariosOnline = Object.values(dados_setores)
-        .filter(u => u.status && u.status == 'online')
-        .length
+
+    const uOnline = await contarPorCampo({ base: 'dados_setores', path: 'status' })
 
     const indicadorStatus = user?.status || 'offline'
 
     const usuariosToolbarString = `
         <div class="botaoUsuarios">
             <img name="imgStatus" onclick="painelUsuarios()" src="imagens/${indicadorStatus}.png">
-            <label style="font-size: 1.2rem;">${usuariosOnline}</label>
+            <label style="font-size: 1.2rem;">${uOnline.online}</label>
         </div>
     `
 
@@ -684,16 +682,18 @@ function capturarValorCelula(celula) {
 
 async function painelUsuarios() {
 
+    const dados_setores = await pesquisarDB({ base: 'dados_setores', limite: 1000 })
     const stringUsuarios = {}
-    const organizados = Object
-        .entries(dados_setores)
-        .sort((a, b) => a[0].localeCompare(b[0]))
+    const organizados = dados_setores.resultados
+        .sort((a, b) => a.usuario.localeCompare(b.usuario))
 
-    for (const [usuario, objeto] of organizados) {
+    for (const dados of organizados) {
 
-        if (objeto.permissao == 'novo') continue
+        const { usuario } = dados
 
-        const status = objeto?.status || 'offline'
+        if (dados.permissao == 'novo') continue
+
+        const status = dados?.status || 'offline'
         if (!stringUsuarios[status]) stringUsuarios[status] = { quantidade: 0, linhas: '' }
 
         stringUsuarios[status].quantidade++
@@ -701,7 +701,7 @@ async function painelUsuarios() {
             <div class="usuarioOnline">
                 <img src="imagens/${status}.png" style="width: 1.5rem;">
                 <label>${usuario}</label>
-                <label style="font-size: 0.6rem;"><b>${objeto?.permissao || '??'}</b></label>
+                <label style="font-size: 0.6rem;"><b>${dados?.permissao || '??'}</b></label>
             </div>
         `
     }
@@ -998,19 +998,15 @@ async function verificarPendencias() {
 
     if (!navigator.onLine) return
 
-    let contador = 0
-
-    for (const orcamento of Object.values(db.dados_orcamentos)) {
-        if (orcamento.aprovacao && orcamento.aprovacao.status == 'pendente') {
-            contador++
-        }
-    }
+    const contador = await contarPorCampo({ base: 'dados_orcamentos', path: 'aprovacao.status' })
 
     const contadorPendencias = document.getElementById('contadorPendencias')
-    if (contadorPendencias) {
-        contadorPendencias.style.display = contador == 0 ? 'none' : 'flex'
-        contadorPendencias.textContent = contador
-    }
+    if (!contadorPendencias)
+        return
+
+    contadorPendencias.style.display = contador.pendente > 0 ? 'flex' : 'none'
+    contadorPendencias.textContent = contador.pendente
+
 }
 
 async function verPedidoAprovacao(idOrcamento) {

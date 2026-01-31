@@ -1367,7 +1367,7 @@ async function precosDesatualizados(calculo) {
 
         contador++
 
-        //Se for apenas cálculo, não precisa incluir linhas
+        // Se for apenas cálculo, não precisa incluir linhas
         if (calculo) continue
 
         if (trExistente) {

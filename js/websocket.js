@@ -82,17 +82,6 @@ function msgStatus(msg, s = 2) {
     console.log(msg)
 }
 
-async function refletir() {
-    if (app !== 'GCS') return
-    sOverlay = true
-    ignorarMenus = true
-
-    await executar(funcaoTela)
-
-    sOverlay = false
-    ignorarMenus = false
-}
-
 async function comunicacao() {
 
     app = localStorage.getItem('app') || 'OCORRÊNCIAS'
@@ -154,22 +143,17 @@ async function comunicacao() {
         if (app !== 'GCS') return
 
         if (tabela == 'dados_orcamentos') {
-            db.dados_orcamentos = await sincronizarDados({ base: 'dados_orcamentos' })
+            await sincronizarDados({ base: 'dados_orcamentos' })
             await verificarPendencias()
-            await refletir()
             return
         }
 
         if (tipo == 'exclusao') {
-            delete db[tabela][id]
             await deletarDB(tabela, id)
-            await refletir()
         }
 
         if (tipo == 'atualizacao') {
-            db[tabela][id] = dados
             await inserirDados({ [id]: dados }, tabela)
-            await refletir()
         }
 
         if (tipo == 'status') {
@@ -178,7 +162,6 @@ async function comunicacao() {
 
             if (user) {
                 user.status = status
-                db[tSetores][usuario] = user
                 await inserirDados({ [usuario]: user }, tSetores)
             }
 
