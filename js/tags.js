@@ -9,18 +9,11 @@ function isDark(cor) {
     return (0.299 * r + 0.587 * g + 0.114 * b) < 150
 }
 
-function renderAtivas({ idOrcamento, recarregarPainel }) {
+async function renderAtivas({ idOrcamento, tags = {}, recarregarPainel }) {
 
-    const atv = db.dados_orcamentos?.[idOrcamento]?.tags || {}
-
-    const acumulado = Object.entries(atv)
-        .sort(([idA], [idB]) => {
-            const nomeA = db.tags_orcamentos?.[idA]?.nome || ''
-            const nomeB = db.tags_orcamentos?.[idB]?.nome || ''
-            return nomeA.localeCompare(nomeB, 'pt-BR', { sensitivity: 'base' })
-        })
-        .map(([id, info]) => {
-            const tag = db.tags_orcamentos[id] || {}
+    const html = await Promise.all(
+        Object.entries(tags).map(async ([id, info]) => {
+            const tag = await recuperarDado('tags_orcamentos', id) || {}
             const cor = tag.cor || '#999'
             const branco = isDark(cor) ? 'color: #fff;' : ''
 
@@ -35,9 +28,9 @@ function renderAtivas({ idOrcamento, recarregarPainel }) {
                 </div>
             `
         })
-        .join('')
+    )
 
-    return acumulado
+    return html.join('')
 }
 
 

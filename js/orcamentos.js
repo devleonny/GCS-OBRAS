@@ -1,15 +1,3 @@
-let filtroRespost
-let arquivado = 'N'
-let auxiliarFaturamento = {}
-
-const controles = {
-    pagina: 1,
-    base: null,
-    totalPaginas: 1,
-    criarLinha: null,
-    body: null,
-}
-
 const stLista = [
     'EM ANDAMENTO',
     'OBRA PARALISADA',
@@ -48,25 +36,6 @@ async function rstTelaOrcamentos() {
     await telaOrcamentos()
 }
 
-async function confirmarPesquisa(e, coluna, el) {
-    if (e?.key && e.key !== 'Enter') return
-
-    if (e) e.preventDefault()
-
-    const termo = el.textContent.replace(/\n/g, '').trim().toLowerCase()
-    
-    controles.pagina = 1
-    if(!termo) return   
-    controles.filtros = {
-        [coluna]:{
-            op: 'includes',
-            value: termo
-        }
-    }
-
-    await paginacao()
-}
-
 async function telaOrcamentos() {
 
     // Inicializar filtros;
@@ -79,55 +48,42 @@ async function telaOrcamentos() {
 
     funcaoTela = 'telaOrcamentos'
 
-    const fOn = ['status', 'tags', 'contrato', 'responsaveis', 'cidade', 'valor']
-    const cabecs = ['data', 'status', 'pedido', 'notas', 'tags', 'contrato', 'cidade', 'responsaveis', 'indicadores', 'valor', 'ações']
-    const filtrosOff = ['status', 'ações', 'indicadores']
+    const pag = 'orcamentos'
+    const colunas = {
+        'data': 'data',
+        'status': 'status.atual',
+        'pedido': '',
+        'notas': '',
+        'tags': '',
+        'contrato': 'snapshots.cliente',
+        'cidade': 'snapshots.cidade',
+        'responsaveis': 'snapshots.responsavel',
+        'indicadores': '',
+        'valor': '',
+        'ações': ''
+    }
 
-    const ths = cabecs
-        .map((th, i) => `
-            <th>
-                <div style="${horizontal}; width: 100%; justify-content: space-between; gap: 1rem;">
-                    <span>${inicialMaiuscula(th)}</span>    
-                    ${fOn.includes(th) ? `<img onclick="ordenarOrcamentos(${i})" src="imagens/filtro.png" style="width: 1rem;">` : ''}
-                </div>
-            </th>
-            `
-        )
-        .join('')
-
-    const pesquisa = cabecs
-        .map(th => `<th 
-                    style="background-color: white; text-align: left;"
-                    name="${th}"
-                    onkeydown="confirmarPesquisa(event, '${th}', this)"
-                    onblur="confirmarPesquisa(null, '${th}', this)"
-                    contentEditable="${!filtrosOff.includes(th)}"></th>`)
-        .join('')
-
+    const btnExtras = `<span style="color: white; cursor: pointer; white-space: nowrap;" onclick="filtroOrcamentos()">Filtros ☰</span>`
+    const tabela = modTab({
+        btnExtras,
+        colunas,
+        base: 'dados_orcamentos',
+        criarLinha: 'criarLinhaOrcamento',
+        body: 'linhas',
+        pag
+    })
 
     const acumulado = `
-        <div style="${horizontal}; width: 95vw;">
-            <img src="imagens/nav.png" style="width: 2rem;" onclick="scrollar('prev')">
-            <div id="toolbar"></div>
-            <img src="imagens/nav.png" style="width: 2rem; transform: rotate(180deg);" onclick="scrollar('next')">
-        </div>
+        <div style="${vertical}; width: 95vw;">
+            <div style="${horizontal}; width: 95vw;">
+                <img src="imagens/nav.png" style="width: 2rem;" onclick="scrollar('prev')">
+                <div id="toolbar"></div>
+                <img src="imagens/nav.png" style="width: 2rem; transform: rotate(180deg);" onclick="scrollar('next')">
+            </div>
 
-        <div id="tabelaOrcamento" data-ordem="asc" style="${vertical}; width: 95vw;">
-            <div class="topo-tabela" style="justify-content: space-between; width: 100%; background-color: #707070;">
-                <div id="paginacao"></div>
-                <span style="color: white; cursor: pointer; white-space: nowrap;" onclick="filtroOrcamentos()">Filtros ☰</span>
-            </div>
-            <div class="div-tabela" style="overflow-x: auto;">
-                <table class="tabela">
-                    <thead style="box-shadow: 0px 0px 2px #222;">
-                        <tr>${ths}</tr>
-                        <tr>${pesquisa}</tr>
-                    </thead>
-                    <tbody id="linhas"></tbody>
-                </table>
-            </div>
-            <div class="rodape-tabela"></div>
-        </div>`
+            ${tabela}
+        </div>
+        `
 
     const tabelaOrcamento = document.getElementById('tabelaOrcamento')
     if (!tabelaOrcamento) tela.innerHTML = acumulado
@@ -138,72 +94,10 @@ async function telaOrcamentos() {
     criarMenus('orcamentos')
     mostrarMenus(false)
 
-    controles.base = 'dados_orcamentos'
-    controles.criarLinha = 'criarLinhaOrcamento'
-    controles.body = 'linhas'
-
-    await paginacao()
+    await paginacao(pag)
 
 }
 
-async function mudarPagina(valor) {
-
-    if (valor < 0) controles.pagina--
-    else controles.pagina++
-
-    await paginacao()
-
-}
-
-async function paginacao() {
-
-    const { pagina, base, body, criarLinha, filtros } = controles
-
-    if (!base || !criarLinha) return console.log('Base/CriarLinha não informado(s)')
-
-    const tbody = document.getElementById(body)
-    const tabela = tbody.parentElement
-    const cols = tabela.querySelectorAll('thead th').length
-    tbody.innerHTML = `
-    <tr> 
-        <td colspan="${cols}">
-            <div style="${horizontal};">
-                <img src="gifs/loading.gif" style="width: 5rem;">
-            </div>
-        </td>
-    <tr>`
-
-    const dados = await pesquisarDB({ base, pagina, filtros })
-    const p = document.getElementById('paginacao')
-    const paginaAtual = document.getElementById('paginaAtual')
-    const totalPaginas = document.getElementById('totalPaginas')
-
-    if (!paginaAtual) {
-        p.innerHTML = `
-            <div style="display: flex; align-items:center; gap:10px; padding: 0.2rem;">
-                <img src="imagens/esq.png" style="width: 2rem;" onclick="mudarPagina(-1)">
-                <span style="color: white;">
-                    Página 
-                    <span id="paginaAtual">${pagina}</span> de 
-                    <span id="totalPaginas">${dados.paginas}</span>
-                </span>
-                <img src="imagens/dir.png" style="width: 2rem;" onclick="mudarPagina(1)">
-                <span style="color: white;">Dê um <b>ENTER</b> para pesquisar</span>
-            </div>
-        `
-    } else {
-        paginaAtual.textContent = pagina
-        totalPaginas.textContent = dados.paginas
-    }
-
-    let linhas = ''
-    for (const d of dados.resultados) {
-        linhas += await await window[criarLinha](d)
-    }
-
-    tbody.innerHTML = linhas
-
-}
 
 function filtroOrcamentos() {
 
@@ -271,9 +165,8 @@ function scrollar(direcao) {
 
 async function criarLinhaOrcamento(orcamento, master, idMaster) {
 
-    const { id, dados_orcam } = orcamento
+    const { id, dados_orcam, snapshots = {}} = orcamento
 
-    const cliente = await recuperarDado('dados_clientes', dados_orcam?.omie_cliente) || {}
     let labels = {
         PEDIDO: '',
         FATURADO: ''
@@ -332,7 +225,7 @@ async function criarLinhaOrcamento(orcamento, master, idMaster) {
         <div style="${vertical}; gap: 2px;">
             ${nomeVinculado}
             ${etiqRevAtual}
-            <span>${cliente?.nome || ''}</span>
+            <span>${(snapshots?.cliente || '').toUpperCase()}</span>
             ${contrato !== numOficial ? `<div style="${horizontal}; justify-content: end; width: 100%; color: #5f5f5f;"><small>${contrato}</small></div>` : ''}
         </div>
         `
@@ -340,11 +233,15 @@ async function criarLinhaOrcamento(orcamento, master, idMaster) {
     const data = new Date(orcamento.timestamp).toLocaleDateString()
 
     // Comentários nos status;
-    const info = Object.values(orcamento?.status?.historicoStatus || {}).filter(s => (s.info && s.info !== ''))
+    const info = Object
+        .values(orcamento?.status?.historicoStatus || {})
+        .filter(s => (s.info && s.info !== ''))
 
-    const opcoesPda = abas.map(aba => `<option ${orcamento.aba == aba ? 'selected' : ''}>${aba}</option>`).join('')
+    const opcoesPda = abas
+        .map(aba => `<option ${orcamento.aba == aba ? 'selected' : ''}>${aba}</option>`)
+        .join('')
 
-    const tags = renderAtivas({ id, recarregarPainel: false })
+    const tags = await renderAtivas({ id, recarregarPainel: false, tags: orcamento.tags || {} })
 
     const celulas = `
                 ${cel(`
@@ -385,7 +282,7 @@ async function criarLinhaOrcamento(orcamento, master, idMaster) {
             </div>
             `)}
                 ${cel(finalElemento)}
-                ${cel(`${cliente?.cidade || ''}`)}
+                ${cel(`${(snapshots?.cidade || '').toUpperCase()}`)}
                 ${cel(`
             <div style="${vertical}">
                 <span>${orcamento?.usuario || '--'}</span>
@@ -622,10 +519,17 @@ async function excelOrcamentos() {
 
 async function carregarToolbar() {
 
-    const contToolbar = await contarPorCampo({ base: 'dados_orcamentos', path: 'status.atual' })
+    const cont1 = await contarPorCampo({ base: 'dados_orcamentos', path: 'status.atual' })
+    const cont2 = await contarPorCampo({ base: 'dados_orcamentos', path: 'chamado' })
+
+    const contToolbar = {
+        ...cont1,
+        'SEM STATUS': cont1['EM BRANCO'] || 0,
+        'chamados': cont2['S']
+    }
 
     const toolbar = document.getElementById('toolbar')
-
+    const pag = 'orcamentos'
     const fluxogramaCompleto = ['chamados', 'todos', ...fluxograma]
 
     for (const campo of fluxogramaCompleto) {
@@ -639,8 +543,13 @@ async function carregarToolbar() {
         }
 
         const funcao = campo == 'chamados'
-            ? `controles.filtros = {'chamado':{op:'=', value: 'S'}}; paginacao()`
-            : `controles.filtros = {'status.atual':{op:'=', value: '${campo}'}}; paginacao()`
+            ? `controles.${pag}.filtros = {'chamado':{op:'=', value: 'S'}}; paginacao('${pag}')`
+            : `controles.${pag}.filtros = ${campo == 'todos'
+                ? '{}'
+                : campo == 'SEM STATUS'
+                    ? `{'status.atual':{op: 'IS_EMPTY'}}`
+                    : `{'status.atual':{op:'=', value: '${campo}'}}`
+            }; paginacao('${pag}')`
 
         const f = campo == 'VENDA DIRETA'
             ? { 1: 'style="background: linear-gradient(45deg, #222, #b12425);"' }

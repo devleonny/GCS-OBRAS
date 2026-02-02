@@ -100,6 +100,8 @@ async function telaInicial() {
 
     //await atualizarGCS()
 
+    const aBloqs = ['INDICADORES', 'TÉCNICOS']
+
     const acumulado = `
         <div class="tela-gerenciamento">
             <div style="${horizontal}; width: 80vw;">
@@ -108,7 +110,7 @@ async function telaInicial() {
                     ${['INDICADORES', 'TÉCNICOS', ...abas].map(aba => `
                         <div style="opacity: 0.5; height: 3rem;" class="aba-toolbar" id="toolbar-${aba}" onclick="mostrarGuia('${aba}')">
                             <label>${aba.replace('_', ' ')}</label>
-                            ${aba !== 'INDICADORES' ? `<span id="contador-${aba}"></span>` : ''}
+                            ${aBloqs.includes(aba) ? '' : `<span id="contador-${aba}"></span>`}
                         </div>
                         `).join('')}
                 </div>
@@ -130,7 +132,7 @@ async function telaInicial() {
     await indicadores()
     await carregarTecnicos()
 
-    const pdas = await pesquisarDB({ base: 'dados_orcamentos', limite: 1000, filtros: { 'aba': {} } })
+    const pdas = await pesquisarDB({ base: 'dados_orcamentos', limite: 1000, filtros: { 'aba': {op: 'NOT_EMPTY'} } })
 
     for (const orcamento of pdas.resultados) {
         await linPda(orcamento)

@@ -475,78 +475,6 @@ async function continuar() {
     }
 }
 
-function pesquisarGenerico(indice, texto, idTbody) {
-
-    filtrosPesquisa[idTbody] ??= {}
-    const filtroAtual = filtrosPesquisa[idTbody]
-
-    filtroAtual[indice] = String(texto)
-        .toLowerCase()
-        .replace(/\./g, '')
-        .trim()
-
-    const tbody = document.getElementById(idTbody)
-    if (!tbody) return
-
-    const table = tbody.closest('table')
-    const ths = table?.querySelectorAll('thead tr')[1]?.querySelectorAll('th') || []
-
-    ths.forEach((th, col) => {
-
-        const valorFiltro = filtroAtual[col] || ''
-
-        th.style.backgroundColor = valorFiltro ? '#ffe48f' : 'white'
-
-        if (col == indice) {
-            th.style.backgroundColor = texto ? '#ffe48f' : 'white'
-            return
-        }
-
-        if (valorFiltro) {
-            th.textContent = valorFiltro
-        }
-    })
-
-    const trs = tbody.querySelectorAll('tr')
-
-    function extrairTexto(td) {
-        if (!td) return ''
-
-        let partes = []
-        partes.push(td.textContent || '')
-
-        td.querySelectorAll('input').forEach(i => partes.push(i.value || ''))
-        td.querySelectorAll('textarea').forEach(t => partes.push(t.value || ''))
-        td.querySelectorAll('select').forEach(s => {
-            const opt = s.options[s.selectedIndex]
-            partes.push(opt ? opt.text : s.value)
-        })
-
-        return partes.join(' ').replace(/\s+/g, ' ').trim()
-    }
-
-    for (const tr of trs) {
-        const tds = tr.querySelectorAll('td')
-        let mostrar = true
-
-        for (const [col, filtroTexto] of Object.entries(filtroAtual)) {
-            if (!filtroTexto) continue
-
-            const conteudo = extrairTexto(tds[col])
-                .toLowerCase()
-                .replace(/\./g, '')
-                .trim()
-
-            if (!conteudo.includes(filtroTexto)) {
-                mostrar = false
-                break
-            }
-        }
-
-        tr.style.display = mostrar ? '' : 'none'
-    }
-}
-
 async function salvarLevantamento(idOrcamento, idElemento) {
 
     overlayAguarde()
@@ -892,60 +820,65 @@ function sincronizar(script) {
 }
 
 async function verAprovacoes() {
-    db.dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    db.dados_clientes = await recuperarDados('dados_clientes') || {}
 
-    let guia = {
-        pendente: '#ff8c1b',
-        todos: '#bfbfbfff'
+    const colunas = {
+        'Chamado': '',
+        'Cliente': 'snapshots.cliente',
+        'Total Original <br>[s/desc ou acres]': '',
+        'Total Geral': '',
+        '%': '',
+        'Localização': 'snapshots.cidade',
+        'Usuário': 'snapshots.responsavel',
+        'Aprovação': '',
+        'Comentário': '',
+        'Detalhes': ''
     }
-
-    let cabecalhos = ['Chamado', 'Cliente', 'Total Original <br>[s/desc ou acres]', 'Total Geral', '%', 'Localização', 'Usuário', 'Aprovação', 'Comentário', 'Detalhes']
-    let tabelas = {
-        pendente: { linhas: '' },
-        todos: { linhas: '' }
-    }
-
-    let ths = ''
-    let tsh = ''
-    cabecalhos.forEach((cabecalho, i) => {
-        ths += `<th>${cabecalho}</th>`
-
-        cabecalho == 'Detalhes'
-            ? tsh += '<th style="background-color: white;"></th>'
-            : tsh += `
-            <th contentEditable="true" style="background-color: white; text-align: left;" oninput="pesquisarGenerico(${i}, this.textContent, 'tbodyPendencias')"></th>
-        `
+    const pag = 'aprovacao'
+    const tabela = modTab({
+        colunas,
+        pag,
+        base: 'dados_orcamentos',
+        pag: 'aprovacao',
+        criarLinha: 'criarLinhaAprovacao',
+        body: 'tAprovacao',
+        filtros: { 'aprovacao': { op: 'NOT_EMPTY' } }
     })
 
-    const organizado = Object
-        .entries(db.dados_orcamentos)
-        .sort(([, a], [, b]) => (b.timestamp || 0) - (a.timestamp || 0))
+    const elemento = `
+        <div style="${vertical}; padding: 1rem;">
 
-    for (let [idOrcamento, orcamento] of organizado) {
+            <label style="font-size: 1.2rem;">Fila de Aprovação</label>
 
-        if (!orcamento.aprovacao) continue
-        if (!orcamento.dados_orcam) continue
+            ${tabela}
 
-        const dados_orcam = orcamento.dados_orcam || {}
-        const aprovacao = orcamento.aprovacao
-        const status = aprovacao?.status || 'desconhecido'
-        const porcentagemDiferenca = (((orcamento.total_geral - orcamento.total_bruto) / orcamento.total_bruto) * 100).toFixed(2)
-        const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
-        const cliente = db.dados_clientes?.[omie_cliente] || {}
+        </div>
+    `
+    popup({ elemento, titulo: 'Aprovações de Orçamento' })
 
-        tabelas[status == 'pendente' ? 'pendente' : 'todos'].linhas += `
+    await paginacao(pag)
+
+}
+
+async function criarLinhaAprovacao(orcamento) {
+
+    const { dados_orcam = {}, snapshots = {} } = orcamento || {}
+    const idOrcamento = orcamento.id
+    const aprovacao = orcamento.aprovacao
+    const status = aprovacao?.status || 'desconhecido'
+    const porcentagemDiferenca = (((orcamento.total_geral - orcamento.total_bruto) / orcamento.total_bruto) * 100).toFixed(2)
+
+    return `
         <tr>
             <td style="text-align: left;">
                 ${dados_orcam?.chamado || ''}<br>
-                ${dados_orcam?.contrato || ''}<br>
+                ${dados_orcam?.chamado || dados_orcam?.contrato || ''}<br>
                 ${dados_orcam?.data || ''}
             </td>
-            <td style="text-align: left;">${cliente?.nome || '--'}</td>
+            <td style="text-align: left;">${(snapshots?.cliente || '').toUpperCase()}</td>
             <td style="white-space: nowrap;">${dinheiro(orcamento.total_bruto)}</td>
             <td style="white-space: nowrap;">${dinheiro(orcamento.total_geral)}</td>
             <td><label class="labelAprovacao" style="background-color: ${porcentagemDiferenca > 0 ? 'green' : '#B12425'}">${porcentagemDiferenca}%</label></td>
-            <td>${cliente?.cidade || ''}</td>
+            <td>${(snapshots?.cidade || '').toUpperCase()}</td>
             <td>${aprovacao?.usuario || '--'}</td>
             <td>
                 <div style="display: flex; align-items: center; justify-content: start; gap: 1vw;">
@@ -957,41 +890,7 @@ async function verAprovacoes() {
             <td><img src="imagens/pesquisar2.png" onclick="verPedidoAprovacao('${idOrcamento}')"></td>
         </tr>
         `
-    }
 
-    let tabelasString = ''
-    for (let [tabela, objeto] of Object.entries(tabelas)) {
-        if (objeto.linhas == '') continue
-        tabelasString += `
-        <br>
-        <hr>
-        <br>
-        <div class="borda-tabela">
-            <div class="topo-tabela"></div>
-            <div class="div-tabela">
-                <table class="tabela">
-                    <thead style="background-color: ${guia[tabela]};">
-                        <tr>${ths}</tr>
-                        ${tabela == 'todos' ? `<tr>${tsh}</tr>` : ''}
-                    </thead>
-                    <tbody ${tabela == 'todos' ? 'id="tbodyPendencias"' : ''}>${objeto.linhas}</tbody>
-                </table>
-            </div>
-            <div class="rodape-tabela"></div>
-        </div>
-        `
-    }
-
-    const elemento = `
-        <div style="${vertical}; padding: 1rem;">
-
-            <label style="font-size: 1.2rem;">Fila de Aprovação</label>
-
-            ${tabelasString}
-
-        </div>
-    `
-    popup({ elemento, titulo: 'Aprovações de Orçamento' })
 }
 
 async function verificarPendencias() {

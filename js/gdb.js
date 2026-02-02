@@ -130,29 +130,93 @@ async function sincronizarDados({ base, resetar = false }) {
 
 }
 
-async function inserirDados(dados, base) {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(nomeBase, versao)
+const regrasSnapshot = {
+  dados_orcamentos: {
+    snapshot: async ({ dado, stores }) => {
 
-        request.onerror = () => reject(request.error)
+      const snap = {}
 
-        request.onsuccess = e => {
-            const db = e.target.result
-            const tx = db.transaction(base, 'readwrite')
-            const store = tx.objectStore(base)
-
-            tx.oncomplete = () => resolve(true)
-            tx.onerror = () => reject(tx.error)
-
-            for (const [id, d] of Object.entries(dados)) {
-                if (d.excluido) {
-                    store.delete(id)
-                    continue
-                }
-                store.put(d)
-            }
+      // cliente
+      const codCliente = dado?.dados_orcam?.omie_cliente
+      if (codCliente) {
+        const cliente = await getStore(stores.dados_clientes, codCliente)
+        if (cliente) {
+          snap.cliente = cliente.nome?.toLowerCase() || ''
+          snap.cidade = cliente.cidade?.toLowerCase() || ''
         }
-    })
+      }
+
+      // responsável
+      if (dado.usuario) {
+        snap.responsavel = `${dado.usuario.toLowerCase()} ${Object.keys(dado?.usuarios || {}).map(u => u).join(' ')}`
+      }
+
+      // tags
+      if (dado.tags) {
+        const nomes = []
+        for (const idTag of Object.keys(dado.tags)) {
+          const tag = await getStore(stores.tags_orcamentos, idTag)
+          if (tag?.nome) nomes.push(tag.nome.toLowerCase())
+        }
+        snap.tags = nomes
+      }
+
+      return snap
+    }
+  }
+}
+
+function getStore(store, key) {
+  return new Promise(resolve => {
+    const req = store.get(key)
+    req.onsuccess = () => resolve(req.result || null)
+    req.onerror = () => resolve(null)
+  })
+}
+
+async function inserirDados(dados, base) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(nomeBase, versao)
+
+    request.onerror = () => reject(request.error)
+
+    request.onsuccess = async e => {
+      const db = e.target.result
+
+      const regra = regrasSnapshot[base]
+
+      const storesExtras = regra
+        ? ['dados_clientes', 'tags_orcamentos']
+        : []
+
+      const tx = db.transaction([base, ...new Set(storesExtras)], 'readwrite')
+      const storePrincipal = tx.objectStore(base)
+
+      const stores = {}
+      for (const nome of storesExtras) {
+        stores[nome] = tx.objectStore(nome)
+      }
+
+      tx.onerror = () => reject(tx.error)
+      tx.oncomplete = () => resolve(true)
+
+      for (const [id, d] of Object.entries(dados)) {
+        if (d.excluido) {
+          storePrincipal.delete(id)
+          continue
+        }
+
+        if (regra?.snapshot) {
+          d.snapshots = await regra.snapshot({
+            dado: d,
+            stores
+          })
+        }
+
+        storePrincipal.put(d)
+      }
+    }
+  })
 }
 
 function recuperarDado(base, chave) {
@@ -185,7 +249,7 @@ function pesquisarDB({ filtros = {}, base, pagina = 1, limite = 100 }) {
         const offset = (pagina - 1) * limite
         let vistos = 0
         let total = 0
-        const resultado = []
+        const resultados = []
 
         const req = indexedDB.open(nomeBase, versao)
 
@@ -195,12 +259,13 @@ function pesquisarDB({ filtros = {}, base, pagina = 1, limite = 100 }) {
             const db = e.target.result
             const tx = db.transaction(base, 'readonly')
             const store = tx.objectStore(base)
+            const index = store.index('timestamp')
 
-            store.openCursor().onsuccess = ev => {
+            index.openCursor(null, 'prev').onsuccess = ev => {
                 const cursor = ev.target.result
                 if (!cursor) {
                     resolve({
-                        resultados: resultado,
+                        resultados,
                         total,
                         paginas: Math.ceil(total / limite)
                     })
@@ -212,8 +277,8 @@ function pesquisarDB({ filtros = {}, base, pagina = 1, limite = 100 }) {
                 if (passaFiltro(reg, filtros)) {
                     total++
 
-                    if (vistos >= offset && resultado.length < limite) {
-                        resultado.push(reg)
+                    if (vistos >= offset && resultados.length < limite) {
+                        resultados.push(reg)
                     }
                     vistos++
                 }
@@ -229,31 +294,55 @@ function getByPath(obj, path) {
     return path.split('.').reduce((acc, key) => acc?.[key], obj)
 }
 
+function isVazio(v) {
+    if (v === null || v === undefined) return true
+    if (typeof v === 'string' && v.trim() === '') return true
+    if (Array.isArray(v) && v.length === 0) return true
+    if (typeof v === 'object' && Object.keys(v).length === 0) return true
+    return false
+}
+
 function passaFiltro(reg, filtros) {
     for (const [path, regra] of Object.entries(filtros)) {
         const v = getByPath(reg, path)
 
-        // regra vazia → só checa existência
-        if (!regra || Object.keys(regra).length === 0) {
-            if (v === undefined || v === null) return false
-            if (typeof v === 'string' && v.trim() === '') return false
-            if (Array.isArray(v) && v.length === 0) return false
-            if (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0) return false
-            return true
-        }
-
-        // caminho não existe → ignora o registro
-        if (v === undefined) return null
+        if (!regra) continue
 
         const { op, value } = regra
 
         switch (op) {
-            case '=': if (v !== value) return false; break
-            case '!=': if (v === value) return false; break
-            case '>': if (!(v > value)) return false; break
-            case '>=': if (!(v >= value)) return false; break
-            case '<': if (!(v < value)) return false; break
-            case '<=': if (!(v <= value)) return false; break
+            case 'IS_EMPTY':
+                if (!isVazio(v)) return false
+                break
+
+            case 'NOT_EMPTY':
+                if (isVazio(v)) return false
+                break
+
+            case '=':
+                if (v !== value) return false
+                break
+
+            case '!=':
+                if (v === value) return false
+                break
+
+            case '>':
+                if (!(v > value)) return false
+                break
+
+            case '>=':
+                if (!(v >= value)) return false
+                break
+
+            case '<':
+                if (!(v < value)) return false
+                break
+
+            case '<=':
+                if (!(v <= value)) return false
+                break
+
             case 'includes':
                 if (!String(v).toLowerCase().includes(String(value).toLowerCase()))
                     return false
@@ -267,7 +356,7 @@ function passaFiltro(reg, filtros) {
 function contarPorCampo({ base, path, filtros = {} }) {
     return new Promise((resolve, reject) => {
 
-        const contagem = {}
+        const contagem = { todos: 0 }
 
         const req = indexedDB.open(nomeBase, versao)
         req.onerror = () => reject(req.error)
@@ -287,10 +376,14 @@ function contarPorCampo({ base, path, filtros = {} }) {
                 const reg = cursor.value
 
                 if (passaFiltro(reg, filtros)) {
-                    const v = getByPath(reg, path)
-                    if (v !== undefined && v !== null && v !== '') {
-                        contagem[v] = (contagem[v] || 0) + 1
+                    let v = getByPath(reg, path)
+                    if (v == undefined || v == null || v == '') {
+                        v = 'EM BRANCO'
                     }
+
+                    contagem.todos++
+                    contagem[v] = (contagem[v] || 0) + 1
+
                 }
 
                 cursor.continue()

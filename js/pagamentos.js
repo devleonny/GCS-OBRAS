@@ -74,20 +74,15 @@ async function telaPagamentos() {
 
     overlayAguarde()
     mostrarMenus(false)
-    await auxDepartamentos() // Orcs, deps e clis;
-
+    //await auxDepartamentos() // Orcs, deps e clis;
+    const pag = 'pagamentos'
     const colunas = ['Data de Previsão', 'Departamentos', 'APP', 'Valor', 'Status', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
-    let cabecalho1 = ''
-    let cabecalho2 = ''
-    colunas.forEach((coluna, i) => {
-
-        cabecalho1 += `<th>${coluna}</th>`
-
-        if (coluna == 'Detalhes') {
-            cabecalho2 += `<th style="background-color: white; border-radius: 0px;"></th>`
-        } else {
-            cabecalho2 += `<th contentEditable="true" style="background-color: white; text-align: left;" oninput="pesquisarGenerico(${i}, this.textContent, 'bodyPagamentos')"></th>`
-        }
+    const tabela = await modTab({
+        pag,
+        colunas,
+        body: 'bodyPagamentos',
+        base: 'lista_pagamentos',
+        criarLinha: 'criarLinhaPagamento',
     })
 
     const acumulado = `
@@ -96,83 +91,59 @@ async function telaPagamentos() {
             <div class="painelEsquerdo"></div>
 
             <div class="painelDireito">
-                <div class="painelBotoes"></div>
-                <div class="div-tabela">
-                    <table id="pagamentos" class="tabela">
-                        <thead>
-                            <tr>${cabecalho1}</tr>
-                            <tr>${cabecalho2}</tr>
-                        </thead>
-                        <tbody id="bodyPagamentos"></tbody>
-                    </table>
-                </div>
-                <div class="rodape-tabela"></div>
+
+                ${tabela}
+
             </div>
 
         </div>
         `
-    const painelEsquerdo = document.querySelector('.painelEsquerdo')
-    if (!painelEsquerdo) tela.innerHTML = acumulado
-    preencherDados()
+    const divPagamentos = document.querySelector('.divPagamentos')
+    if (!divPagamentos) tela.innerHTML = acumulado
 
-    function preencherDados() {
+    await paginacao(pag)
 
-        let contagens = { TODOS: { qtde: 0, valor: 0 } }
-
-        const organizado = Object.values(db.lista_pagamentos)
-            .sort((a, b) => b.timestamp - a.timestamp)
-
-        for (const pagamento of organizado) {
-
-            if (!contagens[pagamento.status]) contagens[pagamento.status] = { qtde: 0, valor: 0 }
-
-            contagens[pagamento.status].qtde++
-            contagens[pagamento.status].valor += pagamento.param[0].valor_documento
-
-            contagens.TODOS.qtde++
-            contagens.TODOS.valor += pagamento.param[0].valor_documento
-
-            criarLinhaPagamento(pagamento)
-        }
-
-        let titulos = ''
-        for ([nomeStatus, item] of Object.entries(contagens)) {
-
-            if (item.valor == 0) continue
-
-            titulos += `
-
-            <div class="balao-pagamentos" onclick="pesquisarGenerico(4, '${nomeStatus == 'TODOS' ? '' : nomeStatus}', 'bodyPagamentos')">
-                
-                <div class="dir">
-                    <div style="${vertical};">
-                        <Label><b>${nomeStatus}</b></label>
-                        <label style="white-space: nowrap;">${dinheiro(item.valor)}</label>
-                    </div>
-                    <img src="${iconePagamento(nomeStatus)}">
-                </div>
-
-                <span class="esq">${item.qtde}</span>
-                
-            </div>
-            `
-        }
-
-        const painelEsquerdo = document.querySelector('.painelEsquerdo')
-        if (painelEsquerdo) return painelEsquerdo.innerHTML = titulos
-
-    }
+    await atualizarPainelEsquerdo()
 
     criarMenus('pagamentos')
     removerOverlay()
 
 }
 
-function criarLinhaPagamento(pagamento) {
+async function atualizarPainelEsquerdo() {
 
-    const cliente = db.dados_clientes?.[pagamento.param[0].codigo_cliente_fornecedor] || {}
+    const contagens = await contarPorCampo({ base: 'lista_pagamentos', path: 'status' })
+
+    const titulos = Object.entries(contagens)
+        .map(([st, qtde]) => {
+            return `
+            <div class="balao-pagamentos" onclick="pesquisarGenerico(4, '${st == 'todos' ? '' : st}', 'bodyPagamentos')">
+                
+                <div class="dir">
+                    <div style="${vertical};">
+                        <Label><b>${inicialMaiuscula(st)}</b></label>
+                    </div>
+                    <img src="${iconePagamento(st)}">
+                </div>
+
+                <span class="esq">${qtde}</span>
+                
+            </div>
+            `
+        })
+        .join('')
+
+    const painelEsquerdo = document.querySelector('.painelEsquerdo')
+    if (painelEsquerdo)
+        return painelEsquerdo.innerHTML = titulos
+
+}
+
+async function criarLinhaPagamento(pagamento) {
+
+    const cliente = {}
     const recebedor = cliente?.nome || ''
-    const usuario = db.dados_setores?.[pagamento.criado] || {}
+    const usuario = await recuperarDado('dados_setores', pagamento.criado) || {}
     const setorCriador = usuario?.setor || ''
 
     const deps = (pagamento?.param[0]?.distribuicao || [])
@@ -209,11 +180,7 @@ function criarLinhaPagamento(pagamento) {
             <img src="imagens/pesquisar2.png" style="width: 1.5rem; cursor: pointer;" onclick="abrirDetalhesPagamentos('${pagamento.id_pagamento}')">
         </td>
         `
-    const idLinha = pagamento.id_pagamento
-    const tr = document.getElementById(idLinha)
-    if (tr) return tr.innerHTML = tds
-
-    document.getElementById('bodyPagamentos').insertAdjacentHTML('beforeend', `<tr id="${pagamento.id_pagamento}">${tds}</tr>`)
+    return `<tr>${tds}</tr>`
 }
 
 function iconePagamento(status) {
@@ -254,7 +221,7 @@ function iconePagamento(status) {
         case status == 'Processando...':
             icone = 'salvo'
             break
-        case status == 'TODOS':
+        case status == 'todos':
             icone = 'todos'
             break
     }
@@ -573,7 +540,7 @@ async function salvarPagamento() {
 
     const anexoPagamento = document.getElementById('anexoPagamento')
     const anexos = await importarAnexos({ input: anexoPagamento })
-    
+
     if (anexos.mensagem) return popup({ mensagem: anexos.mensagem })
     ultimoPagamento.anexos = Object.fromEntries(
         anexos.map(a => [a.link, a])

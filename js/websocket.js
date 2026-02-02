@@ -48,7 +48,6 @@ function connectWebSocket() {
     }
 }
 
-
 async function validarAcesso() {
 
     acesso = JSON.parse(localStorage.getItem('acesso'))
@@ -90,6 +89,9 @@ async function comunicacao() {
 
         const data = JSON.parse(event.data)
         const { tabela, desconectar, validado, tipo, id, dados, usuario, status } = data
+
+        console.log(data);
+        
 
         if (desconectar) {
             acesso = {}
@@ -193,7 +195,6 @@ async function carregarControles() {
 
             ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
             ${permitidosAprovacoes.includes(acesso.permissao) ? modelo('construcao', 'configs()', '') : ''}
-            ${permitidosProdutos.includes(acesso.setor) ? modelo('preco', 'precosDesatualizados()', 'contadorProdutos') : ''}
 
             <img title="Abrir mais 1 aba" src="imagens/aba.png" onclick="maisAba()">
         `
@@ -201,6 +202,5 @@ async function carregarControles() {
     if (cabecalhoUsuario) cabecalhoUsuario.innerHTML = barraStatus
 
     await usuariosToolbar()
-    await precosDesatualizados(true) //Atualiza apenas a quantidade;
     await verificarPendencias() // Pendencias de aprovação;
 }
