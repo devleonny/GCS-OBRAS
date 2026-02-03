@@ -728,7 +728,8 @@ async function salvarPedido(chave = ID5digitos()) {
     orcamento.status.historico ??= {}
     orcamento.status.historico[chave] ??= {}
 
-    const dados = {
+    orcamento.status.historico[chave] = {
+        ...orcamento.status.historico[chave],
         data: new Date().toLocaleString(),
         executor: acesso.usuario,
         comentario: comentario_status.value,
@@ -738,13 +739,8 @@ async function salvarPedido(chave = ID5digitos()) {
         status: 'PEDIDO'
     }
 
-    orcamento.status.historico[chave] = {
-        ...orcamento.status.historico[chave],
-        dados
-    }
-
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, dados)
+    enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, orcamento.status.historico[chave])
 
     removerPopup()
     await abrirEsquema(id_orcam)
