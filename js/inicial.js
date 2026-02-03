@@ -1,4 +1,3 @@
-let guiaAtual = null
 const abas = ['PDA', 'POC', 'INFRA', 'LOGÍSTICA', 'EM_ANDAMENTO', 'CONCLUÍDO']
 const coments = (comentario, campo, id) => {
 
@@ -102,22 +101,32 @@ async function telaInicial() {
 
     const aBloqs = ['INDICADORES', 'TÉCNICOS']
 
+    const abasToolbar = ['INDICADORES', 'TÉCNICOS', ...abas]
+        .map(aba => {
+            const funcao = aba == 'INDICADORES'
+                ? 'indicadores()'
+                : aba == 'TÉCNICOS'
+                    ? 'tecnicos()'
+                    : `tabelaPorAba('${aba}')`
+            return `
+                <div style="opacity: 0.5; height: 3rem;" class="aba-toolbar" id="toolbar-${aba}" onclick="${funcao}">
+                    <label>${aba.replace('_', ' ')}</label>
+                    ${aBloqs.includes(aba) ? '' : `<span id="contador-${aba}"></span>`}
+                </div>
+            `
+        }).join('')
+
     const acumulado = `
         <div class="tela-gerenciamento">
             <div style="${horizontal}; width: 80vw;">
                 <img src="imagens/nav.png" style="width: 2rem;" onclick="scrollar('prev')">
                 <div id="toolbar">
-                    ${['INDICADORES', 'TÉCNICOS', ...abas].map(aba => `
-                        <div style="opacity: 0.5; height: 3rem;" class="aba-toolbar" id="toolbar-${aba}" onclick="mostrarGuia('${aba}')">
-                            <label>${aba.replace('_', ' ')}</label>
-                            ${aBloqs.includes(aba) ? '' : `<span id="contador-${aba}"></span>`}
-                        </div>
-                        `).join('')}
+                    ${abasToolbar}
                 </div>
                 <img src="imagens/nav.png" style="width: 2rem; transform: rotate(180deg);" onclick="scrollar('next')">
             </div>
             
-            <div id="tabelas" style="width: 100%;"></div>
+            <div class="tabelas-inicial"></div>
             
         </div>
     `
@@ -138,7 +147,9 @@ async function telaInicial() {
 
 }
 
-async function tabelasIndicadores() {
+async function tabelaPorAba(aba = 'PDA') {
+
+    mostrarGuia(aba)
 
     const colunas = {
         'Cliente': '',
@@ -153,16 +164,19 @@ async function tabelasIndicadores() {
         'Remover': ''
     }
 
+    const pag = 'indicadores'
     const tabela = await modTab({
-        pag: 'indicadores',
+        pag,
         colunas,
         base: 'dados_orcamentos',
-        filtros: { 'aba': { op: '=', value: 'PDA' } },
+        filtros: { 'aba': { op: '=', value: aba } },
         criarLinha: 'linPda',
         body: 'bodyIndicadores'
     })
 
-    document.querySelector('#tabelas').innerHTML = tabela
+    document.querySelector('.tabelas-inicial').innerHTML = tabela
+
+    await paginacao(pag)
 
 }
 
@@ -261,14 +275,16 @@ async function linPda(orcamento) {
     `
 
     const strTags = `
-        <div style="${horizontal}; justify-content: space-between; width: 100%; align-items: start; gap: 2px;">
-            <div name="tags" style="${vertical}; gap: 1px;">
-                ${await renderAtivas({ idOrcamento, tags, recarregarPainel: false })}
-            </div>
+        <div style="${vertical}; gap: 2px;">
             <img 
                 src="imagens/etiqueta.png" 
                 style="width: 1.2rem;" 
                 onclick="renderPainel('${idOrcamento}')">
+
+            <div name="tags" style="${vertical}; gap: 1px;">
+                ${await renderAtivas({ idOrcamento, tags, recarregarPainel: false })}
+            </div>
+
         </div>
     `
 
@@ -523,7 +539,7 @@ function linAcoes(orcamento) {
     const chamado = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato || orcamento?.projeto || '-'
 
     let strAcoes = ''
-    
+
     for (const dados of Object.values(acoes)) {
 
         const estilo = dados?.status === 'concluído'
@@ -534,25 +550,25 @@ function linAcoes(orcamento) {
 
         const [ano, mes, dia] = dados.prazo.split('-')
         const prazo = `${dia}/${mes}/${ano}`
-
+        const dtRegistro = dados.registro
+            ? `<span><b>criado em: </b>${new Date(dados.registro).toLocaleString('pt-BR')}</span>`
+            : ''
         strAcoes += `
-            <tr>
-                <div name="acao" data-estilo="${estilo}" class="bloco-acao">
-                    <div class="etiqueta-${estilo}">
+            <tr>    
+                <div class="etiqueta-${estilo}" style="width: 95%; flex-direction: row; gap: 0.5rem; margin: 1px;">
+
+                    <img src="imagens/pesquisar2.png" style="width: 2rem;" onclick="irORC('${idOrcamento}')">
+
+                    <div style="${vertical};">
                         <span><b>ID:</b> ${chamado}</span>
                         <span><b>Aba:</b> ${orcamento.aba || ''}</span>
                         <div style="white-space: pre-wrap;"><b>Ação:</b> ${dados?.acao || ''}</div>
                         <span><b>Responsável:</b> ${dados?.responsavel || ''}</span>
                         <span><b>Prazo:</b> ${prazo}</span>
-                        ${dados.registro
-                ? `<span><b>criado em: </b>${new Date(dados.registro).toLocaleString('pt-BR')}</span>`
-                : ''}
+                        ${dtRegistro}
                     </div>
-                    <img src="imagens/pesquisar2.png" style="width: 2rem;" onclick="irORC('${idOrcamento}')">
                 </div>
-            </tr>
-            `
-
+            </tr>`
     }
 
     return strAcoes
@@ -560,6 +576,8 @@ function linAcoes(orcamento) {
 
 
 async function indicadores() {
+
+    mostrarGuia('INDICADORES')
 
     const permitidos = ['adm', 'gerente', 'diretoria']
 
@@ -570,11 +588,11 @@ async function indicadores() {
     }
 
     const tUsuario = {}
-
+    const pag = 'acoes'
     const tabela = await modTab({
         criarLinha: 'linAcoes',
         base: 'dados_orcamentos',
-        pag: 'acoes',
+        pag,
         body: 'bodyAcoes',
         filtros: { 'pda.acoes': { op: 'NOT_EMPTY' } }
     })
@@ -584,6 +602,8 @@ async function indicadores() {
         <span style="font-size: 14px; color:#444;">${titulo}</span>
         <strong style="font-size: 22px; margin-top:5px;">${valor}</strong>
     </div>`
+
+    const contagem = await contarPorCampo({ base: 'dados_orcamentos', filtros: { 'pda.acoes.responsavel': { op: '=', value: acesso.usuario } } })
 
     const indi = (totais, texto) => {
 
@@ -604,30 +624,28 @@ async function indicadores() {
     const acumulado = `
     <div class="painel-indicadores">
 
-        <div style="${vertical}; align-items: center; padding: 0.5rem;">
+        <div style="${vertical}; padding-top: 0.5rem; gap: 0.5rem; width: 100%;">
+            <div style="${horizontal}; gap: 2rem;">
+                <span>Ações pendentes do Usuário</span>
+            </div>
+            ${tabela}
+        </div>
+
+        <div style="${vertical};">
+            ${indiGeral}
+            ${tUsuario[acesso?.usuario] ? indi(tUsuario[acesso?.usuario], acesso.usuario || '...') : ''}
             <div class="toolbar-mapas"></div>
             <div class="fundo-mapa">
                 <img src="imagens/mapa.png" class="mapa">
                 <svg id="mapaOverlay" width="600" height="600" style="position: absolute; top: 0; left: 0;"></svg>
             </div>
         </div>
-        <div style="${vertical};">
-
-            ${indiGeral}
-            ${tUsuario[acesso?.usuario] ? indi(tUsuario[acesso?.usuario], acesso.usuario || '...') : ''}
-            <div style="${vertical}; padding: 1rem; gap: 0.5rem; width: 100%;">
-                <div style="${horizontal}; gap: 2rem;">
-                    <span>Ações pendentes do Usuário</span>
-                </div>
-                ${tabela}
-            </div>
-            
-        </div>
 
     </div>
     `
-    document.querySelector('#tabelas').innerHTML = acumulado
+    document.querySelector('.tabelas-inicial').innerHTML = acumulado
 
+    await paginacao(pag)
 }
 
 function filtrarAcoes(titulo = ultimoTitulo) {
@@ -644,30 +662,15 @@ function filtrarAcoes(titulo = ultimoTitulo) {
 
 }
 
-function mostrarGuia(nomeGuia = guiaAtual || 'INDICADORES') {
+function mostrarGuia(guia) {
 
-    guiaAtual = nomeGuia
+    const abas = document.querySelectorAll('.aba-toolbar')
 
-    // Todas as guias e abas ocultadas;
-    const tabelas = document.querySelectorAll('[name^="tabela-"]')
-    for (const t of tabelas) t.style.display = 'none'
+    abas.forEach(a => { a.style.opacity = 0.5 })
 
-    const guias = document.querySelectorAll('.aba-toolbar')
-    for (const g of guias) g.style.opacity = 0.5
+    const aba = document.querySelector(`#toolbar-${guia}`)
 
-    // Exibir apenas a selecionada;
-    const aba = document.getElementById(`toolbar-${nomeGuia}`)
-    aba.style.opacity = 1
-
-    const tabela = document.querySelector(`[name=tabela-${nomeGuia}]`)
-    if (tabela) tabela.style.display = 'flex'
-
-    const loading = document.getElementById('loading')
-    if (loading) loading.style.display = 'none'
-
-    const tPda = document.querySelector('.tela-gerenciamento')
-    if (tPda) tPda.style.display = 'flex'
-
+    if (aba) aba.style.opacity = 1
 }
 
 function confirmarCriarOrcamento(idOrcamento) {

@@ -118,7 +118,7 @@ async function paginacao(pag) {
     tbody.innerHTML = `
     <tr> 
         <td colspan="${cols}">
-            <div style="${horizontal};">
+            <div style="${horizontal}; width: 100%;">
                 <img src="gifs/loading.gif" style="width: 5rem;">
             </div>
         </td>
@@ -168,6 +168,6 @@ async function paginacao(pag) {
         linhas += await window[criarLinha](d)
     }
 
-    tbody.innerHTML = linhas
+    if(tbody) tbody.innerHTML = linhas
 
 }

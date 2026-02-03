@@ -1,6 +1,5 @@
 .tela-gerenciamento {
-    background-color: #d2d2d2;
-    max-width: 90vw;
+    width: 90vw;
     display: flex;
     align-items: start;
     justify-content: start;
@@ -19,9 +18,11 @@
     flex-direction: column;
 }
 
-.tab-indicadores {
-    display: none;
-    width: 100;
+.tabelas-inicial {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    width: 100%;
     flex-direction: column;
 }
 
@@ -151,10 +152,16 @@
 }
 
 .painel-indicadores {
+    box-shadow: 0 0 2px #222;
+    border-radius: 3px;
+    padding: 0 1rem 1rem 1rem;
+    background-color: #ebebeb;
     display: flex;
     align-items: start;
     justify-content: start;
     padding: 2rem;
+    margin-bottom: 5rem;
+    gap: 1rem;
 }
 
 .tabelas-pda {
@@ -170,4 +177,10 @@
     align-items: center;
     justify-content: center;
     gap: 2px;
+}
+
+@media screen and (orientation: portrait) {
+    .painel-indicadores {
+        flex-direction: column;
+    }
 }
