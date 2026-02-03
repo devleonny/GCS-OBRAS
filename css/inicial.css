@@ -1,6 +1,7 @@
 .tela-gerenciamento {
+    background-color: #d2d2d2;
     max-width: 90vw;
-    display: none;
+    display: flex;
     align-items: start;
     justify-content: start;
     flex-direction: column;
@@ -18,6 +19,12 @@
     flex-direction: column;
 }
 
+.tab-indicadores {
+    display: none;
+    width: 100;
+    flex-direction: column;
+}
+
 .bloco-acao {
     display: flex;
     align-items: center;
@@ -25,6 +32,7 @@
     flex-direction: row;
     width: 100%;
     gap: 0.5rem;
+    padding: 2px;
 }
 
 .etiqueta-atrasado {

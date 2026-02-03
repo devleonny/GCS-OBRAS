@@ -90,9 +90,6 @@ async function comunicacao() {
         const data = JSON.parse(event.data)
         const { tabela, desconectar, validado, tipo, id, dados, usuario, status } = data
 
-        console.log(data);
-        
-
         if (desconectar) {
             acesso = {}
             localStorage.removeItem('acesso')

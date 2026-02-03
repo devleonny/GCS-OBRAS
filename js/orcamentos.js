@@ -36,6 +36,23 @@ async function rstTelaOrcamentos() {
     await telaOrcamentos()
 }
 
+function formatacaoPagina() {
+
+    const pag = 'orcamentos'
+    const pesq = controles?.[pag]?.filtros?.['status.atual']
+    const status = pesq?.op == 'IS_EMPTY'
+        ? 'SEM STATUS'
+        : pesq?.value || 'todos'
+
+    const abas = document.querySelectorAll('.aba-toolbar')
+
+    abas.forEach(a => a.style.opacity = 0.5)
+
+    const aba = document.querySelector(`[name="${status}"]`)
+    if (aba) aba.style.opacity = 1
+
+}
+
 async function telaOrcamentos() {
 
     // Inicializar filtros;
@@ -54,8 +71,8 @@ async function telaOrcamentos() {
         'status': 'status.atual',
         'pedido': '',
         'notas': '',
-        'tags': '',
-        'contrato': 'snapshots.cliente',
+        'tags': 'snapshots.tags',
+        'contrato': 'snapshots.contrato',
         'cidade': 'snapshots.cidade',
         'responsaveis': 'snapshots.responsavel',
         'indicadores': '',
@@ -65,7 +82,9 @@ async function telaOrcamentos() {
 
     const btnExtras = `<span style="color: white; cursor: pointer; white-space: nowrap;" onclick="filtroOrcamentos()">Filtros ☰</span>`
     const tabela = modTab({
+        funcaoAdicional: 'formatacaoPagina',
         btnExtras,
+        filtros: { 'dados_orcam': { op: 'NOT_EMPTY' } },
         colunas,
         base: 'dados_orcamentos',
         criarLinha: 'criarLinhaOrcamento',
@@ -165,7 +184,7 @@ function scrollar(direcao) {
 
 async function criarLinhaOrcamento(orcamento, master, idMaster) {
 
-    const { id, dados_orcam, snapshots = {}} = orcamento
+    const { id, dados_orcam, snapshots = {} } = orcamento
 
     let labels = {
         PEDIDO: '',
@@ -519,8 +538,9 @@ async function excelOrcamentos() {
 
 async function carregarToolbar() {
 
-    const cont1 = await contarPorCampo({ base: 'dados_orcamentos', path: 'status.atual' })
-    const cont2 = await contarPorCampo({ base: 'dados_orcamentos', path: 'chamado' })
+    const filtros = { 'dados_orcam': { op: 'NOT_EMPTY' } }
+    const cont1 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'status.atual' })
+    const cont2 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'chamado' })
 
     const contToolbar = {
         ...cont1,
@@ -542,30 +562,32 @@ async function carregarToolbar() {
             continue
         }
 
-        const funcao = campo == 'chamados'
-            ? `controles.${pag}.filtros = {'chamado':{op:'=', value: 'S'}}; paginacao('${pag}')`
-            : `controles.${pag}.filtros = ${campo == 'todos'
-                ? '{}'
+        const filtosPesq = campo == 'chamados'
+            ? `'chamado': {op:'=', value: 'S'}`
+            : campo == 'todos'
+                ? ''
                 : campo == 'SEM STATUS'
-                    ? `{'status.atual':{op: 'IS_EMPTY'}}`
-                    : `{'status.atual':{op:'=', value: '${campo}'}}`
-            }; paginacao('${pag}')`
+                    ? `'status.atual': {op: 'IS_EMPTY'}`
+                    : `'status.atual': {op:'=', value: '${campo}'}`
 
         const f = campo == 'VENDA DIRETA'
             ? { 1: 'style="background: linear-gradient(45deg, #222, #b12425);"' }
             : {}
 
         const novaTool = `
-                        <div
-                            style="opacity: 0.5; height: 3rem;"
-                            class="aba-toolbar"
-                            data-status="${campo}"
-                            name="${campo}"
-                            onclick="${funcao}">
-                            <label>${campo.toUpperCase()}</label>
-                            <span ${f[1]}>${contagem}</span>
-                        </div>
-                        `
+            <div
+                style="opacity: 0.5; height: 3rem;"
+                class="aba-toolbar"
+                data-status="${campo}"
+                name="${campo}"
+                onclick="
+                controles.${pag}.pagina = 1; 
+                controles.${pag}.filtros = { 'dados_orcam': { op: 'NOT_EMPTY' }, ${filtosPesq} };
+                paginacao('${pag}')">
+                <label>${campo.toUpperCase()}</label>
+                <span ${f[1]}>${contagem}</span>
+            </div>
+            `
         toolbar.insertAdjacentHTML('beforeend', novaTool)
     }
 

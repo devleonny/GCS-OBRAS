@@ -116,8 +116,9 @@ async function telaInicial() {
                 </div>
                 <img src="imagens/nav.png" style="width: 2rem; transform: rotate(180deg);" onclick="scrollar('next')">
             </div>
-
+            
             <div id="tabelas" style="width: 100%;"></div>
+            
         </div>
     `
 
@@ -128,19 +129,8 @@ async function telaInicial() {
     }
 
     // Carregar tabelas;
-    carregarPDA()
     await indicadores()
-    await carregarTecnicos()
-
-    const pdas = await pesquisarDB({ base: 'dados_orcamentos', limite: 1000, filtros: { 'aba': {op: 'NOT_EMPTY'} } })
-
-    for (const orcamento of pdas.resultados) {
-        await linPda(orcamento)
-    }
-
     await contadores()
-
-    mostrarGuia('INDICADORES')
 
     //auxMapa('EM_ANDAMENTO')
 
@@ -148,11 +138,39 @@ async function telaInicial() {
 
 }
 
+async function tabelasIndicadores() {
+
+    const colunas = {
+        'Cliente': '',
+        'Tags': '',
+        'Técnicos': '',
+        'Início': '',
+        'Término': '',
+        'Comentários': '',
+        'Ação Necessário': '',
+        'Checklist': '',
+        'Detalhes': '',
+        'Remover': ''
+    }
+
+    const tabela = await modTab({
+        pag: 'indicadores',
+        colunas,
+        base: 'dados_orcamentos',
+        filtros: { 'aba': { op: '=', value: 'PDA' } },
+        criarLinha: 'linPda',
+        body: 'bodyIndicadores'
+    })
+
+    document.querySelector('#tabelas').innerHTML = tabela
+
+}
+
 async function linPda(orcamento) {
 
-    const { idOrcamento } = orcamento
-    const codCliente = orcamento?.dados_orcam?.omie_cliente || ''
-    const cliente = await recuperarDado('dados_clientes', codCliente)
+    const { tags } = orcamento
+    const { cliente, cidade } = orcamento.snapshots
+    const idOrcamento = orcamento.id
 
     const st = orcamento?.status?.atual || ''
     const opcoes = ['', ...fluxograma]
@@ -211,9 +229,9 @@ async function linPda(orcamento) {
     const existente = `
         <div style="${vertical}; gap: 2px; text-align: left;">
             <span><b>Número: </b>${orcamento?.dados_orcam?.contrato || ''}</span>
-            <span><b>Cliente: </b>${cliente?.nome || '...'}</span>
+            <span><b>Cliente: </b>${cliente}</span>
             <span><b>Data: </b>${orcamento?.dados_orcam?.data || '...'}</span>
-            <span><b>Cidade: </b>${cliente?.cidade || '...'}</span>
+            <span><b>Cidade: </b>${cidade}</span>
             <span><b>Valor: </b> ${dinheiro(orcamento?.total_geral)}</span>
 
             ${mod('Status', `
@@ -245,7 +263,7 @@ async function linPda(orcamento) {
     const strTags = `
         <div style="${horizontal}; justify-content: space-between; width: 100%; align-items: start; gap: 2px;">
             <div name="tags" style="${vertical}; gap: 1px;">
-                ${renderAtivas({ idOrcamento, recarregarPainel: false })}
+                ${await renderAtivas({ idOrcamento, tags, recarregarPainel: false })}
             </div>
             <img 
                 src="imagens/etiqueta.png" 
@@ -313,17 +331,10 @@ async function linPda(orcamento) {
         </td>
     `
 
-    const aba = orcamento.aba
-    const tbody = document.getElementById(`body${aba}`)
-
-    tbody.insertAdjacentHTML(
-        'beforeend',
-        `<tr id="${idOrcamento}"
-        data-timestamp="${orcamento.timestamp || ''}"
-        data-aba="${aba}">
-        ${tds}
-    </tr>`
-    )
+    return `
+        <tr id="${idOrcamento}">
+            ${tds}
+        </tr>`
 
 }
 
@@ -505,6 +516,48 @@ async function carregarTecnicos() {
 
 }
 
+function linAcoes(orcamento) {
+
+    const idOrcamento = orcamento.id
+    const acoes = orcamento?.pda?.acoes || {}
+    const chamado = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato || orcamento?.projeto || '-'
+
+    let strAcoes = ''
+    
+    for (const dados of Object.values(acoes)) {
+
+        const estilo = dados?.status === 'concluído'
+            ? 'concluído'
+            : dtPrazo(dados?.prazo)
+                ? 'atrasado'
+                : 'pendente'
+
+        const [ano, mes, dia] = dados.prazo.split('-')
+        const prazo = `${dia}/${mes}/${ano}`
+
+        strAcoes += `
+            <tr>
+                <div name="acao" data-estilo="${estilo}" class="bloco-acao">
+                    <div class="etiqueta-${estilo}">
+                        <span><b>ID:</b> ${chamado}</span>
+                        <span><b>Aba:</b> ${orcamento.aba || ''}</span>
+                        <div style="white-space: pre-wrap;"><b>Ação:</b> ${dados?.acao || ''}</div>
+                        <span><b>Responsável:</b> ${dados?.responsavel || ''}</span>
+                        <span><b>Prazo:</b> ${prazo}</span>
+                        ${dados.registro
+                ? `<span><b>criado em: </b>${new Date(dados.registro).toLocaleString('pt-BR')}</span>`
+                : ''}
+                    </div>
+                    <img src="imagens/pesquisar2.png" style="width: 2rem;" onclick="irORC('${idOrcamento}')">
+                </div>
+            </tr>
+            `
+
+    }
+
+    return strAcoes
+}
+
 
 async function indicadores() {
 
@@ -517,58 +570,14 @@ async function indicadores() {
     }
 
     const tUsuario = {}
-    let strgAcoes = ''
 
-    const pdas = await pesquisarDB({ base: 'dados_orcamentos', limite: 1000, filtros: { 'pda': {} } })
-
-    for (const orcamento of pdas.resultados) {
-
-        if (!orcamento.pda) continue
-
-        const { idOrcamento } = orcamento
-        const acoes = orcamento?.pda?.acoes || {}
-
-        const chamado = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato || orcamento?.projeto || '-'
-
-        for (const dados of Object.values(acoes)) {
-
-            const estilo = dados?.status === 'concluído'
-                ? 'concluído'
-                : dtPrazo(dados?.prazo)
-                    ? 'atrasado'
-                    : 'pendente'
-
-            totais[estilo]++
-
-            tUsuario[dados.responsavel] ??= {}
-            tUsuario[dados.responsavel][estilo] ??= 0
-            tUsuario[dados.responsavel][estilo]++
-
-            // Filtragem por acesso
-
-            if (dados.responsavel == acesso.usuario || permitidos.includes(acesso.permissao)) {
-
-                const [ano, mes, dia] = dados.prazo.split('-')
-                const prazo = `${dia}/${mes}/${ano}`
-
-                strgAcoes += `
-                    <div name="acao" data-estilo="${estilo}" class="bloco-acao">
-                        <div class="etiqueta-${estilo}">
-                            <span><b>ID:</b> ${chamado}</span>
-                            <span><b>Aba:</b> ${orcamento.aba || ''}</span>
-                            <div style="white-space: pre-wrap;"><b>Ação:</b> ${dados?.acao || ''}</div>
-                            <span><b>Responsável:</b> ${dados?.responsavel || ''}</span>
-                            <span><b>Prazo:</b> ${prazo}</span>
-                            ${dados.registro
-                        ? `<span><b>criado em: </b>${new Date(dados.registro).toLocaleString('pt-BR')}</span>`
-                        : ''}
-                        </div>
-                        <img src="imagens/pesquisar2.png" style="width: 2rem;" onclick="irORC('${idOrcamento}')">
-                    </div>`
-            }
-
-        }
-    }
+    const tabela = await modTab({
+        criarLinha: 'linAcoes',
+        base: 'dados_orcamentos',
+        pag: 'acoes',
+        body: 'bodyAcoes',
+        filtros: { 'pda.acoes': { op: 'NOT_EMPTY' } }
+    })
 
     const box = (titulo, valor, cor) => `
     <div class="ind" style="border-left: 6px solid ${cor};" onclick="filtrarAcoes('${titulo}')">
@@ -610,21 +619,14 @@ async function indicadores() {
                 <div style="${horizontal}; gap: 2rem;">
                     <span>Ações pendentes do Usuário</span>
                 </div>
-                <div class="acoes">
-                    ${strgAcoes}
-                </div>
+                ${tabela}
             </div>
             
         </div>
 
     </div>
     `
-    const tabelas = document.getElementById('tabelas')
-    const tIndicadores = document.querySelector('.tabela-indicadores')
-    if (tIndicadores) return tIndicadores.innerHTML = acumulado
-    tabelas.insertAdjacentHTML('beforeend', `<div class="tabela-indicadores" name="tabela-INDICADORES">${acumulado}</div>`)
-
-    filtrarAcoes('pendente')
+    document.querySelector('#tabelas').innerHTML = acumulado
 
 }
 
@@ -665,48 +667,6 @@ function mostrarGuia(nomeGuia = guiaAtual || 'INDICADORES') {
 
     const tPda = document.querySelector('.tela-gerenciamento')
     if (tPda) tPda.style.display = 'flex'
-
-}
-
-function carregarPDA() {
-
-    const colunas = ['Cliente', 'Tags', 'Técnicos', 'Início', 'Término', 'Comentários', 'Ação Necessário', 'Checklist', 'Detalhes', 'Remover']
-
-    const ths = colunas.map(col => `<th>${col}</th>`).join('')
-
-    const mod = (aba) => {
-        const pesquisas = colunas.map((op, i) => `
-            <th style="background-color: white; text-align: left;" 
-            oninput="pesquisarGenerico('${i}', this.textContent, 'body${aba}'); contadores()" 
-            contentEditable="true"></th>`).join('')
-
-        return `
-        <div name="tabela-${aba}" class="tabelas-pda">
-            <div class="topo-tabela">
-                <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
-                    <img src="imagens/baixar.png" onclick="editarLinPda({aba: '${aba}'})">
-                </div>
-            </div>
-            <div class="div-tabela">
-                <table class="tabela">
-                    <thead>
-                        <tr>${ths}</tr>
-                        <tr>${pesquisas}</tr>
-                    </thead>
-                    <tbody id="body${aba}"></tbody>
-                </table>
-            </div>
-            <div class="rodape-tabela"></div>
-        </div>
-    `}
-
-    const tabelas = document.getElementById('tabelas')
-
-    for (const aba of abas) {
-        const tab = mod(aba)
-        const existente = document.getElementById(`body${aba}`)
-        if (!existente) tabelas.insertAdjacentHTML('beforeend', tab)
-    }
 
 }
 

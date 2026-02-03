@@ -9,7 +9,9 @@ function isDark(cor) {
     return (0.299 * r + 0.587 * g + 0.114 * b) < 150
 }
 
-async function renderAtivas({ idOrcamento, tags = {}, recarregarPainel }) {
+async function renderAtivas({ idOrcamento, tags, recarregarPainel }) {
+
+    if (!tags) tags = {}
 
     const html = await Promise.all(
         Object.entries(tags).map(async ([id, info]) => {

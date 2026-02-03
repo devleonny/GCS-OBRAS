@@ -77,7 +77,7 @@ async function atualizarGCS(resetar) {
 
     sincronizarApp({ remover: true })
     emAtualizacao = false
-    await executar(funcaoTela)
+    //await executar(funcaoTela)
 
 }
 
@@ -130,93 +130,93 @@ async function sincronizarDados({ base, resetar = false }) {
 
 }
 
+// Regras SNAPSHOT; BUSCAS;
 const regrasSnapshot = {
-  dados_orcamentos: {
-    snapshot: async ({ dado, stores }) => {
+    dados_orcamentos: {
+        snapshot: async ({ dado, stores }) => {
 
-      const snap = {}
+            const snap = {}
 
-      // cliente
-      const codCliente = dado?.dados_orcam?.omie_cliente
-      if (codCliente) {
-        const cliente = await getStore(stores.dados_clientes, codCliente)
-        if (cliente) {
-          snap.cliente = cliente.nome?.toLowerCase() || ''
-          snap.cidade = cliente.cidade?.toLowerCase() || ''
+            // cliente
+            const codCliente = dado?.dados_orcam?.omie_cliente
+            if (codCliente) {
+                const cliente = await getStore(stores.dados_clientes, codCliente)
+                snap.cliente = (cliente?.nome || '').toLowerCase()
+                snap.contrato = `${(cliente?.nome || '')?.toLowerCase()} ${dado?.dados_orcam?.contrato || ''} ${dado?.dados_orcam?.chamado || ''}`
+                snap.cidade = cliente?.cidade?.toLowerCase() || ''
+            }
+
+            // responsável
+            if (dado.usuario) {
+                snap.responsavel = `${dado.usuario.toLowerCase()} ${Object.keys(dado?.usuarios || {}).map(u => u).join(' ')}`
+            }
+
+            // tags
+            if (dado.tags) {
+                const nomes = []
+                for (const idTag of Object.keys(dado.tags)) {
+                    const tag = await getStore(stores.tags_orcamentos, idTag)
+                    if (tag?.nome) nomes.push(tag.nome.toLowerCase())
+                }
+                snap.tags = nomes
+            }
+
+            return snap
         }
-      }
-
-      // responsável
-      if (dado.usuario) {
-        snap.responsavel = `${dado.usuario.toLowerCase()} ${Object.keys(dado?.usuarios || {}).map(u => u).join(' ')}`
-      }
-
-      // tags
-      if (dado.tags) {
-        const nomes = []
-        for (const idTag of Object.keys(dado.tags)) {
-          const tag = await getStore(stores.tags_orcamentos, idTag)
-          if (tag?.nome) nomes.push(tag.nome.toLowerCase())
-        }
-        snap.tags = nomes
-      }
-
-      return snap
     }
-  }
 }
 
 function getStore(store, key) {
-  return new Promise(resolve => {
-    const req = store.get(key)
-    req.onsuccess = () => resolve(req.result || null)
-    req.onerror = () => resolve(null)
-  })
+    return new Promise(resolve => {
+        const req = store.get(key)
+        req.onsuccess = () => resolve(req.result || null)
+        req.onerror = () => resolve(null)
+    })
 }
 
 async function inserirDados(dados, base) {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(nomeBase, versao)
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(nomeBase, versao)
 
-    request.onerror = () => reject(request.error)
+        request.onerror = () => reject(request.error)
 
-    request.onsuccess = async e => {
-      const db = e.target.result
+        request.onsuccess = async e => {
+            const db = e.target.result
 
-      const regra = regrasSnapshot[base]
+            const regra = regrasSnapshot[base]
 
-      const storesExtras = regra
-        ? ['dados_clientes', 'tags_orcamentos']
-        : []
+            const storesExtras = regra
+                ? ['dados_clientes', 'tags_orcamentos']
+                : []
 
-      const tx = db.transaction([base, ...new Set(storesExtras)], 'readwrite')
-      const storePrincipal = tx.objectStore(base)
+            const tx = db.transaction([base, ...new Set(storesExtras)], 'readwrite')
+            const storePrincipal = tx.objectStore(base)
 
-      const stores = {}
-      for (const nome of storesExtras) {
-        stores[nome] = tx.objectStore(nome)
-      }
+            const stores = {}
+            for (const nome of storesExtras) {
+                stores[nome] = tx.objectStore(nome)
+            }
 
-      tx.onerror = () => reject(tx.error)
-      tx.oncomplete = () => resolve(true)
+            tx.onerror = () => reject(tx.error)
+            tx.oncomplete = () => resolve(true)
 
-      for (const [id, d] of Object.entries(dados)) {
-        if (d.excluido) {
-          storePrincipal.delete(id)
-          continue
+            for (const [id, d] of Object.entries(dados)) {
+                if (d.excluido) {
+                    storePrincipal.delete(id)
+                    continue
+                }
+
+                if (regra?.snapshot) {
+                    d.snapshots = await regra.snapshot({
+                        dado: d,
+                        stores
+                    })
+                }
+
+                storePrincipal.put(d)
+            }
         }
-
-        if (regra?.snapshot) {
-          d.snapshots = await regra.snapshot({
-            dado: d,
-            stores
-          })
-        }
-
-        storePrincipal.put(d)
-      }
-    }
-  })
+    })
 }
 
 function recuperarDado(base, chave) {
@@ -343,10 +343,26 @@ function passaFiltro(reg, filtros) {
                 if (!(v <= value)) return false
                 break
 
-            case 'includes':
-                if (!String(v).toLowerCase().includes(String(value).toLowerCase()))
+            case 'includes': {
+                if (v == null) return false
+
+                const termo = String(value).toLowerCase()
+
+                // array
+                if (Array.isArray(v)) {
+                    const ok = v.some(item =>
+                        String(item).toLowerCase().includes(termo)
+                    )
+                    if (!ok) return false
+                    break
+                }
+
+                // string / number / outros
+                if (!String(v).toLowerCase().includes(termo))
                     return false
+
                 break
+            }
         }
     }
 

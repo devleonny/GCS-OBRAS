@@ -1,22 +1,24 @@
 const controles = {}
 
-function modTab({ btnExtras = '', criarLinha, base, filtros = {}, colunas = {}, body = null, pag }) {
+function modTab({ btnExtras = '', criarLinha, base, funcaoAdicional = null, filtros = {}, colunas = {}, body = null, pag = null }) {
 
-    if (!body) return popup({ mensagem: 'Body Não pode ser null' })
+    if (!body || !pag) 
+        return popup({ mensagem: 'body/pag Não podem ser null' })
 
     controles[pag] ??= {}
+    controles[pag].funcaoAdicional = funcaoAdicional
     controles[pag].pagina = 1
     controles[pag].base = base
     controles[pag].criarLinha = criarLinha
     controles[pag].body = body
     controles[pag].filtros = filtros
-    
+
     const ths = Object.keys(colunas)
         .map((th, i) => `
             <th>
                 <div style="${horizontal}; width: 100%; justify-content: space-between; gap: 1rem;">
                     <span>${inicialMaiuscula(th)}</span>    
-                    <img onclick="ordenarOrcamentos(${i})" src="imagens/filtro.png" style="width: 1rem;">
+                    <!--<img onclick="ordenarOrcamentos(${i})" src="imagens/filtro.png" style="width: 1rem;">-->
                 </div>
             </th>
             `
@@ -30,7 +32,6 @@ function modTab({ btnExtras = '', criarLinha, base, filtros = {}, colunas = {}, 
                 style="background-color: white; text-align: left;"
                 name="${th}"
                 onkeydown="confirmarPesquisa(event, '${chave}', this, '${pag}')"
-                onblur="confirmarPesquisa(null, '${chave}', this, '${pag}')"
                 contentEditable="true">
             </th>`)
         .join('')
@@ -70,37 +71,43 @@ async function mudarPagina(valor, pag) {
     await paginacao(pag)
 
 }
+
 async function confirmarPesquisa(e, chave, el, p) {
-  if (e?.key && e.key !== 'Enter') return
-  if (e) e.preventDefault()
 
-  const termo = el.textContent.replace(/\n/g, '').trim().toLowerCase()
+    if (e) {
+        if (e.type !== 'keydown') return
+        if (e.key !== 'Enter') return
+        e.preventDefault()
+    }
 
-  controles[p].pagina = 1
-  controles[p].filtros ??= {}
+    const termo = el.textContent.replace(/\n/g, '').trim().toLowerCase()
 
-  if (!termo) {
-    delete controles[p].filtros[chave]
+    controles[p].pagina = 1
+    controles[p].filtros ??= {}
 
-    if (Object.keys(controles[p].filtros).length === 0) {
-      delete controles[p].filtros
+    if (!termo) {
+        delete controles[p].filtros[chave]
+
+        if (Object.keys(controles[p].filtros).length === 0) {
+            delete controles[p].filtros
+        }
+
+        await paginacao(p)
+        return
+    }
+
+    controles[p].filtros[chave] = {
+        op: 'includes',
+        value: termo
     }
 
     await paginacao(p)
-    return
-  }
-
-  controles[p].filtros[chave] = {
-    op: 'includes',
-    value: termo
-  }
-
-  await paginacao(p)
 }
+
 
 async function paginacao(pag) {
 
-    const { pagina, base, body, criarLinha, filtros } = controles[pag] || {}
+    const { pagina, base, body, criarLinha, funcaoAdicional, filtros } = controles[pag] || {}
 
     if (!base || !criarLinha)
         return console.log('Base/CriarLinha não informado(s)')
@@ -120,9 +127,14 @@ async function paginacao(pag) {
     const dados = await pesquisarDB({ base, pagina, filtros })
     const divPaginacao = document.getElementById(`paginacao_${pag}`)
     const paginaAtual = document.getElementById(`paginaAtual_${pag}`)
-    const totalPaginas = document.getElementById(`totalPaginas_${pag}`)
+    const resultados = document.getElementById(`resultados_${pag}`)
 
     controles[pag].total = dados.paginas
+
+    // Função adicionarl, se existir;
+    if (funcaoAdicional) {
+        window[funcaoAdicional]()
+    }
 
     if (!paginaAtual) {
         divPaginacao.innerHTML = `
@@ -130,8 +142,16 @@ async function paginacao(pag) {
                 <img src="imagens/esq.png" style="width: 2rem;" onclick="mudarPagina(-1, '${pag}')">
                 <span style="color: white;">
                     Página 
-                    <span id="paginaAtual">${pagina}</span> de 
-                    <span id="totalPaginas">${dados.paginas}</span>
+
+                    <span id="paginaAtual">${pagina}</span> 
+                    
+                    de 
+
+                    <span id="totalPaginas">${dados.paginas}</span> 
+
+                    •
+                    
+                    <span id="resultados">${dados.total}</span> ${dados.total !== 1 ? 'itens' : 'item'}
                 </span>
                 <img src="imagens/dir.png" style="width: 2rem;" onclick="mudarPagina(1, '${pag}')">
                 <span style="color: white;">Dê um <b>ENTER</b> para pesquisar</span>
@@ -140,11 +160,12 @@ async function paginacao(pag) {
     } else {
         paginaAtual.textContent = pagina
         totalPaginas.textContent = dados.paginas
+        resultados.textContent = dados.total
     }
 
     let linhas = ''
     for (const d of dados.resultados) {
-        linhas += await await window[criarLinha](d)
+        linhas += await window[criarLinha](d)
     }
 
     tbody.innerHTML = linhas
