@@ -724,9 +724,9 @@ async function salvarPedido(chave = ID5digitos()) {
 
     const orcamento = db.dados_orcamentos[id_orcam]
 
-    if (!orcamento.status) orcamento.status = { historico: {} }
-    if (!orcamento.status.historico) orcamento.status.historico = {}
-    if (!orcamento.status.historico[chave]) orcamento.status.historico[chave] = {}
+    orcamento.status ??= {}
+    orcamento.status.historico ??= {}
+    orcamento.status.historico[chave] ??= {}
 
     const dados = {
         data: new Date().toLocaleString(),
@@ -738,7 +738,10 @@ async function salvarPedido(chave = ID5digitos()) {
         status: 'PEDIDO'
     }
 
-    orcamento.status.historico[chave] = dados
+    orcamento.status.historico[chave] = {
+        ...orcamento.status.historico[chave],
+        dados
+    }
 
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
     enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, dados)
@@ -1568,7 +1571,7 @@ async function alterarStatus(select) {
     if (novoSt == 'ORC APROVADO') {
         formularioOrcAprovado()
         const resposta = await criarDepartamento(id_orcam)
-        if (resposta.mensagem) 
+        if (resposta.mensagem)
             popup({ mensagem: resposta.mensagem })
     }
 
