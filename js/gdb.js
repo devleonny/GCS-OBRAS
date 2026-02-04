@@ -289,6 +289,69 @@ function pesquisarDB({ filtros = {}, base, pagina = 1, limite = 100 }) {
     })
 }
 
+// Pesquisa e contabilização profunda, dentro de objetos;
+function getByPathDeepAll(obj, path) {
+    const parts = path.split('.')
+    const out = []
+
+    function walk(current, i) {
+        if (current == null) return
+
+        if (i === parts.length) {
+            out.push(current)
+            return
+        }
+
+        const key = parts[i]
+
+        if (key === '*') {
+            if (typeof current === 'object') {
+                for (const k in current) {
+                    walk(current[k], i + 1)
+                }
+            }
+            return
+        }
+
+        if (current[key] !== undefined) {
+            walk(current[key], i + 1)
+            return
+        }
+
+        if (typeof current === 'object') {
+            for (const k in current) {
+                walk(current[k], i)
+            }
+        }
+    }
+
+    walk(obj, 0)
+    return out
+}
+
+// Situações onde seja contado itens em objetos acoes.*.status com filtro no mesmo objeto 'acoes.*.responsavel;
+function resolveWildcard(reg, path) {
+  const parts = path.split('.')
+  const idx = parts.indexOf('*')
+
+  const basePath = parts.slice(0, idx).join('.')
+  const restPath = parts.slice(idx + 1).join('.')
+
+  const base = getByPath(reg, basePath)
+  if (!base || typeof base !== 'object') return []
+
+  const out = []
+
+  for (const k in base) {
+    out.push({
+      ctx: base[k],
+      valor: restPath ? getByPath(base[k], restPath) : base[k]
+    })
+  }
+
+  return out
+}
+
 function getByPath(obj, path) {
     if (!path) return obj
     return path.split('.').reduce((acc, key) => acc?.[key], obj)
@@ -302,110 +365,110 @@ function isVazio(v) {
     return false
 }
 
-function passaFiltro(reg, filtros) {
-    for (const [path, regra] of Object.entries(filtros)) {
-        const v = getByPath(reg, path)
+function comparar(v, op, value) {
+  switch (op) {
+    case 'IS_EMPTY': return isVazio(v)
+    case 'NOT_EMPTY': return !isVazio(v)
+    case '=': return v === value
+    case '!=': return v !== value
+    case '>': return v > value
+    case '>=': return v >= value
+    case '<': return v < value
+    case '<=': return v <= value
+    case 'includes':
+      if (v == null) return false
+      const termo = String(value).toLowerCase()
+      if (Array.isArray(v))
+        return v.some(i => String(i).toLowerCase().includes(termo))
+      return String(v).toLowerCase().includes(termo)
+  }
+  return true
+}
 
-        if (!regra) continue
+function passaFiltro(reg, filtros, opts = {}) {
+  for (const [path, regra] of Object.entries(filtros)) {
 
-        const { op, value } = regra
+    if (opts.ignoreWildcard && path.includes('*')) continue
+    if (!regra) continue
 
-        switch (op) {
-            case 'IS_EMPTY':
-                if (!isVazio(v)) return false
-                break
+    const v = getByPath(reg, path)
 
-            case 'NOT_EMPTY':
-                if (isVazio(v)) return false
-                break
+    if (!comparar(v, regra.op, regra.value))
+      return false
+  }
 
-            case '=':
-                if (v !== value) return false
-                break
-
-            case '!=':
-                if (v === value) return false
-                break
-
-            case '>':
-                if (!(v > value)) return false
-                break
-
-            case '>=':
-                if (!(v >= value)) return false
-                break
-
-            case '<':
-                if (!(v < value)) return false
-                break
-
-            case '<=':
-                if (!(v <= value)) return false
-                break
-
-            case 'includes': {
-                if (v == null) return false
-
-                const termo = String(value).toLowerCase()
-
-                // array
-                if (Array.isArray(v)) {
-                    const ok = v.some(item =>
-                        String(item).toLowerCase().includes(termo)
-                    )
-                    if (!ok) return false
-                    break
-                }
-
-                // string / number / outros
-                if (!String(v).toLowerCase().includes(termo))
-                    return false
-
-                break
-            }
-        }
-    }
-
-    return true
+  return true
 }
 
 function contarPorCampo({ base, path, filtros = {} }) {
-    return new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
 
-        const contagem = { todos: 0 }
+    const contagem = { todos: 0 }
+    const hasWildcard = path?.includes('*')
 
-        const req = indexedDB.open(nomeBase, versao)
-        req.onerror = () => reject(req.error)
+    const req = indexedDB.open(nomeBase, versao)
+    req.onerror = () => reject(req.error)
 
-        req.onsuccess = e => {
-            const db = e.target.result
-            const tx = db.transaction(base, 'readonly')
-            const store = tx.objectStore(base)
+    req.onsuccess = e => {
+      const db = e.target.result
+      const tx = db.transaction(base, 'readonly')
+      const store = tx.objectStore(base)
 
-            store.openCursor().onsuccess = ev => {
-                const cursor = ev.target.result
-                if (!cursor) {
-                    resolve(contagem)
-                    return
-                }
-
-                const reg = cursor.value
-
-                if (passaFiltro(reg, filtros)) {
-                    let v = getByPath(reg, path)
-                    if (v == undefined || v == null || v == '') {
-                        v = 'EM BRANCO'
-                    }
-
-                    contagem.todos++
-                    contagem[v] = (contagem[v] || 0) + 1
-
-                }
-
-                cursor.continue()
-            }
+      store.openCursor().onsuccess = ev => {
+        const cursor = ev.target.result
+        if (!cursor) {
+          resolve(contagem)
+          return
         }
-    })
+
+        const reg = cursor.value
+
+        if (!passaFiltro(reg, filtros, { ignoreWildcard: true })) {
+          cursor.continue()
+          return
+        }
+
+        if (!hasWildcard) {
+          let v = getByPath(reg, path)
+          if (v == null || v === '') v = 'EM BRANCO'
+          contagem.todos++
+          contagem[v] = (contagem[v] || 0) + 1
+          cursor.continue()
+          return
+        }
+
+        const items = resolveWildcard(reg, path)
+
+        for (const { ctx, valor } of items) {
+
+          let passou = true
+
+          for (const fPath in filtros) {
+            if (!fPath.includes('*')) continue
+
+            const f = filtros[fPath]
+            const sub = fPath.split('*').slice(1).join('.').replace(/^\./, '')
+            const vFiltro = getByPath(ctx, sub)
+
+            if (!comparar(vFiltro, f.op, f.value)) {
+              passou = false
+              break
+            }
+          }
+
+          if (!passou) continue
+
+          let v = valor
+          if (v == null || v === '') v = 'EM BRANCO'
+
+          contagem.todos++
+          contagem[v] = (contagem[v] || 0) + 1
+        }
+
+        cursor.continue()
+      }
+    }
+  })
 }
 
 function deletarDB(id, base) {

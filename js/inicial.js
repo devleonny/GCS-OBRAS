@@ -574,20 +574,66 @@ function linAcoes(orcamento) {
     return strAcoes
 }
 
+function somarAtrasados(obj) {
+  const hoje = new Date()
+  hoje.setHours(0, 0, 0, 0)
+
+  let total = 0
+
+  for (const [data, qtd] of Object.entries(obj)) {
+    const d = new Date(data + 'T00:00:00')
+    if (d < hoje) total += Number(qtd) || 0
+  }
+
+  return total
+}
+
+async function criarGaveta(usuario = 'Geral') {
+
+    const box = (titulo, valor, cor) => `
+    <div class="ind" style="border-left: 6px solid ${cor};" onclick="filtrarAcoes('${titulo}')">
+        <span style="font-size: 14px; color:#444;">${titulo}</span>
+        <strong style="font-size: 22px; margin-top:5px;">${valor}</strong>
+    </div>`
+
+    const filtros = usuario == 'Geral'
+        ? {}
+        : { 'pda.acoes.*.responsavel': { op: '=', value: usuario } }
+
+    const contagem = await contarPorCampo({
+        base: 'dados_orcamentos',
+        path: 'pda.acoes.*.status',
+        filtros
+    })
+
+
+    const atrasados = somarAtrasados(await contarPorCampo({
+        base: 'dados_orcamentos',
+        path: 'pda.acoes.*.data',
+        filtros
+    }))
+
+    const gaveta = `
+        <div id="gaveta_${usuario}" style="${vertical}; gap: 5px; padding: 0.5rem;">
+            <span>Contador de ações <b>${usuario}</b></span>
+            <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
+                ${box("Pendente", contagem?.pendente || 0, "#41a6ff")}
+                ${box("Atrasado", atrasados, "#ff0000")}
+                ${box("Concluído", contagem?.concluído || 0, "#008000")}
+            </div>
+        </div>
+    `
+
+    const guardaRoupas = document.querySelector('.guarda-roupas')
+
+    if (guardaRoupas) guardaRoupas.insertAdjacentHTML('beforeend', gaveta)
+
+}
 
 async function indicadores() {
 
     mostrarGuia('INDICADORES')
 
-    const permitidos = ['adm', 'gerente', 'diretoria']
-
-    const totais = {
-        pendente: 0,
-        atrasado: 0,
-        concluído: 0
-    }
-
-    const tUsuario = {}
     const pag = 'acoes'
     const tabela = await modTab({
         criarLinha: 'linAcoes',
@@ -597,49 +643,19 @@ async function indicadores() {
         filtros: { 'pda.acoes': { op: 'NOT_EMPTY' } }
     })
 
-    const box = (titulo, valor, cor) => `
-    <div class="ind" style="border-left: 6px solid ${cor};" onclick="filtrarAcoes('${titulo}')">
-        <span style="font-size: 14px; color:#444;">${titulo}</span>
-        <strong style="font-size: 22px; margin-top:5px;">${valor}</strong>
-    </div>`
-
-    const contagem = await contarPorCampo({ base: 'dados_orcamentos', filtros: { 'pda.acoes.responsavel': { op: '=', value: acesso.usuario } } })
-
-    const indi = (totais, texto) => {
-
-        return `
-            <div style="${vertical}; gap: 5px; padding: 0.5rem;">
-                <span>Contador de ações <b>${texto}</b></span>
-                <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
-                    ${box("Pendente", totais?.pendente || 0, "#41a6ff")}
-                    ${box("Atrasado", totais?.atrasado || 0, "#ff0000")}
-                    ${box("Concluído", totais?.concluído || 0, "#008000")}
-                </div>
-            </div>
-        `
-    }
-
-    const indiGeral = permitidos.includes(acesso.permissao) ? indi(totais, 'Geral') : ''
-
     const acumulado = `
     <div class="painel-indicadores">
 
-        <div style="${vertical}; padding-top: 0.5rem; gap: 0.5rem; width: 100%;">
-            <div style="${horizontal}; gap: 2rem;">
-                <span>Ações pendentes do Usuário</span>
-            </div>
-            ${tabela}
-        </div>
-
         <div style="${vertical};">
-            ${indiGeral}
-            ${tUsuario[acesso?.usuario] ? indi(tUsuario[acesso?.usuario], acesso.usuario || '...') : ''}
+            <div class="guarda-roupas"></div>
             <div class="toolbar-mapas"></div>
             <div class="fundo-mapa">
                 <img src="imagens/mapa.png" class="mapa">
                 <svg id="mapaOverlay" width="600" height="600" style="position: absolute; top: 0; left: 0;"></svg>
             </div>
         </div>
+
+        ${tabela}
 
     </div>
     `
