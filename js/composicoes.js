@@ -118,6 +118,7 @@ async function telaComposicoes() {
         'descricao',
         'lpu hope',
         'lpu boticario',
+        'lpu cf boticario',
         'lpu romagnole',
         'lpu gpa',
         'lpu muffato',
@@ -199,7 +200,7 @@ function criarLinhaComposicao(codigo, produto) {
                 </div>`
         }).join('')
 
-    const LPUS = ['lpu hope', 'lpu boticario', 'lpu romagnole', 'lpu gpa', 'lpu muffato', 'lpu eas muffato']
+    const LPUS = ['lpu hope', 'lpu boticario', 'lpu cf boticario', 'lpu romagnole', 'lpu gpa', 'lpu muffato', 'lpu eas muffato']
     const tdsLPUS = LPUS
         .map(lpu => {
             const tabela = produto[lpu] || {}
@@ -1441,7 +1442,7 @@ async function exportarParaExcel() {
     const workbook = new ExcelJS.Workbook()
     const worksheet = workbook.addWorksheet('Composições')
 
-    const lpus = ['lpu hope', 'lpu boticario', 'lpu romagnole', 'lpu gpa', 'lpu muffato', 'lpu eas muffato']
+    const lpus = ['lpu hope', 'lpu boticario', 'lpu cf boticario', 'lpu romagnole', 'lpu gpa', 'lpu muffato', 'lpu eas muffato']
 
     // Cabeçalho;
     worksheet.addRow([
