@@ -98,6 +98,7 @@ async function atualizarGCS(resetar) {
     const basesAuxiliares = [
         'informacoes',
         'dados_setores',
+        'pessoas',
         'empresas',
         'sistemas',
         'prioridades',
