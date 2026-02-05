@@ -103,11 +103,13 @@ async function telaInicial() {
 
     const abasToolbar = ['INDICADORES', 'TÉCNICOS', ...abas]
         .map(aba => {
-            const funcao = aba == 'INDICADORES'
-                ? 'indicadores()'
-                : aba == 'TÉCNICOS'
-                    ? 'tecnicos()'
-                    : `tabelaPorAba('${aba}')`
+
+            let funcao = `tabelaPorAba('${aba}')`
+            if (aba == 'INDICADORES')
+                funcao = 'indicadores()'
+            else if (aba == 'TÉCNICOS')
+                funcao = 'tabelaTecnicos()'
+
             return `
                 <div style="opacity: 0.5; height: 3rem;" class="aba-toolbar" id="toolbar-${aba}" onclick="${funcao}">
                     <label>${aba.replace('_', ' ')}</label>
@@ -140,9 +142,6 @@ async function telaInicial() {
     // Carregar tabelas;
     await indicadores()
     await contadores()
-
-    //auxMapa('EM_ANDAMENTO')
-
     await carregarControles()
 
 }
@@ -152,8 +151,8 @@ async function tabelaPorAba(aba = 'PDA') {
     mostrarGuia(aba)
 
     const colunas = {
-        'Cliente': '',
-        'Tags': '',
+        'Cliente': { chave: 'snapshots.pda' },
+        'Tags': { chave: 'snapshots.tags' },
         'Técnicos': '',
         'Início': '',
         'Término': '',
@@ -366,169 +365,39 @@ async function contadores() {
     }
 }
 
-function auxMapa(aba) {
+async function tabelaTecnicos() {
 
-    return // Desativado
+    mostrarGuia('TÉCNICOS')
 
-    const tMapas = document.querySelector('.toolbar-mapas')
-    tMapas.innerHTML = ''
-
-    for (const aba of [...abas]) {
-
-        const toolbar = `
-            <div class="aba-toolbar" name="toolbar-mapas" data-tipo="${aba}" onclick="auxMapa('${aba}')">${aba.replace('_', ' ')}</div>
-        `
-        tMapas.insertAdjacentHTML('beforeend', toolbar)
+    const colunas = {
+        'Nome': { chave: 'nome' },
+        'Obras': {}
     }
+    const pag = 'tecnicos'
+    const tabela = await modTab({
+        pag,
+        body: 'bodyTecnicos',
+        base: 'dados_clientes',
+        filtros: { 'tags.*.tag': { op: '=', value: 'TÉCNICO' } },
+        criarLinha: 'criarLinhaTecnico',
+        colunas
+    })
 
-    // Preencher o mapa de orçamentos x estado;
-    const contadores = {}
+    const divTabelas = document.querySelector('.tabelas-inicial')
+    if (divTabelas) divTabelas.innerHTML = tabela
 
-    const mapaOverlay = document.getElementById('mapaOverlay')
-    mapaOverlay.innerHTML = ''
+    await paginacao(pag)
 
-    const tools = document.querySelectorAll('[name="toolbar-mapas"]')
-    for (const tool of tools) {
-        const tipo = tool.dataset.tipo
-        tool.style.opacity = tipo == aba ? 1 : 0.5
-    }
-
-    if (aba == 'ORÇAMENTOS') {
-        for (const [, orcamento] of Object.entries(db.dados_orcamentos)) {
-            const codOmie = orcamento?.dados_orcam?.omie_cliente
-            const cliente = db.dados_clientes[codOmie]
-
-            if (!cliente) continue
-            if (!cliente.estado) continue
-
-            contadores[cliente.estado] ??= 0
-            contadores[cliente.estado]++
-        }
-
-    } else {
-
-        for (const [idOrcamento, orc] of Object.entries(db.dados_orcamentos)) {
-
-            if (!orc.aba) continue
-            if (orc.aba == 'CONCLUÍDO') continue
-            if (orc.aba !== aba) continue
-
-            const codOmie = db.dados_orcamentos?.[idOrcamento]?.dados_orcam?.omie_cliente
-            const cliente = db.dados_clientes[codOmie]
-            const estado = cliente?.estado || orc?.pda?.estado || ''
-
-            if (!estado) continue
-
-            contadores[estado] ??= 0
-            contadores[estado]++
-        }
-
-    }
-
-    for (const [estado, total] of Object.entries(contadores)) {
-        preencherMapa(estado, total)
-    }
 }
 
-async function carregarTecnicos() {
+function criarLinhaTecnico(tecnico) {
 
-    const tecnicosMap = {}   // { codTec: { nome, projetos: [] } }
-    const pdas = await pesquisarDB({ base: 'dados_orcamentos', limite: 1000, filtros: { 'pda': {} } })
-
-    for (const orc of pdas.resultados) {
-
-        const { idOrcamento } = orc
-
-        const listaTecs = orc?.checklist?.tecnicos || []
-        const historico = orc?.status?.historicoStatus || {}
-        let concluido = false
-
-        for (const [, dados] of Object.entries(historico)) {
-            if (dados?.para == 'CONCLUÍDO') {
-                concluido = true
-                break
-            }
-        }
-
-        // se não quiser contar projetos concluídos:
-        if (concluido) continue
-
-        for (const codTec of listaTecs) {
-
-            if (!tecnicosMap[codTec]) {
-                const tec = db.dados_clientes?.[codTec] || {}
-                tecnicosMap[codTec] = {
-                    nome: tec.nome || 'Sem Nome',
-                    projetos: []
-                }
-            }
-
-            tecnicosMap[codTec].projetos.push(idOrcamento)
-        }
-    }
-
-    let linhas = ''
-
-    for (const [codTec, dadosTec] of Object.entries(tecnicosMap)) {
-
-        let projetosHtml = ''
-
-        for (const idOrcamento of dadosTec.projetos) {
-
-            const orc = db.dados_orcamentos?.[idOrcamento]
-            const codCliente = orc?.dados_orcam?.omie_cliente || ''
-            const cliente = db.dados_clientes?.[codCliente] || {}
-
-            const blocoProjeto = orc
-                ? `
-                <div class="etiquetas">
-                    <span><b>Número: </b>${orc?.dados_orcam?.contrato || ''}</span>
-                    <span><b>Cliente: </b>${cliente?.nome || '...'}</span>
-                    <span><b>Data: </b>${orc?.dados_orcam?.data || '...'}</span>
-                    <span><b>Cidade: </b>${cliente?.cidade || '...'}</span>
-                    <span><b>Valor: </b>${dinheiro(orc?.total_geral)}</span>
-                </div>`
-                : `
-                <div class="etiquetas">
-                    <span>${orc?.projeto || 'Projeto sem nome'}</span>
-                </div>
-            `
-
-            projetosHtml += blocoProjeto
-        }
-
-        linhas += `
-        <tr data-tecnico="${codTec}">
-            <td>${dadosTec.nome}</td>
-            <td><div style="${vertical}; gap: 2px;">${projetosHtml}</div></td>
-        </tr>
-        `
-    }
-
-    const colunas = ['Técnico', 'Projetos']
-
-    const acumulado = `
-        <div style="${vertical}; width: 100%;">
-            <div class="topo-tabela"></div>
-
-            <div class="div-tabela">
-                <table class="tabela">
-                    <thead>
-                        <tr>${colunas.map(c => `<th>${c}</th>`).join('')}</tr>
-                    </thead>
-                    <tbody id="bodyTÉCNICOS">${linhas}</tbody>
-                </table>
-            </div>
-
-            <div class="rodape-tabela"></div>
-        </div>
+    return `
+    <tr>
+        <td>${tecnico.nome}</td>
+        <td></td>
+    </tr>
     `
-
-    const tabelas = document.getElementById('tabelas')
-    const tabTec = document.querySelector('[name="tabela-TÉCNICOS"]')
-
-    if (tabTec) return tabTec.innerHTML = acumulado
-    tabelas.insertAdjacentHTML('beforeend', `<div class="tabelas-pda" name="tabela-TÉCNICOS">${acumulado}</div>`)
 
 }
 
@@ -538,20 +407,31 @@ function linAcoes(orcamento) {
     const acoes = orcamento?.pda?.acoes || {}
     const chamado = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato || orcamento?.projeto || '-'
 
+    const filtroUsuarioAtivo = controles?.acoes?.filtros?.['pda.acoes.*.responsavel']?.value
+    const statusFiltro = controles?.acoes?.status
+
     let strAcoes = ''
 
     for (const dados of Object.values(acoes)) {
 
-        const estilo = dados?.status === 'concluído'
+        const { responsavel, status, registro, prazo, acao } = dados
+
+        if (filtroUsuarioAtivo && responsavel !== filtroUsuarioAtivo)
+            continue
+
+        const estilo = status === 'concluído'
             ? 'concluído'
-            : dtPrazo(dados?.prazo)
+            : dtPrazo(prazo)
                 ? 'atrasado'
                 : 'pendente'
 
-        const [ano, mes, dia] = dados.prazo.split('-')
-        const prazo = `${dia}/${mes}/${ano}`
-        const dtRegistro = dados.registro
-            ? `<span><b>criado em: </b>${new Date(dados.registro).toLocaleString('pt-BR')}</span>`
+        if (statusFiltro && statusFiltro !== estilo)
+            continue
+
+        const [ano, mes, dia] = prazo.split('-')
+        const prazoConvertido = `${dia}/${mes}/${ano}`
+        const dtRegistro = registro
+            ? `<span><b>criado em: </b>${new Date(registro).toLocaleString('pt-BR')}</span>`
             : ''
         strAcoes += `
             <tr>    
@@ -562,9 +442,9 @@ function linAcoes(orcamento) {
                     <div style="${vertical};">
                         <span><b>ID:</b> ${chamado}</span>
                         <span><b>Aba:</b> ${orcamento.aba || ''}</span>
-                        <div style="white-space: pre-wrap;"><b>Ação:</b> ${dados?.acao || ''}</div>
-                        <span><b>Responsável:</b> ${dados?.responsavel || ''}</span>
-                        <span><b>Prazo:</b> ${prazo}</span>
+                        <div style="white-space: pre-wrap;"><b>Ação:</b> ${acao || ''}</div>
+                        <span><b>Responsável:</b> ${responsavel || ''}</span>
+                        <span><b>Prazo:</b> ${prazoConvertido}</span>
                         ${dtRegistro}
                     </div>
                 </div>
@@ -574,27 +454,48 @@ function linAcoes(orcamento) {
     return strAcoes
 }
 
-function somarAtrasados(obj) {
-  const hoje = new Date()
-  hoje.setHours(0, 0, 0, 0)
+function somarPend(obj) {
+    const hoje = new Date()
+    hoje.setHours(0, 0, 0, 0)
 
-  let total = 0
+    const t = { atrasados: 0, pendentes: 0 }
 
-  for (const [data, qtd] of Object.entries(obj)) {
-    const d = new Date(data + 'T00:00:00')
-    if (d < hoje) total += Number(qtd) || 0
-  }
+    for (const [data, qtd] of Object.entries(obj)) {
+        const d = new Date(data + 'T00:00:00')
+        if (isNaN(d)) continue
 
-  return total
+        t[d < hoje ? 'atrasados' : 'pendentes'] += Number(qtd) || 0
+    }
+
+    return t
 }
 
-async function criarGaveta(usuario = 'Geral') {
+async function criarGaveta(usuario = null) {
 
-    const box = (titulo, valor, cor) => `
-    <div class="ind" style="border-left: 6px solid ${cor};" onclick="filtrarAcoes('${titulo}')">
-        <span style="font-size: 14px; color:#444;">${titulo}</span>
-        <strong style="font-size: 22px; margin-top:5px;">${valor}</strong>
-    </div>`
+    if (!usuario)
+        usuario = document.querySelector('[name="contador"]').id || 'Geral'
+
+    const contadores = JSON.parse(localStorage.getItem('contadores')) || []
+    if (!contadores.includes(usuario))
+        contadores.push(usuario)
+
+    localStorage.setItem('contadores', JSON.stringify(contadores))
+
+    const box = (titulo, valor, cor) => {
+
+        const auxiliar = usuario == 'Geral'
+            ? `controles.acoes.filtros = {'pda.acoes': {op: 'NOT_EMPTY'}}`
+            : `controles.acoes.filtros = {'pda.acoes.*.responsavel': { op: '=', value: '${usuario}' }}`
+
+        return `
+        <div 
+            class="ind" 
+            style="border-left: 6px solid ${cor};" 
+            onclick="controles.acoes.status = '${titulo}'; ${auxiliar}; paginacao('acoes')">
+            <span style="font-size: 14px; color:#444;">${inicialMaiuscula(titulo)}</span>
+            <strong style="font-size: 22px; margin-top:5px;">${valor}</strong>
+        </div>`
+    }
 
     const filtros = usuario == 'Geral'
         ? {}
@@ -606,28 +507,69 @@ async function criarGaveta(usuario = 'Geral') {
         filtros
     })
 
-
-    const atrasados = somarAtrasados(await contarPorCampo({
+    const resposta = await contarPorCampo({
         base: 'dados_orcamentos',
-        path: 'pda.acoes.*.data',
-        filtros
-    }))
+        path: 'pda.acoes.*.prazo',
+        filtros: {
+            ...filtros,
+            'pda.acoes.*.status': { op: '=', value: 'pendente' }
+        }
+    })
+
+    const totais = somarPend(resposta)
+
+    const botaoCancelar = usuario == acesso.usuario
+        ? ''
+        : `<img src="imagens/cancel.png" onclick="removerContador('${usuario}')">`
+
+    const conteudo = `
+        <div style="${horizontal}; gap: 1rem;">
+            <span>Contador de ações <b>${usuario}</b></span>
+            ${botaoCancelar}
+        </div>
+        <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
+            ${box('pendente', totais?.pendentes || 0, "#41a6ff")}
+            ${box('atrasado', totais?.atrasados, "#ff0000")}
+            ${box('concluído', contagem?.concluído || 0, "#008000")}
+        </div>
+    `
 
     const gaveta = `
         <div id="gaveta_${usuario}" style="${vertical}; gap: 5px; padding: 0.5rem;">
-            <span>Contador de ações <b>${usuario}</b></span>
-            <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
-                ${box("Pendente", contagem?.pendente || 0, "#41a6ff")}
-                ${box("Atrasado", atrasados, "#ff0000")}
-                ${box("Concluído", contagem?.concluído || 0, "#008000")}
-            </div>
+            ${conteudo}
         </div>
     `
 
     const guardaRoupas = document.querySelector('.guarda-roupas')
+    const existente = document.getElementById(`gaveta_${usuario}`)
+    if (existente) return existente.innerHTML = conteudo
 
     if (guardaRoupas) guardaRoupas.insertAdjacentHTML('beforeend', gaveta)
 
+}
+
+function removerContador(usuario) {
+    const contadores = JSON.parse(localStorage.getItem('contadores')) || []
+    const novo = contadores.filter(c => c !== usuario)
+    localStorage.setItem('contadores', JSON.stringify(novo))
+    const gaveta = document.getElementById(`gaveta_${usuario}`)
+    if (gaveta) gaveta.remove()
+}
+
+function incluirContaador() {
+
+    const linhas = [
+        {
+            texto: 'Escolha o usuário',
+            elemento: `<span class="opcoes" name="contador" onclick="cxOpcoes('contador', 'dados_setores', ['usuario'])">Selecione</span>`
+        }
+    ]
+
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: `criarGaveta()` },
+    ]
+
+    popup({ botoes, linhas, nra: false })
 }
 
 async function indicadores() {
@@ -640,43 +582,45 @@ async function indicadores() {
         base: 'dados_orcamentos',
         pag,
         body: 'bodyAcoes',
-        filtros: { 'pda.acoes': { op: 'NOT_EMPTY' } }
+        filtros: {
+            'pda.acoes': { op: 'NOT_EMPTY' },
+            'pda.acoes.*.responsavel': { op: '=', value: acesso.usuario }
+        }
     })
 
     const acumulado = `
     <div class="painel-indicadores">
 
-        <div style="${vertical};">
+        <div style="${vertical}; width: 50%;">
+            <button onclick="incluirContaador()">Incluir contador</button>
             <div class="guarda-roupas"></div>
+
+            <!--
             <div class="toolbar-mapas"></div>
             <div class="fundo-mapa">
                 <img src="imagens/mapa.png" class="mapa">
                 <svg id="mapaOverlay" width="600" height="600" style="position: absolute; top: 0; left: 0;"></svg>
             </div>
+            -->
+
         </div>
 
-        ${tabela}
+        <div style="width: 50%;">
+            ${tabela}
+        </div>
 
     </div>
     `
     document.querySelector('.tabelas-inicial').innerHTML = acumulado
 
     await paginacao(pag)
+    const contadores = JSON.parse(localStorage.getItem('contadores')) || []
+    if (!contadores.includes(acesso.usuario))
+        contadores.push(acesso.usuario)
+
+    contadores.forEach(u => criarGaveta(u))
 }
 
-function filtrarAcoes(titulo = ultimoTitulo) {
-
-    ultimoTitulo = titulo
-
-    titulo = String(titulo).toLowerCase()
-
-    const divs = document.querySelectorAll(`[name="acao"]`)
-
-    for (const div of divs) {
-        div.style.display = div.dataset.estilo !== titulo ? 'none' : ''
-    }
-
-}
 
 function mostrarGuia(guia) {
 

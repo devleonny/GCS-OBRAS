@@ -35,8 +35,10 @@ async function atualizarGCS(resetar) {
     sincronizarApp()
 
     const basesAuxiliares = {
+        'tags_orcamentos': { keyPath: 'id' },
         'informacoes': { keyPath: 'id' },
-        'dados_setores': { keyPath: 'usuario' },
+        'departamentos_AC': { keyPath: 'codigo' },
+        'dados_categorias_AC': { keyPath: 'id' },
         'empresas': { keyPath: 'id' },
         'sistemas': { keyPath: 'id' },
         'prioridades': { keyPath: 'id' },
@@ -44,17 +46,15 @@ async function atualizarGCS(resetar) {
         'tipos': { keyPath: 'id' },
         'veiculos': { keyPath: 'id' },
         'motoristas': { keyPath: 'id' },
+        'dados_setores': { keyPath: 'usuario' },
         'dados_estoque': { keyPath: 'id' },
         'custo_veiculos': { keyPath: 'id' },
         'dados_composicoes': { keyPath: 'id' },
         'dados_clientes': { keyPath: 'id' },
-        'dados_categorias_AC': { keyPath: 'id' },
         'dados_manutencao': { keyPath: 'id' },
         'dados_ocorrencias': { keyPath: 'id' },
         'dados_orcamentos': { keyPath: 'id' },
         'lista_pagamentos': { keyPath: 'id' },
-        'tags_orcamentos': { keyPath: 'id' },
-        'departamentos_AC': { keyPath: 'codigo' }
     }
 
     criarBases(basesAuxiliares)
@@ -77,7 +77,6 @@ async function atualizarGCS(resetar) {
 
     sincronizarApp({ remover: true })
     emAtualizacao = false
-    //await executar(funcaoTela)
 
 }
 
@@ -85,25 +84,51 @@ async function sincronizarDados({ base, resetar = false }) {
 
     let timestamp = 0
 
-    if (!resetar) {
-        const request = indexedDB.open(nomeBase, versao)
+    if (resetar) {
+        await new Promise((resolve, reject) => {
+            const req = indexedDB.open(nomeBase, versao)
 
-        request.onupgradeneeded = e => {
-            const db = e.target.result
-            const tx = db.transaction(base)
-            const store = tx.objectStore(base)
-            const index = store.index('timestamp')
+            req.onerror = () => reject(req.error)
 
-            index.openCursor(null, 'prev').onsuccess = e => {
-                const c = e.target.result
-                if (c) timestamp = c.value.timestamp
+            req.onsuccess = e => {
+                const db = e.target.result
+                const tx = db.transaction(base, 'readwrite')
+                const store = tx.objectStore(base)
+
+                store.clear()
+
+                tx.oncomplete = () => {
+                    db.close()
+                    resolve()
+                }
+
+                tx.onerror = () => reject(tx.error)
             }
-        }
+        })
+    } else {
+        await new Promise((resolve, reject) => {
+            const request = indexedDB.open(nomeBase, versao)
+
+            request.onerror = () => reject(request.error)
+
+            request.onsuccess = e => {
+                const db = e.target.result
+                const tx = db.transaction(base)
+                const store = tx.objectStore(base)
+                const index = store.index('timestamp')
+
+                index.openCursor(null, 'prev').onsuccess = ev => {
+                    const c = ev.target.result
+                    if (c) timestamp = c.value.timestamp
+                    resolve()
+                }
+
+                tx.oncomplete = () => db.close()
+            }
+        })
     }
 
-
     try {
-
         const response = await fetch(`${api}/dados`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -127,38 +152,73 @@ async function sincronizarDados({ base, resetar = false }) {
         console.log(err.message)
         return {}
     }
-
 }
 
 // Regras SNAPSHOT; BUSCAS;
 const regrasSnapshot = {
+    lista_pagamentos: {
+        stores: ['dados_clientes', 'departamentos_AC'],
+        snapshot: async ({ dado, stores }) => {
+            const snap = {}
+
+            const codCliente = dado?.param?.[0]?.codigo_cliente_fornecedor
+            if (codCliente && stores.dados_clientes) {
+                const cliente = await getStore(stores.dados_clientes, codCliente)
+                snap.cliente = cliente?.nome || ''
+            }
+
+            snap.departamentos = []
+
+            for (const dep of (dado?.param?.[0]?.distribuicao || [])) {
+                if (!dep.cCodDep)
+                    continue
+
+                const departamento = await getStore(stores.departamentos_AC, dep.cCodDep) || {}
+                snap.departamentos.push(departamento?.descricao)
+            }
+
+            return snap
+        }
+    },
     dados_orcamentos: {
+        stores: ['dados_clientes', 'tags_orcamentos'],
         snapshot: async ({ dado, stores }) => {
 
             const snap = {}
 
-            // cliente
             const codCliente = dado?.dados_orcam?.omie_cliente
-            if (codCliente) {
-                const cliente = await getStore(stores.dados_clientes, codCliente)
-                snap.cliente = (cliente?.nome || '').toLowerCase()
-                snap.contrato = `${(cliente?.nome || '')?.toLowerCase()} ${dado?.dados_orcam?.contrato || ''} ${dado?.dados_orcam?.chamado || ''}`
-                snap.cidade = cliente?.cidade?.toLowerCase() || ''
-            }
+            const cliente = codCliente
+                ? await getStore(stores.dados_clientes, codCliente)
+                : {}
 
-            // responsável
-            if (dado.usuario) {
-                snap.responsavel = `${dado.usuario.toLowerCase()} ${Object.keys(dado?.usuarios || {}).map(u => u).join(' ')}`
-            }
+            snap.prioridade = verificarPrioridade(dado)
+            snap.valor = [dado.total_geral, dinheiro(dado.total_geral)]
 
-            // tags
-            if (dado.tags) {
-                const nomes = []
-                for (const idTag of Object.keys(dado.tags)) {
-                    const tag = await getStore(stores.tags_orcamentos, idTag)
-                    if (tag?.nome) nomes.push(tag.nome.toLowerCase())
-                }
-                snap.tags = nomes
+            snap.cliente = cliente?.nome
+            snap.contrato = [
+                cliente?.nome,
+                dado?.dados_orcam?.contrato,
+                dado?.dados_orcam?.chamado,
+            ]
+
+            snap.cidade = cliente?.cidade
+
+            snap.pda = [
+                dado?.status?.atual || 'SEM STATUS',
+                dado?.dados_orcam?.contrato,
+                dado?.dados_orcam?.chamado,
+                dado?.cliente?.cidade
+            ]
+
+            snap.responsavel = [
+                dado.usuario,
+                ...Object.keys(dado?.usuarios || {}).map(u => u)
+            ]
+
+            snap.tags = []
+            for (const idTag of Object.keys(dado.tags || {})) {
+                const tag = await getStore(stores.tags_orcamentos, idTag)
+                if (tag?.nome) snap.tags.push(tag.nome.toLowerCase())
             }
 
             return snap
@@ -184,10 +244,7 @@ async function inserirDados(dados, base) {
             const db = e.target.result
 
             const regra = regrasSnapshot[base]
-
-            const storesExtras = regra
-                ? ['dados_clientes', 'tags_orcamentos']
-                : []
+            const storesExtras = regra?.stores || []
 
             const tx = db.transaction([base, ...new Set(storesExtras)], 'readwrite')
             const storePrincipal = tx.objectStore(base)
@@ -198,7 +255,13 @@ async function inserirDados(dados, base) {
             }
 
             tx.onerror = () => reject(tx.error)
-            tx.oncomplete = () => resolve(true)
+
+            tx.oncomplete = async () => {
+                if (attPag) 
+                    await paginacao()
+                
+                resolve(true)
+            }
 
             for (const [id, d] of Object.entries(dados)) {
                 if (d.excluido) {
@@ -289,67 +352,27 @@ function pesquisarDB({ filtros = {}, base, pagina = 1, limite = 100 }) {
     })
 }
 
-// Pesquisa e contabilização profunda, dentro de objetos;
-function getByPathDeepAll(obj, path) {
-    const parts = path.split('.')
-    const out = []
-
-    function walk(current, i) {
-        if (current == null) return
-
-        if (i === parts.length) {
-            out.push(current)
-            return
-        }
-
-        const key = parts[i]
-
-        if (key === '*') {
-            if (typeof current === 'object') {
-                for (const k in current) {
-                    walk(current[k], i + 1)
-                }
-            }
-            return
-        }
-
-        if (current[key] !== undefined) {
-            walk(current[key], i + 1)
-            return
-        }
-
-        if (typeof current === 'object') {
-            for (const k in current) {
-                walk(current[k], i)
-            }
-        }
-    }
-
-    walk(obj, 0)
-    return out
-}
-
 // Situações onde seja contado itens em objetos acoes.*.status com filtro no mesmo objeto 'acoes.*.responsavel;
 function resolveWildcard(reg, path) {
-  const parts = path.split('.')
-  const idx = parts.indexOf('*')
+    const parts = path.split('.')
+    const idx = parts.indexOf('*')
 
-  const basePath = parts.slice(0, idx).join('.')
-  const restPath = parts.slice(idx + 1).join('.')
+    const basePath = parts.slice(0, idx).join('.')
+    const restPath = parts.slice(idx + 1).join('.')
 
-  const base = getByPath(reg, basePath)
-  if (!base || typeof base !== 'object') return []
+    const base = getByPath(reg, basePath)
+    if (!base || typeof base !== 'object') return []
 
-  const out = []
+    const out = []
 
-  for (const k in base) {
-    out.push({
-      ctx: base[k],
-      valor: restPath ? getByPath(base[k], restPath) : base[k]
-    })
-  }
+    for (const k in base) {
+        out.push({
+            ctx: base[k],
+            valor: restPath ? getByPath(base[k], restPath) : base[k]
+        })
+    }
 
-  return out
+    return out
 }
 
 function getByPath(obj, path) {
@@ -366,114 +389,170 @@ function isVazio(v) {
 }
 
 function comparar(v, op, value) {
-  switch (op) {
-    case 'IS_EMPTY': return isVazio(v)
-    case 'NOT_EMPTY': return !isVazio(v)
-    case '=': return v === value
-    case '!=': return v !== value
-    case '>': return v > value
-    case '>=': return v >= value
-    case '<': return v < value
-    case '<=': return v <= value
-    case 'includes':
-      if (v == null) return false
-      const termo = String(value).toLowerCase()
-      if (Array.isArray(v))
-        return v.some(i => String(i).toLowerCase().includes(termo))
-      return String(v).toLowerCase().includes(termo)
-  }
-  return true
+
+    const isStringV = typeof v === 'string'
+    const isStringValue = typeof value === 'string'
+
+    const vNorm = isStringV ? v.toLowerCase() : v
+    const valueNorm = isStringValue ? value.toLowerCase() : value
+
+    switch (op) {
+        case 'IS_EMPTY': return isVazio(v)
+        case 'NOT_EMPTY': return !isVazio(v)
+
+        case '=': return vNorm === valueNorm
+        case '!=': return vNorm !== valueNorm
+
+        case '>': return v > value
+        case '>=': return v >= value
+        case '<': return v < value
+        case '<=': return v <= value
+
+        case 'includes':
+            if (v == null) return false
+            if (Array.isArray(v))
+                return v.some(i =>
+                    String(i).toLowerCase().includes(String(value).toLowerCase())
+                )
+            return String(v).toLowerCase().includes(String(value).toLowerCase())
+    }
+
+    return true
 }
 
-function passaFiltro(reg, filtros, opts = {}) {
-  for (const [path, regra] of Object.entries(filtros)) {
+function passaFiltro(reg, filtros) {
 
-    if (opts.ignoreWildcard && path.includes('*')) continue
-    if (!regra) continue
+    const filtrosWildcard = {}
+    const filtrosDiretos = {}
 
-    const v = getByPath(reg, path)
+    for (const [path, regra] of Object.entries(filtros)) {
+        if (!regra) continue
+        if (path.includes('*')) filtrosWildcard[path] = regra
+        else filtrosDiretos[path] = regra
+    }
 
-    if (!comparar(v, regra.op, regra.value))
-      return false
-  }
+    // filtros diretos
+    for (const [path, regra] of Object.entries(filtrosDiretos)) {
+        const v = getByPath(reg, path)
+        if (!comparar(v, regra.op, regra.value)) return false
+    }
 
-  return true
+    // sem wildcard → já passou
+    if (!Object.keys(filtrosWildcard).length) return true
+
+    // wildcard
+    for (const [path, regra] of Object.entries(filtrosWildcard)) {
+
+        const itens = resolveWildcard(reg, path)
+
+        let passouAlgum = false
+
+        for (const { ctx, valor } of itens) {
+
+            if (!comparar(valor, regra.op, regra.value)) continue
+
+            let ok = true
+
+            // valida filtros irmãos no mesmo contexto
+            for (const [p, r] of Object.entries(filtrosWildcard)) {
+                if (p === path) continue
+
+                const sub = p.split('*').slice(1).join('.').replace(/^\./, '')
+                const vSub = getByPath(ctx, sub)
+
+                if (!comparar(vSub, r.op, r.value)) {
+                    ok = false
+                    break
+                }
+            }
+
+            if (ok) {
+                passouAlgum = true
+                break
+            }
+        }
+
+        if (!passouAlgum) return false
+    }
+
+    return true
 }
+
 
 function contarPorCampo({ base, path, filtros = {} }) {
-  return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
 
-    const contagem = { todos: 0 }
-    const hasWildcard = path?.includes('*')
+        const contagem = { todos: 0 }
+        const hasWildcard = path?.includes('*')
 
-    const req = indexedDB.open(nomeBase, versao)
-    req.onerror = () => reject(req.error)
+        const req = indexedDB.open(nomeBase, versao)
+        req.onerror = () => reject(req.error)
 
-    req.onsuccess = e => {
-      const db = e.target.result
-      const tx = db.transaction(base, 'readonly')
-      const store = tx.objectStore(base)
+        req.onsuccess = e => {
+            const db = e.target.result
+            const tx = db.transaction(base, 'readonly')
+            const store = tx.objectStore(base)
 
-      store.openCursor().onsuccess = ev => {
-        const cursor = ev.target.result
-        if (!cursor) {
-          resolve(contagem)
-          return
-        }
+            store.openCursor().onsuccess = ev => {
+                const cursor = ev.target.result
+                if (!cursor) {
+                    resolve(contagem)
+                    return
+                }
 
-        const reg = cursor.value
+                const reg = cursor.value
 
-        if (!passaFiltro(reg, filtros, { ignoreWildcard: true })) {
-          cursor.continue()
-          return
-        }
+                if (!passaFiltro(reg, filtros, { ignoreWildcard: true })) {
+                    cursor.continue()
+                    return
+                }
 
-        if (!hasWildcard) {
-          let v = getByPath(reg, path)
-          if (v == null || v === '') v = 'EM BRANCO'
-          contagem.todos++
-          contagem[v] = (contagem[v] || 0) + 1
-          cursor.continue()
-          return
-        }
+                if (!hasWildcard) {
+                    let v = getByPath(reg, path)
+                    if (v == null || v === '') v = 'EM BRANCO'
+                    contagem.todos++
+                    contagem[v] = (contagem[v] || 0) + 1
+                    cursor.continue()
+                    return
+                }
 
-        const items = resolveWildcard(reg, path)
+                const items = resolveWildcard(reg, path)
 
-        for (const { ctx, valor } of items) {
+                for (const { ctx, valor } of items) {
 
-          let passou = true
+                    let passou = true
 
-          for (const fPath in filtros) {
-            if (!fPath.includes('*')) continue
+                    for (const fPath in filtros) {
+                        if (!fPath.includes('*')) continue
 
-            const f = filtros[fPath]
-            const sub = fPath.split('*').slice(1).join('.').replace(/^\./, '')
-            const vFiltro = getByPath(ctx, sub)
+                        const f = filtros[fPath]
+                        const sub = fPath.split('*').slice(1).join('.').replace(/^\./, '')
+                        const vFiltro = getByPath(ctx, sub)
 
-            if (!comparar(vFiltro, f.op, f.value)) {
-              passou = false
-              break
+                        if (!comparar(vFiltro, f.op, f.value)) {
+                            passou = false
+                            break
+                        }
+                    }
+
+                    if (!passou) continue
+
+                    let v = valor
+                    if (v == null || v === '') v = 'EM BRANCO'
+
+                    contagem.todos++
+                    contagem[v] = (contagem[v] || 0) + 1
+                }
+
+                cursor.continue()
             }
-          }
-
-          if (!passou) continue
-
-          let v = valor
-          if (v == null || v === '') v = 'EM BRANCO'
-
-          contagem.todos++
-          contagem[v] = (contagem[v] || 0) + 1
         }
-
-        cursor.continue()
-      }
-    }
-  })
+    })
 }
 
-function deletarDB(id, base) {
+function deletarDB(base, id) {
     return new Promise((resolve, reject) => {
-        const req = indexedDB.open(nomeBase)
+        const req = indexedDB.open(nomeBase, versao)
 
         req.onerror = () => reject(req.error)
 
@@ -482,12 +561,16 @@ function deletarDB(id, base) {
             const tx = db.transaction(base, 'readwrite')
             const store = tx.objectStore(base)
 
-            const del = store.delete(id)
+            const key = isNaN(id) ? id : Number(id)
+            store.delete(key)
 
-            del.onsuccess = () => resolve(true)
-            del.onerror = () => reject(del.error)
+            tx.oncomplete = () => {
+                db.close()
+                resolve(true)
+            }
 
-            tx.oncomplete = () => db.close()
+            tx.onerror = () => reject(tx.error)
+            tx.onabort = () => reject(tx.error)
         }
     })
 }

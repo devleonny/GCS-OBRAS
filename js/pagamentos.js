@@ -76,7 +76,18 @@ async function telaPagamentos() {
     mostrarMenus(false)
     //await auxDepartamentos() // Orcs, deps e clis;
     const pag = 'pagamentos'
-    const colunas = ['Data de Previsão', 'Departamentos', 'APP', 'Valor', 'Status', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
+    const colunas = {
+        'Data de Previsão': {},
+        'Departamentos': { chave: 'snapshots.departamentos' },
+        'APP': { chave: 'app', op: '=' },
+        'Valor': '',
+        'Status': { chave: 'status' },
+        'Solicitante': '',
+        'Setor': '',
+        'Recebedor': { chave: 'snapshots.cliente' },
+        'Detalhes': ''
+    }
+
     const tabela = await modTab({
         pag,
         colunas,
@@ -141,22 +152,15 @@ async function atualizarPainelEsquerdo() {
 
 async function criarLinhaPagamento(pagamento) {
 
-    const cliente = {}
-    const recebedor = cliente?.nome || ''
+    const recebedor = pagamento?.snapshots?.cliente || ''
     const usuario = await recuperarDado('dados_setores', pagamento.criado) || {}
     const setorCriador = usuario?.setor || ''
 
-    const deps = (pagamento?.param[0]?.distribuicao || [])
+    const deps = (pagamento?.snapshots?.departamentos || [])
         .map(dep => {
-            const departamento = db.departamentos_AC?.[dep.cCodDep] || {}
-            const nomeCliente = departamento?.cliente?.nome || ''
-            return `
-                <div style="${vertical}; gap: 2px; text-align: left;">
-                    <span>• <b>${departamento?.descricao || ''}</b></span>
-                    <span>${nomeCliente}</span>
-                </div>
-            `
-        }).join('')
+            return `<span style="text-align: left;">• <b>${dep}</b></span>`
+        })
+        .join('')
 
     const tds = `
         <td>${pagamento.param[0].data_vencimento}</td>
@@ -265,9 +269,9 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
     let valores = ''
     const permissao = acesso.permissao
-    const pagamento = db.lista_pagamentos[id_pagamento]
+    const pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
     const cliente_omie = pagamento.param[0].codigo_cliente_fornecedor
-    const cliente = await recuperarDado('dados_clientes', cliente_omie) || await recuperarDado('dados_clientes_IAC', cliente_omie)
+    const cliente = await recuperarDado('dados_clientes', cliente_omie)
     const anexos = Object.entries(pagamento?.anexos || {})
         .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoPagamento('${id_pagamento}', '${idAnexo}')`))
         .join('')
@@ -291,9 +295,9 @@ async function abrirDetalhesPagamentos(id_pagamento) {
             </div>`)
         .join('')
 
-    pagamento.param[0].categorias.forEach(item => {
+    pagamento.param[0].categorias.forEach(async item => {
 
-        const nomeCategoria = db.dados_categorias_AC?.[item.codigo_categoria]?.categoria || 'Categoria Desativada'
+        const nomeCategoria = await recuperarDado('dados_categorias_AC', item.codigo_categoria)?.categoria || '...'
         valores += `
             <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
                 <label style="text-align: left;"><strong>${dinheiro(item.valor)}</strong> - ${nomeCategoria}</label>
@@ -326,16 +330,16 @@ async function abrirDetalhesPagamentos(id_pagamento) {
     const orcsVinculados = []
 
     for (const dep of depPagam) {
-        const cc = db.departamentos_AC[dep.cCodDep]
+        const cc = await recuperarDado('departamentos_AC', dep.cCodDep)
         if (!cc?.ids?.length) continue
         for (const id of cc.ids) orcsVinculados.push(id)
     }
 
     const btnsOrcamentos = orcsVinculados
-        .map(id => {
+        .map(async id => {
             const orc = db.dados_orcamentos[id] || {}
             const idCli = orc.dados_orcam.omie_cliente
-            const cli = db.dados_clientes[idCli] || {}
+            const cli = await recuperarDado(idCli) || {}
             return btnDetalhes('pasta', `${cli?.nome || '...'} <br>${dinheiro(orc?.total_geral)}`, `abrirAtalhos('${id}')`)
         }).join('')
 

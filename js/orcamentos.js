@@ -20,17 +20,6 @@ const meses = {
     '12': 'Dezembro'
 }
 
-function mudarInterruptor(el) {
-    const ativo = el.checked
-    const label = el.parentElement
-
-    const track = label.querySelector('.track')
-    const thumb = label.querySelector('.thumb')
-
-    if (track) track.style.backgroundColor = ativo ? '#4caf50' : '#ccc'
-    if (thumb) thumb.style.transform = ativo ? 'translateX(26px)' : 'translateX(0)'
-}
-
 async function rstTelaOrcamentos() {
     tela.innerHTML = ''
     await telaOrcamentos()
@@ -39,10 +28,20 @@ async function rstTelaOrcamentos() {
 function formatacaoPagina() {
 
     const pag = 'orcamentos'
-    const pesq = controles?.[pag]?.filtros?.['status.atual']
-    const status = pesq?.op == 'IS_EMPTY'
-        ? 'SEM STATUS'
-        : pesq?.value || 'todos'
+    let status = ''
+
+    if (controles?.[pag]?.filtros?.['snapshots.prioridade']) {
+        status = 'prioridades'
+
+    } else if (controles?.[pag]?.filtros?.['chamado']) {
+        status = 'chamados'
+
+    } else {
+        const pesq = controles?.[pag]?.filtros?.['status.atual']
+        status = pesq?.op == 'IS_EMPTY'
+            ? 'SEM STATUS'
+            : pesq?.value || 'todos'
+    }
 
     const abas = document.querySelectorAll('.aba-toolbar')
 
@@ -55,9 +54,6 @@ function formatacaoPagina() {
 
 async function telaOrcamentos() {
 
-    // Inicializar filtros;
-    filtrosPesquisa.orcamentos ??= JSON.parse(localStorage.getItem('filtros')) || {}
-
     const pda = document.querySelector('.tela-gerenciamento')
     if (pda) return await telaInicial()
 
@@ -67,23 +63,21 @@ async function telaOrcamentos() {
 
     const pag = 'orcamentos'
     const colunas = {
-        'data': 'data',
-        'status': 'status.atual',
+        'última alteração': { chave: 'lpu_ativa' },
+        'status': { chave: 'status.atual' },
         'pedido': '',
         'notas': '',
-        'tags': 'snapshots.tags',
-        'contrato': 'snapshots.contrato',
-        'cidade': 'snapshots.cidade',
-        'responsaveis': 'snapshots.responsavel',
+        'tags': { chave: 'snapshots.tags' },
+        'contrato': { chave: 'snapshots.contrato' },
+        'cidade': { chave: 'snapshots.cidade' },
+        'responsaveis': { chave: 'snapshots.responsavel' },
         'indicadores': '',
-        'valor': '',
+        'valor': { chave: 'snapshots.valor' },
         'ações': ''
     }
 
-    const btnExtras = `<span style="color: white; cursor: pointer; white-space: nowrap;" onclick="filtroOrcamentos()">Filtros ☰</span>`
     const tabela = modTab({
         funcaoAdicional: 'formatacaoPagina',
-        btnExtras,
         filtros: { 'dados_orcam': { op: 'NOT_EMPTY' } },
         colunas,
         base: 'dados_orcamentos',
@@ -107,68 +101,11 @@ async function telaOrcamentos() {
     const tabelaOrcamento = document.getElementById('tabelaOrcamento')
     if (!tabelaOrcamento) tela.innerHTML = acumulado
 
-    //await auxDepartamentos()
-
     await carregarToolbar()
     criarMenus('orcamentos')
     mostrarMenus(false)
 
     await paginacao(pag)
-
-}
-
-
-function filtroOrcamentos() {
-
-    const salvo = JSON.parse(localStorage.getItem('filtros')) || {}
-
-    const filtros = {
-        arquivado: salvo.arquivado || '',
-        meus_orcamentos: salvo.meus_orcamentos || '',
-        prioridade: salvo.prioridade || '',
-        vinculado: salvo.vinculado || '',
-        revisao: salvo.revisao || ''
-    }
-
-    const linhas = []
-
-    const interruptor = (chave, ativo) => `
-        <label style="position: relative; display: inline-block; width: 50px; height: 24px;">
-            <input
-                type="checkbox"
-                ${ativo ? 'checked' : ''}
-                name="filtros"
-                onchange="mudarInterruptor(this)"
-                data-chave="${chave}"
-                style="opacity:0; width:0; height:0;">
-                <span class="track" style="background-color:${ativo ? '#4caf50' : '#ccc'}"></span>
-                <span class="thumb" style="transform:translateX(${ativo ? '26px' : '0'})"></span>
-        </label>`
-
-    for (const [chave, valor] of Object.entries(filtros)) {
-        linhas.push({
-            texto: inicialMaiuscula(chave),
-            elemento: interruptor(chave, valor == 'S')
-        })
-    }
-
-    const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: 'salvarFiltrosApp()' }
-    ]
-
-    popup({ linhas, botoes, titulo: 'Gerenciar Filtro', nra: false })
-
-}
-
-function salvarFiltrosApp() {
-
-    const filtros = document.querySelectorAll('[name="filtros"]')
-
-    for (const f of filtros) {
-        const chave = f.dataset.chave
-        const st = f.checked ? 'S' : 'N'
-        filtrosPesquisa.orcamentos[chave] = st
-    }
 
 }
 
@@ -212,15 +149,9 @@ async function criarLinhaOrcamento(orcamento, master, idMaster) {
     const st = orcamento?.status?.atual || ''
     const opcoes = ['', ...fluxograma].map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`).join('')
 
-    const totalCustos = Object.values(orcamento?.dados_custos || {}).reduce((acc, val) => acc + val, 0)
-    const lucratividade = orcamento.total_geral - totalCustos
-    const lucratividadePorcentagem = Number(((lucratividade / orcamento.total_geral) * 100).toFixed(0))
-
     const responsaveis = Object.entries(orcamento.usuarios || {})
         .map(([user,]) => user)
         .join(', ')
-
-    const cel = (elementos) => `<td class="celula">${elementos}</td>`
 
     // Labels do campo Contrato [Revisão, chamado, cliente, etc]
     const contrato = dados_orcam?.contrato
@@ -240,16 +171,15 @@ async function criarLinhaOrcamento(orcamento, master, idMaster) {
         `
         : `<span name="contrato">${numOficial}</span>`
 
-    const finalElemento = `
-        <div style="${vertical}; gap: 2px;">
+    const finalContrato = `
+        <div style="${vertical};text-align: left; gap: 2px;">
             ${nomeVinculado}
             ${etiqRevAtual}
             <span>${(snapshots?.cliente || '').toUpperCase()}</span>
             ${contrato !== numOficial ? `<div style="${horizontal}; justify-content: end; width: 100%; color: #5f5f5f;"><small>${contrato}</small></div>` : ''}
-        </div>
-        `
+        </div>`
 
-    const data = new Date(orcamento.timestamp).toLocaleDateString()
+    const data = new Date(orcamento.timestamp).toLocaleString()
 
     // Comentários nos status;
     const info = Object
@@ -263,17 +193,17 @@ async function criarLinhaOrcamento(orcamento, master, idMaster) {
     const tags = await renderAtivas({ id, recarregarPainel: false, tags: orcamento.tags || {} })
 
     const celulas = `
-                ${cel(`
-            <div style="${vertical}; gap: 2px;">
-                <label style="text-align: left;"><b>${orcamento.lpu_ativa}</b></label>
+         <td>
+            <div style="text-align: left;${vertical}; gap: 2px;">
+                <label><b>${orcamento.lpu_ativa}</b></label>
                 <span>${data}</span>
                 <select name="aba" class="opcoesSelect" onchange="atualizarAba(this, '${id}')">
                     <option></option>
                     ${opcoesPda}
                 </select>
             </div>
-        `)}
-                ${cel(`
+        </td>
+        <td>
             <div style="${vertical}; gap: 5px;">
                 <div style="${horizontal}; gap: 2px;">
                     <img onclick="mostrarInfo('${id}')" src="imagens/observacao${info.length > 0 ? '' : '_off'}.png">
@@ -286,10 +216,14 @@ async function criarLinhaOrcamento(orcamento, master, idMaster) {
                     <img src="imagens/${depPorDesc[numOficial] ? 'concluido' : 'cancel'}.png" style="width: 1.5rem;">
                 </div>
             </div>
-        `)}
-                ${cel(`<div class="bloco-etiquetas">${labels.PEDIDO}</div>`)}
-                ${cel(`<div class="bloco-etiquetas">${labels.FATURADO}</div>`)}
-                ${cel(`
+        </td>
+        <td>
+            <div class="bloco-etiquetas">${labels.PEDIDO}</div>
+        </td>
+        <td>
+            <div class="bloco-etiquetas">${labels.FATURADO}</div>
+        </td>
+        <td>
             <div style="${vertical}; gap: 2px;">
                 <img 
                     src="imagens/etiqueta.png" 
@@ -299,45 +233,38 @@ async function criarLinhaOrcamento(orcamento, master, idMaster) {
                     ${tags}
                 </div>
             </div>
-            `)}
-                ${cel(finalElemento)}
-                ${cel(`${(snapshots?.cidade || '').toUpperCase()}`)}
-                ${cel(`
+        </td>
+        <td>${finalContrato}</td>
+        <td>${(snapshots?.cidade || '').toUpperCase()}</td>
+        <td>
             <div style="${vertical}">
                 <span>${orcamento?.usuario || '--'}</span>
                 <span>${responsaveis}</span>
             </div>
-        `)}
-                ${cel(`
+        </td>
+        <td>
             <div style="${vertical}; width: 100%; gap: 2px;">
-                ${orcamento?.checklist?.andamento
-            ? `
-                    <span>Checklist</span>
-                    ${divPorcentagem(orcamento.checklist.andamento)}`
-            : ''}
-                ${orcamento.dados_custos
-            ? `
-                    <span>LC %</span>
-                    ${divPorcentagem(lucratividadePorcentagem)}`
-            : ''}
+                <span>Checklist</span>
+                ${divPorcentagem(orcamento?.checklist?.andamento || 0)}
+                <span>LC %</span>
+                ${divPorcentagem(0)}
             </div>
-            `)}
-                ${cel(`
+        </td>
+        <td>
             <div style="${vertical}; width: 100%;">
                 <input style="display: none;" type="number" value="${orcamento.total_geral}">
                 <span style="font-size: 0.8rem; white-space: nowrap;">${dinheiro(orcamento.total_geral)}</span>
             </div>
-            `)}
-                ${cel(`<img 
-                    onclick="${idMaster ? `abrirAtalhos('${id}', '${idMaster}')` : `abrirAtalhos('${id}')`}"
-                    src="imagens/pesquisar2.png" 
-                    style="width: 1.5rem;">`)}
-                `
-    // Prioridade;
-    const prioridade = verificarPrioridade(orcamento)
+        </td>
+        <td>
+            <img 
+                onclick="${idMaster ? `abrirAtalhos('${id}', '${idMaster}')` : `abrirAtalhos('${id}')`}"
+                src="imagens/pesquisar2.png"
+                style="width: 1.5rem;">
+        </td>`
 
     const linha = `
-        <tr class="linha-master" id="${id}" data-prioridade="${prioridade}">
+        <tr class="linha-master" data-prioridade="${orcamento?.snapshots?.prioridade}">
             ${celulas}
         </tr>`
 
@@ -541,16 +468,18 @@ async function carregarToolbar() {
     const filtros = { 'dados_orcam': { op: 'NOT_EMPTY' } }
     const cont1 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'status.atual' })
     const cont2 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'chamado' })
+    const cont3 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'snapshots.prioridade' })
 
     const contToolbar = {
         ...cont1,
         'SEM STATUS': cont1['EM BRANCO'] || 0,
-        'chamados': cont2['S']
+        'chamados': cont2['S'],
+        'prioridades': ((cont3[0] || 0) + (cont3[1] || 0) + (cont3[2] || 0))
     }
 
     const toolbar = document.getElementById('toolbar')
     const pag = 'orcamentos'
-    const fluxogramaCompleto = ['chamados', 'todos', ...fluxograma]
+    const fluxogramaCompleto = ['prioridades', 'chamados', 'todos', ...fluxograma]
 
     for (const campo of fluxogramaCompleto) {
 
@@ -562,13 +491,20 @@ async function carregarToolbar() {
             continue
         }
 
-        const filtosPesq = campo == 'chamados'
-            ? `'chamado': {op:'=', value: 'S'}`
-            : campo == 'todos'
-                ? ''
-                : campo == 'SEM STATUS'
-                    ? `'status.atual': {op: 'IS_EMPTY'}`
-                    : `'status.atual': {op:'=', value: '${campo}'}`
+        let filtrosPesq = `'status.atual': {op:'=', value: '${campo}'}`
+
+        if (campo == 'chamados') {
+            filtrosPesq = `'chamado': {op:'=', value: 'S'}`
+
+        } else if (campo == 'SEM STATUS') {
+            filtrosPesq = `'status.atual': {op: 'IS_EMPTY'}`
+
+        } else if (campo == 'prioridades') {
+            filtrosPesq = `'snapshots.prioridade': {op: '<', value: 3}`
+
+        } else if (campo == 'todos') {
+            filtrosPesq = ''
+        }
 
         const f = campo == 'VENDA DIRETA'
             ? { 1: 'style="background: linear-gradient(45deg, #222, #b12425);"' }
@@ -582,7 +518,7 @@ async function carregarToolbar() {
                 name="${campo}"
                 onclick="
                 controles.${pag}.pagina = 1; 
-                controles.${pag}.filtros = { 'dados_orcam': { op: 'NOT_EMPTY' }, ${filtosPesq} };
+                controles.${pag}.filtros = { 'dados_orcam': { op: 'NOT_EMPTY' }, ${filtrosPesq} };
                 paginacao('${pag}')">
                 <label>${campo.toUpperCase()}</label>
                 <span ${f[1]}>${contagem}</span>

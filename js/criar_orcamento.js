@@ -369,26 +369,16 @@ function removerMaster() {
 async function atualizarOpcoesLPU() {
 
     let orcamentoBase = baseOrcamento() || {}
-    const LPUS = [
-        ...new Set(
-            Object.values(db.dados_composicoes)
-                .flatMap(obj =>
-                    Object.keys(obj)
-                        .filter(key => key.toLowerCase().includes('lpu')) // só chaves "lpu"
-                        .map(key => key.toUpperCase()) // já deixa maiúsculo
-                )
-        )
-    ];
 
     const lpu = document.getElementById('lpu')
     if (lpu) {
         lpu.innerHTML = LPUS
             .sort((a, b) => {
-                if (a === 'LPU HOPE') return -1
-                if (b === 'LPU HOPE') return 1
+                if (a === 'lpu hope') return -1
+                if (b === 'lpu hope') return 1
                 return a.localeCompare(b)
             })
-            .map(lpu => `<option ${orcamentoBase?.lpu_ativa == lpu ? 'selected' : ''}>${lpu}</option>`)
+            .map(lpu => `<option ${orcamentoBase?.lpu_ativa == lpu ? 'selected' : ''}>${lpu.toUpperCase()}</option>`)
             .join('')
 
     }
@@ -698,97 +688,54 @@ async function ativarChamado(input, idOrcamento) {
 
 async function tabelaProdutosOrcamentos() {
 
-    const cor = coresTabelas(null)
-    let permissoes = ['adm', 'log', 'editor', 'gerente', 'diretoria', 'coordenacao']
-    moduloComposicoes = permissoes.includes(acesso.permissao)
-    const colunas = ['codigo', 'descricao', 'unidade', 'quantidade', 'valor', 'imagem']
-    const colLiberadas = ['codigo', 'descricao', 'unidade']
-    let ths = ''
-    let tsh = ''
-
-    colunas.forEach((col, i) => {
-        const borda = `border: solid 1px ${cor}db;`
-        ths += `
-        <th style="background-color: transparent; padding: 0.5rem; ${borda}">
-            <div style="${horizontal}; color: white; justify-content: space-between; width: 100%; gap: 1rem;">
-                <span>${col}</span>
-                <img onclick="filtrarAAZ('${i}', 'bodyComposicoes')" src="imagens/down.png" style="width: 1rem;">
-            </div>
-        </th>
-        `
-        tsh += `
-        <th name="th_${col}" style="color: black; text-align: left; padding: 8px; background-color: white; ${borda};" 
-            onkeydown="if (event.key === 'Enter') { event.preventDefault(); pesquisarProdutos('${col}', this.textContent.trim()) }"
-            contentEditable="${colLiberadas.includes(col)}">
-        </th>`
-    })
-
     const toolbar = ['TODOS', ...esquemas.tipo]
         .map(op => `<label class="menu-top" style="background-color: ${coresTabelas(op)};" onclick="pesquisarProdutos('tipo', '${op}')">${op}</label>`)
         .join('')
 
-    const btn = (img, funcao, texto) => `
-        <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
-            onclick="${funcao}">
-            <img src="imagens/${img}.png" style="width: 1.7rem; cursor: pointer;">
-            <label style="color: white; cursor: pointer;">${texto}</label>
-        </div>
-    `
+    const btnExtras = `
+        <div class="tag-zerado">
+            <input checked="" onchange="removerZerado = this.checked; pesquisarProdutos()" type="checkbox" style="width: 1.5rem; height: 1.5rem;">
+            <span>Remover R$ 0,00</span>
+        </div>`
 
-    const botoes = `
-
-        ${btn('atualizar', 'atualizarGCS()', 'Atualizar')}
-
-        ${moduloComposicoes
-            ? btn('baixar', 'cadastrarItem()', 'Criar Item')
-            : ''}
-        `
+    const colunas = {
+        'Código': { chave: 'codigo' },
+        'Descrição': { chave: 'descricao' },
+        'Modelo': { chave: 'modelo' },
+        'Unidade': { chave: 'unidade' },
+        'Quantidade': {},
+        'Valor': {},
+        'Imagem': {}
+    }
+    const pag = 'composicoes_orcamento'
+    const tabela = await modTab({
+        pag,
+        colunas,
+        btnExtras,
+        criarLinha: 'linhasComposicoesOrcamento',
+        base: 'dados_composicoes',
+        body: 'bodyComposicoesOrcamento'
+    })
 
     const acumulado = `
         <div style="position: relative; display: flex; justify-content: center; width: 100%; margin-top: 30px; gap: 10px;">
             ${toolbar}
-            ${botoes}
         </div>
 
-        <div style="${vertical};" id="tabela_composicoes">
-            <div class="topo-tabela" style="border: none; background-color: ${cor};">
-                <div style="${horizontal}; justify-content: space-between; gap: 2rem; color: white; width: 100%;">
-                    <div class="paginacao">
-                        <img src="imagens/seta.png" id="btnAnterior" onclick="paginaAnterior()">
-                        <span id="paginacaoInfo"></span>
-                        <img src="imagens/seta.png" style="transform: rotate(180deg);" id="btnProxima" onclick="proximaPagina()">
-                    </div>
-
-                    <span>Dê um <b>ENTER</b> para pesquisar</span>
-
-                    <div class="tag-zerado">
-                        <input ${removerZerado ? 'checked' : ''} onchange="removerZerado = this.checked; pesquisarProdutos()" type="checkbox" style="width: 1.5rem; height: 1.5rem;">
-                        <span>Remover R$ 0,00</span>
-                    </div>
-
-                </div>
-            </div>
-            <div class="div-tabela" style="max-height: max-content;">
-                <table class="tabela">
-                    <thead style="background-color: ${cor}; box-shadow: none;">
-                        <tr>${ths}</tr>
-                        <tr>${tsh}</tr>
-                    </thead>
-                    <tbody id="bodyComposicoes"></tbody>
-                </table>
-            </div>
-            <div class="rodape-tabela"></div>
-        </div>
+        ${tabela}
         `
-    let bodyComposicoes = document.getElementById('bodyComposicoes')
-    if (!bodyComposicoes)
-        document.getElementById('tabelaItens').innerHTML = acumulado
 
-    await pesquisarProdutos()
+    document.getElementById('tabelaItens').innerHTML = acumulado
+
+    await paginacao(pag)
 
 }
 
-function linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu }) {
+function linhasComposicoesOrcamento(produto) {
+
+    const { codigo } = produto
+
+    const lpu = String(document.getElementById('lpu').value).toLocaleLowerCase()
 
     const agrupamentoON = Object.keys(produto?.agrupamento || {}).length > 0
         ? 'pos'
@@ -797,9 +744,13 @@ function linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu }
     const ativo = produto?.[lpu]?.ativo || ''
     const historico = produto?.[lpu]?.historico || {}
     const detalhes = historico?.[ativo] || {}
-    const preco = detalhes?.valor || produto?.preco_estado?.[estado] || 0
+    const preco = detalhes?.valor || 0
 
     const sinalizacao = verificarData(detalhes?.data, codigo)
+    const fabricante = produto?.fabricante
+        ? `<b>Fabricante</b> ${produto?.fabricante || '--'}<br>`
+        : ''
+
     const tds = `
         <td>
             <div class="campo-codigo-composicao">
@@ -813,16 +764,16 @@ function linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu }
         <td>
             <div style="${vertical}; text-align: left;">
                 <b>Descrição</b>
-                ${produto?.descricao || '--'}<br>
-                <b>Fabricante</b>
-                ${produto?.fabricante || '--'}<br>
-                <b>Modelo</b>
-                ${produto?.modelo || '--'}<br>
+                ${produto?.descricao || ''}<br>
+                ${fabricante}
             </div>
+        </td>
+        <td>
+            ${produto?.modelo || ''}
         </td>
         <td>${produto?.unidade || ''}</td>
         <td>
-            <input id="prod_${codigo}" value="${qtdeOrcada}" type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)">
+            <input id="prod_${codigo}" type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)">
         </td>
         <td>
             <div style="${horizontal}; gap: 1px;">
@@ -837,143 +788,14 @@ function linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu }
         </td>
         `
 
-    const trExistente = document.getElementById(`COMP_${codigo}`)
-    if (trExistente) {
-        if (Number(trExistente.dataset.timestamp) !== produto.timestamp) trExistente.innerHTML = tds
-        return
-    }
-
-    const linha = `
+    return `
         <tr data-tipo="${produto.tipo}"
-        data-timestamp="${produto?.timestamp}"
         id="COMP_${codigo}">
             ${tds}
-        </tr>
-    `
-    document.getElementById('bodyComposicoes').insertAdjacentHTML('beforeend', linha)
+        </tr>`
 
 }
 
-function proximaPagina() {
-    if (paginaComposicoes < totalPaginas) {
-        paginaComposicoes++
-        pesquisarProdutos()
-    }
-}
-
-function paginaAnterior() {
-    if (paginaComposicoes > 1) {
-        paginaComposicoes--
-        pesquisarProdutos()
-    }
-}
-
-function atualizarControlesPaginacao(total) {
-    totalPaginas = Math.ceil(total / porPagina)
-    const info = document.getElementById('paginacaoInfo')
-    const btnAnt = document.getElementById('btnAnterior')
-    const btnProx = document.getElementById('btnProxima')
-
-    info.textContent = `Página ${paginaComposicoes} de ${totalPaginas || 1}`
-    btnAnt.disabled = paginaComposicoes <= 1
-    btnProx.disabled = paginaComposicoes >= totalPaginas
-}
-
-async function pesquisarProdutos(chave, pesquisa) {
-
-    if (chave === 'tipo') {
-
-        memoriaFiltro = pesquisa || null
-        pesquisa = pesquisa === 'TODOS' ? '' : pesquisa
-        tipoAtivo = pesquisa
-        const cor = coresTabelas(pesquisa)
-        const topoTabela = document.querySelector('.topo-tabela')
-        const tabelaComposicoes = document.getElementById('tabela_composicoes')
-        const theadComposicoes = tabelaComposicoes.querySelector('thead')
-        theadComposicoes.style.backgroundColor = cor
-        topoTabela.style.backgroundColor = cor
-
-        const ths = theadComposicoes.querySelectorAll('th')
-        ths.forEach(th => th.style.border = `1px solid ${cor}db`)
-    }
-
-    // Só atualiza filtros se chave e pesquisa forem informados
-    if (chave && pesquisa != null) {
-        paginaComposicoes = 1
-
-        const pesquisaNormalizada = pesquisa
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/ç/g, 'c')
-            .toLowerCase()
-            .trim()
-
-        if (pesquisaNormalizada) {
-            filtrosPagina[chave] = pesquisaNormalizada
-        } else {
-            delete filtrosPagina[chave]
-        }
-    }
-
-    // Aplica os filtros existentes
-    const filtrosAtivos = Object.entries(filtrosPagina).filter(([_, termo]) => termo)
-    if (filtrosAtivos.length === 0) {
-        filtrosPagina = {}
-    }
-
-    // Atualiza os campos visuais com os filtros ativos
-    for (const [coluna, termo] of filtrosAtivos) {
-        const th = document.querySelector(`[name="th_${coluna}"]`)
-        if (th) th.textContent = termo
-    }
-
-    const dadosFiltrados = {}
-
-    for (const [codigo, produto] of Object.entries(db.dados_composicoes)) {
-
-        const lpu = String(document?.getElementById('lpu')?.value || '').toLowerCase()
-        const ativo = produto?.[lpu]?.ativo
-        const preco = produto?.[lpu]?.historico?.[ativo]?.valor || 0
-
-        if (removerZerado && preco == 0) continue
-
-        const corresponde = filtrosAtivos.every(([coluna, termo]) => {
-            const valor = String(produto[coluna] || '')
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .replace(/ç/g, 'c')
-                .toLowerCase()
-            return valor.includes(termo)
-        })
-
-        if (corresponde) dadosFiltrados[codigo] = produto
-    }
-
-    const orcamentoBase = baseOrcamento()
-    const omie_cliente = orcamentoBase?.dados_orcam?.omie_cliente || ''
-    const cliente = db.dados_clientes?.[omie_cliente] || {}
-    const estado = cliente?.estado || null
-    const composicoesOrcamento = orcamentoBase?.esquema_composicoes || {}
-    const lpu = orcamentoBase.lpu_ativa
-        ? String(orcamentoBase.lpu_ativa).toLocaleLowerCase()
-        : 'lpu hope'
-
-    const chaves = Object.keys(dadosFiltrados)
-    const inicio = (paginaComposicoes - 1) * porPagina
-    const fim = inicio + porPagina
-    const grupo = chaves.slice(inicio, fim)
-
-    bodyComposicoes = document.getElementById('bodyComposicoes')
-    bodyComposicoes.innerHTML = ''
-
-    for (const codigo of grupo) {
-        const produto = dadosFiltrados[codigo]
-        const qtdeOrcada = composicoesOrcamento?.[codigo]?.qtde || ''
-        linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu }) //29
-    }
-
-    atualizarControlesPaginacao(chaves.length)
-}
 
 async function converterEsquema() {
 

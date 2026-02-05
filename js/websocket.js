@@ -141,9 +141,12 @@ async function comunicacao() {
 
         if (app !== 'GCS') return
 
+        attPag = false
+
         if (tabela == 'dados_orcamentos') {
             await sincronizarDados({ base: 'dados_orcamentos' })
             await verificarPendencias()
+            attPag = true
             return
         }
 
@@ -169,6 +172,8 @@ async function comunicacao() {
                 balaoUsuario(status, usuario)
             }
         }
+
+        attPag = true
     }
 }
 

@@ -1,9 +1,10 @@
 const controles = {}
+let attPag = true
 
 function modTab({ btnExtras = '', criarLinha, base, funcaoAdicional = null, filtros = {}, colunas = {}, body = null, pag = null }) {
 
-    if (!body || !pag) 
-        return popup({ mensagem: 'body/pag Não podem ser null' })
+    if (!body || !pag || !base || !criarLinha)
+        return popup({ mensagem: 'body/pag/base/criarLinha Não podem ser null' })
 
     controles[pag] ??= {}
     controles[pag].funcaoAdicional = funcaoAdicional
@@ -14,11 +15,10 @@ function modTab({ btnExtras = '', criarLinha, base, funcaoAdicional = null, filt
     controles[pag].filtros = filtros
 
     const ths = Object.keys(colunas)
-        .map((th, i) => `
+        .map(th => `
             <th>
                 <div style="${horizontal}; width: 100%; justify-content: space-between; gap: 1rem;">
                     <span>${inicialMaiuscula(th)}</span>    
-                    <!--<img onclick="ordenarOrcamentos(${i})" src="imagens/filtro.png" style="width: 1rem;">-->
                 </div>
             </th>
             `
@@ -27,13 +27,22 @@ function modTab({ btnExtras = '', criarLinha, base, funcaoAdicional = null, filt
 
 
     const pesquisa = Object.entries(colunas)
-        .map(([th, chave]) => `
+        .map(([th, query]) => {
+            if (!query.chave)
+                return `
+            <th style="background-color: white;">
+                <img src="imagens/alerta.png" style="width: 1.5rem;">
+            </th>`
+
+            return `
             <th 
                 style="background-color: white; text-align: left;"
                 name="${th}"
-                onkeydown="confirmarPesquisa(event, '${chave}', this, '${pag}')"
+                onkeydown="confirmarPesquisa({ event, chave: '${query.chave}', op: '${query.op || 'includes'}', elemento: this, pag: '${pag}'})"
                 contentEditable="true">
-            </th>`)
+            </th>`
+
+        })
         .join('')
 
 
@@ -41,6 +50,7 @@ function modTab({ btnExtras = '', criarLinha, base, funcaoAdicional = null, filt
         <div style="${vertical}; width: 100%;">
             <div class="topo-tabela" style="justify-content: space-between; width: 100%; background-color: #707070;">
                 <div id="paginacao_${pag}"></div>
+                ${pesquisa ? `<span style="color: white; margin-right: 1rem;">Use o <b>ENTER</b> para pesquisar</span>` : ''}
                 ${btnExtras}
             </div>
             <div class="div-tabela" style="overflow-x: auto;">
@@ -72,72 +82,86 @@ async function mudarPagina(valor, pag) {
 
 }
 
-async function confirmarPesquisa(e, chave, el, p) {
+async function confirmarPesquisa({ event, chave, op, elemento, pag }) {
 
-    if (e) {
-        if (e.type !== 'keydown') return
-        if (e.key !== 'Enter') return
-        e.preventDefault()
+    if (event) {
+        if (event.type !== 'keydown') return
+        if (event.key !== 'Enter') return
+        event.preventDefault()
     }
 
-    const termo = el.textContent.replace(/\n/g, '').trim().toLowerCase()
+    const termo = elemento.textContent
+        .replace(/\n/g, '')
+        .trim()
+        .toLowerCase()
 
-    controles[p].pagina = 1
-    controles[p].filtros ??= {}
+    controles[pag].pagina = 1
+    controles[pag].filtros ??= {}
 
     if (!termo) {
-        delete controles[p].filtros[chave]
+        delete controles[pag].filtros[chave]
 
-        if (Object.keys(controles[p].filtros).length === 0) {
-            delete controles[p].filtros
+        if (Object.keys(controles[pag].filtros).length === 0) {
+            delete controles[pag].filtros
         }
 
-        await paginacao(p)
+        await paginacao(pag)
         return
     }
 
-    controles[p].filtros[chave] = {
-        op: 'includes',
+    controles[pag].filtros[chave] = {
+        op,
         value: termo
     }
 
-    await paginacao(p)
+    await paginacao(pag)
 }
-
 
 async function paginacao(pag) {
 
-    const { pagina, base, body, criarLinha, funcaoAdicional, filtros } = controles[pag] || {}
+    if (pag)
+        return ativarPaginacao(pag)
 
-    if (!base || !criarLinha)
-        return console.log('Base/CriarLinha não informado(s)')
+    for (const pag of Object.keys(controles))
+        ativarPaginacao(pag)
 
-    const tbody = document.getElementById(body)
-    const tabela = tbody.parentElement
-    const cols = tabela.querySelectorAll('thead th').length
-    tbody.innerHTML = `
-    <tr> 
-        <td colspan="${cols}">
-            <div style="${horizontal}; width: 100%;">
-                <img src="gifs/loading.gif" style="width: 5rem;">
-            </div>
-        </td>
-    <tr>`
+    async function ativarPaginacao(pag) {
 
-    const dados = await pesquisarDB({ base, pagina, filtros })
-    const divPaginacao = document.getElementById(`paginacao_${pag}`)
-    const paginaAtual = document.getElementById(`paginaAtual_${pag}`)
-    const resultados = document.getElementById(`resultados_${pag}`)
+        const { pagina, base, body, criarLinha, funcaoAdicional, filtros } = controles[pag] || {}
 
-    controles[pag].total = dados.paginas
+        const tbody = document.getElementById(body)
 
-    // Função adicionarl, se existir;
-    if (funcaoAdicional) {
-        window[funcaoAdicional]()
-    }
+        if (!tbody)
+            return
 
-    if (!paginaAtual) {
-        divPaginacao.innerHTML = `
+        if (!base || !criarLinha)
+            return console.log('Base/CriarLinha não informado(s)')
+
+        const tabela = tbody.parentElement
+        const cols = tabela.querySelectorAll('thead th').length
+        tbody.innerHTML = `
+            <tr> 
+                <td colspan="${cols}">
+                    <div style="${horizontal}; width: 100%;">
+                        <img src="gifs/loading.gif" style="width: 5rem;">
+                    </div>
+                </td>
+            <tr>`
+
+        const dados = await pesquisarDB({ base, pagina, filtros })
+        const divPaginacao = document.getElementById(`paginacao_${pag}`)
+        const paginaAtual = document.getElementById(`paginaAtual_${pag}`)
+        const resultados = document.getElementById(`resultados_${pag}`)
+
+        controles[pag].total = dados.paginas
+
+        // Função adicionarl, se existir;
+        if (funcaoAdicional) {
+            window[funcaoAdicional]()
+        }
+
+        if (!paginaAtual) {
+            divPaginacao.innerHTML = `
             <div style="display: flex; align-items:center; gap: 10px; padding: 0.2rem;">
                 <img src="imagens/esq.png" style="width: 2rem;" onclick="mudarPagina(-1, '${pag}')">
                 <span style="color: white;">
@@ -154,20 +178,29 @@ async function paginacao(pag) {
                     <span id="resultados">${dados.total}</span> ${dados.total !== 1 ? 'itens' : 'item'}
                 </span>
                 <img src="imagens/dir.png" style="width: 2rem;" onclick="mudarPagina(1, '${pag}')">
-                <span style="color: white;">Dê um <b>ENTER</b> para pesquisar</span>
             </div>
         `
-    } else {
-        paginaAtual.textContent = pagina
-        totalPaginas.textContent = dados.paginas
-        resultados.textContent = dados.total
-    }
+        } else {
+            paginaAtual.textContent = pagina
+            totalPaginas.textContent = dados.paginas
+            resultados.textContent = dados.total
+        }
 
-    let linhas = ''
-    for (const d of dados.resultados) {
-        linhas += await window[criarLinha](d)
-    }
+        let linhas = ''
+        for (const d of dados.resultados) {
+            linhas += await window[criarLinha](d)
+        }
 
-    if(tbody) tbody.innerHTML = linhas
+        if (!linhas) linhas = `
+            <tr> 
+                <td colspan="${cols}">
+                    <div style="${horizontal}; width: 100%; gap: 1rem;">
+                        <img src="gifs/offline.gif" style="width: 5rem;">
+                    </div>
+                </td>
+            <tr>`
+
+        tbody.innerHTML = linhas
+    }
 
 }

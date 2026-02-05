@@ -220,7 +220,6 @@
 
 .balao-pagamentos {
     cursor: pointer;
-    border: solid 1px #666666;
     width: 100%;
     font-size: 0.7rem;
     display: flex;

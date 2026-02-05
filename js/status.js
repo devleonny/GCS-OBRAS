@@ -1,5 +1,4 @@
 let itensAdicionais = {}
-let id_orcam = ''
 let dadosNota = {}
 let dados_estoque = {}
 let unidadeOrc = null
@@ -823,7 +822,7 @@ async function abrirAtalhos(id, idMaster) {
     const permitidos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
     id_orcam = id
 
-    const orcamento = db.dados_orcamentos[id_orcam]
+    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
     const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
     const cliente = await recuperarDado('dados_clientes', omie_cliente)
     const emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
@@ -1269,14 +1268,14 @@ async function abrirEsquema(id) {
 
     overlayAguarde()
 
-    if (!id) return popup({ mensagem: 'Ué, não abriu? Tente novamente...' })
-    id_orcam = id
+    if (!id)
+        return popup({ mensagem: 'Ué, não abriu? Tente novamente...', imagem: 'gifs/offline.gif' })
 
-    const orcamento = db.dados_orcamentos[id_orcam]
+    const orcamento = await recuperarDado('dados_orcamentos', id)
     const contrato = orcamento?.dados_orcam?.contrato
     const oficial = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato
     const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
-    const cliente = db.dados_clientes[omie_cliente] || {}
+    const cliente = await recuperarDado('dados_clientes', omie_cliente) || {}
     let blocosStatus = {}
 
     for (const [chave, historico] of Object.entries(orcamento?.status?.historico || {})) {
@@ -1427,7 +1426,7 @@ async function abrirEsquema(id) {
         </div>`
         }).join('')
 
-    const existente = db.dados_ocorrencias[contrato]
+    const existente = await recuperarDado('dados_ocorrencias', contrato)
     const f1 = liberado ? `unidadeOrc = '${omie_cliente}'; formularioOcorrencia()` : ''
     const f2 = existente ? `formularioCorrecao('${contrato}')` : ''
 
@@ -1568,7 +1567,7 @@ async function alterarStatus(select) {
     if (novoSt == 'ORC APROVADO') {
         formularioOrcAprovado()
         const resposta = await criarDepartamento(id_orcam)
-        if (resposta.mensagem) 
+        if (resposta.mensagem)
             popup({ mensagem: resposta.mensagem })
     }
 

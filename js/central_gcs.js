@@ -461,20 +461,6 @@ async function recuperarClientes() {
 
 }
 
-async function continuar() {
-    if (telaAtiva == 'composicoes') {
-        await telaComposicoes()
-
-    } else if (telaAtiva == 'telaCriarOrcamentos') {
-        await tabelaProdutosOrcamentos()
-        await totalOrcamento()
-
-    } else if (telaAtiva == 'telaCriarOrcamentoAluguel') {
-        await criarOrcamentoAluguel()
-
-    }
-}
-
 async function salvarLevantamento(idOrcamento, idElemento) {
 
     overlayAguarde()
@@ -822,13 +808,13 @@ function sincronizar(script) {
 async function verAprovacoes() {
 
     const colunas = {
-        'Chamado': '',
-        'Cliente': 'snapshots.cliente',
+        'Contrato': { chave: 'snapshots.contrato' },
+        'Cliente': { chave: 'snapshots.cliente' },
         'Total Original <br>[s/desc ou acres]': '',
-        'Total Geral': '',
+        'Total Geral': { chave: 'snapshots.valor' },
         '%': '',
-        'Localização': 'snapshots.cidade',
-        'Usuário': 'snapshots.responsavel',
+        'Localização': { chave: 'snapshots.cidade' },
+        'Usuário': { chave: 'snapshots.responsavel' },
         'Aprovação': '',
         'Comentário': '',
         'Detalhes': ''
@@ -846,8 +832,6 @@ async function verAprovacoes() {
 
     const elemento = `
         <div style="${vertical}; padding: 1rem;">
-
-            <label style="font-size: 1.2rem;">Fila de Aprovação</label>
 
             ${tabela}
 

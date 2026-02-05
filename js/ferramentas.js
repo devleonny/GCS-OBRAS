@@ -30,6 +30,7 @@ const filtrosPesquisa = {}
 const paginasBloqueadas = ['PDF', 'OS']
 let sOverlay = false
 let ignorarMenus = false
+let controlesCxOpcoes = {}
 
 
 // Central
@@ -117,7 +118,7 @@ async function resetarBases() {
 
     overlayAguarde()
     mostrarMenus(true)
-    if(app == 'GCS') 
+    if (app == 'GCS')
         await atualizarGCS(true) // Resetar;
     else
         await atualizarOcorrencias(true) // Resetar;
@@ -395,7 +396,41 @@ function abrirArquivo(link, nome) {
     window.open(link, '_blank');
 }
 
-async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
+async function cxOpcoes(name, base, campos, funcaoAux = null) {
+
+    controlesCxOpcoes = {
+        name,
+        base,
+        campos,
+        funcaoAux
+    }
+
+    const pag = 'cxOpcoes'
+    const tabela = await modTab({
+        colunas: { 'Pesquisar': { chave: campos[0] } },
+        pag,
+        base,
+        criarLinha: 'linCxOpcoes',
+        body: 'cxOpcoes'
+    })
+
+    const elemento = `
+        <div style="padding: 1rem;">
+
+            ${tabela}
+
+        </div>
+    `
+
+    popup({ elemento, titulo: 'Selecione o item' })
+
+    await paginacao(pag)
+}
+
+function linCxOpcoes(dado) {
+
+    const { funcaoAux, campos, name } = controlesCxOpcoes
+    const cod = dado.id || dado.codigo || dado.usuario || null
 
     function getValorPorCaminho(obj, caminho) {
         const partes = caminho.split('/')
@@ -420,50 +455,29 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
         return valor
     }
 
-    const base = await recuperarDados(nomeBase)
-    let opcoesDiv = ''
+    const labels = campos
+        .map(campo => {
+            const valor = getValorPorCaminho(dado, campo)
+            return valor ? `<div>${valor}</div>` : ''
+        })
+        .join('')
 
-    for (const [cod, dado] of Object.entries(base)) {
+    const descricao = campos
+        .map(c => getValorPorCaminho(dado, c))
+        .find(v => v !== undefined && v !== null && v !== '')
 
-        const labels = campos
-            .map(campo => {
-                const valor = getValorPorCaminho(dado, campo)
-                return valor ? `<div>${valor}</div>` : ''
-            })
-            .join('')
-
-        const descricao = campos
-            .map(c => getValorPorCaminho(dado, c))
-            .find(v => v !== undefined && v !== null && v !== '')
-
-        opcoesDiv += `
-        <div 
+    return `
+        <tr>
+            <div 
             name="camposOpcoes" 
             class="atalhos-opcoes" 
             onclick="selecionar('${name}', '${cod}', '${encodeURIComponent(descricao)}', ${funcaoAux ? `'${funcaoAux}'` : false})">
-            <img src="${dado.imagem || 'imagens/LG.png'}" style="width: 3rem;">
-            <div style="${vertical}; gap: 2px;">
-                ${labels}
+                <img src="${dado.imagem || 'imagens/LG.png'}" style="width: 3rem;">
+                <div style="${vertical}; gap: 2px;">
+                    ${labels}
+                </div>
             </div>
-        </div>`
-    }
-
-    const elemento = `
-        <div style="${vertical}; justify-content: left; background-color: #b1b1b1;">
-
-            <div class="cx-pesquisa">
-                <input oninput="pesquisarCX(this)" placeholder="Pesquisar itens" style="width: 100%;">
-                <img src="imagens/pesquisar4.png" style="width: 2rem; padding: 0.5rem;"> 
-            </div>
-
-            <div class="cx-opcoes">
-                ${opcoesDiv}
-            </div>
-
-        </div>
-    `
-
-    popup({ elemento, titulo: 'Selecione o item' })
+        </tr>`
 }
 
 async function selecionar(name, id, termo, funcaoAux) {

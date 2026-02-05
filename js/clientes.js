@@ -29,69 +29,6 @@ const aEstados = [
     'Tocantins'
 ]
 
-let clientesFiltrados = {}
-
-function pesquisarClientes(e, chave) {
-    if (e.key !== 'Enter') return
-    if (e.repeat) return
-
-    e.preventDefault()
-    e.target.blur()
-
-    const termo = e.target.textContent
-        .trim()
-        .toLowerCase()
-        .replace(/[./-]/g, ''); // Remove ponto, traço e barra
-
-    if (!chave) return
-
-    if (!termo) {
-        delete filtrosPesquisa.clientes[chave]
-    } else {
-        filtrosPesquisa.clientes[chave] = termo
-    }
-
-    paginaAtual = 1
-    renderizarClientesPagina()
-}
-
-function aplicarFiltrosClientes() {
-    const filtros = filtrosPesquisa.clientes
-
-    // Devolver as pesquisas para as colunas;
-    for (const [campo, valor] of Object.entries(filtros)) {
-        const th = document.getElementById(campo)
-        if (th) th.textContent = valor
-    }
-
-    if (!Object.keys(filtros).length) return db.dados_clientes
-
-    return Object.fromEntries(
-        Object.entries(db.dados_clientes).filter(([_, c]) =>
-            Object.entries(filtros).every(([campo, termo]) => {
-                let valor = c?.[campo] || ''
-
-                if (campo === 'empresa') {
-                    valor = db.empresas?.[c.empresa]?.nome
-                }
-
-                if (campo == 'entrega' || campo == 'cadastro') {
-                    const dados = campo == 'entrega'
-                        ? c.enderecoEntrega || {}
-                        : c
-                    const chaves = ['endereco', 'cep', 'cidade', 'bairro', 'cep']
-                    valor = chaves.map(chave => dados?.[chave] || '').join(' ')
-                }
-
-                return String(valor || '')
-                    .toLowerCase()
-                    .replace(/[./-]/g, '')
-                    .includes(termo)
-            })
-        )
-    )
-}
-
 function checksCliente(inputM) {
     const inputs = document.querySelectorAll('[name="empresa"]')
 
@@ -118,7 +55,8 @@ function classificarUnidades() {
         unidades.push({ id, nome })
     }
 
-    if (unidades.length == 0) return popup({ mensagem: 'Marque pelo menos 1 unidade' })
+    if (unidades.length == 0)
+        return popup({ mensagem: 'Marque pelo menos 1 unidade' })
 
     const opcoes = Object.entries(db.empresas)
         .sort(([, a], [, b]) => a.nome.localeCompare(b.nome))
@@ -165,7 +103,7 @@ async function vincularEmpresas() {
     let data
     try {
         data = await response.json()
-        if (data.mensagem) 
+        if (data.mensagem)
             return popup({ mensagem: data.mensagem })
 
         await sincronizarDados({ base: 'dados_clientes' })
@@ -180,75 +118,54 @@ async function vincularEmpresas() {
 
 async function telaClientes() {
 
-    filtrosPesquisa.clientes ??= {}
-
-    const bodyClientes = document.getElementById('bodyClientes')
-
-    if (bodyClientes) {
-        renderizarClientesPagina(paginaAtual)
-        return
-    }
-
     mostrarMenus(false)
     overlayAguarde()
 
     const colunas = {
-        'x': '<input onclick="checksCliente(this)" style="width: 1.5rem; height: 1.5rem;" type="checkbox">',
-        'cnpj': 'CPF / CNPJ',
-        'empresa': 'Empresa',
-        'nome': 'Nome Fantasia',
-        'cadastro': 'Endereço Cadastro',
-        'entrega': 'Endereço Entrega',
-        'y': 'Ações'
+        'Check': '',
+        'CPF / CNPJ': { chave: 'cnpj' },
+        'Empresa': '',
+        'Nome Fantasia': { chave: 'nome' },
+        'Endereço Cadastro': '',
+        'Endereço Entrega': '',
+        'Ações': ''
     }
 
-    const ths = Object.values(colunas).map(col => `<th>${col}</th>`).join('')
-    const pesquisa = Object.entries(colunas)
-        .map(([chave,]) =>
-            `<th contentEditable="true"
-            id="${chave}"
-            style="background-color: white; text-align: left;"
-            onkeydown="pesquisarClientes(event, '${chave}')">
-        </th>`
-        ).join('')
-
-    const acumulado = `
-        <div style="${vertical}; width: 95vw;">
-            <div class="topo-tabela">
-                <div class="paginacao-clientes"></div>
-                <div style="${horizontal}; margin-left: 3rem; gap: 0.5rem; height: 3rem;">
-                    <img src="imagens/trocar.png" onclick="classificarUnidades()">
-                    <img src="imagens/baixar.png" onclick="formularioCliente()">
-                </div>
-            </div>
-            <div class="div-tabela">
-                <table class="tabela" id="tabela_composicoes">
-                    <thead>
-                        <tr>${ths}</tr>
-                        <tr>${pesquisa}</tr>
-                    </thead>
-                    <tbody id="bodyClientes"></tbody>
-                </table>
-            </div>
-            <div class="rodape-tabela"></div>
+    const btnExtras = `
+        <div style="${horizontal}; gap: 1rem;">
+            <input onclick="checksCliente(this)" style="width: 1.5rem; height: 1.5rem;" type="checkbox">
+            <img src="imagens/trocar.png" onclick="classificarUnidades()">
+            <img src="imagens/baixar.png" onclick="formularioCliente()">
         </div>
-        `
+    `
+    const pag = 'clientes'
+    const tabela = await modTab({
+        pag,
+        colunas,
+        body: 'bodyClientes',
+        btnExtras,
+        criarLinha: 'criarLinhaClienteGCS',
+        base: 'dados_clientes'
+    })
 
-    tela.innerHTML = acumulado
+    tela.innerHTML = `
+        <div class="tela-clientes">
+            ${tabela}
+        </div>`
 
-    clientesFiltrados = null
-    paginaAtual = 1
-    renderizarClientesPagina()
+    await paginacao(pag)
 
-    if (app == 'GCS') criarMenus('clientes')
+    if (app == 'GCS')
+        criarMenus('clientes')
 
     removerOverlay()
 
 }
 
-function criarLinhaClienteGCS(idCliente, cliente) {
+function criarLinhaClienteGCS(cliente) {
 
-    const { timestamp, nome, cnpj, endereco, bairro, cep, cidade, estado, empresa } = cliente
+    const idCliente = cliente.id
+    const { nome, cnpj, endereco, bairro, cep, cidade, estado, empresa } = cliente
     const enderecoEntrega = cliente.enderecoEntrega ?? {}
 
     const eCadastro = `
@@ -286,20 +203,18 @@ function criarLinhaClienteGCS(idCliente, cliente) {
         <td>${eCadastro}</td>
         <td>${eEntrega}</td>
         <td>
-            <img src="imagens/pesquisar2.png" onclick="formularioCliente('${idCliente}')">
+            <img src="imagens/pesquisar2.png" onclick="formularioCliente(${idCliente})">
         </td>
     `
 
-    const trExistente = document.getElementById(idCliente)
-    if (trExistente) return trExistente.innerHTML = tds
+    return `<tr>${tds}</tr>`
 
-    document.getElementById('bodyClientes').insertAdjacentHTML('beforeend', `<tr data-timestamp="${timestamp}" id="${idCliente}">${tds}</tr>`)
 }
 
 async function formularioCliente(idCliente) {
 
-    const cliente = db.dados_clientes[idCliente] || {}
-    const enderecoEntrega = db.dados_clientes?.[idCliente]?.enderecoEntrega || {}
+    const cliente = await recuperarDado('dados_clientes', idCliente) || {}
+    const enderecoEntrega = cliente?.enderecoEntrega || {}
 
     const linhas = [
         {
@@ -415,33 +330,6 @@ async function excluirCliente(idCliente) {
 
 }
 
-function renderizarClientesPagina(pagina = paginaAtual) {
-
-    const base = aplicarFiltrosClientes()
-    const entries = Object.entries(base)
-
-    const totalPaginas = Math.max(1, Math.ceil(entries.length / limitePorPagina))
-
-    paginaAtual = Math.min(Math.max(1, pagina), totalPaginas)
-
-    const inicio = (paginaAtual - 1) * limitePorPagina
-    const fim = inicio + limitePorPagina
-
-    const body = document.getElementById('bodyClientes')
-    body.innerHTML = ''
-
-    for (const [id, cliente] of entries.slice(inicio, fim)) {
-        criarLinhaClienteGCS(id, cliente)
-    }
-
-    document.querySelector('.paginacao-clientes').innerHTML = `
-        <img src="imagens/esq.png" onclick="renderizarClientesPagina(${paginaAtual - 1})">
-        <img src="imagens/dir.png" onclick="renderizarClientesPagina(${paginaAtual + 1})">
-        <span>${paginaAtual} de ${totalPaginas}</span>
-    `
-}
-
-
 async function salvarCliente(idCliente = codCliAleatorio()) {
 
     overlayAguarde()
@@ -526,8 +414,6 @@ function codCliAleatorio() {
 }
 
 async function verificarClienteExistente(dados) {
-
-    console.log(dados);
 
     try {
         const response = await fetch(`${api}/verificar-cliente-existente`, {

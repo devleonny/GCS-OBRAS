@@ -1,177 +1,70 @@
-let divComposicoes = document.getElementById('composicoes')
 let colunas = []
-const camposFlexiveis = ['imagem', 'sistema', 'editar']
 const usuariosPermitidosParaEditar = ['log', 'editor', 'adm', 'gerente', 'diretoria', 'coordenacao']
-let codigoMaster = null
-
-const alerta = (termo) => `
-    <div style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 2vw;">
-        <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-        <label>${termo}</label>
-    </div>
-    `
+const LPUS = [
+    'lpu hope',
+    'lpu boticario',
+    'lpu cf boticario',
+    'lpu romagnole',
+    'lpu gpa',
+    'lpu muffato',
+    'lpu eas muffato'
+]
 
 async function atualizarComposicoes() {
     await sincronizarDados({ base: 'dados_composicoes' })
     await telaComposicoes(true)
 }
 
-function renderizarComposicoes() {
-
-    filtrosPesquisa.composicoes ??= {}
-
-    let resultado = Object.values(db.dados_composicoes)
-
-    if (Object.keys(filtrosPesquisa.composicoes).length) {
-        resultado = resultado.filter(item =>
-            Object.entries(filtrosPesquisa.composicoes).every(([campo, termo]) =>
-                item?.[campo]
-                    ?.toString()
-                    .toLowerCase()
-                    .includes(termo.toLowerCase())
-            )
-        )
-    }
-
-    const inicio = (paginaAtual - 1) * limitePorPagina
-    const fim = inicio + limitePorPagina
-    const pagina = resultado.slice(inicio, fim)
-
-    montarLinhasComposicoes(pagina)
-    renderizarPaginacaoComposicoes(resultado.length)
-}
-
-function montarLinhasComposicoes(lista) {
-    const tbody = document.getElementById('linhasComposicoes')
-
-    tbody.innerHTML = lista.map(item => {
-
-        return criarLinhaComposicao(item.id, item)
-
-    }).join('')
-}
-
-function renderizarPaginacaoComposicoes(total) {
-
-    const topo = document.querySelector('.topo-tabela')
-    const totalPaginas = Math.ceil(total / limitePorPagina) || 1
-
-    topo.innerHTML = `
-        <div class="paginacao-clientes">
-            <img src="imagens/esq.png" onclick="mudarPaginaComposicoes(-1)">
-            <img src="imagens/dir.png" onclick="mudarPaginaComposicoes(1, ${totalPaginas})">
-            <span>${paginaAtual} de ${totalPaginas}</span>
-        </div>`
-}
-
-function mudarPaginaComposicoes(delta, totalPaginas) {
-
-    if (totalPaginas == paginaAtual) return
-
-    paginaAtual += delta
-    if (paginaAtual < 1) paginaAtual = 1
-    renderizarComposicoes()
-}
-
-function pesquisarComposicoes(e, campo) {
-    if (e.key !== 'Enter') return
-    e.preventDefault()
-
-    const valor = e.target.textContent.trim()
-
-    if (valor) {
-        filtrosPesquisa.composicoes[campo] = valor
-    } else {
-        delete filtrosPesquisa.composicoes[campo]
-    }
-
-    // Devolver as pesquisas para as colunas;
-    for (const [campo, valor] of Object.entries(filtrosPesquisa.composicoes)) {
-        const th = document.getElementById(campo)
-        if (th) th.textContent = valor
-    }
-
-    paginaAtual = 1
-    renderizarComposicoes()
-}
-
-
 async function telaComposicoes() {
 
     overlayAguarde()
     mostrarMenus(false)
 
-    const cabecalhos = [
-        'codigo',
-        'editar',
-        'imagem',
-        'descricao',
-        'agrupamento',
-        'omie',
-        'ncm',
-        'tipo',
-        'unidade',
-        'fabricante',
-        'modelo',
-        'sistema',
-        'tempo',
-        'descricao',
-        'lpu hope',
-        'lpu boticario',
-        'lpu romagnole',
-        'lpu gpa',
-        'lpu muffato',
-        'lpu eas muffato'
-    ]
+    const colunas = {
+        'codigo': { chave: 'codigo' },
+        'editar': {},
+        'imagem': {},
+        'descricao': { chave: 'descricao' },
+        'agrupamento': {},
+        'omie': { chave: 'omie' },
+        'ncm': { chave: 'ncm' },
+        'tipo': { chave: 'tipo' },
+        'unidade': { chave: 'unidade' },
+        'fabricante': { chave: 'fabricante' },
+        'modelo': { chave: 'modelo' },
+        'sistema': { chave: 'sistema' },
+        'tempo': {},
+        '-': { chave: 'descricao' },
 
-    let ths = ''
-    let pesquisa = ''
-    cabecalhos.forEach((cab, i) => {
-        ths += `
-        <th name="${cab}">
-            <div style="${horizontal}; justify-content: space-between; width: 100%; gap: 1rem;">
-                <span>${cab.includes('lpu') ? cab.toUpperCase() : inicialMaiuscula(cab)}</span>
-                <img onclick="filtrarAAZ('${i}', 'tabela_composicoes')" style="width: 1rem;" src="imagens/filtro.png">
-            </div>
-        </th>`
+        ...Object.fromEntries(
+            LPUS.map(lpu => [lpu, {}])
+        )
+    }
 
-        pesquisa += `
-        <th 
-            style="text-align: left; background-color: white;" 
-            onkeydown="pesquisarComposicoes(event, '${cab}')"
-            id="${cab}"
-            contentEditable="true">
-        </th>`
+    const pag = 'composicoes'
+    const tabela = await modTab({
+        colunas,
+        pag,
+        base: 'dados_composicoes',
+        body: 'bodyComposicoes',
+        criarLinha: 'criarLinhaComposicao'
     })
 
-    const acumulado = `
-        <div style="${vertical}; width: 95vw;">
-            <div class="topo-tabela"></div>
-            <div class="div-tabela">
-                <table class="tabela" id="tabela_composicoes">
-                    <thead>
-                        <tr>${ths}</tr>
-                        <tr>${pesquisa}</tr>
-                    </thead>
-                    <tbody id="linhasComposicoes"></tbody>
-                </table>
-            </div>
-            <div class="rodape-tabela"></div>
+    tela.innerHTML = `
+        <div style="width: 95vw;">
+            ${tabela}
         </div>
         `
-
-    const linhasComposicoes = document.getElementById('linhasComposicoes')
-    if (!linhasComposicoes) tela.innerHTML = acumulado
-
-    renderizarComposicoes()
+    await paginacao(pag)
 
     criarMenus('composicoes')
     removerOverlay()
 }
 
-function criarLinhaComposicao(codigo, produto) {
+async function criarLinhaComposicao(produto) {
 
     const {
+        codigo,
         descricao,
         agrupamento,
         omie,
@@ -185,21 +78,24 @@ function criarLinhaComposicao(codigo, produto) {
         tempo
     } = produto
 
-    const divAgrupamento = Object.entries(agrupamento || {})
-        .map(([cod, dados]) => {
-            const tipo = db.dados_composicoes[cod]?.tipo || '??'
-            return `
-                <div style="${horizontal}; gap: 5px;">
-                    <span class="balao-redondo-agrupamento" 
-                    style="background-color: ${tipo == 'VENDA' ? '#B12425' : tipo == 'SERVIÇO' ? 'green' : '#24729d'}">
-                        ${cod}
-                    </span>
-                    <span class="balao-redondo-agrupamento">${dados.qtde}</span>
-                    <span style="text-align: left;">${String(db.dados_composicoes?.[cod]?.descricao || '??').slice(0, 10)}...</span>
-                </div>`
-        }).join('')
+    const divAgrupamento = []
 
-    const LPUS = ['lpu hope', 'lpu boticario', 'lpu romagnole', 'lpu gpa', 'lpu muffato', 'lpu eas muffato']
+    for (const [cod, dados] of Object.entries(agrupamento || {})) {
+        const prodVinculado = await recuperarDado('dados_composicoes', cod) || {}
+
+        const { tipo, descricao } = prodVinculado
+
+        divAgrupamento.push(`
+            <div style="${horizontal}; gap: 5px;">
+                <span class="balao-redondo-agrupamento" 
+                style="background-color: ${tipo == 'VENDA' ? '#B12425' : tipo == 'SERVIÇO' ? 'green' : '#24729d'}">
+                    ${cod}
+                </span>
+                <span class="balao-redondo-agrupamento">${dados.qtde}</span>
+                <span style="text-align: left;">${String(descricao || '??').slice(0, 10)}...</span>
+            </div>`)
+    }
+
     const tdsLPUS = LPUS
         .map(lpu => {
             const tabela = produto[lpu] || {}
@@ -214,7 +110,7 @@ function criarLinhaComposicao(codigo, produto) {
             </td>`
         }).join('')
 
-    const tr = `
+    return `
         <tr id="${codigo}">
             <td>${codigo}</td>
             <td>
@@ -232,7 +128,7 @@ function criarLinhaComposicao(codigo, produto) {
                         <img src="imagens/construcao.png">
                         <span>Editar Agrupamento</span>
                     </div>
-                    ${divAgrupamento}
+                    ${divAgrupamento.join('')}
                 </div>
             </td>
 
@@ -250,64 +146,6 @@ function criarLinhaComposicao(codigo, produto) {
         <tr>
     `
 
-    return tr
-
-}
-
-async function alterarChave(codigo, chave, select) {
-
-    let produto = db.dados_composicoes[codigo]
-
-    produto[chave] = select.value
-
-    enviar(`dados_composicoes/${codigo}/${chave}`, select.value)
-
-    await inserirDados(dados_composicoes, 'dados_composicoes')
-
-    await continuar()
-
-}
-
-function checkedInputs(filtro) {
-    const linhas = document.getElementById('linhas_agrupamentos')
-    let filtrar = filtro.value
-
-    if (!linhas) return
-
-    const trs = linhas.querySelectorAll('tr')
-
-    trs.forEach(tr => {
-
-        var tds = tr.querySelectorAll('td')
-
-        const mostrar = false
-
-        var check = tds[0].querySelector('input').checked
-
-        if (filtrar == 'Todos') {
-
-            mostrar = true
-
-        } else if (filtrar == 'Marcados') {
-
-            if (check) {
-                mostrar = true
-            } else {
-                mostrar = false
-            }
-
-        } else if (filtrar == 'Não Marcados') {
-
-            if (!check) {
-                mostrar = true
-            } else {
-                mostrar = false
-            }
-        }
-
-        tr.style.display = mostrar_linha ? 'table-row' : 'none'
-
-    })
 }
 
 async function abrirHistoricoPrecos(codigo, tabela) {
@@ -416,8 +254,6 @@ async function salvarPrecoAtivo(codigo, id_preco, lpu) {
     await inserirDados({ [codigo]: produto }, 'dados_composicoes')
     removerOverlay()
 
-    await continuar()
-
 }
 
 async function excluirCotacao(codigo, lpu, cotacao) {
@@ -435,15 +271,13 @@ async function excluirCotacao(codigo, lpu, cotacao) {
         await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, '')
     }
 
-    const precoExcluido = cotacoes?.historico?.[cotacao]?.valor || '??'
-
     delete cotacoes?.historico?.[cotacao]
     deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`)
     await inserirDados({ [codigo]: produto }, 'dados_composicoes')
 
     removerPopup()
     await abrirHistoricoPrecos(codigo, lpu);
-    await continuar()
+
 }
 
 function gerarTabelas(objeto) {
@@ -657,7 +491,9 @@ function modelos(produto) {
 async function adicionarCotacao(codigo, lpu, cotacao) {
 
     let produto = await recuperarDado('dados_composicoes', codigo)
-    const funcao = cotacao ? `salvarPreco('${codigo}', '${lpu}', '${cotacao}')` : `salvarPreco('${codigo}', '${lpu}')`
+    const funcao = cotacao
+        ? `salvarPreco('${codigo}', '${lpu}', '${cotacao}')`
+        : `salvarPreco('${codigo}', '${lpu}')`
 
     if (lpu && cotacao) {
         produto = {
@@ -670,10 +506,8 @@ async function adicionarCotacao(codigo, lpu, cotacao) {
     const gap = `gap: 0.5rem;`
 
     const acumulado = `
-        <label style="font-size: 1.2rem;" id="modalidadeCalculo"><strong>${produto.tipo}</strong></label>
-
         <div style="${horizontal}; border-radius: 5px; background-color: #575757; padding: 0.5rem; align-items: start; ${gap}">
-
+            <span style="display: none" id="modalidadeCalculo">${produto.tipo}</span>
             <div style="${vertical}; ${gap}">
                 ${tabelas.camposIniciais}
                 ${tabelas.complementares}
@@ -687,16 +521,13 @@ async function adicionarCotacao(codigo, lpu, cotacao) {
             </div>
 
         </div>
-
-        ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `<button onclick="${funcao}">Salvar Preço</button>` : ''}
     `
 
-    const painelPrecos = document.querySelector('.painel-precos')
-    if (painelPrecos) {
-        painelPrecos.innerHTML = acumulado
-    } else {
-        popup({ elemento: `<div class="painel-precos">${acumulado}</div>`, titulo: 'Gestão de Preço' })
-    }
+    const botoes = []
+
+    if (usuariosPermitidosParaEditar) botoes.push({ texto: 'Salvar Preço', img: 'concluido', funcao })
+
+    popup({ botoes, elemento: `<div class="painel-precos">${acumulado}</div>`, titulo: produto.tipo })
 
     calcular()
 
@@ -943,17 +774,34 @@ async function salvarPreco(codigo, lpu, cotacao) {
 
     await inserirDados({ [codigo]: produto }, 'dados_composicoes')
     removerPopup()
-    await continuar()
 
-    await abrirHistoricoPrecos(codigo, lpu);
+    await abrirHistoricoPrecos(codigo, lpu)
     enviar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`, historico[cotacao])
+
+}
+
+async function confirmarExclusao_item(codigo) {
+
+    const mensagem = `Tem certeza que deseja excluir este item?`
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `excluirItemComposicao('${codigo}')` }
+    ]
+
+    popup({ botoes, mensagem, nra: false })
+
+}
+
+async function excluirItemComposicao(codigo) {
+
+    deletar(`dados_composicoes/${codigo}`)
+    await deletarDB('dados_composicoes', codigo)
 
 }
 
 async function cadastrarItem(codigo) {
 
     const produto = await recuperarDado('dados_composicoes', codigo) || {}
-    const funcao = codigo ? `salvarServidor('${codigo}')` : `salvarServidor()`
+    const funcao = codigo ? `salvarComposicao('${codigo}')` : `salvarComposicao()`
 
     const botoes = [
         { texto: 'Salvar', img: 'concluido', funcao }
@@ -988,30 +836,7 @@ async function cadastrarItem(codigo) {
 
 }
 
-async function confirmarExclusao_item(codigo) {
-
-    const mensagem = `Tem certeza que deseja excluir este item?`
-    const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `excluirItemComposicao('${codigo}')` }
-    ]
-
-    popup({ botoes, mensagem, nra: false })
-
-}
-
-async function excluirItemComposicao(codigo) {
-
-    deletar(`dados_composicoes/${codigo}`)
-    await deletarDB('dados_composicoes', codigo)
-
-    const trProduto = document.getElementById(`${codigo}`)
-    if (trProduto) trProduto.remove()
-
-    removerPopup()
-
-}
-
-async function salvarServidor(codigo) {
+async function salvarComposicao(codigo) {
 
     overlayAguarde()
     const item = await recuperarDado('dados_composicoes', codigo) || {};
@@ -1045,7 +870,6 @@ async function salvarServidor(codigo) {
     await inserirDados({ [codigo]: final }, 'dados_composicoes')
     removerPopup()
 
-    await continuar()
 }
 
 async function verificarCodigoExistente() {
@@ -1071,58 +895,7 @@ async function verificarCodigoExistente() {
     })
 }
 
-async function paraExcel() {
-    const tabela = document.getElementById('tabela_composicoes');
-    if (!tabela) return;
-
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Preços');
-
-    const trs = tabela.querySelectorAll('tr');
-
-    for (let rowIndex = 0; rowIndex < trs.length; rowIndex++) {
-        const tr = trs[rowIndex];
-        const tds = tr.querySelectorAll('td, th');
-        let row = [];
-
-        for (let colIndex = 0; colIndex < tds.length; colIndex++) {
-            const td = tds[colIndex];
-            const img = td.querySelector('img');
-
-            if (img) continue
-
-            const select = td.querySelector('select');
-            const input = td.querySelector('input');
-
-            if (select) {
-                row.push(select.value);
-            } else if (input) {
-                row.push(input.value);
-            } else {
-                row.push(td.textContent.trim());
-            }
-
-        }
-
-        worksheet.addRow(row);
-    }
-
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    });
-
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'lpu-com-imagens.xlsx';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
 async function verAgrupamento(codigo) {
-
-    codigoMaster = codigo
 
     const produto = await recuperarDado('dados_composicoes', codigo)
     const elemento = `
@@ -1145,7 +918,7 @@ async function verAgrupamento(codigo) {
                 <div class="div-tabela">
                     <table class="tabela" id="tabela_composicoes">
                         <thead>
-                            <tr>${['Código', 'Descrição', 'Tipo', 'Quantidade', 'Remover'].map(op => `<th>${op}</th>`).join('')}</tr>
+                            <tr>${['Descrição', 'Quantidade', 'Remover'].map(op => `<th>${op}</th>`).join('')}</tr>
                         </thead>
                         <tbody id="linhasAgrupamento"></tbody>
                     </table>
@@ -1153,12 +926,11 @@ async function verAgrupamento(codigo) {
                 <div class="rodape-tabela"></div>
             </div>
 
-        </div>
-    `
+        </div>`
 
     const botoes = [
         { texto: 'Adicionar Item', img: 'baixar', funcao: `criarLinhaAgrupamento()` },
-        { texto: 'Salvar Agrupamento', img: 'concluido', funcao: `salvarAgrupamento()` }
+        { texto: 'Salvar Agrupamento', img: 'concluido', funcao: `salvarAgrupamento('${codigo}')` }
     ]
 
     popup({ elemento, botoes, titulo: 'Gerenciar itens do agrupamento', nra: false })
@@ -1172,11 +944,10 @@ async function verAgrupamento(codigo) {
 
 async function criarLinhaAgrupamento(cod, dados) {
 
-    const produto = db.dados_composicoes[cod]
+    const produto = await recuperarDado('dados_composicoes', cod)
     const chaveUnica = ID5digitos()
 
     const tds = `
-        <td>${cod || '??'}</td>
         <td>
             <span 
             class="opcoes"
@@ -1186,12 +957,12 @@ async function criarLinhaAgrupamento(cod, dados) {
                 ${produto?.descricao || 'Selecione'}
             </span>
         </td>
-        <td>${produto?.tipo || '??'}
-        <td><input class="campoValor" type="number" value="${dados?.qtde || ''}"></td>
         <td>
-            <img src="imagens/cancel.png" style="width: 1.7rem;" onclick="confirmarRemoverAgrupamento('${cod}')">
+            <input name="quantidade" class="campoValor" type="number" value="${dados?.qtde || ''}">
         </td>
-    `
+        <td>
+            <img src="imagens/cancel.png" style="width: 1.7rem;" onclick="this.closest('tr').remove()">
+        </td>`
 
     const trExistente = document.getElementById(`AGRUP_${cod}`)
     if (trExistente) return trExistente.innerHTML = tds
@@ -1199,32 +970,7 @@ async function criarLinhaAgrupamento(cod, dados) {
     document.getElementById('linhasAgrupamento').insertAdjacentHTML('beforeend', `<tr id="AGRUP_${cod}">${tds}</tr>`)
 }
 
-async function confirmarRemoverAgrupamento(codSlave) {
-
-    const botoes = [
-        { texto: 'Confirmar', funcao: `removerAgrupamento('${codSlave}')`, img: 'concluido' }
-    ]
-
-    popup({ botoes, mensagem: 'Tem certeza que deseja remover este item adicional?', titulo: 'Remoção item adicional' })
-
-}
-
-async function removerAgrupamento(codSlave) {
-
-    let produto = db.dados_composicoes[codigoMaster]
-    delete produto.agrupamento[codSlave]
-    await inserirDados({ [codigoMaster]: produto }, 'dados_composicoes')
-    deletar(`dados_composicoes/${codigoMaster}/agrupamento/${codSlave}`)
-
-    const linha = document.getElementById(`AGRUP_${codSlave}`)
-
-    if (linha) linha.remove()
-
-    removerPopup()
-
-}
-
-async function salvarAgrupamento() {
+async function salvarAgrupamento(codigo) {
 
     const linhasAgrupamento = document.getElementById('linhasAgrupamento')
 
@@ -1235,25 +981,21 @@ async function salvarAgrupamento() {
     for (const tr of trs) {
 
         const tds = tr.querySelectorAll('td')
-        const spanDesc = tds[1].querySelector('span')
+        const spanDesc = tds[0].querySelector('span')
         const codigo = spanDesc.id
-        const qtde = Number(tds[3].querySelector('input').value || 0)
+        const qtde = Number(tr.querySelector('[name="quantidade"]').value || 0)
 
         tr.id = `AGRUP_${codigo}`
-        tds[0].textContent = codigo
-        tds[2].textContent = db.dados_composicoes[codigo].tipo
-
         agrupamento[codigo] = { qtde }
 
     }
 
-    // codigoMaster é uma variável global;
-    const produto = db.dados_composicoes[codigoMaster].agrupamento || {}
+    const produto = await recuperarDado('dados_composicoes', codigo) || {}
     produto.agrupamento = agrupamento
 
     if (Object.keys(agrupamento).length > 0) {
-        await inserirDados({ [codigoMaster]: produto }, 'dados_composicoes')
-        enviar(`dados_composicoes/${codigoMaster}/agrupamento`, agrupamento)
+        await inserirDados({ [codigo]: produto }, 'dados_composicoes')
+        enviar(`dados_composicoes/${codigo}/agrupamento`, agrupamento)
     }
 
 }
@@ -1295,124 +1037,5 @@ async function confirmarAtualizarData(tabela, codigo) {
 
 
     popup({ elemento, botoes, titulo: 'Manter preço' })
-
-}
-
-async function exportarParaExcel() {
-
-    const workbook = new ExcelJS.Workbook()
-    const worksheet = workbook.addWorksheet('Composições')
-
-    const lpus = ['lpu hope', 'lpu boticario', 'lpu romagnole', 'lpu gpa', 'lpu muffato', 'lpu eas muffato']
-
-    // Cabeçalho;
-    worksheet.addRow([
-        'Código',
-        'Descrição',
-        'ncm',
-        'tipo',
-        'Unidade',
-        'Fabricante',
-        'Modelo',
-        'Sistema',
-        ...(lpus.map(l => l.toUpperCase()))
-    ])
-
-    for (const item of Object.values(db.dados_composicoes)) {
-
-        const { codigo, descricao, ncm, tipo, unidade, modelo, fabricante, sistema } = item
-
-        const precos = []
-        for (const lpu of lpus) {
-            const lpuHOPE = item[lpu]
-            const ativo = lpuHOPE?.ativo || ''
-            const preco = lpuHOPE?.historico?.[ativo]?.valor || 0
-            precos.push(preco)
-        }
-
-        const row = [
-            codigo,
-            descricao,
-            ncm,
-            tipo,
-            unidade,
-            fabricante,
-            modelo,
-            sistema,
-            ...precos
-        ]
-
-        worksheet.addRow(row)
-    }
-
-    // ====== ESTILOS ======
-    worksheet.eachRow((row, rowNumber) => {
-        row.eachCell((cell, colNumber) => {
-            cell.alignment = {
-                vertical: 'top',
-                horizontal: 'left',
-                wrapText: true
-            }
-            cell.border = {
-                top: { style: 'thin' },
-                left: { style: 'thin' },
-                bottom: { style: 'thin' },
-                right: { style: 'thin' }
-            }
-
-            // Cabeçalho (primeira linha)
-            if (rowNumber === 1) {
-                cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFD9D9D9' }
-                }
-                cell.font = { bold: true }
-            }
-
-            // Formatação para colunas numéricas
-            if (typeof cell.value === 'number') {
-                cell.numFmt = '#,##0.00'
-                if (rowNumber !== 1) {
-                    cell.alignment.horizontal = 'right'
-                }
-            }
-        })
-    })
-
-    // Filtro no cabeçalho
-    worksheet.autoFilter = {
-        from: 'A1',
-        to: 'J1'
-    }
-
-    // Ajuste automático de largura das colunas
-    worksheet.columns.forEach(col => {
-        let maxLength = 10
-        col.eachCell(cell => {
-            const cellLength = String(cell.value || '').length
-            if (cellLength > maxLength) {
-                maxLength = cellLength
-            }
-        })
-        col.width = Math.min(maxLength + 2, 50) // Limite máximo de 50
-    })
-
-    // Ajusta altura das linhas para conteúdo com quebra
-    worksheet.eachRow(row => {
-        row.height = 20
-    })
-
-    // ====== GERAR ARQUIVO ======
-    const buffer = await workbook.xlsx.writeBuffer()
-    const blob = new Blob([buffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `composicoes-${new Date().getTime()}.xlsx`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
 
 }
