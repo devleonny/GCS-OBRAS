@@ -1,10 +1,6 @@
 let memoriaFiltro = null
 let lpuATIVA = null
-let paginaComposicoes = 1
-let totalPaginas = null
-const porPagina = 100
 let pesqAtiva = null
-let removerZerado = true
 
 const metaforas = [
     "Um monitor sem imagens para exibir",
@@ -685,16 +681,42 @@ async function ativarChamado(input, idOrcamento) {
 
 }
 
+function formatarTabela() {
+
+    const tipo = controles?.composicoes_orcamento?.filtros?.tipo?.value || ''
+
+    const menuPaginacao = document.getElementById('paginacao_composicoes_orcamento')
+
+    const topoTabela = menuPaginacao.closest('.topo-tabela')
+
+    topoTabela.style.backgroundColor = coresTabelas(tipo)
+
+}
 
 async function tabelaProdutosOrcamentos() {
 
     const toolbar = ['TODOS', ...esquemas.tipo]
-        .map(op => `<label class="menu-top" style="background-color: ${coresTabelas(op)};" onclick="pesquisarProdutos('tipo', '${op}')">${op}</label>`)
+        .map(op => {
+
+            const filtros = op !== 'TODOS'
+                ? `{op:'=', value: '${op}'}`
+                : '{}'
+
+            return `<label 
+            class="menu-top" 
+            style="background-color: ${coresTabelas(op)};" 
+            onclick="controles.composicoes_orcamento.filtros.tipo = ${filtros}; paginacao()">
+                ${op}
+            </label>`
+        })
         .join('')
 
+    const lpu = (document.getElementById('lpu').value).toLowerCase()
     const btnExtras = `
         <div class="tag-zerado">
-            <input checked="" onchange="removerZerado = this.checked; pesquisarProdutos()" type="checkbox" style="width: 1.5rem; height: 1.5rem;">
+            <input 
+                checked="true" 
+                onchange="controles.composicoes_orcamento.filtros = this.checked ? {'snapshots.${lpu}': {op:'NOT_ZERO'}} : {}; paginacao();" type="checkbox" style="width: 1.5rem; height: 1.5rem;">
             <span>Remover R$ 0,00</span>
         </div>`
 
@@ -711,7 +733,9 @@ async function tabelaProdutosOrcamentos() {
     const tabela = await modTab({
         pag,
         colunas,
+        funcaoAdicional: ['formatarTabela', 'totalOrcamento'],
         btnExtras,
+        filtros: { [`snapshots.${lpu}`]: { op: 'NOT_ZERO' } },
         criarLinha: 'linhasComposicoesOrcamento',
         base: 'dados_composicoes',
         body: 'bodyComposicoesOrcamento'
@@ -790,7 +814,8 @@ function linhasComposicoesOrcamento(produto) {
 
     return `
         <tr data-tipo="${produto.tipo}"
-        id="COMP_${codigo}">
+        data-ts="${produto?.timestamp || 0}"
+        data-id="${codigo}">
             ${tds}
         </tr>`
 
@@ -844,8 +869,10 @@ async function converterEsquema() {
 }
 
 function verificarData(data, codigo) {
+
+    const lpu = String(document.getElementById('lpu').value).toLocaleLowerCase()
     if (!data) {
-        return `<img onclick="abrirHistoricoPrecos('${codigo}', '${lpuATIVA}')" src="imagens/preco_neg.png" style="width: 1.5rem;">`
+        return `<img onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')" src="imagens/preco_neg.png" style="width: 1.5rem;">`
     }
 
     const [dt] = String(data).split(', ')
@@ -853,16 +880,14 @@ function verificarData(data, codigo) {
     const dataRef = new Date(ano, mes - 1, dia)
 
     if (isNaN(dataRef)) {
-        return `<img onclick="abrirHistoricoPrecos('${codigo}', '${lpuATIVA}')" src="imagens/preco_neg.png" style="width: 1.5rem;">`
+        return `<img onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')" src="imagens/preco_neg.png" style="width: 1.5rem;">`
     }
 
     const hoje = new Date()
     const diffDias = Math.floor((hoje - dataRef) / (1000 * 60 * 60 * 24))
-
     const imagem = diffDias > 30 ? 'preco_neg' : 'preco'
-    const title = diffDias > 30 ? 'Desatualizado' : `Atualizado há ${diffDias} dia(s)`
 
-    return `<img onclick="abrirHistoricoPrecos('${codigo}', '${lpuATIVA}')" src="imagens/${imagem}.png" style="width: 1.5rem;">`
+    return `<img onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')" src="imagens/${imagem}.png" style="width: 1.5rem;">`
 }
 
 async function moverItem({ codigoAmover, codigoMaster }) {
@@ -1007,7 +1032,7 @@ async function totalOrcamento() {
         elo.innerHTML = `<img onclick="moverItem({codigoAmover: ${codigo}, codigoMaster: ${codigoMaster}})" src="imagens/elo.png" style="cursor: pointer; width: 1.5rem;">`
 
         itemSalvo.codigo = codigo
-        const refProduto = db.dados_composicoes?.[codigo] || itemSalvo
+        const refProduto = await recuperarDado('dados_composicoes', codigo) || itemSalvo
 
         linha.dataset.tipo = refProduto.tipo
 
@@ -1325,7 +1350,7 @@ function formatarLinhasOrcamento() {
 
 async function alterarValorUnitario({ codigo, codigoMaster }) {
 
-    const produto = db.dados_composicoes[codigo]
+    const produto = await recuperarDado('dados_composicoes', codigo)
     const lpu = String(document.getElementById('lpu').value).toLowerCase()
     const ativo = produto?.[lpu]?.ativo || 0
     const historico = produto?.[lpu]?.historico || {}
@@ -1387,7 +1412,7 @@ async function confirmarNovoPreco({ codigo, codigoMaster, precoOriginal, operaca
 
 async function incluirItem(codigo, novaQuantidade) {
     let orcamentoBase = baseOrcamento()
-    const produto = db.dados_composicoes[codigo]
+    const produto = await recuperarDado('dados_composicoes', codigo)
     let agrupamento = orcamentoBase?.esquema_composicoes?.[codigo]?.agrupamento || {}
 
     // Ajustes dos agrupamentos;
@@ -1397,7 +1422,7 @@ async function incluirItem(codigo, novaQuantidade) {
         }
     }
 
-    if (!orcamentoBase.esquema_composicoes) orcamentoBase.esquema_composicoes = {}
+    orcamentoBase.esquema_composicoes ??= {}
 
     // Inclusão do item;
     orcamentoBase.esquema_composicoes[codigo] = {

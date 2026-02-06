@@ -77,7 +77,7 @@ async function telaOrcamentos() {
     }
 
     const tabela = modTab({
-        funcaoAdicional: 'formatacaoPagina',
+        funcaoAdicional: ['formatacaoPagina'],
         filtros: { 'dados_orcam': { op: 'NOT_EMPTY' } },
         colunas,
         base: 'dados_orcamentos',

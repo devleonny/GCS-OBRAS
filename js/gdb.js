@@ -156,6 +156,22 @@ async function sincronizarDados({ base, resetar = false }) {
 
 // Regras SNAPSHOT; BUSCAS;
 const regrasSnapshot = {
+    dados_composicoes: {
+        stores: [],
+        snapshot: async ({ dado }) => {
+            const snap = {}
+
+            for (const lpu of LPUS) {
+                const ativo = dado?.[lpu]?.ativo
+                const historico = dado?.[lpu]?.historico || {}
+                const preco = historico?.[ativo]?.valor || 0
+                snap[lpu] = [preco, dinheiro(preco)]
+            }
+
+            return snap
+        }
+
+    },
     lista_pagamentos: {
         stores: ['dados_clientes', 'departamentos_AC'],
         snapshot: async ({ dado, stores }) => {
@@ -166,6 +182,9 @@ const regrasSnapshot = {
                 const cliente = await getStore(stores.dados_clientes, codCliente)
                 snap.cliente = cliente?.nome || ''
             }
+
+            const valor = dado?.param?.[0]?.valor_documento
+            snap.valor = [valor, dinheiro(valor)]
 
             snap.departamentos = []
 
@@ -257,9 +276,7 @@ async function inserirDados(dados, base) {
             tx.onerror = () => reject(tx.error)
 
             tx.oncomplete = async () => {
-                if (attPag) 
-                    await paginacao()
-                
+                await paginacao()
                 resolve(true)
             }
 
@@ -408,6 +425,11 @@ function comparar(v, op, value) {
         case '<': return v < value
         case '<=': return v <= value
 
+        case 'NOT_ZERO':
+            if (Array.isArray(v))
+                return Number(v[0]) !== 0
+            return Number(v) !== 0
+
         case 'includes':
             if (v == null) return false
             if (Array.isArray(v))
@@ -550,7 +572,7 @@ function contarPorCampo({ base, path, filtros = {} }) {
     })
 }
 
-function deletarDB(base, id) {
+async function deletarDB(base, id) {
     return new Promise((resolve, reject) => {
         const req = indexedDB.open(nomeBase, versao)
 
@@ -564,8 +586,9 @@ function deletarDB(base, id) {
             const key = isNaN(id) ? id : Number(id)
             store.delete(key)
 
-            tx.oncomplete = () => {
+            tx.oncomplete = async () => {
                 db.close()
+                await paginacao()
                 resolve(true)
             }
 
@@ -574,7 +597,6 @@ function deletarDB(base, id) {
         }
     })
 }
-
 
 // SERVIÇO DE ARMAZENAMENTO 
 async function deletar(caminho, idEvento) {

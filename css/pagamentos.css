@@ -230,17 +230,21 @@
     align-items: stretch;
 }
 
+.balao-pagamentos label {
+    cursor: pointer;
+}
+
 .balao-pagamentos img {
     width: 2rem;
 }
 
 .balao-pagamentos .dir {
     width: 60%;
-    gap: 0.5rem;
+    gap: 1rem;
     padding: 0.5rem;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: start;
     background: #d2d2d2;
 }
 

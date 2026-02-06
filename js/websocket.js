@@ -88,7 +88,7 @@ async function comunicacao() {
     socket.onmessage = async (event) => {
 
         const data = JSON.parse(event.data)
-        const { tabela, desconectar, validado, tipo, id, dados, usuario, status } = data
+        const { tabela, desconectar, validado, tipo, usuario, status } = data
 
         if (desconectar) {
             acesso = {}
@@ -139,23 +139,16 @@ async function comunicacao() {
             nomeUsuario.innerHTML = `<span><strong>${inicialMaiuscula(acesso.permissao)}</strong> ${acesso.usuario}</span>`
         }
 
-        if (app !== 'GCS') return
-
-        attPag = false
-
-        if (tabela == 'dados_orcamentos') {
-            await sincronizarDados({ base: 'dados_orcamentos' })
-            await verificarPendencias()
-            attPag = true
+        if (app !== 'GCS')
             return
-        }
-
-        if (tipo == 'exclusao') {
-            await deletarDB(tabela, id)
-        }
 
         if (tipo == 'atualizacao') {
-            await inserirDados({ [id]: dados }, tabela)
+            await sincronizarDados({ base: tabela })
+            if (tabela == 'dados_orcamentos')
+                await verificarPendencias()
+
+            if (tabela == 'lista_pagamentos')
+                await atualizarPainelEsquerdo()
         }
 
         if (tipo == 'status') {
@@ -167,13 +160,11 @@ async function comunicacao() {
                 await inserirDados({ [usuario]: user }, tSetores)
             }
 
-            if (app == 'GCS') {
-                await usuariosToolbar()
-                balaoUsuario(status, usuario)
-            }
+            await usuariosToolbar()
+            balaoUsuario(status, usuario)
+
         }
 
-        attPag = true
     }
 }
 
@@ -191,7 +182,7 @@ async function carregarControles() {
     }
 
     const permitidosAprovacoes = ['adm', 'diretoria']
-    const permitidosProdutos = ['LOGÍSTICA', 'SUPORTE', 'FINANCEIRO']
+
     const barraStatus = `
             <div id="divUsuarios"></div>
 

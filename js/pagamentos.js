@@ -17,18 +17,19 @@ function imagemEspecifica(justificativa) {
     if (nomeStatus.includes('aprovado')) {
         cor = '#4CAF50'
         imagem = "imagens/concluido.png"
-    } else if (db.dados_setores[justificativa.usuario]?.permissao == 'qualidade') {
-        cor = '#32a5e7'
-        imagem = "imagens/qualidade.png"
+
     } else if (nomeStatus.includes('reprovado')) {
         cor = '#B12425'
         imagem = "imagens/remover.png"
+
     } else if (nomeStatus.includes('aguardando')) {
         cor = '#D97302'
         imagem = "imagens/avencer.png"
+
     } else if (nomeStatus.includes('aguardando')) {
         cor = '#D97302'
         imagem = "imagens/avencer.png"
+
     } else {
         cor = '#B12425'
     }
@@ -37,52 +38,18 @@ function imagemEspecifica(justificativa) {
 
 }
 
-async function recuperarPagamentos() {
-
-    await telaPagamentos()
-
-}
-
-async function filtrarPagamentos() {
-
-    const usuariosPermitidos = ['diretoria', 'adm']
-    const setoresPermitidos = ['FINANCEIRO']
-    const pagamentosFiltrados = {}
-
-    for (let [idPagamento, pagamento] of Object.entries(db.lista_pagamentos)) {
-
-        if (
-            (usuariosPermitidos.includes(acesso.permissao) || setoresPermitidos.includes(acesso.setor))
-        ) {
-            if (pagamento.mes && acesso.permissao != 'adm') continue;
-
-            pagamentosFiltrados[idPagamento] = pagamento
-
-        } else if (
-            pagamento.criado == acesso.usuario ||
-            (acesso.permissao == 'gerente' && pagamento.status.includes('Gerência')) ||
-            (acesso.permissao == 'qualidade' && pagamento.status.includes('Qualidade'))
-        ) {
-            pagamentosFiltrados[idPagamento] = pagamento
-        }
-    }
-
-    return pagamentosFiltrados
-}
-
 async function telaPagamentos() {
 
-    overlayAguarde()
     mostrarMenus(false)
-    //await auxDepartamentos() // Orcs, deps e clis;
+
     const pag = 'pagamentos'
     const colunas = {
-        'Data de Previsão': {},
+        'Data de Previsão': { chave: 'param.*.data_vencimento' },
         'Departamentos': { chave: 'snapshots.departamentos' },
         'APP': { chave: 'app', op: '=' },
-        'Valor': '',
+        'Valor': { chave: 'snapshots.valor' },
         'Status': { chave: 'status' },
-        'Solicitante': '',
+        'Solicitante': { chave: 'criado' },
         'Setor': '',
         'Recebedor': { chave: 'snapshots.cliente' },
         'Detalhes': ''
@@ -91,6 +58,7 @@ async function telaPagamentos() {
     const tabela = await modTab({
         pag,
         colunas,
+        funcaoAdicional: ['atualizarPainelEsquerdo'],
         body: 'bodyPagamentos',
         base: 'lista_pagamentos',
         criarLinha: 'criarLinhaPagamento',
@@ -112,12 +80,8 @@ async function telaPagamentos() {
     const divPagamentos = document.querySelector('.divPagamentos')
     if (!divPagamentos) tela.innerHTML = acumulado
 
-    await paginacao(pag)
-
-    await atualizarPainelEsquerdo()
-
+    await paginacao()
     criarMenus('pagamentos')
-    removerOverlay()
 
 }
 
@@ -127,14 +91,18 @@ async function atualizarPainelEsquerdo() {
 
     const titulos = Object.entries(contagens)
         .map(([st, qtde]) => {
+
+            const filtros = st == 'todos'
+                ? '{}'
+                : `{op: '=', value: '${st}'}`
+
             return `
-            <div class="balao-pagamentos" onclick="pesquisarGenerico(4, '${st == 'todos' ? '' : st}', 'bodyPagamentos')">
+            <div class="balao-pagamentos" 
+            onclick="controles.pagamentos.filtros = {'status':${filtros}}; paginacao()">
                 
                 <div class="dir">
-                    <div style="${vertical};">
-                        <Label><b>${inicialMaiuscula(st)}</b></label>
-                    </div>
                     <img src="${iconePagamento(st)}">
+                    <Label style="font-size: 1.1rem;">${inicialMaiuscula(st)}</label>
                 </div>
 
                 <span class="esq">${qtde}</span>
@@ -145,8 +113,7 @@ async function atualizarPainelEsquerdo() {
         .join('')
 
     const painelEsquerdo = document.querySelector('.painelEsquerdo')
-    if (painelEsquerdo)
-        return painelEsquerdo.innerHTML = titulos
+    if (painelEsquerdo) painelEsquerdo.innerHTML = titulos
 
 }
 
@@ -181,7 +148,7 @@ async function criarLinhaPagamento(pagamento) {
         <td>${setorCriador}</td>
         <td>${recebedor}</td>
         <td style="text-align: center;">
-            <img src="imagens/pesquisar2.png" style="width: 1.5rem; cursor: pointer;" onclick="abrirDetalhesPagamentos('${pagamento.id_pagamento}')">
+            <img src="imagens/pesquisar2.png" style="width: 1.5rem; cursor: pointer;" onclick="abrirDetalhesPagamentos('${pagamento.id}')">
         </td>
         `
     return `<tr>${tds}</tr>`
@@ -238,7 +205,7 @@ function justificativaHTML(idPagamento) {
     return `
         <div class="balao" style="${horizontal}; width: 100%;">
 
-            <img src="gifs/alerta.gif">
+            <img src="gifs/alerta.gif" style="padding: 1rem;">
 
             <div style="${vertical}; width: 100%; gap: 3px;">
                 <label>Aprovação do pagamento</label>
@@ -254,9 +221,7 @@ function justificativaHTML(idPagamento) {
         `
 }
 
-async function abrirDetalhesPagamentos(id_pagamento) {
-
-    idP = id_pagamento
+async function abrirDetalhesPagamentos(id) {
 
     overlayAguarde()
 
@@ -269,11 +234,9 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
     let valores = ''
     const permissao = acesso.permissao
-    const pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
-    const cliente_omie = pagamento.param[0].codigo_cliente_fornecedor
-    const cliente = await recuperarDado('dados_clientes', cliente_omie)
+    const pagamento = await recuperarDado('lista_pagamentos', id)
     const anexos = Object.entries(pagamento?.anexos || {})
-        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoPagamento('${id_pagamento}', '${idAnexo}')`))
+        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoPagamento('${id}', '${idAnexo}')`))
         .join('')
     const btnDetalhes = (img, nome, funcao) => `
         <div class="btnDetalhes" onclick="${funcao}">
@@ -321,55 +284,64 @@ async function abrirDetalhesPagamentos(id_pagamento) {
     // Edição de Status;
     const divStatus = (permissao == 'adm')
         ? `
-        <select class="selectStatus" onchange="alterarStatusPagamento('${id_pagamento}', this)">
+        <select class="selectStatus" onchange="alterarStatusPagamento('${id}', this)">
             ${opcoesStatus.map(op => `<option ${pagamento.status == op ? 'selected' : ''}>${op}</option>`).join('')}
         </select>`
         : `<label>${pagamento.status}</label>`;
 
     const depPagam = pagamento?.param?.[0]?.distribuicao || []
-    const orcsVinculados = []
 
+    // Orçamentos & chamados vinculados;
+    const vinculados = []
     for (const dep of depPagam) {
         const cc = await recuperarDado('departamentos_AC', dep.cCodDep)
-        if (!cc?.ids?.length) continue
-        for (const id of cc.ids) orcsVinculados.push(id)
+        if (!cc)
+            continue
+
+        const pesquisa = await pesquisarDB({
+            base: 'dados_orcamentos',
+            filtros: { 'snapshots.contrato': { op: 'includes', value: cc.descricao } }
+        })
+
+        if (!pesquisa.resultados.length)
+            continue
+
+        vinculados.push(...pesquisa.resultados)
     }
 
-    const btnsOrcamentos = orcsVinculados
-        .map(async id => {
-            const orc = db.dados_orcamentos[id] || {}
-            const idCli = orc.dados_orcam.omie_cliente
-            const cli = await recuperarDado(idCli) || {}
-            return btnDetalhes('pasta', `${cli?.nome || '...'} <br>${dinheiro(orc?.total_geral)}`, `abrirAtalhos('${id}')`)
+    const btnsOrcamentos = vinculados
+        .map(resultado => {
+            const total = resultado?.total_geral
+                ? dinheiro(resultado?.total_geral)
+                : ''
+            return btnDetalhes('pasta', `${resultado?.snapshots?.cliente || '...'} 
+                <br>${total}`, `abrirAtalhos('${resultado.id}')`)
         }).join('')
 
     const bEspeciais = permissao == 'adm'
         ? `
-        ${btnDetalhes('editar', 'Editar Pagamento', `editarPagamento('${id_pagamento}')`)}
-        ${btnDetalhes('cancel', 'Excluir pagamento', `confirmarExclusaoPagamento('${id_pagamento}')`)}
-        ${btnDetalhes('concluido', 'Lançar pagamento', `relancarPagamento('${id_pagamento}')`)}
-        ${btnDetalhes('anexo', 'Reimportar Anexos no Omie', `reprocessarAnexos('${id_pagamento}')`)}`
+        ${btnDetalhes('editar', 'Editar Pagamento', `editarPagamento('${id}')`)}
+        ${btnDetalhes('cancel', 'Excluir pagamento', `confirmarExclusaoPagamento('${id}')`)}
+        ${btnDetalhes('concluido', 'Lançar pagamento', `relancarPagamento('${id}')`)}
+        ${btnDetalhes('anexo', 'Reimportar Anexos no Omie', `reprocessarAnexos('${id}')`)}`
         : ''
 
-    const deps = (pagamento?.param[0]?.distribuicao || [])
+    const deps = (pagamento?.snapshots?.departamentos || [])
         .map(dep => {
-            const departamento = db.departamentos_AC?.[dep.cCodDep] || {}
-            const nomeCliente = departamento?.cliente?.nome || ''
             return `
                 <div style="${vertical}; gap: 2px; text-align: left;">
-                    <span>• <b>${departamento?.descricao || ''}</b></span>
-                    <span>${nomeCliente}</span>
+                    <span>• <b>${dep}</b></span>
                 </div>
             `
         }).join('')
 
     const acumulado = `
-        ${justificativaHTML(id_pagamento)}
+        ${justificativaHTML(id)}
 
         <div class="detalhes-pagamento">
             <div style="${vertical}; gap: 1px; width: 100%;">
                 ${btnsOrcamentos}
-                ${btnDetalhes('reembolso', 'Duplicar Pagamento', `duplicarPagamento('${id_pagamento}')`)}
+                ${btnDetalhes('reembolso', 'Duplicar Pagamento', `duplicarPagamento('${id}')`)}
 
                 ${bEspeciais}
 
@@ -379,7 +351,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
             ${modelo('Departamentos', deps)}
             ${modelo('Status Atual', divStatus)}
-            ${modelo('Quem recebe', cliente.nome)}
+            ${modelo('Quem recebe', pagamento?.snapshots?.cliente || '')}
             ${modelo('Data de Solicitação', pagamento.data_registro)}
             ${modelo('Data de Pagamento', pagamento.param[0].data_vencimento)}
 
@@ -396,7 +368,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
                 
                 <label for="anexoPagamento" style="text-decoration: underline; cursor: pointer;">
                     Incluir Anexo
-                    <input type="file" id="anexoPagamento" style="display: none;" onchange="salvarAnexosPagamentos(this, '${id_pagamento}')" multiple>
+                    <input type="file" id="anexoPagamento" style="display: none;" onchange="salvarAnexosPagamentos(this, '${id}')" multiple>
                 </label>
 
             </div>
@@ -427,7 +399,6 @@ async function alterarStatusPagamento(idPagamento, select) {
     enviar(`lista_pagamentos/${idPagamento}/status`, select.value)
 
     await inserirDados({ [idPagamento]: pagamento }, 'lista_pagamentos')
-    await telaPagamentos()
 
 }
 
@@ -439,47 +410,43 @@ async function confirmarExclusaoPagamento(id) {
     await deletarDB('lista_pagamentos', id)
     await deletar(`lista_pagamentos/${id}`)
 
-    const tr = document.getElementById(id)
-
-    if (tr) tr.remove()
-
 }
 
-async function removerAnexoPagamento(id_pagamento, anx) {
+async function removerAnexoPagamento(id, anx) {
 
-    const pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
+    const pagamento = await recuperarDado('lista_pagamentos', id)
 
     if (pagamento.anexos && pagamento.anexos[anx]) {
 
         delete pagamento.anexos[anx]
 
-        deletar(`lista_pagamentos/${id_pagamento}/anexos/${anx}`)
-        await inserirDados({ [id_pagamento]: pagamento }, 'lista_pagamentos')
-        await abrirDetalhesPagamentos(id_pagamento)
+        deletar(`lista_pagamentos/${id}/anexos/${anx}`)
+        await inserirDados({ [id]: pagamento }, 'lista_pagamentos')
+        await abrirDetalhesPagamentos(id)
     }
 
 }
 
-async function removerAnexoParceiro(id_pagamento, campo, anx) {
+async function removerAnexoParceiro(id, campo, anx) {
 
-    let pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
+    let pagamento = await recuperarDado('lista_pagamentos', id)
 
     if (pagamento.anexos_parceiros && pagamento.anexos_parceiros[campo] && pagamento.anexos_parceiros[campo][anx]) {
 
         delete pagamento.anexos_parceiros[campo][anx]
-        await inserirDados({ [id_pagamento]: pagamento }, 'lista_pagamentos')
-        deletar(`lista_pagamentos/${id_pagamento}/anexos_parceiros/${campo}/${anx}`)
-        await abrirDetalhesPagamentos(id_pagamento)
+        await inserirDados({ [id]: pagamento }, 'lista_pagamentos')
+        deletar(`lista_pagamentos/${id}/anexos_parceiros/${campo}/${anx}`)
+        await abrirDetalhesPagamentos(id)
 
     }
 
 }
 
-async function autorizarPagamentos(resposta, id_pagamento) {
+async function autorizarPagamentos(resposta, id) {
 
     overlayAguarde()
 
-    const pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
+    const pagamento = await recuperarDado('lista_pagamentos', id)
     const justificativa = document.getElementById('justificativa').value
     const usuario = acesso.usuario;
     const permissao = acesso.permissao
@@ -521,13 +488,11 @@ async function autorizarPagamentos(resposta, id_pagamento) {
     pagamento.historico ??= {}
     pagamento.historico[idJustificativa] = historico
 
-    await inserirDados({ [id_pagamento]: pagamento }, 'lista_pagamentos')
-    await abrirDetalhesPagamentos(id_pagamento)
+    await inserirDados({ [id]: pagamento }, 'lista_pagamentos')
+    await abrirDetalhesPagamentos(id)
 
-    await enviar(`lista_pagamentos/${id_pagamento}/historico/${idJustificativa}`, historico)
-    await enviar(`lista_pagamentos/${id_pagamento}/status`, status)
-
-    await telaPagamentos()
+    await enviar(`lista_pagamentos/${id}/historico/${idJustificativa}`, historico)
+    await enviar(`lista_pagamentos/${id}/status`, status)
 
 }
 
@@ -540,8 +505,6 @@ async function salvarPagamento() {
 
     const ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
     const permissao = acesso.permissao
-    let id_pagamento = ultimoPagamento.id_pagamento
-
     const anexoPagamento = document.getElementById('anexoPagamento')
     const anexos = await importarAnexos({ input: anexoPagamento })
 
@@ -556,11 +519,10 @@ async function salvarPagamento() {
     if (!observacao.includes(identificacao))
         ultimoPagamento.param[0].observacao = `${identificacao} ${acesso.usuario} \n ${observacao}`
 
-    if (!id_pagamento) {
+    if (!ultimoPagamento.id) {
 
-        id_pagamento = unicoID()
-        ultimoPagamento.id_pagamento = id_pagamento
-        ultimoPagamento.param[0].codigo_lancamento_integracao = id_pagamento
+        ultimoPagamento.id = unicoID()
+        ultimoPagamento.param[0].codigo_lancamento_integracao = ultimoPagamento.id
 
         if (ultimoPagamento.param[0].valor_documento <= 500) {
             ultimoPagamento.status = 'Processando...'
@@ -573,18 +535,11 @@ async function salvarPagamento() {
 
     }
 
-    ultimoPagamento.param[0].codigo_lancamento_integracao = id_pagamento
-
     try {
-        await enviar(`lista_pagamentos/${id_pagamento}`, ultimoPagamento)
-        await inserirDados({ [id_pagamento]: ultimoPagamento }, 'lista_pagamentos')
-
-        const divPagamentos = document.querySelector('.divPagamentos')
-        if (divPagamentos) criarLinhaPagamento(ultimoPagamento)
-
+        await enviar(`lista_pagamentos/${ultimoPagamento.id}`, ultimoPagamento)
+        await inserirDados({ [ultimoPagamento.id]: ultimoPagamento }, 'lista_pagamentos')
         localStorage.removeItem('ultimoPagamento')
-        removerPopup()
-        popup({ imagem: 'imagens/concluido.png', mensagem: 'Pagamento Salvo' })
+        popup({ imagem: 'imagens/concluido.png', tempo: 5, mensagem: 'Pagamento Salvo' })
 
     } catch (e) {
         console.log(e)
@@ -600,7 +555,7 @@ async function formularioPagamento() {
 
     const ulP = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
     const { observacao = '', categorias = [], distribuicao = [], valor_documento = 0, data_vencimento, codigo_cliente_fornecedor = '' } = ulP?.param?.[0] || {}
-    const { nome = 'Selecionar' } = db.dados_clientes?.[codigo_cliente_fornecedor] || {}
+    const { nome = 'Selecionar' } = await recuperarDado('dados_clientes', codigo_cliente_fornecedor) || {}
     const [dia, mes, ano] = data_vencimento ? data_vencimento.split('/') : ''
     const dtVencimento = `${ano}-${mes}-${dia}`
 
@@ -676,12 +631,11 @@ async function formularioPagamento() {
 
     const botoes = [
         { texto: 'Salvar Pagamento', img: 'concluido', funcao: 'salvarPagamento()' },
-        { texto: 'Atualizar', img: 'atualizar', funcao: 'recuperarPagamentos()' },
         { texto: 'Regras', img: 'alerta', funcao: 'duvidas()' },
         { texto: 'Recomeçar', img: 'cancel', funcao: 'apagarPagamento()' }
     ]
 
-    popup({ linhas, botoes, titulo: 'Solicitação de Pagamento' })
+    popup({ linhas, botoes, titulo: 'Solicitação de Pagamento', nra: false })
 
     // Categorias;
     for (const categoria of categorias)
@@ -960,21 +914,21 @@ function duvidas() {
     popup({ elemento, titulo: 'Informações Importantes' })
 }
 
-async function salvarAnexosPagamentos(input, id_pagamento) {
+async function salvarAnexosPagamentos(input, id) {
     const anexos = await importarAnexos({ input })
 
-    if (id_pagamento !== undefined) {
-        let pagamento = await recuperarDado('lista_pagamentos', id_pagamento);
+    if (id !== undefined) {
+        let pagamento = await recuperarDado('lista_pagamentos', id);
 
         if (!pagamento.anexos) pagamento.anexos = {};
 
         anexos.forEach(anexo => {
             pagamento.anexos[anexo.link] = anexo;
-            enviar(`lista_pagamentos/${id_pagamento}/anexos/${anexo.link}`, anexo);
+            enviar(`lista_pagamentos/${id}/anexos/${anexo.link}`, anexo);
         });
 
-        await inserirDados({ [id_pagamento]: pagamento }, 'lista_pagamentos');
-        await abrirDetalhesPagamentos(id_pagamento);
+        await inserirDados({ [id]: pagamento }, 'lista_pagamentos');
+        await abrirDetalhesPagamentos(id);
 
     } else {
 
@@ -1010,7 +964,7 @@ async function removerAnexoTemporario(link) {
 
 }
 
-async function atualizarResumo(id_pagamento) {
+async function atualizarResumo(id) {
 
     const divAtualizar = document.getElementById('atualizarResumo')
 
@@ -1020,15 +974,15 @@ async function atualizarResumo(id_pagamento) {
     const v_orcado = Number(document.getElementById('v_orcado').value)
     const v_lpu = Number(document.getElementById('v_lpu').value)
 
-    let pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
+    let pagamento = await recuperarDado('lista_pagamentos', id)
 
     if (!pagamento.resumo) pagamento.resumo = {}
 
     pagamento.resumo = { v_pago, v_orcado, v_lpu }
 
-    enviar(`lista_pagamentos/${id_pagamento}/resumo`, pagamento.resumo)
+    enviar(`lista_pagamentos/${id}/resumo`, pagamento.resumo)
 
-    await inserirDados({ [id_pagamento]: pagamento }, 'lista_pagamentos')
+    await inserirDados({ [id]: pagamento }, 'lista_pagamentos')
 
     divAtualizar.innerHTML = `
         <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
@@ -1037,7 +991,7 @@ async function atualizarResumo(id_pagamento) {
         </div>
         `
     setTimeout(() => {
-        divAtualizar.innerHTML = `${botao('Atualizar', `atualizarResumo('${id_pagamento}')`, 'green')}`
+        divAtualizar.innerHTML = `${botao('Atualizar', `atualizarResumo('${id}')`, 'green')}`
     }, 3000)
 
 }
@@ -1051,11 +1005,11 @@ function compararDatas(data1, data2) {
     return maior;
 }
 
-async function salvarAnexosParceiros(input, campo, id_pagamento) {
+async function salvarAnexosParceiros(input, campo, id) {
 
     const anexos = await importarAnexos({ input })
 
-    if (id_pagamento == undefined) { // O anexo do parceiro é incluído no formulário de pagamento; (Pagamento ainda não existe)
+    if (id == undefined) { // O anexo do parceiro é incluído no formulário de pagamento; (Pagamento ainda não existe)
         let ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
 
         anexos.forEach(anexo => {
@@ -1071,7 +1025,7 @@ async function salvarAnexosParceiros(input, campo, id_pagamento) {
 
     } else { // O anexo deve ser incluído no pagamento já existente;
 
-        let pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
+        let pagamento = await recuperarDado('lista_pagamentos', id)
 
         pagamento.anexos_parceiros ??= {}
         pagamento.anexos_parceiros[campo] ??= {}
@@ -1083,16 +1037,16 @@ async function salvarAnexosParceiros(input, campo, id_pagamento) {
             if (pagamento.anexos_parceiros[campo][id]) pagamento.anexos_parceiros[campo][id] = {}
 
             pagamento.anexos_parceiros[campo][id] = anexo
-            enviar(`lista_pagamentos/${id_pagamento}/anexos_parceiros/${campo}/${id}`, anexo)
+            enviar(`lista_pagamentos/${id}/anexos_parceiros/${campo}/${id}`, anexo)
 
             let container = document.getElementById(`div${campo}`)
 
-            let string_anexo = criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoParceiro('${id_pagamento}', '${campo}', '${id}')`);
+            let string_anexo = criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoParceiro('${id}', '${campo}', '${id}')`);
 
             if (container) container.insertAdjacentHTML('beforeend', string_anexo)
         })
 
-        await inserirDados({ [id_pagamento]: pagamento }, 'lista_pagamentos')
+        await inserirDados({ [id]: pagamento }, 'lista_pagamentos')
 
     }
 
@@ -1110,13 +1064,13 @@ async function removerAnexoParceiroTemporario(campo, link) {
 
 }
 
-async function duplicarPagamento(id_pagamento) {
+async function duplicarPagamento(id) {
 
     overlayAguarde()
-    let pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
+    let pagamento = await recuperarDado('lista_pagamentos', id)
     const assinatura = `Solicitante: ${pagamento.criado}`
 
-    delete pagamento.id_pagamento
+    delete pagamento.id
     delete pagamento.criado
     delete pagamento.param[0].codigo_lancamento_integracao
     delete pagamento.historico
@@ -1132,10 +1086,10 @@ async function duplicarPagamento(id_pagamento) {
 
 }
 
-async function editarPagamento(id_pagamento) {
+async function editarPagamento(id) {
 
     overlayAguarde()
-    let pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
+    let pagamento = await recuperarDado('lista_pagamentos', id)
 
     const omieStatus = ['A VENCER', 'PAGO', 'ATRASADO', 'VENCE HOJE']
 

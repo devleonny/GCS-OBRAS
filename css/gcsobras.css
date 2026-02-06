@@ -525,7 +525,7 @@ span[name="titulo"] {
     align-items: start;
     justify-content: start;
     gap: 5px;
-    border: 1px solid #666666;
+    border: 1px solid #434343;
     width: 100%;
     min-height: 2vh;
     border-bottom-left-radius: 5px;
@@ -555,8 +555,8 @@ span[name="titulo"] {
 }
 
 .div-tabela {
-    border-right: solid 1px #666666;
-    border-left: solid 1px #666666;
+    border-right: solid 1px #434343;
+    border-left: solid 1px #434343;
     background-color: white;
     height: max-content;
     width: 100%;
@@ -565,7 +565,8 @@ span[name="titulo"] {
 }
 
 .topo-tabela {
-    border: 1px solid #666666;
+    border: 1px solid #434343;
+    border-bottom: none;
     min-height: 2vh;
     display: flex;
     align-items: start;
@@ -582,7 +583,7 @@ span[name="titulo"] {
 }
 
 .painelBotoes {
-    border: 1px solid #666666;
+    border: 1px solid #434343;
     min-height: 2vh;
     display: flex;
     align-items: center;

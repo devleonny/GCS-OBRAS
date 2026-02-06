@@ -1,7 +1,10 @@
 const controles = {}
-let attPag = true
 
-function modTab({ btnExtras = '', criarLinha, base, funcaoAdicional = null, filtros = {}, colunas = {}, body = null, pag = null }) {
+function campoBloq() {
+    popup({ mensagem: 'O campo não permite pesquisas' })
+}
+
+function modTab({ btnExtras = '', criarLinha, base, funcaoAdicional = [], filtros = {}, colunas = {}, body = null, pag = null }) {
 
     if (!body || !pag || !base || !criarLinha)
         return popup({ mensagem: 'body/pag/base/criarLinha Não podem ser null' })
@@ -31,7 +34,7 @@ function modTab({ btnExtras = '', criarLinha, base, funcaoAdicional = null, filt
             if (!query.chave)
                 return `
             <th style="background-color: white;">
-                <img src="imagens/alerta.png" style="width: 1.5rem;">
+                <img src="imagens/alerta.png" onclick="campoBloq()" title="Campo não permite pesquisa!" style="width: 1.5rem;">
             </th>`
 
             return `
@@ -55,7 +58,7 @@ function modTab({ btnExtras = '', criarLinha, base, funcaoAdicional = null, filt
             </div>
             <div class="div-tabela" style="overflow-x: auto;">
                 <table class="tabela">
-                    <thead style="box-shadow: 0px 0px 2px #222;">
+                    <thead>
                         <tr>${ths}</tr>
                         <tr>${pesquisa}</tr>
                     </thead>
@@ -139,15 +142,6 @@ async function paginacao(pag) {
 
         const tabela = tbody.parentElement
         const cols = tabela.querySelectorAll('thead th').length
-        tbody.innerHTML = `
-            <tr> 
-                <td colspan="${cols}">
-                    <div style="${horizontal}; width: 100%;">
-                        <img src="gifs/loading.gif" style="width: 5rem;">
-                    </div>
-                </td>
-            <tr>`
-
         const dados = await pesquisarDB({ base, pagina, filtros })
         const divPaginacao = document.getElementById(`paginacao_${pag}`)
         const paginaAtual = document.getElementById(`paginaAtual_${pag}`)
@@ -156,8 +150,9 @@ async function paginacao(pag) {
         controles[pag].total = dados.paginas
 
         // Função adicionarl, se existir;
-        if (funcaoAdicional) {
-            window[funcaoAdicional]()
+        if (funcaoAdicional.length) {
+            for (const f of funcaoAdicional)
+                await window[f]()
         }
 
         if (!paginaAtual) {
@@ -186,21 +181,71 @@ async function paginacao(pag) {
             resultados.textContent = dados.total
         }
 
-        let linhas = ''
-        for (const d of dados.resultados) {
-            linhas += await window[criarLinha](d)
+        if (!dados.resultados.length) {
+            tbody.innerHTML = `
+                <tr id="dinossauro"> 
+                    <td colspan="${cols}">
+                        <div style="${horizontal}; width: 100%; gap: 1rem;">
+                            <img src="gifs/offline.gif" style="width: 5rem;">
+                        </div>
+                    </td>
+                <tr>`
+        } else {
+            const dinossauro = document.getElementById('dinossauro')
+            if (dinossauro) dinossauro.remove()
+
+            await atualizarComTS(tbody, dados.resultados, criarLinha)
         }
 
-        if (!linhas) linhas = `
-            <tr> 
-                <td colspan="${cols}">
-                    <div style="${horizontal}; width: 100%; gap: 1rem;">
-                        <img src="gifs/offline.gif" style="width: 5rem;">
-                    </div>
-                </td>
-            <tr>`
-
-        tbody.innerHTML = linhas
     }
 
+}
+
+async function atualizarComTS(tbody, dados, criarLinha) {
+
+    const linhasAtuais = {}
+    for (const tr of tbody.querySelectorAll('tr[data-id]')) {
+        linhasAtuais[tr.dataset.id] = tr
+    }
+
+    const fragment = document.createDocumentFragment()
+    let usarModoPadrao = false
+
+    for (const d of dados) {
+
+        const temp = document.createElement('tbody')
+        temp.innerHTML = await window[criarLinha](d)
+        const novaTr = temp.firstElementChild
+
+        const id = novaTr?.dataset?.id
+        const ts = novaTr?.dataset?.ts
+
+        if (!id || ts == null) {
+            usarModoPadrao = true
+            break
+        }
+
+        const trAtual = linhasAtuais[id]
+
+        if (trAtual && trAtual.dataset.ts === ts) {
+            fragment.appendChild(trAtual)
+        } else {
+            fragment.appendChild(novaTr)
+        }
+
+        delete linhasAtuais[id]
+    }
+
+    if (usarModoPadrao) {
+        let linhas = ''
+        for (const d of dados) {
+            linhas += await window[criarLinha](d)
+        }
+        tbody.innerHTML = linhas
+        return
+    }
+
+    // substitui tudo de uma vez
+    tbody.innerHTML = ''
+    tbody.appendChild(fragment)
 }

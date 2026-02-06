@@ -871,7 +871,7 @@ async function abrirAtalhos(id, idMaster) {
     if (altNumOrc.includes(acesso.permissao)) botoesDisponiveis += modeloBotoes('editar3', 'Alterar ORC > novo', `mudarNumORC('${id}')`)
 
     const modAlerta = (texto) => `
-        <div class="alerta-pendencia" onclick="irORC('${id}')">
+        <div class="alerta-pendencia" onclick="irORC('${id}', '${orcamento?.aba || 'SEM ABA'}')">
             <img src="gifs/alerta.gif">
             <span>${texto}</span>
         </div>
@@ -1618,26 +1618,19 @@ async function salvarPrioridade(idOrcamento) {
 
 }
 
-async function irORC(idOrcamento) {
+async function irORC(idOrcamento, aba) {
 
     overlayAguarde()
 
-    const orcamento = db.dados_orcamentos[idOrcamento]
-    const aba = orcamento.aba || ''
+    const tGerenciamento = document.querySelector('.tela-gerenciamento')
+    if (!tGerenciamento)
+        await telaInicial()
 
-    if (!aba)
-        return popup({ mensagem: 'Coloque o orçamento em uma <b>aba</b> antes!', titulo: 'Orçamento sem aba definida' })
+    await tabelaPorAba(aba)
 
-    await telaInicial()
+    controles.indicadores.filtros = { id: op: '=', value: idOrcamento }
 
-    mostrarGuia(aba)
-
-    const tbody = document.querySelector(`#body${aba}`)
-    const trs = tbody.querySelectorAll('tr')
-
-    for (const tr of trs) {
-        tr.style.display = tr.id !== idOrcamento ? 'none' : ''
-    }
+    await paginacao()
 
     removerPopup()
 

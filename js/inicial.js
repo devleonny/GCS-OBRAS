@@ -437,7 +437,7 @@ function linAcoes(orcamento) {
             <tr>    
                 <div class="etiqueta-${estilo}" style="width: 95%; flex-direction: row; gap: 0.5rem; margin: 1px;">
 
-                    <img src="imagens/pesquisar2.png" style="width: 2rem;" onclick="irORC('${idOrcamento}')">
+                    <img src="imagens/pesquisar2.png" style="width: 2rem;" onclick="irORC('${idOrcamento}', '${orcamento?.aba || 'SEM ABA'}')">
 
                     <div style="${vertical};">
                         <span><b>ID:</b> ${chamado}</span>

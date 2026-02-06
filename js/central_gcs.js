@@ -306,7 +306,7 @@ async function usuariosToolbar() {
 
 async function configs() {
 
-    dados_setores = await sincronizarDados({ base: 'dados_setores', overlay: true })
+   // dados_setores = await sincronizarDados({ base: 'dados_setores', overlay: true })
 
     let linhas = ''
     const listas = {
@@ -700,7 +700,7 @@ async function relancarPagamento(idPagamento) {
             <button onclick="confirmarRelancamento('${idPagamento}')">Confirmar</button>
         </div>
     `
-    popup({ elemento, titulo: 'Escolha o APP', nra: true })
+    popup({ elemento, titulo: 'Escolha o APP'})
 }
 
 async function confirmarRelancamento(idPagamento) {
@@ -732,8 +732,6 @@ async function confirmarRelancamento(idPagamento) {
         </div>
     `
     popup({ mensagem, imagem: 'imagens/atualizar.png', titulo: 'Resposta' })
-
-    telaPagamentos()
 
 }
 
@@ -1335,9 +1333,10 @@ async function buscarDadosCliente() {
     const clienteName = document.querySelector('[name="cliente"]')
     if (!clienteName) return
 
-    const omie_cliente = clienteName.id
+    const omie_cliente = Number(clienteName.id)
 
     const cliente = await recuperarDado('dados_clientes', omie_cliente)
+    
     const campos = ['cnpj', 'endereco', 'bairro', 'cidade', 'estado', 'cep']
     for (const campo of campos) {
         const el = document.getElementById(campo)
