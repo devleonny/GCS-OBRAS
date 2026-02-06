@@ -429,7 +429,7 @@ async function salvarDataCorrecao(idOcorrencia, idCorrecao) {
 
     overlayAguarde()
 
-    const ocorrencia = dados_ocorrencias[idOcorrencia]
+    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
     const correcao = ocorrencia.correcoes[idCorrecao]
     correcao.datas_agendadas ??= []
     correcao.datas_agendadas.push(correcao.dtCorrecao)
