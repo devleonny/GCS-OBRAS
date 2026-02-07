@@ -156,6 +156,17 @@ async function sincronizarDados({ base, resetar = false }) {
 
 // Regras SNAPSHOT; BUSCAS;
 const regrasSnapshot = {
+    dados_clientes: {
+        stores: ['empresas'],
+        snapshot: async ({ dado, stores }) => {
+            const snap = {}
+
+            const empresa = await getStore(stores.empresas, dado.empresa) || {}
+            snap.empresa = empresa?.nome || ''
+
+            return snap
+        }
+    },
     dados_composicoes: {
         stores: [],
         snapshot: async ({ dado }) => {
@@ -200,7 +211,7 @@ const regrasSnapshot = {
         }
     },
     dados_orcamentos: {
-        stores: ['dados_clientes', 'tags_orcamentos'],
+        stores: ['dados_clientes', 'departamentos_AC', 'tags_orcamentos'],
         snapshot: async ({ dado, stores }) => {
 
             const snap = {}
@@ -247,7 +258,13 @@ const regrasSnapshot = {
 
 function getStore(store, key) {
     return new Promise(resolve => {
+
+        if (key === undefined || key === null || key === '') {
+            return resolve(null)
+        }
+
         const req = store.get(key)
+
         req.onsuccess = () => resolve(req.result || null)
         req.onerror = () => resolve(null)
     })

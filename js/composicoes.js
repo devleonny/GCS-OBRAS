@@ -35,9 +35,8 @@ async function telaComposicoes() {
         'sistema': { chave: 'sistema' },
         'tempo': {},
         '-': { chave: 'descricao' },
-
         ...Object.fromEntries(
-            LPUS.map(lpu => [lpu, {}])
+            LPUS.map(lpu => [lpu, { chave: `snapshots.${lpu}` }])
         )
     }
 

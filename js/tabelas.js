@@ -1,4 +1,4 @@
-const controles = {}
+let controles = {}
 
 function campoBloq() {
     popup({ mensagem: 'O campo não permite pesquisas' })
@@ -189,7 +189,7 @@ async function paginacao(pag) {
                             <img src="gifs/offline.gif" style="width: 5rem;">
                         </div>
                     </td>
-                <tr>`
+                </tr>`
         } else {
             const dinossauro = document.getElementById('dinossauro')
             if (dinossauro) dinossauro.remove()

@@ -152,7 +152,7 @@
 }
 
 .painel-indicadores {
-    height: 80vh;
+    height: max-content;
     width: 90%;
     box-shadow: 0 0 2px #222;
     border-radius: 3px;

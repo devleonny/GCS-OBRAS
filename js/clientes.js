@@ -40,7 +40,7 @@ function checksCliente(inputM) {
     }
 }
 
-function classificarUnidades() {
+async function classificarUnidades() {
 
     const inputs = document.querySelectorAll('[name="empresa"]')
     unidades = []
@@ -58,11 +58,15 @@ function classificarUnidades() {
     if (unidades.length == 0)
         return popup({ mensagem: 'Marque pelo menos 1 unidade' })
 
-    const opcoes = Object.entries(db.empresas)
-        .sort(([, a], [, b]) => a.nome.localeCompare(b.nome))
-        .map(([idEmpresa, empresa]) => {
-            if (idEmpresa == 'mQK7') return ''
-            return `<option value="${idEmpresa}">${empresa.nome}</option>`
+    const empresas = await pesquisarDB({
+        base: 'empresas'
+    })
+
+    const opcoes = (empresas.resultados || [])
+        .sort((a, b) => a.nome.localeCompare(b.nome))
+        .map((empresa) => {
+            if (empresa.id == 'mQK7') return ''
+            return `<option value="${empresa.id}">${empresa.nome}</option>`
         }).join('')
 
     const linhas = [
@@ -124,7 +128,7 @@ async function telaClientes() {
     const colunas = {
         'Check': '',
         'CPF / CNPJ': { chave: 'cnpj' },
-        'Empresa': '',
+        'Empresa': { chave: 'snapshots.empresa' },
         'Nome Fantasia': { chave: 'nome' },
         'Endereço Cadastro': '',
         'Endereço Entrega': '',
@@ -186,7 +190,6 @@ function criarLinhaClienteGCS(cliente) {
             <span><b>Estado:</b> ${enderecoEntrega.estado || ''}</span>
         </div>
     `
-    const nEmpresa = db.empresas?.[empresa]?.nome || ''
 
     const tds = `
         <td>
@@ -198,7 +201,7 @@ function criarLinhaClienteGCS(cliente) {
             name="empresa">
         </td>
         <td style="white-space: nowrap;">${cnpj || ''}</td>
-        <td><span>${nEmpresa}</span></td>
+        <td><span>${cliente.snapshots.empresa}</span></td>
         <td style="text-align: left;">${nome || ''}</td>
         <td>${eCadastro}</td>
         <td>${eEntrega}</td>
@@ -311,22 +314,13 @@ function confirmarExcluirCliente(idCliente) {
         { texto: 'Confirmar', img: 'concluido', funcao: `excluirCliente('${idCliente}')` }
     ]
 
-    popup({ botoes, mensagem: 'Tem certeza que deseja excluir?', titulo: 'Exclusão de cliente' })
+    popup({ botoes, mensagem: 'Tem certeza que deseja excluir?', nra: false, titulo: 'Exclusão de cliente' })
 }
 
 async function excluirCliente(idCliente) {
 
-    removerPopup({ nra: false })
-    overlayAguarde()
-
     deletar(`dados_clientes/${idCliente}`)
     await deletarDB(`dados_clientes/${idCliente}`)
-
-    delete db.dados_clientes[idCliente]
-    const trExistente = document.getElementById(idCliente)
-    if (trExistente) trExistente.remove()
-
-    removerOverlay()
 
 }
 
@@ -343,7 +337,8 @@ async function salvarCliente(idCliente = codCliAleatorio()) {
 
     const resposta = await verificarClienteExistente({ cnpj, idCliente })
 
-    if (resposta.mensagem) return popup({ mensagem: resposta.mensagem })
+    if (resposta.mensagem)
+        return popup({ mensagem: resposta.mensagem })
 
     const novo = {
         cnpj,
@@ -362,20 +357,15 @@ async function salvarCliente(idCliente = codCliAleatorio()) {
         }
     }
 
-    const cliente = db.dados_clientes[idCliente] || {}
-    const dados = {
-        ...cliente,
+    const cliente = {
+        ...await recuperarDado('dados_clientes', idCliente) || {},
         ...novo
     }
 
-    db.dados_clientes[idCliente] = dados
-    await inserirDados({ [idCliente]: dados }, 'dados_clientes')
+    await inserirDados({ [idCliente]: cliente }, 'dados_clientes')
     removerPopup()
 
-    if (telaAtiva !== 'clientes') return
-
-    criarLinhaClienteGCS(idCliente, dados)
-    enviar(`dados_clientes/${idCliente}`, dados)
+    enviar(`dados_clientes/${idCliente}`, cliente)
 
 }
 

@@ -304,80 +304,59 @@ async function usuariosToolbar() {
     if (divOnline) painelUsuarios()
 }
 
-async function configs() {
+function linUsuarios(dados) {
 
-   // dados_setores = await sincronizarDados({ base: 'dados_setores', overlay: true })
-
-    let linhas = ''
     const listas = {
         permissoes: ['', 'adm', 'user', 'visitante', 'analista', 'gerente', 'coordenacao', 'diretoria', 'editor', 'log', 'qualidade', 'novo'],
         setores: ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE', 'POC']
     }
-
-    const organizados = Object
-        .values(dados_setores)
-        .sort((a, b) =>
-            (a.usuario || '').localeCompare(b.usuario || '', undefined, { sensitivity: 'base' })
-        )
 
     const tdPreenchida = (coluna, opcoes, usuario) => `
         <td>
             <select class="opcoesSelect" onchange="alterarUsuario({campo: '${coluna}', usuario: '${usuario}', select: this})" style="cursor: pointer;">${opcoes}</select>
         </td>
     `
+    const { permissao, setor, usuario } = dados
 
-    for (const dados of organizados) {
+    const opcoesPermissao = listas.permissoes
+        .map(p => `<option value="${p}" ${permissao == p ? 'selected' : ''}>${p}</option>`).join('')
 
-        const { permissao, setor, usuario } = dados
+    const opcoesSetores = listas.setores
+        .map(s => `<option value="${s}" ${setor == s ? 'selected' : ''}>${s}</option>`).join('')
 
-        const opcoesPermissao = listas.permissoes
-            .map(p => `<option value="${p}" ${permissao == p ? 'selected' : ''}>${p}</option>`).join('')
-
-        const opcoesSetores = listas.setores
-            .map(s => `<option value="${s}" ${setor == s ? 'selected' : ''}>${s}</option>`).join('')
-
-        linhas += `
+    return `
         <tr>
             <td style="text-align: left;">${usuario}</td>
             ${tdPreenchida('permissao', opcoesPermissao, usuario)}
             ${tdPreenchida('setor', opcoesSetores, usuario)}
-        </tr>
-        `
+        </tr>`
+
+}
+
+async function configs() {
+
+    const colunas = {
+        'Usuário': { chave: 'usuario' },
+        'Permissão': { chave: 'permissao' },
+        'Setores': { chave: 'setor' }
     }
 
-    let ths = ''
-    let tbusca = ''
-    let cabecalhos = ['Usuário', 'Permissão', 'Setores']
-    cabecalhos.forEach((cabecalho, i) => {
-        ths += `<th>${cabecalho}</th>`
-        tbusca += `<th contentEditable="true" style="background-color: white; text-align: left;" oninput="pesquisarGenerico(${i}, this.textContent, 'tbodyUsuarios')"></th>`
+    const tabela = await modTab({
+        pag: 'usuarios',
+        colunas,
+        base: 'dados_setores',
+        criarLinha: 'linUsuarios',
+        body: 'bodyUsuarios'
     })
 
-    const tabela = `
-        <div class="borda-tabela">
-            <div class="topo-tabela"></div>
-            <div class="div-tabela">
-                <table class="tabela">
-                    <thead>
-                        <tr>${ths}</tr>
-                        <tr>${tbusca}</tr>
-                    </thead>
-                    <tbody id="tbodyUsuarios">${linhas}</tbody>
-                </table>
-                </div>
-            <div class="rodape-tabela"></div>
-        </div>
-    `
-
     const elemento = `
-        <div style="${vertical}; background-color: #d2d2d2; padding: 0.5rem;">
-            <label style="font-size: 1.2rem;">Gestão de Usuários</label>
-            <hr style="width: 100%;">
+        <div style="${vertical}; padding: 0.5rem;">
             ${tabela}
-        </div>
-    `
-    removerPopup()
+        </div>`
+
     popup({ elemento, titulo: 'Configurações' })
+
+    await paginacao()
 
 }
 
@@ -387,11 +366,10 @@ async function alterarUsuario({ campo, usuario, select, valor }) {
 
     const alteracao = await comunicacaoServ({ usuario, campo, valor }) // Se alterar no servidor, altera localmente;
 
-    if (alteracao?.success) {
-        dados_setores[usuario][campo] = select ? select.value : valor
-    } else {
+    if (!alteracao?.success) {
         popup({ mensagem: `Não foi possível alterar: ${alteracao?.mensagem || 'Tente novamente mais tarde'}`, nra: true })
-        if (select) select.value = dados_setores[usuario][campo] // Devolve a informação anterior pro elemento;
+        if (select)
+            select.value = dados_setores[usuario][campo] // Devolve a informação anterior pro elemento;
     }
 
 }
@@ -444,9 +422,9 @@ function maisAba() {
     window.open(window.location.href, '_blank', 'toolbar=no, menubar=no');
 }
 
-async function irPdf(orcam_, emAnalise) {
+async function irPdf(id, emAnalise) {
 
-    const orcamento = db.dados_orcamentos[orcam_]
+    const orcamento = await recuperarDado('dados_orcamentos', id)
     orcamento.emAnalise = emAnalise
 
     localStorage.setItem('pdf', JSON.stringify(orcamento))
@@ -700,7 +678,7 @@ async function relancarPagamento(idPagamento) {
             <button onclick="confirmarRelancamento('${idPagamento}')">Confirmar</button>
         </div>
     `
-    popup({ elemento, titulo: 'Escolha o APP'})
+    popup({ elemento, titulo: 'Escolha o APP' })
 }
 
 async function confirmarRelancamento(idPagamento) {
@@ -1071,18 +1049,18 @@ async function respostaAprovacao(botao, idOrcamento, status) {
     removerPopup()
     removerPopup()
 
-    let justificativa = botao.parentElement.parentElement.querySelector('textarea').value
-    let dados = {
+    const justificativa = botao.parentElement.parentElement.querySelector('textarea').value
+    const dados = {
         usuario: acesso.usuario,
         data: new Date().toLocaleString(),
         status,
         justificativa
     }
 
-    const orcamento = db.dados_orcamentos[idOrcamento] || {}
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento) || {}
 
     orcamento.aprovacao = {
-        ...db.dados_orcamentos[idOrcamento].aprovacao,
+        ...orcamento.aprovacao,
         ...dados
     }
 
@@ -1158,7 +1136,9 @@ async function painelClientes(idOrcamento) {
     overlayAguarde()
 
     const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-    const orcamentoBase = idOrcamento ? orcamento : baseOrcamento()
+    const orcamentoBase = idOrcamento
+        ? orcamento
+        : baseOrcamento()
 
     const dados_orcam = orcamentoBase?.dados_orcam || {}
     const idCliente = dados_orcam?.omie_cliente
@@ -1177,8 +1157,12 @@ async function painelClientes(idOrcamento) {
                     : `excluirLevantamentoStatus('${idAnexo}')`))
         .join('')
 
+    const funcao = idOrcamento
+        ? `salvarDadosCliente('${idOrcamento}')`
+        : 'salvarDadosCliente()'
+
     const botoes = [
-        { texto: 'Salvar Dados', img: 'concluido', funcao: `salvarDadosCliente()` },
+        { texto: 'Salvar Dados', img: 'concluido', funcao },
         { texto: 'Atualizar', img: 'atualizar', funcao: `attClientes()` },
     ]
 
@@ -1336,7 +1320,7 @@ async function buscarDadosCliente() {
     const omie_cliente = Number(clienteName.id)
 
     const cliente = await recuperarDado('dados_clientes', omie_cliente)
-    
+
     const campos = ['cnpj', 'endereco', 'bairro', 'cidade', 'estado', 'cep']
     for (const campo of campos) {
         const el = document.getElementById(campo)
@@ -1345,103 +1329,99 @@ async function buscarDadosCliente() {
 
 }
 
-async function salvarDadosCliente() {
+async function salvarDadosCliente(idOrcamento = null) {
 
     overlayAguarde()
 
-    const orcamentoBase = telaAtiva == 'orcamentos' ? await recuperarDado('dados_orcamentos', id_orcam) : baseOrcamento()
+    try {
 
-    const el = (id) => {
-        const elemento = document.getElementById(id)
-        return elemento || null
-    }
+        const orcamentoBase = telaAtiva == 'orcamentos'
+            ? await recuperarDado('dados_orcamentos', idOrcamento)
+            : baseOrcamento()
 
-    orcamentoBase.dados_orcam ??= {}
+        const el = (id) => {
+            const elemento = document.getElementById(id)
+            return elemento || null
+        }
 
-    const omie_cliente = Number(document.querySelector('[name="cliente"]').id)
+        orcamentoBase.dados_orcam ??= {}
 
-    orcamentoBase.dados_orcam = {
-        ...orcamentoBase.dados_orcam,
-        omie_cliente,
-        condicoes: el('condicoes').value,
-        consideracoes: String(el('consideracoes').textContent).toUpperCase(),
-        data: new Date().toLocaleString('pt-BR'),
-        garantia: el('garantia').value,
-        validade: Number(el('validade').value),
-        transportadora: el('transportadora').value,
-        tipo_de_frete: el('tipo_de_frete').value,
-        emissor: el('emissor').value,
-        email_analista: el('email_analista').value,
-        analista: el('analista').value,
-        telefone_analista: el('telefone_analista').value
-    }
+        const omie_cliente = Number(document.querySelector('[name="cliente"]').id)
 
-    // Se não existir a chave contrato; sequencial fará que o servidor crie;
-    if (!orcamentoBase.dados_orcam.contrato) orcamentoBase.dados_orcam.contrato = 'sequencial'
+        orcamentoBase.dados_orcam = {
+            ...orcamentoBase.dados_orcam,
+            omie_cliente,
+            condicoes: el('condicoes').value,
+            consideracoes: String(el('consideracoes').textContent).toUpperCase(),
+            data: new Date().toLocaleString('pt-BR'),
+            garantia: el('garantia').value,
+            validade: Number(el('validade').value),
+            transportadora: el('transportadora').value,
+            tipo_de_frete: el('tipo_de_frete').value,
+            emissor: el('emissor').value,
+            email_analista: el('email_analista').value,
+            analista: el('analista').value,
+            telefone_analista: el('telefone_analista').value
+        }
 
-    // Número do chamado mesmo;
-    const chamado = document.querySelector('[name="chamado"]').id
-    if (chamado) orcamentoBase.dados_orcam.chamado = chamado
+        // Se não existir a chave contrato; sequencial fará que o servidor crie;
+        orcamentoBase.dados_orcam.contrato ??= 'sequencial'
 
-    // Se o orçamento é chamado S / N;
-    const filtroChamado = el('filtroChamado')
-    const ehChamado = filtroChamado.checked ? 'S' : 'N'
-    orcamentoBase.chamado = ehChamado
+        // Número do chamado mesmo;
+        const chamado = document.querySelector('[name="chamado"]').id
+        if (chamado)
+            orcamentoBase.dados_orcam.chamado = chamado
 
-    // Lógica da tag automática;
-    const cliente = db.dados_clientes?.[omie_cliente] || {}
-    const empresa = (db.empresas?.[cliente?.empresa]?.nome || '').toLowerCase()
-    const tagAuto = Object
-        .values(db.tags_orcamentos || [])
-        .filter(tag => tag.nome.toLowerCase() == empresa)
-    let tag = {}
-    let tagsRemocao = []
-    if (tagAuto.length) {
+        // Se o orçamento é chamado S / N;
+        const filtroChamado = el('filtroChamado')
+        const ehChamado = filtroChamado.checked ? 'S' : 'N'
+        orcamentoBase.chamado = ehChamado
+
+        // Lógica da tag automática;
+        const cliente = await recuperarDado('dados_clientes', omie_cliente) || {}
+        const empresa = cliente?.snapshots?.empresa
         orcamentoBase.tags ??= {}
 
         // Remoção local de tags automáticas;
         for (const [idTag, tag] of Object.entries(orcamentoBase.tags))
-            if (tag?.auto == 'S') {
-                tagsRemocao.push(idTag)
+            if (tag?.auto == 'S')
                 delete orcamentoBase.tags[idTag]
+
+        const pesquisa = await pesquisarDB({
+            base: 'tags_orcamentos',
+            filtros: {
+                'nome': { op: '=', value: empresa }
+            }
+        })
+
+        const tagEscolhida = pesquisa.resultados[0] || null
+        if (tagEscolhida)
+            orcamentoBase.tags[tagEscolhida.id] = {
+                data: new Date().toLocaleDateString(),
+                usuario: acesso.usuario,
+                auto: 'S'
             }
 
-        tag = { data: new Date().toLocaleDateString(), usuario: acesso.usuario, auto: 'S' }
-        orcamentoBase.tags[tagAuto[0].id] = tag
-    }
+        if (idOrcamento) {
 
-    if (telaAtiva == 'orcamentos') {
+            await inserirDados({ [idOrcamento]: orcamentoBase }, 'dados_orcamentos')
+            enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamentoBase.dados_orcam)
+            enviar(`dados_orcamentos/${idOrcamento}/tags`, orcamentoBase.tags)
 
-        if (tagAuto.length) {
-            for (const idTag of tagsRemocao)
-                deletar(`dados_orcamentos/${id_orcam}/tags/${idTag}`)
+            const atualizar = orcamentoBase.chamado !== ehChamado
+            if (atualizar)
+                enviar(`dados_orcamentos/${idOrcamento}/chamado`, ehChamado)
 
-            enviar(`dados_orcamentos/${id_orcam}/tags/${tagAuto[0].id}`, tag)
+            await abrirAtalhos(idOrcamento)
+
         }
 
-        enviar(`dados_orcamentos/${id_orcam}/dados_orcam`, orcamentoBase.dados_orcam)
-        enviar(`dados_orcamentos/${id_orcam}/chamado`, ehChamado)
-        await inserirDados({ [id_orcam]: orcamentoBase }, 'dados_orcamentos')
-        await telaOrcamentos()
+        baseOrcamento(orcamentoBase)
+
+    } finally {
+
         removerPopup()
-        abrirAtalhos(id_orcam)
-        return
-    }
 
-    baseOrcamento(orcamentoBase)
-    removerPopup()
-
-    const orcamentoPadrao = document.getElementById('orcamento_padrao')
-    if (!orcamentoPadrao) return
-
-    if (orcamentoBase.lpu_ativa === 'MODALIDADE LIVRE') {
-        total_v2()
-    } else {
-        if (String(telaAtiva).includes('Aluguel')) {
-            await total()
-        } else {
-            await totalOrcamento()
-        }
     }
 
 }
@@ -1510,55 +1490,6 @@ async function criarDepartamento(idOrcamento) {
     } catch (err) {
         return { mensagem: err.mensage || 'Falha na criação do departamento' }
     }
-}
-
-async function auxDepartamentos() {
-
-    // Map por descrição (mais rápido que ficar iterando)
-    for (const dep of Object.values(db.departamentos_AC)) {
-        depPorDesc[dep.descricao] = dep
-    }
-
-    // Map orçamento por número final (chamado ou contrato)
-    const orcPorNum = {}
-    for (const [idOrcamento, orc] of Object.entries(db.dados_orcamentos)) {
-        const numFinal = orc?.dados_orcam?.chamado || orc?.dados_orcam?.contrato
-        if (!numFinal) continue
-
-        orcPorNum[numFinal] ??= {}
-        orcPorNum[numFinal].ids ??= []
-        orcPorNum[numFinal].ids.push(idOrcamento)
-    }
-
-    // Processa departamentos
-    for (const dep of Object.values(db.departamentos_AC)) {
-
-        const nomeDep = dep.descricao
-
-        // Se existe ocorrência com o nome do dep
-        const ocorrencia = db.dados_ocorrencias?.[nomeDep] || 'Departamento Oculto'
-        if (ocorrencia) {
-            const cliente = db.dados_clientes[ocorrencia?.unidade]
-            if (cliente) dep.cliente = cliente
-        }
-
-        // Se existe orçamento com o nome do dep
-        const orcamento = orcPorNum[nomeDep]
-        if (orcamento) {
-            // Listagem de Ids, Orçamentos
-            dep.ids = orcamento.ids
-
-            const codOmie = orcamento?.dados_orcam?.omie_cliente
-            const cliente = db.dados_clientes[codOmie]
-
-            if (cliente) dep.cliente = cliente
-
-            dep.total = dinheiro(orcamento?.total_geral)
-        }
-    }
-
-    // Atualiza banco
-    await inserirDados(db.departamentos_AC, 'departamentos_AC')
 }
 
 async function numORC(idOrcamento) {

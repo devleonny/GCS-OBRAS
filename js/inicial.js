@@ -104,7 +104,7 @@ async function telaInicial() {
     const abasToolbar = ['INDICADORES', 'TÉCNICOS', ...abas]
         .map(aba => {
 
-            let funcao = `tabelaPorAba('${aba}')`
+            let funcao = `tabelaPorAba({aba: '${aba}'})`
             if (aba == 'INDICADORES')
                 funcao = 'indicadores()'
             else if (aba == 'TÉCNICOS')
@@ -146,7 +146,7 @@ async function telaInicial() {
 
 }
 
-async function tabelaPorAba(aba = 'PDA') {
+async function tabelaPorAba({ aba = 'CONCLUÍDO', filtros = { 'aba': { op: '=', value: aba } } }) {
 
     mostrarGuia(aba)
 
@@ -168,7 +168,7 @@ async function tabelaPorAba(aba = 'PDA') {
         pag,
         colunas,
         base: 'dados_orcamentos',
-        filtros: { 'aba': { op: '=', value: aba } },
+        filtros,
         criarLinha: 'linPda',
         body: 'bodyIndicadores'
     })
@@ -181,7 +181,6 @@ async function tabelaPorAba(aba = 'PDA') {
 
 async function linPda(orcamento) {
 
-    const { tags } = orcamento
     const { cliente, cidade } = orcamento.snapshots
     const idOrcamento = orcamento.id
 
@@ -195,7 +194,7 @@ async function linPda(orcamento) {
 
     const tecs = listaTecs
         .map(codTec => {
-            const cliente = db.dados_clientes?.[codTec] || {}
+            const cliente = {}
             return `<div class="etiquetas" style="min-width: 100px;">${cliente?.nome || '...'}</div>`
         }).join('')
 
@@ -273,19 +272,16 @@ async function linPda(orcamento) {
         </div>
     `
 
-    const strTags = `
-        <div style="${vertical}; gap: 2px;">
-            <img 
-                src="imagens/etiqueta.png" 
-                style="width: 1.2rem;" 
-                onclick="renderPainel('${idOrcamento}')">
+    // Tags;
+    const tags = []
 
-            <div name="tags" style="${vertical}; gap: 1px;">
-                ${await renderAtivas({ idOrcamento, tags, recarregarPainel: false })}
-            </div>
+    for (const idTag of Object.keys(orcamento.tags || {})) {
 
-        </div>
-    `
+        const tag = await recuperarDado('tags_orcamentos', idTag)
+
+        tags.push(modeloTag(tag, idOrcamento))
+
+    }
 
     const tds = `
         <td>
@@ -293,7 +289,15 @@ async function linPda(orcamento) {
             ${mod('Aba', selectAbas)}
         </td>
         <td>
-            ${orcamento ? strTags : ''}
+            <div style="${vertical}; gap: 2px;">
+                <img 
+                    src="imagens/etiqueta.png" 
+                    style="width: 1.2rem;" 
+                    onclick="renderPainel('${idOrcamento}')">
+                <div name="tags" style="${vertical}; gap: 1px;">
+                    ${tags.join('')}
+                </div>
+            </div>
         </td>
         <td>
             <div style="${horizontal}; justify-content: start; align-items: start; gap: 2px;">
@@ -414,7 +418,7 @@ function linAcoes(orcamento) {
 
     for (const dados of Object.values(acoes)) {
 
-        const { responsavel, status, registro, prazo, acao } = dados
+        const { responsavel, status, usuario, registro, prazo, acao } = dados
 
         if (filtroUsuarioAtivo && responsavel !== filtroUsuarioAtivo)
             continue
@@ -433,11 +437,14 @@ function linAcoes(orcamento) {
         const dtRegistro = registro
             ? `<span><b>criado em: </b>${new Date(registro).toLocaleString('pt-BR')}</span>`
             : ''
+        const criadoPor = usuario
+            ? `<span><b>criado por: </b>${usuario}</span>`
+            : ''
         strAcoes += `
             <tr>    
                 <div class="etiqueta-${estilo}" style="width: 95%; flex-direction: row; gap: 0.5rem; margin: 1px;">
 
-                    <img src="imagens/pesquisar2.png" style="width: 2rem;" onclick="irORC('${idOrcamento}', '${orcamento?.aba || 'SEM ABA'}')">
+                    <img src="imagens/pesquisar2.png" style="width: 2rem;" onclick="irORC('${idOrcamento}', '${orcamento?.aba || 'N'}')">
 
                     <div style="${vertical};">
                         <span><b>ID:</b> ${chamado}</span>
@@ -446,6 +453,7 @@ function linAcoes(orcamento) {
                         <span><b>Responsável:</b> ${responsavel || ''}</span>
                         <span><b>Prazo:</b> ${prazoConvertido}</span>
                         ${dtRegistro}
+                        ${criadoPor}
                     </div>
                 </div>
             </tr>`
@@ -646,7 +654,7 @@ async function criarOrcamentoPda(id) {
 
     removerPopup()
 
-    const orcamento = db.dados_orcamentos[id]
+    const orcamento = await recuperarDado('dados_orcamentos', id)
     orcamento.id = id
 
     baseOrcamento(orcamento)
@@ -667,7 +675,7 @@ function confirmarExcluirPda(idOrcamento) {
 
 async function excluirPda(idOrcamento) {
 
-    const orcamento = db.dados_orcamentos[idOrcamento]
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
 
     const trExistente = document.getElementById(idOrcamento)
     enviar(`dados_orcamentos/${idOrcamento}/aba`, '')
@@ -682,21 +690,19 @@ async function excluirPda(idOrcamento) {
 
 async function atualizarAba(select, idOrcamento) {
 
-    const orcamento = db.dados_orcamentos[idOrcamento]
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     const valor = select.value
     orcamento.aba = valor
 
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
     enviar(`dados_orcamentos/${idOrcamento}/aba`, valor)
 
-    if (telaAtiva == 'inicial') await telaInicial()
-    if (telaAtiva == 'orcamentos') await telaOrcamentos(true)
 }
 
 async function atualizarCampo(select, idOrcamento) {
 
     const campo = select.dataset.campo
-    const orcamento = db.dados_orcamentos[idOrcamento]
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     const valor = select.value
     orcamento.pda ??= {}
     orcamento.pda[campo] = valor
@@ -704,7 +710,6 @@ async function atualizarCampo(select, idOrcamento) {
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
     enviar(`dados_orcamentos/${idOrcamento}/pda/${campo}`, valor)
 
-    await telaInicial()
 }
 
 async function atualizarPda(img, idOrcamento) {
@@ -713,7 +718,7 @@ async function atualizarPda(img, idOrcamento) {
     const info = div.textContent
     const campo = img.dataset.campo
 
-    const orcamento = db.dados_orcamentos[idOrcamento]
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     orcamento.pda ??= {}
     orcamento.pda[campo] = info
 
@@ -726,7 +731,7 @@ async function atualizarPda(img, idOrcamento) {
 
 async function alterarDatas(input, campo, idOrcamento) {
 
-    const orcamento = db.dados_orcamentos[idOrcamento]
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     const data = input.value
 
     input.classList = data ? 'etiqueta-concluído' : 'etiqueta-pendente'
@@ -770,39 +775,29 @@ async function formAcao(idOrcamento, idAcao) {
         { texto: 'Salvar', img: 'concluido', funcao: `salvarAcao('${idOrcamento}' ${idAcao ? `, '${idAcao}'` : ''})` }
     ]
 
-    if (idAcao) botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirAcao('${idAcao}')` })
+    if (idAcao) botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirAcao('${idAcao}', '${idOrcamento}')` })
 
     popup({ linhas, botoes, titulo: 'Ações' })
 
 }
 
-async function confirmarExcluirAcao(idAcao) {
+async function confirmarExcluirAcao(idAcao, idOrcamento) {
 
     const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `excluirAcao('${idAcao}')` }
+        { texto: 'Confirmar', img: 'concluido', funcao: `excluirAcao('${idAcao}', '${idOrcamento}')` }
     ]
 
-    popup({ botoes, elemento: 'Tem certeza?', titulo: 'Pense bem...' })
+    popup({ botoes, mensagem: 'Tem certeza?', nra: false })
 
 }
 
-async function excluirAcao(idAcao) {
+async function excluirAcao(idAcao, idOrcamento) {
 
-    overlayAguarde()
-
-    const orcamento = db.dados_orcamentos[id_orcam]
-
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     delete orcamento.pda.acoes[idAcao]
 
-    db.dados_orcamentos[id_orcam] = orcamento
-
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    deletar(`dados_orcamentos/${id_orcam}/pda/acoes/${idAcao}`)
-
-    await telaInicial()
-
-    removerPopup()
-    removerPopup()
+    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
+    deletar(`dados_orcamentos/${idOrcamento}/pda/acoes/${idAcao}`)
 
 }
 
@@ -826,6 +821,7 @@ async function salvarAcao(idOrcamento, idAcao) {
     if (!prazo || !responsavel) return popup({ mensagem: 'Preencha o prazo e/ou responsável da ação' })
 
     const a = {
+        usuario: acesso.usuario,
         responsavel,
         acao,
         prazo,
@@ -833,7 +829,7 @@ async function salvarAcao(idOrcamento, idAcao) {
         registro: new Date().getTime()
     }
 
-    const orcamento = db.dados_orcamentos[idOrcamento]
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     orcamento.pda ??= {}
     orcamento.pda.acoes ??= {}
     orcamento.pda.acoes[idAcao] = a
@@ -842,12 +838,12 @@ async function salvarAcao(idOrcamento, idAcao) {
     enviar(`dados_orcamentos/${idOrcamento}/pda/acoes/${idAcao}`, a)
 
     removerPopup()
-    await telaInicial()
+
 }
 
-function editarLinPda({ idOrcamento, aba = 'PDA' }) {
+async function editarLinPda({ idOrcamento, aba = 'PDA' }) {
 
-    const orcamento = db.dados_orcamentos[idOrcamento]
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
 
     const linhas = [
         {
@@ -900,7 +896,7 @@ async function salvarCartao(idOrcamento) {
     }
 
     const orcamento = {
-        ...db.dados_orcamentos[idOrcamento] || {},
+        ...await recuperarDado('dados_orcamentos', idOrcamento) || {},
         ...dados
     }
 
@@ -914,7 +910,6 @@ async function salvarCartao(idOrcamento) {
     }
 
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-    await telaInicial()
 
     removerPopup()
 

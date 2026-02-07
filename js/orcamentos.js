@@ -54,9 +54,6 @@ function formatacaoPagina() {
 
 async function telaOrcamentos() {
 
-    const pda = document.querySelector('.tela-gerenciamento')
-    if (pda) return await telaInicial()
-
     atualizarToolbar(true) // GCS no título
 
     funcaoTela = 'telaOrcamentos'
@@ -76,9 +73,15 @@ async function telaOrcamentos() {
         'ações': ''
     }
 
+    const btnExtras = `<span style="color: white; cursor: pointer; white-space: nowrap;" onclick="filtroOrcamentos()">Filtros ☰</span>`
+
     const tabela = modTab({
         funcaoAdicional: ['formatacaoPagina'],
-        filtros: { 'dados_orcam': { op: 'NOT_EMPTY' } },
+        btnExtras,
+        filtros: {
+            'dados_orcam': { op: 'NOT_EMPTY' },
+            'arquivado': { op: '!=', value: 'S' },
+        },
         colunas,
         base: 'dados_orcamentos',
         criarLinha: 'criarLinhaOrcamento',
@@ -107,6 +110,53 @@ async function telaOrcamentos() {
 
     await paginacao(pag)
 
+}
+
+function filtroOrcamentos() {
+
+    const filtros = {
+        arquivado: controles?.orcamentos?.filtros?.arquivado?.op == '=',
+    }
+
+    const linhas = []
+
+    const interruptor = (chave, ativo) => `
+        <label style="position: relative; display: inline-block; width: 50px; height: 24px;">
+            <input
+                type="checkbox"
+                ${ativo ? 'checked' : ''}
+                name="filtros"
+                onchange="mudarInterruptor(this)"
+                data-chave="${chave}"
+                style="opacity:0; width:0; height:0;">
+                <span class="track" style="background-color:${ativo ? '#4caf50' : '#ccc'}"></span>
+                <span class="thumb" style="transform:translateX(${ativo ? '26px' : '0'})"></span>
+        </label>`
+
+    for (const [chave, ativo] of Object.entries(filtros)) {
+        linhas.push({
+            texto: inicialMaiuscula(chave),
+            elemento: interruptor(chave, ativo)
+        })
+    }
+
+    popup({ linhas, titulo: 'Gerenciar Filtro', nra: false })
+
+}
+
+async function mudarInterruptor(el) {
+    const ativo = el.checked
+    const label = el.parentElement
+    const chave = el.dataset.chave
+
+    controles.orcamentos.filtros[chave] = { op: ativo ? '=' : '!=', value: 'S' }
+    await paginacao()
+
+    const track = label.querySelector('.track')
+    const thumb = label.querySelector('.thumb')
+
+    if (track) track.style.backgroundColor = ativo ? '#4caf50' : '#ccc'
+    if (thumb) thumb.style.transform = ativo ? 'translateX(26px)' : 'translateX(0)'
 }
 
 function scrollar(direcao) {
@@ -190,7 +240,18 @@ async function criarLinhaOrcamento(orcamento, master, idMaster) {
         .map(aba => `<option ${orcamento.aba == aba ? 'selected' : ''}>${aba}</option>`)
         .join('')
 
-    const tags = await renderAtivas({ id, recarregarPainel: false, tags: orcamento.tags || {} })
+    // Tags;
+    const tags = []
+
+    for (const idTag of Object.keys(orcamento.tags || {})) {
+
+        const tag = await recuperarDado('tags_orcamentos', idTag)
+
+        tags.push(modeloTag(tag, id))
+
+    }
+
+    let depExistente = false
 
     const celulas = `
          <td>
@@ -213,7 +274,7 @@ async function criarLinhaOrcamento(orcamento, master, idMaster) {
                 </div>
                 <div style="${horizontal}; width: 100%; justify-content: end; gap: 5px;">
                     <span>Dep</span>
-                    <img src="imagens/${depPorDesc[numOficial] ? 'concluido' : 'cancel'}.png" style="width: 1.5rem;">
+                    <img src="imagens/${depExistente ? 'concluido' : 'cancel'}.png" style="width: 1.5rem;">
                 </div>
             </div>
         </td>
@@ -230,7 +291,7 @@ async function criarLinhaOrcamento(orcamento, master, idMaster) {
                     style="width: 1.2rem;" 
                     onclick="renderPainel('${id}')">
                 <div name="tags" style="${vertical}; gap: 1px;">
-                    ${tags}
+                    ${tags.join('')}
                 </div>
             </div>
         </td>
@@ -343,129 +404,9 @@ async function duplicar(orcam_) {
 
 }
 
-async function excelOrcamentos() {
-
-    const workbook = new ExcelJS.Workbook()
-    const worksheet = workbook.addWorksheet('Orçamentos')
-
-    // Cabeçalho;
-    worksheet.addRow([
-        'Data',
-        'Hora',
-        'Status',
-        'Tags',
-        'Chamado',
-        'Cliente',
-        'Cidade',
-        'Estado',
-        'Usuário',
-        'Valor'
-    ])
-
-    for (const orcamento of Object.values(db.dados_orcamentos)) {
-
-        const codCliente = orcamento?.dados_orcam?.omie_cliente
-        const cliente = db.dados_clientes[codCliente] || {}
-
-        const dt = orcamento?.dados_orcam?.data
-        const [data, hora] = dt ? dt.split(', ') : ['', '']
-
-        const nomesTag = Object.keys(orcamento?.tags || {})
-            .map(cod => {
-                return db.tags_orcamentos[cod] ? db.tags_orcamentos[cod].nome : ''
-            }).join(', ')
-        const chamado = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato || ''
-
-        const row = [
-            data,
-            hora,
-            orcamento?.status?.atual || 'SEM STATUS',
-            nomesTag,
-            chamado,
-            cliente?.nome || '',
-            cliente?.cidade || '',
-            cliente?.estado || '',
-            orcamento?.usuario || '',
-            orcamento?.total_geral || 0,
-        ]
-
-        worksheet.addRow(row)
-    }
-
-    // ====== ESTILOS ======
-    worksheet.eachRow((row, rowNumber) => {
-        row.eachCell((cell, colNumber) => {
-            cell.alignment = {
-                vertical: 'middle',
-                horizontal: 'center',
-                wrapText: true
-            }
-            cell.border = {
-                top: { style: 'thin' },
-                left: { style: 'thin' },
-                bottom: { style: 'thin' },
-                right: { style: 'thin' }
-            }
-
-            // Cabeçalho (primeira linha)
-            if (rowNumber === 1) {
-                cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFD9D9D9' }
-                }
-                cell.font = { bold: true }
-            }
-
-            // Formatação para colunas numéricas
-            if (typeof cell.value === 'number') {
-                cell.numFmt = '#,##0.00'
-                if (rowNumber !== 1) {
-                    cell.alignment.horizontal = 'right'
-                }
-            }
-        })
-    })
-
-    // Filtro no cabeçalho
-    worksheet.autoFilter = {
-        from: 'A1',
-        to: 'J1'
-    }
-
-    // Ajuste automático de largura das colunas
-    worksheet.columns.forEach(col => {
-        let maxLength = 10
-        col.eachCell(cell => {
-            const cellLength = String(cell.value || '').length
-            if (cellLength > maxLength) {
-                maxLength = cellLength
-            }
-        })
-        col.width = Math.min(maxLength + 2, 50) // Limite máximo de 50
-    })
-
-    // Ajusta altura das linhas para conteúdo com quebra
-    worksheet.eachRow(row => {
-        row.height = 20
-    })
-
-    // ====== GERAR ARQUIVO ======
-    const buffer = await workbook.xlsx.writeBuffer()
-    const blob = new Blob([buffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `orcamentos-${new Date().getTime()}.xlsx`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-}
-
 async function carregarToolbar() {
 
-    const filtros = { 'dados_orcam': { op: 'NOT_EMPTY' } }
+    const filtros = { 'dados_orcam': { op: 'NOT_EMPTY' }, 'arquivado': { op: '!=', value: 'S' } }
     const cont1 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'status.atual' })
     const cont2 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'chamado' })
     const cont3 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'snapshots.prioridade' })
@@ -518,7 +459,7 @@ async function carregarToolbar() {
                 name="${campo}"
                 onclick="
                 controles.${pag}.pagina = 1; 
-                controles.${pag}.filtros = { 'dados_orcam': { op: 'NOT_EMPTY' }, ${filtrosPesq} };
+                controles.${pag}.filtros = { 'dados_orcam': { op: 'NOT_EMPTY' }, 'arquivado': { op: '!=', value: 'S' }, ${filtrosPesq} };
                 paginacao('${pag}')">
                 <label>${campo.toUpperCase()}</label>
                 <span ${f[1]}>${contagem}</span>

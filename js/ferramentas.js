@@ -21,25 +21,15 @@ let nomeUsuario = null
 let progressCircle = null
 let percentageText = null
 let telaInterna = null
-let filtrosPagina = {}
 let pExecucao = true
 let telaAtiva = null
 let funcaoAtiva = null
 let funcaoTela = null
-const filtrosPesquisa = {}
 const paginasBloqueadas = ['PDF', 'OS']
 let sOverlay = false
 let ignorarMenus = false
 let controlesCxOpcoes = {}
-
-
-// Central
-let db = {}
-
-let depPorDesc = {}
 let app = null
-let paginaAtual = 1
-const limitePorPagina = 100
 const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
 
 const appBases = {

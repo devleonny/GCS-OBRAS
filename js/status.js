@@ -830,7 +830,7 @@ async function abrirAtalhos(id, idMaster) {
     let termoArquivar = 'Arquivar Orçamento'
     let iconeArquivar = 'pasta'
 
-    if (orcamento.arquivado) {
+    if (orcamento.arquivado == 'S') {
         termoArquivar = 'Desarquivar Orçamento'
         iconeArquivar = 'desarquivar'
     }
@@ -1626,9 +1626,15 @@ async function irORC(idOrcamento, aba) {
     if (!tGerenciamento)
         await telaInicial()
 
-    await tabelaPorAba(aba)
+    const filtros = {
+        id: { op: '=', value: idOrcamento },
+        ...(aba == 'N'
+            ? {}
+            : { aba: { op: '=', value: aba } }
+        )
+    }
 
-    controles.indicadores.filtros = { id: op: '=', value: idOrcamento }
+    await tabelaPorAba({ aba, filtros })
 
     await paginacao()
 
