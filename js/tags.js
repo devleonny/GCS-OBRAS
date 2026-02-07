@@ -27,8 +27,7 @@ const modeloTag = ({ cor = '#999', nome, id }, idOrcamento = null) => {
             <img src="imagens/tag_${branco == 'color: #fff;' ? 'branca' : 'preta'}.png"
                 style="width:1.4rem"
                 onclick="abrirEdicaoTag('${id}')">
-        </div>
-    `
+        </div>`
 
     return modelo
 }

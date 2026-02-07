@@ -29,6 +29,16 @@ const aEstados = [
     'Tocantins'
 ]
 
+const tagCliente = (nome, ativarRemover = false) => {
+    return `
+        <div style="${horizontal}; gap: 5px;">
+            <span data-nome="${nome}" class="tag-cliente">
+                ${nome || '--'}
+            </span>
+            ${ativarRemover ? `<img onclick="this.parentElement.remove()" src="imagens/cancel.png">` : ''}
+        </div>`
+}
+
 function checksCliente(inputM) {
     const inputs = document.querySelectorAll('[name="empresa"]')
 
@@ -123,15 +133,15 @@ async function vincularEmpresas() {
 async function telaClientes() {
 
     mostrarMenus(false)
-    overlayAguarde()
 
     const colunas = {
         'Check': '',
         'CPF / CNPJ': { chave: 'cnpj' },
         'Empresa': { chave: 'snapshots.empresa' },
         'Nome Fantasia': { chave: 'nome' },
-        'Endereço Cadastro': '',
-        'Endereço Entrega': '',
+        'Tags': { chave: 'tags.*.tag' },
+        'Endereço Cadastro': { chave: 'snapshots.enderecoCadastro' },
+        'Endereço Entrega': { chave: 'snapshots.enderecoEntrega' },
         'Ações': ''
     }
 
@@ -157,39 +167,37 @@ async function telaClientes() {
             ${tabela}
         </div>`
 
-    await paginacao(pag)
+    await paginacao()
 
     if (app == 'GCS')
         criarMenus('clientes')
 
-    removerOverlay()
 
 }
 
 function criarLinhaClienteGCS(cliente) {
 
     const idCliente = cliente.id
-    const { nome, cnpj, endereco, bairro, cep, cidade, estado, empresa } = cliente
+    const { nome, cnpj, tags } = cliente
     const enderecoEntrega = cliente.enderecoEntrega ?? {}
 
-    const eCadastro = `
-        <div style="${vertical}; gap: 1px; text-align: left;">
+    const modelo = ({ endereco, bairro, cep, cidade, estado }) => {
+        return `
+        <div style="${vertical}; min-width: 200px; gap: 1px; text-align: left;">
             <span><b>Endereço:</b> ${endereco || ''}</span>
             <span><b>Bairro:</b> ${bairro || ''}</span>
             <span><b>Cep:</b> ${cep || ''}</span>
             <span><b>Cidade:</b> ${cidade || ''}</span>
             <span><b>Estado:</b> ${estado || ''}</span>
-        </div>
-    `
-    const eEntrega = `
-        <div style="${vertical}; gap: 1px; text-align: left;">
-            <span><b>Endereço:</b> ${enderecoEntrega.endereco || ''}</span>
-            <span><b>Bairro:</b> ${enderecoEntrega.bairro || ''}</span>
-            <span><b>Cep:</b> ${enderecoEntrega.cep || ''}</span>
-            <span><b>Cidade:</b> ${enderecoEntrega.cidade || ''}</span>
-            <span><b>Estado:</b> ${enderecoEntrega.estado || ''}</span>
-        </div>
-    `
+        </div>`
+    }
+
+    const eCadastro = modelo({ ...cliente })
+    const eEntrega = modelo({ ...enderecoEntrega })
+
+    const labelsTags = (tags || [])
+        .map(item => tagCliente(item.tag))
+        .join('')
 
     const tds = `
         <td>
@@ -203,21 +211,49 @@ function criarLinhaClienteGCS(cliente) {
         <td style="white-space: nowrap;">${cnpj || ''}</td>
         <td><span>${cliente.snapshots.empresa}</span></td>
         <td style="text-align: left;">${nome || ''}</td>
+        <td>
+            <div style="${vertical}; gap: 2px;">
+                ${labelsTags}
+            </div>
+        </td>
         <td>${eCadastro}</td>
         <td>${eEntrega}</td>
         <td>
             <img src="imagens/pesquisar2.png" onclick="formularioCliente(${idCliente})">
-        </td>
-    `
+        </td>`
 
     return `<tr>${tds}</tr>`
 
+}
+function adicionarTag() {
+    const painel = document.querySelector('.painel-padrao')
+
+    const tag = painel.querySelector('[name="tag"]')
+
+    const divtags = painel.querySelector('[name="tags"]')
+    const tagsExistente = divtags.querySelectorAll('.tag-cliente')
+
+    const existente = [...tagsExistente]
+        .some(span => span.dataset.nome == tag.value)
+
+    if (existente || tag.value == '')
+        return
+
+    divtags.insertAdjacentHTML('beforeend', tagCliente(tag.value, true))
 }
 
 async function formularioCliente(idCliente) {
 
     const cliente = await recuperarDado('dados_clientes', idCliente) || {}
     const enderecoEntrega = cliente?.enderecoEntrega || {}
+
+    const labelsTags = (cliente.tags || [])
+        .map(item => tagCliente(item.tag, true))
+        .join('')
+
+    const opcoes = ['', 'FUNCIONÁRIO', 'CLIENTE', 'MOTORISTA', 'TÉCNICO', 'FORNECEDOR', 'MATRIZ']
+        .map(o => `<option>${o}</option>`)
+        .join('')
 
     const linhas = [
         {
@@ -227,6 +263,21 @@ async function formularioCliente(idCliente) {
         {
             texto: 'Nome Fantasia',
             elemento: `<textarea oninput="this.value = this.value.toUpperCase()" name="nome">${cliente.nome || ''}</textarea>`
+        },
+        {
+            texto: 'Tags',
+            elemento: `
+            <div style="${horizontal}; gap: 1rem;">
+                <img src="imagens/concluido.png" onclick="adicionarTag()">
+                <select name="tag">
+                    ${opcoes}
+                </select>
+                
+                <div name="tags" style="${vertical}; gap: 2px;">
+                    ${labelsTags}
+                </div>
+            </div>
+            `
         },
         {
             elemento: `
@@ -319,8 +370,8 @@ function confirmarExcluirCliente(idCliente) {
 
 async function excluirCliente(idCliente) {
 
+    await deletarDB('dados_clientes', idCliente)
     deletar(`dados_clientes/${idCliente}`)
-    await deletarDB(`dados_clientes/${idCliente}`)
 
 }
 
@@ -328,8 +379,9 @@ async function salvarCliente(idCliente = codCliAleatorio()) {
 
     overlayAguarde()
 
+    const painel = document.querySelector('.painel-padrao')
     const obVal = (n) => {
-        const el = document.querySelector(`[name="${n}"]`)
+        const el = painel.querySelector(`[name="${n}"]`)
         return el ? el.value : ''
     }
 
@@ -340,7 +392,13 @@ async function salvarCliente(idCliente = codCliAleatorio()) {
     if (resposta.mensagem)
         return popup({ mensagem: resposta.mensagem })
 
+    const divtags = painel.querySelector('[name="tags"]')
+    const tagsExistente = divtags.querySelectorAll('.tag-cliente')
+    const tags = [...tagsExistente || []]
+        .map(span => { return { tag: span.dataset.nome } })
+
     const novo = {
+        id: idCliente,
         cnpj,
         nome: obVal('nome'),
         endereco: obVal('endereco'),
@@ -348,6 +406,7 @@ async function salvarCliente(idCliente = codCliAleatorio()) {
         cep: obVal('cep'),
         cidade: obVal('cidade'),
         estado: obVal('estado'),
+        tags,
         enderecoEntrega: {
             endereco: obVal('e_endereco'),
             bairro: obVal('e_bairro'),

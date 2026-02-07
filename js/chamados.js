@@ -1,106 +1,28 @@
-let filtroChamados = {}
 let idManutencao = null
 let statusChamados = null
 
-async function atualizarManutencoes() {
-    await telaChamados()
-}
-
-function filtrarManutencoes({ status, col, texto } = {}) {
-
-    const inicio = document.querySelector('[name="inicio"]').value
-    const fim = document.querySelector('[name="fim"]').value
-
-    const dtInicio = inicio ? new Date(...inicio.split('-').map((v, i) => i === 1 ? v - 1 : v)) : null
-    const dtFinal = fim ? new Date(...fim.split('-').map((v, i) => i === 1 ? v - 1 : v)) : null
-
-    if (status) statusChamados = status
-
-    const trs = document.querySelectorAll('#bodyChamados tr');
-    const abas = document.querySelectorAll('.aba-toolbar');
-
-    // resetar abas
-    abas.forEach(aba => aba.style.opacity = 0.5);
-    const abaAtiva = document.querySelector(`[name="${statusChamados || 'TODOS'}"]`);
-    if (abaAtiva) abaAtiva.style.opacity = 1;
-
-    let totais = { TODOS: 0 };
-
-    trs.forEach(tr => {
-        const statusLinha = tr.dataset.status;
-        const tds = tr.querySelectorAll('td');
-
-        if (!(statusLinha in totais)) totais[statusLinha] = 0;
-        totais[statusLinha]++;
-        totais['TODOS']++;
-
-        let mostrar = true;
-
-
-        // filtro de status
-        if (statusChamados !== 'TODOS' && statusLinha !== statusChamados) {
-            mostrar = false;
-        }
-
-        // filtro de coluna
-        if (mostrar && col !== null && texto) {
-            if (col < tds.length) {
-                const conteudo = (tds[col].querySelector('input, textarea, select')?.value
-                    || tds[col].textContent || '').toLowerCase();
-                if (!conteudo.includes(texto.toLowerCase())) {
-                    mostrar = false;
-                }
-            }
-        }
-
-        // filtro de data
-        const data = tds[6].querySelector('[name="datas"]').value
-        if (dtInicio && dtFinal) {
-            const dataConvertida = new Date(...data.split('-').map((v, i) => i === 1 ? v - 1 : v))
-
-            if (!data || (dataConvertida < dtInicio || dataConvertida > dtFinal)) {
-                mostrar = false
-            }
-        }
-
-        tr.style.display = mostrar ? 'table-row' : 'none';
-    });
-
-    // atualizar contadores
-    abas.forEach(aba => {
-        const nome = aba.getAttribute('name');
-        const span = aba.querySelector('span');
-        if (span && totais[nome] !== undefined) {
-            span.textContent = totais[nome];
-        }
-    });
-}
-
 async function telaChamados() {
-
-    overlayAguarde()
 
     mostrarMenus(false)
 
-    const colunas = ['Última alteração', 'Status', 'Chamado', 'Loja', 'Técnico', 'Analista', 'Previsão', 'Ações']
-    let ths = ''
-    let tsh = ''
-    colunas.forEach((col, i) => {
-        ths += `<th>${col}</th>`
+    const colunas = {
+        'Última alteração': { chave: 'data' },
+        'Status': { chave: 'status_manutencao' },
+        'Chamado': { chave: 'chamado' },
+        'Loja': { chave: 'snapshots.loja' },
+        'Técnico': { chave: 'snapshots.tecnico' },
+        'Último analista': { chave: 'usuario' },
+        'Previsão': { chave: 'previsao' },
+        'Ações': {}
+    }
 
-        if (col == 'Ações') {
-            tsh += `<th style="background-color: white; border-radius: 0px;"></th>`
-
-        } else if (col == 'Previsão') {
-            tsh += `
-                <th style="${vertical}; align-items: center; gap: 5px; background-color: white;">
-                    <input style="width: max-content;" onchange="filtrarManutencoes()" type="date" name="inicio">
-                    <input style="width: max-content;" onchange="filtrarManutencoes()" type="date" name="fim">
-                </th>
-            `
-        } else {
-            tsh += `<th contentEditable="true" oninput="filtrarManutencoes({col: ${i}, texto: this.textContent})" style="background-color: white;"></th>`
-        }
+    const tabela = await modTab({
+        pag: 'chamados',
+        funcaoAdicional: ['formatacaoPaginaChamados'],
+        colunas,
+        criarLinha: 'criarLinhaManutencao',
+        body: 'bodyChamados',
+        base: 'dados_manutencao'
     })
 
     const acumulado = `
@@ -111,78 +33,43 @@ async function telaChamados() {
         </div>
 
         <div style="${vertical}; width: 95vw;">
-            <div class="topo-tabela"></div>
-            <div class="div-tabela">
-                <table id="chamados" class="tabela">
-                    <thead>
-                        <tr>${ths}</tr>
-                        <tr>${tsh}</tr>
-                    </thead>
-                    <tbody id="bodyChamados"></tbody>
-                </table>
-            </div>
-            <div class="rodape-tabela"></div>
+            ${tabela}
         </div>
     `
 
-    const bodyChamados = document.getElementById('bodyChamados')
-    if (!bodyChamados) tela.innerHTML = acumulado
+    tela.innerHTML = acumulado
 
-    let contadores = {}
+    await carregarToolbarChamados()
 
-    for (let [idManutencao, manutencao] of Object.entries(db.dados_manutencao).reverse()) {
-        const cliente = db.dados_clientes[manutencao.codigo_cliente] || {};
-        const tecnico = db.dados_clientes[manutencao.codigo_tecnico] || {};
-        manutencao.cliente = cliente
-        manutencao.tecnico = tecnico
-
-        if (!contadores[manutencao.status_manutencao]) contadores[manutencao.status_manutencao] = 0
-        contadores[manutencao.status_manutencao]++
-
-        criarLinhaManutencao(idManutencao, manutencao)
-    }
-
-    const toolbar = document.getElementById('toolbar')
-    toolbar.innerHTML = ''
-
-    for (const [st, contagem] of Object.entries(contadores)) {
-
-        const label = `
-            <div name="${st}" style="opacity: 0.5" class="aba-toolbar" onclick="filtrarManutencoes({status: '${st}'})">
-                <label>${inicialMaiuscula(st)}</label>
-                <span>${contagem}</span>
-            </div>
-            `
-        toolbar.insertAdjacentHTML('beforeend', label)
-
-    }
-
-    filtrarManutencoes({ status: Object.keys(contadores)[0] })
+    await paginacao()
 
     criarMenus('chamados')
 
-    removerOverlay()
 }
 
-function criarLinhaManutencao(idManutencao, manutencao) {
+function criarLinhaManutencao(manutencao) {
+
+    const idManutencao = manutencao.id
 
     const tds = `
         <td>${manutencao?.data || '--'}</td>
         <td>${manutencao?.status_manutencao || '--'}</td>
         <td>${manutencao.chamado || 'SEM CHAMADO'}</td>
         <td>
-            <div style="${vertical}">
-                <span style="text-align: left;">${manutencao?.cliente?.nome || '--'}</span>
-                <span><b>${manutencao?.cliente?.cidade || '--'}</b></span>
-            </div>
+            <span style="text-align: left;">
+                ${manutencao?.snapshots?.loja?.[0] || ''}<br>
+                <b>${manutencao?.snapshots?.loja?.[1] || ''}</b>
+                ${manutencao?.snapshots?.loja?.[2] || ''}<br>
+            </span>
         </td>
         <td>
-            <div style="${vertical}">
-                <span style="text-align: left;">${manutencao?.tecnico?.nome || '--'}</span>
-                <span>${manutencao?.tecnico?.cidade || '--'}</span>
-            </div>
+            <span style="text-align: left;">
+                ${manutencao?.snapshots?.tecnico?.[0] || ''}<br>
+                <b>${manutencao?.snapshots?.tecnico?.[1] || ''}</b>
+                ${manutencao?.snapshots?.tecnico?.[2] || ''}<br>
+            </span>
         </td>
-        <td>${salvarPrimeiroUsuario(manutencao?.historico || manutencao.usuario)}</td>
+        <td>${manutencao?.usuario || ''}</td>
         <td>
             <input style="display: none;" name="datas" value="${manutencao?.previsao || ''}">
             ${formatarData(manutencao?.previsao) || '--'}
@@ -191,11 +78,7 @@ function criarLinhaManutencao(idManutencao, manutencao) {
             <img onclick="criarManutencao('${idManutencao}')" src="imagens/pesquisar2.png">
         </td>`
 
-    const trExistente = document.getElementById(idManutencao)
-    if (trExistente) return trExistente.innerHTML = tds
-    document.getElementById('bodyChamados').insertAdjacentHTML(
-        'beforeend',
-        `<tr data-status="${manutencao.status_manutencao}" id="${idManutencao}">${tds}</tr>`)
+    return `<tr id="${idManutencao}">${tds}</tr>`
 }
 
 function imgManut(status) {
@@ -227,21 +110,63 @@ function imgManut(status) {
     return imagem
 }
 
-function salvarPrimeiroUsuario(historico) {
 
-    if (historico && dicionario(historico)) {
-        const primeiraChave = Object.keys(historico)[0];
-        return historico[primeiraChave].usuario
-    }
+function formatacaoPaginaChamados() {
 
-    return historico;
+    const status = controles?.chamados?.filtros?.status_manutencao?.value || 'todos'
+    const abas = document.querySelectorAll('.aba-toolbar')
+
+    abas.forEach(a => a.style.opacity = 0.5)
+
+    const aba = document.querySelector(`[name="${status}"]`)
+    if (aba) aba.style.opacity = 1
+
 }
 
-async function criarManutencao(id) {
+async function carregarToolbarChamados() {
 
-    idManutencao = id || ID5digitos()
+    const cont1 = await contarPorCampo({ base: 'dados_manutencao', path: 'status_manutencao' })
 
-    const manutencao = db.dados_manutencao[idManutencao] || {}
+    const contToolbar = {
+        ...cont1
+    }
+
+    const toolbar = document.getElementById('toolbar')
+    const pag = 'chamados'
+
+    for (const [campo, contagem] of Object.entries(contToolbar)) {
+
+        const tool = toolbar.querySelector(`[name="${campo}"]`)
+        if (tool) {
+            tool.querySelector('span').textContent = contagem
+            continue
+        }
+
+        const filtros = campo == 'todos'
+            ? '{}'
+            : `{ 'status_manutencao': {op:'=', value: '${campo}'} }`
+
+        const novaTool = `
+            <div
+                style="opacity: 0.5; height: 3rem;"
+                class="aba-toolbar"
+                name="${campo}"
+                onclick="
+                controles.${pag}.pagina = 1; 
+                controles.${pag}.filtros = ${filtros};
+                paginacao()">
+                <label>${campo.toUpperCase()}</label>
+                <span>${contagem}</span>
+            </div>
+            `
+        toolbar.insertAdjacentHTML('beforeend', novaTool)
+    }
+
+}
+
+async function criarManutencao(id = ID5digitos()) {
+
+    const manutencao = await recuperarDado('dados_manutencao', id) || {}
     const cliente = await recuperarDado('dados_clientes', manutencao?.codigo_cliente)
     const tecnico = await recuperarDado('dados_clientes', manutencao?.codigo_tecnico)
 
@@ -366,7 +291,7 @@ async function gerarPDFChamados() {
 
     overlayAguarde()
 
-    const manutencao = db.dados_manutencao[idManutencao] || {}
+    const manutencao = await recuperarDado('dados_manutencao', idManutencao) || {}
     const campos = ['nome', 'cnpj', 'bairro', 'cep', 'cidade', 'estado']
     const pessoas = ['tecnico', 'cliente']
     let divs = ''
@@ -400,13 +325,12 @@ async function gerarPDFChamados() {
     let cabecalho = `
         <div style="display: flex; align-items: start; justify-content: left; gap: 5rem;">
             ${divs}
-        </div>
-    `
+        </div>`
 
     let linhas = ''
     for (const [pc, peca] of Object.entries(manutencao?.pecas || {})) {
 
-        const item = db.dados_estoque?.[pc] || {}
+        const item = await recuperarDado('dados_estoque', pc) || {}
 
         linhas += `
         <tr>
@@ -571,7 +495,7 @@ async function enviarManutencao() {
     for (const tr of trs) {
         const tds = tr.querySelectorAll('td')
         const codigo = tds[0].querySelector('.opcoes').getAttribute('name')
-        const item = db.dados_estoque?.[codigo] || {}
+        const item = await recuperarDado('dados_estoque', codigo) || {}
 
         pecas[codigo] = {
             partnumber: item?.partnumber || '',
@@ -581,7 +505,7 @@ async function enviarManutencao() {
         }
     }
 
-    const manutencao = db.dados_manutencao[idManutencao] || {}
+    const manutencao = await recuperarDado('dados_manutencao', idManutencao) || {}
     let novaManutencao = {
         ...manutencao,
         usuario: acesso.usuario,
@@ -618,7 +542,7 @@ async function enviarManutencao() {
 
     await inserirDados({ [idManutencao]: novaManutencao }, 'dados_manutencao')
     enviar(`dados_manutencao/${idManutencao}`, novaManutencao)
-    await telaChamados()
+
     removerPopup()
 
 }
@@ -629,7 +553,7 @@ function confirmarExclusaoManutencao(id) {
         { texto: 'Confirmar', img: '', funcao: `excluirManutencao('${id}')` }
     ]
 
-    popup({ mensagem: 'Confirmar exclusão?', botoes })
+    popup({ mensagem: 'Confirmar exclusão?', botoes, nra: true })
 
 }
 
@@ -638,11 +562,6 @@ async function excluirManutencao(id) {
     await deletarDB('dados_manutencao', id)
 
     deletar(`dados_manutencao/${id}`)
-
-    removerPopup()
-    removerPopup()
-
-    await telaChamados()
 
 }
 

@@ -152,7 +152,6 @@ const esquemaBotoes = {
     ],
     veiculos: [
         { nome: 'Adicionar Combustível', funcao: 'painelValores', img: 'combustivel' },
-        { nome: 'Motoristas', funcao: 'auxMotoristas', img: 'motorista' },
         { nome: 'Veículos', funcao: 'auxVeiculos', img: 'veiculo' },
     ],
     pagamentos: [],

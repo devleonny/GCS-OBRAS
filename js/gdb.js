@@ -1,5 +1,27 @@
 const nomeBase = 'GCS v2'
 const versao = 1
+const basesAuxiliares = {
+    'tags_orcamentos': { keyPath: 'id' },
+    'informacoes': { keyPath: 'id' },
+    'departamentos_AC': { keyPath: 'codigo' },
+    'dados_categorias_AC': { keyPath: 'id' },
+    'empresas': { keyPath: 'id' },
+    'sistemas': { keyPath: 'id' },
+    'prioridades': { keyPath: 'id' },
+    'correcoes': { keyPath: 'id' },
+    'tipos': { keyPath: 'id' },
+    'veiculos': { keyPath: 'id' },
+    'motoristas': { keyPath: 'id' },
+    'dados_clientes': { keyPath: 'id' },
+    'dados_setores': { keyPath: 'usuario' },
+    'dados_estoque': { keyPath: 'id' },
+    'custo_veiculos': { keyPath: 'id' },
+    'dados_composicoes': { keyPath: 'id' },
+    'dados_manutencao': { keyPath: 'id' },
+    'dados_ocorrencias': { keyPath: 'id' },
+    'dados_orcamentos': { keyPath: 'id' },
+    'lista_pagamentos': { keyPath: 'id' },
+}
 
 function criarBases(stores = null) {
 
@@ -33,29 +55,6 @@ async function atualizarGCS(resetar) {
 
     emAtualizacao = true
     sincronizarApp()
-
-    const basesAuxiliares = {
-        'tags_orcamentos': { keyPath: 'id' },
-        'informacoes': { keyPath: 'id' },
-        'departamentos_AC': { keyPath: 'codigo' },
-        'dados_categorias_AC': { keyPath: 'id' },
-        'empresas': { keyPath: 'id' },
-        'sistemas': { keyPath: 'id' },
-        'prioridades': { keyPath: 'id' },
-        'correcoes': { keyPath: 'id' },
-        'tipos': { keyPath: 'id' },
-        'veiculos': { keyPath: 'id' },
-        'motoristas': { keyPath: 'id' },
-        'dados_setores': { keyPath: 'usuario' },
-        'dados_estoque': { keyPath: 'id' },
-        'custo_veiculos': { keyPath: 'id' },
-        'dados_composicoes': { keyPath: 'id' },
-        'dados_clientes': { keyPath: 'id' },
-        'dados_manutencao': { keyPath: 'id' },
-        'dados_ocorrencias': { keyPath: 'id' },
-        'dados_orcamentos': { keyPath: 'id' },
-        'lista_pagamentos': { keyPath: 'id' },
-    }
 
     criarBases(basesAuxiliares)
 
@@ -156,10 +155,33 @@ async function sincronizarDados({ base, resetar = false }) {
 
 // Regras SNAPSHOT; BUSCAS;
 const regrasSnapshot = {
+    dados_manutencao: {
+        stores: ['dados_clientes'],
+        snapshot: async ({ dado, stores }) => {
+            const snap = {}
+
+            const loja = await getStore(stores.dados_clientes, Number(dado?.codigo_cliente)) || {}
+            snap.loja = [loja?.nome, loja?.cidade, loja?.endereco]
+
+            const tecnico = await getStore(stores.dados_clientes, Number(dado?.codigo_tecnico)) || {}
+            snap.tecnico = [tecnico?.nome, tecnico?.cidade, tecnico?.endereco]
+
+            return snap
+        }
+    },
     dados_clientes: {
         stores: ['empresas'],
         snapshot: async ({ dado, stores }) => {
             const snap = {}
+
+            snap.enderecoEntrega = [
+                dado?.enderecoEntrega?.estado,
+                dado?.enderecoEntrega?.cidade,
+                dado?.enderecoEntrega?.endereco,
+                dado?.enderecoEntrega?.bairro,
+                dado?.enderecoEntrega?.cep
+            ]
+            snap.enderecoCadastro = [dado?.estado, dado?.cidade, dado?.endereco, dado?.bairro, dado?.cep]
 
             const empresa = await getStore(stores.empresas, dado.empresa) || {}
             snap.empresa = empresa?.nome || ''
@@ -298,6 +320,12 @@ async function inserirDados(dados, base) {
             }
 
             for (const [id, d] of Object.entries(dados)) {
+
+                const keyPath = storePrincipal.keyPath
+
+                if (keyPath && d[keyPath] == undefined) 
+                    return console.warn(`Esse objeto precisa ter o identificador dentro dele [123]:{ id: 123 } e/ou veja se está salvando {[id]:{objeto}} `)
+
                 if (d.excluido) {
                     storePrincipal.delete(id)
                     continue

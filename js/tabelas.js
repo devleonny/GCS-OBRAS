@@ -21,7 +21,7 @@ function modTab({ btnExtras = '', criarLinha, base, funcaoAdicional = [], filtro
         .map(th => `
             <th>
                 <div style="${horizontal}; width: 100%; justify-content: space-between; gap: 1rem;">
-                    <span>${inicialMaiuscula(th)}</span>    
+                    <span>${th}</span>    
                 </div>
             </th>
             `
@@ -51,7 +51,7 @@ function modTab({ btnExtras = '', criarLinha, base, funcaoAdicional = [], filtro
 
     const modelo = `
         <div style="${vertical}; width: 100%;">
-            <div class="topo-tabela" style="justify-content: space-between; width: 100%; background-color: #707070;">
+            <div class="topo-tabela">
                 <div id="paginacao_${pag}"></div>
                 ${pesquisa ? `<span style="color: white; margin-right: 1rem;">Use o <b>ENTER</b> para pesquisar</span>` : ''}
                 ${btnExtras}
