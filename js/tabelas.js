@@ -126,7 +126,7 @@ async function paginacao(pag) {
         return ativarPaginacao(pag)
 
     for (const pag of Object.keys(controles))
-        ativarPaginacao(pag)
+        await ativarPaginacao(pag)
 
     async function ativarPaginacao(pag) {
 
@@ -148,12 +148,6 @@ async function paginacao(pag) {
         const resultados = document.getElementById(`resultados_${pag}`)
 
         controles[pag].total = dados.paginas
-
-        // Função adicionarl, se existir;
-        if (funcaoAdicional.length) {
-            for (const f of funcaoAdicional)
-                await window[f]()
-        }
 
         if (!paginaAtual) {
             divPaginacao.innerHTML = `
@@ -195,6 +189,12 @@ async function paginacao(pag) {
             if (dinossauro) dinossauro.remove()
 
             await atualizarComTS(tbody, dados.resultados, criarLinha)
+        }
+
+        // Função adicionarl, se existir;
+        if (funcaoAdicional.length) {
+            for (const f of funcaoAdicional)
+                await window[f]()
         }
 
     }

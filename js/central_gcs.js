@@ -100,10 +100,7 @@ function criarMenus(chave) {
 
 const atalhoInicial = [
     { nome: 'Atualizar GCS', funcao: 'atualizarGCS', img: 'atualizar' },
-    { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
-    { nome: 'Criar Orçamento', funcao: 'telaCriarOrcamento', img: 'projeto' },
-    { nome: 'Criar Orçamento de Aluguel', funcao: 'telaCriarOrcamentoAluguel', img: 'projeto' },
-    { nome: 'Solicitar Pagamento', funcao: 'formularioPagamento', img: 'dinheiro' },
+    { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' }
 ]
 
 async function irOcorrencias() {

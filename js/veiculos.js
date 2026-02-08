@@ -1,4 +1,3 @@
-let filtroVeiculos = {}
 let totalDepartamentos = {}
 
 const modeloLabel = (valor1, elemento) => `
@@ -18,13 +17,6 @@ const botaoVeiculos = (valor1, funcao, cor) => `
         <label>${valor1}</label>
     </div>
 `
-const categorias = {
-    'Combustível': 'combustivel',
-    'Pedágio': 'pedagio',
-    'Multas': 'multas',
-    'Custos Extras': 'extras'
-}
-
 async function telaVeiculos() {
 
     mostrarMenus(false)
@@ -32,13 +24,13 @@ async function telaVeiculos() {
     const colunas = {
         'Usuário': { chave: 'usuario' },
         'Data de Registro': { chave: 'data' },
-        'Veículo': {},
-        'Data Pagamento': {},
-        'Valor': {},
-        'Realizado': {},
-        'Cartão': {},
+        'Motorista': { chave: 'veiculo.snapshots.motoristas' },
+        'Data Pagamento': { chave: 'snapshots.dataPagamento' },
+        'Valor': { chave: 'snapshots.valor' },
+        'Realizado': { chave: 'snapshots.realizado' },
+        'Cartão': { chave: 'veiculo.cartao' },
         'Comentário': { chave: 'comentario' },
-        'Departamentos': {},
+        'Departamentos': { chave: 'snapshots.departamentos' },
         'Editar': {}
     }
 
@@ -73,7 +65,7 @@ async function auxVeiculos() {
 
     const colunas = {
         'Cartão': { chave: 'cartao' },
-        'Motoristas': {},
+        'Motoristas': { chave: 'snapshots.motoristas' },
         'Modelo': { chave: 'modelo' },
         'Placa': { chave: 'placa' },
         'Status': { chave: 'placa' },
@@ -139,28 +131,20 @@ async function criarLinhaVeiculo(veiculo) {
 
 async function criarLinhaCusto(custo) {
 
-    const { nome, veiculo } = custo
-    const idCusto = custo.id
-
-    function conversorData(data) {
-
-        if (!data) return ''
-
-        let [ano, mes, dia] = data.split('-')
-        let dataFormatada = `${dia}/${mes}/${ano}`
-
-        return dataFormatada
-    }
-
+    const { veiculo, id, usuario, data_pagamento, comentario, data, realizado, custo_total, distribuicao = {} } = custo
+    const { cartao, placa, modelo, snapshots, status} = veiculo || {}
     const editavel = acesso.permissao == 'adm' || acesso.setor == 'FINANCEIRO'
 
     const deps = []
 
-    for (const [codDep, km] of Object.entries(custo?.distribuicao || {})) {
+    for (const [codDep, km] of Object.entries(distribuicao)) {
 
-        const dep = await recuperarDado('departamentos_AC', codDep) || {}
+        const dep = await recuperarDado('departamentos_AC', Number(codDep)) || {}
         const porcentagem = km / custo.km
-        const valor = custo.realizado ? porcentagem * custo.realizado : ''
+        const valor = realizado
+            ? porcentagem * realizado
+            : ''
+
         deps.push(`
             <div style="${horizontal}; gap: 2px;">
                 <div class="etiquetas"
@@ -174,50 +158,46 @@ async function criarLinhaCusto(custo) {
     }
 
     const tds = `
-        <td>${custo.usuario}</td>
-        <td>${custo.data}</td>
+        <td>${usuario}</td>
+        <td>${data || ''}</td>
 
         <td>
             <div style="${horizontal}; justify-content: start; gap: 0.5rem; width: 300px;">
-                <img src="imagens/${veiculo?.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1rem;">
+                <img src="imagens/${status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1rem;">
                 <div style="${vertical}; text-align: left;">
-                    <label>${nome}</label>
-                    <label>${veiculo?.placa || '...'}</label>
-                    <label>${veiculo?.modelo || '...'}</label>
+                    <label>${(snapshots?.motoristas || []).join('<br>')}</label>
+                    <label>${placa || ''}</label>
+                    <label>${modelo || ''}</label>
                 </div>
             </div>
         </td>
 
         <td>
-            <input name="datas" style="display: none" value="${custo.data_pagamento}">
-            <label>${conversorData(custo.data_pagamento)}</label>
+            <label>${conversorData(data_pagamento)}</label>
         </td>
 
         <td>
-            <label style="white-space: nowrap;">${dinheiro(custo.custo_total)}</label>
+            <label style="white-space: nowrap;">${dinheiro(custo_total)}</label>
         </td>
 
         <td>
-            <input type="number" name="valores" style="display: none" value="${custo?.realizado || 0}">
             <div style="${horizontal}; gap: 2px;">
                 <span>R$</span>
-                <input oninput="mostrarBtn(this)" class="realizado" type="number" value="${custo?.realizado || ''}" ${editavel ? '' : 'readOnly'}>
-                <img onclick="atualizarRealizado(this)" style="display: none; width: 1.5rem;" src="imagens/concluido.png">
+                <input oninput="mostrarBtn(this)" class="realizado" type="number" value="${realizado || ''}" ${editavel ? '' : 'readOnly'}>
+                <img onclick="atualizarRealizado(this, '${id}')" style="display: none; width: 1.5rem;" src="imagens/concluido.png">
             </div>
         </td>
 
-        <td>${veiculo?.cartao || 'Não informado'}</td>
+        <td>${cartao || ''}</td>
 
-        <td style="text-align: start; width: 400px;">${custo?.comentario || ''}</td>
+        <td>${comentario}</td>
 
         <td>
             <div style="${vertical}; gap: 1px;">${deps.join('')}</div>
         </td>
 
         <td>
-            <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
-                <img src="imagens/pesquisar2.png" onclick="painelAtalhos('${idCusto}')">
-            </div>
+            <img src="imagens/pesquisar2.png" onclick="painelAtalhos('${id}')">
         </td>`
 
     return `<tr>${tds}</tr>`
@@ -268,16 +248,18 @@ function viabilidadeOmie() {
 async function criarPagamentoVeiculo() {
 
     let totalDeps = 0
-    const deps = Object.entries(totalDepartamentos)
-        .map(([codigo, total]) => {
-            const dep = db.departamentos_AC?.[codigo] || {}
-            totalDeps += total
-            return `
+
+    const deps = []
+
+    for (const [codigo, total] of Object.entries(totalDepartamentos)) {
+        const dep = await recuperarDado('departamentos_AC', Number(codigo)) || {}
+        totalDeps += total
+        deps.push(`
             <div class="etiquetas" style="flex-direction: row; gap: 0.5rem;">
                 <span>${dep.descricao || 'Desatualizado...'}</span>
                 <span>${dinheiro(total)}</span>
-            </div>`
-        }).join('')
+            </div>`)
+    }
 
     const linhas = [
         { texto: 'App', elemento: `<select id="app">${['AC', 'IAC'].map(op => `<option>${op}</option>`).join('')}</select>` },
@@ -285,7 +267,7 @@ async function criarPagamentoVeiculo() {
         { texto: 'Valor', elemento: `<span id="total" data-total="${totalDeps}">${dinheiro(totalDeps)}</span>` },
         { texto: 'Data', elemento: `<input id="data" type="date">` },
         { texto: 'Observação', elemento: `<textarea id="observacao"></textarea>` },
-        { texto: 'Departamentos', elemento: `<div style="${vertical}; gap: 1px;">${deps}</div>` }
+        { texto: 'Departamentos', elemento: `<div style="${vertical}; gap: 1px;">${deps.join('')}</div>` }
     ]
 
     const botoes = [
@@ -378,12 +360,10 @@ function somarTaxa(input) {
     elemTotal.textContent = dinheiro(total + Number(input.value))
 }
 
-async function atualizarRealizado(img) {
+async function atualizarRealizado(img, idCusto) {
 
     const input = img.previousElementSibling
     const realizado = Number(input.value)
-    const tr = input.closest('tr')
-    const idCusto = tr.id
     const custo = await recuperarDado('custo_veiculos', idCusto)
     custo.realizado = realizado
 
@@ -396,14 +376,14 @@ async function atualizarRealizado(img) {
 
 async function painelAtalhos(idCusto) {
 
-    const custo = db.custo_veiculos[idCusto]
+    const { usuario } = await recuperarDado('custo_veiculos', idCusto)
 
     const botoes = [
         { texto: 'Duplicar Pagamento', img: 'duplicar', funcao: `painelValores('${idCusto}', true)` },
         { texto: 'Editar Pagamento', img: 'editar', funcao: `painelValores('${idCusto}')` },
     ]
 
-    if ((acesso.permissao == 'adm' || acesso.usuario == custo.usuario))
+    if ((acesso.permissao == 'adm' || acesso.usuario == usuario))
         botoes.push({ texto: 'Excluir Pagamento', img: 'cancel', funcao: `painelExcluir('${idCusto}')` })
 
     popup({ botoes, mensagem: 'Escolha uma opção', titulo: 'Atalhos' })
@@ -428,12 +408,12 @@ async function excluirCusto(idCusto) {
 async function painelValores(idCusto, duplicar) {
 
     const custo = await recuperarDado('custo_veiculos', idCusto) || {}
-    const motorista = await recuperarDado('dados_clientes', custo?.motorista)
+    const { veiculo } = custo
 
     const tabela = `
         <div style="${vertical}">
             <div class="topo-tabela">
-                <button onclick="linDist()">Incluir</button>
+                <img src="imagens/baixar.png" onclick="linDist()">
             </div>
             <div class="div-tabela">
                 <table class="tabela" id="tabela_composicoes">
@@ -455,15 +435,45 @@ async function painelValores(idCusto, duplicar) {
         { texto: 'KM/L', elemento: `<input oninput="calcularValorCombustivel()" value="${custo?.kml || ''}" type="number" id="kml" type="number">` },
         { texto: 'Valor Combustível', elemento: `R$ <input  oninput="calcularValorCombustivel()" value="${custo?.combustivel || ''}" type="number" id="combustivel" type="number">` },
         { texto: 'Distribuição', elemento: tabela },
-        { texto: 'Total KM', elemento: `<input value="${custo?.km || ''}" style="width: 5rem;" id="km" readOnly> km` },
-        { texto: 'Litros', elemento: `<input value="${custo?.litros || ''}" style="width: 5rem;" id="litros" readOnly>` },
-        { texto: 'Custo Total', elemento: `R$ <input value="${custo?.custo_total || ''}" type="number" id="custo_total" type="number">` },
         {
-            texto: 'Motorista', elemento: `
-            <span ${custo?.motorista ? `id="${custo?.motorista}"` : ''} class="opcoes" name="nameMotorista" onclick="cxOpcoes('nameMotorista', 'tempMotoristas', ['nome', 'cidade'])">
-                ${motorista?.nome || 'Selecione'}
-            </span>
-            `}
+            texto: 'Total KM', elemento: `
+            <div style="${horizontal}; gap: 0.5rem;">
+                <input value="${custo?.km || ''}" style="width: 5rem;" id="km" readOnly>
+                km 
+            </div>
+            ` },
+        { texto: 'Litros', elemento: `<input value="${custo?.litros || ''}" style="width: 5rem;" id="litros" readOnly>` },
+        {
+            texto: 'Custo Total',
+            elemento: `
+            <div style="${horizontal}; gap: 0.5rem;">
+                R$ 
+                <input value="${custo?.custo_total || ''}" id="custo_total" type="number">
+            </div>
+            ` },
+        {
+            texto: 'Motorista & Veículo',
+            elemento: () => {
+
+                if (!veiculo)
+                    return `
+                        <span class="opcoes" name="veiculo" onclick="cxOpcoes('veiculo')">
+                            Selecione
+                        </span>`
+
+
+                const termos = [veiculo?.cartao || '', ...veiculo?.snapshots?.motoristas, veiculo?.placa || '', veiculo?.modelo || '']
+                return `
+                    <span id="${veiculo.id}"
+                        class="opcoes"
+                        name="veiculo"
+                        onclick="cxOpcoes('veiculo')">
+                            ${termos.join('<br>')}
+                    </span>`
+
+            }
+        }
+
     ]
 
     const botoes = [
@@ -473,16 +483,28 @@ async function painelValores(idCusto, duplicar) {
 
     popup({ linhas, botoes, titulo: 'Gerenciar Custo' })
 
+    // Controles;
+    controlesCxOpcoes.veiculo = {
+        base: 'veiculos',
+        retornar: ['cartao', 'snapshots.motoristas', 'placa', 'modelo'],
+        colunas: {
+            'Final do Cartão': { chave: 'cartao' },
+            'Placa': { chave: 'placa' },
+            'Modelo': { chave: 'modelo' },
+            'Motoristas': { chave: 'snapshots.motoristas' }
+        }
+    }
+
     for (const [codigo, km] of Object.entries(custo.distribuicao || {})) {
-        const descricao = db.departamentos_AC?.[codigo]?.cliente?.nome || 'Desatualizado...'
+        const { descricao } = await recuperarDado('departamentos_AC', Number(codigo))
         linDist({ codigo, km, descricao })
     }
 
 }
 
 function linDist({ descricao, codigo, km } = {}) {
-    const tbody = document.getElementById('distribuicao')
 
+    const tbody = document.getElementById('distribuicao')
     const chave = ID5digitos()
 
     tbody.insertAdjacentHTML('beforeend', `
@@ -492,7 +514,7 @@ function linDist({ descricao, codigo, km } = {}) {
                 class="opcoes" 
                 name="${chave}" 
                 ${codigo ? `id="${codigo}"` : ''}
-                onclick="cxOpcoes('${chave}', 'departamentos_AC', ['cliente/nome', 'descricao', 'cliente/cidade', 'cliente/cnpj'])">
+                onclick="cxOpcoes('${chave}')">
                     ${descricao || 'Selecione'}
                 </span>
             </td>
@@ -504,6 +526,15 @@ function linDist({ descricao, codigo, km } = {}) {
             </td>
         </tr>`
     )
+
+    controlesCxOpcoes[chave] = {
+        base: 'departamentos_AC',
+        retornar: ['descricao'],
+        colunas: {
+            'Descrição': { chave: 'descricao' }
+        }
+    }
+
 }
 
 function calcularValorCombustivel() {
@@ -533,13 +564,16 @@ async function salvarValores(idCusto = ID5digitos()) {
 
     overlayAguarde()
 
-    const idMotorista = document.querySelector('[name="nameMotorista"]').id
-    const motorista = await recuperarDado('motoristas', idMotorista)
+    const painel = document.querySelector('.painel-padrao')
+    const idVeiculo = painel.querySelector('[name="veiculo"]').id
+    const veiculo = await recuperarDado('veiculos', idVeiculo)
+    const { usuario } = await recuperarDado('custo_veiculos', idCusto) || {}
+
     const custo_total = obterValores('custo_total')
     const data_pagamento = obterValores('data_pagamento')
 
-    if (!motorista)
-        return popup({ mensagem: `Preencha o motorista` })
+    if (!idVeiculo)
+        return popup({ mensagem: `Preencha o Veículo` })
 
     if (custo_total == '')
         return popup({ mensagem: `Preencha o valor do pagamento` })
@@ -559,14 +593,21 @@ async function salvarValores(idCusto = ID5digitos()) {
 
         const dep = span.id
         const km = Number(linha.querySelector('[name="km"]').value)
+
+        if (km == 0)
+            return popup({ mensagem: 'KM não pode ser 0' })
+
         if (!distribuicao[dep]) distribuicao[dep] = 0
         distribuicao[dep] += km
     }
 
+    if (!Object.keys(distribuicao).length)
+        return popup({ mensagem: `Preencha pelo menos 1 departamento` })
+
     const dados = {
+        id: idCusto,
         distribuicao,
-        motorista: idMotorista,
-        veiculo: motorista.veiculo,
+        veiculo,
         categoria: 'Combustível',
         custo_total,
         combustivel: obterValores('combustivel'),
@@ -574,14 +615,13 @@ async function salvarValores(idCusto = ID5digitos()) {
         comentario: obterValores('comentario'),
         data_pagamento,
         data: new Date().toLocaleString(),
-        usuario: acesso.usuario,
         km: obterValores('km'),
-        litros: obterValores('litros')
+        litros: obterValores('litros'),
+        usuario: usuario || acesso.usuario
     }
 
     enviar(`custo_veiculos/${idCusto}`, dados)
     await inserirDados({ [idCusto]: dados }, 'custo_veiculos')
-    await telaVeiculos()
 
     removerPopup()
 }
@@ -618,7 +658,26 @@ async function novoVeiculo(idVeiculo) {
         { texto: 'Salvar', img: 'concluido', funcao }
     ]
 
+    if (acesso.permissao == 'adm' && idVeiculo)
+        botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirVeiculo('${idVeiculo}')` })
+
     popup({ linhas, botoes, titulo: 'Gerenciar Veículo' })
+
+}
+
+function confirmarExclusaoVeiculo(idVeiculo) {
+
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `excluirVeiculo('${idVeiculo}')` }
+    ]
+
+    popup({ mensagem: 'Excluir Veículo', botoes })
+}
+
+async function excluirVeiculo(idVeiculo) {
+
+    await deletarDB('veiculos', idVeiculo)
+    deletar(`veiculos/${idVeiculo}`)
 
 }
 
@@ -626,9 +685,31 @@ function adicionarMotorista({ id, nome } = {}) {
 
     const div = document.querySelector('.motoristas')
     const aleatorio = id || ID5digitos()
-    const label = `<span class="opcoes" ${id ? `id="${aleatorio}"` : ''} name="${aleatorio}" onclick="cxOpcoes('${aleatorio}', 'dados_clientes', ['nome', 'cidade'])">${nome || 'Selecione'}</span>`
+    const label = `
+    <div style="${horizontal}; gap: 1rem;">
+        <span 
+        class="opcoes" 
+        ${id ? `id="${aleatorio}"` : ''} 
+        name="${aleatorio}" 
+        onclick="cxOpcoes('${aleatorio}')">
+            ${nome || 'Selecione'}
+        </span>
+        <img src="imagens/cancel.png" onclick="this.parentElement.remove()">
+    </div>`
+
     if (id)
         return label
+
+    // Controles;
+    controlesCxOpcoes[aleatorio] = {
+        base: 'dados_clientes',
+        retornar: ['nome'],
+        colunas: {
+            'Nome': { chave: 'nome' },
+            'Estado': { chave: 'estado' },
+            'Cidade': { chave: 'cidade' }
+        }
+    }
 
     div.insertAdjacentHTML('beforeend', label)
 }
@@ -650,6 +731,7 @@ async function salvarVeiculo(idVeiculo = ID5digitos()) {
         .filter(m => m.id)
         .map(m => Number(m.id))
 
+
     const veiculo = {
         id: idVeiculo,
         modelo: obterValores('modelo'),
@@ -659,8 +741,8 @@ async function salvarVeiculo(idVeiculo = ID5digitos()) {
         motoristas
     }
 
-    enviar(`veiculos/${idVeiculo}`, veiculo)
     await inserirDados({ [idVeiculo]: veiculo }, 'veiculos')
+    enviar(`veiculos/${idVeiculo}`, veiculo)
 
     removerPopup()
 }

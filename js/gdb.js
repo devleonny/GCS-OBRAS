@@ -11,7 +11,6 @@ const basesAuxiliares = {
     'correcoes': { keyPath: 'id' },
     'tipos': { keyPath: 'id' },
     'veiculos': { keyPath: 'id' },
-    'motoristas': { keyPath: 'id' },
     'dados_clientes': { keyPath: 'id' },
     'dados_setores': { keyPath: 'usuario' },
     'dados_estoque': { keyPath: 'id' },
@@ -155,6 +154,39 @@ async function sincronizarDados({ base, resetar = false }) {
 
 // Regras SNAPSHOT; BUSCAS;
 const regrasSnapshot = {
+    custo_veiculos: {
+        stores: ['departamentos_AC'],
+        snapshot: async ({ dado, stores }) => {
+            const snap = {}
+
+            snap.dataPagamento = conversorData(dado?.data_pagamento)
+            snap.valor = [dado?.custo_total, dinheiro(dado?.custo_total)]
+            snap.realizado = [dado?.realizado, dinheiro(dado?.realizado)]
+            snap.departamentos = []
+
+            for (const id of Object.keys(dado.distribuicao || [])) {
+                const dep = await getStore(stores.departamentos_AC, Number(id)) || {}
+                snap.departamentos.push(dep?.descricao)
+            }
+
+            return snap
+        }
+    },
+    veiculos: {
+        stores: ['dados_clientes'],
+        snapshot: async ({ dado, stores }) => {
+            const snap = {}
+
+            snap.motoristas = []
+
+            for (const id of (dado.motoristas || [])) {
+                const motorista = await getStore(stores.dados_clientes, Number(id)) || {}
+                snap.motoristas.push(motorista?.nome)
+            }
+
+            return snap
+        }
+    },
     dados_manutencao: {
         stores: ['dados_clientes'],
         snapshot: async ({ dado, stores }) => {
@@ -323,7 +355,7 @@ async function inserirDados(dados, base) {
 
                 const keyPath = storePrincipal.keyPath
 
-                if (keyPath && d[keyPath] == undefined) 
+                if (keyPath && d[keyPath] == undefined)
                     return console.warn(`Esse objeto precisa ter o identificador dentro dele [123]:{ id: 123 } e/ou veja se está salvando {[id]:{objeto}} `)
 
                 if (d.excluido) {

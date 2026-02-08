@@ -62,6 +62,16 @@ const appBases = {
 
 document.addEventListener('click', verificarClique, true)
 
+function conversorData(data) {
+
+    if (!data) return ''
+
+    let [ano, mes, dia] = data.split('-')
+    let dataFormatada = `${dia}/${mes}/${ano}`
+
+    return dataFormatada
+}
+
 function verificarClique(event) {
     const menu = document.querySelector('.side-menu')
     if (!menu) return
@@ -386,18 +396,18 @@ function abrirArquivo(link, nome) {
     window.open(link, '_blank');
 }
 
-async function cxOpcoes(name, base, campos, funcaoAux = null) {
+async function cxOpcoes(name) {
 
-    controlesCxOpcoes = {
-        name,
-        base,
-        campos,
-        funcaoAux
-    }
+    const controle = controlesCxOpcoes[name]
+    if (!controle)
+        return popup({ mensagem: `>>> cxOpcoes(null) <<<` })
+
+    controlesCxOpcoes.ativo = name
+    const { colunas, base } = controle
 
     const pag = 'cxOpcoes'
     const tabela = await modTab({
-        colunas: { 'Pesquisar': { chave: campos[0] } },
+        colunas,
         pag,
         base,
         criarLinha: 'linCxOpcoes',
@@ -409,8 +419,7 @@ async function cxOpcoes(name, base, campos, funcaoAux = null) {
 
             ${tabela}
 
-        </div>
-    `
+        </div>`
 
     popup({ elemento, titulo: 'Selecione o item' })
 
@@ -419,81 +428,59 @@ async function cxOpcoes(name, base, campos, funcaoAux = null) {
 
 function linCxOpcoes(dado) {
 
-    const { funcaoAux, campos, name } = controlesCxOpcoes
+    const { ativo } = controlesCxOpcoes // Ativo é o mesmo que o [name]
+    const { colunas } = controlesCxOpcoes[ativo]
     const cod = dado.id || dado.codigo || dado.usuario || null
+    const tds = []
 
-    function getValorPorCaminho(obj, caminho) {
-        const partes = caminho.split('/')
-        const ultima = partes[partes.length - 1]
-        let func = null
+    for (const coluna of Object.values(colunas)) {
 
-        // Se o último pedaço tiver [funcao]
-        if (/\[.*\]$/.test(ultima)) {
-            const [chave, nomeFunc] = ultima.match(/^([^\[]+)\[(.+)\]$/).slice(1)
-            partes[partes.length - 1] = chave
-            func = nomeFunc
-        }
+        const d = getByPath(dado, coluna?.chave)
 
-        // percorre o caminho
-        let valor = partes.reduce((acc, chave) => acc?.[chave], obj)
-
-        // aplica a função se existir
-        if (valor != null && func && typeof window[func] === 'function') {
-            valor = window[func](valor)
-        }
-
-        return valor
+        tds.push(`
+            <td>
+                ${Array.isArray(d) ? d.join('<br>') : d || ''}
+            </td>`)
     }
 
-    const labels = campos
-        .map(campo => {
-            const valor = getValorPorCaminho(dado, campo)
-            return valor ? `<div>${valor}</div>` : ''
-        })
-        .join('')
-
-    const descricao = campos
-        .map(c => getValorPorCaminho(dado, c))
-        .find(v => v !== undefined && v !== null && v !== '')
-
     return `
-        <tr>
-            <div 
-            name="camposOpcoes" 
-            class="atalhos-opcoes" 
-            onclick="selecionar('${name}', '${cod}', '${encodeURIComponent(descricao)}', ${funcaoAux ? `'${funcaoAux}'` : false})">
-                <img src="${dado.imagem || 'imagens/LG.png'}" style="width: 3rem;">
-                <div style="${vertical}; gap: 2px;">
-                    ${labels}
-                </div>
-            </div>
+        <tr class="opcoes-v2" 
+            onclick="selecionar('${ativo}', '${cod}')">
+            ${tds.join('')}
         </tr>`
 }
 
-async function selecionar(name, id, termo, funcaoAux) {
-    termo = decodeURIComponent(termo)
-    const elemento = document.querySelector(`[name='${name}']`)
-    elemento.textContent = termo || id
-    elemento.id = id
+async function selecionar(name, cod) {
+
+    const { funcaoAux, base, retornar = [] } = controlesCxOpcoes[name]
+    const painel = document.querySelector('.painel-padrao')
+
+    // Painel quando for forms; do contrário qualquer outro elemento;
+    const elemento = (painel || document)?.querySelector(`[name='${name}']`)
+    const termos = []
+    cod = isNaN(cod)
+        ? cod
+        : Number(cod)
+    const dado = await recuperarDado(base, cod)
+
+    for (const chave of retornar) {
+        const d = getByPath(dado, chave)
+
+        if (d ?? false) {
+            if (Array.isArray(d))
+                termos.push(...d)
+            else
+                termos.push(d)
+        }
+    }
+
+    elemento.innerHTML = termos.join('<br>')
+    elemento.id = cod
+
     removerPopup()
 
-    if (funcaoAux) await eval(funcaoAux)
-}
-
-function pesquisarCX(input) {
-    const termoPesquisa = String(input.value)
-        .toLowerCase()
-        .replace(/[./-]/g, ''); // remove ponto, traço e barra
-
-    const divs = document.querySelectorAll(`[name='camposOpcoes']`);
-
-    for (const div of divs) {
-        const termoDiv = String(div.textContent)
-            .toLowerCase()
-            .replace(/[./-]/g, ''); // mesma limpeza no conteúdo
-
-        div.style.display = (termoDiv.includes(termoPesquisa) || termoPesquisa === '') ? '' : 'none';
-    }
+    if (funcaoAux)
+        await window[funcaoAux]()
 }
 
 async function gerarPdfRequisicao(nome) {

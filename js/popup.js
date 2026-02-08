@@ -25,7 +25,7 @@ function popup({
         return `
             <div class="linha-padrao">
                 ${texto || ''}
-                ${elemento}
+                ${typeof elemento === 'function' ? elemento() : elemento}
             </div>`
     }
 

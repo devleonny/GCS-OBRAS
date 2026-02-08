@@ -565,8 +565,8 @@ span[name="titulo"] {
 }
 
 .topo-tabela {
-    justify-content: space-between; 
-    width: 100%; 
+    justify-content: space-between;
+    width: 100%;
     background-color: #707070;
     border: 1px solid #434343;
     border-bottom: none;
@@ -2236,6 +2236,10 @@ input[type="file"]#input-anexos:hover {
 }
 
 @media screen and (orientation: portrait) {
+
+    .topo-tabela {
+        flex-direction: column;
+    }
 
     .blocoTabela {
         width: 98%;
