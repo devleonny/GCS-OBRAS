@@ -564,7 +564,7 @@ function removerContador(usuario) {
     if (gaveta) gaveta.remove()
 }
 
-function incluirContaador() {
+function incluirContador() {
 
     const linhas = [
         {
@@ -577,7 +577,9 @@ function incluirContaador() {
         base: 'dados_setores',
         retornar: ['usuario'],
         colunas: {
-            'Usuário': { chave: 'usuario' }
+            'Usuário': { chave: 'usuario' },
+            'Setor': { chave: 'setor' },
+            'Permissão': { chave: 'permissao' }
         }
     }
 
@@ -591,6 +593,8 @@ function incluirContaador() {
 async function indicadores() {
 
     mostrarGuia('INDICADORES')
+
+    //await atualizarGCS()
 
     const pag = 'acoes'
     const tabela = await modTab({
@@ -608,7 +612,7 @@ async function indicadores() {
     <div class="painel-indicadores">
 
         <div style="${vertical}; width: 50%;">
-            <button onclick="incluirContaador()">Incluir contador</button>
+            <button onclick="incluirContador()">Incluir contador</button>
             <div class="guarda-roupas"></div>
 
             <!--
@@ -758,6 +762,16 @@ async function formAcao(idOrcamento, idAcao) {
     const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     const dados = orcamento?.pda?.acoes?.[idAcao] || {}
 
+    controlesCxOpcoes.responsavel = {
+        base: 'dados_setores',
+        retornar: ['usuario'],
+        colunas: {
+            'Usuário': { chave: 'usuario' },
+            'Setor': { chave: 'setor' },
+            'Permissão': { chave: 'permissao' }
+        }
+    }
+
     const linhas = [
         { texto: 'Ação', elemento: `<textarea name="acao">${dados?.acao || ''}</textarea>` },
         {
@@ -766,7 +780,7 @@ async function formAcao(idOrcamento, idAcao) {
             class="opcoes" 
             name="responsavel" 
             ${dados.responsavel ? `id="${dados.responsavel}"` : ''}
-            onclick="cxOpcoes('responsavel', 'dados_setores', ['usuario', 'setor'])">
+            onclick="cxOpcoes('responsavel')">
                 ${dados.responsavel || 'Selecione'}
             </span>`
         },

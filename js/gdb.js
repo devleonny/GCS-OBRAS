@@ -12,6 +12,7 @@ const basesAuxiliares = {
     'tipos': { keyPath: 'id' },
     'veiculos': { keyPath: 'id' },
     'dados_clientes': { keyPath: 'id' },
+    'documentos': { keyPath: 'id' },
     'dados_setores': { keyPath: 'usuario' },
     'dados_estoque': { keyPath: 'id' },
     'custo_veiculos': { keyPath: 'id' },
@@ -154,6 +155,21 @@ async function sincronizarDados({ base, resetar = false }) {
 
 // Regras SNAPSHOT; BUSCAS;
 const regrasSnapshot = {
+    documentos: {
+        stores: ['dados_clientes'],
+        snapshot: async ({ dado, stores }) => {
+            const snap = {}
+            const { cidade, estado, nome } =
+                await getStore(stores.dados_clientes, Number(dado?.funcionario)) || {}
+
+            snap.cidade = cidade
+            snap.estado = estado
+            snap.nome = nome
+            snap.validade = conversorData(dado?.validade)
+
+            return snap
+        }
+    },
     custo_veiculos: {
         stores: ['departamentos_AC'],
         snapshot: async ({ dado, stores }) => {
@@ -359,7 +375,8 @@ async function inserirDados(dados, base) {
                     return console.warn(`Esse objeto precisa ter o identificador dentro dele [123]:{ id: 123 } e/ou veja se está salvando {[id]:{objeto}} `)
 
                 if (d.excluido) {
-                    storePrincipal.delete(id)
+                    const key = isNaN(id) ? id : Number(id)
+                    storePrincipal.delete(key)
                     continue
                 }
 
@@ -454,7 +471,7 @@ function resolveWildcard(reg, path) {
     const basePath = parts.slice(0, idx).join('.')
     const restPath = parts.slice(idx + 1).join('.')
 
-    const base = getByPath(reg, basePath)
+    const base = basePath ? getByPath(reg, basePath) : reg
     if (!base || typeof base !== 'object') return []
 
     const out = []
@@ -490,6 +507,21 @@ function comparar(v, op, value) {
     const vNorm = isStringV ? v.toLowerCase() : v
     const valueNorm = isStringValue ? value.toLowerCase() : value
 
+    if (typeof op === 'string' && op.endsWith('d')) {
+        const operador = op.slice(0, -1)
+        const vT = toTimestamp(v)
+        const valT = toTimestamp(value)
+        if (vT == null || valT == null) return false
+
+        switch (operador) {
+            case '>': return vT > valT
+            case '>=': return vT >= valT
+            case '<': return vT < valT
+            case '<=': return vT <= valT
+        }
+        return false
+    }
+
     switch (op) {
         case 'IS_EMPTY': return isVazio(v)
         case 'NOT_EMPTY': return !isVazio(v)
@@ -519,6 +551,13 @@ function comparar(v, op, value) {
     return true
 }
 
+function multiplasRegras(valor, regra) {
+    if (Array.isArray(regra)) {
+        return regra.every(r => comparar(valor, r.op, r.value))
+    }
+    return comparar(valor, regra.op, regra.value)
+}
+
 function passaFiltro(reg, filtros) {
 
     const filtrosWildcard = {}
@@ -533,7 +572,7 @@ function passaFiltro(reg, filtros) {
     // filtros diretos
     for (const [path, regra] of Object.entries(filtrosDiretos)) {
         const v = getByPath(reg, path)
-        if (!comparar(v, regra.op, regra.value)) return false
+        if (!multiplasRegras(v, regra)) return false
     }
 
     // sem wildcard → já passou
@@ -548,7 +587,7 @@ function passaFiltro(reg, filtros) {
 
         for (const { ctx, valor } of itens) {
 
-            if (!comparar(valor, regra.op, regra.value)) continue
+            if (!multiplasRegras(valor, regra)) continue
 
             let ok = true
 
@@ -559,7 +598,7 @@ function passaFiltro(reg, filtros) {
                 const sub = p.split('*').slice(1).join('.').replace(/^\./, '')
                 const vSub = getByPath(ctx, sub)
 
-                if (!comparar(vSub, r.op, r.value)) {
+                if (!multiplasRegras(vSub, r)) {
                     ok = false
                     break
                 }
@@ -601,7 +640,7 @@ function contarPorCampo({ base, path, filtros = {} }) {
 
                 const reg = cursor.value
 
-                if (!passaFiltro(reg, filtros, { ignoreWildcard: true })) {
+                if (!passaFiltro(reg, filtros)) {
                     cursor.continue()
                     return
                 }
@@ -628,7 +667,7 @@ function contarPorCampo({ base, path, filtros = {} }) {
                         const sub = fPath.split('*').slice(1).join('.').replace(/^\./, '')
                         const vFiltro = getByPath(ctx, sub)
 
-                        if (!comparar(vFiltro, f.op, f.value)) {
+                        if (!multiplasRegras(vFiltro, f)) {
                             passou = false
                             break
                         }
@@ -769,12 +808,43 @@ function salvarOffline(objeto, operacao, idEvento) {
 function msgQuedaConexao(msg = '<b>Falha na atualização:</b> tente novamente em alguns minutos.') {
 
     const elemento = `
-        <div class="msg-queda-conexao">
-            <img src="gifs/alerta.gif" style="width: 2rem;">
-            <span>${msg}</span>
-        </div>
-    `
+            <div class="msg-queda-conexao">
+                <img src="gifs/alerta.gif" style="width: 2rem;">
+                <span>${msg}</span>
+            </div>
+        `
     const msgAtiva = document.querySelector('.msg-queda-conexao')
     if (msgAtiva) return
     popup({ elemento })
+}
+
+function toTimestamp(d) {
+    if (d == null || d === '') return null
+
+    // Se já for número
+    if (typeof d === 'number') return d
+
+    const str = String(d).trim()
+
+    // Formato ISO: 2026-02-09 ou com hora
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+        const t = Date.parse(str.replace(',', ''))
+        return isNaN(t) ? null : t
+    }
+
+    // Formato BR: 09/02/2026 ou 09/02/2026, 14:30
+    const br = str.match(
+        /^(\d{2})\/(\d{2})\/(\d{4})(?:,\s*(\d{2}):(\d{2}))?/
+    )
+
+    if (br) {
+        const [, d, m, y, h = '00', min = '00'] = br
+        const iso = `${y}-${m}-${d}T${h}:${min}:00`
+        const t = Date.parse(iso)
+        return isNaN(t) ? null : t
+    }
+
+    // fallback
+    const t = Date.parse(str)
+    return isNaN(t) ? null : t
 }

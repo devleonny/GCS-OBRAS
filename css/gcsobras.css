@@ -999,7 +999,7 @@ button {
     cursor: pointer;
     background-color: #249f41;
     border-radius: 5px;
-    border: none;
+    border: solid 1px #434343;
     white-space: nowrap;
 }
 

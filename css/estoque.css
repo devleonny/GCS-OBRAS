@@ -7,6 +7,10 @@
     white-space: nowrap;
 }
 
+.painel-estoque {
+    width: 95vw;
+}
+
 .painel-registro {
     display: flex;
     align-items: start;
@@ -26,6 +30,15 @@
     padding: 5px;
 }
 
+.cmc {
+    border-radius: 5px;
+    padding: 5px;
+    font-size: 1.5rem;
+    color: white;
+    background-color: #097fe6;
+    margin: 5px;
+}
+
 .campo-verde {
     cursor: pointer;
     text-align: center;
@@ -33,6 +46,9 @@
     width: 100px;
     font-weight: bold;
     color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background-color: #4CAF50;
     border-radius: 5px;
     margin: 5px;

@@ -307,7 +307,7 @@ async function usuariosToolbar() {
 function linUsuarios(dados) {
 
     const listas = {
-        permissoes: ['', 'adm', 'user', 'visitante', 'analista', 'gerente', 'coordenacao', 'diretoria', 'editor', 'log', 'qualidade', 'novo'],
+        permissoes: ['', 'adm', 'técnico', 'cliente', 'visitante', 'user', 'visitante', 'analista', 'gerente', 'coordenacao', 'diretoria', 'editor', 'log', 'qualidade', 'novo'],
         setores: ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE', 'POC']
     }
 
@@ -791,8 +791,8 @@ async function verAprovacoes() {
         '%': '',
         'Localização': { chave: 'snapshots.cidade' },
         'Usuário': { chave: 'snapshots.responsavel' },
-        'Aprovação': '',
-        'Comentário': '',
+        'Aprovação': { chave: 'aprovacao.status' },
+        'Comentário': { chave: 'aprovacao.justificativa' },
         'Detalhes': ''
     }
     const pag = 'aprovacao'
@@ -826,13 +826,14 @@ async function criarLinhaAprovacao(orcamento) {
     const aprovacao = orcamento.aprovacao
     const status = aprovacao?.status || 'desconhecido'
     const porcentagemDiferenca = (((orcamento.total_geral - orcamento.total_bruto) / orcamento.total_bruto) * 100).toFixed(2)
+    const campos = [dados_orcam?.chamado, dados_orcam?.contrato, dados_orcam?.data]
+        .filter(c => c)
+        .join('<br>')
 
     return `
         <tr>
             <td style="text-align: left;">
-                ${dados_orcam?.chamado || ''}<br>
-                ${dados_orcam?.chamado || dados_orcam?.contrato || ''}<br>
-                ${dados_orcam?.data || ''}
+                ${campos}
             </td>
             <td style="text-align: left;">${(snapshots?.cliente || '').toUpperCase()}</td>
             <td style="white-space: nowrap;">${dinheiro(orcamento.total_bruto)}</td>

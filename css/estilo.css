@@ -42,11 +42,6 @@ hr {
     width: 100%;
 }
 
-img {
-    width: 2rem;
-    cursor: pointer;
-}
-
 .progresso {
     display: flex;
     align-items: center;
@@ -262,22 +257,8 @@ img {
     border: solid 1px #797979;
 }
 
-textarea {
-    width: 100%;
-}
-
 input:focus {
     outline: none;
-}
-
-button {
-    padding: 7px;
-    color: #f5f5f5;
-    cursor: pointer;
-    background-color: #249f41;
-    border-radius: 5px;
-    border: none;
-    white-space: nowrap;
 }
 
 .painel-cadastro {
