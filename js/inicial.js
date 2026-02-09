@@ -569,9 +569,17 @@ function incluirContaador() {
     const linhas = [
         {
             texto: 'Escolha o usuário',
-            elemento: `<span class="opcoes" name="contador" onclick="cxOpcoes('contador', 'dados_setores', ['usuario'])">Selecione</span>`
+            elemento: `<span class="opcoes" name="contador" onclick="cxOpcoes('contador')">Selecione</span>`
         }
     ]
+
+    controlesCxOpcoes.contador = {
+        base: 'dados_setores',
+        retornar: ['usuario'],
+        colunas: {
+            'Usuário': { chave: 'usuario' }
+        }
+    }
 
     const botoes = [
         { texto: 'Salvar', img: 'concluido', funcao: `criarGaveta()` },

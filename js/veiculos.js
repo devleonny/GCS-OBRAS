@@ -132,7 +132,7 @@ async function criarLinhaVeiculo(veiculo) {
 async function criarLinhaCusto(custo) {
 
     const { veiculo, id, usuario, data_pagamento, comentario, data, realizado, custo_total, distribuicao = {} } = custo
-    const { cartao, placa, modelo, snapshots, status} = veiculo || {}
+    const { cartao, placa, modelo, snapshots, status } = veiculo || {}
     const editavel = acesso.permissao == 'adm' || acesso.setor == 'FINANCEIRO'
 
     const deps = []
@@ -665,7 +665,7 @@ async function novoVeiculo(idVeiculo) {
 
 }
 
-function confirmarExclusaoVeiculo(idVeiculo) {
+function confirmarExcluirVeiculo(idVeiculo) {
 
     const botoes = [
         { texto: 'Confirmar', img: 'concluido', funcao: `excluirVeiculo('${idVeiculo}')` }
@@ -675,6 +675,9 @@ function confirmarExclusaoVeiculo(idVeiculo) {
 }
 
 async function excluirVeiculo(idVeiculo) {
+
+    removerPopup()
+    removerPopup()
 
     await deletarDB('veiculos', idVeiculo)
     deletar(`veiculos/${idVeiculo}`)
@@ -697,9 +700,6 @@ function adicionarMotorista({ id, nome } = {}) {
         <img src="imagens/cancel.png" onclick="this.parentElement.remove()">
     </div>`
 
-    if (id)
-        return label
-
     // Controles;
     controlesCxOpcoes[aleatorio] = {
         base: 'dados_clientes',
@@ -710,6 +710,9 @@ function adicionarMotorista({ id, nome } = {}) {
             'Cidade': { chave: 'cidade' }
         }
     }
+
+    if (id)
+        return label
 
     div.insertAdjacentHTML('beforeend', label)
 }

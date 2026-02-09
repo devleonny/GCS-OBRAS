@@ -5,7 +5,7 @@
     flex-direction: column;
     gap: 5px;
     background-color: #d2d2d2;
-    padding: 2vw;
+    padding: 1rem;
     min-width: 30rem;
     max-height: 60vh;
     height: max-content;
@@ -132,22 +132,6 @@
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
-.contornoBotaoLiberacao {
-    background-color: #b7b7b7;
-    border-top: 1px solid #8d8d8d;
-    padding: 0.8rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.8rem;
-    font-size: 0.7rem;
-}
-
-.contornoBotaoLiberacao img {
-    width: 3vw;
-    cursor: pointer;
-}
-
 .selectStatus {
     cursor: pointer;
     border-radius: 3px;
@@ -187,28 +171,21 @@
 }
 
 .painelEsquerdo {
-    min-width: 20%;
-    width: max-content;
     display: flex;
     align-items: end;
     justify-content: start;
     flex-direction: column;
     gap: 2px;
+    width: 30%;
 }
 
 .painelDireito {
-    width: 80%;
-}
-
-.ladoTexto img {
-    cursor: pointer;
-    margin-right: 1vw;
+    width: 70%;
 }
 
 .balao-pagamentos {
     cursor: pointer;
     width: 100%;
-    font-size: 0.7rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -218,6 +195,7 @@
 }
 
 .balao-pagamentos label {
+    width: max-content;
     cursor: pointer;
 }
 
@@ -260,4 +238,4 @@
     .divPagamentos {
         flex-direction: column;
     }
-}   
+}

@@ -137,7 +137,9 @@ const esquemaBotoes = {
         { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'voltar_2' }
     ],
     orcamentos: [
-        { nome: 'Baixar em Excel', funcao: 'excelOrcamentos', img: 'excel' }
+        { nome: 'Baixar em Excel', funcao: 'excelOrcamentos', img: 'excel' },
+        { nome: 'Criar Orçamento', funcao: `telaCriarOrcamento()`, img: 'projeto' },
+        { nome: 'Criar Orçamento Aluguel', funcao: `telaCriarOrcamentoAluguel()`, img: 'projeto' },
     ],
     composicoes: [
         { nome: 'Cadastrar Item', funcao: 'cadastrarItem', img: 'baixar' },
@@ -151,7 +153,9 @@ const esquemaBotoes = {
         { nome: 'Adicionar Combustível', funcao: 'painelValores', img: 'combustivel' },
         { nome: 'Veículos', funcao: 'auxVeiculos', img: 'veiculo' },
     ],
-    pagamentos: [],
+    pagamentos: [
+        { nome: 'Solicitar Pagamento', funcao: `formularioPagamento`, img: 'dinheiro' }
+    ],
     estoque: [
         { nome: 'Cadastrar Item', funcao: 'incluirItemEstoque', img: 'baixar' },
         { nome: 'Relatório de Movimentos', funcao: 'relatorioMovimento', img: 'projeto' },

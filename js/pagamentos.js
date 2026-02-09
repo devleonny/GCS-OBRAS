@@ -102,7 +102,7 @@ async function atualizarPainelEsquerdo() {
                 
                 <div class="dir">
                     <img src="${iconePagamento(st)}">
-                    <Label style="font-size: 1.1rem;">${inicialMaiuscula(st)}</label>
+                    <Label>${inicialMaiuscula(st)}</label>
                 </div>
 
                 <span class="esq">${qtde}</span>
@@ -559,6 +559,18 @@ async function formularioPagamento() {
     const [dia, mes, ano] = data_vencimento ? data_vencimento.split('/') : ''
     const dtVencimento = `${ano}-${mes}-${dia}`
 
+    controlesCxOpcoes.recebedor = {
+        base: 'dados_clientes',
+        retornar: ['nome'],
+        funcaoAux: ['calculadoraPagamento'],
+        colunas: {
+            'Nome': { chave: 'nome' },
+            'CNPJ/CPF': { chave: 'cnpj' },
+            'Cidade': { chave: 'cidade' },
+            'Estado': { chave: 'estado' }
+        }
+    }
+
     const linhas = [
         {
             texto: 'Recebedor',
@@ -568,7 +580,7 @@ async function formularioPagamento() {
                 class="opcoes" 
                 name="recebedor"
                 ${codigo_cliente_fornecedor ? `id="${codigo_cliente_fornecedor}"` : ''}
-                onclick="cxOpcoes('recebedor', 'dados_clientes', ['nome', 'cnpj'], 'calculadoraPagamento()')">
+                onclick="cxOpcoes('recebedor')">
                     ${nome}
                 </span>
                 <img onclick="formularioCliente()" src="imagens/baixar.png">
@@ -842,25 +854,43 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
     const aleatorio = ID5digitos()
     const elemento = await recuperarDado(base, id)
 
-    const spans = {
-        dados_categorias_AC: `
-        <span 
-            class="opcoes" 
-            name="${aleatorio}" 
-            ${id ? `id="${id}"` : ''}
-            onclick="cxOpcoes('${aleatorio}', 'dados_categorias_AC', ['categoria'], 'calculadoraPagamento()')">
-                ${elemento?.categoria || 'Selecionar'}
-        </span>
-        `,
-        departamentos_AC: `
-        <span
-            class="opcoes"
-            name="${aleatorio}"
-            ${id ? `id="${id}"` : ''}
-            onclick="cxOpcoes('${aleatorio}', 'departamentos_AC', ['descricao', 'cliente/nome', 'cliente/cnpj', 'total'], 'calculadoraPagamento()')">
-                ${elemento?.descricao || 'Selecionar'}
-        </span>
-    `}
+    const esquema = {
+        dados_categorias_AC: {
+            retornar: ['categoria'],
+            colunas: {
+                'Categoria': { chave: 'categoria' }
+            },
+            span: `
+                <span 
+                    class="opcoes" 
+                    name="${aleatorio}" 
+                    ${id ? `id="${id}"` : ''}
+                    onclick="cxOpcoes('${aleatorio}')">
+                        ${elemento?.categoria || 'Selecionar'}
+                </span>`
+        },
+        departamentos_AC: {
+            retornar: ['descricao'],
+            colunas: {
+                'Descrição': { chave: 'descricao' }
+            },
+            span: `
+                <span
+                    class="opcoes"
+                    name="${aleatorio}"
+                    ${id ? `id="${id}"` : ''}
+                    onclick="cxOpcoes('${aleatorio}')">
+                        ${elemento?.descricao || 'Selecionar'}
+                </span>`
+        }
+    }
+
+    controlesCxOpcoes[aleatorio] = {
+        base,
+        retornar: esquema[base].retornar,
+        funcaoAux: ['calculadoraPagamento'],
+        colunas: esquema[base].colunas
+    }
 
     const campoAdicional = `
         <div style="${horizontal}; justify-content: start; margin-right: 1rem;">
@@ -870,7 +900,7 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
                 <input name="${base}" value="${valor || ''}" type="number" oninput="calculadoraPagamento()" placeholder="0,00">
             </div>
 
-            ${spans[base]}
+            ${esquema[base].span}
 
             <label src="imagens/remover.png" 
             style="cursor: pointer; width: 1.5rem; font-size: 2.0rem;" 
@@ -899,15 +929,14 @@ async function apagarPagamento() {
 
 function duvidas() {
     const elemento = `
-        <div style="${vertical};">
-            <label>• Se faltar algo, Clique em <strong>Atualizar GCS</strong> no botão azul para atualizar tudo;</label>
-            <label>• Se o botão <strong>"Salvar"</strong> não apareceu, é porque falta preencher algum campo;</label>
-            <label>• Após às <strong>11h</strong> será lançado no dia útil seguinte;</label>
-            <label>• Maior que <strong>R$ 500,00</strong> passa por aprovação;</label>
-            <label style="text-align: left;">• Pagamento de parceiro deve ser lançado até dia <strong>5</strong> de cada
-                mês,
-                <br> e será pago dia <strong>10</strong> do mês seguinte;</label>
-            <label>• Adiantamento de parceiro, o pagamento ocorre em até 8 dias.</label>
+        <div style="${vertical}; text-align: left; padding: 1rem;">
+            <label>
+                • Após às <strong>11h</strong> será lançado no dia útil seguinte;<br>
+                • Maior que <strong>R$ 500,00</strong> passa por aprovação;<br>
+                • Pagamento de parceiro deve ser lançado até dia <strong>5</strong> de cada mês,<br>
+                e será pago dia <strong>10</strong> do mês seguinte;<br>
+                • Adiantamento de parceiro, o pagamento ocorre em até 8 dias.
+            </label>
         </div>
     `
 
