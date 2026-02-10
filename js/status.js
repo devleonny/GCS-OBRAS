@@ -1,6 +1,4 @@
-let itensAdicionais = {}
 let dadosNota = {}
-let dados_estoque = {}
 let unidadeOrc = null
 const altNumOrc = ['adm', 'analista']
 const opcoesPedidos = ['Locação', 'Serviço', 'Venda', 'Venda + Serviço', 'POC']
@@ -52,9 +50,10 @@ function aprovadoEmail(input) {
 
 }
 
-async function painelAdicionarPedido(chave) {
+async function painelAdicionarPedido(id, chave) {
 
-    const pedido = db.dados_orcamentos?.[id_orcam]?.status?.historico?.[chave] || {}
+    const orcamento = await recuperarDado('dados_orcamentos', id) || {}
+    const pedido = orcamento?.status?.historico?.[chave] || {}
 
     const linhas = [
         {
@@ -87,8 +86,8 @@ async function painelAdicionarPedido(chave) {
         {
             texto: 'Salvar',
             funcao: chave
-                ? `salvarPedido('${chave}')`
-                : 'salvarPedido()',
+                ? `salvarPedido('${id}', '${chave}')`
+                : `salvarPedido('${id}')`,
             img: 'concluido'
         }
     ]
@@ -97,7 +96,47 @@ async function painelAdicionarPedido(chave) {
 
 }
 
-async function painelAdicionarNotas() {
+async function salvarPedido(id, chave = ID5digitos()) {
+
+    overlayAguarde()
+
+    const comentario_status = document.getElementById('comentario_status')
+    const valor = document.getElementById('valor')
+    const tipo = document.getElementById('tipo')
+    const pedido = document.getElementById('pedido')
+
+    if (valor.value == '' || tipo.value == 'Selecione' || pedido.value == '') {
+
+        return popup({ mensagem: `Existem campos em Branco` })
+
+    }
+
+    const orcamento = await recuperarDado('dados_orcamentos', id)
+
+    orcamento.status ??= {}
+    orcamento.status.historico ??= {}
+
+    const dados = {
+        data: new Date().toLocaleString(),
+        executor: acesso.usuario,
+        comentario: comentario_status.value,
+        valor: Number(valor.value),
+        tipo: tipo.value,
+        pedido: pedido.value,
+        status: 'PEDIDO'
+    }
+
+    orcamento.status.historico[chave] = dados
+
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${id}/status/historico/${chave}`, dados)
+
+    removerPopup()
+    await abrirEsquema(id)
+
+}
+
+async function painelAdicionarNotas(id) {
 
     const tipos = ['Serviço', 'Venda', 'Remessa']
     const apps = ['AC', 'HNK', 'HNW', 'IAC']
@@ -116,11 +155,11 @@ async function painelAdicionarNotas() {
                     ${apps.map(a => `<option>${a}</option>`).join('')}
                 </select>
 
-                <button onclick="buscarNFOmie(this)" style="background-color: #097fe6;">Buscar dados</button>
+                <button onclick="buscarNFOmie(this, '${id}')" style="background-color: #097fe6;">Buscar dados</button>
                 
                 <span>ou</span>
 
-                <button onclick="htmlFormularioAvulso()" style="background-color: #B12425;">Inserir Manualmente</button>
+                <button onclick="htmlFormularioAvulso('${id}')" style="background-color: #B12425;">Inserir Manualmente</button>
             </div>
                 
             <div id="detalhesNF" style="width: 100%;"></div>
@@ -154,7 +193,7 @@ function htmlFormularioAvulso() {
     ]
 
     const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: `salvarNotaAvulsa()` }
+        { texto: 'Salvar', img: 'concluido', funcao: `salvarNotaAvulsa('${id}')` }
     ]
 
     popup({ linhas, botoes, titulo: 'Vincular Nota Fiscal' })
@@ -175,7 +214,7 @@ function maisParcela() {
     document.querySelector('.blocoParcelas').insertAdjacentHTML('beforeend', htmlParcela)
 }
 
-async function salvarNotaAvulsa() {
+async function salvarNotaAvulsa(id) {
 
     overlayAguarde()
 
@@ -201,22 +240,22 @@ async function salvarNotaAvulsa() {
     })
 
     const idStatus = ID5digitos()
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const orcamento = await recuperarDado('dados_orcamentos', id)
 
-    if (!orcamento.status) orcamento.status = {}
-    if (!orcamento.status.historico) orcamento.status.historico = {}
+    orcamento.status ??= {}
+    orcamento.status.historico ??= {}
 
     orcamento.status.historico[idStatus] = nota
 
-    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${idStatus}`, nota)
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    await abrirEsquema(id_orcam)
+    await enviar(`dados_orcamentos/${id}/status/historico/${idStatus}`, nota)
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+    await abrirEsquema(id)
 
     removerOverlay()
 
 }
 
-async function buscarNFOmie(elemento) {
+async function buscarNFOmie(elemento, id) {
 
     overlayAguarde()
 
@@ -272,549 +311,43 @@ async function buscarNFOmie(elemento) {
         ${modelo('Comentário', `<textarea style="width: 90%;" id="comentario"></textarea>`)}
 
         <div style="width: 100%; display: flex; justify-content: end; align-items: center;">
-            <button onclick="salvarNota()" style="background-color: green;">Salvar</button>
+            <button onclick="salvarNota('${id}')" style="background-color: green;">Salvar</button>
         </div>
     `
     removerOverlay()
 }
 
-async function salvarNota() {
+async function salvarNota(id) {
 
     overlayAguarde()
 
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    let chave = ID5digitos()
-    let comentario = document.getElementById('comentario').value
+    const orcamento = await recuperarDado('dados_orcamentos', id)
+    const chave = ID5digitos()
+    const comentario = document.getElementById('comentario').value
 
     if (Object.keys(dadosNota).length == 0) {
         removerOverlay()
         return popup({ mensagem: `A busca não recuperou dados` })
     }
 
-    if (!orcamento.status) orcamento.status = {}
-    if (!orcamento.status.historico) orcamento.status.historico = {}
-    if (!orcamento.status.historico[chave]) orcamento.status.historico[chave] = {}
+    orcamento.status ??= {}
+    orcamento.status.historico ??= {}
+    orcamento.status.historico[chave] ??= {}
 
-    let dados = {
+    orcamento.status.historico[chave] = {
+        ...orcamento.status.historico[chave],
         status: 'FATURADO',
         data: new Date().toLocaleString(),
         executor: acesso.usuario,
         comentario
     }
 
-    dados = {
-        ...dados,
-        ...dadosNota
-    }
-
-    orcamento.status.historico[chave] = dados
-
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, dados)
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${id}/status/historico/${chave}`, dados)
 
     removerPopup()
-    await abrirEsquema(id_orcam)
+    await abrirEsquema(id)
 
-    itensAdicionais = {}
-}
-
-async function calcularRequisicao(sincronizar) {
-
-    let tabela_requisicoes = document.getElementById('tabela_requisicoes')
-
-    if (tabela_requisicoes) {
-        let tbody = tabela_requisicoes.querySelector('tbody')
-        let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-        let itens = orcamento.dados_composicoes
-
-        if (tbody) {
-            let trs = tbody.querySelectorAll('tr')
-            let total = 0
-
-            for (tr of trs) {
-
-                if (tr.style.display !== 'none') {
-                    let tds = tr.querySelectorAll('td')
-                    let codigo = tds[0].textContent
-                    let item = itens[codigo]
-
-                    if (!item) continue
-
-                    let quantidadeDisponivel = 0
-                    if (tds[4].querySelector('label.num')) {
-                        quantidadeDisponivel = tds[4].querySelector('label.num').textContent
-                    } else {
-                        quantidadeDisponivel = tds[4].querySelector('label').textContent
-                    }
-
-                    if (tds[4].querySelector('input') && tds[4].querySelector('input').value > conversor(quantidadeDisponivel)) {
-                        tds[4].querySelector('input').value = conversor(quantidadeDisponivel)
-                    }
-
-                    let tipo = 'Error 404'
-
-                    if (sincronizar) { // Inicialmente para carregar os tipos;
-                        tipo = item.tipo
-                        tds[3].querySelector('select').value = tipo
-
-                    } else {
-                        tipo = tds[3].querySelector('select') ? tds[3].querySelector('select').value : tds[3].querySelector('label').textContent
-                    }
-
-                    let qtde = tds[4].querySelector('input') ? Number(tds[4].querySelector('input').value) : Number(tds[4].textContent)
-
-
-                    if (item.tipo_desconto) {
-                        let desconto = item.tipo_desconto == 'Dinheiro' ? item.desconto : (item.custo * (item.desconto / 100))
-                        desconto = desconto / item.qtde
-                        item.custo = item.custo - desconto
-                    }
-
-                    item.custo = Number(item.custo.toFixed(2))
-
-                    let totalLinhas = item.custo * qtde
-                    tds[5].querySelector('label').innerHTML = `${dinheiro(item.custo)}` // Unitário
-                    tds[6].querySelector('label').innerHTML = `${dinheiro(totalLinhas)}` // Total
-
-                    total += totalLinhas
-                }
-            }
-
-            document.getElementById('total_requisicao').textContent = dinheiro(total)
-
-        }
-    }
-
-}
-
-function pesqRequisicao() {
-
-    const pesquisa1 = document.getElementById('pesquisa1')
-
-    if (!pesquisa1) return
-
-    const tabela = document.getElementById('tabela_requisicoes')
-    const tbody = tabela.querySelector('tbody')
-    const trs = tbody.querySelectorAll('tr')
-
-    trs.forEach(tr => {
-
-        const tds = tr.querySelectorAll('td')
-        let mostrar = false
-
-        tds.forEach(td => {
-
-            const select = td.querySelector('select')
-            const conteudo = select ? select.value : td.textContent;
-
-            if (String(conteudo).toLowerCase().includes(String(pesquisa1.value).toLowerCase()) || pesquisa1.value == '') {
-                mostrar = true
-            }
-        })
-
-        tr.style.display = mostrar ? 'table-row' : 'none'
-    })
-}
-
-async function carregarItensRequisicao(apVisualizar, tipoRequisicao, chave) {
-
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    let itensOrcamento = orcamento.dados_composicoes
-    let linhas = '';
-
-    if (!orcamento.dados_composicoes || Object.keys(orcamento.dados_composicoes).length == 0) {
-        return '';
-    }
-
-    // Filtra os itens com base no tipo de requisição
-    let itensFiltrados = [];
-    let todos_os_itens = {
-        infra: [],
-        equipamentos: []
-    }
-
-    let requisicao = [] // Comparativo com a requisição já feita, se existir "chave"
-    if (chave && orcamento.status && orcamento.status.historico && orcamento.status.historico[chave]) {
-        requisicao = orcamento.status.historico[chave].requisicoes
-    }
-
-    if (apVisualizar) {
-
-        for (id in requisicao) {
-            let item = requisicao[id]
-
-            item.descricao = itensOrcamento[item.codigo]?.descricao || '<label style="color: red;">Item Removido do Orçamento</label>'
-
-            let descricao = item.descricao
-
-            descricao = String(descricao).toLowerCase()
-
-            if ((
-                descricao.includes('eletrocalha') ||
-                descricao.includes('eletroduto') ||
-                descricao.includes('perfilado') ||
-                descricao.includes('sealtubo')
-            )) {
-                todos_os_itens.infra.push(item)
-            } else {
-                todos_os_itens.equipamentos.push(item)
-            }
-        }
-
-    } else {
-
-        for (id in itensOrcamento) {
-            let item = itensOrcamento[id]
-            let descricao = itensOrcamento[item.codigo]?.descricao || 'N/A';
-
-            if (requisicao.length > 0) {
-                for (let itemRequisicao of requisicao) {
-                    if (itemRequisicao.codigo == item.codigo) {
-                        item = {
-                            ...item,
-                            ...itemRequisicao
-                        }
-                        break
-                    }
-                }
-            }
-
-            descricao = String(descricao).toLowerCase()
-
-            if ((
-                descricao.includes('eletrocalha') ||
-                descricao.includes('eletroduto') ||
-                descricao.includes('perfilado') ||
-                descricao.includes('sealtubo')
-            )) {
-                todos_os_itens.infra.push(item)
-            } else {
-                todos_os_itens.equipamentos.push(item)
-            }
-
-        }
-
-    }
-
-    itensFiltrados = [...todos_os_itens.infra, ...todos_os_itens.equipamentos]
-
-    if (tipoRequisicao == 'equipamentos') {
-        itensFiltrados = todos_os_itens.equipamentos
-    }
-
-    if (tipoRequisicao == 'infraestrutura') {
-        itensFiltrados = todos_os_itens.infra
-    }
-
-
-    for (item of itensFiltrados) {
-
-        const { tipo, codigo, qtde_enviar, requisicao, descricao } = item
-        const omie = db.dados_composicoes[codigo]?.omie || db.dados_composicoes[codigo]?.partnumber || ''
-        const tOpcoes = ['SEVIÇO', 'VENDA', 'USO E CONSUMO', 'LOCAÇÃO']
-            .map(op => `<option value="${op}" ${tipo == op ? 'selected' : ''}>${op}</option>`)
-            .join('')
-
-        const rOpcoes = ['Nada a fazer', 'Venda Direta', 'Estoque AC', 'Comprar', 'Enviar do CD', 'Fornecido pelo Cliente']
-            .map(op => `<option ${requisicao == op ? 'selected' : ''}>${op}</option>`)
-            .join('')
-
-        linhas += `
-            <tr class="lin_req">
-                <td style="text-align: center; font-size: 1.2em; white-space: nowrap;"><label>${codigo}</label></td>
-                <td style="text-align: center;">
-                    ${apVisualizar
-                ? `<label style="font-size: 1.2em;">${omie}</label>`
-                : `<input class="requisicao-campo" value="${omie}">`
-            }
-                </td>
-                <td>
-                    <div style="${horizontal}; justify-content: space-between; width: 100%;">
-                        <div style="${vertical}; gap: 2px;">
-                            <label><strong>DESCRIÇÃO</strong></label>
-                            <label style="text-align: left;">${descricao || 'N/A'}</label>
-                        </div>
-                        ${apVisualizar
-                ? ''
-                : `<img src="imagens/construcao.png" onclick="abrirAdicionais('${codigo}')">`}
-                    </div>
-                </td>
-                <td>
-                    ${apVisualizar
-                ? `<label>${tipo || ''}</label>`
-                : `<select class="opcoesSelect">${tOpcoes}</option>
-                `}
-                </td>
-                <td style="text-align: center;">
-                    ${apVisualizar
-                ? `<label style="font-size: 1.2em;">${qtde_enviar || 0}</label>`
-                : `
-                    <div style="${horizontal}; gap: 5px;">
-                        <div style="${vertical}; gap: 5px;">
-                            <label>Quantidade a enviar</label>
-                            <input class="requisicao-campo" type="number" oninput="calcularRequisicao()" min="0" value="${qtde_enviar || ''}">
-                        </div>
-                        <label class="num">${itensOrcamento[codigo]?.qtde || 0}</label>
-                    </div>
-                    `}
-                </td>
-                <td style="white-space: nowrap;">
-                    <label></label>
-                </td>
-                <td style="white-space: nowrap;">
-                    <label></label>
-                </td>
-                <td>
-                    ${apVisualizar
-                ? `<label>${requisicao || ''}</label>`
-                : `<select class="opcoesSelect">${rOpcoes}</select>`
-            }
-                </td>
-            </tr>
-        `
-    }
-
-    return linhas;
-
-}
-
-async function abrirAdicionais(codigo) {
-
-    const ths = ['Descrição', 'Quantidade', 'Comentário', '']
-        .map(op => `<th>${op}</th>`)
-        .join('')
-
-    const botoes = [
-        { texto: 'Adicionar Peça', img: 'chamados', funcao: `criarLinhaPeca()` },
-        { texto: 'Sincronizar Estoque', img: 'estoque', funcao: `sincronizarDados({base: 'dados_estoque', overlay: true})` },
-        { texto: 'Salvar', img: 'concluido', funcao: `salvarAdicionais('${codigo}')` }
-    ]
-
-    const linhas = [
-        {
-            elemento: `
-            <div style="${vertical}; width: 100%;">
-                <div class="topo-tabela"></div>
-                    <div class="div-tabela">
-                        <table class="tabela">
-                            <thead><tr>${ths}</tr></thead>
-                            <tbody id="linhasManutencao"></tbody>
-                        </table>
-                    </div>
-                <div class="rodape-tabela"></div>
-            </div>
-            `}
-    ]
-
-    popup({ linhas, botoes, titulo: 'Itens Adicionais' })
-
-    for (const [cd, dados] of Object.entries(itensAdicionais)) {
-
-        if (cd !== codigo) continue
-
-        for (const [ad, dadosAD] of Object.entries(dados)) {
-            criarLinhaPeca(ad, dadosAD)
-        }
-
-    }
-
-}
-
-function salvarAdicionais(codigo) {
-    const tabela = document.getElementById('linhasManutencao')
-    const trs = tabela.querySelectorAll('tr')
-
-    itensAdicionais[codigo] = {}
-
-    if (trs.length == 0) {
-        mostrarItensAdicionais()
-        removerPopup()
-        return
-    }
-
-    let adicionais = itensAdicionais[codigo]
-
-    for (const tr of trs) {
-
-        const tds = tr.querySelectorAll('td')
-        const item = tds[0]?.querySelector('span') || tds[0]?.querySelector('textarea') || {}
-        const cod = tds[0].querySelector('.opcoes').getAttribute('name')
-
-        if (item.textContent == 'Selecione') continue
-        const estoque = dados_estoque?.[cod] || {}
-
-        adicionais[cod] = {
-            partnumber: estoque?.partnumber || '',
-            descricao: item?.textContent || item?.value || '',
-            qtde: conversor(tds[1].textContent),
-            unidade: tds[2].textContent
-        }
-
-    }
-
-    mostrarItensAdicionais()
-    removerPopup()
-}
-
-
-function mostrarItensAdicionais() {
-    let tabela_requisicoes = document.getElementById('tabela_requisicoes')
-
-    if (tabela_requisicoes) {
-
-        let tbody = tabela_requisicoes.querySelector('tbody')
-        let trs = tbody.querySelectorAll('tr')
-
-        trs.forEach(tr => {
-            var tds = tr.querySelectorAll('td')
-            let codigo = tds[0]?.textContent || undefined
-            if (codigo === "---") {
-                return tr.remove()
-            }
-
-            let local = document.getElementById(`tabela_${codigo}`)
-            if (local) {
-                local.remove()
-            }
-
-            if (itensAdicionais[codigo]) {
-
-                let adicionais = itensAdicionais[codigo]
-                for (ad in adicionais) {
-
-                    let adicional = adicionais[ad]
-
-                    let linha = `
-                    <tr class="linha-itens-adicionais">
-                        <td style="text-align: center;">---</td>
-                        <td>${adicional.partnumber}</td>
-                        <td>${adicional.descricao}</td>
-                        <td style="text-align: center;">ADICIONAL</td>
-                        <td style="text-align: center;">${adicional.qtde}</td>
-                        <td style="text-align: center;">---</td>
-                        <td style="text-align: center;">---</td>
-                        <td style="text-align: center;">
-                            ${tds[7].querySelector("select")?.value || "---"}
-                        </td>
-                    </tr>
-                    `
-                    tr.insertAdjacentHTML("afterend", linha)
-                }
-
-
-            }
-
-        })
-    }
-}
-
-async function salvarPedido(chave = ID5digitos()) {
-
-    const comentario_status = document.getElementById('comentario_status')
-    const valor = document.getElementById('valor')
-    const tipo = document.getElementById('tipo')
-    const pedido = document.getElementById('pedido')
-
-    if (valor.value == '' || tipo.value == 'Selecione' || pedido.value == '') {
-
-        return popup({ mensagem: `Existem campos em Branco` })
-
-    }
-
-    const orcamento = db.dados_orcamentos[id_orcam]
-
-    if (!orcamento.status) orcamento.status = { historico: {} }
-    if (!orcamento.status.historico) orcamento.status.historico = {}
-    if (!orcamento.status.historico[chave]) orcamento.status.historico[chave] = {}
-
-    const dados = {
-        data: new Date().toLocaleString(),
-        executor: acesso.usuario,
-        comentario: comentario_status.value,
-        valor: Number(valor.value),
-        tipo: tipo.value,
-        pedido: pedido.value,
-        status: 'PEDIDO'
-    }
-
-    orcamento.status.historico[chave] = dados
-
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, dados)
-
-    removerPopup()
-    await abrirEsquema(id_orcam)
-
-}
-
-async function salvarRequisicao(chave) {
-
-    overlayAguarde()
-
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-
-    if (!orcamento.status) {
-        orcamento.status = { historico: {} };
-    }
-
-    if (!orcamento.status.historico) {
-        orcamento.status.historico = {}
-    }
-
-    let novo_lancamento = {
-        status: 'REQUISIÇÃO',
-        data: new Date().toLocaleString(),
-        transportadora: document.getElementById('transportadora').value,
-        volumes: document.getElementById('volumes').value,
-        executor: acesso.usuario,
-        comentario: document.getElementById("comentario_status").value,
-        requisicoes: [],
-        adicionais: itensAdicionais,
-        total_requisicao: document.getElementById("total_requisicao").textContent
-    };
-
-    const linhas = document.querySelectorAll('.lin_req')
-    let lista_partnumbers = {}
-
-    for (let linha of linhas) {
-        let valores = linha.querySelectorAll('input, select')
-        if (valores.length == 0) { continue }
-
-        let tds = linha.querySelectorAll('td')
-        let codigo = tds[0].textContent
-        let partnumber = valores[0].value
-        let tipo = valores[1].value
-        let qtde = Number(valores[2].value)
-        let requisicao = valores[3]?.value || ''
-
-        if (partnumber == '' && qtde > 0)
-            return popup({ mensagem: 'Preencha os Códigos do Omie pendentes' })
-
-        if (qtde > 0 || itensAdicionais[codigo]) {
-            novo_lancamento.requisicoes.push({
-                codigo: codigo,
-                partnumber: partnumber,
-                tipo: tipo,
-                qtde_enviar: qtde,
-                requisicao: requisicao,
-            });
-
-            lista_partnumbers[codigo] = partnumber;
-            temItensValidos = true;
-        }
-    }
-
-    orcamento.status.historico[chave] = novo_lancamento
-
-    await inserirDados({ [id_orcam]: orcamento }, "dados_orcamentos");
-
-    enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
-
-    if (orcamento.lpu_ativa !== 'MODALIDADE LIVRE') atualizar_partnumber(lista_partnumbers)
-
-    itensAdicionais = {}
-    removerPopup()
-    await abrirEsquema(id_orcam)
 }
 
 async function abrirAtalhos(id, idMaster) {
@@ -1163,19 +696,19 @@ function auxiliarDatas(data) {
     return `${dia}/${mes}/${ano}`
 }
 
-function elementosEspecificos(chave, historico) {
+function elementosEspecificos(id, chave, historico) {
 
     let acumulado = ''
     let funcaoEditar = ''
 
     if (historico.status == 'REQUISIÇÃO') {
 
-        funcaoEditar = `detalharRequisicao('${chave}')`
+        funcaoEditar = `detalharRequisicao('${id}', '${chave}')`
         acumulado = `
             ${labelDestaque('Total Requisição', historico.total_requisicao)}
             ${historico.transportadora ? labelDestaque('Transportadora', historico.transportadora) : ''}
             ${historico.volumes ? labelDestaque('Volumes', historico.volumes) : ''}
-            <div onclick="detalharRequisicao('${chave}', undefined, true)" class="label_requisicao">
+            <div onclick="detalharRequisicao('${id}', '${chave}', undefined, true)" class="label_requisicao">
                 <img src="gifs/lampada.gif" style="width: 2rem;">
                 <div style="${vertical}; text-align: left; cursor: pointer;">
                     <label><strong>REQUISIÇÃO DISPONÍVEL</strong></label>
@@ -1185,7 +718,7 @@ function elementosEspecificos(chave, historico) {
         `
     } else if (historico.status == 'LPU PARCEIRO') {
 
-        funcaoEditar = `modalLPUParceiro('${chave}')`
+        funcaoEditar = `modalLPUParceiro('${id}', '${chave}')`
 
         acumulado = `
             <div onclick="detalharLpuParceiro('${chave}')" class="label_requisicao">
@@ -1207,7 +740,7 @@ function elementosEspecificos(chave, historico) {
             </div>
             `
 
-        funcaoEditar = `painelAdicionarPedido('${chave}')`
+        funcaoEditar = `painelAdicionarPedido('${id}', '${chave}')`
 
     } else if (historico.status == 'FATURADO') {
 
@@ -1306,11 +839,11 @@ async function abrirEsquema(id) {
                     ${labelDestaque('Comentário', `
                         <div>
                             <textarea oninput="mostrarConfirmacao(this)" style="resize: vertical; width: 90%;">${historico?.comentario || ''}</textarea>
-                            <span class="btnConfirmar" onclick="atualizarPedido('${chave}', 'comentario', this)">Atualizar</span>
+                            <span class="btnConfirmar" onclick="atualizarPedido('${id}', '${chave}', 'comentario', this)">Atualizar</span>
                         </div>    
                         `)}
 
-                    ${elementosEspecificos(chave, historico)}
+                    ${elementosEspecificos(id, chave, historico)}
 
                     <div class="contorno-botoes" style="background-color: ${cor}">
                         <img src="imagens/anexo2.png" style="width: 1.5rem;">
@@ -1342,7 +875,7 @@ async function abrirEsquema(id) {
 
             <div style="${vertical}; gap: 2px;">
                 <label>Status atual</label>
-                <select onchange="alterarStatus(this)" style="border-radius: 3px; padding: 3px;">
+                <select data-id="${id}" onchange="alterarStatus(this)" style="border-radius: 3px; padding: 3px;">
                     ${['', ...fluxograma].map(fluxo => `
                         <option ${orcamento?.status?.atual == fluxo ? 'selected' : ''}>${fluxo}</option>
                     `).join('')}
@@ -1439,7 +972,7 @@ async function abrirEsquema(id) {
             <hr>
             <div style="${horizontal}; gap: 1rem;">
                 <button onclick="${f1}" style="opacity: ${liberado ? '1' : '0.5'};">Abrir chamado</button>
-                <button onclick="${f2}" style="background-color: #e47a00; opacity: ${existente ? '1' : '0.5'};">Incluir correção</button>
+                <button onclick="${f2}" style="background-color: rgb(228, 122, 0); opacity: ${existente ? '1' : '0.5'};">Incluir correção</button>
                 ${existente ? `<img src="imagens/pesquisar2.png" onclick="verCorrecoes('${contrato}')">` : ''}
             </div>
         </div>
@@ -1454,16 +987,16 @@ async function abrirEsquema(id) {
 
             <div class="status-botoes">
                 
-                ${botao('Novo Pedido', `painelAdicionarPedido()`, '#4CAF50')}
-                ${botao('Requisição Materiais', `detalharRequisicao(undefined, 'infraestrutura')`, '#B12425')}
-                ${botao('Requisição Equipamentos', `detalharRequisicao(undefined, 'equipamentos')`, '#B12425')}
-                ${botao('Nova Nota Fiscal', `painelAdicionarNotas()`, '#ff4500')}
+                ${botao('Novo Pedido', `painelAdicionarPedido('${id}')`, '#4CAF50')}
+                ${botao('Requisição Materiais', `detalharRequisicao('${id}', undefined, 'infraestrutura')`, '#B12425')}
+                ${botao('Requisição Equipamentos', `detalharRequisicao('${id}', undefined, 'equipamentos')`, '#B12425')}
+                ${botao('Nova Nota Fiscal', `painelAdicionarNotas('${id}')`, '#ff4500')}
 
                 ${(acesso.permissao == 'adm' || acesso.setor == 'LOGÍSTICA')
             ? botao('Novo Envio de Material', `envioMaterial()`, '#b17724')
             : ''}
                 
-                ${botao('LPU Parceiro', `modalLPUParceiro()`, '#0062d5')}
+                ${botao('LPU Parceiro', `modalLPUParceiro('${id}')`, '#0062d5')}
 
             </div>
         </div>
@@ -1500,11 +1033,11 @@ async function verCorrecoes(idOcorrencia) {
     popup({ elemento, titulo: 'Correções' })
 }
 
-async function atualizarPedido(chave, campo, imgSelect) {
+async function atualizarPedido(id, chave, campo, imgSelect) {
 
     overlayAguarde()
 
-    const orcamento = db.dados_orcamentos[id_orcam]
+    const orcamento = await recuperarDado('dados_orcamentos', id)
 
     const elemento = campo == 'tipo' ? imgSelect : imgSelect.previousElementSibling;
 
@@ -1512,10 +1045,12 @@ async function atualizarPedido(chave, campo, imgSelect) {
 
     orcamento.status.historico[chave][campo] = valor
 
-    enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/${campo}`, valor)
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${id}/status/historico/${chave}/${campo}`, valor)
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
 
-    campo !== 'tipo' ? imgSelect.style.display = 'none' : ''
+    campo !== 'tipo'
+        ? imgSelect.style.display = 'none'
+        : ''
 
     removerOverlay()
 }
@@ -1527,7 +1062,8 @@ function mostrarConfirmacao(elemento) {
 
 async function alterarStatus(select) {
 
-    const orcamento = db.dados_orcamentos[id_orcam]
+    const id = select.dataset.id
+    const orcamento = await recuperarDado('dados_orcamentos', id)
     orcamento.status ??= {}
     orcamento.status.historicoStatus ??= {}
     const statusAnterior = orcamento.status?.atual || ''
@@ -1537,7 +1073,8 @@ async function alterarStatus(select) {
 
     const bloq = ['REQUISIÇÃO', 'CONCLUÍDO']
 
-    const temPedido = Object.values(orcamento?.status?.historico || {}).some(s => s.status == 'PEDIDO')
+    const temPedido = Object.values(orcamento?.status?.historico || {})
+        .some(s => s.status == 'PEDIDO')
 
     if (!temPedido && bloq.includes(novoSt)) {
         select.value = statusAnterior
@@ -1556,25 +1093,22 @@ async function alterarStatus(select) {
 
     orcamento.status.atual = novoSt
     orcamento.status.historicoStatus[idStatus] = novoSt
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
 
-    enviar(`dados_orcamentos/${id_orcam}/status/atual`, novoSt)
-    enviar(`dados_orcamentos/${id_orcam}/status/historicoStatus/${idStatus}`, registroStatus)
-
-    db.dados_orcamentos[id_orcam] = orcamento
+    enviar(`dados_orcamentos/${id}/status/atual`, novoSt)
+    enviar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}`, registroStatus)
 
     if (novoSt == 'ORC PENDENTE') formularioOrcPendente(idStatus)
     if (novoSt == 'ORC APROVADO') {
         formularioOrcAprovado()
-        const resposta = await criarDepartamento(id_orcam)
+        const resposta = await criarDepartamento(id)
         if (resposta.mensagem)
             popup({ mensagem: resposta.mensagem })
     }
 
-    if (telaAtiva == 'orcamentos') await telaOrcamentos(true)
-
     const pHistorico = document.querySelector('.painel-historico')
-    if (pHistorico) await abrirEsquema(id_orcam)
+    if (pHistorico)
+        await abrirEsquema(id)
 }
 
 function formularioOrcAprovado(idOrcamento) {
@@ -1667,7 +1201,6 @@ async function mostrarInfo(idOrcamento) {
 
     overlayAguarde()
 
-    id_orcam = idOrcamento
     const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
 
     const historico = Object.entries(orcamento?.status?.historicoStatus || {})
@@ -2005,39 +1538,17 @@ async function excluirOrcamentoBase(idOrcamento) {
     removerPopup()
 }
 
-async function detalharRequisicao(chave, tipoRequisicao, apVisualizar) {
+async function detalharRequisicao(id, chave = ID5digitos()) {
 
-    if (!chave) chave = ID5digitos()
-
-    const orcamento = db.dados_orcamentos[id_orcam]
-    const cliente = db.dados_clientes?.[orcamento.dados_orcam.omie_cliente] || {}
+    const orcamento = await recuperarDado('dados_orcamentos', id)
+    const cliente = await recuperarDado('dados_clientes', orcamento.dados_orcam.omie_cliente) || {}
     const cartao = orcamento?.status?.historico?.[chave] || {}
-    let btnFlutuante = ''
 
-    // Carrega os itens adicionais se existirem
-    itensAdicionais = {}
-    let comentarioExistente = ''
+    const opcoes = ['JAMEF', 'CORREIOS', 'JADLOG', 'OUTROS']
+        .map(op => `<option ${cartao?.transportadora == op ? 'selected' : ''}>${op}</option>`)
+        .join('')
 
-    if (cartao.adicionais) itensAdicionais = cartao.adicionais
-    if (cartao.comentario) comentarioExistente = cartao.comentario
-    if (cartao.requisicoes) requisicoesExistente = cartao.requisicoes
-
-    let campos = ''
-    let toolbar = ''
-
-    if (!apVisualizar) {
-        toolbar += `
-        <div class="requisicao-pesquisa">
-            <img src="imagens/pesquisar4.png" style="padding: 5px;">
-            <input id="pesquisa1" placeholder="Pesquisar" oninput="pesqRequisicao()">
-        </div>
-        `
-
-        const opcoes = ['JAMEF', 'CORREIOS', 'JADLOG', 'OUTROS']
-            .map(op => `<option ${cartao?.transportadora == op ? 'selected' : ''}>${op}</option>`)
-            .join('')
-
-        campos = `
+    const campos = `
         <div class="requisicao-contorno" style="width: 500px;">
             <div class="requisicao-titulo">Dados da Requisição</div>
             <div class="requisicao-dados">
@@ -2055,25 +1566,38 @@ async function detalharRequisicao(chave, tipoRequisicao, apVisualizar) {
 
                 <div style="${vertical}; width: 100%;">
                     <label>Comentário</label>
-                    <textarea rows="3" id="comentario_status" style="width: 80%;">${comentarioExistente}</textarea>
+                    <textarea rows="3" id="comentario_status" style="width: 80%;">${cartao?.comentario || ''}</textarea>
                 </div>
 
                 <button onclick="salvarRequisicao('${chave}')">Salvar Requisição</button>
             </div>
         </div>
         `
-    }
 
     const modeloLabel = (valor1, valor2) => `<label><strong>${valor1}</strong> ${valor2}</label>`
 
-    const colunas = ['Cod GCS', 'Cod OMIE', 'Informações do Item', 'Tipo', 'Quantidade', 'Valor Unitário', 'Valor Total', 'Requisição']
-        .map(col => `<th>${col}</th>`)
-        .join('')
+    const colunas = {
+        'Cod GCS': {},
+        'Cod OMIE': {},
+        'Informações do Item': {},
+        'Tipo': {},
+        'Quantidade': {},
+        'Valor Unitário': {},
+        'Valor Total': {},
+        'Requisição': {}
+    }
+
+    const base = cartao?.requisicoes || orcamento.dados_composicoes || {}
+
+    const tabela = await modTab({
+        base,
+        pag: 'requisicao',
+        body: 'bodyRequisicao',
+        colunas,
+        criarLinha: 'criarLinhaRequisicao'
+    })
 
     const elemento = `
-
-    ${btnFlutuante}
-
     <div id="pdf" class="requisicao-tela">
 
         <div class="requisicao-contorno" style="width: 98%">
@@ -2109,31 +1633,130 @@ async function detalharRequisicao(chave, tipoRequisicao, apVisualizar) {
                 </div>
             </div>
 
-            ${apVisualizar
-            ? `<img id="bPdf" src="imagens/pdf.png" onclick="gerarPdfRequisicao('${cliente.nome || '-'}')">`
-            : ''
-        }
+            <img id="bPdf" src="imagens/pdf.png" onclick="gerarPdfRequisicao('${cliente.nome || '-'}')">
 
         </div>
 
-        <div id="tabela_itens" style="width: 100%; display: flex; flex-direction: column; align-items: left;">
+        ${tabela}
 
-        <div class="requisicao-contorno">
-            ${toolbar}
-            <table class="tabela" id="tabela_requisicoes" style="width: 100%; font-size: 0.8em; table-layout: auto; border-radius: 0px;">
-                <thead style="background-color: #f1f1f1;">${colunas}</thead>
-                <tbody>
-                    ${await carregarItensRequisicao(apVisualizar, tipoRequisicao, chave)}
-                </tbody>
-            </table>
-        <div>
     <div>
     `
     popup({ elemento, cor: 'white', titulo: 'Requisição' })
 
-    // Preenche os campos com os dados existentes se estiver editando    
-    await calcularRequisicao()
-    mostrarItensAdicionais()
+}
+
+
+async function criarLinhaRequisicao(item) {
+
+    const { codigo, partnumber, descricao, qtde_enviar } = item || {}
+
+    return `
+        <tr class="lin_req">
+            <td style="font-size: 1.2em; white-space: nowrap;">
+                ${codigo}
+            </td>
+            <td>
+                <input class="requisicao-campo" value="${partnumber}">
+            </td>
+            <td>
+                <div style="${horizontal}; justify-content: space-between; width: 100%;">
+                    <div style="${vertical}; gap: 2px;">
+                        <label><strong>DESCRIÇÃO</strong></label>
+                        <label style="text-align: left;">${descricao || 'N/A'}</label>
+                    </div>
+                    <img src="imagens/construcao.png" onclick="abrirAdicionais('${codigo}')">
+                </div>
+            </td>
+            <td>
+                <select class="opcoesSelect"></option>
+            </td>
+            <td>
+                <div style="${horizontal}; gap: 5px;">
+                    <div style="${vertical}; gap: 5px;">
+                        <label>Quantidade a enviar</label>
+                        <input class="requisicao-campo" type="number" oninput="calcularRequisicao()" min="0" value="${qtde_enviar || ''}">
+                    </div>
+                    <label class="num">${0}</label>
+                </div>
+            </td>
+            <td></td>
+            <td></td>
+            <td>
+                <select class="opcoesSelect"></select>
+            </td>
+        </tr>
+        `
+
+}
+
+async function salvarRequisicao(chave) {
+
+    overlayAguarde()
+
+    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+
+    if (!orcamento.status) {
+        orcamento.status = { historico: {} };
+    }
+
+    if (!orcamento.status.historico) {
+        orcamento.status.historico = {}
+    }
+
+    let novo_lancamento = {
+        status: 'REQUISIÇÃO',
+        data: new Date().toLocaleString(),
+        transportadora: document.getElementById('transportadora').value,
+        volumes: document.getElementById('volumes').value,
+        executor: acesso.usuario,
+        comentario: document.getElementById("comentario_status").value,
+        requisicoes: [],
+        adicionais: itensAdicionais,
+        total_requisicao: document.getElementById("total_requisicao").textContent
+    };
+
+    const linhas = document.querySelectorAll('.lin_req')
+    let lista_partnumbers = {}
+
+    for (let linha of linhas) {
+        let valores = linha.querySelectorAll('input, select')
+        if (valores.length == 0) { continue }
+
+        let tds = linha.querySelectorAll('td')
+        let codigo = tds[0].textContent
+        let partnumber = valores[0].value
+        let tipo = valores[1].value
+        let qtde = Number(valores[2].value)
+        let requisicao = valores[3]?.value || ''
+
+        if (partnumber == '' && qtde > 0)
+            return popup({ mensagem: 'Preencha os Códigos do Omie pendentes' })
+
+        if (qtde > 0 || itensAdicionais[codigo]) {
+            novo_lancamento.requisicoes.push({
+                codigo: codigo,
+                partnumber: partnumber,
+                tipo: tipo,
+                qtde_enviar: qtde,
+                requisicao: requisicao,
+            });
+
+            lista_partnumbers[codigo] = partnumber;
+            temItensValidos = true;
+        }
+    }
+
+    orcamento.status.historico[chave] = novo_lancamento
+
+    await inserirDados({ [id_orcam]: orcamento }, "dados_orcamentos");
+
+    enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
+
+    if (orcamento.lpu_ativa !== 'MODALIDADE LIVRE') atualizar_partnumber(lista_partnumbers)
+
+    itensAdicionais = {}
+    removerPopup()
+    await abrirEsquema(id_orcam)
 }
 
 async function salvarAnexo(chave, input) {

@@ -196,7 +196,7 @@ async function manterPrecosAntigos(resposta) {
     orcamento = baseOrcamento()
 
     if (resposta == 'S') {
-        orcamento = db.dados_orcamentos[orcamento.id]
+        orcamento = await recuperarDado('dados_orcamentos', [orcamento.id])
     }
 
     orcamento.manter_precos = resposta
@@ -660,7 +660,10 @@ async function ativarChamado(input, idOrcamento) {
     // Tela de criação de orçamento, não precisa continuar, o salvar irá coletar a informação;
     if (!idOrcamento) return
 
-    const ativo = input.checked ? 'S' : 'N'
+    const ativo = input.checked
+        ? 'S'
+        : 'N'
+
     overlayAguarde()
     const resposta = await enviar(`dados_orcamentos/${idOrcamento}/chamado`, ativo)
     if (resposta.mensagem) {
@@ -668,11 +671,15 @@ async function ativarChamado(input, idOrcamento) {
         return popup({ mensagem: resposta.mensagem })
     }
 
-    db.dados_orcamentos[idOrcamento].chamado = ativo
-    await inserirDados({ [idOrcamento]: db.dados_orcamentos[idOrcamento] }, 'dados_orcamentos')
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
+    orcamento.chamado = ativo
+
+    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
 
     const linha = document.getElementById(idOrcamento)
-    if (linha) linha.dataset.chamado = ativo
+    if (linha)
+        linha.dataset.chamado = ativo
+
     await telaOrcamentos(true)
     const pHistorico = document.querySelector('.painel-historico')
 
@@ -985,8 +992,7 @@ async function totalOrcamento() {
     let totalAcrescido = 0
     let descontoAcumulado = 0
     let statusCotacao = false
-    const cliente = db.dados_clientes?.[orcamentoBase.dados_orcam?.omie_cliente] || ''
-    const estado = cliente.estado || false
+    const { estado } = await recuperarDado('dados_clientes', orcamentoBase.dados_orcam?.omie_cliente) || {}
 
     if (!orcamentoBase.esquema_composicoes) orcamentoBase.esquema_composicoes = {}
 

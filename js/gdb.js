@@ -165,7 +165,10 @@ const regrasSnapshot = {
             snap.cidade = cidade
             snap.estado = estado
             snap.nome = nome
-            snap.validade = conversorData(dado?.validade)
+            snap.realizado = conversorData(dado?.realizado)
+
+            const calculadora = expiraEm(dado?.realizado, dado?.doc)
+            snap.validade = calculadora.validade
 
             return snap
         }
@@ -425,6 +428,32 @@ function pesquisarDB({ filtros = {}, base, pagina = 1, limite = 100 }) {
         let total = 0
         const resultados = []
 
+        // CASO 1: base é array ou objeto (memória)
+        if (typeof base === 'object') {
+
+            const lista = Array.isArray(base)
+                ? base
+                : Object.values(base)
+
+            for (const reg of lista) {
+                if (passaFiltro(reg, filtros)) {
+                    total++
+
+                    if (vistos >= offset && resultados.length < limite) {
+                        resultados.push(reg)
+                    }
+                    vistos++
+                }
+            }
+
+            return resolve({
+                resultados,
+                total,
+                paginas: Math.ceil(total / limite)
+            })
+        }
+
+        // CASO 2: base é string → IndexedDB
         const req = indexedDB.open(nomeBase, versao)
 
         req.onerror = () => reject(req.error)

@@ -452,8 +452,11 @@ function linCxOpcoes(dado) {
 
 async function selecionar(name, cod) {
 
-    const { funcaoAux, base, retornar = [] } = controlesCxOpcoes[name]
+    const { funcaoAux, base, retornar } = controlesCxOpcoes[name]
     const painel = document.querySelector('.painel-padrao')
+
+    if (!retornar)
+        return popup({ mensagem: `campo retornar: ['exemplo'] → undefined` })
 
     // Painel quando for forms; do contrário qualquer outro elemento;
     const elemento = (painel || document)?.querySelector(`[name='${name}']`)

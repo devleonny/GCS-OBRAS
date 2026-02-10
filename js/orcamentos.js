@@ -268,7 +268,7 @@ async function criarLinhaOrcamento(orcamento, master, idMaster) {
             <div style="${vertical}; gap: 5px;">
                 <div style="${horizontal}; gap: 2px;">
                     <img onclick="mostrarInfo('${id}')" src="imagens/observacao${info.length > 0 ? '' : '_off'}.png">
-                    <select name="status" class="opcoesSelect" onchange="id_orcam = '${id}'; alterarStatus(this)">
+                    <select name="status" class="opcoesSelect" data-id="${id}" onchange="alterarStatus(this)">
                         ${opcoes}
                     </select>
                 </div>
@@ -448,8 +448,8 @@ async function carregarToolbar() {
         }
 
         const f = campo == 'VENDA DIRETA'
-            ? { 1: 'style="background: linear-gradient(45deg, #222, #b12425);"' }
-            : {}
+            ? 'style="background: linear-gradient(45deg, #222, #b12425);"'
+            : ''
 
         const novaTool = `
             <div
@@ -462,7 +462,7 @@ async function carregarToolbar() {
                 controles.${pag}.filtros = { 'dados_orcam': { op: 'NOT_EMPTY' }, 'arquivado': { op: '!=', value: 'S' }, ${filtrosPesq} };
                 paginacao('${pag}')">
                 <label>${campo.toUpperCase()}</label>
-                <span ${f[1]}>${contagem}</span>
+                <span ${f}>${contagem}</span>
             </div>
             `
         toolbar.insertAdjacentHTML('beforeend', novaTool)

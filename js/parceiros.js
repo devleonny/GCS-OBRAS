@@ -1,49 +1,52 @@
-let chaveHistorico = null
-let removidos = {}
 
-async function modalLPUParceiro(chave) {
+async function modalLPUParceiro(id, chave = ID5digitos()) {
 
-    chaveHistorico = chave || ID5digitos()
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    let cabecalhos = ['<input type="checkbox" onclick="marcarItensLPU(this)">', 'ID', 'Descrição', 'Medida', 'Quantidade', 'Valor Orçamento', 'Valor Total Orçado', 'Impostos (20%)', 'Margem (R$)', 'Valor Parceiro', 'Total Parceiro', 'Desvio'];
-    let thSearch = '';
-    let thHead = '';
+    const orcamento = await recuperarDado('dados_orcamentos', id)
     const cliente = await recuperarDado('dados_clientes', orcamento.dados_orcam?.omie_cliente) || {}
     const dadosEmpresa = {
         ...orcamento.dados_orcam,
         ...cliente
     }
 
-    const status = orcamento?.status?.historico?.[chaveHistorico] || {}
+    const status = orcamento?.status?.historico?.[chave] || {}
     const idTecnico = status?.tecnico || ''
     const tecnico = await recuperarDado('dados_clientes', idTecnico)
 
-    cabecalhos.forEach((cabecalho, i) => {
-        thHead += `<th>${cabecalho}</th>`;
-        thSearch +=
-            `<th style="background-color: white; text-align: left;" contentEditable="true" oninput="pesquisarGenerico(${i}, this.textContent, 'bodyTabela')"></th>`;
-    });
+    const itens = Object.values(status?.itens || orcamento?.dados_composicoes || {})
+        .filter(i => i?.tipo !== 'VENDA')
 
-    const tabela = `
-        <div style="${vertical};">
-            <div class="topo-tabela">
-                <button onclick="removerItensEmMassa()">Remover Itens</button>
-                <button onclick="verItensRemovidosLPU()">Ver Itens Removidos</button>
-                <button onclick="adicionarItemAdicional()">Adicionar Serviço</button>
-                <button style="background-color: green;" onclick="salvarLpuParceiro()">Salvar LPU</button>
-            </div>
-            <div class="div-tabela">
-                <table class="tabela">
-                    <thead>
-                        <tr>${thHead}</tr>
-                        <tr>${thSearch}</tr>
-                    </thead>
-                    <tbody id="bodyParceiros"></tbody>
-                </table>
-            </div>
-            <div class="rodape-tabela"></div>
-        </div>
-        `
+    const colunas = {
+        'Check': {},
+        'Código': { chave: 'codigo' },
+        'Descrição': { chave: 'descricao' },
+        'Unidade': { chave: 'unidade' },
+        'Quantidade': { chave: 'qtde' },
+        'Valor Orçamento': { chave: 'custo' },
+        'Valor Total Orçado': {},
+        'Impostos (20%)': {},
+        'Margem': {},
+        'Valor do Parceiro': {},
+        'Total do Parceiro': {},
+        'Desvio': {},
+    }
+
+    const btnExtras = `
+    <div style="display: flex-wrap: wrap; gap: 2px;">
+        <button onclick="removerItensEmMassa()">Remover Itens</button>
+        <button onclick="verItensRemovidosLPU('${id}', '${chave}')">Ver Itens Removidos</button>
+        <button onclick="adicionarItemAdicional()">Adicionar Serviço</button>
+        <button style="background-color: green;" onclick="salvarLpuParceiro()">Salvar LPU</button>
+    </div>
+    `
+    const tabela = await modTab({
+        base: itens,
+        btnExtras,
+        colunas,
+        funcaoAdicional: ['calcularLpuParceiro'],
+        criarLinha: 'adicionarLinhaParceiro',
+        pag: 'lpu_parceiro',
+        body: 'bodyParceiros'
+    })
 
     const stringHtml = (titulo, valor) => `
         <div style="${vertical}; gap: 3px;">
@@ -61,6 +64,11 @@ async function modalLPUParceiro(chave) {
                     ${stringHtml('CNPJ', dadosEmpresa.cnpj)}
                     ${stringHtml('Endereço', dadosEmpresa.bairro)}
                     ${stringHtml('Cidade', dadosEmpresa.cidade)}
+                    <br>
+                    <div style="${horizontal}; gap: 2px;">
+                        <input type="checkbox" onclick="marcarItensLPU(this)">
+                        <span>Marcar todos os ITENS<span>
+                    </div>
                 </div>
 
                 <div style="${vertical}">
@@ -88,7 +96,10 @@ async function modalLPUParceiro(chave) {
         popup({ elemento, titulo: 'LPU Parceiro' })
     }
 
-    const itens = status?.itens || orcamento?.dados_composicoes || {}
+    await paginacao()
+
+    return
+    //const itens = status?.itens || orcamento?.dados_composicoes || {}
 
     for (const [codigo, composicao] of Object.entries(itens)) {
 
@@ -155,11 +166,11 @@ function marcarItensLPU(input) {
 
 }
 
-async function adicionarLinhaParceiro(codigo, composicao) {
+async function adicionarLinhaParceiro(composicao) {
 
-    new Promise((resolve, reject) => {
+    const { codigo } = composicao
 
-        const tds = `
+    const tds = `
         <td>
             <input type="checkbox" name="itensLPU">
         </td>
@@ -179,20 +190,9 @@ async function adicionarLinhaParceiro(codigo, composicao) {
         <td></td>
         <td>
             <label class="labelAprovacao"></label>
-        </td>
-    `
-        const trExistente = document.getElementById(codigo)
+        </td>`
 
-        if (trExistente) {
-            trExistente.innerHTML = tds
-            resolve()
-            return
-        }
-
-        document.getElementById('bodyParceiros').insertAdjacentHTML('beforeend', `<tr data-avulso="${composicao.avulso ? 'S' : 'N'}" id="${codigo}">${tds}</tr>`)
-        calcularLpuParceiro()
-        resolve()
-    })
+    return `<tr>${tds}</tr>`
 
 }
 

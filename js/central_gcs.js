@@ -138,8 +138,8 @@ const esquemaBotoes = {
     ],
     orcamentos: [
         { nome: 'Baixar em Excel', funcao: 'excelOrcamentos', img: 'excel' },
-        { nome: 'Criar Orçamento', funcao: `telaCriarOrcamento()`, img: 'projeto' },
-        { nome: 'Criar Orçamento Aluguel', funcao: `telaCriarOrcamentoAluguel()`, img: 'projeto' },
+        { nome: 'Criar Orçamento', funcao: `telaCriarOrcamento`, img: 'projeto' },
+        { nome: 'Criar Orçamento Aluguel', funcao: `telaCriarOrcamentoAluguel`, img: 'projeto' },
     ],
     composicoes: [
         { nome: 'Cadastrar Item', funcao: 'cadastrarItem', img: 'baixar' },
@@ -167,7 +167,7 @@ const esquemaBotoes = {
     ],
     rh: [
         { nome: 'Baixar em Excel', funcao: 'rhExcel', img: 'excel' },
-        { nome: 'Adicionar Local', funcao: 'adicionarPessoa', img: 'baixar' }
+        { nome: 'Incluir Documento', funcao: 'incluirDocumento', img: 'baixar' }
     ],
     clientes: [
         { nome: 'Novo cadastro', funcao: 'formularioCliente', img: 'baixar' }

@@ -440,11 +440,20 @@ function infoAnexos(input) {
     }
 }
 
-function criarLinhaPeca(id, peca) {
+function criarLinhaPeca(id = ID5digitos(), peca) {
 
     const linhasManutencao = document.getElementById('linhasManutencao')
 
-    id = id || ID5digitos()
+    controlesCxOpcoes[id] = {
+        colunas: {
+            'partnumber': { chave: 'partnumber' },
+            'Descrição': { chave: 'descricao' },
+            'Categoria': { chave: 'categoria' },
+            'Marca': { chave: 'marca' }
+        },
+        retornar: ['descricao'],
+        base: 'dados_estoque'
+    }
 
     const tds = `
         <td>
@@ -458,7 +467,9 @@ function criarLinhaPeca(id, peca) {
         <td><img src="imagens/cancel.png" onclick="this.parentElement.parentElement.remove()"></td>
     `
     const trExistente = document.getElementById(id)
-    if (trExistente) return trExistente.innerHTML = tds
+    if (trExistente)
+        return trExistente.innerHTML = tds
+
     linhasManutencao.insertAdjacentHTML('beforeend', `<tr id="${id}">${tds}</tr>`)
 }
 
