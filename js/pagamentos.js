@@ -562,7 +562,7 @@ async function formularioPagamento() {
     controlesCxOpcoes.recebedor = {
         base: 'dados_clientes',
         retornar: ['nome'],
-        funcaoAux: ['calculadoraPagamento'],
+        funcaoAdicional: ['calculadoraPagamento'],
         colunas: {
             'Nome': { chave: 'nome' },
             'CNPJ/CPF': { chave: 'cnpj' },
@@ -888,7 +888,7 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
     controlesCxOpcoes[aleatorio] = {
         base,
         retornar: esquema[base].retornar,
-        funcaoAux: ['calculadoraPagamento'],
+        funcaoAdicional: ['calculadoraPagamento'],
         colunas: esquema[base].colunas
     }
 

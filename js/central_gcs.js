@@ -2,33 +2,31 @@ const botaoRodape = (funcao, texto, img) => `
         <div class="botoesRodape" onclick="${funcao}">
             <img src="imagens/${img}.png">
             <span>${texto}</span>
-        </div>
-    `
+        </div>`
+
 const modelo = (valor1, valor2) => `
-        <div class="modelo">
-            <label>${valor1}</label>
-            <div style="width: 100%; text-align: left;">${valor2}</div>
-        </div>
-        `
+    <div class="modelo">
+        <label>${valor1}</label>
+        <div style="width: 100%; text-align: left;">${valor2}</div>
+    </div>`
 
 const labelDestaque = (valor1, valor2) => `
     <div style="${vertical}">
         <div><strong>${valor1}:</strong></div>
-        <div style="text-align: left;">${valor2}</div>
-    </div>
-`
+        <div style="text-align: left; white-space: pre-wrap;">${valor2}</div>
+    </div>`
 
 const botao = (valor1, funcao, cor) => `
         <div class="contorno-botoes" style="background-color: ${cor}e3; border: solid 1px ${cor};" onclick="${funcao}">
             <label style="white-space: nowrap;">${valor1}</label>
-        </div>
-        `
+        </div>`
+
 const avisoHTML = (termo) => `
     <div style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 2vw;">
         <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
         <label>${termo}</label>
-    </div>
-    `
+    </div>`
+
 const balaoPDF = ({ nf, tipo, codOmie, app }) => {
     return `
     <div class="balaoNF" onclick="abrirDANFE('${codOmie}', '${tipo}', '${app}')">
@@ -39,16 +37,15 @@ const balaoPDF = ({ nf, tipo, codOmie, app }) => {
         <div class="balao2">
             PDF
         </div>
-    </div>
-    `
+    </div>`
 }
 
 const modeloBotoes = (imagem, nome, funcao) => {
     return `
-        <div class="atalhos" style="width: 100%;" onclick="${funcao}">
-            <img src="imagens/${imagem}.png">
-            <label style="cursor: pointer;">${nome}</label>
-        </div>
+    <div class="atalhos" style="width: 100%;" onclick="${funcao}">
+        <img src="imagens/${imagem}.png">
+        <label style="cursor: pointer;">${nome}</label>
+    </div>
     `
 }
 
@@ -1167,7 +1164,30 @@ async function painelClientes(idOrcamento) {
         { texto: 'Atualizar', img: 'atualizar', funcao: `attClientes()` },
     ]
 
-    if (idOrcamento) botoes.push({ texto: 'Limpar Campos', img: 'limpar', funcao: 'executarLimparCampos()' })
+    if (idOrcamento)
+        botoes.push({ texto: 'Limpar Campos', img: 'limpar', funcao: 'executarLimparCampos()' })
+
+
+    controlesCxOpcoes.cliente = {
+        retornar: ['nome'],
+        base: 'dados_clientes',
+        funcaoAdicional: ['buscarDadosCliente'],
+        colunas: {
+            'Nome Fantasia': { chave: 'nome' },
+            'Cidade': { chave: 'cidade' },
+            'Estado': { chave: 'estado' },
+            'CNPJ/CPF': { chave: 'cnpj' }
+        }
+    }
+
+    controlesCxOpcoes.chamado = {
+        retornar: ['id'],
+        base: 'dados_ocorrencias',
+        funcaoAdicional: ['buscarDadosCliente'],
+        colunas: {
+            'Chamado': { chave: 'id' }
+        }
+    }
 
     const linhas = [
         {
@@ -1178,7 +1198,7 @@ async function painelClientes(idOrcamento) {
                         class="opcoes" 
                         name="chamado"
                         ${dados_orcam?.chamado ? `id="${dados_orcam?.chamado}"` : ''}
-                        onclick="cxOpcoes('chamado', 'dados_ocorrencias', ['id'])">
+                        onclick="cxOpcoes('chamado')">
                             ${dados_orcam?.chamado || 'Selecione'}
                     </span>
                     <input value="${dados_orcam?.contrato || 'ORC ...'}" readOnly>
@@ -1204,7 +1224,7 @@ async function painelClientes(idOrcamento) {
                     : ''} 
                     class="opcoes" 
                     name="cliente" 
-                    ${bloq ? '' : `onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'bairro', 'cnpj'], 'buscarDadosCliente()')"`}>
+                    ${bloq ? '' : `onclick="cxOpcoes('cliente')"`}>
                         ${cliente?.nome || 'Selecione'}
                 </span>
                 ${bloq ? '' : `<img onclick="formularioCliente()" src="imagens/baixar.png">`}

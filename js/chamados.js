@@ -462,8 +462,12 @@ function criarLinhaPeca(id = ID5digitos(), peca) {
                 <img data-modalidade="tradicional" src="imagens/ajustar.png" style="width: 1.2rem;" onclick="mudarEdicao(this)">
             </div>
         </td>
-        <td contentEditable="true">${peca?.quantidade || peca?.qtde || 0}</td>
-        <td contentEditable="true">${peca?.comentario || ''}</td>
+        <td>
+            <input value="${peca?.quantidade || peca?.qtde || 0}">
+        </td>
+        <td>
+            <textarea>${peca?.comentario || ''}</textarea>
+        </td>
         <td><img src="imagens/cancel.png" onclick="this.parentElement.parentElement.remove()"></td>
     `
     const trExistente = document.getElementById(id)
@@ -511,8 +515,8 @@ async function enviarManutencao() {
         pecas[codigo] = {
             partnumber: item?.partnumber || '',
             descricao: tds[0].querySelector('.opcoes')?.textContent || tds[0].querySelector('.opcoes')?.value,
-            quantidade: Number(tds[1].textContent),
-            comentario: tds[2].textContent
+            quantidade: Number(tds[1].querySelector('input')?.value || 0),
+            comentario: tds[2].querySelector('textarea')?.value || ''
         }
     }
 

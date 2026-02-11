@@ -12,16 +12,17 @@
     width: max-content;
 }
 
-.ver-mais {
-    border-bottom-left-radius: 3px;
-    border-bottom-right-radius: 3px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.num {
+    text-align: center;
+    min-width: 20px;
+    font-size: 1.1rem;
+    background-color: #d2d2d2;
+    padding: 5px;
+    border-radius: 3px;
 }
 
 .cartao-status {
+    text-align: center;
     display: flex;
     flex-direction: column;
     justify-content: start;
@@ -58,6 +59,7 @@
 }
 
 .requisicao-dados {
+    text-align: start;
     gap: 5px;
     border-bottom-left-radius: 3px;
     border-bottom-right-radius: 3px;

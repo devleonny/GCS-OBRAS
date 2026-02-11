@@ -452,7 +452,7 @@ function linCxOpcoes(dado) {
 
 async function selecionar(name, cod) {
 
-    const { funcaoAux, base, retornar } = controlesCxOpcoes[name]
+    const { funcaoAdicional, base, retornar } = controlesCxOpcoes[name]
     const painel = document.querySelector('.painel-padrao')
 
     if (!retornar)
@@ -482,22 +482,11 @@ async function selecionar(name, cod) {
 
     removerPopup()
 
-    if (funcaoAux)
-        await window[funcaoAux]()
+    if (funcaoAdicional)
+        await window[funcaoAdicional]()
 }
 
-async function gerarPdfRequisicao(nome) {
-
-    const id = 'pdf'
-    const estilos = [
-        'gcsobras',
-        'status'
-    ]
-
-    await pdf({ id, estilos, nome })
-}
-
-async function pdf({ id, estilos = [], nome = 'documento' }) {
+async function pdf({ id, estilos = [], nome = 'documento', orientacao = '' }) {
 
     const htmlPdf = document.getElementById(id)
     const bPdf = document.getElementById('bPdf')
@@ -519,7 +508,7 @@ async function pdf({ id, estilos = [], nome = 'documento' }) {
                 <style>
 
                     @page {
-                        size: A4;
+                        size: A4 ${orientacao};
                         margin: 10mm;
                     }
 
@@ -531,6 +520,18 @@ async function pdf({ id, estilos = [], nome = 'documento' }) {
                     body {
                         font-family: 'Poppins', sans-serif;
                         background: white;
+                    }}
+
+                    .topo-tabela * {
+                        visibility: hidden;
+                    }
+
+                    .div-tabela {
+                        max-height: max-content;
+                    }
+
+                    .tabela thead tr:nth-child(2) {
+                        display: none;
                     }
 
                 </style>

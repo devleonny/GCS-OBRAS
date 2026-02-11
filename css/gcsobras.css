@@ -1916,19 +1916,18 @@ input[type=range]::-moz-range-thumb {
 .contorno-botoes {
     background-color: #222222e3;
     display: flex;
-    width: 100%;
-    justify-content: space-between;
-    margin: 2px;
-    cursor: pointer;
+    align-items: center;
+    justify-content: center;
     width: max-content;
-    padding: 5px 1rem 5px 1rem;
+    padding: 2px;
+    cursor: pointer;
     display: flex;
     gap: 5px;
-    align-items: center;
     border-radius: 3px;
 }
 
 .contorno-botoes label {
+    padding: 2px;
     color: white;
     cursor: pointer;
     font-size: 0.8rem;
@@ -1954,6 +1953,17 @@ input[type=range]::-moz-range-thumb {
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
     overflow-y: auto;
     flex-shrink: 0;
+}
+
+.bloco-status-interno {
+    flex-direction: column;
+    gap: 1px;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    padding: 5px;
+    border-top-right-radius: 3px;
+    border-top-left-radius: 3px;
 }
 
 .alerta-pendencia {
@@ -2035,23 +2045,6 @@ input[type=range]::-moz-range-thumb {
 .no-matches {
     padding: 10px;
     color: #999;
-}
-
-.label_requisicao {
-    border-radius: 3px;
-    margin: 3px;
-    background-color: white;
-    padding: 5px;
-    cursor: pointer;
-    display: flex;
-    gap: 10px;
-    justify-content: left;
-    align-items: center;
-    width: 80%;
-}
-
-.label_requisicao label {
-    cursor: pointer;
 }
 
 .anexos {

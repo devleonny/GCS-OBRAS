@@ -478,14 +478,13 @@ function somarPend(obj) {
     return t
 }
 
-async function criarGaveta(usuario = null) {
+async function criarGaveta(usuario = null, conf = {}) {
 
     if (!usuario)
         usuario = document.querySelector('[name="contador"]').id || 'Geral'
 
-    const contadores = JSON.parse(localStorage.getItem('contadores')) || []
-    if (!contadores.includes(usuario))
-        contadores.push(usuario)
+    const contadores = JSON.parse(localStorage.getItem('contadores')) || {}
+    contadores[usuario] = { estrela: conf.estrela || 'N' }
 
     localStorage.setItem('contadores', JSON.stringify(contadores))
 
@@ -500,7 +499,7 @@ async function criarGaveta(usuario = null) {
             class="ind" 
             style="border-left: 6px solid ${cor};" 
             onclick="controles.acoes.status = '${titulo}'; ${auxiliar}; paginacao('acoes')">
-            <span style="font-size: 14px; color:#444;">${inicialMaiuscula(titulo)}</span>
+            <span style="font-size: 14px; color: #444;">${inicialMaiuscula(titulo)}</span>
             <strong style="font-size: 22px; margin-top:5px;">${valor}</strong>
         </div>`
     }
@@ -539,6 +538,7 @@ async function criarGaveta(usuario = null) {
             ${box('pendente', totais?.pendentes || 0, "#41a6ff")}
             ${box('atrasado', totais?.atrasados, "#ff0000")}
             ${box('concluído', contagem?.concluído || 0, "#008000")}
+            <img src="imagens/estrela${conf?.estrela == 'S' ? '' : '_off'}.png" name="estrela" data-usuario="${usuario}" onclick="favoritar(this)">
         </div>
     `
 
@@ -550,18 +550,54 @@ async function criarGaveta(usuario = null) {
 
     const guardaRoupas = document.querySelector('.guarda-roupas')
     const existente = document.getElementById(`gaveta_${usuario}`)
-    if (existente) return existente.innerHTML = conteudo
+    if (existente)
+        return existente.innerHTML = conteudo
 
-    if (guardaRoupas) guardaRoupas.insertAdjacentHTML('beforeend', gaveta)
+    if (guardaRoupas)
+        guardaRoupas.insertAdjacentHTML('beforeend', gaveta)
+
+}
+
+async function favoritar(img) {
+
+    const usuario = img.dataset.usuario
+    const contadores = JSON.parse(localStorage.getItem('contadores')) || {}
+
+    Object.entries(contadores)
+        .map(([u, conf]) => {
+            conf.estrela = 'N'
+        })
+
+    contadores[usuario].estrela = 'S'
+
+    localStorage.setItem('contadores', JSON.stringify(contadores))
+
+    const estrelas = document.querySelectorAll('[name="estrela"]')
+
+    estrelas.forEach(e => e.src = 'imagens/estrela_off.png')
+
+    img.src = 'imagens/estrela.png'
+
+    const filtros = usuario == 'Geral'
+        ? {}
+        : { op: '=', value: usuario }
+
+    controles.acoes.filtros = {
+        'pda.acoes.*.responsavel': filtros
+    }
+
+    await paginacao('acoes')
 
 }
 
 function removerContador(usuario) {
     const contadores = JSON.parse(localStorage.getItem('contadores')) || []
-    const novo = contadores.filter(c => c !== usuario)
-    localStorage.setItem('contadores', JSON.stringify(novo))
+    delete contadores[usuario]
+    localStorage.setItem('contadores', JSON.stringify(contadores))
+
     const gaveta = document.getElementById(`gaveta_${usuario}`)
-    if (gaveta) gaveta.remove()
+    if (gaveta)
+        gaveta.remove()
 }
 
 function incluirContador() {
@@ -596,6 +632,20 @@ async function indicadores() {
 
     //await atualizarGCS()
 
+    const contadores = JSON.parse(localStorage.getItem('contadores')) || []
+    if (!contadores[acesso.usuario])
+        contadores[acesso.usuario] = { estrela: 'N' }
+
+    let filtroUsuario = {}
+
+    Object.entries(contadores)
+        .forEach(([u, conf]) => {
+            if (conf.estrela == 'S' && u !== 'Geral')
+                filtroUsuario = { 'pda.acoes.*.responsavel': { op: '=', value: u } }
+
+            criarGaveta(u, conf)
+        })
+
     const pag = 'acoes'
     const tabela = await modTab({
         criarLinha: 'linAcoes',
@@ -604,7 +654,7 @@ async function indicadores() {
         body: 'bodyAcoes',
         filtros: {
             'pda.acoes': { op: 'NOT_EMPTY' },
-            'pda.acoes.*.responsavel': { op: '=', value: acesso.usuario }
+            ...filtroUsuario
         }
     })
 
@@ -634,11 +684,7 @@ async function indicadores() {
     document.querySelector('.tabelas-inicial').innerHTML = acumulado
 
     await paginacao(pag)
-    const contadores = JSON.parse(localStorage.getItem('contadores')) || []
-    if (!contadores.includes(acesso.usuario))
-        contadores.push(acesso.usuario)
 
-    contadores.forEach(u => criarGaveta(u))
 }
 
 

@@ -15,7 +15,7 @@ function modTab({ btnExtras = '', criarLinha, base, funcaoAdicional = [], filtro
     controles[pag].base = base
     controles[pag].criarLinha = criarLinha
     controles[pag].body = body
-    controles[pag].filtros = filtros
+    controles[pag].filtros = controles[pag]?.filtros || filtros
 
     const ths = Object.keys(colunas)
         .map(th => `
