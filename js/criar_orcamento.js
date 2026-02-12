@@ -658,7 +658,8 @@ async function enviarDadosOrcamento() {
 async function ativarChamado(input, idOrcamento) {
 
     // Tela de criação de orçamento, não precisa continuar, o salvar irá coletar a informação;
-    if (!idOrcamento) return
+    if (!idOrcamento) 
+        return
 
     const ativo = input.checked
         ? 'S'
@@ -676,15 +677,11 @@ async function ativarChamado(input, idOrcamento) {
 
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
 
-    const linha = document.getElementById(idOrcamento)
-    if (linha)
-        linha.dataset.chamado = ativo
-
-    await telaOrcamentos(true)
     const pHistorico = document.querySelector('.painel-historico')
+    if (pHistorico) 
+        await abrirEsquema(idOrcamento)
 
     removerOverlay()
-    if (pHistorico) await abrirEsquema(idOrcamento)
 
 }
 
