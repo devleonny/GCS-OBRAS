@@ -153,7 +153,7 @@ async function telaClientes() {
         </div>
     `
     const pag = 'clientes'
-    const tabela = await modTab({
+    const tabela = modTab({
         pag,
         colunas,
         body: 'bodyClientes',

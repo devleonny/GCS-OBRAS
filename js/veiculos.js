@@ -38,7 +38,7 @@ async function telaVeiculos() {
         ? `<div id="viabilidade"></div>`
         : ''
 
-    const tabela = await modTab({
+    const tabela = modTab({
         pag: 'custoVeiculos',
         funcaoAdicional: ['viabilidadeOmie'],
         btnExtras,

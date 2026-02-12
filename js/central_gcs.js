@@ -10,11 +10,17 @@ const modelo = (valor1, valor2) => `
         <div style="width: 100%; text-align: left;">${valor2}</div>
     </div>`
 
-const labelDestaque = (valor1, valor2) => `
+const labelDestaque = (valor1, valor2) => {
+
+    if (!valor2)
+        return ''
+
+    return `
     <div style="${vertical}">
         <div><strong>${valor1}:</strong></div>
         <div style="text-align: left; white-space: pre-wrap;">${valor2}</div>
     </div>`
+}
 
 const botao = (valor1, funcao, cor) => `
         <div class="contorno-botoes" style="background-color: ${cor}e3; border: solid 1px ${cor};" onclick="${funcao}">
@@ -338,7 +344,7 @@ async function configs() {
         'Setores': { chave: 'setor' }
     }
 
-    const tabela = await modTab({
+    const tabela = modTab({
         pag: 'usuarios',
         colunas,
         base: 'dados_setores',

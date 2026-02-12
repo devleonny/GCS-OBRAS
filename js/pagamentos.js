@@ -55,7 +55,7 @@ async function telaPagamentos() {
         'Detalhes': ''
     }
 
-    const tabela = await modTab({
+    const tabela = modTab({
         pag,
         colunas,
         funcaoAdicional: ['atualizarPainelEsquerdo'],

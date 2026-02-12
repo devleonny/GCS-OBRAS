@@ -4,18 +4,19 @@ function campoBloq() {
     popup({ mensagem: 'O campo não permite pesquisas' })
 }
 
-function modTab({ btnExtras = '', criarLinha, base, funcaoAdicional = [], filtros = {}, colunas = {}, body = null, pag = null }) {
+function modTab(configuracoes) {
+
+    const { btnExtras = '', criarLinha, base, colunas = {}, body = null, pag = null } = configuracoes || {}
 
     if (!body || !pag || !base || !criarLinha)
         return popup({ mensagem: 'body/pag/base/criarLinha Não podem ser null' })
 
     controles[pag] ??= {}
-    controles[pag].funcaoAdicional = funcaoAdicional
-    controles[pag].pagina = 1
-    controles[pag].base = base
-    controles[pag].criarLinha = criarLinha
-    controles[pag].body = body
-    controles[pag].filtros = controles[pag]?.filtros || filtros
+    controles[pag] = {
+        pagina: 1,
+        ...controles[pag],
+        ...configuracoes
+    }
 
     const ths = Object.keys(colunas)
         .map(th => `
@@ -23,11 +24,9 @@ function modTab({ btnExtras = '', criarLinha, base, funcaoAdicional = [], filtro
                 <div style="${horizontal}; width: 100%; justify-content: space-between; gap: 1rem;">
                     <span>${th}</span>    
                 </div>
-            </th>
-            `
+            </th>`
         )
         .join('')
-
 
     const pesquisa = Object.entries(colunas)
         .map(([th, query]) => {
@@ -130,7 +129,13 @@ async function paginacao(pag) {
 
     async function ativarPaginacao(pag) {
 
-        const { pagina, base, body, criarLinha, funcaoAdicional, filtros } = controles[pag] || {}
+        const { pagina, base, body, bloquearPaginacao = false, primEx = true, criarLinha, funcaoAdicional, filtros } = controles[pag] || {}
+
+        // Bloquear paginações seguintes;
+        if (bloquearPaginacao && !primEx) {
+            await executarFuncoesAdicionais(funcaoAdicional)
+            return
+        }
 
         const tbody = document.getElementById(body)
 
@@ -176,32 +181,39 @@ async function paginacao(pag) {
         }
 
         if (!dados.resultados.length) {
-            tbody.innerHTML = `
-                <tr id="dinossauro"> 
-                    <td colspan="${cols}">
-                        <div style="${horizontal}; width: 100%; gap: 1rem;">
-                            <img src="gifs/offline.gif" style="width: 5rem;">
-                        </div>
-                    </td>
-                </tr>`
+            tbody.innerHTML = ''
+            tbody.appendChild(criarDino(cols))
+
         } else {
-            const dinossauro = document.getElementById('dinossauro')
+            const dinossauro = tbody.querySelector('#dinossauro')
             if (dinossauro) dinossauro.remove()
 
             await atualizarComTS(tbody, dados.resultados, criarLinha)
         }
 
-        // Função adicionarl, se existir;
+        await executarFuncoesAdicionais(funcaoAdicional)
+
+        // Primeira execução removida;
+        if (primEx)
+            controles[pag].primEx = false
+
+    }
+
+    async function executarFuncoesAdicionais(funcaoAdicional = []) {
+        // Função adicional, se existir;
         if (funcaoAdicional.length) {
             for (const f of funcaoAdicional)
                 await window[f]()
         }
-
     }
 
 }
 
 async function atualizarComTS(tbody, dados, criarLinha) {
+
+    const dino = tbody.querySelector('#dinossauro')
+    if (dino)
+        dino.remove()
 
     const linhasAtuais = {}
     for (const tr of tbody.querySelectorAll('tr[data-id]')) {
@@ -246,6 +258,26 @@ async function atualizarComTS(tbody, dados, criarLinha) {
     }
 
     // substitui tudo de uma vez
-    tbody.innerHTML = ''
+    for (const tr of tbody.querySelectorAll('tr[data-id]')) {
+        tr.remove()
+    }
+
     tbody.appendChild(fragment)
 }
+
+function criarDino(cols) {
+    const tr = document.createElement('tr')
+    tr.id = 'dinossauro'
+
+    const td = document.createElement('td')
+    td.colSpan = cols
+    td.innerHTML = `
+        <div style="${horizontal}; width: 100%; gap: 1rem;">
+            <img src="gifs/offline.gif" style="width: 5rem;">
+        </div>
+    `
+
+    tr.appendChild(td)
+    return tr
+}
+

@@ -16,7 +16,7 @@ async function telaChamados() {
         'Ações': {}
     }
 
-    const tabela = await modTab({
+    const tabela = modTab({
         pag: 'chamados',
         funcaoAdicional: ['formatacaoPaginaChamados'],
         colunas,

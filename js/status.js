@@ -1,8 +1,9 @@
-let dadosNota = {}
 let unidadeOrc = null
 const altNumOrc = ['adm', 'analista']
 const opcoesPedidos = ['Locação', 'Serviço', 'Venda', 'Venda + Serviço', 'POC']
 const opcoesRequisicao = ['SERVIÇO', 'VENDA', 'USO E CONSUMO', 'LOCAÇÃO']
+const transportadoras = ['JAMEF', 'CORREIOS', 'RODOVIÁRIA', 'JADLOG', 'AÉREO', 'OUTRAS']
+const permAtalhos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
 
 const fluxograma = [
     'SEM STATUS',
@@ -137,42 +138,7 @@ async function salvarPedido(id, chave = ID5digitos()) {
 
 }
 
-async function painelAdicionarNotas(id) {
-
-    const tipos = ['Serviço', 'Venda', 'Remessa']
-    const apps = ['AC', 'HNK', 'HNW', 'IAC']
-
-    const elemento = `
-        <div id="painelNotas" style="${vertical};">
-
-            <div style="width: 100%; ${horizontal}; gap: 5px;">
-                
-
-                <select class="pedido">
-                    ${tipos.map(t => `<option>${t}</option>`).join('')}
-                </select>
-
-                <select class="pedido">
-                    ${apps.map(a => `<option>${a}</option>`).join('')}
-                </select>
-
-                <button onclick="buscarNFOmie(this, '${id}')" style="background-color: #097fe6;">Buscar dados</button>
-                
-                <span>ou</span>
-
-                <button onclick="htmlFormularioAvulso('${id}')" style="background-color: #B12425;">Inserir Manualmente</button>
-            </div>
-                
-            <div id="detalhesNF" style="width: 100%;"></div>
-
-        </div>
-        `
-
-    popup({ elemento, titulo: 'Vincular Nota Fiscal' })
-
-}
-
-function htmlFormularioAvulso() {
+function adicionarNotaAvulsa(id) {
 
     const linhas = [
         {
@@ -212,7 +178,9 @@ function maisParcela() {
         </div>
     `
 
-    document.querySelector('.blocoParcelas').insertAdjacentHTML('beforeend', htmlParcela)
+    document
+        .querySelector('.blocoParcelas')
+        .insertAdjacentHTML('beforeend', htmlParcela)
 }
 
 async function salvarNotaAvulsa(id) {
@@ -250,101 +218,6 @@ async function salvarNotaAvulsa(id) {
 
     await enviar(`dados_orcamentos/${id}/status/historico/${idStatus}`, nota)
     await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-    await abrirEsquema(id)
-
-    removerOverlay()
-
-}
-
-async function buscarNFOmie(elemento, id) {
-
-    overlayAguarde()
-
-    let numero = elemento.previousElementSibling.previousElementSibling.previousElementSibling.value
-    let tipo = elemento.previousElementSibling.previousElementSibling.value == 'serviço' ? 'serviço' : 'venda_remessa'
-    let app = elemento.previousElementSibling.value
-
-    let detalhesNF = document.getElementById('detalhesNF')
-    detalhesNF.innerHTML = ''
-
-    const resultado = await verificarNF(numero, tipo, app)
-
-    if (resultado.faultstring) {
-
-        dadosNota = {}
-        removerOverlay()
-
-        return detalhesNF.innerHTML = `
-            <div style="${vertical}; gap: 10;">
-                <label>${resultado.faultstring}</label>
-            </div>
-        `
-    }
-
-    dadosNota = resultado
-
-    let divParcelas = ''
-    let parcelas = dadosNota.parcelas
-        .map((parcela, i) =>
-            `${modelo(`Parcela ${i + 1}`,
-                `<label>${parcela.dDtVenc} <strong>${dinheiro(parcela?.nValorTitulo || parcela?.nValor || '??')}</strong></label><br>`)}`)
-        .join('')
-
-    if (parcelas !== '') {
-        divParcelas = `
-        <hr style="width: 100%;">
-
-        ${parcelas}
-
-        <hr style="width: 100%;">
-        `
-    }
-
-    detalhesNF.innerHTML = `
-        ${modelo('Tipo', dadosNota.tipo)}
-        ${modelo('Cliente', dadosNota.cliente)}
-        ${modelo('CNPJ', dadosNota.cnpj)}
-        ${modelo('Cidade', dadosNota.cidade)}
-        ${modelo('Total', dinheiro(dadosNota.valor))}
-        
-        ${divParcelas}
-
-        ${modelo('Comentário', `<textarea style="width: 90%;" id="comentario"></textarea>`)}
-
-        <div style="width: 100%; display: flex; justify-content: end; align-items: center;">
-            <button onclick="salvarNota('${id}')" style="background-color: green;">Salvar</button>
-        </div>
-    `
-    removerOverlay()
-}
-
-async function salvarNota(id) {
-
-    overlayAguarde()
-
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-    const chave = ID5digitos()
-    const comentario = document.getElementById('comentario').value
-
-    if (Object.keys(dadosNota).length == 0) {
-        removerOverlay()
-        return popup({ mensagem: `A busca não recuperou dados` })
-    }
-
-    orcamento.status ??= {}
-    orcamento.status.historico ??= {}
-    orcamento.status.historico[chave] ??= {}
-
-    orcamento.status.historico[chave] = {
-        ...orcamento.status.historico[chave],
-        status: 'FATURADO',
-        data: new Date().toLocaleString(),
-        executor: acesso.usuario,
-        comentario
-    }
-
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id}/status/historico/${chave}`, dados)
 
     removerPopup()
     await abrirEsquema(id)
@@ -353,12 +226,7 @@ async function salvarNota(id) {
 
 async function abrirAtalhos(id, idMaster) {
 
-    const permitidos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
-    id_orcam = id
-
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
-    const cliente = await recuperarDado('dados_clientes', omie_cliente)
+    const orcamento = await recuperarDado('dados_orcamentos', id)
     const emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
     let botoesDisponiveis = ''
     let termoArquivar = 'Arquivar Orçamento'
@@ -374,7 +242,6 @@ async function abrirAtalhos(id, idMaster) {
         botoesDisponiveis += `
         ${modeloBotoes('esquema', 'Histórico', `abrirEsquema('${id}')`)}
         ${modeloBotoes('painelcustos', 'Painel de Custos', `painelCustos('${id}')`)}`
-
 
     botoesDisponiveis += modeloBotoes('pdf', 'Abrir Orçamento em PDF', `irPdf('${id}', ${emAnalise})`)
 
@@ -393,9 +260,9 @@ async function abrirAtalhos(id, idMaster) {
         `
     }
 
-    if (orcamento?.usuario == acesso.usuario || permitidos.includes(acesso.permissao) || orcamento?.usuarios?.[acesso.usuario]) {
+    if (orcamento?.usuario == acesso.usuario || permAtalhos.includes(acesso.permissao) || orcamento?.usuarios?.[acesso.usuario]) {
         botoesDisponiveis += `
-        ${modeloBotoes('chave', 'Delegar outro analista', `usuariosAutorizados()`)}
+        ${modeloBotoes('chave', 'Delegar outro analista', `usuariosAutorizados('${id}')`)}
         ${modeloBotoes('apagar', 'Excluir Orçamento', `confirmarExclusaoOrcamentoBase('${id}')`)}
         ${modeloBotoes('editar', 'Editar Orçamento', `editar('${id}')`)}
         ${modeloBotoes('gerente', 'Editar Dados do Cliente', `painelClientes('${id}')`)}
@@ -451,8 +318,17 @@ async function abrirAtalhos(id, idMaster) {
         </div>`
         : ''
 
+    const dadosCabecalho = [
+        ...orcamento.snapshots?.contrato || [],
+        orcamento.snapshots?.cidade
+    ]
+        .filter(o => o)
+        .join('<br>')
+
     const acumulado = `
-        <label style="color: #222; text-align: left;" id="cliente_status">${cliente?.nome || '??'}</label>
+        <div style="text-align: left;">
+            ${dadosCabecalho}
+        </div>
         <hr>
         <div style="${horizontal}; gap: 5px;">
             <span>Classificar como <b>CHAMADO</b></span>
@@ -485,9 +361,9 @@ async function mudarNumORC(id) {
 
     if (resposta.numero) {
 
-        db.dados_orcamentos[id].dados_orcam.contrato = resposta.numero
-        await inserirDados({ [id]: db.dados_orcamentos[id] }, 'dados_orcamentos')
-        await telaOrcamentos()
+        const orcamento = await recuperarDado('dados_orcamentos', id)
+        orcamento.dados_orcam.contrato = resposta.numero
+        await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
 
         popup({ mensagem: `Alterado para <b>${resposta.numero}</b>` })
     }
@@ -532,8 +408,11 @@ async function confirmarVinculo(idOrcamento) {
     const orcamentoMaster = document.querySelector('[name="orcamento"]')
     const idMaster = orcamentoMaster.id
 
-    if (!idMaster) return popup({ mensagem: 'Escolha um orçamento' })
-    if (idMaster == idOrcamento) return popup({ mensagem: 'Os orçamentos são iguais [O mesmo]' })
+    if (!idMaster)
+        return popup({ mensagem: 'Escolha um orçamento' })
+
+    if (idMaster == idOrcamento)
+        return popup({ mensagem: 'Os orçamentos são iguais [O mesmo]' })
 
     const dados = {
         data: new Date().toLocaleString(),
@@ -542,14 +421,14 @@ async function confirmarVinculo(idOrcamento) {
 
     enviar(`dados_orcamentos/${idMaster}/vinculados/${idOrcamento}`, dados)
 
-    db.dados_orcamentos[idMaster].vinculados ??= {}
-    db.dados_orcamentos[idMaster].vinculados[idOrcamento] = dados
-    await inserirDados({ [idMaster]: db.dados_orcamentos[idMaster] }, 'dados_orcamentos')
+    const orcamento = await recuperarDado('dados_orcamentos', idMaster)
+
+    orcamento.vinculados ??= {}
+    orcamento.vinculados[idOrcamento] = dados
+    await inserirDados({ [idMaster]: orcamento }, 'dados_orcamentos')
 
     removerPopup()
     removerPopup()
-
-    await telaOrcamentos()
 
 }
 
@@ -563,30 +442,30 @@ async function confirmarRemoverVinculo(idOrcamento, master) {
 
 }
 
-async function desfazerVinculo(idOrcamento, master) {
+async function desfazerVinculo(idSlave, idMaster) {
 
     overlayAguarde()
 
-    delete db.dados_orcamentos[master].vinculados[idOrcamento]
+    const orcMaster = await recuperarDado('dados_orcamentos', idMaster)
 
-    deletar(`dados_orcamentos/${master}/vinculados/${idOrcamento}`)
+    delete orcMaster.vinculados[idSlave]
 
-    await inserirDados({ [master]: db.dados_orcamentos[master] }, 'dados_orcamentos')
+    deletar(`dados_orcamentos/${idMaster}/vinculados/${idSlave}`)
 
-    await telaOrcamentos()
+    await inserirDados({ [idMaster]: orcMaster }, 'dados_orcamentos')
 
     removerPopup()
 
 }
 
-async function usuariosAutorizados() {
+async function usuariosAutorizados(id) {
 
     const elemento = `
         <div style="${vertical}; padding: 1rem;">
             
             <div style="${horizontal}; gap: 5px;">
                 <span class="opcoes" name="usuario" onclick="cxOpcoes('usuario', 'dados_setores', ['usuario', 'setor', 'permissao'])">Selecionar</span>
-                <img src="imagens/concluido.png" style="width: 2rem;" onclick="delegarUsuario()">
+                <img src="imagens/concluido.png" style="width: 2rem;" onclick="delegarUsuario('${id}')">
             </div>
 
             <hr style="width: 100%;">
@@ -597,17 +476,17 @@ async function usuariosAutorizados() {
 
     popup({ elemento })
 
-    carregarAutorizados()
+    await carregarAutorizados(id)
 
 }
 
-async function delegarUsuario(usuario) {
+async function delegarUsuario(id, usuario) {
 
     overlayAguarde()
 
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const orcamento = await recuperarDado('dados_orcamentos', id)
 
-    if (!orcamento.usuarios) orcamento.usuarios = {}
+    orcamento.usuarios ??= {}
 
     let dados = {}
 
@@ -615,7 +494,7 @@ async function delegarUsuario(usuario) {
 
         delete orcamento.usuarios[usuario]
         dados = orcamento.usuarios
-        deletar(`dados_orcamentos/${id_orcam}/usuarios/${usuario}`)
+        deletar(`dados_orcamentos/${id}/usuarios/${usuario}`)
 
     } else {
 
@@ -629,26 +508,25 @@ async function delegarUsuario(usuario) {
         }
 
         orcamento.usuarios[usuario] = dados
-        enviar(`dados_orcamentos/${id_orcam}/usuarios/${usuario}`, dados)
+        enviar(`dados_orcamentos/${id}/usuarios/${usuario}`, dados)
     }
 
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    await carregarAutorizados()
-    telaOrcamentos()
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+    await carregarAutorizados(id)
 
     removerOverlay()
 }
 
-async function carregarAutorizados() {
+async function carregarAutorizados(id) {
 
     const modelo = (usuario, dados) => `
         <span style="${horizontal}; gap: 3px;">
-            <img onclick="delegarUsuario('${usuario}')" src="imagens/cancel.png" style="width: 1.2rem;">
+            <img onclick="delegarUsuario('${id}', '${usuario}')" src="imagens/cancel.png" style="width: 1.2rem;">
             ${usuario} - liberado em <b>${dados.data}</b> por <b>${dados.responsavel}</b>
         </span>
     `
 
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const orcamento = await recuperarDado('dados_orcamentos', id)
     const liberados = Object.entries(orcamento?.usuarios || {})
         .map(([usuario, dados]) => modelo(usuario, dados))
         .join('')
@@ -657,26 +535,31 @@ async function carregarAutorizados() {
 
 }
 
-async function arquivarOrcamento(idOrcamento) {
+async function arquivarOrcamento(id) {
 
     overlayAguarde()
 
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const orcamento = await recuperarDado('dados_orcamentos', id)
 
     const arquivamento = orcamento?.arquivado == 'S' ? 'N' : 'S'
     orcamento.arquivado = arquivamento
-    enviar(`dados_orcamentos/${idOrcamento}/arquivado`, arquivamento)
+    enviar(`dados_orcamentos/${id}/arquivado`, arquivamento)
 
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    await telaOrcamentos()
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
 
     removerOverlay()
 
-    const img = orcamento.arquivado ? 'desarquivar' : 'pasta'
-    popup({ mensagem: `${orcamento.arquivado ? 'Arquivado' : 'Desarquivado'} com successo!`, imagem: `imagens/${img}.png` })
+    const img = orcamento.arquivado
+        ? 'desarquivar'
+        : 'pasta'
+
+    const mensagem = orcamento.arquivado
+        ? 'Arquivado com sucesso!'
+        : 'Desarquivado com sucesso!'
+
+    popup({ mensagem, imagem: `imagens/${img}.png` })
 
 }
-
 
 function divPorcentagem(porcentagem) {
     const valor = Math.max(0, Math.min(100, Number(porcentagem) || 0))
@@ -691,12 +574,6 @@ function divPorcentagem(porcentagem) {
     `
 }
 
-function auxiliarDatas(data) {
-    let [ano, mes, dia] = data.split('-')
-
-    return `${dia}/${mes}/${ano}`
-}
-
 function elementosEspecificos(id, chave, historico) {
 
     let acumulado = ''
@@ -704,7 +581,7 @@ function elementosEspecificos(id, chave, historico) {
 
     if (historico.status == 'REQUISIÇÃO') {
 
-        funcaoEditar = `detalharRequisicao('${id}', '${chave}')`
+        funcaoEditar = `formularioRequisicao({id:'${id}', chave: '${chave}'})`
         acumulado = `
             ${labelDestaque('Total Requisição', dinheiro(historico.total_requisicao))}
             ${historico.transportadora ? labelDestaque('Transportadora', historico.transportadora) : ''}
@@ -721,12 +598,16 @@ function elementosEspecificos(id, chave, historico) {
         funcaoEditar = `modalLPUParceiro('${id}', '${chave}')`
 
         acumulado = `
-        <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" 
-            class="contorno-botoes" 
-            onclick="detalharLpuParceiro('${id}', '${chave}')">
-            <img src="imagens/pdfw.png" style="width: 1.5rem;">
-            <label>Disponível</label>
-        </div>`
+            ${labelDestaque('Total Parceiro', dinheiro(historico?.totais?.parceiro))}
+            ${labelDestaque('Magem Disponível', dinheiro(historico?.totais?.margem))}
+            ${labelDestaque('Desvio', dinheiro(historico?.totais?.desvio))}
+            <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" 
+                class="contorno-botoes" 
+                onclick="detalharLpuParceiro('${id}', '${chave}')">
+                <img src="imagens/pdfw.png" style="width: 1.5rem;">
+                <label>Disponível</label>
+            </div>
+        `
 
     } else if (historico.status == 'PEDIDO') {
 
@@ -742,18 +623,12 @@ function elementosEspecificos(id, chave, historico) {
 
     } else if (historico.status == 'FATURADO') {
 
-        let divPacelas = ''
-
-        let parcelas = (historico?.parcelas || [])
+        const parcelas = (historico?.parcelas || [])
             .map(parcela => `Parcela ${parcela.nParcela} <br> ${labelDestaque(parcela.dDtVenc, dinheiro(parcela.nValor))}`)
             .join('')
 
-        if (parcelas !== '') divPacelas = `
-            <hr style="width: 100%;">
-            ${parcelas}
-        `
 
-        let botaoDANFE = `
+        const botaoDANFE = `
             ${labelDestaque('Nota', historico.nf)}
             ${labelDestaque('Tipo', historico.tipo)}
         `
@@ -768,17 +643,17 @@ function elementosEspecificos(id, chave, historico) {
             ${labelDestaque('Valor Total', dinheiro(historico.valor))}
             <br>
             ${botaoDANFE}
-            ${divPacelas}
+            ${parcelas}
         `
-    } else if (historico.envio) {
+    } else if (historico.status.includes('MATERIAL')) {
 
-        funcaoEditar = `envioMaterial('${chave}')`
+        funcaoEditar = `envioMaterial('${id}', '${chave}')`
 
         acumulado = `
-            ${labelDestaque('Rastreio', historico.envio.rastreio)}
-            ${labelDestaque('Transportadora', historico.envio.transportadora)}
-            ${labelDestaque('Data de Saída', auxiliarDatas(historico.envio.data_saida))}
-            ${labelDestaque('Data de Entrega', auxiliarDatas(historico.envio.previsao))}
+            ${labelDestaque('Rastreio', historico.rastreio)}
+            ${labelDestaque('Transportadora', historico.transportadora)}
+            ${labelDestaque('Data de Saída', conversorData(historico.data_saida))}
+            ${labelDestaque('Data de Entrega', conversorData(historico.previsao))}
         `
     }
 
@@ -825,7 +700,7 @@ async function abrirEsquema(id) {
             : ''
 
         const stringAnexos = Object.entries(anexos || {})
-            .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('${chave}', '${idAnexo}', this)`))
+            .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('id', '${chave}', '${idAnexo}', this)`))
             .join('')
 
         blocosStatus[statusCartao] += `
@@ -870,14 +745,14 @@ async function abrirEsquema(id) {
 
             <div style="${vertical}; gap: 2px;">
                 <label>Status atual</label>
-                <select data-id="${id}" onchange="alterarStatus(this)" style="border-radius: 3px; padding: 3px;">
+                <select onchange="alterarStatus('${id}', this)" style="border-radius: 3px; padding: 3px;">
                     ${['', ...fluxograma].map(fluxo => `
                         <option ${orcamento?.status?.atual == fluxo ? 'selected' : ''}>${fluxo}</option>
                     `).join('')}
                 </select>
             </div>
  
-            <img onclick="mostrarHistoricoStatus()" src="imagens/historico.png">
+            <img onclick="mostrarHistoricoStatus('${id}')" src="imagens/historico.png">
 
             <label style="font-size: 1.5rem;">${oficial} - ${cliente?.nome || '??'}</label>
 
@@ -983,14 +858,10 @@ async function abrirEsquema(id) {
             <div class="status-botoes">
                 
                 ${botao('Novo Pedido', `painelAdicionarPedido('${id}')`, '#4CAF50')}
-                ${botao('Requisição Materiais', `detalharRequisicao('${id}')`, '#B12425')}
-                ${botao('Requisição Equipamentos', `detalharRequisicao('${id}')`, '#B12425')}
-                ${botao('Nova Nota Fiscal', `painelAdicionarNotas('${id}')`, '#ff4500')}
-
-                ${(acesso.permissao == 'adm' || acesso.setor == 'LOGÍSTICA')
-            ? botao('Novo Envio de Material', `envioMaterial()`, '#b17724')
-            : ''}
-                
+                ${botao('Requisição Materiais', `formularioRequisicao({id:'${id}', modalidade: 'materiais'})`, '#B12425')}
+                ${botao('Requisição Equipamentos', `formularioRequisicao({id:'${id}', modalidade: 'equipamentos'})`, '#B12425')}
+                ${botao('Nova Nota Fiscal', `adicionarNotaAvulsa('${id}')`, '#ff4500')}
+                ${botao('Novo Envio de Material', `envioMaterial('${id}')`, '#b17724')}
                 ${botao('LPU Parceiro', `modalLPUParceiro('${id}')`, '#0062d5')}
 
             </div>
@@ -1027,40 +898,21 @@ async function verCorrecoes(idOcorrencia) {
     popup({ elemento, titulo: 'Correções' })
 }
 
-async function atualizarComentario(id, chave, img) {
-
-    overlayAguarde()
-
-    const orcamento =
-        await recuperarDado('dados_orcamentos', id)
-
-    const comentario = img.previousElementSibling.value
-
-    orcamento.status.historico[chave].comentario = comentario
-
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id}/status/historico/${chave}/comentario`, comentario)
-
-    img.style.display = 'none'
-
-    removerOverlay()
-}
-
 function mostrarConfirmacao(elemento) {
     let img = elemento.nextElementSibling;
     img.style.display = 'block'
 }
 
-async function alterarStatus(select) {
+async function alterarStatus(id, select) {
 
-    const id = select.dataset.id
     const orcamento = await recuperarDado('dados_orcamentos', id)
     orcamento.status ??= {}
     orcamento.status.historicoStatus ??= {}
     const statusAnterior = orcamento.status?.atual || ''
 
     const novoSt = select.value
-    if (orcamento.status?.atual == novoSt) return
+    if (orcamento.status?.atual == novoSt)
+        return
 
     const bloq = ['REQUISIÇÃO', 'CONCLUÍDO']
 
@@ -1090,7 +942,7 @@ async function alterarStatus(select) {
     enviar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}`, registroStatus)
 
     if (novoSt == 'ORC PENDENTE')
-        formularioOrcPendente(idStatus)
+        formularioOrcPendente(id, idStatus)
 
     if (novoSt == 'ORC APROVADO') {
         formularioOrcAprovado()
@@ -1104,10 +956,9 @@ async function alterarStatus(select) {
         await abrirEsquema(id)
 }
 
-function formularioOrcAprovado(idOrcamento) {
+async function formularioOrcAprovado(id) {
 
-    const orcamento = db.dados_orcamentos[idOrcamento]
-
+    const orcamento = await recuperarDado('dados_orcamentos', id)
     const linhas = [
         {
             texto: 'Qual a previsão de início?',
@@ -1120,32 +971,32 @@ function formularioOrcAprovado(idOrcamento) {
         }
     ]
 
-    const funcao = `salvarPrioridade('${idOrcamento}')`
+    const funcao = `salvarPrioridade('${id}')`
     const botoes = [{ texto: 'Salvar', img: 'concluido', funcao }]
 
     popup({ linhas, botoes, titulo: 'Prioridade do Orçamento' })
 
 }
 
-async function salvarPrioridade(idOrcamento) {
+async function salvarPrioridade(id) {
 
     const input = document.querySelector('[name="prioridade"]')
-    const orcamento = db.dados_orcamentos[idOrcamento]
+    const orcamento = await recuperarDado('dados_orcamentos', id)
 
-    if (!input.value) return removerPopup()
+    if (!input.value)
+        return removerPopup()
 
     orcamento.inicio = input.value
     removerPopup()
 
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${idOrcamento}/inicio`, input.value)
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${id}/inicio`, input.value)
 
-    await abrirAtalhos(idOrcamento)
-    await telaOrcamentos()
+    await abrirAtalhos(id)
 
 }
 
-async function irORC(idOrcamento, aba) {
+async function irORC(id, aba) {
 
     overlayAguarde()
 
@@ -1154,7 +1005,7 @@ async function irORC(idOrcamento, aba) {
         await telaInicial()
 
     const filtros = {
-        id: { op: '=', value: idOrcamento },
+        id: { op: '=', value: id },
         ...(aba == 'N'
             ? {}
             : { aba: { op: '=', value: aba } }
@@ -1238,7 +1089,7 @@ function editarHistorico(chave) {
     div.querySelector('[name="confirmar"]').style.display = ''
 }
 
-function formularioOrcPendente(idStatus) {
+function formularioOrcPendente(id, idStatus) {
     const linhas = [
         {
             texto: 'Por que <b>ORC PENDENTE</b>?',
@@ -1249,32 +1100,33 @@ function formularioOrcPendente(idStatus) {
             `
         }
     ]
-    const funcao = `salvarInfoAdicional('${idStatus}')`
+    const funcao = `salvarInfoAdicional('${id}', '${idStatus}')`
     const botoes = [{ texto: 'Salvar', img: 'concluido', funcao }]
     popup({ linhas, botoes, titulo: 'Informação adicional' })
 
 }
 
-async function salvarInfoAdicional(idStatus) {
+async function salvarInfoAdicional(id, idStatus) {
 
     overlayAguarde()
     const div = document.getElementById(idStatus)
     const info = div.querySelector('[name="info"]').textContent
-    const orcamento = db.dados_orcamentos[id_orcam]
+    const orcamento = await recuperarDado('dados_orcamentos', id)
     orcamento.status.historicoStatus[idStatus].info = info
     orcamento.status.historicoStatus[idStatus].usuario = acesso.usuario
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id_orcam}/status/historicoStatus/${idStatus}/info`, info)
-    enviar(`dados_orcamentos/${id_orcam}/status/historicoStatus/${idStatus}/usuario`, acesso.usuario)
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}/info`, info)
+    enviar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}/usuario`, acesso.usuario)
     removerPopup()
 
 }
 
-async function mostrarHistoricoStatus() {
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+async function mostrarHistoricoStatus(id) {
+
+    const orcamento = await recuperarDado('dados_orcamentos', id)
 
     if (!orcamento?.status?.historicoStatus || Object.entries(orcamento.status.historicoStatus).length === 0) {
-        popup({ elemento: 'Nenhuma alteração de status registrada', titulo: 'Histórico de Status' })
+        popup({ mensagem: 'Nenhuma alteração de status registrada', titulo: 'Histórico de Status' })
         return
     }
 
@@ -1293,14 +1145,14 @@ async function mostrarHistoricoStatus() {
                         </tr>
                     </thead>
                     <tbody>
-                        ${Object.entries(orcamento.status.historicoStatus).map(([id, registro]) => `
-                            <tr id="ST_${id}">
+                        ${Object.entries(orcamento.status.historicoStatus).map(([chave, registro]) => `
+                            <tr id="ST_${chave}">
                                 <td>${registro.data}</td>
                                 <td>${registro.de}</td>
                                 <td>${registro.para}</td>
                                 <td>${registro.usuario}</td>
                                 <td>
-                                    ${acesso.permissao == 'adm' ? `<img onclick="excluirHiStatus('${id}')" src="imagens/cancel.png">` : ''}
+                                    ${acesso.permissao == 'adm' ? `<img onclick="excluirHiStatus('${id}', '${chave}')" src="imagens/cancel.png">` : ''}
                                 </td>
                             </tr>
                         `).join('')}
@@ -1314,199 +1166,41 @@ async function mostrarHistoricoStatus() {
     popup({ elemento, titulo: 'Histórico de Alterações de Status' })
 }
 
-async function excluirHiStatus(idStatus) {
+async function excluirHiStatus(id, idStatus) {
 
     overlayAguarde()
 
-    const orcamento = db.dados_orcamentos[id_orcam]
-
+    const orcamento = await recuperarDado('dados_orcamentos', id)
     delete orcamento.status.historicoStatus[idStatus]
 
     const trExistente = document.getElementById(`ST_${idStatus}`)
+    if (trExistente)
+        trExistente.remove()
 
-    if (trExistente) trExistente.remove()
-
-    deletar(`dados_orcamentos/${id_orcam}/status/historicoStatus/${idStatus}`)
-    delete db.dados_orcamentos[id_orcam].status.historicoStatus[idStatus]
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+    deletar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}`)
 
     const pHistorico = document.querySelector('.painel-historico')
-    if (pHistorico) await abrirEsquema(id_orcam)
+    if (pHistorico)
+        await abrirEsquema(id)
 
     removerOverlay()
 
 }
 
-async function registrarEnvioMaterial(chave) {
-    let campos = ['rastreio', 'transportadora', 'custo_frete', 'nf', 'comentario_envio', 'volumes', 'data_saida', 'previsao']
-    let status = {
-        envio: {}
-    }
-
-    campos.forEach(campo => {
-        let info = document.getElementById(campo)
-        let valor = info.value
-
-        if (info.type == 'number') {
-            valor = Number(info.value)
-        }
-
-        if (campo == 'comentario_envio') {
-            status.comentario = valor
-        } else {
-            status.envio[campo] = valor
-        }
-    })
-
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    let historico = orcamento.status.historico
-    let st = 'MATERIAL ENVIADO'
-
-    status.executor = acesso.usuario
-    status.data = new Date().toLocaleString()
-    status.status = st
-
-    historico[chave] = status
-
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, status)
-
-    removerPopup()
-    await abrirEsquema(id_orcam)
-
-}
-
-function confirmarExclusao_comentario(id_comentario, chave) {
-
-    const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `excluir_comentario('${id_comentario}', '${chave}')` }
-    ]
-
-    popup({ mensagem: 'Excluir o comentário?', botoes })
-}
-
-async function excluir_comentario(id_comentario, chave) {
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    let comentarios = orcamento.status.historico[chave].comentarios || {}
-
-    delete comentarios[id_comentario]
-
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/comentarios/${id_comentario}`)
-    carregarComentarios(chave)
-    removerPopup()
-}
-
-function carregarComentarios(chave) {
-
-    const orcamento = db.dados_orcamentos[id_orcam]
-    let comentss = ''
-    if (orcamento.status.historico[chave]) {
-        let comentarios = orcamento.status.historico[chave].comentarios || {}
-
-        for (it in comentarios) {
-            let item = comentarios[it]
-            let excluir = ''
-
-            if (acesso.usuario == item.usuario || acesso.permissao == 'adm') {
-                excluir = ` •<label onclick="confirmarExclusao_comentario('${it}', '${chave}')" style="text-decoration: underline; cursor: pointer;"> Excluir</label>`
-            }
-
-            comentss += `
-            <div class="anexos2" style="width: 95%; margin: 0px; margin-top: 5px;">
-                <label style="text-align: left; padding: 5px;">${item.comentario.replace(/\n/g, '<br>')}
-                <br><strong>${item.data} • ${item.usuario}</strong>${excluir}</label>
-            </div>
-            `
-        }
-    }
-
-    let div_caixa = document.getElementById(`caixa_comentarios_${chave}`)
-    if (div_caixa) {
-        div_caixa.innerHTML = comentss
-    }
-
-    return comentss
-}
-
-async function salvar_comentario(chave) {
-    toggle_comentario(`comentario_${chave}`)
-    let id_div = `comentario_${chave}`
-    let textarea = document.getElementById(id_div).querySelector('textarea')
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-
-    let id = ID5digitos()
-
-    const comentario = {
-        id,
-        comentario: textarea.value,
-        data: new Date().toLocaleString(),
-        usuario: acesso.usuario
-    }
-
-    let cartao = orcamento.status.historico[chave]
-    if (!cartao.comentarios) cartao.comentarios = {}
-
-    cartao.comentarios[id] = comentario
-
-    textarea.value = ''
-
-    enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/comentarios/${id}`, comentario)
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    carregarComentarios(chave)
-}
-
-function toggle_comentario(id) {
-    var elemento = document.getElementById(id)
-    if (elemento.style.display == 'none') {
-        elemento.style.display = 'flex'
-    } else {
-        elemento.style.display = 'none'
-    }
-}
-
-function pesquisar_pagamentos(input) {
-    let div_do_input = input.parentElement
-    let div_pagamentos = div_do_input.nextElementSibling
-    let todos_os_pagamentos = div_pagamentos.querySelector('.escondido')
-    let pesquisa = String(input.value).toLowerCase()
-
-    if (todos_os_pagamentos) {
-        var divs = todos_os_pagamentos.querySelectorAll('div')
-
-        divs.forEach(div => {
-            var mostrar = false
-            var labels = div.querySelectorAll('label')
-
-            labels.forEach(label => {
-                if (label.textContent.toLocaleLowerCase().includes(pesquisa) || pesquisa == '') {
-                    mostrar = true
-                }
-            })
-
-            if (mostrar) {
-                div.style.display = 'flex'
-            } else {
-                div.style.display = 'none'
-            }
-        })
-    }
-}
-
-
-async function excluirAnexo(chave, id_anexo, img) {
+async function excluirAnexo(id, chave, id_anexo, img) {
 
     removerPopup()
 
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const orcamento = await recuperarDado('dados_orcamentos', id)
 
     delete orcamento.status.historico[chave].anexos[id_anexo]
 
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
 
-    await abrirEsquema(id_orcam)
+    await abrirEsquema(id)
 
-    deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/anexos/${id_anexo}`)
+    deletar(`dados_orcamentos/${id}/status/historico/${chave}/anexos/${id_anexo}`)
 
     img.parentElement.remove()
 
@@ -1527,11 +1221,10 @@ async function excluirOrcamentoBase(idOrcamento) {
 
     deletar(`dados_orcamentos/${idOrcamento}`)
 
-    await telaOrcamentos()
     removerPopup()
 }
 
-async function detalharRequisicao(id, chave = ID5digitos()) {
+async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
 
     const orcamento = await recuperarDado('dados_orcamentos', id)
     const cliente = await recuperarDado('dados_clientes', orcamento.dados_orcam.omie_cliente) || {}
@@ -1580,11 +1273,35 @@ async function detalharRequisicao(id, chave = ID5digitos()) {
         'Valor Total': {}
     }
 
-    const base = cartao.requisicao || orcamento.dados_composicoes || {}
+    const materiais = ['eletrocalha', 'eletroduto', 'perfilado', 'sealtubo']
 
-    const tabela = await modTab({
+    const base = Object.fromEntries(
+        Object.entries(cartao.requisicao || orcamento.dados_composicoes || {})
+            .filter(([, dados]) => {
+
+                if (dados.tipo == 'SERVIÇO')
+                    return false
+
+                if (!modalidade)
+                    return true
+
+                const contemMaterial = materiais
+                    .some(m => (dados.descricao || '').toLowerCase().includes(m))
+
+                if (modalidade === 'materiais' && contemMaterial)
+                    return true
+
+                if (modalidade === 'equipamentos')
+                    return true
+
+                return false
+            })
+    )
+
+    const tabela = modTab({
         base,
         pag: 'requisicao',
+        bloquearPaginacao: true,
         funcaoAdicional: ['calcularRequisicao'],
         body: 'bodyRequisicao',
         colunas,
@@ -1631,9 +1348,9 @@ async function detalharRequisicao(id, chave = ID5digitos()) {
 
         ${tabela}
 
-    <div>
-    `
-    popup({ elemento, cor: 'white', titulo: 'Requisição' })
+    <div>`
+
+    popup({ elemento, cor: 'white', titulo: 'Requisição', autoDestruicao: ['requisicao'] })
 
     await paginacao()
 
@@ -1713,7 +1430,7 @@ async function criarLinhaRequisicao(item) {
 
 async function gerarPdfRequisicao(id, chave) {
 
-    await detalharRequisicao(id, chave)
+    await formularioRequisicao({ id, chave })
 
     const elOcultar = [...document.querySelectorAll('[data-ocultar]')]
     elOcultar.forEach(el => el.style.display = 'none')
@@ -1723,7 +1440,20 @@ async function gerarPdfRequisicao(id, chave) {
         'status'
     ]
 
-    await pdf({ id: 'pdf', estilos, nome: 'requisicao', orientacao: 'landscape' })
+    const orcamento = await recuperarDado('dados_orcamentos', id)
+    const campos = [
+        'Requisição',
+        orcamento?.dados_orcam?.chamado,
+        orcamento?.dados_orcam?.contrato,
+        orcamento?.snapshots?.cliente,
+        Date.now()
+    ]
+
+    const nome = campos
+        .filter(c => c)
+        .join('-')
+
+    await pdf({ id: 'pdf', estilos, nome, orientacao: 'landscape' })
 
     removerPopup()
 }
@@ -1871,7 +1601,7 @@ async function salvarRequisicao(id, chave) {
         }
 
         await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-        enviar(`dados_orcamentos/${orcamento}/status/historico/${chave}`, orcamento.status.historico[chave])
+        enviar(`dados_orcamentos/${id}/status/historico/${chave}`, orcamento.status.historico[chave])
         removerPopup()
         await abrirEsquema(id)
 
@@ -1882,36 +1612,33 @@ async function salvarRequisicao(id, chave) {
 
 }
 
-async function salvarAnexo(chave, input) {
+async function salvarAnexo(id, chave, input) {
 
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const orcamento = await recuperarDado('dados_orcamentos', id)
+    orcamento.status.historico[chave].anexos ??= {}
+
 
     if (input.files.length === 0) {
         popup({ elemento: 'Nenhum arquivo selecionado...' })
         return
     }
 
-    let anexos = await importarAnexos({ input }) // Retorna uma lista [{}, {}]
+    const anexos = await importarAnexos({ input }) // Retorna uma lista [{}, {}]
 
     anexos.forEach(anexo => {
 
-        if ((orcamento.status.historico[chave].anexos && Array.isArray(orcamento.status.historico[chave].anexos) || !orcamento.status.historico[chave].anexos)) {
-            orcamento.status.historico[chave].anexos = {};
-        }
+        orcamento.status.historico[chave].anexos[idAnexo] = anexo
 
-        let id = ID5digitos()
-
-        orcamento.status.historico[chave].anexos[id] = anexo
-        enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/anexos/${id}`, anexo)
     })
 
-    db.dados_orcamentos[id_orcam] = orcamento
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos');
+    enviar(`dados_orcamentos/${id}/status/historico/${chave}/anexos/`, orcamento.status.historico[chave].anexos)
 
-    const div = document.querySelector(`[name="anexos_${chave}"`)
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+
+    const div = document.querySelector(`[name="anexos_${chave}"]`)
 
     const stringAnexos = Object.entries(anexos || {})
-        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('${chave}', '${idAnexo}', this)`))
+        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('${id}', '${chave}', '${idAnexo}', this)`))
         .join('')
 
     div.innerHTML = stringAnexos
@@ -1957,51 +1684,97 @@ if (typeof window !== 'undefined' && window.process && window.process.type) {
     });
 }
 
-async function envioMaterial(chave) {
+async function envioMaterial(id, chave = ID5digitos()) {
 
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    let envio = {}
-    let comentario = ''
-    if (chave !== undefined) {
-        envio = orcamento.status.historico[chave].envio
-        comentario = orcamento.status.historico[chave].comentario
-    } else {
-        chave = ID5digitos()
+    const orcamento = await recuperarDado('dados_orcamentos', id)
+
+    const { transportadora, rastreio, previsao, custo_frete, data_saida, volumes, nf, comentario } = orcamento?.status?.historico?.[chave] || {}
+
+    const oTransportadoras = transportadoras
+        .map(o => `<option ${transportadora == o ? 'selected' : ''}>${o}</option>`)
+        .join('')
+
+    const linhas = [
+        {
+            texto: 'Número de rastreio',
+            elemento: `<input class="pedido" id="rastreio" value="${rastreio || ''}">`
+        },
+        {
+            texto: 'Transportadora',
+            elemento: `
+            <select class="pedido" id="transportadora">
+                ${oTransportadoras}
+            </select>
+            `
+        },
+        {
+            texto: 'Custo do Frete',
+            elemento: `<input  type="number" id="custo_frete" value="${custo_frete || ''}">`
+        },
+        {
+            texto: 'Nota Fiscal',
+            elemento: `<input id="nf" value="${nf || ''}">`
+        },
+        {
+            texto: 'Comentário',
+            elemento: `<textarea id="comentario">${comentario || ''}</textarea>`
+        },
+        {
+            texto: 'Quantos volumes',
+            elemento: `<input  type="number" id="volumes" value="${volumes || ''}">`
+        },
+        {
+            texto: 'Data de Saída',
+            elemento: `<input type="date" id="data_saida" value="${data_saida || ''}">`
+        },
+        {
+            texto: 'Data de Entrega',
+            elemento: `<input type="date" id="previsao" value="${previsao || ''}">`
+        },
+    ]
+
+
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: `registrarEnvioMaterial('${id}', '${chave}')"` }
+    ]
+
+    popup({ linhas, botoes, titulo: 'Envio de Material' })
+}
+
+async function registrarEnvioMaterial(id, chave) {
+
+    const campos = ['rastreio', 'transportadora', 'custo_frete', 'nf', 'comentario', 'volumes', 'data_saida', 'previsao']
+
+    const orcamento = await recuperarDado('dados_orcamentos', id)
+    orcamento.status ??= {}
+    orcamento.status.historico ??= {}
+
+    const dadosCampos = campos.reduce((acc, campo) => {
+        const info = document.getElementById(campo)
+        if (!info) return acc
+
+        let valor = info.value
+
+        if (info.type === 'number') {
+            valor = Number(valor)
+        }
+
+        acc[campo] = valor
+        return acc
+    }, {})
+
+    orcamento.status.historico[chave] = {
+        ...orcamento.status.historico[chave],
+        status: 'MATERIAL ENVIADO',
+        data: new Date().toLocaleString(),
+        ...dadosCampos
     }
 
-    let transportadoras = ['JAMEF', 'CORREIOS', 'RODOVIÁRIA', 'JADLOG', 'AÉREO', 'OUTRAS']
-    let opcoes_transportadoras = ''
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${id}/status/historico/${chave}`, orcamento.status.historico[chave])
 
-    transportadoras.forEach(transp => {
-        let marcado = envio.transportadora == transp ? 'selected' : ''
-        opcoes_transportadoras += `
-            <option ${marcado}>${transp}</option>
-        `
-    })
-
-    const elemento = `
-    <div style="min-width: 300px; ${vertical};">
-
-        ${modelo('Número de rastreio', `<input class="pedido" id="rastreio" value="${envio?.rastreio || ""}">`)}
-        ${modelo('Transportadora',
-        `<select class="pedido" id="transportadora">
-                ${opcoes_transportadoras}
-            </select>`)}
-
-        ${modelo('Custo do Frete', `<input class="pedido" type="number" id="custo_frete" value="${envio.custo_frete}">`)}
-        ${modelo('Nota Fiscal', `<input class="pedido" id="nf" value="${envio.nf || ""}">`)}
-        ${modelo('Comentário', `<textarea class="pedido" id="comentario_envio" style="border: none; width: 152px; height: 70px;">${comentario}</textarea>`)}
-        ${modelo('Quantos volumes', `<input class="pedido" type="number" id="volumes" value="${envio.volumes}">`)}
-        ${modelo('Data de Saída', `<input class="pedido" type="date" id="data_saida" value="${envio.data_saida}">`)}
-        ${modelo('Data de Entrega', `<input class="pedido" type="date" id="previsao" value="${envio.previsao}">`)}
-
-        <hr style="width: 100%;">
-
-        <button style="background-color: #4CAF50;" onclick="registrarEnvioMaterial('${chave}')">Salvar</button>
-      
-    </div>
-    `
-    popup({ elemento, titulo: 'Envio de Material' })
+    removerPopup()
+    await abrirEsquema(id)
 }
 
 async function irOS(idOrcamento) {

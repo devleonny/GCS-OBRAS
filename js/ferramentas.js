@@ -403,13 +403,14 @@ async function cxOpcoes(name) {
         return popup({ mensagem: `>>> cxOpcoes(null) <<<` })
 
     controlesCxOpcoes.ativo = name
-    const { colunas, base } = controle
+    const { colunas, base, filtros = {} } = controle
 
     const pag = 'cxOpcoes'
-    const tabela = await modTab({
+    const tabela = modTab({
         colunas,
         pag,
         base,
+        filtros,
         criarLinha: 'linCxOpcoes',
         body: 'cxOpcoes'
     })
@@ -464,6 +465,7 @@ async function selecionar(name, cod) {
     cod = isNaN(cod)
         ? cod
         : Number(cod)
+
     const dado = await recuperarDado(base, cod)
 
     for (const chave of retornar) {
@@ -489,10 +491,8 @@ async function selecionar(name, cod) {
 async function pdf({ id, estilos = [], nome = 'documento', orientacao = '' }) {
 
     const htmlPdf = document.getElementById(id)
-    const bPdf = document.getElementById('bPdf')
-    if (!id || !htmlPdf) return
-
-    if (bPdf) bPdf.style.display = 'none'
+    if (!id || !htmlPdf) 
+        return
 
     overlayAguarde()
 
@@ -521,7 +521,7 @@ async function pdf({ id, estilos = [], nome = 'documento', orientacao = '' }) {
                         font-family: 'Poppins', sans-serif;
                         background: white;
                     }}
-
+                          
                     .topo-tabela * {
                         visibility: hidden;
                     }
@@ -565,8 +565,6 @@ async function pdf({ id, estilos = [], nome = 'documento', orientacao = '' }) {
     } catch (err) {
         popup({ mensagem: err?.message || 'Seu pdf não ficou bom, o GCS não gostou, tente de novo... (Falha no GCS)' })
     }
-
-    if (bPdf) bPdf.style.display = ''
 
 }
 

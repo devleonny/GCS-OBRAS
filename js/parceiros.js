@@ -1,5 +1,5 @@
 
-async function modalLPUParceiro(id, chave = ID5digitos()) {
+async function modalLPUParceiro(id, chave) {
 
     const orcamento = await recuperarDado('dados_orcamentos', id)
     const cliente = await recuperarDado('dados_clientes', orcamento.dados_orcam?.omie_cliente) || {}
@@ -12,8 +12,10 @@ async function modalLPUParceiro(id, chave = ID5digitos()) {
     const idTecnico = status?.tecnico || ''
     const tecnico = await recuperarDado('dados_clientes', idTecnico)
 
-    const itens = Object.values(status?.itens || orcamento?.dados_composicoes || {})
-        .filter(i => i?.tipo !== 'VENDA')
+    const itens = Object.fromEntries(
+        Object.entries(status?.itens || orcamento?.dados_composicoes || {})
+            .filter(([, i]) => i?.tipo !== 'VENDA')
+    )
 
     const colunas = {
         'Check': {},
@@ -24,24 +26,31 @@ async function modalLPUParceiro(id, chave = ID5digitos()) {
         'Valor Orçamento': { chave: 'custo' },
         'Valor Total Orçado': {},
         'Impostos (20%)': {},
-        'Margem': {},
-        'Valor do Parceiro': {},
-        'Total do Parceiro': {},
+        'Margem Unitária': {},
+        'Margem Total': {},
+        'Parceiro Unitário': {},
+        'Parceiro Total': {},
         'Desvio': {},
     }
 
+    const fSalvar = chave
+        ? `salvarLpuParceiro('${id}', '${chave}')`
+        : `salvarLpuParceiro('${id}')`
+
     const btnExtras = `
     <div style="display: flex-wrap: wrap; gap: 2px;">
-        <button onclick="removerItensEmMassa()">Remover Itens</button>
-        <button onclick="verItensRemovidosLPU('${id}', '${chave}')">Ver Itens Removidos</button>
-        <button onclick="adicionarItemAdicional()">Adicionar Serviço</button>
-        <button style="background-color: green;" onclick="salvarLpuParceiro()">Salvar LPU</button>
+        <button id="btnRem" onclick="atvRemItensEmMassa(this)">Remover Itens</button>
+        <button id="btnVer" data-mostrar="S" onclick="verItensAtvRem(this)">Ver Itens Removidos</button>
+        <button onclick="itemAdicional()">Adicionar Serviço</button>
+        <button style="background-color: green;" onclick="${fSalvar}">Salvar LPU</button>
     </div>
     `
-    const tabela = await modTab({
+    const tabela = modTab({
         base: itens,
         btnExtras,
         colunas,
+        filtros: { 'removido': { op: '!=', value: 'S' } },
+        bloquearPaginacao: true,
         funcaoAdicional: ['calcularLpuParceiro'],
         criarLinha: 'adicionarLinhaParceiro',
         pag: 'lpu_parceiro',
@@ -65,8 +74,8 @@ async function modalLPUParceiro(id, chave = ID5digitos()) {
                     ${stringHtml('Endereço', dadosEmpresa.bairro)}
                     ${stringHtml('Cidade', dadosEmpresa.cidade)}
                     <br>
-                    <div style="${horizontal}; gap: 2px;">
-                        <input type="checkbox" onclick="marcarItensLPU(this)">
+                    <div style="${horizontal}; gap: 1rem;">
+                        <input type="checkbox" style="width: 2rem; height: 2rem;" onclick="marcarItensLPU(this)">
                         <span>Marcar todos os ITENS<span>
                     </div>
                 </div>
@@ -90,68 +99,71 @@ async function modalLPUParceiro(id, chave = ID5digitos()) {
             ${tabela}
         </div>
         `
-    const bodyParceiros = document.getElementById('bodyParceiros')
-    if (!bodyParceiros) {
-        removidos = status?.removidos || {}
-        popup({ elemento, titulo: 'LPU Parceiro' })
-    }
+
+    popup({ elemento, titulo: 'LPU Parceiro', autoDestruicao: ['lpu_parceiro'] })
 
     await paginacao()
 
-    return
-    //const itens = status?.itens || orcamento?.dados_composicoes || {}
+}
 
-    for (const [codigo, composicao] of Object.entries(itens)) {
+async function atvRemItensEmMassa() {
 
-        if (composicao.tipo == 'VENDA') continue
-        if (removidos[codigo]) continue
+    const btn2 = document.getElementById('btnVer')
+    const op = btn2.dataset.mostrar
 
-        await adicionarLinhaParceiro(codigo, composicao)
+    const itens = document.querySelectorAll('[name="itensLPU"]:checked')
+
+    if (itens.length == 0)
+        return
+
+    for (const check of itens) {
+
+        const tr = check.closest('tr')
+        const codigo = tr.dataset.codigo
+
+        controles.lpu_parceiro.base[codigo].removido = op
+
+        tr.remove()
 
     }
 
-    calcularLpuParceiro();
+    calcularLpuParceiro()
 
 }
 
-async function recuperarItemLPU(codigo, img) {
+async function verItensAtvRem(elemento) {
 
     overlayAguarde()
 
-    await adicionarLinhaParceiro(codigo, removidos[codigo])
+    const mostrar = elemento.dataset.mostrar == 'S'
+    elemento.dataset.mostrar = mostrar
+        ? 'N'
+        : 'S'
 
-    delete removidos[codigo]
+    const btn1 = document.getElementById('btnRem')
+    const btn2 = document.getElementById('btnVer')
 
-    await modalLPUParceiro(chaveHistorico)
+    btn1.textContent = mostrar
+        ? 'Recuperar Itens'
+        : 'Remover Itens'
 
-    img.closest('div').remove()
+    btn2.textContent = mostrar
+        ? 'Ver Itens Ativos'
+        : 'Ver Itens Removidos'
 
-    removerOverlay()
+    const op = mostrar
+        ? '='
+        : '!='
 
-}
-
-async function verItensRemovidosLPU() {
-
-    let itens = ''
-    for (const [codigo, composicao] of Object.entries(removidos)) {
-
-        itens += `
-            <div style="${horizontal}; gap: 10px;">
-                <img onclick="recuperarItemLPU('${codigo}', this)" src="imagens/atualizar.png" style="width: 1.2rem;">
-                <span>${composicao.descricao}</span> 
-            </div>
-        `
+    controles.lpu_parceiro.primEx = true
+    controles.lpu_parceiro.filtros = {
+        'removido': { op, value: 'S' }
     }
 
-    const elemento = `
-        <div style="${vertical}; gap: 5px; min-width: 30vw;">
+    calcularLpuParceiro()
+    await paginacao()
 
-            ${itens}
-
-        </div>
-    `
-
-    popup({ elemento, titulo: 'Itens Removidos' })
+    removerOverlay()
 
 }
 
@@ -168,120 +180,135 @@ function marcarItensLPU(input) {
 
 async function adicionarLinhaParceiro(composicao) {
 
-    const { codigo } = composicao
+    const { codigo, avulso, removido = 'N', descricao, vUnitParc, vTotalParc, unidade, qtde, custo } = composicao || {}
 
     const tds = `
         <td>
-            <input type="checkbox" name="itensLPU">
+            <input type="checkbox" style="width: 2rem; height: 2rem;" name="itensLPU">
         </td>
-        <td>${composicao.avulso ? `<span><b>[Avulso]</b></span>` : codigo}</td>
-        <td>${composicao.descricao}</td>
-        <td>${composicao.unidade}</td>
+        <td>${codigo}</td>
+        <td>${descricao || ''}</td>
+        <td>${unidade || ''}</td>
         <td>
-            <input class="requisicao-campo" oninput="calcularLpuParceiro()" type="number" value="${composicao.qtde}">
+            <input 
+                class="requisicao-campo" 
+                name="qtde"
+                oninput="calcularLpuParceiro()" 
+                type="number" 
+                value="${qtde || ''}">
         </td>
-        <td>${dinheiro(composicao?.custo || composicao?.valor_orcado || 0)}</td>
-        <td></td>
-        <td></td>
-        <td></td>
+        <td name="custo" style="white-space: nowap;">${dinheiro(custo || 0)}</td>
+        <td name="vTotalOrcado" style="white-space: nowrap;"></td>
+        <td name="tImpostos" style="white-space: nowrap;"></td>
+        <td name="mUnit" style="white-space: nowrap;"></td>
+        <td name="mTotal" style="white-space: nowrap;"></td>
         <td>
-            <input class="requisicao-campo" oninput="calcularLpuParceiro()" type="number" value="${composicao?.valor_parceiro_unitario || ''}">
+            <input 
+            class="requisicao-campo" 
+            name="vUnitParc"
+            oninput="this.closest('tr').dataset.edicao = 'unitario'; calcularLpuParceiro()" 
+            type="number" 
+            value="${vUnitParc || ''}">
         </td>
-        <td></td>
         <td>
-            <label class="labelAprovacao"></label>
-        </td>`
+            <input 
+            class="requisicao-campo" 
+            name="vTotalParc"
+            oninput="this.closest('tr').dataset.edicao = 'total'; calcularLpuParceiro()" 
+            type="number"
+            value="${vTotalParc || ''}">
+        </td>
+        <td name="desvio" style="white-space: nowrap;"></td>`
 
-    return `<tr>${tds}</tr>`
+    return `<tr data-removido="${removido}" data-avulso=${avulso ? 'S' : 'N'} data-codigo="${codigo}">${tds}</tr>`
 
 }
 
-async function adicionarItemAdicional() {
+async function itemAdicional() {
 
-    const elemento = `
-        <div style="${horizontal}; gap: 10px;">
-            ${modelo('Descrição', `<span name="descricao" class="opcoes" onclick="cxOpcoes('descricao', 'dados_composicoes', ['descricao'])">Selecione</span>`)}
-            ${modelo('Quantidade', `<input name="qtde" type="number" style="padding: 5px; border-radius: 3px;">`)}
-            ${modelo('Custo', `<input name="valor_orcado" type="number" style="padding: 5px; border-radius: 3px;">`)}
-            ${modelo('Unidade', `<input name="unidade" style="padding: 5px; border-radius: 3px;">`)}
-            <img src="imagens/concluido.png" style="width: 2rem;" onclick="salvarAdicional()">
-        </div>
-    `
+    controlesCxOpcoes.composicao = {
+        retornar: ['descricao'],
+        base: 'dados_composicoes',
+        filtros: {
+            'tipo': { op: '!=', value: 'SERVIÇO' }
+        },
+        colunas: {
+            'Código': { chave: 'codigo' },
+            'Descrição': { chave: 'descricao' },
+            'Tipo': { chave: 'tipo' },
+            'Unidade': { chave: 'unidade' }
+        }
+    }
 
-    popup({ elemento, titulo: 'Incluir Serviço' })
+    const linhas = [
+        {
+            texto: 'Descrição',
+            elemento: `<span name="composicao" class="opcoes" onclick="cxOpcoes('composicao')">Selecione</span>`
+        },
+        {
+            texto: 'Quantidade',
+            elemento: `<input name="qtde" type="number">`
+        },
+        {
+            texto: 'Custo',
+            elemento: `<input name="custo" type="number">`
+        },
+        {
+            texto: 'Unidade',
+            elemento: `<input name="unidade">`
+        }
+    ]
+
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: 'salvarAdicional()', autoDestruicao: ['composicao'] }
+    ]
+
+    popup({ linhas, botoes, titulo: 'Incluir Serviço' })
 }
 
 async function salvarAdicional() {
 
-    const qtde = Number(document.querySelector('[name="qtde"]').value)
-    const descricao = document.querySelector('[name="descricao"]').textContent
-    const valor_orcado = Number(document.querySelector('[name="valor_orcado"]').value)
-    const unidade = document.querySelector('[name="unidade"]').value
-
-    if (!qtde || !descricao || !valor_orcado || !unidade)
-        return popup({ mensagem: 'Não deixe campos em Branco' })
-
-    overlayAguarde()
-    const codigo = ID5digitos()
-    const composicao = {
-        descricao,
-        qtde,
-        valor_orcado,
-        unidade,
-        avulso: true
+    const obVal = (n) => {
+        const painel = document.querySelector('.painel-padrao')
+        const el = painel.querySelector(`[name="${n}"]`)
+        return el ? el : null
     }
 
-    adicionarLinhaParceiro(codigo, composicao)
+    const composicao = obVal('composicao')
+
+    if (!composicao.id)
+        return popup({ mensagem: 'Descrição não pode ficar em branco' })
+
+    controles.lpu_parceiro.base[composicao.id] = {
+        avulso: 'S',
+        codigo: composicao.id,
+        descricao: composicao.textContent,
+        qtde: Number(obVal('qtde').value),
+        custo: Number(obVal('custo').value),
+        unidade: Number(obVal('unidade').value)
+    }
 
     removerPopup()
+    controles.lpu_parceiro.primEx = true
+    await paginacao()
+
 }
 
-async function removerItensEmMassa() {
-
-    const itens = document.querySelectorAll('[name="itensLPU"]:checked')
-
-    if (itens.length == 0) return
+async function salvarLpuParceiro(id, chave = ID5digitos()) {
 
     overlayAguarde()
 
-    for (const check of itens) {
+    const orcamento = await recuperarDado('dados_orcamentos', id)
 
-        const tr = check.closest('tr')
-        const codigo = tr.id
+    orcamento.status ??= {}
+    orcamento.status.historico ??= {}
+    orcamento.status.historico[chave] ??= {}
 
-        const tds = tr.querySelectorAll('td')
-
-        removidos[codigo] = {
-            descricao: tds[2].textContent,
-            unidade: tds[3].textContent,
-            qtde: Number(tds[4].querySelector('input').value),
-            custo: conversor(tds[5].textContent)
-        }
-
-        tr.remove()
-
-    }
-
-    removerOverlay()
-    await modalLPUParceiro(chaveHistorico)
-}
-
-async function salvarLpuParceiro() {
-
-    overlayAguarde()
-
-    const trs = document.querySelectorAll('#bodyParceiros tr')
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-
-    if (!orcamento.status) orcamento.status = {}
-    if (!orcamento.status.historico) orcamento.status.historico = {}
-    if (!orcamento.status.historico[chaveHistorico]) orcamento.status.historico[chaveHistorico] = {}
-
-    let status = {
-        ...orcamento.status.historico[chaveHistorico],
-        removidos,
+    orcamento.status.historico[chave] = {
+        ...orcamento.status.historico[chave],
         status: 'LPU PARCEIRO',
-        itens: {},
+        itens: controles.lpu_parceiro.base || {},
+        totais: controles.lpu_parceiro.totais || {},
         margem: Number(document.getElementById('margem_lpu').value),
         executor: acesso.usuario,
         data: new Date().toLocaleString(),
@@ -289,29 +316,18 @@ async function salvarLpuParceiro() {
         tecnico: document.querySelector('[name="tecnico"]')?.id || null
     }
 
-    for (const tr of trs) {
-        const codigo = tr.id
-        const tds = tr.querySelectorAll('td')
-        const avulso = tr.dataset.avulso === 'S'
-
-        status.itens[codigo] = {
-            avulso,
-            qtde: conversor(tds[4].querySelector('input').value),
-            descricao: tds[2].textContent,
-            unidade: tds[3].textContent,
-            custo: conversor(tds[5].textContent),
-            valor_parceiro_unitario: Number(tds[9].querySelector('input').value)
-        }
-    }
-
-    orcamento.status.historico[chaveHistorico] = status
-    enviar(`dados_orcamentos/${id_orcam}/status/historico/${chaveHistorico}`, status)
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${id}/status/historico/${chave}`, orcamento.status.historico[chave])
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
     removerPopup()
-    await abrirEsquema(id_orcam)
+    await abrirEsquema(id)
 }
 
 function calcularLpuParceiro() {
+
+    const elMargem = document.getElementById('margem_lpu')
+    if (!elMargem)
+        return
+
     const margemPercentual = Number(document.getElementById('margem_lpu').value) / 100;
 
     let totais = {
@@ -319,53 +335,98 @@ function calcularLpuParceiro() {
         parceiro: 0,
         desvio: 0,
         margem: 0
-    };
+    }
 
     const trs = document.querySelectorAll('#bodyParceiros tr')
-    const modelo = (texto) => `<span style="white-space: nowrap;">${texto}</span>`
 
     for (const tr of trs) {
 
+        const codigo = tr.dataset.codigo
+        const removido = tr.dataset.removido == 'S'
+
+        // Pode encerrar;
+        if (!codigo)
+            continue
+
         const avulso = tr.dataset.avulso == 'S'
-        const tds = tr.querySelectorAll('td')
-        const qtde = Number(tds[4].querySelector('input').value)
-        const valorOrcamento = conversor(tds[5].textContent)
-        const valParceiro = Number(tds[9].querySelector('input').value)
+        const qtde = Number(tr.querySelector('[name="qtde"]').value) || 0
+        const valorOrcamento = conversor(tr.querySelector('[name="custo"]').textContent)
         const totalLinha = qtde * valorOrcamento
-        const totalParceiro = valParceiro * qtde
+
+        const edicao = tr.dataset.edicao
+        const vUnitParc = tr.querySelector('[name="vUnitParc"]')
+        const vTotalParc = tr.querySelector('[name="vTotalParc"]')
+
+        const totalParceiro = edicao == 'unitario'
+            ? Number(vUnitParc.value) * qtde
+            : Number(vTotalParc.value)
+
+        if (edicao == 'unitario') {
+            vTotalParc.value = totalParceiro
+        } else {
+            vUnitParc.value = qtde == 0 ? 0 : totalParceiro / qtde
+        }
+
         const totalMargem = totalLinha * margemPercentual
-        const margemPorItem = qtde == 0 ? 0 : totalMargem / qtde
-        const desvio = avulso ? - totalParceiro : totalMargem - totalParceiro
-        const img = desvio < 0 ? 'offline' : 'online'
+        const margemPorItem = qtde == 0
+            ? 0
+            : totalMargem / qtde
 
-        totais.parceiro += totalParceiro
-        totais.desvio += desvio
-        totais.orcamento += totalLinha
+        const desvio = avulso
+            ? - totalParceiro
+            : totalMargem - totalParceiro
 
-        tds[6].innerHTML = modelo(dinheiro(totalLinha))
-        tds[7].innerHTML = modelo(dinheiro(totalLinha * 0.2))
-        tds[8].innerHTML = avulso
-            ? '--'
-            : `
-            <div style="${vertical}; gap: 5px;">
-                ${modelo(dinheiro(margemPorItem))}
-                ${modelo(dinheiro(totalMargem))}
-            </div>
-        `
-        tds[10].innerHTML = modelo(dinheiro(totalParceiro))
-        tds[11].innerHTML = `
-            <div style="${horizontal}; justify-content: start; gap: 3px;">
+        const img = desvio < 0
+            ? 'offline'
+            : 'online'
+
+        if (edicao == 'unitario') {
+            vTotalParc.value = (totalParceiro).toFixed(2)
+        } else {
+            vUnitParc.value = (totalParceiro / qtde).toFixed(2)
+        }
+
+        totais.parceiro += removido ? 0 : totalParceiro
+        totais.desvio += removido ? 0 : desvio
+        totais.orcamento += removido ? 0 : totalLinha
+
+        tr.querySelector('[name="vTotalOrcado"]').textContent = dinheiro(totalLinha)
+        tr.querySelector('[name="tImpostos"]').textContent = dinheiro(totalLinha * 0.2)
+
+        // Para itens avulsos não existe margem;
+        tr.querySelector('[name="mUnit"]').textContent = !avulso
+            ? dinheiro(margemPorItem)
+            : ''
+
+        tr.querySelector('[name="mTotal"]').textContent = !avulso
+            ? dinheiro(totalMargem)
+            : ''
+
+        tr.querySelector('[name="desvio"]').innerHTML = `
+            <div style="${horizontal}; gap: 3px;">
                 <img src="imagens/${img}.png" style="width: 1.5rem;">
-                ${modelo(dinheiro(desvio))}
-            </div>
-            `
+                ${dinheiro(desvio)}
+            </div>`
+
+        // Salvamento no objeto;
+        controles.lpu_parceiro.base[codigo] = {
+            ...controles.lpu_parceiro.base[codigo],
+            vUnitParc: Number(vUnitParc.value),
+            vTotalParc: Number(vTotalParc.value),
+            qtde
+        }
+
     }
 
     totais.margem = totais.orcamento * margemPercentual
 
+    // Salvamento no objeto;
+    controles.lpu_parceiro.totais = totais
+
     for (const [campo, total] of Object.entries(totais)) {
         const el = document.getElementById(`total_${campo}`)
-        if (el) el.textContent = dinheiro(total)
+        if (el)
+            el.textContent = dinheiro(total)
     }
 
 }

@@ -268,7 +268,7 @@ async function criarLinhaOrcamento(orcamento, master, idMaster) {
             <div style="${vertical}; gap: 5px;">
                 <div style="${horizontal}; gap: 2px;">
                     <img onclick="mostrarInfo('${id}')" src="imagens/observacao${info.length > 0 ? '' : '_off'}.png">
-                    <select name="status" class="opcoesSelect" data-id="${id}" onchange="alterarStatus(this)">
+                    <select name="status" class="opcoesSelect" onchange="alterarStatus('${id}', this)">
                         ${opcoes}
                     </select>
                 </div>

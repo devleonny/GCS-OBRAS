@@ -164,7 +164,7 @@ async function tabelaPorAba({ aba = 'CONCLUÍDO', filtros = { 'aba': { op: '=', 
     }
 
     const pag = 'indicadores'
-    const tabela = await modTab({
+    const tabela = modTab({
         pag,
         colunas,
         base: 'dados_orcamentos',
@@ -378,7 +378,7 @@ async function tabelaTecnicos() {
         'Obras': {}
     }
     const pag = 'tecnicos'
-    const tabela = await modTab({
+    const tabela = modTab({
         pag,
         body: 'bodyTecnicos',
         base: 'dados_clientes',
@@ -647,7 +647,7 @@ async function indicadores() {
         })
 
     const pag = 'acoes'
-    const tabela = await modTab({
+    const tabela = modTab({
         criarLinha: 'linAcoes',
         base: 'dados_orcamentos',
         pag,
