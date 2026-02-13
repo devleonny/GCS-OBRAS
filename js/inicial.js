@@ -247,7 +247,7 @@ async function linPda(orcamento) {
             <span><b>Valor: </b> ${dinheiro(orcamento?.total_geral)}</span>
 
             ${mod('Status', `
-                <select name="status" class="etiquetas" onchange="id_orcam = '${idOrcamento}'; alterarStatus(this)">
+                <select name="status" class="etiquetas" onchange="alterarStatus('${idOrcamento}', this)">
                     ${opcoes}
                 </select>
                 `)}
@@ -301,7 +301,7 @@ async function linPda(orcamento) {
         </td>
         <td>
             <div style="${horizontal}; justify-content: start; align-items: start; gap: 2px;">
-                <img onclick="id_orcam = '${idOrcamento}'; tecnicosAtivos()" src="imagens/baixar.png" style="width: 1.5rem;">
+                <img onclick="tecnicosAtivos('${id}')" src="imagens/baixar.png" style="width: 1.5rem;">
                 <div style="${vertical}; gap: 2px; width: 100%;">
                     ${tecs}
                 </div>
@@ -802,8 +802,6 @@ async function alterarDatas(input, campo, idOrcamento) {
 }
 
 async function formAcao(idOrcamento, idAcao) {
-
-    id_orcam = idOrcamento
 
     const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     const dados = orcamento?.pda?.acoes?.[idAcao] || {}

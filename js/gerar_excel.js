@@ -158,6 +158,16 @@ async function ir_excel(orcam_) {
         ws_total.eachRow(r => r.eachCell(c => c.alignment = { vertical: 'middle', wrapText: true }))
 
         const buffer = await wb.xlsx.writeBuffer()
-        saveAs(new Blob([buffer], { type: 'application/octet-stream' }), nomeArquivo + '.xlsx')
+        const blob = new Blob([buffer], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        })
+
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = nomeArquivo + '.xlsx'
+        a.click()
+        URL.revokeObjectURL(url)
+
     }
 }

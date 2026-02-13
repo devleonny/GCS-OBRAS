@@ -154,6 +154,9 @@ async function paginacao(pag) {
 
         controles[pag].total = dados.paginas
 
+        if (!divPaginacao)
+            return
+
         if (!paginaAtual) {
             divPaginacao.innerHTML = `
             <div style="display: flex; align-items:center; gap: 10px; padding: 0.2rem;">

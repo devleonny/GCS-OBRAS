@@ -195,9 +195,8 @@ async function manterPrecosAntigos(resposta) {
 
     orcamento = baseOrcamento()
 
-    if (resposta == 'S') {
-        orcamento = await recuperarDado('dados_orcamentos', [orcamento.id])
-    }
+    if (resposta == 'S')
+        orcamento = await recuperarDado('dados_orcamentos', orcamento.id)
 
     orcamento.manter_precos = resposta
 
@@ -605,17 +604,17 @@ async function enviarDadosOrcamento() {
 
     overlayAguarde()
 
-    // esquema → dados_composicoes;
+    // Esquema → dados_composicoes;
     await converterEsquema()
 
     let orcamentoBase = baseOrcamento()
 
     // Salvar o usuário na primeira vez apenas;
-    if (!orcamentoBase.usuario) orcamentoBase.usuario = acesso.usuario
+    if (!orcamentoBase.usuario)
+        orcamentoBase.usuario = acesso.usuario
 
-    if (!orcamentoBase.dados_orcam) {
+    if (!orcamentoBase.dados_orcam)
         return painelClientes()
-    }
 
     const dados_orcam = orcamentoBase.dados_orcam
 
@@ -632,7 +631,8 @@ async function enviarDadosOrcamento() {
         }
     }
 
-    if (!orcamentoBase.id) orcamentoBase.id = 'ORCA_' + unicoID()
+    if (!orcamentoBase.id)
+        orcamentoBase.id = 'ORCA_' + unicoID()
 
     const resposta = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoBase)
 
@@ -640,12 +640,14 @@ async function enviarDadosOrcamento() {
 
         popup({ tempo: 4, mensagem: 'Aguarde... redirecionando...', imagem: 'imagens/concluido.png' })
 
-        baseOrcamento(undefined, true) // Limpeza do orçamento em edição;
+        // Limpeza do orçamento em edição;
+        baseOrcamento(undefined, true)
         await telaOrcamentos()
 
         removerPopup()
 
-        atualizarToolbar(true) // GCS no título
+        // GCS no título
+        atualizarToolbar(true)
 
     } else {
 
@@ -658,7 +660,7 @@ async function enviarDadosOrcamento() {
 async function ativarChamado(input, idOrcamento) {
 
     // Tela de criação de orçamento, não precisa continuar, o salvar irá coletar a informação;
-    if (!idOrcamento) 
+    if (!idOrcamento)
         return
 
     const ativo = input.checked
@@ -678,7 +680,7 @@ async function ativarChamado(input, idOrcamento) {
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
 
     const pHistorico = document.querySelector('.painel-historico')
-    if (pHistorico) 
+    if (pHistorico)
         await abrirEsquema(idOrcamento)
 
     removerOverlay()
@@ -988,13 +990,14 @@ async function totalOrcamento() {
     let avisoDesconto = 0
     let totalAcrescido = 0
     let descontoAcumulado = 0
-    let statusCotacao = false
+
     const { estado } = await recuperarDado('dados_clientes', orcamentoBase.dados_orcam?.omie_cliente) || {}
 
-    if (!orcamentoBase.esquema_composicoes) orcamentoBase.esquema_composicoes = {}
+    orcamentoBase.esquema_composicoes ??= {}
 
     const bodyOrcamento = document.getElementById('bodyOrcamento')
-    if (!bodyOrcamento) return
+    if (!bodyOrcamento)
+        return
 
     const subTotais = document.querySelectorAll('.total-linha')
     subTotais.forEach(divTotal => {
@@ -1039,13 +1042,13 @@ async function totalOrcamento() {
 
         linha.dataset.tipo = refProduto.tipo
 
-        if (!totais[refProduto.tipo]) totais[refProduto.tipo] = { valor: 0 }
+        totais[refProduto.tipo] ??= { valor: 0 }
 
         const ativo = refProduto?.[lpu]?.ativo || 0
         const historico = refProduto?.[lpu]?.historico || {}
         const precos = historico[ativo] || { custo: 0, lucro: 0 }
 
-        // ORDEM: SE BOTICÁRIO > SE PREÇO ALTERADO > SE MANTER ANTIGOS;
+        // SE PREÇO ALTERADO > SE MANTER ANTIGOS;
         const valorUnitario = (itemSalvo.alterado || (precosAntigos && itemSalvo.custo))
             ? itemSalvo.custo
             : historico?.[ativo]?.valor || 0
@@ -1143,12 +1146,17 @@ async function totalOrcamento() {
             delete itemSalvo.tipo_desconto
         }
 
-        tipoDesconto.classList = desconto == 0 ? 'desconto_off' : 'desconto_on'
-        valorDesconto.classList = desconto == 0 ? 'desconto_off' : 'desconto_on'
+        tipoDesconto.classList = desconto == 0
+            ? 'desconto_off'
+            : 'desconto_on'
+        valorDesconto.classList = desconto == 0
+            ? 'desconto_off'
+            : 'desconto_on'
 
         // Incremento dos itens com valores acrescidos para informar no escopo do orçamento;
         let diferencaAcrescida = totalLinha - (itemSalvo.custo_original * quantidade)
-        if (itemSalvo.custo_original) totalAcrescido += diferencaAcrescida
+        if (itemSalvo.custo_original)
+            totalAcrescido += diferencaAcrescida
 
         totais.GERAL.bruto += itemSalvo.custo_original ? totalLinha - diferencaAcrescida : totalLinha // Valor bruto sem desconto;
         totalLinha = totalLinha - desconto
@@ -1204,10 +1212,6 @@ async function totalOrcamento() {
 
     }
 
-    // Caso tenha algum item com preço desatualizado;
-    orcamentoBase.status ??= {}
-    if (statusCotacao && !orcamentoBase?.status?.atual) orcamentoBase.status.atual = 'COTAÇÃO'
-
     const painel_desconto = document.getElementById('desconto_total')
     const diferencaDinheiro = totais.GERAL.valor - totais.GERAL.bruto
     const diferencaPorcentagem = diferencaDinheiro == 0 ? 0 : (diferencaDinheiro / totais.GERAL.bruto * 100).toFixed(2)
@@ -1226,8 +1230,14 @@ async function totalOrcamento() {
         </div>`
 
     // Informações complementares do orçamento;
-    totalAcrescido > 0 ? orcamentoBase.total_acrescido = totalAcrescido : delete orcamentoBase.total_acrescido
-    descontoAcumulado > 0 ? orcamentoBase.total_desconto = descontoAcumulado : delete orcamentoBase.total_desconto
+    totalAcrescido > 0
+        ? orcamentoBase.total_acrescido = totalAcrescido
+        : delete orcamentoBase.total_acrescido
+
+    descontoAcumulado > 0
+        ? orcamentoBase.total_desconto = descontoAcumulado
+        : delete orcamentoBase.total_desconto
+
     orcamentoBase.total_geral = totais.GERAL.valor
     orcamentoBase.total_bruto = totais.GERAL.bruto
 
@@ -1269,6 +1279,7 @@ async function totalOrcamento() {
             el.style.backgroundColor = 'white'
         })
     }
+    
     document.querySelectorAll('.total-linha').forEach(el => el.style.display = pesqAtiva ? 'none' : '')
 
     // Remover toolbars inativas;
@@ -1317,19 +1328,22 @@ async function totalOrcamento() {
 }
 
 function filtrarPorTipo(tipo) {
+
     memoriaFiltro = tipo
 
-    const linhas = document.querySelectorAll('#bodyOrcamento .linha-orcamento')
+    const thead = document.getElementById('theadOrcamento')
+    thead.style.backgroundColor = coresTabelas(tipo)
 
-    linhas.forEach(linha => {
-        const t = linha.dataset.tipo
-        linha.style.display =
-            !tipo || tipo === 'GERAL' || t === tipo
-                ? ''
-                : 'none'
+    const blocos = document.querySelectorAll('#bodyOrcamento > div[id^="ORCA_"]')
+
+    blocos.forEach(bloco => {
+        const linha = bloco.querySelector('.linha-orcamento')
+        const tipoLinha = linha?.dataset.tipo
+
+        const corresponde = !tipo || tipoLinha === tipo || tipo == 'GERAL'
+        bloco.style.display = corresponde ? '' : 'none'
     })
 }
-
 
 function formatarLinhasOrcamento() {
     const linhas = document.querySelectorAll('#bodyOrcamento .linha-orcamento')

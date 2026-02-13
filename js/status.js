@@ -2,7 +2,7 @@ let unidadeOrc = null
 const altNumOrc = ['adm', 'analista']
 const opcoesPedidos = ['Locação', 'Serviço', 'Venda', 'Venda + Serviço', 'POC']
 const opcoesRequisicao = ['SERVIÇO', 'VENDA', 'USO E CONSUMO', 'LOCAÇÃO']
-const transportadoras = ['JAMEF', 'CORREIOS', 'RODOVIÁRIA', 'JADLOG', 'AÉREO', 'OUTRAS']
+const transportadoras = ['', 'JAMEF', 'CORREIOS', 'RODOVIÁRIA', 'JADLOG', 'AÉREO', 'OUTRAS']
 const permAtalhos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
 
 const fluxograma = [
@@ -247,7 +247,7 @@ async function abrirAtalhos(id, idMaster) {
 
     if (!emAnalise) {
         botoesDisponiveis += `
-        ${modeloBotoes('checklist', 'CHECKLIST', `telaChecklist()`)}
+        ${modeloBotoes('Checklist', 'CHECKLIST', `telaChecklist()`)}
         ${modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`)}
         ${modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)}
         ${modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`)}
@@ -603,7 +603,7 @@ function elementosEspecificos(id, chave, historico) {
             ${labelDestaque('Desvio', dinheiro(historico?.totais?.desvio))}
             <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" 
                 class="contorno-botoes" 
-                onclick="detalharLpuParceiro('${id}', '${chave}')">
+                onclick="gerarPdfParceiro('${id}', '${chave}')">
                 <img src="imagens/pdfw.png" style="width: 1.5rem;">
                 <label>Disponível</label>
             </div>
@@ -700,7 +700,7 @@ async function abrirEsquema(id) {
             : ''
 
         const stringAnexos = Object.entries(anexos || {})
-            .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('id', '${chave}', '${idAnexo}', this)`))
+            .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('${id}', '${chave}', '${idAnexo}', this)`))
             .join('')
 
         blocosStatus[statusCartao] += `
@@ -718,7 +718,7 @@ async function abrirEsquema(id) {
                     <div class="contorno-botoes" style="background-color: ${cor}">
                         <img src="imagens/anexo2.png" style="width: 1.5rem;">
                         <label>Anexo
-                            <input type="file" style="display: none;" onchange="salvarAnexo('${chave}', this)" multiple>  
+                            <input type="file" style="display: none;" onchange="salvarAnexo('${id}', '${chave}', this)" multiple>  
                         </label>
                     </div>
 
@@ -728,8 +728,7 @@ async function abrirEsquema(id) {
 
                 </div>
 
-            </div>
-        `
+            </div>`
     }
 
     const blocos = Object
@@ -756,8 +755,7 @@ async function abrirEsquema(id) {
 
             <label style="font-size: 1.5rem;">${oficial} - ${cliente?.nome || '??'}</label>
 
-        </div>
-        `
+        </div>`
 
     const strAnexos = {
         levantamentos: '',
@@ -765,13 +763,19 @@ async function abrirEsquema(id) {
     }
 
     for (const [idAnexo, anexo] of Object.entries(orcamento?.levantamentos || {})) {
-        const local = anexo?.finalizado == 'S' ? 'finalizado' : 'levantamentos'
+
+        const local = anexo?.finalizado == 'S'
+            ? 'finalizado'
+            : 'levantamentos'
+
         strAnexos[local] += criarAnexoVisual(anexo.nome, anexo.link, `excluirLevantamentoStatus('${idAnexo}', '${id}')`)
     }
 
     const divLevantamentos = (finalizado) => {
 
-        const local = finalizado ? 'finalizado' : 'levantamentos'
+        const local = finalizado
+            ? 'finalizado'
+            : 'levantamentos'
 
         return `
             <div style="${vertical}; gap: 2px; margin-right: 20px; margin-top: 10px;">
@@ -790,16 +794,20 @@ async function abrirEsquema(id) {
                 </div>
 
                 ${strAnexos[local]}
+
             </div>`
     }
 
     // Checklist chamado;
     const enviado = Object.values(orcamento?.status?.historicoStatus || {})
         .some(h => h.para == 'ORC ENVIADO')
+
     const aprovado = Object.values(orcamento?.status?.historicoStatus || {})
         .some(h => h.para == 'ORC APROVADO')
+
     const pedido = Object.values(orcamento?.status?.historico || {})
         .some(h => h.status == 'PEDIDO')
+
     const chamado = orcamento?.chamado == 'S'
     const etapas = [
         {
@@ -972,7 +980,10 @@ async function formularioOrcAprovado(id) {
     ]
 
     const funcao = `salvarPrioridade('${id}')`
-    const botoes = [{ texto: 'Salvar', img: 'concluido', funcao }]
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao },
+        { texto: 'Cancelar', img: 'cancel', funcao: 'removerPopup()' },
+    ]
 
     popup({ linhas, botoes, titulo: 'Prioridade do Orçamento' })
 
@@ -1188,21 +1199,21 @@ async function excluirHiStatus(id, idStatus) {
 
 }
 
-async function excluirAnexo(id, chave, id_anexo, img) {
+async function excluirAnexo(id, chave, idAnexo, img) {
 
-    removerPopup()
+    overlayAguarde()
 
     const orcamento = await recuperarDado('dados_orcamentos', id)
 
-    delete orcamento.status.historico[chave].anexos[id_anexo]
+    delete orcamento.status.historico[chave].anexos[idAnexo]
 
     await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
 
-    await abrirEsquema(id)
-
-    deletar(`dados_orcamentos/${id}/status/historico/${chave}/anexos/${id_anexo}`)
+    deletar(`dados_orcamentos/${id}/status/historico/${chave}/anexos/${idAnexo}`)
 
     img.parentElement.remove()
+
+    removerOverlay()
 
 }
 
@@ -1230,7 +1241,7 @@ async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
     const cliente = await recuperarDado('dados_clientes', orcamento.dados_orcam.omie_cliente) || {}
     const cartao = orcamento?.status?.historico?.[chave] || {}
 
-    const opcoes = ['JAMEF', 'CORREIOS', 'JADLOG', 'OUTROS']
+    const opcoes = transportadoras
         .map(op => `<option ${cartao?.transportadora == op ? 'selected' : ''}>${op}</option>`)
         .join('')
 
@@ -1365,16 +1376,16 @@ async function criarLinhaRequisicao(item) {
     const linhaPrincipal = `
         <tr data-codigo="${codigo}">
             <td>
-                <img src="${imagem || logo}" style="width: 5rem;">
+                <img src="${imagem || logo}">
             </td>
             <td style="font-size: 1.2em; white-space: nowrap;">
                 ${codigo}
             </td>
             <td>
-                <input class="requisicao-campo" value="${omie || ''}">
+                <input class="requisicao-campo" style="min-width: 10rem;" value="${omie || ''}">
             </td>
             <td>
-                <div style="${horizontal}; justify-content: space-between; width: 100%;">
+                <div style="${horizontal}; justify-content: space-between; min-width: 200px; gap: 1rem;">
                     <div style="${vertical}; gap: 2px;">
                         <label><strong>DESCRIÇÃO</strong></label>
                         <label style="text-align: left;">${descricao || ''}</label>
@@ -1426,36 +1437,6 @@ async function criarLinhaRequisicao(item) {
         .join('')
 
     return linhaPrincipal + linhaAdicional
-}
-
-async function gerarPdfRequisicao(id, chave) {
-
-    await formularioRequisicao({ id, chave })
-
-    const elOcultar = [...document.querySelectorAll('[data-ocultar]')]
-    elOcultar.forEach(el => el.style.display = 'none')
-
-    const estilos = [
-        'gcsobras',
-        'status'
-    ]
-
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-    const campos = [
-        'Requisição',
-        orcamento?.dados_orcam?.chamado,
-        orcamento?.dados_orcam?.contrato,
-        orcamento?.snapshots?.cliente,
-        Date.now()
-    ]
-
-    const nome = campos
-        .filter(c => c)
-        .join('-')
-
-    await pdf({ id: 'pdf', estilos, nome, orientacao: 'landscape' })
-
-    removerPopup()
 }
 
 async function abrirAdicionais(codigo) {
@@ -1532,8 +1513,11 @@ async function calcularRequisicao() {
 
     const tRequisicao = document.querySelector('.requisicao-tela')
     const id = tRequisicao.dataset.id
-    const chave = tRequisicao.dataset.chave
 
+    if (!id)
+        return
+
+    const chave = tRequisicao.dataset.chave
     const { status } = await recuperarDado('dados_orcamentos', id) || {}
 
     const reqs = Object.entries(status.historico || {})
@@ -1615,29 +1599,37 @@ async function salvarRequisicao(id, chave) {
 async function salvarAnexo(id, chave, input) {
 
     const orcamento = await recuperarDado('dados_orcamentos', id)
-    orcamento.status.historico[chave].anexos ??= {}
-
 
     if (input.files.length === 0) {
         popup({ elemento: 'Nenhum arquivo selecionado...' })
         return
     }
 
-    const anexos = await importarAnexos({ input }) // Retorna uma lista [{}, {}]
+    // Retorna uma lista [{}, {}]
+    const anexos = await importarAnexos({ input })
 
-    anexos.forEach(anexo => {
+    if (anexos.resposta)
+        return popup({ mensagem: anexos.mensagem })
 
-        orcamento.status.historico[chave].anexos[idAnexo] = anexo
+    orcamento.status.historico[chave].anexos ??= {}
 
-    })
+    orcamento.status.historico[chave].anexos = {
+        ...orcamento.status.historico[chave].anexos,
+        ...Object.fromEntries(
+            anexos.map(a => {
+                console.log(a)
+                return [a.link, a]
+            })
+        )
+    }
 
-    enviar(`dados_orcamentos/${id}/status/historico/${chave}/anexos/`, orcamento.status.historico[chave].anexos)
+    enviar(`dados_orcamentos/${id}/status/historico/${chave}/anexos`, orcamento.status.historico[chave].anexos)
 
     await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
 
     const div = document.querySelector(`[name="anexos_${chave}"]`)
 
-    const stringAnexos = Object.entries(anexos || {})
+    const stringAnexos = Object.entries(orcamento.status.historico[chave].anexos || {})
         .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('${id}', '${chave}', '${idAnexo}', this)`))
         .join('')
 
@@ -1743,6 +1735,8 @@ async function envioMaterial(id, chave = ID5digitos()) {
 
 async function registrarEnvioMaterial(id, chave) {
 
+    overlayAguarde()
+
     const campos = ['rastreio', 'transportadora', 'custo_frete', 'nf', 'comentario', 'volumes', 'data_saida', 'previsao']
 
     const orcamento = await recuperarDado('dados_orcamentos', id)
@@ -1782,4 +1776,214 @@ async function irOS(idOrcamento) {
     localStorage.setItem('pdf', JSON.stringify(orcamento))
 
     window.open('os.html', '_blank')
+}
+
+async function gerarPdfRequisicao(id, chave) {
+
+    overlayAguarde()
+
+    const { status, dados_orcam, snapshots } = await recuperarDado('dados_orcamentos', id) || {}
+
+    const { requisicao, volumes, empresa, executor, transportadora, comentario } = status?.historico?.[chave] || {}
+    const dStatus = Object.entries({ transportadora, volumes, empresa, executor })
+        .filter(([, valor]) => valor)
+        .map(([chave, valor]) => {
+            return `<span><b>${chave.toUpperCase()}</b> ${valor}</span>`
+        })
+        .join('')
+
+
+    const { nome, cnpj, cidade, bairro, endereco, cep } = await recuperarDado('dados_clientes', dados_orcam?.omie_cliente) || {}
+    const dCabecalho = Object.entries({ nome, cnpj, endereco, bairro, cidade, cep })
+        .filter(([, valor]) => valor)
+        .map(([chave, valor]) => {
+            return `<span><b>${chave.toUpperCase()}</b> ${valor}</span>`
+        })
+        .join('')
+
+    const colunas = [
+        'Imagem',
+        'Código GCS',
+        'Código OMIE',
+        'Descrição',
+        'Unidade',
+        'Tipo',
+        'Quantidade',
+        'Valor Unitário',
+        'Valor Total'
+    ]
+
+    const linhas = (
+        await Promise.all(
+            Object.entries(requisicao || {})
+                .map(async ([codigo, item]) => {
+
+                    const { imagem, qtde_enviar, tipo, unidade, descricao, custo } = item || {}
+                    const { fabricante, modelo, omie } = await recuperarDado('dados_composicoes', codigo) || {}
+
+                    const descricaoCompleta = Object.entries({ descricao, modelo, fabricante })
+                        .filter(([, valor]) => valor)
+                        .map(([chave, valor]) => {
+                            return `<b>${chave.toUpperCase()}</b> ${valor}`
+                        })
+                        .join('\n')
+
+                    return `
+                        <tr>
+                            <td>
+                                <img src="${imagem || logo}" style="width: 4rem;">
+                            </td>
+                            <td>${codigo}</td>
+                            <td>${omie || ''}</td>
+                            <td style="white-space: prewrap;">
+                                ${descricaoCompleta}
+                            </td>
+                            <td>${unidade || ''}</td>
+                            <td>${tipo || ''}</td>
+                            <td style="text-align: center;">${qtde_enviar || ''}</td>
+                            <td style="white-space: nowrap;">${dinheiro(custo)}</td>
+                            <td style="white-space: nowrap;">${dinheiro(custo * qtde_enviar)}</td>
+                        </tr>`
+                })
+        )
+    ).join('')
+
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+            <style>
+
+            @page {
+                size: A4;
+                margin: 0.5cm;
+            }
+
+            body {
+                font-size: 0.7rem;
+                font-family: 'Poppins', sans-serif;
+                margin: 0;
+                padding: 20px;
+                display: flex;
+                align-itens: start;
+                justify-content: start;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .header {
+                width: 100%;
+                text-align: center;
+                margin-bottom: 20px;
+                padding: 10px 0;
+                border-radius: 5px;
+            }
+
+            .header img {
+                height: 70px;
+            }
+
+            .tabela {
+                width: 100%;
+                border-collapse: collapse;
+                border-radius: 5px;
+                overflow: hidden;
+                margin-bottom: 20px;
+            }
+
+            .tabela th {
+                background-color: #dfdede;
+                padding: 10px;
+                text-align: left;
+            }
+
+            .tabela th, .tabela td {
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+            }
+
+            .tabela td {
+                background-color: #ffffff;
+            }
+
+            .tabela tr:nth-child(even) td {
+                background-color: #f9f9f9;
+            }
+
+            @media print {
+                body {
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+            }
+
+            .logo {
+                width: 10rem;
+                position: fixed;
+                top: 1rem;
+                right: 1rem;
+            }
+
+            </style>
+        </head>
+        <body>
+
+            <img class="logo" src="https://i.imgur.com/5zohUo8.png">
+
+            <span style="font-size: 2rem;">REQUISIÇÃO DE MATERIAIS</span>
+
+            <div style="${horizontal}; justify-content: start; width: 100%; gap: 2rem;">
+
+                <div style="${vertical}; gap: 2px;">
+
+                    ${dCabecalho}
+
+                </div>
+
+                <div style="${vertical}; gap: 2px;">
+
+                    ${dStatus}
+
+                </div>
+
+            </div>
+            
+            <table class="tabela">
+                <thead>
+                    ${colunas.map(c => `<th>${c}</th>`).join('')}
+                </thead>
+                <tbody>
+                    ${linhas}
+                </tbody>
+            </table>
+
+            <div style="${vertical};">
+                <span><b>COMENTÁRIO</b></span>
+                <div style="white-space: pre-wrap;">${comentario || 'Sem comentários'}</div>
+            </div>
+        </body>
+        </html>`
+
+    try {
+
+        const campos = [
+            'Requisição',
+            ...snapshots?.contrato,
+            Date.now()
+        ]
+
+        const nome = campos
+            .filter(c => c)
+            .join('-')
+
+        await gerarPdfOnline(htmlContent, nome)
+        removerOverlay()
+
+    } catch (err) {
+        popup({ mensagem: err.message || 'Falha ao gerar o PDF, tente novamente ou fale com o Suporte' })
+
+    }
+
 }

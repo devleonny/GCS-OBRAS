@@ -63,23 +63,6 @@ hr {
     color: white;
 }
 
-.contorno-anexos {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    background-color: #222;
-    color: white;
-    border-radius: 5px;
-    height: max-content;
-    padding: 5px;
-    margin: 5px;
-}
-
-.contorno-anexos img {
-    width: 2rem;
-}
-
 .planoFundo {
     gap: 1rem;
     display: flex;

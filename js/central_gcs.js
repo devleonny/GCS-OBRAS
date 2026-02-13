@@ -497,29 +497,34 @@ async function salvarLevantamento(idOrcamento, idElemento) {
     }
 }
 
-async function excluirLevantamentoStatus(idAnexo, idOrcamento) {
+async function excluirLevantamentoStatus(idAnexo, id) {
 
     overlayAguarde()
 
-    const orcamento = idOrcamento ? await recuperarDado('dados_orcamentos', id_orcam) : baseOrcamento()
+    const orcamento = id
+        ? await recuperarDado('dados_orcamentos', id)
+        : baseOrcamento()
 
     delete orcamento.levantamentos[idAnexo]
 
-    if (idOrcamento) {
-        deletar(`dados_orcamentos/${id_orcam}/levantamentos/${idAnexo}`)
-        await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    if (id) {
+        deletar(`dados_orcamentos/${id}/levantamentos/${idAnexo}`)
+        await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
     } else {
         baseOrcamento(orcamento)
     }
 
     // Retornar as telas específicas;
     const painelC = document.querySelector('.painel-clientes')
-    if (painelC) return await painelClientes(idOrcamento)
+    if (painelC)
+        return await painelClientes(id)
 
     const painelH = document.querySelector('.painel-historico')
-    if (painelH) return await abrirEsquema(idOrcamento)
+    if (painelH)
+        return await abrirEsquema(id)
 
-    if (idOrcamento) return await abrirEsquema(idOrcamento)
+    if (id)
+        return await abrirEsquema(id)
 
 }
 
@@ -668,20 +673,22 @@ async function gerarPdfOnline(htmlString, nome) {
 
 async function relancarPagamento(idPagamento) {
 
+    const { app } = await recuperarDado('lista_pagamentos', idPagamento)
+
     const elemento = `
         <div style="${vertical}; background-color: #d2d2d2; padding: 1rem;">
 
             <div style="${horizontal}; gap: 1rem;">
                 <span>Qual APP deve ser relançado?</span>
                 <select class="opcoesSelect" id="app">
-                    ${['IAC', 'AC', 'HNK'].map(op => `<option>${op}</option>`).join('')}
+                    ${['AC', 'IAC', 'HNK'].map(op => `<option ${app == op ? 'selected' : ''}>${op}</option>`).join('')}
                 </select>
             </div>
             <hr style="width: 100%;">
             <button onclick="confirmarRelancamento('${idPagamento}')">Confirmar</button>
         </div>
     `
-    popup({ elemento, titulo: 'Escolha o APP' })
+    popup({ elemento, titulo: 'Escolha o APP', nra: true })
 }
 
 async function confirmarRelancamento(idPagamento) {
@@ -691,8 +698,7 @@ async function confirmarRelancamento(idPagamento) {
     removerPopup()
     overlayAguarde()
 
-    let pagamento = await recuperarDado('lista_pagamentos', idPagamento)
-
+    const pagamento = await recuperarDado('lista_pagamentos', idPagamento)
     pagamento.app = app
 
     await enviar(`lista_pagamentos/${idPagamento}/app`, app)
@@ -710,8 +716,8 @@ async function confirmarRelancamento(idPagamento) {
         <div style="${vertical}; gap: 5px; text-align: left;">
             <span>${textoPrincipal}</span>
             <span>${infoAdicional}</span>
-        </div>
-    `
+        </div>`
+
     popup({ mensagem, imagem: 'imagens/atualizar.png', titulo: 'Resposta' })
 
 }
@@ -1144,7 +1150,7 @@ async function painelClientes(idOrcamento) {
         ? orcamento
         : baseOrcamento()
 
-    const dados_orcam = orcamentoBase?.dados_orcam || {}
+    const { dados_orcam } = orcamentoBase || {}
     const idCliente = dados_orcam?.omie_cliente
     const bloq = orcamentoBase.hierarquia ? true : false
 
@@ -1194,6 +1200,10 @@ async function painelClientes(idOrcamento) {
             'Chamado': { chave: 'id' }
         }
     }
+
+    const oTransportadoras = transportadoras
+        .map(o => `<option ${dados_orcam?.transportadora == o ? 'selected' : ''}>${o}</option>`)
+        .join('')
 
     const linhas = [
         {
@@ -1274,7 +1284,11 @@ async function painelClientes(idOrcamento) {
         },
         {
             texto: 'Transportadora',
-            elemento: `<input type="text" id="transportadora" value="${dados_orcam?.transportadora || '--'}">`
+            elemento: `
+                <select class="pedido" id="transportadora">
+                    ${oTransportadoras}
+                </select>
+                `
         },
         {
             elemento: `

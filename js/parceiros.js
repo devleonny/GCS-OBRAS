@@ -2,15 +2,7 @@
 async function modalLPUParceiro(id, chave) {
 
     const orcamento = await recuperarDado('dados_orcamentos', id)
-    const cliente = await recuperarDado('dados_clientes', orcamento.dados_orcam?.omie_cliente) || {}
-    const dadosEmpresa = {
-        ...orcamento.dados_orcam,
-        ...cliente
-    }
-
     const status = orcamento?.status?.historico?.[chave] || {}
-    const idTecnico = status?.tecnico || ''
-    const tecnico = await recuperarDado('dados_clientes', idTecnico)
 
     const itens = Object.fromEntries(
         Object.entries(status?.itens || orcamento?.dados_composicoes || {})
@@ -60,7 +52,7 @@ async function modalLPUParceiro(id, chave) {
     const stringHtml = (titulo, valor) => `
         <div style="${vertical}; gap: 3px;">
             <label><strong>${titulo}</strong>:</label>
-            <div style="font-size: 1rem;">${valor}</div>
+            <div>${valor}</div>
         </div>`
 
     const elemento = `
@@ -68,29 +60,39 @@ async function modalLPUParceiro(id, chave) {
 
             <div style="${horizontal}; align-items: start; gap: 2rem;">
 
-                <div style="${vertical}">
-                    ${stringHtml('Cliente', dadosEmpresa.nome)}
-                    ${stringHtml('CNPJ', dadosEmpresa.cnpj)}
-                    ${stringHtml('Endereço', dadosEmpresa.bairro)}
-                    ${stringHtml('Cidade', dadosEmpresa.cidade)}
-                    <br>
-                    <div style="${horizontal}; gap: 1rem;">
-                        <input type="checkbox" style="width: 2rem; height: 2rem;" onclick="marcarItensLPU(this)">
-                        <span>Marcar todos os ITENS<span>
-                    </div>
-                </div>
+                <div class="requisicao-contorno">
 
-                <div style="${vertical}">
-                    ${stringHtml('Técnico', `<span ${tecnico ? `id="${status.tecnico}"` : ''} class="opcoes" name="tecnico" onclick="cxOpcoes('tecnico', 'dados_clientes', ['nome', 'cnpj_cpf', 'bairro'])">${tecnico?.nome || 'Selecione'}</span>`)}
-                    ${stringHtml('Margem Geral (%)', `<input id="margem_lpu" class="requisicao-campo" style="background-color: white;" value="${status?.margem || '40'}" oninput="calcularLpuParceiro()">`)}
-                    ${stringHtml('Comentário', `<textarea id="comentario">${status?.comentario || ''}</textarea>`)}
+                    <div class="requisicao-titulo">
+                        Informações Complementares
+                    </div>
+
+                    <div class="requisicao-dados">
+                        <button onclick="adicionarTecnicoLPU()">Adicionar Técnico</button>
+                        <div id="tecnicos" style="${vertical}; gap: 1px;"></div>
+                        ${stringHtml('Margem Geral (%)', `<input id="margem_lpu" value="${status?.margem || '40'}" oninput="calcularLpuParceiro()">`)}
+                        ${stringHtml('Comentário', `<textarea id="comentario">${status?.comentario || ''}</textarea>`)}
+
+
+                        <div style="${horizontal}; gap: 1rem;">
+                            <input type="checkbox" style="width: 2rem; height: 2rem;" onclick="marcarItensLPU(this)">
+                            <span>Marcar todos os ITENS<span>
+                        </div>
+                    </div>
+
                 </div>
         
-                <div style="${vertical}">
-                    ${stringHtml('Total do Valor Orçamento', '<label id="total_orcamento"></label>')}
-                    ${stringHtml('Total Margem Disponível', '<label id="total_margem"></label>')}
-                    ${stringHtml('Total do Valor Parceiro', '<label id="total_parceiro"l></label>')}
-                    ${stringHtml('Total Desvio', '<label id="total_desvio"></label>')}
+                <div class="requisicao-contorno">
+
+                    <div class="requisicao-titulo">
+                        Totais
+                    </div>
+
+                    <div class="requisicao-dados">
+                        ${stringHtml('Total do Valor Orçamento', '<label id="total_orcamento"></label>')}
+                        ${stringHtml('Total Margem Disponível', '<label id="total_margem"></label>')}
+                        ${stringHtml('Total do Valor Parceiro', '<label id="total_parceiro"l></label>')}
+                        ${stringHtml('Total Desvio', '<label id="total_desvio"></label>')}
+                    </div>
                 </div>
 
             </div>
@@ -100,9 +102,41 @@ async function modalLPUParceiro(id, chave) {
         </div>
         `
 
-    popup({ elemento, titulo: 'LPU Parceiro', autoDestruicao: ['lpu_parceiro'] })
+    popup({ elemento, cor: 'white', titulo: 'LPU Parceiro', autoDestruicao: ['lpu_parceiro'] })
 
     await paginacao()
+
+    // Lançar Tecs;
+    for (const tec of (status.tecnicos || [])) {
+        await adicionarTecnicoLPU(tec)
+    }
+
+}
+
+async function adicionarTecnicoLPU(cod = ID5digitos()) {
+
+    controlesCxOpcoes[cod] = {
+        retornar: ['nome'],
+        base: 'dados_clientes',
+        colunas: {
+            'Nome': { chave: 'nome' },
+            'CPF/CNPJ': { chave: 'cnpj' },
+            'Cidade': { chave: 'cidade' },
+        }
+    }
+
+    const { nome } = await recuperarDado('dados_clientes', cod) || {}
+
+    const span = `
+        <span ${cod ? `id="${cod}"` : ''} 
+            class="opcoes" 
+            name="${cod}" 
+            onclick="cxOpcoes('${cod}')">${nome || 'Selecione'}
+        </span>`
+
+    const div = document.querySelector('#tecnicos')
+    if (div)
+        div.insertAdjacentHTML('beforeend', span)
 
 }
 
@@ -300,6 +334,15 @@ async function salvarLpuParceiro(id, chave = ID5digitos()) {
 
     const orcamento = await recuperarDado('dados_orcamentos', id)
 
+    const spanTecs = [...document.querySelector('#tecnicos').querySelectorAll('span')]
+
+    if (spanTecs.length == 0)
+        return popup({ mensagem: 'Escolha pelo menos 1 técnico' })
+
+    const tecnicos = spanTecs
+        .filter(span => span.id)
+        .map(span => Number(span.id))
+
     orcamento.status ??= {}
     orcamento.status.historico ??= {}
     orcamento.status.historico[chave] ??= {}
@@ -313,7 +356,7 @@ async function salvarLpuParceiro(id, chave = ID5digitos()) {
         executor: acesso.usuario,
         data: new Date().toLocaleString(),
         comentario: document.getElementById('comentario').value,
-        tecnico: document.querySelector('[name="tecnico"]')?.id || null
+        tecnicos
     }
 
     enviar(`dados_orcamentos/${id}/status/historico/${chave}`, orcamento.status.historico[chave])
@@ -431,268 +474,63 @@ function calcularLpuParceiro() {
 
 }
 
-async function exportarComoExcelHTML(chave) {
-    overlayAguarde()
-
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    const status = orcamento?.status?.historico?.[chave] || {}
-    const clienteOmie = orcamento?.dados_orcam?.omie_cliente || ''
-    const cliente = await recuperarDado('dados_clientes', clienteOmie)
-    const dados = {
-        ...status,
-        ...cliente
-    }
-
-    let html = `
-    <!DOCTYPE HTML>
-    <html xmlns="http://www.w3.org/TR/REC-html40"
-          xmlns:x="urn:schemas-microsoft-com:office:excel">
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <style>
-            .numero {
-                mso-number-format:"0";
-                text-align: right;
-            }
-            .texto {
-                mso-number-format:"\\@";
-                text-align: left;
-            }
-            .moeda {
-                mso-number-format:"R$ #,##0.00";
-                text-align: right;
-            }
-            .cabecalho {
-                background-color: rgb(0, 138, 0);
-                color: white;
-                font-weight: bold;
-                text-align: center;
-            }
-            .total {
-                font-weight: bold;
-                background-color: #e9ecef;
-            }
-            td, th {
-                border: 0.5pt solid #000000;
-                padding: 5px;
-            }
-            table {
-                border-collapse: collapse;
-            }
-        </style>
-    </head>
-    <body>
-        <div style="text-align: center; margin-bottom: 20px">
-            <h2>LPU PARCEIRO</h2>
-        </div>
-        
-        <table>
-            <tr>
-                <td class="texto"><strong>Data:</strong></td>
-                <td class="texto">${dados.data}</td>
-                <td class="texto"><strong>Analista:</strong></td>
-                <td class="texto">${dados.executor}</td>
-            </tr>
-            <tr>
-                <td class="texto"><strong>Cliente:</strong></td>
-                <td class="texto">${dados.nome}</td>
-                <td class="texto"><strong>CNPJ:</strong></td>
-                <td class="texto">${dados.cnpj}</td>
-            </tr>
-            <tr>
-                <td class="texto"><strong>Endereço:</strong></td>
-                <td class="texto">${dados.bairro}</td>
-                <td class="texto"><strong>Cidade/Estado:</strong></td>
-                <td class="texto">${dados.cidade}</td>
-            </tr>
-        </table>
-
-        <br>
-
-        <table>
-            <thead>
-                <tr>
-                    <th class="cabecalho">Código</th>
-                    <th class="cabecalho">Descrição</th>
-                    <th class="cabecalho">Unidade</th>
-                    <th class="cabecalho">Quantidade</th>
-                    <th class="cabecalho">Valor Unitário</th>
-                    <th class="cabecalho">Total</th>
-                </tr>
-            </thead>
-            <tbody>`;
-
-    let linha = 9; // começa após o cabeçalho
-    for (let [codigo, item] of Object.entries(dados.itens)) {
-        html += `
-            <tr>
-                <td class="texto">${codigo}</td>
-                <td class="texto">${item.descricao}</td>
-                <td class="texto" style="text-align: center">${item.unidade}</td>
-                <td class="numero">${item.qtde}</td>
-                <td class="moeda">${item.valor_parceiro_unitario}</td>
-                <td class="moeda">=D${linha}*E${linha}</td>
-            </tr>`;
-        linha++;
-    }
-
-    html += `
-            <tr><td colspan="6" style="border: none; height: 20px"></td></tr>
-            <tr class="total">
-                <td colspan="5" style="text-align: right"><strong>TOTAL DO ORÇAMENTO VENDIDO:</strong></td>
-                <td class="moeda">=SOMA(F9:F${linha - 1})</td>
-            </tr>
-        </tbody>
-    </table>
-    </body>
-    </html>`;
-
-    try {
-        let blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8" });
-        let url = URL.createObjectURL(blob);
-        let a = document.createElement("a");
-        a.href = url;
-        a.download = `LPU Parceiro ${dados.nome}.xls`;
-        a.click();
-        URL.revokeObjectURL(url);
-        removerOverlay()
-    } catch (err) {
-        popup({ mensagem: err.message || 'Falha ao gerar Excel' })
-    }
-}
-
-function extrairTextoOuInput(td) {
-    if (!td) return ''
-    const input = td.querySelector('input');
-    return input ? input.value.trim() : td.textContent.trim();
-}
-
-async function detalharLpuParceiro(chave) {
-
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    const dadosLpu = orcamento.status.historico[chave];
-
-    const stringHtml = (titulo, valor) => `
-        <div style="display: flex; justifty-content: start; align-items: center; gap: 5px;">
-            <label><strong>${titulo}</strong>:</label>
-            <label>${valor}</label>
-        </div>`
-
-    const clienteOmie = orcamento.dados_orcam?.omie_cliente || ''
-    const cliente = await recuperarDado('dados_clientes', clienteOmie)
-    const dadosEmpresa = {
-        ...orcamento.dados_orcam,
-        ...cliente
-    }
-
-    const margemLPU = dadosLpu?.margem || '?'
-    const tecnicoOmie = dadosLpu?.tecnico || ''
-    const tecnicoLPU = await recuperarDado('dados_clientes', tecnicoOmie)
-    let linhas = ''
-    let totalParceiro = 0
-    let totalOrcamento = 0
-    for (const [codigo, dados] of Object.entries(dadosLpu.itens)) {
-        const totalLinha = dados.qtde * dados.valor_parceiro_unitario
-        totalOrcamento += dados.qtde * dados.custo
-        totalParceiro += totalLinha
-        linhas += `
-        <tr>
-            <td>${dados.descricao}</td>
-            <td>${dados.qtde}</td>
-            <td>${dinheiro(dados.valor_parceiro_unitario)}</td>
-            <td>${dinheiro(totalLinha)}</td>
-        </tr>
-        `
-    }
-
-    const modeloTotal = (texto, valor) => `
-        <tr>
-            <td colspan="3" style="text-align: right; font-weight: bold; background-color: #eaeaea">${texto}:</td>
-            <td>${valor}</td>
-        </tr>
-    `
-    const totalMargemDisponivel = margemLPU ? totalOrcamento * (margemLPU / 100) : 0
-    const porcentagem = ((totalParceiro / totalOrcamento) * 100).toFixed(0)
-    const linhasTotais = `
-        ${modeloTotal('TOTAL DO ORÇAMENTO', dinheiro(totalOrcamento))}
-        ${modeloTotal('TOTAL MARGEM DISPONÍVEL', dinheiro(totalMargemDisponivel))}
-        ${modeloTotal('TOTAL LPU PARCEIRO', dinheiro(totalParceiro))}
-        ${modeloTotal('% PAGA AO PARCEIRO', `${porcentagem} %`)}
-    `
-
-    const tabela = `
-        <div style="${vertical};">
-            <div class="topo-tabela"></div>
-                <div class="div-tabela">
-                <table class="tabela" name="tabelaParceiro" data-total="${totalParceiro}">
-                    <thead>
-                        <tr>
-                            <th>Item</th>
-                            <th>Quantidade</th>
-                            <th>Valor Unitário</th>
-                            <th>Total Parceiro</th>
-                        </tr>
-                    </thead>
-                    <tbody>${linhas}</tbody>
-                </table>
-                <br>
-                <table class="tabela">
-                    <tbody>${linhasTotais}</tbody>
-                </table>
-                </div>
-            <div class="rodape-tabela"></div>
-        </div>
-    `
-
-    const cabecalhoInfo = `
-        <div name="cabecalhoParceiro" style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px;">
-            ${stringHtml('Data', new Date().toLocaleString())}
-            ${stringHtml('Analista', acesso?.nome_completo || '')}
-            ${stringHtml('Cliente', dadosEmpresa?.nome || '')}
-            ${stringHtml('CNPJ', dadosEmpresa?.cnpj || '')}
-            ${stringHtml('Endereço', dadosEmpresa?.bairro || '')}
-            ${stringHtml('Cidade', dadosEmpresa?.cidade || '')}
-            ${stringHtml('Margem', margemLPU)}
-            ${stringHtml('Técnico', tecnicoLPU?.nome || '')}
-        </div>
-    `
-
-    const botoes = `
-        <div class="menu_flutuante" id="menu_flutuante">
-
-            <div class="icone" onclick="gerarPdfParceiro('${dadosEmpresa?.nome || ''}')">
-                <img src="imagens/pdf.png">
-                <label>PDF</label>
-            </div>
-            
-            <div class="icone" onclick="exportarComoExcelHTML('${chave}')">
-                <img src="imagens/excel.png">
-                <label>Excel</label>
-            </div>
-
-        </div>
-    `
-
-    const elemento = `
-        <div style="${vertical}">
-            ${cabecalhoInfo}
-            ${tabela}
-        </div>
-        ${botoes}
-    `
-
-    popup({ elemento, titulo: 'Detalhamento Itens Parceiro' })
-
-}
-
-async function gerarPdfParceiro(nome) {
+async function gerarPdfParceiro(id, chave) {
 
     overlayAguarde()
 
-    const cabecalhoParceiro = document.querySelector('[name="cabecalhoParceiro"]').innerHTML
-    const elTabela = document.querySelector('[name="tabelaParceiro"]')
-    const tabela = elTabela.innerHTML
-    const totalParceiro = dinheiro(elTabela.dataset.total)
+    const { status } = await recuperarDado('dados_orcamentos', id) || {}
+    const lpu = status?.historico?.[chave] || {}
+
+    const nTecs = (
+        await Promise.all(
+            (lpu.tecnicos || []).map(async (cod) => {
+
+                const { nome, cidade, cep, endereco, bairro, cnpj } = await recuperarDado('dados_clientes', cod) || {}
+
+                const dados = Object.entries({
+                    nome,
+                    cidade,
+                    cep,
+                    endereco,
+                    bairro,
+                    cnpj
+                })
+                    .map(([chave, valor]) => {
+                        return `<span><b>${inicialMaiuscula(chave)}:</b> ${valor}</span>`
+                    }).join('')
+
+                return `
+                <div style="${vertical}; gap: 2px; margin-bottom: 1rem;">
+                    ${dados}
+                </div>`
+            })
+        )
+    ).join('\n')
+
+    const colunas = [
+        'Código',
+        'Descrição',
+        'Quantidade',
+        'Unidade',
+        'Valor Unitário',
+        'Valor Total'
+    ]
+
+    const linhas = Object.entries(lpu?.itens || {})
+        .map(([codigo, item]) => {
+
+            const { descricao, qtde, unidade, vUnitParc, vTotalParc } = item || {}
+            return `
+            <tr>
+                <td>${codigo || ''}</td>
+                <td>${descricao || ''}</td>
+                <td>${qtde || ''}</td>
+                <td>${unidade || ''}</td>
+                <td>${dinheiro(vUnitParc)}</td>
+                <td>${dinheiro(vTotalParc)}</td>
+            </tr>
+            `
+        }).join('')
 
     const htmlContent = `
         <!DOCTYPE html>
@@ -700,28 +538,37 @@ async function gerarPdfParceiro(nome) {
         <head>
             <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
             <style>
+
             @page {
                 size: A4;
                 margin: 1cm;
             }
+
             body {
                 font-family: 'Poppins', sans-serif;
                 margin: 0;
                 padding: 20px;
                 width: 21cm;
                 min-height: 29.7cm;
+                display: flex;
+                align-itens: start;
+                justify-content: start;
+                flex-direction: column;
+                gap: 0.5rem;
             }
+
             .header {
                 width: 100%;
                 text-align: center;
                 margin-bottom: 20px;
-                background-color: #151749;
                 padding: 10px 0;
                 border-radius: 5px;
             }
+
             .header img {
                 height: 70px;
             }
+
             .tabela {
                 width: 100%;
                 border-collapse: collapse;
@@ -729,57 +576,68 @@ async function gerarPdfParceiro(nome) {
                 overflow: hidden;
                 margin-bottom: 20px;
             }
+
             .tabela th {
-                background-color: rgb(0, 138, 0);
-                color: white;
+                background-color: #dfdede;
                 padding: 10px;
                 text-align: left;
-                font-weight: bold;
             }
+
             .tabela th, .tabela td {
                 border: 1px solid #ddd;
                 padding: 8px;
                 text-align: left;
             }
+
             .tabela td {
                 background-color: #ffffff;
             }
+
             .tabela tr:nth-child(even) td {
                 background-color: #f9f9f9;
             }
+
             @media print {
                 body {
                     -webkit-print-color-adjust: exact;
                     print-color-adjust: exact;
                 }
-                .tabela th {
-                    background-color: rgb(0, 138, 0) !important;
-                    color: white !important;
-                }
-                .header {
-                    background-color: #151749 !important;
-                }
             }
+
             </style>
         </head>
         <body>
             <img src="https://i.imgur.com/5zohUo8.png" style="width: 10rem;">
-            ${cabecalhoParceiro}
-            <br>
+
+            <span><b>TÉCNICOS</b></span>
+            ${nTecs}
+
             <table class="tabela">
-                ${tabela}
+                <thead>
+                    ${colunas.map(c => `<th>${c}</th>`).join('')}
+                </thead>
+                <tbody>
+                    ${linhas}
+                </tbody>
+            </table>
+            <table class="tabela">
                 <tbody>
                     <tr>
-                        <td colspan="3" style="background-color: #eaeaea; text-align: right;">TOTAL</td>
-                        <td>${totalParceiro}</td>
+                        <td colspan="5" style="background-color: #eaeaea; text-align: right;">TOTAL</td>
+                        <td>${dinheiro(lpu?.totais?.parceiro)}</td>
                     </tr>
                 </tbody>
             </table>
+
+            <div style="${vertical};">
+                <span><b>COMENTÁRIO</b></span>
+                <div style="white-space: pre-wrap;">${lpu?.comentario || ''}</div>
+            </div>
         </body>
         </html>`
 
     try {
-        await gerarPdfOnline(htmlContent, `LPU PACEIRO ${nome}`);
+        await gerarPdfOnline(htmlContent, `LPU PACEIRO - ${Date.now()}`)
         removerOverlay()
     } catch (err) {
         popup({ mensagem: err.message || 'Falha ao gerar o PDF' })
