@@ -462,10 +462,6 @@ async function selecionar(name, cod) {
     // Painel quando for forms; do contrário qualquer outro elemento;
     const elemento = (painel || document)?.querySelector(`[name='${name}']`)
     const termos = []
-    cod = isNaN(cod)
-        ? cod
-        : Number(cod)
-
     const dado = await recuperarDado(base, cod)
 
     for (const chave of retornar) {

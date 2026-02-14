@@ -11,12 +11,12 @@ const basesAuxiliares = {
     'correcoes': { keyPath: 'id' },
     'tipos': { keyPath: 'id' },
     'veiculos': { keyPath: 'id' },
-    'dados_clientes': { keyPath: 'id' },
+    'dados_clientes': { keyPath: 'id', tipo: 'NUMBER' },
     'documentos': { keyPath: 'id' },
     'dados_setores': { keyPath: 'usuario' },
     'dados_estoque': { keyPath: 'id' },
     'custo_veiculos': { keyPath: 'id' },
-    'dados_composicoes': { keyPath: 'id' },
+    'dados_composicoes': { keyPath: 'id', tipo: 'STRING' },
     'dados_manutencao': { keyPath: 'id' },
     'dados_ocorrencias': { keyPath: 'id' },
     'dados_orcamentos': { keyPath: 'id' },
@@ -403,6 +403,12 @@ function recuperarDado(base, chave) {
             resolve(null)
             return
         }
+
+        if (basesAuxiliares[base]?.tipo === 'NUMBER')
+            chave = Number(chave)
+
+        if (basesAuxiliares[base]?.tipo === 'STRING')
+            chave = String(chave)
 
         const request = indexedDB.open(nomeBase, versao)
 

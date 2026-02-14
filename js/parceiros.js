@@ -113,7 +113,7 @@ async function modalLPUParceiro(id, chave) {
 
 }
 
-async function adicionarTecnicoLPU(cod = ID5digitos()) {
+async function adicionarTecnicoLPU(cod = codCliAleatorio()) {
 
     controlesCxOpcoes[cod] = {
         retornar: ['nome'],
@@ -131,7 +131,7 @@ async function adicionarTecnicoLPU(cod = ID5digitos()) {
         <span ${cod ? `id="${cod}"` : ''} 
             class="opcoes" 
             name="${cod}" 
-            onclick="cxOpcoes('${cod}')">${nome || 'Selecione'}
+            onclick="cxOpcoes(${cod})">${nome || 'Selecione'}
         </span>`
 
     const div = document.querySelector('#tecnicos')

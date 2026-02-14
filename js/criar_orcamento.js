@@ -1011,21 +1011,12 @@ async function totalOrcamento() {
         const codigo = linha.dataset.codigo
         const hierarquia = linha.dataset.hierarquia
         let itemSalvo = {}
-
-        linha.style.backgroundColor = hierarquia == 'master' ? 'white' : '#fff8d3'
-        linha.style.borderTopLeftRadius = '0px'
-        linha.style.borderTopRightRadius = '0px'
-        linha.style.borderBottomLeftRadius = '0px'
-        linha.style.borderBottomRightRadius = '0px'
         let qtdeFilhos = 0
         let codigoMaster = null
 
         if (hierarquia == 'master') {
             orcamentoBase.esquema_composicoes[codigo] ??= {}
             itemSalvo = orcamentoBase.esquema_composicoes[codigo]
-
-            linha.style.borderTopLeftRadius = '8px'
-            linha.style.borderTopRightRadius = '8px'
 
         } else {
             const cods = String(linha.id).split('_')
@@ -1189,15 +1180,10 @@ async function totalOrcamento() {
         el('unitario').textContent = dinheiro(valorUnitario)
         el('total').style.color = totalLinha <= 0 ? 'red' : '#151749'
         el('total').textContent = dinheiro(totalLinha)
+
         // o campo name é usado para outra mecânica;
         const imagem = refProduto?.imagem || logo
         linha.querySelector('.imagem-orc').src = imagem
-
-        const linhaMaster = document.getElementById(`ORCA_${codigoMaster || codigo}`)
-        const totalBlocoDiv = linhaMaster.querySelector('.total-linha')
-        if (hierarquia == 'master') totalBlocoDiv.style.display = qtdeFilhos == 0 ? 'none' : 'flex'
-        const totalBloco = totalBlocoDiv.querySelector('span')
-        totalBloco.innerHTML = dinheiro(conversor(totalBloco.textContent) + totalLinha)
 
         itemSalvo.descricao = refProduto.descricao
         itemSalvo.unidade = refProduto?.unidade || 'UN'
@@ -1208,7 +1194,8 @@ async function totalOrcamento() {
 
         // Refletir a quantidade na tabela de baixo;
         const inputProduto = document.getElementById(`prod_${codigo}`)
-        if (inputProduto && hierarquia == 'master') inputProduto.value = quantidade
+        if (inputProduto && hierarquia == 'master')
+            inputProduto.value = quantidade
 
     }
 
@@ -1279,7 +1266,7 @@ async function totalOrcamento() {
             el.style.backgroundColor = 'white'
         })
     }
-    
+
     document.querySelectorAll('.total-linha').forEach(el => el.style.display = pesqAtiva ? 'none' : '')
 
     // Remover toolbars inativas;
@@ -1324,7 +1311,29 @@ async function totalOrcamento() {
     }
 
     formatarLinhasOrcamento()
+    calcularSubtotais()
 
+}
+
+function calcularSubtotais() {
+    const blocos = document.querySelectorAll('#bodyOrcamento > div[id^="ORCA_"]')
+
+    blocos.forEach(bloco => {
+        const linhas = bloco.querySelectorAll('.linha-orcamento')
+        let totalBloco = 0
+
+        linhas.forEach(linha => {
+            const valor = linha.querySelector('[name="total"]')
+            if (valor) {
+                totalBloco += conversor(valor.textContent)
+            }
+        })
+
+        const totalBlocoDiv = bloco.querySelector('.total-linha')
+        if (totalBlocoDiv) {
+            totalBlocoDiv.querySelector('span').textContent = dinheiro(totalBloco)
+        }
+    })
 }
 
 function filtrarPorTipo(tipo) {
@@ -1361,6 +1370,11 @@ function formatarLinhasOrcamento() {
             linha.style.borderTopLeftRadius = '8px'
             linha.style.borderTopRightRadius = '8px'
         }
+
+        linha.style.borderTopLeftRadius = '0px'
+        linha.style.borderTopRightRadius = '0px'
+        linha.style.borderBottomLeftRadius = '0px'
+        linha.style.borderBottomRightRadius = '0px'
     })
 }
 
@@ -1427,24 +1441,41 @@ async function confirmarNovoPreco({ codigo, codigoMaster, precoOriginal, operaca
 
 }
 
-async function incluirItem(codigo, novaQuantidade) {
-    let orcamentoBase = baseOrcamento()
-    const produto = await recuperarDado('dados_composicoes', codigo)
-    let agrupamento = orcamentoBase?.esquema_composicoes?.[codigo]?.agrupamento || {}
 
-    // Ajustes dos agrupamentos;
-    for (const [cod, dados] of Object.entries(produto?.agrupamento || {})) {
-        agrupamento[cod] = {
+async function incluirItem(codigo, novaQuantidade) {
+    const orcamentoBase = baseOrcamento()
+    const dadosMaster = await recuperarDado('dados_composicoes', codigo) || {}
+    const { agrupamento, descricao, tipo, unidade, imagem } = dadosMaster
+
+    orcamentoBase.esquema_composicoes ??= {}
+    orcamentoBase.esquema_composicoes[codigo] ??= {}
+
+    // garante o objeto de agrupamento
+    orcamentoBase.esquema_composicoes[codigo].agrupamento = {}
+
+    // Slaves
+    for (const [cod, dados] of Object.entries(agrupamento || {})) {
+
+        const dadosSlave = await recuperarDado('dados_composicoes', cod) || {}
+        const { descricao, unidade, tipo, custo, imagem } = dadosSlave
+
+        orcamentoBase.esquema_composicoes[codigo].agrupamento[cod] = {
             qtde: dados.qtde * novaQuantidade,
+            descricao,
+            unidade,
+            tipo,
+            custo,
+            imagem
         }
     }
 
-    orcamentoBase.esquema_composicoes ??= {}
-
-    // Inclusão do item;
+    // Item principal
     orcamentoBase.esquema_composicoes[codigo] = {
-        ordem: Date.now(),
-        agrupamento,
+        ...orcamentoBase.esquema_composicoes[codigo],
+        descricao,
+        tipo,
+        imagem,
+        unidade,
         qtde: novaQuantidade
     }
 
