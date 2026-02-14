@@ -1,6 +1,6 @@
-let memoriaFiltro = null
+let memoriaFiltro = 'GERAL'
 let lpuATIVA = null
-let pesqAtiva = null
+const formatacao = {}
 
 const metaforas = [
     "Um monitor sem imagens para exibir",
@@ -26,7 +26,9 @@ const metaforas = [
 ]
 
 function coresTabelas(tabela) {
+
     const coresTabelas = {
+        'GERAL': '#938e28',
         'VENDA': '#B12425',
         'SERVIÇO': '#008000',
         'USO E CONSUMO': '#24729d',
@@ -457,29 +459,6 @@ async function carregarTabelasOrcamento() {
 
 }
 
-async function pesquisarNoOrcamento() {
-
-    const termoPesquisa = document.getElementById('termoPesquisa')
-    const termo = termoPesquisa.value.trim().toLowerCase()
-    const bodyOrcamento = document.getElementById('bodyOrcamento')
-    const linhas = bodyOrcamento.querySelectorAll('.linha-orcamento')
-    filtrarPorTipo()
-
-    linhas.forEach(linha => {
-        const texto = linha.textContent.toLowerCase()
-        const corresponde = termo && texto.includes(termo)
-        linha.style.display = (!termo || corresponde) ? '' : 'none'
-        linha.style.backgroundColor = 'white'
-        linha.style.borderRadius = '8px'
-    })
-
-    // Filtro que irá ocultar o exibir subtotais;
-    pesqAtiva = !termoPesquisa.value == ''
-
-    await totalOrcamento()
-
-}
-
 function carregarLinhaOrcamento(codigo, produto, codigoMaster) {
 
     const opcoes = ['Dinheiro', 'Porcentagem', 'Venda Direta']
@@ -531,11 +510,14 @@ function carregarLinhaOrcamento(codigo, produto, codigoMaster) {
         </div>
 
         <div>
-            <img class="imagem-orc" name="${codigo}" onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}" style="width: 3rem; cursor: pointer;">
+            <img class="imagem-orc" name="${codigo}" 
+                onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}">
         </div>
         
         <div>
-            <img src="imagens/cancel.png" onclick="removerItemOrcamento({ codigo: '${codigo}', codigoMaster: ${codigoMaster}})" style="cursor: pointer; width: 1.5rem; border-radius: 3px;">
+            <img src="imagens/cancel.png" 
+                onclick="removerItemOrcamento({ codigo: '${codigo}', codigoMaster: ${codigoMaster}})" 
+                style="width: 1.5rem;">
         </div>
     `
 
@@ -555,7 +537,7 @@ function carregarLinhaOrcamento(codigo, produto, codigoMaster) {
     const blocoLinha = `
         <div data-hierarquia="master" class="linha-orcamento" data-tipo="${produto.tipo}" data-codigo="${codigo}">${celulas}</div>
         <div class="linha-bloco" name="${codigo}_associado"></div>
-        <div class="total-linha">
+        <div class="total-linha" data-tipo>
             <span name="totalBloco"></span>
         </div>
     `
@@ -588,11 +570,16 @@ async function removerItemOrcamento({ codigo, codigoMaster }) {
     }
 
     const prod = document.getElementById(`prod_${codigo}`)
-    if (prod) prod.value = ''
+    if (prod)
+        prod.value = ''
 
-    const idLinha = codigoMaster ? `${codigoMaster}_${codigo}` : `ORCA_${codigo}`
+    const idLinha = codigoMaster
+        ? `${codigoMaster}_${codigo}`
+        : `ORCA_${codigo}`
+
     const linha = document.getElementById(idLinha)
-    if (linha) linha.remove()
+    if (linha)
+        linha.remove()
 
     baseOrcamento(orcamentoBase)
 
@@ -896,89 +883,6 @@ function verificarData(data, codigo) {
     return `<img onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')" src="imagens/${imagem}.png" style="width: 1.5rem;">`
 }
 
-async function moverItem({ codigoAmover, codigoMaster }) {
-
-    const orcamento = baseOrcamento()
-    const composicoes = orcamento?.esquema_composicoes || {}
-    let tempComposicoes = {}
-
-    for (const [codigo, produto] of Object.entries(composicoes)) {
-        if (codigoAmover == codigo) continue
-        if (codigoMaster == codigo) continue
-        if (composicoes?.[codigo]?.agrupamento?.[codigoAmover]) continue
-
-        tempComposicoes[codigo] = {
-            ...produto,
-            qt: `Quantidade: ${produto.qtde}`,
-            cd: `Código: ${codigo}`
-        }
-    }
-
-    await inserirDados(tempComposicoes, 'tempComposicoes', true)
-
-    const acumulado = `
-        <div style="${vertical}; background-color: #d2d2d2; padding: 2rem;">
-
-            <span>Escolha para quem este item irá:</span>
-
-            <hr style="width: 100%;">
-
-            <div style="${horizontal}; gap: 2rem;">
-                <span class="opcoes" name="produto" onclick="cxOpcoes('produto', 'tempComposicoes', ['descricao', 'qt', 'cd'])">Selecione</span>
-                <img onclick="confirmarMoverItem({codigoAmover: ${codigoAmover}, codigoMaster: ${codigoMaster}})" src="imagens/concluido.png" style="width: 2rem; cursor: pointer;">
-            </div>
-        </div>
-    `
-
-    popup(acumulado, 'Mover Item', true)
-
-}
-
-async function confirmarMoverItem({ codigoAmover, codigoMaster }) {
-
-    overlayAguarde()
-
-    let orcamento = baseOrcamento()
-
-    if (codigoMaster) { // Item atualmente em outro master;
-
-        const produtoAmover = orcamento.esquema_composicoes[codigoMaster].agrupamento[codigoAmover]
-        const codigoDestino = document.querySelector('[name="produto"]')
-
-        if (!codigoDestino) return
-
-        orcamento.esquema_composicoes[codigoDestino.id].agrupamento[codigoAmover] = produtoAmover
-        delete orcamento.esquema_composicoes[codigoMaster].agrupamento[codigoAmover]
-
-        removerItemOrcamento({ codigo: codigoAmover, codigoMaster })
-
-    } else { // Item master que vai se tornar slave;
-
-        const produtoAmover = orcamento.esquema_composicoes[codigoAmover]
-        const codigoDestino = document.querySelector('[name="produto"]')
-
-        if (!codigoDestino) return
-
-        if (!orcamento.esquema_composicoes[codigoDestino.id].agrupamento) orcamento.esquema_composicoes[codigoDestino.id].agrupamento = {}
-
-        orcamento.esquema_composicoes[codigoDestino.id].agrupamento[codigoAmover] = produtoAmover
-        delete orcamento.esquema_composicoes[codigoAmover]
-
-        removerItemOrcamento({ codigo: codigoAmover })
-
-    }
-
-    const prod = document.getElementById(`prod_${codigoAmover}`)
-    if (prod) prod.value = ''
-
-    baseOrcamento(orcamento)
-
-    await carregarTabelasOrcamento()
-
-    removerPopup()
-
-}
-
 async function totalOrcamento() {
 
     atualizarToolbar()
@@ -999,11 +903,6 @@ async function totalOrcamento() {
     if (!bodyOrcamento)
         return
 
-    const subTotais = document.querySelectorAll('.total-linha')
-    subTotais.forEach(divTotal => {
-        divTotal.querySelector('span').textContent = ''
-    })
-
     const linhas = bodyOrcamento.querySelectorAll('.linha-orcamento')
 
     for (const linha of linhas) {
@@ -1011,7 +910,6 @@ async function totalOrcamento() {
         const codigo = linha.dataset.codigo
         const hierarquia = linha.dataset.hierarquia
         let itemSalvo = {}
-        let qtdeFilhos = 0
         let codigoMaster = null
 
         if (hierarquia == 'master') {
@@ -1024,9 +922,6 @@ async function totalOrcamento() {
             orcamentoBase.esquema_composicoes[codigoMaster].agrupamento ??= {}
             itemSalvo = orcamentoBase.esquema_composicoes[codigoMaster].agrupamento[codigo]
         }
-
-        const elo = linha.querySelector('[name="elo"]')
-        elo.innerHTML = `<img onclick="moverItem({codigoAmover: ${codigo}, codigoMaster: ${codigoMaster}})" src="imagens/elo.png" style="cursor: pointer; width: 1.5rem;">`
 
         itemSalvo.codigo = codigo
         const refProduto = await recuperarDado('dados_composicoes', codigo) || itemSalvo
@@ -1163,7 +1058,10 @@ async function totalOrcamento() {
         }
 
         const vendaDiretaAtiva = tipoDesconto.value == 'Venda Direta'
-        el('descVD').style.display = vendaDiretaAtiva ? 'flex' : 'none'
+        el('descVD').style.display = vendaDiretaAtiva
+            ? 'flex'
+            : 'none'
+
         if (vendaDiretaAtiva) {
             itemSalvo.cnpj = el('cnpj').value
             itemSalvo.razaoSocial = el('razaoSocial').value
@@ -1201,7 +1099,9 @@ async function totalOrcamento() {
 
     const painel_desconto = document.getElementById('desconto_total')
     const diferencaDinheiro = totais.GERAL.valor - totais.GERAL.bruto
-    const diferencaPorcentagem = diferencaDinheiro == 0 ? 0 : (diferencaDinheiro / totais.GERAL.bruto * 100).toFixed(2)
+    const diferencaPorcentagem = diferencaDinheiro == 0
+        ? 0
+        : (diferencaDinheiro / totais.GERAL.bruto * 100).toFixed(2)
 
     painel_desconto.innerHTML = `
         <div class="resumo">
@@ -1238,6 +1138,7 @@ async function totalOrcamento() {
     baseOrcamento(orcamentoBase)
 
     document.getElementById('total_geral').textContent = dinheiro(totais.GERAL.valor)
+
     const toolbarSuperior = document.querySelector('.toolbarSuperior')
     for (const [tabela, dados] of Object.entries(totais)) {
         const id = `toolbar_${tabela}`
@@ -1258,31 +1159,20 @@ async function totalOrcamento() {
         )
     }
 
-    // Mostrar ou ocultar subtotais;
-    if (pesqAtiva) {
-        const bodyOrcamento = document.getElementById('bodyOrcamento')
-        bodyOrcamento.querySelectorAll('.linha-orcamento').forEach(el => {
-            el.style.borderRadius = '8px'
-            el.style.backgroundColor = 'white'
-        })
-    }
-
-    document.querySelectorAll('.total-linha').forEach(el => el.style.display = pesqAtiva ? 'none' : '')
-
     // Remover toolbars inativas;
     const divs = toolbarSuperior.querySelectorAll('div')
     for (const div of divs) {
         const tipo = div.dataset.tipo
         if (!totais[tipo]) {
             div.remove()
-            filtrarPorTipo()
         }
     }
 
     // Visibilidade Tabela;
     const tabelas = document.getElementById('tabelas')
     const quieto = document.querySelector('.quieto')
-    if (quieto) quieto.remove()
+    if (quieto) 
+        quieto.remove()
 
     if (Object.keys(orcamentoBase.esquema_composicoes).length == 0) {
         // Mensagem aleatório de boas vindas;
@@ -1336,48 +1226,106 @@ function calcularSubtotais() {
     })
 }
 
+async function pesquisarNoOrcamento() {
+
+    const termoPesquisa = document.getElementById('termoPesquisa')
+    const termo = termoPesquisa.value.trim().toLowerCase()
+    const bodyOrcamento = document.getElementById('bodyOrcamento')
+    const linhas = bodyOrcamento.querySelectorAll('.linha-orcamento')
+
+    linhas.forEach(linha => {
+        const texto = linha.textContent.toLowerCase()
+        const corresponde = termo && texto.includes(termo)
+        linha.style.display = (!termo || corresponde) ? '' : 'none'
+    })
+
+    formatacao.pesquisa = termoPesquisa.value !== ''
+        ? 'S'
+        : 'N'
+
+    formatarLinhasOrcamento()
+
+}
+
 function filtrarPorTipo(tipo) {
+
+    // Zerar a pesquisa;
+    formatacao.pesquisa = 'N'
+    document.getElementById('termoPesquisa').value = ''
 
     memoriaFiltro = tipo
 
-    const thead = document.getElementById('theadOrcamento')
-    thead.style.backgroundColor = coresTabelas(tipo)
-
-    const blocos = document.querySelectorAll('#bodyOrcamento > div[id^="ORCA_"]')
-
-    blocos.forEach(bloco => {
-        const linha = bloco.querySelector('.linha-orcamento')
-        const tipoLinha = linha?.dataset.tipo
-
+    document.querySelectorAll('#bodyOrcamento [data-tipo]').forEach(linha => {
+        const tipoLinha = linha.dataset.tipo
         const corresponde = !tipo || tipoLinha === tipo || tipo == 'GERAL'
-        bloco.style.display = corresponde ? '' : 'none'
+        linha.style.display = corresponde
+            ? ''
+            : 'none'
     })
+
+    formatacao.tipo = tipo !== 'GERAL'
+        ? 'S'
+        : 'N'
+
+    formatarLinhasOrcamento()
 }
 
 function formatarLinhasOrcamento() {
-    const linhas = document.querySelectorAll('#bodyOrcamento .linha-orcamento')
 
-    linhas.forEach(linha => {
+    // Cor do cabeçalho;
+    const theadOrcamento = document.getElementById('theadOrcamento')
+    theadOrcamento.style.backgroundColor = coresTabelas(formatacao.pesquisa == 'S' ? 'GERAL' : memoriaFiltro)
+
+    // Mostrar ou ocultar subtotais;
+    document.querySelectorAll('.total-linha').forEach(el => el.style.display = 'none')
+
+    if (formatacao.pesquisa == 'S') {
+
+        document.querySelectorAll('#bodyOrcamento .linha-orcamento').forEach(el => {
+            el.style.borderRadius = '8px'
+            el.style.backgroundColor = 'white'
+        })
+
+        return
+    }
+
+    if (formatacao.tipo == 'S') {
+
+        bodyOrcamento.querySelectorAll('#bodyOrcamento [data-tipo]').forEach(linha => {
+            linha.style.backgroundColor = 'white'
+
+            const tipoLinha = linha.dataset.tipo
+            if (tipoLinha)
+                linha.style.borderRadius = '0px'
+        })
+
+        return
+    }
+
+
+    // Quando não tiver pesquisa ou filtragem por tipo;
+    document.querySelectorAll('#bodyOrcamento .linha-orcamento').forEach(linha => {
         const hierarquia = linha.dataset.hierarquia
 
         linha.style.backgroundColor = hierarquia === 'master'
             ? 'white'
             : '#fff8d3'
 
-        linha.style.borderRadius = '0'
+        linha.style.borderRadius = '0px'
 
         if (hierarquia === 'master') {
             linha.style.borderTopLeftRadius = '8px'
             linha.style.borderTopRightRadius = '8px'
         }
 
-        linha.style.borderTopLeftRadius = '0px'
-        linha.style.borderTopRightRadius = '0px'
-        linha.style.borderBottomLeftRadius = '0px'
-        linha.style.borderBottomRightRadius = '0px'
+    })
+
+    // Totais;
+    document.querySelectorAll('.total-linha').forEach(el => {
+        el.style.display = 'flex'
+        el.style.backgroundColor = '#ffea81'
     })
 }
-
 
 async function alterarValorUnitario({ codigo, codigoMaster }) {
 
