@@ -247,7 +247,7 @@ async function mudarStatus(select) {
 
     img.src = `imagens/${st}.png`
 
-    alterarUsuario({ campo: 'status', valor: st, usuario: acesso.usuario })
+    await alterarUsuario({ campo: 'status', valor: st, usuario: acesso.usuario })
 
 }
 
@@ -579,70 +579,113 @@ function capturarValorCelula(celula) {
     return celula.textContent.toLowerCase()
 }
 
+async function filtrarUsuarios(st) {
+
+    overlayAguarde()
+
+    let filtros = {}
+
+    if(st == 'online') {
+        filtros = {
+            'status': [
+                { op: '!=', value: null },
+                { op: '!=', value: 'offline' }
+            ]
+        }
+
+    } else {
+        filtros = {
+            'status': { op: '!=', value: 'online' }
+        }
+    }
+
+    controles.usuariosOnline.filtros = filtros
+    await paginacao()
+
+    removerOverlay()
+    
+}
 
 async function painelUsuarios() {
 
-    const dados_setores = await pesquisarDB({ base: 'dados_setores', limite: 1000 })
-    const stringUsuarios = {}
-    const organizados = dados_setores.resultados
-        .sort((a, b) => a.usuario.localeCompare(b.usuario))
-
-    for (const dados of organizados) {
-
-        const { usuario } = dados
-
-        if (dados.permissao == 'novo') continue
-
-        const status = dados?.status || 'offline'
-        if (!stringUsuarios[status]) stringUsuarios[status] = { quantidade: 0, linhas: '' }
-
-        stringUsuarios[status].quantidade++
-        stringUsuarios[status].linhas += `
-            <div class="usuarioOnline">
-                <img src="imagens/${status}.png" style="width: 1.5rem;">
-                <label>${usuario}</label>
-                <label style="font-size: 0.6rem;"><b>${dados?.permissao || '??'}</b></label>
-            </div>
-        `
+    const colunas = {
+        'Status': { chave: 'status' },
+        'Usuários': { chave: 'usuario' },
+        'Setor': { chave: 'setor' },
+        'Permissão': { chave: 'permissao' }
     }
 
-    let info = ''
+    const btnExtras = `
+        <button onclick="filtrarUsuarios('online')">Online</button>
+        <button style="background-color: #ff0000;" onclick="filtrarUsuarios('offline')">Offline</button>`
 
-    // ordena as chaves colocando "offline" no final
-    const chavesOrdenadas = Object.keys(stringUsuarios).sort((a, b) => {
-        if (a === 'offline') return 1
-        if (b === 'offline') return -1
-        return a.localeCompare(b)
+    const tOnline = modTab({
+        pag: 'usuariosOnline',
+        colunas,
+        btnExtras,
+        body: 'bodyUsuariosOnline',
+        base: 'dados_setores',
+        criarLinha: 'criarLinhaPainelUsuarios',
+        filtros: {
+            'status': [
+                { op: '!=', value: null },
+                { op: '!=', value: 'offline' }
+            ]
+        }
     })
-
-    for (const st of chavesOrdenadas) {
-        const dados = stringUsuarios[st]
-        info += `
-            <label><strong>${st}</strong> ${dados.quantidade}</label>
-            ${dados.linhas}
-        `
-    }
-
-    const divOnline = document.querySelector('.divOnline')
-    if (divOnline) return divOnline.innerHTML = info
-
-    const indicadorStatus = acesso?.status || 'offline'
-    const statusOpcoes = ['online', 'Em almoço', 'Não perturbe', 'Em reunião', 'Apenas Whatsapp']
-    if (acesso?.permissao == 'adm') statusOpcoes.push('Invisível')
 
     const elemento = `
         <div class="conteinerOnline">
-            <span>Alterar Status</span>
-            <select class="opcoesSelect" onchange="mudarStatus(this)">
-                ${statusOpcoes.map(op => `<option ${indicadorStatus == op ? 'selected' : ''}>${op}</option>`).join('')}
-            </select>
-            <div class="divOnline">
-                ${info}
-            </div>
-        </div>
-    `
+
+            ${tOnline}
+
+        </div>`
+
+    const divOnline = document.querySelector('.divOnline')
+    if (divOnline)
+        return
 
     popup({ elemento, titulo: 'Usuários', nra: true })
+
+    await paginacao()
+}
+
+function criarLinhaPainelUsuarios(dados) {
+
+    const { usuario, status, setor, permissao } = dados || {}
+
+    let gerenciarStatus = `<label>${status || 'offline'}</label>`
+
+    if (usuario == acesso.usuario) {
+
+        const statusOpcoes = ['online', 'Em almoço', 'Não perturbe', 'Em reunião', 'Apenas Whatsapp']
+        if (acesso?.permissao == 'adm')
+            statusOpcoes.push('Invisível')
+
+        gerenciarStatus = `
+            <select class="opcoesSelect" onchange="mudarStatus(this)">
+                ${statusOpcoes.map(op => `<option ${acesso?.status == op ? 'selected' : ''}>${op}</option>`).join('')}
+            </select>`
+    }
+
+    return `
+    <tr>
+        <td>
+            <div style="${horizontal}; justify-content: start; gap: 0.5rem;">
+                <img src="imagens/${status || 'offline'}.png" style="width: 1.5rem;">
+                ${gerenciarStatus}
+            </div>
+        </td>
+        <td>
+            ${usuario}
+        </td>
+        <td>
+            ${permissao || ''}
+        </td>
+        <td>
+            ${setor || ''}
+        </td>
+    </tr>`
 }
 
 async function gerarPdfOnline(htmlString, nome) {

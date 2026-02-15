@@ -151,6 +151,7 @@ span[name="titulo"] {
 }
 
 .conteinerOnline {
+    padding: 1rem;
     background-color: #d2d2d2;
     max-height: 70vh;
     overflow-y: auto;

@@ -224,14 +224,6 @@ async function enviarDadosAluguel() {
     removerPopup()
 }
 
-function pesquisarProdutosAluguel(col, texto) {
-
-    const pagina = 'aluguel'
-    filtrosPagina[pagina] ??= {}
-    pesquisarGenerico(col, texto, `linhasProdAluguel`)
-
-}
-
 async function recuperarComposicoesAluguel() {
 
     overlayAguarde()
@@ -246,23 +238,18 @@ async function recuperarComposicoesAluguel() {
 
 async function tabelaProdutosAluguel() {
 
-    const colunas = ['Código', 'Descrição', 'tipo', 'Quantidade', 'Imagem']
-    let ths = ''
-    let pesquisa = ''
-    colunas.forEach((col, i) => {
-        ths += `<th>${col}</th>`
-        pesquisa += `<th contentEditable="true" style="text-align: left; background-color: white;" oninput="pesquisarProdutosAluguel(${i}, this.textContent)"></th>`
-    })
+    const colunas = {
+        'Código': { chave: 'codigo', },
+        'Descrição': { chave: 'descricao' },
+        'tipo': { chave: 'tipo' },
+        'Quantidade': {},
+        'Imagem': {}
+    }
 
-    let botoes = `
-            <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
-                onclick="recuperarComposicoesAluguel()">
-                <img src="imagens/atualizar.png" style="width: 30px; cursor: pointer;">
-                <label style="color: white; cursor: pointer;">Atualizar</label>
-            </div>`
+    let btnExtras = ''
 
     if (moduloComposicoes) {
-        botoes += `
+        btnExtras += `
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
                 onclick="cadastrarItem()">
                 <img src="imagens/add.png" style="width: 30px; cursor: pointer;">
@@ -270,42 +257,25 @@ async function tabelaProdutosAluguel() {
             </div>`
     }
 
-    const cor = `background-color: ${coresTabelas('ALUGUEL')}`
+    const tabela = modTab({
+        base: 'dados_composicoes',
+        colunas,
+        funcaoAdicional: ['total'],
+        criarLinha: 'criarLinhaProdAluguel',
+        body: 'bodyComposicoesAluguel',
+        btnExtras,
+        pag: 'orcamentoAluguel'
+    })
 
-    const acumulado = `
-        <div style="position: relative; display: flex; justify-content: center; width: 100%; margin-top: 30px; gap: 10px;">
-            <label class="menu-top" style="${cor};" onclick="alterarTabela('ALUGUEL')">ALUGUEL</label>
-            ${botoes}
-        </div>
+    document.getElementById('tabelaItens').innerHTML = `<div style="margin-top: 1rem;">${tabela}</div>`
 
-        <div class="borda-tabela"">
-            <div class="topo-tabela" style="${cor}"></div>
-            <div class="div-tabela">
-                <table class="tabela">
-                    <thead>
-                        <tr>${ths}</tr>
-                        <tr>${pesquisa}</tr>
-                    </thead>
-                    <tbody id="linhasProdAluguel"></tbody>
-                </table>
-            </div>
-            <div class="rodape-tabela"></div>
-        </div>
-        `
-
-    const linhasProdAluguel = document.getElementById('linhasProdAluguel')
-    const tabelaItens = document.getElementById('tabelaItens')
-    if (!linhasProdAluguel) tabelaItens.innerHTML = acumulado
-
-    for (const [codigo, produto] of Object.entries(db.dados_composicoes)) {
-        criarLinhaProdAluguel(codigo, produto)
-    }
+    await paginacao()
 
 }
 
-function criarLinhaProdAluguel(codigo, produto) {
+function criarLinhaProdAluguel(produto) {
 
-    const linhasProdAluguel = document.getElementById('linhasProdAluguel')
+    const { codigo } = produto
 
     const tds = `
         <td>
@@ -336,11 +306,7 @@ function criarLinhaProdAluguel(codigo, produto) {
         </td>
     `
 
-    const idElem = `prod_${codigo}`
-    const trExistente = document.getElementById(idElem)
-    if (trExistente) return trExistente.innerHTML = tds
-
-    linhasProdAluguel.insertAdjacentHTML('beforeend', `<tr id="${idElem}">${tds}</tr>`)
+    return `<tr>${tds}</tr>`
 
 }
 
@@ -355,72 +321,73 @@ async function total() {
     orcamentoBase.lpu_ativa = modo // Salvando no mesmo local que as LPUs, para mostrar na tabela geral;
     orcamentoBase.quantidade_periodo = quantidade_periodo
 
-    if (!orcamentoBase.dados_composicoes) orcamentoBase.dados_composicoes = {}
+    orcamentoBase.dados_composicoes ??= {}
 
     tables.forEach(tab => {
         let nomeTabela = String(tab.id).split('_')[1]
         totais[nomeTabela] = { valor: 0, exibir: 'none' }
     })
 
-    if (orcamentoBase.dados_composicoes) {
-        for (let tabela in totais) {
+    for (let tabela in totais) {
 
-            if (tabela == 'GERAL') continue
+        if (tabela == 'GERAL') continue
 
-            let tbody = document.getElementById(`linhas_${tabela}`)
-            if (!tbody) continue
+        let tbody = document.getElementById(`linhas_${tabela}`)
+        if (!tbody) continue
 
-            let trs = tbody.querySelectorAll('tr')
+        let trs = tbody.querySelectorAll('tr')
 
-            if (trs.length > 0) {
-                totais[tabela].exibir = 'flex'
-            } else {
-                totais[tabela].exibir = 'none'
+        if (trs.length > 0) {
+            totais[tabela].exibir = 'flex'
+        } else {
+            totais[tabela].exibir = 'none'
+        }
+
+        for (const tr of trs) {
+
+            const tds = tr.querySelectorAll('td')
+
+            const codigo = tds[0].textContent
+            const { descricao } = await recuperarDado('dados_composicoes', codigo) || {}
+
+            let tdDescricao = tds[1]
+            let tdQuantidade = tds[3].querySelector('input')
+            let tdCusto = tds[4].querySelector('input')
+            let tdTotal = tds[5].querySelector('label')
+
+            let valorUnitario = Number(tdCusto.value)
+            let quantidade = Number(tdQuantidade.value)
+            let totalLinha = valorUnitario * quantidade
+
+            // Valor bruto sem desconto;
+            totais.GERAL.bruto += totalLinha
+
+            if (!totais[modo]) {
+                totais[modo] = { valor: 0, exibir: 'none' }
             }
 
-            trs.forEach(tr => {
-                let tds = tr.querySelectorAll('td')
-                let codigo = tds[0].textContent
-                let tdDescricao = tds[1]
-                let tdQuantidade = tds[3].querySelector('input')
-                let tdCusto = tds[4].querySelector('input')
-                let tdTotal = tds[5].querySelector('label')
+            totais[modo].valor += totalLinha
+            totais.GERAL.valor += totalLinha
 
-                let valorUnitario = Number(tdCusto.value)
-                let quantidade = Number(tdQuantidade.value)
-                let descricao = db.dados_composicoes[codigo]?.descricao || 'Atualize a base de Produtos'
-                let totalLinha = valorUnitario * quantidade
+            // Inclusão dos dados atualizados nas tds
+            tdDescricao.textContent = descricao
 
-                // Valor bruto sem desconto;
-                totais.GERAL.bruto += totalLinha
+            tdTotal.classList = 'labelAprovacao'
+            tdTotal.style.backgroundColor = totalLinha > 0 ? 'green' : '#B12425'
+            tdTotal.textContent = dinheiro(totalLinha)
 
-                if (!totais[modo]) {
-                    totais[modo] = { valor: 0, exibir: 'none' }
-                }
+            // Salvamento dos itens no Orcamento
+            orcamentoBase.dados_composicoes[codigo] ??= {}
 
-                totais[modo].valor += totalLinha
-                totais.GERAL.valor += totalLinha
+            orcamentoBase.dados_composicoes[codigo] = {
+                ...orcamentoBase.dados_composicoes[codigo],
+                codigo,
+                descricao,
+                qtde: quantidade,
+                custo: valorUnitario,
+                tipo: modo // Salvar como 'ALUGUEL' para que as próximas tabelas sejam configuradas de acordo;
+            }
 
-                // Inclusão dos dados atualizados nas tds
-                tdDescricao.textContent = descricao
-
-                tdTotal.classList = 'labelAprovacao'
-                tdTotal.style.backgroundColor = totalLinha > 0 ? 'green' : '#B12425'
-                tdTotal.textContent = dinheiro(totalLinha)
-
-                // Salvamento dos itens no Orcamento
-                if (!orcamentoBase.dados_composicoes[codigo]) orcamentoBase.dados_composicoes[codigo] = {}
-
-                orcamentoBase.dados_composicoes[codigo] = {
-                    ...orcamentoBase.dados_composicoes[codigo],
-                    codigo,
-                    descricao,
-                    qtde: quantidade,
-                    custo: valorUnitario,
-                    tipo: modo // Salvar como 'ALUGUEL' para que as próximas tabelas sejam configuradas de acordo;
-                }
-
-            })
         }
     }
 
@@ -461,10 +428,10 @@ async function total() {
 
 async function incluirItemAluguel(codigo, novaQuantidade) {
 
-    let orcamentoBase = baseOrcamento()
-    let produto = db.dados_composicoes[codigo]
+    const orcamentoBase = baseOrcamento()
+    const produto = await recuperarDado('dados_composicoes', codigo) || {}
 
-    let linha = `
+    const linha = `
         <tr>
             <td>${codigo}</td>
             <td style="position: relative;"></td>
