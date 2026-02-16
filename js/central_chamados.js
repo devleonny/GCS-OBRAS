@@ -111,7 +111,7 @@ async function telaPrincipal() {
     toolbar.style.display = ''
     toolbar.style.display = 'flex'
 
-    await atualizarGCS()
+    //await atualizarGCS()
 
     const planoFundo = `
         <div class="planoFundo">

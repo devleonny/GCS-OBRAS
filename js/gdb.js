@@ -160,18 +160,25 @@ const regrasSnapshot = {
         snapshot: async ({ dado, stores }) => {
 
             const snap = {}
-
-            // Nomes de cada item;
-            for (const tab of ['tipos', 'prioridades', 'sistemas']) {
-                const info = await getStore(stores[tab], dado?.[tab]) || {}
-                snap[tab] = info?.nome || 'Em branco'
+            const campos = {
+                'tipo': 'tipos',
+                'prioridade': 'prioridades',
+                'sistema': 'sistemas'
             }
 
+            // nomes simples
+            for (const [chave, tabela] of Object.entries(campos)) {
+                const info = await getStore(stores[tabela], dado?.[chave])
+                snap[chave] = info?.nome || 'Em branco'
+            }
+
+            // cliente completo
             snap.cliente = await getStore(stores.dados_clientes, dado?.unidade) || {}
 
+            // última correção
             const uc = uCorrecao(dado?.correcoes || {})
-            const { nome } = await getStore(stores.correcoes, uc?.tipo) || {}
-            snap.ultimaCorrecao = nome || 'Não analisada'
+            const correcao = await getStore(stores.correcoes, uc?.tipo)
+            snap.ultimaCorrecao = correcao?.nome || 'Não analisada'
 
             return snap
         }
@@ -634,39 +641,31 @@ function passaFiltro(reg, filtros) {
     // sem wildcard → já passou
     if (!Object.keys(filtrosWildcard).length) return true
 
-    // wildcard
-    for (const [path, regra] of Object.entries(filtrosWildcard)) {
+    // wildcard (todos filtros no mesmo item)
+    const paths = Object.keys(filtrosWildcard)
 
-        const itens = resolveWildcard(reg, path)
+    // pega base comum antes do *
+    const basePath = paths[0].split('*')[0].replace(/\.$/, '')
+    const base = getByPath(reg, basePath)
 
-        let passouAlgum = false
+    if (!base || typeof base !== 'object') return false
 
-        for (const { ctx, valor } of itens) {
+    for (const ctx of Object.values(base)) {
 
-            if (!multiplasRegras(valor, regra)) continue
+        let ok = true
 
-            let ok = true
+        for (const [p, regra] of Object.entries(filtrosWildcard)) {
+            const sub = p.split('*').slice(1).join('.').replace(/^\./, '')
+            const v = getByPath(ctx, sub)
 
-            // valida filtros irmãos no mesmo contexto
-            for (const [p, r] of Object.entries(filtrosWildcard)) {
-                if (p === path) continue
-
-                const sub = p.split('*').slice(1).join('.').replace(/^\./, '')
-                const vSub = getByPath(ctx, sub)
-
-                if (!multiplasRegras(vSub, r)) {
-                    ok = false
-                    break
-                }
-            }
-
-            if (ok) {
-                passouAlgum = true
+            if (!multiplasRegras(v, regra)) {
+                ok = false
                 break
             }
         }
 
-        if (!passouAlgum) return false
+        // se qualquer correção falhar, já elimina o registro
+        if (!ok) return false
     }
 
     return true

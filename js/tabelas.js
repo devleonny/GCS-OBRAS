@@ -129,7 +129,7 @@ async function paginacao(pag) {
 
     async function ativarPaginacao(pag) {
 
-        const { pagina, base, body, bloquearPaginacao = false, primEx = true, criarLinha, funcaoAdicional, filtros } = controles[pag] || {}
+        const { pagina, base, body, alinPag = horizontal, bloquearPaginacao = false, primEx = true, criarLinha, funcaoAdicional, filtros } = controles[pag] || {}
 
         // Bloquear paginações seguintes;
         if (bloquearPaginacao && !primEx) {
@@ -158,25 +158,21 @@ async function paginacao(pag) {
             return
 
         if (!paginaAtual) {
+
             divPaginacao.innerHTML = `
-            <div style="display: flex; align-items:center; gap: 10px; padding: 0.2rem;">
-                <img src="imagens/esq.png" style="width: 2rem;" onclick="mudarPagina(-1, '${pag}')">
-                <span style="color: white;">
-                    Página 
+                <div style="${alinPag}; align-items: center; padding: 2px; color: white;">
+                    <div style="${horizontal}; gap: 5px;">
 
-                    <span id="paginaAtual">${pagina}</span> 
-                    
-                    de 
+                        <img src="imagens/esq.png" style="width: 2rem;" onclick="mudarPagina(-1, '${pag}')">
+                        <span id="paginaAtual">${pagina}</span> de
+                        <span id="totalPaginas">${dados.paginas}</span> 
+                        <img src="imagens/dir.png" style="width: 2rem;" onclick="mudarPagina(1, '${pag}')">
+                        
+                    </div>
+                    <span><span style="font-size: 1rem;" id="resultados">${dados.total}</span> ${dados.total !== 1 ? 'Itens' : 'Item'}</span>
+                </div>
+                `
 
-                    <span id="totalPaginas">${dados.paginas}</span> 
-
-                    •
-                    
-                    <span id="resultados">${dados.total}</span> ${dados.total !== 1 ? 'itens' : 'item'}
-                </span>
-                <img src="imagens/dir.png" style="width: 2rem;" onclick="mudarPagina(1, '${pag}')">
-            </div>
-        `
         } else {
             paginaAtual.textContent = pagina
             totalPaginas.textContent = dados.paginas

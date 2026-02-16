@@ -78,15 +78,28 @@
 }
 
 .filtros {
-    align-items: center;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
+    color: white;
+    padding: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
-.filtros select, .filtros input {
+/* //29
+.painel-filtros .filtros {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .25s ease;
+}
+
+.painel-filtros:hover .filtros {
+    max-height: 200px;
+}
+*/
+
+.filtros select,
+.filtros input {
     width: 150px;
-    border: solid 1px #afafaf;
     padding: 5px;
     border-radius: 50px;
 }
@@ -444,13 +457,6 @@ screen and (min-aspect-ratio: 13/9) {
 
     .topo-ocorrencias {
         flex-direction: row;
-    }
-
-    .filtros {
-        display: grid;
-        grid-template-rows: repeat(1, auto);
-        grid-auto-flow: column;
-        gap: 0.5rem;
     }
 
     .bloco-linha {

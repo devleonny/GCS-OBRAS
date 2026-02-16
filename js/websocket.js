@@ -138,9 +138,6 @@ async function comunicacao() {
             nomeUsuario.innerHTML = `<span><strong>${inicialMaiuscula(acesso.permissao)}</strong> ${acesso.usuario}</span>`
         }
 
-        if (app !== 'GCS')
-            return
-
         if (tipo == 'atualizacao') {
             await sincronizarDados({ base: tabela })
             if (tabela == 'dados_orcamentos')
