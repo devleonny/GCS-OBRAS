@@ -155,12 +155,33 @@ async function sincronizarDados({ base, resetar = false }) {
 
 // Regras SNAPSHOT; BUSCAS;
 const regrasSnapshot = {
+    dados_ocorrencias: {
+        stores: ['dados_clientes', 'correcoes', 'tipos', 'empresas', 'prioridades', 'sistemas'],
+        snapshot: async ({ dado, stores }) => {
+
+            const snap = {}
+
+            // Nomes de cada item;
+            for (const tab of ['tipos', 'prioridades', 'sistemas']) {
+                const info = await getStore(stores[tab], dado?.[tab]) || {}
+                snap[tab] = info?.nome || 'Em branco'
+            }
+
+            snap.cliente = await getStore(stores.dados_clientes, dado?.unidade) || {}
+
+            const uc = uCorrecao(dado?.correcoes || {})
+            const { nome } = await getStore(stores.correcoes, uc?.tipo) || {}
+            snap.ultimaCorrecao = nome || 'Não analisada'
+
+            return snap
+        }
+    },
     documentos: {
         stores: ['dados_clientes'],
         snapshot: async ({ dado, stores }) => {
             const snap = {}
-            const { cidade, estado, nome } =
-                await getStore(stores.dados_clientes, Number(dado?.funcionario)) || {}
+
+            const { cidade, estado, nome } = await getStore(stores.dados_clientes, Number(dado?.funcionario)) || {}
 
             snap.cidade = cidade
             snap.estado = estado

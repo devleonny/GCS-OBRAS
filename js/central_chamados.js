@@ -9,34 +9,6 @@ const botaoImg = (img, funcao) => `
         <img src="imagens/${img}.png" onclick="${funcao}">
     </div>`
 
-const modeloTabela = ({ minWidth, removerPesquisa = false, colunas, btnExtras = '', body = 'body' }) => {
-
-    const ths = colunas.map(col => `<th>${col}</th>`).join('')
-
-    const tPesquisa = colunas
-        .map((col, i) => `<th style="text-align: left;" contentEditable="true" oninput="pesquisarGenerico('${i}', this.textContent, '${body}')"></th>`)
-        .join('')
-
-    return `
-    <div class="blocoTabela" ${minWidth ? `style="min-width: ${minWidth}"` : ''}>
-        <div class="painelBotoes">
-            <div class="botoes">
-                ${btnExtras}
-            </div>
-        </div>
-        <div class="recorteTabela">
-            <table class="tabela" ${colunas.length == 2 ? 'style="width: 100%;"' : ''}>
-                <thead>
-                    <tr>${ths}</tr>
-                    ${removerPesquisa ? '' : `<tr>${tPesquisa}</tr>`}
-                </thead>
-                <tbody id="${body}"></tbody>
-            </table>
-        </div>
-        <div class="rodape-tabela"></div>
-    </div>`
-}
-
 const btnRodape = (texto, funcao) => `
     <button class="btnRodape" onclick="${funcao}">${texto}</button>
 `
@@ -50,68 +22,6 @@ const btn = ({ img, nome, funcao, id, elemento }) => `
         <div>${nome}</div>
     </div>
 `
-
-function pesquisarGenerico(coluna, texto, tbody = 'body') {
-
-    filtrosPagina[tbody] ??= {}
-    filtrosPagina[tbody][coluna] = String(texto).toLowerCase().replace(/\./g, '').trim()
-
-    const trs = document.querySelectorAll(`#${tbody} tr`)
-
-    // pega todo o conteúdo útil da td (inputs, selects, textos)
-    function extrairTexto(td) {
-        let partes = []
-
-        // pega textos diretos
-        partes.push(td.textContent || '')
-
-        // inputs
-        td.querySelectorAll('input').forEach(inp => {
-            partes.push(inp.value || '')
-        })
-
-        // textareas
-        td.querySelectorAll('textarea').forEach(tx => {
-            partes.push(tx.value || '')
-        })
-
-        // selects
-        td.querySelectorAll('select').forEach(sel => {
-            let opt = sel.options[sel.selectedIndex]
-            partes.push(opt ? opt.text : sel.value)
-        })
-
-        // join e normaliza
-        return partes.join(' ').replace(/\s+/g, ' ').trim()
-    }
-
-    trs.forEach(tr => {
-        const tds = tr.querySelectorAll('td')
-        let mostrar = true
-
-        const filtros = filtrosPagina[tbody]
-
-        for (const [col, filtroTexto] of Object.entries(filtros)) {
-
-            if (!filtroTexto) continue
-
-            if (col >= tds.length) {
-                mostrar = false
-                break
-            }
-
-            const conteudoTd = extrairTexto(tds[col]).toLowerCase().replace(/\./g, '').trim()
-
-            if (!conteudoTd.includes(filtroTexto)) {
-                mostrar = false
-                break
-            }
-        }
-
-        tr.style.display = mostrar ? '' : 'none'
-    })
-
-}
 
 function solicitarPermissoes() {
     return new Promise((resolve, reject) => {
@@ -201,10 +111,7 @@ async function telaPrincipal() {
     toolbar.style.display = ''
     toolbar.style.display = 'flex'
 
-    if (priExeOcorr) {
-        await atualizarOcorrencias()
-        priExeOcorr = false
-    }
+    await atualizarGCS()
 
     const planoFundo = `
         <div class="planoFundo">
@@ -223,69 +130,16 @@ async function telaPrincipal() {
     mostrarMenus(false)
     auxPendencias()
 
-    if (!emAtualizacao) await criarElementosIniciais()
+    if (!emAtualizacao)
+        await criarElementosIniciais()
 
 }
 
 async function criarElementosIniciais() {
 
     const pFundo = document.querySelector('.planoFundo')
-    if (!pFundo) return
-
-    const totais = {}
-    const pUsuario = []
-    let atradados = 0
-
-    for (const [chamado, ocorrencia] of Object.entries(db.dados_ocorrencias)) {
-
-        const { usuario, unidade, sistema, prioridade } = ocorrencia
-
-        const nUnidade = db.dados_clientes[unidade]?.nome
-        const nSistema = db.sistemas[sistema]?.nome
-        const nPrioridade = db.prioridades[prioridade]?.nome
-        const oCorrecoes = ocorrencia.correcoes || {}
-        const uc = uCorrecao(oCorrecoes)
-        const { tipo, dias = 0 } = uc
-        const atrasado = dias < 0
-        const ultima_correcao = db.correcoes?.[tipo]?.nome || 'Não analisada'
-
-        if (ultima_correcao == 'Solucionada') continue
-
-        // Percorrer cada correção;
-        for (const [idCorrecao, correcao] of Object.entries(oCorrecoes || {})) {
-
-            if (correcao.executor !== acesso.usuario) continue
-            const respondida = Object
-                .values(oCorrecoes)
-                .some(c => c.resposta == idCorrecao)
-
-            if (respondida) continue
-
-            pUsuario.push(`
-                <div class="balao-correcao"
-                    onclick="atalhoPendencias([{campo: 'chamado', valor: '${chamado}'}, {campo: 'executor', valor: '${acesso.usuario}'}], false)">
-                    <span>Solicitado por ${usuario}</span>
-                    <div style="${horizontal}; gap: 1rem;">
-                        <img src="imagens/alerta.png">
-                        <div style="${vertical}">
-                            <span><b>Unidade:</b> ${nUnidade}</span>
-                            <span><b>Sistema:</b> ${nSistema}</span>
-                            <span><b>Prioridade:</b> ${nPrioridade}</span>
-                            <span><b>Descrição:</b> ${correcao?.descricao || ''}</span>
-                        </div>
-                    </div>
-                </div>`)
-
-        }
-
-        if (usuario !== acesso.usuario) continue
-
-        totais[ultima_correcao] ??= 0
-        totais[ultima_correcao]++
-
-        if (atrasado == 'Sim') atradados++
-
-    }
+    if (!pFundo)
+        return
 
     const m = (funcao, texto, total) => `
         <div class="pill" onclick="${funcao}">
@@ -293,13 +147,6 @@ async function criarElementosIniciais() {
             <span class="pill-b">${texto}</span>
         </div>
     `
-
-    if (!Object.keys(totais).length && !atradados.length && !pUsuario.length) return pFundo.innerHTML = `<img style="width: 30vw;" src="imagens/BG.png">`
-
-    const atalhoCorrecoes = Object.entries(totais)
-        .map(([correcao, total]) => m(`atalhoPendencias([{campo: 'ultima_correcao', valor: '${correcao}'}])`, correcao, total))
-        .join('')
-
     const hora = new Date().getHours()
     const saudacao = hora > 18
         ? 'Boa noite'
@@ -310,31 +157,89 @@ async function criarElementosIniciais() {
     const dAtrasados = `
         <div class="b-atalhos">
             <span class="titul-1">Atrasados, reagendar</span>
-            ${m(`atalhoPendencias([{campo: 'atrasado', valor: 'Sim'}])`, 'Atrasados', atradados)}
+            ${m(`atalhoPendencias([{campo: 'atrasado', valor: 'Sim'}])`, 'Atrasados', 0)}
         </div>
     `
 
-    const dAtalhos = `
-        <div class="b-atalhos">
-            <span class="titul-1">Suas ocorrências abertas</span>
-            ${atalhoCorrecoes}
-        </div>
-    `
-    const paraUsuario = `<div class="b-atalhos">
-        <span class="titul-1">Correções <b>para você</b></span>
-        ${pUsuario.map(o => o).join('')}
-    </div>`
+    const contadoresMeus = await contarPorCampo({
+        base: 'dados_ocorrencias',
+        path: 'snapshots.ultimaCorrecao',
+        filtros: {
+            'usuario': { op: '=', value: acesso.usuario }
+        }
+    })
+
+    const baloesMeus = Object.entries(contadoresMeus)
+        .filter(([st,]) => st !== 'todos' && st !== 'Solucionada')
+        .map(([status, total]) => {
+
+            return `
+                <div class="pill" onclick="">
+                    <span class="pill-a" style="background: #b12425;">${total}</span>
+                    <span class="pill-b">${status}</span>
+                </div>
+            `
+        })
+        .join('')
+
+    const tCorrecoes = modTab({
+        base: 'dados_ocorrencias',
+        pag: 'tCorrecoes',
+        body: 'tCorrecoes',
+        criarLinha: 'linCorrecoes'
+    })
 
     pFundo.innerHTML = `
         <span style="padding: 1rem; font-size: 1rem; color: white;">
             <b>${saudacao}</b>,<br> logo abaixo veja alguns atalhos para ocorrências que precisam de atenção:
         </span>
+
         <div class="b-painel">
-            ${Object.keys(totais).length ? dAtalhos : ''}
-            ${atradados > 0 ? dAtrasados : ''}
-            ${pUsuario.length > 0 ? paraUsuario : ''}
-        </div>
-    `
+
+            <div class="b-atalhos">
+                <span class="titul-1">Atrasados, reagendar</span>
+
+            </div>
+            <div class="b-atalhos">
+                <span class="titul-1">Minhas ocorrências abertas</span>
+                ${baloesMeus}
+            </div>
+            <div class="b-atalhos">
+                <span class="titul-1">Correções <b>para você</b></span>
+                ${tCorrecoes}
+            </div>
+        </div>`
+
+    await paginacao()
+}
+
+async function linCorrecoes(ocorrencia) {
+
+    const { id, usuario, unidade, sistema, prioridade } = ocorrencia
+
+    const nUnidade = await recuperarDado('dados_clientes', unidade) || {}
+    const nSistema = await recuperarDado('sistemas', sistema) || {}
+    const nPrioridade = await recuperarDado('prioridades', prioridade) || {}
+
+    return `
+    <tr>
+        <td>
+            <div class="balao-correcao"
+                onclick="atalhoPendencias([{campo: 'chamado', valor: '${id}'}, {campo: 'executor', valor: '${acesso.usuario}'}], false)">
+                <span>Solicitado por ${usuario}</span>
+                <div style="${horizontal}; gap: 1rem;">
+                    <img src="imagens/alerta.png">
+                    <div style="${vertical}">
+                        <span><b>Unidade:</b> ${nUnidade?.nome || ''}</span>
+                        <span><b>Sistema:</b> ${nSistema?.nome || ''}</span>
+                        <span><b>Prioridade:</b> ${nPrioridade?.nome || ''}</span>
+                        <span><b>Descrição:</b> ${''}</span>
+                    </div>
+                </div>
+            </div>
+        </td>
+    </tr>`
+
 }
 
 async function atalhoPendencias(campos = [], eu = true) {
@@ -356,7 +261,7 @@ function carregarMenus() {
     const blq = ['cliente', 'técnico']
 
     const menus = {
-        'Atualizar': { img: 'atualizar', funcao: 'atualizarOcorrencias()', proibidos: [] },
+        'Atualizar': { img: 'atualizar', funcao: 'atualizarGCS()', proibidos: [] },
         'Início': { img: 'home', funcao: 'telaPrincipal()', proibidos: [] },
         'Criar Ocorrência': { img: 'baixar', funcao: 'formularioOcorrencia()', proibidos: [] },
         'Ocorrências': { img: 'configuracoes', funcao: 'telaOcorrencias()', proibidos: [] },
@@ -426,15 +331,6 @@ async function telaUsuarios() {
         criarLinhaUsuario(user, dados)
     }
 
-    removerOverlay()
-
-}
-
-async function atualizarUsuarios() {
-
-    overlayAguarde()
-    await atualizarOcorrencias()
-    await telaUsuarios()
     removerOverlay()
 
 }

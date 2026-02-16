@@ -128,8 +128,7 @@ async function comunicacao() {
                     overlayAguarde()
                     msgStatus('Offline', 3)
                     msgStatus('Alteração no acesso recebida...')
-                    await resetarTudo()
-                    await atualizarOcorrencias()
+                    await atualizarGCS(true)
                     msg({ tipo: 'confirmado', usuario: acesso.usuario })
                     msgStatus('Tudo certo', 1)
                 }

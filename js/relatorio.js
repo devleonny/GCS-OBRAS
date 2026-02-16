@@ -82,11 +82,6 @@ async function telaRelatorio() {
 
 }
 
-async function atualizarRelatorio() {
-    await atualizarOcorrencias()
-    await telaRelatorio()
-}
-
 function dtAuxOcorrencia(dt) {
 
     if (!dt || '') return '-'

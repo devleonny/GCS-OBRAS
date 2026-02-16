@@ -24,7 +24,6 @@ html {
 }
 
 .b-atalhos {
-    max-height: 50vh;
     overflow-y: auto;
     width: 100%;
     display: flex;
@@ -36,10 +35,6 @@ html {
 
 .b-atalhos::-webkit-scrollbar {
     display: none;
-}
-
-hr {
-    width: 100%;
 }
 
 .progresso {
@@ -69,7 +64,6 @@ hr {
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    height: 80vh;
     width: 90vw;
     background-color: #0000005e;
     border-radius: 5px;

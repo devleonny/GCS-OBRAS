@@ -21,20 +21,45 @@ const estT = (tempo) => {
     return !tempo ? 'off' : tempo == '00:00' ? 'zero' : 'on'
 }
 
-async function telaChecklist() {
+async function telaChecklist(id) {
 
     tecnicos = {}
 
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const orcamento = await recuperarDado('dados_orcamentos', id)
     let ths = ''
     let pesquisa = ''
-    const colunas = ['', 'Código', 'Itens do Orçamento', 'Qtd. Orçada', 'Qtd. Real', 'Tempo/Atividade', 'Tempo/Total', 'Serviço Executado', 'Tempo/Realizado', '% Conclusão']
+    const colunas = {
+        '': {},
+        'Código': {},
+        'Itens do Orçamento': {},
+        'Qtd. Orçada': {},
+        'Qtd. Real': {},
+        'Tempo/Atividade': {},
+        'Tempo/Total': {},
+        'Serviço Executado': {},
+        'Tempo/Realizado': {},
+        '% Conclusão': {}
+    }
+    
+    const btnExtras = `
+    <div style="${horizontal}; gap: 1rem;">
+        <input type="checkbox" onclick="marcarItensChecklist(this)">
+        <span>Marcar todos</span>
+    </div>
+    `
+
+    const tabela = modTab({
+        colunas,
+        pag: 'checklist',
+        btnExtras,
+        base
+    })
 
     let i = 0
     for (const op of colunas) {
 
         if (op == '') {
-            ths += `<th><input type="checkbox" onclick="marcarItensChecklist(this)"></th>`
+            ths += `<th></th>`
             pesquisa += `<th style="background-color: white;"></th>`
 
         } else {
@@ -67,7 +92,7 @@ async function telaChecklist() {
                         ${modeloBotoes('gerente', 'Técnicos na Obra', `tecnicosAtivos()`)}
                         ${modeloBotoes('cancel', 'Remover Itens Selecionados', `removerItensEmMassaChecklist()`)}
                         ${modeloBotoes('checklist', 'Ver Itens Removidos', `verItensRemovidos()`)}
-                        ${modeloBotoes('baixar', 'Serviço Avulso', `adicionarServicoAvulso()`)}
+                        ${modeloBotoes('baixar', 'Serviço Avulso', `adicionarServicoAvulso('${id}')`)}
                         ${modeloBotoes('relatorio', 'Relatório', `relatorioChecklist()`)}
                         ${modeloBotoes('atualizar', 'Atualizar', `atualizarChecklist()`)}
                     </div>
@@ -77,29 +102,18 @@ async function telaChecklist() {
 
             </div>
 
-            <div id="tabelaCheklist" class="borda-tabela">
-                <div class="topo-tabela"></div>
-                <div class="div-tabela">
-                    <table class="tabela" id="tabela_composicoes">
-                        <thead>
-                            <tr>${ths}</tr>
-                            <tr>${pesquisa}</tr>
-                        </thead>
-                        <tbody id="bodyChecklist"></tbody>
-                    </table>
-                </div>
-                <div class="rodape-tabela"></div>
-            </div>
+            ${tabela}
 
         </div>
     `
 
-    const omieCliente = orcamento?.dados_orcam?.omie_cliente || false
-    const cliente = await recuperarDado('dados_clientes', omieCliente)
-    const titulo = `Checklist - ${orcamento?.dados_orcam?.contrato || '--'} - ${cliente?.nome || '--'}`
+    const campos = (orcamento?.snapshots?.contrato || [])
+        .filter(c => c)
+        .join(' - ')
 
-    const tabelaCheklist = document.getElementById('tabelaCheklist')
-    if (!tabelaCheklist) popup({ elemento, titulo })
+    const titulo = `Checklist - ${campos}`
+
+    popup({ elemento, titulo })
 
     // Reset;
     quantidadeGeral = 0
@@ -118,7 +132,7 @@ async function telaChecklist() {
 
         const qReal = orcamento?.checklist?.qReal?.[codigo] || {}
         const check = orcamento?.checklist?.itens?.[codigo] || {}
-        const ref = db.dados_composicoes?.[codigo] || {}
+        const ref = await recuperarDado('dados_composicoes', codigo) || {}
         carregarLinhaChecklist({ codigo, produto, check, ref, qReal })
 
         for (const [id, dados] of Object.entries(check)) {
@@ -152,7 +166,7 @@ async function telaChecklist() {
     orcamento.checklist.andamento = porcetagemFinal
 
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    await telaOrcamentos(true)
+
     enviar(`dados_orcamentos/${id_orcam}/checklist/inicio`, dataInicio)
     enviar(`dados_orcamentos/${id_orcam}/checklist/andamento`, porcetagemFinal)
 
@@ -835,31 +849,32 @@ async function atualizarChecklist() {
     await atualizarGCS()
     await telaChecklist()
     removerOverlay()
-    
+
 }
 
-async function adicionarServicoAvulso() {
+async function adicionarServicoAvulso(id) {
 
     const elemento = `
         <div style="${horizontal}; gap: 10px; background-color: #d2d2d2; padding: 2rem;">
             ${modelo('Descrição', `<span name="codigo" onclick="cxOpcoes('codigo', 'dados_composicoes', ['descricao', 'codigo', 'tipo', 'modelo', 'fabricante'])" class="opcoes">Selecione</span>`)}
             ${modelo('Quantidade', `<input name="qtde" type="number" style="padding: 5px; border-radius: 3px;">`)}
-            <img src="imagens/concluido.png" style="width: 2rem;" onclick="salvarAvulso()">
+            <img src="imagens/concluido.png" style="width: 2rem;" onclick="salvarAvulso('${id}')">
         </div>
     `
 
     popup({ elemento, titulo: 'Incluir Serviço' })
 }
 
-async function salvarAvulso() {
+async function salvarAvulso(id) {
 
     const qtde = Number(document.querySelector('[name="qtde"]').value)
     const codigo = document.querySelector('[name="codigo"]').id
 
-    if (!qtde) return popup({ mensagem: 'Não deixe a quantidade em Branco' })
+    if (!qtde) 
+        return popup({ mensagem: 'Não deixe a quantidade em Branco' })
 
     overlayAguarde()
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const orcamento = await recuperarDado('dados_orcamentos', id)
     orcamento.checklist ??= {}
     orcamento.checklist.avulso ??= {}
 
@@ -874,10 +889,9 @@ async function salvarAvulso() {
 
     orcamento.checklist.avulso[codigo] = dados
 
-    enviar(`dados_orcamentos/${id_orcam}/checklist/avulso/${codigo}`, dados)
+    enviar(`dados_orcamentos/${id}/checklist/avulso/${codigo}`, dados)
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
 
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    await telaChecklist()
     removerPopup()
 }
 
@@ -896,8 +910,7 @@ async function verItensRemovidos() {
             <div style="${horizontal}; gap: 10px;">
                 <img onclick="recuperarItem('${codigo}', this)" src="imagens/atualizar.png" style="width: 1.2rem;">
                 <span>${descricao}</span> 
-            </div>
-        `
+            </div>`
     }
 
     const elemento = `

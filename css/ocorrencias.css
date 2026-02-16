@@ -23,15 +23,7 @@
     align-items: start;
     justify-content: start;
     flex-direction: column;
-    background-color: white;
-    border-radius: 10px;
     padding: 5px;
-    opacity: 0.7;
-}
-
-.balao-correcao:hover{
-    transition: 0.2s ease-in-out;
-    opacity: 1;
 }
 
 .topo-ocorrencias {
@@ -327,8 +319,6 @@
 }
 
 .div-linha {
-    padding: 1rem;
-    border: 1px solid #949494;
     background-color: white;
     display: flex;
     align-items: start;

@@ -118,11 +118,8 @@ async function resetarBases() {
 
     overlayAguarde()
     mostrarMenus(true)
-    if (app == 'GCS')
-        await atualizarGCS(true) // Resetar;
-    else
-        await atualizarOcorrencias(true) // Resetar;
 
+    await atualizarGCS(true) // Resetar;
 
     removerOverlay()
 
