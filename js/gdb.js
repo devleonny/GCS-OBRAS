@@ -1,5 +1,6 @@
-const nomeBase = 'GCS v2'
+const nomeBase = 'GCS'
 const versao = 1
+let bloqSinc = false
 const basesAuxiliares = {
     'tags_orcamentos': { keyPath: 'id' },
     'informacoes': { keyPath: 'id' },
@@ -25,6 +26,8 @@ const basesAuxiliares = {
 
 function criarBases(stores = null) {
 
+    bloqSinc = true
+
     if (!stores)
         return
 
@@ -45,11 +48,14 @@ function criarBases(stores = null) {
             }
         })
     }
+
+    bloqSinc = false
 }
 
 async function atualizarGCS(resetar) {
 
-    if (emAtualizacao) return
+    if (emAtualizacao) 
+        return
 
     mostrarMenus(true)
 
@@ -76,58 +82,71 @@ async function atualizarGCS(resetar) {
 
     sincronizarApp({ remover: true })
     emAtualizacao = false
+    priExeGCS = false
 
+}
+
+async function verifBase() {
+    const bases = await indexedDB.databases()
+    const existe = bases.some(db => db.name === nomeBase)
+
+    if (!existe)
+        criarBases(basesAuxiliares)
 }
 
 async function sincronizarDados({ base, resetar = false }) {
 
-    let timestamp = 0
-
-    if (resetar) {
-        await new Promise((resolve, reject) => {
-            const req = indexedDB.open(nomeBase, versao)
-
-            req.onerror = () => reject(req.error)
-
-            req.onsuccess = e => {
-                const db = e.target.result
-                const tx = db.transaction(base, 'readwrite')
-                const store = tx.objectStore(base)
-
-                store.clear()
-
-                tx.oncomplete = () => {
-                    db.close()
-                    resolve()
-                }
-
-                tx.onerror = () => reject(tx.error)
-            }
-        })
-    } else {
-        await new Promise((resolve, reject) => {
-            const request = indexedDB.open(nomeBase, versao)
-
-            request.onerror = () => reject(request.error)
-
-            request.onsuccess = e => {
-                const db = e.target.result
-                const tx = db.transaction(base)
-                const store = tx.objectStore(base)
-                const index = store.index('timestamp')
-
-                index.openCursor(null, 'prev').onsuccess = ev => {
-                    const c = ev.target.result
-                    if (c) timestamp = c.value.timestamp
-                    resolve()
-                }
-
-                tx.oncomplete = () => db.close()
-            }
-        })
-    }
+    // Verificar se existe a base principal;
+    await verifBase()
 
     try {
+        let timestamp = 0
+
+        if (resetar) {
+            await new Promise((resolve, reject) => {
+                const req = indexedDB.open(nomeBase, versao)
+
+                req.onerror = () => reject(req.error)
+
+                req.onsuccess = e => {
+                    const db = e.target.result
+                    const tx = db.transaction(base, 'readwrite')
+                    const store = tx.objectStore(base)
+
+                    store.clear()
+
+                    tx.oncomplete = () => {
+                        db.close()
+                        resolve()
+                    }
+
+                    tx.onerror = () => reject(tx.error)
+                }
+            })
+        } else {
+            await new Promise((resolve, reject) => {
+                const request = indexedDB.open(nomeBase, versao)
+
+                request.onerror = () => reject(request.error)
+
+                request.onsuccess = e => {
+                    const db = e.target.result
+                    const tx = db.transaction(base)
+                    const store = tx.objectStore(base)
+                    const index = store.index('timestamp')
+
+                    index.openCursor(null, 'prev').onsuccess = ev => {
+                        const c = ev.target.result
+                        if (c) timestamp = c.value.timestamp
+                        resolve()
+                    }
+
+                    tx.oncomplete = () => db.close()
+                }
+            })
+        }
+
+
         const response = await fetch(`${api}/dados`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },

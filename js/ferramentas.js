@@ -343,7 +343,7 @@ function deslogarUsuario() {
 }
 
 async function sair() {
-    await resetarTudo()
+    indexedDB.deleteDatabase(nomeBase)
     removerPopup()
 
     toolbar.style.display = 'none'

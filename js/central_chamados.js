@@ -111,7 +111,8 @@ async function telaPrincipal() {
     toolbar.style.display = ''
     toolbar.style.display = 'flex'
 
-    //await atualizarGCS()
+    if (priExeGCS)
+        await atualizarGCS()
 
     const planoFundo = `
         <div class="planoFundo">
@@ -124,7 +125,6 @@ async function telaPrincipal() {
         </div>
     `
     tela.innerHTML = tInterna
-    telaInterna = document.querySelector('.telaInterna')
 
     carregarMenus()
     mostrarMenus(false)

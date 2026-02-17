@@ -5,7 +5,6 @@ let reconectando = false
 
 let emAtualizacao = false
 let priExeGCS = true
-let priExeOcorr = true
 
 connectWebSocket()
 
@@ -93,7 +92,7 @@ async function comunicacao() {
         if (desconectar) {
             acesso = {}
             localStorage.removeItem('acesso')
-            await resetarTudo()
+            indexedDB.deleteDatabase(nomeBase)
             await telaLogin()
             popup({ mensagem: 'Usuário desconectado' })
             return
@@ -118,19 +117,20 @@ async function comunicacao() {
 
                 if (app == 'GCS') {
 
-                    if (priExeGCS) {
-                        await telaInicial()
-                        priExeGCS = false
-                    }
+                    await telaInicial()
 
                 } else {
 
                     overlayAguarde()
                     msgStatus('Offline', 3)
                     msgStatus('Alteração no acesso recebida...')
+
                     await atualizarGCS(true)
+                    await telaPrincipal()
+
                     msg({ tipo: 'confirmado', usuario: acesso.usuario })
                     msgStatus('Tudo certo', 1)
+
                 }
             }
 
@@ -148,19 +148,19 @@ async function comunicacao() {
         }
 
         if (tipo == 'status') {
-            const tSetores = 'dados_setores'
-            const user = await recuperarDado(tSetores, usuario)
 
-            if (user) {
-                user.status = status
-                await inserirDados({ [usuario]: user }, tSetores)
-            }
+            await sincronizarDados({ base: 'dados_setores' })
+
+            const { usuario, timestamp = 0 } = JSON.parse(localStorage.getItem('acesso')) || {}
+            const us = await recuperarDado('dados_setores', usuario)
+
+            if (us?.timestamp !== timestamp)
+                localStorage.setItem('acesso', JSON.stringify(us))
 
             await usuariosToolbar()
             balaoUsuario(status, usuario)
 
         }
-
     }
 }
 

@@ -6,9 +6,9 @@ async function telaLogin() {
 
     if (acesso) {
         app = localStorage.getItem('app')
-        if (app == 'GCS') 
+        if (app == 'GCS')
             return await telaInicial()
-        
+
         return await telaPrincipal()
     }
 
@@ -104,8 +104,9 @@ async function acessoLogin() {
 
                 acesso = data
                 priExeGCS = true
-                priExeOcorr = true
-                app = permCham.includes(acesso.permissao) ? 'OCORRÊNCIAS' : 'GCS'
+                app = permCham.includes(acesso.permissao)
+                    ? 'OCORRÊNCIAS'
+                    : 'GCS'
                 localStorage.setItem('app', app)
                 localStorage.setItem('acesso', JSON.stringify(data))
 

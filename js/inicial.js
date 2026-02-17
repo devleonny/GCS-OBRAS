@@ -97,7 +97,8 @@ async function telaInicial() {
     localStorage.setItem('app', 'GCS')
     app = 'GCS'
 
-    //await atualizarGCS()
+    if (priExeGCS)
+        await atualizarGCS()
 
     const aBloqs = ['INDICADORES', 'TÉCNICOS']
 

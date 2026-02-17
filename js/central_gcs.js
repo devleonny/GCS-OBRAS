@@ -106,13 +106,6 @@ const atalhoInicial = [
     { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' }
 ]
 
-async function irOcorrencias() {
-    overlayAguarde()
-    priExeOcorr = true
-    await telaPrincipal()
-    removerOverlay()
-}
-
 const esquemaBotoes = {
     inicial: [
         { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'projeto' },
@@ -124,7 +117,7 @@ const esquemaBotoes = {
         { nome: 'Estoque', funcao: `telaEstoque`, img: 'estoque' },
         //{ nome: 'Faturamento NFs', funcao: `telaRelatorioOmie`, img: 'relatorio' },
         { nome: 'RH', funcao: `telaRH`, img: 'gerente' },
-        { nome: 'Ocorrências', funcao: `irOcorrencias`, img: 'LG' },
+        { nome: 'Ocorrências', funcao: `telaPrincipal`, img: 'LG' },
         { nome: 'Desconectar', funcao: `deslogarUsuario`, img: 'sair' }
     ],
     criarOrcamentos: [
