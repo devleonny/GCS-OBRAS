@@ -187,7 +187,7 @@ async function paginacao(pag) {
             const dinossauro = tbody.querySelector('#dinossauro')
             if (dinossauro) dinossauro.remove()
 
-            await atualizarComTS(tbody, dados.resultados, criarLinha)
+            await atualizarComTS(tbody, dados.resultados, criarLinha, base)
         }
 
         await executarFuncoesAdicionais(funcaoAdicional)
@@ -208,7 +208,7 @@ async function paginacao(pag) {
 
 }
 
-async function atualizarComTS(tbody, dados, criarLinha) {
+async function atualizarComTS(tbody, dados, criarLinha, base) {
 
     const dino = tbody.querySelector('#dinossauro')
     if (dino)
@@ -250,7 +250,7 @@ async function atualizarComTS(tbody, dados, criarLinha) {
     if (usarModoPadrao) {
         let linhas = ''
         for (const d of dados) {
-            linhas += await window[criarLinha](d)
+            linhas += await window[criarLinha]({ ...d, base })
         }
         tbody.innerHTML = linhas
         return
@@ -272,11 +272,15 @@ function criarDino(cols) {
     td.colSpan = cols
     td.innerHTML = `
         <div style="${horizontal}; width: 100%; gap: 1rem;">
-            <img src="gifs/offline.gif" style="width: 5rem;">
+            ${achou() ? `<img src="gifs/offline.gif" style="width: 5rem;">` : '<span>Sem resultados</span>'}
         </div>
     `
 
     tr.appendChild(td)
     return tr
+}
+
+function achou() {
+    return Math.random() < 0.1
 }
 

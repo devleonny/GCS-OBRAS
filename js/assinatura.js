@@ -93,8 +93,6 @@ async function salvarAssinatura(idOcorrencia) {
 
         removerPopup()
 
-        await telaOcorrencias()
-
     } catch (err) {
         popup({ mensagem: `Falha ao salvar: ${err}`, nra: true })
     }

@@ -165,11 +165,14 @@ function uCorrecao(correcoes) {
     let maisRecente = null
     let tipo = null
     let dtBase = null
+    let uExecutor = null
     let solucionado = false
+    let uDescricao = null
 
-    for (const { data, dtCorrecao, tipoCorrecao } of Object.values(correcoes)) {
+    for (const { data, dtCorrecao, tipoCorrecao, executor, descricao } of Object.values(correcoes)) {
 
-        if (!data) continue
+        if (!data)
+            continue
 
         const [d, h] = data.split(', ')
         const [dia, mes, ano] = d.split('/')
@@ -180,6 +183,8 @@ function uCorrecao(correcoes) {
             maisRecente = dateObj
             tipo = tipoCorrecao
             dtBase = dtCorrecao
+            uExecutor = executor
+            uDescricao = descricao
             continue
         }
 
@@ -187,6 +192,8 @@ function uCorrecao(correcoes) {
             maisRecente = dateObj
             tipo = tipoCorrecao
             dtBase = dtCorrecao
+            uExecutor = executor
+            uDescricao = descricao
         }
     }
 
@@ -197,7 +204,7 @@ function uCorrecao(correcoes) {
         dias = Math.trunc(diff / (1000 * 60 * 60 * 24))
     }
 
-    return { tipo, dias }
+    return { tipo, dias, executor: uExecutor, descricao: uDescricao }
 }
 
 async function carregarCorrecoes(ocorrencia) {
@@ -307,7 +314,7 @@ async function carregarCorrecoes(ocorrencia) {
     }
 
     const acumulado = `
-        ${botao('Incluir Correção', `formularioCorrecao('${idOcorrencia}')`, '#e47a00')}
+        <button style="background-color: #e47a00;" onclick="formularioCorrecao('${idOcorrencia}')">Incluir Correção</button>
         <div class="detalhamento-correcoes">
             ${divsCorrecoes}
         </div>
@@ -501,9 +508,13 @@ async function criarPesquisas() {
         const pesquisa = `
         <div class="pesquisa">
             <input
-                onkeydown="if (event.key === 'Enter') controles.ocorrencias.filtros['${path}'] = { op: 'includes', value: this.value }; paginacao()"
+                onkeydown="if (event.key === 'Enter') { 
+                    controles.ocorrencias.filtros['${path}'] = { op: 'includes', value: this.value }; 
+                    paginacao(); 
+                }"
                 placeholder="${titulo}"
                 style="width: 100%;">
+
             <img src="imagens/pesquisar4.png">
         </div>`
 
@@ -800,6 +811,24 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
         )
     ).join('')
 
+    controlesCxOpcoes.executor = {
+        base: 'dados_setores',
+        retornar: ['usuario'],
+        colunas: {
+            'Nome': { chave: 'usuario' },
+            'Permissão': { chave: 'permissao' },
+            'Setor': { chave: 'setor' }
+        }
+    }
+
+    controlesCxOpcoes.tipoCorrecao = {
+        base: 'correcoes',
+        retornar: ['nome'],
+        colunas: {
+            'Nome': { chave: 'nome' }
+        }
+    }
+
     const tipoCorrecao = ocorrencia?.snapshots?.ultimaCorrecao || 'Não analisada'
     const executor = correcao?.executor
     const linhas = [
@@ -809,11 +838,15 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
         },
         {
             texto: 'Status da Correção',
-            elemento: `<span class="campos" ${correcao?.tipoCorrecao ? `id="${correcao?.tipoCorrecao}"` : ''} name="tipoCorrecao" onclick="cxOpcoes('tipoCorrecao', 'correcoes', ['nome'])">${tipoCorrecao || 'Selecione'}</span>`
+            elemento: `<span 
+                class="campos" ${correcao?.tipoCorrecao ? `id="${correcao?.tipoCorrecao}"` : ''} 
+                name="tipoCorrecao" onclick="cxOpcoes('tipoCorrecao')">
+                    ${tipoCorrecao || 'Selecione'}
+                </span>`
         },
         {
             texto: 'Quem fará a atividade?',
-            elemento: `<span class="campos" ${executor ? `id="${executor}"` : ''} name="executor" onclick="cxOpcoes('executor', 'dados_setores', ['usuario'])">${executor || 'Selecione'}</span>`
+            elemento: `<span class="campos" ${executor ? `id="${executor}"` : ''} name="executor" onclick="cxOpcoes('executor')">${executor || 'Selecione'}</span>`
         },
         { texto: 'Descrição', elemento: `<textarea style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" rows="7" class="campos">${correcao?.descricao || ''}</textarea>` },
         {
@@ -964,13 +997,14 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
         }
     }
 
-    if (respCorrecao) correcao.resposta = respCorrecao
+    if (respCorrecao)
+        correcao.resposta = respCorrecao
+
     respCorrecao = null
 
     await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
 
     enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, correcao)
-    enviar(`dados_ocorrencias/${idOcorrencia}/tipoCorrecao`, correcao.tipoCorrecao)
     removerPopup()
 
 }

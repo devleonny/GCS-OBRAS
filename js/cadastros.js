@@ -1,60 +1,52 @@
-let unidades = []
-
 async function telaCadastros() {
-
-    filtrosPagina = {}
 
     mostrarMenus(false)
 
-    const acumulado = `
+    tela.innerHTML = `
     <div class="tabela-cadastro">
         <div class="tabela-cadastro-recorte"></div>
     </div>
     `
 
+    const divTabelas = document.querySelector('.tabela-cadastro-recorte')
+
     const bases = ['empresas', 'tipos', 'sistemas', 'prioridades', 'correcoes']
-    let tabs = document.querySelector('.tabela-cadastro-recorte')
-    if (!tabs) tela.innerHTML = acumulado
-    tabs = document.querySelector('.tabela-cadastro-recorte')
 
-    for (const b of bases) {
-        const colunas = ['Nome', '']
-        const btnExtras = `
-        <div style="${horizontal}; gap: 0.5rem;">
-            <img src="imagens/baixar.png" onclick="editarBaseAuxiliar('${b}')">
-            <span>${inicialMaiuscula(b)}</span>
-        </div>
-        `
-        const htmlTab = modeloTabela({ colunas, btnExtras, body: `tabela_${b}` })
+    for (const base of bases) {
 
-        const tab = document.getElementById(`tabela_${b}`)
-        if (!tab) tabs.insertAdjacentHTML('beforeend', htmlTab)
+        const btnExtras = `<img  src="imagens/baixar.png" onclick="editarBaseAuxiliar('${base}')">`
 
-        const dados = await recuperarDados(b)
-        for (const [id, objeto] of Object.entries(dados)) criarLinhaCadastro(id, objeto, b)
+        const tabela = modTab({
+            base,
+            btnExtras,
+            alinPag: vertical,
+            colunas: {
+                'Nome': { chave: 'nome' },
+                '': {}
+            },
+            body: `cad_${base}`,
+            pag: `cad_${base}`,
+            criarLinha: 'criarLinhaCadastro'
+        })
+
+        divTabelas.insertAdjacentHTML('beforeend', tabela)
     }
+
+    await paginacao()
 
 }
 
-async function criarLinhaCadastro(id, dados, b) {
+async function criarLinhaCadastro(dados) {
+
+    const { id, base, nome } = dados || {}
 
     const tds = `
-        <td>${dados?.nome || '...'}</td>
+        <td>${nome}</td>
         <td style="width: 2rem;">
-            <img src="imagens/pesquisar2.png" onclick="editarBaseAuxiliar('${b}', '${id}')">
-        </td>
-    `
+            <img src="imagens/pesquisar2.png" onclick="editarBaseAuxiliar('${base}', '${id}')">
+        </td>`
 
-    const tbody = document.getElementById(`tabela_${b}`)
-    if (!tbody) return
-
-    const tr = document.getElementById(id)
-    if (tr) {
-        tr.innerHTML = tds
-        return
-    }
-
-    tbody.insertAdjacentHTML('beforeend', `<tr id="${id}">${tds}</tr>`)
+    return `<tr>${tds}</tr>`
 }
 
 async function editarBaseAuxiliar(nomeBase, id) {
@@ -82,12 +74,12 @@ async function salvarNomeAuxiliar(nomeBase, id = ID5digitos()) {
     overlayAguarde()
 
     const nome = document.querySelector('[name="nome"]')
-    await enviar(`${nomeBase}/${id}/nome`, nome.value)
 
-    let dado = await recuperarDado(nomeBase, id) || {}
+    const dado = await recuperarDado(nomeBase, id) || {}
     dado.nome = nome.value
+
     await inserirDados({ [id]: dado }, nomeBase)
-    await criarLinhaCadastro(id, dado, nomeBase)
+    enviar(`${nomeBase}/${id}/nome`, nome.value)
 
     removerPopup()
 

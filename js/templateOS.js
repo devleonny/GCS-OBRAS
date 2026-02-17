@@ -6,8 +6,9 @@ const semImagem = `
 `
 async function telaOS(idOcorrencia) {
 
-    const ocorrencia = db.dados_ocorrencias[idOcorrencia]
-    const cliente = db.dados_clientes[ocorrencia?.unidade]
+    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
+    const cliente = await recuperarDado('dados_clientes', ocorrencia?.unidade) || {}
+    const { tipo, sistema, prioridade, ultimaCorrecao } = ocorrencia?.snapshots || {}
 
     let assinatura = ''
 
@@ -59,9 +60,9 @@ async function telaOS(idOcorrencia) {
                 </div>
 
                 <div class="vertical">
-                    ${modelo('Status Ocorrência', db.correcoes?.[ocorrencia.tipoCorrecao]?.nome || '')}
-                    ${modelo('Prioridade', db.prioridades?.[ocorrencia.prioridade]?.nome || 'Em branco')}
-                    ${modelo('Tipo Ocorrência', db.tipos?.[ocorrencia.tipo]?.nome || 'Em branco')}
+                    ${modelo('Status Ocorrência', ultimaCorrecao)}
+                    ${modelo('Prioridade', prioridade)}
+                    ${modelo('Tipo Ocorrência', tipo)}
                     ${modelo('Data/Hora da Abertura', ocorrencia.dataRegistro)}
                 </div>
 
@@ -74,7 +75,7 @@ async function telaOS(idOcorrencia) {
                 </div>
 
                 <div class="vertical">
-                    ${modelo('Sistema', db.sistemas?.[ocorrencia.sistema]?.nome || '')}
+                    ${modelo('Sistema', sistema)}
                     ${modelo('Criado por', ocorrencia?.usuario || '...')}
                 </div>
 
@@ -86,6 +87,8 @@ async function telaOS(idOcorrencia) {
     let linhasCorrecoes = ''
 
     for (const correcao of Object.values(ocorrencia?.correcoes || {})) {
+
+        const { nome } = await recuperarDado('correcoes', correcao?.tipoCorrecao)
 
         let imagens = ''
 
@@ -119,7 +122,7 @@ async function telaOS(idOcorrencia) {
                     <br>
 
                     <div class="horizontal" style="gap: 1rem;">
-                        ${modelo('Status da Correção', db.correcoes?.[correcao.tipoCorrecao]?.nome || '')}
+                        ${modelo('Status da Correção', nome || '')}
                         ${modelo('Registrado em', correcao?.data || '--')}
                         ${modelo('Executor', correcao.usuario)}
                     </div>

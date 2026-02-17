@@ -18,7 +18,7 @@ html {
     align-items: start;
     justify-content: center;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1rem;
     background-color: rgba(255, 255, 255, 0.104);
     padding: 1rem 0 1rem 0;
 }
@@ -31,6 +31,7 @@ html {
     justify-content: start;
     flex-direction: column;
     gap: 2px;
+    padding: 1rem 0 1rem 0;
 }
 
 .b-atalhos::-webkit-scrollbar {
@@ -67,6 +68,7 @@ html {
     width: 90vw;
     background-color: #0000005e;
     border-radius: 5px;
+    padding-bottom: 2rem;
 }
 
 .contornoInterno {
@@ -787,7 +789,6 @@ input[type="file"] {
 screen and (min-aspect-ratio: 13/9) {
 
     .b-painel {
-        gap: 0;
         flex-direction: row;
     }
 

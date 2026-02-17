@@ -155,6 +155,18 @@ async function sincronizarDados({ base, resetar = false }) {
 
 // Regras SNAPSHOT; BUSCAS;
 const regrasSnapshot = {
+    dados_setores: {
+        stores: ['empresas'],
+        snapshot: async ({ dado, stores }) => {
+
+            const snap = {}
+
+            const { nome } = await getStore(stores.empresas, dado?.empresa) || {}
+            snap.empresa = nome || 'Sem Empresa'
+
+            return snap
+        }
+    },
     dados_ocorrencias: {
         stores: ['dados_clientes', 'correcoes', 'tipos', 'empresas', 'prioridades', 'sistemas'],
         snapshot: async ({ dado, stores }) => {
@@ -175,7 +187,11 @@ const regrasSnapshot = {
             // cliente completo
             snap.cliente = await getStore(stores.dados_clientes, dado?.unidade) || {}
 
-            // última correção
+            // Empresa;
+            const { nome } = await getStore(stores.empresas, snap?.cliente?.empresa) || {}
+            snap.empresa = nome || 'Empresa não vinculada'
+
+            // última correção;
             const uc = uCorrecao(dado?.correcoes || {})
             const correcao = await getStore(stores.correcoes, uc?.tipo)
             snap.ultimaCorrecao = correcao?.nome || 'Não analisada'

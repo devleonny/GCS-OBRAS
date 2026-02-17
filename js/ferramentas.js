@@ -297,19 +297,17 @@ async function configuracoes(usuario, campo, valor) {
 
     const resposta = comunicacaoServ({ usuario, campo, valor })
 
-    if (resposta.mensagem) return popup({ mensagem: resposta.mensagem })
+    if (resposta.mensagem) 
+        return popup({ mensagem: resposta.mensagem })
 
     const dadosUsuario = await recuperarDado('dados_setores', usuario)
     dadosUsuario[campo] = valor
 
     if (campo == 'permissao' && valor == 'desativado') {
-        removerPopup()
         await deletarDB('dados_setores', usuario)
-        const tr = document.getElementById(usuario)
-        if (tr) tr.remove()
+        removerPopup()
     } else {
         await inserirDados({ [usuario]: dadosUsuario }, 'dados_setores')
-        if (app == 'OCORRÊNCIAS') await telaUsuarios()
     }
 }
 
