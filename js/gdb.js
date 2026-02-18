@@ -54,7 +54,7 @@ function criarBases(stores = null) {
 
 async function atualizarGCS(resetar) {
 
-    if (emAtualizacao) 
+    if (emAtualizacao)
         return
 
     mostrarMenus(true)
@@ -191,6 +191,27 @@ const regrasSnapshot = {
         snapshot: async ({ dado, stores }) => {
 
             const snap = {}
+
+            snap.pendenteResposta = []
+
+            for (const [idCorrecao, correcao] of Object.entries(dado?.correcoes || {})) {
+
+                // É resposta de alguém? Continue
+                if (correcao.resposta)
+                    continue
+
+                const respondido = Object.values(dado.correcoes)
+                    .some(c => c.resposta == idCorrecao)
+
+                // Foi respondido? Continue
+                if (respondido)
+                    continue
+
+                // Nome acrescentado na listagem de pendentes;
+                if (!snap.pendenteResposta.includes(correcao.executor))
+                    snap.pendenteResposta.push(correcao.executor)
+            }
+
             const campos = {
                 'tipo': 'tipos',
                 'prioridade': 'prioridades',
@@ -676,34 +697,39 @@ function passaFiltro(reg, filtros) {
     // sem wildcard → já passou
     if (!Object.keys(filtrosWildcard).length) return true
 
-    // wildcard (todos filtros no mesmo item)
-    const paths = Object.keys(filtrosWildcard)
+    // wildcard
+    for (const [p, regra] of Object.entries(filtrosWildcard)) {
 
-    // pega base comum antes do *
-    const basePath = paths[0].split('*')[0].replace(/\.$/, '')
-    const base = getByPath(reg, basePath)
+        const basePath = p.split('*')[0].replace(/\.$/, '')
+        const base = getByPath(reg, basePath)
 
-    if (!base || typeof base !== 'object') return false
+        if (!base || typeof base !== 'object') return false
 
-    for (const ctx of Object.values(base)) {
+        const sub = p.split('*').slice(1).join('.').replace(/^\./, '')
 
-        let ok = true
+        const lista = Object.values(base)
 
-        for (const [p, regra] of Object.entries(filtrosWildcard)) {
-            const sub = p.split('*').slice(1).join('.').replace(/^\./, '')
+        const existeMatch = lista.some(ctx => {
             const v = getByPath(ctx, sub)
+            return multiplasRegras(v, regra)
+        })
 
-            if (!multiplasRegras(v, regra)) {
-                ok = false
-                break
-            }
+        // regra positiva: precisa existir
+        if (regra.op !== '!=' && !existeMatch) {
+            return false
         }
 
-        // se qualquer correção falhar, já elimina o registro
-        if (!ok) return false
+        // regra negativa: não pode existir
+        if (regra.op === '!=' && !lista.every(ctx => {
+            const v = getByPath(ctx, sub)
+            return multiplasRegras(v, regra)
+        })) {
+            return false
+        }
     }
 
     return true
+
 }
 
 

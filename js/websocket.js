@@ -108,16 +108,16 @@ async function comunicacao() {
 
                 if (!telaAtiva) {
                     if (app == 'GCS')
-                        await telaInicial()
+                        await telaInicialGCS()
                     else
-                        await telaPrincipal()
+                        await telaInicialOcorrencias()
                 }
 
             } else {
 
                 if (app == 'GCS') {
 
-                    await telaInicial()
+                    await telaInicialGCS()
 
                 } else {
 
@@ -126,7 +126,7 @@ async function comunicacao() {
                     msgStatus('Alteração no acesso recebida...')
 
                     await atualizarGCS(true)
-                    await telaPrincipal()
+                    await telaInicialOcorrencias()
 
                     msg({ tipo: 'confirmado', usuario: acesso.usuario })
                     msgStatus('Tudo certo', 1)
@@ -134,28 +134,48 @@ async function comunicacao() {
                 }
             }
 
+            await usuariosToolbar()
             removerOverlay()
-            nomeUsuario.innerHTML = `<span><strong>${inicialMaiuscula(acesso.permissao)}</strong> ${acesso.usuario}</span>`
         }
 
         if (tipo == 'atualizacao') {
+            
             await sincronizarDados({ base: tabela })
+
             if (tabela == 'dados_orcamentos')
                 await verificarPendencias()
 
+            if (tabela == 'dados_ocorrencias')
+                await auxPendencias()
+
             if (tabela == 'lista_pagamentos')
                 await atualizarPainelEsquerdo()
+
+            if (tabela == 'dados_setores') {
+                const { usuario, permissao, timestamp = 0 } = JSON.parse(localStorage.getItem('acesso')) || {}
+                const us = await recuperarDado('dados_setores', usuario)
+
+                if (us?.timestamp !== timestamp) {
+
+                    localStorage.setItem('acesso', JSON.stringify(us))
+
+                    if (us.permissao !== permissao) {
+
+                        popup({ mensagem: '<b>Seu acesso foi alterado:</b> Salve seus trabalhos, o sistema será reiniciado em 5 minutos...' })
+
+                        setTimeout(() => {
+                            location.reload()
+                        }, 5 * 60 * 1000)
+
+                        await usuariosToolbar()
+                    }
+
+                }
+
+            }
         }
 
         if (tipo == 'status') {
-
-            await sincronizarDados({ base: 'dados_setores' })
-
-            const { usuario, timestamp = 0 } = JSON.parse(localStorage.getItem('acesso')) || {}
-            const us = await recuperarDado('dados_setores', usuario)
-
-            if (us?.timestamp !== timestamp)
-                localStorage.setItem('acesso', JSON.stringify(us))
 
             await usuariosToolbar()
             balaoUsuario(status, usuario)

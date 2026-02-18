@@ -96,11 +96,11 @@ async function capturarLocalizacao() {
 
 async function irGCS() {
     overlayAguarde()
-    await telaInicial()
+    await telaInicialGCS()
     removerOverlay()
 }
 
-async function telaPrincipal() {
+async function telaInicialOcorrencias() {
 
     localStorage.setItem('app', 'OCORRÊNCIAS')
     app = 'OCORRÊNCIAS'
@@ -122,8 +122,8 @@ async function telaPrincipal() {
     const tInterna = `
         <div class="telaInterna">
             ${planoFundo}
-        </div>
-    `
+        </div>`
+
     tela.innerHTML = tInterna
 
     carregarMenus()
@@ -151,11 +151,12 @@ async function criarElementosIniciais() {
     const tAtrasados = modTab({
         base: 'dados_ocorrencias',
         pag: 'tAtrasados',
+        ocultarPaginacao: true,
         body: 'tAtrasados',
-        filtros: {},
         filtros: {
+            'snapshots.pendenteResposta': { op: 'includes', value: acesso.usuario },
             'correcoes.*.executor': { op: '=', value: acesso.usuario },
-            'snapshots.ultimaCorrecao': { op: '!=', value: 'Solucionada' },
+            'correcoes.*.tipoCorrecao': { op: '!=', value: 'WRuo2' },
             'correcoes.*.dtCorrecao': { op: '<d', value: Date.now() }
         },
         criarLinha: 'linCorrecoes'
@@ -174,21 +175,35 @@ async function criarElementosIniciais() {
         .map(([status, total]) => {
 
             return `
-                <div class="pill" onclick="">
+                <div class="pill" onclick="filtrarMinhasOcorrencias('${status}')">
                     <span class="pill-a" style="background: #b12425;">${total}</span>
                     <span class="pill-b">${status}</span>
                 </div>`
         })
         .join('')
 
+    const ocorrenciasAbertas = acesso.permissao == 'técnico'
+        ? ''
+        : `
+            <div class="b-atalhos">
+                <span class="titul-1">Minhas ocorrências abertas</span>
+                ${baloesMeus || `<div style="${horizontal}; color: white; gap: 3px;"><span>Tudo certo por aqui</span> <img src="imagens/concluido.png"></div>`}
+            </div>
+            <div class="b-atalhos">
+                <span class="titul-1">Atrasados, reagendar</span>
+                ${tAtrasados}
+            </div>
+        `
+
     const tCorrecoes = modTab({
         base: 'dados_ocorrencias',
         pag: 'tCorrecoes',
+        ocultarPaginacao: true,
         body: 'tCorrecoes',
-        filtros: {},
         filtros: {
+            'snapshots.pendenteResposta': { op: 'includes', value: acesso.usuario },
             'correcoes.*.executor': { op: '=', value: acesso.usuario },
-            'snapshots.ultimaCorrecao': { op: '!=', value: 'Solucionada' }
+            'correcoes.*.tipoCorrecao': { op: '!=', value: 'WRuo2' }
         },
         criarLinha: 'linCorrecoes'
     })
@@ -203,19 +218,11 @@ async function criarElementosIniciais() {
 
         <div class="b-painel">
 
-            <div class="b-atalhos">
-                <span class="titul-1">Atrasados, reagendar</span>
-                ${tAtrasados}
-            </div>
+            ${ocorrenciasAbertas}
 
             <div class="b-atalhos">
                 <span class="titul-1">Correções <b>para você</b></span>
                 ${tCorrecoes}
-            </div>
-
-            <div class="b-atalhos">
-                <span class="titul-1">Minhas ocorrências abertas</span>
-                ${baloesMeus || `<div style="${horizontal}; color: white; gap: 3px;"><span>Tudo certo por aqui</span> <img src="imagens/concluido.png"></div>`}
             </div>
 
         </div>`
@@ -223,28 +230,51 @@ async function criarElementosIniciais() {
     await paginacao()
 }
 
+async function filtrarMinhasOcorrencias(st) {
+
+    controles.ocorrencias.filtros = {
+        ...controles.ocorrencias.filtros,
+        'snapshots.ultimaCorrecao': { op: '=', value: st },
+        'usuario': { op: '=', value: acesso.usuario }
+    }
+
+    await telaOcorrencias()
+
+}
+
 async function linCorrecoes(ocorrencia) {
 
-    const { id, usuario, snapshots, correcoes } = ocorrencia || {}
+    const { id, snapshots, correcoes } = ocorrencia || {}
     const { cliente, sistema, prioridade } = snapshots || {}
 
     const linhas = []
 
-    for (const correcao of Object.values(correcoes)) {
+    for (const [idCorrecao, correcao] of Object.entries(correcoes)) {
 
         const { descricao, executor, dtCorrecao } = correcao || {}
 
+        // Tem que ser do usuário logado;
         if (executor !== acesso.usuario)
             continue
 
-        return `
+        // Foi respondida?
+        const respondida = Object.values(correcoes)
+            .some(c => c?.resposta == idCorrecao)
+
+        if (respondida)
+            continue
+
+        linhas.push(`
             <tr>
                 <td>
                     <div class="balao-correcao"
-                        onclick="controles.ocorrencias.filtros = {'id': { op: '=', value: '${id}'} }; telaOcorrencias();">
-                        <span>Solicitado por <b>${usuario}</b> \npara <b>${executor}</b></span>
+                        onclick="controles.ocorrencias.filtros.id = { op: '=', value: '${id}'}; telaOcorrencias();">
+                        <span>Solicitado por <b>${correcao?.usuario || 'Desconhecido'}</b> para <b>${executor}</b></span>
                         <div style="${horizontal}; gap: 1rem;">
-                            <img src="imagens/alerta.png">
+                            <div style="${horizontal}; gap: 3px;">
+                                <img src="imagens/alerta.png">
+                                <span>Sem resposta</span>
+                            </div>
                             <div style="${vertical}">
                                 <span style="font-size: 1rem;"><b>${id}</b></span>
                                 <span><b>Data Limite:</b> ${conversorData(dtCorrecao)}</span>
@@ -257,6 +287,7 @@ async function linCorrecoes(ocorrencia) {
                     </div>
                 </td>
             </tr>`
+        )
     }
 
     return linhas.join('')
@@ -269,8 +300,8 @@ function carregarMenus() {
 
     const menus = {
         'Atualizar': { img: 'atualizar', funcao: 'atualizarGCS()', proibidos: [] },
-        'Início': { img: 'home', funcao: 'telaPrincipal()', proibidos: [] },
-        'Criar Ocorrência': { img: 'baixar', funcao: 'formularioOcorrencia()', proibidos: [] },
+        'Início': { img: 'home', funcao: 'telaInicialOcorrencias()', proibidos: [] },
+        'Criar Ocorrência': { img: 'baixar', funcao: 'formularioOcorrencia()', proibidos: ['técnico'] },
         'Ocorrências': { img: 'configuracoes', funcao: 'telaOcorrencias()', proibidos: [] },
         'Relatório de Ocorrências': { img: 'planilha', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] },
         'Relatório de Correções': { img: 'planilha', funcao: 'telaRelatorioCorrecoes()', proibidos: ['user', 'técnico', 'visitante'] },

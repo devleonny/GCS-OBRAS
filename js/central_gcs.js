@@ -103,7 +103,7 @@ function criarMenus(chave) {
 
 const atalhoInicial = [
     { nome: 'Atualizar GCS', funcao: 'atualizarGCS', img: 'atualizar' },
-    { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' }
+    { nome: 'Menu Inicial', funcao: 'telaInicialGCS', img: 'LG' }
 ]
 
 const esquemaBotoes = {
@@ -117,7 +117,7 @@ const esquemaBotoes = {
         { nome: 'Estoque', funcao: `telaEstoque`, img: 'estoque' },
         //{ nome: 'Faturamento NFs', funcao: `telaRelatorioOmie`, img: 'relatorio' },
         { nome: 'RH', funcao: `telaRH`, img: 'gerente' },
-        { nome: 'Ocorrências', funcao: `telaPrincipal`, img: 'LG' },
+        { nome: 'Ocorrências', funcao: `telaInicialOcorrencias`, img: 'LG' },
         { nome: 'Desconectar', funcao: `deslogarUsuario`, img: 'sair' }
     ],
     criarOrcamentos: [
@@ -276,28 +276,37 @@ function balaoUsuario(st, texto) {
 
 async function usuariosToolbar() {
 
-    if (!acesso) return
+    if (!acesso)
+        return
 
-    const user = await recuperarDado('dados_setores', acesso.usuario)
-
-    // Conta quantos usuários estão online (status !== 'offline')
+    acesso = await recuperarDado('dados_setores', acesso.usuario) || {}
 
     const uOnline = await contarPorCampo({ base: 'dados_setores', path: 'status' })
 
-    const indicadorStatus = user?.status || 'offline'
+    const indicadorStatus = acesso?.status || 'offline'
 
     const usuariosToolbarString = `
         <div class="botaoUsuarios">
             <img name="imgStatus" onclick="painelUsuarios()" src="imagens/${indicadorStatus}.png">
             <label style="font-size: 1.2rem;">${uOnline.online}</label>
-        </div>
-    `
+        </div>`
+
+    if (nomeUsuario)
+        nomeUsuario.innerHTML = `<span><b>${inicialMaiuscula(acesso.permissao)}</b> ${acesso.usuario}</span>`
 
     const divUsuarios = document.getElementById('divUsuarios')
-    if (divUsuarios) divUsuarios.innerHTML = usuariosToolbarString
+    if (divUsuarios)
+        divUsuarios.innerHTML = usuariosToolbarString
 
-    const divOnline = document.querySelector('.divOnline')
-    if (divOnline) painelUsuarios()
+    //Filtros especiais para Tecnico e Cliente;
+
+    // Apenas ocorrências com o executor igual ao usuário logado;
+    if (acesso.permissao == 'técnico') {
+        controles.ocorrencias ??= {}
+        controles.ocorrencias.filtros ??= {}
+        controles.ocorrencias.filtros['correcoes.*.executor'] = { op: '=', value: acesso.usuario }
+    }
+
 }
 
 function linUsuarios(dados) {
@@ -578,7 +587,7 @@ async function filtrarUsuarios(st) {
 
     let filtros = {}
 
-    if(st == 'online') {
+    if (st == 'online') {
         filtros = {
             'status': [
                 { op: '!=', value: null },
@@ -596,7 +605,7 @@ async function filtrarUsuarios(st) {
     await paginacao()
 
     removerOverlay()
-    
+
 }
 
 async function painelUsuarios() {

@@ -86,7 +86,7 @@ const dtPrazo = (data) => {
     return atrasado
 }
 
-async function telaInicial() {
+async function telaInicialGCS() {
 
     atribuirVariaveis()
 
@@ -131,8 +131,7 @@ async function telaInicial() {
             
             <div class="tabelas-inicial"></div>
             
-        </div>
-    `
+        </div>`
 
     const tGerenciamento = document.querySelector('.tela-gerenciamento')
     if (!tGerenciamento) {

@@ -1013,7 +1013,7 @@ async function irORC(id, aba) {
 
     const tGerenciamento = document.querySelector('.tela-gerenciamento')
     if (!tGerenciamento)
-        await telaInicial()
+        await telaInicialGCS()
 
     const filtros = {
         id: { op: '=', value: id },

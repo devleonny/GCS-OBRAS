@@ -6,7 +6,7 @@ function campoBloq() {
 
 function modTab(configuracoes) {
 
-    const { btnExtras = '', criarLinha, base, colunas = {}, body = null, pag = null } = configuracoes || {}
+    const { btnExtras = '', ocultarPaginacao = false, criarLinha, base, colunas = {}, body = null, pag = null } = configuracoes || {}
 
     if (!body || !pag || !base || !criarLinha)
         return popup({ mensagem: 'body/pag/base/criarLinha Não podem ser null' })
@@ -51,7 +51,7 @@ function modTab(configuracoes) {
     const modelo = `
         <div style="${vertical}; width: 100%;">
             <div class="topo-tabela">
-                <div id="paginacao_${pag}"></div>
+                <div style="display: ${ocultarPaginacao ? 'none' : ''};" id="paginacao_${pag}"></div>
                 ${pesquisa ? `<span style="color: white; margin-right: 1rem;">Use o <b>ENTER</b> para pesquisar</span>` : ''}
                 ${btnExtras}
             </div>
