@@ -114,60 +114,46 @@ async function verifBase() {
 
 async function sincronizarDados({ base, resetar = false }) {
 
-    // Verificar se existe a base principal;
     await verifBase()
 
     try {
+        const db = await getDB()
         let timestamp = 0
 
         if (resetar) {
-            await new Promise((resolve, reject) => {
-                const req = indexedDB.open(nomeBase, versao)
 
-                req.onerror = () => reject(req.error)
+            await new Promise((resolve, reject) => {
+                const tx = db.transaction(base, 'readwrite')
+                const store = tx.objectStore(base)
+
+                store.clear()
+
+                tx.oncomplete = resolve
+                tx.onerror = () => reject(tx.error)
+            })
+
+        } else {
+
+            timestamp = await new Promise((resolve, reject) => {
+                const tx = db.transaction(base, 'readonly')
+                const store = tx.objectStore(base)
+                const index = store.index('timestamp')
+
+                const req = index.openCursor(null, 'prev')
 
                 req.onsuccess = e => {
-                    const db = e.target.result
-                    const tx = db.transaction(base, 'readwrite')
-                    const store = tx.objectStore(base)
-
-                    store.clear()
-
-                    tx.oncomplete = () => {
-                        db.close()
-                        resolve()
-                    }
-
-                    tx.onerror = () => reject(tx.error)
+                    const cursor = e.target.result
+                    resolve(cursor ? cursor.value.timestamp : 0)
                 }
+
+                req.onerror = () => reject(req.error)
             })
-        } else {
-            await new Promise((resolve, reject) => {
-                const request = indexedDB.open(nomeBase, versao)
 
-                request.onerror = () => reject(request.error)
-
-                request.onsuccess = e => {
-                    const db = e.target.result
-                    const tx = db.transaction(base)
-                    const store = tx.objectStore(base)
-                    const index = store.index('timestamp')
-
-                    index.openCursor(null, 'prev').onsuccess = ev => {
-                        const c = ev.target.result
-                        if (c) timestamp = c.value.timestamp
-                        resolve()
-                    }
-
-                    tx.oncomplete = () => db.close()
-                }
-            })
         }
 
-
         const response = await fetch(`${api}/dados`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ chave: base, timestamp })
         })
 
@@ -746,100 +732,95 @@ function passaFiltro(reg, filtros) {
 }
 
 
-function contarPorCampo({ base, path, filtros = {} }) {
-    return new Promise((resolve, reject) => {
+async function contarPorCampo({ base, path, filtros = {} }) {
 
-        const contagem = { todos: 0 }
-        const hasWildcard = path?.includes('*')
+    const contagem = { todos: 0 }
+    const hasWildcard = path?.includes('*')
 
-        const req = indexedDB.open(nomeBase, versao)
-        req.onerror = () => reject(req.error)
+    const db = await getDB()
+    const tx = db.transaction(base, 'readonly')
+    const store = tx.objectStore(base)
 
-        req.onsuccess = e => {
-            const db = e.target.result
-            const tx = db.transaction(base, 'readonly')
-            const store = tx.objectStore(base)
+    return new Promise(resolve => {
 
-            store.openCursor().onsuccess = ev => {
-                const cursor = ev.target.result
-                if (!cursor) {
-                    resolve(contagem)
-                    return
-                }
+        store.openCursor().onsuccess = ev => {
+            const cursor = ev.target.result
 
-                const reg = cursor.value
+            if (!cursor) {
+                resolve(contagem)
+                return
+            }
 
-                if (!passaFiltro(reg, filtros)) {
-                    cursor.continue()
-                    return
-                }
+            const reg = cursor.value
 
-                if (!hasWildcard) {
-                    let v = getByPath(reg, path)
-                    if (v == null || v === '') v = 'EM BRANCO'
-                    contagem.todos++
-                    contagem[v] = (contagem[v] || 0) + 1
-                    cursor.continue()
-                    return
-                }
+            if (!passaFiltro(reg, filtros)) {
+                cursor.continue()
+                return
+            }
 
-                const items = resolveWildcard(reg, path)
+            if (!hasWildcard) {
+                let v = getByPath(reg, path)
+                if (v == null || v === '') v = 'EM BRANCO'
 
-                for (const { ctx, valor } of items) {
-
-                    let passou = true
-
-                    for (const fPath in filtros) {
-                        if (!fPath.includes('*')) continue
-
-                        const f = filtros[fPath]
-                        const sub = fPath.split('*').slice(1).join('.').replace(/^\./, '')
-                        const vFiltro = getByPath(ctx, sub)
-
-                        if (!multiplasRegras(vFiltro, f)) {
-                            passou = false
-                            break
-                        }
-                    }
-
-                    if (!passou) continue
-
-                    let v = valor
-                    if (v == null || v === '') v = 'EM BRANCO'
-
-                    contagem.todos++
-                    contagem[v] = (contagem[v] || 0) + 1
-                }
+                contagem.todos++
+                contagem[v] = (contagem[v] || 0) + 1
 
                 cursor.continue()
+                return
             }
+
+            const items = resolveWildcard(reg, path)
+
+            for (const { ctx, valor } of items) {
+
+                let passou = true
+
+                for (const fPath in filtros) {
+                    if (!fPath.includes('*')) continue
+
+                    const f = filtros[fPath]
+                    const sub = fPath.split('*').slice(1).join('.').replace(/^\./, '')
+                    const vFiltro = getByPath(ctx, sub)
+
+                    if (!multiplasRegras(vFiltro, f)) {
+                        passou = false
+                        break
+                    }
+                }
+
+                if (!passou) continue
+
+                let v = valor
+                if (v == null || v === '') v = 'EM BRANCO'
+
+                contagem.todos++
+                contagem[v] = (contagem[v] || 0) + 1
+            }
+
+            cursor.continue()
         }
     })
 }
 
 async function deletarDB(base, id) {
+
+    const db = await getDB()
+
     return new Promise((resolve, reject) => {
-        const req = indexedDB.open(nomeBase, versao)
 
-        req.onerror = () => reject(req.error)
+        const tx = db.transaction(base, 'readwrite')
+        const store = tx.objectStore(base)
 
-        req.onsuccess = e => {
-            const db = e.target.result
-            const tx = db.transaction(base, 'readwrite')
-            const store = tx.objectStore(base)
+        const key = isNaN(id) ? id : Number(id)
+        store.delete(key)
 
-            const key = isNaN(id) ? id : Number(id)
-            store.delete(key)
-
-            tx.oncomplete = async () => {
-                db.close()
-                await paginacao()
-                resolve(true)
-            }
-
-            tx.onerror = () => reject(tx.error)
-            tx.onabort = () => reject(tx.error)
+        tx.oncomplete = async () => {
+            await paginacao()
+            resolve(true)
         }
+
+        tx.onerror = () => reject(tx.error)
+        tx.onabort = () => reject(tx.error)
     })
 }
 
