@@ -1,6 +1,8 @@
 const nomeBase = 'GCS'
 const versao = 1
 let bloqSinc = false
+let dbInstance = null
+
 const basesAuxiliares = {
     'tags_orcamentos': { keyPath: 'id' },
     'informacoes': { keyPath: 'id' },
@@ -51,6 +53,22 @@ function criarBases(stores = null) {
 
     bloqSinc = false
 }
+
+function getDB() {
+    if (dbInstance) return Promise.resolve(dbInstance)
+
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(nomeBase, versao)
+
+        request.onerror = () => reject(request.error)
+
+        request.onsuccess = e => {
+            dbInstance = e.target.result
+            resolve(dbInstance)
+        }
+    })
+}
+
 
 async function atualizarGCS(resetar) {
 
@@ -192,6 +210,9 @@ const regrasSnapshot = {
 
             const snap = {}
 
+            snap.executores = Object.values(dado?.correcoes || {})
+                .map(c => c?.executor)
+
             snap.pendenteResposta = []
 
             for (const [idCorrecao, correcao] of Object.entries(dado?.correcoes || {})) {
@@ -235,6 +256,7 @@ const regrasSnapshot = {
             const uc = uCorrecao(dado?.correcoes || {})
             const correcao = await getStore(stores.correcoes, uc?.tipo)
             snap.ultimaCorrecao = correcao?.nome || 'Não analisada'
+            snap.dtCorrecao = conversorData(uc?.dtCorrecao)
 
             return snap
         }
@@ -383,6 +405,8 @@ const regrasSnapshot = {
 
             snap.cliente = cliente?.nome
             snap.contrato = [
+                dado?.status?.atual,
+                dado?.projeto,
                 cliente?.nome,
                 dado?.dados_orcam?.contrato,
                 dado?.dados_orcam?.chamado,
@@ -428,156 +452,145 @@ function getStore(store, key) {
 }
 
 async function inserirDados(dados, base) {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(nomeBase, versao)
 
-        request.onerror = () => reject(request.error)
+    const db = await getDB()
 
-        request.onsuccess = async e => {
-            const db = e.target.result
+    return new Promise(async (resolve, reject) => {
 
-            const regra = regrasSnapshot[base]
-            const storesExtras = regra?.stores || []
+        const regra = regrasSnapshot[base]
+        const storesExtras = regra?.stores || []
 
-            const tx = db.transaction([base, ...new Set(storesExtras)], 'readwrite')
-            const storePrincipal = tx.objectStore(base)
+        const tx = db.transaction([base, ...new Set(storesExtras)], 'readwrite')
+        const storePrincipal = tx.objectStore(base)
 
-            const stores = {}
-            for (const nome of storesExtras) {
-                stores[nome] = tx.objectStore(nome)
+        const stores = {}
+        for (const nome of storesExtras)
+            stores[nome] = tx.objectStore(nome)
+
+        tx.onerror = () => reject(tx.error)
+
+        tx.oncomplete = async () => {
+            await paginacao()
+            resolve(true)
+        }
+
+        for (const [id, d] of Object.entries(dados)) {
+
+            const keyPath = storePrincipal.keyPath
+
+            if (keyPath && d[keyPath] == undefined) {
+                console.warn('Objeto sem chave')
+                continue
             }
 
-            tx.onerror = () => reject(tx.error)
-
-            tx.oncomplete = async () => {
-                await paginacao()
-                resolve(true)
+            if (d.excluido) {
+                const key = isNaN(id) ? id : Number(id)
+                storePrincipal.delete(key)
+                continue
             }
 
-            for (const [id, d] of Object.entries(dados)) {
-
-                const keyPath = storePrincipal.keyPath
-
-                if (keyPath && d[keyPath] == undefined)
-                    return console.warn(`Esse objeto precisa ter o identificador dentro dele [123]:{ id: 123 } e/ou veja se está salvando {[id]:{objeto}} `)
-
-                if (d.excluido) {
-                    const key = isNaN(id) ? id : Number(id)
-                    storePrincipal.delete(key)
-                    continue
-                }
-
-                if (regra?.snapshot) {
-                    d.snapshots = await regra.snapshot({
-                        dado: d,
-                        stores
-                    })
-                }
-
-                storePrincipal.put(d)
+            if (regra?.snapshot) {
+                d.snapshots = await regra.snapshot({
+                    dado: d,
+                    stores
+                })
             }
+
+            storePrincipal.put(d)
         }
     })
 }
 
-function recuperarDado(base, chave) {
+async function recuperarDado(base, chave) {
+
+    await verifBase()
+
+    if (chave === undefined || chave === null)
+        return null
+
+    if (basesAuxiliares[base]?.tipo === 'NUMBER')
+        chave = Number(chave)
+
+    if (basesAuxiliares[base]?.tipo === 'STRING')
+        chave = String(chave)
+
+    const db = await getDB()
+
     return new Promise((resolve, reject) => {
 
-        if (chave === undefined || chave === null) {
-            resolve(null)
-            return
-        }
+        const tx = db.transaction(base, 'readonly')
+        const store = tx.objectStore(base)
 
-        if (basesAuxiliares[base]?.tipo === 'NUMBER')
-            chave = Number(chave)
+        const req = store.get(chave)
 
-        if (basesAuxiliares[base]?.tipo === 'STRING')
-            chave = String(chave)
-
-        const request = indexedDB.open(nomeBase, versao)
-
-        request.onerror = () => reject(request.error)
-
-        request.onsuccess = e => {
-            const db = e.target.result
-            const tx = db.transaction(base, 'readonly')
-            const store = tx.objectStore(base)
-
-            const req = store.get(chave)
-            req.onsuccess = () => resolve(req.result ?? null)
-            req.onerror = () => reject(req.error)
-        }
-    })
-}
-
-function pesquisarDB({ filtros = {}, base, pagina = 1, limite = 100 }) {
-    return new Promise((resolve, reject) => {
-
-        const offset = (pagina - 1) * limite
-        let vistos = 0
-        let total = 0
-        const resultados = []
-
-        // CASO 1: base é array ou objeto (memória)
-        if (typeof base === 'object') {
-
-            const lista = Array.isArray(base)
-                ? base
-                : Object.values(base)
-
-            for (const reg of lista) {
-                if (passaFiltro(reg, filtros)) {
-                    total++
-
-                    if (vistos >= offset && resultados.length < limite) {
-                        resultados.push(reg)
-                    }
-                    vistos++
-                }
-            }
-
-            return resolve({
-                resultados,
-                total,
-                paginas: Math.ceil(total / limite)
-            })
-        }
-
-        // CASO 2: base é string → IndexedDB
-        const req = indexedDB.open(nomeBase, versao)
-
+        req.onsuccess = () => resolve(req.result ?? null)
         req.onerror = () => reject(req.error)
+    })
+}
 
-        req.onsuccess = e => {
-            const db = e.target.result
-            const tx = db.transaction(base, 'readonly')
-            const store = tx.objectStore(base)
-            const index = store.index('timestamp')
+async function pesquisarDB({ filtros = {}, base, pagina = 1, limite = 50 }) {
 
-            index.openCursor(null, 'prev').onsuccess = ev => {
-                const cursor = ev.target.result
-                if (!cursor) {
-                    resolve({
-                        resultados,
-                        total,
-                        paginas: Math.ceil(total / limite)
-                    })
-                    return
+    const offset = (pagina - 1) * limite
+    let vistos = 0
+    let total = 0
+    const resultados = []
+
+    // CASO 1: base é array ou objeto (memória)
+    if (typeof base === 'object') {
+
+        const lista = Array.isArray(base)
+            ? base
+            : Object.values(base)
+
+        for (const reg of lista) {
+            if (passaFiltro(reg, filtros)) {
+                total++
+
+                if (vistos >= offset && resultados.length < limite) {
+                    resultados.push(reg)
                 }
-
-                const reg = cursor.value
-
-                if (passaFiltro(reg, filtros)) {
-                    total++
-
-                    if (vistos >= offset && resultados.length < limite) {
-                        resultados.push(reg)
-                    }
-                    vistos++
-                }
-
-                cursor.continue()
+                vistos++
             }
+        }
+
+        return {
+            resultados,
+            total,
+            paginas: Math.ceil(total / limite)
+        }
+    }
+
+    // CASO 2: base é string → IndexedDB
+    const db = await getDB()
+    const tx = db.transaction(base, 'readonly')
+    const store = tx.objectStore(base)
+    const index = store.index('timestamp')
+
+    return new Promise(resolve => {
+
+        index.openCursor(null, 'prev').onsuccess = ev => {
+            const cursor = ev.target.result
+            if (!cursor) {
+                resolve({
+                    resultados,
+                    total,
+                    paginas: Math.ceil(total / limite)
+                })
+                return
+            }
+
+            const reg = cursor.value
+
+            if (passaFiltro(reg, filtros)) {
+                total++
+
+                if (vistos >= offset && resultados.length < limite)
+                    resultados.push(reg)
+
+                vistos++
+            }
+
+            cursor.continue()
         }
     })
 }

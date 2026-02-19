@@ -157,7 +157,12 @@ async function criarElementosIniciais() {
             'snapshots.pendenteResposta': { op: 'includes', value: acesso.usuario },
             'correcoes.*.executor': { op: '=', value: acesso.usuario },
             'correcoes.*.tipoCorrecao': { op: '!=', value: 'WRuo2' },
-            'correcoes.*.dtCorrecao': { op: '<d', value: Date.now() }
+            'correcoes.*.dtCorrecao': { op: '<d', value: Date.now() },
+            ...(
+                acesso.permissao == 'cliente'
+                    ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
+                    : {}
+            )
         },
         criarLinha: 'linCorrecoes'
     })
@@ -203,7 +208,12 @@ async function criarElementosIniciais() {
         filtros: {
             'snapshots.pendenteResposta': { op: 'includes', value: acesso.usuario },
             'correcoes.*.executor': { op: '=', value: acesso.usuario },
-            'correcoes.*.tipoCorrecao': { op: '!=', value: 'WRuo2' }
+            'correcoes.*.tipoCorrecao': { op: '!=', value: 'WRuo2' },
+            ...(
+                acesso.permissao == 'cliente'
+                    ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
+                    : {}
+            )
         },
         criarLinha: 'linCorrecoes'
     })
@@ -234,6 +244,7 @@ async function filtrarMinhasOcorrencias(st) {
 
     controles.ocorrencias.filtros = {
         ...controles.ocorrencias.filtros,
+        'id': {},
         'snapshots.ultimaCorrecao': { op: '=', value: st },
         'usuario': { op: '=', value: acesso.usuario }
     }
@@ -271,10 +282,9 @@ async function linCorrecoes(ocorrencia) {
                         onclick="controles.ocorrencias.filtros.id = { op: '=', value: '${id}'}; telaOcorrencias();">
                         <span>Solicitado por <b>${correcao?.usuario || 'Desconhecido'}</b> para <b>${executor}</b></span>
                         <div style="${horizontal}; gap: 1rem;">
-                            <div style="${horizontal}; gap: 3px;">
-                                <img src="imagens/alerta.png">
-                                <span>Sem resposta</span>
-                            </div>
+
+                            <img src="imagens/alerta.png">
+
                             <div style="${vertical}">
                                 <span style="font-size: 1rem;"><b>${id}</b></span>
                                 <span><b>Data Limite:</b> ${conversorData(dtCorrecao)}</span>
@@ -402,7 +412,7 @@ async function gerenciarUsuario(id) {
         .map(empresa => `<option value="${empresa.id}" ${usuario?.empresa == empresa.id ? 'selected' : ''}>${empresa.nome}</option>`)
         .join('')
 
-    const permissoes = ['novo', 'desativado', 'técnico', 'cliente']
+    const permissoes = ['novo', 'desativado', 'técnico', 'cliente', 'analista']
         .map(op => `<option ${usuario?.permissao == op ? 'selected' : ''}>${op}</option>`).join('')
 
     const setores = ['', 'CHAMADOS', 'MATRIZ BA', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO']

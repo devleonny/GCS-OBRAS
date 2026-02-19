@@ -211,57 +211,15 @@ async function paginacao(pag) {
 async function atualizarComTS(tbody, dados, criarLinha, base) {
 
     const dino = tbody.querySelector('#dinossauro')
-    if (dino)
-        dino.remove()
+    if (dino) dino.remove()
 
-    const linhasAtuais = {}
-    for (const tr of tbody.querySelectorAll('tr[data-id]')) {
-        linhasAtuais[tr.dataset.id] = tr
-    }
-
-    const fragment = document.createDocumentFragment()
-    let usarModoPadrao = false
+    let linhas = ''
 
     for (const d of dados) {
-
-        const temp = document.createElement('tbody')
-        temp.innerHTML = await window[criarLinha](d)
-        const novaTr = temp.firstElementChild
-
-        const id = novaTr?.dataset?.id
-        const ts = novaTr?.dataset?.ts
-
-        if (!id || ts == null) {
-            usarModoPadrao = true
-            break
-        }
-
-        const trAtual = linhasAtuais[id]
-
-        if (trAtual && trAtual.dataset.ts === ts) {
-            fragment.appendChild(trAtual)
-        } else {
-            fragment.appendChild(novaTr)
-        }
-
-        delete linhasAtuais[id]
+        linhas += await window[criarLinha]({ ...d, base })
     }
 
-    if (usarModoPadrao) {
-        let linhas = ''
-        for (const d of dados) {
-            linhas += await window[criarLinha]({ ...d, base })
-        }
-        tbody.innerHTML = linhas
-        return
-    }
-
-    // substitui tudo de uma vez
-    for (const tr of tbody.querySelectorAll('tr[data-id]')) {
-        tr.remove()
-    }
-
-    tbody.appendChild(fragment)
+    tbody.innerHTML = linhas
 }
 
 function criarDino(cols) {

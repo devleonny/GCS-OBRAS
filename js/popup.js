@@ -127,6 +127,7 @@ function removerPopup(id = null, nra = true) {
     // Remoção de objetos de paginação;
     (autoDestruicaoGlobal?.[id] || []).forEach(p => {
         delete controles[p]
+        delete controlesCxOpcoes[p]
     })
 
     const popups = document.querySelectorAll('.popup')

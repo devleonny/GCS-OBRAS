@@ -25,9 +25,8 @@ async function telaChecklist(id) {
 
     tecnicos = {}
 
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-    let ths = ''
-    let pesquisa = ''
+    const { dados_composicoes, snapshots, checklist } = await recuperarDado('dados_orcamentos', id)
+
     const colunas = {
         '': {},
         'Código': {},
@@ -40,41 +39,34 @@ async function telaChecklist(id) {
         'Tempo/Realizado': {},
         '% Conclusão': {}
     }
-    
+
     const btnExtras = `
-    <div style="${horizontal}; gap: 1rem;">
-        <input type="checkbox" onclick="marcarItensChecklist(this)">
-        <span>Marcar todos</span>
-    </div>
-    `
+        <div style="${horizontal}; gap: 1rem;">
+            <input type="checkbox" onclick="marcarItensChecklist(this)">
+            <span>Marcar todos</span>
+        </div>`
+
+    const mesclado = {
+        ...dados_composicoes || {},
+        ...checklist?.avulso || {}
+    }
+
+    for (const codigo of Object.keys(mesclado)) {
+        mesclado.itens = checklist?.itens?.[codigo] || {}
+    }
 
     const tabela = modTab({
         colunas,
         pag: 'checklist',
         btnExtras,
-        base
+        bloquearPaginacao: true,
+        filtros: {
+            'tipo': { op: '!=', value: 'VENDA' }
+        },
+        body: 'bodyChecklist',
+        criarLinha: 'carregarLinhaChecklist',
+        base: mesclado
     })
-
-    let i = 0
-    for (const op of colunas) {
-
-        if (op == '') {
-            ths += `<th></th>`
-            pesquisa += `<th style="background-color: white;"></th>`
-
-        } else {
-            pesquisa += `<th style="background-color: white; text-align: left;" contentEditable="true" oninput="pesquisarGenerico('${i}', this.textContent, 'bodyChecklist'); calcularTempos()"></th>`
-            ths += `
-            <th>
-                <div style="${horizontal}; justify-content: space-between; width: 100%; gap: 10px;">
-                    <span>${op}</span>
-                    <img src="imagens/filtro.png" style="width: 1rem;" onclick="filtrarAAZ(${i}, 'bodyChecklist')"> 
-                </div>
-            </th>`
-        }
-
-        i++
-    }
 
     const elemento = `
         <div style="${vertical}; padding: 1rem;">
@@ -107,7 +99,7 @@ async function telaChecklist(id) {
         </div>
     `
 
-    const campos = (orcamento?.snapshots?.contrato || [])
+    const campos = (snapshots?.contrato || [])
         .filter(c => c)
         .join(' - ')
 
@@ -115,104 +107,38 @@ async function telaChecklist(id) {
 
     popup({ elemento, titulo })
 
-    // Reset;
-    quantidadeGeral = 0
-    finalizados = 0
-    diasTrabalhados = []
-    primeiroDia = null
-
-    const mesclado = {
-        ...orcamento?.dados_composicoes || {},
-        ...orcamento?.checklist?.avulso || {}
-    }
-
-    for (const [codigo, produto] of Object.entries(mesclado)) {
-
-        if (produto.tipo == 'VENDA') continue
-
-        const qReal = orcamento?.checklist?.qReal?.[codigo] || {}
-        const check = orcamento?.checklist?.itens?.[codigo] || {}
-        const ref = await recuperarDado('dados_composicoes', codigo) || {}
-        carregarLinhaChecklist({ codigo, produto, check, ref, qReal })
-
-        for (const [id, dados] of Object.entries(check)) {
-
-            if (id == 'removido') continue
-
-            // Registro do primeiro dia;
-            const [ano, mes, dia] = dados.data.split('-')
-            const dt = new Date(ano, Number(mes) - 1, dia).getTime()
-            if (primeiroDia == null || primeiroDia > dt) primeiroDia = dt
-            // Fim
-
-            for (const idTec of dados?.tecnicos || []) {
-                const tecnico = db.dados_clientes?.[idTec] || {}
-                tecnicos[idTec] = tecnico?.nome || 'Desatualizado...'
-            }
-
-        }
-    }
+    await paginacao()
 
     calcularTempos()
 
-    const dataInicio = primeiroDia ? new Date(primeiroDia).toLocaleDateString() : 'Sem data'
-
-    document.getElementById('inicio').textContent = dataInicio
-
-    if (!orcamento) return
-
-    orcamento.checklist ??= {}
-    orcamento.checklist.inicio = dataInicio
-    orcamento.checklist.andamento = porcetagemFinal
-
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-
-    enviar(`dados_orcamentos/${id_orcam}/checklist/inicio`, dataInicio)
-    enviar(`dados_orcamentos/${id_orcam}/checklist/andamento`, porcetagemFinal)
-
 }
 
-function carregarLinhaChecklist({ codigo, produto, check, qReal, ref }) {
+function carregarLinhaChecklist(produto) {
 
-    if (check.removido) {
-        const linha = document.getElementById(`check_${codigo}`)
-        if (linha) linha.remove()
-        return
-    }
+    const { codigo, descricao, qtde, unidade } = produto || {}
 
-    let quantidade = 0
-    const diasTrabalhadosLinha = []
-    for (const [, dados] of Object.entries(check)) {
-
-        quantidade += isNaN(dados.quantidade) ? 0 : dados.quantidade
-        if (!diasTrabalhados.includes(dados.data)) diasTrabalhados.push(dados.data)
-        if (!diasTrabalhadosLinha.includes(dados.data)) diasTrabalhadosLinha.push(dados.data)
-
-    }
-
-    const avulso = produto.tipo ? '' : '<span><b>[Avulso]</b></span>'
-
-    // Relatório
-    finalizados += quantidade / produto.qtde
-    quantidadeRealizadoGeral += quantidade
-    quantidadeGeral++
+    const avulso = produto.tipo
+        ? ''
+        : '<span><b>[Avulso]</b></span>'
 
     const fontMaior = 'class="fonte-maior"'
 
     const tds = `
-        <td><input name="itensChecklist" type="checkbox"></td>
+        <td>
+            <input name="itensChecklist" type="checkbox">
+        </td>
         <td>${codigo}</td>
-        <td style="text-align: right;">${produto.descricao} ${avulso}</td>
+        <td style="text-align: right;">${descricao || ''} ${avulso}</td>
         <td ${fontMaior} name="quantidade">
             ${avulso
-            ? `<input type="number" name="real" oninput="salvarQtdAvulso(this, '${codigo}')" class="qtd" value="${produto.qtde || ''}">`
-            : produto.qtde
+            ? `<input type="number" name="real" oninput="salvarQtdAvulso(this, '${codigo}')" class="qtd" value="${qtde || ''}">`
+            : qtde || 0
         }
         </td>
         <td>
             ${avulso
             ? '<img src="imagens/cancel.png">'
-            : `<input type="number" name="real" oninput="salvarQtdReal(this, '${codigo}')" class="qtd" value="${qReal?.qtde || ''}">`
+            : `<input type="number" name="real" oninput="salvarQtdReal(this, '${codigo}')" class="qtd" value="${0 || ''}">`
         }
         </td>
         <td>
@@ -221,36 +147,24 @@ function carregarLinhaChecklist({ codigo, produto, check, qReal, ref }) {
                     name="tempoUnitario" 
                     oninput="atualizarTempo(this, '${codigo}')" 
                     type="time" 
-                    class="${estT(ref?.tempo || produto?.tempo)}"
-                    value="${ref?.tempo || produto?.tempo || ''}">
-                <span>por <b>${produto?.unidade || 'UND'}</b></span>
+                    class="${estT(0 || 0)}"
+                    value="${0 || 0 || ''}">
+                <span>por <b>${unidade || 'UND'}</b></span>
             </div>
         </td>
         <td ${fontMaior} name="totalLinha"></td>
         <td>
             <div style="${horizontal}; gap: 10px;">
-                <span ${fontMaior} name="quantidadeExecutada">${quantidade}</span>
+                <span ${fontMaior} name="quantidadeExecutada">${0}</span>
                 <img onclick="registrarChecklist('${codigo}')" src="imagens/baixar.png" style="width: 1.2rem;">
             </div>
         </td>
         <td ${fontMaior} name="totalLinhaExecutado"></td>
         <td>
             <div name="porcentagem"></div>
-        </td>
+        </td>`
 
-    `
-
-    const trExistente = document.getElementById(`check_${codigo}`)
-    if (trExistente) return trExistente.innerHTML = tds
-
-    document.getElementById('bodyChecklist').insertAdjacentHTML('beforeend', `
-        <tr 
-        data-avulso="${avulso ? 'S' : 'N'}"
-        data-codigo="${codigo}" 
-        id="check_${codigo}">
-            ${tds}
-        </tr>
-        `)
+    return `<tr> ${tds} </tr>`
 
 }
 
@@ -284,14 +198,14 @@ async function salvarQtdReal(input, codigo) {
 
 }
 
-async function tecnicosAtivos() {
+async function tecnicosAtivos(id) {
 
-    const orcamento = db.dados_orcamentos?.[id_orcam]
+    const orcamento = await recuperarDado('dados_orcamentos', id) || {}
     const listaTecs = orcamento?.checklist?.tecnicos || []
     let tecs = ''
 
     for (const codTec of listaTecs) {
-        const dados = db.dados_clientes?.[codTec] || {}
+        const dados = await recuperarDado('dados_clientes', codTec) || {}
         tecs += maisTecnico(codTec, dados?.nome || 'N/A', true)
     }
 
@@ -580,7 +494,7 @@ async function gerarRelatorioChecklist() {
     for (const [codigo, lancamentos] of Object.entries(itens)) {
 
         const comp = atividades[codigo]
-        const produto = db.dados_composicoes?.[codigo] || {}
+        const { tempo } = await recuperarDado('dados_composicoes', codigo) || '00:00'
         const descricao = comp?.descricao || '...'
         const qtdeTotal = comp?.qtde || 0
 
@@ -596,13 +510,15 @@ async function gerarRelatorioChecklist() {
 
             datas.push(dLanc.getTime())
 
-            const nomes = (dados.tecnicos || [])
-                .map(c => db.dados_clientes?.[c]?.nome || '...')
-                .sort((a, b) => a.localeCompare(b))
+            const nomes = []
+            for (const c of (dados.tecnicos || [])) {
+                const { nome } = await recuperarDado('dados_clientes', c)
+                if (nome)
+                    nomes.push(nome)
+            }
 
             const equipeKey = nomes.join(', ') || 'Sem equipe'
 
-            const tempo = produto?.tempo || '00:00'
             const [h, m] = tempo.split(':').map(Number)
             const minUnit = h * 60 + m
             const executado = minUnit * dados.quantidade
@@ -740,9 +656,9 @@ async function gerarRelatorioChecklist() {
 
     for (const [cod, real] of Object.entries(quantidades)) {
 
-        const ref = db.dados_composicoes?.[cod] || {}
-        const qtOrc = orcamento?.db.dados_composicoes?.[cod]?.qtde || 0
-        const label = ref.descricao || 'N/A'
+        const { descricao } = await recuperarDado('dados_composicoes', cod) || 'N/A'
+        const qtOrc = orcamento?.dados_composicoes?.[cod]?.qtde || 0
+        const label = descricao
 
         if (qtOrc > 20) {
             labelsGrandes.push(label)
@@ -854,9 +770,22 @@ async function atualizarChecklist() {
 
 async function adicionarServicoAvulso(id) {
 
+    const cod = ID5digitos()
+    controlesCxOpcoes[cod] = {
+        base: 'dados_composicoes',
+        retornar: ['descricao'],
+        filtros: {
+            'tipo': { op: '=', value: 'SERVIÇO' }
+        },
+        colunas: {
+            'Código': { chave: 'codigo' },
+            'Descrição': { chave: 'descricao' },
+        }
+    }
+
     const elemento = `
         <div style="${horizontal}; gap: 10px; background-color: #d2d2d2; padding: 2rem;">
-            ${modelo('Descrição', `<span name="codigo" onclick="cxOpcoes('codigo', 'dados_composicoes', ['descricao', 'codigo', 'tipo', 'modelo', 'fabricante'])" class="opcoes">Selecione</span>`)}
+            ${modelo('Descrição', `<span name="${cod}" onclick="cxOpcoes('${cod}')" class="opcoes">Selecione</span>`)}
             ${modelo('Quantidade', `<input name="qtde" type="number" style="padding: 5px; border-radius: 3px;">`)}
             <img src="imagens/concluido.png" style="width: 2rem;" onclick="salvarAvulso('${id}')">
         </div>
@@ -870,7 +799,7 @@ async function salvarAvulso(id) {
     const qtde = Number(document.querySelector('[name="qtde"]').value)
     const codigo = document.querySelector('[name="codigo"]').id
 
-    if (!qtde) 
+    if (!qtde)
         return popup({ mensagem: 'Não deixe a quantidade em Branco' })
 
     overlayAguarde()
@@ -904,7 +833,7 @@ async function verItensRemovidos() {
 
         if (!dados.removido) continue
 
-        const descricao = orcamento?.db.dados_composicoes?.[codigo]?.descricao || orcamento?.checklist?.avulso?.[codigo]?.descricao || '...'
+        const descricao = orcamento?.dados_composicoes?.[codigo]?.descricao || orcamento?.checklist?.avulso?.[codigo]?.descricao || '...'
 
         itens += `
             <div style="${horizontal}; gap: 10px;">
@@ -1099,7 +1028,7 @@ async function registrarChecklist(codigo) {
 
     overlayAguarde()
 
-    const orcamento = db.dados_orcamentos[id_orcam]
+    const orcamento = await recuperarDado('dados_orcamentos', id) || {}
     const itens = orcamento?.checklist?.itens?.[codigo] || {}
 
     const data = (data) => {
@@ -1117,9 +1046,15 @@ async function registrarChecklist(codigo) {
 
         quantidadeRealizadoItem += dados.quantidade
 
-        const nomesTecnicos = (dados?.tecnicos || [])
-            .map(idTec => `<span>${db.dados_clientes?.[idTec]?.nome || '--'}</span>`)
-            .join('')
+        const nomesTecnicos = []
+
+        for (const t of (dados?.tecnicos || [])) {
+            const { nome } = await recuperarDado('dados_clientes')
+            if (nome)
+                nomesTecnicos.push(nome)
+        }
+
+        nomesTecnicos.join('')
 
         linhas += `
         <tr>
@@ -1229,11 +1164,22 @@ function maisTecnico(cod, nome, devolver) {
     cod = cod || ID5digitos()
     nome = nome || 'Selecione'
 
-    if (document.getElementById(cod)) return
+    if (document.getElementById(cod))
+        return
+
+    controlesCxOpcoes[cod] = {
+        base: 'dados_clientes',
+        retornar: ['nome'],
+        colunas: {
+            'Nome': { chave: 'nome' },
+            'CNPJ/CPF': { chave: 'cnpj' },
+            'Cidade': { chave: 'cidade' }
+        }
+    }
 
     const modelo = `
         <div style="${horizontal}; gap: 5px;">
-            <span class="opcoes" id="${cod}" name="${cod}" onclick="cxOpcoes('${cod}', 'dados_clientes', ['nome', 'cnpj', 'cidade'])">${nome}</span>
+            <span class="opcoes" id="${cod}" name="${cod}" onclick="cxOpcoes('${cod}')">${nome}</span>
             <img src="imagens/cancel.png" style="width: 1.5rem;" onclick="this.parentElement.remove()">
         </div>
     `

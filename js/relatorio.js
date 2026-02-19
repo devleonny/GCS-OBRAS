@@ -4,14 +4,12 @@ async function telaRelatorio() {
         '': {},
         'Empresa': { chave: 'snapshots.empresa' },
         'Chamado': { chave: 'id' },
-        'Status': {},
-        'Data Abertura': {},
+        'Status': { chave: 'snapshots.ultimaCorrecao' },
+        'Data Abertura': { chave: 'dataRegistro' },
         'Hora Abertura': {},
-        'Data Limite': {},
-        'Data da Correção': {},
-        'Dias': {},
-        'Solicitante': {},
-        'Executores': {},
+        'Data Limite': { chave: 'snapshots.dtCorrecao' },
+        'Solicitante': { chave: 'usuario' },
+        'Executores': { chave: 'snapshots.executores' },
         'Tipo Correção': { chave: 'snapshots.ultimaCorrecao' },
         'Loja': { chave: 'snapshots.cliente.nome' },
         'Cidade': { chave: 'snapshots.cliente.cidade' },
@@ -25,6 +23,13 @@ async function telaRelatorio() {
         pag: 'relatorioOcorrencias',
         body: 'bodyRelatorioOcorrencias',
         base: 'dados_ocorrencias',
+        filtros: {
+            ...(
+                acesso.permissao == 'cliente'
+                    ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
+                    : {}
+            )
+        },
         criarLinha: 'criarLinhaRelatorio'
     })
 
@@ -41,6 +46,13 @@ async function telaRelatorio() {
 
     const contador = await contarPorCampo({
         base: 'dados_ocorrencias',
+        filtros: {
+            ...(
+                acesso.permissao == 'cliente'
+                    ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
+                    : {}
+            )
+        },
         path: 'snapshots.ultimaCorrecao'
     }) || {}
 
@@ -107,8 +119,6 @@ async function criarLinhaRelatorio(ocorrencia) {
             ? 'na'
             : 'and'
 
-    const calculos = verificarDtSolucao()
-
     const [dtAb, hrAb] = ocorrencia.dataRegistro
         ? ocorrencia.dataRegistro.split(', ')
         : ['', '']
@@ -130,18 +140,7 @@ async function criarLinhaRelatorio(ocorrencia) {
         </td>
         <td>${dtAb}</td>
         <td>${hrAb}</td>
-        <td>${dtAuxOcorrencia(ocorrencia?.dataLimiteExecucao)}</td>
-        <td>${calculos.dtSolucaoStr}</td>
-        <td> 
-            ${calculos.dias
-            ? `
-                <div style="${horizontal}; justify-content: start; gap: 5px;">
-                    <img src="imagens/${calculos.img}.png" style="width: 1.5rem;">
-                    <span>${calculos.dias || 'Sem Previsão'}</span>
-                </div>`
-            : 'Sem Previsão'
-        }
-        </td>
+        <td>${snapshots?.dtCorrecao || ''}</td>
         <td>${ocorrencia?.usuario || ''}</td>
         <td>
             <div style="${vertical}; gap: 2px;">${executores}</div>
@@ -155,47 +154,6 @@ async function criarLinhaRelatorio(ocorrencia) {
     `
 
     return `<tr>${tds}</tr>`
-
-    function verificarDtSolucao() {
-        if (!ocorrencia.dataLimiteExecucao) {
-            return { dtSolucaoStr: '-', dias: false, img: 'pendente' }
-        }
-
-        const [ano, mes, dia] = ocorrencia.dataLimiteExecucao.split('-').map(Number);
-        const dataLimite = new Date(ano, mes - 1, dia);
-        dataLimite.setHours(0, 0, 0, 0);
-
-        let dtSolucaoStr = '-';
-        let dias = 0;
-
-        // pegar a última correção válida
-        const correcao = Object.values(ocorrencia?.correcoes || {}).find(c => c.tipoCorrecao === 'WRuo2') || {}
-
-        let dtReferencia = null
-
-        if (correcao.data) {
-            const [dataStr, horaStr] = correcao.data.split(', ')
-            const [dia, mes, ano] = dataStr.split('/').map(Number)
-            const [hora, minuto] = horaStr.split(':').map(Number)
-
-            const dtSolucao = new Date(ano, mes - 1, dia, hora, minuto)
-            dtSolucao.setHours(0, 0, 0, 0)
-
-            dtSolucaoStr = dtSolucao.toLocaleDateString('pt-BR')
-            dtReferencia = dtSolucao
-        } else {
-            dtReferencia = new Date()
-            dtReferencia.setHours(0, 0, 0, 0)
-        }
-
-        dias = Math.round((dataLimite - dtReferencia) / (1000 * 60 * 60 * 24));
-
-        if (isNaN(dias)) dias = false
-
-        const img = dias < 0 ? 'offline' : dtSolucaoStr !== '' ? 'online' : 'pendente'
-
-        return { dtSolucaoStr, dias, img };
-    }
 
 }
 
@@ -414,6 +372,13 @@ async function telaRelatorioCorrecoes() {
 
     const tabela = modTab({
         colunas,
+        filtros: {
+            ...(
+                acesso.permissao == 'cliente'
+                    ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
+                    : {}
+            )
+        },
         base: 'dados_ocorrencias',
         pag: 'relatorioCorrecoes',
         body: 'bodyCorrecoes',

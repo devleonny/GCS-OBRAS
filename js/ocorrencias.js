@@ -166,11 +166,9 @@ function uCorrecao(correcoes) {
     let maisRecente = null
     let tipo = null
     let dtBase = null
-    let uExecutor = null
     let solucionado = false
-    let uDescricao = null
 
-    for (const { data, dtCorrecao, tipoCorrecao, executor, descricao } of Object.values(correcoes)) {
+    for (const { data, dtCorrecao, tipoCorrecao } of Object.values(correcoes)) {
 
         if (!data)
             continue
@@ -184,8 +182,6 @@ function uCorrecao(correcoes) {
             maisRecente = dateObj
             tipo = tipoCorrecao
             dtBase = dtCorrecao
-            uExecutor = executor
-            uDescricao = descricao
             continue
         }
 
@@ -193,8 +189,7 @@ function uCorrecao(correcoes) {
             maisRecente = dateObj
             tipo = tipoCorrecao
             dtBase = dtCorrecao
-            uExecutor = executor
-            uDescricao = descricao
+
         }
     }
 
@@ -205,7 +200,7 @@ function uCorrecao(correcoes) {
         dias = Math.trunc(diff / (1000 * 60 * 60 * 24))
     }
 
-    return { tipo, dias, executor: uExecutor, descricao: uDescricao }
+    return { tipo, dias, dtCorrecao: dtBase }
 }
 
 async function carregarCorrecoes(ocorrencia) {
@@ -402,12 +397,22 @@ async function telaOcorrencias() {
 
     tela.innerHTML = acumulado
 
+
+    // Filtros especiais para Técnico e Cliente;
     if (acesso.permissao == 'técnico') {
+
         controles.ocorrencias.filtros = {
             'snapshots.pendenteResposta': { op: 'includes', value: acesso.usuario },
             'correcoes.*.executor': { op: '=', value: acesso.usuario },
             'correcoes.*.tipoCorrecao': { op: '!=', value: 'WRuo2' }
         }
+
+    } else if (acesso.permissao == 'cliente') {
+
+        controles.ocorrencias.filtros = {
+            'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa },
+        }
+
     }
 
     await paginacao()
@@ -512,12 +517,14 @@ async function criarPesquisas() {
 
         const { path } = campo
 
+        const valor = controles?.ocorrencias?.filtros?.[path]?.value || ''
+
         const pesquisa = `
         <div class="pesquisa">
             <input
                 onkeydown="if (event.key === 'Enter') pesquisarOcorrencias('${path}', this.value)"
                 placeholder="${titulo}"
-                style="width: 100%;">
+                style="width: 100%;" value="${valor}">
 
             <img src="imagens/pesquisar4.png">
         </div>`
@@ -647,19 +654,31 @@ function ocultarParaTecs(correcoes = {}) {
     return participou && tudoRespondido
 }
 
-
 async function auxPendencias() {
+
+    const divPendencias = document.querySelector('.painel-pendencias')
+    if (!divPendencias)
+        return
 
     controles.ocorrencias ??= {}
     controles.ocorrencias.filtros ??= {}
 
-    const filtros = acesso.permissao == 'técnico'
-        ? {
+    let filtros = {}
+
+    if (acesso.permissao == 'técnico') {
+        filtros = {
             'snapshots.pendenteResposta': { op: 'includes', value: acesso.usuario },
             'correcoes.*.tipoCorrecao': { op: '!=', value: 'WRuo2' },
             'correcoes.*.executor': { op: '=', value: acesso.usuario }
         }
-        : {}
+
+    } else if (acesso.permissao == 'cliente') {
+
+        filtros = {
+            'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa }
+        }
+
+    }
 
     const contadores = await contarPorCampo({
         base: 'dados_ocorrencias',
@@ -667,7 +686,7 @@ async function auxPendencias() {
         path: 'snapshots.ultimaCorrecao'
     })
 
-    const divPendencias = document.querySelector('.painel-pendencias')
+
     const ordemFinal = ['Solucionada', 'todos']
 
     const etiquetas = Object
@@ -731,10 +750,19 @@ async function formularioOcorrencia(idOcorrencia) {
         .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')`))
         .join('')
 
+
+    let filtros = {}
+    if (acesso.permissao == 'cliente') {
+        filtros = {
+            'empresa': { op: '=', value: acesso?.empresa }
+        }
+    }
+
     // Campo Unidade;
     controlesCxOpcoes.unidade = {
         base: 'dados_clientes',
         retornar: ['nome'],
+        filtros,
         colunas: {
             'Nome': { chave: 'nome' },
             'CNPJ': { chave: 'cnpj' },
@@ -771,21 +799,21 @@ async function formularioOcorrencia(idOcorrencia) {
         {
             texto: 'Sistema',
             elemento: `<span ${ocorrencia.unidade ? `id="${ocorrencia.unidade}"` : ''} 
-            class="campos" name="sistema" onclick="cxOpcoes('sistema', 'sistemas', ['nome'])">
+            class="campos" name="sistema" onclick="cxOpcoes('sistema')">
                 ${sistema || 'Selecione'}
             </span>`
         },
         {
             texto: 'Prioridade',
             elemento: `<span ${ocorrencia.prioridade ? `id="${ocorrencia.prioridade}"` : ''} 
-            class="campos" name="prioridade" onclick="cxOpcoes('prioridade', 'prioridades', ['nome'])">
+            class="campos" name="prioridade" onclick="cxOpcoes('prioridade')">
                 ${prioridade || 'Selecione'}
             </span>`
         },
         {
             texto: 'Tipo',
             elemento: `<span ${ocorrencia.tipo ? `id="${ocorrencia.tipo}"` : ''} 
-            class="campos" name="tipo" onclick="cxOpcoes('tipo', 'tipos', ['nome'])">
+            class="campos" name="tipo" onclick="cxOpcoes('tipo')">
                 ${tipo || 'Selecione'}
             </span>`
         },
@@ -927,7 +955,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
         { img: 'atualizar', texto: 'Atualizar', funcao: `atualizarGCS()` },
     ]
 
-    popup({ linhas, botoes, titulo: 'Gerenciar Correção' })
+    popup({ linhas, botoes, titulo: 'Gerenciar Correção', autoDestruicao: ['executor', 'tipoCorrecao'] })
 
     visibilidadeFotos()
 
@@ -940,17 +968,25 @@ async function maisLabel({ codigo, quantidade, unidade } = {}) {
         .map(op => `<option ${unidade == op ? `selected` : ''}>${op}</option>`)
         .join('')
     const temporario = ID5digitos()
-    let nome = 'Selecionar'
-    if (codigo) {
-        const produto = await recuperarDado('dados_composicoes', codigo)
-        nome = produto.descricao
+    const nome = await recuperarDado('dados_composicoes', codigo) || 'Selecionar'
+
+    controlesCxOpcoes[temporario] = {
+        base: 'dados_composicoes',
+        filtros: {
+            'tipo': { op: '!=', value: 'SERVIÇO' }
+        },
+        colunas: {
+            'Descrição': { chave: 'descricao' },
+            'Modelo': { chave: 'modelo' },
+            'Fabricante': { chave: 'fabricante' }
+        }
     }
 
     const label = `
         <div style="${horizontal}; gap: 5px;">
             <img src="imagens/cancel.png" onclick="this.parentElement.remove()">
             <div name="equipamentos" style="${vertical}; gap: 5px;">
-                <span class="campos" name="${temporario}" ${codigo ? `id="${codigo}"` : ''} onclick="cxOpcoes('${temporario}', 'dados_composicoes', ['descricao', 'tipo', 'marca', 'fabricante'])">${nome}</span>
+                <span class="campos" name="${temporario}" ${codigo ? `id="${codigo}"` : ''} onclick="cxOpcoes('${temporario}')">${nome}</span>
                 <div style="${horizontal}; gap: 5px; width: 100%;">
                     <input style="width: 100%;" class="campos" type="number" value="${quantidade || ''}">
                     <select class="campos">${opcoes}</select>

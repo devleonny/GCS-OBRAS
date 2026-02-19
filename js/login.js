@@ -110,7 +110,7 @@ async function acessoLogin() {
                 localStorage.setItem('app', app)
                 localStorage.setItem('acesso', JSON.stringify(data))
 
-                await connectWebSocket()
+                connectWebSocket()
 
             }
 

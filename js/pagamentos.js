@@ -444,55 +444,56 @@ async function removerAnexoParceiro(id, campo, anx) {
 
 async function autorizarPagamentos(resposta, id) {
 
-    overlayAguarde()
+    try {
 
-    const pagamento = await recuperarDado('lista_pagamentos', id)
-    const justificativa = document.getElementById('justificativa').value
-    const usuario = acesso.usuario;
-    const permissao = acesso.permissao
-    const setor = acesso.setor
-    let status;
+        overlayAguarde()
+        const pagamento = await recuperarDado('lista_pagamentos', id)
+        const justificativa = document.getElementById('justificativa').value
+        const usuario = acesso.usuario;
+        const permissao = acesso.permissao
+        const setor = acesso.setor
+        let status;
 
-    const categorias = pagamento.param[0].categorias
-    let pagamentoParceiroAtivo = false
-    for (item of categorias) {
-        if (item.codigo_categoria == '2.01.99') pagamentoParceiroAtivo = true
-    }
-
-    if (resposta) {
-        if (permissao == 'diretoria') {
-            status = 'Aprovado pela Diretoria';
-            lancarPagamento({ pagamento });
-        } else if (permissao == 'fin' || (permissao == 'gerente' && setor == 'FINANCEIRO')) {
-            status = `Aprovado pelo ${setor}`;
-            lancarPagamento({ pagamento });
-        } else if (permissao == 'gerente') {
-            status = 'Aguardando aprovação da Diretoria';
+        if (resposta) {
+            if (permissao == 'diretoria') {
+                status = 'Aprovado pela Diretoria';
+                lancarPagamento({ pagamento });
+            } else if (permissao == 'fin' || (permissao == 'gerente' && setor == 'FINANCEIRO')) {
+                status = `Aprovado pelo ${setor}`;
+                lancarPagamento({ pagamento });
+            } else if (permissao == 'gerente') {
+                status = 'Aguardando aprovação da Diretoria';
+            } else {
+                status = 'Aguardando aprovação da Gerência';
+            }
         } else {
-            status = 'Aguardando aprovação da Gerência';
+            status = `Reprovado por ${permissao}`;
         }
-    } else {
-        status = `Reprovado por ${permissao}`;
+
+        const historico = {
+            status,
+            usuario,
+            justificativa,
+            data: new Date().toLocaleString()
+        }
+
+        const idJustificativa = ID5digitos()
+        pagamento.status = status
+
+        pagamento.historico ??= {}
+        pagamento.historico[idJustificativa] = historico
+
+        await inserirDados({ [id]: pagamento }, 'lista_pagamentos')
+        await abrirDetalhesPagamentos(id)
+
+        await enviar(`lista_pagamentos/${id}/historico/${idJustificativa}`, historico)
+        await enviar(`lista_pagamentos/${id}/status`, status)
+
+        removerOverlay()
+
+    } catch (err) {
+        popup({ mensagem: 'Ocorreu um erro ao processar a solicitação. Tente novamente.' })
     }
-
-    const historico = {
-        status,
-        usuario,
-        justificativa,
-        data: new Date().toLocaleString()
-    }
-
-    const idJustificativa = ID5digitos()
-    pagamento.status = status
-
-    pagamento.historico ??= {}
-    pagamento.historico[idJustificativa] = historico
-
-    await inserirDados({ [id]: pagamento }, 'lista_pagamentos')
-    await abrirDetalhesPagamentos(id)
-
-    await enviar(`lista_pagamentos/${id}/historico/${idJustificativa}`, historico)
-    await enviar(`lista_pagamentos/${id}/status`, status)
 
 }
 
@@ -525,7 +526,7 @@ async function salvarPagamento() {
         ultimoPagamento.param[0].codigo_lancamento_integracao = ultimoPagamento.id
 
         if (ultimoPagamento.param[0].valor_documento <= 500) {
-            ultimoPagamento.status = 'Processando...'
+            enviar(`lista_pagamentos/${ultimoPagamento.id}/status`, 'Processando...')
             lancarPagamento({ pagamento: ultimoPagamento })
         } else if (permissao == 'gerente') {
             ultimoPagamento.status = 'Aguardando aprovação da Diretoria'

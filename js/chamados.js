@@ -184,8 +184,7 @@ async function criarManutencao(id = ID5digitos()) {
                     </table>
                 </div>
             <div class="rodape-tabela"></div>
-        </div>
-    `
+        </div>`
 
     const opcoes = ['MANUTENÇÃO', 'EMITIR NOTA', 'REQUISIÇÃO AVULSA', 'MATERIAL SEPARADO', 'MATERIAL ENVIADO', 'FINALIZADO', 'REPROVADO']
         .map(op => `<option ${manutencao?.status_manutencao == op ? 'selected' : ''}>${op}</option>`)
@@ -195,16 +194,50 @@ async function criarManutencao(id = ID5digitos()) {
         <div style="${vertical}">
             <span><b>${texto}</b></span>
             <div class="manutencao-formulario">${elemento}</div>
-        </div>
-        `
-    const kitTecnico = manutencao?.chamado == 'KIT TÉCNICO' ? true : false
+        </div>`
+
+    const kitTecnico = manutencao?.chamado == 'KIT TÉCNICO'
+        ? true
+        : false
+
+    controlesCxOpcoes.cliente = {
+        base: 'dados_clientes',
+        retornar: ['nome'],
+        colunas: {
+            'Nome': { chave: 'nome' },
+            'CNPJ/CPF': { chave: 'cnpj' },
+            'Cidade': { chave: 'cidade' },
+            'Endereço': { chave: 'endereco' }
+        }
+    }
+
+    controlesCxOpcoes.tecnico = {
+        base: 'dados_clientes',
+        retornar: ['nome'],
+        colunas: {
+            'Nome': { chave: 'nome' },
+            'CNPJ/CPF': { chave: 'cnpj' },
+            'Cidade': { chave: 'cidade' },
+            'Endereço': { chave: 'endereco' }
+        }
+    }
+
     const formulario = `
         <div class="bloco-chamados-principal">
             
             <div class="bloco-chamados">
-                ${modelo('Cliente | Loja', `<span ${manutencao?.codigo_cliente ? `id="${manutencao?.codigo_cliente}"` : ''} class="opcoes" name="cliente" onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'cnpj', 'endereco'])">${cliente?.nome || 'Selecione'}</span>`)}
-                ${modelo('Técnico', `<span ${manutencao?.codigo_tecnico ? `id="${manutencao?.codigo_tecnico}"` : ''} class="opcoes" name="tecnico" onclick="cxOpcoes('tecnico', 'dados_clientes', ['nome', 'cnpj', 'endereco'])">${tecnico?.nome || 'Selecione'}</span>`)}
-                ${modelo('Comentário', `<textarea name="comentario" rows="7">${manutencao?.comentario || ''}</textarea>`)}
+                ${modelo(
+        'Cliente | Loja',
+        `<span ${manutencao?.codigo_cliente ? `id="${manutencao?.codigo_cliente}"` : ''} 
+        class="opcoes" name="cliente" onclick="cxOpcoes('cliente')">${cliente?.nome || 'Selecione'}</span>`)}
+                
+        ${modelo('Técnico',
+            `<span ${manutencao?.codigo_tecnico ? `id="${manutencao?.codigo_tecnico}"` : ''} 
+            class="opcoes" name="tecnico" onclick="cxOpcoes('tecnico')">${tecnico?.nome || 'Selecione'}</span>`)}
+                
+                ${modelo(
+                'Comentário',
+                `<textarea name="comentario" rows="7">${manutencao?.comentario || ''}</textarea>`)}
                 
                 <br>
 
@@ -262,13 +295,14 @@ async function criarManutencao(id = ID5digitos()) {
 
     const botoes = [
         { texto: 'Adicionar Peça', img: 'chamados', funcao: `criarLinhaPeca()` },
-        { texto: 'Salvar', img: 'concluido', funcao: `enviarManutencao('${idManutencao}')` },
+        { texto: 'Salvar', img: 'concluido', funcao: `enviarManutencao('${id}')` },
         { texto: 'PDF', img: 'pdf', funcao: `gerarPDFChamados()` },
     ]
 
-    if (manutencao) botoes.push({ texto: 'Excluir Manutenção', img: 'cancel', funcao: `confirmarExclusaoManutencao('${idManutencao}')` })
+    if (manutencao)
+        botoes.push({ texto: 'Excluir Manutenção', img: 'cancel', funcao: `confirmarExclusaoManutencao('${id}')` })
 
-    popup({ elemento, botoes, titulo: `Requisição de Materiais` })
+    popup({ elemento, botoes, titulo: `Requisição de Materiais`, autoDestruicao: ['cliente', 'tecnico'] })
 
     modoKit({ checked: kitTecnico })
 
@@ -458,7 +492,7 @@ function criarLinhaPeca(id = ID5digitos(), peca) {
     const tds = `
         <td>
             <div style="${horizontal}; justify-content: end; gap: 5px; width: 100%;">
-                <span class="opcoes" id="${id}" name="${id}" onclick="cxOpcoes('${id}', 'dados_estoque', ['descricao', 'partnumber'])">${peca?.descricao || 'Selecione'}</span>
+                <span class="opcoes" id="${id}" name="${id}" onclick="cxOpcoes('${id}')">${peca?.descricao || 'Selecione'}</span>
                 <img data-modalidade="tradicional" src="imagens/ajustar.png" style="width: 1.2rem;" onclick="mudarEdicao(this)">
             </div>
         </td>
@@ -482,8 +516,17 @@ function mudarEdicao(img) {
     const cod = ID5digitos()
     let elemento = ""
 
+    controlesCxOpcoes[cod] = {
+        base: 'dados_estoque',
+        retornar: ['descricao'],
+        colunas: {
+            'Descrição': { chave: 'descricao' },
+            'Marca': { chave: 'marca' }
+        }
+    }
+
     if (modalidade === "livre") {
-        elemento = `<span class="opcoes" name="${cod}" onclick="cxOpcoes('${cod}', 'dados_estoque', ['descricao', 'partnumber'])">Selecione</span>`
+        elemento = `<span class="opcoes" name="${cod}" onclick="cxOpcoes('${cod}')">Selecione</span>`
     } else {
         elemento = `<textarea class="opcoes" name="${cod}"></textarea>`
     }
@@ -565,10 +608,10 @@ async function enviarManutencao() {
 function confirmarExclusaoManutencao(id) {
 
     const botoes = [
-        { texto: 'Confirmar', img: '', funcao: `excluirManutencao('${id}')` }
+        { texto: 'Confirmar', img: 'concluido', funcao: `excluirManutencao('${id}')` }
     ]
 
-    popup({ mensagem: 'Confirmar exclusão?', botoes, nra: true })
+    popup({ mensagem: 'Confirmar exclusão?', botoes, nra: false })
 
 }
 

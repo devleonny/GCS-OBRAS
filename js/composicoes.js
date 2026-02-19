@@ -946,13 +946,25 @@ async function criarLinhaAgrupamento(cod, dados) {
     const produto = await recuperarDado('dados_composicoes', cod)
     const chaveUnica = ID5digitos()
 
+    controlesCxOpcoes[chaveUnica] = {
+        base: 'dados_composicoes',
+        retornar: ['descricao'],
+        colunas: {
+            'Código': { chave: 'codigo' },
+            'Tipo': { chave: 'tipo' },
+            'Descrição': { chave: 'descricao' },
+            'Modelo': { chave: 'modelo' },
+            'Fabricante': { chave: 'fabricante' },
+        }
+    }
+
     const tds = `
         <td>
             <span 
             class="opcoes"
             ${cod ? `id="${cod}"` : ''}
             name="${chaveUnica}" 
-            onclick="cxOpcoes('${chaveUnica}', 'dados_composicoes', ['descricao', 'codigo', 'tipo', 'modelo', 'fabricante'])">
+            onclick="cxOpcoes('${chaveUnica}')">
                 ${produto?.descricao || 'Selecione'}
             </span>
         </td>

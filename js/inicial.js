@@ -90,34 +90,104 @@ async function telaInicialGCS() {
 
     atribuirVariaveis()
 
-    mostrarMenus(false)
-
     toolbar.style.display = 'flex'
     titulo.textContent = 'GCS'
     localStorage.setItem('app', 'GCS')
     app = 'GCS'
 
     if (priExeGCS)
-        await atualizarGCS()
+        //await atualizarGCS()
+
+    criarMenus('inicial')
 
     const aBloqs = ['INDICADORES', 'TÉCNICOS']
 
     const abasToolbar = ['INDICADORES', 'TÉCNICOS', ...abas]
         .map(aba => {
 
-            let funcao = `tabelaPorAba({aba: '${aba}'})`
-            if (aba == 'INDICADORES')
-                funcao = 'indicadores()'
-            else if (aba == 'TÉCNICOS')
-                funcao = 'tabelaTecnicos()'
-
             return `
-                <div style="opacity: 0.5; height: 3rem;" class="aba-toolbar" id="toolbar-${aba}" onclick="${funcao}">
+                <div 
+                style="opacity: 0.5; height: 3rem;" 
+                class="aba-toolbar" 
+                id="toolbar-${aba}" 
+                onclick="tabelaPorAba('${aba}')">
                     <label>${aba.replace('_', ' ')}</label>
                     ${aBloqs.includes(aba) ? '' : `<span id="contador-${aba}"></span>`}
-                </div>
-            `
+                </div>`
+
         }).join('')
+
+
+    // INDICADORES
+    const contadores = JSON.parse(localStorage.getItem('contadores')) || []
+    if (!contadores[acesso.usuario])
+        contadores[acesso.usuario] = { estrela: 'N' }
+
+    let filtroUsuario = {}
+
+    Object.entries(contadores)
+        .forEach(([u, conf]) => {
+            if (conf.estrela == 'S' && u !== 'Geral')
+                filtroUsuario = { 'pda.acoes.*.responsavel': { op: '=', value: u } }
+
+            criarGaveta(u, conf)
+        })
+
+    const tabelaIndicadores = modTab({
+        criarLinha: 'linAcoes',
+        base: 'dados_orcamentos',
+        pag: 'acoes',
+        body: 'bodyAcoes',
+        filtros: {
+            'pda.acoes': { op: 'NOT_EMPTY' },
+            ...filtroUsuario
+        }
+    })
+
+    const indicadores = `
+    <div class="painel-indicadores">
+        <div style="${vertical}; width: 50%;">
+            <button onclick="incluirContador()">Incluir contador</button>
+            <div class="guarda-roupas"></div>
+        </div>
+
+        <div style="width: 50%;">
+            ${tabelaIndicadores}
+        </div>
+    </div>`
+
+    // TABELAS PAGINADAS;
+    const tabelasPaginadas = modTab({
+        base: 'dados_orcamentos',
+        pag: 'tabelasIndicadores',
+        funcaoAdicional: ['contadoresAbas'],
+        body: 'bodyIndicadores',
+        criarLinha: 'linPda',
+        colunas: {
+            'Cliente': { chave: 'snapshots.contrato' },
+            'Tags': { chave: 'snapshots.tags' },
+            'Técnicos': {},
+            'Início': {},
+            'Término': {},
+            'Comentário': { chave: 'pda.comentario' },
+            'Ação Necessária': {},
+            'Checklist': {},
+            'Detalhes': {}
+        }
+    })
+
+    // TÉCNICOS
+    const tabelaTecnicos = modTab({
+        pag: 'tecnicos',
+        body: 'bodyTecnicos',
+        base: 'dados_clientes',
+        filtros: { 'tags.*.tag': { op: '=', value: 'TÉCNICO' } },
+        criarLinha: 'criarLinhaTecnico',
+        colunas: {
+            'Nome': { chave: 'nome' },
+            'Obras': {}
+        }
+    })
 
     const acumulado = `
         <div class="tela-gerenciamento">
@@ -129,53 +199,58 @@ async function telaInicialGCS() {
                 <img src="imagens/nav.png" style="width: 2rem; transform: rotate(180deg);" onclick="scrollar('next')">
             </div>
             
-            <div class="tabelas-inicial"></div>
+            <div class="tabelas-inicial">
+                <div class="t-indicadores">${indicadores}</div>
+                <div class="t-tecnicos">${tabelaTecnicos}</div>
+                <div class="t-tabelas">${tabelasPaginadas}</div>
+            </div>
             
         </div>`
 
-    const tGerenciamento = document.querySelector('.tela-gerenciamento')
-    if (!tGerenciamento) {
-        tela.innerHTML = acumulado
-        criarMenus('inicial')
-    }
+    tela.innerHTML = acumulado
 
-    // Carregar tabelas;
-    await indicadores()
-    await contadores()
+    mostrarMenus(false)
+    await tabelaPorAba('INDICADORES')
     await carregarControles()
 
 }
 
-async function tabelaPorAba({ aba = 'CONCLUÍDO', filtros = { 'aba': { op: '=', value: aba } } }) {
+async function tabelaPorAba(aba = 'CONCLUÍDO') {
 
-    mostrarGuia(aba)
+    // DESTACAR ABA;
+    const abas = document.querySelectorAll('.aba-toolbar')
 
-    const colunas = {
-        'Cliente': { chave: 'snapshots.pda' },
-        'Tags': { chave: 'snapshots.tags' },
-        'Técnicos': '',
-        'Início': '',
-        'Término': '',
-        'Comentários': '',
-        'Ação Necessário': '',
-        'Checklist': '',
-        'Detalhes': '',
-        'Remover': ''
-    }
+    abas.forEach(a => { a.style.opacity = 0.5 })
 
-    const pag = 'indicadores'
-    const tabela = modTab({
-        pag,
-        colunas,
-        base: 'dados_orcamentos',
-        filtros,
-        criarLinha: 'linPda',
-        body: 'bodyIndicadores'
+    const abaToolbar = document.querySelector(`#toolbar-${aba}`)
+
+    if (abaToolbar)
+        abaToolbar.style.opacity = 1
+
+    // MOSTRAR PAINEL;
+    const paineis = ['indicadores', 'tecnicos', 'tabelas']
+    paineis.forEach(p => {
+        document.querySelector(`.t-${p}`).style.display = 'none'
     })
 
-    document.querySelector('.tabelas-inicial').innerHTML = tabela
+    let painel = 'tabelas'
 
-    await paginacao(pag)
+    if (aba == 'INDICADORES')
+        painel = 'indicadores'
+    else if (aba == 'TÉCNICOS')
+        painel = 'tecnicos'
+
+    document.querySelector(`.t-${painel}`).style.display = 'flex'
+
+    // FILTRAGEM DE DADOS;
+    controles.tabelasIndicadores.filtros ??= {}
+
+    controles.tabelasIndicadores.filtros = {
+        ...controles.tabelasIndicadores.filtros,
+        'aba': { op: '=', value: aba }
+    }
+
+    await paginacao()
 
 }
 
@@ -301,7 +376,7 @@ async function linPda(orcamento) {
         </td>
         <td>
             <div style="${horizontal}; justify-content: start; align-items: start; gap: 2px;">
-                <img onclick="tecnicosAtivos('${id}')" src="imagens/baixar.png" style="width: 1.5rem;">
+                <img onclick="tecnicosAtivos('${idOrcamento}')" src="imagens/baixar.png" style="width: 1.5rem;">
                 <div style="${vertical}; gap: 2px; width: 100%;">
                     ${tecs}
                 </div>
@@ -344,11 +419,7 @@ async function linPda(orcamento) {
         </td>
         <td>
             ${orcamento ? `<img onclick="abrirAtalhos('${idOrcamento}')" src="imagens/pesquisar2.png" style="width: 1.5rem;">` : ''}
-        </td>
-        <td>
-            <img onclick="confirmarExcluirPda('${idOrcamento}')" src="imagens/cancel.png" style="width: 1.5rem;">
-        </td>
-    `
+        </td>`
 
     return `
         <tr id="${idOrcamento}">
@@ -357,41 +428,17 @@ async function linPda(orcamento) {
 
 }
 
-async function contadores() {
+async function contadoresAbas() {
 
     const contadores = await contarPorCampo({ base: 'dados_orcamentos', path: 'aba' })
 
     for (const [aba, total] of Object.entries(contadores)) {
 
         const spanContador = document.getElementById(`contador-${aba}`)
-        if (spanContador) spanContador.textContent = total
+        if (spanContador)
+            spanContador.textContent = total
 
     }
-}
-
-async function tabelaTecnicos() {
-
-    mostrarGuia('TÉCNICOS')
-
-    const colunas = {
-        'Nome': { chave: 'nome' },
-        'Obras': {}
-    }
-    const pag = 'tecnicos'
-    const tabela = modTab({
-        pag,
-        body: 'bodyTecnicos',
-        base: 'dados_clientes',
-        filtros: { 'tags.*.tag': { op: '=', value: 'TÉCNICO' } },
-        criarLinha: 'criarLinhaTecnico',
-        colunas
-    })
-
-    const divTabelas = document.querySelector('.tabelas-inicial')
-    if (divTabelas) divTabelas.innerHTML = tabela
-
-    await paginacao(pag)
-
 }
 
 function criarLinhaTecnico(tecnico) {
@@ -624,79 +671,6 @@ function incluirContador() {
     ]
 
     popup({ botoes, linhas, nra: false })
-}
-
-async function indicadores() {
-
-    mostrarGuia('INDICADORES')
-
-    //await atualizarGCS()
-
-    const contadores = JSON.parse(localStorage.getItem('contadores')) || []
-    if (!contadores[acesso.usuario])
-        contadores[acesso.usuario] = { estrela: 'N' }
-
-    let filtroUsuario = {}
-
-    Object.entries(contadores)
-        .forEach(([u, conf]) => {
-            if (conf.estrela == 'S' && u !== 'Geral')
-                filtroUsuario = { 'pda.acoes.*.responsavel': { op: '=', value: u } }
-
-            criarGaveta(u, conf)
-        })
-
-    const pag = 'acoes'
-    const tabela = modTab({
-        criarLinha: 'linAcoes',
-        base: 'dados_orcamentos',
-        pag,
-        body: 'bodyAcoes',
-        filtros: {
-            'pda.acoes': { op: 'NOT_EMPTY' },
-            ...filtroUsuario
-        }
-    })
-
-    const acumulado = `
-    <div class="painel-indicadores">
-
-        <div style="${vertical}; width: 50%;">
-            <button onclick="incluirContador()">Incluir contador</button>
-            <div class="guarda-roupas"></div>
-
-            <!--
-            <div class="toolbar-mapas"></div>
-            <div class="fundo-mapa">
-                <img src="imagens/mapa.png" class="mapa">
-                <svg id="mapaOverlay" width="600" height="600" style="position: absolute; top: 0; left: 0;"></svg>
-            </div>
-            -->
-
-        </div>
-
-        <div style="width: 50%;">
-            ${tabela}
-        </div>
-
-    </div>
-    `
-    document.querySelector('.tabelas-inicial').innerHTML = acumulado
-
-    await paginacao(pag)
-
-}
-
-
-function mostrarGuia(guia) {
-
-    const abas = document.querySelectorAll('.aba-toolbar')
-
-    abas.forEach(a => { a.style.opacity = 0.5 })
-
-    const aba = document.querySelector(`#toolbar-${guia}`)
-
-    if (aba) aba.style.opacity = 1
 }
 
 function confirmarCriarOrcamento(idOrcamento) {

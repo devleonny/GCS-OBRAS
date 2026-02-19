@@ -279,7 +279,7 @@ async function usuariosToolbar() {
     if (!acesso)
         return
 
-    acesso = await recuperarDado('dados_setores', acesso.usuario) || {}
+    acesso = await recuperarDado('dados_setores', acesso.usuario) || JSON.parse(localStorage.getItem('acesso')) || {}
 
     const uOnline = await contarPorCampo({ base: 'dados_setores', path: 'status' })
 
@@ -292,20 +292,11 @@ async function usuariosToolbar() {
         </div>`
 
     if (nomeUsuario)
-        nomeUsuario.innerHTML = `<span><b>${inicialMaiuscula(acesso.permissao)}</b> ${acesso.usuario}</span>`
+        nomeUsuario.innerHTML = `<span><b>${inicialMaiuscula(acesso?.permissao || '')}</b> ${acesso.usuario || ''}</span>`
 
     const divUsuarios = document.getElementById('divUsuarios')
     if (divUsuarios)
         divUsuarios.innerHTML = usuariosToolbarString
-
-    //Filtros especiais para Tecnico e Cliente;
-
-    // Apenas ocorrências com o executor igual ao usuário logado;
-    if (acesso.permissao == 'técnico') {
-        controles.ocorrencias ??= {}
-        controles.ocorrencias.filtros ??= {}
-        controles.ocorrencias.filtros['correcoes.*.executor'] = { op: '=', value: acesso.usuario }
-    }
 
 }
 
@@ -1394,7 +1385,7 @@ async function painelClientes(idOrcamento) {
             ` }
     ]
 
-    popup({ linhas, botoes, titulo: 'Dados do Cliente' })
+    popup({ linhas, botoes, titulo: 'Dados do Cliente', autoDestruicao: ['cliente', 'tecnico'] })
 
 }
 

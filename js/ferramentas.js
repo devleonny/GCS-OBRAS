@@ -297,7 +297,7 @@ async function configuracoes(usuario, campo, valor) {
 
     const resposta = comunicacaoServ({ usuario, campo, valor })
 
-    if (resposta.mensagem) 
+    if (resposta.mensagem)
         return popup({ mensagem: resposta.mensagem })
 
     const dadosUsuario = await recuperarDado('dados_setores', usuario)
@@ -343,7 +343,9 @@ function deslogarUsuario() {
 }
 
 async function sair() {
+
     indexedDB.deleteDatabase(nomeBase)
+
     removerPopup()
 
     toolbar.style.display = 'none'
@@ -353,16 +355,25 @@ async function sair() {
     acesso = null
     localStorage.removeItem('acesso')
     telaLogin()
+
 }
 
 function mostrarMenus(operacao) {
 
-    if (document.title !== 'GCS') return
-    if (ignorarMenus) return // Quando atualizações forem recebidas;
+    if (document.title !== 'GCS')
+        return
+
+    if (ignorarMenus)
+        return // Quando atualizações forem recebidas;
 
     const menu = document.querySelector('.side-menu').classList
-    if (operacao == 'toggle') return menu.toggle('active')
-    operacao ? menu.add('active') : menu.remove('active')
+    
+    if (operacao == 'toggle')
+        return menu.toggle('active')
+
+    operacao
+        ? menu.add('active')
+        : menu.remove('active')
 }
 
 let shell = null;
@@ -482,7 +493,7 @@ async function selecionar(name, cod) {
 async function pdf({ id, estilos = [], nome = 'documento', orientacao = '' }) {
 
     const htmlPdf = document.getElementById(id)
-    if (!id || !htmlPdf) 
+    if (!id || !htmlPdf)
         return
 
     overlayAguarde()

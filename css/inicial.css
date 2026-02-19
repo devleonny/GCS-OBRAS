@@ -1,5 +1,4 @@
 .tela-gerenciamento {
-    width: 90vw;
     display: flex;
     align-items: start;
     justify-content: start;
@@ -15,14 +14,6 @@
     padding: 15px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
     display: flex;
-    flex-direction: column;
-}
-
-.tabelas-inicial {
-    display: flex;
-    align-items: start;
-    justify-content: start;
-    width: 100%;
     flex-direction: column;
 }
 
@@ -137,18 +128,9 @@
     width: 600px;
 }
 
-.tabela-indicadores {
-    position: relative;
+.t-tecnicos, .t-tabelas, .t-indicadores{
+    width: 95vw;
     display: none;
-    align-items: start;
-    justify-content: start;
-    flex-direction: column;
-    border: solid 1px #797979;
-    background-color: rgba(255, 255, 255, 0.878);
-    border-radius: 5px;
-    max-height: 80vh;
-    width: 90vw;
-    overflow: auto;
 }
 
 .painel-indicadores {
@@ -164,14 +146,6 @@
     padding: 2rem;
     margin-bottom: 5rem;
     gap: 1rem;
-}
-
-.tabelas-pda {
-    display: none;
-    flex-direction: column;
-    align-items: start;
-    justify-content: start;
-    min-width: 90vw;
 }
 
 .toolbar-mapas {

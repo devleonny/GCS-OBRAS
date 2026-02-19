@@ -58,7 +58,6 @@ async function telaOrcamentos() {
 
     funcaoTela = 'telaOrcamentos'
 
-    const pag = 'orcamentos'
     const colunas = {
         'última alteração': { chave: 'lpu_ativa' },
         'status': { chave: 'status.atual' },
@@ -86,7 +85,7 @@ async function telaOrcamentos() {
         base: 'dados_orcamentos',
         criarLinha: 'criarLinhaOrcamento',
         body: 'linhas',
-        pag
+        pag: 'orcamentos'
     })
 
     const acumulado = `
@@ -101,14 +100,13 @@ async function telaOrcamentos() {
         </div>
         `
 
-    const tabelaOrcamento = document.getElementById('tabelaOrcamento')
-    if (!tabelaOrcamento) tela.innerHTML = acumulado
+    tela.innerHTML = acumulado
 
     await carregarToolbar()
     criarMenus('orcamentos')
     mostrarMenus(false)
 
-    await paginacao(pag)
+    await paginacao()
 
 }
 
@@ -169,59 +167,95 @@ function scrollar(direcao) {
 
 }
 
-async function criarLinhaOrcamento(orcamento, master, idMaster) {
+async function criarLinhaOrcamento(orcamento) {
 
-    const { id, dados_orcam, snapshots = {} } = orcamento
+    const { id, vinculados } = orcamento
 
-    let labels = {
-        PEDIDO: '',
-        FATURADO: ''
+    const master = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato
+    const idMaster = vinculados
+        ? id
+        : null
+
+    const linhas = []
+
+    await linhaOrcamento(orcamento)
+
+    for (const id of Object.keys(vinculados || [])) {
+
+        const orcamento = await recuperarDado('dados_orcamentos', id)
+
+        if (orcamento)
+            await linhaOrcamento(orcamento)
+
     }
 
-    for (const historico of Object.values(orcamento?.status?.historico || {})) {
+    return linhas.join('')
 
-        if (labels[historico.status] == undefined) continue
-        if (historico.tipo == 'Remessa') continue
+    async function linhaOrcamento(orcamento) {
 
-        const valor1 = historico.tipo
-        const valor2 = historico.status == 'FATURADO' ? historico.nf : historico.pedido
-        const valor3 = conversor(historico.valor)
+        const { id, dados_orcam, snapshots = {}, timestamp } = orcamento || {}
 
-        labels[historico.status] += `
+        const pedidos = Object.values(orcamento?.status?.historico || {})
+            .filter(s => s.status == 'PEDIDO')
+            .map(s => {
+
+                const label = `
                 <div class="etiquetas" style="text-align: left; min-width: 100px;">
-                    <label>${valor1}</label>
-                    <label>${valor2}</label>
-                    ${historico.valor ? `<label>${dinheiro(valor3)}</label>` : ''}
+                    <label>${s?.tipo || ''}</label>
+                    <label>${s?.status}</label>
+                    <label>${dinheiro(s?.valor)}</label>
                 </div>
                 `
-    }
+                return label
+            })
+            .join('')
 
-    const st = orcamento?.status?.atual || ''
-    const opcoes = ['', ...fluxograma].map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`).join('')
+        const notas = Object.values(orcamento?.status?.historico || {})
+            .filter(s => s.status == 'FATURADO')
+            .map(s => {
 
-    const responsaveis = Object.entries(orcamento.usuarios || {})
-        .map(([user,]) => user)
-        .join(', ')
+                const label = `
+                <div class="etiquetas" style="text-align: left; min-width: 100px;">
+                    <label>${s?.tipo || ''}</label>
+                    <label>${s?.nf}</label>
+                    <label>${dinheiro(s?.valor)}</label>
+                </div>`
 
-    // Labels do campo Contrato [Revisão, chamado, cliente, etc]
-    const contrato = dados_orcam?.contrato
-    const numOficial = String(dados_orcam?.chamado || contrato || '-').trim()
-    const rAtual = orcamento?.revisoes?.atual
-    const etiqRevAtual = rAtual ? `<span class="etiqueta-revisao">${rAtual}</span>` : ''
+                return label
+            })
+            .join('')
 
-    const nomeVinculado = master
-        ? `
-        <div style="${horizontal}; gap: 5px;">
-            <span>${numOficial}</span>
-            <div class="viculado">
-                <img src="imagens/link2.png">
-                <span>${master}</span>
+        const st = orcamento?.status?.atual || ''
+        const opcoes = ['', ...fluxograma]
+            .map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`)
+            .join('')
+
+        const responsaveis = Object.entries(orcamento.usuarios || {})
+            .map(([user,]) => user)
+            .join(', ')
+
+        // Labels do campo Contrato [Revisão, chamado, cliente, etc]
+        const contrato = dados_orcam?.contrato
+        const numOficial = String(dados_orcam?.chamado || contrato || '-').trim()
+        const rAtual = orcamento?.revisoes?.atual
+        const etiqRevAtual = rAtual
+            ? `<span class="etiqueta-revisao">${rAtual}</span>`
+            : ''
+
+        // idMaster existe e orçamento difrente do master; (Ou seja, slaves);
+        const nomeVinculado = (idMaster && idMaster !== id)
+            ? `
+            <div style="${horizontal}; gap: 5px;">
+                <span>${numOficial}</span>
+                <div class="viculado">
+                    <img src="imagens/link2.png">
+                    <span>${master}</span>
+                </div>
             </div>
-        </div>
-        `
-        : `<span name="contrato">${numOficial}</span>`
+            `
+            : `<span name="contrato">${numOficial}</span>`
 
-    const finalContrato = `
+        const finalContrato = `
         <div style="${vertical};text-align: left; gap: 2px;">
             ${nomeVinculado}
             ${etiqRevAtual}
@@ -229,31 +263,28 @@ async function criarLinhaOrcamento(orcamento, master, idMaster) {
             ${contrato !== numOficial ? `<div style="${horizontal}; justify-content: end; width: 100%; color: #5f5f5f;"><small>${contrato}</small></div>` : ''}
         </div>`
 
-    const data = new Date(orcamento.timestamp).toLocaleString()
+        const data = new Date(orcamento.timestamp).toLocaleString()
 
-    // Comentários nos status;
-    const info = Object
-        .values(orcamento?.status?.historicoStatus || {})
-        .filter(s => (s.info && s.info !== ''))
+        // Comentários nos status;
+        const info = Object
+            .values(orcamento?.status?.historicoStatus || {})
+            .filter(s => (s.info && s.info !== ''))
 
-    const opcoesPda = abas
-        .map(aba => `<option ${orcamento.aba == aba ? 'selected' : ''}>${aba}</option>`)
-        .join('')
+        const opcoesPda = abas
+            .map(aba => `<option ${orcamento.aba == aba ? 'selected' : ''}>${aba}</option>`)
+            .join('')
 
-    // Tags;
-    const tags = []
+        // Tags;
+        const tags = []
 
-    for (const idTag of Object.keys(orcamento.tags || {})) {
+        for (const idTag of Object.keys(orcamento.tags || {})) {
+            const tag = await recuperarDado('tags_orcamentos', idTag)
+            tags.push(modeloTag(tag, id))
+        }
 
-        const tag = await recuperarDado('tags_orcamentos', idTag)
+        let depExistente = false
 
-        tags.push(modeloTag(tag, id))
-
-    }
-
-    let depExistente = false
-
-    const celulas = `
+        const celulas = `
          <td>
             <div style="text-align: left;${vertical}; gap: 2px;">
                 <label><b>${orcamento.lpu_ativa}</b></label>
@@ -279,10 +310,10 @@ async function criarLinhaOrcamento(orcamento, master, idMaster) {
             </div>
         </td>
         <td>
-            <div class="bloco-etiquetas">${labels.PEDIDO}</div>
+            <div class="bloco-etiquetas">${pedidos}</div>
         </td>
         <td>
-            <div class="bloco-etiquetas">${labels.FATURADO}</div>
+            <div class="bloco-etiquetas">${notas}</div>
         </td>
         <td>
             <div style="${vertical}; gap: 2px;">
@@ -324,12 +355,14 @@ async function criarLinhaOrcamento(orcamento, master, idMaster) {
                 style="width: 1.5rem;">
         </td>`
 
-    const linha = `
+        const linha = `
         <tr class="linha-master" data-prioridade="${orcamento?.snapshots?.prioridade}">
             ${celulas}
         </tr>`
 
-    return linha
+        linhas.push(linha)
+
+    }
 
 }
 

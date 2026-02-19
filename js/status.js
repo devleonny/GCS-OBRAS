@@ -247,7 +247,7 @@ async function abrirAtalhos(id, idMaster) {
 
     if (!emAnalise) {
         botoesDisponiveis += `
-        ${modeloBotoes('Checklist', 'CHECKLIST', `telaChecklist()`)}
+        ${modeloBotoes('Checklist', 'CHECKLIST', `telaChecklist('${id}')`)}
         ${modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`)}
         ${modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)}
         ${modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`)}
@@ -344,7 +344,8 @@ async function abrirAtalhos(id, idMaster) {
 
     const menuOpcoesOrcamento = document.querySelector('.menu-opcoes-orcamento')
 
-    if (menuOpcoesOrcamento) return menuOpcoesOrcamento.innerHTML = acumulado
+    if (menuOpcoesOrcamento) 
+        return menuOpcoesOrcamento.innerHTML = acumulado
 
     popup({ elemento: `<div class="menu-opcoes-orcamento">${acumulado}</div>`, titulo: 'Opções do Orçamento' })
 
@@ -382,6 +383,18 @@ async function abrirOS(idOrcamento) {
 
 async function vincularOrcamento(idOrcamento) {
 
+    controlesCxOpcoes.orcamento = {
+        base: 'dados_orcamentos',
+        retornar: ['snapshots.contrato'],
+        colunas: {
+            'Nome': { chave: 'snapshots.cliente' },
+            'Tags': { chave: 'snapshots.tags' },
+            'Dados': { chave: 'snapshots.contrato' },
+            'Criado por': { chave: 'usuario' },
+            'Responsáveis': { chave: 'snapshots.responsavel' }
+        }
+    }
+
     const elemento = `
         <div style="${vertical}; padding: 1rem;">
             <span>Escolha o <b>Orçamento</b> para vincular</span>
@@ -389,13 +402,12 @@ async function vincularOrcamento(idOrcamento) {
             <div style="${horizontal}; gap: 1rem;">
                 <span class="opcoes"
                 name="orcamento"
-                onclick="cxOpcoes('orcamento', 'dados_orcamentos', ['dados_orcam/chamado', 'dados_orcam/contrato', 'dados_orcam/analista', 'total_geral[dinheiro]'])">
+                onclick="cxOpcoes('orcamento')">
                     Selecione
                 </span>
                 <img src="imagens/concluido.png" style="width: 2rem;" onclick="confirmarVinculo('${idOrcamento}')">
             </div>
-        </div>
-    `
+        </div>`
 
     popup({ elemento, titulo: 'Vincular orçamentos' })
 
@@ -460,11 +472,21 @@ async function desfazerVinculo(idSlave, idMaster) {
 
 async function usuariosAutorizados(id) {
 
+    controlesCxOpcoes.usuario = {
+        base: 'dados_setores',
+        retornar: ['usuario'],
+        colunas: {
+            'Usuário': { chave: 'usuario' },
+            'Setor': { chave: 'setor' },
+            'Permissão': { chave: 'permissao' }
+        }
+    }
+
     const elemento = `
         <div style="${vertical}; padding: 1rem;">
             
             <div style="${horizontal}; gap: 5px;">
-                <span class="opcoes" name="usuario" onclick="cxOpcoes('usuario', 'dados_setores', ['usuario', 'setor', 'permissao'])">Selecionar</span>
+                <span class="opcoes" name="usuario" onclick="cxOpcoes('usuario')">Selecionar</span>
                 <img src="imagens/concluido.png" style="width: 2rem;" onclick="delegarUsuario('${id}')">
             </div>
 
@@ -474,7 +496,7 @@ async function usuariosAutorizados(id) {
         </div>
     `
 
-    popup({ elemento })
+    popup({ elemento, autoDestruicao: ['usuario'] })
 
     await carregarAutorizados(id)
 
@@ -628,7 +650,7 @@ function elementosEspecificos(id, chave, historico) {
             .join('')
 
 
-        const botaoDANFE = `
+        let botaoDANFE = `
             ${labelDestaque('Nota', historico.nf)}
             ${labelDestaque('Tipo', historico.tipo)}
         `

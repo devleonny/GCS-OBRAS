@@ -139,7 +139,7 @@ async function comunicacao() {
         }
 
         if (tipo == 'atualizacao') {
-            
+
             await sincronizarDados({ base: tabela })
 
             if (tabela == 'dados_orcamentos')
@@ -152,14 +152,14 @@ async function comunicacao() {
                 await atualizarPainelEsquerdo()
 
             if (tabela == 'dados_setores') {
-                const { usuario, permissao, timestamp = 0 } = JSON.parse(localStorage.getItem('acesso')) || {}
+                const { usuario, permissao, empresa, timestamp = 0 } = JSON.parse(localStorage.getItem('acesso')) || {}
                 const us = await recuperarDado('dados_setores', usuario)
 
                 if (us?.timestamp !== timestamp) {
 
                     localStorage.setItem('acesso', JSON.stringify(us))
 
-                    if (us.permissao !== permissao) {
+                    if (us.permissao !== permissao || us.empresa !== empresa) {
 
                         popup({ mensagem: '<b>Seu acesso foi alterado:</b> Salve seus trabalhos, o sistema será reiniciado em 5 minutos...' })
 
