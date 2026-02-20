@@ -110,6 +110,11 @@
     gap: 0.5rem;
 }
 
+.toolbar-itens input {
+    padding: 3px;
+    border-radius: 50px;
+}
+
 .relatorio {
     margin: 2rem;
 }

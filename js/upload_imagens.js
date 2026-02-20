@@ -61,10 +61,11 @@ async function importarImagem(codigo) {
 
     let srcRetornado = responseData.data.link
 
-    db.dados_composicoes[codigo].imagem = srcRetornado
+    const produto = await recuperarDado('dados_composicoes', codigo)
+    produto.imagem = srcRetornado
 
     enviar(`dados_composicoes/${codigo}/imagem`, srcRetornado)
-    await inserirDados({ [codigo]: db.dados_composicoes[codigo] }, 'dados_composicoes')
+    await inserirDados({ [codigo]: produto }, 'dados_composicoes')
 
     let localImagens = document.getElementsByName(codigo)
     localImagens.forEach(elemt => {

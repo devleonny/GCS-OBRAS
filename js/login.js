@@ -6,10 +6,10 @@ async function telaLogin() {
 
     if (acesso) {
         app = localStorage.getItem('app')
-        if (app == 'GCS') 
-            return await telaInicial()
-        
-        return await telaPrincipal()
+        if (app == 'GCS')
+            return await telaInicialGCS()
+
+        return await telaInicialOcorrencias()
     }
 
     const tLogin = document.querySelector('.loginBloco')
@@ -104,12 +104,13 @@ async function acessoLogin() {
 
                 acesso = data
                 priExeGCS = true
-                priExeOcorr = true
-                app = permCham.includes(acesso.permissao) ? 'OCORRÊNCIAS' : 'GCS'
+                app = permCham.includes(acesso.permissao)
+                    ? 'OCORRÊNCIAS'
+                    : 'GCS'
                 localStorage.setItem('app', app)
                 localStorage.setItem('acesso', JSON.stringify(data))
 
-                await connectWebSocket()
+                connectWebSocket()
 
             }
 

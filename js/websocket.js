@@ -5,7 +5,6 @@ let reconectando = false
 
 let emAtualizacao = false
 let priExeGCS = true
-let priExeOcorr = true
 
 connectWebSocket()
 
@@ -48,7 +47,6 @@ function connectWebSocket() {
     }
 }
 
-
 async function validarAcesso() {
 
     acesso = JSON.parse(localStorage.getItem('acesso'))
@@ -82,17 +80,6 @@ function msgStatus(msg, s = 2) {
     console.log(msg)
 }
 
-async function refletir() {
-    if (app !== 'GCS') return
-    sOverlay = true
-    ignorarMenus = true
-
-    await executar(funcaoTela)
-
-    sOverlay = false
-    ignorarMenus = false
-}
-
 async function comunicacao() {
 
     app = localStorage.getItem('app') || 'OCORRÊNCIAS'
@@ -100,14 +87,14 @@ async function comunicacao() {
     socket.onmessage = async (event) => {
 
         const data = JSON.parse(event.data)
-        const { tabela, desconectar, validado, tipo, id, dados, usuario, status } = data
+        const { tabela, desconectar, validado, tipo, usuario, status } = data
 
         if (desconectar) {
             acesso = {}
             localStorage.removeItem('acesso')
-            await resetarTudo()
+            indexedDB.deleteDatabase(nomeBase)
             await telaLogin()
-            popup({ mensagem: 'Usuário removido do servidor' })
+            popup({ mensagem: 'Usuário desconectado' })
             return
         }
 
@@ -121,71 +108,78 @@ async function comunicacao() {
 
                 if (!telaAtiva) {
                     if (app == 'GCS')
-                        await telaInicial()
+                        await telaInicialGCS()
                     else
-                        await telaPrincipal()
+                        await telaInicialOcorrencias()
                 }
 
             } else {
 
                 if (app == 'GCS') {
 
-                    if (priExeGCS) {
-                        await telaInicial()
-                        priExeGCS = false
-                    }
+                    await telaInicialGCS()
 
                 } else {
 
                     overlayAguarde()
                     msgStatus('Offline', 3)
                     msgStatus('Alteração no acesso recebida...')
-                    await resetarTudo()
-                    await atualizarOcorrencias()
+
+                    await atualizarGCS(true)
+                    await telaInicialOcorrencias()
+
                     msg({ tipo: 'confirmado', usuario: acesso.usuario })
                     msgStatus('Tudo certo', 1)
+
                 }
             }
 
+            await usuariosToolbar()
             removerOverlay()
-            nomeUsuario.innerHTML = `<span><strong>${inicialMaiuscula(acesso.permissao)}</strong> ${acesso.usuario}</span>`
-        }
-
-        if (app !== 'GCS') return
-
-        if (tabela == 'dados_orcamentos') {
-            db.dados_orcamentos = await sincronizarDados({ base: 'dados_orcamentos' })
-            await verificarPendencias()
-            await refletir()
-            return
-        }
-
-        if (tipo == 'exclusao') {
-            delete db[tabela][id]
-            await deletarDB(tabela, id)
-            await refletir()
         }
 
         if (tipo == 'atualizacao') {
-            db[tabela][id] = dados
-            await inserirDados({ [id]: dados }, tabela)
-            await refletir()
+
+            await sincronizarDados({ base: tabela })
+
+            if (tabela == 'dados_orcamentos')
+                await verificarPendencias()
+
+            if (tabela == 'dados_ocorrencias')
+                await auxPendencias()
+
+            if (tabela == 'lista_pagamentos')
+                await atualizarPainelEsquerdo()
+
+            if (tabela == 'dados_setores') {
+                const { usuario, permissao, empresa, timestamp = 0 } = JSON.parse(localStorage.getItem('acesso')) || {}
+                const us = await recuperarDado('dados_setores', usuario)
+
+                if (us?.timestamp !== timestamp) {
+
+                    localStorage.setItem('acesso', JSON.stringify(us))
+
+                    if (us.permissao !== permissao || us.empresa !== empresa) {
+
+                        popup({ mensagem: '<b>Seu acesso foi alterado:</b> Salve seus trabalhos, o sistema será reiniciado em 5 minutos...' })
+
+                        setTimeout(() => {
+                            location.reload()
+                        }, 5 * 60 * 1000)
+
+                        await usuariosToolbar()
+                    }
+
+                }
+
+            }
         }
 
         if (tipo == 'status') {
-            const tSetores = 'dados_setores'
-            const user = await recuperarDado(tSetores, usuario)
 
-            if (user) {
-                user.status = status
-                db[tSetores][usuario] = user
-                await inserirDados({ [usuario]: user }, tSetores)
-            }
+            await usuariosToolbar()
+            balaoUsuario(status, usuario)
 
-            if (app == 'GCS') {
-                await usuariosToolbar()
-                balaoUsuario(status, usuario)
-            }
         }
     }
 }
@@ -204,13 +198,12 @@ async function carregarControles() {
     }
 
     const permitidosAprovacoes = ['adm', 'diretoria']
-    const permitidosProdutos = ['LOGÍSTICA', 'SUPORTE', 'FINANCEIRO']
+
     const barraStatus = `
             <div id="divUsuarios"></div>
 
             ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
             ${permitidosAprovacoes.includes(acesso.permissao) ? modelo('construcao', 'configs()', '') : ''}
-            ${permitidosProdutos.includes(acesso.setor) ? modelo('preco', 'precosDesatualizados()', 'contadorProdutos') : ''}
 
             <img title="Abrir mais 1 aba" src="imagens/aba.png" onclick="maisAba()">
         `
@@ -218,6 +211,5 @@ async function carregarControles() {
     if (cabecalhoUsuario) cabecalhoUsuario.innerHTML = barraStatus
 
     await usuariosToolbar()
-    await precosDesatualizados(true) //Atualiza apenas a quantidade;
     await verificarPendencias() // Pendencias de aprovação;
 }

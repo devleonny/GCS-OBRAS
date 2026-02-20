@@ -1,43 +1,62 @@
 async function telaRelatorio() {
 
-    filtrosPagina = {}
+    const colunas = {
+        '': {},
+        'Empresa': { chave: 'snapshots.empresa' },
+        'Chamado': { chave: 'id' },
+        'Status': { chave: 'snapshots.ultimaCorrecao' },
+        'Data Abertura': { chave: 'dataRegistro' },
+        'Hora Abertura': {},
+        'Data Limite': { chave: 'snapshots.dtCorrecao' },
+        'Solicitante': { chave: 'usuario' },
+        'Executores': { chave: 'snapshots.executores' },
+        'Tipo Correção': { chave: 'snapshots.ultimaCorrecao' },
+        'Loja': { chave: 'snapshots.cliente.nome' },
+        'Cidade': { chave: 'snapshots.cliente.cidade' },
+        'Estado': { chave: 'snapshots.cliente.estado' },
+        'Sistema': { chave: 'snapshots.sistema' },
+        'Prioridade': { chave: 'snapshots.prioridade' }
+    }
 
-    overlayAguarde()
-
-    const tabela = modeloTabela({
-        colunas: [
-            '',
-            'Empresa',
-            'Chamado',
-            'Status',
-            'Data Abertura',
-            'Hora Abertura',
-            'Data Limite',
-            'Data da Correção',
-            'Dias',
-            'Solicitante',
-            'Executores',
-            'Tipo Correção',
-            'Loja',
-            'Cidade',
-            'Estado',
-            'Sistema',
-            'Prioridade'
-        ],
-        funcao: `atualizarRelatorio()`
+    const tabela = modTab({
+        colunas,
+        pag: 'relatorioOcorrencias',
+        body: 'bodyRelatorioOcorrencias',
+        base: 'dados_ocorrencias',
+        filtros: {
+            ...(
+                acesso.permissao == 'cliente'
+                    ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
+                    : {}
+            )
+        },
+        criarLinha: 'criarLinhaRelatorio'
     })
 
-    const modelo = (texto, name, cor) => `
+    const modelo = ({ texto, qtde, porcentagem, cor }) => `
         <div style="background-color: ${cor};" class="balao-totais">
             <label>${texto}</label>
 
             <div style="${horizontal}; gap: 1rem;">
-                <label name="${name}" style="font-size: 2rem;"></label>
-                ${name !== 'totalChamados' ? `<label name="porc_${name}"></label>` : ''}
+                <label style="font-size: 2rem;">${qtde}</label>
+                ${porcentagem ? `<label>${(porcentagem * 100).toFixed(0)}%</label>` : ''}
             </div>
 
-        </div>
-    `
+        </div>`
+
+    const contador = await contarPorCampo({
+        base: 'dados_ocorrencias',
+        filtros: {
+            ...(
+                acesso.permissao == 'cliente'
+                    ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
+                    : {}
+            )
+        },
+        path: 'snapshots.ultimaCorrecao'
+    }) || {}
+
+    const { todos, Solucionada } = contador
 
     const acumulado = `
         <div class="pagina-relatorio">
@@ -52,14 +71,14 @@ async function telaRelatorio() {
                     </div>
 
                     <div style="${vertical}; gap: 0.5rem;">
-                        <input id="de" type="date" onchange="pesquisarDatas()">
-                        <input id="ate" type="date" onchange="pesquisarDatas()">
+                        <input id="de" type="date" onchange="pesquisarDatas('relatorioOcorrencias')">
+                        <input id="ate" type="date" onchange="pesquisarDatas('relatorioOcorrencias')">
                     </div>
 
                     <div class="toolbar-itens">
-                        ${modelo('Total', 'totalChamados', '#222')}
-                        ${modelo('Solucionados', 'solucionados', '#1d7e45')}
-                        ${modelo('Em Aberto', 'emAberto', '#b12425')}
+                        ${modelo({ texto: 'Total', qtde: todos, cor: '#222' })}
+                        ${modelo({ texto: 'Solucionados', porcentagem: Solucionada / todos, qtde: Solucionada, cor: '#1d7e45' })}
+                        ${modelo({ texto: 'Em Aberto', porcentagem: (todos - Solucionada) / todos, qtde: (todos - Solucionada), cor: '#b12425' })}
                     </div>
                 </div>
 
@@ -72,19 +91,11 @@ async function telaRelatorio() {
 
     titulo.textContent = 'Relatório de Ocorrências'
 
-    for (const [idOcorrencia, ocorrencia] of Object.entries(db.dados_ocorrencias).reverse()) 
-        criarLinhaRelatorio(idOcorrencia, ocorrencia)
-
-    calcularResumo()
     mostrarMenus(false)
 
-    removerOverlay()
+    await paginacao()
 
-}
 
-async function atualizarRelatorio() {
-    await atualizarOcorrencias()
-    await telaRelatorio()
 }
 
 function dtAuxOcorrencia(dt) {
@@ -96,155 +107,69 @@ function dtAuxOcorrencia(dt) {
     return `${dia}/${mes}/${ano}`
 }
 
-async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
+async function criarLinhaRelatorio(ocorrencia) {
 
-    const uc = uCorrecao(ocorrencia?.correcoes || {})
-    const tipo = uc.tipo
-    const status = db.correcoes?.[tipo]?.nome || 'Não analisada'
+    const { id, snapshots } = ocorrencia || {}
+    const { ultimaCorrecao, cliente, empresa, tipo, prioridade, sistema } = snapshots || {}
+
+    const status = ultimaCorrecao
     const estilo = status == 'Solucionada'
         ? 'fin'
         : status == 'Não analisada'
             ? 'na'
             : 'and'
 
-    const calculos = verificarDtSolucao()
-
-    const [dtAb, hrAb] = ocorrencia.dataRegistro ? ocorrencia.dataRegistro.split(', ') : ['', '']
+    const [dtAb, hrAb] = ocorrencia.dataRegistro
+        ? ocorrencia.dataRegistro.split(', ')
+        : ['', '']
 
     const executores = Object.values(ocorrencia?.correcoes || {})
         .map(correcao => `<span>• ${correcao.executor}</span>`)
         .join('')
 
-    const cliente = db.dados_clientes?.[ocorrencia?.unidade] || {}
-
     const tds = `
         <td>
             <div style="${horizontal}">
-                <img src="imagens/pesquisar2.png" style="width: 2rem; cursor: pointer;" onclick="abrirCorrecaoRelatorio('${idOcorrencia}')">
+                <img src="imagens/pesquisar2.png" style="width: 2rem; cursor: pointer;" onclick="abrirCorrecaoRelatorio('${id}')">
             </div>
         </td>
-        <td>${ db.empresas[ocorrencia?.empresa]?.nome || '-'}</td>
-        <td>${idOcorrencia}</td>
+        <td>${empresa}</td>
+        <td>${id}</td>
         <td>
             <span class="${estilo}">${status}</span>
         </td>
         <td>${dtAb}</td>
         <td>${hrAb}</td>
-        <td>${dtAuxOcorrencia(ocorrencia?.dataLimiteExecucao)}</td>
-        <td>${calculos.dtSolucaoStr}</td>
-        <td> 
-            ${calculos.dias
-            ? `
-                <div style="${horizontal}; justify-content: start; gap: 5px;">
-                    <img src="imagens/${calculos.img}.png" style="width: 1.5rem;">
-                    <span>${calculos.dias || 'Sem Previsão'}</span>
-                </div>`
-            : 'Sem Previsão'
-        }
-        </td>
+        <td>${snapshots?.dtCorrecao || ''}</td>
         <td>${ocorrencia?.usuario || ''}</td>
         <td>
             <div style="${vertical}; gap: 2px;">${executores}</div>
         </td>
-        <td>${db.tipos?.[ocorrencia?.tipo]?.nome || '...'}</td>
+        <td>${tipo}</td>
         <td>${cliente?.nome || '-'}</td>
         <td>${cliente?.cidade || '-'}</td>
         <td>${cliente?.estado || '-'}</td>
-        <td>${db.sistemas?.[ocorrencia?.sistema]?.nome || '...'}</td>
-        <td>${db.prioridades?.[ocorrencia?.prioridade]?.nome || '...'}</td>
+        <td>${sistema}</td>
+        <td>${prioridade}</td>
     `
 
-    const trExistente = document.getElementById(`OCOR_${idOcorrencia}`)
-    if (trExistente) return trExistente.innerHTML = linha
+    return `<tr>${tds}</tr>`
 
-    document.getElementById('body').insertAdjacentHTML('beforeend', `<tr id="OCOR_${idOcorrencia}">${tds}</tr>`)
-
-    function verificarDtSolucao() {
-        if (!ocorrencia.dataLimiteExecucao) {
-            return { dtSolucaoStr: '-', dias: false, img: 'pendente' }
-        }
-
-        const [ano, mes, dia] = ocorrencia.dataLimiteExecucao.split('-').map(Number);
-        const dataLimite = new Date(ano, mes - 1, dia);
-        dataLimite.setHours(0, 0, 0, 0);
-
-        let dtSolucaoStr = '-';
-        let dias = 0;
-
-        // pegar a última correção válida
-        const correcao = Object.values(ocorrencia?.correcoes || {}).find(c => c.tipoCorrecao === 'WRuo2') || {}
-
-        let dtReferencia = null
-
-        if (correcao.data) {
-            const [dataStr, horaStr] = correcao.data.split(', ')
-            const [dia, mes, ano] = dataStr.split('/').map(Number)
-            const [hora, minuto] = horaStr.split(':').map(Number)
-
-            const dtSolucao = new Date(ano, mes - 1, dia, hora, minuto)
-            dtSolucao.setHours(0, 0, 0, 0)
-
-            dtSolucaoStr = dtSolucao.toLocaleDateString('pt-BR')
-            dtReferencia = dtSolucao
-        } else {
-            dtReferencia = new Date()
-            dtReferencia.setHours(0, 0, 0, 0)
-        }
-
-        dias = Math.round((dataLimite - dtReferencia) / (1000 * 60 * 60 * 24));
-
-        if (isNaN(dias)) dias = false
-
-        const img = dias < 0 ? 'offline' : dtSolucaoStr !== '' ? 'online' : 'pendente'
-
-        return { dtSolucaoStr, dias, img };
-    }
 }
 
-function calcularResumo() {
-    const totais = {
-        totalChamados: 0,
-        solucionados: 0,
-        emAberto: 0
-    }
-
-    const body = document.getElementById('body')
-    const trs = body.querySelectorAll('tr')
-
-    for (const tr of trs) {
-        if (tr.style.display == 'none') continue
-
-        const tds = tr.querySelectorAll('td')
-        const solucionado = tds[3].querySelector('span').textContent == 'Solucionada'
-
-        totais.totalChamados++
-
-        if (solucionado) {
-            totais.solucionados++
-        } else {
-            totais.emAberto++
-        }
-    }
-
-    for (const [total, quantidade] of Object.entries(totais)) {
-        const el = document.querySelector(`[name="${total}"]`)
-        const elPor = document.querySelector(`[name="porc_${total}"]`)
-        if (el) el.textContent = quantidade
-        if (elPor) elPor.textContent = quantidade == 0 ? '0%' : `${((quantidade / totais.totalChamados) * 100).toFixed(0)}%`
-    }
-}
 
 async function abrirCorrecaoRelatorio(idOcorrencia) {
 
-    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
+    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
     const correcoesOC = ocorrencia?.correcoes || {}
+    const { cliente } = ocorrencia?.snapshots || {}
     const thead = ['Executor', 'Tipo Correção', 'Descrição', 'Localização', 'Imagens']
         .map(op => `<th>${op}</th>`)
         .join('')
 
     let linhas = ''
     for (let correcao of Object.values(correcoesOC)) {
-        const st = db.correcoes[correcao.tipoCorrecao].nome
+        const { nome } = await recuperarDado('correcoes', correcao.tipoCorrecao) || {}
         let registros = ''
         let imagens = ''
 
@@ -288,7 +213,7 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
         linhas += `
             <tr>
                 <td>${correcao.executor}</td>
-                <td>${st}</td>
+                <td>${nome}</td>
                 <td style="width: 200px; text-align: left;">${correcao.descricao}</td>
                 <td>
                     <div style="${vertical}; gap: 1px;">
@@ -301,8 +226,6 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
             </tr>`
     }
 
-    const loja = db.dados_clientes?.[ocorrencia?.unidade] || {}
-
     const elemento = `
         <div class="detalhes-correcao">
 
@@ -311,13 +234,13 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
 
             <div style="${horizontal}; justify-content: left; gap: 1rem;">
                 <div style="${vertical}">
-                    ${modelo('Loja', loja?.nome || '...')}
-                    ${modelo('Endereço', loja?.bairro || '...')}
+                    ${modelo('Loja', cliente?.nome || '...')}
+                    ${modelo('Endereço', cliente?.bairro || '...')}
                 </div>
 
                 <div style="${vertical}">
-                    ${modelo('Cidade', loja?.cidade || '...')}
-                    ${modelo('Cep', loja?.cep || '...')}
+                    ${modelo('Cidade', cliente?.cidade || '...')}
+                    ${modelo('Cep', cliente?.cep || '...')}
                 </div>
             </div>
 
@@ -341,86 +264,22 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
     popup({ elemento, titulo: 'Correções' })
 }
 
+async function pesquisarDatas(pag) {
+    const deInput = document.getElementById('de').value
+    const ateInput = document.getElementById('ate').value
 
-function pesquisarOcorrencias(coluna, texto, id) {
-    filtroOcorrencias[coluna] = String(texto).toLowerCase().replace('.', '').trim();
+    controles[pag].filtros ??= {}
 
-    const tbody = document.getElementById(id);
-    const trs = tbody.querySelectorAll('tr');
-
-    for (const tr of trs) {
-        const tds = tr.querySelectorAll('td');
-        const filtroData = tr.dataset.data;
-
-        // se não passou no filtro de datas, já esconde
-        if (filtroData === 'n') {
-            tr.style.display = 'none';
-            continue;
-        }
-
-        let mostrarLinha = true;
-
-        for (const col in filtroOcorrencias) {   // <--- CORRIGIDO
-            let filtroTexto = filtroOcorrencias[col];
-
-            if (filtroTexto && col < tds.length) {
-                let element = tds[col].querySelector('input')
-                    || tds[col].querySelector('textarea')
-                    || tds[col].querySelector('select')
-                    || tds[col].textContent;
-
-                let conteudoCelula = element.value ? element.value : element;
-                let texto_campo = String(conteudoCelula).toLowerCase().replace('.', '').trim();
-
-                if (!texto_campo.includes(filtroTexto)) {
-                    mostrarLinha = false;
-                    break;
-                }
-            }
-        }
-
-        tr.style.display = mostrarLinha ? '' : 'none';
-    }
-}
-
-function pesquisarDatas() {
-    const deInput = document.getElementById('de').value;
-    const ateInput = document.getElementById('ate').value;
-
-    const body = document.getElementById('body');
-    const trs = body.querySelectorAll('tr');
-
-    if (!deInput || !ateInput) {
-        for (const tr of trs) {
-            tr.dataset.data = 's';
-            tr.style.display = '';
-        }
-        return;
+    controles[pag].filtros = {
+        ...controles[pag].filtros,
+        'dataRegistro': [
+            { op: '>=d', value: deInput },
+            { op: '<=d', value: ateInput },
+        ]
     }
 
-    const [anoDe, mesDe, diaDe] = deInput.split('-').map(Number);
-    const [anoAte, mesAte, diaAte] = ateInput.split('-').map(Number);
+    await paginacao()
 
-    const de = new Date(anoDe, mesDe - 1, diaDe, 0, 0, 0, 0);
-    const ate = new Date(anoAte, mesAte - 1, diaAte, 23, 59, 59, 999);
-
-    for (const tr of trs) {
-        const tds = tr.querySelectorAll('td');
-        const dataAbertura = tds[4]?.textContent.trim();
-        if (!dataAbertura) continue;
-
-        const [dataStr] = dataAbertura.split(',');
-        const [dia, mes, ano] = dataStr.split('/').map(Number);
-        const data = new Date(ano, mes - 1, dia);
-
-        if (data >= de && data <= ate) {
-            tr.dataset.data = 's';
-            tr.style.display = '';
-        } else {
-            tr.dataset.data = 'n';
-            tr.style.display = 'none';
-        }
-    }
 }
 
 async function paraExcel() {
@@ -498,22 +357,32 @@ async function paraExcel() {
 
 async function telaRelatorioCorrecoes() {
 
-    filtrosPagina = {}
+    const colunas = {
+        'Empresa': { chave: 'snapshots.empresa' },
+        'Chamado': { chave: 'snapshots.empresa' },
+        'Tipo Correção': { chave: 'snapshots.empresa' },
+        'Descrição': { chave: 'snapshots.empresa' },
+        'Data Registro': { chave: 'snapshots.empresa' },
+        'Hora Registro': { chave: 'snapshots.empresa' },
+        'Solicitante': { chave: 'snapshots.empresa' },
+        'Executor': { chave: 'snapshots.empresa' },
+        'Loja': { chave: 'snapshots.empresa' },
+        'Sistema': { chave: 'snapshots.empresa' }
+    }
 
-    const tabela = modeloTabela({
-        colunas: [
-            'Empresa',
-            'Chamado',
-            'Tipo Correção',
-            'Descrição',
-            'Data Registro',
-            'Hora Registro',
-            'Solicitante',
-            'Executor',
-            'Loja',
-            'Sistema'
-        ],
-        funcao: `atualizarRelatorio()`
+    const tabela = modTab({
+        colunas,
+        filtros: {
+            ...(
+                acesso.permissao == 'cliente'
+                    ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
+                    : {}
+            )
+        },
+        base: 'dados_ocorrencias',
+        pag: 'relatorioCorrecoes',
+        body: 'bodyCorrecoes',
+        criarLinha: 'criarLinhasCorrecoes',
     })
 
     const acumulado = `
@@ -529,8 +398,8 @@ async function telaRelatorioCorrecoes() {
                     </div>
 
                     <div style="${vertical}; gap: 0.5rem;">
-                        <input id="de" type="date" onchange="pesquisarDatas()">
-                        <input id="ate" type="date" onchange="pesquisarDatas()">
+                        <input id="de" type="date" onchange="pesquisarDatas('relatorioCorrecoes')">
+                        <input id="ate" type="date" onchange="pesquisarDatas('relatorioCorrecoes')">
                     </div>
                 </div>
 
@@ -543,26 +412,28 @@ async function telaRelatorioCorrecoes() {
 
     titulo.textContent = 'Relatório de Correções'
 
-    for (const [idOcorrencia, ocorrencia] of Object.entries(db.dados_ocorrencias).reverse()) {
-        criarLinhasCorrecoes(idOcorrencia, ocorrencia)
-    }
+    await paginacao()
 
     mostrarMenus(false)
 
 }
 
-function criarLinhasCorrecoes(idOcorrencia, ocorrencia) {
+async function criarLinhasCorrecoes(ocorrencia) {
 
-    const cliente = db.dados_clientes?.[ocorrencia?.unidade] || {}
+    const { id, snapshots } = ocorrencia || {}
 
-    for (const [idCorrecao, correcao] of Object.entries(ocorrencia?.correcoes || {})) {
+    const { cliente, empresa, sistema } = snapshots || {}
+
+    const linhas = []
+
+    for (const correcao of Object.values(ocorrencia?.correcoes || {})) {
 
         const [data, hora] = correcao.data ? correcao.data.split(', ') : ['-', '-']
 
         const tds = `
-        <td>${db.empresas?.[ocorrencia?.empresa]?.nome || '-'}</td>
-        <td>${idOcorrencia}</td>
-        <td>${db.correcoes?.[correcao?.tipoCorrecao]?.nome || '-'}</td>
+        <td>${empresa}</td>
+        <td>${id}</td>
+        <td>${await recuperarDado('correcoes', correcao?.tipoCorrecao)?.nome || 'Não analisada'}</td>
         <td>
             <div>
                 ${String(correcao?.descricao || '').replace('\n', '<br>')}
@@ -573,16 +444,12 @@ function criarLinhasCorrecoes(idOcorrencia, ocorrencia) {
         <td>${correcao?.usuario || '-'}</td>
         <td>${correcao?.executor || '-'}</td>
         <td>${cliente?.nome || '-'}</td>
-        <td>${db.sistemas?.[ocorrencia?.sistema]?.nome || '-'}</td>
+        <td>${sistema}</td>
         `
 
-        const trExistente = document.getElementById(`CORR_${idCorrecao}`)
-        if (trExistente) {
-            trExistente.innerHTML = tds
-            continue
-        }
-
-        document.getElementById('body').insertAdjacentHTML('beforeend', `<tr id="CORR_${idCorrecao}">${tds}</tr>`)
+        linhas.push(`<tr>${tds}</tr>`)
     }
+
+    return linhas.join('')
 
 }

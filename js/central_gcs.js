@@ -2,33 +2,37 @@ const botaoRodape = (funcao, texto, img) => `
         <div class="botoesRodape" onclick="${funcao}">
             <img src="imagens/${img}.png">
             <span>${texto}</span>
-        </div>
-    `
-const modelo = (valor1, valor2) => `
-        <div class="modelo">
-            <label>${valor1}</label>
-            <div style="width: 100%; text-align: left;">${valor2}</div>
-        </div>
-        `
+        </div>`
 
-const labelDestaque = (valor1, valor2) => `
+const modelo = (valor1, valor2) => `
+    <div class="modelo">
+        <label>${valor1}</label>
+        <div style="width: 100%; text-align: left;">${valor2}</div>
+    </div>`
+
+const labelDestaque = (valor1, valor2) => {
+
+    if (!valor2)
+        return ''
+
+    return `
     <div style="${vertical}">
         <div><strong>${valor1}:</strong></div>
-        <div style="text-align: left;">${valor2}</div>
-    </div>
-`
+        <div style="text-align: left; white-space: pre-wrap;">${valor2}</div>
+    </div>`
+}
 
 const botao = (valor1, funcao, cor) => `
         <div class="contorno-botoes" style="background-color: ${cor}e3; border: solid 1px ${cor};" onclick="${funcao}">
             <label style="white-space: nowrap;">${valor1}</label>
-        </div>
-        `
+        </div>`
+
 const avisoHTML = (termo) => `
     <div style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 2vw;">
         <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
         <label>${termo}</label>
-    </div>
-    `
+    </div>`
+
 const balaoPDF = ({ nf, tipo, codOmie, app }) => {
     return `
     <div class="balaoNF" onclick="abrirDANFE('${codOmie}', '${tipo}', '${app}')">
@@ -39,16 +43,15 @@ const balaoPDF = ({ nf, tipo, codOmie, app }) => {
         <div class="balao2">
             PDF
         </div>
-    </div>
-    `
+    </div>`
 }
 
 const modeloBotoes = (imagem, nome, funcao) => {
     return `
-        <div class="atalhos" style="width: 100%;" onclick="${funcao}">
-            <img src="imagens/${imagem}.png">
-            <label style="cursor: pointer;">${nome}</label>
-        </div>
+    <div class="atalhos" style="width: 100%;" onclick="${funcao}">
+        <img src="imagens/${imagem}.png">
+        <label style="cursor: pointer;">${nome}</label>
+    </div>
     `
 }
 
@@ -86,75 +89,6 @@ async function executar(nomeFuncao) {
 
 }
 
-async function atualizarGCS(resetar) {
-
-    if (emAtualizacao) return
-
-    mostrarMenus(true)
-
-    emAtualizacao = true
-    sincronizarApp()
-
-    const basesAuxiliares = [
-        'informacoes',
-        'dados_setores',
-        'pessoas',
-        'empresas',
-        'sistemas',
-        'prioridades',
-        'correcoes',
-        'tipos',
-        'veiculos',
-        'motoristas',
-        'dados_estoque',
-        'custo_veiculos',
-        'dados_composicoes',
-        'dados_clientes',
-        'dados_categorias_AC',
-        'dados_manutencao',
-        'dados_ocorrencias',
-        'dados_orcamentos',
-        'lista_pagamentos',
-        'tags_orcamentos',
-        'departamentos_AC'
-    ]
-
-    const status = { total: (basesAuxiliares.length + 1), atual: 1 }
-
-    sincronizarApp(status)
-
-    status.atual++
-
-    for (const base of basesAuxiliares) {
-
-        sincronizarApp(status)
-
-        const dados = await sincronizarDados({ base, resetar })
-
-        db[base] ??= {}
-        db[base] = dados
-
-        status.atual++
-
-        // A tabela é a primeira: atualiza os dados da empresa atual antes da tabela de clientes;
-        if (base == 'dados_setores') {
-            const existente = await recuperarDado('dados_setores', acesso.usuario)
-
-            if (!existente) continue
-
-            acesso = existente
-            localStorage.setItem('acesso', JSON.stringify(existente))
-
-        }
-
-    }
-
-    sincronizarApp({ remover: true })
-    emAtualizacao = false
-    await executar(funcaoTela)
-
-}
-
 function criarMenus(chave) {
     telaAtiva = chave
     const botoesMenu = document.querySelector('.botoesMenu')
@@ -169,18 +103,8 @@ function criarMenus(chave) {
 
 const atalhoInicial = [
     { nome: 'Atualizar GCS', funcao: 'atualizarGCS', img: 'atualizar' },
-    { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
-    { nome: 'Criar Orçamento', funcao: 'telaCriarOrcamento', img: 'projeto' },
-    { nome: 'Criar Orçamento de Aluguel', funcao: 'telaCriarOrcamentoAluguel', img: 'projeto' },
-    { nome: 'Solicitar Pagamento', funcao: 'formularioPagamento', img: 'dinheiro' },
+    { nome: 'Menu Inicial', funcao: 'telaInicialGCS', img: 'LG' }
 ]
-
-async function irOcorrencias() {
-    overlayAguarde()
-    priExeOcorr = true
-    await telaPrincipal()
-    removerOverlay()
-}
 
 const esquemaBotoes = {
     inicial: [
@@ -193,7 +117,7 @@ const esquemaBotoes = {
         { nome: 'Estoque', funcao: `telaEstoque`, img: 'estoque' },
         //{ nome: 'Faturamento NFs', funcao: `telaRelatorioOmie`, img: 'relatorio' },
         { nome: 'RH', funcao: `telaRH`, img: 'gerente' },
-        { nome: 'Ocorrências', funcao: `irOcorrencias`, img: 'LG' },
+        { nome: 'Ocorrências', funcao: `telaInicialOcorrencias`, img: 'LG' },
         { nome: 'Desconectar', funcao: `deslogarUsuario`, img: 'sair' }
     ],
     criarOrcamentos: [
@@ -209,7 +133,9 @@ const esquemaBotoes = {
         { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'voltar_2' }
     ],
     orcamentos: [
-        { nome: 'Baixar em Excel', funcao: 'excelOrcamentos', img: 'excel' }
+        { nome: 'Baixar em Excel', funcao: 'excelOrcamentos', img: 'excel' },
+        { nome: 'Criar Orçamento', funcao: `telaCriarOrcamento`, img: 'projeto' },
+        { nome: 'Criar Orçamento Aluguel', funcao: `telaCriarOrcamentoAluguel`, img: 'projeto' },
     ],
     composicoes: [
         { nome: 'Cadastrar Item', funcao: 'cadastrarItem', img: 'baixar' },
@@ -221,10 +147,11 @@ const esquemaBotoes = {
     ],
     veiculos: [
         { nome: 'Adicionar Combustível', funcao: 'painelValores', img: 'combustivel' },
-        { nome: 'Motoristas', funcao: 'auxMotoristas', img: 'motorista' },
         { nome: 'Veículos', funcao: 'auxVeiculos', img: 'veiculo' },
     ],
-    pagamentos: [],
+    pagamentos: [
+        { nome: 'Solicitar Pagamento', funcao: `formularioPagamento`, img: 'dinheiro' }
+    ],
     estoque: [
         { nome: 'Cadastrar Item', funcao: 'incluirItemEstoque', img: 'baixar' },
         { nome: 'Relatório de Movimentos', funcao: 'relatorioMovimento', img: 'projeto' },
@@ -236,7 +163,7 @@ const esquemaBotoes = {
     ],
     rh: [
         { nome: 'Baixar em Excel', funcao: 'rhExcel', img: 'excel' },
-        { nome: 'Adicionar Local', funcao: 'adicionarPessoa', img: 'baixar' }
+        { nome: 'Incluir Documento', funcao: 'incluirDocumento', img: 'baixar' }
     ],
     clientes: [
         { nome: 'Novo cadastro', funcao: 'formularioCliente', img: 'baixar' }
@@ -313,7 +240,7 @@ async function mudarStatus(select) {
 
     img.src = `imagens/${st}.png`
 
-    alterarUsuario({ campo: 'status', valor: st, usuario: acesso.usuario })
+    await alterarUsuario({ campo: 'status', valor: st, usuario: acesso.usuario })
 
 }
 
@@ -349,106 +276,83 @@ function balaoUsuario(st, texto) {
 
 async function usuariosToolbar() {
 
-    if (!acesso) return
+    if (!acesso)
+        return
 
-    dados_setores = await sincronizarDados({ base: 'dados_setores' }) || {}
-    const user = await recuperarDado('dados_setores', acesso.usuario)
+    acesso = await recuperarDado('dados_setores', acesso.usuario) || JSON.parse(localStorage.getItem('acesso')) || {}
 
-    // Conta quantos usuários estão online (status !== 'offline')
-    const usuariosOnline = Object.values(dados_setores)
-        .filter(u => u.status && u.status == 'online')
-        .length
+    const uOnline = await contarPorCampo({ base: 'dados_setores', path: 'status' })
 
-    const indicadorStatus = user?.status || 'offline'
+    const indicadorStatus = acesso?.status || 'offline'
 
     const usuariosToolbarString = `
         <div class="botaoUsuarios">
             <img name="imgStatus" onclick="painelUsuarios()" src="imagens/${indicadorStatus}.png">
-            <label style="font-size: 1.2rem;">${usuariosOnline}</label>
-        </div>
-    `
+            <label style="font-size: 1.2rem;">${uOnline.online}</label>
+        </div>`
+
+    if (nomeUsuario)
+        nomeUsuario.innerHTML = `<span><b>${inicialMaiuscula(acesso?.permissao || '')}</b> ${acesso.usuario || ''}</span>`
 
     const divUsuarios = document.getElementById('divUsuarios')
-    if (divUsuarios) divUsuarios.innerHTML = usuariosToolbarString
+    if (divUsuarios)
+        divUsuarios.innerHTML = usuariosToolbarString
 
-    const divOnline = document.querySelector('.divOnline')
-    if (divOnline) painelUsuarios()
 }
 
-async function configs() {
+function linUsuarios(dados) {
 
-    dados_setores = await sincronizarDados({ base: 'dados_setores', overlay: true })
-
-    let linhas = ''
     const listas = {
-        permissoes: ['', 'adm', 'user', 'visitante', 'analista', 'gerente', 'coordenacao', 'diretoria', 'editor', 'log', 'qualidade', 'novo'],
+        permissoes: ['', 'adm', 'técnico', 'cliente', 'visitante', 'user', 'visitante', 'analista', 'gerente', 'coordenacao', 'diretoria', 'editor', 'log', 'qualidade', 'novo'],
         setores: ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE', 'POC']
     }
-
-    const organizados = Object
-        .values(dados_setores)
-        .sort((a, b) =>
-            (a.usuario || '').localeCompare(b.usuario || '', undefined, { sensitivity: 'base' })
-        )
 
     const tdPreenchida = (coluna, opcoes, usuario) => `
         <td>
             <select class="opcoesSelect" onchange="alterarUsuario({campo: '${coluna}', usuario: '${usuario}', select: this})" style="cursor: pointer;">${opcoes}</select>
         </td>
     `
+    const { permissao, setor, usuario } = dados
 
-    for (const dados of organizados) {
+    const opcoesPermissao = listas.permissoes
+        .map(p => `<option value="${p}" ${permissao == p ? 'selected' : ''}>${p}</option>`).join('')
 
-        const { permissao, setor, usuario } = dados
+    const opcoesSetores = listas.setores
+        .map(s => `<option value="${s}" ${setor == s ? 'selected' : ''}>${s}</option>`).join('')
 
-        const opcoesPermissao = listas.permissoes
-            .map(p => `<option value="${p}" ${permissao == p ? 'selected' : ''}>${p}</option>`).join('')
-
-        const opcoesSetores = listas.setores
-            .map(s => `<option value="${s}" ${setor == s ? 'selected' : ''}>${s}</option>`).join('')
-
-        linhas += `
+    return `
         <tr>
             <td style="text-align: left;">${usuario}</td>
             ${tdPreenchida('permissao', opcoesPermissao, usuario)}
             ${tdPreenchida('setor', opcoesSetores, usuario)}
-        </tr>
-        `
+        </tr>`
+
+}
+
+async function configs() {
+
+    const colunas = {
+        'Usuário': { chave: 'usuario' },
+        'Permissão': { chave: 'permissao' },
+        'Setores': { chave: 'setor' }
     }
 
-    let ths = ''
-    let tbusca = ''
-    let cabecalhos = ['Usuário', 'Permissão', 'Setores']
-    cabecalhos.forEach((cabecalho, i) => {
-        ths += `<th>${cabecalho}</th>`
-        tbusca += `<th contentEditable="true" style="background-color: white; text-align: left;" oninput="pesquisarGenerico(${i}, this.textContent, 'tbodyUsuarios')"></th>`
+    const tabela = modTab({
+        pag: 'usuarios',
+        colunas,
+        base: 'dados_setores',
+        criarLinha: 'linUsuarios',
+        body: 'bodyUsuarios'
     })
 
-    const tabela = `
-        <div class="borda-tabela">
-            <div class="topo-tabela"></div>
-            <div class="div-tabela">
-                <table class="tabela">
-                    <thead>
-                        <tr>${ths}</tr>
-                        <tr>${tbusca}</tr>
-                    </thead>
-                    <tbody id="tbodyUsuarios">${linhas}</tbody>
-                </table>
-                </div>
-            <div class="rodape-tabela"></div>
-        </div>
-    `
-
     const elemento = `
-        <div style="${vertical}; background-color: #d2d2d2; padding: 0.5rem;">
-            <label style="font-size: 1.2rem;">Gestão de Usuários</label>
-            <hr style="width: 100%;">
+        <div style="${vertical}; padding: 0.5rem;">
             ${tabela}
-        </div>
-    `
-    removerPopup()
+        </div>`
+
     popup({ elemento, titulo: 'Configurações' })
+
+    await paginacao()
 
 }
 
@@ -458,11 +362,10 @@ async function alterarUsuario({ campo, usuario, select, valor }) {
 
     const alteracao = await comunicacaoServ({ usuario, campo, valor }) // Se alterar no servidor, altera localmente;
 
-    if (alteracao?.success) {
-        dados_setores[usuario][campo] = select ? select.value : valor
-    } else {
+    if (!alteracao?.success) {
         popup({ mensagem: `Não foi possível alterar: ${alteracao?.mensagem || 'Tente novamente mais tarde'}`, nra: true })
-        if (select) select.value = dados_setores[usuario][campo] // Devolve a informação anterior pro elemento;
+        if (select)
+            select.value = dados_setores[usuario][campo] // Devolve a informação anterior pro elemento;
     }
 
 }
@@ -515,9 +418,9 @@ function maisAba() {
     window.open(window.location.href, '_blank', 'toolbar=no, menubar=no');
 }
 
-async function irPdf(orcam_, emAnalise) {
+async function irPdf(id, emAnalise) {
 
-    const orcamento = db.dados_orcamentos[orcam_]
+    const orcamento = await recuperarDado('dados_orcamentos', id)
     orcamento.emAnalise = emAnalise
 
     localStorage.setItem('pdf', JSON.stringify(orcamento))
@@ -530,92 +433,6 @@ async function recuperarClientes() {
 
     await sincronizarDados({ base: 'dados_clientes', overlay: true })
 
-}
-
-async function continuar() {
-    if (telaAtiva == 'composicoes') {
-        await telaComposicoes()
-
-    } else if (telaAtiva == 'telaCriarOrcamentos') {
-        await tabelaProdutosOrcamentos()
-        await totalOrcamento()
-
-    } else if (telaAtiva == 'telaCriarOrcamentoAluguel') {
-        await criarOrcamentoAluguel()
-
-    }
-}
-
-function pesquisarGenerico(indice, texto, idTbody) {
-
-    filtrosPesquisa[idTbody] ??= {}
-    const filtroAtual = filtrosPesquisa[idTbody]
-
-    filtroAtual[indice] = String(texto)
-        .toLowerCase()
-        .replace(/\./g, '')
-        .trim()
-
-    const tbody = document.getElementById(idTbody)
-    if (!tbody) return
-
-    const table = tbody.closest('table')
-    const ths = table?.querySelectorAll('thead tr')[1]?.querySelectorAll('th') || []
-
-    ths.forEach((th, col) => {
-
-        const valorFiltro = filtroAtual[col] || ''
-
-        th.style.backgroundColor = valorFiltro ? '#ffe48f' : 'white'
-
-        if (col == indice) {
-            th.style.backgroundColor = texto ? '#ffe48f' : 'white'
-            return
-        }
-
-        if (valorFiltro) {
-            th.textContent = valorFiltro
-        }
-    })
-
-    const trs = tbody.querySelectorAll('tr')
-
-    function extrairTexto(td) {
-        if (!td) return ''
-
-        let partes = []
-        partes.push(td.textContent || '')
-
-        td.querySelectorAll('input').forEach(i => partes.push(i.value || ''))
-        td.querySelectorAll('textarea').forEach(t => partes.push(t.value || ''))
-        td.querySelectorAll('select').forEach(s => {
-            const opt = s.options[s.selectedIndex]
-            partes.push(opt ? opt.text : s.value)
-        })
-
-        return partes.join(' ').replace(/\s+/g, ' ').trim()
-    }
-
-    for (const tr of trs) {
-        const tds = tr.querySelectorAll('td')
-        let mostrar = true
-
-        for (const [col, filtroTexto] of Object.entries(filtroAtual)) {
-            if (!filtroTexto) continue
-
-            const conteudo = extrairTexto(tds[col])
-                .toLowerCase()
-                .replace(/\./g, '')
-                .trim()
-
-            if (!conteudo.includes(filtroTexto)) {
-                mostrar = false
-                break
-            }
-        }
-
-        tr.style.display = mostrar ? '' : 'none'
-    }
 }
 
 async function salvarLevantamento(idOrcamento, idElemento) {
@@ -673,29 +490,34 @@ async function salvarLevantamento(idOrcamento, idElemento) {
     }
 }
 
-async function excluirLevantamentoStatus(idAnexo, idOrcamento) {
+async function excluirLevantamentoStatus(idAnexo, id) {
 
     overlayAguarde()
 
-    const orcamento = idOrcamento ? await recuperarDado('dados_orcamentos', id_orcam) : baseOrcamento()
+    const orcamento = id
+        ? await recuperarDado('dados_orcamentos', id)
+        : baseOrcamento()
 
     delete orcamento.levantamentos[idAnexo]
 
-    if (idOrcamento) {
-        deletar(`dados_orcamentos/${id_orcam}/levantamentos/${idAnexo}`)
-        await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    if (id) {
+        deletar(`dados_orcamentos/${id}/levantamentos/${idAnexo}`)
+        await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
     } else {
         baseOrcamento(orcamento)
     }
 
     // Retornar as telas específicas;
     const painelC = document.querySelector('.painel-clientes')
-    if (painelC) return await painelClientes(idOrcamento)
+    if (painelC)
+        return await painelClientes(id)
 
     const painelH = document.querySelector('.painel-historico')
-    if (painelH) return await abrirEsquema(idOrcamento)
+    if (painelH)
+        return await abrirEsquema(id)
 
-    if (idOrcamento) return await abrirEsquema(idOrcamento)
+    if (id)
+        return await abrirEsquema(id)
 
 }
 
@@ -750,68 +572,113 @@ function capturarValorCelula(celula) {
     return celula.textContent.toLowerCase()
 }
 
+async function filtrarUsuarios(st) {
+
+    overlayAguarde()
+
+    let filtros = {}
+
+    if (st == 'online') {
+        filtros = {
+            'status': [
+                { op: '!=', value: null },
+                { op: '!=', value: 'offline' }
+            ]
+        }
+
+    } else {
+        filtros = {
+            'status': { op: '!=', value: 'online' }
+        }
+    }
+
+    controles.usuariosOnline.filtros = filtros
+    await paginacao()
+
+    removerOverlay()
+
+}
 
 async function painelUsuarios() {
 
-    const stringUsuarios = {}
-    const organizados = Object
-        .entries(dados_setores)
-        .sort((a, b) => a[0].localeCompare(b[0]))
-
-    for (const [usuario, objeto] of organizados) {
-
-        if (objeto.permissao == 'novo') continue
-
-        const status = objeto?.status || 'offline'
-        if (!stringUsuarios[status]) stringUsuarios[status] = { quantidade: 0, linhas: '' }
-
-        stringUsuarios[status].quantidade++
-        stringUsuarios[status].linhas += `
-            <div class="usuarioOnline">
-                <img src="imagens/${status}.png" style="width: 1.5rem;">
-                <label>${usuario}</label>
-                <label style="font-size: 0.6rem;"><b>${objeto?.permissao || '??'}</b></label>
-            </div>
-        `
+    const colunas = {
+        'Status': { chave: 'status' },
+        'Usuários': { chave: 'usuario' },
+        'Setor': { chave: 'setor' },
+        'Permissão': { chave: 'permissao' }
     }
 
-    let info = ''
+    const btnExtras = `
+        <button onclick="filtrarUsuarios('online')">Online</button>
+        <button style="background-color: #ff0000;" onclick="filtrarUsuarios('offline')">Offline</button>`
 
-    // ordena as chaves colocando "offline" no final
-    const chavesOrdenadas = Object.keys(stringUsuarios).sort((a, b) => {
-        if (a === 'offline') return 1
-        if (b === 'offline') return -1
-        return a.localeCompare(b)
+    const tOnline = modTab({
+        pag: 'usuariosOnline',
+        colunas,
+        btnExtras,
+        body: 'bodyUsuariosOnline',
+        base: 'dados_setores',
+        criarLinha: 'criarLinhaPainelUsuarios',
+        filtros: {
+            'status': [
+                { op: '!=', value: null },
+                { op: '!=', value: 'offline' }
+            ]
+        }
     })
-
-    for (const st of chavesOrdenadas) {
-        const dados = stringUsuarios[st]
-        info += `
-            <label><strong>${st}</strong> ${dados.quantidade}</label>
-            ${dados.linhas}
-        `
-    }
-
-    const divOnline = document.querySelector('.divOnline')
-    if (divOnline) return divOnline.innerHTML = info
-
-    const indicadorStatus = acesso?.status || 'offline'
-    const statusOpcoes = ['online', 'Em almoço', 'Não perturbe', 'Em reunião', 'Apenas Whatsapp']
-    if (acesso?.permissao == 'adm') statusOpcoes.push('Invisível')
 
     const elemento = `
         <div class="conteinerOnline">
-            <span>Alterar Status</span>
-            <select class="opcoesSelect" onchange="mudarStatus(this)">
-                ${statusOpcoes.map(op => `<option ${indicadorStatus == op ? 'selected' : ''}>${op}</option>`).join('')}
-            </select>
-            <div class="divOnline">
-                ${info}
-            </div>
-        </div>
-    `
+
+            ${tOnline}
+
+        </div>`
+
+    const divOnline = document.querySelector('.divOnline')
+    if (divOnline)
+        return
 
     popup({ elemento, titulo: 'Usuários', nra: true })
+
+    await paginacao()
+}
+
+function criarLinhaPainelUsuarios(dados) {
+
+    const { usuario, status, setor, permissao } = dados || {}
+
+    let gerenciarStatus = `<label>${status || 'offline'}</label>`
+
+    if (usuario == acesso.usuario) {
+
+        const statusOpcoes = ['online', 'Em almoço', 'Não perturbe', 'Em reunião', 'Apenas Whatsapp']
+        if (acesso?.permissao == 'adm')
+            statusOpcoes.push('Invisível')
+
+        gerenciarStatus = `
+            <select class="opcoesSelect" onchange="mudarStatus(this)">
+                ${statusOpcoes.map(op => `<option ${acesso?.status == op ? 'selected' : ''}>${op}</option>`).join('')}
+            </select>`
+    }
+
+    return `
+    <tr>
+        <td>
+            <div style="${horizontal}; justify-content: start; gap: 0.5rem;">
+                <img src="imagens/${status || 'offline'}.png" style="width: 1.5rem;">
+                ${gerenciarStatus}
+            </div>
+        </td>
+        <td>
+            ${usuario}
+        </td>
+        <td>
+            ${permissao || ''}
+        </td>
+        <td>
+            ${setor || ''}
+        </td>
+    </tr>`
 }
 
 async function gerarPdfOnline(htmlString, nome) {
@@ -842,13 +709,15 @@ async function gerarPdfOnline(htmlString, nome) {
 
 async function relancarPagamento(idPagamento) {
 
+    const { app } = await recuperarDado('lista_pagamentos', idPagamento)
+
     const elemento = `
         <div style="${vertical}; background-color: #d2d2d2; padding: 1rem;">
 
             <div style="${horizontal}; gap: 1rem;">
                 <span>Qual APP deve ser relançado?</span>
                 <select class="opcoesSelect" id="app">
-                    ${['IAC', 'AC', 'HNK'].map(op => `<option>${op}</option>`).join('')}
+                    ${['AC', 'IAC', 'HNK'].map(op => `<option ${app == op ? 'selected' : ''}>${op}</option>`).join('')}
                 </select>
             </div>
             <hr style="width: 100%;">
@@ -865,8 +734,7 @@ async function confirmarRelancamento(idPagamento) {
     removerPopup()
     overlayAguarde()
 
-    let pagamento = await recuperarDado('lista_pagamentos', idPagamento)
-
+    const pagamento = await recuperarDado('lista_pagamentos', idPagamento)
     pagamento.app = app
 
     await enviar(`lista_pagamentos/${idPagamento}/app`, app)
@@ -884,11 +752,9 @@ async function confirmarRelancamento(idPagamento) {
         <div style="${vertical}; gap: 5px; text-align: left;">
             <span>${textoPrincipal}</span>
             <span>${infoAdicional}</span>
-        </div>
-    `
-    popup({ mensagem, imagem: 'imagens/atualizar.png', titulo: 'Resposta' })
+        </div>`
 
-    telaPagamentos()
+    popup({ mensagem, imagem: 'imagens/atualizar.png', titulo: 'Resposta' })
 
 }
 
@@ -961,60 +827,64 @@ function sincronizar(script) {
 }
 
 async function verAprovacoes() {
-    db.dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    db.dados_clientes = await recuperarDados('dados_clientes') || {}
 
-    let guia = {
-        pendente: '#ff8c1b',
-        todos: '#bfbfbfff'
+    const colunas = {
+        'Contrato': { chave: 'snapshots.contrato' },
+        'Cliente': { chave: 'snapshots.cliente' },
+        'Total Original <br>[s/desc ou acres]': '',
+        'Total Geral': { chave: 'snapshots.valor' },
+        '%': '',
+        'Localização': { chave: 'snapshots.cidade' },
+        'Usuário': { chave: 'snapshots.responsavel' },
+        'Aprovação': { chave: 'aprovacao.status' },
+        'Comentário': { chave: 'aprovacao.justificativa' },
+        'Detalhes': ''
     }
-
-    let cabecalhos = ['Chamado', 'Cliente', 'Total Original <br>[s/desc ou acres]', 'Total Geral', '%', 'Localização', 'Usuário', 'Aprovação', 'Comentário', 'Detalhes']
-    let tabelas = {
-        pendente: { linhas: '' },
-        todos: { linhas: '' }
-    }
-
-    let ths = ''
-    let tsh = ''
-    cabecalhos.forEach((cabecalho, i) => {
-        ths += `<th>${cabecalho}</th>`
-
-        cabecalho == 'Detalhes'
-            ? tsh += '<th style="background-color: white;"></th>'
-            : tsh += `
-            <th contentEditable="true" style="background-color: white; text-align: left;" oninput="pesquisarGenerico(${i}, this.textContent, 'tbodyPendencias')"></th>
-        `
+    const pag = 'aprovacao'
+    const tabela = modTab({
+        colunas,
+        pag,
+        base: 'dados_orcamentos',
+        pag: 'aprovacao',
+        criarLinha: 'criarLinhaAprovacao',
+        body: 'tAprovacao',
+        filtros: { 'aprovacao': { op: 'NOT_EMPTY' } }
     })
 
-    const organizado = Object
-        .entries(db.dados_orcamentos)
-        .sort(([, a], [, b]) => (b.timestamp || 0) - (a.timestamp || 0))
+    const elemento = `
+        <div style="${vertical}; padding: 1rem;">
 
-    for (let [idOrcamento, orcamento] of organizado) {
+            ${tabela}
 
-        if (!orcamento.aprovacao) continue
-        if (!orcamento.dados_orcam) continue
+        </div>
+    `
+    popup({ elemento, titulo: 'Aprovações de Orçamento' })
 
-        const dados_orcam = orcamento.dados_orcam || {}
-        const aprovacao = orcamento.aprovacao
-        const status = aprovacao?.status || 'desconhecido'
-        const porcentagemDiferenca = (((orcamento.total_geral - orcamento.total_bruto) / orcamento.total_bruto) * 100).toFixed(2)
-        const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
-        const cliente = db.dados_clientes?.[omie_cliente] || {}
+    await paginacao(pag)
 
-        tabelas[status == 'pendente' ? 'pendente' : 'todos'].linhas += `
+}
+
+async function criarLinhaAprovacao(orcamento) {
+
+    const { dados_orcam = {}, snapshots = {} } = orcamento || {}
+    const idOrcamento = orcamento.id
+    const aprovacao = orcamento.aprovacao
+    const status = aprovacao?.status || 'desconhecido'
+    const porcentagemDiferenca = (((orcamento.total_geral - orcamento.total_bruto) / orcamento.total_bruto) * 100).toFixed(2)
+    const campos = [dados_orcam?.chamado, dados_orcam?.contrato, dados_orcam?.data]
+        .filter(c => c)
+        .join('<br>')
+
+    return `
         <tr>
             <td style="text-align: left;">
-                ${dados_orcam?.chamado || ''}<br>
-                ${dados_orcam?.contrato || ''}<br>
-                ${dados_orcam?.data || ''}
+                ${campos}
             </td>
-            <td style="text-align: left;">${cliente?.nome || '--'}</td>
+            <td style="text-align: left;">${(snapshots?.cliente || '').toUpperCase()}</td>
             <td style="white-space: nowrap;">${dinheiro(orcamento.total_bruto)}</td>
             <td style="white-space: nowrap;">${dinheiro(orcamento.total_geral)}</td>
             <td><label class="labelAprovacao" style="background-color: ${porcentagemDiferenca > 0 ? 'green' : '#B12425'}">${porcentagemDiferenca}%</label></td>
-            <td>${cliente?.cidade || ''}</td>
+            <td>${(snapshots?.cidade || '').toUpperCase()}</td>
             <td>${aprovacao?.usuario || '--'}</td>
             <td>
                 <div style="display: flex; align-items: center; justify-content: start; gap: 1vw;">
@@ -1026,60 +896,22 @@ async function verAprovacoes() {
             <td><img src="imagens/pesquisar2.png" onclick="verPedidoAprovacao('${idOrcamento}')"></td>
         </tr>
         `
-    }
 
-    let tabelasString = ''
-    for (let [tabela, objeto] of Object.entries(tabelas)) {
-        if (objeto.linhas == '') continue
-        tabelasString += `
-        <br>
-        <hr>
-        <br>
-        <div class="borda-tabela">
-            <div class="topo-tabela"></div>
-            <div class="div-tabela">
-                <table class="tabela">
-                    <thead style="background-color: ${guia[tabela]};">
-                        <tr>${ths}</tr>
-                        ${tabela == 'todos' ? `<tr>${tsh}</tr>` : ''}
-                    </thead>
-                    <tbody ${tabela == 'todos' ? 'id="tbodyPendencias"' : ''}>${objeto.linhas}</tbody>
-                </table>
-            </div>
-            <div class="rodape-tabela"></div>
-        </div>
-        `
-    }
-
-    const elemento = `
-        <div style="${vertical}; padding: 1rem;">
-
-            <label style="font-size: 1.2rem;">Fila de Aprovação</label>
-
-            ${tabelasString}
-
-        </div>
-    `
-    popup({ elemento, titulo: 'Aprovações de Orçamento' })
 }
 
 async function verificarPendencias() {
 
     if (!navigator.onLine) return
 
-    let contador = 0
-
-    for (const orcamento of Object.values(db.dados_orcamentos)) {
-        if (orcamento.aprovacao && orcamento.aprovacao.status == 'pendente') {
-            contador++
-        }
-    }
+    const contador = await contarPorCampo({ base: 'dados_orcamentos', path: 'aprovacao.status' })
 
     const contadorPendencias = document.getElementById('contadorPendencias')
-    if (contadorPendencias) {
-        contadorPendencias.style.display = contador == 0 ? 'none' : 'flex'
-        contadorPendencias.textContent = contador
-    }
+    if (!contadorPendencias)
+        return
+
+    contadorPendencias.style.display = contador.pendente > 0 ? 'flex' : 'none'
+    contadorPendencias.textContent = contador.pendente
+
 }
 
 async function verPedidoAprovacao(idOrcamento) {
@@ -1263,18 +1095,18 @@ async function respostaAprovacao(botao, idOrcamento, status) {
     removerPopup()
     removerPopup()
 
-    let justificativa = botao.parentElement.parentElement.querySelector('textarea').value
-    let dados = {
+    const justificativa = botao.parentElement.parentElement.querySelector('textarea').value
+    const dados = {
         usuario: acesso.usuario,
         data: new Date().toLocaleString(),
         status,
         justificativa
     }
 
-    const orcamento = db.dados_orcamentos[idOrcamento] || {}
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento) || {}
 
     orcamento.aprovacao = {
-        ...db.dados_orcamentos[idOrcamento].aprovacao,
+        ...orcamento.aprovacao,
         ...dados
     }
 
@@ -1350,9 +1182,11 @@ async function painelClientes(idOrcamento) {
     overlayAguarde()
 
     const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-    const orcamentoBase = idOrcamento ? orcamento : baseOrcamento()
+    const orcamentoBase = idOrcamento
+        ? orcamento
+        : baseOrcamento()
 
-    const dados_orcam = orcamentoBase?.dados_orcam || {}
+    const { dados_orcam } = orcamentoBase || {}
     const idCliente = dados_orcam?.omie_cliente
     const bloq = orcamentoBase.hierarquia ? true : false
 
@@ -1369,12 +1203,43 @@ async function painelClientes(idOrcamento) {
                     : `excluirLevantamentoStatus('${idAnexo}')`))
         .join('')
 
+    const funcao = idOrcamento
+        ? `salvarDadosCliente('${idOrcamento}')`
+        : 'salvarDadosCliente()'
+
     const botoes = [
-        { texto: 'Salvar Dados', img: 'concluido', funcao: `salvarDadosCliente()` },
+        { texto: 'Salvar Dados', img: 'concluido', funcao },
         { texto: 'Atualizar', img: 'atualizar', funcao: `attClientes()` },
     ]
 
-    if (idOrcamento) botoes.push({ texto: 'Limpar Campos', img: 'limpar', funcao: 'executarLimparCampos()' })
+    if (idOrcamento)
+        botoes.push({ texto: 'Limpar Campos', img: 'limpar', funcao: 'executarLimparCampos()' })
+
+
+    controlesCxOpcoes.cliente = {
+        retornar: ['nome'],
+        base: 'dados_clientes',
+        funcaoAdicional: ['buscarDadosCliente'],
+        colunas: {
+            'Nome Fantasia': { chave: 'nome' },
+            'Cidade': { chave: 'cidade' },
+            'Estado': { chave: 'estado' },
+            'CNPJ/CPF': { chave: 'cnpj' }
+        }
+    }
+
+    controlesCxOpcoes.chamado = {
+        retornar: ['id'],
+        base: 'dados_ocorrencias',
+        funcaoAdicional: ['buscarDadosCliente'],
+        colunas: {
+            'Chamado': { chave: 'id' }
+        }
+    }
+
+    const oTransportadoras = transportadoras
+        .map(o => `<option ${dados_orcam?.transportadora == o ? 'selected' : ''}>${o}</option>`)
+        .join('')
 
     const linhas = [
         {
@@ -1385,7 +1250,7 @@ async function painelClientes(idOrcamento) {
                         class="opcoes" 
                         name="chamado"
                         ${dados_orcam?.chamado ? `id="${dados_orcam?.chamado}"` : ''}
-                        onclick="cxOpcoes('chamado', 'dados_ocorrencias', ['id'])">
+                        onclick="cxOpcoes('chamado')">
                             ${dados_orcam?.chamado || 'Selecione'}
                     </span>
                     <input value="${dados_orcam?.contrato || 'ORC ...'}" readOnly>
@@ -1411,7 +1276,7 @@ async function painelClientes(idOrcamento) {
                     : ''} 
                     class="opcoes" 
                     name="cliente" 
-                    ${bloq ? '' : `onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'bairro', 'cnpj'], 'buscarDadosCliente()')"`}>
+                    ${bloq ? '' : `onclick="cxOpcoes('cliente')"`}>
                         ${cliente?.nome || 'Selecione'}
                 </span>
                 ${bloq ? '' : `<img onclick="formularioCliente()" src="imagens/baixar.png">`}
@@ -1455,7 +1320,11 @@ async function painelClientes(idOrcamento) {
         },
         {
             texto: 'Transportadora',
-            elemento: `<input type="text" id="transportadora" value="${dados_orcam?.transportadora || '--'}">`
+            elemento: `
+                <select class="pedido" id="transportadora">
+                    ${oTransportadoras}
+                </select>
+                `
         },
         {
             elemento: `
@@ -1516,7 +1385,7 @@ async function painelClientes(idOrcamento) {
             ` }
     ]
 
-    popup({ linhas, botoes, titulo: 'Dados do Cliente' })
+    popup({ linhas, botoes, titulo: 'Dados do Cliente', autoDestruicao: ['cliente', 'tecnico'] })
 
 }
 
@@ -1525,9 +1394,10 @@ async function buscarDadosCliente() {
     const clienteName = document.querySelector('[name="cliente"]')
     if (!clienteName) return
 
-    const omie_cliente = clienteName.id
+    const omie_cliente = Number(clienteName.id)
 
     const cliente = await recuperarDado('dados_clientes', omie_cliente)
+
     const campos = ['cnpj', 'endereco', 'bairro', 'cidade', 'estado', 'cep']
     for (const campo of campos) {
         const el = document.getElementById(campo)
@@ -1536,103 +1406,99 @@ async function buscarDadosCliente() {
 
 }
 
-async function salvarDadosCliente() {
+async function salvarDadosCliente(idOrcamento = null) {
 
     overlayAguarde()
 
-    const orcamentoBase = telaAtiva == 'orcamentos' ? await recuperarDado('dados_orcamentos', id_orcam) : baseOrcamento()
+    try {
 
-    const el = (id) => {
-        const elemento = document.getElementById(id)
-        return elemento || null
-    }
+        const orcamentoBase = telaAtiva == 'orcamentos'
+            ? await recuperarDado('dados_orcamentos', idOrcamento)
+            : baseOrcamento()
 
-    orcamentoBase.dados_orcam ??= {}
+        const el = (id) => {
+            const elemento = document.getElementById(id)
+            return elemento || null
+        }
 
-    const omie_cliente = Number(document.querySelector('[name="cliente"]').id)
+        orcamentoBase.dados_orcam ??= {}
 
-    orcamentoBase.dados_orcam = {
-        ...orcamentoBase.dados_orcam,
-        omie_cliente,
-        condicoes: el('condicoes').value,
-        consideracoes: String(el('consideracoes').textContent).toUpperCase(),
-        data: new Date().toLocaleString('pt-BR'),
-        garantia: el('garantia').value,
-        validade: Number(el('validade').value),
-        transportadora: el('transportadora').value,
-        tipo_de_frete: el('tipo_de_frete').value,
-        emissor: el('emissor').value,
-        email_analista: el('email_analista').value,
-        analista: el('analista').value,
-        telefone_analista: el('telefone_analista').value
-    }
+        const omie_cliente = Number(document.querySelector('[name="cliente"]').id)
 
-    // Se não existir a chave contrato; sequencial fará que o servidor crie;
-    if (!orcamentoBase.dados_orcam.contrato) orcamentoBase.dados_orcam.contrato = 'sequencial'
+        orcamentoBase.dados_orcam = {
+            ...orcamentoBase.dados_orcam,
+            omie_cliente,
+            condicoes: el('condicoes').value,
+            consideracoes: String(el('consideracoes').textContent).toUpperCase(),
+            data: new Date().toLocaleString('pt-BR'),
+            garantia: el('garantia').value,
+            validade: Number(el('validade').value),
+            transportadora: el('transportadora').value,
+            tipo_de_frete: el('tipo_de_frete').value,
+            emissor: el('emissor').value,
+            email_analista: el('email_analista').value,
+            analista: el('analista').value,
+            telefone_analista: el('telefone_analista').value
+        }
 
-    // Número do chamado mesmo;
-    const chamado = document.querySelector('[name="chamado"]').id
-    if (chamado) orcamentoBase.dados_orcam.chamado = chamado
+        // Se não existir a chave contrato; sequencial fará que o servidor crie;
+        orcamentoBase.dados_orcam.contrato ??= 'sequencial'
 
-    // Se o orçamento é chamado S / N;
-    const filtroChamado = el('filtroChamado')
-    const ehChamado = filtroChamado.checked ? 'S' : 'N'
-    orcamentoBase.chamado = ehChamado
+        // Número do chamado mesmo;
+        const chamado = document.querySelector('[name="chamado"]').id
+        if (chamado)
+            orcamentoBase.dados_orcam.chamado = chamado
 
-    // Lógica da tag automática;
-    const cliente = db.dados_clientes?.[omie_cliente] || {}
-    const empresa = (db.empresas?.[cliente?.empresa]?.nome || '').toLowerCase()
-    const tagAuto = Object
-        .values(db.tags_orcamentos || [])
-        .filter(tag => tag.nome.toLowerCase() == empresa)
-    let tag = {}
-    let tagsRemocao = []
-    if (tagAuto.length) {
+        // Se o orçamento é chamado S / N;
+        const filtroChamado = el('filtroChamado')
+        const ehChamado = filtroChamado.checked ? 'S' : 'N'
+        orcamentoBase.chamado = ehChamado
+
+        // Lógica da tag automática;
+        const cliente = await recuperarDado('dados_clientes', omie_cliente) || {}
+        const empresa = cliente?.snapshots?.empresa
         orcamentoBase.tags ??= {}
 
         // Remoção local de tags automáticas;
         for (const [idTag, tag] of Object.entries(orcamentoBase.tags))
-            if (tag?.auto == 'S') {
-                tagsRemocao.push(idTag)
+            if (tag?.auto == 'S')
                 delete orcamentoBase.tags[idTag]
+
+        const pesquisa = await pesquisarDB({
+            base: 'tags_orcamentos',
+            filtros: {
+                'nome': { op: '=', value: empresa }
+            }
+        })
+
+        const tagEscolhida = pesquisa.resultados[0] || null
+        if (tagEscolhida)
+            orcamentoBase.tags[tagEscolhida.id] = {
+                data: new Date().toLocaleDateString(),
+                usuario: acesso.usuario,
+                auto: 'S'
             }
 
-        tag = { data: new Date().toLocaleDateString(), usuario: acesso.usuario, auto: 'S' }
-        orcamentoBase.tags[tagAuto[0].id] = tag
-    }
+        if (idOrcamento) {
 
-    if (telaAtiva == 'orcamentos') {
+            await inserirDados({ [idOrcamento]: orcamentoBase }, 'dados_orcamentos')
+            enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamentoBase.dados_orcam)
+            enviar(`dados_orcamentos/${idOrcamento}/tags`, orcamentoBase.tags)
 
-        if (tagAuto.length) {
-            for (const idTag of tagsRemocao)
-                deletar(`dados_orcamentos/${id_orcam}/tags/${idTag}`)
+            const atualizar = orcamentoBase.chamado !== ehChamado
+            if (atualizar)
+                enviar(`dados_orcamentos/${idOrcamento}/chamado`, ehChamado)
 
-            enviar(`dados_orcamentos/${id_orcam}/tags/${tagAuto[0].id}`, tag)
+            await abrirAtalhos(idOrcamento)
+
         }
 
-        enviar(`dados_orcamentos/${id_orcam}/dados_orcam`, orcamentoBase.dados_orcam)
-        enviar(`dados_orcamentos/${id_orcam}/chamado`, ehChamado)
-        await inserirDados({ [id_orcam]: orcamentoBase }, 'dados_orcamentos')
-        await telaOrcamentos()
+        baseOrcamento(orcamentoBase)
+
+    } finally {
+
         removerPopup()
-        abrirAtalhos(id_orcam)
-        return
-    }
 
-    baseOrcamento(orcamentoBase)
-    removerPopup()
-
-    const orcamentoPadrao = document.getElementById('orcamento_padrao')
-    if (!orcamentoPadrao) return
-
-    if (orcamentoBase.lpu_ativa === 'MODALIDADE LIVRE') {
-        total_v2()
-    } else {
-        if (String(telaAtiva).includes('Aluguel')) {
-            await total()
-        } else {
-            await totalOrcamento()
-        }
     }
 
 }
@@ -1701,55 +1567,6 @@ async function criarDepartamento(idOrcamento) {
     } catch (err) {
         return { mensagem: err.mensage || 'Falha na criação do departamento' }
     }
-}
-
-async function auxDepartamentos() {
-
-    // Map por descrição (mais rápido que ficar iterando)
-    for (const dep of Object.values(db.departamentos_AC)) {
-        depPorDesc[dep.descricao] = dep
-    }
-
-    // Map orçamento por número final (chamado ou contrato)
-    const orcPorNum = {}
-    for (const [idOrcamento, orc] of Object.entries(db.dados_orcamentos)) {
-        const numFinal = orc?.dados_orcam?.chamado || orc?.dados_orcam?.contrato
-        if (!numFinal) continue
-
-        orcPorNum[numFinal] ??= {}
-        orcPorNum[numFinal].ids ??= []
-        orcPorNum[numFinal].ids.push(idOrcamento)
-    }
-
-    // Processa departamentos
-    for (const dep of Object.values(db.departamentos_AC)) {
-
-        const nomeDep = dep.descricao
-
-        // Se existe ocorrência com o nome do dep
-        const ocorrencia = db.dados_ocorrencias?.[nomeDep] || 'Departamento Oculto'
-        if (ocorrencia) {
-            const cliente = db.dados_clientes[ocorrencia?.unidade]
-            if (cliente) dep.cliente = cliente
-        }
-
-        // Se existe orçamento com o nome do dep
-        const orcamento = orcPorNum[nomeDep]
-        if (orcamento) {
-            // Listagem de Ids, Orçamentos
-            dep.ids = orcamento.ids
-
-            const codOmie = orcamento?.dados_orcam?.omie_cliente
-            const cliente = db.dados_clientes[codOmie]
-
-            if (cliente) dep.cliente = cliente
-
-            dep.total = dinheiro(orcamento?.total_geral)
-        }
-    }
-
-    // Atualiza banco
-    await inserirDados(db.departamentos_AC, 'departamentos_AC')
 }
 
 async function numORC(idOrcamento) {

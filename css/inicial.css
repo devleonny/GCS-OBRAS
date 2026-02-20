@@ -1,6 +1,5 @@
 .tela-gerenciamento {
-    max-width: 90vw;
-    display: none;
+    display: flex;
     align-items: start;
     justify-content: start;
     flex-direction: column;
@@ -25,6 +24,7 @@
     flex-direction: row;
     width: 100%;
     gap: 0.5rem;
+    padding: 2px;
 }
 
 .etiqueta-atrasado {
@@ -128,33 +128,24 @@
     width: 600px;
 }
 
-.tabela-indicadores {
-    position: relative;
+.t-tecnicos, .t-tabelas, .t-indicadores{
+    width: 95vw;
     display: none;
-    align-items: start;
-    justify-content: start;
-    flex-direction: column;
-    border: solid 1px #797979;
-    background-color: rgba(255, 255, 255, 0.878);
-    border-radius: 5px;
-    max-height: 80vh;
-    width: 90vw;
-    overflow: auto;
 }
 
 .painel-indicadores {
+    height: max-content;
+    width: 90%;
+    box-shadow: 0 0 2px #222;
+    border-radius: 3px;
+    padding: 0 1rem 1rem 1rem;
+    background-color: #ebebeb;
     display: flex;
     align-items: start;
     justify-content: start;
     padding: 2rem;
-}
-
-.tabelas-pda {
-    display: none;
-    flex-direction: column;
-    align-items: start;
-    justify-content: start;
-    min-width: 90vw;
+    margin-bottom: 5rem;
+    gap: 1rem;
 }
 
 .toolbar-mapas {
@@ -162,4 +153,10 @@
     align-items: center;
     justify-content: center;
     gap: 2px;
+}
+
+@media screen and (orientation: portrait) {
+    .painel-indicadores {
+        flex-direction: column;
+    }
 }

@@ -1,5 +1,9 @@
-#dados_veiculos {
-    width: 100%;
+.motoristas {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    gap: 1px;
 }
 
 .contorno-destaque {
@@ -13,26 +17,6 @@
     align-items: center;
     justify-content: space-evenly;
     gap: 5px;
-}
-
-.total-tabela {
-    border-radius: 3px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    background-color: #097fe6;
-    color: white;
-    padding: 5px;
-    margin: 0.5rem;
-}
-
-.total-tabela label {
-    font-size: 1rem;
-}
-
-.total-tabela span {
-    font-size: 1.5rem;
 }
 
 .diVeiculos {
@@ -61,16 +45,6 @@
     align-items: center;
     justify-content: center;
     gap: 5px;
-}
-
-.diVeiculos label {
-    font-size: 0.7rem;
-    cursor: pointer;
-}
-
-.diVeiculos:hover {
-    color: white;
-    background-color: #097fe6;
 }
 
 .fundoPainelLateral {

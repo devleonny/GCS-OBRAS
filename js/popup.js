@@ -1,5 +1,8 @@
+let autoDestruicaoGlobal = {}
+
 function popup({
     tempo = null,
+    autoDestruicao = [],
     elemento,
     mensagem,
     imagem,
@@ -10,9 +13,12 @@ function popup({
     nra = true
 }) {
 
-    if (!elemento && !mensagem) mensagem = 'Função <b>inativa</b>. <br>Fale com o suporte para reativação.'
+    if (!elemento && !mensagem)
+        mensagem = 'Função <b>inativa</b>. <br>Fale com o suporte para reativação.'
 
     const idPopup = ID5digitos()
+
+    autoDestruicaoGlobal[idPopup] = autoDestruicao
 
     const arredondado = botoes.length
         ? ''
@@ -25,7 +31,7 @@ function popup({
         return `
             <div class="linha-padrao">
                 ${texto || ''}
-                ${elemento}
+                ${typeof elemento === 'function' ? elemento() : elemento}
             </div>`
     }
 
@@ -117,6 +123,13 @@ function popup({
 }
 
 function removerPopup(id = null, nra = true) {
+
+    // Remoção de objetos de paginação;
+    (autoDestruicaoGlobal?.[id] || []).forEach(p => {
+        delete controles[p]
+        delete controlesCxOpcoes[p]
+    })
+
     const popups = document.querySelectorAll('.popup')
 
     if (nra === false) {

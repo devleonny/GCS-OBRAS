@@ -1,17 +1,5 @@
-let opVal = {
-    criador: new Set(),
-    tipo: new Set(),
-    sistema: new Set(),
-    prioridade: new Set(),
-    ultima_correcao: new Set(),
-    executor: new Set(),
-    reagendado: new Set(),
-    atrasado: new Set(),
-}
-
 let respCorrecao = null
 const autE = ['adm', 'gerente', 'diretoria']
-let filtrosAtivos = {}
 
 function pararCam() {
     const cameraDiv = document.querySelector('.cameraDiv');
@@ -160,92 +148,17 @@ async function excluirOcorrenciaCorrecao(idOcorrencia, idCorrecao) {
     overlayAguarde()
 
     if (idCorrecao) {
+        const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
+        delete ocorrencia.correcoes[idCorrecao]
 
-        delete db.dados_ocorrencias[idOcorrencia].correcoes[idCorrecao]
         await deletar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`)
-        await inserirDados({ [idOcorrencia]: db.dados_ocorrencias[idOcorrencia] }, 'dados_ocorrencias')
+        await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
     } else {
-
         await deletar(`dados_ocorrencias/${idOcorrencia}`)
         await deletarDB('dados_ocorrencias', idOcorrencia)
     }
 
-    await telaOcorrencias()
-
     removerOverlay()
-
-}
-
-function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
-
-    const { anexos, usuario } = ocorrencia
-
-    const divCorrecoes = carregarCorrecoes(idOcorrencia)
-    const corAssinatura = ocorrencia.assinatura ? '#008000' : '#d30000'
-    const cliente = db.dados_clientes?.[ocorrencia?.unidade] || {}
-    const tipo = db.tipos?.[ocorrencia?.tipo]?.nome || 'Em branco'
-    const sistema = db.sistemas?.[ocorrencia?.sistema]?.nome || 'Em branco'
-    const prioridade = db.prioridades?.[ocorrencia?.prioridade]?.nome || 'Em branco'
-    const criador = ocorrencia?.usuario || 'Em branco'
-    const descricao = ocorrencia?.descricao || 'Em branco'
-    const unidade = cliente?.nome || 'Em branco'
-    const cidade = cliente?.cidade || 'Em branco'
-    const empresa = db.empresas[cliente?.empresa]?.nome || 'Em branco'
-    const podeGerenciar = autE.includes(acesso.permissao) || usuario == acesso.usuario
-    const divAnexos = Object
-        .entries(anexos || {})
-        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, podeGerenciar ? `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')` : false))
-        .join('')
-
-    const btnExclusao = podeGerenciar
-        ? botaoImg('fechar', `confirmarExclusao('${idOcorrencia}')`)
-        : ''
-    const btnEditar = podeGerenciar
-        ? botaoImg('lapis', `formularioOcorrencia('${idOcorrencia}')`)
-        : ''
-
-    const modeloCampos = (valor1, elemento) => `
-        <div style="${horizontal}; width: 100%; gap: 0.5rem;">
-            <label style="font-weight: bold; width: 30%; text-align: right;">${valor1}</label>
-            <div style="text-align: justify; width: 70%; text-align: left;">${elemento.replace('\n', '<br>')}</div>
-        </div>`
-
-    const partes = `
-        <div class="div-linha">
-            <div class="bloco-linha">
-                <div style="${horizontal}; gap: 5px; padding: 5px; width: 100%;">
-                    <span class="etiqueta-chamado">${idOcorrencia}</span>
-                    ${btnEditar}
-                    ${btnExclusao}
-                    <img src="imagens/pdf.png" style="width: 2.5rem;" onclick="telaOS('${idOcorrencia}')">
-
-                    <div style="border: solid 1px ${corAssinatura}; border-radius: 3px; padding: 2px; background-color: ${corAssinatura}52;" onclick="coletarAssinatura('${idOcorrencia}')">
-                        <img src="imagens/assinatura.png" style="width: 1.5rem;">
-                    </div>
-                </div>
-                ${modeloCampos('Unidade', unidade)}
-                ${modeloCampos('Endereço', cliente?.endereco || '...')}
-                ${modeloCampos('Bairro', cliente?.bairro || '...')}
-                ${modeloCampos('Cidade', cidade)}
-                ${modeloCampos('Descrição', descricao)}
-                ${modeloCampos('Criado por', criador)}
-                ${modeloCampos('Data Registro', ocorrencia?.dataRegistro || '')}
-                ${modeloCampos('Empresa', empresa)}
-                ${modeloCampos('Tipo', tipo)}
-                ${modeloCampos('Sistema', sistema)}
-                ${modeloCampos('Prioridade', prioridade)}
-
-                <div id="anexos" style="${vertical};">
-                    ${divAnexos}
-                </div>
-            </div>
-
-            <div class="bloco-linha">
-                ${divCorrecoes}
-            </div>
-        </div>`
-
-    return partes
 
 }
 
@@ -257,7 +170,8 @@ function uCorrecao(correcoes) {
 
     for (const { data, dtCorrecao, tipoCorrecao } of Object.values(correcoes)) {
 
-        if (!data) continue
+        if (!data)
+            continue
 
         const [d, h] = data.split(', ')
         const [dia, mes, ano] = d.split('/')
@@ -275,6 +189,7 @@ function uCorrecao(correcoes) {
             maisRecente = dateObj
             tipo = tipoCorrecao
             dtBase = dtCorrecao
+
         }
     }
 
@@ -285,10 +200,10 @@ function uCorrecao(correcoes) {
         dias = Math.trunc(diff / (1000 * 60 * 60 * 24))
     }
 
-    return { tipo, dias }
+    return { tipo, dias, dtCorrecao: dtBase }
 }
 
-function carregarCorrecoes(idOcorrencia) {
+async function carregarCorrecoes(ocorrencia) {
 
     const modelo = (valor1, valor2) => `
         <div style="${horizontal}; gap: 1rem; margin-bottom: 5px; width: 100%;">
@@ -296,7 +211,7 @@ function carregarCorrecoes(idOcorrencia) {
             <div style="width: 70%; text-align: left;">${valor2}</div>
         </div>`
 
-    const ocorrencia = db.dados_ocorrencias?.[idOcorrencia]
+    const idOcorrencia = ocorrencia.id
     const dadosCorrecao = ocorrencia?.correcoes || {}
 
     let divsCorrecoes = ''
@@ -318,10 +233,10 @@ function carregarCorrecoes(idOcorrencia) {
                 continue
         }
 
-        const status = db.correcoes?.[correcao?.tipoCorrecao]?.nome || 'Não analisada'
-        const estilo = status == 'Solucionada'
+        const { nome } = await recuperarDado('correcoes', correcao?.tipoCorrecao) || 'Não analisada'
+        const estilo = nome == 'Solucionada'
             ? 'fin'
-            : status == 'Não analisada'
+            : nome == 'Não analisada'
                 ? 'na'
                 : 'and'
 
@@ -370,7 +285,7 @@ function carregarCorrecoes(idOcorrencia) {
                         `)}
                     ${modelo('Solicitante', `<span>${correcao.usuario}</span>`)}
                     ${modelo('Executor', `<span>${correcao.executor}</span>`)}
-                    ${modelo('Correção', `<span class="${estilo}">${status}</span>`)}
+                    ${modelo('Correção', `<span class="${estilo}">${nome}</span>`)}
                     ${modelo('Descrição', `<div style="white-space: pre-wrap;">${correcao.descricao}</div>`)}
                     ${modelo('Criado em', `<span>${correcao?.data || 'S/D'}</span>`)}
                 </div>
@@ -395,13 +310,13 @@ function carregarCorrecoes(idOcorrencia) {
     }
 
     const acumulado = `
-        ${botao('Incluir Correção', `formularioCorrecao('${idOcorrencia}')`, '#e47a00')}
+        <button style="background-color: #e47a00;" onclick="formularioCorrecao('${idOcorrencia}')">Incluir Correção</button>
         <div class="detalhamento-correcoes">
             ${divsCorrecoes}
         </div>
     `
 
-    return acumulado
+    return { correcoes: acumulado, vazio: divsCorrecoes == '' }
 
 }
 
@@ -429,7 +344,7 @@ async function salvarDataCorrecao(idOcorrencia, idCorrecao) {
 
     overlayAguarde()
 
-    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
+    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
     const correcao = ocorrencia.correcoes[idCorrecao]
     correcao.datas_agendadas ??= []
     correcao.datas_agendadas.push(correcao.dtCorrecao)
@@ -441,300 +356,275 @@ async function salvarDataCorrecao(idOcorrencia, idCorrecao) {
     enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}/datas_agendadas`, correcao.datas_agendadas)
 
     removerPopup()
-    await telaOcorrencias()
 
 }
 
-async function filtrarPorCampo(campo, valor) {
-
-    if (!valor || !valor.trim()) {
-        delete filtrosAtivos[campo]
-    } else {
-        filtrosAtivos[campo] = valor.trim()
-    }
-
-    localStorage.setItem('filtrosAtivos', JSON.stringify(filtrosAtivos))
-    renderizarPagina(1)
-}
-
-function passaFiltros(idOcorrencia, ocorrencia, filtros) {
-
-    const { usuario, tipo, prioridade, sistema } = ocorrencia
-
-    if (ocultarParaTecs(ocorrencia.correcoes || {})) return false
-
-
-    const oCorrecoes = Object.values(ocorrencia.correcoes || {})
-    const uc = uCorrecao(oCorrecoes)
-    const executores = oCorrecoes.map(c => c.executor)
-    oCorrecoes.forEach(c => {
-        opVal.executor.add(c.executor || 'Em branco')
-    })
-
-    const reagendado = oCorrecoes
-        .some(c => c.datas_agendadas)
-
-    const nUltimaCorrecao = db.correcoes?.[uc.tipo]?.nome || 'Não analisada'
-    const nTipo = db.tipos?.[tipo]?.nome || 'Em branco'
-    const nSistema = db.sistemas?.[sistema]?.nome || 'Em branco'
-    const nPrioridade = db.prioridades?.[prioridade]?.nome || 'Em branco'
-    const nReagendado = reagendado ? 'Sim' : 'Não'
-    const nAtrasado = uc?.dias < 0 ? 'Sim' : 'Não'
-
-    opVal.criador.add(usuario)
-    opVal.tipo.add(nTipo)
-    opVal.sistema.add(nSistema)
-    opVal.prioridade.add(nPrioridade)
-    opVal.ultima_correcao.add(nUltimaCorrecao)
-    opVal.reagendado.add(nReagendado)
-    opVal.atrasado.add(nAtrasado)
-
-    for (const [campo, termo] of Object.entries(filtros)) {
-        if (!termo) continue
-
-        let valor
-
-        switch (campo) {
-            case 'criador': valor = usuario; break
-            case 'tipo': valor = nTipo; break
-            case 'sistema': valor = nSistema; break
-            case 'prioridade': valor = nPrioridade; break
-            case 'ultima_correcao': valor = nUltimaCorrecao; break
-            case 'reagendado': valor = nReagendado; break
-            case 'atrasado': valor = nAtrasado; break
-            case 'executor': valor = executores; break
-
-            case 'chamado': valor = idOcorrencia; break
-            case 'cidade': valor = db.dados_clientes?.[ocorrencia.unidade]?.cidade; break
-            case 'unidade': valor = db.dados_clientes?.[ocorrencia.unidade]?.nome; break
-            case 'descricao': valor = ocorrencia.descricao; break
-            case 'empresa':
-                const cli = db.dados_clientes?.[ocorrencia.unidade]
-                valor = db.empresas?.[cli?.empresa]?.nome
-                break
-            default:
-                valor = ocorrencia[campo]
-        }
-
-        if (!valor) return false
-
-        if (Array.isArray(valor)) {
-            if (!valor.some(v => v?.toString().toLowerCase().includes(termo.toLowerCase())))
-                return false
-        } else {
-
-            if (campo == 'ultima_correcao' && (valor !== termo))
-                return false
-
-            if (!valor.toString().toLowerCase().includes(termo.toLowerCase()))
-                return false
-        }
-    }
-
-    return true
-}
-
-async function limparFiltros() {
-    filtrosAtivos = {}
-    filtrarPorCampo()
-    criarPesquisas()
-}
-
-function parseDataBR(data) {
-    if (!data) return 0
-
-    const [d, t] = data.split(', ')
-    const [dia, mes, ano] = d.split('/')
-    return new Date(`${ano}-${mes}-${dia}T${t || '00:00:00'}`).getTime()
-}
-
-async function renderizarPagina(pagina) {
-
-    const base = Object
-        .entries(db.dados_ocorrencias)
-        .filter(([id, o]) => passaFiltros(id, o, filtrosAtivos))
-        .sort(([, a], [, b]) =>
-            parseDataBR(b.dataRegistro) - parseDataBR(a.dataRegistro)
-        )
-
-    const totalPaginas = Math.max(
-        1,
-        Math.ceil(base.length / limitePorPagina)
-    )
-
-    paginaAtual = Math.min(Math.max(pagina, 1), totalPaginas)
-
-    const inicio = (paginaAtual - 1) * limitePorPagina
-    const fim = inicio + limitePorPagina
-
-    const fatia = base.slice(inicio, fim)
-
-    const tabela = document.querySelector('.tabela1')
-    tabela.innerHTML = ''
-    listas = {}
-
-    const contador = document.getElementById('contador')
-    if (contador) contador.textContent = base.length
-
-    if (fatia.length === 0) {
-        tabela.innerHTML = `
-            <div onclick="limparFiltros()" class="sem-resultados">
-                <img src="gifs/offline.gif">
-                •
-                <span>Sem resultados</span> 
-                •
-                <span>Limpar</span>
-            </div>`
-
-        renderizarPaginacao(0)
-        return
-    }
-
-    // render HTML somente do que passou
-    for (const [id, ocorrencia] of fatia) {
-        const html = criarLinhaOcorrencia(id, ocorrencia)
-        if (html) tabela.insertAdjacentHTML('beforeend', html)
-    }
-
-    // popular selects (como antes)
-    for (const [, ocorrencia] of base) {
-        const cliente = db.dados_clientes?.[ocorrencia.unidade] || {}
-        const empresa = db.empresas?.[cliente.empresa]?.nome
-
-        const map = {
-            criador: ocorrencia.usuario,
-            tipo: db.tipos?.[ocorrencia.tipo]?.nome,
-            sistema: db.sistemas?.[ocorrencia.sistema]?.nome,
-            prioridade: db.prioridades?.[ocorrencia.prioridade]?.nome,
-            empresa
-        }
-
-        for (const [k, v] of Object.entries(map)) {
-            if (!v) continue
-            (listas[k] ??= new Set()).add(v)
-        }
-    }
-
-    renderizarPaginacao(base.length)
-}
-
-function renderizarPaginacao(total) {
-
-    const totalPaginas = Math.ceil(total / limitePorPagina)
-
-    document.querySelector('.paginacao-ocorrencias').innerHTML =
-        total == 0
-            ? ''
-            : `
-                <div style="${vertical}; align-items: center; gap: 3px;">
-                    <div style="${horizontal}; gap: 0.5rem;">
-                        <img src="imagens/esq.png" onclick="renderizarPagina(${paginaAtual - 1})">
-                        <img src="imagens/dir.png" onclick="renderizarPagina(${paginaAtual + 1})">
-                    </div>
-                    <span style="white-space: nowrap;">${paginaAtual} de ${totalPaginas}</span>
-                </div>`
-
+function visibilidadeFiltros(painel, mostrar) {
+    painel.style.display = mostrar
+        ? 'none'
+        : ''
 }
 
 async function telaOcorrencias() {
 
-    if (app == 'GCS') return await telaInicial()
+    if (app == 'GCS')
+        return await telaInicialGCS()
 
     mostrarMenus(false)
 
-    filtrosAtivos = JSON.parse(localStorage.getItem('filtrosAtivos')) || {}
+    const empresaAtiva = await recuperarDado('empresas', acesso?.empresa)
+    titulo.innerHTML = empresaAtiva?.nome || 'Desatualizado'
 
-    const empresaAtiva = db.empresas[acesso?.empresa]?.nome || 'Desatualizado'
-    titulo.innerHTML = empresaAtiva
+    const btnExtras = `
+    <div style="${vertical};" class="painel-filtros">
+        <div id="filtros1" class="filtros"></div>
+        <div id="filtros2" class="filtros"></div>
+    </div>
+    `
+    const tabela = modTab({
+        btnExtras,
+        alinPag: vertical,
+        base: 'dados_ocorrencias',
+        pag: 'ocorrencias',
+        body: 'bodyOcorrencias',
+        criarLinha: 'criarLinhaOcorrencia'
+    })
 
     const acumulado = `
         <div class="tela-ocorrencias">
-            <div class="painelBotoes">
-                <div class="topo-ocorrencias">
-                    <div style="${vertical};">
-                        <div class="paginacao-ocorrencias"></div>
-                        <span id="contador"></span>
-                    </div>
-                    <div class="filtros"></div>
-                </div>
-            </div>
+            ${tabela}
+        </div>`
 
-            <div class="tabela1" style="height: max-content; max-height: 65vh;"></div>
+    tela.innerHTML = acumulado
 
-            <div class="rodape-tabela"></div>
-        </div>
-    `
 
-    const tOcorrencias = document.querySelector('.tela-ocorrencias')
+    // Filtros especiais para Técnico e Cliente;
+    if (acesso.permissao == 'técnico') {
 
-    if (!tOcorrencias) tela.innerHTML = acumulado
+        controles.ocorrencias.filtros = {
+            'snapshots.pendenteResposta': { op: 'includes', value: acesso.usuario },
+            'correcoes.*.executor': { op: '=', value: acesso.usuario },
+            'correcoes.*.tipoCorrecao': { op: '!=', value: 'WRuo2' }
+        }
 
-    await renderizarPagina(1)
+    } else if (acesso.permissao == 'cliente') {
 
-    auxPendencias()
+        controles.ocorrencias.filtros = {
+            'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa },
+        }
+
+    }
+
+    await paginacao()
+
     criarPesquisas()
 
 }
 
-function criarPesquisas() {
+async function criarLinhaOcorrencia(ocorrencia) {
 
-    const divFiltros = document.querySelector('.filtros')
+    const { id, anexos, usuario, snapshots } = ocorrencia
+    const { sistema, prioridade, tipo, cliente, empresa } = snapshots || {}
 
-    const modeloPesquisa = (campo) => `
+    const divCorrecoes = await carregarCorrecoes(ocorrencia)
+
+    const corAssinatura = ocorrencia.assinatura
+        ? '#008000'
+        : '#d30000'
+    const criador = ocorrencia?.usuario || 'Em branco'
+    const descricao = ocorrencia?.descricao || 'Em branco'
+    const podeGerenciar = autE.includes(acesso.permissao) || usuario == acesso.usuario
+    const divAnexos = Object
+        .entries(anexos || {})
+        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, podeGerenciar ? `removerAnexo(this, '${idAnexo}', '${id}')` : false))
+        .join('')
+
+    const btnExclusao = podeGerenciar
+        ? botaoImg('fechar', `confirmarExclusao('${id}')`)
+        : ''
+
+    const btnEditar = podeGerenciar
+        ? botaoImg('lapis', `formularioOcorrencia('${id}')`)
+        : ''
+
+    const modeloCampos = (valor1, elemento) => {
+        if (!elemento)
+            return ''
+
+        return `
+        <div style="${horizontal}; width: 100%; gap: 0.5rem;">
+            <label style="font-weight: bold; width: 30%; text-align: right;">${valor1}</label>
+            <div style="text-align: justify; width: 70%; text-align: left;">${String(elemento).replace('\n', '<br>')}</div>
+        </div>`
+    }
+
+    const partes = `
+        <div class="div-linha">
+            <div class="bloco-linha">
+                <div style="${horizontal}; gap: 5px; padding: 5px; width: 100%;">
+                    <span class="etiqueta-chamado">${id}</span>
+                    ${btnEditar}
+                    ${btnExclusao}
+                    <img src="imagens/pdf.png" style="width: 2.5rem;" onclick="telaOS('${id}')">
+
+                    <div style="border: solid 1px ${corAssinatura}; border-radius: 3px; padding: 2px; background-color: ${corAssinatura}52;" 
+                    onclick="coletarAssinatura('${id}')">
+                        <img src="imagens/assinatura.png" style="width: 1.5rem;">
+                    </div>
+                </div>
+                ${modeloCampos('Unidade', cliente?.nome)}
+                ${modeloCampos('Endereço', cliente?.endereco)}
+                ${modeloCampos('Bairro', cliente?.bairro)}
+                ${modeloCampos('Cidade', cliente?.cidade)}
+                ${modeloCampos('Descrição', descricao)}
+                ${modeloCampos('Criado por', criador)}
+                ${modeloCampos('Data Registro', ocorrencia?.dataRegistro || '')}
+                ${modeloCampos('Empresa', empresa)}
+                ${modeloCampos('Tipo', tipo)}
+                ${modeloCampos('Sistema', sistema)}
+                ${modeloCampos('Prioridade', prioridade)}
+
+                <div id="anexos" style="${vertical};">
+                    ${divAnexos}
+                </div>
+            </div>
+
+            <div class="bloco-linha">
+                ${divCorrecoes.correcoes}
+            </div>
+        </div>`
+
+    return `
+        <tr>
+            <td>${partes}</td>
+        </tr>`
+
+}
+
+async function criarPesquisas() {
+
+    const divF1 = document.querySelector('#filtros1')
+    const divF2 = document.querySelector('#filtros2')
+
+    const camposLivres = {
+        'Chamado': { path: 'id' },
+        'Cidade': { path: 'snapshots.cliente.cidade' },
+        'Descricao': { path: 'descricao' },
+        'Unidade': { path: 'snapshots.cliente.nome' },
+    }
+
+    for (const [titulo, campo] of Object.entries(camposLivres)) {
+
+        const { path } = campo
+
+        const valor = controles?.ocorrencias?.filtros?.[path]?.value || ''
+
+        const pesquisa = `
         <div class="pesquisa">
             <input
-                id="${campo}"
-                value="${filtrosAtivos?.[campo] || ''}"
-                onkeydown="if (event.key === 'Enter') filtrarPorCampo('${campo}', this.value)"
-                placeholder="${inicialMaiuscula(campo)}"
-                style="width: 100%;">
+                onkeydown="if (event.key === 'Enter') pesquisarOcorrencias('${path}', this.value)"
+                placeholder="${titulo}"
+                style="width: 100%;" value="${valor}">
+
             <img src="imagens/pesquisar4.png">
         </div>`
 
-    const camposLivres = ['chamado', 'cidade', 'descricao', 'unidade']
-
-    for (const campo of camposLivres) {
-
-        const pesqAtiva = document.getElementById(campo)
-        if (pesqAtiva) {
-            pesqAtiva.value = filtrosAtivos[campo] || ''
-            continue
-        }
-
-        divFiltros.insertAdjacentHTML('beforeend', modeloPesquisa(campo))
+        divF1.insertAdjacentHTML('beforeend', pesquisa)
 
     }
 
-    for (let [campo, opcoes] of Object.entries(opVal)) {
+    const camposFechados = {
+        'Criador': { path: 'usuario' },
+        'Tipo': { path: 'snapshots.tipo' },
+        'Sistema': { path: 'snapshots.sistema' },
+        'Prioridade': { path: 'snapshots.prioridade' },
+        'Última Correção': { path: 'snapshots.ultimaCorrecao' },
+        'Executor': { path: 'correcoes.*.executor' },
+    }
 
-        opcoes = [...opcoes].sort((a, b) => a.localeCompare(b))
+    const filtros = []
 
-        const existente = document.getElementById(`select_${campo}`)
-        const ops = ['', ...opcoes].map(op => `<option ${op == filtrosAtivos?.[campo] ? 'selected' : ''}>${op}</option>`).join('')
-        const filtro = `
-            <div id="select_${campo}" style="${vertical}; gap: 2px;">
-                <span>${inicialMaiuscula(campo)}</span>
-                <select onchange="filtrarPorCampo('${campo}', this.value)">${ops}</select>
+    for (let [titulo, conf] of Object.entries(camposFechados)) {
+
+        const { path } = conf
+
+        const contagem = (titulo == 'Executor' && acesso.permissao == 'técnico')
+            ? { [acesso.usuario]: {} }
+            : {
+                '': {},
+                ...await contarPorCampo({ base: 'dados_ocorrencias', path })
+            }
+
+        const pesqAtiva = controles?.ocorrencias?.filtros?.[path]?.value
+
+        const opcoes = Object.keys(contagem)
+            .sort((a, b) => a.localeCompare(b))
+            .map(o => `<option ${pesqAtiva == o ? 'selected' : ''}>${o}</option>`)
+
+        filtros.push(`
+            <div style="${vertical}; gap: 2px;">
+                <span>${titulo}</span>
+                <select onchange="pesquisarOcorrencias('${path}', this.value)">
+                    ${opcoes}
+                </select>
             </div>`
-
-        if (existente) {
-            existente.querySelector('select').innerHTML = ops
-            continue
-        }
-
-        divFiltros.insertAdjacentHTML('beforeend', filtro)
+        )
 
     }
+
+    // Filtro de atrasados;
+    filtros.push(`
+            <div style="${vertical}; gap: 2px;">
+                <span>Atrasados</span>
+                <select onchange="filtrarAtrasados(this)">
+                    ${['', 'Sim', 'Não'].map(o => `<option>${o}</option>`).join('')}
+                </select>
+            </div>
+        `)
+
+    divF2.insertAdjacentHTML('beforeend', filtros.join(''))
 }
 
-async function atalho(uc) {
+async function pesquisarOcorrencias(path, valor) {
 
-    filtrosAtivos = {}
-    filtrosAtivos.ultima_correcao = uc == 'Todos' ? '' : uc
-    localStorage.setItem('filtrosAtivos', JSON.stringify(filtrosAtivos))
+    if (!valor) {
+        delete controles.ocorrencias.filtros[path]
 
-    await telaOcorrencias()
+    } else {
+        controles.ocorrencias.filtros[path] = valor
+            ? { op: 'includes', value: valor }
+            : {}
+    }
+
+    await paginacao()
+
 }
+
+async function filtrarAtrasados(input) {
+
+    const ativo = input.value != ''
+
+    const novosFiltros = {
+        'correcoes.*.tipoCorrecao': ativo
+            ? { op: '!=', value: 'WRuo2' }
+            : null,
+
+        'correcoes.*.dtCorrecao': ativo
+            ? {
+                op: input.value == 'Sim' ? '<d' : '>=d',
+                value: Date.now()
+            }
+            : null
+    }
+
+    controles.ocorrencias.filtros = {
+        ...controles.ocorrencias.filtros,
+        ...novosFiltros
+    }
+
+    await paginacao()
+}
+
 
 function ocultarParaTecs(correcoes = {}) {
 
@@ -764,27 +654,40 @@ function ocultarParaTecs(correcoes = {}) {
     return participou && tudoRespondido
 }
 
-
-function auxPendencias() {
-
-    const contadores = { Todos: 0 }
-
-    for (const ocorrencia of Object.values(db.dados_ocorrencias)) {
-
-        const oCorrecoes = ocorrencia.correcoes || {}
-        if (ocultarParaTecs(oCorrecoes)) continue
-
-
-        const uc = uCorrecao(oCorrecoes)
-        const nome = db.correcoes?.[uc.tipo]?.nome || 'Não analisada'
-
-        contadores[nome] ??= 0
-        contadores[nome]++
-        contadores.Todos++
-    }
+async function auxPendencias() {
 
     const divPendencias = document.querySelector('.painel-pendencias')
-    const ordemFinal = ['Solucionada', 'Todos']
+    if (!divPendencias)
+        return
+
+    controles.ocorrencias ??= {}
+    controles.ocorrencias.filtros ??= {}
+
+    let filtros = {}
+
+    if (acesso.permissao == 'técnico') {
+        filtros = {
+            'snapshots.pendenteResposta': { op: 'includes', value: acesso.usuario },
+            'correcoes.*.tipoCorrecao': { op: '!=', value: 'WRuo2' },
+            'correcoes.*.executor': { op: '=', value: acesso.usuario }
+        }
+
+    } else if (acesso.permissao == 'cliente') {
+
+        filtros = {
+            'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa }
+        }
+
+    }
+
+    const contadores = await contarPorCampo({
+        base: 'dados_ocorrencias',
+        filtros,
+        path: 'snapshots.ultimaCorrecao'
+    })
+
+
+    const ordemFinal = ['Solucionada', 'todos']
 
     const etiquetas = Object
         .entries(contadores)
@@ -805,14 +708,14 @@ function auxPendencias() {
             const cor =
                 correcao === 'Solucionada'
                     ? '#3c9f15'
-                    : correcao === 'Todos'
+                    : correcao === 'todos'
                         ? '#004cff'
                         : '#b12425'
 
             return `
-            <div class="pill" onclick="atalho('${correcao}')">
+            <div class="pill" onclick="atalhoAuxiliar('${correcao}')">
                 <span class="pill-a" style="background: ${cor};">${total}</span>
-                <span class="pill-b">${correcao}</span>
+                <span class="pill-b">${inicialMaiuscula(correcao)}</span>
             </div>`
         })
         .join('')
@@ -821,128 +724,104 @@ function auxPendencias() {
 
 }
 
-async function atualizarOcorrencias(resetar = false) {
+async function atalhoAuxiliar(correcao) {
 
-    if (emAtualizacao) return
+    controles.ocorrencias.filtros['snapshots.ultimaCorrecao'] =
+        correcao === 'todos'
+            ? {}
+            : { op: '=', value: correcao }
 
-    if (!tela) {
-        await telaPrincipal()
-        await atualizarOcorrencias()
-        return
-    }
+    await telaOcorrencias()
 
-    mostrarMenus(true)
-
-    emAtualizacao = true
-    sincronizarApp()
-
-    const basesAuxiliares = [
-        'dados_setores',
-        'empresas',
-        'dados_composicoes',
-        'dados_clientes',
-        'dados_ocorrencias',
-        'sistemas',
-        'prioridades',
-        'correcoes',
-        'tipos'
-    ]
-
-    const status = { total: (basesAuxiliares.length + 1), atual: 1 }
-
-    sincronizarApp(status)
-
-    status.atual++
-
-    const bCli = ['dados_clientes', 'dados_ocorrencias']
-
-    for (const base of basesAuxiliares) {
-
-        sincronizarApp(status)
-
-        const filtro = (bCli.includes(base) && acesso.permissao == 'cliente')
-            ? { empresa: acesso.empresa }
-            : (base == 'dados_ocorrencias' && acesso.permissao == 'técnico')
-                ? { executor: acesso.usuario, tipoCorrecao: '!WRuo2' } // Diferente de Solucionado;
-                : {}
-
-        const dados = await sincronizarDados({ base, filtro, resetar })
-        db[base] ??= {}
-        db[base] = dados
-
-        status.atual++
-
-        // A tabela é a primeira: atualiza os dados da empresa atual antes da tabela de clientes;
-        if (base == 'dados_setores') {
-
-            acesso = await recuperarDado('dados_setores', acesso.usuario)
-            localStorage.setItem('acesso', JSON.stringify(acesso))
-
-        }
-
-    }
-
-    sincronizarApp({ remover: true })
-
-    emAtualizacao = false
-
-    if (app == 'GCS') return
-
-    const tOcorrencias = document.querySelector('.tela-ocorrencias')
-    if (tOcorrencias) {
-        await telaOcorrencias()
-    }
-
-    carregarMenus()
-    await criarElementosIniciais()
-    auxPendencias() // Atualizar os tópicos do menu lateral;
 }
 
 async function formularioOcorrencia(idOcorrencia) {
 
-    const ocorrencia = db.dados_ocorrencias[idOcorrencia] || {}
-    const { unidade = unidadeOrc, tipo, sistema, prioridade, anexos, fotos, descricao } = ocorrencia
-    const nUnidade = db.dados_clientes[unidade]?.nome
-    const nSistema = db.sistemas[sistema]?.nome
-    const nPrioridade = db.prioridades[prioridade]?.nome
-    const nTipo = db.tipos[tipo]?.nome
+    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
+    const { unidade = unidadeOrc, snapshots, anexos, fotos, descricao } = ocorrencia
+    const { sistema, tipo, prioridade } = snapshots || {}
+
+    const cliente = unidade
+        ? await recuperarDado('dados_clientes', unidade)
+        : snapshots?.cliente || {}
+
     const a = Object
         .entries(anexos || {})
         .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')`))
         .join('')
 
+
+    let filtros = {}
+    if (acesso.permissao == 'cliente') {
+        filtros = {
+            'empresa': { op: '=', value: acesso?.empresa }
+        }
+    }
+
+    // Campo Unidade;
+    controlesCxOpcoes.unidade = {
+        base: 'dados_clientes',
+        retornar: ['nome'],
+        filtros,
+        colunas: {
+            'Nome': { chave: 'nome' },
+            'CNPJ': { chave: 'cnpj' },
+            'Cidade': { chave: 'cidade' },
+            'Endereço': { chave: 'endereco' },
+        }
+    }
+
+    // Campos Simples;
+    Object.entries({
+        'tipo': 'tipos',
+        'sistema': 'sistemas',
+        'prioridade': 'prioridades'
+    }).forEach(([n, base]) => {
+
+        controlesCxOpcoes[n] = {
+            base,
+            retornar: ['nome'],
+            colunas: {
+                'Nome': { chave: 'nome' }
+            }
+        }
+
+    })
+
     const linhas = [
         {
             texto: 'Unidade de Manutenção',
             elemento: `<span ${unidade ? `id="${unidade}"` : ''} 
-                class="campos" name="unidade" onclick="cxOpcoes('unidade', 'dados_clientes', ['nome', 'cidade', 'endereco', 'cnpj'])">
-                ${nUnidade || 'Selecione'}
+                class="campos" name="unidade" onclick="cxOpcoes('unidade')">
+                ${cliente.nome || 'Selecione'}
             </span>`
         },
         {
             texto: 'Sistema',
-            elemento: `<span ${sistema ? `id="${sistema}"` : ''} 
-            class="campos" name="sistema" onclick="cxOpcoes('sistema', 'sistemas', ['nome'])">
-                ${nSistema || 'Selecione'}
+            elemento: `<span ${ocorrencia.unidade ? `id="${ocorrencia.unidade}"` : ''} 
+            class="campos" name="sistema" onclick="cxOpcoes('sistema')">
+                ${sistema || 'Selecione'}
             </span>`
         },
         {
             texto: 'Prioridade',
-            elemento: `<span ${prioridade ? `id="${prioridade}"` : ''} 
-            class="campos" name="prioridade" onclick="cxOpcoes('prioridade', 'prioridades', ['nome'])">
-                ${nPrioridade || 'Selecione'}
+            elemento: `<span ${ocorrencia.prioridade ? `id="${ocorrencia.prioridade}"` : ''} 
+            class="campos" name="prioridade" onclick="cxOpcoes('prioridade')">
+                ${prioridade || 'Selecione'}
             </span>`
         },
         {
             texto: 'Tipo',
-            elemento: `<span ${tipo ? `id="${tipo}"` : ''} 
-            class="campos" name="tipo" onclick="cxOpcoes('tipo', 'tipos', ['nome'])">
-                ${nTipo || 'Selecione'}
+            elemento: `<span ${ocorrencia.tipo ? `id="${ocorrencia.tipo}"` : ''} 
+            class="campos" name="tipo" onclick="cxOpcoes('tipo')">
+                ${tipo || 'Selecione'}
             </span>`
         },
         {
             texto: 'Descrição',
-            elemento: `<textarea rows="7" style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" class="campos">${descricao || ''}</textarea>`
+            elemento: `<textarea rows="7" 
+            style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" 
+            name="descricao" class="campos">${descricao || ''}</textarea>`
         },
         {
             texto: 'Anexos',
@@ -960,7 +839,7 @@ async function formularioOcorrencia(idOcorrencia) {
 
     const botoes = [
         { img: 'concluido', texto: 'Salvar', funcao: idOcorrencia ? `salvarOcorrencia('${idOcorrencia}')` : 'salvarOcorrencia()' },
-        { img: 'atualizar', texto: 'Atualizar', funcao: `atualizarOcorrencias()` },
+        { img: 'atualizar', texto: 'Atualizar', funcao: `atualizarGCS()` },
     ]
 
     const titulo = idOcorrencia ? 'Editar Ocorrência' : 'Criar Ocorrência'
@@ -990,7 +869,7 @@ function bloqAnterior(input) {
 
 async function formularioCorrecao(idOcorrencia, idCorrecao) {
 
-    const ocorrencia = db.dados_ocorrencias[idOcorrencia]
+    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || ''
     const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
 
     const equipamentos = (
@@ -1000,7 +879,25 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
         )
     ).join('')
 
-    const tipoCorrecao = db.correcoes[correcao?.tipoCorrecao]?.nome
+    controlesCxOpcoes.executor = {
+        base: 'dados_setores',
+        retornar: ['usuario'],
+        colunas: {
+            'Nome': { chave: 'usuario' },
+            'Permissão': { chave: 'permissao' },
+            'Setor': { chave: 'setor' }
+        }
+    }
+
+    controlesCxOpcoes.tipoCorrecao = {
+        base: 'correcoes',
+        retornar: ['nome'],
+        colunas: {
+            'Nome': { chave: 'nome' }
+        }
+    }
+
+    const { nome } = await recuperarDado('correcoes', correcao?.tipoCorrecao) || {}
     const executor = correcao?.executor
     const linhas = [
         {
@@ -1009,11 +906,15 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
         },
         {
             texto: 'Status da Correção',
-            elemento: `<span class="campos" ${correcao?.tipoCorrecao ? `id="${correcao?.tipoCorrecao}"` : ''} name="tipoCorrecao" onclick="cxOpcoes('tipoCorrecao', 'correcoes', ['nome'])">${tipoCorrecao || 'Selecione'}</span>`
+            elemento: `<span 
+                class="campos" ${correcao?.tipoCorrecao ? `id="${correcao?.tipoCorrecao}"` : ''} 
+                name="tipoCorrecao" onclick="cxOpcoes('tipoCorrecao')">
+                    ${nome || 'Selecione'}
+                </span>`
         },
         {
             texto: 'Quem fará a atividade?',
-            elemento: `<span class="campos" ${executor ? `id="${executor}"` : ''} name="executor" onclick="cxOpcoes('executor', 'dados_setores', ['usuario'])">${executor || 'Selecione'}</span>`
+            elemento: `<span class="campos" ${executor ? `id="${executor}"` : ''} name="executor" onclick="cxOpcoes('executor')">${executor || 'Selecione'}</span>`
         },
         { texto: 'Descrição', elemento: `<textarea style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" rows="7" class="campos">${correcao?.descricao || ''}</textarea>` },
         {
@@ -1051,10 +952,10 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
                 ? `salvarCorrecao('${idOcorrencia}', '${idCorrecao}')`
                 : `salvarCorrecao('${idOcorrencia}')`
         },
-        { img: 'atualizar', texto: 'Atualizar', funcao: `atualizarOcorrencias()` },
+        { img: 'atualizar', texto: 'Atualizar', funcao: `atualizarGCS()` },
     ]
 
-    popup({ linhas, botoes, titulo: 'Gerenciar Correção' })
+    popup({ linhas, botoes, titulo: 'Gerenciar Correção', autoDestruicao: ['executor', 'tipoCorrecao'] })
 
     visibilidadeFotos()
 
@@ -1067,17 +968,25 @@ async function maisLabel({ codigo, quantidade, unidade } = {}) {
         .map(op => `<option ${unidade == op ? `selected` : ''}>${op}</option>`)
         .join('')
     const temporario = ID5digitos()
-    let nome = 'Selecionar'
-    if (codigo) {
-        const produto = await recuperarDado('dados_composicoes', codigo)
-        nome = produto.descricao
+    const nome = await recuperarDado('dados_composicoes', codigo) || 'Selecionar'
+
+    controlesCxOpcoes[temporario] = {
+        base: 'dados_composicoes',
+        filtros: {
+            'tipo': { op: '!=', value: 'SERVIÇO' }
+        },
+        colunas: {
+            'Descrição': { chave: 'descricao' },
+            'Modelo': { chave: 'modelo' },
+            'Fabricante': { chave: 'fabricante' }
+        }
     }
 
     const label = `
         <div style="${horizontal}; gap: 5px;">
             <img src="imagens/cancel.png" onclick="this.parentElement.remove()">
             <div name="equipamentos" style="${vertical}; gap: 5px;">
-                <span class="campos" name="${temporario}" ${codigo ? `id="${codigo}"` : ''} onclick="cxOpcoes('${temporario}', 'dados_composicoes', ['descricao', 'tipo', 'marca', 'fabricante'])">${nome}</span>
+                <span class="campos" name="${temporario}" ${codigo ? `id="${codigo}"` : ''} onclick="cxOpcoes('${temporario}')">${nome}</span>
                 <div style="${horizontal}; gap: 5px; width: 100%;">
                     <input style="width: 100%;" class="campos" type="number" value="${quantidade || ''}">
                     <select class="campos">${opcoes}</select>
@@ -1092,7 +1001,7 @@ async function maisLabel({ codigo, quantidade, unidade } = {}) {
 
 async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
 
-    const ocorrencia = db.dados_ocorrencias[idOcorrencia]
+    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
     ocorrencia.correcoes ??= {}
     ocorrencia.correcoes[idCorrecao] ??= {}
 
@@ -1164,13 +1073,14 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
         }
     }
 
-    if (respCorrecao) correcao.resposta = respCorrecao
+    if (respCorrecao)
+        correcao.resposta = respCorrecao
+
     respCorrecao = null
 
     await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
-    await telaOcorrencias()
+
     enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, correcao)
-    enviar(`dados_ocorrencias/${idOcorrencia}/tipoCorrecao`, correcao.tipoCorrecao)
     removerPopup()
 
 }
@@ -1188,7 +1098,7 @@ async function salvarOcorrencia(idOcorrencia) {
     const input = obter('anexos')
     const anexos = await anexosOcorrencias(input)
     const novo = {
-        unidade: obter('unidade')?.id || '',
+        unidade: Number(obter('unidade')?.id),
         sistema: obter('sistema')?.id || '',
         prioridade: obter('prioridade')?.id || '',
         tipo: obter('tipo')?.id || '',
@@ -1201,7 +1111,8 @@ async function salvarOcorrencia(idOcorrencia) {
         }
     }
 
-    if (!ocorrencia.fotos) ocorrencia.fotos = {}
+    if (!ocorrencia.fotos)
+        ocorrencia.fotos = {}
 
     const imgs = document.querySelectorAll('.fotos img')
 
@@ -1222,7 +1133,6 @@ async function salvarOcorrencia(idOcorrencia) {
         Object.assign(ocorrencia, novo)
 
         await salvarLocal(idOcorrencia, ocorrencia)
-        await telaOcorrencias()
         enviar(`dados_ocorrencias/${idOcorrencia}`, ocorrencia)
         removerPopup()
 
@@ -1234,8 +1144,7 @@ async function salvarOcorrencia(idOcorrencia) {
             if (resposta.mensagem) {
                 popup({ mensagem: resposta.mensagem })
             } else {
-                await salvarLocal(resposta.idOcorrencia, novo)
-                await telaOcorrencias()
+                await salvarLocal(resposta.idOcorrencia, { ...novo, id: resposta.idOcorrencia })
             }
 
             removerPopup()
@@ -1273,7 +1182,6 @@ async function removerAnexo(img, idAnexo, idOcorrencia, idCorrecao) {
     }
 
     await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
-    await telaOcorrencias()
 
     img.parentElement.remove()
     removerOverlay()

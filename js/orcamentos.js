@@ -1,10 +1,3 @@
-let filtroRespost
-let arquivado = 'N'
-let auxiliarFaturamento = {}
-let pAtual = 1
-const itensPorPagina = 100
-let tPaginas = 1
-
 const stLista = [
     'EM ANDAMENTO',
     'OBRA PARALISADA',
@@ -12,191 +5,100 @@ const stLista = [
     'POC EM ANDAMENTO'
 ]
 
-const meses = {
-    '01': 'Janeiro',
-    '02': 'Fevereiro',
-    '03': 'Março',
-    '04': 'Abril',
-    '05': 'Maio',
-    '06': 'Junho',
-    '07': 'Julho',
-    '08': 'Agosto',
-    '09': 'Setembro',
-    '10': 'Outubro',
-    '11': 'Novembro',
-    '12': 'Dezembro'
-}
-
-function ordenarOrcamentos(colunaIndex) {
-    const tbody = document.getElementById('linhas')
-    if (!tbody) return
-
-    const tabela = document.getElementById('tabelaOrcamento')
-    const ordem = tabela.dataset.ordem === 'asc' ? 'des' : 'asc'
-    tabela.dataset.ordem = ordem
-
-    // pega SOMENTE as linhas master
-    const masters = Array.from(
-        tbody.querySelectorAll('tr.linha-master')
-    )
-
-    const pares = masters.map(master => ({
-        master,
-        slave: master.nextElementSibling?.classList.contains('linha-slave-container')
-            ? master.nextElementSibling
-            : null
-    }))
-
-    pares.sort((a, b) => {
-        const celA = a.master.cells[colunaIndex]
-        const celB = b.master.cells[colunaIndex]
-
-        const valA =
-            celA?.querySelector('input, select')?.value?.trim() ||
-            celA?.textContent?.trim() || ''
-
-        const valB =
-            celB?.querySelector('input, select')?.value?.trim() ||
-            celB?.textContent?.trim() || ''
-
-        const numA = parseFloat(valA.replace(',', '.'))
-        const numB = parseFloat(valB.replace(',', '.'))
-
-        if (!isNaN(numA) && !isNaN(numB)) {
-            return ordem === 'asc' ? numA - numB : numB - numA
-        }
-
-        return ordem === 'asc'
-            ? valA.localeCompare(valB, 'pt-BR', { numeric: true })
-            : valB.localeCompare(valA, 'pt-BR', { numeric: true })
-    })
-
-    const frag = document.createDocumentFragment()
-
-    for (const { master, slave } of pares) {
-        frag.appendChild(master)
-        if (slave) frag.appendChild(slave)
-    }
-
-    tbody.appendChild(frag)
-}
-
-function mudarInterruptor(el) {
-    const ativo = el.checked
-    const label = el.parentElement
-
-    const track = label.querySelector('.track')
-    const thumb = label.querySelector('.thumb')
-
-    if (track) track.style.backgroundColor = ativo ? '#4caf50' : '#ccc'
-    if (thumb) thumb.style.transform = ativo ? 'translateX(26px)' : 'translateX(0)'
-}
-
 async function rstTelaOrcamentos() {
     tela.innerHTML = ''
     await telaOrcamentos()
 }
 
-function confirmarPesquisa(e, coluna, el) {
-    if (e?.key && e.key !== 'Enter') return
+function formatacaoPagina() {
 
-    if (e) e.preventDefault()
+    const pag = 'orcamentos'
+    let status = ''
 
-    const termo = el.textContent.replace(/\n/g, '').trim().toLowerCase()
-    renderizar(coluna, termo)
+    if (controles?.[pag]?.filtros?.['snapshots.prioridade']) {
+        status = 'prioridades'
+
+    } else if (controles?.[pag]?.filtros?.['chamado']) {
+        status = 'chamados'
+
+    } else {
+        const pesq = controles?.[pag]?.filtros?.['status.atual']
+        status = pesq?.op == 'IS_EMPTY'
+            ? 'SEM STATUS'
+            : pesq?.value || 'todos'
+    }
+
+    const abas = document.querySelectorAll('.aba-toolbar')
+
+    abas.forEach(a => a.style.opacity = 0.5)
+
+    const aba = document.querySelector(`[name="${status}"]`)
+    if (aba) aba.style.opacity = 1
+
 }
 
 async function telaOrcamentos() {
-
-    // Inicializar filtros;
-    filtrosPesquisa.orcamentos ??= JSON.parse(localStorage.getItem('filtros')) || {}
-
-    const pda = document.querySelector('.tela-gerenciamento')
-    if (pda) return await telaInicial()
 
     atualizarToolbar(true) // GCS no título
 
     funcaoTela = 'telaOrcamentos'
 
-    const fOn = ['status', 'tags', 'contrato', 'responsaveis', 'cidade', 'valor']
-    const cabecs = ['data', 'status', 'pedido', 'notas', 'tags', 'contrato', 'cidade', 'responsaveis', 'indicadores', 'valor', 'ações']
-    const filtrosOff = ['status', 'ações', 'indicadores']
+    const colunas = {
+        'última alteração': { chave: 'lpu_ativa' },
+        'status': { chave: 'status.atual' },
+        'pedido': '',
+        'notas': '',
+        'tags': { chave: 'snapshots.tags' },
+        'contrato': { chave: 'snapshots.contrato' },
+        'cidade': { chave: 'snapshots.cidade' },
+        'responsaveis': { chave: 'snapshots.responsavel' },
+        'indicadores': '',
+        'valor': { chave: 'snapshots.valor' },
+        'ações': ''
+    }
 
-    const ths = cabecs
-        .map((th, i) => `
-            <th>
-                <div style="${horizontal}; width: 100%; justify-content: space-between;">
-                    <span>${inicialMaiuscula(th)}</span>    
-                    ${fOn.includes(th) ? `<img onclick="ordenarOrcamentos(${i})" src="imagens/filtro.png" style="width: 1rem;">` : ''}
-                </div>
-            </th>
-            `
-        )
-        .join('')
+    const btnExtras = `<span style="color: white; cursor: pointer; white-space: nowrap;" onclick="filtroOrcamentos()">Filtros ☰</span>`
 
-    const pesquisa = cabecs
-        .map(th => `<th 
-                    style="background-color: white; text-align: left;"
-                    name="${th}"
-                    onkeydown="confirmarPesquisa(event, '${th}', this)"
-                    onblur="confirmarPesquisa(null, '${th}', this)"
-                    contentEditable="${!filtrosOff.includes(th)}"></th>`)
-        .join('')
-
+    const tabela = modTab({
+        funcaoAdicional: ['formatacaoPagina'],
+        btnExtras,
+        filtros: {
+            'dados_orcam': { op: 'NOT_EMPTY' },
+            'arquivado': { op: '!=', value: 'S' },
+        },
+        colunas,
+        base: 'dados_orcamentos',
+        criarLinha: 'criarLinhaOrcamento',
+        body: 'linhas',
+        pag: 'orcamentos'
+    })
 
     const acumulado = `
-        <div style="${horizontal}; width: 95vw;">
-            <img src="imagens/nav.png" style="width: 2rem;" onclick="scrollar('prev')">
-            <div id="toolbar"></div>
-            <img src="imagens/nav.png" style="width: 2rem; transform: rotate(180deg);" onclick="scrollar('next')">
+        <div style="${vertical}; width: 95vw;">
+            <div style="${horizontal}; width: 95vw;">
+                <img src="imagens/nav.png" style="width: 2rem;" onclick="scrollar('prev')">
+                <div id="toolbar"></div>
+                <img src="imagens/nav.png" style="width: 2rem; transform: rotate(180deg);" onclick="scrollar('next')">
+            </div>
+
+            ${tabela}
         </div>
+        `
 
-        <div id="tabelaOrcamento" data-ordem="asc" style="${vertical}; width: 95vw;">
-            <div class="topo-tabela" style="justify-content: space-between; width: 100%; background-color: #707070;">
-                <div id="paginacao"></div>
-                <span style="color: white; cursor: pointer; white-space: nowrap;" onclick="filtroOrcamentos()">Filtros ☰</span>
-            </div>
-            <div class="div-tabela" style="overflow-x: auto;">
-                <table class="tabela">
-                    <thead style="box-shadow: 0px 0px 2px #222;">
-                        <tr>${ths}</tr>
-                        <tr>${pesquisa}</tr>
-                    </thead>
-                    <tbody id="linhas"></tbody>
-                </table>
-            </div>
-            <div class="rodape-tabela"></div>
-        </div>`
+    tela.innerHTML = acumulado
 
-    const tabelaOrcamento = document.getElementById('tabelaOrcamento')
-    if (!tabelaOrcamento) tela.innerHTML = acumulado
-
-    await auxDepartamentos()
-
+    await carregarToolbar()
     criarMenus('orcamentos')
+    mostrarMenus(false)
 
-    aplicarFiltrosEPaginacao()
-
-    if (!tabelaOrcamento) renderizar('status', 'todos')
-
-    // Recuperar pesquisas
-    for (const [chave, info] of Object.entries(filtrosPesquisa?.orcamentos || {})) {
-        const inpCab = document.querySelector(`[name="${chave}"]`)
-        if (inpCab && !filtrosOff.includes(chave)) inpCab.textContent = info
-    }
+    await paginacao()
 
 }
 
 function filtroOrcamentos() {
 
-    const salvo = JSON.parse(localStorage.getItem('filtros')) || {}
-
     const filtros = {
-        arquivado: salvo.arquivado || '',
-        meus_orcamentos: salvo.meus_orcamentos || '',
-        prioridade: salvo.prioridade || '',
-        vinculado: salvo.vinculado || '',
-        revisao: salvo.revisao || ''
+        arquivado: controles?.orcamentos?.filtros?.arquivado?.op == '=',
     }
 
     const linhas = []
@@ -214,33 +116,30 @@ function filtroOrcamentos() {
                 <span class="thumb" style="transform:translateX(${ativo ? '26px' : '0'})"></span>
         </label>`
 
-    for (const [chave, valor] of Object.entries(filtros)) {
+    for (const [chave, ativo] of Object.entries(filtros)) {
         linhas.push({
             texto: inicialMaiuscula(chave),
-            elemento: interruptor(chave, valor == 'S')
+            elemento: interruptor(chave, ativo)
         })
     }
 
-    const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: 'salvarFiltrosApp()' }
-    ]
-
-    popup({ linhas, botoes, titulo: 'Gerenciar Filtro', nra: false })
+    popup({ linhas, titulo: 'Gerenciar Filtro', nra: false })
 
 }
 
-function salvarFiltrosApp() {
+async function mudarInterruptor(el) {
+    const ativo = el.checked
+    const label = el.parentElement
+    const chave = el.dataset.chave
 
-    const filtros = document.querySelectorAll('[name="filtros"]')
+    controles.orcamentos.filtros[chave] = { op: ativo ? '=' : '!=', value: 'S' }
+    await paginacao()
 
-    for (const f of filtros) {
-        const chave = f.dataset.chave
-        const st = f.checked ? 'S' : 'N'
-        filtrosPesquisa.orcamentos[chave] = st
-    }
+    const track = label.querySelector('.track')
+    const thumb = label.querySelector('.thumb')
 
-    aplicarFiltrosEPaginacao()
-
+    if (track) track.style.backgroundColor = ativo ? '#4caf50' : '#ccc'
+    if (thumb) thumb.style.transform = ativo ? 'translateX(26px)' : 'translateX(0)'
 }
 
 function scrollar(direcao) {
@@ -253,167 +152,202 @@ function scrollar(direcao) {
 
 }
 
-function criarLinhaOrcamento(idOrcamento, orcamento, master, idMaster) {
+async function criarLinhaOrcamento(orcamento) {
 
-    if (!orcamento) return
+    const { id, vinculados } = orcamento
 
-    const { dados_orcam } = orcamento
+    const master = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato
+    const idMaster = vinculados
+        ? id
+        : null
 
-    if (!dados_orcam) return
+    const linhas = []
 
-    const cliente = db.dados_clientes?.[dados_orcam.omie_cliente] || {}
-    let labels = {
-        PEDIDO: '',
-        FATURADO: ''
+    await linhaOrcamento(orcamento)
+
+    for (const id of Object.keys(vinculados || [])) {
+
+        const orcamento = await recuperarDado('dados_orcamentos', id)
+
+        if (orcamento)
+            await linhaOrcamento(orcamento)
+
     }
 
-    for (const historico of Object.values(orcamento?.status?.historico || {})) {
+    return linhas.join('')
 
-        if (labels[historico.status] == undefined) continue
-        if (historico.tipo == 'Remessa') continue
+    async function linhaOrcamento(orcamento) {
 
-        const valor1 = historico.tipo
-        const valor2 = historico.status == 'FATURADO' ? historico.nf : historico.pedido
-        const valor3 = conversor(historico.valor)
+        const { id, dados_orcam, snapshots = {}, timestamp } = orcamento || {}
 
-        labels[historico.status] += `
+        const pedidos = Object.values(orcamento?.status?.historico || {})
+            .filter(s => s.status == 'PEDIDO')
+            .map(s => {
+
+                const label = `
                 <div class="etiquetas" style="text-align: left; min-width: 100px;">
-                    <label>${valor1}</label>
-                    <label>${valor2}</label>
-                    ${historico.valor ? `<label>${dinheiro(valor3)}</label>` : ''}
+                    <label>${s?.tipo || ''}</label>
+                    <label>${s?.status}</label>
+                    <label>${dinheiro(s?.valor)}</label>
                 </div>
                 `
-    }
+                return label
+            })
+            .join('')
 
-    const st = orcamento?.status?.atual || ''
-    const opcoes = ['', ...fluxograma].map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`).join('')
+        const notas = Object.values(orcamento?.status?.historico || {})
+            .filter(s => s.status == 'FATURADO')
+            .map(s => {
 
-    const totalCustos = Object.values(orcamento?.dados_custos || {}).reduce((acc, val) => acc + val, 0)
-    const lucratividade = orcamento.total_geral - totalCustos
-    const lucratividadePorcentagem = Number(((lucratividade / orcamento.total_geral) * 100).toFixed(0))
+                const label = `
+                <div class="etiquetas" style="text-align: left; min-width: 100px;">
+                    <label>${s?.tipo || ''}</label>
+                    <label>${s?.nf}</label>
+                    <label>${dinheiro(s?.valor)}</label>
+                </div>`
 
-    const responsaveis = Object.entries(orcamento.usuarios || {})
-        .map(([user,]) => user)
-        .join(', ')
+                return label
+            })
+            .join('')
 
-    const cel = (elementos) => `<td class="celula">${elementos}</td>`
+        const st = orcamento?.status?.atual || ''
+        const opcoes = ['', ...fluxograma]
+            .map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`)
+            .join('')
 
-    // Labels do campo Contrato [Revisão, chamado, cliente, etc]
-    const contrato = dados_orcam?.contrato
-    const numOficial = String(dados_orcam?.chamado || contrato || '-').trim()
-    const rAtual = orcamento?.revisoes?.atual
-    const etiqRevAtual = rAtual ? `<span class="etiqueta-revisao">${rAtual}</span>` : ''
+        const responsaveis = Object.entries(orcamento.usuarios || {})
+            .map(([user,]) => user)
+            .join(', ')
 
-    const nomeVinculado = master
-        ? `
-        <div style="${horizontal}; gap: 5px;">
-            <span>${numOficial}</span>
-            <div class="viculado">
-                <img src="imagens/link2.png">
-                <span>${master}</span>
+        // Labels do campo Contrato [Revisão, chamado, cliente, etc]
+        const contrato = dados_orcam?.contrato
+        const numOficial = String(dados_orcam?.chamado || contrato || '-').trim()
+        const rAtual = orcamento?.revisoes?.atual
+        const etiqRevAtual = rAtual
+            ? `<span class="etiqueta-revisao">${rAtual}</span>`
+            : ''
+
+        // idMaster existe e orçamento difrente do master; (Ou seja, slaves);
+        const nomeVinculado = (idMaster && idMaster !== id)
+            ? `
+            <div style="${horizontal}; gap: 5px;">
+                <span>${numOficial}</span>
+                <div class="viculado">
+                    <img src="imagens/link2.png">
+                    <span>${master}</span>
+                </div>
             </div>
-        </div>
-        `
-        : `<span name="contrato">${numOficial}</span>`
+            `
+            : `<span name="contrato">${numOficial}</span>`
 
-    const finalElemento = `
-        <div style="${vertical}; gap: 2px;">
+        const finalContrato = `
+        <div style="${vertical};text-align: left; gap: 2px;">
             ${nomeVinculado}
             ${etiqRevAtual}
-            <span>${cliente?.nome || ''}</span>
+            <span>${(snapshots?.cliente || '').toUpperCase()}</span>
             ${contrato !== numOficial ? `<div style="${horizontal}; justify-content: end; width: 100%; color: #5f5f5f;"><small>${contrato}</small></div>` : ''}
-        </div>
-        `
+        </div>`
 
-    const data = new Date(orcamento.timestamp).toLocaleDateString()
+        const data = new Date(orcamento.timestamp).toLocaleString()
 
-    // Comentários nos status;
-    const info = Object.values(orcamento?.status?.historicoStatus || {}).filter(s => (s.info && s.info !== ''))
+        // Comentários nos status;
+        const info = Object
+            .values(orcamento?.status?.historicoStatus || {})
+            .filter(s => (s.info && s.info !== ''))
 
-    const opcoesPda = abas.map(aba => `<option ${orcamento.aba == aba ? 'selected' : ''}>${aba}</option>`).join('')
+        const opcoesPda = abas
+            .map(aba => `<option ${orcamento.aba == aba ? 'selected' : ''}>${aba}</option>`)
+            .join('')
 
-    const tags = renderAtivas({ idOrcamento, recarregarPainel: false })
+        // Tags;
+        const tags = []
 
-    const celulas = `
-                ${cel(`
-            <div style="${vertical}; gap: 2px;">
-                <label style="text-align: left;"><b>${orcamento.lpu_ativa}</b></label>
+        for (const idTag of Object.keys(orcamento.tags || {})) {
+            const tag = await recuperarDado('tags_orcamentos', idTag)
+            tags.push(modeloTag(tag, id))
+        }
+
+        let depExistente = false
+
+        const celulas = `
+         <td>
+            <div style="text-align: left;${vertical}; gap: 2px;">
+                <label><b>${orcamento.lpu_ativa}</b></label>
                 <span>${data}</span>
-                <select name="aba" class="opcoesSelect" onchange="atualizarAba(this, '${idOrcamento}')">
+                <select name="aba" class="opcoesSelect" onchange="atualizarAba(this, '${id}')">
                     <option></option>
                     ${opcoesPda}
                 </select>
             </div>
-        `)}
-                ${cel(`
+        </td>
+        <td>
             <div style="${vertical}; gap: 5px;">
                 <div style="${horizontal}; gap: 2px;">
-                    <img onclick="mostrarInfo('${idOrcamento}')" src="imagens/observacao${info.length > 0 ? '' : '_off'}.png">
-                    <select name="status" class="opcoesSelect" onchange="id_orcam = '${idOrcamento}'; alterarStatus(this)">
+                    <img onclick="mostrarInfo('${id}')" src="imagens/observacao${info.length > 0 ? '' : '_off'}.png">
+                    <select name="status" class="opcoesSelect" onchange="alterarStatus('${id}', this)">
                         ${opcoes}
                     </select>
                 </div>
                 <div style="${horizontal}; width: 100%; justify-content: end; gap: 5px;">
                     <span>Dep</span>
-                    <img src="imagens/${depPorDesc[numOficial] ? 'concluido' : 'cancel'}.png" style="width: 1.5rem;">
+                    <img src="imagens/${depExistente ? 'concluido' : 'cancel'}.png" style="width: 1.5rem;">
                 </div>
             </div>
-        `)}
-                ${cel(`<div class="bloco-etiquetas">${labels.PEDIDO}</div>`)}
-                ${cel(`<div class="bloco-etiquetas">${labels.FATURADO}</div>`)}
-                ${cel(`
+        </td>
+        <td>
+            <div class="bloco-etiquetas">${pedidos}</div>
+        </td>
+        <td>
+            <div class="bloco-etiquetas">${notas}</div>
+        </td>
+        <td>
             <div style="${vertical}; gap: 2px;">
                 <img 
                     src="imagens/etiqueta.png" 
                     style="width: 1.2rem;" 
-                    onclick="renderPainel('${idOrcamento}')">
+                    onclick="renderPainel('${id}')">
                 <div name="tags" style="${vertical}; gap: 1px;">
-                    ${tags}
+                    ${tags.join('')}
                 </div>
             </div>
-            `)}
-                ${cel(finalElemento)}
-                ${cel(`${cliente?.cidade || ''}`)}
-                ${cel(`
+        </td>
+        <td>${finalContrato}</td>
+        <td>${(snapshots?.cidade || '').toUpperCase()}</td>
+        <td>
             <div style="${vertical}">
                 <span>${orcamento?.usuario || '--'}</span>
                 <span>${responsaveis}</span>
             </div>
-        `)}
-                ${cel(`
+        </td>
+        <td>
             <div style="${vertical}; width: 100%; gap: 2px;">
-                ${orcamento?.checklist?.andamento
-            ? `
-                    <span>Checklist</span>
-                    ${divPorcentagem(orcamento.checklist.andamento)}`
-            : ''}
-                ${orcamento.dados_custos
-            ? `
-                    <span>LC %</span>
-                    ${divPorcentagem(lucratividadePorcentagem)}`
-            : ''}
+                <span>Checklist</span>
+                ${divPorcentagem(orcamento?.checklist?.andamento || 0)}
+                <span>LC %</span>
+                ${divPorcentagem(0)}
             </div>
-            `)}
-                ${cel(`
+        </td>
+        <td>
             <div style="${vertical}; width: 100%;">
                 <input style="display: none;" type="number" value="${orcamento.total_geral}">
                 <span style="font-size: 0.8rem; white-space: nowrap;">${dinheiro(orcamento.total_geral)}</span>
             </div>
-            `)}
-                ${cel(`<img 
-                    onclick="${idMaster ? `abrirAtalhos('${idOrcamento}', '${idMaster}')` : `abrirAtalhos('${idOrcamento}')`}"
-                    src="imagens/pesquisar2.png" 
-                    style="width: 1.5rem;">`)}
-                `
-    // Prioridade;
-    const prioridade = verificarPrioridade(orcamento)
+        </td>
+        <td>
+            <img 
+                onclick="${idMaster ? `abrirAtalhos('${id}', '${idMaster}')` : `abrirAtalhos('${id}')`}"
+                src="imagens/pesquisar2.png"
+                style="width: 1.5rem;">
+        </td>`
 
-    const linha = `
-        <tr class="linha-master" id="${idOrcamento}" data-prioridade="${prioridade}">
+        const linha = `
+        <tr class="linha-master" data-prioridade="${orcamento?.snapshots?.prioridade}">
             ${celulas}
         </tr>`
 
-    return linha
+        linhas.push(linha)
+
+    }
 
 }
 
@@ -444,141 +378,6 @@ function verificarPrioridade(orcamento) {
 
     return prioridade
 }
-
-function aplicarFiltrosEPaginacao() {
-
-    mostrarMenus(false)
-
-    const body = document.getElementById('linhas')
-    body.innerHTML = ''
-
-    const ids = Object.keys(db.dados_orcamentos)
-        .filter(id => passarFiltros(db.dados_orcamentos[id]))
-
-    ids.sort((a, b) => {
-        const oa = db.dados_orcamentos[a]
-        const ob = db.dados_orcamentos[b]
-
-        const pa = verificarPrioridade(oa)
-        const pb = verificarPrioridade(ob)
-
-        if (pa !== pb) return pa - pb
-        return ob.timestamp - oa.timestamp
-    })
-
-    carregarToolbarPorIds(ids)
-
-    tPaginas = Math.max(1, Math.ceil(ids.length / itensPorPagina))
-
-    const inicio = (pAtual - 1) * itensPorPagina
-    const pagina = ids.slice(inicio, inicio + itensPorPagina)
-
-    const frag = document.createDocumentFragment()
-    const jaInseridos = new Set()
-
-    for (const id of pagina) {
-
-        if (jaInseridos.has(id)) continue
-
-        const orc = db.dados_orcamentos[id]
-        const { chamado, contrato } = orc?.dados_orcam || {}
-
-        // pai
-        let el = htmlParaElemento(criarLinhaOrcamento(id, orc))
-        if (el) frag.appendChild(el)
-        jaInseridos.add(id)
-
-        // filhos (hierarquia)
-        for (const idFilho of Object.keys(orc.vinculados || {})) {
-
-            if (jaInseridos.has(idFilho)) continue
-
-            const orcFilho = db.dados_orcamentos[idFilho]
-            if (!orcFilho) continue
-
-            const master = chamado || contrato
-
-            let elFilho = htmlParaElemento(criarLinhaOrcamento(idFilho, orcFilho, master, id))
-            if (elFilho) frag.appendChild(elFilho)
-            jaInseridos.add(idFilho)
-        }
-
-    }
-
-    body.appendChild(frag)
-
-    renderizarControlesPagina()
-
-    localStorage.setItem('filtros', JSON.stringify(filtrosPesquisa.orcamentos))
-}
-
-function htmlParaElemento(html) {
-
-    if (!html) return
-    const t = document.createElement('template')
-
-    t.innerHTML = html.trim()
-    return t.content.firstChild
-}
-
-function renderizarControlesPagina() {
-    const topo = document.getElementById('paginacao')
-    if (!topo) return
-
-    topo.innerHTML = `
-        <div style="display: flex; align-items:center; gap:10px; padding: 0.2rem;">
-            <img src="imagens/seta.png" style="width: 1.5rem;" onclick="pgAnterior()" ${pAtual === 1 ? 'disabled' : ''}>
-            <span style="color: white;">Página ${pAtual} de ${tPaginas}</span>
-            <img src="imagens/seta.png" style="transform: rotate(180deg); width: 1.5rem;" onclick="pgSeguinte()" ${pAtual === tPaginas ? 'disabled' : ''}>
-            <span style="color: white;">Dê um <b>ENTER</b> para pesquisar</span>
-        </div>`
-}
-
-function pgAnterior() {
-    if (pAtual > 1) {
-        pAtual--
-        aplicarFiltrosEPaginacao()
-    }
-}
-
-function pgSeguinte() {
-    if (pAtual < tPaginas) {
-        pAtual++
-        aplicarFiltrosEPaginacao()
-    }
-}
-
-
-function renderizar(campo, texto) {
-
-    if (texto !== '' && (campo == 'chamados' || campo == 'status')) {
-        const tools = document.querySelectorAll('.aba-toolbar')
-        tools.forEach(t => t.style.opacity = 0.5)
-        const tool = document.querySelector(`[name="${campo == 'chamados' ? 'chamados' : texto}"]`)
-        tool.style.opacity = 1
-    }
-
-    // filtros exclusivos
-    if (campo === 'status') {
-        delete filtrosPesquisa.orcamentos.chamados
-    }
-
-    if (campo === 'chamados') {
-        delete filtrosPesquisa.orcamentos.status
-    }
-
-    if (texto === 'todos') texto = ''
-
-    if (!texto) {
-        delete filtrosPesquisa.orcamentos[campo]
-    } else {
-        filtrosPesquisa.orcamentos[campo] = String(texto).toLowerCase()
-    }
-
-    pAtual = 1
-    aplicarFiltrosEPaginacao()
-}
-
 
 async function editar(orcam_) {
 
@@ -623,282 +422,23 @@ async function duplicar(orcam_) {
 
 }
 
-async function excelOrcamentos() {
+async function carregarToolbar() {
 
-    const workbook = new ExcelJS.Workbook()
-    const worksheet = workbook.addWorksheet('Orçamentos')
+    const filtros = { 'dados_orcam': { op: 'NOT_EMPTY' }, 'arquivado': { op: '!=', value: 'S' } }
+    const cont1 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'status.atual' })
+    const cont2 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'chamado' })
+    const cont3 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'snapshots.prioridade' })
 
-    // Cabeçalho;
-    worksheet.addRow([
-        'Data',
-        'Hora',
-        'Status',
-        'Tags',
-        'Chamado',
-        'Cliente',
-        'Cidade',
-        'Estado',
-        'Usuário',
-        'Valor'
-    ])
-
-    for (const orcamento of Object.values(db.dados_orcamentos)) {
-
-        const codCliente = orcamento?.dados_orcam?.omie_cliente
-        const cliente = db.dados_clientes[codCliente] || {}
-
-        const dt = orcamento?.dados_orcam?.data
-        const [data, hora] = dt ? dt.split(', ') : ['', '']
-
-        const nomesTag = Object.keys(orcamento?.tags || {})
-            .map(cod => {
-                return db.tags_orcamentos[cod] ? db.tags_orcamentos[cod].nome : ''
-            }).join(', ')
-        const chamado = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato || ''
-
-        const row = [
-            data,
-            hora,
-            orcamento?.status?.atual || 'SEM STATUS',
-            nomesTag,
-            chamado,
-            cliente?.nome || '',
-            cliente?.cidade || '',
-            cliente?.estado || '',
-            orcamento?.usuario || '',
-            orcamento?.total_geral || 0,
-        ]
-
-        worksheet.addRow(row)
-    }
-
-    // ====== ESTILOS ======
-    worksheet.eachRow((row, rowNumber) => {
-        row.eachCell((cell, colNumber) => {
-            cell.alignment = {
-                vertical: 'middle',
-                horizontal: 'center',
-                wrapText: true
-            }
-            cell.border = {
-                top: { style: 'thin' },
-                left: { style: 'thin' },
-                bottom: { style: 'thin' },
-                right: { style: 'thin' }
-            }
-
-            // Cabeçalho (primeira linha)
-            if (rowNumber === 1) {
-                cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFD9D9D9' }
-                }
-                cell.font = { bold: true }
-            }
-
-            // Formatação para colunas numéricas
-            if (typeof cell.value === 'number') {
-                cell.numFmt = '#,##0.00'
-                if (rowNumber !== 1) {
-                    cell.alignment.horizontal = 'right'
-                }
-            }
-        })
-    })
-
-    // Filtro no cabeçalho
-    worksheet.autoFilter = {
-        from: 'A1',
-        to: 'J1'
-    }
-
-    // Ajuste automático de largura das colunas
-    worksheet.columns.forEach(col => {
-        let maxLength = 10
-        col.eachCell(cell => {
-            const cellLength = String(cell.value || '').length
-            if (cellLength > maxLength) {
-                maxLength = cellLength
-            }
-        })
-        col.width = Math.min(maxLength + 2, 50) // Limite máximo de 50
-    })
-
-    // Ajusta altura das linhas para conteúdo com quebra
-    worksheet.eachRow(row => {
-        row.height = 20
-    })
-
-    // ====== GERAR ARQUIVO ======
-    const buffer = await workbook.xlsx.writeBuffer()
-    const blob = new Blob([buffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `orcamentos-${new Date().getTime()}.xlsx`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-}
-
-// v2
-function passarFiltros(orcamento) {
-
-    const f = filtrosPesquisa.orcamentos || {}
-    const dados = orcamento.dados_orcam || {}
-    const cliente = db.dados_clientes?.[dados.omie_cliente] || {}
-
-    for (const [campo, valor] of Object.entries(f)) {
-
-        if (valor == null || valor === '') continue
-
-        let v
-
-        switch (campo) {
-
-            // Filtros S ou N;
-            case 'data':
-                v = String(orcamento.lpu_ativa).toLowerCase()
-                if (!v.includes(valor)) return false
-                continue
-
-            case 'status':
-                v = String(orcamento?.status?.atual || 'SEM STATUS').toLocaleLowerCase()
-                if (v !== valor) return false
-                continue
-
-            case 'arquivado': {
-                const arq = orcamento.arquivado === 'S' ? 'S' : 'N'
-                if (arq !== valor) return false
-                continue
-            }
-
-            case 'meus_orcamentos': {
-                const participantes = `${orcamento.usuario} ${Object.keys(orcamento.usuarios || {}).join(' ')}`
-                const proprio = participantes.includes(acesso.usuario)
-
-                if (valor == 'S' && !proprio) return false
-
-                continue
-            }
-
-            case 'prioridade': {
-                const prioridade = verificarPrioridade(orcamento)
-                if (valor == 'S' && prioridade >= 3) return false
-                continue
-            }
-
-            case 'revisao': {
-                if (valor == 'S' && Object.keys(orcamento?.revisoes || []).length == 0) return false
-                continue
-            }
-
-            case 'vinculado': {
-                if (valor == 'S' && Object.keys(orcamento?.vinculados || []).length == 0) return false
-                continue
-            }
-
-            // Filtros Livres;
-            case 'status':
-                v = String(orcamento?.status?.atual || 'SEM STATUS').toLocaleLowerCase()
-                if (v !== valor) return false
-
-            case 'pedido':
-                v = Object
-                    .values(orcamento?.status?.historico || {})
-                    .filter(dados => dados?.status == 'PEDIDO')
-                    .map(dados => {
-
-                        return `${dados?.pedido} ${dados?.executor} ${dados?.tipo}`
-                    })
-                    .join(' ')
-                break
-
-            case 'notas':
-                v = Object
-                    .values(orcamento?.status?.historico || {})
-                    .filter(dados => dados?.status == 'FATURADO')
-                    .map(dados => {
-
-                        return `${dados?.nf} ${dados?.executor} ${dados?.tipo}`
-                    })
-                    .join(' ')
-                break
-
-            case 'tags':
-                v = Object
-                    .keys(orcamento.tags || {})
-                    .map(idTag => {
-                        return db.tags_orcamentos?.[idTag]?.nome || ''
-                    })
-                    .join(' ')
-                break
-
-            case 'cidade':
-                v = cliente.cidade
-                break
-
-            case 'pedido':
-                v = dados.chamado || dados.contrato
-                break
-
-            case 'contrato':
-                v = [dados.contrato, cliente.nome, dados.chamdo].map(c => {
-                    if (!c) return ''
-                    return c || ''
-                }).join(' ')
-                break
-
-            case 'responsaveis':
-                v = `${orcamento.usuario} ${Object.keys(orcamento.usuarios || {}).join(' ')}`
-                break
-
-            case 'data':
-                v = new Date(orcamento.timestamp).toLocaleDateString()
-                break
-
-            case 'valor':
-                v = orcamento.total_geral
-                break
-
-            default:
-                continue
-        }
-
-        if (v == null) return false
-
-        if (!String(v).toLowerCase().includes(String(valor).toLowerCase()))
-            return false
-    }
-
-    return true
-}
-
-function carregarToolbarPorIds(ids) {
-
-    contToolbar = { chamados: 0, todos: 0 }
-
-    for (const id of ids) {
-
-        const orc = db.dados_orcamentos[id]
-        const status = orc?.status?.atual || 'SEM STATUS'
-
-        contToolbar[status] ??= 0
-        contToolbar[status]++
-        contToolbar.todos++
-
-        const chamados =
-            orc?.chamado == 'S' &&
-            (status == 'SEM STATUS' || status == 'ORC ENVIADO')
-
-        if (chamados) contToolbar.chamados++
+    const contToolbar = {
+        ...cont1,
+        'SEM STATUS': cont1['EM BRANCO'] || 0,
+        'chamados': cont2['S'],
+        'prioridades': ((cont3[0] || 0) + (cont3[1] || 0) + (cont3[2] || 0))
     }
 
     const toolbar = document.getElementById('toolbar')
-
-    const fluxogramaCompleto = ['chamados', 'todos', ...fluxograma]
+    const pag = 'orcamentos'
+    const fluxogramaCompleto = ['prioridades', 'chamados', 'todos', ...fluxograma]
 
     for (const campo of fluxogramaCompleto) {
 
@@ -910,25 +450,39 @@ function carregarToolbarPorIds(ids) {
             continue
         }
 
-        const funcao = campo == 'chamados'
-            ? `delete filtrosPesquisa.orcamentos.status; renderizar('chamados', 'S')`
-            : `delete filtrosPesquisa.orcamentos.chamados; renderizar('status', '${campo}')`
+        let filtrosPesq = `'status.atual': {op:'=', value: '${campo}'}`
+
+        if (campo == 'chamados') {
+            filtrosPesq = `'chamado': {op:'=', value: 'S'}`
+
+        } else if (campo == 'SEM STATUS') {
+            filtrosPesq = `'status.atual': {op: 'IS_EMPTY'}`
+
+        } else if (campo == 'prioridades') {
+            filtrosPesq = `'snapshots.prioridade': {op: '<', value: 3}`
+
+        } else if (campo == 'todos') {
+            filtrosPesq = ''
+        }
 
         const f = campo == 'VENDA DIRETA'
-            ? { 1: 'style="background: linear-gradient(45deg, #222, #b12425);"' }
-            : {}
+            ? 'style="background: linear-gradient(45deg, #222, #b12425);"'
+            : ''
 
         const novaTool = `
-                        <div
-                            style="opacity: 0.5; height: 3rem;"
-                            class="aba-toolbar"
-                            data-status="${campo}"
-                            name="${campo}"
-                            onclick="${funcao}">
-                            <label>${campo.toUpperCase()}</label>
-                            <span ${f[1]}>${contagem}</span>
-                        </div>
-                        `
+            <div
+                style="opacity: 0.5; height: 3rem;"
+                class="aba-toolbar"
+                data-status="${campo}"
+                name="${campo}"
+                onclick="
+                controles.${pag}.pagina = 1; 
+                controles.${pag}.filtros = { 'dados_orcam': { op: 'NOT_EMPTY' }, 'arquivado': { op: '!=', value: 'S' }, ${filtrosPesq} };
+                paginacao('${pag}')">
+                <label>${campo.toUpperCase()}</label>
+                <span ${f}>${contagem}</span>
+            </div>
+            `
         toolbar.insertAdjacentHTML('beforeend', novaTool)
     }
 

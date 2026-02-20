@@ -151,6 +151,7 @@ span[name="titulo"] {
 }
 
 .conteinerOnline {
+    padding: 1rem;
     background-color: #d2d2d2;
     max-height: 70vh;
     overflow-y: auto;
@@ -525,7 +526,7 @@ span[name="titulo"] {
     align-items: start;
     justify-content: start;
     gap: 5px;
-    border: 1px solid #666666;
+    border: 1px solid #434343;
     width: 100%;
     min-height: 2vh;
     border-bottom-left-radius: 5px;
@@ -555,8 +556,8 @@ span[name="titulo"] {
 }
 
 .div-tabela {
-    border-right: solid 1px #666666;
-    border-left: solid 1px #666666;
+    border-right: solid 1px #434343;
+    border-left: solid 1px #434343;
     background-color: white;
     height: max-content;
     width: 100%;
@@ -565,14 +566,16 @@ span[name="titulo"] {
 }
 
 .topo-tabela {
-    border: 1px solid #666666;
+    justify-content: space-between;
+    width: 100%;
+    background-color: #707070;
+    border: 1px solid #434343;
+    border-bottom: none;
     min-height: 2vh;
     display: flex;
-    align-items: start;
-    justify-content: start;
+    align-items: center;
     border-top-right-radius: 5px;
     border-top-left-radius: 5px;
-    background-color: #b1b1b1;
     gap: 2px;
     width: 100%;
 }
@@ -582,7 +585,7 @@ span[name="titulo"] {
 }
 
 .painelBotoes {
-    border: 1px solid #666666;
+    border: 1px solid #434343;
     min-height: 2vh;
     display: flex;
     align-items: center;
@@ -997,7 +1000,7 @@ button {
     cursor: pointer;
     background-color: #249f41;
     border-radius: 5px;
-    border: none;
+    border: solid 1px #434343;
     white-space: nowrap;
 }
 
@@ -1820,7 +1823,7 @@ input[type=range]::-moz-range-thumb {
 
 .tabela td {
     vertical-align: top;
-    text-align: center;
+    text-align: start;
     padding: 8px;
     overflow: hidden;
     border: 1px solid #d2d2d2;
@@ -1844,7 +1847,7 @@ input[type=range]::-moz-range-thumb {
     border-radius: 5px;
     height: max-content;
     padding: 5px;
-    margin: 5px;
+    margin: 1px;
 }
 
 .contorno_interno {
@@ -1914,19 +1917,18 @@ input[type=range]::-moz-range-thumb {
 .contorno-botoes {
     background-color: #222222e3;
     display: flex;
-    width: 100%;
-    justify-content: space-between;
-    margin: 2px;
-    cursor: pointer;
+    align-items: center;
+    justify-content: center;
     width: max-content;
-    padding: 5px 1rem 5px 1rem;
+    padding: 2px;
+    cursor: pointer;
     display: flex;
     gap: 5px;
-    align-items: center;
     border-radius: 3px;
 }
 
 .contorno-botoes label {
+    padding: 2px;
     color: white;
     cursor: pointer;
     font-size: 0.8rem;
@@ -1952,6 +1954,17 @@ input[type=range]::-moz-range-thumb {
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
     overflow-y: auto;
     flex-shrink: 0;
+}
+
+.bloco-status-interno {
+    flex-direction: column;
+    gap: 1px;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    padding: 5px;
+    border-top-right-radius: 3px;
+    border-top-left-radius: 3px;
 }
 
 .alerta-pendencia {
@@ -2033,23 +2046,6 @@ input[type=range]::-moz-range-thumb {
 .no-matches {
     padding: 10px;
     color: #999;
-}
-
-.label_requisicao {
-    border-radius: 3px;
-    margin: 3px;
-    background-color: white;
-    padding: 5px;
-    cursor: pointer;
-    display: flex;
-    gap: 10px;
-    justify-content: left;
-    align-items: center;
-    width: 80%;
-}
-
-.label_requisicao label {
-    cursor: pointer;
 }
 
 .anexos {
@@ -2234,6 +2230,10 @@ input[type="file"]#input-anexos:hover {
 }
 
 @media screen and (orientation: portrait) {
+
+    .topo-tabela {
+        flex-direction: column;
+    }
 
     .blocoTabela {
         width: 98%;

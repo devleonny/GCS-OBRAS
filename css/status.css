@@ -2,26 +2,16 @@
     border-radius: 5px;
     height: max-content;
     border: 1px solid;
-    padding: 5px;
     margin: 5px;
 }
 
 .container-blocos {
     display: flex;
-    gap: 1rem;
     width: max-content;
 }
 
-.ver-mais {
-    border-bottom-left-radius: 3px;
-    border-bottom-right-radius: 3px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
 .cartao-status {
+    text-align: center;
     display: flex;
     flex-direction: column;
     justify-content: start;
@@ -55,9 +45,11 @@
     border-top-left-radius: 3px;
     border-top-right-radius: 3px;
     font-size: 1.1rem;
+    padding: 0 1rem 0 1rem;
 }
 
 .requisicao-dados {
+    text-align: start;
     gap: 5px;
     border-bottom-left-radius: 3px;
     border-bottom-right-radius: 3px;
@@ -88,11 +80,13 @@
 }
 
 .requisicao-campo {
+    border: solid 1px #a7a7a7;
     text-align: center;
     padding: 0.5rem 0 0.5rem 0;
     background-color: #b2e2b4;
     border-radius: 3px;
     cursor: pointer;
+    width: 100%;
 }
 
 .requisicao-pesquisa input {

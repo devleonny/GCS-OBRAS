@@ -21,24 +21,15 @@ let nomeUsuario = null
 let progressCircle = null
 let percentageText = null
 let telaInterna = null
-let filtrosPagina = {}
 let pExecucao = true
 let telaAtiva = null
 let funcaoAtiva = null
 let funcaoTela = null
-const filtrosPesquisa = {}
 const paginasBloqueadas = ['PDF', 'OS']
 let sOverlay = false
 let ignorarMenus = false
-
-
-// Central
-let db = {}
-
-let depPorDesc = {}
+let controlesCxOpcoes = {}
 let app = null
-let paginaAtual = 1
-const limitePorPagina = 100
 const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
 
 const appBases = {
@@ -70,6 +61,16 @@ const appBases = {
 }
 
 document.addEventListener('click', verificarClique, true)
+
+function conversorData(data) {
+
+    if (!data) return ''
+
+    let [ano, mes, dia] = data.split('-')
+    let dataFormatada = `${dia}/${mes}/${ano}`
+
+    return dataFormatada
+}
 
 function verificarClique(event) {
     const menu = document.querySelector('.side-menu')
@@ -117,11 +118,8 @@ async function resetarBases() {
 
     overlayAguarde()
     mostrarMenus(true)
-    if(app == 'GCS') 
-        await atualizarGCS(true) // Resetar;
-    else
-        await atualizarOcorrencias(true) // Resetar;
 
+    await atualizarGCS(true) // Resetar;
 
     removerOverlay()
 
@@ -299,19 +297,17 @@ async function configuracoes(usuario, campo, valor) {
 
     const resposta = comunicacaoServ({ usuario, campo, valor })
 
-    if (resposta.mensagem) return popup({ mensagem: resposta.mensagem })
+    if (resposta.mensagem)
+        return popup({ mensagem: resposta.mensagem })
 
     const dadosUsuario = await recuperarDado('dados_setores', usuario)
     dadosUsuario[campo] = valor
 
     if (campo == 'permissao' && valor == 'desativado') {
-        removerPopup()
         await deletarDB('dados_setores', usuario)
-        const tr = document.getElementById(usuario)
-        if (tr) tr.remove()
+        removerPopup()
     } else {
         await inserirDados({ [usuario]: dadosUsuario }, 'dados_setores')
-        if (app == 'OCORRÊNCIAS') await telaUsuarios()
     }
 }
 
@@ -347,7 +343,9 @@ function deslogarUsuario() {
 }
 
 async function sair() {
-    await resetarTudo()
+
+    indexedDB.deleteDatabase(nomeBase)
+
     removerPopup()
 
     toolbar.style.display = 'none'
@@ -357,16 +355,25 @@ async function sair() {
     acesso = null
     localStorage.removeItem('acesso')
     telaLogin()
+
 }
 
 function mostrarMenus(operacao) {
 
-    if (document.title !== 'GCS') return
-    if (ignorarMenus) return // Quando atualizações forem recebidas;
+    if (document.title !== 'GCS')
+        return
+
+    if (ignorarMenus)
+        return // Quando atualizações forem recebidas;
 
     const menu = document.querySelector('.side-menu').classList
-    if (operacao == 'toggle') return menu.toggle('active')
-    operacao ? menu.add('active') : menu.remove('active')
+    
+    if (operacao == 'toggle')
+        return menu.toggle('active')
+
+    operacao
+        ? menu.add('active')
+        : menu.remove('active')
 }
 
 let shell = null;
@@ -395,121 +402,99 @@ function abrirArquivo(link, nome) {
     window.open(link, '_blank');
 }
 
-async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
+async function cxOpcoes(name) {
 
-    function getValorPorCaminho(obj, caminho) {
-        const partes = caminho.split('/')
-        const ultima = partes[partes.length - 1]
-        let func = null
+    const controle = controlesCxOpcoes[name]
+    if (!controle)
+        return popup({ mensagem: `>>> cxOpcoes(null) <<<` })
 
-        // Se o último pedaço tiver [funcao]
-        if (/\[.*\]$/.test(ultima)) {
-            const [chave, nomeFunc] = ultima.match(/^([^\[]+)\[(.+)\]$/).slice(1)
-            partes[partes.length - 1] = chave
-            func = nomeFunc
-        }
+    controlesCxOpcoes.ativo = name
+    const { colunas, base, filtros = {} } = controle
 
-        // percorre o caminho
-        let valor = partes.reduce((acc, chave) => acc?.[chave], obj)
-
-        // aplica a função se existir
-        if (valor != null && func && typeof window[func] === 'function') {
-            valor = window[func](valor)
-        }
-
-        return valor
-    }
-
-    const base = await recuperarDados(nomeBase)
-    let opcoesDiv = ''
-
-    for (const [cod, dado] of Object.entries(base)) {
-
-        const labels = campos
-            .map(campo => {
-                const valor = getValorPorCaminho(dado, campo)
-                return valor ? `<div>${valor}</div>` : ''
-            })
-            .join('')
-
-        const descricao = campos
-            .map(c => getValorPorCaminho(dado, c))
-            .find(v => v !== undefined && v !== null && v !== '')
-
-        opcoesDiv += `
-        <div 
-            name="camposOpcoes" 
-            class="atalhos-opcoes" 
-            onclick="selecionar('${name}', '${cod}', '${encodeURIComponent(descricao)}', ${funcaoAux ? `'${funcaoAux}'` : false})">
-            <img src="${dado.imagem || 'imagens/LG.png'}" style="width: 3rem;">
-            <div style="${vertical}; gap: 2px;">
-                ${labels}
-            </div>
-        </div>`
-    }
+    const pag = 'cxOpcoes'
+    const tabela = modTab({
+        colunas,
+        pag,
+        base,
+        filtros,
+        criarLinha: 'linCxOpcoes',
+        body: 'cxOpcoes'
+    })
 
     const elemento = `
-        <div style="${vertical}; justify-content: left; background-color: #b1b1b1;">
+        <div style="padding: 1rem;">
 
-            <div class="cx-pesquisa">
-                <input oninput="pesquisarCX(this)" placeholder="Pesquisar itens" style="width: 100%;">
-                <img src="imagens/pesquisar4.png" style="width: 2rem; padding: 0.5rem;"> 
-            </div>
+            ${tabela}
 
-            <div class="cx-opcoes">
-                ${opcoesDiv}
-            </div>
-
-        </div>
-    `
+        </div>`
 
     popup({ elemento, titulo: 'Selecione o item' })
+
+    await paginacao(pag)
 }
 
-async function selecionar(name, id, termo, funcaoAux) {
-    termo = decodeURIComponent(termo)
-    const elemento = document.querySelector(`[name='${name}']`)
-    elemento.textContent = termo || id
-    elemento.id = id
+function linCxOpcoes(dado) {
+
+    const { ativo } = controlesCxOpcoes // Ativo é o mesmo que o [name]
+    const { colunas } = controlesCxOpcoes[ativo]
+    const cod = dado.id || dado.codigo || dado.usuario || null
+    const tds = []
+
+    for (const coluna of Object.values(colunas)) {
+
+        const d = getByPath(dado, coluna?.chave)
+
+        tds.push(`
+            <td>
+                ${Array.isArray(d) ? d.join('<br>') : d || ''}
+            </td>`)
+    }
+
+    return `
+        <tr class="opcoes-v2" 
+            onclick="selecionar('${ativo}', '${cod}')">
+            ${tds.join('')}
+        </tr>`
+}
+
+async function selecionar(name, cod) {
+
+    const { funcaoAdicional, base, retornar } = controlesCxOpcoes[name]
+    const painel = document.querySelector('.painel-padrao')
+
+    if (!retornar)
+        return popup({ mensagem: `campo retornar: ['exemplo'] → undefined` })
+
+    // Painel quando for forms; do contrário qualquer outro elemento;
+    const elemento = (painel || document)?.querySelector(`[name='${name}']`)
+    const termos = []
+    const dado = await recuperarDado(base, cod)
+
+    for (const chave of retornar) {
+        const d = getByPath(dado, chave)
+
+        if (d ?? false) {
+            if (Array.isArray(d))
+                termos.push(...d)
+            else
+                termos.push(d)
+        }
+    }
+
+    elemento.innerHTML = termos.join('<br>')
+    elemento.id = cod
+
     removerPopup()
 
-    if (funcaoAux) await eval(funcaoAux)
+    if (funcaoAdicional)
+        await window[funcaoAdicional]()
 }
 
-function pesquisarCX(input) {
-    const termoPesquisa = String(input.value)
-        .toLowerCase()
-        .replace(/[./-]/g, ''); // remove ponto, traço e barra
-
-    const divs = document.querySelectorAll(`[name='camposOpcoes']`);
-
-    for (const div of divs) {
-        const termoDiv = String(div.textContent)
-            .toLowerCase()
-            .replace(/[./-]/g, ''); // mesma limpeza no conteúdo
-
-        div.style.display = (termoDiv.includes(termoPesquisa) || termoPesquisa === '') ? '' : 'none';
-    }
-}
-
-async function gerarPdfRequisicao(nome) {
-
-    const id = 'pdf'
-    const estilos = [
-        'gcsobras',
-        'status'
-    ]
-
-    await pdf({ id, estilos, nome })
-}
-
-async function pdf({ id, estilos = [], nome = 'documento' }) {
+async function pdf({ id, estilos = [], nome = 'documento', orientacao = '' }) {
 
     const htmlPdf = document.getElementById(id)
-    const bPdf = document.getElementById('bPdf')
-    if (!id || !htmlPdf) return
-
-    if (bPdf) bPdf.style.display = 'none'
+    if (!id || !htmlPdf)
+        return
 
     overlayAguarde()
 
@@ -525,7 +510,7 @@ async function pdf({ id, estilos = [], nome = 'documento' }) {
                 <style>
 
                     @page {
-                        size: A4;
+                        size: A4 ${orientacao};
                         margin: 10mm;
                     }
 
@@ -537,6 +522,18 @@ async function pdf({ id, estilos = [], nome = 'documento' }) {
                     body {
                         font-family: 'Poppins', sans-serif;
                         background: white;
+                    }}
+                          
+                    .topo-tabela * {
+                        visibility: hidden;
+                    }
+
+                    .div-tabela {
+                        max-height: max-content;
+                    }
+
+                    .tabela thead tr:nth-child(2) {
+                        display: none;
                     }
 
                 </style>
@@ -570,8 +567,6 @@ async function pdf({ id, estilos = [], nome = 'documento' }) {
     } catch (err) {
         popup({ mensagem: err?.message || 'Seu pdf não ficou bom, o GCS não gostou, tente de novo... (Falha no GCS)' })
     }
-
-    if (bPdf) bPdf.style.display = ''
 
 }
 

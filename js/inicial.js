@@ -1,4 +1,3 @@
-let guiaAtual = null
 const abas = ['PDA', 'POC', 'INFRA', 'LOGÍSTICA', 'EM_ANDAMENTO', 'CONCLUÍDO']
 const coments = (comentario, campo, id) => {
 
@@ -87,473 +86,190 @@ const dtPrazo = (data) => {
     return atrasado
 }
 
-async function telaInicial() {
+async function telaInicialGCS() {
 
     atribuirVariaveis()
-
-    mostrarMenus(false)
 
     toolbar.style.display = 'flex'
     titulo.textContent = 'GCS'
     localStorage.setItem('app', 'GCS')
     app = 'GCS'
 
-    if (priExeGCS) {
+    if (priExeGCS)
         await atualizarGCS()
-        priExeGCS = false
-    }
+
+    criarMenus('inicial')
+
+    const aBloqs = ['INDICADORES', 'TÉCNICOS']
+
+    const abasToolbar = ['INDICADORES', 'TÉCNICOS', ...abas]
+        .map(aba => {
+
+            return `
+                <div 
+                style="opacity: 0.5; height: 3rem;" 
+                class="aba-toolbar" 
+                id="toolbar-${aba}" 
+                onclick="tabelaPorAba('${aba}')">
+                    <label>${aba.replace('_', ' ')}</label>
+                    ${aBloqs.includes(aba) ? '' : `<span id="contador-${aba}"></span>`}
+                </div>`
+
+        }).join('')
+
+
+    // INDICADORES
+    const contadores = JSON.parse(localStorage.getItem('contadores')) || []
+    if (!contadores[acesso.usuario])
+        contadores[acesso.usuario] = { estrela: 'N' }
+
+    let filtroUsuario = {}
+
+    Object.entries(contadores)
+        .forEach(([u, conf]) => {
+            if (conf.estrela == 'S' && u !== 'Geral')
+                filtroUsuario = { 'pda.acoes.*.responsavel': { op: '=', value: u } }
+
+            criarGaveta(u, conf)
+        })
+
+    const tabelaIndicadores = modTab({
+        criarLinha: 'linAcoes',
+        base: 'dados_orcamentos',
+        pag: 'acoes',
+        body: 'bodyAcoes',
+        filtros: {
+            'pda.acoes': { op: 'NOT_EMPTY' },
+            ...filtroUsuario
+        }
+    })
+
+    const indicadores = `
+    <div class="painel-indicadores">
+        <div style="${vertical}; width: 50%;">
+            <button onclick="incluirContador()">Incluir contador</button>
+            <div class="guarda-roupas"></div>
+        </div>
+
+        <div style="width: 50%;">
+            ${tabelaIndicadores}
+        </div>
+    </div>`
+
+    // TABELAS PAGINADAS;
+    const tabelasPaginadas = modTab({
+        base: 'dados_orcamentos',
+        pag: 'tabelasIndicadores',
+        funcaoAdicional: ['contadoresAbas'],
+        body: 'bodyIndicadores',
+        criarLinha: 'linPda',
+        colunas: {
+            'Cliente': { chave: 'snapshots.contrato' },
+            'Tags': { chave: 'snapshots.tags' },
+            'Técnicos': {},
+            'Início': {},
+            'Término': {},
+            'Comentário': { chave: 'pda.comentario' },
+            'Ação Necessária': {},
+            'Checklist': {},
+            'Detalhes': {}
+        }
+    })
+
+    // TÉCNICOS
+    const tabelaTecnicos = modTab({
+        pag: 'tecnicos',
+        body: 'bodyTecnicos',
+        base: 'dados_clientes',
+        filtros: { 'tags.*.tag': { op: '=', value: 'TÉCNICO' } },
+        criarLinha: 'criarLinhaTecnico',
+        colunas: {
+            'Nome': { chave: 'nome' },
+            'Obras': {}
+        }
+    })
 
     const acumulado = `
-        <div id="loading" style="${horizontal};">
-            <img src="gifs/loading.gif" style="width: 5rem;">
-            <span style="color: white;">Carregando tabelas...</span>
-        </div>
         <div class="tela-gerenciamento">
-
             <div style="${horizontal}; width: 80vw;">
                 <img src="imagens/nav.png" style="width: 2rem;" onclick="scrollar('prev')">
                 <div id="toolbar">
-                    ${['INDICADORES', 'TÉCNICOS', ...abas].map(aba => `
-                        <div style="opacity: 0.5; height: 3rem;" class="aba-toolbar" id="toolbar-${aba}" onclick="mostrarGuia('${aba}')">
-                            <label>${aba.replace('_', ' ')}</label>
-                            ${aba !== 'INDICADORES' ? `<span id="contador-${aba}"></span>` : ''}
-                        </div>
-                        `).join('')}
+                    ${abasToolbar}
                 </div>
                 <img src="imagens/nav.png" style="width: 2rem; transform: rotate(180deg);" onclick="scrollar('next')">
             </div>
+            
+            <div class="tabelas-inicial">
+                <div class="t-indicadores">${indicadores}</div>
+                <div class="t-tecnicos">${tabelaTecnicos}</div>
+                <div class="t-tabelas">${tabelasPaginadas}</div>
+            </div>
+            
+        </div>`
 
-            <div id="tabelas" style="width: 100%;"></div>
-        </div>
-    `
+    tela.innerHTML = acumulado
 
-    const tGerenciamento = document.querySelector('.tela-gerenciamento')
-    if (!tGerenciamento) {
-        tela.innerHTML = acumulado
-        criarMenus('inicial')
-    }
-
-    // Carregar tabelas;
-    indicadores()
-    carregarPDA()
-    carregarTecnicos()
-
-    const ativos = []
-
-    for (const [idOrcamento, orcamento] of Object.entries(db.dados_orcamentos)) {
-
-        if (!orcamento.aba) continue
-        ativos.push(idOrcamento)
-        linPda(idOrcamento, orcamento)
-    }
-
-    for (const aba of abas) {
-        const trs = document.querySelectorAll(`#body${aba} tr`)
-        for (const tr of trs) if (!ativos.includes(tr.id)) tr.remove()
-    }
-
-    mostrarGuia()
-    contadores()
-    auxMapa('EM_ANDAMENTO')
-
+    mostrarMenus(false)
+    await tabelaPorAba('INDICADORES')
     await carregarControles()
 
 }
 
-function contadores() {
+async function tabelaPorAba(aba = 'CONCLUÍDO') {
 
-    for (const aba of [...abas, 'TÉCNICOS']) {
-        const trs = document.querySelectorAll(`#body${aba} tr`)
-        let contador = 0
+    // DESTACAR ABA;
+    const abas = document.querySelectorAll('.aba-toolbar')
 
-        for (const tr of trs) {
-            const display = tr.style.display
-            if (display !== 'none') contador++
-        }
+    abas.forEach(a => { a.style.opacity = 0.5 })
 
-        const spanContador = document.getElementById(`contador-${aba}`)
-        if (spanContador) spanContador.textContent = contador
+    const abaToolbar = document.querySelector(`#toolbar-${aba}`)
 
-    }
-}
+    if (abaToolbar)
+        abaToolbar.style.opacity = 1
 
-function auxMapa(aba) {
+    // MOSTRAR PAINEL;
+    const paineis = ['indicadores', 'tecnicos', 'tabelas']
+    paineis.forEach(p => {
+        document.querySelector(`.t-${p}`).style.display = 'none'
+    })
 
-    const tMapas = document.querySelector('.toolbar-mapas')
-    tMapas.innerHTML = ''
+    let painel = 'tabelas'
 
-    for (const aba of [...abas]) {
+    if (aba == 'INDICADORES')
+        painel = 'indicadores'
+    else if (aba == 'TÉCNICOS')
+        painel = 'tecnicos'
 
-        const toolbar = `
-            <div class="aba-toolbar" name="toolbar-mapas" data-tipo="${aba}" onclick="auxMapa('${aba}')">${aba.replace('_', ' ')}</div>
-        `
-        tMapas.insertAdjacentHTML('beforeend', toolbar)
-    }
+    document.querySelector(`.t-${painel}`).style.display = 'flex'
 
-    // Preencher o mapa de orçamentos x estado;
-    const contadores = {}
+    // FILTRAGEM DE DADOS;
+    controles.tabelasIndicadores.filtros ??= {}
 
-    const mapaOverlay = document.getElementById('mapaOverlay')
-    mapaOverlay.innerHTML = ''
-
-    const tools = document.querySelectorAll('[name="toolbar-mapas"]')
-    for (const tool of tools) {
-        const tipo = tool.dataset.tipo
-        tool.style.opacity = tipo == aba ? 1 : 0.5
+    controles.tabelasIndicadores.filtros = {
+        ...controles.tabelasIndicadores.filtros,
+        'aba': { op: '=', value: aba }
     }
 
-    if (aba == 'ORÇAMENTOS') {
-        for (const [, orcamento] of Object.entries(db.dados_orcamentos)) {
-            const codOmie = orcamento?.dados_orcam?.omie_cliente
-            const cliente = db.dados_clientes[codOmie]
-
-            if (!cliente) continue
-            if (!cliente.estado) continue
-
-            contadores[cliente.estado] ??= 0
-            contadores[cliente.estado]++
-        }
-
-    } else {
-
-        for (const [idOrcamento, orc] of Object.entries(db.dados_orcamentos)) {
-
-            if (!orc.aba) continue
-            if (orc.aba == 'CONCLUÍDO') continue
-            if (orc.aba !== aba) continue
-
-            const codOmie = db.dados_orcamentos?.[idOrcamento]?.dados_orcam?.omie_cliente
-            const cliente = db.dados_clientes[codOmie]
-            const estado = cliente?.estado || orc?.pda?.estado || ''
-
-            if (!estado) continue
-
-            contadores[estado] ??= 0
-            contadores[estado]++
-        }
-
-    }
-
-    for (const [estado, total] of Object.entries(contadores)) {
-        preencherMapa(estado, total)
-    }
-}
-
-function carregarTecnicos() {
-
-    const tecnicosMap = {}   // { codTec: { nome, projetos: [] } }
-
-    for (const [idOrcamento, orc] of Object.entries(db.dados_orcamentos)) {
-
-        if (!orc.pda) continue
-
-        const listaTecs = orc?.checklist?.tecnicos || []
-        const historico = orc?.status?.historicoStatus || {}
-        let concluido = false
-
-        for (const [, dados] of Object.entries(historico)) {
-            if (dados?.para == 'CONCLUÍDO') {
-                concluido = true
-                break
-            }
-        }
-
-        // se não quiser contar projetos concluídos:
-        if (concluido) continue
-
-        for (const codTec of listaTecs) {
-
-            if (!tecnicosMap[codTec]) {
-                const tec = db.dados_clientes?.[codTec] || {}
-                tecnicosMap[codTec] = {
-                    nome: tec.nome || 'Sem Nome',
-                    projetos: []
-                }
-            }
-
-            tecnicosMap[codTec].projetos.push(idOrcamento)
-        }
-    }
-
-    let linhas = ''
-
-    for (const [codTec, dadosTec] of Object.entries(tecnicosMap)) {
-
-        let projetosHtml = ''
-
-        for (const idOrcamento of dadosTec.projetos) {
-
-            const orc = db.dados_orcamentos?.[idOrcamento]
-            const codCliente = orc?.dados_orcam?.omie_cliente || ''
-            const cliente = db.dados_clientes?.[codCliente] || {}
-
-            const blocoProjeto = orc
-                ? `
-                <div class="etiquetas">
-                    <span><b>Número: </b>${orc?.dados_orcam?.contrato || ''}</span>
-                    <span><b>Cliente: </b>${cliente?.nome || '...'}</span>
-                    <span><b>Data: </b>${orc?.dados_orcam?.data || '...'}</span>
-                    <span><b>Cidade: </b>${cliente?.cidade || '...'}</span>
-                    <span><b>Valor: </b>${dinheiro(orc?.total_geral)}</span>
-                </div>`
-                : `
-                <div class="etiquetas">
-                    <span>${orc.projeto || 'Projeto sem nome'}</span>
-                </div>
-            `
-
-            projetosHtml += blocoProjeto
-        }
-
-        linhas += `
-        <tr data-tecnico="${codTec}">
-            <td>${dadosTec.nome}</td>
-            <td><div style="${vertical}; gap: 2px;">${projetosHtml}</div></td>
-        </tr>
-        `
-    }
-
-    const colunas = ['Técnico', 'Projetos']
-
-    const acumulado = `
-        <div style="${vertical}; width: 100%;">
-            <div class="topo-tabela"></div>
-
-            <div class="div-tabela">
-                <table class="tabela">
-                    <thead>
-                        <tr>${colunas.map(c => `<th>${c}</th>`).join('')}</tr>
-                    </thead>
-                    <tbody id="bodyTÉCNICOS">${linhas}</tbody>
-                </table>
-            </div>
-
-            <div class="rodape-tabela"></div>
-        </div>
-    `
-
-    const tabelas = document.getElementById('tabelas')
-    const tabTec = document.querySelector('[name="tabela-TÉCNICOS"]')
-
-    if (tabTec) return tabTec.innerHTML = acumulado
-    tabelas.insertAdjacentHTML('beforeend', `<div class="tabelas-pda" name="tabela-TÉCNICOS">${acumulado}</div>`)
+    await paginacao()
 
 }
 
+async function linPda(orcamento) {
 
-function indicadores() {
+    const { cliente, cidade } = orcamento.snapshots
+    const idOrcamento = orcamento.id
 
-    const permitidos = ['adm', 'gerente', 'diretoria']
-
-    const totais = {
-        pendente: 0,
-        atrasado: 0,
-        concluído: 0
-    }
-
-    const tUsuario = {}
-    let strgAcoes = ''
-
-    for (const [idOrcamento, orcamento] of Object.entries(db.dados_orcamentos)) {
-
-        if (!orcamento.pda) continue
-        const acoes = orcamento?.pda?.acoes || {}
-
-        const chamado = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato || orcamento?.projeto || '-'
-
-        for (const [idAcao, dados] of Object.entries(acoes)) {
-
-            const estilo = dados?.status === 'concluído'
-                ? 'concluído'
-                : dtPrazo(dados?.prazo)
-                    ? 'atrasado'
-                    : 'pendente'
-
-            totais[estilo]++
-
-            tUsuario[dados.responsavel] ??= {}
-            tUsuario[dados.responsavel][estilo] ??= 0
-            tUsuario[dados.responsavel][estilo]++
-
-            // Filtragem por acesso
-
-            if (dados.responsavel == acesso.usuario || permitidos.includes(acesso.permissao)) {
-
-                const [ano, mes, dia] = dados.prazo.split('-')
-                const prazo = `${dia}/${mes}/${ano}`
-
-                strgAcoes += `
-                    <div name="acao" data-estilo="${estilo}" class="bloco-acao">
-                        <div class="etiqueta-${estilo}">
-                            <span><b>ID:</b> ${chamado}</span>
-                            <span><b>Aba:</b> ${orcamento.aba || ''}</span>
-                            <div style="white-space: pre-wrap;"><b>Ação:</b> ${dados?.acao || ''}</div>
-                            <span><b>Responsável:</b> ${dados?.responsavel || ''}</span>
-                            <span><b>Prazo:</b> ${prazo}</span>
-                            ${dados.registro
-                        ? `<span><b>criado em: </b>${new Date(dados.registro).toLocaleString('pt-BR')}</span>`
-                        : ''}
-                        </div>
-                        <img src="imagens/pesquisar2.png" style="width: 2rem;" onclick="irORC('${idOrcamento}')">
-                    </div>`
-            }
-
-        }
-    }
-
-    const box = (titulo, valor, cor) => `
-    <div class="ind" style="border-left: 6px solid ${cor};" onclick="filtrarAcoes('${titulo}')">
-        <span style="font-size: 14px; color:#444;">${titulo}</span>
-        <strong style="font-size: 22px; margin-top:5px;">${valor}</strong>
-    </div>`
-
-    const indi = (totais, texto) => {
-
-        return `
-            <div style="${vertical}; gap: 5px; padding: 0.5rem;">
-                <span>Contador de ações <b>${texto}</b></span>
-                <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
-                    ${box("Pendente", totais?.pendente || 0, "#41a6ff")}
-                    ${box("Atrasado", totais?.atrasado || 0, "#ff0000")}
-                    ${box("Concluído", totais?.concluído || 0, "#008000")}
-                </div>
-            </div>
-        `
-    }
-
-    const indiGeral = permitidos.includes(acesso.permissao) ? indi(totais, 'Geral') : ''
-
-    const acumulado = `
-    <div class="painel-indicadores">
-
-        <div style="${vertical}; align-items: center; padding: 0.5rem;">
-            <div class="toolbar-mapas"></div>
-            <div class="fundo-mapa">
-                <img src="imagens/mapa.png" class="mapa">
-                <svg id="mapaOverlay" width="600" height="600" style="position: absolute; top: 0; left: 0;"></svg>
-            </div>
-        </div>
-        <div style="${vertical};">
-
-            ${indiGeral}
-            ${tUsuario[acesso?.usuario] ? indi(tUsuario[acesso?.usuario], acesso.usuario || '...') : ''}
-            <div style="${vertical}; padding: 1rem; gap: 0.5rem; width: 100%;">
-                <div style="${horizontal}; gap: 2rem;">
-                    <span>Ações pendentes do Usuário</span>
-                </div>
-                <div class="acoes">
-                    ${strgAcoes}
-                </div>
-            </div>
-            
-        </div>
-
-    </div>
-    `
-    const tabelas = document.getElementById('tabelas')
-    const tIndicadores = document.querySelector('.tabela-indicadores')
-    if (tIndicadores) return tIndicadores.innerHTML = acumulado
-    tabelas.insertAdjacentHTML('beforeend', `<div class="tabela-indicadores" name="tabela-INDICADORES">${acumulado}</div>`)
-
-    filtrarAcoes('pendente')
-
-}
-
-function filtrarAcoes(titulo = ultimoTitulo) {
-
-    ultimoTitulo = titulo
-
-    titulo = String(titulo).toLowerCase()
-
-    const divs = document.querySelectorAll(`[name="acao"]`)
-
-    for (const div of divs) {
-        div.style.display = div.dataset.estilo !== titulo ? 'none' : ''
-    }
-
-}
-
-function mostrarGuia(nomeGuia = guiaAtual || 'INDICADORES') {
-
-    guiaAtual = nomeGuia
-
-    // Todas as guias e abas ocultadas;
-    const tabelas = document.querySelectorAll('[name^="tabela-"]')
-    for (const t of tabelas) t.style.display = 'none'
-
-    const guias = document.querySelectorAll('.aba-toolbar')
-    for (const g of guias) g.style.opacity = 0.5
-
-    // Exibir apenas a selecionada;
-    const aba = document.getElementById(`toolbar-${nomeGuia}`)
-    aba.style.opacity = 1
-
-    const tabela = document.querySelector(`[name=tabela-${nomeGuia}]`)
-    if (tabela) tabela.style.display = 'flex'
-
-    const loading = document.getElementById('loading')
-    if (loading) loading.style.display = 'none'
-
-    const tPda = document.querySelector('.tela-gerenciamento')
-    if (tPda) tPda.style.display = 'flex'
-
-}
-
-function carregarPDA() {
-
-    const colunas = ['Cliente', 'Tags', 'Técnicos', 'Início', 'Término', 'Comentários', 'Ação Necessário', 'Checklist', 'Detalhes', 'Remover']
-
-    const ths = colunas.map(col => `<th>${col}</th>`).join('')
-
-    const mod = (aba) => {
-        const pesquisas = colunas.map((op, i) => `
-            <th style="background-color: white; text-align: left;" 
-            oninput="pesquisarGenerico('${i}', this.textContent, 'body${aba}'); contadores()" 
-            contentEditable="true"></th>`).join('')
-
-        return `
-        <div name="tabela-${aba}" class="tabelas-pda">
-            <div class="topo-tabela">
-                <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
-                    <img src="imagens/baixar.png" onclick="editarLinPda({aba: '${aba}'})">
-                </div>
-            </div>
-            <div class="div-tabela">
-                <table class="tabela">
-                    <thead>
-                        <tr>${ths}</tr>
-                        <tr>${pesquisas}</tr>
-                    </thead>
-                    <tbody id="body${aba}"></tbody>
-                </table>
-            </div>
-            <div class="rodape-tabela"></div>
-        </div>
-    `}
-
-    const tabelas = document.getElementById('tabelas')
-
-    for (const aba of abas) {
-        const tab = mod(aba)
-        const existente = document.getElementById(`body${aba}`)
-        if (!existente) tabelas.insertAdjacentHTML('beforeend', tab)
-    }
-
-}
-
-function linPda(idOrcamento, orcamento) {
-
-    const codCliente = orcamento?.dados_orcam?.omie_cliente || ''
-    const cliente = db.dados_clientes?.[codCliente]
     const st = orcamento?.status?.atual || ''
-    const opcoes = ['', ...fluxograma].map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`).join('')
+    const opcoes = ['', ...fluxograma]
+        .map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`)
+        .join('')
 
     const pda = orcamento.pda || {}
     const listaTecs = orcamento?.checklist?.tecnicos || pda?.tecnicos || []
 
     const tecs = listaTecs
         .map(codTec => {
-            const cliente = db.dados_clientes?.[codTec] || {}
+            const cliente = {}
             return `<div class="etiquetas" style="min-width: 100px;">${cliente?.nome || '...'}</div>`
         }).join('')
 
@@ -600,13 +316,13 @@ function linPda(idOrcamento, orcamento) {
     const existente = `
         <div style="${vertical}; gap: 2px; text-align: left;">
             <span><b>Número: </b>${orcamento?.dados_orcam?.contrato || ''}</span>
-            <span><b>Cliente: </b>${cliente?.nome || '...'}</span>
+            <span><b>Cliente: </b>${cliente}</span>
             <span><b>Data: </b>${orcamento?.dados_orcam?.data || '...'}</span>
-            <span><b>Cidade: </b>${cliente?.cidade || '...'}</span>
+            <span><b>Cidade: </b>${cidade}</span>
             <span><b>Valor: </b> ${dinheiro(orcamento?.total_geral)}</span>
 
             ${mod('Status', `
-                <select name="status" class="etiquetas" onchange="id_orcam = '${idOrcamento}'; alterarStatus(this)">
+                <select name="status" class="etiquetas" onchange="alterarStatus('${idOrcamento}', this)">
                     ${opcoes}
                 </select>
                 `)}
@@ -631,17 +347,16 @@ function linPda(idOrcamento, orcamento) {
         </div>
     `
 
-    const strTags = `
-        <div style="${horizontal}; justify-content: space-between; width: 100%; align-items: start; gap: 2px;">
-            <div name="tags" style="${vertical}; gap: 1px;">
-                ${renderAtivas({ idOrcamento, recarregarPainel: false })}
-            </div>
-            <img 
-                src="imagens/etiqueta.png" 
-                style="width: 1.2rem;" 
-                onclick="renderPainel('${idOrcamento}')">
-        </div>
-    `
+    // Tags;
+    const tags = []
+
+    for (const idTag of Object.keys(orcamento.tags || {})) {
+
+        const tag = await recuperarDado('tags_orcamentos', idTag)
+
+        tags.push(modeloTag(tag, idOrcamento))
+
+    }
 
     const tds = `
         <td>
@@ -649,11 +364,19 @@ function linPda(idOrcamento, orcamento) {
             ${mod('Aba', selectAbas)}
         </td>
         <td>
-            ${orcamento ? strTags : ''}
+            <div style="${vertical}; gap: 2px;">
+                <img 
+                    src="imagens/etiqueta.png" 
+                    style="width: 1.2rem;" 
+                    onclick="renderPainel('${idOrcamento}')">
+                <div name="tags" style="${vertical}; gap: 1px;">
+                    ${tags.join('')}
+                </div>
+            </div>
         </td>
         <td>
             <div style="${horizontal}; justify-content: start; align-items: start; gap: 2px;">
-                <img onclick="id_orcam = '${idOrcamento}'; tecnicosAtivos()" src="imagens/baixar.png" style="width: 1.5rem;">
+                <img onclick="tecnicosAtivos('${idOrcamento}')" src="imagens/baixar.png" style="width: 1.5rem;">
                 <div style="${vertical}; gap: 2px; width: 100%;">
                     ${tecs}
                 </div>
@@ -696,38 +419,258 @@ function linPda(idOrcamento, orcamento) {
         </td>
         <td>
             ${orcamento ? `<img onclick="abrirAtalhos('${idOrcamento}')" src="imagens/pesquisar2.png" style="width: 1.5rem;">` : ''}
-        </td>
-        <td>
-            <img onclick="confirmarExcluirPda('${idOrcamento}')" src="imagens/cancel.png" style="width: 1.5rem;">
-        </td>
-    `
+        </td>`
 
-    const aba = orcamento.aba
-    const tbody = document.getElementById(`body${aba}`)
-    const trExistente = document.getElementById(idOrcamento)
-    const timestamp = trExistente?.dataset?.timestamp
-    const trAba = trExistente?.dataset?.aba || 'PDA'
-
-    if (trExistente && trAba !== aba) {
-        trExistente.remove()
-    }
-
-    if (trExistente) {
-        if (!orcamento.timestamp || orcamento.timestamp !== timestamp) {
-            trExistente.innerHTML = tds
-            trExistente.dataset.timestamp = orcamento.timestamp || ''
-        }
-    } else {
-        tbody.insertAdjacentHTML(
-            'beforeend',
-            `<tr id="${idOrcamento}"
-            data-timestamp="${orcamento.timestamp || ''}"
-            data-aba="${aba}">
+    return `
+        <tr id="${idOrcamento}">
             ${tds}
         </tr>`
-        )
+
+}
+
+async function contadoresAbas() {
+
+    const contadores = await contarPorCampo({ base: 'dados_orcamentos', path: 'aba' })
+
+    for (const [aba, total] of Object.entries(contadores)) {
+
+        const spanContador = document.getElementById(`contador-${aba}`)
+        if (spanContador)
+            spanContador.textContent = total
+
+    }
+}
+
+function criarLinhaTecnico(tecnico) {
+
+    return `
+    <tr>
+        <td>${tecnico.nome}</td>
+        <td></td>
+    </tr>
+    `
+
+}
+
+function linAcoes(orcamento) {
+
+    const idOrcamento = orcamento.id
+    const acoes = orcamento?.pda?.acoes || {}
+    const chamado = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato || orcamento?.projeto || '-'
+
+    const filtroUsuarioAtivo = controles?.acoes?.filtros?.['pda.acoes.*.responsavel']?.value
+    const statusFiltro = controles?.acoes?.status
+
+    let strAcoes = ''
+
+    for (const dados of Object.values(acoes)) {
+
+        const { responsavel, status, usuario, registro, prazo, acao } = dados
+
+        if (filtroUsuarioAtivo && responsavel !== filtroUsuarioAtivo)
+            continue
+
+        const estilo = status === 'concluído'
+            ? 'concluído'
+            : dtPrazo(prazo)
+                ? 'atrasado'
+                : 'pendente'
+
+        if (statusFiltro && statusFiltro !== estilo)
+            continue
+
+        const [ano, mes, dia] = prazo.split('-')
+        const prazoConvertido = `${dia}/${mes}/${ano}`
+        const dtRegistro = registro
+            ? `<span><b>criado em: </b>${new Date(registro).toLocaleString('pt-BR')}</span>`
+            : ''
+        const criadoPor = usuario
+            ? `<span><b>criado por: </b>${usuario}</span>`
+            : ''
+        strAcoes += `
+            <tr>    
+                <div class="etiqueta-${estilo}" style="width: 95%; flex-direction: row; gap: 0.5rem; margin: 1px;">
+
+                    <img src="imagens/pesquisar2.png" style="width: 2rem;" onclick="irORC('${idOrcamento}', '${orcamento?.aba || 'N'}')">
+
+                    <div style="${vertical};">
+                        <span><b>ID:</b> ${chamado}</span>
+                        <span><b>Aba:</b> ${orcamento.aba || ''}</span>
+                        <div style="white-space: pre-wrap;"><b>Ação:</b> ${acao || ''}</div>
+                        <span><b>Responsável:</b> ${responsavel || ''}</span>
+                        <span><b>Prazo:</b> ${prazoConvertido}</span>
+                        ${dtRegistro}
+                        ${criadoPor}
+                    </div>
+                </div>
+            </tr>`
     }
 
+    return strAcoes
+}
+
+function somarPend(obj) {
+    const hoje = new Date()
+    hoje.setHours(0, 0, 0, 0)
+
+    const t = { atrasados: 0, pendentes: 0 }
+
+    for (const [data, qtd] of Object.entries(obj)) {
+        const d = new Date(data + 'T00:00:00')
+        if (isNaN(d)) continue
+
+        t[d < hoje ? 'atrasados' : 'pendentes'] += Number(qtd) || 0
+    }
+
+    return t
+}
+
+async function criarGaveta(usuario = null, conf = {}) {
+
+    if (!usuario)
+        usuario = document.querySelector('[name="contador"]').id || 'Geral'
+
+    const contadores = JSON.parse(localStorage.getItem('contadores')) || {}
+    contadores[usuario] = { estrela: conf.estrela || 'N' }
+
+    localStorage.setItem('contadores', JSON.stringify(contadores))
+
+    const box = (titulo, valor, cor) => {
+
+        const auxiliar = usuario == 'Geral'
+            ? `controles.acoes.filtros = {'pda.acoes': {op: 'NOT_EMPTY'}}`
+            : `controles.acoes.filtros = {'pda.acoes.*.responsavel': { op: '=', value: '${usuario}' }}`
+
+        return `
+        <div 
+            class="ind" 
+            style="border-left: 6px solid ${cor};" 
+            onclick="controles.acoes.status = '${titulo}'; ${auxiliar}; paginacao('acoes')">
+            <span style="font-size: 14px; color: #444;">${inicialMaiuscula(titulo)}</span>
+            <strong style="font-size: 22px; margin-top:5px;">${valor}</strong>
+        </div>`
+    }
+
+    const filtros = usuario == 'Geral'
+        ? {}
+        : { 'pda.acoes.*.responsavel': { op: '=', value: usuario } }
+
+    const contagem = await contarPorCampo({
+        base: 'dados_orcamentos',
+        path: 'pda.acoes.*.status',
+        filtros
+    })
+
+    const resposta = await contarPorCampo({
+        base: 'dados_orcamentos',
+        path: 'pda.acoes.*.prazo',
+        filtros: {
+            ...filtros,
+            'pda.acoes.*.status': { op: '=', value: 'pendente' }
+        }
+    })
+
+    const totais = somarPend(resposta)
+
+    const botaoCancelar = usuario == acesso.usuario
+        ? ''
+        : `<img src="imagens/cancel.png" onclick="removerContador('${usuario}')">`
+
+    const conteudo = `
+        <div style="${horizontal}; gap: 1rem;">
+            <span>Contador de ações <b>${usuario}</b></span>
+            ${botaoCancelar}
+        </div>
+        <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
+            ${box('pendente', totais?.pendentes || 0, "#41a6ff")}
+            ${box('atrasado', totais?.atrasados, "#ff0000")}
+            ${box('concluído', contagem?.concluído || 0, "#008000")}
+            <img src="imagens/estrela${conf?.estrela == 'S' ? '' : '_off'}.png" name="estrela" data-usuario="${usuario}" onclick="favoritar(this)">
+        </div>
+    `
+
+    const gaveta = `
+        <div id="gaveta_${usuario}" style="${vertical}; gap: 5px; padding: 0.5rem;">
+            ${conteudo}
+        </div>
+    `
+
+    const guardaRoupas = document.querySelector('.guarda-roupas')
+    const existente = document.getElementById(`gaveta_${usuario}`)
+    if (existente)
+        return existente.innerHTML = conteudo
+
+    if (guardaRoupas)
+        guardaRoupas.insertAdjacentHTML('beforeend', gaveta)
+
+}
+
+async function favoritar(img) {
+
+    const usuario = img.dataset.usuario
+    const contadores = JSON.parse(localStorage.getItem('contadores')) || {}
+
+    Object.entries(contadores)
+        .map(([u, conf]) => {
+            conf.estrela = 'N'
+        })
+
+    contadores[usuario].estrela = 'S'
+
+    localStorage.setItem('contadores', JSON.stringify(contadores))
+
+    const estrelas = document.querySelectorAll('[name="estrela"]')
+
+    estrelas.forEach(e => e.src = 'imagens/estrela_off.png')
+
+    img.src = 'imagens/estrela.png'
+
+    const filtros = usuario == 'Geral'
+        ? {}
+        : { op: '=', value: usuario }
+
+    controles.acoes.filtros = {
+        'pda.acoes.*.responsavel': filtros
+    }
+
+    await paginacao('acoes')
+
+}
+
+function removerContador(usuario) {
+    const contadores = JSON.parse(localStorage.getItem('contadores')) || []
+    delete contadores[usuario]
+    localStorage.setItem('contadores', JSON.stringify(contadores))
+
+    const gaveta = document.getElementById(`gaveta_${usuario}`)
+    if (gaveta)
+        gaveta.remove()
+}
+
+function incluirContador() {
+
+    const linhas = [
+        {
+            texto: 'Escolha o usuário',
+            elemento: `<span class="opcoes" name="contador" onclick="cxOpcoes('contador')">Selecione</span>`
+        }
+    ]
+
+    controlesCxOpcoes.contador = {
+        base: 'dados_setores',
+        retornar: ['usuario'],
+        colunas: {
+            'Usuário': { chave: 'usuario' },
+            'Setor': { chave: 'setor' },
+            'Permissão': { chave: 'permissao' }
+        }
+    }
+
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: `criarGaveta()` },
+    ]
+
+    popup({ botoes, linhas, nra: false })
 }
 
 function confirmarCriarOrcamento(idOrcamento) {
@@ -743,7 +686,7 @@ async function criarOrcamentoPda(id) {
 
     removerPopup()
 
-    const orcamento = db.dados_orcamentos[id]
+    const orcamento = await recuperarDado('dados_orcamentos', id)
     orcamento.id = id
 
     baseOrcamento(orcamento)
@@ -764,14 +707,14 @@ function confirmarExcluirPda(idOrcamento) {
 
 async function excluirPda(idOrcamento) {
 
-    const orcamento = db.dados_orcamentos[idOrcamento]
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
 
     const trExistente = document.getElementById(idOrcamento)
     enviar(`dados_orcamentos/${idOrcamento}/aba`, '')
     removerPopup()
 
     if (trExistente) trExistente.remove()
-    contadores()
+    await contadores()
 
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
 
@@ -779,21 +722,19 @@ async function excluirPda(idOrcamento) {
 
 async function atualizarAba(select, idOrcamento) {
 
-    const orcamento = db.dados_orcamentos[idOrcamento]
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     const valor = select.value
     orcamento.aba = valor
 
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
     enviar(`dados_orcamentos/${idOrcamento}/aba`, valor)
 
-    if (telaAtiva == 'inicial') await telaInicial()
-    if (telaAtiva == 'orcamentos') await telaOrcamentos(true)
 }
 
 async function atualizarCampo(select, idOrcamento) {
 
     const campo = select.dataset.campo
-    const orcamento = db.dados_orcamentos[idOrcamento]
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     const valor = select.value
     orcamento.pda ??= {}
     orcamento.pda[campo] = valor
@@ -801,7 +742,6 @@ async function atualizarCampo(select, idOrcamento) {
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
     enviar(`dados_orcamentos/${idOrcamento}/pda/${campo}`, valor)
 
-    await telaInicial()
 }
 
 async function atualizarPda(img, idOrcamento) {
@@ -810,7 +750,7 @@ async function atualizarPda(img, idOrcamento) {
     const info = div.textContent
     const campo = img.dataset.campo
 
-    const orcamento = db.dados_orcamentos[idOrcamento]
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     orcamento.pda ??= {}
     orcamento.pda[campo] = info
 
@@ -823,7 +763,7 @@ async function atualizarPda(img, idOrcamento) {
 
 async function alterarDatas(input, campo, idOrcamento) {
 
-    const orcamento = db.dados_orcamentos[idOrcamento]
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     const data = input.value
 
     input.classList = data ? 'etiqueta-concluído' : 'etiqueta-pendente'
@@ -837,10 +777,18 @@ async function alterarDatas(input, campo, idOrcamento) {
 
 async function formAcao(idOrcamento, idAcao) {
 
-    id_orcam = idOrcamento
-
     const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     const dados = orcamento?.pda?.acoes?.[idAcao] || {}
+
+    controlesCxOpcoes.responsavel = {
+        base: 'dados_setores',
+        retornar: ['usuario'],
+        colunas: {
+            'Usuário': { chave: 'usuario' },
+            'Setor': { chave: 'setor' },
+            'Permissão': { chave: 'permissao' }
+        }
+    }
 
     const linhas = [
         { texto: 'Ação', elemento: `<textarea name="acao">${dados?.acao || ''}</textarea>` },
@@ -850,7 +798,7 @@ async function formAcao(idOrcamento, idAcao) {
             class="opcoes" 
             name="responsavel" 
             ${dados.responsavel ? `id="${dados.responsavel}"` : ''}
-            onclick="cxOpcoes('responsavel', 'dados_setores', ['usuario', 'setor'])">
+            onclick="cxOpcoes('responsavel')">
                 ${dados.responsavel || 'Selecione'}
             </span>`
         },
@@ -867,39 +815,29 @@ async function formAcao(idOrcamento, idAcao) {
         { texto: 'Salvar', img: 'concluido', funcao: `salvarAcao('${idOrcamento}' ${idAcao ? `, '${idAcao}'` : ''})` }
     ]
 
-    if (idAcao) botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirAcao('${idAcao}')` })
+    if (idAcao) botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirAcao('${idAcao}', '${idOrcamento}')` })
 
     popup({ linhas, botoes, titulo: 'Ações' })
 
 }
 
-async function confirmarExcluirAcao(idAcao) {
+async function confirmarExcluirAcao(idAcao, idOrcamento) {
 
     const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `excluirAcao('${idAcao}')` }
+        { texto: 'Confirmar', img: 'concluido', funcao: `excluirAcao('${idAcao}', '${idOrcamento}')` }
     ]
 
-    popup({ botoes, elemento: 'Tem certeza?', titulo: 'Pense bem...' })
+    popup({ botoes, mensagem: 'Tem certeza?', nra: false })
 
 }
 
-async function excluirAcao(idAcao) {
+async function excluirAcao(idAcao, idOrcamento) {
 
-    overlayAguarde()
-
-    const orcamento = db.dados_orcamentos[id_orcam]
-
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     delete orcamento.pda.acoes[idAcao]
 
-    db.dados_orcamentos[id_orcam] = orcamento
-
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    deletar(`dados_orcamentos/${id_orcam}/pda/acoes/${idAcao}`)
-
-    await telaInicial()
-
-    removerPopup()
-    removerPopup()
+    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
+    deletar(`dados_orcamentos/${idOrcamento}/pda/acoes/${idAcao}`)
 
 }
 
@@ -923,6 +861,7 @@ async function salvarAcao(idOrcamento, idAcao) {
     if (!prazo || !responsavel) return popup({ mensagem: 'Preencha o prazo e/ou responsável da ação' })
 
     const a = {
+        usuario: acesso.usuario,
         responsavel,
         acao,
         prazo,
@@ -930,7 +869,7 @@ async function salvarAcao(idOrcamento, idAcao) {
         registro: new Date().getTime()
     }
 
-    const orcamento = db.dados_orcamentos[idOrcamento]
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     orcamento.pda ??= {}
     orcamento.pda.acoes ??= {}
     orcamento.pda.acoes[idAcao] = a
@@ -939,12 +878,12 @@ async function salvarAcao(idOrcamento, idAcao) {
     enviar(`dados_orcamentos/${idOrcamento}/pda/acoes/${idAcao}`, a)
 
     removerPopup()
-    await telaInicial()
+
 }
 
-function editarLinPda({ idOrcamento, aba = 'PDA' }) {
+async function editarLinPda({ idOrcamento, aba = 'PDA' }) {
 
-    const orcamento = db.dados_orcamentos[idOrcamento]
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
 
     const linhas = [
         {
@@ -997,7 +936,7 @@ async function salvarCartao(idOrcamento) {
     }
 
     const orcamento = {
-        ...db.dados_orcamentos[idOrcamento] || {},
+        ...await recuperarDado('dados_orcamentos', idOrcamento) || {},
         ...dados
     }
 
@@ -1011,7 +950,6 @@ async function salvarCartao(idOrcamento) {
     }
 
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-    await telaInicial()
 
     removerPopup()
 

@@ -18,13 +18,12 @@ html {
     align-items: start;
     justify-content: center;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1rem;
     background-color: rgba(255, 255, 255, 0.104);
-    padding: 1rem 0 1rem 0;
+    padding: 1rem;
 }
 
 .b-atalhos {
-    max-height: 50vh;
     overflow-y: auto;
     width: 100%;
     display: flex;
@@ -32,19 +31,11 @@ html {
     justify-content: start;
     flex-direction: column;
     gap: 2px;
+    padding: 1rem 0 1rem 0;
 }
 
 .b-atalhos::-webkit-scrollbar {
     display: none;
-}
-
-hr {
-    width: 100%;
-}
-
-img {
-    width: 2rem;
-    cursor: pointer;
 }
 
 .progresso {
@@ -68,33 +59,16 @@ img {
     color: white;
 }
 
-.contorno-anexos {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    background-color: #222;
-    color: white;
-    border-radius: 5px;
-    height: max-content;
-    padding: 5px;
-    margin: 5px;
-}
-
-.contorno-anexos img {
-    width: 2rem;
-}
-
 .planoFundo {
     gap: 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    height: 80vh;
     width: 90vw;
     background-color: #0000005e;
     border-radius: 5px;
+    padding: 1rem;
 }
 
 .contornoInterno {
@@ -262,22 +236,8 @@ img {
     border: solid 1px #797979;
 }
 
-textarea {
-    width: 100%;
-}
-
 input:focus {
     outline: none;
-}
-
-button {
-    padding: 7px;
-    color: #f5f5f5;
-    cursor: pointer;
-    background-color: #249f41;
-    border-radius: 5px;
-    border: none;
-    white-space: nowrap;
 }
 
 .painel-cadastro {
@@ -484,15 +444,6 @@ button {
     width: 100%;
 }
 
-.rodape-tabela {
-    border: solid 1px #ababab;
-    width: 100%;
-    height: 2vh;
-    border-bottom-left-radius: 10px;
-    border-bottom-right-radius: 10px;
-    background-color: #d9d9d9;
-}
-
 .btnRodape {
     position: fixed;
     bottom: 10px;
@@ -540,14 +491,13 @@ input[type="file"] {
 }
 
 .pesquisa {
+    height: max-content;
     border: solid 1px #afafaf;
     display: flex;
     align-items: center;
     justify-content: center;
     background-color: white;
     border-radius: 50px;
-    padding-left: 2rem;
-    margin: 0.5rem;
     min-width: 100px;
 }
 
@@ -839,7 +789,6 @@ input[type="file"] {
 screen and (min-aspect-ratio: 13/9) {
 
     .b-painel {
-        gap: 0;
         flex-direction: row;
     }
 
