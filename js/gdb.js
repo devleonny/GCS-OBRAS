@@ -13,8 +13,8 @@ const basesAuxiliares = {
     'prioridades': { keyPath: 'id' },
     'correcoes': { keyPath: 'id' },
     'tipos': { keyPath: 'id' },
-    'veiculos': { keyPath: 'id' },
     'dados_clientes': { keyPath: 'id', tipo: 'NUMBER' },
+    'veiculos': { keyPath: 'id' },
     'documentos': { keyPath: 'id' },
     'dados_setores': { keyPath: 'usuario' },
     'dados_estoque': { keyPath: 'id' },
@@ -317,8 +317,8 @@ const regrasSnapshot = {
             snap.motoristas = []
 
             for (const id of (dado.motoristas || [])) {
-                const motorista = await getStore(stores.dados_clientes, Number(id)) || {}
-                snap.motoristas.push(motorista?.nome)
+                const { nome } = await getStore(stores.dados_clientes, Number(id)) || {}
+                snap.motoristas.push(nome)
             }
 
             return snap
