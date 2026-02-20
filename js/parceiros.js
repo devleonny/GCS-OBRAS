@@ -42,7 +42,6 @@ async function modalLPUParceiro(id, chave) {
         btnExtras,
         colunas,
         filtros: { 'removido': { op: '!=', value: 'S' } },
-        bloquearPaginacao: true,
         funcaoAdicional: ['calcularLpuParceiro'],
         criarLinha: 'adicionarLinhaParceiro',
         pag: 'lpu_parceiro',
@@ -189,7 +188,6 @@ async function verItensAtvRem(elemento) {
         ? '='
         : '!='
 
-    controles.lpu_parceiro.primEx = true
     controles.lpu_parceiro.filtros = {
         'removido': { op, value: 'S' }
     }
@@ -323,7 +321,7 @@ async function salvarAdicional() {
     }
 
     removerPopup()
-    controles.lpu_parceiro.primEx = true
+
     await paginacao()
 
 }

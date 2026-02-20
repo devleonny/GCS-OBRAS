@@ -1,13 +1,3 @@
-let quantidadeGeral = 0
-let quantidadeRealizadoGeral = 0
-let previsao = 0
-let diasTrabalhados = []
-let tecnicos = {}
-let quantidadeItem = 0
-let quantidadeRealizadoItem = 0
-let finalizados = 0
-let primeiroDia = null
-
 const strHHMM = (minutosTotais, str) => {
 
     const horas = Math.floor(minutosTotais / 60)
@@ -18,19 +8,25 @@ const strHHMM = (minutosTotais, str) => {
 }
 
 const estT = (tempo) => {
-    return !tempo ? 'off' : tempo == '00:00' ? 'zero' : 'on'
+    return !tempo
+        ? 'off'
+        : tempo == '00:00'
+            ? 'zero'
+            : 'on'
 }
 
 async function telaChecklist(id) {
 
-    tecnicos = {}
+    const existente = document.querySelector('.toolbar-checklist')
+    if (existente)
+        return
 
-    const { dados_composicoes, snapshots, checklist } = await recuperarDado('dados_orcamentos', id)
+    const { snapshots } = await recuperarDado('dados_orcamentos', id) || {}
 
     const colunas = {
         '': {},
-        'Código': {},
-        'Itens do Orçamento': {},
+        'Código': { chave: 'codigo' },
+        'Itens do Orçamento': { chave: 'descricao' },
         'Qtd. Orçada': {},
         'Qtd. Real': {},
         'Tempo/Atividade': {},
@@ -41,31 +37,23 @@ async function telaChecklist(id) {
     }
 
     const btnExtras = `
-        <div style="${horizontal}; gap: 1rem;">
-            <input type="checkbox" onclick="marcarItensChecklist(this)">
+        <div style="color: white; ${horizontal}; gap: 1rem;">
+            <input style="width: 1.5rem; height: 1.5rem;" type="checkbox" onclick="marcarItensChecklist(this)">
             <span>Marcar todos</span>
         </div>`
 
-    const mesclado = {
-        ...dados_composicoes || {},
-        ...checklist?.avulso || {}
-    }
-
-    for (const codigo of Object.keys(mesclado)) {
-        mesclado.itens = checklist?.itens?.[codigo] || {}
-    }
-
     const tabela = modTab({
+        id,
         colunas,
         pag: 'checklist',
         btnExtras,
-        bloquearPaginacao: true,
+        funcaoAdicional: ['calcularTempos'],
         filtros: {
             'tipo': { op: '!=', value: 'VENDA' }
         },
         body: 'bodyChecklist',
         criarLinha: 'carregarLinhaChecklist',
-        base: mesclado
+        base: () => baseChecklist(id)
     })
 
     const elemento = `
@@ -81,13 +69,14 @@ async function telaChecklist(id) {
                     </div>
 
                     <div class="opcoes-orcamento">
-                        ${modeloBotoes('gerente', 'Técnicos na Obra', `tecnicosAtivos()`)}
+                        ${modeloBotoes('gerente', 'Técnicos na Obra', `tecnicosAtivos('${id}')`)}
                         ${modeloBotoes('cancel', 'Remover Itens Selecionados', `removerItensEmMassaChecklist()`)}
                         ${modeloBotoes('checklist', 'Ver Itens Removidos', `verItensRemovidos()`)}
-                        ${modeloBotoes('baixar', 'Serviço Avulso', `adicionarServicoAvulso('${id}')`)}
+                        ${modeloBotoes('baixar', 'Serviço Avulso', `adicionarServicoAvulso()`)}
                         ${modeloBotoes('relatorio', 'Relatório', `relatorioChecklist()`)}
-                        ${modeloBotoes('atualizar', 'Atualizar', `atualizarChecklist()`)}
+                        ${modeloBotoes('atualizar', 'Atualizar', `atualizarGCS()`)}
                     </div>
+                    
                 </div>
 
                 <div class="resultados"></div>
@@ -96,8 +85,7 @@ async function telaChecklist(id) {
 
             ${tabela}
 
-        </div>
-    `
+        </div>`
 
     const campos = (snapshots?.contrato || [])
         .filter(c => c)
@@ -109,34 +97,68 @@ async function telaChecklist(id) {
 
     await paginacao()
 
-    calcularTempos()
+}
+
+async function baseChecklist(id) {
+
+    const { dados_composicoes, checklist } = await recuperarDado('dados_orcamentos', id) || {}
+    const { avulso, itens, qReal } = checklist || {}
+
+    const mesclado = {
+        ...dados_composicoes || {},
+        ...avulso || {}
+    }
+
+    // Modelagem dos dados;
+    for (const [codigo, dados] of Object.entries(mesclado)) {
+
+        // Item removido;
+        if (itens?.[codigo]?.removido) {
+            delete mesclado[codigo]
+            continue
+        }
+
+        if (!dados?.tipo)
+            mesclado[codigo].descricao = `${mesclado[codigo].descricao} <b>[Avulso]</b>`
+
+        // Itens avulso não tem;
+        mesclado[codigo].codigo = codigo
+
+        mesclado[codigo].itens = itens?.[codigo] || {}
+
+        if (qReal?.[codigo])
+            mesclado[codigo].qReal = qReal?.[codigo]
+    }
+
+    return mesclado
 
 }
 
-function carregarLinhaChecklist(produto) {
+async function carregarLinhaChecklist(produto) {
 
-    const { codigo, descricao, qtde, unidade } = produto || {}
-
-    const avulso = produto.tipo
-        ? ''
-        : '<span><b>[Avulso]</b></span>'
+    const { codigo, tipo, descricao, qtde, unidade, qReal, itens } = produto || {}
 
     const fontMaior = 'class="fonte-maior"'
 
+    const qtdeRealizada = Object.values(itens || {})
+        .reduce((acc, item) => acc + (item?.quantidade || 0), 0)
+
+    const { tempo } = await recuperarDado('dados_composicoes', codigo) || '00:00'
+
     const tds = `
         <td>
-            <input name="itensChecklist" type="checkbox">
+            <input style="width: 1.5rem; height: 1.5rem;" name="itensChecklist" data-codigo="${codigo}" type="checkbox">
         </td>
         <td>${codigo}</td>
-        <td style="text-align: right;">${descricao || ''} ${avulso}</td>
+        <td>${descricao || ''}</td>
         <td ${fontMaior} name="quantidade">
-            ${avulso
-            ? `<input type="number" name="real" oninput="salvarQtdAvulso(this, '${codigo}')" class="qtd" value="${qtde || ''}">`
+            ${!tipo
+            ? `<input type="number" name="real" oninput="salvarQtdAvulso(this, '${codigo}')" class="qtd" value="${qReal || ''}">`
             : qtde || 0
         }
         </td>
         <td>
-            ${avulso
+            ${!tipo
             ? '<img src="imagens/cancel.png">'
             : `<input type="number" name="real" oninput="salvarQtdReal(this, '${codigo}')" class="qtd" value="${0 || ''}">`
         }
@@ -148,14 +170,14 @@ function carregarLinhaChecklist(produto) {
                     oninput="atualizarTempo(this, '${codigo}')" 
                     type="time" 
                     class="${estT(0 || 0)}"
-                    value="${0 || 0 || ''}">
+                    value="${tempo || ''}">
                 <span>por <b>${unidade || 'UND'}</b></span>
             </div>
         </td>
         <td ${fontMaior} name="totalLinha"></td>
         <td>
             <div style="${horizontal}; gap: 10px;">
-                <span ${fontMaior} name="quantidadeExecutada">${0}</span>
+                <span ${fontMaior} name="quantidadeExecutada">${qtdeRealizada}</span>
                 <img onclick="registrarChecklist('${codigo}')" src="imagens/baixar.png" style="width: 1.2rem;">
             </div>
         </td>
@@ -171,30 +193,28 @@ function carregarLinhaChecklist(produto) {
 async function salvarQtdAvulso(input, codigo) {
 
     const qtde = Number(input.value)
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const { id } = controles.checklist
+    const orcamento = await recuperarDado('dados_orcamentos', id)
 
     orcamento.checklist.avulso[codigo].qtde = qtde
 
-    calcularTempos()
-
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id_orcam}/checklist/avulso/${codigo}/qtde`, qtde)
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${id}/checklist/avulso/${codigo}/qtde`, qtde)
 
 }
 
 async function salvarQtdReal(input, codigo) {
 
     const qtde = Number(input.value)
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const { id } = controles.checklist
+    const orcamento = await recuperarDado('dados_orcamentos', id)
 
     orcamento.checklist.qReal ??= {}
     orcamento.checklist.qReal[codigo] ??= {}
     orcamento.checklist.qReal[codigo].qtde = qtde
 
-    calcularTempos()
-
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id_orcam}/checklist/qReal/${codigo}/qtde`, qtde)
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${id}/checklist/qReal/${codigo}/qtde`, qtde)
 
 }
 
@@ -217,14 +237,14 @@ async function tecnicosAtivos(id) {
 
     const botoes = [
         { texto: 'Adicionar', img: 'baixar', funcao: `maisTecnico()` },
-        { texto: 'Salvar', img: 'concluido', funcao: `salvarTecnicos()` },
+        { texto: 'Salvar', img: 'concluido', funcao: `salvarTecnicos('${id}')` },
     ]
 
     popup({ linhas, botoes, titulo: 'Técnicos na Obra' })
 
 }
 
-async function salvarTecnicos() {
+async function salvarTecnicos(id) {
 
     overlayAguarde()
 
@@ -238,13 +258,11 @@ async function salvarTecnicos() {
     }
 
     // Caso seja com base no orçamento;
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const orcamento = await recuperarDado('dados_orcamentos', id)
     orcamento.checklist ??= {}
     orcamento.checklist.tecnicos = tecnicos
-    enviar(`dados_orcamentos/${id_orcam}/checklist/tecnicos`, tecnicos)
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-
-    recarregarLinhas()
+    enviar(`dados_orcamentos/${id}/checklist/tecnicos`, tecnicos)
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
 
     removerPopup()
 
@@ -255,26 +273,31 @@ async function relatorioChecklist() {
     let ths = ''
     let pesquisa = ''
 
-    const colunas = ['Data', 'Descrição', 'Duração', 'Quantidade', 'Comentário', 'Técnicos']
-        .map((op, i) => {
-
-            ths += `<th>${op}</th>`
-            pesquisa += `
-            <th 
-                style="background-color: white; text-align: left;" 
-                contentEditable="true" 
-                oninput="pesquisarGenerico('${i}', this.textContent, 'relatorioChecklist'); auxiliarTotaisRelatorio();">
-            </th>`
-
-        })
+    const colunas = {
+        'Data': { chave: 'data' },
+        'Descrição': { chave: 'descricao' },
+        'Duração': {},
+        'Quantidade': {},
+        'Comentários': { chave: 'comentario' },
+        'Técnicos': { chave: 'tecnicos' },
+    }
 
     const modelo = (texto, elemento) => `
         <div class="balao-checklist">
             <label>${texto}</label>
             ${elemento}
-        </div>
-    `
+        </div>`
+
     const ano = new Date().getFullYear()
+
+    const tabela = modTab({
+        pag: 'relatChecklist',
+        funcaoAdicional: ['auxiliarTotaisRelatorio'],
+        colunas,
+        body: 'relatorioChecklist',
+        base: () => baseRelatorioChecklist(),
+        criarLinha: 'criarLinhaRelChecklist'
+    })
 
     const elemento = `
     
@@ -287,43 +310,96 @@ async function relatorioChecklist() {
                 ${modelo('Horas Totais', `<span id="ht"></span>`)}
             </div>
 
-            <hr style="width: 100%;">
+            <hr>
 
             <div class="toolbar-relatorio">
                 <span id="toolbar-relatorio" onclick="mostrarPagina('relatorio')">Relatório</span>
                 <span id="toolbar-graficos" onclick="mostrarPagina('graficos')">Gráficos</span>
             </div>
 
-            <div class="relatorio">
-                <div id="tabelaCheklist" class="borda-tabela">
-                    <div class="topo-tabela"></div>
-                    <div class="div-tabela">
-                        <table class="tabela" id="tabela_composicoes">
-                            <thead>
-                                <tr>${ths}</tr>
-                                <tr>${pesquisa}</tr>
-                            </thead>
-                            <tbody id="relatorioChecklist"></tbody>
-                        </table>
-                    </div>
-                    <div class="rodape-tabela"></div>
-                </div>
+            <div name="relatorio" style="${horizontal}; align-items: start; gap: 1rem;">
+
+                ${tabela}
 
                 <div class="calendarios"></div>
 
             </div>
 
-            <div class="graficos"></div>
+            <div name="graficos" class="graficos"></div>
 
         </div>
-
     `
 
     popup({ elemento, titulo: 'Relatório Diário' })
 
     mostrarPagina('relatorio')
-    auxiliarTotaisRelatorio()
     await gerarRelatorioChecklist()
+
+}
+
+async function baseRelatorioChecklist() {
+
+    const { id } = controles.checklist
+    const { checklist, dados_composicoes } = await recuperarDado('dados_orcamentos', id)
+    const dados = {}
+
+    Object.entries(checklist?.itens || {})
+        .forEach(([codigo, lancamentos]) => { // Aqui tem alguns lançamentos {id: 1, id: 2 ... }
+
+            const info = dados_composicoes?.[codigo] || checklist?.avulso?.[codigo] || {}
+
+            Object.entries(lancamentos).forEach(([id, lancamento]) => {
+                const item = { codigo, ...lancamento, codigo, ...info }
+                item.data = conversorData(item?.data)
+                return dados[id] = item
+            })
+
+        })
+        
+    return dados
+
+}
+
+async function criarLinhaRelChecklist(item) {
+
+    const { codigo, descricao, data, qtde, quantidade, tecnicos, comentario } = item || {}
+
+    const { tempo } = await recuperarDado('dados_composicoes', codigo) || '00:00'
+
+    const qtdeTotal = qtde || 0
+
+    const nomes = []
+
+    for (const c of (tecnicos || [])) {
+        const { nome } = await recuperarDado('dados_clientes', c)
+        if (nome)
+            nomes.push(nome)
+    }
+
+    const [h, m] = tempo.split(':').map(Number)
+    const minUnit = h * 60 + m
+    const executado = minUnit * quantidade
+    const total = minUnit * qtdeTotal
+
+    return `
+        <tr>
+            <td>${data}</td>
+            <td>${descricao}</td>
+            <td style="white-space: nowrap;">
+                <input style="display:none;" name="executado" value="${executado}">
+                <input style="display:none;" name="total" value="${total}">
+                <input>
+                ${strHHMM(executado)}
+                /
+                ${strHHMM(total)}
+            </td>
+            <td>${quantidade} / ${qtdeTotal}</td>
+            <td>${comentario || ''}</td>
+            <td style="text-align:left;">
+                ${nomes.map(n => `• ${n}`).join('<br>')}
+            </td>
+        </tr>
+    `
 
 }
 
@@ -331,26 +407,55 @@ function mostrarPagina(pagina) {
 
     const paginas = ['relatorio', 'graficos', 'pagamentos', 'orcamento']
     for (const pg of paginas) {
-        const el = document.querySelector(`.${pg}`)
+        const el = document.querySelector(`[name="${pg}"]`)
         if (el) {
             el.style.display = 'none'
             document.getElementById(`toolbar-${pg}`).style.opacity = 0.5
         }
     }
 
-    document.querySelector(`.${pagina}`).style.display = ''
+    document.querySelector(`[name="${pagina}"]`).style.display = 'flex'
     document.getElementById(`toolbar-${pagina}`).style.opacity = 1
 
 }
 
+async function pesquisarDtChecklist(dt) {
+
+    controles.relatChecklist.filtros ??= {}
+
+    controles.relatChecklist.filtros = {
+        ...controles.relatChecklist.filtros,
+        'data': { op: '=', value: dt }
+    }
+
+    await paginacao()
+
+}
+
 function criarCalendario(datas) {
+
+    const meses = {
+        1: 'Janeiro',
+        2: 'Fevereiro',
+        3: 'Março',
+        4: 'Abril',
+        5: 'Maio',
+        6: 'Junho',
+        7: 'Julho',
+        8: 'Agosto',
+        9: 'Setembro',
+        10: 'Outubro',
+        11: 'Novembro',
+        12: 'Dezembro'
+    }
+
     const ths = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
         .map(sem => `<th>${sem}</th>`)
         .join('')
 
     const marcado = `style="background-color: green; color: white;"`
 
-    // transformar em objetos Date e agrupar por ano-mês
+    // Transformar em objetos Date e agrupar por ano-mês;
     const grupos = {}
     datas.forEach(ts => {
         const d = new Date(ts)
@@ -363,8 +468,6 @@ function criarCalendario(datas) {
 
     let calendarios = ''
 
-    const pesqAuto = (texto) => `pesquisarGenerico('0', '${texto}', 'relatorioChecklist'); auxiliarTotaisRelatorio()`
-
     for (const chave in grupos) {
         const { ano, mes, dias } = grupos[chave]
         const diasMes = new Date(ano, mes, 0).getDate()
@@ -373,7 +476,7 @@ function criarCalendario(datas) {
         let tds = ''
         let primeiroDia = new Date(ano, mes - 1, 1).getDay()
 
-        // espaços antes do primeiro dia
+        // Espaços antes do primeiro dia
         for (let v = 0; v < primeiroDia; v++) {
             tds += `<td></td>`
         }
@@ -382,7 +485,7 @@ function criarCalendario(datas) {
             const dt = new Date(ano, mes - 1, i)
             const sem = dt.getDay()
 
-            tds += `<td onclick="${pesqAuto(dt.toLocaleDateString())}" ${dias.has(i) ? marcado : ''}>${i}</td>`
+            tds += `<td onclick="pesquisarDtChecklist('${dt.toLocaleDateString()}')" ${dias.has(i) ? marcado : ''}>${i}</td>`
 
             if (sem === 6) {
                 trs += `<tr>${tds}</tr>`
@@ -390,7 +493,7 @@ function criarCalendario(datas) {
             }
         }
 
-        // completar última linha
+        // Completar última linha
         if (tds) {
             for (let v = new Date(ano, mes - 1, diasMes).getDay() + 1; v <= 6; v++) {
                 tds += `<td></td>`
@@ -401,7 +504,7 @@ function criarCalendario(datas) {
         calendarios += `
             <div class="borda-tabela">
                 <div class="topo-tabela">
-                    <span style="padding: 5px;">${mes}/${ano}</span>
+                    <span style="padding: 5px; color: white; font-size: 1.1rem;">${meses[mes]} • ${ano}</span>
                 </div>
                 <div class="div-tabela">
                     <table class="tabela">
@@ -427,9 +530,11 @@ function auxiliarTotaisRelatorio() {
 
     for (const linha of linhas) {
 
-        if (linha.style.display == 'none') continue
-
         const codigo = linha.dataset.codigo
+
+        if (!codigo)
+            continue
+
         const executado = Number(linha.querySelector('[name="executado"]').value)
         const total = Number(linha.querySelector('[name="total"]').value)
 
@@ -448,7 +553,6 @@ function auxiliarTotaisRelatorio() {
 
 async function gerarRelatorioChecklist() {
 
-    const tbody = document.getElementById('relatorioChecklist')
     let de = document.querySelector('[name="de"]').value
     let ate = document.querySelector('[name="ate"]').value
 
@@ -471,7 +575,9 @@ async function gerarRelatorioChecklist() {
         'hsl(330, 65%, 55%)',
         'hsl(20, 70%, 45%)'
     ]
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+
+    const { id } = controles.checklist
+    const orcamento = await recuperarDado('dados_orcamentos', id)
     const itens = orcamento?.checklist?.itens || {}
 
     const dt = (iso) => {
@@ -482,21 +588,11 @@ async function gerarRelatorioChecklist() {
     de = dt(de)
     ate = dt(ate)
 
-    tbody.innerHTML = ''
-
-    const atividades = {
-        ...orcamento?.dados_composicoes,
-        ...orcamento?.checklist?.avulso
-    }
-
     const desempenhoEquipes = {}
 
     for (const [codigo, lancamentos] of Object.entries(itens)) {
 
-        const comp = atividades[codigo]
         const { tempo } = await recuperarDado('dados_composicoes', codigo) || '00:00'
-        const descricao = comp?.descricao || '...'
-        const qtdeTotal = comp?.qtde || 0
 
         for (const [_, dados] of Object.entries(lancamentos)) {
 
@@ -522,33 +618,12 @@ async function gerarRelatorioChecklist() {
             const [h, m] = tempo.split(':').map(Number)
             const minUnit = h * 60 + m
             const executado = minUnit * dados.quantidade
-            const total = minUnit * qtdeTotal
-
             const chaveData = dados.data
 
             desempenhoEquipes[equipeKey] ??= {}
             desempenhoEquipes[equipeKey][chaveData] ??= 0
             desempenhoEquipes[equipeKey][chaveData] += executado
 
-            tbody.insertAdjacentHTML('beforeend', `
-                <tr data-data="${dLanc.getTime()}" data-codigo="${codigo}">
-                    <td>${dLanc.toLocaleDateString('pt-BR')}</td>
-                    <td>${descricao}</td>
-                    <td style="white-space: nowrap;">
-                        <input style="display:none;" name="executado" value="${executado}">
-                        <input style="display:none;" name="total" value="${total}">
-                        <input>
-                        ${strHHMM(executado)}
-                        /
-                        ${strHHMM(total)}
-                    </td>
-                    <td>${dados.quantidade} / ${qtdeTotal}</td>
-                    <td>${dados.comentario || ''}</td>
-                    <td style="text-align:left;">
-                        ${nomes.map(n => `• ${n}`).join('<br>')}
-                    </td>
-                </tr>
-            `)
         }
     }
 
@@ -759,19 +834,9 @@ function ordenarLinhasPorData() {
     linhas.forEach(tr => tbody.appendChild(tr))
 }
 
-async function atualizarChecklist() {
+async function adicionarServicoAvulso() {
 
-    overlayAguarde()
-    await atualizarGCS()
-    await telaChecklist()
-    removerOverlay()
-
-}
-
-async function adicionarServicoAvulso(id) {
-
-    const cod = ID5digitos()
-    controlesCxOpcoes[cod] = {
+    controlesCxOpcoes.codigo = {
         base: 'dados_composicoes',
         retornar: ['descricao'],
         filtros: {
@@ -785,16 +850,16 @@ async function adicionarServicoAvulso(id) {
 
     const elemento = `
         <div style="${horizontal}; gap: 10px; background-color: #d2d2d2; padding: 2rem;">
-            ${modelo('Descrição', `<span name="${cod}" onclick="cxOpcoes('${cod}')" class="opcoes">Selecione</span>`)}
+            ${modelo('Descrição', `<span name="codigo" onclick="cxOpcoes('codigo')" class="opcoes">Selecione</span>`)}
             ${modelo('Quantidade', `<input name="qtde" type="number" style="padding: 5px; border-radius: 3px;">`)}
-            <img src="imagens/concluido.png" style="width: 2rem;" onclick="salvarAvulso('${id}')">
+            <img src="imagens/concluido.png" style="width: 2rem;" onclick="salvarAvulso()">
         </div>
     `
 
-    popup({ elemento, titulo: 'Incluir Serviço' })
+    popup({ elemento, titulo: 'Incluir Serviço', audoDestruicao: ['codigo'] })
 }
 
-async function salvarAvulso(id) {
+async function salvarAvulso() {
 
     const qtde = Number(document.querySelector('[name="qtde"]').value)
     const codigo = document.querySelector('[name="codigo"]').id
@@ -803,6 +868,7 @@ async function salvarAvulso(id) {
         return popup({ mensagem: 'Não deixe a quantidade em Branco' })
 
     overlayAguarde()
+    const { id } = controles.checklist
     const orcamento = await recuperarDado('dados_orcamentos', id)
     orcamento.checklist ??= {}
     orcamento.checklist.avulso ??= {}
@@ -826,29 +892,28 @@ async function salvarAvulso(id) {
 
 async function verItensRemovidos() {
 
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    let itens = ''
+    const { id } = controles.checklist
+    const orcamento = await recuperarDado('dados_orcamentos', id)
+    let itens = Object.entries(orcamento?.checklist?.itens || {})
+        .filter(([, dados]) => dados.removido)
+        .map(([codigo,]) => {
 
-    for (const [codigo, dados] of Object.entries(orcamento?.checklist?.itens || {})) {
+            const descricao = orcamento?.dados_composicoes?.[codigo]?.descricao || orcamento?.checklist?.avulso?.[codigo]?.descricao || '...'
 
-        if (!dados.removido) continue
-
-        const descricao = orcamento?.dados_composicoes?.[codigo]?.descricao || orcamento?.checklist?.avulso?.[codigo]?.descricao || '...'
-
-        itens += `
+            return `
             <div style="${horizontal}; gap: 10px;">
-                <img onclick="recuperarItem('${codigo}', this)" src="imagens/atualizar.png" style="width: 1.2rem;">
+                <img onclick="recuperarItem('${codigo}', this)" src="imagens/atualizar.png">
                 <span>${descricao}</span> 
             </div>`
-    }
+        })
+        .join('')
 
     const elemento = `
-        <div style="${vertical}; gap: 5px;">
+        <div style="${vertical}; gap: 5px; padding: 1rem;">
 
-            ${itens}
+            ${itens || `<span>Sem itens removidos até o momento`}
 
-        </div>
-    `
+        </div>`
 
     popup({ elemento, titulo: 'Itens Removidos' })
 
@@ -856,17 +921,18 @@ async function verItensRemovidos() {
 
 async function recuperarItem(codigo, img) {
 
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    overlayAguarde()
+    const { id } = controles.checklist
+    const orcamento = await recuperarDado('dados_orcamentos', id)
 
     delete orcamento.checklist.itens[codigo].removido
 
-    deletar(`dados_orcamentos/${id_orcam}/checklist/itens/${codigo}/removido`)
+    deletar(`dados_orcamentos/${id}/checklist/itens/${codigo}/removido`)
 
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-
-    await telaChecklist()
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
 
     img.closest('div').remove()
+    removerOverlay()
 
 }
 
@@ -874,32 +940,37 @@ async function removerItensEmMassaChecklist() {
 
     const itensChecklist = document.querySelectorAll('[name="itensChecklist"]:checked')
 
-    if (itensChecklist.length == 0) return
+    if (itensChecklist.length == 0)
+        return
 
     overlayAguarde()
 
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const { id } = controles.checklist
+    const orcamento = await recuperarDado('dados_orcamentos', id)
 
-    if (!orcamento.checklist) orcamento.checklist = {}
-    if (!orcamento.checklist.itens) orcamento.checklist.itens = {}
+    orcamento.checklist ??= {}
+    orcamento.checklist.itens ??= {}
 
     for (const check of itensChecklist) {
 
-        const tr = check.closest('tr')
-        const codigo = tr.dataset.codigo
+        const codigo = check.dataset.codigo
 
-        if (!orcamento.checklist.itens[codigo]) orcamento.checklist.itens[codigo] = {}
-        const dados = { usuario: acesso.usuario, data: new Date().toLocaleString() }
+        orcamento.checklist.itens[codigo] ??= {}
+        const dados = {
+            usuario: acesso.usuario,
+            data: new Date().toLocaleString()
+        }
+
         orcamento.checklist.itens[codigo].removido = dados
 
-        enviar(`dados_orcamentos/${id_orcam}/checklist/itens/${codigo}/removido`, dados)
+        enviar(`dados_orcamentos/${id}/checklist/itens/${codigo}/removido`, dados)
 
     }
 
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
 
     removerOverlay()
-    await telaChecklist()
+
 }
 
 function marcarItensChecklist(input) {
@@ -920,22 +991,26 @@ async function atualizarTempo(input, codigo) {
     enviar(`dados_composicoes/${codigo}/tempo`, input.value)
     await inserirDados({ [codigo]: produto }, 'dados_composicoes')
 
-    input.classList = input.value !== '' ? 'on' : 'off'
-    calcularTempos()
+    input.classList = input.value !== ''
+        ? 'on'
+        : 'off'
 
 }
 
 function calcularTempos() {
+
     const linhas = document.querySelectorAll('#bodyChecklist tr')
 
     let minutosObra = 0
     let minutosExecutado = 0
     for (const linha of linhas) {
 
-        if (linha.style.display == 'none') continue
-
         const avulso = linha.dataset.avulso == 'S'
         const elemQtReal = linha.querySelector('[name="real"]')
+
+        if (!elemQtReal)
+            continue
+
         const qReal = Number(elemQtReal.value)
         const qtde = Number(linha.querySelector('[name="quantidade"]').textContent)
         const qtdeExecutada = Number(linha.querySelector('[name="quantidadeExecutada"]').textContent)
@@ -963,7 +1038,10 @@ function calcularTempos() {
         minutosObra += minutosTotais
 
         const calculado = strHHMM(minutosTotais)
-        tdTotal.textContent = minutosTotais > 480 ? `${strHHMM(minutosTotais)} / ${Math.ceil((minutosTotais / 60) / 8)} D` : strHHMM(minutosTotais)
+        tdTotal.textContent = minutosTotais > 480
+            ? `${strHHMM(minutosTotais)} / ${Math.ceil((minutosTotais / 60) / 8)} D`
+            : strHHMM(minutosTotais)
+
         inputTempoUnitario.classList = estT(calculado)
 
         // Porcentagem
@@ -980,15 +1058,14 @@ function calcularTempos() {
         <div class="balao-checklist">
             <label>${texto}</label>
             <span>${valor}</span>
-        </div>
-    `
+        </div>`
 
     const divResultados = document.querySelector('.resultados')
 
     let resultados = ''
     const minutosPendentes = minutosObra - minutosExecutado
     const totalDiasPrevisto = Math.ceil(minutosObra / 480)
-    const dTrab = diasTrabalhados.length
+    const dTrab = 0
     const previsao = Math.ceil(minutosPendentes / 480) // 480min -- 8h -- 1dia
     const analise = (dTrab + previsao) <= totalDiasPrevisto
     const strAnalise = analise
@@ -998,7 +1075,7 @@ function calcularTempos() {
             : 'Possível Atraso'
 
     resultados += modelo('Total de Atividades', linhas?.length || 0)
-    resultados += modelo('Dias Até Hoje', diasCorridos(diasTrabalhados))
+    resultados += modelo('Dias Até Hoje', diasCorridos(0))
     resultados += modelo('Dias Trabalhados', dTrab)
     resultados += modelo('Conclusão <br>em Dias', previsao)
 
@@ -1028,6 +1105,7 @@ async function registrarChecklist(codigo) {
 
     overlayAguarde()
 
+    const { id } = controles.checklist
     const orcamento = await recuperarDado('dados_orcamentos', id) || {}
     const itens = orcamento?.checklist?.itens?.[codigo] || {}
 
@@ -1040,7 +1118,7 @@ async function registrarChecklist(codigo) {
 
     // Bloqueio por excesso de quantidade;
     quantidadeRealizadoItem = 0
-    quantidadeItem = orcamento?.checklist?.qReal[codigo]?.qtde || orcamento?.dados_composicoes?.[codigo]?.qtde || orcamento?.checklist?.avulso?.[codigo].qtde || 0
+    quantidadeItem = orcamento?.checklist?.qReal?.[codigo]?.qtde || orcamento?.dados_composicoes?.[codigo]?.qtde || orcamento?.checklist?.avulso?.[codigo]?.qtde || 0
 
     for (const [idLancamento, dados] of Object.entries(itens)) {
 
@@ -1048,13 +1126,11 @@ async function registrarChecklist(codigo) {
 
         const nomesTecnicos = []
 
-        for (const t of (dados?.tecnicos || [])) {
-            const { nome } = await recuperarDado('dados_clientes')
+        for (const tcod of (dados?.tecnicos || [])) {
+            const { nome } = await recuperarDado('dados_clientes', tcod)
             if (nome)
                 nomesTecnicos.push(nome)
         }
-
-        nomesTecnicos.join('')
 
         linhas += `
         <tr>
@@ -1065,11 +1141,7 @@ async function registrarChecklist(codigo) {
                     <img src="imagens/concluido.png" style="display: none; width: 1.5rem;" onclick="alterarQuantidadeChecklist(this, '${idLancamento}', '${codigo}', ${dados.quantidade})">
                 </div>
             </td>
-            <td>
-                <div style="${vertical}">
-                    ${nomesTecnicos}
-                </div>
-            </td>
+            <td style="white-space: pre-wrap;">${nomesTecnicos.join('\n')}</td>
             <td>
                 <div style="${horizontal}; gap: 0.5rem;">
                     <textarea oninput="mostrarBtn(this)">${dados?.comentario || ''}</textarea>
@@ -1079,7 +1151,6 @@ async function registrarChecklist(codigo) {
             <td><img src="imagens/cancel.png" style="width: 1.5rem;" onclick="removerChecklist('${codigo}', '${idLancamento}')"></td>
         </tr>`
     }
-
 
     const acumulado = `
         <div id="blocoTecnicos"></div>
@@ -1112,23 +1183,27 @@ async function registrarChecklist(codigo) {
     `
 
     const formChecklist = document.querySelector('.painel-registro-checklist')
-    if (!formChecklist) popup({ elemento: `<div class="painel-registro-checklist">${acumulado}</div>`, titulo: 'Registrar' })
-    else formChecklist.innerHTML = acumulado
+    if (!formChecklist)
+        popup({ elemento: `<div class="painel-registro-checklist">${acumulado}</div>`, titulo: 'Registrar' })
+    else
+        formChecklist.innerHTML = acumulado
 
     for (const codTec of orcamento?.checklist?.tecnicos || []) {
-        const dados = db.dados_clientes[codTec]
-        maisTecnico(codTec, dados?.nome || 'N/A')
+        const { nome } = await recuperarDado('dados_clientes', codTec) || '...'
+        maisTecnico(codTec, nome)
     }
 }
 
 async function alterarComentario(img, idLancamento, codigo) {
 
+    const { id } = controles.checklist
+    const orcamento = await recuperarDado('dados_orcamentos', id)
+
     const textarea = img.previousElementSibling
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
     const comentario = textarea.value
     orcamento.checklist.itens[codigo][idLancamento].comentario = comentario
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id_orcam}/checklist/itens/${codigo}/${idLancamento}/comentario`, comentario)
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${id}/checklist/itens/${codigo}/${idLancamento}/comentario`, comentario)
 
     img.style.display = 'none'
 
@@ -1146,16 +1221,17 @@ async function alterarQuantidadeChecklist(img, idLancamento, codigo, qtdeAnterio
 
     img.style.display = 'none'
 
-    if (((quantidadeRealizadoItem - qtdeAnterior) + quantidade) > quantidadeItem) return input.value = qtdeAnterior
+    if (((quantidadeRealizadoItem - qtdeAnterior) + quantidade) > quantidadeItem)
+        return input.value = qtdeAnterior
 
-    const orcamento = db.dados_orcamentos[id_orcam]
+    const { id } = controles.checklist
+    const orcamento = await recuperarDado('dados_orcamentos', id)
 
     orcamento.checklist.itens[codigo][idLancamento].quantidade = quantidade
 
-    await telaChecklist()
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
 
-    enviar(`dados_orcamentos/${id_orcam}/checklist/itens/${codigo}/${idLancamento}/quantidade`, quantidade)
+    enviar(`dados_orcamentos/${id}/checklist/itens/${codigo}/${idLancamento}/quantidade`, quantidade)
 
 }
 
@@ -1178,14 +1254,16 @@ function maisTecnico(cod, nome, devolver) {
     }
 
     const modelo = `
-        <div style="${horizontal}; gap: 5px;">
-            <span class="opcoes" id="${cod}" name="${cod}" onclick="cxOpcoes('${cod}')">${nome}</span>
+        <div style="${horizontal}; justify-content: start; gap: 5px;">
             <img src="imagens/cancel.png" style="width: 1.5rem;" onclick="this.parentElement.remove()">
-        </div>
-    `
+            <span class="opcoes" id="${cod}" name="${cod}" onclick="cxOpcoes('${cod}')">${nome}</span>
+        </div>`
 
-    if (devolver) return modelo
-    if (blocoTecnicos) blocoTecnicos.insertAdjacentHTML('beforeend', modelo)
+    if (devolver)
+        return modelo
+
+    if (blocoTecnicos)
+        blocoTecnicos.insertAdjacentHTML('beforeend', modelo)
 }
 
 async function salvarQuantidade(codigo) {
@@ -1212,9 +1290,11 @@ async function salvarQuantidade(codigo) {
         return popup({ mensagem: 'É necessário ter pelo menos 1 técnico realizando a atividade...', titulo: 'Ninguém fez?' })
     }
 
-    if (!quantidade || !data) return popup({ mensagem: 'Preencha todos os campos' })
+    if (!quantidade || !data)
+        return popup({ mensagem: 'Preencha todos os campos' })
 
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const { id } = controles.checklist
+    const orcamento = await recuperarDado('dados_orcamentos', id)
 
     orcamento.checklist ??= {}
     orcamento.checklist.itens ??= {}
@@ -1225,13 +1305,11 @@ async function salvarQuantidade(codigo) {
 
     orcamento.checklist.itens[codigo][idLancamento] = dados
 
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-
-    await telaChecklist()
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
 
     removerPopup()
 
-    enviar(`dados_orcamentos/${id_orcam}/checklist/itens/${codigo}/${idLancamento}`, dados)
+    enviar(`dados_orcamentos/${id}/checklist/itens/${codigo}/${idLancamento}`, dados)
 
 }
 
@@ -1239,14 +1317,14 @@ async function removerChecklist(codigo, idLancamento) {
 
     overlayAguarde()
 
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const { id } = controles.checklist
+    const orcamento = await recuperarDado('dados_orcamentos', id)
     delete orcamento.checklist.itens[codigo][idLancamento]
 
-    deletar(`dados_orcamentos/${id_orcam}/checklist/itens/${codigo}/${idLancamento}`)
+    deletar(`dados_orcamentos/${id}/checklist/itens/${codigo}/${idLancamento}`)
 
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
 
-    await telaChecklist()
     removerPopup()
     await registrarChecklist(codigo)
 

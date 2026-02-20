@@ -129,25 +129,25 @@ async function paginacao(pag) {
 
     async function ativarPaginacao(pag) {
 
-        const { pagina, base, body, alinPag = horizontal, bloquearPaginacao = false, primEx = true, criarLinha, funcaoAdicional, filtros } = controles[pag] || {}
-
-        // Bloquear paginações seguintes;
-        if (bloquearPaginacao && !primEx) {
-            await executarFuncoesAdicionais(funcaoAdicional)
-            return
-        }
+        const { pagina, base, body, alinPag = horizontal, criarLinha, funcaoAdicional, filtros } = controles[pag] || {}
 
         const tbody = document.getElementById(body)
 
         if (!tbody)
             return
 
-        if (!base || !criarLinha)
-            return console.log('Base/CriarLinha não informado(s)')
+        const baseResolvida = typeof base === 'function'
+            ? await base()
+            : base
+
+        const dados = await pesquisarDB({
+            base: baseResolvida,
+            pagina,
+            filtros
+        })
 
         const tabela = tbody.parentElement
         const cols = tabela.querySelectorAll('thead th').length
-        const dados = await pesquisarDB({ base, pagina, filtros })
         const divPaginacao = document.getElementById(`paginacao_${pag}`)
         const paginaAtual = document.getElementById(`paginaAtual_${pag}`)
         const resultados = document.getElementById(`resultados_${pag}`)
@@ -185,16 +185,13 @@ async function paginacao(pag) {
 
         } else {
             const dinossauro = tbody.querySelector('#dinossauro')
-            if (dinossauro) dinossauro.remove()
+            if (dinossauro)
+                dinossauro.remove()
 
-            await atualizarComTS(tbody, dados.resultados, criarLinha, base)
+            await atualizarComTS(tbody, dados.resultados, criarLinha, baseResolvida)
         }
 
         await executarFuncoesAdicionais(funcaoAdicional)
-
-        // Primeira execução removida;
-        if (primEx)
-            controles[pag].primEx = false
 
     }
 
@@ -211,7 +208,8 @@ async function paginacao(pag) {
 async function atualizarComTS(tbody, dados, criarLinha, base) {
 
     const dino = tbody.querySelector('#dinossauro')
-    if (dino) dino.remove()
+    if (dino)
+        dino.remove()
 
     let linhas = ''
 

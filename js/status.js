@@ -1334,7 +1334,6 @@ async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
     const tabela = modTab({
         base,
         pag: 'requisicao',
-        bloquearPaginacao: true,
         funcaoAdicional: ['calcularRequisicao'],
         body: 'bodyRequisicao',
         colunas,
