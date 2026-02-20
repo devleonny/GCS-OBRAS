@@ -26,6 +26,30 @@ const basesAuxiliares = {
     'lista_pagamentos': { keyPath: 'id' },
 }
 
+async function verificarVersaoEsperada(versaoEsperada) {
+    const dbs = await indexedDB.databases()
+    const dbInfo = dbs.find(db => db.name === nomeBase)
+
+    if (dbInfo && dbInfo.version !== versaoEsperada) {
+        await resetarBanco()
+    }
+}
+
+function resetarBanco() {
+    return new Promise((resolve, reject) => {
+        if (dbInstance) {
+            dbInstance.close()
+            dbInstance = null
+        }
+
+        const request = indexedDB.deleteDatabase(nomeBase)
+
+        request.onsuccess = () => resolve(true)
+        request.onerror = () => reject(request.error)
+        request.onblocked = () => console.warn('Banco bloqueado')
+    })
+}
+
 function criarBases(stores = null) {
 
     bloqSinc = true
@@ -74,6 +98,8 @@ async function atualizarGCS(resetar) {
 
     if (emAtualizacao)
         return
+
+    await verificarVersaoEsperada(versao)
 
     mostrarMenus(true)
 
