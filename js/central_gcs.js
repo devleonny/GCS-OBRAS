@@ -787,24 +787,20 @@ async function reprocessarAnexos(idPagamento) {
 }
 
 async function lancarPagamento({ pagamento, call, dataFixa }) {
-    return new Promise((resolve, reject) => {
-        fetch(`${api}/lancar_pagamento`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ pagamento, call, dataFixa })
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-                }
-                return response.text();
-            })
-            .then(data => {
-                data = JSON.parse(data)
-                resolve(data)
-            })
-            .catch(err => reject(err))
+
+    if (!pagamento.param[0]?.codigo_lancamento_integracao)
+        pagamento.param[0].codigo_lancamento_integracao = pagamento.id
+
+    const response = await fetch(`${api}/lancar_pagamento`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pagamento, call, dataFixa })
     })
+
+    if (!response.ok)
+        throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`)
+
+    return await response.json()
 }
 
 function sincronizar(script) {

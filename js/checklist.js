@@ -270,9 +270,6 @@ async function salvarTecnicos(id) {
 
 async function relatorioChecklist() {
 
-    let ths = ''
-    let pesquisa = ''
-
     const colunas = {
         'Data': { chave: 'data' },
         'Descrição': { chave: 'descricao' },
@@ -288,8 +285,6 @@ async function relatorioChecklist() {
             ${elemento}
         </div>`
 
-    const ano = new Date().getFullYear()
-
     const tabela = modTab({
         pag: 'relatChecklist',
         funcaoAdicional: ['auxiliarTotaisRelatorio'],
@@ -304,8 +299,8 @@ async function relatorioChecklist() {
         <div style="background-color: #d2d2d2; padding: 2rem;">
 
             <div class="toolbar-checklist" style="width: max-content; gap: 1rem;">
-                ${modelo('De', `<input name="de" onchange="gerarRelatorioChecklist()" type="date" value="${ano}-01-01">`)}
-                ${modelo('Até', `<input name="ate" onchange="gerarRelatorioChecklist()" type="date" value="${ano}-12-31">`)}
+                ${modelo('De', `<input name="de" onchange="pesquisarDtChecklist()" type="date">`)}
+                ${modelo('Até', `<input name="ate" onchange="pesquisarDtChecklist()" type="date">`)}
                 ${modelo('Horas Executadas', `<span id="he"></span>`)}
                 ${modelo('Horas Totais', `<span id="ht"></span>`)}
             </div>
@@ -333,6 +328,9 @@ async function relatorioChecklist() {
     popup({ elemento, titulo: 'Relatório Diário' })
 
     mostrarPagina('relatorio')
+
+    await paginacao()
+
     await gerarRelatorioChecklist()
 
 }
@@ -355,7 +353,7 @@ async function baseRelatorioChecklist() {
             })
 
         })
-        
+
     return dados
 
 }
@@ -419,13 +417,31 @@ function mostrarPagina(pagina) {
 
 }
 
-async function pesquisarDtChecklist(dt) {
+async function pesquisarDtChecklist(dt = null) {
 
     controles.relatChecklist.filtros ??= {}
 
+    let filtro = {}
+
+    if (!dt) {
+
+        const de = document.querySelector('[name="de"]').value
+        const ate = document.querySelector('[name="ate"]').value
+
+        filtro = [
+            { op: '>=d', value: de },
+            { op: '<=d', value: ate },
+        ]
+
+    } else {
+
+        filtro = { op: '=', value: dt }
+
+    }
+
     controles.relatChecklist.filtros = {
         ...controles.relatChecklist.filtros,
-        'data': { op: '=', value: dt }
+        'data': filtro
     }
 
     await paginacao()
@@ -453,7 +469,7 @@ function criarCalendario(datas) {
         .map(sem => `<th>${sem}</th>`)
         .join('')
 
-    const marcado = `style="background-color: green; color: white;"`
+    const marcado = `style="background-color: green; color: white; cursor: pointer;"`
 
     // Transformar em objetos Date e agrupar por ano-mês;
     const grupos = {}
@@ -819,20 +835,9 @@ async function gerarRelatorioChecklist() {
         }
     })
 
-    ordenarLinhasPorData()
     removerOverlay()
 }
 
-function ordenarLinhasPorData() {
-    const tbody = document.querySelector('#relatorioChecklist')
-    if (!tbody) return
-
-    const linhas = [...tbody.querySelectorAll('tr')]
-
-    linhas.sort((a, b) => Number(b.dataset.data) - Number(a.dataset.data))
-
-    linhas.forEach(tr => tbody.appendChild(tr))
-}
 
 async function adicionarServicoAvulso() {
 

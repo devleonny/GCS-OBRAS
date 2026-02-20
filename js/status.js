@@ -272,7 +272,7 @@ async function abrirAtalhos(id, idMaster) {
     if (altNumOrc.includes(acesso.permissao)) botoesDisponiveis += modeloBotoes('editar3', 'Alterar ORC > novo', `mudarNumORC('${id}')`)
 
     const modAlerta = (texto) => `
-        <div class="alerta-pendencia" onclick="irORC('${id}', '${orcamento?.aba || 'SEM ABA'}')">
+        <div class="alerta-pendencia" onclick="irORC('${id}')">
             <img src="gifs/alerta.gif">
             <span>${texto}</span>
         </div>
@@ -344,7 +344,7 @@ async function abrirAtalhos(id, idMaster) {
 
     const menuOpcoesOrcamento = document.querySelector('.menu-opcoes-orcamento')
 
-    if (menuOpcoesOrcamento) 
+    if (menuOpcoesOrcamento)
         return menuOpcoesOrcamento.innerHTML = acumulado
 
     popup({ elemento: `<div class="menu-opcoes-orcamento">${acumulado}</div>`, titulo: 'Opções do Orçamento' })
@@ -1029,7 +1029,7 @@ async function salvarPrioridade(id) {
 
 }
 
-async function irORC(id, aba) {
+async function irORC(id) {
 
     overlayAguarde()
 
@@ -1037,17 +1037,7 @@ async function irORC(id, aba) {
     if (!tGerenciamento)
         await telaInicialGCS()
 
-    const filtros = {
-        id: { op: '=', value: id },
-        ...(aba == 'N'
-            ? {}
-            : { aba: { op: '=', value: aba } }
-        )
-    }
-
-    await tabelaPorAba({ aba, filtros })
-
-    await paginacao()
+    await tabelaPorAba({ id })
 
     removerPopup()
 

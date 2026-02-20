@@ -110,7 +110,7 @@ async function telaInicialGCS() {
                 style="opacity: 0.5; height: 3rem;" 
                 class="aba-toolbar" 
                 id="toolbar-${aba}" 
-                onclick="tabelaPorAba('${aba}')">
+                onclick="tabelaPorAba({aba: '${aba}'})">
                     <label>${aba.replace('_', ' ')}</label>
                     ${aBloqs.includes(aba) ? '' : `<span id="contador-${aba}"></span>`}
                 </div>`
@@ -119,19 +119,7 @@ async function telaInicialGCS() {
 
 
     // INDICADORES
-    const contadores = JSON.parse(localStorage.getItem('contadores')) || []
-    if (!contadores[acesso.usuario])
-        contadores[acesso.usuario] = { estrela: 'N' }
-
-    let filtroUsuario = {}
-
-    Object.entries(contadores)
-        .forEach(([u, conf]) => {
-            if (conf.estrela == 'S' && u !== 'Geral')
-                filtroUsuario = { 'pda.acoes.*.responsavel': { op: '=', value: u } }
-
-            criarGaveta(u, conf)
-        })
+    const filtroUsuario = await atualizarContadoresAcoes()
 
     const tabelaIndicadores = modTab({
         criarLinha: 'linAcoes',
@@ -160,7 +148,7 @@ async function telaInicialGCS() {
     const tabelasPaginadas = modTab({
         base: 'dados_orcamentos',
         pag: 'tabelasIndicadores',
-        funcaoAdicional: ['contadoresAbas'],
+        funcaoAdicional: ['contadoresAbas', 'atualizarContadoresAcoes'],
         body: 'bodyIndicadores',
         criarLinha: 'linPda',
         colunas: {
@@ -210,12 +198,12 @@ async function telaInicialGCS() {
     tela.innerHTML = acumulado
 
     mostrarMenus(false)
-    await tabelaPorAba('INDICADORES')
+    await tabelaPorAba({ aba: 'INDICADORES' })
     await carregarControles()
 
 }
 
-async function tabelaPorAba(aba = 'CONCLUÍDO') {
+async function tabelaPorAba({ aba = 'CONCLUÍDO', id = null }) {
 
     // DESTACAR ABA;
     const abas = document.querySelectorAll('.aba-toolbar')
@@ -245,10 +233,9 @@ async function tabelaPorAba(aba = 'CONCLUÍDO') {
     // FILTRAGEM DE DADOS;
     controles.tabelasIndicadores.filtros ??= {}
 
-    controles.tabelasIndicadores.filtros = {
-        ...controles.tabelasIndicadores.filtros,
-        'aba': { op: '=', value: aba }
-    }
+    controles.tabelasIndicadores.filtros = id
+        ? { 'id': { op: '=', value: id } }
+        : { 'aba': { op: '=', value: aba } }
 
     await paginacao()
 
@@ -267,7 +254,7 @@ async function linPda(orcamento) {
     const pda = orcamento.pda || {}
     const listaTecs = orcamento?.checklist?.tecnicos || pda?.tecnicos || []
 
-    const tecs = listaTecs
+    const tecs = listaTecs //29
         .map(codTec => {
             const cliente = {}
             return `<div class="etiquetas" style="min-width: 100px;">${cliente?.nome || '...'}</div>`
@@ -491,7 +478,7 @@ function linAcoes(orcamento) {
             <tr>    
                 <div class="etiqueta-${estilo}" style="width: 95%; flex-direction: row; gap: 0.5rem; margin: 1px;">
 
-                    <img src="imagens/pesquisar2.png" style="width: 2rem;" onclick="irORC('${idOrcamento}', '${orcamento?.aba || 'N'}')">
+                    <img src="imagens/pesquisar2.png" style="width: 2rem;" onclick="irORC('${idOrcamento}')">
 
                     <div style="${vertical};">
                         <span><b>ID:</b> ${chamado}</span>
@@ -525,6 +512,26 @@ function somarPend(obj) {
     return t
 }
 
+async function atualizarContadoresAcoes() {
+
+    const contadores = JSON.parse(localStorage.getItem('contadores')) || []
+
+    if (!contadores[acesso.usuario])
+        contadores[acesso.usuario] = { estrela: 'N' }
+
+    let filtroUsuario = {}
+
+    Object.entries(contadores)
+        .forEach(([u, conf]) => {
+            if (conf.estrela == 'S' && u !== 'Geral')
+                filtroUsuario = { 'pda.acoes.*.responsavel': { op: '=', value: u } }
+
+            criarGaveta(u, conf)
+        })
+
+    return filtroUsuario
+}
+
 async function criarGaveta(usuario = null, conf = {}) {
 
     if (!usuario)
@@ -547,7 +554,7 @@ async function criarGaveta(usuario = null, conf = {}) {
             style="border-left: 6px solid ${cor};" 
             onclick="controles.acoes.status = '${titulo}'; ${auxiliar}; paginacao('acoes')">
             <span style="font-size: 14px; color: #444;">${inicialMaiuscula(titulo)}</span>
-            <strong style="font-size: 22px; margin-top:5px;">${valor}</strong>
+            <strong style="font-size: 22px; margin-top:5px;" id="gaveta_${usuario}_${titulo}">${valor}</strong>
         </div>`
     }
 
@@ -572,6 +579,19 @@ async function criarGaveta(usuario = null, conf = {}) {
 
     const totais = somarPend(resposta)
 
+    // Atualizar se existir, sem recriar;
+    let continuar = false
+    for (const [tipo, total] of Object.entries(totais)) {
+        const indicExistente = document.getElementById(`gaveta_${usuario}_${tipo}`)
+        if (indicExistente)
+            indicExistente.textContent = total
+
+        continuar = indicExistente
+    }
+
+    if (continuar)
+        return
+
     const botaoCancelar = usuario == acesso.usuario
         ? ''
         : `<img src="imagens/cancel.png" onclick="removerContador('${usuario}')">`
@@ -586,14 +606,12 @@ async function criarGaveta(usuario = null, conf = {}) {
             ${box('atrasado', totais?.atrasados, "#ff0000")}
             ${box('concluído', contagem?.concluído || 0, "#008000")}
             <img src="imagens/estrela${conf?.estrela == 'S' ? '' : '_off'}.png" name="estrela" data-usuario="${usuario}" onclick="favoritar(this)">
-        </div>
-    `
+        </div>`
 
     const gaveta = `
         <div id="gaveta_${usuario}" style="${vertical}; gap: 5px; padding: 0.5rem;">
             ${conteudo}
-        </div>
-    `
+        </div>`
 
     const guardaRoupas = document.querySelector('.guarda-roupas')
     const existente = document.getElementById(`gaveta_${usuario}`)
