@@ -22,8 +22,8 @@ async function telaVeiculos() {
     mostrarMenus(false)
 
     const colunas = {
-        'Usuário': { chave: 'usuario' },
         'Data de Registro': { chave: 'data' },
+        'Usuário': { chave: 'usuario' },
         'Motorista': { chave: 'veiculo.snapshots.motoristas' },
         'Data Pagamento': { chave: 'snapshots.dataPagamento' },
         'Valor': { chave: 'snapshots.valor' },
@@ -137,7 +137,7 @@ async function criarLinhaCusto(custo) {
 
     const deps = []
 
-    for (const [codDep, km] of Object.entries(distribuicao)) {
+    for (const [codDep, km] of Object.entries(distribuicao || {})) {
 
         const dep = await recuperarDado('departamentos_AC', Number(codDep)) || {}
         const porcentagem = km / custo.km
@@ -158,8 +158,8 @@ async function criarLinhaCusto(custo) {
     }
 
     const tds = `
-        <td>${usuario}</td>
         <td>${data || ''}</td>
+        <td>${usuario}</td>
 
         <td>
             <div style="${horizontal}; justify-content: start; gap: 0.5rem; width: 300px;">

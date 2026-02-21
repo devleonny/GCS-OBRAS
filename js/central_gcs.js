@@ -288,7 +288,7 @@ async function usuariosToolbar() {
     const usuariosToolbarString = `
         <div class="botaoUsuarios">
             <img name="imgStatus" onclick="painelUsuarios()" src="imagens/${indicadorStatus}.png">
-            <label style="font-size: 1.2rem;">${uOnline.online}</label>
+            <label style="font-size: 1.2rem;">${uOnline?.online || 0}</label>
         </div>`
 
     if (nomeUsuario)

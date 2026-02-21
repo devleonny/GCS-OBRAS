@@ -27,6 +27,7 @@ const fluxograma = [
     'ACORDO FINANCEIRO',
     'PENDENTE PEDIDO',
     'CONCLUÍDO',
+    'REPROVADO PELO FINANCEIRO',
     'FATURADO',
     'ATRASADO',
     'PAG RECEBIDO',

@@ -46,15 +46,15 @@ async function telaOrcamentos() {
     const colunas = {
         'última alteração': { chave: 'lpu_ativa' },
         'status': { chave: 'status.atual' },
-        'pedido': '',
-        'notas': '',
+        'pedido': { chave: 'snapshots.pedidos' },
+        'notas': { chave: 'snapshots.notas' },
         'tags': { chave: 'snapshots.tags' },
         'contrato': { chave: 'snapshots.contrato' },
         'cidade': { chave: 'snapshots.cidade' },
         'responsaveis': { chave: 'snapshots.responsavel' },
-        'indicadores': '',
+        'indicadores': {},
         'valor': { chave: 'snapshots.valor' },
-        'ações': ''
+        'ações': {}
     }
 
     const btnExtras = `<span style="color: white; cursor: pointer; white-space: nowrap;" onclick="filtroOrcamentos()">Filtros ☰</span>`
@@ -181,13 +181,13 @@ async function criarLinhaOrcamento(orcamento) {
         const { id, dados_orcam, snapshots = {}, timestamp } = orcamento || {}
 
         const pedidos = Object.values(orcamento?.status?.historico || {})
-            .filter(s => s.status == 'PEDIDO')
+            .filter(s => s?.status == 'PEDIDO')
             .map(s => {
 
                 const label = `
                 <div class="etiquetas" style="text-align: left; min-width: 100px;">
                     <label>${s?.tipo || ''}</label>
-                    <label>${s?.status}</label>
+                    <label>${s?.pedido}</label>
                     <label>${dinheiro(s?.valor)}</label>
                 </div>
                 `
@@ -196,7 +196,7 @@ async function criarLinhaOrcamento(orcamento) {
             .join('')
 
         const notas = Object.values(orcamento?.status?.historico || {})
-            .filter(s => s.status == 'FATURADO')
+            .filter(s => s?.status == 'FATURADO')
             .map(s => {
 
                 const label = `
@@ -269,6 +269,19 @@ async function criarLinhaOrcamento(orcamento) {
 
         let depExistente = false
 
+        const indicadores = []
+        if (orcamento?.checklist?.andamento)
+            indicadores.push(`
+                <span>Checklist</span>
+                ${divPorcentagem(orcamento?.checklist?.andamento || 0)}
+            `)
+
+        if (false) // Painel de custos
+            indicadores.push(`
+                <span>LC %</span>
+                ${divPorcentagem(0)}
+            `)
+
         const celulas = `
          <td>
             <div style="text-align: left;${vertical}; gap: 2px;">
@@ -320,11 +333,8 @@ async function criarLinhaOrcamento(orcamento) {
             </div>
         </td>
         <td>
-            <div style="${vertical}; width: 100%; gap: 2px;">
-                <span>Checklist</span>
-                ${divPorcentagem(orcamento?.checklist?.andamento || 0)}
-                <span>LC %</span>
-                ${divPorcentagem(0)}
+            <div style="${vertical};">
+                ${indicadores.join('')}
             </div>
         </td>
         <td>

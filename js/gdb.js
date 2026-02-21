@@ -407,6 +407,16 @@ const regrasSnapshot = {
 
             const snap = {}
 
+            snap.pedidos = Object.values(dado?.status?.historico || {})
+                .filter(s => s?.status === 'PEDIDO')
+                .map(s => [s?.pedido, s?.tipo, dinheiro(s?.valor || 0)])
+                .flat()
+
+            snap.notas = Object.values(dado?.status?.historico || {})
+                .filter(s => s?.status === 'FATURADO')
+                .map(s => [s?.nf, s?.tipo, dinheiro(s?.valor || 0)])
+                .flat()
+
             const codCliente = dado?.dados_orcam?.omie_cliente
             const cliente = codCliente
                 ? await getStore(stores.dados_clientes, codCliente)

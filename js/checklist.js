@@ -1,10 +1,22 @@
-const strHHMM = (minutosTotais, str) => {
+const strHHMM = (minutosTotais) => {
 
-    const horas = Math.floor(minutosTotais / 60)
-    const minutos = minutosTotais % 60
-    const calculado = `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`
+    const minutosPorDia = 1440
 
-    return str ? `${calculado}${str}` : calculado
+    const dias = Math.floor(minutosTotais / minutosPorDia)
+    const restoMinutos = minutosTotais % minutosPorDia
+
+    const horas = Math.floor(restoMinutos / 60)
+    const minutos = restoMinutos % 60
+
+    const prefixoDias = dias > 0
+        ? `${dias}d `
+        : ''
+
+    return `
+        <span style="white-space: nowrap;">
+            ${prefixoDias}${String(horas).padStart(2, '0')}h ${String(minutos).padStart(2, '0')}min
+        </span>
+    `
 }
 
 const estT = (tempo) => {
@@ -27,8 +39,7 @@ async function telaChecklist(id) {
         '': {},
         'Código': { chave: 'codigo' },
         'Itens do Orçamento': { chave: 'descricao' },
-        'Qtd. Orçada': {},
-        'Qtd. Real': {},
+        'Quantidade': { chave: 'qtde' },
         'Tempo/Atividade': {},
         'Tempo/Total': {},
         'Serviço Executado': {},
@@ -53,7 +64,7 @@ async function telaChecklist(id) {
         },
         body: 'bodyChecklist',
         criarLinha: 'carregarLinhaChecklist',
-        base: () => baseChecklist(id)
+        base: () => baseChecklist()
     })
 
     const elemento = `
@@ -61,7 +72,7 @@ async function telaChecklist(id) {
 
             <div class="toolbar-checklist">
 
-                <div style="${vertical}; align-items: center; width: 50%;">
+                <div style="${vertical}; align-items: center;">
 
                     <div style="${horizontal}; justify-content: space-evenly; width: 100%;">
                         <div id="porcentagem" style="padding: 0.5rem;"></div>
@@ -99,8 +110,9 @@ async function telaChecklist(id) {
 
 }
 
-async function baseChecklist(id) {
+async function baseChecklist() {
 
+    const { id } = controles.checklist
     const { dados_composicoes, checklist } = await recuperarDado('dados_orcamentos', id) || {}
     const { avulso, itens, qReal } = checklist || {}
 
@@ -111,6 +123,9 @@ async function baseChecklist(id) {
 
     // Modelagem dos dados;
     for (const [codigo, dados] of Object.entries(mesclado)) {
+
+        const { tempo } = await recuperarDado('dados_composicoes', codigo) || '00:00'
+        mesclado[codigo].tempo = tempo || '00:00'
 
         // Item removido;
         if (itens?.[codigo]?.removido) {
@@ -127,7 +142,7 @@ async function baseChecklist(id) {
         mesclado[codigo].itens = itens?.[codigo] || {}
 
         if (qReal?.[codigo])
-            mesclado[codigo].qReal = qReal?.[codigo]
+            mesclado[codigo].qReal = qReal?.[codigo]?.qtde
     }
 
     return mesclado
@@ -136,14 +151,15 @@ async function baseChecklist(id) {
 
 async function carregarLinhaChecklist(produto) {
 
-    const { codigo, tipo, descricao, qtde, unidade, qReal, itens } = produto || {}
-
-    const fontMaior = 'class="fonte-maior"'
+    const { codigo, tempo, descricao, unidade, qtde, qReal, itens } = produto || {}
 
     const qtdeRealizada = Object.values(itens || {})
         .reduce((acc, item) => acc + (item?.quantidade || 0), 0)
 
-    const { tempo } = await recuperarDado('dados_composicoes', codigo) || '00:00'
+    const [h, m] = tempo.split(':').map(Number)
+    const minUnit = h * 60 + m
+    const total = minUnit * (qReal || qtde || 0)
+    const tempoRealizado = minUnit * qtdeRealizada
 
     const tds = `
         <td>
@@ -151,61 +167,102 @@ async function carregarLinhaChecklist(produto) {
         </td>
         <td>${codigo}</td>
         <td>${descricao || ''}</td>
-        <td ${fontMaior} name="quantidade">
-            ${!tipo
-            ? `<input type="number" name="real" oninput="salvarQtdAvulso(this, '${codigo}')" class="qtd" value="${qReal || ''}">`
-            : qtde || 0
-        }
-        </td>
         <td>
-            ${!tipo
-            ? '<img src="imagens/cancel.png">'
-            : `<input type="number" name="real" oninput="salvarQtdReal(this, '${codigo}')" class="qtd" value="${0 || ''}">`
-        }
-        </td>
-        <td>
-            <div style="${vertical};">
-                <input 
-                    name="tempoUnitario" 
-                    oninput="atualizarTempo(this, '${codigo}')" 
-                    type="time" 
-                    class="${estT(0 || 0)}"
-                    value="${tempo || ''}">
-                <span>por <b>${unidade || 'UND'}</b></span>
+            <div style="${horizontal}; gap: 5px;">
+                <span>${qReal || qtde || 0}</span>
+                <img src="imagens/ajustar.png" onclick="painelAlterarQuantidade('${codigo}')">
             </div>
         </td>
-        <td ${fontMaior} name="totalLinha"></td>
+        <td>
+            <div style="${horizontal}; gap: 5px;">
+                <span class="${estT(tempo)}">
+                    ${tempo} por <b>${unidade || 'UND'}</b>
+                </span>
+                <img src="imagens/ajustar.png" onclick="painelAlterarTempo('${codigo}')">
+            </div>
+        </td>
+        <td>
+            ${strHHMM(total)}
+        </td>
         <td>
             <div style="${horizontal}; gap: 10px;">
-                <span ${fontMaior} name="quantidadeExecutada">${qtdeRealizada}</span>
-                <img onclick="registrarChecklist('${codigo}')" src="imagens/baixar.png" style="width: 1.2rem;">
+                <span>${qtdeRealizada}</span>
+                <img onclick="registrarChecklist('${codigo}')" src="imagens/baixar.png">
             </div>
         </td>
-        <td ${fontMaior} name="totalLinhaExecutado"></td>
         <td>
-            <div name="porcentagem"></div>
+            ${strHHMM(tempoRealizado)}
+        </td>
+        <td>
+            ${divPorcentagem(((tempoRealizado / total) * 100).toFixed(1))}
         </td>`
 
     return `<tr> ${tds} </tr>`
 
 }
 
-async function salvarQtdAvulso(input, codigo) {
+async function painelAlterarTempo(codigo) {
 
-    const qtde = Number(input.value)
-    const { id } = controles.checklist
-    const orcamento = await recuperarDado('dados_orcamentos', id)
+    const { tempo } = await recuperarDado('dados_composicoes', codigo) || '00:00'
 
-    orcamento.checklist.avulso[codigo].qtde = qtde
+    const linhas = [
+        {
+            texto: 'Qual o tempo da atividade?',
+            elemento: `<input type="time" id="tempoProduto" value="${tempo}">`
+        }
+    ]
 
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id}/checklist/avulso/${codigo}/qtde`, qtde)
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: `salvarTempo('${codigo}')` }
+    ]
+
+    popup({ linhas, botoes, titulo: 'Definir tempo' })
 
 }
 
-async function salvarQtdReal(input, codigo) {
+async function salvarTempo(codigo) {
 
-    const qtde = Number(input.value)
+    overlayAguarde()
+
+    const produto = await recuperarDado('dados_composicoes', codigo)
+
+    if (!produto)
+        return removerPopup()
+
+    const tempo = document?.querySelector('#tempoProduto')?.value || '00:00'
+
+    await inserirDados({ [codigo]: produto }, 'dados_composicoes')
+    enviar(`dados_composicoes/${codigo}/tempo`, tempo)
+
+    removerPopup()
+
+}
+
+async function painelAlterarQuantidade(codigo) {
+
+    const linhas = [
+        {
+            texto: 'Editar quantidade',
+            elemento: `<input type="number" id="qReal">`
+        }
+    ]
+
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: `salvarQtdReal('${codigo}')` }
+    ]
+
+    popup({ linhas, botoes, titulo: 'Nova Quantidade' })
+
+}
+
+async function salvarQtdReal(codigo) {
+
+    const qtde = Number(document?.getElementById('qReal')?.value || 0)
+    if (qtde == 0)
+        return removerPopup()
+
+    overlayAguarde()
+
     const { id } = controles.checklist
     const orcamento = await recuperarDado('dados_orcamentos', id)
 
@@ -215,6 +272,8 @@ async function salvarQtdReal(input, codigo) {
 
     await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
     enviar(`dados_orcamentos/${id}/checklist/qReal/${codigo}/qtde`, qtde)
+
+    removerPopup()
 
 }
 
@@ -287,7 +346,7 @@ async function relatorioChecklist() {
 
     const tabela = modTab({
         pag: 'relatChecklist',
-        funcaoAdicional: ['auxiliarTotaisRelatorio'],
+        funcaoAdicional: ['gerarRelatorioChecklist'],
         colunas,
         body: 'relatorioChecklist',
         base: () => baseRelatorioChecklist(),
@@ -301,8 +360,6 @@ async function relatorioChecklist() {
             <div class="toolbar-checklist" style="width: max-content; gap: 1rem;">
                 ${modelo('De', `<input name="de" onchange="pesquisarDtChecklist()" type="date">`)}
                 ${modelo('Até', `<input name="ate" onchange="pesquisarDtChecklist()" type="date">`)}
-                ${modelo('Horas Executadas', `<span id="he"></span>`)}
-                ${modelo('Horas Totais', `<span id="ht"></span>`)}
             </div>
 
             <hr>
@@ -331,8 +388,6 @@ async function relatorioChecklist() {
 
     await paginacao()
 
-    await gerarRelatorioChecklist()
-
 }
 
 async function baseRelatorioChecklist() {
@@ -342,7 +397,7 @@ async function baseRelatorioChecklist() {
     const dados = {}
 
     Object.entries(checklist?.itens || {})
-        .forEach(([codigo, lancamentos]) => { // Aqui tem alguns lançamentos {id: 1, id: 2 ... }
+        .forEach(([codigo, lancamentos]) => {
 
             const info = dados_composicoes?.[codigo] || checklist?.avulso?.[codigo] || {}
 
@@ -534,37 +589,6 @@ function criarCalendario(datas) {
     }
 
     document.querySelector('.calendarios').innerHTML = calendarios
-}
-
-function auxiliarTotaisRelatorio() {
-    const linhas = document.querySelectorAll('#relatorioChecklist tr')
-
-    const totais = {
-        executado: 0,
-        total: {}
-    }
-
-    for (const linha of linhas) {
-
-        const codigo = linha.dataset.codigo
-
-        if (!codigo)
-            continue
-
-        const executado = Number(linha.querySelector('[name="executado"]').value)
-        const total = Number(linha.querySelector('[name="total"]').value)
-
-        totais.executado += executado
-        if (!totais.total[codigo]) totais.total[codigo] = total
-
-    }
-
-    let ht = 0
-    for (const [, total] of Object.entries(totais.total)) ht += total
-
-    document.getElementById('he').textContent = strHHMM(totais.executado)
-    document.getElementById('ht').textContent = strHHMM(ht)
-
 }
 
 async function gerarRelatorioChecklist() {
@@ -1002,62 +1026,109 @@ async function atualizarTempo(input, codigo) {
 
 }
 
-function calcularTempos() {
+async function calcularTemposChecklist() {
 
-    const linhas = document.querySelectorAll('#bodyChecklist tr')
+    const dados = await baseChecklist()
 
     let minutosObra = 0
     let minutosExecutado = 0
-    for (const linha of linhas) {
+    let totalAtividades = 0
+    let diasTrabalhados = new Set()
 
-        const avulso = linha.dataset.avulso == 'S'
-        const elemQtReal = linha.querySelector('[name="real"]')
+    const lista = Object.values(dados)
 
-        if (!elemQtReal)
-            continue
+    for (const item of lista) {
 
-        const qReal = Number(elemQtReal.value)
-        const qtde = Number(linha.querySelector('[name="quantidade"]').textContent)
-        const qtdeExecutada = Number(linha.querySelector('[name="quantidadeExecutada"]').textContent)
+        totalAtividades++
 
-        // Alerta para real > orçado;
-        elemQtReal.classList = (qReal > qtde && !avulso) ? 'off' : 'qtd'
-
-        const tdTotal = linha.querySelector('[name="totalLinha"]')
-        const totalExecutado = linha.querySelector('[name="totalLinhaExecutado"]')
-
-        const inputTempoUnitario = linha.querySelector('[name="tempoUnitario"]')
-        const tempoUnitario = inputTempoUnitario.value
-
-        if (!tempoUnitario) {
-            tdTotal.textContent = ''
-            totalExecutado.textContent = ''
-            continue
-        }
+        const qtde = item.qtde || 0
+        const qReal = item.qReal || 0
+        const tempoUnitario = item.tempo
 
         const [h, m] = tempoUnitario.split(':').map(Number)
-        const minutosUnit = h * 60 + m
+        const minutosUnit = (h * 60) + m
 
-        // total da linha
-        const minutosTotais = minutosUnit * (qReal || qtde)
+        const baseQuantidade = qtde || qReal
+
+        const minutosTotais = minutosUnit * baseQuantidade
         minutosObra += minutosTotais
 
-        const calculado = strHHMM(minutosTotais)
-        tdTotal.textContent = minutosTotais > 480
-            ? `${strHHMM(minutosTotais)} / ${Math.ceil((minutosTotais / 60) / 8)} D`
-            : strHHMM(minutosTotais)
+        let executadoItem = 0
 
-        inputTempoUnitario.classList = estT(calculado)
+        if (item.itens) {
+            for (const chave in item.itens) {
+                const exec = item.itens[chave]
+                executadoItem += Number(exec.quantidade || 0)
+                diasTrabalhados.add(exec.data)
+            }
+        }
 
-        // Porcentagem
-        const porcentagemDiv = linha.querySelector('[name="porcentagem"]')
-        porcentagemDiv.innerHTML = divPorcentagem(((qtdeExecutada / (qReal || qtde)) * 100).toFixed(1))
-
-        // total executado da linha
-        const minutosExecutados = minutosUnit * qtdeExecutada
-        totalExecutado.textContent = minutosExecutados > 480 ? `${strHHMM(minutosExecutados)} / ${Math.ceil((minutosExecutados / 60) / 8)} D` : strHHMM(minutosExecutados)
-        minutosExecutado += minutosExecutados
+        const minutosExecLinha = minutosUnit * executadoItem
+        minutosExecutado += minutosExecLinha
     }
+
+    const minutosPendentes = minutosObra - minutosExecutado
+    const totalDiasPrevisto = Math.ceil(minutosObra / 480)
+    const previsao = Math.ceil(minutosPendentes / 480)
+
+    const calculo = calcularDiasCorridos([...diasTrabalhados])
+    const diasCorridos = calculo.dias
+    const inicio = calculo.inicio
+
+    return {
+        inicio,
+        diasCorridos,
+        diasTrabalhados: diasTrabalhados.size,
+        totalAtividades,
+        minutosObra,
+        minutosExecutado,
+        minutosPendentes,
+        totalDiasPrevisto,
+        previsao,
+        porcentagem: minutosObra
+            ? ((minutosExecutado / minutosObra) * 100).toFixed(1)
+            : 0
+    }
+}
+
+function calcularDiasCorridos(listaDatas) {
+
+    if (!listaDatas || listaDatas.length === 0) return 0
+
+    function parseDataLocal(dataStr) {
+        const [ano, mes, dia] = dataStr.split('-').map(Number)
+        return new Date(ano, mes - 1, dia)
+    }
+
+    const maisAntiga = listaDatas
+        .map(d => parseDataLocal(d))
+        .sort((a, b) => a - b)[0]
+
+    const hoje = new Date()
+    hoje.setHours(0, 0, 0, 0)
+
+    const dif = hoje - maisAntiga
+
+    return {
+        dias: Math.floor(dif / 86400000),
+        inicio: maisAntiga
+    }
+}
+
+async function calcularTempos() {
+
+    const {
+        inicio,
+        minutosObra,
+        diasCorridos,
+        diasTrabalhados,
+        minutosExecutado,
+        totalAtividades,
+        minutosPendentes,
+        totalDiasPrevisto,
+        previsao,
+        porcentagem
+    } = await calcularTemposChecklist()
 
     const modelo = (texto, valor) => `
         <div class="balao-checklist">
@@ -1065,45 +1136,42 @@ function calcularTempos() {
             <span>${valor}</span>
         </div>`
 
+    const divInicio = document.getElementById('inicio')
+    if (divInicio)
+        divInicio.textContent = inicio?.toLocaleDateString() || ''
+
     const divResultados = document.querySelector('.resultados')
 
     let resultados = ''
-    const minutosPendentes = minutosObra - minutosExecutado
-    const totalDiasPrevisto = Math.ceil(minutosObra / 480)
-    const dTrab = 0
-    const previsao = Math.ceil(minutosPendentes / 480) // 480min -- 8h -- 1dia
-    const analise = (dTrab + previsao) <= totalDiasPrevisto
+
+    resultados += modelo('Total de Atividades', totalAtividades)
+    resultados += modelo('Dias Até Hoje', diasCorridos)
+    resultados += modelo('Dias Trabalhados', diasTrabalhados)
+    resultados += modelo('Conclusão <br>em Dias', previsao)
+    resultados += modelo('Tempo Total', strHHMM(minutosObra))
+    resultados += modelo('Tempo Realizado', strHHMM(minutosExecutado))
+    resultados += modelo('Tempo Pendente', strHHMM(minutosPendentes))
+
+    const analise = (diasTrabalhados + previsao) <= totalDiasPrevisto
     const strAnalise = analise
         ? 'Entrega no Prazo'
-        : dTrab > totalDiasPrevisto
+        : diasTrabalhados > totalDiasPrevisto
             ? 'Atrasado'
             : 'Possível Atraso'
 
-    resultados += modelo('Total de Atividades', linhas?.length || 0)
-    resultados += modelo('Dias Até Hoje', diasCorridos(0))
-    resultados += modelo('Dias Trabalhados', dTrab)
-    resultados += modelo('Conclusão <br>em Dias', previsao)
-
-    resultados += '<div></div>' // Vazio para deixar o espaço em branco;
-
-    resultados += modelo('Horas Totais', `${strHHMM(minutosObra, 'h')} <br> ${totalDiasPrevisto} dias`)
-    resultados += modelo('Horas Realizadas', strHHMM(minutosExecutado, 'h'))
-    resultados += modelo('Horas Pendentes', strHHMM(minutosPendentes, 'h'))
-
-    resultados += modelo('Análise', strAnalise)
-    resultados += `<div style="${horizontal}"><img src="imagens/${analise ? 'joinha' : 'atrasado'}.png" style="width: 4rem;"></div>`
-
+    resultados += modelo('Status', `
+    <div style="${horizontal}; gap: 5px;">
+        ${strAnalise}
+        <img src="imagens/${analise ? 'joinha' : 'atrasado'}.png" style="width: 2rem;">
+    </div>`)
 
     divResultados.innerHTML = resultados
-
-    porcetagemFinal = ((minutosExecutado / minutosObra) * 100).toFixed(1)
 
     document.getElementById('porcentagem').innerHTML = `
         <div style="${vertical}">
             <span>Porcentagem de conclusão</span>
-            ${divPorcentagem(porcetagemFinal)}
-        </div>
-    `
+            ${divPorcentagem(porcentagem)}
+        </div>`
 }
 
 async function registrarChecklist(codigo) {
@@ -1352,17 +1420,4 @@ function calculadoraChecklist() {
 
     }
 
-}
-
-function diasCorridos(listaDatas) {
-    if (!listaDatas || listaDatas.length === 0) return 0
-
-    const maisAntiga = listaDatas
-        .map(d => new Date(d))
-        .sort((a, b) => a - b)[0]
-
-    const hoje = new Date()
-    const dif = hoje - maisAntiga
-
-    return Math.floor(dif / (1000 * 60 * 60 * 24))
 }
