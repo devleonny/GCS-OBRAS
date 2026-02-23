@@ -371,7 +371,7 @@ function seletorStatus(orcamento) {
     const autorizado =
         snapshots?.responsavel?.includes(acesso.usuario)
         || permAltStatus.includes(acesso?.permissao)
-        || acesso?.permissao == 'log'
+        || acesso?.setor == 'LOGÍSTICA'
 
     const campo = autorizado
         ? `

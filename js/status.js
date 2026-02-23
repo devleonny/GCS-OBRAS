@@ -958,7 +958,7 @@ async function alterarStatus(id, select) {
         return
 
     // perm Log tá com o seletor liberado, mas só dever alterar se for p/ Enviado ou Entregue;
-    if (acesso?.permissao == 'log' && !orcamento?.snapshots?.responsavel?.includes(acesso.permissao)) {
+    if (acesso?.setor == 'LOGÍSTICA' && !orcamento?.snapshots?.responsavel?.includes(acesso.permissao)) {
 
         if (!statusExclusivosLog.includes(novoSt)) {
             select.value = statusAnterior
