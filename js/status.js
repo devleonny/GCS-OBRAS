@@ -5,6 +5,7 @@ const opcoesRequisicao = ['SERVIÇO', 'VENDA', 'USO E CONSUMO', 'LOCAÇÃO']
 const transportadoras = ['', 'JAMEF', 'CORREIOS', 'RODOVIÁRIA', 'JADLOG', 'AÉREO', 'OUTRAS']
 const permAtalhos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
 const permAltStatus = ['adm', 'diretoria']
+const statusExclusivosLog = ['ENVIADO', 'ENTREGUE']
 
 const fluxograma = [
     'SEM STATUS',
@@ -27,8 +28,8 @@ const fluxograma = [
     'PENDENTE OS/RELATÓRIO',
     'ACORDO FINANCEIRO',
     'PENDENTE PEDIDO',
-    'CONCLUÍDO',
     'REPROVADO PELO FINANCEIRO',
+    'CONCLUÍDO',
     'FATURADO',
     'ATRASADO',
     'PAG RECEBIDO',
@@ -941,6 +942,16 @@ async function alterarStatus(id, select) {
     const novoSt = select.value
     if (orcamento.status?.atual == novoSt)
         return
+
+    // perm Log tá com o seletor liberado, mas só dever alterar se for p/ Enviado ou Entregue;
+    if (acesso?.permissao == 'log' && !orcamento?.snapshots?.responsavel?.includes(acesso.permissao)) {
+
+        if (!statusExclusivosLog.includes(novoSt)) {
+            select.value = statusAnterior
+            return popup({mensagem: '<b>Seu acesso é de Logística:</b> Altere apenas os seus orçamentos ou somente para os status ENTREGUE ou ENVIADO'})
+        }
+
+    }
 
     const bloq = ['REQUISIÇÃO', 'CONCLUÍDO']
 

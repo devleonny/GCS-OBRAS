@@ -368,7 +368,10 @@ function seletorStatus(orcamento) {
         .map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`)
         .join('')
 
-    const autorizado = snapshots?.responsavel?.includes(acesso.usuario) || permAltStatus.includes(acesso?.permissao)
+    const autorizado =
+        snapshots?.responsavel?.includes(acesso.usuario)
+        || permAltStatus.includes(acesso?.permissao)
+        || acesso?.permissao == 'log'
 
     const campo = autorizado
         ? `

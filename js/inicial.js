@@ -96,7 +96,7 @@ async function telaInicialGCS() {
     app = 'GCS'
 
     if (priExeGCS)
-       // await atualizarGCS()
+        await atualizarGCS()
 
     criarMenus('inicial')
 
