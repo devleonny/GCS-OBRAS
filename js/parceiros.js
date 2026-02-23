@@ -472,7 +472,7 @@ function calcularLpuParceiro() {
 
 }
 
-async function gerarPdfParceiro(id, chave) {
+async function gerarPdfParceiro(id, chave, visualizar) {
 
     overlayAguarde()
 
@@ -633,6 +633,11 @@ async function gerarPdfParceiro(id, chave) {
             </div>
         </body>
         </html>`
+
+    const elemento = `<div style="padding: 2rem;">${htmlContent}</div>`
+
+    if (visualizar)
+        return popup({ elemento, titulo: 'PDF' })
 
     try {
         await gerarPdfOnline(htmlContent, `LPU PACEIRO - ${Date.now()}`)

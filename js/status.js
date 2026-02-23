@@ -613,9 +613,15 @@ function elementosEspecificos(id, chave, historico) {
             ${historico.volumes ? labelDestaque('Volumes', historico.volumes) : ''}
 
             <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" 
+                class="contorno-botoes" onclick="gerarPdfRequisicao('${id}', '${chave}', true)">
+                <img src="imagens/pdfw.png" style="width: 1.5rem;">
+                <label>Visualizar</label>
+            </div>
+
+            <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" 
                 class="contorno-botoes" onclick="gerarPdfRequisicao('${id}', '${chave}')">
                 <img src="imagens/pdfw.png" style="width: 1.5rem;">
-                <label>Disponível</label>
+                <label>Baixar PDF</label>
             </div>`
 
     } else if (historico.status == 'LPU PARCEIRO') {
@@ -625,12 +631,20 @@ function elementosEspecificos(id, chave, historico) {
         acumulado = `
             ${labelDestaque('Total Parceiro', dinheiro(historico?.totais?.parceiro))}
             ${labelDestaque('Magem Disponível', dinheiro(historico?.totais?.margem))}
-            ${labelDestaque('Desvio', dinheiro(historico?.totais?.desvio))}
+            ${labelDestaque('Desvio', dinheiro(historico?.totais?.desvio))},
+
+            <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" 
+                class="contorno-botoes" 
+                onclick="gerarPdfParceiro('${id}', '${chave}', true)">
+                <img src="imagens/pdfw.png" style="width: 1.5rem;">
+                <label>Visualizar</label>
+            </div>
+
             <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" 
                 class="contorno-botoes" 
                 onclick="gerarPdfParceiro('${id}', '${chave}')">
                 <img src="imagens/pdfw.png" style="width: 1.5rem;">
-                <label>Disponível</label>
+                <label>Baixar PDF</label>
             </div>
         `
 
@@ -948,7 +962,7 @@ async function alterarStatus(id, select) {
 
         if (!statusExclusivosLog.includes(novoSt)) {
             select.value = statusAnterior
-            return popup({mensagem: '<b>Seu acesso é de Logística:</b> Altere apenas os seus orçamentos ou somente para os status ENTREGUE ou ENVIADO'})
+            return popup({ mensagem: '<b>Seu acesso é de Logística:</b> Altere apenas os seus orçamentos ou somente para os status ENTREGUE ou ENVIADO' })
         }
 
     }
@@ -1798,7 +1812,7 @@ async function irOS(idOrcamento) {
     window.open('os.html', '_blank')
 }
 
-async function gerarPdfRequisicao(id, chave) {
+async function gerarPdfRequisicao(id, chave, visualizar) {
 
     overlayAguarde()
 
@@ -1833,40 +1847,42 @@ async function gerarPdfRequisicao(id, chave) {
         'Valor Total'
     ]
 
-    const linhas = (
-        await Promise.all(
-            Object.entries(requisicao || {})
-                .map(async ([codigo, item]) => {
+    const linhas = []
 
-                    const { imagem, qtde_enviar, tipo, unidade, descricao, custo } = item || {}
-                    const { fabricante, modelo, omie } = await recuperarDado('dados_composicoes', codigo) || {}
+    for (const [codigo, item] of Object.entries(requisicao || {})) {
 
-                    const descricaoCompleta = Object.entries({ descricao, modelo, fabricante })
-                        .filter(([, valor]) => valor)
-                        .map(([chave, valor]) => {
-                            return `<b>${chave.toUpperCase()}</b> ${valor}`
-                        })
-                        .join('\n')
+        const { imagem, qtde_enviar = 0, tipo, unidade, descricao, custo } = item || {}
 
-                    return `
-                        <tr>
-                            <td>
-                                <img src="${imagem || logo}" style="width: 4rem;">
-                            </td>
-                            <td>${codigo}</td>
-                            <td>${omie || ''}</td>
-                            <td style="white-space: prewrap;">
-                                ${descricaoCompleta}
-                            </td>
-                            <td>${unidade || ''}</td>
-                            <td>${tipo || ''}</td>
-                            <td style="text-align: center;">${qtde_enviar || ''}</td>
-                            <td style="white-space: nowrap;">${dinheiro(custo)}</td>
-                            <td style="white-space: nowrap;">${dinheiro(custo * qtde_enviar)}</td>
-                        </tr>`
-                })
-        )
-    ).join('')
+        if (qtde_enviar < 1)
+            continue
+
+        const { fabricante, modelo, omie } = await recuperarDado('dados_composicoes', codigo) || {}
+
+        const descricaoCompleta = Object.entries({ descricao, modelo, fabricante })
+            .filter(([, valor]) => valor)
+            .map(([chave, valor]) => {
+                return `<b>${chave.toUpperCase()}</b> ${valor}`
+            })
+            .join('\n')
+
+        linhas.push(`
+            <tr>
+                <td>
+                    <img src="${imagem || logo}" style="width: 4rem;">
+                </td>
+                <td>${codigo}</td>
+                <td>${omie || ''}</td>
+                <td style="white-space: prewrap;">
+                    ${descricaoCompleta}
+                </td>
+                <td>${unidade || ''}</td>
+                <td>${tipo || ''}</td>
+                <td style="text-align: center;">${qtde_enviar || ''}</td>
+                <td style="white-space: nowrap;">${dinheiro(custo)}</td>
+                <td style="white-space: nowrap;">${dinheiro(custo * qtde_enviar)}</td>
+            </tr>`)
+    }
+
 
     const htmlContent = `
         <!DOCTYPE html>
@@ -1881,6 +1897,8 @@ async function gerarPdfRequisicao(id, chave) {
             }
 
             body {
+                overflow-x: hidden;
+                padding: 2rem;
                 font-size: 0.7rem;
                 font-family: 'Poppins', sans-serif;
                 margin: 0;
@@ -1939,20 +1957,14 @@ async function gerarPdfRequisicao(id, chave) {
                 }
             }
 
-            .logo {
-                width: 10rem;
-                position: fixed;
-                top: 1rem;
-                right: 1rem;
-            }
-
             </style>
         </head>
         <body>
 
-            <img class="logo" src="https://i.imgur.com/5zohUo8.png">
-
-            <span style="font-size: 2rem;">REQUISIÇÃO DE MATERIAIS</span>
+            <div style="${horizontal}; width: 100%; justify-content: space-between; padding: 1rem;">
+                <span style="font-size: 2rem;">REQUISIÇÃO DE MATERIAIS</span>
+                <img style="width: 10rem;" src="https://i.imgur.com/5zohUo8.png">
+            </div>
 
             <div style="${horizontal}; justify-content: start; width: 100%; gap: 2rem;">
 
@@ -1975,7 +1987,7 @@ async function gerarPdfRequisicao(id, chave) {
                     ${colunas.map(c => `<th>${c}</th>`).join('')}
                 </thead>
                 <tbody>
-                    ${linhas}
+                    ${linhas.join('')}
                 </tbody>
             </table>
 
@@ -1985,6 +1997,11 @@ async function gerarPdfRequisicao(id, chave) {
             </div>
         </body>
         </html>`
+
+    const elemento = `<div style="padding: 2rem;">${htmlContent}</div>`
+
+    if (visualizar)
+        return popup({ elemento, titulo: 'PDF' })
 
     try {
 
@@ -2005,5 +2022,6 @@ async function gerarPdfRequisicao(id, chave) {
         popup({ mensagem: err.message || 'Falha ao gerar o PDF, tente novamente ou fale com o Suporte' })
 
     }
+
 
 }
