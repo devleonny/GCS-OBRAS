@@ -945,42 +945,21 @@ function duvidas() {
 }
 
 async function salvarAnexosPagamentos(input, id) {
+
     const anexos = await importarAnexos({ input })
 
-    if (id !== undefined) {
-        let pagamento = await recuperarDado('lista_pagamentos', id);
+    const pagamento = await recuperarDado('lista_pagamentos', id)
 
-        if (!pagamento.anexos) pagamento.anexos = {};
+    pagamento.anexos ??= {}
 
-        anexos.forEach(anexo => {
-            pagamento.anexos[anexo.link] = anexo;
-            enviar(`lista_pagamentos/${id}/anexos/${anexo.link}`, anexo);
-        });
+    anexos.forEach(anexo => {
+        pagamento.anexos[anexo.link] = anexo
+        enviar(`lista_pagamentos/${id}/anexos/${anexo.link}`, anexo)
+    });
 
-        await inserirDados({ [id]: pagamento }, 'lista_pagamentos');
-        await abrirDetalhesPagamentos(id);
-
-    } else {
-
-        let ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {};
-        const anexosDiversos = document.getElementById('anexosDiversos')
-
-        if (!ultimoPagamento.anexos) ultimoPagamento.anexos = {};
-
-        anexos.forEach(anexo => {
-
-            anexosDiversos.insertAdjacentHTML('beforeend', criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoTemporario('${anexo.link}')`))
-
-            ultimoPagamento.anexos[anexo.link] = {
-                nome: anexo.nome,
-                formato: anexo.formato,
-                link: anexo.link
-            };
-        });
-
-        localStorage.setItem('ultimoPagamento', JSON.stringify(ultimoPagamento));
-
-    }
+    await inserirDados({ [id]: pagamento }, 'lista_pagamentos')
+    await abrirDetalhesPagamentos(id)
+    removerOverlay()
 
 }
 
