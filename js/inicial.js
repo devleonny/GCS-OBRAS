@@ -250,7 +250,7 @@ async function linPda(orcamento) {
     for (const t of (orcamento?.checklist?.tecnicos || pda?.tecnicos || [])) {
         const { nome } = await recuperarDado('dados_clientes', t)
         if (nome)
-            tecs.push(nome)
+            tecs.push(`<span class="etiqueta-pendente">${nome}</span>`)
     }
 
     const mod = (texto, elemento) => `
@@ -350,10 +350,10 @@ async function linPda(orcamento) {
             </div>
         </td>
         <td>
-            <div style="${horizontal}; justify-content: start; align-items: start; gap: 2px;">
+            <div style="${vertical}; gap: 2px; padding: 1rem;">
                 <img onclick="tecnicosAtivos('${idOrcamento}')" src="imagens/baixar.png" style="width: 1.5rem;">
-                <div style="${vertical}; white-space: pre-wrap;">
-                    ${tecs.join('\n')}
+                <div style="${vertical}; gap: 2px;">
+                    ${tecs.join('')}
                 </div>
             </div>
         </td>

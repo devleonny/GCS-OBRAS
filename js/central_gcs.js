@@ -1267,7 +1267,7 @@ async function painelClientes(idOrcamento) {
             <div style="${horizontal}; gap: 3px">
                 ${bloq
                     ? `<img src="imagens/proibido.png">` : ''}
-                <span ${dados_orcam.omie_cliente
+                <span ${dados_orcam?.omie_cliente
                     ? `id="${dados_orcam.omie_cliente}"`
                     : ''} 
                     class="opcoes" 

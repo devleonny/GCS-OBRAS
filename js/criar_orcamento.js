@@ -609,7 +609,7 @@ async function enviarDadosOrcamento() {
         return popup({ mensagem: 'Cliente em branco' })
 
     if (dados_orcam.contrato == '')
-        return popup({ mensagem: 'Chamado em branco' })
+        dados_orcam.contrato = 'sequencial'
 
     if (orcamentoBase.total_desconto > 0) {
         orcamentoBase.aprovacao = {
