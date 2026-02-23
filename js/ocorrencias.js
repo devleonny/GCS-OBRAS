@@ -902,7 +902,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
     const linhas = [
         {
             texto: 'Data Limite Execução',
-            elemento: `<input oninput="bloqAnterior(this)" name="dtCorrecao" type="date" value="${correcao?.dtCorrecao || ''}">`
+            elemento: `<input name="dtCorrecao" type="date" value="${correcao?.dtCorrecao || ''}">`
         },
         {
             texto: 'Status da Correção',

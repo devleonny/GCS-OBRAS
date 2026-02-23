@@ -267,7 +267,14 @@ async function criarLinhaOrcamento(orcamento) {
             tags.push(modeloTag(tag, id))
         }
 
-        let depExistente = false
+        const pesquisa = await pesquisarDB({
+            base: 'departamentos_AC',
+            filtros: {
+                'descricao': { op: '=', value: numOficial } 
+            }
+        })
+
+        const depExistente = pesquisa?.resultados?.length > 0
 
         const indicadores = []
         if (orcamento?.checklist?.andamento)
