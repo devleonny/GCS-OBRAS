@@ -4,6 +4,7 @@ const opcoesPedidos = ['Locação', 'Serviço', 'Venda', 'Venda + Serviço', 'PO
 const opcoesRequisicao = ['SERVIÇO', 'VENDA', 'USO E CONSUMO', 'LOCAÇÃO']
 const transportadoras = ['', 'JAMEF', 'CORREIOS', 'RODOVIÁRIA', 'JADLOG', 'AÉREO', 'OUTRAS']
 const permAtalhos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
+const permAltStatus = ['adm', 'diretoria']
 
 const fluxograma = [
     'SEM STATUS',
@@ -767,11 +768,7 @@ async function abrirEsquema(id) {
 
             <div style="${vertical}; gap: 2px;">
                 <label>Status atual</label>
-                <select onchange="alterarStatus('${id}', this)" style="border-radius: 3px; padding: 3px;">
-                    ${['', ...fluxograma].map(fluxo => `
-                        <option ${orcamento?.status?.atual == fluxo ? 'selected' : ''}>${fluxo}</option>
-                    `).join('')}
-                </select>
+                ${seletorStatus(orcamento)}
             </div>
  
             <img onclick="mostrarHistoricoStatus('${id}')" src="imagens/historico.png">

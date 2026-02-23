@@ -229,8 +229,7 @@ async function abrirDetalhesPagamentos(id) {
         <div style="${vertical}; gap: 2px;">
             <span><b>${texto1}</b></span>
             <div>${elemento}</div>
-        </div>
-    `
+        </div>`
 
     let valores = ''
     const permissao = acesso.permissao
@@ -238,12 +237,12 @@ async function abrirDetalhesPagamentos(id) {
     const anexos = Object.entries(pagamento?.anexos || {})
         .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoPagamento('${id}', '${idAnexo}')`))
         .join('')
+
     const btnDetalhes = (img, nome, funcao) => `
         <div class="btnDetalhes" onclick="${funcao}">
             <img src="imagens/${img}.png">
             <label style="cursor: pointer;">${nome}</label>
-        </div>
-    `
+        </div>`
 
     const historico = Object.entries(pagamento?.historico || {})
         .map(([, justificativa]) => `
@@ -258,16 +257,14 @@ async function abrirDetalhesPagamentos(id) {
             </div>`)
         .join('')
 
-    pagamento.param[0].categorias.forEach(async item => {
+    for (const item of pagamento.param[0].categorias) {
+        const nomeCategoria = (await recuperarDado('dados_categorias_AC', item.codigo_categoria))?.categoria || '...'
 
-        const nomeCategoria = await recuperarDado('dados_categorias_AC', item.codigo_categoria)?.categoria || '...'
         valores += `
-            <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
-                <label style="text-align: left;"><strong>${dinheiro(item.valor)}</strong> - ${nomeCategoria}</label>
-            </div>
-        `
-
-    })
+        <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
+            <label style="text-align: left;"><strong>${dinheiro(item.valor)}</strong> - ${nomeCategoria}</label>
+        </div>`
+    }
 
     const divValores = `
         <hr style="width: 100%;">
@@ -386,7 +383,9 @@ async function abrirDetalhesPagamentos(id) {
     `
 
     const telaDetalhes = document.querySelector('.tela-detalhes')
-    if (telaDetalhes) return telaDetalhes.innerHTML = acumulado
+    if (telaDetalhes)
+        return telaDetalhes.innerHTML = acumulado
+
     popup({ elemento: `<div class="tela-detalhes">${acumulado}</div>`, titulo: 'Detalhes do Pagamento' })
 
 }
@@ -502,17 +501,23 @@ async function salvarPagamento() {
     overlayAguarde()
 
     const resposta = await calculadoraPagamento(true) // Última verificação antes de salvar;
-    if (resposta && resposta.mensagem) return popup({ mensagem: resposta.mensagem })
+    if (resposta && resposta.mensagem)
+        return popup({ mensagem: resposta.mensagem })
 
     const ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
     const permissao = acesso.permissao
     const anexoPagamento = document.getElementById('anexoPagamento')
     const anexos = await importarAnexos({ input: anexoPagamento })
 
-    if (anexos.mensagem) return popup({ mensagem: anexos.mensagem })
-    ultimoPagamento.anexos = Object.fromEntries(
-        anexos.map(a => [a.link, a])
-    )
+    if (anexos.mensagem)
+        return popup({ mensagem: anexos.mensagem })
+
+    ultimoPagamento.anexos = {
+        ...ultimoPagamento.anexos,
+        ...Object.fromEntries(
+            anexos.map(a => [a.link, a])
+        )
+    }
 
     // Verificar se na observação contém a primeira linha "Solicitante"
     const observacao = ultimoPagamento.param[0].observacao

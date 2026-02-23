@@ -96,7 +96,7 @@ async function telaInicialGCS() {
     app = 'GCS'
 
     if (priExeGCS)
-        await atualizarGCS()
+       // await atualizarGCS()
 
     criarMenus('inicial')
 
@@ -243,29 +243,21 @@ async function tabelaPorAba({ aba = 'CONCLUÍDO', id = null }) {
 
 async function linPda(orcamento) {
 
-    const { cliente, cidade } = orcamento.snapshots
+    const { cliente, cidade, pda = {} } = orcamento.snapshots
     const idOrcamento = orcamento.id
+    const tecs = []
 
-    const st = orcamento?.status?.atual || ''
-    const opcoes = ['', ...fluxograma]
-        .map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`)
-        .join('')
-
-    const pda = orcamento.pda || {}
-    const listaTecs = orcamento?.checklist?.tecnicos || pda?.tecnicos || []
-
-    const tecs = listaTecs //29
-        .map(codTec => {
-            const cliente = {}
-            return `<div class="etiquetas" style="min-width: 100px;">${cliente?.nome || '...'}</div>`
-        }).join('')
+    for (const t of (orcamento?.checklist?.tecnicos || pda?.tecnicos || [])) {
+        const { nome } = await recuperarDado('dados_clientes', t)
+        if (nome)
+            tecs.push(nome)
+    }
 
     const mod = (texto, elemento) => `
         <div style="${vertical}; gap: 2px;">
             <span><b>${texto}:</b></span>
             ${elemento}
-        </div>
-    `
+        </div>`
 
     const strAcoes = Object.entries(pda.acoes || {})
         .map(([idAcao, dados]) => {
@@ -308,11 +300,7 @@ async function linPda(orcamento) {
             <span><b>Cidade: </b>${cidade}</span>
             <span><b>Valor: </b> ${dinheiro(orcamento?.total_geral)}</span>
 
-            ${mod('Status', `
-                <select name="status" class="etiquetas" onchange="alterarStatus('${idOrcamento}', this)">
-                    ${opcoes}
-                </select>
-                `)}
+            ${mod('Status', seletorStatus(orcamento))}
 
         </div>
     `
@@ -364,8 +352,8 @@ async function linPda(orcamento) {
         <td>
             <div style="${horizontal}; justify-content: start; align-items: start; gap: 2px;">
                 <img onclick="tecnicosAtivos('${idOrcamento}')" src="imagens/baixar.png" style="width: 1.5rem;">
-                <div style="${vertical}; gap: 2px; width: 100%;">
-                    ${tecs}
+                <div style="${vertical}; white-space: pre-wrap;">
+                    ${tecs.join('\n')}
                 </div>
             </div>
         </td>
