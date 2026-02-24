@@ -1853,23 +1853,11 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
 
     const linhas = []
 
-    for (const [codigo, item] of Object.entries(requisicao || {})) {
+    const modTR = (dados) => {
 
-        const { imagem, qtde_enviar = 0, tipo, unidade, descricao, custo } = item || {}
+        const { imagem, codigo, omie, descricaoCompleta, unidade, tipo, qtde_enviar, custo } = dados || {}
 
-        if (qtde_enviar < 1)
-            continue
-
-        const { fabricante, modelo, omie } = await recuperarDado('dados_composicoes', codigo) || {}
-
-        const descricaoCompleta = Object.entries({ descricao, modelo, fabricante })
-            .filter(([, valor]) => valor)
-            .map(([chave, valor]) => {
-                return `<b>${chave.toUpperCase()}</b> ${valor}`
-            })
-            .join('\n')
-
-        linhas.push(`
+        const tr = `
             <tr>
                 <td>
                     <img src="${imagem || logo}" style="width: 4rem;">
@@ -1884,7 +1872,34 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
                 <td style="text-align: center;">${qtde_enviar || ''}</td>
                 <td style="white-space: nowrap;">${dinheiro(custo)}</td>
                 <td style="white-space: nowrap;">${dinheiro(custo * qtde_enviar)}</td>
-            </tr>`)
+            </tr>
+        `
+
+        return tr
+    }
+
+    for (const [codigo, item] of Object.entries(requisicao || {})) {
+
+        const { qtde_enviar = 0, descricao, adicionais } = item || {}
+
+        if (qtde_enviar < 1)
+            continue
+
+        const produto = await recuperarDado('dados_composicoes', codigo) || {}
+
+        const descricaoCompleta = Object.entries({ descricao, modelo, fabricante })
+            .filter(([, valor]) => valor)
+            .map(([chave, valor]) => {
+                return `<b>${chave.toUpperCase()}</b> ${valor}`
+            })
+            .join('\n')
+
+        // Item principal;
+        linhas.push(modTR({ ...produto, descricaoCompleta, ...item }))
+
+        // Adicionais;
+
+        
     }
 
 

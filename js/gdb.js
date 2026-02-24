@@ -6,7 +6,7 @@ let dbInstance = null
 const basesAuxiliares = {
     'tags_orcamentos': { keyPath: 'id' },
     'informacoes': { keyPath: 'id' },
-    'departamentos_AC': { keyPath: 'codigo' },
+    'departamentos_AC': { keyPath: 'codigo', tipo: 'NUMBER' },
     'dados_categorias_AC': { keyPath: 'id' },
     'empresas': { keyPath: 'id' },
     'sistemas': { keyPath: 'id' },

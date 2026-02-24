@@ -468,6 +468,10 @@ async function selecionar(name, cod) {
     // Painel quando for forms; do contrário qualquer outro elemento;
     const elemento = (painel || document)?.querySelector(`[name='${name}']`)
     const termos = []
+
+    if (basesAuxiliares?.[base]?.tipo == 'NUMBER')
+        cod = Number(cod)
+
     const dado = await recuperarDado(base, cod)
 
     for (const chave of retornar) {
