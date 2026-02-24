@@ -243,7 +243,8 @@ async function tabelaPorAba({ aba = 'CONCLUÍDO', id = null }) {
 
 async function linPda(orcamento) {
 
-    const { cliente, cidade, pda = {} } = orcamento.snapshots
+    const { pda } = orcamento || {}
+    const { cliente, cidade } = orcamento.snapshots || {}
     const idOrcamento = orcamento.id
     const tecs = []
 
