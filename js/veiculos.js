@@ -409,7 +409,16 @@ async function painelValores(idCusto, duplicar) {
 
     const custo = await recuperarDado('custo_veiculos', idCusto) || {}
     const { veiculo } = custo || {}
-    const termos = [veiculo?.cartao, ...veiculo?.snapshots?.motoristas, veiculo?.placa, veiculo?.modelo]
+    const motoristas = Array.isArray(veiculo?.snapshots?.motoristas)
+        ? veiculo.snapshots.motoristas
+        : []
+
+    const termos = [
+        veiculo?.cartao,
+        ...motoristas,
+        veiculo?.placa,
+        veiculo?.modelo
+    ].filter(Boolean)
 
     const tabela = `
         <div style="${vertical}">
