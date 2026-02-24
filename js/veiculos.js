@@ -408,7 +408,8 @@ async function excluirCusto(idCusto) {
 async function painelValores(idCusto, duplicar) {
 
     const custo = await recuperarDado('custo_veiculos', idCusto) || {}
-    const { veiculo } = custo
+    const { veiculo } = custo || {}
+    const termos = [veiculo?.cartao, ...veiculo?.snapshots?.motoristas, veiculo?.placa, veiculo?.modelo]
 
     const tabela = `
         <div style="${vertical}">
@@ -453,25 +454,13 @@ async function painelValores(idCusto, duplicar) {
             ` },
         {
             texto: 'Motorista & Veículo',
-            elemento: () => {
-
-                if (!veiculo)
-                    return `
-                        <span class="opcoes" name="veiculo" onclick="cxOpcoes('veiculo')">
-                            Selecione
-                        </span>`
-
-
-                const termos = [veiculo?.cartao || '', ...veiculo?.snapshots?.motoristas, veiculo?.placa || '', veiculo?.modelo || '']
-                return `
-                    <span id="${veiculo.id}"
-                        class="opcoes"
-                        name="veiculo"
-                        onclick="cxOpcoes('veiculo')">
-                            ${termos.join('<br>')}
-                    </span>`
-
-            }
+            elemento: `
+                <span ${veiculo?.id ? `id="${veiculo?.id}"` : ''}
+                    class="opcoes"
+                    name="veiculo"
+                    onclick="cxOpcoes('veiculo')">
+                        ${veiculo?.id ? termos.join('<br>') : 'Selecionar'}
+                </span>`
         }
 
     ]

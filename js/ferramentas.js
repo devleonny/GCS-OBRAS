@@ -266,7 +266,7 @@ function conversor(stringMonetario) {
         stringMonetario = stringMonetario.trim();
         stringMonetario = stringMonetario.replace(/[^\d,]/g, '');
         stringMonetario = stringMonetario.replace(',', '.');
-        var valorNumerico = parseFloat(stringMonetario);
+        let valorNumerico = parseFloat(stringMonetario);
 
         if (isNaN(valorNumerico)) {
             return 0;
@@ -367,7 +367,7 @@ function mostrarMenus(operacao) {
         return // Quando atualizações forem recebidas;
 
     const menu = document.querySelector('.side-menu').classList
-    
+
     if (operacao == 'toggle')
         return menu.toggle('active')
 
@@ -655,4 +655,43 @@ function sincronizarApp({ atual, total, remover } = {}) {
         percentageText = document.querySelector('.circular-loader .percentage');
     }
 
+}
+
+const config = {
+  base: 'dados_orcamentos',
+  colunas: {
+    'Contrato': { chave: 'dados_orcam.contrato', formato: 'string' },
+    'Data': { chave: 'timestamp', formato: 'data' },
+    'Status': { chave: 'status.atual', formato: 'string' },
+    'Valor': { chave: 'total_geral', formato: 'currency' },
+  }
+}
+
+async function baixarRelatorioExcel(config) {
+
+    const response = await fetch(`${api}/exportar`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(config)
+    })
+
+    if (!response.ok) {
+        const erro = await response.json()
+        popup({ mensagem: erro.mensagem || 'Erro ao exportar' })
+        return
+    }
+
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'relatorio.xlsx'
+    document.body.appendChild(a)
+    a.click()
+
+    a.remove()
+    window.URL.revokeObjectURL(url)
 }
