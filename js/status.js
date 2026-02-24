@@ -873,8 +873,12 @@ async function abrirEsquema(id) {
         }).join('')
 
     const existente = await recuperarDado('dados_ocorrencias', contrato)
-    const f1 = liberado ? `unidadeOrc = '${omie_cliente}'; formularioOcorrencia()` : ''
-    const f2 = existente ? `formularioCorrecao('${contrato}')` : ''
+    const f1 = liberado
+        ? `unidadeOrc = '${omie_cliente}'; formularioOcorrencia('${contrato}')`
+        : ''
+    const f2 = existente
+        ? `formularioCorrecao('${contrato}')`
+        : ''
 
     const pChamado = `
         <div class="status-check-ocorrencias">
