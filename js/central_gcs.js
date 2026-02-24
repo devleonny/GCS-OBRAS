@@ -133,13 +133,13 @@ const esquemaBotoes = {
         { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'voltar_2' }
     ],
     orcamentos: [
-        { nome: 'Baixar em Excel', funcao: 'excelOrcamentos', img: 'excel' },
+        { nome: 'Baixar em Excel', funcao: 'baixarExcelOrcamentos', img: 'excel' },
         { nome: 'Criar Orçamento', funcao: `telaCriarOrcamento`, img: 'projeto' },
         { nome: 'Criar Orçamento Aluguel', funcao: `telaCriarOrcamentoAluguel`, img: 'projeto' },
     ],
     composicoes: [
         { nome: 'Cadastrar Item', funcao: 'cadastrarItem', img: 'baixar' },
-        { nome: 'Baixar em Excel', funcao: 'exportarParaExcel', img: 'excel' }
+        { nome: 'Baixar em Excel', funcao: 'baixarExcelComposicoes', img: 'excel' }
     ],
     chamados: [
         { nome: 'Criar Manutenção', funcao: 'criarManutencao', img: 'chamados' },

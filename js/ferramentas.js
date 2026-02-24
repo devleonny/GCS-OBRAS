@@ -657,24 +657,14 @@ function sincronizarApp({ atual, total, remover } = {}) {
 
 }
 
-const config = {
-  base: 'dados_orcamentos',
-  colunas: {
-    'Contrato': { chave: 'dados_orcam.contrato', formato: 'string' },
-    'Data': { chave: 'timestamp', formato: 'data' },
-    'Status': { chave: 'status.atual', formato: 'string' },
-    'Valor': { chave: 'total_geral', formato: 'currency' },
-  }
-}
+async function baixarRelatorioExcel(schema, nome = 'relatorio') {
 
-async function baixarRelatorioExcel(config) {
-
-    const response = await fetch(`${api}/exportar`, {
+    const response = await fetch(`${api}/excel`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(config)
+        body: JSON.stringify(schema)
     })
 
     if (!response.ok) {
@@ -688,7 +678,7 @@ async function baixarRelatorioExcel(config) {
 
     const a = document.createElement('a')
     a.href = url
-    a.download = 'relatorio.xlsx'
+    a.download = `${nome}-${Date.now()}.xlsx`
     document.body.appendChild(a)
     a.click()
 

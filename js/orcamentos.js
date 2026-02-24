@@ -44,17 +44,17 @@ async function telaOrcamentos() {
     funcaoTela = 'telaOrcamentos'
 
     const colunas = {
-        'última alteração': { chave: 'lpu_ativa' },
-        'status': { chave: 'status.atual' },
-        'pedido': { chave: 'snapshots.pedidos' },
-        'notas': { chave: 'snapshots.notas' },
-        'tags': { chave: 'snapshots.tags' },
-        'contrato': { chave: 'snapshots.contrato' },
-        'cidade': { chave: 'snapshots.cidade' },
-        'responsaveis': { chave: 'snapshots.responsavel' },
-        'indicadores': {},
-        'valor': { chave: 'snapshots.valor' },
-        'ações': {}
+        'Última alteração': { chave: 'lpu_ativa' },
+        'Status': { chave: 'status.atual' },
+        'Pedido': { chave: 'snapshots.pedidos' },
+        'Notas': { chave: 'snapshots.notas' },
+        'Tags': { chave: 'snapshots.tags' },
+        'Contrato': { chave: 'snapshots.contrato' },
+        'Cidade': { chave: 'snapshots.cidade' },
+        'Responsaveis': { chave: 'snapshots.responsavel' },
+        'Indicadores': {},
+        'Valor': { chave: 'snapshots.valor' },
+        'Ações': {}
     }
 
     const btnExtras = `<span style="color: white; cursor: pointer; white-space: nowrap;" onclick="filtroOrcamentos()">Filtros ☰</span>`
@@ -523,5 +523,108 @@ async function carregarToolbar() {
             `
         toolbar.insertAdjacentHTML('beforeend', novaTool)
     }
+
+}
+
+async function baixarExcelOrcamentos() {
+
+    const schema = {
+        table: "dados_orcamentos",
+        alias: "o",
+
+        joins: [
+            {
+                type: "LEFT",
+                table: "dados_clientes",
+                alias: "c",
+                on: `
+                    c.id = json_extract(
+                        CASE WHEN json_valid(o.dados_orcam) THEN o.dados_orcam ELSE '{}' END,
+                        '$.omie_cliente'
+                    )`
+            }
+        ],
+
+        columns: [
+            {
+                field: "c.timestamp",
+                as: "Última alteração",
+                type: "date",
+                sourceFormat: "timestamp", // timestamp | iso | iso-datetime | br
+                width: 15
+            },
+            {
+                json: {
+                    field: "o.status",
+                    path: "$.atual"
+                },
+                as: "Status",
+                width: 15
+            },
+            {
+                jsonArray: {
+                    field: "o.status",
+                    path: "$.historico",
+                    property: "pedido"
+                },
+                as: "Pedidos",
+                width: 15
+            },
+            {
+                jsonArray: {
+                    field: "o.status",
+                    path: "$.historico",
+                    property: "nf"
+                },
+                as: "Notas",
+                width: 15
+            },
+            {
+                jsonObjectJoin: {
+                    field: "o.tags",
+                    table: "tags_orcamentos",
+                    joinField: "id",
+                    selectField: "nome"
+                },
+                as: "Tags",
+                width: 15
+            },
+            {
+                json: {
+                    field: "o.dados_orcam",
+                    path: "$.contrato"
+                },
+                as: "Número Orçamento",
+                width: 15
+            },
+            {
+                json: {
+                    field: "o.dados_orcam",
+                    path: "$.chamado"
+                },
+                as: "Chamado",
+                width: 15
+            },
+            { field: "o.usuario", as: "Criado por", width: 15 },
+            { field: "c.cidade", as: "Cidade", width: 15 },
+            { field: "c.endereco", as: "Endereço", width: 15 },
+            {
+                field: "o.total_geral",
+                as: "Total Geral",
+                type: "currency",
+                width: 15
+            },
+        ],
+        filters: [
+            {
+                custom: "(o.excluido IS NULL OR o.excluido = '')"
+            }
+        ],
+        orderBy: "o.timestamp DESC"
+    }
+
+    overlayAguarde()
+    await baixarRelatorioExcel(schema, 'Orçamentos')
+    removerOverlay()
 
 }

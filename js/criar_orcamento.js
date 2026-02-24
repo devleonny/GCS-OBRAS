@@ -734,9 +734,16 @@ async function tabelaProdutosOrcamentos() {
         body: 'bodyComposicoesOrcamento'
     })
 
+    const criarItem = `
+        <div onclick="cadastrarItem()" style="${horizontal}; cursor: pointer; gap: 5px; color: white;">
+            <img src="imagens/baixar.png">
+            <span>Criar Item</span>
+        </div>`
+
     const acumulado = `
         <div style="position: relative; display: flex; justify-content: center; width: 100%; margin-top: 30px; gap: 10px;">
             ${toolbar}
+            ${permComposicoes.includes(acesso.permissao) ? criarItem : ''}
         </div>
 
         ${tabela}
@@ -1171,7 +1178,7 @@ async function totalOrcamento() {
     // Visibilidade Tabela;
     const tabelas = document.getElementById('tabelas')
     const quieto = document.querySelector('.quieto')
-    if (quieto) 
+    if (quieto)
         quieto.remove()
 
     if (Object.keys(orcamentoBase.esquema_composicoes).length == 0) {

@@ -740,7 +740,9 @@ async function calculadoraPagamento(ultimaValidacao) {
     const inputsCat = document.querySelectorAll('[name="dados_categorias_AC"]')
     for (const input of inputsCat) {
         const span = input.parentElement.nextElementSibling
-        if (ultimaValidacao && !span.id) return { mensagem: 'Não deixe Categorias em branco' }
+        if (ultimaValidacao && !span.id)
+            return popup({ mensagem: 'Não deixe Categorias em branco' })
+
         const codigo_categoria = span.id
         const valor = Number(input.value)
 

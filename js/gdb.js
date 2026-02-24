@@ -847,7 +847,10 @@ async function deletarDB(base, id) {
         const tx = db.transaction(base, 'readwrite')
         const store = tx.objectStore(base)
 
-        const key = isNaN(id) ? id : Number(id)
+        const key = basesAuxiliares?.[base]?.keyPath == 'NUMBER'
+            ? Number(id)
+            : id
+
         store.delete(key)
 
         tx.oncomplete = async () => {

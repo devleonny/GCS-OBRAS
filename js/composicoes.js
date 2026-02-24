@@ -6,7 +6,6 @@ const LPUS = [
     'lpu cf boticario',
     'lpu romagnole',
     'lpu gpa',
-    'lpu muffato',
     'lpu eas muffato'
 ]
 
@@ -17,33 +16,31 @@ async function atualizarComposicoes() {
 
 async function telaComposicoes() {
 
-    overlayAguarde()
     mostrarMenus(false)
 
     const colunas = {
-        'codigo': { chave: 'codigo' },
-        'editar': {},
-        'imagem': {},
-        'descricao': { chave: 'descricao' },
-        'agrupamento': {},
-        'omie': { chave: 'omie' },
+        'Código': { chave: 'codigo' },
+        'Editar': {},
+        'Imagem': {},
+        'Descrição': { chave: 'descricao' },
+        'Agrupamento': {},
+        'Cod Omie': { chave: 'omie' },
         'ncm': { chave: 'ncm' },
-        'tipo': { chave: 'tipo' },
-        'unidade': { chave: 'unidade' },
-        'fabricante': { chave: 'fabricante' },
-        'modelo': { chave: 'modelo' },
-        'sistema': { chave: 'sistema' },
-        'tempo': {},
-        '-': { chave: 'descricao' },
+        'Tipo': { chave: 'tipo' },
+        'Unidade': { chave: 'unidade' },
+        'Fabricante': { chave: 'fabricante' },
+        'Modelo': { chave: 'modelo' },
+        'Sistema': { chave: 'sistema' },
+        'Tempo': {},
+        'Descrição ': { chave: 'descricao' },
         ...Object.fromEntries(
-            LPUS.map(lpu => [lpu, { chave: `snapshots.${lpu}` }])
+            LPUS.map(lpu => [inicialMaiuscula(lpu), { chave: `snapshots.${lpu}` }])
         )
     }
 
-    const pag = 'composicoes'
     const tabela = modTab({
         colunas,
-        pag,
+        pag: 'composicoes',
         base: 'dados_composicoes',
         body: 'bodyComposicoes',
         criarLinha: 'criarLinhaComposicao'
@@ -52,12 +49,12 @@ async function telaComposicoes() {
     tela.innerHTML = `
         <div style="width: 95vw;">
             ${tabela}
-        </div>
-        `
-    await paginacao(pag)
+        </div>`
+
+    await paginacao()
 
     criarMenus('composicoes')
-    removerOverlay()
+
 }
 
 async function criarLinhaComposicao(produto) {
@@ -779,7 +776,7 @@ async function salvarPreco(codigo, lpu, cotacao) {
 
 }
 
-async function confirmarExclusao_item(codigo) {
+async function confirmarExclusaoItem(codigo) {
 
     const mensagem = `Tem certeza que deseja excluir este item?`
     const botoes = [
@@ -792,8 +789,8 @@ async function confirmarExclusao_item(codigo) {
 
 async function excluirItemComposicao(codigo) {
 
-    deletar(`dados_composicoes/${codigo}`)
     await deletarDB('dados_composicoes', codigo)
+    deletar(`dados_composicoes/${codigo}`)
 
 }
 
@@ -806,11 +803,12 @@ async function cadastrarItem(codigo) {
         { texto: 'Salvar', img: 'concluido', funcao }
     ]
 
-    if (codigo) botoes.push({
-        texto: 'Excluir',
-        img: 'cancel',
-        funcao: `confirmarExclusao_item('${codigo}')`
-    })
+    if (codigo)
+        botoes.push({
+            texto: 'Excluir',
+            img: 'cancel',
+            funcao: `confirmarExclusaoItem('${codigo}')`
+        })
 
     const tipos = esquemas.tipo
         .map(op => `<option ${op == produto?.tipo ? 'selected' : ''}>${op}</option>`)
@@ -1048,5 +1046,70 @@ async function confirmarAtualizarData(tabela, codigo) {
 
 
     popup({ elemento, botoes, titulo: 'Manter preço' })
+
+}
+
+
+async function baixarExcelComposicoes() {
+
+    const customs = LPUS
+        .map(lpu => {
+            return {
+                custom: `
+                CASE
+                    WHEN json_valid(c."${lpu}") = 0 THEN 0
+                    WHEN NULLIF(CAST(json_extract(c."${lpu}", '$.ativo') AS TEXT), '') IS NULL THEN 0
+                    ELSE COALESCE(
+                    json_extract(
+                        c."${lpu}",
+                        '$.historico.' || CAST(json_extract(c."${lpu}", '$.ativo') AS TEXT) || '.valor'
+                    ),
+                    0
+                    )
+                END
+                `,
+                as: lpu.toUpperCase(),
+                type: "currency"
+            }
+        })
+
+
+    const schema = {
+        table: "dados_composicoes",
+        alias: "c",
+
+        joins: [],
+
+        columns: [
+            {
+                field: "c.timestamp",
+                as: "Última alteração",
+                type: "date",
+                sourceFormat: "timestamp", // timestamp | iso | iso-datetime | br
+            },
+            { field: "c.id", as: "Código" },
+            { field: "c.descricao", as: "Descrição", width: 30 },
+            { field: "c.omie", as: "Código Omie" },
+            { field: "c.ncm", as: "ncm" },
+            { field: "c.unidade", as: "Unidade" },
+            { field: "c.fabricante", as: "Fabricante" },
+            { field: "c.modelo", as: "Modelo" },
+            { field: "c.sistema", as: "Sistema" },
+            { field: "c.tempo", as: "Tempo" },
+            ...customs
+        ],
+
+        filters: [
+            {
+                custom: "(c.excluido IS NULL OR c.excluido = '')"
+            }
+        ],
+
+        orderBy: "c.timestamp DESC"
+    }
+
+    overlayAguarde()
+    await baixarRelatorioExcel(schema, 'Composições')
+    removerOverlay()
 
 }
