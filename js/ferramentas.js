@@ -460,6 +460,9 @@ function linCxOpcoes(dado) {
 
 async function selecionar(name, cod) {
 
+    if (cod == 'null')
+        return popup({ mensagem: 'O objeto "base" em controlesCx precisa contem o próprio "id" / "codigo" / "etc"' })
+
     const { funcaoAdicional, base, retornar } = controlesCxOpcoes[name]
     const painel = document.querySelector('.painel-padrao')
 
@@ -472,22 +475,14 @@ async function selecionar(name, cod) {
 
     const baseDB = basesAuxiliares?.[base]
 
-    console.log(base);
-    
-
     if (baseDB?.tipo == 'NUMBER')
         cod = Number(cod)
 
     const dado = baseDB
         ? await recuperarDado(base, cod)
-        : base
+        : base[cod] || {}
 
     for (const chave of retornar) {
-
-        if (!baseDB) {
-            termos.push(base[chave])
-            continue
-        }
 
         const d = getByPath(dado, chave)
 

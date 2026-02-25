@@ -58,14 +58,14 @@ function aprovadoEmail(input) {
 async function painelAdicionarPedido(id, chave) {
 
     const orcamento = await recuperarDado('dados_orcamentos', id) || {}
-    const pedido = orcamento?.status?.historico?.[chave] || {}
+    const { pedido, tipo, empresa, valor, comentario } = orcamento?.status?.historico?.[chave] || {}
 
     const linhas = [
         {
             texto: 'Tipo de Pedido',
             elemento: `
                 <select id="tipo">
-                    ${opcoesPedidos.map(op => `<option ${pedido.tipo == op ? 'selected' : ''}>${op}</option>`).join('')}
+                    ${opcoesPedidos.map(op => `<option ${tipo == op ? 'selected' : ''}>${op}</option>`).join('')}
                 </select>
             `
         },
@@ -75,15 +75,23 @@ async function painelAdicionarPedido(id, chave) {
         },
         {
             texto: 'Número do Pedido',
-            elemento: `<input type="text" id="pedido" value="${pedido.pedido || ''}">`
+            elemento: `<input type="text" id="pedido" value="${pedido || ''}">`
         },
         {
             texto: 'Valor do Pedido',
-            elemento: `<input type="number" id="valor" value="${pedido?.valor || ''}">`
+            elemento: `<input type="number" id="valor" value="${valor || ''}">`
+        },
+        {
+            texto: 'Empresa a faturar',
+            elemento: `
+                <select id="empresa">
+                    ${empresas.map(e => `<option ${empresa == e ? 'selected' : ''}>${e}</option>`).join('')}
+                </select>
+            `
         },
         {
             texto: 'Comentário',
-            elemento: `<textarea rows="5" id="comentario_status">${pedido.comentario || ''}</textarea>`
+            elemento: `<textarea rows="5" id="comentario_status">${comentario || ''}</textarea>`
         }
     ]
 
@@ -109,6 +117,7 @@ async function salvarPedido(id, chave = ID5digitos()) {
     const valor = document.getElementById('valor')
     const tipo = document.getElementById('tipo')
     const pedido = document.getElementById('pedido')
+    const empresa = document.getElementById('empresa')
 
     if (valor.value == '' || tipo.value == 'Selecione' || pedido.value == '') {
 
@@ -128,6 +137,7 @@ async function salvarPedido(id, chave = ID5digitos()) {
         valor: Number(valor.value),
         tipo: tipo.value,
         pedido: pedido.value,
+        empresa: empresa.value,
         status: 'PEDIDO'
     }
 
@@ -599,7 +609,7 @@ function divPorcentagem(porcentagem) {
     `
 }
 
-function elementosEspecificos(id, chave, historico) {
+function elementosEspecificos(id, chave, historico, orcamento) {
 
     const acumulado = []
     let funcaoEditar = ''
@@ -608,11 +618,16 @@ function elementosEspecificos(id, chave, historico) {
 
     if (status == 'REQUISIÇÃO') {
 
-        const { empresa, transportadora, volumes, total_requisicao } = historico || {}
+        const { transportadora, volumes, total_requisicao, pedido } = historico || {}
+
+        const hisPedido = orcamento?.status?.historico?.[pedido] || {}
 
         funcaoEditar = `formularioRequisicao({id:'${id}', chave: '${chave}'})`
         acumulado.push(`
-            ${empresa ? labelDestaque('Empresa a faturar', empresa) : ''}
+            ${hisPedido.pedido ? labelDestaque('Nº Pedido', hisPedido.pedido) : ''}
+            ${hisPedido.tipo ? labelDestaque('Tipo', hisPedido.tipo) : ''}
+            ${hisPedido.valor ? labelDestaque('Valor', dinheiro(hisPedido.valor)) : ''}
+            ${hisPedido.empresa ? labelDestaque('Empresa a faturar', hisPedido.empresa) : ''}
             ${labelDestaque('Total Requisição', dinheiro(total_requisicao))}
             ${transportadora ? labelDestaque('Transportadora', transportadora) : ''}
             ${volumes ? labelDestaque('Volumes', volumes) : ''}
@@ -657,11 +672,11 @@ function elementosEspecificos(id, chave, historico) {
 
         acumulado.push(`
             <div style="${vertical}; gap: 2px;">
+                ${historico.empresa ? labelDestaque('Empresa a faturar', historico.empresa) : ''}
                 ${labelDestaque('Pedido', historico.pedido)}
                 ${labelDestaque('Valor', dinheiro(historico.valor))}
                 ${labelDestaque('Tipo', historico.tipo)}
-            </div>
-            `)
+            </div>`)
 
         funcaoEditar = `painelAdicionarPedido('${id}', '${chave}')`
 
@@ -758,7 +773,7 @@ async function abrirEsquema(id) {
                     ${labelDestaque('Data', historico.data)}
                     ${labelDestaque('Comentário', historico?.comentario || '')}
 
-                    ${elementosEspecificos(id, chave, historico)}
+                    ${elementosEspecificos(id, chave, historico, orcamento)}
         
                     <div class="contorno-botoes" style="background-color: ${cor}">
                         <img src="imagens/anexo2.png" style="width: 1.5rem;">
@@ -959,28 +974,29 @@ function mostrarConfirmacao(elemento) {
 async function alterarStatus(id, select) {
 
     const orcamento = await recuperarDado('dados_orcamentos', id)
-    orcamento.status ??= {}
+    if (!orcamento) return
+
+    if (typeof orcamento.status == 'string' || !orcamento.status)
+        orcamento.status = {}
+
     orcamento.status.historicoStatus ??= {}
-    const statusAnterior = orcamento.status?.atual || ''
 
+    const statusAnterior = orcamento.status.atual || ''
     const novoSt = select.value
-    if (orcamento.status?.atual == novoSt)
-        return
 
-    // perm Log tá com o seletor liberado, mas só dever alterar se for p/ Enviado ou Entregue;
-    if (acesso?.setor == 'LOGÍSTICA' && !orcamento?.snapshots?.responsavel?.includes(acesso.usuario)) {
+    if (statusAnterior === novoSt) return
 
+    if (acesso?.setor === 'LOGÍSTICA' && !orcamento?.snapshots?.responsavel?.includes(acesso.usuario)) {
         if (!statusExclusivosLog.includes(novoSt)) {
             select.value = statusAnterior
             return popup({ mensagem: '<b>Seu acesso é de Logística:</b> Altere apenas os seus orçamentos ou somente para os status ENTREGUE ou ENVIADO' })
         }
-
     }
 
     const bloq = ['REQUISIÇÃO', 'CONCLUÍDO']
 
     const temPedido = Object.values(orcamento?.status?.historico || {})
-        .some(s => s.status == 'PEDIDO')
+        .some(s => s?.status === 'PEDIDO')
 
     if (!temPedido && bloq.includes(novoSt)) {
         select.value = statusAnterior
@@ -989,34 +1005,34 @@ async function alterarStatus(id, select) {
     }
 
     const idStatus = ID5digitos()
+    const agora = Date.now()
 
     const registroStatus = {
-        data: new Date().toLocaleString(),
+        timestamp: agora,
         de: statusAnterior,
         para: novoSt,
-        usuario: acesso.usuario
+        usuario: acesso?.usuario || ''
     }
 
     orcamento.status.atual = novoSt
-    orcamento.status.historicoStatus[idStatus] = novoSt
+    orcamento.status.historicoStatus[idStatus] = registroStatus
+
     await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
 
     enviar(`dados_orcamentos/${id}/status/atual`, novoSt)
     enviar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}`, registroStatus)
 
-    if (novoSt == 'ORC PENDENTE')
+    if (novoSt === 'ORC PENDENTE')
         formularioOrcPendente(id, idStatus)
 
-    if (novoSt == 'ORC APROVADO') {
+    if (novoSt === 'ORC APROVADO') {
         formularioOrcAprovado()
         const resposta = await criarDepartamento(id)
-        if (resposta.mensagem)
-            popup({ mensagem: resposta.mensagem })
+        if (resposta?.mensagem) popup({ mensagem: resposta.mensagem })
     }
 
     const pHistorico = document.querySelector('.painel-historico')
-    if (pHistorico)
-        await abrirEsquema(id)
+    if (pHistorico) await abrirEsquema(id)
 }
 
 async function formularioOrcAprovado(id) {
@@ -1285,13 +1301,13 @@ async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
     const orcamento = await recuperarDado('dados_orcamentos', id)
     const cliente = await recuperarDado('dados_clientes', orcamento.dados_orcam.omie_cliente) || {}
     const cartao = orcamento?.status?.historico?.[chave] || {}
-    const { volumes, transportadora, empresa } = cartao
+    const { volumes, transportadora, empresa, pedido } = cartao
 
     const pedidos = Object.fromEntries(
         Object.entries(orcamento?.status?.historico || {})
             .filter(([, dados]) => dados.status == 'PEDIDO')
             .map(([chave, dados]) => {
-                return [chave, dados]
+                return [chave, { id: chave, ...dados }]
             })
     )
 
@@ -1305,21 +1321,18 @@ async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
         }
     }
 
+    const numPedido = orcamento?.status?.historico?.[pedido]?.pedido || 'Selecionar'
+
     const campos = `
         <div class="requisicao-contorno" style="width: 500px;">
             <div class="requisicao-titulo">Dados da Requisição</div>
             <div class="requisicao-dados">
 
                 <div style="${vertical}; width: 100%;">
-                    <span>Empresa a faturar</span>
-                    <span name="pedido" class="opcoes" onclick="cxOpcoes('pedido')">Selecionar</span>
-                </div>
-
-                <div style="${vertical}; width: 100%;">
-                    <span>Empresa a faturar</span>
-                    <select id="empresa">
-                        ${empresas.map(e => `<option ${empresa == e ? 'selected' : ''}>${e}</option>`).join('')}
-                    </select>
+                    <span>Número do Pedido</span>
+                    <span ${pedido ? `id="${pedido}"` : ''} name="pedido" class="opcoes" onclick="cxOpcoes('pedido')">
+                        ${numPedido}
+                    </span>
                 </div>
                 
                 <div style="${vertical}; width: 100%;">
@@ -1643,13 +1656,18 @@ async function salvarRequisicao(id, chave) {
         orcamento.status ??= {}
         orcamento.status.historico ??= {}
 
+        const pedido = document.querySelector('[name="pedido"]')?.id
+
+        if (!pedido)
+            return popup({ mensagem: 'Escolha um pedido' })
+
         orcamento.status.historico[chave] = {
             ...orcamento.status.historico[chave],
             executor: acesso.usuario,
             status: 'REQUISIÇÃO',
             data: new Date().toLocaleString(),
             comentario: document.querySelector('#comentario').value || '',
-            empresa: document.querySelector('#empresa').value || '',
+            pedido,
             volumes: document.querySelector('#volumes').value || 0,
             transportadora: document.querySelector('#transportadora').value || '',
             total_requisicao: conversor(document.querySelector('#total_requisicao').textContent),
@@ -1855,7 +1873,8 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
     overlayAguarde()
 
     const { status, dados_orcam, snapshots } = await recuperarDado('dados_orcamentos', id) || {}
-    const { requisicao, volumes, empresa, executor, transportadora, comentario, total_requisicao } = status?.historico?.[chave] || {}
+    const { requisicao, volumes, empresa, executor, pedido, transportadora, comentario, total_requisicao } = status?.historico?.[chave] || {}
+
 
     const dStatus = Object.entries({ transportadora, volumes, empresa, executor, total_requisicao })
         .filter(([, valor]) => valor)
