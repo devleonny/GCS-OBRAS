@@ -101,6 +101,6 @@ async function carregarOS(id) {
 
 async function gerarPDF(n, c) {
 
-    await pdf({ id: 'pdf', nome: `OS_${n}_${c}`, estilos: ['os'] })
+    await pdf({ id: 'pdf', nome: `OS_${n}_${c}`, estilos: ['os', 'gcsobras', 'tabelas'] })
 
 }
