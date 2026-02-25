@@ -7,6 +7,7 @@ const esquemas = {
     'categoria de equipamento': ['', 'IP', 'ANALÓGICO', 'ALARME', 'CONTROLE DE ACESSO'],
     'tipo': ['VENDA', 'SERVIÇO', 'USO E CONSUMO']
 }
+const parcelas = ["--", "15 dias", "20 dias", "30 dias", "35 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
 const empresas = ['IAC', 'AC', 'HNK']
 const permComposicoes = ['adm', 'log', 'gerente', 'diretoria', 'editor']
 let moduloComposicoes = null

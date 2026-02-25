@@ -58,7 +58,7 @@ function aprovadoEmail(input) {
 async function painelAdicionarPedido(id, chave) {
 
     const orcamento = await recuperarDado('dados_orcamentos', id) || {}
-    const { pedido, tipo, empresa, valor, comentario } = orcamento?.status?.historico?.[chave] || {}
+    const { pedido, tipo, empresa, valor, comentario, pagamento } = orcamento?.status?.historico?.[chave] || {}
 
     const linhas = [
         {
@@ -90,6 +90,14 @@ async function painelAdicionarPedido(id, chave) {
             `
         },
         {
+            texto: 'Condições de pagamento',
+            elemento: `
+            <select id="pagamento">
+                ${parcelas.map(p => `<option ${pagamento == p ? 'selected' : ''}>${p}</option>`).join('')}
+            </select>
+            `
+        },
+        {
             texto: 'Comentário',
             elemento: `<textarea rows="5" id="comentario_status">${comentario || ''}</textarea>`
         }
@@ -118,6 +126,7 @@ async function salvarPedido(id, chave = ID5digitos()) {
     const tipo = document.getElementById('tipo')
     const pedido = document.getElementById('pedido')
     const empresa = document.getElementById('empresa')
+    const pagamento = document.getElementById('pagamento')
 
     if (valor.value == '' || tipo.value == 'Selecione' || pedido.value == '') {
 
@@ -134,6 +143,7 @@ async function salvarPedido(id, chave = ID5digitos()) {
         data: new Date().toLocaleString(),
         executor: acesso.usuario,
         comentario: comentario_status.value,
+        pagamento: pagamento.value,
         valor: Number(valor.value),
         tipo: tipo.value,
         pedido: pedido.value,
@@ -673,6 +683,7 @@ function elementosEspecificos(id, chave, historico, orcamento) {
         acumulado.push(`
             <div style="${vertical}; gap: 2px;">
                 ${historico.empresa ? labelDestaque('Empresa a faturar', historico.empresa) : ''}
+                ${historico.pagamento ? labelDestaque('Pagamento', historico.pagamento) : ''}
                 ${labelDestaque('Pedido', historico.pedido)}
                 ${labelDestaque('Valor', dinheiro(historico.valor))}
                 ${labelDestaque('Tipo', historico.tipo)}
@@ -1428,7 +1439,6 @@ async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
                     ${modeloLabel('Bairro', cliente?.bairro || '')}
                     ${modeloLabel('Cidade', cliente?.cidade || '')}
                     ${modeloLabel('Chamado', orcamento.dados_orcam.contrato)}
-                    ${modeloLabel('Condições', orcamento.dados_orcam.condicoes)}
 
                 </div>
             </div>
@@ -1875,8 +1885,21 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
     const { status, dados_orcam, snapshots } = await recuperarDado('dados_orcamentos', id) || {}
     const { requisicao, volumes, empresa, executor, pedido, transportadora, comentario, total_requisicao } = status?.historico?.[chave] || {}
 
+    // Pedido vinculado;
+    const dadosPedido = status?.historico?.[pedido] || {}
 
-    const dStatus = Object.entries({ transportadora, volumes, empresa, executor, total_requisicao })
+    const dStatus = Object.entries({
+        'empresa a faturar': dadosPedido.empresa,
+        pagamento: dadosPedido.pagamento,
+        pedido: dadosPedido.pedido,
+        tipo: dadosPedido.tipo,
+        valor_pedido: dadosPedido.valor ? dinheiro(dadosPedido.valor) : null,
+        transportadora,
+        volumes,
+        empresa,
+        executor,
+        total_requisicao
+    })
         .filter(([, valor]) => valor)
         .map(([chave, valor]) => {
 
@@ -1888,6 +1911,7 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
         .join('')
 
     const { nome, cnpj, cidade, bairro, endereco, cep } = await recuperarDado('dados_clientes', dados_orcam?.omie_cliente) || {}
+
     const dCabecalho = Object.entries({ orçamento: dados_orcam?.contrato, chamado: dados_orcam?.chamado, nome, cnpj, endereco, bairro, cidade, cep })
         .filter(([, valor]) => valor)
         .map(([chave, valor]) => {
@@ -1982,7 +2006,7 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
                 margin: 0;
                 padding: 20px;
                 display: flex;
-                align-itens: start;
+                align-items: start;
                 justify-content: start;
                 flex-direction: column;
                 gap: 0.5rem;
@@ -2039,9 +2063,9 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
         </head>
         <body>
 
-            <div style="${horizontal}; width: 100%; justify-content: space-between; padding: 1rem;">
-                <span style="font-size: 2rem;">REQUISIÇÃO DE MATERIAIS</span>
-                <img style="width: 10rem;" src="https://i.imgur.com/5zohUo8.png">
+            <div style="${horizontal}; width: 100%; justify-content: space-between;">
+                <span style="font-size: 1.5rem;">REQUISIÇÃO DE MATERIAIS</span>
+                <img style="width: 7rem;" src="https://i.imgur.com/5zohUo8.png">
             </div>
 
             <div style="${horizontal}; justify-content: start; width: 100%; gap: 2rem;">

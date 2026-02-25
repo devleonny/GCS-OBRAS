@@ -1184,10 +1184,11 @@ async function painelClientes(idOrcamento) {
 
     const { dados_orcam } = orcamentoBase || {}
     const idCliente = dados_orcam?.omie_cliente
-    const bloq = orcamentoBase.hierarquia ? true : false
+    const bloq = orcamentoBase.hierarquia 
+        ? true 
+        : false
 
     const cliente = await recuperarDado('dados_clientes', idCliente)
-    const parcelas = ["--", "15 dias", "20 dias", "30 dias", "35 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
 
     const levantamentos = Object.entries(orcamentoBase?.levantamentos || {})
         .map(([idAnexo, anexo]) =>
@@ -1340,14 +1341,8 @@ async function painelClientes(idOrcamento) {
                 </div>
     
                 ${levantamentos}
-            </div>`},
-        {
-            texto: 'Pagamento',
-            elemento: `
-            <select id="condicoes">
-                ${parcelas.map(op => `<option ${dados_orcam?.condicoes == op ? 'selected' : ''}>${op}</option>`).join('')}
-            </select>
-            ` },
+            </div>`
+        },
         {
             texto: 'Garantia',
             elemento: `<input id="garantia" value="${dados_orcam?.garantia || 'Conforme tratativa Comercial'}">`
@@ -1424,7 +1419,6 @@ async function salvarDadosCliente(idOrcamento = null) {
         orcamentoBase.dados_orcam = {
             ...orcamentoBase.dados_orcam,
             omie_cliente,
-            condicoes: el('condicoes').value,
             consideracoes: String(el('consideracoes').textContent).toUpperCase(),
             data: new Date().toLocaleString('pt-BR'),
             garantia: el('garantia').value,

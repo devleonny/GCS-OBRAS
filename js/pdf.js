@@ -138,7 +138,6 @@ async function preencher() {
         'Dados da Proposta': {
             'Número do Chamado': `<div class="nome-chamado">${nomeChamado}</div>`,
             'Tipo de Frete': informacoes.tipo_de_frete,
-            'Condições de Pagamento': informacoes.condicoes,
             'Garantia': informacoes.garantia == '' ? 'Conforme tratativa Comercial' : informacoes.garantia,
             'REF': ''
         },
