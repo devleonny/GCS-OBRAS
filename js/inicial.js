@@ -260,7 +260,7 @@ async function linPda(orcamento) {
             ${elemento}
         </div>`
 
-    const strAcoes = Object.entries(pda.acoes || {})
+    const strAcoes = Object.entries(pda?.acoes || {})
         .map(([idAcao, dados]) => {
 
             const [ano, mes, dia] = dados.prazo.split('-')
@@ -313,7 +313,7 @@ async function linPda(orcamento) {
                 ${mod('Estado', `
                     <select class="etiquetas" data-campo="estado" onchange="atualizarCampo(this, '${idOrcamento}')">
                         <option></option>
-                        ${Object.keys(posicoesEstados).map(estado => `<option ${pda.estado == estado ? 'selected' : ''}>${estado}</option>`).join('')}
+                        ${Object.keys(posicoesEstados).map(estado => `<option ${pda?.estado == estado ? 'selected' : ''}>${estado}</option>`).join('')}
                     </select>
                     `)}
                 

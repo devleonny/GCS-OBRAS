@@ -470,12 +470,25 @@ async function selecionar(name, cod) {
     const elemento = (painel || document)?.querySelector(`[name='${name}']`)
     const termos = []
 
-    if (basesAuxiliares?.[base]?.tipo == 'NUMBER')
+    const baseDB = basesAuxiliares?.[base]
+
+    console.log(base);
+    
+
+    if (baseDB?.tipo == 'NUMBER')
         cod = Number(cod)
 
-    const dado = await recuperarDado(base, cod)
+    const dado = baseDB
+        ? await recuperarDado(base, cod)
+        : base
 
     for (const chave of retornar) {
+
+        if (!baseDB) {
+            termos.push(base[chave])
+            continue
+        }
+
         const d = getByPath(dado, chave)
 
         if (d ?? false) {

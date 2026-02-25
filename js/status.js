@@ -601,35 +601,39 @@ function divPorcentagem(porcentagem) {
 
 function elementosEspecificos(id, chave, historico) {
 
-    let acumulado = ''
+    const acumulado = []
     let funcaoEditar = ''
 
-    if (historico.status == 'REQUISIÇÃO') {
+    const { status } = historico || {}
+
+    if (status == 'REQUISIÇÃO') {
+
+        const { empresa, transportadora, volumes, total_requisicao } = historico || {}
 
         funcaoEditar = `formularioRequisicao({id:'${id}', chave: '${chave}'})`
-        acumulado = `
-            ${historico.empresa ? labelDestaque('Empresa a faturar', historico.empresa) : ''}
-            ${labelDestaque('Total Requisição', dinheiro(historico.total_requisicao))}
-            ${historico.transportadora ? labelDestaque('Transportadora', historico.transportadora) : ''}
-            ${historico.volumes ? labelDestaque('Volumes', historico.volumes) : ''}
+        acumulado.push(`
+            ${empresa ? labelDestaque('Empresa a faturar', empresa) : ''}
+            ${labelDestaque('Total Requisição', dinheiro(total_requisicao))}
+            ${transportadora ? labelDestaque('Transportadora', transportadora) : ''}
+            ${volumes ? labelDestaque('Volumes', volumes) : ''}
 
-            <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" 
+            <div style="background-color: ${coresST?.[status]?.cor || '#808080'}" 
                 class="contorno-botoes" onclick="gerarPdfRequisicao('${id}', '${chave}', true)">
                 <img src="imagens/pdfw.png" style="width: 1.5rem;">
                 <label>Visualizar</label>
             </div>
 
-            <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" 
+            <div style="background-color: ${coresST?.[status]?.cor || '#808080'}" 
                 class="contorno-botoes" onclick="gerarPdfRequisicao('${id}', '${chave}')">
                 <img src="imagens/pdfw.png" style="width: 1.5rem;">
                 <label>Baixar PDF</label>
-            </div>`
+            </div>`)
 
-    } else if (historico.status == 'LPU PARCEIRO') {
+    } else if (status == 'LPU PARCEIRO') {
 
         funcaoEditar = `modalLPUParceiro('${id}', '${chave}')`
 
-        acumulado = `
+        acumulado.push(`
             ${labelDestaque('Total Parceiro', dinheiro(historico?.totais?.parceiro))}
             ${labelDestaque('Magem Disponível', dinheiro(historico?.totais?.margem))}
             ${labelDestaque('Desvio', dinheiro(historico?.totais?.desvio))},
@@ -647,21 +651,21 @@ function elementosEspecificos(id, chave, historico) {
                 <img src="imagens/pdfw.png" style="width: 1.5rem;">
                 <label>Baixar PDF</label>
             </div>
-        `
+        `)
 
-    } else if (historico.status == 'PEDIDO') {
+    } else if (status == 'PEDIDO') {
 
-        acumulado = `
+        acumulado.push(`
             <div style="${vertical}; gap: 2px;">
                 ${labelDestaque('Pedido', historico.pedido)}
                 ${labelDestaque('Valor', dinheiro(historico.valor))}
                 ${labelDestaque('Tipo', historico.tipo)}
             </div>
-            `
+            `)
 
         funcaoEditar = `painelAdicionarPedido('${id}', '${chave}')`
 
-    } else if (historico.status == 'FATURADO') {
+    } else if (status == 'FATURADO') {
 
         const parcelas = (historico?.parcelas || [])
             .map(parcela => `Parcela ${parcela.nParcela} <br> ${labelDestaque(parcela.dDtVenc, dinheiro(parcela.nValor))}`)
@@ -679,33 +683,34 @@ function elementosEspecificos(id, chave, historico) {
             botaoDANFE = balaoPDF({ nf: historico.nf, codOmie, tipo, app: historico.app })
         }
 
-        acumulado = `
+        acumulado.push(`
             ${labelDestaque('Valor Total', dinheiro(historico.valor))}
             <br>
             ${botaoDANFE}
             ${parcelas}
-        `
-    } else if (historico.status.includes('MATERIAL')) {
+        `)
+
+    } else if (status.includes('MATERIAL')) {
 
         funcaoEditar = `envioMaterial('${id}', '${chave}')`
 
-        acumulado = `
+        acumulado.push(`
             ${labelDestaque('Rastreio', historico.rastreio)}
             ${labelDestaque('Transportadora', historico.transportadora)}
             ${labelDestaque('Data de Saída', conversorData(historico.data_saida))}
             ${labelDestaque('Data de Entrega', conversorData(historico.previsao))}
-        `
+        `)
     }
 
     if (funcaoEditar !== '') {
-        acumulado += `
+        acumulado.push(`
         <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" class="contorno-botoes" onclick="${funcaoEditar}">
             <img src="imagens/editar4.png" style="width: 1.5rem;">
             <label>Editar</label>
-        </div>`
+        </div>`)
     }
 
-    return acumulado
+    return acumulado.join('')
 
 }
 
@@ -1282,14 +1287,33 @@ async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
     const cartao = orcamento?.status?.historico?.[chave] || {}
     const { volumes, transportadora, empresa } = cartao
 
-    const opcoes = transportadoras
-        .map(op => `<option ${transportadora == op ? 'selected' : ''}>${op}</option>`)
-        .join('')
+    const pedidos = Object.fromEntries(
+        Object.entries(orcamento?.status?.historico || {})
+            .filter(([, dados]) => dados.status == 'PEDIDO')
+            .map(([chave, dados]) => {
+                return [chave, dados]
+            })
+    )
+
+    controlesCxOpcoes.pedido = {
+        base: pedidos,
+        retornar: ['pedido'],
+        colunas: {
+            'Pedido': { chave: 'pedido' },
+            'Tipo': { chave: 'tipo' },
+            'Valor': { chave: 'valor' },
+        }
+    }
 
     const campos = `
         <div class="requisicao-contorno" style="width: 500px;">
             <div class="requisicao-titulo">Dados da Requisição</div>
             <div class="requisicao-dados">
+
+                <div style="${vertical}; width: 100%;">
+                    <span>Empresa a faturar</span>
+                    <span name="pedido" class="opcoes" onclick="cxOpcoes('pedido')">Selecionar</span>
+                </div>
 
                 <div style="${vertical}; width: 100%;">
                     <span>Empresa a faturar</span>
@@ -1301,7 +1325,7 @@ async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
                 <div style="${vertical}; width: 100%;">
                     <span>Transportadora</span>
                     <select id="transportadora">
-                        ${opcoes}
+                        ${transportadoras.map(op => `<option ${transportadora == op ? 'selected' : ''}>${op}</option>`).join('')}
                     </select>
                 </div>
 
@@ -1409,7 +1433,7 @@ async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
 
     <div>`
 
-    popup({ elemento, cor: 'white', titulo: 'Requisição', autoDestruicao: ['requisicao'] })
+    popup({ elemento, cor: 'white', titulo: 'Requisição', autoDestruicao: ['requisicao', 'pedido'] })
 
     await paginacao()
 
