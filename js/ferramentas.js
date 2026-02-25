@@ -507,8 +507,7 @@ async function selecionar(name, cod) {
 async function pdf({ id, estilos = [], nome = 'documento', orientacao = '' }) {
 
     const htmlPdf = document.getElementById(id)
-    if (!id || !htmlPdf)
-        return
+    if (!id || !htmlPdf) return
 
     overlayAguarde()
 
@@ -522,50 +521,35 @@ async function pdf({ id, estilos = [], nome = 'documento', orientacao = '' }) {
                 <meta charset="UTF-8">
                 ${estilos}
                 <style>
-
-                    @page {
-                        size: A4 ${orientacao};
-                        margin: 10mm;
-                    }
-
-                    html, body {
-                        margin: 0;
-                        padding: 0;
-                    }
-
-                    body {
-                        font-family: 'Poppins', sans-serif;
-                        background: white;
-                    }}
-                          
-                    .topo-tabela * {
-                        visibility: hidden;
-                    }
-
-                    .div-tabela {
-                        max-height: max-content;
-                    }
-
-                    .tabela thead tr:nth-child(2) {
-                        display: none;
-                    }
-
+                    @page { size: A4 ${orientacao}; margin: 10mm; }
+                    html, body { margin: 0; padding: 0; }
+                    body { font-family: 'Poppins', sans-serif; background: white; }
+                    .topo-tabela * { visibility: hidden; }
+                    .div-tabela { max-height: max-content; }
+                    .tabela thead tr:nth-child(2) { display: none; }
                 </style>
             </head>
-            <body>
-                ${htmlPdf.outerHTML}
-            </body>
+            <body>${htmlPdf.outerHTML}</body>
         </html>`
 
     try {
-
         const response = await fetch(`${api}/pdf-vers2`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ html })
         })
+
+        if (!response.ok) {
+            let msg = 'Falha ao baixar PDF'
+            try {
+                const text = await response.text()
+                const j = JSON.parse(text)
+                msg = j?.mensagem || j?.error || text || msg
+            } catch {}
+            popup({ mensagem: msg })
+            removerOverlay()
+            return
+        }
 
         const blob = await response.blob()
         const url = URL.createObjectURL(blob)
@@ -576,12 +560,12 @@ async function pdf({ id, estilos = [], nome = 'documento', orientacao = '' }) {
         a.click()
 
         URL.revokeObjectURL(url)
-
         removerOverlay()
-    } catch (err) {
-        popup({ mensagem: err?.message || 'Seu pdf não ficou bom, o GCS não gostou, tente de novo... (Falha no GCS)' })
-    }
 
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: err?.message || 'Falha ao gerar PDF' })
+    }
 }
 
 function base64ToBlob(base64) {

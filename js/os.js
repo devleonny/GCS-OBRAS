@@ -66,23 +66,24 @@ async function carregarOS() {
     `
 
     resumoAtividade.innerHTML = `
-        ${tabela}
-        <br>
-        ${modelo('RESUMO ATIVIDADE', orcamento.dados_orcam.consideracoes)}
-        <br>
-        ${modelo('OBSERVAÇÕES DO CLIENTE')}
-        <br>
-        ${modelo('TÉCNICOS')}
+        <div id="pdf" style="${vertical}">
+            ${tabela}
+            <br>
+            ${modelo('RESUMO ATIVIDADE', orcamento.dados_orcam.consideracoes)}
+            <br>
+            ${modelo('OBSERVAÇÕES DO CLIENTE')}
+            <br>
+            ${modelo('TÉCNICOS')}
 
-        <br>
-        <br>
+            <br>
+            <br>
 
-        <label>De acordo,</label>
-        <br>
-        <br>
-        <label>___________________________________________________________________________________</label><br>
-        <label>Responsável da Loja</label>
-        
+            <label>De acordo,</label>
+            <br>
+            <br>
+            <label>___________________________________________________________________________________</label><br>
+            <label>Responsável da Loja</label>
+        </div>
     `
 
     dados.innerHTML = acumulado
@@ -91,10 +92,6 @@ async function carregarOS() {
 
 async function gerarPDF() {
 
-    const botoesSuperior = document.querySelector('.botoesSuperior')
-    if (botoesSuperior) botoesSuperior.style.display = 'none'
+    await irPdf({ id: 'pdf', estilos: ['os', 'estilo'], nome: nomeChamado })
 
-    await gerarPdfOnline(document.documentElement.outerHTML, `OS_${nomeCliente}_${chamado}`);
-
-    if (botoesSuperior) botoesSuperior.style.display = ''
 }

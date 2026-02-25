@@ -196,7 +196,7 @@ async function criarLinhaOrcamento(orcamento) {
             .join('')
 
         const notas = Object.values(orcamento?.status?.historico || {})
-            .filter(s => s?.status == 'FATURADO')
+            .filter(s => s?.status == 'FATURADO' && s?.tipo !== 'Remessa')
             .map(s => {
 
                 const label = `

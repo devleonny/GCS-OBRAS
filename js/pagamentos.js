@@ -506,7 +506,9 @@ async function salvarPagamento() {
 
     const ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
     const permissao = acesso.permissao
-    const anexoPagamento = document.getElementById('anexoPagamento')
+    const painel = document.querySelector('.painel-padrao')
+    const anexoPagamento = painel.getElementById('anexoPagamento')
+
     const anexos = await importarAnexos({ input: anexoPagamento })
 
     if (anexos.mensagem)
@@ -653,7 +655,7 @@ async function formularioPagamento() {
         { texto: 'Recomeçar', img: 'cancel', funcao: 'apagarPagamento()' }
     ]
 
-    popup({ linhas, botoes, titulo: 'Solicitação de Pagamento', nra: false })
+    popup({ linhas, botoes, titulo: 'Solicitação de Pagamento' })
 
     // Categorias;
     for (const categoria of categorias)
