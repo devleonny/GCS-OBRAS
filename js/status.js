@@ -1314,7 +1314,7 @@ async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
     const colunas = {
         'Imagem': {},
         'Cod GCS': { chave: 'codigo' },
-        'Cod OMIE': {},
+        'Cod OMIE': { chave: 'omie' },
         'Informações do Item': { chave: 'descricao' },
         'Tipo': { chave: 'tipo' },
         'Quantidade': {},
@@ -1531,7 +1531,7 @@ async function salvarAdicionais(codigo) {
         const comentario = tds[2].querySelector('textarea')?.value || ''
 
         acc[cod] = {
-            codigo: cod,
+            codigo: span.id,
             descricao: span.textContent,
             qtde,
             comentario
@@ -1821,15 +1821,18 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
     overlayAguarde()
 
     const { status, dados_orcam, snapshots } = await recuperarDado('dados_orcamentos', id) || {}
+    const { requisicao, volumes, empresa, executor, transportadora, comentario, total_requisicao } = status?.historico?.[chave] || {}
 
-    const { requisicao, volumes, empresa, executor, transportadora, comentario } = status?.historico?.[chave] || {}
-    const dStatus = Object.entries({ transportadora, volumes, empresa, executor })
+    const dStatus = Object.entries({ transportadora, volumes, empresa, executor, total_requisicao })
         .filter(([, valor]) => valor)
         .map(([chave, valor]) => {
-            return `<span><b>${chave.toUpperCase()}</b> ${valor}</span>`
+
+            if (chave == 'total_requisicao')
+                valor = dinheiro(valor)
+
+            return `<span><b>${inicialMaiuscula(chave)}</b> ${valor}</span>`
         })
         .join('')
-
 
     const { nome, cnpj, cidade, bairro, endereco, cep } = await recuperarDado('dados_clientes', dados_orcam?.omie_cliente) || {}
     const dCabecalho = Object.entries({ nome, cnpj, endereco, bairro, cidade, cep })
@@ -1855,7 +1858,14 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
 
     const modTR = (dados) => {
 
-        const { imagem, codigo, omie, descricaoCompleta, unidade, tipo, qtde_enviar, custo } = dados || {}
+        const { imagem, codigo, omie, descricao, modelo, fabricante, unidade, tipo, qtde_enviar = 0, custo = 0 } = dados || {}
+
+        const descFinal = Object.entries({ descricao, modelo, fabricante })
+            .filter(([, valor]) => valor)
+            .map(([chave, valor]) => {
+                return `<span><b>${chave.toUpperCase()}</b> ${valor}</span>`
+            })
+            .join('')
 
         const tr = `
             <tr>
@@ -1864,11 +1874,13 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
                 </td>
                 <td>${codigo}</td>
                 <td>${omie || ''}</td>
-                <td style="white-space: prewrap;">
-                    ${descricaoCompleta}
+                <td>
+                    <div style="${vertical}">
+                        ${descFinal}
+                    </div>
                 </td>
                 <td>${unidade || ''}</td>
-                <td>${tipo || ''}</td>
+                <td>${tipo || 'ADICIONAL'}</td>
                 <td style="text-align: center;">${qtde_enviar || ''}</td>
                 <td style="white-space: nowrap;">${dinheiro(custo)}</td>
                 <td style="white-space: nowrap;">${dinheiro(custo * qtde_enviar)}</td>
@@ -1880,28 +1892,22 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
 
     for (const [codigo, item] of Object.entries(requisicao || {})) {
 
-        const { qtde_enviar = 0, descricao, adicionais } = item || {}
+        const { qtde_enviar = 0, adicionais } = item || {}
 
         if (qtde_enviar < 1)
             continue
 
         const produto = await recuperarDado('dados_composicoes', codigo) || {}
 
-        const descricaoCompleta = Object.entries({ descricao, modelo, fabricante })
-            .filter(([, valor]) => valor)
-            .map(([chave, valor]) => {
-                return `<b>${chave.toUpperCase()}</b> ${valor}`
-            })
-            .join('\n')
+        // Item principal || a "descrição" final sobrepõe a do item;
+        linhas.push(modTR({ ...produto, ...item }))
 
-        // Item principal;
-        linhas.push(modTR({ ...produto, descricaoCompleta, ...item }))
+        // Adicionais qtde nele é equivalente ao qtde_enviar do Item principal;
+        for (const adicional of Object.values(adicionais || {})) {
+            linhas.push(modTR({ codigo: produto.codigo, qtde_enviar: adicional.qtde, ...adicional }))
+        }
 
-        // Adicionais;
-
-        
     }
-
 
     const htmlContent = `
         <!DOCTYPE html>
