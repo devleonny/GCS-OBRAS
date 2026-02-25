@@ -846,8 +846,8 @@ async function deletarDB(base, id) {
 
         const tx = db.transaction(base, 'readwrite')
         const store = tx.objectStore(base)
-
-        const key = basesAuxiliares?.[base]?.keyPath == 'NUMBER'
+        
+        const key = basesAuxiliares?.[base]?.tipo == 'NUMBER'
             ? Number(id)
             : id
 
