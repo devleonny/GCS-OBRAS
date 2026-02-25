@@ -274,7 +274,7 @@ async function abrirAtalhos(id, idMaster) {
         ${modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`)}
         ${modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)}
         ${modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`)}
-        ${modeloBotoes('LG', 'OS em PDF', `abrirOS('${id}')`)}
+        ${modeloBotoes('LG', 'OS em PDF', `carregarOS('${id}')`)}
         ${modeloBotoes('alerta', 'Definir Prioridade', `formularioOrcAprovado('${id}')`)}
         ${idMaster
                 ? modeloBotoes('exclamacao', 'Desvincular Orçamento', `confirmarRemoverVinculo('${id}', '${idMaster}')`)
@@ -393,14 +393,6 @@ async function mudarNumORC(id) {
     }
 
     removerOverlay()
-
-}
-
-async function abrirOS(idOrcamento) {
-
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-    localStorage.setItem('pdf', JSON.stringify(orcamento))
-    window.open('os.html', '_blank')
 
 }
 
