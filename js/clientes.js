@@ -39,33 +39,9 @@ const tagCliente = (nome, ativarRemover = false) => {
         </div>`
 }
 
-function checksCliente(inputM) {
-    const inputs = document.querySelectorAll('[name="empresa"]')
-
-    for (const input of inputs) {
-        const tr = input.closest('tr')
-        if (tr.style.display == 'none') continue
-
-        input.checked = inputM.checked
-    }
-}
-
 async function classificarUnidades() {
 
-    const inputs = document.querySelectorAll('[name="empresa"]')
-    unidades = []
-
-    for (const input of inputs) {
-        const tr = input.closest('tr')
-        if (tr.style.display == 'none') continue
-        if (!input.checked) continue
-
-        const id = input.dataset.id
-        const nome = input.dataset.nome
-        unidades.push({ id, nome })
-    }
-
-    if (unidades.length == 0)
+    if (Object.keys(controles.clientes.cp).length == 0)
         return popup({ mensagem: 'Marque pelo menos 1 unidade' })
 
     const empresas = await pesquisarDB({
@@ -87,7 +63,7 @@ async function classificarUnidades() {
                     <option value=""></option>
                     ${opcoes}
                 </select>
-                ${unidades.map(u => `<span style="text-align: left; max-width: 30rem;">• ${u.nome}</span>`).join('')}
+                ${Object.entries(controles.clientes.cp || {}).map(([, u]) => `<span style="text-align: left; max-width: 30rem;">• ${u}</span>`).join('')}
             </div>
             `
         }
@@ -108,6 +84,11 @@ async function vincularEmpresas() {
     const selectEmp = document.getElementById('selectEmp')
     if (!selectEmp) return
 
+    const unidades = Object.entries(controles?.clientes?.cp || {})
+        .map(([id, nome]) => {
+            return { id, nome }
+        })
+
     const response = await fetch(`${api}/vincular-empresas`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -120,8 +101,9 @@ async function vincularEmpresas() {
         if (data.mensagem)
             return popup({ mensagem: data.mensagem })
 
+        controles.clientes.cp = {}
+        
         await sincronizarDados({ base: 'dados_clientes' })
-        await telaClientes()
         removerPopup()
 
     } catch (err) {
@@ -150,8 +132,8 @@ async function telaClientes() {
             <input onclick="checksCliente(this)" style="width: 1.5rem; height: 1.5rem;" type="checkbox">
             <img src="imagens/trocar.png" onclick="classificarUnidades()">
             <img src="imagens/baixar.png" onclick="formularioCliente()">
-        </div>
-    `
+        </div>`
+
     const pag = 'clientes'
     const tabela = modTab({
         pag,
@@ -171,7 +153,6 @@ async function telaClientes() {
 
     if (app == 'GCS')
         criarMenus('clientes')
-
 
 }
 
@@ -201,11 +182,13 @@ function criarLinhaClienteGCS(cliente) {
 
     const tds = `
         <td>
-            <input 
-            data-id="${idCliente}" 
-            data-nome="${nome}" 
-            type="checkbox" 
-            style="width: 1.5rem; height: 1.5rem;" 
+            <input
+            onchange="checkPoint(this)"
+            data-id="${idCliente}"
+            data-nome="${nome}"
+            type="checkbox"
+            ${controles?.clientes?.cp?.[idCliente] ? 'checked' : ''}
+            style="width: 1.5rem; height: 1.5rem;"
             name="empresa">
         </td>
         <td style="white-space: nowrap;">${cnpj || ''}</td>
@@ -225,6 +208,31 @@ function criarLinhaClienteGCS(cliente) {
     return `<tr>${tds}</tr>`
 
 }
+
+function checkPoint(input) {
+
+    const codCliente = input.dataset.id
+
+    controles.clientes.cp ??= {}
+
+    if (input.checked)
+        controles.clientes.cp[codCliente] = input.dataset.nome
+    else
+        delete controles.clientes.cp[codCliente]
+
+}
+
+function checksCliente(inputM) {
+    const inputs = document.querySelectorAll('[name="empresa"]')
+
+    for (const input of inputs) {
+
+        input.checked = inputM.checked
+        checkPoint(input)
+
+    }
+}
+
 function adicionarTag() {
     const painel = document.querySelector('.painel-padrao')
 
