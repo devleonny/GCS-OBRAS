@@ -7,6 +7,7 @@ const esquemas = {
     'categoria de equipamento': ['', 'IP', 'ANALÓGICO', 'ALARME', 'CONTROLE DE ACESSO'],
     'tipo': ['VENDA', 'SERVIÇO', 'USO E CONSUMO']
 }
+const empresas = ['IAC', 'AC', 'HNK']
 const permComposicoes = ['adm', 'log', 'gerente', 'diretoria', 'editor']
 let moduloComposicoes = null
 const permCham = ['técnico', 'cliente', 'visitante']

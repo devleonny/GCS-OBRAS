@@ -624,7 +624,7 @@ async function formularioPagamento() {
             texto: '<span style="padding-right: 2rem;"><b>IAC</b> Apenas reembolso para funcionário</span>',
             elemento: `
                 <select name="app" onchange="calculadoraPagamento()">
-                    ${['IAC', 'AC', 'HNK'].map(op => `<option ${ulP?.app == op ? 'selected' : ''}>${op}</option>`).join('')}
+                    ${empresas.map(op => `<option ${ulP?.app == op ? 'selected' : ''}>${op}</option>`).join('')}
                 </select>
             `
         },

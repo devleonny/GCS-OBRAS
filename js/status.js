@@ -608,6 +608,7 @@ function elementosEspecificos(id, chave, historico) {
 
         funcaoEditar = `formularioRequisicao({id:'${id}', chave: '${chave}'})`
         acumulado = `
+            ${historico.empresa ? labelDestaque('Empresa a faturar', historico.empresa) : ''}
             ${labelDestaque('Total Requisição', dinheiro(historico.total_requisicao))}
             ${historico.transportadora ? labelDestaque('Transportadora', historico.transportadora) : ''}
             ${historico.volumes ? labelDestaque('Volumes', historico.volumes) : ''}
@@ -1279,17 +1280,26 @@ async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
     const orcamento = await recuperarDado('dados_orcamentos', id)
     const cliente = await recuperarDado('dados_clientes', orcamento.dados_orcam.omie_cliente) || {}
     const cartao = orcamento?.status?.historico?.[chave] || {}
+    const { volumes, transportadora, empresa } = cartao
 
     const opcoes = transportadoras
-        .map(op => `<option ${cartao?.transportadora == op ? 'selected' : ''}>${op}</option>`)
+        .map(op => `<option ${transportadora == op ? 'selected' : ''}>${op}</option>`)
         .join('')
 
     const campos = `
         <div class="requisicao-contorno" style="width: 500px;">
             <div class="requisicao-titulo">Dados da Requisição</div>
             <div class="requisicao-dados">
+
+                <div style="${vertical}; width: 100%;">
+                    <span>Empresa a faturar</span>
+                    <select id="empresa">
+                        ${empresas.map(e => `<option ${empresa == e ? 'selected' : ''}>${e}</option>`).join('')}
+                    </select>
+                </div>
                 
                 <div style="${vertical}; width: 100%;">
+                    <span>Transportadora</span>
                     <select id="transportadora">
                         ${opcoes}
                     </select>
@@ -1297,7 +1307,7 @@ async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
 
                 <div style="${vertical}; width: 100%;">
                     <span>Volumes</span>
-                    <input value="${cartao?.volumes || ''}" id="volumes" type="number">
+                    <input value="${volumes || ''}" id="volumes" type="number">
                 </div>
 
                 <div style="${vertical}; width: 100%;">
@@ -1314,7 +1324,7 @@ async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
     const colunas = {
         'Imagem': {},
         'Cod GCS': { chave: 'codigo' },
-        'Cod OMIE': { chave: 'omie' },
+        'Cod OMIE': {},
         'Informações do Item': { chave: 'descricao' },
         'Tipo': { chave: 'tipo' },
         'Quantidade': {},
@@ -1466,7 +1476,7 @@ async function criarLinhaRequisicao(item) {
                         <td></td>
                         <td>${a.descricao}</td>
                         <td>ITEM ADICIONAL</td>
-                        <td>${a.qtde}</td>
+                        <td style="text-align: center;">${a.qtde}</td>
                         <td colspan="3">${a.comentario}</td>
                     </tr>
                 `
@@ -1531,7 +1541,6 @@ async function salvarAdicionais(codigo) {
         const comentario = tds[2].querySelector('textarea')?.value || ''
 
         acc[cod] = {
-            codigo: span.id,
             descricao: span.textContent,
             qtde,
             comentario
@@ -1616,6 +1625,7 @@ async function salvarRequisicao(id, chave) {
             status: 'REQUISIÇÃO',
             data: new Date().toLocaleString(),
             comentario: document.querySelector('#comentario').value || '',
+            empresa: document.querySelector('#empresa').value || '',
             volumes: document.querySelector('#volumes').value || 0,
             transportadora: document.querySelector('#transportadora').value || '',
             total_requisicao: conversor(document.querySelector('#total_requisicao').textContent),
@@ -1835,10 +1845,10 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
         .join('')
 
     const { nome, cnpj, cidade, bairro, endereco, cep } = await recuperarDado('dados_clientes', dados_orcam?.omie_cliente) || {}
-    const dCabecalho = Object.entries({ nome, cnpj, endereco, bairro, cidade, cep })
+    const dCabecalho = Object.entries({ orçamento: dados_orcam?.contrato, chamado: dados_orcam?.chamado, nome, cnpj, endereco, bairro, cidade, cep })
         .filter(([, valor]) => valor)
         .map(([chave, valor]) => {
-            return `<span><b>${chave.toUpperCase()}</b> ${valor}</span>`
+            return `<span><b>${inicialMaiuscula(chave)}</b> ${valor}</span>`
         })
         .join('')
 
@@ -1904,7 +1914,7 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
 
         // Adicionais qtde nele é equivalente ao qtde_enviar do Item principal;
         for (const adicional of Object.values(adicionais || {})) {
-            linhas.push(modTR({ codigo: produto.codigo, qtde_enviar: adicional.qtde, ...adicional }))
+            linhas.push(modTR({ qtde_enviar: adicional.qtde, ...adicional, codigo: produto.codigo }))
         }
 
     }
@@ -2006,6 +2016,8 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
                 </div>
 
             </div>
+
+            <br>
             
             <table class="tabela">
                 <thead>
