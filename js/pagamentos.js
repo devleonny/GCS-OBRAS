@@ -506,8 +506,7 @@ async function salvarPagamento() {
 
     const ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
     const permissao = acesso.permissao
-    const painel = document.querySelector('.painel-padrao')
-    const anexoPagamento = painel.getElementById('anexoPagamento')
+    const anexoPagamento = document.getElementById('aPagamentos')
 
     const anexos = await importarAnexos({ input: anexoPagamento })
 
@@ -547,6 +546,10 @@ async function salvarPagamento() {
         await enviar(`lista_pagamentos/${ultimoPagamento.id}`, ultimoPagamento)
         await inserirDados({ [ultimoPagamento.id]: ultimoPagamento }, 'lista_pagamentos')
         localStorage.removeItem('ultimoPagamento')
+
+        removerPopup(null, false) // Remove tudo;
+        await abrirDetalhesPagamentos(ultimoPagamento.id)
+        
         popup({ imagem: 'imagens/concluido.png', tempo: 5, mensagem: 'Pagamento Salvo' })
 
     } catch (e) {
@@ -639,7 +642,7 @@ async function formularioPagamento() {
             elemento: `
                 <div style="${vertical}; align-items: end;">
 
-                    <input type="file" id="anexoPagamento" multiple>
+                    <input type="file" id="aPagamentos" multiple>
 
                     <div id="anexosDiversos" style="${vertical}; gap: 2px;">
                         ${Object.values(ulP.anexos || {}).map(anexo => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoTemporario('${anexo.link}')`)).join('')}
