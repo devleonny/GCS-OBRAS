@@ -367,9 +367,6 @@ function visibilidadeFiltros(painel, mostrar) {
 
 async function telaOcorrencias() {
 
-    if (app == 'GCS')
-        return await telaInicialGCS()
-
     mostrarMenus(false)
 
     const empresaAtiva = await recuperarDado('empresas', acesso?.empresa)
@@ -1031,9 +1028,13 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
 
     const geoPermitido = localStorage.getItem('geo_permitido') === '1'
 
-    const local = geoPermitido ? await capturarLocalizacao() : { latitude: null, longitude: null }
+    const local = geoPermitido
+        ? await capturarLocalizacao()
+        : { latitude: null, longitude: null }
 
-    if (!correcao.datas) correcao.datas = {}
+    if (!correcao.datas)
+        correcao.datas = {}
+
     const data = new Date().getTime()
     correcao.datas[data] = {
         latitude: local.latitude,

@@ -102,9 +102,6 @@ async function irGCS() {
 
 async function telaInicialOcorrencias() {
 
-    localStorage.setItem('app', 'OCORRÊNCIAS')
-    app = 'OCORRÊNCIAS'
-
     atribuirVariaveis()
 
     cUsuario.style.display = 'none'

@@ -27,11 +27,9 @@ let pExecucao = true
 let telaAtiva = null
 let funcaoAtiva = null
 let funcaoTela = null
-const paginasBloqueadas = ['PDF', 'OS']
 let sOverlay = false
 let ignorarMenus = false
 let controlesCxOpcoes = {}
-let app = null
 const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
 
 const appBases = {

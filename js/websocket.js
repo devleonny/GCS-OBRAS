@@ -82,8 +82,6 @@ function msgStatus(msg, s = 2) {
 
 async function comunicacao() {
 
-    app = localStorage.getItem('app') || 'OCORRÊNCIAS'
-
     socket.onmessage = async (event) => {
 
         const data = JSON.parse(event.data)
@@ -100,38 +98,23 @@ async function comunicacao() {
 
         if (validado) {
 
-            app = localStorage.getItem('app') || 'OCORRÊNCIAS'
-
             if (validado == 'Sim') {
 
                 msgStatus('Acesso sem alterações')
-
-                if (!telaAtiva) {
-                    if (app == 'GCS')
-                        await telaInicialGCS()
-                    else
-                        await telaInicialOcorrencias()
-                }
-
+                await telaInicialGCS()
+        
             } else {
 
-                if (app == 'GCS') {
+                overlayAguarde()
+                msgStatus('Offline', 3)
+                msgStatus('Alteração no acesso recebida...')
 
-                    await telaInicialGCS()
+                await atualizarGCS(true)
+                await telaInicialGCS()
 
-                } else {
+                msg({ tipo: 'confirmado', usuario: acesso.usuario })
+                msgStatus('Tudo certo', 1)
 
-                    overlayAguarde()
-                    msgStatus('Offline', 3)
-                    msgStatus('Alteração no acesso recebida...')
-
-                    await atualizarGCS(true)
-                    await telaInicialOcorrencias()
-
-                    msg({ tipo: 'confirmado', usuario: acesso.usuario })
-                    msgStatus('Tudo certo', 1)
-
-                }
             }
 
             await usuariosToolbar()

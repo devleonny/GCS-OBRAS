@@ -92,11 +92,12 @@ async function telaInicialGCS() {
 
     toolbar.style.display = 'flex'
     titulo.textContent = 'GCS'
-    localStorage.setItem('app', 'GCS')
-    app = 'GCS'
 
     if (priExeGCS)
         await atualizarGCS()
+
+    if (acesso.permissao == 'cliente' || acesso.permissao == 'técnico')
+        return await telaInicialOcorrencias()
 
     criarMenus('inicial')
 

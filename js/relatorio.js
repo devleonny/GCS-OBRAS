@@ -67,7 +67,7 @@ async function telaRelatorio() {
                 <div class="toolbar-itens">
                     <div style="${vertical}; gap: 0.5rem;">
                         <span>Data de abertura</span>
-                        <!--<span onclick="baixarExcelRelatorioOcorrencias()" style="cursor: pointer;"><u>Baixar em Excel</u></span>-->
+                        <span onclick="baixarExcelRelatorioOcorrencias()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
                     </div>
 
                     <div style="${vertical}; gap: 0.5rem;">
@@ -389,15 +389,15 @@ async function baixarExcelRelatorioOcorrencias() {
         joins: [
             {
                 type: "LEFT",
-                table: "empresas",
-                alias: "e",
-                on: `e.id = o.empresa`
-            },
-            {
-                type: "LEFT",
                 table: "dados_clientes",
                 alias: "c",
                 on: `c.id = o.unidade`
+            },
+            {
+                type: "LEFT",
+                table: "empresas",
+                alias: "e",
+                on: `e.id = c.empresa`
             },
             {
                 type: "LEFT",
@@ -415,17 +415,54 @@ async function baixarExcelRelatorioOcorrencias() {
         columns: [
             { field: "e.nome", as: "Empresa" },
             { field: "o.id", as: "Chamado" },
-            { 
-                field: "o.dataRegistro", 
-                as: "Data Abertura",
-                type: 'date',
-                sourceFormat: 'br'
+            {
+                custom: `
+                CASE
+                WHEN NOT json_valid(o.correcoes) THEN 'Não analisada'
+                ELSE COALESCE(
+
+                    -- 1) se existir WRuo2 em qualquer item, retorna ele
+                    (
+                    SELECT cr.nome
+                    FROM json_each(o.correcoes) je
+                    LEFT JOIN correcoes cr
+                        ON cr.id = trim(json_extract(je.value, '$.tipoCorrecao'))
+                    WHERE trim(json_extract(je.value, '$.tipoCorrecao')) = 'WRuo2'
+                    LIMIT 1
+                    ),
+
+                    -- 2) senão, retorna a última correção por data (dd/mm/aaaa)
+                    (
+                    SELECT cr.nome
+                    FROM json_each(o.correcoes) je
+                    LEFT JOIN correcoes cr
+                        ON cr.id = trim(json_extract(je.value, '$.tipoCorrecao'))
+                    WHERE json_extract(je.value, '$.data') IS NOT NULL
+                        AND trim(json_extract(je.value, '$.data')) <> ''
+                    ORDER BY date(
+                        substr(json_extract(je.value, '$.data'), 7, 4) || '-' ||
+                        substr(json_extract(je.value, '$.data'), 4, 2) || '-' ||
+                        substr(json_extract(je.value, '$.data'), 1, 2)
+                    ) DESC
+                    LIMIT 1
+                    ),
+
+                    -- 3) fallback
+                    'Não analisada'
+                )
+                END
+            `,
+                as: "Status Correção"
             },
             { field: "o.descricao", as: "Descrição da Ocorrência" },
             { field: "o.usuario", as: "Solicitante" },
-            { 
-                field: "o.correcoes.*.executor", 
-                as: "Executores" 
+            {
+                jsonArray: {
+                    field: "o.correcoes",
+                    path: "$",
+                    property: "executor"
+                },
+                as: "Executores",
             },
             { field: "c.nome", as: "Loja" },
             { field: "c.cidade", as: "Cidade" },
@@ -441,8 +478,16 @@ async function baixarExcelRelatorioOcorrencias() {
         orderBy: "o.timestamp DESC"
     }
 
+    if (acesso.permissao === 'cliente') {
+        schema.filters.push({
+            field: "c.empresa",
+            op: "=",
+            value: acesso.empresa
+        })
+    }
+
     overlayAguarde()
-    await baixarRelatorioExcel(schema, 'Orçamentos')
+    await baixarRelatorioExcel(schema, 'Ocorrências')
     removerOverlay()
 
 }

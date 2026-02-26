@@ -104,10 +104,6 @@ async function acessoLogin() {
 
                 acesso = data
                 priExeGCS = true
-                app = permCham.includes(acesso.permissao)
-                    ? 'OCORRÊNCIAS'
-                    : 'GCS'
-                localStorage.setItem('app', app)
                 localStorage.setItem('acesso', JSON.stringify(data))
 
                 connectWebSocket()
