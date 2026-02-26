@@ -321,7 +321,7 @@ async function telaRelatorioCorrecoes() {
                 <div class="toolbar-itens">
                     <div style="${vertical}; gap: 0.5rem;">
                         <span>Data de abertura</span>
-                        <span onclick="paraExcel()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
+                        <!--<span onclick="paraExcel()" style="cursor: pointer;"><u>Baixar em Excel</u></span>-->
                     </div>
 
                     <div style="${vertical}; gap: 0.5rem;">
