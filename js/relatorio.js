@@ -596,6 +596,14 @@ async function baixarExcelRelatorioCorrecoes() {
         orderBy: "o.timestamp DESC"
     }
 
+    if (acesso.permissao === 'cliente') {
+        schema.filters.push({
+            field: "c.empresa",
+            op: "=",
+            value: acesso.empresa
+        })
+    }
+
     overlayAguarde()
     await baixarRelatorioExcel(schema, 'Correções')
     removerOverlay()
