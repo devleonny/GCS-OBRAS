@@ -417,6 +417,13 @@ async function gerarPDF() {
     const contrato = orcamentoBase.dados_orcam.contrato
     const nomeCliente = cliente?.nome || new Date().getTime()
 
+    const divDescontoAcrescimo = document.getElementById(`total_DIFERENÇA`)
+    if (divDescontoAcrescimo)
+        divDescontoAcrescimo.style.display = 'none'
+
     await pdf({ id: 'container', estilos: ['pdf'], nome: `Orcamento_${nomeCliente}_${contrato}` })
+
+    if (divDescontoAcrescimo)
+        divDescontoAcrescimo.style.display = 'flex'
 
 }
