@@ -102,7 +102,7 @@ async function vincularEmpresas() {
             return popup({ mensagem: data.mensagem })
 
         controles.clientes.cp = {}
-        
+
         await sincronizarDados({ base: 'dados_clientes' })
         removerPopup()
 
@@ -134,9 +134,8 @@ async function telaClientes() {
             <img src="imagens/baixar.png" onclick="formularioCliente()">
         </div>`
 
-    const pag = 'clientes'
     const tabela = modTab({
-        pag,
+        pag: 'clientes',
         colunas,
         body: 'bodyClientes',
         btnExtras,
@@ -151,8 +150,7 @@ async function telaClientes() {
 
     await paginacao()
 
-    if (app == 'GCS')
-        criarMenus('clientes')
+    criarMenus('clientes')
 
 }
 

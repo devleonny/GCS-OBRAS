@@ -74,10 +74,12 @@ function criarAtalhoMenu({ nome, img, funcao }) {
 
 async function executar(nomeFuncao) {
 
-    if (!nomeFuncao) return
+    if (!nomeFuncao)
+        return
 
     // É a função que carrega a tela atual;
-    if (nomeFuncao.includes('tela')) funcaoTela = nomeFuncao
+    if (nomeFuncao.includes('tela'))
+        funcaoTela = nomeFuncao
 
     funcaoAtiva = nomeFuncao
 
@@ -166,6 +168,7 @@ const esquemaBotoes = {
         { nome: 'Incluir Documento', funcao: 'incluirDocumento', img: 'baixar' }
     ],
     clientes: [
+        { nome: 'Painel Ocorrências', funcao: 'telaInicialOcorrencias', img: 'LG' },
         { nome: 'Novo cadastro', funcao: 'formularioCliente', img: 'baixar' }
     ]
 }
@@ -1184,8 +1187,8 @@ async function painelClientes(idOrcamento) {
 
     const { dados_orcam } = orcamentoBase || {}
     const idCliente = dados_orcam?.omie_cliente
-    const bloq = orcamentoBase.hierarquia 
-        ? true 
+    const bloq = orcamentoBase.hierarquia
+        ? true
         : false
 
     const cliente = await recuperarDado('dados_clientes', idCliente)
