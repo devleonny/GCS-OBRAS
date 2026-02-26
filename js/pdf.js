@@ -73,25 +73,18 @@ async function atualizarDadosPdf() {
 
     try {
 
-        overlayAguarde(true)
-
-        semOverlay = true
-
         const pdf = JSON.parse(localStorage.getItem('pdf'))
-        
+
         orcamentoBase = await recuperarDado('dados_orcamentos', pdf.id)
         cliente = recuperarDado('dados_clientes', orcamentoBase?.dados_orcam?.omie_cliente) || {}
 
         localStorage.setItem('pdf', JSON.stringify(orcamentoBase))
         location.reload(true)
 
-        semOverlay = false
-
     } catch (error) {
         console.log(error)
     }
 
-    removerOverlay()
 }
 
 async function preencher() {
@@ -417,23 +410,13 @@ function carimboData(dados_orcam) {
     `
 }
 
-function ocultarElementos() {
-    const ocultar = document.querySelector('.ocultar')
-    const total_desconto = document.getElementById('total_DIFERENÇA')
-    const exibir = ocultar.style.display == 'none'
-
-    ocultar.style.display = exibir ? '' : 'none'
-    if (total_desconto) total_desconto.style.display = exibir ? '' : 'none'
-}
-
 async function gerarPDF() {
-    preencher()
-    ocultarElementos()
 
+    preencher()
     const orcamentoBase = JSON.parse(localStorage.getItem('pdf')) || {}
     const contrato = orcamentoBase.dados_orcam.contrato
     const nomeCliente = cliente?.nome || new Date().getTime()
 
-    await gerarPdfOnline(document.documentElement.outerHTML, `Orcamento_${nomeCliente}_${contrato}`)
-    ocultarElementos()
+    await pdf({ id: 'container', estilos: ['pdf'], nome: `Orcamento_${nomeCliente}_${contrato}` })
+
 }

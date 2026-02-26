@@ -717,7 +717,7 @@ async function relancarPagamento(idPagamento) {
             <div style="${horizontal}; gap: 1rem;">
                 <span>Qual APP deve ser relançado?</span>
                 <select class="opcoesSelect" id="app">
-                    ${['AC', 'IAC', 'HNK'].map(op => `<option ${app == op ? 'selected' : ''}>${op}</option>`).join('')}
+                    ${empresas.map(op => `<option ${app == op ? 'selected' : ''}>${op}</option>`).join('')}
                 </select>
             </div>
             <hr style="width: 100%;">

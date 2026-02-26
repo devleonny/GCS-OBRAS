@@ -26,9 +26,9 @@ function imagemEspecifica(justificativa) {
         cor = '#D97302'
         imagem = "imagens/avencer.png"
 
-    } else if (nomeStatus.includes('aguardando')) {
-        cor = '#D97302'
-        imagem = "imagens/avencer.png"
+    } else if (nomeStatus.includes('processando')) {
+        cor = '#026aeb'
+        imagem = "imagens/salvo.png"
 
     } else {
         cor = '#B12425'
@@ -213,8 +213,8 @@ function justificativaHTML(idPagamento) {
                 <textarea id="justificativa" placeholder="Descreva o motivo da aprovação/reprovação"></textarea>
 
                 <div style="${horizontal}; gap: 1rem">
-                    <button onclick="autorizarPagamentos(true, '${idPagamento}')">Aprovar</button>
-                    <button style="background-color: #b12425 ;" onclick="autorizarPagamentos(false, '${idPagamento}')">Reprovar</button>
+                    <button onclick="autorizarPagamentos('S', '${idPagamento}')">Aprovar</button>
+                    <button style="background-color: #b12425 ;" onclick="autorizarPagamentos('N', '${idPagamento}')">Reprovar</button>
                 </div>
             </div>
         </div>
@@ -448,23 +448,30 @@ async function autorizarPagamentos(resposta, id) {
         overlayAguarde()
         const pagamento = await recuperarDado('lista_pagamentos', id)
         const justificativa = document.getElementById('justificativa').value
-        const usuario = acesso.usuario;
-        const permissao = acesso.permissao
-        const setor = acesso.setor
-        let status;
 
-        if (resposta) {
-            if (permissao == 'diretoria') {
-                status = 'Aprovado pela Diretoria';
-                lancarPagamento({ pagamento });
-            } else if (permissao == 'fin' || (permissao == 'gerente' && setor == 'FINANCEIRO')) {
-                status = `Aprovado pelo ${setor}`;
-                lancarPagamento({ pagamento });
+        const { usuario, permissao, setor } = acesso || {}
+        let status = null
+
+        if (resposta == 'S') {
+
+            // Se adm, financeiro, diretoria ou gerente do financeiro;
+            if (
+                permissao == 'adm' ||
+                permissao == 'diretoria' ||
+                permissao == 'fin' ||
+                (permissao == 'gerente' && setor == 'FINANCEIRO')
+            ) {
+
+                status = 'Processando...'
+
             } else if (permissao == 'gerente') {
-                status = 'Aguardando aprovação da Diretoria';
+                status = 'Aguardando aprovação da Diretoria'
+
             } else {
-                status = 'Aguardando aprovação da Gerência';
+                status = 'Aguardando aprovação da Gerência'
+
             }
+
         } else {
             status = `Reprovado por ${permissao}`;
         }
@@ -533,7 +540,6 @@ async function salvarPagamento() {
 
         if (ultimoPagamento.param[0].valor_documento <= 500) {
             enviar(`lista_pagamentos/${ultimoPagamento.id}/status`, 'Processando...')
-            lancarPagamento({ pagamento: ultimoPagamento })
         } else if (permissao == 'gerente') {
             ultimoPagamento.status = 'Aguardando aprovação da Diretoria'
         } else {
@@ -549,7 +555,7 @@ async function salvarPagamento() {
 
         removerPopup(null, false) // Remove tudo;
         await abrirDetalhesPagamentos(ultimoPagamento.id)
-        
+
         popup({ imagem: 'imagens/concluido.png', tempo: 5, mensagem: 'Pagamento Salvo' })
 
     } catch (e) {
