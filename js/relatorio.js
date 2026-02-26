@@ -286,15 +286,14 @@ async function telaRelatorioCorrecoes() {
 
     const colunas = {
         'Empresa': { chave: 'snapshots.empresa' },
-        'Chamado': { chave: 'snapshots.empresa' },
-        'Tipo Correção': { chave: 'snapshots.empresa' },
-        'Descrição': { chave: 'snapshots.empresa' },
-        'Data Registro': { chave: 'snapshots.empresa' },
-        'Hora Registro': { chave: 'snapshots.empresa' },
-        'Solicitante': { chave: 'snapshots.empresa' },
-        'Executor': { chave: 'snapshots.empresa' },
-        'Loja': { chave: 'snapshots.empresa' },
-        'Sistema': { chave: 'snapshots.empresa' }
+        'Chamado': { chave: 'id' },
+        'Tipo Correção': { chave: 'snapshots.ultimaCorrecao' },
+        'Descrição': { chave: 'descricao' },
+        'Data Registro': { chave: 'snapshots.datasCorrecoes' },
+        'Solicitante': { chave: 'usuario' },
+        'Executor': { chave: 'snapshots.executores' },
+        'Loja': { chave: 'snapshots.cliente' },
+        'Sistema': { chave: 'snapshots.sistema' }
     }
 
     const tabela = modTab({
@@ -321,7 +320,7 @@ async function telaRelatorioCorrecoes() {
                 <div class="toolbar-itens">
                     <div style="${vertical}; gap: 0.5rem;">
                         <span>Data de abertura</span>
-                        <!--<span onclick="paraExcel()" style="cursor: pointer;"><u>Baixar em Excel</u></span>-->
+                        <span onclick="baixarExcelRelatorioCorrecoes()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
                     </div>
 
                     <div style="${vertical}; gap: 0.5rem;">
@@ -355,22 +354,35 @@ async function criarLinhasCorrecoes(ocorrencia) {
 
     for (const correcao of Object.values(ocorrencia?.correcoes || {})) {
 
-        const [data, hora] = correcao.data ? correcao.data.split(', ') : ['-', '-']
+        const { tipoCorrecao, descricao, executor, usuario } = correcao || {}
+
+        const dtRegistro = correcao.data
+            ? correcao.data.split(',')[0]
+            : ''
+
+        const { nome } = await recuperarDado('correcoes', tipoCorrecao) || 'Não analisada'
+
+        const estilo = nome == 'Solucionada'
+            ? 'fin'
+            : nome == 'Não analisada'
+                ? 'na'
+                : 'and'
 
         const tds = `
         <td>${empresa}</td>
         <td>${id}</td>
-        <td>${await recuperarDado('correcoes', correcao?.tipoCorrecao)?.nome || 'Não analisada'}</td>
         <td>
-            <div>
-                ${String(correcao?.descricao || '').replace('\n', '<br>')}
+            <span class="${estilo}">${nome}</span>
+        </td>
+        <td>
+            <div style="pre-wrap: wrap;">
+                ${descricao || ''}
             </div>
         </td>
-        <td>${data}</td>
-        <td>${hora}</td>
-        <td>${correcao?.usuario || '-'}</td>
-        <td>${correcao?.executor || '-'}</td>
-        <td>${cliente?.nome || '-'}</td>
+        <td>${dtRegistro}</td>
+        <td>${usuario || ''}</td>
+        <td>${executor || ''}</td>
+        <td>${cliente?.nome || ''}</td>
         <td>${sistema}</td>
         `
 
@@ -454,6 +466,12 @@ async function baixarExcelRelatorioOcorrencias() {
             `,
                 as: "Status Correção"
             },
+            {
+                field: "o.dataRegistro",
+                as: "Data Registro",
+                type: "date",
+                sourceFormat: 'br'
+            },
             { field: "o.descricao", as: "Descrição da Ocorrência" },
             { field: "o.usuario", as: "Solicitante" },
             {
@@ -489,5 +507,98 @@ async function baixarExcelRelatorioOcorrencias() {
     overlayAguarde()
     await baixarRelatorioExcel(schema, 'Ocorrências')
     removerOverlay()
+
+}
+
+async function baixarExcelRelatorioCorrecoes() {
+
+    const schema = {
+        table: "dados_ocorrencias",
+        alias: "o",
+
+        joins: [
+            {
+                type: "LEFT",
+                table: "dados_clientes",
+                alias: "c",
+                on: `c.id = o.unidade`
+            },
+            {
+                type: "LEFT",
+                table: "empresas",
+                alias: "e",
+                on: `e.id = c.empresa`
+            },
+            {
+                type: "LEFT",
+                table: "sistemas",
+                alias: "s",
+                on: `s.id = o.sistema`
+            },
+            {
+                type: "LEFT",
+                table: "prioridades",
+                alias: "p",
+                on: `p.id = o.prioridade`
+            },
+        ],
+
+        explode: {
+            field: "o.correcoes",
+            path: "$",
+            alias: "cx",
+            type: "LEFT"
+        },
+
+        columns: [
+            { field: "e.nome", as: "Empresa" },
+            { field: "o.id", as: "Chamado" },
+            {
+                custom: `json_extract(cx.value, '$.executor')`,
+                as: "Executor"
+            },
+            {
+                custom: `json_extract(cx.value, '$.data')`,
+                type: "date",
+                sourceFormat: 'br',
+                as: "Data"
+            },
+            {
+                custom: `json_extract(cx.value, '$.descricao')`,
+                as: "Descrição",
+                width: 30,
+            },
+            {
+                field: 's.nome',
+                as: "Sistema"
+            },
+            {
+                field: 'p.nome',
+                as: "Prioridade"
+            },
+            {
+                custom: `
+                    (
+                    SELECT cr.nome
+                    FROM correcoes cr
+                    WHERE cr.id = trim(json_extract(cx.value, '$.tipoCorrecao'))
+                    LIMIT 1
+                    )
+                `,
+                as: "Tipo Correção"
+            }
+        ],
+
+        filters: [
+            { custom: "(o.excluido IS NULL OR o.excluido = '')" }
+        ],
+
+        orderBy: "o.timestamp DESC"
+    }
+
+    overlayAguarde()
+    await baixarRelatorioExcel(schema, 'Correções')
+    removerOverlay()
+
 
 }

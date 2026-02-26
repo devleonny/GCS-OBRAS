@@ -225,6 +225,9 @@ const regrasSnapshot = {
             snap.executores = Object.values(dado?.correcoes || {})
                 .map(c => c?.executor)
 
+            snap.datasCorrecoes = Object.values(dado?.correcoes || {})
+                .map(c => c?.data)
+
             snap.pendenteResposta = []
 
             for (const [idCorrecao, correcao] of Object.entries(dado?.correcoes || {})) {
