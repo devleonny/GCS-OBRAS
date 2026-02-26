@@ -972,6 +972,7 @@ async function maisLabel({ codigo, quantidade, unidade } = {}) {
 
     controlesCxOpcoes[temporario] = {
         base: 'dados_composicoes',
+        retornar: ['descricao'],
         filtros: {
             'tipo': { op: '!=', value: 'SERVIÇO' }
         },

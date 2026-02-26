@@ -67,7 +67,7 @@ async function telaRelatorio() {
                 <div class="toolbar-itens">
                     <div style="${vertical}; gap: 0.5rem;">
                         <span>Data de abertura</span>
-                        <span onclick="paraExcel()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
+                        <!--<span onclick="baixarExcelRelatorioOcorrencias()" style="cursor: pointer;"><u>Baixar em Excel</u></span>-->
                     </div>
 
                     <div style="${vertical}; gap: 0.5rem;">
@@ -282,79 +282,6 @@ async function pesquisarDatas(pag) {
 
 }
 
-async function paraExcel() {
-    const tabela = document.querySelector('.tabela')
-    if (!tabela) return
-
-    const workbook = new ExcelJS.Workbook()
-    const worksheet = workbook.addWorksheet('Ocorrências')
-    const trs = tabela.querySelectorAll('tr')
-
-    for (let i = 0; i < trs.length; i++) {
-        const tds = trs[i].querySelectorAll('td, th')
-        const row = []
-
-        for (let j = 1; j < tds.length; j++) {
-            const td = tds[j]
-            const select = td.querySelector('select')
-            const input = td.querySelector('input')
-
-            if (select) row.push(select.value)
-            else if (input) row.push(input.value)
-            else row.push(td.textContent.trim())
-        }
-
-        worksheet.addRow(row)
-    }
-
-    worksheet.autoFilter = {
-        from: { row: 1, column: 1 },
-        to: { row: 1, column: worksheet.columnCount }
-    }
-
-    worksheet.eachRow((row, rowNumber) => {
-        row.eachCell(cell => {
-            cell.alignment = { vertical: 'top', horizontal: 'left' }
-            cell.border = {
-                top: { style: 'thin' },
-                left: { style: 'thin' },
-                bottom: { style: 'thin' },
-                right: { style: 'thin' }
-            }
-
-            if (rowNumber === 1) {
-                cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFD9D9D9' }
-                }
-                cell.font = { bold: true }
-            }
-        })
-    })
-
-    worksheet.columns.forEach(col => {
-        let max = 10
-        col.eachCell(cell => {
-            const len = String(cell.value || '').length
-            if (len > max) max = len
-        })
-        col.width = Math.min(max + 2, 45)
-    })
-
-    const buffer = await workbook.xlsx.writeBuffer()
-    const blob = new Blob([buffer], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    })
-
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `relatorio-${Date.now()}.xlsx`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-}
-
 async function telaRelatorioCorrecoes() {
 
     const colunas = {
@@ -451,5 +378,71 @@ async function criarLinhasCorrecoes(ocorrencia) {
     }
 
     return linhas.join('')
+
+}
+
+async function baixarExcelRelatorioOcorrencias() {
+
+    const schema = {
+        table: "dados_ocorrencias",
+        alias: "o",
+        joins: [
+            {
+                type: "LEFT",
+                table: "empresas",
+                alias: "e",
+                on: `e.id = o.empresa`
+            },
+            {
+                type: "LEFT",
+                table: "dados_clientes",
+                alias: "c",
+                on: `c.id = o.unidade`
+            },
+            {
+                type: "LEFT",
+                table: "sistemas",
+                alias: "s",
+                on: `s.id = o.sistema`
+            },
+            {
+                type: "LEFT",
+                table: "prioridades",
+                alias: "p",
+                on: `p.id = o.prioridade`
+            }
+        ],
+        columns: [
+            { field: "e.nome", as: "Empresa" },
+            { field: "o.id", as: "Chamado" },
+            { 
+                field: "o.dataRegistro", 
+                as: "Data Abertura",
+                type: 'date',
+                sourceFormat: 'br'
+            },
+            { field: "o.descricao", as: "Descrição da Ocorrência" },
+            { field: "o.usuario", as: "Solicitante" },
+            { 
+                field: "o.correcoes.*.executor", 
+                as: "Executores" 
+            },
+            { field: "c.nome", as: "Loja" },
+            { field: "c.cidade", as: "Cidade" },
+            { field: "c.estado", as: "Estado" },
+            { field: "s.nome", as: "Sistema" },
+            { field: "p.nome", as: "Prioridade" }
+        ],
+        filters: [
+            {
+                custom: "(o.excluido IS NULL OR o.excluido = '')"
+            }
+        ],
+        orderBy: "o.timestamp DESC"
+    }
+
+    overlayAguarde()
+    await baixarRelatorioExcel(schema, 'Orçamentos')
+    removerOverlay()
 
 }

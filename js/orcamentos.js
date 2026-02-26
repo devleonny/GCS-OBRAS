@@ -551,7 +551,6 @@ async function baixarExcelOrcamentos() {
                 as: "Última alteração",
                 type: "date",
                 sourceFormat: "timestamp", // timestamp | iso | iso-datetime | br
-                width: 15
             },
             {
                 json: {
@@ -559,7 +558,6 @@ async function baixarExcelOrcamentos() {
                     path: "$.atual"
                 },
                 as: "Status",
-                width: 15
             },
             {
                 jsonArray: {
@@ -568,7 +566,6 @@ async function baixarExcelOrcamentos() {
                     property: "pedido"
                 },
                 as: "Pedidos",
-                width: 15
             },
             {
                 jsonArray: {
@@ -577,7 +574,6 @@ async function baixarExcelOrcamentos() {
                     property: "nf"
                 },
                 as: "Notas",
-                width: 15
             },
             {
                 jsonObjectJoin: {
@@ -587,7 +583,6 @@ async function baixarExcelOrcamentos() {
                     selectField: "nome"
                 },
                 as: "Tags",
-                width: 15
             },
             {
                 json: {
@@ -595,24 +590,22 @@ async function baixarExcelOrcamentos() {
                     path: "$.contrato"
                 },
                 as: "Número Orçamento",
-                width: 15
+
             },
             {
                 json: {
                     field: "o.dados_orcam",
                     path: "$.chamado"
                 },
-                as: "Chamado",
-                width: 15
+                as: "Chamado"
             },
-            { field: "o.usuario", as: "Criado por", width: 15 },
-            { field: "c.cidade", as: "Cidade", width: 15 },
-            { field: "c.endereco", as: "Endereço", width: 15 },
+            { field: "o.usuario", as: "Criado por" },
+            { field: "c.cidade", as: "Cidade" },
+            { field: "c.endereco", as: "Endereço" },
             {
                 field: "o.total_geral",
                 as: "Total Geral",
-                type: "currency",
-                width: 15
+                type: "currency"
             },
         ],
         filters: [
