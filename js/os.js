@@ -7,7 +7,7 @@ async function carregarOS(id) {
 
     const modelo = (valor1, valor2) => {
 
-        if (!valor2)
+        if (valor2 == undefined)
             return ''
 
         return `
@@ -80,6 +80,8 @@ async function carregarOS(id) {
 
             ${modelo('RESUMO ATIVIDADE', orcamento.dados_orcam.consideracoes)}
 
+            ${modelo('DESCRIÇÃO DO TÉCNICO', '<br><br><br><br><br>')}
+
             ${modelo('OBSERVAÇÕES DO CLIENTE')}
 
             ${modelo('TÉCNICOS')}
@@ -87,7 +89,7 @@ async function carregarOS(id) {
             <label>De acordo,</label>
 
             <label>___________________________________________________________________________________</label><br>
-            <label>Responsável da Loja</label>        
+            <label>Responsável da Loja</label>
 
         </div>
         `
