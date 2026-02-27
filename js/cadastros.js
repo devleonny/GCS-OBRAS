@@ -29,7 +29,13 @@ async function telaCadastros() {
             criarLinha: 'criarLinhaCadastro'
         })
 
-        divTabelas.insertAdjacentHTML('beforeend', tabela)
+        const final = `
+            <div style="${vertical}">
+                <span style="font-size: 1.1rem; color: white;">${inicialMaiuscula(base)}</span>
+                ${tabela}
+            </div>`
+
+        divTabelas.insertAdjacentHTML('beforeend', final)
     }
 
     await paginacao()
@@ -52,11 +58,16 @@ async function criarLinhaCadastro(dados) {
 async function editarBaseAuxiliar(nomeBase, id) {
 
     const dados = await recuperarDado(nomeBase, id)
-    const funcao = id ? `salvarNomeAuxiliar('${nomeBase}', '${id}')` : `salvarNomeAuxiliar('${nomeBase}')`
+    const funcao = id
+        ? `salvarNomeAuxiliar('${nomeBase}', '${id}')`
+        : `salvarNomeAuxiliar('${nomeBase}')`
 
     const botoes = [
         { texto: 'Salvar', img: 'concluido', funcao }
     ]
+
+    if (id)
+        botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirItemTabela('${nomeBase}', '${id}')` })
 
     const linhas = [
         {
@@ -66,6 +77,22 @@ async function editarBaseAuxiliar(nomeBase, id) {
     ]
 
     popup({ linhas, botoes, titulo: `Gerenciar ${inicialMaiuscula(nomeBase)}` })
+
+}
+
+function confirmarExcluirItemTabela(nomeBase, id) {
+
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `excluirItemTabela('${nomeBase}', '${id}')` }
+    ]
+
+    popup({ mensagem: 'Confirmar a exclusão do item?', botoes, nra: false })
+}
+
+async function excluirItemTabela(nomeBase, id) {
+
+    await deletarDB(nomeBase, id)
+    deletar(`${nomeBase}/${id}`)
 
 }
 

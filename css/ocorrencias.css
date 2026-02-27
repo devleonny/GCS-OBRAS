@@ -85,18 +85,6 @@
     gap: 8px;
 }
 
-/* //29
-.painel-filtros .filtros {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height .25s ease;
-}
-
-.painel-filtros:hover .filtros {
-    max-height: 200px;
-}
-*/
-
 .filtros select,
 .filtros input {
     width: 150px;
@@ -118,6 +106,19 @@
 .atalhosRelatorio input {
     width: 25px;
     height: 25px;
+}
+
+.borda-equipamento {
+    gap: 1rem;
+    width: 95%;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    border-radius: 3px;
+    padding: 8px;
+    border: 1px solid #249f41;
+    background-color: #f3f3f3;
+    font-size: 14px;
 }
 
 .blocoFiltro {
@@ -405,8 +406,6 @@
     padding: 5px;
     align-items: start;
     gap: 2px;
-    background-color: #dddddd;
-    border-radius: 3px;
 }
 
 .fotos img {

@@ -463,13 +463,13 @@ async function selecionar(name, cod) {
         return popup({ mensagem: 'O objeto "base" em controlesCx precisa contem o próprio "id" / "codigo" / "etc"' })
 
     const { funcaoAdicional, base, retornar } = controlesCxOpcoes[name]
-    const painel = document.querySelector('.painel-padrao')
 
     if (!retornar)
         return popup({ mensagem: `campo retornar: ['exemplo'] → undefined` })
 
     // Painel quando for forms; do contrário qualquer outro elemento;
-    const elemento = (painel || document)?.querySelector(`[name='${name}']`)
+    const painel = Array.from(document.querySelectorAll('.painel-padrao')).at(-1)
+    const elemento = (painel || document).querySelector(`[name='${name}']`)
     const termos = []
 
     const baseDB = basesAuxiliares?.[base]
@@ -543,7 +543,7 @@ async function pdf({ id, estilos = [], nome = 'documento', orientacao = '' }) {
                 const text = await response.text()
                 const j = JSON.parse(text)
                 msg = j?.mensagem || j?.error || text || msg
-            } catch {}
+            } catch { }
             popup({ mensagem: msg })
             removerOverlay()
             return

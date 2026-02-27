@@ -699,11 +699,13 @@ function dataRegras(data, atraso) {
     }
 
     if (atraso === 2) {
-        dataFinal = new Date(
-            dataFinal.getFullYear(),
-            dataFinal.getMonth() + 1,
-            10
-        )
+        const dia = dataFinal.getDate()
+        const ano = dataFinal.getFullYear()
+        const mes = dataFinal.getMonth()
+
+        const mesAlvo = dia <= 5 ? mes : mes + 1
+
+        dataFinal = new Date(ano, mesAlvo, 10)
 
         while (dataFinal.getDay() === 0 || dataFinal.getDay() === 6) {
             dataFinal.setDate(dataFinal.getDate() + 1)
@@ -711,19 +713,16 @@ function dataRegras(data, atraso) {
     }
 
     if (data) {
-        const informada = new Date(data + 'T00:00:00')
-        if (informada > dataFinal) {
-            dataFinal = informada
-        }
+        const [d, m, y] = String(data).split('/').map(Number)
+        const informada = new Date(y, m - 1, d)
+
+        if (informada > dataFinal) dataFinal = informada
     }
 
-    if (dataFinal < dataMinima) {
-        dataFinal = dataMinima
-    }
+    if (dataFinal < dataMinima) dataFinal = dataMinima
 
     return dataFinal.toLocaleDateString('pt-BR')
 }
-
 
 async function calculadoraPagamento(ultimaValidacao) {
 

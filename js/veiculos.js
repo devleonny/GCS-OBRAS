@@ -190,7 +190,7 @@ async function criarLinhaCusto(custo) {
 
         <td>${cartao || ''}</td>
 
-        <td>${comentario}</td>
+        <td>${comentario || ''}</td>
 
         <td>
             <div style="${vertical}; gap: 1px;">${deps.join('')}</div>
@@ -426,7 +426,7 @@ async function painelValores(idCusto, duplicar) {
                 <img src="imagens/baixar.png" onclick="linDist()">
             </div>
             <div class="div-tabela">
-                <table class="tabela" id="tabela_composicoes">
+                <table class="tabela">
                     <thead>
                         <th>Departamento</th>
                         <th>KM</th>

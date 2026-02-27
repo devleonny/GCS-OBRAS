@@ -21,7 +21,7 @@ async function blocoAuxiliarFotos(fotos) {
     if (fotos) {
 
         const imagens = Object.entries(fotos)
-            .map(([link, foto]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
+            .map(([link,]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
             .join('')
 
         const painel = `
@@ -205,11 +205,17 @@ function uCorrecao(correcoes) {
 
 async function carregarCorrecoes(ocorrencia) {
 
-    const modelo = (valor1, valor2) => `
+    const modelo = (valor1, valor2) => {
+
+        if (!valor2)
+            return ''
+
+        return `
         <div style="${horizontal}; gap: 1rem; margin-bottom: 5px; width: 100%;">
             <label style="width: 30%; text-align: right;"><b>${valor1}</b></label>
             <div style="width: 70%; text-align: left;">${valor2}</div>
         </div>`
+    }
 
     const idOcorrencia = ocorrencia.id
     const dadosCorrecao = ocorrencia?.correcoes || {}
@@ -217,7 +223,30 @@ async function carregarCorrecoes(ocorrencia) {
     let divsCorrecoes = ''
     const aTec = acesso.permissao === 'técnico'
 
+    const tabEquipamentos = (linhas) => {
+
+        const tabela = `
+            <div style="${vertical}">
+                <div class="topo-tabela"></div>
+                <div class="div-tabela">
+                    <table class="tabela">
+                        <thead>
+                            ${['Quantidade', 'Unidade', 'Descrição'].map(th => `<th>${th}</th>`).join('')}
+                        </thead>
+                        <tbody>${linhas}</tbody>
+                    </table>
+                </div>
+                <div class="rodape-tabela"></div>
+            </div>`
+
+        return linhas
+            ? tabela
+            : ''
+    }
+
     for (const [idCorrecao, correcao] of Object.entries(dadosCorrecao).reverse()) {
+
+        const { equipamentos } = correcao
 
         const respondida = Object
             .values(dadosCorrecao)
@@ -272,6 +301,23 @@ async function carregarCorrecoes(ocorrencia) {
             .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}', '${idOcorrencia}', '${idCorrecao}')`))
             .join('')
 
+        const imagensExistentes = imagens !== ''
+            ? `<div class="fotos" style="display: flex;">${imagens}</div>`
+            : '<img src="imagens/img.png" style="width: 4rem;">'
+
+        const linhasEquipamentos = Object.values(equipamentos || {})
+            .map(e => {
+                const { unidade, descricao, quantidade } = e || {}
+                const tr = `
+                    <tr>
+                        <td>${quantidade || 0}</td>
+                        <td>${unidade || 'UN'}</td>
+                        <td>${descricao || ''}</td>
+                    </tr>`
+                return tr
+            })
+            .join('')
+
         divsCorrecoes += `
             <div class="detalhes-correcoes-1">
 
@@ -287,7 +333,9 @@ async function carregarCorrecoes(ocorrencia) {
                     ${modelo('Executor', `<span>${correcao.executor}</span>`)}
                     ${modelo('Correção', `<span class="${estilo}">${nome}</span>`)}
                     ${modelo('Descrição', `<div style="white-space: pre-wrap;">${correcao.descricao}</div>`)}
-                    ${modelo('Criado em', `<span>${correcao?.data || 'S/D'}</span>`)}
+                    ${modelo('Criado em', `<span>${correcao?.data || ''}</span>`)}
+                    ${modelo('Equipamentos', tabEquipamentos(linhasEquipamentos))}
+
                 </div>
 
                 <div style="${horizontal}">
@@ -298,9 +346,7 @@ async function carregarCorrecoes(ocorrencia) {
                     </div>
 
                     <div style="${vertical}; padding: 0.5rem;">
-                        ${imagens !== ''
-                ? `<div class="fotos" style="display: flex;">${imagens}</div>`
-                : '<img src="imagens/img.png" style="width: 4rem;">'}
+                        ${imagensExistentes}
                         <div id="anexos" style="${vertical};">
                             ${anexos}
                         </div>
@@ -915,11 +961,15 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
         },
         { texto: 'Descrição', elemento: `<textarea style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" rows="7" class="campos">${correcao?.descricao || ''}</textarea>` },
         {
-            texto: 'Equipamentos usados',
             elemento: `
-            <img src="imagens/baixar.png" onclick="maisLabel()">
-            <div style="${vertical}; gap: 2px;" id="equipamentos">
-                ${equipamentos}
+            <div style="${vertical}; width: 100%; gap: 5px;">
+                <div style="${horizontal}; gap: 1rem;">
+                    <span>Peças Usadas na Correção</span>
+                    <img src="imagens/baixar.png" onclick="maisLabel()">
+                </div>
+                <div style="${vertical}; width: 100%; gap: 2px;" id="equipamentos">
+                    ${equipamentos}
+                </div>
             </div>
             `
         },
@@ -958,14 +1008,10 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
 
 }
 
-async function maisLabel({ codigo, quantidade, unidade } = {}) {
+async function maisLabel({ codigo, descricao, quantidade } = {}) {
 
     const div = document.getElementById('equipamentos')
-    const opcoes = ['UND', 'METRO', 'CX']
-        .map(op => `<option ${unidade == op ? `selected` : ''}>${op}</option>`)
-        .join('')
     const temporario = ID5digitos()
-    const nome = await recuperarDado('dados_composicoes', codigo) || 'Selecionar'
 
     controlesCxOpcoes[temporario] = {
         base: 'dados_composicoes',
@@ -974,25 +1020,34 @@ async function maisLabel({ codigo, quantidade, unidade } = {}) {
             'tipo': { op: '!=', value: 'SERVIÇO' }
         },
         colunas: {
+            'Código': { chave: 'codigo' },
             'Descrição': { chave: 'descricao' },
+            'Unidade': { chave: 'unidade' },
             'Modelo': { chave: 'modelo' },
             'Fabricante': { chave: 'fabricante' }
         }
     }
 
     const label = `
-        <div style="${horizontal}; gap: 5px;">
+        <div class="borda-equipamento">
             <img src="imagens/cancel.png" onclick="this.parentElement.remove()">
-            <div name="equipamentos" style="${vertical}; gap: 5px;">
-                <span class="campos" name="${temporario}" ${codigo ? `id="${codigo}"` : ''} onclick="cxOpcoes('${temporario}')">${nome}</span>
-                <div style="${horizontal}; gap: 5px; width: 100%;">
-                    <input style="width: 100%;" class="campos" type="number" value="${quantidade || ''}">
-                    <select class="campos">${opcoes}</select>
+            <div name="equipamentos" style="${horizontal}; align-items: start; gap: 1rem;">
+                <div style="${vertical};">
+                    <label>Quantidade</label>
+                    <input style="width: 7rem;" class="campos" type="number" value="${quantidade || ''}">
+                </div>
+                <div style="${vertical};">
+                    <label>Descrição</label>
+                    <span 
+                        class="campos" 
+                        name="${temporario}" ${codigo ? `id="${codigo}"` : ''} 
+                        onclick="cxOpcoes('${temporario}')">${descricao || 'Selecione'}</span>
                 </div>
             </div>
-        </div> 
-    `
-    if (codigo) return label
+        </div>`
+
+    if (codigo)
+        return label
 
     div.insertAdjacentHTML('beforeend', label)
 }
@@ -1002,8 +1057,10 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
     ocorrencia.correcoes ??= {}
     ocorrencia.correcoes[idCorrecao] ??= {}
+    ocorrencia.correcoes[idCorrecao].datas ??= {}
+    ocorrencia.correcoes[idCorrecao].fotos ??= {}
+    ocorrencia.correcoes[idCorrecao].equipamentos ??= {}
 
-    let correcao = ocorrencia.correcoes[idCorrecao]
     const tipoCorrecao = obter('tipoCorrecao').id
     const dtCorrecao = obter('dtCorrecao').value
 
@@ -1017,26 +1074,28 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
     if (!tipoCorrecao || !dtCorrecao)
         return popup({ mensagem: 'Não deixe em branco <b>Data Limite</b> ou o <b>Tipo de Correção</b>' })
 
-    Object.assign(correcao, {
+    ocorrencia.correcoes[idCorrecao] = {
+        ...ocorrencia.correcoes[idCorrecao],
         dtCorrecao,
         executor: obter('executor').id,
-        data: new Date().toLocaleString(),
         usuario: acesso.usuario,
         tipoCorrecao,
         descricao: obter('descricao').value
-    })
+    }
 
+    // Data: Se existir, mantém;
+    if (!ocorrencia.correcoes[idCorrecao].data)
+        ocorrencia.correcoes[idCorrecao].data = new Date().toLocaleDateString()
+
+    // Localização;
     const geoPermitido = localStorage.getItem('geo_permitido') === '1'
 
     const local = geoPermitido
         ? await capturarLocalizacao()
         : { latitude: null, longitude: null }
 
-    if (!correcao.datas)
-        correcao.datas = {}
-
     const data = new Date().getTime()
-    correcao.datas[data] = {
+    ocorrencia.correcoes[idCorrecao].datas[data] = {
         latitude: local.latitude,
         longitude: local.longitude
     }
@@ -1044,45 +1103,48 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
     const input = obter('anexos')
     const anexos = await anexosOcorrencias(input)
 
-    correcao.anexos = {
-        ...correcao.anexos,
+    ocorrencia.correcoes[idCorrecao].anexos = {
+        ...ocorrencia.correcoes[idCorrecao].anexos,
         ...anexos
     }
 
+    // Fotos;
     const fotos = document.querySelector('.fotos')
-    const imgs = fotos.querySelectorAll('img')
-    if (imgs.length > 0) {
-        if (!correcao.fotos) correcao.fotos = {}
-        for (const img of imgs) {
-            if (img.dataset && img.dataset.salvo == 'sim') continue
-            const foto = await importarAnexos({ foto: img.src })
-            correcao.fotos[foto[0].link] = foto[0]
-        }
+    const imgs = fotos.querySelectorAll('img') || []
+
+    for (const img of imgs) {
+        if (img.dataset && img.dataset.salvo == 'sim') continue
+        const foto = await importarAnexos({ foto: img.src })
+        ocorrencia.correcoes[idCorrecao].fotos[foto[0].link] = foto[0]
     }
 
+    // Equipamentos
     const divs = document.querySelectorAll('[name="equipamentos"]')
-    correcao.equipamentos = {}
 
     for (const div of divs) {
 
-        const idEquip = div.querySelector('span').id
+        const equip = div.querySelector('span')
+
+        if (!equip?.id)
+            continue
+
+        const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', equip.id)
+
         const quantidade = Number(div.querySelector('input').value)
-        const unidade = div.querySelector('select').value
-        correcao.equipamentos[idEquip] = {
-            codigo: idEquip,
+
+        ocorrencia.correcoes[idCorrecao].equipamentos[equip.id] = {
+            codigo: equip.id,
+            modelo,
+            descricao,
+            fabricante,
             quantidade,
             unidade
         }
     }
 
-    if (respCorrecao)
-        correcao.resposta = respCorrecao
-
-    respCorrecao = null
-
     await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
 
-    enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, correcao)
+    enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, ocorrencia.correcoes[idCorrecao])
     removerPopup()
 
 }
