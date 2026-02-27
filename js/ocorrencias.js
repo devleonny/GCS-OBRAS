@@ -261,7 +261,7 @@ async function carregarCorrecoes(ocorrencia) {
             if (respondida)
                 continue
         }
-
+   
         const { nome } = await recuperarDado('correcoes', correcao?.tipoCorrecao) || 'Não analisada'
         const estilo = nome == 'Solucionada'
             ? 'fin'
@@ -1085,7 +1085,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
 
     // Data: Se existir, mantém;
     if (!ocorrencia.correcoes[idCorrecao].data)
-        ocorrencia.correcoes[idCorrecao].data = new Date().toLocaleDateString()
+        ocorrencia.correcoes[idCorrecao].data = new Date().toLocaleString()
 
     // Localização;
     const geoPermitido = localStorage.getItem('geo_permitido') === '1'

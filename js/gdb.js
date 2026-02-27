@@ -228,25 +228,13 @@ const regrasSnapshot = {
             snap.datasCorrecoes = Object.values(dado?.correcoes || {})
                 .map(c => c?.data)
 
-            snap.pendenteResposta = []
-
-            for (const [idCorrecao, correcao] of Object.entries(dado?.correcoes || {})) {
-
-                // É resposta de alguém? Continue
-                if (correcao.resposta)
-                    continue
-
-                const respondido = Object.values(dado.correcoes)
-                    .some(c => c.resposta == idCorrecao)
-
-                // Foi respondido? Continue
-                if (respondido)
-                    continue
-
-                // Nome acrescentado na listagem de pendentes;
-                if (!snap.pendenteResposta.includes(correcao.executor))
-                    snap.pendenteResposta.push(correcao.executor)
-            }
+            snap.equipamentos = Object.values(dado?.correcoes || {})
+            .reduce((acc, correcao) => {
+                Object.entries(correcao?.equipamentos || {}).forEach(([id, equip]) => {
+                acc[id] = equip
+                })
+                return acc
+            }, {})
 
             const campos = {
                 'tipo': 'tipos',
@@ -849,7 +837,7 @@ async function deletarDB(base, id) {
 
         const tx = db.transaction(base, 'readwrite')
         const store = tx.objectStore(base)
-        
+
         const key = basesAuxiliares?.[base]?.tipo == 'NUMBER'
             ? Number(id)
             : id

@@ -95,7 +95,6 @@ async function telaRelatorio() {
 
     await paginacao()
 
-
 }
 
 function dtAuxOcorrencia(dt) {
@@ -375,7 +374,7 @@ async function criarLinhasCorrecoes(ocorrencia) {
             <span class="${estilo}">${nome}</span>
         </td>
         <td>
-            <div style="pre-wrap: wrap;">
+            <div style="white-space: pre-wrap;">
                 ${descricao || ''}
             </div>
         </td>
@@ -387,6 +386,113 @@ async function criarLinhasCorrecoes(ocorrencia) {
         `
 
         linhas.push(`<tr>${tds}</tr>`)
+    }
+
+    return linhas.join('')
+
+}
+
+async function telaRelatorioPecas() {
+
+    const colunas = {
+        'Chamado': { chave: 'id' },
+        'Empresa': { chave: 'snapshots.empresa' },
+        'Loja': { chave: 'snapshots.cliente.nome' },
+        'Executor': { chave: 'correcoes.*.executor' },
+        'Data Correção': { chave: 'correcoes.*.data' },
+        'Descrição': { chave: 'snapshots.equipamentos.*.descricao' },
+        'Unidade': { chave: 'snapshots.equipamentos.*.unidade' },
+        'Quantidade': { chave: 'snapshots.equipamentos.*.quantidade' },
+        'Modelo': { chave: 'snapshots.equipamentos.*.modelo' },
+        'Fabricante': { chave: 'snapshots.equipamentos.*.fabricante' },
+    }
+
+    const tabela = modTab({
+        colunas,
+        filtros: {
+            'correcoes.*.equipamentos': { op: 'NOT_EMPTY' },
+            ...(
+                acesso.permissao == 'cliente'
+                    ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
+                    : {}
+            )
+        },
+        base: 'dados_ocorrencias',
+        pag: 'relatorioPecas',
+        body: 'bodyPecas',
+        criarLinha: 'criarLinhasPecas',
+    })
+
+    const acumulado = `
+        <div class="pagina-relatorio">
+            <div class="toolbar-relatorio-ocorrencias">
+
+                <img src="imagens/GrupoCostaSilva.png" style="width: 5rem;">
+
+                <div class="toolbar-itens">
+                    <div style="${vertical}; gap: 0.5rem;">
+                        <span>Data de abertura</span>
+                        <span onclick="baixarExcelRelatorioPecas()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
+                    </div>
+
+                    <div style="${vertical}; gap: 0.5rem;">
+                        <input id="de" type="date" onchange="pesquisarDatas('relatorioPecas')">
+                        <input id="ate" type="date" onchange="pesquisarDatas('relatorioPecas')">
+                    </div>
+                </div>
+
+            </div>
+            ${tabela}
+        </div>`
+
+    tela.innerHTML = acumulado
+
+    titulo.textContent = 'Relatório de Peças'
+
+    await paginacao()
+
+    mostrarMenus(false)
+
+}
+
+async function criarLinhasPecas(ocorrencia) {
+
+    const { id, snapshots } = ocorrencia || {}
+
+    const { cliente, empresa } = snapshots || {}
+
+    const linhas = []
+
+    for (const correcao of Object.values(ocorrencia?.correcoes || {})) {
+
+        const { executor, equipamentos } = correcao || {}
+
+        if (!equipamentos)
+            continue
+
+        const dtRegistro = correcao.data
+            ? correcao.data.split(',')[0]
+            : ''
+
+        for (const equip of Object.values(equipamentos)) {
+
+            const { descricao, unidade, quantidade, modelo, fabricante } = equip || {}
+
+            const tds = `
+                <td>${id}</td>
+                <td>${empresa}</td>
+                <td>${cliente?.nome || ''}</td>
+                <td>${executor}</td>
+                <td>${dtRegistro}</td>
+                <td>${descricao || ''}</td>
+                <td>${unidade || ''}</td>
+                <td>${quantidade || ''}</td>
+                <td>${modelo}</td>
+                <td>${fabricante}</td>
+                `
+
+            linhas.push(`<tr>${tds}</tr>`)
+        }
     }
 
     return linhas.join('')
@@ -559,9 +665,9 @@ async function baixarExcelRelatorioCorrecoes() {
             },
             {
                 custom: `json_extract(cx.value, '$.data')`,
+                as: "Data",
                 type: "date",
-                sourceFormat: 'br-hora',
-                as: "Data"
+                sourceFormat: 'br-hora'
             },
             {
                 custom: `json_extract(cx.value, '$.descricao')`,
@@ -608,5 +714,51 @@ async function baixarExcelRelatorioCorrecoes() {
     await baixarRelatorioExcel(schema, 'Correções')
     removerOverlay()
 
+}
 
+async function baixarExcelRelatorioPecas() {
+
+  const schema = {
+    table: "dados_ocorrencias",
+    alias: "o",
+    joins: [
+      { type: "LEFT", table: "dados_clientes", alias: "c", on: `c.id = o.unidade` },
+      { type: "LEFT", table: "empresas", alias: "e", on: `e.id = c.empresa` }
+    ],
+    explodes: [
+      { field: "o.correcoes", path: "$", alias: "cx", type: "JOIN" },
+      { field: "json_extract(cx.value, '$.equipamentos')", alias: "eq", type: "JOIN" }
+    ],
+    columns: [
+      { field: "o.id", as: "Chamado" },
+      { field: "e.nome", as: "Empresa" },
+      { field: "c.nome", as: "Loja" },
+      { custom: `json_extract(o.snapshots, '$.cliente.nome')`, as: "Cliente" },
+      { custom: `eq.key`, as: "Código" },
+      { custom: `json_extract(eq.value, '$.descricao')`, as: "Descrição", width: 35 },
+      { custom: `json_extract(eq.value, '$.modelo')`, as: "Modelo" },
+      { custom: `json_extract(eq.value, '$.fabricante')`, as: "Fabricante" },
+      { custom: `json_extract(eq.value, '$.unidade')`, as: "Unidade" },
+      { custom: `json_extract(eq.value, '$.quantidade')`, as: "Quantidade" }
+    ],
+
+    filters: [
+      { custom: "(o.excluido IS NULL OR o.excluido = '')" }
+    ],
+
+    orderBy: "o.timestamp DESC"
+  }
+
+  if (acesso.permissao === 'cliente') {
+    schema.filters.push({
+      field: "c.empresa",
+      op: "=",
+      value: acesso.empresa
+    })
+  }
+
+  overlayAguarde()
+  await baixarRelatorioExcel(schema, 'Peças')
+  removerOverlay()
+  
 }
