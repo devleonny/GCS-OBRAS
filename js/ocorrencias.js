@@ -251,7 +251,7 @@ async function carregarCorrecoes(ocorrencia) {
     }
 
     // Organizado com a última correção primeiro;
-    const correcoesOrganizadas = Object.entries(correcoes)
+    const correcoesOrganizadas = Object.entries(correcoes || {})
         .sort(([, a], [, b]) => toTimestamp(b.data) - toTimestamp(a.data))
 
     for (const [idCorrecao, correcao] of correcoesOrganizadas) {
