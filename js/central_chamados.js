@@ -145,16 +145,32 @@ async function criarElementosIniciais() {
             ? 'Boa tarde'
             : 'Bom dia'
 
+    // Apenas as atrasadas para verificação ou reagendamento;
     const tAtrasados = modTab({
         base: 'dados_ocorrencias',
         pag: 'tAtrasados',
-        ocultarPaginacao: true,
         body: 'tAtrasados',
         filtros: {
-            'snapshots.pendenteResposta': { op: 'includes', value: acesso.usuario },
-            'correcoes.*.executor': { op: '=', value: acesso.usuario },
+            'snapshots.ultimoSolicitante': { op: '=', value: acesso.usuario },
             'correcoes.*.tipoCorrecao': { op: '!=', value: 'WRuo2' },
-            'correcoes.*.dtCorrecao': { op: '<d', value: Date.now() },
+            'snapshots.dtCorrecao': { op: '<d', value: Date.now() },
+            ...(
+                acesso.permissao == 'cliente'
+                    ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
+                    : {}
+            )
+        },
+        criarLinha: 'linCorrecoes'
+    })
+
+    // Todas as correções do usuário;
+    const tCorrecoes = modTab({
+        base: 'dados_ocorrencias',
+        pag: 'tCorrecoes',
+        body: 'tCorrecoes',
+        filtros: {
+            'snapshots.ultimoExecutor': { op: '=', value: acesso.usuario },
+            'correcoes.*.tipoCorrecao': { op: '!=', value: 'WRuo2' },
             ...(
                 acesso.permissao == 'cliente'
                     ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
@@ -168,6 +184,7 @@ async function criarElementosIniciais() {
         base: 'dados_ocorrencias',
         path: 'snapshots.ultimaCorrecao',
         filtros: {
+            'snapshots.ultimaCorrecao': { op: '!=', value: 'Solucionada' },
             'usuario': { op: '=', value: acesso.usuario }
         }
     })
@@ -192,28 +209,10 @@ async function criarElementosIniciais() {
                 ${baloesMeus || `<div style="${horizontal}; color: white; gap: 3px;"><span>Tudo certo por aqui</span> <img src="imagens/concluido.png"></div>`}
             </div>
             <div class="b-atalhos">
-                <span class="titul-1">Atrasados, reagendar</span>
+                <span class="titul-1">Atrasadas: <b>Verifique ou Reagende</b></span>
                 ${tAtrasados}
             </div>
-        `
-
-    const tCorrecoes = modTab({
-        base: 'dados_ocorrencias',
-        pag: 'tCorrecoes',
-        ocultarPaginacao: true,
-        body: 'tCorrecoes',
-        filtros: {
-            'snapshots.pendenteResposta': { op: 'includes', value: acesso.usuario },
-            'correcoes.*.executor': { op: '=', value: acesso.usuario },
-            'correcoes.*.tipoCorrecao': { op: '!=', value: 'WRuo2' },
-            ...(
-                acesso.permissao == 'cliente'
-                    ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
-                    : {}
-            )
-        },
-        criarLinha: 'linCorrecoes'
-    })
+            `
 
     pFundo.innerHTML = `    
         <div style="${horizontal}; gap: 1rem;">
@@ -254,50 +253,34 @@ async function linCorrecoes(ocorrencia) {
 
     const { id, snapshots, correcoes } = ocorrencia || {}
     const { cliente, sistema, prioridade } = snapshots || {}
+    const { descricao, usuario, executor, dtCorrecao } = correcoes[snapshots.ultimaCorrecaoId] || {}
 
-    const linhas = []
+    const titulo = executor
+        ? ` para <b>${executor}</b>`
+        : ', sem executor definido'
 
-    for (const [idCorrecao, correcao] of Object.entries(correcoes)) {
+    return `
+        <tr>
+            <td>
+                <div class="balao-correcao"
+                    onclick="controles.ocorrencias.filtros.id = { op: '=', value: '${id}'}; telaOcorrencias();">
+                    <span>Solicitado por <b>${usuario || 'Desconhecido'}</b>${titulo}</span>
+                    <div style="${horizontal}; gap: 1rem;">
 
-        const { descricao, executor, dtCorrecao } = correcao || {}
+                        <img src="imagens/alerta.png">
 
-        // Tem que ser do usuário logado;
-        if (executor !== acesso.usuario)
-            continue
-
-        // Foi respondida?
-        const respondida = Object.values(correcoes)
-            .some(c => c?.resposta == idCorrecao)
-
-        if (respondida)
-            continue
-
-        linhas.push(`
-            <tr>
-                <td>
-                    <div class="balao-correcao"
-                        onclick="controles.ocorrencias.filtros.id = { op: '=', value: '${id}'}; telaOcorrencias();">
-                        <span>Solicitado por <b>${correcao?.usuario || 'Desconhecido'}</b> para <b>${executor}</b></span>
-                        <div style="${horizontal}; gap: 1rem;">
-
-                            <img src="imagens/alerta.png">
-
-                            <div style="${vertical}">
-                                <span style="font-size: 1rem;"><b>${id}</b></span>
-                                <span><b>Data Limite:</b> ${conversorData(dtCorrecao)}</span>
-                                <span><b>Unidade:</b> ${cliente?.nome || ''}</span>
-                                <span><b>Sistema:</b> ${sistema}</span>
-                                <span><b>Prioridade:</b> ${prioridade}</span>
-                                <span><b>Descrição:</b> ${descricao}</span>
-                            </div>
+                        <div style="${vertical}">
+                            <span style="font-size: 1rem;"><b>${id}</b></span>
+                            <span><b>Data Limite:</b> ${conversorData(dtCorrecao)}</span>
+                            <span><b>Unidade:</b> ${cliente?.nome || ''}</span>
+                            <span><b>Sistema:</b> ${sistema}</span>
+                            <span><b>Prioridade:</b> ${prioridade}</span>
+                            <span><b>Descrição:</b> ${descricao || ''}</span>
                         </div>
                     </div>
-                </td>
-            </tr>`
-        )
-    }
-
-    return linhas.join('')
+                </div>
+            </td>
+        </tr>`
 
 }
 

@@ -1,4 +1,3 @@
-let respCorrecao = null
 const autE = ['adm', 'gerente', 'diretoria']
 
 function pararCam() {
@@ -162,45 +161,52 @@ async function excluirOcorrenciaCorrecao(idOcorrencia, idCorrecao) {
 
 }
 
-function uCorrecao(correcoes) {
+function uCorrecao(correcoes = {}) {
     let maisRecente = null
-    let tipo = null
-    let dtBase = null
+    let selecionada = null
     let solucionado = false
 
-    for (const { data, dtCorrecao, tipoCorrecao } of Object.values(correcoes)) {
+    for (const [idCorrecao, item] of Object.entries(correcoes)) {
+        const { data, tipoCorrecao } = item || {}
+        if (!data) continue
 
-        if (!data)
-            continue
+        const [d, h] = String(data).split(', ')
+        if (!d || !h) continue
 
-        const [d, h] = data.split(', ')
         const [dia, mes, ano] = d.split('/')
-        const dateObj = new Date(`${ano}-${mes}-${dia}T${h}`)
+        if (!dia || !mes || !ano) continue
 
-        if (tipoCorrecao == 'WRuo2') {
-            solucionado = true
+        const dateObj = new Date(`${ano}-${mes}-${dia}T${h}`)
+        if (Number.isNaN(dateObj.getTime())) continue
+
+        if (tipoCorrecao === 'WRuo2') {
+            selecionada = { id: idCorrecao, ...item }
             maisRecente = dateObj
-            tipo = tipoCorrecao
-            dtBase = dtCorrecao
+            solucionado = true
             continue
         }
 
-        if (!maisRecente || dateObj > maisRecente) {
+        if (!solucionado && (!maisRecente || dateObj > maisRecente)) {
             maisRecente = dateObj
-            tipo = tipoCorrecao
-            dtBase = dtCorrecao
-
+            selecionada = { id: idCorrecao, ...item }
         }
     }
+
+    if (!selecionada) return null
 
     let dias = 0
-    if (dtBase && !solucionado) {
-        const dt = new Date(`${dtBase}T00:00:00`)
-        const diff = dt.getTime() - Date.now()
-        dias = Math.trunc(diff / (1000 * 60 * 60 * 24))
+    if (selecionada.dtCorrecao && !solucionado) {
+        const dt = new Date(`${selecionada.dtCorrecao}T00:00:00`)
+        if (!Number.isNaN(dt.getTime())) {
+            const diff = dt.getTime() - Date.now()
+            dias = Math.trunc(diff / (1000 * 60 * 60 * 24))
+        }
     }
 
-    return { tipo, dias, dtCorrecao: dtBase }
+    return {
+        ...selecionada,
+        dias
+    }
 }
 
 async function carregarCorrecoes(ocorrencia) {
@@ -218,7 +224,7 @@ async function carregarCorrecoes(ocorrencia) {
     }
 
     const idOcorrencia = ocorrencia.id
-    const dadosCorrecao = ocorrencia?.correcoes || {}
+    const { correcoes } = ocorrencia || {}
 
     let divsCorrecoes = ''
     const aTec = acesso.permissao === 'técnico'
@@ -244,30 +250,19 @@ async function carregarCorrecoes(ocorrencia) {
             : ''
     }
 
-    for (const [idCorrecao, correcao] of Object.entries(dadosCorrecao).reverse()) {
+    // Organizado com a última correção primeiro;
+    const correcoesOrganizadas = Object.entries(correcoes)
+        .sort(([, a], [, b]) => toTimestamp(b.data) - toTimestamp(a.data))
+
+    for (const [idCorrecao, correcao] of correcoesOrganizadas) {
 
         const { equipamentos } = correcao
-
-        const respondida = Object
-            .values(dadosCorrecao)
-            .some(c => c.resposta == idCorrecao)
 
         if (aTec) {
             // Só mostrar correções criadas para ele;
             if (correcao.executor !== acesso.usuario)
                 continue
-
-            // Se já foi respondida, ignorar;
-            if (respondida)
-                continue
         }
-   
-        const { nome } = await recuperarDado('correcoes', correcao?.tipoCorrecao) || 'Não analisada'
-        const estilo = nome == 'Solucionada'
-            ? 'fin'
-            : nome == 'Não analisada'
-                ? 'na'
-                : 'and'
 
         const imagens = Object.entries(correcao?.fotos || {})
             .map(([link,]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
@@ -278,11 +273,6 @@ async function carregarCorrecoes(ocorrencia) {
                 <button onclick="formularioCorrecao('${idOcorrencia}', '${idCorrecao}')">Editar</button>
                 <button style="background-color: #B12425;" onclick="confirmarExclusao('${idOcorrencia}', '${idCorrecao}')">Excluir</button>
             `
-            : ''
-
-        // Se já foi respondida, não mostrar;
-        const resposta = (!respondida && correcao.executor == acesso.usuario)
-            ? `<button style="background-color: #3e8bff;" onclick="respCorrecao = '${idCorrecao}'; formularioCorrecao('${idOcorrencia}')">Responder</button>`
             : ''
 
         const agendamentos = (correcao?.datas_agendadas || []).reverse()
@@ -318,6 +308,14 @@ async function carregarCorrecoes(ocorrencia) {
             })
             .join('')
 
+        const { nome } = await recuperarDado('correcoes', correcao?.tipoCorrecao) || {}
+
+        const estilo = nome == 'Solucionada'
+            ? 'fin'
+            : nome == 'Não analisada'
+                ? 'na'
+                : 'and'
+
         divsCorrecoes += `
             <div class="detalhes-correcoes-1">
 
@@ -331,7 +329,7 @@ async function carregarCorrecoes(ocorrencia) {
                         `)}
                     ${modelo('Solicitante', `<span>${correcao.usuario}</span>`)}
                     ${modelo('Executor', `<span>${correcao.executor}</span>`)}
-                    ${modelo('Correção', `<span class="${estilo}">${nome}</span>`)}
+                    ${modelo('Correção', `<span class="${estilo}">${nome || 'Sem status'}</span>`)}
                     ${modelo('Descrição', `<div style="white-space: pre-wrap;">${correcao.descricao}</div>`)}
                     ${modelo('Criado em', `<span>${correcao?.data || ''}</span>`)}
                     ${modelo('Equipamentos', tabEquipamentos(linhasEquipamentos))}
@@ -341,7 +339,6 @@ async function carregarCorrecoes(ocorrencia) {
                 <div style="${horizontal}">
 
                     <div style="${horizontal}; gap: 2px; padding: 0.5rem;"> 
-                        ${resposta}
                         ${edicao}
                     </div>
 
@@ -445,8 +442,7 @@ async function telaOcorrencias() {
     if (acesso.permissao == 'técnico') {
 
         controles.ocorrencias.filtros = {
-            'snapshots.pendenteResposta': { op: 'includes', value: acesso.usuario },
-            'correcoes.*.executor': { op: '=', value: acesso.usuario },
+            'snapshots.ultimoExecutor': { op: '=', value: acesso.usuario },
             'correcoes.*.tipoCorrecao': { op: '!=', value: 'WRuo2' }
         }
 
@@ -668,35 +664,6 @@ async function filtrarAtrasados(input) {
     await paginacao()
 }
 
-
-function ocultarParaTecs(correcoes = {}) {
-
-    if (acesso.permissao !== 'técnico') return false
-
-    if (Object.values(correcoes).some(c => c.tipoCorrecao === 'WRuo2'))
-        return true
-
-    let tudoRespondido = true
-    let participou = false
-
-    for (const [id, c] of Object.entries(correcoes)) {
-        if (c.executor !== acesso.usuario) continue
-
-        participou = true
-
-        const respondida = Object
-            .values(correcoes)
-            .some(x => x.resposta === id)
-
-        if (!respondida) {
-            tudoRespondido = false
-            break
-        }
-    }
-
-    return participou && tudoRespondido
-}
-
 async function auxPendencias() {
 
     const divPendencias = document.querySelector('.painel-pendencias')
@@ -710,9 +677,8 @@ async function auxPendencias() {
 
     if (acesso.permissao == 'técnico') {
         filtros = {
-            'snapshots.pendenteResposta': { op: 'includes', value: acesso.usuario },
             'correcoes.*.tipoCorrecao': { op: '!=', value: 'WRuo2' },
-            'correcoes.*.executor': { op: '=', value: acesso.usuario }
+            'snapshots.ultimoExecutor': { op: '=', value: acesso.usuario }
         }
 
     } else if (acesso.permissao == 'cliente') {
@@ -1063,6 +1029,9 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
 
     const tipoCorrecao = obter('tipoCorrecao').id
     const dtCorrecao = obter('dtCorrecao').value
+
+    if (!tipoCorrecao)
+        return popup({ mensagem: 'Defina um status para a correção' })
 
     if (tipoCorrecao == 'WRuo2' && !ocorrencia.assinatura && acesso.permissao == 'técnico') {
         coletarAssinatura(idOcorrencia)

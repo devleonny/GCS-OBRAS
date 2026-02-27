@@ -229,12 +229,12 @@ const regrasSnapshot = {
                 .map(c => c?.data)
 
             snap.equipamentos = Object.values(dado?.correcoes || {})
-            .reduce((acc, correcao) => {
-                Object.entries(correcao?.equipamentos || {}).forEach(([id, equip]) => {
-                acc[id] = equip
-                })
-                return acc
-            }, {})
+                .reduce((acc, correcao) => {
+                    Object.entries(correcao?.equipamentos || {}).forEach(([id, equip]) => {
+                        acc[id] = equip
+                    })
+                    return acc
+                }, {})
 
             const campos = {
                 'tipo': 'tipos',
@@ -257,7 +257,10 @@ const regrasSnapshot = {
 
             // última correção;
             const uc = uCorrecao(dado?.correcoes || {})
-            const correcao = await getStore(stores.correcoes, uc?.tipo)
+            const correcao = await getStore(stores.correcoes, uc?.tipoCorrecao)
+            snap.ultimaCorrecaoId = uc?.id
+            snap.ultimoExecutor = uc?.executor
+            snap.ultimoSolicitante = uc?.usuario
             snap.ultimaCorrecao = correcao?.nome || 'Não analisada'
             snap.dtCorrecao = conversorData(uc?.dtCorrecao)
 
@@ -972,14 +975,14 @@ function toTimestamp(d) {
         return isNaN(t) ? null : t
     }
 
-    // Formato BR: 09/02/2026 ou 09/02/2026, 14:30
+    // Formato BR: 09/02/2026 ou 09/02/2026, 14:30 ou 09/02/2026, 14:30:30
     const br = str.match(
-        /^(\d{2})\/(\d{2})\/(\d{4})(?:,\s*(\d{2}):(\d{2}))?/
+        /^(\d{2})\/(\d{2})\/(\d{4})(?:,\s*(\d{2}):(\d{2})(?::(\d{2}))?)?/
     )
 
     if (br) {
-        const [, d, m, y, h = '00', min = '00'] = br
-        const iso = `${y}-${m}-${d}T${h}:${min}:00`
+        const [, d, m, y, h = '00', min = '00', s = '00'] = br
+        const iso = `${y}-${m}-${d}T${h}:${min}:${s}`
         const t = Date.parse(iso)
         return isNaN(t) ? null : t
     }
