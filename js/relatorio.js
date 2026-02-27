@@ -470,7 +470,7 @@ async function baixarExcelRelatorioOcorrencias() {
                 field: "o.dataRegistro",
                 as: "Data Registro",
                 type: "date",
-                sourceFormat: 'br'
+                sourceFormat: 'br-hora'
             },
             { field: "o.descricao", as: "Descrição da Ocorrência" },
             { field: "o.usuario", as: "Solicitante" },
@@ -560,7 +560,7 @@ async function baixarExcelRelatorioCorrecoes() {
             {
                 custom: `json_extract(cx.value, '$.data')`,
                 type: "date",
-                sourceFormat: 'br',
+                sourceFormat: 'br-hora',
                 as: "Data"
             },
             {
