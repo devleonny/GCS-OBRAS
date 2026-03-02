@@ -704,7 +704,6 @@ function dataRegras(data, atraso) {
         const mes = dataFinal.getMonth()
 
         const mesAlvo = dia <= 5 ? mes : mes + 1
-
         dataFinal = new Date(ano, mesAlvo, 10)
 
         while (dataFinal.getDay() === 0 || dataFinal.getDay() === 6) {
@@ -713,10 +712,11 @@ function dataRegras(data, atraso) {
     }
 
     if (data) {
-        const [d, m, y] = String(data).split('/').map(Number)
-        const informada = new Date(y, m - 1, d)
-
-        if (informada > dataFinal) dataFinal = informada
+        const tInformada = toTimestamp(data) // aceita yyyy-mm-dd
+        if (tInformada != null) {
+            const tFinal = dataFinal.getTime()
+            if (tInformada > tFinal) dataFinal = new Date(tInformada)
+        }
     }
 
     if (dataFinal < dataMinima) dataFinal = dataMinima

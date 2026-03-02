@@ -243,8 +243,6 @@ async function criarLinhaOrcamento(orcamento) {
             ${contrato !== numOficial ? `<div style="${horizontal}; justify-content: end; width: 100%; color: #5f5f5f;"><small>${contrato}</small></div>` : ''}
         </div>`
 
-        const data = new Date(orcamento.timestamp).toLocaleString()
-
         const opcoesPda = abas
             .map(aba => `<option ${orcamento.aba == aba ? 'selected' : ''}>${aba}</option>`)
             .join('')
@@ -278,6 +276,8 @@ async function criarLinhaOrcamento(orcamento) {
                 <span>LC %</span>
                 ${divPorcentagem(0)}
             `)
+
+        const data = new Date(snapshots.tsUltimoStatus).toLocaleString()
 
         const celulas = `
          <td>

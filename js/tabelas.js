@@ -46,12 +46,11 @@ async function modTab(configuracoes) {
                 const opcoes = Object.keys(dados)
                     .filter(r => r != 'todos' && r != 'EM BRANCO')
                     .sort((a, b) => a.localeCompare(b))
-                    .map(r => `<option>${r}</option>`)
+                    .map(r => `<option value="${String(r).toLowerCase()}">${r}</option>`)
                     .join('')
 
                 return `
                     <th style="background-color: white;">
-                        <select 
                         <select
                         data-chave="${query.chave}"
                         data-op="${query.op || '='}"

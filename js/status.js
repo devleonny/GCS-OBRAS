@@ -1011,7 +1011,7 @@ async function alterarStatus(id, select) {
     const agora = Date.now()
 
     const registroStatus = {
-        timestamp: agora,
+        data: agora,
         de: statusAnterior,
         para: novoSt,
         usuario: acesso?.usuario || ''
@@ -1220,9 +1220,13 @@ async function mostrarHistoricoStatus(id) {
                         </tr>
                     </thead>
                     <tbody>
-                        ${Object.entries(orcamento.status.historicoStatus).map(([chave, registro]) => `
+                        ${Object.entries(orcamento.status.historicoStatus).map(([chave, registro]) => {
+
+                        const ts = toTimestamp(registro?.data || registro?.timestamp)
+
+                        return `
                             <tr id="ST_${chave}">
-                                <td>${registro.data}</td>
+                                <td>${new Date(ts).toLocaleString()}</td>
                                 <td>${registro.de}</td>
                                 <td>${registro.para}</td>
                                 <td>${registro.usuario}</td>
@@ -1230,7 +1234,7 @@ async function mostrarHistoricoStatus(id) {
                                     ${acesso.permissao == 'adm' ? `<img onclick="excluirHiStatus('${id}', '${chave}')" src="imagens/cancel.png">` : ''}
                                 </td>
                             </tr>
-                        `).join('')}
+                        `}).join('')}
                     </tbody>
                 </table>
             </div>
@@ -2119,4 +2123,21 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
 
     }
 
+}
+
+
+function teste() {
+
+    const sss = {
+        "J9wai": {
+            "data": "30/12/2025, 09:10:30",
+            "de": "",
+            "para": "ORC ENVIADO",
+            "usuario": "Tatiana Amelia"
+        }
+    }
+
+
+
+    console.log(ulTimestampStatus)
 }

@@ -1,5 +1,5 @@
 const nomeBase = 'GCS'
-const versao = 1
+const versao = 2
 let bloqSinc = false
 let dbInstance = null
 
@@ -22,7 +22,7 @@ const basesAuxiliares = {
     'dados_composicoes': { keyPath: 'id', tipo: 'STRING' },
     'dados_manutencao': { keyPath: 'id' },
     'dados_ocorrencias': { keyPath: 'id' },
-    'dados_orcamentos': { keyPath: 'id' },
+    'dados_orcamentos': { keyPath: 'id', indexPath: 'snapshots.tsUltimoStatus' },
     'lista_pagamentos': { keyPath: 'id' },
 }
 
@@ -66,11 +66,13 @@ function criarBases(stores = null) {
             if (!db.objectStoreNames.contains(nome)) {
                 const store = db.createObjectStore(nome, config)
 
-                store.createIndex(
-                    'timestamp',
-                    'timestamp',
-                    { unique: false }
-                )
+                const indexPath = config.indexPath || 'timestamp'
+
+                store.createIndex('timestamp', 'timestamp', { unique: false })
+
+                if (indexPath !== 'timestamp') {
+                    store.createIndex('ordenacao', indexPath, { unique: false })
+                }
             }
         })
     }
@@ -449,7 +451,15 @@ const regrasSnapshot = {
             }
 
             // última alteração de status;
-            
+            const timestamps = Object.values(dado?.status?.historicoStatus || {})
+                .map(h => h?.data && toTimestamp(h.data))
+                .filter(Boolean)
+
+            const ulTimestampStatus = timestamps.length
+                ? Math.max(...timestamps)
+                : dado.timestamp
+
+            snap.tsUltimoStatus = ulTimestampStatus
 
             return snap
         }
@@ -583,7 +593,8 @@ async function pesquisarDB({ filtros = {}, base, pagina = 1, limite = 50 }) {
     const db = await getDB()
     const tx = db.transaction(base, 'readonly')
     const store = tx.objectStore(base)
-    const index = store.index('timestamp')
+    const indexName = basesAuxiliares?.[base]?.indexPath ? 'ordenacao' : 'timestamp'
+    const index = store.index(indexName)
 
     return new Promise(resolve => {
 
@@ -966,31 +977,39 @@ function msgQuedaConexao(msg = '<b>Falha na atualização:</b> tente novamente e
 
 function toTimestamp(d) {
     if (d == null || d === '') return null
-
-    // Se já for número
     if (typeof d === 'number') return d
 
     const str = String(d).trim()
 
-    // Formato ISO: 2026-02-09 ou com hora
-    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
-        const t = Date.parse(str.replace(',', ''))
+    // yyyy-mm-dd (input date) → criar como LOCAL (meio-dia evita bug de fuso)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+        const [y, m, dia] = str.split('-').map(Number)
+        return new Date(y, m - 1, dia, 12, 0, 0).getTime()
+    }
+
+    // ISO completo com hora (2026-03-16T10:30:00)
+    if (/^\d{4}-\d{2}-\d{2}T/.test(str)) {
+        const t = Date.parse(str)
         return isNaN(t) ? null : t
     }
 
-    // Formato BR: 09/02/2026 ou 09/02/2026, 14:30 ou 09/02/2026, 14:30:30
+    // BR dd/mm/yyyy...
     const br = str.match(
         /^(\d{2})\/(\d{2})\/(\d{4})(?:,\s*(\d{2}):(\d{2})(?::(\d{2}))?)?/
     )
 
     if (br) {
-        const [, d, m, y, h = '00', min = '00', s = '00'] = br
-        const iso = `${y}-${m}-${d}T${h}:${min}:${s}`
-        const t = Date.parse(iso)
-        return isNaN(t) ? null : t
+        const [, dia, mes, ano, h = '00', min = '00', s = '00'] = br
+        return new Date(
+            Number(ano),
+            Number(mes) - 1,
+            Number(dia),
+            Number(h),
+            Number(min),
+            Number(s)
+        ).getTime()
     }
 
-    // fallback
     const t = Date.parse(str)
     return isNaN(t) ? null : t
 }
