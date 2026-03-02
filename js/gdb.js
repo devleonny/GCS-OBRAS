@@ -448,6 +448,9 @@ const regrasSnapshot = {
                 if (tag?.nome) snap.tags.push(tag.nome.toLowerCase())
             }
 
+            // última alteração de status;
+            
+
             return snap
         }
     }

@@ -835,19 +835,22 @@ async function verAprovacoes() {
         '%': '',
         'Localização': { chave: 'snapshots.cidade' },
         'Usuário': { chave: 'snapshots.responsavel' },
-        'Aprovação': { chave: 'aprovacao.status' },
+        'Aprovação': { chave: 'aprovacao.status', tipoPesquisa: 'select' },
         'Comentário': { chave: 'aprovacao.justificativa' },
         'Detalhes': ''
     }
-    const pag = 'aprovacao'
+
     const tabela = await modTab({
         colunas,
-        pag,
+        pag: 'aprovacao',
         base: 'dados_orcamentos',
         pag: 'aprovacao',
         criarLinha: 'criarLinhaAprovacao',
         body: 'tAprovacao',
-        filtros: { 'aprovacao': { op: 'NOT_EMPTY' } }
+        filtros: {
+            'aprovacao': { op: 'NOT_EMPTY' },
+            'aprovacao.status': { op: '=', value: 'pendente' },
+        }
     })
 
     const elemento = `
@@ -859,7 +862,7 @@ async function verAprovacoes() {
     `
     popup({ elemento, titulo: 'Aprovações de Orçamento' })
 
-    await paginacao(pag)
+    await paginacao()
 
 }
 
@@ -1499,9 +1502,9 @@ async function salvarDadosCliente(idOrcamento = null) {
 function executarLimparCampos() {
 
     let orcamento = baseOrcamento()
-    if (orcamento.dados_orcam) 
+    if (orcamento.dados_orcam)
         delete orcamento.dados_orcam
-    
+
     baseOrcamento(orcamento)
     painelClientes()
 }

@@ -641,24 +641,18 @@ async function pesquisarOcorrencias(path, valor) {
 
 async function filtrarAtrasados(input) {
 
-    const ativo = input.value != ''
+    const ativo = input.value
 
-    const novosFiltros = {
-        'correcoes.*.tipoCorrecao': ativo
-            ? { op: '!=', value: 'WRuo2' }
-            : null,
-
-        'correcoes.*.dtCorrecao': ativo
-            ? {
-                op: input.value == 'Sim' ? '<d' : '>=d',
-                value: Date.now()
-            }
-            : null
-    }
-
-    controles.ocorrencias.filtros = {
-        ...controles.ocorrencias.filtros,
-        ...novosFiltros
+    if (ativo == '') {
+        delete controles.ocorrencias.filtros['snapshots.dtCorrecao']
+        
+    } else {
+        controles.ocorrencias.filtros['snapshots.dtCorrecao'] = {
+            op: ativo == 'Sim'
+                ? '<d'
+                : '>=d',
+            value: new Date().toLocaleDateString()
+        }
     }
 
     await paginacao()
