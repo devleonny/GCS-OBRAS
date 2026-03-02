@@ -1172,6 +1172,20 @@ async function calcularTempos() {
             <span>Porcentagem de conclusão</span>
             ${divPorcentagem(porcentagem)}
         </div>`
+
+    // Atualizar globalmente;
+    const id = controles?.checklist?.id
+    const nPorcentagem = Number(porcentagem)
+    if (!id || nPorcentagem == 0)
+        return
+
+    const { checklist } = await recuperarDado('dados_orcamentos', id)
+    const andamento = checklist?.andamento
+
+    if (andamento != nPorcentagem) {
+        enviar(`dados_orcamentos/${id}/checklist/andamento`, nPorcentagem)
+    }
+
 }
 
 async function registrarChecklist(codigo) {

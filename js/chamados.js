@@ -34,8 +34,7 @@ async function telaChamados() {
 
         <div style="${vertical}; width: 95vw;">
             ${tabela}
-        </div>
-    `
+        </div>`
 
     tela.innerHTML = acumulado
 
