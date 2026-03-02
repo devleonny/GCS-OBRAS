@@ -338,7 +338,7 @@ async function enviarOmie() {
             valor_documento: totalGeral,
             categorias: [
                 {
-                    codigo_categoria: '2.03.97',
+                    codigo_categoria: '2.03.11',
                     percentual: 100
                 }
             ]

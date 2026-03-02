@@ -775,18 +775,62 @@ function passaFiltro(reg, filtros) {
 
 }
 
-
 async function contarPorCampo({ base, path, filtros = {} }) {
-
     const contagem = { todos: 0 }
     const hasWildcard = path?.includes('*')
 
+    // CASO 1: base em memória (array ou objeto)
+    if (typeof base === 'object') {
+        const lista = Array.isArray(base) ? base : Object.values(base)
+
+        for (const reg of lista) {
+            if (!passaFiltro(reg, filtros)) continue
+
+            if (!hasWildcard) {
+                let v = getByPath(reg, path)
+                if (v == null || v === '') v = 'EM BRANCO'
+
+                contagem.todos++
+                contagem[v] = (contagem[v] || 0) + 1
+                continue
+            }
+
+            const items = resolveWildcard(reg, path)
+
+            for (const { ctx, valor } of items) {
+                let passou = true
+
+                for (const fPath in filtros) {
+                    if (!fPath.includes('*')) continue
+                    const f = filtros[fPath]
+                    const sub = fPath.split('*').slice(1).join('.').replace(/^\./, '')
+                    const vFiltro = getByPath(ctx, sub)
+
+                    if (!multiplasRegras(vFiltro, f)) {
+                        passou = false
+                        break
+                    }
+                }
+
+                if (!passou) continue
+
+                let v = valor
+                if (v == null || v === '') v = 'EM BRANCO'
+
+                contagem.todos++
+                contagem[v] = (contagem[v] || 0) + 1
+            }
+        }
+
+        return contagem
+    }
+
+    // CASO 2: base é string → IndexedDB (seu fluxo atual)
     const db = await getDB()
     const tx = db.transaction(base, 'readonly')
     const store = tx.objectStore(base)
 
     return new Promise(resolve => {
-
         store.openCursor().onsuccess = ev => {
             const cursor = ev.target.result
 
@@ -816,7 +860,6 @@ async function contarPorCampo({ base, path, filtros = {} }) {
             const items = resolveWildcard(reg, path)
 
             for (const { ctx, valor } of items) {
-
                 let passou = true
 
                 for (const fPath in filtros) {
