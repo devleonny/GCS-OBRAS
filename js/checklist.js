@@ -53,7 +53,7 @@ async function telaChecklist(id) {
             <span>Marcar todos</span>
         </div>`
 
-    const tabela = modTab({
+    const tabela = await modTab({
         id,
         colunas,
         pag: 'checklist',
@@ -344,7 +344,7 @@ async function relatorioChecklist() {
             ${elemento}
         </div>`
 
-    const tabela = modTab({
+    const tabela = await modTab({
         pag: 'relatChecklist',
         funcaoAdicional: ['gerarRelatorioChecklist'],
         colunas,

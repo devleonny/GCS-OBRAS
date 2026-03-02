@@ -5,8 +5,7 @@ async function telaRelatorio() {
         'Empresa': { chave: 'snapshots.empresa' },
         'Chamado': { chave: 'id' },
         'Status': { chave: 'snapshots.ultimaCorrecao' },
-        'Data Abertura': { chave: 'dataRegistro' },
-        'Hora Abertura': {},
+        'Data Abertura': { chave: 'dataRegistro', tipoPesquisa: 'data' },
         'Data Limite': { chave: 'snapshots.dtCorrecao' },
         'Solicitante': { chave: 'usuario' },
         'Executores': { chave: 'snapshots.executores' },
@@ -18,7 +17,7 @@ async function telaRelatorio() {
         'Prioridade': { chave: 'snapshots.prioridade' }
     }
 
-    const tabela = modTab({
+    const tabela = await modTab({
         colunas,
         pag: 'relatorioOcorrencias',
         body: 'bodyRelatorioOcorrencias',
@@ -65,15 +64,8 @@ async function telaRelatorio() {
                 <img src="imagens/GrupoCostaSilva.png" style="width: 5rem;">
 
                 <div class="toolbar-itens">
-                    <div style="${vertical}; gap: 0.5rem;">
-                        <span>Data de abertura</span>
-                        <span onclick="baixarExcelRelatorioOcorrencias()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
-                    </div>
 
-                    <div style="${vertical}; gap: 0.5rem;">
-                        <input id="de" type="date" onchange="pesquisarDatas('relatorioOcorrencias')">
-                        <input id="ate" type="date" onchange="pesquisarDatas('relatorioOcorrencias')">
-                    </div>
+                    <span onclick="baixarExcelRelatorioOcorrencias()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
 
                     <div class="toolbar-itens">
                         ${modelo({ texto: 'Total', qtde: todos, cor: '#222' })}
@@ -108,7 +100,7 @@ function dtAuxOcorrencia(dt) {
 
 async function criarLinhaRelatorio(ocorrencia) {
 
-    const { id, snapshots } = ocorrencia || {}
+    const { id, snapshots, dataRegistro } = ocorrencia || {}
     const { ultimaCorrecao, cliente, empresa, tipo, prioridade, sistema } = snapshots || {}
 
     const status = ultimaCorrecao
@@ -117,10 +109,6 @@ async function criarLinhaRelatorio(ocorrencia) {
         : status == 'Não analisada'
             ? 'na'
             : 'and'
-
-    const [dtAb, hrAb] = ocorrencia.dataRegistro
-        ? ocorrencia.dataRegistro.split(', ')
-        : ['', '']
 
     const executores = Object.values(ocorrencia?.correcoes || {})
         .map(correcao => `<span>• ${correcao.executor}</span>`)
@@ -137,8 +125,7 @@ async function criarLinhaRelatorio(ocorrencia) {
         <td>
             <span class="${estilo}">${status}</span>
         </td>
-        <td>${dtAb}</td>
-        <td>${hrAb}</td>
+        <td>${dataRegistro || ''}</td>
         <td>${snapshots?.dtCorrecao || ''}</td>
         <td>${ocorrencia?.usuario || ''}</td>
         <td>
@@ -263,24 +250,6 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
     popup({ elemento, titulo: 'Correções' })
 }
 
-async function pesquisarDatas(pag) {
-    const deInput = document.getElementById('de').value
-    const ateInput = document.getElementById('ate').value
-
-    controles[pag].filtros ??= {}
-
-    controles[pag].filtros = {
-        ...controles[pag].filtros,
-        'dataRegistro': [
-            { op: '>=d', value: deInput },
-            { op: '<=d', value: ateInput },
-        ]
-    }
-
-    await paginacao()
-
-}
-
 async function telaRelatorioCorrecoes() {
 
     const colunas = {
@@ -288,14 +257,14 @@ async function telaRelatorioCorrecoes() {
         'Chamado': { chave: 'id' },
         'Tipo Correção': { chave: 'snapshots.ultimaCorrecao' },
         'Descrição': { chave: 'descricao' },
-        'Data Registro': { chave: 'snapshots.datasCorrecoes' },
+        'Data Registro': { chave: 'snapshots.datasCorrecoes', tipoPesquisa: 'data' },
         'Solicitante': { chave: 'usuario' },
         'Executor': { chave: 'snapshots.executores' },
         'Loja': { chave: 'snapshots.cliente' },
         'Sistema': { chave: 'snapshots.sistema' }
     }
 
-    const tabela = modTab({
+    const tabela = await modTab({
         colunas,
         filtros: {
             ...(
@@ -316,17 +285,7 @@ async function telaRelatorioCorrecoes() {
 
                 <img src="imagens/GrupoCostaSilva.png" style="width: 5rem;">
 
-                <div class="toolbar-itens">
-                    <div style="${vertical}; gap: 0.5rem;">
-                        <span>Data de abertura</span>
-                        <span onclick="baixarExcelRelatorioCorrecoes()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
-                    </div>
-
-                    <div style="${vertical}; gap: 0.5rem;">
-                        <input id="de" type="date" onchange="pesquisarDatas('relatorioCorrecoes')">
-                        <input id="ate" type="date" onchange="pesquisarDatas('relatorioCorrecoes')">
-                    </div>
-                </div>
+                <span onclick="baixarExcelRelatorioCorrecoes()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
 
             </div>
             ${tabela}
@@ -399,7 +358,7 @@ async function telaRelatorioPecas() {
         'Empresa': { chave: 'snapshots.empresa' },
         'Loja': { chave: 'snapshots.cliente.nome' },
         'Executor': { chave: 'correcoes.*.executor' },
-        'Data Correção': { chave: 'correcoes.*.data' },
+        'Data Correção': { chave: 'correcoes.*.data', tipoPesquisa: 'data' },
         'Descrição': { chave: 'snapshots.equipamentos.*.descricao' },
         'Unidade': { chave: 'snapshots.equipamentos.*.unidade' },
         'Quantidade': { chave: 'snapshots.equipamentos.*.quantidade' },
@@ -407,7 +366,7 @@ async function telaRelatorioPecas() {
         'Fabricante': { chave: 'snapshots.equipamentos.*.fabricante' },
     }
 
-    const tabela = modTab({
+    const tabela = await modTab({
         colunas,
         filtros: {
             'correcoes.*.equipamentos': { op: 'NOT_EMPTY' },
@@ -429,17 +388,7 @@ async function telaRelatorioPecas() {
 
                 <img src="imagens/GrupoCostaSilva.png" style="width: 5rem;">
 
-                <div class="toolbar-itens">
-                    <div style="${vertical}; gap: 0.5rem;">
-                        <span>Data de abertura</span>
-                        <span onclick="baixarExcelRelatorioPecas()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
-                    </div>
-
-                    <div style="${vertical}; gap: 0.5rem;">
-                        <input id="de" type="date" onchange="pesquisarDatas('relatorioPecas')">
-                        <input id="ate" type="date" onchange="pesquisarDatas('relatorioPecas')">
-                    </div>
-                </div>
+                <span onclick="baixarExcelRelatorioPecas()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
 
             </div>
             ${tabela}
@@ -718,47 +667,47 @@ async function baixarExcelRelatorioCorrecoes() {
 
 async function baixarExcelRelatorioPecas() {
 
-  const schema = {
-    table: "dados_ocorrencias",
-    alias: "o",
-    joins: [
-      { type: "LEFT", table: "dados_clientes", alias: "c", on: `c.id = o.unidade` },
-      { type: "LEFT", table: "empresas", alias: "e", on: `e.id = c.empresa` }
-    ],
-    explodes: [
-      { field: "o.correcoes", path: "$", alias: "cx", type: "JOIN" },
-      { field: "json_extract(cx.value, '$.equipamentos')", alias: "eq", type: "JOIN" }
-    ],
-    columns: [
-      { field: "o.id", as: "Chamado" },
-      { field: "e.nome", as: "Empresa" },
-      { field: "c.nome", as: "Loja" },
-      { custom: `json_extract(o.snapshots, '$.cliente.nome')`, as: "Cliente" },
-      { custom: `eq.key`, as: "Código" },
-      { custom: `json_extract(eq.value, '$.descricao')`, as: "Descrição", width: 35 },
-      { custom: `json_extract(eq.value, '$.modelo')`, as: "Modelo" },
-      { custom: `json_extract(eq.value, '$.fabricante')`, as: "Fabricante" },
-      { custom: `json_extract(eq.value, '$.unidade')`, as: "Unidade" },
-      { custom: `json_extract(eq.value, '$.quantidade')`, as: "Quantidade" }
-    ],
+    const schema = {
+        table: "dados_ocorrencias",
+        alias: "o",
+        joins: [
+            { type: "LEFT", table: "dados_clientes", alias: "c", on: `c.id = o.unidade` },
+            { type: "LEFT", table: "empresas", alias: "e", on: `e.id = c.empresa` }
+        ],
+        explodes: [
+            { field: "o.correcoes", path: "$", alias: "cx", type: "JOIN" },
+            { field: "json_extract(cx.value, '$.equipamentos')", alias: "eq", type: "JOIN" }
+        ],
+        columns: [
+            { field: "o.id", as: "Chamado" },
+            { field: "e.nome", as: "Empresa" },
+            { field: "c.nome", as: "Loja" },
+            { custom: `json_extract(o.snapshots, '$.cliente.nome')`, as: "Cliente" },
+            { custom: `eq.key`, as: "Código" },
+            { custom: `json_extract(eq.value, '$.descricao')`, as: "Descrição", width: 35 },
+            { custom: `json_extract(eq.value, '$.modelo')`, as: "Modelo" },
+            { custom: `json_extract(eq.value, '$.fabricante')`, as: "Fabricante" },
+            { custom: `json_extract(eq.value, '$.unidade')`, as: "Unidade" },
+            { custom: `json_extract(eq.value, '$.quantidade')`, as: "Quantidade" }
+        ],
 
-    filters: [
-      { custom: "(o.excluido IS NULL OR o.excluido = '')" }
-    ],
+        filters: [
+            { custom: "(o.excluido IS NULL OR o.excluido = '')" }
+        ],
 
-    orderBy: "o.timestamp DESC"
-  }
+        orderBy: "o.timestamp DESC"
+    }
 
-  if (acesso.permissao === 'cliente') {
-    schema.filters.push({
-      field: "c.empresa",
-      op: "=",
-      value: acesso.empresa
-    })
-  }
+    if (acesso.permissao === 'cliente') {
+        schema.filters.push({
+            field: "c.empresa",
+            op: "=",
+            value: acesso.empresa
+        })
+    }
 
-  overlayAguarde()
-  await baixarRelatorioExcel(schema, 'Peças')
-  removerOverlay()
-  
+    overlayAguarde()
+    await baixarRelatorioExcel(schema, 'Peças')
+    removerOverlay()
+
 }

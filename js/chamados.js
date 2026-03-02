@@ -6,8 +6,8 @@ async function telaChamados() {
     mostrarMenus(false)
 
     const colunas = {
-        'Última alteração': { chave: 'data' },
-        'Status': { chave: 'status_manutencao' },
+        'Última alteração': { chave: 'data', tipoPesquisa: 'data' },
+        'Status': { chave: 'status_manutencao', tipoPesquisa: 'select' },
         'Chamado': { chave: 'chamado' },
         'Loja': { chave: 'snapshots.loja' },
         'Técnico': { chave: 'snapshots.tecnico' },
@@ -16,7 +16,7 @@ async function telaChamados() {
         'Ações': {}
     }
 
-    const tabela = modTab({
+    const tabela = await modTab({
         pag: 'chamados',
         funcaoAdicional: ['formatacaoPaginaChamados'],
         colunas,

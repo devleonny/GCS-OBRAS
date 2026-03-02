@@ -28,7 +28,7 @@ async function telaEstoque() {
         'Valor CMC': {}
     }
 
-    const tabela = modTab({
+    const tabela = await modTab({
         pag: 'estoque',
         base: 'dados_estoque',
         colunas,
@@ -665,7 +665,7 @@ async function relatorioMovimento() {
         'Comentário': {}
     }
 
-    const tabela = modTab({
+    const tabela = await modTab({
         base: 'dados_estoque',
         colunas,
         pag: 'movimentos',

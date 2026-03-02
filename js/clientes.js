@@ -134,7 +134,7 @@ async function telaClientes() {
             <img src="imagens/baixar.png" onclick="formularioCliente()">
         </div>`
 
-    const tabela = modTab({
+    const tabela = await modTab({
         pag: 'clientes',
         colunas,
         body: 'bodyClientes',

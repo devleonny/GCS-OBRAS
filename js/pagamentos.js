@@ -44,18 +44,18 @@ async function telaPagamentos() {
 
     const pag = 'pagamentos'
     const colunas = {
-        'Data de Previsão': { chave: 'param.*.data_vencimento' },
+        'Data de Previsão': { chave: 'param.*.data_vencimento', tipoPesquisa: 'data' },
         'Departamentos': { chave: 'snapshots.departamentos' },
-        'APP': { chave: 'app', op: '=' },
+        'APP': { chave: 'app', op: '=', tipoPesquisa: 'select' },
         'Valor': { chave: 'snapshots.valor' },
-        'Status': { chave: 'status' },
+        'Status': { chave: 'status', tipoPesquisa: 'select' },
         'Solicitante': { chave: 'criado' },
         'Setor': '',
         'Recebedor': { chave: 'snapshots.cliente' },
         'Detalhes': ''
     }
 
-    const tabela = modTab({
+    const tabela = await modTab({
         pag,
         colunas,
         funcaoAdicional: ['atualizarPainelEsquerdo'],

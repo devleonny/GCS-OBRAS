@@ -38,7 +38,7 @@ async function telaComposicoes() {
         )
     }
 
-    const tabela = modTab({
+    const tabela = await modTab({
         colunas,
         pag: 'composicoes',
         base: 'dados_composicoes',

@@ -1398,7 +1398,7 @@ async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
             })
     )
 
-    const tabela = modTab({
+    const tabela = await modTab({
         base,
         pag: 'requisicao',
         funcaoAdicional: ['calcularRequisicao'],

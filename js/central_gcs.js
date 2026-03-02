@@ -340,7 +340,7 @@ async function configs() {
         'Setores': { chave: 'setor' }
     }
 
-    const tabela = modTab({
+    const tabela = await modTab({
         pag: 'usuarios',
         colunas,
         base: 'dados_setores',
@@ -615,7 +615,7 @@ async function painelUsuarios() {
         <button onclick="filtrarUsuarios('online')">Online</button>
         <button style="background-color: #ff0000;" onclick="filtrarUsuarios('offline')">Offline</button>`
 
-    const tOnline = modTab({
+    const tOnline = await modTab({
         pag: 'usuariosOnline',
         colunas,
         btnExtras,
@@ -840,7 +840,7 @@ async function verAprovacoes() {
         'Detalhes': ''
     }
     const pag = 'aprovacao'
-    const tabela = modTab({
+    const tabela = await modTab({
         colunas,
         pag,
         base: 'dados_orcamentos',

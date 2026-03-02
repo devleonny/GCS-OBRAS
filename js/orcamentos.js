@@ -59,7 +59,7 @@ async function telaOrcamentos() {
 
     const btnExtras = `<span style="color: white; cursor: pointer; white-space: nowrap;" onclick="filtroOrcamentos()">Filtros ☰</span>`
 
-    const tabela = modTab({
+    const tabela = await modTab({
         funcaoAdicional: ['formatacaoPagina'],
         btnExtras,
         filtros: {

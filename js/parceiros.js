@@ -37,7 +37,7 @@ async function modalLPUParceiro(id, chave) {
         <button style="background-color: green;" onclick="${fSalvar}">Salvar LPU</button>
     </div>
     `
-    const tabela = modTab({
+    const tabela = await modTab({
         base: itens,
         btnExtras,
         colunas,

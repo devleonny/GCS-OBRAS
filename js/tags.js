@@ -47,7 +47,7 @@ async function renderPainel(idOrcamento) {
         'Etiquetas': { chave: 'nome' }
     }
 
-    const tabela = modTab({
+    const tabela = await modTab({
         pag: 'etiquetas',
         colunas,
         criarLinha: 'criarLinhaTag',

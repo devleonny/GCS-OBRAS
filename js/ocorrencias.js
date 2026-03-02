@@ -421,7 +421,7 @@ async function telaOcorrencias() {
         <div id="filtros2" class="filtros"></div>
     </div>
     `
-    const tabela = modTab({
+    const tabela = await modTab({
         btnExtras,
         alinPag: vertical,
         base: 'dados_ocorrencias',

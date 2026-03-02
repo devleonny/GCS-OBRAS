@@ -122,7 +122,7 @@ async function telaInicialGCS() {
     // INDICADORES
     const filtroUsuario = await atualizarContadoresAcoes()
 
-    const tabelaIndicadores = modTab({
+    const tabelaIndicadores = await modTab({
         criarLinha: 'linAcoes',
         base: 'dados_orcamentos',
         pag: 'acoes',
@@ -146,7 +146,7 @@ async function telaInicialGCS() {
     </div>`
 
     // TABELAS PAGINADAS;
-    const tabelasPaginadas = modTab({
+    const tabelasPaginadas = await modTab({
         base: 'dados_orcamentos',
         pag: 'tabelasIndicadores',
         funcaoAdicional: ['contadoresAbas', 'atualizarContadoresAcoes'],
@@ -166,7 +166,7 @@ async function telaInicialGCS() {
     })
 
     // TÉCNICOS
-    const tabelaTecnicos = modTab({
+    const tabelaTecnicos = await modTab({
         pag: 'tecnicos',
         body: 'bodyTecnicos',
         base: 'dados_clientes',

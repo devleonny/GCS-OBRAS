@@ -41,7 +41,7 @@ async function telaRH() {
     </div>
     `
 
-    const tabela = modTab({
+    const tabela = await modTab({
         btnExtras,
         pag: 'rh',
         body: 'bodyDocumentos',

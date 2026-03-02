@@ -1810,8 +1810,13 @@ input[type=range]::-moz-range-thumb {
     font-size: 0.8rem;
 }
 
-.tabela thead input {
-    width: 100%;
+.tabela thead input,
+.tabela thead select {
+    background-color: #f0f0f0;
+    border-radius: 3px;
+    padding: 5px;
+    border: solid 1px #d2d2d2;
+    width: max-content;
 }
 
 .tabela th {

@@ -146,7 +146,7 @@ async function criarElementosIniciais() {
             : 'Bom dia'
 
     // Apenas as atrasadas para verificação ou reagendamento;
-    const tAtrasados = modTab({
+    const tAtrasados = await modTab({
         base: 'dados_ocorrencias',
         pag: 'tAtrasados',
         body: 'tAtrasados',
@@ -164,7 +164,7 @@ async function criarElementosIniciais() {
     })
 
     // Todas as correções do usuário;
-    const tCorrecoes = modTab({
+    const tCorrecoes = await modTab({
         base: 'dados_ocorrencias',
         pag: 'tCorrecoes',
         body: 'tCorrecoes',
@@ -349,7 +349,7 @@ async function telaUsuarios() {
         '': {}
     }
 
-    const tabela = modTab({
+    const tabela = await modTab({
         base: 'dados_setores',
         pag: 'tUsuarios',
         body: 'tUsuarios',

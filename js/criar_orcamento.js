@@ -687,7 +687,7 @@ async function tabelaProdutosOrcamentos() {
         'Imagem': {}
     }
 
-    const tabela = modTab({
+    const tabela = await modTab({
         pag: 'composicoes_orcamento',
         colunas,
         funcaoAdicional: ['formatarTabela', 'totalOrcamento'],

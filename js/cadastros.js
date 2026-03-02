@@ -16,7 +16,7 @@ async function telaCadastros() {
 
         const btnExtras = `<img  src="imagens/baixar.png" onclick="editarBaseAuxiliar('${base}')">`
 
-        const tabela = modTab({
+        const tabela = await modTab({
             base,
             btnExtras,
             alinPag: vertical,

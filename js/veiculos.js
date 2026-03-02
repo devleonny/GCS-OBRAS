@@ -22,10 +22,10 @@ async function telaVeiculos() {
     mostrarMenus(false)
 
     const colunas = {
-        'Data de Registro': { chave: 'data' },
+        'Data de Registro': { chave: 'data', tipoPesquisa: 'data' },
         'Usuário': { chave: 'usuario' },
         'Motorista': { chave: 'veiculo.snapshots.motoristas' },
-        'Data Pagamento': { chave: 'snapshots.dataPagamento' },
+        'Data Pagamento': { chave: 'snapshots.dataPagamento', tipoPesquisa: 'data' },
         'Valor': { chave: 'snapshots.valor' },
         'Realizado': { chave: 'snapshots.realizado' },
         'Cartão': { chave: 'veiculo.cartao' },
@@ -38,7 +38,7 @@ async function telaVeiculos() {
         ? `<div id="viabilidade"></div>`
         : ''
 
-    const tabela = modTab({
+    const tabela = await modTab({
         pag: 'custoVeiculos',
         funcaoAdicional: ['viabilidadeOmie'],
         btnExtras,
@@ -74,7 +74,7 @@ async function auxVeiculos() {
 
     const btnExtras = `<img src="imagens/baixar.png" onclick="novoVeiculo()">`
 
-    const tabela = modTab({
+    const tabela = await modTab({
         btnExtras,
         pag: 'veiculos',
         body: 'bodyVeiculos',

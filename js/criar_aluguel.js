@@ -257,7 +257,7 @@ async function tabelaProdutosAluguel() {
             </div>`
     }
 
-    const tabela = modTab({
+    const tabela = await modTab({
         base: 'dados_composicoes',
         colunas,
         funcaoAdicional: ['total'],
