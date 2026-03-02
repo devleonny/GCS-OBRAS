@@ -121,7 +121,8 @@ async function telaCriarOrcamento() {
     `
 
     const orcamentoPadrao = document.getElementById('orcamento_padrao')
-    if (!orcamentoPadrao) tela.innerHTML = acumulado
+    if (!orcamentoPadrao)
+        tela.innerHTML = acumulado
 
     criarMenus('criarOrcamentos')
     carregarResposta()
@@ -195,10 +196,11 @@ function carregarResposta() {
 
 async function manterPrecosAntigos(resposta) {
 
-    orcamento = baseOrcamento()
+    const orcamentoBase = baseOrcamento()
 
-    if (resposta == 'S')
-        orcamento = await recuperarDado('dados_orcamentos', orcamento.id)
+    const orcamento = resposta == 'S'
+        ? await recuperarDado('dados_orcamentos', orcamentoBase.id)
+        : baseOrcamento()
 
     orcamento.manter_precos = resposta
 
@@ -214,14 +216,12 @@ async function atualizarToolbar(remover) {
 
     titulo = document.querySelector('[name="titulo"]')
 
-    if (remover) return titulo.textContent = 'GCS'
+    if (remover) 
+        return titulo.textContent = 'GCS'
 
     const orcamentoBase = baseOrcamento()
     const edicao = orcamentoBase?.dados_orcam?.contrato == 'sequencial' || (orcamentoBase && orcamentoBase?.dados_orcam?.contrato)
     const contrato = orcamentoBase?.dados_orcam?.contrato == 'sequencial' ? 'Código a definir...' : orcamentoBase?.dados_orcam?.contrato
-
-    const idMaster = orcamentoBase?.hierarquia
-    const orcamentoMaster = await recuperarDado('dados_orcamentos', idMaster)
 
     const modelo = (titulo, elemento) => `
         <div style="${vertical};">
@@ -332,53 +332,16 @@ async function reiniciarLinhas() {
 
 }
 
-async function incluirMaster() {
-
-    const spanOrcamento = document.querySelector('[name="orcamento"]')
-    const orcamentoREF = await recuperarDado('dados_orcamentos', spanOrcamento.id)
-    const orcamento = baseOrcamento()
-
-    orcamento.dados_orcam ??= {}
-    orcamento.dados_orcam.omie_cliente = orcamentoREF.dados_orcam.omie_cliente
-    orcamento.dados_orcam.contrato = 'sequencial'
-    orcamento.hierarquia = spanOrcamento.id
-
-    baseOrcamento(orcamento)
-
-}
-
-function removerMaster() {
-
-    const spanOrcamento = document.querySelector('[name="orcamento"]')
-    spanOrcamento.textContent = 'Selecione'
-    spanOrcamento.removeAttribute('id')
-
-    const orcamento = baseOrcamento()
-
-    delete orcamento.dados_orcam.contrato
-    delete orcamento.dados_orcam.omie_cliente
-    delete orcamento.hierarquia
-
-    baseOrcamento(orcamento)
-
-}
-
 async function atualizarOpcoesLPU() {
 
-    let orcamentoBase = baseOrcamento() || {}
+    const orcamentoBase = baseOrcamento() || {}
 
-    const lpu = document.getElementById('lpu')
-    if (lpu) {
-        lpu.innerHTML = LPUS
-            .sort((a, b) => {
-                if (a === 'lpu hope') return -1
-                if (b === 'lpu hope') return 1
-                return a.localeCompare(b)
-            })
-            .map(lpu => `<option ${orcamentoBase?.lpu_ativa == lpu ? 'selected' : ''}>${lpu.toUpperCase()}</option>`)
-            .join('')
+    document.getElementById('lpu').innerHTML = LPUS
+        .map(lpu => {
+            return `<option ${orcamentoBase?.lpu_ativa?.toLowerCase() == lpu ? 'selected' : ''}>${lpu.toUpperCase()}</option>`
+        })
+        .join('')
 
-    }
 
     orcamentoBase.lpu_ativa = lpu.value
     baseOrcamento(orcamentoBase)
@@ -389,6 +352,7 @@ async function atualizarOpcoesLPU() {
 }
 
 async function alterarTabelaLPU(tabelaLPU) {
+
     document.getElementById('lpu').value = tabelaLPU
     let orcamentoBase = baseOrcamento()
     orcamentoBase.lpu_ativa = tabelaLPU
@@ -722,9 +686,9 @@ async function tabelaProdutosOrcamentos() {
         'Valor': {},
         'Imagem': {}
     }
-    const pag = 'composicoes_orcamento'
+
     const tabela = modTab({
-        pag,
+        pag: 'composicoes_orcamento',
         colunas,
         funcaoAdicional: ['formatarTabela', 'totalOrcamento'],
         btnExtras,
@@ -751,7 +715,7 @@ async function tabelaProdutosOrcamentos() {
 
     document.getElementById('tabelaItens').innerHTML = acumulado
 
-    await paginacao(pag)
+    await paginacao()
 
 }
 

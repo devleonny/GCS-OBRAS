@@ -1499,7 +1499,9 @@ async function salvarDadosCliente(idOrcamento = null) {
 function executarLimparCampos() {
 
     let orcamento = baseOrcamento()
-    if (orcamento.dados_orcam) delete orcamento.dados_orcam
+    if (orcamento.dados_orcam) 
+        delete orcamento.dados_orcam
+    
     baseOrcamento(orcamento)
     painelClientes()
 }

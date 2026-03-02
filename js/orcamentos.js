@@ -417,12 +417,14 @@ function verificarPrioridade(orcamento) {
     return prioridade
 }
 
-async function editar(orcam_) {
+async function editar(id) {
 
-    let orcamentoBase = await recuperarDado('dados_orcamentos', orcam_)
-    if (orcamentoBase.aprovacao) delete orcamentoBase.aprovacao
+    const orcamentoBase = await recuperarDado('dados_orcamentos', id)
 
-    await baseOrcamento(orcamentoBase)
+    if (orcamentoBase.aprovacao) 
+        delete orcamentoBase.aprovacao
+
+    baseOrcamento(orcamentoBase)
 
     removerPopup()
 
