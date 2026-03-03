@@ -288,9 +288,16 @@ const regrasSnapshot = {
         }
     },
     custo_veiculos: {
-        stores: ['departamentos_AC'],
+        stores: ['dados_clientes', 'departamentos_AC'],
         snapshot: async ({ dado, stores }) => {
             const snap = {}
+
+            snap.motoristas = []
+
+            for (const id of (dado?.veiculo?.motoristas || [])) {
+                const { nome } = await getStore(stores.dados_clientes, Number(id)) || {}
+                snap.motoristas.push(nome)
+            }
 
             snap.dataPagamento = conversorData(dado?.data_pagamento)
             snap.valor = [dado?.custo_total, dinheiro(dado?.custo_total)]

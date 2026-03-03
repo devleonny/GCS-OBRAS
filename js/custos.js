@@ -24,7 +24,6 @@ async function painelCustos(id) {
             'Desconto': {},
             'Valor Unit Compra': {},
             'Valor Total Compra': {},
-            'Frete Saída': {},
             'Lucratividade R$': {},
             'Lucratividade %': {}
         }
@@ -89,7 +88,8 @@ async function painelCustos(id) {
             'Data Pagamento': { chave: 'data_pagamento', tipoPesquisa: 'data' },
             'Comentário': { chave: 'comentario' },
             'Realizado': { chave: 'snapshots.realizado' },
-            'Criado por': { chave: 'usuario' }
+            'Criado por': { chave: 'usuario' },
+            'Motorista': { chave: 'snapshots.motoristas' }
         }
     })
 
@@ -107,10 +107,6 @@ async function painelCustos(id) {
             <div class="toolbar-checklist">
             
                 <img src="imagens/GrupoCostaSilva.png" style="width: 7rem;">
-
-                <div class="opcoes-orcamento">
-                    ${modeloBotoes('estoque', 'Adicionar Frete', `adicionarFrete('${id}')`)}
-                </div>
 
                 <div class="resultados">
 
@@ -134,6 +130,11 @@ async function painelCustos(id) {
                         <span>${dinheiro(somaCombustiveis?.todos || 0)}</span>
                     </div>
 
+                    <div class="balao-checklist">
+                        <label>Fretes</label>
+                        <span>${0}</span>
+                    </div>
+
                 </div>
 
             </div>
@@ -143,6 +144,7 @@ async function painelCustos(id) {
                     <span data-toolbar="orcamento" onclick="mostrarPagina(this)" style="opacity: 1;">Orçamento</span>
                     <span data-toolbar="pagamentos" onclick="mostrarPagina(this)" style="opacity: 0.5;">Pagamentos</span>
                     <span data-toolbar="veiculos" onclick="mostrarPagina(this)" style="opacity: 0.5;">Combustíveis</span>
+                    <span data-toolbar="fretes" onclick="mostrarPagina(this)" style="opacity: 0.5;">Fretes</span>
                 </div>
                 
                 <div data-tabela="orcamento">
@@ -154,6 +156,10 @@ async function painelCustos(id) {
                 </div>
 
                 <div data-tabela="veiculos" style="display: none;">
+                    ${tabelaVeiculos}
+                </div>
+
+                <div data-tabela="fretes" style="display: none;">
                     ${tabelaVeiculos}
                 </div>
             </div>
@@ -169,7 +175,10 @@ async function painelCustos(id) {
 
 async function criarLinhaCustoVeiculo(combustivel) {
 
-    const { data_pagamento, comentario, realizado, usuario } = combustivel || {}
+    const { data_pagamento, comentario, realizado, usuario, snapshots } = combustivel || {}
+
+    const dMotoristas = (snapshots?.motoristas || [])
+        .join('\n')
 
     const tr = `
         <tr>
@@ -177,6 +186,7 @@ async function criarLinhaCustoVeiculo(combustivel) {
             <td>${comentario}</td>
             <td>${dinheiro(realizado || 0)}</td>
             <td>${usuario}</td>
+            <td>${dMotoristas}</td>
         </tr>
     `
 
@@ -237,7 +247,6 @@ async function criarLinhaCustoOrcamento(item) {
         <td style="white-space: nowrap;">${dinheiro(desconto || 0)}</td>
         <td style="white-space: nowrap;">${dinheiro(custoCompra || 0)}</td>
         <td style="white-space: nowrap;">${dinheiro(totalCompra)}</td>
-        <td style="white-space: nowrap;">${0}</td>
         <td style="white-space: nowrap;">${dinheiro(lucratividade)}</td>
         <td>
             ${divPorcentagem(lucraPorc)}
