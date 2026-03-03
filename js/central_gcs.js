@@ -1093,9 +1093,7 @@ function visibilidadeOrcamento(div) {
 
 async function respostaAprovacao(botao, idOrcamento, status) {
 
-    // Dois popups pra fechar;
-    removerPopup()
-    removerPopup()
+    overlayAguarde()
 
     const justificativa = botao.parentElement.parentElement.querySelector('textarea').value
     const dados = {
@@ -1115,7 +1113,8 @@ async function respostaAprovacao(botao, idOrcamento, status) {
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
     enviar(`dados_orcamentos/${idOrcamento}/aprovacao`, orcamento.aprovacao)
 
-    await verAprovacoes()
+    removerPopup()
+
     verificarPendencias()
 
 }

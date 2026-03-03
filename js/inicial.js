@@ -145,8 +145,10 @@ async function telaInicialGCS() {
         </div>
     </div>`
 
+    const btnExtras = `<button onclick="editarLinPda({idOrcamento: null})">Adicionar Projeto</button>`
     // TABELAS PAGINADAS;
     const tabelasPaginadas = await modTab({
+        btnExtras,
         base: 'dados_orcamentos',
         pag: 'tabelasIndicadores',
         funcaoAdicional: ['contadoresAbas', 'atualizarContadoresAcoes'],
@@ -244,7 +246,7 @@ async function tabelaPorAba({ aba = 'CONCLUÍDO', id = null }) {
 
 async function linPda(orcamento) {
 
-    const { pda } = orcamento || {}
+    const { pda, estado } = orcamento || {}
     const { cliente, cidade } = orcamento.snapshots || {}
     const idOrcamento = orcamento.id
     const tecs = []
@@ -314,7 +316,7 @@ async function linPda(orcamento) {
                 ${mod('Estado', `
                     <select class="etiquetas" data-campo="estado" onchange="atualizarCampo(this, '${idOrcamento}')">
                         <option></option>
-                        ${Object.keys(posicoesEstados).map(estado => `<option ${pda?.estado == estado ? 'selected' : ''}>${estado}</option>`).join('')}
+                        ${Object.keys(posicoesEstados).map(e => `<option ${estado == e ? 'selected' : ''}>${e}</option>`).join('')}
                     </select>
                     `)}
                 
@@ -889,20 +891,20 @@ async function salvarAcao(idOrcamento, idAcao) {
 
 }
 
-async function editarLinPda({ idOrcamento, aba = 'PDA' }) {
+async function editarLinPda({ idOrcamento, abaPag = 'PDA' }) {
 
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
+    const { aba, projeto, estado } = await recuperarDado('dados_orcamentos', idOrcamento) || {}
 
     const linhas = [
         {
             texto: 'Nome do Projeto',
-            elemento: `<textarea name="projeto"></textarea>`
+            elemento: `<textarea name="projeto">${projeto || ''}</textarea>`
         },
         {
             texto: 'Estado',
             elemento: `
                 <select name="estado">
-                    ${Object.keys(posicoesEstados).map(estado => `<option ${orcamento?.pda?.estado == estado ? 'selected' : ''}>${estado}</option>`).join('')}
+                    ${Object.keys(posicoesEstados).map(e => `<option ${estado == e ? 'selected' : ''}>${e}</option>`).join('')}
                 </select>
             `
         },
@@ -910,17 +912,22 @@ async function editarLinPda({ idOrcamento, aba = 'PDA' }) {
             texto: 'Aba',
             elemento: `
                 <select name="aba">
-                    ${abas.map(a => `<option ${(aba || orcamento?.aba) == a ? 'selected' : ''}>${a}</option>`).join('')}
+                    ${abas.map(a => `<option ${aba == a ? 'selected' : ''}>${a}</option>`).join('')}
                 </select>
             `
         }
     ]
 
-    const funcao = idOrcamento ? `salvarCartao('${idOrcamento}')` : 'salvarCartao()'
+    const funcao = idOrcamento
+        ? `salvarCartao('${idOrcamento}')`
+        : 'salvarCartao()'
 
     const botoes = [
         { texto: 'Salvar', img: 'concluido', funcao }
     ]
+
+    if (idOrcamento && idOrcamento.slice(0, 3) == 'PDA')
+        botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExclusaoOrcamentoBase('${idOrcamento}')` })
 
     const titulo = idOrcamento ? 'Editar item' : 'Adicionar item'
 

@@ -108,6 +108,10 @@ async function painelCustos(id) {
             
                 <img src="imagens/GrupoCostaSilva.png" style="width: 7rem;">
 
+                <div class="opcoes-orcamento">
+                    ${modeloBotoes('estoque', 'Adicionar Frete', `adicionarFrete('${id}')`)}
+                </div>
+
                 <div class="resultados">
 
                     <div class="balao-checklist">

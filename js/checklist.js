@@ -338,15 +338,8 @@ async function relatorioChecklist() {
         'Técnicos': { chave: 'tecnicos' },
     }
 
-    const modelo = (texto, elemento) => `
-        <div class="balao-checklist">
-            <label>${texto}</label>
-            ${elemento}
-        </div>`
-
     const tabela = await modTab({
         pag: 'relatChecklist',
-        funcaoAdicional: ['gerarRelatorioChecklist'],
         colunas,
         body: 'relatorioChecklist',
         base: () => baseRelatorioChecklist(),
@@ -356,13 +349,6 @@ async function relatorioChecklist() {
     const elemento = `
     
         <div style="background-color: #d2d2d2; padding: 2rem;">
-
-            <div class="toolbar-checklist" style="width: max-content; gap: 1rem;">
-                ${modelo('De', `<input name="de" onchange="pesquisarDtChecklist()" type="date">`)}
-                ${modelo('Até', `<input name="ate" onchange="pesquisarDtChecklist()" type="date">`)}
-            </div>
-
-            <hr>
 
             <div class="toolbar-relatorio">
                 <span data-toolbar="relatorio" onclick="mostrarPagina(this)">Relatório</span>
@@ -401,7 +387,7 @@ async function baseRelatorioChecklist() {
 
             Object.entries(lancamentos).forEach(([id, lancamento]) => {
                 const item = { codigo, ...lancamento, codigo, ...info }
-                item.data = conversorData(item?.data)
+                item.data = new Date(toTimestamp(item?.data)).toLocaleDateString()
                 return dados[id] = item
             })
 
@@ -413,32 +399,28 @@ async function baseRelatorioChecklist() {
 
 async function criarLinhaRelChecklist(item) {
 
-    console.log(item);
-    
-
     const { codigo, descricao, data, qtde, quantidade, tecnicos, comentario } = item || {}
 
-    const { tempo } = await recuperarDado('dados_composicoes', codigo) || {}
+    const comp = await recuperarDado('dados_composicoes', codigo)
+    const tempo = comp?.tempo
 
-    const qtdeTotal = qtde || 0
+    const qtdeTotal = Number(qtde || 0)
+    const qtdExec = Number(quantidade || 0)
 
     const nomes = []
-
     for (const c of (tecnicos || [])) {
-        const { nome } = await recuperarDado('dados_clientes', c)
-        if (nome)
-            nomes.push(nome)
+        const { nome } = await recuperarDado('dados_clientes', c) || {}
+        if (nome) nomes.push(nome)
     }
 
-    const [h, m] = (tempo || '00:00').split(':').map(Number)
-    const minUnit = h * 60 + m
-    const executado = minUnit * quantidade
+    const minUnit = tempoEmMinutos(tempo)
+    const executado = minUnit * qtdExec
     const total = minUnit * qtdeTotal
 
     return `
         <tr>
-            <td>${data}</td>
-            <td>${descricao}</td>
+            <td>${data || ''}</td>
+            <td>${descricao || ''}</td>
             <td style="white-space: nowrap;">
                 <input style="display:none;" name="executado" value="${executado}">
                 <input style="display:none;" name="total" value="${total}">
@@ -447,14 +429,33 @@ async function criarLinhaRelChecklist(item) {
                 /
                 ${strHHMM(total)}
             </td>
-            <td>${quantidade} / ${qtdeTotal}</td>
+            <td>${qtdExec} / ${qtdeTotal}</td>
             <td>${comentario || ''}</td>
             <td style="text-align:left;">
                 ${nomes.map(n => `• ${n}`).join('<br>')}
             </td>
         </tr>
     `
+}
 
+function tempoEmMinutos(tempo) {
+    if (tempo == null || tempo === '') return 0
+
+    if (typeof tempo === 'number') return isNaN(tempo) ? 0 : Math.max(0, Math.floor(tempo))
+
+    const s = String(tempo).trim()
+
+    if (/^\d+$/.test(s)) return Number(s) // "90" -> 90 min
+
+    const m = s.match(/^(\d{1,3})\s*:\s*(\d{1,2})$/) // "2:30"
+    if (!m) return 0
+
+    const h = Number(m[1])
+    const min = Number(m[2])
+
+    if (isNaN(h) || isNaN(min)) return 0
+
+    return Math.max(0, h * 60 + Math.min(59, min))
 }
 
 function mostrarPagina(el) {
@@ -480,37 +481,6 @@ function mostrarPagina(el) {
 
     // Ativa toolbar clicada
     el.style.opacity = 1
-}
-
-async function pesquisarDtChecklist(dt = null) {
-
-    controles.relatChecklist.filtros ??= {}
-
-    let filtro = {}
-
-    if (!dt) {
-
-        const de = document.querySelector('[name="de"]').value
-        const ate = document.querySelector('[name="ate"]').value
-
-        filtro = [
-            { op: '>=d', value: de },
-            { op: '<=d', value: ate },
-        ]
-
-    } else {
-
-        filtro = { op: '=', value: dt }
-
-    }
-
-    controles.relatChecklist.filtros = {
-        ...controles.relatChecklist.filtros,
-        'data': filtro
-    }
-
-    await paginacao()
-
 }
 
 function criarCalendario(datas) {
@@ -600,278 +570,6 @@ function criarCalendario(datas) {
 
     document.querySelector('.calendarios').innerHTML = calendarios
 }
-
-async function gerarRelatorioChecklist() {
-
-    let de = document.querySelector('[name="de"]').value
-    let ate = document.querySelector('[name="ate"]').value
-
-    const datas = []
-    const quantidades = {}
-
-    if (!de || !ate) return
-
-    overlayAguarde()
-
-    const coresPadrao = [
-        'hsl(0, 70%, 50%)',
-        'hsl(30, 70%, 50%)',
-        'hsl(60, 70%, 45%)',
-        'hsl(120, 60%, 45%)',
-        'hsl(180, 60%, 45%)',
-        'hsl(210, 70%, 55%)',
-        'hsl(260, 60%, 60%)',
-        'hsl(300, 65%, 55%)',
-        'hsl(330, 65%, 55%)',
-        'hsl(20, 70%, 45%)'
-    ]
-
-    const { id } = controles.checklist
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-    const itens = orcamento?.checklist?.itens || {}
-
-    const dt = (iso) => {
-        const [a, m, d] = iso.split('-')
-        return new Date(a, m - 1, d)
-    }
-
-    de = dt(de)
-    ate = dt(ate)
-
-    const desempenhoEquipes = {}
-
-    for (const [codigo, lancamentos] of Object.entries(itens)) {
-
-        const { tempo } = await recuperarDado('dados_composicoes', codigo) || '00:00'
-
-        for (const [_, dados] of Object.entries(lancamentos)) {
-
-            if (_ == 'removido') continue
-
-            quantidades[codigo] ??= 0
-            quantidades[codigo] += dados.quantidade || 0
-
-            const dLanc = dt(dados.data)
-            if (dLanc < de || dLanc > ate) continue
-
-            datas.push(dLanc.getTime())
-
-            const nomes = []
-            for (const c of (dados.tecnicos || [])) {
-                const { nome } = await recuperarDado('dados_clientes', c)
-                if (nome)
-                    nomes.push(nome)
-            }
-
-            const equipeKey = nomes.join(', ') || 'Sem equipe'
-
-            const [h, m] = tempo.split(':').map(Number)
-            const minUnit = h * 60 + m
-            const executado = minUnit * dados.quantidade
-            const chaveData = dados.data
-
-            desempenhoEquipes[equipeKey] ??= {}
-            desempenhoEquipes[equipeKey][chaveData] ??= 0
-            desempenhoEquipes[equipeKey][chaveData] += executado
-
-        }
-    }
-
-    criarCalendario(datas)
-
-    // ===========================================================
-    // 1) MONTAR TODO O HTML DOS GRÁFICOS PRIMEIRO
-    // ===========================================================
-    const htmlGraficos = `
-        <div style="${vertical}; gap: 0.5rem;">
-            <div id="indicadores" style="${vertical}; gap: 4px;"></div>
-            <canvas id="graficoLinha"></canvas>
-            <hr>
-            <canvas id="graficoBarraPequenos"></canvas>
-            <hr>
-            <canvas id="graficoBarraGrandes"></canvas>
-        </div>
-    `
-    const graficos = document.querySelector('.graficos')
-    graficos.innerHTML = htmlGraficos
-
-    // obtém os elementos
-    const canvasLinha = document.getElementById('graficoLinha')
-    const ctx = canvasLinha.getContext('2d')
-    const indicadoresDiv = document.getElementById('indicadores')
-
-    // ===========================================================
-    // 2) GRÁFICO DE LINHA (DESEMPENHO DIÁRIO)
-    // ===========================================================
-
-    const todasDatas = [...new Set(datas.map(ts => {
-        const d = new Date(ts)
-        return d.toISOString().slice(0, 10)
-    }))].sort()
-
-    const datasets = Object.entries(desempenhoEquipes).map(([equipe, reg], idx) => {
-
-        const soma = Object.values(reg).reduce((a, b) => a + b, 0)
-        const dias = Object.values(reg).filter(v => v > 0).length || 1
-
-        const mediaDia = soma / dias
-        const semanas = Math.ceil(dias / 7) || 1
-        const mediaSem = soma / semanas
-
-        indicadoresDiv.insertAdjacentHTML('beforeend', `
-        <div style="${vertical}; gap: 2px;">
-            <span><b>${equipe}</b></span>
-            <span>Diário: ${mediaDia.toFixed(0)} min</span>
-            <span>Semanal: ${mediaSem.toFixed(0)} min</span>
-        </div>
-    `)
-
-        return {
-            label: equipe,
-            data: todasDatas.map(d => reg[d] || 0),
-            fill: false,
-            borderWidth: 2,
-            tension: 0.2,
-            borderColor: coresPadrao[idx % coresPadrao.length]
-        }
-    })
-
-    const maxVal = Math.max(
-        ...Object.values(desempenhoEquipes).flatMap(r => Object.values(r))
-    ) || 0
-
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: todasDatas.map(d => {
-                const [a, m, dd] = d.split('-')
-                return `${dd}/${m}`
-            }),
-            datasets
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Desempenho diário (minutos executados)'
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: Math.ceil(maxVal * 1.1),
-                    ticks: { callback: v => v + ' min' }
-                }
-            }
-        }
-    })
-
-    // ===========================================================
-    // 3) GRÁFICOS DE BARRAS HORIZONTAIS (ORÇADO x REALIZADO)
-    // ===========================================================
-
-    const labelsPequenos = []
-    const orcadoPequenos = []
-    const realizadoPequenos = []
-
-    const labelsGrandes = []
-    const orcadoGrandes = []
-    const realizadoGrandes = []
-
-    for (const [cod, real] of Object.entries(quantidades)) {
-
-        const { descricao } = await recuperarDado('dados_composicoes', cod) || 'N/A'
-        const qtOrc = orcamento?.dados_composicoes?.[cod]?.qtde || 0
-        const label = descricao
-
-        if (qtOrc > 20) {
-            labelsGrandes.push(label)
-            orcadoGrandes.push(qtOrc)
-            realizadoGrandes.push(real)
-        } else {
-            labelsPequenos.push(label)
-            orcadoPequenos.push(qtOrc)
-            realizadoPequenos.push(real)
-        }
-    }
-
-    // inserir dois canvases
-
-    const ctxPequenos = document.getElementById('graficoBarraPequenos').getContext('2d')
-    const ctxGrandes = document.getElementById('graficoBarraGrandes').getContext('2d')
-
-    // --- gráfico pequenos ---
-    new Chart(ctxPequenos, {
-        type: 'bar',
-        data: {
-            labels: labelsPequenos,
-            datasets: [
-                {
-                    label: 'Orçado',
-                    data: orcadoPequenos,
-                    backgroundColor: '#6464ff99'
-                },
-                {
-                    label: 'Realizado',
-                    data: realizadoPequenos,
-                    backgroundColor: '#64c86499'
-                }
-            ]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Comparativo Orçado x Executado (≤ 20 unidades)'
-                }
-            },
-            scales: {
-                x: { beginAtZero: true },
-                y: { ticks: { autoSkip: false } }
-            }
-        }
-    })
-
-    // --- gráfico grandes ---
-    new Chart(ctxGrandes, {
-        type: 'bar',
-        data: {
-            labels: labelsGrandes,
-            datasets: [
-                {
-                    label: 'Orçado',
-                    data: orcadoGrandes,
-                    backgroundColor: '#6464ffff'
-                },
-                {
-                    label: 'Realizado',
-                    data: realizadoGrandes,
-                    backgroundColor: '#64c86499'
-                }
-            ]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Comparativo Orçado x Executado (> 20 unidades)'
-                }
-            },
-            scales: {
-                x: { beginAtZero: true },
-                y: { ticks: { autoSkip: false } }
-            }
-        }
-    })
-
-    removerOverlay()
-}
-
 
 async function adicionarServicoAvulso() {
 
