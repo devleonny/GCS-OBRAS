@@ -775,9 +775,25 @@ function passaFiltro(reg, filtros) {
 
 }
 
-async function contarPorCampo({ base, path, filtros = {} }) {
-    const contagem = { todos: 0 }
+async function contarPorCampo({ base, path, filtros = {}, modo = 'contagem' }) {
+    const saida = { todos: 0 }
     const hasWildcard = path?.includes('*')
+
+    const somar = v => {
+        const n = Number(v)
+        if (!isNaN(n)) saida.todos += n
+    }
+
+    const contar = v => {
+        if (v == null || v === '') v = 'EM BRANCO'
+        saida.todos++
+        saida[v] = (saida[v] || 0) + 1
+    }
+
+    const aplicar = v => {
+        if (modo === 'soma') somar(v)
+        else contar(v)
+    }
 
     // CASO 1: base em memória (array ou objeto)
     if (typeof base === 'object') {
@@ -787,11 +803,7 @@ async function contarPorCampo({ base, path, filtros = {} }) {
             if (!passaFiltro(reg, filtros)) continue
 
             if (!hasWildcard) {
-                let v = getByPath(reg, path)
-                if (v == null || v === '') v = 'EM BRANCO'
-
-                contagem.todos++
-                contagem[v] = (contagem[v] || 0) + 1
+                aplicar(getByPath(reg, path))
                 continue
             }
 
@@ -813,19 +825,14 @@ async function contarPorCampo({ base, path, filtros = {} }) {
                 }
 
                 if (!passou) continue
-
-                let v = valor
-                if (v == null || v === '') v = 'EM BRANCO'
-
-                contagem.todos++
-                contagem[v] = (contagem[v] || 0) + 1
+                aplicar(valor)
             }
         }
 
-        return contagem
+        return saida
     }
 
-    // CASO 2: base é string → IndexedDB (seu fluxo atual)
+    // CASO 2: base é string → IndexedDB
     const db = await getDB()
     const tx = db.transaction(base, 'readonly')
     const store = tx.objectStore(base)
@@ -835,7 +842,7 @@ async function contarPorCampo({ base, path, filtros = {} }) {
             const cursor = ev.target.result
 
             if (!cursor) {
-                resolve(contagem)
+                resolve(saida)
                 return
             }
 
@@ -847,12 +854,7 @@ async function contarPorCampo({ base, path, filtros = {} }) {
             }
 
             if (!hasWildcard) {
-                let v = getByPath(reg, path)
-                if (v == null || v === '') v = 'EM BRANCO'
-
-                contagem.todos++
-                contagem[v] = (contagem[v] || 0) + 1
-
+                aplicar(getByPath(reg, path))
                 cursor.continue()
                 return
             }
@@ -876,12 +878,7 @@ async function contarPorCampo({ base, path, filtros = {} }) {
                 }
 
                 if (!passou) continue
-
-                let v = valor
-                if (v == null || v === '') v = 'EM BRANCO'
-
-                contagem.todos++
-                contagem[v] = (contagem[v] || 0) + 1
+                aplicar(valor)
             }
 
             cursor.continue()

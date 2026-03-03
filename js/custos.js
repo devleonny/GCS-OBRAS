@@ -1,7 +1,7 @@
 async function painelCustos(id) {
 
 
-    const { dados_orcam, dados_composicoes, total_geral } = await recuperarDado('dados_orcamentos', id) || {}
+    const { dados_orcam, lpu_ativa, dados_composicoes, total_geral } = await recuperarDado('dados_orcamentos', id) || {}
 
     const omieCliente = dados_orcam?.omie_cliente || ''
     const cliente = await recuperarDado('dados_clientes', omieCliente)
@@ -9,18 +9,24 @@ async function painelCustos(id) {
     const tabelaOrcamento = await modTab({
         pag: 'custos',
         body: 'bodyCustos',
+        lpu: String(lpu_ativa).toLowerCase(),
         criarLinha: 'criarLinhaCustoOrcamento',
         base: dados_composicoes || {},
         colunas: {
-            'Código': {},
+            'Marcar': {},
+            'Código': { chave: 'codigo' },
             'Descrição': { chave: 'descricao' },
             'Tipo': { chave: 'tipo', tipoPesquisa: 'select' },
             'Valor Unit Venda': {},
+            'Quantidade': {},
+            'Unidade': { chave: 'unidade', tipoPesquisa: 'select' },
+            'Valor Total Venda': {},
+            'Desconto': {},
             'Valor Unit Compra': {},
-            'Impostos': {},
+            'Valor Total Compra': {},
             'Frete Saída': {},
-            'Lucro Líquido': {},
-            'Lucratividade Individual': {}
+            'Lucratividade R$': {},
+            'Lucratividade %': {}
         }
     })
 
@@ -32,13 +38,21 @@ async function painelCustos(id) {
     ]
         .filter(d => d)
         .map(d => `<span>${d}</span>`)
-        .join('')
+        .join('\n')
+
+
+    const filtros = []
+    if (dados_orcam?.contrato)
+        filtros.push({ op: 'includes', value: dados_orcam?.contrato })
+
+    if (dados_orcam?.chamado)
+        filtros.push({ op: 'includes', value: dados_orcam?.chamado })
 
     const pagamentos = {
         ...await pesquisarDB({
             base: 'lista_pagamentos',
             filtros: {
-                'snapshots.departamentos': { op: 'includes', value: dados_orcam?.contrato }
+                'snapshots.departamentos': filtros
             }
         })
     }
@@ -58,38 +72,86 @@ async function painelCustos(id) {
         }
     })
 
+    const somaPagamentos = await contarPorCampo({
+        base: 'lista_pagamentos',
+        filtros: { 'snapshots.departamentos': filtros },
+        path: 'param.*.valor_documento',
+        modo: 'soma'
+    })
+
+    const tabelaVeiculos = await modTab({
+        pag: 'custoVeiculos',
+        body: 'custoVeiculos',
+        base: 'custo_veiculos',
+        criarLinha: 'criarLinhaCustoVeiculo',
+        filtros: { 'snapshots.departamentos': filtros },
+        colunas: {
+            'Data Pagamento': { chave: 'data_pagamento', tipoPesquisa: 'data' },
+            'Comentário': { chave: 'comentario' },
+            'Realizado': { chave: 'snapshots.realizado' },
+            'Criado por': { chave: 'usuario' }
+        }
+    })
+
+    const somaCombustiveis = await contarPorCampo({
+        base: 'custo_veiculos',
+        filtros: { 'snapshots.departamentos': filtros },
+        path: 'realizado',
+        modo: 'soma'
+    })
+
+
     const elemento = `
-        <div class="painel-custos">
+        <div style="${vertical}; padding: 1rem;">
 
-            <div style="${horizontal}; justify-content: start; gap: 2rem;">
+            <div class="toolbar-checklist">
             
-                <img src="imagens/painelcustos.png">
+                <img src="imagens/GrupoCostaSilva.png" style="width: 7rem;">
 
-                <div style="${vertical}">
-                    <span><span style="font-size: 1.5rem;">${dinheiro(total_geral || 0)}</span> Total do Orçamento</span>
-                    <span><span style="font-size: 1.5rem;">${dinheiro(0)}</span> Lucratividade</span>
-                    ${divPorcentagem(0)}
+                <div class="resultados">
+
+                    <div class="balao-checklist">
+                        <label>Dados do Orçamento</label>
+                        <span>${dados}</span>
+                    </div>
+
+                    <div class="balao-checklist">
+                        <label>Total do Orçamento</label>
+                        <span>${dinheiro(total_geral || 0)}</span>
+                    </div>
+
+                    <div class="balao-checklist">
+                        <label>Pagamentos Solicitados</label>
+                        <span>${dinheiro(somaPagamentos?.todos || 0)}</span>
+                    </div>
+
+                    <div class="balao-checklist">
+                        <label>Abastecimento</label>
+                        <span>${dinheiro(somaCombustiveis?.todos || 0)}</span>
+                    </div>
+
                 </div>
 
-                <div style="${vertical};">
-                    ${dados}
+            </div>
+
+            <div style="width: 100%;">
+                <div class="toolbar-relatorio">
+                    <span data-toolbar="orcamento" onclick="mostrarPagina(this)" style="opacity: 1;">Orçamento</span>
+                    <span data-toolbar="pagamentos" onclick="mostrarPagina(this)" style="opacity: 0.5;">Pagamentos</span>
+                    <span data-toolbar="veiculos" onclick="mostrarPagina(this)" style="opacity: 0.5;">Combustíveis</span>
+                </div>
+                
+                <div data-tabela="orcamento">
+                    ${tabelaOrcamento}
                 </div>
 
-            </div>
+                <div data-tabela="pagamentos" style="display: none;">
+                    ${tabelaPagamentos}
+                </div>
 
-            <hr>
-
-            <div class="toolbar-relatorio">
-                <span id="toolbar-orcamento" onclick="mostrarPagina('orcamento')" style="opacity: 1;">Orçamento</span>
-                <span id="toolbar-pagamentos" onclick="mostrarPagina('pagamentos')" style="opacity: 0.5;">Pagamentos</span>
-            </div>
-            
-            <div name="orcamento" class="orcamento">
-                ${tabelaOrcamento}
-            </div>
-
-            <div name="pagamentos" class="pagamentos" style="display: none;">
-                ${tabelaPagamentos}
+                <div data-tabela="veiculos" style="display: none;">
+                    ${tabelaVeiculos}
+                </div>
             </div>
 
         </div>
@@ -101,6 +163,21 @@ async function painelCustos(id) {
 
 }
 
+async function criarLinhaCustoVeiculo(combustivel) {
+
+    const { data_pagamento, comentario, realizado, usuario } = combustivel || {}
+
+    const tr = `
+        <tr>
+            <td>${new Date(data_pagamento).toLocaleDateString()}</td>
+            <td>${comentario}</td>
+            <td>${dinheiro(realizado || 0)}</td>
+            <td>${usuario}</td>
+        </tr>
+    `
+
+    return tr
+}
 
 async function criarLinhaCustoPagamento(pagamento) {
 
@@ -123,23 +200,43 @@ async function criarLinhaCustoPagamento(pagamento) {
 
 }
 
-function criarLinhaCustoOrcamento(item) {
+async function criarLinhaCustoOrcamento(item) {
 
-    const { codigo, descricao, tipo, custo } = item || {}
+    const { codigo, descricao, unidade, tipo, qtde, desconto, custo } = item || {}
+    const produto = await recuperarDado('dados_composicoes', codigo) || {}
+    const { lpu } = controles.custos || {}
 
+    const tabPreco = produto[lpu] || {}
+    const ativo = tabPreco.historico?.[tabPreco?.ativo] || {}
+    const custoCompra = ativo.custo || 0
+
+
+    const totalUnit = qtde * custo
+    const totalCompra = qtde * custoCompra || 0
+    const lucratividade = totalUnit - totalCompra - desconto
+
+    const lucraPorc = ((lucratividade / totalUnit) * 100).toFixed(1)
 
     const tds = `
+
+        <td>
+            <input type="checkbox" style="width: 1.5rem; height: 1.5rem;">
+        </td>
         <td>${codigo}</td>
         <td>${descricao || ''}</td>
         <td>${tipo || ''}</td>
 
         <td style="white-space: nowrap;">${dinheiro(custo)}</td>
-        <td style="white-space: nowrap;">${dinheiro(0)}</td>
-        <td style="white-space: nowrap;">${dinheiro(0)}</td>
-        <td style="white-space: nowrap;">${dinheiro(0)}</td>
-        <td style="white-space: nowrap;">${dinheiro(0)}</td>
+        <td>${qtde}</td>
+        <tD>${unidade || 'UN'}</td>
+        <td style="white-space: nowrap;">${dinheiro(totalUnit)}</td>
+        <td style="white-space: nowrap;">${dinheiro(desconto || 0)}</td>
+        <td style="white-space: nowrap;">${dinheiro(custoCompra || 0)}</td>
+        <td style="white-space: nowrap;">${dinheiro(totalCompra)}</td>
+        <td style="white-space: nowrap;">${0}</td>
+        <td style="white-space: nowrap;">${dinheiro(lucratividade)}</td>
         <td>
-            ${divPorcentagem(0)}
+            ${divPorcentagem(lucraPorc)}
         </td>
         `
 

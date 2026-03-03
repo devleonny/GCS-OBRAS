@@ -365,11 +365,11 @@ async function relatorioChecklist() {
             <hr>
 
             <div class="toolbar-relatorio">
-                <span id="toolbar-relatorio" onclick="mostrarPagina('relatorio')">Relatório</span>
-                <span id="toolbar-graficos" onclick="mostrarPagina('graficos')">Gráficos</span>
+                <span data-toolbar="relatorio" onclick="mostrarPagina(this)">Relatório</span>
+                <span data-toolbar="graficos" onclick="mostrarPagina(this)">Gráficos</span>
             </div>
 
-            <div name="relatorio" style="${horizontal}; align-items: start; gap: 1rem;">
+            <div data-tabela="relatorio" style="${horizontal}; align-items: start; gap: 1rem;">
 
                 ${tabela}
 
@@ -377,14 +377,12 @@ async function relatorioChecklist() {
 
             </div>
 
-            <div name="graficos" class="graficos"></div>
+            <div name="graficos" style="display: none;"></div>
 
         </div>
     `
 
     popup({ elemento, titulo: 'Relatório Diário' })
-
-    mostrarPagina('relatorio')
 
     await paginacao()
 
@@ -415,9 +413,12 @@ async function baseRelatorioChecklist() {
 
 async function criarLinhaRelChecklist(item) {
 
+    console.log(item);
+    
+
     const { codigo, descricao, data, qtde, quantidade, tecnicos, comentario } = item || {}
 
-    const { tempo } = await recuperarDado('dados_composicoes', codigo) || '00:00'
+    const { tempo } = await recuperarDado('dados_composicoes', codigo) || {}
 
     const qtdeTotal = qtde || 0
 
@@ -429,7 +430,7 @@ async function criarLinhaRelChecklist(item) {
             nomes.push(nome)
     }
 
-    const [h, m] = tempo.split(':').map(Number)
+    const [h, m] = (tempo || '00:00').split(':').map(Number)
     const minUnit = h * 60 + m
     const executado = minUnit * quantidade
     const total = minUnit * qtdeTotal
@@ -456,20 +457,29 @@ async function criarLinhaRelChecklist(item) {
 
 }
 
-function mostrarPagina(pagina) {
+function mostrarPagina(el) {
 
-    const paginas = ['relatorio', 'graficos', 'pagamentos', 'orcamento']
-    for (const pg of paginas) {
-        const el = document.querySelector(`[name="${pg}"]`)
-        if (el) {
-            el.style.display = 'none'
-            document.getElementById(`toolbar-${pg}`).style.opacity = 0.5
-        }
+    const nome = el.dataset.toolbar
+    if (!nome) return
+
+    // Oculta todas as páginas
+    document.querySelectorAll('[data-tabela]').forEach(div => {
+        div.style.display = 'none'
+    })
+
+    // Desativa todas as toolbars
+    document.querySelectorAll('[data-toolbar]').forEach(btn => {
+        btn.style.opacity = 0.5
+    })
+
+    // Mostra a página correta
+    const pagina = document.querySelector(`[data-tabela="${nome}"]`)
+    if (pagina) {
+        pagina.style.display = 'flex'
     }
 
-    document.querySelector(`[name="${pagina}"]`).style.display = 'flex'
-    document.getElementById(`toolbar-${pagina}`).style.opacity = 1
-
+    // Ativa toolbar clicada
+    el.style.opacity = 1
 }
 
 async function pesquisarDtChecklist(dt = null) {

@@ -86,15 +86,6 @@
     border-radius: 3px;
 }
 
-.painel-custos {
-    display: flex;
-    align-items: start;
-    justify-content: start;
-    flex-direction: column;
-    background-color: #d2d2d2;
-    padding: 2rem;
-}
-
 .opcoes-orcamento {
     gap: 1px;
     display: grid;

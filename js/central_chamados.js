@@ -263,7 +263,7 @@ async function linCorrecoes(ocorrencia) {
         <tr>
             <td>
                 <div class="balao-correcao"
-                    onclick="controles.ocorrencias.filtros.id = { op: '=', value: '${id}'}; telaOcorrencias();">
+                    onclick="minhaCorrecao('${id}')">
                     <span>Solicitado por <b>${usuario || 'Desconhecido'}</b>${titulo}</span>
                     <div style="${horizontal}; gap: 1rem;">
 
@@ -281,6 +281,18 @@ async function linCorrecoes(ocorrencia) {
                 </div>
             </td>
         </tr>`
+
+}
+
+async function minhaCorrecao(id) {
+
+    controles.ocorrencias.filtros ??= {}
+
+    controles.ocorrencias.filtros = {
+        'id': { op: '=', value: id }
+    }
+
+    await telaOcorrencias()
 
 }
 
