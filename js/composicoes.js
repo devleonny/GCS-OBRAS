@@ -19,7 +19,7 @@ async function telaComposicoes() {
     mostrarMenus(false)
 
     const colunas = {
-        'Código': { chave: 'codigo' },
+        'Código': { chave: 'id' },
         'Editar': {},
         'Imagem': {},
         'Descrição': { chave: 'descricao' },
@@ -60,7 +60,7 @@ async function telaComposicoes() {
 async function criarLinhaComposicao(produto) {
 
     const {
-        codigo,
+        id,
         descricao,
         agrupamento,
         omie,
@@ -100,27 +100,27 @@ async function criarLinhaComposicao(produto) {
             return `
             <td>
                 <label class="label-estoque" style="color: white; background-color: ${valor > 0 ? '#4CAF50' : '#b36060'};" 
-                    ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')"` : ''}> 
+                    ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `onclick="abrirHistoricoPrecos('${id}', '${lpu}')"` : ''}> 
                     ${dinheiro(conversor(valor))}
                 </label>
             </td>`
         }).join('')
 
     return `
-        <tr id="${codigo}">
-            <td>${codigo}</td>
+        <tr>
+            <td>${id}</td>
             <td>
                 ${usuariosPermitidosParaEditar.includes(acesso.permissao)
-            ? `<img src="imagens/editar.png" onclick="cadastrarItem('${codigo}')">`
+            ? `<img src="imagens/editar.png" onclick="cadastrarItem('${id}')">`
             : ''}
             </td>
 
-            <td><img name="${codigo}" onclick="abrirImagem('${codigo}')" style="width: 5rem;" src="${imagem || logo}"></td>
+            <td><img name="${id}" onclick="abrirImagem('${id}')" style="width: 5rem;" src="${imagem || logo}"></td>
             <td style="text-align: left; min-width: 200px;">${descricao || ''}</td>
 
             <td>
                 <div style="${vertical}; gap: 3px;">
-                    <div onclick="verAgrupamento('${codigo}')" class="ver-agrupamento">
+                    <div onclick="verAgrupamento('${id}')" class="ver-agrupamento">
                         <img src="imagens/construcao.png">
                         <span>Editar Agrupamento</span>
                     </div>
@@ -850,9 +850,16 @@ async function salvarComposicao(codigo) {
     const campos = ['descricao', 'unidade', 'fabricante', 'modelo', 'ncm', 'omie', 'tipo', 'sistema']
     let novosDados = {}
     const painel = document.querySelector('.painel-padrao')
+
     for (const campo of campos) {
         const el = painel.querySelector(`[name="${campo}"]`)
-        novosDados[campo] = el ? String(el.value).toUpperCase() : '';
+        // Normalização unicode;
+        novosDados[campo] = campo !== 'tipo'
+            ? String(el.value)
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toUpperCase()
+            : el?.value || ''
     }
 
     const final = {
