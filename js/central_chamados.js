@@ -309,7 +309,7 @@ function carregarMenus() {
         'Relatório de Correções': { img: 'planilha', funcao: 'telaRelatorioCorrecoes()', proibidos: ['user', 'técnico', 'visitante'] },
         'Relatório de Peças': { img: 'planilha', funcao: 'telaRelatorioPecas()', proibidos: ['user', 'técnico', 'visitante'] },
         'Usuários': { img: 'perfil', funcao: 'telaUsuarios()', proibidos: ['user', 'cliente', 'técnico', 'analista', 'visitante'] },
-        'Cadastros': { img: 'prancheta', funcao: 'telaCadastros()', proibidos: ['user', 'técnico', 'cliente', 'visitante'] },
+        'Cadastros': { img: 'prancheta', funcao: 'telaCadastros()', proibidos: ['adm', 'diretoria'] },
         'Clientes & Fornecedores': { img: 'prancheta', funcao: 'telaClientes()', proibidos: ['user', 'técnico', 'cliente', 'visitante'] }
     }
 

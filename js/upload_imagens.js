@@ -57,7 +57,7 @@ async function importarImagem(codigo) {
     const responseData = await response.json();
 
     if (responseData.data.error)
-        return popup({ mensagem: 'Ocorreu um erro no upload. Tente novamente' })
+        return popup({ mensagem: responseData?.data?.error || 'Ocorreu um erro no upload. Tente novamente' })
 
     let srcRetornado = responseData.data.link
 

@@ -116,7 +116,7 @@ async function criarLinhaComposicao(produto) {
             </td>
 
             <td><img name="${codigo}" onclick="abrirImagem('${codigo}')" style="width: 5rem;" src="${imagem || logo}"></td>
-            <td style="text-align: left;">${descricao || ''}</td>
+            <td style="text-align: left; min-width: 200px;">${descricao || ''}</td>
 
             <td>
                 <div style="${vertical}; gap: 3px;">
@@ -156,12 +156,12 @@ async function abrirHistoricoPrecos(codigo, tabela) {
         linhas += `
         <tr>
             <td>${dinheiro(cotacao?.custo || 0)}</td>
-            <td>${dinheiro(cotacao?.valor_custo || cotacao?.custo)}</td>
-            <td style="text-align: center;">${cotacao?.margem}</td>
+            <td>${dinheiro(cotacao?.valor_custo || cotacao?.custo || 0)}</td>
+            <td style="text-align: center;">${cotacao?.margem || 0}</td>
             <td>${dinheiro(cotacao?.valor)}</td>
             <td>${cotacao?.data}</td>
             <td>${cotacao?.usuario}</td>
-            <td>${cotacao?.fornecedor}</td>
+            <td>${cotacao?.fornecedor || ''}</td>
 
             <td>
                 ${usuariosPermitidosParaEditar.includes(acesso.permissao)
@@ -215,9 +215,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
         <hr>
         
         <div class="borda-tabela">
-            <div class="topo-tabela">
-                <span>Histórico de Preços</span>
-            </div>
+            <div class="topo-tabela"></div>
                 <div class="div-tabela">
                     <table class="tabela">
                         <thead>
