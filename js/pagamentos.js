@@ -122,6 +122,8 @@ async function criarLinhaPagamento(pagamento) {
     const recebedor = pagamento?.snapshots?.cliente || ''
     const usuario = await recuperarDado('dados_setores', pagamento.criado) || {}
     const setorCriador = usuario?.setor || ''
+    const param = pagamento?.param?.[0] || {}
+    const { data_vencimento, valor_documento } = param || {}
 
     const deps = (pagamento?.snapshots?.departamentos || [])
         .map(dep => {
@@ -130,14 +132,14 @@ async function criarLinhaPagamento(pagamento) {
         .join('')
 
     const tds = `
-        <td>${pagamento.param[0].data_vencimento}</td>
+        <td>${data_vencimento}</td>
         <td>
             <div style="${vertical}; gap: 2px;">
                 ${deps}
             </div>
         </td>
         <td>${pagamento?.app || 'AC'}</td>
-        <td style="white-space: nowrap; text-align: left;">${dinheiro(pagamento.param[0].valor_documento)}</td>
+        <td style="white-space: nowrap; text-align: left;">${dinheiro(valor_documento || 0)}</td>
         <td>
             <div style="${horizontal}; justify-content: start; gap: 5px;">
                 <img src="${iconePagamento(pagamento.status)}" style="width: 1.5rem;">

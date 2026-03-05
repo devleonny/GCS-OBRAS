@@ -820,7 +820,7 @@ async function cadastrarItem(codigo) {
         { texto: 'Descrição', elemento: `<textarea name="descricao" rows="5">${produto?.descricao || ''}</textarea>` },
         { texto: 'Fabricante', elemento: `<input name="fabricante" value="${produto?.fabricante || ''}">` },
         { texto: 'Modelo', elemento: `<input name="modelo" value="${produto?.modelo || ''}">` },
-        { texto: 'Unidade', elemento: `<input name="unidade" value="${produto?.unidade || ''}">` },
+        { texto: 'Unidade', elemento: `<input name="unidade" value="${produto?.unidade || 'UN'}">` },
         { texto: 'ncm', elemento: `<input name="ncm" value="${produto?.ncm || ''}">` },
         { texto: 'Omie', elemento: `<input name="omie" value="${produto?.omie || ''}">` },
         { texto: 'Tipo', elemento: `<select name="tipo">${tipos}</select>` },
