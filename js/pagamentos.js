@@ -510,7 +510,8 @@ async function salvarPagamento() {
     overlayAguarde()
 
     const resposta = await calculadoraPagamento(true) // Última verificação antes de salvar;
-    if (resposta && resposta.mensagem)
+
+    if (resposta?.mensagem)
         return popup({ mensagem: resposta.mensagem })
 
     const ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
@@ -547,7 +548,6 @@ async function salvarPagamento() {
         } else {
             ultimoPagamento.status = 'Aguardando aprovação da Gerência'
         }
-
     }
 
     try {
@@ -726,7 +726,7 @@ function dataRegras(data, atraso) {
     return dataFinal.toLocaleDateString('pt-BR')
 }
 
-async function calculadoraPagamento(ultimaValidacao) {
+async function calculadoraPagamento() {
 
     const obVal = (name) => {
         const elemento = document.querySelector(`[name="${name}"]`)
@@ -734,7 +734,8 @@ async function calculadoraPagamento(ultimaValidacao) {
     }
 
     const codigo_cliente_fornecedor = Number(obVal('recebedor').id)
-    if (ultimaValidacao && !codigo_cliente_fornecedor) return { mensagem: 'Recebedor em branco' }
+    if (!codigo_cliente_fornecedor)
+        return { mensagem: 'Recebedor em branco' }
 
     const observacao = obVal('observacao').value
     const app = obVal('app').value
@@ -752,8 +753,8 @@ async function calculadoraPagamento(ultimaValidacao) {
     const inputsCat = document.querySelectorAll('[name="dados_categorias_AC"]')
     for (const input of inputsCat) {
         const span = input.parentElement.nextElementSibling
-        if (ultimaValidacao && !span.id)
-            return popup({ mensagem: 'Não deixe Categorias em branco' })
+        if (!span.id)
+            return { mensagem: 'Não deixe Categorias em branco' }
 
         const codigo_categoria = span.id
         const valor = Number(input.value)
@@ -776,9 +777,13 @@ async function calculadoraPagamento(ultimaValidacao) {
     // Departamentos
     const inputsDep = document.querySelectorAll('[name="departamentos_AC"]')
     for (const input of inputsDep) {
+
         const span = input.parentElement.nextElementSibling
         const cCodDep = Number(span.id)
-        if (ultimaValidacao && !span.id) return { mensagem: 'Não deixe Centro de Custo em branco' }
+
+        if (!span.id)
+            return { mensagem: 'Não deixe Centro de Custo em branco' }
+
         const nValDep = Number(input.value)
 
         // Totais
@@ -823,7 +828,8 @@ async function calculadoraPagamento(ultimaValidacao) {
         ...ulP
     }
 
-    if (!ulP.criado) ulP.criado = acesso.usuario
+    if (!ulP.criado)
+        ulP.criado = acesso.usuario
 
     if (!ulPAtual?.param?.[0]?.codigo_lancamento_integracao)
         ulP.param[0].codigo_lancamento_integracao = ulPAtual?.param?.[0]?.codigo_lancamento_integracao || unicoID()
@@ -833,8 +839,11 @@ async function calculadoraPagamento(ultimaValidacao) {
     const dif =
         Math.round(totais.cat * 100) !== Math.round(totais.dep * 100)
 
-    if (ultimaValidacao && dif) return { mensagem: 'Existe uma diferença entre Centro de custo x Categorias' }
-    if (ultimaValidacao && valor_documento == 0) return { mensagem: 'Pagamento sem valor' }
+    if (dif)
+        return { mensagem: 'Existe uma diferença entre Centro de custo x Categorias' }
+
+    if (valor_documento == 0)
+        return { mensagem: 'Pagamento sem valor' }
 
     let divPag = `<span style="font-size: 1.5rem;">${dinheiro(valor_documento)}</span>`
 
