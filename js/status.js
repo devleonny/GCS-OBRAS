@@ -270,7 +270,7 @@ async function abrirAtalhos(id, idMaster) {
 
     if (!emAnalise) {
         botoesDisponiveis += `
-        ${modeloBotoes('Checklist', 'CHECKLIST', `telaChecklist('${id}')`)}
+        ${modeloBotoes('checklist', 'CHECKLIST', `telaChecklist('${id}')`)}
         ${modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`)}
         ${modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)}
         ${modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`)}
