@@ -536,18 +536,18 @@ async function salvarPagamento() {
     if (!observacao.includes(identificacao))
         ultimoPagamento.param[0].observacao = `${identificacao} ${acesso.usuario} \n ${observacao}`
 
-    if (!ultimoPagamento.id) {
+    if (ultimoPagamento.param[0].valor_documento <= 500) {
+        ultimoPagamento.status = 'Processando...'
+    } else if (permissao == 'gerente') {
+        ultimoPagamento.status = 'Aguardando aprovação da Diretoria'
+    } else {
+        ultimoPagamento.status = 'Aguardando aprovação da Gerência'
+    }
 
+    // Identificação do pagamento;
+    if (!ultimoPagamento.id) {
         ultimoPagamento.id = unicoID()
         ultimoPagamento.param[0].codigo_lancamento_integracao = ultimoPagamento.id
-
-        if (ultimoPagamento.param[0].valor_documento <= 500) {
-            enviar(`lista_pagamentos/${ultimoPagamento.id}/status`, 'Processando...')
-        } else if (permissao == 'gerente') {
-            ultimoPagamento.status = 'Aguardando aprovação da Diretoria'
-        } else {
-            ultimoPagamento.status = 'Aguardando aprovação da Gerência'
-        }
     }
 
     try {

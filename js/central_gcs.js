@@ -742,7 +742,7 @@ async function confirmarRelancamento(idPagamento) {
 
     await enviar(`lista_pagamentos/${idPagamento}/app`, app)
 
-    const resposta = await lancarPagamento({ pagamento, dataFixa: true })
+    const resposta = await lancarPagamento(idPagamento)
 
     pagamento.status = 'Processando...'
 
@@ -789,15 +789,12 @@ async function reprocessarAnexos(idPagamento) {
     })
 }
 
-async function lancarPagamento({ pagamento, call, dataFixa }) {
-
-    if (!pagamento.param[0]?.codigo_lancamento_integracao)
-        pagamento.param[0].codigo_lancamento_integracao = pagamento.id
+async function lancarPagamento(id) {
 
     const response = await fetch(`${api}/lancar_pagamento`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pagamento, call, dataFixa })
+        body: JSON.stringify({ id })
     })
 
     if (!response.ok)
