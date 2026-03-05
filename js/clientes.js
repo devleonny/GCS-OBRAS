@@ -295,7 +295,7 @@ async function formularioCliente(idCliente) {
         },
         {
             texto: 'Endereço',
-            elemento: `<textarea name="endereco">${cliente.endereco || ''}</textarea>`
+            elemento: `<textarea maxlength="60" name="endereco">${cliente.endereco || ''}</textarea>`
         },
         {
             texto: 'Bairro',
