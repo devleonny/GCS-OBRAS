@@ -1,5 +1,3 @@
-let idManutencao = null
-let statusChamados = null
 
 async function telaChamados() {
 
@@ -48,8 +46,6 @@ async function telaChamados() {
 
 function criarLinhaManutencao(manutencao) {
 
-    const idManutencao = manutencao.id
-
     const tds = `
         <td>${manutencao?.data || '--'}</td>
         <td>${manutencao?.status_manutencao || '--'}</td>
@@ -74,10 +70,10 @@ function criarLinhaManutencao(manutencao) {
             ${formatarData(manutencao?.previsao) || '--'}
         </td>
         <td style="text-align: center;">
-            <img onclick="criarManutencao('${idManutencao}')" src="imagens/pesquisar2.png">
+            <img onclick="criarManutencao('${manutencao.id}')" src="imagens/pesquisar2.png">
         </td>`
 
-    return `<tr id="${idManutencao}">${tds}</tr>`
+    return `<tr>${tds}</tr>`
 }
 
 function imgManut(status) {
@@ -173,8 +169,8 @@ async function criarManutencao(id = ID5digitos()) {
         .map(op => `<th>${op}</th>`)
         .join('')
 
-    const tabela = ` 
-        <div class="borda-tabela" style="width: 90%;">
+    const tabela = `
+        <div class="borda-tabela">
             <div class="topo-tabela"></div>
                 <div class="div-tabela">
                     <table class="tabela">
@@ -196,8 +192,6 @@ async function criarManutencao(id = ID5digitos()) {
         </div>`
 
     const kitTecnico = manutencao?.chamado == 'KIT TÉCNICO'
-        ? true
-        : false
 
     controlesCxOpcoes.cliente = {
         base: 'dados_clientes',
@@ -221,56 +215,19 @@ async function criarManutencao(id = ID5digitos()) {
         }
     }
 
-    const formulario = `
-        <div class="bloco-chamados-principal">
-            
-            <div class="bloco-chamados">
-                ${modelo(
-        'Cliente | Loja',
-        `<span ${manutencao?.codigo_cliente ? `id="${manutencao?.codigo_cliente}"` : ''} 
-        class="opcoes" name="cliente" onclick="cxOpcoes('cliente')">${cliente?.nome || 'Selecione'}</span>`)}
-                
-        ${modelo('Técnico',
-            `<span ${manutencao?.codigo_tecnico ? `id="${manutencao?.codigo_tecnico}"` : ''} 
-            class="opcoes" name="tecnico" onclick="cxOpcoes('tecnico')">${tecnico?.nome || 'Selecione'}</span>`)}
-                
-                ${modelo(
-                'Comentário',
-                `<textarea name="comentario" rows="7">${manutencao?.comentario || ''}</textarea>`)}
-                
-                <br>
+    controlesCxOpcoes.chamado = {
+        base: 'dados_ocorrencias',
+        retornar: ['id'],
+        colunas: {
+            'Chamado': { chave: 'id' },
+            'Cliente': { chave: 'snapshots.cliente.nome' },
+            'Cidade': { chave: 'snapshots.cliente.cidade' },
+            'Empresa': { chave: 'snapshots.empresa' }
+        }
+    }
 
-                <label class="anexos-formulario" for="anexos">Incluir anexos</label>
-                <input type="file" onchange="infoAnexos(this)" id="anexos" style="display: none" multiple>
-
-                <br>
-                <div class="arquivos">Sem anexos para importação</div>
-
-                <div id="lista-anexos" style="${vertical}">
-                    ${Object.entries(manutencao?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, ``)).join('')}
-                </div>
-                
-            </div>
-
-            <div class="bloco-chamados">
-
-                ${modelo('Status', `<select name="status_manutencao">${opcoes}</select>`)}
-
-                ${modelo('Kit Técnico', `<input ${kitTecnico ? 'checked' : ''} name="kitTecnico" type="checkbox" style="width: 1.5rem; height: 1.5rem; cursor: pointer;" onclick="modoKit(this)">`)}
-
-                ${modelo('Chamado', `<input name="chamado" type="text" value="${manutencao?.chamado || ''}">`)}
-
-                ${modelo('Previsão', `<input name="previsao" type="date" value="${manutencao?.previsao || ''}">`)}
-                
-                ${modelo('NF', `<input name="nf" value="${manutencao?.nf || ''}">`)}
-
-            </div>
-
-        </div>
-        `
-
-    const historico = Object.entries(manutencao?.historico || {})
-        .map(([id, dados]) => `
+    const historico = Object.values(manutencao?.historico || {})
+        .map((dados) => `
             <div class="item-historico">
                 <img src="imagens/${imgManut(dados.status_manutencao)}.png">
                 <div style="${vertical}">
@@ -282,32 +239,98 @@ async function criarManutencao(id = ID5digitos()) {
             </div>`)
         .join('')
 
-    const elemento = `
-        <div name="pdfChamado" style="${vertical}; width: 100%; height: 50vh; overflow: auto; padding: 2rem 0 2rem 0;">
-            ${formulario}
-            <div style="${horizontal}; width: 100%;">${tabela}</div>
-            <br>
-            <hr style="width: 90%;">
-            <div style="${vertical}; width: 90%;">${historico}</div>
-        </div>
-        `
+    const linhas = [
+        {
+            texto: 'Cliente ou Loja',
+            elemento: `
+            <span ${manutencao?.codigo_cliente ? `id="${manutencao?.codigo_cliente}"` : ''} 
+        class="opcoes" name="cliente" onclick="cxOpcoes('cliente')">${cliente?.nome || 'Selecione'}</span>`
+        },
+        {
+            texto: 'Técnico',
+            elemento: `<span ${manutencao?.codigo_tecnico ? `id="${manutencao?.codigo_tecnico}"` : ''} 
+            class="opcoes" name="tecnico" onclick="cxOpcoes('tecnico')">${tecnico?.nome || 'Selecione'}</span>`
+        },
+        {
+            texto: 'Chamado',
+            elemento: `<span ${manutencao?.chamado ? `id="${manutencao?.chamado}"` : ''} 
+            class="opcoes" name="chamado" onclick="cxOpcoes('chamado')">${manutencao?.chamado || 'Selecione'}</span>`
+        },
+        {
+            texto: 'Kit Técnico',
+            elemento: `<input ${kitTecnico ? 'checked' : ''} 
+            name="kitTecnico" 
+            type="checkbox" 
+            style="width: 1.5rem; height: 1.5rem; cursor: pointer;" 
+            onchange="verificarKit()">`
+        },
+        {
+            texto: 'Comentário',
+            elemento: `<textarea name="comentario" rows="7">${manutencao?.comentario || ''}</textarea>`
+        },
+        {
+            texto: 'Incluir anexos',
+            elemento: `
+            <div style="${vertical}; align-items: end; gap: 5px;">
+                <input type="file" id="anexos" multiple>
+                <div id="lista-anexos" style="${vertical}; align-items: end;">
+                    ${Object.values(manutencao?.anexos || {}).map((anexo) => criarAnexoVisual(anexo.nome, anexo.link, ``)).join('')}
+                </div>
+            </div>
+            `
+        },
+        {
+            texto: 'Status',
+            elemento: `<select name="status_manutencao">${opcoes}</select>`
+        },
+        {
+            texto: 'Previsão',
+            elemento: `<input name="previsao" type="date" value="${manutencao?.previsao || ''}">`
+        },
+        {
+            texto: 'NF',
+            elemento: `<input name="nf" value="${manutencao?.nf || ''}">`
+        },
+        {
+            elemento: tabela
+        },
+        {
+            elemento: `<div style="${vertical}; gap: 2px; width: 100%;">${historico}</div>`
+        }
+    ]
 
     const botoes = [
         { texto: 'Adicionar Peça', img: 'chamados', funcao: `criarLinhaPeca()` },
         { texto: 'Salvar', img: 'concluido', funcao: `enviarManutencao('${id}')` },
-        { texto: 'PDF', img: 'pdf', funcao: `gerarPDFChamados()` },
+        { texto: 'PDF', img: 'pdf', funcao: `gerarPDFChamados('${id}')` },
     ]
 
     if (manutencao)
         botoes.push({ texto: 'Excluir Manutenção', img: 'cancel', funcao: `confirmarExclusaoManutencao('${id}')` })
 
-    popup({ elemento, botoes, titulo: `Requisição de Materiais`, autoDestruicao: ['cliente', 'tecnico'] })
+    popup({ linhas, botoes, titulo: `Requisição de Materiais`, autoDestruicao: ['cliente', 'tecnico'] })
 
-    modoKit({ checked: kitTecnico })
+    verificarKit()
 
     for (const [id, peca] of Object.entries(manutencao?.pecas || {})) {
         criarLinhaPeca(id, peca)
     }
+}
+
+function verificarKit() {
+
+    const kit = document.querySelector('[name="kitTecnico"]')
+    const cham = document.querySelector('[name="chamado"]')
+    const linha = cham.closest('.linha-padrao')
+
+    if (kit.checked) {
+        linha.style.display = 'none'
+        cham.removeAttribute('id')
+        cham.textContent = 'Selecione'
+    } else {
+        linha.style.display = 'flex'
+    }
+
 }
 
 function salvarPrimeiroUsuario(historico) {
@@ -320,7 +343,7 @@ function salvarPrimeiroUsuario(historico) {
     return historico;
 }
 
-async function gerarPDFChamados() {
+async function gerarPDFChamados(idManutencao) {
 
     overlayAguarde()
 
@@ -329,10 +352,8 @@ async function gerarPDFChamados() {
     const pessoas = ['tecnico', 'cliente']
     let divs = ''
 
-    console.log(manutencao);
-
-
-    if (!manutencao) return removerOverlay()
+    if (!manutencao)
+        return removerOverlay()
 
     for (const pessoa of pessoas) {
 
@@ -459,20 +480,6 @@ async function gerarPDFChamados() {
     removerOverlay()
 }
 
-function infoAnexos(input) {
-
-    const div = document.querySelector('.arquivos')
-    div.innerHTML = ''
-    for (const file of input.files) {
-        div.innerHTML += `
-        <div style="${horizontal}; gap: 10px;">
-            <img src="imagens/anexo.png">
-            <span>${String(file.name).slice(0, 15)}...</span>
-        </div>
-        `
-    }
-}
-
 function criarLinhaPeca(id = ID5digitos(), peca) {
 
     const linhasManutencao = document.getElementById('linhasManutencao')
@@ -535,9 +542,7 @@ function mudarEdicao(img) {
     img.insertAdjacentHTML("beforebegin", elemento)
 }
 
-async function enviarManutencao() {
-
-    idManutencao = idManutencao || ID5digitos()
+async function enviarManutencao(idManutencao = unicoID()) {
 
     overlayAguarde()
 
@@ -562,16 +567,25 @@ async function enviarManutencao() {
         }
     }
 
+    const kit = obVal('kitTecnico').checked
+    const chamado = kit
+        ? 'KIT TÉCNICO'
+        : obVal('chamado')?.id || null
+
+    if (!chamado)
+        return popup({ mensagem: 'Escolha um chamado ou marque como KIT TÉCNICO' })
+
     const manutencao = await recuperarDado('dados_manutencao', idManutencao) || {}
     let novaManutencao = {
         ...manutencao,
+        id: idManutencao,
         usuario: acesso.usuario,
         previsao: obVal('previsao').value,
         status_manutencao: obVal('status_manutencao').value,
         nf: obVal('nf').value,
         data: new Date().toLocaleString('pt-BR'),
         comentario: obVal('comentario').value,
-        chamado: obVal('chamado').value,
+        chamado,
         codigo_cliente: obVal('cliente').id,
         codigo_tecnico: obVal('tecnico').id,
         pecas
@@ -584,14 +598,14 @@ async function enviarManutencao() {
         status_manutencao: novaManutencao.status_manutencao
     }
 
-    if (!novaManutencao.historico) novaManutencao.historico = {}
+    novaManutencao.historico ??= {}
 
     novaManutencao.historico[ID5digitos()] = recorte
 
-    if (!novaManutencao.anexos) novaManutencao.anexos = {}
+    novaManutencao.anexos ??= {}
 
-    const anexos = document.getElementById('anexos')
-    const importacao = await importarAnexos({ anexos })
+    const input = document.getElementById('anexos')
+    const importacao = await importarAnexos({ input })
 
     for (const anexo of importacao) {
         novaManutencao.anexos[anexo.link] = anexo
@@ -621,14 +635,6 @@ async function excluirManutencao(id) {
     deletar(`dados_manutencao/${id}`)
 
 }
-
-function modoKit(input) {
-    const chamado = document.querySelector('[name="chamado"]')
-    const ativar = input.checked
-    chamado.parentElement.parentElement.style.display = ativar ? 'none' : 'flex'
-    chamado.value = ativar ? 'KIT TÉCNICO' : ''
-}
-
 
 async function excelChamados() {
     const tabela = document.querySelector('.tabela')
