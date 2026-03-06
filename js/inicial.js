@@ -127,10 +127,8 @@ async function telaInicialGCS() {
         base: 'dados_orcamentos',
         pag: 'acoes',
         body: 'bodyAcoes',
-        filtros: {
-            'pda.acoes': { op: 'NOT_EMPTY' },
-            ...filtroUsuario
-        }
+        explode: { path: 'pda.acoes' },
+        filtros: filtroUsuario
     })
 
     const indicadores = `
@@ -428,64 +426,49 @@ function criarLinhaTecnico(tecnico) {
         <td></td>
     </tr>
     `
-
 }
 
 function linAcoes(orcamento) {
 
+    const { responsavel, status, usuario, registro, prazo, acao } = orcamento
     const idOrcamento = orcamento.id
-    const acoes = orcamento?.pda?.acoes || {}
     const chamado = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato || orcamento?.projeto || '-'
 
-    const filtroUsuarioAtivo = controles?.acoes?.filtros?.['pda.acoes.*.responsavel']?.value
-    const statusFiltro = controles?.acoes?.status
+    const estilo = status === 'concluído'
+        ? 'concluído'
+        : dtPrazo(prazo)
+            ? 'atrasado'
+            : 'pendente'
 
-    let strAcoes = ''
+    const [ano, mes, dia] = prazo.split('-')
+    const prazoConvertido = `${dia}/${mes}/${ano}`
+    const dtRegistro = registro
+        ? `<span><b>criado em: </b>${new Date(registro).toLocaleString('pt-BR')}</span>`
+        : ''
 
-    for (const dados of Object.values(acoes)) {
+    const criadoPor = usuario
+        ? `<span><b>criado por: </b>${usuario}</span>`
+        : ''
 
-        const { responsavel, status, usuario, registro, prazo, acao } = dados
+    const linha = `
+        <tr>    
+            <div class="etiqueta-${estilo}" style="width: 95%; flex-direction: row; gap: 0.5rem; margin: 1px;">
 
-        if (filtroUsuarioAtivo && responsavel !== filtroUsuarioAtivo)
-            continue
+                <img src="imagens/pesquisar2.png" style="width: 2rem;" onclick="irORC('${idOrcamento}')">
 
-        const estilo = status === 'concluído'
-            ? 'concluído'
-            : dtPrazo(prazo)
-                ? 'atrasado'
-                : 'pendente'
-
-        if (statusFiltro && statusFiltro !== estilo)
-            continue
-
-        const [ano, mes, dia] = prazo.split('-')
-        const prazoConvertido = `${dia}/${mes}/${ano}`
-        const dtRegistro = registro
-            ? `<span><b>criado em: </b>${new Date(registro).toLocaleString('pt-BR')}</span>`
-            : ''
-        const criadoPor = usuario
-            ? `<span><b>criado por: </b>${usuario}</span>`
-            : ''
-        strAcoes += `
-            <tr>    
-                <div class="etiqueta-${estilo}" style="width: 95%; flex-direction: row; gap: 0.5rem; margin: 1px;">
-
-                    <img src="imagens/pesquisar2.png" style="width: 2rem;" onclick="irORC('${idOrcamento}')">
-
-                    <div style="${vertical};">
-                        <span><b>ID:</b> ${chamado}</span>
-                        <span><b>Aba:</b> ${orcamento.aba || ''}</span>
-                        <div style="white-space: pre-wrap;"><b>Ação:</b> ${acao || ''}</div>
-                        <span><b>Responsável:</b> ${responsavel || ''}</span>
-                        <span><b>Prazo:</b> ${prazoConvertido}</span>
-                        ${dtRegistro}
-                        ${criadoPor}
-                    </div>
+                <div style="${vertical};">
+                    <span><b>ID:</b> ${chamado}</span>
+                    <span><b>Aba:</b> ${orcamento.aba || ''}</span>
+                    <div style="white-space: pre-wrap;"><b>Ação:</b> ${acao || ''}</div>
+                    <span><b>Responsável:</b> ${responsavel || ''}</span>
+                    <span><b>Prazo:</b> ${prazoConvertido}</span>
+                    ${dtRegistro}
+                    ${criadoPor}
                 </div>
-            </tr>`
-    }
+            </div>
+        </tr>`
 
-    return strAcoes
+    return linha
 }
 
 function somarPend(obj) {
@@ -516,7 +499,7 @@ async function atualizarContadoresAcoes() {
     Object.entries(contadores)
         .forEach(([u, conf]) => {
             if (conf.estrela == 'S' && u !== 'Geral')
-                filtroUsuario = { 'pda.acoes.*.responsavel': { op: '=', value: u } }
+                filtroUsuario = { 'responsavel': { op: '=', value: u } }
 
             criarGaveta(u, conf)
         })
@@ -524,29 +507,45 @@ async function atualizarContadoresAcoes() {
     return filtroUsuario
 }
 
-/*
-
-async function filtrarPorGaveta() {
-
+async function filtrarPorGaveta(titulo, usuario) {
 
     controles.acoes.filtros ??= {}
 
-    controles.acoes.filtros = {
+    let filtros = {}
 
+    if (titulo == 'atrasado') {
+
+        filtros = {
+            'prazo': { op: '<d', value: new Date().toLocaleDateString() },
+            'status': { op: '!=', value: 'concluído' }
+        }
+
+    } else if (titulo == 'pendente') {
+
+        filtros = {
+            'prazo': { op: '>=d', value: new Date().toLocaleDateString() },
+            'status': { op: '=', value: 'pendente' }
+        }
+
+    } else if (titulo == 'concluído') {
+
+        filtros = {
+            'status': { op: '=', value: 'concluído' }
+        }
     }
 
-        const auxiliar = usuario == 'Geral'
-            ? ` = {'pda.acoes': {op: 'NOT_EMPTY'}}`
-            : `controles.acoes.filtros = {'pda.acoes.*.responsavel': { op: '=', value: '${usuario}' }}`
-controles.acoes.status = '${titulo}'; ${auxiliar}; paginacao('acoes')
+    // Acrescentar filtros de status;
+    controles.acoes.filtros = filtros
 
+    // Filtros de usuário;
+    if (usuario == 'Geral')
+        delete controles.acoes.filtros.responsavel
+    else
+        controles.acoes.filtros.responsavel = { op: '=', value: usuario }
 
-await paginacao()
+    await paginacao()
 
-    
 }
-
-*/
 
 async function criarGaveta(usuario = null, conf = {}) {
 
@@ -560,15 +559,11 @@ async function criarGaveta(usuario = null, conf = {}) {
 
     const box = (titulo, valor, cor) => {
 
-        const auxiliar = usuario == 'Geral'
-            ? `controles.acoes.filtros = {'pda.acoes': {op: 'NOT_EMPTY'}}`
-            : `controles.acoes.filtros = {'pda.acoes.*.responsavel': { op: '=', value: '${usuario}' }}`
-
         return `
         <div 
             class="ind" 
             style="border-left: 6px solid ${cor};" 
-            onclick="controles.acoes.status = '${titulo}'; ${auxiliar}; paginacao('acoes')">
+            onclick="filtrarPorGaveta('${titulo}', '${usuario}')">
             <span style="font-size: 14px; color: #444;">${inicialMaiuscula(titulo)}</span>
             <strong style="font-size: 22px; margin-top:5px;" id="gaveta_${usuario}_${titulo}">${valor}</strong>
         </div>`

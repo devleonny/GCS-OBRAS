@@ -564,30 +564,124 @@ async function recuperarDado(base, chave) {
     })
 }
 
-async function pesquisarDB({ filtros = {}, base, pagina = 1, limite = 50 }) {
+function explodirRegistro(reg, explode) {
+    if (!explode?.path)
+        return [reg]
+
+    const alvo = getByPath(reg, explode.path)
+
+    if (!alvo || typeof alvo !== 'object')
+        return []
+
+    const manterOrigem = explode.manterOrigem !== false
+
+    if (Array.isArray(alvo)) {
+        return alvo.map((item, index) => {
+            if (explode.mapear)
+                return explode.mapear({ pai: reg, item, index })
+
+            const base = manterOrigem
+                ? structuredClone(reg)
+                : {}
+
+            if (manterOrigem)
+                removerByPath(base, explode.path)
+
+            return {
+                ...base,
+                ...(item && typeof item === 'object' ? item : { valor: item }),
+                _index: index
+            }
+        })
+    }
+
+    return Object.entries(alvo).map(([chave, item]) => {
+        if (explode.mapear)
+            return explode.mapear({ pai: reg, item, chave })
+
+        const base = manterOrigem
+            ? structuredClone(reg)
+            : {}
+
+        if (manterOrigem)
+            removerByPath(base, explode.path)
+
+        return {
+            ...base,
+            _chave: chave,
+            ...(item && typeof item === 'object' ? item : { valor: item })
+        }
+    })
+}
+
+function normalizarExplode(explode) {
+    if (!explode) return null
+    return Array.isArray(explode) ? explode : [explode]
+}
+
+function expandirRegistro(reg, explode) {
+    const etapas = normalizarExplode(explode)
+
+    if (!etapas)
+        return [reg]
+
+    let lista = [reg]
+
+    for (const etapa of etapas) {
+        lista = lista.flatMap(item => explodirRegistro(item, etapa))
+    }
+
+    return lista
+}
+
+function removerByPath(obj, path) {
+    if (!path) return obj
+
+    const partes = path.split('.')
+    const ultimo = partes.pop()
+
+    let alvo = obj
+    for (const p of partes) {
+        if (!alvo?.[p] || typeof alvo[p] !== 'object')
+            return obj
+        alvo = alvo[p]
+    }
+
+    if (alvo && typeof alvo === 'object')
+        delete alvo[ultimo]
+
+    return obj
+}
+
+async function pesquisarDB({ filtros = {}, base, pagina = 1, limite = 50, explode = null }) {
 
     const offset = (pagina - 1) * limite
     let vistos = 0
     let total = 0
     const resultados = []
 
-    // CASO 1: base é array ou objeto (memória)
-    if (typeof base === 'object') {
+    const processarRegistro = reg => {
+        const lista = expandirRegistro(reg, explode)
 
+        for (const item of lista) {
+            if (passaFiltro(item, filtros)) {
+                total++
+
+                if (vistos >= offset && resultados.length < limite)
+                    resultados.push(item)
+
+                vistos++
+            }
+        }
+    }
+
+    if (typeof base === 'object' && base !== null) {
         const lista = Array.isArray(base)
             ? base
             : Object.values(base)
 
-        for (const reg of lista) {
-            if (passaFiltro(reg, filtros)) {
-                total++
-
-                if (vistos >= offset && resultados.length < limite) {
-                    resultados.push(reg)
-                }
-                vistos++
-            }
-        }
+        for (const reg of lista)
+            processarRegistro(reg)
 
         return {
             resultados,
@@ -596,7 +690,6 @@ async function pesquisarDB({ filtros = {}, base, pagina = 1, limite = 50 }) {
         }
     }
 
-    // CASO 2: base é string → IndexedDB
     const db = await getDB()
     const tx = db.transaction(base, 'readonly')
     const store = tx.objectStore(base)
@@ -604,9 +697,9 @@ async function pesquisarDB({ filtros = {}, base, pagina = 1, limite = 50 }) {
     const index = store.index(indexName)
 
     return new Promise(resolve => {
-
         index.openCursor(null, 'prev').onsuccess = ev => {
             const cursor = ev.target.result
+
             if (!cursor) {
                 resolve({
                     resultados,
@@ -617,16 +710,7 @@ async function pesquisarDB({ filtros = {}, base, pagina = 1, limite = 50 }) {
             }
 
             const reg = cursor.value
-
-            if (passaFiltro(reg, filtros)) {
-                total++
-
-                if (vistos >= offset && resultados.length < limite)
-                    resultados.push(reg)
-
-                vistos++
-            }
-
+            processarRegistro(reg)
             cursor.continue()
         }
     })

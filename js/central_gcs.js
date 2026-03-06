@@ -760,8 +760,8 @@ async function confirmarRelancamento(idPagamento) {
     await inserirDados({ [idPagamento]: pagamento }, 'lista_pagamentos')
     await abrirDetalhesPagamentos(idPagamento)
 
-    const textoPrincipal = resposta?.objeto?.descricao_status || resposta?.mensagem || JSON.stringify(resposta)
-    const infoAdicional = resposta?.objeto?.exclusaoPagamento || ''
+    const textoPrincipal = resposta?.descricao_status || resposta?.mensagem || JSON.stringify(resposta)
+    const infoAdicional = resposta?.exclusaoPagamento || ''
     const mensagem = `
         <div style="${vertical}; gap: 5px; text-align: left;">
             <span>${textoPrincipal}</span>
