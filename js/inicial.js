@@ -524,6 +524,30 @@ async function atualizarContadoresAcoes() {
     return filtroUsuario
 }
 
+/*
+
+async function filtrarPorGaveta() {
+
+
+    controles.acoes.filtros ??= {}
+
+    controles.acoes.filtros = {
+
+    }
+
+        const auxiliar = usuario == 'Geral'
+            ? ` = {'pda.acoes': {op: 'NOT_EMPTY'}}`
+            : `controles.acoes.filtros = {'pda.acoes.*.responsavel': { op: '=', value: '${usuario}' }}`
+controles.acoes.status = '${titulo}'; ${auxiliar}; paginacao('acoes')
+
+
+await paginacao()
+
+    
+}
+
+*/
+
 async function criarGaveta(usuario = null, conf = {}) {
 
     if (!usuario)

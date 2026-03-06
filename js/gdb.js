@@ -397,7 +397,7 @@ const regrasSnapshot = {
                 if (!dep.cCodDep)
                     continue
 
-                const departamento = await getStore(stores.departamentos_AC, dep.cCodDep) || {}
+                const departamento = await getStore(stores.departamentos_AC, Number(dep.cCodDep)) || {}
                 snap.departamentos.push(departamento?.descricao)
             }
 

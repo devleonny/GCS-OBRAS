@@ -2078,6 +2078,11 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
 
                 </div>
 
+                <div style="${vertical};">
+                    <span><b>COMENTÁRIO</b></span>
+                    <div style="white-space: pre-wrap; text-align: left;">${comentario || 'Sem comentários'}</div>
+                </div>
+
             </div>
 
             <br>
@@ -2090,11 +2095,6 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
                     ${linhas.join('')}
                 </tbody>
             </table>
-
-            <div style="${vertical};">
-                <span><b>COMENTÁRIO</b></span>
-                <div style="white-space: pre-wrap;">${comentario || 'Sem comentários'}</div>
-            </div>
         </body>
         </html>`
 
@@ -2123,21 +2123,4 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
 
     }
 
-}
-
-
-function teste() {
-
-    const sss = {
-        "J9wai": {
-            "data": "30/12/2025, 09:10:30",
-            "de": "",
-            "para": "ORC ENVIADO",
-            "usuario": "Tatiana Amelia"
-        }
-    }
-
-
-
-    console.log(ulTimestampStatus)
 }

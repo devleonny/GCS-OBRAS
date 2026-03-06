@@ -61,6 +61,9 @@ async function painelCustos(id) {
         body: 'bodyCustosPagamentos',
         criarLinha: 'criarLinhaCustoPagamento',
         base: pagamentos.resultados,
+        filtros: {
+            'param.*.codigo_tipo_documento': { op: '!=', value: 'CTE' },
+        },
         colunas: {
             'Data': { chave: 'param.*.data_previsao', tipoPesquisa: 'data' },
             'Valor': { chave: 'descricao' },
@@ -73,7 +76,38 @@ async function painelCustos(id) {
 
     const somaPagamentos = await contarPorCampo({
         base: 'lista_pagamentos',
-        filtros: { 'snapshots.departamentos': filtros },
+        filtros: {
+            'snapshots.departamentos': filtros,
+            'param.*.codigo_tipo_documento': { op: '!=', value: 'CTE' },
+        },
+        path: 'param.*.valor_documento',
+        modo: 'soma'
+    })
+
+    const tabelaFretes = await modTab({
+        pag: 'custosFretes',
+        body: 'bodyCustosFretes',
+        criarLinha: 'criarLinhaCustoPagamento',
+        base: pagamentos.resultados,
+        filtros: {
+            'param.*.codigo_tipo_documento': { op: '=', value: 'CTE' },
+        },
+        colunas: {
+            'Data': { chave: 'param.*.data_previsao', tipoPesquisa: 'data' },
+            'Valor': { chave: 'descricao' },
+            'Status': { chave: 'status', tipoPesquisa: 'select' },
+            'Solicitante': { chave: 'criado' },
+            'Recebedor': {},
+            'Detalhes': {}
+        }
+    })
+
+    const somaFretes = await contarPorCampo({
+        base: 'lista_pagamentos',
+        filtros: {
+            'param.*.codigo_tipo_documento': { op: '=', value: 'CTE' },
+            'snapshots.departamentos': filtros
+        },
         path: 'param.*.valor_documento',
         modo: 'soma'
     })
@@ -132,7 +166,7 @@ async function painelCustos(id) {
 
                     <div class="balao-checklist">
                         <label>Fretes</label>
-                        <span>${0}</span>
+                        <span>${dinheiro(somaFretes?.todos || 0)}</span>
                     </div>
 
                 </div>
@@ -160,7 +194,7 @@ async function painelCustos(id) {
                 </div>
 
                 <div data-tabela="fretes" style="display: none;">
-                    ${tabelaVeiculos}
+                    ${tabelaFretes}
                 </div>
             </div>
 

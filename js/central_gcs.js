@@ -685,29 +685,40 @@ function criarLinhaPainelUsuarios(dados) {
 }
 
 async function gerarPdfOnline(htmlString, nome) {
-    return new Promise((resolve, reject) => {
-        let encoded = new TextEncoder().encode(htmlString);
-        let compressed = pako.gzip(encoded);
 
-        fetch(`${api}/pdf`, {
+    const encoded = new TextEncoder().encode(htmlString)
+    const compressed = pako.gzip(encoded)
+
+    try {
+
+        const response = await fetch(`${api}/pdf`, {
             method: "POST",
             headers: { "Content-Type": "application/octet-stream" },
             body: compressed
         })
-            .then(response => response.blob())
-            .then(blob => {
-                const link = document.createElement("a");
-                link.href = URL.createObjectURL(blob);
-                link.download = `${nome}.pdf`;
-                link.click();
-                resolve()
-            })
-            .catch(err => {
-                console.error("Erro ao gerar PDF:", err)
-                reject()
-            });
-    })
 
+        const contentType = response.headers.get("content-type") || ""
+
+        if (contentType.includes("application/json")) {
+
+            const erro = await response.json()
+            popup({ mensagem: erro.mensagem || 'Falha ao gerar o PDF' })
+            return
+
+        }
+
+        const blob = await response.blob()
+
+        const link = document.createElement("a")
+        link.href = URL.createObjectURL(blob)
+        link.download = `${nome}.pdf`
+        link.click()
+
+    } catch (err) {
+
+        popup({ mensagem: err.message || 'Falha ao gerar o PDF' })
+
+    }
 }
 
 async function relancarPagamento(idPagamento) {
