@@ -11,10 +11,14 @@
     border: solid 1px #989898;
     background: #efefef;
     border-radius: 8px;
-    padding: 15px;
+    padding: 1vw;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
     display: flex;
     flex-direction: column;
+}
+
+.bloco-indicador-incial {
+    width: 50%;
 }
 
 .bloco-acao {
@@ -128,7 +132,9 @@
     width: 600px;
 }
 
-.t-tecnicos, .t-tabelas, .t-indicadores{
+.t-tecnicos,
+.t-tabelas,
+.t-indicadores {
     width: 95vw;
     display: none;
 }
@@ -158,5 +164,9 @@
 @media screen and (orientation: portrait) {
     .painel-indicadores {
         flex-direction: column;
+    }
+
+    .bloco-indicador-incial {
+        width: 100%;
     }
 }

@@ -133,12 +133,13 @@ async function telaInicialGCS() {
 
     const indicadores = `
     <div class="painel-indicadores">
-        <div style="${vertical}; width: 50%;">
+
+        <div class="bloco-indicador-incial">
             <button onclick="incluirContador()">Incluir contador</button>
             <div class="guarda-roupas"></div>
         </div>
 
-        <div style="width: 50%;">
+        <div class="bloco-indicador-incial">
             ${tabelaIndicadores}
         </div>
     </div>`
@@ -654,13 +655,11 @@ async function favoritar(img) {
 
     img.src = 'imagens/estrela.png'
 
-    const filtros = usuario == 'Geral'
-        ? {}
-        : { op: '=', value: usuario }
+    if (usuario == 'Geral')
+        delete controles.acoes.filtros.responsavel
+    else
+        controles.acoes.filtros.responsavel = { op: '=', value: usuario }
 
-    controles.acoes.filtros = {
-        'pda.acoes.*.responsavel': filtros
-    }
 
     await paginacao('acoes')
 
