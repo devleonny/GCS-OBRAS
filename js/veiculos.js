@@ -328,6 +328,8 @@ async function enviarOmie() {
 
     const pagamento = {
         app,
+        status: 'TICKET LOG',
+        criado: acesso.usuario,
         param: [{
             codigo_cliente_fornecedor: 6066446384,
             codigo_lancamento_integracao: idPagamento,
@@ -345,7 +347,9 @@ async function enviarOmie() {
         }]
     }
 
-    const resposta = await lancarPagamento({ pagamento, dataFixa: true })
+    await enviar(`lista_pagamentos/${idPagamento}`, pagamento)
+
+    const resposta = await lancarPagamento(idPagamento)
     if (resposta.mensagem)
         return popup({ mensagem: resposta.mensagem })
 
