@@ -1,10 +1,22 @@
 let pastaAberta = {}
+const obrigatorios = [
+    'ASO',
+    'PTA',
+    'NR 06 - EPI',
+    'RECEBIMENTO - EPI',
+    'NR 10',
+    'NR 35'
+]
+
 const regrasDocs = {
     'ASO': 365,
-    'NR 35': 730,
     'PTA': 365,
+    'NR 01': 365,
+    'NR 05 - CIPA': 365,
     'NR 06 - EPI': 365,
-    'NR 10': 730
+    'RECEBIMENTO - EPI': 365,
+    'NR 10': 730,
+    'NR 35': 730,
 }
 
 const modeloRH = (valor1, elemento, funcao) => {
@@ -66,26 +78,22 @@ async function telaRH() {
 
 async function filtrarPorTempo(tempo) {
 
-    let filtros = {}
+    controles.rh.filtros ??= {}
 
     if (tempo == 'atrasados') {
-        filtros = {
-            'snapshots.validade': { op: '<=d', value: Date.now() }
-        }
+        controles.rh.filtros['snapshots.validade'] = { op: '<=d', value: Date.now() }
 
     } else if (tempo == 'proximo') {
 
         const dias60 = 60 * 24 * 60 * 60 * 1000
-        filtros = {
-            'snapshots.validade': [
-                { op: '<=d', value: Date.now() + dias60 },
-                { op: '>=d', value: Date.now() }
-            ]
-        }
+        controles.rh.filtros['snapshots.validade'] = [
+            { op: '<=d', value: Date.now() + dias60 },
+            { op: '>=d', value: Date.now() }
+        ]
 
+    } else {
+        delete controles.rh.filtros['snapshots.validade']
     }
-
-    controles.rh.filtros = filtros
 
     await paginacao()
 
@@ -99,7 +107,7 @@ async function criarPastinhas() {
     })
 
     const cidades = Object.keys(cidadesDB)
-        .filter(c => c !== 'todos')
+        .filter(c => c !== 'todos' && c !== 'EM BRANCO')
 
     const container = document.querySelector('.esquema-cidades')
 
@@ -150,30 +158,48 @@ async function funcionariosPorCidade(cidade) {
 
     pastaAberta[cidade] ??= []
 
-    const funcionarios = await contarPorCampo({
+    const funcionarios = Object.keys(await contarPorCampo({
         base: 'documentos',
         path: 'snapshots.nome',
         filtros: { 'snapshots.cidade': { op: '=', value: cidade } }
-    })
+    }))
+        .filter(c => c !== 'todos')
 
-    const pastinhas = Object.keys(funcionarios)
-        .filter(c => c != 'todos')
-        .map(c => {
+    const pastinhas = []
 
-            return `
-                <div style="${vertical}; width: 100%;">
-                    <div class="btnPessoas" onclick="documentosPorFuncionario('${c}', '${cidade}')">
+    for (const c of funcionarios) {
+
+        const docs = Object.keys(await contarPorCampo({
+            base: 'documentos',
+            path: 'doc',
+            filtros: {
+                'snapshots.nome': {
+                    op: '=',
+                    value: c
+                }
+            }
+        }))
+
+        const docsFaltantes = obrigatorios
+            .filter(o => !docs.includes(o))
+            .map(o => `<span class="docs-faltantes">${o}</span>`)
+            .join('')
+
+        pastinhas.push(`
+            <div style="${vertical}; width: 100%;">
+                <div class="btnPessoas" style="flex-direction: column; align-items: start;" onclick="documentosPorFuncionario('${c}', '${cidade}')">
+                    <div style="${horizontal}; gap: 3px;">
                         <img src="imagens/pasta.png">
                         <span>${c}</span>
                     </div>
-                    <div id="${c}" style="${vertical}; align-items: start; margin-left: 2rem; width: 90%;"></div>
-                </div>`
-        })
-        .join('')
-
+                    <div class="bloco-etiquetas-rh">${docsFaltantes}</div>
+                </div>
+                <div id="${c}" style="${vertical}; align-items: start; margin-left: 2rem; width: 90%;"></div>
+            </div>`)
+    }
 
     if (local)
-        local.innerHTML = pastinhas
+        local.innerHTML = pastinhas.join('')
 
 }
 
@@ -240,12 +266,6 @@ function criarLinhaRH(documento) {
     const tempoExpiracao = expiraEm(realizado, doc)
     const a = (typeof anexo === 'object' && anexo) ? anexo : {}
     const temAnexo = !!a.link
-
-    const dt = (data) => {
-        if (!data) return '--'
-        const [ano, mes, dia] = data.split('-')
-        return `${dia}/${mes}/${ano}`
-    }
 
     const tds = `
         <td>

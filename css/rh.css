@@ -21,6 +21,20 @@
     gap: 1rem;
 }
 
+.docs-faltantes {
+    font-size: 0.7rem;
+    border-radius: 8px;
+    background-color: red;
+    color: white;
+    padding: 0 10px 0 10px;
+}
+
+.bloco-etiquetas-rh {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+}
+
 .painelLateral {
     background-color: #222222dd;
     box-shadow: 0px 0px 10px #222222dd;
@@ -48,8 +62,9 @@
     display: flex;
     align-items: center;
     justify-content: start;
-    gap: 10px;
+    gap: 3px;
     cursor: pointer;
+    padding: 2px;
 }
 
 .btnPessoas img {
