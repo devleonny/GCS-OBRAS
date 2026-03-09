@@ -1218,9 +1218,9 @@ async function mostrarHistoricoStatus(id) {
                     <tbody>
                         ${Object.entries(orcamento.status.historicoStatus).map(([chave, registro]) => {
 
-                        const ts = toTimestamp(registro?.data || registro?.timestamp)
+        const ts = toTimestamp(registro?.data || registro?.timestamp)
 
-                        return `
+        return `
                             <tr id="ST_${chave}">
                                 <td>${new Date(ts).toLocaleString()}</td>
                                 <td>${registro.de}</td>
@@ -1369,6 +1369,8 @@ async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
         'Tipo': { chave: 'tipo' },
         'Quantidade': {},
         'Quantidade Orçada': {},
+        'Valor Unit Bruto': {},
+        'Valor Total Bruto': {},
         'Valor Unitário': {},
         'Valor Total': {}
     }
@@ -1456,14 +1458,23 @@ async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
 
 async function criarLinhaRequisicao(item) {
 
-    const { imagem, codigo, custo, tipo, adicionais, desconto, descricao, qtde_enviar, qtde } = item || {}
+    const { imagem, codigo, custo, tipo, adicionais, custo_original, desconto, descricao, qtde_enviar = 0, qtde } = item || {}
 
     // Tipo desconto vem por padrão em dinheiro;
     // No caso de acréscimo a chave "custo" já vem no valor final;
 
-    const tBruto = custo * qtde_enviar
-    const tFinal = tBruto - desconto
-    const unitario = (tFinal / qtde_enviar).toFixed(2)
+    const total = (custo * qtde) - desconto
+    const unitarioFinal = desconto
+        ? total / qtde
+        : custo
+
+    const unitario = custo_original || custo || 0
+
+    const sinal = unitario < unitarioFinal
+        ? '<img src="imagens/up.png" style="width: 1.5rem;">'
+        : unitario > unitarioFinal
+            ? '<img src="imagens/down.png" style="width: 1.5rem;">'
+            : ''
 
     const { omie } = await recuperarDado('dados_composicoes', codigo) || {}
 
@@ -1506,10 +1517,21 @@ async function criarLinhaRequisicao(item) {
             <td style="text-align: center;" name="qtde_orcamento">
                 ${qtde || 0}
             </td>
-            <td style="white-space: nowrap;" name="custo">
-                ${dinheiro(custo)}
+
+            <td style="white-space: nowrap;" name="unitarioBruto">
+                ${dinheiro(unitario)}
             </td>
-            <td name="total" style="white-space: nowrap;"></td>
+            <td style="white-space: nowrap;" name="totalBruto"></td>
+
+            <td style="white-space: nowrap;" name="custo">
+                ${dinheiro(unitarioFinal)}
+            </td>
+            <td>
+                <div style="${horizontal}; gap: 1rem;"> 
+                    <span name="total" style="white-space: nowrap;"></span>
+                    ${sinal}
+                </div>
+            </td>
         </tr>
         `
 
@@ -1640,14 +1662,18 @@ async function calcularRequisicao() {
             campoQtde.value = quantidadeRestante
 
         const custo = conversor(linha.querySelector('[name="custo"]').textContent)
+        const unitarioBruto = conversor(linha.querySelector('[name="unitarioBruto"]').textContent)
         const qtde = Number(campoQtde?.value || 0)
 
         // Objeto será capturado depois;
         controles.requisicao.base[codigo].qtde_enviar = qtde
 
+        const totalBruto = unitarioBruto * qtde
+
         const totalLinha = custo * qtde
         total += totalLinha
 
+        linha.querySelector('[name="totalBruto"]').textContent = dinheiro(totalBruto)
         linha.querySelector('[name="total"]').textContent = dinheiro(totalLinha)
 
     }
@@ -1934,7 +1960,7 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
 
     const modTR = (dados) => {
         console.log(dados);
-        
+
         const { imagem, codigo, omie, descricao, modelo, desconto = 0, fabricante, unidade, tipo, qtde_enviar = 0, custo = 0 } = dados || {}
 
         // Tipo desconto vem por padrão em dinheiro;
