@@ -1959,8 +1959,7 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
     const linhas = []
 
     const modTR = (dados) => {
-        console.log(dados);
-
+        
         const { imagem, codigo, omie, descricao, modelo, desconto = 0, fabricante, unidade, tipo, qtde_enviar = 0, custo = 0 } = dados || {}
 
         // Tipo desconto vem por padrão em dinheiro;
