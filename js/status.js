@@ -1151,8 +1151,7 @@ async function mostrarInfo(idOrcamento) {
     const elemento = `
         <div class="comentario-orcamento">
             ${campos || 'Sem histórico de Status'}
-        </div>
-    `
+        </div>`
 
     popup({ elemento, titulo: 'Informações' })
 
@@ -1928,7 +1927,11 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
 
     const modTR = (dados) => {
 
-        const { imagem, codigo, omie, descricao, modelo, fabricante, unidade, tipo, qtde_enviar = 0, custo = 0 } = dados || {}
+        const { imagem, codigo, omie, descricao, modelo, desconto = 0, fabricante, unidade, tipo, qtde_enviar = 0, custo = 0 } = dados || {}
+
+        // Tipo desconto vem por padrão em dinheiro; //29
+        const tBruto = custo * qtde_enviar
+        const tFinal = tBruto - desconto
 
         const descFinal = Object.entries({ descricao, modelo, fabricante })
             .filter(([, valor]) => valor)
@@ -1953,7 +1956,7 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
                 <td>${tipo || 'ADICIONAL'}</td>
                 <td style="text-align: center;">${qtde_enviar || ''}</td>
                 <td style="white-space: nowrap;">${dinheiro(custo)}</td>
-                <td style="white-space: nowrap;">${dinheiro(custo * qtde_enviar)}</td>
+                <td style="white-space: nowrap;">${dinheiro(tFinal)}</td>
             </tr>
         `
 
