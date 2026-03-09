@@ -1254,18 +1254,7 @@ async function painelClientes(idOrcamento) {
     const linhas = [
         {
             texto: 'Chamado',
-            elemento: `
-                <div style="${horizontal}; gap: 1rem;">
-                    <span 
-                        class="opcoes" 
-                        name="chamado"
-                        ${dados_orcam?.chamado ? `id="${dados_orcam?.chamado}"` : ''}
-                        onclick="cxOpcoes('chamado')">
-                            ${dados_orcam?.chamado || 'Selecione'}
-                    </span>
-                    <input value="${dados_orcam?.contrato || 'ORC ...'}" readOnly>
-                </div>
-            `
+            elemento: `<input value="${dados_orcam?.contrato || 'ORC ...'}" readOnly>`
         },
         {
             elemento: `
