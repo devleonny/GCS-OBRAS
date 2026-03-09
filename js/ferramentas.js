@@ -32,6 +32,10 @@ let ignorarMenus = false
 let controlesCxOpcoes = {}
 const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js')
+}
+
 const appBases = {
     'GCS': [
         'tags_orcamentos',
