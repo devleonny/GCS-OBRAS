@@ -216,7 +216,7 @@ async function atualizarToolbar(remover) {
 
     titulo = document.querySelector('[name="titulo"]')
 
-    if (remover) 
+    if (remover)
         return titulo.textContent = 'GCS'
 
     const orcamentoBase = baseOrcamento()
@@ -859,6 +859,7 @@ async function totalOrcamento() {
     atualizarToolbar()
 
     const orcamentoBase = baseOrcamento()
+    const { dados_orcam } = orcamentoBase || {}
     const precosAntigos = orcamentoBase?.manter_precos == 'S'
     const lpu = String(orcamentoBase.lpu_ativa).toLowerCase()
     let totais = { GERAL: { valor: 0, bruto: 0 } }
@@ -977,7 +978,7 @@ async function totalOrcamento() {
 
             const resultado = calcular(undefined, dadosCalculo)
 
-            if (!estado) {
+            if (!dados_orcam) {
                 valorDesconto.value = ''
                 avisoDesconto = 1 // Preencher os dados da empresa;
 

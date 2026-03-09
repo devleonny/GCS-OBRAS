@@ -1606,7 +1606,7 @@ async function calcularRequisicao() {
     const chave = tRequisicao.dataset.chave
     const { status } = await recuperarDado('dados_orcamentos', id) || {}
 
-    const reqs = Object.entries(status.historico || {})
+    const reqs = Object.entries(status?.historico || {})
         .filter(([c, his]) => (c !== chave && his.status == 'REQUISIÇÃO'))
 
     const linhas = document.querySelectorAll('#bodyRequisicao tr')
@@ -1926,12 +1926,16 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
     const linhas = []
 
     const modTR = (dados) => {
-
+        console.log(dados);
+        
         const { imagem, codigo, omie, descricao, modelo, desconto = 0, fabricante, unidade, tipo, qtde_enviar = 0, custo = 0 } = dados || {}
 
-        // Tipo desconto vem por padrão em dinheiro; //29
+        // Tipo desconto vem por padrão em dinheiro;
+        // No caso de acréscimo a chave "custo" já vem no valor final;
+
         const tBruto = custo * qtde_enviar
         const tFinal = tBruto - desconto
+        const unitario = (tFinal / qtde_enviar).toFixed(2)
 
         const descFinal = Object.entries({ descricao, modelo, fabricante })
             .filter(([, valor]) => valor)
@@ -1955,7 +1959,7 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
                 <td>${unidade || ''}</td>
                 <td>${tipo || 'ADICIONAL'}</td>
                 <td style="text-align: center;">${qtde_enviar || ''}</td>
-                <td style="white-space: nowrap;">${dinheiro(custo)}</td>
+                <td style="white-space: nowrap;">${dinheiro(unitario)}</td>
                 <td style="white-space: nowrap;">${dinheiro(tFinal)}</td>
             </tr>
         `

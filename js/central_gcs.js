@@ -1389,6 +1389,10 @@ async function painelClientes(idOrcamento) {
             ` }
     ]
 
+    const formExistente = document.querySelector('#emissor')
+    if (formExistente) 
+        return removerOverlay()
+
     popup({ linhas, botoes, titulo: 'Dados do Cliente', autoDestruicao: ['cliente', 'tecnico'] })
 
 }

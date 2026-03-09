@@ -365,6 +365,7 @@ function seletorStatus(orcamento) {
         .filter(s => (s.info && s.info !== ''))
 
     const opcoes = ['', ...fluxograma]
+        .sort((a, b) => a.localeCompare(b))
         .map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`)
         .join('')
 
@@ -421,7 +422,7 @@ async function editar(id) {
 
     const orcamentoBase = await recuperarDado('dados_orcamentos', id)
 
-    if (orcamentoBase.aprovacao) 
+    if (orcamentoBase.aprovacao)
         delete orcamentoBase.aprovacao
 
     baseOrcamento(orcamentoBase)
