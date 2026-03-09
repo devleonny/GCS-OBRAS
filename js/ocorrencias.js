@@ -415,15 +415,18 @@ async function telaOcorrencias() {
     const empresaAtiva = await recuperarDado('empresas', acesso?.empresa)
     titulo.innerHTML = empresaAtiva?.nome || 'Desatualizado'
 
+    const mapa = await criarMapa()
     const btnExtras = `
     <div style="${vertical};" class="painel-filtros">
         <div id="filtros1" class="filtros"></div>
         <div id="filtros2" class="filtros"></div>
     </div>
+    ${mapa}
     `
     const tabela = await modTab({
         btnExtras,
         alinPag: vertical,
+        funcaoAdicional: ['contadoresMapaOcorrencias'],
         base: 'dados_ocorrencias',
         pag: 'ocorrencias',
         body: 'bodyOcorrencias',
@@ -457,6 +460,19 @@ async function telaOcorrencias() {
     await paginacao()
 
     criarPesquisas()
+
+}
+
+
+async function contadoresMapaOcorrencias() {
+
+    const dados = await contarPorCampo({
+        base: 'dados_ocorrencias',
+        filtros: controles?.ocorrencias?.filtros || {},
+        path: 'snapshots.cliente.estado'
+    })
+
+    auxMapa(dados)
 
 }
 
@@ -579,6 +595,7 @@ async function criarPesquisas() {
         'Prioridade': { path: 'snapshots.prioridade' },
         'Última Correção': { path: 'snapshots.ultimaCorrecao' },
         'Executor': { path: 'correcoes.*.executor' },
+        'Estado': { path: 'snapshots.cliente.estado' }
     }
 
     const filtros = []
@@ -645,8 +662,11 @@ async function filtrarAtrasados(input) {
 
     if (ativo == '') {
         delete controles.ocorrencias.filtros['snapshots.dtCorrecao']
-        
+        delete controles.ocorrencias.filtros['snapshots.ultimaCorrecao']
+
     } else {
+
+        controles.ocorrencias.filtros['snapshots.ultimaCorrecao'] = { op: '!=', value: 'Solucionada' }
         controles.ocorrencias.filtros['snapshots.dtCorrecao'] = {
             op: ativo == 'Sim'
                 ? '<d'

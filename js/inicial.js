@@ -48,6 +48,7 @@ function preencherMapa(estado, numero) {
     if (!pos) return
 
     const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+    group.classList.add("overlay-estado")
 
     const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect")
     bg.setAttribute("x", pos.x - 18)
@@ -72,6 +73,39 @@ function preencherMapa(estado, numero) {
     group.appendChild(bg)
     group.appendChild(texto)
     svg.appendChild(group)
+}
+
+function auxMapa(dados = {}) {
+    const svg = document.getElementById("mapaOverlay")
+
+    svg.querySelectorAll(".overlay-estado").forEach(el => el.remove())
+
+    for (const [estado, total] of Object.entries(dados)) {
+        preencherMapa(estado, total)
+    }
+}
+
+function mostrarMapa() {
+    const fMapa = document.querySelector('.fundo-mapa')
+    if (!fMapa) return
+    fMapa.classList.toggle('ativo')
+}
+
+async function criarMapa() {
+
+    const elemento = `
+        <div style="${vertical}; position: relative;">
+            <button onclick="mostrarMapa()" style="position: absolute; top: 5px; right: 5px; z-index: 1;">Ver Mapa</button>
+
+            <div class="fundo-mapa">
+                <img src="imagens/mapa.png" class="mapa">
+                <svg id="mapaOverlay" width="600" height="600" style="position: absolute; top: 0; left: 0;"></svg>
+            </div>
+        </div>
+        `
+
+    return elemento
+
 }
 
 const dtPrazo = (data) => {

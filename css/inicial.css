@@ -119,12 +119,16 @@
 }
 
 .fundo-mapa {
+    display: none;
+    border-top-right-radius: 5px;
     position: relative;
     width: 600px;
     height: 600px;
     background: linear-gradient(235deg, #249f41, #151749);
-    border-radius: 5px;
-    border: solid 1px #797979;
+}
+
+.fundo-mapa.ativo {
+    display: flex;
 }
 
 .mapa {

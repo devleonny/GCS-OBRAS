@@ -753,7 +753,6 @@ function isVazio(v) {
 }
 
 function comparar(v, op, value) {
-
     const isStringV = typeof v === 'string'
     const isStringValue = typeof value === 'string'
 
@@ -762,8 +761,27 @@ function comparar(v, op, value) {
 
     if (typeof op === 'string' && op.endsWith('d')) {
         const operador = op.slice(0, -1)
+
+        if (operador === '=' && isDateOnly(value)) {
+            const inicio = toTimestamp(value, false)
+            const fim = toTimestamp(value, true)
+            const vT = toTimestamp(v)
+            return vT != null && vT >= inicio && vT <= fim
+        }
+
+        let valT = null
+
+        if (isDateOnly(value)) {
+            if (operador === '<=')
+                valT = toTimestamp(value, true)
+            else
+                valT = toTimestamp(value, false)
+        } else {
+            valT = toTimestamp(value)
+        }
+
         const vT = toTimestamp(v)
-        const valT = toTimestamp(value)
+
         if (vT == null || valT == null) return false
 
         switch (operador) {
@@ -771,7 +789,9 @@ function comparar(v, op, value) {
             case '>=': return vT >= valT
             case '<': return vT < valT
             case '<=': return vT <= valT
+            case '=': return vT === valT
         }
+
         return false
     }
 
@@ -1106,25 +1126,28 @@ function msgQuedaConexao(msg = '<b>Falha na atualização:</b> tente novamente e
     popup({ elemento })
 }
 
-function toTimestamp(d) {
+function isDateOnly(v) {
+    return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v.trim())
+}
+
+function toTimestamp(d, fimDoDia = false) {
     if (d == null || d === '') return null
     if (typeof d === 'number') return d
 
     const str = String(d).trim()
 
-    // yyyy-mm-dd (input date) → criar como LOCAL (meio-dia evita bug de fuso)
     if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
         const [y, m, dia] = str.split('-').map(Number)
-        return new Date(y, m - 1, dia, 12, 0, 0).getTime()
+        return fimDoDia
+            ? new Date(y, m - 1, dia, 23, 59, 59, 999).getTime()
+            : new Date(y, m - 1, dia, 0, 0, 0, 0).getTime()
     }
 
-    // ISO completo com hora (2026-03-16T10:30:00)
     if (/^\d{4}-\d{2}-\d{2}T/.test(str)) {
         const t = Date.parse(str)
         return isNaN(t) ? null : t
     }
 
-    // BR dd/mm/yyyy...
     const br = str.match(
         /^(\d{2})\/(\d{2})\/(\d{4})(?:,\s*(\d{2}):(\d{2})(?::(\d{2}))?)?/
     )

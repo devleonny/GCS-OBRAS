@@ -5,7 +5,8 @@ const opcoesStatus = [
     'Aguardando aprovação da Diretoria',
     'Aguardando aprovação da Gerência',
     'Pagamento Excluído',
-    'Processando...'
+    'Processando...',
+    'PAGO'
 ]
 
 function imagemEspecifica(justificativa) {
