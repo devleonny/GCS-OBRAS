@@ -1,4 +1,4 @@
-const abas = ['PDA', 'POC', 'INFRA', 'LOGÍSTICA', 'EM_ANDAMENTO', 'CONCLUÍDO']
+const abas = ['PDA', 'POC', 'INFRA', 'LOGÍSTICA', 'EM_ANDAMENTO', 'CONCLUÍDO', 'PENDÊNCIA']
 const coments = (comentario, campo, id) => {
 
     if (!comentario) comentario = ''
@@ -288,10 +288,15 @@ async function linPda(orcamento) {
             </div>
             `}).join('')
 
+    const opAbas = abas
+        .sort((a, b) => a.localeCompare(b))
+        .map(aba => `<option ${orcamento?.aba == aba ? 'selected' : ''}>${aba}</option>`)
+        .join('')
+
     const selectAbas = `
         <select class="etiquetas" onchange="atualizarAba(this, '${idOrcamento}')">
             <option></option>
-            ${abas.map(aba => `<option ${orcamento?.aba == aba ? 'selected' : ''}>${aba}</option>`).join('')}
+            ${opAbas}
         </select>
     `
 

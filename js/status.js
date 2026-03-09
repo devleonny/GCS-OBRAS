@@ -1456,7 +1456,14 @@ async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
 
 async function criarLinhaRequisicao(item) {
 
-    const { imagem, codigo, custo, tipo, adicionais, descricao, qtde_enviar, qtde } = item || {}
+    const { imagem, codigo, custo, tipo, adicionais, desconto, descricao, qtde_enviar, qtde } = item || {}
+
+    // Tipo desconto vem por padrão em dinheiro;
+    // No caso de acréscimo a chave "custo" já vem no valor final;
+
+    const tBruto = custo * qtde_enviar
+    const tFinal = tBruto - desconto
+    const unitario = (tFinal / qtde_enviar).toFixed(2)
 
     const { omie } = await recuperarDado('dados_composicoes', codigo) || {}
 
