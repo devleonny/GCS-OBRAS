@@ -385,8 +385,10 @@ async function abrirDetalhesPagamentos(id) {
     `
 
     const telaDetalhes = document.querySelector('.tela-detalhes')
-    if (telaDetalhes)
+    if (telaDetalhes) {
+        removerOverlay()
         return telaDetalhes.innerHTML = acumulado
+    }
 
     popup({ elemento: `<div class="tela-detalhes">${acumulado}</div>`, titulo: 'Detalhes do Pagamento' })
 

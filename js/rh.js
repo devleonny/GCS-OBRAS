@@ -164,6 +164,7 @@ async function funcionariosPorCidade(cidade) {
         filtros: { 'snapshots.cidade': { op: '=', value: cidade } }
     }))
         .filter(c => c !== 'todos')
+        .sort((a, b) => a.localeCompare(b))
 
     const pastinhas = []
 

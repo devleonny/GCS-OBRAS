@@ -1142,7 +1142,7 @@ async function mostrarInfo(idOrcamento) {
             <div name="info" oninput="editarHistorico('${chave}')" class="comentario-padrao" contentEditable="true">${his.info || ''}</div>
             <div style="${horizontal}; gap: 1rem;">
                 <span name="responsavel">${his.usuario}</span>
-                <img name="confirmar" onclick="salvarInfoAdicional('${chave}')" src="imagens/concluido.png" style="display: none;">
+                <img name="confirmar" onclick="salvarInfoAdicional('${idOrcamento}', '${chave}')" src="imagens/concluido.png" style="display: none;">
             </div>
         </div>
         `
@@ -1168,11 +1168,7 @@ function formularioOrcPendente(id, idStatus) {
     const linhas = [
         {
             texto: 'Por que <b>ORC PENDENTE</b>?',
-            elemento: `
-            <div id="${idStatus}">
-                <div class="comentario-padrao" name="info" contentEditable="true"></div>
-            </div>
-            `
+            elemento: `<div class="comentario-padrao" id="${idStatus}" contentEditable="true"></div>`
         }
     ]
     const funcao = `salvarInfoAdicional('${id}', '${idStatus}')`
@@ -1184,14 +1180,15 @@ function formularioOrcPendente(id, idStatus) {
 async function salvarInfoAdicional(id, idStatus) {
 
     overlayAguarde()
-    const div = document.getElementById(idStatus)
-    const info = div.querySelector('[name="info"]').textContent
+
+    const info = document.getElementById(idStatus).textContent
     const orcamento = await recuperarDado('dados_orcamentos', id)
     orcamento.status.historicoStatus[idStatus].info = info
     orcamento.status.historicoStatus[idStatus].usuario = acesso.usuario
     await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
     enviar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}/info`, info)
     enviar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}/usuario`, acesso.usuario)
+
     removerPopup()
 
 }
