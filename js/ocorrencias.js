@@ -614,6 +614,7 @@ async function criarPesquisas() {
         const pesqAtiva = controles?.ocorrencias?.filtros?.[path]?.value
 
         const opcoes = Object.keys(contagem)
+            .filter(o => o != 'todos')
             .sort((a, b) => a.localeCompare(b))
             .map(o => `<option ${pesqAtiva == o ? 'selected' : ''}>${o}</option>`)
 
