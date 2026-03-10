@@ -1,5 +1,5 @@
 const nomeBase = 'GCS'
-const versao = 2
+const versao = 3
 let bloqSinc = false
 let dbInstance = null
 
@@ -199,7 +199,7 @@ async function sincronizarDados({ base, resetar = false }) {
         return inserirDados(data, base)
 
     } catch (err) {
-        console.log(err.message)
+        console.warn(err.message)
         return {}
     }
 }

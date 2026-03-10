@@ -32,8 +32,11 @@ let ignorarMenus = false
 let controlesCxOpcoes = {}
 const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js')
+// Service work para apps no dispositivo;
+const emArquivoLocal = location.protocol === 'file:'
+
+if (!emArquivoLocal && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {})
 }
 
 const appBases = {
