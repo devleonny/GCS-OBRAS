@@ -749,27 +749,16 @@ async function formAcao(idOrcamento, idAcao) {
     const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     const dados = orcamento?.pda?.acoes?.[idAcao] || {}
 
-    controlesCxOpcoes.responsavel = {
-        base: 'dados_setores',
-        retornar: ['usuario'],
-        colunas: {
-            'Usuário': { chave: 'usuario' },
-            'Setor': { chave: 'setor' },
-            'Permissão': { chave: 'permissao' }
-        }
-    }
-
     const linhas = [
         { texto: 'Ação', elemento: `<textarea name="acao">${dados?.acao || ''}</textarea>` },
         {
             texto: 'Responsável',
-            elemento: `<span 
-            class="opcoes" 
-            name="responsavel" 
-            ${dados.responsavel ? `id="${dados.responsavel}"` : ''}
-            onclick="cxOpcoes('responsavel')">
-                ${dados.responsavel || 'Selecione'}
-            </span>`
+            elemento: `
+                <div>
+                    <img src="imagens/baixar.png">
+                    <div style="${vertical}" id="responsaveis"></div>
+                </div>
+            `
         },
         { texto: 'Prazo da ação', elemento: `<input name="prazo" type="date" value="${dados?.prazo || ''}">` },
         {
@@ -788,6 +777,34 @@ async function formAcao(idOrcamento, idAcao) {
 
     popup({ linhas, botoes, titulo: 'Ações' })
 
+}
+
+async function incluirResponsavel() {
+
+    controlesCxOpcoes.responsavel = {
+        base: 'dados_setores',
+        retornar: ['usuario'],
+        colunas: {
+            'Usuário': { chave: 'usuario' },
+            'Setor': { chave: 'setor' },
+            'Permissão': { chave: 'permissao' }
+        }
+    }
+
+    const span = `
+        <span 
+            class="opcoes" 
+            name="responsavel" 
+            ${dados.responsavel ? `id="${dados.responsavel}"` : ''}
+            onclick="cxOpcoes('responsavel')">
+                ${dados.responsavel || 'Selecione'}
+        </span>
+    `
+
+    const divResponsaveis = document.getElementById('responsaveis')
+
+    divResponsaveis.insertAdjacentHTML('beforeend', span)
+    
 }
 
 async function confirmarExcluirAcao(idAcao, idOrcamento) {

@@ -358,7 +358,7 @@ async function telaUsuarios() {
         'Empresa': { chave: 'snapshots.empresa' },
         'Setor': { chave: 'setor' },
         'Permissão': { chave: 'permissao' },
-        '': {}
+        'Detalhes': {}
     }
 
     const tabela = await modTab({
