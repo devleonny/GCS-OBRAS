@@ -639,7 +639,55 @@ async function criarPesquisas() {
             </div>
         `)
 
+    // Filtros de data;
+    const fTempo = ['De', 'Até']
+    fTempo.forEach(t => {
+
+        filtros.push(`
+            <div style="${vertical}; gap: 2px;">
+                <span>${t}</span>
+                <input type="date" data-operador="${t}" onchange="filtrarPorData(this)">
+            </div>
+        `)
+
+    })
+
     divF2.insertAdjacentHTML('beforeend', filtros.join(''))
+}
+
+async function filtrarPorData(input) {
+    const path = 'snapshots.dtCorrecao'
+    const tipo = input.dataset.operador === 'De' ? 'de' : 'ate'
+    const op = tipo === 'de' ? '>=d' : '<=d'
+    const value = input.value
+
+    const atual = controles.ocorrencias.filtros[path]
+    let regras = Array.isArray(atual)
+        ? [...atual]
+        : atual
+            ? [atual]
+            : []
+
+    regras = regras.filter(regra => {
+        if (tipo === 'de')
+            return regra.op !== '>=d' && regra.op !== '>d'
+
+        return regra.op !== '<=d' && regra.op !== '<d'
+    })
+
+    if (value) {
+        regras.push({ op, value })
+    }
+
+    if (regras.length === 0) {
+        delete controles.ocorrencias.filtros[path]
+    } else if (regras.length === 1) {
+        controles.ocorrencias.filtros[path] = regras[0]
+    } else {
+        controles.ocorrencias.filtros[path] = regras
+    }
+
+    await paginacao()
 }
 
 async function pesquisarOcorrencias(path, valor) {
