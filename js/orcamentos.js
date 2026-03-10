@@ -5,11 +5,6 @@ const stLista = [
     'POC EM ANDAMENTO'
 ]
 
-async function rstTelaOrcamentos() {
-    tela.innerHTML = ''
-    await telaOrcamentos()
-}
-
 function formatacaoPagina() {
 
     const pag = 'orcamentos'
@@ -62,10 +57,6 @@ async function telaOrcamentos() {
     const tabela = await modTab({
         funcaoAdicional: ['formatacaoPagina'],
         btnExtras,
-        filtros: {
-            'dados_orcam': { op: 'NOT_EMPTY' },
-            'arquivado': { op: '!=', value: 'S' },
-        },
         colunas,
         base: 'dados_orcamentos',
         criarLinha: 'criarLinhaOrcamento',
@@ -86,6 +77,10 @@ async function telaOrcamentos() {
         `
 
     tela.innerHTML = acumulado
+
+    controles.orcamentos.filtros ??= {}
+    controles.orcamentos.filtros['dados_orcam'] = { op: 'NOT_EMPTY' }
+    controles.orcamentos.filtros['arquivado'] = { op: '!=', value: 'S' }
 
     await carregarToolbar()
     criarMenus('orcamentos')

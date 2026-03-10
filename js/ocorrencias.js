@@ -595,7 +595,8 @@ async function criarPesquisas() {
         'Prioridade': { path: 'snapshots.prioridade' },
         'Última Correção': { path: 'snapshots.ultimaCorrecao' },
         'Executor': { path: 'correcoes.*.executor' },
-        'Estado': { path: 'snapshots.cliente.estado' }
+        'Estado': { path: 'snapshots.cliente.estado' },
+        'Empresa': { path: 'snapshots.empresa' },
     }
 
     const filtros = []
@@ -655,74 +656,82 @@ async function criarPesquisas() {
     divF2.insertAdjacentHTML('beforeend', filtros.join(''))
 }
 
+function listaRegras(path) {
+    const atual = controles.ocorrencias.filtros[path]
+
+    if (!atual)
+        return []
+
+    return Array.isArray(atual)
+        ? [...atual]
+        : [atual]
+}
+
+function salvarRegras(path, regras) {
+    if (!regras.length) {
+        delete controles.ocorrencias.filtros[path]
+        return
+    }
+
+    controles.ocorrencias.filtros[path] = regras.length === 1
+        ? regras[0]
+        : regras
+}
+
 async function filtrarPorData(input) {
     const path = 'snapshots.dtCorrecao'
     const tipo = input.dataset.operador === 'De' ? 'de' : 'ate'
     const op = tipo === 'de' ? '>=d' : '<=d'
     const value = input.value
+    const origem = `data_${tipo}`
 
-    const atual = controles.ocorrencias.filtros[path]
-    let regras = Array.isArray(atual)
-        ? [...atual]
-        : atual
-            ? [atual]
-            : []
+    let regras = listaRegras(path)
+        .filter(regra => regra.origem !== origem)
 
-    regras = regras.filter(regra => {
-        if (tipo === 'de')
-            return regra.op !== '>=d' && regra.op !== '>d'
+    if (value)
+        regras.push({ op, value, origem })
 
-        return regra.op !== '<=d' && regra.op !== '<d'
-    })
-
-    if (value) {
-        regras.push({ op, value })
-    }
-
-    if (regras.length === 0) {
-        delete controles.ocorrencias.filtros[path]
-    } else if (regras.length === 1) {
-        controles.ocorrencias.filtros[path] = regras[0]
-    } else {
-        controles.ocorrencias.filtros[path] = regras
-    }
-
+    salvarRegras(path, regras)
     await paginacao()
 }
 
 async function pesquisarOcorrencias(path, valor) {
+    let regras = listaRegras(path)
+        .filter(regra => regra.origem !== 'pesquisa')
 
-    if (!valor) {
-        delete controles.ocorrencias.filtros[path]
+    if (valor)
+        regras.push({ op: 'includes', value: valor, origem: 'pesquisa' })
 
-    } else {
-        controles.ocorrencias.filtros[path] = valor
-            ? { op: 'includes', value: valor }
-            : {}
-    }
-
+    salvarRegras(path, regras)
     await paginacao()
-
 }
 
 async function filtrarAtrasados(input) {
-
     const ativo = input.value
+    const hoje = new Date().toLocaleDateString()
 
-    if (ativo == '') {
-        delete controles.ocorrencias.filtros['snapshots.dtCorrecao']
-        delete controles.ocorrencias.filtros['snapshots.ultimaCorrecao']
+    let regrasStatus = listaRegras('snapshots.ultimaCorrecao')
+        .filter(regra => regra.origem !== 'atrasados_status')
 
-    } else {
+    let regrasData = listaRegras('snapshots.dtCorrecao')
+        .filter(regra => regra.origem !== 'atrasados_data')
 
-        controles.ocorrencias.filtros['snapshots.ultimaCorrecao'] = { op: '!=', value: 'Solucionada' }
-        controles.ocorrencias.filtros['snapshots.dtCorrecao'] = {
-            op: ativo == 'Sim'
-                ? '<d'
-                : '>=d',
-            value: new Date().toLocaleDateString()
-        }
+    if (ativo) {
+        regrasStatus.push({
+            op: '!=',
+            value: 'Solucionada',
+            origem: 'atrasados_status'
+        })
+
+        regrasData.push({
+            op: ativo == 'Sim' ? '<d' : '>=d',
+            value: hoje,
+            origem: 'atrasados_data'
+        })
     }
+
+    salvarRegras('snapshots.ultimaCorrecao', regrasStatus)
+    salvarRegras('snapshots.dtCorrecao', regrasData)
 
     await paginacao()
 }

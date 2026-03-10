@@ -285,7 +285,6 @@ async function abrirAtalhos(id, idMaster) {
 
     if (orcamento?.usuario == acesso.usuario || permAtalhos.includes(acesso.permissao) || orcamento?.usuarios?.[acesso.usuario]) {
         botoesDisponiveis += `
-        ${modeloBotoes('chave', 'Delegar outro analista', `usuariosAutorizados('${id}')`)}
         ${modeloBotoes('apagar', 'Excluir Orçamento', `confirmarExclusaoOrcamentoBase('${id}')`)}
         ${modeloBotoes('editar', 'Editar Orçamento', `editar('${id}')`)}
         ${modeloBotoes('gerente', 'Editar Dados do Cliente', `painelClientes('${id}')`)}
@@ -482,93 +481,6 @@ async function desfazerVinculo(idSlave, idMaster) {
     await inserirDados({ [idMaster]: orcMaster }, 'dados_orcamentos')
 
     removerPopup()
-
-}
-
-async function usuariosAutorizados(id) {
-
-    controlesCxOpcoes.usuario = {
-        base: 'dados_setores',
-        retornar: ['usuario'],
-        colunas: {
-            'Usuário': { chave: 'usuario' },
-            'Setor': { chave: 'setor' },
-            'Permissão': { chave: 'permissao' }
-        }
-    }
-
-    const elemento = `
-        <div style="${vertical}; padding: 1rem;">
-            
-            <div style="${horizontal}; gap: 5px;">
-                <span class="opcoes" name="usuario" onclick="cxOpcoes('usuario')">Selecionar</span>
-                <img src="imagens/concluido.png" style="width: 2rem;" onclick="delegarUsuario('${id}')">
-            </div>
-
-            <hr style="width: 100%;">
-
-            <div id="autorizados" style="${vertical}; gap: 3px;"></div>
-        </div>
-    `
-
-    popup({ elemento, autoDestruicao: ['usuario'] })
-
-    await carregarAutorizados(id)
-
-}
-
-async function delegarUsuario(id, usuario) {
-
-    overlayAguarde()
-
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-
-    orcamento.usuarios ??= {}
-
-    let dados = {}
-
-    if (usuario) {
-
-        delete orcamento.usuarios[usuario]
-        dados = orcamento.usuarios
-        deletar(`dados_orcamentos/${id}/usuarios/${usuario}`)
-
-    } else {
-
-        usuario = document.querySelector('[name="usuario"]').id
-
-        if (!usuario) return popup({ mensagem: 'Selecione um usuário antes' })
-
-        dados = {
-            data: new Date().toLocaleString('pt-BR'),
-            responsavel: acesso.usuario
-        }
-
-        orcamento.usuarios[usuario] = dados
-        enviar(`dados_orcamentos/${id}/usuarios/${usuario}`, dados)
-    }
-
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-    await carregarAutorizados(id)
-
-    removerOverlay()
-}
-
-async function carregarAutorizados(id) {
-
-    const modelo = (usuario, dados) => `
-        <span style="${horizontal}; gap: 3px;">
-            <img onclick="delegarUsuario('${id}', '${usuario}')" src="imagens/cancel.png" style="width: 1.2rem;">
-            ${usuario} - liberado em <b>${dados.data}</b> por <b>${dados.responsavel}</b>
-        </span>
-    `
-
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-    const liberados = Object.entries(orcamento?.usuarios || {})
-        .map(([usuario, dados]) => modelo(usuario, dados))
-        .join('')
-
-    document.getElementById('autorizados').innerHTML = liberados ? liberados : 'Sem usuários autorizados por enquanto'
 
 }
 
@@ -1959,7 +1871,7 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
     const linhas = []
 
     const modTR = (dados) => {
-        
+
         const { imagem, codigo, omie, descricao, modelo, desconto = 0, fabricante, unidade, tipo, qtde_enviar = 0, custo = 0 } = dados || {}
 
         // Tipo desconto vem por padrão em dinheiro;

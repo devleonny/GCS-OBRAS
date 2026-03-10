@@ -110,7 +110,7 @@ const atalhoInicial = [
 
 const esquemaBotoes = {
     inicial: [
-        { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'projeto' },
+        { nome: 'Orçamentos', funcao: `telaOrcamentos`, img: 'projeto' },
         { nome: 'Composições', funcao: `telaComposicoes`, img: 'composicoes' },
         { nome: 'Clientes & Fornecedores', funcao: `telaClientes`, img: 'editar3' },
         { nome: 'Chamados', funcao: `telaChamados`, img: 'chamados' },
@@ -126,13 +126,13 @@ const esquemaBotoes = {
         { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
         { nome: 'Salvar Orçamento', funcao: `enviarDadosOrcamento`, img: 'salvo' },
         { nome: 'Apagar Orçamento', funcao: `apagarOrcamento`, img: 'cancel' },
-        { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'voltar_2' }
+        { nome: 'Orçamentos', funcao: `telaOrcamentos`, img: 'voltar_2' }
     ],
     criarOrcamentosAluguel: [
         { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
         { nome: 'Salvar Orçamento', funcao: `enviarDadosAluguel`, img: 'salvo' },
         { nome: 'Apagar Orçamento', funcao: `apagarOrcamentoAluguel`, img: 'cancel' },
-        { nome: 'Orçamentos', funcao: `rstTelaOrcamentos`, img: 'voltar_2' }
+        { nome: 'Orçamentos', funcao: `telaOrcamentos`, img: 'voltar_2' }
     ],
     orcamentos: [
         { nome: 'Baixar em Excel', funcao: 'baixarExcelOrcamentos', img: 'excel' },
@@ -1195,7 +1195,7 @@ async function painelClientes(idOrcamento) {
         ? orcamento
         : baseOrcamento()
 
-    const { dados_orcam } = orcamentoBase || {}
+    const { usuarios, dados_orcam } = orcamentoBase || {}
     const idCliente = dados_orcam?.omie_cliente
     const bloq = orcamentoBase.hierarquia
         ? true
@@ -1346,6 +1346,17 @@ async function painelClientes(idOrcamento) {
             </div>`
         },
         {
+            texto: 'Delegar Orçamento',
+            elemento: `
+                <div style="${horizontal}; gap: 1rem;">
+
+                    <img src="imagens/baixar.png" onclick="delegarUsuario()">
+                    <div id="autorizados" style="${vertical}; gap: 3px;"></div>
+
+                </div>
+                `
+        },
+        {
             texto: 'Garantia',
             elemento: `<input id="garantia" value="${dados_orcam?.garantia || 'Conforme tratativa Comercial'}">`
         },
@@ -1355,7 +1366,7 @@ async function painelClientes(idOrcamento) {
         },
         {
             texto: 'Garantia',
-            elemento: `<input id="garantia" value="${dados_orcam?.garantia || 'Conforme tratativa Comercial'}">`
+            elemento: `<textarea id="garantia">${dados_orcam?.garantia || 'Conforme tratativa Comercial'}</textarea>`
         },
         {
             texto: 'Analista',
@@ -1363,7 +1374,7 @@ async function painelClientes(idOrcamento) {
         },
         {
             texto: 'E-mail',
-            elemento: `<input id="email_analista" value="${dados_orcam?.email_analista || acesso.email}">`
+            elemento: `<textarea id="email_analista">${dados_orcam?.email_analista || acesso.email}</textarea>`
         },
         {
             texto: 'Telefone',
@@ -1384,6 +1395,37 @@ async function painelClientes(idOrcamento) {
 
     popup({ linhas, botoes, titulo: 'Dados do Cliente', autoDestruicao: ['cliente', 'tecnico'] })
 
+    // Usuários delegados;
+    for (const u of Object.keys(usuarios || {}))
+        await delegarUsuario(u)
+
+}
+
+async function delegarUsuario(usuario = ID5digitos()) {
+
+    controlesCxOpcoes[usuario] = {
+        base: 'dados_setores',
+        retornar: ['usuario'],
+        colunas: {
+            'Usuário': { chave: 'usuario' },
+            'Setor': { chave: 'setor' },
+            'Permissão': { chave: 'permissao' }
+        }
+    }
+
+    const dUsuario = await recuperarDado('dados_setores', usuario) || {}
+
+    const elemento = `
+    <div style="${horizontal}; gap: 3px;">
+        <img src="imagens/cancel.png" onclick="this.parentElement.remove()">
+        <span class="opcoes" name="${usuario}" onclick="cxOpcoes('${usuario}')">${dUsuario.usuario || 'Selecionar'}</span>
+    </div>
+    `
+
+    const autorizados = document.getElementById('autorizados')
+
+    autorizados.insertAdjacentHTML('beforeend', elemento)
+
 }
 
 async function buscarDadosCliente() {
@@ -1403,7 +1445,7 @@ async function buscarDadosCliente() {
 
 }
 
-async function salvarDadosCliente(idOrcamento = null) {
+async function salvarDadosCliente(idOrcamento) {
 
     overlayAguarde()
 
@@ -1437,12 +1479,28 @@ async function salvarDadosCliente(idOrcamento = null) {
             telefone_analista: el('telefone_analista').value
         }
 
+        // Usuários delegados, reset antes;
+        orcamentoBase.usuarios = {}
+
+        const divAuto = document.getElementById('autorizados')
+        for (const span of divAuto.querySelectorAll('span')) {
+            if (!span.id)
+                continue
+
+            orcamentoBase.usuarios[span.id] = {
+                data: new Date().toLocaleString(),
+                usuario: acesso?.usuario
+            }
+        }
+
         // Se não existir a chave contrato; sequencial fará que o servidor crie;
         orcamentoBase.dados_orcam.contrato ??= 'sequencial'
 
         // Se o orçamento é chamado S / N;
         const filtroChamado = el('filtroChamado')
-        const ehChamado = filtroChamado.checked ? 'S' : 'N'
+        const ehChamado = filtroChamado.checked
+            ? 'S'
+            : 'N'
         orcamentoBase.chamado = ehChamado
 
         // Lógica da tag automática;
@@ -1472,9 +1530,13 @@ async function salvarDadosCliente(idOrcamento = null) {
 
         if (idOrcamento) {
 
+            // Objeto precisar ter o id;
+            orcamentoBase.id = idOrcamento
+
             await inserirDados({ [idOrcamento]: orcamentoBase }, 'dados_orcamentos')
             enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamentoBase.dados_orcam)
             enviar(`dados_orcamentos/${idOrcamento}/tags`, orcamentoBase.tags)
+            enviar(`dados_orcamentos/${idOrcamento}/usuarios`, orcamentoBase.usuarios)
 
             const atualizar = orcamentoBase.chamado !== ehChamado
             if (atualizar)
