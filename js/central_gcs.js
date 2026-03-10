@@ -1440,11 +1440,6 @@ async function salvarDadosCliente(idOrcamento = null) {
         // Se não existir a chave contrato; sequencial fará que o servidor crie;
         orcamentoBase.dados_orcam.contrato ??= 'sequencial'
 
-        // Número do chamado mesmo;
-        const chamado = document.querySelector('[name="chamado"]').id
-        if (chamado)
-            orcamentoBase.dados_orcam.chamado = chamado
-
         // Se o orçamento é chamado S / N;
         const filtroChamado = el('filtroChamado')
         const ehChamado = filtroChamado.checked ? 'S' : 'N'
