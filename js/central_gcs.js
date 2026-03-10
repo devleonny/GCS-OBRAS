@@ -117,7 +117,6 @@ const esquemaBotoes = {
         { nome: 'Veículos', funcao: `telaVeiculos`, img: 'veiculo' },
         { nome: 'Reembolsos', funcao: `telaPagamentos`, img: 'reembolso' },
         { nome: 'Estoque', funcao: `telaEstoque`, img: 'estoque' },
-        //{ nome: 'Faturamento NFs', funcao: `telaRelatorioOmie`, img: 'relatorio' },
         { nome: 'RH', funcao: `telaRH`, img: 'gerente' },
         { nome: 'Ocorrências', funcao: `telaInicialOcorrencias`, img: 'LG' },
         { nome: 'Desconectar', funcao: `deslogarUsuario`, img: 'sair' }
@@ -1355,10 +1354,6 @@ async function painelClientes(idOrcamento) {
 
                 </div>
                 `
-        },
-        {
-            texto: 'Garantia',
-            elemento: `<input id="garantia" value="${dados_orcam?.garantia || 'Conforme tratativa Comercial'}">`
         },
         {
             texto: 'Validade da Proposta',
