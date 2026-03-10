@@ -35,7 +35,7 @@ async function verificarVersaoEsperada(versaoEsperada) {
     }
 }
 
-function resetarBanco() {
+async function resetarBanco() {
     return new Promise((resolve, reject) => {
         if (dbInstance) {
             dbInstance.close()

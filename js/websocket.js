@@ -53,8 +53,8 @@ async function validarAcesso() {
     msgStatus('Validando acesso...')
     if (acesso) {
         msg({ tipo: 'validar', usuario: acesso.usuario })
-    } else {
-        telaLogin()
+    } else if (priExeGCS) {
+        await telaLogin()
     }
 
 }
@@ -102,7 +102,7 @@ async function comunicacao() {
 
                 msgStatus('Acesso sem alterações')
                 await telaInicialGCS()
-        
+
             } else {
 
                 overlayAguarde()

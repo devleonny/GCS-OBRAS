@@ -126,7 +126,8 @@ async function resetarBases() {
     overlayAguarde()
     mostrarMenus(true)
 
-    await atualizarGCS(true) // Resetar;
+    await resetarBanco()
+    await atualizarGCS()
 
     removerOverlay()
 

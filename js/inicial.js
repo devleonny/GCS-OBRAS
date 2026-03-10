@@ -87,15 +87,17 @@ function auxMapa(dados = {}) {
 
 function mostrarMapa() {
     const fMapa = document.querySelector('.fundo-mapa')
-    if (!fMapa) return
+    const pMapa = document.querySelector('.painel-mapa')
+
     fMapa.classList.toggle('ativo')
+    pMapa.classList.toggle('ativo')
 }
 
 async function criarMapa() {
 
     const elemento = `
-        <div style="${vertical}; position: relative;">
-            <button onclick="mostrarMapa()" style="position: absolute; top: 5px; right: 5px; z-index: 1;">Mapa</button>
+        <div class="painel-mapa">
+            <button onclick="mostrarMapa()">Mapa</button>
             <div class="fundo-mapa">
                 <img src="imagens/mapa.png" class="mapa">
                 <svg id="mapaOverlay" width="600" height="600" style="position: absolute; top: 0; left: 0;"></svg>
