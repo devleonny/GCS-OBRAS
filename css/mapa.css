@@ -1,0 +1,42 @@
+.fundo-mapa {
+    display: none;
+    border-top-right-radius: 5px;
+    position: relative;
+}
+
+.fundo-mapa.ativo {
+    display: flex;
+}
+
+.mapa {
+    width: 100%;
+    height: auto;
+    display: block;
+    filter: drop-shadow(1px 1px 3px #222);
+}
+
+.painel-mapa {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: row;
+    overflow: hidden;
+    width: max-content;
+    background: transparent;
+    padding: 2rem;
+}
+
+.painel-mapa.ativo {
+    padding: 0px;
+    overflow: auto;
+    background: linear-gradient(235deg, #249f41, #151749);
+    width: 100%;
+}
+
+@media screen and (orientation: portrait) {
+
+    .painel-mapa {
+        flex-direction: column;
+    }
+
+}

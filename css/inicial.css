@@ -118,41 +118,6 @@
     gap: 2px;
 }
 
-.painel-mapa {
-    display: flex;
-    align-items: start;
-    justify-content: start;
-    flex-direction: row;
-    overflow: hidden;
-    width: max-content;
-    background: transparent;
-    padding: 5px;
-}
-
-.painel-mapa.ativo {
-    padding: 0px;
-    overflow: auto;
-    background: linear-gradient(235deg, #249f41, #151749);
-    width: 100%;
-}
-
-.fundo-mapa {
-    display: none;
-    border-top-right-radius: 5px;
-    position: relative;
-    width: 600px;
-    height: 600px;
-}
-
-.fundo-mapa.ativo {
-    display: flex;
-}
-
-.mapa {
-    filter: drop-shadow(1px 1px 3px #222);
-    width: 600px;
-}
-
 .t-tecnicos,
 .t-tabelas,
 .t-indicadores {
@@ -175,17 +140,9 @@
     gap: 1rem;
 }
 
-.toolbar-mapas {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-}
-
 @media screen and (orientation: portrait) {
 
-    .painel-indicadores,
-    .painel-mapa {
+    .painel-indicadores {
         flex-direction: column;
     }
 
