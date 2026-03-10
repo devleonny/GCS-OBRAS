@@ -53,7 +53,7 @@ async function validarAcesso() {
     msgStatus('Validando acesso...')
     if (acesso) {
         msg({ tipo: 'validar', usuario: acesso.usuario })
-    } else if (priExeGCS) {
+    } else {
         await telaLogin()
     }
 
@@ -101,7 +101,8 @@ async function comunicacao() {
             if (validado == 'Sim') {
 
                 msgStatus('Acesso sem alterações')
-                await telaInicialGCS()
+                if (priExeGCS)
+                    await telaInicialGCS()
 
             } else {
 
@@ -110,7 +111,8 @@ async function comunicacao() {
                 msgStatus('Alteração no acesso recebida...')
 
                 await atualizarGCS(true)
-                await telaInicialGCS()
+                if (priExeGCS)
+                    await telaInicialGCS()
 
                 msg({ tipo: 'confirmado', usuario: acesso.usuario })
                 msgStatus('Tudo certo', 1)

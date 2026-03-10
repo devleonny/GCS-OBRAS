@@ -753,19 +753,19 @@ async function confirmarRelancamento(idPagamento) {
 
     await enviar(`lista_pagamentos/${idPagamento}/app`, app)
 
-    const resposta = await lancarPagamento(idPagamento)
+    const { resposta } = await lancarPagamento(idPagamento)
 
     pagamento.status = 'Processando...'
 
     await inserirDados({ [idPagamento]: pagamento }, 'lista_pagamentos')
     await abrirDetalhesPagamentos(idPagamento)
 
-    const textoPrincipal = resposta?.descricao_status || resposta?.mensagem || JSON.stringify(resposta)
-    const infoAdicional = resposta?.exclusaoPagamento || ''
+    const textoPrincipal = resposta?.descricao_status || resposta?.faultstring || resposta?.mensagem || 'Falha na API'
+    const infoAdicional = resposta?.exclusaoPagamento || []
     const mensagem = `
         <div style="${vertical}; gap: 5px; text-align: left;">
             <span>${textoPrincipal}</span>
-            <span>${infoAdicional}</span>
+            ${infoAdicional.map(i => `<span>${i}</span>`).join('')}
         </div>`
 
     popup({ mensagem, imagem: 'imagens/atualizar.png', titulo: 'Resposta' })
@@ -1379,7 +1379,7 @@ async function painelClientes(idOrcamento) {
     ]
 
     const formExistente = document.querySelector('#emissor')
-    if (formExistente) 
+    if (formExistente)
         return removerOverlay()
 
     popup({ linhas, botoes, titulo: 'Dados do Cliente', autoDestruicao: ['cliente', 'tecnico'] })
