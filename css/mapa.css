@@ -1,5 +1,6 @@
 .fundo-mapa {
     display: none;
+    max-width: 600px;
     border-top-right-radius: 5px;
     position: relative;
 }
