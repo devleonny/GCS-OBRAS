@@ -187,7 +187,7 @@ async function linPda(orcamento) {
     const tecs = []
 
     for (const t of (orcamento?.checklist?.tecnicos || pda?.tecnicos || [])) {
-        const { nome } = await recuperarDado('dados_clientes', t)
+        const { nome } = await recuperarDado('dados_clientes', t) || {}
         if (nome)
             tecs.push(`<span class="etiqueta-pendente">${nome}</span>`)
     }
