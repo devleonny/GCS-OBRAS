@@ -111,8 +111,7 @@ async function comunicacao() {
                 msgStatus('Alteração no acesso recebida...')
 
                 await atualizarGCS(true)
-                if (priExeGCS)
-                    await telaInicialGCS()
+                await telaInicialGCS()
 
                 msg({ tipo: 'confirmado', usuario: acesso.usuario })
                 msgStatus('Tudo certo', 1)

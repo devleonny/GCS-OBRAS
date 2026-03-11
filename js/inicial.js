@@ -210,11 +210,17 @@ async function linPda(orcamento) {
                     ? 'atrasado'
                     : 'pendente'
 
+            const listagemResp = Array.isArray(dados?.responsavel)
+                ? dados?.responsavel.join('<br>')
+                : dados?.responsavel || ''
+
             return `
             <div style="${horizontal}; text-align: left; width: 100%; gap: 0.5rem;">
                 <div class="etiqueta-${estilo}">
                     <span><b>Ação:</b> ${dados?.acao || ''}</span>
-                    <span><b>Responsável:</b> ${dados?.responsavel || ''}</span>
+                    <div><b>Responsáveis:</b> <br>
+                        ${listagemResp}
+                    </div>
                     <span><b>Prazo:</b> ${prazo}</span>
                     ${dados.registro
                     ? `<span><b>criado em:</b> ${new Date(dados.registro).toLocaleString('pt-BR')}</span>`
@@ -392,6 +398,10 @@ function linAcoes(orcamento) {
         ? `<span><b>criado por: </b>${usuario}</span>`
         : ''
 
+    const listagemResp = Array.isArray(responsavel)
+        ? responsavel.join('<br>')
+        : responsavel || ''
+
     const linha = `
         <tr>    
             <div class="etiqueta-${estilo}" style="width: 95%; flex-direction: row; gap: 0.5rem; margin: 1px;">
@@ -402,7 +412,9 @@ function linAcoes(orcamento) {
                     <span><b>ID:</b> ${chamado}</span>
                     <span><b>Aba:</b> ${orcamento.aba || ''}</span>
                     <div style="white-space: pre-wrap;"><b>Ação:</b> ${acao || ''}</div>
-                    <span><b>Responsável:</b> ${responsavel || ''}</span>
+                    <div><b>Responsáveis:</b> <br>
+                        ${listagemResp}
+                    </div>
                     <span><b>Prazo:</b> ${prazoConvertido}</span>
                     ${dtRegistro}
                     ${criadoPor}
@@ -513,7 +525,7 @@ async function criarGaveta(usuario = null, conf = {}) {
 
     const filtros = usuario == 'Geral'
         ? {}
-        : { 'pda.acoes.*.responsavel': { op: '=', value: usuario } }
+        : { 'pda.acoes.*.responsavel': { op: 'includes', value: usuario } }
 
     const contagem = await contarPorCampo({
         base: 'dados_orcamentos',
@@ -747,24 +759,24 @@ async function alterarDatas(input, campo, idOrcamento) {
 async function formAcao(idOrcamento, idAcao) {
 
     const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-    const dados = orcamento?.pda?.acoes?.[idAcao] || {}
+    const { prazo, status, acao, responsavel } = orcamento?.pda?.acoes?.[idAcao] || {}
 
     const linhas = [
-        { texto: 'Ação', elemento: `<textarea name="acao">${dados?.acao || ''}</textarea>` },
+        { texto: 'Ação', elemento: `<textarea name="acao">${acao || ''}</textarea>` },
         {
             texto: 'Responsável',
             elemento: `
-                <div>
-                    <img src="imagens/baixar.png">
+                <div style="${horizontal}; gap: 1rem;">
+                    <img src="imagens/baixar.png" onclick="incluirResponsavel()">
                     <div style="${vertical}" id="responsaveis"></div>
                 </div>
             `
         },
-        { texto: 'Prazo da ação', elemento: `<input name="prazo" type="date" value="${dados?.prazo || ''}">` },
+        { texto: 'Prazo da ação', elemento: `<input name="prazo" type="date" value="${prazo || ''}">` },
         {
             texto: 'Status', elemento: `
             <select name="statusAcao">
-                ${['pendente', 'concluído'].map(op => `<option ${dados?.status == op ? 'selected' : ''}>${op}</option>`).join('')}
+                ${['pendente', 'concluído'].map(op => `<option ${status == op ? 'selected' : ''}>${op}</option>`).join('')}
             </select>
             ` }
     ]
@@ -777,11 +789,16 @@ async function formAcao(idOrcamento, idAcao) {
 
     popup({ linhas, botoes, titulo: 'Ações' })
 
+    for (const r of responsavel)
+        incluirResponsavel(r)
+
 }
 
-async function incluirResponsavel() {
+async function incluirResponsavel(usuario) {
 
-    controlesCxOpcoes.responsavel = {
+    const u = usuario || ID5digitos()
+
+    controlesCxOpcoes[u] = {
         base: 'dados_setores',
         retornar: ['usuario'],
         colunas: {
@@ -792,19 +809,22 @@ async function incluirResponsavel() {
     }
 
     const span = `
-        <span 
-            class="opcoes" 
-            name="responsavel" 
-            ${dados.responsavel ? `id="${dados.responsavel}"` : ''}
-            onclick="cxOpcoes('responsavel')">
-                ${dados.responsavel || 'Selecione'}
-        </span>
+        <div style="${horizontal}; gap: 3px;">
+            <img src="imagens/cancel.png" onclick="this.parentElement.remove()">
+            <span 
+                class="opcoes" 
+                name="${u}" 
+                ${usuario ? `id="${usuario}"` : ''}
+                onclick="cxOpcoes('${u}')">
+                    ${usuario || 'Selecione'}
+            </span>
+        </div>
     `
 
     const divResponsaveis = document.getElementById('responsaveis')
 
     divResponsaveis.insertAdjacentHTML('beforeend', span)
-    
+
 }
 
 async function confirmarExcluirAcao(idAcao, idOrcamento) {
@@ -839,12 +859,17 @@ async function salvarAcao(idOrcamento, idAcao) {
         return elem
     }
 
-    const responsavel = el('responsavel').id
+    const divResp = document.getElementById('responsaveis')
+    const responsavel = [...divResp.querySelectorAll('span')]
+        .filter(span => span.textContent != 'Selecione')
+        .map(span => span.id)
+
     const acao = el('acao').value
     const prazo = el('prazo').value
     const status = el('statusAcao').value
 
-    if (!prazo || !responsavel) return popup({ mensagem: 'Preencha o prazo e/ou responsável da ação' })
+    if (!prazo || !responsavel)
+        return popup({ mensagem: 'Preencha o prazo e/ou responsável da ação' })
 
     const a = {
         usuario: acesso.usuario,
