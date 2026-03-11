@@ -311,8 +311,14 @@ async function salvarTecnicos(id) {
     const spans = document.querySelectorAll('#blocoTecnicos span')
 
     for (const span of spans) {
-        if (!span.id) continue
-        if (tecnicos.includes(span.id)) continue
+
+        // Em branco
+        if (span.textContent == 'Selecione') 
+            continue
+
+        if (tecnicos.includes(span.id)) 
+            continue
+
         tecnicos.push(span.id)
     }
 
