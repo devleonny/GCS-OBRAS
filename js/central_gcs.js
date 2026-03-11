@@ -752,22 +752,23 @@ async function confirmarRelancamento(idPagamento) {
 
     await enviar(`lista_pagamentos/${idPagamento}/app`, app)
 
-    const { resposta } = await lancarPagamento(idPagamento)
+    const dados = await lancarPagamento(idPagamento)
+    const { resposta, mensagem } = dados || {}
 
     pagamento.status = 'Processando...'
 
     await inserirDados({ [idPagamento]: pagamento }, 'lista_pagamentos')
     await abrirDetalhesPagamentos(idPagamento)
 
-    const textoPrincipal = resposta?.descricao_status || resposta?.faultstring || resposta?.mensagem || 'Falha na API'
+    const textoPrincipal = resposta?.descricao_status || resposta?.faultstring || mensagem || 'Falha na API'
     const infoAdicional = resposta?.exclusaoPagamento || []
-    const mensagem = `
+    const strMensagem = `
         <div style="${vertical}; gap: 5px; text-align: left;">
             <span>${textoPrincipal}</span>
             ${infoAdicional.map(i => `<span>${i}</span>`).join('')}
         </div>`
 
-    popup({ mensagem, imagem: 'imagens/atualizar.png', titulo: 'Resposta' })
+    popup({ mensagem: strMensagem, imagem: 'imagens/atualizar.png', titulo: 'Resposta' })
 
 }
 
@@ -1381,7 +1382,8 @@ async function painelClientes(idOrcamento) {
                 <select id="emissor">
                     ${['AC SOLUÇÕES', 'IAC', 'HNW', 'HNK'].map(op => `<option ${dados_orcam?.emissor == op ? 'selected' : ''}>${op}</option>`).join('')}
                 </select>
-            ` }
+            ` 
+        }
     ]
 
     const formExistente = document.querySelector('#emissor')

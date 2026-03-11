@@ -216,13 +216,10 @@ async function criarManutencao(id = ID5digitos()) {
     }
 
     controlesCxOpcoes.chamado = {
-        base: 'dados_ocorrencias',
-        retornar: ['id'],
+        base: 'departamentos_AC',
+        retornar: ['descricao'],
         colunas: {
-            'Chamado': { chave: 'id' },
-            'Cliente': { chave: 'snapshots.cliente.nome' },
-            'Cidade': { chave: 'snapshots.cliente.cidade' },
-            'Empresa': { chave: 'snapshots.empresa' }
+            'Departamento': { chave: 'descricao' },
         }
     }
 

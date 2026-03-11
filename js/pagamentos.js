@@ -51,9 +51,9 @@ async function telaPagamentos() {
         'Valor': { chave: 'snapshots.valor' },
         'Status': { chave: 'status', tipoPesquisa: 'select' },
         'Solicitante': { chave: 'criado' },
-        'Setor': '',
+        'Setor': {},
         'Recebedor': { chave: 'snapshots.cliente' },
-        'Detalhes': ''
+        'Detalhes': {}
     }
 
     const tabela = await modTab({
