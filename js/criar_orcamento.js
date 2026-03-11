@@ -669,6 +669,7 @@ async function tabelaProdutosOrcamentos() {
         .join('')
 
     const lpu = (document.getElementById('lpu').value).toLowerCase()
+
     const btnExtras = `
         <div class="tag-zerado">
             <input 

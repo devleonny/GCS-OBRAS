@@ -4,6 +4,7 @@ const LPUS = [
     'lpu hope',
     'lpu boticario',
     'lpu cf boticario',
+    'lpu contagem - boticario a',
     'lpu romagnole',
     'lpu gpa',
     'lpu eas muffato'
@@ -900,47 +901,53 @@ async function verificarCodigoExistente() {
 async function verAgrupamento(codigo) {
 
     const produto = await recuperarDado('dados_composicoes', codigo)
-    const elemento = `
-        <div class="tela-agrupamento">
-            <div style="${horizontal}; text-align: left; gap: 0.5rem;">
+
+    const linhas = [
+        {
+            elemento: `
+            <div style="${horizontal}; max-width: 400px; text-align: left; gap: 0.5rem;">
 
                 <img src="${produto.imagem || logo}" style="width: 6rem;">
 
                 <div style="${vertical}">
-                    <span>Agrupamento do item:</span>
+                    <span>Agrupamento do Item:</span>
                     <span><b>${produto.descricao}</b></span>
-                    <span>Explicação: <br>Para cada 1 <b>${String(produto.descricao).slice(0, 10)}</b><br> Será lançada a quantidade abaixo de cada item</span>
+                    <br>
+                    <span>
+                        Explicação: <br>Para cada 1 <b>${String(produto.descricao).slice(0, 10)}</b><br> 
+                        Será lançada a quantidade abaixo de cada item
+                    </span>
                 </div>
                 
-            </div>
-            <hr style="width: 100%;">
-
+            </div>`
+        },
+        {
+            elemento: `
             <div class="borda-tabela">
                 <div class="topo-tabela"></div>
                 <div class="div-tabela">
                     <table class="tabela" id="tabela_composicoes">
                         <thead>
-                            <tr>${['Descrição', 'Quantidade', 'Remover'].map(op => `<th>${op}</th>`).join('')}</tr>
+                            <tr>${['Descrição', 'Quantidade'].map(op => `<th>${op}</th>`).join('')}</tr>
                         </thead>
                         <tbody id="linhasAgrupamento"></tbody>
                     </table>
                 </div>
                 <div class="rodape-tabela"></div>
-            </div>
-
-        </div>`
+            </div>`
+        }
+    ]
 
     const botoes = [
         { texto: 'Adicionar Item', img: 'baixar', funcao: `criarLinhaAgrupamento()` },
         { texto: 'Salvar Agrupamento', img: 'concluido', funcao: `salvarAgrupamento('${codigo}')` }
     ]
 
-    popup({ elemento, botoes, titulo: 'Gerenciar itens do agrupamento', nra: false })
+    popup({ linhas, botoes, titulo: 'Gerenciar itens do agrupamento', nra: false })
 
     const agrupamento = produto.agrupamento || {}
-    for (const [cod, dados] of Object.entries(agrupamento)) {
+    for (const [cod, dados] of Object.entries(agrupamento))
         await criarLinhaAgrupamento(cod, dados)
-    }
 
 }
 
@@ -963,6 +970,8 @@ async function criarLinhaAgrupamento(cod, dados) {
 
     const tds = `
         <td>
+            <div style="${horizontal}; gap: 1rem;">
+            <img src="imagens/cancel.png" onclick="this.closest('tr').remove()">
             <span 
             class="opcoes"
             ${cod ? `id="${cod}"` : ''}
@@ -972,16 +981,11 @@ async function criarLinhaAgrupamento(cod, dados) {
             </span>
         </td>
         <td>
-            <input name="quantidade" class="campoValor" type="number" value="${dados?.qtde || ''}">
+            <input name="quantidade"  type="number" value="${dados?.qtde || ''}">
         </td>
-        <td>
-            <img src="imagens/cancel.png" style="width: 1.7rem;" onclick="this.closest('tr').remove()">
-        </td>`
+        `
 
-    const trExistente = document.getElementById(`AGRUP_${cod}`)
-    if (trExistente) return trExistente.innerHTML = tds
-
-    document.getElementById('linhasAgrupamento').insertAdjacentHTML('beforeend', `<tr id="AGRUP_${cod}">${tds}</tr>`)
+    document.getElementById('linhasAgrupamento').insertAdjacentHTML('beforeend', `<tr>${tds}</tr>`)
 }
 
 async function salvarAgrupamento(codigo) {
@@ -994,12 +998,15 @@ async function salvarAgrupamento(codigo) {
 
     for (const tr of trs) {
 
-        const tds = tr.querySelectorAll('td')
-        const spanDesc = tds[0].querySelector('span')
-        const codigo = spanDesc.id
+        const span = tr.querySelector('span')
+        console.log(span.textContent);
+        
+        if (span.textContent.includes('Selecione'))
+            continue
+
+        const codigo = span.id
         const qtde = Number(tr.querySelector('[name="quantidade"]').value || 0)
 
-        tr.id = `AGRUP_${codigo}`
         agrupamento[codigo] = { qtde }
 
     }
@@ -1007,10 +1014,8 @@ async function salvarAgrupamento(codigo) {
     const produto = await recuperarDado('dados_composicoes', codigo) || {}
     produto.agrupamento = agrupamento
 
-    if (Object.keys(agrupamento).length > 0) {
-        await inserirDados({ [codigo]: produto }, 'dados_composicoes')
-        enviar(`dados_composicoes/${codigo}/agrupamento`, agrupamento)
-    }
+    await inserirDados({ [codigo]: produto }, 'dados_composicoes')
+    enviar(`dados_composicoes/${codigo}/agrupamento`, agrupamento)
 
 }
 
