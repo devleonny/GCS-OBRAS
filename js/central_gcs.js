@@ -1415,7 +1415,7 @@ async function delegarUsuario(usuario = ID5digitos()) {
     const elemento = `
     <div style="${horizontal}; gap: 3px;">
         <img src="imagens/cancel.png" onclick="this.parentElement.remove()">
-        <span class="opcoes" name="${usuario}" onclick="cxOpcoes('${usuario}')">${dUsuario.usuario || 'Selecionar'}</span>
+        <span ${usuario ? `id="${usuario}"` : ''} class="opcoes" name="${usuario}" onclick="cxOpcoes('${usuario}')">${dUsuario.usuario || 'Selecionar'}</span>
     </div>
     `
 
