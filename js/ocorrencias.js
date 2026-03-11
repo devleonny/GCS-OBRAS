@@ -568,31 +568,46 @@ function regrasAtuais(path) {
 }
 
 function valoresMarcados(path) {
-    return regrasAtuais(path)
-        .filter(r => r?.origem === 'dropdown')
-        .map(r => r.value)
+    const atual = regrasAtuais(path)
+
+    const grupo = atual.find(r => r?.modo === 'OR' && r?.origem === 'dropdown')
+
+    return (grupo?.regras || []).map(r => r.value)
 }
 
 async function alternarFiltroDropdown(path, valor, marcado) {
     let regras = regrasAtuais(path)
-        .filter(r => !(r?.origem === 'dropdown' && r.value === valor))
+
+    const grupoAtual = regras.find(r => r?.modo === 'OR' && r?.origem === 'dropdown')
+    const outrasRegras = regras.filter(r => !(r?.modo === 'OR' && r?.origem === 'dropdown'))
+
+    let regrasDropdown = [...(grupoAtual?.regras || [])]
+        .filter(r => r.value !== valor)
 
     if (marcado) {
-        regras.push({
+        regrasDropdown.push({
             op: '=',
-            value: valor,
-            origem: 'dropdown'
+            value: valor
         })
     }
 
-    if (regras.length === 0) {
-        delete controles.ocorrencias.filtros[path]
-    } else if (regras.length === 1) {
-        controles.ocorrencias.filtros[path] = regras[0]
-    } else {
-        controles.ocorrencias.filtros[path] = regras
+    if (regrasDropdown.length > 0) {
+        outrasRegras.push({
+            modo: 'OR',
+            origem: 'dropdown',
+            regras: regrasDropdown
+        })
     }
 
+    if (outrasRegras.length === 0) {
+        delete controles.ocorrencias.filtros[path]
+    } else if (outrasRegras.length === 1) {
+        controles.ocorrencias.filtros[path] = outrasRegras[0]
+    } else {
+        controles.ocorrencias.filtros[path] = outrasRegras
+    }
+
+    atualizarLabelDropdown(path)
     await paginacao()
 }
 
@@ -624,6 +639,18 @@ function labelDropdown(path) {
     return `${marcados.length} selecionados`
 }
 
+function atualizarLabelDropdown(path) {
+    const drop = document.querySelector(`.filtro-dropdown[data-path="${path}"]`)
+    if (!drop)
+        return
+
+    const label = drop.querySelector('.dropdown-label')
+    if (!label)
+        return
+
+    label.textContent = labelDropdown(path)
+}
+
 function montarDropdownCheckbox({ titulo, path, opcoes = [] }) {
     const marcados = valoresMarcados(path)
 
@@ -644,9 +671,9 @@ function montarDropdownCheckbox({ titulo, path, opcoes = [] }) {
     return `
         <div style="${vertical}; gap: 2px;">
             <span style="color: white;">${titulo}</span>
-            <div class="filtro-dropdown">
+            <div class="filtro-dropdown" data-path="${path}">
                 <div class="filtro-dropdown-botao" onclick="toggleDropdown(this)">
-                    <span>${labelDropdown(path)}</span>
+                    <span class="dropdown-label">${labelDropdown(path)}</span>
                     <span>▾</span>
                 </div>
                 <div class="dropdown-menu" data-aberto="N">
@@ -680,7 +707,9 @@ async function criarPesquisas() {
             <input
                 onkeydown="if (event.key === 'Enter') pesquisarOcorrencias('${path}', this.value)"
                 placeholder="${titulo}"
-                style="width: 100%;" value="${valor}">
+                id="campo_${path}"
+                style="width: 100%;" 
+                value="${valor}">
 
             <img src="imagens/pesquisar4.png">
         </div>`
@@ -702,24 +731,24 @@ async function criarPesquisas() {
 
     const filtros = []
 
-for (const [titulo, conf] of Object.entries(camposFechados)) {
-    const { path } = conf
+    for (const [titulo, conf] of Object.entries(camposFechados)) {
+        const { path } = conf
 
-    const contagem = (titulo == 'Executor' && acesso.permissao == 'técnico')
-        ? { [acesso.usuario]: {} }
-        : {
-            '': {},
-            ...await contarPorCampo({ base: 'dados_ocorrencias', path })
-        }
+        const contagem = (titulo == 'Executor' && acesso.permissao == 'técnico')
+            ? { [acesso.usuario]: {} }
+            : {
+                '': {},
+                ...await contarPorCampo({ base: 'dados_ocorrencias', path })
+            }
 
-    filtros.push(
-        montarDropdownCheckbox({
-            titulo,
-            path,
-            opcoes: Object.keys(contagem)
-        })
-    )
-}
+        filtros.push(
+            montarDropdownCheckbox({
+                titulo,
+                path,
+                opcoes: Object.keys(contagem)
+            })
+        )
+    }
 
     // Filtro de atrasados;
     filtros.push(`
@@ -787,24 +816,18 @@ async function filtrarPorData(input) {
 }
 
 async function pesquisarOcorrencias(path, valor) {
-    let regras = regrasAtuais(path)
-        .filter(r => r?.origem !== 'pesquisa')
-
-    if (valor) {
-        regras.push({
-            op: 'includes',
-            value: valor,
-            origem: 'pesquisa'
-        })
-    }
-
-    if (regras.length === 0) {
+    if (!valor) {
         delete controles.ocorrencias.filtros[path]
-    } else if (regras.length === 1) {
-        controles.ocorrencias.filtros[path] = regras[0]
     } else {
-        controles.ocorrencias.filtros[path] = regras
+        controles.ocorrencias.filtros[path] = {
+            op: 'includes',
+            value: valor
+        }
     }
+
+    const campo = document.getElementById(`campo_${path}`)
+    if (campo)
+        campo.value = valor
 
     await paginacao()
 }
@@ -910,10 +933,18 @@ async function auxPendencias() {
 
 async function atalhoAuxiliar(correcao) {
 
-    controles.ocorrencias.filtros['snapshots.ultimaCorrecao'] =
-        correcao === 'todos'
-            ? {}
-            : { op: '=', value: correcao }
+    if (correcao == 'todos')
+        return await telaOcorrencias()
+
+    controles.ocorrencias.filtros = {
+        'snapshots.ultimaCorrecao': {
+            modo: 'OR',
+            origem: 'dropdown',
+            regras: [
+                { op: '=', value: correcao }
+            ]
+        }
+    }
 
     await telaOcorrencias()
 

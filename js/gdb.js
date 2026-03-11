@@ -824,11 +824,25 @@ function comparar(v, op, value) {
     return true
 }
 
-function multiplasRegras(valor, regra) {
-    if (Array.isArray(regra)) {
-        return regra.every(r => comparar(valor, r.op, r.value))
+function avaliarRegra(valor, regra) {
+    if (!regra)
+        return true
+
+    if (Array.isArray(regra))
+        return regra.every(r => avaliarRegra(valor, r))
+
+    if (regra.modo && Array.isArray(regra.regras)) {
+        if (regra.modo === 'OR')
+            return regra.regras.some(r => avaliarRegra(valor, r))
+
+        return regra.regras.every(r => avaliarRegra(valor, r))
     }
+
     return comparar(valor, regra.op, regra.value)
+}
+
+function multiplasRegras(valor, regra) {
+    return avaliarRegra(valor, regra)
 }
 
 function passaFiltro(reg, filtros) {
