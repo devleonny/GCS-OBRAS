@@ -238,14 +238,10 @@ async function criarElementosIniciais() {
 
 async function filtrarMinhasOcorrencias(st) {
 
-    controles.ocorrencias.filtros = {
-        ...controles.ocorrencias.filtros,
-        'id': {},
-        'snapshots.ultimaCorrecao': { op: '=', value: st },
-        'usuario': { op: '=', value: acesso.usuario }
-    }
-
     await telaOcorrencias()
+
+    alternarFiltroDropdown('snapshots.ultimaCorrecao', st, true)
+    alternarFiltroDropdown('usuario', acesso.usuario, true)
 
 }
 
@@ -271,6 +267,7 @@ async function linCorrecoes(ocorrencia) {
 
                         <div style="${vertical}">
                             <span style="font-size: 1rem;"><b>${id}</b></span>
+                            <span><b>Status Correção:</b> ${snapshots?.ultimaCorrecao || ''}</span>
                             <span><b>Data Limite:</b> ${conversorData(dtCorrecao)}</span>
                             <span><b>Unidade:</b> ${cliente?.nome || ''}</span>
                             <span><b>Sistema:</b> ${sistema}</span>
@@ -286,13 +283,9 @@ async function linCorrecoes(ocorrencia) {
 
 async function minhaCorrecao(id) {
 
-    controles.ocorrencias.filtros ??= {}
-
-    controles.ocorrencias.filtros = {
-        'id': { op: '=', value: id }
-    }
-
     await telaOcorrencias()
+
+    pesquisarOcorrencias('id', id)
 
 }
 
@@ -358,7 +351,7 @@ async function telaUsuarios() {
         'Empresa': { chave: 'snapshots.empresa' },
         'Setor': { chave: 'setor' },
         'Permissão': { chave: 'permissao' },
-        '': {}
+        'Detalhes': {}
     }
 
     const tabela = await modTab({

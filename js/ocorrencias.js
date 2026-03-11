@@ -556,6 +556,134 @@ async function criarLinhaOcorrencia(ocorrencia) {
 
 }
 
+function regrasAtuais(path) {
+    const atual = controles?.ocorrencias?.filtros?.[path]
+
+    if (!atual)
+        return []
+
+    return Array.isArray(atual)
+        ? [...atual]
+        : [atual]
+}
+
+function valoresMarcados(path) {
+    const atual = regrasAtuais(path)
+
+    const grupo = atual.find(r => r?.modo === 'OR' && r?.origem === 'dropdown')
+
+    return (grupo?.regras || []).map(r => r.value)
+}
+
+async function alternarFiltroDropdown(path, valor, marcado) {
+    let regras = regrasAtuais(path)
+
+    const grupoAtual = regras.find(r => r?.modo === 'OR' && r?.origem === 'dropdown')
+    const outrasRegras = regras.filter(r => !(r?.modo === 'OR' && r?.origem === 'dropdown'))
+
+    let regrasDropdown = [...(grupoAtual?.regras || [])]
+        .filter(r => r.value !== valor)
+
+    if (marcado) {
+        regrasDropdown.push({
+            op: '=',
+            value: valor
+        })
+    }
+
+    if (regrasDropdown.length > 0) {
+        outrasRegras.push({
+            modo: 'OR',
+            origem: 'dropdown',
+            regras: regrasDropdown
+        })
+    }
+
+    if (outrasRegras.length === 0) {
+        delete controles.ocorrencias.filtros[path]
+    } else if (outrasRegras.length === 1) {
+        controles.ocorrencias.filtros[path] = outrasRegras[0]
+    } else {
+        controles.ocorrencias.filtros[path] = outrasRegras
+    }
+
+    atualizarLabelDropdown(path)
+    await paginacao()
+}
+
+function toggleDropdown(botao) {
+    const drop = botao.closest('.filtro-dropdown')
+    const menu = drop.querySelector('.dropdown-menu')
+    const aberto = menu.dataset.aberto === 'S'
+
+    document.querySelectorAll('.filtro-dropdown .dropdown-menu').forEach(m => {
+        m.style.display = 'none'
+        m.dataset.aberto = 'N'
+    })
+
+    if (!aberto) {
+        menu.style.display = 'block'
+        menu.dataset.aberto = 'S'
+    }
+}
+
+function labelDropdown(path) {
+    const marcados = valoresMarcados(path)
+
+    if (marcados.length === 0)
+        return 'Selecionar'
+
+    if (marcados.length === 1)
+        return marcados[0]
+
+    return `${marcados.length} selecionados`
+}
+
+function atualizarLabelDropdown(path) {
+    const drop = document.querySelector(`.filtro-dropdown[data-path="${path}"]`)
+    if (!drop)
+        return
+
+    const label = drop.querySelector('.dropdown-label')
+    if (!label)
+        return
+
+    label.textContent = labelDropdown(path)
+}
+
+function montarDropdownCheckbox({ titulo, path, opcoes = [] }) {
+    const marcados = valoresMarcados(path)
+
+    const itens = opcoes
+        .filter(o => o && o !== 'todos')
+        .sort((a, b) => a.localeCompare(b))
+        .map(o => `
+            <label class="dropdown-item">
+                <input
+                    type="checkbox"
+                    ${marcados.includes(o) ? 'checked' : ''}
+                    onchange="alternarFiltroDropdown('${path}', ${JSON.stringify(o).replace(/"/g, '&quot;')}, this.checked)">
+                <span>${o}</span>
+            </label>
+        `)
+        .join('')
+
+    return `
+        <div style="${vertical}; gap: 2px;">
+            <span style="color: white;">${titulo}</span>
+            <div class="filtro-dropdown" data-path="${path}">
+                <div class="filtro-dropdown-botao" onclick="toggleDropdown(this)">
+                    <span class="dropdown-label">${labelDropdown(path)}</span>
+                    <span>▾</span>
+                </div>
+                <div class="dropdown-menu" data-aberto="N">
+                    ${itens || '<span>Nenhuma opção</span>'}
+                </div>
+            </div>
+        </div>
+    `
+}
+
 async function criarPesquisas() {
 
     const divF1 = document.querySelector('#filtros1')
@@ -579,7 +707,9 @@ async function criarPesquisas() {
             <input
                 onkeydown="if (event.key === 'Enter') pesquisarOcorrencias('${path}', this.value)"
                 placeholder="${titulo}"
-                style="width: 100%;" value="${valor}">
+                id="campo_${path}"
+                style="width: 100%;" 
+                value="${valor}">
 
             <img src="imagens/pesquisar4.png">
         </div>`
@@ -601,8 +731,7 @@ async function criarPesquisas() {
 
     const filtros = []
 
-    for (let [titulo, conf] of Object.entries(camposFechados)) {
-
+    for (const [titulo, conf] of Object.entries(camposFechados)) {
         const { path } = conf
 
         const contagem = (titulo == 'Executor' && acesso.permissao == 'técnico')
@@ -612,28 +741,19 @@ async function criarPesquisas() {
                 ...await contarPorCampo({ base: 'dados_ocorrencias', path })
             }
 
-        const pesqAtiva = controles?.ocorrencias?.filtros?.[path]?.value
-
-        const opcoes = Object.keys(contagem)
-            .filter(o => o != 'todos')
-            .sort((a, b) => a.localeCompare(b))
-            .map(o => `<option ${pesqAtiva == o ? 'selected' : ''}>${o}</option>`)
-
-        filtros.push(`
-            <div style="${vertical}; gap: 2px;">
-                <span>${titulo}</span>
-                <select onchange="pesquisarOcorrencias('${path}', this.value)">
-                    ${opcoes}
-                </select>
-            </div>`
+        filtros.push(
+            montarDropdownCheckbox({
+                titulo,
+                path,
+                opcoes: Object.keys(contagem)
+            })
         )
-
     }
 
     // Filtro de atrasados;
     filtros.push(`
             <div style="${vertical}; gap: 2px;">
-                <span>Atrasados</span>
+                <span style="color: white;">Atrasados</span>
                 <select onchange="filtrarAtrasados(this)">
                     ${['', 'Sim', 'Não'].map(o => `<option>${o}</option>`).join('')}
                 </select>
@@ -646,7 +766,7 @@ async function criarPesquisas() {
 
         filtros.push(`
             <div style="${vertical}; gap: 2px;">
-                <span>${t}</span>
+                <span style="color: white;">${t}</span>
                 <input type="date" data-operador="${t}" onchange="filtrarPorData(this)">
             </div>
         `)
@@ -696,13 +816,19 @@ async function filtrarPorData(input) {
 }
 
 async function pesquisarOcorrencias(path, valor) {
-    let regras = listaRegras(path)
-        .filter(regra => regra.origem !== 'pesquisa')
+    if (!valor) {
+        delete controles.ocorrencias.filtros[path]
+    } else {
+        controles.ocorrencias.filtros[path] = {
+            op: 'includes',
+            value: valor
+        }
+    }
 
-    if (valor)
-        regras.push({ op: 'includes', value: valor, origem: 'pesquisa' })
+    const campo = document.getElementById(`campo_${path}`)
+    if (campo)
+        campo.value = valor
 
-    salvarRegras(path, regras)
     await paginacao()
 }
 
@@ -807,10 +933,18 @@ async function auxPendencias() {
 
 async function atalhoAuxiliar(correcao) {
 
-    controles.ocorrencias.filtros['snapshots.ultimaCorrecao'] =
-        correcao === 'todos'
-            ? {}
-            : { op: '=', value: correcao }
+    if (correcao == 'todos')
+        return await telaOcorrencias()
+
+    controles.ocorrencias.filtros = {
+        'snapshots.ultimaCorrecao': {
+            modo: 'OR',
+            origem: 'dropdown',
+            regras: [
+                { op: '=', value: correcao }
+            ]
+        }
+    }
 
     await telaOcorrencias()
 
