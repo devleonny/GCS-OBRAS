@@ -191,18 +191,14 @@ async function criarLinhaOrcamento(orcamento) {
             .join('')
 
         const notas = Object.values(orcamento?.status?.historico || {})
-            .filter(s => s?.status == 'FATURADO' && s?.tipo !== 'Remessa')
-            .map(s => {
-
-                const label = `
+            .filter(({ status, tipo }) => status === 'FATURADO' && !tipo.includes('emessa'))
+            .map(({ tipo, nf, valor }) => `
                 <div class="etiquetas" style="text-align: left; min-width: 100px;">
-                    <label>${s?.tipo || ''}</label>
-                    <label>${s?.nf}</label>
-                    <label>${dinheiro(s?.valor)}</label>
-                </div>`
-
-                return label
-            })
+                    <label>${tipo || ''}</label>
+                    <label>${nf || ''}</label>
+                    <label>${dinheiro(valor)}</label>
+                </div>
+            `)
             .join('')
 
         const responsaveis = Object.entries(orcamento.usuarios || {})
