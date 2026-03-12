@@ -161,10 +161,13 @@ async function confirmarPesquisa({ event, chave, op, elemento, pag }) {
         event.preventDefault()
     }
 
-    const termo = (elemento?.value ?? elemento?.textContent ?? '')
+    const bruto = (elemento?.value ?? elemento?.textContent ?? '')
         .replace(/\n/g, '')
         .trim()
-        .toLowerCase()
+
+    const termo = op === 'includes'
+        ? normalizarPesquisa(bruto)
+        : bruto.toLowerCase()
 
     controles[pag].pagina = 1
     controles[pag].filtros ??= {}

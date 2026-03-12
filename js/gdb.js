@@ -814,14 +814,26 @@ function comparar(v, op, value) {
 
         case 'includes':
             if (v == null) return false
-            if (Array.isArray(v))
+
+            if (Array.isArray(v)) {
                 return v.some(i =>
-                    String(i).toLowerCase().includes(String(value).toLowerCase())
+                    normalizarPesquisa(i).includes(normalizarPesquisa(value))
                 )
-            return String(v).toLowerCase().includes(String(value).toLowerCase())
+            }
+
+            return normalizarPesquisa(v).includes(normalizarPesquisa(value))
     }
 
     return true
+}
+
+function normalizarPesquisa(valor) {
+    return String(valor ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^\p{L}\p{N}]/gu, '')
+        .toLowerCase()
+        .trim()
 }
 
 function avaliarRegra(valor, regra) {
