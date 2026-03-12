@@ -156,8 +156,8 @@ async function abrirHistoricoPrecos(codigo, tabela) {
 
         linhas.push(`
         <tr>
-            <td>${dinheiro(cotacao?.custo || 0)}</td>
-            <td>${dinheiro(cotacao?.valor_custo || cotacao?.custo || 0)}</td>
+            <td style="white-space: nowrap;">${dinheiro(cotacao?.custo || 0)}</td>
+            <td style="white-space: nowrap;">${dinheiro(cotacao?.valor_custo || cotacao?.custo || 0)}</td>
             <td style="text-align: center;">${cotacao?.margem || 0}</td>
             <td style="white-space: nowrap;">${dinheiro(cotacao?.valor)}</td>
             <td>${cotacao?.data}</td>
