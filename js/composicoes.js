@@ -147,19 +147,19 @@ async function criarLinhaComposicao(produto) {
 
 async function abrirHistoricoPrecos(codigo, tabela) {
 
-    const produto = await recuperarDado('dados_composicoes', codigo)
-    let linhas = ''
+    const produto = await recuperarDado('dados_composicoes', codigo) || {}
+    const linhas = []
 
     for (const [id, cotacao] of Object.entries(produto?.[tabela]?.historico || {})) {
 
         const marcado = produto[tabela]?.ativo == id
 
-        linhas += `
+        linhas.push(`
         <tr>
             <td>${dinheiro(cotacao?.custo || 0)}</td>
             <td>${dinheiro(cotacao?.valor_custo || cotacao?.custo || 0)}</td>
             <td style="text-align: center;">${cotacao?.margem || 0}</td>
-            <td>${dinheiro(cotacao?.valor)}</td>
+            <td style="white-space: nowrap;">${dinheiro(cotacao?.valor)}</td>
             <td>${cotacao?.data}</td>
             <td>${cotacao?.usuario}</td>
             <td>${cotacao?.fornecedor || ''}</td>
@@ -180,7 +180,23 @@ async function abrirHistoricoPrecos(codigo, tabela) {
                <img src="imagens/pesquisar2.png" style="width: 1.7rem; cursor: pointer;" onclick="adicionarCotacao('${codigo}', '${tabela}', '${id}')">
             </td>
         </tr>
-        `
+        `)
+    }
+
+    const linOutrosPrecos = []
+    for (const lpu of LPUS) {
+        const tab = produto[lpu] || {}
+
+        const ativo = tab?.ativo
+        const historico = tab?.historico || {}
+        const preco = historico[ativo]?.valor || 0
+
+        linOutrosPrecos.push(`
+            <tr ${lpu == tabela ? 'style="background-color: #b5ffb5;"': ''}>
+                <td>${lpu.toUpperCase()}</td>
+                <td>${dinheiro(preco)}</td>
+            </tr>
+            `)
     }
 
     const colunas = [
@@ -197,7 +213,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
         'Detalhes'
     ]
 
-    let acumulado = `
+    const acumulado = `
         <div style="${horizontal}; align-items: start; width: 100%; justify-content: space-between; gap 1vw;">
             <div style="${horizontal}; gap: 5px;">
                 <img style="width: 7vw; border-radius: 5px;" src="${produto?.imagem || logo}">
@@ -206,17 +222,18 @@ async function abrirHistoricoPrecos(codigo, tabela) {
                     <label>${produto?.descricao || ''}</label>
                 </div>
             </div>
-        
-            <div onclick="adicionarCotacao('${codigo}', '${tabela}')" class="bot_adicionar">
-                <img src="imagens/preco.png">
-                <label>Adicionar Preço</label>
-            </div>
+
+            <button onclick="adicionarCotacao('${codigo}', '${tabela}')">Adicionar Preço</button>
+
         </div>
 
         <hr>
-        
-        <div class="borda-tabela">
-            <div class="topo-tabela"></div>
+
+        <div class="tabelas-preco">
+            <div class="borda-tabela">
+                <div class="topo-tabela">
+                    <span style="color: white; font-size: 1.1rem;">Histórico de Preços</span>
+                </div>
                 <div class="div-tabela">
                     <table class="tabela">
                         <thead>
@@ -225,27 +242,45 @@ async function abrirHistoricoPrecos(codigo, tabela) {
                         <tbody>${linhas}</tbody>
                     </table>
                 </div>
-            <div class="rodape-tabela"></div>
+                <div class="rodape-tabela"></div>
+            </div>
+
+            <div class="borda-tabela">
+                <div class="topo-tabela">
+                    <span style="color: white; font-size: 1.1rem;">Preços em outras tabelas</span>
+                </div>
+                <div class="div-tabela">
+                    <table class="tabela">
+                        <thead>
+                            ${['Tabela', 'Valor'].map(op => `<th>${op}</th>`).join('')} 
+                        </thead>
+                        <tbody>${linOutrosPrecos.join('')}</tbody>
+                    </table>
+                </div>
+                <div class="rodape-tabela"></div>
+            </div>
+
         </div>
     `
 
     const historicoPreco = document.querySelector('.historico-preco')
-    if (historicoPreco) return historicoPreco.innerHTML = acumulado
+    if (historicoPreco)
+        return historicoPreco.innerHTML = acumulado
 
-    popup({ elemento: `<div class="historico-preco">${acumulado}</div>`, titulo: 'Valores de Venda' })
+    popup({ elemento: `<div class="historico-preco">${acumulado}</div>`, titulo: 'Preços Cadastrados' })
 
 }
 
-async function salvarPrecoAtivo(codigo, id_preco, lpu) {
+async function salvarPrecoAtivo(codigo, idPreco, lpu) {
 
     overlayAguarde()
 
-    let produto = await recuperarDado('dados_composicoes', codigo)
+    const produto = await recuperarDado('dados_composicoes', codigo)
 
-    if (!produto[lpu]) produto[lpu] = {}
-    produto[lpu].ativo = id_preco
+    produto[lpu] ??= {}
+    produto[lpu].ativo = idPreco
 
-    enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, id_preco)
+    enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, idPreco)
     await inserirDados({ [codigo]: produto }, 'dados_composicoes')
     removerOverlay()
 
@@ -1000,7 +1035,7 @@ async function salvarAgrupamento(codigo) {
 
         const span = tr.querySelector('span')
         console.log(span.textContent);
-        
+
         if (span.textContent.includes('Selecione'))
             continue
 
