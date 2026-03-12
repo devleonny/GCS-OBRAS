@@ -575,6 +575,66 @@ function valoresMarcados(path) {
     return (grupo?.regras || []).map(r => r.value)
 }
 
+function opcoesDropdownValidas(opcoes = []) {
+    return opcoes
+        .filter(o => o && o !== 'todos')
+        .sort((a, b) => a.localeCompare(b))
+}
+
+function tudoMarcado(path, opcoes = []) {
+    const validas = opcoesDropdownValidas(opcoes)
+    const marcados = valoresMarcados(path)
+
+    return validas.length > 0 && validas.every(o => marcados.includes(o))
+}
+
+async function alternarTodosDropdown(path, opcoes = []) {
+    const regras = regrasAtuais(path)
+    const outrasRegras = regras.filter(r => !(r?.modo === 'OR' && r?.origem === 'dropdown'))
+    const validas = opcoesDropdownValidas(opcoes)
+
+    if (validas.length === 0)
+        return
+
+    const marcarTudo = !tudoMarcado(path, opcoes)
+
+    if (marcarTudo) {
+        outrasRegras.push({
+            modo: 'OR',
+            origem: 'dropdown',
+            regras: validas.map(value => ({
+                op: '=',
+                value
+            }))
+        })
+    }
+
+    if (outrasRegras.length === 0) {
+        delete controles.ocorrencias.filtros[path]
+    } else if (outrasRegras.length === 1) {
+        controles.ocorrencias.filtros[path] = outrasRegras[0]
+    } else {
+        controles.ocorrencias.filtros[path] = outrasRegras
+    }
+
+    const drop = document.querySelector(`.filtro-dropdown[data-path="${path}"]`)
+    if (drop) {
+        const checks = drop.querySelectorAll('input[type="checkbox"][data-item="opcao"]')
+        const marcar = marcarTudo
+
+        checks.forEach(input => {
+            input.checked = marcar
+        })
+
+        const checkTodos = drop.querySelector('input[type="checkbox"][data-item="todos"]')
+        if (checkTodos)
+            checkTodos.checked = marcar
+    }
+
+    atualizarLabelDropdown(path)
+    await paginacao()
+}
+
 async function alternarFiltroDropdown(path, valor, marcado) {
     let regras = regrasAtuais(path)
 
@@ -605,6 +665,16 @@ async function alternarFiltroDropdown(path, valor, marcado) {
         controles.ocorrencias.filtros[path] = outrasRegras[0]
     } else {
         controles.ocorrencias.filtros[path] = outrasRegras
+    }
+
+    const drop = document.querySelector(`.filtro-dropdown[data-path="${path}"]`)
+    if (drop) {
+        const opcoes = [...drop.querySelectorAll('input[type="checkbox"][data-item="opcao"]')]
+            .map(input => input.value)
+
+        const checkTodos = drop.querySelector('input[type="checkbox"][data-item="todos"]')
+        if (checkTodos)
+            checkTodos.checked = tudoMarcado(path, opcoes)
     }
 
     atualizarLabelDropdown(path)
@@ -652,15 +722,17 @@ function atualizarLabelDropdown(path) {
 }
 
 function montarDropdownCheckbox({ titulo, path, opcoes = [] }) {
+    const validas = opcoesDropdownValidas(opcoes)
     const marcados = valoresMarcados(path)
+    const todosAtivos = tudoMarcado(path, validas)
 
-    const itens = opcoes
-        .filter(o => o && o !== 'todos')
-        .sort((a, b) => a.localeCompare(b))
+    const itens = validas
         .map(o => `
             <label class="dropdown-item">
                 <input
                     type="checkbox"
+                    data-item="opcao"
+                    value="${o}"
                     ${marcados.includes(o) ? 'checked' : ''}
                     onchange="alternarFiltroDropdown('${path}', ${JSON.stringify(o).replace(/"/g, '&quot;')}, this.checked)">
                 <span>${o}</span>
@@ -677,6 +749,15 @@ function montarDropdownCheckbox({ titulo, path, opcoes = [] }) {
                     <span>▾</span>
                 </div>
                 <div class="dropdown-menu" data-aberto="N">
+                    <label class="dropdown-item" style="border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-bottom: 6px;">
+                        <input
+                            type="checkbox"
+                            data-item="todos"
+                            ${todosAtivos ? 'checked' : ''}
+                            onchange="alternarTodosDropdown('${path}', ${JSON.stringify(validas).replace(/"/g, '&quot;')})">
+                        <span>Todos</span>
+                    </label>
+
                     ${itens || '<span>Nenhuma opção</span>'}
                 </div>
             </div>
