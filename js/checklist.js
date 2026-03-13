@@ -762,7 +762,7 @@ async function calcularTemposChecklist() {
         const [h, m] = tempoUnitario.split(':').map(Number)
         const minutosUnit = (h * 60) + m
 
-        const baseQuantidade = qtde || qReal
+        const baseQuantidade = qReal || qtde
 
         const minutosTotais = minutosUnit * baseQuantidade
         minutosObra += minutosTotais
