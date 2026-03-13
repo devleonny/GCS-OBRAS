@@ -495,7 +495,7 @@ async function filtrarPorGaveta(titulo, usuario) {
     if (usuario == 'Geral')
         delete controles.acoes.filtros.responsavel
     else
-        controles.acoes.filtros.responsavel = { op: '=', value: usuario }
+        controles.acoes.filtros.responsavel = { op: 'includes', value: usuario }
 
     await paginacao()
 
