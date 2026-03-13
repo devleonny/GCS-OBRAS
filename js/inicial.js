@@ -759,7 +759,7 @@ async function alterarDatas(input, campo, idOrcamento) {
 async function formAcao(idOrcamento, idAcao) {
 
     const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-    const { prazo, status, acao, responsavel = []} = orcamento?.pda?.acoes?.[idAcao] || {}
+    const { prazo, status, acao, responsavel = [] } = orcamento?.pda?.acoes?.[idAcao] || {}
 
     const linhas = [
         { texto: 'Ação', elemento: `<textarea name="acao">${acao || ''}</textarea>` },

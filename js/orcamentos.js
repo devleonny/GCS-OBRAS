@@ -605,6 +605,9 @@ async function baixarExcelOrcamentos() {
         filters: [
             {
                 custom: "(o.excluido IS NULL OR o.excluido = '')"
+            },
+            {
+                custom: "o.dados_composicoes IS NOT NULL"
             }
         ],
         orderBy: "o.timestamp DESC"
