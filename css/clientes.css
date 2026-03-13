@@ -18,7 +18,43 @@
 }
 
 .tela-clientes {
+    display: flex;
+    align-items: start;
+    justify-content: center;
+    flex-direction: row;
+    gap: 1rem;
     width: 95vw;
+}
+
+.tela-clientes> :first-child {
+    width: 60%;
+}
+
+.tela-clientes> :last-child {
+    width: 40%;
+}
+
+.bloco-clientes {
+    gap: 2rem;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+}
+
+.bloco-clientes.mapa {
+    border-radius: 8px;
+    background: linear-gradient(235deg, #249f41, #151749);
+}
+
+.cabecalho-etiquetas {
+    background-color: #707070;
+    padding: 3px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
 .tag-cliente {
@@ -29,4 +65,20 @@
     cursor: pointer;
     border-radius: 8px;
     padding: 3px;
+}
+
+@media screen and (orientation: portrait) {
+
+    .tela-clientes {
+        flex-direction: column;
+    }
+
+    .tela-clientes> :first-child {
+        width: 100%;
+    }
+
+    .tela-clientes> :last-child {
+        width: 100%;
+    }
+
 }

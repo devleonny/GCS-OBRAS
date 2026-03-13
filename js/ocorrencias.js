@@ -415,7 +415,7 @@ async function telaOcorrencias() {
     const empresaAtiva = await recuperarDado('empresas', acesso?.empresa)
     titulo.innerHTML = empresaAtiva?.nome || 'Desatualizado'
 
-    const mapa = await criarMapa()
+    const mapa = criarMapa()
     const btnExtras = `
     <div style="${vertical};" class="painel-filtros">
         <div id="filtros1" class="filtros"></div>

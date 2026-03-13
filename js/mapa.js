@@ -28,6 +28,45 @@ const posicoesEstados = {
     "TO": { x: 390, y: 240 }
 }
 
+function criarMapa({ apenasMapa, path, pag } = {}) {
+
+    // SavePoint
+    controles.mapa = { path, pag }
+
+    const mapa = `
+        <div class="fundo-mapa">
+            <img src="imagens/mapa.png" class="mapa">
+
+            <svg id="mapaOverlay"
+                viewBox="0 0 600 600"
+                style="position:absolute; top:0; left:0; width:100%; height:100%;">
+            </svg>
+        </div>`
+
+    if (apenasMapa)
+        return mapa
+
+    const elemento = `
+        <div class="painel-mapa">
+            <button onclick="mostrarMapa()">Mapa</button>
+            ${mapa}
+        </div>
+        `
+    return elemento
+
+}
+
+function auxMapa(dados = {}) {
+    const svg = document.getElementById("mapaOverlay")
+
+    svg.querySelectorAll(".overlay-estado").forEach(el => el.remove())
+
+    for (const [estado, total] of Object.entries(dados)) {
+        preencherMapa(estado, total)
+    }
+
+}
+
 function preencherMapa(estado, numero) {
     const svg = document.getElementById("mapaOverlay")
     const pos = posicoesEstados[estado]
@@ -45,6 +84,7 @@ function preencherMapa(estado, numero) {
     bg.setAttribute("fill", "#ffffff")
     bg.setAttribute("stroke", "#333")
     bg.setAttribute("stroke-width", "1.2")
+    bg.setAttribute("cursor", "pointer")
 
     const texto = document.createElementNS("http://www.w3.org/2000/svg", "text")
     texto.setAttribute("x", pos.x)
@@ -54,47 +94,41 @@ function preencherMapa(estado, numero) {
     texto.setAttribute("fill", "#333")
     texto.setAttribute("text-anchor", "middle")
     texto.setAttribute("dominant-baseline", "middle")
+    texto.setAttribute("cursor", "pointer")
     texto.textContent = numero
+
+    group.addEventListener('click', async () => {
+        await filtrarEspecial(estado)
+    })
 
     group.appendChild(bg)
     group.appendChild(texto)
     svg.appendChild(group)
 }
 
-function auxMapa(dados = {}) {
-    const svg = document.getElementById("mapaOverlay")
+async function filtrarEspecial(value) {
 
-    svg.querySelectorAll(".overlay-estado").forEach(el => el.remove())
+    const { path, pag } = controles.mapa || {}
 
-    for (const [estado, total] of Object.entries(dados)) {
-        preencherMapa(estado, total)
-    }
+    controles[pag].filtros ??= {}
+
+    // Se existir, remove a pesquisa; (toggle)
+    if (controles[pag].filtros?.[path]?.value == value)
+        delete controles[pag].filtros[path]
+    else
+        controles[pag].filtros[path] = { op: '=', value }
+
+    await paginacao()
+
 }
 
 function mostrarMapa() {
     const fMapa = document.querySelector('.fundo-mapa')
     const pMapa = document.querySelector('.painel-mapa')
 
-    fMapa.classList.toggle('ativo')
-    pMapa.classList.toggle('ativo')
-}
+    if (fMapa)
+        fMapa.classList.toggle('ativo')
 
-async function criarMapa() {
-
-    const elemento = `
-        <div class="painel-mapa">
-            <button onclick="mostrarMapa()">Mapa</button>
-
-            <div class="fundo-mapa">
-                <img src="imagens/mapa.png" class="mapa">
-
-                <svg id="mapaOverlay"
-                    viewBox="0 0 600 600"
-                    style="position:absolute; top:0; left:0; width:100%; height:100%;">
-                </svg>
-            </div>
-        </div>
-        `
-    return elemento
-
+    if (pMapa)
+        pMapa.classList.toggle('ativo')
 }
