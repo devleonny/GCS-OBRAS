@@ -65,7 +65,7 @@ async function criarQuadros() {
             }
         })
 
-        divQuadros.push(quadro)
+        divQuadros.push(`<div style="max-width: 350px;">${quadro}</div>`)
     }
 
     telaPIT.innerHTML = divQuadros.join('')
@@ -282,6 +282,9 @@ async function criarPIT(id) {
         }
     ]
 
+    if (id)
+        botoes.push({ img: 'cancel', texto: 'Excluir', funcao: `confirmarExcluirPIT('${id}')` })
+
     popup({ linhas, botoes, autoDestruicao: ['usuario'] })
 }
 
@@ -290,16 +293,21 @@ async function salvarPIT(id = crypto.randomUUID()) {
     overlayAguarde()
     const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
 
+    const usuarioFin = painel.querySelector('[name="usuario"]').id
+
     const pit = await recuperarDado('postit', id)
     const atualizado = {
         ...pit,
         id,
-        usuario: painel.querySelector('[name="usuario"]').id,
+        usuario: usuarioFin,
         quadro: pit?.quadro || null,
         status: painel.querySelector('[name="status"]').checked ? 'S' : 'N',
         comentario: painel.querySelector('[name="comentario"]').value,
         prazo: painel.querySelector('[name="prazo"]').value
     }
+
+    if (usuarioFin !== acesso.usuario)
+        atualizado.quadro = null
 
     await inserirDados({ [id]: atualizado }, 'postit')
     enviar(`postit/${id}`, atualizado)
@@ -328,6 +336,22 @@ async function salvarQuadro(id = crypto.randomUUID()) {
     removerPopup()
 }
 
+async function confirmarExcluirPIT(id) {
+
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `excluirPIT('${id}')` }
+    ]
+
+    popup({ mensagem: 'Tem certeza?', botoes, nra: false })
+
+}
+
+async function excluirPIT(id) {
+
+    await deletarDB('postit', id)
+    deletar(`postit/${id}`)
+
+}
 
 async function verificarPostIts() {
 
