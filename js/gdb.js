@@ -1,5 +1,5 @@
 const nomeBase = 'GCS'
-const versao = 3
+const versao = 4
 let bloqSinc = false
 let dbInstance = null
 
@@ -9,6 +9,8 @@ const basesAuxiliares = {
     'departamentos_AC': { keyPath: 'codigo', tipo: 'NUMBER' },
     'dados_categorias_AC': { keyPath: 'id' },
     'empresas': { keyPath: 'id' },
+    'quadros': { keyPath: 'id' },
+    'postit': { keyPath: 'id' },
     'sistemas': { keyPath: 'id' },
     'prioridades': { keyPath: 'id' },
     'correcoes': { keyPath: 'id' },

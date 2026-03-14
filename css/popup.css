@@ -197,6 +197,10 @@
     font-size: 14px;
 }
 
+.painel-padrao textarea {
+    min-width: 200px;
+}
+
 .painel-padrao input:focus,
 .painel-padrao select:focus,
 .painel-padrao textarea:focus {

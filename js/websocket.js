@@ -186,14 +186,17 @@ async function carregarControles() {
     const barraStatus = `
             <div id="divUsuarios"></div>
 
+            ${modelo('kanban', 'telaPIT()', 'contadorPostIt')}
             ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
             ${permitidosAprovacoes.includes(acesso.permissao) ? modelo('construcao', 'configs()', '') : ''}
 
             <img title="Abrir mais 1 aba" src="imagens/aba.png" onclick="maisAba()">
         `
     const cabecalhoUsuario = document.querySelector('.cabecalho-usuario')
-    if (cabecalhoUsuario) cabecalhoUsuario.innerHTML = barraStatus
+    if (cabecalhoUsuario) 
+        cabecalhoUsuario.innerHTML = barraStatus
 
     await usuariosToolbar()
     await verificarPendencias() // Pendencias de aprovação;
+    await verificarPostIts() // Post Its atrasados;
 }

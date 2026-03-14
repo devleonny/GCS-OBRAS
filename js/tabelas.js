@@ -261,7 +261,7 @@ async function paginacao(pag) {
                     <span id="totalPaginas_${pag}">${dados.paginas}</span> 
                     <img src="imagens/dir.png" style="width: 2rem;" onclick="mudarPagina(1, '${pag}')">
                     </div>
-                    <span><span style="font-size: 1rem;" id="resultados_${pag}">${dados.total}</span> ${dados.total !== 1 ? 'Itens' : 'Item'}</span>
+                    <span style="white-space: nowrap;"><span style="font-size: 1rem;" id="resultados_${pag}">${dados.total}</span> ${dados.total !== 1 ? 'Itens' : 'Item'}</span>
                 </div>
                 `
 
@@ -331,6 +331,5 @@ function criarDino(cols) {
 }
 
 function achou() {
-    return Math.random() < 0.1
+    return Math.random() < 0.05
 }
-

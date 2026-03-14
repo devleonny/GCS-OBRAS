@@ -121,6 +121,10 @@ const esquemaBotoes = {
         { nome: 'Ocorrências', funcao: `telaInicialOcorrencias`, img: 'LG' },
         { nome: 'Desconectar', funcao: `deslogarUsuario`, img: 'sair' }
     ],
+    postit: [
+        { nome: 'Criar Post it', funcao: `criarPIT`, img: 'baixar' },
+        { nome: 'Criar Quadro', funcao: `criarQuadro`, img: 'baixar' },
+    ],
     criarOrcamentos: [
         { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
         { nome: 'Salvar Orçamento', funcao: `enviarDadosOrcamento`, img: 'salvo' },
@@ -911,7 +915,8 @@ async function criarLinhaAprovacao(orcamento) {
 
 async function verificarPendencias() {
 
-    if (!navigator.onLine) return
+    if (!navigator.onLine)
+        return
 
     const contador = await contarPorCampo({ base: 'dados_orcamentos', path: 'aprovacao.status' })
 
@@ -1382,7 +1387,7 @@ async function painelClientes(idOrcamento) {
                 <select id="emissor">
                     ${['AC SOLUÇÕES', 'IAC', 'HNW', 'HNK'].map(op => `<option ${dados_orcam?.emissor == op ? 'selected' : ''}>${op}</option>`).join('')}
                 </select>
-            ` 
+            `
         }
     ]
 
