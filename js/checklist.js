@@ -2,8 +2,10 @@ const strHHMM = (minutosTotais) => {
 
     const minutosPorDia = 1440
 
-    const dias = Math.floor(minutosTotais / minutosPorDia)
-    const restoMinutos = minutosTotais % minutosPorDia
+    const total = Math.round(minutosTotais) // 👈 resolve aqui
+
+    const dias = Math.floor(total / minutosPorDia)
+    const restoMinutos = total % minutosPorDia
 
     const horas = Math.floor(restoMinutos / 60)
     const minutos = restoMinutos % 60
@@ -186,7 +188,7 @@ async function carregarLinhaChecklist(produto) {
         </td>
         <td>
             <div style="${horizontal}; gap: 10px;">
-                <span>${qtdeRealizada}</span>
+                <span>${qtdeRealizada.toLocaleString('pt-BR')}</span>
                 <img onclick="registrarChecklist('${codigo}')" src="imagens/baixar.png">
             </div>
         </td>
@@ -197,7 +199,7 @@ async function carregarLinhaChecklist(produto) {
             ${divPorcentagem(((tempoRealizado / total) * 100).toFixed(1))}
         </td>`
 
-    return `<tr> ${tds} </tr>`
+    return `<tr>${tds}</tr>`
 
 }
 
@@ -313,10 +315,10 @@ async function salvarTecnicos(id) {
     for (const span of spans) {
 
         // Em branco
-        if (span.textContent == 'Selecione') 
+        if (span.textContent == 'Selecione')
             continue
 
-        if (tecnicos.includes(span.id)) 
+        if (tecnicos.includes(span.id))
             continue
 
         tecnicos.push(span.id)
@@ -1074,7 +1076,9 @@ async function salvarQuantidade(codigo) {
     const tecnicos = []
     const spanTecnicos = document.querySelectorAll('#blocoTecnicos span')
 
-    for (const span of spanTecnicos) if (!tecnicos.includes(span.id)) tecnicos.push(span.id)
+    for (const span of spanTecnicos)
+        if (!tecnicos.includes(span.id))
+            tecnicos.push(span.id)
 
     const form = document.querySelector('.form-checklist')
 
