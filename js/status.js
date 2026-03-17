@@ -1216,7 +1216,7 @@ async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
     const orcamento = await recuperarDado('dados_orcamentos', id)
     const cliente = await recuperarDado('dados_clientes', orcamento.dados_orcam.omie_cliente) || {}
     const cartao = orcamento?.status?.historico?.[chave] || {}
-    const { volumes, transportadora, empresa, pedido } = cartao
+    const { volumes, transportadora, prazo, pedido, recebedor } = cartao
 
     const pedidos = Object.fromEntries(
         Object.entries(orcamento?.status?.historico || {})
@@ -1248,6 +1248,16 @@ async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
                     <span ${pedido ? `id="${pedido}"` : ''} name="pedido" class="opcoes" onclick="cxOpcoes('pedido')">
                         ${numPedido}
                     </span>
+                </div>
+
+                <div style="${vertical}; width: 100%;">
+                    <span>Prazo</span>
+                    <input id="prazo" type="date" value="${prazo || ''}">
+                </div>
+
+                <div style="${vertical}; width: 100%;">
+                    <span>Quem recebeu?</span>
+                    <input id="recebedor" value="${recebedor || ''}">
                 </div>
                 
                 <div style="${vertical}; width: 100%;">
@@ -1615,6 +1625,8 @@ async function salvarRequisicao(id, chave) {
             data: new Date().toLocaleString(),
             comentario: document.querySelector('#comentario').value || '',
             pedido,
+            recebedor: document.querySelector('#recebedor')?.value || '',
+            prazo: document.querySelector('#prazo')?.value || '',
             volumes: document.querySelector('#volumes').value || 0,
             transportadora: document.querySelector('#transportadora').value || '',
             total_requisicao: conversor(document.querySelector('#total_requisicao').textContent),
@@ -1782,7 +1794,8 @@ async function registrarEnvioMaterial(id, chave) {
 
     const dadosCampos = campos.reduce((acc, campo) => {
         const info = document.getElementById(campo)
-        if (!info) return acc
+        if (!info) 
+            return acc
 
         let valor = info.value
 
@@ -1820,7 +1833,7 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
     overlayAguarde()
 
     const { status, dados_orcam, snapshots } = await recuperarDado('dados_orcamentos', id) || {}
-    const { requisicao, volumes, empresa, executor, pedido, transportadora, comentario, total_requisicao } = status?.historico?.[chave] || {}
+    const { requisicao, volumes, data, empresa, executor, pedido, prazo, recebedor, transportadora, comentario, total_requisicao } = status?.historico?.[chave] || {}
 
     // Pedido vinculado;
     const dadosPedido = status?.historico?.[pedido] || {}
@@ -1830,12 +1843,17 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
         pagamento: dadosPedido.pagamento,
         pedido: dadosPedido.pedido,
         tipo: dadosPedido.tipo,
-        valor_pedido: dadosPedido.valor ? dinheiro(dadosPedido.valor) : null,
+        valor_pedido: dadosPedido.valor
+            ? dinheiro(dadosPedido.valor)
+            : null,
         transportadora,
         volumes,
         empresa,
         executor,
-        total_requisicao
+        total_requisicao,
+        data,
+        prazo: new Date(toTimestamp(prazo)).toLocaleDateString(),
+        recebedor
     })
         .filter(([, valor]) => valor)
         .map(([chave, valor]) => {

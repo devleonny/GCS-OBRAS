@@ -247,6 +247,7 @@ async function salvarCadastro() {
 
         const data = await response.json()
         removerPopup()
+
         return popup({ mensagem: data.mensagem })
 
     } catch (err) {

@@ -343,7 +343,10 @@ async function configs() {
         'Setores': { chave: 'setor' }
     }
 
+    const btnExtras = `<img src="imagens/baixar.png" onclick="cadastrar()">`
+
     const tabela = await modTab({
+        btnExtras,
         pag: 'usuarios',
         colunas,
         base: 'dados_setores',
