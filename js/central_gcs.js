@@ -1136,13 +1136,19 @@ async function respostaAprovacao(botao, idOrcamento, status) {
 }
 
 function baseOrcamento(orcamento, remover = false) {
+    
     let temporario = JSON.parse(localStorage.getItem('temporario')) || {}
 
     const getModalidade = (orc) => {
         if (orc?.lpu_ativa) {
-            return orc.lpu_ativa === 'ALUGUEL' ? 'aluguel' : 'orcamento'
+            return orc.lpu_ativa === 'ALUGUEL'
+                ? 'aluguel'
+                : 'orcamento'
         }
-        return String(telaAtiva).includes('Aluguel') ? 'aluguel' : 'orcamento'
+
+        return String(telaAtiva).includes('Aluguel')
+            ? 'aluguel'
+            : 'orcamento'
     }
 
     const modalidade = getModalidade(orcamento || temporario)

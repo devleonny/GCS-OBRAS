@@ -439,6 +439,11 @@ const regrasSnapshot = {
                 dado?.dados_orcam?.chamado,
             ]
 
+            snap.contratoChamado = [
+                dado?.dados_orcam?.contrato,
+                dado?.dados_orcam?.chamado,
+            ]
+
             snap.cidade = cliente?.cidade
 
             snap.pda = [

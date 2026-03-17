@@ -297,7 +297,8 @@ async function abrirDetalhesPagamentos(id) {
 
         const pesquisa = await pesquisarDB({
             base: 'dados_orcamentos',
-            filtros: { 'snapshots.contrato': { op: 'includes', value: cc.descricao } }
+            filtros: { 
+                'snapshots.contratoChamado': { op: 'includes', value: cc.descricao } }
         })
 
         if (!pesquisa.resultados.length)
