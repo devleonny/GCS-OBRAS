@@ -78,6 +78,7 @@
     justify-content: start;
     align-items: start;
     display: flex;
+    white-space: pre-wrap;
     padding: 0.5rem;
     border: solid 1px #797979;
     border-radius: 1px;

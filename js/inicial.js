@@ -1,14 +1,4 @@
 const abas = ['PDA', 'POC', 'INFRA', 'LOGÍSTICA', 'EM_ANDAMENTO', 'CONCLUÍDO', 'PENDÊNCIA']
-const coments = (comentario, campo, id) => {
-
-    if (!comentario) comentario = ''
-    return `
-        <div style="${horizontal}; gap: 5px;">
-            <div class="comentario-padrao" oninput="mostrarBtn(this)" contentEditable="true">${comentario.replace('\n', '<br>') || ''}</div>
-            <img data-campo="${campo}" onclick="atualizarPda(this, '${id}')" style="display: none; width: 1.5rem;" src="imagens/concluido.png">
-        </div>
-    `
-}
 
 const dtPrazo = (data) => {
     if (!data) return ''
@@ -324,7 +314,11 @@ async function linPda(orcamento) {
             onchange="alterarDatas(this, 'termino', '${idOrcamento}')">
         </td>
 
-        <td>${coments(pda?.comentario, 'comentario', idOrcamento)}</td>
+        <td>
+            <div style="${horizontal}; gap: 5px;">
+                <div class="comentario-padrao" onclick="editarComentario('${idOrcamento}')">${pda?.comentario || ''}</div>
+            </div>
+        </td>
 
         <td>
             <div style="${horizontal}; justify-content: start; align-items: start; gap: 2px;">
@@ -346,11 +340,42 @@ async function linPda(orcamento) {
             ${orcamento ? `<img onclick="abrirAtalhos('${idOrcamento}')" src="imagens/pesquisar2.png" style="width: 1.5rem;">` : ''}
         </td>`
 
-    return `
-        <tr id="${idOrcamento}">
-            ${tds}
-        </tr>`
+    return `<tr>${tds}</tr>`
 
+}
+
+async function editarComentario(id) {
+
+    const { pda } = await recuperarDado('dados_orcamentos', id) || {}
+
+    const linhas = [
+        {
+            texto: 'Comentário',
+            elemento: `<textarea id="comentarioPda">${pda?.comentario || ''}</textarea>`
+        }
+    ]
+
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: `salvarComentarioPda('${id}')` }
+    ]
+
+    popup({ linhas, botoes, titulo: 'Edição de Comentário' })
+
+}
+
+async function salvarComentarioPda(id) {
+
+    overlayAguarde()
+    const comentarioPda = document.getElementById('comentarioPda')
+    const comentario = comentarioPda?.value || ''
+    const orcamento = await recuperarDado('dados_orcamentos', id) || {}
+
+    orcamento.pda ??= {}
+    orcamento.pda.comentario = comentario
+
+    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${id}/pda/comentario`, comentario)
+    removerPopup(null, false)
 }
 
 async function contadoresAbas() {
@@ -722,23 +747,6 @@ async function atualizarCampo(select, idOrcamento) {
 
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
     enviar(`dados_orcamentos/${idOrcamento}/pda/${campo}`, valor)
-
-}
-
-async function atualizarPda(img, idOrcamento) {
-
-    const div = img.previousElementSibling
-    const info = div.textContent
-    const campo = img.dataset.campo
-
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-    orcamento.pda ??= {}
-    orcamento.pda[campo] = info
-
-    img.style.display = 'none'
-
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${idOrcamento}/pda/${campo}`, info)
 
 }
 
