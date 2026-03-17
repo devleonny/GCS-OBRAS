@@ -47,8 +47,14 @@ async function resetarBanco() {
         const request = indexedDB.deleteDatabase(nomeBase)
 
         request.onsuccess = () => resolve(true)
+
         request.onerror = () => reject(request.error)
-        request.onblocked = () => console.warn('Banco bloqueado')
+
+        request.onblocked = () => {
+            console.warn('Banco bloqueado por outra aba')
+
+            localStorage.setItem('fechar_banco_gcs', String(Date.now()))
+        }
     })
 }
 
@@ -92,11 +98,17 @@ function getDB() {
 
         request.onsuccess = e => {
             dbInstance = e.target.result
+
+            dbInstance.onversionchange = () => {
+                dbInstance.close()
+                dbInstance = null
+                console.warn('Banco fechado por mudança de versão/ou exclusão em outra aba')
+            }
+
             resolve(dbInstance)
         }
     })
 }
-
 
 async function atualizarGCS(resetar) {
 
