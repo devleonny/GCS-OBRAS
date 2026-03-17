@@ -325,6 +325,7 @@ async function salvarQuadro(id = crypto.randomUUID()) {
     const atualizado = {
         ...quadro,
         id,
+        timestamp: 0,
         usuario: acesso.usuario,
         ordem: Number(painel.querySelector('[name="ordem"]').value),
         descricao: painel.querySelector('[name="descricao"]').value
@@ -332,6 +333,7 @@ async function salvarQuadro(id = crypto.randomUUID()) {
 
     await inserirDados({ [id]: atualizado }, 'quadros')
     enviar(`quadros/${id}`, atualizado)
+
     await criarQuadros()
     removerPopup()
 }
