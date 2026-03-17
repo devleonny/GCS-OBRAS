@@ -55,7 +55,7 @@ async function telaOrcamentos() {
     const btnExtras = `<span style="color: white; cursor: pointer; white-space: nowrap;" onclick="filtroOrcamentos()">Filtros ☰</span>`
 
     const tabela = await modTab({
-        funcaoAdicional: ['formatacaoPagina'],
+        funcaoAdicional: ['formatacaoPagina', 'atualizarListaDepartamentos'],
         btnExtras,
         colunas,
         base: 'dados_orcamentos',
@@ -78,15 +78,26 @@ async function telaOrcamentos() {
 
     tela.innerHTML = acumulado
 
-    controles.orcamentos.filtros ??= {}
-    controles.orcamentos.filtros['dados_orcam'] = { op: 'NOT_EMPTY' }
-    controles.orcamentos.filtros['arquivado'] = { op: '!=', value: 'S' }
+    controles.orcamentos.filtros = {
+        ...controles.orcamentos.filtros,
+        'dados_orcam': { op: 'NOT_EMPTY' },
+        'arquivado': { op: '!=', value: 'S' }
+    }
+
+    await atualizarListaDepartamentos()
 
     await carregarToolbar()
     criarMenus('orcamentos')
     mostrarMenus(false)
 
     await paginacao()
+
+}
+
+async function atualizarListaDepartamentos() {
+
+    // Auxiliar dos departamentos;
+    controles.orcamentos.departamentos = Object.keys(await contarPorCampo({ base: 'departamentos_AC', path: 'descricao' }))
 
 }
 
@@ -246,14 +257,8 @@ async function criarLinhaOrcamento(orcamento) {
             tags.push(modeloTag(tag, id))
         }
 
-        const pesquisa = await pesquisarDB({
-            base: 'departamentos_AC',
-            filtros: {
-                'descricao': { op: '=', value: numOficial }
-            }
-        })
-
-        const depExistente = pesquisa?.resultados?.length > 0
+        // Verificação de departamento;
+        const depExistente = controles.orcamentos.departamentos.includes(numOficial)
 
         const indicadores = []
         if (orcamento?.checklist?.andamento)
