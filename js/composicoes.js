@@ -190,13 +190,23 @@ async function abrirHistoricoPrecos(codigo, tabela) {
         const ativo = tab?.ativo
         const historico = tab?.historico || {}
         const preco = historico[ativo]?.valor || 0
+        const tabelaAtiva = lpu == tabela
+
+        const copiar = preco !== 0 && !tabelaAtiva && permComposicoes.includes(acesso?.permissao)
+            ? `<img src="imagens/duplicar.png" onclick="confirmarCopiarPreco('${codigo}', '${lpu}', '${ativo}', '${tabela}')">`
+            : ''
 
         linOutrosPrecos.push(`
-            <tr ${lpu == tabela ? 'style="background-color: #b5ffb5;"': ''}>
+            <tr ${tabelaAtiva ? 'style="background-color: #b5ffb5;"' : ''}>
                 <td>${lpu.toUpperCase()}</td>
-                <td>${dinheiro(preco)}</td>
-            </tr>
-            `)
+                <td>
+                    <div style="${horizontal}; gap: 5px;">
+                        <span>${dinheiro(preco)}</span>
+                        ${copiar}
+                    </div>
+                </td>
+            </tr>`
+        )
     }
 
     const colunas = [
@@ -239,7 +249,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
                         <thead>
                             ${colunas.map(op => `<th>${op}</th>`).join('')} 
                         </thead>
-                        <tbody>${linhas}</tbody>
+                        <tbody>${linhas.join('')}</tbody>
                     </table>
                 </div>
                 <div class="rodape-tabela"></div>
@@ -268,6 +278,27 @@ async function abrirHistoricoPrecos(codigo, tabela) {
         return historicoPreco.innerHTML = acumulado
 
     popup({ elemento: `<div class="historico-preco">${acumulado}</div>`, titulo: 'Preços Cadastrados' })
+
+}
+
+async function confirmarCopiarPreco(codigo, lpu, idPreco, tabela) {
+
+    overlayAguarde()
+    const produto = await recuperarDado('dados_composicoes', codigo) || {}
+
+    const preco = produto?.[lpu]?.historico?.[idPreco] || {}
+    preco.usuario = acesso.usuario // Usuário atual;
+
+    produto[tabela] ??= {}
+    produto[tabela].historico ??= {}
+    produto[tabela].historico[idPreco] = preco
+
+    await inserirDados({ [codigo]: produto }, 'dados_composicoes')
+    enviar(`dados_composicoes/${codigo}/${tabela}/historico/${idPreco}`, preco)
+
+    removerOverlay()
+
+    await abrirHistoricoPrecos(codigo, tabela)
 
 }
 

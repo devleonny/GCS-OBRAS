@@ -14,14 +14,14 @@ function imagemEspecifica(justificativa) {
     const nomeStatus = String(justificativa.status).toLowerCase()
 
     let cor = '#222'
-    let imagem = "imagens/remover.png"
+    let imagem = "imagens/cancel.png"
     if (nomeStatus.includes('aprovado')) {
         cor = '#4CAF50'
         imagem = "imagens/concluido.png"
 
     } else if (nomeStatus.includes('reprovado')) {
         cor = '#B12425'
-        imagem = "imagens/remover.png"
+        imagem = "imagens/cancel.png"
 
     } else if (nomeStatus.includes('aguardando')) {
         cor = '#D97302'
@@ -179,9 +179,6 @@ function iconePagamento(status) {
             break
         case status.includes('Excluído'):
             icone = 'alerta'
-            break
-        case status.includes('Aguardando aprovação da Qualidade'):
-            icone = 'qualidade2'
             break
         case status.includes('ATRASADO'):
             icone = 'atrasado'
@@ -934,7 +931,7 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
 
             ${esquema[base].span}
 
-            <label src="imagens/remover.png" 
+            <label src="imagens/cancel.png" 
             style="cursor: pointer; width: 1.5rem; font-size: 2.0rem;" 
             onclick="removerCampo(this)">
                 &times;
