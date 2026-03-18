@@ -421,11 +421,14 @@ async function editar(id) {
     if (orcamento.aprovacao)
         delete orcamento.aprovacao
 
-    const temporario = parse(localStorage.getItem('temporario')) || {}
+    const jaEmEdicao = Object.values(JSON.parse(localStorage.getItem('temporario')) || {})
+        .some(orc => orc.id == id)
 
+    if (jaEmEdicao)
+        return painelEdicao()
 
-    
-
+    // Sem edições do mesmo orçamento existentes, continue;
+    sessionStorage.setItem('idEdicao', crypto.randomUUID())
     baseOrcamento(orcamento)
 
     removerPopup()

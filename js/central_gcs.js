@@ -73,22 +73,34 @@ function criarAtalhoMenu({ nome, img, funcao }) {
 }
 
 async function executar(nomeFuncao) {
+    if (!nomeFuncao) return
 
-    if (!nomeFuncao)
-        return
+    let nome = nomeFuncao
+    let params = []
 
-    // É a função que carrega a tela atual;
-    if (nomeFuncao.includes('tela'))
+    if (nomeFuncao.includes('(')) {
+        const match = nomeFuncao.match(/^([^(]+)\((.*)\)$/)
+
+        if (match) {
+            nome = match[1].trim()
+
+            const conteudo = match[2].trim()
+            if (conteudo) {
+                params = Function(`return [${conteudo}]`)()
+            }
+        }
+    }
+
+    if (nome.includes('tela'))
         funcaoTela = nomeFuncao
 
     funcaoAtiva = nomeFuncao
 
-    if (typeof window[nomeFuncao] === "function") {
-        return await window[nomeFuncao]()
+    if (typeof window[nome] === 'function') {
+        return await window[nome](...params)
     } else {
         popup({ mensagem: `<b>Função não encontrada:</b> ${nomeFuncao}` })
     }
-
 }
 
 function criarMenus(chave) {
@@ -139,8 +151,8 @@ const esquemaBotoes = {
     ],
     orcamentos: [
         { nome: 'Baixar em Excel', funcao: 'baixarExcelOrcamentos', img: 'excel' },
-        { nome: 'Criar Orçamento', funcao: `telaCriarOrcamento`, img: 'projeto' },
-        { nome: 'Criar Orçamento Aluguel', funcao: `telaCriarOrcamentoAluguel`, img: 'projeto' },
+        { nome: 'Criar Orçamento', funcao: `painelEdicao`, img: 'projeto' },
+        { nome: 'Criar Orçamento Aluguel', funcao: `painelEdicao(1)`, img: 'projeto' },
     ],
     composicoes: [
         { nome: 'Cadastrar Item', funcao: 'cadastrarItem', img: 'baixar' },
@@ -1132,6 +1144,82 @@ async function respostaAprovacao(botao, idOrcamento, status) {
     removerPopup()
 
     verificarPendencias()
+
+}
+
+function painelEdicao(tela) {
+
+    const listaORCS = Object.entries(JSON.parse(localStorage.getItem('temporario')) || {})
+        .map(([idEdicao, orc]) => {
+
+            const lpu = orc?.lpu_ativa || ''
+
+            const div = `
+                <tr>
+                    <td><img onclick="editarOrcamentoTemporario('${idEdicao}', '${lpu}')" src="imagens/esq.png"></td>
+                    <td>${orc?.dados_orcam?.contrato || 'Novo Orçamento'}</td>
+                    <td>${dinheiro(orc?.total_geral)}</td>
+                    <td>${lpu}</td>
+                    <td>${new Date(orc?.timestamp || Date.now()).toLocaleString()}</td>
+                    <td><img src="imagens/cancel.png"></td>
+                </tr>
+                `
+
+            return div
+        })
+
+    const novo = crypto.randomUUID()
+
+    // Se não existir orcs em edição, pode passar adiante;
+    if (!listaORCS.length)
+        return editarOrcamentoTemporario(novo, tela == 1 ? 'ALUGUEL' : null)
+
+    const elemento = `
+        <div style="${vertical}; padding: 1rem;">
+
+            <span><b>ATENÇÃO</b></span>
+            <span>Se você excluir algo aqui será removida apenas a versão temporária no seu computador,</span>
+            <span>a versão final do orçamento continuará salva no servidor.</span>
+
+            <br>
+
+            <button onclick="editarOrcamentoTemporario('${novo}')">Novo Orçamento</button>
+            <button onclick="editarOrcamentoTemporario('${novo}', 'ALUGUEL')">Novo Orçamento de Aluguel</button>
+
+            <br>
+
+            <div class="borda-tabela">
+
+                <div class="topo-tabela"></div>
+                <div class="div-tabela">
+                    <table class="tabela">
+                        <thead>
+                            ${['Acessar', 'nº ORÇAMENTO', 'Total', 'LPU', 'Última alteração', 'Excluir'].map(op => `<th>${op}</th>`).join('')} 
+                        </thead>
+                        <tbody>${listaORCS.join('')}</tbody>
+                    </table>
+                </div>
+                <div class="rodape-tabela"></div>
+            </div>
+
+        </div>
+        `
+
+    popup({ elemento, titulo: 'Orçamentos em Edição' })
+
+}
+
+async function editarOrcamentoTemporario(idEdicao, lpu) {
+
+    removerPopup()
+
+    sessionStorage.setItem('idEdicao', idEdicao)
+    tela.innerHTML = ''
+
+    if (lpu == 'ALUGUEL')
+        await telaCriarOrcamentoAluguel()
+    else
+        await telaCriarOrcamento()
 
 }
 
