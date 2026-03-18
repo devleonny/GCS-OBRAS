@@ -416,18 +416,23 @@ function verificarPrioridade(orcamento) {
 
 async function editar(id) {
 
-    const orcamentoBase = await recuperarDado('dados_orcamentos', id)
+    const orcamento = await recuperarDado('dados_orcamentos', id) || {}
 
-    if (orcamentoBase.aprovacao)
-        delete orcamentoBase.aprovacao
+    if (orcamento.aprovacao)
+        delete orcamento.aprovacao
 
-    baseOrcamento(orcamentoBase)
+    const temporario = parse(localStorage.getItem('temporario')) || {}
+
+
+    
+
+    baseOrcamento(orcamento)
 
     removerPopup()
 
     precosAntigos = null
 
-    orcamentoBase.lpu_ativa == 'ALUGUEL'
+    orcamento.lpu_ativa == 'ALUGUEL'
         ? await telaCriarOrcamentoAluguel()
         : await telaCriarOrcamento()
 

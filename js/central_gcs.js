@@ -1136,39 +1136,31 @@ async function respostaAprovacao(botao, idOrcamento, status) {
 }
 
 function baseOrcamento(orcamento, remover = false) {
-    
-    let temporario = JSON.parse(localStorage.getItem('temporario')) || {}
 
-    const getModalidade = (orc) => {
-        if (orc?.lpu_ativa) {
-            return orc.lpu_ativa === 'ALUGUEL'
-                ? 'aluguel'
-                : 'orcamento'
-        }
+    const temporario = JSON.parse(localStorage.getItem('temporario')) || {}
 
-        return String(telaAtiva).includes('Aluguel')
-            ? 'aluguel'
-            : 'orcamento'
-    }
+    // Limpeza;
+    delete temporario.orcamento
+    delete temporario.aluguel
 
-    const modalidade = getModalidade(orcamento || temporario)
+    const idEdicao = sessionStorage.getItem('idEdicao')
 
     // remover
     if (remover) {
-        delete temporario[modalidade]
+        delete temporario[idEdicao]
         localStorage.setItem('temporario', JSON.stringify(temporario))
         return
     }
 
     // salvar
     if (orcamento) {
-        temporario[modalidade] = orcamento
+        temporario[idEdicao] = orcamento
         localStorage.setItem('temporario', JSON.stringify(temporario))
         return
     }
 
     // ler
-    return temporario[modalidade] || null
+    return temporario[idEdicao] || null
 }
 
 async function verificarNF(numero, tipo, app) {
