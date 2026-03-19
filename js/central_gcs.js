@@ -1156,12 +1156,14 @@ function painelEdicao(tela) {
 
             const div = `
                 <tr>
-                    <td><img onclick="editarOrcamentoTemporario('${idEdicao}', '${lpu}')" src="imagens/esq.png"></td>
+                    <td>
+                        <img onclick="editarOrcamentoTemporario('${idEdicao}', '${lpu}')" src="imagens/esq.png">
+                    </td>
                     <td>${orc?.dados_orcam?.contrato || 'Novo Orçamento'}</td>
                     <td>${dinheiro(orc?.total_geral)}</td>
                     <td>${lpu}</td>
                     <td>${new Date(orc?.timestamp || Date.now()).toLocaleString()}</td>
-                    <td><img src="imagens/cancel.png"></td>
+                    <td><img src="imagens/cancel.png" onclick="removerOrcTemp(this, '${idEdicao}')"></td>
                 </tr>
                 `
 
@@ -1176,6 +1178,9 @@ function painelEdicao(tela) {
 
     const elemento = `
         <div style="${vertical}; padding: 1rem;">
+
+            <span><b>SEUS ORÇAMENTOS EM EDIÇÃO TEMPORÁRIA</b></span>
+            <span>Escolha um orçamento para voltar a editar ou clique para começar um novo.</span>
 
             <span><b>ATENÇÃO</b></span>
             <span>Se você excluir algo aqui será removida apenas a versão temporária no seu computador,</span>
@@ -1206,6 +1211,18 @@ function painelEdicao(tela) {
         `
 
     popup({ elemento, titulo: 'Orçamentos em Edição' })
+
+}
+
+async function removerOrcTemp(img, idEdicao) {
+
+    img.closest('tr').remove()
+
+    const temporario = JSON.parse(localStorage.getItem('temporario')) || {}
+    
+    delete temporario[idEdicao]
+
+    localStorage.setItem('temporario', JSON.stringify(temporario))
 
 }
 

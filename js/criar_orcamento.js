@@ -315,8 +315,12 @@ async function salvarRevisao() {
     const numeroRevisao = `R${proximoNumero}`
 
     orcamento.revisoes.atual = numeroRevisao
-    orcamento.revisoes.historico[numeroRevisao] =
-        structuredClone(orcamento.esquema_composicoes)
+
+    const esquema = orcamento.lpu_ativa == 'ALUGUEL'
+        ? orcamento.dados_composicoes
+        : orcamento.esquema_composicoes
+
+    orcamento.revisoes.historico[numeroRevisao] = structuredClone(esquema)
 
     baseOrcamento(orcamento)
     await atualizarToolbar()
@@ -325,10 +329,8 @@ async function salvarRevisao() {
 async function reiniciarLinhas() {
 
     // Resetar as linhas;
-    const bodyOrcamento = document.getElementById('bodyOrcamento')
-    if (bodyOrcamento) bodyOrcamento.innerHTML = ''
-
-    await carregarTabelasOrcamento()
+    tela.innerHTML = ''
+    await executar(funcaoTela)
 
 }
 

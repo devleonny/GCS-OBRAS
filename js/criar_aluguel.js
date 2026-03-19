@@ -76,6 +76,8 @@ async function telaCriarOrcamentoAluguel() {
     criarMenus('criarOrcamentosAluguel')
     await carregarTabelasAluguel()
     await tabelaProdutosAluguel()
+
+    atualizarToolbar()
 }
 
 async function carregarTabelasAluguel() {
