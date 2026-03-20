@@ -88,7 +88,7 @@ async function telaOS(idOcorrencia) {
 
     for (const correcao of Object.values(ocorrencia?.correcoes || {})) {
 
-        const { nome } = await recuperarDado('correcoes', correcao?.tipoCorrecao)
+        const { nome } = await recuperarDado('correcoes', correcao?.tipoCorrecao) || {}
 
         let imagens = ''
 
