@@ -1243,11 +1243,6 @@ async function editarOrcamentoTemporario(idEdicao, lpu) {
 function baseOrcamento(orcamento, remover = false) {
 
     const temporario = JSON.parse(localStorage.getItem('temporario')) || {}
-
-    // Limpeza;
-    delete temporario.orcamento
-    delete temporario.aluguel
-
     const idEdicao = sessionStorage.getItem('idEdicao')
 
     // remover
