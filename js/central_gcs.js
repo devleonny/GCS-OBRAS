@@ -1179,12 +1179,14 @@ function painelEdicao(tela) {
     const elemento = `
         <div style="${vertical}; padding: 1rem;">
 
-            <span><b>SEUS ORÇAMENTOS EM EDIÇÃO TEMPORÁRIA</b></span>
-            <span>Escolha um orçamento para voltar a editar ou clique para começar um novo.</span>
+            <span style="text-align: left;">
+                <b>SEUS ORÇAMENTOS EM EDIÇÃO TEMPORÁRIA</b><br>
+                Escolha um orçamento para voltar a editar ou clique para começar um novo.
 
-            <span><b>ATENÇÃO</b></span>
-            <span>Se você excluir algo aqui será removida apenas a versão temporária no seu computador,<br>
-            <span>a versão final do orçamento continuará salva no servidor.</span>
+                <b>ATENÇÃO</b><br>
+                Se você excluir algo aqui será removida apenas a versão temporária no seu computador,<br>
+                a versão final do orçamento continuará salva no servidor.
+            </span>
 
             <br>
 
