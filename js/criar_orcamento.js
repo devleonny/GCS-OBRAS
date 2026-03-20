@@ -292,7 +292,11 @@ async function alterarRevisao() {
 
     const orcamento = baseOrcamento()
     orcamento.revisoes.atual = revisao
-    orcamento.esquema_composicoes = orcamento.revisoes.historico[revisao]
+
+    if (orcamento.lpu_ativa == 'ALUGUEL')
+        orcamento.dados_composicoes = orcamento.revisoes.historico[revisao]
+    else
+        orcamento.esquema_composicoes = orcamento.revisoes.historico[revisao]
 
     baseOrcamento(orcamento)
 

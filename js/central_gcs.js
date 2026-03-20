@@ -1157,7 +1157,7 @@ function painelEdicao(tela) {
             const div = `
                 <tr>
                     <td>
-                        <img onclick="editarOrcamentoTemporario('${idEdicao}', '${lpu}')" src="imagens/esq.png">
+                        <button onclick="editarOrcamentoTemporario('${idEdicao}', '${lpu}')">Editar</button>
                     </td>
                     <td>${orc?.dados_orcam?.contrato || 'Novo Orçamento'}</td>
                     <td>${dinheiro(orc?.total_geral)}</td>
@@ -1199,7 +1199,7 @@ function painelEdicao(tela) {
                 <div class="div-tabela">
                     <table class="tabela">
                         <thead>
-                            ${['Acessar', 'nº ORÇAMENTO', 'Total', 'LPU', 'Última alteração', 'Excluir'].map(op => `<th>${op}</th>`).join('')} 
+                            ${['', 'nº ORÇAMENTO', 'Total', 'LPU', 'Última alteração', 'Excluir'].map(op => `<th>${op}</th>`).join('')} 
                         </thead>
                         <tbody>${listaORCS.join('')}</tbody>
                     </table>

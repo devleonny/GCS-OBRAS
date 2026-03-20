@@ -71,7 +71,8 @@ async function telaCriarOrcamentoAluguel() {
     </div>
     `
     const orcamentoAluguel = document.getElementById('orcamento_aluguel')
-    if (!orcamentoAluguel) tela.innerHTML = acumulado
+    if (!orcamentoAluguel) 
+        tela.innerHTML = acumulado
 
     criarMenus('criarOrcamentosAluguel')
     await carregarTabelasAluguel()
