@@ -71,11 +71,14 @@ async function telaCriarOrcamentoAluguel() {
     </div>
     `
     const orcamentoAluguel = document.getElementById('orcamento_aluguel')
-    if (!orcamentoAluguel) tela.innerHTML = acumulado
+    if (!orcamentoAluguel)
+        tela.innerHTML = acumulado
 
     criarMenus('criarOrcamentosAluguel')
     await carregarTabelasAluguel()
     await tabelaProdutosAluguel()
+
+    atualizarToolbar()
 }
 
 async function carregarTabelasAluguel() {
@@ -398,6 +401,13 @@ async function total() {
 
     document.getElementById('total_geral').textContent = dinheiro(totais.GERAL.valor)
     orcamentoBase.total_geral = totais.GERAL.valor
+
+    // Salvar a revisão, se existirem;
+    const selectRevisao = document.querySelector('[name="revisao"]')
+    if (selectRevisao && selectRevisao.value !== '' && orcamentoBase.revisoes) {
+        const revisao = selectRevisao.value
+        orcamentoBase.revisoes.historico[revisao] = structuredClone(orcamentoBase.dados_composicoes)
+    }
 
     baseOrcamento(orcamentoBase)
 
