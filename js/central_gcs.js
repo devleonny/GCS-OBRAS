@@ -1183,7 +1183,7 @@ function painelEdicao(tela) {
             <span>Escolha um orçamento para voltar a editar ou clique para começar um novo.</span>
 
             <span><b>ATENÇÃO</b></span>
-            <span>Se você excluir algo aqui será removida apenas a versão temporária no seu computador,</span>
+            <span>Se você excluir algo aqui será removida apenas a versão temporária no seu computador,<br>
             <span>a versão final do orçamento continuará salva no servidor.</span>
 
             <br>

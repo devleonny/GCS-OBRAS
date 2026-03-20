@@ -231,13 +231,19 @@ async function atualizarToolbar(remover) {
             </div>
         </div>
     `
-
     const revisoes = Object.keys(orcamentoBase?.revisoes?.historico || {})
         .map(R => `<option ${orcamentoBase?.revisoes?.atual == R ? 'selected' : ''}>${R}</option>`)
         .join('')
 
+    const temporario = JSON.parse(localStorage.getItem('temporario')) || {}
+
+    const alterarOrcTemp = Object.keys(temporario).length
+        ? `<img src="imagens/pasta.png" onclick="painelEdicao()">`
+        : ''
+
     titulo.innerHTML = `
         <div style="${horizontal}; gap: 0.5rem;">
+            ${alterarOrcTemp}
             <img src="${edicao ? 'gifs/atencao.gif' : 'imagens/concluido.png'}" style="width: 2rem;">
             <span>${edicao ? `Editando: <b>${contrato}</b>` : 'Novo Orçamento'}</span>
 
@@ -269,12 +275,19 @@ function confirmarExclusaoRevisao() {
     const orcamento = baseOrcamento()
     orcamento.revisoes ??= {}
 
-    if (!orcamento?.revisoes?.historico?.[revisao]) return
+    if (!orcamento?.revisoes?.historico?.[revisao])
+        return
 
     delete orcamento.revisoes.historico[revisao]
     const chavesRevisoes = Object.keys(orcamento?.revisoes?.historico || {})
     const RX = chavesRevisoes[0]
-    orcamento.esquema_composicoes = orcamento?.revisoes?.historico?.[RX] || {}
+    const composicoes = structuredClone(orcamento?.revisoes?.historico?.[RX] || {})
+
+    if (orcamento.lpu_ativa == 'ALUGUEL')
+        orcamento.dados_composicoes = composicoes
+    else
+        orcamento.esquema_composicoes = composicoes
+
     orcamento.revisoes.atual = RX
 
     revisao.innerHTML = chavesRevisoes.map(r => `<option ${r == RX ? 'selected' : ''}>${r}</option>`).join('')
@@ -1111,7 +1124,7 @@ async function totalOrcamento() {
     const selectRevisao = document.querySelector('[name="revisao"]')
     if (selectRevisao && selectRevisao.value !== '' && orcamentoBase.revisoes) {
         const revisao = selectRevisao.value
-        orcamentoBase.revisoes.historico[revisao] = orcamentoBase.esquema_composicoes
+        orcamentoBase.revisoes.historico[revisao] = structuredClone(orcamentoBase.esquema_composicoes)
     }
 
     baseOrcamento(orcamentoBase)
