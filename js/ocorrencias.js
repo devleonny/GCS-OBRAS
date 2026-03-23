@@ -513,6 +513,10 @@ async function criarLinhaOcorrencia(ocorrencia) {
         </div>`
     }
 
+    const criarOrcamento = 1 == 2 // id.includes('ORC_') // Vem de orçamento;
+        ? `<img src="imagens/projeto.png" onclick="criarOrcamentoVinculado('${id}')">`
+        : ''
+
     const partes = `
         <div class="div-linha">
             <div class="bloco-linha">
@@ -526,7 +530,9 @@ async function criarLinhaOcorrencia(ocorrencia) {
                     onclick="coletarAssinatura('${id}')">
                         <img src="imagens/assinatura.png" style="width: 1.5rem;">
                     </div>
+                    ${criarOrcamento}
                 </div>
+                ${modeloCampos('', 'AC SOLUÇÕES')}
                 ${modeloCampos('Unidade', cliente?.nome)}
                 ${modeloCampos('Endereço', cliente?.endereco)}
                 ${modeloCampos('Bairro', cliente?.bairro)}
@@ -553,6 +559,37 @@ async function criarLinhaOcorrencia(ocorrencia) {
         <tr>
             <td>${partes}</td>
         </tr>`
+
+}
+
+async function criarOrcamentoVinculado(idOcorrencia) {
+
+    overlayAguarde()
+
+    const orcamento = await pesquisarDB({
+        base: 'dados_orcamentos',
+        filtros: {
+            'dados_orcam.contrato': { op: '=', value: idOcorrencia }
+        }
+    })
+
+    if (orcamento.resultados.le > 1)
+        return popup({ mensagem: `Por alguma razão existem dois orçamentos com este número <b>${idOcorrencia}</b>, fale com o suporte.` })
+
+    if (!orcamento.resultados.length)
+        return popup({ mensagem: `Não existe orçamento com este número <b>${idOcorrencia}</b>, vincule esta ocorrência a um orçamento antes.` })
+
+    // Chave provisória para vínculo posterior;
+    baseOrcamento({
+        origem: {
+            idOrcamento: orcamento.resultados[0].id,
+            idOcorrencia
+        }
+    })
+
+    await telaCriarOrcamento()
+
+    removerOverlay()
 
 }
 

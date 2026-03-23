@@ -1152,16 +1152,25 @@ function painelEdicao(tela) {
     const listaORCS = Object.entries(JSON.parse(localStorage.getItem('temporario')) || {})
         .map(([idEdicao, orc]) => {
 
-            const lpu = orc?.lpu_ativa || ''
+            const { lpu_ativa, origem } = orc || {}
+
+            const vinculado = origem 
+                ? `<span class="tag-cliente">Vinculado • ${origem.idOcorrencia}</span>`
+                : ''
 
             const div = `
                 <tr>
                     <td>
-                        <button onclick="editarOrcamentoTemporario('${idEdicao}', '${lpu}')">Editar</button>
+                        <button onclick="editarOrcamentoTemporario('${idEdicao}', '${lpu_ativa}')">Editar</button>
                     </td>
-                    <td>${orc?.dados_orcam?.contrato || 'Novo Orçamento'}</td>
+                    <td>
+                        <div style="${vertical}; gap: 2px;">
+                            <span class="tag-cliente">${orc?.dados_orcam?.contrato || 'Novo Orçamento'}</span>
+                            ${vinculado}
+                        </div>
+                    </td>
                     <td>${dinheiro(orc?.total_geral)}</td>
-                    <td>${lpu}</td>
+                    <td>${lpu_ativa}</td>
                     <td>${new Date(orc?.timestamp || Date.now()).toLocaleString()}</td>
                     <td><img src="imagens/cancel.png" onclick="removerOrcTemp(this, '${idEdicao}')"></td>
                 </tr>
@@ -1221,7 +1230,7 @@ async function removerOrcTemp(img, idEdicao) {
     img.closest('tr').remove()
 
     const temporario = JSON.parse(localStorage.getItem('temporario')) || {}
-    
+
     delete temporario[idEdicao]
 
     localStorage.setItem('temporario', JSON.stringify(temporario))

@@ -608,6 +608,20 @@ async function enviarDadosOrcamento() {
 
     if (resposta.success) {
 
+        // Caso seja um orçamento vinculado;
+        if (orcamentoBase.origem) {
+
+            const { idOrcamento } = orcamentoBase.origem || {}
+
+            const dados = {
+                data: new Date().toLocaleString(),
+                usuario: acesso.usuario
+            }
+
+            await enviar(`dados_orcamentos/${idOrcamento}/vinculados/${orcamentoBase.id}`, dados)
+
+        }
+
         popup({ tempo: 4, mensagem: 'Aguarde... redirecionando...', imagem: 'imagens/concluido.png' })
 
         // Limpeza do orçamento em edição;
