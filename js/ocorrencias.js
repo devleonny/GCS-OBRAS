@@ -256,7 +256,7 @@ async function carregarCorrecoes(ocorrencia) {
 
     for (const [idCorrecao, correcao] of correcoesOrganizadas) {
 
-        const { equipamentos } = correcao
+        const { equipamentos, idOrcamento } = correcao
 
         if (aTec) {
             // Só mostrar correções criadas para ele;
@@ -316,6 +316,10 @@ async function carregarCorrecoes(ocorrencia) {
                 ? 'na'
                 : 'and'
 
+        const pdfOrcamento = idOrcamento
+            ? modelo('Orçamento', `<img src="imagens/pdf.png" onclick="irPdf('${idOrcamento}')">`)
+            : ''
+
         divsCorrecoes += `
             <div class="detalhes-correcoes-1">
 
@@ -330,10 +334,11 @@ async function carregarCorrecoes(ocorrencia) {
                     ${modelo('Solicitante', `<span>${correcao.usuario}</span>`)}
                     ${modelo('Executor', `<span>${correcao.executor}</span>`)}
                     ${modelo('Correção', `<span class="${estilo}">${nome || 'Sem status'}</span>`)}
+                    ${pdfOrcamento}
                     ${modelo('Descrição', `<div style="white-space: pre-wrap;">${correcao.descricao}</div>`)}
                     ${modelo('Criado em', `<span>${correcao?.data || ''}</span>`)}
                     ${modelo('Equipamentos', tabEquipamentos(linhasEquipamentos))}
-
+                    
                 </div>
 
                 <div style="${horizontal}">
@@ -513,7 +518,7 @@ async function criarLinhaOcorrencia(ocorrencia) {
         </div>`
     }
 
-    const criarOrcamento = 1 == 2 // id.includes('ORC_') // Vem de orçamento;
+    const criarOrcamento = (!['cliente', 'técnico'].includes(acesso.permissao) && id.includes('ORC_')) // Vem de orçamento;
         ? `<img src="imagens/projeto.png" onclick="criarOrcamentoVinculado('${id}')">`
         : ''
 

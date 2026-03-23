@@ -611,7 +611,7 @@ async function enviarDadosOrcamento() {
         // Caso seja um orçamento vinculado;
         if (orcamentoBase.origem) {
 
-            const { idOrcamento } = orcamentoBase.origem || {}
+            const { idOrcamento, idOcorrencia } = orcamentoBase.origem || {}
 
             const dados = {
                 data: new Date().toLocaleString(),
@@ -619,6 +619,32 @@ async function enviarDadosOrcamento() {
             }
 
             await enviar(`dados_orcamentos/${idOrcamento}/vinculados/${orcamentoBase.id}`, dados)
+
+            const agora = new Date()
+            const correcao = {
+                data: agora.toLocaleString(),
+                datas: {},
+                descricao: 'Orçamento criado',
+                dtCorrecao: new Date().toISOString().slice(0, 10),
+                equipamentos: {},
+                executor: dados_orcam?.executor,
+                tipoCorrecao: 'WiGZl',
+                idOrcamento: orcamentoBase.id,
+                usuario: acesso.usuario
+            }
+
+            await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${orcamentoBase.id}`, correcao)
+
+            await telaOcorrencias()
+
+            controles.ocorrencias.filtros = {
+                'id': { op: '=', value: idOcorrencia }
+            }
+
+            await paginacao()
+            removerOverlay()
+
+            return 
 
         }
 

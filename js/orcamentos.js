@@ -469,7 +469,11 @@ async function duplicar(orcam_) {
 
 async function carregarToolbar() {
 
-    const filtros = { 'dados_orcam': { op: 'NOT_EMPTY' }, 'arquivado': { op: '!=', value: 'S' } }
+    const filtros = { 
+        'dados_orcam': { op: 'NOT_EMPTY' }, 
+        'arquivado': { op: '!=', value: 'S' } 
+    }
+
     const cont1 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'status.atual' })
     const cont2 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'chamado' })
     const cont3 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'snapshots.prioridade' })

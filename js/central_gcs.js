@@ -1154,7 +1154,7 @@ function painelEdicao(tela) {
 
             const { lpu_ativa, origem } = orc || {}
 
-            const vinculado = origem 
+            const vinculado = origem
                 ? `<span class="tag-cliente">Vinculado • ${origem.idOcorrencia}</span>`
                 : ''
 
@@ -1355,12 +1355,13 @@ async function painelClientes(idOrcamento) {
         }
     }
 
-    controlesCxOpcoes.chamado = {
-        retornar: ['id'],
-        base: 'dados_ocorrencias',
-        funcaoAdicional: ['buscarDadosCliente'],
+    controlesCxOpcoes.executor = {
+        retornar: ['usuario'],
+        base: 'dados_setores',
         colunas: {
-            'Chamado': { chave: 'id' }
+            'Usuário': { chave: 'usuario' },
+            'Setor': { chave: 'setor' },
+            'Permissão': { chave: 'permissao' }
         }
     }
 
@@ -1474,6 +1475,17 @@ async function painelClientes(idOrcamento) {
                 `
         },
         {
+            texto: 'Executor',
+            elemento: `
+            <span 
+                class="opcoes" 
+                ${dados_orcam?.executor ? `id="${dados_orcam.executar}"` : ''} 
+                name="executor" 
+                onclick="cxOpcoes('executor')">${dados_orcam?.executor || 'Selecione'}
+            </span>
+            `
+        },
+        {
             texto: 'Validade da Proposta',
             elemento: `<div style="${horizontal}; gap: 3px;"><input id="validade" style="width: 3rem;" type="number" value="${dados_orcam?.validade || 30}"> <span>dias</span></div>`
         },
@@ -1507,7 +1519,7 @@ async function painelClientes(idOrcamento) {
     if (formExistente)
         return removerOverlay()
 
-    popup({ linhas, botoes, titulo: 'Dados do Cliente', autoDestruicao: ['cliente', 'tecnico'] })
+    popup({ linhas, botoes, titulo: 'Dados do Cliente', autoDestruicao: ['cliente', 'tecnico', 'executor'] })
 
     // Usuários delegados;
     for (const u of Object.keys(usuarios || {}))
@@ -1590,7 +1602,8 @@ async function salvarDadosCliente(idOrcamento) {
             emissor: el('emissor').value,
             email_analista: el('email_analista').value,
             analista: el('analista').value,
-            telefone_analista: el('telefone_analista').value
+            telefone_analista: el('telefone_analista').value,
+            executor: document.querySelector('[name="executor"]')?.id || ''
         }
 
         // Usuários delegados, reset antes;
@@ -1812,4 +1825,29 @@ function natal() {
             }, 15000) //15s
         })
     })
+}
+
+
+
+async function tt(pagina) {
+
+    if (!pagina)
+        return
+
+    const orcs = await pesquisarDB({
+        base: 'dados_orcamentos',
+        pagina,
+        filtros: { 'vinculados': { op: 'NOT_EMPTY' } }
+    })
+
+    for (const orc of orcs.resultados) {
+        const { id, vinculados } = orc || {}
+
+        for (const idOrcSlave of Object.keys(vinculados)) {
+            await enviar(`dados_orcamentos/${idOrcSlave}/master`, id)
+            console.log(idOrcSlave);
+
+        }
+    }
+
 }
