@@ -541,6 +541,9 @@ async function filtrarToolbar(campo) {
 
     } else if (campo == 'preventiva') {
         filtros['preventiva'] = { op: '=', value: 'S' }
+
+    } else { // Demais campos;
+        filtros['status.atual'] = { op: '=', value: campo }
     }
 
     controles.orcamentos.pagina = 1
