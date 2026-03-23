@@ -16,6 +16,9 @@ function formatacaoPagina() {
     } else if (controles?.[pag]?.filtros?.['chamado']) {
         status = 'chamados'
 
+    } else if (controles?.[pag]?.filtros?.['preventiva']) {
+        status = 'preventiva'
+
     } else {
         const pesq = controles?.[pag]?.filtros?.['status.atual']
         status = pesq?.op == 'IS_EMPTY'
@@ -469,25 +472,26 @@ async function duplicar(orcam_) {
 
 async function carregarToolbar() {
 
-    const filtros = { 
-        'dados_orcam': { op: 'NOT_EMPTY' }, 
-        'arquivado': { op: '!=', value: 'S' } 
+    const filtros = {
+        'dados_orcam': { op: 'NOT_EMPTY' },
+        'arquivado': { op: '!=', value: 'S' }
     }
 
     const cont1 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'status.atual' })
     const cont2 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'chamado' })
     const cont3 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'snapshots.prioridade' })
+    const cont4 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'preventiva' })
 
     const contToolbar = {
         ...cont1,
+        'preventiva': cont4['S'],
         'SEM STATUS': cont1['EM BRANCO'] || 0,
         'chamados': cont2['S'],
         'prioridades': ((cont3[0] || 0) + (cont3[1] || 0) + (cont3[2] || 0))
     }
 
     const toolbar = document.getElementById('toolbar')
-    const pag = 'orcamentos'
-    const fluxogramaCompleto = ['prioridades', 'chamados', 'todos', ...fluxograma]
+    const fluxogramaCompleto = ['prioridades', 'chamados', 'preventiva', 'todos', ...fluxograma]
 
     for (const campo of fluxogramaCompleto) {
 
@@ -497,21 +501,6 @@ async function carregarToolbar() {
         if (tool) {
             tool.querySelector('span').textContent = contagem
             continue
-        }
-
-        let filtrosPesq = `'status.atual': {op:'=', value: '${campo}'}`
-
-        if (campo == 'chamados') {
-            filtrosPesq = `'chamado': {op:'=', value: 'S'}`
-
-        } else if (campo == 'SEM STATUS') {
-            filtrosPesq = `'status.atual': {op: 'IS_EMPTY'}`
-
-        } else if (campo == 'prioridades') {
-            filtrosPesq = `'snapshots.prioridade': {op: '<', value: 3}`
-
-        } else if (campo == 'todos') {
-            filtrosPesq = ''
         }
 
         const f = campo == 'VENDA DIRETA'
@@ -524,16 +513,41 @@ async function carregarToolbar() {
                 class="aba-toolbar"
                 data-status="${campo}"
                 name="${campo}"
-                onclick="
-                controles.${pag}.pagina = 1; 
-                controles.${pag}.filtros = { 'dados_orcam': { op: 'NOT_EMPTY' }, 'arquivado': { op: '!=', value: 'S' }, ${filtrosPesq} };
-                paginacao('${pag}')">
+                onclick="filtrarToolbar('${campo}')">
                 <label>${campo.toUpperCase()}</label>
                 <span ${f}>${contagem}</span>
             </div>
             `
         toolbar.insertAdjacentHTML('beforeend', novaTool)
     }
+
+}
+
+async function filtrarToolbar(campo) {
+
+    const filtros = {
+        'dados_orcam': { op: 'NOT_EMPTY' },
+        'arquivado': { op: '!=', value: 'S' }
+    }
+
+    if (campo == 'chamados') {
+        filtros['chamados'] = { op: '=', value: 'S' }
+
+    } else if (campo == 'SEM STATUS') {
+        filtros['status.atual'] = { op: 'IS_EMPTY' }
+
+    } else if (campo == 'prioridades') {
+        filtros['snapshots.prioridade'] = { op: '<', value: 3 }
+
+    } else if (campo == 'preventiva') {
+        filtros['preventiva'] = { op: '=', value: 'S' }
+    }
+
+    controles.orcamentos.pagina = 1
+
+    controles.orcamentos.filtros = filtros
+
+    await paginacao()
 
 }
 

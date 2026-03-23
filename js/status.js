@@ -354,7 +354,12 @@ async function abrirAtalhos(id, idMaster) {
         <hr>
         <div style="${horizontal}; gap: 5px;">
             <span>Classificar como <b>CHAMADO</b></span>
-            <input ${orcamento?.chamado == 'S' ? 'checked' : ''} onclick="ativarChamado(this, '${id}')" ${styChek} type="checkbox">
+            <input ${orcamento?.chamado == 'S' ? 'checked' : ''} onclick="ativarChave(this, '${id}', 'chamado')" ${styChek} type="checkbox">
+        </div>
+
+        <div style="${horizontal}; gap: 5px;">
+            <span>Classificar como <b>PREVENTIVA</b></span>
+            <input ${orcamento?.preventiva == 'S' ? 'checked' : ''} onclick="ativarChave(this, '${id}', 'preventiva')" ${styChek} type="checkbox">
         </div>
         <hr>
         ${aviso}
@@ -785,7 +790,7 @@ async function abrirEsquema(id) {
             texto: `
                 <div style="${horizontal}; gap: 5px;">
                     <span>Classificar como <b>CHAMADO</b></span>
-                    <input ${chamado ? 'checked' : ''} onclick="ativarChamado(this, '${id}')" ${styChek} type="checkbox">
+                    <input ${chamado ? 'checked' : ''} onclick="ativarChave(this, '${id}', 'chamado')" ${styChek} type="checkbox">
                 </div>
             `,
             status: chamado
@@ -947,7 +952,10 @@ async function alterarStatus(id, select) {
     }
 
     const pHistorico = document.querySelector('.painel-historico')
-    if (pHistorico) await abrirEsquema(id)
+    if (pHistorico) 
+        await abrirEsquema(id)
+
+    await carregarToolbar()
 }
 
 async function formularioOrcAprovado(id) {

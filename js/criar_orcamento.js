@@ -667,7 +667,7 @@ async function enviarDadosOrcamento() {
 
 }
 
-async function ativarChamado(input, idOrcamento) {
+async function ativarChave(input, idOrcamento, chave) {
 
     // Tela de criação de orçamento, não precisa continuar, o salvar irá coletar a informação;
     if (!idOrcamento)
@@ -678,14 +678,14 @@ async function ativarChamado(input, idOrcamento) {
         : 'N'
 
     overlayAguarde()
-    const resposta = await enviar(`dados_orcamentos/${idOrcamento}/chamado`, ativo)
+    const resposta = await enviar(`dados_orcamentos/${idOrcamento}/${chave}`, ativo)
     if (resposta.mensagem) {
         input.checked = !ativo
         return popup({ mensagem: resposta.mensagem })
     }
 
     const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-    orcamento.chamado = ativo
+    orcamento[chave] = ativo
 
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
 
@@ -694,6 +694,8 @@ async function ativarChamado(input, idOrcamento) {
         await abrirEsquema(idOrcamento)
 
     removerOverlay()
+
+    await carregarToolbar()
 
 }
 
