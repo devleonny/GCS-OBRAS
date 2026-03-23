@@ -519,7 +519,7 @@ async function criarLinhaOcorrencia(ocorrencia) {
     }
 
     const criarOrcamento = (!['cliente', 'técnico'].includes(acesso.permissao) && id.includes('ORC_')) // Vem de orçamento;
-        ? `<img src="imagens/projeto.png" onclick="criarOrcamentoVinculado('${id}')">`
+        ? `<button onclick="criarOrcamentoVinculado('${id}')">Criar orçamento</button>`
         : ''
 
     const partes = `
