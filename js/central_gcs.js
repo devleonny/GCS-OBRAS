@@ -1191,6 +1191,9 @@ function painelEdicao(tela) {
             <span style="text-align: left;">
                 <b>SEUS ORÇAMENTOS EM EDIÇÃO TEMPORÁRIA</b><br>
                 Escolha um orçamento para voltar a editar ou clique para começar um novo.
+                
+                <br>
+                <br>
 
                 <b>ATENÇÃO</b><br>
                 Se você excluir algo aqui será removida apenas a versão temporária no seu computador,<br>
