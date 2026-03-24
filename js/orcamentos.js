@@ -531,7 +531,7 @@ async function filtrarToolbar(campo) {
     }
 
     if (campo == 'chamados') {
-        filtros['chamados'] = { op: '=', value: 'S' }
+        filtros['chamado'] = { op: '=', value: 'S' }
 
     } else if (campo == 'SEM STATUS') {
         filtros['status.atual'] = { op: 'IS_EMPTY' }
