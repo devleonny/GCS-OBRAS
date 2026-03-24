@@ -542,7 +542,7 @@ async function filtrarToolbar(campo) {
     } else if (campo == 'preventiva') {
         filtros['preventiva'] = { op: '=', value: 'S' }
 
-    } else { // Demais campos;
+    } else if (campo !== 'todos') { // Demais campos, exceto 'todos';
         filtros['status.atual'] = { op: '=', value: campo }
     }
 
