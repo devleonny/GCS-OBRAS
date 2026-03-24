@@ -623,6 +623,7 @@ input[type="file"] {
 }
 
 .botaoImg {
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -633,6 +634,16 @@ input[type="file"] {
 
 .botaoImg img {
     width: 1.5rem;
+}
+
+.botaoImg span {
+    color: #247eff;
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.botaoImg:hover {
+    background-color: #cdcdcd;
 }
 
 .menu-btn {

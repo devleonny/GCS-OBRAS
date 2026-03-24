@@ -130,8 +130,10 @@ async function preencher() {
     const dadosPorBloco = {
         'Dados da Proposta': {
             'Número do Chamado': `<div class="nome-chamado">${nomeChamado}</div>`,
-            'Tipo de Frete': informacoes.tipo_de_frete,
-            'Garantia': informacoes.garantia == '' ? 'Conforme tratativa Comercial' : informacoes.garantia,
+            'Tipo de Frete': informacoes?.tipo_de_frete || '',
+            'Garantia': informacoes?.garantia == ''
+                ? 'Conforme tratativa Comercial'
+                : informacoes?.garantia || '',
             'REF': ''
         },
         'Dados do Cliente': {

@@ -141,7 +141,8 @@ const esquemaBotoes = {
         { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
         { nome: 'Salvar Orçamento', funcao: `enviarDadosOrcamento`, img: 'salvo' },
         { nome: 'Apagar Orçamento', funcao: `apagarOrcamento`, img: 'cancel' },
-        { nome: 'Orçamentos', funcao: `telaOrcamentos`, img: 'voltar_2' }
+        { nome: 'Orçamentos', funcao: `telaOrcamentos`, img: 'voltar_2' },
+        { nome: 'Ocorrências', funcao: `voltarOcorrencias`, img: 'voltar_2' }
     ],
     criarOrcamentosAluguel: [
         { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
@@ -150,6 +151,7 @@ const esquemaBotoes = {
         { nome: 'Orçamentos', funcao: `telaOrcamentos`, img: 'voltar_2' }
     ],
     orcamentos: [
+        { nome: 'Ocorrências', funcao: 'voltarOcorrencias', img: 'alerta' },
         { nome: 'Baixar em Excel', funcao: 'baixarExcelOrcamentos', img: 'excel' },
         { nome: 'Criar Orçamento', funcao: `painelEdicao`, img: 'projeto' },
         { nome: 'Criar Orçamento Aluguel', funcao: `painelEdicao(1)`, img: 'projeto' },
@@ -1191,7 +1193,7 @@ function painelEdicao(tela) {
             <span style="text-align: left;">
                 <b>SEUS ORÇAMENTOS EM EDIÇÃO TEMPORÁRIA</b><br>
                 Escolha um orçamento para voltar a editar ou clique para começar um novo.
-                
+
                 <br>
                 <br>
 

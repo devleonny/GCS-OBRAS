@@ -544,10 +544,10 @@ async function filtrarToolbar(campo) {
 
     } else if (campo !== 'todos') { // Demais campos, exceto 'todos';
         filtros['status.atual'] = { op: '=', value: campo }
+
     }
 
     controles.orcamentos.pagina = 1
-
     controles.orcamentos.filtros = filtros
 
     await paginacao()

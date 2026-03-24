@@ -1,5 +1,5 @@
 const nomeBase = 'GCS'
-const versao = 4
+const versao = 5
 let bloqSinc = false
 let dbInstance = null
 
@@ -237,6 +237,11 @@ const regrasSnapshot = {
         snapshot: async ({ dado, stores }) => {
 
             const snap = {}
+
+            snap.contrato = [
+                dado?.id_antigo,
+                dado.id
+            ]
 
             snap.executores = Object.values(dado?.correcoes || {})
                 .map(c => c?.executor)

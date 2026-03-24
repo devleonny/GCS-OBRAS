@@ -291,8 +291,6 @@ async function abrirAtalhos(id, idMaster) {
         `
     }
 
-    if (altNumOrc.includes(acesso.permissao)) botoesDisponiveis += modeloBotoes('editar3', 'Alterar ORC > novo', `mudarNumORC('${id}')`)
-
     const modAlerta = (texto) => `
         <div class="alerta-pendencia" onclick="irORC('${id}')">
             <img src="gifs/alerta.gif">

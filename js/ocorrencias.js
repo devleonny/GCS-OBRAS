@@ -229,7 +229,7 @@ async function carregarCorrecoes(ocorrencia) {
     let divsCorrecoes = ''
     const aTec = acesso.permissao === 'técnico'
 
-    const tabEquipamentos = (linhas) => {
+    const tabEquipamentos = (linhas, idCorrecao) => {
 
         const tabela = `
             <div style="${vertical}">
@@ -237,12 +237,14 @@ async function carregarCorrecoes(ocorrencia) {
                 <div class="div-tabela">
                     <table class="tabela">
                         <thead>
-                            ${['Quantidade', 'Unidade', 'Descrição'].map(th => `<th>${th}</th>`).join('')}
+                            ${['Código', 'Quantidade', 'Unidade', 'Descrição'].map(th => `<th>${th}</th>`).join('')}
                         </thead>
                         <tbody>${linhas}</tbody>
                     </table>
                 </div>
-                <div class="rodape-tabela"></div>
+                <div class="rodape-tabela">
+                    <button onclick="criarOrcamentoVinculado('${idOcorrencia}', '${idCorrecao}')">Criar um orçamento com esses itens</button>
+                </div>
             </div>`
 
         return linhas
@@ -297,9 +299,10 @@ async function carregarCorrecoes(ocorrencia) {
 
         const linhasEquipamentos = Object.values(equipamentos || {})
             .map(e => {
-                const { unidade, descricao, quantidade } = e || {}
+                const { codigo, unidade, descricao, quantidade } = e || {}
                 const tr = `
                     <tr>
+                        <td>${codigo}</td>
                         <td>${quantidade || 0}</td>
                         <td>${unidade || 'UN'}</td>
                         <td>${descricao || ''}</td>
@@ -332,12 +335,12 @@ async function carregarCorrecoes(ocorrencia) {
                         <div class="agendamentos">${agendamentos}</div>
                         `)}
                     ${modelo('Solicitante', `<span>${correcao.usuario}</span>`)}
-                    ${modelo('Executor', `<span>${correcao.executor}</span>`)}
+                    ${modelo('Executor', `<span>${correcao?.executor || ''}</span>`)}
                     ${modelo('Correção', `<span class="${estilo}">${nome || 'Sem status'}</span>`)}
                     ${pdfOrcamento}
                     ${modelo('Descrição', `<div style="white-space: pre-wrap;">${correcao.descricao}</div>`)}
                     ${modelo('Criado em', `<span>${correcao?.data || ''}</span>`)}
-                    ${modelo('Equipamentos', tabEquipamentos(linhasEquipamentos))}
+                    ${modelo('Equipamentos', tabEquipamentos(linhasEquipamentos, idCorrecao))}
                     
                 </div>
 
@@ -483,7 +486,7 @@ async function contadoresMapaOcorrencias() {
 
 async function criarLinhaOcorrencia(ocorrencia) {
 
-    const { id, anexos, usuario, snapshots } = ocorrencia
+    const { id, anexos, usuario, id_antigo, snapshots } = ocorrencia || {}
     const { sistema, prioridade, tipo, cliente, empresa } = snapshots || {}
 
     const divCorrecoes = await carregarCorrecoes(ocorrencia)
@@ -507,18 +510,33 @@ async function criarLinhaOcorrencia(ocorrencia) {
         ? botaoImg('lapis', `formularioOcorrencia('${id}')`)
         : ''
 
-    const modeloCampos = (valor1, elemento) => {
+    const btnOS = `<div class="botaoImg" onclick="telaOS('${id}')"><span>OS</span></div>`
+
+    const btnORC = (!['cliente', 'técnico'].includes(acesso.permissao) && id.includes('ORC_'))
+        ? botaoImg('pesquisar5', `verDetalhesOrc('${id}')`)
+        : ''
+
+    const modeloCampos = (valor1, elemento, livre) => {
         if (!elemento)
             return ''
+
+        const valor2 = livre
+            ? elemento
+            : String(elemento).replace('\n', '<br>')
 
         return `
         <div style="${horizontal}; width: 100%; gap: 0.5rem;">
             <label style="font-weight: bold; width: 30%; text-align: right;">${valor1}</label>
-            <div style="text-align: justify; width: 70%; text-align: left;">${String(elemento).replace('\n', '<br>')}</div>
-        </div>`
+            <div style="text-align: justify; width: 70%; text-align: left;">${valor2}</div>
+        </div>
+        `
     }
 
-    const criarOrcamento = (!['cliente', 'técnico'].includes(acesso.permissao) && id.includes('ORC_')) // Vem de orçamento;
+    const existeAntigo = id_antigo
+        ? modeloCampos('ID Antigo', `<span class="etiqueta-chamado">${id_antigo}</span>`, true)
+        : ''
+
+    const criarOrcamento = !['cliente', 'técnico'].includes(acesso.permissao) // Apenas autorizados;
         ? `<button onclick="criarOrcamentoVinculado('${id}')">Criar orçamento</button>`
         : ''
 
@@ -526,10 +544,12 @@ async function criarLinhaOcorrencia(ocorrencia) {
         <div class="div-linha">
             <div class="bloco-linha">
                 <div style="${horizontal}; gap: 5px; padding: 5px; width: 100%;">
+
                     <span class="etiqueta-chamado">${id}</span>
                     ${btnEditar}
                     ${btnExclusao}
-                    <img src="imagens/pdf.png" style="width: 2.5rem;" onclick="telaOS('${id}')">
+                    ${btnOS}
+                    ${btnORC}
 
                     <div style="border: solid 1px ${corAssinatura}; border-radius: 3px; padding: 2px; background-color: ${corAssinatura}52;" 
                     onclick="coletarAssinatura('${id}')">
@@ -538,6 +558,7 @@ async function criarLinhaOcorrencia(ocorrencia) {
                     ${criarOrcamento}
                 </div>
                 ${modeloCampos('', 'AC SOLUÇÕES')}
+                ${existeAntigo}
                 ${modeloCampos('Unidade', cliente?.nome)}
                 ${modeloCampos('Endereço', cliente?.endereco)}
                 ${modeloCampos('Bairro', cliente?.bairro)}
@@ -567,7 +588,45 @@ async function criarLinhaOcorrencia(ocorrencia) {
 
 }
 
-async function criarOrcamentoVinculado(idOcorrencia) {
+async function verDetalhesOrc(idOcorrencia) {
+    overlayAguarde()
+
+    const pesquisa = await pesquisarDB({
+        base: 'dados_orcamentos',
+        filtros: {
+            'dados_orcam.contrato': { op: '=', value: idOcorrencia }
+        }
+    })
+
+    const idOrcamento = pesquisa?.resultados?.[0]?.id
+    if (idOrcamento)
+        await abrirAtalhos(idOrcamento)
+
+    removerOverlay()
+
+}
+
+async function verPdfOrcamento(idOcorrencia) {
+
+    overlayAguarde()
+
+    const pesquisa = await pesquisarDB({
+        base: 'dados_orcamentos',
+        filtros: {
+            'dados_orcam.contrato': { op: '=', value: idOcorrencia }
+        }
+    })
+
+    const idOrcamento = pesquisa?.resultados?.[0]?.id
+
+    if (idOrcamento)
+        await irPdf(idOrcamento)
+
+    removerOverlay()
+
+}
+
+async function criarOrcamentoVinculado(idOcorrencia, idCorrecao) {
 
     overlayAguarde()
 
@@ -578,16 +637,43 @@ async function criarOrcamentoVinculado(idOcorrencia) {
         }
     })
 
-    if (orcamento.resultados.le > 1)
+    if (orcamento.resultados.length > 1)
         return popup({ mensagem: `Por alguma razão existem dois orçamentos com este número <b>${idOcorrencia}</b>, fale com o suporte.` })
 
-    if (!orcamento.resultados.length)
+    if (!orcamento.resultados.length && idOcorrencia.includes('ORC_'))
         return popup({ mensagem: `Não existe orçamento com este número <b>${idOcorrencia}</b>, vincule esta ocorrência a um orçamento antes.` })
 
+    const { unidade, snapshots, correcoes } = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
+
+    const { equipamentos } = correcoes?.[idCorrecao] || {}
+
+    const dados_composicoes = Object.fromEntries(
+        Object.entries(equipamentos).map(([chave, dados]) => {
+            return [
+                chave,
+                {
+                    ...dados,
+                    qtde: dados.quantidade
+                }
+            ]
+        })
+    )
     // Chave provisória para vínculo posterior;
     baseOrcamento({
+        dados_composicoes,
+        lpu_ativa:
+            snapshots?.empresa == 'BOTICARIO'
+                ? 'LPU BOTICARIO'
+                : 'LPU HOPE',
+        dados_orcam: {
+            contrato: 'sequencial',
+            omie_cliente: unidade,
+            analista: acesso?.nome_completo || '',
+            email_analista: acesso?.email || '',
+            telefone: acesso?.telefone || ''
+        },
         origem: {
-            idOrcamento: orcamento.resultados[0].id,
+            idOrcamento: orcamento?.resultados?.[0]?.id,
             idOcorrencia
         }
     })
@@ -595,6 +681,14 @@ async function criarOrcamentoVinculado(idOcorrencia) {
     await telaCriarOrcamento()
 
     removerOverlay()
+
+}
+
+async function voltarOcorrencias() {
+
+    carregarMenus()
+    auxPendencias()
+    await telaOcorrencias()
 
 }
 
@@ -813,7 +907,7 @@ async function criarPesquisas() {
     const divF2 = document.querySelector('#filtros2')
 
     const camposLivres = {
-        'Chamado': { path: 'id' },
+        'Chamado': { path: 'snapshots.contrato' },
         'Cidade': { path: 'snapshots.cliente.cidade' },
         'Descricao': { path: 'descricao' },
         'Unidade': { path: 'snapshots.cliente.nome' },

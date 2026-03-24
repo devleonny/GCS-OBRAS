@@ -602,29 +602,34 @@ async function enviarDadosOrcamento() {
     }
 
     if (!orcamentoBase.id)
-        orcamentoBase.id = 'ORCA_' + unicoID()
+        orcamentoBase.id = `ORCA_${crypto.randomUUID()}`
 
-    const resposta = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoBase)
+    const { success, contrato } = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoBase) || {}
 
-    if (resposta.success) {
+    if (success) {
 
-        // Caso seja um orçamento vinculado;
+        // Caso seja um orçamento vinculado ou troca de Ocorrência para ORC;
         if (orcamentoBase.origem) {
 
-            const { idOrcamento, idOcorrencia } = orcamentoBase.origem || {}
+            let { idOrcamento, idOcorrencia } = orcamentoBase.origem || {}
 
-            const dados = {
-                data: new Date().toLocaleString(),
-                usuario: acesso.usuario
+            // Se existir idOrcamento, então é vinculado;
+            if (idOrcamento) {
+                const dados = {
+                    data: new Date().toLocaleString(),
+                    usuario: acesso.usuario
+                }
+
+                // Salvando o orçamento vinculado no master;
+                await enviar(`dados_orcamentos/${idOrcamento}/vinculados/${orcamentoBase.id}`, dados)
             }
 
-            await enviar(`dados_orcamentos/${idOrcamento}/vinculados/${orcamentoBase.id}`, dados)
-
+            // Criação da correção;
             const agora = new Date()
             const correcao = {
                 data: agora.toLocaleString(),
                 datas: {},
-                descricao: 'Orçamento criado',
+                descricao: `Orçamento criado ${contrato || ''}`,
                 dtCorrecao: new Date().toISOString().slice(0, 10),
                 equipamentos: {},
                 executor: dados_orcam?.executor,
@@ -633,9 +638,18 @@ async function enviarDadosOrcamento() {
                 usuario: acesso.usuario
             }
 
-            await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${orcamentoBase.id}`, correcao)
+            // Salvamento da ocorrência, observar bifurcação (ORC ou G);
+            // Se ORC, então este orçamento é vinculado;
+            if (idOcorrencia.includes('ORC')) {
+                await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${orcamentoBase.id}`, correcao)
 
-            await telaOcorrencias()
+            } else {
+                // Se G ou qualquer outro, então é substitutivo para ORC;
+                await desvincularOcorrencia(idOcorrencia, contrato)
+                idOcorrencia = contrato
+            }
+
+            await voltarOcorrencias()
 
             controles.ocorrencias.filtros = {
                 'id': { op: '=', value: idOcorrencia }
@@ -644,7 +658,7 @@ async function enviarDadosOrcamento() {
             await paginacao()
             removerOverlay()
 
-            return 
+            return
 
         }
 
@@ -665,6 +679,35 @@ async function enviarDadosOrcamento() {
 
     }
 
+}
+
+async function desvincularOcorrencia(id, contrato) {
+    try {
+        const resposta = await fetch(`${api}/desvincular-ocorrencia`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                id,
+                contrato,
+                usuario: acesso.usuario
+            })
+        })
+
+        const dados = await resposta.json()
+
+        if (!resposta.ok || !dados.success) {
+            return popup({ mensagem: dados.mensagem || 'Erro na requisição' })
+        }
+
+        popup({ mensagem: dados.mensagem })
+
+        return dados.item
+
+    } catch (err) {
+        popup({ mensagem: err.message || 'Erro de conexão com o servidor' })
+    }
 }
 
 async function ativarChave(input, idOrcamento, chave) {

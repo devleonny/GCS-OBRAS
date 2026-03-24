@@ -291,8 +291,6 @@ async function minhaCorrecao(id) {
 
 function carregarMenus() {
 
-    const blq = ['cliente', 'técnico']
-
     const menus = {
         'Atualizar': { img: 'atualizar', funcao: 'atualizarGCS()', proibidos: [] },
         'Início': { img: 'home', funcao: 'telaInicialOcorrencias()', proibidos: [] },
@@ -303,11 +301,9 @@ function carregarMenus() {
         'Relatório de Peças': { img: 'planilha', funcao: 'telaRelatorioPecas()', proibidos: ['user', 'técnico', 'visitante'] },
         'Usuários': { img: 'perfil', funcao: 'telaUsuarios()', proibidos: ['user', 'cliente', 'técnico', 'analista', 'visitante'] },
         'Cadastros': { img: 'prancheta', funcao: 'telaCadastros()', proibidos: ['user', 'cliente', 'técnico', 'analista', 'visitante'] },
-        'Clientes & Fornecedores': { img: 'prancheta', funcao: 'telaClientes()', proibidos: ['user', 'técnico', 'cliente', 'visitante'] }
-    }
-
-    if (!blq.includes(acesso.permissao)) {
-        menus.GCS = { img: 'LG', funcao: 'irGCS()', proibidos: ['técnico', 'visitante'] }
+        'Clientes & Fornecedores': { img: 'prancheta', funcao: 'telaClientes()', proibidos: ['user', 'técnico', 'cliente', 'visitante'] },
+        'Orçamentos': { img: 'projeto', funcao: 'telaOrcamentos()', proibidos: ['técnico', 'visitante'] },
+        'GCS': { img: 'LG', funcao: 'irGCS()', proibidos: ['técnico', 'visitante'] }
     }
 
     menus.Desconectar = { img: 'sair', funcao: 'deslogarUsuario()', proibidos: [] }
