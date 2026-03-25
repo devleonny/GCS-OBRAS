@@ -484,41 +484,42 @@ async function baixarExcelRelatorioOcorrencias() {
             { field: "o.id", as: "Chamado" },
             {
                 custom: `
-                CASE
-                WHEN NOT json_valid(o.correcoes) THEN 'Não analisada'
-                ELSE COALESCE(
+                    CASE
+                    WHEN NOT json_valid(o.correcoes) THEN 'Não analisada'
+                    ELSE COALESCE(
 
-                    -- 1) se existir WRuo2 em qualquer item, retorna ele
-                    (
-                    SELECT cr.nome
-                    FROM json_each(o.correcoes) je
-                    LEFT JOIN correcoes cr
-                        ON cr.id = trim(json_extract(je.value, '$.tipoCorrecao'))
-                    WHERE trim(json_extract(je.value, '$.tipoCorrecao')) = 'WRuo2'
-                    LIMIT 1
-                    ),
+                        -- 1) se existir WRuo2 em qualquer item, retorna ele
+                        (
+                        SELECT cr.nome
+                        FROM json_each(o.correcoes) je
+                        LEFT JOIN correcoes cr
+                            ON cr.id = trim(json_extract(je.value, '$.tipoCorrecao'))
+                        WHERE trim(json_extract(je.value, '$.tipoCorrecao')) = 'WRuo2'
+                        LIMIT 1
+                        ),
 
-                    -- 2) senão, retorna a última correção por data (dd/mm/aaaa)
-                    (
-                    SELECT cr.nome
-                    FROM json_each(o.correcoes) je
-                    LEFT JOIN correcoes cr
-                        ON cr.id = trim(json_extract(je.value, '$.tipoCorrecao'))
-                    WHERE json_extract(je.value, '$.data') IS NOT NULL
-                        AND trim(json_extract(je.value, '$.data')) <> ''
-                    ORDER BY date(
-                        substr(json_extract(je.value, '$.data'), 7, 4) || '-' ||
-                        substr(json_extract(je.value, '$.data'), 4, 2) || '-' ||
-                        substr(json_extract(je.value, '$.data'), 1, 2)
-                    ) DESC
-                    LIMIT 1
-                    ),
+                        -- 2) senão, retorna a última correção por data/hora (dd/mm/aaaa, hh:mm:ss)
+                        (
+                        SELECT cr.nome
+                        FROM json_each(o.correcoes) je
+                        LEFT JOIN correcoes cr
+                            ON cr.id = trim(json_extract(je.value, '$.tipoCorrecao'))
+                        WHERE json_extract(je.value, '$.data') IS NOT NULL
+                            AND trim(json_extract(je.value, '$.data')) <> ''
+                        ORDER BY datetime(
+                            substr(trim(json_extract(je.value, '$.data')), 7, 4) || '-' ||
+                            substr(trim(json_extract(je.value, '$.data')), 4, 2) || '-' ||
+                            substr(trim(json_extract(je.value, '$.data')), 1, 2) || ' ' ||
+                            substr(trim(json_extract(je.value, '$.data')), 13, 8)
+                        ) DESC
+                        LIMIT 1
+                        ),
 
-                    -- 3) fallback
-                    'Não analisada'
-                )
-                END
-            `,
+                        -- 3) fallback
+                        'Não analisada'
+                    )
+                    END
+                `,
                 as: "Status Correção"
             },
             {
@@ -684,8 +685,8 @@ async function baixarExcelRelatorioPecas() {
             { field: "o.id", as: "Chamado" },
             { field: "e.nome", as: "Empresa" },
             { field: "c.nome", as: "Loja" },
+            { custom: `json_extract(cx.value, '$.executor')`, as: "Executor" },
             { custom: `json_extract(o.snapshots, '$.cliente.nome')`, as: "Cliente" },
-            { custom: `eq.key`, as: "Código" },
             { custom: `json_extract(eq.value, '$.codigo')`, as: "Código" },
             { custom: `json_extract(eq.value, '$.serie')`, as: "Nº Série" },
             { custom: `json_extract(eq.value, '$.descricao')`, as: "Descrição", width: 35 },
