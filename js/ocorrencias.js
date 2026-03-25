@@ -1499,7 +1499,8 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
     ocorrencia.correcoes[idCorrecao] ??= {}
     ocorrencia.correcoes[idCorrecao].datas ??= {}
     ocorrencia.correcoes[idCorrecao].fotos ??= {}
-    ocorrencia.correcoes[idCorrecao].equipamentos ??= {}
+    // Equipamentos deve começar zerado;
+    ocorrencia.correcoes[idCorrecao].equipamentos = {}
 
     const tipoCorrecao = obter('tipoCorrecao').id
     const dtCorrecao = obter('dtCorrecao').value
