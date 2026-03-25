@@ -1,5 +1,5 @@
 const nomeBase = 'GCS'
-const versao = 5
+const versao = 6
 let bloqSinc = false
 let dbInstance = null
 

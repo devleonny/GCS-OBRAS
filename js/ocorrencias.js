@@ -659,7 +659,7 @@ async function criarOrcamentoVinculado(idOcorrencia, idCorrecao) {
 
     const { unidade, snapshots, correcoes } = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
 
-    const { equipamentos } = correcoes?.[idCorrecao] || {}
+    const equipamentos = correcoes?.[idCorrecao]?.equipamentos || {}
 
     const dados_composicoes = Object.fromEntries(
         Object.entries(equipamentos).map(([chave, dados]) => {
@@ -672,13 +672,18 @@ async function criarOrcamentoVinculado(idOcorrencia, idCorrecao) {
             ]
         })
     )
+
     // Chave provisória para vínculo posterior;
+    const empresa = snapshots?.empresa
+
     baseOrcamento({
         dados_composicoes,
         lpu_ativa:
-            snapshots?.empresa == 'BOTICARIO'
+            empresa == 'BOTICARIO'
                 ? 'LPU BOTICARIO'
-                : 'LPU HOPE',
+                : empresa == 'ASSAÍ'
+                    ? 'LPU ASSAÍ'
+                    : 'LPU HOPE',
         dados_orcam: {
             contrato: 'sequencial',
             omie_cliente: unidade,

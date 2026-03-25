@@ -376,6 +376,7 @@ async function alterarTabelaLPU(tabelaLPU) {
     let orcamentoBase = baseOrcamento()
     orcamentoBase.lpu_ativa = tabelaLPU
     baseOrcamento(orcamentoBase)
+    
     await tabelaProdutosOrcamentos()
     await carregarTabelasOrcamento()
 
