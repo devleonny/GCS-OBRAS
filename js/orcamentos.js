@@ -575,7 +575,7 @@ async function baixarExcelOrcamentos() {
 
         columns: [
             {
-                field: "c.timestamp",
+                field: "o.timestamp",
                 as: "Última alteração",
                 type: "date",
                 sourceFormat: "timestamp", // timestamp | iso | iso-datetime | br
@@ -587,6 +587,7 @@ async function baixarExcelOrcamentos() {
                 },
                 as: "Status",
             },
+            { field: "o.aba", as: "Aba" },
             {
                 jsonArray: {
                     field: "o.status",
@@ -620,14 +621,8 @@ async function baixarExcelOrcamentos() {
                 as: "Número Orçamento",
 
             },
-            {
-                json: {
-                    field: "o.dados_orcam",
-                    path: "$.chamado"
-                },
-                as: "Chamado"
-            },
             { field: "o.usuario", as: "Criado por" },
+            { field: "c.nome", as: "Nome" },
             { field: "c.cidade", as: "Cidade" },
             { field: "c.endereco", as: "Endereço" },
             {

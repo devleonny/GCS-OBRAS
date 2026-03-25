@@ -674,16 +674,20 @@ async function baixarExcelRelatorioPecas() {
             { type: "LEFT", table: "dados_clientes", alias: "c", on: `c.id = o.unidade` },
             { type: "LEFT", table: "empresas", alias: "e", on: `e.id = c.empresa` }
         ],
+
         explodes: [
-            { field: "o.correcoes", path: "$", alias: "cx", type: "JOIN" },
-            { field: "json_extract(cx.value, '$.equipamentos')", alias: "eq", type: "JOIN" }
+            { field: "o.correcoes", path: "$", alias: "cx", type: "INNER" },
+            { field: "json_extract(cx.value, '$.equipamentos')", alias: "eq", type: "INNER" }
         ],
+
         columns: [
             { field: "o.id", as: "Chamado" },
             { field: "e.nome", as: "Empresa" },
             { field: "c.nome", as: "Loja" },
             { custom: `json_extract(o.snapshots, '$.cliente.nome')`, as: "Cliente" },
             { custom: `eq.key`, as: "Código" },
+            { custom: `json_extract(eq.value, '$.codigo')`, as: "Código" },
+            { custom: `json_extract(eq.value, '$.serie')`, as: "Nº Série" },
             { custom: `json_extract(eq.value, '$.descricao')`, as: "Descrição", width: 35 },
             { custom: `json_extract(eq.value, '$.modelo')`, as: "Modelo" },
             { custom: `json_extract(eq.value, '$.fabricante')`, as: "Fabricante" },
@@ -692,7 +696,8 @@ async function baixarExcelRelatorioPecas() {
         ],
 
         filters: [
-            { custom: "(o.excluido IS NULL OR o.excluido = '')" }
+            { custom: "(o.excluido IS NULL OR o.excluido = '')" },
+            { custom: "eq.key IS NOT NULL" }
         ],
 
         orderBy: "o.timestamp DESC"
