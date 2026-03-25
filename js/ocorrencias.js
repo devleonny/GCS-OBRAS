@@ -4,11 +4,12 @@ const tabEquipamentos = (equipamentos, idOcorrencia, idCorrecao) => {
 
     const linhasEquipamentos = Object.values(equipamentos || {})
         .map(e => {
-            const { codigo, unidade, serie, descricao, quantidade } = e || {}
+            const { codigo, unidade, serie, descricao, origem, quantidade } = e || {}
             const tr = `
                 <tr>
                     <td>${codigo}</td>
                     <td>${serie || ''}</td>
+                    <td>${origem || ''}</td>
                     <td>${quantidade || 0}</td>
                     <td>${unidade || 'UN'}</td>
                     <td>${descricao || ''}</td>
@@ -29,7 +30,7 @@ const tabEquipamentos = (equipamentos, idOcorrencia, idCorrecao) => {
             <div class="div-tabela">
                 <table class="tabela">
                     <thead>
-                        ${['Código', 'Nº série', 'Quantidade', 'Unidade', 'Descrição'].map(th => `<th>${th}</th>`).join('')}
+                        ${['Código', 'Nº série', 'Origem', 'Quantidade', 'Unidade', 'Descrição'].map(th => `<th>${th}</th>`).join('')}
                     </thead>
                     <tbody>${linhasEquipamentos}</tbody>
                 </table>
@@ -343,6 +344,7 @@ async function carregarCorrecoes(ocorrencia) {
                         `)}
                     ${modelo('Solicitante', `<span>${correcao.usuario}</span>`)}
                     ${modelo('Executor', `<span>${correcao?.executor || ''}</span>`)}
+                    ${modelo('Técnico', `<span>${correcao?.tecnico || ''}</span>`)}
                     ${modelo('Correção', `<span class="${estilo}">${nome || 'Sem status'}</span>`)}
                     ${pdfOrcamento}
                     ${modelo('Descrição', `<div style="white-space: pre-wrap;">${correcao.descricao}</div>`)}
@@ -1347,11 +1349,21 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
     const equipamentos = (
         await Promise.all(
             Object.values(correcao?.equipamentos || {})
-                .map(equip => maisLabel(equip))
+                .map(equip => maisLabel({ ...equip, formulario: 'correcao' }))
         )
     ).join('')
 
     controlesCxOpcoes.executor = {
+        base: 'dados_setores',
+        retornar: ['usuario'],
+        colunas: {
+            'Nome': { chave: 'usuario' },
+            'Permissão': { chave: 'permissao' },
+            'Setor': { chave: 'setor' }
+        }
+    }
+
+    controlesCxOpcoes.tecnico = {
         base: 'dados_setores',
         retornar: ['usuario'],
         colunas: {
@@ -1370,7 +1382,8 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
     }
 
     const { nome } = await recuperarDado('correcoes', correcao?.tipoCorrecao) || {}
-    const executor = correcao?.executor
+    const { executor, tecnico } = correcao
+
     const linhas = [
         {
             texto: 'Data Limite Execução',
@@ -1389,6 +1402,10 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
             elemento: `<span class="campos" ${executor ? `id="${executor}"` : ''} name="executor" onclick="cxOpcoes('executor')">${executor || 'Selecione'}</span>`
         },
         {
+            texto: 'Técnico',
+            elemento: `<span class="campos" ${tecnico ? `id="${tecnico}"` : ''} name="tecnico" onclick="cxOpcoes('tecnico')">${tecnico || 'Selecione'}</span>`
+        },
+        {
             texto: 'Descrição',
             elemento: `<textarea 
                     style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" 
@@ -1401,7 +1418,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
             <div style="${vertical}; width: 100%; gap: 5px;">
                 <div style="${horizontal}; gap: 1rem;">
                     <span>Peças Usadas na Correção</span>
-                    <img src="imagens/baixar.png" onclick="maisLabel()">
+                    <img src="imagens/baixar.png" onclick="maisLabel({formulario: 'correcao'})">
                 </div>
                 <div style="${vertical}; width: 100%; gap: 2px;" id="equipamentos">
                     ${equipamentos}
@@ -1438,13 +1455,13 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
         { img: 'atualizar', texto: 'Atualizar', funcao: `atualizarGCS()` },
     ]
 
-    popup({ linhas, botoes, titulo: 'Gerenciar Correção', autoDestruicao: ['executor', 'tipoCorrecao'] })
+    popup({ linhas, botoes, titulo: 'Gerenciar Correção', autoDestruicao: ['executor', 'tecnico', 'tipoCorrecao'] })
 
     visibilidadeFotos()
 
 }
 
-async function maisLabel({ codigo, descricao, quantidade, serie } = {}) {
+async function maisLabel({ codigo, descricao, quantidade, origem, serie, formulario } = {}) {
 
     const div = document.getElementById('equipamentos')
     const temporario = ID5digitos()
@@ -1464,6 +1481,20 @@ async function maisLabel({ codigo, descricao, quantidade, serie } = {}) {
         }
     }
 
+    const divOrigem = formulario == 'correcao'
+        ? `
+            <div style="${vertical};">
+                <label>Origem</label>
+                ${['Kit', 'Parceiro'].map(o => `
+                    <div style="${horizontal}; gap: 1rem;">
+                        <input name="origem_${temporario}" data-origem="${o}" type="radio" ${origem == o ? 'checked' : ''}>
+                        <label>${o}</label>
+                    </div>
+                    `).join('')}
+            </div>
+        `
+        : ''
+
     const label = `
         <div class="borda-equipamento">
             <img src="imagens/cancel.png" onclick="this.parentElement.remove()">
@@ -1476,6 +1507,9 @@ async function maisLabel({ codigo, descricao, quantidade, serie } = {}) {
                     <label>Nº série</label>
                     <input id="serie" style="width: 7rem;" class="campos" value="${serie || ''}">
                 </div>
+
+                ${divOrigem}
+
                 <div style="${vertical};">
                     <label>Descrição</label>
                     <span 
@@ -1483,6 +1517,7 @@ async function maisLabel({ codigo, descricao, quantidade, serie } = {}) {
                         name="${temporario}" ${codigo ? `id="${codigo}"` : ''} 
                         onclick="cxOpcoes('${temporario}')">${descricao || 'Selecione'}</span>
                 </div>
+
             </div>
         </div>`
 
@@ -1521,6 +1556,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
     ocorrencia.correcoes[idCorrecao] = {
         ...ocorrencia.correcoes[idCorrecao],
         dtCorrecao,
+        tecnico: obter('tecnico').id,
         executor: obter('executor').id,
         usuario: acesso.usuario,
         tipoCorrecao,
@@ -1566,7 +1602,6 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
     const divs = document.querySelectorAll('[name="equipamentos"]')
 
     for (const div of divs) {
-
         const equip = div.querySelector('span')
 
         if (!equip?.id)
@@ -1575,11 +1610,13 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
         const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', equip.id)
 
         const quantidade = Number(div.querySelector('#quantidade').value)
-        const serie = Number(div.querySelector('#serie').value)
+        const serie = div.querySelector('#serie').value
+        const origem = div.querySelector('input[name^="origem_"]:checked')?.dataset.origem || ''
 
         ocorrencia.correcoes[idCorrecao].equipamentos[equip.id] = {
             codigo: equip.id,
             modelo,
+            origem,
             serie,
             descricao,
             fabricante,

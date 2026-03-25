@@ -357,8 +357,9 @@ async function telaRelatorioPecas() {
         'Chamado': { chave: 'id' },
         'Empresa': { chave: 'snapshots.empresa' },
         'Loja': { chave: 'snapshots.cliente.nome' },
-        'Executor': { chave: 'correcoes.*.executor' },
+        'Técnico': { chave: 'correcoes.*.tecnico' },
         'Data Correção': { chave: 'correcoes.*.data', tipoPesquisa: 'data' },
+        'Origem': { chave: 'snapshots.equipamentos.*.origem' },
         'Descrição': { chave: 'snapshots.equipamentos.*.descricao' },
         'Unidade': { chave: 'snapshots.equipamentos.*.unidade' },
         'Quantidade': { chave: 'snapshots.equipamentos.*.quantidade' },
@@ -414,7 +415,7 @@ async function criarLinhasPecas(ocorrencia) {
 
     for (const correcao of Object.values(ocorrencia?.correcoes || {})) {
 
-        const { executor, equipamentos } = correcao || {}
+        const { tecnico, equipamentos } = correcao || {}
 
         if (!equipamentos)
             continue
@@ -425,14 +426,15 @@ async function criarLinhasPecas(ocorrencia) {
 
         for (const equip of Object.values(equipamentos)) {
 
-            const { descricao, unidade, quantidade, modelo, fabricante } = equip || {}
+            const { descricao, unidade, quantidade, modelo, origem, fabricante } = equip || {}
 
             const tds = `
                 <td>${id}</td>
                 <td>${empresa}</td>
                 <td>${cliente?.nome || ''}</td>
-                <td>${executor}</td>
+                <td>${tecnico || ''}</td>
                 <td>${dtRegistro}</td>
+                <td>${origem || ''}</td>
                 <td>${descricao || ''}</td>
                 <td>${unidade || ''}</td>
                 <td>${quantidade || ''}</td>

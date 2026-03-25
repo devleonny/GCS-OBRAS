@@ -255,6 +255,7 @@
 }
 
 .campos {
+    max-width: 20rem;
     border: solid 1px #249f41;
     text-align: center;
     cursor: pointer;
