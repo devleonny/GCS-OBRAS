@@ -7,7 +7,8 @@ const LPUS = [
     'lpu contagem - boticario a',
     'lpu romagnole',
     'lpu gpa',
-    'lpu eas muffato'
+    'lpu eas muffato',
+    'lpu assaí'
 ]
 
 async function atualizarComposicoes() {
