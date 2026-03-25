@@ -285,7 +285,7 @@ async function minhaCorrecao(id) {
 
     await telaOcorrencias()
 
-    pesquisarOcorrencias('id', id)
+    pesquisarOcorrencias('snapshots.contrato', id)
 
 }
 

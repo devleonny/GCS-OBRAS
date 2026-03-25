@@ -465,10 +465,6 @@ input:focus {
     gap: 5px;
 }
 
-input[type="file"] {
-    width: 70%;
-}
-
 .btnPadrao {
     width: 100%;
     background-color: #249f41;
