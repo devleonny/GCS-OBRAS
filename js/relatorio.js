@@ -687,7 +687,7 @@ async function baixarExcelRelatorioPecas() {
             { field: "o.id", as: "Chamado" },
             { field: "e.nome", as: "Empresa" },
             { field: "c.nome", as: "Loja" },
-            { custom: `json_extract(cx.value, '$.executor')`, as: "Executor" },
+            { custom: `json_extract(cx.value, '$.tecnico')`, as: "Técnico" },
             { custom: `json_extract(o.snapshots, '$.cliente.nome')`, as: "Cliente" },
             { custom: `json_extract(eq.value, '$.codigo')`, as: "Código" },
             { custom: `json_extract(eq.value, '$.serie')`, as: "Nº Série" },
