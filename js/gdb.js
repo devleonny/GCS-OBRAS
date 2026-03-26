@@ -1,5 +1,5 @@
 const nomeBase = 'GCS'
-const versao = 6
+const versao = 7
 let bloqSinc = false
 let dbInstance = null
 
@@ -25,6 +25,7 @@ const basesAuxiliares = {
     'dados_manutencao': { keyPath: 'id' },
     'dados_ocorrencias': { keyPath: 'id' },
     'dados_orcamentos': { keyPath: 'id', indexPath: 'snapshots.tsUltimoStatus' },
+    'acoes': { keyPath: 'id' },
     'lista_pagamentos': { keyPath: 'id' },
 }
 
@@ -220,6 +221,19 @@ async function sincronizarDados({ base, resetar = false }) {
 
 // Regras SNAPSHOT; BUSCAS;
 const regrasSnapshot = {
+    acoes: {
+        stores: ['dados_orcamentos'],
+        snapshot: async ({ dado, stores }) => {
+
+            const snap = {}
+
+            const { projeto, aba, dados_orcam } = await getStore(stores.dados_orcamentos, dado?.origem?.id) || {}
+            snap.contrato = dados_orcam?.contrato || projeto || ''
+            snap.aba = aba
+
+            return snap
+        }
+    },
     dados_setores: {
         stores: ['empresas'],
         snapshot: async ({ dado, stores }) => {

@@ -50,10 +50,9 @@ async function telaInicialGCS() {
 
     const tabelaIndicadores = await modTab({
         criarLinha: 'linAcoes',
-        base: 'dados_orcamentos',
+        base: 'acoes',
         pag: 'acoes',
         body: 'bodyAcoes',
-        explode: { path: 'pda.acoes' },
         filtros: filtroUsuario
     })
 
@@ -188,9 +187,18 @@ async function linPda(orcamento) {
             ${elemento}
         </div>`
 
-    const strAcoes = Object.entries(pda?.acoes || {})
-        .map(([idAcao, dados]) => {
 
+    const acoes = await pesquisarDB({
+        base: 'acoes',
+        filtros: {
+            'origem.id': { op: '=', value: idOrcamento }
+        }
+    })
+
+    const strAcoes = acoes.resultados
+        .map(dados => {
+
+            const idAcao = dados.id
             const [ano, mes, dia] = dados.prazo.split('-')
             const prazo = `${dia}/${mes}/${ano}`
 
@@ -401,11 +409,12 @@ function criarLinhaTecnico(tecnico) {
     `
 }
 
-function linAcoes(orcamento) {
+function linAcoes(pda) {
 
-    const { responsavel, status, usuario, registro, prazo, acao } = orcamento
-    const idOrcamento = orcamento.id
-    const chamado = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato || orcamento?.projeto || '-'
+    const { responsavel, origem, status, usuario, registro, prazo, acao, snapshots } = pda || {}
+    const idOrcamento = origem?.id
+    const contrato = snapshots?.contrato || ''
+    const aba = snapshots?.aba || ''
 
     const estilo = status === 'concluído'
         ? 'concluído'
@@ -434,8 +443,8 @@ function linAcoes(orcamento) {
                 <img src="imagens/pesquisar2.png" style="width: 2rem;" onclick="irORC('${idOrcamento}')">
 
                 <div style="${vertical};">
-                    <span><b>ID:</b> ${chamado}</span>
-                    <span><b>Aba:</b> ${orcamento.aba || ''}</span>
+                    <span><b>ID:</b> ${contrato}</span>
+                    <span><b>Aba:</b> ${aba}</span>
                     <div style="white-space: pre-wrap;"><b>Ação:</b> ${acao || ''}</div>
                     <div><b>Responsáveis:</b> <br>
                         ${listagemResp}
@@ -550,20 +559,20 @@ async function criarGaveta(usuario = null, conf = {}) {
 
     const filtros = usuario == 'Geral'
         ? {}
-        : { 'pda.acoes.*.responsavel': { op: 'includes', value: usuario } }
+        : { 'responsavel': { op: 'includes', value: usuario } }
 
     const contagem = await contarPorCampo({
-        base: 'dados_orcamentos',
-        path: 'pda.acoes.*.status',
+        base: 'acoes',
+        path: 'status',
         filtros
     })
 
     const resposta = await contarPorCampo({
-        base: 'dados_orcamentos',
-        path: 'pda.acoes.*.prazo',
+        base: 'acoes',
+        path: 'prazo',
         filtros: {
             ...filtros,
-            'pda.acoes.*.status': { op: '=', value: 'pendente' }
+            'status': { op: '=', value: 'pendente' }
         }
     })
 
@@ -766,8 +775,7 @@ async function alterarDatas(input, campo, idOrcamento) {
 
 async function formAcao(idOrcamento, idAcao) {
 
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-    const { prazo, status, acao, responsavel = [] } = orcamento?.pda?.acoes?.[idAcao] || {}
+    const { prazo, status, acao, responsavel = [] } = await recuperarDado('acoes', idAcao) || {}
 
     const linhas = [
         { texto: 'Ação', elemento: `<textarea name="acao">${acao || ''}</textarea>` },
@@ -793,7 +801,8 @@ async function formAcao(idOrcamento, idAcao) {
         { texto: 'Salvar', img: 'concluido', funcao: `salvarAcao('${idOrcamento}' ${idAcao ? `, '${idAcao}'` : ''})` }
     ]
 
-    if (idAcao) botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirAcao('${idAcao}', '${idOrcamento}')` })
+    if (idAcao)
+        botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirAcao('${idAcao}')` })
 
     popup({ linhas, botoes, titulo: 'Ações' })
 
@@ -835,31 +844,26 @@ async function incluirResponsavel(usuario) {
 
 }
 
-async function confirmarExcluirAcao(idAcao, idOrcamento) {
+async function confirmarExcluirAcao(idAcao) {
 
     const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `excluirAcao('${idAcao}', '${idOrcamento}')` }
+        { texto: 'Confirmar', img: 'concluido', funcao: `excluirAcao('${idAcao}')` }
     ]
 
     popup({ botoes, mensagem: 'Tem certeza?', nra: false })
 
 }
 
-async function excluirAcao(idAcao, idOrcamento) {
+async function excluirAcao(idAcao) {
 
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-    delete orcamento.pda.acoes[idAcao]
-
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-    deletar(`dados_orcamentos/${idOrcamento}/pda/acoes/${idAcao}`)
+    await deletarDB('acoes', idAcao)
+    deletar(`acoes/${idAcao}`)
 
 }
 
-async function salvarAcao(idOrcamento, idAcao) {
+async function salvarAcao(idOrcamento, idAcao = crypto.randomUUID()) {
 
     overlayAguarde()
-
-    idAcao = idAcao || ID5digitos()
 
     const painel = document.querySelector('.painel-padrao')
     const el = (nome) => {
@@ -880,6 +884,10 @@ async function salvarAcao(idOrcamento, idAcao) {
         return popup({ mensagem: 'Preencha o prazo e/ou responsável da ação' })
 
     const a = {
+        origem: {
+            id: idOrcamento,
+            base: 'dados_orcamentos'
+        },
         usuario: acesso.usuario,
         responsavel,
         acao,
@@ -888,19 +896,14 @@ async function salvarAcao(idOrcamento, idAcao) {
         registro: new Date().getTime()
     }
 
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-    orcamento.pda ??= {}
-    orcamento.pda.acoes ??= {}
-    orcamento.pda.acoes[idAcao] = a
-
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${idOrcamento}/pda/acoes/${idAcao}`, a)
+    await inserirDados({ [idAcao]: a }, 'acoes')
+    enviar(`acoes/${idAcao}`, a)
 
     removerPopup()
 
 }
 
-async function editarLinPda({ idOrcamento, abaPag = 'PDA' }) {
+async function editarLinPda({ idOrcamento }) {
 
     const { aba, projeto, estado } = await recuperarDado('dados_orcamentos', idOrcamento) || {}
 

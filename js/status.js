@@ -950,7 +950,7 @@ async function alterarStatus(id, select) {
     }
 
     const pHistorico = document.querySelector('.painel-historico')
-    if (pHistorico) 
+    if (pHistorico)
         await abrirEsquema(id)
 
     await carregarToolbar()
@@ -1800,7 +1800,7 @@ async function registrarEnvioMaterial(id, chave) {
 
     const dadosCampos = campos.reduce((acc, campo) => {
         const info = document.getElementById(campo)
-        if (!info) 
+        if (!info)
             return acc
 
         let valor = info.value
@@ -2093,6 +2093,32 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
     } catch (err) {
         popup({ mensagem: err.message || 'Falha ao gerar o PDF, tente novamente ou fale com o Suporte' })
 
+    }
+
+}
+
+async function migrar(pagina) {
+
+    const acoes = await pesquisarDB({
+        pagina,
+        base: 'dados_orcamentos',
+        explode: { path: 'pda.acoes' },
+    })
+
+    for (const a of acoes.resultados) {
+        const { id, acao, prazo, usuario, status, registro, responsavel } = a || {}
+        await enviar(`acoes/${crypto.randomUUID()}`, { 
+            acao, 
+            prazo, 
+            responsavel,
+            origem: {
+                id,
+                base: 'dados_orcamentos'
+            },
+            usuario, 
+            status, 
+            registro
+        })
     }
 
 }
