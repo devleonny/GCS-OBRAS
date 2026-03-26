@@ -298,11 +298,16 @@ async function abrirAtalhos(id, idMaster) {
         </div>
     `
     // Alertas
-    const souResponsavel = Object
-        .values(orcamento?.pda?.acoes || {})
-        .some(a => a.responsavel == acesso.usuario && a.status == 'pendente')
+    const acoesPraMim = await pesquisarDB({
+        base: 'acoes',
+        filtros: {
+            'responsavel': { op: 'includes', value: acesso.usuario },
+            'origem.id': { op: '=', value: id },
+            'status': { op: '=', value: 'pendente' }
+        }
+    })
 
-    const atalho = souResponsavel
+    const atalho = acoesPraMim.resultados.length
         ? modAlerta('Você tem <b>ações</b> pendentes! <br><small>Clique <b>aqui</b> para ver mais</small>')
         : ''
 
@@ -2107,18 +2112,34 @@ async function migrar(pagina) {
 
     for (const a of acoes.resultados) {
         const { id, acao, prazo, usuario, status, registro, responsavel } = a || {}
-        await enviar(`acoes/${crypto.randomUUID()}`, { 
-            acao, 
-            prazo, 
+        await enviar(`acoes/${crypto.randomUUID()}`, {
+            acao,
+            prazo,
             responsavel,
             origem: {
                 id,
                 base: 'dados_orcamentos'
             },
-            usuario, 
-            status, 
+            usuario,
+            status,
             registro
         })
     }
+
+
+    /*
+    
+    const acoes = await pesquisarDB({
+        pagina,
+        base: 'dados_orcamentos',
+        explode: { path: 'pda.acoes' },
+    })
+
+    for (const a of acoes.resultados) {
+        const id = a.id
+        await deletar(`dados_orcamentos/${id}/pda/acoes`)
+        console.log(id)
+    }
+        */
 
 }
