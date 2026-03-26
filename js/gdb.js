@@ -585,488 +585,77 @@ async function inserirDados(dados, base) {
 
 async function recuperarDado(base, chave) {
 
-    await verifBase()
-
     if (chave === undefined || chave === null)
         return null
 
-    if (basesAuxiliares[base]?.tipo === 'NUMBER')
-        chave = Number(chave)
-
-    if (basesAuxiliares[base]?.tipo === 'STRING')
-        chave = String(chave)
-
-    const db = await getDB()
-
-    return new Promise((resolve, reject) => {
-
-        const tx = db.transaction(base, 'readonly')
-        const store = tx.objectStore(base)
-
-        const req = store.get(chave)
-
-        req.onsuccess = () => resolve(req.result ?? null)
-        req.onerror = () => reject(req.error)
+    const resposta = await fetch(`${api}/recuperar-dado`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ base, chave })
     })
+
+    if (!resposta.ok)
+        throw new Error('Erro na requisição')
+
+    return await resposta.json()
 }
 
-function explodirRegistro(reg, explode) {
-    if (!explode?.path)
-        return [reg]
-
-    const alvo = getByPath(reg, explode.path)
-
-    if (!alvo || typeof alvo !== 'object')
-        return []
-
-    const manterOrigem = explode.manterOrigem !== false
-
-    if (Array.isArray(alvo)) {
-        return alvo.map((item, index) => {
-            if (explode.mapear)
-                return explode.mapear({ pai: reg, item, index })
-
-            const base = manterOrigem
-                ? structuredClone(reg)
-                : {}
-
-            if (manterOrigem)
-                removerByPath(base, explode.path)
-
-            return {
-                ...base,
-                ...(item && typeof item === 'object' ? item : { valor: item }),
-                _index: index
-            }
+async function pesquisarDB({
+    base,
+    filtros = {},
+    pagina = 1,
+    limite = 50,
+    explode = null
+}) {
+    const resposta = await fetch(`${api}/pesquisar-db`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            base,
+            filtros,
+            pagina,
+            limite,
+            explode
         })
-    }
-
-    return Object.entries(alvo).map(([chave, item]) => {
-        if (explode.mapear)
-            return explode.mapear({ pai: reg, item, chave })
-
-        const base = manterOrigem
-            ? structuredClone(reg)
-            : {}
-
-        if (manterOrigem)
-            removerByPath(base, explode.path)
-
-        return {
-            ...base,
-            _chave: chave,
-            ...(item && typeof item === 'object' ? item : { valor: item })
-        }
     })
-}
 
-function normalizarExplode(explode) {
-    if (!explode) return null
-    return Array.isArray(explode) ? explode : [explode]
-}
-
-function expandirRegistro(reg, explode) {
-    const etapas = normalizarExplode(explode)
-
-    if (!etapas)
-        return [reg]
-
-    let lista = [reg]
-
-    for (const etapa of etapas) {
-        lista = lista.flatMap(item => explodirRegistro(item, etapa))
+    if (!resposta.ok) {
+        const erro = await resposta.text()
+        throw new Error(erro || 'Erro ao pesquisar')
     }
 
-    return lista
+    return await resposta.json()
 }
 
-function removerByPath(obj, path) {
-    if (!path) return obj
-
-    const partes = path.split('.')
-    const ultimo = partes.pop()
-
-    let alvo = obj
-    for (const p of partes) {
-        if (!alvo?.[p] || typeof alvo[p] !== 'object')
-            return obj
-        alvo = alvo[p]
-    }
-
-    if (alvo && typeof alvo === 'object')
-        delete alvo[ultimo]
-
-    return obj
-}
-
-async function pesquisarDB({ filtros = {}, base, pagina = 1, limite = 50, explode = null }) {
-
-    const offset = (pagina - 1) * limite
-    let vistos = 0
-    let total = 0
-    const resultados = []
-
-    const processarRegistro = reg => {
-        const lista = expandirRegistro(reg, explode)
-
-        for (const item of lista) {
-            if (passaFiltro(item, filtros)) {
-                total++
-
-                if (vistos >= offset && resultados.length < limite)
-                    resultados.push(item)
-
-                vistos++
-            }
-        }
-    }
-
-    if (typeof base === 'object' && base !== null) {
-        const lista = Array.isArray(base)
-            ? base
-            : Object.values(base)
-
-        for (const reg of lista)
-            processarRegistro(reg)
-
-        return {
-            resultados,
-            total,
-            paginas: Math.ceil(total / limite)
-        }
-    }
-
-    const db = await getDB()
-    const tx = db.transaction(base, 'readonly')
-    const store = tx.objectStore(base)
-    const indexName = basesAuxiliares?.[base]?.indexPath ? 'ordenacao' : 'timestamp'
-    const index = store.index(indexName)
-
-    return new Promise(resolve => {
-        index.openCursor(null, 'prev').onsuccess = ev => {
-            const cursor = ev.target.result
-
-            if (!cursor) {
-                resolve({
-                    resultados,
-                    total,
-                    paginas: Math.ceil(total / limite)
-                })
-                return
-            }
-
-            const reg = cursor.value
-            processarRegistro(reg)
-            cursor.continue()
-        }
-    })
-}
-
-// Situações onde seja contado itens em objetos acoes.*.status com filtro no mesmo objeto 'acoes.*.responsavel;
-function resolveWildcard(reg, path) {
-    const parts = path.split('.')
-    const idx = parts.indexOf('*')
-
-    const basePath = parts.slice(0, idx).join('.')
-    const restPath = parts.slice(idx + 1).join('.')
-
-    const base = basePath ? getByPath(reg, basePath) : reg
-    if (!base || typeof base !== 'object') return []
-
-    const out = []
-
-    for (const k in base) {
-        out.push({
-            ctx: base[k],
-            valor: restPath ? getByPath(base[k], restPath) : base[k]
+async function contarPorCampo({
+    base,
+    path,
+    filtros = {},
+    explode = null
+}) {
+    const resposta = await fetch(`${api}/contar-por-campo`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            base,
+            path,
+            filtros,
+            explode
         })
-    }
-
-    return out
-}
-
-function getByPath(obj, path) {
-    if (!path) return obj
-    return path.split('.').reduce((acc, key) => acc?.[key], obj)
-}
-
-function isVazio(v) {
-    if (v === null || v === undefined) return true
-    if (typeof v === 'string' && v.trim() === '') return true
-    if (Array.isArray(v) && v.length === 0) return true
-    if (typeof v === 'object' && Object.keys(v).length === 0) return true
-    return false
-}
-
-function comparar(v, op, value) {
-    const isStringV = typeof v === 'string'
-    const isStringValue = typeof value === 'string'
-
-    const vNorm = isStringV ? v.toLowerCase() : v
-    const valueNorm = isStringValue ? value.toLowerCase() : value
-
-    if (typeof op === 'string' && op.endsWith('d')) {
-        const operador = op.slice(0, -1)
-
-        if (operador === '=' && isDateOnly(value)) {
-            const inicio = toTimestamp(value, false)
-            const fim = toTimestamp(value, true)
-            const vT = toTimestamp(v)
-            return vT != null && vT >= inicio && vT <= fim
-        }
-
-        let valT = null
-
-        if (isDateOnly(value)) {
-            if (operador === '<=')
-                valT = toTimestamp(value, true)
-            else
-                valT = toTimestamp(value, false)
-        } else {
-            valT = toTimestamp(value)
-        }
-
-        const vT = toTimestamp(v)
-
-        if (vT == null || valT == null) return false
-
-        switch (operador) {
-            case '>': return vT > valT
-            case '>=': return vT >= valT
-            case '<': return vT < valT
-            case '<=': return vT <= valT
-            case '=': return vT === valT
-        }
-
-        return false
-    }
-
-    switch (op) {
-        case 'IS_EMPTY': return isVazio(v)
-        case 'NOT_EMPTY': return !isVazio(v)
-
-        case '=': return vNorm === valueNorm
-        case '!=': return vNorm !== valueNorm
-
-        case '>': return v > value
-        case '>=': return v >= value
-        case '<': return v < value
-        case '<=': return v <= value
-
-        case 'NOT_ZERO':
-            if (Array.isArray(v))
-                return Number(v[0]) !== 0
-            return Number(v) !== 0
-
-        case 'includes':
-            if (v == null) return false
-
-            if (Array.isArray(v)) {
-                return v.some(i =>
-                    normalizarPesquisa(i).includes(normalizarPesquisa(value))
-                )
-            }
-
-            return normalizarPesquisa(v).includes(normalizarPesquisa(value))
-    }
-
-    return true
-}
-
-function normalizarPesquisa(valor) {
-    return String(valor ?? '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^\p{L}\p{N}]/gu, '')
-        .toLowerCase()
-        .trim()
-}
-
-function avaliarRegra(valor, regra) {
-    if (!regra)
-        return true
-
-    if (Array.isArray(regra))
-        return regra.every(r => avaliarRegra(valor, r))
-
-    if (regra.modo && Array.isArray(regra.regras)) {
-        if (regra.modo === 'OR')
-            return regra.regras.some(r => avaliarRegra(valor, r))
-
-        return regra.regras.every(r => avaliarRegra(valor, r))
-    }
-
-    return comparar(valor, regra.op, regra.value)
-}
-
-function multiplasRegras(valor, regra) {
-    return avaliarRegra(valor, regra)
-}
-
-function passaFiltro(reg, filtros) {
-
-    const filtrosWildcard = {}
-    const filtrosDiretos = {}
-
-    for (const [path, regra] of Object.entries(filtros)) {
-        if (!regra) continue
-        if (path.includes('*')) filtrosWildcard[path] = regra
-        else filtrosDiretos[path] = regra
-    }
-
-    // filtros diretos
-    for (const [path, regra] of Object.entries(filtrosDiretos)) {
-        const v = getByPath(reg, path)
-        if (!multiplasRegras(v, regra)) return false
-    }
-
-    // sem wildcard → já passou
-    if (!Object.keys(filtrosWildcard).length) return true
-
-    // wildcard
-    for (const [p, regra] of Object.entries(filtrosWildcard)) {
-
-        const basePath = p.split('*')[0].replace(/\.$/, '')
-        const base = getByPath(reg, basePath)
-
-        if (!base || typeof base !== 'object') return false
-
-        const sub = p.split('*').slice(1).join('.').replace(/^\./, '')
-
-        const lista = Object.values(base)
-
-        const existeMatch = lista.some(ctx => {
-            const v = getByPath(ctx, sub)
-            return multiplasRegras(v, regra)
-        })
-
-        // regra positiva: precisa existir
-        if (regra.op !== '!=' && !existeMatch) {
-            return false
-        }
-
-        // regra negativa: não pode existir
-        if (regra.op === '!=' && !lista.every(ctx => {
-            const v = getByPath(ctx, sub)
-            return multiplasRegras(v, regra)
-        })) {
-            return false
-        }
-    }
-
-    return true
-
-}
-
-async function contarPorCampo({ base, path, filtros = {}, modo = 'contagem' }) {
-    const saida = { todos: 0 }
-    const hasWildcard = path?.includes('*')
-
-    const somar = v => {
-        const n = Number(v)
-        if (!isNaN(n)) saida.todos += n
-    }
-
-    const contar = v => {
-        if (v == null || v === '') v = 'EM BRANCO'
-        saida.todos++
-        saida[v] = (saida[v] || 0) + 1
-    }
-
-    const aplicar = v => {
-        if (modo === 'soma') somar(v)
-        else contar(v)
-    }
-
-    // CASO 1: base em memória (array ou objeto)
-    if (typeof base === 'object') {
-        const lista = Array.isArray(base) ? base : Object.values(base)
-
-        for (const reg of lista) {
-            if (!passaFiltro(reg, filtros)) continue
-
-            if (!hasWildcard) {
-                aplicar(getByPath(reg, path))
-                continue
-            }
-
-            const items = resolveWildcard(reg, path)
-
-            for (const { ctx, valor } of items) {
-                let passou = true
-
-                for (const fPath in filtros) {
-                    if (!fPath.includes('*')) continue
-                    const f = filtros[fPath]
-                    const sub = fPath.split('*').slice(1).join('.').replace(/^\./, '')
-                    const vFiltro = getByPath(ctx, sub)
-
-                    if (!multiplasRegras(vFiltro, f)) {
-                        passou = false
-                        break
-                    }
-                }
-
-                if (!passou) continue
-                aplicar(valor)
-            }
-        }
-
-        return saida
-    }
-
-    // CASO 2: base é string → IndexedDB
-    const db = await getDB()
-    const tx = db.transaction(base, 'readonly')
-    const store = tx.objectStore(base)
-
-    return new Promise(resolve => {
-        store.openCursor().onsuccess = ev => {
-            const cursor = ev.target.result
-
-            if (!cursor) {
-                resolve(saida)
-                return
-            }
-
-            const reg = cursor.value
-
-            if (!passaFiltro(reg, filtros)) {
-                cursor.continue()
-                return
-            }
-
-            if (!hasWildcard) {
-                aplicar(getByPath(reg, path))
-                cursor.continue()
-                return
-            }
-
-            const items = resolveWildcard(reg, path)
-
-            for (const { ctx, valor } of items) {
-                let passou = true
-
-                for (const fPath in filtros) {
-                    if (!fPath.includes('*')) continue
-
-                    const f = filtros[fPath]
-                    const sub = fPath.split('*').slice(1).join('.').replace(/^\./, '')
-                    const vFiltro = getByPath(ctx, sub)
-
-                    if (!multiplasRegras(vFiltro, f)) {
-                        passou = false
-                        break
-                    }
-                }
-
-                if (!passou) continue
-                aplicar(valor)
-            }
-
-            cursor.continue()
-        }
     })
+
+    if (!resposta.ok) {
+        const erro = await resposta.text()
+        throw new Error(erro || 'Erro ao contar por campo')
+    }
+
+    return await resposta.json()
 }
 
 async function deletarDB(base, id) {
@@ -1196,10 +785,6 @@ function msgQuedaConexao(msg = '<b>Falha na atualização:</b> tente novamente e
     const msgAtiva = document.querySelector('.msg-queda-conexao')
     if (msgAtiva) return
     popup({ elemento })
-}
-
-function isDateOnly(v) {
-    return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v.trim())
 }
 
 function toTimestamp(d, fimDoDia = false) {
