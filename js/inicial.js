@@ -411,8 +411,8 @@ function criarLinhaTecnico(tecnico) {
 
 function linAcoes(pda) {
 
-    const { responsavel, origem, status, usuario, registro, prazo, acao, snapshots } = pda || {}
-    const idOrcamento = origem?.id
+    const { id, responsavel, status, usuario, registro, prazo, acao, snapshots } = pda || {}
+
     const contrato = snapshots?.contrato || ''
     const aba = snapshots?.aba || ''
 
@@ -440,7 +440,7 @@ function linAcoes(pda) {
         <tr>    
             <div class="etiqueta-${estilo}" style="width: 95%; flex-direction: row; gap: 0.5rem; margin: 1px;">
 
-                <img src="imagens/pesquisar2.png" style="width: 2rem;" onclick="irORC('${idOrcamento}')">
+                <img src="imagens/pesquisar2.png" style="width: 2rem;" onclick="irAcao('${id}')">
 
                 <div style="${vertical};">
                     <span><b>ID:</b> ${contrato}</span>
@@ -457,6 +457,22 @@ function linAcoes(pda) {
         </tr>`
 
     return linha
+}
+
+async function irAcao(idAcao) {
+
+    const { origem } = await recuperarDado('acoes', idAcao) || {}
+
+    if (origem.base == 'dados_orcamentos') {
+        await irORC(origem.id)
+
+    } else if (origem.base == 'dados_manutencao') {
+
+        await telaChamados()
+        await criarManutencao(origem.id)
+
+    }
+
 }
 
 function somarPend(obj) {
@@ -724,13 +740,10 @@ async function excluirPda(idOrcamento) {
 
     const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
 
-    const trExistente = document.getElementById(idOrcamento)
     enviar(`dados_orcamentos/${idOrcamento}/aba`, '')
     removerPopup()
 
-    if (trExistente) trExistente.remove()
     await contadores()
-
     await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
 
 }
@@ -972,7 +985,7 @@ async function salvarCartao(idOrcamento) {
         enviar(`dados_orcamentos/${idOrcamento}/estado`, estado)
         enviar(`dados_orcamentos/${idOrcamento}/aba`, aba)
     } else {
-        idOrcamento = `PDA_${unicoID()}`
+        idOrcamento = `PDA_${crypto.randomUUID()}`
         enviar(`dados_orcamentos/${idOrcamento}`, dados)
     }
 

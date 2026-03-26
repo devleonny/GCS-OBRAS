@@ -452,7 +452,7 @@ async function verificarDoc(funcionario, doc) {
 
 }
 
-async function salvarDocumento(id = unicoID()) {
+async function salvarDocumento(id = crypto.randomUUID()) {
 
     overlayAguarde()
 

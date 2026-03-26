@@ -214,7 +214,7 @@ async function enviarDadosAluguel() {
     // Salvar o usuário na primeira vez apenas;
     if (!orcamentoBase.usuario) orcamentoBase.usuario = acesso.usuario
 
-    if (!orcamentoBase.id) orcamentoBase.id = 'ORCA_' + unicoID()
+    if (!orcamentoBase.id) orcamentoBase.id = 'ORCA_' + crypto.randomUUID()
 
     popup({ tempo: 3, mensagem: 'Aguarde... redirecionando...', imagem: 'imagens/concluido.png' })
 

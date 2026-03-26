@@ -46,31 +46,33 @@ async function telaChamados() {
 
 function criarLinhaManutencao(manutencao) {
 
+    const { id, data, status_manutencao, snapshots, previsao, usuario } = manutencao || {}
+    const { tecnico, loja, departamento } = snapshots || {}
+
     const tds = `
-        <td>${manutencao?.data || '--'}</td>
-        <td>${manutencao?.status_manutencao || '--'}</td>
-        <td>${manutencao.chamado || 'SEM CHAMADO'}</td>
+        <td>${data || ''}</td>
+        <td>${status_manutencao || '--'}</td>
+        <td>${departamento || ''}</td>
         <td>
             <span style="text-align: left;">
-                ${manutencao?.snapshots?.loja?.[0] || ''}<br>
-                <b>${manutencao?.snapshots?.loja?.[1] || ''}</b>
-                ${manutencao?.snapshots?.loja?.[2] || ''}<br>
+                ${loja?.[0] || ''}<br>
+                <b>${loja?.[1] || ''}</b>
+                ${loja?.[2] || ''}<br>
             </span>
         </td>
         <td>
             <span style="text-align: left;">
-                ${manutencao?.snapshots?.tecnico?.[0] || ''}<br>
-                <b>${manutencao?.snapshots?.tecnico?.[1] || ''}</b>
-                ${manutencao?.snapshots?.tecnico?.[2] || ''}<br>
+                ${tecnico?.[0] || ''}<br>
+                <b>${tecnico?.[1] || ''}</b>
+                ${tecnico?.[2] || ''}<br>
             </span>
         </td>
-        <td>${manutencao?.usuario || ''}</td>
+        <td>${usuario || ''}</td>
         <td>
-            <input style="display: none;" name="datas" value="${manutencao?.previsao || ''}">
-            ${formatarData(manutencao?.previsao) || '--'}
+            ${formatarData(previsao) || ''}
         </td>
         <td style="text-align: center;">
-            <img onclick="criarManutencao('${manutencao.id}')" src="imagens/pesquisar2.png">
+            <img onclick="criarManutencao('${id}')" src="imagens/pesquisar2.png">
         </td>`
 
     return `<tr>${tds}</tr>`
@@ -159,9 +161,10 @@ async function carregarToolbarChamados() {
 
 }
 
-async function criarManutencao(id = ID5digitos()) {
+async function criarManutencao(id = crypto.randomUUID()) {
 
     const manutencao = await recuperarDado('dados_manutencao', id) || {}
+    const { snapshots } = manutencao
     const cliente = await recuperarDado('dados_clientes', manutencao?.codigo_cliente)
     const tecnico = await recuperarDado('dados_clientes', manutencao?.codigo_tecnico)
 
@@ -251,7 +254,7 @@ async function criarManutencao(id = ID5digitos()) {
         {
             texto: 'Chamado',
             elemento: `<span ${manutencao?.chamado ? `id="${manutencao?.chamado}"` : ''} 
-            class="opcoes" name="chamado" onclick="cxOpcoes('chamado')">${manutencao?.chamado || 'Selecione'}</span>`
+            class="opcoes" name="chamado" onclick="cxOpcoes('chamado')">${snapshots?.departamento || 'Selecione'}</span>`
         },
         {
             texto: 'Kit Técnico',
@@ -539,7 +542,7 @@ function mudarEdicao(img) {
     img.insertAdjacentHTML("beforebegin", elemento)
 }
 
-async function enviarManutencao(idManutencao = unicoID()) {
+async function enviarManutencao(idManutencao = crypto.randomUUID()) {
 
     overlayAguarde()
 
@@ -573,15 +576,21 @@ async function enviarManutencao(idManutencao = unicoID()) {
         return popup({ mensagem: 'Escolha um chamado ou marque como KIT TÉCNICO' })
 
     const manutencao = await recuperarDado('dados_manutencao', idManutencao) || {}
-    let novaManutencao = {
+    const comentario = obVal('comentario').value
+    const previsao = obVal('previsao').value
+
+    if (!previsao)
+        return popup({ mensagem: 'Defina uma data de previsão' })
+
+    const novaManutencao = {
         ...manutencao,
         id: idManutencao,
         usuario: acesso.usuario,
-        previsao: obVal('previsao').value,
+        previsao,
         status_manutencao: obVal('status_manutencao').value,
         nf: obVal('nf').value,
         data: new Date().toLocaleString('pt-BR'),
-        comentario: obVal('comentario').value,
+        comentario,
         chamado,
         codigo_cliente: obVal('cliente').id,
         codigo_tecnico: obVal('tecnico').id,
@@ -611,6 +620,28 @@ async function enviarManutencao(idManutencao = unicoID()) {
     await inserirDados({ [idManutencao]: novaManutencao }, 'dados_manutencao')
     enviar(`dados_manutencao/${idManutencao}`, novaManutencao)
 
+    // Ações para esta manutenção;
+    const acao = {
+        id: idManutencao,
+        origem: {
+            id: idManutencao,
+            base: 'dados_manutencao',
+            titulo: 'REQUISIÇÃO AVULSA'
+        },
+        responsavel: [
+            'Tayna',
+            'Emmanoel'
+        ],
+        status: 'pendente',
+        prazo: previsao,
+        acao: comentario,
+        usuario: acesso.usuario,
+        registro: Date.now()
+    }
+
+    await inserirDados({ [idManutencao]: acao }, 'acoes')
+    enviar(`acoes/${idManutencao}`, acao)
+
     removerPopup()
 
 }
@@ -628,8 +659,11 @@ function confirmarExclusaoManutencao(id) {
 async function excluirManutencao(id) {
 
     await deletarDB('dados_manutencao', id)
-
     deletar(`dados_manutencao/${id}`)
+
+    // Caso exista ação;
+    await deletarDB('acoes', id)
+    deletar(`acoes/${id}`)
 
 }
 

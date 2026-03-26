@@ -547,7 +547,7 @@ async function salvarPagamento() {
 
     // Identificação do pagamento;
     if (!ultimoPagamento.id) {
-        ultimoPagamento.id = unicoID()
+        ultimoPagamento.id = crypto.randomUUID()
         ultimoPagamento.param[0].codigo_lancamento_integracao = ultimoPagamento.id
     }
 
@@ -833,7 +833,7 @@ async function calculadoraPagamento() {
         ulP.criado = acesso.usuario
 
     if (!ulPAtual?.param?.[0]?.codigo_lancamento_integracao)
-        ulP.param[0].codigo_lancamento_integracao = ulPAtual?.param?.[0]?.codigo_lancamento_integracao || unicoID()
+        ulP.param[0].codigo_lancamento_integracao = ulPAtual?.param?.[0]?.codigo_lancamento_integracao || crypto.randomUUID()
 
     localStorage.setItem('ultimoPagamento', JSON.stringify(ulP))
 

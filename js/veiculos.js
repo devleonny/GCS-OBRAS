@@ -302,7 +302,7 @@ async function enviarOmie() {
     }
 
     const data = dt(inpData)
-    const idPagamento = unicoID()
+    const idPagamento = crypto.randomUUID()
 
     const distribuicao = {}
     for (let [cCodDep, nValDep] of Object.entries(totalDepartamentos)) {

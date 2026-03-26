@@ -228,8 +228,8 @@ const regrasSnapshot = {
             const snap = {}
 
             const { projeto, aba, dados_orcam } = await getStore(stores.dados_orcamentos, dado?.origem?.id) || {}
-            snap.contrato = dados_orcam?.contrato || projeto || ''
-            snap.aba = aba
+            snap.contrato = dados_orcam?.contrato || projeto || dado?.origem?.titulo || ''
+            snap.aba = aba || dado?.origem?.titulo || ''
 
             return snap
         }
@@ -361,9 +361,12 @@ const regrasSnapshot = {
         }
     },
     dados_manutencao: {
-        stores: ['dados_clientes'],
+        stores: ['dados_clientes', 'departamentos_AC'],
         snapshot: async ({ dado, stores }) => {
             const snap = {}
+
+            const { descricao } = await getStore(stores.departamentos_AC, Number(dado?.chamado)) || {}
+            snap.departamento = descricao || dado?.chamado
 
             const loja = await getStore(stores.dados_clientes, Number(dado?.codigo_cliente)) || {}
             snap.loja = [loja?.nome, loja?.cidade, loja?.endereco]
@@ -513,8 +516,13 @@ const regrasSnapshot = {
 
 function getStore(store, key) {
     return new Promise(resolve => {
+        const chaveInvalida =
+            key === undefined ||
+            key === null ||
+            key === '' ||
+            (typeof key === 'number' && isNaN(key))
 
-        if (key === undefined || key === null || key === '') {
+        if (chaveInvalida) {
             return resolve(null)
         }
 
