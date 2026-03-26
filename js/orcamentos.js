@@ -647,3 +647,13 @@ async function baixarExcelOrcamentos() {
     removerOverlay()
 
 }
+
+
+async function migrar() {
+    
+    const acoes = await pesquisarDB({
+        base: 'dados_orcamentos',
+        explode: { path: 'pda.acoes' },
+    })
+
+}
