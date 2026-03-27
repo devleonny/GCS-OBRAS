@@ -1496,7 +1496,6 @@ async function abrirAdicionais(codigo) {
 
     const botoes = [
         { texto: 'Adicionar Peça', img: 'baixar', funcao: `criarLinhaPeca()` },
-        { texto: 'Atualizar', img: 'atualizar', funcao: 'atualizarGCS()' },
         { texto: 'Salvar', img: 'concluido', funcao: `salvarAdicionais('${codigo}')` }
     ]
 

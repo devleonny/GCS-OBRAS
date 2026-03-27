@@ -1313,7 +1313,6 @@ async function formularioOcorrencia(idOcorrencia) {
 
     const botoes = [
         { img: 'concluido', texto: 'Salvar', funcao: idOcorrencia ? `salvarOcorrencia('${idOcorrencia}')` : 'salvarOcorrencia()' },
-        { img: 'atualizar', texto: 'Atualizar', funcao: `atualizarGCS()` },
     ]
 
     const titulo = idOcorrencia ? 'Editar Ocorrência' : 'Criar Ocorrência'
@@ -1451,8 +1450,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
             funcao: idCorrecao
                 ? `salvarCorrecao('${idOcorrencia}', '${idCorrecao}')`
                 : `salvarCorrecao('${idOcorrencia}')`
-        },
-        { img: 'atualizar', texto: 'Atualizar', funcao: `atualizarGCS()` },
+        }
     ]
 
     popup({ linhas, botoes, titulo: 'Gerenciar Correção', autoDestruicao: ['executor', 'tecnico', 'tipoCorrecao'] })

@@ -479,8 +479,7 @@ async function painelValores(idCusto, duplicar) {
     ]
 
     const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: (!idCusto || duplicar) ? `salvarValores()` : `salvarValores('${idCusto}')` },
-        { texto: 'Atualizar', img: 'atualizar', funcao: `atualizarGCS()` },
+        { texto: 'Salvar', img: 'concluido', funcao: (!idCusto || duplicar) ? `salvarValores()` : `salvarValores('${idCusto}')` }
     ]
 
     popup({ linhas, botoes, titulo: 'Gerenciar Custo' })

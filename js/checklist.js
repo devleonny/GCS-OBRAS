@@ -87,7 +87,6 @@ async function telaChecklist(id) {
                         ${modeloBotoes('checklist', 'Ver Itens Removidos', `verItensRemovidos()`)}
                         ${modeloBotoes('baixar', 'Serviço Avulso', `adicionarServicoAvulso()`)}
                         ${modeloBotoes('relatorio', 'Relatório', `relatorioChecklist()`)}
-                        ${modeloBotoes('atualizar', 'Atualizar', `atualizarGCS()`)}
                     </div>
                     
                 </div>

@@ -103,7 +103,6 @@ async function vincularEmpresas() {
 
         controles.clientes.cp = {}
 
-        await sincronizarDados({ base: 'dados_clientes' })
         removerPopup()
 
     } catch (err) {

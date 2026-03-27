@@ -90,7 +90,7 @@ async function comunicacao() {
         if (desconectar) {
             acesso = {}
             localStorage.removeItem('acesso')
-            indexedDB.deleteDatabase(nomeBase)
+
             await telaLogin()
             popup({ mensagem: 'Usuário desconectado' })
             return
@@ -110,7 +110,6 @@ async function comunicacao() {
                 msgStatus('Offline', 3)
                 msgStatus('Alteração no acesso recebida...')
 
-                await atualizarGCS(true)
                 await telaInicialGCS()
 
                 msg({ tipo: 'confirmado', usuario: acesso.usuario })
@@ -123,8 +122,6 @@ async function comunicacao() {
         }
 
         if (tipo == 'atualizacao') {
-
-            await sincronizarDados({ base: tabela })
 
             if (tabela == 'dados_orcamentos')
                 await verificarPendencias()

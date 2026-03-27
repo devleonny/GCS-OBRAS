@@ -108,9 +108,6 @@ async function telaInicialOcorrencias() {
     toolbar.style.display = ''
     toolbar.style.display = 'flex'
 
-    if (priExeGCS)
-        await atualizarGCS()
-
     const planoFundo = `
         <div class="planoFundo">
             <img src="gifs/loading.gif" style="width: 8rem;">
@@ -292,7 +289,6 @@ async function minhaCorrecao(id) {
 function carregarMenus() {
 
     const menus = {
-        'Atualizar': { img: 'atualizar', funcao: 'atualizarGCS()', proibidos: [] },
         'Início': { img: 'home', funcao: 'telaInicialOcorrencias()', proibidos: [] },
         'Criar Ocorrência': { img: 'baixar', funcao: 'formularioOcorrencia()', proibidos: ['técnico'] },
         'Ocorrências': { img: 'configuracoes', funcao: 'telaOcorrencias()', proibidos: [] },

@@ -1,4 +1,3 @@
-let colunas = []
 const usuariosPermitidosParaEditar = ['log', 'editor', 'adm', 'gerente', 'diretoria', 'coordenacao']
 const LPUS = [
     'lpu hope',
@@ -10,11 +9,6 @@ const LPUS = [
     'lpu eas muffato',
     'lpu assaí'
 ]
-
-async function atualizarComposicoes() {
-    await sincronizarDados({ base: 'dados_composicoes' })
-    await telaComposicoes(true)
-}
 
 async function telaComposicoes() {
 

@@ -116,7 +116,6 @@ function criarMenus(chave) {
 }
 
 const atalhoInicial = [
-    { nome: 'Atualizar GCS', funcao: 'atualizarGCS', img: 'atualizar' },
     { nome: 'Menu Inicial', funcao: 'telaInicialGCS', img: 'LG' }
 ]
 
@@ -243,8 +242,6 @@ async function respostaSincronizacao(script) {
     const resposta = await sincronizar(script)
 
     localResposta.innerHTML = resposta.mensagem || 'Sem resposta'
-
-    if (resposta.mensagem == 'Sincronizado') await atualizarGCS()
 
 }
 
@@ -452,11 +449,6 @@ async function irPdf(id, emAnalise) {
 
 }
 
-async function recuperarClientes() {
-
-    await sincronizarDados({ base: 'dados_clientes', overlay: true })
-
-}
 
 async function salvarLevantamento(idOrcamento, idElemento) {
 
@@ -1302,12 +1294,6 @@ async function verificarNF(numero, tipo, app) {
     })
 }
 
-async function attClientes() {
-    overlayAguarde()
-    await atualizarGCS()
-    removerOverlay()
-}
-
 async function painelClientes(idOrcamento) {
 
     overlayAguarde()
@@ -1340,8 +1326,7 @@ async function painelClientes(idOrcamento) {
         : 'salvarDadosCliente()'
 
     const botoes = [
-        { texto: 'Salvar Dados', img: 'concluido', funcao },
-        { texto: 'Atualizar', img: 'atualizar', funcao: `attClientes()` },
+        { texto: 'Salvar Dados', img: 'concluido', funcao }
     ]
 
     if (idOrcamento)

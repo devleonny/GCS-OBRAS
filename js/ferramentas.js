@@ -126,13 +126,7 @@ document.addEventListener('keydown', function (event) {
 
 async function resetarBases() {
 
-    overlayAguarde()
-    mostrarMenus(true)
-
-    await resetarBanco()
-    await atualizarGCS()
-
-    removerOverlay()
+    //EXCLUIR
 
 }
 
@@ -342,8 +336,6 @@ function deslogarUsuario() {
 
 async function sair() {
 
-    indexedDB.deleteDatabase(nomeBase)
-
     removerPopup()
 
     toolbar.style.display = 'none'
@@ -431,6 +423,20 @@ async function cxOpcoes(name) {
     await paginacao(pag)
 }
 
+function normalizarPesquisa(valor) {
+    return String(valor ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^\p{L}\p{N}]/gu, '')
+        .toLowerCase()
+        .trim()
+}
+
+function getByPath(obj, path) {
+    if (!path) return obj
+    return path.split('.').reduce((acc, key) => acc?.[key], obj)
+}
+
 function linCxOpcoes(dado) {
 
     const { ativo } = controlesCxOpcoes // Ativo é o mesmo que o [name]
@@ -470,14 +476,7 @@ async function selecionar(name, cod) {
     const elemento = (painel || document).querySelector(`[name='${name}']`)
     const termos = []
 
-    const baseDB = basesAuxiliares?.[base]
-
-    if (baseDB?.tipo == 'NUMBER')
-        cod = Number(cod)
-
-    const dado = baseDB
-        ? await recuperarDado(base, cod)
-        : base[cod] || {}
+    const dado = base[cod] || await recuperarDado(base, cod)
 
     for (const chave of retornar) {
 
