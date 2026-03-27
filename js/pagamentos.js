@@ -1129,11 +1129,6 @@ async function editarPagamento(id) {
     overlayAguarde()
     let pagamento = await recuperarDado('lista_pagamentos', id)
 
-    const omieStatus = ['A VENCER', 'PAGO', 'ATRASADO', 'VENCE HOJE']
-
-    if (omieStatus.includes(pagamento.status))
-        return popup({ mensagem: 'Este pagamento já está no Omie e por isso não pode ser editado!' })
-
     localStorage.setItem('ultimoPagamento', JSON.stringify(pagamento))
 
     await formularioPagamento()

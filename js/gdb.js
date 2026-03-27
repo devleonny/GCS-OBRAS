@@ -1,9 +1,10 @@
 const nomeBase = 'GCS'
-const versao = 7
+const versao = 8
 let bloqSinc = false
 let dbInstance = null
 
 const basesAuxiliares = {
+    'filtros': { keyPath: 'id' },
     'tags_orcamentos': { keyPath: 'id' },
     'informacoes': { keyPath: 'id' },
     'departamentos_AC': { keyPath: 'codigo', tipo: 'NUMBER' },
