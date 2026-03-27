@@ -967,6 +967,9 @@ async function criarPesquisas() {
         'Empresa': { path: 'snapshots.empresa' },
     }
 
+    if (acesso.permissao == 'cliente')
+        delete camposFechados.Empresa
+
     const filtros = []
 
     controlesCxOpcoes.filtros = {
@@ -981,7 +984,7 @@ async function criarPesquisas() {
     const nome = controles?.ocorrencias?.nomeFiltro || 'Selecionar'
     const idFiltro = controles?.ocorrencias?.idFiltro
 
-    const funcao = ['diretoria', 'adm'].includes(acesso.permissao) 
+    const funcao = ['diretoria', 'adm'].includes(acesso.permissao)
         ? `<img src="imagens/pesquisar.png" onclick="formFiltro(${idFiltro ? `'${idFiltro}'` : ''})">`
         : `<img src="imagens/limpar.png" onclick="limparFiltroOcorrencias()">`
 
