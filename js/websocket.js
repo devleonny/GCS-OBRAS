@@ -123,6 +123,8 @@ async function comunicacao() {
 
         if (tipo == 'atualizacao') {
 
+            await paginacao()
+
             if (tabela == 'dados_orcamentos')
                 await verificarPendencias()
 

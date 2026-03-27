@@ -78,7 +78,7 @@ async function telaInicialGCS() {
         colunas: {
             'Cliente': { chave: 'snapshots.contrato' },
             'Tags': { chave: 'snapshots.tags' },
-            'Técnicos': {},
+            'Técnicos': {chave: 'snapshots.tecnicos'},
             'Início': {},
             'Término': {},
             'Comentário': { chave: 'pda.comentario' },
@@ -167,23 +167,15 @@ async function tabelaPorAba({ aba = 'CONCLUÍDO', id = null }) {
 
 async function linPda(orcamento) {
 
-    const { pda, estado } = orcamento || {}
-    const { cliente, cidade } = orcamento.snapshots || {}
+    const { pda, estado, snapshots } = orcamento || {}
+    const { cliente, cidade, tags, tecnicos } = snapshots || {}
     const idOrcamento = orcamento.id
-    const tecs = []
-
-    for (const t of (orcamento?.checklist?.tecnicos || pda?.tecnicos || [])) {
-        const { nome } = await recuperarDado('dados_clientes', t) || {}
-        if (nome)
-            tecs.push(`<span class="etiqueta-pendente">${nome}</span>`)
-    }
 
     const mod = (texto, elemento) => `
         <div style="${vertical}; gap: 2px;">
             <span><b>${texto}:</b></span>
             ${elemento}
         </div>`
-
 
     const acoes = await pesquisarDB({
         base: 'acoes',
@@ -268,14 +260,9 @@ async function linPda(orcamento) {
     `
 
     // Tags;
-    const tags = []
-
-    for (const idTag of Object.keys(orcamento.tags || {})) {
-
-        const tag = await recuperarDado('tags_orcamentos', idTag)
-
-        tags.push(modeloTag(tag, idOrcamento))
-
+    const listaTags = []
+    for (const tag of Object.values(tags || {})) {
+        listaTags.push(modeloTag(tag, idOrcamento))
     }
 
     const tds = `
@@ -290,7 +277,7 @@ async function linPda(orcamento) {
                     style="width: 1.2rem;" 
                     onclick="renderPainel('${idOrcamento}')">
                 <div name="tags" style="${vertical}; gap: 1px;">
-                    ${tags.join('')}
+                    ${listaTags.join('')}
                 </div>
             </div>
         </td>
@@ -298,7 +285,7 @@ async function linPda(orcamento) {
             <div style="${vertical}; gap: 2px; padding: 1rem;">
                 <img onclick="tecnicosAtivos('${idOrcamento}')" src="imagens/baixar.png" style="width: 1.5rem;">
                 <div style="${vertical}; gap: 2px;">
-                    ${tecs.join('')}
+                    ${tecnicos.map(t => `<span class="etiqueta-pendente">${t}</span>`).join('')}
                 </div>
             </div>
         </td>

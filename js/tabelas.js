@@ -300,18 +300,15 @@ async function paginacao(pag) {
 }
 
 async function atualizarComTS(tbody, dados, criarLinha, base) {
-
     const dino = tbody.querySelector('#dinossauro')
     if (dino)
         dino.remove()
 
-    let linhas = ''
+    const linhas = await Promise.all(
+        dados.map(d => window[criarLinha]({ ...d, base }))
+    )
 
-    for (const d of dados) {
-        linhas += await window[criarLinha]({ ...d, base })
-    }
-
-    tbody.innerHTML = linhas
+    tbody.innerHTML = linhas.join('')
 }
 
 function criarDino(cols) {

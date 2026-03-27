@@ -1816,28 +1816,3 @@ function natal() {
         })
     })
 }
-
-
-
-async function tt(pagina) {
-
-    if (!pagina)
-        return
-
-    const orcs = await pesquisarDB({
-        base: 'dados_orcamentos',
-        pagina,
-        filtros: { 'vinculados': { op: 'NOT_EMPTY' } }
-    })
-
-    for (const orc of orcs.resultados) {
-        const { id, vinculados } = orc || {}
-
-        for (const idOrcSlave of Object.keys(vinculados)) {
-            await enviar(`dados_orcamentos/${idOrcSlave}/master`, id)
-            console.log(idOrcSlave);
-
-        }
-    }
-
-}

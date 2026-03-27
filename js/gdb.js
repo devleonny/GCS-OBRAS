@@ -25,25 +25,14 @@ async function recuperarDado(base, chave) {
     return await resposta.json()
 }
 
-async function pesquisarDB({
-    base,
-    filtros = {},
-    pagina = 1,
-    limite = 50,
-    explode = null
-}) {
+async function pesquisarDB(params) {
+
     const resposta = await fetch(`${api}/pesquisar-db`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-            base,
-            filtros,
-            pagina,
-            limite,
-            explode
-        })
+        body: JSON.stringify(params)
     })
 
     if (!resposta.ok) {
@@ -51,7 +40,9 @@ async function pesquisarDB({
         throw new Error(erro || 'Erro ao pesquisar')
     }
 
-    return await resposta.json()
+    const dados = await resposta.json()
+
+    return dados
 }
 
 async function contarPorCampo({
