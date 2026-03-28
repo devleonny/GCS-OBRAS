@@ -450,7 +450,6 @@ async function telaOcorrencias() {
 
     tela.innerHTML = acumulado
 
-
     // Filtros especiais para Técnico e Cliente;
     if (acesso.permissao == 'técnico') {
 
@@ -961,7 +960,36 @@ async function criarPesquisas() {
         'Empresa': { path: 'snapshots.empresa' },
     }
 
+    if (acesso.permissao == 'cliente')
+        delete camposFechados.Empresa
+
     const filtros = []
+
+    controlesCxOpcoes.filtros = {
+        base: 'filtros',
+        funcaoAdicional: ['definirFiltroGrupo'],
+        retornar: ['nome'],
+        colunas: {
+            'nome': { chave: 'nome' }
+        }
+    }
+
+    const nome = controles?.ocorrencias?.nomeFiltro || 'Selecionar'
+    const idFiltro = controles?.ocorrencias?.idFiltro
+
+    const funcao = ['diretoria', 'adm'].includes(acesso.permissao)
+        ? `<img src="imagens/pesquisar.png" onclick="formFiltro(${idFiltro ? `'${idFiltro}'` : ''})">`
+        : `<img src="imagens/limpar.png" onclick="limparFiltroOcorrencias()">`
+
+    filtros.push(`
+        <div style="${vertical}; gap: 2px;">
+            <div style="${horizontal}; gap: 3px;">
+                <span style="color: white;">Filtros</span>
+                ${funcao}
+            </div>
+            <span  ${idFiltro ? `id="${idFiltro}"` : ''} style="padding: 0 10px 0 10px;" class="filtro-dropdown-botao" name="filtros" onclick="cxOpcoes('filtros')">${nome}</span>
+        </div>
+        `)
 
     for (const [titulo, conf] of Object.entries(camposFechados)) {
         const { path } = conf
@@ -1006,6 +1034,121 @@ async function criarPesquisas() {
     })
 
     divF2.insertAdjacentHTML('beforeend', filtros.join(''))
+}
+
+async function formFiltro(id) {
+
+    const { nome } = await recuperarDado('filtros', id) || {}
+
+    const linhas = [
+        {
+            texto: 'Nome do Filtro',
+            elemento: `<textarea name="nome">${nome || ''}</textarea>`
+        }
+    ]
+
+    const botoes = [
+        {
+            img: 'concluido',
+            texto: 'Salvar',
+            funcao: id
+                ? `salvarFiltro('${id}')`
+                : 'salvarFiltro()'
+        }]
+
+    if (id) {
+        botoes.push(
+            {
+                img: 'cancel',
+                texto: 'Excluir',
+                funcao: `confirmarExcluirFiltro('${id}')`
+            },
+            {
+                img: 'limpar',
+                texto: 'Limpar',
+                funcao: 'limparFiltroOcorrencias()'
+            }
+        )
+    }
+
+    popup({ botoes, linhas, titulo: 'Grupo de filtros' })
+
+}
+
+async function confirmarExcluirFiltro(id) {
+
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `excluirFiltroOcorrencias('${id}')` }
+    ]
+
+    popup({ mensagem: 'Tem certeza?', botoes, nra: false })
+
+}
+
+async function excluirFiltroOcorrencias(id) {
+
+    await deletarDB('filtros', id)
+    deletar(`filtros/${id}`)
+
+    await limparFiltroOcorrencias()
+}
+
+async function limparFiltroOcorrencias() {
+
+    delete controles.ocorrencias.nomeFiltro
+    delete controles.ocorrencias.idFiltro
+    delete controles.ocorrencias.filtros
+
+    document.querySelector('#filtros1').innerHTML = ''
+    document.querySelector('#filtros2').innerHTML = ''
+
+    removerPopup()
+
+    await criarPesquisas()
+    await paginacao()
+
+}
+
+async function salvarFiltro(id = crypto.randomUUID()) {
+
+    overlayAguarde()
+
+    const nome = document.querySelector('[name="nome"]').value || 'Sem nome'
+
+    const filtro = {
+        id,
+        nome,
+        filtro: controles?.ocorrencias?.filtros || {}
+    }
+
+    await inserirDados({ [id]: filtro }, 'filtros')
+    enviar(`filtros/${id}`, filtro)
+
+    await definirFiltroGrupo()
+
+    removerPopup()
+
+}
+
+async function definirFiltroGrupo() {
+    const span = document.querySelector('[name="filtros"]')
+    const id = span?.id
+    if (!id) return
+
+    const { filtro, nome } = await recuperarDado('filtros', id) || {}
+    if (!filtro) return
+
+    controles.ocorrencias.nomeFiltro = nome
+    controles.ocorrencias.idFiltro = id
+    controles.ocorrencias.filtros = structuredClone(filtro)
+
+    document.querySelector('#filtros1').innerHTML = ''
+    document.querySelector('#filtros2').innerHTML = ''
+
+    await criarPesquisas()
+    span.textContent = nome || 'Selecionar'
+
+    await paginacao()
 }
 
 function listaRegras(path) {
