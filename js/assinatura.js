@@ -87,9 +87,7 @@ async function salvarAssinatura(idOcorrencia) {
 
         ocorrencia.assinatura = dados[0].link
 
-        enviar(`dados_ocorrencias/${idOcorrencia}/assinatura`, dados[0].link)
-
-        await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
+        await enviar(`dados_ocorrencias/${idOcorrencia}/assinatura`, dados[0].link)
 
         removerPopup()
 

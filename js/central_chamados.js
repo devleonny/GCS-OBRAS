@@ -124,8 +124,7 @@ async function telaInicialOcorrencias() {
     mostrarMenus(false)
     auxPendencias()
 
-    if (!emAtualizacao)
-        await criarElementosIniciais()
+    await criarElementosIniciais()
 
 }
 
@@ -373,9 +372,9 @@ function criarLinhaUsuario(dados) {
     const tds = `
         <td>${usuario}</td>
         <td>${nome_completo || ''}</td>
-        <td>${empresa}</td>
-        <td>${setor}</td>
-        <td>${permissao}</td>
+        <td>${empresa || ''}</td>
+        <td>${setor || ''}</td>
+        <td>${permissao || ''}</td>
         <td><img onclick="gerenciarUsuario('${usuario}')" src="imagens/pesquisar2.png"></td>
     `
     return `<tr>${tds}</tr>`

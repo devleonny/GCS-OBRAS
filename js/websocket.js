@@ -3,8 +3,10 @@ let reconnectInterval = 30000
 let reconnectTimeout = null
 let reconectando = false
 
-let emAtualizacao = false
 let priExeGCS = true
+
+// Temporário;
+indexedDB.deleteDatabase('GCS')
 
 connectWebSocket()
 

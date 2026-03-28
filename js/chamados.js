@@ -617,8 +617,7 @@ async function enviarManutencao(idManutencao = crypto.randomUUID()) {
         novaManutencao.anexos[anexo.link] = anexo
     }
 
-    await inserirDados({ [idManutencao]: novaManutencao }, 'dados_manutencao')
-    enviar(`dados_manutencao/${idManutencao}`, novaManutencao)
+    await enviar(`dados_manutencao/${idManutencao}`, novaManutencao)
 
     // Ações para esta manutenção;
     const acao = {
@@ -639,8 +638,7 @@ async function enviarManutencao(idManutencao = crypto.randomUUID()) {
         registro: Date.now()
     }
 
-    await inserirDados({ [idManutencao]: acao }, 'acoes')
-    enviar(`acoes/${idManutencao}`, acao)
+    await enviar(`acoes/${idManutencao}`, acao)
 
     removerPopup()
 

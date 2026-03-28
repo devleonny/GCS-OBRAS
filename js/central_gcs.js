@@ -475,8 +475,6 @@ async function salvarLevantamento(idOrcamento, idElemento) {
 
             Object.assign(orcamentoBase.levantamentos, anexoDados)
 
-            await inserirDados({ [idOrcamento]: orcamentoBase }, 'dados_orcamentos')
-
             for (const [idAnexo, anexo] of Object.entries(anexoDados)) {
                 await enviar(`dados_orcamentos/${idOrcamento}/levantamentos/${idAnexo}`, anexo)
             }
@@ -516,8 +514,7 @@ async function excluirLevantamentoStatus(idAnexo, id) {
     delete orcamento.levantamentos[idAnexo]
 
     if (id) {
-        deletar(`dados_orcamentos/${id}/levantamentos/${idAnexo}`)
-        await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+        await deletar(`dados_orcamentos/${id}/levantamentos/${idAnexo}`)
     } else {
         baseOrcamento(orcamento)
     }
@@ -770,7 +767,6 @@ async function confirmarRelancamento(idPagamento) {
 
     pagamento.status = 'Processando...'
 
-    await inserirDados({ [idPagamento]: pagamento }, 'lista_pagamentos')
     await abrirDetalhesPagamentos(idPagamento)
 
     const textoPrincipal = resposta?.descricao_status || resposta?.faultstring || mensagem || 'Falha na API'
@@ -1132,8 +1128,7 @@ async function respostaAprovacao(botao, idOrcamento, status) {
         ...dados
     }
 
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${idOrcamento}/aprovacao`, orcamento.aprovacao)
+    await enviar(`dados_orcamentos/${idOrcamento}/aprovacao`, orcamento.aprovacao)
 
     removerPopup()
 
@@ -1650,10 +1645,9 @@ async function salvarDadosCliente(idOrcamento) {
             // Objeto precisar ter o id;
             orcamentoBase.id = idOrcamento
 
-            await inserirDados({ [idOrcamento]: orcamentoBase }, 'dados_orcamentos')
-            enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamentoBase.dados_orcam)
-            enviar(`dados_orcamentos/${idOrcamento}/tags`, orcamentoBase.tags)
-            enviar(`dados_orcamentos/${idOrcamento}/usuarios`, orcamentoBase.usuarios)
+            await enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamentoBase.dados_orcam)
+            await enviar(`dados_orcamentos/${idOrcamento}/tags`, orcamentoBase.tags)
+            await enviar(`dados_orcamentos/${idOrcamento}/usuarios`, orcamentoBase.usuarios)
 
             const atualizar = orcamentoBase.chamado !== ehChamado
             if (atualizar)

@@ -38,6 +38,7 @@ function formatacaoPagina() {
 async function telaOrcamentos() {
 
     atualizarToolbar(true) // GCS no título
+    mostrarMenus(false)
 
     funcaoTela = 'telaOrcamentos'
 
@@ -91,7 +92,6 @@ async function telaOrcamentos() {
 
     await carregarToolbar()
     criarMenus('orcamentos')
-    mostrarMenus(false)
 
     await paginacao()
 
