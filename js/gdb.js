@@ -89,9 +89,14 @@ async function deletar(caminho, idEvento) {
 
         const data = await response.json()
 
-        if (idEvento) removerOffline('deletar', idEvento)
+        if (idEvento)
+            removerOffline('deletar', idEvento)
+
+        if (data.mensagem)
+            return popup({ mensagem: data.mensagem })
 
         return data
+
     } catch (erro) {
         console.error(`Erro ao tentar deletar '${caminho}':`, erro.message || erro)
         salvarOffline(objeto, 'deletar', idEvento)
