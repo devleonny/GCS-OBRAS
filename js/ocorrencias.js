@@ -192,14 +192,9 @@ async function excluirOcorrenciaCorrecao(idOcorrencia, idCorrecao) {
     overlayAguarde()
 
     if (idCorrecao) {
-        const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
-        delete ocorrencia.correcoes[idCorrecao]
-
         await deletar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`)
-        await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
     } else {
         await deletar(`dados_ocorrencias/${idOcorrencia}`)
-        await deletarDB('dados_ocorrencias', idOcorrencia)
     }
 
     removerOverlay()
@@ -410,10 +405,8 @@ async function salvarDataCorrecao(idOcorrencia, idCorrecao) {
     correcao.datas_agendadas.push(correcao.dtCorrecao)
     correcao.dtCorrecao = novaData.value
 
-    await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
-
-    enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}/dtCorrecao`, novaData.value)
-    enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}/datas_agendadas`, correcao.datas_agendadas)
+    await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}/dtCorrecao`, novaData.value)
+    await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}/datas_agendadas`, correcao.datas_agendadas)
 
     removerPopup()
 
@@ -1456,7 +1449,6 @@ async function formularioOcorrencia(idOcorrencia) {
 
     const botoes = [
         { img: 'concluido', texto: 'Salvar', funcao: idOcorrencia ? `salvarOcorrencia('${idOcorrencia}')` : 'salvarOcorrencia()' },
-        { img: 'atualizar', texto: 'Atualizar', funcao: `atualizarGCS()` },
     ]
 
     const titulo = idOcorrencia ? 'Editar Ocorrência' : 'Criar Ocorrência'
@@ -1594,8 +1586,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
             funcao: idCorrecao
                 ? `salvarCorrecao('${idOcorrencia}', '${idCorrecao}')`
                 : `salvarCorrecao('${idOcorrencia}')`
-        },
-        { img: 'atualizar', texto: 'Atualizar', funcao: `atualizarGCS()` },
+        }
     ]
 
     popup({ linhas, botoes, titulo: 'Gerenciar Correção', autoDestruicao: ['executor', 'tecnico', 'tipoCorrecao'] })
@@ -1768,9 +1759,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
         }
     }
 
-    await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
-
-    enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, ocorrencia.correcoes[idCorrecao])
+    await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, ocorrencia.correcoes[idCorrecao])
     removerPopup()
 
 }
@@ -1843,15 +1832,10 @@ async function salvarOcorrencia(idOcorrencia) {
         }
     }
 
-    const salvarLocal = async (id, dados) => {
-        await inserirDados({ [id]: dados }, 'dados_ocorrencias')
-    }
-
     if (idOcorrencia) {
         Object.assign(ocorrencia, novo)
 
-        await salvarLocal(idOcorrencia, ocorrencia)
-        enviar(`dados_ocorrencias/${idOcorrencia}`, ocorrencia)
+        await enviar(`dados_ocorrencias/${idOcorrencia}`, ocorrencia)
         removerPopup()
 
     } else {
@@ -1859,11 +1843,8 @@ async function salvarOcorrencia(idOcorrencia) {
         try {
             const resposta = await enviar('dados_ocorrencias/0000', novo)
 
-            if (resposta.mensagem) {
-                popup({ mensagem: resposta.mensagem })
-            } else {
-                await salvarLocal(resposta.idOcorrencia, { ...novo, id: resposta.idOcorrencia })
-            }
+            if (resposta.mensagem)
+                return popup({ mensagem: resposta.mensagem })
 
             removerPopup()
 
@@ -1888,18 +1869,12 @@ async function anexosOcorrencias(input) {
 async function removerAnexo(img, idAnexo, idOcorrencia, idCorrecao) {
 
     overlayAguarde()
-
-    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
-
+    
     if (idCorrecao) { // Se correção
-        delete ocorrencia.correcoes[idCorrecao].anexos[idAnexo]
-        deletar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}/anexos/${idAnexo}`)
+        await deletar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}/anexos/${idAnexo}`)
     } else { // Se ocorrência
-        delete ocorrencia.anexos[idAnexo]
-        deletar(`dados_ocorrencias/${idOcorrencia}/anexos/${idAnexo}`)
+        await deletar(`dados_ocorrencias/${idOcorrencia}/anexos/${idAnexo}`)
     }
-
-    await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
 
     img.parentElement.remove()
     removerOverlay()

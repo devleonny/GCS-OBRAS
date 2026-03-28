@@ -87,7 +87,6 @@ async function telaChecklist(id) {
                         ${modeloBotoes('checklist', 'Ver Itens Removidos', `verItensRemovidos()`)}
                         ${modeloBotoes('baixar', 'Serviço Avulso', `adicionarServicoAvulso()`)}
                         ${modeloBotoes('relatorio', 'Relatório', `relatorioChecklist()`)}
-                        ${modeloBotoes('atualizar', 'Atualizar', `atualizarGCS()`)}
                     </div>
                     
                 </div>
@@ -233,8 +232,7 @@ async function salvarTempo(codigo) {
 
     const tempo = document?.querySelector('#tempoProduto')?.value || '00:00'
 
-    await inserirDados({ [codigo]: produto }, 'dados_composicoes')
-    enviar(`dados_composicoes/${codigo}/tempo`, tempo)
+    await enviar(`dados_composicoes/${codigo}/tempo`, tempo)
 
     removerPopup()
 
@@ -266,14 +264,8 @@ async function salvarQtdReal(codigo) {
     overlayAguarde()
 
     const { id } = controles.checklist
-    const orcamento = await recuperarDado('dados_orcamentos', id)
 
-    orcamento.checklist.qReal ??= {}
-    orcamento.checklist.qReal[codigo] ??= {}
-    orcamento.checklist.qReal[codigo].qtde = qtde
-
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id}/checklist/qReal/${codigo}/qtde`, qtde)
+    await enviar(`dados_orcamentos/${id}/checklist/qReal/${codigo}/qtde`, qtde)
 
     removerPopup()
 
@@ -325,11 +317,7 @@ async function salvarTecnicos(id) {
     }
 
     // Caso seja com base no orçamento;
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-    orcamento.checklist ??= {}
-    orcamento.checklist.tecnicos = tecnicos
-    enviar(`dados_orcamentos/${id}/checklist/tecnicos`, tecnicos)
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+    await enviar(`dados_orcamentos/${id}/checklist/tecnicos`, tecnicos)
 
     removerPopup()
 
@@ -614,23 +602,16 @@ async function salvarAvulso() {
 
     overlayAguarde()
     const { id } = controles.checklist
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-    orcamento.checklist ??= {}
-    orcamento.checklist.avulso ??= {}
-
-    const produto = await recuperarDado('dados_composicoes', codigo)
+    const { descricao } = await recuperarDado('dados_composicoes', codigo)
 
     const dados = {
         qtde,
-        descricao: produto.descricao,
+        descricao,
         usuario: acesso.usuario,
         data: new Date().toLocaleString()
     }
 
-    orcamento.checklist.avulso[codigo] = dados
-
-    enviar(`dados_orcamentos/${id}/checklist/avulso/${codigo}`, dados)
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+    await enviar(`dados_orcamentos/${id}/checklist/avulso/${codigo}`, dados)
 
     removerPopup()
 }
@@ -668,13 +649,8 @@ async function recuperarItem(codigo, img) {
 
     overlayAguarde()
     const { id } = controles.checklist
-    const orcamento = await recuperarDado('dados_orcamentos', id)
 
-    delete orcamento.checklist.itens[codigo].removido
-
-    deletar(`dados_orcamentos/${id}/checklist/itens/${codigo}/removido`)
-
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+    await deletar(`dados_orcamentos/${id}/checklist/itens/${codigo}/removido`)
 
     img.closest('div').remove()
     removerOverlay()
@@ -691,28 +667,19 @@ async function removerItensEmMassaChecklist() {
     overlayAguarde()
 
     const { id } = controles.checklist
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-
-    orcamento.checklist ??= {}
-    orcamento.checklist.itens ??= {}
 
     for (const check of itensChecklist) {
 
         const codigo = check.dataset.codigo
 
-        orcamento.checklist.itens[codigo] ??= {}
         const dados = {
             usuario: acesso.usuario,
             data: new Date().toLocaleString()
         }
 
-        orcamento.checklist.itens[codigo].removido = dados
-
-        enviar(`dados_orcamentos/${id}/checklist/itens/${codigo}/removido`, dados)
+        await enviar(`dados_orcamentos/${id}/checklist/itens/${codigo}/removido`, dados)
 
     }
-
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
 
     removerOverlay()
 
@@ -731,10 +698,7 @@ function marcarItensChecklist(input) {
 
 async function atualizarTempo(input, codigo) {
 
-    const produto = await recuperarDado('dados_composicoes', codigo)
-    produto.tempo = input.value
-    enviar(`dados_composicoes/${codigo}/tempo`, input.value)
-    await inserirDados({ [codigo]: produto }, 'dados_composicoes')
+    await enviar(`dados_composicoes/${codigo}/tempo`, input.value)
 
     input.classList = input.value !== ''
         ? 'on'
@@ -1000,13 +964,11 @@ async function registrarChecklist(codigo) {
 async function alterarComentario(img, idLancamento, codigo) {
 
     const { id } = controles.checklist
-    const orcamento = await recuperarDado('dados_orcamentos', id)
 
     const textarea = img.previousElementSibling
     const comentario = textarea.value
-    orcamento.checklist.itens[codigo][idLancamento].comentario = comentario
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id}/checklist/itens/${codigo}/${idLancamento}/comentario`, comentario)
+
+    await enviar(`dados_orcamentos/${id}/checklist/itens/${codigo}/${idLancamento}/comentario`, comentario)
 
     img.style.display = 'none'
 
@@ -1017,24 +979,16 @@ function mostrarBtn(input) {
     img.style.display = ''
 }
 
-async function alterarQuantidadeChecklist(img, idLancamento, codigo, qtdeAnterior) {
+async function alterarQuantidadeChecklist(img, idLancamento, codigo) {
 
     const input = img.previousElementSibling
     const quantidade = Number(input.value)
 
     img.style.display = 'none'
 
-    if (((quantidadeRealizadoItem - qtdeAnterior) + quantidade) > quantidadeItem)
-        return input.value = qtdeAnterior
-
     const { id } = controles.checklist
-    const orcamento = await recuperarDado('dados_orcamentos', id)
 
-    orcamento.checklist.itens[codigo][idLancamento].quantidade = quantidade
-
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-
-    enviar(`dados_orcamentos/${id}/checklist/itens/${codigo}/${idLancamento}/quantidade`, quantidade)
+    await enviar(`dados_orcamentos/${id}/checklist/itens/${codigo}/${idLancamento}/quantidade`, quantidade)
 
 }
 
@@ -1099,22 +1053,13 @@ async function salvarQuantidade(codigo) {
         return popup({ mensagem: 'Preencha todos os campos' })
 
     const { id } = controles.checklist
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-
-    orcamento.checklist ??= {}
-    orcamento.checklist.itens ??= {}
-    orcamento.checklist.itens[codigo] ??= {}
 
     const dados = { quantidade, tecnicos, data, comentario }
     const idLancamento = ID5digitos()
 
-    orcamento.checklist.itens[codigo][idLancamento] = dados
-
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+    await enviar(`dados_orcamentos/${id}/checklist/itens/${codigo}/${idLancamento}`, dados)
 
     removerPopup()
-
-    enviar(`dados_orcamentos/${id}/checklist/itens/${codigo}/${idLancamento}`, dados)
 
 }
 
@@ -1123,17 +1068,12 @@ async function removerChecklist(codigo, idLancamento) {
     overlayAguarde()
 
     const { id } = controles.checklist
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-    delete orcamento.checklist.itens[codigo][idLancamento]
 
-    deletar(`dados_orcamentos/${id}/checklist/itens/${codigo}/${idLancamento}`)
+    await deletar(`dados_orcamentos/${id}/checklist/itens/${codigo}/${idLancamento}`)
 
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-
-    removerPopup()
     await registrarChecklist(codigo)
 
-    removerOverlay()
+    removerPopup()()
 
 }
 

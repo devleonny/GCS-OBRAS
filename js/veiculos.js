@@ -368,13 +368,10 @@ async function atualizarRealizado(img, idCusto) {
 
     const input = img.previousElementSibling
     const realizado = Number(input.value)
-    const custo = await recuperarDado('custo_veiculos', idCusto)
-    custo.realizado = realizado
 
     img.style.display = 'none'
 
-    enviar(`custo_veiculos/${idCusto}/realizado`, realizado)
-    await inserirDados({ [idCusto]: custo }, 'custo_veiculos')
+    await enviar(`custo_veiculos/${idCusto}/realizado`, realizado)
 
 }
 
@@ -404,8 +401,7 @@ function painelExcluir(idCusto) {
 
 async function excluirCusto(idCusto) {
 
-    await deletarDB('custo_veiculos', idCusto)
-    deletar(`custo_veiculos/${idCusto}`)
+    await deletar(`custo_veiculos/${idCusto}`)
 
 }
 
@@ -479,8 +475,7 @@ async function painelValores(idCusto, duplicar) {
     ]
 
     const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: (!idCusto || duplicar) ? `salvarValores()` : `salvarValores('${idCusto}')` },
-        { texto: 'Atualizar', img: 'atualizar', funcao: `atualizarGCS()` },
+        { texto: 'Salvar', img: 'concluido', funcao: (!idCusto || duplicar) ? `salvarValores()` : `salvarValores('${idCusto}')` }
     ]
 
     popup({ linhas, botoes, titulo: 'Gerenciar Custo' })
@@ -622,8 +617,7 @@ async function salvarValores(idCusto = ID5digitos()) {
         usuario: usuario || acesso.usuario
     }
 
-    enviar(`custo_veiculos/${idCusto}`, dados)
-    await inserirDados({ [idCusto]: dados }, 'custo_veiculos')
+    await enviar(`custo_veiculos/${idCusto}`, dados)
 
     removerPopup()
 }
@@ -681,8 +675,7 @@ async function excluirVeiculo(idVeiculo) {
     removerPopup()
     removerPopup()
 
-    await deletarDB('veiculos', idVeiculo)
-    deletar(`veiculos/${idVeiculo}`)
+    await deletar(`veiculos/${idVeiculo}`)
 
 }
 
@@ -746,8 +739,7 @@ async function salvarVeiculo(idVeiculo = ID5digitos()) {
         motoristas
     }
 
-    await inserirDados({ [idVeiculo]: veiculo }, 'veiculos')
-    enviar(`veiculos/${idVeiculo}`, veiculo)
+    await enviar(`veiculos/${idVeiculo}`, veiculo)
 
     removerPopup()
 }

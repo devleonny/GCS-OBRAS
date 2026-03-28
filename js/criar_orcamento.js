@@ -731,8 +731,6 @@ async function ativarChave(input, idOrcamento, chave) {
     const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     orcamento[chave] = ativo
 
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-
     const pHistorico = document.querySelector('.painel-historico')
     if (pHistorico)
         await abrirEsquema(idOrcamento)

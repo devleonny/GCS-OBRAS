@@ -94,11 +94,6 @@ async function capturarLocalizacao() {
     })
 }
 
-async function irGCS() {
-    overlayAguarde()
-    await telaInicialGCS()
-    removerOverlay()
-}
 
 async function telaInicialOcorrencias() {
 
@@ -107,9 +102,6 @@ async function telaInicialOcorrencias() {
     cUsuario.style.display = 'none'
     toolbar.style.display = ''
     toolbar.style.display = 'flex'
-
-    if (priExeGCS)
-        await atualizarGCS()
 
     const planoFundo = `
         <div class="planoFundo">
@@ -127,8 +119,7 @@ async function telaInicialOcorrencias() {
     mostrarMenus(false)
     auxPendencias()
 
-    if (!emAtualizacao)
-        await criarElementosIniciais()
+    await criarElementosIniciais()
 
 }
 
@@ -292,7 +283,6 @@ async function minhaCorrecao(id) {
 function carregarMenus() {
 
     const menus = {
-        'Atualizar': { img: 'atualizar', funcao: 'atualizarGCS()', proibidos: [] },
         'Início': { img: 'home', funcao: 'telaInicialOcorrencias()', proibidos: [] },
         'Criar Ocorrência': { img: 'baixar', funcao: 'formularioOcorrencia()', proibidos: ['técnico'] },
         'Ocorrências': { img: 'configuracoes', funcao: 'telaOcorrencias()', proibidos: [] },
@@ -377,9 +367,9 @@ function criarLinhaUsuario(dados) {
     const tds = `
         <td>${usuario}</td>
         <td>${nome_completo || ''}</td>
-        <td>${empresa}</td>
-        <td>${setor}</td>
-        <td>${permissao}</td>
+        <td>${empresa || ''}</td>
+        <td>${setor || ''}</td>
+        <td>${permissao || ''}</td>
         <td><img onclick="gerenciarUsuario('${usuario}')" src="imagens/pesquisar2.png"></td>
     `
     return `<tr>${tds}</tr>`

@@ -19,7 +19,6 @@ async function telaCadastros() {
         const tabela = await modTab({
             base,
             btnExtras,
-            alinPag: vertical,
             colunas: {
                 'Nome': { chave: 'nome' },
                 '': {}
@@ -91,8 +90,7 @@ function confirmarExcluirItemTabela(nomeBase, id) {
 
 async function excluirItemTabela(nomeBase, id) {
 
-    await deletarDB(nomeBase, id)
-    deletar(`${nomeBase}/${id}`)
+    await deletar(`${nomeBase}/${id}`)
 
 }
 
@@ -105,8 +103,7 @@ async function salvarNomeAuxiliar(nomeBase, id = ID5digitos()) {
     const dado = await recuperarDado(nomeBase, id) || {}
     dado.nome = nome.value
 
-    await inserirDados({ [id]: dado }, nomeBase)
-    enviar(`${nomeBase}/${id}/nome`, nome.value)
+    await enviar(`${nomeBase}/${id}/nome`, nome.value)
 
     removerPopup()
 

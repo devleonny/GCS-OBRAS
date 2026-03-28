@@ -38,6 +38,7 @@ function formatacaoPagina() {
 async function telaOrcamentos() {
 
     atualizarToolbar(true) // GCS no título
+    mostrarMenus(false)
 
     funcaoTela = 'telaOrcamentos'
 
@@ -46,7 +47,7 @@ async function telaOrcamentos() {
         'Status': { chave: 'status.atual' },
         'Pedido': { chave: 'snapshots.pedidos' },
         'Notas': { chave: 'snapshots.notas' },
-        'Tags': { chave: 'snapshots.tags' },
+        'Tags': { chave: 'snapshots.tags.*.nome' },
         'Contrato': { chave: 'snapshots.contrato' },
         'Cidade': { chave: 'snapshots.cidade' },
         'Responsaveis': { chave: 'snapshots.responsavel' },
@@ -91,7 +92,6 @@ async function telaOrcamentos() {
 
     await carregarToolbar()
     criarMenus('orcamentos')
-    mostrarMenus(false)
 
     await paginacao()
 
@@ -188,6 +188,7 @@ async function criarLinhaOrcamento(orcamento) {
     async function linhaOrcamento(orcamento) {
 
         const { id, dados_orcam, snapshots } = orcamento || {}
+        const { tags } = snapshots || {}
 
         const pedidos = Object.values(orcamento?.status?.historico || {})
             .filter(s => s?.status == 'PEDIDO')
@@ -253,11 +254,10 @@ async function criarLinhaOrcamento(orcamento) {
             .join('')
 
         // Tags;
-        const tags = []
+        const listaTags = []
 
-        for (const idTag of Object.keys(orcamento.tags || {})) {
-            const tag = await recuperarDado('tags_orcamentos', idTag)
-            tags.push(modeloTag(tag, id))
+        for (const tag of Object.values(snapshots?.tags || {})) {
+            listaTags.push(modeloTag(tag, id))
         }
 
         // Verificação de departamento;
@@ -276,7 +276,7 @@ async function criarLinhaOrcamento(orcamento) {
                 ${divPorcentagem(0)}
             `)
 
-        const data = new Date(snapshots.tsUltimoStatus).toLocaleString()
+        const data = new Date(snapshots?.tsUltimoStatus).toLocaleString()
 
         const celulas = `
          <td>
@@ -311,7 +311,7 @@ async function criarLinhaOrcamento(orcamento) {
                     style="width: 1.2rem;" 
                     onclick="renderPainel('${id}')">
                 <div name="tags" style="${vertical}; gap: 1px;">
-                    ${tags.join('')}
+                    ${listaTags.join('')}
                 </div>
             </div>
         </td>

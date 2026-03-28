@@ -126,13 +126,7 @@ document.addEventListener('keydown', function (event) {
 
 async function resetarBases() {
 
-    overlayAguarde()
-    mostrarMenus(true)
-
-    await resetarBanco()
-    await atualizarGCS()
-
-    removerOverlay()
+    //EXCLUIR
 
 }
 
@@ -298,15 +292,6 @@ async function configuracoes(usuario, campo, valor) {
     if (resposta.mensagem)
         return popup({ mensagem: resposta.mensagem })
 
-    const dadosUsuario = await recuperarDado('dados_setores', usuario)
-    dadosUsuario[campo] = valor
-
-    if (campo == 'permissao' && valor == 'desativado') {
-        await deletarDB('dados_setores', usuario)
-        removerPopup()
-    } else {
-        await inserirDados({ [usuario]: dadosUsuario }, 'dados_setores')
-    }
 }
 
 async function comunicacaoServ({ usuario, campo, valor }) {
@@ -341,8 +326,6 @@ function deslogarUsuario() {
 }
 
 async function sair() {
-
-    indexedDB.deleteDatabase(nomeBase)
 
     removerPopup()
 
@@ -431,6 +414,20 @@ async function cxOpcoes(name) {
     await paginacao(pag)
 }
 
+function normalizarPesquisa(valor) {
+    return String(valor ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^\p{L}\p{N}]/gu, '')
+        .toLowerCase()
+        .trim()
+}
+
+function getByPath(obj, path) {
+    if (!path) return obj
+    return path.split('.').reduce((acc, key) => acc?.[key], obj)
+}
+
 function linCxOpcoes(dado) {
 
     const { ativo } = controlesCxOpcoes // Ativo é o mesmo que o [name]
@@ -470,14 +467,7 @@ async function selecionar(name, cod) {
     const elemento = (painel || document).querySelector(`[name='${name}']`)
     const termos = []
 
-    const baseDB = basesAuxiliares?.[base]
-
-    if (baseDB?.tipo == 'NUMBER')
-        cod = Number(cod)
-
-    const dado = baseDB
-        ? await recuperarDado(base, cod)
-        : base[cod] || {}
+    const dado = base[cod] || await recuperarDado(base, cod)
 
     for (const chave of retornar) {
 

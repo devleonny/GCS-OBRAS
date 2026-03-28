@@ -103,7 +103,6 @@ async function vincularEmpresas() {
 
         controles.clientes.cp = {}
 
-        await sincronizarDados({ base: 'dados_clientes' })
         removerPopup()
 
     } catch (err) {
@@ -656,8 +655,7 @@ function confirmarExcluirCliente(idCliente) {
 
 async function excluirCliente(idCliente) {
 
-    await deletarDB('dados_clientes', idCliente)
-    deletar(`dados_clientes/${idCliente}`)
+    await deletar(`dados_clientes/${idCliente}`)
 
 }
 
@@ -708,10 +706,9 @@ async function salvarCliente(idCliente = codCliAleatorio()) {
         ...novo
     }
 
-    await inserirDados({ [idCliente]: cliente }, 'dados_clientes')
-    removerPopup()
+    await enviar(`dados_clientes/${idCliente}`, cliente)
 
-    enviar(`dados_clientes/${idCliente}`, cliente)
+    removerPopup()
 
 }
 

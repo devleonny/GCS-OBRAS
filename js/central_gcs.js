@@ -116,7 +116,6 @@ function criarMenus(chave) {
 }
 
 const atalhoInicial = [
-    { nome: 'Atualizar GCS', funcao: 'atualizarGCS', img: 'atualizar' },
     { nome: 'Menu Inicial', funcao: 'telaInicialGCS', img: 'LG' }
 ]
 
@@ -243,8 +242,6 @@ async function respostaSincronizacao(script) {
     const resposta = await sincronizar(script)
 
     localResposta.innerHTML = resposta.mensagem || 'Sem resposta'
-
-    if (resposta.mensagem == 'Sincronizado') await atualizarGCS()
 
 }
 
@@ -452,11 +449,6 @@ async function irPdf(id, emAnalise) {
 
 }
 
-async function recuperarClientes() {
-
-    await sincronizarDados({ base: 'dados_clientes', overlay: true })
-
-}
 
 async function salvarLevantamento(idOrcamento, idElemento) {
 
@@ -482,8 +474,6 @@ async function salvarLevantamento(idOrcamento, idElemento) {
             orcamentoBase.levantamentos ??= {}
 
             Object.assign(orcamentoBase.levantamentos, anexoDados)
-
-            await inserirDados({ [idOrcamento]: orcamentoBase }, 'dados_orcamentos')
 
             for (const [idAnexo, anexo] of Object.entries(anexoDados)) {
                 await enviar(`dados_orcamentos/${idOrcamento}/levantamentos/${idAnexo}`, anexo)
@@ -524,8 +514,7 @@ async function excluirLevantamentoStatus(idAnexo, id) {
     delete orcamento.levantamentos[idAnexo]
 
     if (id) {
-        deletar(`dados_orcamentos/${id}/levantamentos/${idAnexo}`)
-        await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+        await deletar(`dados_orcamentos/${id}/levantamentos/${idAnexo}`)
     } else {
         baseOrcamento(orcamento)
     }
@@ -778,7 +767,6 @@ async function confirmarRelancamento(idPagamento) {
 
     pagamento.status = 'Processando...'
 
-    await inserirDados({ [idPagamento]: pagamento }, 'lista_pagamentos')
     await abrirDetalhesPagamentos(idPagamento)
 
     const textoPrincipal = resposta?.descricao_status || resposta?.faultstring || mensagem || 'Falha na API'
@@ -1140,8 +1128,7 @@ async function respostaAprovacao(botao, idOrcamento, status) {
         ...dados
     }
 
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${idOrcamento}/aprovacao`, orcamento.aprovacao)
+    await enviar(`dados_orcamentos/${idOrcamento}/aprovacao`, orcamento.aprovacao)
 
     removerPopup()
 
@@ -1302,12 +1289,6 @@ async function verificarNF(numero, tipo, app) {
     })
 }
 
-async function attClientes() {
-    overlayAguarde()
-    await atualizarGCS()
-    removerOverlay()
-}
-
 async function painelClientes(idOrcamento) {
 
     overlayAguarde()
@@ -1340,8 +1321,7 @@ async function painelClientes(idOrcamento) {
         : 'salvarDadosCliente()'
 
     const botoes = [
-        { texto: 'Salvar Dados', img: 'concluido', funcao },
-        { texto: 'Atualizar', img: 'atualizar', funcao: `attClientes()` },
+        { texto: 'Salvar Dados', img: 'concluido', funcao }
     ]
 
     if (idOrcamento)
@@ -1665,10 +1645,9 @@ async function salvarDadosCliente(idOrcamento) {
             // Objeto precisar ter o id;
             orcamentoBase.id = idOrcamento
 
-            await inserirDados({ [idOrcamento]: orcamentoBase }, 'dados_orcamentos')
-            enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamentoBase.dados_orcam)
-            enviar(`dados_orcamentos/${idOrcamento}/tags`, orcamentoBase.tags)
-            enviar(`dados_orcamentos/${idOrcamento}/usuarios`, orcamentoBase.usuarios)
+            await enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamentoBase.dados_orcam)
+            await enviar(`dados_orcamentos/${idOrcamento}/tags`, orcamentoBase.tags)
+            await enviar(`dados_orcamentos/${idOrcamento}/usuarios`, orcamentoBase.usuarios)
 
             const atualizar = orcamentoBase.chamado !== ehChamado
             if (atualizar)
@@ -1830,29 +1809,4 @@ function natal() {
             }, 15000) //15s
         })
     })
-}
-
-
-
-async function tt(pagina) {
-
-    if (!pagina)
-        return
-
-    const orcs = await pesquisarDB({
-        base: 'dados_orcamentos',
-        pagina,
-        filtros: { 'vinculados': { op: 'NOT_EMPTY' } }
-    })
-
-    for (const orc of orcs.resultados) {
-        const { id, vinculados } = orc || {}
-
-        for (const idOrcSlave of Object.keys(vinculados)) {
-            await enviar(`dados_orcamentos/${idOrcSlave}/master`, id)
-            console.log(idOrcSlave);
-
-        }
-    }
-
 }

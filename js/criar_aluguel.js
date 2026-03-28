@@ -214,29 +214,17 @@ async function enviarDadosAluguel() {
     // Salvar o usuário na primeira vez apenas;
     if (!orcamentoBase.usuario) orcamentoBase.usuario = acesso.usuario
 
-    if (!orcamentoBase.id) orcamentoBase.id = 'ORCA_' + crypto.randomUUID()
+    if (!orcamentoBase.id) 
+        orcamentoBase.id = 'ORCA_' + crypto.randomUUID()
 
     popup({ tempo: 3, mensagem: 'Aguarde... redirecionando...', imagem: 'imagens/concluido.png' })
 
-    await inserirDados({ [orcamentoBase.id]: orcamentoBase }, 'dados_orcamentos')
     await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoBase)
 
     baseOrcamento(undefined, true)
     await telaOrcamentos()
 
     removerPopup()
-}
-
-async function recuperarComposicoesAluguel() {
-
-    overlayAguarde()
-
-    let nuvem = await receber('dados_composicoes')
-
-    await inserirDados(nuvem, 'dados_composicoes')
-    await tabelaProdutosAluguel()
-
-    removerOverlay()
 }
 
 async function tabelaProdutosAluguel() {

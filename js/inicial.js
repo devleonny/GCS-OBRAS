@@ -19,8 +19,7 @@ async function telaInicialGCS() {
     toolbar.style.display = 'flex'
     titulo.textContent = 'GCS'
 
-    if (priExeGCS)
-        await atualizarGCS()
+    priExeGCS = false
 
     if (acesso.permissao == 'cliente' || acesso.permissao == 'técnico')
         return await telaInicialOcorrencias()
@@ -81,7 +80,7 @@ async function telaInicialGCS() {
         colunas: {
             'Cliente': { chave: 'snapshots.contrato' },
             'Tags': { chave: 'snapshots.tags' },
-            'Técnicos': {},
+            'Técnicos': {chave: 'snapshots.tecnicos'},
             'Início': {},
             'Término': {},
             'Comentário': { chave: 'pda.comentario' },
@@ -170,23 +169,15 @@ async function tabelaPorAba({ aba = 'CONCLUÍDO', id = null }) {
 
 async function linPda(orcamento) {
 
-    const { pda, estado } = orcamento || {}
-    const { cliente, cidade } = orcamento.snapshots || {}
+    const { pda, estado, snapshots } = orcamento || {}
+    const { cliente, cidade, tags, tecnicos } = snapshots || {}
     const idOrcamento = orcamento.id
-    const tecs = []
-
-    for (const t of (orcamento?.checklist?.tecnicos || pda?.tecnicos || [])) {
-        const { nome } = await recuperarDado('dados_clientes', t) || {}
-        if (nome)
-            tecs.push(`<span class="etiqueta-pendente">${nome}</span>`)
-    }
 
     const mod = (texto, elemento) => `
         <div style="${vertical}; gap: 2px;">
             <span><b>${texto}:</b></span>
             ${elemento}
         </div>`
-
 
     const acoes = await pesquisarDB({
         base: 'acoes',
@@ -271,14 +262,9 @@ async function linPda(orcamento) {
     `
 
     // Tags;
-    const tags = []
-
-    for (const idTag of Object.keys(orcamento.tags || {})) {
-
-        const tag = await recuperarDado('tags_orcamentos', idTag)
-
-        tags.push(modeloTag(tag, idOrcamento))
-
+    const listaTags = []
+    for (const tag of Object.values(tags || {})) {
+        listaTags.push(modeloTag(tag, idOrcamento))
     }
 
     const tds = `
@@ -293,7 +279,7 @@ async function linPda(orcamento) {
                     style="width: 1.2rem;" 
                     onclick="renderPainel('${idOrcamento}')">
                 <div name="tags" style="${vertical}; gap: 1px;">
-                    ${tags.join('')}
+                    ${listaTags.join('')}
                 </div>
             </div>
         </td>
@@ -301,7 +287,7 @@ async function linPda(orcamento) {
             <div style="${vertical}; gap: 2px; padding: 1rem;">
                 <img onclick="tecnicosAtivos('${idOrcamento}')" src="imagens/baixar.png" style="width: 1.5rem;">
                 <div style="${vertical}; gap: 2px;">
-                    ${tecs.join('')}
+                    ${tecnicos.map(t => `<span class="etiqueta-pendente">${t}</span>`).join('')}
                 </div>
             </div>
         </td>
@@ -376,13 +362,8 @@ async function salvarComentarioPda(id) {
     overlayAguarde()
     const comentarioPda = document.getElementById('comentarioPda')
     const comentario = comentarioPda?.value || ''
-    const orcamento = await recuperarDado('dados_orcamentos', id) || {}
 
-    orcamento.pda ??= {}
-    orcamento.pda.comentario = comentario
-
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id}/pda/comentario`, comentario)
+    await enviar(`dados_orcamentos/${id}/pda/comentario`, comentario)
     removerPopup(null, false)
 }
 
@@ -738,51 +719,33 @@ function confirmarExcluirPda(idOrcamento) {
 
 async function excluirPda(idOrcamento) {
 
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-
-    enviar(`dados_orcamentos/${idOrcamento}/aba`, '')
+    await enviar(`dados_orcamentos/${idOrcamento}/aba`, '')
     removerPopup()
 
     await contadores()
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
 
 }
 
 async function atualizarAba(select, idOrcamento) {
 
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-    const valor = select.value
-    orcamento.aba = valor
-
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${idOrcamento}/aba`, valor)
+    await enviar(`dados_orcamentos/${idOrcamento}/aba`, select.value)
 
 }
 
 async function atualizarCampo(select, idOrcamento) {
 
     const campo = select.dataset.campo
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     const valor = select.value
-    orcamento.pda ??= {}
-    orcamento.pda[campo] = valor
 
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${idOrcamento}/pda/${campo}`, valor)
+    await enviar(`dados_orcamentos/${idOrcamento}/pda/${campo}`, valor)
 
 }
 
 async function alterarDatas(input, campo, idOrcamento) {
 
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     const data = input.value
-
     input.classList = data ? 'etiqueta-concluído' : 'etiqueta-pendente'
-
-    orcamento[campo] = data
-
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${idOrcamento}/${campo}`, data)
+    await enviar(`dados_orcamentos/${idOrcamento}/${campo}`, data)
 
 }
 
@@ -869,8 +832,7 @@ async function confirmarExcluirAcao(idAcao) {
 
 async function excluirAcao(idAcao) {
 
-    await deletarDB('acoes', idAcao)
-    deletar(`acoes/${idAcao}`)
+    await deletar(`acoes/${idAcao}`)
 
 }
 
@@ -909,8 +871,7 @@ async function salvarAcao(idOrcamento, idAcao = crypto.randomUUID()) {
         registro: new Date().getTime()
     }
 
-    await inserirDados({ [idAcao]: a }, 'acoes')
-    enviar(`acoes/${idAcao}`, a)
+    await enviar(`acoes/${idAcao}`, a)
 
     removerPopup()
 
@@ -975,21 +936,14 @@ async function salvarCartao(idOrcamento) {
         usuario: acesso.usuario
     }
 
-    const orcamento = {
-        ...await recuperarDado('dados_orcamentos', idOrcamento) || {},
-        ...dados
-    }
-
     if (idOrcamento) {
-        enviar(`dados_orcamentos/${idOrcamento}/projeto`, projeto)
-        enviar(`dados_orcamentos/${idOrcamento}/estado`, estado)
-        enviar(`dados_orcamentos/${idOrcamento}/aba`, aba)
+        await enviar(`dados_orcamentos/${idOrcamento}/projeto`, projeto)
+        await enviar(`dados_orcamentos/${idOrcamento}/estado`, estado)
+        await enviar(`dados_orcamentos/${idOrcamento}/aba`, aba)
     } else {
         idOrcamento = `PDA_${crypto.randomUUID()}`
-        enviar(`dados_orcamentos/${idOrcamento}`, dados)
+        await enviar(`dados_orcamentos/${idOrcamento}`, dados)
     }
-
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
 
     removerPopup()
 

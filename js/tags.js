@@ -72,16 +72,13 @@ async function renderPainel(idOrcamento) {
 async function vincularTag(idTag) {
     overlayAguarde()
     const id = controles.etiquetas.idOrcamento
-    const orcamento = await recuperarDado('dados_orcamentos', id)
 
-    orcamento.tags ??= {}
-    orcamento.tags[idTag] = {
+    const tag = {
         data: new Date().toLocaleString(),
         usuario: acesso.usuario
     }
 
-    enviar(`dados_orcamentos/${id}/tags/${idTag}`, orcamento.tags[idTag])
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+    await enviar(`dados_orcamentos/${id}/tags/${idTag}`, tag)
 
     removerOverlay()
 }
@@ -97,11 +94,7 @@ function confirmarRemocaoTag(idTag, idOrcamento) {
 
 async function removerTag(idTag, idOrcamento) {
 
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-    delete orcamento.tags?.[idTag]
-
-    deletar(`dados_orcamentos/${idOrcamento}/tags/${idTag}`)
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
+    await deletar(`dados_orcamentos/${idOrcamento}/tags/${idTag}`)
 
 }
 
@@ -133,8 +126,7 @@ async function salvarTag(id) {
 
     const tag = { nome, cor, id }
 
-    await inserirDados({ [id]: tag }, 'tags_orcamentos')
-    enviar(`tags_orcamentos/${id}`, tag)
+    await enviar(`tags_orcamentos/${id}`, tag)
 
     removerPopup()
 }

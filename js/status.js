@@ -134,11 +134,6 @@ async function salvarPedido(id, chave = ID5digitos()) {
 
     }
 
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-
-    orcamento.status ??= {}
-    orcamento.status.historico ??= {}
-
     const dados = {
         data: new Date().toLocaleString(),
         executor: acesso.usuario,
@@ -151,10 +146,7 @@ async function salvarPedido(id, chave = ID5digitos()) {
         status: 'PEDIDO'
     }
 
-    orcamento.status.historico[chave] = dados
-
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id}/status/historico/${chave}`, dados)
+    await enviar(`dados_orcamentos/${id}/status/historico/${chave}`, dados)
 
     removerPopup()
     await abrirEsquema(id)
@@ -232,15 +224,8 @@ async function salvarNotaAvulsa(id) {
     })
 
     const idStatus = ID5digitos()
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-
-    orcamento.status ??= {}
-    orcamento.status.historico ??= {}
-
-    orcamento.status.historico[idStatus] = nota
 
     await enviar(`dados_orcamentos/${id}/status/historico/${idStatus}`, nota)
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
 
     removerPopup()
     await abrirEsquema(id)
@@ -381,27 +366,6 @@ async function abrirAtalhos(id, idMaster) {
 
 }
 
-async function mudarNumORC(id) {
-
-    overlayAguarde()
-
-    const resposta = await numORC(id)
-
-    if (resposta.mensagem)
-        return popup({ mensagem: resposta.mensagem })
-
-    if (resposta.numero) {
-
-        const orcamento = await recuperarDado('dados_orcamentos', id)
-        orcamento.dados_orcam.contrato = resposta.numero
-        await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-
-        popup({ mensagem: `Alterado para <b>${resposta.numero}</b>` })
-    }
-
-    removerOverlay()
-
-}
 
 async function vincularOrcamento(idOrcamento) {
 
@@ -453,13 +417,7 @@ async function confirmarVinculo(idOrcamento) {
         usuario: acesso.usuario
     }
 
-    enviar(`dados_orcamentos/${idMaster}/vinculados/${idOrcamento}`, dados)
-
-    const orcamento = await recuperarDado('dados_orcamentos', idMaster)
-
-    orcamento.vinculados ??= {}
-    orcamento.vinculados[idOrcamento] = dados
-    await inserirDados({ [idMaster]: orcamento }, 'dados_orcamentos')
+    await enviar(`dados_orcamentos/${idMaster}/vinculados/${idOrcamento}`, dados)
 
     removerPopup()
     removerPopup()
@@ -480,13 +438,7 @@ async function desfazerVinculo(idSlave, idMaster) {
 
     overlayAguarde()
 
-    const orcMaster = await recuperarDado('dados_orcamentos', idMaster)
-
-    delete orcMaster.vinculados[idSlave]
-
-    deletar(`dados_orcamentos/${idMaster}/vinculados/${idSlave}`)
-
-    await inserirDados({ [idMaster]: orcMaster }, 'dados_orcamentos')
+    await deletar(`dados_orcamentos/${idMaster}/vinculados/${idSlave}`)
 
     removerPopup()
 
@@ -499,10 +451,7 @@ async function arquivarOrcamento(id) {
     const orcamento = await recuperarDado('dados_orcamentos', id)
 
     const arquivamento = orcamento?.arquivado == 'S' ? 'N' : 'S'
-    orcamento.arquivado = arquivamento
-    enviar(`dados_orcamentos/${id}/arquivado`, arquivamento)
-
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+    await enviar(`dados_orcamentos/${id}/arquivado`, arquivamento)
 
     removerOverlay()
 
@@ -937,13 +886,8 @@ async function alterarStatus(id, select) {
         usuario: acesso?.usuario || ''
     }
 
-    orcamento.status.atual = novoSt
-    orcamento.status.historicoStatus[idStatus] = registroStatus
-
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-
-    enviar(`dados_orcamentos/${id}/status/atual`, novoSt)
-    enviar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}`, registroStatus)
+    await enviar(`dados_orcamentos/${id}/status/atual`, novoSt)
+    await enviar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}`, registroStatus)
 
     if (novoSt === 'ORC PENDENTE')
         formularioOrcPendente(id, idStatus)
@@ -989,16 +933,13 @@ async function formularioOrcAprovado(id) {
 async function salvarPrioridade(id) {
 
     const input = document.querySelector('[name="prioridade"]')
-    const orcamento = await recuperarDado('dados_orcamentos', id)
 
     if (!input.value)
         return removerPopup()
 
-    orcamento.inicio = input.value
     removerPopup()
 
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id}/inicio`, input.value)
+    await enviar(`dados_orcamentos/${id}/inicio`, input.value)
 
     await abrirAtalhos(id)
 
@@ -1104,12 +1045,9 @@ async function salvarInfoAdicional(id, idStatus) {
     overlayAguarde()
 
     const info = document.getElementById(idStatus).textContent
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-    orcamento.status.historicoStatus[idStatus].info = info
-    orcamento.status.historicoStatus[idStatus].usuario = acesso.usuario
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}/info`, info)
-    enviar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}/usuario`, acesso.usuario)
+
+    await enviar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}/info`, info)
+    await enviar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}/usuario`, acesso.usuario)
 
     removerPopup()
 
@@ -1168,15 +1106,11 @@ async function excluirHiStatus(id, idStatus) {
 
     overlayAguarde()
 
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-    delete orcamento.status.historicoStatus[idStatus]
-
     const trExistente = document.getElementById(`ST_${idStatus}`)
     if (trExistente)
         trExistente.remove()
 
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-    deletar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}`)
+    await deletar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}`)
 
     const pHistorico = document.querySelector('.painel-historico')
     if (pHistorico)
@@ -1190,13 +1124,7 @@ async function excluirAnexo(id, chave, idAnexo, img) {
 
     overlayAguarde()
 
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-
-    delete orcamento.status.historico[chave].anexos[idAnexo]
-
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-
-    deletar(`dados_orcamentos/${id}/status/historico/${chave}/anexos/${idAnexo}`)
+    await deletar(`dados_orcamentos/${id}/status/historico/${chave}/anexos/${idAnexo}`)
 
     img.parentElement.remove()
 
@@ -1215,9 +1143,7 @@ async function excluirOrcamentoBase(idOrcamento) {
     removerPopup()
     overlayAguarde()
 
-    await deletarDB('dados_orcamentos', idOrcamento)
-
-    deletar(`dados_orcamentos/${idOrcamento}`)
+    await deletar(`dados_orcamentos/${idOrcamento}`)
 
     removerPopup()
 }
@@ -1496,7 +1422,6 @@ async function abrirAdicionais(codigo) {
 
     const botoes = [
         { texto: 'Adicionar Peça', img: 'baixar', funcao: `criarLinhaPeca()` },
-        { texto: 'Atualizar', img: 'atualizar', funcao: 'atualizarGCS()' },
         { texto: 'Salvar', img: 'concluido', funcao: `salvarAdicionais('${codigo}')` }
     ]
 
@@ -1629,7 +1554,7 @@ async function salvarRequisicao(id, chave) {
         if (!pedido)
             return popup({ mensagem: 'Escolha um pedido' })
 
-        orcamento.status.historico[chave] = {
+        const dados = {
             ...orcamento.status.historico[chave],
             executor: acesso.usuario,
             status: 'REQUISIÇÃO',
@@ -1644,8 +1569,7 @@ async function salvarRequisicao(id, chave) {
             requisicao: controles.requisicao.base || {}
         }
 
-        await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-        enviar(`dados_orcamentos/${id}/status/historico/${chave}`, orcamento.status.historico[chave])
+        await enviar(`dados_orcamentos/${id}/status/historico/${chave}`, dados)
         removerPopup()
         await abrirEsquema(id)
 
@@ -1683,9 +1607,7 @@ async function salvarAnexo(id, chave, input) {
         )
     }
 
-    enviar(`dados_orcamentos/${id}/status/historico/${chave}/anexos`, orcamento.status.historico[chave].anexos)
-
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+    await enviar(`dados_orcamentos/${id}/status/historico/${chave}/anexos`, orcamento.status.historico[chave].anexos)
 
     const div = document.querySelector(`[name="anexos_${chave}"]`)
 
@@ -1712,10 +1634,7 @@ async function confirmarExclusaoStatus(id, chave) {
     removerPopup()
     overlayAguarde()
 
-    const orcamento = await recuperarDado('dados_orcamentos', id) || {}
-    delete orcamento.status.historico[chave]
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-    deletar(`dados_orcamentos/${id}/status/historico/${chave}`)
+    await deletar(`dados_orcamentos/${id}/status/historico/${chave}`)
 
     await abrirEsquema(id)
 
@@ -1825,8 +1744,7 @@ async function registrarEnvioMaterial(id, chave) {
         ...dadosCampos
     }
 
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id}/status/historico/${chave}`, orcamento.status.historico[chave])
+    await enviar(`dados_orcamentos/${id}/status/historico/${chave}`, orcamento.status.historico[chave])
 
     removerPopup()
     await abrirEsquema(id)
@@ -2099,47 +2017,5 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
         popup({ mensagem: err.message || 'Falha ao gerar o PDF, tente novamente ou fale com o Suporte' })
 
     }
-
-}
-
-async function migrar(pagina) {
-
-    const acoes = await pesquisarDB({
-        pagina,
-        base: 'dados_orcamentos',
-        explode: { path: 'pda.acoes' },
-    })
-
-    for (const a of acoes.resultados) {
-        const { id, acao, prazo, usuario, status, registro, responsavel } = a || {}
-        await enviar(`acoes/${crypto.randomUUID()}`, {
-            acao,
-            prazo,
-            responsavel,
-            origem: {
-                id,
-                base: 'dados_orcamentos'
-            },
-            usuario,
-            status,
-            registro
-        })
-    }
-
-
-    /*
-    
-    const acoes = await pesquisarDB({
-        pagina,
-        base: 'dados_orcamentos',
-        explode: { path: 'pda.acoes' },
-    })
-
-    for (const a of acoes.resultados) {
-        const id = a.id
-        await deletar(`dados_orcamentos/${id}/pda/acoes`)
-        console.log(id)
-    }
-        */
 
 }

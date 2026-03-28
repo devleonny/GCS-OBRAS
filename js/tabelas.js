@@ -86,7 +86,6 @@ async function modTab(configuracoes) {
         <div style="${vertical}; width: 100%;">
             <div class="topo-tabela">
                 <div style="display: ${ocultarPaginacao ? 'none' : ''};" id="paginacao_${pag}"></div>
-                ${pesquisa ? `<span style="color: white; margin-right: 1rem;">Use o <b>ENTER</b> para pesquisar</span>` : ''}
                 ${btnExtras}
             </div>
             <div class="div-tabela" style="overflow-x: auto;">
@@ -300,18 +299,15 @@ async function paginacao(pag) {
 }
 
 async function atualizarComTS(tbody, dados, criarLinha, base) {
-
     const dino = tbody.querySelector('#dinossauro')
     if (dino)
         dino.remove()
 
-    let linhas = ''
+    const linhas = await Promise.all(
+        dados.map(d => window[criarLinha]({ ...d, base }))
+    )
 
-    for (const d of dados) {
-        linhas += await window[criarLinha]({ ...d, base })
-    }
-
-    tbody.innerHTML = linhas
+    tbody.innerHTML = linhas.join('')
 }
 
 function criarDino(cols) {
