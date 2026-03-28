@@ -669,7 +669,7 @@ async function relatorioMovimento() {
                     <input name="campos_data" type="date">
                 </div>
 
-                <img src="imagens/concluido.png" onclick="pesquisarMovimentos()">
+                <button onclick="pesquisarMovimentos()">Pesquisar</button>
 
             </div>
 

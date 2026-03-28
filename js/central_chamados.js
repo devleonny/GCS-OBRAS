@@ -94,11 +94,6 @@ async function capturarLocalizacao() {
     })
 }
 
-async function irGCS() {
-    overlayAguarde()
-    await telaInicialGCS()
-    removerOverlay()
-}
 
 async function telaInicialOcorrencias() {
 
@@ -298,7 +293,7 @@ function carregarMenus() {
         'Cadastros': { img: 'prancheta', funcao: 'telaCadastros()', proibidos: ['user', 'cliente', 'técnico', 'analista', 'visitante'] },
         'Clientes & Fornecedores': { img: 'prancheta', funcao: 'telaClientes()', proibidos: ['user', 'técnico', 'cliente', 'visitante'] },
         'Orçamentos': { img: 'projeto', funcao: 'telaOrcamentos()', proibidos: ['técnico', 'visitante'] },
-        'GCS': { img: 'LG', funcao: 'irGCS()', proibidos: ['técnico', 'visitante'] }
+        'GCS': { img: 'LG', funcao: 'telaInicialGCS()', proibidos: ['técnico', 'visitante'] }
     }
 
     menus.Desconectar = { img: 'sair', funcao: 'deslogarUsuario()', proibidos: [] }

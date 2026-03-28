@@ -19,6 +19,8 @@ async function telaInicialGCS() {
     toolbar.style.display = 'flex'
     titulo.textContent = 'GCS'
 
+    priExeGCS = false
+
     if (acesso.permissao == 'cliente' || acesso.permissao == 'técnico')
         return await telaInicialOcorrencias()
 
