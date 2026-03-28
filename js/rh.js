@@ -433,8 +433,7 @@ function confirmarExcluirDocumento(id) {
 
 async function excluirDocumento(id) {
 
-    await deletarDB('documentos', id)
-    deletar(`documentos/${id}`)
+    await deletar(`documentos/${id}`)
 
 }
 
@@ -500,8 +499,7 @@ async function salvarDocumento(id = crypto.randomUUID()) {
         )
     }
 
-    await inserirDados({ [id]: atualizado }, 'documentos')
-    enviar(`documentos/${id}`, atualizado)
+    await enviar(`documentos/${id}`, atualizado)
 
     removerPopup()
 }

@@ -1,11 +1,3 @@
-async function inserirDados(dados, base) {
-    // EXCLUIR
-}
-
-async function deletarDB(dados, base) {
-    // EXCLUIR
-}
-
 async function recuperarDado(base, chave) {
 
     if (chave === undefined || chave === null)

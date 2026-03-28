@@ -284,16 +284,11 @@ async function confirmarCopiarPreco(codigo, lpu, idPreco, tabela) {
     const preco = produto?.[lpu]?.historico?.[idPreco] || {}
     preco.usuario = acesso.usuario // Usuário atual;
 
-    produto[tabela] ??= {}
-    produto[tabela].historico ??= {}
-    produto[tabela].historico[idPreco] = preco
-
-    await inserirDados({ [codigo]: produto }, 'dados_composicoes')
-    enviar(`dados_composicoes/${codigo}/${tabela}/historico/${idPreco}`, preco)
-
-    removerOverlay()
+    await enviar(`dados_composicoes/${codigo}/${tabela}/historico/${idPreco}`, preco)
 
     await abrirHistoricoPrecos(codigo, tabela)
+
+    removerOverlay()
 
 }
 
@@ -301,13 +296,8 @@ async function salvarPrecoAtivo(codigo, idPreco, lpu) {
 
     overlayAguarde()
 
-    const produto = await recuperarDado('dados_composicoes', codigo)
+    await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, idPreco)
 
-    produto[lpu] ??= {}
-    produto[lpu].ativo = idPreco
-
-    enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, idPreco)
-    await inserirDados({ [codigo]: produto }, 'dados_composicoes')
     removerOverlay()
 
 }
@@ -327,9 +317,7 @@ async function excluirCotacao(codigo, lpu, cotacao) {
         await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, '')
     }
 
-    delete cotacoes?.historico?.[cotacao]
-    deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`)
-    await inserirDados({ [codigo]: produto }, 'dados_composicoes')
+    await deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`)
 
     removerPopup()
     await abrirHistoricoPrecos(codigo, lpu);
@@ -825,14 +813,10 @@ async function salvarPreco(codigo, lpu, cotacao) {
     if (resultado.lucroPorcentagem < 10 && !permitidos.includes(acesso.permissao))
         return popup({ mensagem: 'Percentual de lucro não pode ser menor que 10%' })
 
-    produto[lpu] = produto[lpu] || { historico: {} };
-    produto[lpu].historico = historico;
-
-    await inserirDados({ [codigo]: produto }, 'dados_composicoes')
     removerPopup()
 
     await abrirHistoricoPrecos(codigo, lpu)
-    enviar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`, historico[cotacao])
+    await enviar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`, historico[cotacao])
 
 }
 
@@ -849,8 +833,7 @@ async function confirmarExclusaoItem(codigo) {
 
 async function excluirItemComposicao(codigo) {
 
-    await deletarDB('dados_composicoes', codigo)
-    deletar(`dados_composicoes/${codigo}`)
+    await deletar(`dados_composicoes/${codigo}`)
 
 }
 
@@ -930,8 +913,8 @@ async function salvarComposicao(codigo) {
         codigo: String(codigo)
     }
 
-    enviar(`dados_composicoes/${codigo}`, final)
-    await inserirDados({ [codigo]: final }, 'dados_composicoes')
+    await enviar(`dados_composicoes/${codigo}`, final)
+
     removerPopup()
 
 }
@@ -1072,11 +1055,7 @@ async function salvarAgrupamento(codigo) {
 
     }
 
-    const produto = await recuperarDado('dados_composicoes', codigo) || {}
-    produto.agrupamento = agrupamento
-
-    await inserirDados({ [codigo]: produto }, 'dados_composicoes')
-    enviar(`dados_composicoes/${codigo}/agrupamento`, agrupamento)
+    await enviar(`dados_composicoes/${codigo}/agrupamento`, agrupamento)
 
 }
 

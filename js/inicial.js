@@ -360,13 +360,8 @@ async function salvarComentarioPda(id) {
     overlayAguarde()
     const comentarioPda = document.getElementById('comentarioPda')
     const comentario = comentarioPda?.value || ''
-    const orcamento = await recuperarDado('dados_orcamentos', id) || {}
 
-    orcamento.pda ??= {}
-    orcamento.pda.comentario = comentario
-
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id}/pda/comentario`, comentario)
+    await enviar(`dados_orcamentos/${id}/pda/comentario`, comentario)
     removerPopup(null, false)
 }
 
@@ -722,51 +717,33 @@ function confirmarExcluirPda(idOrcamento) {
 
 async function excluirPda(idOrcamento) {
 
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-
-    enviar(`dados_orcamentos/${idOrcamento}/aba`, '')
+    await enviar(`dados_orcamentos/${idOrcamento}/aba`, '')
     removerPopup()
 
     await contadores()
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
 
 }
 
 async function atualizarAba(select, idOrcamento) {
 
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-    const valor = select.value
-    orcamento.aba = valor
-
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${idOrcamento}/aba`, valor)
+    await enviar(`dados_orcamentos/${idOrcamento}/aba`, select.value)
 
 }
 
 async function atualizarCampo(select, idOrcamento) {
 
     const campo = select.dataset.campo
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     const valor = select.value
-    orcamento.pda ??= {}
-    orcamento.pda[campo] = valor
 
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${idOrcamento}/pda/${campo}`, valor)
+    await enviar(`dados_orcamentos/${idOrcamento}/pda/${campo}`, valor)
 
 }
 
 async function alterarDatas(input, campo, idOrcamento) {
 
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     const data = input.value
-
     input.classList = data ? 'etiqueta-concluído' : 'etiqueta-pendente'
-
-    orcamento[campo] = data
-
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${idOrcamento}/${campo}`, data)
+    await enviar(`dados_orcamentos/${idOrcamento}/${campo}`, data)
 
 }
 
@@ -853,8 +830,7 @@ async function confirmarExcluirAcao(idAcao) {
 
 async function excluirAcao(idAcao) {
 
-    await deletarDB('acoes', idAcao)
-    deletar(`acoes/${idAcao}`)
+    await deletar(`acoes/${idAcao}`)
 
 }
 
@@ -893,8 +869,7 @@ async function salvarAcao(idOrcamento, idAcao = crypto.randomUUID()) {
         registro: new Date().getTime()
     }
 
-    await inserirDados({ [idAcao]: a }, 'acoes')
-    enviar(`acoes/${idAcao}`, a)
+    await enviar(`acoes/${idAcao}`, a)
 
     removerPopup()
 
@@ -959,21 +934,14 @@ async function salvarCartao(idOrcamento) {
         usuario: acesso.usuario
     }
 
-    const orcamento = {
-        ...await recuperarDado('dados_orcamentos', idOrcamento) || {},
-        ...dados
-    }
-
     if (idOrcamento) {
-        enviar(`dados_orcamentos/${idOrcamento}/projeto`, projeto)
-        enviar(`dados_orcamentos/${idOrcamento}/estado`, estado)
-        enviar(`dados_orcamentos/${idOrcamento}/aba`, aba)
+        await enviar(`dados_orcamentos/${idOrcamento}/projeto`, projeto)
+        await enviar(`dados_orcamentos/${idOrcamento}/estado`, estado)
+        await enviar(`dados_orcamentos/${idOrcamento}/aba`, aba)
     } else {
         idOrcamento = `PDA_${crypto.randomUUID()}`
-        enviar(`dados_orcamentos/${idOrcamento}`, dados)
+        await enviar(`dados_orcamentos/${idOrcamento}`, dados)
     }
-
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
 
     removerPopup()
 

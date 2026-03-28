@@ -297,8 +297,9 @@ async function abrirDetalhesPagamentos(id) {
 
         const pesquisa = await pesquisarDB({
             base: 'dados_orcamentos',
-            filtros: { 
-                'snapshots.contratoChamado': { op: 'includes', value: cc.descricao } }
+            filtros: {
+                'snapshots.contratoChamado': { op: 'includes', value: cc.descricao }
+            }
         })
 
         if (!pesquisa.resultados.length)
@@ -395,12 +396,7 @@ async function abrirDetalhesPagamentos(id) {
 
 async function alterarStatusPagamento(idPagamento, select) {
 
-    const pagamento = await recuperarDado('lista_pagamentos', idPagamento)
-
-    pagamento.status = select.value
-    enviar(`lista_pagamentos/${idPagamento}/status`, select.value)
-
-    await inserirDados({ [idPagamento]: pagamento }, 'lista_pagamentos')
+    await enviar(`lista_pagamentos/${idPagamento}/status`, select.value)
 
 }
 
@@ -409,7 +405,6 @@ async function confirmarExclusaoPagamento(id) {
     removerPopup() // PopUp
     removerPopup() // Tela de Pagamento
 
-    await deletarDB('lista_pagamentos', id)
     await deletar(`lista_pagamentos/${id}`)
 
 }
@@ -422,8 +417,7 @@ async function removerAnexoPagamento(id, anx) {
 
         delete pagamento.anexos[anx]
 
-        deletar(`lista_pagamentos/${id}/anexos/${anx}`)
-        await inserirDados({ [id]: pagamento }, 'lista_pagamentos')
+        await deletar(`lista_pagamentos/${id}/anexos/${anx}`)
         await abrirDetalhesPagamentos(id)
     }
 
@@ -431,16 +425,8 @@ async function removerAnexoPagamento(id, anx) {
 
 async function removerAnexoParceiro(id, campo, anx) {
 
-    let pagamento = await recuperarDado('lista_pagamentos', id)
-
-    if (pagamento.anexos_parceiros && pagamento.anexos_parceiros[campo] && pagamento.anexos_parceiros[campo][anx]) {
-
-        delete pagamento.anexos_parceiros[campo][anx]
-        await inserirDados({ [id]: pagamento }, 'lista_pagamentos')
-        deletar(`lista_pagamentos/${id}/anexos_parceiros/${campo}/${anx}`)
-        await abrirDetalhesPagamentos(id)
-
-    }
+    await deletar(`lista_pagamentos/${id}/anexos_parceiros/${campo}/${anx}`)
+    await abrirDetalhesPagamentos(id)
 
 }
 
@@ -449,7 +435,7 @@ async function autorizarPagamentos(resposta, id) {
     try {
 
         overlayAguarde()
-        const pagamento = await recuperarDado('lista_pagamentos', id)
+
         const justificativa = document.getElementById('justificativa').value
 
         const { usuario, permissao, setor } = acesso || {}
@@ -487,12 +473,7 @@ async function autorizarPagamentos(resposta, id) {
         }
 
         const idJustificativa = ID5digitos()
-        pagamento.status = status
 
-        pagamento.historico ??= {}
-        pagamento.historico[idJustificativa] = historico
-
-        await inserirDados({ [id]: pagamento }, 'lista_pagamentos')
         await abrirDetalhesPagamentos(id)
 
         await enviar(`lista_pagamentos/${id}/historico/${idJustificativa}`, historico)
@@ -553,7 +534,7 @@ async function salvarPagamento() {
 
     try {
         await enviar(`lista_pagamentos/${ultimoPagamento.id}`, ultimoPagamento)
-        await inserirDados({ [ultimoPagamento.id]: ultimoPagamento }, 'lista_pagamentos')
+
         localStorage.removeItem('ultimoPagamento')
 
         removerPopup(null, false) // Remove tudo;
@@ -977,16 +958,10 @@ async function salvarAnexosPagamentos(input, id) {
 
     const anexos = await importarAnexos({ input })
 
-    const pagamento = await recuperarDado('lista_pagamentos', id)
+    for (const anexo of anexos) {
+        await enviar(`lista_pagamentos/${id}/anexos/${anexo.link}`, anexo)
+    }
 
-    pagamento.anexos ??= {}
-
-    anexos.forEach(anexo => {
-        pagamento.anexos[anexo.link] = anexo
-        enviar(`lista_pagamentos/${id}/anexos/${anexo.link}`, anexo)
-    });
-
-    await inserirDados({ [id]: pagamento }, 'lista_pagamentos')
     await abrirDetalhesPagamentos(id)
     removerOverlay()
 
@@ -1002,38 +977,6 @@ async function removerAnexoTemporario(link) {
 
 }
 
-async function atualizarResumo(id) {
-
-    const divAtualizar = document.getElementById('atualizarResumo')
-
-    divAtualizar.innerHTML = `<img src="gifs/loading.gif" style="width: 1.5rem;">`
-
-    const v_pago = conversor(document.getElementById('v_pago').textContent)
-    const v_orcado = Number(document.getElementById('v_orcado').value)
-    const v_lpu = Number(document.getElementById('v_lpu').value)
-
-    let pagamento = await recuperarDado('lista_pagamentos', id)
-
-    if (!pagamento.resumo) pagamento.resumo = {}
-
-    pagamento.resumo = { v_pago, v_orcado, v_lpu }
-
-    enviar(`lista_pagamentos/${id}/resumo`, pagamento.resumo)
-
-    await inserirDados({ [id]: pagamento }, 'lista_pagamentos')
-
-    divAtualizar.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
-            <img src="imagens/concluido.png" style="width: 1.5vw">
-            <label>Atualizado!</label>
-        </div>
-        `
-    setTimeout(() => {
-        divAtualizar.innerHTML = `${botao('Atualizar', `atualizarResumo('${id}')`, 'green')}`
-    }, 3000)
-
-}
-
 function compararDatas(data1, data2) {
     const d1 = new Date(data1);
     const d2 = new Date(data2);
@@ -1043,64 +986,6 @@ function compararDatas(data1, data2) {
     return maior;
 }
 
-async function salvarAnexosParceiros(input, campo, id) {
-
-    const anexos = await importarAnexos({ input })
-
-    if (id == undefined) { // O anexo do parceiro é incluído no formulário de pagamento; (Pagamento ainda não existe)
-        let ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
-
-        anexos.forEach(anexo => {
-
-            ultimoPagamento.anexos_parceiros ??= {}
-            ultimoPagamento.anexos_parceiros[campo] ??= {}
-            ultimoPagamento.anexos_parceiros[campo][anexo.link] = anexo
-
-            document.getElementById(`div${campo}`).insertAdjacentHTML('beforeend', criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoParceiro('${campo}', '${link}')`))
-        })
-
-        localStorage.setItem('ultimoPagamento', JSON.stringify(ultimoPagamento))
-
-    } else { // O anexo deve ser incluído no pagamento já existente;
-
-        let pagamento = await recuperarDado('lista_pagamentos', id)
-
-        pagamento.anexos_parceiros ??= {}
-        pagamento.anexos_parceiros[campo] ??= {}
-
-        anexos.forEach(anexo => {
-
-            let id = ID5digitos()
-
-            if (pagamento.anexos_parceiros[campo][id]) pagamento.anexos_parceiros[campo][id] = {}
-
-            pagamento.anexos_parceiros[campo][id] = anexo
-            enviar(`lista_pagamentos/${id}/anexos_parceiros/${campo}/${id}`, anexo)
-
-            let container = document.getElementById(`div${campo}`)
-
-            let string_anexo = criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoParceiro('${id}', '${campo}', '${id}')`);
-
-            if (container) container.insertAdjacentHTML('beforeend', string_anexo)
-        })
-
-        await inserirDados({ [id]: pagamento }, 'lista_pagamentos')
-
-    }
-
-}
-
-async function removerAnexoParceiroTemporario(campo, link) {
-
-    const ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
-
-    delete ultimoPagamento.anexos_parceiros[campo][link]
-
-    localStorage.setItem('ultimoPagamento', JSON.stringify(ultimoPagamento))
-
-    document.querySelector(`[name="${link}"]`).remove()
-
-}
 
 async function duplicarPagamento(id) {
 

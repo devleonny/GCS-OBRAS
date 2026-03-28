@@ -292,15 +292,6 @@ async function configuracoes(usuario, campo, valor) {
     if (resposta.mensagem)
         return popup({ mensagem: resposta.mensagem })
 
-    const dadosUsuario = await recuperarDado('dados_setores', usuario)
-    dadosUsuario[campo] = valor
-
-    if (campo == 'permissao' && valor == 'desativado') {
-        await deletarDB('dados_setores', usuario)
-        removerPopup()
-    } else {
-        await inserirDados({ [usuario]: dadosUsuario }, 'dados_setores')
-    }
 }
 
 async function comunicacaoServ({ usuario, campo, valor }) {

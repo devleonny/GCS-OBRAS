@@ -254,11 +254,7 @@ async function formularioValorCompra(codigo, cpr) {
 
 async function excluirPreco(codigo, cpr) {
 
-    const produto = await recuperarDado('dados_estoque', codigo)
-    delete produto.valor_compra[cpr]
-
-    await inserirDados({ [codigo]: produto }, 'dados_estoque')
-    deletar(`dados_estoque/${codigo}/valor_compra/${cpr}`)
+    await deletar(`dados_estoque/${codigo}/valor_compra/${cpr}`)
 
     removerPopup()
     await abrirValores(codigo)
@@ -267,8 +263,6 @@ async function excluirPreco(codigo, cpr) {
 async function salvarValor(codigo, cpr = ID5digitos()) {
 
     overlayAguarde()
-
-    const produto = await recuperarDado('dados_estoque', codigo) || {}
 
     const vl_compra = document.getElementById('vl_compra')
     const unidade = document.getElementById('unidade')
@@ -286,10 +280,6 @@ async function salvarValor(codigo, cpr = ID5digitos()) {
         data: new Date().toLocaleString('pt-BR')
     }
 
-    produto.valor_compra ??= {}
-    produto.valor_compra[cpr] = compra
-
-    await inserirDados({ [codigo]: produto }, 'dados_estoque')
     await enviar(`dados_estoque/${codigo}/valor_compra/${cpr}`, compra)
 
     removerPopup() //Formulário
@@ -477,11 +467,7 @@ function bloquearInput(elemento) {
 
 async function removerHistorico(codigo, stq, chave) {
 
-    const produto = await recuperarDado('dados_estoque', codigo)
-    delete produto[stq].historico[chave]
-
-    await inserirDados({ [codigo]: produto }, 'dados_estoque')
-    deletar(`dados_estoque/${codigo}/${stq}/historico/${chave}`)
+    await deletar(`dados_estoque/${codigo}/${stq}/historico/${chave}`)
 
     await abrirEstoque(codigo, stq)
 
@@ -533,13 +519,10 @@ async function salvarMovimento(codigo, stq, inicial) {
         return
     }
 
-    estoque.historico[id] = movimento
-
-    await inserirDados({ [codigo]: item }, 'dados_estoque')
-    enviar(`dados_estoque/${codigo}/${stq}/historico/${id}`, movimento)
+    await enviar(`dados_estoque/${codigo}/${stq}/historico/${id}`, movimento)
 
     if (inicial !== undefined) {
-        enviar(`dados_estoque/${codigo}/${stq}/quantidade`, estoque.quantidade)
+        await enviar(`dados_estoque/${codigo}/${stq}/quantidade`, estoque.quantidade)
     }
 
     await abrirEstoque(codigo, stq)
@@ -618,10 +601,9 @@ async function salvarItemEstoque(codigo) {
         ...novosDados
     }
 
-    await inserirDados({ [codigo]: mesclado }, 'dados_estoque')
     removerPopup()
 
-    enviar(`dados_estoque/${codigo}`, mesclado)
+    await enviar(`dados_estoque/${codigo}`, mesclado)
 
 }
 
@@ -648,8 +630,7 @@ async function confirmarExclusaoEstoque(codigo) {
     removerPopup()
     removerPopup()
 
-    await deletarDB('dados_estoque', codigo)
-    deletar(`dados_estoque/${codigo}`)
+    await deletar(`dados_estoque/${codigo}`)
 }
 
 async function relatorioMovimento() {

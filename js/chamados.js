@@ -656,12 +656,10 @@ function confirmarExclusaoManutencao(id) {
 
 async function excluirManutencao(id) {
 
-    await deletarDB('dados_manutencao', id)
-    deletar(`dados_manutencao/${id}`)
+    await deletar(`dados_manutencao/${id}`)
 
     // Caso exista ação;
-    await deletarDB('acoes', id)
-    deletar(`acoes/${id}`)
+    await deletar(`acoes/${id}`)
 
 }
 

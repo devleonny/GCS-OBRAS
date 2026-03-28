@@ -341,11 +341,7 @@ async function salvarLpuParceiro(id, chave = ID5digitos()) {
         .filter(span => span.id)
         .map(span => Number(span.id))
 
-    orcamento.status ??= {}
-    orcamento.status.historico ??= {}
-    orcamento.status.historico[chave] ??= {}
-
-    orcamento.status.historico[chave] = {
+    const dados = {
         ...orcamento.status.historico[chave],
         status: 'LPU PARCEIRO',
         itens: controles.lpu_parceiro.base || {},
@@ -357,8 +353,8 @@ async function salvarLpuParceiro(id, chave = ID5digitos()) {
         tecnicos
     }
 
-    enviar(`dados_orcamentos/${id}/status/historico/${chave}`, orcamento.status.historico[chave])
-    await inserirDados({ [id]: orcamento }, 'dados_orcamentos')
+    await enviar(`dados_orcamentos/${id}/status/historico/${chave}`, dados)
+
     removerPopup()
     await abrirEsquema(id)
 }

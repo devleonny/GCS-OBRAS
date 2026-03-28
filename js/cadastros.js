@@ -90,8 +90,7 @@ function confirmarExcluirItemTabela(nomeBase, id) {
 
 async function excluirItemTabela(nomeBase, id) {
 
-    await deletarDB(nomeBase, id)
-    deletar(`${nomeBase}/${id}`)
+    await deletar(`${nomeBase}/${id}`)
 
 }
 

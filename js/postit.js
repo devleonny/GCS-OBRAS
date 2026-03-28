@@ -146,8 +146,7 @@ async function soltarPIT(event) {
         quadro
     }
 
-    await inserirDados({ [id]: atualizado }, 'postit')
-    enviar(`postit/${id}`, atualizado)
+    await enviar(`postit/${id}`, atualizado)
 }
 
 function iniciarAutoScrollPIT() {
@@ -309,8 +308,7 @@ async function salvarPIT(id = crypto.randomUUID()) {
     if (usuarioFin !== acesso.usuario)
         atualizado.quadro = null
 
-    await inserirDados({ [id]: atualizado }, 'postit')
-    enviar(`postit/${id}`, atualizado)
+    await enviar(`postit/${id}`, atualizado)
     removerPopup()
 
     await verificarPostIts()
@@ -331,8 +329,7 @@ async function salvarQuadro(id = crypto.randomUUID()) {
         descricao: painel.querySelector('[name="descricao"]').value
     }
 
-    await inserirDados({ [id]: atualizado }, 'quadros')
-    enviar(`quadros/${id}`, atualizado)
+    await enviar(`quadros/${id}`, atualizado)
 
     await criarQuadros()
     removerPopup()
@@ -350,8 +347,7 @@ async function confirmarExcluirPIT(id) {
 
 async function excluirPIT(id) {
 
-    await deletarDB('postit', id)
-    deletar(`postit/${id}`)
+    await deletar(`postit/${id}`)
 
 }
 
