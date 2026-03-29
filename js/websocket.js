@@ -51,14 +51,44 @@ function connectWebSocket() {
 
 async function validarAcesso() {
 
-    acesso = JSON.parse(localStorage.getItem('acesso'))
+    const acesso = JSON.parse(localStorage.getItem('acesso'))
+    const token = acesso?.token
+
     msgStatus('Validando acesso...')
-    if (acesso) {
-        msg({ tipo: 'validar', usuario: acesso.usuario })
-    } else {
-        await telaLogin()
+
+    if (!token || !acesso) {
+        localStorage.removeItem('acesso')
+        return await telaLogin()
     }
 
+    try {
+
+        const resp = await fetch(`${api}/validar-token`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+
+        if (resp.status === 401)
+            throw new Error('Token inválido')
+
+        const dados = await resp.json()
+
+        localStorage.setItem('acesso', JSON.stringify({
+            ...dados,
+            token
+        }))
+
+        msg({ tipo: 'validar', usuario: dados.usuario })
+
+    } catch {
+
+        localStorage.removeItem('acesso')
+
+        await telaLogin()
+        popup({ mensagem: 'Sessão expirada, faça login novamente' })
+    }
 }
 
 function msg(dados) {
@@ -90,9 +120,7 @@ async function comunicacao() {
         const { tabela, desconectar, validado, tipo, usuario, status } = data
 
         if (desconectar) {
-            acesso = {}
             localStorage.removeItem('acesso')
-
             await telaLogin()
             popup({ mensagem: 'Usuário desconectado' })
             return
@@ -194,7 +222,7 @@ async function carregarControles() {
             <img title="Abrir mais 1 aba" src="imagens/aba.png" onclick="maisAba()">
         `
     const cabecalhoUsuario = document.querySelector('.cabecalho-usuario')
-    if (cabecalhoUsuario) 
+    if (cabecalhoUsuario)
         cabecalhoUsuario.innerHTML = barraStatus
 
     await usuariosToolbar()

@@ -1,12 +1,15 @@
 async function recuperarDado(base, chave) {
-
+    
     if (chave === undefined || chave === null)
         return null
+
+    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
 
     const resposta = await fetch(`${api}/recuperar-dado`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ base, chave })
     })
@@ -19,10 +22,13 @@ async function recuperarDado(base, chave) {
 
 async function pesquisarDB(params) {
 
+    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
+
     const resposta = await fetch(`${api}/pesquisar-db`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(params)
     })
@@ -32,9 +38,7 @@ async function pesquisarDB(params) {
         throw new Error(erro || 'Erro ao pesquisar')
     }
 
-    const dados = await resposta.json()
-
-    return dados
+    return await resposta.json()
 }
 
 async function contarPorCampo({
@@ -43,10 +47,14 @@ async function contarPorCampo({
     filtros = {},
     explode = null
 }) {
+
+    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
+
     const resposta = await fetch(`${api}/contar-por-campo`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
             base,
@@ -66,6 +74,8 @@ async function contarPorCampo({
 
 async function deletar(caminho, idEvento) {
 
+    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
+
     const url = `${api}/deletar`
 
     const objeto = {
@@ -76,7 +86,10 @@ async function deletar(caminho, idEvento) {
     try {
         const response = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify(objeto)
         })
 
@@ -106,13 +119,18 @@ async function deletar(caminho, idEvento) {
 }
 
 async function enviar(caminho, info, idEvento) {
+
     const url = `${api}/salvar`
-    const objeto = { caminho, valor: info };
+    const objeto = { caminho, valor: info }
+    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
 
     try {
         const response = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify(objeto)
         });
 
