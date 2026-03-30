@@ -62,6 +62,10 @@ async function telaOrcamentos() {
         funcaoAdicional: ['formatacaoPagina', 'atualizarListaDepartamentos'],
         btnExtras,
         colunas,
+        ordenar: {
+            path: 'snapshots.tsUltimoStatus',
+            direcao: 'desc'
+        },
         base: 'dados_orcamentos',
         criarLinha: 'criarLinhaOrcamento',
         body: 'linhas',

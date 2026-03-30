@@ -221,7 +221,17 @@ async function paginacao(pag) {
 
     async function ativarPaginacao(pag) {
 
-        const { pagina, base, body, alinPag = horizontal, explode = null, criarLinha, funcaoAdicional, filtros } = controles[pag] || {}
+        const {
+            pagina,
+            base,
+            body,
+            ordenar,
+            alinPag = horizontal,
+            explode = null,
+            criarLinha,
+            funcaoAdicional,
+            filtros
+        } = controles[pag] || {}
 
         const tbody = document.getElementById(body)
 
@@ -234,6 +244,7 @@ async function paginacao(pag) {
 
         const dados = await pesquisarDB({
             base: baseResolvida,
+            ordenar,
             explode,
             pagina,
             filtros

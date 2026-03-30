@@ -19,6 +19,10 @@ async function telaCadastros() {
         const tabela = await modTab({
             base,
             btnExtras,
+            ordenar: {
+                path: 'nome',
+                direcao: 'asc'
+            },
             colunas: {
                 'Nome': { chave: 'nome' },
                 '': {}
