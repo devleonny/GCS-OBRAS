@@ -5,8 +5,8 @@ async function telaRelatorio() {
         'Empresa': { chave: 'snapshots.empresa' },
         'Chamado': { chave: 'id' },
         'Status': { chave: 'snapshots.ultimaCorrecao' },
-        'Data Abertura': { chave: 'dataRegistro', tipoPesquisa: 'data' },
-        'Data Limite': { chave: 'snapshots.dtCorrecao' },
+        'Data da Abertura': { chave: 'dataRegistro', tipoPesquisa: 'data' },
+        'Data do Agendamento': { chave: 'snapshots.dtCorrecao' },
         'Solicitante': { chave: 'usuario' },
         'Executores': { chave: 'snapshots.executores' },
         'Tipo Correção': { chave: 'snapshots.ultimaCorrecao' },
@@ -260,7 +260,9 @@ async function telaRelatorioCorrecoes() {
         'Data Registro': { chave: 'snapshots.datasCorrecoes', tipoPesquisa: 'data' },
         'Solicitante': { chave: 'usuario' },
         'Executor': { chave: 'snapshots.executores' },
-        'Loja': { chave: 'snapshots.cliente' },
+        'Loja': { chave: 'snapshots.cliente.nome' },
+        'Cidade': { chave: 'snapshots.cliente.cidade' },
+        'Estado': { chave: 'snapshots.cliente.estado' },
         'Sistema': { chave: 'snapshots.sistema' }
     }
 
@@ -305,8 +307,8 @@ async function telaRelatorioCorrecoes() {
 async function criarLinhasCorrecoes(ocorrencia) {
 
     const { id, snapshots } = ocorrencia || {}
-
     const { cliente, empresa, sistema } = snapshots || {}
+    const { nome, cidade, estado } = cliente || {}
 
     const linhas = []
 
@@ -340,7 +342,9 @@ async function criarLinhasCorrecoes(ocorrencia) {
         <td>${dtRegistro}</td>
         <td>${usuario || ''}</td>
         <td>${executor || ''}</td>
-        <td>${cliente?.nome || ''}</td>
+        <td>${nome || ''}</td>
+        <td>${cidade || ''}</td>
+        <td>${estado || ''}</td>
         <td>${sistema}</td>
         `
 
@@ -530,6 +534,12 @@ async function baixarExcelRelatorioOcorrencias() {
                 type: "date",
                 sourceFormat: 'br-hora'
             },
+            {
+                field: "o.snapshots.dtCorrecao",
+                as: "Data Agendamento",
+                type: "date",
+                sourceFormat: 'br'
+            },
             { field: "o.descricao", as: "Descrição da Ocorrência" },
             { field: "o.usuario", as: "Solicitante" },
             {
@@ -610,6 +620,9 @@ async function baixarExcelRelatorioCorrecoes() {
 
         columns: [
             { field: "e.nome", as: "Empresa" },
+            { field: "c.nome", as: "Loja" },
+            { field: "c.cidade", as: "Cidade" },
+            { field: "c.estado", as: "Estado" },
             { field: "o.id", as: "Chamado" },
             {
                 custom: `json_extract(cx.value, '$.executor')`,
