@@ -1672,10 +1672,10 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
         ? `
             <div style="${vertical};">
                 <label>Origem</label>
-                ${['Kit', 'Parceiro'].map(o => `
+                ${['Kit', 'Parceiro', 'Matriz', 'Compra Região'].map(o => `
                     <div style="${horizontal}; gap: 1rem;">
                         <input name="origem_${temporario}" data-origem="${o}" type="radio" ${origem == o ? 'checked' : ''}>
-                        <label>${o}</label>
+                        <label style="text-align: left;">${o}</label>
                     </div>
                     `).join('')}
             </div>
