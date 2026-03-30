@@ -418,7 +418,7 @@ input:focus {
     background: #222222ec;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
     transition: 0.3s;
-    z-index: 200;
+    z-index: 100000;
     overflow: auto;
 }
 

@@ -80,7 +80,7 @@ async function telaInicialGCS() {
         colunas: {
             'Cliente': { chave: 'snapshots.contrato' },
             'Tags': { chave: 'snapshots.tags' },
-            'Técnicos': {chave: 'snapshots.tecnicos'},
+            'Técnicos': { chave: 'snapshots.tecnicos' },
             'Início': {},
             'Término': {},
             'Comentário': { chave: 'pda.comentario' },
@@ -127,6 +127,8 @@ async function telaInicialGCS() {
     await tabelaPorAba({ aba: 'INDICADORES' })
     await carregarControles()
 
+    // Inciar coelho;
+    parar()
 }
 
 async function tabelaPorAba({ aba = 'CONCLUÍDO', id = null }) {
@@ -534,8 +536,25 @@ async function filtrarPorGaveta(titulo, usuario) {
 
 async function criarGaveta(usuario = null, conf = {}) {
 
-    if (!usuario)
-        usuario = document.querySelector('[name="contador"]').id || 'Geral'
+    const spanContador = document.querySelector('[name="contador"]')
+    const usuarioSelecionado = spanContador?.id
+
+    if (
+        usuario == null ||
+        usuario === '' ||
+        usuario === 'undefined' ||
+        usuario === undefined
+    ) {
+        usuario = usuarioSelecionado
+    }
+
+    if (
+        !usuario ||
+        usuario === 'undefined' ||
+        usuario === 'null'
+    ) {
+        usuario = 'Geral'
+    }
 
     const contadores = JSON.parse(localStorage.getItem('contadores')) || {}
     contadores[usuario] = { estrela: conf.estrela || 'N' }
@@ -590,7 +609,7 @@ async function criarGaveta(usuario = null, conf = {}) {
 
     const botaoCancelar = usuario == acesso.usuario
         ? ''
-        : `<img src="imagens/cancel.png" onclick="removerContador('${usuario}')">`
+        : `<img src="imagens/cancel.png" style="width: 1.5rem;" onclick="removerContador('${usuario}')">`
 
     const conteudo = `
         <div style="${horizontal}; gap: 1rem;">

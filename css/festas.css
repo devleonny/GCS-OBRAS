@@ -1,3 +1,5 @@
+/* NATAL */
+
 .topo-natal {
     position: fixed;
     top: 0;
@@ -74,4 +76,20 @@
     100% {
         transform: rotate(0deg);
     }
+}
+
+
+/* PÁSCOA */
+
+#coelho {
+    position: fixed;
+    left: 20px;
+    top: 120px;
+    width: 120px;
+    height: 120px;
+    background-image: url('.imagens/coelho.png');
+    background-repeat: no-repeat;
+    background-size: 600px 480px;
+    image-rendering: pixelated;
+    z-index: 9999;
 }
