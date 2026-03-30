@@ -535,10 +535,10 @@ async function baixarExcelRelatorioOcorrencias() {
                 sourceFormat: 'br-hora'
             },
             {
-                field: "o.snapshots.dtCorrecao",
+                custom: `json_extract(o.snapshots, '$.dtCorrecao')`,
                 as: "Data Agendamento",
                 type: "date",
-                sourceFormat: 'br'
+                sourceFormat: "br"
             },
             { field: "o.descricao", as: "Descrição da Ocorrência" },
             { field: "o.usuario", as: "Solicitante" },
