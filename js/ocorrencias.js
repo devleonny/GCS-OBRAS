@@ -1162,8 +1162,7 @@ async function salvarFiltro(id = crypto.randomUUID()) {
         filtro: controles?.ocorrencias?.filtros || {}
     }
 
-    await inserirDados({ [id]: filtro }, 'filtros')
-    enviar(`filtros/${id}`, filtro)
+    await enviar(`filtros/${id}`, filtro)
 
     await definirFiltroGrupo()
 
