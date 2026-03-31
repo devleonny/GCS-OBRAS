@@ -143,14 +143,10 @@ async function criarElementosIniciais() {
         body: 'tAtrasados',
         filtros: {
             'snapshots.ultimoSolicitante': { op: '=', value: acesso.usuario },
-            'correcoes.*.tipoCorrecao': {
-                modo: 'OR',
-                origem: 'dropdown',
-                regras: [
-                    { op: '!=', value: 'WRuo2' },
-                    { op: '!=', value: '4sGzb' },
-                ]
-            },
+            'correcoes.*.tipoCorrecao': [
+                { op: '!=', value: 'WRuo2' },
+                { op: '!=', value: '4sGzb' }
+            ],
             'snapshots.dtCorrecao': { op: '<d', value: Date.now() },
             ...(
                 acesso.permissao == 'cliente'
@@ -168,7 +164,10 @@ async function criarElementosIniciais() {
         body: 'tCorrecoes',
         filtros: {
             'snapshots.ultimoExecutor': { op: '=', value: acesso.usuario },
-            'correcoes.*.tipoCorrecao': { op: '!=', value: 'WRuo2' },
+            'correcoes.*.tipoCorrecao': [
+                { op: '!=', value: 'WRuo2' },
+                { op: '!=', value: '4sGzb' }
+            ],
             ...(
                 acesso.permissao == 'cliente'
                     ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
@@ -182,7 +181,10 @@ async function criarElementosIniciais() {
         base: 'dados_ocorrencias',
         path: 'snapshots.ultimaCorrecao',
         filtros: {
-            'snapshots.ultimaCorrecao': { op: '!=', value: 'Solucionada' },
+            'correcoes.*.tipoCorrecao': [
+                { op: '!=', value: 'WRuo2' },
+                { op: '!=', value: '4sGzb' }
+            ],
             'usuario': { op: '=', value: acesso.usuario }
         }
     })

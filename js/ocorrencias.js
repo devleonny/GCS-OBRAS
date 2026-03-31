@@ -1,5 +1,18 @@
 const autE = ['adm', 'gerente', 'diretoria']
 
+const padraoCor = (st) => {
+    switch (st) {
+        case 'Cancelado':
+            return '#b12425'
+        case 'todos':
+            return '#004cff'
+        case 'Solucionada':
+            return '#3c9f15'
+        default:
+            return '#bd8315'
+    }
+}
+
 const tabEquipamentos = (equipamentos, idOcorrencia, idCorrecao) => {
 
     const linhasEquipamentos = Object.values(equipamentos || {})
@@ -347,7 +360,7 @@ function carregarCorrecoes(ocorrencia) {
 
         const estilo = tipoCorrecaoNome == 'Solucionada'
             ? 'fin'
-            : tipoCorrecaoNome == 'Não analisada'
+            : tipoCorrecaoNome == 'Cancelado'
                 ? 'na'
                 : 'and'
 
@@ -493,7 +506,10 @@ async function telaOcorrencias() {
 
         controles.ocorrencias.filtros = {
             'snapshots.ultimoExecutor': { op: '=', value: acesso.usuario },
-            'correcoes.*.tipoCorrecao': { op: '!=', value: 'WRuo2' }
+            'correcoes.*.tipoCorrecao': [
+                { op: '!=', value: 'WRuo2' },
+                { op: '!=', value: '4sGzb' }
+            ],
         }
 
     } else if (acesso.permissao == 'cliente') {
@@ -1003,7 +1019,7 @@ async function criarPesquisas() {
         'Sistema': { path: 'snapshots.sistema' },
         'Prioridade': { path: 'snapshots.prioridade' },
         'Última Correção': { path: 'snapshots.ultimaCorrecao' },
-        'Executor': { path: 'correcoes.*.executor' },
+        'Executor': { path: 'snapshots.ultimoExecutor' },
         'Estado': { path: 'snapshots.cliente.estado' },
         'Empresa': { path: 'snapshots.empresa' },
     }
@@ -1297,7 +1313,10 @@ async function auxPendencias() {
 
     if (acesso.permissao == 'técnico') {
         filtros = {
-            'correcoes.*.tipoCorrecao': { op: '!=', value: 'WRuo2' },
+            'correcoes.*.tipoCorrecao': [
+                { op: '!=', value: 'WRuo2' },
+                { op: '!=', value: '4sGzb' }
+            ],
             'snapshots.ultimoExecutor': { op: '=', value: acesso.usuario }
         }
 
@@ -1315,8 +1334,7 @@ async function auxPendencias() {
         path: 'snapshots.ultimaCorrecao'
     })
 
-
-    const ordemFinal = ['Solucionada', 'todos']
+    const ordemFinal = ['Cancelado', 'Solucionada', 'todos']
 
     const etiquetas = Object
         .entries(contadores)
@@ -1334,12 +1352,7 @@ async function auxPendencias() {
         })
         .map(([correcao, total]) => {
 
-            const cor =
-                correcao === 'Solucionada'
-                    ? '#3c9f15'
-                    : correcao === 'todos'
-                        ? '#004cff'
-                        : '#b12425'
+            const cor = padraoCor(correcao)
 
             return `
             <div class="pill" onclick="atalhoAuxiliar('${correcao}')">

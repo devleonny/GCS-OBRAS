@@ -754,6 +754,7 @@ input:focus {
 
 /* Parte esquerda */
 .pill-a {
+    font-size: 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
