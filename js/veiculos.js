@@ -53,6 +53,13 @@ async function telaVeiculos() {
                 campoBusca: 'codigo',
                 retorno: 'descricao',
                 destino: 'distribuicao.*.nomeDepartamento'
+            },
+            {
+                path: 'veiculo.motoristas.*.id',
+                tabela: 'dados_clientes',
+                campoBusca: 'id',
+                retorno: 'nome',
+                destino: 'veiculo.motoristas.*.nomeMotorista'
             }
         ]
     })
@@ -141,8 +148,12 @@ async function criarLinhaVeiculo(veiculo) {
 async function criarLinhaCusto(custo) {
 
     const { veiculo, id, usuario, data_pagamento, comentario, data, realizado, custo_total, distribuicao = {} } = custo
-    const { cartao, placa, modelo, snapshots, status } = veiculo || {}
+    const { cartao, placa, modelo, snapshots, status, motoristas } = veiculo || {}
     const editavel = acesso.permissao == 'adm' || acesso.setor == 'FINANCEIRO'
+
+    const nomes = Object.values(motoristas || {})
+        .map(m => m.nomeMotorista)
+        .join('<br>')
 
     const deps = []
 
@@ -174,7 +185,7 @@ async function criarLinhaCusto(custo) {
             <div style="${horizontal}; justify-content: start; gap: 0.5rem; width: 300px;">
                 <img src="imagens/${status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1rem;">
                 <div style="${vertical}; text-align: left;">
-                    <label>${(snapshots?.motoristas || []).join('<br>')}</label>
+                    <label>${nomes || ''}</label>
                     <label>${placa || ''}</label>
                     <label>${modelo || ''}</label>
                 </div>
@@ -729,7 +740,8 @@ function obterValores(id) {
     const elemento = document.getElementById(id);
     const tipo = elemento.type;
 
-    if (tipo === "number") return Number(elemento.value);
+    if (tipo === "number")
+        return Number(elemento.value);
 
     return elemento.value;
 }
@@ -740,7 +752,7 @@ async function salvarVeiculo(idVeiculo = ID5digitos()) {
 
     const motoristas = [...document.querySelectorAll('.motoristas span')]
         .filter(m => m.id)
-        .map(m => Number(m.id))
+        .map(m => ({ id: Number(m.id) }))
 
 
     const veiculo = {
