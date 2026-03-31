@@ -45,7 +45,16 @@ async function telaVeiculos() {
         body: 'bodyCustoVeiculos',
         base: 'custo_veiculos',
         colunas,
-        criarLinha: 'criarLinhaCusto'
+        criarLinha: 'criarLinhaCusto',
+        substituicoes: [
+            {
+                path: 'distribuicao.*.departamento',
+                tabela: 'departamentos_AC',
+                campoBusca: 'codigo',
+                retorno: 'descricao',
+                destino: 'distribuicao.*.nomeDepartamento'
+            }
+        ]
     })
 
     const acumulado = `
@@ -137,9 +146,10 @@ async function criarLinhaCusto(custo) {
 
     const deps = []
 
-    for (const [codDep, km] of Object.entries(distribuicao || {})) {
+    for (const dados of Object.values(distribuicao || {})) {
 
-        const dep = await recuperarDado('departamentos_AC', Number(codDep)) || {}
+        const { km, nomeDepartamento, departamento } = dados || {}
+
         const porcentagem = km / custo.km
         const valor = realizado
             ? porcentagem * realizado
@@ -150,9 +160,8 @@ async function criarLinhaCusto(custo) {
                 <div class="etiquetas"
                 name="departamento"
                 data-valor="${valor}"
-                data-codigo="${codDep}">
-                    <span>${dep?.descricao || codDep || 'Desatualizado...'}</span>
-                    <span style="text-align: left;">${dep?.cliente?.nome || ''}</span>
+                data-codigo="${departamento}">
+                    <span>${nomeDepartamento || departamento || '...'}</span>
                 </div>
             </div>`)
     }
@@ -588,14 +597,18 @@ async function salvarValores(idCusto = crypto.randomUUID()) {
         if (!span.id)
             return popup({ mensagem: 'Departamento em branco' })
 
-        const dep = span.id
+        const departamento = span.id
         const km = Number(linha.querySelector('[name="km"]').value)
 
         if (km == 0)
             return popup({ mensagem: 'KM não pode ser 0' })
 
-        if (!distribuicao[dep]) distribuicao[dep] = 0
-        distribuicao[dep] += km
+        distribuicao[departamento] ??= {
+            departamento,
+            km: 0
+        }
+
+        distribuicao[departamento].km += km
     }
 
     if (!Object.keys(distribuicao).length)
