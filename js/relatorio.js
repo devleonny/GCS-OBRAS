@@ -540,6 +540,9 @@ async function baixarExcelRelatorioOcorrencias() {
                 type: "date",
                 sourceFormat: "br"
             },
+            { field: "c.nome", as: "Loja" },
+            { field: "c.cidade", as: "Cidade" },
+            { field: "c.estado", as: "Estado" },
             { field: "o.descricao", as: "Descrição da Ocorrência" },
             { field: "o.usuario", as: "Solicitante" },
             {
@@ -550,9 +553,14 @@ async function baixarExcelRelatorioOcorrencias() {
                 },
                 as: "Executores",
             },
-            { field: "c.nome", as: "Loja" },
-            { field: "c.cidade", as: "Cidade" },
-            { field: "c.estado", as: "Estado" },
+            {
+                jsonArray: {
+                    field: "o.correcoes",
+                    path: "$",
+                    property: "tecnico"
+                },
+                as: "Executores",
+            },
             { field: "s.nome", as: "Sistema" },
             { field: "p.nome", as: "Prioridade" }
         ],
@@ -620,10 +628,38 @@ async function baixarExcelRelatorioCorrecoes() {
 
         columns: [
             { field: "e.nome", as: "Empresa" },
+            { field: "o.id", as: "Chamado" },
+            {
+                custom: `
+                    (
+                    SELECT cr.nome
+                    FROM correcoes cr
+                    WHERE cr.id = trim(json_extract(cx.value, '$.tipoCorrecao'))
+                    LIMIT 1
+                    )
+                `,
+                as: "Tipo Correção"
+            },
+            {
+                custom: `json_extract(cx.value, '$.data')`,
+                as: "Data",
+                type: "date",
+                sourceFormat: 'br-hora'
+            },
+            {
+                custom: `json_extract(cx.value, '$.dtCorrecao')`,
+                as: "Data Correção",
+                type: "date",
+                sourceFormat: 'iso'
+            },
             { field: "c.nome", as: "Loja" },
             { field: "c.cidade", as: "Cidade" },
             { field: "c.estado", as: "Estado" },
-            { field: "o.id", as: "Chamado" },
+            {
+                custom: `json_extract(cx.value, '$.descricao')`,
+                as: "Descrição",
+                width: 30,
+            },
             {
                 custom: `json_extract(cx.value, '$.usuario')`,
                 as: "Solicitante"
@@ -637,34 +673,12 @@ async function baixarExcelRelatorioCorrecoes() {
                 as: "Técnico (Peças)"
             },
             {
-                custom: `json_extract(cx.value, '$.data')`,
-                as: "Data",
-                type: "date",
-                sourceFormat: 'br-hora'
-            },
-            {
-                custom: `json_extract(cx.value, '$.descricao')`,
-                as: "Descrição",
-                width: 30,
-            },
-            {
                 field: 's.nome',
                 as: "Sistema"
             },
             {
                 field: 'p.nome',
                 as: "Prioridade"
-            },
-            {
-                custom: `
-                    (
-                    SELECT cr.nome
-                    FROM correcoes cr
-                    WHERE cr.id = trim(json_extract(cx.value, '$.tipoCorrecao'))
-                    LIMIT 1
-                    )
-                `,
-                as: "Tipo Correção"
             }
         ],
 
@@ -705,8 +719,8 @@ async function baixarExcelRelatorioPecas() {
         ],
 
         columns: [
-            { field: "o.id", as: "Chamado" },
             { field: "e.nome", as: "Empresa" },
+            { field: "o.id", as: "Chamado" },
             { field: "c.nome", as: "Loja" },
             { field: "c.cidade", as: "Cidade" },
             { field: "c.estado", as: "Estado" },
