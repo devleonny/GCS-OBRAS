@@ -60,7 +60,7 @@ async function criarQuadros() {
                 },
                 quadro: {
                     op: '=',
-                    value: id || null
+                    value: id || ''
                 }
             }
         })

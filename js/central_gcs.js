@@ -620,23 +620,12 @@ async function painelUsuarios() {
         'Permissão': { chave: 'permissao' }
     }
 
-    const btnExtras = `
-        <button onclick="filtrarUsuarios('online')">Online</button>
-        <button style="background-color: #ff0000;" onclick="filtrarUsuarios('offline')">Offline</button>`
-
     const tOnline = await modTab({
         pag: 'usuariosOnline',
         colunas,
-        btnExtras,
         body: 'bodyUsuariosOnline',
         base: 'dados_setores',
-        criarLinha: 'criarLinhaPainelUsuarios',
-        filtros: {
-            'status': [
-                { op: '!=', value: null },
-                { op: '!=', value: 'offline' }
-            ]
-        }
+        criarLinha: 'criarLinhaPainelUsuarios'
     })
 
     const elemento = `
