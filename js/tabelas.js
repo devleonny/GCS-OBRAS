@@ -116,12 +116,14 @@ function restaurarPesquisa(pag) {
     const thead = tabela.querySelector('thead')
     if (!thead) return
 
+    const ativo = document.activeElement
+
     for (const [chave, filtro] of Object.entries(filtros)) {
         const lista = Array.isArray(filtro) ? filtro : [filtro]
 
         for (const f of lista) {
             const op = f?.op
-            const value = String(f?.value ?? '')
+            const value = String(f?.original ?? f?.value ?? '')
 
             const el = thead.querySelector(`[data-chave="${CSS.escape(chave)}"][data-op="${CSS.escape(op)}"]`)
             if (!el) continue
@@ -133,8 +135,11 @@ function restaurarPesquisa(pag) {
                 continue
             }
 
-            // contentEditable th
-            el.textContent = value
+            if (el.textContent !== value)
+                el.textContent = value
+
+            if (ativo === el)
+                colocarCursorNoFim(el)
         }
     }
 }
@@ -154,7 +159,6 @@ async function mudarPagina(valor, pag) {
 }
 
 async function confirmarPesquisa({ event, chave, op, elemento, pag }) {
-
     if (event?.type === 'keydown') {
         if (event.key !== 'Enter') return
         event.preventDefault()
@@ -172,6 +176,7 @@ async function confirmarPesquisa({ event, chave, op, elemento, pag }) {
     controles[pag].filtros ??= {}
 
     const isInput = elemento?.tagName?.toLowerCase() === 'input'
+    const isSelect = elemento?.tagName?.toLowerCase() === 'select'
 
     if (isInput) {
         const atual = controles[pag].filtros[chave]
@@ -182,7 +187,8 @@ async function confirmarPesquisa({ event, chave, op, elemento, pag }) {
 
             if (!novo.length) {
                 delete controles[pag].filtros[chave]
-                if (Object.keys(controles[pag].filtros).length === 0) delete controles[pag].filtros
+                if (Object.keys(controles[pag].filtros).length === 0)
+                    delete controles[pag].filtros
             } else {
                 controles[pag].filtros[chave] = novo
             }
@@ -192,23 +198,71 @@ async function confirmarPesquisa({ event, chave, op, elemento, pag }) {
         }
 
         const idx = arr.findIndex(f => f?.op === op)
-        if (idx >= 0) arr[idx] = { op, value: termo }
-        else arr.push({ op, value: termo })
+
+        const registro = {
+            op,
+            value: termo,
+            original: bruto
+        }
+
+        if (idx >= 0) arr[idx] = registro
+        else arr.push(registro)
 
         controles[pag].filtros[chave] = arr
         await paginacao(pag)
         return
     }
 
-    if (!termo) {
-        delete controles[pag].filtros[chave]
-        if (Object.keys(controles[pag].filtros).length === 0) delete controles[pag].filtros
+    if (isSelect) {
+        if (!termo) {
+            delete controles[pag].filtros[chave]
+            if (Object.keys(controles[pag].filtros).length === 0)
+                delete controles[pag].filtros
+
+            await paginacao(pag)
+            return
+        }
+
+        controles[pag].filtros[chave] = {
+            op,
+            value: termo,
+            original: bruto
+        }
+
         await paginacao(pag)
         return
     }
 
-    controles[pag].filtros[chave] = { op, value: termo }
+    if (!termo) {
+        delete controles[pag].filtros[chave]
+        if (Object.keys(controles[pag].filtros).length === 0)
+            delete controles[pag].filtros
+
+        await paginacao(pag)
+        return
+    }
+
+    controles[pag].filtros[chave] = {
+        op,
+        value: termo,
+        original: bruto
+    }
+
     await paginacao(pag)
+}
+
+function colocarCursorNoFim(el) {
+    if (!el || el.tagName?.toLowerCase() === 'input' || el.tagName?.toLowerCase() === 'select')
+        return
+
+    const range = document.createRange()
+    const sel = window.getSelection()
+
+    range.selectNodeContents(el)
+    range.collapse(false)
+
+    sel.removeAllRanges()
+    sel.addRange(range)
 }
 
 async function paginacao(pag) {

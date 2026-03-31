@@ -192,7 +192,6 @@ async function criarLinhaOrcamento(orcamento) {
     async function linhaOrcamento(orcamento) {
 
         const { id, dados_orcam, snapshots } = orcamento || {}
-        const { tags } = snapshots || {}
 
         const pedidos = Object.values(orcamento?.status?.historico || {})
             .filter(s => s?.status == 'PEDIDO')
