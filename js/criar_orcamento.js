@@ -796,7 +796,9 @@ async function tabelaProdutosOrcamentos() {
         colunas,
         funcaoAdicional: ['formatarTabela', 'totalOrcamento'],
         btnExtras,
-        filtros: { [`snapshots.${lpu}`]: { op: 'NOT_ZERO' } },
+        filtros: { 
+            [`snapshots.${lpu}`]: { op: 'NOT_ZERO' } 
+        },
         criarLinha: 'linhasComposicoesOrcamento',
         base: 'dados_composicoes',
         body: 'bodyComposicoesOrcamento'

@@ -242,6 +242,12 @@ async function paginacao(pag) {
             ? await base()
             : base
 
+        const tabela = tbody.parentElement
+        const cols = tabela.querySelectorAll('thead th').length
+
+        tbody.innerHTML = ''
+        tbody.appendChild(criarLoading(cols))
+
         const dados = await pesquisarDB({
             base: baseResolvida,
             ordenar,
@@ -250,8 +256,6 @@ async function paginacao(pag) {
             filtros
         })
 
-        const tabela = tbody.parentElement
-        const cols = tabela.querySelectorAll('thead th').length
         const divPaginacao = document.getElementById(`paginacao_${pag}`)
         const paginaAtual = document.getElementById(`paginaAtual_${pag}`)
         const resultados = document.getElementById(`resultados_${pag}`)
@@ -290,7 +294,7 @@ async function paginacao(pag) {
             if (dinossauro)
                 dinossauro.remove()
 
-            await atualizarComTS(tbody, dados.resultados, criarLinha, baseResolvida)
+            await atualizarTabela(tbody, dados.resultados, criarLinha, baseResolvida)
         }
 
         await executarFuncoesAdicionais(funcaoAdicional)
@@ -309,7 +313,23 @@ async function paginacao(pag) {
 
 }
 
-async function atualizarComTS(tbody, dados, criarLinha, base) {
+function criarLoading(cols) {
+    const tr = document.createElement('tr')
+    tr.id = 'loading-tabela'
+
+    const td = document.createElement('td')
+    td.colSpan = cols
+    td.innerHTML = `
+        <div style="${horizontal}; width: 100%; gap: 1rem; justify-content: center; padding: 1rem;">
+            <img src="gifs/loading.gif" style="width: 5rem;">
+        </div>
+    `
+
+    tr.appendChild(td)
+    return tr
+}
+
+async function atualizarTabela(tbody, dados, criarLinha, base) {
     const dino = tbody.querySelector('#dinossauro')
     if (dino)
         dino.remove()
