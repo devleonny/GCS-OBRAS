@@ -620,8 +620,9 @@ async function painelUsuarios() {
         'Permissão': { chave: 'permissao' }
     }
 
+    const pag = 'usuariosOnline'
     const tOnline = await modTab({
-        pag: 'usuariosOnline',
+        pag,
         colunas,
         body: 'bodyUsuariosOnline',
         base: 'dados_setores',
@@ -641,7 +642,7 @@ async function painelUsuarios() {
 
     popup({ elemento, titulo: 'Usuários', nra: true })
 
-    await paginacao()
+    await paginacao(pag)
 }
 
 function criarLinhaPainelUsuarios(dados) {
@@ -846,9 +847,10 @@ async function verAprovacoes() {
         'Detalhes': ''
     }
 
+    const pag = 'aprovacao'
     const tabela = await modTab({
         colunas,
-        pag: 'aprovacao',
+        pag,
         base: 'dados_orcamentos',
         pag: 'aprovacao',
         criarLinha: 'criarLinhaAprovacao',
@@ -868,7 +870,7 @@ async function verAprovacoes() {
     `
     popup({ elemento, titulo: 'Aprovações de Orçamento' })
 
-    await paginacao()
+    await paginacao(pag)
 
 }
 

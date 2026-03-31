@@ -35,7 +35,8 @@ async function telaChecklist(id) {
     if (existente)
         return
 
-    const { snapshots } = await recuperarDado('dados_orcamentos', id) || {}
+    const { dados_composicoes, checklist, snapshots } = await recuperarDado('dados_orcamentos', id) || {}
+    const { avulso } = checklist || {}
 
     const colunas = {
         '': {},
@@ -55,6 +56,11 @@ async function telaChecklist(id) {
             <span>Marcar todos</span>
         </div>`
 
+    const mesclado = {
+        ...dados_composicoes || {},
+        ...avulso || {}
+    }
+
     const tabela = await modTab({
         id,
         colunas,
@@ -66,7 +72,7 @@ async function telaChecklist(id) {
         },
         body: 'bodyChecklist',
         criarLinha: 'carregarLinhaChecklist',
-        base: () => baseChecklist()
+        base: await baseChecklist(mesclado)
     })
 
     const elemento = `
@@ -111,16 +117,7 @@ async function telaChecklist(id) {
 
 }
 
-async function baseChecklist() {
-
-    const { id } = controles.checklist
-    const { dados_composicoes, checklist } = await recuperarDado('dados_orcamentos', id) || {}
-    const { avulso, itens, qReal } = checklist || {}
-
-    const mesclado = {
-        ...dados_composicoes || {},
-        ...avulso || {}
-    }
+async function baseChecklist(mesclado) {
 
     // Modelagem dos dados;
     for (const [codigo, dados] of Object.entries(mesclado)) {

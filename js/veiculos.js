@@ -557,7 +557,7 @@ function calcularValorCombustivel() {
 }
 
 
-async function salvarValores(idCusto = ID5digitos()) {
+async function salvarValores(idCusto = crypto.randomUUID()) {
 
     overlayAguarde()
 

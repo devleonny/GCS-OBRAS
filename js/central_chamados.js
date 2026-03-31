@@ -143,7 +143,14 @@ async function criarElementosIniciais() {
         body: 'tAtrasados',
         filtros: {
             'snapshots.ultimoSolicitante': { op: '=', value: acesso.usuario },
-            'correcoes.*.tipoCorrecao': { op: '!=', value: 'WRuo2' },
+            'correcoes.*.tipoCorrecao': {
+                modo: 'OR',
+                origem: 'dropdown',
+                regras: [
+                    { op: '!=', value: 'WRuo2' },
+                    { op: '!=', value: '4sGzb' },
+                ]
+            },
             'snapshots.dtCorrecao': { op: '<d', value: Date.now() },
             ...(
                 acesso.permissao == 'cliente'

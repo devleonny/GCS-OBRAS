@@ -225,6 +225,7 @@ async function paginacao(pag) {
             pagina,
             base,
             body,
+            substituicoes,
             ordenar,
             alinPag = horizontal,
             explode = null,
@@ -250,6 +251,7 @@ async function paginacao(pag) {
 
         const dados = await pesquisarDB({
             base: baseResolvida,
+            substituicoes,
             ordenar,
             explode,
             pagina,

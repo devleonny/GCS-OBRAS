@@ -280,7 +280,7 @@ function uCorrecao(correcoes = {}) {
     }
 }
 
-async function carregarCorrecoes(ocorrencia) {
+function carregarCorrecoes(ocorrencia) {
 
     const modelo = (valor1, valor2) => {
 
@@ -306,7 +306,7 @@ async function carregarCorrecoes(ocorrencia) {
 
     for (const [idCorrecao, correcao] of correcoesOrganizadas) {
 
-        const { equipamentos, idOrcamento } = correcao
+        const { equipamentos, idOrcamento, tipoCorrecaoNome } = correcao
 
         if (aTec) {
             // Só mostrar correções criadas para ele;
@@ -345,11 +345,9 @@ async function carregarCorrecoes(ocorrencia) {
             ? `<div class="fotos" style="display: flex;">${imagens}</div>`
             : '<img src="imagens/img.png" style="width: 4rem;">'
 
-        const { nome } = await recuperarDado('correcoes', correcao?.tipoCorrecao) || {}
-
-        const estilo = nome == 'Solucionada'
+        const estilo = tipoCorrecaoNome == 'Solucionada'
             ? 'fin'
-            : nome == 'Não analisada'
+            : tipoCorrecaoNome == 'Não analisada'
                 ? 'na'
                 : 'and'
 
@@ -371,7 +369,7 @@ async function carregarCorrecoes(ocorrencia) {
                     ${modelo('Solicitante', `<span>${correcao.usuario}</span>`)}
                     ${modelo('Executor', `<span>${correcao?.executor || ''}</span>`)}
                     ${modelo('Técnico', `<span>${correcao?.tecnico || ''}</span>`)}
-                    ${modelo('Correção', `<span class="${estilo}">${nome || 'Sem status'}</span>`)}
+                    ${modelo('Correção', `<span class="${estilo}">${tipoCorrecaoNome || 'Sem status'}</span>`)}
                     ${pdfOrcamento}
                     ${modelo('Descrição', `<div style="white-space: pre-wrap;">${correcao.descricao}</div>`)}
                     ${modelo('Criado em', `<span>${correcao?.data || ''}</span>`)}
@@ -471,7 +469,16 @@ async function telaOcorrencias() {
         base: 'dados_ocorrencias',
         pag: 'ocorrencias',
         body: 'bodyOcorrencias',
-        criarLinha: 'criarLinhaOcorrencia'
+        criarLinha: 'criarLinhaOcorrencia',
+        substituicoes: [
+            {
+                path: 'correcoes.*.tipoCorrecao',
+                tabela: 'correcoes',
+                campoBusca: 'id',
+                retorno: 'nome',
+                destino: 'correcoes.*.tipoCorrecaoNome'
+            }
+        ]
     })
 
     const acumulado = `
@@ -516,7 +523,7 @@ async function contadoresMapaOcorrencias() {
 
 }
 
-async function criarLinhaOcorrencia(ocorrencia) {
+function criarLinhaOcorrencia(ocorrencia) {
 
     const { id, fotos, anexos, usuario, id_antigo, snapshots, equipamentos } = ocorrencia || {}
     const { sistema, prioridade, tipo, cliente, empresa } = snapshots || {}
@@ -529,7 +536,7 @@ async function criarLinhaOcorrencia(ocorrencia) {
         ? `<div class="fotos" style="display: flex;">${imagens}</div>`
         : '<img src="imagens/img.png" style="width: 4rem;">'
 
-    const divCorrecoes = await carregarCorrecoes(ocorrencia)
+    const divCorrecoes = carregarCorrecoes(ocorrencia)
 
     const corAssinatura = ocorrencia.assinatura
         ? '#008000'
