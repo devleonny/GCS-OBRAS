@@ -234,6 +234,8 @@ async function salvarNotaAvulsa(id) {
 
 async function abrirAtalhos(id, idMaster) {
 
+    overlayAguarde()
+
     const orcamento = await recuperarDado('dados_orcamentos', id)
     const emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
     let botoesDisponiveis = ''
@@ -282,19 +284,6 @@ async function abrirAtalhos(id, idMaster) {
             <span>${texto}</span>
         </div>
     `
-    // Alertas
-    const acoesPraMim = await pesquisarDB({
-        base: 'acoes',
-        filtros: {
-            'responsavel': { op: 'includes', value: acesso.usuario },
-            'origem.id': { op: '=', value: id },
-            'status': { op: '=', value: 'pendente' }
-        }
-    })
-
-    const atalho = acoesPraMim.resultados.length
-        ? modAlerta('Você tem <b>ações</b> pendentes! <br><small>Clique <b>aqui</b> para ver mais</small>')
-        : ''
 
     let prioridade = 3
     const stLiberado = Object
@@ -353,7 +342,6 @@ async function abrirAtalhos(id, idMaster) {
         ${aviso}
         <div class="opcoes-orcamento">${botoesDisponiveis}</div>
 
-        ${atalho}
         ${prioridadeAtalho}
     `
 
@@ -1524,6 +1512,7 @@ async function calcularRequisicao() {
         const qtde = Number(campoQtde?.value || 0)
 
         // Objeto será capturado depois;
+        controles.requisicao.base[codigo] ??= {}
         controles.requisicao.base[codigo].qtde_enviar = qtde
 
         const totalBruto = unitarioBruto * qtde

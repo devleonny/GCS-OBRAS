@@ -60,41 +60,72 @@ function pararCam() {
     }
 }
 
-async function blocoAuxiliarFotos(fotos) {
+async function excluirFoto(idFoto, idOcorrencia, idCorrecao) {
 
-    if (fotos) {
+    overlayAguarde()
 
-        const imagens = Object.entries(fotos)
-            .map(([link,]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
-            .join('')
+    if (idCorrecao) {
+        await deletar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}/fotos/${idFoto}`)
 
-        const painel = `
+    } else if (idOcorrencia) {
+        await deletar(`dados_ocorrencias/${idOcorrencia}/fotos/${idFoto}`)
+
+    }
+
+    const blocoFt = document.getElementById(`bloco-foto-${idFoto}`)
+    if (blocoFt)
+        blocoFt.remove()
+
+    removerOverlay()
+
+}
+
+async function blocoAuxiliarFotos(fotos, idOcorrencia, idCorrecao) {
+
+    const imagens = Object.entries(fotos || {})
+        .map(([link,]) => {
+
+            const fExcluir = !idOcorrencia
+                ? ''
+                : `excluirFoto('${link}', '${idOcorrencia}'${idCorrecao ? `, '${idCorrecao}'` : ''})`
+
+            return `
+                    <div style="position: relative;" id="bloco-foto-${link}">
+                        <img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">
+                        <img onclick="${fExcluir}" src="imagens/cancel.png" style="width: 1.5rem; position: absolute; top: 3px; right: 3px;">
+                    </div>
+                    `
+        })
+        .join('')
+
+    const painel = `
             <div class="fotos">${imagens}</div>
-            <div class="capturar" onclick="blocoAuxiliarFotos()">
+            <div class="capturar" onclick="auxiliarRegistroFoto()">
                 <img src="imagens/camera.png">
                 <span>Abrir Câmera</span>
             </div>
         `
-        return painel
+    return painel
 
-    } else {
+}
 
-        const elemento = `
-            <div style="${vertical}; gap: 3px; background-color: #d2d2d2;">
-                <div class="capturar" style="position: fixed; bottom: 10px; left: 10px; z-index: 10003;" onclick="tirarFoto()">
-                    <img src="imagens/camera.png">
-                    <span>Capturar Imagem</span>
-                </div>
+async function auxiliarRegistroFoto() {
 
-                <div class="cameraDiv">
-                    <video autoplay playsinline></video>
-                    <canvas style="display: none;"></canvas>
-                </div>
+    const elemento = `
+        <div style="${vertical}; gap: 3px; background-color: #d2d2d2;">
+            <div class="capturar" style="position: fixed; bottom: 10px; left: 10px; z-index: 10003;" onclick="tirarFoto()">
+                <img src="imagens/camera.png">
+                <span>Capturar Imagem</span>
             </div>
-            `
-        popup({ elemento })
-        await abrirCamera()
-    }
+
+            <div class="cameraDiv">
+                <video autoplay playsinline></video>
+                <canvas style="display: none;"></canvas>
+            </div>
+        </div>
+        `
+    popup({ elemento })
+    await abrirCamera()
 
 }
 
@@ -134,7 +165,7 @@ async function tirarFoto() {
     canvas.getContext('2d').drawImage(video, 0, 0)
 
     const idFoto = ID5digitos()
-    const foto = `<img name="foto" id="${idFoto}" src="${canvas.toDataURL('image/png')}" class="foto" onclick="ampliarImagem(this, '${idFoto}')">`
+    const foto = `<img name="foto" data-salvo="não" id="${idFoto}" src="${canvas.toDataURL('image/png')}" class="foto" onclick="ampliarImagem(this, '${idFoto}')">`
     fotos.insertAdjacentHTML('beforeend', foto)
 
     removerPopup()
@@ -283,10 +314,6 @@ async function carregarCorrecoes(ocorrencia) {
                 continue
         }
 
-        const imagens = Object.entries(correcao?.fotos || {})
-            .map(([link,]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
-            .join('')
-
         const edicao = (correcao.usuario == acesso.usuario || autE.includes(acesso.permissao))
             ? `
                 <button onclick="formularioCorrecao('${idOcorrencia}', '${idCorrecao}')">Editar</button>
@@ -308,6 +335,10 @@ async function carregarCorrecoes(ocorrencia) {
         const anexos = Object
             .entries(correcao?.anexos || {})
             .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}', '${idOcorrencia}', '${idCorrecao}')`))
+            .join('')
+
+        const imagens = Object.entries(correcao?.fotos || {})
+            .map(([link,]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
             .join('')
 
         const imagensExistentes = imagens !== ''
@@ -487,8 +518,16 @@ async function contadoresMapaOcorrencias() {
 
 async function criarLinhaOcorrencia(ocorrencia) {
 
-    const { id, anexos, usuario, id_antigo, snapshots, equipamentos } = ocorrencia || {}
+    const { id, fotos, anexos, usuario, id_antigo, snapshots, equipamentos } = ocorrencia || {}
     const { sistema, prioridade, tipo, cliente, empresa } = snapshots || {}
+
+    const imagens = Object.entries(fotos || {})
+        .map(([link,]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
+        .join('')
+
+    const imagensExistentes = imagens !== ''
+        ? `<div class="fotos" style="display: flex;">${imagens}</div>`
+        : '<img src="imagens/img.png" style="width: 4rem;">'
 
     const divCorrecoes = await carregarCorrecoes(ocorrencia)
 
@@ -581,6 +620,8 @@ async function criarLinhaOcorrencia(ocorrencia) {
                     ${divAnexos || 'Sem anexos'}
                 </div>`
             : 'Sem anexos')}
+
+            ${modeloCampos('Fotos', imagens ? imagensExistentes : 'Sem Imagens')}
 
             </div>
 
@@ -1121,8 +1162,7 @@ async function salvarFiltro(id = crypto.randomUUID()) {
         filtro: controles?.ocorrencias?.filtros || {}
     }
 
-    await inserirDados({ [id]: filtro }, 'filtros')
-    enviar(`filtros/${id}`, filtro)
+    await enviar(`filtros/${id}`, filtro)
 
     await definirFiltroGrupo()
 
@@ -1327,6 +1367,8 @@ async function atalhoAuxiliar(correcao) {
 
 async function formularioOcorrencia(idOcorrencia) {
 
+    overlayAguarde()
+
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
     const { unidade = unidadeOrc, snapshots, anexos, fotos, descricao } = ocorrencia
     const { sistema, tipo, prioridade } = snapshots || {}
@@ -1444,7 +1486,9 @@ async function formularioOcorrencia(idOcorrencia) {
             </div>
             `
         },
-        { elemento: await blocoAuxiliarFotos(fotos || {}, true) }
+        {
+            elemento: await blocoAuxiliarFotos(fotos, idOcorrencia)
+        }
     ]
 
     const botoes = [
@@ -1459,6 +1503,8 @@ async function formularioOcorrencia(idOcorrencia) {
 
     // Limpeza da variável para novos;
     unidadeOrc = null
+
+    removerOverlay()
 
 }
 
@@ -1477,6 +1523,8 @@ function bloqAnterior(input) {
 }
 
 async function formularioCorrecao(idOcorrencia, idCorrecao) {
+
+    overlayAguarde()
 
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || ''
     const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
@@ -1561,7 +1609,9 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
             </div>
             `
         },
-        { elemento: `${await blocoAuxiliarFotos(correcao?.fotos || {}, true)}` },
+        {
+            elemento: `${await blocoAuxiliarFotos(correcao?.fotos, idOcorrencia, idCorrecao)}`
+        },
         {
             texto: 'Anexos',
             elemento: `
@@ -1593,6 +1643,8 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
 
     visibilidadeFotos()
 
+    removerOverlay()
+
 }
 
 async function maisLabel({ codigo, descricao, quantidade, origem, serie, formulario } = {}) {
@@ -1619,10 +1671,10 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
         ? `
             <div style="${vertical};">
                 <label>Origem</label>
-                ${['Kit', 'Parceiro'].map(o => `
+                ${['Kit', 'Parceiro', 'Matriz', 'Compra Região'].map(o => `
                     <div style="${horizontal}; gap: 1rem;">
                         <input name="origem_${temporario}" data-origem="${o}" type="radio" ${origem == o ? 'checked' : ''}>
-                        <label>${o}</label>
+                        <label style="text-align: left;">${o}</label>
                     </div>
                     `).join('')}
             </div>
@@ -1817,15 +1869,13 @@ async function salvarOcorrencia(idOcorrencia) {
         }
     }
 
+    ocorrencia.fotos ??= {}
 
-    if (!ocorrencia.fotos)
-        ocorrencia.fotos = {}
-
-    const imgs = document.querySelectorAll('.fotos img')
+    const imgs = [...document.querySelectorAll('.fotos img')]
+        .filter(i => i.dataset.salvo == 'não')
 
     if (imgs.length > 0) {
         for (const img of imgs) {
-            if (img.dataset?.salvo === 'sim') continue
             const foto = await importarAnexos({ foto: img.src })
             const dados = foto[0]
             ocorrencia.fotos[dados.link] = dados
@@ -1869,7 +1919,7 @@ async function anexosOcorrencias(input) {
 async function removerAnexo(img, idAnexo, idOcorrencia, idCorrecao) {
 
     overlayAguarde()
-    
+
     if (idCorrecao) { // Se correção
         await deletar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}/anexos/${idAnexo}`)
     } else { // Se ocorrência

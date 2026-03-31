@@ -41,6 +41,39 @@ async function pesquisarDB(params) {
     return await resposta.json()
 }
 
+async function baixarRelatorioExcel(schema, nome = 'relatorio') {
+
+    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
+
+    const response = await fetch(`${api}/excel`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(schema)
+    })
+
+    if (!response.ok) {
+        const erro = await response.json()
+        popup({ mensagem: erro.mensagem || 'Erro ao exportar' })
+        return
+    }
+
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${nome}-${Date.now()}.xlsx`
+    document.body.appendChild(a)
+    a.click()
+
+    a.remove()
+    window.URL.revokeObjectURL(url)
+}
+
+
 async function contarPorCampo({
     base,
     path,

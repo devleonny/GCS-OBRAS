@@ -640,32 +640,3 @@ function sincronizarApp({ atual, total, remover } = {}) {
     }
 
 }
-
-async function baixarRelatorioExcel(schema, nome = 'relatorio') {
-
-    const response = await fetch(`${api}/excel`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(schema)
-    })
-
-    if (!response.ok) {
-        const erro = await response.json()
-        popup({ mensagem: erro.mensagem || 'Erro ao exportar' })
-        return
-    }
-
-    const blob = await response.blob()
-    const url = window.URL.createObjectURL(blob)
-
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${nome}-${Date.now()}.xlsx`
-    document.body.appendChild(a)
-    a.click()
-
-    a.remove()
-    window.URL.revokeObjectURL(url)
-}

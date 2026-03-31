@@ -62,6 +62,10 @@ async function telaOrcamentos() {
         funcaoAdicional: ['formatacaoPagina', 'atualizarListaDepartamentos'],
         btnExtras,
         colunas,
+        ordenar: {
+            path: 'snapshots.tsUltimoStatus',
+            direcao: 'desc'
+        },
         base: 'dados_orcamentos',
         criarLinha: 'criarLinhaOrcamento',
         body: 'linhas',
@@ -555,7 +559,6 @@ async function filtrarToolbar(campo) {
 }
 
 async function baixarExcelOrcamentos() {
-
     const schema = {
         table: "dados_orcamentos",
         alias: "o",
@@ -570,6 +573,12 @@ async function baixarExcelOrcamentos() {
                         CASE WHEN json_valid(o.dados_orcam) THEN o.dados_orcam ELSE '{}' END,
                         '$.omie_cliente'
                     )`
+            },
+            {
+                type: "LEFT",
+                table: "empresas",
+                alias: "e",
+                on: "e.id = c.empresa"
             }
         ],
 
@@ -578,7 +587,7 @@ async function baixarExcelOrcamentos() {
                 field: "o.timestamp",
                 as: "Última alteração",
                 type: "date",
-                sourceFormat: "timestamp", // timestamp | iso | iso-datetime | br
+                sourceFormat: "timestamp",
             },
             {
                 json: {
@@ -619,9 +628,9 @@ async function baixarExcelOrcamentos() {
                     path: "$.contrato"
                 },
                 as: "Número Orçamento",
-
             },
             { field: "o.usuario", as: "Criado por" },
+            { field: "e.nome", as: "Empresa" },
             { field: "c.nome", as: "Nome" },
             { field: "c.cidade", as: "Cidade" },
             { field: "c.endereco", as: "Endereço" },
@@ -645,5 +654,4 @@ async function baixarExcelOrcamentos() {
     overlayAguarde()
     await baixarRelatorioExcel(schema, 'Orçamentos')
     removerOverlay()
-
 }

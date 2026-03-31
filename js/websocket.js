@@ -153,7 +153,14 @@ async function comunicacao() {
 
         if (tipo == 'atualizacao') {
 
-            await paginacao()
+            // Apenas as tabelas usadas;
+            for (const [pag, dados] of Object.entries(controles)) {
+
+                if (dados.base !== tabela)
+                    continue
+
+                await paginacao(pag)
+            }
 
             if (tabela == 'dados_orcamentos')
                 await verificarPendencias()
