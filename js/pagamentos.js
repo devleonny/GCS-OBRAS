@@ -63,6 +63,22 @@ async function telaPagamentos() {
         body: 'bodyPagamentos',
         base: 'lista_pagamentos',
         criarLinha: 'criarLinhaPagamento',
+        substituicoes: [
+            {
+                path: 'criado',
+                tabela: 'dados_setores',
+                campoBusca: 'usuario',
+                retorno: 'setor',
+                destino: 'usuarioSetor'
+            },
+            {
+                path: 'param.*.codigo_cliente_fornecedor',
+                tabela: 'dados_clientes',
+                campoBusca: 'id',
+                retorno: 'nome',
+                destino: 'param.*.recebedor'
+            }            
+        ]
     })
 
     const acumulado = `
@@ -120,9 +136,7 @@ async function atualizarPainelEsquerdo() {
 
 async function criarLinhaPagamento(pagamento) {
 
-    const recebedor = pagamento?.snapshots?.cliente || ''
-    const usuario = await recuperarDado('dados_setores', pagamento.criado) || {}
-    const setorCriador = usuario?.setor || ''
+    const { criado, recebedor, usuarioSetor } = pagamento || {}
     const param = pagamento?.param?.[0] || {}
     const { data_vencimento, valor_documento } = param || {}
 
@@ -147,9 +161,9 @@ async function criarLinhaPagamento(pagamento) {
                 <label style="text-align: left;">${pagamento.status}</label>
             </div>
         </td>
-        <td>${pagamento.criado}</td>
-        <td>${setorCriador}</td>
-        <td>${recebedor}</td>
+        <td>${criado || ''}</td>
+        <td>${usuarioSetor || ''}</td>
+        <td>${param?.recebedor || ''}</td>
         <td style="text-align: center;">
             <img src="imagens/pesquisar2.png" style="width: 1.5rem; cursor: pointer;" onclick="abrirDetalhesPagamentos('${pagamento.id}')">
         </td>
