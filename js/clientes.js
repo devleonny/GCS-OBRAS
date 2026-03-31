@@ -460,7 +460,7 @@ function criarLinhaClienteGCS(cliente) {
         </td>
         <td style="white-space: nowrap;">${cnpj || ''}</td>
         <td>
-            <span>${cliente.snapshots.empresa}</span>
+            <span>${cliente?.snapshots?.empresa || ''}</span>
         </td>
         <td>
             <div style="${vertical}; gap: 2px;">

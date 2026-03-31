@@ -625,8 +625,16 @@ async function baixarExcelRelatorioCorrecoes() {
             { field: "c.estado", as: "Estado" },
             { field: "o.id", as: "Chamado" },
             {
+                custom: `json_extract(cx.value, '$.usuario')`,
+                as: "Solicitante"
+            },
+            {
                 custom: `json_extract(cx.value, '$.executor')`,
                 as: "Executor"
+            },
+            {
+                custom: `json_extract(cx.value, '$.tecnico')`,
+                as: "Técnico (Peças)"
             },
             {
                 custom: `json_extract(cx.value, '$.data')`,

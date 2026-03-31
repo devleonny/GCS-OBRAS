@@ -135,9 +135,6 @@ async function deletar(caminho, idEvento) {
 
         const data = await response.json()
 
-        if (idEvento)
-            removerOffline('deletar', idEvento)
-
         if (data.mensagem)
             return popup({ mensagem: data.mensagem })
 
@@ -145,13 +142,12 @@ async function deletar(caminho, idEvento) {
 
     } catch (erro) {
         console.error(`Erro ao tentar deletar '${caminho}':`, erro.message || erro)
-        salvarOffline(objeto, 'deletar', idEvento)
         removerOverlay()
         return null
     }
 }
 
-async function enviar(caminho, info, idEvento) {
+async function enviar(caminho, info) {
 
     const url = `${api}/salvar`
     const objeto = { caminho, valor: info }
@@ -173,54 +169,20 @@ async function enviar(caminho, info, idEvento) {
         } catch (parseError) {
             // Erro ao tentar interpretar como JSON;
             console.error("Resposta não é JSON válido:", parseError);
-            salvarOffline(objeto, 'enviar', idEvento);
             return null;
         }
 
         if (!response.ok) {
             // Se a API respondeu erro (ex: 400, 500);
             console.error("Erro HTTP:", response.status, data);
-            salvarOffline(objeto, 'enviar', idEvento);
             return null;
         }
-
-        if (idEvento) removerOffline('enviar', idEvento);
 
         return data;
     } catch (erro) {
         console.error("Erro na requisição:", erro);
-        salvarOffline(objeto, 'enviar', idEvento);
         return null;
     }
-}
-
-function removerOffline(operacao, idEvento) {
-    let dados_offline = JSON.parse(localStorage.getItem('dados_offline'))
-    delete dados_offline?.[operacao]?.[idEvento]
-    localStorage.setItem('dados_offline', JSON.stringify(dados_offline))
-}
-
-function salvarOffline(objeto, operacao, idEvento) {
-    const dadosOffline = JSON.parse(localStorage.getItem('dados_offline')) || {}
-    idEvento = idEvento || ID5digitos()
-
-    dadosOffline[operacao] ??= {}
-    dadosOffline[operacao][idEvento] = objeto
-
-    localStorage.setItem('dados_offline', JSON.stringify(dadosOffline))
-}
-
-function msgQuedaConexao(msg = '<b>Falha na atualização:</b> tente novamente em alguns minutos.') {
-
-    const elemento = `
-            <div class="msg-queda-conexao">
-                <img src="gifs/alerta.gif" style="width: 2rem;">
-                <span>${msg}</span>
-            </div>
-        `
-    const msgAtiva = document.querySelector('.msg-queda-conexao')
-    if (msgAtiva) return
-    popup({ elemento })
 }
 
 function toTimestamp(d, fimDoDia = false) {
