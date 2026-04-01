@@ -784,7 +784,7 @@ async function alterarDatas(input, campo, idOrcamento) {
 
 async function formAcao(idOrcamento, idAcao) {
 
-    const { prazo, status, acao, responsavel = [] } = await recuperarDado('acoes', idAcao) || {}
+    const { prazo, status, acao, usuario, responsavel = [] } = await recuperarDado('acoes', idAcao) || {}
 
     const linhas = [
         { texto: 'Ação', elemento: `<textarea name="acao">${acao || ''}</textarea>` },
@@ -803,7 +803,11 @@ async function formAcao(idOrcamento, idAcao) {
             <select name="statusAcao">
                 ${['pendente', 'concluído'].map(op => `<option ${status == op ? 'selected' : ''}>${op}</option>`).join('')}
             </select>
-            ` }
+            ` },
+        { 
+            texto: 'Criado por', 
+            elemento: `<input name="usuario" value="${usuario || acesso.usuario}" readOnly>` 
+        }
     ]
 
     const botoes = [
@@ -887,6 +891,7 @@ async function salvarAcao(idOrcamento, idAcao = crypto.randomUUID()) {
     const acao = el('acao').value
     const prazo = el('prazo').value
     const status = el('statusAcao').value
+    const usuario = el('usuario').value
 
     if (!prazo || !responsavel)
         return popup({ mensagem: 'Preencha o prazo e/ou responsável da ação' })
@@ -896,7 +901,7 @@ async function salvarAcao(idOrcamento, idAcao = crypto.randomUUID()) {
             id: idOrcamento,
             base: 'dados_orcamentos'
         },
-        usuario: acesso.usuario,
+        usuario,
         responsavel,
         acao,
         prazo,

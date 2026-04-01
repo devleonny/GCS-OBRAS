@@ -41,7 +41,7 @@ const tagCliente = (nome, ativarRemover = false) => {
 
 async function classificarUnidades() {
 
-    if (Object.keys(controles.clientes.cp).length == 0)
+    if (Object.keys(controles?.clientes?.cp || {}).length == 0)
         return popup({ mensagem: 'Marque pelo menos 1 unidade' })
 
     const empresas = await pesquisarDB({
