@@ -50,6 +50,7 @@ async function telaOrcamentos() {
         'Tags': { chave: 'snapshots.tags.*.nome' },
         'Contrato': { chave: 'snapshots.contrato' },
         'Cidade': { chave: 'snapshots.cidade' },
+        'Status em Ocorrências': {},
         'Responsaveis': { chave: 'snapshots.responsavel' },
         'Indicadores': {},
         'Valor': { chave: 'snapshots.valor' },
@@ -69,7 +70,16 @@ async function telaOrcamentos() {
         base: 'dados_orcamentos',
         criarLinha: 'criarLinhaOrcamento',
         body: 'linhas',
-        pag: 'orcamentos'
+        pag: 'orcamentos',
+        substituicoes: [
+            {
+                path: 'dados_orcam.contrato',
+                tabela: 'dados_ocorrencias',
+                campoBusca: 'id',
+                retorno: 'snapshots.ultimaCorrecao',
+                destino: 'ultimaCorrecao'
+            }
+        ]
     })
 
     const acumulado = `
@@ -194,7 +204,11 @@ async function criarLinhaOrcamento(orcamento) {
 
     async function linhaOrcamento(orcamento) {
 
-        const { id, dados_orcam, snapshots } = orcamento || {}
+        const { id, dados_orcam, snapshots, ultimaCorrecao } = orcamento || {}
+
+        const labelTipoCorrecao = ultimaCorrecao
+            ? formatacaoTipoCorrecao(ultimaCorrecao)
+            : ''
 
         const pedidos = Object.values(orcamento?.status?.historico || {})
             .filter(s => s?.status == 'PEDIDO')
@@ -323,6 +337,7 @@ async function criarLinhaOrcamento(orcamento) {
         </td>
         <td>${finalContrato}</td>
         <td>${(snapshots?.cidade || '').toUpperCase()}</td>
+        <td>${labelTipoCorrecao}</td>
         <td>
             <div style="${vertical}">
                 <span>${orcamento?.usuario || '--'}</span>

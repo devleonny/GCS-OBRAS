@@ -1,4 +1,16 @@
 const autE = ['adm', 'gerente', 'diretoria']
+const formatacaoTipoCorrecao = (tipoCorrecaoNome) => {
+
+    const estilo = tipoCorrecaoNome == 'Solucionada'
+        ? 'fin'
+        : tipoCorrecaoNome == 'Cancelado'
+            ? 'na'
+            : 'and'
+
+    const label = `<span class="${estilo}">${tipoCorrecaoNome || 'Sem status'}</span>`
+
+    return label
+}
 
 const padraoCor = (st) => {
     switch (st) {
@@ -358,11 +370,7 @@ function carregarCorrecoes(ocorrencia) {
             ? `<div class="fotos" style="display: flex;">${imagens}</div>`
             : '<img src="imagens/img.png" style="width: 4rem;">'
 
-        const estilo = tipoCorrecaoNome == 'Solucionada'
-            ? 'fin'
-            : tipoCorrecaoNome == 'Cancelado'
-                ? 'na'
-                : 'and'
+        const labelTipoCorrecao = formatacaoTipoCorrecao(tipoCorrecaoNome)
 
         const pdfOrcamento = idOrcamento
             ? modelo('Orçamento', `<img src="imagens/pdf.png" onclick="irPdf('${idOrcamento}')">`)
@@ -382,7 +390,7 @@ function carregarCorrecoes(ocorrencia) {
                     ${modelo('Solicitante', `<span>${correcao.usuario}</span>`)}
                     ${modelo('Executor', `<span>${correcao?.executor || ''}</span>`)}
                     ${modelo('Técnico', `<span>${correcao?.tecnico || ''}</span>`)}
-                    ${modelo('Correção', `<span class="${estilo}">${tipoCorrecaoNome || 'Sem status'}</span>`)}
+                    ${modelo('Correção', labelTipoCorrecao)}
                     ${pdfOrcamento}
                     ${modelo('Descrição', `<div style="white-space: pre-wrap;">${correcao.descricao}</div>`)}
                     ${modelo('Criado em', `<span>${correcao?.data || ''}</span>`)}

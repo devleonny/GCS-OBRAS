@@ -1,5 +1,5 @@
 async function recuperarDado(base, chave) {
-    
+
     if (chave === undefined || chave === null)
         return null
 
@@ -14,8 +14,10 @@ async function recuperarDado(base, chave) {
         body: JSON.stringify({ base, chave })
     })
 
-    if (!resposta.ok)
-        throw new Error('Erro na requisição')
+    if (!resposta.ok) {
+        const erro = await resposta.text()
+        throw new Error(erro || 'Erro na requisição')
+    }
 
     return await resposta.json()
 }
