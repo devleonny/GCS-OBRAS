@@ -1,15 +1,3 @@
-const usuariosPermitidosParaEditar = ['log', 'editor', 'adm', 'gerente', 'diretoria', 'coordenacao']
-const LPUS = [
-    'lpu hope',
-    'lpu boticario',
-    'lpu cf boticario',
-    'lpu contagem - boticario a',
-    'lpu romagnole',
-    'lpu gpa',
-    'lpu eas muffato',
-    'lpu assaí'
-]
-
 async function telaComposicoes() {
 
     mostrarMenus(false)
@@ -34,9 +22,10 @@ async function telaComposicoes() {
         )
     }
 
+    const pag = 'composicoes'
     const tabela = await modTab({
         colunas,
-        pag: 'composicoes',
+        pag,
         base: 'dados_composicoes',
         body: 'bodyComposicoes',
         criarLinha: 'criarLinhaComposicao'
@@ -47,7 +36,9 @@ async function telaComposicoes() {
             ${tabela}
         </div>`
 
-    await paginacao()
+    removerOverlay()
+
+    await paginacao(pag)
 
     criarMenus('composicoes')
 

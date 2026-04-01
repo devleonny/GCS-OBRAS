@@ -129,6 +129,18 @@ async function telaInicialGCS() {
 
     // Inciar coelho;
     parar()
+
+    if (!LPUS) {
+        const resposta = await buscarLPUs()
+
+        if (resposta.mensagem)
+            return popup({ mensagem: resposta.mensagem })
+
+        if (resposta.lpus)
+            LPUS = resposta.lpus
+    }
+
+
 }
 
 async function tabelaPorAba({ aba = 'CONCLUÍDO', id = null }) {

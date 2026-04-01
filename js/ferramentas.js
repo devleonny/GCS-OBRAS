@@ -32,6 +32,8 @@ let sOverlay = false
 let ignorarMenus = false
 let controlesCxOpcoes = {}
 const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
+const usuariosPermitidosParaEditar = ['log', 'editor', 'adm', 'gerente', 'diretoria', 'coordenacao']
+let LPUS = null
 
 // Service work para apps no dispositivo;
 const emArquivoLocal = location.protocol === 'file:'
@@ -390,13 +392,17 @@ async function cxOpcoes(name) {
         return popup({ mensagem: `>>> cxOpcoes(null) <<<` })
 
     controlesCxOpcoes.ativo = name
-    const { colunas, base, filtros = {} } = controle
+    const { colunas, base, retornar, filtros = {} } = controle
 
     const pag = 'cxOpcoes'
     const tabela = await modTab({
         colunas,
         pag,
         base,
+        ordenar: {
+            path: retornar[0],
+            direcao: 'ASC'
+        },
         filtros,
         criarLinha: 'linCxOpcoes',
         body: 'cxOpcoes'
@@ -639,4 +645,24 @@ function sincronizarApp({ atual, total, remover } = {}) {
         percentageText = document.querySelector('.circular-loader .percentage');
     }
 
+}
+
+async function buscarLPUs() {
+
+    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
+
+    const resposta = await fetch(`${api}/lpus`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        }
+    })
+
+    if (!resposta.ok) {
+        const erro = await resposta.text()
+        throw new Error(erro || 'Erro ao contar por campo')
+    }
+
+    return await resposta.json()
 }

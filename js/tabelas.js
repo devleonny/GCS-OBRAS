@@ -167,7 +167,7 @@ async function confirmarPesquisa({ event, chave, op, elemento, pag }) {
     const bruto = (elemento?.value ?? elemento?.textContent ?? '')
         .replace(/\n/g, '')
         .trim()
-        
+
     const termo = bruto.toLowerCase()
 
     controles[pag].pagina = 1
@@ -412,5 +412,5 @@ function criarDino(cols) {
 }
 
 function achou() {
-    return Math.random() < 0.05
+    return Math.random() < 0.01
 }
