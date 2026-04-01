@@ -97,7 +97,7 @@ span[name="titulo"] {
 
 .toolbar-top {
     z-index: 9999;
-    min-height: 6vh;
+    min-height: 9vh;
     display: flex;
     align-items: center;
     justify-content: space-between;
