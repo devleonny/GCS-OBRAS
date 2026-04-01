@@ -1743,13 +1743,16 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
 
 async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
 
+    // Localização;
+    const { longitude, latitude, motivo = null } = await capturarLocalizacao()
+
+    if (motivo)
+        return popup({ mensagem: local.mensagem })
+
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
-    ocorrencia.correcoes ??= {}
-    ocorrencia.correcoes[idCorrecao] ??= {}
-    ocorrencia.correcoes[idCorrecao].datas ??= {}
-    ocorrencia.correcoes[idCorrecao].fotos ??= {}
-    // Equipamentos deve começar zerado;
-    ocorrencia.correcoes[idCorrecao].equipamentos = {}
+
+    const equipamentos = {}
+    const fotos = {}
 
     const tipoCorrecao = obter('tipoCorrecao').id
     const dtCorrecao = obter('dtCorrecao').value
@@ -1767,26 +1770,9 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
     if (!tipoCorrecao || !dtCorrecao)
         return popup({ mensagem: 'Não deixe em branco <b>Data Limite</b> ou o <b>Tipo de Correção</b>' })
 
-    ocorrencia.correcoes[idCorrecao] = {
-        ...ocorrencia.correcoes[idCorrecao],
-        dtCorrecao,
-        tecnico: obter('tecnico').id,
-        executor: obter('executor').id,
-        usuario: acesso.usuario,
-        tipoCorrecao,
-        descricao: obter('descricao').value
-    }
-
     // Data: Se existir, mantém;
     if (!ocorrencia.correcoes[idCorrecao].data)
         ocorrencia.correcoes[idCorrecao].data = new Date().toLocaleString()
-
-    // Localização;
-    const geoPermitido = localStorage.getItem('geo_permitido') === '1'
-
-    const local = geoPermitido
-        ? await capturarLocalizacao()
-        : { latitude: null, longitude: null }
 
     const data = new Date().getTime()
     ocorrencia.correcoes[idCorrecao].datas[data] = {
@@ -1797,19 +1783,14 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
     const input = obter('anexos')
     const anexos = await anexosOcorrencias(input)
 
-    ocorrencia.correcoes[idCorrecao].anexos = {
-        ...ocorrencia.correcoes[idCorrecao].anexos,
-        ...anexos
-    }
-
     // Fotos;
-    const fotos = document.querySelector('.fotos')
-    const imgs = fotos.querySelectorAll('img') || []
+    const divFotos = document.querySelector('.fotos')
+    const imgs = divFotos.querySelectorAll('img') || []
 
     for (const img of imgs) {
         if (img.dataset && img.dataset.salvo == 'sim') continue
         const foto = await importarAnexos({ foto: img.src })
-        ocorrencia.correcoes[idCorrecao].fotos[foto[0].link] = foto[0]
+        fotos[foto[0].link] = foto[0]
     }
 
     // Equipamentos
@@ -1827,7 +1808,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
         const serie = div.querySelector('#serie').value
         const origem = div.querySelector('input[name^="origem_"]:checked')?.dataset.origem || ''
 
-        ocorrencia.correcoes[idCorrecao].equipamentos[equip.id] = {
+        equipamentos[equip.id] = {
             codigo: equip.id,
             modelo,
             origem,
@@ -1839,7 +1820,27 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
         }
     }
 
-    await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, ocorrencia.correcoes[idCorrecao])
+    const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
+    const atualizado = {
+        fotos: {
+            ...correcao.fotos,
+            ...fotos
+        },
+        localizacao: {
+            ...correcao.localizacao,
+            [ID5digitos()]: { latitude, longitude }
+        },
+        equipamentos,
+        anexos,
+        dtCorrecao,
+        tecnico: obter('tecnico').id,
+        executor: obter('executor').id,
+        usuario: acesso.usuario,
+        tipoCorrecao,
+        descricao: obter('descricao').value
+    }
+
+    await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, atualizado)
     removerPopup()
 
 }

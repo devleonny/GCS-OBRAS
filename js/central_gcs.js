@@ -907,7 +907,9 @@ async function criarLinhaAprovacao(orcamento) {
                 </div>
             </td>
             <td>${aprovacao?.justificativa || '--'}</td>
-            <td><img src="imagens/pesquisar2.png" onclick="verPedidoAprovacao('${idOrcamento}')"></td>
+            <td>
+                <img src="imagens/pesquisar2.png" onclick="verPedidoAprovacao('${idOrcamento}')">
+            </td>
         </tr>
         `
 
@@ -933,15 +935,18 @@ async function verPedidoAprovacao(idOrcamento) {
 
     const permissao = acesso.permissao
     const pessoasPermitidas = ['adm', 'diretoria']
-    if (!pessoasPermitidas.includes(permissao)) return popup({ mensagem: 'Você não tem acesso' })
+
+    if (!pessoasPermitidas.includes(permissao))
+        return popup({ mensagem: 'Você não tem acesso' })
 
     let tabelas = {}
     let divTabelas = ''
 
     const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-    const omieCliente = orcamento?.dados_orcam?.omie_cliente || ''
-    const cliente = await recuperarDado('dados_clientes', omieCliente)
-    const lpu = orcamento.lpu_ativa ? String(orcamento.lpu_ativa).toLowerCase() : null
+    const { cidade, cliente } = orcamento?.snapshots || {}
+    const lpu = orcamento.lpu_ativa
+        ? String(orcamento.lpu_ativa).toLowerCase()
+        : null
 
     for (const [codigo, composicao] of Object.entries(orcamento?.dados_composicoes || {})) {
 
@@ -1045,8 +1050,8 @@ async function verPedidoAprovacao(idOrcamento) {
             <div style="display: flex; align-items: center; justify-content: start; gap: 2vw;">
                 <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
                     ${divOrganizada(orcamento?.dados_orcam?.analista || '--', 'Solicitante')}
-                    ${divOrganizada(cliente?.nome || '?', 'Cliente')}
-                    ${divOrganizada(cliente?.cidade || '?', 'Localidade')}
+                    ${divOrganizada(cliente || '?', 'Cliente')}
+                    ${divOrganizada(cidade || '?', 'Localidade')}
                 </div>
                 <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
                     ${divOrganizada(dinheiro(totalGeral), 'Total Geral')}

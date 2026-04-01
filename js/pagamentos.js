@@ -6,6 +6,7 @@ const opcoesStatus = [
     'Aguardando aprovação da Gerência',
     'Pagamento Excluído',
     'Processando...',
+    'A VENCER',
     'PAGO'
 ]
 
@@ -136,11 +137,11 @@ async function atualizarPainelEsquerdo() {
 
 async function criarLinhaPagamento(pagamento) {
 
-    const { criado, recebedor, usuarioSetor } = pagamento || {}
+    const { criado, usuarioSetor, snapshots } = pagamento || {}
     const param = pagamento?.param?.[0] || {}
     const { data_vencimento, valor_documento } = param || {}
 
-    const deps = (pagamento?.snapshots?.departamentos || [])
+    const deps = (snapshots?.departamentos || [])
         .map(dep => {
             return `<span style="text-align: left;">• <b>${dep}</b></span>`
         })

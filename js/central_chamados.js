@@ -68,22 +68,21 @@ function exibirSenha(img) {
 
 async function capturarLocalizacao() {
     return new Promise(resolve => {
-        if (!('geolocation' in navigator)) {
-            localStorage.setItem('geo_permitido', '0')
-            return resolve(null)
-        }
 
         navigator.geolocation.getCurrentPosition(
             pos => {
-                localStorage.setItem('geo_permitido', '1')
                 resolve({
+                    ok: true,
                     latitude: pos.coords.latitude,
                     longitude: pos.coords.longitude
                 })
             },
-            () => {
-                localStorage.setItem('geo_permitido', '0')
-                resolve(null)
+            err => {
+                resolve({
+                    ok: false,
+                    motivo: 'recusado',
+                    mensagem: 'Permissão recusada pelo usuário, para prosseguir libere a permissão.'
+                })
             },
             {
                 enableHighAccuracy: true,
@@ -93,7 +92,6 @@ async function capturarLocalizacao() {
         )
     })
 }
-
 
 async function telaInicialOcorrencias() {
 

@@ -1,5 +1,6 @@
 body,
 html {
+    zoom: 1;
     background: linear-gradient(45deg, #249f41, #151749);
     font-family: 'Poppins', sans-serif;
     min-height: 100vh;
