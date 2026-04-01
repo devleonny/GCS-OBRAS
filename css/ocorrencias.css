@@ -325,8 +325,6 @@
     width: 90%;
     overflow: auto;
     height: 300px;
-    border-top-left-radius: 5px;
-    border-bottom-left-radius: 5px;
     border: solid 1px #797979;
     background-color: #cbcbcb;
     padding: 0.5rem;

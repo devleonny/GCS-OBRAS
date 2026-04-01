@@ -80,13 +80,11 @@ async function capturarLocalizacao() {
             err => {
                 resolve({
                     ok: false,
-                    motivo: 'recusado',
                     mensagem: 'Permissão recusada pelo usuário, para prosseguir libere a permissão.'
                 })
             },
             {
                 enableHighAccuracy: true,
-                timeout: 5000,
                 maximumAge: 0
             }
         )

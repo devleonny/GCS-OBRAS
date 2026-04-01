@@ -1743,11 +1743,13 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
 
 async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
 
-    // Localização;
-    const { longitude, latitude, motivo = null } = await capturarLocalizacao()
+    overlayAguarde()
 
-    if (motivo)
-        return popup({ mensagem: local.mensagem })
+    // Localização;
+    const { longitude, latitude, mensagem = null} = await capturarLocalizacao()
+
+    if (mensagem)
+        return popup({ mensagem })
 
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
 
@@ -1765,20 +1767,8 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
         return
     }
 
-    overlayAguarde()
-
     if (!tipoCorrecao || !dtCorrecao)
         return popup({ mensagem: 'Não deixe em branco <b>Data Limite</b> ou o <b>Tipo de Correção</b>' })
-
-    // Data: Se existir, mantém;
-    if (!ocorrencia.correcoes[idCorrecao].data)
-        ocorrencia.correcoes[idCorrecao].data = new Date().toLocaleString()
-
-    const data = new Date().getTime()
-    ocorrencia.correcoes[idCorrecao].datas[data] = {
-        latitude: local.latitude,
-        longitude: local.longitude
-    }
 
     const input = obter('anexos')
     const anexos = await anexosOcorrencias(input)
@@ -1827,7 +1817,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
             ...fotos
         },
         localizacao: {
-            ...correcao.localizacao,
+            ...(correcao?.localizacao || {}),
             [ID5digitos()]: { latitude, longitude }
         },
         equipamentos,
@@ -1835,7 +1825,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
         dtCorrecao,
         tecnico: obter('tecnico').id,
         executor: obter('executor').id,
-        usuario: acesso.usuario,
+        usuario: correcao.usuario || acesso.usuario,
         tipoCorrecao,
         descricao: obter('descricao').value
     }
