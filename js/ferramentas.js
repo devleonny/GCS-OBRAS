@@ -726,13 +726,23 @@ async function salvarLPU() {
     await recuperarLPUS()
 }
 
-async function geolocalizacao({ latitude, longitude }) {
-    try {
-        const url = `https://us1.locationiq.com/v1/reverse.php?key=pk.90cb60221e0aee42dc7d793c97457f1b&lat=${latitude}&lon=${longitude}&format=json`
-        const r = await fetch(url)
-        if (!r.ok) return false
-        return await r.json()
-    } catch {
-        return false
+async function pesquisarLocalizacao(param) {
+
+    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
+
+    const resposta = await fetch(`${api}/geolocalizacao`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(param)
+    })
+
+    if (!resposta.ok) {
+        const erro = await resposta.text()
+        throw new Error(erro || 'Erro ao buscar localização')
     }
+
+    return await resposta.json()
 }

@@ -149,19 +149,21 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
     const correcoesOC = ocorrencia?.correcoes || {}
     const { cliente } = ocorrencia?.snapshots || {}
-    const thead = ['Executor', 'Tipo Correção', 'Descrição', 'Localização', 'Imagens']
+    const thead = ['Executor', 'Descrição', 'Localização', 'Imagens']
         .map(op => `<th>${op}</th>`)
         .join('')
 
     let linhas = ''
     for (let correcao of Object.values(correcoesOC)) {
-        const { nome } = await recuperarDado('correcoes', correcao.tipoCorrecao) || {}
+
+        const { localizacao } = correcao || {}
+
         let registros = ''
         let imagens = ''
 
         // Fotos
         imagens = Object.entries(correcao?.fotos || {})
-            .map(([link, foto]) => `<img name="foto" id="${link}" src="${api}/uploads/${link}" onclick="ampliarImagem(this, '${link}')">`)
+            .map(([link,]) => `<img name="foto" id="${link}" src="${api}/uploads/${link}" onclick="ampliarImagem(this, '${link}')">`)
             .join('')
 
         // Anexos
@@ -174,36 +176,31 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
             })
             .join('')
 
+        const enderecos = Object.values(localizacao || {})
+            .filter(local => local.endereco)
+            .map(local => {
+                return local.endereco
+            })
 
-        for (let [dt, dado] of Object.entries(correcao?.datas || {})) {
+        const checkins = []
 
-            let rastreio = 'Processando localização...'
-            if (dado.geolocalizacao) {
-                rastreio = `
-                    <span>${dado.geolocalizacao.address.road}</span>
-                    <strong><span>${dado.geolocalizacao.address.city}</span></strong>
-                    <span>${dado.geolocalizacao.address.postcode}</span>
-                `
-            }
+        for (const endereco of enderecos) {
 
-            registros += `
-                <div class="bloco-localizacao">
-                    <label>${new Date(Number(dt)).toLocaleString('pt-BR')}</label>
-                    <div style="${vertical};">
-                        ${rastreio}
-                    </div>
-                </div>
-            `
+            const { city, postcode, residential, road, state } = endereco?.address || {}
+
+            const campos = [road, city, residential, postcode, state]
+                .join(', ')
+
+            checkins.push(`<span class="localizacao">${campos}</span>`)
         }
 
         linhas += `
             <tr>
                 <td>${correcao.executor}</td>
-                <td>${nome}</td>
                 <td style="width: 200px; text-align: left;">${correcao.descricao}</td>
                 <td>
                     <div style="${vertical}; gap: 1px;">
-                        ${registros}
+                        ${checkins}
                     </div>
                 </td>
                 <td>

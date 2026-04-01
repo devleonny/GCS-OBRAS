@@ -331,7 +331,25 @@ function carregarCorrecoes(ocorrencia) {
 
     for (const [idCorrecao, correcao] of correcoesOrganizadas) {
 
-        const { equipamentos, idOrcamento, tipoCorrecaoNome } = correcao
+        const { equipamentos, idOrcamento, tipoCorrecaoNome, localizacao } = correcao
+
+        const enderecos = Object.values(localizacao || {})
+            .filter(local => local.endereco)
+            .map(local => {
+                return local.endereco
+            })
+
+        const checkins = []
+
+        for (const endereco of enderecos) {
+
+            const { city, postcode, residential, road, state } = endereco?.address || {}
+
+            const campos = [road, city, residential, postcode, state]
+                .join(', ')
+
+            checkins.push(`<span class="localizacao">${campos}</span>`)
+        }
 
         if (aTec) {
             // Só mostrar correções criadas para ele;
@@ -394,6 +412,7 @@ function carregarCorrecoes(ocorrencia) {
                     ${pdfOrcamento}
                     ${modelo('Descrição', `<div style="white-space: pre-wrap;">${correcao.descricao}</div>`)}
                     ${modelo('Criado em', `<span>${correcao?.data || ''}</span>`)}
+                    ${modelo('Localização', checkins)}
                     ${tabEquipamentos(equipamentos, idOcorrencia, idCorrecao)}
                     
                 </div>
@@ -1746,7 +1765,9 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
     overlayAguarde()
 
     // Localização;
-    const { longitude, latitude, mensagem = null} = await capturarLocalizacao()
+    const { longitude, latitude, mensagem = null } = await capturarLocalizacao()
+
+    const endereco = await pesquisarLocalizacao({ longitude, latitude })
 
     if (mensagem)
         return popup({ mensagem })
@@ -1818,7 +1839,11 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
         },
         localizacao: {
             ...(correcao?.localizacao || {}),
-            [ID5digitos()]: { latitude, longitude }
+            [ID5digitos()]: {
+                latitude,
+                longitude,
+                endereco
+            }
         },
         equipamentos,
         anexos,
