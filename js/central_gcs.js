@@ -296,7 +296,7 @@ async function usuariosToolbar() {
     if (!acesso)
         return
 
-    acesso = await recuperarDado('dados_setores', acesso.usuario) || JSON.parse(localStorage.getItem('acesso')) || {}
+    acesso = JSON.parse(localStorage.getItem('acesso')) || null
 
     const uOnline = await contarPorCampo({ base: 'dados_setores', path: 'status' })
 

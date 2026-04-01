@@ -182,8 +182,11 @@ async function criarLinhaOrcamento(orcamento) {
 
         const orcamento = await recuperarDado('dados_orcamentos', id)
 
-        if (orcamento)
-            await linhaOrcamento(orcamento)
+        // Se o orçamento foi excluído, o recuperarDado vai falhar;
+        if (orcamento == null)
+            continue
+
+        await linhaOrcamento(orcamento)
 
     }
 
