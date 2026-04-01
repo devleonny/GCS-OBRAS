@@ -1288,20 +1288,23 @@ async function painelClientes(idOrcamento) {
 
     overlayAguarde()
 
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-    const orcamentoBase = idOrcamento
-        ? orcamento
-        : baseOrcamento()
+    let orcamento = {}
 
-    const { usuarios, dados_orcam } = orcamentoBase || {}
+    if (idOrcamento) {
+        orcamento = await recuperarDado('dados_orcamentos', idOrcamento) || {}
+    } else {
+        orcamento = baseOrcamento()
+    }
+
+    const { usuarios, dados_orcam } = orcamento || {}
     const idCliente = dados_orcam?.omie_cliente
-    const bloq = orcamentoBase.hierarquia
+    const bloq = orcamento?.hierarquia
         ? true
         : false
 
     const cliente = await recuperarDado('dados_clientes', idCliente)
 
-    const levantamentos = Object.entries(orcamentoBase?.levantamentos || {})
+    const levantamentos = Object.entries(orcamento?.levantamentos || {})
         .map(([idAnexo, anexo]) =>
             criarAnexoVisual(
                 anexo.nome,
@@ -1358,7 +1361,7 @@ async function painelClientes(idOrcamento) {
             elemento: `
             <div style="${horizontal}; gap: 3px;">
                 <span>Classificar orçamento na aba de <b>CHAMADO</b></span>
-                <input id="filtroChamado" ${styChek} type="checkbox" ${orcamentoBase?.chamado == 'S' ? 'checked' : ''}>
+                <input id="filtroChamado" ${styChek} type="checkbox" ${orcamento?.chamado == 'S' ? 'checked' : ''}>
             </div>
             `
         },
@@ -1559,7 +1562,7 @@ async function salvarDadosCliente(idOrcamento) {
 
         const orcamentoBase = telaAtiva == 'orcamentos'
             ? await recuperarDado('dados_orcamentos', idOrcamento)
-            : baseOrcamento()
+            : baseOrcamento() || {}
 
         const el = (id) => {
             const elemento = document.getElementById(id)

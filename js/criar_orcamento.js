@@ -355,12 +355,17 @@ async function atualizarOpcoesLPU() {
 
     const orcamentoBase = baseOrcamento() || {}
 
-    document.getElementById('lpu').innerHTML = LPUS
+    const lpusOrdenadas = [...LPUS].sort((a, b) => {
+        if (a === 'lpu hope') return -1
+        if (b === 'lpu hope') return 1
+        return a.localeCompare(b)
+    })
+
+    document.getElementById('lpu').innerHTML = lpusOrdenadas
         .map(lpu => {
             return `<option ${orcamentoBase?.lpu_ativa?.toLowerCase() == lpu ? 'selected' : ''}>${lpu.toUpperCase()}</option>`
         })
         .join('')
-
 
     orcamentoBase.lpu_ativa = lpu.value
     baseOrcamento(orcamentoBase)
@@ -376,7 +381,7 @@ async function alterarTabelaLPU(tabelaLPU) {
     let orcamentoBase = baseOrcamento()
     orcamentoBase.lpu_ativa = tabelaLPU
     baseOrcamento(orcamentoBase)
-    
+
     await tabelaProdutosOrcamentos()
     await carregarTabelasOrcamento()
 
@@ -796,8 +801,8 @@ async function tabelaProdutosOrcamentos() {
         colunas,
         funcaoAdicional: ['formatarTabela', 'totalOrcamento'],
         btnExtras,
-        filtros: { 
-            [`snapshots.${lpu}`]: { op: 'NOT_ZERO' } 
+        filtros: {
+            [`snapshots.${lpu}`]: { op: 'NOT_ZERO' }
         },
         criarLinha: 'linhasComposicoesOrcamento',
         base: 'dados_composicoes',
