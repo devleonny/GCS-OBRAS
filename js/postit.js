@@ -351,6 +351,7 @@ async function confirmarExcluirPIT(id) {
 async function excluirPIT(id) {
 
     await deletar(`postit/${id}`)
+    await verificarPostIts()
 
 }
 

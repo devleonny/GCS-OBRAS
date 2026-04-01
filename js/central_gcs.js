@@ -626,7 +626,11 @@ async function painelUsuarios() {
         colunas,
         body: 'bodyUsuariosOnline',
         base: 'dados_setores',
-        criarLinha: 'criarLinhaPainelUsuarios'
+        criarLinha: 'criarLinhaPainelUsuarios',
+        ordenar: {
+            path: 'status',
+            direcao: 'desc'
+        }
     })
 
     const elemento = `
@@ -640,7 +644,7 @@ async function painelUsuarios() {
     if (divOnline)
         return
 
-    popup({ elemento, titulo: 'Usuários', nra: true })
+    popup({ elemento, titulo: 'Painel de Usuários', nra: true })
 
     await paginacao(pag)
 }

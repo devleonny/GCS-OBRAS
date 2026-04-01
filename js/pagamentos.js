@@ -77,7 +77,7 @@ async function telaPagamentos() {
                 campoBusca: 'id',
                 retorno: 'nome',
                 destino: 'param.*.recebedor'
-            }            
+            }
         ]
     })
 
