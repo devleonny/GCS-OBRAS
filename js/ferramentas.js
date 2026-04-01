@@ -157,8 +157,10 @@ async function f2() {
 
             <button onclick="lembreteNotas()">Ver Notas Canceladas/Devolvidas</button>
 
+            <button onclick="formularioLPU()">Criar uma LPU</button>
+
             <hr>
-            <label style="cursor: pointer;">${new Date().getTime()}</label>
+            <label style="cursor: pointer;">${Date.now()}</label>
         </div>`
 
     popup({ elemento, titulo: 'Ferramentas' })
@@ -665,4 +667,61 @@ async function buscarLPUs() {
     }
 
     return await resposta.json()
+}
+
+async function criarLPU(nomeLPU) {
+
+    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
+
+    const resposta = await fetch(`${api}/criar-lpu`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ nomeLPU })
+    })
+
+    if (!resposta.ok) {
+        const erro = await resposta.text()
+        throw new Error(erro || 'Erro ao contar por campo')
+    }
+
+    return await resposta.json()
+}
+
+async function formularioLPU() {
+
+    const linhas = [
+        {
+            texto: 'Nome da LPU',
+            elemento: '<textarea id="nomeLPU"></textarea>'
+        }
+    ]
+
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: 'salvarLPU()' }
+    ]
+
+    popup({ linhas, botoes })
+
+}
+
+async function salvarLPU() {
+
+    const nomeLPU = document.getElementById('nomeLPU').value.toLowerCase()
+    removerPopup()
+
+    if (!nomeLPU)
+        return
+
+    const resposta = await criarLPU(`lpu ${nomeLPU}`)
+
+    if (resposta.mensagem)
+        return popup({ mensagem: resposta.mensagem })
+
+
+    popup({ mensagem: 'Criado com sucesso' })
+
+    await recuperarLPUS()
 }
