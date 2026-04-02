@@ -5,7 +5,6 @@ function campoBloq() {
 }
 
 async function modTab(configuracoes) {
-
     const { btnExtras = '', ocultarPaginacao = false, criarLinha, base, colunas = {}, body = null, pag = null } = configuracoes || {}
 
     if (!body || !pag || !base || !criarLinha)
@@ -37,7 +36,6 @@ async function modTab(configuracoes) {
                     </th>`
 
             if (query.tipoPesquisa == 'select') {
-
                 const dados = await contarPorCampo({
                     base,
                     path: query.chave
@@ -80,7 +78,6 @@ async function modTab(configuracoes) {
                 `
         })
     )).join('')
-
 
     const modelo = `
         <div style="${vertical}; width: 100%;">
@@ -145,7 +142,6 @@ function restaurarPesquisa(pag) {
 }
 
 async function mudarPagina(valor, pag) {
-
     const { pagina, total } = controles[pag]
 
     if ((valor == -1 && pagina == 1) || (valor == 1 && pagina == total))
@@ -155,7 +151,6 @@ async function mudarPagina(valor, pag) {
     else controles[pag].pagina++
 
     await paginacao(pag)
-
 }
 
 async function confirmarPesquisa({ event, chave, op, elemento, pag }) {
@@ -263,8 +258,103 @@ function colocarCursorNoFim(el) {
     sel.addRange(range)
 }
 
-async function paginacao(pag) {
+function stableStringify(valor) {
+    if (valor === null || typeof valor !== 'object')
+        return JSON.stringify(valor)
 
+    if (Array.isArray(valor))
+        return `[${valor.map(stableStringify).join(',')}]`
+
+    const chaves = Object.keys(valor).sort()
+
+    return `{${chaves.map(chave => `${JSON.stringify(chave)}:${stableStringify(valor[chave])}`).join(',')}}`
+}
+
+function obterChaveLinha(dado, indice = 0) {
+    if (dado?.id !== undefined && dado?.id !== null && dado?.id !== '')
+        return String(dado.id)
+
+    if (dado?.codigo !== undefined && dado?.codigo !== null && dado?.codigo !== '')
+        return String(dado.codigo)
+
+    if (dado?.usuario !== undefined && dado?.usuario !== null && dado?.usuario !== '')
+        return String(dado.usuario)
+
+    if (dado?.chave !== undefined && dado?.chave !== null && dado?.chave !== '')
+        return String(dado.chave)
+
+    if (dado?._id !== undefined && dado?._id !== null && dado?._id !== '')
+        return String(dado._id)
+
+    return `linha_${indice}_${btoa(unescape(encodeURIComponent(stableStringify(dado)))).slice(0, 24)}`
+}
+
+function obterTimestampLinha(dado) {
+    const candidatos = [
+        dado?.snapshots?.tsUltimoStatus,
+        dado?.tsUltimoStatus,
+        dado?.timestamp,
+        dado?.snapshots?.timestamp,
+        dado?.updatedAt,
+        dado?.dataAtualizacao
+    ]
+
+    for (const valor of candidatos) {
+        if (valor === 0) return '0'
+        if (valor) return String(valor)
+    }
+
+    return ''
+}
+
+function obterHashLinha(dado) {
+    return stableStringify(dado)
+}
+
+function escaparAtributo(valor) {
+    return String(valor ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+}
+
+function injetarMetaTr(html, dado, indice = 0) {
+    if (typeof html !== 'string')
+        return ''
+
+    const id = escaparAtributo(obterChaveLinha(dado, indice))
+    const ts = escaparAtributo(obterTimestampLinha(dado))
+    const hash = escaparAtributo(obterHashLinha(dado))
+
+    return html.replace(
+        /^\s*<tr\b([^>]*)>/i,
+        (match, attrs = '') => `<tr${attrs} data-id="${id}" data-ts="${ts}" data-hash="${hash}">`
+    )
+}
+
+function assinaturaConsulta({ base, substituicoes, ordenar, explode, pagina, filtros }) {
+    return stableStringify({
+        base,
+        substituicoes: substituicoes || null,
+        ordenar: ordenar || null,
+        explode: explode || null,
+        pagina,
+        filtros: filtros || null
+    })
+}
+
+function assinaturaPagina(resultados = []) {
+    return stableStringify(
+        resultados.map((d, indice) => ({
+            id: obterChaveLinha(d, indice),
+            ts: obterTimestampLinha(d),
+            hash: obterHashLinha(d)
+        }))
+    )
+}
+
+async function paginacao(pag) {
     if (pag)
         return ativarPaginacao(pag)
 
@@ -272,7 +362,6 @@ async function paginacao(pag) {
         await ativarPaginacao(pag)
 
     async function ativarPaginacao(pag) {
-
         const {
             pagina,
             base,
@@ -295,11 +384,24 @@ async function paginacao(pag) {
             ? await base()
             : base
 
+        const assinaturaAtualConsulta = assinaturaConsulta({
+            base: baseResolvida,
+            substituicoes,
+            ordenar,
+            explode,
+            pagina,
+            filtros
+        })
+
+        const mesmaConsulta = controles[pag].ultimaAssinaturaConsulta === assinaturaAtualConsulta
+
         const tabela = tbody.parentElement
         const cols = tabela.querySelectorAll('thead th').length
 
-        tbody.innerHTML = ''
-        tbody.appendChild(criarLoading(cols))
+        if (!mesmaConsulta || !tbody.children.length) {
+            tbody.innerHTML = ''
+            tbody.appendChild(criarLoading(cols))
+        }
 
         const dados = await pesquisarDB({
             base: baseResolvida,
@@ -310,17 +412,20 @@ async function paginacao(pag) {
             filtros
         })
 
+        const assinaturaAtualPagina = assinaturaPagina(dados.resultados)
+        const mesmaPagina = mesmaConsulta && controles[pag].ultimaAssinaturaPagina === assinaturaAtualPagina
+
+        controles[pag].total = dados.paginas
+        controles[pag].ultimaAssinaturaConsulta = assinaturaAtualConsulta
+
         const divPaginacao = document.getElementById(`paginacao_${pag}`)
         const paginaAtual = document.getElementById(`paginaAtual_${pag}`)
         const resultados = document.getElementById(`resultados_${pag}`)
-
-        controles[pag].total = dados.paginas
 
         if (!divPaginacao)
             return
 
         if (!paginaAtual) {
-
             divPaginacao.innerHTML = `
                 <div style="${alinPag}; align-items: center; padding: 2px; color: white;">
                     <div style="${horizontal}; gap: 5px;">
@@ -331,8 +436,7 @@ async function paginacao(pag) {
                     </div>
                     <span style="white-space: nowrap;"><span style="font-size: 1rem;" id="resultados_${pag}">${dados.total}</span> ${dados.total !== 1 ? 'Itens' : 'Item'}</span>
                 </div>
-                `
-
+            `
         } else {
             paginaAtual.textContent = pagina
             document.getElementById(`totalPaginas_${pag}`).textContent = dados.paginas
@@ -340,31 +444,35 @@ async function paginacao(pag) {
         }
 
         if (!dados.resultados.length) {
+            controles[pag].ultimaAssinaturaPagina = assinaturaAtualPagina
             tbody.innerHTML = ''
             tbody.appendChild(criarDino(cols))
-
-        } else {
-            const dinossauro = tbody.querySelector('#dinossauro')
-            if (dinossauro)
-                dinossauro.remove()
-
-            await atualizarTabela(tbody, dados.resultados, criarLinha, baseResolvida)
+            await executarFuncoesAdicionais(funcaoAdicional)
+            restaurarPesquisa(pag)
+            return
         }
 
+        if (mesmaPagina) {
+            await executarFuncoesAdicionais(funcaoAdicional)
+            restaurarPesquisa(pag)
+            return
+        }
+
+        const reconstruirTudo = !mesmaConsulta
+        await atualizarTabela(tbody, dados.resultados, criarLinha, baseResolvida, reconstruirTudo)
+
+        controles[pag].ultimaAssinaturaPagina = assinaturaAtualPagina
+
         await executarFuncoesAdicionais(funcaoAdicional)
-
         restaurarPesquisa(pag)
-
     }
 
     async function executarFuncoesAdicionais(funcaoAdicional = []) {
-        // Função adicional, se existir;
         if (funcaoAdicional.length) {
             for (const f of funcaoAdicional)
                 await window[f]()
         }
     }
-
 }
 
 function criarLoading(cols) {
@@ -383,16 +491,65 @@ function criarLoading(cols) {
     return tr
 }
 
-async function atualizarTabela(tbody, dados, criarLinha, base) {
+async function criarElementoLinha(dado, criarLinha, base, indice = 0) {
+    const htmlBruto = await window[criarLinha]({ ...dado, base })
+    const html = injetarMetaTr(htmlBruto, dado, indice)
+
+    const temp = document.createElement('tbody')
+    temp.innerHTML = html.trim()
+
+    return temp.firstElementChild
+}
+
+async function atualizarTabela(tbody, dados, criarLinha, base, reconstruirTudo = false) {
+    const loading = tbody.querySelector('#loading-tabela')
+    if (loading)
+        loading.remove()
+
     const dino = tbody.querySelector('#dinossauro')
     if (dino)
         dino.remove()
 
-    const linhas = await Promise.all(
-        dados.map(d => window[criarLinha]({ ...d, base }))
+    if (reconstruirTudo || !tbody.querySelector('tr[data-id]')) {
+        const linhas = await Promise.all(
+            dados.map(async (d, indice) => {
+                const html = await Promise.resolve(window[criarLinha]({ ...d, base }))
+                return injetarMetaTr(html, d, indice)
+            })
+        )
+
+        tbody.innerHTML = linhas.join('')
+        return
+    }
+
+    const atuais = new Map(
+        [...tbody.querySelectorAll('tr[data-id]')]
+            .map(tr => [String(tr.dataset.id), tr])
     )
 
-    tbody.innerHTML = linhas.join('')
+    const fragment = document.createDocumentFragment()
+
+    for (let indice = 0; indice < dados.length; indice++) {
+        const dado = dados[indice]
+        const id = obterChaveLinha(dado, indice)
+        const ts = obterTimestampLinha(dado)
+        const hash = obterHashLinha(dado)
+
+        const atual = atuais.get(id)
+
+        if (atual && atual.dataset.ts === ts && atual.dataset.hash === hash) {
+            fragment.appendChild(atual)
+            continue
+        }
+
+        const novaLinha = await criarElementoLinha(dado, criarLinha, base, indice)
+
+        if (novaLinha)
+            fragment.appendChild(novaLinha)
+    }
+
+    tbody.innerHTML = ''
+    tbody.appendChild(fragment)
 }
 
 function criarDino(cols) {
