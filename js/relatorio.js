@@ -200,7 +200,7 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
                 <td style="width: 200px; text-align: left;">${correcao.descricao}</td>
                 <td>
                     <div style="${vertical}; gap: 1px;">
-                        ${checkins}
+                        <div style="${vertical}; gap: 2px;">${checkins.join('')}</div>
                     </div>
                 </td>
                 <td>

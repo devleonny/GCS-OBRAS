@@ -412,7 +412,7 @@ function carregarCorrecoes(ocorrencia) {
                     ${pdfOrcamento}
                     ${modelo('Descrição', `<div style="white-space: pre-wrap;">${correcao.descricao}</div>`)}
                     ${modelo('Criado em', `<span>${correcao?.data || ''}</span>`)}
-                    ${modelo('Localização', checkins)}
+                    ${modelo('Localização', `<div style="${vertical}; gap: 2px;">${checkins.join('')}</div>`)}
                     ${tabEquipamentos(equipamentos, idOcorrencia, idCorrecao)}
                     
                 </div>
@@ -1846,6 +1846,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
             }
         },
         equipamentos,
+        data: new Date().toLocaleString(),
         anexos,
         dtCorrecao,
         tecnico: obter('tecnico').id,
