@@ -45,7 +45,7 @@ async function telaChecklist(id) {
         'Quantidade': { chave: 'qtde' },
         'Tempo/Atividade': {},
         'Tempo/Total': {},
-        'Serviço Executado': {},
+        'Serviço Executado / Histórico': {},
         'Tempo/Realizado': {},
         '% Conclusão': {}
     }
@@ -73,7 +73,7 @@ async function telaChecklist(id) {
             {
                 path: 'codigo',
                 tabela: 'dados_composicoes',
-                campoBusca: 'codigo',
+                campoBusca: 'id',
                 retorno: 'tempo',
                 destino: 'tempo'
             }
@@ -165,14 +165,17 @@ async function baseChecklist(orcamento) {
 
 async function carregarLinhaChecklist(produto) {
 
-    console.log(produto, produto.codigo);
-    
-    const { codigo, tempo = '00:00', descricao, unidade, qtde, qReal, itens } = produto || {}
+    const { codigo, tempo, descricao, unidade, qtde, qReal, itens } = produto || {}
 
     const qtdeRealizada = Object.values(itens || {})
         .reduce((acc, item) => acc + (item?.quantidade || 0), 0)
 
-    const [h, m] = tempo.split(':').map(Number)
+    const tempoStr = typeof tempo === 'string' && tempo.includes(':')
+        ? tempo
+        : '00:00'
+
+    const [h, m] = tempoStr.split(':').map(Number)
+
     const minUnit = h * 60 + m
     const total = minUnit * (qReal || qtde || 0)
     const tempoRealizado = minUnit * qtdeRealizada
@@ -191,8 +194,8 @@ async function carregarLinhaChecklist(produto) {
         </td>
         <td>
             <div style="${horizontal}; gap: 5px;">
-                <span class="${estT(tempo)}">
-                    ${tempo} por <b>${unidade || 'UND'}</b>
+                <span class="${estT(tempoStr)}">
+                    ${tempoStr} por <b>${unidade || 'UND'}</b>
                 </span>
                 <img src="imagens/ajustar.png" onclick="painelAlterarTempo('${codigo}')">
             </div>
@@ -204,6 +207,7 @@ async function carregarLinhaChecklist(produto) {
             <div style="${horizontal}; gap: 10px;">
                 <span>${qtdeRealizada.toLocaleString('pt-BR')}</span>
                 <img onclick="registrarChecklist('${codigo}')" src="imagens/baixar.png">
+                <img src="imagens/todos.png" onclick="verRegistrosChecklist('${codigo}')">
             </div>
         </td>
         <td>
@@ -723,7 +727,7 @@ async function atualizarTempo(input, codigo) {
 
 async function calcularTemposChecklist() {
 
-    const dados = await baseChecklist()
+    const dados = controles?.checklist?.base || {}
 
     let minutosObra = 0
     let minutosExecutado = 0
@@ -738,9 +742,13 @@ async function calcularTemposChecklist() {
 
         const qtde = item.qtde || 0
         const qReal = item.qReal || 0
-        const tempoUnitario = item.tempo
+        const tempo = item.tempo
+        const tempoStr =
+            typeof tempo === 'string' && tempo.includes(':')
+                ? tempo
+                : '00:00'
 
-        const [h, m] = tempoUnitario.split(':').map(Number)
+        const [h, m] = tempoStr.split(':').map(Number)
         const minutosUnit = (h * 60) + m
 
         const baseQuantidade = qReal || qtde
@@ -883,7 +891,7 @@ async function calcularTempos() {
 
 }
 
-async function registrarChecklist(codigo) {
+async function verRegistrosChecklist(codigo) {
 
     overlayAguarde()
 
@@ -898,13 +906,7 @@ async function registrarChecklist(codigo) {
 
     let linhas = ''
 
-    // Bloqueio por excesso de quantidade;
-    quantidadeRealizadoItem = 0
-    quantidadeItem = orcamento?.checklist?.qReal?.[codigo]?.qtde || orcamento?.dados_composicoes?.[codigo]?.qtde || orcamento?.checklist?.avulso?.[codigo]?.qtde || 0
-
     for (const [idLancamento, dados] of Object.entries(itens)) {
-
-        quantidadeRealizadoItem += dados.quantidade
 
         const nomesTecnicos = []
 
@@ -934,46 +936,67 @@ async function registrarChecklist(codigo) {
         </tr>`
     }
 
-    const acumulado = `
-        <div id="blocoTecnicos"></div>
-
-        <hr style="width: 100%;">
-
-        <span>Quantidade Orçada: ${quantidadeItem}</span>
-
-        <div class="form-checklist">
-            <input name="quantidadeForm" type="number">
-            <input name="data" type="date">
-            <textarea name="comentario" placeholder="Comentário"></textarea>
-            <img src="imagens/concluido.png" style="width: 1.5rem;" onclick="salvarQuantidade('${codigo}')">
-        </div>
-        
-        <hr style="width: 100%;">
-
-        <div class="borda-tabela">
-            <div class="topo-tabela"></div>
-            <div class="div-tabela">
-                <table class="tabela" id="tabela_composicoes">
-                    <thead>
-                        <tr>${['Data', 'Quantidade', 'Técnico(s)', 'Comentário', 'Excluir'].map(op => `<th>${op}</th>`).join('')}</tr>
-                    </thead>
-                    <tbody>${linhas}</tbody>
-                </table>
+    const elemento = `
+        <div style="padding: 0.5rem;">
+            <div class="borda-tabela">
+                <div class="topo-tabela"></div>
+                <div class="div-tabela">
+                    <table class="tabela" id="tabela_composicoes">
+                        <thead>
+                            <tr>${['Data', 'Quantidade', 'Técnico(s)', 'Comentário', 'Excluir'].map(op => `<th>${op}</th>`).join('')}</tr>
+                        </thead>
+                        <tbody>${linhas}</tbody>
+                    </table>
+                </div>
+                <div class="rodape-tabela"></div>
             </div>
-            <div class="rodape-tabela"></div>
         </div>
-    `
+        `
 
-    const formChecklist = document.querySelector('.painel-registro-checklist')
-    if (!formChecklist)
-        popup({ elemento: `<div class="painel-registro-checklist">${acumulado}</div>`, titulo: 'Registrar' })
-    else
-        formChecklist.innerHTML = acumulado
+    popup({ elemento, titulo: 'Histórico de registros' })
+
+}
+
+async function registrarChecklist(codigo) {
+
+    const linhas = [
+        {
+            texto: 'Quantidade Realizada',
+            elemento: '<input name="quantidadeForm" type="number">'
+        },
+        {
+            texto: 'Data da atividade',
+            elemento: '<input name="data" type="date">'
+        },
+        {
+            texto: 'Técnicos',
+            elemento: `
+            <div style="${horizontal}; gap: 5px;">
+                <img src="imagens/baixar.png" onclick="maisTecnico()">
+                <div id="blocoTecnicos"></div>
+            </div>
+            `
+        },
+        {
+            texto: 'Comentário',
+            elemento: '<textarea name="comentario"></textarea>'
+        }
+    ]
+
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: `salvarQuantidade('${codigo}')` }
+    ]
+
+    popup({ linhas, botoes, titulo: 'Registrar atividade' })
+
+    const { id } = controles.checklist
+    const orcamento = await recuperarDado('dados_orcamentos', id) || {}
 
     for (const codTec of orcamento?.checklist?.tecnicos || []) {
-        const { nome } = await recuperarDado('dados_clientes', codTec) || '...'
+        const { nome } = await recuperarDado('dados_clientes', codTec) || ''
         maisTecnico(codTec, nome)
     }
+
 }
 
 async function alterarComentario(img, idLancamento, codigo) {
@@ -1049,19 +1072,14 @@ async function salvarQuantidade(codigo) {
         if (!tecnicos.includes(span.id))
             tecnicos.push(span.id)
 
-    const form = document.querySelector('.form-checklist')
 
-    const quantidade = Number(form.querySelector('[name="quantidadeForm"]').value)
-    const data = form.querySelector('[name="data"]').value
-    const comentario = form.querySelector('[name="comentario"]').value
-
-    // Bloqueios;
-    if ((quantidadeRealizadoItem + quantidade) > quantidadeItem)
-        return popup({ mensagem: 'Não é possível exceder a quantidade orçada' })
+    const quantidade = Number(document.querySelector('[name="quantidadeForm"]').value)
+    const data = document.querySelector('[name="data"]').value
+    const comentario = document.querySelector('[name="comentario"]').value
 
     if (!tecnicos.length) {
         await registrarChecklist(codigo)
-        return popup({ mensagem: 'É necessário ter pelo menos 1 técnico realizando a atividade...', titulo: 'Ninguém fez?' })
+        return popup({ mensagem: 'É necessário ter pelo menos 1 técnico realizando a atividade...' })
     }
 
     if (!quantidade || !data)
@@ -1072,7 +1090,18 @@ async function salvarQuantidade(codigo) {
     const dados = { quantidade, tecnicos, data, comentario }
     const idLancamento = ID5digitos()
 
+    // Salvamento local temporário;
+    controles.checklist.base = controles.checklist.base
+    for (const i of controles.checklist.base) {
+        if (i.codigo == codigo) {
+            i.itens[idLancamento] = dados
+            break
+        }
+    }
+
     await enviar(`dados_orcamentos/${id}/checklist/itens/${codigo}/${idLancamento}`, dados)
+
+    await paginacao('checklist')
 
     removerPopup()
 
@@ -1088,7 +1117,7 @@ async function removerChecklist(codigo, idLancamento) {
 
     await registrarChecklist(codigo)
 
-    removerPopup()()
+    removerPopup()
 
 }
 

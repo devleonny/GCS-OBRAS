@@ -412,6 +412,12 @@ async function paginacao(pag) {
             filtros
         })
 
+        // Para casos de base objeto;
+        if (typeof base === 'object' && controles[pag]?.priBase !== 'S') {
+            controles[pag].priBase = 'S'
+            controles[pag].base = dados.resultados
+        }
+
         const assinaturaAtualPagina = assinaturaPagina(dados.resultados)
         const mesmaPagina = mesmaConsulta && controles[pag].ultimaAssinaturaPagina === assinaturaAtualPagina
 
