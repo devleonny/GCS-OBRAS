@@ -452,7 +452,11 @@ async function paginacao(pag) {
             return
         }
 
-        if (mesmaPagina) {
+        const temLoading = !!tbody.querySelector('#loading-tabela')
+        const temDino = !!tbody.querySelector('#dinossauro')
+        const tabelaNaoPronta = temLoading || temDino
+
+        if (mesmaPagina && !tabelaNaoPronta) {
             await executarFuncoesAdicionais(funcaoAdicional)
             restaurarPesquisa(pag)
             return

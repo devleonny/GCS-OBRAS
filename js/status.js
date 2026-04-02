@@ -1138,18 +1138,26 @@ async function excluirOrcamentoBase(idOrcamento) {
 
 async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
 
+    overlayAguarde()
+
     const orcamento = await recuperarDado('dados_orcamentos', id)
+
+    const existePedido = Object.values(orcamento?.status?.historico || {})
+        .some(registro => registro?.status == 'PEDIDO')
+
+    if (!existePedido)
+        return popup({ mensagem: 'Crie um pedido antes de criar uma requisição!' })
+
     const cliente = await recuperarDado('dados_clientes', orcamento.dados_orcam.omie_cliente) || {}
     const cartao = orcamento?.status?.historico?.[chave] || {}
     const { volumes, transportadora, prazo, pedido, recebedor } = cartao
 
-    const pedidos = Object.fromEntries(
-        Object.entries(orcamento?.status?.historico || {})
-            .filter(([, dados]) => dados.status == 'PEDIDO')
-            .map(([chave, dados]) => {
-                return [chave, { id: chave, ...dados }]
-            })
-    )
+    const pedidos = Object.entries(orcamento?.status?.historico || {})
+        .filter(([, dados]) => dados.status == 'PEDIDO')
+        .map(([id, dados]) => ({
+            id,
+            ...dados
+        }))
 
     controlesCxOpcoes.pedido = {
         base: pedidos,
@@ -1224,28 +1232,29 @@ async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
 
     const materiais = ['eletrocalha', 'eletroduto', 'perfilado', 'sealtubo']
 
-    const base = Object.fromEntries(
-        Object.entries(cartao.requisicao || orcamento.dados_composicoes || {})
-            .filter(([, dados]) => {
-
-                if (dados.tipo == 'SERVIÇO')
-                    return false
-
-                if (!modalidade)
-                    return true
-
-                const contemMaterial = materiais
-                    .some(m => (dados.descricao || '').toLowerCase().includes(m))
-
-                if (modalidade === 'materiais' && contemMaterial)
-                    return true
-
-                if (modalidade === 'equipamentos')
-                    return true
-
+    const base = Object.entries(cartao.requisicao || orcamento.dados_composicoes || {})
+        .filter(([, dados]) => {
+            if (dados.tipo == 'SERVIÇO')
                 return false
-            })
-    )
+
+            if (!modalidade)
+                return true
+
+            const contemMaterial = materiais
+                .some(m => (dados.descricao || '').toLowerCase().includes(m))
+
+            if (modalidade === 'materiais' && contemMaterial)
+                return true
+
+            if (modalidade === 'equipamentos')
+                return true
+
+            return false
+        })
+        .map(([id, dados]) => ({
+            id,
+            ...dados
+        }))
 
     const tabela = await modTab({
         base,
@@ -1331,7 +1340,7 @@ async function criarLinhaRequisicao(item) {
                 <img src="${imagem || logo}">
             </td>
             <td style="font-size: 1.2em; white-space: nowrap;">
-                ${codigo}
+                ${codigo || ''}
             </td>
             <td>
                 <input class="requisicao-campo" style="min-width: 10rem;" value="${omie || ''}">
@@ -1692,7 +1701,6 @@ async function envioMaterial(id, chave = ID5digitos()) {
             elemento: `<input type="date" id="previsao" value="${previsao || ''}">`
         },
     ]
-
 
     const botoes = [
         { texto: 'Salvar', img: 'concluido', funcao: `registrarEnvioMaterial('${id}', '${chave}')"` }

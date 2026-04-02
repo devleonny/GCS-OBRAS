@@ -475,7 +475,11 @@ async function selecionar(name, cod) {
     const elemento = (painel || document).querySelector(`[name='${name}']`)
     const termos = []
 
-    const dado = base[cod] || await recuperarDado(base, cod)
+    const dado = typeof base === 'string'
+        ? await recuperarDado(base, cod)
+        : base.find(item =>
+            String(item.id ?? item.codigo ?? item.usuario) === String(cod)
+        )
 
     for (const chave of retornar) {
 

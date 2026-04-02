@@ -2,7 +2,7 @@ const strHHMM = (minutosTotais) => {
 
     const minutosPorDia = 1440
 
-    const total = Math.round(minutosTotais) // 👈 resolve aqui
+    const total = Math.round(minutosTotais)
 
     const dias = Math.floor(total / minutosPorDia)
     const restoMinutos = total % minutosPorDia
@@ -35,8 +35,8 @@ async function telaChecklist(id) {
     if (existente)
         return
 
-    const { dados_composicoes, checklist, snapshots } = await recuperarDado('dados_orcamentos', id) || {}
-    const { avulso } = checklist || {}
+    const orcamento = await recuperarDado('dados_orcamentos', id) || {}
+    const snapshots = orcamento?.snapshots || {}
 
     const colunas = {
         '': {},
@@ -56,23 +56,29 @@ async function telaChecklist(id) {
             <span>Marcar todos</span>
         </div>`
 
-    const mesclado = {
-        ...dados_composicoes || {},
-        ...avulso || {}
-    }
 
+    const pag = 'checklist'
     const tabela = await modTab({
         id,
         colunas,
-        pag: 'checklist',
+        pag,
         btnExtras,
         funcaoAdicional: ['calcularTempos'],
         filtros: {
-            'tipo': { op: '!=', value: 'VENDA' }
+            tipo: { op: '!=', value: 'VENDA' }
         },
         body: 'bodyChecklist',
         criarLinha: 'carregarLinhaChecklist',
-        base: await baseChecklist(mesclado)
+        substituicoes: [
+            {
+                path: 'codigo',
+                tabela: 'dados_composicoes',
+                campoBusca: 'codigo',
+                retorno: 'tempo',
+                destino: 'tempo'
+            }
+        ],
+        base: await baseChecklist(orcamento)
     })
 
     const elemento = `
@@ -113,43 +119,55 @@ async function telaChecklist(id) {
 
     popup({ elemento, titulo })
 
-    await paginacao()
+    await paginacao(pag)
 
 }
 
-async function baseChecklist(mesclado) {
+async function baseChecklist(orcamento) {
+    const { dados_composicoes, checklist } = orcamento || {}
+    const { avulso, qReal, itens } = checklist || {}
 
-    // Modelagem dos dados;
-    for (const [codigo, dados] of Object.entries(mesclado)) {
+    const mesclado = [
+        ...Object.entries(dados_composicoes || {}).map(([codigo, dados]) => ({
+            codigo,
+            ...dados
+        })),
+        ...Object.entries(avulso || {}).map(([codigo, dados]) => ({
+            codigo,
+            ...dados
+        }))
+    ]
 
-        const { tempo } = await recuperarDado('dados_composicoes', codigo) || '00:00'
-        mesclado[codigo].tempo = tempo || '00:00'
+    const resultado = []
 
-        // Item removido;
-        if (itens?.[codigo]?.removido) {
-            delete mesclado[codigo]
+    for (const dados of mesclado) {
+        const codigo = dados.codigo
+
+        if (itens?.[codigo]?.removido)
             continue
+
+        const item = {
+            ...dados,
+            itens: itens?.[codigo] || {}
         }
 
         if (!dados?.tipo)
-            mesclado[codigo].descricao = `${mesclado[codigo].descricao} <b>[Avulso]</b>`
-
-        // Itens avulso não tem;
-        mesclado[codigo].codigo = codigo
-
-        mesclado[codigo].itens = itens?.[codigo] || {}
+            item.descricao = `${item.descricao} <b>[Avulso]</b>`
 
         if (qReal?.[codigo])
-            mesclado[codigo].qReal = qReal?.[codigo]?.qtde
+            item.qReal = qReal[codigo]?.qtde
+
+        resultado.push(item)
     }
 
-    return mesclado
-
+    return resultado
 }
 
 async function carregarLinhaChecklist(produto) {
 
-    const { codigo, tempo, descricao, unidade, qtde, qReal, itens } = produto || {}
+    console.log(produto, produto.codigo);
+    
+    const { codigo, tempo = '00:00', descricao, unidade, qtde, qReal, itens } = produto || {}
 
     const qtdeRealizada = Object.values(itens || {})
         .reduce((acc, item) => acc + (item?.quantidade || 0), 0)
