@@ -1765,6 +1765,21 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
 
     overlayAguarde()
 
+    const tipoCorrecao = obter('tipoCorrecao').id
+    const dtCorrecao = obter('dtCorrecao').value
+
+    if (!tipoCorrecao)
+        return popup({ mensagem: 'Defina um status para a correção' })
+
+    if (!dtCorrecao)
+        return popup({ mensagem: 'Não deixe em branco <b>Data Limite</b> ou o <b>Tipo de Correção</b>' })
+
+    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
+    if (tipoCorrecao == 'WRuo2' && !ocorrencia.assinatura && acesso.permissao == 'técnico') {
+        coletarAssinatura(idOcorrencia)
+        return
+    }
+
     // Localização;
     const { longitude, latitude, mensagem = null } = await capturarLocalizacao()
 
@@ -1773,25 +1788,8 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
     if (mensagem)
         return popup({ mensagem })
 
-    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
-
     const equipamentos = {}
     const fotos = {}
-
-    const tipoCorrecao = obter('tipoCorrecao').id
-    const dtCorrecao = obter('dtCorrecao').value
-
-    if (!tipoCorrecao)
-        return popup({ mensagem: 'Defina um status para a correção' })
-
-    if (tipoCorrecao == 'WRuo2' && !ocorrencia.assinatura && acesso.permissao == 'técnico') {
-        coletarAssinatura(idOcorrencia)
-        return
-    }
-
-    if (!tipoCorrecao || !dtCorrecao)
-        return popup({ mensagem: 'Não deixe em branco <b>Data Limite</b> ou o <b>Tipo de Correção</b>' })
-
     const input = obter('anexos')
     const anexos = await anexosOcorrencias(input)
 
