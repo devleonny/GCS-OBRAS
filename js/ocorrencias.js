@@ -346,6 +346,7 @@ function carregarCorrecoes(ocorrencia) {
             const { city, postcode, residential, road, state } = endereco?.address || {}
 
             const campos = [road, city, residential, postcode, state]
+                .filter(v => v)
                 .join(', ')
 
             checkins.push(`<span class="localizacao">${campos}</span>`)
