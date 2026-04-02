@@ -239,15 +239,22 @@ function viabilidadeOmie() {
 
         const deps = linha.querySelectorAll('[name="departamento"]')
 
-        if (deps.length == 0) possibilidade = false
+        if (deps.length == 0)
+            possibilidade = false
 
         for (const dep of deps) {
             const valor = Number(dep.dataset.valor)
-            if (valor == 0) continue
+            if (valor == 0)
+                continue
+
             const codigo = Number(dep.dataset.codigo)
 
-            totalDepartamentos[codigo] ??= 0
-            totalDepartamentos[codigo] += valor
+            totalDepartamentos[codigo] ??= {
+                valor: 0,
+                descricao: dep.textContent
+            }
+
+            totalDepartamentos[codigo].valor += valor
             total += valor
         }
 
@@ -271,13 +278,15 @@ async function criarPagamentoVeiculo() {
 
     const deps = []
 
-    for (const [codigo, total] of Object.entries(totalDepartamentos)) {
-        const dep = await recuperarDado('departamentos_AC', Number(codigo)) || {}
-        totalDeps += total
+    for (const dados of Object.values(totalDepartamentos)) {
+
+        const { valor, descricao } = dados
+
+        totalDeps += valor
         deps.push(`
             <div class="etiquetas" style="flex-direction: row; gap: 0.5rem;">
-                <span>${dep.descricao || 'Desatualizado...'}</span>
-                <span>${dinheiro(total)}</span>
+                <span>${descricao || 'Desatualizado...'}</span>
+                <span>${dinheiro(valor)}</span>
             </div>`)
     }
 
@@ -325,8 +334,9 @@ async function enviarOmie() {
     const idPagamento = crypto.randomUUID()
 
     const distribuicao = {}
-    for (let [cCodDep, nValDep] of Object.entries(totalDepartamentos)) {
+    for (let [cCodDep, dados] of Object.entries(totalDepartamentos)) {
 
+        const nValDep = dados.valor
         cCodDep = Number(cCodDep) // Em número;
 
         if (!distribuicao[cCodDep]) {
