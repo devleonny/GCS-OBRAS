@@ -771,16 +771,14 @@ async function atualizarTempo(input, codigo) {
 
 async function calcularTemposChecklist() {
 
-    const dados = controles?.checklist?.base || {}
+    const dados = controles?.checklist?.base || []
 
     let minutosObra = 0
     let minutosExecutado = 0
     let totalAtividades = 0
     let diasTrabalhados = new Set()
 
-    const lista = Object.values(dados)
-
-    for (const item of lista) {
+    for (const item of dados) {
 
         totalAtividades++
 
