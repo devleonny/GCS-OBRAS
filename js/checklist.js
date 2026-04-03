@@ -65,7 +65,8 @@ async function telaChecklist(id) {
         btnExtras,
         funcaoAdicional: ['calcularTempos'],
         filtros: {
-            tipo: { op: '!=', value: 'VENDA' }
+            'tipo': { op: '!=', value: 'VENDA' },
+            'removido': { op: 'IS_EMPTY' }
         },
         body: 'bodyChecklist',
         criarLinha: 'carregarLinhaChecklist',
@@ -252,7 +253,7 @@ async function salvarTempo(codigo) {
     const tempo = document?.querySelector('#tempoProduto')?.value || '00:00'
 
     await enviar(`dados_composicoes/${codigo}/tempo`, tempo)
-
+    await paginacao('checklist')
     removerPopup()
 
 }
@@ -284,7 +285,18 @@ async function salvarQtdReal(codigo) {
 
     const { id } = controles.checklist
 
+    // Temporário;
+    for (const i of controles.checklist.base) {
+        if (String(i.codigo) == String(codigo)) {
+            i.qReal = qtde
+            break
+        }
+    }
+
+
     await enviar(`dados_orcamentos/${id}/checklist/qReal/${codigo}/qtde`, qtde)
+
+    paginacao('checklist')
 
     removerPopup()
 
@@ -600,15 +612,23 @@ async function adicionarServicoAvulso() {
         }
     }
 
-    const elemento = `
-        <div style="${horizontal}; gap: 10px; background-color: #d2d2d2; padding: 2rem;">
-            ${modelo('Descrição', `<span name="codigo" onclick="cxOpcoes('codigo')" class="opcoes">Selecione</span>`)}
-            ${modelo('Quantidade', `<input name="qtde" type="number" style="padding: 5px; border-radius: 3px;">`)}
-            <img src="imagens/concluido.png" style="width: 2rem;" onclick="salvarAvulso()">
-        </div>
-    `
+    const linhas = [
+        {
+            texto: 'Descrição',
+            elemento: `<span name="codigo" onclick="cxOpcoes('codigo')" class="opcoes">Selecione</span>`
+        },
+        {
+            texto: 'Quantidade',
+            elemento: `<input name="qtde" type="number" style="padding: 5px; border-radius: 3px;">`
+        }
 
-    popup({ elemento, titulo: 'Incluir Serviço', audoDestruicao: ['codigo'] })
+    ]
+
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: 'salvarAvulso()' }
+    ]
+
+    popup({ linhas, botoes, titulo: 'Incluir Serviço', audoDestruicao: ['codigo'] })
 }
 
 async function salvarAvulso() {
@@ -630,7 +650,11 @@ async function salvarAvulso() {
         data: new Date().toLocaleString()
     }
 
+    controles.checklist.base.push({ ...dados, codigo })
+
     await enviar(`dados_orcamentos/${id}/checklist/avulso/${codigo}`, dados)
+
+    paginacao('checklist')
 
     removerPopup()
 }
@@ -671,6 +695,16 @@ async function recuperarItem(codigo, img) {
 
     await deletar(`dados_orcamentos/${id}/checklist/itens/${codigo}/removido`)
 
+    // Temporário;
+    for (const i of controles.checklist.base) {
+        if (String(i.codigo) == String(codigo)) {
+            delete i.removido
+            break
+        }
+    }
+
+    paginacao('checklist')
+
     img.closest('div').remove()
     removerOverlay()
 
@@ -691,6 +725,14 @@ async function removerItensEmMassaChecklist() {
 
         const codigo = check.dataset.codigo
 
+        // Temporário;
+        for (const i of controles.checklist.base) {
+            if (String(i.codigo) == String(codigo)) {
+                i.removido = { removido: 'temporário' }
+                break
+            }
+        }
+
         const dados = {
             usuario: acesso.usuario,
             data: new Date().toLocaleString()
@@ -699,6 +741,8 @@ async function removerItensEmMassaChecklist() {
         await enviar(`dados_orcamentos/${id}/checklist/itens/${codigo}/removido`, dados)
 
     }
+
+    await paginacao('checklist')
 
     removerOverlay()
 
@@ -775,7 +819,7 @@ async function calcularTemposChecklist() {
     const previsao = Math.ceil(minutosPendentes / 480)
 
     const calculo = calcularDiasCorridos([...diasTrabalhados])
-    const diasCorridos = calculo.dias
+    const diasCorridos = calculo.dias || 0
     const inicio = calculo.inicio
 
     return {
@@ -1113,27 +1157,18 @@ async function removerChecklist(codigo, idLancamento) {
 
     const { id } = controles.checklist
 
-    await deletar(`dados_orcamentos/${id}/checklist/itens/${codigo}/${idLancamento}`)
+    // Remoção local temporário;
+    controles.checklist.base = controles.checklist.base
+    for (const i of controles.checklist.base) {
+        if (i.codigo == codigo) {
+            delete i.itens[idLancamento]
+            break
+        }
+    }
 
-    await registrarChecklist(codigo)
+    await deletar(`dados_orcamentos/${id}/checklist/itens/${codigo}/${idLancamento}`)
+    await paginacao('checklist')
 
     removerPopup()
-
-}
-
-function calculadoraChecklist() {
-
-    const bodyChecklist = document.getElementById('bodyChecklist')
-    const trs = bodyChecklist.querySelectorAll('tr')
-
-    for (const tr of trs) {
-        const tds = document.querySelectorAll('td')
-
-        const qtdeOrcamento = conversor(tds[1].textContent)
-        const qtdeRealizada = conversor(tds[2].textContent)
-
-        tds[3].textContent = conversor(qtdeOrcamento - qtdeRealizada)
-
-    }
 
 }

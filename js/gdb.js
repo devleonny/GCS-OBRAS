@@ -107,7 +107,7 @@ async function contarPorCampo({
     return await resposta.json()
 }
 
-async function deletar(caminho, idEvento) {
+async function deletar(caminho) {
 
     const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
 
