@@ -300,7 +300,9 @@ async function usuariosToolbar() {
 
     const uOnline = await contarPorCampo({ base: 'dados_setores', path: 'status' })
 
-    const indicadorStatus = acesso?.status || 'offline'
+    const { status } = await recuperarDado('dados_setores', acesso.usuario) || {}
+
+    const indicadorStatus = status || 'offline'
 
     const usuariosToolbarString = `
         <div class="botaoUsuarios">
@@ -582,33 +584,6 @@ function capturarValorCelula(celula) {
     if (entrada) return entrada.value.toLowerCase()
 
     return celula.textContent.toLowerCase()
-}
-
-async function filtrarUsuarios(st) {
-
-    overlayAguarde()
-
-    let filtros = {}
-
-    if (st == 'online') {
-        filtros = {
-            'status': [
-                { op: '!=', value: null },
-                { op: '!=', value: 'offline' }
-            ]
-        }
-
-    } else {
-        filtros = {
-            'status': { op: '!=', value: 'online' }
-        }
-    }
-
-    controles.usuariosOnline.filtros = filtros
-    await paginacao()
-
-    removerOverlay()
-
 }
 
 async function painelUsuarios() {
