@@ -127,9 +127,6 @@ async function telaInicialGCS() {
     await tabelaPorAba({ aba: 'INDICADORES' })
     await carregarControles()
 
-    // Inciar coelho;
-    parar()
-
     if (!LPUS) 
         await recuperarLPUS()
 

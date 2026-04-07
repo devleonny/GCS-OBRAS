@@ -74,16 +74,6 @@ const appBases = {
 
 document.addEventListener('click', verificarClique, true)
 
-function conversorData(data) {
-
-    if (!data) return ''
-
-    let [ano, mes, dia] = data.split('-')
-    let dataFormatada = `${dia}/${mes}/${ano}`
-
-    return dataFormatada
-}
-
 function verificarClique(event) {
     const menu = document.querySelector('.side-menu')
     if (!menu) return
@@ -95,6 +85,17 @@ function verificarClique(event) {
         menu.classList.remove('active')
     }
 }
+
+function conversorData(data) {
+
+    if (!data) return ''
+
+    let [ano, mes, dia] = data.split('-')
+    let dataFormatada = `${dia}/${mes}/${ano}`
+
+    return dataFormatada
+}
+
 
 const dtFormatada = (data) => {
     if (!data) return '-'
