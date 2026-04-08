@@ -786,13 +786,13 @@ async function formAcao(idOrcamento, idAcao) {
     const linhas = [
         { texto: 'Ação', elemento: `<textarea name="acao">${acao || ''}</textarea>` },
         {
-            texto: 'Responsável',
-            elemento: `
-                <div style="${horizontal}; gap: 1rem;">
-                    <img src="imagens/baixar.png" onclick="incluirResponsavel()">
-                    <div style="${vertical}" id="responsaveis"></div>
-                </div>
-            `
+            texto: `
+            <div style="${horizontal}; gap: 1rem;">
+                <img src="imagens/baixar.png" onclick="incluirResponsavel()">
+                <span>Responsável</span>
+            </div>
+            `,
+            elemento: `<div style="${vertical}" id="responsaveis"></div>`
         },
         { texto: 'Prazo da ação', elemento: `<input name="prazo" type="date" value="${prazo || ''}">` },
         {
