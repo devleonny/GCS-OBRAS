@@ -69,8 +69,8 @@ async function telaRelatorio() {
 
                     <div class="toolbar-itens">
                         ${modelo({ texto: 'Total', qtde: todos, cor: '#222' })}
-                        ${modelo({ texto: 'Solucionados', porcentagem: Solucionada / todos, qtde: Solucionada, cor: '#1d7e45' })}
-                        ${modelo({ texto: 'Em Aberto', porcentagem: (todos - Solucionada) / todos, qtde: (todos - Solucionada), cor: '#b12425' })}
+                        ${modelo({ texto: 'Solucionados', porcentagem: Solucionada / todos, qtde: Solucionada || 0, cor: '#1d7e45' })}
+                        ${modelo({ texto: 'Em Aberto', porcentagem: (todos - Solucionada) / todos, qtde: todos ? (todos - Solucionada) : 0, cor: '#b12425' })}
                     </div>
                 </div>
 
@@ -375,7 +375,12 @@ async function telaRelatorioPecas() {
             'correcoes.*.equipamentos': { op: 'NOT_EMPTY' },
             ...(
                 acesso.permissao == 'cliente'
-                    ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
+                    ? {
+                        'snapshots.cliente.empresa': [
+                            { op: 'NOT_EMPTY' },
+                            { op: '=', value: acesso?.empresa }
+                        ]
+                    }
                     : {}
             )
         },

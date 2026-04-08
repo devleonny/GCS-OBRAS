@@ -339,7 +339,7 @@ async function telaUsuarios() {
     const colunas = {
         'Usuário': { chave: 'usuario' },
         'Nome': { chave: 'nome_completo' },
-        'Empresa': { chave: 'snapshots.empresa' },
+        'Empresa': {},
         'Setor': { chave: 'setor' },
         'Permissão': { chave: 'permissao' },
         'Detalhes': {}
@@ -349,6 +349,15 @@ async function telaUsuarios() {
         base: 'dados_setores',
         pag: 'tUsuarios',
         body: 'tUsuarios',
+        substituicoes: [
+            {
+                path: 'empresa',
+                tabela: 'empresas',
+                campoBusca: 'id',
+                retorno: 'nome',
+                destino: 'nomeEmpresa'
+            }
+        ],
         criarLinha: 'criarLinhaUsuario',
         colunas
     })
@@ -366,13 +375,12 @@ async function telaUsuarios() {
 
 function criarLinhaUsuario(dados) {
 
-    const { usuario, nome_completo, setor, permissao } = dados || {}
-    const { empresa } = dados.snapshots || {}
+    const { usuario, nome_completo, nomeEmpresa, setor, permissao } = dados || {}
 
     const tds = `
         <td>${usuario}</td>
         <td>${nome_completo || ''}</td>
-        <td>${empresa || ''}</td>
+        <td>${nomeEmpresa || ''}</td>
         <td>${setor || ''}</td>
         <td>${permissao || ''}</td>
         <td><img onclick="gerenciarUsuario('${usuario}')" src="imagens/pesquisar2.png"></td>
