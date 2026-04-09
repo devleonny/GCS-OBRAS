@@ -189,11 +189,14 @@ async function tirarFoto() {
     canvas.height = video.videoHeight
     canvas.getContext('2d').drawImage(video, 0, 0)
 
-    const idFoto = ID5digitos()
-    const foto = `<img name="foto" data-salvo="não" id="${idFoto}" src="${canvas.toDataURL('image/png')}" class="foto" onclick="ampliarImagem(this, '${idFoto}')">`
-    fotos.insertAdjacentHTML('beforeend', foto)
+    const idFoto = crypto.randomUUID()
+    const src = canvas.toDataURL('image/png')
+    const foto = `<img name="foto" data-salvo="não" id="${idFoto}" src="${src}" class="foto" onclick="ampliarImagem(this, '${idFoto}')">`
 
+    fotos.insertAdjacentHTML('beforeend', foto)
+    
     removerPopup()
+
     visibilidadeFotos()
 
 }

@@ -366,14 +366,14 @@ async function abrirDetalhesPagamentos(id) {
             ${modelo('Departamentos', deps)}
             ${modelo('Status Atual', divStatus)}
             ${modelo('Quem recebe', pagamento?.snapshots?.cliente || '')}
-            ${modelo('Data de Solicitação', pagamento.data_registro)}
+            ${modelo('Data de Solicitação', pagamento?.data_registro || '')}
             ${modelo('Data de Pagamento', pagamento.param[0].data_vencimento)}
 
             ${divValores}
 
             <div id="comentario" class="contorno" style="width: 90%;">
                 <div class="contorno_interno" style="background-color: #ffffffde;">
-                    <label style="width: 100%; text-align: left;"><strong>Observações </strong><br> ${pagamento.param[0].observacao.replace(/\||\n/g, "<br>")}</label>
+                    <label style="width: 100%; text-align: left;"><strong>Observações </strong><br> ${(pagamento?.param?.[0]?.observacao || '').replace(/\||\n/g, "<br>")}</label>
                 </div>
             </div>
 

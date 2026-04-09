@@ -605,7 +605,7 @@ async function abrirEsquema(id) {
 
     for (const [chave, historico] of Object.entries(orcamento?.status?.historico || {})) {
 
-        const { anexos } = historico
+        const { anexos, fotos } = historico
 
         const statusCartao = historico.status
         const cor = coresST?.[statusCartao]?.cor || '#808080'
@@ -621,6 +621,15 @@ async function abrirEsquema(id) {
 
         const stringAnexos = Object.entries(anexos || {})
             .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('${id}', '${chave}', '${idAnexo}', this)`))
+            .join('')
+
+        const stringFotos = Object.entries(fotos || {})
+            .map(([idFoto, { link }]) => `
+            <div style="position: relative;">
+                <img onclick="confirmarExcluirFotoStatus('${id}', '${chave}', '${idFoto}')" src="imagens/cancel.png" style="position: absolute; top: 2px; right: 2px; width: 1.5rem;">
+                <img class="foto-status" id="${idFoto}" src="${api}/uploads/${link}" onclick="ampliarImagem(this, '${idFoto}')">
+            </div>
+            `)
             .join('')
 
         blocosStatus[statusCartao] += `
@@ -640,6 +649,15 @@ async function abrirEsquema(id) {
                         <label>Anexo
                             <input type="file" style="display: none;" onchange="salvarAnexo('${id}', '${chave}', this)" multiple>  
                         </label>
+                    </div>
+
+                    <div onclick="painelFotos('${id}', '${chave}')" class="contorno-botoes" style="background-color: ${cor}">
+                        <img src="imagens/camera2.png" style="width: 1.5rem;">
+                        <label>Foto</label>
+                    </div>
+
+                    <div name="fotos_${chave}" style="display: flex; flex-wrap: wrap; gap: 3px;">
+                        ${stringFotos}
                     </div>
 
                     <div name="anexos_${chave}" style="${vertical};">
@@ -816,6 +834,36 @@ async function abrirEsquema(id) {
 
 }
 
+async function confirmarExcluirFotoStatus(id, chave, idFoto) {
+
+    const botoes = [
+        {
+            texto: 'Confirmar',
+            img: 'concluido',
+            funcao: `excluirFotoStatus('${id}', '${chave}', '${idFoto}')`
+        }
+    ]
+
+    popup({
+        mensagem: 'Tem certeza?',
+        botoes
+    })
+
+}
+
+async function excluirFotoStatus(id, chave, idFoto) {
+
+    overlayAguarde()
+    await deletar(`dados_orcamentos/${id}/status/historico/${chave}/fotos/${idFoto}`)
+
+    const foto = document.getElementById(idFoto)
+    if (foto)
+        foto.parentElement.remove()
+
+    removerPopup()
+
+}
+
 async function verCorrecoes(idOcorrencia) {
 
     const elemento = `
@@ -824,6 +872,59 @@ async function verCorrecoes(idOcorrencia) {
         </div>`
 
     popup({ elemento, titulo: 'Correções' })
+}
+
+async function painelFotos(id, chave) {
+
+    const elemento = `
+        <div style="${vertical}; gap: 3px; background-color: #d2d2d2;">
+            <div class="capturar" style="position: fixed; bottom: 10px; left: 10px; z-index: 10003;" onclick="tirarFotoStatus('${id}', '${chave}')">
+                <img src="imagens/camera.png">
+                <span>Capturar Imagem</span>
+            </div>
+
+            <div class="cameraDiv">
+                <video autoplay playsinline></video>
+                <canvas style="display: none;"></canvas>
+            </div>
+        </div>
+        `
+    popup({ elemento })
+
+    await abrirCamera()
+
+}
+
+async function tirarFotoStatus(id, chave) {
+
+    const cameraDiv = document.querySelector('.cameraDiv')
+    const canvas = cameraDiv.querySelector('canvas')
+    const video = cameraDiv.querySelector('video')
+
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d').drawImage(video, 0, 0)
+
+    const src = canvas.toDataURL('image/png')
+    const resposta = await importarAnexos({ foto: src })
+    if (resposta.mensagem)
+        return popup({ mensagem: resposta.mensagem })
+
+    const idFoto = crypto.randomUUID()
+    await enviar(`dados_orcamentos/${id}/status/historico/${chave}/fotos/${idFoto}`, resposta[0])
+
+    const foto = `
+        <div style="position: relative;">
+            <img onclick="confirmarExcluirFotoStatus('${id}', '${chave}', '${idFoto}')" src="imagens/cancel.png" style="position: absolute; top: 2px; right: 2px; width: 1.5rem;">
+            <img class="foto-status" id="${idFoto}" src="${src}" onclick="ampliarImagem(this, '${idFoto}')">
+        </div>
+    `
+    const local = document.querySelector(`[name="fotos_${chave}"]`)
+    if (local)
+        local.insertAdjacentHTML('beforeend', foto)
+
+    removerPopup()
+
 }
 
 function mostrarConfirmacao(elemento) {
