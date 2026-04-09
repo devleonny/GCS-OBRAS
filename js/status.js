@@ -897,6 +897,8 @@ async function painelFotos(id, chave) {
 
 async function tirarFotoStatus(id, chave) {
 
+    overlayAguarde()
+
     const cameraDiv = document.querySelector('.cameraDiv')
     const canvas = cameraDiv.querySelector('canvas')
     const video = cameraDiv.querySelector('video')
