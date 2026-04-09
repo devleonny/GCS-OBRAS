@@ -741,7 +741,7 @@ async function criarOrcamentoVinculado(idOcorrencia, idCorrecao) {
         return popup({ mensagem: `Por alguma razão existem dois orçamentos com este número <b>${idOcorrencia}</b>, fale com o suporte.` })
 
     if (!orcamento.resultados.length && idOcorrencia.includes('ORC_'))
-        return popup({ mensagem: `Não existe orçamento com este número <b>${idOcorrencia}</b>, vincule esta ocorrência a um orçamento antes.` })
+        return popup({ mensagem: `Não existe orçamento com este número <b>${idOcorrencia}</b>, o orçamento ${idOcorrencia} deve ter sido excluído.` })
 
     const { unidade, snapshots, correcoes } = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
 

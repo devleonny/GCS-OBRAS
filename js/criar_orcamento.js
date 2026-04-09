@@ -646,22 +646,22 @@ async function enviarDadosOrcamento() {
 
             // Salvamento da ocorrência, observar bifurcação (ORC ou G);
             // Se ORC, então este orçamento é vinculado;
-            if (idOcorrencia.includes('ORC')) {
-                await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${orcamentoBase.id}`, correcao)
 
-            } else {
+            if (!idOcorrencia.includes('ORC')) {
                 // Se G ou qualquer outro, então é substitutivo para ORC;
                 await desvincularOcorrencia(idOcorrencia, contrato)
                 idOcorrencia = contrato
             }
 
+            // Salvar uma correção obrigatoriamente;
+            await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${orcamentoBase.id}`, correcao)
+
             await voltarOcorrencias()
 
             controles.ocorrencias.filtros = {
-                'id': { op: '=', value: idOcorrencia }
+                'snapshots.contrato': { op: '=', value: contrato }
             }
 
-            await paginacao()
             removerOverlay()
 
             return
@@ -703,13 +703,10 @@ async function desvincularOcorrencia(id, contrato) {
 
         const dados = await resposta.json()
 
-        if (!resposta.ok || !dados.success) {
+        if (!resposta.ok || !dados.success)
             return popup({ mensagem: dados.mensagem || 'Erro na requisição' })
-        }
 
-        popup({ mensagem: dados.mensagem })
-
-        return dados.item
+        return
 
     } catch (err) {
         popup({ mensagem: err.message || 'Erro de conexão com o servidor' })

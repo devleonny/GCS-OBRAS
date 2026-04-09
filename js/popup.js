@@ -16,7 +16,7 @@ function popup({
     if (!elemento && !mensagem)
         mensagem = 'Função <b>inativa</b>. <br>Fale com o suporte para reativação.'
 
-    const idPopup = ID5digitos()
+    const idPopup = crypto.randomUUID()
 
     autoDestruicaoGlobal[idPopup] = autoDestruicao
 
