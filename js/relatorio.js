@@ -727,6 +727,18 @@ async function baixarExcelRelatorioPecas() {
             { field: "c.nome", as: "Loja" },
             { field: "c.cidade", as: "Cidade" },
             { field: "c.estado", as: "Estado" },
+            {
+                custom: `json_extract(cx.value, '$.data')`,
+                as: "Data",
+                type: "date",
+                sourceFormat: 'br-hora'
+            },
+            {
+                custom: `json_extract(cx.value, '$.dtCorrecao')`,
+                as: "Data Correção",
+                type: "date",
+                sourceFormat: 'iso'
+            },
             { custom: `json_extract(cx.value, '$.tecnico')`, as: "Técnico" },
             { custom: `json_extract(eq.value, '$.origem')`, as: "Origem" },
             { custom: `json_extract(o.snapshots, '$.cliente.nome')`, as: "Cliente" },

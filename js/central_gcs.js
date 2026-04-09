@@ -168,7 +168,8 @@ const esquemaBotoes = {
         { nome: 'Veículos', funcao: 'auxVeiculos', img: 'veiculo' },
     ],
     pagamentos: [
-        { nome: 'Solicitar Pagamento', funcao: `formularioPagamento`, img: 'dinheiro' }
+        { nome: 'Solicitar Pagamento', funcao: `formularioPagamento`, img: 'dinheiro' },
+        { nome: 'Baixar Excel', funcao: `baixarExcelRelatorioPagamentos`, img: 'excel' }
     ],
     estoque: [
         { nome: 'Cadastrar Item', funcao: 'incluirItemEstoque', img: 'baixar' },
