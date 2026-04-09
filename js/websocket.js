@@ -2,11 +2,7 @@ let socket
 let reconnectInterval = 30000
 let reconnectTimeout = null
 let reconectando = false
-
 let priExeGCS = true
-
-// Temporário;
-indexedDB.deleteDatabase('GCS')
 
 connectWebSocket()
 
@@ -106,9 +102,6 @@ function msgStatus(msg, s = 2) {
     }
 
     msg = `${simbolos[s]} ${msg} ${new Date().toLocaleString()}`
-
-    const divMensagem = document.querySelector('.div-mensagem')
-    if (divMensagem) divMensagem.insertAdjacentHTML('beforeend', `<span>${msg}</span>`)
     console.log(msg)
 }
 
@@ -233,7 +226,6 @@ async function carregarControles() {
             ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
             ${permitidosAprovacoes.includes(acesso.permissao) ? modelo('construcao', 'configs()', '') : ''}
 
-            <img title="Abrir mais 1 aba" src="imagens/aba.png" onclick="maisAba()">
         `
     const cabecalhoUsuario = document.querySelector('.cabecalho-usuario')
     if (cabecalhoUsuario)
