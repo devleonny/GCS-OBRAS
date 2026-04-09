@@ -117,7 +117,7 @@ async function painelAdicionarPedido(id, chave) {
 
 }
 
-async function salvarPedido(id, chave = ID5digitos()) {
+async function salvarPedido(id, chave = crypto.randomUUID()) {
 
     overlayAguarde()
 
@@ -1136,11 +1136,19 @@ async function excluirOrcamentoBase(idOrcamento) {
     removerPopup()
 }
 
-async function formularioRequisicao({ id, chave = ID5digitos(), modalidade }) {
+async function formularioRequisicao({ id, chave = crypto.randomUUID(), modalidade }) {
 
     overlayAguarde()
 
     const orcamento = await recuperarDado('dados_orcamentos', id)
+
+    const contrato = orcamento?.dados_orcam?.contrato
+    const pesquisaDep = contrato
+        ? await pesquisarDB({ base: 'departamentos_AC', filtros: { 'descricao': { op: '=', value: contrato } } })
+        : null
+
+    if (!pesquisaDep || !pesquisaDep.resultados.length)
+        return popup({ mensagem: '<b>Orçamento sem departamento:</b> Ele precisa ser aprovado para que o departamento seja criado.' })
 
     const existePedido = Object.values(orcamento?.status?.historico || {})
         .some(registro => registro?.status == 'PEDIDO')
