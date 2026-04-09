@@ -1001,7 +1001,9 @@ async function mostrarInfo(idOrcamento) {
     }
 
     const elemento = `
-        <div class="comentario-orcamento">
+        <div style="${vertical}; padding: 1rem; gap: 1rem;">
+            <span>Acrescente algum comentário por status se precisar</span>
+            <hr>
             ${campos || 'Sem histórico de Status'}
         </div>`
 
