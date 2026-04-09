@@ -908,6 +908,9 @@ async function tirarFotoStatus(id, chave) {
     canvas.getContext('2d').drawImage(video, 0, 0)
 
     const src = canvas.toDataURL('image/png')
+
+    pararCam()
+    
     const resposta = await importarAnexos({ foto: src })
     if (resposta.mensagem)
         return popup({ mensagem: resposta.mensagem })
