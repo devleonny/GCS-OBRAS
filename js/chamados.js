@@ -11,7 +11,8 @@ async function telaChamados() {
         'Técnico': { chave: 'snapshots.tecnico' },
         'Último analista': { chave: 'usuario' },
         'Previsão': { chave: 'previsao' },
-        'Ações': {}
+        'Ações': {},
+        '': {}
     }
 
     const tabela = await modTab({
@@ -44,10 +45,50 @@ async function telaChamados() {
 
 }
 
-function criarLinhaManutencao(manutencao) {
+async function criarLinhaManutencao(manutencao) {
 
     const { id, data, status_manutencao, snapshots, previsao, usuario } = manutencao || {}
     const { tecnico, loja, departamento } = snapshots || {}
+
+    const acoes = await pesquisarDB({
+        base: 'acoes',
+        filtros: {
+            'origem.id': { op: '=', value: id }
+        }
+    })
+
+    const strAcoes = acoes.resultados
+        .map(dados => {
+
+            const idAcao = dados.id
+            const [ano, mes, dia] = dados.prazo.split('-')
+            const prazo = `${dia}/${mes}/${ano}`
+
+            const estilo = dados?.status === 'concluído'
+                ? 'concluído'
+                : dtPrazo(dados?.prazo)
+                    ? 'atrasado'
+                    : 'pendente'
+
+            const listagemResp = Array.isArray(dados?.responsavel)
+                ? dados?.responsavel.join('<br>')
+                : dados?.responsavel || ''
+
+            return `
+            <div style="${horizontal}; text-align: left; width: 100%; gap: 0.5rem;">
+                <div class="etiqueta-${estilo}">
+                    <span><b>Ação:</b> ${dados?.acao || ''}</span>
+                    <div><b>Responsáveis:</b> <br>
+                        ${listagemResp}
+                    </div>
+                    <span><b>Prazo:</b> ${prazo}</span>
+                    ${dados.registro
+                    ? `<span><b>criado em:</b> ${new Date(dados.registro).toLocaleString('pt-BR')}</span>`
+                    : ''}
+                </div>
+                <img src="imagens/editar.png" style="width: 1.5rem;" onclick="formAcao({id: '${id}', idAcao: '${idAcao}', formulario: 'chamado'})">
+            </div>
+            `}).join('')
 
     const tds = `
         <td>${data || ''}</td>
@@ -70,6 +111,14 @@ function criarLinhaManutencao(manutencao) {
         <td>${usuario || ''}</td>
         <td>
             ${formatarData(previsao) || ''}
+        </td>
+        <td>
+            <div style="${horizontal}; justify-content: start; align-items: start; gap: 2px;">
+                <img onclick="formAcao({id: '${id}', formulario: 'chamados'})" src="imagens/baixar.png" style="width: 1.5rem;">
+                <div class="bloco-acoes">
+                    ${strAcoes}
+                </div>
+            </div>
         </td>
         <td style="text-align: center;">
             <img onclick="criarManutencao('${id}')" src="imagens/pesquisar2.png">

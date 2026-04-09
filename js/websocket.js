@@ -153,13 +153,20 @@ async function comunicacao() {
 
         if (tipo == 'atualizacao') {
 
+            if (tabela == 'acoes') {
+                delete controles?.['orcamentos']?.ultimaAssinaturaConsulta
+                delete controles?.['chamados']?.ultimaAssinaturaConsulta
+                delete controles?.['tabelasIndicadores']?.ultimaAssinaturaConsulta
+            }
+
             // Apenas as tabelas usadas;
-            for (const [pag, dados] of Object.entries(controles)) {
+            for (const dados of Object.values(controles)) {
 
                 if (dados.base !== tabela)
                     continue
 
-                await paginacao(pag)
+                await paginacao()
+
             }
 
             if (tabela == 'dados_orcamentos')

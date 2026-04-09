@@ -127,7 +127,7 @@ async function telaInicialGCS() {
     await tabelaPorAba({ aba: 'INDICADORES' })
     await carregarControles()
 
-    if (!LPUS) 
+    if (!LPUS)
         await recuperarLPUS()
 
 }
@@ -228,7 +228,7 @@ async function linPda(orcamento) {
                     ? `<span><b>criado em:</b> ${new Date(dados.registro).toLocaleString('pt-BR')}</span>`
                     : ''}
                 </div>
-                <img src="imagens/editar.png" style="width: 1.5rem;" onclick="formAcao('${idOrcamento}', '${idAcao}')">
+                <img src="imagens/editar.png" style="width: 1.5rem;" onclick="formAcao({id: '${idOrcamento}', idAcao: '${idAcao}'})">
             </div>
             `}).join('')
 
@@ -329,7 +329,7 @@ async function linPda(orcamento) {
 
         <td>
             <div style="${horizontal}; justify-content: start; align-items: start; gap: 2px;">
-                <img onclick="formAcao('${idOrcamento}')" src="imagens/baixar.png" style="width: 1.5rem;">
+                <img onclick="formAcao({id: '${idOrcamento}'})" src="imagens/baixar.png" style="width: 1.5rem;">
                 <div class="bloco-acoes">
                     ${strAcoes}
                 </div>
@@ -779,7 +779,7 @@ async function alterarDatas(input, campo, idOrcamento) {
 
 }
 
-async function formAcao(idOrcamento, idAcao) {
+async function formAcao({ id, idAcao, formulario = 'orcamento' }) {
 
     const { prazo, status, acao, usuario, responsavel = [] } = await recuperarDado('acoes', idAcao) || {}
 
@@ -801,14 +801,14 @@ async function formAcao(idOrcamento, idAcao) {
                 ${['pendente', 'concluído'].map(op => `<option ${status == op ? 'selected' : ''}>${op}</option>`).join('')}
             </select>
             ` },
-        { 
-            texto: 'Criado por', 
-            elemento: `<input name="usuario" value="${usuario || acesso.usuario}" readOnly>` 
+        {
+            texto: 'Criado por',
+            elemento: `<input name="usuario" value="${usuario || acesso.usuario}" readOnly>`
         }
     ]
 
     const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: `salvarAcao('${idOrcamento}' ${idAcao ? `, '${idAcao}'` : ''})` }
+        { texto: 'Salvar', img: 'concluido', funcao: `salvarAcao('${id}', '${formulario}' ${idAcao ? `, '${idAcao}'` : ''})` }
     ]
 
     if (idAcao)
@@ -870,7 +870,7 @@ async function excluirAcao(idAcao) {
 
 }
 
-async function salvarAcao(idOrcamento, idAcao = crypto.randomUUID()) {
+async function salvarAcao(idOrcamento, formulario, idAcao = crypto.randomUUID()) {
 
     overlayAguarde()
 
@@ -896,7 +896,9 @@ async function salvarAcao(idOrcamento, idAcao = crypto.randomUUID()) {
     const a = {
         origem: {
             id: idOrcamento,
-            base: 'dados_orcamentos'
+            base: formulario == 'orcamento'
+                ? 'dados_orcamentos'
+                : 'dados_manutencao'
         },
         usuario,
         responsavel,
@@ -905,6 +907,9 @@ async function salvarAcao(idOrcamento, idAcao = crypto.randomUUID()) {
         status,
         registro: new Date().getTime()
     }
+
+    if (formulario == 'chamado')
+        a.origem.titulo = 'REQUISIÇÃO AVULSA'
 
     await enviar(`acoes/${idAcao}`, a)
 
