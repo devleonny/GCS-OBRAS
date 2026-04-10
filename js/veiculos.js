@@ -147,12 +147,12 @@ async function criarLinhaVeiculo(veiculo) {
 
 async function criarLinhaCusto(custo) {
 
-    const { veiculo, id, usuario, data_pagamento, comentario, data, realizado, custo_total, distribuicao = {} } = custo
-    const { cartao, placa, modelo, snapshots, status, motoristas } = veiculo || {}
+    const { veiculo, id, usuario, snapshots, data_pagamento, comentario, data, realizado, custo_total, distribuicao = {} } = custo
+    const { cartao, placa, modelo, status } = veiculo || {}
     const editavel = acesso.permissao == 'adm' || acesso.setor == 'FINANCEIRO'
 
-    const nomes = Object.values(motoristas || {})
-        .map(m => m.nomeMotorista)
+    const nomes = (snapshots?.motoristas || [])
+        .map(m => `<b>${m}</b>`)
         .join('<br>')
 
     const deps = []
