@@ -26,9 +26,9 @@ async function telaInicialGCS() {
 
     criarMenus('inicial')
 
-    const aBloqs = ['INDICADORES', 'TÉCNICOS']
+    const aBloqs = ['INDICADORES', 'DAILY', 'TÉCNICOS']
 
-    const abasToolbar = ['INDICADORES', 'TÉCNICOS', ...abas]
+    const abasToolbar = ['INDICADORES', 'DAILY', 'TÉCNICOS', ...abas]
         .map(aba => {
 
             return `
@@ -62,15 +62,13 @@ async function telaInicialGCS() {
             <h2>Contadores de Pendências por Usuário</h2>
             <button onclick="incluirContador()">Incluir contador</button>
             <div class="guarda-roupas"></div>
-
-            <h2>Últimas atividades realizadas no GCS</h2>
-            ${await daily()}
         </div>
 
         <div class="bloco-indicador-incial">
             <h2>Painel de Ações</h2>
             ${tabelaIndicadores}
         </div>
+        
     </div>`
 
     const btnExtras = `<button onclick="editarLinPda({idOrcamento: null})">Adicionar Projeto</button>`
@@ -108,6 +106,20 @@ async function telaInicialGCS() {
         }
     })
 
+    const tabelaDaily = `
+        <div class="painel-indicadores">
+            <div style="${vertical}">
+                <h2>Últimas atividades realizadas no GCS</h2>
+                ${await daily()}
+            </div>
+
+            <div style="${vertical}">
+                <h2>Mapa de Calor</h2>
+                <div class="mapa-calor"></div>
+            </div>
+        </div>
+    `
+
     const acumulado = `
         <div class="tela-gerenciamento">
             <div style="${horizontal}; width: 80vw;">
@@ -120,6 +132,7 @@ async function telaInicialGCS() {
             
             <div class="tabelas-inicial">
                 <div class="t-indicadores">${indicadores}</div>
+                <div class="t-daily">${tabelaDaily}</div>
                 <div class="t-tecnicos">${tabelaTecnicos}</div>
                 <div class="t-tabelas">${tabelasPaginadas}</div>
             </div>
@@ -160,7 +173,7 @@ async function tabelaPorAba({ aba = 'CONCLUÍDO', id = null }) {
         abaToolbar.style.opacity = 1
 
     // MOSTRAR PAINEL;
-    const paineis = ['indicadores', 'tecnicos', 'tabelas']
+    const paineis = ['indicadores', 'daily', 'tecnicos', 'tabelas']
     paineis.forEach(p => {
         document.querySelector(`.t-${p}`).style.display = 'none'
     })
@@ -171,6 +184,8 @@ async function tabelaPorAba({ aba = 'CONCLUÍDO', id = null }) {
         painel = 'indicadores'
     else if (aba == 'TÉCNICOS')
         painel = 'tecnicos'
+    else if (aba == 'DAILY')
+        painel = 'daily'
 
     document.querySelector(`.t-${painel}`).style.display = 'flex'
 
