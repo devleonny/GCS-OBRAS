@@ -108,7 +108,7 @@ async function telaInicialGCS() {
 
     const tabelaDaily = `
         <div class="painel-indicadores">
-            <div style="${vertical}">
+            <div style="${vertical}; width: 100%;">
                 <h2>Últimas atividades realizadas no GCS</h2>
                 ${await daily()}
             </div>

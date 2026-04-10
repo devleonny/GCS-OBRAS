@@ -1,3 +1,5 @@
+let chartMapaCalor = null
+
 async function daily() {
 
     const tabela = await modTab({
@@ -114,7 +116,6 @@ function linDaily(dados) {
 }
 
 async function graficoMapaCalor() {
-
     const filtros = controles?.daily?.filtros || {}
 
     const contagem = await contarPorCampo({
@@ -123,21 +124,141 @@ async function graficoMapaCalor() {
         path: 'data'
     })
 
-
     const mapaCalor = document.querySelector('.mapa-calor')
-    const mesAtual = new Date().getMonth() + 1
+    if (!mapaCalor)
+        return
 
-    if (mapaCalor)
-        mapaCalor.innerHTML = gerarMapaCalorMes(contagem, mesAtual, 2026)
+    const hoje = new Date()
+    const mesAtual = hoje.getMonth() + 1
+    const anoAtual = hoje.getFullYear()
 
+    mapaCalor.innerHTML = `<div id="chart-mapa-calor"></div>`
+
+    const series = montarSeriesMapaCalor(contagem, mesAtual, anoAtual)
+    const ranges = criarFaixasCor(series)
+
+    if (chartMapaCalor)
+        chartMapaCalor.destroy()
+
+    chartMapaCalor = new ApexCharts(
+        document.querySelector('#chart-mapa-calor'),
+        {
+            chart: {
+                type: 'heatmap',
+                height: 220 + (series.length * 12),
+                toolbar: { show: false }
+            },
+            series,
+            dataLabels: {
+                enabled: false
+            },
+            plotOptions: {
+                heatmap: {
+                    shadeIntensity: 0,
+                    colorScale: {
+                        ranges
+                    }
+                }
+            },
+            stroke: {
+                width: 1,
+                colors: ['#ddd']
+            },
+            xaxis: {
+                type: 'category',
+                categories: Array.from({ length: 19 }, (_, i) => `${String(i + 5).padStart(2, '0')}h`),
+                labels: {
+                    rotate: 0
+                }
+            },
+            yaxis: {
+                reversed: true
+            },
+            tooltip: {
+                y: {
+                    formatter: value => value || 0
+                }
+            },
+            legend: {
+                show: false
+            }
+        }
+    )
+
+    chartMapaCalor.render()
 }
 
-function gerarMapaCalorMes(dados, mes, ano) {
+function criarFaixasCor(series) {
+    const valores = series
+        .flatMap(linha => linha.data.map(p => Number(p.y || 0)))
+        .filter(v => v > 0)
+
+    if (!valores.length) {
+        return [
+            {
+                from: 0,
+                to: 0,
+                color: '#ffffff',
+                name: 'Sem dados'
+            }
+        ]
+    }
+
+    const min = Math.min(...valores)
+    const max = Math.max(...valores)
+
+    if (min === max) {
+        return [
+            {
+                from: 0,
+                to: 0,
+                color: '#ffffff',
+                name: '0'
+            },
+            {
+                from: min,
+                to: max,
+                color: '#ff0000',
+                name: String(max)
+            }
+        ]
+    }
+
+    const faixas = 6
+    const passo = (max - min) / faixas
+
+    const ranges = [
+        {
+            from: 0,
+            to: 0,
+            color: '#ffffff',
+            name: '0'
+        }
+    ]
+
+    for (let i = 0; i < faixas; i++) {
+        const from = i === 0 ? min : (min + passo * i)
+        const to = i === faixas - 1 ? max : (min + passo * (i + 1))
+
+        const intensidade = (i + 1) / faixas
+        const verdeAzul = Math.round(255 * (1 - intensidade))
+
+        ranges.push({
+            from,
+            to,
+            color: `rgb(255, ${verdeAzul}, ${verdeAzul})`,
+            name: `${Math.round(from)} - ${Math.round(to)}`
+        })
+    }
+
+    return ranges
+}
+
+function montarSeriesMapaCalor(dados, mes, ano) {
     const diasNoMes = new Date(ano, mes, 0).getDate()
-    const mapa = {}
     const horaInicio = 5
     const horaFim = 23
-    let max = 0
+    const mapa = {}
 
     for (const [dataHora, qtde] of Object.entries(dados || {})) {
         if (!dataHora)
@@ -160,59 +281,51 @@ function gerarMapaCalorMes(dados, mes, ano) {
 
         mapa[dia] ??= {}
         mapa[dia][horaNumero] = (mapa[dia][horaNumero] || 0) + Number(qtde || 0)
-
-        if (mapa[dia][horaNumero] > max)
-            max = mapa[dia][horaNumero]
     }
 
-    function cor(valor) {
-        if (!valor || !max)
-            return 'rgb(255,255,255)'
-
-        const intensidade = valor / max
-        const verdeAzul = Math.round(255 * (1 - intensidade))
-
-        return `rgb(255, ${verdeAzul}, ${verdeAzul})`
-    }
-
-    const horas = Array.from({ length: horaFim - horaInicio + 1 }, (_, i) => {
-        const hora = horaInicio + i
-        return `<div class="heatmap-hora">${String(hora).padStart(2, '0')}h</div>`
-    }).join('')
-
-    const linhas = Array.from({ length: diasNoMes }, (_, i) => {
+    return Array.from({ length: diasNoMes }, (_, i) => {
         const dia = i + 1
 
-        const colunas = Array.from({ length: horaFim - horaInicio + 1 }, (_, j) => {
-            const hora = horaInicio + j
-            const valor = mapa?.[dia]?.[hora] || 0
+        return {
+            name: `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}`,
+            data: Array.from({ length: horaFim - horaInicio + 1 }, (_, j) => {
+                const hora = horaInicio + j
+                return {
+                    x: `${String(hora).padStart(2, '0')}h`,
+                    y: mapa?.[dia]?.[hora] || 0
+                }
+            })
+        }
+    })
+}
 
-            return `
-                <div 
-                    class="heatmap-cell"
-                    title="${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${ano} ${String(hora).padStart(2, '0')}h = ${valor}"
-                    style="background:${cor(valor)};">
-                </div>
-            `
-        }).join('')
+function criarFaixasCor(series) {
+    const valores = series.flatMap(linha => linha.data.map(p => p.y))
+    const max = Math.max(...valores, 0)
 
-        return `
-            <div class="heatmap-row">
-                <div class="heatmap-dia">
-                    ${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}
-                </div>
-                ${colunas}
-            </div>
-        `
-    }).join('')
+    if (max <= 0) {
+        return [{
+            from: 0,
+            to: 0,
+            color: '#ffffff',
+            name: 'Sem dados'
+        }]
+    }
 
-    return `
-        <div class="heatmap-container">
-            <div class="heatmap-header">
-                <div class="heatmap-dia"></div>
-                ${horas}
-            </div>
-            ${linhas}
-        </div>
-    `
+    const faixas = 6
+    const passo = Math.ceil(max / faixas)
+
+    return Array.from({ length: faixas }, (_, i) => {
+        const from = i * passo
+        const to = i === faixas - 1 ? max : ((i + 1) * passo) - 1
+        const intensidade = (i + 1) / faixas
+        const verdeAzul = Math.round(255 * (1 - intensidade))
+
+        return {
+            from,
+            to,
+            color: `rgb(255, ${verdeAzul}, ${verdeAzul})`,
+            name: `${from} - ${to}`
+        }
+    })
 }
