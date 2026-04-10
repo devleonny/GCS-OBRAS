@@ -238,7 +238,7 @@ async function abrirAtalhos(id, idMaster) {
 
     const orcamento = await recuperarDado('dados_orcamentos', id)
     const emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
-    let botoesDisponiveis = ''
+    const botoesDisponiveis = []
     let termoArquivar = 'Arquivar Orçamento'
     let iconeArquivar = 'pasta'
 
@@ -249,33 +249,38 @@ async function abrirAtalhos(id, idMaster) {
 
     // Gambiarra para não mudar a posição das paradas;
     if (!emAnalise)
-        botoesDisponiveis += `
-        ${modeloBotoes('esquema', 'Histórico', `abrirEsquema('${id}')`)}
-        ${modeloBotoes('painelcustos', 'Painel de Custos', `painelCustos('${id}')`)}`
+        botoesDisponiveis.push(
+            modeloBotoes('esquema', 'Histórico', `abrirEsquema('${id}')`),
+            modeloBotoes('painelcustos', 'Painel de Custos', `painelCustos('${id}')`)
+        )
 
-    botoesDisponiveis += modeloBotoes('pdf', 'Abrir Orçamento em PDF', `irPdf('${id}', ${emAnalise})`)
+    botoesDisponiveis.push(
+        modeloBotoes('pdf', 'Abrir Orçamento em PDF', `irPdf('${id}', ${emAnalise})`),
+        modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)
+    )
 
     if (!emAnalise) {
-        botoesDisponiveis += `
-        ${modeloBotoes('checklist', 'CHECKLIST', `telaChecklist('${id}')`)}
-        ${modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`)}
-        ${modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)}
-        ${modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`)}
-        ${modeloBotoes('LG', 'OS em PDF', `carregarOS('${id}')`)}
-        ${modeloBotoes('alerta', 'Definir Prioridade', `formularioOrcAprovado('${id}')`)}
-        ${idMaster
-                ? modeloBotoes('exclamacao', 'Desvincular Orçamento', `confirmarRemoverVinculo('${id}', '${idMaster}')`)
-                : modeloBotoes('link', 'Vincular Orçamento', `vincularOrcamento('${id}')`)
-            }
-        `
+        botoesDisponiveis.push(
+            modeloBotoes('checklist', 'CHECKLIST', `telaChecklist('${id}')`),
+            modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`),
+            modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`),
+            modeloBotoes('LG', 'OS em PDF', `carregarOS('${id}')`),
+            modeloBotoes('alerta', 'Definir Prioridade', `formularioOrcAprovado('${id}')`)
+        )
+
+        if (idMaster)
+            botoesDisponiveis.push(modeloBotoes('exclamacao', 'Desvincular Orçamento', `confirmarRemoverVinculo('${id}', '${idMaster}')`))
+        else
+            botoesDisponiveis.push(modeloBotoes('link', 'Vincular Orçamento', `vincularOrcamento('${id}')`))
     }
 
     if (orcamento?.usuario == acesso.usuario || permAtalhos.includes(acesso.permissao) || orcamento?.usuarios?.[acesso.usuario]) {
-        botoesDisponiveis += `
-        ${modeloBotoes('apagar', 'Excluir Orçamento', `confirmarExclusaoOrcamentoBase('${id}')`)}
-        ${modeloBotoes('editar', 'Editar Orçamento', `editar('${id}')`)}
-        ${modeloBotoes('gerente', 'Editar Dados do Cliente', `painelClientes('${id}')`)}
-        `
+        botoesDisponiveis.push(
+            modeloBotoes('apagar', 'Excluir Orçamento', `confirmarExclusaoOrcamentoBase('${id}')`),
+            modeloBotoes('editar', 'Editar Orçamento', `editar('${id}')`),
+            modeloBotoes('gerente', 'Editar Dados do Cliente', `painelClientes('${id}')`)
+        )
+
     }
 
     const modAlerta = (texto) => `
@@ -340,7 +345,7 @@ async function abrirAtalhos(id, idMaster) {
         </div>
         <hr>
         ${aviso}
-        <div class="opcoes-orcamento">${botoesDisponiveis}</div>
+        <div class="opcoes-orcamento">${botoesDisponiveis.join('')}</div>
 
         ${prioridadeAtalho}
     `
@@ -910,7 +915,7 @@ async function tirarFotoStatus(id, chave) {
     const src = canvas.toDataURL('image/png')
 
     pararCam()
-    
+
     const resposta = await importarAnexos({ foto: src })
     if (resposta.mensagem)
         return popup({ mensagem: resposta.mensagem })
