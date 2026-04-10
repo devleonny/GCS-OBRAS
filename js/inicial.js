@@ -59,11 +59,16 @@ async function telaInicialGCS() {
     <div class="painel-indicadores">
 
         <div class="bloco-indicador-incial">
+            <h2>Contadores de Pendências por Usuário</h2>
             <button onclick="incluirContador()">Incluir contador</button>
             <div class="guarda-roupas"></div>
+
+            <h2>Últimas atividades realizadas no GCS</h2>
+            ${await daily()}
         </div>
 
         <div class="bloco-indicador-incial">
+            <h2>Painel de Ações</h2>
             ${tabelaIndicadores}
         </div>
     </div>`
