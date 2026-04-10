@@ -6,6 +6,8 @@ const semImagem = `
 `
 async function telaOS(idOcorrencia) {
 
+    overlayAguarde()
+
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
     const cliente = await recuperarDado('dados_clientes', ocorrencia?.unidade) || {}
     const { tipo, sistema, prioridade, ultimaCorrecao } = ocorrencia?.snapshots || {}
@@ -38,12 +40,17 @@ async function telaOS(idOcorrencia) {
         })
         .join('')
 
-    const modelo = (texto1, texto2) => `
+    const modelo = (texto1, texto2) => {
+
+        if (!texto2)
+            return ''
+
+        return `
         <div class="vertical">
             <span><b>${texto1}</b></span>
             <span>${texto2}</span>
         </div>
-    `
+    `}
 
     const descFinal = ocorrencia.descricao || 'Sem comentários'
     const linha1 = `
@@ -67,36 +74,40 @@ async function telaOS(idOcorrencia) {
                 </div>
 
                 <div class="vertical">
-                    ${modelo('Unidade de Manutenção', cliente?.nome || '')}
-                    ${cliente?.cnpj || ''}<br>
-                    ${cliente?.bairro || ''}<br>
-                    ${cliente?.cidade || ''}<br>
-                    ${cliente?.cep || ''}<br>
+                    ${modelo('Unidade de Manutenção', cliente?.nome)}
+                    ${cliente?.cnpj}<br>
+                    ${cliente?.bairro}<br>
+                    ${cliente?.cidade}<br>
+                    ${cliente?.cep}<br>
                 </div>
 
                 <div class="vertical">
                     ${modelo('Sistema', sistema)}
-                    ${modelo('Criado por', ocorrencia?.usuario || '...')}
+                    ${modelo('Criado por', ocorrencia?.usuario)}
                 </div>
 
             </div>
 
         </div>
     `
-
     let linhasCorrecoes = ''
 
     for (const correcao of Object.values(ocorrencia?.correcoes || {})) {
 
         const { nome } = await recuperarDado('correcoes', correcao?.tipoCorrecao) || {}
+        const { equipamentos, fotos, anexos, data, usuario, tecnico } = correcao || {}
+
+        const tEquipamentos = equipamentos
+            ? tabEquipamentos(equipamentos, idOcorrencia) // Sem idCorrecao os botões não são lançados;
+            : ''
 
         let imagens = ''
 
-        imagens += Object.values(correcao?.fotos || {})
+        imagens += Object.values(fotos || {})
             .map(foto => `<img id="${foto.link}" src="${api}/uploads/${foto.link}" onclick="ampliarImagem(this, '${foto.link}')">`)
             .join('')
 
-        imagens += Object.values(correcao?.anexos || {})
+        imagens += Object.values(anexos || {})
             .map(foto => {
                 const link = foto.link
                 const extensao = link.split('.').pop().toLowerCase()
@@ -112,19 +123,20 @@ async function telaOS(idOcorrencia) {
                     ${imagens || semImagem}
                 </div>
 
-                <div class="vertical" style="width: 100%;">
+                <div class="vertical" style="width: 100%; gap: 0.5rem;">
 
                     <span><b>Correção</b></span>
                     <div class="campo-descricao" style="width: 70%;">
                         <p>${correcao.descricao}</p>
                     </div>
                     
-                    <br>
+                    ${tEquipamentos}
 
                     <div class="horizontal" style="gap: 1rem;">
-                        ${modelo('Status da Correção', nome || '')}
-                        ${modelo('Registrado em', correcao?.data || '--')}
-                        ${modelo('Executor', correcao.usuario)}
+                        ${modelo('Status da Correção', nome)}
+                        ${modelo('Registrado em', data)}
+                        ${modelo('Executor', usuario)}
+                        ${modelo('Técnico', tecnico)}
                     </div>
                 </div>
 
@@ -166,12 +178,15 @@ async function telaOS(idOcorrencia) {
 
     tela.innerHTML = acumulado
 
+    removerOverlay()
+
 }
 
 async function gerarPdfOS(nome) {
 
     const id = 'pdf'
     const estilos = [
+        'gcsobras',
         'layout_os'
     ]
 
