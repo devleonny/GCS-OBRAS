@@ -1718,6 +1718,10 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
         }
     }
 
+    const series = typeof(serie) == 'string' ? [serie] : serie
+    const inputSeries = series
+        .map(``)
+
     const divOrigem = formulario == 'correcao'
         ? `
             <div style="${vertical};">
@@ -1738,11 +1742,13 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
             <div name="equipamentos" style="${horizontal}; align-items: start; gap: 1rem;">
                 <div style="${vertical};">
                     <label>Quantidade</label>
-                    <input id="quantidade" style="width: 7rem;" class="campos" type="number" value="${quantidade || ''}">
+                    <input id="quantidade" oninput="multiplicarCampoSerie(this)" style="width: 7rem;" class="campos" type="number" value="${quantidade || ''}">
                 </div>
                 <div style="${vertical};">
                     <label>Nº série</label>
-                    <input id="serie" style="width: 7rem;" class="campos" value="${serie || ''}">
+                    <div id="containerSeries">
+                        <input id="serie" style="width: 7rem;" class="campos" value="${serie || ''}">
+                    </div>
                 </div>
 
                 ${divOrigem}
@@ -1762,6 +1768,12 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
         return label
 
     div.insertAdjacentHTML('beforeend', label)
+}
+
+function multiplicarCampoSerie() {
+
+    const campoQtde = 
+
 }
 
 async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
