@@ -313,6 +313,14 @@
     width: 100%;
 }
 
+.container-series {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    gap: 3px;
+}
+
 .painel-superior-cadastros {
     display: grid;
     grid-template-columns: repeat(3, 1fr);

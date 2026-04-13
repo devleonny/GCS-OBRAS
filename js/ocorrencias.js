@@ -33,7 +33,7 @@ const tabEquipamentos = (equipamentos, idOcorrencia, idCorrecao) => {
             const tr = `
                 <tr>
                     <td>${codigo}</td>
-                    <td>${serie || ''}</td>
+                    <td>${(serie || []).join(' ,') || ''}</td>
                     <td>${origem || ''}</td>
                     <td>${quantidade || 0}</td>
                     <td>${unidade || 'UN'}</td>
@@ -194,7 +194,7 @@ async function tirarFoto() {
     const foto = `<img name="foto" data-salvo="não" id="${idFoto}" src="${src}" class="foto" onclick="ampliarImagem(this, '${idFoto}')">`
 
     fotos.insertAdjacentHTML('beforeend', foto)
-    
+
     removerPopup()
 
     visibilidadeFotos()
@@ -1016,7 +1016,7 @@ async function criarPesquisas() {
 
     const camposLivres = {
         'Chamado': { path: 'snapshots.contrato' },
-        'Nº Série': { path: 'equipamentos.*.serie' },
+        'Nº Série': { path: 'snapshots.serie' },
         'Cidade': { path: 'snapshots.cliente.cidade' },
         'Descricao': { path: 'descricao' },
         'Unidade': { path: 'snapshots.cliente.nome' },
@@ -1543,7 +1543,13 @@ async function formularioOcorrencia(idOcorrencia) {
     ]
 
     const botoes = [
-        { img: 'concluido', texto: 'Salvar', funcao: idOcorrencia ? `salvarOcorrencia('${idOcorrencia}')` : 'salvarOcorrencia()' },
+        {
+            img: 'concluido',
+            texto: 'Salvar',
+            funcao: idOcorrencia
+                ? `salvarOcorrencia('${idOcorrencia}')`
+                : 'salvarOcorrencia()'
+        }
     ]
 
     const titulo = idOcorrencia ? 'Editar Ocorrência' : 'Criar Ocorrência'
@@ -1718,9 +1724,9 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
         }
     }
 
-    const series = typeof(serie) == 'string' ? [serie] : serie
-    const inputSeries = series
-        .map(``)
+    const series = (typeof (serie) == 'string' ? [serie] : serie || [])
+        .map(s => `<input name="serie" value="${s || ''}">`)
+        .join('')
 
     const divOrigem = formulario == 'correcao'
         ? `
@@ -1746,8 +1752,8 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
                 </div>
                 <div style="${vertical};">
                     <label>Nº série</label>
-                    <div id="containerSeries">
-                        <input id="serie" style="width: 7rem;" class="campos" value="${serie || ''}">
+                    <div class="container-series">
+                        ${series}
                     </div>
                 </div>
 
@@ -1770,10 +1776,29 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
     div.insertAdjacentHTML('beforeend', label)
 }
 
-function multiplicarCampoSerie() {
+function multiplicarCampoSerie(input) {
+    const container = document.querySelector('.container-series')
+    if (!container) return
 
-    const campoQtde = 
+    const qtdeAtual = Number(input.value) || 0
+    const inputs = [...container.querySelectorAll('input')]
+    const qtdeInputs = inputs.length
 
+    // adicionar
+    if (qtdeAtual > qtdeInputs) {
+        for (let i = qtdeInputs; i < qtdeAtual; i++) {
+            const novo = document.createElement('input')
+            novo.name = 'serie'
+            container.appendChild(novo)
+        }
+    }
+
+    // remover
+    if (qtdeAtual < qtdeInputs) {
+        for (let i = qtdeInputs; i > qtdeAtual; i--) {
+            container.lastElementChild?.remove()
+        }
+    }
 }
 
 async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
@@ -1830,7 +1855,8 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
         const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', equip.id)
 
         const quantidade = Number(div.querySelector('#quantidade').value)
-        const serie = div.querySelector('#serie').value
+        const serie = [...div.querySelectorAll('[name="serie"]')]
+            .map(input => input.value)
         const origem = div.querySelector('input[name^="origem_"]:checked')?.dataset.origem || ''
 
         equipamentos[equip.id] = {
@@ -1915,7 +1941,8 @@ async function salvarOcorrencia(idOcorrencia) {
         const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', equip.id)
 
         const quantidade = Number(div.querySelector('#quantidade').value)
-        const serie = div.querySelector('#serie').value
+        const serie = [...div.querySelectorAll('[name="serie"]')]
+            .map(input => input.value)
 
         novo.equipamentos[equip.id] = {
             codigo: equip.id,
