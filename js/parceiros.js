@@ -4,10 +4,8 @@ async function modalLPUParceiro(id, chave) {
     const orcamento = await recuperarDado('dados_orcamentos', id)
     const status = orcamento?.status?.historico?.[chave] || {}
 
-    const itens = Object.fromEntries(
-        Object.entries(status?.itens || orcamento?.dados_composicoes || {})
-            .filter(([, i]) => i?.tipo !== 'VENDA')
-    )
+    const itens = Object.values(status?.itens || orcamento?.dados_composicoes || [])
+        .filter(i => i?.tipo !== 'VENDA')
 
     const colunas = {
         'Check': {},
@@ -154,7 +152,9 @@ async function atvRemItensEmMassa() {
         const tr = check.closest('tr')
         const codigo = tr.dataset.codigo
 
-        controles.lpu_parceiro.base[codigo].removido = op
+        const item = encontrarItemLpu(codigo)
+        if (item)
+            item.removido = op
 
         tr.remove()
 
@@ -311,14 +311,14 @@ async function salvarAdicional() {
     if (!composicao.id)
         return popup({ mensagem: 'Descrição não pode ficar em branco' })
 
-    controles.lpu_parceiro.base[composicao.id] = {
+    upsertItemLpu({
         avulso: 'S',
         codigo: composicao.id,
         descricao: composicao.textContent,
         qtde: Number(obVal('qtde').value),
         custo: Number(obVal('custo').value),
-        unidade: Number(obVal('unidade').value)
-    }
+        unidade: obVal('unidade').value
+    })
 
     removerPopup()
 
@@ -344,7 +344,7 @@ async function salvarLpuParceiro(id, chave = ID5digitos()) {
     const dados = {
         ...orcamento.status.historico[chave],
         status: 'LPU PARCEIRO',
-        itens: controles.lpu_parceiro.base || {},
+        itens: obterBaseLpuParceiro(),
         totais: controles.lpu_parceiro.totais || {},
         margem: Number(document.getElementById('margem_lpu').value),
         executor: acesso.usuario,
@@ -446,12 +446,12 @@ function calcularLpuParceiro() {
             </div>`
 
         // Salvamento no objeto;
-        controles.lpu_parceiro.base[codigo] = {
-            ...controles.lpu_parceiro.base[codigo],
+        upsertItemLpu({
+            codigo,
             vUnitParc: Number(vUnitParc.value),
             vTotalParc: Number(vTotalParc.value),
             qtde
-        }
+        })
 
     }
 
@@ -466,6 +466,25 @@ function calcularLpuParceiro() {
             el.textContent = dinheiro(total)
     }
 
+}
+
+function obterBaseLpuParceiro() {
+    if (!Array.isArray(controles?.lpu_parceiro?.base))
+        controles.lpu_parceiro.base = Object.values(controles?.lpu_parceiro?.base || {})
+
+    return controles.lpu_parceiro.base
+}
+
+function encontrarItemLpu(codigo) {
+    return obterBaseLpuParceiro().find(item => String(item.codigo) === String(codigo))
+}
+
+function upsertItemLpu(item) {
+    const base = obterBaseLpuParceiro()
+    const i = base.findIndex(atual => String(atual.codigo) === String(item.codigo))
+
+    if (i >= 0) base[i] = { ...base[i], ...item }
+    else base.push(item)
 }
 
 async function gerarPdfParceiro(id, chave, visualizar) {
@@ -511,6 +530,7 @@ async function gerarPdfParceiro(id, chave, visualizar) {
     ]
 
     const linhas = Object.entries(lpu?.itens || {})
+        .filter(([, item]) => item.vUnitParc != 0)
         .map(([codigo, item]) => {
 
             const { descricao, qtde, unidade, vUnitParc, vTotalParc } = item || {}

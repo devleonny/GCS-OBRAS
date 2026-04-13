@@ -563,7 +563,7 @@ function elementosEspecificos(id, chave, historico, orcamento) {
         acumulado.push(`
             ${labelDestaque('Total Parceiro', dinheiro(historico?.totais?.parceiro))}
             ${labelDestaque('Magem Disponível', dinheiro(historico?.totais?.margem))}
-            ${labelDestaque('Desvio', dinheiro(historico?.totais?.desvio))},
+            ${labelDestaque('Desvio', dinheiro(historico?.totais?.desvio))}
 
             <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" 
                 class="contorno-botoes" 
