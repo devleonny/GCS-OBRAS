@@ -1,6 +1,6 @@
 let unidadeOrc = null
 const altNumOrc = ['adm', 'analista']
-const opcoesPedidos = ['Locação', 'Serviço', 'Venda', 'Venda + Serviço', 'POC']
+const opcoesPedidos = ['', 'Locação', 'Serviço', 'Venda', 'Venda + Serviço', 'POC']
 const opcoesRequisicao = ['SERVIÇO', 'VENDA', 'USO E CONSUMO', 'LOCAÇÃO']
 const transportadoras = ['', 'JAMEF', 'CORREIOS', 'RODOVIÁRIA', 'JADLOG', 'AÉREO', 'OUTRAS']
 const permAtalhos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
@@ -47,18 +47,56 @@ const coresST = {
     'MATERIAL ENTREGUE': { cor: '#b17724' }
 }
 
-function aprovadoEmail(input) {
+
+function marcarStatusPedido() {
+
+    const opcao = [...document.querySelectorAll('[name="status-pedido"]:checked')][0]
+
+    if (!opcao)
+        return
 
     const pedido = document.getElementById('pedido')
-    pedido.value = input.checked ? 'Aprovado Via E-mail' : ''
-    pedido.contentEditable = !input.checked
+    const autorizado = document.getElementById('autorizado')
+    const retorno = opcao.dataset.campo
+    pedido.readOnly = true
+    pedido.value = retorno
+
+    if (retorno.includes('número')) {
+        pedido.value = ''
+        pedido.readOnly = false
+    }
+
+    autorizado.style.display = retorno == 'Sem Pedido'
+        ? 'flex'
+        : 'none'
 
 }
 
 async function painelAdicionarPedido(id, chave) {
 
+    overlayAguarde()
+
     const orcamento = await recuperarDado('dados_orcamentos', id) || {}
     const { pedido, tipo, empresa, valor, comentario, pagamento } = orcamento?.status?.historico?.[chave] || {}
+
+    const opcoes = ['Sem Pedido', 'Aprovado por E-mail', 'Aprovado com número']
+        .map(op => `
+            <div style="${horizontal}; gap: 1rem;">
+                <input ${op == pedido ? 'checked' : ''} name="status-pedido" data-campo="${op}" type="radio" style="box-shadow: none; width: 2rem; height: 2rem;" onclick="marcarStatusPedido()">
+                <span>${op}</span>
+            </div>
+            `)
+        .join('')
+
+    controlesCxOpcoes.autorizadoPor = {
+        base: 'dados_setores',
+        retornar: ['usuario'],
+        colunas: {
+            'Usuário': { chave: 'usuario' },
+            'Setor': { chave: 'setor' },
+            'Permissão': { chave: 'permissao' }
+        }
+    }
 
     const linhas = [
         {
@@ -70,12 +108,19 @@ async function painelAdicionarPedido(id, chave) {
             `
         },
         {
-            texto: 'Aprovado por E-mail',
-            elemento: `<input type="checkbox" style="width: 2rem; height: 2rem;" onclick="aprovadoEmail(this)">`
+            texto: 'Status do Pedido',
+            elemento: `
+            <div style="${vertical}; gap: 5px;">
+                ${opcoes}
+                <div id="autorizado" style="${horizontal}; display: none; gap: 1rem;">
+                    <span>Autorizado por?</span>
+                    <span name="autorizadoPor" class="opcoes" onclick="cxOpcoes('autorizadoPor')">Selecione</span>
+                </div>
+            </div>`
         },
         {
             texto: 'Número do Pedido',
-            elemento: `<input type="text" id="pedido" value="${pedido || ''}">`
+            elemento: `<input type="text" id="pedido" value="${pedido || ''}" readOnly>`
         },
         {
             texto: 'Valor do Pedido',
@@ -114,6 +159,7 @@ async function painelAdicionarPedido(id, chave) {
     ]
 
     popup({ linhas, botoes, titulo: chave ? 'Editar Pedido' : 'Novo Pedido' })
+    marcarStatusPedido()
 
 }
 
@@ -127,12 +173,13 @@ async function salvarPedido(id, chave = crypto.randomUUID()) {
     const pedido = document.getElementById('pedido')
     const empresa = document.getElementById('empresa')
     const pagamento = document.getElementById('pagamento')
+    const autorizadoPor = document.querySelector('[name="autorizadoPor"]').id
 
-    if (valor.value == '' || tipo.value == 'Selecione' || pedido.value == '') {
+    if (!valor.value || !tipo.value || !pedido.value)
+        return popup({ mensagem: 'Existem campos em Branco' })
 
-        return popup({ mensagem: `Existem campos em Branco` })
-
-    }
+    if (pedido.value == 'Sem Pedido' && autorizadoPor == '')
+        return popup({ mensagem: 'Quem autorizou este pedido?' })
 
     const dados = {
         data: new Date().toLocaleString(),
@@ -142,6 +189,7 @@ async function salvarPedido(id, chave = crypto.randomUUID()) {
         valor: Number(valor.value),
         tipo: tipo.value,
         pedido: pedido.value,
+        autorizadoPor,
         empresa: empresa.value,
         status: 'PEDIDO'
     }
@@ -534,13 +582,16 @@ function elementosEspecificos(id, chave, historico, orcamento) {
 
     } else if (status == 'PEDIDO') {
 
+        const { empresa, pedido, pagamento, valor, tipo, autorizadoPor } = historico || {}
+
         acumulado.push(`
             <div style="${vertical}; gap: 2px;">
-                ${historico.empresa ? labelDestaque('Empresa a faturar', historico.empresa) : ''}
-                ${historico.pagamento ? labelDestaque('Pagamento', historico.pagamento) : ''}
-                ${labelDestaque('Pedido', historico.pedido)}
-                ${labelDestaque('Valor', dinheiro(historico.valor))}
-                ${labelDestaque('Tipo', historico.tipo)}
+                ${labelDestaque('Empresa a faturar', empresa)}
+                ${labelDestaque('Pagamento', pagamento)}
+                ${labelDestaque('Pedido', pedido)}
+                ${labelDestaque('Autorizado por', autorizadoPor)}
+                ${labelDestaque('Valor', dinheiro(valor))}
+                ${labelDestaque('Tipo', tipo)}
             </div>`)
 
         funcaoEditar = `painelAdicionarPedido('${id}', '${chave}')`

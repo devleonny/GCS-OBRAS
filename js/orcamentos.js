@@ -212,13 +212,14 @@ async function criarLinhaOrcamento(orcamento) {
 
         const pedidos = Object.values(orcamento?.status?.historico || {})
             .filter(s => s?.status == 'PEDIDO')
-            .map(s => {
+            .map(({ tipo, pedido, valor, autorizadoPor }) => {
 
                 const label = `
                 <div class="etiquetas" style="text-align: left; min-width: 100px;">
-                    <label>${s?.tipo || ''}</label>
-                    <label>${s?.pedido}</label>
-                    <label>${dinheiro(s?.valor)}</label>
+                    <label>${tipo || ''}</label>
+                    <label>${pedido}</label>
+                    ${autorizadoPor ? `<label><b>${autorizadoPor}</b></label>` : ''}
+                    <label>${dinheiro(valor)}</label>
                 </div>
                 `
                 return label

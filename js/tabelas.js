@@ -17,14 +17,15 @@ async function modTab(configuracoes) {
         ...configuracoes
     }
 
-    const ths = Object.keys(colunas)
-        .map(th => `
-            <th>
-                <div style="${horizontal}; width: 100%; justify-content: space-between; gap: 1rem;">
-                    <span>${th}</span>    
-                </div>
-            </th>`
-        )
+    const ths = Object.entries(colunas)
+        .map(([th, query]) => `
+        <th onclick="ordenarColuna({ pag: '${pag}', path: '${query.chave || ''}' })" style="cursor: pointer;">
+            <div style="${horizontal}; width: 100%; justify-content: space-between; gap: 1rem;">
+                <span>${th}</span>
+                <span data-ordem="${query.chave || ''}"></span>
+            </div>
+        </th>
+    `)
         .join('')
 
     const pesquisa = (await Promise.all(
@@ -475,6 +476,7 @@ async function paginacao(pag) {
 
         await executarFuncoesAdicionais(funcaoAdicional)
         restaurarPesquisa(pag)
+        atualizarIndicadorOrdenacao(pag)
     }
 
     async function executarFuncoesAdicionais(funcaoAdicional = []) {
@@ -581,3 +583,44 @@ function criarDino(cols) {
 function achou() {
     return Math.random() < 0.01
 }
+
+function ordenarColuna({ pag, path }) {
+    const ctrl = controles[pag]
+
+    if (!ctrl) return
+
+    const atual = ctrl.ordenar || {}
+
+    if (atual.path === path) {
+        ctrl.ordenar.direcao = atual.direcao === 'asc' ? 'desc' : 'asc'
+    } else {
+        ctrl.ordenar = {
+            path,
+            direcao: 'asc'
+        }
+    }
+
+    ctrl.pagina = 1
+    paginacao(pag)
+}
+
+function atualizarIndicadorOrdenacao(pag) {
+    const ctrl = controles[pag]
+    if (!ctrl) return
+
+    const { ordenar } = ctrl || {}
+
+    const tabela = document.querySelector(`#${ctrl.body}`)?.closest('table')
+    if (!tabela) return
+
+    tabela.querySelectorAll('[data-ordem]').forEach(el => {
+        el.textContent = ''
+    })
+
+    if (!ordenar?.path) return
+
+    const alvo = tabela.querySelector(`[data-ordem="${CSS.escape(ordenar.path)}"]`)
+    if (!alvo) return
+
+    alvo.textContent = ordenar.direcao === 'asc' ? '▲' : '▼'
+}   
