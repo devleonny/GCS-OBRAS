@@ -351,16 +351,16 @@
   justify-content: center;
 }
 
-.desconto_on {
-  width: 100%;
-  background-color: #4CAF50bf;
-  padding: 0px;
-}
-
-.desconto_off {
+.desconto {
   color: #797979;
   width: 100%;
   background-color: #cbcbcb;
+  padding: 0px;
+}
+
+.desconto.on {
+  width: 100%;
+  background-color: #4CAF50bf;
   padding: 0px;
 }
 

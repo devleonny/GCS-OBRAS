@@ -303,30 +303,6 @@ span[name="titulo"] {
     cursor: pointer;
 }
 
-.tabela-container {
-    max-height: 70vh;
-    overflow-y: auto;
-}
-
-.tabela_manutencao {
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-    justify-content: center;
-}
-
-.tabela_manutencao td {
-    padding: 0px;
-    margin: 0px;
-}
-
-.tabela_manutencao textarea {
-    border-radius: 0px;
-    padding: 3px;
-    border: none;
-    width: 95%;
-}
-
 .menu-opcoes-orcamento {
     display: flex;
     flex-direction: column;
@@ -555,44 +531,6 @@ span[name="titulo"] {
     cursor: pointer;
 }
 
-.borda-tabela {
-    display: flex;
-    align-items: start;
-    justify-content: start;
-    flex-direction: column;
-    width: 100%;
-    border-radius: 3px;
-}
-
-.div-tabela {
-    border-right: solid 1px #434343;
-    border-left: solid 1px #434343;
-    background-color: white;
-    height: max-content;
-    width: 100%;
-    max-height: 70vh;
-    overflow: auto;
-}
-
-.topo-tabela {
-    justify-content: space-between;
-    width: 100%;
-    background-color: #707070;
-    border: 1px solid #434343;
-    border-bottom: none;
-    min-height: 2vh;
-    display: flex;
-    align-items: center;
-    border-top-right-radius: 5px;
-    border-top-left-radius: 5px;
-    gap: 2px;
-    width: 100%;
-}
-
-.topo-tabela span {
-    padding: 5px;
-}
-
 .painelBotoes {
     border: 1px solid #434343;
     min-height: 2vh;
@@ -604,20 +542,6 @@ span[name="titulo"] {
     background-color: #b1b1b1;
     gap: 2px;
     width: 100%;
-}
-
-.img_ag {
-    position: absolute;
-    top: 3px;
-    right: 3px;
-    width: 25px;
-    height: 25px;
-    cursor: pointer;
-}
-
-.inp-check {
-    width: 1.5rem;
-    height: 1.5rem;
 }
 
 .datas_estoque {
@@ -1784,45 +1708,6 @@ input[type=range]::-moz-range-thumb {
     align-items: center;
     background-color: #797979;
     z-index: 10005;
-}
-
-.tabela {
-    min-width: 100%;
-    background-color: white;
-    border-collapse: collapse;
-    font-size: 0.8rem;
-}
-
-.tabela thead input,
-.tabela thead select {
-    background-color: #f0f0f0;
-    border-radius: 3px;
-    padding: 5px;
-    border: solid 1px #d2d2d2;
-    width: max-content;
-}
-
-.tabela th {
-    background-color: #efefef;
-    font-weight: lighter;
-    border: solid 1px #d2d2d2;
-    padding: 8px;
-}
-
-.tabela td {
-    vertical-align: top;
-    text-align: start;
-    padding: 8px;
-    overflow: hidden;
-    border: 1px solid #d2d2d2;
-}
-
-.tabela thead {
-    box-shadow: 0 1px 0 #ccc;
-    background-color: #d2d2d2;
-    position: sticky;
-    top: 0;
-    z-index: 2;
 }
 
 .contorno-anexos {
