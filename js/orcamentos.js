@@ -39,6 +39,7 @@ async function telaOrcamentos() {
 
     atualizarToolbar(true) // GCS no título
     mostrarMenus(false)
+    criarMenus('orcamentos')
 
     funcaoTela = 'telaOrcamentos'
 
@@ -103,10 +104,7 @@ async function telaOrcamentos() {
     }
 
     await atualizarListaDepartamentos()
-
     await carregarToolbar()
-    criarMenus('orcamentos')
-
     await paginacao()
 
 }

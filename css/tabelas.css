@@ -9,7 +9,7 @@
 }
 
 .tabela {
-    min-width: 100%;
+    width: 100%;
     background-color: white;
     border-collapse: collapse;
     font-size: 0.8rem;
