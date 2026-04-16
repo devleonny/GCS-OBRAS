@@ -80,12 +80,7 @@ async function baixarRelatorioExcel(schema, nome = 'relatorio') {
 }
 
 
-async function contarPorCampo({
-    base,
-    path,
-    filtros = {},
-    explode = null
-}) {
+async function contarPorCampo(params) {
 
     const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
 
@@ -95,12 +90,7 @@ async function contarPorCampo({
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-            base,
-            path,
-            filtros,
-            explode
-        })
+        body: JSON.stringify(params)
     })
 
     if (!resposta.ok) {

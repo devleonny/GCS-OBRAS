@@ -522,7 +522,7 @@ async function painelValores(idCusto, duplicar) {
         }
     }
 
-    for (const [codigo, km] of Object.entries(custo.distribuicao || {})) {
+    for (const [codigo, { km }] of Object.entries(custo.distribuicao || {})) {
         const { descricao } = await recuperarDado('departamentos_AC', Number(codigo))
         linDist({ codigo, km, descricao })
     }

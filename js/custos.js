@@ -2,13 +2,95 @@ async function painelCustos(id) {
 
     overlayAguarde()
 
-    const { dados_orcam, snapshots, esquema_composicoes, dados_composicoes, lpu_ativa, total_geral } = await recuperarDado('dados_orcamentos', id) || {}
+    const orcamento = await recuperarDado('dados_orcamentos', id) || {}
+    const { dados_orcam, snapshots } = orcamento
+    // Salvo localmente;
+    controles.orcamento ??= {}
+    controles.orcamento.save = orcamento
 
     const omieCliente = dados_orcam?.omie_cliente || ''
-    const cliente = snapshots?.cliente || {}
+    const { cliente, cidade } = snapshots || {}
+
+    const dados = [
+        cliente,
+        cidade,
+        dados_orcam?.contrato
+    ]
+        .filter(d => d)
+        .map(d => `<span>${d}</span>`)
+        .join('')
+
+
+    const esquema = [
+        {
+            titulo: 'Total do Orçamento',
+            id: 't-orcamento',
+            funcao: `tabOrcamentoCusto()`
+        },
+        {
+            titulo: 'Pagamentos Solicitados',
+            id: 't-pagamentos',
+            funcao: `tabPagamentosCusto()`
+        },
+        {
+            titulo: 'Abastecimento',
+            id: 't-abastecimento',
+            funcao: `tabVeiculosCusto()`
+        },
+        {
+            titulo: 'Fretes',
+            id: 't-fretes',
+            funcao: `tabFretesCusto()`
+        }
+    ]
+
+    const toolbar = esquema
+        .map(({ titulo, id, funcao }) => {
+
+            return `
+            <div onclick="${funcao}" class="balao-checklist">
+                <label>${titulo}</label>
+                <div id="${id}">
+                    <img src="gifs/loading.gif" style="width: 5rem">
+                </div>
+            </div>
+        `
+        })
+        .join('')
+
+    const elemento = `
+        <div style="${vertical}; padding: 1rem;">
+
+            <div class="toolbar-checklist">
+
+                <div style="${horizontal}; gap: 5px;">
+                    <img src="imagens/GrupoCostaSilva.png" style="width: 7rem;">
+                    <div style="${vertical}">${dados}</div>
+                </div>
+
+                <div class="resultados">
+                    ${toolbar}
+                </div>
+
+            </div>
+
+            <div class="painel-custos"></div>
+
+        </div>
+    `
+
+    popup({ elemento, titulo: 'Painel de Custos' })
+
+    await carregarTotaisCusto(id)
+
+}
+
+async function tabOrcamentoCusto() {
+
+    const { esquema_composicoes, dados_composicoes } = controles.orcamento.save || {}
 
     const pag = 'criarOrcamento'
-    const tabelaOrcamento = await modTab({
+    const tabela = await modTab({
         base: Object.values(esquema_composicoes || dados_composicoes || {}),
         pag,
         nude: true,
@@ -20,39 +102,27 @@ async function painelCustos(id) {
         colunas: {}
     })
 
-    const dados = [
-        cliente?.nome,
-        cliente?.cidade,
-        dados_orcam?.chamado,
-        dados_orcam?.contrato
-    ]
-        .filter(d => d)
-        .map(d => `<span>${d}</span>`)
-        .join('\n')
+    const painel = document.querySelector('.painel-custos')
 
+    painel.innerHTML = tabela
 
-    const filtros = []
-    if (dados_orcam?.contrato)
-        filtros.push({ op: 'includes', value: dados_orcam?.contrato })
+    await paginacao(pag)
 
-    if (dados_orcam?.chamado)
-        filtros.push({ op: 'includes', value: dados_orcam?.chamado })
+}
 
-    const pagamentos = {
-        ...await pesquisarDB({
-            base: 'lista_pagamentos',
-            filtros: {
-                'snapshots.departamentos': filtros
-            }
-        })
-    }
+async function tabPagamentosCusto() {
 
-    const tabelaPagamentos = await modTab({
-        pag: 'custosPagamentos',
+    const { dados_orcam } = controles.orcamento.save || {}
+    const contrato = dados_orcam?.contrato
+
+    const pag = 'custosPagamentos'
+    const tabela = await modTab({
+        pag,
         body: 'bodyCustosPagamentos',
         criarLinha: 'criarLinhaCustoPagamento',
-        base: pagamentos.resultados,
+        base: 'lista_pagamentos',
         filtros: {
+            'snapshots.departamentos.*.departamento': { op: 'includes', value: contrato },
             'param.*.codigo_tipo_documento': { op: '!=', value: 'CTE' },
         },
         colunas: {
@@ -65,50 +135,28 @@ async function painelCustos(id) {
         }
     })
 
-    const somaPagamentos = await contarPorCampo({
-        base: 'lista_pagamentos',
-        filtros: {
-            'snapshots.departamentos': filtros,
-            'param.*.codigo_tipo_documento': { op: '!=', value: 'CTE' },
-        },
-        path: 'param.*.valor_documento',
-        modo: 'soma'
-    })
+    const painel = document.querySelector('.painel-custos')
 
-    const tabelaFretes = await modTab({
-        pag: 'custosFretes',
-        body: 'bodyCustosFretes',
-        criarLinha: 'criarLinhaCustoPagamento',
-        base: pagamentos.resultados,
-        filtros: {
-            'param.*.codigo_tipo_documento': { op: '=', value: 'CTE' },
-        },
-        colunas: {
-            'Data': { chave: 'param.*.data_previsao', tipoPesquisa: 'data' },
-            'Valor': { chave: 'descricao' },
-            'Status': { chave: 'status', tipoPesquisa: 'select' },
-            'Solicitante': { chave: 'criado' },
-            'Recebedor': {},
-            'Detalhes': {}
-        }
-    })
+    painel.innerHTML = tabela
 
-    const somaFretes = await contarPorCampo({
-        base: 'lista_pagamentos',
-        filtros: {
-            'param.*.codigo_tipo_documento': { op: '=', value: 'CTE' },
-            'snapshots.departamentos': filtros
-        },
-        path: 'param.*.valor_documento',
-        modo: 'soma'
-    })
+    await paginacao(pag)
 
-    const tabelaVeiculos = await modTab({
-        pag: 'custoVeiculos',
-        body: 'custoVeiculos',
+}
+
+async function tabVeiculosCusto() {
+
+    const { dados_orcam } = controles.orcamento.save || {}
+    const contrato = dados_orcam?.contrato
+
+    const pag = 'custo-veiculos'
+    const tabela = await modTab({
+        pag,
+        body: 'bodyVeiculos',
         base: 'custo_veiculos',
         criarLinha: 'criarLinhaCustoVeiculo',
-        filtros: { 'snapshots.departamentos': filtros },
+        filtros: {
+            'snapshots.departamentos.*.departamento': { op: '=', value: contrato }
+        },
         colunas: {
             'Data Pagamento': { chave: 'data_pagamento', tipoPesquisa: 'data' },
             'Comentário': { chave: 'comentario' },
@@ -118,82 +166,55 @@ async function painelCustos(id) {
         }
     })
 
-    const somaCombustiveis = await contarPorCampo({
-        base: 'custo_veiculos',
-        filtros: { 'snapshots.departamentos': filtros },
-        path: 'realizado',
-        modo: 'soma'
+    const painel = document.querySelector('.painel-custos')
+
+    painel.innerHTML = tabela
+
+    await paginacao(pag)
+
+}
+
+async function tabFretesCusto() {
+
+    const { dados_orcam } = controles.orcamento.save || {}
+    const contrato = dados_orcam?.contrato
+
+    const pag = 'custosFretes'
+
+    const tabela = await modTab({
+        pag,
+        body: 'bodyCustosFretes',
+        criarLinha: 'criarLinhaCustoPagamento',
+        base: 'lista_pagamentos',
+        filtros: {
+            'snapshots.departamentos.*.departamento': { op: 'includes', value: contrato },
+            'param.*.codigo_tipo_documento': { op: '=', value: 'CTE' },
+        },
+        colunas: {
+            'Data': { chave: 'param.*.data_previsao', tipoPesquisa: 'data' },
+            'Valor': { chave: 'descricao' },
+            'Status': { chave: 'status', tipoPesquisa: 'select' },
+            'Solicitante': { chave: 'criado' },
+            'Recebedor': {},
+            'Detalhes': {}
+        }
     })
 
-    const elemento = `
-        <div style="${vertical}; padding: 1rem;">
+    const painel = document.querySelector('.painel-custos')
 
-            <div class="toolbar-checklist">
-            
-                <img src="imagens/GrupoCostaSilva.png" style="width: 7rem;">
+    painel.innerHTML = tabela
 
-                <div class="resultados">
-
-                    <div class="balao-checklist">
-                        <label>Dados do Orçamento</label>
-                        <span>${dados}</span>
-                    </div>
-
-                    <div class="balao-checklist">
-                        <label>Total do Orçamento</label>
-                        <span>${dinheiro(total_geral || 0)}</span>
-                    </div>
-
-                    <div class="balao-checklist">
-                        <label>Pagamentos Solicitados</label>
-                        <span>${dinheiro(somaPagamentos?.todos || 0)}</span>
-                    </div>
-
-                    <div class="balao-checklist">
-                        <label>Abastecimento</label>
-                        <span>${dinheiro(somaCombustiveis?.todos || 0)}</span>
-                    </div>
-
-                    <div class="balao-checklist">
-                        <label>Fretes</label>
-                        <span>${dinheiro(somaFretes?.todos || 0)}</span>
-                    </div>
-
-                </div>
-
-            </div>
-
-            <div style="width: 100%;">
-                <div class="toolbar-relatorio">
-                    <span data-toolbar="orcamento" onclick="carregarTabelaPainel(this)" style="opacity: 0.5;">Orçamento</span>
-                    <span data-toolbar="pagamentos" onclick="carregarTabelaPainel(this)" style="opacity: 0.5;">Pagamentos</span>
-                    <span data-toolbar="veiculos" onclick="carregarTabelaPainel(this)" style="opacity: 0.5;">Combustíveis</span>
-                    <span data-toolbar="fretes" onclick="carregarTabelaPainel(this)" style="opacity: 0.5;">Fretes</span>
-                </div>
-                
-                <div id="painel-custos"></div>
-            </div>
-
-        </div>
-    `
-
-    popup({ elemento, titulo: 'Painel de Custos' })
-
-    await paginacao()
+    await paginacao(pag)
 
 }
-
-async function carregarTabelaPainel() {
-
-
-
-    
-}
-
 
 async function criarLinhaCustoVeiculo(combustivel) {
 
     const { data_pagamento, comentario, realizado, usuario, snapshots } = combustivel || {}
+    const { dados_orcam } = controles.orcamento.save || {}
+    const contrato = dados_orcam?.contrato
+    const departamento = (snapshots?.departamentos || [])
+        .filter(d => d.departamento == contrato)
 
     const dMotoristas = (snapshots?.motoristas || [])
         .join('\n')
@@ -202,7 +223,7 @@ async function criarLinhaCustoVeiculo(combustivel) {
         <tr>
             <td>${new Date(data_pagamento).toLocaleDateString()}</td>
             <td>${comentario}</td>
-            <td>${dinheiro(realizado || 0)}</td>
+            <td>${dinheiro(departamento?.[0]?.valor || 0)}</td>
             <td>${usuario}</td>
             <td>${dMotoristas}</td>
         </tr>
@@ -213,21 +234,79 @@ async function criarLinhaCustoVeiculo(combustivel) {
 
 async function criarLinhaCustoPagamento(pagamento) {
 
+    const { dados_orcam } = controles?.orcamento?.save || {}
     const { criado, param, status, snapshots } = pagamento || {}
     const { valor_documento, data_previsao, codigo_cliente_fornecedor } = param?.[0] || {}
     const cliente = snapshots?.cliente || ''
+    const contrato = dados_orcam?.contrato
+    const valor = (snapshots.departamentos || [])
+        .filter(d => d.departamento == contrato)
 
     const tds = `
         <td>${data_previsao || ''}</td>
-        <td style="white-space: nowrap;">${dinheiro(valor_documento)}</td>
+        <td style="white-space: nowrap;">${dinheiro(valor?.[0]?.valor)}</td>
         <td>${status || ''}</td>
         <td>${criado || ''}</td>
         <td>${cliente || ''}</td>
         <td>
-            <img src="imagens/pesquisar2.png">
+            <img src="imagens/pesquisar2.png" onclick="abrirDetalhesPagamentos('${pagamento.id}')">
         </td>
         `
 
     return `<tr>${tds}</tr>`
+
+}
+
+async function carregarTotaisCusto() {
+
+    const { dados_orcam, snapshots, total_geral } = controles.orcamento.save || {}
+
+    atualizar('t-orcamento', dinheiro(total_geral))
+
+    const filtro = { op: 'includes', value: dados_orcam?.contrato }
+
+    const somaPagamentos = await contarPorCampo({
+        base: 'lista_pagamentos',
+        filtros: {
+            'departamento': filtro,
+            'param.*.codigo_tipo_documento': { op: '!=', value: 'CTE' },
+        },
+        explode: { path: 'snapshots.departamentos' },
+        path: 'valor',
+        modo: 'soma'
+    })
+
+    atualizar('t-pagamentos', dinheiro(somaPagamentos.total))
+
+    const somaFretes = await contarPorCampo({
+        base: 'lista_pagamentos',
+        filtros: {
+            'param.*.codigo_tipo_documento': { op: '=', value: 'CTE' },
+            'departamento': filtro
+        },
+        explode: { path: 'snapshots.departamentos' },
+        path: 'valor',
+        modo: 'soma'
+    })
+
+    atualizar('t-fretes', dinheiro(somaFretes.total))
+
+    const somaCombustiveis = await contarPorCampo({
+        base: 'custo_veiculos',
+        filtros: {
+            'departamento': filtro
+        },
+        explode: { path: 'snapshots.departamentos' },
+        path: 'valor',
+        modo: 'soma'
+    })
+
+    atualizar('t-abastecimento', dinheiro(somaCombustiveis.total))
+
+    function atualizar(id, valor) {
+        const ele = document.getElementById(id)
+        if (ele)
+            ele.textContent = valor
+    }
 
 }

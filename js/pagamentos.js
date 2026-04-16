@@ -47,7 +47,7 @@ async function telaPagamentos() {
     const pag = 'pagamentos'
     const colunas = {
         'Data de Previsão': { chave: 'param.*.data_vencimento', tipoPesquisa: 'data' },
-        'Departamentos': { chave: 'snapshots.departamentos' },
+        'Departamentos': { chave: 'snapshots.departamentos.*.departamento' },
         'APP': { chave: 'app', op: '=', tipoPesquisa: 'select' },
         'Valor': { chave: 'snapshots.valor' },
         'Status': { chave: 'status', tipoPesquisa: 'select' },
@@ -142,8 +142,8 @@ async function criarLinhaPagamento(pagamento) {
     const { data_vencimento, valor_documento } = param || {}
 
     const deps = (snapshots?.departamentos || [])
-        .map(dep => {
-            return `<span style="text-align: left;">• <b>${dep}</b></span>`
+        .map(({ departamento }) => {
+            return `<span style="text-align: left;">• <b>${departamento || ''}</b></span>`
         })
         .join('')
 
@@ -341,10 +341,10 @@ async function abrirDetalhesPagamentos(id) {
         : ''
 
     const deps = (pagamento?.snapshots?.departamentos || [])
-        .map(dep => {
+        .map(({ departamento, valor }) => {
             return `
                 <div style="${vertical}; gap: 2px; text-align: left;">
-                    <span>• <b>${dep}</b></span>
+                    <span>• <b>${departamento}</b> → ${dinheiro(valor)}</span>
                 </div>
             `
         }).join('')
