@@ -21,7 +21,8 @@
   /* Remover */
   align-items: center;
   background: white;
-  border-bottom: 1px solid #a4a4a4;
+  border: 1px solid #a4a4a4;
+  border-bottom: none;
   width: 100%;
   gap: .5rem;
   padding: 3px 0 3px 0;
@@ -43,6 +44,7 @@
   justify-content: right;
   display: flex;
   background-color: #ffe497;
+  border: solid 1px #a4a4a4;
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;
   margin-bottom: 0.5rem;
@@ -93,14 +95,24 @@
   font-size: 1rem;
 }
 
-.desconto-baixo {
+.desconto {
+  width: 100%;
+  background-color: #cbcbcb;
+  padding: 0px;
+}
+
+.desconto.ativo {
+  background-color: #4CAF50bf;
+}
+
+.desconto.baixo {
   padding-bottom: 5px;
   padding-top: 5px;
   border-bottom-left-radius: 10px;
   border-bottom-right-radius: 10px;
 }
 
-.desconto-cima {
+.desconto.cima {
   padding: 5px;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
@@ -120,28 +132,29 @@
 }
 
 .valor-orcamento {
+  cursor: pointer;
   color: #151749;
+  font-size: 1rem;
   font-weight: bold;
   white-space: nowrap;
 }
 
-.campoValor {
-  width: 0.8vw;
-  width: 100%;
-  background-color: #4CAF50bf;
-  border-radius: 3px;
-  display: inline-block;
+.campo-valor {
   text-align: center;
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
+  cursor: pointer;
+  max-width: 7rem;
+  border-radius: 20px;
+  padding: 8px;
+  border: 1px solid #17682a;
+  background-color: #4CAF50bf;
+  font-size: 14px;
 }
 
-.campoValor span {
-  display: block;
-  font-size: 1.5rem;
-  font-weight: normal;
-  margin-top: 10px;
-  color: #d7ffdb;
+.campo-valor:focus {
+  outline: none;
+  border-color: #3e8bff;
+  background-color: #fff;
+  box-shadow: 0 0 4px #3e8bff80;
 }
 
 .top {
@@ -351,24 +364,11 @@
   justify-content: center;
 }
 
-.desconto_on {
-  width: 100%;
-  background-color: #4CAF50bf;
-  padding: 0px;
-}
-
-.desconto_off {
-  color: #797979;
-  width: 100%;
-  background-color: #cbcbcb;
-  padding: 0px;
-}
-
 .menu-superior {
   gap: 1rem;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: start;
   border-radius: 3px;
   background-color: #f0f0f0;
   width: 100%;

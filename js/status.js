@@ -8,6 +8,7 @@ const permAltStatus = ['adm', 'diretoria']
 const statusExclusivosLog = ['ENVIADO', 'ENTREGUE']
 
 const fluxograma = [
+    'PROSPECÇÃO',
     'SEM STATUS',
     'COTAÇÃO',
     'ORC PENDENTE',

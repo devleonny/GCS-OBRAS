@@ -37,7 +37,7 @@ function popup({
 
     // Se img == concluido [ação de confirmar algo] && nra esteja falso [não manter anteriores]; Fechar todos os popups;
     const botaoPadrao = ({ funcao, img, texto }) => {
-        const removerAnteriores = (!nra && img == 'concluido')
+        const removerAnteriores = !nra
             ? `removerPopup(null, false)`
             : ''
 

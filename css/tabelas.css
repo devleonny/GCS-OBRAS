@@ -1,0 +1,104 @@
+.tabela-sem-resultados {
+    padding: 1rem 0;
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    border-radius: 3px;
+}
+
+.tabela {
+    width: 100%;
+    background-color: white;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+.tabela.nude {
+    background-color: transparent;
+}
+
+.tabela thead input,
+.tabela thead select {
+    background-color: #f0f0f0;
+    border-radius: 3px;
+    padding: 5px;
+    border: solid 1px #d2d2d2;
+    width: max-content;
+}
+
+.tabela th {
+    background-color: #efefef;
+    font-weight: lighter;
+    border: solid 1px #d2d2d2;
+    padding: 8px;
+}
+
+.tabela td {
+    vertical-align: top;
+    text-align: start;
+    padding: 8px;
+    overflow: hidden;
+    border: 1px solid #d2d2d2;
+}
+
+.tabela.nude td {
+    border: none;
+}
+
+.tabela thead {
+    box-shadow: 0 1px 0 #ccc;
+    background-color: #d2d2d2;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.borda-tabela {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    width: 100%;
+    border-radius: 3px;
+}
+
+.div-tabela {
+    border-right: solid 1px #434343;
+    border-left: solid 1px #434343;
+    background-color: white;
+    height: max-content;
+    width: 100%;
+    max-height: 70vh;
+    overflow: auto;
+}
+
+.div-tabela.nude {
+    border: none;
+    overflow: hidden;
+    background-color: transparent;
+}
+
+.topo-tabela {
+    justify-content: space-between;
+    width: 100%;
+    background-color: #707070;
+    border: 1px solid #434343;
+    border-bottom: none;
+    min-height: 2vh;
+    display: flex;
+    align-items: center;
+    border-top-right-radius: 5px;
+    border-top-left-radius: 5px;
+    gap: 2px;
+    width: 100%;
+}
+
+.topo-tabela.nude {
+    border-radius: 5px;
+}
+
+.topo-tabela span {
+    padding: 5px;
+}

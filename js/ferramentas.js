@@ -135,36 +135,37 @@ async function resetarBases() {
 
 async function f2() {
 
-    const scripts = ['clientes', 'categorias', 'departamentos', 'pagamentos', 'notas']
+    const scripts = ['Clientes', 'Categorias', 'Departamentos', 'Pagamentos', 'Notas']
+        .map(s => {
+            return { texto: s, elemento: `<button onclick="respostaSincronizacao('${s.toLowerCase()}')">Sincronizar ${s}</button>` }
+        })
 
-    const botoes = scripts
-        .map(s => `<button onclick="respostaSincronizacao('${s}')">Sincronizar ${inicialMaiuscula(s)}</button>`)
-        .join('')
-
-    const elemento = `
-        <div class="ferramentas">
-
-            ${botoes}
-
-            <div style="${vertical}; gap: 2px;">
-                <span>Criar Departamento</span>
+    const linhas = [
+        ...scripts,
+        {
+            texto: 'Criar Departamento',
+            elemento: `
                 <div style="${horizontal}; gap: 0.5rem;">
                     <input oninput="this.nextElementSibling.style.display = ''">
                     <img src="imagens/concluido.png" onclick="salvarDepartamento(this)" style="display: none;">
                 </div>
-            </div>
+                <div id="localResposta"></div>
+            `
+        },
+        {
+            texto: 'Notas',
+            elemento: `<button onclick="lembreteNotas()">Ver Notas Canceladas/Devolvidas</button>`
+        },
+        {
+            texto: 'Criar uma LPU',
+            elemento: `<button onclick="formularioLPU()">Criar</button>`
+        },
+        {
+            elemento: `<label style="cursor: pointer;">${Date.now()}</label>`
+        }
+    ]
 
-            <div id="localResposta"></div>
-
-            <button onclick="lembreteNotas()">Ver Notas Canceladas/Devolvidas</button>
-
-            <button onclick="formularioLPU()">Criar uma LPU</button>
-
-            <hr>
-            <label style="cursor: pointer;">${Date.now()}</label>
-        </div>`
-
-    popup({ elemento, titulo: 'Ferramentas' })
+    popup({ linhas, titulo: 'Ferramentas' })
 }
 
 function inicialMaiuscula(string) {

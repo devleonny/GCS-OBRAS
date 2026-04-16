@@ -5,7 +5,16 @@ function campoBloq() {
 }
 
 async function modTab(configuracoes) {
-    const { btnExtras = '', ocultarPaginacao = false, criarLinha, base, colunas = {}, body = null, pag = null } = configuracoes || {}
+    const {
+        btnExtras = '',
+        ocultarPaginacao = false,
+        scroll = null,
+        nude = null,
+        criarLinha,
+        base, colunas = {},
+        body = null,
+        pag = null
+    } = configuracoes || {}
 
     if (!body || !pag || !base || !criarLinha)
         return popup({ mensagem: 'body/pag/base/criarLinha Não podem ser null' })
@@ -82,12 +91,12 @@ async function modTab(configuracoes) {
 
     const modelo = `
         <div style="${vertical}; width: 100%;">
-            <div class="topo-tabela">
+            <div class="topo-tabela${nude ? ' nude' : ''}">
                 <div style="display: ${ocultarPaginacao ? 'none' : ''};" id="paginacao_${pag}"></div>
                 ${btnExtras}
             </div>
-            <div class="div-tabela" style="overflow-x: auto;">
-                <table class="tabela">
+            <div class="div-tabela${nude ? ' nude' : ''}" style="${scroll ? `max-height: 100%` : ''};">
+                <table class="tabela${nude ? ' nude' : ''}">
                     <thead>
                         <tr>${ths}</tr>
                         <tr>${pesquisa}</tr>
@@ -95,7 +104,7 @@ async function modTab(configuracoes) {
                     <tbody id="${body}"></tbody>
                 </table>
             </div>
-            <div class="rodape-tabela"></div>
+            ${nude ? '' : '<div class="rodape-tabela"></div>'}
         </div>
     `
     return modelo
@@ -571,7 +580,7 @@ function criarDino(cols) {
     const td = document.createElement('td')
     td.colSpan = cols
     td.innerHTML = `
-        <div style="${horizontal}; width: 100%; gap: 1rem;">
+        <div class="tabela-sem-resultados">
             ${achou() ? `<img src="gifs/offline.gif" style="width: 5rem;">` : '<span>Sem resultados</span>'}
         </div>
     `

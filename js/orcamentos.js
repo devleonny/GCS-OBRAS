@@ -39,6 +39,7 @@ async function telaOrcamentos() {
 
     atualizarToolbar(true) // GCS no título
     mostrarMenus(false)
+    criarMenus('orcamentos')
 
     funcaoTela = 'telaOrcamentos'
 
@@ -103,10 +104,7 @@ async function telaOrcamentos() {
     }
 
     await atualizarListaDepartamentos()
-
     await carregarToolbar()
-    criarMenus('orcamentos')
-
     await paginacao()
 
 }
@@ -468,17 +466,20 @@ async function editar(id) {
 
 async function duplicar(orcam_) {
 
-    let orcamentoBase = await recuperarDado('dados_orcamentos', orcam_)
-    let novoOrcamento = {}
+    const orcamentoBase = await recuperarDado('dados_orcamentos', orcam_) || {}
+    const novoOrcamento = {
+        esquema_composicoes: orcamentoBase.esquema_composicoes || {},
+        dados_composicoes: orcamentoBase.dados_composicoes || {},
+        lpu_ativa: orcamentoBase.lpu_ativa || 'LPU HOPE',
+        dados_orcam: {
+            ...orcamentoBase.dados_orcam || {},
+            contrato: '',
+            analista: acesso.nome_completo,
+            email_analista: acesso.email,
+            telefone_analista: acesso.telefone
+        }
 
-    novoOrcamento.dados_orcam = orcamentoBase.dados_orcam
-    novoOrcamento.esquema_composicoes = orcamentoBase.esquema_composicoes
-    novoOrcamento.dados_composicoes = orcamentoBase.dados_composicoes
-    novoOrcamento.lpu_ativa = orcamentoBase.lpu_ativa
-    novoOrcamento.dados_orcam.contrato = ''
-    novoOrcamento.dados_orcam.analista = acesso.nome_completo
-    novoOrcamento.dados_orcam.email_analista = acesso.email
-    novoOrcamento.dados_orcam.telefone_analista = acesso.telefone
+    }
 
     baseOrcamento(novoOrcamento)
 
