@@ -89,7 +89,7 @@ function confirmarRemocaoTag(idTag, idOrcamento) {
         { texto: 'Confirmar', img: 'concluido', funcao: `removerTag('${idTag}', '${idOrcamento}')` }
     ]
 
-    popup({ mensagem: 'Remover tag?', botoes, nra: false })
+    popup({ mensagem: 'Remover tag?', botoes, removerAnteriores: true })
 }
 
 async function removerTag(idTag, idOrcamento) {

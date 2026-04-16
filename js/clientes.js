@@ -650,7 +650,7 @@ function confirmarExcluirCliente(idCliente) {
         { texto: 'Confirmar', img: 'concluido', funcao: `excluirCliente('${idCliente}')` }
     ]
 
-    popup({ botoes, mensagem: 'Tem certeza que deseja excluir?', nra: false, titulo: 'Exclusão de cliente' })
+    popup({ botoes, mensagem: 'Tem certeza que deseja excluir?', removerAnteriores: true, titulo: 'Exclusão de cliente' })
 }
 
 async function excluirCliente(idCliente) {

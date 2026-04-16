@@ -464,6 +464,8 @@ function linCxOpcoes(dado) {
 
 async function selecionar(name, cod) {
 
+    overlayAguarde()
+
     if (cod == 'null')
         return popup({ mensagem: 'O objeto "base" em controlesCx precisa contem o próprio "id" / "codigo" / "etc"' })
 

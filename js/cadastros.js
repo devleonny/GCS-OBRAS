@@ -89,7 +89,7 @@ function confirmarExcluirItemTabela(nomeBase, id) {
         { texto: 'Confirmar', img: 'concluido', funcao: `excluirItemTabela('${nomeBase}', '${id}')` }
     ]
 
-    popup({ mensagem: 'Confirmar a exclusão do item?', botoes, nra: false })
+    popup({ mensagem: 'Confirmar a exclusão do item?', botoes, removerAnteriores: true })
 }
 
 async function excluirItemTabela(nomeBase, id) {

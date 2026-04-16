@@ -92,7 +92,7 @@ async function salvarAssinatura(idOcorrencia) {
         removerPopup()
 
     } catch (err) {
-        popup({ mensagem: `Falha ao salvar: ${err}`, nra: true })
+        popup({ mensagem: `Falha ao salvar: ${err}`,  })
     }
 
 }
@@ -113,7 +113,7 @@ async function coletarAssinatura(idOcorrencia) {
             <button class="small" onclick="salvarAssinatura('${idOcorrencia}')">Salvar</button>
         </div>
     `
-    popup({ elemento: acumulado, titulo: `Assinatura do Cliente - ${idOcorrencia}`, nra: true })
+    popup({ elemento: acumulado, titulo: `Assinatura do Cliente - ${idOcorrencia}`,  })
 
     iniciarAuxiliares()
 

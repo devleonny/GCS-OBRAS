@@ -699,7 +699,7 @@ function confirmarExclusaoManutencao(id) {
         { texto: 'Confirmar', img: 'concluido', funcao: `excluirManutencao('${id}')` }
     ]
 
-    popup({ mensagem: 'Confirmar exclusão?', botoes, nra: false })
+    popup({ mensagem: 'Confirmar exclusão?', botoes, removerAnteriores: true })
 
 }
 

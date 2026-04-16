@@ -344,7 +344,7 @@ async function confirmarExcluirPIT(id) {
         { texto: 'Confirmar', img: 'concluido', funcao: `excluirPIT('${id}')` }
     ]
 
-    popup({ mensagem: 'Tem certeza?', botoes, nra: false })
+    popup({ mensagem: 'Tem certeza?', botoes, removerAnteriores: true })
 
 }
 

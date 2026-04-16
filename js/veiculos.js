@@ -426,7 +426,7 @@ function painelExcluir(idCusto) {
         { texto: 'Confirmar', img: 'concluido', funcao: `excluirCusto('${idCusto}')` }
     ]
 
-    popup({ botoes, mensagem: 'Deseja excluir este lançamento?', nra: false })
+    popup({ botoes, mensagem: 'Deseja excluir este lançamento?', removerAnteriores: true })
 }
 
 async function excluirCusto(idCusto) {

@@ -227,15 +227,15 @@ async function salvarDepartamento(img) {
     const input = img.previousElementSibling
     const nome = input.value
 
-    if (!nome) return popup({ mensagem: 'Nome em branco', nra: true })
+    if (!nome) return popup({ mensagem: 'Nome em branco',  })
 
     const resposta = await criarDepDiretamente(nome)
 
-    if (resposta.mensagem) return popup({ mensagem: resposta.mensagem, nra: true })
+    if (resposta.mensagem) return popup({ mensagem: resposta.mensagem,  })
     input.value = ''
     img.style.display = 'none'
 
-    popup({ mensagem: 'Salvo com successo', nra: true })
+    popup({ mensagem: 'Salvo com successo',  })
 }
 
 async function respostaSincronizacao(script) {
@@ -390,7 +390,7 @@ async function alterarUsuario({ campo, usuario, select, valor }) {
     const alteracao = await comunicacaoServ({ usuario, campo, valor }) // Se alterar no servidor, altera localmente;
 
     if (!alteracao?.success) {
-        popup({ mensagem: `Não foi possível alterar: ${alteracao?.mensagem || 'Tente novamente mais tarde'}`, nra: true })
+        popup({ mensagem: `Não foi possível alterar: ${alteracao?.mensagem || 'Tente novamente mais tarde'}`,  })
         if (select)
             select.value = dados_setores[usuario][campo] // Devolve a informação anterior pro elemento;
     }
@@ -506,7 +506,7 @@ async function salvarLevantamento(idOrcamento, idElemento) {
         if (idOrcamento) return await abrirEsquema(idOrcamento)
 
     } catch (error) {
-        popup({ mensagem: `Erro ao fazer upload: ${error.message}`, nra: true })
+        popup({ mensagem: `Erro ao fazer upload: ${error.message}`,  })
     }
 }
 
@@ -624,7 +624,7 @@ async function painelUsuarios() {
     if (divOnline)
         return
 
-    popup({ elemento, titulo: 'Painel de Usuários', nra: true })
+    popup({ elemento, titulo: 'Painel de Usuários',  })
 
     await paginacao(pag)
 }
@@ -721,7 +721,7 @@ async function relancarPagamento(idPagamento) {
             <button onclick="confirmarRelancamento('${idPagamento}')">Confirmar</button>
         </div>
     `
-    popup({ elemento, titulo: 'Escolha o APP', nra: true })
+    popup({ elemento, titulo: 'Escolha o APP',  })
 }
 
 async function confirmarRelancamento(idPagamento) {

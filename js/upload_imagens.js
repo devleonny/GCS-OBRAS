@@ -30,7 +30,7 @@ function abrirImagem(codigo) {
         }
     ]
 
-    popup({ elemento, botoes, titulo: 'Imagem', nra: false })
+    popup({ elemento, botoes, titulo: 'Imagem', removerAnteriores: true })
 }
 
 async function importarImagem(codigo) {

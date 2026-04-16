@@ -1176,7 +1176,7 @@ async function confirmarExcluirFiltro(id) {
         { texto: 'Confirmar', img: 'concluido', funcao: `excluirFiltroOcorrencias('${id}')` }
     ]
 
-    popup({ mensagem: 'Tem certeza?', botoes, nra: false })
+    popup({ mensagem: 'Tem certeza?', botoes, removerAnteriores: true })
 
 }
 

@@ -417,7 +417,7 @@ async function confirmarProspeccao(id) {
         { texto: 'Confirmar', img: 'concluido', funcao: `iniciarChamadoProspeccao('${id}')` }
     ]
 
-    popup({ botoes, imagem: 'imagens/prospeccao.png', mensagem: 'Criar uma prospecção?', nra: false })
+    popup({ botoes, imagem: 'imagens/prospeccao.png', mensagem: 'Criar uma prospecção?', removerAnteriores: true })
 
 }
 
@@ -516,7 +516,7 @@ async function confirmarRemoverVinculo(idOrcamento, master) {
         { texto: 'Confirmar', img: 'concluido', funcao: `desfazerVinculo('${idOrcamento}', '${master}')` }
     ]
 
-    popup({ botoes, mensagem: 'Deseja desfazer vínculo?', nra: true })
+    popup({ botoes, mensagem: 'Deseja desfazer vínculo?',  })
 
 }
 

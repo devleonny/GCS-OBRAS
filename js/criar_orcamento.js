@@ -161,7 +161,7 @@ async function manterPrecos() {
         { texto: 'Manter preços', img: 'atrasado', funcao: `manterPrecosAntigos('S')` },
     ]
 
-    popup({ linhas, botoes, titulo: 'Manter Preços', nra: false })
+    popup({ linhas, botoes, titulo: 'Manter Preços', removerAnteriores: true })
 
 }
 

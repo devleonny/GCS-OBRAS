@@ -2,6 +2,9 @@ async function telaComposicoes() {
 
     mostrarMenus(false)
 
+    if (!LPUS)
+        return popup({ mensagem: 'LPUs não carregaram... espere um pouco mais.' })
+
     const colunas = {
         'Código': { chave: 'id' },
         'Editar': {},
@@ -560,7 +563,7 @@ async function adicionarCotacao(codigo, lpu, cotacao) {
 
     const botoes = []
 
-    if (usuariosPermitidosParaEditar) 
+    if (usuariosPermitidosParaEditar)
         botoes.push({ texto: 'Salvar Preço', img: 'concluido', funcao })
 
     popup({ botoes, elemento: `<div class="painel-precos">${acumulado}</div>`, titulo: produto.tipo })
@@ -819,7 +822,7 @@ async function confirmarExclusaoItem(codigo) {
         { texto: 'Confirmar', img: 'concluido', funcao: `excluirItemComposicao('${codigo}')` }
     ]
 
-    popup({ botoes, mensagem, nra: false })
+    popup({ botoes, mensagem, removerAnteriores: true })
 
 }
 
@@ -979,7 +982,7 @@ async function verAgrupamento(codigo) {
         { texto: 'Salvar Agrupamento', img: 'concluido', funcao: `salvarAgrupamento('${codigo}')` }
     ]
 
-    popup({ linhas, botoes, titulo: 'Gerenciar itens do agrupamento', nra: false })
+    popup({ linhas, botoes, titulo: 'Gerenciar itens do agrupamento' })
 
     const agrupamento = produto.agrupamento || {}
     for (const [cod, dados] of Object.entries(agrupamento))
@@ -1026,16 +1029,17 @@ async function criarLinhaAgrupamento(cod, dados) {
 
 async function salvarAgrupamento(codigo) {
 
+    overlayAguarde()
+
     const linhasAgrupamento = document.getElementById('linhasAgrupamento')
 
-    const trs = linhasAgrupamento.querySelectorAll('tr')
+    const trs = [...linhasAgrupamento.querySelectorAll('tr')]
 
     const agrupamento = {}
 
     for (const tr of trs) {
 
         const span = tr.querySelector('span')
-        console.log(span.textContent);
 
         if (span.textContent.includes('Selecione'))
             continue
@@ -1048,6 +1052,8 @@ async function salvarAgrupamento(codigo) {
     }
 
     await enviar(`dados_composicoes/${codigo}/agrupamento`, agrupamento)
+
+    removerPopup()
 
 }
 

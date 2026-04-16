@@ -732,7 +732,7 @@ function incluirContador() {
         { texto: 'Salvar', img: 'concluido', funcao: `criarGaveta()` },
     ]
 
-    popup({ botoes, linhas, nra: false })
+    popup({ botoes, linhas, removerAnteriores: true })
 }
 
 function confirmarCriarOrcamento(idOrcamento) {
@@ -880,7 +880,7 @@ async function confirmarExcluirAcao(idAcao) {
         { texto: 'Confirmar', img: 'concluido', funcao: `excluirAcao('${idAcao}')` }
     ]
 
-    popup({ botoes, mensagem: 'Tem certeza?', nra: false })
+    popup({ botoes, mensagem: 'Tem certeza?', removerAnteriores: true })
 
 }
 

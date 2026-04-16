@@ -427,7 +427,7 @@ function confirmarExcluirDocumento(id) {
         { texto: 'Confirmar', img: 'concluido', funcao: `excluirDocumento('${id}')` }
     ]
 
-    popup({ mensagem: 'Deseja excluir o documento?', botoes, nra: false })
+    popup({ mensagem: 'Deseja excluir o documento?', botoes, removerAnteriores: true })
 
 }
 
