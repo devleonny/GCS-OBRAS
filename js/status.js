@@ -332,7 +332,7 @@ async function abrirAtalhos(id, idMaster) {
 
     }
 
-    if (orcamento.status.atual == 'PROSPECÇÃO')
+    if (orcamento?.status?.atual == 'PROSPECÇÃO')
         botoesDisponiveis.push(modeloBotoes('prospeccao', 'Prospecção', `confirmarProspeccao('${id}')`))
 
     const modAlerta = (texto) => `
