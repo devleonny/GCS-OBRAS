@@ -133,7 +133,13 @@ async function telaCriarOrcamento() {
         tela.innerHTML = acumulado
 
     criarMenus('criarOrcamentos')
-    await manterPrecos()
+
+    // Inicializar tabelas;
+    const orcamento = baseOrcamento()
+    if (orcamento?.esquema_composicoes)
+        await manterPrecos()
+    else
+        await manterPrecosAntigos()
 
 }
 
@@ -371,6 +377,10 @@ async function carregarTabelasOrcamento(resposta = 'S') {
     const tabelaOrcamento = await modTab({
         base: Object.values(orcamentoBase?.esquema_composicoes || orcamentoBase.dados_composicoes || {}),
         pag,
+        ordenar: {
+            direcao: 'asc',
+            path: 'ordem'
+        },
         filtros: {},
         priBase: resposta,
         substituicoes: resposta == 'N'
@@ -1257,10 +1267,14 @@ async function incluirItem(codigo, novaQuantidade) {
     const { agrupamento, descricao, tipo, unidade, imagem, snapshots } = dadosMaster
     const custo = snapshots?.[lpuATIVA]?.[0] || 0
 
+    // Ordem
+    const ordem = (orcamentoBase?.ordem || 0) + 1
+    orcamentoBase.ordem = ordem
+
     orcamentoBase.esquema_composicoes ??= {}
     orcamentoBase.esquema_composicoes[codigo] ??= {}
 
-    // garante o objeto de agrupamento
+    // garante o objeto de agrupamento;
     orcamentoBase.esquema_composicoes[codigo].agrupamento = {}
 
     // Slaves
@@ -1281,7 +1295,7 @@ async function incluirItem(codigo, novaQuantidade) {
         }
     }
 
-    // Item principal
+    // Item principal;
     orcamentoBase.esquema_composicoes[codigo] = {
         ...orcamentoBase.esquema_composicoes[codigo],
         codigo,
@@ -1290,7 +1304,8 @@ async function incluirItem(codigo, novaQuantidade) {
         tipo,
         imagem,
         unidade,
-        qtde: novaQuantidade
+        qtde: novaQuantidade,
+        ordem
     }
 
     baseOrcamento(orcamentoBase)
