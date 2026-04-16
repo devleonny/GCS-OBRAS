@@ -47,9 +47,13 @@ const balaoPDF = ({ nf, tipo, codOmie, app }) => {
 }
 
 const modeloBotoes = (imagem, nome, funcao) => {
+
+    if(!imagem.includes('/'))
+        imagem = `imagens/${imagem}.png`
+
     return `
     <div class="atalhos" style="width: 100%;" onclick="${funcao}">
-        <img src="imagens/${imagem}.png">
+        <img src="${imagem}">
         <label style="cursor: pointer;">${nome}</label>
     </div>
     `

@@ -304,12 +304,12 @@ async function abrirAtalhos(id, idMaster) {
         )
 
     botoesDisponiveis.push(
-        modeloBotoes('pdf', 'Abrir Orçamento em PDF', `irPdf('${id}', ${emAnalise})`),
         modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)
     )
 
     if (!emAnalise) {
         botoesDisponiveis.push(
+            modeloBotoes('pdf', 'Abrir Orçamento em PDF', `irPdf('${id}', ${emAnalise})`),
             modeloBotoes('checklist', 'CHECKLIST', `telaChecklist('${id}')`),
             modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`),
             modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`),
@@ -331,6 +331,9 @@ async function abrirAtalhos(id, idMaster) {
         )
 
     }
+
+    if (orcamento.status.atual == 'PROSPECÇÃO')
+        botoesDisponiveis.push(modeloBotoes('prospeccao', 'Prospecção', `confirmarProspeccao('${id}')`))
 
     const modAlerta = (texto) => `
         <div class="alerta-pendencia" onclick="irORC('${id}')">
@@ -408,6 +411,47 @@ async function abrirAtalhos(id, idMaster) {
 
 }
 
+async function confirmarProspeccao(id) {
+
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `iniciarChamadoProspeccao('${id}')` }
+    ]
+
+    popup({ botoes, imagem: 'imagens/prospeccao.png', mensagem: 'Criar uma prospecção?', nra: false })
+
+}
+
+async function iniciarChamadoProspeccao(id) {
+
+    overlayAguarde()
+
+    const { dados_orcam } = await recuperarDado('dados_orcamentos', id) || {}
+    const { omie_cliente, contrato } = dados_orcam || {}
+
+    const novo = {
+        id: contrato,
+        equipamentos: {},
+        unidade: omie_cliente,
+        sistema: '17', // SERVIÇO DE INFRA
+        prioridade: 'v2ttQ', // Serviço de INFRA
+        tipo: 'wgVdc', // Prospecção
+        descricao: `Chamado de Prospecção do ${contrato}`,
+        dataRegistro: new Date().toLocaleString('pt-BR'),
+        usuario: acesso.usuario,
+        anexos: {}
+    }
+
+    await enviar(`dados_ocorrencias/${contrato}`, novo)
+
+    await telaOcorrencias()
+
+    controles.ocorrencias.filtros = {
+        'snapshots.contrato': { op: 'includes', value: contrato }
+    }
+
+    await paginacao('ocorrencias')
+
+}
 
 async function vincularOrcamento(idOrcamento) {
 

@@ -921,7 +921,8 @@ button {
     cursor: pointer;
     background-color: #249f41;
     border-radius: 5px;
-    border: solid 1px #434343;
+    border: none;
+    box-shadow: 0 0 2px #222;
     white-space: nowrap;
 }
 
