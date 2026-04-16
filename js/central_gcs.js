@@ -814,22 +814,24 @@ function sincronizar(script) {
 
 async function verAprovacoes() {
 
-    const colunas = {
-        'Contrato': { chave: 'snapshots.contrato' },
-        'Cliente': { chave: 'snapshots.cliente' },
-        'Total Original <br>[s/desc ou acres]': '',
-        'Total Geral': { chave: 'snapshots.valor' },
-        '%': '',
-        'Localização': { chave: 'snapshots.cidade' },
-        'Usuário': { chave: 'snapshots.responsavel' },
-        'Aprovação': { chave: 'aprovacao.status', tipoPesquisa: 'select' },
-        'Comentário': { chave: 'aprovacao.justificativa' },
-        'Detalhes': ''
-    }
+    if (telaAtiva.includes('criarOrcamento'))
+        return popup({ mensagem: 'Não é possível ver aprovações enquanto um orçamento é editado' })
 
     const pag = 'aprovacao'
+
     const tabela = await modTab({
-        colunas,
+        colunas: {
+            'Contrato': { chave: 'snapshots.contrato' },
+            'Cliente': { chave: 'snapshots.cliente' },
+            'Total Original <br>[s/desc ou acres]': {},
+            'Total Geral': { chave: 'snapshots.valor' },
+            '%': '',
+            'Localização': { chave: 'snapshots.cidade' },
+            'Usuário': { chave: 'snapshots.responsavel' },
+            'Aprovação': { chave: 'aprovacao.status', tipoPesquisa: 'select' },
+            'Comentário': { chave: 'aprovacao.justificativa' },
+            'Detalhes': ''
+        },
         pag,
         base: 'dados_orcamentos',
         pag: 'aprovacao',
@@ -909,14 +911,13 @@ async function verificarPendencias() {
 
 async function verPedidoAprovacao(idOrcamento) {
 
+    overlayAguarde()
+
     const permissao = acesso.permissao
     const pessoasPermitidas = ['adm', 'diretoria']
 
     if (!pessoasPermitidas.includes(permissao))
         return popup({ mensagem: 'Você não tem acesso' })
-
-    let tabelas = {}
-    let divTabelas = ''
 
     const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     const { cidade, cliente } = orcamento?.snapshots || {}
@@ -924,87 +925,18 @@ async function verPedidoAprovacao(idOrcamento) {
         ? String(orcamento.lpu_ativa).toLowerCase()
         : null
 
-    for (const [codigo, composicao] of Object.entries(orcamento?.dados_composicoes || {})) {
-
-        const quantidade = composicao.qtde
-        const custo = composicao.custo
-        const custoOriginal = composicao?.custo_original || false
-        const tipo = composicao.tipo
-
-        if (!tabelas[tipo]) tabelas[tipo] = { linhas: '' }
-
-        const total = quantidade * custo;
-        let desconto = 0
-
-        if (composicao.tipo_desconto) {
-            desconto = composicao.tipo_desconto != 'Porcentagem'
-                ? composicao.desconto
-                : total * (composicao.desconto / 100);
-        }
-
-        const totalOriginal = custoOriginal * quantidade
-        const labelCusto = dinheiro(custoOriginal ? custoOriginal : custo)
-        const labelTotal = dinheiro(custoOriginal ? totalOriginal : total)
-        const labelTotalDesconto = dinheiro(total - desconto)
-
-        let diferenca = '--', cor = '';
-        if (custoOriginal && custo !== custoOriginal) {
-            diferenca = dinheiro((custo - custoOriginal) * quantidade)
-            cor = 'green'
-
-        } else if (desconto > 0) {
-            diferenca = dinheiro(desconto)
-            cor = '#B12425'
-        }
-
-        tabelas[tipo].linhas += `
-            <tr>
-                <td>${composicao.descricao}</td>
-                <td>${quantidade}</td>
-                <td>
-                    <div style="${horizontal}; gap: 2rem;">
-                        <span style="white-space: nowrap;">${labelCusto}</span>
-                        <img src="imagens/preco.png" onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')" style="width: 2rem; cursor: pointer;">
-                    </div>
-                </td>
-                <td style="white-space: nowrap;">${labelTotal}</td>
-                <td>
-                    <div style="${vertical}; gap: 2px;">
-                        ${composicao?.tipo_desconto == 'Venda Direta' ? '<label>Venda Direta</label>' : ''}
-                        <label class="labelAprovacao" style="background-color: ${cor}">${diferenca}</label>
-                    </div>
-                </td>
-                <td>${labelTotalDesconto}</td>
-            </tr>
-        `
-    }
-
-    for (const [tabela, objeto] of Object.entries(tabelas)) {
-
-        divTabelas += `
-            <div class="borda-tabela">
-                <div class="topo-tabela">
-                    <label style="font-size: 1rem; padding: 0.5rem;"><b>${tabela}</b></label>
-                </div>
-                <div class="div-tabela">
-                    <table class="tabela">
-                        <thead>
-                            <tr>
-                                <th>Descrição</th>
-                                <th>Quantidade</th>
-                                <th>Unitário</th>
-                                <th>Total</th>
-                                <th>Diferença</th>
-                                <th>Total Geral</th>
-                            </tr>
-                        </thead>
-                        <tbody>${objeto.linhas}</tbody>
-                    </table>
-                </div>
-                <div class="rodape-tabela"></div>
-            </div>
-            `
-    }
+    const pag = 'criarOrcamento'
+    const tabela = await modTab({
+        base: Object.values(orcamento.esquema_composicoes || orcamento.dados_composicoes || {}),
+        pag,
+        nude: true,
+        scroll: true,
+        editavel: false,
+        funcaoAdicional: ['formatarLinhasOrcamento', 'calcularSubtotais'],
+        body: 'bodyOrcamento',
+        criarLinha: 'carregarLinhaOrcamento',
+        colunas: {}
+    })
 
     const divOrganizada = (valor, termo) => {
         return `
@@ -1012,59 +944,54 @@ async function verPedidoAprovacao(idOrcamento) {
                 <label style="text-align: left;"><b>${termo}</b></label>
                 <label style="text-align: left;"><small>${valor}</small></label>
             </div>
-        `
+            `
     }
 
-    let totalBruto = orcamento?.total_bruto
-    let totalGeral = conversor(orcamento.total_geral)
-    let diferencaDinheiro = totalGeral - totalBruto
-    let diferencaPorcentagem = `${(diferencaDinheiro / totalBruto * 100).toFixed(2)}%`
+    const totalBruto = orcamento?.total_bruto
+    const totalGeral = conversor(orcamento.total_geral)
+    const diferencaDinheiro = totalGeral - totalBruto
+    const diferencaPorcentagem = `${(diferencaDinheiro / totalBruto * 100).toFixed(2)}%`
 
-    const elemento = `
-        <div class="painelAprovacoes">
-            
-            <div style="display: flex; align-items: center; justify-content: start; gap: 2vw;">
-                <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
-                    ${divOrganizada(orcamento?.dados_orcam?.analista || '--', 'Solicitante')}
-                    ${divOrganizada(cliente || '?', 'Cliente')}
-                    ${divOrganizada(cidade || '?', 'Localidade')}
-                </div>
-                <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
-                    ${divOrganizada(dinheiro(totalGeral), 'Total Geral')}
-                    ${divOrganizada(dinheiro(totalBruto), 'Total Original (sem Acréscimo e/ou Desconto)')}
-                    ${divOrganizada(`<label class="labelAprovacao" style="background-color: ${diferencaDinheiro > 0 ? 'green' : '#B12425'}">${dinheiro(diferencaDinheiro)}</label>`, 'Diferença em Dinheiro')}
-                    ${divOrganizada(diferencaPorcentagem, 'Percentual')}
-                </div>
-            </div>
-
-            <hr style="width: 100%;">
-
-            <div style="display: flex; align-items: center; justify-content: center; gap: 5px;" onclick="visibilidadeOrcamento(this)">
-                <img src="imagens/olhoFechado.png" style="width: 1.2rem;">
-                <label style="text-decoration: underline; cursor: pointer;">Ver itens do Orçamento</label>
+    const linhas = [
+        {
+            elemento: `
+            <div style="${vertical}; gap: 5px;">
                 
-            </div>
-
-            <div style="display: none; align-items: start; justify-content: center; flex-direction: column; gap: 5px;">
-                ${divTabelas}
-            </div>
-
-            <hr>
-
-            <div style="width: 80%; position: relative; color: #222; border-radius: 3px; padding: 5px; display: flex; justify-content: center; align-items: start; flex-direction: column;">
-                <label>Comentar</label>
-                <textarea rows="5" style="background-color: white; border: none; width: 90%; color: #222;"></textarea>
-
-                <div style="display: flex; justify-content: left; gap: 5px;">
-                    <button style="background-color: green;" onclick="respostaAprovacao(this, '${idOrcamento}', 'aprovado')">Autorizar</button>
-                    <button style="background-color: #B12425;" onclick="respostaAprovacao(this, '${idOrcamento}', 'reprovado')">Reprovar</button>
+                <div style="${horizontal}; gap: 2rem;">
+                    <div style="${vertical}">
+                        ${divOrganizada(orcamento?.dados_orcam?.analista || '--', 'Solicitante')}
+                        ${divOrganizada(cliente || '?', 'Cliente')}
+                        ${divOrganizada(cidade || '?', 'Localidade')}
+                    </div>
+                    <div style="${vertical}">
+                        ${divOrganizada(dinheiro(totalGeral), 'Total Geral')}
+                        ${divOrganizada(dinheiro(totalBruto), 'Total Original (sem Acréscimo e/ou Desconto)')}
+                        ${divOrganizada(`<label class="labelAprovacao" style="background-color: ${diferencaDinheiro > 0 ? 'green' : '#B12425'}">${dinheiro(diferencaDinheiro)}</label>`, 'Diferença em Dinheiro')}
+                        ${divOrganizada(diferencaPorcentagem, 'Percentual')}
+                    </div>
                 </div>
-            </div>
 
-        </div>
-    `
+                <div style="${horizontal} gap: 5px;" onclick="visibilidadeOrcamento(this)">
+                    <img src="imagens/olhoFechado.png">
+                    <label style="text-decoration: underline; cursor: pointer;">Ver itens do Orçamento</label>
+                </div>
 
-    popup({ elemento, titulo: 'Detalhes' })
+                <div style="${horizontal}; display: none;">
+                    ${tabela}
+                </div>
+
+            </div>`
+        }
+    ]
+
+    const botoes = [
+        { texto: 'Aprovar', img: 'concluido', funcao: `respostaAprovacao('${idOrcamento}', 'aprovado')` },
+        { texto: 'Reprovar', img: 'cancel', funcao: `respostaAprovacao('${idOrcamento}', 'reprovado')` },
+    ]
+
+    popup({ linhas, botoes, titulo: 'Detalhes' })
+
+    await paginacao(pag)
 
 }
 
@@ -1085,16 +1012,14 @@ function visibilidadeOrcamento(div) {
     }
 }
 
-async function respostaAprovacao(botao, idOrcamento, status) {
+async function respostaAprovacao(idOrcamento, status) {
 
     overlayAguarde()
 
-    const justificativa = botao.parentElement.parentElement.querySelector('textarea').value
     const dados = {
         usuario: acesso.usuario,
         data: new Date().toLocaleString(),
-        status,
-        justificativa
+        status
     }
 
     const orcamento = await recuperarDado('dados_orcamentos', idOrcamento) || {}

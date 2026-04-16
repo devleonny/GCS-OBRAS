@@ -91,12 +91,12 @@ async function modTab(configuracoes) {
 
     const modelo = `
         <div style="${vertical}; width: 100%;">
-            <div class="topo-tabela">
+            <div class="topo-tabela${nude ? ' nude' : ''}">
                 <div style="display: ${ocultarPaginacao ? 'none' : ''};" id="paginacao_${pag}"></div>
                 ${btnExtras}
             </div>
-            <div class="div-tabela${nude ? '.nude' : ''}" style="${scroll ? `max-height: 100%` : ''};">
-                <table class="tabela${nude ? '.nude' : ''}">
+            <div class="div-tabela${nude ? ' nude' : ''}" style="${scroll ? `max-height: 100%` : ''};">
+                <table class="tabela${nude ? ' nude' : ''}">
                     <thead>
                         <tr>${ths}</tr>
                         <tr>${pesquisa}</tr>

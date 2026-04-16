@@ -1,28 +1,23 @@
-let memoriaFiltro = 'GERAL'
 let lpuATIVA = null
 
-const metaforas = [
-    "Um monitor sem imagens para exibir",
-    "Um sistema de vigilância sem olhos",
-    "Uma rede sem nós conectados",
-    "Uma central de segurança em silêncio",
-    "Uma câmera sem ângulos para vigiar",
-    "Um gravador sem arquivos para armazenar",
-    "Um mapa sem áreas para monitorar",
-    "Uma sala de controle sem alertas",
-    "Um software sem dados para processar",
-    "Uma instalação sem cabos para ligar",
-    "Um alarme sem disparo",
-    "Um servidor sem logs de acesso",
-    "Um banco de dados sem registros",
-    "Uma cerca virtual sem perímetro",
-    "Um sensor sem movimento detectado",
-    "Um sistema de monitoramento sem eventos",
-    "Uma interface sem transmissões ao vivo",
-    "Uma tela de múltiplas câmeras em branco",
-    "Um painel de controle sem notificações",
-    "Uma infraestrutura sem dispositivos ativos"
-]
+const substituicoes = (lpu) => {
+    return [
+        {
+            path: 'codigo',
+            tabela: 'dados_composicoes',
+            campoBusca: 'codigo',
+            retorno: `snapshots.${lpu.toLowerCase()}.0`,
+            destino: 'custo'
+        },
+        {
+            path: 'agrupamento.*.codigo',
+            tabela: 'dados_composicoes',
+            campoBusca: 'codigo',
+            retorno: `snapshots.${lpu.toLowerCase()}.0`,
+            destino: 'agrupamento.*.custo'
+        }
+    ]
+}
 
 function coresTabelas(tabela) {
 
@@ -86,22 +81,28 @@ async function telaCriarOrcamento() {
                     <label style="font-size: 1.2rem;">TOTAL GERAL</label>
                     <label style="font-size: 1.7rem;" id="total_geral"></label>
                     <br>
-                    <label style="font-size: 1em;">Tabela de preço</label>
-                    <select id="lpu" onchange="alterarTabelaLPU(this.value)"
-                        style="background-color: white; border-radius: 3px; padding: 5px;">
-                    </select>
+                    
+                    <div style="${horizontal}; gap: 1rem;">
+                        <img src="imagens/alerta.png">
+                        <span>Alterar a tabela removerá seus <b>descontos/acréscimos</b></span>
+                    </div>
+
+                    <div style="${horizontal}; gap: 1rem;">
+                        <label style="font-size: 1em;">Tabela de preço</label>
+                        <select id="lpu" onchange="alterarTabelaLPU(this.value)"
+                            style="background-color: white; border-radius: 3px; padding: 5px;">
+                        </select>
+                    </div>
 
                 </div>
 
                 <div class="resumo">
                     <label>RESUMO</label>
-                    <hr style="width: 100%;">
+                    <hr>
                     <label><b>Total Bruto</b></label>
-                    <label></label>
-                    <label><b>Diferença R$</b></label>
-                    <label></label>
-                    <label><b>Diferença %</b></label>
-                    <label id="diferenca">%</label>
+                    <label id="total-bruto"></label>
+                    <label><b>Diferença</b></label>
+                    <label id="diferenca-rs"></label>
                 </div>
 
                 <div style="${vertical}; gap: 3px; margin-right: 0.5rem;">
@@ -109,9 +110,8 @@ async function telaCriarOrcamento() {
                     <hr style="width: 100%;">
                     ${modelo('Preço Atualizado', 'preco')}
                     ${modelo('Preço Desatualizado', 'preco_neg')}
-                    ${modelo('Juntar itens', 'elo')}
+                    ${modelo('Itens Agrupados', 'elo')}
                     ${modelo('Ajustar o preço', 'ajustar')}
-                    <div id="chavePrecos"></div>
                 </div>
 
             </div>
@@ -133,90 +133,41 @@ async function telaCriarOrcamento() {
         tela.innerHTML = acumulado
 
     criarMenus('criarOrcamentos')
-    carregarResposta()
     await manterPrecos()
 
 }
 
-async function manterPrecos(verificacao = true) {
+async function manterPrecos() {
 
-
-    if (verificacao) {
-        const orcamento = baseOrcamento()
-
-        const painel = document.querySelector('.painel-manter-precos')
-        if (painel)
-            return
-
-        // Se tiver respondido, pode passar;
-        if (orcamento?.manter_precos || !orcamento?.id) {
-            return await atualizarOpcoesLPU()
+    const linhas = [
+        {
+            elemento: `
+                <p style="text-align: left;">
+                    Decida se quer editar este orçamento considerando <br>
+                    os preços de <strong>quando o orçamento foi feito</strong>, <br>
+                    ou se prefere atualizar tudo: <br>
+                </p>`
         }
+    ]
 
-    }
+    const botoes = [
+        { texto: 'Atualizar', img: 'atualizados', funcao: `manterPrecosAntigos('N')` },
+        { texto: 'Manter preços', img: 'atrasado', funcao: `manterPrecosAntigos('S')` },
+    ]
 
-    const modelo = (img, acao, texto, cor) => `
-        <div style="${horizontal}; gap: 0.5rem;">
-            <img src="imagens/${img}.png">
-            <button style="background-color: ${cor || ''}" onclick="removerPopup(); manterPrecosAntigos('${acao}')">${texto}</button>
-        </div>`
+    popup({ linhas, botoes, titulo: 'Manter Preços', nra: false })
 
-    const elemento = `
-        <div class="painel-manter-precos">
-
-            <p style="text-align: left;">
-                Decida se quer editar este orçamento considerando <br>
-                os preços de <strong>quando o orçamento foi feito</strong>, <br>
-                ou se prefere atualizar tudo: <br>
-            </p>
-            
-            ${modelo('atualizados', 'N', 'Atualizar os Preços')}
-            ${modelo('atrasado', 'S', 'Manter os preços antigos', '#e74642')}
-
-        </div>
-        `
-
-    popup({ elemento, titulo: 'Manter Preços' })
-
-}
-
-function carregarResposta() {
-
-    const orcamento = baseOrcamento()
-    const manterPrecos = orcamento?.manter_precos == 'S'
-    const chavePrecos = document.getElementById('chavePrecos')
-
-    const texto = manterPrecos
-        ? 'Preços Antigos'
-        : 'Preços Atualizados'
-
-    const img = manterPrecos
-        ? 'atrasado'
-        : 'atualizados'
-
-    chavePrecos.innerHTML = `
-        <div style="${horizontal}; gap: 1rem;">
-            <img ${orcamento?.id ? `onclick="manterPrecos(false)"` : ''} src="imagens/${img}.png">
-            <span style="text-align: left;">${texto}</span>
-        </div>
-    `
 }
 
 async function manterPrecosAntigos(resposta) {
 
-    const orcamentoBase = baseOrcamento()
-
-    const orcamento = resposta == 'S'
-        ? await recuperarDado('dados_orcamentos', orcamentoBase.id)
-        : baseOrcamento()
-
-    orcamento.manter_precos = resposta
-
-    baseOrcamento(orcamento)
+    overlayAguarde()
 
     await atualizarOpcoesLPU()
+    await tabelaProdutosOrcamentos()
+    await carregarTabelasOrcamento(resposta)
 
-    carregarResposta()
+    removerOverlay()
 
 }
 
@@ -311,14 +262,26 @@ async function alterarRevisao() {
     const revisao = document.querySelector('[name="revisao"]').value
 
     const orcamento = baseOrcamento()
+    const revisaoAtual = orcamento?.revisoes?.atual
     orcamento.revisoes.atual = revisao
 
-    if (orcamento.lpu_ativa == 'ALUGUEL')
+    const cloneComposicoes = structuredClone(orcamento.lpu_ativa == 'ALUGUEL' ? orcamento.dados_composicoes : orcamento.esquema_composicoes)
+
+    if (revisaoAtual)
+        orcamento.revisoes.historico[revisaoAtual] = cloneComposicoes
+
+    if (orcamento.lpu_ativa == 'ALUGUEL') {
         orcamento.dados_composicoes = orcamento.revisoes.historico[revisao]
-    else
+
+    } else {
         orcamento.esquema_composicoes = orcamento.revisoes.historico[revisao]
+    }
 
     baseOrcamento(orcamento)
+
+    controles.criarOrcamento.base = Object.values(orcamento?.esquema_composicoes || {})
+
+    await paginacao('criarOrcamento')
 
 }
 
@@ -368,34 +331,54 @@ async function atualizarOpcoesLPU() {
     orcamentoBase.lpu_ativa = lpu.value
     baseOrcamento(orcamentoBase)
 
-    await tabelaProdutosOrcamentos()
-    await carregarTabelasOrcamento()
-
 }
 
 async function alterarTabelaLPU(tabelaLPU) {
 
+    lpuATIVA = tabelaLPU
     document.getElementById('lpu').value = tabelaLPU
-    let orcamentoBase = baseOrcamento()
+
+    const orcamentoBase = baseOrcamento()
     orcamentoBase.lpu_ativa = tabelaLPU
     baseOrcamento(orcamentoBase)
 
+    await carregarTabelasOrcamento('N')
     await tabelaProdutosOrcamentos()
-    await carregarTabelasOrcamento()
 
 }
 
-async function carregarTabelasOrcamento() {
+async function carregarTabelasOrcamento(resposta = 'S') {
 
-    const orcamentoBase = baseOrcamento()
+    let orcamentoBase = baseOrcamento()
+    lpuATIVA = String(orcamentoBase.lpu_ativa).toLowerCase()
 
-    const esquemaComposicoes = orcamentoBase?.esquema_composicoes || orcamentoBase.dados_composicoes || {}
+    // Remover custos_originais;
+    if (resposta == 'N') {
 
+        for (const produtoMaster of Object.values(orcamentoBase?.esquema_composicoes || {})) {
+
+            // Raíz
+            delete produtoMaster.custo_original
+
+            // Agrupamento
+            for (const produtoSlave of Object.values(produtoMaster?.agrupamento || {}))
+                delete produtoSlave.custo_original
+
+        }
+    }
+
+    const pag = 'criarOrcamento'
     const tabelaOrcamento = await modTab({
-        base: Object.values(esquemaComposicoes),
-        pag: 'criarOrcamento',
+        base: Object.values(orcamentoBase?.esquema_composicoes || orcamentoBase.dados_composicoes || {}),
+        pag,
+        filtros: {},
+        priBase: resposta,
+        substituicoes: resposta == 'N'
+            ? substituicoes(lpuATIVA)
+            : [],
         scroll: true,
         nude: true,
+        editavel: true,
         funcaoAdicional: ['totalOrcamento'],
         body: 'bodyOrcamento',
         criarLinha: 'carregarLinhaOrcamento'
@@ -419,12 +402,18 @@ async function carregarTabelasOrcamento() {
 
     `
 
+    await paginacao(pag)
+
     // Salvando o orçamento com o esquema;
+    orcamentoBase = baseOrcamento()
+    orcamentoBase.esquema_composicoes = Object.fromEntries(
+        (controles?.criarOrcamento?.base || []).map(item => { return [item.codigo, item] })
+    )
+
     baseOrcamento(orcamentoBase)
 
-    lpuATIVA = String(orcamentoBase.lpu_ativa).toLowerCase()
-
-    await paginacao()
+    // Reset nas substituições;
+    controles.criarOrcamento.substituicoes = []
 
 }
 
@@ -432,9 +421,7 @@ function carregarLinhaOrcamento(produto) {
 
     const { agrupamento } = produto || {}
     const codigoMaster = produto.codigo
-
-    const opcoes = ['Dinheiro', 'Porcentagem', 'Venda Direta']
-        .map(op => `<option ${produto?.tipo_desconto == op ? 'selected' : ''}>${op}</option>`).join('')
+    const editavel = controles?.criarOrcamento?.editavel || false
 
     const linhaSlave = Object.values(agrupamento || {})
         .map(produto => {
@@ -466,15 +453,31 @@ function carregarLinhaOrcamento(produto) {
 
     function criarLinha(produto) {
 
-        const { codigo, tipo, qtde, cnpj, custo, razaoSocial, descricao, unidade, imagem, } = produto || {}
+        const { codigo, tipo, qtde, cnpj, custo, razaoSocial, custo_original, descricao, unidade, imagem } = produto || {}
         const total = custo * qtde
         const chave = codigoMaster !== codigo
             ? `${codigoMaster}_${codigo}`
             : codigo
 
+        // Ajuste de preço;
+        const dif = custo_original
+            ? custo - custo_original
+            : 0
+
+        const sinal = dif == 0
+            ? null
+            : dif > 0
+                ? 'acima'
+                : 'abaixo'
+
+        const precoAjustado = `
+            <div>
+                <img src="imagens/${sinal}.png">
+                <span class="valor-orcamento">${dinheiro(dif * qtde)}</span>
+            </div>`
+
         const celulas = `
             <div style="${horizontal}; padding: 0.5rem; gap: 0.5rem;">
-                <div name="elo"></div>
                 <span>${codigo}</span>
             </div>
 
@@ -491,17 +494,21 @@ function carregarLinhaOrcamento(produto) {
             <div name="medida">${unidade || 'UN'}</div>
 
             <div>
-                <input name="quantidade" oninput="atualizarQtde('${chave}', this)" type="number" class="campo-valor" value="${qtde}">
+                <input name="quantidade" oninput="atualizarQtde('${chave}', this)" type="number" class="campo-valor" value="${qtde}" ${editavel ? '' : 'readOnly'}>
             </div>
 
-            <div style="${horizontal}; justify-content: start; gap: 3px;">
-                <img onclick="alterarValorUnitario('${chave}')" src="imagens/ajustar.png" style="width: 1.5rem;">
+            <div style="${horizontal}; justify-content: start; gap: 1rem;">
+                ${editavel ? `<img onclick="alterarValorUnitario('${chave}', 'unitario')" src="imagens/ajustar.png" style="width: 1.5rem;">` : ''}
                 <span name="unitario" onclick="abrirHistoricoPrecos('${codigo}', '${lpuATIVA}')" class="valor-orcamento">${dinheiro(custo || '')}</span>
             </div>
 
-            <div style="${horizontal}; justify-content: start; gap: 3px;">
-                <img onclick="alterarValorUnitario('${chave}')" src="imagens/ajustar.png" style="width: 1.5rem;">
+            <div style="${horizontal}; justify-content: start; gap: 1rem;">
+                ${editavel ? `<img onclick="alterarValorUnitario('${chave}', 'total')" src="imagens/ajustar.png" style="width: 1.5rem;">` : ''}
                 <span name="total" class="valor-orcamento">${dinheiro(total)}</span>
+            </div>
+
+            <div>
+                ${sinal ? precoAjustado : ''}
             </div>
 
             <div>
@@ -510,9 +517,12 @@ function carregarLinhaOrcamento(produto) {
             </div>
             
             <div>
-                <img src="imagens/cancel.png" 
+                ${editavel
+                ? `<img src="imagens/cancel.png" 
                     onclick="removerItemOrcamento('${chave}')" 
-                    style="width: 1.5rem;">
+                    style="width: 1.5rem;">`
+                : ''
+            }
             </div>
         `
         return celulas
@@ -558,10 +568,6 @@ async function totalOrcamento() {
     if (!controles.criarOrcamento)
         return
 
-    const { esquema_composicoes } = baseOrcamento()
-
-    controles.criarOrcamento.base = Object.values(esquema_composicoes)
-
     formatarLinhasOrcamento()
     calcularSubtotais()
 
@@ -571,6 +577,7 @@ async function totalOrcamento() {
 function calcularSubtotais() {
 
     const totais = {
+        BRUTO: 0,
         GERAL: 0
     }
 
@@ -580,7 +587,10 @@ function calcularSubtotais() {
     for (const item of base) {
 
         // Item principal;
-        const { tipo, custo, qtde, agrupamento } = item
+        const { tipo, custo, custo_original, qtde, agrupamento } = item
+
+        // Bruto
+        totais.BRUTO += ((custo_original || custo) * qtde)
 
         const total = custo * qtde
         totais[tipo] ??= 0
@@ -588,9 +598,12 @@ function calcularSubtotais() {
         totais.GERAL += total
 
         // Agrupados;
-        for (const item of Object.values(agrupamento)) {
+        for (const item of Object.values(agrupamento || {})) {
 
-            const { tipo, custo, qtde } = item
+            const { tipo, custo, custo_original, qtde } = item
+
+            // Bruto
+            totais.BRUTO += ((custo_original || custo) * qtde)
 
             const total = custo * qtde
             totais[tipo] ??= 0
@@ -629,20 +642,48 @@ function calcularSubtotais() {
         </div>
     `
 
-    const toolbarSuperior = document.querySelector('.toolbarSuperior')
+    const dif = totais.GERAL - totais.BRUTO
+    const sinal = dif == 0
+        ? null
+        : dif > 0
+            ? 'acima'
+            : 'abaixo'
+
+    // Recorte usado apenas na tela Criar Orçamento;
+    if (!document.getElementById('total-bruto'))
+        return
+
+    document.getElementById('total-bruto').textContent = dinheiro(totais.BRUTO)
+    document.getElementById('diferenca-rs').innerHTML = !sinal
+        ? 'Sem diferença'
+        : `
+        <div style="${horizontal}; gap: 5px;">
+            <img src="imagens/${sinal}.png">
+            <span>${dinheiro(dif)} (${((dif / totais.BRUTO) * 100).toFixed(1)} %)</span>
+        </div>
+    `
+    document.getElementById('total_geral').textContent = dinheiro(totais.GERAL)
 
     const toolbar = Object.entries(totais)
+        .filter(([tool,]) => tool !== 'BRUTO')
         .map(([tool, total]) => modeloToolbar(tool, total))
         .join('')
 
+    const toolbarSuperior = document.querySelector('.toolbarSuperior')
     if (toolbarSuperior)
         toolbarSuperior.innerHTML = toolbar
 
-    document.getElementById('total_geral').textContent = dinheiro(totais.GERAL)
+
+    // Salvamento dos totais;
+    const orcamento = baseOrcamento()
+    orcamento.total_geral = totais.GERAL
+    orcamento.total_bruto = totais.BRUTO
+    orcamento.diferenca = dif
+    baseOrcamento(orcamento)
+
 }
 
 async function pesquisarEmOrcamentos({ path, op = '=', value }) {
-
 
     controles.criarOrcamento.filtros = {
         ...controles.criarOrcamento.filtros,
@@ -652,7 +693,7 @@ async function pesquisarEmOrcamentos({ path, op = '=', value }) {
     if (value == '')
         delete controles.criarOrcamento.filtros[path]
 
-    await paginacao()
+    await paginacao('criarOrcamento')
 
 }
 
@@ -664,7 +705,7 @@ function formatarLinhasOrcamento() {
         return
 
     const topoTabela = menuPaginacao.closest('.topo-tabela')
-    const filtro = controles?.criarOrcamento?.filtros?.tipo || 'GERAL'
+    const filtro = controles?.criarOrcamento?.filtros?.tipo?.value || 'GERAL'
     topoTabela.style.backgroundColor = coresTabelas(filtro)
 
     // Quando não tiver pesquisa ou filtragem por tipo;
@@ -710,18 +751,75 @@ async function removerItemOrcamento(chave) {
 
     baseOrcamento(orcamento)
     controles.criarOrcamento.base = Object.values(orcamento.esquema_composicoes)
-    await paginacao()
+    await paginacao('criarOrcamento')
     removerOverlay()
+}
+
+function gerarDadosComposicoes(esquema = {}) {
+    const acc = {}
+
+    const adicionar = (codigo, item = {}) => {
+        const qtde = Number(item.qtde) || 0
+        const custo = Number(item.custo) || 0
+
+        if (!acc[codigo]) {
+            acc[codigo] = {
+                ...item,
+                codigo,
+                qtde: 0,
+                _somaCusto: 0,
+                _countCusto: 0
+            }
+        } else {
+            for (const [chave, valor] of Object.entries(item)) {
+                if (
+                    chave !== 'qtde' &&
+                    chave !== 'custo' &&
+                    chave !== 'agrupamento' &&
+                    (acc[codigo][chave] === undefined || acc[codigo][chave] === null || acc[codigo][chave] === '')
+                ) {
+                    acc[codigo][chave] = valor
+                }
+            }
+        }
+
+        acc[codigo].qtde += qtde
+        acc[codigo]._somaCusto += custo
+        acc[codigo]._countCusto++
+    }
+
+    for (const [codigoMaster, comp] of Object.entries(esquema || {})) {
+        adicionar(codigoMaster, comp)
+
+        for (const [codigoSlave, item] of Object.entries(comp.agrupamento || {})) {
+            adicionar(codigoSlave, item)
+        }
+    }
+
+    return Object.fromEntries(
+        Object.entries(acc).map(([codigo, item]) => {
+            const { _somaCusto, _countCusto, agrupamento, ...resto } = item
+
+            return [
+                codigo,
+                {
+                    ...resto,
+                    codigo,
+                    custo: _countCusto ? _somaCusto / _countCusto : 0
+                }
+            ]
+        })
+    )
 }
 
 async function enviarDadosOrcamento() {
 
     overlayAguarde()
 
-    // Esquema → dados_composicoes;
-    await converterEsquema()
+    const orcamentoBase = baseOrcamento()
 
-    let orcamentoBase = baseOrcamento()
+    // Unificador para dados_composições;
+    orcamentoBase.dados_composicoes = gerarDadosComposicoes(orcamentoBase.esquema_composicoes || {})
 
     // Salvar o usuário na primeira vez apenas;
     if (!orcamentoBase.usuario)
@@ -738,12 +836,10 @@ async function enviarDadosOrcamento() {
     if (dados_orcam.contrato == '')
         dados_orcam.contrato = 'sequencial'
 
-    if (orcamentoBase.total_desconto > 0) {
-        orcamentoBase.aprovacao = {
-            status: 'pendente',
-            usuario: acesso.usuario
-        }
-    }
+    // Se totais diferentes: aprovação será necessária;
+    orcamentoBase.aprovacao = orcamentoBase.total_bruto !== orcamentoBase.total_geral
+        ? { status: 'pendente', usuario: acesso.usuario }
+        : null
 
     if (!orcamentoBase.id)
         orcamentoBase.id = `ORCA_${crypto.randomUUID()}`
@@ -898,10 +994,6 @@ async function tabelaProdutosOrcamentos() {
     const toolbar = ['TODOS', ...esquemas.tipo]
         .map(op => {
 
-            const filtros = op !== 'TODOS'
-                ? `{op:'=', value: '${op}'}`
-                : '{}'
-
             return `<label 
             class="menu-top" 
             style="background-color: ${coresTabelas(op)};" 
@@ -931,8 +1023,9 @@ async function tabelaProdutosOrcamentos() {
         'Imagem': {}
     }
 
+    const pag = 'composicoes_orcamento'
     const tabela = await modTab({
-        pag: 'composicoes_orcamento',
+        pag,
         colunas,
         funcaoAdicional: ['formatarTabela', 'totalOrcamento'],
         btnExtras,
@@ -961,7 +1054,7 @@ async function tabelaProdutosOrcamentos() {
 
     document.getElementById('tabelaItens').innerHTML = acumulado
 
-    await paginacao()
+    await paginacao(pag)
 
 }
 
@@ -978,7 +1071,7 @@ async function filtrarPorComposicoes({ path, op = '=', value }) {
     if (value == 'TODOS')
         delete controles.composicoes_orcamento.filtros[path]
 
-    await paginacao()
+    await paginacao('composicoes_orcamento')
 
 }
 
@@ -1043,58 +1136,11 @@ function linhasComposicoesOrcamento(produto) {
 
 }
 
-
-async function converterEsquema() {
-
-    const orcamento = baseOrcamento()
-    const origem = JSON.parse(JSON.stringify(orcamento.esquema_composicoes || {}))
-
-    orcamento.dados_composicoes = {}
-
-    function acumular(codigo, item) {
-
-        if (!orcamento.dados_composicoes[codigo]) {
-            orcamento.dados_composicoes[codigo] = {
-                ...item,
-                qtde: 0,
-                desconto: 0,
-                tipo_desconto: 'dinheiro'
-            }
-        }
-
-        const destino = orcamento.dados_composicoes[codigo]
-
-        destino.qtde += item.qtde
-
-        // desconto
-        if (item.desconto) {
-            if (item.tipo_desconto === 'Porcentagem') {
-                destino.desconto += (item.custo * item.qtde) * (item.desconto / 100)
-            } else {
-                destino.desconto += item.desconto
-            }
-        }
-    }
-
-    for (const [codigoMaster, master] of Object.entries(origem)) {
-
-        const m = { ...master }
-        delete m.agrupamento
-        acumular(codigoMaster, m)
-
-        for (const [codigoSlave, slave] of Object.entries(master.agrupamento || {})) {
-            acumular(codigoSlave, slave)
-        }
-    }
-
-    baseOrcamento(orcamento)
-}
-
 function verificarData(data, codigo) {
 
     const lpu = String(document.getElementById('lpu').value).toLocaleLowerCase()
     if (!data) {
-        return `<img onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')" src="imagens/preco_neg.png" style="width: 1.5rem;">`
+        return `<img onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')" src="imagens/preco_neg.png">`
     }
 
     const [dt] = String(data).split(', ')
@@ -1102,17 +1148,17 @@ function verificarData(data, codigo) {
     const dataRef = new Date(ano, mes - 1, dia)
 
     if (isNaN(dataRef)) {
-        return `<img onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')" src="imagens/preco_neg.png" style="width: 1.5rem;">`
+        return `<img onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')" src="imagens/preco_neg.png">`
     }
 
     const hoje = new Date()
     const diffDias = Math.floor((hoje - dataRef) / (1000 * 60 * 60 * 24))
     const imagem = diffDias > 30 ? 'preco_neg' : 'preco'
 
-    return `<img onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')" src="imagens/${imagem}.png" style="width: 1.5rem;">`
+    return `<img onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')" src="imagens/${imagem}.png">`
 }
 
-async function alterarValorUnitario(chave) {
+async function alterarValorUnitario(chave, campo) {
 
     overlayAguarde()
     const [codigoMaster, codigoSlave] = chave.includes('_')
@@ -1124,6 +1170,14 @@ async function alterarValorUnitario(chave) {
     const ativo = produto?.[lpu]?.ativo || 0
     const historico = produto?.[lpu]?.historico || {}
     const precoOriginal = historico?.[ativo]?.valor || 0
+    const { esquema_composicoes } = baseOrcamento()
+    const qtde = codigoSlave
+        ? esquema_composicoes[codigoMaster].agrupamento[codigoSlave].qtde
+        : esquema_composicoes[codigoMaster].qtde
+
+    const totalOriginal = campo == 'total'
+        ? precoOriginal * qtde
+        : precoOriginal
 
     const linhas = [
         {
@@ -1132,7 +1186,7 @@ async function alterarValorUnitario(chave) {
         },
         {
             texto: 'Preço Original',
-            elemento: `<label>${dinheiro(precoOriginal)}</label>`
+            elemento: `<label>${dinheiro(totalOriginal)}</label>`
         },
         {
             texto: 'Novo Valor',
@@ -1140,16 +1194,26 @@ async function alterarValorUnitario(chave) {
         }
     ]
 
+    controles.criarOrcamento.alteracaoPreco = {
+        qtde,
+        campo,
+        chave,
+        precoOriginal
+    }
+
     const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: `confirmarNovoPreco({chave: '${chave}', precoOriginal: ${precoOriginal}, operacao: 'incluir'})` },
-        { texto: 'Valor Original', img: 'atualizados', funcao: `confirmarNovoPreco({chave: '${chave}', precoOriginal: ${precoOriginal}, operacao: 'remover'})` },
+        { texto: 'Salvar', img: 'concluido', funcao: 'confirmarNovoPreco()' }
     ]
 
     popup({ linhas, botoes, titulo: 'Ajuste de preço' })
 
 }
 
-async function confirmarNovoPreco({ chave, precoOriginal, operacao }) {
+async function confirmarNovoPreco() {
+
+    overlayAguarde()
+
+    const { chave, precoOriginal, campo, qtde } = controles.criarOrcamento.alteracaoPreco
 
     // verificar se é master ou slave;
     const [codigoMaster, codigoSlave] = chave.includes('_')
@@ -1161,21 +1225,24 @@ async function confirmarNovoPreco({ chave, precoOriginal, operacao }) {
         ? orcamento.esquema_composicoes[codigoMaster].agrupamento[codigoSlave]
         : orcamento.esquema_composicoes[codigoMaster]
 
-    if (operacao == 'incluir') {
-        const valor = Number(document.getElementById('novoValor').value)
+    const valor = Number(document.getElementById('novoValor').value)
 
-        item.custo_original = precoOriginal
-        item.custo = valor
-        item.alterado = true
+    item.custo_original = precoOriginal
 
-    } else if (operacao == 'remover') {
+    item.custo = campo == 'unitario'
+        ? valor
+        : valor / qtde
+
+    // Verificação da alteração de valor;
+    if (item.custo == precoOriginal) {
+
         delete item.custo_original
-        delete item.alterado
+
     }
 
-    controles.criarOrcamento.base = Object.values(orcamento)
+    controles.criarOrcamento.base = Object.values(orcamento.esquema_composicoes)
     baseOrcamento(orcamento)
-    await paginacao()
+    await paginacao('criarOrcamento')
     removerPopup()
 
 }
@@ -1228,7 +1295,7 @@ async function incluirItem(codigo, novaQuantidade) {
 
     baseOrcamento(orcamentoBase)
     controles.criarOrcamento.base = Object.values(orcamentoBase.esquema_composicoes)
-    await paginacao()
+    await paginacao('criarOrcamento')
 
     removerOverlay()
 

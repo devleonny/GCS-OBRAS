@@ -16,6 +16,10 @@ async function recuperarDado(base, chave) {
 
     if (!resposta.ok) {
         const erro = await resposta.text()
+
+        if (erro.includes('expirado'))
+            location.reload(true)
+
         throw new Error(erro || 'Erro na requisição')
     }
 

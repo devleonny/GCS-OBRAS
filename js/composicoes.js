@@ -560,7 +560,8 @@ async function adicionarCotacao(codigo, lpu, cotacao) {
 
     const botoes = []
 
-    if (usuariosPermitidosParaEditar) botoes.push({ texto: 'Salvar Preço', img: 'concluido', funcao })
+    if (usuariosPermitidosParaEditar) 
+        botoes.push({ texto: 'Salvar Preço', img: 'concluido', funcao })
 
     popup({ botoes, elemento: `<div class="painel-precos">${acumulado}</div>`, titulo: produto.tipo })
 
@@ -806,8 +807,8 @@ async function salvarPreco(codigo, lpu, cotacao) {
 
     removerPopup()
 
-    await abrirHistoricoPrecos(codigo, lpu)
     await enviar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`, historico[cotacao])
+    await abrirHistoricoPrecos(codigo, lpu)
 
 }
 

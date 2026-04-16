@@ -415,18 +415,6 @@ span[name="titulo"] {
     color: white;
 }
 
-.painelAprovacoes {
-    width: max-content;
-    background-color: #d2d2d2;
-    color: #222;
-    padding: 5px;
-    display: flex;
-    justify-content: start;
-    align-items: start;
-    flex-direction: column;
-    padding: 0.5rem;
-}
-
 .gavetaTabelas {
     background-color: #797979;
     overflow: auto;
