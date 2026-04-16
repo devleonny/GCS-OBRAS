@@ -165,27 +165,13 @@ async function painelCustos(id) {
 
             <div style="width: 100%;">
                 <div class="toolbar-relatorio">
-                    <span data-toolbar="orcamento" onclick="mostrarPagina(this)" style="opacity: 1;">Orçamento</span>
-                    <span data-toolbar="pagamentos" onclick="mostrarPagina(this)" style="opacity: 0.5;">Pagamentos</span>
-                    <span data-toolbar="veiculos" onclick="mostrarPagina(this)" style="opacity: 0.5;">Combustíveis</span>
-                    <span data-toolbar="fretes" onclick="mostrarPagina(this)" style="opacity: 0.5;">Fretes</span>
+                    <span data-toolbar="orcamento" onclick="carregarTabelaPainel(this)" style="opacity: 0.5;">Orçamento</span>
+                    <span data-toolbar="pagamentos" onclick="carregarTabelaPainel(this)" style="opacity: 0.5;">Pagamentos</span>
+                    <span data-toolbar="veiculos" onclick="carregarTabelaPainel(this)" style="opacity: 0.5;">Combustíveis</span>
+                    <span data-toolbar="fretes" onclick="carregarTabelaPainel(this)" style="opacity: 0.5;">Fretes</span>
                 </div>
                 
-                <div data-tabela="orcamento">
-                    ${tabelaOrcamento}
-                </div>
-
-                <div data-tabela="pagamentos" style="display: none;">
-                    ${tabelaPagamentos}
-                </div>
-
-                <div data-tabela="veiculos" style="display: none;">
-                    ${tabelaVeiculos}
-                </div>
-
-                <div data-tabela="fretes" style="display: none;">
-                    ${tabelaFretes}
-                </div>
+                <div id="painel-custos"></div>
             </div>
 
         </div>
@@ -196,6 +182,14 @@ async function painelCustos(id) {
     await paginacao()
 
 }
+
+async function carregarTabelaPainel() {
+
+
+
+    
+}
+
 
 async function criarLinhaCustoVeiculo(combustivel) {
 

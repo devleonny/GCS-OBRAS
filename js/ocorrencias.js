@@ -336,25 +336,6 @@ function carregarCorrecoes(ocorrencia) {
 
         const { equipamentos, idOrcamento, tipoCorrecaoNome, localizacao } = correcao
 
-        const enderecos = Object.values(localizacao || {})
-            .filter(local => local.endereco)
-            .map(local => {
-                return local.endereco
-            })
-
-        const checkins = []
-
-        for (const endereco of enderecos) {
-
-            const { city, postcode, residential, road, state } = endereco?.address || {}
-
-            const campos = [road, city, residential, postcode, state]
-                .filter(v => v)
-                .join(', ')
-
-            checkins.push(`<span class="localizacao">${campos}</span>`)
-        }
-
         if (aTec) {
             // Só mostrar correções criadas para ele;
             if (correcao.executor !== acesso.usuario)
@@ -416,7 +397,6 @@ function carregarCorrecoes(ocorrencia) {
                     ${pdfOrcamento}
                     ${modelo('Descrição', `<div style="white-space: pre-wrap;">${correcao.descricao}</div>`)}
                     ${modelo('Criado em', `<span>${correcao?.data || ''}</span>`)}
-                    ${modelo('Localização', `<div style="${vertical}; gap: 2px;">${checkins.join('')}</div>`)}
                     ${tabEquipamentos(equipamentos, idOcorrencia, idCorrecao)}
                     
                 </div>
@@ -1783,14 +1763,6 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
         return
     }
 
-    // Localização;
-    const { longitude, latitude, mensagem = null } = await capturarLocalizacao()
-
-    const endereco = await pesquisarLocalizacao({ longitude, latitude })
-
-    if (mensagem)
-        return popup({ mensagem })
-
     const equipamentos = {}
     const fotos = {}
     const input = obter('anexos')
@@ -1838,14 +1810,6 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
         fotos: {
             ...correcao.fotos,
             ...fotos
-        },
-        localizacao: {
-            ...(correcao?.localizacao || {}),
-            [ID5digitos()]: {
-                latitude,
-                longitude,
-                endereco
-            }
         },
         equipamentos,
         data: new Date().toLocaleString(),

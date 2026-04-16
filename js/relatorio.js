@@ -149,7 +149,7 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
     const correcoesOC = ocorrencia?.correcoes || {}
     const { cliente } = ocorrencia?.snapshots || {}
-    const thead = ['Executor', 'Descrição', 'Localização', 'Imagens']
+    const thead = ['Executor', 'Descrição', 'Imagens']
         .map(op => `<th>${op}</th>`)
         .join('')
 
@@ -176,34 +176,10 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
             })
             .join('')
 
-        const enderecos = Object.values(localizacao || {})
-            .filter(local => local.endereco)
-            .map(local => {
-                return local.endereco
-            })
-
-        const checkins = []
-
-        for (const endereco of enderecos) {
-
-            const { city, postcode, residential, road, state } = endereco?.address || {}
-
-            const campos = [road, city, residential, postcode, state]
-                .filter(v => v)
-                .join(', ')
-
-            checkins.push(`<span class="localizacao">${campos}</span>`)
-        }
-
         linhas += `
             <tr>
                 <td>${correcao.executor}</td>
                 <td style="width: 200px; text-align: left;">${correcao.descricao}</td>
-                <td>
-                    <div style="${vertical}; gap: 1px;">
-                        <div style="${vertical}; gap: 2px;">${checkins.join('')}</div>
-                    </div>
-                </td>
                 <td>
                     ${imagens !== '' ? `<div class="fotos" style="display: grid;">${imagens}</div>` : 'Sem Imagens'}
                 </td>
