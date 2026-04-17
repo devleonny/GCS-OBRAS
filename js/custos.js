@@ -250,11 +250,17 @@ async function criarLinhaCustoPagamento(pagamento) {
     const cliente = snapshots?.cliente || ''
     const contrato = dados_orcam?.contrato
 
+    const valorDep = (snapshots.departamentos || [])
+        .filter(dep => dep.departamento == contrato)
+    const valorDocumento = param?.[0]?.valor_documento || 0
+    const coeficienteRateio = valorDep?.[0]?.valor / valorDocumento
+    const valorCategoria = coeficienteRateio * valor
+
     const imagem = iconePagamento(status)
 
     const tds = `
         <td>${data_previsao || ''}</td>
-        <td style="white-space: nowrap;">${dinheiro(valor)}</td>
+        <td style="white-space: nowrap;">${dinheiro(valorCategoria)}</td>
         <td>${categoria}</td>
         <td>
             <div style="${horizontal}; justify-content: start; gap: 1rem;">

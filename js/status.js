@@ -1150,7 +1150,7 @@ async function irORC(id) {
 
     await tabelaPorAba({ id })
 
-    removerPopup()
+    removerOverlay()
 
 }
 
