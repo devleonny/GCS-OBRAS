@@ -59,7 +59,7 @@ async function painelCustos(id) {
         .join('')
 
     const elemento = `
-        <div style="${vertical}; padding: 1rem;">
+        <div class="painel-custos" style="${vertical}; padding: 1rem;">
 
             <div class="toolbar-checklist">
 
@@ -74,13 +74,14 @@ async function painelCustos(id) {
 
             </div>
 
-            <div class="painel-custos"></div>
+            <div class="painel-custos-tabelas"></div>
 
         </div>
     `
 
-    popup({ elemento, titulo: 'Painel de Custos' })
-
+    tela.innerHTML = elemento
+    //popup({ elemento, titulo: 'Painel de Custos' })
+    removerOverlay()
     await carregarTotaisCusto(id)
 
 }
@@ -102,7 +103,7 @@ async function tabOrcamentoCusto() {
         colunas: {}
     })
 
-    const painel = document.querySelector('.painel-custos')
+    const painel = document.querySelector('.painel-custos-tabelas')
 
     painel.innerHTML = tabela
 
@@ -121,6 +122,7 @@ async function tabPagamentosCusto() {
         body: 'bodyCustosPagamentos',
         criarLinha: 'criarLinhaCustoPagamento',
         base: 'lista_pagamentos',
+        explode: { path: 'snapshots.categorias' },
         filtros: {
             'snapshots.departamentos.*.departamento': { op: 'includes', value: contrato },
             'param.*.codigo_tipo_documento': { op: '!=', value: 'CTE' },
@@ -128,14 +130,15 @@ async function tabPagamentosCusto() {
         colunas: {
             'Data': { chave: 'param.*.data_previsao', tipoPesquisa: 'data' },
             'Valor': { chave: 'descricao' },
+            'Categoria': { chave: 'categoria' },
             'Status': { chave: 'status', tipoPesquisa: 'select' },
             'Solicitante': { chave: 'criado' },
             'Recebedor': {},
-            'Detalhes': {}
+            'Ações': {}
         }
     })
 
-    const painel = document.querySelector('.painel-custos')
+    const painel = document.querySelector('.painel-custos-tabelas')
 
     painel.innerHTML = tabela
 
@@ -162,11 +165,12 @@ async function tabVeiculosCusto() {
             'Comentário': { chave: 'comentario' },
             'Realizado': { chave: 'snapshots.realizado' },
             'Criado por': { chave: 'usuario' },
-            'Motorista': { chave: 'snapshots.motoristas' }
+            'Motorista': { chave: 'snapshots.motoristas' },
+            'Ações': {}
         }
     })
 
-    const painel = document.querySelector('.painel-custos')
+    const painel = document.querySelector('.painel-custos-tabelas')
 
     painel.innerHTML = tabela
 
@@ -186,21 +190,23 @@ async function tabFretesCusto() {
         body: 'bodyCustosFretes',
         criarLinha: 'criarLinhaCustoPagamento',
         base: 'lista_pagamentos',
+        explode: { path: 'snapshots.categorias' },
         filtros: {
-            'snapshots.departamentos.*.departamento': { op: 'includes', value: contrato },
+            'snapshots.departamentos.*.departamento': { op: '=', value: contrato },
             'param.*.codigo_tipo_documento': { op: '=', value: 'CTE' },
         },
         colunas: {
             'Data': { chave: 'param.*.data_previsao', tipoPesquisa: 'data' },
             'Valor': { chave: 'descricao' },
+            'Categoria': { chave: 'categoria' },
             'Status': { chave: 'status', tipoPesquisa: 'select' },
             'Solicitante': { chave: 'criado' },
             'Recebedor': {},
-            'Detalhes': {}
+            'Ações': {}
         }
     })
 
-    const painel = document.querySelector('.painel-custos')
+    const painel = document.querySelector('.painel-custos-tabelas')
 
     painel.innerHTML = tabela
 
@@ -210,7 +216,7 @@ async function tabFretesCusto() {
 
 async function criarLinhaCustoVeiculo(combustivel) {
 
-    const { data_pagamento, comentario, realizado, usuario, snapshots } = combustivel || {}
+    const { id, data_pagamento, comentario, realizado, usuario, snapshots } = combustivel || {}
     const { dados_orcam } = controles.orcamento.save || {}
     const contrato = dados_orcam?.contrato
     const departamento = (snapshots?.departamentos || [])
@@ -226,6 +232,9 @@ async function criarLinhaCustoVeiculo(combustivel) {
             <td>${dinheiro(departamento?.[0]?.valor || 0)}</td>
             <td>${usuario}</td>
             <td>${dMotoristas}</td>
+            <td>
+                <img src="imagens/pesquisar2.png" onclick="painelAtalhos('${id}')">
+            </td>
         </tr>
     `
 
@@ -235,17 +244,24 @@ async function criarLinhaCustoVeiculo(combustivel) {
 async function criarLinhaCustoPagamento(pagamento) {
 
     const { dados_orcam } = controles?.orcamento?.save || {}
-    const { criado, param, status, snapshots } = pagamento || {}
-    const { valor_documento, data_previsao, codigo_cliente_fornecedor } = param?.[0] || {}
+    const { criado, param, status, snapshots, valor, categoria } = pagamento || {}
+    const { data_previsao } = param?.[0] || {}
+
     const cliente = snapshots?.cliente || ''
     const contrato = dados_orcam?.contrato
-    const valor = (snapshots.departamentos || [])
-        .filter(d => d.departamento == contrato)
+
+    const imagem = iconePagamento(status)
 
     const tds = `
         <td>${data_previsao || ''}</td>
-        <td style="white-space: nowrap;">${dinheiro(valor?.[0]?.valor)}</td>
-        <td>${status || ''}</td>
+        <td style="white-space: nowrap;">${dinheiro(valor)}</td>
+        <td>${categoria}</td>
+        <td>
+            <div style="${horizontal}; justify-content: start; gap: 1rem;">
+                <img src="${imagem}">
+                <span>${status || ''}</span>
+            </div>
+        </td>
         <td>${criado || ''}</td>
         <td>${cliente || ''}</td>
         <td>

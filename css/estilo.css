@@ -241,6 +241,13 @@ input:focus {
     outline: none;
 }
 
+.painel-custos {
+    max-width: 95vw;
+    background-color: white;
+    border-radius: 3px;
+    padding: 1rem;
+}
+
 .painel-cadastro {
     display: flex;
     min-width: 80vw;

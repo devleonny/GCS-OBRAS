@@ -232,7 +232,7 @@ async function criarLinhaRequisicao(item) {
             </td>
             <td>
                 <select class="opcoesSelect"  onchange="atualizarValorRequisicao('${codigo}', 'origem', this.value)">
-                    ${['Matriz', 'Região'].map(o => `<option ${origem == o ? 'selected' : ''}>${o}</option>`).join('')}
+                    ${['Matriz', 'Região', 'Kit Técnico'].map(o => `<option ${origem == o ? 'selected' : ''}>${o}</option>`).join('')}
                 </option>
             </td>
             <td>
