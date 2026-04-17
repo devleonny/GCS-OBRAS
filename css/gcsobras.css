@@ -736,36 +736,6 @@ span[name="titulo"] {
     margin-left: 10px;
 }
 
-#retangulo {
-    display: none;
-    position: fixed;
-    width: max-content;
-    height: auto;
-    left: 50%;
-    top: 50%;
-    transform: translate3d(-50%, -50%, 0);
-    background-color: #222;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-    text-align: center;
-    z-index: 1000;
-}
-
-.retangulinho {
-    margin-top: 20px;
-    border-radius: 10px;
-    border: 1px solid white;
-    padding: 10px;
-    background-color: #222;
-    max-height: 30vh;
-    overflow-y: auto;
-}
-
-.retangulinho button {
-    margin: 10px;
-}
-
 .mensagemTela {
     display: flex;
     align-items: center;
@@ -857,11 +827,6 @@ span[name="titulo"] {
     justify-content: center;
 }
 
-#imagem_inicial {
-    width: 200px;
-    height: 200px;
-}
-
 #fileInput {
     background-color: #B12425;
     width: max-content;
@@ -926,58 +891,6 @@ button {
     white-space: nowrap;
 }
 
-.retangulo {
-    width: 60%;
-    border: 1px solid white;
-    backdrop-filter: blur(10px);
-    text-align: center;
-    font-size: 1.5em;
-    color: #151749;
-    height: max-content;
-    align-items: center;
-    justify-content: center;
-    background-color: rgba(255, 255, 255, 0.7);
-    border-radius: 10px;
-    padding: 20px;
-    margin-bottom: 20px;
-}
-
-#retangulo_logistica {
-    font-size: 0.8em;
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate3d(-50%, -50%, 0);
-    height: 80vh;
-    width: 80vw;
-    border: 1px solid black;
-    background-color: rgba(10, 10, 10, 0.9);
-    border-radius: 10px;
-    padding: 20px;
-    z-index: 2000;
-    overflow: auto;
-}
-
-#mini_calculadora {
-    font-size: 0.8em;
-    color: white;
-    background-color: #22222271;
-    padding: 10px;
-    border-radius: 5px;
-    gap: 10px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    position: fixed;
-    bottom: 35%;
-    right: 0;
-    transform: translate3d(-50%, -50%, 0);
-    height: max-content;
-    width: max-content;
-}
-
 .flutuante {
     display: flex;
     flex-direction: column;
@@ -1012,42 +925,6 @@ button {
     line-height: 1;
 }
 
-.bordaWhatsapp {
-    width: 0;
-    height: 0;
-    border-top: 10px solid transparent;
-    border-bottom: 10px solid transparent;
-    border-right: 10px solid #ffea98;
-    /* mesma cor do balão */
-    margin-right: -1px;
-}
-
-.balaoWhatsapp {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-    justify-content: center;
-    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.3);
-    background-color: #ffea98;
-    padding: 5px;
-    border-radius: 3px;
-    margin-bottom: 3px;
-}
-
-.contornoMensagem {
-    background-color: #ffffffe1;
-    margin-bottom: 5px;
-    width: 90%;
-    padding: 5px;
-    border-radius: 3px;
-    border: solid 1px grey;
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-    justify-content: center;
-}
-
 .labelMensagem {
     cursor: pointer;
     font-size: 0.6rem;
@@ -1066,45 +943,8 @@ button {
     padding: 5px;
 }
 
-.contornoMensagem label {
-    font-size: 0.7vw;
-}
-
 .flutuante.show {
     left: 0;
-}
-
-#calculadora {
-    font-size: 1.5em;
-    color: white;
-    background-color: #222222e1;
-    padding: 10px;
-    border-radius: 5px;
-    gap: 10px;
-    display: flex;
-    position: fixed;
-    bottom: 25%;
-    right: -100%;
-    height: max-content;
-    width: max-content;
-    transition: right 0.5s ease;
-}
-
-#calculadora input {
-    width: 15vw;
-    font-size: 35px;
-    font-weight: bold;
-    color: #ffffff;
-    background-color: #4CAF50;
-    border-radius: 5px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    display: inline-block;
-    margin: 5px;
-    text-align: center;
-}
-
-#calculadora.show {
-    right: 0;
 }
 
 .modelo {
@@ -1120,34 +960,6 @@ button {
     border: solid 1px #8e8e8e;
     border-radius: 3px;
     padding: 0.5rem;
-}
-
-.retangulo_glass {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate3d(-50%, -50%, 0);
-    height: max-content;
-    background-color: white;
-    border-radius: 10px;
-    padding: 20px;
-    z-index: 2000;
-    overflow-y: auto;
-}
-
-.retangulo_glass input {
-    padding: 10px;
-    width: 100px;
-    border-radius: 3px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-}
-
-.retangulo_glass textarea {
-    padding: 10px;
-    width: 100px;
-    border-radius: 3px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .tprecos {
@@ -2092,6 +1904,10 @@ input[type="file"]#input-anexos:hover {
 }
 
 @media screen and (orientation: portrait) {
+
+    .painel-custos {
+        max-width: 95vw;
+    }
 
     .topo-tabela {
         flex-direction: column;

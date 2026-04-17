@@ -1,6 +1,9 @@
 async function painelCustos(id) {
 
+    removerPopup() // Atalhos;
     overlayAguarde()
+
+    criarMenus('custos')
 
     const orcamento = await recuperarDado('dados_orcamentos', id) || {}
     const { dados_orcam, snapshots } = orcamento
@@ -41,6 +44,11 @@ async function painelCustos(id) {
             titulo: 'Fretes',
             id: 't-fretes',
             funcao: `tabFretesCusto()`
+        },
+        {
+            titulo: 'Notas',
+            id: 't-notas',
+            funcao: `tabNotasCusto()`
         }
     ]
 
@@ -50,7 +58,7 @@ async function painelCustos(id) {
             return `
             <div onclick="${funcao}" class="balao-checklist">
                 <label>${titulo}</label>
-                <div id="${id}">
+                <div id="${id}" style="font-size: 1.4rem;">
                     <img src="gifs/loading.gif" style="width: 5rem">
                 </div>
             </div>
@@ -59,7 +67,7 @@ async function painelCustos(id) {
         .join('')
 
     const elemento = `
-        <div class="painel-custos" style="${vertical}; padding: 1rem;">
+        <div class="painel-custos">
 
             <div class="toolbar-checklist">
 
@@ -69,6 +77,9 @@ async function painelCustos(id) {
                 </div>
 
                 <div class="resultados">
+                    <div onclick="inicioCustos()" class="balao-checklist">
+                        <label>Início</label>
+                    </div>
                     ${toolbar}
                 </div>
 
@@ -80,9 +91,73 @@ async function painelCustos(id) {
     `
 
     tela.innerHTML = elemento
-    //popup({ elemento, titulo: 'Painel de Custos' })
+
     removerOverlay()
+
+    await inicioCustos()
+
     await carregarTotaisCusto(id)
+
+}
+
+// TABELAS
+async function inicioCustos() {
+
+    const painel = document.querySelector('.painel-custos-tabelas')
+
+    painel.innerHTML = `
+        <div class="custos-inicial">
+            <div class="painel-custos-lateral">
+                <img src="gifs/loading.gif" style="width: 5rem;">
+            </div>
+            
+            <div class="grafico-box">
+                <canvas id="grafico-categorias"></canvas>
+            </div>
+        </div>
+    `
+
+    await somaPorCategoria()
+}
+
+async function somaPorCategoria() {
+
+    const { dados_orcam } = controles.orcamento.save || {}
+    const contrato = dados_orcam?.contrato
+
+    const contagens = await contarPorCampo({
+        base: 'lista_pagamentos',
+        filtros: {
+            'departamento': { op: '=', value: contrato }
+        },
+        explode: { path: 'snapshots.categorias' },
+        modo: 'somaAgrupada',
+        campoSoma: 'valor',
+        path: 'categoria'
+    })
+
+    const blocoCategoria = (nome, valor) => {
+
+        return `
+        <div class="bloco-categoria">
+            <span>${dinheiro(valor)}</span>
+            <label>${nome}</label>
+        </div>
+        `
+    }
+
+    const painelLateral = document.querySelector('.painel-custos-lateral')
+
+    const blocos = Object.entries(contagens)
+        .filter(([categoria,]) => categoria !== 'todos' && categoria !== 'total')
+        .sort(([a,], [b,]) => a.localeCompare(b))
+        .map(([categoria, valor]) => blocoCategoria(categoria, valor))
+        .join('')
+
+    if (painelLateral)
+        painelLateral.innerHTML = blocos
+
+    graficoRosca({ dados: contagens, elemento: '#grafico-categorias' })
 
 }
 
@@ -124,7 +199,7 @@ async function tabPagamentosCusto() {
         base: 'lista_pagamentos',
         explode: { path: 'snapshots.categorias' },
         filtros: {
-            'snapshots.departamentos.*.departamento': { op: 'includes', value: contrato },
+            'departamento': { op: '=', value: contrato },
             'param.*.codigo_tipo_documento': { op: '!=', value: 'CTE' },
         },
         colunas: {
@@ -133,7 +208,8 @@ async function tabPagamentosCusto() {
             'Categoria': { chave: 'categoria' },
             'Status': { chave: 'status', tipoPesquisa: 'select' },
             'Solicitante': { chave: 'criado' },
-            'Recebedor': {},
+            'Recebedor': { chave: 'snapshots.cliente' },
+            'Observação': { chave: 'param.*.observacao' },
             'Ações': {}
         }
     })
@@ -192,7 +268,7 @@ async function tabFretesCusto() {
         base: 'lista_pagamentos',
         explode: { path: 'snapshots.categorias' },
         filtros: {
-            'snapshots.departamentos.*.departamento': { op: '=', value: contrato },
+            'departamento': { op: '=', value: contrato },
             'param.*.codigo_tipo_documento': { op: '=', value: 'CTE' },
         },
         colunas: {
@@ -214,6 +290,42 @@ async function tabFretesCusto() {
 
 }
 
+async function tabNotasCusto() {
+
+    const { dados_orcam } = controles.orcamento.save || {}
+    const contrato = dados_orcam?.contrato
+
+    const pag = 'notas'
+    const tabela = await modTab({
+        base: 'notas',
+        filtros: {
+            'departamento': { op: '=', value: contrato }
+        },
+        explode: { path: 'snapshots.departamentos' },
+        pag,
+        funcaoAdicional: [],
+        body: 'bodyNotas',
+        criarLinha: 'criarLinhaNotas',
+        colunas: {
+            'NF': { chave: 'nNota' },
+            'Tipo': { chave: 'categoria', tipoPesquisa: 'select' },
+            'Valor': { chave: 'valor' },
+            'Data Emissão': { chave: 'dEmiInicial' },
+            'Hora Emissão': { chave: 'hEmiInicial' },
+            'Ver DANFE': {}
+        }
+    })
+
+    const painel = document.querySelector('.painel-custos-tabelas')
+
+    painel.innerHTML = tabela
+
+    await paginacao(pag)
+
+}
+
+
+// LINHAS
 async function criarLinhaCustoVeiculo(combustivel) {
 
     const { id, data_pagamento, comentario, realizado, usuario, snapshots } = combustivel || {}
@@ -245,22 +357,16 @@ async function criarLinhaCustoPagamento(pagamento) {
 
     const { dados_orcam } = controles?.orcamento?.save || {}
     const { criado, param, status, snapshots, valor, categoria } = pagamento || {}
-    const { data_previsao } = param?.[0] || {}
+    const { data_previsao, observacao } = param?.[0] || {}
 
     const cliente = snapshots?.cliente || ''
     const contrato = dados_orcam?.contrato
-
-    const valorDep = (snapshots.departamentos || [])
-        .filter(dep => dep.departamento == contrato)
-    const valorDocumento = param?.[0]?.valor_documento || 0
-    const coeficienteRateio = valorDep?.[0]?.valor / valorDocumento
-    const valorCategoria = coeficienteRateio * valor
 
     const imagem = iconePagamento(status)
 
     const tds = `
         <td>${data_previsao || ''}</td>
-        <td style="white-space: nowrap;">${dinheiro(valorCategoria)}</td>
+        <td style="white-space: nowrap;">${dinheiro(valor)}</td>
         <td>${categoria}</td>
         <td>
             <div style="${horizontal}; justify-content: start; gap: 1rem;">
@@ -271,6 +377,9 @@ async function criarLinhaCustoPagamento(pagamento) {
         <td>${criado || ''}</td>
         <td>${cliente || ''}</td>
         <td>
+            <div style="white-space: pre-wrap;">${observacao || ''}</div>
+        </td>
+        <td>
             <img src="imagens/pesquisar2.png" onclick="abrirDetalhesPagamentos('${pagamento.id}')">
         </td>
         `
@@ -279,6 +388,33 @@ async function criarLinhaCustoPagamento(pagamento) {
 
 }
 
+async function criarLinhaNotas(nota) {
+
+    const { codOmie, nNota, valor, app, categoria, dEmiInicial, hEmiInicial } = nota || {}
+
+    return `
+        <tr>
+            <td>${nNota}</td>
+            <td>${categoria}</td>
+            <td>${dinheiro(valor)}</td>
+            <td>${dEmiInicial}</td>
+            <td>${hEmiInicial}</td>
+            <td>
+                <div class="balaoNF" onclick="abrirDANFE('${codOmie}', '${categoria}', '${app}')">
+                    <div class="balao1">
+                        <label>${nNota}</label>
+                        <label><b>${categoria}</b></label>
+                    </div>
+                    <div class="balao2">PDF</div>
+                </div>
+            </td>
+        </tr>
+    `
+
+}
+
+
+// CARREGAR TOTAIS
 async function carregarTotaisCusto() {
 
     const { dados_orcam, snapshots, total_geral } = controles.orcamento.save || {}
@@ -293,7 +429,7 @@ async function carregarTotaisCusto() {
             'departamento': filtro,
             'param.*.codigo_tipo_documento': { op: '!=', value: 'CTE' },
         },
-        explode: { path: 'snapshots.departamentos' },
+        explode: { path: 'snapshots.categorias' },
         path: 'valor',
         modo: 'soma'
     })
@@ -325,10 +461,59 @@ async function carregarTotaisCusto() {
 
     atualizar('t-abastecimento', dinheiro(somaCombustiveis.total))
 
+    // NOTAS
+    const somaNotas = await contarPorCampo({
+        base: 'notas',
+        filtros: {
+            'departamento': filtro
+        },
+        explode: { path: 'snapshots.departamentos' },
+        path: 'valor',
+        modo: 'soma'
+    })
+
+    atualizar('t-notas', dinheiro(somaNotas.total))
+
     function atualizar(id, valor) {
         const ele = document.getElementById(id)
         if (ele)
             ele.textContent = valor
     }
 
+}
+
+
+function graficoRosca({ dados, elemento }) {
+
+    const labels = []
+    const valores = []
+
+    for (const [chave, valor] of Object.entries(dados)) {
+        if (chave === 'total' || chave === 'todos') continue
+
+        labels.push(chave)
+        valores.push(Number(valor) || 0)
+    }
+
+    const ctx = typeof elemento === 'string'
+        ? document.querySelector(elemento)
+        : elemento
+
+    return new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels,
+            datasets: [{
+                data: valores
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right'
+                }
+            }
+        }
+    })
 }

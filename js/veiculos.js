@@ -27,7 +27,7 @@ async function telaVeiculos() {
         'Motorista': { chave: 'veiculo.snapshots.motoristas' },
         'Data Pagamento': { chave: 'data_pagamento', tipoPesquisa: 'data' },
         'Valor': { chave: 'snapshots.valor' },
-        'Realizado': { chave: 'snapshots.realizado' },
+        'Realizado': { chave: 'realizado' },
         'Cartão': { chave: 'veiculo.cartao' },
         'Comentário': { chave: 'comentario' },
         'Departamentos': { chave: 'snapshots.departamentos' },

@@ -1,0 +1,54 @@
+.painel-custos-lateral {
+    gap: 5px;
+    flex-direction: column;
+    display: flex;
+    align-items: start;
+    justify-content: center;
+}
+
+.painel-custos-tabelas {
+    width: 100%;
+}
+
+.painel-custos {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    max-width: 70vw;
+    background-color: white;
+    border-radius: 3px;
+    padding: 1rem;
+}
+
+.bloco-categoria {
+    box-shadow: 0 0 2px #222;
+    width: 200px;
+    flex-direction: column;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    padding: 5px;
+    border-radius: 3px;
+    background-color: #e9e9e9;
+}
+
+.bloco-categoria label {
+    font-weight: bold;
+}
+
+.bloco-categoria span {
+    font-size: 1.2rem;
+}
+
+.custos-inicial {
+    display: flex;
+    align-items: start;
+    gap: 1rem;
+    justify-content: space-between;
+}
+
+.grafico-box {
+    width: 700px;
+    height: 700px;
+}

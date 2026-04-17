@@ -136,6 +136,9 @@ const esquemaBotoes = {
         { nome: 'Ocorrências', funcao: `telaInicialOcorrencias`, img: 'LG' },
         { nome: 'Desconectar', funcao: `deslogarUsuario`, img: 'sair' }
     ],
+    custos: [
+        { nome: 'Orçamentos', funcao: `telaOrcamentos`, img: 'voltar_2' },
+    ],
     postit: [
         { nome: 'Criar Post it', funcao: `criarPIT`, img: 'baixar' },
         { nome: 'Criar Quadro', funcao: `criarQuadro`, img: 'baixar' },
@@ -1591,7 +1594,8 @@ async function abrirDANFE(codOmieNF, tipo, app) {
 
     const resposta = await buscarDANFE(codOmieNF, tipo, app)
 
-    if (resposta.err) return popup({ mensagem: `Provavelmente esta nota foi importada via XML e por enquanto não está disponível` })
+    if (resposta.err) 
+        return popup({ mensagem: `Provavelmente esta nota foi importada via XML e por enquanto não está disponível` })
 
     removerOverlay()
 
