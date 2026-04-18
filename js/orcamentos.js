@@ -53,8 +53,8 @@ async function telaOrcamentos() {
         'Cidade': { chave: 'snapshots.cidade' },
         'Status em Ocorrências': {},
         'Responsaveis': { chave: 'snapshots.responsavel' },
-        'Indicadores': {},
-        'Valor': { chave: 'snapshots.valor' },
+        'Resumo': {},
+        'Total do Orçamento': { chave: 'snapshots.valor' },
         'Ações': {}
     }
 
@@ -202,13 +202,19 @@ async function criarLinhaOrcamento(orcamento) {
 
     async function linhaOrcamento(orcamento) {
 
-        const { id, dados_orcam, snapshots, ultimaCorrecao } = orcamento || {}
+        const { id, dados_orcam, snapshots, ultimaCorrecao, total_geral } = orcamento || {}
+        const { pagamentos = 0, fretes = 0, abastecimentos = 0, notas } = snapshots?.custos || {}
+
+        // Velocímetro
+        const totalCusto = pagamentos + fretes + abastecimentos
+        const porcentagem = Number(((totalCusto / total_geral) * 100).toFixed(1))
+        const resumo = criarVelocimetroHTML({ rotulo: 'Custos', limite: 40, valor: porcentagem })
 
         const labelTipoCorrecao = ultimaCorrecao
             ? formatacaoTipoCorrecao(ultimaCorrecao)
             : ''
 
-        const pedidos = Object.values(orcamento?.status?.historico || {})
+        const pedidosStatus = Object.values(orcamento?.status?.historico || {})
             .filter(s => s?.status == 'PEDIDO')
             .map(({ tipo, pedido, valor, autorizadoPor }) => {
 
@@ -224,7 +230,7 @@ async function criarLinhaOrcamento(orcamento) {
             })
             .join('')
 
-        const notas = Object.values(orcamento?.status?.historico || {})
+        const notasStatus = Object.values(orcamento?.status?.historico || {})
             .filter(({ status, tipo }) => status === 'FATURADO' && !tipo.includes('emessa'))
             .map(({ tipo, nf, valor }) => `
                 <div class="etiquetas" style="text-align: left; min-width: 100px;">
@@ -272,42 +278,18 @@ async function criarLinhaOrcamento(orcamento) {
             .map(aba => `<option ${orcamento.aba == aba ? 'selected' : ''}>${aba}</option>`)
             .join('')
 
-        // Tags;
-        const listaTags = []
-
-        for (const tag of Object.values(snapshots?.tags || {})) {
-            listaTags.push(modeloTag(tag, id))
-        }
+        // Tags;        
+        const listaTags = Object.values(snapshots?.tags || {})
+            .map(tag => modeloTag(tag, tag.id))
+            .join('')
 
         // Verificação de departamento;
         const depExistente = controles.orcamentos.departamentos.includes(numOficial)
 
-        const indicadores = []
-        if (orcamento?.checklist?.andamento)
-            indicadores.push(`
-                <span>Checklist</span>
-                ${divPorcentagem(orcamento?.checklist?.andamento || 0)}
-            `)
-
-        if (false) // Painel de custos
-            indicadores.push(`
-                <span>LC %</span>
-                ${divPorcentagem(0)}
-            `)
-
         const data = new Date(snapshots?.tsUltimoStatus).toLocaleString()
 
         const celulas = `
-         <td>
-            <div style="text-align: left;${vertical}; gap: 2px;">
-                <label><b>${orcamento.lpu_ativa}</b></label>
-                <span>${data}</span>
-                <select name="aba" class="opcoesSelect" onchange="atualizarAba(this, '${id}')">
-                    <option></option>
-                    ${opcoesPda}
-                </select>
-            </div>
-        </td>
+        <td style="white-space: pre-wrap;"><b>${orcamento.lpu_ativa}</b>\n${data}</td>
         <td>
             <div style="${vertical}; gap: 5px;">
                 ${seletorStatus(orcamento)}
@@ -318,10 +300,10 @@ async function criarLinhaOrcamento(orcamento) {
             </div>
         </td>
         <td>
-            <div class="bloco-etiquetas">${pedidos}</div>
+            <div class="bloco-etiquetas">${pedidosStatus}</div>
         </td>
         <td>
-            <div class="bloco-etiquetas">${notas}</div>
+            <div class="bloco-etiquetas">${notasStatus}</div>
         </td>
         <td>
             <div style="${vertical}; gap: 2px;">
@@ -330,7 +312,7 @@ async function criarLinhaOrcamento(orcamento) {
                     style="width: 1.2rem;" 
                     onclick="renderPainel('${id}')">
                 <div name="tags" style="${vertical}; gap: 1px;">
-                    ${listaTags.join('')}
+                    ${listaTags}
                 </div>
             </div>
         </td>
@@ -344,9 +326,7 @@ async function criarLinhaOrcamento(orcamento) {
             </div>
         </td>
         <td>
-            <div style="${vertical};">
-                ${indicadores.join('')}
-            </div>
+            ${resumo}
         </td>
         <td>
             <div style="${vertical}; width: 100%;">

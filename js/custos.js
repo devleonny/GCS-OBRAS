@@ -6,21 +6,27 @@ async function painelCustos(id) {
     criarMenus('custos')
 
     const orcamento = await recuperarDado('dados_orcamentos', id) || {}
-    const { dados_orcam, snapshots } = orcamento
+    const { dados_orcam, snapshots, total_geral } = orcamento
+    const { pagamentos = 0, fretes = 0, abastecimentos = 0, notas } = snapshots?.custos || {}
+
     // Salvo localmente;
     controles.orcamento ??= {}
     controles.orcamento.save = orcamento
 
+    // Velocímetro
+    const totalCusto = pagamentos + fretes + abastecimentos
+    const porcentagem = Number(((totalCusto / total_geral) * 100).toFixed(1))
+    const resumo = criarVelocimetroHTML({ rotulo: 'Custos', limite: 40, valor: porcentagem })
+
     const omieCliente = dados_orcam?.omie_cliente || ''
     const { cliente, cidade } = snapshots || {}
 
-    const dados = [
+    const dados = Object.entries({
         cliente,
         cidade,
-        dados_orcam?.contrato
-    ]
-        .filter(d => d)
-        .map(d => `<span>${d}</span>`)
+        centro_de_custo: dados_orcam?.contrato
+    })
+        .map(([campo, valor]) => `<span style="white-space: pre-wrap;"><b>${inicialMaiuscula(campo)}</b>\n${valor || ''}</span>`)
         .join('')
 
 
@@ -69,22 +75,28 @@ async function painelCustos(id) {
     const elemento = `
         <div class="painel-custos">
 
+            <h2>Resumo de Custos</h2>
             <div class="toolbar-checklist">
 
-                <div style="${horizontal}; gap: 5px;">
-                    <img src="imagens/GrupoCostaSilva.png" style="width: 7rem;">
-                    <div style="${vertical}">${dados}</div>
-                </div>
+                <div style="${vertical}">${dados}</div>
 
-                <div class="resultados">
-                    <div onclick="inicioCustos()" class="balao-checklist">
-                        <label>Início</label>
+                <div style="${horizontal}; gap: 0.5rem;">
+                    <div style="width: 300px;">${resumo}</div>
+                    <div class="resultados">
+                        
+                        <div onclick="inicioCustos()" class="balao-checklist">
+                            <label>Início</label>
+                        </div>
+                        ${toolbar}
+                        <img src="imagens/GrupoCostaSilva.png" style="width: 7rem;">
                     </div>
-                    ${toolbar}
+                    
                 </div>
 
             </div>
 
+            <hr>
+            <h2>Detalhamento</h2>
             <div class="painel-custos-tabelas"></div>
 
         </div>
@@ -278,6 +290,7 @@ async function tabFretesCusto() {
             'Status': { chave: 'status', tipoPesquisa: 'select' },
             'Solicitante': { chave: 'criado' },
             'Recebedor': {},
+            'Observação': {},
             'Ações': {}
         }
     })

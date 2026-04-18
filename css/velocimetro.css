@@ -1,0 +1,84 @@
+.velocimetro {
+  --velocimetro-cor: #16a34a;
+  --velocimetro-fundo: #e5e7eb;
+  --velocimetro-texto: #111827;
+  --velocimetro-texto-suave: #6b7280;
+  --velocimetro-tamanho: 220px;
+  --velocimetro-espessura: 18;
+  --velocimetro-deslocamento: 0;
+  --velocimetro-comprimento: 125.66;
+
+  width: var(--velocimetro-tamanho);
+  font-family: Arial, sans-serif;
+}
+
+.velocimetro--normal {
+  --velocimetro-cor: #16a34a;
+}
+
+.velocimetro--alerta {
+  --velocimetro-cor: #f59e0b;
+}
+
+.velocimetro--critico {
+  --velocimetro-cor: #dc2626;
+}
+
+.velocimetro__area-svg {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 1.2;
+}
+
+.velocimetro__svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.velocimetro__trilha,
+.velocimetro__progresso {
+  fill: none;
+  stroke-linecap: round;
+  stroke-width: var(--velocimetro-espessura);
+}
+
+.velocimetro__trilha {
+  stroke: var(--velocimetro-fundo);
+}
+
+.velocimetro__progresso {
+  stroke: var(--velocimetro-cor);
+  stroke-dasharray: var(--velocimetro-comprimento);
+  stroke-dashoffset: var(--velocimetro-deslocamento);
+  transition:
+    stroke-dashoffset 0.35s ease,
+    stroke 0.35s ease;
+}
+
+.velocimetro__conteudo {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  text-align: center;
+  color: var(--velocimetro-texto);
+}
+
+.velocimetro__valor {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.velocimetro__rotulo {
+  margin-top: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.velocimetro__limite {
+  margin-top: 2px;
+  font-size: 0.8rem;
+  color: var(--velocimetro-texto-suave);
+}

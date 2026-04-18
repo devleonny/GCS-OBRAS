@@ -135,13 +135,7 @@ async function resetarBases() {
 
 async function f2() {
 
-    const scripts = ['Clientes', 'Categorias', 'Departamentos', 'Pagamentos', 'Notas']
-        .map(s => {
-            return { texto: s, elemento: `<button onclick="respostaSincronizacao('${s.toLowerCase()}')">Sincronizar ${s}</button>` }
-        })
-
     const linhas = [
-        ...scripts,
         {
             texto: 'Criar Departamento',
             elemento: `
@@ -159,13 +153,71 @@ async function f2() {
         {
             texto: 'Criar uma LPU',
             elemento: `<button onclick="formularioLPU()">Criar</button>`
-        },
-        {
-            elemento: `<label style="cursor: pointer;">${Date.now()}</label>`
         }
     ]
 
     popup({ linhas, titulo: 'Ferramentas' })
+}
+
+function criarVelocimetroHTML({
+  valor = 0,
+  limite = 80,
+  tamanho = 220,
+  espessura = 10,
+  rotulo = 'Uso'
+} = {}) {
+  const valorSeguro = Math.max(0, Math.min(100, Number(valor) || 0));
+  const limiteSeguro = Math.max(0, Math.min(100, Number(limite) || 0));
+
+  let situacao = 'normal';
+
+  if (valorSeguro >= limiteSeguro) {
+    situacao = 'critico';
+  } else if (valorSeguro >= limiteSeguro - 10) {
+    situacao = 'alerta';
+  }
+
+  const raio = 50 - espessura / 2;
+  const comprimentoSemicirculo = Math.PI * raio;
+  const deslocamentoProgresso = comprimentoSemicirculo * (1 - valorSeguro / 100);
+
+  return `
+    <div
+      class="velocimetro velocimetro--${situacao}"
+      style="
+        --velocimetro-tamanho: ${tamanho}px;
+        --velocimetro-espessura: ${espessura};
+        --velocimetro-deslocamento: ${deslocamentoProgresso};
+        --velocimetro-comprimento: ${comprimentoSemicirculo};
+      "
+      data-valor="${valorSeguro}"
+      data-limite="${limiteSeguro}"
+    >
+      <div class="velocimetro__area-svg">
+        <svg
+          class="velocimetro__svg"
+          viewBox="0 0 100 60"
+          aria-label="${rotulo}: ${valorSeguro}% de 100, limite ${limiteSeguro}%"
+        >
+          <path
+            class="velocimetro__trilha"
+            d="M 10 50 A 40 40 0 0 1 90 50"
+          ></path>
+
+          <path
+            class="velocimetro__progresso"
+            d="M 10 50 A 40 40 0 0 1 90 50"
+          ></path>
+        </svg>
+
+        <div class="velocimetro__conteudo">
+          <div class="velocimetro__valor">${valorSeguro}%</div>
+          <div class="velocimetro__rotulo">${rotulo}</div>
+          <div class="velocimetro__limite">Limite: ${limiteSeguro}%</div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function inicialMaiuscula(string) {

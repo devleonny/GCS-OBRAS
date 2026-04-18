@@ -52,3 +52,14 @@
     width: 700px;
     height: 700px;
 }
+
+.etiqueta-custo {
+    white-space: pre-wrap;
+    text-align: start;
+    display: inline-block;
+    padding-left: 1vw;
+    padding-right: 1vw;
+    border: solid 1px red;
+    border-radius: 5px;
+    background-color: #f7c5c5;
+}
