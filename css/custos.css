@@ -49,6 +49,7 @@
 }
 
 .grafico-box {
+    display: none;
     width: 700px;
     height: 700px;
 }

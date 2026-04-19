@@ -1094,3 +1094,16 @@ async function baixarExcelRelatorioPagamentos() {
     await baixarRelatorioExcel(schema, 'Pagamentos')
     removerOverlay()
 }
+
+
+async function pagamentosPorDepartamento() {
+
+    const contagem = await contarPorCampo({
+        base: 'lista_pagamentos',
+        explode: { path: 'snapshots.departamentos' },
+        modo: 'somaAgrupada',
+        campoSoma: 'valor',
+        path: 'departamento'
+    })
+
+}

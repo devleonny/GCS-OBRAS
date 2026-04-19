@@ -160,28 +160,28 @@ async function f2() {
 }
 
 function criarVelocimetroHTML({
-  valor = 0,
-  limite = 80,
-  tamanho = 220,
-  espessura = 10,
-  rotulo = 'Uso'
+    valor = 0,
+    limite = 80,
+    tamanho = 220,
+    espessura = 10,
+    rotulo = 'Uso'
 } = {}) {
-  const valorSeguro = Math.max(0, Math.min(100, Number(valor) || 0));
-  const limiteSeguro = Math.max(0, Math.min(100, Number(limite) || 0));
+    const valorSeguro = Math.max(0, Math.min(100, Number(valor) || 0));
+    const limiteSeguro = Math.max(0, Math.min(100, Number(limite) || 0));
 
-  let situacao = 'normal';
+    let situacao = 'normal';
 
-  if (valorSeguro >= limiteSeguro) {
-    situacao = 'critico';
-  } else if (valorSeguro >= limiteSeguro - 10) {
-    situacao = 'alerta';
-  }
+    if (valorSeguro >= limiteSeguro) {
+        situacao = 'critico';
+    } else if (valorSeguro >= limiteSeguro - 10) {
+        situacao = 'alerta';
+    }
 
-  const raio = 50 - espessura / 2;
-  const comprimentoSemicirculo = Math.PI * raio;
-  const deslocamentoProgresso = comprimentoSemicirculo * (1 - valorSeguro / 100);
+    const raio = 50 - espessura / 2;
+    const comprimentoSemicirculo = Math.PI * raio;
+    const deslocamentoProgresso = comprimentoSemicirculo * (1 - valorSeguro / 100);
 
-  return `
+    return `
     <div
       class="velocimetro velocimetro--${situacao}"
       style="

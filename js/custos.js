@@ -122,14 +122,35 @@ async function inicioCustos() {
             <div class="painel-custos-lateral">
                 <img src="gifs/loading.gif" style="width: 5rem;">
             </div>
-            
-            <div class="grafico-box">
-                <canvas id="grafico-categorias"></canvas>
+            <div style="${vertical};">
+
+                <div style="${horizontal}; gap: 1rem;">
+                    <button onclick="mostrarGrafico('pizza')">Gráfico de Pizza</button>
+                    <button onclick="mostrarGrafico('tempo')">Linha do Tempo</button>
+                </div>
+
+                <div class="grafico-box">
+                    <canvas id="grafico-categorias"></canvas>
+                </div>
+
+                <div class="grafico-box">
+                    <canvas id="grafico-linha-tempo"></canvas>
+                </div>
             </div>
         </div>
     `
 
     await somaPorCategoria()
+
+    mostrarGrafico('pizza')
+}
+
+function mostrarGrafico(tipo) {
+    const boxes = document.querySelectorAll('.grafico-box')
+
+    boxes.forEach(b => b.style.display = 'none')
+
+    boxes[tipo == 'pizza' ? 0 : 1].style.display = 'flex'
 }
 
 async function somaPorCategoria() {
@@ -169,7 +190,27 @@ async function somaPorCategoria() {
     if (painelLateral)
         painelLateral.innerHTML = blocos
 
-    graficoRosca({ dados: contagens, elemento: '#grafico-categorias' })
+    graficoRosca({
+        dados: contagens,
+        elemento: '#grafico-categorias'
+    })
+
+    const porData = await contarPorCampo({
+        base: 'lista_pagamentos',
+        explode: { path: 'snapshots.departamentos' },
+        filtros: {
+            'departamento': { op: '=', value: contrato }
+        },
+        modo: 'somaAgrupada',
+        campoSoma: 'valor',
+        path: 'data_vencimento'
+    })
+
+    criarGraficoLinhaTempo({
+        elemento: '#grafico-linha-tempo',
+        dados: porData,
+        rotulo: 'Custos por data'
+    })
 
 }
 
@@ -525,6 +566,85 @@ function graficoRosca({ dados, elemento }) {
             plugins: {
                 legend: {
                     position: 'right'
+                }
+            }
+        }
+    })
+}
+
+function criarGraficoLinhaTempo({
+    elemento,
+    dados = {},
+    rotulo = 'Valores',
+    corLinha = '#2563eb',
+    corFundo = 'rgba(37, 99, 235, 0.15)',
+    mostrarArea = true,
+    tensaoLinha = 0.25,
+    altura = '320px'
+} = {}) {
+
+    const entradasOrdenadas = Object.entries(dados)
+        .map(([dataTexto, valor]) => {
+            const [dia, mes, ano] = dataTexto.split('/');
+
+            return {
+                dataTexto,
+                valor: Number(valor) || 0,
+                ordem: new Date(`${ano}-${mes}-${dia}T00:00:00`).getTime()
+            };
+        })
+        .filter(item => !Number.isNaN(item.ordem))
+        .sort((a, b) => a.ordem - b.ordem)
+
+    const labels = entradasOrdenadas.map(item => item.dataTexto)
+    const valores = entradasOrdenadas.map(item => item.valor)
+
+    const ctx = typeof elemento === 'string'
+        ? document.querySelector(elemento)
+        : elemento
+
+    const graficoAnterior = Chart.getChart(ctx)
+    if (graficoAnterior) {
+        graficoAnterior.destroy()
+    }
+
+    return new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: rotulo,
+                data: valores,
+                borderColor: corLinha,
+                backgroundColor: corFundo,
+                fill: mostrarArea,
+                tension: tensaoLinha,
+                borderWidth: 2,
+                pointRadius: 3,
+                pointHoverRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Data'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Valor'
+                    }
                 }
             }
         }
