@@ -1153,7 +1153,7 @@ async function formFiltro(id) {
 async function confirmarExcluirFiltro(id) {
 
     const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `excluirFiltroOcorrencias('${id}')` }
+        { texto: 'Confirmar', fechar: true, img: 'concluido', funcao: `excluirFiltroOcorrencias('${id}')` }
     ]
 
     popup({ mensagem: 'Tem certeza?', botoes, removerAnteriores: true })

@@ -819,7 +819,7 @@ async function confirmarExclusaoItem(codigo) {
 
     const mensagem = `Tem certeza que deseja excluir este item?`
     const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `excluirItemComposicao('${codigo}')` }
+        { texto: 'Confirmar', fechar: true, img: 'concluido', funcao: `excluirItemComposicao('${codigo}')` }
     ]
 
     popup({ botoes, mensagem, removerAnteriores: true })

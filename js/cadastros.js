@@ -86,7 +86,7 @@ async function editarBaseAuxiliar(nomeBase, id) {
 function confirmarExcluirItemTabela(nomeBase, id) {
 
     const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `excluirItemTabela('${nomeBase}', '${id}')` }
+        { texto: 'Confirmar', fechar: true, img: 'concluido', funcao: `excluirItemTabela('${nomeBase}', '${id}')` }
     ]
 
     popup({ mensagem: 'Confirmar a exclusão do item?', botoes, removerAnteriores: true })

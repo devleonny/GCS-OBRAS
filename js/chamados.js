@@ -696,7 +696,7 @@ async function enviarManutencao(idManutencao = crypto.randomUUID()) {
 function confirmarExclusaoManutencao(id) {
 
     const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `excluirManutencao('${id}')` }
+        { texto: 'Confirmar', fechar: true, img: 'concluido', funcao: `excluirManutencao('${id}')` }
     ]
 
     popup({ mensagem: 'Confirmar exclusão?', botoes, removerAnteriores: true })

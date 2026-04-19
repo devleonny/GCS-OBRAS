@@ -341,7 +341,7 @@ async function salvarQuadro(id = crypto.randomUUID()) {
 async function confirmarExcluirPIT(id) {
 
     const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `excluirPIT('${id}')` }
+        { texto: 'Confirmar', fechar: true, img: 'concluido', funcao: `excluirPIT('${id}')` }
     ]
 
     popup({ mensagem: 'Tem certeza?', botoes, removerAnteriores: true })

@@ -729,7 +729,7 @@ function incluirContador() {
     }
 
     const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: `criarGaveta()` },
+        { texto: 'Salvar', fechar: true, img: 'concluido', funcao: `criarGaveta()` },
     ]
 
     popup({ botoes, linhas, removerAnteriores: true })
@@ -877,7 +877,7 @@ async function incluirResponsavel(usuario) {
 async function confirmarExcluirAcao(idAcao) {
 
     const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `excluirAcao('${idAcao}')` }
+        { texto: 'Confirmar', fechar: true, img: 'concluido', funcao: `excluirAcao('${idAcao}')` }
     ]
 
     popup({ botoes, mensagem: 'Tem certeza?', removerAnteriores: true })

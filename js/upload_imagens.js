@@ -24,6 +24,7 @@ function abrirImagem(codigo) {
             funcao: `document.getElementById('fileInput').click()`
         },
         {
+            fechar: true,
             texto: 'Salvar',
             img: 'concluido',
             funcao: `importarImagem('${codigo}')`

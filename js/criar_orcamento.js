@@ -157,8 +157,8 @@ async function manterPrecos() {
     ]
 
     const botoes = [
-        { texto: 'Atualizar', img: 'atualizados', funcao: `manterPrecosAntigos('N')` },
-        { texto: 'Manter preços', img: 'atrasado', funcao: `manterPrecosAntigos('S')` },
+        { texto: 'Atualizar', fechar: true, img: 'atualizados', funcao: `manterPrecosAntigos('N')` },
+        { texto: 'Manter preços', fechar: true, img: 'atrasado', funcao: `manterPrecosAntigos('S')` },
     ]
 
     popup({ linhas, botoes, titulo: 'Manter Preços', removerAnteriores: true })

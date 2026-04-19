@@ -86,7 +86,7 @@ async function vincularTag(idTag) {
 function confirmarRemocaoTag(idTag, idOrcamento) {
 
     const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `removerTag('${idTag}', '${idOrcamento}')` }
+        { texto: 'Confirmar', fechar: true, img: 'concluido', funcao: `removerTag('${idTag}', '${idOrcamento}')` }
     ]
 
     popup({ mensagem: 'Remover tag?', botoes, removerAnteriores: true })

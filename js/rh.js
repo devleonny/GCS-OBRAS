@@ -424,7 +424,7 @@ async function incluirDocumento(id) {
 function confirmarExcluirDocumento(id) {
 
     const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `excluirDocumento('${id}')` }
+        { texto: 'Confirmar', fechar: true, img: 'concluido', funcao: `excluirDocumento('${id}')` }
     ]
 
     popup({ mensagem: 'Deseja excluir o documento?', botoes, removerAnteriores: true })

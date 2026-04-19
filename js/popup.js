@@ -33,7 +33,7 @@ function popup({
     `
 
     const botaoPadrao = ({ funcao = '', img, texto, fechar = false }) => `
-        <div onclick="${funcao}${fechar ? `; removerPopup('${idPopup}')` : ''}" class="botoes-rodape">
+        <div onclick="${funcao}${fechar ? `${funcao ? ';' : ''}${removerAnteriores ? 'removerTodosPopups()' : `removerPopup('${idPopup}')`}` : ''}" class="botoes-rodape">
             <img src="imagens/${img}.png">
             <span>${texto}</span>
         </div>
@@ -98,6 +98,18 @@ function limparRecursosPopup(id) {
     delete configPopupGlobal[id]
 }
 
+function removerTodosPopups() {
+    const popups = [...document.querySelectorAll('.popup')]
+    if (!popups.length) return
+
+    popups.forEach(p => {
+        limparRecursosPopup(p.id)
+        p.remove()
+    })
+
+    document.querySelector('.aguarde')?.remove()
+}
+
 function removerPopup(id = null) {
     const popups = [...document.querySelectorAll('.popup')]
     if (!popups.length) return
@@ -108,19 +120,8 @@ function removerPopup(id = null) {
 
     if (!alvo) return
 
-    const { removerAnteriores } = configPopupGlobal[alvo.id] || {}
-
-    if (removerAnteriores) {
-        const index = popups.findIndex(p => p.id === alvo.id)
-
-        popups.slice(0, index + 1).forEach(p => {
-            limparRecursosPopup(p.id)
-            p.remove()
-        })
-    } else {
-        limparRecursosPopup(alvo.id)
-        alvo.remove()
-    }
+    limparRecursosPopup(alvo.id)
+    alvo.remove()
 
     document.querySelector('.aguarde')?.remove()
 }

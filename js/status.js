@@ -414,7 +414,7 @@ async function abrirAtalhos(id, idMaster) {
 async function confirmarProspeccao(id) {
 
     const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `iniciarChamadoProspeccao('${id}')` }
+        { texto: 'Confirmar', fechar: true, img: 'concluido', funcao: `iniciarChamadoProspeccao('${id}')` }
     ]
 
     popup({ botoes, imagem: 'imagens/prospeccao.png', mensagem: 'Criar uma prospecção?', removerAnteriores: true })

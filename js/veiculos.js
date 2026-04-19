@@ -423,7 +423,7 @@ async function painelAtalhos(idCusto) {
 function painelExcluir(idCusto) {
 
     const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `excluirCusto('${idCusto}')` }
+        { texto: 'Confirmar', img: 'concluido', fechar: true, funcao: `excluirCusto('${idCusto}')` }
     ]
 
     popup({ botoes, mensagem: 'Deseja excluir este lançamento?', removerAnteriores: true })

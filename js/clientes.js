@@ -647,7 +647,7 @@ async function formularioCliente(idCliente) {
 function confirmarExcluirCliente(idCliente) {
 
     const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `excluirCliente('${idCliente}')` }
+        { texto: 'Confirmar', fechar: true, img: 'concluido', funcao: `excluirCliente('${idCliente}')` }
     ]
 
     popup({ botoes, mensagem: 'Tem certeza que deseja excluir?', removerAnteriores: true, titulo: 'Exclusão de cliente' })

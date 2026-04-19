@@ -144,7 +144,7 @@ function filtroOrcamentos() {
         })
     }
 
-    popup({ linhas, titulo: 'Gerenciar Filtro', removerAnteriores: true })
+    popup({ linhas, titulo: 'Gerenciar Filtro' })
 
 }
 
