@@ -194,7 +194,7 @@ async function tirarFoto() {
     const foto = `<img name="foto" data-salvo="não" id="${idFoto}" src="${src}" class="foto" onclick="ampliarImagem(this, '${idFoto}')">`
 
     fotos.insertAdjacentHTML('beforeend', foto)
-    
+
     removerPopup()
 
     visibilidadeFotos()
@@ -728,31 +728,37 @@ async function criarOrcamentoVinculado(idOcorrencia, idCorrecao) {
 
     const { unidade, snapshots, correcoes } = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
 
-    const equipamentos = correcoes?.[idCorrecao]?.equipamentos || {}
-
-    const dados_composicoes = Object.fromEntries(
-        Object.entries(equipamentos).map(([chave, dados]) => {
-            return [
-                chave,
-                {
-                    ...dados,
-                    qtde: dados.quantidade
-                }
-            ]
-        })
-    )
-
     // Chave provisória para vínculo posterior;
     const empresa = snapshots?.empresa
 
+    const lpu_ativa = empresa == 'BOTICARIO'
+        ? 'LPU BOTICARIO'
+        : empresa == 'ASSAÍ'
+            ? 'LPU ASSAÍ'
+            : 'LPU HOPE'
+
+    // Equipamentos;
+    const equipamentos = correcoes?.[idCorrecao]?.equipamentos || {}
+
+    const dados_composicoes = {}
+
+    for (const [chave, { quantidade }] of Object.entries(equipamentos)) {
+        const { tipo, descricao, snapshots } = await recuperarDado('dados_composicoes', chave) || {}
+
+        const custo = snapshots?.[lpu_ativa.toLowerCase()]?.[0] || 0
+
+        dados_composicoes[chave] = {
+            tipo,
+            custo,
+            descricao,
+            codigo: chave,
+            qtde: quantidade
+        }
+    }
+
     baseOrcamento({
         dados_composicoes,
-        lpu_ativa:
-            empresa == 'BOTICARIO'
-                ? 'LPU BOTICARIO'
-                : empresa == 'ASSAÍ'
-                    ? 'LPU ASSAÍ'
-                    : 'LPU HOPE',
+        lpu_ativa,
         dados_orcam: {
             contrato: 'sequencial',
             omie_cliente: unidade,
