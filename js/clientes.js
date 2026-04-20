@@ -120,6 +120,7 @@ async function telaClientes() {
         'Empresa': { chave: 'snapshots.empresa' },
         'Nome Fantasia': { chave: 'nome' },
         'Endereço Cadastro': { chave: 'snapshots.enderecoCadastro' },
+        'Comentário': { chave: 'comentario' },
         'Ações': {}
     }
 
@@ -426,7 +427,7 @@ async function filtrarPorTag(tag) {
 function criarLinhaClienteGCS(cliente) {
 
     const idCliente = cliente.id
-    const { nome, cnpj, tags } = cliente
+    const { nome, cnpj, tags, comentario } = cliente
     const enderecoEntrega = cliente.enderecoEntrega ?? {}
 
     const modelo = ({ endereco, bairro, cep, cidade, estado }) => {
@@ -471,6 +472,9 @@ function criarLinhaClienteGCS(cliente) {
             </div>
         </td>
         <td>${eCadastro}</td>
+        <td>
+            <div style="white-space: pre-wrap;">${comentario || ''}</div>
+        </td>
         <td>
             <img src="imagens/pesquisar2.png" onclick="formularioCliente(${idCliente})">
         </td>`
@@ -522,10 +526,20 @@ function adicionarTag() {
 
 async function formularioCliente(idCliente) {
 
-    const cliente = await recuperarDado('dados_clientes', idCliente) || {}
-    const enderecoEntrega = cliente?.enderecoEntrega || {}
+    const {
+        enderecoEntrega,
+        endereco,
+        bairro,
+        estado,
+        cidade,
+        cep,
+        nome,
+        cnpj,
+        comentario,
+        tags
+    } = await recuperarDado('dados_clientes', idCliente) || {}
 
-    const labelsTags = (cliente.tags || [])
+    const labelsTags = (tags || [])
         .map(item => tagCliente(item.tag, true))
         .join('')
 
@@ -536,11 +550,11 @@ async function formularioCliente(idCliente) {
     const linhas = [
         {
             texto: 'CPF/CNPJ',
-            elemento: `<input oninput="formatarCnpj(this)" name="cnpj" value="${cliente.cnpj || ''}">`
+            elemento: `<input oninput="formatarCnpj(this)" name="cnpj" value="${cnpj || ''}">`
         },
         {
             texto: 'Nome Fantasia',
-            elemento: `<textarea oninput="this.value = this.value.toUpperCase()" name="nome">${cliente.nome || ''}</textarea>`
+            elemento: `<textarea oninput="this.value = this.value.toUpperCase()" name="nome">${nome || ''}</textarea>`
         },
         {
             texto: 'Tags',
@@ -558,6 +572,10 @@ async function formularioCliente(idCliente) {
             `
         },
         {
+            texto: 'Comentário',
+            elemento: `<textarea name="comentario">${comentario || ''}</textarea>`
+        },
+        {
             elemento: `
                 <div style="${horizontal}; gap: 1rem;">
                     <h3>Endereço de Cadastro</h3>
@@ -567,25 +585,25 @@ async function formularioCliente(idCliente) {
         },
         {
             texto: 'Endereço',
-            elemento: `<textarea maxlength="60" name="endereco">${cliente.endereco || ''}</textarea>`
+            elemento: `<textarea maxlength="60" name="endereco">${endereco || ''}</textarea>`
         },
         {
             texto: 'Bairro',
-            elemento: `<textarea name="bairro">${cliente.bairro || ''}</textarea>`
+            elemento: `<textarea name="bairro">${bairro || ''}</textarea>`
         },
         {
             texto: 'Cidade',
-            elemento: `<input name="cidade" value="${cliente.cidade || ''}">`
+            elemento: `<input name="cidade" value="${cidade || ''}">`
         },
         {
             texto: 'Cep',
-            elemento: `<input oninput="formatarCep(this)" name="cep" value="${cliente.cep || ''}">`
+            elemento: `<input oninput="formatarCep(this)" name="cep" value="${cep || ''}">`
         },
         {
             texto: 'Estado',
             elemento: `
             <select name="estado">
-                ${aEstados.map(estado => `<option ${cliente.estado == estado ? 'selected' : ''}>${estado}</option>`).join('')}
+                ${aEstados.map(e => `<option ${estado == e ? 'selected' : ''}>${e}</option>`).join('')}
             </select>
             `
         },
@@ -691,6 +709,7 @@ async function salvarCliente(idCliente = codCliAleatorio()) {
         cep: obVal('cep'),
         cidade: obVal('cidade'),
         estado: obVal('estado'),
+        comentario: obVal('comentario'),
         tags,
         enderecoEntrega: {
             endereco: obVal('e_endereco'),
