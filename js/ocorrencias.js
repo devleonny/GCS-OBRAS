@@ -1162,9 +1162,7 @@ async function confirmarExcluirFiltro(id) {
 
 async function excluirFiltroOcorrencias(id) {
 
-    await deletarDB('filtros', id)
-    deletar(`filtros/${id}`)
-
+    await deletar(`filtros/${id}`)
     await limparFiltroOcorrencias()
 }
 
@@ -1808,12 +1806,15 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
     const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
     const atualizado = {
         fotos: {
-            ...correcao.fotos,
+            ...correcao?.fotos,
             ...fotos
         },
         equipamentos,
         data: new Date().toLocaleString(),
-        anexos,
+        anexos: {
+            ...anexos,
+            ...correcao?.anexos
+        },
         dtCorrecao,
         tecnico: obter('tecnico').id,
         executor: obter('executor').id,
