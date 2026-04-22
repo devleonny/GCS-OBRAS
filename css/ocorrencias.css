@@ -26,6 +26,14 @@
     padding: 5px;
 }
 
+.executores {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    gap: 2px;
+}
+
 .topo-ocorrencias {
     gap: 1rem;
     display: flex;

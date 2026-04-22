@@ -48,7 +48,7 @@ const balaoPDF = ({ nf, tipo, codOmie, app }) => {
 
 const modeloBotoes = (imagem, nome, funcao) => {
 
-    if(!imagem.includes('/'))
+    if (!imagem.includes('/'))
         imagem = `imagens/${imagem}.png`
 
     return `
@@ -230,15 +230,15 @@ async function salvarDepartamento(img) {
     const input = img.previousElementSibling
     const nome = input.value
 
-    if (!nome) return popup({ mensagem: 'Nome em branco',  })
+    if (!nome) return popup({ mensagem: 'Nome em branco', })
 
     const resposta = await criarDepDiretamente(nome)
 
-    if (resposta.mensagem) return popup({ mensagem: resposta.mensagem,  })
+    if (resposta.mensagem) return popup({ mensagem: resposta.mensagem, })
     input.value = ''
     img.style.display = 'none'
 
-    popup({ mensagem: 'Salvo com successo',  })
+    popup({ mensagem: 'Salvo com successo', })
 }
 
 async function respostaSincronizacao(script) {
@@ -393,7 +393,7 @@ async function alterarUsuario({ campo, usuario, select, valor }) {
     const alteracao = await comunicacaoServ({ usuario, campo, valor }) // Se alterar no servidor, altera localmente;
 
     if (!alteracao?.success) {
-        popup({ mensagem: `Não foi possível alterar: ${alteracao?.mensagem || 'Tente novamente mais tarde'}`,  })
+        popup({ mensagem: `Não foi possível alterar: ${alteracao?.mensagem || 'Tente novamente mais tarde'}`, })
         if (select)
             select.value = dados_setores[usuario][campo] // Devolve a informação anterior pro elemento;
     }
@@ -509,7 +509,7 @@ async function salvarLevantamento(idOrcamento, idElemento) {
         if (idOrcamento) return await abrirEsquema(idOrcamento)
 
     } catch (error) {
-        popup({ mensagem: `Erro ao fazer upload: ${error.message}`,  })
+        popup({ mensagem: `Erro ao fazer upload: ${error.message}`, })
     }
 }
 
@@ -627,7 +627,7 @@ async function painelUsuarios() {
     if (divOnline)
         return
 
-    popup({ elemento, titulo: 'Painel de Usuários',  })
+    popup({ elemento, titulo: 'Painel de Usuários', })
 
     await paginacao(pag)
 }
@@ -724,7 +724,7 @@ async function relancarPagamento(idPagamento) {
             <button onclick="confirmarRelancamento('${idPagamento}')">Confirmar</button>
         </div>
     `
-    popup({ elemento, titulo: 'Escolha o APP',  })
+    popup({ elemento, titulo: 'Escolha o APP', })
 }
 
 async function confirmarRelancamento(idPagamento) {
@@ -1594,7 +1594,7 @@ async function abrirDANFE(codOmieNF, tipo, app) {
 
     const resposta = await buscarDANFE(codOmieNF, tipo, app)
 
-    if (resposta.err) 
+    if (resposta.err)
         return popup({ mensagem: `Provavelmente esta nota foi importada via XML e por enquanto não está disponível` })
 
     removerOverlay()
@@ -1679,4 +1679,83 @@ async function criarDepDiretamente(nome) {
     } catch (error) {
         return { mensagem: error.messagem || error.mensage || error }
     }
+}
+
+async function migracaoPDA(pagina = 1) {
+
+    const cu = {
+        'PDA': 'KI7Tl',
+        'POC': '5TdGW',
+        'INFRA': '8HYvp', // Levantamento INFRA
+        'LOGÍSTICA': '4ni1x', // Pendente de Peças
+        'EM_ANDAMENTO': '1',
+        'CONCLUÍDO': 'WRuo2',
+        'PENDÊNCIA': 'oC5Rg' // Pendencia do pedido
+    }
+
+    const pdas = await pesquisarDB({
+        pagina,
+        base: 'dados_orcamentos',
+        filtros: {
+            'aba': { op: 'NOT_EMPTY' }
+        }
+    })
+
+    for (const orc of pdas.resultados) {
+        const ocorrencia = await recuperarDado('dados_ocorrencias', orc?.dados_orcam?.contrato)
+
+        if (ocorrencia)
+            console.log('existe... ' + orc.dados_orcam.contrato)
+
+        else {
+
+            const aba = orc.aba
+            const idOrcamento = orc.id
+
+            const acoes = await pesquisarDB({
+                base: 'acoes',
+                filtros: {
+                    'origem.id': { op: '=', value: idOrcamento }
+                }
+            })
+
+            const correcoes = {}
+
+            for (const a of acoes.resultados) [
+
+                correcoes[a.id] = {
+                    fotos: {},
+                    equipamentos: {},
+                    anexos: {},
+                    tecnico: null,
+
+                    data: new Date(a?.registro || a.timestamp).toLocaleString(),
+                    dtCorrecao: a?.prazo || '',
+                    executor: null,
+                    usuario: a?.usuario || '',
+                    tipoCorrecao: cu[aba],
+                    descricao: a?.acao || ''
+                }
+
+            ]
+
+            const ocorrencia = {
+                equipamentos: {},
+                unidade: null,
+                sistema: '17',
+                correcoes,
+                prioridade: 'v2ttQ',
+                tipo: 'ipfIt',
+                descricao: orc?.pda?.comentario || '',
+                dataRegistro: orc?.dados_orcam?.data || new Date(orc.timestamp).toLocaleString('pt-BR'),
+                usuario: orc.usuario,
+                anexos: {}
+            }
+
+            console.log(ocorrencia);
+
+        }
+
+    }
+
 }

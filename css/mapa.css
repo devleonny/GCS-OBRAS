@@ -28,6 +28,8 @@
 }
 
 .painel-mapa.ativo {
+    margin: 0.5rem;
+    border-radius: 3px;
     padding: 0px;
     overflow: auto;
     background: linear-gradient(235deg, #249f41, #151749);

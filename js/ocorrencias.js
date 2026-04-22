@@ -325,8 +325,7 @@ function carregarCorrecoes(ocorrencia) {
     const idOcorrencia = ocorrencia.id
     const { correcoes } = ocorrencia || {}
 
-    let divsCorrecoes = ''
-    const aTec = acesso.permissao === 'técnico'
+    const divsCorrecoes = []
 
     // Organizado com a última correção primeiro;
     const correcoesOrganizadas = Object.entries(correcoes || {})
@@ -334,29 +333,37 @@ function carregarCorrecoes(ocorrencia) {
 
     for (const [idCorrecao, correcao] of correcoesOrganizadas) {
 
-        const { equipamentos, idOrcamento, tipoCorrecaoNome, localizacao } = correcao
+        const { equipamentos,
+            idOrcamento,
+            data,
+            tecnico,
+            descricao = '',
+            datas_agendadas,
+            tipoCorrecaoNome,
+            localizacao,
+            usuario,
+            executor = []
+        } = correcao
 
-        if (aTec) {
-            // Só mostrar correções criadas para ele;
-            if (correcao.executor !== acesso.usuario)
-                continue
-        }
+        const listaExecutores = Array.isArray(executor)
+            ? executor.join(', ')
+            : executor
 
-        const edicao = (correcao.usuario == acesso.usuario || autE.includes(acesso.permissao))
+        const edicao = (usuario == acesso.usuario || autE.includes(acesso.permissao))
             ? `
                 <button onclick="formularioCorrecao('${idOcorrencia}', '${idCorrecao}')">Editar</button>
                 <button style="background-color: #B12425;" onclick="confirmarExclusao('${idOcorrencia}', '${idCorrecao}')">Excluir</button>
             `
             : ''
 
-        const agendamentos = (correcao?.datas_agendadas || []).reverse()
+        const agendamentos = (datas_agendadas || []).reverse()
             .map(data => {
                 const [ano, mes, dia] = data ? data.split('-') : ['-', '-', '-']
                 return `<span>${dia}/${mes}/${ano}</span>`
             })
             .join('')
 
-        const imgR = (correcao.usuario == acesso.usuario || autE.includes(acesso.permissao))
+        const imgR = (usuario == acesso.usuario || autE.includes(acesso.permissao))
             ? `<button onclick="reagendarCorrecao('${idOcorrencia}', '${idCorrecao}')" style="background-color: #249f41; color: white;">Reagendar</button>`
             : ''
 
@@ -379,7 +386,7 @@ function carregarCorrecoes(ocorrencia) {
             ? modelo('Orçamento', `<img src="imagens/pdf.png" onclick="irPdf('${idOrcamento}')">`)
             : ''
 
-        divsCorrecoes += `
+        divsCorrecoes.push(`
             <div class="detalhes-correcoes-1">
 
                 <div style="${vertical}; width: 90%; padding: 0.5rem;">
@@ -390,13 +397,13 @@ function carregarCorrecoes(ocorrencia) {
                         </div>
                         <div class="agendamentos">${agendamentos}</div>
                         `)}
-                    ${modelo('Solicitante', `<span>${correcao.usuario}</span>`)}
-                    ${modelo('Executor', `<span>${correcao?.executor || ''}</span>`)}
-                    ${modelo('Técnico', `<span>${correcao?.tecnico || ''}</span>`)}
+                    ${modelo('Solicitante', `<span>${usuario}</span>`)}
+                    ${modelo('Executores', `<span>${listaExecutores || ''}</span>`)}
+                    ${modelo('Técnico', `<span>${tecnico || ''}</span>`)}
                     ${modelo('Correção', labelTipoCorrecao)}
                     ${pdfOrcamento}
-                    ${modelo('Descrição', `<div style="white-space: pre-wrap;">${correcao.descricao}</div>`)}
-                    ${modelo('Criado em', `<span>${correcao?.data || ''}</span>`)}
+                    ${modelo('Descrição', `<div style="white-space: pre-wrap;">${descricao || ''}</div>`)}
+                    ${modelo('Criado em', `<span>${data || ''}</span>`)}
                     ${tabEquipamentos(equipamentos, idOcorrencia, idCorrecao)}
                     
                 </div>
@@ -415,16 +422,17 @@ function carregarCorrecoes(ocorrencia) {
                     </div>
                 </div>
             </div>`
+        )
     }
 
     const acumulado = `
         <button style="background-color: #e47a00;" onclick="formularioCorrecao('${idOcorrencia}')">Incluir Correção</button>
         <div class="detalhamento-correcoes">
-            ${divsCorrecoes}
+            ${divsCorrecoes.join('')}
         </div>
     `
 
-    return { correcoes: acumulado, vazio: divsCorrecoes == '' }
+    return { correcoes: acumulado, vazio: divsCorrecoes.length == 0 }
 
 }
 
@@ -1571,16 +1579,6 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
         )
     ).join('')
 
-    controlesCxOpcoes.executor = {
-        base: 'dados_setores',
-        retornar: ['usuario'],
-        colunas: {
-            'Nome': { chave: 'usuario' },
-            'Permissão': { chave: 'permissao' },
-            'Setor': { chave: 'setor' }
-        }
-    }
-
     controlesCxOpcoes.tecnico = {
         base: 'dados_setores',
         retornar: ['usuario'],
@@ -1616,8 +1614,13 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
                 </span>`
         },
         {
-            texto: 'Quem fará a atividade?',
-            elemento: `<span class="campos" ${executor ? `id="${executor}"` : ''} name="executor" onclick="cxOpcoes('executor')">${executor || 'Selecione'}</span>`
+            texto: `
+            <div style="${horizontal}; gap: 1rem;">
+                <img src="imagens/baixar.png" onclick="maisResponsavel([undefined])">
+                <span>Executores</span>
+            </div>
+            `,
+            elemento: '<div class="executores"></div>'
         },
         {
             texto: 'Técnico',
@@ -1635,8 +1638,8 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
             elemento: `
             <div style="${vertical}; width: 100%; gap: 5px;">
                 <div style="${horizontal}; gap: 1rem;">
-                    <span>Peças Usadas na Correção</span>
                     <img src="imagens/baixar.png" onclick="maisLabel({formulario: 'correcao'})">
+                    <span>Peças Usadas na Correção</span>
                 </div>
                 <div style="${vertical}; width: 100%; gap: 2px;" id="equipamentos">
                     ${equipamentos}
@@ -1676,10 +1679,48 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
 
     popup({ linhas, botoes, titulo: 'Gerenciar Correção', autoDestruicao: ['executor', 'tecnico', 'tipoCorrecao'] })
 
+    maisResponsavel(executor)
+
     visibilidadeFotos()
 
     removerOverlay()
 
+}
+
+async function maisResponsavel(executores) {
+
+    if (typeof executores === 'string')
+        executores = [executores]
+
+    const area = document.querySelector('.executores')
+    if (!area) return
+
+    const spans = []
+
+    for (const executor of executores) {
+        const nomeControle = crypto.randomUUID()
+
+        controlesCxOpcoes[nomeControle] = {
+            base: 'dados_setores',
+            retornar: ['usuario'],
+            colunas: {
+                'Nome': { chave: 'usuario' },
+                'Permissão': { chave: 'permissao' },
+                'Setor': { chave: 'setor' }
+            }
+        }
+
+        spans.push(`
+            <span
+                class="campos"
+                ${executor ? `id="${executor}"` : ''}
+                name="${nomeControle}"
+                onclick="cxOpcoes('${nomeControle}')"
+            >${executor || 'Selecione'}</span>
+        `)
+    }
+
+    area.insertAdjacentHTML('beforeend', spans.join(''))
 }
 
 async function maisLabel({ codigo, descricao, quantidade, origem, serie, formulario } = {}) {
@@ -1767,6 +1808,15 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
         return
     }
 
+    const executores = [...document.querySelectorAll('.executores span')]
+        .filter(span => span.id)
+
+    if (executores.length == 0)
+        return popup({ mensagem: 'Selecione pelo menos 1 executor' })
+
+    const executor = executores
+        .map(span => span.id)
+
     const equipamentos = {}
     const fotos = {}
     const input = obter('anexos')
@@ -1823,7 +1873,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
         },
         dtCorrecao,
         tecnico: obter('tecnico').id,
-        executor: obter('executor').id,
+        executor,
         usuario: correcao.usuario || acesso.usuario,
         tipoCorrecao,
         descricao: obter('descricao').value

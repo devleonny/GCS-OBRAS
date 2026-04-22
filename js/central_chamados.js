@@ -247,8 +247,12 @@ async function linCorrecoes(ocorrencia) {
     const { cliente, sistema, prioridade } = snapshots || {}
     const { descricao, usuario, executor, dtCorrecao } = correcoes[snapshots.ultimaCorrecaoId] || {}
 
+    const listaExecutores = Array.isArray(executor)
+        ? executor.join(', ')
+        : executor
+
     const titulo = executor
-        ? ` para <b>${executor}</b>`
+        ? ` para <b>${listaExecutores}</b>`
         : ', sem executor definido'
 
     return `
