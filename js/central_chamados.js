@@ -159,7 +159,7 @@ async function criarElementosIniciais() {
         pag: 'tCorrecoes',
         body: 'tCorrecoes',
         filtros: {
-            'snapshots.ultimoExecutor': { op: '=', value: acesso.usuario },
+            'snapshots.ultimoExecutor.*.executor': { op: '=', value: acesso.usuario },
             'correcoes.*.tipoCorrecao': [
                 { op: '!=', value: 'WRuo2' },
                 { op: '!=', value: '4sGzb' }

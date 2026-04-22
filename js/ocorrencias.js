@@ -524,7 +524,7 @@ async function telaOcorrencias() {
     if (acesso.permissao == 'técnico') {
 
         controles.ocorrencias.filtros = {
-            'snapshots.ultimoExecutor': { op: '=', value: acesso.usuario },
+            'snapshots.ultimoExecutor.*.executor': { op: '=', value: acesso.usuario },
             'correcoes.*.tipoCorrecao': [
                 { op: '!=', value: 'WRuo2' },
                 { op: '!=', value: '4sGzb' }
@@ -1044,7 +1044,7 @@ async function criarPesquisas() {
         'Sistema': { path: 'snapshots.sistema' },
         'Prioridade': { path: 'snapshots.prioridade' },
         'Última Correção': { path: 'snapshots.ultimaCorrecao' },
-        'Executor': { path: 'snapshots.ultimoExecutor' },
+        'Executor': { path: 'executor', explode: { path: 'snapshots.ultimoExecutor' } },
         'Estado': { path: 'snapshots.cliente.estado' },
         'Empresa': { path: 'snapshots.empresa' },
     }
@@ -1081,14 +1081,17 @@ async function criarPesquisas() {
         `)
 
     for (const [titulo, conf] of Object.entries(camposFechados)) {
-        const { path } = conf
 
         const contagem = (titulo == 'Executor' && acesso.permissao == 'técnico')
             ? { [acesso.usuario]: {} }
             : {
                 '': {},
-                ...await contarPorCampo({ base: 'dados_ocorrencias', path })
+                ...await contarPorCampo({ base: 'dados_ocorrencias', ...conf })
             }
+
+        const path = conf?.explode?.path
+            ? 'snapshots.ultimoExecutor.*.executor'
+            : conf.path
 
         filtros.push(
             montarDropdownCheckbox({
@@ -1340,7 +1343,7 @@ async function auxPendencias() {
                 { op: '!=', value: 'WRuo2' },
                 { op: '!=', value: '4sGzb' }
             ],
-            'snapshots.ultimoExecutor': { op: '=', value: acesso.usuario }
+            'snapshots.ultimoExecutor.*.executor': { op: '=', value: acesso.usuario }
         }
 
     } else if (acesso.permissao == 'cliente') {
