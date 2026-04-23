@@ -1,4 +1,5 @@
 const api = `https://api.gcs.app.br`
+const read = `https://read.gcs.app.br`
 const horizontal = `display: flex; align-items: center; justify-content: center;`
 const vertical = `display: flex; align-items: start; justify-content: start; flex-direction: column;`
 const logo = 'https://i.imgur.com/Nb8sPs0.png'
