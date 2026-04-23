@@ -5,7 +5,7 @@ async function recuperarDado(base, chave) {
 
     const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
 
-    const resposta = await fetch(`${api}/recuperar-dado`, {
+    const resposta = await fetch(`${read}/recuperar-dado`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -30,7 +30,7 @@ async function pesquisarDB(params) {
 
     const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
 
-    const resposta = await fetch(`${api}/pesquisar-db`, {
+    const resposta = await fetch(`${read}/pesquisar-db`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ async function contarPorCampo(params) {
 
     const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
 
-    const resposta = await fetch(`${api}/contar-por-campo`, {
+    const resposta = await fetch(`${read}/contar-por-campo`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
