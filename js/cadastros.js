@@ -1,7 +1,5 @@
 async function telaCadastros() {
 
-    mostrarMenus(false)
-
     tela.innerHTML = `
     <div class="tabela-cadastro">
         <div class="tabela-cadastro-recorte"></div>

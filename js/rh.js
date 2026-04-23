@@ -30,10 +30,6 @@ const modeloRH = (valor1, elemento, funcao) => {
 
 async function telaRH() {
 
-    mostrarMenus(false)
-
-    criarMenus('rh')
-
     const colunas = {
         'Editar': {},
         'Nome': { chave: 'snapshots.nome' },

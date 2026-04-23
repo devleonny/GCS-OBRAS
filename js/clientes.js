@@ -112,7 +112,6 @@ async function vincularEmpresas() {
 }
 
 async function telaClientes() {
-    mostrarMenus(false)
 
     const colunas = {
         'Check': {},
@@ -171,8 +170,6 @@ async function telaClientes() {
 
     await paginacao()
     mostrarMapa()
-
-    criarMenus('clientes')
 }
 
 async function limparFiltrosClientesDropdown() {

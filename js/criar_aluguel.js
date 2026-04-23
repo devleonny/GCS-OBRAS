@@ -20,8 +20,6 @@ async function confirmarExclusaoAluguel() {
 
 async function telaCriarOrcamentoAluguel() {
 
-    mostrarMenus(false)
-
     funcaoTela = 'telaCriarOrcamentoAluguel'
 
     modo = 'ALUGUEL'
@@ -44,12 +42,12 @@ async function telaCriarOrcamentoAluguel() {
 
                     <div style="${vertical}">
                         <label>Quantidade</label>
-                        <input id="quantidade_periodo" oninput="total()" class="opcoes">
+                        <input id="quantidade_periodo" oninput="total()" class="campo-valor">
                     </div>
 
                     <div style="${vertical}">
                         <label>Período de Locação</label>
-                        <select id="lpu" onchange="atualizarPeriodo(this.value)" class="opcoes">
+                        <select id="lpu" onchange="atualizarPeriodo(this.value)" class="campo-valor">
                             ${['DIAS', 'SEMANAS', 'MESES', 'ANOS'].map(op => `<option>${op}</option>`).join('')}
                         </select>
                     </div>
@@ -74,7 +72,6 @@ async function telaCriarOrcamentoAluguel() {
     if (!orcamentoAluguel)
         tela.innerHTML = acumulado
 
-    criarMenus('criarOrcamentosAluguel')
     await carregarTabelasAluguel()
     await tabelaProdutosAluguel()
 
@@ -129,14 +126,14 @@ function criarLinhaOrcAluguel(codigo, produto) {
         <td>${codigo}</td>
         <td>${produto?.descricao || 'N/A'}</td>
         <td>${produto?.unidade || 'UN'}</td>
-        <td>
-            <input oninput="total()" type="number" class="campoValor" value="${produto?.qtde || ''}">
+        <td style="text-align: center;">
+            <input oninput="total()" type="number" class="campo-valor" value="${produto?.qtde || ''}">
         </td>
-        <td>
-            <input oninput="total()" type="number" class="campoValor" value="${produto?.custo || ''}">
+        <td style="text-align: center;">
+            <input oninput="total()" type="number" class="campo-valor" value="${produto?.custo || ''}">
         </td>
-        <td><label></label></td>
-        <td>
+        <td style="text-align: center;"><label></label></td>
+        <td style="text-align: center;">
             <img onclick="abrirImagem(this, '${codigo}')" src="${produto?.imagem || logo}" style="width: 4rem;">
         </td>
         <td>
@@ -290,7 +287,7 @@ function criarLinhaProdAluguel(produto) {
         </td>
         <td>${produto.tipo}</td>
         <td style="text-align: center;">
-            <input type="number" class="campoValor" oninput="incluirItemAluguel('${codigo}', this.value)">
+            <input type="number" class="campo-valor" oninput="incluirItemAluguel('${codigo}', this.value)">
         </td>
         <td style="text-align: center;">
             <img src="${produto?.imagem || logo}" style="width: 4rem; cursor: pointer;" onclick="abrirImagem(this, '${codigo}')">
@@ -363,8 +360,7 @@ async function total() {
             // Inclusão dos dados atualizados nas tds
             tdDescricao.textContent = descricao
 
-            tdTotal.classList = 'labelAprovacao'
-            tdTotal.style.backgroundColor = totalLinha > 0 ? 'green' : '#B12425'
+            tdTotal.classList = 'campo-valor'
             tdTotal.textContent = dinheiro(totalLinha)
 
             // Salvamento dos itens no Orcamento
@@ -400,10 +396,10 @@ async function total() {
     baseOrcamento(orcamentoBase)
 
     // Mensagem aleatório de boas vindas;
-    const aleatorio = Math.floor(Math.random() * metaforas.length)
+
     const quieto = `
         <div class="quieto">
-            <label class="novo_titulo">${metaforas[aleatorio]}</label>
+            <label class="novo_titulo">Sem Itens</label>
         </div>
     `
     const tabelas = document.getElementById('tabelas')
@@ -435,10 +431,10 @@ async function incluirItemAluguel(codigo, novaQuantidade) {
             <td style="position: relative;"></td>
             <td style="text-align: center;">${produto?.unidade}</td>
             <td style="text-align: center;">
-                <input oninput="total()" type="number" class="campoValor" value="${novaQuantidade}">
+                <input oninput="total()" type="number" class="campo-valor" value="${novaQuantidade}">
             </td>
             <td style="text-align: center;">
-                <input oninput="total()" type="number" class="campoValor">
+                <input oninput="total()" type="number" class="campo-valor">
             </td>
             <td>
                 <label></label>

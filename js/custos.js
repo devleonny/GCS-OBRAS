@@ -3,8 +3,6 @@ async function painelCustos(id) {
     removerPopup() // Atalhos;
     overlayAguarde()
 
-    criarMenus('custos')
-
     const orcamento = await recuperarDado('dados_orcamentos', id) || {}
     const { dados_orcam, snapshots, total_geral } = orcamento
     const { pagamentos = 0, fretes = 0, abastecimentos = 0, notas } = snapshots?.custos || {}

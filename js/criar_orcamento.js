@@ -58,8 +58,6 @@ async function telaCriarOrcamento() {
     funcaoTela = 'telaCriarOrcamento'
     modo = ''
 
-    mostrarMenus(false)
-
     const modelo = (texto, img) => `
         <div style="${horizontal}; gap: 1rem;">
             <img src="imagens/${img}.png" style="width: 1.7rem;">
@@ -131,8 +129,6 @@ async function telaCriarOrcamento() {
     const orcamentoPadrao = document.getElementById('orcamento_padrao')
     if (!orcamentoPadrao)
         tela.innerHTML = acumulado
-
-    criarMenus('criarOrcamentos')
 
     // Inicializar tabelas;
     const orcamento = baseOrcamento()

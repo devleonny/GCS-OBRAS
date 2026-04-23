@@ -42,7 +42,7 @@ function imagemEspecifica(justificativa) {
 
 async function telaPagamentos() {
 
-    mostrarMenus(false)
+    overlayAguarde()
 
     const pag = 'pagamentos'
     const colunas = {
@@ -95,11 +95,12 @@ async function telaPagamentos() {
 
         </div>
         `
-    const divPagamentos = document.querySelector('.divPagamentos')
-    if (!divPagamentos) tela.innerHTML = acumulado
+        
+    tela.innerHTML = acumulado
 
     await paginacao()
-    criarMenus('pagamentos')
+
+    removerOverlay()
 
 }
 

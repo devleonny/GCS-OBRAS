@@ -64,14 +64,32 @@
             <span name="titulo">GCS</span>
         </div>
         <div class="side-menu">
+
+            <div style="display: flex; align-items: center; justify-content: center;">
+                <img src="imagens/BG.png" style="width: 15rem; margin: 2rem;">
+            </div>
+
             <div class="nomeUsuario"></div>
+
+            <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <img src="imagens/alerta.png" onclick="mostrarPendencias()">
+                <span style="color: white;">Ver atalhos</span>
+            </div>
+
+            <div class="painel-pendencias"></div>
+
+            <br>
+
             <div class="botoesMenu"></div>
+
         </div>
         <div class="cabecalho-usuario"></div>
     </div>
 
+
     <div class="tela"></div>
 
+    <script src="js/esquema_botoes.js?v=5.82"></script>
     <script src="js/festas.js?v=5.82"></script>
     <script src="js/tabelas.js?v=5.82"></script>
     <script src="js/ferramentas.js?v=5.82"></script>

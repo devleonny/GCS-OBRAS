@@ -891,6 +891,24 @@ button {
     white-space: nowrap;
 }
 
+.menu-item {
+    flex-direction: column;
+    display: flex;
+    gap: 1px;
+    width: 100%;
+}
+
+.menu-principal {
+    gap: 1px;
+}
+
+.menu-secundario {
+    flex-direction: column;
+    gap: 1px;
+    display: none;
+    margin-left: 16px;
+}
+
 .flutuante {
     display: flex;
     flex-direction: column;

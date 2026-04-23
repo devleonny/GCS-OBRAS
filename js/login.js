@@ -4,13 +4,8 @@ async function telaLogin() {
 
     acesso = JSON.parse(localStorage.getItem('acesso'))
 
-    if (acesso) {
-        app = localStorage.getItem('app')
-        if (app == 'GCS')
-            return await telaInicialGCS()
-
-        return await telaInicialOcorrencias()
-    }
+    if (acesso)
+        return await telaInicialGCS()
 
     const tLogin = document.querySelector('.loginBloco')
     if (tLogin) return

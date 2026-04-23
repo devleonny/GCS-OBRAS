@@ -66,16 +66,6 @@ const layoutBotao = (nome, funcao, img) => `
     </div>
 `
 
-function criarAtalhoMenu({ nome, img, funcao }) {
-    const atalho = `
-    <div class="botao-lateral" onclick="executar('${funcao}')">
-        <img src="imagens/${img}.png">
-        <div>${nome}</div>
-    </div>
-    `
-    return atalho
-}
-
 async function executar(nomeFuncao) {
     if (!nomeFuncao) return
 
@@ -107,94 +97,47 @@ async function executar(nomeFuncao) {
     }
 }
 
-function criarMenus(chave) {
-    telaAtiva = chave
-    const botoesMenu = document.querySelector('.botoesMenu')
-    const atalhos = esquemaBotoes[chave]
+async function telaInicialGCS() {
 
-    const atalhosString = [...atalhoInicial, ...atalhos]
-        .map(atalho => criarAtalhoMenu(atalho))
-        .join('')
+    priExeGCS = false
 
-    botoesMenu.innerHTML = atalhosString
+    atribuirVariaveis()
+
+    criarMenus('inicial')
+
+    cUsuario.style.display = 'none'
+    toolbar.style.display = 'flex'
+    titulo.textContent = 'GCS'
+
+    const planoFundo = `
+        <div class="planoFundo">
+            <img src="gifs/loading.gif" style="width: 5rem;">
+        </div>`
+
+    const tInterna = `
+        <div class="telaInterna">
+            ${planoFundo}
+        </div>`
+
+    tela.innerHTML = tInterna
+
+    await carregarControles()
+    await criarElementosIniciais()
+    await auxPendencias()
+
+    if (!LPUS)
+        await recuperarLPUS()
+
 }
 
-const atalhoInicial = [
-    { nome: 'Menu Inicial', funcao: 'telaInicialGCS', img: 'LG' }
-]
+async function recuperarLPUS() {
+    const resposta = await buscarLPUs()
 
-const esquemaBotoes = {
-    inicial: [
-        { nome: 'Orçamentos', funcao: `telaOrcamentos`, img: 'projeto' },
-        { nome: 'Composições', funcao: `telaComposicoes`, img: 'composicoes' },
-        { nome: 'Clientes & Fornecedores', funcao: `telaClientes`, img: 'editar3' },
-        { nome: 'Chamados', funcao: `telaChamados`, img: 'chamados' },
-        { nome: 'Veículos', funcao: `telaVeiculos`, img: 'veiculo' },
-        { nome: 'Reembolsos', funcao: `telaPagamentos`, img: 'reembolso' },
-        { nome: 'Estoque', funcao: `telaEstoque`, img: 'estoque' },
-        { nome: 'RH', funcao: `telaRH`, img: 'gerente' },
-        { nome: 'Ocorrências', funcao: `telaInicialOcorrencias`, img: 'LG' },
-        { nome: 'Desconectar', funcao: `deslogarUsuario`, img: 'sair' }
-    ],
-    custos: [
-        { nome: 'Orçamentos', funcao: `telaOrcamentos`, img: 'voltar_2' },
-    ],
-    postit: [
-        { nome: 'Criar Post it', funcao: `criarPIT`, img: 'baixar' },
-        { nome: 'Criar Quadro', funcao: `criarQuadro`, img: 'baixar' },
-    ],
-    criarOrcamentos: [
-        { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
-        { nome: 'Salvar Orçamento', funcao: `enviarDadosOrcamento`, img: 'salvo' },
-        { nome: 'Apagar Orçamento', funcao: `apagarOrcamento`, img: 'cancel' },
-        { nome: 'Orçamentos', funcao: `telaOrcamentos`, img: 'voltar_2' },
-        { nome: 'Ocorrências', funcao: `voltarOcorrencias`, img: 'voltar_2' }
-    ],
-    criarOrcamentosAluguel: [
-        { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
-        { nome: 'Salvar Orçamento', funcao: `enviarDadosAluguel`, img: 'salvo' },
-        { nome: 'Apagar Orçamento', funcao: `apagarOrcamentoAluguel`, img: 'cancel' },
-        { nome: 'Orçamentos', funcao: `telaOrcamentos`, img: 'voltar_2' }
-    ],
-    orcamentos: [
-        { nome: 'Ocorrências', funcao: 'voltarOcorrencias', img: 'alerta' },
-        { nome: 'Baixar em Excel', funcao: 'baixarExcelOrcamentos', img: 'excel' },
-        { nome: 'Criar Orçamento', funcao: `painelEdicao`, img: 'projeto' },
-        { nome: 'Criar Orçamento Aluguel', funcao: `painelEdicao(1)`, img: 'projeto' },
-    ],
-    composicoes: [
-        { nome: 'Cadastrar Item', funcao: 'cadastrarItem', img: 'baixar' },
-        { nome: 'Baixar em Excel', funcao: 'baixarExcelComposicoes', img: 'excel' }
-    ],
-    chamados: [
-        { nome: 'Criar Manutenção', funcao: 'criarManutencao', img: 'chamados' },
-        { nome: 'Baixar em Excel', funcao: 'excelChamados', img: 'excel' }
-    ],
-    veiculos: [
-        { nome: 'Adicionar Combustível', funcao: 'painelValores', img: 'combustivel' },
-        { nome: 'Veículos', funcao: 'auxVeiculos', img: 'veiculo' },
-    ],
-    pagamentos: [
-        { nome: 'Solicitar Pagamento', funcao: `formularioPagamento`, img: 'dinheiro' },
-        { nome: 'Baixar Excel', funcao: `baixarExcelRelatorioPagamentos`, img: 'excel' }
-    ],
-    estoque: [
-        { nome: 'Cadastrar Item', funcao: 'incluirItemEstoque', img: 'baixar' },
-        { nome: 'Relatório de Movimentos', funcao: 'relatorioMovimento', img: 'projeto' },
-        { nome: 'Baixar em Excel', funcao: `exportarParaExcel`, img: 'excel' },
-    ],
-    relatorio: [
-        { nome: 'Baixar em Excel', funcao: 'excelRecebimento', img: 'excel' },
-        { nome: 'Limpar Filtros', funcao: 'limparFiltros', img: 'limpar' },
-    ],
-    rh: [
-        { nome: 'Baixar em Excel', funcao: 'rhExcel', img: 'excel' },
-        { nome: 'Incluir Documento', funcao: 'incluirDocumento', img: 'baixar' }
-    ],
-    clientes: [
-        { nome: 'Painel Ocorrências', funcao: 'telaInicialOcorrencias', img: 'LG' },
-        { nome: 'Novo cadastro', funcao: 'formularioCliente', img: 'baixar' }
-    ]
+    if (resposta.mensagem)
+        return popup({ mensagem: resposta.mensagem })
+
+    if (resposta.lpus)
+        LPUS = resposta.lpus
 }
 
 async function lembreteNotas() {

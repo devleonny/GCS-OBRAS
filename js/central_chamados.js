@@ -91,33 +91,6 @@ async function capturarLocalizacao() {
     })
 }
 
-async function telaInicialOcorrencias() {
-
-    atribuirVariaveis()
-
-    cUsuario.style.display = 'none'
-    toolbar.style.display = ''
-    toolbar.style.display = 'flex'
-
-    const planoFundo = `
-        <div class="planoFundo">
-            <img src="gifs/loading.gif" style="width: 8rem;">
-        </div>`
-
-    const tInterna = `
-        <div class="telaInterna">
-            ${planoFundo}
-        </div>`
-
-    tela.innerHTML = tInterna
-
-    carregarMenus()
-    mostrarMenus(false)
-    auxPendencias()
-
-    await criarElementosIniciais()
-
-}
 
 async function criarElementosIniciais() {
 
@@ -289,41 +262,6 @@ async function minhaCorrecao(id) {
 
 }
 
-function carregarMenus() {
-
-    const menus = {
-        'Início': { img: 'home', funcao: 'telaInicialOcorrencias()', proibidos: [] },
-        'Criar Ocorrência': { img: 'baixar', funcao: 'formularioOcorrencia()', proibidos: ['técnico'] },
-        'Ocorrências': { img: 'configuracoes', funcao: 'telaOcorrencias()', proibidos: [] },
-        'Relatório de Ocorrências': { img: 'planilha', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] },
-        'Relatório de Correções': { img: 'planilha', funcao: 'telaRelatorioCorrecoes()', proibidos: ['user', 'técnico', 'visitante'] },
-        'Relatório de Peças': { img: 'planilha', funcao: 'telaRelatorioPecas()', proibidos: ['user', 'técnico', 'visitante'] },
-        'Usuários': { img: 'perfil', funcao: 'telaUsuarios()', proibidos: ['user', 'cliente', 'técnico', 'analista', 'visitante'] },
-        'Cadastros': { img: 'prancheta', funcao: 'telaCadastros()', proibidos: ['user', 'cliente', 'técnico', 'analista', 'visitante'] },
-        'Clientes & Fornecedores': { img: 'prancheta', funcao: 'telaClientes()', proibidos: ['user', 'técnico', 'cliente', 'visitante'] },
-        'Orçamentos': { img: 'projeto', funcao: 'telaOrcamentos()', proibidos: ['técnico', 'cliente', 'visitante'] },
-        'GCS': { img: 'LG', funcao: 'telaInicialGCS()', proibidos: ['técnico', 'cliente', 'visitante'] }
-    }
-
-    menus.Desconectar = { img: 'sair', funcao: 'deslogarUsuario()', proibidos: [] }
-
-    const stringMenus = Object.entries(menus)
-        .filter(([_, dados]) => !dados.proibidos.includes(acesso.permissao))
-        .map(([nome, dados]) => btn({ ...dados, nome }))
-        .join('');
-
-    const botoes = `       
-        <div style="${horizontal}; gap: 0.5rem; margin-bottom: 0.5rem;">
-            <img src="imagens/alerta.png" onclick="mostrarPendencias()">
-            <span style="color: white;">Ver atalhos</span>
-        </div>
-        <div class="painel-pendencias"></div>
-        <br>
-        ${stringMenus}
-
-    `
-    document.querySelector('.botoesMenu').innerHTML = botoes
-}
 
 function mostrarPendencias() {
     const p = document.querySelector('.painel-pendencias')
@@ -332,64 +270,6 @@ function mostrarPendencias() {
     p.style.display = (visivel === 'none' || visivel === '')
         ? 'flex'
         : 'none'
-}
-
-async function telaUsuarios() {
-
-    titulo.textContent = 'Gerenciar Usuários'
-
-    mostrarMenus(false)
-
-    const colunas = {
-        'Usuário': { chave: 'usuario' },
-        'Nome': { chave: 'nome_completo' },
-        'Empresa': {},
-        'Setor': { chave: 'setor' },
-        'Permissão': { chave: 'permissao' },
-        'Detalhes': {}
-    }
-
-    const tabela = await modTab({
-        base: 'dados_setores',
-        pag: 'tUsuarios',
-        body: 'tUsuarios',
-        substituicoes: [
-            {
-                path: 'empresa',
-                tabela: 'empresas',
-                campoBusca: 'id',
-                retorno: 'nome',
-                destino: 'nomeEmpresa'
-            }
-        ],
-        criarLinha: 'criarLinhaUsuario',
-        colunas
-    })
-
-    const telaUsuario = `
-        <div class="tela-usuarios">
-            ${tabela}
-        </div>
-    `
-    tela.innerHTML = telaUsuario
-
-    await paginacao()
-
-}
-
-function criarLinhaUsuario(dados) {
-
-    const { usuario, nome_completo, nomeEmpresa, setor, permissao } = dados || {}
-
-    const tds = `
-        <td>${usuario}</td>
-        <td>${nome_completo || ''}</td>
-        <td>${nomeEmpresa || ''}</td>
-        <td>${setor || ''}</td>
-        <td>${permissao || ''}</td>
-        <td><img onclick="gerenciarUsuario('${usuario}')" src="imagens/pesquisar2.png"></td>
-    `
-    return `<tr>${tds}</tr>`
 }
 
 async function gerenciarUsuario(id) {

@@ -481,7 +481,7 @@ function visibilidadeFiltros(painel, mostrar) {
 
 async function telaOcorrencias() {
 
-    mostrarMenus(false)
+    overlayAguarde()
 
     const empresaAtiva = await recuperarDado('empresas', acesso?.empresa)
     titulo.innerHTML = empresaAtiva?.nome || 'Desatualizado'
@@ -540,6 +540,8 @@ async function telaOcorrencias() {
     }
 
     await paginacao()
+
+    removerOverlay()
 
     criarPesquisas()
 
@@ -788,7 +790,6 @@ async function criarOrcamentoVinculado(idOcorrencia, idCorrecao) {
 
 async function voltarOcorrencias() {
 
-    carregarMenus()
     auxPendencias()
     await telaOcorrencias()
 
