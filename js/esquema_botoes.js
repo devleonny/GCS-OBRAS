@@ -16,6 +16,10 @@ function criarMenus(chave) {
 function renderMenuItem(item, id, nivel) {
     const temFilhos = item.sub && item.sub.length
 
+    const { permissao } = acesso
+
+    console.log(item)
+
     return `
         <div class="menu-item">
             <div 
@@ -129,6 +133,7 @@ const esquemaBotoes = {
         },
         {
             nome: 'Cadastros',
+            bloqueio: ['cliente', 'técnico'],
             img: 'prancheta',
             sub: [
                 { nome: 'Categorias de Formulário', funcao: 'telaCadastros', img: 'prancheta' },
@@ -137,6 +142,7 @@ const esquemaBotoes = {
         },
         {
             nome: 'Chamados',
+            bloqueio: ['cliente', 'técnico'],
             img: 'chamados',
             sub: [
                 { nome: 'Ver Manutenções', funcao: 'telaChamados', img: 'chamados' },
@@ -146,6 +152,7 @@ const esquemaBotoes = {
         },
         {
             nome: 'Veículos',
+            bloqueio: ['cliente', 'técnico'],
             img: 'veiculo',
             sub: [
                 { nome: 'Ver Combustíveis', funcao: 'telaVeiculos', img: 'veiculo' },
@@ -155,6 +162,7 @@ const esquemaBotoes = {
         },
         {
             nome: 'Reembolsos',
+            bloqueio: ['cliente', 'técnico'],
             img: 'reembolso',
             sub: [
                 { nome: 'Ver Pagamentos', funcao: 'telaPagamentos', img: 'reembolso' },
@@ -164,6 +172,7 @@ const esquemaBotoes = {
         },
         {
             nome: 'Estoque',
+            bloqueio: ['cliente', 'técnico'],
             img: 'estoque',
             sub: [
                 { nome: 'Ver Estoque', funcao: 'telaEstoque', img: 'estoque' },
@@ -174,6 +183,7 @@ const esquemaBotoes = {
         },
         {
             nome: 'Post-it',
+            bloqueio: ['cliente', 'técnico'],
             img: 'kanban',
             sub: [
                 { nome: 'Ver Post-its', funcao: 'telaPIT', img: 'kanban' },
@@ -183,6 +193,7 @@ const esquemaBotoes = {
         },
         {
             nome: 'RH',
+            bloqueio: ['cliente', 'técnico'],
             img: 'gerente',
             sub: [
                 { nome: 'Ver Documentos', funcao: 'telaRH', img: 'gerente' },
@@ -192,6 +203,7 @@ const esquemaBotoes = {
         },
         {
             nome: 'Composições',
+            bloqueio: ['cliente', 'técnico'],
             img: 'composicoes',
             sub: [
                 { nome: 'Ver Composições', funcao: 'telaComposicoes', img: 'composicoes' },

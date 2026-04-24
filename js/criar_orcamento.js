@@ -896,11 +896,12 @@ async function enviarDadosOrcamento() {
             // Salvar uma correção obrigatoriamente;
             await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${orcamentoBase.id}`, correcao)
 
-            await voltarOcorrencias()
-
+            // Acrescenta o filtro;
             controles.ocorrencias.filtros = {
                 'snapshots.contrato': { op: '=', value: contrato }
             }
+
+            await telaOcorrencias()
 
             removerOverlay()
 
