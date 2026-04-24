@@ -882,7 +882,7 @@ async function enviarDadosOrcamento() {
                 descricao: `Orçamento criado ${contrato || ''}`,
                 dtCorrecao: new Date().toISOString().slice(0, 10),
                 equipamentos: {},
-                executor: dados_orcam?.executor,
+                executor: [dados_orcam?.executor],
                 tipoCorrecao: 'WiGZl',
                 idOrcamento: orcamentoBase.id,
                 usuario: acesso.usuario
@@ -901,10 +901,6 @@ async function enviarDadosOrcamento() {
             await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${orcamentoBase.id}`, correcao)
 
             await voltarOcorrencias()
-
-            controles.ocorrencias.filtros = {
-                'snapshots.contrato': { op: '=', value: contrato }
-            }
 
             removerOverlay()
 
