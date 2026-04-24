@@ -527,7 +527,7 @@ function adicionarTag() {
 async function formularioCliente(idCliente) {
 
     const {
-        enderecoEntrega,
+        enderecoEntrega = {},
         endereco,
         bairro,
         estado,
