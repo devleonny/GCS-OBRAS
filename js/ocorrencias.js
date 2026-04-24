@@ -790,6 +790,7 @@ async function criarOrcamentoVinculado(idOcorrencia, idCorrecao) {
 
 async function voltarOcorrencias() {
 
+    criarMenus('inicial') // Resetar o menu;
     auxPendencias()
     await telaOcorrencias()
 

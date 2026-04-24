@@ -3,11 +3,17 @@ let menusAbertos = {}
 function criarMenus(chave) {
     telaAtiva = chave
     const botoesMenu = document.querySelector('.botoesMenu')
-
+    const { permissao } = JSON.parse(localStorage.getItem('acesso')) || {}
     const lista = esquemaBotoes[chave] || []
 
     const html = lista
-        .map((item, i) => renderMenuItem(item, `menu_${i}`, 0))
+        .map((item, i) => {
+
+            if ((item.bloqueio || []).includes(permissao))
+                return ''
+
+            return renderMenuItem(item, `menu_${i}`, 0)
+        })
         .join('')
 
     botoesMenu.innerHTML = html
@@ -15,10 +21,6 @@ function criarMenus(chave) {
 
 function renderMenuItem(item, id, nivel) {
     const temFilhos = item.sub && item.sub.length
-
-    const { permissao } = acesso
-
-    console.log(item)
 
     return `
         <div class="menu-item">
@@ -104,6 +106,7 @@ const esquemaBotoes = {
         {
             nome: 'Orçamentos',
             img: 'projeto',
+            bloqueio: ['cliente', 'técnico'],
             sub: [
                 { nome: 'Ver Orçamentos', funcao: 'telaOrcamentos', img: 'projeto' },
                 {

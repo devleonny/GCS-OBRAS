@@ -204,8 +204,9 @@ async function comunicacao() {
     }
 }
 
-
 async function carregarControles() {
+
+    const { permissao } = JSON.parse(localStorage.getItem('acesso')) || {}
 
     cUsuario.style.display = ''
     const modelo = (imagem, funcao, idElemento) => {
@@ -217,19 +218,18 @@ async function carregarControles() {
         `
     }
 
-    const permitidosAprovacoes = ['adm', 'diretoria']
+    const barraStatus = ['<div id="divUsuarios"></div>']
 
-    const barraStatus = `
-            <div id="divUsuarios"></div>
+    if (!['cliente', 'técnico'].includes(permissao))
+        barraStatus.push(modelo('kanban', 'telaPIT()', 'contadorPostIt'), modelo('projeto', 'verAprovacoes()', 'contadorPendencias'))
 
-            ${modelo('kanban', 'telaPIT()', 'contadorPostIt')}
-            ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
-            ${permitidosAprovacoes.includes(acesso.permissao) ? modelo('construcao', 'configs()', '') : ''}
+    if (['adm', 'diretoria'].includes(permissao))
+        barraStatus.push(modelo('construcao', 'configs()', ''))
 
-        `
+
     const cabecalhoUsuario = document.querySelector('.cabecalho-usuario')
     if (cabecalhoUsuario)
-        cabecalhoUsuario.innerHTML = barraStatus
+        cabecalhoUsuario.innerHTML = barraStatus.join('')
 
     await usuariosToolbar()
     await verificarPendencias() // Pendencias de aprovação;
