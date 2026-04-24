@@ -1117,29 +1117,6 @@ function baseOrcamento(orcamento, remover = false) {
     return temporario[idEdicao] || null
 }
 
-async function verificarNF(numero, tipo, app) {
-    return new Promise((resolve, reject) => {
-        fetch(`${api}/notas`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ numero, tipo, app })
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                resolve(data);
-            })
-            .catch(err => {
-                console.error(err)
-                reject()
-            });
-    })
-}
-
 async function painelClientes(idOrcamento) {
 
     overlayAguarde()
