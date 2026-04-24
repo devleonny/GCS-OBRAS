@@ -617,25 +617,25 @@ async function formularioCliente(idCliente) {
         },
         {
             texto: 'Endereço',
-            elemento: `<textarea name="e_endereco">${enderecoEntrega.endereco || ''}</textarea>`
+            elemento: `<textarea name="e_endereco">${enderecoEntrega?.endereco || ''}</textarea>`
         },
         {
             texto: 'Bairro',
-            elemento: `<textarea name="e_bairro">${enderecoEntrega.bairro || ''}</textarea>`
+            elemento: `<textarea name="e_bairro">${enderecoEntrega?.bairro || ''}</textarea>`
         },
         {
             texto: 'Cidade',
-            elemento: `<input name="e_cidade" value="${enderecoEntrega.cidade || ''}">`
+            elemento: `<input name="e_cidade" value="${enderecoEntrega?.cidade || ''}">`
         },
         {
             texto: 'Cep',
-            elemento: `<input oninput="formatarCep(this)" name="e_cep" value="${enderecoEntrega.cep || ''}">`
+            elemento: `<input oninput="formatarCep(this)" name="e_cep" value="${enderecoEntrega?.cep || ''}">`
         },
         {
             texto: 'Estado',
             elemento: `
             <select name="e_estado">
-                ${aEstados.map(estado => `<option ${enderecoEntrega.estado == estado ? 'selected' : ''}>${estado}</option>`).join('')}
+                ${aEstados.map(estado => `<option ${enderecoEntrega?.estado == estado ? 'selected' : ''}>${estado}</option>`).join('')}
             </select>
             `
         }
