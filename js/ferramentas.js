@@ -714,7 +714,7 @@ async function buscarLPUs() {
 
     const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
 
-    const resposta = await fetch(`${api}/lpus`, {
+    const resposta = await fetch(`${read}/lpus`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -785,25 +785,4 @@ async function salvarLPU() {
     popup({ mensagem: 'Criado com sucesso' })
 
     await recuperarLPUS()
-}
-
-async function pesquisarLocalizacao(param) {
-
-    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
-
-    const resposta = await fetch(`${api}/geolocalizacao`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(param)
-    })
-
-    if (!resposta.ok) {
-        const erro = await resposta.text()
-        throw new Error(erro || 'Erro ao buscar localização')
-    }
-
-    return await resposta.json()
 }
