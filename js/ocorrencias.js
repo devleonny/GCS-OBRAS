@@ -600,24 +600,20 @@ function criarLinhaOcorrencia(ocorrencia) {
         ? botaoImg('pesquisar5', `verDetalhesOrc('${id}')`)
         : ''
 
-    const modeloCampos = (valor1, elemento, livre) => {
-        if (!elemento)
+    const modeloCampos = (valor1, valor2) => {
+        if (!valor2)
             return ''
-
-        const valor2 = livre
-            ? elemento
-            : String(elemento).replace('\n', '<br>')
 
         return `
         <div style="${horizontal}; width: 100%; gap: 0.5rem;">
             <label style="font-weight: bold; width: 20%; text-align: right;">${valor1}</label>
-            <div style="text-align: justify; width: 80%; text-align: left; white-space: pre-wrap;">${valor2}</div>
+            <div style="text-align: justify; width: 80%; text-align: left;">${valor2}</div>
         </div>
         `
     }
 
     const existeAntigo = id_antigo
-        ? modeloCampos('ID Antigo', `<span class="etiqueta-chamado">${id_antigo}</span>`, true)
+        ? modeloCampos('ID Antigo', `<span class="etiqueta-chamado">${id_antigo}</span>`)
         : ''
 
     const criarOrcamento = !['cliente', 'técnico'].includes(acesso.permissao) // Apenas autorizados;
@@ -647,7 +643,7 @@ function criarLinhaOcorrencia(ocorrencia) {
                 ${modeloCampos('Endereço', cliente?.endereco)}
                 ${modeloCampos('Bairro', cliente?.bairro)}
                 ${modeloCampos('Cidade', cliente?.cidade)}
-                ${modeloCampos('Descrição', descricao)}
+                ${modeloCampos('Descrição', `<div style="white-space: pre-wrap;">${descricao}</div>`)}
                 ${modeloCampos('Criado por', criador)}
                 ${modeloCampos('Data Registro', ocorrencia?.dataRegistro || '')}
                 ${modeloCampos('Empresa', empresa)}
