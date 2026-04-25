@@ -1009,8 +1009,8 @@ function painelEdicao(tela) {
                             ${vinculado}
                         </div>
                     </td>
-                    <td>${dinheiro(orc?.total_geral)}</td>
-                    <td>${lpu_ativa}</td>
+                    <td>${dinheiro(orc?.total_geral || 0)}</td>
+                    <td>${lpu_ativa || 'LPU HOPE'}</td>
                     <td>${new Date(orc?.timestamp || Date.now()).toLocaleString()}</td>
                     <td><img src="imagens/cancel.png" onclick="removerOrcTemp(this, '${idEdicao}')"></td>
                 </tr>

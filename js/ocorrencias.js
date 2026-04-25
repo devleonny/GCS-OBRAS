@@ -611,7 +611,7 @@ function criarLinhaOcorrencia(ocorrencia) {
         return `
         <div style="${horizontal}; width: 100%; gap: 0.5rem;">
             <label style="font-weight: bold; width: 20%; text-align: right;">${valor1}</label>
-            <div style="text-align: justify; width: 80%; text-align: left;">${valor2}</div>
+            <div style="text-align: justify; width: 80%; text-align: left; white-space: pre-wrap;">${valor2}</div>
         </div>
         `
     }

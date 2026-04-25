@@ -231,7 +231,7 @@ async function carregarControles() {
     if (cabecalhoUsuario)
         cabecalhoUsuario.innerHTML = barraStatus.join('')
 
-    await usuariosToolbar()
-    await verificarPendencias() // Pendencias de aprovação;
-    await verificarPostIts() // Post Its atrasados;
+    usuariosToolbar()
+    verificarPendencias() // Pendencias de aprovação;
+    verificarPostIts() // Post Its atrasados;
 }

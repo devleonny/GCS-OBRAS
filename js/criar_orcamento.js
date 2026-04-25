@@ -900,20 +900,17 @@ async function enviarDadosOrcamento() {
 
             removerOverlay()
 
-            return
+        } else {
 
+            popup({ tempo: 4, mensagem: 'Aguarde... redirecionando...', imagem: 'imagens/concluido.png' })
+
+            // Limpeza do orçamento em edição;
+            baseOrcamento(undefined, true)
+            await telaOrcamentos()
+
+            // GCS no título
+            atualizarToolbar(true)
         }
-
-        popup({ tempo: 4, mensagem: 'Aguarde... redirecionando...', imagem: 'imagens/concluido.png' })
-
-        // Limpeza do orçamento em edição;
-        baseOrcamento(undefined, true)
-        await telaOrcamentos()
-
-        removerPopup()
-
-        // GCS no título
-        atualizarToolbar(true)
 
     } else {
 
