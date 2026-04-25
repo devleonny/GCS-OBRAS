@@ -63,6 +63,9 @@ async function telaPagamentos() {
         funcaoAdicional: ['atualizarPainelEsquerdo'],
         body: 'bodyPagamentos',
         base: 'lista_pagamentos',
+        filtros: {
+            criado: { op: '!=', value: 'Integração' }
+        },
         criarLinha: 'criarLinhaPagamento',
         substituicoes: [
             {
@@ -106,7 +109,13 @@ async function telaPagamentos() {
 
 async function atualizarPainelEsquerdo() {
 
-    const contagens = await contarPorCampo({ base: 'lista_pagamentos', path: 'status' })
+    const contagens = await contarPorCampo({
+        base: 'lista_pagamentos',
+        filtros: {
+            criado: { op: '!=', value: 'Integração' }
+        },
+        path: 'status'
+    })
 
     const titulos = Object.entries(contagens)
         .map(([st, qtde]) => {
@@ -140,9 +149,6 @@ async function criarLinhaPagamento(pagamento) {
 
     const { id, criado, usuarioSetor, app, status, snapshots, param } = pagamento || {}
     const { recebedor, data_vencimento, valor_documento } = param?.[0] || {}
-
-    if(data_vencimento == undefined)
-        console.log(pagamento)
 
     const deps = (snapshots?.departamentos || [])
         .map(({ departamento }) => {
