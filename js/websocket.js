@@ -144,13 +144,8 @@ async function comunicacao() {
             removerOverlay()
         }
 
-        if (tipo == 'atualizacao') {
 
-            if (tabela == 'acoes') {
-                delete controles?.['orcamentos']?.ultimaAssinaturaConsulta
-                delete controles?.['chamados']?.ultimaAssinaturaConsulta
-                delete controles?.['tabelasIndicadores']?.ultimaAssinaturaConsulta
-            }
+        if (tipo == 'atualizacao') {
 
             // Apenas as tabelas usadas;
             for (const dados of Object.values(controles)) {

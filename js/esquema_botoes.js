@@ -139,6 +139,7 @@ const esquemaBotoes = {
             bloqueio: ['cliente', 'técnico'],
             img: 'prancheta',
             sub: [
+                { nome: 'Adicionar Cliente', funcao: 'formularioCliente', img: 'baixar' },
                 { nome: 'Categorias de Formulário', funcao: 'telaCadastros', img: 'prancheta' },
                 { nome: 'Clientes & Fornecedores', funcao: 'telaClientes', img: 'prancheta' }
             ]

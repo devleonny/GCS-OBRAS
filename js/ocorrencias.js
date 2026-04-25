@@ -30,10 +30,17 @@ const tabEquipamentos = (equipamentos, idOcorrencia, idCorrecao) => {
     const linhasEquipamentos = Object.values(equipamentos || {})
         .map(e => {
             const { codigo, unidade, serie, descricao, origem, quantidade } = e || {}
+
+            const series = Array.isArray(serie)
+                ? serie
+                : [serie]
+
             const tr = `
                 <tr>
                     <td>${codigo}</td>
-                    <td>${serie || ''}</td>
+                    <td>
+                        <div style="white-space: pre-wrap;">${series.join('\n') || ''}</div>
+                    </td>
                     <td>${origem || ''}</td>
                     <td>${quantidade || 0}</td>
                     <td>${unidade || 'UN'}</td>
@@ -1744,6 +1751,10 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
         }
     }
 
+    const series = (Array.isArray(serie) ? serie : [serie])
+        .map(s => `<input name="serie" value="${s || ''}">`)
+        .join('')
+
     const divOrigem = formulario == 'correcao'
         ? `
             <div style="${vertical};">
@@ -1764,11 +1775,13 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
             <div name="equipamentos" style="${horizontal}; align-items: start; gap: 1rem;">
                 <div style="${vertical};">
                     <label>Quantidade</label>
-                    <input id="quantidade" style="width: 7rem;" class="campos" type="number" value="${quantidade || ''}">
+                    <input id="quantidade" oninput="multiplicarCampoSerie(this)" style="width: 7rem;" class="campos" type="number" value="${quantidade || ''}">
                 </div>
                 <div style="${vertical};">
                     <label>Nº série</label>
-                    <input id="serie" style="width: 7rem;" class="campos" value="${serie || ''}">
+                    <div class="container-series">
+                        ${series}
+                    </div>
                 </div>
 
                 ${divOrigem}
@@ -1788,6 +1801,32 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
         return label
 
     div.insertAdjacentHTML('beforeend', label)
+}
+
+function multiplicarCampoSerie(input) {
+    const bloco = input.closest('.borda-equipamento')
+    const container = bloco.querySelector('.container-series')
+    if (!container) return
+
+    const qtdeAtual = Number(input.value) || 0
+    const inputs = [...container.querySelectorAll('input')]
+    const qtdeInputs = inputs.length
+
+    // adicionar
+    if (qtdeAtual > qtdeInputs) {
+        for (let i = qtdeInputs; i < qtdeAtual; i++) {
+            const novo = document.createElement('input')
+            novo.name = 'serie'
+            container.appendChild(novo)
+        }
+    }
+
+    // remover
+    if (qtdeAtual < qtdeInputs) {
+        for (let i = qtdeInputs; i > qtdeAtual; i--) {
+            container.lastElementChild?.remove()
+        }
+    }
 }
 
 async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
@@ -1845,7 +1884,8 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
         const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', equip.id)
 
         const quantidade = Number(div.querySelector('#quantidade').value)
-        const serie = div.querySelector('#serie').value
+        const serie = [...div.querySelectorAll('[name="serie"]')]
+            .map(input => input.value)
         const origem = div.querySelector('input[name^="origem_"]:checked')?.dataset.origem || ''
 
         equipamentos[equip.id] = {
@@ -1925,7 +1965,8 @@ async function salvarOcorrencia(idOcorrencia) {
         const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', equip.id)
 
         const quantidade = Number(div.querySelector('#quantidade').value)
-        const serie = div.querySelector('#serie').value
+        const serie = [...div.querySelectorAll('[name="serie"]')]
+            .map(input => input.value)
 
         novo.equipamentos[equip.id] = {
             codigo: equip.id,

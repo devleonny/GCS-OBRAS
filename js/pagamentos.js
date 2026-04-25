@@ -95,7 +95,7 @@ async function telaPagamentos() {
 
         </div>
         `
-        
+
     tela.innerHTML = acumulado
 
     await paginacao()
@@ -138,9 +138,11 @@ async function atualizarPainelEsquerdo() {
 
 async function criarLinhaPagamento(pagamento) {
 
-    const { criado, usuarioSetor, snapshots } = pagamento || {}
-    const param = pagamento?.param?.[0] || {}
-    const { data_vencimento, valor_documento } = param || {}
+    const { id, criado, usuarioSetor, app, status, snapshots, param } = pagamento || {}
+    const { recebedor, data_vencimento, valor_documento } = param?.[0] || {}
+
+    if(data_vencimento == undefined)
+        console.log(pagamento)
 
     const deps = (snapshots?.departamentos || [])
         .map(({ departamento }) => {
@@ -155,19 +157,19 @@ async function criarLinhaPagamento(pagamento) {
                 ${deps}
             </div>
         </td>
-        <td>${pagamento?.app || 'AC'}</td>
+        <td>${app || 'AC'}</td>
         <td style="white-space: nowrap; text-align: left;">${dinheiro(valor_documento || 0)}</td>
         <td>
             <div style="${horizontal}; justify-content: start; gap: 5px;">
-                <img src="${iconePagamento(pagamento.status)}" style="width: 1.5rem;">
-                <label style="text-align: left;">${pagamento.status}</label>
+                <img src="${iconePagamento(status)}" style="width: 1.5rem;">
+                <label style="text-align: left;">${status}</label>
             </div>
         </td>
         <td>${criado || ''}</td>
         <td>${usuarioSetor || ''}</td>
-        <td>${param?.recebedor || ''}</td>
+        <td>${recebedor || ''}</td>
         <td style="text-align: center;">
-            <img src="imagens/pesquisar2.png" style="width: 1.5rem; cursor: pointer;" onclick="abrirDetalhesPagamentos('${pagamento.id}')">
+            <img src="imagens/pesquisar2.png" style="width: 1.5rem; cursor: pointer;" onclick="abrirDetalhesPagamentos('${id}')">
         </td>
         `
     return `<tr>${tds}</tr>`
