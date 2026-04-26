@@ -11,8 +11,6 @@ async function telaPIT() {
 
     tela.innerHTML = acumulado
 
-    criarMenus('postit')
-
     await criarQuadros()
 }
 

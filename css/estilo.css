@@ -389,10 +389,24 @@ input:focus {
     padding-top: 5px;
     padding-bottom: 5px;
     width: 100%;
+    background-color: #ffffff;
+}
+
+.botao-lateral.nivel-2 {
+    background-color: #f7c5c5;
+}
+
+.botao-lateral.nivel-1 {
     background-color: #f3f3f3;
 }
 
+.menu-secundario .menu-item:last-child > .menu-principal .botao-lateral {
+    border-bottom-left-radius: 8px;
+    margin-bottom: 5px;
+}
+
 .botao-lateral img {
+    filter: drop-shadow(0 0 1px black);
     width: 2rem;
     margin-left: 10px
 }
@@ -723,6 +737,7 @@ input:focus {
 }
 
 .pill {
+    box-shadow: 0 2px 5px #222;
     cursor: pointer;
     display: grid;
     grid-template-columns: 35% 1fr;

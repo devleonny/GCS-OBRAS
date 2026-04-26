@@ -1,7 +1,5 @@
 async function telaComposicoes() {
 
-    mostrarMenus(false)
-
     if (!LPUS)
         return popup({ mensagem: 'LPUs não carregaram... espere um pouco mais.' })
 
@@ -42,8 +40,6 @@ async function telaComposicoes() {
     removerOverlay()
 
     await paginacao(pag)
-
-    criarMenus('composicoes')
 
 }
 

@@ -516,7 +516,7 @@ async function confirmarRemoverVinculo(idOrcamento, master) {
         { texto: 'Confirmar', img: 'concluido', funcao: `desfazerVinculo('${idOrcamento}', '${master}')` }
     ]
 
-    popup({ botoes, mensagem: 'Deseja desfazer vínculo?',  })
+    popup({ botoes, mensagem: 'Deseja desfazer vínculo?', })
 
 }
 
@@ -690,6 +690,73 @@ function elementosEspecificos(id, chave, historico, orcamento) {
 
 }
 
+async function checklistChamado(id) {
+
+    const orcamento = await recuperarDado('dados_orcamentos', id) || {}
+    const contrato = orcamento?.dados_orcam?.contrato
+
+    // Checklist chamado;
+    const enviado = Object.values(orcamento?.status?.historicoStatus || {})
+        .some(h => h.para == 'ORC ENVIADO')
+
+    const aprovado = Object.values(orcamento?.status?.historicoStatus || {})
+        .some(h => h.para == 'ORC APROVADO')
+
+    const pedido = Object.values(orcamento?.status?.historico || {})
+        .some(h => h.status == 'PEDIDO')
+
+    const chamado = orcamento?.chamado == 'S'
+    const etapas = [
+        {
+            texto: `
+                <div style="${horizontal}; gap: 5px;">
+                    <span>Classificar como <b>CHAMADO</b></span>
+                    <input ${chamado ? 'checked' : ''} onclick="ativarChave(this, '${id}', 'chamado')" ${styChek} type="checkbox">
+                </div>
+            `,
+            status: chamado
+        },
+        { texto: 'Orçamento enviado', status: enviado },
+        { texto: 'Orçamento aprovado', status: aprovado },
+        { texto: 'Criar um pedido', status: pedido }
+    ]
+
+    let liberado = true
+    const checks = etapas
+        .map(e => {
+
+            if (!e.status) liberado = false
+
+            return `
+        <div class="status-check-item">
+            <img src="imagens/${e.status ? 'concluido' : 'cancel'}.png">
+            <div>${e.texto}</div>
+        </div>`
+        }).join('')
+
+    const existente = await recuperarDado('dados_ocorrencias', contrato)
+    const f1 = liberado
+        ? `unidadeOrc = '${orcamento.dados_orcam.omie_cliente}'; formularioOcorrencia('${contrato}')`
+        : ''
+
+    const pChamado = `
+        <span>Para abrir a <b>OCORRÊNCIA</b><br></span>
+        <span>Realize as etapas abaixo:</span>
+        <hr>
+        ${checks}
+        <hr>
+        <div style="${horizontal}; gap: 1rem;">
+            <button onclick="${f1}" style="opacity: ${liberado ? '1' : '0.5'};">Abrir chamado</button>
+        </div>
+    `
+
+    const local = document.querySelector('.status-check-ocorrencias')
+
+    if (local)
+        local.innerHTML = pChamado
+
+}
+
 async function abrirEsquema(id) {
 
     overlayAguarde()
@@ -833,68 +900,6 @@ async function abrirEsquema(id) {
             </div>`
     }
 
-    // Checklist chamado;
-    const enviado = Object.values(orcamento?.status?.historicoStatus || {})
-        .some(h => h.para == 'ORC ENVIADO')
-
-    const aprovado = Object.values(orcamento?.status?.historicoStatus || {})
-        .some(h => h.para == 'ORC APROVADO')
-
-    const pedido = Object.values(orcamento?.status?.historico || {})
-        .some(h => h.status == 'PEDIDO')
-
-    const chamado = orcamento?.chamado == 'S'
-    const etapas = [
-        {
-            texto: `
-                <div style="${horizontal}; gap: 5px;">
-                    <span>Classificar como <b>CHAMADO</b></span>
-                    <input ${chamado ? 'checked' : ''} onclick="ativarChave(this, '${id}', 'chamado')" ${styChek} type="checkbox">
-                </div>
-            `,
-            status: chamado
-        },
-        { texto: 'Orçamento enviado', status: enviado },
-        { texto: 'Orçamento aprovado', status: aprovado },
-        { texto: 'Criar um pedido', status: pedido }
-    ]
-
-    let liberado = true
-    const checks = etapas
-        .map(e => {
-
-            if (!e.status) liberado = false
-
-            return `
-        <div class="status-check-item">
-            <img src="imagens/${e.status ? 'concluido' : 'cancel'}.png">
-            <div>${e.texto}</div>
-        </div>`
-        }).join('')
-
-    const existente = await recuperarDado('dados_ocorrencias', contrato)
-    const f1 = liberado
-        ? `unidadeOrc = '${omie_cliente}'; formularioOcorrencia('${contrato}')`
-        : ''
-    const f2 = existente
-        ? `formularioCorrecao('${contrato}')`
-        : ''
-
-    const pChamado = `
-        <div class="status-check-ocorrencias">
-            <span>Para abrir a <b>OCORRÊNCIA</b><br></span>
-            <span>Realize as etapas abaixo:</span>
-            <hr>
-            ${checks}
-            <hr>
-            <div style="${horizontal}; gap: 1rem;">
-                <button onclick="${f1}" style="opacity: ${liberado ? '1' : '0.5'};">Abrir chamado</button>
-                <button onclick="${f2}" style="background-color: rgb(228, 122, 0); opacity: ${existente ? '1' : '0.5'};">Incluir correção</button>
-                ${existente ? `<img src="imagens/pesquisar2.png" onclick="verCorrecoes('${contrato}')">` : ''}
-            </div>
-        </div>
-    `
-
     const acumulado = `
         <div style="${vertical}; gap: 10px; padding: 3px;">
 
@@ -916,7 +921,9 @@ async function abrirEsquema(id) {
 
         <div class="container-blocos">
             <div style="${vertical}; witdth: 100%; gap: 0.5rem;">
-                ${pChamado}
+                <div class="status-check-ocorrencias">
+                    <img src="gifs/loading.gif" style="width: 5rem;">
+                </div>
                 ${divLevantamentos()}
                 <hr>
                 ${divLevantamentos(true)}
@@ -928,10 +935,12 @@ async function abrirEsquema(id) {
     if (janelaAtiva) {
         removerOverlay()
         janelaAtiva.innerHTML = acumulado
-        return
+    } else {
+        popup({ elemento: `<div class="painel-historico">${acumulado}</div>`, titulo: 'Histórico do Orçamento' })
     }
 
-    popup({ elemento: `<div class="painel-historico">${acumulado}</div>`, titulo: 'Histórico do Orçamento' })
+    // Checklist Chamado;
+    await checklistChamado(id)
 
 }
 
@@ -963,16 +972,6 @@ async function excluirFotoStatus(id, chave, idFoto) {
 
     removerPopup()
 
-}
-
-async function verCorrecoes(idOcorrencia) {
-
-    const elemento = `
-        <div class="status-correcoes">
-            ${carregarCorrecoes()}
-        </div>`
-
-    popup({ elemento, titulo: 'Correções' })
 }
 
 async function painelFotos(id, chave) {

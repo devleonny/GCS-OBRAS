@@ -116,16 +116,40 @@
 }
 
 .borda-equipamento {
-    gap: 1rem;
-    width: 95%;
     display: flex;
-    align-items: center;
-    justify-content: start;
-    border-radius: 3px;
-    padding: 8px;
-    border: 1px solid #249f41;
-    background-color: #f3f3f3;
+    align-items: start;
+    gap: 0.75rem;
+    width: 95%;
+
+    padding: 10px 12px;
+    border-radius: 10px;
+
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+
     font-size: 14px;
+    color: #1f2937;
+
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    transition: all 0.2s ease;
+}
+
+.borda-equipamento input,
+.borda-equipamento select,
+.borda-equipamento textarea {
+    flex: 1;
+
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+
+    background: #f9fafb;
+    color: #111827;
+
+    font-size: 13px;
+    outline: none;
+
+    transition: all 0.2s ease;
 }
 
 .blocoFiltro {
@@ -262,17 +286,37 @@
     color: red;
 }
 
+.container-series {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    gap: 2px;
+}
+
 .campos {
-    max-width: 20rem;
-    border: solid 1px #249f41;
-    text-align: center;
-    cursor: pointer;
-    padding: 5px;
-    background-color: #249f41a1;
-    border-radius: 20px;
     display: block;
     width: 100%;
+    max-width: 20rem;
     box-sizing: border-box;
+    padding: 5px 14px;
+    border-radius: 3px;
+    background: #22c55e;
+    border: 1px solid transparent;
+    color: #ffffff;
+    text-align: start;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.campos:hover {
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    transform: translateY(-1px);
+}
+
+.campos:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
 }
 
 .gavetaOpcoes {

@@ -30,10 +30,17 @@ const tabEquipamentos = (equipamentos, idOcorrencia, idCorrecao) => {
     const linhasEquipamentos = Object.values(equipamentos || {})
         .map(e => {
             const { codigo, unidade, serie, descricao, origem, quantidade } = e || {}
+
+            const series = Array.isArray(serie)
+                ? serie
+                : [serie]
+
             const tr = `
                 <tr>
                     <td>${codigo}</td>
-                    <td>${serie || ''}</td>
+                    <td>
+                        <div style="white-space: pre-wrap;">${series.join('\n') || ''}</div>
+                    </td>
                     <td>${origem || ''}</td>
                     <td>${quantidade || 0}</td>
                     <td>${unidade || 'UN'}</td>
@@ -481,7 +488,7 @@ function visibilidadeFiltros(painel, mostrar) {
 
 async function telaOcorrencias() {
 
-    mostrarMenus(false)
+    overlayAguarde()
 
     const empresaAtiva = await recuperarDado('empresas', acesso?.empresa)
     titulo.innerHTML = empresaAtiva?.nome || 'Desatualizado'
@@ -541,6 +548,8 @@ async function telaOcorrencias() {
 
     await paginacao()
 
+    removerOverlay()
+
     criarPesquisas()
 
 }
@@ -598,13 +607,9 @@ function criarLinhaOcorrencia(ocorrencia) {
         ? botaoImg('pesquisar5', `verDetalhesOrc('${id}')`)
         : ''
 
-    const modeloCampos = (valor1, elemento, livre) => {
-        if (!elemento)
+    const modeloCampos = (valor1, valor2) => {
+        if (!valor2)
             return ''
-
-        const valor2 = livre
-            ? elemento
-            : String(elemento).replace('\n', '<br>')
 
         return `
         <div style="${horizontal}; width: 100%; gap: 0.5rem;">
@@ -615,7 +620,7 @@ function criarLinhaOcorrencia(ocorrencia) {
     }
 
     const existeAntigo = id_antigo
-        ? modeloCampos('ID Antigo', `<span class="etiqueta-chamado">${id_antigo}</span>`, true)
+        ? modeloCampos('ID Antigo', `<span class="etiqueta-chamado">${id_antigo}</span>`)
         : ''
 
     const criarOrcamento = !['cliente', 'técnico'].includes(acesso.permissao) // Apenas autorizados;
@@ -645,7 +650,7 @@ function criarLinhaOcorrencia(ocorrencia) {
                 ${modeloCampos('Endereço', cliente?.endereco)}
                 ${modeloCampos('Bairro', cliente?.bairro)}
                 ${modeloCampos('Cidade', cliente?.cidade)}
-                ${modeloCampos('Descrição', descricao)}
+                ${modeloCampos('Descrição', `<div style="white-space: pre-wrap;">${descricao}</div>`)}
                 ${modeloCampos('Criado por', criador)}
                 ${modeloCampos('Data Registro', ocorrencia?.dataRegistro || '')}
                 ${modeloCampos('Empresa', empresa)}
@@ -788,7 +793,7 @@ async function criarOrcamentoVinculado(idOcorrencia, idCorrecao) {
 
 async function voltarOcorrencias() {
 
-    carregarMenus()
+    criarMenus('inicial') // Resetar o menu;
     auxPendencias()
     await telaOcorrencias()
 
@@ -1746,6 +1751,10 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
         }
     }
 
+    const series = (Array.isArray(serie) ? serie : [serie])
+        .map(s => `<input name="serie" value="${s || ''}">`)
+        .join('')
+
     const divOrigem = formulario == 'correcao'
         ? `
             <div style="${vertical};">
@@ -1766,11 +1775,13 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
             <div name="equipamentos" style="${horizontal}; align-items: start; gap: 1rem;">
                 <div style="${vertical};">
                     <label>Quantidade</label>
-                    <input id="quantidade" style="width: 7rem;" class="campos" type="number" value="${quantidade || ''}">
+                    <input id="quantidade" oninput="multiplicarCampoSerie(this)" style="width: 7rem;" class="campos" type="number" value="${quantidade || ''}">
                 </div>
                 <div style="${vertical};">
                     <label>Nº série</label>
-                    <input id="serie" style="width: 7rem;" class="campos" value="${serie || ''}">
+                    <div class="container-series">
+                        ${series}
+                    </div>
                 </div>
 
                 ${divOrigem}
@@ -1790,6 +1801,32 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
         return label
 
     div.insertAdjacentHTML('beforeend', label)
+}
+
+function multiplicarCampoSerie(input) {
+    const bloco = input.closest('.borda-equipamento')
+    const container = bloco.querySelector('.container-series')
+    if (!container) return
+
+    const qtdeAtual = Number(input.value) || 0
+    const inputs = [...container.querySelectorAll('input')]
+    const qtdeInputs = inputs.length
+
+    // adicionar
+    if (qtdeAtual > qtdeInputs) {
+        for (let i = qtdeInputs; i < qtdeAtual; i++) {
+            const novo = document.createElement('input')
+            novo.name = 'serie'
+            container.appendChild(novo)
+        }
+    }
+
+    // remover
+    if (qtdeAtual < qtdeInputs) {
+        for (let i = qtdeInputs; i > qtdeAtual; i--) {
+            container.lastElementChild?.remove()
+        }
+    }
 }
 
 async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
@@ -1847,7 +1884,8 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
         const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', equip.id)
 
         const quantidade = Number(div.querySelector('#quantidade').value)
-        const serie = div.querySelector('#serie').value
+        const serie = [...div.querySelectorAll('[name="serie"]')]
+            .map(input => input.value)
         const origem = div.querySelector('input[name^="origem_"]:checked')?.dataset.origem || ''
 
         equipamentos[equip.id] = {
@@ -1927,7 +1965,8 @@ async function salvarOcorrencia(idOcorrencia) {
         const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', equip.id)
 
         const quantidade = Number(div.querySelector('#quantidade').value)
-        const serie = div.querySelector('#serie').value
+        const serie = [...div.querySelectorAll('[name="serie"]')]
+            .map(input => input.value)
 
         novo.equipamentos[equip.id] = {
             codigo: equip.id,

@@ -19,8 +19,6 @@ const botaoVeiculos = (valor1, funcao, cor) => `
 `
 async function telaVeiculos() {
 
-    mostrarMenus(false)
-
     const colunas = {
         'Data de Registro': { chave: 'data', tipoPesquisa: 'data' },
         'Usuário': { chave: 'usuario' },
@@ -72,8 +70,6 @@ async function telaVeiculos() {
     tela.innerHTML = acumulado
 
     await paginacao()
-
-    criarMenus('veiculos')
 
 }
 

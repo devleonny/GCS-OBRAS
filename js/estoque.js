@@ -14,8 +14,6 @@ const gerarOptions = async (path) => {
 
 async function telaEstoque() {
 
-    mostrarMenus(false)
-
     const colunas = {
         'Editar': {},
         'Código Omie': { chave: 'partnumber' },
@@ -39,8 +37,6 @@ async function telaEstoque() {
     tela.innerHTML = `<dia class="painel-estoque">${tabela}</div>`
 
     await paginacao()
-
-    criarMenus('estoque')
 
 }
 

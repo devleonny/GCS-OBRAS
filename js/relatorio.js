@@ -83,8 +83,6 @@ async function telaRelatorio() {
 
     titulo.textContent = 'Relatório de Ocorrências'
 
-    mostrarMenus(false)
-
     await paginacao()
 
 }
@@ -274,8 +272,6 @@ async function telaRelatorioCorrecoes() {
 
     await paginacao()
 
-    mostrarMenus(false)
-
 }
 
 async function criarLinhasCorrecoes(ocorrencia) {
@@ -383,8 +379,6 @@ async function telaRelatorioPecas() {
     titulo.textContent = 'Relatório de Peças'
 
     await paginacao()
-
-    mostrarMenus(false)
 
 }
 

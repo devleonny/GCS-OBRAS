@@ -1,8 +1,6 @@
 
 async function telaChamados() {
 
-    mostrarMenus(false)
-
     const colunas = {
         'Última alteração': { chave: 'data', tipoPesquisa: 'data' },
         'Status': { chave: 'status_manutencao', tipoPesquisa: 'select' },
@@ -40,8 +38,6 @@ async function telaChamados() {
     await carregarToolbarChamados()
 
     await paginacao()
-
-    criarMenus('chamados')
 
 }
 

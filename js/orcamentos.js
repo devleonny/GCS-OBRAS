@@ -37,9 +37,9 @@ function formatacaoPagina() {
 
 async function telaOrcamentos() {
 
+    overlayAguarde()
+
     atualizarToolbar(true) // GCS no título
-    mostrarMenus(false)
-    criarMenus('orcamentos')
 
     funcaoTela = 'telaOrcamentos'
 
@@ -61,7 +61,7 @@ async function telaOrcamentos() {
     const btnExtras = `<span style="color: white; cursor: pointer; white-space: nowrap;" onclick="filtroOrcamentos()">Filtros ☰</span>`
 
     const tabela = await modTab({
-        funcaoAdicional: ['formatacaoPagina', 'atualizarListaDepartamentos'],
+        funcaoAdicional: ['formatacaoPagina'],
         btnExtras,
         colunas,
         ordenar: {
@@ -73,6 +73,13 @@ async function telaOrcamentos() {
         body: 'linhas',
         pag: 'orcamentos',
         substituicoes: [
+            {
+                path: 'dados_orcam.contrato',
+                tabela: 'departamentos_AC',
+                campoBusca: 'descricao',
+                retorno: 'descricao',
+                destino: 'departamentoExistente'
+            },
             {
                 path: 'dados_orcam.contrato',
                 tabela: 'dados_ocorrencias',
@@ -103,16 +110,10 @@ async function telaOrcamentos() {
         'arquivado': { op: '!=', value: 'S' }
     }
 
-    await atualizarListaDepartamentos()
     await carregarToolbar()
     await paginacao()
 
-}
-
-async function atualizarListaDepartamentos() {
-
-    // Auxiliar dos departamentos;
-    controles.orcamentos.departamentos = Object.keys(await contarPorCampo({ base: 'departamentos_AC', path: 'descricao' }))
+    removerOverlay()
 
 }
 
@@ -175,7 +176,7 @@ function scrollar(direcao) {
 
 async function criarLinhaOrcamento(orcamento) {
 
-    const { id, vinculados } = orcamento
+    const { id, vinculados, departamentoExistente } = orcamento
 
     const master = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato
     const idMaster = vinculados
@@ -283,8 +284,6 @@ async function criarLinhaOrcamento(orcamento) {
             .map(tag => modeloTag(tag, tag.id))
             .join('')
 
-        // Verificação de departamento;
-        const depExistente = controles.orcamentos.departamentos.includes(numOficial)
 
         const data = new Date(snapshots?.tsUltimoStatus).toLocaleString()
 
@@ -295,7 +294,7 @@ async function criarLinhaOrcamento(orcamento) {
                 ${seletorStatus(orcamento)}
                 <div style="${horizontal}; width: 100%; justify-content: end; gap: 5px;">
                     <span>Dep</span>
-                    <img src="imagens/${depExistente ? 'concluido' : 'cancel'}.png" style="width: 1.5rem;">
+                    <img src="imagens/${departamentoExistente ? 'concluido' : 'cancel'}.png" style="width: 1.5rem;">
                 </div>
             </div>
         </td>
