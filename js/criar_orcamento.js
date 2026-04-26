@@ -878,7 +878,7 @@ async function enviarDadosOrcamento() {
                 descricao: `Orçamento criado ${contrato || ''}`,
                 dtCorrecao: new Date().toISOString().slice(0, 10),
                 equipamentos: {},
-                executor: dados_orcam?.executor,
+                executor: [dados_orcam?.executor],
                 tipoCorrecao: 'WiGZl',
                 idOrcamento: orcamentoBase.id,
                 usuario: acesso.usuario

@@ -526,7 +526,7 @@ async function formularioCliente(idCliente) {
     overlayAguarde()
 
     const {
-        enderecoEntrega,
+        enderecoEntrega = {},
         endereco,
         bairro,
         estado,
