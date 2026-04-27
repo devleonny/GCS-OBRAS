@@ -272,31 +272,79 @@ async function usuariosToolbar() {
 
 function linUsuarios(dados) {
 
-    const listas = {
-        permissoes: ['', 'adm', 'técnico', 'cliente', 'user', 'visitante', 'analista', 'gerente', 'coordenacao', 'diretoria', 'editor', 'log', 'qualidade', 'novo'],
-        setores: ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE', 'POC']
-    }
-
-    const tdPreenchida = (coluna, opcoes, usuario) => `
-        <td>
-            <select class="opcoesSelect" onchange="alterarUsuario({campo: '${coluna}', usuario: '${usuario}', select: this})" style="cursor: pointer;">${opcoes}</select>
-        </td>
-    `
-    const { permissao, setor, usuario } = dados
-
-    const opcoesPermissao = listas.permissoes
-        .map(p => `<option value="${p}" ${permissao == p ? 'selected' : ''}>${p}</option>`).join('')
-
-    const opcoesSetores = listas.setores
-        .map(s => `<option value="${s}" ${setor == s ? 'selected' : ''}>${s}</option>`).join('')
+    const { permissao, setor, usuario, nomeEmpresa } = dados
 
     return `
         <tr>
             <td style="text-align: left;">${usuario}</td>
-            ${tdPreenchida('permissao', opcoesPermissao, usuario)}
-            ${tdPreenchida('setor', opcoesSetores, usuario)}
+            <td>${permissao}</td>
+            <td>${setor}</td>
+            <td>${nomeEmpresa || ''}</td>
+            <td>
+               <img src="imagens/pesquisar2.png" onclick="editarUsuario('${usuario}')">
+            </td>
         </tr>`
 
+}
+
+async function editarUsuario(usuario) {
+
+
+    const permissoes = ['', 'adm', 'técnico', 'cliente', 'user', 'visitante', 'analista', 'gerente', 'coordenacao', 'diretoria', 'editor', 'log', 'qualidade', 'novo']
+    const setores = ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE', 'POC']
+
+    overlayAguarde()
+
+    const { permissao, setor, empresa } = await recuperarDado('dados_setores', usuario) || {}
+    const { nome } = await recuperarDado('empresas', empresa) || {}
+
+    controlesCxOpcoes.empresa = {
+        base: 'empresas',
+        retornar: ['nome'],
+        colunas: {
+            Nome: { chave: 'nome' }
+        }
+    }
+
+    const linhas = [
+        {
+            texto: 'Permissão',
+            elemento: `<select name="permissao">${permissoes.map(p => `<option ${permissao == p ? 'selected' : ''}>${p}</option>`).join('')}</select>`
+        },
+        {
+            texto: 'Setor',
+            elemento: `<select name="setor">${setores.map(s => `<option ${setor == s ? 'selected' : ''}>${s}</option>`).join('')}</select>`
+        },
+        {
+            texto: 'Empresa',
+            elemento: `<span ${empresa ? `id="${empresa}"` : ''} name="empresa" class="opcoes" onclick="cxOpcoes('empresa')">${nome || 'Selecione'}</span>`
+        },
+    ]
+
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: `salvarUsuario('${usuario}')` }
+    ]
+
+    popup({ linhas, botoes, titulo: 'Atualizar Usuário' })
+
+}
+
+async function salvarUsuario(usuario) {
+
+    overlayAguarde()
+
+    const campos = ['permissao', 'setor', 'empresa']
+
+    await Promise.all(
+        campos.map(campo => {
+            const el = document.querySelector(`[name="${campo}"]`)
+            const valor = el?.value || el?.id
+
+            return comunicacaoServ({ usuario, campo, valor })
+        })
+    )
+
+    removerPopup()
 }
 
 async function configs() {
@@ -304,7 +352,9 @@ async function configs() {
     const colunas = {
         'Usuário': { chave: 'usuario' },
         'Permissão': { chave: 'permissao' },
-        'Setores': { chave: 'setor' }
+        'Setores': { chave: 'setor' },
+        'Empresa': {},
+        'Editar': {}
     }
 
     const btnExtras = `<img src="imagens/baixar.png" onclick="cadastrar()">`
@@ -315,6 +365,15 @@ async function configs() {
         colunas,
         base: 'dados_setores',
         criarLinha: 'linUsuarios',
+        substituicoes: [
+            {
+                path: 'empresa',
+                tabela: 'empresas',
+                campoBusca: 'id',
+                retorno: 'nome',
+                destino: 'nomeEmpresa'
+            }
+        ],
         body: 'bodyUsuarios'
     })
 
@@ -331,7 +390,9 @@ async function configs() {
 
 async function alterarUsuario({ campo, usuario, select, valor }) {
 
-    valor = select ? select.value : valor
+    valor = select
+        ? select.value
+        : valor
 
     const alteracao = await comunicacaoServ({ usuario, campo, valor }) // Se alterar no servidor, altera localmente;
 
