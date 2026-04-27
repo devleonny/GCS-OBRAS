@@ -404,7 +404,7 @@ function carregarCorrecoes(ocorrencia) {
                         </div>
                         <div class="agendamentos">${agendamentos}</div>
                         `)}
-                    ${modelo('Solicitante', `<span>${usuario}</span>`)}
+                    ${modelo('Solicitante', `<span>${usuario || ''}</span>`)}
                     ${modelo('Executores', `<span>${listaExecutores || ''}</span>`)}
                     ${modelo('Técnico', `<span>${tecnico || ''}</span>`)}
                     ${modelo('Correção', labelTipoCorrecao)}

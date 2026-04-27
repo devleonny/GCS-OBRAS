@@ -335,9 +335,11 @@ async function salvarUsuario(usuario) {
 
     const campos = ['permissao', 'setor', 'empresa']
 
+    const painel = document.querySelector('.painel-padrao')
+
     await Promise.all(
         campos.map(campo => {
-            const el = document.querySelector(`[name="${campo}"]`)
+            const el = painel.querySelector(`[name="${campo}"]`)
             const valor = el?.value || el?.id
 
             return comunicacaoServ({ usuario, campo, valor })
