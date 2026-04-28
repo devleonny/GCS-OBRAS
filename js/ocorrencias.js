@@ -1611,7 +1611,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
     const linhas = [
         {
             texto: 'Em GARANTIA',
-            elemento: `<input name="garatia" type="checkbox" style="width: 2rem; height: 2rem;" ${garantia == 'S' ? 'checked' : ''}>`
+            elemento: `<input name="garantia" type="checkbox" style="width: 2rem; height: 2rem;" ${garantia == 'S' ? 'checked' : ''}>`
         },
         {
             texto: 'Data Limite Execução',
