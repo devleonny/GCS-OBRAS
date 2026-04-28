@@ -5,7 +5,7 @@ async function telaRelatorio() {
         'Empresa': { chave: 'snapshots.empresa' },
         'Chamado': { chave: 'id' },
         'Status': { chave: 'snapshots.ultimaCorrecao' },
-        'Data da Abertura': { chave: 'dataRegistro', tipoPesquisa: 'data' },
+        'Data da Abertura': { chave: 'data_registro', tipoPesquisa: 'data' },
         'Data do Agendamento': { chave: 'snapshots.dtCorrecao' },
         'Solicitante': { chave: 'usuario' },
         'Executores': { chave: 'snapshots.executores' },
@@ -98,7 +98,7 @@ function dtAuxOcorrencia(dt) {
 
 async function criarLinhaRelatorio(ocorrencia) {
 
-    const { id, snapshots, dataRegistro } = ocorrencia || {}
+    const { id, snapshots, data_registro } = ocorrencia || {}
     const { ultimaCorrecao, cliente, empresa, tipo, prioridade, sistema } = snapshots || {}
 
     const status = ultimaCorrecao
@@ -123,7 +123,7 @@ async function criarLinhaRelatorio(ocorrencia) {
         <td>
             <span class="${estilo}">${status}</span>
         </td>
-        <td>${dataRegistro || ''}</td>
+        <td>${data_registro || ''}</td>
         <td>${snapshots?.dtCorrecao || ''}</td>
         <td>${ocorrencia?.usuario || ''}</td>
         <td>
@@ -502,7 +502,7 @@ async function baixarExcelRelatorioOcorrencias() {
                 as: "Status Correção"
             },
             {
-                field: "o.dataRegistro",
+                field: "o.data_registro",
                 as: "Data Registro",
                 type: "date",
                 sourceFormat: 'br-hora'

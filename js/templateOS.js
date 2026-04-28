@@ -70,7 +70,7 @@ async function telaOS(idOcorrencia) {
                     ${modelo('Status Ocorrência', ultimaCorrecao)}
                     ${modelo('Prioridade', prioridade)}
                     ${modelo('Tipo Ocorrência', tipo)}
-                    ${modelo('Data/Hora da Abertura', ocorrencia.dataRegistro)}
+                    ${modelo('Data/Hora da Abertura', ocorrencia.data_registro)}
                 </div>
 
                 <div class="vertical">

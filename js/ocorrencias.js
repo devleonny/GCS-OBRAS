@@ -652,7 +652,7 @@ function criarLinhaOcorrencia(ocorrencia) {
                 ${modeloCampos('Cidade', cliente?.cidade)}
                 ${modeloCampos('Descrição', `<div style="white-space: pre-wrap;">${descricao}</div>`)}
                 ${modeloCampos('Criado por', criador)}
-                ${modeloCampos('Data Registro', ocorrencia?.dataRegistro || '')}
+                ${modeloCampos('Data Registro', ocorrencia?.data_registro || '')}
                 ${modeloCampos('Empresa', empresa)}
                 ${modeloCampos('Tipo', tipo)}
                 ${modeloCampos('Sistema', sistema)}
@@ -1950,7 +1950,7 @@ async function salvarOcorrencia(idOcorrencia) {
         prioridade: obter('prioridade')?.id || '',
         tipo: obter('tipo')?.id || '',
         descricao: obter('descricao')?.value || '',
-        dataRegistro: new Date().toLocaleString('pt-BR'),
+        data_registro: new Date().toLocaleString('pt-BR'),
         usuario: acesso.usuario,
         anexos: {
             ...ocorrencia.anexos,

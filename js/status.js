@@ -436,7 +436,7 @@ async function iniciarChamadoProspeccao(id) {
         prioridade: 'v2ttQ', // Serviço de INFRA
         tipo: 'wgVdc', // Prospecção
         descricao: `Chamado de Prospecção do ${contrato}`,
-        dataRegistro: new Date().toLocaleString('pt-BR'),
+        data_registro: new Date().toLocaleString('pt-BR'),
         usuario: acesso.usuario,
         anexos: {}
     }
