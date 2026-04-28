@@ -692,7 +692,7 @@ async function salvarCliente(idCliente = codCliAleatorio()) {
     const pesquisa = await pesquisarDB({ base: 'dados_clientes', filtros: { 'cnpj': { op: "=", value: cnpj } } })
     const primeiroResultado = pesquisa.resultados?.[0]
 
-    if (pesquisa.resultados.length > 0 && NumberprimeiroResultado?.id !== idCliente)
+    if (pesquisa.resultados.length > 0 && Number(primeiroResultado?.id) !== idCliente)
         return popup({ mensagem: `Já existe outro cadastro com este CPF/CNPJ > ${pesquisa.resultados?.[0]?.nome || ''}` })
 
     const divtags = painel.querySelector('[name="tags"]')
