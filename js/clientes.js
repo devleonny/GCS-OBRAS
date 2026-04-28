@@ -689,10 +689,11 @@ async function salvarCliente(idCliente = codCliAleatorio()) {
 
     const cnpj = obVal('cnpj')
 
-    const resposta = await verificarClienteExistente({ cnpj, idCliente })
+    const pesquisa = await pesquisarDB({ base: 'dados_clientes', filtros: { 'cnpj': { op: "=", value: cnpj } } })
+    const primeiroResultado = pesquisa.resultados?.[0]
 
-    if (resposta.mensagem)
-        return popup({ mensagem: resposta.mensagem })
+    if (pesquisa.resultados.length > 0 && NumberprimeiroResultado?.id !== idCliente)
+        return popup({ mensagem: `Já existe outro cadastro com este CPF/CNPJ > ${pesquisa.resultados?.[0]?.nome || ''}` })
 
     const divtags = painel.querySelector('[name="tags"]')
     const tagsExistente = divtags.querySelectorAll('.tag-cliente')
@@ -762,22 +763,4 @@ function codCliAleatorio() {
     const agora = Date.now() % 1e7
     const rand = Math.floor(Math.random() * 1e3)
     return Number(`${agora}${rand.toString().padStart(3, '0')}`)
-}
-
-async function verificarClienteExistente(dados) {
-
-    try {
-        const response = await fetch(`${api}/verificar-cliente-existente`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dados)
-        })
-
-        if (!response.ok)
-            throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`)
-
-        return await response.json()
-    } catch (error) {
-        return { mensagem: error.messagem || error.mensage || error }
-    }
 }
