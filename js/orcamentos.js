@@ -284,7 +284,6 @@ async function criarLinhaOrcamento(orcamento) {
             .map(tag => modeloTag(tag, id))
             .join('')
 
-
         const data = new Date(snapshots?.tsUltimoStatus).toLocaleString()
 
         const celulas = `

@@ -197,19 +197,15 @@ async function removerItem(codigo, img) {
 }
 
 async function enviarDadosAluguel() {
-    let orcamentoBase = baseOrcamento()
 
-    if (!orcamentoBase.dados_orcam) return painelClientes()
+    const orcamentoBase = baseOrcamento()
 
-    if (orcamentoBase.total_desconto > 0) {
-        orcamentoBase.aprovacao = {
-            status: 'pendente',
-            usuario: acesso.usuario
-        }
-    }
+    if (!orcamentoBase?.dados_orcam?.omie_cliente) 
+        return painelClientes()
 
     // Salvar o usuário na primeira vez apenas;
-    if (!orcamentoBase.usuario) orcamentoBase.usuario = acesso.usuario
+    if (!orcamentoBase.usuario) 
+        orcamentoBase.usuario = acesso.usuario
 
     if (!orcamentoBase.id) 
         orcamentoBase.id = 'ORCA_' + crypto.randomUUID()

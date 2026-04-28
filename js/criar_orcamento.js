@@ -818,6 +818,17 @@ function gerarDadosComposicoes(esquema = {}) {
     )
 }
 
+async function enviarDadosPrincipal() {
+
+    const { lpu_ativa } = baseOrcamento()
+
+    if (lpu_ativa == 'ALUGUEL')
+        await enviarDadosAluguel()
+    else
+        await enviarDadosOrcamento()
+
+}
+
 async function enviarDadosOrcamento() {
 
     overlayAguarde()

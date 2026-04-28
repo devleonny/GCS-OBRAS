@@ -69,27 +69,12 @@ function blocoHtml(titulo, dados = {}) {
     return acumulado
 }
 
-async function atualizarDadosPdf() {
-
-    try {
-
-        const pdf = JSON.parse(localStorage.getItem('pdf'))
-
-        orcamentoBase = await recuperarDado('dados_orcamentos', pdf.id)
-        cliente = recuperarDado('dados_clientes', orcamentoBase?.dados_orcam?.omie_cliente) || {}
-
-        localStorage.setItem('pdf', JSON.stringify(orcamentoBase))
-        location.reload(true)
-
-    } catch (error) {
-        console.log(error)
-    }
-
-}
-
 async function preencher() {
 
     const orcamentoBase = JSON.parse(localStorage.getItem('pdf')) || {}
+
+    console.log(orcamentoBase);
+    
 
     document.getElementById('codigo_orcamento').textContent = orcamentoBase?.id || '---'
 
