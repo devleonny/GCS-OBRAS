@@ -1606,9 +1606,13 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
     }
 
     const { nome } = await recuperarDado('correcoes', correcao?.tipoCorrecao) || {}
-    const { executor, tecnico } = correcao
+    const { executor, tecnico, garantia } = correcao
 
     const linhas = [
+        {
+            texto: 'Em GARANTIA',
+            elemento: `<input name="garatia" type="checkbox" style="width: 2rem; height: 2rem;" ${garantia == 'S' ? 'checked' : ''}>`
+        },
         {
             texto: 'Data Limite Execução',
             elemento: `<input name="dtCorrecao" type="date" value="${correcao?.dtCorrecao || ''}">`
@@ -1899,9 +1903,11 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
             unidade
         }
     }
-
+    
+    const garantia = obter('garantia').checked ? 'S' : 'N'
     const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
     const atualizado = {
+        garantia,
         fotos: {
             ...correcao?.fotos,
             ...fotos

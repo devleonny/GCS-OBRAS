@@ -112,7 +112,6 @@ const esquemaBotoes = {
                 {
                     nome: 'Criar Orçamento',
                     img: 'projeto',
-                    funcao: 'painelEdicao',
                     sub: [
                         { nome: 'Em edição', funcao: 'painelEdicao', img: 'projeto' },
                         { nome: 'Dados Cliente', funcao: 'painelClientes', img: 'gerente' },

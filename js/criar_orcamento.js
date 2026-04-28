@@ -912,6 +912,8 @@ async function enviarDadosOrcamento() {
             atualizarToolbar(true)
         }
 
+        criarMenus('inicial')
+
     } else {
 
         popup({ mensagem: 'Falha no salvamento, tente de novo em alguns minutos' })
