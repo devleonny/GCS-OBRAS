@@ -1184,13 +1184,9 @@ async function painelClientes(idOrcamento) {
 
     overlayAguarde()
 
-    let orcamento = {}
-
-    if (idOrcamento) {
-        orcamento = await recuperarDado('dados_orcamentos', idOrcamento) || {}
-    } else {
-        orcamento = baseOrcamento()
-    }
+    const orcamento = idOrcamento
+        ? await recuperarDado('dados_orcamentos', idOrcamento) || {}
+        : baseOrcamento()
 
     const { usuarios, dados_orcam } = orcamento || {}
     const idCliente = dados_orcam?.omie_cliente
@@ -1210,23 +1206,26 @@ async function painelClientes(idOrcamento) {
                     : `excluirLevantamentoStatus('${idAnexo}')`))
         .join('')
 
-    const funcao = idOrcamento
-        ? `salvarDadosCliente('${idOrcamento}')`
-        : 'salvarDadosCliente()'
 
     const botoes = [
-        { texto: 'Salvar Dados', img: 'concluido', funcao }
+        {
+            texto: 'Salvar Dados',
+            img: 'concluido',
+            funcao: idOrcamento
+                ? `salvarDadosCliente('${idOrcamento}')`
+                : 'salvarDadosCliente()'
+        }
     ]
 
     if (idOrcamento)
         botoes.push({ texto: 'Limpar Campos', img: 'limpar', funcao: 'executarLimparCampos()' })
-
 
     controlesCxOpcoes.cliente = {
         retornar: ['nome'],
         base: 'dados_clientes',
         funcaoAdicional: ['buscarDadosCliente'],
         colunas: {
+
             'Nome Fantasia': { chave: 'nome' },
             'Cidade': { chave: 'cidade' },
             'Estado': { chave: 'estado' },
@@ -1456,7 +1455,7 @@ async function salvarDadosCliente(idOrcamento) {
 
     try {
 
-        const orcamentoBase = telaAtiva == 'orcamentos'
+        const orcamentoBase = idOrcamento
             ? await recuperarDado('dados_orcamentos', idOrcamento)
             : baseOrcamento() || {}
 
@@ -1535,9 +1534,6 @@ async function salvarDadosCliente(idOrcamento) {
             }
 
         if (idOrcamento) {
-
-            // Objeto precisar ter o id;
-            orcamentoBase.id = idOrcamento
 
             await enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamentoBase.dados_orcam)
             await enviar(`dados_orcamentos/${idOrcamento}/tags`, orcamentoBase.tags)

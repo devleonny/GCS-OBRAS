@@ -17,7 +17,7 @@ async function recuperarDado(base, chave) {
         const texto = await resposta.text()
 
         if (!resposta.ok) {
-            if (texto.includes('expirado'))
+            if (texto.includes('inv￡lido'))
                 location.reload(true)
 
             return {}
