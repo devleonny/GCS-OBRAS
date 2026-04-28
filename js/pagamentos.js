@@ -573,7 +573,7 @@ async function formularioPagamento() {
 
     const ulP = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
     const { observacao = '', categorias = [], distribuicao = [], valor_documento = 0, data_vencimento, codigo_cliente_fornecedor = '' } = ulP?.param?.[0] || {}
-    const { nome = 'Selecionar' } = await recuperarDado('dados_clientes', codigo_cliente_fornecedor) || {}
+    const { nome } = await recuperarDado('dados_clientes', codigo_cliente_fornecedor) || {}
     const [dia, mes, ano] = data_vencimento ? data_vencimento.split('/') : ''
     const dtVencimento = `${ano}-${mes}-${dia}`
 
@@ -599,7 +599,7 @@ async function formularioPagamento() {
                 name="recebedor"
                 ${codigo_cliente_fornecedor ? `id="${codigo_cliente_fornecedor}"` : ''}
                 onclick="cxOpcoes('recebedor')">
-                    ${nome}
+                    ${nome || 'Selecione'}
                 </span>
                 <img onclick="formularioCliente()" src="imagens/baixar.png">
             </div>

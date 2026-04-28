@@ -1,29 +1,40 @@
 async function recuperarDado(base, chave) {
-
     if (chave === undefined || chave === null)
-        return null
+        return {}
 
-    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
+    try {
+        const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
 
-    const resposta = await fetch(`${read}/recuperar-dado`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ base, chave })
-    })
+        const resposta = await fetch(`${read}/recuperar-dado`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ base, chave })
+        })
 
-    if (!resposta.ok) {
-        const erro = await resposta.text()
+        const texto = await resposta.text()
 
-        if (erro.includes('expirado'))
-            location.reload(true)
+        if (!resposta.ok) {
+            if (texto.includes('expirado'))
+                location.reload(true)
 
-        throw new Error(erro || 'Erro na requisição')
+            return {}
+        }
+
+        if (!texto.trim())
+            return {}
+
+        try {
+            return JSON.parse(texto)
+        } catch {
+            return {}
+        }
+
+    } catch {
+        return {}
     }
-
-    return await resposta.json()
 }
 
 async function pesquisarDB(params) {
