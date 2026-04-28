@@ -74,13 +74,6 @@ async function telaPagamentos() {
                 campoBusca: 'usuario',
                 retorno: 'setor',
                 destino: 'usuarioSetor'
-            },
-            {
-                path: 'param.*.codigo_cliente_fornecedor',
-                tabela: 'dados_clientes',
-                campoBusca: 'id',
-                retorno: 'nome',
-                destino: 'param.*.recebedor'
             }
         ]
     })
@@ -173,7 +166,7 @@ async function criarLinhaPagamento(pagamento) {
         </td>
         <td>${criado || ''}</td>
         <td>${usuarioSetor || ''}</td>
-        <td>${recebedor || ''}</td>
+        <td>${snapshots.cliente || ''}</td>
         <td style="text-align: center;">
             <img src="imagens/pesquisar2.png" style="width: 1.5rem; cursor: pointer;" onclick="abrirDetalhesPagamentos('${id}')">
         </td>
