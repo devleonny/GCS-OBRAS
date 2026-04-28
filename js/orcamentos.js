@@ -281,7 +281,7 @@ async function criarLinhaOrcamento(orcamento) {
 
         // Tags;        
         const listaTags = Object.values(snapshots?.tags || {})
-            .map(tag => modeloTag(tag, tag.id))
+            .map(tag => modeloTag(tag, id))
             .join('')
 
 
