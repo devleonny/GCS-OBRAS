@@ -277,8 +277,8 @@ function linUsuarios(dados) {
     return `
         <tr>
             <td style="text-align: left;">${usuario}</td>
-            <td>${permissao}</td>
-            <td>${setor}</td>
+            <td>${permissao || ''}</td>
+            <td>${setor || ''}</td>
             <td>${nomeEmpresa || ''}</td>
             <td>
                <img src="imagens/pesquisar2.png" onclick="editarUsuario('${usuario}')">
