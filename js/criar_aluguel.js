@@ -332,7 +332,6 @@ async function total() {
             const tds = tr.querySelectorAll('td')
 
             const codigo = tds[0].textContent
-            const { descricao } = await recuperarDado('dados_composicoes', codigo) || {}
 
             let tdDescricao = tds[1]
             let tdQuantidade = tds[3].querySelector('input')
@@ -353,9 +352,6 @@ async function total() {
             totais[modo].valor += totalLinha
             totais.GERAL.valor += totalLinha
 
-            // Inclusão dos dados atualizados nas tds
-            tdDescricao.textContent = descricao
-
             tdTotal.classList = 'campo-valor'
             tdTotal.textContent = dinheiro(totalLinha)
 
@@ -364,8 +360,6 @@ async function total() {
 
             orcamentoBase.dados_composicoes[codigo] = {
                 ...orcamentoBase.dados_composicoes[codigo],
-                codigo,
-                descricao,
                 qtde: quantidade,
                 custo: valorUnitario,
                 tipo: modo // Salvar como 'ALUGUEL' para que as próximas tabelas sejam configuradas de acordo;
