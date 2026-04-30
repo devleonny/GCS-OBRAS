@@ -48,22 +48,22 @@ if (!emArquivoLocal && 'serviceWorker' in navigator) {
 const appBases = {
     'GCS': [
         'tags_orcamentos',
-        'departamentos_AC',
+        'departamentos_ac',
         'dados_orcamentos',
         'custo_veiculos',
         'motoristas',
         'veiculos',
         'dados_composicoes',
-        'dados_clientes',
+        'dados_clientes_ac',
         'lista_pagamentos',
         'dados_manutencao',
-        'dados_categorias_AC',
+        'dados_categorias_ac',
         'dados_estoque',
         'dados_setores',
         'pessoas'
     ],
     'OCORRÊNCIAS': [
-        'dados_clientes',
+        'dados_clientes_ac',
         'prioridades',
         'tipos',
         'correcoes',

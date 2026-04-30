@@ -75,7 +75,7 @@ async function telaOrcamentos() {
         substituicoes: [
             {
                 path: 'dados_orcam.contrato',
-                tabela: 'departamentos_AC',
+                tabela: 'departamentos_ac',
                 campoBusca: 'descricao',
                 retorno: 'descricao',
                 destino: 'departamentoExistente'
@@ -563,7 +563,7 @@ async function baixarExcelOrcamentos() {
         joins: [
             {
                 type: "LEFT",
-                table: "dados_clientes",
+                table: "dados_clientes_ac",
                 alias: "c",
                 on: `
                     c.id = json_extract(

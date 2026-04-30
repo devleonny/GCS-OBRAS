@@ -768,7 +768,7 @@ async function abrirEsquema(id) {
     const contrato = orcamento?.dados_orcam?.contrato
     const oficial = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato
     const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
-    const cliente = await recuperarDado('dados_clientes', omie_cliente) || {}
+    const cliente = await recuperarDado('dados_clientes_ac', omie_cliente) || {}
     let blocosStatus = {}
 
     for (const [chave, historico] of Object.entries(orcamento?.status?.historico || {})) {

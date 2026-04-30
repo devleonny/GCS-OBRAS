@@ -353,7 +353,7 @@ async function incluirDocumento(id) {
     const { local, doc, clinica, funcionario, snapshots, realizado } = await recuperarDado('documentos', id) || {}
 
     controlesCxOpcoes.funcionario = {
-        base: 'dados_clientes',
+        base: 'dados_clientes_ac',
         retornar: ['nome'],
         colunas: {
             'Nome': { chave: 'nome' },

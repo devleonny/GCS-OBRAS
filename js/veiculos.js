@@ -47,14 +47,14 @@ async function telaVeiculos() {
         substituicoes: [
             {
                 path: 'distribuicao.*.departamento',
-                tabela: 'departamentos_AC',
+                tabela: 'departamentos_ac',
                 campoBusca: 'codigo',
                 retorno: 'descricao',
                 destino: 'distribuicao.*.nomeDepartamento'
             },
             {
                 path: 'veiculo.motoristas.*.id',
-                tabela: 'dados_clientes',
+                tabela: 'dados_clientes_ac',
                 campoBusca: 'id',
                 retorno: 'nome',
                 destino: 'veiculo.motoristas.*.nomeMotorista'
@@ -109,7 +109,7 @@ async function criarLinhaVeiculo(veiculo) {
     const motoristas = []
 
     for (const id of (veiculo.motoristas || [])) {
-        const motorista = await recuperarDado('dados_clientes', id)
+        const motorista = await recuperarDado('dados_clientes_ac', id)
         if (!motorista)
             continue
         motoristas.push(motorista.nome)
@@ -519,7 +519,7 @@ async function painelValores(idCusto, duplicar) {
     }
 
     for (const [codigo, { km }] of Object.entries(custo.distribuicao || {})) {
-        const { descricao } = await recuperarDado('departamentos_AC', Number(codigo))
+        const { descricao } = await recuperarDado('departamentos_ac', Number(codigo))
         linDist({ codigo, km, descricao })
     }
 
@@ -551,7 +551,7 @@ function linDist({ descricao, codigo, km } = {}) {
     )
 
     controlesCxOpcoes[chave] = {
-        base: 'departamentos_AC',
+        base: 'departamentos_ac',
         retornar: ['descricao'],
         colunas: {
             'Descrição': { chave: 'descricao' }
@@ -662,7 +662,7 @@ async function novoVeiculo(idVeiculo) {
     const motoristas = []
 
     for (const id of (veiculo.motoristas || [])) {
-        const motorista = await recuperarDado('dados_clientes', id)
+        const motorista = await recuperarDado('dados_clientes_ac', id)
         motoristas.push(adicionarMotorista(motorista))
     }
 
@@ -727,7 +727,7 @@ function adicionarMotorista({ id, nome } = {}) {
 
     // Controles;
     controlesCxOpcoes[aleatorio] = {
-        base: 'dados_clientes',
+        base: 'dados_clientes_ac',
         retornar: ['nome'],
         colunas: {
             'Nome': { chave: 'nome' },

@@ -2,7 +2,7 @@ async function carregarOS(id) {
 
     const orcamento = await recuperarDado('dados_orcamentos', id) || {}
     const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
-    const { nome, cidade, endereco, cnpj } = await recuperarDado('dados_clientes', omie_cliente) || ''
+    const { nome, cidade, endereco, cnpj } = await recuperarDado('dados_clientes_ac', omie_cliente) || ''
     const contrato = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato || ''
 
     const modelo = (valor1, valor2) => {

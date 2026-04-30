@@ -9,7 +9,7 @@ async function telaOS(idOcorrencia) {
     overlayAguarde()
 
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
-    const cliente = await recuperarDado('dados_clientes', ocorrencia?.unidade) || {}
+    const cliente = await recuperarDado('dados_clientes_ac', ocorrencia?.unidade) || {}
     const { tipo, sistema, prioridade, ultimaCorrecao } = ocorrencia?.snapshots || {}
 
     let assinatura = ''

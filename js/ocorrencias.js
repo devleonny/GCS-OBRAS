@@ -1432,7 +1432,7 @@ async function formularioOcorrencia(idOcorrencia) {
     ).join('')
 
     const cliente = unidade
-        ? await recuperarDado('dados_clientes', unidade)
+        ? await recuperarDado('dados_clientes_ac', unidade)
         : snapshots?.cliente || {}
 
     const a = Object
@@ -1450,7 +1450,7 @@ async function formularioOcorrencia(idOcorrencia) {
 
     // Campo Unidade;
     controlesCxOpcoes.unidade = {
-        base: 'dados_clientes',
+        base: 'dados_clientes_ac',
         retornar: ['nome'],
         filtros,
         colunas: {

@@ -84,7 +84,7 @@ async function preencher() {
         document.body.classList.remove('marca-ativa')
 
     // LÓGICA DOS DADOS
-    cliente = await recuperarDado('dados_clientes', orcamentoBase?.dados_orcam?.omie_cliente) || {}
+    cliente = await recuperarDado('dados_clientes_ac', orcamentoBase?.dados_orcam?.omie_cliente) || {}
     const informacoes = {
         ...orcamentoBase.dados_orcam,
         ...cliente

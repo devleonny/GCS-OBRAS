@@ -114,7 +114,7 @@ async function adicionarTecnicoLPU(cod = codCliAleatorio()) {
 
     controlesCxOpcoes[cod] = {
         retornar: ['nome'],
-        base: 'dados_clientes',
+        base: 'dados_clientes_ac',
         colunas: {
             'Nome': { chave: 'nome' },
             'CPF/CNPJ': { chave: 'cnpj' },
@@ -122,7 +122,7 @@ async function adicionarTecnicoLPU(cod = codCliAleatorio()) {
         }
     }
 
-    const { nome } = await recuperarDado('dados_clientes', cod) || {}
+    const { nome } = await recuperarDado('dados_clientes_ac', cod) || {}
 
     const span = `
         <span ${cod ? `id="${cod}"` : ''} 
@@ -498,7 +498,7 @@ async function gerarPdfParceiro(id, chave, visualizar) {
         await Promise.all(
             (lpu.tecnicos || []).map(async (cod) => {
 
-                const { nome, cidade, cep, endereco, bairro, cnpj } = await recuperarDado('dados_clientes', cod) || {}
+                const { nome, cidade, cep, endereco, bairro, cnpj } = await recuperarDado('dados_clientes_ac', cod) || {}
 
                 const dados = Object.entries({
                     nome,

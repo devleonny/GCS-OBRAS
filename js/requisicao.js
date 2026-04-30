@@ -6,7 +6,7 @@ async function formularioRequisicao({ id, chave = crypto.randomUUID(), modalidad
 
     const contrato = orcamento?.dados_orcam?.contrato
     const pesquisaDep = contrato
-        ? await pesquisarDB({ base: 'departamentos_AC', filtros: { 'descricao': { op: '=', value: contrato } } })
+        ? await pesquisarDB({ base: 'departamentos_ac', filtros: { 'descricao': { op: '=', value: contrato } } })
         : null
 
     if (!pesquisaDep || !pesquisaDep.resultados.length)
@@ -18,7 +18,7 @@ async function formularioRequisicao({ id, chave = crypto.randomUUID(), modalidad
     if (!existePedido)
         return popup({ mensagem: 'Crie um pedido antes de criar uma requisição!' })
 
-    const cliente = await recuperarDado('dados_clientes', orcamento.dados_orcam.omie_cliente) || {}
+    const cliente = await recuperarDado('dados_clientes_ac', orcamento.dados_orcam.omie_cliente) || {}
     const cartao = orcamento?.status?.historico?.[chave] || {}
     const { volumes, transportadora, prazo, pedido, recebedor } = cartao
 
@@ -514,7 +514,7 @@ async function gerarPdfRequisicao(id, chave, visualizar) {
         })
         .join('')
 
-    const { nome, cnpj, cidade, bairro, endereco, cep } = await recuperarDado('dados_clientes', dados_orcam?.omie_cliente) || {}
+    const { nome, cnpj, cidade, bairro, endereco, cep } = await recuperarDado('dados_clientes_ac', dados_orcam?.omie_cliente) || {}
 
     const dCabecalho = Object.entries({ orçamento: dados_orcam?.contrato, chamado: dados_orcam?.chamado, nome, cnpj, endereco, bairro, cidade, cep })
         .filter(([, valor]) => valor)

@@ -1194,7 +1194,7 @@ async function painelClientes(idOrcamento) {
         ? true
         : false
 
-    const cliente = await recuperarDado('dados_clientes', idCliente)
+    const cliente = await recuperarDado('dados_clientes_ac', idCliente)
 
     const levantamentos = Object.entries(orcamento?.levantamentos || {})
         .map(([idAnexo, anexo]) =>
@@ -1222,7 +1222,7 @@ async function painelClientes(idOrcamento) {
 
     controlesCxOpcoes.cliente = {
         retornar: ['nome'],
-        base: 'dados_clientes',
+        base: 'dados_clientes_ac',
         funcaoAdicional: ['buscarDadosCliente'],
         colunas: {
 
@@ -1439,7 +1439,7 @@ async function buscarDadosCliente() {
 
     const omie_cliente = Number(clienteName.id)
 
-    const cliente = await recuperarDado('dados_clientes', omie_cliente)
+    const cliente = await recuperarDado('dados_clientes_ac', omie_cliente)
 
     const campos = ['cnpj', 'endereco', 'bairro', 'cidade', 'estado', 'cep']
     for (const campo of campos) {
@@ -1509,7 +1509,7 @@ async function salvarDadosCliente(idOrcamento) {
         orcamentoBase.chamado = ehChamado
 
         // Lógica da tag automática;
-        const cliente = await recuperarDado('dados_clientes', omie_cliente) || {}
+        const cliente = await recuperarDado('dados_clientes_ac', omie_cliente) || {}
         const empresa = cliente?.snapshots?.empresa
         orcamentoBase.tags ??= {}
 

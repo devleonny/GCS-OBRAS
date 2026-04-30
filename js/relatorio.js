@@ -435,7 +435,7 @@ async function baixarExcelRelatorioOcorrencias() {
         joins: [
             {
                 type: "LEFT",
-                table: "dados_clientes",
+                table: "dados_clientes_ac",
                 alias: "c",
                 on: `c.id = o.unidade`
             },
@@ -568,7 +568,7 @@ async function baixarExcelRelatorioCorrecoes() {
         joins: [
             {
                 type: "LEFT",
-                table: "dados_clientes",
+                table: "dados_clientes_ac",
                 alias: "c",
                 on: `c.id = o.unidade`
             },
@@ -682,7 +682,7 @@ async function baixarExcelRelatorioPecas() {
         table: "dados_ocorrencias",
         alias: "o",
         joins: [
-            { type: "LEFT", table: "dados_clientes", alias: "c", on: `c.id = o.unidade` },
+            { type: "LEFT", table: "dados_clientes_ac", alias: "c", on: `c.id = o.unidade` },
             { type: "LEFT", table: "empresas", alias: "e", on: `e.id = c.empresa` }
         ],
 

@@ -275,7 +275,7 @@ async function abrirDetalhesPagamentos(id) {
         .join('')
 
     for (const item of pagamento.param[0].categorias) {
-        const nomeCategoria = (await recuperarDado('dados_categorias_AC', item.codigo_categoria))?.categoria || '...'
+        const nomeCategoria = (await recuperarDado('dados_categorias_ac', item.codigo_categoria))?.categoria || '...'
 
         valores += `
         <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
@@ -308,7 +308,7 @@ async function abrirDetalhesPagamentos(id) {
     // Orçamentos & chamados vinculados;
     const vinculados = []
     for (const dep of depPagam) {
-        const cc = await recuperarDado('departamentos_AC', dep.cCodDep)
+        const cc = await recuperarDado('departamentos_ac', dep.cCodDep)
         if (!cc)
             continue
 
@@ -573,12 +573,12 @@ async function formularioPagamento() {
 
     const ulP = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
     const { observacao = '', categorias = [], distribuicao = [], valor_documento = 0, data_vencimento, codigo_cliente_fornecedor = '' } = ulP?.param?.[0] || {}
-    const { nome } = await recuperarDado('dados_clientes', codigo_cliente_fornecedor) || {}
+    const { nome } = await recuperarDado('dados_clientes_ac', codigo_cliente_fornecedor) || {}
     const [dia, mes, ano] = data_vencimento ? data_vencimento.split('/') : ''
     const dtVencimento = `${ano}-${mes}-${dia}`
 
     controlesCxOpcoes.recebedor = {
-        base: 'dados_clientes',
+        base: 'dados_clientes_ac',
         retornar: ['nome'],
         funcaoAdicional: ['calculadoraPagamento'],
         colunas: {
@@ -614,8 +614,8 @@ async function formularioPagamento() {
             texto: 'Centro de Custo',
             elemento: `
                 <div style="${horizontal}; gap: 1rem;">
-                    <img src="imagens/baixar.png" style="width: 1.5rem; cursor: pointer;" onclick="maisCampo({ base: 'departamentos_AC' })">
-                    <div class="central-departamentos_AC"></div>
+                    <img src="imagens/baixar.png" style="width: 1.5rem; cursor: pointer;" onclick="maisCampo({ base: 'departamentos_ac' })">
+                    <div class="central-departamentos_ac"></div>
                 </div>
             `
         },
@@ -623,8 +623,8 @@ async function formularioPagamento() {
             texto: 'Categorias',
             elemento: `
                 <div style="${horizontal}; gap: 1rem;">
-                    <img src="imagens/baixar.png" style="width: 1.5rem; cursor: pointer;" onclick="maisCampo({ base: 'dados_categorias_AC'})">
-                    <div class="central-dados_categorias_AC"></div>
+                    <img src="imagens/baixar.png" style="width: 1.5rem; cursor: pointer;" onclick="maisCampo({ base: 'dados_categorias_ac'})">
+                    <div class="central-dados_categorias_ac"></div>
                 </div>
             `
         },
@@ -669,11 +669,11 @@ async function formularioPagamento() {
 
     // Categorias;
     for (const categoria of categorias)
-        await maisCampo({ atualizar: false, id: categoria.codigo_categoria, base: 'dados_categorias_AC', valor: categoria.valor })
+        await maisCampo({ atualizar: false, id: categoria.codigo_categoria, base: 'dados_categorias_ac', valor: categoria.valor })
 
     // Departamentos;
     for (const departamento of distribuicao)
-        await maisCampo({ atualizar: false, id: departamento.cCodDep, base: 'departamentos_AC', valor: departamento.nValDep })
+        await maisCampo({ atualizar: false, id: departamento.cCodDep, base: 'departamentos_ac', valor: departamento.nValDep })
 
     await calculadoraPagamento()
 
@@ -749,7 +749,7 @@ async function calculadoraPagamento() {
     }
 
     // Categorias
-    const inputsCat = document.querySelectorAll('[name="dados_categorias_AC"]')
+    const inputsCat = document.querySelectorAll('[name="dados_categorias_ac"]')
     for (const input of inputsCat) {
         const span = input.parentElement.nextElementSibling
         if (!span.id)
@@ -774,7 +774,7 @@ async function calculadoraPagamento() {
     }
 
     // Departamentos
-    const inputsDep = document.querySelectorAll('[name="departamentos_AC"]')
+    const inputsDep = document.querySelectorAll('[name="departamentos_ac"]')
     for (const input of inputsDep) {
 
         const span = input.parentElement.nextElementSibling
@@ -883,7 +883,7 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
     const elemento = await recuperarDado(base, id)
 
     const esquema = {
-        dados_categorias_AC: {
+        dados_categorias_ac: {
             retornar: ['categoria'],
             colunas: {
                 'Categoria': { chave: 'categoria' }
@@ -897,7 +897,7 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
                         ${elemento?.categoria || 'Selecionar'}
                 </span>`
         },
-        departamentos_AC: {
+        departamentos_ac: {
             retornar: ['descricao'],
             colunas: {
                 'Descrição': { chave: 'descricao' }
