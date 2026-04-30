@@ -682,13 +682,22 @@ async function baixarExcelRelatorioPecas() {
         table: "dados_ocorrencias",
         alias: "o",
         joins: [
-            { type: "LEFT", table: "dados_clientes_ac", alias: "c", on: `c.id = o.unidade` },
-            { type: "LEFT", table: "empresas", alias: "e", on: `e.id = c.empresa` }
-        ],
-
-        explodes: [
-            { field: "o.correcoes", path: "$", alias: "cx", type: "INNER" },
-            { field: "json_extract(cx.value, '$.equipamentos')", alias: "eq", type: "INNER" }
+            { type: "LEFT", table: "dados_clientes_ac", alias: "c", on: "c.id = o.unidade" },
+            { type: "LEFT", table: "empresas", alias: "e", on: "e.id = c.empresa" },
+            
+            // Substituímos o "explodes" por JOINs Laterais nativos do Postgres para lidar com Arrays.
+            { 
+                type: "INNER", 
+                table: "LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(o.correcoes::jsonb) = 'array' THEN o.correcoes::jsonb ELSE '[]'::jsonb END)", 
+                alias: "cx(value)", 
+                on: "TRUE" 
+            },
+            { 
+                type: "INNER", 
+                table: "LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(cx.value -> 'equipamentos') = 'array' THEN cx.value -> 'equipamentos' ELSE '[]'::jsonb END)", 
+                alias: "eq(value)", 
+                on: "TRUE" 
+            }
         ],
 
         columns: [
@@ -698,32 +707,36 @@ async function baixarExcelRelatorioPecas() {
             { field: "c.cidade", as: "Cidade" },
             { field: "c.estado", as: "Estado" },
             {
-                custom: `json_extract(cx.value, '$.data')`,
+                custom: "cx.value ->> 'data'",
                 as: "Data",
                 type: "date",
                 sourceFormat: 'br-hora'
             },
             {
-                custom: `json_extract(cx.value, '$.dtCorrecao')`,
+                custom: "cx.value ->> 'dtCorrecao'",
                 as: "Data Correção",
                 type: "date",
                 sourceFormat: 'iso'
             },
-            { custom: `json_extract(cx.value, '$.tecnico')`, as: "Técnico" },
-            { custom: `json_extract(eq.value, '$.origem')`, as: "Origem" },
-            { custom: `json_extract(o.snapshots, '$.cliente.nome')`, as: "Cliente" },
-            { custom: `json_extract(eq.value, '$.codigo')`, as: "Código" },
-            { custom: `json_extract(eq.value, '$.serie')`, as: "Nº Série" },
-            { custom: `json_extract(eq.value, '$.descricao')`, as: "Descrição", width: 35 },
-            { custom: `json_extract(eq.value, '$.modelo')`, as: "Modelo" },
-            { custom: `json_extract(eq.value, '$.fabricante')`, as: "Fabricante" },
-            { custom: `json_extract(eq.value, '$.unidade')`, as: "Unidade" },
-            { custom: `json_extract(eq.value, '$.quantidade')`, as: "Quantidade" }
+            { custom: "cx.value ->> 'tecnico'", as: "Técnico" },
+            { custom: "eq.value ->> 'origem'", as: "Origem" },
+            
+            // O operador #>> '{caminho,filho}' é a forma do Postgres extrair caminhos profundos
+            { custom: "o.snapshots #>> '{cliente,nome}'", as: "Cliente" }, 
+            
+            { custom: "eq.value ->> 'codigo'", as: "Código" },
+            { custom: "eq.value ->> 'serie'", as: "Nº Série" },
+            { custom: "eq.value ->> 'descricao'", as: "Descrição", width: 35 },
+            { custom: "eq.value ->> 'modelo'", as: "Modelo" },
+            { custom: "eq.value ->> 'fabricante'", as: "Fabricante" },
+            { custom: "eq.value ->> 'unidade'", as: "Unidade" },
+            { custom: "eq.value ->> 'quantidade'", as: "Quantidade" }
         ],
 
         filters: [
             { custom: "(o.excluido IS NULL OR o.excluido = '')" },
-            { custom: "eq.key IS NOT NULL" }
+            // Como mudamos para jsonb_array_elements, a coluna "key" não existe mais, verificamos o "value"
+            { custom: "eq.value IS NOT NULL" } 
         ],
 
         orderBy: "o.timestamp DESC"
@@ -740,5 +753,4 @@ async function baixarExcelRelatorioPecas() {
     overlayAguarde()
     await baixarRelatorioExcel(schema, 'Peças')
     removerOverlay()
-
 }

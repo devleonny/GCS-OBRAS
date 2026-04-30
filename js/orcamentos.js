@@ -565,11 +565,7 @@ async function baixarExcelOrcamentos() {
                 type: "LEFT",
                 table: "dados_clientes_ac",
                 alias: "c",
-                on: `
-                    c.id = json_extract(
-                        CASE WHEN json_valid(o.dados_orcam) THEN o.dados_orcam ELSE '{}' END,
-                        '$.omie_cliente'
-                    )`
+                on: "c.id::text = o.dados_orcam ->> 'omie_cliente'"
             },
             {
                 type: "LEFT",
