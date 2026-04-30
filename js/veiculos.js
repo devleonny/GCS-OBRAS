@@ -106,20 +106,13 @@ async function auxVeiculos() {
 
 async function criarLinhaVeiculo(veiculo) {
 
-    const motoristas = []
-
-    for (const id of (veiculo.motoristas || [])) {
-        const motorista = await recuperarDado('dados_clientes_ac', id)
-        if (!motorista)
-            continue
-        motoristas.push(motorista.nome)
-    }
+    const { snapshots } = veiculo || {}
 
     return `
     <tr>
         <td>${veiculo?.cartao || 'Sem cartão'}</td>
         <td>
-            ${motoristas.join('<br>')}
+            ${(snapshots?.motoristas || []).join('<br>')}
         </td>
         <td>
             <label name="veículo">${veiculo?.modelo || ''}</label>
@@ -657,13 +650,14 @@ async function novoVeiculo(idVeiculo) {
     overlayAguarde()
 
     const veiculo = await recuperarDado('veiculos', idVeiculo) || {}
+
     const opcoes = ['Locado', 'Devolvido']
         .map(op => `<option ${veiculo?.status == op ? 'selected' : ''}>${op}</opcoes>`)
         .join('')
 
     const motoristas = []
 
-    for (const id of (veiculo.motoristas || [])) {
+    for (const { id } of (veiculo.motoristas || [])) {
         const motorista = await recuperarDado('dados_clientes_ac', id)
         motoristas.push(adicionarMotorista(motorista))
     }
@@ -769,6 +763,7 @@ async function salvarVeiculo(idVeiculo = crypto.randomUUID()) {
         .map(m => ({ id: Number(m.id) }))
 
     const veiculo = {
+        id: idVeiculo,
         modelo: obterValores('modelo'),
         placa: obterValores('placa'),
         status: obterValores('status'),
