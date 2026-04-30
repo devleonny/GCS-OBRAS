@@ -80,7 +80,7 @@ async function auxVeiculos() {
         'Motoristas': { chave: 'snapshots.motoristas' },
         'Modelo': { chave: 'modelo' },
         'Placa': { chave: 'placa' },
-        'Status': { chave: 'placa' },
+        'Status': { chave: 'status' },
         'Editar': {}
     }
 
@@ -122,13 +122,13 @@ async function criarLinhaVeiculo(veiculo) {
             ${motoristas.join('<br>')}
         </td>
         <td>
-            <label name="veículo">${veiculo?.modelo || 'Modelo não informado'}</label>
+            <label name="veículo">${veiculo?.modelo || ''}</label>
         </td>
         <td>
-            <label name="veículo">${veiculo?.placa || 'Placa não informada'}</label>
+            <label name="veículo">${veiculo?.placa || ''}</label>
         </td>
         <td>
-            <div style="${horizontal}; gap: 1rem;">
+            <div style="${horizontal}; justify-content: left; gap: 1rem;">
                 <img src="imagens/${veiculo.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1.5rem;">
                 <label name="veículo">${veiculo.status}</label>
             </div>
@@ -654,6 +654,8 @@ async function salvarValores(idCusto = crypto.randomUUID()) {
 
 async function novoVeiculo(idVeiculo) {
 
+    overlayAguarde()
+
     const veiculo = await recuperarDado('veiculos', idVeiculo) || {}
     const opcoes = ['Locado', 'Devolvido']
         .map(op => `<option ${veiculo?.status == op ? 'selected' : ''}>${op}</opcoes>`)
@@ -679,9 +681,15 @@ async function novoVeiculo(idVeiculo) {
             </div>`
         }
     ]
-    const funcao = idVeiculo ? `salvarVeiculo('${idVeiculo}')` : 'salvarVeiculo()'
+
     const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao }
+        {
+            texto: 'Salvar',
+            img: 'concluido',
+            funcao: idVeiculo
+                ? `salvarVeiculo('${idVeiculo}')`
+                : 'salvarVeiculo()'
+        }
     ]
 
     if (acesso.permissao == 'adm' && idVeiculo)
@@ -752,7 +760,7 @@ function obterValores(id) {
     return elemento.value;
 }
 
-async function salvarVeiculo(idVeiculo = ID5digitos()) {
+async function salvarVeiculo(idVeiculo = crypto.randomUUID()) {
 
     overlayAguarde()
 
@@ -760,14 +768,12 @@ async function salvarVeiculo(idVeiculo = ID5digitos()) {
         .filter(m => m.id)
         .map(m => ({ id: Number(m.id) }))
 
-
     const veiculo = {
-        id: idVeiculo,
         modelo: obterValores('modelo'),
         placa: obterValores('placa'),
         status: obterValores('status'),
         cartao: obterValores('cartao'),
-        motoristas
+        //motoristas
     }
 
     await enviar(`veiculos/${idVeiculo}`, veiculo)
