@@ -773,7 +773,7 @@ async function salvarVeiculo(idVeiculo = crypto.randomUUID()) {
         placa: obterValores('placa'),
         status: obterValores('status'),
         cartao: obterValores('cartao'),
-        //motoristas
+        motoristas
     }
 
     await enviar(`veiculos/${idVeiculo}`, veiculo)

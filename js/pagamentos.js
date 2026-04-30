@@ -166,7 +166,7 @@ async function criarLinhaPagamento(pagamento) {
         </td>
         <td>${criado || ''}</td>
         <td>${usuarioSetor || ''}</td>
-        <td>${snapshots.cliente || ''}</td>
+        <td>${snapshots?.cliente || ''}</td>
         <td style="text-align: center;">
             <img src="imagens/pesquisar2.png" style="width: 1.5rem; cursor: pointer;" onclick="abrirDetalhesPagamentos('${id}')">
         </td>
