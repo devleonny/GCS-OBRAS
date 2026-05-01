@@ -428,7 +428,6 @@ async function criarLinhasPecas(ocorrencia) {
 }
 
 async function baixarExcelRelatorioOcorrencias() {
-
     const schema = {
         table: "dados_ocorrencias",
         alias: "o",
@@ -437,25 +436,25 @@ async function baixarExcelRelatorioOcorrencias() {
                 type: "LEFT",
                 table: "dados_clientes_ac",
                 alias: "c",
-                on: `c.id = o.unidade`
+                on: "c.id::text = o.unidade::text"
             },
             {
                 type: "LEFT",
                 table: "empresas",
                 alias: "e",
-                on: `e.id = c.empresa`
+                on: "e.id::text = c.empresa::text"
             },
             {
                 type: "LEFT",
                 table: "sistemas",
                 alias: "s",
-                on: `s.id = o.sistema`
+                on: "s.id::text = o.sistema::text"
             },
             {
                 type: "LEFT",
                 table: "prioridades",
                 alias: "p",
-                on: `p.id = o.prioridade`
+                on: "p.id::text = o.prioridade::text"
             }
         ],
         columns: [
@@ -464,39 +463,31 @@ async function baixarExcelRelatorioOcorrencias() {
             {
                 custom: `
                     CASE
-                    WHEN NOT json_valid(o.correcoes) THEN 'Não analisada'
-                    ELSE COALESCE(
-
-                        -- 1) se existir WRuo2 em qualquer item, retorna ele
-                        (
-                        SELECT cr.nome
-                        FROM json_each(o.correcoes) je
-                        LEFT JOIN correcoes cr
-                            ON cr.id = trim(json_extract(je.value, '$.tipoCorrecao'))
-                        WHERE trim(json_extract(je.value, '$.tipoCorrecao')) = 'WRuo2'
-                        LIMIT 1
-                        ),
-
-                        -- 2) senão, retorna a última correção por data/hora (dd/mm/aaaa, hh:mm:ss)
-                        (
-                        SELECT cr.nome
-                        FROM json_each(o.correcoes) je
-                        LEFT JOIN correcoes cr
-                            ON cr.id = trim(json_extract(je.value, '$.tipoCorrecao'))
-                        WHERE json_extract(je.value, '$.data') IS NOT NULL
-                            AND trim(json_extract(je.value, '$.data')) <> ''
-                        ORDER BY datetime(
-                            substr(trim(json_extract(je.value, '$.data')), 7, 4) || '-' ||
-                            substr(trim(json_extract(je.value, '$.data')), 4, 2) || '-' ||
-                            substr(trim(json_extract(je.value, '$.data')), 1, 2) || ' ' ||
-                            substr(trim(json_extract(je.value, '$.data')), 13, 8)
-                        ) DESC
-                        LIMIT 1
-                        ),
-
-                        -- 3) fallback
-                        'Não analisada'
-                    )
+                        WHEN o.correcoes IS NULL
+                             OR trim(o.correcoes::text) = ''
+                             OR jsonb_typeof(o.correcoes::jsonb) <> 'array'
+                        THEN 'Não analisada'
+                        ELSE COALESCE(
+                            (
+                                SELECT cr.nome
+                                FROM jsonb_array_elements(o.correcoes::jsonb) AS je(value)
+                                LEFT JOIN correcoes cr
+                                    ON cr.id::text = (je.value ->> 'tipoCorrecao')
+                                WHERE (je.value ->> 'tipoCorrecao') = 'WRuo2'
+                                LIMIT 1
+                            ),
+                            (
+                                SELECT cr.nome
+                                FROM jsonb_array_elements(o.correcoes::jsonb) AS je(value)
+                                LEFT JOIN correcoes cr
+                                    ON cr.id::text = (je.value ->> 'tipoCorrecao')
+                                WHERE je.value ->> 'data' IS NOT NULL
+                                  AND trim(je.value ->> 'data') <> ''
+                                ORDER BY to_timestamp(je.value ->> 'data', 'DD/MM/YYYY, HH24:MI:SS') DESC
+                                LIMIT 1
+                            ),
+                            'Não analisada'
+                        )
                     END
                 `,
                 as: "Status Correção"
@@ -505,10 +496,10 @@ async function baixarExcelRelatorioOcorrencias() {
                 field: "o.data_registro",
                 as: "Data Registro",
                 type: "date",
-                sourceFormat: 'br-hora'
+                sourceFormat: "br-hora"
             },
             {
-                custom: `json_extract(o.snapshots, '$.dtCorrecao')`,
+                custom: `o.snapshots #>> '{dtCorrecao}'`,
                 as: "Data Agendamento",
                 type: "date",
                 sourceFormat: "br"
@@ -519,20 +510,27 @@ async function baixarExcelRelatorioOcorrencias() {
             { field: "o.descricao", as: "Descrição da Ocorrência" },
             { field: "o.usuario", as: "Solicitante" },
             {
-                jsonArray: {
-                    field: "o.correcoes",
-                    path: "$",
-                    property: "executor"
-                },
-                as: "Executores",
-            },
-            {
-                jsonArray: {
-                    field: "o.correcoes",
-                    path: "$",
-                    property: "tecnico"
-                },
-                as: "Executores",
+                custom: `
+                    (
+                        SELECT string_agg(DISTINCT trim(e.value), ', ')
+                        FROM jsonb_array_elements(
+                            COALESCE(
+                                o.snapshots::jsonb #> '{ultimoExecutor}',
+                                '[]'::jsonb
+                            )
+                        ) AS ue(item)
+                        CROSS JOIN LATERAL (
+                            SELECT ue.item ->> 'executor' AS value
+                            WHERE jsonb_typeof(ue.item -> 'executor') = 'string'
+                            UNION ALL
+                            SELECT value
+                            FROM jsonb_array_elements_text(ue.item -> 'executor')
+                            WHERE jsonb_typeof(ue.item -> 'executor') = 'array'
+                        ) AS e(value)
+                        WHERE e.value IS NOT NULL
+                    )
+                `,
+                as: "Executores"
             },
             { field: "s.nome", as: "Sistema" },
             { field: "p.nome", as: "Prioridade" }
@@ -556,109 +554,87 @@ async function baixarExcelRelatorioOcorrencias() {
     overlayAguarde()
     await baixarRelatorioExcel(schema, 'Ocorrências')
     removerOverlay()
-
 }
 
 async function baixarExcelRelatorioCorrecoes() {
-
     const schema = {
         table: "dados_ocorrencias",
         alias: "o",
-
         joins: [
-            {
-                type: "LEFT",
-                table: "dados_clientes_ac",
-                alias: "c",
-                on: `c.id = o.unidade`
-            },
-            {
-                type: "LEFT",
-                table: "empresas",
-                alias: "e",
-                on: `e.id = c.empresa`
-            },
-            {
-                type: "LEFT",
-                table: "sistemas",
-                alias: "s",
-                on: `s.id = o.sistema`
-            },
-            {
-                type: "LEFT",
-                table: "prioridades",
-                alias: "p",
-                on: `p.id = o.prioridade`
-            },
+            { type: "LEFT", table: "dados_clientes_ac", alias: "c", on: "c.id::text = o.unidade::text" },
+            { type: "LEFT", table: "empresas", alias: "e", on: "e.id::text = c.empresa::text" },
+            { type: "LEFT", table: "sistemas", alias: "s", on: "s.id::text = o.sistema::text" },
+            { type: "LEFT", table: "prioridades", alias: "p", on: "p.id::text = o.prioridade::text" }
         ],
-
         explode: {
             field: "o.correcoes",
-            path: "$",
             alias: "cx",
-            type: "LEFT"
+            type: "LEFT",
+            mode: "object"
         },
-
         columns: [
             { field: "e.nome", as: "Empresa" },
             { field: "o.id", as: "Chamado" },
             {
                 custom: `
                     (
-                    SELECT cr.nome
-                    FROM correcoes cr
-                    WHERE cr.id = trim(json_extract(cx.value, '$.tipoCorrecao'))
-                    LIMIT 1
+                        SELECT cr.nome
+                        FROM correcoes cr
+                        WHERE cr.id::text = NULLIF(cx.value ->> 'tipoCorrecao', '')
+                        LIMIT 1
                     )
                 `,
                 as: "Tipo Correção"
             },
             {
-                custom: `json_extract(cx.value, '$.data')`,
+                custom: `cx.value ->> 'data'`,
                 as: "Data",
                 type: "date",
-                sourceFormat: 'br-hora'
+                sourceFormat: "br-hora"
             },
             {
-                custom: `json_extract(cx.value, '$.dtCorrecao')`,
+                custom: `cx.value ->> 'dtCorrecao'`,
                 as: "Data Correção",
                 type: "date",
-                sourceFormat: 'iso'
+                sourceFormat: "iso"
             },
             { field: "c.nome", as: "Loja" },
             { field: "c.cidade", as: "Cidade" },
             { field: "c.estado", as: "Estado" },
             {
-                custom: `json_extract(cx.value, '$.descricao')`,
+                custom: `cx.value ->> 'descricao'`,
                 as: "Descrição",
-                width: 30,
+                width: 30
             },
             {
-                custom: `json_extract(cx.value, '$.usuario')`,
+                custom: `cx.value ->> 'usuario'`,
                 as: "Solicitante"
             },
             {
-                custom: `json_extract(cx.value, '$.executor')`,
-                as: "Executor"
+                custom: `
+                    (
+                        SELECT string_agg(DISTINCT trim(exec.value), ', ')
+                        FROM jsonb_array_elements_text(
+                            CASE
+                                WHEN jsonb_typeof(cx.value -> 'executor') = 'array'
+                                    THEN cx.value -> 'executor'
+                                ELSE '[]'::jsonb
+                            END
+                        ) AS exec(value)
+                    )
+                `,
+                as: "Executores"
             },
             {
-                custom: `json_extract(cx.value, '$.tecnico')`,
+                custom: `cx.value ->> 'tecnico'`,
                 as: "Técnico (Peças)"
             },
-            {
-                field: 's.nome',
-                as: "Sistema"
-            },
-            {
-                field: 'p.nome',
-                as: "Prioridade"
-            }
+            { field: "s.nome", as: "Sistema" },
+            { field: "p.nome", as: "Prioridade" }
         ],
-
         filters: [
             { custom: "(o.excluido IS NULL OR o.excluido = '')" }
         ],
-
         orderBy: "o.timestamp DESC"
     }
 
@@ -673,7 +649,6 @@ async function baixarExcelRelatorioCorrecoes() {
     overlayAguarde()
     await baixarRelatorioExcel(schema, 'Correções')
     removerOverlay()
-
 }
 
 async function baixarExcelRelatorioPecas() {
@@ -682,21 +657,21 @@ async function baixarExcelRelatorioPecas() {
         table: "dados_ocorrencias",
         alias: "o",
         joins: [
-            { type: "LEFT", table: "dados_clientes_ac", alias: "c", on: "c.id = o.unidade" },
+            { type: "LEFT", table: "dados_clientes_ac", alias: "c", on: "c.id::text = o.unidade::text" },
             { type: "LEFT", table: "empresas", alias: "e", on: "e.id = c.empresa" },
-            
+
             // Substituímos o "explodes" por JOINs Laterais nativos do Postgres para lidar com Arrays.
-            { 
-                type: "INNER", 
-                table: "LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(o.correcoes::jsonb) = 'array' THEN o.correcoes::jsonb ELSE '[]'::jsonb END)", 
-                alias: "cx(value)", 
-                on: "TRUE" 
+            {
+                type: "INNER",
+                table: "LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(o.correcoes::jsonb) = 'array' THEN o.correcoes::jsonb ELSE '[]'::jsonb END)",
+                alias: "cx(value)",
+                on: "TRUE"
             },
-            { 
-                type: "INNER", 
-                table: "LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(cx.value -> 'equipamentos') = 'array' THEN cx.value -> 'equipamentos' ELSE '[]'::jsonb END)", 
-                alias: "eq(value)", 
-                on: "TRUE" 
+            {
+                type: "INNER",
+                table: "LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(cx.value -> 'equipamentos') = 'array' THEN cx.value -> 'equipamentos' ELSE '[]'::jsonb END)",
+                alias: "eq(value)",
+                on: "TRUE"
             }
         ],
 
@@ -720,10 +695,10 @@ async function baixarExcelRelatorioPecas() {
             },
             { custom: "cx.value ->> 'tecnico'", as: "Técnico" },
             { custom: "eq.value ->> 'origem'", as: "Origem" },
-            
+
             // O operador #>> '{caminho,filho}' é a forma do Postgres extrair caminhos profundos
-            { custom: "o.snapshots #>> '{cliente,nome}'", as: "Cliente" }, 
-            
+            { custom: "o.snapshots #>> '{cliente,nome}'", as: "Cliente" },
+
             { custom: "eq.value ->> 'codigo'", as: "Código" },
             { custom: "eq.value ->> 'serie'", as: "Nº Série" },
             { custom: "eq.value ->> 'descricao'", as: "Descrição", width: 35 },
@@ -736,7 +711,7 @@ async function baixarExcelRelatorioPecas() {
         filters: [
             { custom: "(o.excluido IS NULL OR o.excluido = '')" },
             // Como mudamos para jsonb_array_elements, a coluna "key" não existe mais, verificamos o "value"
-            { custom: "eq.value IS NOT NULL" } 
+            { custom: "eq.value IS NOT NULL" }
         ],
 
         orderBy: "o.timestamp DESC"

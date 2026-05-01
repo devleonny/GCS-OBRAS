@@ -7,7 +7,7 @@ const formatacaoTipoCorrecao = (tipoCorrecaoNome) => {
             ? 'na'
             : 'and'
 
-    const label = `<span class="${estilo}">${tipoCorrecaoNome || 'Sem status'}</span>`
+    const label = `<span class="${estilo}">${tipoCorrecaoNome}</span>`
 
     return label
 }
@@ -1399,20 +1399,27 @@ async function auxPendencias() {
 
 async function atalhoAuxiliar(correcao) {
 
-    if (correcao == 'todos')
-        return await telaOcorrencias()
+    let filtros = {}
 
-    controles.ocorrencias.filtros = {
-        'snapshots.ultimaCorrecao': {
-            modo: 'OR',
-            origem: 'dropdown',
-            regras: [
-                { op: '=', value: correcao }
-            ]
+    if (correcao !== 'todos') {
+
+        filtros = {
+            'snapshots.ultimaCorrecao': {
+                modo: 'OR',
+                origem: 'dropdown',
+                regras: [
+                    { op: '=', value: correcao }
+                ]
+            }
         }
     }
 
-    await telaOcorrencias()
+    controles.ocorrencias.filtros = filtros
+
+    if (document.querySelector('.tela-ocorrencias'))
+        await paginacao()
+    else
+        await telaOcorrencias()
 
 }
 
@@ -1903,7 +1910,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
             unidade
         }
     }
-    
+
     const garantia = obter('garantia').checked ? 'S' : 'N'
     const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
     const atualizado = {
