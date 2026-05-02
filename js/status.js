@@ -788,13 +788,13 @@ async function abrirEsquema(id) {
             : ''
 
         const stringAnexos = Object.entries(anexos || {})
-            .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('${id}', '${chave}', '${idAnexo}', this)`))
+            .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('${id}', '${idAnexo}', this)`))
             .join('')
 
         const stringFotos = Object.entries(fotos || {})
             .map(([idFoto, { link }]) => `
             <div style="position: relative;">
-                <img onclick="confirmarExcluirFotoStatus('${id}', '${chave}', '${idFoto}')" src="imagens/cancel.png" style="position: absolute; top: 2px; right: 2px; width: 1.5rem;">
+                <img onclick="confirmarExcluirFotoStatus('${id}', '${idFoto}')" src="imagens/cancel.png" style="position: absolute; top: 2px; right: 2px; width: 1.5rem;">
                 <img class="foto-status" id="${idFoto}" src="${api}/uploads/${link}" onclick="ampliarImagem(this, '${idFoto}')">
             </div>
             `)

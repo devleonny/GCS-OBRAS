@@ -11,7 +11,8 @@ async function modTab(configuracoes) {
         scroll = null,
         nude = null,
         criarLinha,
-        base, colunas = {},
+        base, 
+        colunas = {},
         body = null,
         pag = null
     } = configuracoes || {}

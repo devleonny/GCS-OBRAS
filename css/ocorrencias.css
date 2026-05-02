@@ -130,7 +130,7 @@
     font-size: 14px;
     color: #1f2937;
 
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
     transition: all 0.2s ease;
 }
 
@@ -294,6 +294,13 @@
     gap: 2px;
 }
 
+.linha-orcamentos {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
 .campos {
     display: block;
     width: 100%;
@@ -309,13 +316,13 @@
 }
 
 .campos:hover {
-    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
     transform: translateY(-1px);
 }
 
 .campos:active {
     transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
 .gavetaOpcoes {
@@ -386,7 +393,7 @@
     display: flex;
     align-items: start;
     justify-content: start;
-    flex-direction: column;
+    flex-direction: row;
     gap: 1rem;
 }
 
@@ -424,11 +431,22 @@
     border-bottom: solid 1px #797979;
 }
 
+.bloco-principal {
+    display: flex;
+    flex-direction: column;
+}
+
+.bloco-st {
+    display: none;
+    flex-direction: column;
+}
+
 .detalhes-correcoes-1:last-child {
     border-bottom: none;
 }
 
 .etiqueta-chamado {
+    cursor: pointer;
     width: max-content;
     flex-direction: column;
     justify-content: start;
@@ -558,63 +576,8 @@
     width: 80%;
 }
 
-@media screen and (orientation: landscape),
-screen and (min-aspect-ratio: 13/9) {
 
-    .topo-ocorrencias {
-        flex-direction: row;
-    }
+@media screen and (orientation: portrait) {
 
-    .bloco-linha {
-        width: 100%;
-    }
 
-    .tela-ocorrencias {
-        min-width: 70vw;
-    }
-
-    .tabela-correcoes {
-        width: 50vw;
-    }
-
-    .linha-parte-1 {
-        width: 50%;
-    }
-
-    .linha-parte-2 {
-        width: 50%;
-    }
-
-    .div-linha {
-        flex-direction: row;
-    }
-
-    .painel-superior-cadastros {
-        display: flex;
-    }
-
-    .tabelaRelatorio img {
-        padding: 1vw;
-        width: 3vw;
-    }
-
-    .tabela1 table {
-        width: 100%;
-    }
-
-    .tabela1 td {
-        width: 40vw;
-    }
-
-    .totalBox label {
-        font-size: 2vw;
-    }
-
-    .itemFiltro img {
-        width: 2vw;
-    }
-
-    .img-logo-td {
-        width: 20vw;
-    }
 }
