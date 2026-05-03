@@ -1,10 +1,30 @@
 
-async function modalLPUParceiro(id, chave) {
+async function formularioParceiro(id = crypto.randomUUID()) {
 
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-    const status = orcamento?.status?.historico?.[chave] || {}
+    overlayAguarde()
 
-    const itens = Object.values(status?.itens || orcamento?.dados_composicoes || [])
+    const {
+        itens,
+        departamento,
+        margem,
+        tecnicos,
+        comentario,
+    } = await recuperarDado('parceiros', id)
+
+    const ativo = controles?.ocorrencias?.ativo
+
+    const orcamentos = await pesquisarDB({
+        base: 'dados_orcamentos',
+        filtros: {
+            'dados_orcam.contrato': {
+                op: '=',
+                value: ativo
+            }
+        }
+    })
+
+    const orcamento = orcamentos?.resultados?.[0]
+    const base = Object.values(itens || orcamento?.dados_composicoes || [])
         .filter(i => i?.tipo !== 'VENDA')
 
     const colunas = {
@@ -23,20 +43,16 @@ async function modalLPUParceiro(id, chave) {
         'Desvio': {},
     }
 
-    const fSalvar = chave
-        ? `salvarLpuParceiro('${id}', '${chave}')`
-        : `salvarLpuParceiro('${id}')`
-
     const btnExtras = `
     <div style="display: flex-wrap: wrap; gap: 2px;">
         <button id="btnRem" onclick="atvRemItensEmMassa(this)">Remover Itens</button>
         <button id="btnVer" data-mostrar="S" onclick="verItensAtvRem(this)">Ver Itens Removidos</button>
         <button onclick="itemAdicional()">Adicionar Serviço</button>
-        <button style="background-color: green;" onclick="${fSalvar}">Salvar LPU</button>
+        <button style="background-color: green;" onclick="salvarLpuParceiro('${id}')">Salvar LPU</button>
     </div>
     `
     const tabela = await modTab({
-        base: itens,
+        base,
         btnExtras,
         colunas,
         filtros: { 'removido': { op: '!=', value: 'S' } },
@@ -66,8 +82,8 @@ async function modalLPUParceiro(id, chave) {
                     <div class="requisicao-dados">
                         <button onclick="adicionarTecnicoLPU()">Adicionar Técnico</button>
                         <div id="tecnicos" style="${vertical}; gap: 1px;"></div>
-                        ${stringHtml('Margem Geral (%)', `<input id="margem_lpu" value="${status?.margem || '40'}" oninput="calcularLpuParceiro()">`)}
-                        ${stringHtml('Comentário', `<textarea id="comentario">${status?.comentario || ''}</textarea>`)}
+                        ${stringHtml('Margem Geral (%)', `<input id="margem_lpu" value="${margem || '40'}" oninput="calcularLpuParceiro()">`)}
+                        ${stringHtml('Comentário', `<textarea id="comentario">${comentario || ''}</textarea>`)}
 
 
                         <div style="${horizontal}; gap: 1rem;">
@@ -101,34 +117,34 @@ async function modalLPUParceiro(id, chave) {
 
     popup({ elemento, cor: 'white', titulo: 'LPU Parceiro', autoDestruicao: ['lpu_parceiro'] })
 
-    await paginacao()
+    await paginacao('lpu_parceiro')
 
     // Lançar Tecs;
-    for (const tec of (status.tecnicos || [])) {
+    for (const tec of (tecnicos || [])) {
         await adicionarTecnicoLPU(tec)
     }
 
 }
 
-async function adicionarTecnicoLPU(cod = codCliAleatorio()) {
+async function adicionarTecnicoLPU(usuario) {
+
+    const cod = crypto.randomUUID()
 
     controlesCxOpcoes[cod] = {
-        retornar: ['nome'],
-        base: 'dados_clientes_ac',
+        retornar: ['usuario'],
+        base: 'dados_setores',
         colunas: {
-            'Nome': { chave: 'nome' },
-            'CPF/CNPJ': { chave: 'cnpj' },
-            'Cidade': { chave: 'cidade' },
+            'Nome': { chave: 'usuario' },
+            'Setor': { chave: 'setor' },
+            'Permissão': { chave: 'permissao' },
         }
     }
 
-    const { nome } = await recuperarDado('dados_clientes_ac', cod) || {}
-
     const span = `
-        <span ${cod ? `id="${cod}"` : ''} 
+        <span ${usuario ? `id="${usuario}"` : ''} 
             class="opcoes" 
             name="${cod}" 
-            onclick="cxOpcoes(${cod})">${nome || 'Selecione'}
+            onclick="cxOpcoes('${cod}')">${usuario || 'Selecione'}
         </span>`
 
     const div = document.querySelector('#tecnicos')
@@ -326,11 +342,12 @@ async function salvarAdicional() {
 
 }
 
-async function salvarLpuParceiro(id, chave = ID5digitos()) {
+async function salvarLpuParceiro(id) {
 
     overlayAguarde()
 
-    const orcamento = await recuperarDado('dados_orcamentos', id)
+    const parceiro = await recuperarDado('parceiros', id)
+    const departamento = controles?.ocorrencias?.ativo
 
     const spanTecs = [...document.querySelector('#tecnicos').querySelectorAll('span')]
 
@@ -342,8 +359,8 @@ async function salvarLpuParceiro(id, chave = ID5digitos()) {
         .map(span => Number(span.id))
 
     const dados = {
-        ...orcamento.status.historico[chave],
-        status: 'LPU PARCEIRO',
+        ...parceiro,
+        departamento,
         itens: obterBaseLpuParceiro(),
         totais: controles.lpu_parceiro.totais || {},
         margem: Number(document.getElementById('margem_lpu').value),
@@ -353,10 +370,9 @@ async function salvarLpuParceiro(id, chave = ID5digitos()) {
         tecnicos
     }
 
-    await enviar(`dados_orcamentos/${id}/status/historico/${chave}`, dados)
-
+    await enviar(`parceiros/${id}`, dados)
     removerPopup()
-    await abrirEsquema(id)
+
 }
 
 function calcularLpuParceiro() {
@@ -487,38 +503,11 @@ function upsertItemLpu(item) {
     else base.push(item)
 }
 
-async function gerarPdfParceiro(id, chave, visualizar) {
+async function gerarPdfParceiro(id, visualizar) {
 
     overlayAguarde()
 
-    const { status } = await recuperarDado('dados_orcamentos', id) || {}
-    const lpu = status?.historico?.[chave] || {}
-
-    const nTecs = (
-        await Promise.all(
-            (lpu.tecnicos || []).map(async (cod) => {
-
-                const { nome, cidade, cep, endereco, bairro, cnpj } = await recuperarDado('dados_clientes_ac', cod) || {}
-
-                const dados = Object.entries({
-                    nome,
-                    cidade,
-                    cep,
-                    endereco,
-                    bairro,
-                    cnpj
-                })
-                    .map(([chave, valor]) => {
-                        return `<span><b>${inicialMaiuscula(chave)}:</b> ${valor}</span>`
-                    }).join('')
-
-                return `
-                <div style="${vertical}; gap: 2px; margin-bottom: 1rem;">
-                    ${dados}
-                </div>`
-            })
-        )
-    ).join('\n')
+    const { tecnicos, itens, totais, comentario } = await recuperarDado('parceiros', id) || {}
 
     const colunas = [
         'Código',
@@ -529,7 +518,7 @@ async function gerarPdfParceiro(id, chave, visualizar) {
         'Valor Total'
     ]
 
-    const linhas = Object.entries(lpu?.itens || {})
+    const linhas = Object.entries(itens || {})
         .filter(([, item]) => item.vUnitParc != 0)
         .map(([codigo, item]) => {
 
@@ -624,7 +613,7 @@ async function gerarPdfParceiro(id, chave, visualizar) {
             <img src="https://i.imgur.com/5zohUo8.png" style="width: 10rem;">
 
             <span><b>TÉCNICOS</b></span>
-            ${nTecs}
+            <span style="white-space: wrap;">${tecnicos.join('\n')}</span>
 
             <table class="tabela">
                 <thead>
@@ -638,14 +627,14 @@ async function gerarPdfParceiro(id, chave, visualizar) {
                 <tbody>
                     <tr>
                         <td colspan="5" style="background-color: #eaeaea; text-align: right;">TOTAL</td>
-                        <td>${dinheiro(lpu?.totais?.parceiro)}</td>
+                        <td>${dinheiro(totais?.parceiro)}</td>
                     </tr>
                 </tbody>
             </table>
 
             <div style="${vertical};">
                 <span><b>COMENTÁRIO</b></span>
-                <div style="white-space: pre-wrap;">${lpu?.comentario || ''}</div>
+                <div style="white-space: pre-wrap;">${comentario || ''}</div>
             </div>
         </body>
         </html>`

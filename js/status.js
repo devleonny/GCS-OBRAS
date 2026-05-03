@@ -74,12 +74,15 @@ function marcarStatusPedido() {
 
 }
 
-async function painelAdicionarPedido(id, chave) {
+async function painelAdicionarPedido(id = crypto.randomUUID()) {
 
     overlayAguarde()
 
-    const orcamento = await recuperarDado('dados_orcamentos', id) || {}
-    const { pedido, tipo, empresa, valor, comentario, pagamento } = orcamento?.status?.historico?.[chave] || {}
+    const { pedido, tipo, empresa, valor, comentario, pagamento, departamento } = await recuperarDado('pedidos', id) || {}
+    const depAtivo = controles?.ocorrencias?.ativo
+
+    if (!departamento && !depAtivo)
+        return mensagem({ mensagem: 'Departamento não localizado' })
 
     const opcoes = ['Sem Pedido', 'Aprovado por E-mail', 'Aprovado com número']
         .map(op => `
@@ -101,6 +104,10 @@ async function painelAdicionarPedido(id, chave) {
     }
 
     const linhas = [
+        {
+            texto: 'Departamento',
+            elemento: `<input id="departamento" value="${departamento || depAtivo}" readOnly>`
+        },
         {
             texto: 'Tipo de Pedido',
             elemento: `
@@ -153,29 +160,28 @@ async function painelAdicionarPedido(id, chave) {
     const botoes = [
         {
             texto: 'Salvar',
-            funcao: chave
-                ? `salvarPedido('${id}', '${chave}')`
-                : `salvarPedido('${id}')`,
+            funcao: `salvarPedido('${id}')`,
             img: 'concluido'
         }
     ]
 
-    popup({ linhas, botoes, titulo: chave ? 'Editar Pedido' : 'Novo Pedido' })
+    popup({ linhas, botoes, titulo: 'Novo Pedido' })
     marcarStatusPedido()
 
 }
 
-async function salvarPedido(id, chave = crypto.randomUUID()) {
+async function salvarPedido(id) {
 
     overlayAguarde()
 
+    const departamento = document.getElementById('departamento').value
     const comentario_status = document.getElementById('comentario_status')
     const valor = document.getElementById('valor')
     const tipo = document.getElementById('tipo')
     const pedido = document.getElementById('pedido')
     const empresa = document.getElementById('empresa')
     const pagamento = document.getElementById('pagamento')
-    const autorizadoPor = document.querySelector('[name="autorizadoPor"]').id
+    const autorizado_por = document.querySelector('[name="autorizadoPor"]').id
 
     if (!valor.value || !tipo.value || !pedido.value)
         return popup({ mensagem: 'Existem campos em Branco' })
@@ -184,6 +190,7 @@ async function salvarPedido(id, chave = crypto.randomUUID()) {
         return popup({ mensagem: 'Quem autorizou este pedido?' })
 
     const dados = {
+        departamento,
         data: new Date().toLocaleString(),
         executor: acesso.usuario,
         comentario: comentario_status.value,
@@ -191,15 +198,13 @@ async function salvarPedido(id, chave = crypto.randomUUID()) {
         valor: Number(valor.value),
         tipo: tipo.value,
         pedido: pedido.value,
-        autorizadoPor,
-        empresa: empresa.value,
-        status: 'PEDIDO'
+        autorizado_por,
+        empresa: empresa.value
     }
 
-    await enviar(`dados_orcamentos/${id}/status/historico/${chave}`, dados)
+    await enviar(`pedidos/${id}`, dados)
 
     removerPopup()
-    await abrirEsquema(id)
 
 }
 
@@ -604,7 +609,7 @@ function elementosEspecificos(id, chave, historico, orcamento) {
 
     } else if (status == 'LPU PARCEIRO') {
 
-        funcaoEditar = `modalLPUParceiro('${id}', '${chave}')`
+        funcaoEditar = `formularioParceiro('${id}', '${chave}')`
 
         acumulado.push(`
             ${labelDestaque('Total Parceiro', dinheiro(historico?.totais?.parceiro))}
@@ -765,7 +770,7 @@ async function abrirEsquema(id) {
     const orcamento = await recuperarDado('dados_orcamentos', id)
     const contrato = orcamento?.dados_orcam?.contrato
     const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
-    const { cliente } = orcamento?.snapshots|| {}
+    const { cliente } = orcamento?.snapshots || {}
     const { snapshots } = await recuperarDado('dados_ocorrencias', contrato) || {}
 
     const strAnexos = {
@@ -1286,24 +1291,20 @@ async function salvarAnexo(id, chave, input) {
 
 }
 
-async function apagarStatusHistorico(id, chave) {
+async function apagarGenerico(id, tabela) {
 
     const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `confirmarExclusaoStatus('${id}', '${chave}')` }
+        { texto: 'Confirmar', img: 'concluido', funcao: `confirmarApagarGenerico('${id}','${tabela}')` }
     ]
 
-    popup({ botoes, mensagem: 'Excluir item do histórico?', titulo: 'Excluir Status' })
+    popup({ botoes, mensagem: 'Excluir item?', titulo: 'Excluir Status' })
 }
 
 
-async function confirmarExclusaoStatus(id, chave) {
+async function confirmarApagarGenerico(id, tabela) {
 
     removerPopup()
-    overlayAguarde()
-
-    await deletar(`dados_orcamentos/${id}/status/historico/${chave}`)
-
-    await abrirEsquema(id)
+    await deletar(`${tabela}/${id}`)
 
 }
 
@@ -1322,11 +1323,18 @@ if (typeof window !== 'undefined' && window.process && window.process.type) {
     });
 }
 
-async function envioMaterial(id, chave = ID5digitos()) {
+async function envioMaterial(id = crypto.randomUUID()) {
 
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-
-    const { transportadora, rastreio, previsao, custo_frete, data_saida, volumes, nf, comentario } = orcamento?.status?.historico?.[chave] || {}
+    const {
+        transportadora,
+        rastreio,
+        previsao,
+        custo_frete,
+        data_saida,
+        volumes,
+        nf,
+        comentario
+    } = await recuperarDado('materiais', id) || {}
 
     const oTransportadoras = transportadoras
         .map(o => `<option ${transportadora == o ? 'selected' : ''}>${o}</option>`)
@@ -1372,22 +1380,20 @@ async function envioMaterial(id, chave = ID5digitos()) {
     ]
 
     const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: `registrarEnvioMaterial('${id}', '${chave}')"` }
+        { texto: 'Salvar', img: 'concluido', funcao: `registrarEnvioMaterial('${id}')"` }
     ]
 
     popup({ linhas, botoes, titulo: 'Envio de Material' })
 }
 
-async function registrarEnvioMaterial(id, chave) {
+async function registrarEnvioMaterial(id) {
 
     overlayAguarde()
 
     const campos = ['rastreio', 'transportadora', 'custo_frete', 'nf', 'comentario', 'volumes', 'data_saida', 'previsao']
 
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-    orcamento.status ??= {}
-    orcamento.status.historico ??= {}
-
+    const material = await recuperarDado('materiais', id) || {}
+    const departamento = controles?.ocorrencias?.ativo
     const dadosCampos = campos.reduce((acc, campo) => {
         const info = document.getElementById(campo)
         if (!info)
@@ -1403,17 +1409,17 @@ async function registrarEnvioMaterial(id, chave) {
         return acc
     }, {})
 
-    orcamento.status.historico[chave] = {
-        ...orcamento.status.historico[chave],
-        status: 'MATERIAL ENVIADO',
+    const dados = {
+        ...material,
+        departamento,
         data: new Date().toLocaleString(),
         ...dadosCampos
     }
 
-    await enviar(`dados_orcamentos/${id}/status/historico/${chave}`, orcamento.status.historico[chave])
+    await enviar(`materiais/${id}`, dados)
 
     removerPopup()
-    await abrirEsquema(id)
+
 }
 
 async function irOS(idOrcamento) {

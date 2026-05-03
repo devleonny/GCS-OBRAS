@@ -420,6 +420,25 @@
     width: 90vw;
 }
 
+.painel-filtros {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    
+    overflow: hidden;
+    max-height: 1000px; /* Um valor maior do que o painel alcançará */
+    transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    opacity: 1;
+}
+
+.painel-filtros.visibilidade {
+    max-height: 0;
+    opacity: 0;
+    margin: 0; /* Previne que margens deixem espaços residuais */
+    padding: 0; /* Previne que paddings deixem espaços residuais */
+}
+
 .detalhes-correcoes-1 {
     width: 100%;
     background-color: white;

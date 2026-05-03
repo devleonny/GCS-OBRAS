@@ -486,6 +486,11 @@ function visibilidadeFiltros(painel, mostrar) {
         : ''
 }
 
+function visibilidadePesquisas() {
+    const painel = document.querySelector('.painel-filtros')
+    painel.classList.toggle('visibilidade')
+}
+
 async function telaOcorrencias() {
 
     overlayAguarde()
@@ -495,11 +500,12 @@ async function telaOcorrencias() {
 
     const mapa = criarMapa()
     const btnExtras = `
-    <div style="${vertical};" class="painel-filtros">
+    <div class="painel-filtros">
         <div id="filtros1" class="filtros"></div>
         <div id="filtros2" class="filtros"></div>
     </div>
     ${mapa}
+    <img src="imagens/olho.png" onclick="visibilidadePesquisas()">
     `
     const tabela = await modTab({
         btnExtras,
@@ -546,7 +552,7 @@ async function telaOcorrencias() {
 
     }
 
-    await paginacao()
+    await paginacao('ocorrencias')
 
     removerOverlay()
 
@@ -603,10 +609,6 @@ function criarLinhaOcorrencia(ocorrencia) {
 
     const btnOS = `<div class="botaoImg" onclick="telaOS('${id}')"><span>OS</span></div>`
 
-    const btnORC = (!['cliente', 'técnico'].includes(acesso.permissao) && id.includes('ORC_'))
-        ? botaoImg('pesquisar5', `verDetalhesOrc('${id}')`)
-        : ''
-
     const modeloCampos = (valor1, valor2) => {
         if (!valor2)
             return ''
@@ -651,7 +653,6 @@ function criarLinhaOcorrencia(ocorrencia) {
             ${btnEditar}
             ${btnExclusao}
             ${btnOS}
-            ${btnORC}
 
             <div style="border: solid 1px ${corAssinatura}; border-radius: 3px; padding: 2px; background-color: ${corAssinatura}52;" 
             onclick="coletarAssinatura('${id}')">
@@ -678,9 +679,9 @@ function criarLinhaOcorrencia(ocorrencia) {
     `
 
     const partes = `
-        <div class="div-linha">
+        <div id="${id}" class="div-linha">
 
-            <div id="${id}" class="bloco-linha">
+            <div class="bloco-linha">
 
                 <div class="linha-orcamentos">
                     <img onclick="abrirEsquemaOcorrencias('${id}', true)" src="imagens/home.png">
@@ -693,7 +694,7 @@ function criarLinhaOcorrencia(ocorrencia) {
 
             </div>
 
-            <div class="bloco-linha">
+            <div id="correcoes" class="bloco-linha">
                 ${divCorrecoes.correcoes}
             </div>
         </div>`
@@ -738,7 +739,7 @@ const esquemaBtnStatus = {
         {
             titulo: 'LPU Parceiro',
             cor: '#0062d5',
-            funcao: `modalLPUParceiro()`
+            funcao: `formularioParceiro()`
         }
     ]
 }
@@ -756,10 +757,12 @@ async function abrirEsquemaOcorrencias(chave, principal) {
 
     const blocoPrincipal = bloco.querySelector('.bloco-principal')
     const blocoStatus = bloco.querySelector('.bloco-st')
+    const linhaCorrecoes = bloco.querySelector('#correcoes')
 
     if (blocoPrincipal)
         blocoPrincipal.style.display = principal ? 'flex' : 'none'
-
+    
+    linhaCorrecoes.style.display = principal ? 'flex' : 'none'
     blocoStatus.style.display = principal ? 'none' : 'flex'
 
     if (principal) {
@@ -862,7 +865,7 @@ async function linPedidos(ped) {
         ? `<span 
             class="close" 
             style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
-            onclick="apagarStatusHistorico('${id}')">&times;</span>`
+            onclick="apagarGenerico('${id}', 'pedidos')">&times;</span>`
         : ''
 
     const bloco = `
@@ -882,7 +885,7 @@ async function linPedidos(ped) {
                 ${labelDestaque('Tipo', tipo)}
 
                 <div style="background-color: ${cor};" 
-                    class="contorno-botoes" onclick="">
+                    class="contorno-botoes" onclick="painelAdicionarPedido('${id}')">
                     <img src="imagens/editar4.png" style="width: 1.5rem;">
                     <label>Editar</label>
                 </div>
@@ -951,7 +954,7 @@ async function linRequisicoes(req) {
                 ${labelDestaque('Volumes', volumes)}
 
                 <div style="background-color: ${cor};" 
-                    class="contorno-botoes" onclick="">
+                    class="contorno-botoes" onclick="formularioRequisicao('${id}')">
                     <img src="imagens/editar4.png" style="width: 1.5rem;">
                     <label>Editar</label>
                 </div>
@@ -1092,7 +1095,7 @@ async function linParceiros(par) {
                 ${labelDestaque('Desvio', dinheiro(totais?.desvio))}
 
                 <div style="background-color: ${cor};" 
-                    class="contorno-botoes" onclick="">
+                    class="contorno-botoes" onclick="formularioParceiro('${id}')">
                     <img src="imagens/editar4.png" style="width: 1.5rem;">
                     <label>Editar</label>
                 </div>
@@ -1176,25 +1179,6 @@ async function linMateriais(mat) {
             <td>${bloco}</td>
         </tr>
     `
-
-}
-
-
-async function verDetalhesOrc(idOcorrencia) {
-    overlayAguarde()
-
-    const pesquisa = await pesquisarDB({
-        base: 'dados_orcamentos',
-        filtros: {
-            'dados_orcam.contrato': { op: '=', value: idOcorrencia }
-        }
-    })
-
-    const idOrcamento = pesquisa?.resultados?.[0]?.id
-    if (idOrcamento)
-        await abrirAtalhos(idOrcamento)
-
-    removerOverlay()
 
 }
 
