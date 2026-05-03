@@ -6,6 +6,7 @@ const transportadoras = ['', 'JAMEF', 'CORREIOS', 'RODOVIÁRIA', 'JADLOG', 'AÉR
 const permAtalhos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
 const permAltStatus = ['adm', 'diretoria']
 const statusExclusivosLog = ['ENVIADO', 'ENTREGUE']
+const tabStatus = ['pedidos', 'requisicoes', 'notas', 'parceiros', 'materiais']
 
 const fluxograma = [
     'PROSPECÇÃO',
@@ -761,103 +762,11 @@ async function abrirEsquema(id) {
 
     overlayAguarde()
 
-    if (!id)
-        return popup({ mensagem: 'Ué, não abriu? Tente novamente...', imagem: 'gifs/offline.gif' })
-
     const orcamento = await recuperarDado('dados_orcamentos', id)
     const contrato = orcamento?.dados_orcam?.contrato
-    const oficial = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato
     const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
-    const cliente = await recuperarDado('dados_clientes_ac', omie_cliente) || {}
-    let blocosStatus = {}
-
-    for (const [chave, historico] of Object.entries(orcamento?.status?.historico || {})) {
-
-        const { anexos, fotos } = historico
-
-        const statusCartao = historico.status
-        const cor = coresST?.[statusCartao]?.cor || '#808080'
-
-        blocosStatus[statusCartao] ??= ''
-
-        const excluir = (historico.executor == acesso.usuario || acesso.permissao == 'adm')
-            ? `<span 
-                class="close" 
-                style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
-                onclick="apagarStatusHistorico('${id}', '${chave}')">&times;</span>`
-            : ''
-
-        const stringAnexos = Object.entries(anexos || {})
-            .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('${id}', '${idAnexo}', this)`))
-            .join('')
-
-        const stringFotos = Object.entries(fotos || {})
-            .map(([idFoto, { link }]) => `
-            <div style="position: relative;">
-                <img onclick="confirmarExcluirFotoStatus('${id}', '${idFoto}')" src="imagens/cancel.png" style="position: absolute; top: 2px; right: 2px; width: 1.5rem;">
-                <img class="foto-status" id="${idFoto}" src="${api}/uploads/${link}" onclick="ampliarImagem(this, '${idFoto}')">
-            </div>
-            `)
-            .join('')
-
-        blocosStatus[statusCartao] += `
-            <div class="bloco-status" style="border: 1px solid ${cor};">
-
-                <div class="bloco-status-interno" style="background-color: ${cor}1f;">
-                    ${excluir}
-                    ${labelDestaque('Chamado', oficial)}
-                    ${labelDestaque('Executor', historico.executor)}
-                    ${labelDestaque('Data', historico.data)}
-                    ${labelDestaque('Comentário', historico?.comentario || '')}
-
-                    ${elementosEspecificos(id, chave, historico, orcamento)}
-        
-                    <div class="contorno-botoes" style="background-color: ${cor}">
-                        <img src="imagens/anexo2.png" style="width: 1.5rem;">
-                        <label>Anexo
-                            <input type="file" style="display: none;" onchange="salvarAnexo('${id}', '${chave}', this)" multiple>  
-                        </label>
-                    </div>
-
-                    <div onclick="painelFotos('${id}', '${chave}')" class="contorno-botoes" style="background-color: ${cor}">
-                        <img src="imagens/camera2.png" style="width: 1.5rem;">
-                        <label>Foto</label>
-                    </div>
-
-                    <div name="fotos_${chave}" style="display: flex; flex-wrap: wrap; gap: 3px;">
-                        ${stringFotos}
-                    </div>
-
-                    <div name="anexos_${chave}" style="${vertical};">
-                        ${stringAnexos}
-                    </div>
-
-                </div>
-
-            </div>`
-    }
-
-    const blocos = Object
-        .values(blocosStatus)
-        .map(div => `
-            <div class="cartao-status">
-                ${div}
-            </div>`)
-        .join('')
-
-    const linha1 = `
-        <div style="${horizontal}; gap: 2rem;">
-
-            <div style="${vertical}; gap: 2px;">
-                <label>Status atual</label>
-                ${seletorStatus(orcamento)}
-            </div>
- 
-            <img onclick="mostrarHistoricoStatus('${id}')" src="imagens/historico.png">
-
-            <label style="font-size: 1.5rem;">${oficial} - ${cliente?.nome || '??'}</label>
-
-        </div>`
+    const { cliente } = orcamento?.snapshots|| {}
+    const { snapshots } = await recuperarDado('dados_ocorrencias', contrato) || {}
 
     const strAnexos = {
         levantamentos: '',
@@ -903,23 +812,20 @@ async function abrirEsquema(id) {
     const acumulado = `
         <div style="${vertical}; gap: 10px; padding: 3px;">
 
-            ${linha1}
+            <div style="${horizontal}; gap: 2rem;">
 
-            <hr>
+                <div style="${vertical}; gap: 2px;">
+                    <label>Status atual</label>
+                    ${formatacaoTipoCorrecao(snapshots?.ultimaCorrecao || 'Sem status')}
+                </div>
 
-            <div class="status-botoes">
-                
-                ${botao('Novo Pedido', `painelAdicionarPedido('${id}')`, '#4CAF50')}
-                ${botao('Requisição Materiais', `formularioRequisicao({id:'${id}', modalidade: 'materiais'})`, '#B12425')}
-                ${botao('Requisição Equipamentos', `formularioRequisicao({id:'${id}', modalidade: 'equipamentos'})`, '#B12425')}
-                ${botao('Nova Nota Fiscal', `adicionarNotaAvulsa('${id}')`, '#ff4500')}
-                ${botao('Novo Envio de Material', `envioMaterial('${id}')`, '#b17724')}
-                ${botao('LPU Parceiro', `modalLPUParceiro('${id}')`, '#0062d5')}
+                <label style="font-size: 1.5rem;">${contrato} - ${cliente || '??'}</label>
 
             </div>
+
         </div>
 
-        <div class="container-blocos">
+        <div id="${contrato}" class="container-blocos">
             <div style="${vertical}; witdth: 100%; gap: 0.5rem;">
                 <div class="status-check-ocorrencias">
                     <img src="gifs/loading.gif" style="width: 5rem;">
@@ -928,19 +834,16 @@ async function abrirEsquema(id) {
                 <hr>
                 ${divLevantamentos(true)}
             </div>
-            ${blocos}
+            <div class="bloco-st"></div>
         </div>`
 
-    const janelaAtiva = document.querySelector('.painel-historico')
-    if (janelaAtiva) {
-        removerOverlay()
-        janelaAtiva.innerHTML = acumulado
-    } else {
-        popup({ elemento: `<div class="painel-historico">${acumulado}</div>`, titulo: 'Histórico do Orçamento' })
-    }
+    popup({ elemento: `<div class="painel-historico">${acumulado}</div>`, titulo: 'Histórico do Orçamento' })
+
+    // Carregar tabelas adicionais;
+    abrirEsquemaOcorrencias(contrato)
 
     // Checklist Chamado;
-    await checklistChamado(id)
+    checklistChamado(id)
 
 }
 

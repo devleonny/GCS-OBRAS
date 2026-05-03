@@ -705,34 +705,43 @@ function criarLinhaOcorrencia(ocorrencia) {
 
 }
 
-const esquemaBtnStatus = [
-    {
-        titulo: 'Novo Pedido',
-        cor: '#4CAF50',
-        funcao: `painelAdicionarPedido()`
-    },
-    {
-        titulo: 'Requisição de Materiais',
-        cor: '#B12425',
-        funcao: `formularioRequisicao({id:'', modalidade: 'materiais'})`
-    },
-    {
-        titulo: 'Requisição de Equipamentos',
-        cor: '#B12425',
-        funcao: `formularioRequisicao({id:'', modalidade: 'equipamentos'})`
-    },
-    {
-        titulo: 'Envio de Material',
-        cor: '#b17724',
-        funcao: `envioMaterial()`
-    },
-    {
-        titulo: 'LPU Parceiro',
-        cor: '#0062d5',
-        funcao: `modalLPUParceiro()`
-    }
-]
-
+const esquemaBtnStatus = {
+    pedidos: [
+        {
+            titulo: 'Novo Pedido',
+            cor: '#4CAF50',
+            funcao: `painelAdicionarPedido()`
+        }
+    ],
+    requisicoes: [
+        {
+            titulo: 'Requisição de Materiais',
+            cor: '#B12425',
+            funcao: `formularioRequisicao({id:'', modalidade: 'materiais'})`
+        }
+    ],
+    notas: [
+        {
+            titulo: 'Notas',
+            cor: '#ff4500',
+            funcao: `adicionarNotaAvulsa()`
+        }
+    ],
+    materiais: [
+        {
+            titulo: 'Envio de Material',
+            cor: '#b17724',
+            funcao: `envioMaterial()`
+        }
+    ],
+    parceiros: [
+        {
+            titulo: 'LPU Parceiro',
+            cor: '#0062d5',
+            funcao: `modalLPUParceiro()`
+        }
+    ]
+}
 
 async function abrirEsquemaOcorrencias(chave, principal) {
 
@@ -742,37 +751,49 @@ async function abrirEsquemaOcorrencias(chave, principal) {
 
     const bloco = document.getElementById(id)
 
+    if (!bloco)
+        return
+
     const blocoPrincipal = bloco.querySelector('.bloco-principal')
     const blocoStatus = bloco.querySelector('.bloco-st')
 
-    blocoPrincipal.style.display = principal ? 'flex' : 'none'
+    if (blocoPrincipal)
+        blocoPrincipal.style.display = principal ? 'flex' : 'none'
+
     blocoStatus.style.display = principal ? 'none' : 'flex'
 
-    const botoes = esquemaBtnStatus
-        .map(({ titulo, cor, funcao }) => {
+    if (principal) {
+        blocoStatus.innerHTML = ''
+        return
+    }
+
+    const slots = tabStatus
+        .map(c => {
+
+            const botoes = esquemaBtnStatus[c]
+                .map(({ titulo, cor, funcao }) => {
+
+                    return `
+                        <button
+                        style="background-color: ${cor};" 
+                        onclick="${funcao}">
+                            ${titulo}
+                        </button>`
+                })
+                .join('')
 
             return `
-            <div 
-            class="contorno-botoes" 
-            style="background-color: ${cor}; border: solid 1px ${cor};" 
-            onclick="${funcao}">
-                <label style="white-space: nowrap;">${titulo}</label>
+            <div style="${vertical}; gap: 2px;">
+                ${botoes}
+                <div id="${c}"></div>
             </div>
             `
         })
         .join('')
 
-    const slots = ['pedidos', 'requisicoes', 'parceiros']
-        .map(c => `<div id="${c}"><img src="gifs/loading.gif" style="width: 5rem;"></div>`)
-        .join('')
-
     const elemento = `
     <div class="bloco-linha">
-
-        <div class="status-botoes">
-            ${botoes}
-        </div>
-
+        <hr>
         <div style="display: flex; justify-content: start; align-items: start; gap: 5px; width: 100%;">
             ${slots}
         </div>
@@ -786,31 +807,38 @@ async function abrirEsquemaOcorrencias(chave, principal) {
 }
 
 async function carregarTabStatus(id, orc) {
-
-    const tabs = ['pedidos', 'requisicoes', 'parceiros']
     const local = document.getElementById(id)
 
-    for (const t of tabs) {
+    // Verificar se existe outra tela de status ativa;
+    const ativo = controles?.ocorrencias?.ativo
 
+    if (ativo && ativo !== id)
+        await abrirEsquemaOcorrencias(ativo, true)
+
+    controles.ocorrencias.ativo = id
+
+    // Mapeia o array tabStatus para um array de Promises
+    const promessasTabs = tabStatus.map(async (t) => {
         const tabela = await modTab({
             base: t,
             body: `body${t}`,
-            scroll: true,
-            nude: true,
             pag: t,
             filtros: {
-                departamento: { op: '=', value: orc ? orc : id }
+                departamento: { op: 'includes', value: orc ? orc : id }
             },
             criarLinha: `lin${inicialMaiuscula(t)}`
-        })
+        });
 
         const bloco = local.querySelector(`#${t}`)
-        bloco.innerHTML = tabela
+        if (bloco) {
+            bloco.innerHTML = tabela
+        }
 
         await paginacao(t)
+    })
 
-    }
-
+    // Aguarda todas as abas carregarem e renderizarem simultaneamente
+    await Promise.all(promessasTabs)
 }
 
 async function linPedidos(ped) {
@@ -973,6 +1001,61 @@ async function linRequisicoes(req) {
 
 }
 
+async function linNotas(nota) {
+
+    const {
+        id,
+        data,
+        comentario,
+        executor,
+        n_nota,
+        total,
+        categoria,
+        d_emi_inicial
+    } = nota
+
+    const cor = '#ff4500'
+
+    const excluir = (executor == acesso.usuario || acesso.permissao == 'adm')
+        ? `<span 
+            class="close" 
+            style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
+            onclick="apagarStatusHistorico('${id}')">&times;</span>`
+        : ''
+
+    const bloco = `
+        <div class="bloco-status" style="border: 1px solid ${cor};">
+
+            <div class="bloco-status-interno" style="background-color: ${cor}1f;">
+
+                ${excluir}
+                ${labelDestaque('Executor', executor)}
+                ${labelDestaque('Data', data)}
+                ${labelDestaque('Comentário', comentario)}
+                ${labelDestaque('Nota', n_nota)}
+                ${labelDestaque('Tipo', categoria)}
+                ${labelDestaque('Valor', dinheiro(total))}
+                ${labelDestaque('Data Emissão', d_emi_inicial)}
+
+                <div style="background-color: ${cor};" 
+                    class="contorno-botoes" onclick="">
+                    <img src="imagens/editar4.png" style="width: 1.5rem;">
+                    <label>Editar</label>
+                </div>
+
+            </div>
+
+        </div>
+    `
+
+    return `
+        <tr>
+            <td>${bloco}</td>
+        </tr>
+    `
+
+}
+
 async function linParceiros(par) {
 
     const {
@@ -1026,6 +1109,61 @@ async function linParceiros(par) {
                     onclick="gerarPdfParceiro('${id}')">
                     <img src="imagens/pdfw.png" style="width: 1.5rem;">
                     <label>Baixar PDF</label>
+                </div>
+
+            </div>
+
+        </div>
+    `
+
+    return `
+        <tr>
+            <td>${bloco}</td>
+        </tr>
+    `
+
+}
+
+async function linMateriais(mat) {
+
+    const {
+        id,
+        data,
+        comentario,
+        executor,
+        rastreio,
+        transportadora,
+        data_saida,
+        previsao
+    } = mat
+
+    const cor = '#b17724'
+
+    const excluir = (executor == acesso.usuario || acesso.permissao == 'adm')
+        ? `<span 
+            class="close" 
+            style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
+            onclick="apagarStatusHistorico('${id}')">&times;</span>`
+        : ''
+
+    const bloco = `
+        <div class="bloco-status" style="border: 1px solid ${cor};">
+
+            <div class="bloco-status-interno" style="background-color: ${cor}1f;">
+
+                ${excluir}
+                ${labelDestaque('Executor', executor)}
+                ${labelDestaque('Data', data)}
+                ${labelDestaque('Comentário', comentario)}
+                ${labelDestaque('Rastreio', rastreio)}
+                ${labelDestaque('Transportadora', transportadora)}
+                ${labelDestaque('Data de Saída', conversorData(data_saida))}
+                ${labelDestaque('Data de Entrega', conversorData(previsao))}
+
+                <div style="background-color: ${cor};" 
+                    class="contorno-botoes" onclick="">
+                    <img src="imagens/editar4.png" style="width: 1.5rem;">
+                    <label>Editar</label>
                 </div>
 
             </div>

@@ -1642,7 +1642,6 @@ input[type=range]::-moz-range-thumb {
     border-radius: 3px;
     font-size: 0.7rem;
     height: max-content;
-    width: 90%;
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
     overflow-y: auto;
     flex-shrink: 0;
@@ -1897,13 +1896,11 @@ input[type="file"]#input-anexos:hover {
 }
 
 .painel-historico {
-    max-height: 70vh;
-    height: 80vh;
+    max-height: 80vh;
     overflow: auto;
     display: flex;
     flex-direction: column;
     gap: 15px;
-    width: 70vw;
     padding: 1rem;
 }
 

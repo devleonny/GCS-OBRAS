@@ -6,6 +6,7 @@
 }
 
 .container-blocos {
+    gap: 0.5rem;
     display: flex;
     width: max-content;
 }
