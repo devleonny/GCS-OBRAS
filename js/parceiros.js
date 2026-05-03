@@ -356,7 +356,7 @@ async function salvarLpuParceiro(id) {
 
     const tecnicos = spanTecs
         .filter(span => span.id)
-        .map(span => Number(span.id))
+        .map(span => span.id)
 
     const dados = {
         ...parceiro,
@@ -509,6 +509,10 @@ async function gerarPdfParceiro(id, visualizar) {
 
     const { tecnicos, itens, totais, comentario } = await recuperarDado('parceiros', id) || {}
 
+    const listaTecnicos = tecnicos
+        .map(t => `<span>${t}</span>`)
+        .join('')
+
     const colunas = [
         'Código',
         'Descrição',
@@ -612,9 +616,6 @@ async function gerarPdfParceiro(id, visualizar) {
         <body>
             <img src="https://i.imgur.com/5zohUo8.png" style="width: 10rem;">
 
-            <span><b>TÉCNICOS</b></span>
-            <span style="white-space: wrap;">${tecnicos.join('\n')}</span>
-
             <table class="tabela">
                 <thead>
                     ${colunas.map(c => `<th>${c}</th>`).join('')}
@@ -633,6 +634,8 @@ async function gerarPdfParceiro(id, visualizar) {
             </table>
 
             <div style="${vertical};">
+                <span><b>TÉCNICOS</b></span>
+                ${listaTecnicos}
                 <span><b>COMENTÁRIO</b></span>
                 <div style="white-space: pre-wrap;">${comentario || ''}</div>
             </div>
