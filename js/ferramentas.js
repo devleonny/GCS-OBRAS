@@ -148,10 +148,6 @@ async function f2() {
             `
         },
         {
-            texto: 'Notas',
-            elemento: `<button onclick="lembreteNotas()">Ver Notas Canceladas/Devolvidas</button>`
-        },
-        {
             texto: 'Criar uma LPU',
             elemento: `<button onclick="formularioLPU()">Criar</button>`
         }

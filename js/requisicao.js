@@ -116,7 +116,7 @@ async function formularioRequisicao(id) {
         'Informações do Item': { chave: 'descricao' },
         'Tipo': { chave: 'tipo' },
         'Origem': { chave: 'origem' },
-        'Quantidade': {},
+        'Quantidade Enviar': {},
         'Quantidade Orçada': {},
         'Valor Unit Bruto': {},
         'Valor Total Bruto': {},
@@ -134,6 +134,7 @@ async function formularioRequisicao(id) {
     const tabela = await modTab({
         base,
         pag: 'requisicao',
+        id,
         funcaoAdicional: ['calcularRequisicao'],
         body: 'bodyRequisicao',
         colunas,
@@ -240,15 +241,12 @@ async function criarLinhaRequisicao(item) {
                 </option>
             </td>
             <td>
-                <div style="${vertical}; gap: 2px;">
-                    <label>Quantidade a enviar</label>
-                    <input 
-                        class="requisicao-campo" 
-                        type="number" name="qtde" 
-                        oninput="calcularRequisicao()" 
-                        min="0" 
-                        value="${qtde_enviar || ''}">
-                </div>
+                <input 
+                    class="requisicao-campo" 
+                    type="number" name="qtde" 
+                    oninput="calcularRequisicao()" 
+                    min="0" 
+                    value="${qtde_enviar || ''}">
             </td>
             <td style="text-align: center;" name="qtde_orcamento">
                 ${qtde || 0}
@@ -376,21 +374,25 @@ async function salvarAdicionais(codigo) {
     await paginacao()
 }
 
-async function calcularRequisicao() {   
+async function calcularRequisicao() {
 
     // Pesquisa de outras requisições e salvamento em memória para evitar buscas repetitivas;
     const ativo = controles?.ocorrencias?.ativo
-    const requisicoes = controles?.requisicao?.pesquisa 
-        ? controles.requisicao.pesquisa 
+    const requisicoes = controles?.requisicao?.pesquisa
+        ? controles.requisicao.pesquisa
         : await pesquisarDB({
-        base: 'requisicoes',
-        filtros:{
-            departamento: {
-                op: 'includes',
-                value: ativo
+            base: 'requisicoes',
+            filtros: {
+                id: {
+                    op: '!=',
+                    value: controles.requisicao.id
+                },
+                departamento: {
+                    op: 'includes',
+                    value: ativo
+                }
             }
-        }
-    }).resultados
+        })
 
     controles.requisicao.pesquisa = requisicoes
 
@@ -490,18 +492,18 @@ async function gerarPdfRequisicao(id, visualizar) {
 
     overlayAguarde()
 
-    const { 
-        requisicao, 
-        volumes, 
-        data, 
-        empresa, 
-        executor,  
-        prazo, 
-        recebedor, 
-        transportadora, 
-        comentario, 
+    const {
+        requisicao,
+        volumes,
+        data,
+        empresa,
+        executor,
+        prazo,
+        recebedor,
+        transportadora,
+        comentario,
         pedido,
-        total_requisicao 
+        total_requisicao
     } = await recuperarDado('requisicoes', id) || {}
 
     const ativo = controles?.ocorrencias?.ativo

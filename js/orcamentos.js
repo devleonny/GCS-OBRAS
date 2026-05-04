@@ -45,7 +45,6 @@ async function telaOrcamentos() {
 
     const colunas = {
         'Última alteração': { chave: 'lpu_ativa' },
-        'Status': { chave: 'status.atual' },
         'Pedido': { chave: 'snapshots.pedidos' },
         'Notas': { chave: 'snapshots.notas' },
         'Tags': { chave: 'snapshots.tags.*.nome' },
@@ -275,10 +274,6 @@ async function criarLinhaOrcamento(orcamento) {
             ${contrato !== numOficial ? `<div style="${horizontal}; justify-content: end; width: 100%; color: #5f5f5f;"><small>${contrato}</small></div>` : ''}
         </div>`
 
-        const opcoesPda = abas
-            .map(aba => `<option ${orcamento.aba == aba ? 'selected' : ''}>${aba}</option>`)
-            .join('')
-
         // Tags;        
         const listaTags = Object.values(snapshots?.tags || {})
             .map(tag => modeloTag(tag, id))
@@ -287,13 +282,14 @@ async function criarLinhaOrcamento(orcamento) {
         const data = new Date(snapshots?.tsUltimoStatus).toLocaleString()
 
         const celulas = `
-        <td style="white-space: pre-wrap;"><b>${orcamento.lpu_ativa}</b>\n${data}</td>
         <td>
-            <div style="${vertical}; gap: 5px;">
-                ${seletorStatus(orcamento)}
-                <div style="${horizontal}; width: 100%; justify-content: end; gap: 5px;">
-                    <span>Dep</span>
+            <div style="${vertical}">
+                <span><b>${orcamento.lpu_ativa}</b></span>
+                <span>${data}</span>
+                <br>
+                <div style="${horizontal}; width: 100%; justify-content: start; gap: 5px;">
                     <img src="imagens/${departamentoExistente ? 'concluido' : 'cancel'}.png" style="width: 1.5rem;">
+                    <span>Dep</span>
                 </div>
             </div>
         </td>
@@ -348,43 +344,6 @@ async function criarLinhaOrcamento(orcamento) {
 
     }
 
-}
-
-function seletorStatus(orcamento) {
-
-    const { id, status, snapshots } = orcamento || {}
-
-    const st = status?.atual || ''
-
-    // Comentários nos status;
-    const info = Object
-        .values(status?.historicoStatus || {})
-        .filter(s => (s.info && s.info !== ''))
-
-    const opcoes = ['', ...fluxograma]
-        .sort((a, b) => a.localeCompare(b))
-        .map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`)
-        .join('')
-
-    const autorizado =
-        snapshots?.responsavel?.includes(acesso.usuario)
-        || permAltStatus.includes(acesso?.permissao)
-        || acesso?.setor == 'LOGÍSTICA'
-
-    const campo = autorizado
-        ? `
-            <select name="status" class="opcoesSelect" onchange="alterarStatus('${id}', this)">
-                ${opcoes}
-            </select>`
-        : `<span>${st}</span>`
-
-    const elemento = `
-        <div style="${horizontal}; gap: 2px;">
-            <img onclick="mostrarInfo('${id}')" src="imagens/observacao${info.length > 0 ? '' : '_off'}.png">
-            ${campo}
-        </div>`
-
-    return elemento
 }
 
 function verificarPrioridade(orcamento) {

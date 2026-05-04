@@ -706,44 +706,6 @@ function criarLinhaOcorrencia(ocorrencia) {
 
 }
 
-const esquemaBtnStatus = {
-    pedidos: [
-        {
-            titulo: 'Novo Pedido',
-            cor: '#4CAF50',
-            funcao: `painelAdicionarPedido()`
-        }
-    ],
-    requisicoes: [
-        {
-            titulo: 'Requisição de Materiais',
-            cor: '#B12425',
-            funcao: `formularioRequisicao({id:'', modalidade: 'materiais'})`
-        }
-    ],
-    notas: [
-        {
-            titulo: 'Notas',
-            cor: '#ff4500',
-            funcao: `adicionarNotaAvulsa()`
-        }
-    ],
-    materiais: [
-        {
-            titulo: 'Envio de Material',
-            cor: '#b17724',
-            funcao: `envioMaterial()`
-        }
-    ],
-    parceiros: [
-        {
-            titulo: 'LPU Parceiro',
-            cor: '#0062d5',
-            funcao: `formularioParceiro()`
-        }
-    ]
-}
-
 async function abrirEsquemaOcorrencias(chave, principal) {
 
     const [id, orc] = chave.includes('.')
@@ -761,8 +723,10 @@ async function abrirEsquemaOcorrencias(chave, principal) {
 
     if (blocoPrincipal)
         blocoPrincipal.style.display = principal ? 'flex' : 'none'
-    
-    linhaCorrecoes.style.display = principal ? 'flex' : 'none'
+
+    if (linhaCorrecoes)
+        linhaCorrecoes.style.display = principal ? 'flex' : 'none'
+
     blocoStatus.style.display = principal ? 'none' : 'flex'
 
     if (principal) {
@@ -770,7 +734,7 @@ async function abrirEsquemaOcorrencias(chave, principal) {
         return
     }
 
-    const slots = tabStatus
+    const slots = Object.keys(esquemaBtnStatus)
         .map(c => {
 
             const botoes = esquemaBtnStatus[c]
@@ -795,13 +759,9 @@ async function abrirEsquemaOcorrencias(chave, principal) {
         .join('')
 
     const elemento = `
-    <div class="bloco-linha">
-        <hr>
-        <div style="display: flex; justify-content: start; align-items: start; gap: 5px; width: 100%;">
+        <div class="barra-status">
             ${slots}
         </div>
-    
-    </div>
     `
 
     blocoStatus.innerHTML = elemento
@@ -820,9 +780,11 @@ async function carregarTabStatus(id, orc) {
 
     controles.ocorrencias.ativo = id
 
-    // Mapeia o array tabStatus para um array de Promises
-    const promessasTabs = tabStatus.map(async (t) => {
-        const tabela = await modTab({
+    // Mapeia o array esquemaBtnStatus para um array de Promises
+    const promessasTabs = Object.keys(esquemaBtnStatus).map(async (t) => {
+
+        // Padrão;
+        const dados = {
             base: t,
             body: `body${t}`,
             pag: t,
@@ -830,7 +792,20 @@ async function carregarTabStatus(id, orc) {
                 departamento: { op: 'includes', value: orc ? orc : id }
             },
             criarLinha: `lin${inicialMaiuscula(t)}`
-        });
+        }
+
+        if (t == 'levantamentos' || t == 'finalizado') {
+            dados.base = 'anexos'
+            dados.criarLinha = 'linAnexos'
+            dados.filtros.origem = {
+                op: '=',
+                value: t == 'levantamentos'
+                    ? 'LEVANTAMENTO'
+                    : 'FINALIZADO'
+            }
+        }
+
+        const tabela = await modTab(dados)
 
         const bloco = local.querySelector(`#${t}`)
         if (bloco) {
@@ -915,16 +890,18 @@ async function linRequisicoes(req) {
         total_requisicao,
         volumes,
         transportadora,
-        pedido
+        snapshots
     } = req
 
     const cor = '#B12425'
+
+    const { pedido } = await recuperarDado('pedidos', req?.pedido) || {}
 
     const excluir = (executor == acesso.usuario || acesso.permissao == 'adm')
         ? `<span 
             class="close" 
             style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
-            onclick="apagarStatusHistorico('${id}')">&times;</span>`
+            onclick="apagarGenerico('${id}', 'requisicoes')">&times;</span>`
         : ''
 
     const stringAnexos = Object.entries(anexos || {})
@@ -1023,7 +1000,7 @@ async function linNotas(nota) {
         ? `<span 
             class="close" 
             style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
-            onclick="apagarStatusHistorico('${id}')">&times;</span>`
+            onclick="apagarGenerico('${id}', 'notas')">&times;</span>`
         : ''
 
     const bloco = `
@@ -1032,7 +1009,7 @@ async function linNotas(nota) {
             <div class="bloco-status-interno" style="background-color: ${cor}1f;">
 
                 ${excluir}
-                ${labelDestaque('Executor', executor)}
+                ${labelDestaque('Executor', executor || 'Integração')}
                 ${labelDestaque('Data', data)}
                 ${labelDestaque('Comentário', comentario)}
                 ${labelDestaque('Nota', n_nota)}
@@ -1041,7 +1018,7 @@ async function linNotas(nota) {
                 ${labelDestaque('Data Emissão', d_emi_inicial)}
 
                 <div style="background-color: ${cor};" 
-                    class="contorno-botoes" onclick="">
+                    class="contorno-botoes" onclick="adicionarNotaAvulsa('${id}')">
                     <img src="imagens/editar4.png" style="width: 1.5rem;">
                     <label>Editar</label>
                 </div>
@@ -1078,7 +1055,7 @@ async function linParceiros(par) {
         ? `<span 
             class="close" 
             style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
-            onclick="apagarStatusHistorico('${id}')">&times;</span>`
+            onclick="apagarGenerico('${id}', 'parceiros')">&times;</span>`
         : ''
 
     const bloco = `
@@ -1146,7 +1123,7 @@ async function linMateriais(mat) {
         ? `<span 
             class="close" 
             style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
-            onclick="apagarStatusHistorico('${id}')">&times;</span>`
+            onclick="apagarGenerico('${id}', 'materiais')">&times;</span>`
         : ''
 
     const bloco = `
@@ -1164,7 +1141,7 @@ async function linMateriais(mat) {
                 ${labelDestaque('Data de Entrega', conversorData(previsao))}
 
                 <div style="background-color: ${cor};" 
-                    class="contorno-botoes" onclick="">
+                    class="contorno-botoes" onclick="envioMaterial('${id}')">
                     <img src="imagens/editar4.png" style="width: 1.5rem;">
                     <label>Editar</label>
                 </div>
@@ -1178,6 +1155,25 @@ async function linMateriais(mat) {
         <tr>
             <td>${bloco}</td>
         </tr>
+    `
+
+}
+
+async function linAnexos(doc) {
+
+    const {
+        id,
+        link,
+        formato,
+        nome
+    } = doc || {}
+
+    return `
+    <tr>
+        <td>
+            ${criarAnexoVisual(nome, link, `confirmarExclusaoDocAdicional('${id}')`)}
+        </td>
+    </tr>
     `
 
 }

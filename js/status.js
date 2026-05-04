@@ -6,7 +6,57 @@ const transportadoras = ['', 'JAMEF', 'CORREIOS', 'RODOVIÁRIA', 'JADLOG', 'AÉR
 const permAtalhos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
 const permAltStatus = ['adm', 'diretoria']
 const statusExclusivosLog = ['ENVIADO', 'ENTREGUE']
-const tabStatus = ['pedidos', 'requisicoes', 'notas', 'parceiros', 'materiais']
+const esquemaBtnStatus = {
+    pedidos: [
+        {
+            titulo: 'Novo Pedido',
+            cor: '#4CAF50',
+            funcao: `painelAdicionarPedido()`
+        }
+    ],
+    requisicoes: [
+        {
+            titulo: 'Requisição de Materiais',
+            cor: '#B12425',
+            funcao: `formularioRequisicao()`
+        }
+    ],
+    notas: [
+        {
+            titulo: 'Nota Avulsa',
+            cor: '#ff4500',
+            funcao: `adicionarNotaAvulsa()`
+        }
+    ],
+    materiais: [
+        {
+            titulo: 'Envio de Material',
+            cor: '#b17724',
+            funcao: `envioMaterial()`
+        }
+    ],
+    parceiros: [
+        {
+            titulo: 'LPU Parceiro',
+            cor: '#0062d5',
+            funcao: `formularioParceiro()`
+        }
+    ],
+    levantamentos: [
+        {
+            titulo: 'Levantamentos',
+            cor: '#222',
+            funcao: `formDocAdicional('LEVANTAMENTO')`
+        }
+    ],
+    finalizado: [
+        {
+            titulo: 'Finalizações',
+            cor: '#222',
+            funcao: `formDocAdicional('FINALIZADO')`
+        }
+    ]
+}
 
 const fluxograma = [
     'PROSPECÇÃO',
@@ -208,12 +258,20 @@ async function salvarPedido(id) {
 
 }
 
-function adicionarNotaAvulsa(id) {
+async function adicionarNotaAvulsa(id) {
+
+    overlayAguarde()
+
+    const {
+        n_nota,
+        total,
+        parcelas,
+    } = await recuperarDado('notas', id) || {}
 
     const linhas = [
         {
             texto: 'Número da nota',
-            elemento: `<input id="nf" class="inputParcelas">`
+            elemento: `<input id="nf" class="inputParcelas" value="${n_nota || ''}">`
         },
         {
             texto: 'Tipo',
@@ -221,7 +279,7 @@ function adicionarNotaAvulsa(id) {
         },
         {
             texto: 'Valor',
-            elemento: `R$ <input type="number" id="valor" placeholder="0,00" class="inputParcelas">`
+            elemento: `<div>R$ <input type="number" id="valor" placeholder="0,00" class="inputParcelas" value="${total || ''}"></div>`
         },
         {
             texto: `<div style="${horizontal}; gap: 1rem;"><span>Parcelas</span> <img src="imagens/baixar.png" onclick="maisParcela()"></div>`,
@@ -253,37 +311,34 @@ function maisParcela() {
         .insertAdjacentHTML('beforeend', htmlParcela)
 }
 
-async function salvarNotaAvulsa(id) {
+async function salvarNotaAvulsa(id = crypto.randomUUID()) {
 
     overlayAguarde()
+
+    const contrato = controles.ocorrencias.ativo
 
     const valor = (id) => {
         return document.getElementById(id).value
     }
 
-    let nota = {
-        status: 'FATURADO',
+    const parcelas = [...document.querySelectorAll('[name="parcela"]')]
+        .map((input, i) => {
+            return { nParcela: (i + 1), nValor: Number(input.value), dDtVenc: new Date(input.value).toLocaleDateString('pt-BR') }
+        })
+
+    const nota = {
         executor: acesso.usuario,
-        data: new Date().toLocaleDateString('pt-BR'),
-        nf: valor('nf'),
-        tipo: valor('tipo'),
-        valor: Number(valor('valor')),
-        parcelas: []
+        d_emi_inicial: new Date().toLocaleDateString('pt-BR'),
+        n_nota: valor('nf'),
+        categoria: valor('tipo'),
+        total: Number(valor('valor')),
+        parcelas,
+        departamento: [contrato]
     }
 
-    const parcelas = document.querySelectorAll('[name="parcela"]')
-
-    parcelas.forEach((div, i) => {
-        const inputs = div.querySelectorAll('input')
-        nota.parcelas.push({ nParcela: (i + 1), nValor: Number(inputs[0].value), dDtVenc: new Date(inputs[1].value).toLocaleDateString('pt-BR') })
-    })
-
-    const idStatus = ID5digitos()
-
-    await enviar(`dados_orcamentos/${id}/status/historico/${idStatus}`, nota)
+    await enviar(`notas/${id}`, nota)
 
     removerPopup()
-    await abrirEsquema(id)
 
 }
 
@@ -320,7 +375,6 @@ async function abrirAtalhos(id, idMaster) {
             modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`),
             modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`),
             modeloBotoes('LG', 'OS em PDF', `carregarOS('${id}')`),
-            modeloBotoes('alerta', 'Definir Prioridade', `formularioOrcAprovado('${id}')`)
         )
 
         if (idMaster)
@@ -337,9 +391,6 @@ async function abrirAtalhos(id, idMaster) {
         )
 
     }
-
-    if (orcamento?.status?.atual == 'PROSPECÇÃO')
-        botoesDisponiveis.push(modeloBotoes('prospeccao', 'Prospecção', `confirmarProspeccao('${id}')`))
 
     const modAlerta = (texto) => `
         <div class="alerta-pendencia" onclick="irORC('${id}')">
@@ -563,7 +614,7 @@ function divPorcentagem(porcentagem) {
     const valor = Math.max(0, Math.min(100, Number(porcentagem) || 0))
 
     return `
-        <div style="z-index: 0; position: relative; border: 1px solid #666666; width: 100%; height: 16px; background: #eee; border-radius: 8px; overflow: hidden;">
+        <div class="div-porcentagem">
             <div style="width: ${valor}%; height: 100%; background: ${valor >= 70 ? "#4caf50" : valor >= 40 ? "#ffc107" : "#f44336"};"></div>
             <label style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7rem; color: #000;">
                 ${valor}%
@@ -572,194 +623,80 @@ function divPorcentagem(porcentagem) {
     `
 }
 
-function elementosEspecificos(id, chave, historico, orcamento) {
-
-    const acumulado = []
-    let funcaoEditar = ''
-
-    const { status } = historico || {}
-
-    if (status == 'REQUISIÇÃO') {
-
-        const { transportadora, volumes, total_requisicao, pedido } = historico || {}
-
-        const hisPedido = orcamento?.status?.historico?.[pedido] || {}
-
-        funcaoEditar = `formularioRequisicao({id:'${id}', chave: '${chave}'})`
-        acumulado.push(`
-            ${hisPedido.pedido ? labelDestaque('Nº Pedido', hisPedido.pedido) : ''}
-            ${hisPedido.tipo ? labelDestaque('Tipo', hisPedido.tipo) : ''}
-            ${hisPedido.valor ? labelDestaque('Valor', dinheiro(hisPedido.valor)) : ''}
-            ${hisPedido.empresa ? labelDestaque('Empresa a faturar', hisPedido.empresa) : ''}
-            ${labelDestaque('Total Requisição', dinheiro(total_requisicao))}
-            ${transportadora ? labelDestaque('Transportadora', transportadora) : ''}
-            ${volumes ? labelDestaque('Volumes', volumes) : ''}
-
-            <div style="background-color: ${coresST?.[status]?.cor || '#808080'}" 
-                class="contorno-botoes" onclick="gerarPdfRequisicao('${id}', '${chave}', true)">
-                <img src="imagens/pdfw.png" style="width: 1.5rem;">
-                <label>Visualizar</label>
-            </div>
-
-            <div style="background-color: ${coresST?.[status]?.cor || '#808080'}" 
-                class="contorno-botoes" onclick="gerarPdfRequisicao('${id}', '${chave}')">
-                <img src="imagens/pdfw.png" style="width: 1.5rem;">
-                <label>Baixar PDF</label>
-            </div>`)
-
-    } else if (status == 'LPU PARCEIRO') {
-
-        funcaoEditar = `formularioParceiro('${id}', '${chave}')`
-
-        acumulado.push(`
-            ${labelDestaque('Total Parceiro', dinheiro(historico?.totais?.parceiro))}
-            ${labelDestaque('Magem Disponível', dinheiro(historico?.totais?.margem))}
-            ${labelDestaque('Desvio', dinheiro(historico?.totais?.desvio))}
-
-            <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" 
-                class="contorno-botoes" 
-                onclick="gerarPdfParceiro('${id}', '${chave}', true)">
-                <img src="imagens/pdfw.png" style="width: 1.5rem;">
-                <label>Visualizar</label>
-            </div>
-
-            <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" 
-                class="contorno-botoes" 
-                onclick="gerarPdfParceiro('${id}', '${chave}')">
-                <img src="imagens/pdfw.png" style="width: 1.5rem;">
-                <label>Baixar PDF</label>
-            </div>
-        `)
-
-    } else if (status == 'PEDIDO') {
-
-        const { empresa, pedido, pagamento, valor, tipo, autorizadoPor } = historico || {}
-
-        acumulado.push(`
-            <div style="${vertical}; gap: 2px;">
-                ${labelDestaque('Empresa a faturar', empresa)}
-                ${labelDestaque('Pagamento', pagamento)}
-                ${labelDestaque('Pedido', pedido)}
-                ${labelDestaque('Autorizado por', autorizadoPor)}
-                ${labelDestaque('Valor', dinheiro(valor))}
-                ${labelDestaque('Tipo', tipo)}
-            </div>`)
-
-        funcaoEditar = `painelAdicionarPedido('${id}', '${chave}')`
-
-    } else if (status == 'FATURADO') {
-
-        const parcelas = (historico?.parcelas || [])
-            .map(parcela => `Parcela ${parcela.nParcela} <br> ${labelDestaque(parcela.dDtVenc, dinheiro(parcela.nValor))}`)
-            .join('')
-
-
-        let botaoDANFE = `
-            ${labelDestaque('Nota', historico.nf)}
-            ${labelDestaque('Tipo', historico.tipo)}
-        `
-
-        const codOmie = historico?.codOmie || historico?.notaOriginal?.compl?.nIdNF || historico?.notaOriginal?.Cabecalho?.nCodNF
-        if (codOmie) {
-            const tipo = historico.tipo.toLowerCase() == 'serviço' ? 'serviço' : 'venda_remessa'
-            botaoDANFE = balaoPDF({ nf: historico.nf, codOmie, tipo, app: historico.app })
-        }
-
-        acumulado.push(`
-            ${labelDestaque('Valor Total', dinheiro(historico.valor))}
-            <br>
-            ${botaoDANFE}
-            ${parcelas}
-        `)
-
-    } else if (status.includes('MATERIAL')) {
-
-        funcaoEditar = `envioMaterial('${id}', '${chave}')`
-
-        acumulado.push(`
-            ${labelDestaque('Rastreio', historico.rastreio)}
-            ${labelDestaque('Transportadora', historico.transportadora)}
-            ${labelDestaque('Data de Saída', conversorData(historico.data_saida))}
-            ${labelDestaque('Data de Entrega', conversorData(historico.previsao))}
-        `)
-    }
-
-    if (funcaoEditar !== '') {
-        acumulado.push(`
-        <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" class="contorno-botoes" onclick="${funcaoEditar}">
-            <img src="imagens/editar4.png" style="width: 1.5rem;">
-            <label>Editar</label>
-        </div>`)
-    }
-
-    return acumulado.join('')
-
-}
-
 async function checklistChamado(id) {
 
-    const orcamento = await recuperarDado('dados_orcamentos', id) || {}
-    const contrato = orcamento?.dados_orcam?.contrato
+    const contrato = controles.ocorrencias.ativo
 
-    // Checklist chamado;
-    const enviado = Object.values(orcamento?.status?.historicoStatus || {})
-        .some(h => h.para == 'ORC ENVIADO')
-
-    const aprovado = Object.values(orcamento?.status?.historicoStatus || {})
-        .some(h => h.para == 'ORC APROVADO')
-
-    const pedido = Object.values(orcamento?.status?.historico || {})
-        .some(h => h.status == 'PEDIDO')
-
-    const chamado = orcamento?.chamado == 'S'
-    const etapas = [
-        {
-            texto: `
-                <div style="${horizontal}; gap: 5px;">
-                    <span>Classificar como <b>CHAMADO</b></span>
-                    <input ${chamado ? 'checked' : ''} onclick="ativarChave(this, '${id}', 'chamado')" ${styChek} type="checkbox">
-                </div>
-            `,
-            status: chamado
-        },
-        { texto: 'Orçamento enviado', status: enviado },
-        { texto: 'Orçamento aprovado', status: aprovado },
-        { texto: 'Criar um pedido', status: pedido }
-    ]
-
-    let liberado = true
-    const checks = etapas
-        .map(e => {
-
-            if (!e.status) liberado = false
-
-            return `
-        <div class="status-check-item">
-            <img src="imagens/${e.status ? 'concluido' : 'cancel'}.png">
-            <div>${e.texto}</div>
-        </div>`
-        }).join('')
+    // Para abrir transformar um orcamento em chamado, ele precisa ter um pedido (Enviado e Aprovado);
+    const pedidos = await pesquisarDB({
+        base: 'pedidos',
+        filtros: {
+            departamento: {
+                op: 'includes',
+                value: contrato
+            }
+        }
+    })
 
     const existente = await recuperarDado('dados_ocorrencias', contrato)
-    const f1 = liberado
-        ? `unidadeOrc = '${orcamento.dados_orcam.omie_cliente}'; formularioOcorrencia('${contrato}')`
-        : ''
 
-    const pChamado = `
-        <span>Para abrir a <b>OCORRÊNCIA</b><br></span>
-        <span>Realize as etapas abaixo:</span>
-        <hr>
-        ${checks}
-        <hr>
+    const pChamado = existente
+        ? `
         <div style="${horizontal}; gap: 1rem;">
-            <button onclick="${f1}" style="opacity: ${liberado ? '1' : '0.5'};">Abrir chamado</button>
+            <img src="imagens/concluido.png">
+            <span>Ocorrência já aberta ${contrato}</span>
         </div>
+    `
+        : `
+        <span>Abra uma <b>OCORRÊNCIA</b> de duas formas:<br></span>
+        <br>
+        <span>
+            Para orçamentos de levantamento: 
+            O orçamento pode ser R$ 0,00 para edição posterior.
+        </span>
+        <button onclick="confirmarProspeccao('${id}')">Orçamento Prospecção</button>
+        <br>
+        <span>
+            Quando o orçamento é solicitado 
+            pelo cliente de forma <b>padrão</b>.<br>
+            Mas antes, faça o envio do 
+            orçamento por e-mail, aguarde 
+            a aprovação e crie um pedido: 
+            Esse botão verde "<b>Novo Pedido</b>" aqui ao lado.
+        </span>
+        <button onclick="auxAberturaChamado('${id}')">Orçamento Aprovado</button>
     `
 
     const local = document.querySelector('.status-check-ocorrencias')
 
     if (local)
         local.innerHTML = pChamado
+
+}
+
+async function auxAberturaChamado(id) {
+
+    overlayAguarde()
+
+    const { dados_orcam } = await recuperarDado('dados_orcamentos', id) || {}
+    const { contrato, omie_cliente } = dados_orcam || {}
+
+    const pedidos = await pesquisarDB({
+        base: 'pedidos',
+        filtros: {
+            'departamento': {
+                op: 'includes',
+                value: contrato
+            }
+        }
+    })
+
+    if (!pedidos.resultados.length)
+        return popup({ mensagem: 'Abra um pedido antes de abrir a ocorrência!' })
+
+    unidadeOrc = omie_cliente
+
+    await formularioOcorrencia(contrato)
 
 }
 
@@ -773,46 +710,8 @@ async function abrirEsquema(id) {
     const { cliente } = orcamento?.snapshots || {}
     const { snapshots } = await recuperarDado('dados_ocorrencias', contrato) || {}
 
-    const strAnexos = {
-        levantamentos: '',
-        finalizado: ''
-    }
-
-    for (const [idAnexo, anexo] of Object.entries(orcamento?.levantamentos || {})) {
-
-        const local = anexo?.finalizado == 'S'
-            ? 'finalizado'
-            : 'levantamentos'
-
-        strAnexos[local] += criarAnexoVisual(anexo.nome, anexo.link, `excluirLevantamentoStatus('${idAnexo}', '${id}')`)
-    }
-
-    const divLevantamentos = (finalizado) => {
-
-        const local = finalizado
-            ? 'finalizado'
-            : 'levantamentos'
-
-        return `
-            <div style="${vertical}; gap: 2px; margin-right: 20px; margin-top: 10px;">
-
-                <div class="contorno-botoes" onclick="document.getElementById('${local}').click()">
-                    <img src="imagens/anexo2.png">
-                    <label>Anexar ${local}</label>
-
-                    <input
-                        type="file" 
-                        id="${local}"
-                        style="display:none" 
-                        data-finalizado="${finalizado ? 'S' : 'N'}"
-                        onchange="salvarLevantamento('${id}', '${local}')" 
-                        multiple>
-                </div>
-
-                ${strAnexos[local]}
-
-            </div>`
-    }
+    controles.ocorrencias ??= {}
+    controles.ocorrencias.ativo = contrato
 
     const acumulado = `
         <div style="${vertical}; gap: 10px; padding: 3px;">
@@ -831,14 +730,11 @@ async function abrirEsquema(id) {
         </div>
 
         <div id="${contrato}" class="container-blocos">
-            <div style="${vertical}; witdth: 100%; gap: 0.5rem;">
-                <div class="status-check-ocorrencias">
-                    <img src="gifs/loading.gif" style="width: 5rem;">
-                </div>
-                ${divLevantamentos()}
-                <hr>
-                ${divLevantamentos(true)}
+
+            <div class="status-check-ocorrencias">
+                <img src="gifs/loading.gif" style="width: 5rem;">
             </div>
+
             <div class="bloco-st"></div>
         </div>`
 
@@ -937,113 +833,6 @@ async function tirarFotoStatus(id, chave) {
         local.insertAdjacentHTML('beforeend', foto)
 
     removerPopup()
-
-}
-
-function mostrarConfirmacao(elemento) {
-    let img = elemento.nextElementSibling;
-    img.style.display = 'block'
-}
-
-async function alterarStatus(id, select) {
-
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-    if (!orcamento) return
-
-    if (typeof orcamento.status == 'string' || !orcamento.status)
-        orcamento.status = {}
-
-    orcamento.status.historicoStatus ??= {}
-
-    const statusAnterior = orcamento.status.atual || ''
-    const novoSt = select.value
-
-    if (statusAnterior === novoSt) return
-
-    if (acesso?.setor === 'LOGÍSTICA' && !orcamento?.snapshots?.responsavel?.includes(acesso.usuario)) {
-        if (!statusExclusivosLog.includes(novoSt)) {
-            select.value = statusAnterior
-            return popup({ mensagem: '<b>Seu acesso é de Logística:</b> Altere apenas os seus orçamentos ou somente para os status ENTREGUE ou ENVIADO' })
-        }
-    }
-
-    const bloq = ['REQUISIÇÃO', 'CONCLUÍDO']
-
-    const temPedido = Object.values(orcamento?.status?.historico || {})
-        .some(s => s?.status === 'PEDIDO')
-
-    if (!temPedido && bloq.includes(novoSt)) {
-        select.value = statusAnterior
-        popup({ mensagem: 'Não é possível ir para <b>REQUISIÇÃO</b> ou <b>CONCLUÍDO</b> se o orçamento não tiver Pedido' })
-        return
-    }
-
-    const idStatus = ID5digitos()
-    const agora = Date.now()
-
-    const registroStatus = {
-        data: agora,
-        de: statusAnterior,
-        para: novoSt,
-        usuario: acesso?.usuario || ''
-    }
-
-    await enviar(`dados_orcamentos/${id}/status/atual`, novoSt)
-    await enviar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}`, registroStatus)
-
-    if (novoSt === 'ORC PENDENTE')
-        formularioOrcPendente(id, idStatus)
-
-    if (novoSt === 'ORC APROVADO') {
-        formularioOrcAprovado()
-        const resposta = await criarDepartamento(id)
-        if (resposta?.mensagem) popup({ mensagem: resposta.mensagem })
-    }
-
-    const pHistorico = document.querySelector('.painel-historico')
-    if (pHistorico)
-        await abrirEsquema(id)
-
-    await carregarToolbar()
-}
-
-async function formularioOrcAprovado(id) {
-
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-    const linhas = [
-        {
-            texto: 'Qual a previsão de início?',
-            elemento: `
-                <div style="${horizontal}; gap: 1rem;">
-                    <input name="prioridade" oninput="mostrarPrioridade()" type="date" value="${orcamento?.inicio || ''}">
-                    <div id="indicador"></div>
-                </div>
-                `
-        }
-    ]
-
-    const funcao = `salvarPrioridade('${id}')`
-    const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao },
-        { texto: 'Cancelar', img: 'cancel', funcao: 'removerPopup()' },
-    ]
-
-    popup({ linhas, botoes, titulo: 'Prioridade do Orçamento' })
-
-}
-
-async function salvarPrioridade(id) {
-
-    const input = document.querySelector('[name="prioridade"]')
-
-    if (!input.value)
-        return removerPopup()
-
-    removerPopup()
-
-    await enviar(`dados_orcamentos/${id}/inicio`, input.value)
-
-    await abrirAtalhos(id)
 
 }
 
@@ -1154,73 +943,6 @@ async function salvarInfoAdicional(id, idStatus) {
     await enviar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}/usuario`, acesso.usuario)
 
     removerPopup()
-
-}
-
-async function mostrarHistoricoStatus(id) {
-
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-
-    if (!orcamento?.status?.historicoStatus || Object.entries(orcamento.status.historicoStatus).length === 0) {
-        popup({ mensagem: 'Nenhuma alteração de status registrada', titulo: 'Histórico de Status' })
-        return
-    }
-
-    const elemento = `
-        <div style="${vertical}; padding: 1rem;">
-            <div class="topo-tabela"></div>
-            <div class="div-tabela">
-                <table class="tabela">
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Status Anterior</th>
-                            <th>Novo Status</th>
-                            <th>Alterado por</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${Object.entries(orcamento.status.historicoStatus).map(([chave, registro]) => {
-
-        const ts = toTimestamp(registro?.data || registro?.timestamp)
-
-        return `
-                            <tr id="ST_${chave}">
-                                <td>${new Date(ts).toLocaleString()}</td>
-                                <td>${registro.de}</td>
-                                <td>${registro.para}</td>
-                                <td>${registro.usuario}</td>
-                                <td>
-                                    ${acesso.permissao == 'adm' ? `<img onclick="excluirHiStatus('${id}', '${chave}')" src="imagens/cancel.png">` : ''}
-                                </td>
-                            </tr>
-                        `}).join('')}
-                    </tbody>
-                </table>
-            </div>
-            <div class="rodape-tabela"></div>
-        </div>
-    `
-
-    popup({ elemento, titulo: 'Histórico de Alterações de Status' })
-}
-
-async function excluirHiStatus(id, idStatus) {
-
-    overlayAguarde()
-
-    const trExistente = document.getElementById(`ST_${idStatus}`)
-    if (trExistente)
-        trExistente.remove()
-
-    await deletar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}`)
-
-    const pHistorico = document.querySelector('.painel-historico')
-    if (pHistorico)
-        await abrirEsquema(id)
-
-    removerOverlay()
 
 }
 
@@ -1427,4 +1149,72 @@ async function irOS(idOrcamento) {
     localStorage.setItem('pdf', JSON.stringify(orcamento))
 
     window.open('os.html', '_blank')
+}
+
+async function formDocAdicional(origem) {
+
+    const linhas = [
+        {
+            texto: `Incluir ${origem}`,
+            elemento: '<input type="file" id="docAdicional" multiple>'
+        }
+    ]
+
+    const botoes = [
+        { texto: 'Salvar', titulo: `Incluir doc ${origem}`, img: 'concluido', funcao: `salvarDocAdicional('${origem}')` }
+    ]
+
+    popup({ linhas, botoes })
+
+}
+
+async function salvarDocAdicional(origem) {
+
+    overlayAguarde()
+
+    try {
+
+        const input = document.getElementById('docAdicional')
+        const anexos = await importarAnexos({ input }) // Função de upload
+        const departamento = controles.ocorrencias.ativo
+
+        const promessasAnexos = anexos.map(anexo => {
+            const id = crypto.randomUUID()
+            return enviar(`anexos/${id}`, {
+                id,
+                origem,
+                departamento,
+                ...anexo
+            })
+        })
+
+        await Promise.all(promessasAnexos)
+
+        removerPopup()
+
+    } catch (error) {
+        popup({ mensagem: `Erro ao fazer upload: ${error.message}`, })
+    }
+}
+
+function confirmarExclusaoDocAdicional(id) {
+    
+    const linhas = [
+        { texto: 'Tem certeza?' }
+    ]
+
+    const botoes = [{
+        texto: 'Confirmar',
+        img: 'concluido',
+        funcao: `excluirDocAdicional('${id}')`
+    }]
+
+    popup({ mensagem: 'Tem certeza?', botoes })
+}
+
+async function excluirDocAdicional(id) {
+
+    removerPopup()
+    await deletar(`anexos/${id}`)
+
 }
