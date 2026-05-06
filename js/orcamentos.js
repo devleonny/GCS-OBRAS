@@ -118,9 +118,9 @@ async function criarLinhaOrcamento(orcamento) {
     async function linhaOrcamento(orcamento) {
 
         const { id, dados_orcam, timestamp, snapshots, total_geral } = orcamento || {}
-        const { ultimaCorrecao } = snapshots || {}
-        const { pagamentos = 0, fretes = 0, abastecimentos = 0, notas } = snapshots?.custos || {}
-
+        const { ultimaCorrecao, notas, pedidos } = snapshots || {}
+        const { pagamentos = 0, fretes = 0, abastecimentos = 0 } = snapshots?.custos || {}
+        
         // Velocímetro
         const totalCusto = pagamentos + fretes + abastecimentos
         const porcentagem = Number(((totalCusto / total_geral) * 100).toFixed(1))
@@ -130,8 +130,7 @@ async function criarLinhaOrcamento(orcamento) {
             ? formatacaoTipoCorrecao(ultimaCorrecao)
             : ''
 
-        const pedidosStatus = Object.values(orcamento?.status?.historico || {})
-            .filter(s => s?.status == 'PEDIDO')
+        const pedidosStatus = [] // (pedidos || [])
             .map(({ tipo, pedido, valor, autorizadoPor }) => {
 
                 const label = `
@@ -146,13 +145,12 @@ async function criarLinhaOrcamento(orcamento) {
             })
             .join('')
 
-        const notasStatus = Object.values(orcamento?.status?.historico || {})
-            .filter(({ status, tipo }) => status === 'FATURADO' && !tipo.includes('emessa'))
-            .map(({ tipo, nf, valor }) => `
+        const notasStatus = (notas || [])
+            .map(({ categoria, n_nota, total }) => `
                 <div class="etiquetas" style="text-align: left; min-width: 100px;">
-                    <label>${tipo || ''}</label>
-                    <label>${nf || ''}</label>
-                    <label>${dinheiro(valor)}</label>
+                    <label>${categoria || ''}</label>
+                    <label>${n_nota || ''}</label>
+                    <label>${dinheiro(total)}</label>
                 </div>
             `)
             .join('')

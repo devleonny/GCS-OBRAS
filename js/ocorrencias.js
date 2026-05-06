@@ -1397,19 +1397,57 @@ async function alternarFiltroDropdown(path, valor, marcado) {
     await paginacao()
 }
 
+function fecharTodosDropdowns() {
+    document.querySelectorAll('.filtro-dropdown .dropdown-menu').forEach(menu => {
+        menu.style.display = 'none'
+        menu.dataset.aberto = 'N'
+        menu.style.position = ''
+        menu.style.top = ''
+        menu.style.left = ''
+        menu.style.zIndex = ''
+    })
+}
+
 function toggleDropdown(botao) {
     const drop = botao.closest('.filtro-dropdown')
     const menu = drop.querySelector('.dropdown-menu')
     const aberto = menu.dataset.aberto === 'S'
 
-    document.querySelectorAll('.filtro-dropdown .dropdown-menu').forEach(m => {
-        m.style.display = 'none'
-        m.dataset.aberto = 'N'
-    })
+    fecharTodosDropdowns()
 
     if (!aberto) {
+        const rect = botao.getBoundingClientRect()
+        const larguraMenu = Math.max(rect.width, 260)
+        const alturaMax = 320
+        const espacoAbaixo = window.innerHeight - rect.bottom
+        const espacoAcima = rect.top
+
         menu.style.display = 'block'
         menu.dataset.aberto = 'S'
+        menu.style.position = 'fixed'
+        menu.style.zIndex = '999999'
+        menu.style.minWidth = `${larguraMenu}px`
+        menu.style.maxWidth = '380px'
+        menu.style.maxHeight = `${alturaMax}px`
+        menu.style.overflowY = 'auto'
+
+        let top = rect.bottom + 4
+        let left = rect.left
+
+        if (espacoAbaixo < alturaMax && espacoAcima > espacoAbaixo) {
+            top = Math.max(8, rect.top - alturaMax - 4)
+        }
+
+        if (left + larguraMenu > window.innerWidth - 8) {
+            left = window.innerWidth - larguraMenu - 8
+        }
+
+        if (left < 8) {
+            left = 8
+        }
+
+        menu.style.top = `${top}px`
+        menu.style.left = `${left}px`
     }
 }
 

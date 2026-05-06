@@ -302,8 +302,6 @@ function obterChaveLinha(dado, indice = 0) {
 
 function obterTimestampLinha(dado) {
     const candidatos = [
-        dado?.snapshots?.tsUltimoStatus,
-        dado?.tsUltimoStatus,
         dado?.timestamp,
         dado?.snapshots?.timestamp,
         dado?.updatedAt,
