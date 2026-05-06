@@ -315,7 +315,7 @@ async function abrirDetalhesPagamentos(id) {
         const pesquisa = await pesquisarDB({
             base: 'dados_orcamentos',
             filtros: {
-                'snapshots.contratoChamado': { op: 'includes', value: cc.descricao }
+                'dados_orcam.contrato': { op: 'includes', value: cc.descricao }
             }
         })
 
@@ -374,7 +374,7 @@ async function abrirDetalhesPagamentos(id) {
             ${divValores}
 
             <div id="comentario" class="contorno" style="width: 90%;">
-                <div class="contorno_interno" style="background-color: #ffffffde;">
+                <div class="contorno-iterno" style="background-color: #ffffffde;">
                     <label style="width: 100%; text-align: left;"><strong>Observações </strong><br> ${(pagamento?.param?.[0]?.observacao || '').replace(/\||\n/g, "<br>")}</label>
                 </div>
             </div>
@@ -545,8 +545,9 @@ async function salvarPagamento() {
 
     // Identificação do pagamento;
     if (!ultimoPagamento.id) {
-        ultimoPagamento.id = crypto.randomUUID()
-        ultimoPagamento.param[0].codigo_lancamento_integracao = ultimoPagamento.id
+        const id = crypto.randomUUID()
+        ultimoPagamento.id = id
+        ultimoPagamento.param[0].codigo_lancamento_integracao = id
     }
 
     try {
@@ -830,13 +831,9 @@ async function calculadoraPagamento() {
     if (!ulP.criado)
         ulP.criado = acesso.usuario
 
-    if (!ulPAtual?.param?.[0]?.codigo_lancamento_integracao)
-        ulP.param[0].codigo_lancamento_integracao = ulPAtual?.param?.[0]?.codigo_lancamento_integracao || crypto.randomUUID()
-
     localStorage.setItem('ultimoPagamento', JSON.stringify(ulP))
 
-    const dif =
-        Math.round(totais.cat * 100) !== Math.round(totais.dep * 100)
+    const dif = Math.round(totais.cat * 100) !== Math.round(totais.dep * 100)
 
     if (dif)
         return { mensagem: 'Existe uma diferença entre Centro de custo x Categorias' }
@@ -1007,7 +1004,7 @@ function compararDatas(data1, data2) {
 async function duplicarPagamento(id) {
 
     overlayAguarde()
-    let pagamento = await recuperarDado('lista_pagamentos', id)
+    const pagamento = await recuperarDado('lista_pagamentos', id)
     const assinatura = `Solicitante: ${pagamento.criado}`
 
     delete pagamento.id

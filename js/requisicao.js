@@ -1,36 +1,61 @@
-async function formularioRequisicao({ id, chave = crypto.randomUUID(), modalidade }) {
+async function formularioRequisicao(id) {
 
     overlayAguarde()
 
-    const orcamento = await recuperarDado('dados_orcamentos', id)
+    const ativo = controles?.ocorrencias?.ativo
 
-    const contrato = orcamento?.dados_orcam?.contrato
-    const pesquisaDep = contrato
-        ? await pesquisarDB({ base: 'departamentos_ac', filtros: { 'descricao': { op: '=', value: contrato } } })
-        : null
+    const pedidos = await pesquisarDB({
+        base: 'pedidos',
+        filtros: {
+            'departamento': {
+                op: 'includes',
+                value: ativo
+            }
+        }
+    })
 
-    if (!pesquisaDep || !pesquisaDep.resultados.length)
-        return popup({ mensagem: '<b>Orçamento sem departamento:</b> Ele precisa ser aprovado para que o departamento seja criado.' })
-
-    const existePedido = Object.values(orcamento?.status?.historico || {})
-        .some(registro => registro?.status == 'PEDIDO')
-
-    if (!existePedido)
+    if (!pedidos.resultados.length)
         return popup({ mensagem: 'Crie um pedido antes de criar uma requisição!' })
 
-    const cliente = await recuperarDado('dados_clientes_ac', orcamento.dados_orcam.omie_cliente) || {}
-    const cartao = orcamento?.status?.historico?.[chave] || {}
-    const { volumes, transportadora, prazo, pedido, recebedor } = cartao
+    const orcamentos = await pesquisarDB({
+        base: 'dados_orcamentos',
+        filtros: {
+            'dados_orcam.contrato': {
+                op: '=',
+                value: ativo
+            }
+        }
+    })
 
-    const pedidos = Object.entries(orcamento?.status?.historico || {})
-        .filter(([, dados]) => dados.status == 'PEDIDO')
-        .map(([id, dados]) => ({
-            id,
-            ...dados
-        }))
+    // Primeiro resultado;
+    const orcamento = orcamentos?.resultados?.[0]
+
+    if (!orcamento)
+        return popup({ mensagem: `Orçamento ${ativo} provavelmente excluído, fale com o suporte.` })
+
+    const {
+        cnpj,
+        nome,
+        cidade,
+        endereco,
+        bairro
+    } = await recuperarDado('dados_clientes_ac', orcamento?.dados_orcam?.omie_cliente) || {}
+    const dadosRequisicao = await recuperarDado('requisicoes', id) || {}
+    const { pedido } = await recuperarDado('pedidos', dadosRequisicao?.pedido) || {}
+    const {
+        volumes,
+        comentario,
+        transportadora,
+        requisicao,
+        prazo,
+        recebedor
+    } = dadosRequisicao
 
     controlesCxOpcoes.pedido = {
-        base: pedidos,
+        base: 'pedidos',
+        filtros: {
+            departamento: { op: 'includes', value: ativo }
+        },
         retornar: ['pedido'],
         colunas: {
             'Pedido': { chave: 'pedido' },
@@ -39,8 +64,6 @@ async function formularioRequisicao({ id, chave = crypto.randomUUID(), modalidad
         }
     }
 
-    const numPedido = orcamento?.status?.historico?.[pedido]?.pedido || 'Selecionar'
-
     const campos = `
         <div class="requisicao-contorno" style="width: 500px;">
             <div class="requisicao-titulo">Dados da Requisição</div>
@@ -48,8 +71,8 @@ async function formularioRequisicao({ id, chave = crypto.randomUUID(), modalidad
 
                 <div style="${vertical}; width: 100%;">
                     <span>Número do Pedido</span>
-                    <span ${pedido ? `id="${pedido}"` : ''} name="pedido" class="opcoes" onclick="cxOpcoes('pedido')">
-                        ${numPedido}
+                    <span ${pedido ? `id="${dadosRequisicao?.pedido}"` : ''} name="pedido" class="opcoes" onclick="cxOpcoes('pedido')">
+                        ${pedido || 'Selecione'}
                     </span>
                 </div>
 
@@ -77,10 +100,10 @@ async function formularioRequisicao({ id, chave = crypto.randomUUID(), modalidad
 
                 <div style="${vertical}; width: 100%;">
                     <label>Comentário</label>
-                    <textarea rows="3" id="comentario" style="width: 80%;">${cartao?.comentario || ''}</textarea>
+                    <textarea rows="3" id="comentario" style="width: 80%;">${comentario || ''}</textarea>
                 </div>
 
-                <button data-ocultar onclick="salvarRequisicao('${id}', '${chave}')">Salvar Requisição</button>
+                <button data-ocultar onclick="salvarRequisicao('${id}')">Salvar Requisição</button>
             </div>
         </div>`
 
@@ -93,7 +116,7 @@ async function formularioRequisicao({ id, chave = crypto.randomUUID(), modalidad
         'Informações do Item': { chave: 'descricao' },
         'Tipo': { chave: 'tipo' },
         'Origem': { chave: 'origem' },
-        'Quantidade': {},
+        'Quantidade Enviar': {},
         'Quantidade Orçada': {},
         'Valor Unit Bruto': {},
         'Valor Total Bruto': {},
@@ -101,27 +124,8 @@ async function formularioRequisicao({ id, chave = crypto.randomUUID(), modalidad
         'Valor Total': {}
     }
 
-    const materiais = ['eletrocalha', 'eletroduto', 'perfilado', 'sealtubo']
-
-    const base = Object.entries(cartao.requisicao || orcamento.dados_composicoes || {})
-        .filter(([, dados]) => {
-            if (dados.tipo == 'SERVIÇO')
-                return false
-
-            if (!modalidade)
-                return true
-
-            const contemMaterial = materiais
-                .some(m => (dados.descricao || '').toLowerCase().includes(m))
-
-            if (modalidade === 'materiais' && contemMaterial)
-                return true
-
-            if (modalidade === 'equipamentos')
-                return true
-
-            return false
-        })
+    const base = Object.entries(requisicao || orcamento?.dados_composicoes || {})
+        .filter(([, { tipo }]) => tipo !== 'SERVIÇO')
         .map(([id, dados]) => ({
             id,
             ...dados
@@ -130,6 +134,7 @@ async function formularioRequisicao({ id, chave = crypto.randomUUID(), modalidad
     const tabela = await modTab({
         base,
         pag: 'requisicao',
+        id,
         funcaoAdicional: ['calcularRequisicao'],
         body: 'bodyRequisicao',
         colunas,
@@ -137,7 +142,7 @@ async function formularioRequisicao({ id, chave = crypto.randomUUID(), modalidad
     })
 
     const elemento = `
-    <div id="pdf" class="requisicao-tela" data-chave="${chave}" data-id="${id}">
+    <div id="pdf" class="requisicao-tela" data-id="${id}">
 
         <div class="requisicao-contorno" style="width: 98%">
             <div class="requisicao-cabecalho">
@@ -154,12 +159,12 @@ async function formularioRequisicao({ id, chave = crypto.randomUUID(), modalidad
                 <div class="requisicao-titulo">Dados do Cliente</div>
                 <div class="requisicao-dados">
 
-                    ${modeloLabel('Cliente', cliente?.nome || '')}
-                    ${modeloLabel('CNPJ', cliente?.cnpj || '')}
-                    ${modeloLabel('Endereço', cliente?.endereco || '')}
-                    ${modeloLabel('Bairro', cliente?.bairro || '')}
-                    ${modeloLabel('Cidade', cliente?.cidade || '')}
-                    ${modeloLabel('Chamado', orcamento.dados_orcam.contrato)}
+                    ${modeloLabel('Cliente', nome || '')}
+                    ${modeloLabel('CNPJ', cnpj || '')}
+                    ${modeloLabel('Endereço', endereco || '')}
+                    ${modeloLabel('Bairro', bairro || '')}
+                    ${modeloLabel('Cidade', cidade || '')}
+                    ${modeloLabel('Departamento', ativo)}
 
                 </div>
             </div>
@@ -177,9 +182,9 @@ async function formularioRequisicao({ id, chave = crypto.randomUUID(), modalidad
 
     <div>`
 
-    popup({ elemento, cor: 'white', titulo: 'Requisição', autoDestruicao: ['requisicao', 'pedido'] })
+    popup({ elemento, cor: 'white', titulo: 'Requisição', autoDestruicao: ['requisicao'] })
 
-    await paginacao()
+    await paginacao('requisicao')
 
 }
 
@@ -236,15 +241,12 @@ async function criarLinhaRequisicao(item) {
                 </option>
             </td>
             <td>
-                <div style="${vertical}; gap: 2px;">
-                    <label>Quantidade a enviar</label>
-                    <input 
-                        class="requisicao-campo" 
-                        type="number" name="qtde" 
-                        oninput="calcularRequisicao()" 
-                        min="0" 
-                        value="${qtde_enviar || ''}">
-                </div>
+                <input 
+                    class="requisicao-campo" 
+                    type="number" name="qtde" 
+                    oninput="calcularRequisicao()" 
+                    min="0" 
+                    value="${qtde_enviar || ''}">
             </td>
             <td style="text-align: center;" name="qtde_orcamento">
                 ${qtde || 0}
@@ -373,17 +375,26 @@ async function salvarAdicionais(codigo) {
 }
 
 async function calcularRequisicao() {
-    const tRequisicao = document.querySelector('.requisicao-tela')
-    const id = tRequisicao.dataset.id
 
-    if (!id)
-        return
+    // Pesquisa de outras requisições e salvamento em memória para evitar buscas repetitivas;
+    const ativo = controles?.ocorrencias?.ativo
+    const requisicoes = controles?.requisicao?.pesquisa
+        ? controles.requisicao.pesquisa
+        : await pesquisarDB({
+            base: 'requisicoes',
+            filtros: {
+                id: {
+                    op: '!=',
+                    value: controles.requisicao.id
+                },
+                departamento: {
+                    op: 'includes',
+                    value: ativo
+                }
+            }
+        })
 
-    const chave = tRequisicao.dataset.chave
-    const { status } = await recuperarDado('dados_orcamentos', id) || {}
-
-    const reqs = Object.entries(status?.historico || {})
-        .filter(([c, his]) => c !== chave && his.status == 'REQUISIÇÃO')
+    controles.requisicao.pesquisa = requisicoes
 
     const linhas = document.querySelectorAll('#bodyRequisicao tr')
 
@@ -396,8 +407,8 @@ async function calcularRequisicao() {
         if (!codigo)
             continue
 
-        const totalExistente = reqs
-            .map(([, r]) => Number(r?.requisicao?.[codigo]?.qtde_enviar || 0))
+        const totalExistente = requisicoes.resultados
+            .map(r => Number(r?.requisicao?.[codigo]?.qtde_enviar || 0))
             .reduce((soma, valor) => soma + valor, 0)
 
         const qtdeOrcamento = conversor(linha.querySelector('[name="qtde_orcamento"]').textContent)
@@ -432,24 +443,26 @@ async function calcularRequisicao() {
     document.querySelector('#total_requisicao').textContent = dinheiro(total)
 }
 
-async function salvarRequisicao(id, chave) {
+async function salvarRequisicao(id) {
 
     overlayAguarde()
-    const orcamento = await recuperarDado('dados_orcamentos', id) || {}
 
     try {
-        orcamento.status ??= {}
-        orcamento.status.historico ??= {}
 
+        const departamento = controles?.ocorrencias?.ativo
+        if (!departamento)
+            return popup({ mensagem: 'Departamento não encontrado...' })
+
+        const requisicao = await recuperarDado('requisicoes', id) || {}
         const pedido = document.querySelector('[name="pedido"]')?.id
 
         if (!pedido)
             return popup({ mensagem: 'Escolha um pedido' })
 
         const dados = {
-            ...orcamento.status.historico[chave],
+            ...requisicao,
+            departamento,
             executor: acesso.usuario,
-            status: 'REQUISIÇÃO',
             data: new Date().toLocaleString(),
             comentario: document.querySelector('#comentario').value || '',
             pedido,
@@ -460,14 +473,12 @@ async function salvarRequisicao(id, chave) {
             total_requisicao: conversor(document.querySelector('#total_requisicao').textContent),
             requisicao: Object.fromEntries(
                 (controles.requisicao.base || [])
-                    .filter(i => i?.qtde_enviar != 0 && i?.codigo != null)
                     .map(i => [i.codigo, i])
             )
         }
 
-        await enviar(`dados_orcamentos/${id}/status/historico/${chave}`, dados)
+        await enviar(`requisicoes/${id}`, dados)
         removerPopup()
-        await abrirEsquema(id)
 
     } catch (err) {
         console.warn(err)
@@ -477,15 +488,40 @@ async function salvarRequisicao(id, chave) {
 }
 
 
-async function gerarPdfRequisicao(id, chave, visualizar) {
+async function gerarPdfRequisicao(id, visualizar) {
 
     overlayAguarde()
 
-    const { status, dados_orcam, snapshots } = await recuperarDado('dados_orcamentos', id) || {}
-    const { requisicao, volumes, data, empresa, executor, pedido, prazo, recebedor, transportadora, comentario, total_requisicao } = status?.historico?.[chave] || {}
+    const {
+        requisicao,
+        volumes,
+        data,
+        empresa,
+        executor,
+        prazo,
+        recebedor,
+        transportadora,
+        comentario,
+        pedido,
+        total_requisicao
+    } = await recuperarDado('requisicoes', id) || {}
+
+    const ativo = controles?.ocorrencias?.ativo
+    const orcamentos = await pesquisarDB({
+        base: 'dados_orcamentos',
+        filtros: {
+            'dados_orcam.contrato': {
+                op: '=',
+                value: ativo
+            }
+        }
+    })
+
+    // Primeiro resultado;
+    const { status, dados_orcam, snapshots } = orcamentos?.resultados?.[0] || {}
 
     // Pedido vinculado;
-    const dadosPedido = status?.historico?.[pedido] || {}
+    const dadosPedido = await recuperarDado('pedidos', pedido) || {}
 
     const dStatus = Object.entries({
         'empresa a faturar': dadosPedido.empresa,

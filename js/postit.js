@@ -32,7 +32,8 @@ async function criarQuadros() {
     ]
         .sort((a, b) => a.ordem - b.ordem)
 
-    for (const q of quadros) {
+    // Todos os quadros de vez;
+    const quadrosEmMassa = quadros.map(async (q) => {
 
         const { id, descricao } = q || {}
         const chave = id || 'Novos'
@@ -48,10 +49,11 @@ async function criarQuadros() {
             </div>
             `
 
+        const pag = `pit_${chave}`
         const quadro = await modTab({
             btnExtras,
             base: 'postit',
-            pag: `pit_${chave}`,
+            pag,
             body: `body_${chave}`,
             criarLinha: 'linPostIT',
             filtros: {
@@ -66,10 +68,13 @@ async function criarQuadros() {
             }
         })
 
-        divQuadros.push(`<div style="max-width: 350px;">${quadro}</div>`)
-    }
+        telaPIT.insertAdjacentHTML('beforeend', `<div style="max-width: 350px;">${quadro}</div>`)
+        
+        await paginacao(pag)
 
-    telaPIT.innerHTML = divQuadros.join('')
+    })
+
+    await promises.all(quadrosEmMassa)
 
     for (const q of quadros) {
         const chave = q?.id || 'Novos'
@@ -81,7 +86,6 @@ async function criarQuadros() {
         body.ondrop = soltarPIT
     }
 
-    await paginacao()
 }
 
 async function linPostIT(dados) {

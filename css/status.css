@@ -6,6 +6,7 @@
 }
 
 .container-blocos {
+    gap: 0.5rem;
     display: flex;
     width: max-content;
 }
@@ -110,16 +111,37 @@
     flex-direction: column;
 }
 
+.barra-status {
+    box-shadow: 0 0 5px #7b7b7b;
+    border: solid 1px #8e8e8e;
+    background-color: #f1f1f1;
+    border-radius: 5px;
+    
+    padding: 1rem;
+    display: flex;
+    justify-content: start;
+    align-items: start;
+    gap: 5px;
+}
+
 .status-check-ocorrencias {
-    border: solid 1px;
-    border-radius: 3px;
+    box-shadow: 0 0 5px #7b7b7b;
+    border: solid 1px #8e8e8e;
+    background-color: #f1f1f1;
+    border-radius: 5px;
+
+    max-width: 200px;
+    height: max-content;
     padding: 0.5rem;
-    background-color: white;
     display: flex;
     align-items: start;
     justify-content: start;
     flex-direction: column;
     gap: 2px;
+}
+
+.status-check-ocorrencias span {
+    text-align: start;
 }
 
 .status-check-item {

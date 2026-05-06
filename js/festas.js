@@ -207,12 +207,14 @@ function animarCoelho(el, {
     el.coelhoEstado.raf = requestAnimationFrame(tick)
 }
 
+/*
 const coelho = criarCoelhoSprite({
     src: 'imagens/coelho.png',
     largura: 48,
     altura: 48,
     container: document.querySelector('.toolbar-interno')
 })
+*/
 
 function correr() {
     animarCoelho(coelho, {

@@ -423,7 +423,7 @@ function carregarCorrecoes(ocorrencia) {
 
                     <div style="${vertical}; padding: 0.5rem;">
                         ${imagensExistentes}
-                        <div id="anexos" style="${vertical};">
+                        <div id="anexos" style="flex-wrap: wrap; display: flex; gap: 2px;">
                             ${anexos}
                         </div>
                     </div>
@@ -486,6 +486,11 @@ function visibilidadeFiltros(painel, mostrar) {
         : ''
 }
 
+function visibilidadePesquisas() {
+    const painel = document.querySelector('.painel-filtros')
+    painel.classList.toggle('visibilidade')
+}
+
 async function telaOcorrencias() {
 
     overlayAguarde()
@@ -495,17 +500,23 @@ async function telaOcorrencias() {
 
     const mapa = criarMapa()
     const btnExtras = `
-    <div style="${vertical};" class="painel-filtros">
+    <div class="painel-filtros">
         <div id="filtros1" class="filtros"></div>
         <div id="filtros2" class="filtros"></div>
     </div>
     ${mapa}
+    <img src="imagens/olho.png" onclick="visibilidadePesquisas()">
     `
     const tabela = await modTab({
         btnExtras,
         alinPag: vertical,
         funcaoAdicional: ['contadoresMapaOcorrencias'],
         base: 'dados_ocorrencias',
+        ordenar: {
+            direcao: 'DESC',
+            path: 'data_registro',
+            tipo: 'data_br'
+        },
         pag: 'ocorrencias',
         body: 'bodyOcorrencias',
         criarLinha: 'criarLinhaOcorrencia',
@@ -546,7 +557,7 @@ async function telaOcorrencias() {
 
     }
 
-    await paginacao()
+    await paginacao('ocorrencias')
 
     removerOverlay()
 
@@ -569,7 +580,7 @@ async function contadoresMapaOcorrencias() {
 
 function criarLinhaOcorrencia(ocorrencia) {
 
-    const { id, fotos, anexos, usuario, id_antigo, snapshots, equipamentos } = ocorrencia || {}
+    const { id, fotos, correcoes, anexos, usuario, id_antigo, snapshots, equipamentos } = ocorrencia || {}
     const { sistema, prioridade, tipo, cliente, empresa } = snapshots || {}
 
     const imagens = Object.entries(fotos || {})
@@ -603,10 +614,6 @@ function criarLinhaOcorrencia(ocorrencia) {
 
     const btnOS = `<div class="botaoImg" onclick="telaOS('${id}')"><span>OS</span></div>`
 
-    const btnORC = (!['cliente', 'técnico'].includes(acesso.permissao) && id.includes('ORC_'))
-        ? botaoImg('pesquisar5', `verDetalhesOrc('${id}')`)
-        : ''
-
     const modeloCampos = (valor1, valor2) => {
         if (!valor2)
             return ''
@@ -627,52 +634,72 @@ function criarLinhaOcorrencia(ocorrencia) {
         ? `<button onclick="criarOrcamentoVinculado('${id}')">Criar orçamento</button>`
         : ''
 
+    const numOrcamentos = [
+        id,
+        ...Object.values(correcoes || {})
+            .filter(c => c.orcamento)
+            .map(c => c.orcamento)
+    ]
+
+    const spanNumOrcs = numOrcamentos
+        .map(c => {
+
+            const chave = c !== id
+                ? `${id}.${c}`
+                : c
+
+            return `<span class="etiqueta-chamado" onclick="abrirEsquemaOcorrencias('${chave}')">${c}</span>`
+
+        })
+        .join('<img src="imagens/link2.png">')
+
+    const blocoPrincipal = `
+        <div class="linha-orcamentos">
+            ${btnEditar}
+            ${btnExclusao}
+            ${btnOS}
+
+            <div style="border: solid 1px ${corAssinatura}; border-radius: 3px; padding: 2px; background-color: ${corAssinatura}52;" 
+            onclick="coletarAssinatura('${id}')">
+                <img src="imagens/assinatura.png" style="width: 1.5rem;">
+            </div>
+        </div>
+
+        ${modeloCampos('', 'AC SOLUÇÕES')}
+        ${existeAntigo}
+        ${modeloCampos('Unidade', cliente?.nome)}
+        ${modeloCampos('Endereço', cliente?.endereco)}
+        ${modeloCampos('Bairro', cliente?.bairro)}
+        ${modeloCampos('Cidade', cliente?.cidade)}
+        ${modeloCampos('Descrição', `<div style="white-space: pre-wrap;">${descricao}</div>`)}
+        ${modeloCampos('Criado por', criador)}
+        ${modeloCampos('Data Registro', ocorrencia?.data_registro || '')}
+        ${modeloCampos('Empresa', empresa)}
+        ${modeloCampos('Tipo', tipo)}
+        ${modeloCampos('Sistema', sistema)}
+        ${modeloCampos('Prioridade', prioridade)}
+        ${modeloCampos('Equipamentos', tabEquipamentos(equipamentos || {}))}
+        ${modeloCampos('Anexos', divAnexos ? `<div id="anexos" style="${vertical};">${divAnexos || 'Sem anexos'}</div>` : 'Sem anexos')}
+        ${modeloCampos('Fotos', imagens ? imagensExistentes : 'Sem Imagens')}
+    `
+
     const partes = `
-        <div class="div-linha">
+        <div id="${id}" class="div-linha">
+
             <div class="bloco-linha">
-                <div style="${horizontal}; gap: 5px; padding: 5px; width: 100%;">
 
-                    <span class="etiqueta-chamado">${id}</span>
-                    ${btnEditar}
-                    ${btnExclusao}
-                    ${btnOS}
-                    ${btnORC}
-
-                    <div style="border: solid 1px ${corAssinatura}; border-radius: 3px; padding: 2px; background-color: ${corAssinatura}52;" 
-                    onclick="coletarAssinatura('${id}')">
-                        <img src="imagens/assinatura.png" style="width: 1.5rem;">
-                    </div>
+                <div class="linha-orcamentos">
+                    <img onclick="abrirEsquemaOcorrencias('${id}', true)" src="imagens/home.png">
+                    ${spanNumOrcs}
                     ${criarOrcamento}
                 </div>
-                ${modeloCampos('', 'AC SOLUÇÕES')}
-                ${existeAntigo}
-                ${modeloCampos('Unidade', cliente?.nome)}
-                ${modeloCampos('Endereço', cliente?.endereco)}
-                ${modeloCampos('Bairro', cliente?.bairro)}
-                ${modeloCampos('Cidade', cliente?.cidade)}
-                ${modeloCampos('Descrição', `<div style="white-space: pre-wrap;">${descricao}</div>`)}
-                ${modeloCampos('Criado por', criador)}
-                ${modeloCampos('Data Registro', ocorrencia?.data_registro || '')}
-                ${modeloCampos('Empresa', empresa)}
-                ${modeloCampos('Tipo', tipo)}
-                ${modeloCampos('Sistema', sistema)}
-                ${modeloCampos('Prioridade', prioridade)}
 
-                ${modeloCampos('Equipamentos', tabEquipamentos(equipamentos || {}))}
-
-                ${modeloCampos(
-        'Anexos',
-        divAnexos
-            ? `<div id="anexos" style="${vertical};">
-                    ${divAnexos || 'Sem anexos'}
-                </div>`
-            : 'Sem anexos')}
-
-            ${modeloCampos('Fotos', imagens ? imagensExistentes : 'Sem Imagens')}
+                <div class="bloco-principal">${blocoPrincipal}</div>
+                <div class="bloco-st"></div>
 
             </div>
 
-            <div class="bloco-linha">
+            <div id="correcoes" class="bloco-linha">
                 ${divCorrecoes.correcoes}
             </div>
         </div>`
@@ -684,21 +711,467 @@ function criarLinhaOcorrencia(ocorrencia) {
 
 }
 
-async function verDetalhesOrc(idOcorrencia) {
-    overlayAguarde()
+async function abrirEsquemaOcorrencias(chave, principal) {
 
-    const pesquisa = await pesquisarDB({
-        base: 'dados_orcamentos',
-        filtros: {
-            'dados_orcam.contrato': { op: '=', value: idOcorrencia }
+    const { permissao } = JSON.parse(localStorage.getItem('acesso')) || {}
+
+    if (['cliente', 'técnico'].includes(permissao))
+        return
+
+    const [id, orc] = chave.includes('.')
+        ? chave.split('.')
+        : [chave, null]
+
+    const bloco = document.getElementById(id)
+
+    if (!bloco)
+        return
+
+    const blocoPrincipal = bloco.querySelector('.bloco-principal')
+    const blocoStatus = bloco.querySelector('.bloco-st')
+    const linhaCorrecoes = bloco.querySelector('#correcoes')
+
+    if (blocoPrincipal)
+        blocoPrincipal.style.display = principal ? 'flex' : 'none'
+
+    if (linhaCorrecoes)
+        linhaCorrecoes.style.display = principal ? 'flex' : 'none'
+
+    blocoStatus.style.display = principal ? 'none' : 'flex'
+
+    if (principal) {
+        blocoStatus.innerHTML = ''
+        return
+    }
+
+    const slots = Object.keys(esquemaBtnStatus)
+        .map(c => {
+
+            const botoes = esquemaBtnStatus[c]
+                .map(({ titulo, cor, funcao }) => {
+
+                    return `
+                        <button
+                        style="background-color: ${cor};" 
+                        onclick="${funcao}">
+                            ${titulo}
+                        </button>`
+                })
+                .join('')
+
+            return `
+            <div style="${vertical}; gap: 2px;">
+                ${botoes}
+                <div id="${c}"></div>
+            </div>
+            `
+        })
+        .join('')
+
+    const elemento = `
+        <div class="barra-status">
+            ${slots}
+        </div>
+    `
+
+    blocoStatus.innerHTML = elemento
+
+    carregarTabStatus(id, orc)
+}
+
+async function carregarTabStatus(id, orc) {
+    const local = document.getElementById(id)
+
+    // Verificar se existe outra tela de status ativa;
+    const ativo = controles?.ocorrencias?.ativo
+
+    if (ativo && ativo !== id)
+        await abrirEsquemaOcorrencias(ativo, true)
+
+    controles.ocorrencias.ativo = id
+
+    // Mapeia o array esquemaBtnStatus para um array de Promises
+    const promessasTabs = Object.keys(esquemaBtnStatus).map(async (t) => {
+
+        // Padrão;
+        const dados = {
+            base: t,
+            body: `body${t}`,
+            pag: t,
+            filtros: {
+                departamento: { op: 'includes', value: orc ? orc : id }
+            },
+            criarLinha: `lin${inicialMaiuscula(t)}`
         }
+
+        if (t == 'levantamentos' || t == 'finalizado') {
+            dados.base = 'anexos'
+            dados.criarLinha = 'linAnexos'
+            dados.filtros.origem = {
+                op: '=',
+                value: t == 'levantamentos'
+                    ? 'LEVANTAMENTO'
+                    : 'FINALIZADO'
+            }
+        }
+
+        const tabela = await modTab(dados)
+
+        const bloco = local.querySelector(`#${t}`)
+        if (bloco) {
+            bloco.innerHTML = tabela
+        }
+
+        await paginacao(t)
     })
 
-    const idOrcamento = pesquisa?.resultados?.[0]?.id
-    if (idOrcamento)
-        await abrirAtalhos(idOrcamento)
+    // Aguarda todas as abas carregarem e renderizarem simultaneamente
+    await Promise.all(promessasTabs)
+}
 
-    removerOverlay()
+async function linPedidos(ped) {
+
+    const {
+        id,
+        data,
+        comentario,
+        executor,
+        empresa,
+        pagamento,
+        pedido,
+        tipo,
+        valor,
+        anexos,
+        fotos,
+        autorizado_por
+    } = ped
+
+    const tabela = 'pedidos'
+    const cor = '#4CAF50'
+
+    const excluir = (executor == acesso.usuario || acesso.permissao == 'adm')
+        ? `<span 
+            class="close" 
+            style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
+            onclick="apagarGenerico('${id}', 'pedidos')">&times;</span>`
+        : ''
+
+    const bloco = `
+        <div class="bloco-status" style="border: 1px solid ${cor};">
+
+            <div class="bloco-status-interno" style="background-color: ${cor}1f;">
+
+                ${excluir}
+                ${labelDestaque('Executor', executor)}
+                ${labelDestaque('Data', data)}
+                ${labelDestaque('Comentário', comentario)}
+                ${labelDestaque('Empresa a faturar', empresa)}
+                ${labelDestaque('Pagamento', pagamento)}
+                ${labelDestaque('Pedido', pedido)}
+                ${labelDestaque('Autorizado por', autorizado_por)}
+                ${labelDestaque('Valor', dinheiro(valor || 0))}
+                ${labelDestaque('Tipo', tipo)}
+                ${botaoAnexoStatus({ id, tabela, cor })}
+                ${botaoFotoStatus({ id, tabela, cor })}
+                ${botaoEditarStatus({ id, cor, funcao: `painelAdicionarPedido('${id}')` })}
+
+                <br>
+
+                ${blocoAnexosCompleto({ id, tabela, anexos })}
+                ${blocoFotosCompleto({ id, tabela, fotos })}
+
+            </div>
+
+        </div>
+    `
+
+    return `
+        <tr>
+            <td>${bloco}</td>
+        </tr>
+    `
+
+}
+
+async function linRequisicoes(req) {
+
+    const {
+        data,
+        comentario,
+        id,
+        executor,
+        fotos,
+        anexos,
+        total_requisicao,
+        volumes,
+        transportadora,
+        snapshots
+    } = req
+
+    const cor = '#B12425'
+    const tabela = 'requisicoes'
+    const { pedido } = await recuperarDado('pedidos', req?.pedido) || {}
+
+    const excluir = (executor == acesso.usuario || acesso.permissao == 'adm')
+        ? `<span 
+            class="close" 
+            style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
+            onclick="apagarGenerico('${id}', 'requisicoes')">&times;</span>`
+        : ''
+
+    const bloco = `
+        <div class="bloco-status" style="border: 1px solid ${cor};">
+
+            <div class="bloco-status-interno" style="background-color: ${cor}1f;">
+                ${excluir}
+                ${labelDestaque('Executor', executor)}
+                ${labelDestaque('Data', data)}
+                ${labelDestaque('Comentário', comentario)}
+                ${labelDestaque('Nº Pedido', pedido)}
+                ${labelDestaque('Total Requisição', dinheiro(total_requisicao))}
+                ${labelDestaque('Transportadora', transportadora)}
+                ${labelDestaque('Volumes', volumes)}
+                ${botaoAnexoStatus({ id, tabela, cor })}
+                ${botaoFotoStatus({ id, tabela, cor })}
+                ${botaoEditarStatus({ id, cor, funcao: `formularioRequisicao('${id}')` })}
+
+
+                <div style="background-color: ${cor};" 
+                    class="contorno-botoes" onclick="gerarPdfRequisicao('${id}', true)">
+                    <img src="imagens/pdfw.png" style="width: 1.5rem;">
+                    <label>Visualizar</label>
+                </div>
+
+                <div style="background-color: ${cor}"
+                    class="contorno-botoes" 
+                    onclick="gerarPdfRequisicao('${id}')">
+                    <img src="imagens/pdfw.png" style="width: 1.5rem;">
+                    <label>Baixar PDF</label>
+                </div>
+
+                <br>
+
+                ${blocoAnexosCompleto({ id, tabela, anexos })}
+                ${blocoFotosCompleto({ id, tabela, fotos })}
+
+            </div>
+
+        </div>`
+
+    return `
+    <tr>
+        <td>${bloco}</td>
+    </tr>
+    `
+
+}
+
+async function linNotas(nota) {
+
+    const {
+        id,
+        data,
+        comentario,
+        executor,
+        n_nota,
+        total,
+        categoria,
+        d_emi_inicial,
+        anexos,
+        fotos
+    } = nota
+
+    const cor = '#ff4500'
+    const tabela = 'notas'
+    const excluir = (executor == acesso.usuario || acesso.permissao == 'adm')
+        ? `<span 
+            class="close" 
+            style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
+            onclick="apagarGenerico('${id}', 'notas')">&times;</span>`
+        : ''
+
+    const bloco = `
+        <div class="bloco-status" style="border: 1px solid ${cor};">
+
+            <div class="bloco-status-interno" style="background-color: ${cor}1f;">
+
+                ${excluir}
+                ${labelDestaque('Executor', executor || 'Integração')}
+                ${labelDestaque('Data', data)}
+                ${labelDestaque('Comentário', comentario)}
+                ${labelDestaque('Nota', n_nota)}
+                ${labelDestaque('Tipo', categoria)}
+                ${labelDestaque('Valor', dinheiro(total))}
+                ${labelDestaque('Data Emissão', d_emi_inicial)}
+                ${botaoAnexoStatus({ id, tabela: 'notas', cor })}
+                ${botaoFotoStatus({ id, tabela, cor })}
+                ${botaoEditarStatus({ id, cor, funcao: `adicionarNotaAvulsa('${id}')` })}
+
+                <br>
+
+                ${blocoAnexosCompleto({ id, tabela, anexos })}
+                ${blocoFotosCompleto({ id, tabela, fotos })}
+
+            </div>
+
+        </div>
+    `
+
+    return `
+        <tr>
+            <td>${bloco}</td>
+        </tr>
+    `
+
+}
+
+async function linParceiros(par) {
+
+    const {
+        id,
+        data,
+        comentario,
+        executor,
+        itens,
+        margem,
+        tecnicos,
+        anexos,
+        fotos,
+        totais
+    } = par
+
+    const cor = '#0062d5'
+    const tabela = 'parceiros'
+    const excluir = (executor == acesso.usuario || acesso.permissao == 'adm')
+        ? `<span 
+            class="close" 
+            style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
+            onclick="apagarGenerico('${id}', 'parceiros')">&times;</span>`
+        : ''
+
+    const bloco = `
+        <div class="bloco-status" style="border: 1px solid ${cor};">
+
+            <div class="bloco-status-interno" style="background-color: ${cor}1f;">
+
+                ${excluir}
+                ${labelDestaque('Executor', executor)}
+                ${labelDestaque('Data', data)}
+                ${labelDestaque('Comentário', comentario)}
+                ${labelDestaque('Total Parceiro', dinheiro(totais?.parceiro))}
+                ${labelDestaque('Magem Disponível', dinheiro(totais?.margem))}
+                ${labelDestaque('Desvio', dinheiro(totais?.desvio))}
+                ${botaoAnexoStatus({ id, tabela: 'parceiros', cor })}
+                ${botaoFotoStatus({ id, tabela, cor })}
+                ${botaoEditarStatus({ id, cor, funcao: `formularioParceiro('${id}')` })}
+
+                <div style="background-color: ${cor}" 
+                    class="contorno-botoes" 
+                    onclick="gerarPdfParceiro('${id}', true)">
+                    <img src="imagens/pdfw.png" style="width: 1.5rem;">
+                    <label>Visualizar</label>
+                </div>
+
+                <div style="background-color: ${cor}" 
+                    class="contorno-botoes" 
+                    onclick="gerarPdfParceiro('${id}')">
+                    <img src="imagens/pdfw.png" style="width: 1.5rem;">
+                    <label>Baixar PDF</label>
+                </div>
+
+                <br>
+
+                ${blocoAnexosCompleto({ id, tabela, anexos })}
+                ${blocoFotosCompleto({ id, tabela, fotos })}
+
+            </div>
+
+        </div>
+    `
+
+    return `
+        <tr>
+            <td>${bloco}</td>
+        </tr>
+    `
+
+}
+
+async function linMateriais(mat) {
+
+    const {
+        id,
+        data,
+        comentario,
+        executor,
+        rastreio,
+        transportadora,
+        data_saida,
+        previsao,
+        anexos,
+        fotos
+    } = mat
+
+    const cor = '#b17724'
+    const tabela = 'materiais'
+    const excluir = (executor == acesso.usuario || acesso.permissao == 'adm')
+        ? `<span 
+            class="close" 
+            style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
+            onclick="apagarGenerico('${id}', 'materiais')">&times;</span>`
+        : ''
+
+    const bloco = `
+        <div class="bloco-status" style="border: 1px solid ${cor};">
+
+            <div class="bloco-status-interno" style="background-color: ${cor}1f;">
+
+                ${excluir}
+                ${labelDestaque('Executor', executor)}
+                ${labelDestaque('Data', data)}
+                ${labelDestaque('Comentário', comentario)}
+                ${labelDestaque('Rastreio', rastreio)}
+                ${labelDestaque('Transportadora', transportadora)}
+                ${labelDestaque('Data de Saída', conversorData(data_saida))}
+                ${labelDestaque('Data de Entrega', conversorData(previsao))}
+                ${botaoAnexoStatus({ id, tabela: 'materiais', cor })}
+                ${botaoFotoStatus({ id, tabela, cor })}
+                ${botaoEditarStatus({ id, cor, funcao: `envioMaterial('${id}')` })}
+
+                <br>
+
+                ${blocoAnexosCompleto({ id, tabela, anexos })}
+                ${blocoFotosCompleto({ id, tabela, fotos })}
+
+            </div>
+
+        </div>
+    `
+
+    return `
+        <tr>
+            <td>${bloco}</td>
+        </tr>
+    `
+
+}
+
+async function linAnexos(doc) {
+
+    const {
+        id,
+        link,
+        formato,
+        nome
+    } = doc || {}
+
+    return `
+    <tr>
+        <td>
+            ${criarAnexoVisual(nome, link, `confirmarExclusaoDocAdicional('${id}')`)}
+        </td>
+    </tr>
+    `
 
 }
 

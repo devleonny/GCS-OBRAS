@@ -17,6 +17,7 @@ async function recuperarDado(base, chave) {
         const texto = await resposta.text()
 
         if (!resposta.ok) {
+
             if (texto.includes('inv￡lido'))
                 location.reload(true)
 
@@ -52,6 +53,10 @@ async function pesquisarDB(params) {
 
     if (!resposta.ok) {
         const erro = await resposta.text()
+
+        if (erro.includes('inv￡lido'))
+            location.reload(true)
+
         throw new Error(erro || 'Erro ao pesquisar')
     }
 
@@ -148,7 +153,7 @@ async function deletar(caminho) {
         return data
 
     } catch (erro) {
-        console.error(`Erro ao tentar deletar '${caminho}':`, erro.message || erro)
+        popup({ mensagem: `Erro ao tentar deletar '${caminho}': ${erro.message || erro}` })
         removerOverlay()
         return null
     }

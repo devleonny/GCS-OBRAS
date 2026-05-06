@@ -140,32 +140,6 @@ async function recuperarLPUS() {
         LPUS = resposta.lpus
 }
 
-async function lembreteNotas() {
-
-    const notas = Object
-        .values(db?.informacoes?.notas?.objeto || {})
-        .map(n => {
-            return `
-            <div style="${horizontal}; gap: 1rem;">
-                <img src="imagens/pesquisar2.png" onclick="abrirEsquema('${n.idOrcamento}')">
-                <span class="etiqueta-atrasado"><b>${n.nNota}</b> ${n.status} </span>
-            </div>
-            `
-        })
-        .join('')
-
-    const elemento = `
-        <div class="painel-notas">
-            <span>Notas Canceladas, etc</span>
-            <hr>
-            ${notas}
-        </div>
-    `
-
-    popup({ elemento })
-
-}
-
 async function salvarDepartamento(img) {
 
     overlayAguarde()
@@ -462,90 +436,6 @@ async function irPdf(id, emAnalise) {
     localStorage.setItem('pdf', JSON.stringify(orcamento))
 
     window.open('pdf.html', '_blank')
-
-}
-
-
-async function salvarLevantamento(idOrcamento, idElemento) {
-
-    overlayAguarde()
-
-    const input = document.getElementById(idElemento || 'adicionar_levantamento')
-    const marcador = input?.dataset?.finalizado == 'S'
-
-    try {
-        const anexos = await importarAnexos({ input }) // Nova função de upload
-
-        const anexoDados = {}
-        anexos.forEach(anexo => {
-            if (marcador) anexo.finalizado = 'S'
-            const idAnexo = ID5digitos()
-            anexoDados[idAnexo] = anexo
-        })
-
-        if (idOrcamento) {
-
-            const orcamentoBase = await recuperarDado('dados_orcamentos', idOrcamento) || {}
-
-            orcamentoBase.levantamentos ??= {}
-
-            Object.assign(orcamentoBase.levantamentos, anexoDados)
-
-            for (const [idAnexo, anexo] of Object.entries(anexoDados)) {
-                await enviar(`dados_orcamentos/${idOrcamento}/levantamentos/${idAnexo}`, anexo)
-            }
-
-        } else {
-
-            const orcamentoBase = baseOrcamento()
-
-            orcamentoBase.levantamentos ??= {}
-
-            Object.assign(orcamentoBase.levantamentos, anexoDados)
-            baseOrcamento(orcamentoBase)
-        }
-
-        // Retornar as telas específicas;
-        const painelC = document.querySelector('.painel-clientes')
-        if (painelC) return await painelClientes(idOrcamento)
-
-        const painelH = document.querySelector('.painel-historico')
-        if (painelH) return await abrirEsquema(idOrcamento)
-
-        if (idOrcamento) return await abrirEsquema(idOrcamento)
-
-    } catch (error) {
-        popup({ mensagem: `Erro ao fazer upload: ${error.message}`, })
-    }
-}
-
-async function excluirLevantamentoStatus(idAnexo, id) {
-
-    overlayAguarde()
-
-    const orcamento = id
-        ? await recuperarDado('dados_orcamentos', id)
-        : baseOrcamento()
-
-    delete orcamento.levantamentos[idAnexo]
-
-    if (id) {
-        await deletar(`dados_orcamentos/${id}/levantamentos/${idAnexo}`)
-    } else {
-        baseOrcamento(orcamento)
-    }
-
-    // Retornar as telas específicas;
-    const painelC = document.querySelector('.painel-clientes')
-    if (painelC)
-        return await painelClientes(id)
-
-    const painelH = document.querySelector('.painel-historico')
-    if (painelH)
-        return await abrirEsquema(id)
-
-    if (id)
-        return await abrirEsquema(id)
 
 }
 

@@ -148,10 +148,6 @@ async function f2() {
             `
         },
         {
-            texto: 'Notas',
-            elemento: `<button onclick="lembreteNotas()">Ver Notas Canceladas/Devolvidas</button>`
-        },
-        {
             texto: 'Criar uma LPU',
             elemento: `<button onclick="formularioLPU()">Criar</button>`
         }
@@ -285,23 +281,52 @@ async function reprocessarOffline() {
 
 function criarAnexoVisual(nome, link, funcao) {
 
-    let displayExcluir = 'flex'
+    const formImg = ['jpg', 'jpeg', 'png']
+    const regex = /\.([^.]+)$/
+    const resultado = nome.match(regex)
+    const formato = resultado ? resultado[1] : null
 
-    if (!funcao) displayExcluir = 'none'
+    // Formato imagem;
+    if (formImg.includes(formato)) {
 
-    // Formata o nome para exibição curta
-    const nomeFormatado = nome.length > 15
-        ? `${nome.slice(0, 6)}...${nome.slice(-6)}`
-        : nome;
+        const excluir = funcao
+            ? `<img onclick="${funcao}" src="imagens/cancel.png" style="position: absolute; top: 2px; right: 2px; width: 1.5rem;">`
+            : ''
 
-    return `
-        <div class="contorno-anexos" name="${link}">
-            <div onclick="abrirArquivo('${link}')" class="contorno_interno" style="width: 100%; display: flex; align-items: center; justify-content: start; gap: 2px;">
-                <img src="imagens/anexo2.png" style="width: 1.5rem;">
-                <label style="font-size: 0.7rem; cursor: pointer;" title="${nome}">${nomeFormatado}</label>
+        return `
+            <div style="position: relative; width: max-content;">
+                ${excluir}
+                <img
+                    class="foto-status"
+                    id="${link}"
+                    src="${api}/uploads/${link}"
+                    onclick="ampliarImagem(this, '${link}')">
             </div>
-            <img src="imagens/cancel.png" style="display: ${displayExcluir}; width: 1.5rem; cursor: pointer;" onclick="${funcao}">
-        </div>`
+        `
+
+    } else {
+
+        const nomeFormatado = nome.length > 15
+            ? `${nome.slice(0, 6)}...${nome.slice(-6)}`
+            : nome;
+
+        const excluir = funcao
+            ? `<img src="imagens/cancel.png" style="width: 1.5rem;" onclick="${funcao}">`
+            : ''
+
+        return `
+            <div class="contorno-anexos" name="${link}">
+                <div onclick="abrirArquivo('${link}')" 
+                class="contorno-iterno" 
+                style="width: 100%; display: flex; align-items: center; justify-content: start; gap: 2px;">
+                    <img src="imagens/anexo2.png" style="width: 1.5rem;">
+                    <label style="font-size: 0.7rem; cursor: pointer;" title="${nome}">${nomeFormatado}</label>
+                    ${excluir}
+                </div>
+            </div>
+        `
+    }
+
 }
 
 function dicionario(item) {
