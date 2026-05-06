@@ -1,12 +1,36 @@
+const stLista = [
+    'EM ANDAMENTO',
+    'OBRA PARALISADA',
+    'CONCLUÍDO',
+    'POC EM ANDAMENTO'
+]
+
 function formatacaoPagina() {
 
     const pag = 'orcamentos'
-    const status = controles?.orcamentos?.filtros?.['snapshots.ultimaCorrecao']?.value
+    let status = ''
+
+    if (controles?.[pag]?.filtros?.['snapshots.prioridade']) {
+        status = 'prioridades'
+
+    } else if (controles?.[pag]?.filtros?.['chamado']) {
+        status = 'chamados'
+
+    } else if (controles?.[pag]?.filtros?.['preventiva']) {
+        status = 'preventiva'
+
+    } else {
+        const pesq = controles?.[pag]?.filtros?.['status.atual']
+        status = pesq?.op == 'IS_EMPTY'
+            ? 'SEM STATUS'
+            : pesq?.value || 'todos'
+    }
+
     const abas = document.querySelectorAll('.aba-toolbar')
 
     abas.forEach(a => a.style.opacity = 0.5)
 
-    const aba = document.querySelector(`[name="${status ? status : 'todos'}"]`)
+    const aba = document.querySelector(`[name="${status}"]`)
     if (aba) aba.style.opacity = 1
 
 }
@@ -21,31 +45,30 @@ async function telaOrcamentos() {
 
     const colunas = {
         'Última alteração': { chave: 'lpu_ativa' },
+        'Status': { chave: 'status.atual' },
         'Pedido': { chave: 'snapshots.pedidos' },
         'Notas': { chave: 'snapshots.notas' },
         'Tags': { chave: 'snapshots.tags.*.nome' },
         'Contrato': { chave: 'snapshots.contrato' },
         'Cidade': { chave: 'snapshots.cidade' },
-        'Status em Ocorrências': { chave: 'snapshots.ultimaCorrecao' },
+        'Status em Ocorrências': {},
         'Responsaveis': { chave: 'snapshots.responsavel' },
         'Resumo': {},
         'Total do Orçamento': { chave: 'snapshots.valor' },
         'Ações': {}
     }
 
-    const pag = 'orcamentos'
     const tabela = await modTab({
         funcaoAdicional: ['formatacaoPagina'],
         colunas,
-        pag,
         ordenar: {
-            direcao: 'DESC',
-            path: 'dados_orcam.data',
-            tipo: 'data_br'
+            path: 'snapshots.tsUltimoStatus',
+            direcao: 'desc'
         },
         base: 'dados_orcamentos',
         criarLinha: 'criarLinhaOrcamento',
         body: 'linhas',
+        pag: 'orcamentos',
         substituicoes: [
             {
                 path: 'dados_orcam.contrato',
@@ -53,6 +76,13 @@ async function telaOrcamentos() {
                 campoBusca: 'descricao',
                 retorno: 'descricao',
                 destino: 'departamentoExistente'
+            },
+            {
+                path: 'dados_orcam.contrato',
+                tabela: 'dados_ocorrencias',
+                campoBusca: 'id',
+                retorno: 'snapshots.ultimaCorrecao',
+                destino: 'ultimaCorrecao'
             }
         ]
     })
@@ -71,11 +101,32 @@ async function telaOrcamentos() {
 
     tela.innerHTML = acumulado
 
-    await paginacao(pag)
+    controles.orcamentos.filtros = {
+        ...controles.orcamentos.filtros,
+        'dados_orcam': { op: 'NOT_EMPTY' },
+        'arquivado': { op: '!=', value: 'S' }
+    }
+
     await carregarToolbar()
+    await paginacao()
 
     removerOverlay()
 
+}
+
+async function mudarInterruptor(el) {
+    const ativo = el.checked
+    const label = el.parentElement
+    const chave = el.dataset.chave
+
+    controles.orcamentos.filtros[chave] = { op: ativo ? '=' : '!=', value: 'S' }
+    await paginacao()
+
+    const track = label.querySelector('.track')
+    const thumb = label.querySelector('.thumb')
+
+    if (track) track.style.backgroundColor = ativo ? '#4caf50' : '#ccc'
+    if (thumb) thumb.style.transform = ativo ? 'translateX(26px)' : 'translateX(0)'
 }
 
 function scrollar(direcao) {
@@ -189,7 +240,7 @@ async function criarLinhaOrcamento(orcamento) {
             ${contrato !== numOficial ? `<div style="${horizontal}; justify-content: end; width: 100%; color: #5f5f5f;"><small>${contrato}</small></div>` : ''}
         </div>`
 
-        // Tags;        
+        // Tags;
         const listaTags = Object.values(snapshots?.tags || {})
             .map(tag => modeloTag(tag, id))
             .join('')
@@ -199,10 +250,14 @@ async function criarLinhaOrcamento(orcamento) {
             <div style="${vertical}">
                 <span><b>${orcamento?.lpu_ativa || ''}</b></span>
                 <span>${data}</span>
-                <br>
-                <div style="${horizontal}; width: 100%; justify-content: start; gap: 5px;">
-                    <img src="imagens/${departamentoExistente ? 'concluido' : 'cancel'}.png" style="width: 1.5rem;">
+            </div>
+        </td>
+            <td>
+            <div style="${vertical}; gap: 5px;">
+                ${seletorStatus(orcamento)}
+                <div style="${horizontal}; width: 100%; justify-content: end; gap: 5px;">
                     <span>Dep</span>
+                    <img src="imagens/${departamentoExistente ? 'concluido' : 'cancel'}.png" style="width: 1.5rem;">
                 </div>
             </div>
         </td>
@@ -257,6 +312,108 @@ async function criarLinhaOrcamento(orcamento) {
 
     }
 
+}
+
+function seletorStatus(orcamento) {
+
+    const { id, status, snapshots } = orcamento || {}
+
+    const st = status?.atual || ''
+
+    // Comentários nos status;
+    const info = Object
+        .values(status?.historicoStatus || {})
+        .filter(s => (s.info && s.info !== ''))
+
+    const opcoes = ['', ...fluxograma]
+        .sort((a, b) => a.localeCompare(b))
+        .map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`)
+        .join('')
+
+    const autorizado =
+        snapshots?.responsavel?.includes(acesso.usuario)
+        || permAltStatus.includes(acesso?.permissao)
+        || acesso?.setor == 'LOGÍSTICA'
+
+    const campo = autorizado
+        ? `
+            <select name="status" class="opcoesSelect" onchange="alterarStatus('${id}', this)">
+                ${opcoes}
+            </select>`
+        : `<span>${st}</span>`
+
+    const elemento = `
+        <div style="${horizontal}; gap: 2px;">
+            <img onclick="mostrarInfo('${id}')" src="imagens/observacao${info.length > 0 ? '' : '_off'}.png">
+            ${campo}
+        </div>`
+
+    return elemento
+}
+
+function seletorStatus(orcamento) {
+
+    const { id, status, snapshots } = orcamento || {}
+
+    const st = status?.atual || ''
+
+    // Comentários nos status;
+    const info = Object
+        .values(status?.historicoStatus || {})
+        .filter(s => (s.info && s.info !== ''))
+
+    const opcoes = ['', ...fluxograma]
+        .sort((a, b) => a.localeCompare(b))
+        .map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`)
+        .join('')
+
+    const autorizado =
+        snapshots?.responsavel?.includes(acesso.usuario)
+        || permAltStatus.includes(acesso?.permissao)
+        || acesso?.setor == 'LOGÍSTICA'
+
+    const campo = autorizado
+        ? `
+            <select name="status" class="opcoesSelect" onchange="alterarStatus('${id}', this)">
+                ${opcoes}
+            </select>`
+        : `<span>${st}</span>`
+
+    const elemento = `
+        <div style="${horizontal}; gap: 2px;">
+            <img onclick="mostrarInfo('${id}')" src="imagens/observacao${info.length > 0 ? '' : '_off'}.png">
+            ${campo}
+        </div>`
+
+    return elemento
+}
+
+function verificarPrioridade(orcamento) {
+
+    const acoes = orcamento?.pda?.acoes || {}
+    let prioridade = 3 // Baixa prioridade;
+
+    const souResponsavel = Object
+        .values(acoes)
+        .some(a => a.responsavel == acesso.usuario && a.status == 'pendente')
+
+    // Sou responsável e a ação está pendente; TRUE
+    if (souResponsavel) return 0
+
+    const stLiberado = Object
+        .values(orcamento?.status?.historicoStatus || {})
+        .some(h => stLista.includes(h.para))
+
+    if (stLiberado) return prioridade
+
+    const inicio = new Date(orcamento?.inicio)
+    const hoje = new Date()
+    const diffDias = Math.abs(hoje - inicio) / (1000 * 60 * 60 * 24)
+    if (diffDias < 7) prioridade = 0
+    else if (diffDias < 14) prioridade = 1
+    else if (diffDias < 21) prioridade = 2
+
+    return prioridade
 }
 
 async function editar(id) {
@@ -317,30 +474,50 @@ async function duplicar(orcam_) {
 
 async function carregarToolbar() {
 
-    const contagem = await contarPorCampo({
-        base: 'dados_orcamentos',
-        path: 'snapshots.ultimaCorrecao'
-    })
+    const filtros = {
+        'dados_orcam': { op: 'NOT_EMPTY' },
+        'arquivado': { op: '!=', value: 'S' }
+    }
+
+    const cont1 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'status.atual' })
+    const cont2 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'chamado' })
+    const cont3 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'snapshots.prioridade' })
+    const cont4 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'preventiva' })
+
+    const contToolbar = {
+        ...cont1,
+        'preventiva': cont4['S'],
+        'SEM STATUS': cont1['EM BRANCO'] || 0,
+        'chamados': cont2['S'],
+        'prioridades': ((cont3[0] || 0) + (cont3[1] || 0) + (cont3[2] || 0))
+    }
 
     const toolbar = document.getElementById('toolbar')
+    const fluxogramaCompleto = ['prioridades', 'chamados', 'preventiva', 'todos', ...fluxograma]
 
-    for (const [titulo, quantidade] of Object.entries(contagem)) {
+    for (const campo of fluxogramaCompleto) {
 
-        const tool = toolbar.querySelector(`[name="${titulo}"]`)
+        const contagem = contToolbar[campo] || 0
 
+        const tool = toolbar.querySelector(`[name="${campo}"]`)
         if (tool) {
-            tool.querySelector('span').textContent = quantidade
+            tool.querySelector('span').textContent = contagem
             continue
         }
 
+        const f = campo == 'VENDA DIRETA'
+            ? 'style="background: linear-gradient(45deg, #222, #b12425);"'
+            : ''
+
         const novaTool = `
-            <div style="opacity: 0.5; height: 3rem;"
+            <div
+                style="opacity: 0.5; height: 3rem;"
                 class="aba-toolbar"
-                data-status="${titulo}"
-                name="${titulo}"
-                onclick="filtrarToolbar('${titulo}')">
-                <label>${titulo.toUpperCase()}</label>
-                <span>${quantidade}</span>
+                data-status="${campo}"
+                name="${campo}"
+                onclick="filtrarToolbar('${campo}')">
+                <label>${campo.toUpperCase()}</label>
+                <span ${f}>${contagem}</span>
             </div>
             `
         toolbar.insertAdjacentHTML('beforeend', novaTool)
@@ -350,16 +527,32 @@ async function carregarToolbar() {
 
 async function filtrarToolbar(campo) {
 
-    controles.orcamentos.pagina = 1
-    controles.orcamentos.filtros = {
-        ...controles.orcamentos.filtros,
-        'snapshots.ultimaCorrecao': { op: '=', value: campo }
+    const filtros = {
+        'dados_orcam': { op: 'NOT_EMPTY' },
+        'arquivado': { op: '!=', value: 'S' }
     }
 
-    if (campo == 'todos')
-        delete controles.orcamentos.filtros['snapshots.ultimaCorrecao']
+    if (campo == 'chamados') {
+        filtros['chamado'] = { op: '=', value: 'S' }
 
-    await paginacao('orcamentos')
+    } else if (campo == 'SEM STATUS') {
+        filtros['status.atual'] = { op: 'IS_EMPTY' }
+
+    } else if (campo == 'prioridades') {
+        filtros['snapshots.prioridade'] = { op: '<', value: 3 }
+
+    } else if (campo == 'preventiva') {
+        filtros['preventiva'] = { op: '=', value: 'S' }
+
+    } else if (campo !== 'todos') { // Demais campos, exceto 'todos';
+        filtros['status.atual'] = { op: '=', value: campo }
+
+    }
+
+    controles.orcamentos.pagina = 1
+    controles.orcamentos.filtros = filtros
+
+    await paginacao()
 
 }
 
@@ -373,7 +566,11 @@ async function baixarExcelOrcamentos() {
                 type: "LEFT",
                 table: "dados_clientes_ac",
                 alias: "c",
-                on: "c.id::text = o.dados_orcam ->> 'omie_cliente'"
+                on: `
+                    c.id = json_extract(
+                        CASE WHEN json_valid(o.dados_orcam) THEN o.dados_orcam ELSE '{}' END,
+                        '$.omie_cliente'
+                    )`
             },
             {
                 type: "LEFT",
