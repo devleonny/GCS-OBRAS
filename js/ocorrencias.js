@@ -581,7 +581,7 @@ async function contadoresMapaOcorrencias() {
 function criarLinhaOcorrencia(ocorrencia) {
 
     const { id, fotos, correcoes, anexos, usuario, id_antigo, snapshots, equipamentos } = ocorrencia || {}
-    const { sistema, prioridade, tipo, cliente, empresa } = snapshots || {}
+    const { sistema, prioridade, tipo, cliente, empresa, vinculados } = snapshots || {}
 
     const imagens = Object.entries(fotos || {})
         .map(([link,]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
@@ -634,14 +634,7 @@ function criarLinhaOcorrencia(ocorrencia) {
         ? `<button onclick="criarOrcamentoVinculado('${id}')">Criar orçamento</button>`
         : ''
 
-    const numOrcamentos = [
-        id,
-        ...Object.values(correcoes || {})
-            .filter(c => c.orcamento)
-            .map(c => c.orcamento)
-    ]
-
-    const spanNumOrcs = numOrcamentos
+    const spanNumOrcs = [id, vinculados].flat()
         .map(c => {
 
             const chave = c !== id

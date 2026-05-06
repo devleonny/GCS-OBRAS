@@ -129,10 +129,8 @@ async function criarLinhaOrcamento(orcamento) {
         const labelTipoCorrecao = ultimaCorrecao
             ? formatacaoTipoCorrecao(ultimaCorrecao)
             : ''
-
-        console.log(pedidos, notas)
-
-        const pedidosStatus = [] // (pedidos || [])
+        
+        const pedidosStatus = (pedidos || [])
             .map(({ tipo, pedido, valor, autorizadoPor }) => {
 
                 const label = `
@@ -148,7 +146,7 @@ async function criarLinhaOrcamento(orcamento) {
             .join('') 
         
 
-        const notasStatus = []//(notas || [])
+        const notasStatus = (notas || [])
             .map(({ categoria, n_nota, total }) => `
                 <div class="etiquetas" style="text-align: left; min-width: 100px;">
                     <label>${categoria || ''}</label>

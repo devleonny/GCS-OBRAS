@@ -489,9 +489,8 @@ async function vincularOrcamento(idOrcamento) {
         base: 'dados_orcamentos',
         retornar: ['snapshots.contrato'],
         colunas: {
-            'Nome': { chave: 'snapshots.cliente' },
-            'Tags': { chave: 'snapshots.tags' },
-            'Dados': { chave: 'snapshots.contrato' },
+            'Orçamento': { chave: 'snapshots.contrato' },
+            'Cidade': { chave: 'snapshots.cidade' },
             'Criado por': { chave: 'usuario' },
             'Responsáveis': { chave: 'snapshots.responsavel' }
         }
