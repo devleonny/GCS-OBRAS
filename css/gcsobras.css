@@ -1468,7 +1468,6 @@ input[type=range]::-moz-range-thumb {
 
 .opcoesSelect {
     min-width: 100px;
-    width: 80%;
     cursor: pointer;
     background-color: #f2f2f2;
     padding: 3px;

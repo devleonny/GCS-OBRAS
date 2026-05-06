@@ -1143,14 +1143,6 @@ async function painelClientes(idOrcamento) {
             elemento: `<input value="${dados_orcam?.contrato || 'ORC ...'}" readOnly>`
         },
         {
-            elemento: `
-            <div style="${horizontal}; gap: 3px;">
-                <span>Classificar orçamento na aba de <b>CHAMADO</b></span>
-                <input id="filtroChamado" ${styChek} type="checkbox" ${orcamento?.chamado == 'S' ? 'checked' : ''}>
-            </div>
-            `
-        },
-        {
             texto: 'Cliente',
             elemento: `
             <div style="${horizontal}; gap: 3px">
@@ -1390,13 +1382,6 @@ async function salvarDadosCliente(idOrcamento) {
 
         // Se não existir a chave contrato; sequencial fará que o servidor crie;
         orcamentoBase.dados_orcam.contrato ??= 'sequencial'
-
-        // Se o orçamento é chamado S / N;
-        const filtroChamado = el('filtroChamado')
-        const ehChamado = filtroChamado.checked
-            ? 'S'
-            : 'N'
-        orcamentoBase.chamado = ehChamado
 
         // Lógica da tag automática;
         const cliente = await recuperarDado('dados_clientes_ac', omie_cliente) || {}

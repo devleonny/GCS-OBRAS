@@ -62,7 +62,7 @@ async function telaOrcamentos() {
         funcaoAdicional: ['formatacaoPagina'],
         colunas,
         ordenar: {
-            path: 'snapshots.tsUltimoStatus',
+            path: 'timestamp',
             direcao: 'desc'
         },
         base: 'dados_orcamentos',
@@ -101,8 +101,8 @@ async function telaOrcamentos() {
 
     tela.innerHTML = acumulado
 
-    await carregarToolbar()
     await paginacao()
+    await carregarToolbar()
 
     removerOverlay()
 
@@ -206,7 +206,7 @@ async function criarLinhaOrcamento(orcamento) {
             .join(', ')
 
         // Labels do campo Contrato [Revisão, chamado, cliente, etc]
-        const { contrato, data } = dados_orcam || {}
+        const { contrato } = dados_orcam || {}
         const numOficial = String(dados_orcam?.chamado || contrato || '-').trim()
         const rAtual = orcamento?.revisoes?.atual
         const etiqRevAtual = rAtual
@@ -239,6 +239,7 @@ async function criarLinhaOrcamento(orcamento) {
             .map(tag => modeloTag(tag, id))
             .join('')
 
+        const data = new Date(timestamp).toLocaleString()
         const celulas = `
         <td>
             <div style="${vertical}">
@@ -310,76 +311,26 @@ async function criarLinhaOrcamento(orcamento) {
 
 function seletorStatus(orcamento) {
 
-    const { id, status, snapshots } = orcamento || {}
+    const { id, status } = orcamento || {}
 
     const st = status?.atual || ''
-
-    // Comentários nos status;
-    const info = Object
-        .values(status?.historicoStatus || {})
-        .filter(s => (s.info && s.info !== ''))
 
     const opcoes = ['', ...fluxograma]
         .sort((a, b) => a.localeCompare(b))
         .map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`)
         .join('')
 
-    const autorizado =
-        snapshots?.responsavel?.includes(acesso.usuario)
-        || permAltStatus.includes(acesso?.permissao)
-        || acesso?.setor == 'LOGÍSTICA'
+    return `
+        <select name="status" class="opcoesSelect" onchange="alterarStatus('${id}', this)">
+            ${opcoes}
+        </select>`
 
-    const campo = autorizado
-        ? `
-            <select name="status" class="opcoesSelect" onchange="alterarStatus('${id}', this)">
-                ${opcoes}
-            </select>`
-        : `<span>${st}</span>`
-
-    const elemento = `
-        <div style="${horizontal}; gap: 2px;">
-            <img onclick="mostrarInfo('${id}')" src="imagens/observacao${info.length > 0 ? '' : '_off'}.png">
-            ${campo}
-        </div>`
-
-    return elemento
 }
 
-function seletorStatus(orcamento) {
+async function alterarStatus(id, select) {
 
-    const { id, status, snapshots } = orcamento || {}
-
-    const st = status?.atual || ''
-
-    // Comentários nos status;
-    const info = Object
-        .values(status?.historicoStatus || {})
-        .filter(s => (s.info && s.info !== ''))
-
-    const opcoes = ['', ...fluxograma]
-        .sort((a, b) => a.localeCompare(b))
-        .map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`)
-        .join('')
-
-    const autorizado =
-        snapshots?.responsavel?.includes(acesso.usuario)
-        || permAltStatus.includes(acesso?.permissao)
-        || acesso?.setor == 'LOGÍSTICA'
-
-    const campo = autorizado
-        ? `
-            <select name="status" class="opcoesSelect" onchange="alterarStatus('${id}', this)">
-                ${opcoes}
-            </select>`
-        : `<span>${st}</span>`
-
-    const elemento = `
-        <div style="${horizontal}; gap: 2px;">
-            <img onclick="mostrarInfo('${id}')" src="imagens/observacao${info.length > 0 ? '' : '_off'}.png">
-            ${campo}
-        </div>`
-
-    return elemento
+    await enviar(`dados_orcamentos/${id}/status/atual`, select.value)
+    
 }
 
 function verificarPrioridade(orcamento) {
@@ -471,20 +422,16 @@ async function carregarToolbar() {
     const filtros = {}
 
     const cont1 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'status.atual' })
-    const cont2 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'chamado' })
-    const cont3 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'snapshots.prioridade' })
     const cont4 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'preventiva' })
 
     const contToolbar = {
         ...cont1,
         'preventiva': cont4['S'],
-        'SEM STATUS': cont1['EM BRANCO'] || 0,
-        'chamados': cont2['S'],
-        'prioridades': ((cont3[0] || 0) + (cont3[1] || 0) + (cont3[2] || 0))
+        'SEM STATUS': cont1['EM BRANCO'] || 0
     }
 
     const toolbar = document.getElementById('toolbar')
-    const fluxogramaCompleto = ['prioridades', 'chamados', 'preventiva', 'todos', ...fluxograma]
+    const fluxogramaCompleto = ['preventiva', 'todos', ...fluxograma]
 
     for (const campo of fluxogramaCompleto) {
 
