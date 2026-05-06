@@ -153,7 +153,7 @@ async function deletar(caminho) {
         return data
 
     } catch (erro) {
-        console.error(`Erro ao tentar deletar '${caminho}':`, erro.message || erro)
+        popup({ mensagem: `Erro ao tentar deletar '${caminho}': ${erro.message || erro}` })
         removerOverlay()
         return null
     }

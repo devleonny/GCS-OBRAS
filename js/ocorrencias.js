@@ -423,7 +423,7 @@ function carregarCorrecoes(ocorrencia) {
 
                     <div style="${vertical}; padding: 0.5rem;">
                         ${imagensExistentes}
-                        <div id="anexos" style="${vertical};">
+                        <div id="anexos" style="flex-wrap: wrap; display: flex; gap: 2px;">
                             ${anexos}
                         </div>
                     </div>
@@ -512,6 +512,11 @@ async function telaOcorrencias() {
         alinPag: vertical,
         funcaoAdicional: ['contadoresMapaOcorrencias'],
         base: 'dados_ocorrencias',
+        ordenar: {
+            direcao: 'DESC',
+            path: 'data_registro',
+            tipo: 'data_br'
+        },
         pag: 'ocorrencias',
         body: 'bodyOcorrencias',
         criarLinha: 'criarLinhaOcorrencia',
@@ -708,6 +713,11 @@ function criarLinhaOcorrencia(ocorrencia) {
 
 async function abrirEsquemaOcorrencias(chave, principal) {
 
+    const { permissao } = JSON.parse(localStorage.getItem('acesso')) || {}
+
+    if (['cliente', 'técnico'].includes(permissao))
+        return
+
     const [id, orc] = chave.includes('.')
         ? chave.split('.')
         : [chave, null]
@@ -831,9 +841,12 @@ async function linPedidos(ped) {
         pedido,
         tipo,
         valor,
+        anexos,
+        fotos,
         autorizado_por
     } = ped
 
+    const tabela = 'pedidos'
     const cor = '#4CAF50'
 
     const excluir = (executor == acesso.usuario || acesso.permissao == 'adm')
@@ -858,12 +871,14 @@ async function linPedidos(ped) {
                 ${labelDestaque('Autorizado por', autorizado_por)}
                 ${labelDestaque('Valor', dinheiro(valor || 0))}
                 ${labelDestaque('Tipo', tipo)}
+                ${botaoAnexoStatus({ id, tabela, cor })}
+                ${botaoFotoStatus({ id, tabela, cor })}
+                ${botaoEditarStatus({ id, cor, funcao: `painelAdicionarPedido('${id}')` })}
 
-                <div style="background-color: ${cor};" 
-                    class="contorno-botoes" onclick="painelAdicionarPedido('${id}')">
-                    <img src="imagens/editar4.png" style="width: 1.5rem;">
-                    <label>Editar</label>
-                </div>
+                <br>
+
+                ${blocoAnexosCompleto({ id, tabela, anexos })}
+                ${blocoFotosCompleto({ id, tabela, fotos })}
 
             </div>
 
@@ -894,7 +909,7 @@ async function linRequisicoes(req) {
     } = req
 
     const cor = '#B12425'
-
+    const tabela = 'requisicoes'
     const { pedido } = await recuperarDado('pedidos', req?.pedido) || {}
 
     const excluir = (executor == acesso.usuario || acesso.permissao == 'adm')
@@ -903,19 +918,6 @@ async function linRequisicoes(req) {
             style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
             onclick="apagarGenerico('${id}', 'requisicoes')">&times;</span>`
         : ''
-
-    const stringAnexos = Object.entries(anexos || {})
-        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('${id}', '${idAnexo}', this)`))
-        .join('')
-
-    const stringFotos = Object.entries(fotos || {})
-        .map(([idFoto, { link }]) => `
-        <div style="position: relative;">
-            <img onclick="confirmarExcluirFotoStatus('${id}', '${idFoto}')" src="imagens/cancel.png" style="position: absolute; top: 2px; right: 2px; width: 1.5rem;">
-            <img class="foto-status" id="${idFoto}" src="${api}/uploads/${link}" onclick="ampliarImagem(this, '${idFoto}')">
-        </div>
-        `)
-        .join('')
 
     const bloco = `
         <div class="bloco-status" style="border: 1px solid ${cor};">
@@ -929,12 +931,10 @@ async function linRequisicoes(req) {
                 ${labelDestaque('Total Requisição', dinheiro(total_requisicao))}
                 ${labelDestaque('Transportadora', transportadora)}
                 ${labelDestaque('Volumes', volumes)}
+                ${botaoAnexoStatus({ id, tabela, cor })}
+                ${botaoFotoStatus({ id, tabela, cor })}
+                ${botaoEditarStatus({ id, cor, funcao: `formularioRequisicao('${id}')` })}
 
-                <div style="background-color: ${cor};" 
-                    class="contorno-botoes" onclick="formularioRequisicao('${id}')">
-                    <img src="imagens/editar4.png" style="width: 1.5rem;">
-                    <label>Editar</label>
-                </div>
 
                 <div style="background-color: ${cor};" 
                     class="contorno-botoes" onclick="gerarPdfRequisicao('${id}', true)">
@@ -948,26 +948,11 @@ async function linRequisicoes(req) {
                     <img src="imagens/pdfw.png" style="width: 1.5rem;">
                     <label>Baixar PDF</label>
                 </div>
-    
-                <div class="contorno-botoes" style="background-color: ${cor}">
-                    <img src="imagens/anexo2.png" style="width: 1.5rem;">
-                    <label>Anexo
-                        <input type="file" style="display: none;" onchange="salvarAnexo('${id}', this)" multiple>  
-                    </label>
-                </div>
 
-                <div onclick="painelFotos('${id}')" class="contorno-botoes" style="background-color: ${cor}">
-                    <img src="imagens/camera2.png" style="width: 1.5rem;">
-                    <label>Foto</label>
-                </div>
+                <br>
 
-                <div name="fotos_${id}" style="display: flex; flex-wrap: wrap; gap: 3px;">
-                    ${stringFotos}
-                </div>
-
-                <div name="anexos_${id}" style="${vertical};">
-                    ${stringAnexos}
-                </div>
+                ${blocoAnexosCompleto({ id, tabela, anexos })}
+                ${blocoFotosCompleto({ id, tabela, fotos })}
 
             </div>
 
@@ -991,11 +976,13 @@ async function linNotas(nota) {
         n_nota,
         total,
         categoria,
-        d_emi_inicial
+        d_emi_inicial,
+        anexos,
+        fotos
     } = nota
 
     const cor = '#ff4500'
-
+    const tabela = 'notas'
     const excluir = (executor == acesso.usuario || acesso.permissao == 'adm')
         ? `<span 
             class="close" 
@@ -1016,12 +1003,14 @@ async function linNotas(nota) {
                 ${labelDestaque('Tipo', categoria)}
                 ${labelDestaque('Valor', dinheiro(total))}
                 ${labelDestaque('Data Emissão', d_emi_inicial)}
+                ${botaoAnexoStatus({ id, tabela: 'notas', cor })}
+                ${botaoFotoStatus({ id, tabela, cor })}
+                ${botaoEditarStatus({ id, cor, funcao: `adicionarNotaAvulsa('${id}')` })}
 
-                <div style="background-color: ${cor};" 
-                    class="contorno-botoes" onclick="adicionarNotaAvulsa('${id}')">
-                    <img src="imagens/editar4.png" style="width: 1.5rem;">
-                    <label>Editar</label>
-                </div>
+                <br>
+
+                ${blocoAnexosCompleto({ id, tabela, anexos })}
+                ${blocoFotosCompleto({ id, tabela, fotos })}
 
             </div>
 
@@ -1046,11 +1035,13 @@ async function linParceiros(par) {
         itens,
         margem,
         tecnicos,
+        anexos,
+        fotos,
         totais
     } = par
 
     const cor = '#0062d5'
-
+    const tabela = 'parceiros'
     const excluir = (executor == acesso.usuario || acesso.permissao == 'adm')
         ? `<span 
             class="close" 
@@ -1070,12 +1061,9 @@ async function linParceiros(par) {
                 ${labelDestaque('Total Parceiro', dinheiro(totais?.parceiro))}
                 ${labelDestaque('Magem Disponível', dinheiro(totais?.margem))}
                 ${labelDestaque('Desvio', dinheiro(totais?.desvio))}
-
-                <div style="background-color: ${cor};" 
-                    class="contorno-botoes" onclick="formularioParceiro('${id}')">
-                    <img src="imagens/editar4.png" style="width: 1.5rem;">
-                    <label>Editar</label>
-                </div>
+                ${botaoAnexoStatus({ id, tabela: 'parceiros', cor })}
+                ${botaoFotoStatus({ id, tabela, cor })}
+                ${botaoEditarStatus({ id, cor, funcao: `formularioParceiro('${id}')` })}
 
                 <div style="background-color: ${cor}" 
                     class="contorno-botoes" 
@@ -1090,6 +1078,11 @@ async function linParceiros(par) {
                     <img src="imagens/pdfw.png" style="width: 1.5rem;">
                     <label>Baixar PDF</label>
                 </div>
+
+                <br>
+
+                ${blocoAnexosCompleto({ id, tabela, anexos })}
+                ${blocoFotosCompleto({ id, tabela, fotos })}
 
             </div>
 
@@ -1114,11 +1107,13 @@ async function linMateriais(mat) {
         rastreio,
         transportadora,
         data_saida,
-        previsao
+        previsao,
+        anexos,
+        fotos
     } = mat
 
     const cor = '#b17724'
-
+    const tabela = 'materiais'
     const excluir = (executor == acesso.usuario || acesso.permissao == 'adm')
         ? `<span 
             class="close" 
@@ -1139,12 +1134,14 @@ async function linMateriais(mat) {
                 ${labelDestaque('Transportadora', transportadora)}
                 ${labelDestaque('Data de Saída', conversorData(data_saida))}
                 ${labelDestaque('Data de Entrega', conversorData(previsao))}
+                ${botaoAnexoStatus({ id, tabela: 'materiais', cor })}
+                ${botaoFotoStatus({ id, tabela, cor })}
+                ${botaoEditarStatus({ id, cor, funcao: `envioMaterial('${id}')` })}
 
-                <div style="background-color: ${cor};" 
-                    class="contorno-botoes" onclick="envioMaterial('${id}')">
-                    <img src="imagens/editar4.png" style="width: 1.5rem;">
-                    <label>Editar</label>
-                </div>
+                <br>
+
+                ${blocoAnexosCompleto({ id, tabela, anexos })}
+                ${blocoFotosCompleto({ id, tabela, fotos })}
 
             </div>
 

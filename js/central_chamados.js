@@ -116,7 +116,7 @@ async function criarElementosIniciais() {
                 { op: '!=', value: 'WRuo2' },
                 { op: '!=', value: '4sGzb' }
             ],
-            'snapshots.dtCorrecao': { op: '<d', value: Date.now() },
+            'snapshots.dtCorrecao': { op: '<d', value: new Date().toLocaleDateString() },
             ...(
                 acesso.permissao == 'cliente'
                     ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }

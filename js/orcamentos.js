@@ -1,36 +1,12 @@
-const stLista = [
-    'EM ANDAMENTO',
-    'OBRA PARALISADA',
-    'CONCLUÍDO',
-    'POC EM ANDAMENTO'
-]
-
 function formatacaoPagina() {
 
     const pag = 'orcamentos'
-    let status = ''
-
-    if (controles?.[pag]?.filtros?.['snapshots.prioridade']) {
-        status = 'prioridades'
-
-    } else if (controles?.[pag]?.filtros?.['chamado']) {
-        status = 'chamados'
-
-    } else if (controles?.[pag]?.filtros?.['preventiva']) {
-        status = 'preventiva'
-
-    } else {
-        const pesq = controles?.[pag]?.filtros?.['status.atual']
-        status = pesq?.op == 'IS_EMPTY'
-            ? 'SEM STATUS'
-            : pesq?.value || 'todos'
-    }
-
+    const status = controles?.orcamentos?.filtros?.['snapshots.ultimaCorrecao']?.value
     const abas = document.querySelectorAll('.aba-toolbar')
 
     abas.forEach(a => a.style.opacity = 0.5)
 
-    const aba = document.querySelector(`[name="${status}"]`)
+    const aba = document.querySelector(`[name="${status ? status : 'todos'}"]`)
     if (aba) aba.style.opacity = 1
 
 }
@@ -50,27 +26,26 @@ async function telaOrcamentos() {
         'Tags': { chave: 'snapshots.tags.*.nome' },
         'Contrato': { chave: 'snapshots.contrato' },
         'Cidade': { chave: 'snapshots.cidade' },
-        'Status em Ocorrências': {},
+        'Status em Ocorrências': { chave: 'snapshots.ultimaCorrecao' },
         'Responsaveis': { chave: 'snapshots.responsavel' },
         'Resumo': {},
         'Total do Orçamento': { chave: 'snapshots.valor' },
         'Ações': {}
     }
 
-    const btnExtras = `<span style="color: white; cursor: pointer; white-space: nowrap;" onclick="filtroOrcamentos()">Filtros ☰</span>`
-
+    const pag = 'orcamentos'
     const tabela = await modTab({
         funcaoAdicional: ['formatacaoPagina'],
-        btnExtras,
         colunas,
+        pag,
         ordenar: {
-            path: 'snapshots.tsUltimoStatus',
-            direcao: 'desc'
+            direcao: 'DESC',
+            path: 'dados_orcam.data',
+            tipo: 'data_br'
         },
         base: 'dados_orcamentos',
         criarLinha: 'criarLinhaOrcamento',
         body: 'linhas',
-        pag: 'orcamentos',
         substituicoes: [
             {
                 path: 'dados_orcam.contrato',
@@ -78,13 +53,6 @@ async function telaOrcamentos() {
                 campoBusca: 'descricao',
                 retorno: 'descricao',
                 destino: 'departamentoExistente'
-            },
-            {
-                path: 'dados_orcam.contrato',
-                tabela: 'dados_ocorrencias',
-                campoBusca: 'id',
-                retorno: 'snapshots.ultimaCorrecao',
-                destino: 'ultimaCorrecao'
             }
         ]
     })
@@ -103,64 +71,11 @@ async function telaOrcamentos() {
 
     tela.innerHTML = acumulado
 
-    controles.orcamentos.filtros = {
-        ...controles.orcamentos.filtros,
-        'dados_orcam': { op: 'NOT_EMPTY' },
-        'arquivado': { op: '!=', value: 'S' }
-    }
-
+    await paginacao(pag)
     await carregarToolbar()
-    await paginacao()
 
     removerOverlay()
 
-}
-
-function filtroOrcamentos() {
-
-    const filtros = {
-        arquivado: controles?.orcamentos?.filtros?.arquivado?.op == '=',
-    }
-
-    const linhas = []
-
-    const interruptor = (chave, ativo) => `
-        <label style="position: relative; display: inline-block; width: 50px; height: 24px;">
-            <input
-                type="checkbox"
-                ${ativo ? 'checked' : ''}
-                name="filtros"
-                onchange="mudarInterruptor(this)"
-                data-chave="${chave}"
-                style="opacity:0; width:0; height:0;">
-                <span class="track" style="background-color:${ativo ? '#4caf50' : '#ccc'}"></span>
-                <span class="thumb" style="transform:translateX(${ativo ? '26px' : '0'})"></span>
-        </label>`
-
-    for (const [chave, ativo] of Object.entries(filtros)) {
-        linhas.push({
-            texto: inicialMaiuscula(chave),
-            elemento: interruptor(chave, ativo)
-        })
-    }
-
-    popup({ linhas, titulo: 'Gerenciar Filtro' })
-
-}
-
-async function mudarInterruptor(el) {
-    const ativo = el.checked
-    const label = el.parentElement
-    const chave = el.dataset.chave
-
-    controles.orcamentos.filtros[chave] = { op: ativo ? '=' : '!=', value: 'S' }
-    await paginacao()
-
-    const track = label.querySelector('.track')
-    const thumb = label.querySelector('.thumb')
-
-    if (track) track.style.backgroundColor = ativo ? '#4caf50' : '#ccc'
-    if (thumb) thumb.style.transform = ativo ? 'translateX(26px)' : 'translateX(0)'
 }
 
 function scrollar(direcao) {
@@ -175,7 +90,7 @@ function scrollar(direcao) {
 
 async function criarLinhaOrcamento(orcamento) {
 
-    const { id, vinculados, departamentoExistente } = orcamento
+    const { id, vinculados, departamentoExistente } = orcamento || {}
 
     const master = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato
     const idMaster = vinculados
@@ -202,7 +117,8 @@ async function criarLinhaOrcamento(orcamento) {
 
     async function linhaOrcamento(orcamento) {
 
-        const { id, dados_orcam, snapshots, ultimaCorrecao, total_geral } = orcamento || {}
+        const { id, dados_orcam, timestamp, snapshots, total_geral } = orcamento || {}
+        const { ultimaCorrecao } = snapshots || {}
         const { pagamentos = 0, fretes = 0, abastecimentos = 0, notas } = snapshots?.custos || {}
 
         // Velocímetro
@@ -246,7 +162,7 @@ async function criarLinhaOrcamento(orcamento) {
             .join(', ')
 
         // Labels do campo Contrato [Revisão, chamado, cliente, etc]
-        const contrato = dados_orcam?.contrato
+        const { contrato, data } = dados_orcam || {}
         const numOficial = String(dados_orcam?.chamado || contrato || '-').trim()
         const rAtual = orcamento?.revisoes?.atual
         const etiqRevAtual = rAtual
@@ -279,12 +195,10 @@ async function criarLinhaOrcamento(orcamento) {
             .map(tag => modeloTag(tag, id))
             .join('')
 
-        const data = new Date(snapshots?.tsUltimoStatus).toLocaleString()
-
         const celulas = `
         <td>
             <div style="${vertical}">
-                <span><b>${orcamento.lpu_ativa}</b></span>
+                <span><b>${orcamento?.lpu_ativa || ''}</b></span>
                 <span>${data}</span>
                 <br>
                 <div style="${horizontal}; width: 100%; justify-content: start; gap: 5px;">
@@ -336,7 +250,7 @@ async function criarLinhaOrcamento(orcamento) {
         </td>`
 
         const linha = `
-        <tr class="linha-master" data-prioridade="${orcamento?.snapshots?.prioridade}">
+        <tr class="linha-master">
             ${celulas}
         </tr>`
 
@@ -344,34 +258,6 @@ async function criarLinhaOrcamento(orcamento) {
 
     }
 
-}
-
-function verificarPrioridade(orcamento) {
-
-    const acoes = orcamento?.pda?.acoes || {}
-    let prioridade = 3 // Baixa prioridade;
-
-    const souResponsavel = Object
-        .values(acoes)
-        .some(a => a.responsavel == acesso.usuario && a.status == 'pendente')
-
-    // Sou responsável e a ação está pendente; TRUE
-    if (souResponsavel) return 0
-
-    const stLiberado = Object
-        .values(orcamento?.status?.historicoStatus || {})
-        .some(h => stLista.includes(h.para))
-
-    if (stLiberado) return prioridade
-
-    const inicio = new Date(orcamento?.inicio)
-    const hoje = new Date()
-    const diffDias = Math.abs(hoje - inicio) / (1000 * 60 * 60 * 24)
-    if (diffDias < 7) prioridade = 0
-    else if (diffDias < 14) prioridade = 1
-    else if (diffDias < 21) prioridade = 2
-
-    return prioridade
 }
 
 async function editar(id) {
@@ -432,50 +318,30 @@ async function duplicar(orcam_) {
 
 async function carregarToolbar() {
 
-    const filtros = {
-        'dados_orcam': { op: 'NOT_EMPTY' },
-        'arquivado': { op: '!=', value: 'S' }
-    }
-
-    const cont1 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'status.atual' })
-    const cont2 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'chamado' })
-    const cont3 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'snapshots.prioridade' })
-    const cont4 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'preventiva' })
-
-    const contToolbar = {
-        ...cont1,
-        'preventiva': cont4['S'],
-        'SEM STATUS': cont1['EM BRANCO'] || 0,
-        'chamados': cont2['S'],
-        'prioridades': ((cont3[0] || 0) + (cont3[1] || 0) + (cont3[2] || 0))
-    }
+    const contagem = await contarPorCampo({
+        base: 'dados_orcamentos',
+        path: 'snapshots.ultimaCorrecao'
+    })
 
     const toolbar = document.getElementById('toolbar')
-    const fluxogramaCompleto = ['prioridades', 'chamados', 'preventiva', 'todos', ...fluxograma]
 
-    for (const campo of fluxogramaCompleto) {
+    for (const [titulo, quantidade] of Object.entries(contagem)) {
 
-        const contagem = contToolbar[campo] || 0
+        const tool = toolbar.querySelector(`[name="${titulo}"]`)
 
-        const tool = toolbar.querySelector(`[name="${campo}"]`)
         if (tool) {
-            tool.querySelector('span').textContent = contagem
+            tool.querySelector('span').textContent = quantidade
             continue
         }
 
-        const f = campo == 'VENDA DIRETA'
-            ? 'style="background: linear-gradient(45deg, #222, #b12425);"'
-            : ''
-
         const novaTool = `
-            <div
-                style="opacity: 0.5; height: 3rem;"
+            <div style="opacity: 0.5; height: 3rem;"
                 class="aba-toolbar"
-                data-status="${campo}"
-                name="${campo}"
-                onclick="filtrarToolbar('${campo}')">
-                <label>${campo.toUpperCase()}</label>
-                <span ${f}>${contagem}</span>
+                data-status="${titulo}"
+                name="${titulo}"
+                onclick="filtrarToolbar('${titulo}')">
+                <label>${titulo.toUpperCase()}</label>
+                <span>${quantidade}</span>
             </div>
             `
         toolbar.insertAdjacentHTML('beforeend', novaTool)
@@ -485,32 +351,16 @@ async function carregarToolbar() {
 
 async function filtrarToolbar(campo) {
 
-    const filtros = {
-        'dados_orcam': { op: 'NOT_EMPTY' },
-        'arquivado': { op: '!=', value: 'S' }
-    }
-
-    if (campo == 'chamados') {
-        filtros['chamado'] = { op: '=', value: 'S' }
-
-    } else if (campo == 'SEM STATUS') {
-        filtros['status.atual'] = { op: 'IS_EMPTY' }
-
-    } else if (campo == 'prioridades') {
-        filtros['snapshots.prioridade'] = { op: '<', value: 3 }
-
-    } else if (campo == 'preventiva') {
-        filtros['preventiva'] = { op: '=', value: 'S' }
-
-    } else if (campo !== 'todos') { // Demais campos, exceto 'todos';
-        filtros['status.atual'] = { op: '=', value: campo }
-
-    }
-
     controles.orcamentos.pagina = 1
-    controles.orcamentos.filtros = filtros
+    controles.orcamentos.filtros = {
+        ...controles.orcamentos.filtros,
+        'snapshots.ultimaCorrecao': { op: '=', value: campo }
+    }
 
-    await paginacao()
+    if (campo == 'todos')
+        delete controles.orcamentos.filtros['snapshots.ultimaCorrecao']
+
+    await paginacao('orcamentos')
 
 }
 

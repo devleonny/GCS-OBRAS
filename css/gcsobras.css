@@ -1541,7 +1541,7 @@ input[type=range]::-moz-range-thumb {
     margin: 1px;
 }
 
-.contorno_interno {
+.contorno-iterno {
     display: flex;
     align-items: center;
     justify-content: center;

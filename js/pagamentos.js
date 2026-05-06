@@ -315,7 +315,7 @@ async function abrirDetalhesPagamentos(id) {
         const pesquisa = await pesquisarDB({
             base: 'dados_orcamentos',
             filtros: {
-                'snapshots.contratoChamado': { op: 'includes', value: cc.descricao }
+                'dados_orcam.contrato': { op: 'includes', value: cc.descricao }
             }
         })
 
@@ -374,7 +374,7 @@ async function abrirDetalhesPagamentos(id) {
             ${divValores}
 
             <div id="comentario" class="contorno" style="width: 90%;">
-                <div class="contorno_interno" style="background-color: #ffffffde;">
+                <div class="contorno-iterno" style="background-color: #ffffffde;">
                     <label style="width: 100%; text-align: left;"><strong>Observações </strong><br> ${(pagamento?.param?.[0]?.observacao || '').replace(/\||\n/g, "<br>")}</label>
                 </div>
             </div>

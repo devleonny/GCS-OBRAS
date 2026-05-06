@@ -60,38 +60,6 @@ function linAcoes(pda) {
     return linha
 }
 
-async function irAcao(idAcao) {
-
-    const { origem } = await recuperarDado('acoes', idAcao) || {}
-
-    if (origem.base == 'dados_orcamentos') {
-        await irORC(origem.id)
-
-    } else if (origem.base == 'dados_manutencao') {
-
-        await telaChamados()
-        await criarManutencao(origem.id)
-
-    }
-
-}
-
-function somarPend(obj) {
-    const hoje = new Date()
-    hoje.setHours(0, 0, 0, 0)
-
-    const t = { atrasados: 0, pendentes: 0 }
-
-    for (const [data, qtd] of Object.entries(obj)) {
-        const d = new Date(data + 'T00:00:00')
-        if (isNaN(d)) continue
-
-        t[d < hoje ? 'atrasados' : 'pendentes'] += Number(qtd) || 0
-    }
-
-    return t
-}
-
 async function formAcao({ id, idAcao, formulario = 'orcamento' }) {
 
     const { prazo, status, acao, usuario, responsavel = [] } = await recuperarDado('acoes', idAcao) || {}

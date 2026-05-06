@@ -58,47 +58,69 @@ const esquemaBtnStatus = {
     ]
 }
 
-const fluxograma = [
-    'PROSPECÇÃO',
-    'SEM STATUS',
-    'COTAÇÃO',
-    'ORC PENDENTE',
-    'ORC ENVIADO',
-    'ORC APROVADO',
-    'ORC REPROVADO',
-    'VENDA DIRETA',
-    'REQUISIÇÃO',
-    'NFE VENDA',
-    'PEND INFRA',
-    'PEND ASSISTÊNCIA TÉCNICA',
-    'ENVIADO',
-    'ENTREGUE',
-    'AGENDAMENTO',
-    'EM ANDAMENTO',
-    'POC EM ANDAMENTO',
-    'OBRA PARALISADA',
-    'PENDENTE OS/RELATÓRIO',
-    'ACORDO FINANCEIRO',
-    'PENDENTE PEDIDO',
-    'REPROVADO PELO FINANCEIRO',
-    'CONCLUÍDO',
-    'FATURADO',
-    'ATRASADO',
-    'PAG RECEBIDO',
-    'LOCAÇÃO',
-    'GARANTIA'
-]
+const botaoAnexoStatus = ({ id, cor, tabela }) => {
 
-const coresST = {
-    'PEDIDO': { cor: '#4CAF50' },
-    'LPU PARCEIRO': { cor: '#0062d5' },
-    'REQUISIÇÃO': { cor: '#B12425' },
-    'MATERIAL SEPARADO': { cor: '#b17724' },
-    'FATURADO': { cor: '#ff4500' },
-    'MATERIAL ENVIADO': { cor: '#b17724' },
-    'MATERIAL ENTREGUE': { cor: '#b17724' }
+    return `
+        <div class="contorno-botoes" style="background-color: ${cor}">
+            <img src="imagens/anexo2.png" style="width: 1.5rem;">
+            <label>Anexo
+                <input type="file" style="display: none;" onchange="salvarAnexo('${id}', '${tabela}', this)" multiple>  
+            </label>
+        </div>
+    `
 }
 
+const botaoFotoStatus = ({ id, cor, tabela }) => {
+
+    return `
+        <div onclick="painelFotos('${id}', '${tabela}')" class="contorno-botoes" style="background-color: ${cor}">
+            <img src="imagens/camera2.png" style="width: 1.5rem;">
+            <label>Foto</label>
+        </div>
+    `
+}
+
+const botaoEditarStatus = ({ id, cor, funcao }) => {
+
+    return `
+        <div style="background-color: ${cor};" 
+            class="contorno-botoes" onclick="${funcao}">
+            <img src="imagens/editar4.png" style="width: 1.5rem;">
+            <label>Editar</label>
+        </div>
+    `
+}
+
+const blocoAnexosCompleto = ({ id, tabela, anexos }) => {
+
+    const stringAnexos = Object.entries(anexos || {})
+        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('${id}', '${tabela}', '${idAnexo}', 'anexos')`))
+        .join('')
+
+    return `
+        <div style="${vertical};">
+            ${stringAnexos}
+        </div>
+    `
+}
+
+const blocoFotosCompleto = ({ id, tabela, fotos }) => {
+
+    const stringFotos = Object.entries(fotos || {})
+        .map(([idFoto, { link }]) => `
+        <div style="position: relative;">
+            <img onclick="excluirAnexo('${id}', '${tabela}', '${idFoto}', 'fotos')" src="imagens/cancel.png" style="position: absolute; top: 2px; right: 2px; width: 1.5rem;">
+            <img class="foto-status" id="${idFoto}" src="${api}/uploads/${link}" onclick="ampliarImagem(this, '${idFoto}')">
+        </div>
+        `)
+        .join('')
+
+    return `
+        <div style="display: flex; flex-wrap: wrap; gap: 3px;">
+            ${stringFotos}
+        </div>
+    `
+}
 
 function marcarStatusPedido() {
 
@@ -349,39 +371,27 @@ async function abrirAtalhos(id, idMaster) {
     const orcamento = await recuperarDado('dados_orcamentos', id)
     const emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
     const botoesDisponiveis = []
-    let termoArquivar = 'Arquivar Orçamento'
-    let iconeArquivar = 'pasta'
-
-    if (orcamento.arquivado == 'S') {
-        termoArquivar = 'Desarquivar Orçamento'
-        iconeArquivar = 'desarquivar'
-    }
 
     // Gambiarra para não mudar a posição das paradas;
     if (!emAnalise)
         botoesDisponiveis.push(
             modeloBotoes('esquema', 'Histórico', `abrirEsquema('${id}')`),
-            modeloBotoes('painelcustos', 'Painel de Custos', `painelCustos('${id}')`)
+            modeloBotoes('painelcustos', 'Painel de Custos', `painelCustos('${id}')`),
+            modeloBotoes('pdf', 'Abrir Orçamento em PDF', `irPdf('${id}', ${emAnalise})`),
+            modeloBotoes('checklist', 'CHECKLIST', `telaChecklist('${id}')`),
+            modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`),
+            modeloBotoes('LG', 'OS em PDF', `carregarOS('${id}')`),
         )
+
+
+    if (idMaster)
+        botoesDisponiveis.push(modeloBotoes('exclamacao', 'Desvincular Orçamento', `confirmarRemoverVinculo('${id}', '${idMaster}')`))
+    else
+        botoesDisponiveis.push(modeloBotoes('link', 'Vincular Orçamento', `vincularOrcamento('${id}')`))
 
     botoesDisponiveis.push(
         modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)
     )
-
-    if (!emAnalise) {
-        botoesDisponiveis.push(
-            modeloBotoes('pdf', 'Abrir Orçamento em PDF', `irPdf('${id}', ${emAnalise})`),
-            modeloBotoes('checklist', 'CHECKLIST', `telaChecklist('${id}')`),
-            modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`),
-            modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`),
-            modeloBotoes('LG', 'OS em PDF', `carregarOS('${id}')`),
-        )
-
-        if (idMaster)
-            botoesDisponiveis.push(modeloBotoes('exclamacao', 'Desvincular Orçamento', `confirmarRemoverVinculo('${id}', '${idMaster}')`))
-        else
-            botoesDisponiveis.push(modeloBotoes('link', 'Vincular Orçamento', `vincularOrcamento('${id}')`))
-    }
 
     if (orcamento?.usuario == acesso.usuario || permAtalhos.includes(acesso.permissao) || orcamento?.usuarios?.[acesso.usuario]) {
         botoesDisponiveis.push(
@@ -389,39 +399,7 @@ async function abrirAtalhos(id, idMaster) {
             modeloBotoes('editar', 'Editar Orçamento', `editar('${id}')`),
             modeloBotoes('gerente', 'Editar Dados do Cliente', `painelClientes('${id}')`)
         )
-
     }
-
-    const modAlerta = (texto) => `
-        <div class="alerta-pendencia" onclick="irORC('${id}')">
-            <img src="gifs/alerta.gif">
-            <span>${texto}</span>
-        </div>
-    `
-
-    let prioridade = 3
-    const stLiberado = Object
-        .values(orcamento?.status?.historicoStatus || {})
-        .some(h => stLista.includes(h.para))
-
-    if (!stLiberado) {
-        const inicio = new Date(orcamento?.inicio)
-        const hoje = new Date()
-        const diffDias = Math.abs(hoje - inicio) / (1000 * 60 * 60 * 24)
-        if (diffDias < 7) prioridade = 0
-        else if (diffDias < 14) prioridade = 1
-        else if (diffDias < 21) prioridade = 2
-    }
-
-    const prioridadeAtalho = prioridade < 3
-        ? modAlerta(`Obra começará em breve! <br><small>Mude o status para 
-            <b>Finalizado</b>, 
-            <br><b>Obra paralisada</b>, 
-            <b>POC Em andamento</b> 
-            <br>ou 
-            <b>Em andamento</b> 
-            para remover</small>`)
-        : ''
 
     const aviso = emAnalise
         ? `
@@ -443,10 +421,6 @@ async function abrirAtalhos(id, idMaster) {
             ${dadosCabecalho}
         </div>
         <hr>
-        <div style="${horizontal}; gap: 5px;">
-            <span>Classificar como <b>CHAMADO</b></span>
-            <input ${orcamento?.chamado == 'S' ? 'checked' : ''} onclick="ativarChave(this, '${id}', 'chamado')" ${styChek} type="checkbox">
-        </div>
 
         <div style="${horizontal}; gap: 5px;">
             <span>Classificar como <b>PREVENTIVA</b></span>
@@ -456,7 +430,6 @@ async function abrirAtalhos(id, idMaster) {
         ${aviso}
         <div class="opcoes-orcamento">${botoesDisponiveis.join('')}</div>
 
-        ${prioridadeAtalho}
     `
 
     const menuOpcoesOrcamento = document.querySelector('.menu-opcoes-orcamento')
@@ -691,6 +664,8 @@ async function auxAberturaChamado(id) {
         }
     })
 
+    console.log(pedidos);
+
     if (!pedidos.resultados.length)
         return popup({ mensagem: 'Abra um pedido antes de abrir a ocorrência!' })
 
@@ -748,41 +723,11 @@ async function abrirEsquema(id) {
 
 }
 
-async function confirmarExcluirFotoStatus(id, chave, idFoto) {
-
-    const botoes = [
-        {
-            texto: 'Confirmar',
-            img: 'concluido',
-            funcao: `excluirFotoStatus('${id}', '${chave}', '${idFoto}')`
-        }
-    ]
-
-    popup({
-        mensagem: 'Tem certeza?',
-        botoes
-    })
-
-}
-
-async function excluirFotoStatus(id, chave, idFoto) {
-
-    overlayAguarde()
-    await deletar(`dados_orcamentos/${id}/status/historico/${chave}/fotos/${idFoto}`)
-
-    const foto = document.getElementById(idFoto)
-    if (foto)
-        foto.parentElement.remove()
-
-    removerPopup()
-
-}
-
-async function painelFotos(id, chave) {
+async function painelFotos(id, tabela) {
 
     const elemento = `
         <div style="${vertical}; gap: 3px; background-color: #d2d2d2;">
-            <div class="capturar" style="position: fixed; bottom: 10px; left: 10px; z-index: 10003;" onclick="tirarFotoStatus('${id}', '${chave}')">
+            <div class="capturar" style="position: fixed; bottom: 10px; left: 10px; z-index: 10003;" onclick="tirarFotoStatus('${id}', '${tabela}')">
                 <img src="imagens/camera.png">
                 <span>Capturar Imagem</span>
             </div>
@@ -799,7 +744,7 @@ async function painelFotos(id, chave) {
 
 }
 
-async function tirarFotoStatus(id, chave) {
+async function tirarFotoStatus(id, tabela) {
 
     overlayAguarde()
 
@@ -820,142 +765,17 @@ async function tirarFotoStatus(id, chave) {
         return popup({ mensagem: resposta.mensagem })
 
     const idFoto = crypto.randomUUID()
-    await enviar(`dados_orcamentos/${id}/status/historico/${chave}/fotos/${idFoto}`, resposta[0])
-
-    const foto = `
-        <div style="position: relative;">
-            <img onclick="confirmarExcluirFotoStatus('${id}', '${chave}', '${idFoto}')" src="imagens/cancel.png" style="position: absolute; top: 2px; right: 2px; width: 1.5rem;">
-            <img class="foto-status" id="${idFoto}" src="${src}" onclick="ampliarImagem(this, '${idFoto}')">
-        </div>
-    `
-    const local = document.querySelector(`[name="fotos_${chave}"]`)
-    if (local)
-        local.insertAdjacentHTML('beforeend', foto)
+    await enviar(`${tabela}/${id}/fotos/${idFoto}`, resposta[0])
 
     removerPopup()
 
 }
 
-async function irORC(id) {
+async function excluirAnexo(id, tabela, idAnexo, coluna) {
 
     overlayAguarde()
-
-    const tGerenciamento = document.querySelector('.tela-gerenciamento')
-    if (!tGerenciamento)
-        await telaInicialGCS()
-
-    await tabelaPorAba({ id })
-
+    await deletar(`${tabela}/${id}/${coluna}/${idAnexo}`)
     removerOverlay()
-
-}
-
-function mostrarPrioridade() {
-    const div = document.getElementById('indicador')
-    const input = document.querySelector('[name="prioridade"]')
-
-    if (!div || !input || !input.value) return
-
-    const hoje = new Date()
-    const data = new Date(input.value)
-
-    const diffDias = Math.abs(hoje - data) / (1000 * 60 * 60 * 24)
-
-    let img = ''
-
-    if (diffDias < 7) img = 'gifs/atencao.gif'
-    else if (diffDias < 14) img = 'gifs/alerta.gif'
-    else if (diffDias < 21) img = 'imagens/pendente.png'
-    else img = 'imagens/online.png'
-
-    div.innerHTML = `<img src="${img}">`
-}
-
-async function mostrarInfo(idOrcamento) {
-
-    overlayAguarde()
-
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-
-    const historico = Object.entries(orcamento?.status?.historicoStatus || {})
-        .sort(([, a], [, b]) => {
-            const aTemInfo = !!a?.info
-            const bTemInfo = !!b?.info
-
-            if (aTemInfo && !bTemInfo) return -1
-            if (!aTemInfo && bTemInfo) return 1
-            return 0
-        })
-
-    let campos = ''
-
-    for (const [chave, his] of historico) {
-
-        campos += `
-        <div id="${chave}" class="etiquetas" style="${vertical}; gap: 2px; padding: 0.5rem;">
-            <span>${his.para} • ${his.data}</span>
-            <div name="info" oninput="editarHistorico('${chave}')" class="comentario-padrao" contentEditable="true">${his.info || ''}</div>
-            <div style="${horizontal}; gap: 1rem;">
-                <span name="responsavel">${his.usuario}</span>
-                <img name="confirmar" onclick="salvarInfoAdicional('${idOrcamento}', '${chave}')" src="imagens/concluido.png" style="display: none;">
-            </div>
-        </div>
-        `
-    }
-
-    const elemento = `
-        <div style="${vertical}; padding: 1rem; gap: 1rem;">
-            <span>Acrescente algum comentário por status se precisar</span>
-            <hr>
-            ${campos || 'Sem histórico de Status'}
-        </div>`
-
-    popup({ elemento, titulo: 'Informações' })
-
-}
-
-function editarHistorico(chave) {
-    const div = document.getElementById(chave)
-    div.querySelector('[name="responsavel"]').textContent = acesso.usuario
-    div.querySelector('[name="confirmar"]').style.display = ''
-}
-
-function formularioOrcPendente(id, idStatus) {
-    const linhas = [
-        {
-            texto: 'Por que <b>ORC PENDENTE</b>?',
-            elemento: `<div class="comentario-padrao" id="${idStatus}" contentEditable="true"></div>`
-        }
-    ]
-    const funcao = `salvarInfoAdicional('${id}', '${idStatus}')`
-    const botoes = [{ texto: 'Salvar', img: 'concluido', funcao }]
-    popup({ linhas, botoes, titulo: 'Informação adicional' })
-
-}
-
-async function salvarInfoAdicional(id, idStatus) {
-
-    overlayAguarde()
-
-    const info = document.getElementById(idStatus).textContent
-
-    await enviar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}/info`, info)
-    await enviar(`dados_orcamentos/${id}/status/historicoStatus/${idStatus}/usuario`, acesso.usuario)
-
-    removerPopup()
-
-}
-
-async function excluirAnexo(id, chave, idAnexo, img) {
-
-    overlayAguarde()
-
-    await deletar(`dados_orcamentos/${id}/status/historico/${chave}/anexos/${idAnexo}`)
-
-    img.parentElement.remove()
-
-    removerOverlay()
-
 }
 
 async function confirmarExclusaoOrcamentoBase(id) {
@@ -974,9 +794,9 @@ async function excluirOrcamentoBase(idOrcamento) {
     removerPopup()
 }
 
-async function salvarAnexo(id, chave, input) {
+async function salvarAnexo(id, tabela, input) {
 
-    const orcamento = await recuperarDado('dados_orcamentos', id)
+    overlayAguarde()
 
     if (input.files.length === 0) {
         popup({ elemento: 'Nenhum arquivo selecionado...' })
@@ -989,27 +809,14 @@ async function salvarAnexo(id, chave, input) {
     if (anexos.resposta)
         return popup({ mensagem: anexos.mensagem })
 
-    orcamento.status.historico[chave].anexos ??= {}
+    const anexosEmParalelo = anexos.map(async (anexo) => {
+        const idAnexo = crypto.randomUUID()
+        await enviar(`${tabela}/${id}/anexos/${idAnexo}`, anexo)
+    })
 
-    orcamento.status.historico[chave].anexos = {
-        ...orcamento.status.historico[chave].anexos,
-        ...Object.fromEntries(
-            anexos.map(a => {
-                console.log(a)
-                return [a.link, a]
-            })
-        )
-    }
+    await Promise.all(anexosEmParalelo)
 
-    await enviar(`dados_orcamentos/${id}/status/historico/${chave}/anexos`, orcamento.status.historico[chave].anexos)
-
-    const div = document.querySelector(`[name="anexos_${chave}"]`)
-
-    const stringAnexos = Object.entries(orcamento.status.historico[chave].anexos || {})
-        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('${id}', '${chave}', '${idAnexo}', this)`))
-        .join('')
-
-    div.innerHTML = stringAnexos
+    removerOverlay()
 
 }
 
@@ -1198,7 +1005,7 @@ async function salvarDocAdicional(origem) {
 }
 
 function confirmarExclusaoDocAdicional(id) {
-    
+
     const linhas = [
         { texto: 'Tem certeza?' }
     ]
