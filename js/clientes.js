@@ -688,6 +688,8 @@ async function salvarCliente(idCliente = codCliAleatorio()) {
     }
 
     const cnpj = obVal('cnpj')
+    if (!validarCpfCnpj(cnpj))
+        return popup({ mensagem: 'Campo CPF/CNPJ inválido!' })
 
     const pesquisa = await pesquisarDB({ base: 'dados_clientes_ac', filtros: { 'cnpj': { op: "=", value: cnpj } } })
     const primeiroResultado = pesquisa.resultados?.[0]
