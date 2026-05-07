@@ -74,7 +74,7 @@ async function criarQuadros() {
 
     })
 
-    await promises.all(quadrosEmMassa)
+    await Promise.all(quadrosEmMassa)
 
     for (const q of quadros) {
         const chave = q?.id || 'Novos'
