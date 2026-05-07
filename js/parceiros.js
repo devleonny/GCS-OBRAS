@@ -342,7 +342,7 @@ async function salvarAdicional() {
 
 }
 
-async function salvarLpuParceiro(id) {
+async function salvarLpuParceiro(id = crypto.randomUUID()) {
 
     overlayAguarde()
 

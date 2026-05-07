@@ -1,4 +1,4 @@
-async function formularioRequisicao(id) {
+async function formularioRequisicao(id = crypto.randomUUID()) {
 
     overlayAguarde()
 
