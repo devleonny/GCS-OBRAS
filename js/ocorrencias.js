@@ -349,6 +349,7 @@ function carregarCorrecoes(ocorrencia) {
             tipoCorrecaoNome,
             localizacao,
             usuario,
+            autorizacao,
             executor = []
         } = correcao
 
@@ -397,6 +398,7 @@ function carregarCorrecoes(ocorrencia) {
             <div class="detalhes-correcoes-1">
 
                 <div style="${vertical}; width: 90%; padding: 0.5rem;">
+                    ${modelo('Código de Autorização', autorizacao)}
                     ${modelo('Data Limite Execução', `
                         <div style="${horizontal}; justify-content: start; gap: 1rem;">
                             <span>${dtFormatada(correcao?.dtCorrecao)}</span>
@@ -1523,6 +1525,7 @@ async function criarPesquisas() {
         'Cidade': { path: 'snapshots.cliente.cidade' },
         'Descricao': { path: 'descricao' },
         'Unidade': { path: 'snapshots.cliente.nome' },
+        'Autorização': { path: 'correcoes.*.autorizacao' }
     }
 
     for (const [titulo, campo] of Object.entries(camposLivres)) {
@@ -2117,12 +2120,16 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
     }
 
     const { nome } = await recuperarDado('correcoes', correcao?.tipoCorrecao) || {}
-    const { executor, tecnico, garantia } = correcao
+    const { executor, tecnico, garantia, autorizacao } = correcao
 
     const linhas = [
         {
             texto: 'Em GARANTIA',
             elemento: `<input name="garantia" type="checkbox" style="width: 2rem; height: 2rem;" ${garantia == 'S' ? 'checked' : ''}>`
+        },
+        {
+            texto: 'Código de autorização',
+            elemento: `<textarea name="autorizacao">${autorizacao || ''}</textarea>`
         },
         {
             texto: 'Data Limite Execução',
@@ -2419,6 +2426,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
     const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
     const atualizado = {
         garantia,
+        autorizacao: obter('autorizacao').value || '',
         fotos: {
             ...correcao?.fotos,
             ...fotos
