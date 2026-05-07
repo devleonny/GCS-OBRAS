@@ -1414,10 +1414,6 @@ async function salvarDadosCliente(idOrcamento) {
             await enviar(`dados_orcamentos/${idOrcamento}/tags`, orcamentoBase.tags)
             await enviar(`dados_orcamentos/${idOrcamento}/usuarios`, orcamentoBase.usuarios)
 
-            const atualizar = orcamentoBase.chamado !== ehChamado
-            if (atualizar)
-                enviar(`dados_orcamentos/${idOrcamento}/chamado`, ehChamado)
-
             await abrirAtalhos(idOrcamento)
 
         }
