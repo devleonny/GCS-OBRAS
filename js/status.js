@@ -311,7 +311,7 @@ async function salvarPedido(id) {
 
 }
 
-async function adicionarNotaAvulsa(id) {
+async function adicionarNotaAvulsa(id = crypto.randomUUID()) {
 
     overlayAguarde()
 
@@ -364,7 +364,7 @@ function maisParcela() {
         .insertAdjacentHTML('beforeend', htmlParcela)
 }
 
-async function salvarNotaAvulsa(id = crypto.randomUUID()) {
+async function salvarNotaAvulsa(id) {
 
     overlayAguarde()
 
