@@ -196,7 +196,7 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
             `)
         .join('')
 
-    controlesCxOpcoes.autorizadoPor = {
+    controlesCxOpcoes.autorizado_por = {
         base: 'dados_setores',
         retornar: ['usuario'],
         colunas: {
@@ -226,7 +226,7 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
                 ${opcoes}
                 <div id="autorizado" style="${horizontal}; display: none; gap: 1rem;">
                     <span>Autorizado por?</span>
-                    <span name="autorizadoPor" class="opcoes" onclick="cxOpcoes('autorizadoPor')">Selecione</span>
+                    <span name="autorizado_por" class="opcoes" onclick="cxOpcoes('autorizado_por')">Selecione</span>
                 </div>
             </div>`
         },
@@ -284,12 +284,12 @@ async function salvarPedido(id) {
     const pedido = document.getElementById('pedido')
     const empresa = document.getElementById('empresa')
     const pagamento = document.getElementById('pagamento')
-    const autorizado_por = document.querySelector('[name="autorizadoPor"]').id
+    const autorizado_por = document.querySelector('[name="autorizado_por"]').id
 
     if (!valor.value || !tipo.value || !pedido.value)
         return popup({ mensagem: 'Existem campos em Branco' })
 
-    if (pedido.value == 'Sem Pedido' && autorizadoPor == '')
+    if (pedido.value == 'Sem Pedido' && autorizado_por == '')
         return popup({ mensagem: 'Quem autorizou este pedido?' })
 
     const dados = {

@@ -176,13 +176,13 @@ async function criarLinhaOrcamento(orcamento) {
             : ''
         
         const pedidosStatus = (pedidos || [])
-            .map(({ tipo, pedido, valor, autorizadoPor }) => {
+            .map(({ tipo, pedido, valor, autorizado_por }) => {
 
                 const label = `
                 <div class="etiquetas" style="text-align: left; min-width: 100px;">
                     <label>${tipo || ''}</label>
                     <label>${pedido}</label>
-                    ${autorizadoPor ? `<label><b>${autorizadoPor}</b></label>` : ''}
+                    ${autorizado_por ? `<label><b>${autorizado_por}</b></label>` : ''}
                     <label>${dinheiro(valor)}</label>
                 </div>
                 `
