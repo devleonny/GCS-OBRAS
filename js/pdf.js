@@ -73,9 +73,6 @@ async function preencher() {
 
     const orcamentoBase = JSON.parse(localStorage.getItem('pdf')) || {}
 
-    console.log(orcamentoBase);
-    
-
     document.getElementById('codigo_orcamento').textContent = orcamentoBase?.id || '---'
 
     if (orcamentoBase.emAnalise)
@@ -97,15 +94,8 @@ async function preencher() {
     imgLogo.style.width = informacoes?.emissor == 'IAC' ? '100px' : '10rem'
 
     // Nome orçamento atual;
-    const chamContrato = orcamentoBase?.dados_orcam?.chamado || orcamentoBase?.dados_orcam?.contrato || ''
+    const chamContrato = orcamentoBase?.dados_orcam?.contrato || ''
     let nomeChamado = `<label>${chamContrato}</label>`
-
-    // Chamado Master;
-    if (orcamentoBase.hierarquia) {
-        const orcamentoRef = await recuperarDado('dados_orcamentos', orcamentoBase.hierarquia)
-        const chamContrato = orcamentoRef?.dados_orcam?.chamado || orcamentoRef?.dados_orcam?.contrato || ''
-        if (chamContrato) nomeChamado += `<label class="etiqueta-chamado"><b>cham.</b> ${chamContrato}</label>`
-    }
 
     // Revisão atual, se existir;
     if (orcamentoBase.revisoes && orcamentoBase.revisoes.atual) {
@@ -195,7 +185,10 @@ async function preencher() {
             icms = precoAtivo?.icms_creditado == 4 && estado !== 'BA' ? 4 : 0
         }
 
-        if (icms == 0) icms = estado == 'BA' ? 20.5 : 12
+        if (icms == 0)
+            icms = estado == 'BA'
+                ? 20.5
+                : 12
 
         if (!totais[item.tipo]) {
             totais[item.tipo] = { linhas: '', valor: 0 }

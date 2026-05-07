@@ -1592,29 +1592,40 @@ async function criarPesquisas() {
         </div>
         `)
 
-    for (const [titulo, conf] of Object.entries(camposFechados)) {
+    const emMassa = Object.entries(camposFechados)
+        .map(async ([titulo, conf]) => {
+            const contagem = (titulo == 'Executor' && acesso.permissao == 'técnico')
+                ? { [acesso.usuario]: {} }
+                : {
+                    '': {},
+                    ...await contarPorCampo({ base: 'dados_ocorrencias', ...conf })
+                }
 
-        const contagem = (titulo == 'Executor' && acesso.permissao == 'técnico')
-            ? { [acesso.usuario]: {} }
-            : {
-                '': {},
-                ...await contarPorCampo({ base: 'dados_ocorrencias', ...conf })
-            }
+            const path = conf?.explode?.path
+                ? 'snapshots.ultimoExecutor.*.executor'
+                : conf.path
 
-        const path = conf?.explode?.path
-            ? 'snapshots.ultimoExecutor.*.executor'
-            : conf.path
-
-        filtros.push(
-            montarDropdownCheckbox({
+            return montarDropdownCheckbox({
                 titulo,
                 path,
                 opcoes: Object.keys(contagem)
             })
-        )
-    }
 
-    // Filtro de atrasados;
+        })
+
+    filtros.push(await Promise.all(emMassa))
+
+    // Filtro de autorizados e atrasados;
+
+    filtros.push(`
+            <div style="${vertical}; gap: 2px;">
+                <span style="color: white;">Código de Autorização</span>
+                <select onchange="filtrarAutorizados(this)">
+                    ${['', 'Sim', 'Não'].map(o => `<option>${o}</option>`).join('')}
+                </select>
+            </div>
+        `)
+
     filtros.push(`
             <div style="${vertical}; gap: 2px;">
                 <span style="color: white;">Atrasados</span>
@@ -1637,7 +1648,21 @@ async function criarPesquisas() {
 
     })
 
-    divF2.insertAdjacentHTML('beforeend', filtros.join(''))
+    divF2.insertAdjacentHTML('beforeend', filtros.flat().join(''))
+}
+
+async function filtrarAutorizados(select) {
+
+    controles.ocorrencias.filtros = {
+        ...controles.ocorrencias.filtros,
+        'snapshots.autorizacao': { op: '=', value: select.value }
+    }
+
+    if (!select.value)
+        delete controles.ocorrencias.filtros['snapshots.autorizacao']
+
+    await paginacao('ocorrencias')
+
 }
 
 async function formFiltro(id) {
