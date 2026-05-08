@@ -39,8 +39,9 @@ const dadosEmpresas = {
 preencher()
 
 function excel() {
-    var orcam_ = JSON.parse(localStorage.getItem('pdf')).id
-    ir_excel(orcam_)
+    const parametros = new URLSearchParams(window.location.search)
+    const idRecebido = parametros.get('id')
+    irExcelOrcamento(idRecebido)
 }
 
 function blocoHtml(titulo, dados = {}) {
@@ -61,7 +62,7 @@ function blocoHtml(titulo, dados = {}) {
     const acumulado = `
         <div class="contorno">
             <div class="pilula">
-                <span>${titulo}</span>
+                <span class="cab">${titulo}</span>
                 <div style="${vertical}">${linhas}</div>
             </div>
         </div>
@@ -71,17 +72,15 @@ function blocoHtml(titulo, dados = {}) {
 
 async function preencher() {
 
-    const orcamentoBase = JSON.parse(localStorage.getItem('pdf')) || {}
+    const parametros = new URLSearchParams(window.location.search)
+    const idRecebido = parametros.get('id')
+    const orcamentoBase = await recuperarDado('dados_orcamentos', idRecebido) || {}
 
-    document.getElementById('codigo_orcamento').textContent = orcamentoBase?.id || '---'
-
-    if (orcamentoBase.emAnalise)
-        document.body.classList.add('marca-ativa')
-    else
-        document.body.classList.remove('marca-ativa')
+    document.getElementById('codigo_orcamento').textContent = idRecebido
 
     // LÓGICA DOS DADOS
     cliente = await recuperarDado('dados_clientes_ac', orcamentoBase?.dados_orcam?.omie_cliente) || {}
+
     const informacoes = {
         ...orcamentoBase.dados_orcam,
         ...cliente
@@ -138,9 +137,6 @@ async function preencher() {
     const html_orcamento = document.getElementById('html_orcamento')
     html_orcamento.innerHTML = ''
 
-    let tabelas = ''
-    let itens = orcamentoBase.dados_composicoes || {}
-
     const cabecalho = {
         1: 'Código',
         2: 'Descrição',
@@ -155,137 +151,99 @@ async function preencher() {
     }
 
     const config = {
-        'ALUGUEL': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: 'green' },
-        'USO E CONSUMO': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: '#24729d' },
-        'SERVIÇO': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: 'green' },
-        'VENDA': { colunas: [1, 2, 3, 4, 5, 6, 7, 9, 10], cor: '#B12425' }
+        'ALUGUEL': { cor: 'green' },
+        'USO E CONSUMO': { cor: '#24729d' },
+        'SERVIÇO': { cor: 'green' },
+        'VENDA': { cor: '#B12425' }
     }
 
-    // Se for IAC por não ser Lucro Presumido, então não deve mostrar os campos de ICMS;
-    if (informacoes.emissor == 'IAC') config.VENDA.colunas = [1, 2, 3, 4, 5, 9, 10]
-
-    let totais = {
+    const totais = {
         GERAL: { valor: 0, cor: '#151749' }
-    };
+    }
+
+    const itens = orcamentoBase.dados_composicoes || {}
 
     for (let [codigo, item] of Object.entries(itens)) {
 
-        const colunas = config[item.tipo].colunas
-        const itemComposicao = await recuperarDado('dados_composicoes', codigo) || {}
-        const lpu = String(orcamentoBase.lpu_ativa).toLowerCase()
-        const tabelaPreco = itemComposicao?.[lpu]
-        const estado = informacoes.estado
+        const { tipo, custo, qtde } = item
+        const total = custo * qtde
 
-        // Se o ICMS Creditado for 4% e a venda for para fora do estado: ao invés de 12% vai ser apenas 4%;
-        let icms = 0
-        if (tabelaPreco) {
-            let ativo = tabelaPreco.ativo
-            let historico = tabelaPreco.historico
-            let precoAtivo = historico[ativo]
-            icms = precoAtivo?.icms_creditado == 4 && estado !== 'BA' ? 4 : 0
+        totais[tipo] ??= {
+            valor: 0,
+            linhas: []
         }
 
-        if (icms == 0)
-            icms = estado == 'BA'
-                ? 20.5
-                : 12
+        totais[tipo].linhas.push(item)
+        totais[tipo].valor += total
 
-        if (!totais[item.tipo]) {
-            totais[item.tipo] = { linhas: '', valor: 0 }
-        }
+    }
 
-        if (item.tipo_desconto) {
-            let desconto = item.tipo_desconto !== 'Porcentagem' ? item.desconto : item.custo * (item.desconto / 100)
-            desconto = desconto / item.qtde
-            item.custo = item.custo - desconto
-        }
+    const emMassa = await Object.entries(totais)
+        .filter(([tab, dados]) => tab !== 'ICMS' && tab !== 'GERAL')
+        .map(async ([tab, { linhas, valor }]) => {
 
-        item.total = item.custo * item.qtde;
-        totais[item.tipo].valor += item.total // Total isolado do item;
-        totais.GERAL.valor += item.total // Total GERAL;
+            const titulo = tab.includes('USO')
+                ? 'MATERIAL PARA APLICAR NO SERVIÇO'
+                : tab
 
-        let unitarioSemIcms = item.custo - (item.custo * (icms / 100))
-        let totalSemIcms = unitarioSemIcms * item.qtde
-        let tds = {}
+            const btnExtras = `<label class="toolbar-orcamento-pdf">${titulo} • ${dinheiro(valor)}</label>`
 
-        const ncm = itemComposicao?.ncm || null
+            const tabela = await modTab({
+                colunas: {
+                    'Código': {},
+                    'Descrição': {},
+                    'Imagem': {},
+                    'Unidade': {},
+                    'Quantidade': {},
+                    'Valor Unitário': {},
+                    'Valor Total': {}
+                },
+                base: linhas,
+                ocultarPesquisa: true,
+                ocultarPaginacao: true,
+                body: tab,
+                scroll: false,
+                btnExtras,
+                pag: tab,
+                cor: config[tab]?.cor,
+                substituicoes: [
+                    {
+                        path: 'codigo',
+                        tabela: 'dados_composicoes',
+                        campoBusca: 'codigo',
+                        retorno: 'fabricante',
+                        destino: 'fabricante'
+                    },
+                    {
+                        path: 'codigo',
+                        tabela: 'dados_composicoes',
+                        campoBusca: 'codigo',
+                        retorno: 'modelo',
+                        destino: 'modelo'
+                    },
+                    {
+                        path: 'codigo',
+                        tabela: 'dados_composicoes',
+                        campoBusca: 'codigo',
+                        retorno: 'ncm',
+                        destino: 'ncm'
+                    },
+                    {
+                        path: 'codigo',
+                        tabela: 'dados_composicoes',
+                        campoBusca: 'codigo',
+                        retorno: 'imagem',
+                        destino: 'imagemAtualizada'
+                    }
+                ],
+                criarLinha: 'linhaTabelaPdf'
+            })
 
-        const descricao = `
-            ${item?.descricao || 'N/A'}
-            <b>${itemComposicao?.fabricante || ''}</b>
-            ${itemComposicao?.modelo || ''}
-        `
-
-        tds[1] = `<td>${item.codigo}</td>`
-        tds[2] = `
-        <td>
-            <div style="${vertical}; text-align: left;">
-                ${item?.cnpj !== undefined ? `
-                    <div style="${vertical}; gap: 2px; text-align: left;">
-                        <label><b>Venda Direta</b></label>
-                        <label><b>Razão Social</b> ${item?.razaoSocial || '--'}</label>
-                        <label><b>CNPJ</b> ${item?.cnpj || '--'}</label>
-                    </div>
-                    ` : ''}
-                <label>${descricao}</label>
-                ${ncm ? `<label><strong>ncm:</strong> ${ncm}</label>` : ''}
-            </div>
-        </td>`
-        tds[3] = `<td style="text-align: center;"><img src="${itemComposicao?.imagem || item?.imagem || 'https://i.imgur.com/Nb8sPs0.png'}" style="width: 4vw;"></td>`
-        tds[4] = `<td>${item?.unidade || 'UN'}</td>`
-        tds[5] = `<td>${item.qtde}</td>`
-        tds[6] = `<td style="white-space: nowrap;">${dinheiro(unitarioSemIcms)} (${icms}%)</td>`
-        tds[7] = `<td style="white-space: nowrap;">${dinheiro(totalSemIcms)}</td>`
-        tds[8] = `<td>${icms}%</td>`
-        tds[9] = `<td style="white-space: nowrap;">${dinheiro(item.custo)}</td>`
-        tds[10] = `<td style="white-space: nowrap;">${dinheiro(item.total)}</td>`
-
-        // Inclusão das linhas na tabela específica;
-        totais[item.tipo].linhas += `<tr>${colunas.map(col => tds[col]).join('')}</tr>`
-
-        // Inclusão das THS;
-        totais[item.tipo].ths = ''
-        colunas.forEach(col => {
-
-            const complemento = (informacoes.emissor !== 'IAC' && item.tipo == 'VENDA' && (col == 9 || col == 10) && empresaEmissora)
-                ? 'COM ICMS'
-                : ''
-
-            totais[item.tipo].ths += `<th style="color: white;">${cabecalho[col]} ${complemento}</th>`
+            return tabela
 
         })
 
-
-    }
-
-    for (tab in totais) {
-
-        if (tab == 'ICMS' || tab == 'GERAL') continue
-
-        const tabela = `
-        <div>
-            <div class="painelTitulo" style="background-color: ${config[tab]?.cor || '#222'}">
-                <label>${tab.includes('USO') ? 'MATERIAL PARA APLICAR NO SERVIÇO' : tab}</label> 
-            </div>
-            <table class="tabela" style="background-color: white;">
-                <thead style="font-size: 0.7vw; color: white; background-color: ${config[tab]?.cor || '#222'}">
-                    ${totais[tab].ths}
-                </thead>
-                <tbody style="font-size: 0.7vw;">
-                    ${totais[tab].linhas}
-                </tbody>
-            </table>
-            <div style="border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; width: 100%; display: flex; align-items: center; color: white; justify-content: right; background-color: ${config[tab]?.cor}">
-                <label style="padding: 5px;">Total ${dinheiro(totais[tab].valor)}</label>
-            </div>
-        </div>
-        <br>
-        `
-
-        if (totais[tab].linhas != '') {
-            tabelas += tabela
-        }
-    }
+    const tabelas = await Promise.all(emMassa)
 
     let divTotais = ''
     let etiqueta_desconto = ''
@@ -311,7 +269,7 @@ async function preencher() {
                 ${tot == 'DIFERENÇA' ? `<label> Valor Original ${dinheiro(orcamentoBase?.total_bruto || '--')}</label>` : ''}
                 <label><strong>${tot}</strong> ${dinheiro(objeto.valor)}</label>
             </div>
-        `;
+        `
     }
 
     const totalGeral = orcamentoBase.total_geral
@@ -320,7 +278,7 @@ async function preencher() {
         <div id="total_${titulo}" class="totais" style="background-color: ${totais[titulo].cor}">
             TOTAL ${titulo} ${dinheiro(totalGeral)}
         </div>
-    `;
+    `
 
     html_orcamento.innerHTML = `
     ${carimboData(orcamentoBase?.dados_orcam)}
@@ -337,15 +295,16 @@ async function preencher() {
 
     <div class="contorno">
         <div class="pilula">
-            <span>Itens do Orçamento</span>
-            <div>
+            <span class="cab">Itens do Orçamento</span>
+            <div style="${vertical}; gap: 1rem;">
                 <br>
-                ${tabelas}
+
+                ${tabelas.join('')}
 
                 <div style="display: flex; align-items: center; justify-content: start; gap: 10px;">
                     <div style="display: flex; flex-direction: column;">
                         ${divTotais}
-                    </div>
+                    </div> 
 
                     ${etiqueta_desconto}
                 </div>
@@ -355,6 +314,62 @@ async function preencher() {
 
     ${informacoes.consideracoes ? blocoHtml('Considerações', { Considerações: informacoes.consideracoes }) : ''}
     `
+
+    await paginacao()
+
+}
+
+async function linhaTabelaPdf(item) {
+
+    const {
+        codigo,
+        tipo,
+        custo,
+        unidade,
+        qtde,
+        descricao,
+        imagem,
+        imagemAtualizada,
+        razaoSocial,
+        cnpj,
+        fabricante,
+        modelo,
+        ncm
+    } = item || {}
+
+    const descricaoCompleta = `
+        ${descricao || 'N/A'}
+        <b>${fabricante || ''}</b>
+        ${modelo || ''}
+    `
+
+    const linha = `
+        <tr>
+            <td style="text-align: center;">${codigo}</td>
+            <td style="text-align: center;">
+                <div style="${vertical}; text-align: left;">
+                    ${cnpj ? `
+                        <div style="${vertical}; gap: 2px; text-align: left;">
+                            <label><b>Venda Direta</b></label>
+                            <label><b>Razão Social</b> ${razaoSocial || '--'}</label>
+                            <label><b>CNPJ</b> ${cnpj || '--'}</label>
+                        </div>
+                        ` : ''}
+                    <label>${descricaoCompleta}</label>
+                    ${ncm ? `<label><strong>ncm:</strong> ${ncm}</label>` : ''}
+                </div>
+            </td>
+            <td style="text-align: center;">
+                <img src="${imagemAtualizada || imagem || 'https://i.imgur.com/Nb8sPs0.png'}" style="width: 5rem;">
+            </td>
+            <td style="text-align: center;">${unidade || 'UN'}</td>
+            <td style="text-align: center;">${qtde}</td>
+            <td style="text-align: center;white-space: nowrap;">${dinheiro(custo)}</td>
+            <td style="text-align: center;white-space: nowrap;">${dinheiro(qtde * custo)}</td>
+        </tr>
+    `
+
+    return linha
 
 }
 
@@ -393,15 +408,23 @@ function carimboData(dados_orcam) {
 async function gerarPDF() {
 
     preencher()
-    const orcamentoBase = JSON.parse(localStorage.getItem('pdf')) || {}
+
+    const parametros = new URLSearchParams(window.location.search)
+    const idRecebido = parametros.get('id')
+    const orcamentoBase = await recuperarDado('dados_orcamentos', idRecebido) || {}
     const contrato = orcamentoBase.dados_orcam.contrato
-    const nomeCliente = cliente?.nome || new Date().getTime()
+    const nomeCliente = orcamentoBase?.snapshots?.cliente || new Date().getTime()
 
     const divDescontoAcrescimo = document.getElementById(`total_DIFERENÇA`)
+
     if (divDescontoAcrescimo)
         divDescontoAcrescimo.style.display = 'none'
 
-    await pdf({ id: 'container', estilos: ['pdf'], nome: `Orcamento_${nomeCliente}_${contrato}` })
+    await pdf({
+        id: 'container',
+        estilos: ['pdf', 'tabelas'],
+        nome: `Orcamento_${nomeCliente}_${contrato}`
+    })
 
     if (divDescontoAcrescimo)
         divDescontoAcrescimo.style.display = 'flex'

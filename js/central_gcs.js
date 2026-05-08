@@ -424,18 +424,9 @@ async function carregarXLSX() {
     });
 }
 
-function maisAba() {
-    window.open(window.location.href, '_blank', 'toolbar=no, menubar=no');
-}
+async function irPdf(id) {
 
-async function irPdf(id, emAnalise) {
-
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-    orcamento.emAnalise = emAnalise
-
-    localStorage.setItem('pdf', JSON.stringify(orcamento))
-
-    window.open('pdf.html', '_blank')
+    window.open(`pdf.html?id=${id}`, '_blank')
 
 }
 
@@ -1410,9 +1401,11 @@ async function salvarDadosCliente(idOrcamento) {
 
         if (idOrcamento) {
 
-            await enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamentoBase.dados_orcam)
-            await enviar(`dados_orcamentos/${idOrcamento}/tags`, orcamentoBase.tags)
-            await enviar(`dados_orcamentos/${idOrcamento}/usuarios`, orcamentoBase.usuarios)
+            await Promise.all([
+                enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamentoBase.dados_orcam),
+                enviar(`dados_orcamentos/${idOrcamento}/tags`, orcamentoBase.tags),
+                enviar(`dados_orcamentos/${idOrcamento}/usuarios`, orcamentoBase.usuarios)
+            ])
 
             await abrirAtalhos(idOrcamento)
 

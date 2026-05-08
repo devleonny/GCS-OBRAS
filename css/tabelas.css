@@ -64,6 +64,19 @@
     border-radius: 3px;
 }
 
+.rodape-tabela {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    gap: 5px;
+    border: 1px solid #434343;
+    width: 100%;
+    min-height: 2vh;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    background-color: #b1b1b1;
+}
+
 .div-tabela {
     border-right: solid 1px #434343;
     border-left: solid 1px #434343;

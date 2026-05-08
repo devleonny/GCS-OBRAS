@@ -236,6 +236,13 @@ button {
     color: white;
 }
 
+.toolbar-orcamento-pdf {
+    margin-right: 3rem;
+    color: white;
+    font-size: 1.2vw;
+    font-weight: 500;
+}
+
 .pilula {
     border-radius: 3px;
     display: flex;
@@ -244,9 +251,9 @@ button {
     overflow: hidden;
 }
 
-.pilula span {
+.pilula .cab {
     background-color: #151749;
-    font-size: 1.2vw;
+    font-size: 1.2rem;
     text-align: center;
     color: white;
     display: flex;

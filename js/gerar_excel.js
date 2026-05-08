@@ -1,4 +1,4 @@
-async function ir_excel(orcam_) {
+async function irExcelOrcamento(orcam_) {
     const orcamento = await recuperarDado('dados_orcamentos', orcam_) || {}
 
     const wb = new ExcelJS.Workbook()

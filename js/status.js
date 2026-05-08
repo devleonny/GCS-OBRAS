@@ -408,9 +408,9 @@ async function abrirAtalhos(id, idMaster) {
         botoesDisponiveis.push(
             modeloBotoes('esquema', 'Histórico', `abrirEsquema('${id}')`),
             modeloBotoes('painelcustos', 'Painel de Custos', `painelCustos('${id}')`),
-            modeloBotoes('pdf', 'Abrir Orçamento em PDF', `irPdf('${id}', ${emAnalise})`),
+            modeloBotoes('pdf', 'Abrir Orçamento em PDF', `irPdf('${id}')`),
             modeloBotoes('checklist', 'CHECKLIST', `telaChecklist('${id}')`),
-            modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`),
+            modeloBotoes('excel', 'Baixar Orçamento em Excel', `irExcelOrcamento('${id}')`),
             modeloBotoes('LG', 'OS em PDF', `carregarOS('${id}')`),
         )
 
