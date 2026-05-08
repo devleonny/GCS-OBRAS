@@ -8,16 +8,6 @@ const obrigatorios = [
     'NR 35'
 ]
 
-const regrasDocs = {
-    'ASO': 365,
-    'PTA': 365,
-    'NR 01': 365,
-    'NR 05 - CIPA': 365,
-    'NR 06 - EPI': 365,
-    'RECEBIMENTO - EPI': 365,
-    'NR 10': 730,
-    'NR 35': 730,
-}
 
 const modeloRH = (valor1, elemento, funcao) => {
     return `
@@ -76,15 +66,17 @@ async function filtrarPorTempo(tempo) {
 
     controles.rh.filtros ??= {}
 
+    const hoje = new Date().toLocaleDateString()
+
     if (tempo == 'atrasados') {
-        controles.rh.filtros['snapshots.validade'] = { op: '<=d', value: Date.now() }
+        controles.rh.filtros['snapshots.validade'] = { op: '<=d', value: hoje }
 
     } else if (tempo == 'proximo') {
 
         const dias60 = 60 * 24 * 60 * 60 * 1000
         controles.rh.filtros['snapshots.validade'] = [
-            { op: '<=d', value: Date.now() + dias60 },
-            { op: '>=d', value: Date.now() }
+            { op: '<=d', value: new Date(Date.now() + dias60).toLocaleDateString() },
+            { op: '>=d', value: hoje }
         ]
 
     } else {
@@ -259,8 +251,10 @@ async function abrirDoc(funcionario, doc) {
 
 function criarLinhaRH(documento) {
 
-    const { realizado, doc, anexo, snapshots, local, clinica, id } = documento || {}
-    const tempoExpiracao = expiraEm(realizado, doc)
+    const { doc, anexo, snapshots, local, clinica, id } = documento || {}
+    const { cidade, nome, realizado, prazo, validade, validadeData } = snapshots || {}
+
+    const tempoExpiracao = expiraEm(validade)
     const a = (typeof anexo === 'object' && anexo) ? anexo : {}
     const temAnexo = !!a.link
 
@@ -268,14 +262,14 @@ function criarLinhaRH(documento) {
         <td>
             <img src="imagens/pesquisar2.png" onclick="incluirDocumento('${id}')">
         </td>
-        <td>${snapshots.nome || ''}</td>
-        <td>${snapshots.cidade || ''}</td>
+        <td>${nome || ''}</td>
+        <td>${cidade || ''}</td>
         <td>
             ${clinica || ''}<br>
             <b>${local || ''}</b>
         </td>
-        <td>${snapshots.realizado}</td>
-        <td>${snapshots.validade}</td>
+        <td>${realizado}</td>
+        <td>${validade}</td>
         <td>
             <div style="${horizontal}; justify-content: left; gap: 5px;">
                 <img src="${tempoExpiracao.icone}" style="width: 1.2rem;">
@@ -302,50 +296,52 @@ function criarLinhaRH(documento) {
     return `<tr>${tds}</tr>`
 }
 
-function expiraEm(dt, doc) {
+function expiraEm(dtValidade) {
 
-    const prazo = regrasDocs[doc] || 0
+    if (!dtValidade) 
+        return { dias: 0, icone: 'gifs/interrogacao.gif', status: 'Desconhecido', validade: '' };
 
-    const dataBase = new Date(dt)
-    const hoje = new Date()
-
-    dataBase.setHours(0, 0, 0, 0)
-    hoje.setHours(0, 0, 0, 0)
-
-    // data de validade
-    const validade = new Date(dataBase)
-    validade.setDate(validade.getDate() + prazo)
-
-    const diferencaMs = validade - hoje
-    const dias = Math.floor(diferencaMs / (1000 * 60 * 60 * 24))
-
-    // formatação dd/mm/aaaa
-    const dd = String(validade.getDate()).padStart(2, '0')
-    const mm = String(validade.getMonth() + 1).padStart(2, '0')
-    const aa = validade.getFullYear()
-    const dataValidade = isNaN(dd)
-        ? ''
-        : `${dd}/${mm}/${aa}`
-
-    let icone = 'gifs/interrogacao.gif'
-    let status = 'Desconhecido'
-    if (dias < 30) {
-        icone = 'imagens/offline.png'
-        status = 'Vencido'
-    } else if (dias < 60) {
-        icone = 'imagens/pendente.png'
-        status = 'Próximo'
-    } else if (dias >= 60) {
-        icone = 'imagens/online.png'
-        status = 'Ativo'
+    let validade;
+    
+    // Suporta data BR (DD/MM/AAAA) ou ISO do banco (YYYY-MM-DDTHH...)
+    if (typeof dtValidade === 'string' && dtValidade.includes('/')) {
+        const [dia, mes, ano] = dtValidade.split(' ')[0].split('/');
+        validade = new Date(ano, mes - 1, dia);
+    } else {
+        validade = new Date(dtValidade);
     }
 
-    return {
-        dias: isNaN(dias) ? 0 : dias,
-        icone,
-        status,
-        validade: dataValidade
+    const hoje = new Date();
+
+    // Zera as horas para comparar só os dias
+    validade.setHours(0, 0, 0, 0);
+    hoje.setHours(0, 0, 0, 0);
+
+    // Calcula a diferença em dias
+    const dias = Math.round((validade - hoje) / (1000 * 60 * 60 * 24));
+
+    // Formata retorno (DD/MM/AAAA)
+    const dd = String(validade.getDate()).padStart(2, '0');
+    const mm = String(validade.getMonth() + 1).padStart(2, '0');
+    const aa = validade.getFullYear();
+    const dataValidade = isNaN(validade.getTime()) ? '' : `${dd}/${mm}/${aa}`;
+
+    // Regras de Status
+    let icone = 'gifs/interrogacao.gif';
+    let status = 'Desconhecido';
+
+    if (dias < 0) {
+        icone = 'imagens/offline.png';
+        status = 'Vencido';
+    } else if (dias <= 30) {
+        icone = 'imagens/pendente.png';
+        status = 'Próximo';
+    } else {
+        icone = 'imagens/online.png';
+        status = 'Ativo';
     }
+
+    return { dias: isNaN(dias) ? 0 : dias, icone, status, validade: dataValidade };
 }
 
 async function incluirDocumento(id) {
@@ -362,7 +358,16 @@ async function incluirDocumento(id) {
         }
     }
 
-    const docs = Object.keys(regrasDocs)
+    const docs = [
+        'ASO',
+        'PTA',
+        'NR 01',
+        'NR 05 - CIPA',
+        'NR 06 - EPI',
+        'RECEBIMENTO - EPI',
+        'NR 10',
+        'NR 35'
+    ]
         .sort((a, b) => a.localeCompare(b))
         .map(d => `<option ${doc == d ? 'selected' : ''}>${d}</option>`)
         .join('')

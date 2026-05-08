@@ -501,17 +501,14 @@ async function baixarExcelOrcamentos() {
                 type: "LEFT",
                 table: "dados_clientes_ac",
                 alias: "c",
-                on: `
-                    c.id = json_extract(
-                        CASE WHEN json_valid(o.dados_orcam) THEN o.dados_orcam ELSE '{}' END,
-                        '$.omie_cliente'
-                    )`
+                // Substituindo json_extract e json_valid pela sintaxe nativa do PostgreSQL
+                on: "c.id::text = (COALESCE(NULLIF(o.dados_orcam::text, ''), '{}')::jsonb) ->> 'omie_cliente'"
             },
             {
                 type: "LEFT",
                 table: "empresas",
                 alias: "e",
-                on: "e.id = c.empresa"
+                on: "e.id::text = c.empresa::text" // Adicionado ::text por segurança, caso os IDs divirjam em tipo (uuid/int vs texto)
             }
         ],
 
@@ -528,23 +525,6 @@ async function baixarExcelOrcamentos() {
                     path: "$.atual"
                 },
                 as: "Status",
-            },
-            { field: "o.aba", as: "Aba" },
-            {
-                jsonArray: {
-                    field: "o.status",
-                    path: "$.historico",
-                    property: "pedido"
-                },
-                as: "Pedidos",
-            },
-            {
-                jsonArray: {
-                    field: "o.status",
-                    path: "$.historico",
-                    property: "nf"
-                },
-                as: "Notas",
             },
             {
                 jsonObjectJoin: {

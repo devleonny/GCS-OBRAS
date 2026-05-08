@@ -239,7 +239,7 @@ async function criarQuadro(id) {
         }
     ]
 
-    popup({ linhas, botoes })
+    popup({ linhas, botoes, titulo: 'Edição de quadros' })
 }
 
 async function criarPIT(id) {
@@ -336,7 +336,7 @@ async function salvarQuadro(id = crypto.randomUUID()) {
 
     await enviar(`quadros/${id}`, atualizado)
 
-    await criarQuadros()
+    await telaPIT()
     removerPopup()
 }
 

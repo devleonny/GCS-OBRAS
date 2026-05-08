@@ -10,10 +10,11 @@ async function telaCadastros() {
 
     const bases = ['empresas', 'tipos', 'sistemas', 'prioridades', 'correcoes']
 
-    for (const base of bases) {
+    const emMassa = bases.map(async (base) => {
 
         const btnExtras = `<img  src="imagens/baixar.png" onclick="editarBaseAuxiliar('${base}')">`
 
+        const pag = `cad_${base}`
         const tabela = await modTab({
             base,
             btnExtras,
@@ -26,7 +27,7 @@ async function telaCadastros() {
                 '': {}
             },
             body: `cad_${base}`,
-            pag: `cad_${base}`,
+            pag,
             criarLinha: 'criarLinhaCadastro'
         })
 
@@ -37,9 +38,12 @@ async function telaCadastros() {
             </div>`
 
         divTabelas.insertAdjacentHTML('beforeend', final)
-    }
 
-    await paginacao()
+        await paginacao(pag)
+
+    })
+
+    await Promise.all(emMassa)
 
 }
 
