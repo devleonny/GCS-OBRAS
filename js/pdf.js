@@ -420,10 +420,12 @@ async function gerarPDF() {
     if (divDescontoAcrescimo)
         divDescontoAcrescimo.style.display = 'none'
 
+    const revisao = orcamentoBase?.revisoes?.atual
+
     await pdf({
         id: 'container',
         estilos: ['pdf', 'tabelas'],
-        nome: `Orcamento_${nomeCliente}_${contrato}`
+        nome: `Orcamento_${revisao ? `${revisao}_` : ''}${nomeCliente}_${contrato}`
     })
 
     if (divDescontoAcrescimo)
