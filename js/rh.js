@@ -136,11 +136,14 @@ async function criarPastinhas() {
 
 async function funcionariosPorCidade(cidade) {
 
+    overlayAguarde()
+
     const local = document.getElementById(cidade)
 
     if (pastaAberta[cidade]) {
         delete pastaAberta[cidade]
         if (local) local.innerHTML = ''
+        removerOverlay()
         return
     }
 
@@ -189,6 +192,8 @@ async function funcionariosPorCidade(cidade) {
 
     if (local)
         local.innerHTML = pastinhas.join('')
+
+    removerOverlay()
 
 }
 
