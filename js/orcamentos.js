@@ -501,14 +501,13 @@ async function baixarExcelOrcamentos() {
                 type: "LEFT",
                 table: "dados_clientes_ac",
                 alias: "c",
-                // Substituindo json_extract e json_valid pela sintaxe nativa do PostgreSQL
                 on: "c.id::text = (COALESCE(NULLIF(o.dados_orcam::text, ''), '{}')::jsonb) ->> 'omie_cliente'"
             },
             {
                 type: "LEFT",
                 table: "empresas",
                 alias: "e",
-                on: "e.id::text = c.empresa::text" // Adicionado ::text por segurança, caso os IDs divirjam em tipo (uuid/int vs texto)
+                on: "e.id::text = c.empresa::text" 
             }
         ],
 
@@ -527,12 +526,33 @@ async function baixarExcelOrcamentos() {
                 as: "Status",
             },
             {
-                jsonObjectJoin: {
-                    field: "o.tags",
-                    table: "tags_orcamentos",
-                    joinField: "id",
-                    selectField: "nome"
-                },
+                // Trocado jsonObjectJoin por uma query customizada
+                // que entra em snapshots -> tags e extrai a propriedade "nome"
+                custom: `
+                    (
+                        SELECT string_agg(NULLIF(trim(v ->> 'nome'), ''), ', ')
+                        FROM (
+                            SELECT value AS v 
+                            FROM jsonb_each(
+                                CASE 
+                                    WHEN jsonb_typeof((COALESCE(NULLIF(o.snapshots::text, ''), '{}')::jsonb) -> 'tags') = 'object' 
+                                    THEN (COALESCE(NULLIF(o.snapshots::text, ''), '{}')::jsonb) -> 'tags' 
+                                    ELSE '{}'::jsonb 
+                                END
+                            )
+                            UNION ALL
+                            SELECT value AS v 
+                            FROM jsonb_array_elements(
+                                CASE 
+                                    WHEN jsonb_typeof((COALESCE(NULLIF(o.snapshots::text, ''), '{}')::jsonb) -> 'tags') = 'array' 
+                                    THEN (COALESCE(NULLIF(o.snapshots::text, ''), '{}')::jsonb) -> 'tags' 
+                                    ELSE '[]'::jsonb 
+                                END
+                            )
+                        ) tags_data
+                        WHERE v ->> 'nome' IS NOT NULL
+                    )
+                `,
                 as: "Tags",
             },
             {
