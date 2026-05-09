@@ -227,11 +227,11 @@ async function telaRelatorioCorrecoes() {
     const colunas = {
         'Empresa': { chave: 'snapshots.empresa' },
         'Chamado': { chave: 'id' },
-        'Tipo Correção': { chave: 'snapshots.ultimaCorrecao' },
+        'Tipo Correção': { chave: 'tipoCorrecao' },
         'Descrição': { chave: 'descricao' },
-        'Data Registro': { chave: 'snapshots.datasCorrecoes', tipoPesquisa: 'data' },
+        'Data Registro': { chave: 'data', tipoPesquisa: 'data' },
         'Solicitante': { chave: 'usuario' },
-        'Executor': { chave: 'snapshots.executores' },
+        'Executor': { chave: 'executor' },
         'Loja': { chave: 'snapshots.cliente.nome' },
         'Cidade': { chave: 'snapshots.cliente.cidade' },
         'Estado': { chave: 'snapshots.cliente.estado' },
@@ -246,6 +246,18 @@ async function telaRelatorioCorrecoes() {
                     ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
                     : {}
             )
+        },
+        substituicoes: [
+            {
+                path: 'tipoCorrecao',
+                tabela: 'correcoes',
+                campoBusca: 'id',
+                retorno: 'nome',
+                destino: 'status'
+            }
+        ],
+        explode: {
+            path: 'correcoes'
         },
         base: 'dados_ocorrencias',
         pag: 'relatorioCorrecoes',
@@ -274,35 +286,27 @@ async function telaRelatorioCorrecoes() {
 
 }
 
-async function criarLinhasCorrecoes(ocorrencia) {
+async function criarLinhasCorrecoes(correcao) {
 
-    const { id, snapshots } = ocorrencia || {}
+    const { id, snapshots, tipoCorrecao, descricao, executor, data, usuario, status } = correcao || {}
     const { cliente, empresa, sistema } = snapshots || {}
     const { nome, cidade, estado } = cliente || {}
 
-    const linhas = []
+    const dtRegistro = data
+        ? data.split(',')[0]
+        : ''
 
-    for (const correcao of Object.values(ocorrencia?.correcoes || {})) {
+    const estilo = status == 'Solucionada'
+        ? 'fin'
+        : status == 'Não analisada'
+            ? 'na'
+            : 'and'
 
-        const { tipoCorrecao, descricao, executor, usuario } = correcao || {}
-
-        const dtRegistro = correcao.data
-            ? correcao.data.split(',')[0]
-            : ''
-
-        const { nome } = await recuperarDado('correcoes', tipoCorrecao) || 'Não analisada'
-
-        const estilo = nome == 'Solucionada'
-            ? 'fin'
-            : nome == 'Não analisada'
-                ? 'na'
-                : 'and'
-
-        const tds = `
+    const tds = `
         <td>${empresa}</td>
         <td>${id}</td>
         <td>
-            <span class="${estilo}">${nome}</span>
+            <span class="${estilo}">${status}</span>
         </td>
         <td>
             <div style="white-space: pre-wrap;">
@@ -318,10 +322,7 @@ async function criarLinhasCorrecoes(ocorrencia) {
         <td>${sistema}</td>
         `
 
-        linhas.push(`<tr>${tds}</tr>`)
-    }
-
-    return linhas.join('')
+    return `<tr>${tds}</tr>`
 
 }
 
@@ -331,20 +332,19 @@ async function telaRelatorioPecas() {
         'Chamado': { chave: 'id' },
         'Empresa': { chave: 'snapshots.empresa' },
         'Loja': { chave: 'snapshots.cliente.nome' },
-        'Técnico': { chave: 'correcoes.*.tecnico' },
-        'Data Correção': { chave: 'correcoes.*.data', tipoPesquisa: 'data' },
-        'Origem': { chave: 'snapshots.equipamentos.*.origem' },
-        'Descrição': { chave: 'snapshots.equipamentos.*.descricao' },
-        'Unidade': { chave: 'snapshots.equipamentos.*.unidade' },
-        'Quantidade': { chave: 'snapshots.equipamentos.*.quantidade' },
-        'Modelo': { chave: 'snapshots.equipamentos.*.modelo' },
-        'Fabricante': { chave: 'snapshots.equipamentos.*.fabricante' },
+        'Técnico': { chave: 'tecnico' },
+        'Data Correção': { chave: 'dtCorrecao', tipoPesquisa: 'data' },
+        'Origem': { chave: 'origem' },
+        'Descrição': { chave: 'descricao' },
+        'Unidade': { chave: 'unidade' },
+        'Quantidade': { chave: 'quantidade' },
+        'Modelo': { chave: 'modelo' },
+        'Fabricante': { chave: 'fabricante' },
     }
 
     const tabela = await modTab({
         colunas,
         filtros: {
-            'correcoes.*.equipamentos': { op: 'NOT_EMPTY' },
             ...(
                 acesso.permissao == 'cliente'
                     ? {
@@ -355,6 +355,9 @@ async function telaRelatorioPecas() {
                     }
                     : {}
             )
+        },
+        explode: {
+            path: 'snapshots.equipamentos'
         },
         base: 'dados_ocorrencias',
         pag: 'relatorioPecas',
@@ -382,48 +385,46 @@ async function telaRelatorioPecas() {
 
 }
 
-async function criarLinhasPecas(ocorrencia) {
+async function criarLinhasPecas(equipamento) {
 
-    const { id, snapshots } = ocorrencia || {}
+    const {
+        id,
+        departamento,
+        correcoes,
+        snapshots,
+        tecnico = [],
+        dtCorrecao,
+        descricao,
+        unidade,
+        quantidade,
+        modelo,
+        origem,
+        fabricante
+    } = equipamento || {}
 
-    const { cliente, empresa } = snapshots || {}
+    const {
+        cliente,
+        empresa
+    } = snapshots || {}
 
-    const linhas = []
+    console.log(tecnico);
+    
 
-    for (const correcao of Object.values(ocorrencia?.correcoes || {})) {
+    const tds = `
+            <td>${departamento}</td>
+            <td>${empresa || ''}</td>
+            <td>${cliente?.nome || ''}</td>
+            <td>${tecnico ? tecnico.join(', ') : ''}</td>
+            <td>${dtCorrecao}</td>
+            <td>${origem || ''}</td>
+            <td>${descricao || ''}</td>
+            <td>${unidade || ''}</td>
+            <td>${quantidade || ''}</td>
+            <td>${modelo || ''}</td>
+            <td>${fabricante || ''}</td>
+            `
 
-        const { tecnico, equipamentos } = correcao || {}
-
-        if (!equipamentos)
-            continue
-
-        const dtRegistro = correcao.data
-            ? correcao.data.split(',')[0]
-            : ''
-
-        for (const equip of Object.values(equipamentos)) {
-
-            const { descricao, unidade, quantidade, modelo, origem, fabricante } = equip || {}
-
-            const tds = `
-                <td>${id}</td>
-                <td>${empresa}</td>
-                <td>${cliente?.nome || ''}</td>
-                <td>${tecnico || ''}</td>
-                <td>${dtRegistro}</td>
-                <td>${origem || ''}</td>
-                <td>${descricao || ''}</td>
-                <td>${unidade || ''}</td>
-                <td>${quantidade || ''}</td>
-                <td>${modelo}</td>
-                <td>${fabricante}</td>
-                `
-
-            linhas.push(`<tr>${tds}</tr>`)
-        }
-    }
-
-    return linhas.join('')
+    return `<tr>${tds}</tr>`
 
 }
 
@@ -434,20 +435,15 @@ async function baixarExcelRelatorioOcorrencias() {
         view: "vw_relatorio_ocorrencias",
         titulo: `Ocorrencias_${Date.now()}.xlsx`,
 
-        // Atualizado para usar o nome direto da View: 'excluido' (sem alias)
         filtros: [
             { custom: "(excluido IS NULL OR excluido = '')" }
         ],
 
-        // Definindo as colunas de data para saírem certinhas no Excel
         formatacao: {
             datas: ["Data Registro", "Data Agendamento"]
         }
     }
 
-    // Se o usuário for cliente, esconde as outras empresas. 
-    // Usamos schema.filtros (em português, combinando com a declaração acima)
-    // E usamos 'id_empresa', que foi o nome que demos à coluna secreta na View
     if (acesso.permissao === 'cliente') {
         schema.filtros.push({
             field: "id_empresa",

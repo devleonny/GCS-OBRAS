@@ -408,7 +408,7 @@ function carregarCorrecoes(ocorrencia) {
                         `)}
                     ${modelo('Solicitante', `<span>${usuario || ''}</span>`)}
                     ${modelo('Executores', `<span>${listaExecutores || ''}</span>`)}
-                    ${modelo('Técnico', `<span>${tecnico || ''}</span>`)}
+                    ${modelo('Técnicos', `<span>${tecnico ? tecnico.join(', ') : ''}</span>`)}
                     ${modelo('Correção', labelTipoCorrecao)}
                     ${pdfOrcamento}
                     ${modelo('Descrição', `<div style="white-space: pre-wrap;">${descricao || ''}</div>`)}
@@ -2171,15 +2171,20 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
         {
             texto: `
             <div style="${horizontal}; gap: 1rem;">
-                <img src="imagens/baixar.png" onclick="maisResponsavel([undefined])">
+                <img src="imagens/baixar.png" onclick="maisUsuario([undefined], 'executores')">
                 <span>Executores</span>
             </div>
             `,
             elemento: '<div class="executores"></div>'
         },
         {
-            texto: 'Técnico',
-            elemento: `<span class="campos" ${tecnico ? `id="${tecnico}"` : ''} name="tecnico" onclick="cxOpcoes('tecnico')">${tecnico || 'Selecione'}</span>`
+            texto: `
+            <div style="${horizontal}; gap: 1rem;">
+                <img src="imagens/baixar.png" onclick="maisUsuario([undefined], 'tecnicos')">
+                <span>Técnicos</span>
+            </div>
+            `,
+            elemento: '<div class="tecnicos"></div>'
         },
         {
             texto: 'Descrição',
@@ -2234,7 +2239,8 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
 
     popup({ linhas, botoes, titulo: 'Gerenciar Correção', autoDestruicao: ['executor', 'tecnico', 'tipoCorrecao'] })
 
-    maisResponsavel(executor)
+    maisUsuario(executor, 'executores')
+    maisUsuario(tecnico, 'tecnicos')
 
     visibilidadeFotos()
 
@@ -2242,17 +2248,19 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
 
 }
 
-async function maisResponsavel(executores) {
+async function maisUsuario(usuarios, campo) {
 
-    if (typeof executores === 'string')
-        executores = [executores]
+    if (typeof usuarios === 'string')
+        usuarios = [usuarios]
 
-    const area = document.querySelector('.executores')
-    if (!area) return
+    const area = document.querySelector(`.${campo}`)
+
+    if (!area)
+        return
 
     const spans = []
 
-    for (const executor of executores) {
+    for (const usuario of usuarios) {
         const nomeControle = crypto.randomUUID()
 
         controlesCxOpcoes[nomeControle] = {
@@ -2266,16 +2274,19 @@ async function maisResponsavel(executores) {
         }
 
         spans.push(`
-            <span
-                class="campos"
-                ${executor ? `id="${executor}"` : ''}
-                name="${nomeControle}"
-                onclick="cxOpcoes('${nomeControle}')"
-            >${executor || 'Selecione'}</span>
+            <div style="${horizontal}; gap: 0.5rem;">
+                <img src="imagens/cancel.png" style="width: 1.5rem;" onclick="this.parentElement.remove()">
+                <span
+                    class="campos"
+                    ${usuario ? `id="${usuario}"` : ''}
+                    name="${nomeControle}"
+                    onclick="cxOpcoes('${nomeControle}')">${usuario || 'Selecione'}</span>
+            </div>
         `)
     }
 
     area.insertAdjacentHTML('beforeend', spans.join(''))
+
 }
 
 async function maisLabel({ codigo, descricao, quantidade, origem, serie, formulario } = {}) {
@@ -2395,14 +2406,6 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
         return
     }
 
-    const executores = [...document.querySelectorAll('.executores span')]
-        .filter(span => span.id)
-
-    if (executores.length == 0)
-        return popup({ mensagem: 'Selecione pelo menos 1 executor' })
-
-    const executor = executores
-        .map(span => span.id)
 
     const equipamentos = {}
     const fotos = {}
@@ -2447,6 +2450,26 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
         }
     }
 
+    // Técnicos;
+    const tecnicos = [...document.querySelectorAll('.tecnicos span')]
+        .filter(span => span.id)
+
+    if (tecnicos.length == 0 && Object.keys(equipamentos).length > 0)
+        return popup({ mensagem: 'Quando existirem equipamentos, selecione pelo menos 1 Técnico' })
+
+    const tecnico = tecnicos
+        .map(span => span.id)
+
+    // Executores;
+    const executores = [...document.querySelectorAll('.executores span')]
+        .filter(span => span.id)
+
+    if (executores.length == 0)
+        return popup({ mensagem: 'Selecione pelo menos 1 executor' })
+
+    const executor = executores
+        .map(span => span.id)
+
     const garantia = obter('garantia').checked ? 'S' : 'N'
     const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
     const atualizado = {
@@ -2463,7 +2486,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
             ...correcao?.anexos
         },
         dtCorrecao,
-        tecnico: obter('tecnico').id,
+        tecnico,
         executor,
         usuario: correcao.usuario || acesso.usuario,
         tipoCorrecao,
