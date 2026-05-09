@@ -165,7 +165,7 @@ async function criarLinhaOrcamento(orcamento) {
         const { id, dados_orcam, timestamp, snapshots, total_geral } = orcamento || {}
         const { ultimaCorrecao, notas, pedidos } = snapshots || {}
         const { pagamentos = 0, fretes = 0, abastecimentos = 0 } = snapshots?.custos || {}
-        
+
         // Velocímetro
         const totalCusto = pagamentos + fretes + abastecimentos
         const porcentagem = Number(((totalCusto / total_geral) * 100).toFixed(1))
@@ -174,7 +174,7 @@ async function criarLinhaOrcamento(orcamento) {
         const labelTipoCorrecao = ultimaCorrecao
             ? formatacaoTipoCorrecao(ultimaCorrecao)
             : ''
-        
+
         const pedidosStatus = (pedidos || [])
             .map(({ tipo, pedido, valor, autorizado_por }) => {
 
@@ -188,8 +188,8 @@ async function criarLinhaOrcamento(orcamento) {
                 `
                 return label
             })
-            .join('') 
-        
+            .join('')
+
 
         const notasStatus = (notas || [])
             .map(({ categoria, n_nota, total }) => `
@@ -330,7 +330,7 @@ function seletorStatus(orcamento) {
 async function alterarStatus(id, select) {
 
     await enviar(`dados_orcamentos/${id}/status/atual`, select.value)
-    
+
 }
 
 function verificarPrioridade(orcamento) {
@@ -492,99 +492,28 @@ async function filtrarToolbar(campo) {
 }
 
 async function baixarExcelOrcamentos() {
-    const schema = {
-        table: "dados_orcamentos",
-        alias: "o",
-
-        joins: [
-            {
-                type: "LEFT",
-                table: "dados_clientes_ac",
-                alias: "c",
-                on: "c.id::text = (COALESCE(NULLIF(o.dados_orcam::text, ''), '{}')::jsonb) ->> 'omie_cliente'"
-            },
-            {
-                type: "LEFT",
-                table: "empresas",
-                alias: "e",
-                on: "e.id::text = c.empresa::text" 
-            }
-        ],
-
-        columns: [
-            {
-                field: "o.timestamp",
-                as: "Última alteração",
-                type: "date",
-                sourceFormat: "timestamp",
-            },
-            {
-                json: {
-                    field: "o.status",
-                    path: "$.atual"
-                },
-                as: "Status",
-            },
-            {
-                // Trocado jsonObjectJoin por uma query customizada
-                // que entra em snapshots -> tags e extrai a propriedade "nome"
-                custom: `
-                    (
-                        SELECT string_agg(NULLIF(trim(v ->> 'nome'), ''), ', ')
-                        FROM (
-                            SELECT value AS v 
-                            FROM jsonb_each(
-                                CASE 
-                                    WHEN jsonb_typeof((COALESCE(NULLIF(o.snapshots::text, ''), '{}')::jsonb) -> 'tags') = 'object' 
-                                    THEN (COALESCE(NULLIF(o.snapshots::text, ''), '{}')::jsonb) -> 'tags' 
-                                    ELSE '{}'::jsonb 
-                                END
-                            )
-                            UNION ALL
-                            SELECT value AS v 
-                            FROM jsonb_array_elements(
-                                CASE 
-                                    WHEN jsonb_typeof((COALESCE(NULLIF(o.snapshots::text, ''), '{}')::jsonb) -> 'tags') = 'array' 
-                                    THEN (COALESCE(NULLIF(o.snapshots::text, ''), '{}')::jsonb) -> 'tags' 
-                                    ELSE '[]'::jsonb 
-                                END
-                            )
-                        ) tags_data
-                        WHERE v ->> 'nome' IS NOT NULL
-                    )
-                `,
-                as: "Tags",
-            },
-            {
-                json: {
-                    field: "o.dados_orcam",
-                    path: "$.contrato"
-                },
-                as: "Número Orçamento",
-            },
-            { field: "o.usuario", as: "Criado por" },
-            { field: "e.nome", as: "Empresa" },
-            { field: "c.nome", as: "Nome" },
-            { field: "c.cidade", as: "Cidade" },
-            { field: "c.endereco", as: "Endereço" },
-            {
-                field: "o.total_geral",
-                as: "Total Geral",
-                type: "currency"
-            },
-        ],
-        filters: [
-            {
-                custom: "(o.excluido IS NULL OR o.excluido = '')"
-            },
-            {
-                custom: "o.dados_composicoes IS NOT NULL"
-            }
-        ],
-        orderBy: "o.timestamp DESC"
-    }
 
     overlayAguarde()
-    await baixarRelatorioExcel(schema, 'Orçamentos')
+
+    const schema = {
+        view: "vw_relatorio_orcamentos",
+        titulo: "Relatorio_Orcamentos.xlsx",
+
+        // Os filtros fixos que você já tinha no relatório
+        filtros: [
+            { custom: "(excluido IS NULL OR excluido = '')" },
+            { custom: "dados_composicoes IS NOT NULL" }
+        ],
+
+        // Dizemos ao gerador quais colunas a View retorna que precisam de formatação visual
+        formatacao: {
+            datas: ['Última alteração'], // Transforma em DD/MM/AAAA
+            moedas: ["Total Geral"]      // Transforma em R$
+        }
+    }
+
+    await baixarRelatorioExcel(schema, `Orçamentos_${Date.now()}`)
+
     removerOverlay()
+
 }

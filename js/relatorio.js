@@ -428,304 +428,103 @@ async function criarLinhasPecas(ocorrencia) {
 }
 
 async function baixarExcelRelatorioOcorrencias() {
+    overlayAguarde()
+
     const schema = {
-        table: "dados_ocorrencias",
-        alias: "o",
-        joins: [
-            {
-                type: "LEFT",
-                table: "dados_clientes_ac",
-                alias: "c",
-                on: "c.id::text = o.unidade::text"
-            },
-            {
-                type: "LEFT",
-                table: "empresas",
-                alias: "e",
-                on: "e.id::text = c.empresa::text"
-            },
-            {
-                type: "LEFT",
-                table: "sistemas",
-                alias: "s",
-                on: "s.id::text = o.sistema::text"
-            },
-            {
-                type: "LEFT",
-                table: "prioridades",
-                alias: "p",
-                on: "p.id::text = o.prioridade::text"
-            }
+        view: "vw_relatorio_ocorrencias",
+        titulo: `Ocorrencias_${Date.now()}.xlsx`,
+
+        // Atualizado para usar o nome direto da View: 'excluido' (sem alias)
+        filtros: [
+            { custom: "(excluido IS NULL OR excluido = '')" }
         ],
-        columns: [
-            { field: "e.nome", as: "Empresa" },
-            { field: "o.id", as: "Chamado" },
-            {
-                custom: `
-                    CASE
-                        WHEN o.correcoes IS NULL
-                             OR trim(o.correcoes::text) = ''
-                             OR jsonb_typeof(o.correcoes::jsonb) <> 'array'
-                        THEN 'Não analisada'
-                        ELSE COALESCE(
-                            (
-                                SELECT cr.nome
-                                FROM jsonb_array_elements(o.correcoes::jsonb) AS je(value)
-                                LEFT JOIN correcoes cr
-                                    ON cr.id::text = (je.value ->> 'tipoCorrecao')
-                                WHERE (je.value ->> 'tipoCorrecao') = 'WRuo2'
-                                LIMIT 1
-                            ),
-                            (
-                                SELECT cr.nome
-                                FROM jsonb_array_elements(o.correcoes::jsonb) AS je(value)
-                                LEFT JOIN correcoes cr
-                                    ON cr.id::text = (je.value ->> 'tipoCorrecao')
-                                WHERE je.value ->> 'data' IS NOT NULL
-                                  AND trim(je.value ->> 'data') <> ''
-                                ORDER BY to_timestamp(je.value ->> 'data', 'DD/MM/YYYY, HH24:MI:SS') DESC
-                                LIMIT 1
-                            ),
-                            'Não analisada'
-                        )
-                    END
-                `,
-                as: "Status Correção"
-            },
-            {
-                field: "o.data_registro",
-                as: "Data Registro",
-                type: "date",
-                sourceFormat: "br-hora"
-            },
-            {
-                custom: `o.snapshots #>> '{dtCorrecao}'`,
-                as: "Data Agendamento",
-                type: "date",
-                sourceFormat: "br"
-            },
-            { field: "c.nome", as: "Loja" },
-            { field: "c.cidade", as: "Cidade" },
-            { field: "c.estado", as: "Estado" },
-            { field: "o.descricao", as: "Descrição da Ocorrência" },
-            { field: "o.usuario", as: "Solicitante" },
-            {
-                custom: `
-                    (
-                        SELECT string_agg(DISTINCT trim(e.value), ', ')
-                        FROM jsonb_array_elements(
-                            COALESCE(
-                                o.snapshots::jsonb #> '{ultimoExecutor}',
-                                '[]'::jsonb
-                            )
-                        ) AS ue(item)
-                        CROSS JOIN LATERAL (
-                            SELECT ue.item ->> 'executor' AS value
-                            WHERE jsonb_typeof(ue.item -> 'executor') = 'string'
-                            UNION ALL
-                            SELECT value
-                            FROM jsonb_array_elements_text(ue.item -> 'executor')
-                            WHERE jsonb_typeof(ue.item -> 'executor') = 'array'
-                        ) AS e(value)
-                        WHERE e.value IS NOT NULL
-                    )
-                `,
-                as: "Executores"
-            },
-            { field: "s.nome", as: "Sistema" },
-            { field: "p.nome", as: "Prioridade" }
-        ],
-        filters: [
-            {
-                custom: "(o.excluido IS NULL OR o.excluido = '')"
-            }
-        ],
-        orderBy: "o.timestamp DESC"
+
+        // Definindo as colunas de data para saírem certinhas no Excel
+        formatacao: {
+            datas: ["Data Registro", "Data Agendamento"]
+        }
     }
 
+    // Se o usuário for cliente, esconde as outras empresas. 
+    // Usamos schema.filtros (em português, combinando com a declaração acima)
+    // E usamos 'id_empresa', que foi o nome que demos à coluna secreta na View
     if (acesso.permissao === 'cliente') {
-        schema.filters.push({
-            field: "c.empresa",
+        schema.filtros.push({
+            field: "id_empresa",
             op: "=",
             value: acesso.empresa
         })
     }
 
-    overlayAguarde()
-    await baixarRelatorioExcel(schema, 'Ocorrências')
-    removerOverlay()
+    try {
+        await baixarRelatorioExcel(schema, `Ocorrências_${Date.now()}`)
+    } catch (err) {
+        popup({ mensagem: err.mensage || 'Falha ao gerar Excel' })
+    } finally {
+        removerOverlay()
+    }
 }
 
 async function baixarExcelRelatorioCorrecoes() {
+
+    overlayAguarde()
     const schema = {
-        table: "dados_ocorrencias",
-        alias: "o",
-        joins: [
-            { type: "LEFT", table: "dados_clientes_ac", alias: "c", on: "c.id::text = o.unidade::text" },
-            { type: "LEFT", table: "empresas", alias: "e", on: "e.id::text = c.empresa::text" },
-            { type: "LEFT", table: "sistemas", alias: "s", on: "s.id::text = o.sistema::text" },
-            { type: "LEFT", table: "prioridades", alias: "p", on: "p.id::text = o.prioridade::text" }
+        view: "vw_relatorio_correcoes",
+        titulo: "Relatorio_correcoes.xlsx",
+
+        filtros: [
+            { custom: "(excluido IS NULL OR excluido = '')" }
         ],
-        explode: {
-            field: "o.correcoes",
-            alias: "cx",
-            type: "LEFT",
-            mode: "object"
-        },
-        columns: [
-            { field: "e.nome", as: "Empresa" },
-            { field: "o.id", as: "Chamado" },
-            {
-                custom: `
-                    (
-                        SELECT cr.nome
-                        FROM correcoes cr
-                        WHERE cr.id::text = NULLIF(cx.value ->> 'tipoCorrecao', '')
-                        LIMIT 1
-                    )
-                `,
-                as: "Tipo Correção"
-            },
-            {
-                custom: `cx.value ->> 'data'`,
-                as: "Data",
-                type: "date",
-                sourceFormat: "br-hora"
-            },
-            {
-                custom: `cx.value ->> 'dtCorrecao'`,
-                as: "Data Correção",
-                type: "date",
-                sourceFormat: "iso"
-            },
-            { field: "c.nome", as: "Loja" },
-            { field: "c.cidade", as: "Cidade" },
-            { field: "c.estado", as: "Estado" },
-            {
-                custom: `cx.value ->> 'descricao'`,
-                as: "Descrição",
-                width: 30
-            },
-            {
-                custom: `cx.value ->> 'usuario'`,
-                as: "Solicitante"
-            },
-            {
-                custom: `
-                    (
-                        SELECT string_agg(DISTINCT trim(exec.value), ', ')
-                        FROM jsonb_array_elements_text(
-                            CASE
-                                WHEN jsonb_typeof(cx.value -> 'executor') = 'array'
-                                    THEN cx.value -> 'executor'
-                                ELSE '[]'::jsonb
-                            END
-                        ) AS exec(value)
-                    )
-                `,
-                as: "Executores"
-            },
-            {
-                custom: `cx.value ->> 'tecnico'`,
-                as: "Técnico (Peças)"
-            },
-            { field: "s.nome", as: "Sistema" },
-            { field: "p.nome", as: "Prioridade" }
-        ],
-        filters: [
-            { custom: "(o.excluido IS NULL OR o.excluido = '')" }
-        ],
-        orderBy: "o.timestamp DESC"
+
+        formatacao: {}
     }
 
     if (acesso.permissao === 'cliente') {
-        schema.filters.push({
-            field: "c.empresa",
+        schema.filtros.push({
+            field: "id_empresa",
             op: "=",
             value: acesso.empresa
         })
     }
 
-    overlayAguarde()
-    await baixarRelatorioExcel(schema, 'Correções')
-    removerOverlay()
+    try {
+        await baixarRelatorioExcel(schema, `Correções_${Date.now()}`)
+    } catch (err) {
+        popup({ mensagem: err.mensage || 'Falha ao gerar Excel' })
+    } finally {
+        removerOverlay()
+    }
 }
 
 async function baixarExcelRelatorioPecas() {
 
+    overlayAguarde()
+
     const schema = {
-        table: "dados_ocorrencias",
-        alias: "o",
-        joins: [
-            { type: "LEFT", table: "dados_clientes_ac", alias: "c", on: "c.id::text = o.unidade::text" },
-            { type: "LEFT", table: "empresas", alias: "e", on: "e.id = c.empresa" },
+        view: "vw_relatorio_pecas",
+        titulo: "Relatorio_pecas.xlsx",
 
-            // Substituímos o "explodes" por JOINs Laterais nativos do Postgres para lidar com Arrays.
-            {
-                type: "INNER",
-                table: "LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(o.correcoes::jsonb) = 'array' THEN o.correcoes::jsonb ELSE '[]'::jsonb END)",
-                alias: "cx(value)",
-                on: "TRUE"
-            },
-            {
-                type: "INNER",
-                table: "LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(cx.value -> 'equipamentos') = 'array' THEN cx.value -> 'equipamentos' ELSE '[]'::jsonb END)",
-                alias: "eq(value)",
-                on: "TRUE"
-            }
+        filtros: [
+            { custom: "(excluido IS NULL OR excluido = '')" }
         ],
 
-        columns: [
-            { field: "e.nome", as: "Empresa" },
-            { field: "o.id", as: "Chamado" },
-            { field: "c.nome", as: "Loja" },
-            { field: "c.cidade", as: "Cidade" },
-            { field: "c.estado", as: "Estado" },
-            {
-                custom: "cx.value ->> 'data'",
-                as: "Data",
-                type: "date",
-                sourceFormat: 'br-hora'
-            },
-            {
-                custom: "cx.value ->> 'dtCorrecao'",
-                as: "Data Correção",
-                type: "date",
-                sourceFormat: 'iso'
-            },
-            { custom: "cx.value ->> 'tecnico'", as: "Técnico" },
-            { custom: "eq.value ->> 'origem'", as: "Origem" },
-
-            // O operador #>> '{caminho,filho}' é a forma do Postgres extrair caminhos profundos
-            { custom: "o.snapshots #>> '{cliente,nome}'", as: "Cliente" },
-
-            { custom: "eq.value ->> 'codigo'", as: "Código" },
-            { custom: "eq.value ->> 'serie'", as: "Nº Série" },
-            { custom: "eq.value ->> 'descricao'", as: "Descrição", width: 35 },
-            { custom: "eq.value ->> 'modelo'", as: "Modelo" },
-            { custom: "eq.value ->> 'fabricante'", as: "Fabricante" },
-            { custom: "eq.value ->> 'unidade'", as: "Unidade" },
-            { custom: "eq.value ->> 'quantidade'", as: "Quantidade" }
-        ],
-
-        filters: [
-            { custom: "(o.excluido IS NULL OR o.excluido = '')" },
-            // Como mudamos para jsonb_array_elements, a coluna "key" não existe mais, verificamos o "value"
-            { custom: "eq.value IS NOT NULL" }
-        ],
-
-        orderBy: "o.timestamp DESC"
+        formatacao: {}
     }
 
     if (acesso.permissao === 'cliente') {
-        schema.filters.push({
-            field: "c.empresa",
+        schema.filtros.push({
+            field: "id_empresa",
             op: "=",
             value: acesso.empresa
         })
     }
 
-    overlayAguarde()
-    await baixarRelatorioExcel(schema, 'Peças')
-    removerOverlay()
+    try {
+        await baixarRelatorioExcel(schema, `Peças_${Date.now()}`)
+    } catch (err) {
+        popup({ mensagem: err.mensage || 'Falha ao gerar Excel' })
+    } finally {
+        removerOverlay()
+    }
+
 }

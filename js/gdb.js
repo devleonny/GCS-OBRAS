@@ -63,7 +63,7 @@ async function pesquisarDB(params) {
     return await resposta.json()
 }
 
-async function baixarRelatorioExcel(schema, nome = 'relatorio') {
+async function baixarRelatorioExcel(schema, nome) {
 
     const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
 
