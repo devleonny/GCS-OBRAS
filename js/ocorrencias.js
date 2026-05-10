@@ -14,11 +14,11 @@ const formatacaoTipoCorrecao = (tipoCorrecaoNome) => {
 
 const padraoCor = (st) => {
     switch (st) {
-        case 'Cancelado':
+        case 'CANCELADO':
             return '#b12425'
         case 'todos':
             return '#004cff'
-        case 'Solucionada':
+        case 'SOLUCIONADA':
             return '#3c9f15'
         default:
             return '#bd8315'
@@ -1897,7 +1897,7 @@ async function auxPendencias() {
         path: 'snapshots.ultimaCorrecao'
     })
 
-    const ordemFinal = ['Cancelado', 'Solucionada', 'todos']
+    const ordemFinal = ['CANCELADO', 'SOLUCIONADA', 'TODOS']
 
     const etiquetas = Object
         .entries(contadores)
@@ -1911,7 +1911,7 @@ async function auxPendencias() {
             if (priA && !priB) return 1
             if (!priA && priB) return -1
 
-            return nomeA.localeCompare(nomeB, 'pt-BR', { sensitivity: 'base' })
+            return nomeA.localeCompare(nomeB)
         })
         .map(([correcao, total]) => {
 
@@ -1920,7 +1920,7 @@ async function auxPendencias() {
             return `
             <div class="pill" onclick="atalhoAuxiliar('${correcao}')">
                 <span class="pill-a" style="background: ${cor};">${total}</span>
-                <span class="pill-b">${inicialMaiuscula(correcao)}</span>
+                <span class="pill-b">${correcao.toUpperCase()}</span>
             </div>`
         })
         .join('')
