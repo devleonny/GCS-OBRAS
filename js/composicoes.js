@@ -1096,64 +1096,27 @@ async function confirmarAtualizarData(tabela, codigo) {
 
 async function baixarExcelComposicoes() {
 
-    const customs = LPUS
-        .map(lpu => {
-            return {
-                custom: `
-                CASE
-                    WHEN json_valid(c."${lpu}") = 0 THEN 0
-                    WHEN NULLIF(CAST(json_extract(c."${lpu}", '$.ativo') AS TEXT), '') IS NULL THEN 0
-                    ELSE COALESCE(
-                    json_extract(
-                        c."${lpu}",
-                        '$.historico.' || CAST(json_extract(c."${lpu}", '$.ativo') AS TEXT) || '.valor'
-                    ),
-                    0
-                    )
-                END
-                `,
-                as: lpu.toUpperCase(),
-                type: "currency"
-            }
-        })
-
+    overlayAguarde()
 
     const schema = {
-        table: "dados_composicoes",
-        alias: "c",
+        view: "vw_relatorio_composicoes",
+        titulo: "composicoes.xlsx",
 
-        joins: [],
-
-        columns: [
-            {
-                field: "c.timestamp",
-                as: "Última alteração",
-                type: "date",
-                sourceFormat: "timestamp", // timestamp | iso | iso-datetime | br
-            },
-            { field: "c.id", as: "Código" },
-            { field: "c.descricao", as: "Descrição", width: 30 },
-            { field: "c.omie", as: "Código Omie" },
-            { field: "c.ncm", as: "ncm" },
-            { field: "c.unidade", as: "Unidade" },
-            { field: "c.fabricante", as: "Fabricante" },
-            { field: "c.modelo", as: "Modelo" },
-            { field: "c.sistema", as: "Sistema" },
-            { field: "c.tempo", as: "Tempo" },
-            ...customs
+        filtros: [
+            { custom: "(excluido IS NULL OR excluido = '')" }
         ],
 
-        filters: [
-            {
-                custom: "(c.excluido IS NULL OR c.excluido = '')"
-            }
-        ],
-
-        orderBy: "c.timestamp DESC"
+        formatacao: {
+            moedas: ['LPU HOPE', 'LPU BOTICÁRIO', 'LPU CF BOTICÁRIO', 'LPU CONTAGEM - BOTICÁRIO A']
+        }
     }
 
-    overlayAguarde()
-    await baixarRelatorioExcel(schema, 'Composições')
-    removerOverlay()
+    try {
+        await baixarRelatorioExcel(schema, `Composições_${Date.now()}`)
+    } catch (err) {
+        popup({ mensagem: err.mensage || 'Falha ao gerar Excel' })
+    } finally {
+        removerOverlay()
+    }
 
 }

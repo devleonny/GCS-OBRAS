@@ -149,8 +149,7 @@ const esquemaBotoes = {
             img: 'chamados',
             sub: [
                 { nome: 'Ver Manutenções', funcao: 'telaChamados', img: 'chamados' },
-                { nome: 'Criar Manutenção', funcao: 'criarManutencao', img: 'chamados' },
-                { nome: 'Baixar em Excel', funcao: 'excelChamados', img: 'excel' }
+                { nome: 'Criar Manutenção', funcao: 'criarManutencao', img: 'chamados' }
             ]
         },
         {
@@ -180,8 +179,7 @@ const esquemaBotoes = {
             sub: [
                 { nome: 'Ver Estoque', funcao: 'telaEstoque', img: 'estoque' },
                 { nome: 'Cadastrar Item', funcao: 'incluirItemEstoque', img: 'baixar' },
-                { nome: 'Relatório de Movimentos', funcao: 'relatorioMovimento', img: 'projeto' },
-                { nome: 'Baixar em Excel', funcao: 'exportarParaExcel', img: 'excel' }
+                { nome: 'Relatório de Movimentos', funcao: 'relatorioMovimento', img: 'projeto' }
             ]
         },
         {
