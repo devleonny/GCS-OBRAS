@@ -335,6 +335,7 @@ async function telaRelatorioPecas() {
         'Técnico': { chave: 'tecnico' },
         'Data Correção': { chave: 'dtCorrecao', tipoPesquisa: 'data' },
         'Origem': { chave: 'origem' },
+        'Série': { chave: 'serie' },
         'Descrição': { chave: 'descricao' },
         'Unidade': { chave: 'unidade' },
         'Quantidade': { chave: 'quantidade' },
@@ -394,6 +395,7 @@ async function criarLinhasPecas(equipamento) {
         snapshots,
         tecnico = [],
         dtCorrecao,
+        serie,
         descricao,
         unidade,
         quantidade,
@@ -407,16 +409,14 @@ async function criarLinhasPecas(equipamento) {
         empresa
     } = snapshots || {}
 
-    console.log(tecnico);
-    
-
     const tds = `
             <td>${departamento}</td>
             <td>${empresa || ''}</td>
             <td>${cliente?.nome || ''}</td>
             <td>${tecnico ? tecnico.join(', ') : ''}</td>
-            <td>${dtCorrecao}</td>
+            <td>${dtCorrecao || ''}</td>
             <td>${origem || ''}</td>
+            <td>${serie ? serie.filter(v => v).join(' ,') : ''}</td>
             <td>${descricao || ''}</td>
             <td>${unidade || ''}</td>
             <td>${quantidade || ''}</td>
