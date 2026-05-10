@@ -77,7 +77,7 @@ async function editarBaseAuxiliar(nomeBase, id) {
     const linhas = [
         {
             texto: 'Nome',
-            elemento: `<textarea name="nome" placeholder="${inicialMaiuscula(nomeBase)}">${dados?.nome || ''}</textarea>`
+            elemento: `<textarea name="nome" style="text-transform: uppercase;" placeholder="${inicialMaiuscula(nomeBase)}">${dados?.nome || ''}</textarea>`
         }
     ]
 
@@ -100,7 +100,7 @@ async function excluirItemTabela(nomeBase, id) {
 
 }
 
-async function salvarNomeAuxiliar(nomeBase, id = ID5digitos()) {
+async function salvarNomeAuxiliar(nomeBase, id = crypto.randomUUID()) {
 
     overlayAguarde()
 

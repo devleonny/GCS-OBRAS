@@ -309,9 +309,7 @@ async function criarLinhasCorrecoes(correcao) {
             <span class="${estilo}">${status}</span>
         </td>
         <td>
-            <div style="white-space: pre-wrap;">
-                ${descricao || ''}
-            </div>
+            <div style="white-space: pre-wrap;">${descricao || ''}</div>
         </td>
         <td>${dtRegistro}</td>
         <td>${usuario || ''}</td>
