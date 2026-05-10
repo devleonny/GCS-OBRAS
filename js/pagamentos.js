@@ -1038,60 +1038,29 @@ async function editarPagamento(id) {
 
 
 async function baixarExcelRelatorioPagamentos() {
-    const schema = {
-        table: "lista_pagamentos",
-        alias: "p",
-        columns: [
-            {
-                json: {
-                    field: "p.snapshots",
-                    path: "$.cliente"
-                },
-                as: "Recebedor"
-            },
-            {
-                json: {
-                    field: "p.param",
-                    path: "$[0].valor_documento"
-                },
-                as: "Valor Documento"
-            },
-            {
-                json: {
-                    field: "p.param",
-                    path: "$[0].data_previsao"
-                },
-                as: "Data Previsão"
-            },
-            {
-                custom: `
-                        (
-                            SELECT group_concat(value, ', ')
-                            FROM json_each(
-                                CASE 
-                                WHEN json_valid(p.snapshots) THEN p.snapshots 
-                                ELSE '{}' 
-                                END,
-                                '$.departamentos'
-                            )
-                        )
-                    `,
-                as: "Departamentos"
-            },
-            { field: "p.status", as: "Status" },
-            { field: "p.criado", as: "Solicitado por" }
-        ],
-        filters: [
-            {
-                custom: "(p.excluido IS NULL OR p.excluido = '')"
-            }
-        ],
-        orderBy: "p.timestamp DESC"
-    }
 
     overlayAguarde()
-    await baixarRelatorioExcel(schema, 'Pagamentos')
-    removerOverlay()
+
+    const schema = {
+        view: "vw_relatorio_pagamentos",
+        titulo: "pagamentos.xlsx",
+
+        filtros: [
+            { custom: "(excluido IS NULL OR excluido = '')" }
+        ],
+
+        formatacao: {
+            moedas: ["Valor Documento"]
+        }
+    }
+
+    try {
+        await baixarRelatorioExcel(schema, `Pagamentos_${Date.now()}`)
+    } catch (err) {
+        popup({ mensagem: err.mensage || 'Falha ao gerar Excel' })
+    } finally {
+        removerOverlay()
+    }
 }
 
 

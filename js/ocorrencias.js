@@ -2387,7 +2387,7 @@ function multiplicarCampoSerie(input) {
     }
 }
 
-async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
+async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
 
     overlayAguarde()
 
@@ -2405,7 +2405,6 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = ID5digitos()) {
         coletarAssinatura(idOcorrencia)
         return
     }
-
 
     const equipamentos = {}
     const fotos = {}
