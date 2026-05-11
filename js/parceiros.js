@@ -9,7 +9,7 @@ async function formularioParceiro(id = crypto.randomUUID()) {
         margem,
         tecnicos,
         comentario,
-    } = await recuperarDado('parceiros', id)
+    } = await recuperarDado('parceiros', id) || {}
 
     const ativo = controles?.ocorrencias?.ativo
 
@@ -24,7 +24,7 @@ async function formularioParceiro(id = crypto.randomUUID()) {
     })
 
     const orcamento = orcamentos?.resultados?.[0]
-    const base = Object.values(itens || orcamento?.dados_composicoes || [])
+    const base = Object.values(itens || orcamento?.dados_composicoes || {})
         .filter(i => i?.tipo !== 'VENDA')
 
     const colunas = {
