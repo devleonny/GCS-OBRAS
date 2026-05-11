@@ -382,7 +382,7 @@ async function carregarTabelasOrcamento(resposta = 'S') {
         substituicoes: resposta == 'N'
             ? substituicoes(lpuATIVA)
             : [],
-        scroll: true,
+        scroll: false,
         nude: true,
         editavel: true,
         funcaoAdicional: ['totalOrcamento'],

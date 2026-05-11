@@ -2475,8 +2475,8 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
         garantia,
         autorizacao: obter('autorizacao').value || '',
         fotos: {
+            ...fotos,
             ...correcao?.fotos,
-            ...fotos
         },
         equipamentos,
         data: new Date().toLocaleString(),

@@ -115,7 +115,7 @@ async function telaClientes() {
 
     const colunas = {
         'Check': {},
-        'CPF / CNPJ': { chave: 'cnpj' },
+        'CPF/CNPJ': { chave: 'cnpj' },
         'Empresa': { chave: 'snapshots.empresa' },
         'Nome Fantasia': { chave: 'nome' },
         'Endereço Cadastro': { chave: 'snapshots.enderecoCadastro' },

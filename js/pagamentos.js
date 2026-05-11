@@ -63,9 +63,6 @@ async function telaPagamentos() {
         funcaoAdicional: ['atualizarPainelEsquerdo'],
         body: 'bodyPagamentos',
         base: 'lista_pagamentos',
-        filtros: {
-            criado: { op: '!=', value: 'Integração' }
-        },
         criarLinha: 'criarLinhaPagamento',
         substituicoes: [
             {
