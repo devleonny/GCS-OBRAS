@@ -148,12 +148,10 @@ async function comunicacao() {
         if (tipo == 'atualizacao') {
 
             // Apenas as tabelas usadas;
-            for (const dados of Object.values(controles)) {
-
-                if (dados.base !== tabela)
-                    continue
-
-                await paginacao()
+            for (const { base, pag } of Object.values(controles)) {
+                
+                if (base == tabela || (tabela == 'estoque_tecnicos' && base && base.includes('vw')))
+                    await paginacao(pag)
 
             }
 

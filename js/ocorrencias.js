@@ -1559,7 +1559,7 @@ async function criarPesquisas() {
         'Última Correção': { path: 'snapshots.ultimaCorrecao' },
         'Executor': { path: 'executor', explode: { path: 'snapshots.ultimoExecutor' } },
         'Estado': { path: 'snapshots.cliente.estado' },
-        'Empresa': { path: 'snapshots.empresa' },
+        'Empresa': { path: 'snapshots.empresa' }
     }
 
     if (acesso.permissao == 'cliente')
@@ -2051,7 +2051,7 @@ async function formularioOcorrencia(idOcorrencia) {
             texto: 'Descrição',
             elemento: `<textarea rows="7" 
             style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" 
-            name="descricao" class="campos">${descricao || ''}</textarea>`
+            name="descricao">${descricao || ''}</textarea>`
         },
         {
             elemento: `

@@ -1,10 +1,9 @@
-
 async function telaMovimentos() {
 
-    const pag = 'estoque_tecnicos'
     const tabela = await modTab({
-        pag,
+        pag: 'estoque_tecnicos',
         base: 'vw_movimentacao_estoque',
+        btnExtras: '<span style="font-size: 1.1rem; color: white;">DETALHAMENTO DE MOVIMENTO DE PEÇAS</span>',
         colunas: {
             'Edição': {},
             'Data': { chave: 'data', tipoPesquisa: 'data' },
@@ -24,16 +23,53 @@ async function telaMovimentos() {
         criarLinha: 'criarLinhaMovimento'
     })
 
+    const tabelaResumida = await modTab({
+        pag: 'tecnicosResumido',
+        base: 'vw_saldo_estoque_tecnicos',
+        btnExtras: '<span style="font-size: 1.1rem; color: white;">SALDO DE PEÇAS POR TÉCNICO</span>',
+        body: 'tecnicosResumido',
+        criarLinha: 'criarLinhaTecsResumido',
+        colunas: {
+            'Técnico': { chave: 'tecnico' },
+            'Descrição': { chave: 'descricao_peca' },
+            'Sinal': {},
+            'Saldo': {}
+        }
+    })
+
     tela.innerHTML = `
         <div class="pagina-relatorio">
             <img src="imagens/GrupoCostaSilva.png" style="width: 5rem;">
-            ${tabela}
+
+            <div class="painel-tecnicos">
+                ${tabelaResumida}
+                ${tabela}
+            </div>
         </div>
     `
-    await paginacao(pag)
+    await paginacao()
+}
+
+async function criarLinhaTecsResumido(tec) {
+
+    const { tecnico, descricao_peca, saldo_atual } = tec || {}
+
+    return `
+        <tr>
+            <td>${tecnico}</td>
+            <td>${descricao_peca}</td>
+            <td style="text-align: center;">
+                <img src="imagens/${saldo_atual > 0 ? 'aprovado' : 'reprovado'}.png">
+            </td>
+            <td style="text-align: center;">${saldo_atual}</td>
+        </tr>
+    `
+
 }
 
 async function criarMovimento(id = crypto.randomUUID()) {
+
+    overlayAguarde()
 
     const { tecnico, equipamentos } = await recuperarDado('estoque_tecnicos', id) || {}
 
