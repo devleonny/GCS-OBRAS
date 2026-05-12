@@ -311,7 +311,7 @@ async function criarLinhaOrcamento(orcamento) {
 
 function seletorStatus(orcamento) {
 
-    const { id, status } = orcamento || {}
+    const { id, status, dados_orcam } = orcamento || {}
 
     const st = status?.atual || ''
 
@@ -320,16 +320,23 @@ function seletorStatus(orcamento) {
         .map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`)
         .join('')
 
+    const funcao = dados_orcam?.contrato
+        ? `alterarStatus('${id}', this, '${dados_orcam?.contrato}')`
+        : `alterarStatus('${id}', this)`
+
     return `
-        <select name="status" class="opcoesSelect" onchange="alterarStatus('${id}', this)">
+        <select name="status" class="opcoesSelect" onchange="${funcao}">
             ${opcoes}
         </select>`
 
 }
 
-async function alterarStatus(id, select) {
+async function alterarStatus(id, select, numOrc) {
 
     await enviar(`dados_orcamentos/${id}/status/atual`, select.value)
+
+    if (numOrc && select.value == 'ORC APROVADO')
+        await criarDepartamento(numOrc)
 
 }
 

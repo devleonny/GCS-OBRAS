@@ -1,9 +1,10 @@
 const autE = ['adm', 'gerente', 'diretoria']
+
 const formatacaoTipoCorrecao = (tipoCorrecaoNome) => {
 
-    const estilo = tipoCorrecaoNome == 'Solucionada'
+    const estilo = tipoCorrecaoNome == 'SOLUCIONADA'
         ? 'fin'
-        : tipoCorrecaoNome == 'Cancelado'
+        : tipoCorrecaoNome == 'CANCELADO'
             ? 'na'
             : 'and'
 
@@ -2250,7 +2251,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
 
 async function maisUsuario(usuarios, campo) {
 
-    if (typeof usuarios === 'string')
+    if (typeof usuarios === 'string' && usuarios)
         usuarios = [usuarios]
 
     const area = document.querySelector(`.${campo}`)
@@ -2260,7 +2261,7 @@ async function maisUsuario(usuarios, campo) {
 
     const spans = []
 
-    for (const usuario of usuarios) {
+    for (const usuario of (usuarios || [])) {
         const nomeControle = crypto.randomUUID()
 
         controlesCxOpcoes[nomeControle] = {

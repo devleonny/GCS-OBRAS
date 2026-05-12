@@ -1473,12 +1473,12 @@ async function buscarDANFE(codOmieNF, tipo, app) {
     }
 }
 
-async function criarDepartamento(idOrcamento) {
+async function criarDepartamento(numOrc) {
     try {
         const response = await fetch(`${api}/criar-departamento`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idOrcamento })
+            body: JSON.stringify({ numOrc })
         })
 
         if (!response.ok)

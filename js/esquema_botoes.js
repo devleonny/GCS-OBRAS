@@ -144,6 +144,17 @@ const esquemaBotoes = {
             ]
         },
         {
+            nome: 'Técnicos',
+            bloqueio: ['cliente', 'técnico'],
+            img: 'tecnico',
+            sub: [
+                { nome: 'Criar movimento', funcao: 'criarMovimento', img: 'trocar' },
+                { nome: 'Movimentos Geral', funcao: 'telaMovimentos', img: 'planilha' },
+                { nome: 'Movimentos Resumido', funcao: 'telaMovimentosResumido', img: 'planilha' },
+                { nome: 'Agenda', funcao: 'telaAgenda', img: 'reagendar' }
+            ]
+        },
+        {
             nome: 'Chamados',
             bloqueio: ['cliente', 'técnico'],
             img: 'chamados',
