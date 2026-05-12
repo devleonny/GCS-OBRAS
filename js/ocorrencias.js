@@ -2192,8 +2192,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
             elemento: `<textarea 
                     style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" 
                     name="descricao" 
-                    rows="7" 
-                    class="campos">${correcao?.descricao || ''}</textarea>`
+                    rows="7">${correcao?.descricao || ''}</textarea>`
         },
         {
             elemento: `
