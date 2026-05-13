@@ -2482,7 +2482,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
         })
 
     await Promise.all(emMassa)
-
+        /*
     if (semSaldo.length)
         return popup({
             mensagem: `
@@ -2491,6 +2491,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
                     ${semSaldo.join('')}
                 </div>`
         })
+                */
 
     // Executores;
     const executores = [...document.querySelectorAll('.executores span')]
