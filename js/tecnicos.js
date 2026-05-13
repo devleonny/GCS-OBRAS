@@ -14,6 +14,7 @@ async function telaMovimentos() {
             'Operação': { chave: 'operacao' },
             'Quantidade': { chave: 'quantidade' },
             'Origem': { chave: 'origem' },
+            'Código': { chave: 'codigo' },
             'Descrição': { chave: 'descricao' }
         },
         explode: {
@@ -29,8 +30,14 @@ async function telaMovimentos() {
         btnExtras: '<span style="font-size: 1.1rem; color: white;">SALDO DE PEÇAS POR TÉCNICO</span>',
         body: 'tecnicosResumido',
         criarLinha: 'criarLinhaTecsResumido',
+        filtros: {
+            'saldo_atual': {
+                op: '!=', value: 0
+            }
+        },
         colunas: {
             'Técnico': { chave: 'tecnico' },
+            'Código': { chave: 'codigo' },
             'Descrição': { chave: 'descricao_peca' },
             'Sinal': {},
             'Saldo': {}
@@ -39,7 +46,6 @@ async function telaMovimentos() {
 
     tela.innerHTML = `
         <div class="pagina-relatorio">
-            <img src="imagens/GrupoCostaSilva.png" style="width: 5rem;">
 
             <div class="painel-tecnicos">
                 ${tabelaResumida}
@@ -52,11 +58,12 @@ async function telaMovimentos() {
 
 async function criarLinhaTecsResumido(tec) {
 
-    const { tecnico, descricao_peca, saldo_atual } = tec || {}
+    const { tecnico, codigo, descricao_peca, saldo_atual } = tec || {}
 
     return `
         <tr>
             <td>${tecnico}</td>
+            <td>${codigo}</td>
             <td>${descricao_peca}</td>
             <td style="text-align: center;">
                 <img src="imagens/${saldo_atual > 0 ? 'aprovado' : 'reprovado'}.png">
@@ -120,6 +127,9 @@ async function criarMovimento(id = crypto.randomUUID()) {
         { texto: 'Salvar', img: 'concluido', funcao: `salvarMovimento('${id}')` }
     ]
 
+    if (tecnico)
+        botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirMovimento('${id}')` })
+
     popup({ linhas, botoes, titulo: 'Criar movimento' })
 
 }
@@ -142,7 +152,7 @@ async function salvarMovimento(id) {
             return popup({ mensagem: 'Selecione o técnico' })
 
         const movimento = {
-            tecnicos: [tecnico],
+            tecnico: [tecnico],
             usuario: usuario
                 ? usuario
                 : acesso.usuario,
@@ -180,6 +190,7 @@ async function salvarMovimento(id) {
             }
         }
 
+
         await enviar(`estoque_tecnicos/${id}`, movimento)
         removerPopup()
 
@@ -189,6 +200,23 @@ async function salvarMovimento(id) {
 
 }
 
+async function confirmarExcluirMovimento(id) {
+
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', fechar: true, funcao: `excluirMovimento('${id}')` }
+    ]
+
+    popup({ mensagem: 'Confirmar exclusão?', removerAnteriores: true, botoes })
+
+}
+
+async function excluirMovimento(id) {
+
+    overlayAguarde()
+    await deletar(`estoque_tecnicos/${id}`)
+    removerOverlay()
+
+}
 
 async function criarLinhaMovimento(movimento) {
 
@@ -199,6 +227,7 @@ async function criarLinhaMovimento(movimento) {
         id_ocorrencia,
         operacao,
         data,
+        codigo,
         comentario,
         descricao,
         quantidade,
@@ -226,6 +255,7 @@ async function criarLinhaMovimento(movimento) {
             <td>${operacao || ''}</td>
             <td>${quantidade || ''}</td>
             <td>${origem || ''}</td>
+            <td>${codigo || ''}</td>
             <td>${descricao || ''}</td>
         </tr>
     `

@@ -149,7 +149,7 @@ const esquemaBotoes = {
             img: 'tecnico',
             sub: [
                 { nome: 'Adicionar Kit', funcao: 'criarMovimento', img: 'trocar' },
-                { nome: 'Kit Técnico', funcao: 'telaMovimentos', img: 'planilha' },
+                { nome: 'Relatório Kit Técnico', funcao: 'telaMovimentos', img: 'planilha' },
                 { nome: 'Agenda', funcao: 'telaAgenda', img: 'reagendar' }
             ]
         },

@@ -603,10 +603,19 @@
 
 .painel-tecnicos {
     display: flex;
+    overflow: auto;
+    width: 90vw;
     flex-direction: row;
     align-items: start;
     justify-content: start;
     gap: 1rem;
+}
+
+.saldo {
+    background-color: red;
+    padding: 0 1rem;
+    border-radius: 3px;
+    color: white;
 }
 
 @media screen and (orientation: portrait) {

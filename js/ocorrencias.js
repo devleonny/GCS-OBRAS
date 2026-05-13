@@ -2421,34 +2421,6 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
         fotos[foto[0].link] = foto[0]
     }
 
-    // Equipamentos
-    const divs = document.querySelectorAll('[name="equipamentos"]')
-
-    for (const div of divs) {
-        const equip = div.querySelector('span')
-
-        if (!equip?.id)
-            continue
-
-        const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', equip.id)
-
-        const quantidade = Number(div.querySelector('#quantidade').value)
-        const serie = [...div.querySelectorAll('[name="serie"]')]
-            .map(input => input.value)
-        const origem = div.querySelector('input[name^="origem_"]:checked')?.dataset.origem || ''
-
-        equipamentos[equip.id] = {
-            codigo: equip.id,
-            modelo,
-            origem,
-            serie,
-            descricao,
-            fabricante,
-            quantidade,
-            unidade
-        }
-    }
-
     // Técnicos;
     const tecnicos = [...document.querySelectorAll('.tecnicos span')]
         .filter(span => span.id)
@@ -2458,6 +2430,67 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
 
     const tecnico = tecnicos
         .map(span => span.id)
+
+    // Equipamentos
+    const divs = [...document.querySelectorAll('[name="equipamentos"]')]
+    const semSaldo = []
+    const emMassa = divs
+        .filter(div => div.querySelector('span')?.id)
+        .map(async (div) => {
+
+            const equip = div.querySelector('span')
+            const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', equip.id)
+
+            const quantidade = Number(div.querySelector('#quantidade').value)
+            const serie = [...div.querySelectorAll('[name="serie"]')]
+                .map(input => input.value)
+            const origem = div.querySelector('input[name^="origem_"]:checked')?.dataset.origem || ''
+            const codigo = equip.id
+
+            // Apenas para Kit;
+            const pesquisarSaldo = origem == 'Kit'
+                ? await pesquisarDB(
+                    {
+                        base: 'vw_saldo_estoque_tecnicos',
+                        filtros: {
+                            'codigo': { op: '=', value: codigo },
+                            'tecnico': { op: 'includes', value: tecnico[0] } // Apenas o primeiro resultado;
+                        }
+                    })
+                : null
+
+            const saldo = pesquisarSaldo?.resultados?.[0]?.saldo_atual || 0
+
+            if (saldo <= 0) {
+
+                semSaldo.push(`<span><span class="saldo">${saldo}</span> ${codigo} - ${descricao}</span>`)
+
+            } else {
+
+                equipamentos[codigo] = {
+                    codigo,
+                    modelo,
+                    origem,
+                    serie,
+                    descricao,
+                    fabricante,
+                    quantidade,
+                    unidade
+                }
+            }
+
+        })
+
+    await Promise.all(emMassa)
+
+    if (semSaldo.length)
+        return popup({
+            mensagem: `
+                <div style="${vertical}; gap: 2px;">
+                    <span>O <b>${tecnico[0]}</b> está com o Kit zerado ou negativo desses itens</span>
+                    ${semSaldo.join('')}
+                </div>`
+        })
 
     // Executores;
     const executores = [...document.querySelectorAll('.executores span')]
@@ -2472,6 +2505,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
     const garantia = obter('garantia').checked ? 'S' : 'N'
     const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
     const atualizado = {
+        ...correcao,
         garantia,
         autorizacao: obter('autorizacao').value || '',
         fotos: {
