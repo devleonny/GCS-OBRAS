@@ -492,7 +492,6 @@ async function baixarExcelOrcamentos() {
 
         // Os filtros fixos que você já tinha no relatório
         filtros: [
-            { custom: "(excluido IS NULL OR excluido = '')" },
             { custom: "dados_composicoes IS NOT NULL" }
         ],
 
