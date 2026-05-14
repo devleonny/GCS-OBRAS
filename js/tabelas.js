@@ -424,7 +424,7 @@ async function paginacao(pag) {
             explode,
             pagina,
             filtros
-        })
+        })        
 
         // Para casos de base objeto;
         if (typeof base === 'object' && controles[pag]?.priBase !== 'S') {

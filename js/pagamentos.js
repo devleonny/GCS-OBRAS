@@ -50,9 +50,8 @@ async function telaPagamentos() {
         'Departamentos': { chave: 'snapshots.departamentos.*.departamento' },
         'APP': { chave: 'app', op: '=', tipoPesquisa: 'select' },
         'Valor': { chave: 'snapshots.valor' },
-        'Status': { chave: 'status', tipoPesquisa: 'select' },
+        'Status': { chave: 'status' },
         'Solicitante': { chave: 'criado' },
-        'Setor': {},
         'Recebedor': { chave: 'snapshots.cliente' },
         'Detalhes': {}
     }
@@ -63,16 +62,7 @@ async function telaPagamentos() {
         funcaoAdicional: ['atualizarPainelEsquerdo'],
         body: 'bodyPagamentos',
         base: 'lista_pagamentos',
-        criarLinha: 'criarLinhaPagamento',
-        substituicoes: [
-            {
-                path: 'criado',
-                tabela: 'dados_setores',
-                campoBusca: 'usuario',
-                retorno: 'setor',
-                destino: 'usuarioSetor'
-            }
-        ]
+        criarLinha: 'criarLinhaPagamento'
     })
 
     const acumulado = `
@@ -97,6 +87,20 @@ async function telaPagamentos() {
 
 }
 
+async function filtrarPagamentos(st) {
+
+    controles.pagamentos.filtros = {
+        ...controles?.pagamentos?.filtros,
+        status: { op: '=', value: st }
+    }
+
+    if (st == 'todos')
+        delete controles.pagamentos.filtros.status
+
+    await paginacao()
+
+}
+
 async function atualizarPainelEsquerdo() {
 
     const contagens = await contarPorCampo({
@@ -110,13 +114,9 @@ async function atualizarPainelEsquerdo() {
     const titulos = Object.entries(contagens)
         .map(([st, qtde]) => {
 
-            const filtros = st == 'todos'
-                ? '{}'
-                : `{op: '=', value: '${st}'}`
-
             return `
             <div class="balao-pagamentos" 
-            onclick="controles.pagamentos.filtros = {'status':${filtros}}; paginacao()">
+            onclick="filtrarPagamentos('${st}')">
                 
                 <div class="dir">
                     <img src="${iconePagamento(st)}">
@@ -137,7 +137,7 @@ async function atualizarPainelEsquerdo() {
 
 async function criarLinhaPagamento(pagamento) {
 
-    const { id, criado, usuarioSetor, app, status, snapshots, param } = pagamento || {}
+    const { id, criado, app, status, snapshots, param } = pagamento || {}
     const { recebedor, data_vencimento, valor_documento } = param?.[0] || {}
 
     const deps = (snapshots?.departamentos || [])
@@ -162,7 +162,6 @@ async function criarLinhaPagamento(pagamento) {
             </div>
         </td>
         <td>${criado || ''}</td>
-        <td>${usuarioSetor || ''}</td>
         <td>${snapshots?.cliente || ''}</td>
         <td style="text-align: center;">
             <img src="imagens/pesquisar2.png" style="width: 1.5rem; cursor: pointer;" onclick="abrirDetalhesPagamentos('${id}')">
