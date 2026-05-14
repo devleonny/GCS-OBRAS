@@ -149,7 +149,7 @@ async function comunicacao() {
 
             // Apenas as tabelas usadas;
             for (const { base, pag } of Object.values(controles)) {
-                
+
                 if (base == tabela || (tabela == 'estoque_tecnicos' && base && base.includes('vw')))
                     await paginacao(pag)
 
@@ -172,9 +172,14 @@ async function comunicacao() {
 
                     localStorage.setItem('acesso', JSON.stringify({ ...us, token }))
 
+                    // Alteração de dados em andamento;
+                    const msgExistente = document.getElementById('mensagem_reset_usuario')
+                    if (msgExistente)
+                        return
+
                     if (us.permissao !== permissao || us.empresa !== empresa) {
 
-                        popup({ mensagem: '<b>Seu acesso foi alterado:</b> Salve seus trabalhos, o sistema será reiniciado em 5 minutos...' })
+                        popup({ mensagem: '<b id="mensagem_reset_usuario">Seu acesso foi alterado:</b> Salve seus trabalhos, o sistema será reiniciado em 5 minutos...' })
 
                         setTimeout(() => {
                             location.reload()

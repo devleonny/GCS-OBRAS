@@ -1337,14 +1337,16 @@ async function criarPesquisas() {
         }
     }
 
-    const nome = controles?.ocorrencias?.nomeFiltro || 'Selecionar'
-    const idFiltro = controles?.ocorrencias?.idFiltro
+    // Exlusão;
+    if (!['cliente', 'tecnico'].includes(acesso.permissao)) {
+        const nome = controles?.ocorrencias?.nomeFiltro || 'Selecionar'
+        const idFiltro = controles?.ocorrencias?.idFiltro
 
-    const funcao = ['diretoria', 'adm'].includes(acesso.permissao)
-        ? `<img src="imagens/pesquisar.png" onclick="formFiltro(${idFiltro ? `'${idFiltro}'` : ''})">`
-        : `<img src="imagens/limpar.png" onclick="limparFiltroOcorrencias()">`
+        const funcao = ['diretoria', 'adm'].includes(acesso.permissao)
+            ? `<img src="imagens/pesquisar.png" onclick="formFiltro(${idFiltro ? `'${idFiltro}'` : ''})">`
+            : `<img src="imagens/limpar.png" onclick="limparFiltroOcorrencias()">`
 
-    filtros.push(`
+        filtros.push(`
         <div style="${vertical}; gap: 2px;">
             <div style="${horizontal}; gap: 3px;">
                 <span style="color: white;">Filtros</span>
@@ -1353,6 +1355,7 @@ async function criarPesquisas() {
             <span  ${idFiltro ? `id="${idFiltro}"` : ''} style="padding: 0 10px 0 10px;" class="filtro-dropdown-botao" name="filtros" onclick="cxOpcoes('filtros')">${nome}</span>
         </div>
         `)
+    }
 
     const emMassa = Object.entries(camposFechados)
         .map(async ([titulo, conf]) => {

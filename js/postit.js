@@ -244,6 +244,8 @@ async function criarQuadro(id) {
 
 async function criarPIT(id) {
 
+    overlayAguarde()
+
     const { comentario, prazo, status, usuario = acesso.usuario } = await recuperarDado('postit', id) || {}
 
     controlesCxOpcoes.usuario = {
