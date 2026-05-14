@@ -101,10 +101,9 @@ async function telaOrcamentos() {
 
     tela.innerHTML = acumulado
 
+    removerOverlay()
     await paginacao()
     await carregarToolbar()
-
-    removerOverlay()
 
 }
 
