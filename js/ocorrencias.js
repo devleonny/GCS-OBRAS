@@ -459,7 +459,7 @@ function reagendarCorrecao(idOcorrencia, idCorrecao) {
     const linhas = [
         {
             texto: 'Defina uma nova data',
-            elemento: `<input id="dt_reag" oninput="bloqAnterior(this)" type="date">`
+            elemento: `<input id="dt_reag" type="date">`
         }
     ]
 
@@ -1859,20 +1859,6 @@ async function formularioOcorrencia(idOcorrencia) {
 
     removerOverlay()
 
-}
-
-function bloqAnterior(input) {
-    if (input.type !== 'date' || !input.value) return
-
-    const hoje = new Date()
-    hoje.setHours(0, 0, 0, 0)
-
-    const valor = new Date(input.value)
-    valor.setHours(0, 0, 0, 0)
-
-    if (valor < hoje) {
-        input.valueAsDate = hoje
-    }
 }
 
 async function formularioCorrecao(idOcorrencia, idCorrecao) {
