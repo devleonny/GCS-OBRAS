@@ -792,7 +792,10 @@ async function verificarPendencias() {
     if (!navigator.onLine)
         return
 
-    const contador = await contarPorCampo({ base: 'dados_orcamentos', path: 'aprovacao.status' })
+    const contador = await contarPorCampo({
+        base: 'dados_orcamentos',
+        path: 'aprovacao.status'
+    })
 
     const contadorPendencias = document.getElementById('contadorPendencias')
     if (!contadorPendencias)

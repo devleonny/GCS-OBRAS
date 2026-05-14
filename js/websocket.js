@@ -144,16 +144,11 @@ async function comunicacao() {
             removerOverlay()
         }
 
-
         if (tipo == 'atualizacao') {
 
             // Apenas as tabelas usadas;
-            for (const { base, pag } of Object.values(controles)) {
-
-                if (base == tabela || (tabela == 'estoque_tecnicos' && base && base.includes('vw')))
-                    await paginacao(pag)
-
-            }
+            for (const { pag } of Object.values(controles))
+                await paginacao(pag)
 
             if (tabela == 'dados_orcamentos')
                 await verificarPendencias()

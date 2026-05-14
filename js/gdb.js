@@ -16,24 +16,29 @@ async function recuperarDado(base, chave) {
 
         const texto = await resposta.text()
 
+        let payload = {}
+
+        if (texto.trim()) {
+            try {
+                payload = JSON.parse(texto)
+            } catch {
+                payload = { mensagem: texto }
+            }
+        }
+
         if (!resposta.ok) {
+            const mensagem = payload?.mensagem || payload?.erro || texto || 'Erro desconhecido'
+            console.error('Erro em recuperarDado:', mensagem, payload)
 
-            if (texto.includes('inv￡lido'))
-                location.reload(true)
+            if (mensagem.toLowerCase().includes('inválido') || mensagem.toLowerCase().includes('invalido'))
+                location.reload()
 
             return {}
         }
 
-        if (!texto.trim())
-            return {}
-
-        try {
-            return JSON.parse(texto)
-        } catch {
-            return {}
-        }
-
-    } catch {
+        return payload && typeof payload === 'object' ? payload : {}
+    } catch (erro) {
+        console.error('Falha no recuperarDado:', erro)
         return {}
     }
 }

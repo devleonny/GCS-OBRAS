@@ -107,21 +107,6 @@ async function telaOrcamentos() {
 
 }
 
-async function mudarInterruptor(el) {
-    const ativo = el.checked
-    const label = el.parentElement
-    const chave = el.dataset.chave
-
-    controles.orcamentos.filtros[chave] = { op: ativo ? '=' : '!=', value: 'S' }
-    await paginacao()
-
-    const track = label.querySelector('.track')
-    const thumb = label.querySelector('.thumb')
-
-    if (track) track.style.backgroundColor = ativo ? '#4caf50' : '#ccc'
-    if (thumb) thumb.style.transform = ativo ? 'translateX(26px)' : 'translateX(0)'
-}
-
 function scrollar(direcao) {
 
     direcao = direcao == 'next' ? 1 : -1
@@ -161,8 +146,8 @@ async function criarLinhaOrcamento(orcamento) {
 
     async function linhaOrcamento(orcamento) {
 
-        const { id, dados_orcam, timestamp, snapshots, total_geral } = orcamento || {}
-        const { ultimaCorrecao, notas, pedidos } = snapshots || {}
+        const { id, ultimaCorrecao, dados_orcam, timestamp, snapshots, total_geral } = orcamento || {}
+        const { notas, pedidos } = snapshots || {}
         const { pagamentos = 0, fretes = 0, abastecimentos = 0 } = snapshots?.custos || {}
 
         // Velocímetro

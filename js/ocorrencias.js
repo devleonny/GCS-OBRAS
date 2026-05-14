@@ -721,7 +721,8 @@ async function abrirEsquemaOcorrencias(chave, principal) {
 
     if (['cliente', 'técnico'].includes(permissao))
         return
-
+    console.log(chave);
+    
     const [id, orc] = chave.includes('.')
         ? chave.split('.')
         : [chave, null]
@@ -1353,8 +1354,8 @@ async function criarPesquisas() {
                 ${funcao}
             </div>
             <span  ${idFiltro ? `id="${idFiltro}"` : ''} style="padding: 0 10px 0 10px;" class="filtro-dropdown-botao" name="filtros" onclick="cxOpcoes('filtros')">${nome}</span>
-        </div>
-        `)
+        </div>`
+        )
     }
 
     const emMassa = Object.entries(camposFechados)
