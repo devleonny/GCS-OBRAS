@@ -1,36 +1,6 @@
 async function telaRelatorio() {
 
-    const colunas = {
-        '': {},
-        'Empresa': { chave: 'snapshots.empresa' },
-        'Chamado': { chave: 'id' },
-        'Status': { chave: 'snapshots.ultimaCorrecao' },
-        'Data da Abertura': { chave: 'data_registro', tipoPesquisa: 'data' },
-        'Data do Agendamento': { chave: 'snapshots.dtCorrecao' },
-        'Solicitante': { chave: 'usuario' },
-        'Executores': { chave: 'snapshots.executores' },
-        'Tipo Correção': { chave: 'snapshots.ultimaCorrecao' },
-        'Loja': { chave: 'snapshots.cliente.nome' },
-        'Cidade': { chave: 'snapshots.cliente.cidade' },
-        'Estado': { chave: 'snapshots.cliente.estado' },
-        'Sistema': { chave: 'snapshots.sistema' },
-        'Prioridade': { chave: 'snapshots.prioridade' }
-    }
-
-    const tabela = await modTab({
-        colunas,
-        pag: 'relatorioOcorrencias',
-        body: 'bodyRelatorioOcorrencias',
-        base: 'dados_ocorrencias',
-        filtros: {
-            ...(
-                acesso.permissao == 'cliente'
-                    ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
-                    : {}
-            )
-        },
-        criarLinha: 'criarLinhaRelatorio'
-    })
+    overlayAguarde()
 
     const modelo = ({ texto, qtde, porcentagem, cor }) => `
         <div style="background-color: ${cor};" class="balao-totais">
@@ -55,33 +25,56 @@ async function telaRelatorio() {
         path: 'snapshots.ultimaCorrecao'
     }) || {}
 
-    const { todos, Solucionada } = contador
+    const { todos, SOLUCIONADA } = contador
 
-    const acumulado = `
-        <div class="pagina-relatorio">
-            <div class="toolbar-relatorio-ocorrencias">
-
-                <img src="imagens/GrupoCostaSilva.png" style="width: 5rem;">
-
-                <div class="toolbar-itens">
-
-                    <span onclick="baixarExcelRelatorioOcorrencias()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
-
-                    <div class="toolbar-itens">
-                        ${modelo({ texto: 'Total', qtde: todos, cor: '#222' })}
-                        ${modelo({ texto: 'Solucionados', porcentagem: Solucionada / todos, qtde: Solucionada || 0, cor: '#1d7e45' })}
-                        ${modelo({ texto: 'Em Aberto', porcentagem: (todos - Solucionada) / todos, qtde: todos ? (todos - Solucionada) : 0, cor: '#b12425' })}
-                    </div>
-                </div>
-
-            </div>
-            ${tabela}
+    const btnExtras = `
+        <div class="toolbar-itens">
+            <img src="imagens/GrupoCostaSilva.png" style="width: 5rem;">
+            <span onclick="baixarExcelRelatorioOcorrencias()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
+            ${modelo({ texto: 'Total', qtde: todos, cor: '#222' })}
+            ${modelo({ texto: 'Solucionados', porcentagem: SOLUCIONADA / todos, qtde: SOLUCIONADA || 0, cor: '#1d7e45' })}
+            ${modelo({ texto: 'Em Aberto', porcentagem: (todos - SOLUCIONADA) / todos, qtde: todos ? (todos - SOLUCIONADA) : 0, cor: '#b12425' })}
         </div>
     `
 
-    tela.innerHTML = acumulado
+    const colunas = {
+        '': {},
+        'Empresa': { chave: 'snapshots.empresa' },
+        'Chamado': { chave: 'id' },
+        'Status': { chave: 'snapshots.ultimaCorrecao' },
+        'Data da Abertura': { chave: 'data_registro', tipoPesquisa: 'data' },
+        'Data do Agendamento': { chave: 'snapshots.dtCorrecao' },
+        'Solicitante': { chave: 'usuario' },
+        'Executores': { chave: 'snapshots.executores' },
+        'Tipo Correção': { chave: 'snapshots.ultimaCorrecao' },
+        'Loja': { chave: 'snapshots.cliente.nome' },
+        'Cidade': { chave: 'snapshots.cliente.cidade' },
+        'Estado': { chave: 'snapshots.cliente.estado' },
+        'Sistema': { chave: 'snapshots.sistema' },
+        'Prioridade': { chave: 'snapshots.prioridade' }
+    }
+
+    const tabela = await modTab({
+        colunas,
+        btnExtras,
+        pag: 'relatorioOcorrencias',
+        body: 'bodyRelatorioOcorrencias',
+        base: 'dados_ocorrencias',
+        filtros: {
+            ...(
+                acesso.permissao == 'cliente'
+                    ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
+                    : {}
+            )
+        },
+        criarLinha: 'criarLinhaRelatorio'
+    })
+
+    tela.innerHTML = `<div class="painel-interno">${tabela}</div>`
 
     titulo.textContent = 'Relatório de Ocorrências'
+
+    removerOverlay()
 
     await paginacao()
 
@@ -188,7 +181,7 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
         <div class="detalhes-correcao">
 
             <span style="font-size: 1.2rem;"><b>Dados da Loja</b></span>
-            <hr style="width: 100%;">
+            <hr>
 
             <div style="${horizontal}; justify-content: left; gap: 1rem;">
                 <div style="${vertical}">
@@ -203,7 +196,7 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
             </div>
 
             <span style="font-size: 1.2rem;"><b>Correções</b></span>
-            <hr style="width: 100%;">
+            <hr>
 
             <div class="blocoTabela" style="width: 100%;">
                 <div class="painelBotoes"></div>
@@ -224,6 +217,8 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
 
 async function telaRelatorioCorrecoes() {
 
+    overlayAguarde()
+
     const colunas = {
         'Empresa': { chave: 'snapshots.empresa' },
         'Chamado': { chave: 'id' },
@@ -238,8 +233,16 @@ async function telaRelatorioCorrecoes() {
         'Sistema': { chave: 'snapshots.sistema' }
     }
 
+    const btnExtras = `
+        <div class="toolbar-itens">
+            <img src="imagens/GrupoCostaSilva.png" style="width: 5rem;">
+            <span onclick="baixarExcelRelatorioCorrecoes()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
+        </div>
+    `
+
     const tabela = await modTab({
         colunas,
+        btnExtras,
         filtros: {
             ...(
                 acesso.permissao == 'cliente'
@@ -265,24 +268,15 @@ async function telaRelatorioCorrecoes() {
         criarLinha: 'criarLinhasCorrecoes',
     })
 
-    const acumulado = `
-        <div class="pagina-relatorio">
-            <div class="toolbar-relatorio-ocorrencias">
 
-                <img src="imagens/GrupoCostaSilva.png" style="width: 5rem;">
-
-                <span onclick="baixarExcelRelatorioCorrecoes()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
-
-            </div>
-            ${tabela}
-        </div>
-    `
-
-    tela.innerHTML = acumulado
+    tela.innerHTML = `<div class="painel-interno">${tabela}</div>`
 
     titulo.textContent = 'Relatório de Correções'
 
+    removerOverlay()
+
     await paginacao()
+
 
 }
 
@@ -326,6 +320,8 @@ async function criarLinhasCorrecoes(correcao) {
 
 async function telaRelatorioPecas() {
 
+    overlayAguarde()
+
     const colunas = {
         'Chamado': { chave: 'id' },
         'Empresa': { chave: 'snapshots.empresa' },
@@ -341,8 +337,16 @@ async function telaRelatorioPecas() {
         'Fabricante': { chave: 'fabricante' },
     }
 
+    const btnExtras = `
+        <div class="toolbar-itens">
+            <img src="imagens/GrupoCostaSilva.png" style="width: 5rem;">
+            <span onclick="baixarExcelRelatorioPecas()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
+        </div>
+    `
+
     const tabela = await modTab({
         colunas,
+        btnExtras,
         filtros: {
             ...(
                 acesso.permissao == 'cliente'
@@ -364,21 +368,11 @@ async function telaRelatorioPecas() {
         criarLinha: 'criarLinhasPecas',
     })
 
-    const acumulado = `
-        <div class="pagina-relatorio">
-            <div class="toolbar-relatorio-ocorrencias">
-
-                <img src="imagens/GrupoCostaSilva.png" style="width: 5rem;">
-
-                <span onclick="baixarExcelRelatorioPecas()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
-
-            </div>
-            ${tabela}
-        </div>`
-
-    tela.innerHTML = acumulado
+    tela.innerHTML = `<div class="painel-interno">${tabela}</div>`
 
     titulo.textContent = 'Relatório de Peças'
+
+    removerOverlay()
 
     await paginacao()
 

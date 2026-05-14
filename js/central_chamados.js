@@ -262,7 +262,6 @@ async function minhaCorrecao(id) {
 
 }
 
-
 function mostrarPendencias() {
     const p = document.querySelector('.painel-pendencias')
     const visivel = p.style.display
@@ -271,62 +270,3 @@ function mostrarPendencias() {
         ? 'flex'
         : 'none'
 }
-
-async function gerenciarUsuario(id) {
-
-    const usuario = await recuperarDado('dados_setores', id)
-
-    const empresasOpcoes = ((await pesquisarDB({ base: 'empresas' })).resultados || [])
-        .sort((a, b) => a.nome.localeCompare(b.nome))
-        .map(empresa => `<option value="${empresa.id}" ${usuario?.empresa == empresa.id ? 'selected' : ''}>${empresa.nome}</option>`)
-        .join('')
-
-    const permissoes = ['novo', 'desativado', 'técnico', 'cliente', 'analista']
-        .map(op => `<option ${usuario?.permissao == op ? 'selected' : ''}>${op}</option>`).join('')
-
-    const setores = ['', 'CHAMADOS', 'MATRIZ BA', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO']
-        .map(op => `<option ${usuario?.setor == op ? 'selected' : ''}>${op}</option>`).join('')
-
-    const linhas = [
-        { texto: 'Nome', elemento: `<span>${usuario?.nome_completo || '-'}</span>` },
-        { texto: 'E-mail', elemento: `<span>${usuario?.email || '-'}</span>` },
-        { texto: 'Permissão', elemento: `<select onchange="configuracoes('${id}', 'permissao', this.value)">${permissoes}</select>` },
-        { texto: 'Setor', elemento: `<select onchange="configuracoes('${id}', 'setor', this.value)">${setores}</select>` },
-        { texto: 'Empresa', elemento: `<select onchange="configuracoes('${id}', 'empresa', this.value)">${empresasOpcoes}</select>` }
-    ]
-
-    popup({ linhas, titulo: 'Gerenciar Usuário' })
-
-}
-
-function pesquisar(input) {
-    const termo = input.value.trim().toLowerCase();
-    const tbody = document.querySelector('.tabela tbody');
-    const trs = tbody.querySelectorAll('tr');
-
-    trs.forEach(tr => {
-        const tds = tr.querySelectorAll('td');
-        let encontrou = false;
-
-        tds.forEach(td => {
-            let texto = td.textContent.trim().toLowerCase();
-
-            const inputInterno = td.querySelector('input, textarea, select');
-            if (inputInterno) {
-                texto += ' ' + inputInterno.value.trim().toLowerCase();
-            }
-
-            if (termo && texto.includes(termo)) {
-                encontrou = true;
-            }
-        });
-
-        if (!termo || encontrou) {
-            tr.style.display = ''; // mostra
-        } else {
-            tr.style.display = 'none'; // oculta
-        }
-    });
-}
-
-

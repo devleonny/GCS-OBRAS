@@ -130,9 +130,11 @@ async function telaClientes() {
             <img src="imagens/baixar.png" onclick="formularioCliente()">
         </div>`
 
+    const pag = 'clientes'
     const tabela = await modTab({
         pag: 'clientes',
         colunas,
+        filtros: {},
         funcaoAdicional: ['contarPorTagCliente'],
         body: 'bodyClientes',
         btnExtras,
@@ -140,15 +142,16 @@ async function telaClientes() {
         base: 'dados_clientes_ac'
     })
 
-
-    const dropdownTags = montarDropdownCheckboxClientes({
+    const dropdownTags = montarDropdownCheckbox({
         titulo: 'Tags',
+        pag,
         path: 'tags.*.tag',
         opcoes: tagsClientes
     })
 
-    const dropdownEstados = montarDropdownCheckboxClientes({
+    const dropdownEstados = montarDropdownCheckbox({
         titulo: 'Estados',
+        pag,
         path: 'estado',
         opcoes: Object.keys(posicoesEstados || {})
     })
@@ -168,232 +171,8 @@ async function telaClientes() {
         </div>`
 
 
-    await paginacao()
+    await paginacao(pag)
     mostrarMapa()
-}
-
-async function limparFiltrosClientesDropdown() {
-    if (controles?.clientes?.filtros) {
-        delete controles.clientes.filtros['tags.*.tag']
-        delete controles.clientes.filtros['estado']
-
-        if (Object.keys(controles.clientes.filtros).length === 0)
-            delete controles.clientes.filtros
-    }
-
-    atualizarLabelDropdownClientes('tags.*.tag')
-    atualizarLabelDropdownClientes('estado')
-
-    document.querySelectorAll('.filtro-dropdown-cliente').forEach(drop => {
-        drop.querySelectorAll('input[type="checkbox"]').forEach(input => {
-            input.checked = false
-        })
-    })
-
-    await paginacao('clientes')
-}
-
-function regrasAtuaisClientes(path) {
-    const atual = controles?.clientes?.filtros?.[path]
-
-    if (!atual)
-        return []
-
-    return Array.isArray(atual)
-        ? [...atual]
-        : [atual]
-}
-
-function valoresMarcadosClientes(path) {
-    const atual = regrasAtuaisClientes(path)
-    const grupo = atual.find(r => r?.modo === 'OR' && r?.origem === 'dropdown')
-    return (grupo?.regras || []).map(r => r.value)
-}
-
-function tudoMarcadoClientes(path, opcoes = []) {
-    const validas = opcoes
-        .filter(o => o && o !== 'todos')
-        .sort((a, b) => a.localeCompare(b))
-
-    const marcados = valoresMarcadosClientes(path)
-
-    return validas.length > 0 && validas.every(o => marcados.includes(o))
-}
-
-function labelDropdownClientes(path) {
-    const marcados = valoresMarcadosClientes(path)
-
-    if (marcados.length === 0)
-        return 'Selecionar'
-
-    if (marcados.length === 1)
-        return marcados[0]
-
-    return `${marcados.length} selecionados`
-}
-
-function atualizarLabelDropdownClientes(path) {
-    const drop = document.querySelector(`.filtro-dropdown-cliente[data-path="${path}"]`)
-    if (!drop)
-        return
-
-    const label = drop.querySelector('.dropdown-label')
-    if (!label)
-        return
-
-    label.textContent = labelDropdownClientes(path)
-}
-
-async function alternarTodosDropdownClientes(path, opcoes = []) {
-    controles.clientes ??= {}
-    controles.clientes.filtros ??= {}
-
-    const regras = regrasAtuaisClientes(path)
-    const outrasRegras = regras.filter(r => !(r?.modo === 'OR' && r?.origem === 'dropdown'))
-
-    const validas = opcoes
-        .filter(o => o && o !== 'todos')
-        .sort((a, b) => a.localeCompare(b))
-
-    if (!validas.length)
-        return
-
-    const marcarTudo = !tudoMarcadoClientes(path, validas)
-
-    if (marcarTudo) {
-        outrasRegras.push({
-            modo: 'OR',
-            origem: 'dropdown',
-            regras: validas.map(value => ({
-                op: '=',
-                value
-            }))
-        })
-    }
-
-    if (outrasRegras.length === 0) {
-        delete controles.clientes.filtros[path]
-    } else if (outrasRegras.length === 1) {
-        controles.clientes.filtros[path] = outrasRegras[0]
-    } else {
-        controles.clientes.filtros[path] = outrasRegras
-    }
-
-    if (Object.keys(controles.clientes.filtros).length === 0)
-        delete controles.clientes.filtros
-
-    const drop = document.querySelector(`.filtro-dropdown-cliente[data-path="${path}"]`)
-    if (drop) {
-        const checks = drop.querySelectorAll('input[type="checkbox"][data-item="opcao"]')
-        checks.forEach(input => {
-            input.checked = marcarTudo
-        })
-
-        const checkTodos = drop.querySelector('input[type="checkbox"][data-item="todos"]')
-        if (checkTodos)
-            checkTodos.checked = marcarTudo
-    }
-
-    atualizarLabelDropdownClientes(path)
-    await paginacao('clientes')
-}
-
-async function alternarFiltroDropdownClientes(path, valor, marcado) {
-    controles.clientes ??= {}
-    controles.clientes.filtros ??= {}
-
-    const regras = regrasAtuaisClientes(path)
-    const grupoAtual = regras.find(r => r?.modo === 'OR' && r?.origem === 'dropdown')
-    const outrasRegras = regras.filter(r => !(r?.modo === 'OR' && r?.origem === 'dropdown'))
-
-    let regrasDropdown = [...(grupoAtual?.regras || [])]
-        .filter(r => r.value !== valor)
-
-    if (marcado) {
-        regrasDropdown.push({
-            op: '=',
-            value: valor
-        })
-    }
-
-    if (regrasDropdown.length > 0) {
-        outrasRegras.push({
-            modo: 'OR',
-            origem: 'dropdown',
-            regras: regrasDropdown
-        })
-    }
-
-    if (outrasRegras.length === 0) {
-        delete controles.clientes.filtros[path]
-    } else if (outrasRegras.length === 1) {
-        controles.clientes.filtros[path] = outrasRegras[0]
-    } else {
-        controles.clientes.filtros[path] = outrasRegras
-    }
-
-    if (Object.keys(controles.clientes.filtros).length === 0)
-        delete controles.clientes.filtros
-
-    const drop = document.querySelector(`.filtro-dropdown-cliente[data-path="${path}"]`)
-    if (drop) {
-        const opcoes = [...drop.querySelectorAll('input[type="checkbox"][data-item="opcao"]')]
-            .map(input => input.value)
-
-        const checkTodos = drop.querySelector('input[type="checkbox"][data-item="todos"]')
-        if (checkTodos)
-            checkTodos.checked = tudoMarcadoClientes(path, opcoes)
-    }
-
-    atualizarLabelDropdownClientes(path)
-    await paginacao('clientes')
-}
-
-function montarDropdownCheckboxClientes({ titulo, path, opcoes = [] }) {
-    const validas = opcoes
-        .filter(o => o && o !== 'todos')
-        .sort((a, b) => a.localeCompare(b))
-
-    const marcados = valoresMarcadosClientes(path)
-    const todosAtivos = tudoMarcadoClientes(path, validas)
-
-    const itens = validas
-        .map(o => `
-            <label class="dropdown-item">
-                <input
-                    type="checkbox"
-                    data-item="opcao"
-                    value="${o}"
-                    ${marcados.includes(o) ? 'checked' : ''}
-                    onchange="alternarFiltroDropdownClientes('${path}', ${JSON.stringify(o).replace(/"/g, '&quot;')}, this.checked)">
-                <span>${o}</span>
-            </label>
-        `)
-        .join('')
-
-    return `
-        <div style="${vertical}; gap: 2px;">
-            <span style="color: white;">${titulo}</span>
-            <div class="filtro-dropdown filtro-dropdown-cliente" data-path="${path}">
-                <div class="filtro-dropdown-botao" onclick="toggleDropdown(this)">
-                    <span class="dropdown-label">${labelDropdownClientes(path)}</span>
-                    <span>▾</span>
-                </div>
-                <div class="dropdown-menu" data-aberto="N">
-                    <label class="dropdown-item" style="border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-bottom: 6px;">
-                        <input
-                            type="checkbox"
-                            data-item="todos"
-                            ${todosAtivos ? 'checked' : ''}
-                            onchange="alternarTodosDropdownClientes('${path}', ${JSON.stringify(validas).replace(/"/g, '&quot;')})">
-                        <span>Todos</span>
-                    </label>
-
-                    ${itens || '<span>Nenhuma opção</span>'}
-                </div>
-            </div>
-        </div>
-    `
 }
 
 async function contarPorTagCliente() {

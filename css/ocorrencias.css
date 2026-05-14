@@ -427,10 +427,7 @@
     flex-direction: column;
     align-items: start;
     justify-content: start;
-
-    overflow: hidden;
     max-height: 1000px;
-    /* Um valor maior do que o painel alcançará */
     transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
     opacity: 1;
 }
@@ -570,7 +567,7 @@
     background: white;
     border: 1px solid #ccc;
     padding: 8px;
-    z-index: 50;
+    z-index: 9999;
     box-shadow: 0 6px 20px rgba(0, 0, 0, .12);
 }
 
@@ -603,8 +600,7 @@
 
 .painel-tecnicos {
     display: flex;
-    overflow: auto;
-    width: 90vw;
+    padding: 1rem;
     flex-direction: row;
     align-items: start;
     justify-content: start;

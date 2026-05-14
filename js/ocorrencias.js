@@ -341,7 +341,8 @@ function carregarCorrecoes(ocorrencia) {
 
     for (const [idCorrecao, correcao] of correcoesOrganizadas) {
 
-        const { equipamentos,
+        const {
+            equipamentos,
             idOrcamento,
             data,
             tecnico,
@@ -351,6 +352,8 @@ function carregarCorrecoes(ocorrencia) {
             localizacao,
             usuario,
             autorizacao,
+            dtCorrecao,
+            dtCorrecaoFinal,
             executor = []
         } = correcao
 
@@ -395,18 +398,23 @@ function carregarCorrecoes(ocorrencia) {
             ? modelo('Orçamento', `<img src="imagens/pdf.png" onclick="irPdf('${idOrcamento}')">`)
             : ''
 
+        const dtCorrecaoFinalformatada = dtCorrecaoFinal
+            ? dtFormatada(dtCorrecaoFinal)
+            : null
+
         divsCorrecoes.push(`
             <div class="detalhes-correcoes-1">
 
                 <div style="${vertical}; width: 90%; padding: 0.5rem;">
                     ${modelo('Código de Autorização', autorizacao)}
-                    ${modelo('Data Limite Execução', `
+                    ${modelo('Data Inicial de Execução', `
                         <div style="${horizontal}; justify-content: start; gap: 1rem;">
-                            <span>${dtFormatada(correcao?.dtCorrecao)}</span>
+                            <span>${dtFormatada(dtCorrecao)}</span>
                             ${imgR}
                         </div>
                         <div class="agendamentos">${agendamentos}</div>
                         `)}
+                    ${modelo('Data Final de Execução', dtCorrecaoFinalformatada)}
                     ${modelo('Solicitante', `<span>${usuario || ''}</span>`)}
                     ${modelo('Executores', `<span>${listaExecutores || ''}</span>`)}
                     ${modelo('Técnicos', `<span>${tecnico ? tecnico.join(', ') : ''}</span>`)}
@@ -1268,253 +1276,6 @@ async function voltarOcorrencias() {
 
 }
 
-function regrasAtuais(path) {
-    const atual = controles?.ocorrencias?.filtros?.[path]
-
-    if (!atual)
-        return []
-
-    return Array.isArray(atual)
-        ? [...atual]
-        : [atual]
-}
-
-function valoresMarcados(path) {
-    const atual = regrasAtuais(path)
-
-    const grupo = atual.find(r => r?.modo === 'OR' && r?.origem === 'dropdown')
-
-    return (grupo?.regras || []).map(r => r.value)
-}
-
-function opcoesDropdownValidas(opcoes = []) {
-    return opcoes
-        .filter(o => o && o !== 'todos')
-        .sort((a, b) => a.localeCompare(b))
-}
-
-function tudoMarcado(path, opcoes = []) {
-    const validas = opcoesDropdownValidas(opcoes)
-    const marcados = valoresMarcados(path)
-
-    return validas.length > 0 && validas.every(o => marcados.includes(o))
-}
-
-async function alternarTodosDropdown(path, opcoes = []) {
-    const regras = regrasAtuais(path)
-    const outrasRegras = regras.filter(r => !(r?.modo === 'OR' && r?.origem === 'dropdown'))
-    const validas = opcoesDropdownValidas(opcoes)
-
-    if (validas.length === 0)
-        return
-
-    const marcarTudo = !tudoMarcado(path, opcoes)
-
-    if (marcarTudo) {
-        outrasRegras.push({
-            modo: 'OR',
-            origem: 'dropdown',
-            regras: validas.map(value => ({
-                op: '=',
-                value
-            }))
-        })
-    }
-
-    if (outrasRegras.length === 0) {
-        delete controles.ocorrencias.filtros[path]
-    } else if (outrasRegras.length === 1) {
-        controles.ocorrencias.filtros[path] = outrasRegras[0]
-    } else {
-        controles.ocorrencias.filtros[path] = outrasRegras
-    }
-
-    const drop = document.querySelector(`.filtro-dropdown[data-path="${path}"]`)
-    if (drop) {
-        const checks = drop.querySelectorAll('input[type="checkbox"][data-item="opcao"]')
-        const marcar = marcarTudo
-
-        checks.forEach(input => {
-            input.checked = marcar
-        })
-
-        const checkTodos = drop.querySelector('input[type="checkbox"][data-item="todos"]')
-        if (checkTodos)
-            checkTodos.checked = marcar
-    }
-
-    atualizarLabelDropdown(path)
-    await paginacao()
-}
-
-async function alternarFiltroDropdown(path, valor, marcado) {
-    let regras = regrasAtuais(path)
-
-    const grupoAtual = regras.find(r => r?.modo === 'OR' && r?.origem === 'dropdown')
-    const outrasRegras = regras.filter(r => !(r?.modo === 'OR' && r?.origem === 'dropdown'))
-
-    let regrasDropdown = [...(grupoAtual?.regras || [])]
-        .filter(r => r.value !== valor)
-
-    if (marcado) {
-        regrasDropdown.push({
-            op: '=',
-            value: valor
-        })
-    }
-
-    if (regrasDropdown.length > 0) {
-        outrasRegras.push({
-            modo: 'OR',
-            origem: 'dropdown',
-            regras: regrasDropdown
-        })
-    }
-
-    if (outrasRegras.length === 0) {
-        delete controles.ocorrencias.filtros[path]
-    } else if (outrasRegras.length === 1) {
-        controles.ocorrencias.filtros[path] = outrasRegras[0]
-    } else {
-        controles.ocorrencias.filtros[path] = outrasRegras
-    }
-
-    const drop = document.querySelector(`.filtro-dropdown[data-path="${path}"]`)
-    if (drop) {
-        const opcoes = [...drop.querySelectorAll('input[type="checkbox"][data-item="opcao"]')]
-            .map(input => input.value)
-
-        const checkTodos = drop.querySelector('input[type="checkbox"][data-item="todos"]')
-        if (checkTodos)
-            checkTodos.checked = tudoMarcado(path, opcoes)
-    }
-
-    atualizarLabelDropdown(path)
-    await paginacao()
-}
-
-function fecharTodosDropdowns() {
-    document.querySelectorAll('.filtro-dropdown .dropdown-menu').forEach(menu => {
-        menu.style.display = 'none'
-        menu.dataset.aberto = 'N'
-        menu.style.position = ''
-        menu.style.top = ''
-        menu.style.left = ''
-        menu.style.zIndex = ''
-    })
-}
-
-function toggleDropdown(botao) {
-    const drop = botao.closest('.filtro-dropdown')
-    const menu = drop.querySelector('.dropdown-menu')
-    const aberto = menu.dataset.aberto === 'S'
-
-    fecharTodosDropdowns()
-
-    if (!aberto) {
-        const rect = botao.getBoundingClientRect()
-        const larguraMenu = Math.max(rect.width, 260)
-        const alturaMax = 320
-        const espacoAbaixo = window.innerHeight - rect.bottom
-        const espacoAcima = rect.top
-
-        menu.style.display = 'block'
-        menu.dataset.aberto = 'S'
-        menu.style.position = 'fixed'
-        menu.style.zIndex = '999999'
-        menu.style.minWidth = `${larguraMenu}px`
-        menu.style.maxWidth = '380px'
-        menu.style.maxHeight = `${alturaMax}px`
-        menu.style.overflowY = 'auto'
-
-        let top = rect.bottom + 4
-        let left = rect.left
-
-        if (espacoAbaixo < alturaMax && espacoAcima > espacoAbaixo) {
-            top = Math.max(8, rect.top - alturaMax - 4)
-        }
-
-        if (left + larguraMenu > window.innerWidth - 8) {
-            left = window.innerWidth - larguraMenu - 8
-        }
-
-        if (left < 8) {
-            left = 8
-        }
-
-        menu.style.top = `${top}px`
-        menu.style.left = `${left}px`
-    }
-}
-
-function labelDropdown(path) {
-    const marcados = valoresMarcados(path)
-
-    if (marcados.length === 0)
-        return 'Selecionar'
-
-    if (marcados.length === 1)
-        return marcados[0]
-
-    return `${marcados.length} selecionados`
-}
-
-function atualizarLabelDropdown(path) {
-    const drop = document.querySelector(`.filtro-dropdown[data-path="${path}"]`)
-    if (!drop)
-        return
-
-    const label = drop.querySelector('.dropdown-label')
-    if (!label)
-        return
-
-    label.textContent = labelDropdown(path)
-}
-
-function montarDropdownCheckbox({ titulo, path, opcoes = [] }) {
-    const validas = opcoesDropdownValidas(opcoes)
-    const marcados = valoresMarcados(path)
-    const todosAtivos = tudoMarcado(path, validas)
-
-    const itens = validas
-        .map(o => `
-            <label class="dropdown-item">
-                <input
-                    type="checkbox"
-                    data-item="opcao"
-                    value="${o}"
-                    ${marcados.includes(o) ? 'checked' : ''}
-                    onchange="alternarFiltroDropdown('${path}', ${JSON.stringify(o).replace(/"/g, '&quot;')}, this.checked)">
-                <span>${o}</span>
-            </label>
-        `)
-        .join('')
-
-    return `
-        <div style="${vertical}; gap: 2px;">
-            <span style="color: white;">${titulo}</span>
-            <div class="filtro-dropdown" data-path="${path}">
-                <div class="filtro-dropdown-botao" onclick="toggleDropdown(this)">
-                    <span class="dropdown-label">${labelDropdown(path)}</span>
-                    <span>▾</span>
-                </div>
-                <div class="dropdown-menu" data-aberto="N">
-                    <label class="dropdown-item" style="border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-bottom: 6px;">
-                        <input
-                            type="checkbox"
-                            data-item="todos"
-                            ${todosAtivos ? 'checked' : ''}
-                            onchange="alternarTodosDropdown('${path}', ${JSON.stringify(validas).replace(/"/g, '&quot;')})">
-                        <span>Todos</span>
-                    </label>
-
-                    ${itens || '<span>Nenhuma opção</span>'}
-                </div>
-            </div>
-        </div>
-    `
-}
-
 async function criarPesquisas() {
 
     const divF1 = document.querySelector('#filtros1')
@@ -1607,6 +1368,7 @@ async function criarPesquisas() {
                 : conf.path
 
             return montarDropdownCheckbox({
+                pag: 'ocorrencias',
                 titulo,
                 path,
                 opcoes: Object.keys(contagem)
@@ -2158,8 +1920,12 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
             elemento: `<textarea name="autorizacao">${autorizacao || ''}</textarea>`
         },
         {
-            texto: 'Data Limite Execução',
+            texto: 'Data Início Execução',
             elemento: `<input name="dtCorrecao" type="date" value="${correcao?.dtCorrecao || ''}">`
+        },
+        {
+            texto: 'Data Final Execução',
+            elemento: `<input name="dtCorrecaoFinal" type="date" value="${correcao?.dtCorrecaoFinal || ''}">`
         },
         {
             texto: 'Status da Correção',
@@ -2393,12 +2159,13 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
 
     const tipoCorrecao = obter('tipoCorrecao').id
     const dtCorrecao = obter('dtCorrecao').value
+    const dtCorrecaoFinal = obter('dtCorrecaoFinal').value
 
     if (!tipoCorrecao)
-        return popup({ mensagem: 'Defina um status para a correção' })
+        return popup({ mensagem: 'Defina um <b>status</b> para a correção' })
 
     if (!dtCorrecao)
-        return popup({ mensagem: 'Não deixe em branco <b>Data Limite</b> ou o <b>Tipo de Correção</b>' })
+        return popup({ mensagem: 'Não deixe em branco <b>Data Limite</b>' })
 
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
     if (tipoCorrecao == 'WRuo2' && !ocorrencia.assinatura && acesso.permissao == 'técnico') {
@@ -2482,7 +2249,8 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
         })
 
     await Promise.all(emMassa)
-        /*
+
+    /*
     if (semSaldo.length)
         return popup({
             mensagem: `
@@ -2491,7 +2259,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
                     ${semSaldo.join('')}
                 </div>`
         })
-                */
+    */
 
     // Executores;
     const executores = [...document.querySelectorAll('.executores span')]
@@ -2520,6 +2288,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
             ...correcao?.anexos
         },
         dtCorrecao,
+        dtCorrecaoFinal,
         tecnico,
         executor,
         usuario: correcao.usuario || acesso.usuario,

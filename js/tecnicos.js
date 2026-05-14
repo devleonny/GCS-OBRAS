@@ -231,7 +231,7 @@ async function criarLinhaMovimento(movimento) {
         comentario,
         descricao,
         quantidade,
-        origem,
+        origem
     } = movimento || {}
 
     const sinal = operacao == 'Recebimento'
@@ -259,5 +259,336 @@ async function criarLinhaMovimento(movimento) {
             <td>${descricao || ''}</td>
         </tr>
     `
+
+}
+
+
+// AGENDA 
+
+function pegarSegunda(date = new Date()) {
+    const d = new Date(date)
+    const day = d.getDay()
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+    d.setDate(diff)
+    d.setHours(0, 0, 0, 0)
+    return d.toLocaleDateString()
+}
+
+async function telaAgenda() {
+
+    tela.innerHTML = `
+        <div class="agenda-wrap">
+            <div class="agenda-topo">
+                <div class="agenda-filtro">
+
+                    <img src="imagens/BG.png" style="width: 12rem;">
+
+                    <div style="${vertical};">
+                        <span style="color: white;">Início</span>
+                        <input type="date" id="inicio" onchange="carregarAgenda()">
+                    </div>
+
+                    <div style="${vertical};">
+                        <span style="color: white;">Fim</span>
+                        <input type="date" id="inicio" onchange="carregarAgenda()">
+                    </div>
+
+                    <div class="agenda-dropdown"></div>
+
+                </div>
+
+                <div class="agenda-cards"></div>
+
+            </div>
+
+            <div class="agenda-box">
+                <div class="agenda-box-titulo">Atendimentos Data x Loja</div>
+                <div class="agenda-table-wrap"></div>
+            </div>
+        </div>
+    `
+
+    await carregarAgenda()
+    await criarPesquisasAgenda()
+
+}
+
+async function criarPesquisasAgenda() {
+
+    const painelDrop = document.querySelector('.agenda-dropdown')
+    const pag = 'agenda'
+    controles[pag] ??= {}
+    controles[pag].filtros = {}
+
+    const campos = [
+        { path: 'tecnico', titulo: 'Técnico' },
+        { path: 'Estado', titulo: 'Estado' },
+    ]
+
+    const drops = []
+
+    const emMassa = campos.map(async ({ path, titulo }) => {
+
+        const contagem = await contarPorCampo({ base: 'vw_tecnicos', path })
+
+        const drop = montarDropdownCheckbox({
+            titulo,
+            pag,
+            funcao: 'carregarAgenda',
+            path,
+            opcoes: Object.keys(contagem)
+        })
+
+        drops.push(drop)
+    })
+
+    await Promise.all(emMassa)
+
+    painelDrop.innerHTML = drops.join('')
+
+}
+
+
+async function carregarAgenda() {
+
+    const local = document.querySelector('.agenda-table-wrap')
+    const baloes = document.querySelector('.agenda-cards')
+    const paginacao = document.querySelector('.agenda-paginacao')
+    const inicio = document.getElementById('inicio')?.value
+    const fim = document.getElementById('fim')?.value
+    const loading = '<img src="gifs/loading.gif" style="width: 5rem;">'
+
+    local.innerHTML = loading;
+    baloes.innerHTML = loading;
+
+    const inicioFinal = inicio || (!fim ? pegarSegunda() : '')
+
+    const filtro = [
+        inicioFinal && { op: '>=d', value: inicioFinal },
+        fim && { op: '<=d', value: fim }
+    ].filter(Boolean)
+
+    // Existentes & dropdown;
+    const filtros = controles?.agenda?.filtros
+
+    const { resultados, total, paginas } = await pesquisarDB({
+        base: 'vw_tecnicos',
+        limite: 9999999,
+        filtros: {
+            ...filtros,
+            dtCorrecao: filtro
+        }
+    })
+
+    const linhas = resultados || []
+
+    function esc(v) {
+        return String(v ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;');
+    }
+
+    function parseISODate(value) {
+        if (!value || typeof value !== 'string' || !value.trim()) return null;
+        const d = new Date(value + 'T00:00:00');
+        return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    function formatInputDateToBR(value) {
+        if (!value) return '';
+        const [y, m, d] = value.split('-');
+        return `${d}/${m}/${y}`;
+    }
+
+    function shortLoja(nome) {
+        const txt = String(nome || '').trim();
+        return txt.length > 15 ? txt.slice(0, 15) + '…' : txt;
+    }
+
+    function colorFromString(str) {
+        let hash = 0;
+        const s = String(str || '');
+        for (let i = 0; i < s.length; i++) {
+            hash = s.charCodeAt(i) + ((hash << 5) - hash);
+            hash |= 0;
+        }
+        const hue = Math.abs(hash) % 360;
+        return {
+            bg: `hsl(${hue} 70% 88%)`,
+            border: `hsl(${hue} 55% 55%)`,
+            text: `hsl(${hue} 45% 22%)`
+        };
+    }
+
+    function formatISODate(date) {
+        const ano = date.getFullYear();
+        const mes = String(date.getMonth() + 1).padStart(2, '0');
+        const dia = String(date.getDate()).padStart(2, '0');
+        return `${ano}-${mes}-${dia}`;
+    }
+
+    function expandirPeriodo(item) {
+        const inicio = parseISODate(item.dtCorrecao);
+        const fimInformado = parseISODate(item.dtCorrecaoFinal);
+
+        if (!inicio) return [];
+
+        const fim = fimInformado && fimInformado >= inicio ? fimInformado : inicio;
+        const dias = [];
+
+        const atual = new Date(inicio);
+        while (atual <= fim) {
+            dias.push({
+                ...item,
+                dt: formatISODate(atual),
+                dtObj: new Date(atual)
+            });
+
+            atual.setDate(atual.getDate() + 1);
+        }
+
+        return dias;
+    }
+
+    const dados = linhas
+        .map(item => ({
+            ...item,
+            tecnico: String(item.tecnico || '').trim(),
+            Loja: String(item.Loja || '').trim(),
+            Estado: String(item.Estado || '').trim(),
+            Cidade: String(item.Cidade || '').trim(),
+            dtCorrecao: String(item.dtCorrecao || '').trim(),
+            dtCorrecaoFinal: String(item.dtCorrecaoFinal || '').trim()
+        }))
+        .flatMap(expandirPeriodo)
+        .filter(item => item.tecnico && item.dt && item.dtObj);
+
+    const seen = new Set();
+    const unicos = dados.filter(item => {
+        const key = [
+            item.origem_id,
+            item.tecnico,
+            item.Loja,
+            item.dt
+        ].join('|');
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+
+    const tecnicos = [...new Set(unicos.map(x => x.tecnico))].sort((a, b) => a.localeCompare(b));
+    const dias = [...new Set(unicos.map(x => x.dt))].sort();
+
+    const mapa = new Map();
+    for (const item of unicos) {
+        const key = `${item.tecnico}__${item.dt}`;
+        if (!mapa.has(key)) mapa.set(key, []);
+        mapa.get(key).push(item);
+    }
+
+    const totalRegistros = unicos.length;
+    const totalTecnicos = tecnicos.length;
+    const totalLojas = new Set(unicos.map(x => x.Loja)).size;
+    const totalEstados = new Set(unicos.map(x => x.Estado)).size;
+
+    const headDias = dias.map(d => {
+        const [y, m, day] = d.split('-');
+        return `<th class="agenda-dia" title="${esc(d)}">${esc(day)}/${esc(m)}/${y}</th>`;
+    }).join('');
+
+    const bodyRows = tecnicos.map((tecnico, rowIndex) => {
+        const cells = dias.map(dt => {
+            const itens = mapa.get(`${tecnico}__${dt}`) || [];
+            const labels = itens.map(item => {
+                const cor = colorFromString(item.Loja);
+
+                return `
+                    <span
+                        class="agenda-badge"
+                        onmouseenter="tooltipAgenda(this, '${encodeURIComponent(JSON.stringify(item))}')"
+                        onmouseleave="removerTooltip()"
+                        style="background:${cor.bg}; border-color:${cor.border}; color:${cor.text};">
+                                ${esc(shortLoja(item.Loja))}
+                    </span>`
+            }).join('')
+
+            return `<td class="agenda-celula">${labels || ''}</td>`
+        }).join('')
+
+        return `
+        <tr class="agenda-row agenda-row-${rowIndex + 1}">
+            <th class="agenda-tecnico" scope="row">${esc(tecnico)}</th>
+            ${cells}
+        </tr>
+    `
+    }).join('')
+
+    const cards = [
+        ['Registros válidos', totalRegistros],
+        ['Técnicos', totalTecnicos],
+        ['Lojas', totalLojas],
+        ['Estados', totalEstados]
+    ]
+        .map(([titulo, valor]) => {
+            return `
+            <div class="agenda-card">
+                <div class="agenda-card-label">${titulo}</div>
+                <div class="agenda-card-valor">${valor}</div>
+            </div>
+        `
+        })
+        .join('')
+
+    const agenda = dias.length && tecnicos.length
+        ? `
+            <table class="agenda-table">
+                <thead>
+                    <tr>
+                    <th class="agenda-tecnico">Técnico</th>
+                        ${headDias}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${bodyRows}
+                </tbody>
+            </table>
+        `
+        : `<div class="agenda-vazia">Nenhum registro</div>`
+
+    baloes.innerHTML = cards
+    local.innerHTML = agenda
+
+}
+
+function removerTooltip() {
+
+    const tip = document.querySelector('.tooltip-agenda');
+    if (tip)
+        tip.remove()
+
+}
+
+function tooltipAgenda(elemento, dados) {
+
+    const { Loja, tecnico, dt, Cidade, Estado, origem_id } = JSON.parse(decodeURIComponent(dados))
+
+    const { top, left } = elemento.getBoundingClientRect()
+
+    const tooltip = `
+        <div class="tooltip-agenda" style="top: ${top + 28}px; left: ${left}px;">
+            <div class="tooltip-agenda-titulo">${Loja}</div>
+            <div class="tooltip-agenda-linha"><b>Técnico:</b> ${tecnico}</div>
+            <div class="tooltip-agenda-linha"><b>Data:</b> ${dt}</div>
+            <div class="tooltip-agenda-linha"><b>Cidade:</b> ${Cidade}</div>
+            <div class="tooltip-agenda-linha"><b>Estado:</b> ${Estado}</div>
+            <div class="tooltip-agenda-linha"><b>Origem:</b> ${origem_id}</div>
+        </div>
+    `
+
+    removerTooltip()
+
+    document.body.insertAdjacentHTML('beforeend', tooltip);
 
 }

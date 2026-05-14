@@ -128,15 +128,8 @@ function atribuirVariaveis() {
 
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F2') f2()
-    if (event.key === 'F8') resetarBases()
     if (event.key === 'F5') location.reload()
 })
-
-async function resetarBases() {
-
-    //EXCLUIR
-
-}
 
 async function f2() {
 
@@ -150,6 +143,10 @@ async function f2() {
                 </div>
                 <div id="localResposta"></div>
             `
+        },
+        {
+            texto: 'Sincronizar notas',
+            elemento: `<button onclick="sincronizarNotas()">Sincronizar</button>`
         },
         {
             texto: 'Criar uma LPU',
@@ -691,54 +688,6 @@ async function importarAnexos({ input, foto }) {
     }
 }
 
-function sincronizarApp({ atual, total, remover } = {}) {
-
-    const progresso = document.querySelector('.progresso')
-
-    if (remover) {
-
-        setTimeout(async () => {
-            const loader = document.querySelector('.circular-loader')
-            if (loader) loader.remove()
-            return
-        }, 1000)
-
-        return removerOverlay()
-
-    } else if (atual) {
-
-        if (!progresso) return overlayAguarde()
-
-        const circumference = 2 * Math.PI * 50;
-        const percent = (atual / total) * 100;
-        const offset = circumference - (circumference * percent / 100);
-        progressCircle.style.strokeDasharray = circumference;
-        progressCircle.style.strokeDashoffset = offset;
-        percentageText.textContent = `${percent.toFixed(0)}%`;
-
-        return
-
-    } else {
-
-        const carregamentoHTML = `
-            <div class="circular-loader">
-                <svg>
-                    <circle class="bg" cx="60" cy="60" r="50"></circle>
-                    <circle class="progress" cx="60" cy="60" r="50"></circle>
-                </svg>
-                <div class="percentage">0%</div>
-            </div>
-        `
-
-        if (!progresso) return
-        progresso.innerHTML = carregamentoHTML
-
-        progressCircle = document.querySelector('.circular-loader .progress');
-        percentageText = document.querySelector('.circular-loader .percentage');
-    }
-
-}
-
 async function buscarLPUs() {
 
     const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
@@ -780,6 +729,30 @@ async function criarLPU(nomeLPU) {
     return await resposta.json()
 }
 
+async function sincronizarNotas() {
+
+    overlayAguarde()
+
+    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
+
+    const resposta = await fetch(`${api}/sincronizar-notas`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        }
+    })
+
+    if (!resposta.ok) {
+        const erro = await resposta.text()
+        throw new Error(erro || 'Erro ao contar por campo')
+    }
+
+    const { mensagem = 'Falha ao sincronizar notas' } = await resposta.json()
+    return popup({ mensagem })
+
+}
+
 async function formularioLPU() {
 
     const linhas = [
@@ -818,49 +791,49 @@ async function salvarLPU() {
 
 function validarCpfCnpj(val) {
     if (!val) return false
-    
+
     // Remove tudo que não for número
     const str = val.replace(/[^\d]/g, '')
-    
+
     if (str.length === 11) {
         // Validação de CPF
         if (/^(\d)\1{10}$/.test(str)) return false // Bloqueia 000.000.000-00, 111.111...
-        
+
         let soma = 0
         let resto
-        
-        for (let i = 1; i <= 9; i++) soma += parseInt(str.substring(i-1, i)) * (11 - i)
+
+        for (let i = 1; i <= 9; i++) soma += parseInt(str.substring(i - 1, i)) * (11 - i)
         resto = (soma * 10) % 11
         if (resto === 10 || resto === 11) resto = 0
         if (resto !== parseInt(str.substring(9, 10))) return false
-        
+
         soma = 0
-        for (let i = 1; i <= 10; i++) soma += parseInt(str.substring(i-1, i)) * (12 - i)
+        for (let i = 1; i <= 10; i++) soma += parseInt(str.substring(i - 1, i)) * (12 - i)
         resto = (soma * 10) % 11
         if (resto === 10 || resto === 11) resto = 0
         if (resto !== parseInt(str.substring(10, 11))) return false
-        
+
         return true
-    } 
-    
+    }
+
     if (str.length === 14) {
         // Validação de CNPJ Numérico (Antigo)
         if (/^(\d)\1{13}$/.test(str)) return false
-        
+
         let tamanho = str.length - 2
         let numeros = str.substring(0, tamanho)
         let digitos = str.substring(tamanho)
         let soma = 0
         let pos = tamanho - 7
-        
+
         for (let i = tamanho; i >= 1; i--) {
             soma += numeros.charAt(tamanho - i) * pos--
             if (pos < 2) pos = 9
         }
-        
+
         let resultado = soma % 11 < 2 ? 0 : 11 - soma % 11
         if (resultado !== parseInt(digitos.charAt(0))) return false
-        
+
         tamanho = tamanho + 1
         numeros = str.substring(0, tamanho)
         soma = 0
@@ -869,12 +842,12 @@ function validarCpfCnpj(val) {
             soma += numeros.charAt(tamanho - i) * pos--
             if (pos < 2) pos = 9
         }
-        
+
         resultado = soma % 11 < 2 ? 0 : 11 - soma % 11
         if (resultado !== parseInt(digitos.charAt(1))) return false
-        
+
         return true
     }
-    
+
     return false // Se não tem 11 nem 14 números
 }
