@@ -33,13 +33,16 @@ async function recuperarDado(base, chave) {
             if (mensagem.toLowerCase().includes('inválido') || mensagem.toLowerCase().includes('invalido'))
                 location.reload()
 
-            return {}
+            return null
         }
 
-        return payload && typeof payload === 'object' ? payload : {}
+        return payload && typeof payload === 'object'
+            ? payload
+            : null
+
     } catch (erro) {
         console.error('Falha no recuperarDado:', erro)
-        return {}
+        return null
     }
 }
 
