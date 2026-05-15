@@ -10,13 +10,7 @@ function formatacaoPagina() {
     const pag = 'orcamentos'
     let status = ''
 
-    if (controles?.[pag]?.filtros?.['snapshots.prioridade']) {
-        status = 'prioridades'
-
-    } else if (controles?.[pag]?.filtros?.['chamado']) {
-        status = 'chamados'
-
-    } else if (controles?.[pag]?.filtros?.['preventiva']) {
+    if (controles?.[pag]?.filtros?.['preventiva']) {
         status = 'preventiva'
 
     } else {
@@ -119,50 +113,38 @@ function scrollar(direcao) {
 
 async function criarLinhaOrcamento(orcamento) {
 
-    const { id, vinculados, departamentoExistente } = orcamento || {}
+    const {
+        id,
+        vinculados,
+        dados_orcam,
+        departamentoExistente,
+        ultimaCorrecao,
+        timestamp,
+        total_geral,
+        snapshots
+    } = orcamento || {}
 
-    const master = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato
+    const { notas, pedidos, custos } = snapshots || {}
+    const { pagamentos = 0, abastecimentos = 0 } = custos || {}
+
+    const master = dados_orcam?.contrato
     const idMaster = vinculados
         ? id
         : null
 
-    const linhas = []
+    // Velocímetro
+    const totalCusto = pagamentos + abastecimentos
+    const porcentagem = Number(((totalCusto / total_geral) * 100).toFixed(1))
+    const resumo = criarVelocimetroHTML({ rotulo: 'Custos', limite: 40, valor: porcentagem })
 
-    await linhaOrcamento(orcamento)
+    const labelTipoCorrecao = ultimaCorrecao
+        ? formatacaoTipoCorrecao(ultimaCorrecao)
+        : ''
 
-    for (const id of Object.keys(vinculados || [])) {
+    const pedidosStatus = (pedidos || [])
+        .map(({ tipo, pedido, valor, autorizado_por }) => {
 
-        const orcamento = await recuperarDado('dados_orcamentos', id)
-
-        // Se o orçamento foi excluído, o recuperarDado vai falhar;
-        if (orcamento == null)
-            continue
-
-        await linhaOrcamento(orcamento)
-
-    }
-
-    return linhas.join('')
-
-    async function linhaOrcamento(orcamento) {
-
-        const { id, ultimaCorrecao, dados_orcam, timestamp, snapshots, total_geral } = orcamento || {}
-        const { notas, pedidos } = snapshots || {}
-        const { pagamentos = 0, fretes = 0, abastecimentos = 0 } = snapshots?.custos || {}
-
-        // Velocímetro
-        const totalCusto = pagamentos + fretes + abastecimentos
-        const porcentagem = Number(((totalCusto / total_geral) * 100).toFixed(1))
-        const resumo = criarVelocimetroHTML({ rotulo: 'Custos', limite: 40, valor: porcentagem })
-
-        const labelTipoCorrecao = ultimaCorrecao
-            ? formatacaoTipoCorrecao(ultimaCorrecao)
-            : ''
-
-        const pedidosStatus = (pedidos || [])
-            .map(({ tipo, pedido, valor, autorizado_por }) => {
-
-                const label = `
+            const label = `
                 <div class="etiquetas" style="text-align: left; min-width: 100px;">
                     <label>${tipo || ''}</label>
                     <label>${pedido}</label>
@@ -170,36 +152,35 @@ async function criarLinhaOrcamento(orcamento) {
                     <label>${dinheiro(valor)}</label>
                 </div>
                 `
-                return label
-            })
-            .join('')
+            return label
+        })
+        .join('')
 
-
-        const notasStatus = (notas || [])
-            .map(({ categoria, n_nota, total }) => `
+    const notasStatus = (notas || [])
+        .map(({ categoria, n_nota, total }) => `
                 <div class="etiquetas" style="text-align: left; min-width: 100px;">
                     <label>${categoria || ''}</label>
                     <label>${n_nota || ''}</label>
                     <label>${dinheiro(total)}</label>
                 </div>
             `)
-            .join('')
+        .join('')
 
-        const responsaveis = Object.entries(orcamento.usuarios || {})
-            .map(([user,]) => user)
-            .join(', ')
+    const responsaveis = Object.entries(orcamento.usuarios || {})
+        .map(([user,]) => user)
+        .join(', ')
 
-        // Labels do campo Contrato [Revisão, chamado, cliente, etc]
-        const { contrato } = dados_orcam || {}
-        const numOficial = String(dados_orcam?.chamado || contrato || '-').trim()
-        const rAtual = orcamento?.revisoes?.atual
-        const etiqRevAtual = rAtual
-            ? `<span class="etiqueta-revisao">${rAtual}</span>`
-            : ''
+    // Labels do campo Contrato [Revisão, chamado, cliente, etc]
+    const { contrato } = dados_orcam || {}
+    const numOficial = String(dados_orcam?.chamado || contrato || '-').trim()
+    const rAtual = orcamento?.revisoes?.atual
+    const etiqRevAtual = rAtual
+        ? `<span class="etiqueta-revisao">${rAtual}</span>`
+        : ''
 
-        // idMaster existe e orçamento difrente do master; (Ou seja, slaves);
-        const nomeVinculado = (idMaster && idMaster !== id)
-            ? `
+    // idMaster existe e orçamento difrente do master; (Ou seja, slaves);
+    const nomeVinculado = (idMaster && idMaster !== id)
+        ? `
             <div style="${horizontal}; gap: 5px;">
                 <span>${numOficial}</span>
                 <div class="viculado">
@@ -208,9 +189,9 @@ async function criarLinhaOrcamento(orcamento) {
                 </div>
             </div>
             `
-            : `<span name="contrato">${numOficial}</span>`
+        : `<span name="contrato">${numOficial}</span>`
 
-        const finalContrato = `
+    const finalContrato = `
         <div style="${vertical};text-align: left; gap: 2px;">
             ${nomeVinculado}
             ${etiqRevAtual}
@@ -218,13 +199,13 @@ async function criarLinhaOrcamento(orcamento) {
             ${contrato !== numOficial ? `<div style="${horizontal}; justify-content: end; width: 100%; color: #5f5f5f;"><small>${contrato}</small></div>` : ''}
         </div>`
 
-        // Tags;
-        const listaTags = Object.values(snapshots?.tags || {})
-            .map(tag => modeloTag(tag, id))
-            .join('')
+    // Tags;
+    const listaTags = Object.values(snapshots?.tags || {})
+        .map(tag => modeloTag(tag, id))
+        .join('')
 
-        const data = new Date(timestamp).toLocaleString()
-        const celulas = `
+    const data = new Date(timestamp).toLocaleString()
+    const celulas = `
         <td>
             <div style="${vertical}">
                 <span><b>${orcamento?.lpu_ativa || ''}</b></span>
@@ -282,14 +263,10 @@ async function criarLinhaOrcamento(orcamento) {
                 style="width: 1.5rem;">
         </td>`
 
-        const linha = `
+    return `
         <tr class="linha-master">
             ${celulas}
         </tr>`
-
-        linhas.push(linha)
-
-    }
 
 }
 
@@ -322,34 +299,6 @@ async function alterarStatus(id, select, numOrc) {
     if (numOrc && select.value == 'ORC APROVADO')
         await criarDepartamento(numOrc)
 
-}
-
-function verificarPrioridade(orcamento) {
-
-    const acoes = orcamento?.pda?.acoes || {}
-    let prioridade = 3 // Baixa prioridade;
-
-    const souResponsavel = Object
-        .values(acoes)
-        .some(a => a.responsavel == acesso.usuario && a.status == 'pendente')
-
-    // Sou responsável e a ação está pendente; TRUE
-    if (souResponsavel) return 0
-
-    const stLiberado = Object
-        .values(orcamento?.status?.historicoStatus || {})
-        .some(h => stLista.includes(h.para))
-
-    if (stLiberado) return prioridade
-
-    const inicio = new Date(orcamento?.inicio)
-    const hoje = new Date()
-    const diffDias = Math.abs(hoje - inicio) / (1000 * 60 * 60 * 24)
-    if (diffDias < 7) prioridade = 0
-    else if (diffDias < 14) prioridade = 1
-    else if (diffDias < 21) prioridade = 2
-
-    return prioridade
 }
 
 async function editar(id) {
@@ -458,16 +407,7 @@ async function filtrarToolbar(campo) {
 
     const filtros = {}
 
-    if (campo == 'chamados') {
-        filtros['chamado'] = { op: '=', value: 'S' }
-
-    } else if (campo == 'SEM STATUS') {
-        filtros['status.atual'] = { op: 'IS_EMPTY' }
-
-    } else if (campo == 'prioridades') {
-        filtros['snapshots.prioridade'] = { op: '<', value: 3 }
-
-    } else if (campo == 'preventiva') {
+    if (campo == 'preventiva') {
         filtros['preventiva'] = { op: '=', value: 'S' }
 
     } else if (campo !== 'todos') { // Demais campos, exceto 'todos';
@@ -475,7 +415,6 @@ async function filtrarToolbar(campo) {
 
     }
 
-    controles.orcamentos.pagina = 1
     controles.orcamentos.filtros = filtros
 
     await paginacao()

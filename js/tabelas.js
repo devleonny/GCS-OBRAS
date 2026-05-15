@@ -381,6 +381,7 @@ async function paginacao(pag) {
             ocultarPaginacao,
             ocultarLegenda,
             substituicoes,
+            relacionados,
             ordenar,
             alinPag = horizontal,
             explode = null,
@@ -401,6 +402,7 @@ async function paginacao(pag) {
         const assinaturaAtualConsulta = assinaturaConsulta({
             base: baseResolvida,
             substituicoes,
+            relacionados,
             ordenar,
             explode,
             pagina,
@@ -420,6 +422,7 @@ async function paginacao(pag) {
         const dados = await pesquisarDB({
             base: baseResolvida,
             substituicoes,
+            relacionados,
             ordenar,
             explode,
             pagina,
