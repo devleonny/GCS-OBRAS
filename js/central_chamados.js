@@ -256,9 +256,11 @@ async function linCorrecoes(ocorrencia) {
 
 async function minhaCorrecao(id) {
 
-    await telaOcorrencias()
+    controles.ocorrencias ??= {}
+    controles.ocorrencias.filtros ??= {}
+    controles.ocorrencias.filtros['snapshots.contrato'] = { op: 'includes', value: id }
 
-    pesquisarOcorrencias('snapshots.contrato', id)
+    await telaOcorrencias()
 
 }
 
