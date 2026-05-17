@@ -1,7 +1,66 @@
 async function telaMovimentos() {
 
+
+    tela.innerHTML = `
+        <div class="pagina-relatorio">
+            <div class="painel-tecnicos">
+                <div id="tecnicosResumido"></div>
+                <div id="tecnicosDetalhado"></div>
+            </div>
+        </div>
+    `
+
+    await criarTabelaTecResumida()
+    await criarTabelaTecDetalhada()
+
+}
+
+async function criarTabelaTecResumida(tecnico = null) {
+
+    const pag = 'tecnicosResumido'
+    const tabelaResumida = await modTab({
+        pag,
+        ...(
+            tecnico
+                ? {
+                    filtros: {
+                        tecnico: { op: '=', value: tecnico }
+                    }
+                }
+                : {}
+        ),
+        base: 'vw_saldo_estoque_tecnicos',
+        btnExtras: `
+            <div style="${horizontal}; gap: 1rem;">
+                <span style="font-size: 1.1rem; color: white;">SALDO DE PEÇAS POR TÉCNICO</span>
+                <img src="imagens/baixar.png" onclick="criarMovimento()">
+            </div>
+        `,
+        body: 'bodyTecResumido',
+        criarLinha: 'criarLinhaTecsResumido',
+        colunas: {
+            'Técnico': { chave: 'tecnico' },
+            'Código': { chave: 'codigo' },
+            'Descrição': { chave: 'descricao_peca' },
+            'Sinal': {},
+            'Saldo': {}
+        }
+    })
+
+    const local = document.getElementById('tecnicosResumido')
+
+    if (local)
+        local.innerHTML = tabelaResumida
+
+    await paginacao(pag)
+
+}
+
+async function criarTabelaTecDetalhada() {
+
+    const pag = 'estoque_tecnicos'
     const tabela = await modTab({
-        pag: 'estoque_tecnicos',
+        pag,
         base: 'vw_movimentacao_estoque',
         btnExtras: '<span style="font-size: 1.1rem; color: white;">DETALHAMENTO DE MOVIMENTO DE PEÇAS</span>',
         colunas: {
@@ -24,41 +83,23 @@ async function telaMovimentos() {
         criarLinha: 'criarLinhaMovimento'
     })
 
-    const tabelaResumida = await modTab({
-        pag: 'tecnicosResumido',
-        base: 'vw_saldo_estoque_tecnicos',
-        btnExtras: '<span style="font-size: 1.1rem; color: white;">SALDO DE PEÇAS POR TÉCNICO</span>',
-        body: 'tecnicosResumido',
-        criarLinha: 'criarLinhaTecsResumido',
-        filtros: {
-            'saldo_atual': {
-                op: '!=', value: 0
-            }
-        },
-        colunas: {
-            'Técnico': { chave: 'tecnico' },
-            'Código': { chave: 'codigo' },
-            'Descrição': { chave: 'descricao_peca' },
-            'Sinal': {},
-            'Saldo': {}
-        }
-    })
+    const local = document.getElementById('tecnicosDetalhado')
+    if (local)
+        local.innerHTML = tabela
 
-    tela.innerHTML = `
-        <div class="pagina-relatorio">
+    await paginacao(pag)
 
-            <div class="painel-tecnicos">
-                ${tabelaResumida}
-                ${tabela}
-            </div>
-        </div>
-    `
-    await paginacao()
 }
 
 async function criarLinhaTecsResumido(tec) {
 
     const { tecnico, codigo, descricao_peca, saldo_atual } = tec || {}
+
+    const img = saldo_atual == 0
+        ? 'congelado'
+        : saldo_atual > 0
+            ? 'aprovado'
+            : 'reprovado'
 
     return `
         <tr>
@@ -66,7 +107,7 @@ async function criarLinhaTecsResumido(tec) {
             <td>${codigo}</td>
             <td>${descricao_peca}</td>
             <td style="text-align: center;">
-                <img src="imagens/${saldo_atual > 0 ? 'aprovado' : 'reprovado'}.png">
+                <img src="imagens/${img}.png">
             </td>
             <td style="text-align: center;">${saldo_atual}</td>
         </tr>
@@ -112,6 +153,7 @@ async function criarMovimento(id = crypto.randomUUID()) {
                 <div style="${horizontal}; gap: 1rem;">
                     <img src="imagens/baixar.png" onclick="maisLabel({formulario: 'tecnico'})">
                     <span>Adicione equipamentos</span>
+                    <button onclick="adicionarKitPadrao()">Adicionar Kit Padrão</button>
                 </div>
 
                 <div style="${vertical}; width: 100%; gap: 2px;" id="equipamentos">
@@ -130,7 +172,112 @@ async function criarMovimento(id = crypto.randomUUID()) {
     if (tecnico)
         botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirMovimento('${id}')` })
 
-    popup({ linhas, botoes, titulo: 'Criar movimento' })
+    popup({ linhas, botoes, titulo: 'Adicionar Saldo' })
+
+}
+
+async function adicionarKitPadrao() {
+
+    overlayAguarde()
+
+    const { equipamentos } = await recuperarDado('kit_padrao', '1') || {}
+
+    const listagemEquipamentos = (
+        await Promise.all(
+            Object.values(equipamentos || {})
+                .map(equip => maisLabel(equip))
+        )
+    ).join('')
+
+    const local = document.getElementById('equipamentos')
+
+    if(local)
+        local.innerHTML = listagemEquipamentos
+
+    removerOverlay()
+
+}
+
+async function formularioKitTecnicoPadrao() {
+
+    const { equipamentos } = await recuperarDado('kit_padrao', '1') || {}
+
+    const listagemEquipamentos = (
+        await Promise.all(
+            Object.values(equipamentos || {})
+                .map(equip => maisLabel(equip))
+        )
+    ).join('')
+
+    const linhas = [
+        {
+            elemento: `
+            <div style="${vertical}; gap: 5px;">
+                <div style="${horizontal}; gap: 1rem;">
+                    <img src="imagens/baixar.png" onclick="maisLabel({formulario: 'tecnico'})">
+                    <span>Adicione equipamentos</span>
+                </div>
+
+                <div style="${vertical}; width: 100%; gap: 2px;" id="equipamentos">
+                    ${listagemEquipamentos}
+                </div>
+
+            </div>
+            `
+        }
+    ]
+
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: `salvarKitTecPadrao()` }
+    ]
+
+    popup({ linhas, botoes, titulo: 'Kit Técnico Padrão' })
+
+}
+
+async function salvarKitTecPadrao() {
+
+    overlayAguarde()
+
+    const equipamentos = {}
+    const divs = [...document.querySelectorAll('[name="equipamentos"]')]
+    const emMassa = divs
+        .filter(div => div.querySelector('span')?.id)
+        .map(async (div) => {
+
+            const equip = div.querySelector('span')
+            const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', equip.id)
+
+            const inputQuantidade = div.querySelector('#quantidade')
+            const quantidade = Number(inputQuantidade.value)
+            const serie = [...div.querySelectorAll('[name="serie"]')]
+                .map(input => input.value)
+
+            const codigo = equip.id
+
+            equipamentos[codigo] = {
+                codigo,
+                modelo,
+                serie,
+                descricao,
+                fabricante,
+                quantidade,
+                unidade
+            }
+
+        })
+
+    await Promise.all(emMassa)
+
+    const novo = {
+        equipamentos,
+        usuario: acesso.usuario,
+        data: new Date().toLocaleString()
+    }
+
+    await enviar(`kit_padrao/1`, novo)
+
+    removerPopup()
 
 }
 
@@ -274,41 +421,53 @@ function pegarSegunda(date = new Date()) {
     return d.toLocaleDateString()
 }
 
-async function telaAgenda() {
+async function telaAgenda({ flutuante = false, filtros = null } = {}) {
 
-    tela.innerHTML = `
-        <div class="agenda-wrap">
-            <div class="agenda-topo">
-                <div class="agenda-filtro">
+    const { dtCorrecao } = filtros || {}
 
-                    <img src="imagens/BG.png" style="width: 12rem;">
+    const agenda = `
 
-                    <div style="${vertical};">
-                        <span style="color: white;">Início</span>
-                        <input type="date" id="inicio" onchange="carregarAgenda()">
-                    </div>
+        <div class="agenda-topo">
+            <div class="agenda-filtro">
 
-                    <div style="${vertical};">
-                        <span style="color: white;">Fim</span>
-                        <input type="date" id="inicio" onchange="carregarAgenda()">
-                    </div>
+                <img src="imagens/BG.png" style="width: 12rem; filter: drop-shadow(2px 2px 2px black);">
 
-                    <div class="agenda-dropdown"></div>
-
+                <div style="${vertical};">
+                    <span style="color: white;">Início</span>
+                    <input type="date" id="inicio" value="${dtCorrecao || ''}" onchange="carregarAgenda()">
                 </div>
 
-                <div class="agenda-cards"></div>
+                <div style="${vertical};">
+                    <span style="color: white;">Fim</span>
+                    <input type="date" id="fim" onchange="carregarAgenda()">
+                </div>
+
+                <div class="agenda-dropdown"></div>
 
             </div>
 
-            <div class="agenda-box">
-                <div class="agenda-box-titulo">Atendimentos Data x Loja</div>
-                <div class="agenda-table-wrap"></div>
-            </div>
+            <div class="agenda-cards"></div>
+
+        </div>
+
+        <div class="agenda-box">
+            <div class="agenda-box-titulo">Atendimentos Data x Loja</div>
+            <div class="agenda-table-wrap"></div>
         </div>
     `
 
-    await carregarAgenda()
+    const elemento = `
+        <div class="agenda-wrap">
+            ${agenda}
+        </div>
+    `
+
+    if (flutuante)
+        popup({ titulo: 'Agenda', elemento: `<div class="agenda-flutuante">${agenda}</div>` })
+    else
+        tela.innerHTML = elemento
+
+    await carregarAgenda(filtros)
     await criarPesquisasAgenda()
 
 }
@@ -318,7 +477,7 @@ async function criarPesquisasAgenda() {
     const painelDrop = document.querySelector('.agenda-dropdown')
     const pag = 'agenda'
     controles[pag] ??= {}
-    controles[pag].filtros = {}
+    controles[pag].filtros ??= {}
 
     const campos = [
         { path: 'tecnico', titulo: 'Técnico' },
@@ -348,8 +507,7 @@ async function criarPesquisasAgenda() {
 
 }
 
-
-async function carregarAgenda() {
+async function carregarAgenda(filtros) {
 
     const local = document.querySelector('.agenda-table-wrap')
     const baloes = document.querySelector('.agenda-cards')
@@ -369,13 +527,52 @@ async function carregarAgenda() {
     ].filter(Boolean)
 
     // Existentes & dropdown;
-    const filtros = controles?.agenda?.filtros
+    if (filtros) {
+
+        const { estado = null, tecnico = null, dtCorrecao = null } = filtros || {}
+
+        controles.agenda ??= {}
+        controles.agenda.filtros ??= {}
+
+        if (tecnico)
+            controles.agenda.filtros.tecnico = {
+                modo: "OR",
+                origem: "dropdown",
+                regras: [
+                    {
+                        op: "=",
+                        value: tecnico
+                    }
+                ]
+            }
+        else
+            delete controles.agenda.filtros.tecnico
+
+        if (dtCorrecao)
+            controles.agenda.filtros.dtCorrecao = { op: '>=d', value: dtCorrecao }
+        else
+            delete controles.agenda.filtros.dtCorrecao
+
+        if (estado)
+            controles.agenda.filtros.Estado = {
+                modo: "OR",
+                origem: "dropdown",
+                regras: [
+                    {
+                        op: "=",
+                        value: estado
+                    }
+                ]
+            }
+        else
+            delete controles.agenda.filtros.Estado
+    }
 
     const { resultados, total, paginas } = await pesquisarDB({
         base: 'vw_tecnicos',
         limite: 9999999,
         filtros: {
-            ...filtros,
+            ...controles?.agenda?.filtros,
             dtCorrecao: filtro
         }
     })
@@ -571,24 +768,31 @@ function removerTooltip() {
 }
 
 function tooltipAgenda(elemento, dados) {
+    const { Loja, tecnico, dt, usuario, Cidade, Estado, origem_id } = JSON.parse(decodeURIComponent(dados))
 
-    const { Loja, tecnico, dt, Cidade, Estado, origem_id } = JSON.parse(decodeURIComponent(dados))
-
-    const { top, left } = elemento.getBoundingClientRect()
+    const rect = elemento.getBoundingClientRect()
+    const topPage = rect.top + window.scrollY
+    const leftPage = rect.left + window.scrollX
 
     const tooltip = `
-        <div class="tooltip-agenda" style="top: ${top + 28}px; left: ${left}px;">
+        <div class="tooltip-agenda">
             <div class="tooltip-agenda-titulo">${Loja}</div>
             <div class="tooltip-agenda-linha"><b>Técnico:</b> ${tecnico}</div>
-            <div class="tooltip-agenda-linha"><b>Data:</b> ${dt}</div>
+            <div class="tooltip-agenda-linha"><b>Data:</b> ${conversorData(dt)}</div>
             <div class="tooltip-agenda-linha"><b>Cidade:</b> ${Cidade}</div>
             <div class="tooltip-agenda-linha"><b>Estado:</b> ${Estado}</div>
             <div class="tooltip-agenda-linha"><b>Origem:</b> ${origem_id}</div>
+            <div class="tooltip-agenda-linha"><b>Agendado por:</b> ${usuario}</div>
         </div>
     `
 
     removerTooltip()
+    document.body.insertAdjacentHTML('beforeend', tooltip)
 
-    document.body.insertAdjacentHTML('beforeend', tooltip);
+    const tooltipEl = document.querySelector('.tooltip-agenda')
+    const alturaTooltip = tooltipEl.offsetHeight
+    const larguraTooltip = tooltipEl.offsetWidth
 
+    tooltipEl.style.top = `${topPage - alturaTooltip - 8}px`
+    tooltipEl.style.left = `${leftPage + (rect.width / 2) - (larguraTooltip / 2)}px`
 }

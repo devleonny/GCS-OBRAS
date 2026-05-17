@@ -47,8 +47,8 @@ async function recuperarDado(base, chave) {
 }
 
 async function pesquisarDB(params) {
-
-    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
+    const acessoStr = localStorage.getItem('acesso') || '{}'
+    const { token } = JSON.parse(acessoStr)
 
     const resposta = await fetch(`${read}/pesquisar-db`, {
         method: 'POST',
@@ -60,12 +60,43 @@ async function pesquisarDB(params) {
     })
 
     if (!resposta.ok) {
-        const erro = await resposta.text()
+        // tenta ler JSON primeiro
+        let erroTexto = ''
+        let payload = null
 
-        if (erro.includes('inv￡lido'))
-            location.reload(true)
+        const contentType = resposta.headers.get('Content-Type') || ''
 
-        throw new Error(erro || 'Erro ao pesquisar')
+        try {
+
+            if (contentType.includes('application/json')) {
+                payload = await resposta.json()
+                erroTexto = payload?.erro || JSON.stringify(payload)
+            } else {
+                erroTexto = await resposta.text()
+            }
+
+        } catch {
+            // fallback se der erro ao ler body
+            erroTexto = 'Erro ao pesquisar'
+        }
+
+        // trata especificamente token inválido (401 + mensagem)
+        const tokenInvalido =
+            resposta.status === 401 &&
+            (
+                payload?.erro?.toLowerCase().includes('token') ||
+                erroTexto.toLowerCase().includes('token inválido') ||
+                erroTexto.toLowerCase().includes('token invalido')
+            )
+
+        if (tokenInvalido) {
+            location.reload()
+            popup({ mensagem: 'Sessão expirada, faça login novamente' })
+
+            throw new Error('Acesso expirado')
+        }
+
+        throw new Error(erroTexto || 'Erro ao pesquisar')
     }
 
     return await resposta.json()

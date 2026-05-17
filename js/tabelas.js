@@ -6,7 +6,7 @@ function campoBloq() {
 
 async function modTab(configuracoes) {
     const {
-        btnExtras = '',
+        btnExtras = null,
         ocultarPaginacao = false,
         ocultarLegenda = false,
         ocultarPesquisa = false,
@@ -97,7 +97,7 @@ async function modTab(configuracoes) {
         <div style="${vertical}; width: 100%;">
             <div class="topo-tabela${nude ? ' nude' : ''}" ${cor ? `style="background-color: ${cor};"` : ''}">
                 <div id="paginacao_${pag}"></div>
-                ${btnExtras}
+                ${btnExtras || ''}
             </div>
             <div style="${!scroll ? `max-height: max-content` : ''};" class="div-tabela${nude ? ' nude' : ''}">
                 <table class="tabela${nude ? ' nude' : ''}">

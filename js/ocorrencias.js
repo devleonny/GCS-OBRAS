@@ -324,7 +324,7 @@ function carregarCorrecoes(ocorrencia) {
             return ''
 
         return `
-        <div style="${horizontal}; gap: 1rem; margin-bottom: 5px; width: 100%;">
+        <div style="${horizontal}; align-items: start; gap: 1rem; margin-bottom: 5px; width: 100%;">
             <label style="width: 30%; text-align: right;"><b>${valor1}</b></label>
             <div style="width: 70%; text-align: left;">${valor2}</div>
         </div>`
@@ -348,6 +348,7 @@ function carregarCorrecoes(ocorrencia) {
             tecnico,
             descricao = '',
             datas_agendadas,
+            datas_agendadas_final,
             tipoCorrecaoNome,
             localizacao,
             usuario,
@@ -369,6 +370,13 @@ function carregarCorrecoes(ocorrencia) {
             : ''
 
         const agendamentos = (datas_agendadas || []).reverse()
+            .map(data => {
+                const [ano, mes, dia] = data ? data.split('-') : ['-', '-', '-']
+                return `<span>${dia}/${mes}/${ano}</span>`
+            })
+            .join('')
+
+        const agendamentosFinais = (datas_agendadas_final || []).reverse()
             .map(data => {
                 const [ano, mes, dia] = data ? data.split('-') : ['-', '-', '-']
                 return `<span>${dia}/${mes}/${ano}</span>`
@@ -408,13 +416,20 @@ function carregarCorrecoes(ocorrencia) {
                 <div style="${vertical}; width: 90%; padding: 0.5rem;">
                     ${modelo('Código de Autorização', autorizacao)}
                     ${modelo('Data Inicial de Execução', `
-                        <div style="${horizontal}; justify-content: start; gap: 1rem;">
-                            <span>${dtFormatada(dtCorrecao)}</span>
+                        <div style="${horizontal}; align-items: start; justify-content: start; gap: 1rem;">
+                            <div class="agendamentos">
+                                <span>${dtFormatada(dtCorrecao)}</span>
+                                ${agendamentos}
+                            </div>
                             ${imgR}
                         </div>
-                        <div class="agendamentos">${agendamentos}</div>
                         `)}
-                    ${modelo('Data Final de Execução', dtCorrecaoFinalformatada)}
+                    ${modelo('Data Final de Execução', `
+                        <div style="${horizontal}; justify-content: start; gap: 1rem;">
+                            <span>${dtFormatada(dtCorrecaoFinal || dtCorrecao)}</span>
+                        </div>
+                        <div class="agendamentos">${agendamentosFinais}</div>
+                        `)}
                     ${modelo('Solicitante', `<span>${usuario || ''}</span>`)}
                     ${modelo('Executores', `<span>${listaExecutores || ''}</span>`)}
                     ${modelo('Técnicos', `<span>${tecnico ? tecnico.join(', ') : ''}</span>`)}
@@ -443,8 +458,12 @@ function carregarCorrecoes(ocorrencia) {
         )
     }
 
+    const btnCorrecao = acesso.permissao !== 'cliente'
+        ? `<button style="background-color: #e47a00;" onclick="formularioCorrecao('${idOcorrencia}')">Incluir Correção</button>`
+        : ''
+
     const acumulado = `
-        <button style="background-color: #e47a00;" onclick="formularioCorrecao('${idOcorrencia}')">Incluir Correção</button>
+        ${btnCorrecao}
         <div class="detalhamento-correcoes">
             ${divsCorrecoes.join('')}
         </div>
@@ -454,13 +473,33 @@ function carregarCorrecoes(ocorrencia) {
 
 }
 
-function reagendarCorrecao(idOcorrencia, idCorrecao) {
+async function reagendarCorrecao(idOcorrencia, idCorrecao) {
+
+    overlayAguarde()
+
+    const { correcoes, snapshots } = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
+    const { dtCorrecao, dtCorrecaoFinal, tecnico } = correcoes[idCorrecao] || {}
+    const estado = snapshots?.cliente?.estado || 'N'
 
     const linhas = [
         {
-            texto: 'Defina uma nova data',
-            elemento: `<input id="dt_reag" type="date">`
-        }
+            texto: 'Data inícial de Execução',
+            elemento: `<input onchange="verificarConflitos()" name="dtCorrecao" type="date" value="${dtCorrecao || ''}">`
+        },
+        {
+            texto: 'Data Final de Execução',
+            elemento: `<input onchange="verificarConflitos()" name="dtCorrecaoFinal" type="date" value="${dtCorrecaoFinal || ''}">`
+        },
+        {
+            texto: `
+            <div style="${horizontal}; gap: 1rem;">
+                <img src="imagens/reagendar.png" onclick="telaAgenda({ flutuante: true, filtros: {estado: '${estado}'} })">
+                <img src="imagens/baixar.png" onclick="maisUsuario([undefined], 'tecnicos')">
+                <span>Técnicos</span>
+            </div>
+            `,
+            elemento: '<div class="tecnicos"></div>'
+        },
     ]
 
     const botoes = [
@@ -469,23 +508,68 @@ function reagendarCorrecao(idOcorrencia, idCorrecao) {
 
     popup({ linhas, botoes, titulo: 'Reagendar' })
 
+    await maisUsuario(tecnico, 'tecnicos')
+    await verificarConflitos()
+
+}
+
+function listasIguais(a, b) {
+    const setA = new Set(a)
+    const setB = new Set(b)
+
+    if (setA.size !== setB.size) return false
+
+    for (const item of setA) {
+        if (!setB.has(item)) return false
+    }
+
+    return true
 }
 
 async function salvarDataCorrecao(idOcorrencia, idCorrecao) {
 
-    const novaData = document.getElementById('dt_reag')
-    if (!novaData) return
+    const dtCorrecao = document.querySelector('[name="dtCorrecao"]').value
+    const dtCorrecaoFinal = document.querySelector('[name="dtCorrecaoFinal"]').value
+    if (!dtCorrecao || !dtCorrecaoFinal)
+        return popup({ mensagem: 'Não deixe datas em branco' })
 
     overlayAguarde()
 
+    if (alertaConflitos())
+        return
+
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
     const correcao = ocorrencia.correcoes[idCorrecao]
-    correcao.datas_agendadas ??= []
-    correcao.datas_agendadas.push(correcao.dtCorrecao)
-    correcao.dtCorrecao = novaData.value
+    let alterado = false
 
-    await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}/dtCorrecao`, novaData.value)
-    await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}/datas_agendadas`, correcao.datas_agendadas)
+    // Técnicos;
+    const tecnicos = [...document.querySelectorAll('.tecnicos span')]
+        .filter(span => span.id)
+        .map(span => span.id)
+
+    if (!listasIguais(tecnicos, correcao.tecnico)) {
+        correcao.tecnico = tecnicos
+        alterado = true
+    }
+
+    // Inicial;
+    if (dtCorrecao !== correcao.dtCorrecao) {
+        correcao.datas_agendadas ??= []
+        correcao.datas_agendadas.push(correcao.dtCorrecao)
+        correcao.dtCorrecao = dtCorrecao
+        alterado = true
+    }
+
+    // Final;
+    if (dtCorrecaoFinal !== correcao.dtCorrecaoFinal) {
+        correcao.datas_agendadas_final ??= []
+        correcao.datas_agendadas_final.push(correcao.dtCorrecaoFinal)
+        correcao.dtCorrecaoFinal = dtCorrecaoFinal
+        alterado = true
+    }
+
+    if (alterado)
+        await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, correcao)
 
     removerPopup()
 
@@ -722,7 +806,7 @@ async function abrirEsquemaOcorrencias(chave, principal) {
     if (['cliente', 'técnico'].includes(permissao))
         return
     console.log(chave);
-    
+
     const [id, orc] = chave.includes('.')
         ? chave.split('.')
         : [chave, null]
@@ -1821,16 +1905,16 @@ async function formularioOcorrencia(idOcorrencia) {
         },
         {
             elemento: `
-            <div style="${vertical}; width: 100%; gap: 5px;">
-                <div style="${horizontal}; gap: 1rem;">
-                    <span>Registro de peças ou equipamentos</span>
-                    <img src="imagens/baixar.png" onclick="maisLabel()">
+                <div style="${vertical}; width: 100%; gap: 5px;">
+                    <div style="${horizontal}; gap: 1rem;">
+                        <span>Registro de peças ou equipamentos</span>
+                        <img src="imagens/baixar.png" onclick="maisLabel()">
+                    </div>
+                    <div style="${vertical}; width: 100%; gap: 2px;" id="equipamentos">
+                        ${equipamentos}
+                    </div>
                 </div>
-                <div style="${vertical}; width: 100%; gap: 2px;" id="equipamentos">
-                    ${equipamentos}
-                </div>
-            </div>
-            `
+                `
         },
         {
             texto: 'Anexos',
@@ -1871,6 +1955,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
 
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || ''
     const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
+    const estado = ocorrencia?.snapshots?.cliente?.estado || 'N'
 
     const equipamentos = (
         await Promise.all(
@@ -1911,11 +1996,11 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
         },
         {
             texto: 'Data Início Execução',
-            elemento: `<input name="dtCorrecao" type="date" value="${correcao?.dtCorrecao || ''}">`
+            elemento: `<input name="dtCorrecao" onchange="verificarConflitos()" type="date" value="${correcao?.dtCorrecao || ''}">`
         },
         {
             texto: 'Data Final Execução',
-            elemento: `<input name="dtCorrecaoFinal" type="date" value="${correcao?.dtCorrecaoFinal || ''}">`
+            elemento: `<input name="dtCorrecaoFinal" onchange="verificarConflitos()" type="date" value="${correcao?.dtCorrecaoFinal || ''}">`
         },
         {
             texto: 'Status da Correção',
@@ -1937,6 +2022,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
         {
             texto: `
             <div style="${horizontal}; gap: 1rem;">
+                <img src="imagens/reagendar.png" onclick="telaAgenda({ flutuante: true, filtros: {estado: '${estado}'} })">
                 <img src="imagens/baixar.png" onclick="maisUsuario([undefined], 'tecnicos')">
                 <span>Técnicos</span>
             </div>
@@ -1995,8 +2081,9 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
 
     popup({ linhas, botoes, titulo: 'Gerenciar Correção', autoDestruicao: ['executor', 'tecnico', 'tipoCorrecao'] })
 
-    maisUsuario(executor, 'executores')
-    maisUsuario(tecnico, 'tecnicos')
+    await maisUsuario(executor, 'executores')
+    await maisUsuario(tecnico, 'tecnicos')
+    await verificarConflitos()
 
     visibilidadeFotos()
 
@@ -2022,6 +2109,9 @@ async function maisUsuario(usuarios, campo) {
         controlesCxOpcoes[nomeControle] = {
             base: 'dados_setores',
             retornar: ['usuario'],
+            funcaoAdicional: campo == 'tecnicos'
+                ? 'verificarConflitos'
+                : null,
             colunas: {
                 'Nome': { chave: 'usuario' },
                 'Permissão': { chave: 'permissao' },
@@ -2045,14 +2135,36 @@ async function maisUsuario(usuarios, campo) {
 
 }
 
+async function filtrarEquipamentos(select) {
+    const lpu = String(select.value).toLowerCase()
+    controles.cxOpcoes.filtros ??= {}
+
+    const filtros = Object.fromEntries(
+        Object.entries(controles.cxOpcoes.filtros)
+            .filter(([chave]) => !chave.includes('lpu'))
+    )
+
+    controles.cxOpcoes.filtros = {
+        ...filtros,
+        [`snapshots.${lpu}.0`]: { op: '!=', value: 0 }
+    }
+
+    await paginacao('cxOpcoes')
+}
+
 async function maisLabel({ codigo, descricao, quantidade, origem, serie, formulario } = {}) {
 
     const div = document.getElementById('equipamentos')
     const temporario = ID5digitos()
 
+    const btnExtras = acesso.permissao !== 'cliente'
+        ? `<select class="opcoes" onchange="filtrarEquipamentos(this)"><option></option>${LPUS.map(lpu => `<option>${lpu}</option>`).join('')}</select>`
+        : null
+
     controlesCxOpcoes[temporario] = {
         base: 'dados_composicoes',
         retornar: ['descricao'],
+        btnExtras,
         filtros: {
             'tipo': { op: '!=', value: 'SERVIÇO' }
         },
@@ -2089,7 +2201,7 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
             <div name="equipamentos" style="${horizontal}; align-items: start; gap: 1rem;">
                 <div style="${vertical};">
                     <label>Quantidade</label>
-                    <input id="quantidade" oninput="multiplicarCampoSerie(this)" style="width: 7rem;" class="campos" type="number" value="${quantidade || ''}">
+                    <input id="quantidade" data-anterior="${quantidade || 0}" oninput="multiplicarCampoSerie(this)" style="width: 7rem;" class="campos" type="number" value="${quantidade || ''}">
                 </div>
                 <div style="${vertical};">
                     <label>Nº série</label>
@@ -2143,9 +2255,98 @@ function multiplicarCampoSerie(input) {
     }
 }
 
+async function verificarConflitos() {
+
+    const dtCorrecao = document.querySelector('[name="dtCorrecao"]').value
+    const dtCorrecaoFinal = document.querySelector('[name="dtCorrecaoFinal"]').value
+
+    const alerta = (funcao, tecnico) => `<img src="gifs/alerta.gif" name="alerta" data-tecnico="${tecnico}" onclick="${funcao}">`
+
+    for (const img of [...document.querySelectorAll('[name="alerta"]')])
+        img.remove()
+
+    if (!dtCorrecao)
+        return
+
+    const inicioNovo = dtCorrecao
+    const fimNovo = dtCorrecaoFinal || dtCorrecao
+
+    const tecs = [...document.querySelectorAll('.tecnicos span')]
+        .filter(span => span.id)
+        .map(async (span) => {
+
+            const tecnico = span.id
+
+            const pesquisa = await pesquisarDB({
+                base: 'vw_tecnicos',
+                filtros: {
+                    tecnico: {
+                        op: '=',
+                        value: tecnico
+                    },
+                    dtCorrecao: {
+                        op: '<=d',
+                        value: fimNovo
+                    },
+                    dtCorrecaoFinal: {
+                        op: '>=d',
+                        value: inicioNovo
+                    }
+                }
+            })
+
+            if (pesquisa.resultados.length > 0) {
+                const funcao = `telaAgenda(
+                    {
+                        flutuante: true,
+                        filtros: {
+                            tecnico: '${tecnico}',
+                            dtCorrecao: '${dtCorrecao}'}
+                    })`
+                span.parentElement.insertAdjacentHTML('beforeend', alerta(funcao, tecnico))
+            }
+
+        })
+
+    await Promise.all(tecs)
+
+}
+
+function removerAlertas() {
+    removerPopup()
+    for (const img of [...document.querySelectorAll('[name="alerta"]')])
+        img.remove()
+}
+
+function alertaConflitos() {
+
+    const tecsConflitos = [...document.querySelectorAll('[name="alerta"]')]
+        .map(img => img.dataset.tecnico)
+
+    if (tecsConflitos.length > 0) {
+        const concordancia = tecsConflitos.length > 1
+            ? 'os técnicos'
+            : 'o ténico'
+
+        popup({
+            titulo: 'Conflito de agenda',
+            botoes: [
+                { texto: 'Estou ciente', img: 'concluido', funcao: 'removerAlertas()' }
+            ],
+            mensagem: `Existem outros agendamentos para ${concordancia} ${tecsConflitos.join(', ')} nessas datas, tem certeza que deseja agendar?`
+        })
+    }
+
+    return tecsConflitos.length > 0
+
+}
+
 async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
 
     overlayAguarde()
+
+    if (alertaConflitos())
+        return
 
     const tipoCorrecao = obter('tipoCorrecao').id
     const dtCorrecao = obter('dtCorrecao').value
@@ -2179,14 +2380,12 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
     }
 
     // Técnicos;
-    const tecnicos = [...document.querySelectorAll('.tecnicos span')]
+    const tecnico = [...document.querySelectorAll('.tecnicos span')]
         .filter(span => span.id)
-
-    if (tecnicos.length == 0 && Object.keys(equipamentos).length > 0)
-        return popup({ mensagem: 'Quando existirem equipamentos, selecione pelo menos 1 Técnico' })
-
-    const tecnico = tecnicos
         .map(span => span.id)
+
+    if (tecnico.length == 0 && Object.keys(equipamentos).length > 0)
+        return popup({ mensagem: 'Quando existirem equipamentos, selecione pelo menos 1 Técnico' })
 
     // Equipamentos
     const divs = [...document.querySelectorAll('[name="equipamentos"]')]
@@ -2198,7 +2397,9 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
             const equip = div.querySelector('span')
             const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', equip.id)
 
-            const quantidade = Number(div.querySelector('#quantidade').value)
+            const inputQuantidade = div.querySelector('#quantidade')
+            const quantidadeAnterior = Number(inputQuantidade.dataset.anterior)
+            const quantidade = Number(inputQuantidade.value)
             const serie = [...div.querySelectorAll('[name="serie"]')]
                 .map(input => input.value)
             const origem = div.querySelector('input[name^="origem_"]:checked')?.dataset.origem || ''
@@ -2216,11 +2417,16 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
                     })
                 : null
 
-            const saldo = pesquisarSaldo?.resultados?.[0]?.saldo_atual || 0
+            // Saldo somado a quantidade anterior, caso esteja em edição;
+            const saldo = (pesquisarSaldo?.resultados?.[0]?.saldo_atual || 0) + quantidadeAnterior
+            const saldoDisponivel = saldo - quantidade
 
-            if (saldo <= 0) {
+            if (origem == 'Kit' && saldoDisponivel < 0) {
 
-                semSaldo.push(`<span><span class="saldo">${saldo}</span> ${codigo} - ${descricao}</span>`)
+                semSaldo.push(`<div style="${horizontal}; justify-content: start; gap: 1rem;">
+                            <span class="saldo">${saldoDisponivel}</span>
+                            <span>${codigo} - ${descricao}</span>
+                        </div>`)
 
             } else {
 
@@ -2240,16 +2446,20 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
 
     await Promise.all(emMassa)
 
-    /*
-    if (semSaldo.length)
+    // Alerta ao usuário para ajuste do saldo;
+    if (semSaldo.length) {
+        const concordancia = semSaldo.length > 1
+            ? 'destes itens'
+            : 'deste item'
+
         return popup({
             mensagem: `
                 <div style="${vertical}; gap: 2px;">
-                    <span>O <b>${tecnico[0]}</b> está com o Kit zerado ou negativo desses itens</span>
+                    <span>O <b>${tecnico[0]}</b> ficará com o saldo negativo ${concordancia}</span>
                     ${semSaldo.join('')}
                 </div>`
         })
-    */
+    }
 
     // Executores;
     const executores = [...document.querySelectorAll('.executores span')]

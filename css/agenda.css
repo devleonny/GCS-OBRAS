@@ -1,38 +1,38 @@
 .agenda-wrap {
   display: grid;
-  width: 95%;
+  width: 90%;
   justify-content: start;
   align-items: start;
-  gap: 16px;
+  gap: 5px;
   font-family: Inter, Arial, sans-serif;
   color: #1f2937;
 }
 
 .tooltip-agenda {
-    position: fixed;
-    z-index: 999999;
-    min-width: 220px;
-    max-width: 300px;
-    padding: 12px;
-    border-radius: 12px;
-    background: #ffffff;
-    border: 1px solid #d9e1e7;
-    box-shadow: 0 12px 30px rgba(0,0,0,.18);
-    font-size: .85rem;
-    color: #1d2733;
-    pointer-events: none;
+  position: fixed;
+  z-index: 999999;
+  min-width: 220px;
+  max-width: 300px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #d9e1e7;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .18);
+  font-size: .85rem;
+  color: #1d2733;
+  pointer-events: none;
 }
 
 .tooltip-agenda-titulo {
-    font-weight: 700;
-    font-size: .95rem;
-    margin-bottom: 8px;
-    color: #0f172a;
+  font-weight: 700;
+  font-size: .95rem;
+  margin-bottom: 8px;
+  color: #0f172a;
 }
 
 .tooltip-agenda-linha {
-    margin-top: 4px;
-    line-height: 1.35;
+  margin-top: 4px;
+  line-height: 1.35;
 }
 
 .agenda-dropdown {
@@ -115,9 +115,18 @@
   color: #111827;
 }
 
+.agenda-flutuante {
+  gap: 1rem;
+  display: flex;
+  align-items: start;
+  justify-content: start;
+  flex-direction: column;
+  padding: 1rem;
+  background: linear-gradient(45deg, #249f41, #151749);
+}
+
 .agenda-box {
   background: #fff;
-  margin-bottom: 10rem;
   border: 1px solid #e5e7eb;
   border-radius: 14px;
   overflow: hidden;
@@ -132,7 +141,8 @@
 
 .agenda-table-wrap {
   overflow: auto;
-  max-height: 70vh;
+  max-height: 50vh;
+  max-width: 80vw;
 }
 
 .agenda-table {

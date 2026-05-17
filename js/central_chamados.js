@@ -93,7 +93,6 @@ async function capturarLocalizacao() {
 
 
 async function criarElementosIniciais() {
-
     const pFundo = document.querySelector('.planoFundo')
     if (!pFundo)
         return
@@ -105,63 +104,54 @@ async function criarElementosIniciais() {
             ? 'Boa tarde'
             : 'Bom dia'
 
-    // Apenas as atrasadas para verificação ou reagendamento;
-    const tAtrasados = await modTab({
-        base: 'dados_ocorrencias',
-        pag: 'tAtrasados',
-        body: 'tAtrasados',
-        filtros: {
-            'snapshots.ultimoSolicitante': { op: '=', value: acesso.usuario },
-            'correcoes.*.tipoCorrecao': [
-                { op: '!=', value: 'WRuo2' },
-                { op: '!=', value: '4sGzb' }
-            ],
-            'snapshots.dtCorrecao': { op: '<d', value: new Date().toLocaleDateString() },
-            ...(
-                acesso.permissao == 'cliente'
-                    ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
-                    : {}
-            )
-        },
-        criarLinha: 'linCorrecoes'
-    })
+    const filtrosTipoCorrecao = [
+        { op: '!=', value: 'WRuo2' },
+        { op: '!=', value: '4sGzb' }
+    ]
 
-    // Todas as correções do usuário;
-    const tCorrecoes = await modTab({
-        base: 'dados_ocorrencias',
-        pag: 'tCorrecoes',
-        body: 'tCorrecoes',
-        filtros: {
-            'snapshots.ultimoExecutor.*.executor': { op: '=', value: acesso.usuario },
-            'correcoes.*.tipoCorrecao': [
-                { op: '!=', value: 'WRuo2' },
-                { op: '!=', value: '4sGzb' }
-            ],
-            ...(
-                acesso.permissao == 'cliente'
-                    ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
-                    : {}
-            )
-        },
-        criarLinha: 'linCorrecoes'
-    })
+    const filtroCliente = acesso.permissao == 'cliente'
+        ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
+        : {}
 
-    const contadoresMeus = await contarPorCampo({
-        base: 'dados_ocorrencias',
-        path: 'snapshots.ultimaCorrecao',
-        filtros: {
-            'correcoes.*.tipoCorrecao': [
-                { op: '!=', value: 'WRuo2' },
-                { op: '!=', value: '4sGzb' }
-            ],
-            'usuario': { op: '=', value: acesso.usuario }
-        }
-    })
+    const [tAtrasados, tCorrecoes, contadoresMeus] = await Promise.all([
+        modTab({
+            base: 'dados_ocorrencias',
+            pag: 'tAtrasados',
+            body: 'tAtrasados',
+            filtros: {
+                'snapshots.ultimoSolicitante': { op: '=', value: acesso.usuario },
+                'correcoes.*.tipoCorrecao': filtrosTipoCorrecao,
+                'snapshots.dtCorrecao': { op: '<d', value: new Date().toLocaleDateString() },
+                ...filtroCliente
+            },
+            criarLinha: 'linCorrecoes'
+        }),
+
+        modTab({
+            base: 'dados_ocorrencias',
+            pag: 'tCorrecoes',
+            body: 'tCorrecoes',
+            filtros: {
+                'snapshots.ultimoExecutor.*.executor': { op: '=', value: acesso.usuario },
+                'correcoes.*.tipoCorrecao': filtrosTipoCorrecao,
+                ...filtroCliente
+            },
+            criarLinha: 'linCorrecoes'
+        }),
+
+        contarPorCampo({
+            base: 'dados_ocorrencias',
+            path: 'snapshots.ultimaCorrecao',
+            filtros: {
+                'correcoes.*.tipoCorrecao': filtrosTipoCorrecao,
+                'usuario': { op: '=', value: acesso.usuario }
+            }
+        })
+    ])
 
     const baloesMeus = Object.entries(contadoresMeus)
-        .filter(([st,]) => st !== 'todos' && st !== 'Solucionada')
+        .filter(([st]) => st !== 'todos' && st !== 'Solucionada')
         .map(([status, total]) => {
-
             return `
                 <div class="pill" onclick="filtrarMinhasOcorrencias('${status}')">
                     <span class="pill-a" style="background: #b12425;">${total}</span>
@@ -181,7 +171,7 @@ async function criarElementosIniciais() {
                 <span class="titul-1">Atrasadas: <b>Verifique ou Reagende</b></span>
                 ${tAtrasados}
             </div>
-            `
+        `
 
     pFundo.innerHTML = `    
         <div style="${horizontal}; gap: 1rem;">
@@ -192,18 +182,17 @@ async function criarElementosIniciais() {
         </div>
 
         <div class="b-painel">
-
             ${ocorrenciasAbertas}
 
             <div class="b-atalhos">
                 <span class="titul-1">Correções <b>para você</b></span>
                 ${tCorrecoes}
             </div>
-
         </div>`
 
     await paginacao()
 }
+
 
 async function filtrarMinhasOcorrencias(st) {
 
@@ -256,9 +245,11 @@ async function linCorrecoes(ocorrencia) {
 
 async function minhaCorrecao(id) {
 
-    await telaOcorrencias()
+    controles.ocorrencias ??= {}
+    controles.ocorrencias.filtros ??= {}
+    controles.ocorrencias.filtros['snapshots.contrato'] = { op: 'includes', value: id }
 
-    pesquisarOcorrencias('snapshots.contrato', id)
+    await telaOcorrencias()
 
 }
 

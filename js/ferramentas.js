@@ -475,11 +475,12 @@ async function cxOpcoes(name) {
         return popup({ mensagem: `>>> cxOpcoes(null) <<<` })
 
     controlesCxOpcoes.ativo = name
-    const { colunas, base, retornar, filtros = {} } = controle
+    const { colunas, base, retornar, filtros = {}, btnExtras = null } = controle
 
     const pag = 'cxOpcoes'
     const tabela = await modTab({
         colunas,
+        btnExtras,
         pag,
         base,
         ordenar: {
