@@ -13,23 +13,31 @@ async function telaMovimentos() {
     await criarTabelaTecResumida()
     await criarTabelaTecDetalhada()
 
-    await paginacao()
 }
 
-async function criarTabelaTecResumida() {
+async function criarTabelaTecResumida(tecnico = null) {
 
-
+    const pag = 'tecnicosResumido'
     const tabelaResumida = await modTab({
-        pag: 'tecnicosResumido',
+        pag,
+        ...(
+            tecnico
+                ? {
+                    filtros: {
+                        tecnico: { op: '=', value: tecnico }
+                    }
+                }
+                : {}
+        ),
         base: 'vw_saldo_estoque_tecnicos',
-        btnExtras: '<span style="font-size: 1.1rem; color: white;">SALDO DE PEÇAS POR TÉCNICO</span>',
-        body: 'tecnicosResumido',
+        btnExtras: `
+            <div style="${horizontal}; gap: 1rem;">
+                <span style="font-size: 1.1rem; color: white;">SALDO DE PEÇAS POR TÉCNICO</span>
+                <img src="imagens/baixar.png" onclick="criarMovimento()">
+            </div>
+        `,
+        body: 'bodyTecResumido',
         criarLinha: 'criarLinhaTecsResumido',
-        filtros: {
-            'saldo_atual': {
-                op: '!=', value: 0
-            }
-        },
         colunas: {
             'Técnico': { chave: 'tecnico' },
             'Código': { chave: 'codigo' },
@@ -42,14 +50,17 @@ async function criarTabelaTecResumida() {
     const local = document.getElementById('tecnicosResumido')
 
     if (local)
-        local.innerHTML = tabela
+        local.innerHTML = tabelaResumida
+
+    await paginacao(pag)
 
 }
 
 async function criarTabelaTecDetalhada() {
 
+    const pag = 'estoque_tecnicos'
     const tabela = await modTab({
-        pag: 'estoque_tecnicos',
+        pag,
         base: 'vw_movimentacao_estoque',
         btnExtras: '<span style="font-size: 1.1rem; color: white;">DETALHAMENTO DE MOVIMENTO DE PEÇAS</span>',
         colunas: {
@@ -76,11 +87,19 @@ async function criarTabelaTecDetalhada() {
     if (local)
         local.innerHTML = tabela
 
+    await paginacao(pag)
+
 }
 
 async function criarLinhaTecsResumido(tec) {
 
     const { tecnico, codigo, descricao_peca, saldo_atual } = tec || {}
+
+    const img = saldo_atual == 0
+        ? 'congelado'
+        : saldo_atual > 0
+            ? 'aprovado'
+            : 'reprovado'
 
     return `
         <tr>
@@ -88,7 +107,7 @@ async function criarLinhaTecsResumido(tec) {
             <td>${codigo}</td>
             <td>${descricao_peca}</td>
             <td style="text-align: center;">
-                <img src="imagens/${saldo_atual > 0 ? 'aprovado' : 'reprovado'}.png">
+                <img src="imagens/${img}.png">
             </td>
             <td style="text-align: center;">${saldo_atual}</td>
         </tr>
@@ -134,6 +153,7 @@ async function criarMovimento(id = crypto.randomUUID()) {
                 <div style="${horizontal}; gap: 1rem;">
                     <img src="imagens/baixar.png" onclick="maisLabel({formulario: 'tecnico'})">
                     <span>Adicione equipamentos</span>
+                    <button onclick="adicionarKitPadrao()">Adicionar Kit Padrão</button>
                 </div>
 
                 <div style="${vertical}; width: 100%; gap: 2px;" id="equipamentos">
@@ -152,7 +172,112 @@ async function criarMovimento(id = crypto.randomUUID()) {
     if (tecnico)
         botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirMovimento('${id}')` })
 
-    popup({ linhas, botoes, titulo: 'Criar movimento' })
+    popup({ linhas, botoes, titulo: 'Adicionar Saldo' })
+
+}
+
+async function adicionarKitPadrao() {
+
+    overlayAguarde()
+
+    const { equipamentos } = await recuperarDado('kit_padrao', '1') || {}
+
+    const listagemEquipamentos = (
+        await Promise.all(
+            Object.values(equipamentos || {})
+                .map(equip => maisLabel(equip))
+        )
+    ).join('')
+
+    const local = document.getElementById('equipamentos')
+
+    if(local)
+        local.innerHTML = listagemEquipamentos
+
+    removerOverlay()
+
+}
+
+async function formularioKitTecnicoPadrao() {
+
+    const { equipamentos } = await recuperarDado('kit_padrao', '1') || {}
+
+    const listagemEquipamentos = (
+        await Promise.all(
+            Object.values(equipamentos || {})
+                .map(equip => maisLabel(equip))
+        )
+    ).join('')
+
+    const linhas = [
+        {
+            elemento: `
+            <div style="${vertical}; gap: 5px;">
+                <div style="${horizontal}; gap: 1rem;">
+                    <img src="imagens/baixar.png" onclick="maisLabel({formulario: 'tecnico'})">
+                    <span>Adicione equipamentos</span>
+                </div>
+
+                <div style="${vertical}; width: 100%; gap: 2px;" id="equipamentos">
+                    ${listagemEquipamentos}
+                </div>
+
+            </div>
+            `
+        }
+    ]
+
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: `salvarKitTecPadrao()` }
+    ]
+
+    popup({ linhas, botoes, titulo: 'Kit Técnico Padrão' })
+
+}
+
+async function salvarKitTecPadrao() {
+
+    overlayAguarde()
+
+    const equipamentos = {}
+    const divs = [...document.querySelectorAll('[name="equipamentos"]')]
+    const emMassa = divs
+        .filter(div => div.querySelector('span')?.id)
+        .map(async (div) => {
+
+            const equip = div.querySelector('span')
+            const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', equip.id)
+
+            const inputQuantidade = div.querySelector('#quantidade')
+            const quantidade = Number(inputQuantidade.value)
+            const serie = [...div.querySelectorAll('[name="serie"]')]
+                .map(input => input.value)
+
+            const codigo = equip.id
+
+            equipamentos[codigo] = {
+                codigo,
+                modelo,
+                serie,
+                descricao,
+                fabricante,
+                quantidade,
+                unidade
+            }
+
+        })
+
+    await Promise.all(emMassa)
+
+    const novo = {
+        equipamentos,
+        usuario: acesso.usuario,
+        data: new Date().toLocaleString()
+    }
+
+    await enviar(`kit_padrao/1`, novo)
+
+    removerPopup()
 
 }
 

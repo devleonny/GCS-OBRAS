@@ -458,8 +458,12 @@ function carregarCorrecoes(ocorrencia) {
         )
     }
 
+    const btnCorrecao = acesso.permissao !== 'cliente'
+        ? `<button style="background-color: #e47a00;" onclick="formularioCorrecao('${idOcorrencia}')">Incluir Correção</button>`
+        : ''
+
     const acumulado = `
-        <button style="background-color: #e47a00;" onclick="formularioCorrecao('${idOcorrencia}')">Incluir Correção</button>
+        ${btnCorrecao}
         <div class="detalhamento-correcoes">
             ${divsCorrecoes.join('')}
         </div>
@@ -1901,16 +1905,16 @@ async function formularioOcorrencia(idOcorrencia) {
         },
         {
             elemento: `
-            <div style="${vertical}; width: 100%; gap: 5px;">
-                <div style="${horizontal}; gap: 1rem;">
-                    <span>Registro de peças ou equipamentos</span>
-                    <img src="imagens/baixar.png" onclick="maisLabel()">
+                <div style="${vertical}; width: 100%; gap: 5px;">
+                    <div style="${horizontal}; gap: 1rem;">
+                        <span>Registro de peças ou equipamentos</span>
+                        <img src="imagens/baixar.png" onclick="maisLabel()">
+                    </div>
+                    <div style="${vertical}; width: 100%; gap: 2px;" id="equipamentos">
+                        ${equipamentos}
+                    </div>
                 </div>
-                <div style="${vertical}; width: 100%; gap: 2px;" id="equipamentos">
-                    ${equipamentos}
-                </div>
-            </div>
-            `
+                `
         },
         {
             texto: 'Anexos',
@@ -2131,14 +2135,36 @@ async function maisUsuario(usuarios, campo) {
 
 }
 
+async function filtrarEquipamentos(select) {
+    const lpu = String(select.value).toLowerCase()
+    controles.cxOpcoes.filtros ??= {}
+
+    const filtros = Object.fromEntries(
+        Object.entries(controles.cxOpcoes.filtros)
+            .filter(([chave]) => !chave.includes('lpu'))
+    )
+
+    controles.cxOpcoes.filtros = {
+        ...filtros,
+        [`snapshots.${lpu}.0`]: { op: '!=', value: 0 }
+    }
+
+    await paginacao('cxOpcoes')
+}
+
 async function maisLabel({ codigo, descricao, quantidade, origem, serie, formulario } = {}) {
 
     const div = document.getElementById('equipamentos')
     const temporario = ID5digitos()
 
+    const btnExtras = acesso.permissao !== 'cliente'
+        ? `<select class="opcoes" onchange="filtrarEquipamentos(this)"><option></option>${LPUS.map(lpu => `<option>${lpu}</option>`).join('')}</select>`
+        : null
+
     controlesCxOpcoes[temporario] = {
         base: 'dados_composicoes',
         retornar: ['descricao'],
+        btnExtras,
         filtros: {
             'tipo': { op: '!=', value: 'SERVIÇO' }
         },
@@ -2359,7 +2385,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
         .map(span => span.id)
 
     if (tecnico.length == 0 && Object.keys(equipamentos).length > 0)
-        return popup({ mensagem: 'Quando existirem equipamentos, selecione pelo menos 1 Técnico' })        
+        return popup({ mensagem: 'Quando existirem equipamentos, selecione pelo menos 1 Técnico' })
 
     // Equipamentos
     const divs = [...document.querySelectorAll('[name="equipamentos"]')]
