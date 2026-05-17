@@ -40,6 +40,8 @@ function connectWebSocket() {
         reconectando = false
         msgStatus('Servidor offline', 3)
 
+        telaOffline()
+
         clearTimeout(reconnectTimeout)
         reconnectTimeout = setTimeout(connectWebSocket, reconnectInterval)
     }
@@ -227,4 +229,17 @@ async function carregarControles() {
     usuariosToolbar()
     verificarPendencias() // Pendencias de aprovação;
     verificarPostIts() // Post Its atrasados;
+}
+
+function telaOffline() {
+
+    atribuirVariaveis()
+
+    tela.innerHTML = `
+        <div class="balao-offline">
+            <img src="gifs/offline.gif" style="width: 5rem;">
+            <span>GCS offline...</span>
+        </div>
+    `
+
 }
