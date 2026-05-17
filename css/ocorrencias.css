@@ -541,7 +541,7 @@
     width: 1.5rem;
 }
 
-.agendamentos span {
+.agendamentos .riscado {
     text-decoration-line: line-through;
     text-decoration-color: #0000003d;
 }

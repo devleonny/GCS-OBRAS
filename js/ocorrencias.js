@@ -372,14 +372,14 @@ function carregarCorrecoes(ocorrencia) {
         const agendamentos = (datas_agendadas || []).reverse()
             .map(data => {
                 const [ano, mes, dia] = data ? data.split('-') : ['-', '-', '-']
-                return `<span>${dia}/${mes}/${ano}</span>`
+                return `<span class="riscado">${dia}/${mes}/${ano}</span>`
             })
             .join('')
 
         const agendamentosFinais = (datas_agendadas_final || []).reverse()
             .map(data => {
                 const [ano, mes, dia] = data ? data.split('-') : ['-', '-', '-']
-                return `<span>${dia}/${mes}/${ano}</span>`
+                return `<span class="riscado">${dia}/${mes}/${ano}</span>`
             })
             .join('')
 
@@ -418,7 +418,7 @@ function carregarCorrecoes(ocorrencia) {
                     ${modelo('Data Inicial de Execução', `
                         <div style="${horizontal}; align-items: start; justify-content: start; gap: 1rem;">
                             <div class="agendamentos">
-                                <span>${dtFormatada(dtCorrecao)}</span>
+                                <span style="font-weight: bold;">${dtFormatada(dtCorrecao)}</span>
                                 ${agendamentos}
                             </div>
                             ${imgR}
@@ -426,7 +426,7 @@ function carregarCorrecoes(ocorrencia) {
                         `)}
                     ${modelo('Data Final de Execução', `
                         <div style="${horizontal}; justify-content: start; gap: 1rem;">
-                            <span>${dtFormatada(dtCorrecaoFinal || dtCorrecao)}</span>
+                            <span style="font-weight: bold;">${dtFormatada(dtCorrecaoFinal || dtCorrecao)}</span>
                         </div>
                         <div class="agendamentos">${agendamentosFinais}</div>
                         `)}
