@@ -858,10 +858,8 @@ async function enviarDadosOrcamento() {
         ? { status: 'pendente', usuario: acesso.usuario }
         : null
 
-    if (!orcamentoBase.id)
-        orcamentoBase.id = `ORCA_${crypto.randomUUID()}`
-
-    const { success, contrato } = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoBase) || {}
+    const { origem, ...orcamentoFinal } = orcamentoBase // Origem não precisa continuar no objeto;
+    const { success, contrato } = await enviar(`dados_orcamentos/${orcamentoBase?.id || crypto.randomUUID()}`, orcamentoFinal) || {}
 
     if (success) {
 

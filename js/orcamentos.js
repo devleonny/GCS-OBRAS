@@ -45,7 +45,7 @@ async function telaOrcamentos() {
         'Tags': { chave: 'snapshots.tags.*.nome' },
         'Contrato': { chave: 'snapshots.contrato' },
         'Cidade': { chave: 'snapshots.cidade' },
-        'Status em Ocorrências': {},
+        'Status em Ocorrências': { chave: 'ultimaCorrecao' },
         'Responsaveis': { chave: 'snapshots.responsavel' },
         'Resumo': {},
         'Total do Orçamento': { chave: 'snapshots.valor' },
