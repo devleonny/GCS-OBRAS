@@ -191,7 +191,7 @@ async function adicionarKitPadrao() {
 
     const local = document.getElementById('equipamentos')
 
-    if(local)
+    if (local)
         local.innerHTML = listagemEquipamentos
 
     removerOverlay()
@@ -410,8 +410,7 @@ async function criarLinhaMovimento(movimento) {
 }
 
 
-// AGENDA 
-
+// AGENDA
 function pegarSegunda(date = new Date()) {
     const d = new Date(date)
     const day = d.getDay()
@@ -432,12 +431,12 @@ async function telaAgenda({ flutuante = false, filtros = null } = {}) {
 
                 <img src="imagens/BG.png" style="width: 12rem; filter: drop-shadow(2px 2px 2px black);">
 
-                <div style="${vertical};">
+                <div class="campo-pesquisa">
                     <span style="color: white;">Início</span>
                     <input type="date" id="inicio" value="${dtCorrecao || ''}" onchange="carregarAgenda()">
                 </div>
 
-                <div style="${vertical};">
+                <div class="campo-pesquisa">
                     <span style="color: white;">Fim</span>
                     <input type="date" id="fim" onchange="carregarAgenda()">
                 </div>
@@ -451,7 +450,7 @@ async function telaAgenda({ flutuante = false, filtros = null } = {}) {
         </div>
 
         <div class="agenda-box">
-            <div class="agenda-box-titulo">Atendimentos Data x Loja</div>
+            <div class="agenda-box-titulo">Atendimentos Técnico x Data x Loja</div>
             <div class="agenda-table-wrap"></div>
         </div>
     `
@@ -481,7 +480,7 @@ async function criarPesquisasAgenda() {
 
     const campos = [
         { path: 'tecnico', titulo: 'Técnico' },
-        { path: 'Estado', titulo: 'Estado' },
+        { path: 'Estado', titulo: 'Estado' }
     ]
 
     const drops = []
@@ -503,7 +502,31 @@ async function criarPesquisasAgenda() {
 
     await Promise.all(emMassa)
 
+    drops.push(`
+        <div class="campo-pesquisa">
+            <span style="color: white;">Loja</span>
+            <div class="pesquisa">
+                <input onkeydown="if (event.key === 'Enter') pesquisarCampoLivreAgenda('Loja', this.value)" 
+                    placeholder="Loja" 
+                    style="width: 100%;">
+                <img src="imagens/pesquisar4.png">
+            </div>
+        </div>
+        `)
+
     painelDrop.innerHTML = drops.join('')
+
+}
+
+async function pesquisarCampoLivreAgenda(chave, value) {
+
+    controles.agenda.filtros ??= {}
+    controles.agenda.filtros = {
+        ...controles.agenda.filtros,
+        [chave]: { op: 'includes', value }
+    }
+
+    await carregarAgenda()
 
 }
 

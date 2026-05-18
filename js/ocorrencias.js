@@ -1431,7 +1431,7 @@ async function criarPesquisas() {
             : `<img src="imagens/limpar.png" onclick="limparFiltroOcorrencias()">`
 
         filtros.push(`
-        <div style="${vertical}; gap: 2px;">
+        <div class="campo-pesquisa">
             <div style="${horizontal}; gap: 3px;">
                 <span style="color: white;">Filtros</span>
                 ${funcao}
@@ -1468,8 +1468,8 @@ async function criarPesquisas() {
     // Filtro de autorizados e atrasados;
 
     filtros.push(`
-            <div style="${vertical}; gap: 2px;">
-                <span style="color: white;">Código de Autorização</span>
+            <div class="campo-pesquisa">
+                <span style="color: white;">Autorização</span>
                 <select onchange="filtrarAutorizados(this)">
                     ${['', 'Sim', 'Não'].map(o => `<option>${o}</option>`).join('')}
                 </select>
@@ -1477,7 +1477,7 @@ async function criarPesquisas() {
         `)
 
     filtros.push(`
-            <div style="${vertical}; gap: 2px;">
+            <div class="campo-pesquisa">
                 <span style="color: white;">Atrasados</span>
                 <select onchange="filtrarAtrasados(this)">
                     ${['', 'Sim', 'Não'].map(o => `<option>${o}</option>`).join('')}
@@ -1490,7 +1490,7 @@ async function criarPesquisas() {
     fTempo.forEach(t => {
 
         filtros.push(`
-            <div style="${vertical}; gap: 2px;">
+            <div class="campo-pesquisa">
                 <span style="color: white;">${t}</span>
                 <input type="date" data-operador="${t}" onchange="filtrarPorData(this)">
             </div>

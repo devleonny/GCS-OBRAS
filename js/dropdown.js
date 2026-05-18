@@ -210,7 +210,7 @@ function montarDropdownCheckbox({ titulo, pag, funcao = null, path, opcoes = [] 
     `).join('');
 
     return `
-        <div style="${vertical}; gap: 2px;">
+        <div class="campo-pesquisa">
             <span style="color: white;">${titulo}</span>
             <div class="filtro-dropdown" data-path="${path}" data-pag="${pag}">
                 <div class="filtro-dropdown-botao" onclick="toggleDropdown(this)">

@@ -35,6 +35,14 @@
   line-height: 1.35;
 }
 
+.campo-pesquisa {
+  gap: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  flex-direction: column;
+}
+
 .agenda-dropdown {
   display: flex;
   align-items: start;
