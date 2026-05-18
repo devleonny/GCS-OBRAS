@@ -1773,9 +1773,41 @@ async function auxPendencias() {
                 <span class="pill-b">${correcao.toUpperCase()}</span>
             </div>`
         })
-        .join('')
 
-    divPendencias.innerHTML = etiquetas
+    // BALÕES ESPECIAIS PARA TÉCNICOS & PARCEIROS; 
+    if (!['cliente', 'técnico'].includes(acesso.permissao)) {
+
+        const esquema = {
+            'FUNCIONÁRIOS': 'f7aec8c1-ce57-40f8-9ea1-c032c3971a9f',
+            'PACEIROS': 'c0bfd4a8-6bca-40e7-a71b-5990630f4b19'
+        }
+
+        const ctg = await contarPorCampo({ base: 'dados_ocorrencias', path: 'tipo' }) || {}
+
+        for (const [titulo, cod] of Object.entries(esquema)) {
+            etiquetas.push(`
+                <div class="pill" onclick="atalhoTipo('${cod}')">
+                    <span class="pill-a" style="background: #5E35B1;">${ctg[cod] || 0}</span>
+                    <span class="pill-b">${titulo}</span>
+                </div>
+            `)
+        }
+    }
+
+    divPendencias.innerHTML = etiquetas.join('')
+
+}
+
+async function atalhoTipo(cod) {
+
+    controles.ocorrencias.filtros = {
+        tipo: { op: '=', value: cod }
+    }
+
+    if (document.querySelector('.tela-ocorrencias'))
+        await paginacao()
+    else
+        await telaOcorrencias()
 
 }
 

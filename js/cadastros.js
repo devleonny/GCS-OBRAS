@@ -104,12 +104,9 @@ async function salvarNomeAuxiliar(nomeBase, id = crypto.randomUUID()) {
 
     overlayAguarde()
 
-    const nome = document.querySelector('[name="nome"]')
-
-    const dado = await recuperarDado(nomeBase, id) || {}
-    dado.nome = nome.value
-
-    await enviar(`${nomeBase}/${id}/nome`, nome.value)
+    const nome = String(document.querySelector('[name="nome"]').value).toUpperCase()
+    
+    await enviar(`${nomeBase}/${id}/nome`, nome)
 
     removerPopup()
 
