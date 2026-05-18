@@ -805,7 +805,6 @@ async function abrirEsquemaOcorrencias(chave, principal) {
 
     if (['cliente', 'técnico'].includes(permissao))
         return
-    console.log(chave);
 
     const [id, orc] = chave.includes('.')
         ? chave.split('.')
@@ -2421,7 +2420,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
             const saldo = (pesquisarSaldo?.resultados?.[0]?.saldo_atual || 0) + quantidadeAnterior
             const saldoDisponivel = saldo - quantidade
 
-            if (origem == 'Kit' && saldoDisponivel < 0) {
+            if (false) { //origem == 'Kit' && saldoDisponivel < 0) {
 
                 semSaldo.push(`<div style="${horizontal}; justify-content: start; gap: 1rem;">
                             <span class="saldo">${saldoDisponivel}</span>

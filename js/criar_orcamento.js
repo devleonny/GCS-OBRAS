@@ -351,6 +351,8 @@ async function alterarTabelaLPU(tabelaLPU) {
 
 async function carregarTabelasOrcamento(resposta = 'S') {
 
+    //await pesquisarRequisicoes()
+
     let orcamentoBase = baseOrcamento()
     lpuATIVA = String(orcamentoBase.lpu_ativa).toLowerCase()
 
@@ -428,6 +430,7 @@ function carregarLinhaOrcamento(produto) {
     const { agrupamento } = produto || {}
     const codigoMaster = produto.codigo
     const editavel = controles?.criarOrcamento?.editavel || false
+    const { requisicoesExistentes } = controles?.criarOrcamento || {}
 
     const linhaSlave = Object.values(agrupamento || {})
         .map(produto => {
@@ -459,11 +462,25 @@ function carregarLinhaOrcamento(produto) {
 
     function criarLinha(produto) {
 
-        const { codigo, tipo, qtde, cnpj, custo, razaoSocial, custo_original, descricao, unidade, imagem } = produto || {}
+        const { 
+            codigo, 
+            tipo, 
+            qtde, 
+            cnpj, 
+            custo, 
+            razaoSocial, 
+            custo_original, 
+            descricao, 
+            unidade, 
+            imagem 
+        } = produto || {}
         const total = custo * qtde
         const chave = codigoMaster !== codigo
             ? `${codigoMaster}_${codigo}`
             : codigo
+
+        const qtdeReq = requisicoesExistentes?.[codigo]
+        const bloqReq = qtdeReq && qtde >= qtdeReq
 
         // Ajuste de preço;
         const dif = custo_original
@@ -500,7 +517,7 @@ function carregarLinhaOrcamento(produto) {
             <div name="medida">${unidade || 'UN'}</div>
 
             <div>
-                <input name="quantidade" oninput="atualizarQtde('${chave}', this)" type="number" class="campo-valor" value="${qtde}" ${editavel ? '' : 'readOnly'}>
+                <input name="quantidade" ${bloqReq ? 'readOnly' : ''}  class="campo-valor${bloqReq ? ' bloqueio' : ''}" oninput="atualizarQtde('${chave}', this)" type="number" value="${qtde}" ${editavel ? '' : 'readOnly'}>
             </div>
 
             <div style="${horizontal}; justify-content: start; gap: 1rem;">
@@ -526,7 +543,7 @@ function carregarLinhaOrcamento(produto) {
                 ${editavel
                 ? `<img src="imagens/cancel.png" 
                     onclick="removerItemOrcamento('${chave}')" 
-                    style="width: 1.5rem;">`
+                    style="display: ${bloqReq ? 'none' : 'block'}; width: 1.5rem;">`
                 : ''
             }
             </div>
@@ -1313,5 +1330,44 @@ async function incluirItem(codigo, novaQuantidade) {
     await paginacao('criarOrcamento')
 
     removerOverlay()
+
+}
+
+async function pesquisarRequisicoes() {
+
+    const { dados_orcam } = baseOrcamento()
+    const contrato = dados_orcam?.contrato
+
+    if (!contrato)
+        return
+
+    controles.criarOrcamento ??= {}
+
+    // Primeira vez que é carregado;
+    if (!controles.criarOrcamento?.requisicoesExistentes) {
+
+        const requisicoes = await pesquisarDB({
+            base: 'requisicoes',
+            filtros: {
+                departamento: { op: 'includes', value: contrato }
+            }
+        })
+
+        const quantidadesProdutos = {}
+
+        for (const { requisicao } of requisicoes.resultados) {
+
+            for (const [codigo, { qtde_enviar }] of Object.entries(requisicao)) {
+
+                quantidadesProdutos[codigo] ??= 0
+                quantidadesProdutos[codigo] += qtde_enviar
+
+            }
+
+        }
+
+        controles.criarOrcamento.requisicoesExistentes = quantidadesProdutos
+
+    }
 
 }

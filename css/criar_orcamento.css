@@ -150,6 +150,11 @@
   font-size: 14px;
 }
 
+.campo-valor.bloqueio {
+  border: 1px solid #222;
+  background-color: #ff7676;
+}
+
 .campo-valor:focus {
   outline: none;
   border-color: #3e8bff;
