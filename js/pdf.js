@@ -127,9 +127,9 @@ async function preencher() {
             'Localização': empresaEmissora['Localização']
         },
         'Contato Analista': {
-            'Analista': informacoes.analista,
-            'E-mail': informacoes.email_analista,
-            'Telefone': informacoes.telefone_analista
+            'Analista': informacoes?.analista || 'Grupo Costa Silva',
+            'E-mail': informacoes?.email_analista || 'financeiro@grupocostasilva.com.br',
+            'Telefone': informacoes?.telefone_analista || '(11) 96300-7299'
         }
     }
 
