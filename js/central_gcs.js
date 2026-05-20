@@ -1278,7 +1278,7 @@ async function carregarTags() {
     const id = controles.etiquetas.idOrcamento
     const localTags = document.getElementById('tags')
 
-    localTags.innerHTML = '<img src="gifs/loading.gif" style="witdh: 7rem;">'
+    localTags.innerHTML = '<img src="gifs/loading.gif" style="width: 5rem;">'
 
     const { snapshots } = id !== 'novo'
         ? await recuperarDado('dados_orcamentos', id) || {}
@@ -1294,13 +1294,10 @@ async function carregarTags() {
 }
 
 async function buscarDadosCliente() {
-
     const clienteName = document.querySelector('[name="cliente"]')
-    if (!clienteName)
-        return
+    if (!clienteName) return
 
     const omie_cliente = Number(clienteName.id)
-
     const cliente = await recuperarDado('dados_clientes_ac', omie_cliente) || {}
 
     const campos = ['cnpj', 'endereco', 'bairro', 'cidade', 'estado', 'cep']
@@ -1309,53 +1306,68 @@ async function buscarDadosCliente() {
         if (el) el.textContent = cliente?.[campo] || ''
     }
 
-    const empresa = cliente?.snapshots?.empresa
-
-    if (!empresa)
-        return
-
     const idOrcamento = controles.etiquetas.idOrcamento
-    const orcamento = idOrcamento == 'novo'
+    const isNovo = idOrcamento === 'novo'
+    const orcamento = isNovo
         ? baseOrcamento()
         : await recuperarDado('dados_orcamentos', idOrcamento) || {}
 
-    // Remoção local de tags automáticas;
-    for (const [idTag, tag] of Object.entries(orcamento?.tags || {}))
-        if (tag?.auto == 'S')
+    orcamento.tags ||= {}
+
+    if (isNovo) {
+        orcamento.snapshots ||= {}
+        orcamento.snapshots.tags ||= {}
+    }
+
+    for (const idTag in orcamento.tags) {
+        if (orcamento.tags[idTag]?.auto === 'S') {
             delete orcamento.tags[idTag]
-
-    const pesquisa = await pesquisarDB({
-        base: 'tags_orcamentos',
-        filtros: {
-            'nome': { op: '=', value: empresa }
         }
-    })
+    }
 
-    const tagEmpresa = pesquisa.resultados[0] || null
-
-    // Salvamento 1: Oficial;
-    if (tagEmpresa)
-
-        orcamento.tags[tagEmpresa.id] = {
-            data: new Date().toLocaleDateString(),
-            usuario: acesso.usuario,
-            auto: 'S'
+    if (isNovo) {
+        for (const idTag in orcamento.snapshots.tags) {
+            if (orcamento.snapshots.tags[idTag]?.auto === 'S') {
+                delete orcamento.snapshots.tags[idTag]
+            }
         }
+    }
 
-    if (idOrcamento == 'novo') {
+    const empresa = cliente?.snapshots?.empresa
 
-        orcamento.snapshots ??= {}
-        orcamento.snapshots.tags[tagEmpresa.id] = tagEmpresa
+    if (empresa) {
+        const pesquisa = await pesquisarDB({
+            base: 'tags_orcamentos',
+            filtros: {
+                nome: { op: '=', value: empresa }
+            }
+        })
 
+        const tagEmpresa = pesquisa.resultados[0] || null
+
+        if (tagEmpresa) {
+            orcamento.tags[tagEmpresa.id] = {
+                data: new Date().toLocaleDateString(),
+                usuario: acesso.usuario,
+                auto: 'S'
+            }
+
+            if (isNovo) {
+                orcamento.snapshots.tags[tagEmpresa.id] = {
+                    auto: 'S',
+                    ...tagEmpresa
+                }
+            }
+        }
+    }
+
+    if (isNovo) {
         baseOrcamento(orcamento)
-
     } else {
         await enviar(`dados_orcamentos/${idOrcamento}/tags`, orcamento.tags)
-
     }
 
     carregarTags()
-
 }
 
 async function salvarDadosCliente(idOrcamento) {
