@@ -827,7 +827,7 @@ async function verPedidoAprovacao(idOrcamento) {
         base: Object.values(orcamento.esquema_composicoes || orcamento.dados_composicoes || {}),
         pag,
         nude: true,
-        scroll: true,
+        scroll: false,
         editavel: false,
         funcaoAdicional: ['formatarLinhasOrcamento', 'calcularSubtotais'],
         body: 'bodyOrcamento',
