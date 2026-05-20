@@ -404,6 +404,7 @@ async function abrirAtalhos(id, idMaster) {
     const orcamento = await recuperarDado('dados_orcamentos', id) || {}
     const emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
     const botoesDisponiveis = []
+    const autorizados = orcamento?.dados_orcam?.executor || []
 
     // Gambiarra para não mudar a posição das paradas;
     if (!emAnalise)
@@ -425,7 +426,7 @@ async function abrirAtalhos(id, idMaster) {
         modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)
     )
 
-    if (orcamento?.usuario == acesso.usuario || permAtalhos.includes(acesso.permissao) || orcamento?.dados_orcam?.executor.includes(acesso.usuario)) {
+    if (orcamento?.usuario == acesso.usuario || permAtalhos.includes(acesso.permissao) || autorizados.includes(acesso.usuario)) {
         botoesDisponiveis.push(
             modeloBotoes('apagar', 'Excluir Orçamento', `confirmarExclusaoOrcamentoBase('${id}')`),
             modeloBotoes('editar', 'Editar Orçamento', `editar('${id}')`),

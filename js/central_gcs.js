@@ -1136,7 +1136,7 @@ async function painelClientes(idOrcamento) {
 
     const linhas = [
         {
-            texto: 'Chamado',
+            texto: 'Contrato',
             elemento: `<input value="${dados_orcam?.contrato || 'ORC ...'}" readOnly>`
         },
         {
@@ -1169,26 +1169,20 @@ async function painelClientes(idOrcamento) {
             elemento: `<span id="bairro">${cliente?.bairro || ''}</span>`
         },
         {
-            texto: 'CEP', elemento: `
-            <span id="cep">${cliente?.cep || ''}</span>
-            ` },
+            texto: 'CEP', elemento: `<span id="cep">${cliente?.cep || ''}</span>`},
         {
             texto: 'Cidade',
-            elemento: `
-            <span id="cidade">${cliente?.cidade || ''}</span>
-            `
+            elemento: `<span id="cidade">${cliente?.cidade || ''}</span>`
         },
         {
             texto: 'Estado',
-            elemento: `
-            <span id="estado">${cliente?.estado || ''}</span>
-            `
+            elemento: `<span id="estado">${cliente?.estado || ''}</span>`
         },
         {
             texto: 'Tipo de Frete',
             elemento: `
             <select id="tipo_de_frete">
-                ${['--', 'CIF', 'FOB'].map(op => `<option ${tipo_de_frete == op ? 'selected' : ''}>${op}</option>`).join('')}
+                ${['', 'CIF', 'FOB'].map(op => `<option ${tipo_de_frete == op ? 'selected' : ''}>${op}</option>`).join('')}
             </select>
             `
         },
@@ -1201,24 +1195,8 @@ async function painelClientes(idOrcamento) {
                 `
         },
         {
-            elemento: `
-            <div class="linha-clientes" style="${vertical}; gap: 5px; width: 100%;">
-                <span><b>Escopo / Considerações</b></span>
-                <div class="escopo" 
-                    id="consideracoes" 
-                    contentEditable="true"
-                    style="resize: vertical; overflow: auto; text-align: left; text-transform: uppercase;">${consideracoes || 'ESCOPO: '}</div>
-
-                <div class="contorno-botoes" style="background-color: #222;">
-                    <img src="imagens/anexo.png" style="width: 1.2rem;">
-                    <label style="width: 100%;" for="adicionar_levantamento">Anexar levantamento
-                        <input type="file" id="adicionar_levantamento" style="display: none;"
-                            onchange="${idOrcamento ? `salvarLevantamento('${idOrcamento}')` : 'salvarLevantamento()'}">
-                    </label>
-                </div>
-    
-                ${levantamentos}
-            </div>`
+            texto: 'Escopo',
+            elemento: `<textarea id="consideracoes" style="text-transform: uppercase;">${consideracoes || 'ESCOPO: '}</textarea>`
         },
         {
             texto: `
@@ -1331,7 +1309,7 @@ async function salvarDadosCliente(idOrcamento) {
         orcamentoBase.dados_orcam = {
             ...orcamentoBase.dados_orcam,
             omie_cliente,
-            consideracoes: String(el('consideracoes').textContent).toUpperCase(),
+            consideracoes: String(el('consideracoes').value).toUpperCase(),
             data: new Date().toLocaleString('pt-BR'),
             garantia: el('garantia').value,
             validade: Number(el('validade').value),
