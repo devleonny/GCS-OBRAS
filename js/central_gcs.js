@@ -1064,15 +1064,20 @@ function baseOrcamento(orcamento, remover = false) {
     return temporario[idEdicao] || null
 }
 
-async function painelClientes(idOrcamento) {
+async function painelClientes(idOrcamento = null) {
 
     overlayAguarde()
+
+    // Salvamento do id para uso na função 'Dados do cliente';
+    const idOrcParaTag = idOrcamento || 'novo'
+    controles.etiquetas ??= {}
+    controles.etiquetas.idOrcamento = idOrcParaTag
 
     const orcamento = idOrcamento
         ? await recuperarDado('dados_orcamentos', idOrcamento) || {}
         : baseOrcamento()
 
-    const { usuarios, dados_orcam } = orcamento || {}
+    const { usuarios, dados_orcam, snapshots } = orcamento || {}
     const {
         executor,
         tecnico,
@@ -1169,7 +1174,8 @@ async function painelClientes(idOrcamento) {
             elemento: `<span id="bairro">${cliente?.bairro || ''}</span>`
         },
         {
-            texto: 'CEP', elemento: `<span id="cep">${cliente?.cep || ''}</span>`},
+            texto: 'CEP', elemento: `<span id="cep">${cliente?.cep || ''}</span>`
+        },
         {
             texto: 'Cidade',
             elemento: `<span id="cidade">${cliente?.cidade || ''}</span>`
@@ -1217,6 +1223,15 @@ async function painelClientes(idOrcamento) {
             elemento: '<div class="tecnicos"></div>'
         },
         {
+            texto: `
+            <div style="${horizontal}; gap: 1rem;">
+                <img src="imagens/etiqueta.png" onclick="renderPainel('${idOrcParaTag}')">
+                <span>Tags</span>
+            </div>
+            `,
+            elemento: `<div id="tags" style="${vertical}; gap: 2px;"></div>`
+        },
+        {
             texto: 'Validade da Proposta',
             elemento: `<div style="${horizontal}; gap: 3px;"><input id="validade" style="width: 3rem;" type="number" value="${validade || 30}"> <span>dias</span></div>`
         },
@@ -1254,23 +1269,92 @@ async function painelClientes(idOrcamento) {
 
     await maisUsuario(executor, 'executores')
     await maisUsuario(tecnico, 'tecnicos')
+    carregarTags()
+
+}
+
+async function carregarTags() {
+
+    const id = controles.etiquetas.idOrcamento
+    const localTags = document.getElementById('tags')
+
+    localTags.innerHTML = '<img src="gifs/loading.gif" style="witdh: 7rem;">'
+
+    const { snapshots } = id !== 'novo'
+        ? await recuperarDado('dados_orcamentos', id) || {}
+        : baseOrcamento()
+
+    // Tags;
+    const listaTags = Object.values(snapshots?.tags || {})
+        .map(tag => modeloTag(tag, id))
+        .join('')
+
+    localTags.innerHTML = listaTags
 
 }
 
 async function buscarDadosCliente() {
 
     const clienteName = document.querySelector('[name="cliente"]')
-    if (!clienteName) return
+    if (!clienteName)
+        return
 
     const omie_cliente = Number(clienteName.id)
 
-    const cliente = await recuperarDado('dados_clientes_ac', omie_cliente)
+    const cliente = await recuperarDado('dados_clientes_ac', omie_cliente) || {}
 
     const campos = ['cnpj', 'endereco', 'bairro', 'cidade', 'estado', 'cep']
     for (const campo of campos) {
         const el = document.getElementById(campo)
         if (el) el.textContent = cliente?.[campo] || ''
     }
+
+    const empresa = cliente?.snapshots?.empresa
+
+    if (!empresa)
+        return
+
+    const idOrcamento = controles.etiquetas.idOrcamento
+    const orcamento = idOrcamento == 'novo'
+        ? baseOrcamento()
+        : await recuperarDado('dados_orcamentos', idOrcamento) || {}
+
+    // Remoção local de tags automáticas;
+    for (const [idTag, tag] of Object.entries(orcamento?.tags || {}))
+        if (tag?.auto == 'S')
+            delete orcamento.tags[idTag]
+
+    const pesquisa = await pesquisarDB({
+        base: 'tags_orcamentos',
+        filtros: {
+            'nome': { op: '=', value: empresa }
+        }
+    })
+
+    const tagEmpresa = pesquisa.resultados[0] || null
+
+    // Salvamento 1: Oficial;
+    if (tagEmpresa)
+
+        orcamento.tags[tagEmpresa.id] = {
+            data: new Date().toLocaleDateString(),
+            usuario: acesso.usuario,
+            auto: 'S'
+        }
+
+    if (idOrcamento == 'novo') {
+
+        orcamento.snapshots ??= {}
+        orcamento.snapshots.tags[tagEmpresa.id] = tagEmpresa
+
+        baseOrcamento(orcamento)
+
+    } else {
+        await enviar(`dados_orcamentos/${idOrcamento}/tags`, orcamento.tags)
+
+    }
+
+    carregarTags()
 
 }
 
@@ -1326,41 +1410,17 @@ async function salvarDadosCliente(idOrcamento) {
         // Se não existir a chave contrato; sequencial fará que o servidor crie;
         orcamentoBase.dados_orcam.contrato ??= 'sequencial'
 
-        // Lógica da tag automática;
-        const cliente = await recuperarDado('dados_clientes_ac', omie_cliente) || {}
-        const empresa = cliente?.snapshots?.empresa
-        orcamentoBase.tags ??= {}
-
-        // Remoção local de tags automáticas;
-        for (const [idTag, tag] of Object.entries(orcamentoBase.tags))
-            if (tag?.auto == 'S')
-                delete orcamentoBase.tags[idTag]
-
-        const pesquisa = await pesquisarDB({
-            base: 'tags_orcamentos',
-            filtros: {
-                'nome': { op: '=', value: empresa }
-            }
-        })
-
-        const tagEscolhida = pesquisa.resultados[0] || null
-        if (tagEscolhida)
-            orcamentoBase.tags[tagEscolhida.id] = {
-                data: new Date().toLocaleDateString(),
-                usuario: acesso.usuario,
-                auto: 'S'
-            }
-
-
         if (idOrcamento) {
+
+            // Tags são salvar em tempo real;
 
             await enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamentoBase.dados_orcam)
             await abrirAtalhos(idOrcamento)
 
-            if (tagEscolhida)
-                enviar(`dados_orcamentos/${idOrcamento}/tags`, orcamentoBase.tags)
-
         } else {
+
+            // Tags estão dentro do objeto, serão salvas junto do orçamento;
+
             baseOrcamento(orcamentoBase)
         }
 

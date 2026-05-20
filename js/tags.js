@@ -27,7 +27,8 @@ const modeloTag = ({ cor = '#999', nome, id }, idOrcamento = null) => {
             <img src="imagens/tag_${branco == 'color: #fff;' ? 'branca' : 'preta'}.png"
                 style="width:1.4rem"
                 onclick="abrirEdicaoTag('${id}')">
-        </div>`
+        </div>
+        `
 
     return modelo
 }
@@ -47,8 +48,9 @@ async function renderPainel(idOrcamento) {
         'Etiquetas': { chave: 'nome' }
     }
 
+    const pag = 'etiquetas'
     const tabela = await modTab({
-        pag: 'etiquetas',
+        pag,
         colunas,
         criarLinha: 'criarLinhaTag',
         body: 'bodyEtiquetas',
@@ -65,7 +67,7 @@ async function renderPainel(idOrcamento) {
 
     popup({ titulo: 'Gerenciar Etiquetas', elemento, botoes })
 
-    await paginacao()
+    await paginacao(pag)
 
 }
 
@@ -78,7 +80,29 @@ async function vincularTag(idTag) {
         usuario: acesso.usuario
     }
 
-    await enviar(`dados_orcamentos/${id}/tags/${idTag}`, tag)
+    if (id == 'novo') {
+
+        const tag = await recuperarDado('tags_orcamentos', idTag) || {}
+        const orcamento = baseOrcamento()
+
+        // Snapshots;
+        orcamento.snapshots ??= {}
+        orcamento.snapshots.tags ??= {}
+        orcamento.snapshots.tags[idTag] = tag
+
+        // Padrão;
+        orcamento.tags ??= {}
+        orcamento.tags[idTag] = tag
+
+        // Devolver pra memória;
+        baseOrcamento(orcamento)
+
+    } else {
+        await enviar(`dados_orcamentos/${id}/tags/${idTag}`, tag)
+    }
+
+    // Não precisa esperar;
+    carregarTags(id)
 
     removerOverlay()
 }
@@ -86,19 +110,41 @@ async function vincularTag(idTag) {
 function confirmarRemocaoTag(idTag, idOrcamento) {
 
     const botoes = [
-        { texto: 'Confirmar', fechar: true, img: 'concluido', funcao: `removerTag('${idTag}', '${idOrcamento}')` }
+        { texto: 'Confirmar', img: 'concluido', funcao: `removerTag('${idTag}', '${idOrcamento}')` }
     ]
 
-    popup({ mensagem: 'Remover tag?', botoes, removerAnteriores: true })
+    popup({ mensagem: 'Remover tag?', botoes })
 }
 
 async function removerTag(idTag, idOrcamento) {
 
-    await deletar(`dados_orcamentos/${idOrcamento}/tags/${idTag}`)
+    try {
+        if (idOrcamento == 'novo') {
+
+            const orcamento = baseOrcamento()
+
+            delete orcamento.tags[idTag]
+            delete orcamento.snapshots.tags[idTag]
+
+            baseOrcamento(orcamento)
+
+        } else {
+            await deletar(`dados_orcamentos/${idOrcamento}/tags/${idTag}`)
+        }
+
+        removerPopup() // Confirmação;
+
+        // Não precisa esperar;
+        carregarTags()
+
+    } catch (err) {
+        removerPopup() // Confirmação;
+        popup({ mensagem: 'Falha ao remover Tag' })
+    }
 
 }
 
-async function abrirEdicaoTag(id = ID5digitos()) {
+async function abrirEdicaoTag(id = crypto.randomUUID()) {
     const tag = await recuperarDado('tags_orcamentos', id) || {}
 
     const elemento = `
