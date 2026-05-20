@@ -118,14 +118,33 @@ function confirmarRemocaoTag(idTag, idOrcamento) {
 
 async function removerTag(idTag, idOrcamento) {
 
-    await deletar(`dados_orcamentos/${idOrcamento}/tags/${idTag}`)
+    try {
+        if (idOrcamento == 'novo') {
 
-    // Não precisa esperar;
-    carregarTags()
+            const orcamento = baseOrcamento()
+
+            delete orcamento.tags[idTag]
+            delete orcamento.snapshots.tags[idTag]
+
+            baseOrcamento(orcamento)
+
+        } else {
+            await deletar(`dados_orcamentos/${idOrcamento}/tags/${idTag}`)
+        }
+
+        removerPopup() // Confirmação;
+
+        // Não precisa esperar;
+        carregarTags()
+
+    } catch (err) {
+        removerPopup() // Confirmação;
+        popup({ mensagem: 'Falha ao remover Tag' })
+    }
 
 }
 
-async function abrirEdicaoTag(id = ID5digitos()) {
+async function abrirEdicaoTag(id = crypto.randomUUID()) {
     const tag = await recuperarDado('tags_orcamentos', id) || {}
 
     const elemento = `
