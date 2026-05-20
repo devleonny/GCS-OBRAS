@@ -1,56 +1,58 @@
-async function telaMovimentos() {
-
-
-    tela.innerHTML = `
-        <div class="pagina-relatorio">
-            <div class="painel-tecnicos">
-                <div id="tecnicosResumido"></div>
-                <div id="tecnicosDetalhado"></div>
-            </div>
-        </div>
-    `
-
-    await criarTabelaTecResumida()
-    await criarTabelaTecDetalhada()
-
-}
-
-async function criarTabelaTecResumida(tecnico = null) {
+async function telaSaldoFerramentas() {
 
     const pag = 'tecnicosResumido'
     const tabelaResumida = await modTab({
         pag,
-        ...(
-            tecnico
-                ? {
-                    filtros: {
-                        tecnico: { op: '=', value: tecnico }
-                    }
-                }
-                : {}
-        ),
-        base: 'vw_saldo_estoque_tecnicos',
-        btnExtras: `
-            <div style="${horizontal}; gap: 1rem;">
-                <span style="font-size: 1.1rem; color: white;">SALDO DE PEÇAS POR TÉCNICO</span>
-                <img src="imagens/baixar.png" onclick="criarMovimento()">
-            </div>
-        `,
+        filtros: {
+            origem: { op: '=', value: 'Ferramentas' }
+        },
+        base: 'vw_tecnicos_saldo',
+        btnExtras: `<span style="font-size: 1.1rem; color: white;">SALDO DE FERRAMENTAS POR TÉCNICO</span>`,
         body: 'bodyTecResumido',
         criarLinha: 'criarLinhaTecsResumido',
         colunas: {
             'Técnico': { chave: 'tecnico' },
             'Código': { chave: 'codigo' },
             'Descrição': { chave: 'descricao_peca' },
+            'Unidade': { chave: 'unidade' },
+            'Modelo': { chave: 'modelo' },
+            'Fabricante': { chave: 'fabricante' },
             'Sinal': {},
             'Saldo': {}
         }
     })
 
-    const local = document.getElementById('tecnicosResumido')
+    tela.innerHTML = `<div class="painel-saldos">${tabelaResumida}</div>`
 
-    if (local)
-        local.innerHTML = tabelaResumida
+    await paginacao(pag)
+
+}
+
+async function telaSaldoPecas() {
+
+    const pag = 'tecnicosResumido'
+    const tabelaResumida = await modTab({
+        pag,
+        filtros: {
+            origem: { op: '=', value: 'Kit' }
+        },
+        base: 'vw_tecnicos_saldo',
+        btnExtras: `<span style="font-size: 1.1rem; color: white;">SALDO DE PEÇAS POR TÉCNICO</span>`,
+        body: 'bodyTecResumido',
+        criarLinha: 'criarLinhaTecsResumido',
+        colunas: {
+            'Técnico': { chave: 'tecnico' },
+            'Código': { chave: 'codigo' },
+            'Descrição': { chave: 'descricao_peca' },
+            'Unidade': { chave: 'unidade' },
+            'Modelo': { chave: 'modelo' }, 
+            'Fabricante': { chave: 'fabricante' },
+            'Sinal': {},
+            'Saldo': {}
+        }
+    })
+
+    tela.innerHTML = `<div class="painel-saldos">${tabelaResumida}</div>`
 
     await paginacao(pag)
 
@@ -61,10 +63,9 @@ async function criarTabelaTecDetalhada() {
     const pag = 'estoque_tecnicos'
     const tabela = await modTab({
         pag,
-        base: 'vw_movimentacao_estoque',
-        btnExtras: '<span style="font-size: 1.1rem; color: white;">DETALHAMENTO DE MOVIMENTO DE PEÇAS</span>',
+        base: 'vw_tecnicos_movimentos',
+        btnExtras: '<span style="font-size: 1.1rem; color: white;">TODOS OS MOVIMENTOS</span>',
         colunas: {
-            'Edição': {},
             'Data': { chave: 'data', tipoPesquisa: 'data' },
             'Usuário': { chave: 'usuario' },
             'Técnicos': { chave: 'tecnico' },
@@ -83,9 +84,7 @@ async function criarTabelaTecDetalhada() {
         criarLinha: 'criarLinhaMovimento'
     })
 
-    const local = document.getElementById('tecnicosDetalhado')
-    if (local)
-        local.innerHTML = tabela
+    tela.innerHTML = `<div class="painel-saldos">${tabela}</div>`
 
     await paginacao(pag)
 
@@ -93,7 +92,15 @@ async function criarTabelaTecDetalhada() {
 
 async function criarLinhaTecsResumido(tec) {
 
-    const { tecnico, codigo, descricao_peca, saldo_atual } = tec || {}
+    const { 
+        tecnico, 
+        codigo,
+        fabricante,
+        modelo,
+        unidade,
+        descricao_peca, 
+        saldo_atual 
+    } = tec || {}
 
     const img = saldo_atual == 0
         ? 'congelado'
@@ -106,262 +113,15 @@ async function criarLinhaTecsResumido(tec) {
             <td>${tecnico}</td>
             <td>${codigo}</td>
             <td>${descricao_peca}</td>
+            <td>${unidade || ''}</td>
+            <td>${modelo || ''}</td>
+            <td>${fabricante || ''}</td>
             <td style="text-align: center;">
                 <img src="imagens/${img}.png">
             </td>
             <td style="text-align: center;">${saldo_atual}</td>
         </tr>
     `
-
-}
-
-async function criarMovimento(id = crypto.randomUUID()) {
-
-    overlayAguarde()
-
-    const { tecnico, equipamentos } = await recuperarDado('estoque_tecnicos', id) || {}
-
-    const listagemEquipamentos = (
-        await Promise.all(
-            Object.values(equipamentos || {})
-                .map(equip => maisLabel(equip))
-        )
-    ).join('')
-
-    controlesCxOpcoes.tecnico = {
-        base: 'dados_setores',
-        retornar: ['usuario'],
-        colunas: {
-            'Usuário': { chave: 'usuario' },
-            'Setor': { chave: 'setor' },
-            'Permissão': { chave: 'permissao' }
-        }
-    }
-
-    const linhas = [
-        {
-            texto: 'Selecione o técnico',
-            elemento: `<span ${tecnico ? `id="${tecnico}"` : ''} class="campos" name="tecnico" onclick="cxOpcoes('tecnico')">${tecnico || 'Selecionar'}</span>`
-        },
-        {
-            texto: 'Qual a operação?',
-            elemento: `<select id="operacao">${['Recebimento', 'Saída'].map(o => `<option>${o}</option>`).join('')}</select>`
-        },
-        {
-            elemento: `
-            <div style="${vertical}; gap: 5px;">
-                <div style="${horizontal}; gap: 1rem;">
-                    <img src="imagens/baixar.png" onclick="maisLabel({formulario: 'tecnico'})">
-                    <span>Adicione equipamentos</span>
-                    <button onclick="adicionarKitPadrao()">Adicionar Kit Padrão</button>
-                </div>
-
-                <div style="${vertical}; width: 100%; gap: 2px;" id="equipamentos">
-                    ${listagemEquipamentos}
-                </div>
-
-            </div>
-            `
-        },
-    ]
-
-    const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: `salvarMovimento('${id}')` }
-    ]
-
-    if (tecnico)
-        botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirMovimento('${id}')` })
-
-    popup({ linhas, botoes, titulo: 'Adicionar Saldo' })
-
-}
-
-async function adicionarKitPadrao() {
-
-    overlayAguarde()
-
-    const { equipamentos } = await recuperarDado('kit_padrao', '1') || {}
-
-    const listagemEquipamentos = (
-        await Promise.all(
-            Object.values(equipamentos || {})
-                .map(equip => maisLabel(equip))
-        )
-    ).join('')
-
-    const local = document.getElementById('equipamentos')
-
-    if (local)
-        local.innerHTML = listagemEquipamentos
-
-    removerOverlay()
-
-}
-
-async function formularioKitTecnicoPadrao() {
-
-    const { equipamentos } = await recuperarDado('kit_padrao', '1') || {}
-
-    const listagemEquipamentos = (
-        await Promise.all(
-            Object.values(equipamentos || {})
-                .map(equip => maisLabel(equip))
-        )
-    ).join('')
-
-    const linhas = [
-        {
-            elemento: `
-            <div style="${vertical}; gap: 5px;">
-                <div style="${horizontal}; gap: 1rem;">
-                    <img src="imagens/baixar.png" onclick="maisLabel({formulario: 'tecnico'})">
-                    <span>Adicione equipamentos</span>
-                </div>
-
-                <div style="${vertical}; width: 100%; gap: 2px;" id="equipamentos">
-                    ${listagemEquipamentos}
-                </div>
-
-            </div>
-            `
-        }
-    ]
-
-    const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: `salvarKitTecPadrao()` }
-    ]
-
-    popup({ linhas, botoes, titulo: 'Kit Técnico Padrão' })
-
-}
-
-async function salvarKitTecPadrao() {
-
-    overlayAguarde()
-
-    const equipamentos = {}
-    const divs = [...document.querySelectorAll('[name="equipamentos"]')]
-    const emMassa = divs
-        .filter(div => div.querySelector('span')?.id)
-        .map(async (div) => {
-
-            const equip = div.querySelector('span')
-            const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', equip.id)
-
-            const inputQuantidade = div.querySelector('#quantidade')
-            const quantidade = Number(inputQuantidade.value)
-            const serie = [...div.querySelectorAll('[name="serie"]')]
-                .map(input => input.value)
-
-            const codigo = equip.id
-
-            equipamentos[codigo] = {
-                codigo,
-                modelo,
-                serie,
-                descricao,
-                fabricante,
-                quantidade,
-                unidade
-            }
-
-        })
-
-    await Promise.all(emMassa)
-
-    const novo = {
-        equipamentos,
-        usuario: acesso.usuario,
-        data: new Date().toLocaleString()
-    }
-
-    await enviar(`kit_padrao/1`, novo)
-
-    removerPopup()
-
-}
-
-async function salvarMovimento(id) {
-
-
-    try {
-        overlayAguarde()
-
-        const { usuario } = await recuperarDado('estoque_tecnicos', id) || {}
-
-        const obVal = (id) => {
-            const elemento = document.getElementById(id)
-            return elemento ? elemento : null
-        }
-
-        const tecnico = document.querySelector('[name="tecnico"]').id
-        if (!tecnico)
-            return popup({ mensagem: 'Selecione o técnico' })
-
-        const movimento = {
-            tecnico: [tecnico],
-            usuario: usuario
-                ? usuario
-                : acesso.usuario,
-            equipamentos,
-            operacao: obVal('operacao').value,
-            data: new Date().toISOString().split('T')[0]
-        }
-
-        // Equipamentos
-        const divs = document.querySelectorAll('[name="equipamentos"]')
-
-        for (const div of divs) {
-
-            const equip = div.querySelector('span')
-
-            if (!equip?.id)
-                continue
-
-            const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', equip.id)
-
-            const quantidade = Number(div.querySelector('#quantidade').value)
-            const serie = [...div.querySelectorAll('[name="serie"]')]
-                .map(input => input.value)
-
-            movimento.equipamentos[equip.id] = {
-                codigo: equip.id,
-                modelo,
-                serie,
-                origem: 'Kit',
-                id_ocorrencia: 'Saldo',
-                descricao,
-                fabricante,
-                quantidade,
-                unidade
-            }
-        }
-
-
-        await enviar(`estoque_tecnicos/${id}`, movimento)
-        removerPopup()
-
-    } catch (err) {
-        popup({ mensagem: 'Falha ao criar o movimento: fale com o suporte' })
-    }
-
-}
-
-async function confirmarExcluirMovimento(id) {
-
-    const botoes = [
-        { texto: 'Confirmar', img: 'concluido', fechar: true, funcao: `excluirMovimento('${id}')` }
-    ]
-
-    popup({ mensagem: 'Confirmar exclusão?', removerAnteriores: true, botoes })
-
-}
-
-async function excluirMovimento(id) {
-
-    overlayAguarde()
-    await deletar(`estoque_tecnicos/${id}`)
-    removerOverlay()
 
 }
 
@@ -381,20 +141,15 @@ async function criarLinhaMovimento(movimento) {
         origem
     } = movimento || {}
 
-    const sinal = operacao == 'Recebimento'
+    const sinal = operacao == 'Entrada'
         ? 'up_estoque'
         : 'down_estoque'
 
-    const funcao = operacao == 'Recebimento'
-        ? `<img src="imagens/pesquisar2.png" onclick="criarMovimento('${id}')">`
-        : ''
-
     return `
         <tr>
-            <td>${funcao}</td>
             <td>${data ? conversorData(data) : ''}</td>
             <td>${usuario || ''}</td>
-            <td>${tecnico ? tecnico.join(', ') : ''}</td>
+            <td style="white-space: pre;">${tecnico ? tecnico.map(t => `• ${t}`).join('\n') : ''}</td>
             <td>${id_ocorrencia || ''}</td>
             <td style="text-align: center;">
                 <img src="imagens/${sinal}.png">

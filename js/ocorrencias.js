@@ -402,10 +402,6 @@ function carregarCorrecoes(ocorrencia) {
 
         const labelTipoCorrecao = formatacaoTipoCorrecao(tipoCorrecaoNome)
 
-        const pdfOrcamento = idOrcamento
-            ? modelo('Orçamento', `<img src="imagens/pdf.png" onclick="irPdf('${idOrcamento}')">`)
-            : ''
-
         const dtCorrecaoFinalformatada = dtCorrecaoFinal
             ? dtFormatada(dtCorrecaoFinal)
             : null
@@ -434,7 +430,6 @@ function carregarCorrecoes(ocorrencia) {
                     ${modelo('Executores', `<span>${listaExecutores || ''}</span>`)}
                     ${modelo('Técnicos', `<span>${tecnico ? tecnico.join(', ') : ''}</span>`)}
                     ${modelo('Correção', labelTipoCorrecao)}
-                    ${pdfOrcamento}
                     ${modelo('Descrição', `<div style="white-space: pre-wrap;">${descricao || ''}</div>`)}
                     ${modelo('Criado em', `<span>${data || ''}</span>`)}
                     ${tabEquipamentos(equipamentos, idOcorrencia, idCorrecao)}
@@ -615,6 +610,16 @@ async function telaOcorrencias() {
         pag: 'ocorrencias',
         body: 'bodyOcorrencias',
         criarLinha: 'criarLinhaOcorrencia',
+        relacionados: [
+            {
+                path: 'id',
+                campoBusca: 'contrato',
+                tabela: 'vw_orcamentos_vinculados',
+                destino: 'vinculados',
+                tipo: 'objeto',
+                camposRetorno: ['contratos_vinculados']
+            }
+        ],
         substituicoes: [
             {
                 path: 'correcoes.*.tipoCorrecao',
@@ -660,7 +665,6 @@ async function telaOcorrencias() {
 
 }
 
-
 async function contadoresMapaOcorrencias() {
 
     const dados = await contarPorCampo({
@@ -673,10 +677,44 @@ async function contadoresMapaOcorrencias() {
 
 }
 
+async function abrirAtalhosContrato(contrato) {
+
+    overlayAguarde()
+
+    const orcs = await pesquisarDB({
+        base: 'dados_orcamentos',
+        filtros: {
+            'dados_orcam.contrato': { op: 'includes', value: contrato }
+        }
+    })
+
+    const { id } = orcs.resultados[0] // Primeiro;
+
+    await abrirAtalhos(id)
+
+}
+
 function criarLinhaOcorrencia(ocorrencia) {
 
-    const { id, fotos, correcoes, anexos, usuario, id_antigo, snapshots, equipamentos } = ocorrencia || {}
-    const { sistema, prioridade, tipo, cliente, empresa, vinculados } = snapshots || {}
+    const {
+        id,
+        fotos,
+        correcoes,
+        anexos,
+        usuario,
+        id_antigo,
+        snapshots,
+        equipamentos,
+        vinculados
+    } = ocorrencia || {}
+
+    const {
+        sistema,
+        prioridade,
+        tipo,
+        cliente,
+        empresa
+    } = snapshots || {}
 
     const imagens = Object.entries(fotos || {})
         .map(([link,]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
@@ -725,18 +763,33 @@ function criarLinhaOcorrencia(ocorrencia) {
         ? modeloCampos('ID Antigo', `<span class="etiqueta-chamado">${id_antigo}</span>`)
         : ''
 
-    const criarOrcamento = !['cliente', 'técnico'].includes(acesso.permissao) // Apenas autorizados;
+    // Apenas autorizados;
+    const apenasAutorizados = !['cliente', 'técnico'].includes(acesso.permissao)
+
+    const criarOrcamento = apenasAutorizados
         ? `<button onclick="criarOrcamentoVinculado('${id}')">Criar orçamento</button>`
         : ''
 
-    const spanNumOrcs = [id, vinculados].flat()
+    const spanNumOrcs = [id, vinculados?.contratos_vinculados || []].flat()
         .map(c => {
 
             const chave = c !== id
                 ? `${id}.${c}`
                 : c
 
-            return `<span class="etiqueta-chamado" onclick="abrirEsquemaOcorrencias('${chave}')">${c}</span>`
+            const btns = apenasAutorizados
+                ? `
+                    <img src="imagens/pesquisar.png" onclick="abrirAtalhosContrato('${c}')">
+                    <img src="imagens/pasta2.png" onclick="abrirEsquemaOcorrencias('${chave}')">
+                `
+                : ''
+
+            return `
+                <div class="etiqueta-chamado">
+                    ${btns}
+                    <span>${c}</span>
+                </div>
+                `
 
         })
         .join('<img src="imagens/link2.png">')
@@ -1259,7 +1312,7 @@ async function linAnexos(doc) {
             ${criarAnexoVisual(nome, link, `confirmarExclusaoDocAdicional('${id}')`)}
         </td>
     </tr>
-    `
+`
 
 }
 
@@ -1779,7 +1832,7 @@ async function auxPendencias() {
 
         const esquema = {
             'FUNCIONÁRIOS': 'f7aec8c1-ce57-40f8-9ea1-c032c3971a9f',
-            'PACEIROS': 'c0bfd4a8-6bca-40e7-a71b-5990630f4b19'
+            'PARCEIROS': 'c0bfd4a8-6bca-40e7-a71b-5990630f4b19'
         }
 
         const ctg = await contarPorCampo({ base: 'dados_ocorrencias', path: 'tipo' }) || {}
@@ -1905,13 +1958,6 @@ async function formularioOcorrencia(idOcorrencia) {
             elemento: `<span ${unidade ? `id="${unidade}"` : ''} 
                 class="campos" name="unidade" onclick="cxOpcoes('unidade')">
                 ${cliente.nome || 'Selecione'}
-            </span>`
-        },
-        {
-            texto: 'Sistema',
-            elemento: `<span ${ocorrencia.unidade ? `id="${ocorrencia.unidade}"` : ''} 
-            class="campos" name="sistema" onclick="cxOpcoes('sistema')">
-                ${sistema || 'Selecione'}
             </span>`
         },
         {
@@ -2216,7 +2262,7 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
         ? `
             <div style="${vertical};">
                 <label>Origem</label>
-                ${['Kit', 'Parceiro', 'Matriz', 'Compra Região'].map(o => `
+                ${['Kit', 'Ferramentas', 'Parceiro', 'Matriz', 'Compra Região'].map(o => `
                     <div style="${horizontal}; gap: 1rem;">
                         <input name="origem_${temporario}" data-origem="${o}" type="radio" ${origem == o ? 'checked' : ''}>
                         <label style="text-align: left;">${o}</label>
@@ -2288,8 +2334,8 @@ function multiplicarCampoSerie(input) {
 
 async function verificarConflitos() {
 
-    const dtCorrecao = document.querySelector('[name="dtCorrecao"]').value
-    const dtCorrecaoFinal = document.querySelector('[name="dtCorrecaoFinal"]').value
+    const dtCorrecao = document.querySelector('[name="dtCorrecao"]')?.value
+    const dtCorrecaoFinal = document.querySelector('[name="dtCorrecaoFinal"]')?.value
 
     const alerta = (funcao, tecnico) => `<img src="gifs/alerta.gif" name="alerta" data-tecnico="${tecnico}" onclick="${funcao}">`
 
@@ -2493,14 +2539,12 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
     }
 
     // Executores;
-    const executores = [...document.querySelectorAll('.executores span')]
+    const executor = [...document.querySelectorAll('.executores span')]
         .filter(span => span.id)
-
-    if (executores.length == 0)
-        return popup({ mensagem: 'Selecione pelo menos 1 executor' })
-
-    const executor = executores
         .map(span => span.id)
+
+    if (executor.length == 0)
+        return popup({ mensagem: 'Selecione pelo menos 1 executor' })
 
     const garantia = obter('garantia').checked ? 'S' : 'N'
     const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}

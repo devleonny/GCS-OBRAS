@@ -148,9 +148,9 @@ const esquemaBotoes = {
             bloqueio: ['cliente', 'técnico'],
             img: 'tecnico',
             sub: [
-                { nome: 'Adicionar Kit', funcao: 'criarMovimento', img: 'baixar' },
-                { nome: 'Kit Técnico Padrão', funcao: 'formularioKitTecnicoPadrao', img: 'salvo' },
-                { nome: 'Relatório Kit Técnico', funcao: 'telaMovimentos', img: 'planilha' },
+                { nome: 'Saldo Kit Peças', funcao: 'telaSaldoPecas', img: 'planilha' },
+                { nome: 'Saldo Ferramentas', funcao: 'telaSaldoFerramentas', img: 'planilha' },
+                { nome: 'Todos os movimentos', funcao: 'criarTabelaTecDetalhada', img: 'planilha' },
                 { nome: 'Agenda', funcao: 'telaAgenda', img: 'reagendar' }
             ]
         },

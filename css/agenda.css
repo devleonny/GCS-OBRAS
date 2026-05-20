@@ -35,6 +35,13 @@
   line-height: 1.35;
 }
 
+.painel-saldos {
+  display: flex;
+  padding: 2rem;
+  justify-content: start;
+  align-items: start;
+}
+
 .campo-pesquisa {
   gap: 5px;
   display: flex;

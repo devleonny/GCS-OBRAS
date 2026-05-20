@@ -1073,6 +1073,19 @@ async function painelClientes(idOrcamento) {
         : baseOrcamento()
 
     const { usuarios, dados_orcam } = orcamento || {}
+    const {
+        executor,
+        tecnico,
+        tipo_de_frete,
+        consideracoes,
+        validade,
+        garantia,
+        emissor,
+        analista,
+        email_analista,
+        telefone_analista
+    } = dados_orcam || {}
+
     const idCliente = dados_orcam?.omie_cliente
     const bloq = orcamento?.hierarquia
         ? true
@@ -1101,7 +1114,7 @@ async function painelClientes(idOrcamento) {
         }
     ]
 
-    if (idOrcamento)
+    if (!idOrcamento)
         botoes.push({ texto: 'Limpar Campos', img: 'limpar', funcao: 'executarLimparCampos()' })
 
     controlesCxOpcoes.cliente = {
@@ -1114,16 +1127,6 @@ async function painelClientes(idOrcamento) {
             'Cidade': { chave: 'cidade' },
             'Estado': { chave: 'estado' },
             'CNPJ/CPF': { chave: 'cnpj' }
-        }
-    }
-
-    controlesCxOpcoes.executor = {
-        retornar: ['usuario'],
-        base: 'dados_setores',
-        colunas: {
-            'Usuário': { chave: 'usuario' },
-            'Setor': { chave: 'setor' },
-            'Permissão': { chave: 'permissao' }
         }
     }
 
@@ -1185,7 +1188,7 @@ async function painelClientes(idOrcamento) {
             texto: 'Tipo de Frete',
             elemento: `
             <select id="tipo_de_frete">
-                ${['--', 'CIF', 'FOB'].map(op => `<option ${dados_orcam?.tipo_de_frete == op ? 'selected' : ''}>${op}</option>`).join('')}
+                ${['--', 'CIF', 'FOB'].map(op => `<option ${tipo_de_frete == op ? 'selected' : ''}>${op}</option>`).join('')}
             </select>
             `
         },
@@ -1204,7 +1207,7 @@ async function painelClientes(idOrcamento) {
                 <div class="escopo" 
                     id="consideracoes" 
                     contentEditable="true"
-                    style="resize: vertical; overflow: auto; text-align: left; text-transform: uppercase;">${dados_orcam?.consideracoes || 'ESCOPO: '}</div>
+                    style="resize: vertical; overflow: auto; text-align: left; text-transform: uppercase;">${consideracoes || 'ESCOPO: '}</div>
 
                 <div class="contorno-botoes" style="background-color: #222;">
                     <img src="imagens/anexo.png" style="width: 1.2rem;">
@@ -1218,52 +1221,48 @@ async function painelClientes(idOrcamento) {
             </div>`
         },
         {
-            texto: 'Delegar Orçamento',
-            elemento: `
-                <div style="${horizontal}; gap: 1rem;">
-
-                    <img src="imagens/baixar.png" onclick="delegarUsuario()">
-                    <div id="autorizados" style="${vertical}; gap: 3px;"></div>
-
-                </div>
-                `
+            texto: `
+            <div style="${horizontal}; gap: 1rem;">
+                <img src="imagens/baixar.png" onclick="maisUsuario([undefined], 'executores')">
+                <span>Executores / Delegar</span>
+            </div>
+            `,
+            elemento: '<div class="executores"></div>'
         },
         {
-            texto: 'Executor',
-            elemento: `
-            <span 
-                class="opcoes" 
-                ${dados_orcam?.executor ? `id="${dados_orcam.executar}"` : ''} 
-                name="executor" 
-                onclick="cxOpcoes('executor')">${dados_orcam?.executor || 'Selecione'}
-            </span>
-            `
+            texto: `
+            <div style="${horizontal}; gap: 1rem;">
+                <img src="imagens/baixar.png" onclick="maisUsuario([undefined], 'tecnicos')">
+                <span>Técnicos</span>
+            </div>
+            `,
+            elemento: '<div class="tecnicos"></div>'
         },
         {
             texto: 'Validade da Proposta',
-            elemento: `<div style="${horizontal}; gap: 3px;"><input id="validade" style="width: 3rem;" type="number" value="${dados_orcam?.validade || 30}"> <span>dias</span></div>`
+            elemento: `<div style="${horizontal}; gap: 3px;"><input id="validade" style="width: 3rem;" type="number" value="${validade || 30}"> <span>dias</span></div>`
         },
         {
             texto: 'Garantia',
-            elemento: `<textarea id="garantia">${dados_orcam?.garantia || 'Conforme tratativa Comercial'}</textarea>`
+            elemento: `<textarea id="garantia">${garantia || 'Conforme tratativa Comercial'}</textarea>`
         },
         {
             texto: 'Analista',
-            elemento: `<input id="analista" value="${dados_orcam?.analista || acesso.nome_completo}">`
+            elemento: `<input id="analista" value="${analista || acesso.nome_completo}">`
         },
         {
             texto: 'E-mail',
-            elemento: `<textarea id="email_analista">${dados_orcam?.email_analista || acesso.email}</textarea>`
+            elemento: `<textarea id="email_analista">${email_analista || acesso.email}</textarea>`
         },
         {
             texto: 'Telefone',
-            elemento: `<input id="telefone_analista" value="${dados_orcam?.telefone_analista || acesso.telefone}">`
+            elemento: `<input id="telefone_analista" value="${telefone_analista || acesso.telefone}">`
         },
         {
             texto: 'Empresa',
             elemento: `
                 <select id="emissor">
-                    ${['AC SOLUÇÕES', 'IAC', 'HNW', 'HNK'].map(op => `<option ${dados_orcam?.emissor == op ? 'selected' : ''}>${op}</option>`).join('')}
+                    ${['AC SOLUÇÕES', 'IAC', 'HNW', 'HNK'].map(op => `<option ${emissor == op ? 'selected' : ''}>${op}</option>`).join('')}
                 </select>
             `
         }
@@ -1273,38 +1272,10 @@ async function painelClientes(idOrcamento) {
     if (formExistente)
         return removerOverlay()
 
-    popup({ linhas, botoes, titulo: 'Dados do Cliente', autoDestruicao: ['cliente', 'tecnico', 'executor'] })
+    popup({ linhas, botoes, titulo: 'Dados do Cliente', autoDestruicao: ['cliente', 'tecnico'] })
 
-    // Usuários delegados;
-    for (const u of Object.keys(usuarios || {}))
-        await delegarUsuario(u)
-
-}
-
-async function delegarUsuario(usuario = ID5digitos()) {
-
-    controlesCxOpcoes[usuario] = {
-        base: 'dados_setores',
-        retornar: ['usuario'],
-        colunas: {
-            'Usuário': { chave: 'usuario' },
-            'Setor': { chave: 'setor' },
-            'Permissão': { chave: 'permissao' }
-        }
-    }
-
-    const dUsuario = await recuperarDado('dados_setores', usuario) || {}
-
-    const elemento = `
-    <div style="${horizontal}; gap: 3px;">
-        <img src="imagens/cancel.png" onclick="this.parentElement.remove()">
-        <span ${usuario ? `id="${usuario}"` : ''} class="opcoes" name="${usuario}" onclick="cxOpcoes('${usuario}')">${dUsuario.usuario || 'Selecionar'}</span>
-    </div>
-    `
-
-    const autorizados = document.getElementById('autorizados')
-
-    autorizados.insertAdjacentHTML('beforeend', elemento)
+    await maisUsuario(executor, 'executores')
+    await maisUsuario(tecnico, 'tecnicos')
 
 }
 
@@ -1344,6 +1315,19 @@ async function salvarDadosCliente(idOrcamento) {
 
         const omie_cliente = Number(document.querySelector('[name="cliente"]').id)
 
+        // Executores;
+        const executor = [...document.querySelectorAll('.executores span')]
+            .filter(span => span.id)
+            .map(span => span.id)
+
+        // Técnicos;
+        const tecnico = [...document.querySelectorAll('.tecnicos span')]
+            .filter(span => span.id)
+            .map(span => span.id)
+
+        if (tecnico.length == 0 && ['LPU PEÇAS', 'LPU FERRAMENTAS'].includes(orcamentoBase.lpu_ativa))
+            return popup({ mensagem: 'LPU PEÇAS & FERRAMENTAS > O campo técnico não fica em branco!' })
+
         orcamentoBase.dados_orcam = {
             ...orcamentoBase.dados_orcam,
             omie_cliente,
@@ -1357,21 +1341,8 @@ async function salvarDadosCliente(idOrcamento) {
             email_analista: el('email_analista').value,
             analista: el('analista').value,
             telefone_analista: el('telefone_analista').value,
-            executor: document.querySelector('[name="executor"]')?.id || ''
-        }
-
-        // Usuários delegados, reset antes;
-        orcamentoBase.usuarios = {}
-
-        const divAuto = document.getElementById('autorizados')
-        for (const span of divAuto.querySelectorAll('span')) {
-            if (!span.id)
-                continue
-
-            orcamentoBase.usuarios[span.id] = {
-                data: new Date().toLocaleString(),
-                usuario: acesso?.usuario
-            }
+            executor,
+            tecnico
         }
 
         // Se não existir a chave contrato; sequencial fará que o servidor crie;
@@ -1402,23 +1373,24 @@ async function salvarDadosCliente(idOrcamento) {
                 auto: 'S'
             }
 
+
         if (idOrcamento) {
 
-            await Promise.all([
-                enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamentoBase.dados_orcam),
-                enviar(`dados_orcamentos/${idOrcamento}/tags`, orcamentoBase.tags),
-                enviar(`dados_orcamentos/${idOrcamento}/usuarios`, orcamentoBase.usuarios)
-            ])
-
+            await enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamentoBase.dados_orcam)
             await abrirAtalhos(idOrcamento)
 
+            if (tagEscolhida)
+                enviar(`dados_orcamentos/${idOrcamento}/tags`, orcamentoBase.tags)
+
+        } else {
+            baseOrcamento(orcamentoBase)
         }
 
-        baseOrcamento(orcamentoBase)
-
-    } finally {
-
         removerPopup()
+
+    } catch (erro) {
+
+        popup({ mensagem: erro.mensage || 'Falha ao salvar os dados' })
 
     }
 

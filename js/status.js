@@ -8,6 +8,8 @@ const permAltStatus = ['adm', 'diretoria']
 const statusExclusivosLog = ['ENVIADO', 'ENTREGUE']
 const fluxograma = [
     'PROSPECÇÃO',
+    'FERRAMENTAS',
+    'KIT PEÇAS',
     'SEM STATUS',
     'COTAÇÃO',
     'ORC PENDENTE',
@@ -399,7 +401,7 @@ async function abrirAtalhos(id, idMaster) {
 
     overlayAguarde()
 
-    const orcamento = await recuperarDado('dados_orcamentos', id)
+    const orcamento = await recuperarDado('dados_orcamentos', id) || {}
     const emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
     const botoesDisponiveis = []
 
@@ -414,7 +416,6 @@ async function abrirAtalhos(id, idMaster) {
             modeloBotoes('LG', 'OS em PDF', `carregarOS('${id}')`),
         )
 
-
     if (idMaster)
         botoesDisponiveis.push(modeloBotoes('exclamacao', 'Desvincular Orçamento', `confirmarRemoverVinculo('${id}', '${idMaster}')`))
     else
@@ -424,7 +425,7 @@ async function abrirAtalhos(id, idMaster) {
         modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)
     )
 
-    if (orcamento?.usuario == acesso.usuario || permAtalhos.includes(acesso.permissao) || orcamento?.usuarios?.[acesso.usuario]) {
+    if (orcamento?.usuario == acesso.usuario || permAtalhos.includes(acesso.permissao) || orcamento?.dados_orcam?.executor.includes(acesso.usuario)) {
         botoesDisponiveis.push(
             modeloBotoes('apagar', 'Excluir Orçamento', `confirmarExclusaoOrcamentoBase('${id}')`),
             modeloBotoes('editar', 'Editar Orçamento', `editar('${id}')`),

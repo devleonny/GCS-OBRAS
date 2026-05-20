@@ -648,7 +648,7 @@ async function gerarPdfParceiro(id, visualizar) {
         return popup({ elemento, titulo: 'PDF' })
 
     try {
-        await gerarPdfOnline(htmlContent, `LPU PACEIRO - ${Date.now()}`)
+        await gerarPdfOnline(htmlContent, `LPU PARCEIRO - ${Date.now()}`)
         removerOverlay()
     } catch (err) {
         popup({ mensagem: err.message || 'Falha ao gerar o PDF' })

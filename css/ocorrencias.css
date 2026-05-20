@@ -470,14 +470,25 @@
 .etiqueta-chamado {
     cursor: pointer;
     width: max-content;
-    flex-direction: column;
+    flex-direction: row;
     justify-content: start;
-    align-items: start;
+    align-items: center;
     display: flex;
-    padding: 3px;
+    padding: 3px 8px;
+    gap: 5px;
     border: solid 1px #ff0000;
     border-radius: 5px;
     background-color: #f7c5c5;
+}
+
+.etiqueta-chamado img {
+    filter: drop-shadow(0 0 1px red);
+    width: 1.5rem;
+    transition: ease-in-out 0.2s;
+}
+
+.etiqueta-chamado img:hover {
+    filter: drop-shadow(0 0 1px black);
 }
 
 .bloco-linha {
