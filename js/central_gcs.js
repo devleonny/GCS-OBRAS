@@ -176,7 +176,12 @@ function maisAba() {
 
 async function mudarStatus(usuario, select) {
 
-    await enviar(`dados_setores/${usuario}/status`, select.value)
+    const st = select.value
+
+    await enviar(`dados_setores/${usuario}/status`, st)
+
+    if (st == 'Invisível')
+        enviar(`dados_setores/${usuario}/status_arquivado`, st)
 
 }
 

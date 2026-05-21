@@ -116,7 +116,7 @@ async function telaClientes() {
     const colunas = {
         'Check': {},
         'CPF/CNPJ': { chave: 'cnpj' },
-        'Empresa': { chave: 'snapshots.empresa' },
+        'Empresa': { chave: 'nomeEmpresa' },
         'Nome Fantasia': { chave: 'nome' },
         'Endereço Cadastro': { chave: 'snapshots.enderecoCadastro' },
         'Comentário': { chave: 'comentario' },
@@ -134,7 +134,15 @@ async function telaClientes() {
     const tabela = await modTab({
         pag: 'clientes',
         colunas,
-        filtros: {},
+        substituicoes: [
+            {
+                path: 'empresa',
+                tabela: 'empresas',
+                campoBusca: 'id',
+                retorno: 'nome',
+                destino: 'nomeEmpresa'
+            }
+        ],
         funcaoAdicional: ['contarPorTagCliente'],
         body: 'bodyClientes',
         btnExtras,
@@ -203,7 +211,7 @@ async function filtrarPorTag(tag) {
 function criarLinhaClienteGCS(cliente) {
 
     const idCliente = cliente.id
-    const { nome, cnpj, tags, comentario } = cliente
+    const { nome, cnpj, tags, comentario, nomeEmpresa } = cliente
     const enderecoEntrega = cliente.enderecoEntrega ?? {}
 
     const modelo = ({ endereco, bairro, cep, cidade, estado }) => {
@@ -237,7 +245,7 @@ function criarLinhaClienteGCS(cliente) {
         </td>
         <td style="white-space: nowrap;">${cnpj || ''}</td>
         <td>
-            <span>${cliente?.snapshots?.empresa || ''}</span>
+            <span>${nomeEmpresa || ''}</span>
         </td>
         <td>
             <div style="${vertical}; gap: 2px;">
