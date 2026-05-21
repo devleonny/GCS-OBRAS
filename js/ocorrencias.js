@@ -1875,9 +1875,7 @@ async function auxPendencias() {
 
 async function atalhoTipo(cod) {
 
-    controles.ocorrencias.filtros = {
-        tipo: { op: '=', value: cod }
-    }
+    controles.ocorrencias.filtros.tipo = { op: '=', value: cod }
 
     if (document.querySelector('.tela-ocorrencias'))
         await paginacao()
@@ -1903,7 +1901,10 @@ async function atalhoAuxiliar(correcao) {
         }
     }
 
-    controles.ocorrencias.filtros = filtros
+    controles.ocorrencias.filtros = {
+        ...controles.ocorrencias.filtros,
+        ...filtros
+    }
 
     if (document.querySelector('.tela-ocorrencias'))
         await paginacao()
