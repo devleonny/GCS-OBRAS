@@ -85,7 +85,8 @@ async function criarLinhaComposicao(produto) {
             const valor = tabela?.historico?.[ativo]?.valor || 0
             return `
             <td>
-                <label class="label-estoque" style="color: white; background-color: ${valor > 0 ? '#4CAF50' : '#b36060'};" 
+                
+                <label class="campo-valor ${valor > 0 ? 'verde' : 'vermelho'}" 
                     ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `onclick="abrirHistoricoPrecos('${id}', '${lpu}')"` : ''}> 
                     ${dinheiro(conversor(valor))}
                 </label>
@@ -131,6 +132,8 @@ async function criarLinhaComposicao(produto) {
 }
 
 async function abrirHistoricoPrecos(codigo, tabela) {
+
+    overlayAguarde()
 
     const produto = await recuperarDado('dados_composicoes', codigo) || {}
     const linhas = []

@@ -45,7 +45,7 @@ async function telaSaldoPecas() {
             'Código': { chave: 'codigo' },
             'Descrição': { chave: 'descricao_peca' },
             'Unidade': { chave: 'unidade' },
-            'Modelo': { chave: 'modelo' }, 
+            'Modelo': { chave: 'modelo' },
             'Fabricante': { chave: 'fabricante' },
             'Sinal': {},
             'Saldo': {}
@@ -58,22 +58,40 @@ async function telaSaldoPecas() {
 
 }
 
-async function criarTabelaTecDetalhada() {
+async function criarTabelaTecDetalhada(tecnico = null, origem = null) {
+
+    overlayAguarde()
+
+    const filtros = tecnico
+        ? {
+            tecnico: { op: 'includes', value: tecnico },
+            origem: { op: '=', value: origem },
+        }
+        : {}
+
+    const titulo = tecnico
+        ? `${tecnico} | ${origem}`
+        : 'TODOS OS MOVIMENTOS'
 
     const pag = 'estoque_tecnicos'
     const tabela = await modTab({
         pag,
+        filtros,
         base: 'vw_tecnicos_movimentos',
-        btnExtras: '<span style="font-size: 1.1rem; color: white;">TODOS OS MOVIMENTOS</span>',
+        btnExtras: `<span style="font-size: 1.1rem; color: white;">${titulo}</span>`,
         colunas: {
             'Data': { chave: 'data', tipoPesquisa: 'data' },
-            'Usuário': { chave: 'usuario' },
-            'Técnicos': { chave: 'tecnico' },
-            'Ocorrência': { chave: 'id_ocorrencia' },
+            'Solicitante': { chave: 'usuario' },
+            'Técnicos': tecnico
+                ? {}
+                : { chave: 'tecnico' },
+            'Contrato': { chave: 'id_ocorrencia' },
             'Sinal': {},
             'Operação': { chave: 'operacao' },
             'Quantidade': { chave: 'quantidade' },
-            'Origem': { chave: 'origem' },
+            'Origem': tecnico
+                ? {}
+                : { chave: 'origem' },
             'Código': { chave: 'codigo' },
             'Descrição': { chave: 'descricao' }
         },
@@ -84,7 +102,14 @@ async function criarTabelaTecDetalhada() {
         criarLinha: 'criarLinhaMovimento'
     })
 
-    tela.innerHTML = `<div class="painel-saldos">${tabela}</div>`
+    const elemento = `<div class="painel-saldos">${tabela}</div>`
+
+    if (tecnico) {
+        popup({ elemento, titulo })
+    } else {
+        removerOverlay()
+        tela.innerHTML = elemento
+    }
 
     await paginacao(pag)
 
@@ -92,14 +117,14 @@ async function criarTabelaTecDetalhada() {
 
 async function criarLinhaTecsResumido(tec) {
 
-    const { 
-        tecnico, 
+    const {
+        tecnico,
         codigo,
         fabricante,
         modelo,
         unidade,
-        descricao_peca, 
-        saldo_atual 
+        descricao_peca,
+        saldo_atual
     } = tec || {}
 
     const img = saldo_atual == 0

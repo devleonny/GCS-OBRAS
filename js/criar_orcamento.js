@@ -462,17 +462,17 @@ function carregarLinhaOrcamento(produto) {
 
     function criarLinha(produto) {
 
-        const { 
-            codigo, 
-            tipo, 
-            qtde, 
-            cnpj, 
-            custo, 
-            razaoSocial, 
-            custo_original, 
-            descricao, 
-            unidade, 
-            imagem 
+        const {
+            codigo,
+            tipo,
+            qtde,
+            cnpj,
+            custo,
+            razaoSocial,
+            custo_original,
+            descricao,
+            unidade,
+            imagem
         } = produto || {}
         const total = custo * qtde
         const chave = codigoMaster !== codigo
@@ -852,8 +852,7 @@ async function enviarDadosOrcamento() {
 
     const orcamentoBase = baseOrcamento()
 
-    // Unificador para dados_composições;
-    orcamentoBase.dados_composicoes = gerarDadosComposicoes(orcamentoBase.esquema_composicoes || {})
+    const { lpu_ativa, dados_orcam } = orcamentoBase || {}
 
     // Salvar o usuário na primeira vez apenas;
     if (!orcamentoBase.usuario)
@@ -862,7 +861,11 @@ async function enviarDadosOrcamento() {
     if (!orcamentoBase.dados_orcam)
         return painelClientes()
 
-    const dados_orcam = orcamentoBase.dados_orcam
+    if (['LPU FERRAMENTAS', 'LPU PEÇAS'].includes(lpu_ativa) && (!dados_orcam?.tecnico || dados_orcam.tecnico.length == 0)) {
+        await painelClientes()
+        popup({ mensagem: 'Preencha o campo técnico' })
+        return
+    }
 
     if (dados_orcam.omie_cliente == '')
         return popup({ mensagem: 'Cliente em branco' })
@@ -870,13 +873,16 @@ async function enviarDadosOrcamento() {
     if (dados_orcam.contrato == '')
         dados_orcam.contrato = 'sequencial'
 
-    // Se totais diferentes: aprovação será necessária;
-    orcamentoBase.aprovacao = orcamentoBase.total_bruto !== orcamentoBase.total_geral
+    // Se tiver desconto: total bruto > total_geral: aprovação será necessária;
+    orcamentoBase.aprovacao = orcamentoBase.total_bruto > orcamentoBase.total_geral
         ? { status: 'pendente', usuario: acesso.usuario }
         : null
 
+    // Unificador para dados_composições;
+    orcamentoBase.dados_composicoes = gerarDadosComposicoes(orcamentoBase.esquema_composicoes || {})
+
     const { origem, ...orcamentoFinal } = orcamentoBase // Origem não precisa continuar no objeto;
-    if(!orcamentoBase?.id) 
+    if (!orcamentoBase?.id)
         orcamentoBase.id = crypto.randomUUID()
 
     const { success, contrato } = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoFinal) || {}
@@ -900,16 +906,14 @@ async function enviarDadosOrcamento() {
             }
 
             // Criação da correção;
-            const agora = new Date()
             const correcao = {
-                data: agora.toLocaleString(),
+                data: new Date().toLocaleString(),
                 datas: {},
                 descricao: `Orçamento criado ${contrato || ''}`,
                 dtCorrecao: new Date().toISOString().slice(0, 10),
                 equipamentos: {},
                 executor: [dados_orcam?.executor],
                 tipoCorrecao: 'WiGZl',
-                idOrcamento: orcamentoBase.id,
                 usuario: acesso.usuario
             }
 
@@ -1152,7 +1156,7 @@ function linhasComposicoesOrcamento(produto) {
         <td>
             <div style="${horizontal}; gap: 1px;">
                 ${sinalizacao}
-                <label class="campo-valor" style="width: max-content; background-color: ${preco > 0 ? '#4CAF50bf' : '#b36060bf'}">
+                <label class="campo-valor ${preco > 0 ? 'verde' : 'vermelho'}">
                     ${dinheiro(preco)}
                 </label>
             </div>

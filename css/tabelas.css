@@ -36,7 +36,7 @@
 }
 
 .tabela td {
-    vertical-align: top;
+    vertical-align: middle;
     text-align: start;
     padding: 8px;
     overflow: hidden;

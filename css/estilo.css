@@ -636,9 +636,9 @@ input:focus {
 }
 
 .botaoImg span {
+    padding: 0 5px;
     color: #247eff;
     font-size: 1.1rem;
-    font-weight: bold;
 }
 
 .botaoImg:hover {

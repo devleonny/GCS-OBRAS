@@ -613,6 +613,14 @@ async function telaOcorrencias() {
         relacionados: [
             {
                 path: 'id',
+                campoBusca: 'dados_orcam.contrato',
+                tabela: 'dados_orcamentos',
+                destino: 'orcamento',
+                tipo: 'objeto',
+                camposRetorno: ['dados_orcam']
+            },
+            {
+                path: 'id',
                 campoBusca: 'contrato',
                 tabela: 'vw_orcamentos_vinculados',
                 destino: 'vinculados',
@@ -688,6 +696,9 @@ async function abrirAtalhosContrato(contrato) {
         }
     })
 
+    if (!orcs.resultados.length)
+        return popup({ mensagem: 'Sem orçamento, ou orçamento excluído: verifique com o suporte ou crie um orçamento' })
+
     const { id } = orcs.resultados[0] // Primeiro;
 
     await abrirAtalhos(id)
@@ -705,8 +716,11 @@ function criarLinhaOcorrencia(ocorrencia) {
         id_antigo,
         snapshots,
         equipamentos,
-        vinculados
+        vinculados,
+        orcamento
     } = ocorrencia || {}
+
+    const { dados_orcam } = orcamento || {}
 
     const {
         sistema,
@@ -746,6 +760,13 @@ function criarLinhaOcorrencia(ocorrencia) {
         : ''
 
     const btnOS = `<div class="botaoImg" onclick="telaOS('${id}')"><span>OS</span></div>`
+
+    const btsFP = dados_orcam?.tecnico
+        ? `
+        <div class="botaoImg" onclick="criarTabelaTecDetalhada('${dados_orcam?.tecnico[0]}', 'Ferramentas')"><span>FERRAMENTAS</span></div>
+        <div class="botaoImg" onclick="criarTabelaTecDetalhada('${dados_orcam?.tecnico[0]}', 'Kit')"><span>PEÇAS</span></div>
+    `
+        : ''
 
     const modeloCampos = (valor1, valor2) => {
         if (!valor2)
@@ -799,6 +820,7 @@ function criarLinhaOcorrencia(ocorrencia) {
             ${btnEditar}
             ${btnExclusao}
             ${btnOS}
+            ${btsFP}
 
             <div style="border: solid 1px ${corAssinatura}; border-radius: 3px; padding: 2px; background-color: ${corAssinatura}52;" 
             onclick="coletarAssinatura('${id}')">
