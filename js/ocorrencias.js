@@ -646,25 +646,6 @@ async function telaOcorrencias() {
 
     tela.innerHTML = acumulado
 
-    // Filtros especiais para Técnico e Cliente;
-    if (acesso.permissao == 'técnico') {
-
-        controles.ocorrencias.filtros = {
-            'snapshots.ultimoExecutor.*.executor': { op: '=', value: acesso.usuario },
-            'correcoes.*.tipoCorrecao': [
-                { op: '!=', value: 'WRuo2' },
-                { op: '!=', value: '4sGzb' }
-            ],
-        }
-
-    } else if (acesso.permissao == 'cliente') {
-
-        controles.ocorrencias.filtros = {
-            'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa },
-        }
-
-    }
-
     await paginacao('ocorrencias')
 
     removerOverlay()
@@ -1797,28 +1778,8 @@ async function auxPendencias() {
     controles.ocorrencias ??= {}
     controles.ocorrencias.filtros ??= {}
 
-    let filtros = {}
-
-    if (acesso.permissao == 'técnico') {
-        filtros = {
-            'correcoes.*.tipoCorrecao': [
-                { op: '!=', value: 'WRuo2' },
-                { op: '!=', value: '4sGzb' }
-            ],
-            'snapshots.ultimoExecutor.*.executor': { op: '=', value: acesso.usuario }
-        }
-
-    } else if (acesso.permissao == 'cliente') {
-
-        filtros = {
-            'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa }
-        }
-
-    }
-
     const contadores = await contarPorCampo({
         base: 'dados_ocorrencias',
-        filtros,
         path: 'snapshots.ultimaCorrecao'
     })
 

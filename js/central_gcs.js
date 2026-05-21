@@ -174,15 +174,9 @@ function maisAba() {
     window.open(window.location.href, '_blank', 'toolbar=no, menubar=no');
 }
 
-async function mudarStatus(select) {
+async function mudarStatus(usuario, select) {
 
-    const st = select.value
-
-    const img = document.querySelector('[name="imgStatus"]')
-
-    img.src = `imagens/${st}.png`
-
-    await alterarUsuario({ campo: 'status', valor: st, usuario: acesso.usuario })
+    await enviar(`dados_setores/${usuario}/status`, select.value)
 
 }
 
@@ -311,14 +305,13 @@ async function salvarUsuario(usuario) {
 
     const painel = document.querySelector('.painel-padrao')
 
-    await Promise.all(
-        campos.map(campo => {
-            const el = painel.querySelector(`[name="${campo}"]`)
-            const valor = el?.value || el?.id
+    const dados = {
+        permissao: painel.querySelector('[name="permissao"]').value,
+        setor: painel.querySelector('[name="setor"]').value,
+        empresa: painel.querySelector('[name="empresa"]')?.id || null,
+    }
 
-            return comunicacaoServ({ usuario, campo, valor })
-        })
-    )
+    await enviar(`dados_setores/${usuario}`, dados)
 
     removerPopup()
 }
@@ -361,22 +354,6 @@ async function configs() {
     popup({ elemento, titulo: 'Configurações' })
 
     await paginacao()
-
-}
-
-async function alterarUsuario({ campo, usuario, select, valor }) {
-
-    valor = select
-        ? select.value
-        : valor
-
-    const alteracao = await comunicacaoServ({ usuario, campo, valor }) // Se alterar no servidor, altera localmente;
-
-    if (!alteracao?.success) {
-        popup({ mensagem: `Não foi possível alterar: ${alteracao?.mensagem || 'Tente novamente mais tarde'}`, })
-        if (select)
-            select.value = dados_setores[usuario][campo] // Devolve a informação anterior pro elemento;
-    }
 
 }
 
@@ -532,8 +509,8 @@ function criarLinhaPainelUsuarios(dados) {
             statusOpcoes.push('Invisível')
 
         gerenciarStatus = `
-            <select class="opcoesSelect" onchange="mudarStatus(this)">
-                ${statusOpcoes.map(op => `<option ${acesso?.status == op ? 'selected' : ''}>${op}</option>`).join('')}
+            <select class="opcoesSelect" onchange="mudarStatus('${usuario}', this)">
+                ${statusOpcoes.map(op => `<option ${status == op ? 'selected' : ''}>${op}</option>`).join('')}
             </select>`
     }
 

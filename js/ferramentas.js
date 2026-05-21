@@ -370,36 +370,6 @@ function ID5digitos() {
     return id;
 }
 
-async function configuracoes(usuario, campo, valor) {
-
-    const resposta = comunicacaoServ({ usuario, campo, valor })
-
-    if (resposta.mensagem)
-        return popup({ mensagem: resposta.mensagem })
-
-}
-
-async function comunicacaoServ({ usuario, campo, valor }) {
-    return new Promise((resolve, reject) => {
-        fetch(`${api}/configuracoes`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ usuario, campo, valor })
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`)
-                }
-                return response.json()
-            })
-            .then(data => {
-                resolve(data)
-            })
-            .catch(err => {
-                reject(err)
-            })
-    })
-}
 
 function deslogarUsuario() {
 

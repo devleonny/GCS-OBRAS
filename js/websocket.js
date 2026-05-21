@@ -161,33 +161,6 @@ async function comunicacao() {
             if (tabela == 'lista_pagamentos')
                 await atualizarPainelEsquerdo()
 
-            if (tabela == 'dados_setores') {
-                const { usuario, permissao, empresa, timestamp = 0, token = null } = JSON.parse(localStorage.getItem('acesso')) || {}
-                const us = await recuperarDado('dados_setores', usuario)
-
-                if (us?.timestamp !== timestamp) {
-
-                    localStorage.setItem('acesso', JSON.stringify({ ...us, token }))
-
-                    // Alteração de dados em andamento;
-                    const msgExistente = document.getElementById('mensagem_reset_usuario')
-                    if (msgExistente)
-                        return
-
-                    if (us.permissao !== permissao || us.empresa !== empresa) {
-
-                        popup({ mensagem: '<b id="mensagem_reset_usuario">Seu acesso foi alterado:</b> Salve seus trabalhos, o sistema será reiniciado em 5 minutos...' })
-
-                        setTimeout(() => {
-                            location.reload()
-                        }, 5 * 60 * 1000)
-
-                        await usuariosToolbar()
-                    }
-
-                }
-
-            }
         }
 
         if (tipo == 'status') {
