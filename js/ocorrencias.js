@@ -578,7 +578,18 @@ function visibilidadeFiltros(painel, mostrar) {
 
 function visibilidadePesquisas() {
     const painel = document.querySelector('.painel-filtros')
-    painel.classList.toggle('visibilidade')
+    if (!painel) return
+
+    const oculto = painel.classList.toggle('visibilidade')
+    localStorage.setItem('painel_filtros_oculto', oculto ? 'sim' : 'nao')
+}
+
+function lembrarVisibilidadePesquisas() {
+    const painel = document.querySelector('.painel-filtros')
+    if (!painel) return
+
+    const oculto = localStorage.getItem('painel_filtros_oculto') === 'sim'
+    painel.classList.toggle('visibilidade', oculto)
 }
 
 async function telaOcorrencias() {
@@ -645,6 +656,8 @@ async function telaOcorrencias() {
         </div>`
 
     tela.innerHTML = acumulado
+
+    lembrarVisibilidadePesquisas()
 
     await paginacao('ocorrencias')
 
@@ -743,10 +756,7 @@ function criarLinhaOcorrencia(ocorrencia) {
     const btnOS = `<div class="botaoImg" onclick="telaOS('${id}')"><span>OS</span></div>`
 
     const btsFP = dados_orcam?.tecnico
-        ? `
-        <div class="botaoImg" onclick="criarTabelaTecDetalhada('${dados_orcam?.tecnico[0]}', 'Ferramentas')"><span>FERRAMENTAS</span></div>
-        <div class="botaoImg" onclick="criarTabelaTecDetalhada('${dados_orcam?.tecnico[0]}', 'Kit')"><span>PEÇAS</span></div>
-    `
+        ? `<div class="botaoImg" onclick="abrirResumo('${dados_orcam?.tecnico[0]}')"><span>SALDOS</span></div>`
         : ''
 
     const modeloCampos = (valor1, valor2) => {
@@ -2145,6 +2155,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
     await maisUsuario(executor, 'executores')
     await maisUsuario(tecnico, 'tecnicos')
     await verificarConflitos()
+    await verificarSaldos()
 
     visibilidadeFotos()
 
@@ -2226,6 +2237,7 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
         base: 'dados_composicoes',
         retornar: ['descricao'],
         btnExtras,
+        funcaoAdicional: ['verificarSaldos'],
         filtros: {
             'tipo': { op: '!=', value: 'SERVIÇO' }
         },
@@ -2248,7 +2260,7 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
                 <label>Origem</label>
                 ${['Kit', 'Ferramentas', 'Parceiro', 'Matriz', 'Compra Região'].map(o => `
                     <div style="${horizontal}; gap: 1rem;">
-                        <input name="origem_${temporario}" data-origem="${o}" type="radio" ${origem == o ? 'checked' : ''}>
+                        <input onchange="verificarSaldos()" name="origem_${temporario}" data-origem="${o}" type="radio" ${origem == o ? 'checked' : ''}>
                         <label style="text-align: left;">${o}</label>
                     </div>
                     `).join('')}
@@ -2262,7 +2274,7 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
             <div name="equipamentos" style="${horizontal}; align-items: start; gap: 1rem;">
                 <div style="${vertical};">
                     <label>Quantidade</label>
-                    <input id="quantidade" data-anterior="${quantidade || 0}" oninput="multiplicarCampoSerie(this)" style="width: 7rem;" class="campos" type="number" value="${quantidade || ''}">
+                    <input id="quantidade" data-codigo="${codigo}" data-anterior="${quantidade || 0}" oninput="multiplicarCampoSerie(this); verificarSaldos()" style="width: 7rem;" class="campos" type="number" value="${quantidade || ''}">
                 </div>
                 <div style="${vertical};">
                     <label>Nº série</label>
@@ -2341,6 +2353,10 @@ async function verificarConflitos() {
             const pesquisa = await pesquisarDB({
                 base: 'vw_tecnicos',
                 filtros: {
+                    ultimaCorrecao: {
+                        op: '!=',
+                        value: 'SOLUCIONADA'
+                    },
                     tecnico: {
                         op: '=',
                         value: tecnico
@@ -2356,13 +2372,15 @@ async function verificarConflitos() {
                 }
             })
 
-            if (pesquisa.resultados.length > 0) {
+            const dtCorrecaoMaisAntiga = obterDataMaisAntiga(pesquisa.resultados) // Retorna null para resultados vazios;
+
+            if (dtCorrecaoMaisAntiga) {
                 const funcao = `telaAgenda(
                     {
                         flutuante: true,
                         filtros: {
                             tecnico: '${tecnico}',
-                            dtCorrecao: '${dtCorrecao}'}
+                            dtCorrecao: '${dtCorrecaoMaisAntiga}'}
                     })`
                 span.parentElement.insertAdjacentHTML('beforeend', alerta(funcao, tecnico))
             }
@@ -2373,13 +2391,30 @@ async function verificarConflitos() {
 
 }
 
-function removerAlertas() {
+function obterDataMaisAntiga(array) {
+
+    const datasValidas = array
+        .map(item => item.dtCorrecao)
+        .filter(data => data)
+
+    if (datasValidas.length === 0) return null
+
+    const dataMaisAntiga = datasValidas.reduce((antiga, atual) => {
+        return (atual < antiga)
+            ? atual
+            : antiga
+    });
+
+    return dataMaisAntiga
+}
+
+function removerAlertas(identificador) {
     removerPopup()
-    for (const img of [...document.querySelectorAll('[name="alerta"]')])
+    for (const img of [...document.querySelectorAll(`[name="${identificador}"]`)])
         img.remove()
 }
 
-function alertaConflitos() {
+function conflitoAgenda() {
 
     const tecsConflitos = [...document.querySelectorAll('[name="alerta"]')]
         .map(img => img.dataset.tecnico)
@@ -2392,7 +2427,7 @@ function alertaConflitos() {
         popup({
             titulo: 'Conflito de agenda',
             botoes: [
-                { texto: 'Estou ciente', img: 'concluido', funcao: 'removerAlertas()' }
+                { texto: 'Estou ciente', img: 'concluido', funcao: `removerAlertas('alerta')` }
             ],
             mensagem: `Existem outros agendamentos para ${concordancia} ${tecsConflitos.join(', ')} nessas datas, tem certeza que deseja agendar?`
         })
@@ -2402,11 +2437,100 @@ function alertaConflitos() {
 
 }
 
+function conflitoKit() {
+
+    const pecasConflito = [...document.querySelectorAll('[name="alerta-saldo"]')]
+        .map(img => img.dataset.descricao)
+
+    if (pecasConflito.length > 0) {
+        popup({
+            titulo: 'Técnico sem saldo',
+            botoes: [
+                { texto: 'Estou ciente', img: 'concluido', funcao: `removerAlertas('alerta-saldo')` }
+            ],
+            mensagem: `O técnico não possui saldo de algumas peças, confirmar mesmo assim?`
+        })
+    }
+
+    return pecasConflito.length > 0
+
+}
+
+async function verificarSaldos() {
+    for (const img of [...document.querySelectorAll('[name="alerta-saldo"]')])
+        img.remove()
+
+    const tecnicos = [...document.querySelectorAll('.tecnicos span')]
+        .filter(span => span.id)
+        .map(span => span.id)
+
+    if (!tecnicos.length)
+        return
+
+    const tecnicoNum1 = tecnicos[0]
+
+    const pesquisa = await pesquisarDB({
+        base: 'vw_tecnicos_saldo',
+        filtros: {
+            origem: { op: '=', value: 'Kit' },
+            tecnico: { op: 'includes', value: tecnicoNum1 }
+        }
+    })
+
+    const saldoPecas = Object.fromEntries(
+        (pesquisa.resultados || []).map(peca => [peca.codigo, peca])
+    )
+
+    const divs = [...document.querySelectorAll('[name="equipamentos"]')]
+
+    for (const div of divs) {
+        const equip = div.querySelector('span')
+        const codigo = equip?.id || ''
+        const origem = div.querySelector('input[name^="origem_"]:checked')?.dataset.origem || ''
+        const inputQuantidade = div.querySelector('#quantidade')
+
+        const quantidade = Number(inputQuantidade?.value) || 0
+        // Se o código for diferente, então desconsidere o saldo anterior;
+        const codigoAnterior = inputQuantidade?.dataset?.codigo || 0
+        const quantidadeAnterior = codigoAnterior !== codigo
+            ? 0
+            : Number(inputQuantidade?.dataset.anterior) || 0
+
+        const itemSaldo = saldoPecas[codigo]
+        const saldoItem = Number(itemSaldo?.saldo_atual) || 0
+
+        const saldo = saldoItem + quantidadeAnterior
+        const saldoDisponivel = saldo - quantidade
+
+        if (origem === 'Kit' && quantidade > 0 && saldoDisponivel < 0) {
+            const alerta = `<img src="gifs/alerta.gif" data-descricao="${equip.textContent}" name="alerta-saldo" onclick="verSaldoTecnico('${tecnicoNum1}')">`
+            div.insertAdjacentHTML('beforeend', alerta)
+        }
+    }
+}
+
+async function verSaldoTecnico(tecnico) {
+
+    popup({
+        elemento: `
+        <div class="painel-saldos-flutuante">
+            <div id="painel_resumo"></div>
+        </div>
+        `
+    })
+
+    await telaSaldoPecas(tecnico)
+
+}
+
 async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
 
     overlayAguarde()
 
-    if (alertaConflitos())
+    if (conflitoAgenda())
+        return
+
+    if (conflitoKit())
         return
 
     const tipoCorrecao = obter('tipoCorrecao').id
@@ -2450,77 +2574,34 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
 
     // Equipamentos
     const divs = [...document.querySelectorAll('[name="equipamentos"]')]
-    const semSaldo = []
+
     const emMassa = divs
         .filter(div => div.querySelector('span')?.id)
         .map(async (div) => {
 
             const equip = div.querySelector('span')
             const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', equip.id)
-
             const inputQuantidade = div.querySelector('#quantidade')
-            const quantidadeAnterior = Number(inputQuantidade.dataset.anterior)
             const quantidade = Number(inputQuantidade.value)
             const serie = [...div.querySelectorAll('[name="serie"]')]
                 .map(input => input.value)
             const origem = div.querySelector('input[name^="origem_"]:checked')?.dataset.origem || ''
             const codigo = equip.id
 
-            // Apenas para Kit;
-            const pesquisarSaldo = origem == 'Kit'
-                ? await pesquisarDB(
-                    {
-                        base: 'vw_saldo_estoque_tecnicos',
-                        filtros: {
-                            'codigo': { op: '=', value: codigo },
-                            'tecnico': { op: 'includes', value: tecnico[0] } // Apenas o primeiro resultado;
-                        }
-                    })
-                : null
-
-            // Saldo somado a quantidade anterior, caso esteja em edição;
-            const saldo = (pesquisarSaldo?.resultados?.[0]?.saldo_atual || 0) + quantidadeAnterior
-            const saldoDisponivel = saldo - quantidade
-
-            if (false) { //origem == 'Kit' && saldoDisponivel < 0) {
-
-                semSaldo.push(`<div style="${horizontal}; justify-content: start; gap: 1rem;">
-                            <span class="saldo">${saldoDisponivel}</span>
-                            <span>${codigo} - ${descricao}</span>
-                        </div>`)
-
-            } else {
-
-                equipamentos[codigo] = {
-                    codigo,
-                    modelo,
-                    origem,
-                    serie,
-                    descricao,
-                    fabricante,
-                    quantidade,
-                    unidade
-                }
+            equipamentos[codigo] = {
+                codigo,
+                modelo,
+                origem,
+                serie,
+                descricao,
+                fabricante,
+                quantidade,
+                unidade
             }
 
         })
 
     await Promise.all(emMassa)
-
-    // Alerta ao usuário para ajuste do saldo;
-    if (semSaldo.length) {
-        const concordancia = semSaldo.length > 1
-            ? 'destes itens'
-            : 'deste item'
-
-        return popup({
-            mensagem: `
-                <div style="${vertical}; gap: 2px;">
-                    <span>O <b>${tecnico[0]}</b> ficará com o saldo negativo ${concordancia}</span>
-                    ${semSaldo.join('')}
-                </div>`
-        })
-    }
 
     // Executores;
     const executor = [...document.querySelectorAll('.executores span')]

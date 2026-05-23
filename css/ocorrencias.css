@@ -433,12 +433,11 @@
 }
 
 .painel-filtros.visibilidade {
+    z-index: -10;
     max-height: 0;
     opacity: 0;
     margin: 0;
-    /* Previne que margens deixem espaços residuais */
     padding: 0;
-    /* Previne que paddings deixem espaços residuais */
 }
 
 .detalhes-correcoes-1 {

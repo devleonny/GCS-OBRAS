@@ -196,10 +196,32 @@ async function criarElementosIniciais() {
 
 async function filtrarMinhasOcorrencias(st) {
 
-    await telaOcorrencias()
+    controles.ocorrencias ??= {}
+    controles.ocorrencias.filtros = {
+        'usuario': {
+            modo: 'OR',
+            origem: 'dropdown',
+            regras: [
+                {
+                    op: '=',
+                    value: acesso.usuario
+                }
+            ]
+        },
+        'snapshots.ultimaCorrecao': {
+            modo: 'OR',
+            origem: 'dropdown',
+            regras: [
+                {
+                    op: '=',
+                    value: st
+                }
+            ]
+        }
 
-    alternarFiltroDropdown('snapshots.ultimaCorrecao', st, true)
-    alternarFiltroDropdown('usuario', acesso.usuario, true)
+    }
+
+    await telaOcorrencias()
 
 }
 

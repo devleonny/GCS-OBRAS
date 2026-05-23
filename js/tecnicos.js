@@ -1,80 +1,119 @@
-async function telaSaldoFerramentas() {
+async function telaSaldoFerramentas(tecnico = null) {
 
-    const pag = 'tecnicosResumido'
-    const tabelaResumida = await modTab({
-        pag,
-        filtros: {
-            origem: { op: '=', value: 'Ferramentas' }
-        },
-        base: 'vw_tecnicos_saldo',
-        btnExtras: `<span style="font-size: 1.1rem; color: white;">SALDO DE FERRAMENTAS POR TÉCNICO</span>`,
-        body: 'bodyTecResumido',
-        criarLinha: 'criarLinhaTecsResumido',
-        colunas: {
-            'Técnico': { chave: 'tecnico' },
-            'Código': { chave: 'codigo' },
-            'Descrição': { chave: 'descricao_peca' },
-            'Unidade': { chave: 'unidade' },
-            'Modelo': { chave: 'modelo' },
-            'Fabricante': { chave: 'fabricante' },
-            'Sinal': {},
-            'Saldo': {}
-        }
-    })
-
-    tela.innerHTML = `<div class="painel-saldos">${tabelaResumida}</div>`
-
-    await paginacao(pag)
-
-}
-
-async function telaSaldoPecas() {
-
-    const pag = 'tecnicosResumido'
-    const tabelaResumida = await modTab({
-        pag,
-        filtros: {
-            origem: { op: '=', value: 'Kit' }
-        },
-        base: 'vw_tecnicos_saldo',
-        btnExtras: `<span style="font-size: 1.1rem; color: white;">SALDO DE PEÇAS POR TÉCNICO</span>`,
-        body: 'bodyTecResumido',
-        criarLinha: 'criarLinhaTecsResumido',
-        colunas: {
-            'Técnico': { chave: 'tecnico' },
-            'Código': { chave: 'codigo' },
-            'Descrição': { chave: 'descricao_peca' },
-            'Unidade': { chave: 'unidade' },
-            'Modelo': { chave: 'modelo' },
-            'Fabricante': { chave: 'fabricante' },
-            'Sinal': {},
-            'Saldo': {}
-        }
-    })
-
-    tela.innerHTML = `<div class="painel-saldos">${tabelaResumida}</div>`
-
-    await paginacao(pag)
-
-}
-
-async function criarTabelaTecDetalhada(tecnico = null, origem = null) {
-
-    overlayAguarde()
+    const titulo = tecnico
+        ? `SALDO DE FERRAMENTAS ${tecnico}`
+        : 'SALDO DE FERRAMENTAS POR TÉCNICO'
 
     const filtros = tecnico
         ? {
-            tecnico: { op: 'includes', value: tecnico },
-            origem: { op: '=', value: origem },
+            tecnico: { op: 'includes', value: tecnico }
         }
         : {}
 
+    const pag = 'tecnicosResumido'
+    const tabelaResumida = await modTab({
+        pag,
+        filtros: {
+            ...filtros,
+            origem: { op: '=', value: 'Ferramentas' }
+        },
+        base: 'vw_tecnicos_saldo',
+        btnExtras: `<span style="font-size: 1.1rem; color: white;">${titulo}</span>`,
+        body: 'bodyTecResumido',
+        criarLinha: 'criarLinhaTecsResumido',
+        colunas: {
+            'Técnico': {
+                ...(tecnico
+                    ? {}
+                    : { chave: 'tecnico' })
+            },
+            'Código': { chave: 'codigo' },
+            'Descrição': { chave: 'descricao_peca' },
+            'Unidade': { chave: 'unidade' },
+            'Modelo': { chave: 'modelo' },
+            'Fabricante': { chave: 'fabricante' },
+            'Sinal': {},
+            'Saldo': {}
+        }
+    })
+
+    const elemento = `<div class="painel-saldos">${tabelaResumida}</div>`
+
+    const painel_resumo = document.getElementById('painel_resumo')
+
+    if (painel_resumo)
+        painel_resumo.innerHTML = tabelaResumida
+    else
+        tela.innerHTML = elemento
+
+    await paginacao(pag)
+
+}
+
+async function telaSaldoPecas(tecnico = null) {
+
     const titulo = tecnico
-        ? `${tecnico} | ${origem}`
+        ? `SALDO DE PEÇAS ${tecnico}`
+        : 'SALDO DE PEÇAS POR TÉCNICO'
+
+    const filtros = tecnico
+        ? {
+            tecnico: { op: 'includes', value: tecnico }
+        }
+        : {}
+
+    const pag = 'tecnicosResumido'
+    const tabelaResumida = await modTab({
+        pag,
+        filtros: {
+            ...filtros,
+            origem: { op: '=', value: 'Kit' }
+        },
+        base: 'vw_tecnicos_saldo',
+        btnExtras: `<span style="font-size: 1.1rem; color: white;">${titulo}</span>`,
+        body: 'bodyTecResumido',
+        criarLinha: 'criarLinhaTecsResumido',
+        colunas: {
+            'Técnico': {
+                ...(tecnico
+                    ? {}
+                    : { chave: 'tecnico' })
+            },
+            'Código': { chave: 'codigo' },
+            'Descrição': { chave: 'descricao_peca' },
+            'Unidade': { chave: 'unidade' },
+            'Modelo': { chave: 'modelo' },
+            'Fabricante': { chave: 'fabricante' },
+            'Sinal': {},
+            'Saldo': {}
+        }
+    })
+
+    const elemento = `<div class="painel-saldos">${tabelaResumida}</div>`
+
+    const painel_resumo = document.getElementById('painel_resumo')
+
+    if (painel_resumo)
+        painel_resumo.innerHTML = tabelaResumida
+    else
+        tela.innerHTML = elemento
+
+    await paginacao(pag)
+
+}
+
+async function criarTabelaTecDetalhada(tecnico = null) {
+
+    const filtros = tecnico
+        ? { tecnico: { op: 'includes', value: tecnico } }
+        : {}
+
+    const titulo = tecnico
+        ? `Detalhamento ${tecnico}`
         : 'TODOS OS MOVIMENTOS'
 
     const pag = 'estoque_tecnicos'
-    const tabela = await modTab({
+    const tabelaResumida = await modTab({
         pag,
         filtros,
         base: 'vw_tecnicos_movimentos',
@@ -89,9 +128,7 @@ async function criarTabelaTecDetalhada(tecnico = null, origem = null) {
             'Sinal': {},
             'Operação': { chave: 'operacao' },
             'Quantidade': { chave: 'quantidade' },
-            'Origem': tecnico
-                ? {}
-                : { chave: 'origem' },
+            'Origem': { chave: 'origem' },
             'Código': { chave: 'codigo' },
             'Descrição': { chave: 'descricao' }
         },
@@ -102,14 +139,14 @@ async function criarTabelaTecDetalhada(tecnico = null, origem = null) {
         criarLinha: 'criarLinhaMovimento'
     })
 
-    const elemento = `<div class="painel-saldos">${tabela}</div>`
+    const elemento = `<div class="painel-saldos">${tabelaResumida}</div>`
 
-    if (tecnico) {
-        popup({ elemento, titulo })
-    } else {
-        removerOverlay()
+    const painel_resumo = document.getElementById('painel_resumo')
+
+    if (painel_resumo)
+        painel_resumo.innerHTML = tabelaResumida
+    else
         tela.innerHTML = elemento
-    }
 
     await paginacao(pag)
 
@@ -189,6 +226,25 @@ async function criarLinhaMovimento(movimento) {
 
 }
 
+
+async function abrirResumo(tecnico) {
+
+    const elemento = `
+        <div class="painel-saldos-flutuante">
+            <div style="${horizontal}; gap: 5px;">
+                <button onclick="telaSaldoPecas('${tecnico}')">Saldo Peças</button>
+                <button onclick="telaSaldoFerramentas('${tecnico}')">Saldo Ferramentas</button>
+                <button onclick="criarTabelaTecDetalhada('${tecnico}')">Histórico de Movimentos</button>
+            </div>
+            <div id="painel_resumo"></div>
+        </div>
+    `
+
+    popup({ elemento, titulo: `Saldos ${tecnico}` })
+
+    await telaSaldoPecas(tecnico)
+
+}
 
 // AGENDA
 function pegarSegunda(date = new Date()) {
@@ -292,6 +348,12 @@ async function criarPesquisasAgenda() {
                 <img src="imagens/pesquisar4.png">
             </div>
         </div>
+
+        <div style="${horizontal}; gap: 5px;">
+            <input onchange="carregarAgenda()" id="checkbox_solucionados" type="checkbox" style="width: 2rem; height: 2rem;">
+            <span style="color: white;">Mostrar SOLUCIONADOS</span>
+        </div>
+
         `)
 
     painelDrop.innerHTML = drops.join('')
@@ -371,11 +433,19 @@ async function carregarAgenda(filtros) {
             delete controles.agenda.filtros.Estado
     }
 
+    // Solucionados
+    const checkSolucionados = document.getElementById('checkbox_solucionados')?.checked ?? false
+
     const { resultados, total, paginas } = await pesquisarDB({
         base: 'vw_tecnicos',
         limite: 9999999,
         filtros: {
             ...controles?.agenda?.filtros,
+            ...(
+                checkSolucionados
+                    ? {}
+                    : { ultimaCorrecao: { op: '!=', value: 'SOLUCIONADA' } }
+            ),
             dtCorrecao: filtro
         }
     })
@@ -502,16 +572,25 @@ async function carregarAgenda(filtros) {
         const cells = dias.map(dt => {
             const itens = mapa.get(`${tecnico}__${dt}`) || [];
             const labels = itens.map(item => {
+
+                const { Loja, origem_id } = item || {}
                 const cor = colorFromString(item.Loja);
+                const imgConcluido = item.ultimaCorrecao == 'SOLUCIONADA'
+                    ? `<img src="imagens/concluido.png" style="width: 1.5rem;">`
+                    : ''
 
                 return `
-                    <span
-                        class="agenda-badge"
-                        onmouseenter="tooltipAgenda(this, '${encodeURIComponent(JSON.stringify(item))}')"
-                        onmouseleave="removerTooltip()"
-                        style="background:${cor.bg}; border-color:${cor.border}; color:${cor.text};">
-                                ${esc(shortLoja(item.Loja))}
-                    </span>`
+                    <div style="${horizontal}; gap: 3px; padding: 1px;">
+                         ${imgConcluido}
+                        <span
+                            class="agenda-badge"
+                            onmouseenter="tooltipAgenda(this, '${encodeURIComponent(JSON.stringify(item))}')"
+                            onmouseleave="removerTooltip()"
+                            style="background:${cor.bg}; border-color:${cor.border}; color:${cor.text};">
+                                    ${origem_id} - ${esc(shortLoja(Loja))}
+                        </span>
+                    </div>
+                    `
             }).join('')
 
             return `<td class="agenda-celula">${labels || ''}</td>`
@@ -571,7 +650,7 @@ function removerTooltip() {
 }
 
 function tooltipAgenda(elemento, dados) {
-    const { Loja, tecnico, dt, usuario, Cidade, Estado, origem_id } = JSON.parse(decodeURIComponent(dados))
+    const { Loja, tecnico, dt, usuario, Cidade, Estado, ultimaCorrecao, origem_id } = JSON.parse(decodeURIComponent(dados))
 
     const rect = elemento.getBoundingClientRect()
     const topPage = rect.top + window.scrollY
@@ -580,6 +659,7 @@ function tooltipAgenda(elemento, dados) {
     const tooltip = `
         <div class="tooltip-agenda">
             <div class="tooltip-agenda-titulo">${Loja}</div>
+            <div class="tooltip-agenda-linha"><b>Status:</b> ${ultimaCorrecao}</div>
             <div class="tooltip-agenda-linha"><b>Técnico:</b> ${tecnico}</div>
             <div class="tooltip-agenda-linha"><b>Data:</b> ${conversorData(dt)}</div>
             <div class="tooltip-agenda-linha"><b>Cidade:</b> ${Cidade}</div>

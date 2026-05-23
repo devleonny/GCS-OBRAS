@@ -261,9 +261,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
         </div>
     `
 
-    const historicoPreco = document.querySelector('.historico-preco')
-    if (historicoPreco)
-        return historicoPreco.innerHTML = acumulado
+    removerTodosPopups()
 
     popup({ elemento: `<div class="historico-preco">${acumulado}</div>`, titulo: 'Preços Cadastrados' })
 
@@ -287,11 +285,7 @@ async function confirmarCopiarPreco(codigo, lpu, idPreco, tabela) {
 
 async function salvarPrecoAtivo(codigo, idPreco, lpu) {
 
-    overlayAguarde()
-
     await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, idPreco)
-
-    removerOverlay()
 
 }
 
@@ -527,6 +521,8 @@ function modelos(produto) {
 
 async function adicionarCotacao(codigo, lpu, cotacao) {
 
+    overlayAguarde()
+
     let produto = await recuperarDado('dados_composicoes', codigo)
     const funcao = cotacao
         ? `salvarPreco('${codigo}', '${lpu}', '${cotacao}')`
@@ -572,23 +568,31 @@ async function adicionarCotacao(codigo, lpu, cotacao) {
 }
 
 function obValComp(id, valorRetorno) {
-    const el = document.getElementById(id);
+    const el = document.getElementById(id)
 
-    if (!el) return '';
+    if (!el)
+        return ''
 
     if (valorRetorno !== undefined) {
+
         if ('value' in el) {
-            el.value = valorRetorno;
+            el.value = typeof (valorRetorno) == 'string'
+                ? conversor(valorRetorno)
+                : valorRetorno
         } else {
-            el.textContent = valorRetorno;
+            el.textContent = valorRetorno
         }
-        return;
+        return
     }
 
-    let valor = 'value' in el ? el.value : el.textContent;
-    if (el.type === 'number') valor = conversor(Number(valor));
+    let valor = 'value' in el
+        ? el.value
+        : el.textContent
 
-    return valor;
+    if (el.type === 'number')
+        valor = Number(valor)
+
+    return valor
 }
 
 function calcular(campo, dadosCalculo = null) {
@@ -771,7 +775,7 @@ function calcular(campo, dadosCalculo = null) {
 
 }
 
-async function salvarPreco(codigo, lpu, cotacao) {
+async function salvarPreco(codigo, lpu, cotacao = crypto.randomUUID()) {
 
     overlayAguarde()
 
@@ -782,8 +786,6 @@ async function salvarPreco(codigo, lpu, cotacao) {
 
     if (produto.tipo == 'VENDA' && icmsSaida !== '20,5%')
         return popup({ mensagem: 'ICMS de saída por segurança não pode ser menor que <b>20,5%</b>.', titulo: 'ICMS de Saída bloqueado' })
-
-    cotacao = cotacao || ID5digitos()
 
     historico[cotacao] = {
         valor: obValComp('preco_venda'),
@@ -799,7 +801,7 @@ async function salvarPreco(codigo, lpu, cotacao) {
         icms_creditado_select: obValComp('icms_creditado_select'),
         modalidade_icms: obValComp('modalidade_icms_select'),
         icms_saida: conversor(obValComp('icms_saida'))
-    };
+    }
 
     // Verificar antes se a porcentagem é aceitável;
     const permitidos = ['adm', 'diretoria']

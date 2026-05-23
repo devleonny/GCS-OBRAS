@@ -59,6 +59,9 @@ function criarMapa({ apenasMapa, path, pag } = {}) {
 function auxMapa(dados = {}) {
     const svg = document.getElementById("mapaOverlay")
 
+    if (!svg)
+        return
+
     svg.querySelectorAll(".overlay-estado").forEach(el => el.remove())
 
     for (const [estado, total] of Object.entries(dados)) {
