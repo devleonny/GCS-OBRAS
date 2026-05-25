@@ -502,7 +502,7 @@ async function salvarAnexosCorrecoes(input, idOcorrencia, idCorrecao) {
     } catch (err) {
         popup({ mensagem: err.message || 'Falha ao anexas arquivos, tente novamente em breve' })
     }
-    
+
 }
 
 async function reagendarCorrecao(idOcorrencia, idCorrecao) {
@@ -1089,6 +1089,7 @@ async function linRequisicoes(req) {
     const {
         data,
         comentario,
+        avulso = 'N',
         id,
         executor,
         fotos,
@@ -1115,6 +1116,7 @@ async function linRequisicoes(req) {
 
             <div class="bloco-status-interno" style="background-color: ${cor}1f;">
                 ${excluir}
+                ${avulso == 'S' ? '<span><b>REQ AVULSA</b></span>' : ''}
                 ${labelDestaque('Executor', executor)}
                 ${labelDestaque('Data', data)}
                 ${labelDestaque('Comentário', comentario)}
@@ -1125,7 +1127,6 @@ async function linRequisicoes(req) {
                 ${botaoAnexoStatus({ id, tabela, cor })}
                 ${botaoFotoStatus({ id, tabela, cor })}
                 ${botaoEditarStatus({ id, cor, funcao: `formularioRequisicao('${id}')` })}
-
 
                 <div style="background-color: ${cor};" 
                     class="contorno-botoes" onclick="gerarPdfRequisicao('${id}', true)">

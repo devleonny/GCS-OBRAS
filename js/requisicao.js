@@ -43,6 +43,7 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
     const dadosRequisicao = await recuperarDado('requisicoes', id) || {}
     const { pedido } = await recuperarDado('pedidos', dadosRequisicao?.pedido) || {}
     const {
+        avulso = 'N',
         volumes,
         comentario,
         transportadora,
@@ -131,16 +132,30 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
             ...dados
         }))
 
-    const btnExtras = `<button class="etiqueta-chamado" onclick="mudarParaAvulso()">Requisição AVULSA</button>`
+    const btnExtras = `
+        <div id="painelAvulso">
+            <button class="etiqueta-chamado" onclick="mudarParaAvulso(true)">Requisição AVULSA</button>
+        </div>
+        `
 
     const tabela = await modTab({
         base,
-        //btnExtras,
+        btnExtras,
         pag: 'requisicao',
         id,
+        lpu_ativa: orcamento?.lpu_ativa,
         funcaoAdicional: ['calcularRequisicao'],
         body: 'bodyRequisicao',
         colunas,
+        substituicoes: [
+            {
+                path: 'codigo',
+                campoBusca: 'codigo',
+                tabela: 'dados_composicoes',
+                retorno: 'omie',
+                destino: 'omie'
+            }
+        ],
         criarLinha: 'criarLinhaRequisicao'
     })
 
@@ -187,16 +202,93 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
 
     popup({ elemento, cor: 'white', titulo: 'Requisição', autoDestruicao: ['requisicao'] })
 
+    if (avulso == 'S')
+        await mudarParaAvulso()
+    else
+        await paginacao('requisicao')
+
+}
+
+async function mudarParaAvulso(removerBase) {
+
+    if (removerBase)
+        controles.requisicao.base = []
+
+    await paginacao('requisicao')
+
+    const painelAvulso = document.getElementById('painelAvulso')
+
+    painelAvulso.innerHTML = `<button class="etiqueta-chamado" onclick="adicionarLinhaAvulso()">Adicionar Linha</button>`
+
+}
+
+async function adicionarLinhaAvulso() {
+
+    const existeNovo = controles.requisicao.base
+        .some(item => item.codigo == 'novo')
+
+    if (existeNovo)
+        return
+
+    controles.requisicao.avulso = 'S'
+
+    controles.requisicao.base.push({
+        codigo: 'novo'
+    })
+
     await paginacao('requisicao')
 
 }
 
-      
+async function atualizarItem() {
+    const codigo = document.querySelector('[name="novo"]')?.id
 
+    if (!codigo)
+        return
+
+    const lpu = String(controles?.requisicao?.lpu_ativa).toLowerCase()
+    const { descricao, imagem, snapshots, modelo, fabricante, unidade, tipo } =
+        await recuperarDado('dados_composicoes', codigo)
+
+    const custo = snapshots?.[lpu]?.[0] || 0
+
+    const novo = {
+        imagem,
+        avulso: true,
+        custo,
+        descricao,
+        modelo,
+        fabricante,
+        unidade,
+        tipo,
+        codigo
+    }
+
+    controles.requisicao.base = controles.requisicao.base
+        .filter(item => item.codigo !== 'novo')
+
+    controles.requisicao.base.push(novo)
+
+    await paginacao('requisicao')
+}
 
 async function criarLinhaRequisicao(item) {
 
-    const { imagem, codigo, custo, origem, tipo, adicionais, custo_original, desconto, descricao, qtde_enviar = 0, qtde } = item || {}
+    const {
+        imagem,
+        avulso = null,
+        codigo,
+        custo,
+        origem,
+        tipo,
+        adicionais,
+        custo_original,
+        desconto,
+        descricao,
+        omie,
+        qtde_enviar = 0,
+        qtde
+    } = item || {}
 
     // Tipo desconto vem por padrão em dinheiro;
     // No caso de acréscimo a chave "custo" já vem no valor final;
@@ -214,10 +306,43 @@ async function criarLinhaRequisicao(item) {
             ? '<img src="imagens/down.png" style="width: 1.5rem;">'
             : ''
 
-    const { omie } = await recuperarDado('dados_composicoes', codigo) || {}
+    let descricaoFinal = null
+
+    if (codigo == 'novo') {
+
+        const lpu = controles?.requisicao?.lpu_ativa
+            ? String(controles?.requisicao?.lpu_ativa).toLowerCase()
+            : null
+
+        controlesCxOpcoes['novo'] = {
+            base: 'dados_composicoes',
+            retornar: ['descricao'],
+            funcaoAdicional: ['atualizarItem'],
+            ...(
+                lpu ? { filtros: { [`snapshots.${lpu}.0`]: { op: '!=', value: 0 } } } : {}
+            ),
+            colunas: {
+                'Código': { chave: 'codigo' },
+                'Descrição': { chave: 'descricao' },
+                'Modelo': { chave: 'modelo' },
+                'Fabricante': { chave: 'fabricante' },
+                ...(
+                    lpu ? { 'Valor': { chave: `snapshots.${lpu}.1` } } : {}
+                )
+            }
+        }
+
+        descricaoFinal = `<span class="opcoes" name="novo" onclick="cxOpcoes('novo')">Selecione</span>`
+
+    } else {
+        descricaoFinal = `<span>${descricao || ''}</span>`
+    }
 
     const linhaPrincipal = `
-        <tr data-codigo="${codigo}">
+        <tr 
+            data-avulso=${avulso ? 'S' : 'N'} 
+            ${codigo !== 'novo' ? `data-codigo="${codigo}"` : ''}>
+            
             <td>
                 <img src="${imagem || logo}">
             </td>
@@ -230,10 +355,10 @@ async function criarLinhaRequisicao(item) {
             <td>
                 <div style="${horizontal}; justify-content: space-between; min-width: 200px; gap: 1rem;">
                     <div style="${vertical}; gap: 2px;">
-                        <label><strong>DESCRIÇÃO</strong></label>
-                        <label style="text-align: left;">${descricao || ''}</label>
+                        <label><b>DESCRIÇÃO</b></label>
+                        ${descricaoFinal}
                     </div>
-                    <img src="imagens/construcao.png" onclick="abrirAdicionais('${codigo}')">
+                    ${codigo ? `<img src="imagens/construcao.png" onclick="abrirAdicionais('${codigo}')">` : ''}
                 </div>
             </td>
             <td>
@@ -259,12 +384,12 @@ async function criarLinhaRequisicao(item) {
             </td>
 
             <td style="white-space: nowrap;" name="unitarioBruto">
-                ${dinheiro(unitario)}
+                ${dinheiro(unitario || 0)}
             </td>
             <td style="white-space: nowrap;" name="totalBruto"></td>
 
             <td style="white-space: nowrap;" name="custo">
-                ${dinheiro(unitarioFinal)}
+                ${dinheiro(unitarioFinal || 0)}
             </td>
             <td>
                 <div style="${horizontal}; gap: 1rem;"> 
@@ -417,11 +542,12 @@ async function calcularRequisicao() {
             .map(r => Number(r?.requisicao?.[codigo]?.qtde_enviar || 0))
             .reduce((soma, valor) => soma + valor, 0)
 
+        const avulso = linha.dataset.avulso == 'S'
         const qtdeOrcamento = conversor(linha.querySelector('[name="qtde_orcamento"]').textContent)
         const quantidadeRestante = qtdeOrcamento - totalExistente
         const campoQtde = linha.querySelector('[name="qtde"]')
 
-        if (Number(campoQtde.value) > quantidadeRestante)
+        if (!avulso && Number(campoQtde.value) > quantidadeRestante)
             campoQtde.value = quantidadeRestante
 
         const custo = conversor(linha.querySelector('[name="custo"]').textContent)
@@ -467,6 +593,7 @@ async function salvarRequisicao(id) {
 
         const dados = {
             ...requisicao,
+            avulso: controles?.requisicao?.avulso || 'N',
             departamento,
             executor: acesso.usuario,
             data: new Date().toLocaleString(),
