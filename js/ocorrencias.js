@@ -440,6 +440,16 @@ function carregarCorrecoes(ocorrencia) {
 
                     <div style="${horizontal}; gap: 2px; padding: 0.5rem;"> 
                         ${edicao}
+                        <img 
+                            src="imagens/anexo.png"
+                            style="cursor:pointer;"
+                            onclick="document.getElementById('inputArquivos_${idCorrecao}').click()">
+                        <input
+                            type="file"
+                            id="inputArquivos_${idCorrecao}"
+                            multiple
+                            style="display:none;"
+                            onchange="salvarAnexosCorrecoes(this, '${idOcorrencia}', '${idCorrecao}')">
                     </div>
 
                     <div style="${vertical}; padding: 0.5rem;">
@@ -466,6 +476,33 @@ function carregarCorrecoes(ocorrencia) {
 
     return { correcoes: acumulado, vazio: divsCorrecoes.length == 0 }
 
+}
+
+async function salvarAnexosCorrecoes(input, idOcorrencia, idCorrecao) {
+
+    try {
+
+        overlayAguarde()
+
+        if (!input || !input.files || input.files.length === 0)
+            return
+
+        const anexos = await importarAnexos({ input })
+
+        const emMassa = anexos.map(async (anexo) => {
+
+            enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}/anexos/${crypto.randomUUID()}`, anexo)
+
+        })
+
+        await Promise.all(emMassa)
+
+        removerOverlay()
+
+    } catch (err) {
+        popup({ mensagem: err.message || 'Falha ao anexas arquivos, tente novamente em breve' })
+    }
+    
 }
 
 async function reagendarCorrecao(idOcorrencia, idCorrecao) {
@@ -1872,10 +1909,7 @@ async function atalhoAuxiliar(correcao) {
         }
     }
 
-    controles.ocorrencias.filtros = {
-        ...controles.ocorrencias.filtros,
-        ...filtros
-    }
+    controles.ocorrencias.filtros = filtros
 
     if (document.querySelector('.tela-ocorrencias'))
         await paginacao()

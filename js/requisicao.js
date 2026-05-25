@@ -131,8 +131,11 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
             ...dados
         }))
 
+    const btnExtras = `<button class="etiqueta-chamado" onclick="mudarParaAvulso()">Requisição AVULSA</button>`
+
     const tabela = await modTab({
         base,
+        //btnExtras,
         pag: 'requisicao',
         id,
         funcaoAdicional: ['calcularRequisicao'],
@@ -187,6 +190,9 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
     await paginacao('requisicao')
 
 }
+
+      
+
 
 async function criarLinhaRequisicao(item) {
 
