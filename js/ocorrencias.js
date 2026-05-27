@@ -331,9 +331,9 @@ function carregarCorrecoes(ocorrencia) {
     }
 
     const idOcorrencia = ocorrencia.id
-    const { correcoes } = ocorrencia || {}
-
-    const divsCorrecoes = []
+    const { correcoes, snapshots } = ocorrencia || {}
+    const { abas } = snapshots || {}
+    const divsCorrecoesPorAba = { geral: [] }
 
     // Organizado com a última correção primeiro;
     const correcoesOrganizadas = Object.entries(correcoes || {})
@@ -342,6 +342,7 @@ function carregarCorrecoes(ocorrencia) {
     for (const [idCorrecao, correcao] of correcoesOrganizadas) {
 
         const {
+            aba = 'geral',
             equipamentos,
             idOrcamento,
             data,
@@ -406,7 +407,10 @@ function carregarCorrecoes(ocorrencia) {
             ? dtFormatada(dtCorrecaoFinal)
             : null
 
-        divsCorrecoes.push(`
+        // Organização por aba;
+        divsCorrecoesPorAba[aba] ??= []
+
+        divsCorrecoesPorAba[aba].push(`
             <div class="detalhes-correcoes-1">
 
                 <div style="${vertical}; width: 90%; padding: 0.5rem;">
@@ -463,19 +467,68 @@ function carregarCorrecoes(ocorrencia) {
         )
     }
 
-    const btnCorrecao = acesso.permissao !== 'cliente'
-        ? `<button style="background-color: #e47a00;" onclick="formularioCorrecao('${idOcorrencia}')">Incluir Correção</button>`
-        : ''
+    const abasHTML = [... new Set(Object.values(correcoes || {})
+        .map(c => {
+            const aba = c?.aba || 'geral'
+            const st = abas?.[aba]?.nome
+            return `<div 
+                id="aba_${idOcorrencia}_${aba}" 
+                onclick="exibirAba('${idOcorrencia}', '${aba}')" 
+                style="opacity: ${aba == 'geral' ? 1 : 0.5};"
+                class="aba-correcao">${formatacaoTipoCorrecao(st)}</div>`
+        })
+    )]
+
+    const detalhamentos = Object.entries(divsCorrecoesPorAba)
+        .map(([aba, corrHTML]) => abaCorrecao({ idOcorrencia, aba, corrHTML }))
 
     const acumulado = `
-        ${btnCorrecao}
-        <div class="detalhamento-correcoes">
-            ${divsCorrecoes.join('')}
+        
+        <div class="toolbar-correcao">
+            ${abasHTML.join('')}
+            ${correcoes ? `<button onclick="formularioCorrecao('${idOcorrencia}', null, 'S')">Novo fluxo</button>` : ''}
         </div>
+
+        <div style="width: 100%;" id="detalhamento_${idOcorrencia}">
+            ${detalhamentos.join('')}
+        </div>
+
     `
 
-    return { correcoes: acumulado, vazio: divsCorrecoes.length == 0 }
+    return { correcoes: acumulado }
 
+}
+
+function exibirAba(idOcorrencia, aba) {
+
+    const detalhamentos = [...document.querySelectorAll(`[id^="${idOcorrencia}_"]`)]
+
+    for (const det of detalhamentos)
+        det.style.display = 'none'
+
+    const abas = [...document.querySelectorAll(`[id^="aba_${idOcorrencia}_"]`)]
+
+    for (const aba of abas)
+        aba.style.opacity = 0.5
+
+    document.getElementById(`${idOcorrencia}_${aba}`).style.display = ''
+    document.getElementById(`aba_${idOcorrencia}_${aba}`).style.opacity = 1
+
+}
+
+function abaCorrecao({ idOcorrencia, aba = crypto.randomUUID(), corrHTML = [] }) {
+
+    const btnCorrecao = acesso.permissao !== 'cliente'
+        ? `<button class="botao-correcao" onclick="formularioCorrecao('${idOcorrencia}', null, '${aba}')">Incluir Correção</button>`
+        : ''
+
+    const elemento = `
+        <div class="detalhamento-correcoes" style="display: ${aba == 'geral' ? '' : 'none'}" id="${idOcorrencia}_${aba}">
+            ${btnCorrecao}
+            ${corrHTML.join('')}
+        </div>`
+
+    return elemento
 }
 
 async function salvarAnexosCorrecoes(input, idOcorrencia, idCorrecao) {
@@ -567,7 +620,7 @@ async function salvarDataCorrecao(idOcorrencia, idCorrecao) {
 
     overlayAguarde()
 
-    if (alertaConflitos())
+    if (conflitoAgenda())
         return
 
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
@@ -1754,7 +1807,7 @@ function salvarRegras(path, regras) {
 }
 
 async function filtrarPorData(input) {
-    const path = 'snapshots.dtCorrecao'
+    const path = 'snapshots.ultimaCorrecao.*.dtCorrecao'
     const tipo = input.dataset.operador === 'De' ? 'de' : 'ate'
     const op = tipo === 'de' ? '>=d' : '<=d'
     const value = input.value
@@ -1791,10 +1844,10 @@ async function filtrarAtrasados(input) {
     const ativo = input.value
     const hoje = new Date().toLocaleDateString()
 
-    let regrasStatus = listaRegras('snapshots.ultimaCorrecao')
+    let regrasStatus = listaRegras('snapshots.ultimaCorrecao.*.nome')
         .filter(regra => regra.origem !== 'atrasados_status')
 
-    let regrasData = listaRegras('snapshots.dtCorrecao')
+    let regrasData = listaRegras('snapshots.ultimaCorrecao.*.dtCorrecao')
         .filter(regra => regra.origem !== 'atrasados_data')
 
     if (ativo) {
@@ -1811,8 +1864,8 @@ async function filtrarAtrasados(input) {
         })
     }
 
-    salvarRegras('snapshots.ultimaCorrecao', regrasStatus)
-    salvarRegras('snapshots.dtCorrecao', regrasData)
+    salvarRegras('snapshots.ultimaCorrecao.*.nome', regrasStatus)
+    salvarRegras('snapshots.ultimaCorrecao.*.dtCorrecao', regrasData)
 
     await paginacao()
 }
@@ -1828,7 +1881,8 @@ async function auxPendencias() {
 
     const contadores = await contarPorCampo({
         base: 'dados_ocorrencias',
-        path: 'snapshots.ultimaCorrecao'
+        explode: { path: 'snapshots.ultimaCorrecao' },
+        path: 'nome'
     })
 
     const ordemFinal = ['CANCELADO', 'SOLUCIONADA', 'TODOS']
@@ -1900,7 +1954,7 @@ async function atalhoAuxiliar(correcao) {
     if (correcao !== 'todos') {
 
         filtros = {
-            'snapshots.ultimaCorrecao': {
+            'snapshots.ultimaCorrecao.*.nome': {
                 modo: 'OR',
                 origem: 'dropdown',
                 regras: [
@@ -2055,7 +2109,7 @@ async function formularioOcorrencia(idOcorrencia) {
 
 }
 
-async function formularioCorrecao(idOcorrencia, idCorrecao) {
+async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
 
     overlayAguarde()
 
@@ -2092,6 +2146,17 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
     const { executor, tecnico, garantia, autorizacao } = correcao
 
     const linhas = [
+        ...(novoFluxo
+            ? [{
+                elemento: `
+                    <div style="${horizontal}; gap: 1rem;" id="novoFluxo" data-aba="${novoFluxo}">
+                        <img src="imagens/alerta.png">
+                        <span>Múltiplas ocorrências</span>
+                    </div>
+                    `
+            }]
+            : []
+        ),
         {
             texto: 'Em GARANTIA',
             elemento: `<input name="garantia" type="checkbox" style="width: 2rem; height: 2rem;" ${garantia == 'S' ? 'checked' : ''}>`
@@ -2670,6 +2735,13 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
         tipoCorrecao,
         descricao: obter('descricao').value
     }
+
+    // Novo fluxo, se existir;
+    const novoFluxo = document.getElementById('novoFluxo')
+    if (novoFluxo)
+        atualizado.aba = novoFluxo.dataset.aba == 'S'
+            ? crypto.randomUUID()
+            : novoFluxo.dataset.aba
 
     await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, atualizado)
     removerPopup()

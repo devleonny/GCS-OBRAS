@@ -118,10 +118,11 @@ async function criarElementosIniciais() {
             base: 'dados_ocorrencias',
             pag: 'tAtrasados',
             body: 'tAtrasados',
+            explode: { path: 'snapshots.ultimaCorrecao' },
             filtros: {
-                'snapshots.ultimoSolicitante': { op: '=', value: acesso.usuario },
-                'correcoes.*.tipoCorrecao': filtrosTipoCorrecao,
-                'snapshots.dtCorrecao': { op: '<d', value: new Date().toLocaleDateString() },
+                'usuario': { op: 'includes', value: acesso.usuario },
+                'tipoCorrecao': filtrosTipoCorrecao,
+                'dtCorrecao': { op: '<d', value: new Date().toLocaleDateString() },
                 ...filtroCliente
             },
             criarLinha: 'linCorrecoes'
@@ -131,9 +132,10 @@ async function criarElementosIniciais() {
             base: 'dados_ocorrencias',
             pag: 'tCorrecoes',
             body: 'tCorrecoes',
+            explode: { path: 'snapshots.ultimaCorrecao' },
             filtros: {
-                'snapshots.ultimoExecutor.*.executor': { op: '=', value: acesso.usuario },
-                'correcoes.*.tipoCorrecao': filtrosTipoCorrecao,
+                'executor': { op: 'includes', value: acesso.usuario },
+                'tipoCorrecao': filtrosTipoCorrecao,
                 ...filtroCliente
             },
             criarLinha: 'linCorrecoes'
@@ -141,7 +143,8 @@ async function criarElementosIniciais() {
 
         contarPorCampo({
             base: 'dados_ocorrencias',
-            path: 'snapshots.ultimaCorrecao',
+            path: 'nome',
+            explode: { path: 'snapshots.ultimaCorrecao' },
             filtros: {
                 'correcoes.*.tipoCorrecao': filtrosTipoCorrecao,
                 'usuario': { op: '=', value: acesso.usuario }
@@ -193,7 +196,6 @@ async function criarElementosIniciais() {
     await paginacao()
 }
 
-
 async function filtrarMinhasOcorrencias(st) {
 
     controles.ocorrencias ??= {}
@@ -208,7 +210,7 @@ async function filtrarMinhasOcorrencias(st) {
                 }
             ]
         },
-        'snapshots.ultimaCorrecao': {
+        'snapshots.ultimaCorrecao.*.nome': {
             modo: 'OR',
             origem: 'dropdown',
             regras: [
@@ -227,9 +229,9 @@ async function filtrarMinhasOcorrencias(st) {
 
 async function linCorrecoes(ocorrencia) {
 
-    const { id, snapshots, correcoes } = ocorrencia || {}
+    const { id, snapshots, correcoes, nome, dtCorrecao, idCorrecao } = ocorrencia || {} // Explode
     const { cliente, sistema, prioridade } = snapshots || {}
-    const { descricao, usuario, executor, dtCorrecao } = correcoes[snapshots.ultimaCorrecaoId] || {}
+    const { descricao, usuario, executor } = correcoes[idCorrecao] || {}
 
     const listaExecutores = Array.isArray(executor)
         ? executor.join(', ')
@@ -250,9 +252,9 @@ async function linCorrecoes(ocorrencia) {
                         <img src="imagens/alerta.png">
 
                         <div style="${vertical}">
-                            <span style="font-size: 1rem;"><b>${id}</b></span>
-                            <span><b>Status Correção:</b> ${snapshots?.ultimaCorrecao || ''}</span>
-                            <span><b>Data Limite:</b> ${conversorData(dtCorrecao)}</span>
+                            ${formatacaoTipoCorrecao(nome)}
+                            <span style="font-size: 1rem;"><b>${id}</b></span>                       
+                            <span><b>Data Limite:</b> ${dtCorrecao || ''}</span>
                             <span><b>Unidade:</b> ${cliente?.nome || ''}</span>
                             <span><b>Sistema:</b> ${sistema}</span>
                             <span><b>Prioridade:</b> ${prioridade}</span>
@@ -268,8 +270,9 @@ async function linCorrecoes(ocorrencia) {
 async function minhaCorrecao(id) {
 
     controles.ocorrencias ??= {}
-    controles.ocorrencias.filtros ??= {}
-    controles.ocorrencias.filtros['snapshots.contrato'] = { op: 'includes', value: id }
+    controles.ocorrencias.filtros = {
+        'snapshots.contrato': { op: 'includes', value: id }
+    }
 
     await telaOcorrencias()
 

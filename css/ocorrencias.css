@@ -381,6 +381,7 @@
 }
 
 .detalhamento-correcoes {
+    position: relative;
     resize: vertical;
     width: 90%;
     overflow: auto;
@@ -388,6 +389,15 @@
     border: solid 1px #797979;
     background-color: #cbcbcb;
     padding: 0.5rem;
+}
+
+.botao-correcao {
+    background-color: #e47a00;
+    position: sticky;
+    top: 0;
+    margin-left: auto;
+    display: block;
+    z-index: 20;
 }
 
 .div-linha {
@@ -420,6 +430,20 @@
     overflow-x: hidden;
     overflow-y: auto;
     width: 90vw;
+}
+
+.toolbar-correcao {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+}
+
+.toolbar-correcao .aba-correcao {
+    cursor: pointer;
+    background-color: #b1b1b1;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    padding: 5px;
 }
 
 .painel-filtros {
@@ -492,7 +516,6 @@
 }
 
 .bloco-linha {
-    gap: 2px;
     display: flex;
     align-items: start;
     justify-content: start;
