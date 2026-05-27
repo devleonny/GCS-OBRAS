@@ -83,8 +83,8 @@ async function telaOrcamentos() {
                 path: 'dados_orcam.contrato',
                 tabela: 'dados_ocorrencias',
                 campoBusca: 'id',
-                retorno: 'snapshots.ultimaCorrecao',
-                destino: 'ultimaCorrecao'
+                retorno: 'snapshots.nomesStatus',
+                destino: 'nomesStatus'
             }
         ]
     })
@@ -150,7 +150,7 @@ async function criarLinhaOrcamento(orcamento) {
             usuario,
             dados_orcam,
             departamentoExistente,
-            ultimaCorrecao,
+            nomesStatus,
             timestamp,
             snapshots,
             total_geral,
@@ -165,9 +165,9 @@ async function criarLinhaOrcamento(orcamento) {
         const porcentagem = Number(((totalCusto / total_geral) * 100).toFixed(1))
         const resumo = criarVelocimetroHTML({ rotulo: 'Custos', limite: 40, valor: porcentagem })
 
-        const labelTipoCorrecao = ultimaCorrecao
-            ? formatacaoTipoCorrecao(ultimaCorrecao)
-            : ''
+        const labelTipoCorrecao = (nomesStatus || [])
+            .map(st => formatacaoTipoCorrecao(st))
+            .join('')
 
         const pedidosStatus = (pedidos || [])
             .map(({ tipo, pedido, valor, autorizado_por }) => {
@@ -266,7 +266,11 @@ async function criarLinhaOrcamento(orcamento) {
         </td>
         <td>${finalContrato}</td>
         <td>${(snapshots?.cidade || '').toUpperCase()}</td>
-        <td>${labelTipoCorrecao}</td>
+        <td>
+            <div style="${vertical}; gap: 2px;">
+                ${labelTipoCorrecao}
+            </div>
+        </td>
         <td>
             <div style="${vertical}">
                 <span>${usuario || ''}</span>
