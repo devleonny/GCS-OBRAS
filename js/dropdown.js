@@ -130,7 +130,7 @@ async function alternarFiltroDropdown(path, valor, marcado, pag, funcao = null) 
 
     if (marcado) {
         regrasDropdown.push({
-            op: '=',
+            op: 'includes',
             value: valor
         });
     }

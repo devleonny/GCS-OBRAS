@@ -1,7 +1,4 @@
-
-
 async function telaRelatorioFotografico(id) {
-
 
     const relatorio = await recuperarDado('relatorio_fotografico', id)
 

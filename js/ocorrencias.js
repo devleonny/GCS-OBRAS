@@ -1571,7 +1571,7 @@ async function criarPesquisas() {
         'Sistema': { path: 'snapshots.sistema' },
         'Prioridade': { path: 'snapshots.prioridade' },
         'Última Correção': { path: 'nome', pesquisa: 'snapshots.ultimaCorrecao.*.nome', explode: { path: 'snapshots.ultimaCorrecao' } },
-        'Executor': { path: 'executor', pesquisa: 'snapshots.ultimaCorrecao.*.executor', explode: { path: 'snapshots.ultimoExecutor' } },
+        'Executor': { path: 'executor', pesquisa: 'snapshots.ultimaCorrecao.*.executor', explode: { path: 'snapshots.ultimaCorrecao' } },
         'Estado': { path: 'snapshots.cliente.estado' },
         'Empresa': { path: 'snapshots.empresa' }
     }
