@@ -576,9 +576,9 @@ function obValComp(id, valorRetorno) {
     if (valorRetorno !== undefined) {
 
         if ('value' in el) {
-            el.value = typeof (valorRetorno) == 'string'
+            el.value = (typeof (valorRetorno) == 'string' && valorRetorno.includes('R$'))
                 ? conversor(valorRetorno)
-                : valorRetorno
+                : Number(valorRetorno)
         } else {
             el.textContent = valorRetorno
         }
@@ -589,8 +589,9 @@ function obValComp(id, valorRetorno) {
         ? el.value
         : el.textContent
 
-    if (el.type === 'number')
-        valor = Number(valor)
+    if (el.type === 'number') {
+        valor = Number(valor || 0)
+    }
 
     return valor
 }
