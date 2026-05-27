@@ -485,8 +485,16 @@ function carregarCorrecoes(ocorrencia) {
     const acumulado = `
         
         <div class="toolbar-correcao">
-            ${abasHTML.join('')}
-            ${correcoes ? `<button onclick="formularioCorrecao('${idOcorrencia}', null, 'S')">Novo fluxo</button>` : ''}
+            <button class="botao-trilho" onclick="scrollAbas(-120, '${idOcorrencia}')">◀</button>
+
+            <div class="toolbar-janela" id="janela_${idOcorrencia}">
+                <div class="toolbar-trilho" id="toolbarAbas">
+                    ${abasHTML.join('')}
+                    ${correcoes ? `<button onclick="formularioCorrecao('${idOcorrencia}', null, 'S')">Novo fluxo</button>` : ''}
+                </div>
+            </div>
+
+            <button class="botao-trilho" onclick="scrollAbas(120, '${idOcorrencia}')">▶</button>
         </div>
 
         <div style="width: 100%;" id="detalhamento_${idOcorrencia}">
@@ -497,6 +505,15 @@ function carregarCorrecoes(ocorrencia) {
 
     return { correcoes: acumulado }
 
+}
+
+function scrollAbas(valor, id) {
+
+    const janela = document.querySelector(`#janela_${id}`)
+    janela.scrollBy({
+        left: valor,
+        behavior: 'smooth'
+    })
 }
 
 function exibirAba(idOcorrencia, aba) {

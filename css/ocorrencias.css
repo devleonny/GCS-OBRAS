@@ -434,16 +434,49 @@
 
 .toolbar-correcao {
     display: flex;
-    flex-wrap: wrap;
-    gap: 2px;
+    align-items: center;
+    gap: 4px;
+    width: 90%;
 }
 
-.toolbar-correcao .aba-correcao {
+.toolbar-janela {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.toolbar-trilho {
+    display: flex;
+    gap: 2px;
+    flex-wrap: nowrap;
+    width: max-content;
+    transition: transform 0.2s ease;
+}
+
+.botao-trilho {
+    vertical-align: middle;
+    text-align: center;
+    cursor: pointer;
+    min-width: 1rem;
+    background-color: #222222dd;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.aba-correcao {
     cursor: pointer;
     background-color: #b1b1b1;
     border-top-left-radius: 8px;
     border-top-right-radius: 8px;
     padding: 5px;
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.scroll-aba {
+    flex: 0 0 auto;
 }
 
 .painel-filtros {
@@ -520,7 +553,7 @@
     align-items: start;
     justify-content: start;
     flex-direction: column;
-    width: 100%;
+    width: 50%;
 }
 
 .fotos {
