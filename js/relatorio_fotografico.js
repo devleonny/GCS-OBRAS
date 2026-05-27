@@ -9,20 +9,18 @@ async function telaRelatorioFotografico(id) {
         base: [],
         criarLinha: 'criarLinhaRelatorioFotografico',
         colunas: {
-            'Foto Antes':{},
-            
+            'Foto Antes': {},
+            'Foto Depois': {},
+            'Comentários': {}
         }
     })
 
     const elemento = `
-     
         <div class="relatorio-fotografico">
-
-
+            ${tabela}
         </div>
-    
     `
 
     tela.innerHTML = elemento
-    
+
 }

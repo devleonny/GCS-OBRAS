@@ -720,11 +720,6 @@ async function telaOcorrencias() {
         alinPag: vertical,
         funcaoAdicional: ['contadoresMapaOcorrencias'],
         base: 'dados_ocorrencias',
-        ordenar: {
-            direcao: 'DESC',
-            path: 'data_registro',
-            tipo: 'data_br'
-        },
         pag: 'ocorrencias',
         body: 'bodyOcorrencias',
         criarLinha: 'criarLinhaOcorrencia',
