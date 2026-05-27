@@ -1101,9 +1101,6 @@ async function painelClientes(idOrcamento = null) {
         }
     ]
 
-    if (!idOrcamento)
-        botoes.push({ texto: 'Limpar Campos', img: 'limpar', funcao: 'executarLimparCampos()' })
-
     controlesCxOpcoes.cliente = {
         retornar: ['nome'],
         base: 'dados_clientes_ac',
@@ -1426,16 +1423,6 @@ async function salvarDadosCliente(idOrcamento) {
 
     }
 
-}
-
-function executarLimparCampos() {
-
-    let orcamento = baseOrcamento()
-    if (orcamento.dados_orcam)
-        delete orcamento.dados_orcam
-
-    baseOrcamento(orcamento)
-    painelClientes()
 }
 
 async function abrirDANFE(codOmieNF, tipo, app) {

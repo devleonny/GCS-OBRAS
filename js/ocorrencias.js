@@ -2842,7 +2842,12 @@ async function salvarOcorrencia(idOcorrencia) {
             if (resposta.mensagem)
                 return popup({ mensagem: resposta.mensagem })
 
-            removerPopup()
+            removerTodosPopups()
+
+            const painelHistorico = document.querySelector('.painel-historico')
+            if (painelHistorico)
+                await telaOcorrencias()
+
 
         } catch (err) {
             popup({ mensagem: err.mensagem || 'Falha ao salvar a ocorrência, fale com o Suporte!' })

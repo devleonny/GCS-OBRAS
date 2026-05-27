@@ -696,8 +696,6 @@ async function auxAberturaChamado(id) {
         }
     })
 
-    console.log(pedidos);
-
     if (!pedidos.resultados.length)
         return popup({ mensagem: 'Abra um pedido antes de abrir a ocorrência!' })
 
