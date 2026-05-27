@@ -720,6 +720,10 @@ async function abrirEsquema(id) {
     controles.ocorrencias ??= {}
     controles.ocorrencias.ativo = contrato
 
+    const labelTipoCorrecao = (snapshots?.nomesStatus || [])
+        .map(st => formatacaoTipoCorrecao(st))
+        .join('')
+
     const acumulado = `
         <div style="${vertical}; gap: 10px; padding: 3px;">
 
@@ -727,7 +731,7 @@ async function abrirEsquema(id) {
 
                 <div style="${vertical}; gap: 2px;">
                     <label>Status atual</label>
-                    ${formatacaoTipoCorrecao(snapshots?.ultimaCorrecao || 'Sem status')}
+                    ${labelTipoCorrecao}
                 </div>
 
                 <label style="font-size: 1.5rem;">${contrato} - ${cliente || '??'}</label>

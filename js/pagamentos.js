@@ -59,6 +59,9 @@ async function telaPagamentos() {
     const tabela = await modTab({
         pag,
         colunas,
+        filtros: {
+            criado: { op: '!=', value: 'Integração' }
+        },
         funcaoAdicional: ['atualizarPainelEsquerdo'],
         body: 'bodyPagamentos',
         base: 'lista_pagamentos',
