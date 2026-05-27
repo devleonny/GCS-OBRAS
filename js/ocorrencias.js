@@ -1834,6 +1834,9 @@ async function filtrarPorData(input) {
 }
 
 async function pesquisarOcorrencias(path, valor) {
+
+    controles.ocorrencias.filtros ??= {}
+
     if (!valor) {
         delete controles.ocorrencias.filtros[path]
     } else {
