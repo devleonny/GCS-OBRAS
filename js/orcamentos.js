@@ -390,10 +390,8 @@ async function duplicar(orcam_) {
 
 async function carregarToolbar() {
 
-    const filtros = {}
-
-    const cont1 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'status.atual' })
-    const cont4 = await contarPorCampo({ base: 'dados_orcamentos', filtros, path: 'preventiva' })
+    const cont1 = await contarPorCampo({ base: 'dados_orcamentos', path: 'status.atual' })
+    const cont4 = await contarPorCampo({ base: 'dados_orcamentos', path: 'preventiva' })
 
     const contToolbar = {
         ...cont1,
