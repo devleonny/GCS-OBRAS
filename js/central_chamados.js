@@ -91,7 +91,6 @@ async function capturarLocalizacao() {
     })
 }
 
-
 async function criarElementosIniciais() {
     const pFundo = document.querySelector('.planoFundo')
     if (!pFundo)
@@ -105,8 +104,8 @@ async function criarElementosIniciais() {
             : 'Bom dia'
 
     const filtrosTipoCorrecao = [
-        { op: '!=', value: 'WRuo2' },
-        { op: '!=', value: '4sGzb' }
+        { op: '!=', value: 'SOLUCIONADA' },
+        { op: '!=', value: 'CANCELADO' }
     ]
 
     const filtroCliente = acesso.permissao == 'cliente'
@@ -120,8 +119,8 @@ async function criarElementosIniciais() {
             body: 'tAtrasados',
             explode: { path: 'snapshots.ultimaCorrecao' },
             filtros: {
-                'usuario': { op: 'includes', value: acesso.usuario },
-                'tipoCorrecao': filtrosTipoCorrecao,
+                'snapshots.ultimaCorrecao.*.usuario': { op: 'includes', value: acesso.usuario },
+                'snapshots.ultimaCorrecao.*.nome': filtrosTipoCorrecao,
                 'dtCorrecao': { op: '<d', value: new Date().toLocaleDateString() },
                 ...filtroCliente
             },
@@ -134,8 +133,8 @@ async function criarElementosIniciais() {
             body: 'tCorrecoes',
             explode: { path: 'snapshots.ultimaCorrecao' },
             filtros: {
-                'executor': { op: 'includes', value: acesso.usuario },
-                'tipoCorrecao': filtrosTipoCorrecao,
+                'snapshots.ultimaCorrecao.*.executor': { op: 'includes', value: acesso.usuario },
+                'snapshots.ultimaCorrecao.*.nome': filtrosTipoCorrecao,
                 ...filtroCliente
             },
             criarLinha: 'linCorrecoes'
@@ -143,10 +142,10 @@ async function criarElementosIniciais() {
 
         contarPorCampo({
             base: 'dados_ocorrencias',
-            path: 'nome',
+            path: 'snapshots.ultimaCorrecao',
             explode: { path: 'snapshots.ultimaCorrecao' },
             filtros: {
-                'correcoes.*.tipoCorrecao': filtrosTipoCorrecao,
+                'snapshots.ultimaCorrecao.*.nome': filtrosTipoCorrecao,
                 'usuario': { op: '=', value: acesso.usuario }
             }
         })
@@ -231,7 +230,7 @@ async function linCorrecoes(ocorrencia) {
 
     const { id, snapshots, correcoes, nome, dtCorrecao, idCorrecao } = ocorrencia || {} // Explode
     const { cliente, sistema, prioridade } = snapshots || {}
-    const { descricao, usuario, executor } = correcoes[idCorrecao] || {}
+    const { descricao, usuario, executor } = correcoes?.[idCorrecao] || {}
 
     const listaExecutores = Array.isArray(executor)
         ? executor.join(', ')
