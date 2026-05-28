@@ -1570,8 +1570,8 @@ async function criarPesquisas() {
         'Tipo': { path: 'snapshots.tipo' },
         'Sistema': { path: 'snapshots.sistema' },
         'Prioridade': { path: 'snapshots.prioridade' },
-        'Última Correção': { path: 'nome', pesquisa: 'snapshots.ultimaCorrecao.*.nome', explode: { path: 'snapshots.ultimaCorrecao' } },
-        'Executor': { path: 'executor', pesquisa: 'snapshots.ultimaCorrecao.*.executor', explode: { path: 'snapshots.ultimaCorrecao' } },
+        'Última Correção': { path: 'snapshots.ultimaCorrecao.*.nome', explode: { path: 'snapshots.ultimaCorrecao' } },
+        'Executor': { path: 'snapshots.ultimaCorrecao.*.executor', explode: { path: 'snapshots.ultimaCorrecao' } },
         'Estado': { path: 'snapshots.cliente.estado' },
         'Empresa': { path: 'snapshots.empresa' }
     }
@@ -1619,12 +1619,10 @@ async function criarPesquisas() {
                     ...await contarPorCampo({ base: 'dados_ocorrencias', ...conf })
                 }
 
-            const path = conf?.pesquisa || conf.path
-
             return montarDropdownCheckbox({
                 pag: 'ocorrencias',
                 titulo,
-                path,
+                path: conf.path,
                 opcoes: Object.keys(contagem)
             })
 
