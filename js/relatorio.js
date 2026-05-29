@@ -2,38 +2,11 @@ async function telaRelatorio() {
 
     overlayAguarde()
 
-    const modelo = ({ texto, qtde, porcentagem, cor }) => `
-        <div style="background-color: ${cor};" class="balao-totais">
-            <label>${texto}</label>
-
-            <div style="${horizontal}; gap: 1rem;">
-                <label style="font-size: 2rem;">${qtde}</label>
-                ${porcentagem ? `<label>${(porcentagem * 100).toFixed(0)}%</label>` : ''}
-            </div>
-
-        </div>`
-
-    const contador = await contarPorCampo({
-        base: 'dados_ocorrencias',
-        filtros: {
-            ...(
-                acesso.permissao == 'cliente'
-                    ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
-                    : {}
-            )
-        },
-        path: 'snapshots.ultimaCorrecao'
-    }) || {}
-
-    const { todos, SOLUCIONADA } = contador
-
     const btnExtras = `
         <div class="toolbar-itens">
             <img src="imagens/GrupoCostaSilva.png" style="width: 5rem;">
             <span onclick="baixarExcelRelatorioOcorrencias()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
-            ${modelo({ texto: 'Total', qtde: todos, cor: '#222' })}
-            ${modelo({ texto: 'Solucionados', porcentagem: SOLUCIONADA / todos, qtde: SOLUCIONADA || 0, cor: '#1d7e45' })}
-            ${modelo({ texto: 'Em Aberto', porcentagem: (todos - SOLUCIONADA) / todos, qtde: todos ? (todos - SOLUCIONADA) : 0, cor: '#b12425' })}
+            <div style="${horizontal}; gap: 2px;" id="toolbarRelatorio"></div>
         </div>
     `
 
@@ -41,12 +14,12 @@ async function telaRelatorio() {
         '': {},
         'Empresa': { chave: 'snapshots.empresa' },
         'Chamado': { chave: 'id' },
-        'Status': { chave: 'snapshots.ultimaCorrecao' },
+        'Status': { chave: 'snapshots.nomesStatus' },
         'Data da Abertura': { chave: 'data_registro', tipoPesquisa: 'data' },
-        'Data do Agendamento': { chave: 'snapshots.dtCorrecao' },
+        'Data do Agendamento': { chave: 'snapshots.ultimaCorrecao.*.dtCorrecao', tipoPesquisa: 'data' },
         'Solicitante': { chave: 'usuario' },
         'Executores': { chave: 'snapshots.executores' },
-        'Tipo Correção': { chave: 'snapshots.ultimaCorrecao' },
+        'Tipo Correção': { chave: 'snapshots.ultimaCorrecao.*.nome' },
         'Loja': { chave: 'snapshots.cliente.nome' },
         'Cidade': { chave: 'snapshots.cliente.cidade' },
         'Estado': { chave: 'snapshots.cliente.estado' },
@@ -60,13 +33,7 @@ async function telaRelatorio() {
         pag: 'relatorioOcorrencias',
         body: 'bodyRelatorioOcorrencias',
         base: 'dados_ocorrencias',
-        filtros: {
-            ...(
-                acesso.permissao == 'cliente'
-                    ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
-                    : {}
-            )
-        },
+        funcaoAdicional: ['atualizarToolbarRelatorio'],
         criarLinha: 'criarLinhaRelatorio'
     })
 
@@ -77,6 +44,47 @@ async function telaRelatorio() {
     removerOverlay()
 
     await paginacao()
+
+}
+
+async function atualizarToolbarRelatorio() {
+
+    const toolbarRelatorio = document.getElementById('toolbarRelatorio')
+
+    if (toolbarRelatorio)
+        toolbarRelatorio.innerHTML = `<img src="gifs/loading.gif" style="width: 5rem;">`
+
+    const modelo = ({ texto, qtde, porcentagem, cor }) => `
+        <div style="background-color: ${cor};" class="balao-totais">
+            <label>${texto}</label>
+
+            <div style="${horizontal}; gap: 1rem;">
+                <label style="font-size: 2rem;">${qtde}</label>
+                ${porcentagem ? `<label>${(porcentagem * 100).toFixed(0)}%</label>` : ''}
+            </div>
+
+        </div>`
+
+    const filtros = controles?.relatorioOcorrencias?.filtros || {}
+
+    const contador = await contarPorCampo({
+        base: 'dados_ocorrencias',
+        filtros,
+        explode: { path: 'snapshots.ultimaCorrecao' },
+        path: 'nome'
+    })
+
+    const { todos, SOLUCIONADA } = contador
+
+    const campos = []
+    campos.push(
+        modelo({ texto: 'Total', qtde: todos, cor: '#222' }),
+        modelo({ texto: 'Solucionados', porcentagem: SOLUCIONADA / todos, qtde: SOLUCIONADA || 0, cor: '#1d7e45' }),
+        modelo({ texto: 'Em Aberto', porcentagem: (todos - SOLUCIONADA) / todos, qtde: todos ? (todos - SOLUCIONADA) : 0, cor: '#b12425' })
+    )
+
+    if (toolbarRelatorio)
+        toolbarRelatorio.innerHTML = campos.join('')
 
 }
 
@@ -92,18 +100,23 @@ function dtAuxOcorrencia(dt) {
 async function criarLinhaRelatorio(ocorrencia) {
 
     const { id, snapshots, data_registro } = ocorrencia || {}
-    const { ultimaCorrecao, cliente, empresa, tipo, prioridade, sistema } = snapshots || {}
+    const { nomesStatus, ultimaCorrecao, cliente, empresa, tipo, prioridade, sistema } = snapshots || {}
 
-    const status = ultimaCorrecao
-    const estilo = status == 'Solucionada'
-        ? 'fin'
-        : status == 'Não analisada'
-            ? 'na'
-            : 'and'
-
-    const executores = Object.values(ocorrencia?.correcoes || {})
-        .map(correcao => `<span>• ${correcao.executor}</span>`)
+    const labelTipoCorrecao = (nomesStatus || [])
+        .map(st => formatacaoTipoCorrecao(st))
         .join('')
+
+    const executores = [...new Set(
+        Object.values(ocorrencia?.correcoes || {})
+            .flatMap(correcao => correcao?.executor)
+            .filter(Boolean) // Remove valores nulos, indefinidos ou strings vazias
+    )]
+        .map(nome => `<span>• ${nome}</span>`)
+        .join('')
+
+    const datasAgendadas = (ultimaCorrecao || [])
+        .filter(corr => corr.dtCorrecao)
+        .map(corr => corr.dtCorrecao)
 
     const tds = `
         <td>
@@ -114,10 +127,12 @@ async function criarLinhaRelatorio(ocorrencia) {
         <td>${empresa}</td>
         <td>${id}</td>
         <td>
-            <span class="${estilo}">${status}</span>
+            <div style="${vertical}; gap: 1px;">${labelTipoCorrecao}</div>
         </td>
         <td>${data_registro || ''}</td>
-        <td>${snapshots?.dtCorrecao || ''}</td>
+        <td>
+            ${datasAgendadas.join(', ')}
+        </td>
         <td>${ocorrencia?.usuario || ''}</td>
         <td>
             <div style="${vertical}; gap: 2px;">${executores}</div>

@@ -482,7 +482,6 @@ async function paginacao(pag) {
         const tabelaNaoPronta = temLoading || temDino
 
         if (mesmaPagina && !tabelaNaoPronta) {
-            await executarFuncoesAdicionais(funcaoAdicional)
             restaurarPesquisa(pag)
             return
         }
