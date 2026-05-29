@@ -294,15 +294,11 @@ async function criarLinhaRequisicao(item) {
     // No caso de acréscimo a chave "custo" já vem no valor final;
 
     const total = (custo * qtde) - desconto
-    const unitarioFinal = desconto
-        ? total / qtde
-        : custo
-
     const unitario = custo_original || custo || 0
 
-    const sinal = unitario < unitarioFinal
+    const sinal = unitario < custo
         ? '<img src="imagens/up.png" style="width: 1.5rem;">'
-        : unitario > unitarioFinal
+        : unitario > custo
             ? '<img src="imagens/down.png" style="width: 1.5rem;">'
             : ''
 
@@ -389,7 +385,7 @@ async function criarLinhaRequisicao(item) {
             <td style="white-space: nowrap;" name="totalBruto"></td>
 
             <td style="white-space: nowrap;" name="custo">
-                ${dinheiro(unitarioFinal || 0)}
+                ${dinheiro(custo || 0)}
             </td>
             <td>
                 <div style="${horizontal}; gap: 1rem;"> 
