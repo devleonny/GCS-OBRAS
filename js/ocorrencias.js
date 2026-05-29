@@ -1566,7 +1566,7 @@ async function criarPesquisas() {
     }
 
     const camposFechados = {
-        'Criador': { chave: 'criadores', path: 'usuario' },
+        'Criador': { chave: 'criadores', path: 'usuario' }, // Chave na tabela ref de opções;
         'Tipo': { chave: 'tipos', path: 'snapshots.tipo' },
         'Sistema': { chave: 'sistemas', path: 'snapshots.sistema' },
         'Prioridade': { chave: 'prioridades', path: 'snapshots.prioridade' },

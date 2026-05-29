@@ -274,6 +274,14 @@
     gap: 2px;
 }
 
+.filtro-orcamentos {
+    padding: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
 .viculado {
     display: flex;
     align-items: center;

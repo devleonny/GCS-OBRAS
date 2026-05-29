@@ -52,7 +52,13 @@ async function telaOrcamentos() {
         'Ações': {}
     }
 
+    const btnExtras = `
+        <img src="imagens/alerta.png">
+        <div class="filtro-orcamentos" style="${horizontal}; gap: 5px;"></div>
+        `
+
     const tabela = await modTab({
+        btnExtras,
         funcaoAdicional: ['formatacaoPagina'],
         colunas,
         ordenar: {
@@ -106,6 +112,44 @@ async function telaOrcamentos() {
     removerOverlay()
     await paginacao()
     await carregarToolbar()
+    await carregarPesquisaOrcamento()
+
+}
+
+async function carregarPesquisaOrcamento() {
+
+    const menuOrcamento = document.querySelector('.filtro-orcamentos')
+
+    const listagens = await recuperarDado('vw_opcoes_filtros', 1) || {}
+
+    const camposFechados = {
+        'Status em Ocorrências': {
+            chave: 'ultima_correcao', // Chave na tabela ref de opções;
+            path: 'nomesStatus'
+        },
+        'Empresa': {
+            chave: 'empresas', 
+            path: 'snapshots.empresa' 
+        },
+        'Tags': {
+            chave: 'tags', 
+            path: 'snapshots.tags.*.nome' 
+        }
+    }
+
+    const filtros = Object.entries(camposFechados)
+        .map(([titulo, conf]) => {
+
+            return montarDropdownCheckbox({
+                pag: 'orcamentos',
+                titulo,
+                path: conf.path,
+                opcoes: listagens?.[conf?.chave] || []
+            })
+
+        })
+
+    menuOrcamento.innerHTML = filtros.join('')
 
 }
 
@@ -136,7 +180,7 @@ async function criarLinhaOrcamento(orcamento) {
     const orcsVinculados = Object.values(vinculados?.orcamentos || {})
         .map(orc => linhaOrcamento(orc, dados_orcam?.contrato))
         .join('')
-    
+
     return `
         ${linhaOrcamento(orcamento)}
         ${orcsVinculados}
