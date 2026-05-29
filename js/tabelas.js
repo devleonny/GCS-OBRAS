@@ -579,6 +579,8 @@ async function atualizarTabela(tbody, dados, criarLinha, base, reconstruirTudo =
 
     tbody.innerHTML = ''
     tbody.appendChild(fragment)
+
+    aplicarColunasOcultas(pag)
 }
 
 function criarDino(cols) {
@@ -641,3 +643,46 @@ function atualizarIndicadorOrdenacao(pag) {
 
     alvo.textContent = ordenar.direcao === 'asc' ? '▲' : '▼'
 }   
+
+function aplicarColunasOcultas(pag) {
+    const ctrl = controles[pag]
+    if (!ctrl || !ctrl.body) return
+
+    const tabela = ctrl.body.closest('table')
+    if (!tabela) return
+
+    // Se não existir o array, assume array vazio para exibir tudo
+    const colunasOcultar = ctrl.ocultar || []
+
+    // Captura todas as THs do cabeçalho da tabela
+    const ths = tabela.querySelectorAll('thead th')
+
+    ths.forEach((th, index) => {
+        // Pega o texto do primeiro span (onde está o nome da coluna no seu modTab)
+        const nomeColuna = th.querySelector('span')?.textContent?.trim()
+
+        if (colunasOcultar.includes(nomeColuna)) {
+            // Oculta o cabeçalho
+            th.style.display = 'none'
+
+            // Oculta a célula correspondente em todas as linhas do tbody
+            const linhas = ctrl.body.querySelectorAll('tr')
+            linhas.forEach(linha => {
+                if (linha.id === 'dinossauro') return // Ignora a linha de "Sem resultados"
+                
+                const td = linha.children[index]
+                if (td) td.style.display = 'none'
+            })
+        } else {
+            // Se não estiver no array, garante que a coluna fique visível
+            th.style.display = ''
+            const linhas = ctrl.body.querySelectorAll('tr')
+            linhas.forEach(linha => {
+                if (linha.id === 'dinossauro') return
+                
+                const td = linha.children[index]
+                if (td) td.style.display = ''
+            })
+        }
+    })
+}

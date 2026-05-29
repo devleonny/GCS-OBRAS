@@ -23,8 +23,29 @@ async function telaComposicoes() {
         )
     }
 
+    const filtroLpu = montarDropdownCheckbox({
+        pag: 'composicoes',
+        titulo: 'LPU',
+        path: 'snapshots.validades.*.lpu',
+        opcoes: LPUS || []
+    })
+
+    const btnExtras = `
+        <img src="imagens/alerta.png">
+        <div class="filtros">
+            <div class="campo-pesquisa">
+                <span style="color: white;">Atrasados</span>
+                <select onchange="filtrarAtrasadosComposicoes(this)">
+                    <option></option><option>Sim</option><option>Não</option>
+                </select>
+            </div>
+            ${filtroLpu}
+        </div>
+    `
+
     const pag = 'composicoes'
     const tabela = await modTab({
+        btnExtras,
         colunas,
         pag,
         base: 'dados_composicoes',
@@ -40,6 +61,24 @@ async function telaComposicoes() {
     removerOverlay()
 
     await paginacao(pag)
+
+}
+
+async function filtrarAtrasadosComposicoes(select) {
+
+    const atrasados = select.value
+    const chave = 'snapshots.validades.*.validade'
+    controles.composicoes.filtros ??= {}
+
+    controles.composicoes.filtros = {
+        ...controles.composicoes.filtros,
+        [chave]: { op: atrasados == 'Sim' ? '<d' : '>=d', value: new Date() }
+    }
+
+    if (!select.value)
+        delete controles.composicoes.filtros[chave]
+
+    await paginacao()
 
 }
 
@@ -158,7 +197,9 @@ async function abrirHistoricoPrecos(codigo, tabela) {
                 : ''}
             </td>
             
-            <td><textarea style="border: none;" readOnly>${cotacao?.comentario || ''}</textarea></td>
+            <td>
+                <div style="white-space: pre;">${cotacao?.comentario || ''}</div>
+            </td>
             <td style="text-align: center;">
                 ${usuariosPermitidosParaEditar.includes(acesso.permissao)
                 ? `<img src="imagens/cancel.png" style="width: 1.7rem; cursor: pointer;" onclick="excluirCotacao('${codigo}', '${tabela}', '${id}')">`
