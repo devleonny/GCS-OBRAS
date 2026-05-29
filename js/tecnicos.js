@@ -444,7 +444,7 @@ async function carregarAgenda(filtros) {
             ...(
                 checkSolucionados
                     ? {}
-                    : { ultimaCorrecao: { op: '!=', value: 'SOLUCIONADA' } }
+                    : { 'ultimaCorrecao.*.nome': { op: '!=', value: 'SOLUCIONADA' } }
             ),
             dtCorrecao: filtro
         }
@@ -573,9 +573,12 @@ async function carregarAgenda(filtros) {
             const itens = mapa.get(`${tecnico}__${dt}`) || [];
             const labels = itens.map(item => {
 
+                const solucionada = item.ultimaCorrecao
+                    .some(corr => corr.nome == 'SOLUCIONADA')
+
                 const { Loja, origem_id } = item || {}
                 const cor = colorFromString(item.Loja);
-                const imgConcluido = item.ultimaCorrecao == 'SOLUCIONADA'
+                const imgConcluido = solucionada
                     ? `<img src="imagens/concluido.png" style="width: 1.5rem;">`
                     : ''
 
@@ -650,16 +653,25 @@ function removerTooltip() {
 }
 
 function tooltipAgenda(elemento, dados) {
+
     const { Loja, tecnico, dt, usuario, Cidade, Estado, ultimaCorrecao, origem_id } = JSON.parse(decodeURIComponent(dados))
 
     const rect = elemento.getBoundingClientRect()
     const topPage = rect.top + window.scrollY
     const leftPage = rect.left + window.scrollX
 
+    const nomesStatus = (ultimaCorrecao || [])
+        .filter(corr => corr.nome)
+        .map(corr => corr.nome)
+
+    const labelTipoCorrecao = (nomesStatus || [])
+        .map(st => formatacaoTipoCorrecao(st))
+        .join('')
+
     const tooltip = `
         <div class="tooltip-agenda">
             <div class="tooltip-agenda-titulo">${Loja}</div>
-            <div class="tooltip-agenda-linha"><b>Status:</b> ${ultimaCorrecao?.nome || ''}</div>
+            <div class="tooltip-agenda-linha"><b>Status:</b> ${labelTipoCorrecao}</div>
             <div class="tooltip-agenda-linha"><b>Técnico:</b> ${tecnico}</div>
             <div class="tooltip-agenda-linha"><b>Data:</b> ${conversorData(dt)}</div>
             <div class="tooltip-agenda-linha"><b>Cidade:</b> ${Cidade}</div>
