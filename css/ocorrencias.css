@@ -434,7 +434,7 @@
 
 .toolbar-correcao {
     display: flex;
-    align-items: center;
+    align-items: end;
     gap: 4px;
     width: 90%;
 }
@@ -466,6 +466,8 @@
 }
 
 .aba-correcao {
+    border: solid 1px #797979;
+    border-bottom: none;
     cursor: pointer;
     background-color: #b1b1b1;
     border-top-left-radius: 8px;
