@@ -1566,14 +1566,14 @@ async function criarPesquisas() {
     }
 
     const camposFechados = {
-        'Criador': { path: 'usuario' },
-        'Tipo': { path: 'snapshots.tipo' },
-        'Sistema': { path: 'snapshots.sistema' },
-        'Prioridade': { path: 'snapshots.prioridade' },
-        'Última Correção': { path: 'snapshots.ultimaCorrecao.*.nome', explode: { path: 'snapshots.ultimaCorrecao' } },
-        'Executor': { path: 'snapshots.ultimaCorrecao.*.executor', explode: { path: 'snapshots.ultimaCorrecao' } },
-        'Estado': { path: 'snapshots.cliente.estado' },
-        'Empresa': { path: 'snapshots.empresa' }
+        'Criador': { chave: 'criadores', path: 'usuario' },
+        'Tipo': { chave: 'tipos', path: 'snapshots.tipo' },
+        'Sistema': { chave: 'sistemas', path: 'snapshots.sistema' },
+        'Prioridade': { chave: 'prioridades', path: 'snapshots.prioridade' },
+        'Última Correção': { chave: 'ultima_correcao', path: 'snapshots.ultimaCorrecao.*.nome', explode: { path: 'snapshots.ultimaCorrecao' } },
+        'Executor': { chave: 'executores', path: 'snapshots.ultimaCorrecao.*.executor', explode: { path: 'snapshots.ultimaCorrecao' } },
+        'Estado': { chave: 'estados', path: 'snapshots.cliente.estado' },
+        'Empresa': { chave: 'empresas', path: 'snapshots.empresa' }
     }
 
     if (acesso.permissao == 'cliente')
@@ -1610,25 +1610,21 @@ async function criarPesquisas() {
         )
     }
 
+    const listagens = await recuperarDado('vw_opcoes_filtros', 1) || {}
+
     const emMassa = Object.entries(camposFechados)
-        .map(async ([titulo, conf]) => {
-            const contagem = (titulo == 'Executor' && acesso.permissao == 'técnico')
-                ? { [acesso.usuario]: {} }
-                : {
-                    '': {},
-                    ...await contarPorCampo({ base: 'dados_ocorrencias', ...conf })
-                }
+        .map(([titulo, conf]) => {
 
             return montarDropdownCheckbox({
                 pag: 'ocorrencias',
                 titulo,
                 path: conf.path,
-                opcoes: Object.keys(contagem)
+                opcoes: listagens?.[conf?.chave] || []
             })
 
         })
 
-    filtros.push(await Promise.all(emMassa))
+    filtros.push(emMassa)
 
     // Filtro de autorizados e atrasados;
 
@@ -1793,7 +1789,9 @@ async function definirFiltroGrupo() {
 }
 
 function listaRegras(path) {
-    const atual = controles.ocorrencias.filtros[path]
+
+    controles.ocorrencias.filtros ??= {}
+    const atual = controles.ocorrencias.filtros?.[path]
 
     if (!atual)
         return []

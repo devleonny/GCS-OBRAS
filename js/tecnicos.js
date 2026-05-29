@@ -659,7 +659,7 @@ function tooltipAgenda(elemento, dados) {
     const tooltip = `
         <div class="tooltip-agenda">
             <div class="tooltip-agenda-titulo">${Loja}</div>
-            <div class="tooltip-agenda-linha"><b>Status:</b> ${ultimaCorrecao}</div>
+            <div class="tooltip-agenda-linha"><b>Status:</b> ${ultimaCorrecao?.nome || ''}</div>
             <div class="tooltip-agenda-linha"><b>Técnico:</b> ${tecnico}</div>
             <div class="tooltip-agenda-linha"><b>Data:</b> ${conversorData(dt)}</div>
             <div class="tooltip-agenda-linha"><b>Cidade:</b> ${Cidade}</div>
