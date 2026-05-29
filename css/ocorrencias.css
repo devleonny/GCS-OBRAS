@@ -383,7 +383,6 @@
 .detalhamento-correcoes {
     position: relative;
     resize: vertical;
-    width: 90%;
     overflow: auto;
     height: 300px;
     border: solid 1px #797979;
@@ -693,6 +692,10 @@
 @media screen and (orientation: portrait) {
 
     .painel-tecnicos {
+        flex-direction: column;
+    }
+
+    .div-linha {
         flex-direction: column;
     }
 
