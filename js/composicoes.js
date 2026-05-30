@@ -70,6 +70,8 @@ async function filtrarAtrasadosComposicoes(select) {
     const chave = 'snapshots.validades.*.validade'
     controles.composicoes.filtros ??= {}
 
+    const ocultar = [...LPUS]
+
     controles.composicoes.filtros = {
         ...controles.composicoes.filtros,
         [chave]: { op: atrasados == 'Sim' ? '<d' : '>=d', value: new Date() }

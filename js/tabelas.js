@@ -427,7 +427,7 @@ async function paginacao(pag) {
             explode,
             pagina,
             filtros
-        })        
+        })
 
         // Para casos de base objeto;
         if (typeof base === 'object' && controles[pag]?.priBase !== 'S') {
@@ -474,6 +474,7 @@ async function paginacao(pag) {
             tbody.appendChild(criarDino(cols))
             await executarFuncoesAdicionais(funcaoAdicional)
             restaurarPesquisa(pag)
+            aplicarColunasOcultas(pag)
             return
         }
 
@@ -494,6 +495,7 @@ async function paginacao(pag) {
         await executarFuncoesAdicionais(funcaoAdicional)
         restaurarPesquisa(pag)
         atualizarIndicadorOrdenacao(pag)
+        aplicarColunasOcultas(pag)
     }
 
     async function executarFuncoesAdicionais(funcaoAdicional = []) {
@@ -580,7 +582,6 @@ async function atualizarTabela(tbody, dados, criarLinha, base, reconstruirTudo =
     tbody.innerHTML = ''
     tbody.appendChild(fragment)
 
-    aplicarColunasOcultas(pag)
 }
 
 function criarDino(cols) {
@@ -642,47 +643,37 @@ function atualizarIndicadorOrdenacao(pag) {
     if (!alvo) return
 
     alvo.textContent = ordenar.direcao === 'asc' ? '▲' : '▼'
-}   
+}
 
 function aplicarColunasOcultas(pag) {
     const ctrl = controles[pag]
     if (!ctrl || !ctrl.body) return
 
-    const tabela = ctrl.body.closest('table')
+    const tabela = document.getElementById(ctrl.body)?.closest('table')
     if (!tabela) return
 
-    // Se não existir o array, assume array vazio para exibir tudo
     const colunasOcultar = ctrl.ocultar || []
 
-    // Captura todas as THs do cabeçalho da tabela
-    const ths = tabela.querySelectorAll('thead th')
+    const linhasHeader = tabela.querySelectorAll('thead tr')
+    const thsTitulo = linhasHeader[0]?.querySelectorAll('th') || []
+    const thsPesquisa = linhasHeader[1]?.querySelectorAll('th') || []
 
-    ths.forEach((th, index) => {
-        // Pega o texto do primeiro span (onde está o nome da coluna no seu modTab)
+    thsTitulo.forEach((th, index) => {
         const nomeColuna = th.querySelector('span')?.textContent?.trim()
+        const deveOcultar = colunasOcultar.includes(nomeColuna)
 
-        if (colunasOcultar.includes(nomeColuna)) {
-            // Oculta o cabeçalho
-            th.style.display = 'none'
+        th.style.display = deveOcultar ? 'none' : ''
 
-            // Oculta a célula correspondente em todas as linhas do tbody
-            const linhas = ctrl.body.querySelectorAll('tr')
-            linhas.forEach(linha => {
-                if (linha.id === 'dinossauro') return // Ignora a linha de "Sem resultados"
-                
-                const td = linha.children[index]
-                if (td) td.style.display = 'none'
-            })
-        } else {
-            // Se não estiver no array, garante que a coluna fique visível
-            th.style.display = ''
-            const linhas = ctrl.body.querySelectorAll('tr')
-            linhas.forEach(linha => {
-                if (linha.id === 'dinossauro') return
-                
-                const td = linha.children[index]
-                if (td) td.style.display = ''
-            })
+        if (thsPesquisa[index]) {
+            thsPesquisa[index].style.display = deveOcultar ? 'none' : ''
         }
+
+        const linhas = tabela.querySelectorAll('tbody tr')
+        linhas.forEach(linha => {
+            if (linha.id === 'dinossauro' || linha.id === 'loading-tabela') return
+            
+            const td = linha.children[index]
+            if (td) td.style.display = deveOcultar ? 'none' : ''
+        })
     })
 }
