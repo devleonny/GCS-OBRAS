@@ -24,7 +24,7 @@ async function telaVeiculos() {
         'Usuário': { chave: 'usuario' },
         'Motorista': { chave: 'veiculo.snapshots.motoristas' },
         'Data Pagamento': { chave: 'data_pagamento', tipoPesquisa: 'data' },
-        'Valor': { chave: 'snapshots.valor' },
+        'Valor': { chave: 'custo_total' },
         'Realizado': { chave: 'realizado' },
         'Cartão': { chave: 'veiculo.cartao' },
         'Comentário': { chave: 'comentario' },
@@ -137,10 +137,11 @@ async function criarLinhaVeiculo(veiculo) {
 async function criarLinhaCusto(custo) {
 
     const { veiculo, id, usuario, snapshots, data_pagamento, comentario, data, realizado, custo_total, distribuicao = {} } = custo
-    const { cartao, placa, modelo, status } = veiculo || {}
+    const { cartao, placa, modelo, motoristas, status } = veiculo || {}
     const editavel = acesso.permissao == 'adm' || acesso.setor == 'FINANCEIRO'
-
-    const nomes = (veiculo?.motoristas || [])
+    console.log(motoristas);    
+    const nomes = (motoristas || [])
+        .filter(m => m.nomeMotorista)
         .map(m => `<b>${m?.nomeMotorista || ''}</b>`)
         .join('<br>')
 
