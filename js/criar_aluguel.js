@@ -360,6 +360,7 @@ async function total() {
 
             orcamentoBase.dados_composicoes[codigo] = {
                 ...orcamentoBase.dados_composicoes[codigo],
+                codigo,
                 qtde: quantidade,
                 custo: valorUnitario,
                 tipo: modo // Salvar como 'ALUGUEL' para que as próximas tabelas sejam configuradas de acordo;
