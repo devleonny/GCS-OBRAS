@@ -50,7 +50,23 @@ async function telaComposicoes() {
         pag,
         base: 'dados_composicoes',
         body: 'bodyComposicoes',
-        criarLinha: 'criarLinhaComposicao'
+        criarLinha: 'criarLinhaComposicao',
+        substituicoes: [
+            {
+                path: 'agrupamento.*.codigo',
+                tabela: 'dados_composicoes',
+                campoBusca: 'codigo',
+                retorno: 'descricao',
+                destino: 'agrupamento.*.descricao'
+            },
+            {
+                path: 'agrupamento.*.codigo',
+                tabela: 'dados_composicoes',
+                campoBusca: 'codigo',
+                retorno: 'tipo',
+                destino: 'agrupamento.*.tipo'
+            }
+        ]
     })
 
     tela.innerHTML = `
@@ -103,19 +119,18 @@ async function criarLinhaComposicao(produto) {
 
     const divAgrupamento = []
 
-    for (const [cod, dados] of Object.entries(agrupamento || {})) {
+    console.log(produto);
+    
 
-        const prodVinculado = await recuperarDado('dados_composicoes', cod) || {}
-
-        const { tipo, descricao } = prodVinculado
+    for (const [cod, { tipo, qtde, descricao }] of Object.entries(agrupamento || {})) {
 
         divAgrupamento.push(`
             <div style="${horizontal}; gap: 5px;">
                 <span class="balao-redondo-agrupamento" 
                 style="background-color: ${tipo == 'VENDA' ? '#B12425' : tipo == 'SERVIÇO' ? 'green' : '#24729d'}">
-                    ${cod}
+                    ${cod} 
                 </span>
-                <span class="balao-redondo-agrupamento">${dados.qtde}</span>
+                <span class="balao-redondo-agrupamento">${qtde || 0}</span>
                 <span style="text-align: left;">${String(descricao || '??').slice(0, 10)}...</span>
             </div>
             `
