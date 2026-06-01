@@ -104,6 +104,7 @@ async function criarLinhaComposicao(produto) {
     const divAgrupamento = []
 
     for (const [cod, dados] of Object.entries(agrupamento || {})) {
+
         const prodVinculado = await recuperarDado('dados_composicoes', cod) || {}
 
         const { tipo, descricao } = prodVinculado
@@ -116,7 +117,9 @@ async function criarLinhaComposicao(produto) {
                 </span>
                 <span class="balao-redondo-agrupamento">${dados.qtde}</span>
                 <span style="text-align: left;">${String(descricao || '??').slice(0, 10)}...</span>
-            </div>`)
+            </div>
+            `
+        )
     }
 
     const tdsLPUS = LPUS
@@ -1092,7 +1095,10 @@ async function salvarAgrupamento(codigo) {
         const codigo = span.id
         const qtde = Number(tr.querySelector('[name="quantidade"]').value || 0)
 
-        agrupamento[codigo] = { qtde }
+        agrupamento[codigo] = {
+            codigo,
+            qtde
+        }
 
     }
 
