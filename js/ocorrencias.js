@@ -1571,7 +1571,7 @@ async function criarPesquisas() {
         'Sistema': { chave: 'sistemas', path: 'snapshots.sistema' },
         'Prioridade': { chave: 'prioridades', path: 'snapshots.prioridade' },
         'Última Correção': { chave: 'ultima_correcao', path: 'snapshots.ultimaCorrecao.*.nome', explode: { path: 'snapshots.ultimaCorrecao' } },
-        'Executor': { chave: 'executores', path: 'snapshots.ultimaCorrecao.*.executor', explode: { path: 'snapshots.ultimaCorrecao' } },
+        'Executor': { op: 'includes', chave: 'executores', path: 'snapshots.ultimaCorrecao.*.executor', explode: { path: 'snapshots.ultimaCorrecao' } },
         'Estado': { chave: 'estados', path: 'snapshots.cliente.estado' },
         'Empresa': { chave: 'empresas', path: 'snapshots.empresa' }
     }
@@ -1616,6 +1616,7 @@ async function criarPesquisas() {
         .map(([titulo, conf]) => {
 
             return montarDropdownCheckbox({
+                op: conf?.op || '=',
                 pag: 'ocorrencias',
                 titulo,
                 path: conf.path,

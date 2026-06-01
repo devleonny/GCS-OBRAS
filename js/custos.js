@@ -478,7 +478,7 @@ async function carregarTotaisCusto() {
     const somaPagamentos = await contarPorCampo({
         base: 'lista_pagamentos',
         filtros: {
-            'departamento': filtro,
+            'snapshots.categorias.*.departamento': filtro,
             'param.*.codigo_tipo_documento': { op: '!=', value: 'CTE' },
         },
         explode: { path: 'snapshots.categorias' },

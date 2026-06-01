@@ -124,7 +124,7 @@ async function carregarPesquisaOrcamento() {
 
     const camposFechados = {
         'Status em Ocorrências': {
-            chave: 'ultima_correcao', // Chave na tabela ref de opções;
+            chave: 'status.atual', // Chave na tabela ref de opções;
             path: 'nomesStatus'
         },
         'Empresa': {
