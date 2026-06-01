@@ -139,7 +139,7 @@ async function criarLinhaCusto(custo) {
     const { veiculo, id, usuario, snapshots, data_pagamento, comentario, data, realizado, custo_total, distribuicao = {} } = custo
     const { cartao, placa, modelo, motoristas, status } = veiculo || {}
     const editavel = acesso.permissao == 'adm' || acesso.setor == 'FINANCEIRO'
-    console.log(motoristas);    
+ 
     const nomes = (motoristas || [])
         .filter(m => m.nomeMotorista)
         .map(m => `<b>${m?.nomeMotorista || ''}</b>`)
