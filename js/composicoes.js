@@ -120,7 +120,7 @@ async function criarLinhaComposicao(produto) {
     const divAgrupamento = []
 
     console.log(produto);
-    
+
 
     for (const [cod, { tipo, qtde, descricao }] of Object.entries(agrupamento || {})) {
 
@@ -196,6 +196,11 @@ async function abrirHistoricoPrecos(codigo, tabela) {
 
     const produto = await recuperarDado('dados_composicoes', codigo) || {}
     const linhas = []
+
+    const gerada = produto?.[tabela]?.gerada
+
+    if (gerada)
+        return popup({ mensagem: 'Esta coluna é automática e por isso não é editável!' })
 
     for (const [id, cotacao] of Object.entries(produto?.[tabela]?.historico || {})) {
 
