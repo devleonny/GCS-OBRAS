@@ -360,17 +360,6 @@ function dinheiro(valor) {
     return 'R$ ' + valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function v() {
-    const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let id = '';
-    for (let i = 0; i < 5; i++) {
-        const indiceAleatorio = Math.floor(Math.random() * caracteres.length);
-        id += caracteres.charAt(indiceAleatorio);
-    }
-    return id;
-}
-
-
 function deslogarUsuario() {
 
     const botoes = [

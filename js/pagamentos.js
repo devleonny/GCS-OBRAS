@@ -488,7 +488,7 @@ async function autorizarPagamentos(resposta, id) {
             data: new Date().toLocaleString()
         }
 
-        const idJustificativa = ID5digitos()
+        const idJustificativa = crypto.randomUUID()
 
         await abrirDetalhesPagamentos(id)
 
@@ -875,7 +875,7 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
 
     if (!base) return
 
-    const aleatorio = ID5digitos()
+    const aleatorio = crypto.randomUUID()
     const elemento = await recuperarDado(base, id)
 
     const esquema = {

@@ -1061,7 +1061,7 @@ async function verAgrupamento(codigo) {
 async function criarLinhaAgrupamento(cod, dados) {
 
     const produto = await recuperarDado('dados_composicoes', cod)
-    const chaveUnica = ID5digitos()
+    const chaveUnica = crypto.randomUUID()
 
     controlesCxOpcoes[chaveUnica] = {
         base: 'dados_composicoes',

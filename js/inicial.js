@@ -104,7 +104,7 @@ async function formAcao({ id, idAcao, formulario = 'orcamento' }) {
 
 async function incluirResponsavel(usuario) {
 
-    const u = usuario || ID5digitos()
+    const u = usuario || crypto.randomUUID()
 
     controlesCxOpcoes[u] = {
         base: 'dados_setores',

@@ -256,7 +256,7 @@ async function excluirPreco(codigo, cpr) {
     await abrirValores(codigo)
 }
 
-async function salvarValor(codigo, cpr = ID5digitos()) {
+async function salvarValor(codigo, cpr = crypto.randomUUID()) {
 
     overlayAguarde()
 
@@ -474,7 +474,7 @@ async function salvarMovimento(codigo, stq, inicial) {
     const comentario = document.getElementById('comentario')
     const entrada = document.getElementById('entrada')
     const saida = document.getElementById('saida')
-    const id = ID5digitos()
+    const id = crypto.randomUUID()
 
     let item = await recuperarDado('dados_estoque', codigo)
     if (!dicionario(item[stq]) || !item[stq].historico) {
@@ -581,7 +581,7 @@ async function salvarItemEstoque(codigo) {
         return el.value
     }
 
-    codigo = codigo || ID5digitos()
+    codigo = codigo || crypto.randomUUID()
 
     const item = await recuperarDado('dados_estoque', codigo) || {}
 

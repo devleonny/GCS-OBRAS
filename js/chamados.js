@@ -476,7 +476,7 @@ async function gerarPDFChamados(idManutencao) {
     removerOverlay()
 }
 
-function criarLinhaPeca(id = ID5digitos(), peca) {
+function criarLinhaPeca(id = crypto.randomUUID(), peca) {
 
     const linhasManutencao = document.getElementById('linhasManutencao')
 
@@ -515,7 +515,7 @@ function criarLinhaPeca(id = ID5digitos(), peca) {
 
 function mudarEdicao(img) {
     const modalidade = img.dataset.modalidade
-    const cod = ID5digitos()
+    const cod = crypto.randomUUID()
     let elemento = ""
 
     controlesCxOpcoes[cod] = {
@@ -602,7 +602,7 @@ async function enviarManutencao(idManutencao = crypto.randomUUID()) {
 
     novaManutencao.historico ??= {}
 
-    novaManutencao.historico[ID5digitos()] = recorte
+    novaManutencao.historico[crypto.randomUUID()] = recorte
 
     novaManutencao.anexos ??= {}
 

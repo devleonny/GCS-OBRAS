@@ -1074,7 +1074,7 @@ async function alterarQuantidadeChecklist(img, idLancamento, codigo) {
 
 function maisTecnico(cod, nome, devolver) {
     const blocoTecnicos = document.getElementById('blocoTecnicos')
-    cod = cod || ID5digitos()
+    cod = cod || crypto.randomUUID()
     nome = nome || 'Selecione'
 
     if (document.getElementById(cod))
@@ -1130,7 +1130,7 @@ async function salvarQuantidade(codigo) {
     const { id } = controles.checklist
 
     const dados = { quantidade, tecnicos, data, comentario }
-    const idLancamento = ID5digitos()
+    const idLancamento = crypto.randomUUID()
 
     // Salvamento local temporário;
     controles.checklist.base = controles.checklist.base

@@ -522,7 +522,7 @@ async function painelValores(idCusto, duplicar) {
 function linDist({ descricao, codigo, km } = {}) {
 
     const tbody = document.getElementById('distribuicao')
-    const chave = ID5digitos()
+    const chave = crypto.randomUUID()
 
     tbody.insertAdjacentHTML('beforeend', `
         <tr>
@@ -715,7 +715,7 @@ async function excluirVeiculo(idVeiculo) {
 function adicionarMotorista({ id, nome } = {}) {
 
     const div = document.querySelector('.motoristas')
-    const aleatorio = id || ID5digitos()
+    const aleatorio = id || crypto.randomUUID()
     const label = `
     <div style="${horizontal}; gap: 1rem;">
         <span 

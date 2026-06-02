@@ -268,54 +268,6 @@ async function excluirOcorrenciaCorrecao(idOcorrencia, idCorrecao) {
 
 }
 
-function uCorrecao(correcoes = {}) {
-    let maisRecente = null
-    let selecionada = null
-    let solucionado = false
-
-    for (const [idCorrecao, item] of Object.entries(correcoes)) {
-        const { data, tipoCorrecao } = item || {}
-        if (!data) continue
-
-        const [d, h] = String(data).split(', ')
-        if (!d || !h) continue
-
-        const [dia, mes, ano] = d.split('/')
-        if (!dia || !mes || !ano) continue
-
-        const dateObj = new Date(`${ano}-${mes}-${dia}T${h}`)
-        if (Number.isNaN(dateObj.getTime())) continue
-
-        if (tipoCorrecao === 'WRuo2') {
-            selecionada = { id: idCorrecao, ...item }
-            maisRecente = dateObj
-            solucionado = true
-            continue
-        }
-
-        if (!solucionado && (!maisRecente || dateObj > maisRecente)) {
-            maisRecente = dateObj
-            selecionada = { id: idCorrecao, ...item }
-        }
-    }
-
-    if (!selecionada) return null
-
-    let dias = 0
-    if (selecionada.dtCorrecao && !solucionado) {
-        const dt = new Date(`${selecionada.dtCorrecao}T00:00:00`)
-        if (!Number.isNaN(dt.getTime())) {
-            const diff = dt.getTime() - Date.now()
-            dias = Math.trunc(diff / (1000 * 60 * 60 * 24))
-        }
-    }
-
-    return {
-        ...selecionada,
-        dias
-    }
-}
-
 function carregarCorrecoes(ocorrencia) {
 
     const modelo = (valor1, valor2) => {
@@ -2337,7 +2289,7 @@ async function filtrarEquipamentos(select) {
 async function maisLabel({ codigo, descricao, quantidade, origem, serie, formulario } = {}) {
 
     const div = document.getElementById('equipamentos')
-    const temporario = ID5digitos()
+    const temporario = crypto.randomUUID()
 
     const btnExtras = acesso.permissao !== 'cliente'
         ? `<select class="opcoes" onchange="filtrarEquipamentos(this)"><option></option>${LPUS.map(lpu => `<option>${lpu}</option>`).join('')}</select>`
@@ -2857,7 +2809,7 @@ async function anexosOcorrencias(input) {
     const anexos = await importarAnexos({ input }) || []
     const objeto = {}
     anexos.forEach(anexo => {
-        const idAnexo = ID5digitos()
+        const idAnexo = crypto.randomUUID()
         objeto[idAnexo] = anexo
     })
 
