@@ -1,6 +1,7 @@
 function garantirControlesDropdown(pag) {
     controles[pag] ??= {};
     controles[pag].filtros ??= {};
+    controles[pag].dropdownEstado ??= {};
 }
 
 function regrasAtuaisDropdown(path, pag) {
@@ -9,9 +10,13 @@ function regrasAtuaisDropdown(path, pag) {
     return Array.isArray(atual) ? [...atual] : [atual];
 }
 
+function grupoDropdownAtual(path, pag) {
+    const regras = regrasAtuaisDropdown(path, pag);
+    return regras.find(r => r?.modo === 'OR' && r?.origem === 'dropdown') || null;
+}
+
 function valoresMarcadosDropdown(path, pag) {
-    const atual = regrasAtuaisDropdown(path, pag);
-    const grupo = atual.find(r => r?.modo === 'OR' && r?.origem === 'dropdown');
+    const grupo = grupoDropdownAtual(path, pag);
     return (grupo?.regras || []).map(r => r.value);
 }
 
@@ -21,43 +26,175 @@ function opcoesDropdownValidas(opcoes = []) {
         .sort((a, b) => String(a).localeCompare(String(b)));
 }
 
-function tudoMarcadoDropdown(path, opcoes = [], pag) {
-    const validas = opcoesDropdownValidas(opcoes);
-    const marcados = valoresMarcadosDropdown(path, pag);
-
-    // Sem filtro = todas visualmente marcadas
-    if (validas.length > 0 && marcados.length === 0) return true;
-
-    return validas.length > 0 && validas.every(o => marcados.includes(o));
+function getEstadoVisualDropdown(path, pag) {
+    return controles?.[pag]?.dropdownEstado?.[path] || null; // 'todos' | 'nenhum' | 'parcial' | null
 }
 
-function labelDropdown(path, pag, opcoes = []) {
-    const marcados = valoresMarcadosDropdown(path, pag);
-    const total = opcoesDropdownValidas(opcoes).length;
+function setEstadoVisualDropdown(path, pag, estado) {
+    garantirControlesDropdown(pag);
+    controles[pag].dropdownEstado[path] = estado;
+}
 
-    if (marcados.length === 0 || (total > 0 && marcados.length === total)) {
-        return 'Selecionar';
+function limparFiltroDropdown(path, pag, outrasRegras = null) {
+    garantirControlesDropdown(pag);
+
+    const regrasBase = Array.isArray(outrasRegras)
+        ? outrasRegras
+        : regrasAtuaisDropdown(path, pag).filter(r => !(r?.modo === 'OR' && r?.origem === 'dropdown'));
+
+    if (regrasBase.length === 0) {
+        delete controles[pag].filtros[path];
+    } else if (regrasBase.length === 1) {
+        controles[pag].filtros[path] = regrasBase[0];
+    } else {
+        controles[pag].filtros[path] = regrasBase;
     }
 
-    if (marcados.length === 1) return marcados[0];
-    return `${marcados.length} selecionados`;
+    if (controles[pag]?.filtros && Object.keys(controles[pag].filtros).length === 0) {
+        delete controles[pag].filtros;
+    }
+}
+
+function salvarFiltroDropdown(path, pag, regrasDropdown = []) {
+    garantirControlesDropdown(pag);
+
+    const regras = regrasAtuaisDropdown(path, pag);
+    const outrasRegras = regras.filter(r => !(r?.modo === 'OR' && r?.origem === 'dropdown'));
+
+    if (regrasDropdown.length === 0) {
+        limparFiltroDropdown(path, pag, outrasRegras);
+        return;
+    }
+
+    const novoGrupo = {
+        modo: 'OR',
+        origem: 'dropdown',
+        regras: regrasDropdown
+    };
+
+    const final = [...outrasRegras, novoGrupo];
+
+    if (final.length === 1) {
+        controles[pag].filtros[path] = final[0];
+    } else {
+        controles[pag].filtros[path] = final;
+    }
 }
 
 function getDropdownSeletor(path, pag) {
     return `.filtro-dropdown[data-path="${CSS.escape(path)}"][data-pag="${CSS.escape(pag)}"]`;
 }
 
-function atualizarLabelDropdown(path, pag) {
-    const drop = document.querySelector(getDropdownSeletor(path, pag));
+function getDropdownElement(path, pag) {
+    return document.querySelector(getDropdownSeletor(path, pag));
+}
+
+function getOpcoesDropdownDOM(path, pag) {
+    const drop = getDropdownElement(path, pag);
+    if (!drop) return [];
+
+    return [...drop.querySelectorAll('input[type="checkbox"][data-item="opcao"]')];
+}
+
+function getValoresOpcoesDropdownDOM(path, pag) {
+    return getOpcoesDropdownDOM(path, pag).map(input => input.value);
+}
+
+function tudoMarcadoDropdown(path, opcoes = [], pag) {
+    const validas = opcoesDropdownValidas(opcoes);
+    const estado = getEstadoVisualDropdown(path, pag);
+
+    if (estado === 'todos') return true;
+    if (estado === 'nenhum') return false;
+
+    const marcados = valoresMarcadosDropdown(path, pag);
+
+    if (validas.length > 0 && marcados.length === 0) return true;
+
+    return validas.length > 0 && validas.every(o => marcados.includes(o));
+}
+
+function nadaMarcadoDropdown(path, opcoes = [], pag) {
+    const validas = opcoesDropdownValidas(opcoes);
+    const estado = getEstadoVisualDropdown(path, pag);
+
+    if (estado === 'nenhum') return validas.length > 0;
+    if (estado === 'todos') return false;
+
+    const marcados = valoresMarcadosDropdown(path, pag);
+    return validas.length > 0 && marcados.length === 0 && estado === 'nenhum';
+}
+
+function labelDropdown(path, pag, opcoes = []) {
+    const total = opcoesDropdownValidas(opcoes).length;
+    const estado = getEstadoVisualDropdown(path, pag);
+    const marcados = valoresMarcadosDropdown(path, pag);
+
+    if (estado === 'todos' || (estado === null && marcados.length === 0)) {
+        return 'Selecionar';
+    }
+
+    if (estado === 'nenhum') {
+        return 'Nenhum';
+    }
+
+    if (marcados.length === 0) return 'Selecionar';
+    if (marcados.length === 1) return marcados[0];
+
+    if (total > 0 && marcados.length === total) {
+        return 'Selecionar';
+    }
+
+    return `${marcados.length} selecionados`;
+}
+
+function atualizarVisualDropdown(path, pag) {
+    const drop = getDropdownElement(path, pag);
     if (!drop) return;
 
+    const checkboxes = [...drop.querySelectorAll('input[type="checkbox"][data-item="opcao"]')];
+    const checkTodos = drop.querySelector('input[type="checkbox"][data-item="todos"]');
     const label = drop.querySelector('.dropdown-label');
-    if (!label) return;
 
-    const opcoes = [...drop.querySelectorAll('input[type="checkbox"][data-item="opcao"]')]
-        .map(input => input.value);
+    const validas = checkboxes.map(input => input.value);
+    const estado = getEstadoVisualDropdown(path, pag);
+    const marcados = valoresMarcadosDropdown(path, pag);
 
-    label.textContent = labelDropdown(path, pag, opcoes);
+    if (estado === 'todos' || (estado === null && marcados.length === 0)) {
+        checkboxes.forEach(input => {
+            input.checked = true;
+        });
+
+        if (checkTodos) {
+            checkTodos.checked = true;
+            checkTodos.indeterminate = false;
+        }
+    } else if (estado === 'nenhum') {
+        checkboxes.forEach(input => {
+            input.checked = false;
+        });
+
+        if (checkTodos) {
+            checkTodos.checked = false;
+            checkTodos.indeterminate = false;
+        }
+    } else {
+        checkboxes.forEach(input => {
+            input.checked = marcados.includes(input.value);
+        });
+
+        if (checkTodos) {
+            const totalMarcados = marcados.length;
+            const total = validas.length;
+
+            checkTodos.checked = total > 0 && totalMarcados === total;
+            checkTodos.indeterminate = totalMarcados > 0 && totalMarcados < total;
+        }
+    }
+
+    if (label) {
+        label.textContent = labelDropdown(path, pag, validas);
+    }
 }
 
 async function executarAcaoDropdown(funcao = null, pag = null) {
@@ -77,59 +214,21 @@ async function executarAcaoDropdown(funcao = null, pag = null) {
 async function alternarTodosDropdown(path, opcoes = [], pag, funcao = null) {
     garantirControlesDropdown(pag);
 
-    const regras = regrasAtuaisDropdown(path, pag);
-    const outrasRegras = regras.filter(r => !(r?.modo === 'OR' && r?.origem === 'dropdown'));
     const validas = opcoesDropdownValidas(opcoes);
-
     if (validas.length === 0) return;
 
-    const atualmenteTudoMarcado = tudoMarcadoDropdown(path, validas, pag);
+    const estadoAtual = getEstadoVisualDropdown(path, pag);
+    const estaTudoMarcado = estadoAtual === 'todos' || (estadoAtual === null && valoresMarcadosDropdown(path, pag).length === 0);
 
-    if (atualmenteTudoMarcado) {
-        // Desmarca tudo visualmente e remove filtro
-        if (outrasRegras.length === 0) {
-            delete controles[pag].filtros[path];
-        } else if (outrasRegras.length === 1) {
-            controles[pag].filtros[path] = outrasRegras[0];
-        } else {
-            controles[pag].filtros[path] = outrasRegras;
-        }
-
-        const drop = document.querySelector(getDropdownSeletor(path, pag));
-        if (drop) {
-            drop.querySelectorAll('input[type="checkbox"][data-item="opcao"]').forEach(input => {
-                input.checked = false;
-            });
-
-            const checkTodos = drop.querySelector('input[type="checkbox"][data-item="todos"]');
-            if (checkTodos) checkTodos.checked = false;
-        }
+    if (estaTudoMarcado) {
+        setEstadoVisualDropdown(path, pag, 'nenhum');
+        limparFiltroDropdown(path, pag);
     } else {
-        // Marca tudo visualmente, mas continua SEM filtro salvo
-        if (outrasRegras.length === 0) {
-            delete controles[pag].filtros[path];
-        } else if (outrasRegras.length === 1) {
-            controles[pag].filtros[path] = outrasRegras[0];
-        } else {
-            controles[pag].filtros[path] = outrasRegras;
-        }
-
-        const drop = document.querySelector(getDropdownSeletor(path, pag));
-        if (drop) {
-            drop.querySelectorAll('input[type="checkbox"][data-item="opcao"]').forEach(input => {
-                input.checked = true;
-            });
-
-            const checkTodos = drop.querySelector('input[type="checkbox"][data-item="todos"]');
-            if (checkTodos) checkTodos.checked = true;
-        }
+        setEstadoVisualDropdown(path, pag, 'todos');
+        limparFiltroDropdown(path, pag);
     }
 
-    if (controles[pag]?.filtros && Object.keys(controles[pag].filtros).length === 0) {
-        delete controles[pag].filtros;
-    }
-
-    atualizarLabelDropdown(path, pag);
+    atualizarVisualDropdown(path, pag);
     await executarAcaoDropdown(funcao, pag);
 }
 
@@ -144,67 +243,51 @@ async function alternarFiltroDropdown(marcado, strg) {
 
     garantirControlesDropdown(pag);
 
-    const regras = regrasAtuaisDropdown(path, pag);
-    const grupoAtual = regras.find(r => r?.modo === 'OR' && r?.origem === 'dropdown');
-    const outrasRegras = regras.filter(r => !(r?.modo === 'OR' && r?.origem === 'dropdown'));
+    const validas = opcoesDropdownValidas(getValoresOpcoesDropdownDOM(path, pag));
+    if (validas.length === 0) return;
 
-    const drop = document.querySelector(getDropdownSeletor(path, pag));
-    const opcoes = drop
-        ? [...drop.querySelectorAll('input[type="checkbox"][data-item="opcao"]')].map(input => input.value)
-        : [];
+    const estadoAtual = getEstadoVisualDropdown(path, pag);
+    const grupoAtual = grupoDropdownAtual(path, pag);
 
-    const validas = opcoesDropdownValidas(opcoes);
+    let selecionados = [];
 
-    let regrasDropdown = [...(grupoAtual?.regras || [])]
-        .filter(r => r.value !== valor);
+    if (estadoAtual === 'todos' || (estadoAtual === null && valoresMarcadosDropdown(path, pag).length === 0)) {
+        selecionados = [...validas];
+    } else if (estadoAtual === 'nenhum') {
+        selecionados = [];
+    } else {
+        selecionados = [...(grupoAtual?.regras || [])].map(r => r.value);
+    }
+
+    selecionados = selecionados.filter(v => v !== valor);
 
     if (marcado) {
-        regrasDropdown.push({
-            op,
-            value: valor
-        });
+        selecionados.push(valor);
     }
 
-    const valoresSelecionados = regrasDropdown.map(r => r.value);
-    const selecionouTodas = validas.length > 0 && validas.every(v => valoresSelecionados.includes(v));
+    selecionados = [...new Set(selecionados)];
 
-    // Se marcou tudo, vira "sem filtro"
-    if (regrasDropdown.length > 0 && !selecionouTodas) {
-        outrasRegras.push({
-            modo: 'OR',
-            origem: 'dropdown',
-            regras: regrasDropdown
-        });
-    }
+    const total = validas.length;
+    const qtd = selecionados.length;
+    const selecionouTodas = total > 0 && qtd === total;
+    const selecionouNenhuma = qtd === 0;
 
-    if (outrasRegras.length === 0) {
-        delete controles[pag].filtros[path];
-    } else if (outrasRegras.length === 1) {
-        controles[pag].filtros[path] = outrasRegras[0];
+    if (selecionouTodas) {
+        setEstadoVisualDropdown(path, pag, 'todos');
+        limparFiltroDropdown(path, pag);
+    } else if (selecionouNenhuma) {
+        setEstadoVisualDropdown(path, pag, 'nenhum');
+        limparFiltroDropdown(path, pag);
     } else {
-        controles[pag].filtros[path] = outrasRegras;
+        setEstadoVisualDropdown(path, pag, 'parcial');
+        salvarFiltroDropdown(
+            path,
+            pag,
+            selecionados.map(value => ({ op, value }))
+        );
     }
 
-    if (controles[pag]?.filtros && Object.keys(controles[pag].filtros).length === 0) {
-        delete controles[pag].filtros;
-    }
-
-    if (drop) {
-        const checkboxes = [...drop.querySelectorAll('input[type="checkbox"][data-item="opcao"]')];
-        const checkTodos = drop.querySelector('input[type="checkbox"][data-item="todos"]');
-
-        if (selecionouTodas) {
-            checkboxes.forEach(input => {
-                input.checked = true;
-            });
-        }
-
-        if (checkTodos) {
-            checkTodos.checked = tudoMarcadoDropdown(path, validas, pag);
-        }
-    }
-
-    atualizarLabelDropdown(path, pag);
+    atualizarVisualDropdown(path, pag);
     await executarAcaoDropdown(funcao, pag);
 }
 
@@ -231,9 +314,14 @@ function toggleDropdown(botao) {
 }
 
 function montarDropdownCheckbox({ titulo, op = '=', pag, funcao = null, path, opcoes = [] }) {
+    garantirControlesDropdown(pag);
+
     const validas = opcoesDropdownValidas(opcoes);
+    const estado = getEstadoVisualDropdown(path, pag);
     const marcados = valoresMarcadosDropdown(path, pag);
-    const todosAtivos = tudoMarcadoDropdown(path, validas, pag);
+
+    const todosAtivos = estado === 'todos' || (estado === null && marcados.length === 0);
+    const nenhumAtivo = estado === 'nenhum';
 
     const itens = validas.map(o => {
         const dados = {
@@ -244,7 +332,15 @@ function montarDropdownCheckbox({ titulo, op = '=', pag, funcao = null, path, op
             funcao
         };
 
-        const checked = todosAtivos || marcados.includes(o);
+        let checked = false;
+
+        if (todosAtivos) {
+            checked = true;
+        } else if (nenhumAtivo) {
+            checked = false;
+        } else {
+            checked = marcados.includes(o);
+        }
 
         return `
         <label class="dropdown-item">
