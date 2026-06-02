@@ -123,9 +123,9 @@ async function carregarPesquisaOrcamento() {
     const listagens = await recuperarDado('vw_opcoes_filtros', 1) || {}
 
     const camposFechados = {
-        'Status em Ocorrências': {
-            chave: 'status.atual', // Chave na tabela ref de opções;
-            path: 'nomesStatus'
+        'Status': {
+            chave: 'status_orcamentos', // Chave na tabela ref de opções;
+            path: 'status.atual'
         },
         'Empresa': {
             chave: 'empresas', 
