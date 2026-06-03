@@ -24,6 +24,7 @@ async function telaVeiculos() {
         'Usuário': { chave: 'usuario' },
         'Motorista': { chave: 'veiculo.snapshots.motoristas' },
         'Data Pagamento': { chave: 'data_pagamento', tipoPesquisa: 'data' },
+        'Marcador': {},
         'Valor': { chave: 'custo_total' },
         'Realizado': { chave: 'realizado' },
         'Cartão': { chave: 'veiculo.cartao' },
@@ -38,7 +39,6 @@ async function telaVeiculos() {
 
     const tabela = await modTab({
         pag: 'custoVeiculos',
-        funcaoAdicional: ['viabilidadeOmie'],
         btnExtras,
         body: 'bodyCustoVeiculos',
         base: 'custo_veiculos',
@@ -139,7 +139,7 @@ async function criarLinhaCusto(custo) {
     const { veiculo, id, usuario, snapshots, data_pagamento, comentario, data, realizado, custo_total, distribuicao = {} } = custo
     const { cartao, placa, modelo, motoristas, status } = veiculo || {}
     const editavel = acesso.permissao == 'adm' || acesso.setor == 'FINANCEIRO'
- 
+
     const nomes = (motoristas || [])
         .filter(m => m.nomeMotorista)
         .map(m => `<b>${m?.nomeMotorista || ''}</b>`)
@@ -186,8 +186,12 @@ async function criarLinhaCusto(custo) {
             <label>${conversorData(data_pagamento)}</label>
         </td>
 
+        <td style="text-align: center;">
+            <input type="checkbox" name="marcador" onchange="viabilidadeOmie()" style="width: 2rem; height: 2rem;">
+        </td>
+
         <td>
-            <label style="white-space: nowrap;">${dinheiro(custo_total)}</label>
+            <label style="white-space: nowrap;" name="valido">${dinheiro(custo_total)}</label>
         </td>
 
         <td>
@@ -225,9 +229,12 @@ function viabilidadeOmie() {
     const linhas = document.querySelectorAll('#bodyCustoVeiculos tr')
     for (const linha of linhas) {
 
-        if (linha.style.display == 'none') continue
-
         const deps = linha.querySelectorAll('[name="departamento"]')
+
+        const marcador = linha.querySelector('[name="marcador"]').checked
+
+        if (!marcador)
+            continue
 
         if (deps.length == 0)
             possibilidade = false
