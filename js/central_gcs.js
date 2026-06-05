@@ -1061,24 +1061,31 @@ async function painelClientes(idOrcamento = null) {
 
     const { usuarios, dados_orcam, snapshots } = orcamento || {}
     const {
+        venda_direta,
+        contrato,
         executor,
         tecnico,
         tipo_de_frete,
+        transportadora,
         consideracoes,
         validade,
         garantia,
         emissor,
         analista,
         email_analista,
-        telefone_analista
+        telefone_analista,
+        omie_cliente,
+        condicoes
     } = dados_orcam || {}
 
-    const idCliente = dados_orcam?.omie_cliente
     const bloq = orcamento?.hierarquia
         ? true
         : false
 
-    const cliente = await recuperarDado('dados_clientes_ac', idCliente)
+    const [cliente, clienteVendaDireta] = await Promise.all([
+        recuperarDado('dados_clientes_ac', omie_cliente),
+        recuperarDado('dados_clientes_ac', venda_direta)
+    ])
 
     const levantamentos = Object.entries(orcamento?.levantamentos || {})
         .map(([idAnexo, anexo]) =>
@@ -1101,6 +1108,7 @@ async function painelClientes(idOrcamento = null) {
         }
     ]
 
+    // cxOpcoes -> Cliente
     controlesCxOpcoes.cliente = {
         retornar: ['nome'],
         base: 'dados_clientes_ac',
@@ -1114,14 +1122,26 @@ async function painelClientes(idOrcamento = null) {
         }
     }
 
+    // cxOpcoes -> Venda Direta
+    controlesCxOpcoes.venda_direta = {
+        retornar: ['nome'],
+        base: 'dados_clientes_ac',
+        colunas: {
+            'Nome Fantasia': { chave: 'nome' },
+            'Cidade': { chave: 'cidade' },
+            'Estado': { chave: 'estado' },
+            'CNPJ/CPF': { chave: 'cnpj' }
+        }
+    }
+
     const oTransportadoras = transportadoras
-        .map(o => `<option ${dados_orcam?.transportadora == o ? 'selected' : ''}>${o}</option>`)
+        .map(o => `<option ${transportadora == o ? 'selected' : ''}>${o}</option>`)
         .join('')
 
     const linhas = [
         {
             texto: 'Contrato',
-            elemento: `<input value="${dados_orcam?.contrato || 'ORC ...'}" readOnly>`
+            elemento: `<input value="${contrato || 'ORC ...'}" readOnly>`
         },
         {
             texto: 'Cliente',
@@ -1129,8 +1149,8 @@ async function painelClientes(idOrcamento = null) {
             <div style="${horizontal}; gap: 3px">
                 ${bloq
                     ? `<img src="imagens/proibido.png">` : ''}
-                <span ${dados_orcam?.omie_cliente
-                    ? `id="${dados_orcam.omie_cliente}"`
+                <span ${omie_cliente
+                    ? `id="${omie_cliente}"`
                     : ''} 
                     class="opcoes" 
                     name="cliente" 
@@ -1162,6 +1182,29 @@ async function painelClientes(idOrcamento = null) {
         {
             texto: 'Estado',
             elemento: `<span id="estado">${cliente?.estado || ''}</span>`
+        },
+        {
+            texto: `
+                <div style="${horizontal}; gap: 1rem;">
+                    <input ${venda_direta ? 'checked' : ''} onclick="toggleVendaDireta()" type="checkbox" style="width: 2rem; height: 2rem;">
+                    <span>Venda Direta</span>
+                </div>
+            `,
+            elemento: `<span 
+                data-ativo="${venda_direta ? 'S' : 'N'}"
+                ${venda_direta ? `id="${venda_direta}"` : ''}
+                style="display: ${venda_direta ? 'block' : 'none'}"
+                class="opcoes"
+                onclick="cxOpcoes('venda_direta')" 
+                name="venda_direta">${clienteVendaDireta?.nome || 'Selecionar'}</span>`
+        },
+        {
+            texto: 'Condições de Pagamento',
+            elemento: `
+            <select id="condicoes">
+                ${parcelas.map(op => `<option ${condicoes == op ? 'selected' : ''}>${op}</option>`).join('')}
+            </select>
+            `
         },
         {
             texto: 'Tipo de Frete',
@@ -1249,6 +1292,22 @@ async function painelClientes(idOrcamento = null) {
     await maisUsuario(executor, 'executores')
     await maisUsuario(tecnico, 'tecnicos')
     carregarTags()
+
+}
+
+function toggleVendaDireta() {
+
+    const checkVD = document.querySelector('[name="venda_direta"]')
+
+    const statusAtivo = checkVD?.dataset?.ativo == 'S'
+
+    checkVD.style.display = statusAtivo
+        ? 'none'
+        : 'block'
+
+    checkVD.dataset.ativo = statusAtivo
+        ? 'N'
+        : 'S'
 
 }
 
@@ -1368,6 +1427,12 @@ async function salvarDadosCliente(idOrcamento) {
 
         const omie_cliente = Number(document.querySelector('[name="cliente"]').id)
 
+        // Venda Direta;
+        const spanVendaDireta = document.querySelector('[name="venda_direta"]')
+        const venda_direta = spanVendaDireta.dataset.ativo == 'S'
+            ? document.querySelector('[name="venda_direta"]')?.id || null
+            : null
+
         // Executores;
         const executor = [...document.querySelectorAll('.executores span')]
             .filter(span => span.id)
@@ -1384,6 +1449,8 @@ async function salvarDadosCliente(idOrcamento) {
         orcamentoBase.dados_orcam = {
             ...orcamentoBase.dados_orcam,
             omie_cliente,
+            venda_direta,
+            condicoes: el('condicoes').value,
             consideracoes: String(el('consideracoes').value).toUpperCase(),
             data: new Date().toLocaleString('pt-BR'),
             garantia: el('garantia').value,

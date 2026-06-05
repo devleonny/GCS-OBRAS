@@ -2,9 +2,6 @@ function voltar() {
     window.history.back();
 }
 
-let orcamentoBase = {}
-let cliente = {}
-
 const dadosEmpresas = {
     'IAC': {
         'Razão Social': 'IAC',
@@ -44,26 +41,32 @@ function excel() {
     irExcelOrcamento(idRecebido)
 }
 
-function blocoHtml(titulo, dados = {}) {
+function blocoHtml({ titulo, dados }) {
 
-    let linhas = ''
+    if(!dados)
+        return ''
+
+    const linhas = []
 
     for (const [chave, dado] of Object.entries(dados)) {
         if (dado == '') continue
 
-        linhas += `
+        linhas.push(`
         <div style="${vertical}; gap: 5px;">
             <label><b>${chave}</b></label> 
             <div style="white-space: pre-wrap;">${dado}</div>
-        </div>`
+        </div>`)
 
     }
+
+    if (!linhas.length)
+        return ''
 
     const acumulado = `
         <div class="contorno">
             <div class="pilula">
                 <span class="cab">${titulo}</span>
-                <div style="${vertical}">${linhas}</div>
+                <div style="${vertical}">${linhas.join('')}</div>
             </div>
         </div>
         `
@@ -76,21 +79,44 @@ async function preencher() {
     const idRecebido = parametros.get('id')
     const orcamentoBase = await recuperarDado('dados_orcamentos', idRecebido) || {}
 
-    document.getElementById('codigo_orcamento').textContent = idRecebido
+    const {
+        omie_cliente,
+        venda_direta,
+        tipo_de_frete,
+        condicoes,
+        consideracoes,
+        garantia,
+        analista,
+        email_analista,
+        telefone_analista,
+        emissor
+    } = orcamentoBase.dados_orcam
 
-    // LÓGICA DOS DADOS
-    cliente = await recuperarDado('dados_clientes_ac', orcamentoBase?.dados_orcam?.omie_cliente) || {}
+    const [cliente, clienteVendaDireta] = await Promise.all([
+        recuperarDado('dados_clientes_ac', omie_cliente) || {},
+        recuperarDado('dados_clientes_ac', venda_direta) || {},
+    ])
 
-    const informacoes = {
-        ...orcamentoBase.dados_orcam,
-        ...cliente
-    }
+    const {
+        endereco,
+        bairro,
+        nome,
+        cep,
+        cnpj,
+        cidade,
+        estado,
+    } = cliente || {}
 
-    const empresaEmissora = dadosEmpresas[informacoes?.emissor || 'AC SOLUÇÕES']
+    const empresaEmissora = dadosEmpresas[emissor || 'AC SOLUÇÕES']
 
     const imgLogo = document.getElementById('logo')
-    imgLogo.src = informacoes?.emissor == 'IAC' ? 'https://i.imgur.com/6FWwz7l.png' : 'https://i.imgur.com/qZLbNfb.png'
-    imgLogo.style.width = informacoes?.emissor == 'IAC' ? '100px' : '10rem'
+    imgLogo.src = emissor == 'IAC'
+        ? 'https://i.imgur.com/6FWwz7l.png'
+        : 'https://i.imgur.com/qZLbNfb.png'
+
+    imgLogo.style.width = emissor == 'IAC'
+        ? '100px'
+        : '10rem'
 
     // Nome orçamento atual;
     const chamContrato = orcamentoBase?.dados_orcam?.contrato || ''
@@ -102,53 +128,54 @@ async function preencher() {
     }
 
     const dadosPorBloco = {
-        'Dados da Proposta': {
-            'Número do Chamado': `<div class="nome-chamado">${nomeChamado}</div>`,
-            'Tipo de Frete': informacoes?.tipo_de_frete || '',
-            'Garantia': informacoes?.garantia == ''
-                ? 'Conforme tratativa Comercial'
-                : informacoes?.garantia || '',
-            'REF': ''
+        proposta: {
+            titulo: 'Dados da Proposta',
+            dados: {
+                'Contrato': `<div class="nome-chamado">${nomeChamado}</div>`,
+                'Condições de Pagamento': condicoes || '',
+                'Tipo de Frete': tipo_de_frete || '',
+                'Garantia': garantia || 'Conforme tratativa Comercial',
+                'Analista': analista || 'Grupo Costa Silva',
+                'E-mail': email_analista || 'financeiro@grupocostasilva.com.br',
+                'Telefone': telefone_analista || '(11) 96300-7299'
+            }
         },
-        'Dados do Cliente': {
-            'Razão Social ou Nome Fantasia': informacoes?.nome || '--',
-            'CNPJ': informacoes?.cnpj || '--',
-            'CEP': informacoes?.cep || '--',
-            'Endereço': informacoes?.Endereço || '--',
-            'Bairro': informacoes?.bairro || '--',
-            'Cidade': informacoes?.cidade || '--',
-            'Estado': informacoes?.estado || '--'
+        cliente: {
+            titulo: 'Dados do Cliente',
+            dados: {
+                'Razão Social ou Nome Fantasia': nome || '--',
+                'CNPJ': cnpj || '--',
+                'CEP': cep || '--',
+                'Endereço': endereco || '--',
+                'Bairro': bairro || '--',
+                'Cidade': cidade || '--',
+                'Estado': estado || '--',
+            }
         },
-        'Dados da Empresa': {
-            'Razão Social': empresaEmissora['Razão Social'],
-            'CNPJ': empresaEmissora['CNPJ'],
-            'E-mail': empresaEmissora['E-mail'],
-            'Telefones': empresaEmissora['Telefones'],
-            'Localização': empresaEmissora['Localização']
+        empresa: {
+            titulo: 'Dados da Empresa',
+            dados: {
+                'Razão Social': empresaEmissora['Razão Social'],
+                'CNPJ': empresaEmissora['CNPJ'],
+                'E-mail': empresaEmissora['E-mail'],
+                'Telefones': empresaEmissora['Telefones'],
+                'Localização': empresaEmissora['Localização']
+            }
         },
-        'Contato Analista': {
-            'Analista': informacoes?.analista || 'Grupo Costa Silva',
-            'E-mail': informacoes?.email_analista || 'financeiro@grupocostasilva.com.br',
-            'Telefone': informacoes?.telefone_analista || '(11) 96300-7299'
+        adicionais: {
+            titulo: 'Venda Direta',
+            dados: {
+                'Empresa': clienteVendaDireta?.nome || '',
+                'CNPJ': clienteVendaDireta?.cnpj || '',
+                'Endereço': clienteVendaDireta?.endereco || '',
+                'Estado': clienteVendaDireta?.estado || '',
+            }
         }
     }
 
     // LÓGICA DOS ITENS
     const html_orcamento = document.getElementById('html_orcamento')
     html_orcamento.innerHTML = ''
-
-    const cabecalho = {
-        1: 'Código',
-        2: 'Descrição',
-        3: 'Imagem *Ilustrativa',
-        4: 'Unidade',
-        5: 'Qtde',
-        6: 'UNT S/ICMS',
-        7: 'TOTAL S/ICMS',
-        8: '% ICMS',
-        9: 'UNT',
-        10: 'TOTAL'
-    }
 
     const config = {
         'ALUGUEL': { cor: 'green' },
@@ -284,13 +311,13 @@ async function preencher() {
     ${carimboData(orcamentoBase?.dados_orcam)}
 
     <div style="${horizontal};">
-        ${blocoHtml('Dados da Proposta', dadosPorBloco['Dados da Proposta'])}
-        ${blocoHtml('Dados do Cliente', dadosPorBloco['Dados do Cliente'])}
+        ${blocoHtml(dadosPorBloco.proposta)}
+        ${blocoHtml(dadosPorBloco.cliente)}
     </div>
 
     <div style="${horizontal};">
-        ${blocoHtml('Dados da Empresa', dadosPorBloco['Dados da Empresa'])}
-        ${blocoHtml('Contato do Analista', dadosPorBloco['Contato Analista'])}
+        ${blocoHtml(dadosPorBloco.empresa)}
+        ${blocoHtml(dadosPorBloco.adicionais)}
     </div>
 
     <div class="contorno">
@@ -312,7 +339,7 @@ async function preencher() {
         </div>
     </div>
 
-    ${informacoes.consideracoes ? blocoHtml('Considerações', { Considerações: informacoes.consideracoes }) : ''}
+    ${consideracoes ? blocoHtml('Considerações', { Considerações: consideracoes }) : ''}
     `
 
     await paginacao()

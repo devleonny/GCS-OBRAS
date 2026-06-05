@@ -239,7 +239,7 @@ async function criarLinhaOrcamento(orcamento) {
             .join('')
 
         // Labels do campo Contrato [Revisão, chamado, cliente, etc]
-        const { contrato, executor } = dados_orcam || {}
+        const { contrato, executor, venda_direta } = dados_orcam || {}
 
         const rAtual = orcamento?.revisoes?.atual
         const etiqRevAtual = rAtual
@@ -262,10 +262,15 @@ async function criarLinhaOrcamento(orcamento) {
             `
             : `<span name="contrato">${contrato}</span>`
 
+        const etiqVendaDireta = venda_direta
+            ? `<span class="etiqueta-revisao">Venda Direta</span>`
+            : ''
+
         const finalContrato = `
         <div style="${vertical};text-align: left; gap: 2px;">
             ${nomeVinculado}
             ${etiqRevAtual}
+            ${etiqVendaDireta}
             <span>${(snapshots?.cliente || '').toUpperCase()}</span>
         </div>`
 
@@ -405,26 +410,35 @@ async function editar(id) {
 
 async function duplicar(orcam_) {
 
-    const orcamentoBase = await recuperarDado('dados_orcamentos', orcam_) || {}
+    const {
+        esquema_composicoes, 
+        dados_composicoes, 
+        lpu_ativa,
+        tags,
+        snapshots,
+        dados_orcam 
+    } = await recuperarDado('dados_orcamentos', orcam_) || {}
+
     const novoOrcamento = {
-        esquema_composicoes: orcamentoBase.esquema_composicoes || {},
-        dados_composicoes: orcamentoBase.dados_composicoes || {},
-        lpu_ativa: orcamentoBase.lpu_ativa || 'LPU HOPE',
+        snapshots: {
+            tags: snapshots?.tags || {}
+        },
+        esquema_composicoes,
+        tags,
+        dados_composicoes,
+        lpu_ativa: lpu_ativa || 'LPU HOPE',
         dados_orcam: {
-            ...orcamentoBase.dados_orcam || {},
+            ...dados_orcam || {},
             contrato: '',
             analista: acesso.nome_completo,
             email_analista: acesso.email,
             telefone_analista: acesso.telefone
         }
-
     }
 
     baseOrcamento(novoOrcamento)
 
     removerPopup()
-
-    precosAntigos = null
 
     novoOrcamento.lpu_ativa == 'ALUGUEL'
         ? await telaCriarOrcamentoAluguel()
