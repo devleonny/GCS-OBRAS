@@ -112,7 +112,7 @@ async function criarElementosIniciais() {
         ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
         : {}
 
-    const [tAtrasados, tCorrecoes, contadoresMeus] = await Promise.all([
+    const [tAtrasados, tCorrecoes, bAbertas] = await Promise.all([
         modTab({
             base: 'dados_ocorrencias',
             pag: 'tAtrasados',
@@ -142,7 +142,7 @@ async function criarElementosIniciais() {
 
         contarPorCampo({
             base: 'dados_ocorrencias',
-            path: 'snapshots.ultimaCorrecao',
+            path: 'nome',
             explode: { path: 'snapshots.ultimaCorrecao' },
             filtros: {
                 'snapshots.ultimaCorrecao.*.nome': filtrosTipoCorrecao,
@@ -151,8 +151,8 @@ async function criarElementosIniciais() {
         })
     ])
 
-    const baloesMeus = Object.entries(contadoresMeus)
-        .filter(([st]) => st !== 'todos' && st !== 'Solucionada')
+    const baloesMeus = Object.entries(bAbertas)
+        .filter(([st]) => st !== 'todos')
         .map(([status, total]) => {
             return `
                 <div class="pill" onclick="filtrarMinhasOcorrencias('${status}')">
@@ -215,7 +215,7 @@ async function filtrarMinhasOcorrencias(st) {
             regras: [
                 {
                     op: '=',
-                    value: st
+                    value: st == 'EM BRANCO' ? '' : st
                 }
             ]
         }
