@@ -251,7 +251,7 @@ async function abrirDetalhesPagamentos(id) {
     const permissao = acesso.permissao
     const pagamento = await recuperarDado('lista_pagamentos', id) || {}
     console.log(pagamento);
-    
+
     const anexos = Object.entries(pagamento?.anexos || {})
         .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoPagamento('${id}', '${idAnexo}')`))
         .join('')
@@ -883,6 +883,12 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
     const esquema = {
         categorias: {
             retornar: ['categoria'],
+            filtros: {
+                'app': {
+                    op: '=',
+                    value: 'AC'
+                }
+            },
             colunas: {
                 'Categoria': { chave: 'categoria' }
             },
@@ -912,10 +918,9 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
     }
 
     controlesCxOpcoes[aleatorio] = {
+        ...esquema[base],
         base,
-        retornar: esquema[base].retornar,
-        funcaoAdicional: ['calculadoraPagamento'],
-        colunas: esquema[base].colunas
+        funcaoAdicional: ['calculadoraPagamento']
     }
 
     const campoAdicional = `
