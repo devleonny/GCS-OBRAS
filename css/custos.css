@@ -44,14 +44,14 @@
 .custos-inicial {
     display: flex;
     align-items: start;
-    gap: 1rem;
-    justify-content: space-between;
+    gap: 5rem;
+    justify-content: start;
 }
 
 .grafico-box {
     display: none;
     width: 700px;
-    height: 700px;
+    height: 400px;
 }
 
 .etiqueta-custo {

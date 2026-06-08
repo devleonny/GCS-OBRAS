@@ -249,7 +249,9 @@ async function abrirDetalhesPagamentos(id) {
 
     let valores = ''
     const permissao = acesso.permissao
-    const pagamento = await recuperarDado('lista_pagamentos', id)
+    const pagamento = await recuperarDado('lista_pagamentos', id) || {}
+    console.log(pagamento);
+    
     const anexos = Object.entries(pagamento?.anexos || {})
         .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoPagamento('${id}', '${idAnexo}')`))
         .join('')
@@ -274,7 +276,7 @@ async function abrirDetalhesPagamentos(id) {
         .join('')
 
     for (const item of pagamento.param[0].categorias) {
-        const nomeCategoria = (await recuperarDado('dados_categorias_ac', item.codigo_categoria))?.categoria || '...'
+        const nomeCategoria = (await recuperarDado('categorias', item.codigo_categoria))?.categoria || '?'
 
         valores += `
         <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
@@ -388,7 +390,7 @@ async function abrirDetalhesPagamentos(id) {
 
             </div>
             
-            <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 3px;">
+            <div class="detalhes-anexos">
                 ${anexos}
             </div>
 
@@ -623,8 +625,8 @@ async function formularioPagamento() {
             texto: 'Categorias',
             elemento: `
                 <div style="${horizontal}; gap: 1rem;">
-                    <img src="imagens/baixar.png" style="width: 1.5rem; cursor: pointer;" onclick="maisCampo({ base: 'dados_categorias_ac'})">
-                    <div class="central-dados_categorias_ac"></div>
+                    <img src="imagens/baixar.png" style="width: 1.5rem; cursor: pointer;" onclick="maisCampo({ base: 'categorias'})">
+                    <div class="central-categorias"></div>
                 </div>
             `
         },
@@ -669,7 +671,7 @@ async function formularioPagamento() {
 
     // Categorias;
     for (const categoria of categorias)
-        await maisCampo({ atualizar: false, id: categoria.codigo_categoria, base: 'dados_categorias_ac', valor: categoria.valor })
+        await maisCampo({ atualizar: false, id: categoria.codigo_categoria, base: 'categorias', valor: categoria.valor })
 
     // Departamentos;
     for (const departamento of distribuicao)
@@ -749,7 +751,7 @@ async function calculadoraPagamento() {
     }
 
     // Categorias
-    const inputsCat = document.querySelectorAll('[name="dados_categorias_ac"]')
+    const inputsCat = document.querySelectorAll('[name="categorias"]')
     for (const input of inputsCat) {
         const span = input.parentElement.nextElementSibling
         if (!span.id)
@@ -879,7 +881,7 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
     const elemento = await recuperarDado(base, id)
 
     const esquema = {
-        dados_categorias_ac: {
+        categorias: {
             retornar: ['categoria'],
             colunas: {
                 'Categoria': { chave: 'categoria' }

@@ -138,6 +138,13 @@
     padding: 5px;
 }
 
+.detalhes-anexos {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: start;
+    gap: 5px;
+}
+
 .btnDetalhes {
     text-align: left;
     min-height: 3vh;

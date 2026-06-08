@@ -159,7 +159,7 @@ async function somaPorCategoria() {
     const contagens = await contarPorCampo({
         base: 'lista_pagamentos',
         filtros: {
-            'departamento': { op: '=', value: contrato }
+            'snapshots.categorias.*.departamento': { op: '=', value: contrato }
         },
         explode: { path: 'snapshots.categorias' },
         modo: 'somaAgrupada',
@@ -197,7 +197,7 @@ async function somaPorCategoria() {
         base: 'lista_pagamentos',
         explode: { path: 'snapshots.departamentos' },
         filtros: {
-            'departamento': { op: '=', value: contrato }
+            'snapshots.categorias.*.departamento': { op: '=', value: contrato }
         },
         modo: 'somaAgrupada',
         campoSoma: 'valor',
@@ -250,7 +250,7 @@ async function tabPagamentosCusto() {
         base: 'lista_pagamentos',
         explode: { path: 'snapshots.categorias' },
         filtros: {
-            'departamento': { op: '=', value: contrato },
+            'snapshots.categorias.*.departamento': { op: '=', value: contrato },
             'param.*.codigo_tipo_documento': { op: '!=', value: 'CTE' },
         },
         colunas: {
@@ -319,7 +319,7 @@ async function tabFretesCusto() {
         base: 'lista_pagamentos',
         explode: { path: 'snapshots.categorias' },
         filtros: {
-            'departamento': { op: '=', value: contrato },
+            'snapshots.categorias.*.departamento': { op: '=', value: contrato },
             'param.*.codigo_tipo_documento': { op: '=', value: 'CTE' },
         },
         colunas: {
@@ -351,7 +351,7 @@ async function tabNotasCusto() {
     const tabela = await modTab({
         base: 'notas',
         filtros: {
-            'departamento': { op: '=', value: contrato }
+            'departamentos.*.departamento': { op: '=', value: contrato }
         },
         explode: { path: 'snapshots.departamentos' },
         pag,
@@ -475,55 +475,54 @@ async function carregarTotaisCusto() {
 
     const filtro = { op: 'includes', value: dados_orcam?.contrato }
 
-    const somaPagamentos = await contarPorCampo({
-        base: 'lista_pagamentos',
-        filtros: {
-            'snapshots.categorias.*.departamento': filtro,
-            'param.*.codigo_tipo_documento': { op: '!=', value: 'CTE' },
-        },
-        explode: { path: 'snapshots.categorias' },
-        path: 'valor',
-        modo: 'soma'
-    })
+    const [somaPagamentos, somaFretes, somaCombustiveis, somaNotas] = await Promise.all([
+
+        contarPorCampo({
+            base: 'lista_pagamentos',
+            filtros: {
+                'snapshots.categorias.*.departamento': filtro,
+                'param.*.codigo_tipo_documento': { op: '!=', value: 'CTE' },
+            },
+            explode: { path: 'snapshots.categorias', manterOrigem: false },
+            path: 'valor',
+            modo: 'soma'
+        }),
+
+        contarPorCampo({
+            base: 'lista_pagamentos',
+            filtros: {
+                'param.*.codigo_tipo_documento': { op: '=', value: 'CTE' },
+                'departamento': filtro
+            },
+            explode: { path: 'snapshots.departamentos' },
+            path: 'valor',
+            modo: 'soma'
+        }),
+
+        contarPorCampo({
+            base: 'custo_veiculos',
+            filtros: {
+                'snapshots.departamentos.*.departamento': filtro
+            },
+            explode: { path: 'snapshots.departamentos', manterOrigem: false },
+            path: 'valor',
+            modo: 'soma'
+        }),
+
+        contarPorCampo({
+            base: 'notas',
+            filtros: {
+                'snapshots.departamentos.*.departamento': filtro
+            },
+            explode: { path: 'snapshots.departamentos', manterOrigem: false },
+            path: 'valor',
+            modo: 'soma'
+        })
+    ])
 
     atualizar('t-pagamentos', dinheiro(somaPagamentos.total))
-
-    const somaFretes = await contarPorCampo({
-        base: 'lista_pagamentos',
-        filtros: {
-            'param.*.codigo_tipo_documento': { op: '=', value: 'CTE' },
-            'departamento': filtro
-        },
-        explode: { path: 'snapshots.departamentos' },
-        path: 'valor',
-        modo: 'soma'
-    })
-
     atualizar('t-fretes', dinheiro(somaFretes.total))
-
-    const somaCombustiveis = await contarPorCampo({
-        base: 'custo_veiculos',
-        filtros: {
-            'departamento': filtro
-        },
-        explode: { path: 'snapshots.departamentos' },
-        path: 'valor',
-        modo: 'soma'
-    })
-
     atualizar('t-abastecimento', dinheiro(somaCombustiveis.total))
-
-    // NOTAS
-    const somaNotas = await contarPorCampo({
-        base: 'notas',
-        filtros: {
-            'departamento': filtro
-        },
-        explode: { path: 'snapshots.departamentos' },
-        path: 'valor',
-        modo: 'soma'
-    })
-
     atualizar('t-notas', dinheiro(somaNotas.total))
 
     function atualizar(id, valor) {

@@ -47,34 +47,6 @@ if (!emArquivoLocal && 'serviceWorker' in navigator) {
         .catch(err => console.error('Erro ao registrar SW:', err))
 }
 
-const appBases = {
-    'GCS': [
-        'tags_orcamentos',
-        'departamentos_ac',
-        'dados_orcamentos',
-        'custo_veiculos',
-        'motoristas',
-        'veiculos',
-        'dados_composicoes',
-        'dados_clientes_ac',
-        'lista_pagamentos',
-        'dados_manutencao',
-        'dados_categorias_ac',
-        'dados_estoque',
-        'dados_setores',
-        'pessoas'
-    ],
-    'OCORRÊNCIAS': [
-        'dados_clientes_ac',
-        'prioridades',
-        'tipos',
-        'correcoes',
-        'sistemas',
-        'empresas',
-        'dados_setores'
-    ]
-}
-
 document.addEventListener('click', verificarClique, true)
 
 function verificarClique(event) {
