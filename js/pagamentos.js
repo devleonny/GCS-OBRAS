@@ -309,7 +309,7 @@ async function abrirDetalhesPagamentos(id) {
     // Orçamentos & chamados vinculados;
     const vinculados = []
     for (const dep of depPagam) {
-        const cc = await recuperarDado('departamentos_ac', dep.cCodDep)
+        const cc = await recuperarDado('departamentos', dep.cCodDep)
         if (!cc)
             continue
 
@@ -616,8 +616,8 @@ async function formularioPagamento() {
             texto: 'Centro de Custo',
             elemento: `
                 <div style="${horizontal}; gap: 1rem;">
-                    <img src="imagens/baixar.png" style="width: 1.5rem; cursor: pointer;" onclick="maisCampo({ base: 'departamentos_ac' })">
-                    <div class="central-departamentos_ac"></div>
+                    <img src="imagens/baixar.png" style="width: 1.5rem; cursor: pointer;" onclick="maisCampo({ base: 'departamentos' })">
+                    <div class="central-departamentos"></div>
                 </div>
             `
         },
@@ -675,7 +675,7 @@ async function formularioPagamento() {
 
     // Departamentos;
     for (const departamento of distribuicao)
-        await maisCampo({ atualizar: false, id: departamento.cCodDep, base: 'departamentos_ac', valor: departamento.nValDep })
+        await maisCampo({ atualizar: false, id: departamento.cCodDep, base: 'departamentos', valor: departamento.nValDep })
 
     await calculadoraPagamento()
 
@@ -776,7 +776,7 @@ async function calculadoraPagamento() {
     }
 
     // Departamentos
-    const inputsDep = document.querySelectorAll('[name="departamentos_ac"]')
+    const inputsDep = document.querySelectorAll('[name="departamentos"]')
     for (const input of inputsDep) {
 
         const span = input.parentElement.nextElementSibling
@@ -901,8 +901,14 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
                         ${elemento?.categoria || 'Selecionar'}
                 </span>`
         },
-        departamentos_ac: {
+        departamentos: {
             retornar: ['descricao'],
+            filtros: {
+                'app': {
+                    op: '=',
+                    value: 'AC'
+                }
+            },
             colunas: {
                 'Descrição': { chave: 'descricao' }
             },

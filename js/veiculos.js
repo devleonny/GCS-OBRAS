@@ -47,7 +47,7 @@ async function telaVeiculos() {
         substituicoes: [
             {
                 path: 'distribuicao.*.departamento',
-                tabela: 'departamentos_ac',
+                tabela: 'departamentos',
                 campoBusca: 'codigo',
                 retorno: 'descricao',
                 destino: 'distribuicao.*.nomeDepartamento'
@@ -520,7 +520,7 @@ async function painelValores(idCusto, duplicar) {
     }
 
     for (const [codigo, { km }] of Object.entries(custo.distribuicao || {})) {
-        const { descricao } = await recuperarDado('departamentos_ac', Number(codigo))
+        const { descricao } = await recuperarDado('departamentos', Number(codigo))
         linDist({ codigo, km, descricao })
     }
 
@@ -552,7 +552,13 @@ function linDist({ descricao, codigo, km } = {}) {
     )
 
     controlesCxOpcoes[chave] = {
-        base: 'departamentos_ac',
+        base: 'departamentos',
+        filtros: {
+            'app': {
+                op: '=',
+                value: 'AC'
+            }
+        },
         retornar: ['descricao'],
         colunas: {
             'Descrição': { chave: 'descricao' }

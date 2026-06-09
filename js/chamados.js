@@ -215,7 +215,13 @@ async function criarManutencao(id = crypto.randomUUID()) {
     }
 
     controlesCxOpcoes.chamado = {
-        base: 'departamentos_ac',
+        base: 'departamentos',
+        filtros: {
+            'app': {
+                op: '=',
+                value: 'AC'
+            }
+        },
         retornar: ['descricao'],
         colunas: {
             'Departamento': { chave: 'descricao' },

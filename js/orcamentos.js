@@ -80,7 +80,7 @@ async function telaOrcamentos() {
         substituicoes: [
             {
                 path: 'dados_orcam.contrato',
-                tabela: 'departamentos_ac',
+                tabela: 'departamentos',
                 campoBusca: 'descricao',
                 retorno: 'descricao',
                 destino: 'departamentoExistente'
