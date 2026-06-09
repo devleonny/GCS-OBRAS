@@ -309,7 +309,7 @@ async function tecnicosAtivos(id) {
     let tecs = ''
 
     for (const codTec of listaTecs) {
-        const dados = await recuperarDado('dados_clientes_ac', codTec) || {}
+        const dados = await recuperarDado('clientes', codTec) || {}
         tecs += maisTecnico(codTec, dados?.nome || 'N/A', true)
     }
 
@@ -436,7 +436,7 @@ async function criarLinhaRelChecklist(item) {
 
     const nomes = []
     for (const c of (tecnicos || [])) {
-        const { nome } = await recuperarDado('dados_clientes_ac', c) || {}
+        const { nome } = await recuperarDado('clientes', c) || {}
         if (nome) nomes.push(nome)
     }
 
@@ -953,7 +953,7 @@ async function verRegistrosChecklist(codigo) {
         const nomesTecnicos = []
 
         for (const tcod of (dados?.tecnicos || [])) {
-            const { nome } = await recuperarDado('dados_clientes_ac', tcod)
+            const { nome } = await recuperarDado('clientes', tcod)
             if (nome)
                 nomesTecnicos.push(nome)
         }
@@ -1035,7 +1035,7 @@ async function registrarChecklist(codigo) {
     const orcamento = await recuperarDado('dados_orcamentos', id) || {}
 
     for (const codTec of orcamento?.checklist?.tecnicos || []) {
-        const { nome } = await recuperarDado('dados_clientes_ac', codTec) || ''
+        const { nome } = await recuperarDado('clientes', codTec) || ''
         maisTecnico(codTec, nome)
     }
 
@@ -1081,7 +1081,10 @@ function maisTecnico(cod, nome, devolver) {
         return
 
     controlesCxOpcoes[cod] = {
-        base: 'dados_clientes_ac',
+        base: 'clientes',
+        filtros: {
+            'app': { op: '=', value: 'AC' }
+        },
         retornar: ['nome'],
         colunas: {
             'Nome': { chave: 'nome' },

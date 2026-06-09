@@ -91,8 +91,8 @@ async function preencher() {
     } = orcamentoBase.dados_orcam
 
     const [cliente, clienteVendaDireta] = await Promise.all([
-        recuperarDado('dados_clientes_ac', omie_cliente) || {},
-        recuperarDado('dados_clientes_ac', venda_direta) || {},
+        recuperarDado('clientes', omie_cliente) || {},
+        recuperarDado('clientes', venda_direta) || {},
     ])
 
     const {

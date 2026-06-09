@@ -161,8 +161,8 @@ async function criarManutencao(id = crypto.randomUUID()) {
 
     const manutencao = await recuperarDado('dados_manutencao', id) || {}
     const { snapshots } = manutencao
-    const cliente = await recuperarDado('dados_clientes_ac', manutencao?.codigo_cliente)
-    const tecnico = await recuperarDado('dados_clientes_ac', manutencao?.codigo_tecnico)
+    const cliente = await recuperarDado('clientes', manutencao?.codigo_cliente)
+    const tecnico = await recuperarDado('clientes', manutencao?.codigo_tecnico)
 
     const ths = ['Descrição', 'Quantidade', 'Comentário', '']
         .map(op => `<th>${op}</th>`)
@@ -193,7 +193,10 @@ async function criarManutencao(id = crypto.randomUUID()) {
     const kitTecnico = manutencao?.chamado == 'KIT TÉCNICO'
 
     controlesCxOpcoes.cliente = {
-        base: 'dados_clientes_ac',
+        base: 'clientes',
+        filtros: {
+            'app': { op: '=', value: 'AC' }
+        },
         retornar: ['nome'],
         colunas: {
             'Nome': { chave: 'nome' },
@@ -204,7 +207,10 @@ async function criarManutencao(id = crypto.randomUUID()) {
     }
 
     controlesCxOpcoes.tecnico = {
-        base: 'dados_clientes_ac',
+        base: 'clientes',
+        filtros: {
+            'app': { op: '=', value: 'AC' }
+        },
         retornar: ['nome'],
         colunas: {
             'Nome': { chave: 'nome' },
@@ -364,7 +370,7 @@ async function gerarPDFChamados(idManutencao) {
 
         if (codigo == '') continue
 
-        const dados = await recuperarDado('dados_clientes_ac', codigo) || {}
+        const dados = await recuperarDado('clientes', codigo) || {}
 
         campos.forEach(campo => {
             elementos += `<label style="text-align: left;"><strong>${campo.toUpperCase()}: </strong>${dados[campo]}</label>`

@@ -147,7 +147,10 @@ async function telaClientes() {
         body: 'bodyClientes',
         btnExtras,
         criarLinha: 'criarLinhaClienteGCS',
-        base: 'dados_clientes_ac'
+        filtros: {
+            'app': { op: '=', value: 'AC' }
+        },
+        base: 'clientes'
     })
 
     const dropdownTags = montarDropdownCheckbox({
@@ -186,7 +189,10 @@ async function telaClientes() {
 async function contarPorTagCliente() {
 
     const contagem = await contarPorCampo({
-        base: 'dados_clientes_ac',
+        base: 'clientes',
+        filtros: {
+            'app': { op: '=', value: 'AC' }
+        },
         path: 'estado',
         filtros: controles?.clientes?.filtros || {}
     })
@@ -323,7 +329,7 @@ async function formularioCliente(idCliente) {
         cnpj,
         comentario,
         tags
-    } = await recuperarDado('dados_clientes_ac', idCliente) || {}
+    } = await recuperarDado('clientes', idCliente) || {}
 
     const labelsTags = (tags || [])
         .map(item => tagCliente(item.tag, true))
@@ -459,7 +465,7 @@ function confirmarExcluirCliente(idCliente) {
 
 async function excluirCliente(idCliente) {
 
-    await deletar(`dados_clientes_ac/${idCliente}`)
+    await deletar(`clientes/${idCliente}`)
 
 }
 
@@ -478,7 +484,14 @@ async function salvarCliente(idCliente = codCliAleatorio()) {
     if (!validarCpfCnpj(cnpj))
         return popup({ mensagem: 'Campo CPF/CNPJ inválido!' })
 
-    const pesquisa = await pesquisarDB({ base: 'dados_clientes_ac', filtros: { 'cnpj': { op: "=", value: cnpj } } })
+    const pesquisa = await pesquisarDB({
+        base: 'clientes',
+        filtros: {
+            'app': { op: '=', value: 'AC' },
+            'cnpj': { op: '=', value: cnpj }
+        }
+    })
+
     const primeiroResultado = pesquisa.resultados?.[0]
 
     if (pesquisa.resultados.length > 0 && Number(primeiroResultado?.id) !== idCliente)
@@ -510,11 +523,11 @@ async function salvarCliente(idCliente = codCliAleatorio()) {
     }
 
     const cliente = {
-        ...await recuperarDado('dados_clientes_ac', idCliente) || {},
+        ...await recuperarDado('cliente', idCliente) || {},
         ...novo
     }
 
-    await enviar(`dados_clientes_ac/${idCliente}`, cliente)
+    await enviar(`clientes/${idCliente}`, cliente)
 
     removerPopup()
 

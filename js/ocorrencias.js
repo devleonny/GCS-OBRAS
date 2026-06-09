@@ -1951,7 +1951,7 @@ async function formularioOcorrencia(idOcorrencia) {
     ).join('')
 
     const cliente = unidade
-        ? await recuperarDado('dados_clientes_ac', unidade)
+        ? await recuperarDado('clientes', unidade)
         : snapshots?.cliente || {}
 
     const a = Object
@@ -1969,7 +1969,10 @@ async function formularioOcorrencia(idOcorrencia) {
 
     // Campo Unidade;
     controlesCxOpcoes.unidade = {
-        base: 'dados_clientes_ac',
+        base: 'clientes',
+        filtros: {
+            'app': { op: '=', value: 'AC' }
+        },
         retornar: ['nome'],
         filtros,
         colunas: {
@@ -2361,7 +2364,8 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
     if (codigo)
         return label
 
-    div.insertAdjacentHTML('beforeend', label)
+    if (div)
+        div.insertAdjacentHTML('beforeend', label)
 }
 
 function multiplicarCampoSerie(input) {

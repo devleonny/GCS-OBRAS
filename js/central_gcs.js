@@ -1083,8 +1083,8 @@ async function painelClientes(idOrcamento = null) {
         : false
 
     const [cliente, clienteVendaDireta] = await Promise.all([
-        recuperarDado('dados_clientes_ac', omie_cliente),
-        recuperarDado('dados_clientes_ac', venda_direta)
+        recuperarDado('clientes', omie_cliente),
+        recuperarDado('clientes', venda_direta)
     ])
 
     const levantamentos = Object.entries(orcamento?.levantamentos || {})
@@ -1111,7 +1111,10 @@ async function painelClientes(idOrcamento = null) {
     // cxOpcoes -> Cliente
     controlesCxOpcoes.cliente = {
         retornar: ['nome'],
-        base: 'dados_clientes_ac',
+        base: 'clientes',
+        filtros: {
+            'app': { op: '=', value: 'AC' }
+        },
         funcaoAdicional: ['buscarDadosCliente'],
         colunas: {
 
@@ -1125,7 +1128,10 @@ async function painelClientes(idOrcamento = null) {
     // cxOpcoes -> Venda Direta
     controlesCxOpcoes.venda_direta = {
         retornar: ['nome'],
-        base: 'dados_clientes_ac',
+        base: 'clientes',
+        filtros: {
+            'app': { op: '=', value: 'AC' }
+        },
         colunas: {
             'Nome Fantasia': { chave: 'nome' },
             'Cidade': { chave: 'cidade' },
@@ -1336,7 +1342,7 @@ async function buscarDadosCliente() {
     if (!clienteName) return
 
     const omie_cliente = Number(clienteName.id)
-    const cliente = await recuperarDado('dados_clientes_ac', omie_cliente) || {}
+    const cliente = await recuperarDado('clientes', omie_cliente) || {}
 
     const campos = ['cnpj', 'endereco', 'bairro', 'cidade', 'estado', 'cep']
     for (const campo of campos) {

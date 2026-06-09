@@ -303,11 +303,11 @@ function criarLinhaRH(documento) {
 
 function expiraEm(dtValidade) {
 
-    if (!dtValidade) 
+    if (!dtValidade)
         return { dias: 0, icone: 'gifs/interrogacao.gif', status: 'Desconhecido', validade: '' };
 
     let validade;
-    
+
     // Suporta data BR (DD/MM/AAAA) ou ISO do banco (YYYY-MM-DDTHH...)
     if (typeof dtValidade === 'string' && dtValidade.includes('/')) {
         const [dia, mes, ano] = dtValidade.split(' ')[0].split('/');
@@ -354,7 +354,10 @@ async function incluirDocumento(id) {
     const { local, doc, clinica, funcionario, snapshots, realizado } = await recuperarDado('documentos', id) || {}
 
     controlesCxOpcoes.funcionario = {
-        base: 'dados_clientes_ac',
+        base: 'clientes',
+        filtros: {
+            'app': { op: '=', value: 'AC' }
+        },
         retornar: ['nome'],
         colunas: {
             'Nome': { chave: 'nome' },

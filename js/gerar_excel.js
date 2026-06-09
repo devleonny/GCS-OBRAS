@@ -15,7 +15,7 @@ async function irExcelOrcamento(orcam_) {
         const imageId = wb.addImage({ base64: base64data, extension: 'png' })
 
         const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
-        const cliente = await recuperarDado('dados_clientes_ac', omie_cliente)
+        const cliente = await recuperarDado('clientes', omie_cliente)
         const nomeArquivo = `${cliente?.nome || '--'} ${orcamento.dados_orcam.contrato}`
 
         const cabecalho = ['Item', 'Descrição', 'Quantidade', 'Valor Unitário', 'Valor Total']

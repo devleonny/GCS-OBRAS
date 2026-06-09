@@ -250,7 +250,6 @@ async function abrirDetalhesPagamentos(id) {
     let valores = ''
     const permissao = acesso.permissao
     const pagamento = await recuperarDado('lista_pagamentos', id) || {}
-    console.log(pagamento);
 
     const anexos = Object.entries(pagamento?.anexos || {})
         .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoPagamento('${id}', '${idAnexo}')`))
@@ -575,12 +574,15 @@ async function formularioPagamento() {
 
     const ulP = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
     const { observacao = '', categorias = [], distribuicao = [], valor_documento = 0, data_vencimento, codigo_cliente_fornecedor = '' } = ulP?.param?.[0] || {}
-    const { nome } = await recuperarDado('dados_clientes_ac', codigo_cliente_fornecedor) || {}
+    const { nome } = await recuperarDado('clientes', codigo_cliente_fornecedor) || {}
     const [dia, mes, ano] = data_vencimento ? data_vencimento.split('/') : ''
     const dtVencimento = `${ano}-${mes}-${dia}`
 
     controlesCxOpcoes.recebedor = {
-        base: 'dados_clientes_ac',
+        base: 'clientes',
+        filtros: {
+            'app': { op: '=', value: 'AC' }
+        },
         retornar: ['nome'],
         funcaoAdicional: ['calculadoraPagamento'],
         colunas: {

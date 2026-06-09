@@ -54,7 +54,7 @@ async function telaVeiculos() {
             },
             {
                 path: 'veiculo.motoristas.*.id',
-                tabela: 'dados_clientes_ac',
+                tabela: 'clientes',
                 campoBusca: 'id',
                 retorno: 'nome',
                 destino: 'veiculo.motoristas.*.nomeMotorista'
@@ -672,7 +672,7 @@ async function novoVeiculo(idVeiculo) {
     const motoristas = []
 
     for (const { id } of (veiculo.motoristas || [])) {
-        const motorista = await recuperarDado('dados_clientes_ac', id)
+        const motorista = await recuperarDado('clientes', id)
         motoristas.push(adicionarMotorista(motorista))
     }
 
@@ -743,7 +743,10 @@ function adicionarMotorista({ id, nome } = {}) {
 
     // Controles;
     controlesCxOpcoes[aleatorio] = {
-        base: 'dados_clientes_ac',
+        base: 'clientes',
+        filtros: {
+            'app': { op: '=', value: 'AC' }
+        },
         retornar: ['nome'],
         colunas: {
             'Nome': { chave: 'nome' },

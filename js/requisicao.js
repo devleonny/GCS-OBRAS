@@ -39,7 +39,7 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
         cidade,
         endereco,
         bairro
-    } = await recuperarDado('dados_clientes_ac', orcamento?.dados_orcam?.omie_cliente) || {}
+    } = await recuperarDado('clientes', orcamento?.dados_orcam?.omie_cliente) || {}
     const dadosRequisicao = await recuperarDado('requisicoes', id) || {}
     const { pedido } = await recuperarDado('pedidos', dadosRequisicao?.pedido) || {}
     const {
@@ -679,7 +679,7 @@ async function gerarPdfRequisicao(id, visualizar) {
         })
         .join('')
 
-    const { nome, cnpj, cidade, bairro, endereco, cep } = await recuperarDado('dados_clientes_ac', dados_orcam?.omie_cliente) || {}
+    const { nome, cnpj, cidade, bairro, endereco, cep } = await recuperarDado('clientes', dados_orcam?.omie_cliente) || {}
 
     const dCabecalho = Object.entries({ orçamento: dados_orcam?.contrato, chamado: dados_orcam?.chamado, nome, cnpj, endereco, bairro, cidade, cep })
         .filter(([, valor]) => valor)
