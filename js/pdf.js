@@ -43,21 +43,19 @@ function excel() {
 
 function blocoHtml({ titulo, dados }) {
 
-    if(!dados)
+    if (!dados)
         return ''
 
-    const linhas = []
-
-    for (const [chave, dado] of Object.entries(dados)) {
-        if (dado == '') continue
-
-        linhas.push(`
-        <div style="${vertical}; gap: 5px;">
-            <label><b>${chave}</b></label> 
-            <div style="white-space: pre-wrap;">${dado}</div>
-        </div>`)
-
-    }
+    const linhas = dados
+        .filter(item => item.valor != '')
+        .map(({ chave, valor }) => {
+            return `
+            <div style="${vertical}; gap: 5px;">
+                ${chave ? `<label><b>${chave}</b></label>` : ''} 
+                <div style="white-space: pre-wrap;">${valor}</div>
+            </div>`
+        })
+        .join('')
 
     if (!linhas.length)
         return ''
@@ -66,7 +64,7 @@ function blocoHtml({ titulo, dados }) {
         <div class="contorno">
             <div class="pilula">
                 <span class="cab">${titulo}</span>
-                <div style="${vertical}">${linhas.join('')}</div>
+                <div style="${vertical}">${linhas}</div>
             </div>
         </div>
         `
@@ -130,46 +128,52 @@ async function preencher() {
     const dadosPorBloco = {
         proposta: {
             titulo: 'Dados da Proposta',
-            dados: {
-                'Contrato': `<div class="nome-chamado">${nomeChamado}</div>`,
-                'Condições de Pagamento': condicoes || '',
-                'Tipo de Frete': tipo_de_frete || '',
-                'Garantia': garantia || 'Conforme tratativa Comercial',
-                'Analista': analista || 'Grupo Costa Silva',
-                'E-mail': email_analista || 'financeiro@grupocostasilva.com.br',
-                'Telefone': telefone_analista || '(11) 96300-7299'
-            }
+            dados: [
+                { chave: 'Contrato', valor: `<div class="nome-chamado">${nomeChamado}</div>` },
+                { chave: 'Condições de Pagamento', valor: condicoes || '' },
+                { chave: 'Tipo de Frete', valor: tipo_de_frete || '' },
+                { chave: 'Garantia', valor: garantia || 'Conforme tratativa Comercial' },
+                { chave: 'Analista', valor: analista || 'Grupo Costa Silva' },
+                { chave: 'E-mail', valor: email_analista || 'financeiro@grupocostasilva.com.br' },
+                { chave: 'Telefone', valor: telefone_analista || '(11) 96300-7299' }
+            ]
         },
         cliente: {
             titulo: 'Dados do Cliente',
-            dados: {
-                'Razão Social ou Nome Fantasia': nome || '--',
-                'CNPJ': cnpj || '--',
-                'CEP': cep || '--',
-                'Endereço': endereco || '--',
-                'Bairro': bairro || '--',
-                'Cidade': cidade || '--',
-                'Estado': estado || '--',
-            }
+            dados: [
+                { chave: 'Razão Social ou Nome Fantasia', valor: nome || '--' },
+                { chave: 'CNPJ', valor: cnpj || '--' },
+                { chave: 'CEP', valor: cep || '--' },
+                { chave: 'Endereço', valor: endereco || '--' },
+                { chave: 'Bairro', valor: bairro || '--' },
+                { chave: 'Cidade', valor: cidade || '--' },
+                { chave: 'Estado', valor: estado || '--' }
+            ]
         },
         empresa: {
             titulo: 'Dados da Empresa',
-            dados: {
-                'Razão Social': empresaEmissora['Razão Social'],
-                'CNPJ': empresaEmissora['CNPJ'],
-                'E-mail': empresaEmissora['E-mail'],
-                'Telefones': empresaEmissora['Telefones'],
-                'Localização': empresaEmissora['Localização']
-            }
+            dados: [
+                { chave: 'Razão Social', valor: empresaEmissora['Razão Social'] },
+                { chave: 'CNPJ', valor: empresaEmissora['CNPJ'] },
+                { chave: 'E-mail', valor: empresaEmissora['E-mail'] },
+                { chave: 'Telefones', valor: empresaEmissora['Telefones'] },
+                { chave: 'Localização', valor: empresaEmissora['Localização'] }
+            ]
+        },
+        escopo: {
+            titulo: 'Escopo',
+            dados: [
+                { valor: consideracoes }
+            ]
         },
         adicionais: {
             titulo: 'Venda Direta',
-            dados: {
-                'Empresa': clienteVendaDireta?.nome || '',
-                'CNPJ': clienteVendaDireta?.cnpj || '',
-                'Endereço': clienteVendaDireta?.endereco || '',
-                'Estado': clienteVendaDireta?.estado || '',
-            }
+            dados: [
+                { chave: 'Empresa', valor: clienteVendaDireta?.nome || '' },
+                { chave: 'CNPJ', valor: clienteVendaDireta?.cnpj || '' },
+                { chave: 'Endereço', valor: clienteVendaDireta?.endereco || '' },
+                { chave: 'Estado', valor: clienteVendaDireta?.estado || '' }
+            ]
         }
     }
 
@@ -339,7 +343,7 @@ async function preencher() {
         </div>
     </div>
 
-    ${consideracoes ? blocoHtml('Considerações', { Considerações: consideracoes }) : ''}
+    ${consideracoes ? blocoHtml(dadosPorBloco.escopo) : ''}
     `
 
     await paginacao()
