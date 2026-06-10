@@ -59,9 +59,6 @@ async function telaPagamentos() {
     const tabela = await modTab({
         pag,
         colunas,
-        filtros: {
-            criado: { op: '!=', value: 'Integração' }
-        },
         funcaoAdicional: ['atualizarPainelEsquerdo'],
         body: 'bodyPagamentos',
         base: 'lista_pagamentos',
@@ -94,7 +91,7 @@ async function filtrarPagamentos(st) {
 
     controles.pagamentos.filtros = {
         ...controles?.pagamentos?.filtros,
-        status: { op: '=', value: st }
+        status: { op: 'includes', value: st }
     }
 
     if (st == 'todos')
@@ -108,9 +105,6 @@ async function atualizarPainelEsquerdo() {
 
     const contagens = await contarPorCampo({
         base: 'lista_pagamentos',
-        filtros: {
-            criado: { op: '!=', value: 'Integração' }
-        },
         path: 'status'
     })
 
