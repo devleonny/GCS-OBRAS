@@ -191,6 +191,7 @@ async function gerarPdfOS(nome) {
     const id = 'pdf'
     const estilos = [
         'gcsobras',
+        'relatorio',
         'layout_os'
     ]
 
