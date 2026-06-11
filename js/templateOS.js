@@ -10,7 +10,11 @@ async function telaOS(idOcorrencia) {
 
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
     const cliente = await recuperarDado('clientes', ocorrencia?.unidade) || {}
-    const { tipo, sistema, prioridade, ultimaCorrecao } = ocorrencia?.snapshots || {}
+    const { tipo, sistema, prioridade, ultimaCorrecao, nomesStatus } = ocorrencia?.snapshots || {}
+
+    const labelTipoCorrecao = (nomesStatus || [])
+        .map(st => formatacaoTipoCorrecao(st))
+        .join('')
 
     let assinatura = ''
 
@@ -67,7 +71,7 @@ async function telaOS(idOcorrencia) {
                 </div>
 
                 <div class="vertical">
-                    ${modelo('Status Ocorrência', ultimaCorrecao)}
+                    ${modelo('Status Ocorrência', labelTipoCorrecao)}
                     ${modelo('Prioridade', prioridade)}
                     ${modelo('Tipo Ocorrência', tipo)}
                     ${modelo('Data/Hora da Abertura', ocorrencia.data_registro)}
