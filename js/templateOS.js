@@ -8,7 +8,7 @@ async function telaOS(idOcorrencia) {
 
     overlayAguarde()
 
-    const ocorrencia = await recuperarDado('clientes', idOcorrencia) || {}
+    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
     const cliente = await recuperarDado('clientes', ocorrencia?.unidade) || {}
     const { tipo, sistema, prioridade, ultimaCorrecao } = ocorrencia?.snapshots || {}
 
