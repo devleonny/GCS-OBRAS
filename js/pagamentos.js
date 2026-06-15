@@ -248,7 +248,7 @@ async function abrirDetalhesPagamentos(id) {
         </div>`
 
     let valores = ''
-    const permissao = acesso.permissao
+    const { permissao } = acesso
     const pagamento = await recuperarDado('lista_pagamentos', id) || {}
 
     const anexos = Object.entries(pagamento?.anexos || {})
@@ -306,24 +306,23 @@ async function abrirDetalhesPagamentos(id) {
     const depPagam = pagamento?.param?.[0]?.distribuicao || []
 
     // Orçamentos & chamados vinculados;
-    const vinculados = []
-    for (const dep of depPagam) {
-        const cc = await recuperarDado('departamentos', dep.cCodDep)
-        if (!cc)
-            continue
+    const resultados = await Promise.all(
+        depPagam.map(async (dep) => {
+            const cc = await recuperarDado('departamentos', dep.cCodDep)
+            if (!cc) return []
 
-        const pesquisa = await pesquisarDB({
-            base: 'dados_orcamentos',
-            filtros: {
-                'dados_orcam.contrato': { op: '=', value: cc.descricao }
-            }
+            const pesquisa = await pesquisarDB({
+                base: 'dados_orcamentos',
+                filtros: {
+                    'dados_orcam.contrato': { op: '=', value: cc.descricao }
+                }
+            })
+
+            return pesquisa.resultados || []
         })
+    )
 
-        if (!pesquisa.resultados.length)
-            continue
-
-        vinculados.push(...pesquisa.resultados)
-    }
+    const vinculados = resultados.flat()
 
     const btnsOrcamentos = vinculados
         .map(resultado => {
@@ -334,7 +333,9 @@ async function abrirDetalhesPagamentos(id) {
                 <br>${total}`, `abrirAtalhos('${resultado.id}')`)
         }).join('')
 
-    const bEspeciais = permissao == 'adm'
+    const liberados = ['adm', 'Diretoria']
+
+    const bEspeciais = liberados.includes(permissao)
         ? `
         ${btnDetalhes('editar', 'Editar Pagamento', `editarPagamento('${id}')`)}
         ${btnDetalhes('cancel', 'Excluir pagamento', `confirmarExclusaoPagamento('${id}')`)}
@@ -570,19 +571,31 @@ async function salvarPagamento() {
 async function formularioPagamento() {
 
     const totalPagamento = document.getElementById('totalPagamento')
-    if (totalPagamento) return
+    if (totalPagamento)
+        return
 
-    const ulP = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
-    const { observacao = '', categorias = [], distribuicao = [], valor_documento = 0, data_vencimento, codigo_cliente_fornecedor = '' } = ulP?.param?.[0] || {}
-    const { nome } = await recuperarDado('clientes', codigo_cliente_fornecedor) || {}
-    const [dia, mes, ano] = data_vencimento ? data_vencimento.split('/') : ''
+    const { app = 'IAC', param, anexos } = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
+    const {
+        observacao = '',
+        categorias = [],
+        distribuicao = [],
+        valor_documento = 0,
+        data_vencimento,
+        codigo_cliente_fornecedor
+    } = param?.[0] || {}
+
+    const { nome } = codigo_cliente_fornecedor
+        ? await recuperarDado('clientes', codigo_cliente_fornecedor) || {}
+        : {}
+
+    const [dia, mes, ano] = data_vencimento
+        ? data_vencimento.split('/')
+        : new Date().toLocaleDateString().split('/')
+
     const dtVencimento = `${ano}-${mes}-${dia}`
 
     controlesCxOpcoes.recebedor = {
         base: 'clientes',
-        filtros: {
-            'app': { op: '=', value: 'AC' }
-        },
         retornar: ['nome'],
         funcaoAdicional: ['calculadoraPagamento'],
         colunas: {
@@ -639,14 +652,14 @@ async function formularioPagamento() {
         {
             texto: '<span style="padding-right: 2rem;"><b>IAC</b> Apenas reembolso para funcionário</span>',
             elemento: `
-                <select name="app" onchange="calculadoraPagamento()">
-                    ${empresas.map(op => `<option ${ulP?.app == op ? 'selected' : ''}>${op}</option>`).join('')}
+                <select name="app" onchange="calculadoraPagamento(); alterarAPP(this.value)">
+                    ${empresas.map(op => `<option ${app == op ? 'selected' : ''}>${op}</option>`).join('')}
                 </select>
             `
         },
         {
             texto: 'Data de Pagamento',
-            elemento: `<input type="date" name="dataPagamento" value="${dtVencimento}" oninput="calculadoraPagamento()">`
+            elemento: `<input type="date" name="dataPagamento" value="${dtVencimento || ''}" oninput="calculadoraPagamento()">`
         },
         {
             texto: 'Anexos Diversos',
@@ -656,7 +669,7 @@ async function formularioPagamento() {
                     <input type="file" id="aPagamentos" multiple>
 
                     <div id="anexosDiversos" style="${vertical}; gap: 2px;">
-                        ${Object.values(ulP.anexos || {}).map(anexo => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoTemporario('${anexo.link}')`)).join('')}
+                        ${Object.values(anexos || {}).map(anexo => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoTemporario('${anexo.link}')`)).join('')}
                     </div>
                 </div>
             `
@@ -672,15 +685,128 @@ async function formularioPagamento() {
     popup({ linhas, botoes, titulo: 'Solicitação de Pagamento' })
 
     // Categorias;
-    for (const categoria of categorias)
-        await maisCampo({ atualizar: false, id: categoria.codigo_categoria, base: 'categorias', valor: categoria.valor })
+    await Promise.all(
+        categorias.map(categoria =>
+            maisCampo({
+                atualizar: false,
+                id: categoria.codigo_categoria,
+                base: 'categorias',
+                valor: categoria.valor
+            })
+        )
+    )
 
     // Departamentos;
-    for (const departamento of distribuicao)
-        await maisCampo({ atualizar: false, id: departamento.cCodDep, base: 'departamentos', valor: departamento.nValDep })
+    await Promise.all(
+        distribuicao.map(departamento =>
+            maisCampo({
+                atualizar: false,
+                id: departamento.cCodDep,
+                base: 'departamentos',
+                valor: departamento.nValDep
+            })
+        )
+    )
 
+    // Verificação inicial;
+    alterarAPP(app)
     await calculadoraPagamento()
 
+}
+
+async function alterarAPP(app) {
+    for (const [id, controle] of Object.entries(controlesCxOpcoes)) {
+        if (typeof controle == 'string')
+            continue
+
+        controle.filtros ??= {}
+        controle.filtros.app = { op: '=', value: app }
+    }
+
+    const spanCategorias = [...document.querySelectorAll('.central-categorias span')]
+    const spanDepartamentos = [...document.querySelectorAll('.central-departamentos span')]
+    const recebedorEl = document.querySelector('[name="recebedor"]')
+    const recebedor = recebedorEl?.textContent?.trim()
+
+    // Categorias;
+    const verificarCategorias = spanCategorias
+        .filter(span => span.id)
+        .map(async (span) => {
+            const textoSpan = span.textContent
+
+            const { resultados } = await pesquisarDB({
+                base: 'categorias',
+                filtros: {
+                    app: { op: '=', value: app },
+                    categoria: { op: '=', value: textoSpan }
+                }
+            })
+
+            const { categoria, id } = resultados[0] || {}
+
+            if (id) {
+                span.id = id
+                span.textContent = categoria
+                span.style.backgroundColor = '#097fe6'
+            } else {
+                span.style.backgroundColor = '#ff0000'
+            }
+        })
+
+    // Departamentos;
+    const verificarDepartamentos = spanDepartamentos
+        .filter(span => span.id)
+        .map(async (span) => {
+            const textoSpan = span.textContent
+
+            const { resultados } = await pesquisarDB({
+                base: 'departamentos',
+                filtros: {
+                    app: { op: '=', value: app },
+                    descricao: { op: '=', value: textoSpan }
+                }
+            })
+
+            const { descricao, codigo } = resultados[0] || {}
+
+            if (codigo) {
+                span.id = codigo
+                span.textContent = descricao
+                span.style.backgroundColor = '#097fe6'
+            } else {
+                span.style.backgroundColor = '#ff0000'
+            }
+        })
+
+    // Recebedor;
+    const verificarRecebedor = (async () => {
+        if (!recebedorEl || !recebedor)
+            return
+
+        const { resultados } = await pesquisarDB({
+            base: 'clientes',
+            filtros: {
+                app: { op: '=', value: app },
+                nome: { op: '=', value: recebedor }
+            }
+        })
+
+        const cliente = resultados[0]
+
+        if (cliente?.id) {
+            recebedorEl.id = cliente.id
+            recebedorEl.textContent = cliente.nome || recebedor
+            recebedorEl.style.backgroundColor = '#097fe6'
+        } else {
+            recebedorEl.style.backgroundColor = '#ff0000'
+        }
+    })()
+
+    await Promise.all([
+        verificarRecebedor,
+        ...verificarCategorias,
+        ...verificarDepartamentos
+    ])
 }
 
 function dataRegras(data, atraso) {
@@ -879,6 +1005,8 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
 
     if (!base) return
 
+    const { app = 'IAC' } = JSON.parse(localStorage.getItem('ultimo_pagamento')) || {}
+
     const aleatorio = crypto.randomUUID()
     const elemento = await recuperarDado(base, id)
 
@@ -886,10 +1014,7 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
         categorias: {
             retornar: ['categoria'],
             filtros: {
-                'app': {
-                    op: '=',
-                    value: 'AC'
-                }
+                app: { op: '=', value: app }
             },
             colunas: {
                 'Categoria': { chave: 'categoria' }
@@ -906,10 +1031,7 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
         departamentos: {
             retornar: ['descricao'],
             filtros: {
-                'app': {
-                    op: '=',
-                    value: 'AC'
-                }
+                app: { op: '=', value: app }
             },
             colunas: {
                 'Descrição': { chave: 'descricao' }
@@ -932,7 +1054,7 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
     }
 
     const campoAdicional = `
-        <div style="${horizontal}; justify-content: start; margin-right: 1rem;">
+        <div data-id="${aleatorio}" style="${horizontal}; justify-content: start; margin-right: 1rem;">
 
             <div style="${horizontal}; gap: 5px;">
                 <span>R$</span> 
@@ -951,12 +1073,18 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
     `
 
     document.querySelector(`.central-${base}`).insertAdjacentHTML('beforeend', campoAdicional)
-    if (atualizar) await calculadoraPagamento()
+
+    if (atualizar)
+        await calculadoraPagamento()
 
 }
 
 async function removerCampo(xis) {
     xis.parentElement.remove()
+
+    const idAleatorio = xis.parentElement.dataset.id
+    delete controlesCxOpcoes[idAleatorio]
+
     await calculadoraPagamento()
 }
 

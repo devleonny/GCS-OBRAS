@@ -12,7 +12,7 @@ const esquemas = {
 
 const tagsClientes = ['', 'FUNCIONÁRIO', 'CLIENTE', 'MOTORISTA', 'TÉCNICO', 'TÉCNICO PARCEIRO', 'FORNECEDOR', 'MATRIZ']
 const parcelas = ["--", "15 dias", "20 dias", "21 dias", "30 dias", "35 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
-const empresas = ['IAC', 'AC', 'HNK']
+const empresas = ['IAC', 'AC', 'HNK', 'HNW']
 const permComposicoes = ['adm', 'log', 'gerente', 'diretoria', 'editor']
 let moduloComposicoes = null
 const permCham = ['técnico', 'cliente', 'visitante']
