@@ -663,7 +663,7 @@ async function formularioPagamento() {
         {
             texto: 'Anexos Diversos',
             elemento: `
-                <div style="${vertical}; align-items: end;">
+                <div style="${vertical}; align-items: end; gap: 5px;">
 
                     <input type="file" id="aPagamentos" multiple>
 

@@ -5,39 +5,6 @@
     top: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 860px;
-    height: 190px;
-    z-index: 9999;
-    overflow: visible;
-    animation: balancoTopo 4.5s ease-in-out infinite;
-    transform-origin: center top;
-}
-
-@keyframes balancoTopo {
-
-    0%,
-    100% {
-        transform: translateX(-50%) rotate(0deg) translateY(0px);
-    }
-
-    25% {
-        transform: translateX(-50%) rotate(-0.35deg) translateY(1px);
-    }
-
-    50% {
-        transform: translateX(-50%) rotate(0deg) translateY(3px);
-    }
-
-    75% {
-        transform: translateX(-50%) rotate(0.35deg) translateY(1px);
-    }
-}
-
-.topo-saojoao {
-    position: fixed;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
     z-index: 9999;
     pointer-events: none;
     overflow: visible;
