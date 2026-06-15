@@ -1832,8 +1832,8 @@ async function filtrarAtrasados(input) {
     await paginacao()
 }
 
-async function auxPendencias() {
 
+async function auxPendencias() {
     const divPendencias = document.querySelector('.painel-pendencias')
     if (!divPendencias)
         return
@@ -1841,16 +1841,97 @@ async function auxPendencias() {
     controles.ocorrencias ??= {}
     controles.ocorrencias.filtros ??= {}
 
+    const ordemFinal = ['CANCELADO', 'SOLUCIONADA', 'TODOS']
+
+    if (!['cliente', 'técnico'].includes(acesso.permissao)) {
+        const esquema = {
+            'FUNCIONÁRIOS': 'f7aec8c1-ce57-40f8-9ea1-c032c3971a9f',
+            'PARCEIROS': 'c0bfd4a8-6bca-40e7-a71b-5990630f4b19'
+        }
+
+        const [contadores, ctg, ctgFluxo] = await Promise.all([
+            contarPorCampo({
+                base: 'dados_ocorrencias',
+                explode: { path: 'snapshots.ultimaCorrecao' },
+                path: 'nome'
+            }),
+            contarPorCampo({
+                filtros: {
+                    tipo: {
+                        modo: 'OR',
+                        regras: [
+                            { op: '=', value: 'f7aec8c1-ce57-40f8-9ea1-c032c3971a9f' },
+                            { op: '=', value: 'c0bfd4a8-6bca-40e7-a71b-5990630f4b19' },
+                        ]
+                    }
+                },
+                base: 'dados_ocorrencias',
+                path: 'tipo'
+            }),
+            contarPorCampo({
+                base: 'dados_ocorrencias',
+                path: 'prioridade',
+                filtros: {
+                    prioridade: { op: '=', value: 'lauka' }
+                }
+            })
+        ])
+
+        const etiquetas = Object
+            .entries(contadores || {})
+            .sort((a, b) => {
+                const [nomeA] = a
+                const [nomeB] = b
+
+                const priA = ordemFinal.includes(nomeA)
+                const priB = ordemFinal.includes(nomeB)
+
+                if (priA && !priB) return 1
+                if (!priA && priB) return -1
+
+                return nomeA.localeCompare(nomeB)
+            })
+            .map(([correcao, total]) => {
+                const cor = padraoCor(correcao)
+
+                return `
+                <div class="pill" onclick="atalhoAuxiliar('${correcao}')">
+                    <span class="pill-a" style="background: ${cor};">${total}</span>
+                    <span class="pill-b">${correcao.toUpperCase()}</span>
+                </div>`
+            })
+
+        etiquetas.push('<br>')
+
+        for (const [titulo, cod] of Object.entries(esquema)) {
+            etiquetas.push(`
+                <div class="pill" onclick="atalhoTipo('${cod}')">
+                    <span class="pill-a" style="background: #5E35B1;">${ctg?.[cod] || 0}</span>
+                    <span class="pill-b">${titulo}</span>
+                </div>
+            `)
+        }
+
+        etiquetas.push(`
+            <br>
+            <div class="pill" onclick="atalhoContagemFluxo()">
+                <span class="pill-a" style="background: #5E35B1;">${ctgFluxo?.lauka || 0}</span>
+                <span class="pill-b">CONTAGEM DE FLUXO</span>
+            </div>
+        `)
+
+        divPendencias.innerHTML = etiquetas.join('')
+        return
+    }
+
     const contadores = await contarPorCampo({
         base: 'dados_ocorrencias',
         explode: { path: 'snapshots.ultimaCorrecao' },
         path: 'nome'
     })
 
-    const ordemFinal = ['CANCELADO', 'SOLUCIONADA', 'TODOS']
-
     const etiquetas = Object
-        .entries(contadores)
+        .entries(contadores || {})
         .sort((a, b) => {
             const [nomeA] = a
             const [nomeB] = b
@@ -1864,7 +1945,6 @@ async function auxPendencias() {
             return nomeA.localeCompare(nomeB)
         })
         .map(([correcao, total]) => {
-
             const cor = padraoCor(correcao)
 
             return `
@@ -1874,27 +1954,19 @@ async function auxPendencias() {
             </div>`
         })
 
-    // BALÕES ESPECIAIS PARA TÉCNICOS & PARCEIROS; 
-    if (!['cliente', 'técnico'].includes(acesso.permissao)) {
+    divPendencias.innerHTML = etiquetas.join('')
+}
 
-        const esquema = {
-            'FUNCIONÁRIOS': 'f7aec8c1-ce57-40f8-9ea1-c032c3971a9f',
-            'PARCEIROS': 'c0bfd4a8-6bca-40e7-a71b-5990630f4b19'
-        }
+async function atalhoContagemFluxo() {
 
-        const ctg = await contarPorCampo({ base: 'dados_ocorrencias', path: 'tipo' }) || {}
-
-        for (const [titulo, cod] of Object.entries(esquema)) {
-            etiquetas.push(`
-                <div class="pill" onclick="atalhoTipo('${cod}')">
-                    <span class="pill-a" style="background: #5E35B1;">${ctg[cod] || 0}</span>
-                    <span class="pill-b">${titulo}</span>
-                </div>
-            `)
-        }
+    controles.ocorrencias.filtros.prioridade = {
+        op: '=', value: 'lauka'
     }
 
-    divPendencias.innerHTML = etiquetas.join('')
+    if (document.querySelector('.tela-ocorrencias'))
+        await paginacao()
+    else
+        await telaOcorrencias()
 
 }
 

@@ -1,3 +1,65 @@
+//saoJoao()
+
+function saoJoao() {
+    const imgs = ['b1', 'b2', 'b3', 'b4', 'b5', 'b1', 'b3', 'b4']
+    const largura = 92
+    const altura = 140
+    const espacamento = 95
+    const inicioX = 40
+    const baseY = 35
+    const curvatura = 35
+
+    const especial = `
+        <div class="topo-saojoao">
+            <span class="corda-saojoao"></span>
+            ${imgs.map((img, i) => {
+                const total = imgs.length - 1 || 1
+                const progresso = i / total
+                const x = inicioX + (i * espacamento)
+
+                // curva suave: menor nas pontas, maior no centro
+                const curva = Math.sin(progresso * Math.PI) * curvatura
+                const y = baseY + curva
+
+                const rot = i % 2 === 0 ? -8 : 8
+
+                return `
+                    <div 
+                        class="bandeirola"
+                        onclick="ocultarTemp(this)"
+                        style="
+                            left:${x}px;
+                            top:${y}px;
+                            --rot:${rot}deg;
+                            --fio:${Math.max(10, curva * 0.35 + 8)}px;
+                        "
+                    >
+                        <span class="fio-bandeira"></span>
+                        <img src="imagens/${img}.png" alt="">
+                    </div>
+                `
+            }).join('')}
+        </div>
+    `
+
+    document.body.insertAdjacentHTML('beforeend', especial)
+
+    document.querySelectorAll('.bandeirola').forEach(el => {
+        let timer
+
+        el.addEventListener('mouseenter', () => {
+            clearTimeout(timer)
+            el.classList.add('balancando-saojoao')
+        })
+
+        el.addEventListener('mouseleave', () => {
+            timer = setTimeout(() => {
+                el.classList.remove('balancando-saojoao')
+            }, 15000)
+        })
+    })
+}
+
 
 // natal() 
 
