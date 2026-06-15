@@ -576,26 +576,6 @@ async function gerarPdfOnline(htmlString, nome) {
     }
 }
 
-async function relancarPagamento(idPagamento) {
-
-    const { app } = await recuperarDado('lista_pagamentos', idPagamento)
-
-    const elemento = `
-        <div style="${vertical}; background-color: #d2d2d2; padding: 1rem;">
-
-            <div style="${horizontal}; gap: 1rem;">
-                <span>Qual APP deve ser relançado?</span>
-                <select class="opcoesSelect" id="app">
-                    ${empresas.map(op => `<option ${app == op ? 'selected' : ''}>${op}</option>`).join('')}
-                </select>
-            </div>
-            <hr style="width: 100%;">
-            <button onclick="confirmarRelancamento('${idPagamento}')">Confirmar</button>
-        </div>
-    `
-    popup({ elemento, titulo: 'Escolha o APP', })
-}
-
 async function confirmarRelancamento(idPagamento) {
 
     const app = document.getElementById('app').value

@@ -339,7 +339,6 @@ async function abrirDetalhesPagamentos(id) {
         ? `
         ${btnDetalhes('editar', 'Editar Pagamento', `editarPagamento('${id}')`)}
         ${btnDetalhes('cancel', 'Excluir pagamento', `confirmarExclusaoPagamento('${id}')`)}
-        ${btnDetalhes('concluido', 'Lançar pagamento', `relancarPagamento('${id}')`)}
         ${btnDetalhes('anexo', 'Reimportar Anexos no Omie', `reprocessarAnexos('${id}')`)}`
         : ''
 
