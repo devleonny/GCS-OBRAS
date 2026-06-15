@@ -218,7 +218,6 @@ function criarLinhaClienteGCS(cliente) {
 
     const idCliente = cliente.id
     const { nome, cnpj, tags, comentario, nomeEmpresa } = cliente
-    const enderecoEntrega = cliente.enderecoEntrega ?? {}
 
     const modelo = ({ endereco, bairro, cep, cidade, estado }) => {
         return `
@@ -232,7 +231,6 @@ function criarLinhaClienteGCS(cliente) {
     }
 
     const eCadastro = modelo({ ...cliente })
-    //const eEntrega = modelo({ ...enderecoEntrega })
 
     const labelsTags = (tags || [])
         .map(item => tagCliente(item.tag))
@@ -319,7 +317,7 @@ async function formularioCliente(idCliente) {
     overlayAguarde()
 
     const {
-        enderecoEntrega = {},
+        endereco_entrega = {},
         endereco,
         bairro,
         estado,
@@ -409,25 +407,25 @@ async function formularioCliente(idCliente) {
         },
         {
             texto: 'Endereço',
-            elemento: `<textarea name="e_endereco">${enderecoEntrega?.endereco || ''}</textarea>`
+            elemento: `<textarea name="e_endereco">${endereco_entrega?.endereco || ''}</textarea>`
         },
         {
             texto: 'Bairro',
-            elemento: `<textarea name="e_bairro">${enderecoEntrega?.bairro || ''}</textarea>`
+            elemento: `<textarea name="e_bairro">${endereco_entrega?.bairro || ''}</textarea>`
         },
         {
             texto: 'Cidade',
-            elemento: `<input name="e_cidade" value="${enderecoEntrega?.cidade || ''}">`
+            elemento: `<input name="e_cidade" value="${endereco_entrega?.cidade || ''}">`
         },
         {
             texto: 'Cep',
-            elemento: `<input oninput="formatarCep(this)" name="e_cep" value="${enderecoEntrega?.cep || ''}">`
+            elemento: `<input oninput="formatarCep(this)" name="e_cep" value="${endereco_entrega?.cep || ''}">`
         },
         {
             texto: 'Estado',
             elemento: `
             <select name="e_estado">
-                ${aEstados.map(estado => `<option ${enderecoEntrega?.estado == estado ? 'selected' : ''}>${estado}</option>`).join('')}
+                ${aEstados.map(estado => `<option ${endereco_entrega?.estado == estado ? 'selected' : ''}>${estado}</option>`).join('')}
             </select>
             `
         }
@@ -513,7 +511,7 @@ async function salvarCliente(idCliente = codCliAleatorio()) {
         estado: obVal('estado'),
         comentario: obVal('comentario'),
         tags,
-        enderecoEntrega: {
+        endereco_entrega: {
             endereco: obVal('e_endereco'),
             bairro: obVal('e_bairro'),
             cep: obVal('e_cep'),

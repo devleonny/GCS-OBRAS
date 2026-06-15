@@ -1,48 +1,58 @@
-//saoJoao()
+saoJoao()
 
 function saoJoao() {
-    const imgs = ['b1', 'b2', 'b3', 'b4', 'b5', 'b1', 'b3', 'b4']
-    const largura = 92
-    const altura = 140
-    const espacamento = 95
-    const inicioX = 40
-    const baseY = 35
-    const curvatura = 35
+    const imgs = ['band1', 'band2', 'band3', 'band1', 'band2', 'band3', 'band1', 'band2', 'band3', 'band1']
+    const largura = 74
+    const altura = 112
+    const gap = 8
+    const margem = 30
+    const larguraTotal = 860
+    const alturaArea = 190
 
     const especial = `
-        <div class="topo-saojoao">
-            <span class="corda-saojoao"></span>
-            ${imgs.map((img, i) => {
-                const total = imgs.length - 1 || 1
-                const progresso = i / total
-                const x = inicioX + (i * espacamento)
-
-                // curva suave: menor nas pontas, maior no centro
-                const curva = Math.sin(progresso * Math.PI) * curvatura
-                const y = baseY + curva
-
-                const rot = i % 2 === 0 ? -8 : 8
-
-                return `
-                    <div 
-                        class="bandeirola"
-                        onclick="ocultarTemp(this)"
-                        style="
-                            left:${x}px;
-                            top:${y}px;
-                            --rot:${rot}deg;
-                            --fio:${Math.max(10, curva * 0.35 + 8)}px;
-                        "
-                    >
-                        <span class="fio-bandeira"></span>
-                        <img src="imagens/${img}.png" alt="">
-                    </div>
-                `
-            }).join('')}
+        <div class="topo-saojoao" style="width:${larguraTotal}px; height:${alturaArea}px;">
+            <svg class="corda-svg" viewBox="0 0 ${larguraTotal} 120" preserveAspectRatio="none">
+                <path
+                    id="cordaSJ"
+                    d="M ${margem} 0 Q ${larguraTotal / 2} 74 ${larguraTotal - margem} 0"
+                    fill="none"
+                    stroke="#8b5a2b"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                />
+            </svg>
         </div>
     `
 
     document.body.insertAdjacentHTML('beforeend', especial)
+
+    const topo = document.querySelector('.topo-saojoao')
+    const path = document.getElementById('cordaSJ')
+    const total = path.getTotalLength()
+
+    const trechoUtil = total - 60
+    const passo = largura + gap
+    const inicio = 30
+
+    imgs.forEach((img, i) => {
+        const dist = inicio + i * passo
+        const p = path.getPointAtLength(dist)
+        const p2 = path.getPointAtLength(Math.min(dist + 1, total))
+        const angulo = Math.atan2(p2.y - p.y, p2.x - p.x) * (180 / Math.PI)
+
+        const el = document.createElement('div')
+        el.className = 'bandeirola'
+        el.setAttribute('onclick', 'ocultarTemp(this)')
+        el.style.cssText = `
+            left:${p.x}px;
+            top:${p.y}px;
+            width:${largura}px;
+            height:${altura}px;
+            --rot:${angulo}deg;
+        `
+        el.innerHTML = `<img src="imagens/${img}.png" alt="">`
+        topo.appendChild(el)
+    })
 
     document.querySelectorAll('.bandeirola').forEach(el => {
         let timer
@@ -59,7 +69,6 @@ function saoJoao() {
         })
     })
 }
-
 
 // natal() 
 
