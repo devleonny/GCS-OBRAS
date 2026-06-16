@@ -455,7 +455,7 @@ async function gerarPDF() {
 
     await pdf({
         id: 'container',
-        estilos: ['pdf', 'tabelas'],
+        estilos: ['pdf', 'tabelas', 'gcsobras', 'estilos'],
         nome: `Orcamento_${revisao ? `${revisao}_` : ''}${nomeCliente}_${contrato}`
     })
 
