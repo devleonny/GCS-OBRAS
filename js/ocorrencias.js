@@ -808,9 +808,9 @@ function criarLinhaOcorrencia(ocorrencia) {
         : ''
 
     const btnOS = `<div class="botaoImg" onclick="telaOS('${id}')"><span>OS</span></div>`
-
-    const btsFP = dados_orcam?.tecnico
-        ? `<div class="botaoImg" onclick="abrirResumo('${dados_orcam?.tecnico[0]}')"><span>SALDOS</span></div>`
+    const tec1 = dados_orcam?.tecnico?.[0]
+    const btsFP = tec1
+        ? `<div class="botaoImg" onclick="abrirResumo('${tec1}')"><span>SALDOS</span></div>`
         : ''
 
     const modeloCampos = (valor1, valor2) => {

@@ -77,6 +77,10 @@ async function preencher() {
     const idRecebido = parametros.get('id')
     const orcamentoBase = await recuperarDado('dados_orcamentos', idRecebido) || {}
 
+    const idOrcamentoHTML = document.getElementById('codigo_orcamento')
+    if (idOrcamentoHTML)
+        idOrcamentoHTML.textContent = idRecebido
+
     const {
         omie_cliente,
         venda_direta,

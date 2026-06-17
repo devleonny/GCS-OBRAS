@@ -248,7 +248,7 @@ async function abrirDetalhesPagamentos(id) {
         </div>`
 
     let valores = ''
-    const { permissao } = acesso
+    const { permissao, usuario } = acesso
     const pagamento = await recuperarDado('lista_pagamentos', id) || {}
 
     const anexos = Object.entries(pagamento?.anexos || {})
@@ -334,13 +334,22 @@ async function abrirDetalhesPagamentos(id) {
         }).join('')
 
     const liberados = ['adm', 'Diretoria']
+    const bEspeciais = [
+        btnDetalhes('reembolso', 'Duplicar Pagamento', `duplicarPagamento('${id}')`)
+    ]
 
-    const bEspeciais = liberados.includes(permissao)
-        ? `
-        ${btnDetalhes('editar', 'Editar Pagamento', `editarPagamento('${id}')`)}
-        ${btnDetalhes('cancel', 'Excluir pagamento', `confirmarExclusaoPagamento('${id}')`)}
-        ${btnDetalhes('anexo', 'Reimportar Anexos no Omie', `reprocessarAnexos('${id}')`)}`
-        : ''
+    if (liberados.includes(permissao) || pagamento.criado == usuario)
+        bEspeciais.push(btnDetalhes('editar', 'Editar Pagamento', `editarPagamento('${id}')`))
+
+    bEspeciais.push(
+        ...(liberados.includes(permissao)
+            ? [
+                btnDetalhes('cancel', 'Excluir pagamento', `confirmarExclusaoPagamento('${id}')`),
+                btnDetalhes('anexo', 'Reimportar Anexos no Omie', `reprocessarAnexos('${id}')`)
+            ]
+            : []
+        )
+    )
 
     const deps = (pagamento?.snapshots?.departamentos || [])
         .map(({ departamento, valor }) => {
@@ -357,9 +366,7 @@ async function abrirDetalhesPagamentos(id) {
         <div class="detalhes-pagamento">
             <div style="${vertical}; gap: 1px; width: 100%;">
                 ${btnsOrcamentos}
-                ${btnDetalhes('reembolso', 'Duplicar Pagamento', `duplicarPagamento('${id}')`)}
-
-                ${bEspeciais}
+                ${bEspeciais.join('')}
 
             </div>
 
@@ -493,8 +500,8 @@ async function autorizarPagamentos(resposta, id) {
 
         await abrirDetalhesPagamentos(id)
 
-        await enviar(`lista_pagamentos/${id}/historico/${idJustificativa}`, historico)
-        await enviar(`lista_pagamentos/${id}/status`, status)
+        enviar(`lista_pagamentos/${id}/historico/${idJustificativa}`, historico)
+        enviar(`lista_pagamentos/${id}/status`, status)
 
         removerOverlay()
 
@@ -508,7 +515,7 @@ async function salvarPagamento() {
 
     overlayAguarde()
 
-    const resposta = await calculadoraPagamento(true) // Última verificação antes de salvar;
+    const resposta = await calculadoraPagamento()
 
     if (resposta?.mensagem)
         return popup({ mensagem: resposta.mensagem })
@@ -516,7 +523,6 @@ async function salvarPagamento() {
     const ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
     const permissao = acesso.permissao
     const anexoPagamento = document.getElementById('aPagamentos')
-
     const anexos = await importarAnexos({ input: anexoPagamento })
 
     if (anexos.mensagem)
@@ -535,23 +541,10 @@ async function salvarPagamento() {
     if (!observacao.includes(identificacao))
         ultimoPagamento.param[0].observacao = `${identificacao} ${acesso.usuario} \n ${observacao}`
 
-    if (ultimoPagamento.param[0].valor_documento <= 500) {
-        ultimoPagamento.status = 'Processando...'
-    } else if (permissao == 'gerente') {
-        ultimoPagamento.status = 'Aguardando aprovação da Diretoria'
-    } else {
-        ultimoPagamento.status = 'Aguardando aprovação da Gerência'
-    }
-
-    // Identificação do pagamento;
-    if (!ultimoPagamento.id) {
-        const id = crypto.randomUUID()
-        ultimoPagamento.id = id
-        ultimoPagamento.param[0].codigo_lancamento_integracao = id
-    }
+    ultimoPagamento.status = 'Processando...'
 
     try {
-        await enviar(`lista_pagamentos/${ultimoPagamento.id}`, ultimoPagamento)
+        await enviar(`lista_pagamentos/${ultimoPagamento.id || crypto.randomUUID()}`, ultimoPagamento)
 
         localStorage.removeItem('ultimoPagamento')
 
@@ -569,46 +562,59 @@ async function salvarPagamento() {
 
 async function formularioPagamento() {
 
-    const totalPagamento = document.getElementById('totalPagamento')
-    if (totalPagamento)
-        return
+    try {
 
-    const { app = 'IAC', param, anexos } = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
-    const {
-        observacao = '',
-        categorias = [],
-        distribuicao = [],
-        valor_documento = 0,
-        data_vencimento,
-        codigo_cliente_fornecedor
-    } = param?.[0] || {}
+        overlayAguarde()
 
-    const { nome } = codigo_cliente_fornecedor
-        ? await recuperarDado('clientes', codigo_cliente_fornecedor) || {}
-        : {}
+        const totalPagamento = document.getElementById('totalPagamento')
 
-    const [dia, mes, ano] = data_vencimento
-        ? data_vencimento.split('/')
-        : new Date().toLocaleDateString().split('/')
+        if (totalPagamento)
+            return
 
-    const dtVencimento = `${ano}-${mes}-${dia}`
+        const ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
+        const {
+            app = 'IAC',
+            param,
+            data_modificada = null,
+            id,
+            anexos
+        } = ultimoPagamento
 
-    controlesCxOpcoes.recebedor = {
-        base: 'clientes',
-        retornar: ['nome'],
-        funcaoAdicional: ['calculadoraPagamento'],
-        colunas: {
-            'Nome': { chave: 'nome' },
-            'CNPJ/CPF': { chave: 'cnpj' },
-            'Cidade': { chave: 'cidade' },
-            'Estado': { chave: 'estado' }
+        const {
+            observacao = '',
+            categorias = [],
+            distribuicao = [],
+            valor_documento = 0,
+            data_vencimento,
+            codigo_cliente_fornecedor
+        } = param?.[0] || {}
+
+        const { nome } = codigo_cliente_fornecedor
+            ? await recuperarDado('clientes', codigo_cliente_fornecedor) || {}
+            : {}
+
+        const [dia, mes, ano] = data_vencimento
+            ? data_vencimento.split('/')
+            : new Date().toLocaleDateString().split('/')
+
+        const dtVencimento = `${ano}-${mes}-${dia}`
+
+        controlesCxOpcoes.recebedor = {
+            base: 'clientes',
+            retornar: ['nome'],
+            funcaoAdicional: ['calculadoraPagamento'],
+            colunas: {
+                'Nome': { chave: 'nome' },
+                'CNPJ/CPF': { chave: 'cnpj' },
+                'Cidade': { chave: 'cidade' },
+                'Estado': { chave: 'estado' }
+            }
         }
-    }
 
-    const linhas = [
-        {
-            texto: 'Recebedor',
-            elemento: `
+        const linhas = [
+            {
+                texto: 'Recebedor',
+                elemento: `
             <div style="${horizontal}; gap: 1rem;">
                 <span 
                 class="opcoes" 
@@ -620,49 +626,55 @@ async function formularioPagamento() {
                 <img onclick="formularioCliente()" src="imagens/baixar.png">
             </div>
             `
-        },
-        {
-            texto: 'Observação <br>ou Chave Pix <br>ou Boleto',
-            elemento: `
+            },
+            {
+                texto: 'Observação <br>ou Chave Pix <br>ou Boleto',
+                elemento: `
             <textarea rows="3" style="resize: vertical; width: 70%;" name="observacao" oninput="calculadoraPagamento()">${observacao || ''}</textarea>`
-        },
-        {
-            texto: 'Centro de Custo',
-            elemento: `
+            },
+            {
+                texto: 'Centro de Custo',
+                elemento: `
                 <div style="${horizontal}; gap: 1rem;">
                     <img src="imagens/baixar.png" style="width: 1.5rem; cursor: pointer;" onclick="maisCampo({ base: 'departamentos' })">
                     <div class="central-departamentos"></div>
                 </div>
             `
-        },
-        {
-            texto: 'Categorias',
-            elemento: `
+            },
+            {
+                texto: 'Categorias',
+                elemento: `
                 <div style="${horizontal}; gap: 1rem;">
                     <img src="imagens/baixar.png" style="width: 1.5rem; cursor: pointer;" onclick="maisCampo({ base: 'categorias'})">
                     <div class="central-categorias"></div>
                 </div>
             `
-        },
-        {
-            texto: 'Total do Pagamento',
-            elemento: `<div id="totalPagamento">${dinheiro(valor_documento)}</div>`
-        },
-        {
-            texto: '<span style="padding-right: 2rem;"><b>IAC</b> Apenas reembolso para funcionário</span>',
-            elemento: `
+            },
+            {
+                texto: 'Total do Pagamento',
+                elemento: `<div id="totalPagamento">${dinheiro(valor_documento)}</div>`
+            },
+            {
+                texto: '<span style="padding-right: 2rem;"><b>IAC</b> Apenas reembolso para funcionário</span>',
+                elemento: `
                 <select name="app" onchange="calculadoraPagamento(); alterarAPP(this.value)">
                     ${empresas.map(op => `<option ${app == op ? 'selected' : ''}>${op}</option>`).join('')}
                 </select>
             `
-        },
-        {
-            texto: 'Data de Pagamento',
-            elemento: `<input type="date" name="dataPagamento" value="${dtVencimento || ''}" oninput="calculadoraPagamento()">`
-        },
-        {
-            texto: 'Anexos Diversos',
-            elemento: `
+            },
+            {
+                texto: 'Data de Pagamento',
+                elemento: `
+            <div style="${horizontal}; gap: 5px;">
+                <input readOnly="${data_modificada ? 'false' : 'true'}" type="date" name="dataPagamento" value="${dtVencimento || ''}" oninput="calculadoraPagamento()">
+                <input name="dataModificada" oninput="calculadoraPagamento()" ${data_modificada ? 'checked' : ''} type="checkbox" style="width: 1.5rem; height: 1.5rem;">
+                <span>Data editável</span>
+            </div>
+            `
+            },
+            {
+                texto: 'Anexos Diversos',
+                elemento: `
                 <div style="${vertical}; align-items: end; gap: 5px;">
 
                     <input type="file" id="aPagamentos" multiple>
@@ -672,44 +684,62 @@ async function formularioPagamento() {
                     </div>
                 </div>
             `
+            },
+            {
+                elemento: '<div id="statusPagamento"></div>'
+            }
+        ]
+
+        const botoes = [
+            { texto: 'Salvar Pagamento', img: 'concluido', funcao: 'salvarPagamento()' },
+            { texto: 'Regras', img: 'alerta', funcao: 'duvidas()' },
+            { texto: 'Recomeçar', img: 'cancel', funcao: 'apagarPagamento()' }
+        ]
+
+        // Verificação se esse pagamento já subiu pro Omie;
+        if (id) {
+
+            const status = await verificarStatusPagamento(id)
+
+            if (status.includes('PAGO'))
+                return popup({ mensagem: 'Este pagamento já foi pago, não pode ser alterado!' })
+
         }
-    ]
 
-    const botoes = [
-        { texto: 'Salvar Pagamento', img: 'concluido', funcao: 'salvarPagamento()' },
-        { texto: 'Regras', img: 'alerta', funcao: 'duvidas()' },
-        { texto: 'Recomeçar', img: 'cancel', funcao: 'apagarPagamento()' }
-    ]
+        popup({ linhas, botoes, titulo: 'Solicitação de Pagamento' })
 
-    popup({ linhas, botoes, titulo: 'Solicitação de Pagamento' })
-
-    // Categorias;
-    await Promise.all(
-        categorias.map(categoria =>
-            maisCampo({
-                atualizar: false,
-                id: categoria.codigo_categoria,
-                base: 'categorias',
-                valor: categoria.valor
-            })
+        // Categorias;
+        await Promise.all(
+            categorias.map(categoria =>
+                maisCampo({
+                    atualizar: false,
+                    id: categoria.codigo_categoria,
+                    base: 'categorias',
+                    valor: categoria.valor
+                })
+            )
         )
-    )
 
-    // Departamentos;
-    await Promise.all(
-        distribuicao.map(departamento =>
-            maisCampo({
-                atualizar: false,
-                id: departamento.cCodDep,
-                base: 'departamentos',
-                valor: departamento.nValDep
-            })
+        // Departamentos;
+        await Promise.all(
+            distribuicao.map(departamento =>
+                maisCampo({
+                    atualizar: false,
+                    id: departamento.cCodDep,
+                    base: 'departamentos',
+                    valor: departamento.nValDep
+                })
+            )
         )
-    )
 
-    // Verificação inicial;
-    alterarAPP(app)
-    await calculadoraPagamento()
+        // Verificação inicial;
+        await alterarAPP(app)
+        await calculadoraPagamento()
+
+    } catch (err) {
+        console.log(err)
+        popup({ mensagem: 'Falha ao abrir o formulário de pagamento' })
+    }
 
 }
 
@@ -867,7 +897,6 @@ async function calculadoraPagamento() {
 
     const observacao = obVal('observacao').value
     const app = obVal('app').value
-    const dataPagamento = obVal('dataPagamento')
     const categorias = {}
     const distribuicao = {}
     let valor_documento = 0
@@ -927,13 +956,48 @@ async function calculadoraPagamento() {
     }
 
     // Verificar categorias [Parceiros] e postergar pagamentos;
-    const dataFinal = dataRegras(dataPagamento.value, atraso)
-    const [dia, mes, ano] = dataFinal.split('/')
-    const dtFinalInp = `${ano}-${mes}-${dia}`
-    dataPagamento.value = dtFinalInp
+    const dataModificada = obVal('dataModificada')
+    const dataPagamento = obVal('dataPagamento')
 
-    let ulP = {
+    let dataFinal = null
+
+    if (dataModificada.checked) {
+
+        const [ano, mes, dia] = dataPagamento.value.split('-')
+        dataFinal = `${dia}/${mes}/${ano}`
+
+        dataPagamento.readOnly = false
+
+    } else {
+
+        const hoje = new Date().toISOString().slice(0, 10)
+        dataFinal = dataRegras(hoje, atraso)
+
+        const [dia, mes, ano] = dataFinal.split('/')
+        dataPagamento.readOnly = true
+        dataPagamento.value = `${ano}-${mes}-${dia}`
+
+    }
+
+    const ulPSalvo = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
+
+    // Se existir status, então o usuário deve saber o que acontece ao salvar;
+    const divStatus = document.querySelector('#statusPagamento')
+
+    divStatus.innerHTML = ['A VENCER', 'VENCE HOJE', 'ATRASADO'].includes(ulPSalvo.status)
+        ? `
+            <div class="alerta-piscando">
+                <img src="gifs/alerta.gif">
+                <span>Este pagamento já foi lançado no OMIE, <br>
+                então editando agora ele pode precisar ser aprovado de novo!</span>
+            </div>
+        `
+        : ''
+
+    const ulP = {
+        ...ulPSalvo,
         app,
+        data_modificada: dataModificada?.checked,
         data_registro: new Date().toLocaleString(),
         param: [
             {
@@ -948,36 +1012,24 @@ async function calculadoraPagamento() {
         ]
     }
 
-    // Pagamento salvo localmente;
-    const ulPAtual = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
-
-    ulP = {
-        ...ulPAtual,
-        ...ulP
-    }
-
     if (!ulP.criado)
         ulP.criado = acesso.usuario
 
     localStorage.setItem('ultimoPagamento', JSON.stringify(ulP))
 
     const dif = Math.round(totais.cat * 100) !== Math.round(totais.dep * 100)
-
-    if (dif)
-        return { mensagem: 'Existe uma diferença entre Centro de custo x Categorias' }
-
-    if (valor_documento == 0)
-        return { mensagem: 'Pagamento sem valor' }
+    const labelTotal = document.getElementById('totalPagamento')
 
     let divPag = `<span style="font-size: 1.5rem;">${dinheiro(valor_documento)}</span>`
 
-    const mod = (t1, t2) => `
-        <div style="${vertical}; gap: 2px;">
-            <span>${t1}</span>
-            <span style="font-size: 1.5rem;">${dinheiro(t2)}</span>
-        </div>
-    `
     if (dif) {
+
+        const mod = (t1, t2) => `
+            <div style="${vertical}; gap: 2px;">
+                <span>${t1}</span>
+                <span style="font-size: 1.5rem;">${dinheiro(t2)}</span>
+            </div>
+        `
 
         divPag = `
         <div style="${horizontal}; gap: 1rem;">
@@ -994,9 +1046,16 @@ async function calculadoraPagamento() {
 
         </div>
         `
+        labelTotal.innerHTML = divPag
+        return { mensagem: 'Existe uma diferença entre Centro de custo x Categorias' }
+
     }
 
-    document.getElementById('totalPagamento').innerHTML = divPag
+    labelTotal.innerHTML = divPag
+
+    if (valor_documento == 0)
+        return { mensagem: 'Pagamento sem valor' }
+
 
 }
 
@@ -1004,7 +1063,7 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
 
     if (!base) return
 
-    const { app = 'IAC' } = JSON.parse(localStorage.getItem('ultimo_pagamento')) || {}
+    const { app = 'IAC' } = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
 
     const aleatorio = crypto.randomUUID()
     const elemento = await recuperarDado(base, id)
@@ -1205,14 +1264,23 @@ async function baixarExcelRelatorioPagamentos() {
 }
 
 
-async function pagamentosPorDepartamento() {
+async function verificarStatusPagamento(id) {
 
-    const contagem = await contarPorCampo({
-        base: 'lista_pagamentos',
-        explode: { path: 'snapshots.departamentos' },
-        modo: 'somaAgrupada',
-        campoSoma: 'valor',
-        path: 'departamento'
+    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
+
+    const resposta = await fetch(`${read}/verificar-pagamento`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ id })
     })
 
+    if (!resposta.ok) {
+        const erro = await resposta.text()
+        throw new Error(erro || 'Erro ao contar por campo')
+    }
+
+    return await resposta.json()
 }

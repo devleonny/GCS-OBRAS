@@ -272,6 +272,7 @@ async function criarLinhaOrcamento(orcamento) {
             ${etiqRevAtual}
             ${etiqVendaDireta}
             <span>${(snapshots?.cliente || '').toUpperCase()}</span>
+            <span>${snapshots?.cnpj || ''}</span>
         </div>`
 
         // Tags;

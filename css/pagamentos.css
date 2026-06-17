@@ -13,15 +13,38 @@
     overflow-x: hidden;
 }
 
-#dataPagamento {
-    border-radius: 3px;
-    padding: 3px;
+.alerta-piscando {
+    text-align: left;
+    background: #ff00002b;
+    display: flex;
+    padding: 5px;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    width: 100%;
+    border: 1px solid #d90429;
+    border-radius: 8px;
+    animation: piscarVermelho 1s infinite;
 }
 
-.numero {
-    color: white;
-    font-size: 1rem;
-    flex: 0 0 10%;
+@keyframes piscarVermelho {
+
+    0%,
+    100% {
+        border-color: #d90429;
+        box-shadow: 0 0 0 0 rgba(217, 4, 41, 0.15);
+    }
+
+    50% {
+        border-color: #ff4d6d;
+        box-shadow: 0 0 0 6px rgba(217, 4, 41, 0.35);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .alerta-piscando {
+        animation: none;
+    }
 }
 
 .divPagamentos {
