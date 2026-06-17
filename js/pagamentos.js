@@ -462,48 +462,24 @@ async function autorizarPagamentos(resposta, id) {
 
         const justificativa = document.getElementById('justificativa').value
 
-        const { usuario, permissao, setor } = acesso || {}
-        let status = null
+        const { usuario, permissao } = acesso || {}
 
-        if (resposta == 'S') {
-
-            // Se adm, financeiro, diretoria ou gerente do financeiro;
-            if (
-                permissao == 'adm' ||
-                permissao == 'diretoria' ||
-                permissao == 'fin' ||
-                (permissao == 'gerente' && setor == 'FINANCEIRO')
-            ) {
-
-                status = 'Processando...'
-
-            } else if (permissao == 'gerente') {
-                status = 'Aguardando aprovação da Diretoria'
-
-            } else {
-                status = 'Aguardando aprovação da Gerência'
-
-            }
-
-        } else {
-            status = `Reprovado por ${permissao}`;
-        }
+        const status = resposta == 'S'
+            ? `Aprovado por ${permissao}`
+            : `Reprovado por ${permissao}`
 
         const historico = {
             status,
             usuario,
             justificativa,
-            data: new Date().toLocaleString()
+            data: new Date().toLocaleString('pt-BR')
         }
 
-        const idJustificativa = crypto.randomUUID()
-
+        await enviar(`lista_pagamentos/${id}/historico/${crypto.randomUUID()}`, historico)
         await abrirDetalhesPagamentos(id)
 
-        enviar(`lista_pagamentos/${id}/historico/${idJustificativa}`, historico)
-        enviar(`lista_pagamentos/${id}/status`, status)
-
-        removerOverlay()
+        // Aprovação disparada sem precisar aguardar...
+        aprovarPagamento(id)
 
     } catch (err) {
         popup({ mensagem: 'Ocorreu um erro ao processar a solicitação. Tente novamente.' })
@@ -1269,6 +1245,27 @@ async function verificarStatusPagamento(id) {
     const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
 
     const resposta = await fetch(`${read}/verificar-pagamento`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ id })
+    })
+
+    if (!resposta.ok) {
+        const erro = await resposta.text()
+        throw new Error(erro || 'Erro ao contar por campo')
+    }
+
+    return await resposta.json()
+}
+
+async function aprovarPagamento(id) {
+
+    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
+
+    const resposta = await fetch(`${read}/aprovar-pagamento`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
