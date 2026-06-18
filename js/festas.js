@@ -1,7 +1,8 @@
 saoJoao()
 
 function saoJoao() {
-    const imgs = ['band1', 'band2', 'band3', 'band1', 'band2', 'band3', 'band1', 'band2', 'band3', 'band1']
+    const imgs = Array(10).fill('band4')
+    // ['band1', 'band2', 'band3', 'band1', 'band2', 'band3', 'band1', 'band2', 'band3', 'band1']
     const largura = 74
     const altura = 112
     const gap = 8
