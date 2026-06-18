@@ -675,7 +675,7 @@ async function formularioPagamento() {
         // Verificação se esse pagamento já subiu pro Omie;
         if (id) {
 
-            const status = await verificarStatusPagamento(id)
+            const { status } = await verificarStatusPagamento(id)
 
             if (status.includes('PAGO'))
                 return popup({ mensagem: 'Este pagamento já foi pago, não pode ser alterado!' })
@@ -1265,7 +1265,7 @@ async function aprovarPagamento(id) {
 
     const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
 
-    const resposta = await fetch(`${read}/aprovar-pagamento`, {
+    const resposta = await fetch(`${api}/aprovar-pagamento`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
