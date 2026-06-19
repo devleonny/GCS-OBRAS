@@ -61,15 +61,19 @@ async function criarQuadros() {
                     op: '=',
                     value: acesso.usuario
                 },
-                quadro: {
-                    op: '=',
-                    value: id || ''
-                }
+                quadro: id
+                    ? {
+                        op: '=',
+                        value: id || null
+                    }
+                    : {
+                        op: 'IS_EMPTY'
+                    }
             }
         })
 
         telaPIT.insertAdjacentHTML('beforeend', `<div style="max-width: 350px;">${quadro}</div>`)
-        
+
         await paginacao(pag)
 
     })
