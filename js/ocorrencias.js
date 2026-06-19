@@ -1184,6 +1184,7 @@ async function linNotas(nota) {
         executor,
         n_nota,
         total,
+        app,
         categoria,
         d_emi_inicial,
         anexos,
@@ -1215,6 +1216,16 @@ async function linNotas(nota) {
                 ${botaoAnexoStatus({ id, tabela: 'notas', cor })}
                 ${botaoFotoStatus({ id, tabela, cor })}
                 ${botaoEditarStatus({ id, cor, funcao: `adicionarNotaAvulsa('${id}')` })}
+
+                <br>
+
+                <div class="balaoNF" onclick="abrirDANFE('${id}')">
+                    <div class="balao1">
+                        <label>${n_nota}</label>
+                        <label><b>${categoria}</b></label>
+                    </div>
+                    <div class="balao2">PDF</div>
+                </div>
 
                 <br>
 

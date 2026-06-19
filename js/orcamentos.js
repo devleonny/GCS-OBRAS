@@ -229,11 +229,14 @@ async function criarLinhaOrcamento(orcamento) {
             .join('')
 
         const notasStatus = (notas || [])
-            .map(({ categoria, n_nota, total }) => `
-                <div class="etiquetas" style="text-align: left; min-width: 100px;">
-                    <label>${categoria || ''}</label>
-                    <label>${n_nota || ''}</label>
-                    <label>${dinheiro(total)}</label>
+            .map(({ id, categoria, n_nota, total }) => `
+                <div class="etiquetas" style="flex-direction: row; align-items: center; gap: 5px; text-align: left; min-width: 100px;">
+                    <img  onclick="abrirDANFE('${id}')" src="imagens/pdf.png">
+                    <div style="${vertical}; gap: 2px;">
+                        <label>${categoria || ''}</label>
+                        <label>${n_nota || ''}</label>
+                        <label>${dinheiro(total)}</label>
+                    </div>
                 </div>
             `)
             .join('')

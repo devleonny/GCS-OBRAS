@@ -1478,46 +1478,45 @@ async function salvarDadosCliente(idOrcamento) {
 
 }
 
-async function abrirDANFE(codOmieNF, tipo, app) {
+async function abrirDANFE(codOmieNF) {
 
     overlayAguarde()
 
-    const resposta = await buscarDANFE(codOmieNF, tipo, app)
+    const { link, mensagem } = await buscarDANFE(codOmieNF)
 
-    if (resposta.err)
-        return popup({ mensagem: `Provavelmente esta nota foi importada via XML e por enquanto não está disponível` })
+    if (mensagem)
+        return popup({ mensagem })
 
     removerOverlay()
 
     try {
-        shell.openExternal(resposta)
+        shell.openExternal(link)
     } catch {
-        window.open(resposta, '_blank')
+        window.open(link, '_blank')
     }
 }
 
-async function buscarDANFE(codOmieNF, tipo, app) {
-    try {
-        const resposta = await fetch(`${api}/danfe`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ codOmieNF, tipo, app })
-        });
+async function buscarDANFE(codOmieNF) {
 
-        if (!resposta.ok) return { err: `Falha na busca do PDF no Omie` };
+    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
 
-        const texto = await resposta.text();
-        if (!texto) return { err: `Falha na busca do PDF no Omie` };
+    const resposta = await fetch(`${api}/danfe`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            'Authorization': `Bearer ${token}`
+        },
 
-        try {
-            return JSON.parse(texto);
-        } catch {
-            return texto;
-        }
+        body: JSON.stringify({ codOmieNF })
+    })
 
-    } catch (err) {
-        return { err };
+    if (!resposta.ok) {
+        const erro = await resposta.text()
+        throw new Error(erro || 'Erro ao contar por campo')
     }
+
+    return await resposta.json()
+
 }
 
 async function criarDepartamento(numOrc) {
