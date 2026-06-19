@@ -430,7 +430,7 @@ async function confirmarExclusaoPagamento(id) {
         { texto: 'Confirmar', img: 'concluido', funcao: `excluirPagamento('${id}')` }
     ]
 
-    popup({ elemento: 'Você tem certeza que deseja excluir?', botoes })
+    popup({ mensagem: 'Você tem certeza que deseja excluir?', botoes })
 
 }
 
