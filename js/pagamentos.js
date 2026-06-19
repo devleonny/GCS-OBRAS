@@ -426,10 +426,28 @@ async function alterarStatusPagamento(idPagamento, select) {
 
 async function confirmarExclusaoPagamento(id) {
 
-    removerPopup() // PopUp
-    removerPopup() // Tela de Pagamento
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `excluirPagamento('${id}')` }
+    ]
+
+    popup({ elemento: 'Você tem certeza que deseja excluir?', botoes })
+
+}
+
+async function excluirPagamento(id) {
+
+    removerTodosPopups()
+
+    overlayAguarde()
 
     await deletar(`lista_pagamentos/${id}`)
+
+    const resposta = await excluirPagamentoOmie(id)
+
+    if (resposta.mensagem)
+        return popup({ mensagem: resposta.mensagem })
+
+    removerPopup()
 
 }
 
@@ -1246,6 +1264,27 @@ async function aprovarPagamento(id) {
     const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
 
     const resposta = await fetch(`${api}/aprovar-pagamento`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ id })
+    })
+
+    if (!resposta.ok) {
+        const erro = await resposta.text()
+        throw new Error(erro || 'Erro ao contar por campo')
+    }
+
+    return await resposta.json()
+}
+
+async function excluirPagamentoOmie(id) {
+
+    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
+
+    const resposta = await fetch(`${api}/excluir-pagamento`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
