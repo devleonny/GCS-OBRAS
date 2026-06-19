@@ -575,6 +575,12 @@ async function formularioPagamento() {
             anexos
         } = ultimoPagamento
 
+        // Verificação se esse pagamento já subiu pro Omie;
+        if (status && status.includes('PAGO')) {
+            apagarPagamento()
+            return popup({ mensagem: 'Este pagamento já foi pago, não pode ser alterado!' })
+        }
+
         const {
             observacao = '',
             categorias = [],
@@ -690,10 +696,6 @@ async function formularioPagamento() {
             { texto: 'Regras', img: 'alerta', funcao: 'duvidas()' },
             { texto: 'Recomeçar', img: 'cancel', funcao: 'apagarPagamento()' }
         ]
-
-        // Verificação se esse pagamento já subiu pro Omie;
-        if (status.includes('PAGO'))
-            return popup({ mensagem: 'Este pagamento já foi pago, não pode ser alterado!' })
 
         popup({ linhas, botoes, titulo: 'Solicitação de Pagamento' })
 
