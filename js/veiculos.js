@@ -160,6 +160,7 @@ async function criarLinhaCusto(custo) {
             <div style="${horizontal}; gap: 2px;">
                 <div class="etiquetas"
                 name="departamento"
+                data-departamento="${nomeDepartamento}"
                 data-valor="${valor}"
                 data-codigo="${departamento}">
                     <span>${nomeDepartamento || departamento || '...'}</span>
@@ -240,18 +241,15 @@ function viabilidadeOmie() {
             possibilidade = false
 
         for (const dep of deps) {
+            const departamento = dep.dataset.departamento
             const valor = Number(dep.dataset.valor)
+
             if (valor == 0)
                 continue
 
-            const codigo = Number(dep.dataset.codigo)
+            totalDepartamentos[departamento] ??= 0
+            totalDepartamentos[departamento] += valor
 
-            totalDepartamentos[codigo] ??= {
-                valor: 0,
-                descricao: dep.textContent
-            }
-
-            totalDepartamentos[codigo].valor += valor
             total += valor
         }
 
@@ -275,9 +273,7 @@ async function criarPagamentoVeiculo() {
 
     const deps = []
 
-    for (const dados of Object.values(totalDepartamentos)) {
-
-        const { valor, descricao } = dados
+    for (const [descricao, valor] of Object.entries(totalDepartamentos)) {
 
         totalDeps += valor
         deps.push(`
@@ -305,13 +301,11 @@ async function criarPagamentoVeiculo() {
 }
 
 async function enviarOmie() {
-
     const el = (id) => {
         const elem = document.getElementById(id)
         return elem.value
     }
 
-    let totalGeral = 0
     const app = el('app')
     const observacao = el('observacao')
     const taxa = Number(el('taxa'))
@@ -322,67 +316,109 @@ async function enviarOmie() {
 
     overlayAguarde()
 
-    const dt = (data) => {
-        const [ano, mes, dia] = data.split('-')
-        return `${dia}/${mes}/${ano}`
-    }
-
-    const data = dt(inpData)
-    const idPagamento = crypto.randomUUID()
-
-    const distribuicao = {}
-    for (let [cCodDep, dados] of Object.entries(totalDepartamentos)) {
-
-        const nValDep = dados.valor
-        cCodDep = Number(cCodDep) // Em número;
-
-        if (!distribuicao[cCodDep]) {
-            distribuicao[cCodDep] = { cCodDep, nValDep }
-        } else {
-            distribuicao[cCodDep].nValDep += nValDep
+    try {
+        const dt = (data) => {
+            const [ano, mes, dia] = data.split('-')
+            return `${dia}/${mes}/${ano}`
         }
 
-        totalGeral += nValDep
-    }
+        const data = dt(inpData)
+        const idPagamento = crypto.randomUUID()
 
-    // Salvamento da taxa > Código dep EMPRESA; 
-    totalGeral += taxa
-    if (!distribuicao[6689610735]) {
-        distribuicao[6689610735] = { cCodDep: 6689610735, nValDep: taxa }
-    } else {
-        distribuicao[6689610735].nValDep += taxa
-    }
+        const itensDistribuicao = await Promise.all(
+            Object.entries({ ...totalDepartamentos, EMPRESA: taxa }).map(async ([departamento, valor]) => {
+                const pesquisa = await pesquisarDB({
+                    base: 'departamentos',
+                    filtros: {
+                        app: { op: '=', value: app },
+                        descricao: { op: '=', value: departamento }
+                    }
+                })
 
-    const pagamento = {
-        app,
-        status: 'TICKET LOG',
-        criado: acesso.usuario,
-        param: [{
-            codigo_cliente_fornecedor: 6066446384,
-            codigo_lancamento_integracao: idPagamento,
-            data_vencimento: data,
-            data_previsao: data,
-            distribuicao: Object.values(distribuicao),
-            observacao,
-            valor_documento: totalGeral,
-            categorias: [
-                {
-                    codigo_categoria: '2.03.11',
-                    percentual: 100
+                const codigo = pesquisa?.resultados?.[0]?.codigo
+
+                if (!codigo)
+                    throw new Error(`Departamento não localizado: ${departamento}`)
+
+                return {
+                    cCodDep: codigo,
+                    nValDep: Number(valor || 0)
                 }
-            ]
-        }]
+            })
+        )
+
+        const distribuicaoAgrupada = {}
+        let totalGeral = 0
+
+        for (const item of itensDistribuicao) {
+            const { cCodDep, nValDep } = item
+
+            if (!distribuicaoAgrupada[cCodDep]) {
+                distribuicaoAgrupada[cCodDep] = { cCodDep, nValDep: 0 }
+            }
+
+            distribuicaoAgrupada[cCodDep].nValDep += nValDep
+            totalGeral += nValDep
+        }
+
+        const distribuicao = Object.values(distribuicaoAgrupada)
+
+        const pesqCategoria = await pesquisarDB({
+            base: 'categorias',
+            filtros: {
+                app: { op: '=', value: app },
+                categoria: { op: '=', value: 'Combustível' }
+            }
+        })
+
+        const codigoCategoria = pesqCategoria?.resultados?.[0]?.id
+
+        if (!codigoCategoria)
+            throw new Error('Categoria Combustível não localizada no app selecionado')
+
+        const pesqCliente = await pesquisarDB({
+            base: 'clientes',
+            filtros: {
+                app: { op: '=', value: app },
+                nome: { op: '=', value: 'TICKET LOG' }
+            }
+        })
+
+        const codigoCliente = pesqCliente?.resultados?.[0]?.id
+
+        if (!codigoCliente)
+            throw new Error('Cliente TICKET LOG não localizado no app selecionado')
+
+        const pagamento = {
+            app,
+            status: 'Processando...',
+            criado: acesso.usuario,
+            param: [{
+                codigo_cliente_fornecedor: codigoCliente,
+                codigo_lancamento_integracao: idPagamento,
+                data_vencimento: data,
+                data_previsao: data,
+                distribuicao,
+                observacao,
+                valor_documento: totalGeral,
+                categorias: [
+                    {
+                        codigo_categoria: codigoCategoria,
+                        percentual: 100
+                    }
+                ]
+            }]
+        }
+        
+        await enviar(`lista_pagamentos/${idPagamento}`, pagamento)
+
+        removerPopup()
+        popup({ mensagem: 'Lançado no GCS', imagem: 'imagens/concluido.png' })
+
+    } catch (err) {
+        removerPopup()
+        popup({ mensagem: err.message || 'Erro ao enviar para o Omie' })
     }
-
-    await enviar(`lista_pagamentos/${idPagamento}`, pagamento)
-
-    const resposta = await lancarPagamento(idPagamento)
-    if (resposta.mensagem)
-        return popup({ mensagem: resposta.mensagem })
-
-    removerPopup()
-    popup({ tempo: 5, mensagem: 'Realizado com successo', imagem: 'imagens/concluido.png' })
-
 }
 
 function somarTaxa(input) {

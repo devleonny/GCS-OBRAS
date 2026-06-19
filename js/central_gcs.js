@@ -576,37 +576,6 @@ async function gerarPdfOnline(htmlString, nome) {
     }
 }
 
-async function confirmarRelancamento(idPagamento) {
-
-    const app = document.getElementById('app').value
-
-    removerPopup()
-    overlayAguarde()
-
-    const pagamento = await recuperarDado('lista_pagamentos', idPagamento)
-    pagamento.app = app
-
-    await enviar(`lista_pagamentos/${idPagamento}/app`, app)
-
-    const dados = await lancarPagamento(idPagamento)
-    const { resposta, mensagem } = dados || {}
-
-    pagamento.status = 'Processando...'
-
-    await abrirDetalhesPagamentos(idPagamento)
-
-    const textoPrincipal = resposta?.descricao_status || resposta?.faultstring || mensagem || 'Falha na API'
-    const infoAdicional = resposta?.exclusaoPagamento || []
-    const strMensagem = `
-        <div style="${vertical}; gap: 5px; text-align: left;">
-            <span>${textoPrincipal}</span>
-            ${infoAdicional.map(i => `<span>${i}</span>`).join('')}
-        </div>`
-
-    popup({ mensagem: strMensagem, imagem: 'imagens/atualizar.png', titulo: 'Resposta' })
-
-}
-
 async function reprocessarAnexos(idPagamento) {
     overlayAguarde()
     return new Promise((resolve, reject) => {
@@ -633,20 +602,6 @@ async function reprocessarAnexos(idPagamento) {
                 reject(err)
             })
     })
-}
-
-async function lancarPagamento(id) {
-
-    const response = await fetch(`${api}/lancar_pagamento`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id })
-    })
-
-    if (!response.ok)
-        throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`)
-
-    return await response.json()
 }
 
 function sincronizar(script) {
