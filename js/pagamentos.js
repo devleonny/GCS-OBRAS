@@ -553,6 +553,7 @@ async function formularioPagamento() {
             param,
             data_modificada = null,
             id,
+            status,
             anexos
         } = ultimoPagamento
 
@@ -673,14 +674,8 @@ async function formularioPagamento() {
         ]
 
         // Verificação se esse pagamento já subiu pro Omie;
-        if (id) {
-
-            const { status } = await verificarStatusPagamento(id)
-
-            if (status.includes('PAGO'))
-                return popup({ mensagem: 'Este pagamento já foi pago, não pode ser alterado!' })
-
-        }
+        if (status.includes('PAGO'))
+            return popup({ mensagem: 'Este pagamento já foi pago, não pode ser alterado!' })
 
         popup({ linhas, botoes, titulo: 'Solicitação de Pagamento' })
 
@@ -788,11 +783,12 @@ async function alterarAPP(app) {
         if (!recebedorEl || !recebedor)
             return
 
+        const { cnpj } = await recuperarDado('clientes', recebedorEl.id) || {}
         const { resultados } = await pesquisarDB({
             base: 'clientes',
             filtros: {
                 app: { op: '=', value: app },
-                nome: { op: '=', value: recebedor }
+                cnpj: { op: '=', value: cnpj }
             }
         })
 
@@ -934,25 +930,30 @@ async function calculadoraPagamento() {
     // Verificar categorias [Parceiros] e postergar pagamentos;
     const dataModificada = obVal('dataModificada')
     const dataPagamento = obVal('dataPagamento')
+    const hoje = new Date().toISOString().slice(0, 10)
+    const dataCalculada = dataRegras(hoje, atraso)
 
     let dataFinal = null
+    let dataPermitida = true
 
     if (dataModificada.checked) {
+        const dataEscolhida = dataPagamento.value
+        const [diaRegra, mesRegra, anoRegra] = dataCalculada.split('/')
+        const dataRegraISO = `${anoRegra}-${mesRegra}-${diaRegra}`
 
-        const [ano, mes, dia] = dataPagamento.value.split('-')
+        dataPermitida = !!dataEscolhida && new Date(dataEscolhida).getTime() >= new Date(dataRegraISO).getTime()
+
+        const [ano, mes, dia] = dataEscolhida.split('-')
         dataFinal = `${dia}/${mes}/${ano}`
 
         dataPagamento.readOnly = false
-
     } else {
+        dataFinal = dataCalculada
+        dataPermitida = true
 
-        const hoje = new Date().toISOString().slice(0, 10)
-        dataFinal = dataRegras(hoje, atraso)
-
-        const [dia, mes, ano] = dataFinal.split('/')
+        const [dia, mes, ano] = dataCalculada.split('/')
         dataPagamento.readOnly = true
         dataPagamento.value = `${ano}-${mes}-${dia}`
-
     }
 
     const ulPSalvo = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
@@ -973,6 +974,7 @@ async function calculadoraPagamento() {
     const ulP = {
         ...ulPSalvo,
         app,
+        data_permitida: dataPermitida,
         data_modificada: dataModificada?.checked,
         data_registro: new Date().toLocaleString(),
         param: [
@@ -1237,28 +1239,6 @@ async function baixarExcelRelatorioPagamentos() {
     } finally {
         removerOverlay()
     }
-}
-
-
-async function verificarStatusPagamento(id) {
-
-    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
-
-    const resposta = await fetch(`${read}/verificar-pagamento`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ id })
-    })
-
-    if (!resposta.ok) {
-        const erro = await resposta.text()
-        throw new Error(erro || 'Erro ao contar por campo')
-    }
-
-    return await resposta.json()
 }
 
 async function aprovarPagamento(id) {
