@@ -119,9 +119,6 @@ async function criarLinhaComposicao(produto) {
 
     const divAgrupamento = []
 
-    console.log(produto);
-
-
     for (const [cod, { tipo, qtde, descricao }] of Object.entries(agrupamento || {})) {
 
         divAgrupamento.push(`
