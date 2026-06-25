@@ -46,6 +46,7 @@ async function telaPagamentos() {
 
     const pag = 'pagamentos'
     const colunas = {
+        'Categorias': { chave: 'snapshots.categorias.*.categoria' },
         'Data de Previsão': { chave: 'param.*.data_vencimento', tipoPesquisa: 'data' },
         'Departamentos': { chave: 'snapshots.departamentos.*.departamento' },
         'APP': { chave: 'app', op: '=', tipoPesquisa: 'select' },
@@ -149,7 +150,17 @@ async function criarLinhaPagamento(pagamento) {
         })
         .join('')
 
+    const categorias = Object.values(snapshots?.categorias || {})
+        .map(({ categoria }) => categoria)
+
+    const spanCategorias = [... new Set(categorias)]
+        .map(categoria => `<span class="etiquetas">${categoria}</span>`)
+        .join('')
+
     const tds = `
+        <td>
+            <div style="display: flex; flex-wrap: wrap; gap: 3px;">${spanCategorias}</div>
+        </td>
         <td>${data_vencimento}</td>
         <td>
             <div style="${vertical}; gap: 2px;">
