@@ -811,7 +811,7 @@ async function alterarAPP(app) {
 
     // Recebedor;
     const verificarRecebedor = (async () => {
-        if (!recebedorEl || !recebedor)
+        if (!recebedorEl || !recebedor || !recebedorEl.id)
             return
 
         const { cnpj } = await recuperarDado('clientes', recebedorEl.id) || {}
@@ -928,7 +928,7 @@ async function calculadoraPagamento() {
         }
 
         // Atrasos por regra;
-        if (atraso == 0 && span.textContent == 'Adiantamento de Parceiro')
+        if (atraso == 0 && span.textContent.includes('Adiantamento'))
             atraso = 1
         else if (span.textContent == 'Pagamento de Parceiros')
             atraso = 2
@@ -1075,11 +1075,28 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
     const { app = 'IAC' } = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
 
     const aleatorio = crypto.randomUUID()
-    const elemento = await recuperarDado(base, id)
+    let elemento = {}
+
+    if (base == 'categorias') {
+
+        const pesquisa = await pesquisarDB({
+            base,
+            filtros: {
+                app: { op: '=', value: app },
+                id: { op: '=', value: id }
+            }
+        })
+
+        elemento = pesquisa.resultados?.[0] || {}
+
+    } else {
+        elemento = await recuperarDado(base, id)
+    }
 
     const esquema = {
         categorias: {
             retornar: ['categoria'],
+            filtroPesquisa: true,
             filtros: {
                 app: { op: '=', value: app }
             },

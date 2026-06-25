@@ -435,15 +435,6 @@ async function cxOpcoes(name) {
     await paginacao(pag)
 }
 
-function normalizarPesquisa(valor) {
-    return String(valor ?? '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^\p{L}\p{N}]/gu, '')
-        .toLowerCase()
-        .trim()
-}
-
 function getByPath(obj, path) {
     if (!path) return obj
     return path.split('.').reduce((acc, key) => acc?.[key], obj)
@@ -480,7 +471,7 @@ async function selecionar(name, cod) {
     if (cod == 'null')
         return popup({ mensagem: 'O objeto "base" em controlesCx precisa contem o próprio "id" / "codigo" / "etc"' })
 
-    const { funcaoAdicional, base, retornar } = controlesCxOpcoes[name]
+    const { funcaoAdicional, base, retornar, filtros, filtroPesquisa = null } = controlesCxOpcoes[name]
 
     if (!retornar)
         return popup({ mensagem: `campo retornar: ['exemplo'] → undefined` })
@@ -490,11 +481,30 @@ async function selecionar(name, cod) {
     const elemento = (painel || document).querySelector(`[name='${name}']`)
     const termos = []
 
-    const dado = typeof base === 'string'
-        ? await recuperarDado(base, cod)
-        : base.find(item =>
+    let dado = {}
+
+    if (filtroPesquisa) {
+
+        const params = {
+            base,
+            filtros: {
+                ...filtros,
+                id: { op: '=', value: cod }
+            }
+        }
+
+        const pesquisa = await pesquisarDB(params)
+
+        dado = pesquisa?.resultados?.[0] || {}
+
+    } else if (typeof base === 'string') {
+        dado = await recuperarDado(base, cod)
+
+    } else {
+        dado = base.find(item =>
             String(item.id ?? item.codigo ?? item.usuario) === String(cod)
         )
+    }
 
     for (const chave of retornar) {
 
