@@ -549,12 +549,14 @@ async function salvarPagamento() {
     ultimoPagamento.status = 'Processando...'
 
     try {
-        await enviar(`lista_pagamentos/${ultimoPagamento.id || crypto.randomUUID()}`, ultimoPagamento)
+
+        const id = ultimoPagamento.id || crypto.randomUUID()
+        await enviar(`lista_pagamentos/${id}`, ultimoPagamento)
 
         localStorage.removeItem('ultimoPagamento')
 
         removerPopup(null, false) // Remove tudo;
-        await abrirDetalhesPagamentos(ultimoPagamento.id)
+        await abrirDetalhesPagamentos(id)
 
         popup({ imagem: 'imagens/concluido.png', tempo: 5, mensagem: 'Pagamento Salvo' })
 
