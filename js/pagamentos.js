@@ -562,7 +562,7 @@ async function salvarPagamento() {
 
     } catch (e) {
         console.log(e)
-        popup({ mensagem: 'Não foi possível salvar o pagamento, tente novamente.' })
+        popup({ mensagem: 'Falha ao salvar ou ao abrir o pagamento, verifique com o suporte.' })
     }
 
 }
