@@ -155,15 +155,6 @@ const esquemaBotoes = {
             ]
         },
         {
-            nome: 'Chamados',
-            bloqueio: ['cliente', 'técnico'],
-            img: 'chamados',
-            sub: [
-                { nome: 'Ver Manutenções', funcao: 'telaChamados', img: 'chamados' },
-                { nome: 'Criar Manutenção', funcao: 'criarManutencao', img: 'chamados' }
-            ]
-        },
-        {
             nome: 'Veículos',
             bloqueio: ['cliente', 'técnico'],
             img: 'veiculo',
@@ -181,16 +172,6 @@ const esquemaBotoes = {
                 { nome: 'Ver Pagamentos', funcao: 'telaPagamentos', img: 'reembolso' },
                 { nome: 'Solicitar Pagamento', funcao: 'formularioPagamento', img: 'dinheiro' },
                 { nome: 'Baixar Excel', funcao: 'baixarExcelRelatorioPagamentos', img: 'excel' }
-            ]
-        },
-        {
-            nome: 'Estoque',
-            bloqueio: ['cliente', 'técnico'],
-            img: 'estoque',
-            sub: [
-                { nome: 'Ver Estoque', funcao: 'telaEstoque', img: 'estoque' },
-                { nome: 'Cadastrar Item', funcao: 'incluirItemEstoque', img: 'baixar' },
-                { nome: 'Relatório de Movimentos', funcao: 'relatorioMovimento', img: 'projeto' }
             ]
         },
         {

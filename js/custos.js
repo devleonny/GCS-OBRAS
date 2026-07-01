@@ -324,7 +324,7 @@ async function tabFretesCusto() {
         },
         colunas: {
             'Data': { chave: 'param.*.data_previsao', tipoPesquisa: 'data' },
-            'Valor': { chave: 'descricao' },
+            'Valor': { chave: 'valor' },
             'Categoria': { chave: 'categoria' },
             'Status': { chave: 'status', tipoPesquisa: 'select' },
             'Solicitante': { chave: 'criado' },
@@ -419,7 +419,9 @@ async function criarLinhaCustoPagamento(pagamento) {
     const tds = `
         <td>${data_previsao || ''}</td>
         <td style="white-space: nowrap;">${dinheiro(valor)}</td>
-        <td>${categoria}</td>
+        <td>
+            <span class="etiquetas">${categoria}</span>
+        </td>
         <td>
             <div style="${horizontal}; justify-content: start; gap: 1rem;">
                 <img src="${imagem}">
