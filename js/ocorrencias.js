@@ -2042,14 +2042,6 @@ async function formularioOcorrencia(idOcorrencia) {
         .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')`))
         .join('')
 
-
-    let filtros = {}
-    if (acesso.permissao == 'cliente') {
-        filtros = {
-            'empresa': { op: '=', value: acesso?.empresa }
-        }
-    }
-
     // Campo Unidade;
     controlesCxOpcoes.unidade = {
         base: 'clientes',
@@ -2057,7 +2049,6 @@ async function formularioOcorrencia(idOcorrencia) {
             'app': { op: '=', value: 'AC' }
         },
         retornar: ['nome'],
-        filtros,
         colunas: {
             'Nome': { chave: 'nome' },
             'CNPJ': { chave: 'cnpj' },
