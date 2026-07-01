@@ -587,14 +587,13 @@ async function reprocessarAnexos(idPagamento) {
         })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`)
                 }
-                return response.text();
+                return response.text()
             })
             .then(data => {
-                console.log(JSON.parse(data))
                 popup({ mensagem: 'Finalizado', imagem: 'imagens/concluido.png' })
-                resolve(data);
+                resolve(data)
             })
             .catch(err => {
                 console.log(err)
