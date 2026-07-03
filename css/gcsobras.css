@@ -609,17 +609,15 @@ span[name="titulo"] {
 }
 
 .bloco-etiquetas {
+    min-width: 180px;
+    padding: 3px;
     display: flex;
     align-items: start;
     justify-content: start;
     flex-direction: column;
     gap: 5px;
-    max-height: 100px;
+    max-height: 150px;
     overflow: auto;
-}
-
-.bloco-etiquetas::-webkit-scrollbar {
-    display: none;
 }
 
 .etiquetas {
@@ -1879,7 +1877,7 @@ input[type="file"]#input-anexos:hover {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: center;
+    align-items: start;
     background-color: #222;
     color: white;
     padding: 5px;

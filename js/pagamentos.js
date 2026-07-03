@@ -189,7 +189,7 @@ function iconePagamento(status) {
     let icone = `interrogacao`
     switch (true) {
 
-        case status == 'PAGO':
+        case (status == 'PAGO' || status == 'RECEBIDO'):
             icone = 'concluido'
             break
         case status == 'A VENCER':

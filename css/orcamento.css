@@ -261,6 +261,19 @@
     padding: 0 3px 0 3px;
 }
 
+.parcelas-notas {
+    margin-left: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    width: 90%;
+    box-shadow: 0 0 2px black;
+    background-color: #00000012;
+    border-radius: 3px;
+    padding: 5px;
+}
+
 .comentario-orcamento {
     min-width: 300px;
     display: flex;

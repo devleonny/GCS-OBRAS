@@ -128,12 +128,12 @@ async function carregarPesquisaOrcamento() {
             path: 'status.atual'
         },
         'Empresa': {
-            chave: 'empresas', 
-            path: 'snapshots.empresa' 
+            chave: 'empresas',
+            path: 'snapshots.empresa'
         },
         'Tags': {
-            chave: 'tags', 
-            path: 'snapshots.tags.*.nome' 
+            chave: 'tags',
+            path: 'snapshots.tags.*.nome'
         }
     }
 
@@ -217,7 +217,7 @@ async function criarLinhaOrcamento(orcamento) {
             .map(({ tipo, pedido, valor, autorizado_por }) => {
 
                 const label = `
-                <div class="etiquetas" style="text-align: left; min-width: 100px;">
+                <div class="etiquetas" style="text-align: left; min-width: 90%;">
                     <label>${tipo || ''}</label>
                     <label>${pedido}</label>
                     ${autorizado_por ? `<label><b>${autorizado_por}</b></label>` : ''}
@@ -229,16 +229,32 @@ async function criarLinhaOrcamento(orcamento) {
             .join('')
 
         const notasStatus = (notas || [])
-            .map(({ id, categoria, n_nota, total }) => `
-                <div class="etiquetas" style="flex-direction: row; align-items: center; gap: 5px; text-align: left; min-width: 100px;">
-                    <img  onclick="abrirDANFE('${id}')" src="imagens/pdf.png">
-                    <div style="${vertical}; gap: 2px;">
-                        <label>${categoria || ''}</label>
-                        <label>${n_nota || ''}</label>
-                        <label>${dinheiro(total)}</label>
-                    </div>
+            .map(({ id, categoria, n_nota, total, parcelas }) => {
+
+                console.log(parcelas);
+                
+
+                const listaParcelas = (parcelas || [])
+                    .map(({ id, data_vencimento, valor_documento, app, status_titulo }) =>
+                        `<div class="parcelas-notas">
+                            <span>${data_vencimento}</span>
+                            <span>${dinheiro(valor_documento)}</span>
+                            <div style="${horizontal}; gap: 5px;">
+                                <img style="width: 1.5rem;" src="${iconePagamento(status_titulo)}">
+                                <span>${status_titulo}</span>
+                            </div>
+                        </div>
+                        `
+                    )
+                    .join('')
+
+                return `
+                <div style="${vertical}; gap: 5px; min-width: 90%;">
+                    ${pdfDanfe({ categoria, n_nota, id, total })}
+                    ${listaParcelas}
                 </div>
-            `)
+                `
+            })
             .join('')
 
         // Labels do campo Contrato [Revisão, chamado, cliente, etc]
@@ -300,10 +316,10 @@ async function criarLinhaOrcamento(orcamento) {
                 </div>
             </div>
         </td>
-        <td>
+        <td style="padding: 0px;">
             <div class="bloco-etiquetas">${pedidosStatus}</div>
         </td>
-        <td>
+        <td style="padding: 0px;">
             <div class="bloco-etiquetas">${notasStatus}</div>
         </td>
         <td>
@@ -415,12 +431,12 @@ async function editar(id) {
 async function duplicar(orcam_) {
 
     const {
-        esquema_composicoes, 
-        dados_composicoes, 
+        esquema_composicoes,
+        dados_composicoes,
         lpu_ativa,
         tags,
         snapshots,
-        dados_orcam 
+        dados_orcam
     } = await recuperarDado('dados_orcamentos', orcam_) || {}
 
     const novoOrcamento = {

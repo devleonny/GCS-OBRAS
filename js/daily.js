@@ -18,7 +18,7 @@ async function daily() {
         }
     })
 
-    return tabela
+    tela.innerHTML = tabela
 
 }
 

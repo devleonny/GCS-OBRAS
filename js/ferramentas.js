@@ -49,6 +49,23 @@ if (!emArquivoLocal && 'serviceWorker' in navigator) {
 
 document.addEventListener('click', verificarClique, true)
 
+const pdfDanfe = ({ id, n_nota, categoria, total = null }) => {
+
+    return `
+        <div class="balaoNF">
+            <div class="balao1">
+                <label>${n_nota}</label>
+                <label><b>${categoria}</b></label>
+                ${total
+                    ? `<label>${dinheiro(total)}</label>`
+                    : ''
+                }
+            </div>
+            <div onclick="abrirDANFE('${id}')" class="balao2">PDF</div>
+        </div>
+    `
+}
+
 function verificarClique(event) {
 
     const menu = document.querySelector('.side-menu')
