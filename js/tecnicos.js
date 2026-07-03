@@ -130,7 +130,7 @@ async function criarTabelaTecDetalhada(tecnico = null) {
             'Quantidade': { chave: 'quantidade' },
             'Origem': { chave: 'origem' },
             'Código': { chave: 'codigo' },
-            'Descrição': { chave: 'descricao' }
+            'Descrição': { chave: 'equipamentos.*.descricao' }
         },
         explode: {
             path: 'equipamentos'
@@ -240,7 +240,7 @@ async function abrirResumo(tecnico) {
         </div>
     `
 
-    popup({ elemento, titulo: `Saldos ${tecnico}` })
+    popup({ elemento, titulo: `Saldos de ${tecnico}` })
 
     await telaSaldoPecas(tecnico)
 
