@@ -231,9 +231,6 @@ async function criarLinhaOrcamento(orcamento) {
         const notasStatus = (notas || [])
             .map(({ id, categoria, n_nota, total, parcelas }) => {
 
-                console.log(parcelas);
-                
-
                 const listaParcelas = (parcelas || [])
                     .map(({ id, data_vencimento, valor_documento, app, status_titulo }) =>
                         `<div class="parcelas-notas">
@@ -242,6 +239,7 @@ async function criarLinhaOrcamento(orcamento) {
                             <div style="${horizontal}; gap: 5px;">
                                 <img style="width: 1.5rem;" src="${iconePagamento(status_titulo)}">
                                 <span>${status_titulo}</span>
+                                <span><b>${app}</b></span>
                             </div>
                         </div>
                         `
