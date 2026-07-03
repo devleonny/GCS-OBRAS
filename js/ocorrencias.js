@@ -1219,13 +1219,7 @@ async function linNotas(nota) {
 
                 <br>
 
-                <div class="balaoNF" onclick="abrirDANFE('${id}')">
-                    <div class="balao1">
-                        <label>${n_nota}</label>
-                        <label><b>${categoria}</b></label>
-                    </div>
-                    <div class="balao2">PDF</div>
-                </div>
+                ${pdfDanfe({ categoria, n_nota, id, total })}
 
                 <br>
 
