@@ -1,4 +1,4 @@
-saoJoao()
+// saoJoao()
 
 function saoJoao() {
     const imgs = Array(10).fill('band4')
