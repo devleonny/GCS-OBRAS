@@ -2,7 +2,19 @@ let chartMapaCalor = null
 
 async function daily() {
 
+    overlayAguarde()
+
+    const { criadores } = await recuperarDado('vw_opcoes_filtros', 1) || {}
+
+    const dropdownUsuarios = montarDropdownCheckbox({
+        titulo: 'Usuários',
+        pag: 'daily',
+        path: 'usuario',
+        opcoes: criadores || []
+    })
+
     const tabela = await modTab({
+        btnExtras: dropdownUsuarios,
         base: 'logs_rotas',
         pag: 'daily',
         body: 'bodyDaily',
@@ -14,11 +26,22 @@ async function daily() {
         colunas: {
             'Usuário': { chave: 'usuario' },
             'Data': { chave: 'data', tipoPesquisa: 'data' },
+            'Tabela': { chave: 'body.caminho' },
             'Detalhes': {}
         }
     })
 
-    tela.innerHTML = tabela
+    tela.innerHTML = `
+        <div class="daily">
+            ${tabela}
+            <div class="mapa-calor">
+                <h2>Dias x Horários de maior uso do GCS</h2>
+            </div>
+        </div>
+    `
+    await paginacao()
+
+    removerOverlay()
 
 }
 
@@ -92,6 +115,7 @@ function linDaily(dados) {
 
     const traducao = traducaoLog(dados)
     const valorResumido = resumirValor(body)
+    const tabela = inicialMaiuscula(body?.caminho?.split('/')?.[0] || '')
 
     const tr = `
         <tr>
@@ -102,6 +126,7 @@ function linDaily(dados) {
                 </div>
             </td>
             <td>${data}</td>
+            <td>${tabela}</td>
             <td>    
                 <div style="${vertical}; gap: 1rem;">
                     <span><b>${traducao}</b></span>
@@ -115,8 +140,44 @@ function linDaily(dados) {
 
 }
 
+function obterMesAnoFiltroDaily() {
+    const filtrosData = controles?.daily?.filtros?.data || []
+    const hoje = new Date()
+
+    let dataInicial = null
+    let dataFinal = null
+
+    for (const item of filtrosData) {
+        if (!item?.value) continue
+
+        if (item.op === '>=d') dataInicial = item.value
+        if (item.op === '<=d') dataFinal = item.value
+    }
+
+    const dataBase = dataInicial || dataFinal
+
+    if (!dataBase) {
+        return {
+            mes: hoje.getMonth() + 1,
+            ano: hoje.getFullYear(),
+            dataInicial: null,
+            dataFinal: null
+        }
+    }
+
+    const [ano, mes] = String(dataBase).split('-').map(Number)
+
+    return {
+        mes,
+        ano,
+        dataInicial,
+        dataFinal
+    }
+}
+
 async function graficoMapaCalor() {
     const filtros = controles?.daily?.filtros || {}
+    const { mes, ano, dataInicial, dataFinal } = obterMesAnoFiltroDaily()
 
     const contagem = await contarPorCampo({
         base: 'logs_rotas',
@@ -125,20 +186,23 @@ async function graficoMapaCalor() {
     })
 
     const mapaCalor = document.querySelector('.mapa-calor')
-    if (!mapaCalor)
-        return
+    if (!mapaCalor) return
 
-    const hoje = new Date()
-    const mesAtual = hoje.getMonth() + 1
-    const anoAtual = hoje.getFullYear()
+    const titulo = mapaCalor.querySelector('h2')
+    if (titulo) {
+        titulo.textContent = dataInicial || dataFinal
+            ? `Dias x Horários de maior uso do GCS (${dataInicial || '...'} até ${dataFinal || '...'})`
+            : 'Dias x Horários de maior uso do GCS'
+    }
 
-    mapaCalor.innerHTML = `<div id="chart-mapa-calor"></div>`
+    if (!document.getElementById('chart-mapa-calor')) {
+        mapaCalor.insertAdjacentHTML('beforeend', `<div id="chart-mapa-calor"></div>`)
+    }
 
-    const series = montarSeriesMapaCalor(contagem, mesAtual, anoAtual)
+    const series = montarSeriesMapaCalor(contagem, mes, ano)
     const ranges = criarFaixasCor(series)
 
-    if (chartMapaCalor)
-        chartMapaCalor.destroy()
+    if (chartMapaCalor) chartMapaCalor.destroy()
 
     chartMapaCalor = new ApexCharts(
         document.querySelector('#chart-mapa-calor'),
@@ -155,9 +219,7 @@ async function graficoMapaCalor() {
             plotOptions: {
                 heatmap: {
                     shadeIntensity: 0,
-                    colorScale: {
-                        ranges
-                    }
+                    colorScale: { ranges }
                 }
             },
             stroke: {
@@ -167,9 +229,7 @@ async function graficoMapaCalor() {
             xaxis: {
                 type: 'category',
                 categories: Array.from({ length: 19 }, (_, i) => `${String(i + 5).padStart(2, '0')}h`),
-                labels: {
-                    rotate: 0
-                }
+                labels: { rotate: 0 }
             },
             yaxis: {
                 reversed: true

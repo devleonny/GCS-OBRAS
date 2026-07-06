@@ -331,7 +331,12 @@ async function configs() {
         'Editar': {}
     }
 
-    const btnExtras = `<img src="imagens/baixar.png" onclick="cadastrar()">`
+    const btnExtras = `
+        <div style="${horizontal}; gap: 1rem;">
+            <img src="imagens/baixar.png" onclick="cadastrar()">
+            <img src="imagens/ajustar.png" onclick="f2()">
+        </div>
+    `
 
     const tabela = await modTab({
         btnExtras,

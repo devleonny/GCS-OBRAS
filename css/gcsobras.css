@@ -26,6 +26,23 @@ img {
     cursor: pointer;
 }
 
+.daily {
+    display: flex;
+    align-items: start;
+    justify-content: center;
+    gap: 1rem;
+    width: 90%; 
+}
+
+.mapa-calor {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    background-color: white;
+    border-radius: 3px;
+}
+
 .toolbar-interno {
     display: flex;
     align-items: center;

@@ -9,8 +9,16 @@ function criarMenus(chave) {
     const html = lista
         .map((item, i) => {
 
-            if ((item.bloqueio || []).includes(permissao))
+            const permitido = item.permitido || []
+            const bloqueio = item.bloqueio || []
+
+            if (permitido.length > 0 && !permitido.includes(permissao)) {
                 return ''
+            }
+
+            if (permitido.length === 0 && bloqueio.includes(permissao)) {
+                return ''
+            }
 
             return renderMenuItem(item, `menu_${i}`, 0)
         })
@@ -202,6 +210,14 @@ const esquemaBotoes = {
                 { nome: 'Ver Composições', funcao: 'telaComposicoes', img: 'composicoes' },
                 { nome: 'Cadastrar Item', funcao: 'cadastrarItem', img: 'baixar' },
                 { nome: 'Baixar em Excel', funcao: 'baixarExcelComposicoes', img: 'excel' }
+            ]
+        },
+        {
+            nome: 'Histórico de Uso GCS',
+            img: 'pesquisar5',
+            permitido: ['adm', 'diretoria'],
+            sub: [
+                { nome: 'Ver histórico', funcao: 'daily', img: 'pesquisar5' }
             ]
         },
         {

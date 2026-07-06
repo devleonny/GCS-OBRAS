@@ -208,13 +208,17 @@ function criarVelocimetroHTML({
 }
 
 function inicialMaiuscula(string) {
-    if (string == undefined) {
-        return ''
-    }
-    string.includes('_') ? string = string.split('_').join(' ') : ''
+    if (string == undefined) return ''
 
     if (string.includes('lpu')) return string.toUpperCase()
-    return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+
+    return string
+        .replaceAll('_', ' ')
+        .toLowerCase()
+        .split(' ')
+        .filter(Boolean)
+        .map(palavra => palavra.charAt(0).toUpperCase() + palavra.slice(1))
+        .join(' ')
 }
 
 function overlayAguarde() {
