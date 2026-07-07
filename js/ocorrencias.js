@@ -1905,7 +1905,7 @@ async function auxPendencias() {
                 const cor = padraoCor(correcao)
 
                 return `
-                <div class="pill" onclick="atalhoAuxiliar('${correcao}')">
+                <div class="pill" onclick="atalhoAuxiliar('${correcao}', 'snapshots.ultimaCorrecao.*.nome')">
                     <span class="pill-a" style="background: ${cor};">${total}</span>
                     <span class="pill-b">${correcao.toUpperCase()}</span>
                 </div>`
@@ -1915,7 +1915,7 @@ async function auxPendencias() {
 
         for (const [titulo, cod] of Object.entries(esquema)) {
             etiquetas.push(`
-                <div class="pill" onclick="atalhoTipo('${cod}')">
+                <div class="pill" onclick="atalhoAuxiliar('${cod}', 'tipo')">
                     <span class="pill-a" style="background: #5E35B1;">${ctg?.[cod] || 0}</span>
                     <span class="pill-b">${titulo}</span>
                 </div>
@@ -1932,7 +1932,7 @@ async function auxPendencias() {
 
         etiquetas.push(`
             <br>
-            <div class="pill" onclick="()">
+            <div class="pill" onclick="atalhoAuxiliar('SAVEGNAGO', 'snapshots.empresa')">
                 <span class="pill-a" style="background: #5E35B1;">${ctgEmpresa?.['SAVEGNAGO'] || 0}</span>
                 <span class="pill-b">SAVEGNAGO</span>
             </div>
@@ -1966,7 +1966,7 @@ async function auxPendencias() {
             const cor = padraoCor(correcao)
 
             return `
-            <div class="pill" onclick="atalhoAuxiliar('${correcao}')">
+            <div class="pill" onclick="atalhoAuxiliar('${correcao}', 'snapshots.ultimaCorrecao.*.nome')">
                 <span class="pill-a" style="background: ${cor};">${total}</span>
                 <span class="pill-b">${correcao.toUpperCase()}</span>
             </div>`
@@ -1988,39 +1988,26 @@ async function atalhoContagemFluxo() {
 
 }
 
-async function atalhoTipo(cod) {
+async function atalhoAuxiliar(termo, chave) {
 
-    controles.ocorrencias.filtros.tipo = { op: '=', value: cod }
+    controles.ocorrencias.filtros ??= {}
 
-    if (document.querySelector('.tela-ocorrencias'))
-        await paginacao()
-    else
-        await telaOcorrencias()
-
-}
-
-async function atalhoAuxiliar(correcao) {
-
-    let filtros = {}
-
-    if (correcao !== 'todos') {
-
-        filtros = {
-            'snapshots.ultimaCorrecao.*.nome': {
-                modo: 'OR',
-                origem: 'dropdown',
-                regras: [
-                    { op: '=', value: correcao }
-                ]
-            }
-        }
+    controles.ocorrencias.filtros[chave] = {
+        modo: 'OR',
+        origem: 'dropdown',
+        regras: [
+            { op: '=', value: termo }
+        ]
     }
 
-    controles.ocorrencias.filtros = filtros
+    if (termo == 'todos')
+        delete controles.ocorrencias.filtros[chave]
 
-    if (document.querySelector('.tela-ocorrencias'))
-        await paginacao()
-    else
+    if (document.querySelector('.tela-ocorrencias')) {
+        const pag = 'ocorrencias'
+        atualizarVisualDropdown(chave, pag)
+        await paginacao(pag)
+    } else
         await telaOcorrencias()
 
 }
