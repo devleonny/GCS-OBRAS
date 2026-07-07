@@ -1854,7 +1854,7 @@ async function auxPendencias() {
             'PARCEIROS': 'c0bfd4a8-6bca-40e7-a71b-5990630f4b19'
         }
 
-        const [contadores, ctg, ctgFluxo] = await Promise.all([
+        const [contadores, ctg, ctgFluxo, ctgEmpresa] = await Promise.all([
             contarPorCampo({
                 base: 'dados_ocorrencias',
                 explode: { path: 'snapshots.ultimaCorrecao' },
@@ -1879,6 +1879,11 @@ async function auxPendencias() {
                 filtros: {
                     prioridade: { op: '=', value: 'lauka' }
                 }
+            }),
+            contarPorCampo({
+                base: 'dados_ocorrencias',
+                path: 'snapshots.empresa',
+                filtros: { 'snapshots.empresa': { op: '=', value: 'SAVEGNAGO' } }
             })
         ])
 
@@ -1922,6 +1927,14 @@ async function auxPendencias() {
             <div class="pill" onclick="atalhoContagemFluxo()">
                 <span class="pill-a" style="background: #5E35B1;">${ctgFluxo?.lauka || 0}</span>
                 <span class="pill-b">CONTAGEM DE FLUXO</span>
+            </div>
+        `)
+
+        etiquetas.push(`
+            <br>
+            <div class="pill" onclick="()">
+                <span class="pill-a" style="background: #5E35B1;">${ctgEmpresa?.['SAVEGNAGO'] || 0}</span>
+                <span class="pill-b">SAVEGNAGO</span>
             </div>
         `)
 
