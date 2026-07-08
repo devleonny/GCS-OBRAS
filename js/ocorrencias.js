@@ -2091,10 +2091,7 @@ async function formularioOcorrencia(idOcorrencia) {
             </span>`
         },
         {
-            texto: 'Descrição',
-            elemento: `<textarea rows="7" 
-            style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" 
-            name="descricao">${descricao || ''}</textarea>`
+            editor: descricao || ''
         },
         {
             elemento: `
@@ -2234,11 +2231,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
             elemento: '<div class="tecnicos"></div>'
         },
         {
-            texto: 'Descrição',
-            elemento: `<textarea 
-                    style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" 
-                    name="descricao" 
-                    rows="7">${correcao?.descricao || ''}</textarea>`
+            editor: correcao?.descricao || ''
         },
         {
             elemento: `
@@ -2767,7 +2760,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
         executor,
         usuario: correcao.usuario || acesso.usuario,
         tipoCorrecao,
-        descricao: obter('descricao').value
+        descricao: document.querySelector('.editor-conteudo')?.innerHTML || ''
     }
 
     // Novo fluxo, se existir;
@@ -2800,7 +2793,7 @@ async function salvarOcorrencia(idOcorrencia) {
         sistema: obter('sistema')?.id || '',
         prioridade: obter('prioridade')?.id || '',
         tipo: obter('tipo')?.id || '',
-        descricao: obter('descricao')?.value || '',
+        descricao: document.querySelector('.editor-conteudo')?.innerHTML || '',
         data_registro: new Date().toLocaleString('pt-BR'),
         usuario: acesso.usuario,
         anexos: {
