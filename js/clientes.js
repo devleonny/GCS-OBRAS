@@ -374,6 +374,10 @@ async function formularioCliente(idCliente) {
                 `
         },
         {
+            texto: 'Cep',
+            elemento: `<input oninput="formatarCep(this, 'cadastro')" name="cep" value="${cep || ''}">`
+        },
+        {
             texto: 'Endereço',
             elemento: `<textarea maxlength="60" name="endereco">${endereco || ''}</textarea>`
         },
@@ -383,19 +387,11 @@ async function formularioCliente(idCliente) {
         },
         {
             texto: 'Cidade',
-            elemento: `<input name="cidade" value="${cidade || ''}">`
-        },
-        {
-            texto: 'Cep',
-            elemento: `<input oninput="formatarCep(this)" name="cep" value="${cep || ''}">`
+            elemento: `<input name="cidade" value="${cidade || ''}" readOnly="true">`
         },
         {
             texto: 'Estado',
-            elemento: `
-            <select name="estado">
-                ${aEstados.map(e => `<option ${estado == e ? 'selected' : ''}>${e}</option>`).join('')}
-            </select>
-            `
+            elemento: `<input name="estado" value="${estado || ''}" readOnly="true">`
         },
         {
             elemento: `
@@ -404,6 +400,10 @@ async function formularioCliente(idCliente) {
                     <img src="gifs/entrega.gif">
                 </div>
                 `
+        },
+        {
+            texto: 'Cep',
+            elemento: `<input oninput="formatarCep(this)" name="e_cep" value="${endereco_entrega?.cep || ''}">`
         },
         {
             texto: 'Endereço',
@@ -415,19 +415,11 @@ async function formularioCliente(idCliente) {
         },
         {
             texto: 'Cidade',
-            elemento: `<input name="e_cidade" value="${endereco_entrega?.cidade || ''}">`
-        },
-        {
-            texto: 'Cep',
-            elemento: `<input oninput="formatarCep(this)" name="e_cep" value="${endereco_entrega?.cep || ''}">`
+            elemento: `<input name="e_cidade" value="${endereco_entrega?.cidade || ''}" readOnly="true">`
         },
         {
             texto: 'Estado',
-            elemento: `
-            <select name="e_estado">
-                ${aEstados.map(estado => `<option ${endereco_entrega?.estado == estado ? 'selected' : ''}>${estado}</option>`).join('')}
-            </select>
-            `
+            elemento: `<input name="e_estado" value="${endereco_entrega?.estado || ''}" readOnly="true">`
         }
     ]
 
@@ -467,78 +459,134 @@ async function excluirCliente(idCliente) {
 
 }
 
-async function salvarCliente(idCliente = codCliAleatorio()) {
+async function salvarCliente(idCliente = null) {
 
     overlayAguarde()
 
-    // Último painel
-    const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
-    const obVal = (n) => {
-        const el = painel.querySelector(`[name="${n}"]`)
-        return el ? el.value : ''
-    }
+    try {
 
-    const cnpj = obVal('cnpj')
-    if (!validarCpfCnpj(cnpj))
-        return popup({ mensagem: 'Campo CPF/CNPJ inválido!' })
+        // Se novo, a tabela é outra
+        const cadastro = idCliente ? false : true
 
-    const pesquisa = await pesquisarDB({
-        base: 'clientes',
-        filtros: {
-            'app': { op: '=', value: 'AC' },
-            'cnpj': { op: '=', value: cnpj }
+        idCliente = idCliente || crypto.randomUUID()
+
+        // Último painel
+        const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
+        const obVal = (n) => {
+            const el = painel.querySelector(`[name="${n}"]`)
+            return el ? el.value : ''
         }
-    })
 
-    const primeiroResultado = pesquisa.resultados?.[0]
+        const cnpj = obVal('cnpj')
+        if (!validarCpfCnpj(cnpj))
+            return popup({ mensagem: 'Campo CPF/CNPJ inválido!' })
 
-    if (pesquisa.resultados.length > 0 && Number(primeiroResultado?.id) !== idCliente)
-        return popup({ mensagem: `Já existe outro cadastro com este CPF/CNPJ > ${pesquisa.resultados?.[0]?.nome || ''}` })
+        const pesquisa = await pesquisarDB({
+            base: 'clientes',
+            filtros: {
+                'app': { op: '=', value: 'AC' },
+                'cnpj': { op: '=', value: cnpj }
+            }
+        })
 
-    const divtags = painel.querySelector('[name="tags"]')
-    const tagsExistente = divtags.querySelectorAll('.tag-cliente')
-    const tags = [...tagsExistente || []]
-        .map(span => { return { tag: span.dataset.nome } })
+        const primeiroResultado = pesquisa.resultados?.[0]
 
-    const novo = {
-        app: 'AC',
-        id: idCliente,
-        cnpj,
-        nome: obVal('nome'),
-        endereco: obVal('endereco'),
-        bairro: obVal('bairro'),
-        cep: obVal('cep'),
-        cidade: obVal('cidade'),
-        estado: obVal('estado'),
-        comentario: obVal('comentario'),
-        tags,
-        endereco_entrega: {
-            endereco: obVal('e_endereco'),
-            bairro: obVal('e_bairro'),
-            cep: obVal('e_cep'),
-            cidade: obVal('e_cidade'),
-            estado: obVal('e_estado'),
+        if (pesquisa.resultados.length > 0 && Number(primeiroResultado?.id) !== idCliente)
+            return popup({ mensagem: `Já existe outro cadastro com este CPF/CNPJ > ${pesquisa.resultados?.[0]?.nome || ''}` })
+
+        const divtags = painel.querySelector('[name="tags"]')
+        const tagsExistente = divtags.querySelectorAll('.tag-cliente')
+        const tags = [...tagsExistente || []]
+            .map(span => { return { tag: span.dataset.nome } })
+
+        const novo = {
+            app: 'AC',
+            id: idCliente,
+            cnpj,
+            nome: obVal('nome'),
+            endereco: obVal('endereco'),
+            bairro: obVal('bairro'),
+            cep: obVal('cep'),
+            cidade: obVal('cidade'),
+            estado: obVal('estado'),
+            comentario: obVal('comentario'),
+            tags,
+            endereco_entrega: {
+                endereco: obVal('e_endereco'),
+                bairro: obVal('e_bairro'),
+                cep: obVal('e_cep'),
+                cidade: obVal('e_cidade'),
+                estado: obVal('e_estado'),
+            }
         }
+
+        // Se edição ou novo;
+        if (cadastro) {
+
+            await enviar(`clientes_cadastro/${idCliente}`, novo)
+
+        } else {
+
+            const cliente = {
+                ...await recuperarDado('cliente', idCliente) || {},
+                ...novo
+            }
+
+            await enviar(`clientes/${idCliente}`, cliente)
+
+        }
+
+        popup({ mensagem: cadastro ? 'Cadastro será efetivado em breve' : 'Cadastro atualizado com sucesso' })
+
+    } catch (err) {
+        popup({ mensage: 'Não foi possível salvar o cliente. Fale com o suporte.' })
     }
-
-    const cliente = {
-        ...await recuperarDado('cliente', idCliente) || {},
-        ...novo
-    }
-
-    await enviar(`clientes/${idCliente}`, cliente)
-
-    removerPopup()
 
 }
 
-function formatarCep(input) {
+async function formatarCep(input, campo) {
     let v = input.value.replace(/\D/g, '').slice(0, 8)
+
+    if (v.length == 8) {
+
+        overlayAguarde()
+        const { city, street, neighborhood, state } = await buscarEndereco(v)
+
+        const ajuste = campo == 'cadastro'
+            ? ''
+            : 'e_'
+
+        document.querySelector(`[name="${ajuste}endereco"]`).value = street || ''
+        document.querySelector(`[name="${ajuste}bairro"]`).value = neighborhood || ''
+        document.querySelector(`[name="${ajuste}cidade"]`).value = city || ''
+        document.querySelector(`[name="${ajuste}estado"]`).value = state || ''
+
+        removerOverlay()
+    }
 
     if (v.length > 5)
         v = v.replace(/(\d{5})(\d)/, '$1-$2')
 
     input.value = v
+
+}
+
+async function buscarEndereco(cep) {
+
+    try {
+        const response = await fetch(`https://brasilapi.com.br/api/cep/v1/${cep}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        })
+
+        if (!response.ok)
+            throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`)
+
+        return await response.json()
+    } catch (error) {
+        return { mensagem: error.messagem || error.mensage || error }
+    }
+
 }
 
 function formatarCnpj(input) {
@@ -558,10 +606,4 @@ function formatarCnpj(input) {
     }
 
     input.value = v
-}
-
-function codCliAleatorio() {
-    const agora = Date.now() % 1e7
-    const rand = Math.floor(Math.random() * 1e3)
-    return Number(`${agora}${rand.toString().padStart(3, '0')}`)
 }
