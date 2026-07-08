@@ -501,6 +501,7 @@ async function salvarCliente(idCliente = codCliAleatorio()) {
         .map(span => { return { tag: span.dataset.nome } })
 
     const novo = {
+        app: 'AC',
         id: idCliente,
         cnpj,
         nome: obVal('nome'),
