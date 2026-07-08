@@ -17,6 +17,66 @@
     max-height: 90vh;
 }
 
+.editor-botao {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgb(220, 220, 220);
+    border-radius: 3px;
+    box-shadow: 0 0 2px #222;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+}
+
+.editor-toolbar {
+    background: #f1f1f1;
+    padding: 5px;
+    border-bottom: 1px solid #ccc;
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.editor-container {
+    min-width: 300px;
+    max-width: 500px;
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.editor-conteudo {
+    min-height: 120px;
+    padding: 10px;
+    outline: none;
+    overflow-y: auto;
+    text-align: left;
+}
+
+.opcoes {
+    max-width: 200px;
+    white-space: pre-wrap;
+    text-align: start;
+    background-color: #097fe6;
+    padding: 5px;
+    border-radius: 3px;
+    margin: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: white;
+}
+
+.opcoes-v2:hover {
+    color: white;
+    background-color: #323940;
+}
+
 .popup {
     position: fixed;
     z-index: 10001;
@@ -88,8 +148,8 @@
 .ferramentas input {
     background-color: #f0efef;
     display: block;
-    padding: 1rem;
-    margin: 1rem 0;
+    padding: 1vw;
+    margin: 1vw 0;
     border-radius: 5px;
     border: 1px solid #888;
 }
@@ -100,31 +160,12 @@
     align-items: center;
     justify-content: start;
     cursor: pointer;
-    gap: 1rem;
+    gap: 1px;
     background-color: white;
 }
 
 .atalhos label {
     padding-right: 0.5rem;
-}
-
-.opcoes {
-    text-align: start;
-    background-color: #097fe6;
-    padding: 5px;
-    border-radius: 3px;
-    margin: 3px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 0.8rem;
-    color: white;
-}
-
-.opcoes-v2:hover {
-    color: white;
-    background-color: #323940;
 }
 
 .atalhos img,
@@ -135,15 +176,13 @@
 
 .atalhos:hover,
 .atalhos-opcoes:hover {
-    cursor: pointer;
     color: white;
     background-color: #323940;
 }
 
 .atalhos-opcoes {
-    border-bottom: solid 1px;
-    border-right: solid 1px;
     padding: 5px;
+    width: 100%;
     text-align: left;
     display: flex;
     align-items: center;
@@ -151,7 +190,33 @@
     cursor: pointer;
     gap: 10px;
     background-color: #efefef;
+    border-radius: 2px;
     font-size: 0.8rem;
+}
+
+.cx-pesquisa {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    margin: 5px;
+    background-color: white;
+    border-radius: 10px;
+}
+
+.cx-opcoes {
+    justify-content: start;
+    flex-direction: column;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background-color: #d2d2d2;
+    width: 100%;
+    max-height: 40vh;
+    height: max-content;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .mensagem {
@@ -197,10 +262,6 @@
     font-size: 14px;
 }
 
-.painel-padrao textarea {
-    min-width: 200px;
-}
-
 .painel-padrao input:focus,
 .painel-padrao select:focus,
 .painel-padrao textarea:focus {
@@ -210,7 +271,6 @@
     box-shadow: 0 0 4px #3e8bff80;
 }
 
-/* Linha */
 .linha-padrao {
     background-color: #ffffff;
     display: flex;
@@ -223,11 +283,13 @@
     box-shadow: 0 3px 6px #00000015;
 }
 
+/* Primeira linha */
 .linha-padrao:first-child {
     border-top-left-radius: 8px;
     border-top-right-radius: 8px;
 }
 
+/* Última linha */
 .linha-padrao:last-child {
     border-bottom-left-radius: 8px;
     border-bottom-right-radius: 8px;
@@ -253,7 +315,7 @@
 .botoes-rodape {
     flex: 1 1 100px;
     cursor: pointer;
-    padding: 5px;
+    padding: 0.5rem;
     background-color: #d2d2d2;
     display: flex;
     align-items: center;
@@ -277,7 +339,7 @@
 
 .aguarde {
     display: flex;
-    align-items: start;
+    align-items: center;
     justify-content: center;
     background-color: rgba(0, 0, 0, 0.7);
     position: absolute;
@@ -288,7 +350,6 @@
 }
 
 .aguarde img {
-    margin-top: 50vh;
     width: 5rem;
 }
 

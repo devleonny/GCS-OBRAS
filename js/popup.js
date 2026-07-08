@@ -25,12 +25,64 @@ function popup({
         ? ''
         : 'border-bottom-left-radius: 10px; border-bottom-right-radius: 10px;'
 
-    const linhaFormulario = ({ texto, elemento }) => `
-        <div class="linha-padrao">
-            ${texto ? `<span style="text-align: left;">${texto}</span>` : ''}
-            ${typeof elemento === 'function' ? elemento() : elemento}
-        </div>
-    `
+    const linhaFormulario = ({ texto, elemento, editor }) => {
+        if (texto) texto = `<span style="text-align: left;">${texto}</span>`
+
+        if (editor !== undefined) {
+            // O ID vira só interno para não conflitar caso existam dois editores,
+            // mas você não precisa se preocupar com ele na hora de chamar a função
+            const idGerado = `editor-${crypto.randomUUID()}`
+
+            elemento = `
+                <div class="editor-container">
+                    
+                    <div class="editor-toolbar">
+
+                        <span 
+                            onclick="document.execCommand('bold', false, null)" 
+                            class="editor-botao"
+                            onmousedown="event.preventDefault()"
+                            style="font-weight: bold;">B</span>
+                        
+                        <span 
+                            onclick="document.execCommand('italic', false, null)"
+                            class="editor-botao"
+                            onmousedown="event.preventDefault()"
+                            style="font-style: italic;">I</span>
+                        
+                        <span 
+                            onclick="document.execCommand('underline', false, null)"
+                            class="editor-botao" 
+                            onmousedown="event.preventDefault()"
+                            style="text-decoration: underline;">U</span>
+                    
+                        <span onclick="document.execCommand('insertUnorderedList', false, null)"
+                            class="editor-botao"
+                            onmousedown="event.preventDefault()"
+                            style="width: 30px; height: 30px;">•</span>
+                        
+                        <input 
+                            type="color"
+                            onmousedown="event.preventDefault()"
+                            onchange="document.execCommand('foreColor', false, this.value)" 
+                            style="width: 30px; height: 30px; padding: 0; border: none;">
+
+                    </div>
+                    
+                    <div id="${idGerado}" 
+                    class="editor-conteudo" 
+                    contenteditable="true">${editor}</div>
+                
+                </div>
+            `
+        }
+
+        return `
+            <div class="linha-padrao">
+                ${texto || ''}
+                ${elemento || ''}
+            </div>`
+    }
 
     const botaoPadrao = ({ funcao = '', img, texto, fechar = false }) => `
         <div onclick="${funcao}${fechar ? `${funcao ? ';' : ''}${removerAnteriores ? 'removerTodosPopups()' : `removerPopup('${idPopup}')`}` : ''}" class="botoes-rodape">
@@ -89,7 +141,7 @@ function popup({
 }
 
 function limparRecursosPopup(id) {
-    ;(autoDestruicaoGlobal?.[id] || []).forEach(chave => {
+    ; (autoDestruicaoGlobal?.[id] || []).forEach(chave => {
         delete controles?.[chave]
         delete controlesCxOpcoes?.[chave]
     })

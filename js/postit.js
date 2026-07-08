@@ -264,8 +264,7 @@ async function criarPIT(id) {
 
     const linhas = [
         {
-            texto: 'Comentário',
-            elemento: `<textarea name="comentario">${comentario || ''}</textarea>`
+            editor: comentario || ''
         },
         {
             texto: 'Prazo',
@@ -312,7 +311,7 @@ async function salvarPIT(id = crypto.randomUUID()) {
         usuario: usuarioFin,
         quadro: pit?.quadro || null,
         status: painel.querySelector('[name="status"]').checked ? 'S' : 'N',
-        comentario: painel.querySelector('[name="comentario"]').value,
+        comentario: painel.querySelector('.editor-conteudo').innerHTML || '',
         prazo: painel.querySelector('[name="prazo"]').value
     }
 
