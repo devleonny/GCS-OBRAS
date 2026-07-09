@@ -113,6 +113,8 @@ async function vincularEmpresas() {
 
 async function telaClientes() {
 
+    overlayAguarde()
+
     const colunas = {
         'Check': {},
         'CPF/CNPJ': { chave: 'cnpj' },
@@ -127,7 +129,11 @@ async function telaClientes() {
         <div style="${horizontal}; gap: 1rem;">
             <input onclick="checksCliente(this)" style="width: 1.5rem; height: 1.5rem;" type="checkbox">
             <img src="imagens/trocar.png" onclick="classificarUnidades()">
-            <img src="imagens/baixar.png" onclick="formularioCliente()">
+            <button onclick="formularioCliente()">Adicionar Cadastro</button>
+            <div class="toolbar-clientes" onclick="abrirClientesPendentes()">
+                <span>Verificando cadastros pendentes...</span>
+                <img src="gifs/loading.gif" style="width: 5rem;">
+            </div>
         </div>`
 
     const pag = 'clientes'
@@ -143,7 +149,7 @@ async function telaClientes() {
                 destino: 'nomeEmpresa'
             }
         ],
-        funcaoAdicional: ['contarPorTagCliente'],
+        funcaoAdicional: ['contarPorTagCliente', 'verificarCadastrosPendentes'],
         body: 'bodyClientes',
         btnExtras,
         criarLinha: 'criarLinhaClienteGCS',
@@ -184,6 +190,71 @@ async function telaClientes() {
 
     await paginacao(pag)
     mostrarMapa()
+
+    removerOverlay()
+}
+
+async function abrirClientesPendentes() {
+
+    const colunas = {
+        'Nome Fantasia': { chave: 'nome' },
+        'CPF/CNPJ': { chave: 'cnpj' },
+        'Comentário': { chave: 'comentario' }
+    }
+
+    const pag = 'clientes_cadastro'
+    const tabela = await modTab({
+        pag,
+        colunas,
+        filtros: {
+            retorno_api: { op: 'IS_EMPTY' }
+        },
+        body: 'bodyClientesPendentes',
+        criarLinha: 'criarLinhaClienteCadastro',
+        base: 'clientes_cadastro'
+    })
+
+    const elemento = `
+        <div style="padding: 1rem;">
+            ${tabela}
+        </div>
+    `
+
+    popup({ elemento, titulo: 'Cadastros Pendentes' })
+    await paginacao(pag)
+
+}
+
+function criarLinhaClienteCadastro(cliente) {
+
+    const { nome, cnpj, comentario } = cliente
+
+    return `
+        <tr>
+            <td>${nome}</td>
+            <td>${cnpj}</td>
+            <td>${comentario}</td>
+        </tr>
+    `
+
+}
+
+async function verificarCadastrosPendentes() {
+
+    const { todos } = await contarPorCampo({
+        base: 'clientes_cadastro',
+        filtros: {
+            retorno_api: { op: 'IS_EMPTY' }
+        }
+    })
+
+    const local = document.querySelector('.toolbar-clientes')
+
+    if (local)
+        local.innerHTML = todos == 0
+            ? 'Nenhum cadastro pendente'
+            : `Existem <span class="sinalizador">${todos}</span> cadastros pendentes`
+
 }
 
 async function contarPorTagCliente() {
@@ -349,11 +420,14 @@ async function formularioCliente(idCliente) {
         {
             texto: 'Tags',
             elemento: `
-            <div style="${horizontal}; gap: 1rem;">
-                <img src="imagens/concluido.png" onclick="adicionarTag()">
-                <select name="tag">
-                    ${opcoes}
-                </select>
+            <div style="${vertical}; gap: 5px;">
+                <div style="${horizontal}; gap: 5px;">
+                    <select name="tag">
+                        ${opcoes}
+                    </select>
+
+                    <button onclick="adicionarTag()">Confirmar</button>
+                </div>
                 
                 <div name="tags" style="${vertical}; gap: 2px;">
                     ${labelsTags}
@@ -378,20 +452,20 @@ async function formularioCliente(idCliente) {
             elemento: `<input oninput="formatarCep(this, 'cadastro')" name="cep" value="${cep || ''}">`
         },
         {
+            texto: 'Estado',
+            elemento: `<select onchange="datalistCidades(this.value, 'cidade')" name="estado">${aEstados.map(e => `<option ${estado == e ? 'selected' : ''}>${e}</option>`)}</select>`
+        },
+        {
+            texto: 'Cidade',
+            elemento: `<select name="cidade">${cidade ? `<option>${cidade}</option>` : ''}</select>`
+        },
+        {
             texto: 'Endereço',
             elemento: `<textarea maxlength="60" name="endereco">${endereco || ''}</textarea>`
         },
         {
             texto: 'Bairro',
             elemento: `<textarea name="bairro">${bairro || ''}</textarea>`
-        },
-        {
-            texto: 'Cidade',
-            elemento: `<input name="cidade" value="${cidade || ''}" readOnly="true">`
-        },
-        {
-            texto: 'Estado',
-            elemento: `<input name="estado" value="${estado || ''}" readOnly="true">`
         },
         {
             elemento: `
@@ -406,20 +480,20 @@ async function formularioCliente(idCliente) {
             elemento: `<input oninput="formatarCep(this)" name="e_cep" value="${endereco_entrega?.cep || ''}">`
         },
         {
+            texto: 'Estado',
+            elemento: `<select onchange="datalistCidades(this.value, 'e_cidade')" name="e_estado">${aEstados.map(e => `<option ${endereco_entrega?.estado == e ? 'selected' : ''}>${e}</option>`)}</select>`
+        },
+        {
+            texto: 'Cidade',
+            elemento: `<select name="e_cidade">${endereco_entrega?.cidade ? `<option>${endereco_entrega?.cidade}</option>` : ''}</select>`
+        },
+        {
             texto: 'Endereço',
             elemento: `<textarea name="e_endereco">${endereco_entrega?.endereco || ''}</textarea>`
         },
         {
             texto: 'Bairro',
             elemento: `<textarea name="e_bairro">${endereco_entrega?.bairro || ''}</textarea>`
-        },
-        {
-            texto: 'Cidade',
-            elemento: `<input name="e_cidade" value="${endereco_entrega?.cidade || ''}" readOnly="true">`
-        },
-        {
-            texto: 'Estado',
-            elemento: `<input name="e_estado" value="${endereco_entrega?.estado || ''}" readOnly="true">`
         }
     ]
 
@@ -441,6 +515,34 @@ async function formularioCliente(idCliente) {
         : 'Criar Cliente'
 
     popup({ linhas, botoes, titulo })
+
+}
+
+async function datalistCidades(estado, local) {
+
+    if (!estado)
+        return
+
+    try {
+
+        const resposta = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${estado}/municipios`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" }
+        })
+
+        if (!resposta.ok)
+            throw new Error(`Erro na requisição: ${resposta.status} ${resposta.statusText}`)
+
+        const cidades = await resposta.json()
+        const opcoes = cidades
+            .map(c => `<option>${c.nome}</option>`)
+            .join('')
+
+        document.querySelector(`[name="${local}"]`).innerHTML = opcoes
+
+    } catch (err) {
+        console.log(err)
+    }
 
 }
 
@@ -500,7 +602,6 @@ async function salvarCliente(idCliente = null) {
             .map(span => { return { tag: span.dataset.nome } })
 
         const novo = {
-            app: 'AC',
             id: idCliente,
             cnpj,
             nome: obVal('nome'),
@@ -524,6 +625,8 @@ async function salvarCliente(idCliente = null) {
         if (cadastro) {
 
             await enviar(`clientes_cadastro/${idCliente}`, novo)
+
+            verificarCadastrosPendentes()
 
         } else {
 
@@ -569,7 +672,7 @@ async function formatarCep(input, campo) {
 
         document.querySelector(`[name="${ajuste}endereco"]`).value = street || ''
         document.querySelector(`[name="${ajuste}bairro"]`).value = neighborhood || ''
-        document.querySelector(`[name="${ajuste}cidade"]`).value = city || ''
+        document.querySelector(`[name="${ajuste}cidade"]`).innerHTML = `<option>${city || ''}</option>`
         document.querySelector(`[name="${ajuste}estado"]`).value = state || ''
 
         removerOverlay()

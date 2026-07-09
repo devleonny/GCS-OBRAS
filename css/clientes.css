@@ -34,6 +34,29 @@
     width: 40%;
 }
 
+.sinalizador {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: red;
+    border-radius: 3px;
+    padding: 3px;
+}
+
+.toolbar-clientes {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    gap: 5px;
+    background-color: #3a4247;
+    box-shadow: 0 0 2px #222;
+    border-radius: 5px;
+    padding: 3px 1rem;
+    margin: 3px;
+}
+
 .bloco-clientes {
     gap: 2rem;
     display: flex;
