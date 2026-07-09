@@ -463,10 +463,10 @@ async function salvarCliente(idCliente = null) {
 
     overlayAguarde()
 
-    try {
+    // Se novo, a tabela é outra
+    const cadastro = idCliente ? false : true
 
-        // Se novo, a tabela é outra
-        const cadastro = idCliente ? false : true
+    try {
 
         idCliente = idCliente || crypto.randomUUID()
 
@@ -536,25 +536,36 @@ async function salvarCliente(idCliente = null) {
 
         }
 
-        popup({ mensagem: cadastro ? 'Cadastro será efetivado em breve' : 'Cadastro atualizado com sucesso' })
-
     } catch (err) {
         popup({ mensage: 'Não foi possível salvar o cliente. Fale com o suporte.' })
+
+    } finally {
+
+        removerTodosPopups()
+        popup({ mensagem: cadastro ? 'Cadastro será efetivado em breve' : 'Cadastro atualizado com sucesso' })
     }
 
 }
 
 async function formatarCep(input, campo) {
+
+    const ajuste = campo == 'cadastro'
+        ? ''
+        : 'e_'
+
     let v = input.value.replace(/\D/g, '').slice(0, 8)
+
+    if (v.length == 0) {
+        document.querySelector(`[name="${ajuste}endereco"]`).value = ''
+        document.querySelector(`[name="${ajuste}bairro"]`).value = ''
+        document.querySelector(`[name="${ajuste}cidade"]`).value = ''
+        document.querySelector(`[name="${ajuste}estado"]`).value = ''
+    }
 
     if (v.length == 8) {
 
         overlayAguarde()
         const { city, street, neighborhood, state } = await buscarEndereco(v)
-
-        const ajuste = campo == 'cadastro'
-            ? ''
-            : 'e_'
 
         document.querySelector(`[name="${ajuste}endereco"]`).value = street || ''
         document.querySelector(`[name="${ajuste}bairro"]`).value = neighborhood || ''
