@@ -325,8 +325,11 @@ async function enviarOmie() {
         const data = dt(inpData)
         const idPagamento = crypto.randomUUID()
 
+        totalDepartamentos.EMPRESA ??= 0
+        totalDepartamentos.EMPRESA += taxa
+
         const itensDistribuicao = await Promise.all(
-            Object.entries({ ...totalDepartamentos, EMPRESA: taxa }).map(async ([departamento, valor]) => {
+            Object.entries({ ...totalDepartamentos }).map(async ([departamento, valor]) => {
                 const pesquisa = await pesquisarDB({
                     base: 'departamentos',
                     filtros: {
@@ -346,7 +349,7 @@ async function enviarOmie() {
                 }
             })
         )
-
+        
         const distribuicaoAgrupada = {}
         let totalGeral = 0
 
@@ -409,7 +412,7 @@ async function enviarOmie() {
                 ]
             }]
         }
-        
+
         await enviar(`lista_pagamentos/${idPagamento}`, pagamento)
 
         removerPopup()
