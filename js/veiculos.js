@@ -380,7 +380,7 @@ async function enviarOmie() {
             throw new Error('Categoria Combustível não localizada no app selecionado')
 
         const pesqCliente = await pesquisarDB({
-            base: 'clientes',
+            base: 'vw_clientes',
             filtros: {
                 app: { op: '=', value: app },
                 nome: { op: '=', value: 'TICKET LOG' }
