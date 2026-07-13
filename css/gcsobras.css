@@ -1627,8 +1627,8 @@ input[type=range]::-moz-range-thumb {
     background-color: #222222e3;
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: max-content;
+    justify-content: start;
+    width: 95%;
     padding: 2px;
     cursor: pointer;
     display: flex;

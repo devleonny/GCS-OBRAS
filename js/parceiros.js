@@ -64,7 +64,7 @@ async function formularioParceiro(id = crypto.randomUUID()) {
 
     const stringHtml = (titulo, valor) => `
         <div style="${vertical}; gap: 3px;">
-            <label><strong>${titulo}</strong>:</label>
+            <label><b>${titulo}</b>:</label>
             <div>${valor}</div>
         </div>`
 
@@ -145,7 +145,8 @@ async function adicionarTecnicoLPU(usuario) {
             class="opcoes" 
             name="${cod}" 
             onclick="cxOpcoes('${cod}')">${usuario || 'Selecione'}
-        </span>`
+        </span>
+        `
 
     const div = document.querySelector('#tecnicos')
     if (div)
@@ -338,7 +339,7 @@ async function salvarAdicional() {
 
     removerPopup()
 
-    await paginacao()
+    await paginacao('lpu_parceiro')
 
 }
 
@@ -507,9 +508,14 @@ async function gerarPdfParceiro(id, visualizar) {
 
     overlayAguarde()
 
-    const { tecnicos, itens, totais, comentario } = await recuperarDado('parceiros', id) || {}
+    const {
+        tecnicos,
+        itens,
+        totais,
+        comentario
+    } = await recuperarDado('parceiros', id) || {}
 
-    const listaTecnicos = tecnicos
+    const listaTecnicos = (tecnicos || [])
         .map(t => `<span>${t}</span>`)
         .join('')
 
@@ -522,20 +528,19 @@ async function gerarPdfParceiro(id, visualizar) {
         'Valor Total'
     ]
 
-    const linhas = Object.entries(itens || {})
-        .filter(([, item]) => item.vUnitParc != 0)
-        .map(([codigo, item]) => {
+    const linhas = (itens || [])
+        .filter(({ vUnitParc = 0 }) => vUnitParc != 0)
+        .map(({ codigo, descricao, qtde, unidade, vUnitParc, vTotalParc }) => {
 
-            const { descricao, qtde, unidade, vUnitParc, vTotalParc } = item || {}
             return `
-            <tr>
-                <td>${codigo || ''}</td>
-                <td>${descricao || ''}</td>
-                <td>${qtde || ''}</td>
-                <td>${unidade || ''}</td>
-                <td>${dinheiro(vUnitParc)}</td>
-                <td>${dinheiro(vTotalParc)}</td>
-            </tr>
+                <tr>
+                    <td>${codigo || ''}</td>
+                    <td>${descricao || ''}</td>
+                    <td>${qtde || ''}</td>
+                    <td>${unidade || ''}</td>
+                    <td>${dinheiro(vUnitParc)}</td>
+                    <td>${dinheiro(vTotalParc)}</td>
+                </tr>
             `
         }).join('')
 
@@ -624,6 +629,7 @@ async function gerarPdfParceiro(id, visualizar) {
                     ${linhas}
                 </tbody>
             </table>
+
             <table class="tabela">
                 <tbody>
                     <tr>
@@ -645,7 +651,7 @@ async function gerarPdfParceiro(id, visualizar) {
     const elemento = `<div style="padding: 2rem;">${htmlContent}</div>`
 
     if (visualizar)
-        return popup({ elemento, titulo: 'PDF' })
+        return popup({ cor: '#fbfbfb', elemento, titulo: 'PDF' })
 
     try {
         await gerarPdfOnline(htmlContent, `LPU PARCEIRO - ${Date.now()}`)
@@ -653,4 +659,50 @@ async function gerarPdfParceiro(id, visualizar) {
     } catch (err) {
         popup({ mensagem: err.message || 'Falha ao gerar o PDF' })
     }
+}
+
+async function solicitarPagamentoParceiro(id) {
+
+    // o id da LPU PARCEIRO será o mesmo para aba e para idCorrecao;
+
+    try {
+
+        overlayAguarde()
+
+        const { usuario } = acesso || {}
+
+        const {
+            tecnicos,
+            itens,
+            departamento
+        } = await recuperarDado('parceiros', id) || {}
+
+        const total = (itens || [])
+            .reduce((acc, item) => acc + (item.vTotalParc), 0)
+
+        const correcao = {
+            aba: id,
+            data: new Date().toLocaleString(),
+            tecnico: tecnicos,
+            descricao: `Solicitação de pagamento de parceiro de ${dinheiro(total)} para ${(tecnicos || []).map(t => t).join(', ')}.`,
+            executor: [
+                'Leonny'
+                /*
+                'felipe_felix',
+                'percivalreis'
+                */
+            ],
+            usuario,
+            tipoCorrecao: '24e1ea27-1bd8-451a-b5bf-edda134cfdd6', // PAGAMENTO DE PARCEIRO
+            dtCorrecaoFinal: '' //???
+        }
+
+        await enviar(`dados_ocorrencias/${departamento}/correcoes/${id}`, correcao)
+
+        popup({ mensagem: 'Pagamento do parceiro enviado para aprovação do gerente' })
+
+    } catch (err) {
+        popup({ mensagem: err.message || 'Falha ao gerar o pagamento do parceiro' })
+    }
+
 }

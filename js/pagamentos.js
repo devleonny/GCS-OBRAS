@@ -614,7 +614,7 @@ async function formularioPagamento() {
         const dtVencimento = `${ano}-${mes}-${dia}`
 
         controlesCxOpcoes.recebedor = {
-            base: 'clientes',
+            base: 'vw_clientes',
             retornar: ['nome'],
             funcaoAdicional: ['calculadoraPagamento'],
             colunas: {

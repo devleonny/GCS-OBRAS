@@ -46,7 +46,6 @@ async function telaLogin() {
 
             <div class="rodape-padrao">
                 <label class="botoes-rodape" style="color: white; background-color: #249f41;" onclick="acessoLogin()">Entrar</label>
-                <label class="botoes-rodape" style="color: white; background-color: #097fe6;" onclick="cadastrar()">Cadastrar</label>
             </div>
 
         </div>
@@ -182,72 +181,6 @@ async function salvarSenha() {
     }
 
     if (resposta.mensagem) popup({ mensagem: resposta.mensagem })
-
-}
-
-// NOVO USUÁRIO;
-
-function cadastrar() {
-
-    const campos = ['nome_completo', 'usuario', 'senha', 'e-mail', 'telefone']
-    const linhas = []
-
-    campos.forEach(campo => {
-        linhas.push({
-            texto: inicialMaiuscula(campo),
-            elemento: `<input name="${campo}">`
-        })
-    })
-
-    const funcao = `salvarCadastro()`
-
-    const botoes = [
-        { texto: 'Criar Acesso', img: 'concluido', funcao }
-    ]
-
-    popup({ linhas, botoes, titulo: 'Cadastro' })
-
-}
-
-async function salvarCadastro() {
-
-    overlayAguarde()
-
-    const obVal = (n) => {
-        const el = document.querySelector(`[name="${n}"]`)
-        return el ? el.value : ''
-    }
-
-    const dados = {
-        nome_completo: obVal('nome_completo'),
-        usuario: obVal('usuario'),
-        senha: obVal('senha'),
-        email: obVal('e-mail'),
-        telefone: obVal('telefone')
-    }
-
-    if (dados.usuario == '' || dados.senha == '' || dados.email == '')
-        return popup({ mensagem: 'Senha, usuário ou e-mail não informado(s)' })
-
-    try {
-        const response = await fetch(`${api}/acesso`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ tipoAcesso: 'cadastro', dados })
-        })
-        if (!response.ok) {
-            const err = await response.json()
-            throw err
-        }
-
-        const data = await response.json()
-        removerPopup()
-
-        return popup({ mensagem: data.mensagem })
-
-    } catch (err) {
-        popup({ mensagem: err.message })
-    }
 
 }
 

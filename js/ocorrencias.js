@@ -282,6 +282,7 @@ function carregarCorrecoes(ocorrencia) {
         </div>`
     }
 
+    const { usuario } = acesso || {}
     const idOcorrencia = ocorrencia.id
     const { correcoes, snapshots } = ocorrencia || {}
     const { abas } = snapshots || {}
@@ -303,6 +304,7 @@ function carregarCorrecoes(ocorrencia) {
             datas_agendadas,
             datas_agendadas_final,
             tipoCorrecaoNome,
+            tipoCorrecao,
             localizacao,
             usuario,
             autorizacao,
@@ -359,13 +361,27 @@ function carregarCorrecoes(ocorrencia) {
             ? dtFormatada(dtCorrecaoFinal)
             : null
 
+        // Pagamento de parceiro
+        const btnAprovar = (executor.includes(usuario) && tipoCorrecaoNome == 'PAGAMENTO DE PARCEIRO')
+            ? `
+                <div class="alerta-piscando">
+                    <span style="padding: 0 1rem;" onclick="aprovarPagamentoPaceiro('${idCorrecao}')">Aprovar Pagamento</span>
+                    <img src="imagens/pdf.png" onclick="gerarPdfParceiro('${idCorrecao}', true)">
+                </div>
+                <br>
+                `
+            : ''
+
         // Organização por aba;
         divsCorrecoesPorAba[aba] ??= []
 
         divsCorrecoesPorAba[aba].push(`
-            <div class="detalhes-correcoes-1">
+            <div class="detalhes-correcoes-1" data-correcao="${tipoCorrecao}">
 
                 <div style="${vertical}; width: 90%; padding: 0.5rem;">
+
+                    ${btnAprovar}
+
                     ${modelo('Código de Autorização', autorizacao)}
                     ${modelo('Data Inicial de Execução', `
                         <div style="${horizontal}; align-items: start; justify-content: start; gap: 1rem;">
@@ -459,6 +475,12 @@ function carregarCorrecoes(ocorrencia) {
 
 }
 
+async function aprovarPagamentoPaceiro(idCorrecaoLpuParceiro) {
+    
+    console.log('ok')
+    
+}
+
 function scrollAbas(valor, id) {
 
     const janela = document.querySelector(`#janela_${id}`)
@@ -487,9 +509,13 @@ function exibirAba(idOcorrencia, aba) {
 
 function abaCorrecao({ idOcorrencia, aba = crypto.randomUUID(), corrHTML = [] }) {
 
-    const btnCorrecao = acesso.permissao !== 'cliente'
-        ? `<button class="botao-correcao" onclick="formularioCorrecao('${idOcorrencia}', null, '${aba}')">Incluir Correção</button>`
-        : ''
+    let btnCorrecao = ''
+
+    const pagParceiro = corrHTML
+        .some(corr => corr.includes('24e1ea27-1bd8-451a-b5bf-edda134cfdd6')) // tipoCorrecao == 'PAGAMENTO DE PARCEIRO'
+
+    if (acesso.permissao !== 'cliente' && !pagParceiro)
+        btnCorrecao = `<button class="botao-correcao" onclick="formularioCorrecao('${idOcorrencia}', null, '${aba}')">Incluir Correção</button>`
 
     const elemento = `
         <div class="detalhamento-correcoes" style="display: ${aba == 'geral' ? '' : 'none'}" id="${idOcorrencia}_${aba}">
@@ -1291,6 +1317,13 @@ async function linParceiros(par) {
                     onclick="gerarPdfParceiro('${id}')">
                     <img src="imagens/pdfw.png" style="width: 1.5rem;">
                     <label>Baixar PDF</label>
+                </div>
+
+                <div style="background-color: ${cor}" 
+                    class="contorno-botoes" 
+                    onclick="solicitarPagamentoParceiro('${id}')">
+                    <img src="imagens/dinheirow.png" style="width: 1.5rem;">
+                    <label>Solicitar Pagamento</label>
                 </div>
 
                 <br>
