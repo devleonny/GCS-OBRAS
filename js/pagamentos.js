@@ -818,7 +818,7 @@ async function alterarAPP(app) {
 
         const { cnpj } = await recuperarDado('clientes', recebedorEl.id) || {}
         const { resultados } = await pesquisarDB({
-            base: 'clientes',
+            base: 'vw_clientes',
             filtros: {
                 app: { op: '=', value: app },
                 cnpj: { op: '=', value: cnpj }

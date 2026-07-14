@@ -355,9 +355,6 @@ async function incluirDocumento(id) {
 
     controlesCxOpcoes.funcionario = {
         base: 'clientes',
-        filtros: {
-            'app': { op: '=', value: 'AC' }
-        },
         retornar: ['nome'],
         colunas: {
             'Nome': { chave: 'nome' },

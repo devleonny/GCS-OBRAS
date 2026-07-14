@@ -2072,9 +2072,6 @@ async function formularioOcorrencia(idOcorrencia) {
     // Campo Unidade;
     controlesCxOpcoes.unidade = {
         base: 'clientes',
-        filtros: {
-            'app': { op: '=', value: 'AC' }
-        },
         retornar: ['nome'],
         colunas: {
             'Nome': { chave: 'nome' },

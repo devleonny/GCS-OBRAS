@@ -783,9 +783,6 @@ function adicionarMotorista({ id, nome } = {}) {
     // Controles;
     controlesCxOpcoes[aleatorio] = {
         base: 'clientes',
-        filtros: {
-            'app': { op: '=', value: 'AC' }
-        },
         retornar: ['nome'],
         colunas: {
             'Nome': { chave: 'nome' },

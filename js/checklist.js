@@ -1082,9 +1082,6 @@ function maisTecnico(cod, nome, devolver) {
 
     controlesCxOpcoes[cod] = {
         base: 'clientes',
-        filtros: {
-            'app': { op: '=', value: 'AC' }
-        },
         retornar: ['nome'],
         colunas: {
             'Nome': { chave: 'nome' },
