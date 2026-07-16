@@ -43,6 +43,14 @@
     padding: 3px;
 }
 
+.pizza-apps {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 70px;
+    height: 70px;
+}
+
 .toolbar-clientes {
     cursor: pointer;
     display: flex;

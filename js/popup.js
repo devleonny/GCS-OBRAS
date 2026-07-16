@@ -71,6 +71,7 @@ function popup({
                     
                     <div id="${idGerado}" 
                     class="editor-conteudo" 
+                    onpaste="colarNoEditor(event)"
                     contenteditable="true">${editor}</div>
                 
                 </div>
@@ -176,4 +177,30 @@ function removerPopup(id = null) {
     alvo.remove()
 
     document.querySelector('.aguarde')?.remove()
+}
+
+function colarNoEditor(event) {
+    event.preventDefault()
+
+    const texto = event.clipboardData?.getData('text/plain') || ''
+    const linhas = texto.replace(/\r\n/g, '\n').split('\n')
+    const sel = window.getSelection()
+
+    if (!sel || !sel.rangeCount) return
+
+    const range = sel.getRangeAt(0)
+    range.deleteContents()
+
+    const fragment = document.createDocumentFragment()
+
+    linhas.forEach((linha, i) => {
+        if (i > 0) fragment.appendChild(document.createElement('br'))
+        fragment.appendChild(document.createTextNode(linha))
+    })
+
+    range.insertNode(fragment)
+    range.collapse(false)
+
+    sel.removeAllRanges()
+    sel.addRange(range)
 }

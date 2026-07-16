@@ -816,7 +816,7 @@ async function alterarAPP(app) {
         if (!recebedorEl || !recebedor || !recebedorEl.id)
             return
 
-        const { cnpj } = await recuperarDado('clientes', recebedorEl.id) || {}
+        const { cnpj } = await recuperarDado('vw_clientes', recebedorEl.id) || {}
         const { resultados } = await pesquisarDB({
             base: 'vw_clientes',
             filtros: {

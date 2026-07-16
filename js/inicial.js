@@ -107,7 +107,10 @@ async function incluirResponsavel(usuario) {
     const u = usuario || crypto.randomUUID()
 
     controlesCxOpcoes[u] = {
-        base: 'dados_setores',
+        base: 'clientes',
+        filtros: {
+            usuario: { op: 'NOT_EMPTY' }
+        },
         retornar: ['usuario'],
         colunas: {
             'Usuário': { chave: 'usuario' },

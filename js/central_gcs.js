@@ -174,14 +174,14 @@ function maisAba() {
     window.open(window.location.href, '_blank', 'toolbar=no, menubar=no');
 }
 
-async function mudarStatus(usuario, select) {
+async function mudarStatus(id, select) {
 
     const st = select.value
 
-    await enviar(`dados_setores/${usuario}/status`, st)
+    await enviar(`clientes/${id}/status`, st)
 
     if (st == 'Invisível')
-        enviar(`dados_setores/${usuario}/status_arquivado`, st)
+        enviar(`clientes/${id}/status_arquivado`, st)
 
 }
 
@@ -222,9 +222,9 @@ async function usuariosToolbar() {
 
     acesso = JSON.parse(localStorage.getItem('acesso')) || null
 
-    const uOnline = await contarPorCampo({ base: 'dados_setores', path: 'status' })
+    const uOnline = await contarPorCampo({ base: 'clientes', path: 'status' })
 
-    const { status } = await recuperarDado('dados_setores', acesso.usuario) || {}
+    const { status } = await recuperarDado('clientes', acesso?.id) || {}
 
     const indicadorStatus = status || 'offline'
 
@@ -242,144 +242,6 @@ async function usuariosToolbar() {
         divUsuarios.innerHTML = usuariosToolbarString
 
 }
-
-function linUsuarios(dados) {
-
-    const { permissao, setor, usuario, nomeEmpresa } = dados
-
-    return `
-        <tr>
-            <td style="text-align: left;">${usuario}</td>
-            <td>${permissao || ''}</td>
-            <td>${setor || ''}</td>
-            <td>${nomeEmpresa || ''}</td>
-            <td>
-               <img src="imagens/pesquisar2.png" onclick="editarUsuario('${usuario}')">
-            </td>
-        </tr>`
-
-}
-
-async function editarUsuario(usuario) {
-
-
-    const permissoes = ['', 'adm', 'técnico', 'cliente', 'user', 'visitante', 'analista', 'gerente', 'coordenacao', 'diretoria', 'editor', 'log', 'qualidade', 'novo']
-    const setores = ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE', 'POC']
-
-    overlayAguarde()
-
-    const { permissao, setor, empresa } = await recuperarDado('dados_setores', usuario) || {}
-    const { nome } = await recuperarDado('empresas', empresa) || {}
-
-    controlesCxOpcoes.empresa = {
-        base: 'empresas',
-        retornar: ['nome'],
-        colunas: {
-            Nome: { chave: 'nome' }
-        }
-    }
-
-    const linhas = [
-        {
-            texto: 'Permissão',
-            elemento: `<select name="permissao">${permissoes.map(p => `<option ${permissao == p ? 'selected' : ''}>${p}</option>`).join('')}</select>`
-        },
-        {
-            texto: 'Setor',
-            elemento: `<select name="setor">${setores.map(s => `<option ${setor == s ? 'selected' : ''}>${s}</option>`).join('')}</select>`
-        },
-        {
-            texto: 'Empresa',
-            elemento: `<span ${empresa ? `id="${empresa}"` : ''} name="empresa" class="opcoes" onclick="cxOpcoes('empresa')">${nome || 'Selecione'}</span>`
-        },
-    ]
-
-    const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: `salvarUsuario('${usuario}')` }
-    ]
-
-    popup({ linhas, botoes, titulo: 'Atualizar Usuário' })
-
-}
-
-async function salvarUsuario(usuario) {
-
-    overlayAguarde()
-
-    const campos = ['permissao', 'setor', 'empresa']
-
-    const painel = document.querySelector('.painel-padrao')
-
-    const dados = {
-        permissao: painel.querySelector('[name="permissao"]').value,
-        setor: painel.querySelector('[name="setor"]').value,
-        empresa: painel.querySelector('[name="empresa"]')?.id || null,
-    }
-
-    await enviar(`dados_setores/${usuario}`, dados)
-
-    removerPopup()
-}
-
-async function configs() {
-
-    const colunas = {
-        'Usuário': { chave: 'usuario' },
-        'Permissão': { chave: 'permissao' },
-        'Setores': { chave: 'setor' },
-        'Empresa': {},
-        'Editar': {}
-    }
-
-    const btnExtras = `
-        <div style="${horizontal}; gap: 1rem;">
-            <img src="imagens/baixar.png" onclick="cadastrar()">
-            <img src="imagens/ajustar.png" onclick="f2()">
-        </div>
-    `
-
-    const tabela = await modTab({
-        btnExtras,
-        pag: 'usuarios',
-        colunas,
-        base: 'dados_setores',
-        criarLinha: 'linUsuarios',
-        substituicoes: [
-            {
-                path: 'empresa',
-                tabela: 'empresas',
-                campoBusca: 'id',
-                retorno: 'nome',
-                destino: 'nomeEmpresa'
-            }
-        ],
-        body: 'bodyUsuarios'
-    })
-
-    const elemento = `
-        <div style="${vertical}; padding: 0.5rem;">
-            ${tabela}
-        </div>`
-
-    popup({ elemento, titulo: 'Configurações' })
-
-    await paginacao()
-
-}
-
-function verifTimestampNome(nome) {
-    let regex = /^(\d{13})\.\w+$/;
-    let match = nome.match(regex);
-
-    if (match) {
-        let timestamp = parseInt(match[1]);
-        let data = new Date(timestamp);
-        return !isNaN(data.getTime()) && data.getFullYear() > 2000;
-    }
-
-    return false;
-}
-
 
 async function carregarXLSX() {
     return new Promise((resolve, reject) => {
@@ -473,8 +335,8 @@ async function painelUsuarios() {
     const colunas = {
         'Status': { chave: 'status' },
         'Usuários': { chave: 'usuario' },
-        'Setor': { chave: 'setor' },
-        'Permissão': { chave: 'permissao' }
+        'Permissão': { chave: 'permissao' },
+        'Setor': { chave: 'setor' }
     }
 
     const pag = 'usuariosOnline'
@@ -482,7 +344,10 @@ async function painelUsuarios() {
         pag,
         colunas,
         body: 'bodyUsuariosOnline',
-        base: 'dados_setores',
+        base: 'clientes',
+        filtros: {
+            usuario: { op: 'NOT_EMPTY' }
+        },
         criarLinha: 'criarLinhaPainelUsuarios',
         ordenar: {
             path: 'status',
@@ -508,7 +373,13 @@ async function painelUsuarios() {
 
 function criarLinhaPainelUsuarios(dados) {
 
-    const { usuario, status, setor, permissao } = dados || {}
+    const { 
+        id,
+        usuario, 
+        status, 
+        setor, 
+        permissao 
+    } = dados || {}
 
     let gerenciarStatus = `<label>${status || 'offline'}</label>`
 
@@ -519,7 +390,7 @@ function criarLinhaPainelUsuarios(dados) {
             statusOpcoes.push('Invisível')
 
         gerenciarStatus = `
-            <select class="opcoesSelect" onchange="mudarStatus('${usuario}', this)">
+            <select class="opcoesSelect" onchange="mudarStatus(${id}, this)">
                 ${statusOpcoes.map(op => `<option ${status == op ? 'selected' : ''}>${op}</option>`).join('')}
             </select>`
     }

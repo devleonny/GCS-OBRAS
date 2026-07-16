@@ -111,6 +111,57 @@ async function vincularEmpresas() {
 
 }
 
+function renderAppsCircle(id, apps = []) {
+    const ativos = new Set(
+        (Array.isArray(apps) ? apps : Object.keys(apps || {}))
+            .map(v => String(v).toUpperCase().trim())
+    )
+
+    const corAtiva = '#16a34a'
+    const corInativa = '#d1d5db'
+    const stroke = '#ffffff'
+
+    const cor = sigla => ativos.has(sigla) ? corAtiva : corInativa
+
+    return `
+        <div class="pizza-apps">
+            <svg viewBox="0 0 100 100" width="100" height="100" aria-label="Apps" onclick="ativarCadastro(${id})">
+                <!-- fatias -->
+                <path d="M50 50 L50 0 A50 50 0 0 1 100 50 Z" fill="${cor('AC')}" stroke="${stroke}" stroke-width="2"></path>
+                <path d="M50 50 L100 50 A50 50 0 0 1 50 100 Z" fill="${cor('IAC')}" stroke="${stroke}" stroke-width="2"></path>
+                <path d="M50 50 L50 100 A50 50 0 0 1 0 50 Z" fill="${cor('HNK')}" stroke="${stroke}" stroke-width="2"></path>
+                <path d="M50 50 L0 50 A50 50 0 0 1 50 0 Z" fill="${cor('HNW')}" stroke="${stroke}" stroke-width="2"></path>
+
+                <!-- textos -->
+                <text x="68" y="28" text-anchor="middle" dominant-baseline="middle"
+                      font-size="11" font-weight="700" fill="#111827">AC</text>
+
+                <text x="72" y="68" text-anchor="middle" dominant-baseline="middle"
+                      font-size="10" font-weight="700" fill="#111827">IAC</text>
+
+                <text x="30" y="72" text-anchor="middle" dominant-baseline="middle"
+                      font-size="10" font-weight="700" fill="#111827">HNK</text>
+
+                <text x="28" y="30" text-anchor="middle" dominant-baseline="middle"
+                      font-size="10" font-weight="700" fill="#111827">HNW</text>
+            </svg>
+        </div>
+    `
+}
+
+async function ativarCadastro(id) {
+
+    overlayAguarde()
+
+    if (!id)
+        return popup({ mensagem: 'Cliente sem cnpj/cpf' })
+
+    await enviar(`clientes/${id}/cadastrar_omie`, true)
+
+    popup({ mensagem: 'Cadastramento Omie solicitado, aguarde pelo menos 1 min' })
+
+}
+
 async function telaClientes() {
 
     overlayAguarde()
@@ -119,9 +170,13 @@ async function telaClientes() {
         'Check': {},
         'CPF/CNPJ': { chave: 'cnpj' },
         'Empresa': { chave: 'nomeEmpresa' },
+        'Permissão': { chave: 'permissao' },
+        'Usuário': { chave: 'usuario' },
+        'Matrícula': { chave: 'matricula' },
         'Nome Fantasia': { chave: 'nome' },
         'Endereço Cadastro': { chave: 'snapshots.enderecoCadastro' },
         'Comentário': { chave: 'comentario' },
+        'Apps': {},
         'Ações': {}
     }
 
@@ -130,10 +185,6 @@ async function telaClientes() {
             <input onclick="checksCliente(this)" style="width: 1.5rem; height: 1.5rem;" type="checkbox">
             <img src="imagens/trocar.png" onclick="classificarUnidades()">
             <button onclick="formularioCliente()">Adicionar Cadastro</button>
-            <div class="toolbar-clientes" onclick="abrirClientesPendentes()">
-                <span>Verificando cadastros pendentes...</span>
-                <img src="gifs/loading.gif" style="width: 5rem;">
-            </div>
         </div>`
 
     const pag = 'clientes'
@@ -149,13 +200,10 @@ async function telaClientes() {
                 destino: 'nomeEmpresa'
             }
         ],
-        funcaoAdicional: ['contarPorTagCliente', 'verificarCadastrosPendentes'],
+        funcaoAdicional: ['contarPorTagCliente'],
         body: 'bodyClientes',
         btnExtras,
         criarLinha: 'criarLinhaClienteGCS',
-        filtros: {
-            'app': { op: '=', value: 'AC' }
-        },
         base: 'clientes'
     })
 
@@ -194,76 +242,10 @@ async function telaClientes() {
     removerOverlay()
 }
 
-async function abrirClientesPendentes() {
-
-    const colunas = {
-        'Nome Fantasia': { chave: 'nome' },
-        'CPF/CNPJ': { chave: 'cnpj' },
-        'Comentário': { chave: 'comentario' }
-    }
-
-    const pag = 'clientes_cadastro'
-    const tabela = await modTab({
-        pag,
-        colunas,
-        filtros: {
-            retorno_api: { op: 'IS_EMPTY' }
-        },
-        body: 'bodyClientesPendentes',
-        criarLinha: 'criarLinhaClienteCadastro',
-        base: 'clientes_cadastro'
-    })
-
-    const elemento = `
-        <div style="padding: 1rem;">
-            ${tabela}
-        </div>
-    `
-
-    popup({ elemento, titulo: 'Cadastros Pendentes' })
-    await paginacao(pag)
-
-}
-
-function criarLinhaClienteCadastro(cliente) {
-
-    const { nome, cnpj, comentario } = cliente
-
-    return `
-        <tr>
-            <td>${nome}</td>
-            <td>${cnpj}</td>
-            <td>${comentario}</td>
-        </tr>
-    `
-
-}
-
-async function verificarCadastrosPendentes() {
-
-    const { todos } = await contarPorCampo({
-        base: 'clientes_cadastro',
-        filtros: {
-            retorno_api: { op: 'IS_EMPTY' }
-        }
-    })
-
-    const local = document.querySelector('.toolbar-clientes')
-
-    if (local)
-        local.innerHTML = todos == 0
-            ? 'Nenhum cadastro pendente'
-            : `Existem <span class="sinalizador">${todos}</span> cadastros pendentes`
-
-}
-
 async function contarPorTagCliente() {
 
     const contagem = await contarPorCampo({
         base: 'clientes',
-        filtros: {
-            'app': { op: '=', value: 'AC' }
-        },
         path: 'estado',
         filtros: controles?.clientes?.filtros || {}
     })
@@ -287,8 +269,18 @@ async function filtrarPorTag(tag) {
 
 function criarLinhaClienteGCS(cliente) {
 
-    const idCliente = cliente.id
-    const { nome, cnpj, tags, comentario, nomeEmpresa } = cliente
+    const {
+        id,
+        apps,
+        nome,
+        cnpj,
+        usuario,
+        matricula,
+        permissao,
+        tags,
+        comentario,
+        nomeEmpresa
+    } = cliente
 
     const modelo = ({ endereco, bairro, cep, cidade, estado }) => {
         return `
@@ -311,17 +303,23 @@ function criarLinhaClienteGCS(cliente) {
         <td>
             <input
             onchange="checkPoint(this)"
-            data-id="${idCliente}"
+            data-id="${id}"
             data-nome="${nome}"
             type="checkbox"
-            ${controles?.clientes?.cp?.[idCliente] ? 'checked' : ''}
+            ${controles?.clientes?.cp?.[id] ? 'checked' : ''}
             style="width: 1.5rem; height: 1.5rem;"
             name="empresa">
         </td>
         <td style="white-space: nowrap;">${cnpj || ''}</td>
+
         <td>
-            <span>${nomeEmpresa || ''}</span>
+            ${nomeEmpresa ? `<span class="and">${nomeEmpresa}` : ''}</span>
         </td>
+
+        <td>${permissao ? `<span class="fin">${permissao}</span>` : ''}</td>
+        <td>${usuario ? `<span class="fin">${usuario}</span>` : ''}</td>
+        <td>${matricula ? `<span class="fin">${matricula}</span>` : ''}</td>
+
         <td>
             <div style="${vertical}; gap: 2px;">
                 <span>${nome || ''}</span>
@@ -334,8 +332,10 @@ function criarLinhaClienteGCS(cliente) {
         <td>
             <div style="white-space: pre-wrap;">${comentario || ''}</div>
         </td>
+
+        <td>${renderAppsCircle(cnpj ? id : null, Object.keys(apps || []))}</td>
         <td>
-            <img src="imagens/pesquisar2.png" onclick="formularioCliente(${idCliente})">
+            <img src="imagens/pesquisar2.png" onclick="formularioCliente(${id})">
         </td>`
 
     return `<tr>${tds}</tr>`
@@ -388,15 +388,22 @@ async function formularioCliente(idCliente) {
     overlayAguarde()
 
     const {
+        matricula,
         endereco_entrega = {},
+        ddd,
+        celular,
+        email,
         endereco,
         bairro,
         estado,
         cidade,
         cep,
         nome,
+        usuario,
+        permissao,
         cnpj,
         comentario,
+        empresa,
         tags
     } = await recuperarDado('clientes', idCliente) || {}
 
@@ -408,15 +415,68 @@ async function formularioCliente(idCliente) {
         .map(o => `<option>${o}</option>`)
         .join('')
 
+    const { nome: nomeEmpresa } = empresa
+        ? await recuperarDado('empresas', empresa)
+        : {}
+
+    controlesCxOpcoes.empresa = {
+        base: 'empresas',
+        retornar: ['nome'],
+        colunas: {
+            'Nome': { chave: 'nome' }
+        }
+    }
+
+    let editarPermissao = {}
+    const { permissao: permissaoUsuario } = acesso || {}
+
+    if (['adm', 'diretoria'].includes(permissaoUsuario)) {
+
+        editarPermissao = {
+            texto: 'Permissão',
+            elemento: `<select name="permissao">${permissoes.map(p => `<option ${permissao == p ? 'selected' : ''}>${p}</option>`).join('')}</select>`
+        }
+
+    }
+
     const linhas = [
         {
-            texto: 'CPF/CNPJ',
-            elemento: `<input oninput="formatarCnpj(this)" name="cnpj" value="${cnpj || ''}">`
+            texto: 'Matrícula',
+            elemento: `<span class="fin">${matricula || 'automático'}</span>`
         },
         {
-            texto: 'Nome Fantasia',
-            elemento: `<textarea oninput="this.value = this.value.toUpperCase()" name="nome">${nome || ''}</textarea>`
+            texto: 'Empresa',
+            elemento: `<span ${empresa ? `id="${empresa}"` : ''} name="empresa" class="opcoes" onclick="cxOpcoes('empresa')">${nomeEmpresa || 'Selecionar'}</span>`
         },
+        {
+            texto: 'CPF/CNPJ',
+            elemento: `<input placeholder="CPF ou CNPJ" oninput="formatarCnpj(this)" name="cnpj" value="${cnpj || ''}">`
+        },
+        {
+            texto: 'Nome',
+            elemento: `<textarea placeholder="Nome Completo" maxlength="60" oninput="this.value = this.value.toUpperCase()" name="nome">${nome || ''}</textarea>`
+        },
+        {
+            texto: 'E-mail',
+            elemento: `<textarea name="email" placeholder="E-mail">${email || ''}</textarea>`
+        },
+        {
+            texto: 'Celular',
+            elemento: `
+            <input name="ddd" placeholder="DDD" style="width: 40px;" value="${ddd || ''}">
+            <input name="celular" placeholder="Celular" value="${celular || ''}">
+            `
+        },
+        {
+            texto: 'Usuário',
+            elemento: `
+                <div style="${vertical}; gap: 5px;">
+                    <input name="usuario" placeholder="Usuário" oninput="verificarDisponibilidade(this)" value="${usuario || ''}" ${usuario ? 'readOnly="true"' : ''}>
+                    <div data-valido="${usuario ? 'S' : 'N'}" id="status_usuario"></div>
+                </div>
+            `
+        },
+        editarPermissao,
         {
             texto: 'Tags',
             elemento: `
@@ -437,7 +497,7 @@ async function formularioCliente(idCliente) {
         },
         {
             texto: 'Comentário',
-            elemento: `<textarea name="comentario">${comentario || ''}</textarea>`
+            elemento: `<textarea placeholder="Comentário" name="comentario">${comentario || ''}</textarea>`
         },
         {
             elemento: `
@@ -507,7 +567,7 @@ async function formularioCliente(idCliente) {
         }
     ]
 
-    if (idCliente)
+    if (idCliente && ['adm', 'diretoria'].includes(permissaoUsuario))
         botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirCliente(${idCliente})` })
 
     const titulo = idCliente
@@ -515,6 +575,44 @@ async function formularioCliente(idCliente) {
         : 'Criar Cliente'
 
     popup({ linhas, botoes, titulo })
+
+}
+
+async function verificarDisponibilidade(input) {
+
+    const usuario = input.value.trim('')
+
+    const statusUsuario = document.getElementById('status_usuario')
+
+    let pesquisa = null
+
+    if (usuario.length > 5) {
+
+        pesquisa = await pesquisarDB({
+            base: 'clientes',
+            filtros: {
+                usuario: { op: '=', value: usuario }
+            }
+        })
+
+    }
+
+    const modelo = (texto, img) => `
+        <div style="${horizontal}; gap: 0.5rem;">
+            <img src="imagens/${img}.png" style="width: 1.5rem;">
+            <span>${texto}</span>
+        </div>
+    `
+
+    // Validador;
+    statusUsuario.dataset.valido = (!pesquisa || pesquisa.resultados.length)
+        ? 'N'
+        : 'S'
+
+    statusUsuario.innerHTML = (!pesquisa || pesquisa.resultados.length)
+        ? modelo('Não disponível', 'cancel')
+        : modelo('Usuário válido', 'concluido')
+
 
 }
 
@@ -565,36 +663,43 @@ async function salvarCliente(idCliente = null) {
 
     overlayAguarde()
 
-    // Se novo, a tabela é outra
-    const cadastro = idCliente ? false : true
+    // Se novo, a tabela é outra;
+    const cadastro = idCliente
+        ? false
+        : true
 
     try {
-
-        idCliente = idCliente || crypto.randomUUID()
 
         // Último painel
         const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
         const obVal = (n) => {
             const el = painel.querySelector(`[name="${n}"]`)
-            return el ? el.value : ''
+            return el ? el.value || el.id : null
         }
 
+        const usuarioValido = document.getElementById('status_usuario').dataset.valido == 'S'
+
+        // Verificações do CNPJ
         const cnpj = obVal('cnpj')
-        if (!validarCpfCnpj(cnpj))
-            return popup({ mensagem: 'Campo CPF/CNPJ inválido!' })
 
-        const pesquisa = await pesquisarDB({
-            base: 'clientes',
-            filtros: {
-                'app': { op: '=', value: 'AC' },
-                'cnpj': { op: '=', value: cnpj }
-            }
-        })
+        if (!usuarioValido) { // Se usuário preenchido e válido, cnpj não é obrigatório;
 
-        const primeiroResultado = pesquisa.resultados?.[0]
+            if (!validarCpfCnpj(cnpj))
+                return popup({ mensagem: 'Campo CPF/CNPJ inválido!' })
 
-        if (pesquisa.resultados.length > 0 && Number(primeiroResultado?.id) !== idCliente)
-            return popup({ mensagem: `Já existe outro cadastro com este CPF/CNPJ > ${pesquisa.resultados?.[0]?.nome || ''}` })
+            const pesquisa = await pesquisarDB({
+                base: 'clientes',
+                filtros: {
+                    'cnpj': { op: '=', value: cnpj }
+                }
+            })
+
+            const primeiroResultado = pesquisa.resultados?.[0]
+
+            if (pesquisa.resultados.length > 0 && Number(primeiroResultado?.id) !== idCliente)
+                return popup({ mensagem: `Já existe outro cadastro com este CPF/CNPJ > ${pesquisa.resultados?.[0]?.nome || ''}` })
+
+        }
 
         const divtags = painel.querySelector('[name="tags"]')
         const tagsExistente = divtags.querySelectorAll('.tag-cliente')
@@ -602,7 +707,6 @@ async function salvarCliente(idCliente = null) {
             .map(span => { return { tag: span.dataset.nome } })
 
         const novo = {
-            id: idCliente,
             cnpj,
             nome: obVal('nome'),
             endereco: obVal('endereco'),
@@ -618,34 +722,40 @@ async function salvarCliente(idCliente = null) {
                 cep: obVal('e_cep'),
                 cidade: obVal('e_cidade'),
                 estado: obVal('e_estado'),
-            }
+            },
+
+            /// Novos campos 07/2026;
+            usuario: usuarioValido ? obVal('usuario') : null,
+            ddd: obVal('ddd'),
+            celular: obVal('celular'),
+            email: obVal('email'),
+            empresa: obVal('empresa')
         }
 
-        // Se edição ou novo;
-        if (cadastro) {
-
-            await enviar(`clientes_cadastro/${idCliente}`, novo)
-
-            verificarCadastrosPendentes()
-
-        } else {
-
-            const cliente = {
-                ...await recuperarDado('cliente', idCliente) || {},
-                ...novo
-            }
-
-            await enviar(`clientes/${idCliente}`, cliente)
-
+        // Mesclagem;
+        const cliente = {
+            ...idCliente ? await recuperarDado('cliente', idCliente) : {},
+            ...novo
         }
+
+        // Se novo;
+        if (cadastro && cliente.cnpj)
+            cliente.cadastrar_omie = true
+
+        // Permissão;
+        const permissao = obVal('permissao')
+
+        if (permissao)
+            cliente.permissao = permissao
+
+        await enviar(`clientes/${idCliente || 'novo'}`, cliente)
+
+        removerTodosPopups()
+
+        popup({ mensagem: 'Cadastro atualizado com sucesso' })
 
     } catch (err) {
         popup({ mensage: 'Não foi possível salvar o cliente. Fale com o suporte.' })
-
-    } finally {
-
-        removerTodosPopups()
-        popup({ mensagem: cadastro ? 'Cadastro será efetivado em breve' : 'Cadastro atualizado com sucesso' })
     }
 
 }

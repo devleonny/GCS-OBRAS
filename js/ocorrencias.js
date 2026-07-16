@@ -476,9 +476,9 @@ function carregarCorrecoes(ocorrencia) {
 }
 
 async function aprovarPagamentoPaceiro(idCorrecaoLpuParceiro) {
-    
+
     console.log('ok')
-    
+
 }
 
 function scrollAbas(valor, id) {
@@ -771,7 +771,8 @@ async function abrirAtalhosContrato(contrato) {
     })
 
     if (!orcs.resultados.length)
-        return popup({ mensagem: 'Sem orçamento, ou orçamento excluído: verifique com o suporte ou crie um orçamento' })
+        return popup({ botoes, mensagem: 'Sem orçamento, ou orçamento excluído: verifique com o suporte ou crie um orçamento' })
+
 
     const { id } = orcs.resultados[0] // Primeiro;
 
@@ -2103,7 +2104,7 @@ async function formularioOcorrencia(idOcorrencia) {
             texto: 'Unidade de Manutenção',
             elemento: `<span ${unidade ? `id="${unidade}"` : ''} 
                 class="campos" name="unidade" onclick="cxOpcoes('unidade')">
-                ${cliente.nome || 'Selecione'}
+                ${cliente?.nome || 'Selecione'}
             </span>`
         },
         {
@@ -2185,7 +2186,10 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
     ).join('')
 
     controlesCxOpcoes.tecnico = {
-        base: 'dados_setores',
+        base: 'clientes',
+        filtros: {
+            usuario: { op: 'NOT_EMPTY' }
+        },
         retornar: ['usuario'],
         colunas: {
             'Nome': { chave: 'usuario' },
@@ -2335,8 +2339,11 @@ async function maisUsuario(usuarios, campo) {
         const nomeControle = crypto.randomUUID()
 
         controlesCxOpcoes[nomeControle] = {
-            base: 'dados_setores',
+            base: 'clientes',
             retornar: ['usuario'],
+            filtros: {
+                usuario: { op: 'NOT_EMPTY' }
+            },
             funcaoAdicional: campo == 'tecnicos'
                 ? 'verificarConflitos'
                 : null,

@@ -253,8 +253,11 @@ async function criarPIT(id) {
     const { comentario, prazo, status, usuario = acesso.usuario } = await recuperarDado('postit', id) || {}
 
     controlesCxOpcoes.usuario = {
-        base: 'dados_setores',
+        base: 'clientes',
         retornar: ['usuario'],
+        filtros: {
+            usuario: { op: 'NOT_EMPTY' }
+        },
         colunas: {
             'Usuario': { chave: 'usuario' },
             'Setor': { chave: 'setor' },

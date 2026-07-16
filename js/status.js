@@ -199,8 +199,11 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
         .join('')
 
     controlesCxOpcoes.autorizado_por = {
-        base: 'dados_setores',
+        base: 'clientes',
         retornar: ['usuario'],
+        filtros: {
+            usuario: { op: 'NOT_EMPTY' }
+        },
         colunas: {
             'Usuário': { chave: 'usuario' },
             'Setor': { chave: 'setor' },

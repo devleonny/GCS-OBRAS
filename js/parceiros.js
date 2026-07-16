@@ -132,7 +132,10 @@ async function adicionarTecnicoLPU(usuario) {
 
     controlesCxOpcoes[cod] = {
         retornar: ['usuario'],
-        base: 'dados_setores',
+        base: 'clientes',
+        filtros: {
+            usuario: { op: 'NOT_EMPTY' }
+        },
         colunas: {
             'Nome': { chave: 'usuario' },
             'Setor': { chave: 'setor' },

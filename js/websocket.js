@@ -197,7 +197,7 @@ async function carregarControles() {
         barraStatus.push(modelo('kanban', 'telaPIT()', 'contadorPostIt'), modelo('projeto', 'verAprovacoes()', 'contadorPendencias'))
 
     if (['adm', 'diretoria'].includes(permissao))
-        barraStatus.push(modelo('construcao', 'configs()', ''))
+        barraStatus.push(modelo('construcao', 'f2()', ''))
 
 
     const cabecalhoUsuario = document.querySelector('.cabecalho-usuario')

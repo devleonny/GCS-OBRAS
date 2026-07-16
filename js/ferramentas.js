@@ -10,6 +10,8 @@ const esquemas = {
     'tipo': ['VENDA', 'SERVIÇO', 'USO E CONSUMO']
 }
 
+const permissoes = ['', 'adm', 'técnico', 'cliente', 'user', 'visitante', 'analista', 'gerente', 'coordenacao', 'diretoria', 'editor', 'log', 'qualidade', 'novo']
+const setores = ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE', 'POC']
 const tagsClientes = ['', 'FUNCIONÁRIO', 'CLIENTE', 'MOTORISTA', 'TÉCNICO', 'TÉCNICO PARCEIRO', 'FORNECEDOR', 'MATRIZ']
 const parcelas = ["--", "15 dias", "20 dias", "21 dias", "30 dias", "35 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
 const empresas = ['IAC', 'AC', 'HNK', 'HNW']
@@ -57,9 +59,9 @@ const pdfDanfe = ({ id, n_nota, categoria, total = null }) => {
                 <label>${n_nota}</label>
                 <label><b>${categoria}</b></label>
                 ${total
-                    ? `<label>${dinheiro(total)}</label>`
-                    : ''
-                }
+            ? `<label>${dinheiro(total)}</label>`
+            : ''
+        }
             </div>
             <div onclick="abrirDANFE('${id}')" class="balao2">PDF</div>
         </div>

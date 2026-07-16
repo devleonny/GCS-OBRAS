@@ -87,9 +87,10 @@ async function modTab(configuracoes) {
                 data-chave="${query.chave}"
                 data-op="${query.op || 'includes'}"
                 onkeydown="confirmarPesquisa({ event, chave: '${query.chave}', op: '${query.op || 'includes'}', elemento: this, pag: '${pag}'})"
+                onpaste="colarTextoPuro(event)"
                 contentEditable="true">
                 </th>
-                `
+            `
         })
     )).join('')
 
@@ -112,6 +113,24 @@ async function modTab(configuracoes) {
         </div>
     `
     return modelo
+}
+
+function colarTextoPuro(event) {
+    event.preventDefault()
+
+    const texto = event.clipboardData?.getData('text/plain') || ''
+
+    if (document.queryCommandSupported?.('insertText')) {
+        document.execCommand('insertText', false, texto)
+        return
+    }
+
+    const sel = window.getSelection()
+    if (!sel || !sel.rangeCount) return
+
+    sel.deleteFromDocument()
+    sel.getRangeAt(0).insertNode(document.createTextNode(texto))
+    sel.collapseToEnd()
 }
 
 function restaurarPesquisa(pag) {
@@ -671,7 +690,7 @@ function aplicarColunasOcultas(pag) {
         const linhas = tabela.querySelectorAll('tbody tr')
         linhas.forEach(linha => {
             if (linha.id === 'dinossauro' || linha.id === 'loading-tabela') return
-            
+
             const td = linha.children[index]
             if (td) td.style.display = deveOcultar ? 'none' : ''
         })
