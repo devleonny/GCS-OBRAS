@@ -734,7 +734,7 @@ async function salvarCliente(idCliente = null) {
 
         // Mesclagem;
         const cliente = {
-            ...idCliente ? await recuperarDado('cliente', idCliente) : {},
+            ...idCliente ? await recuperarDado('clientes', idCliente) : {},
             ...novo
         }
 
