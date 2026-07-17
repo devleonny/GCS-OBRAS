@@ -173,7 +173,8 @@ async function telaClientes() {
         'Permissão': { chave: 'permissao' },
         'Usuário': { chave: 'usuario' },
         'Matrícula': { chave: 'matricula' },
-        'Nome Fantasia': { chave: 'nome' },
+        'Nome': { chave: 'nome' },
+        'E-mail': { chave: 'email' },
         'Endereço Cadastro': { chave: 'snapshots.enderecoCadastro' },
         'Comentário': { chave: 'comentario' },
         'Apps': {},
@@ -274,6 +275,7 @@ function criarLinhaClienteGCS(cliente) {
         apps,
         nome,
         cnpj,
+        email,
         usuario,
         matricula,
         permissao,
@@ -328,6 +330,7 @@ function criarLinhaClienteGCS(cliente) {
                 </div>
             </div>
         </td>
+        <td>${email || ''}</td>
         <td>${eCadastro}</td>
         <td>
             <div style="white-space: pre-wrap;">${comentario || ''}</div>
