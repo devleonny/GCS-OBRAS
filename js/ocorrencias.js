@@ -1322,7 +1322,7 @@ async function linParceiros(par) {
 
                 <div style="background-color: ${cor}" 
                     class="contorno-botoes" 
-                    onclick="solicitarPagamentoParceiro('${id}')">
+                    onclick="atualizarDadosParceiro('${id}')">
                     <img src="imagens/dinheirow.png" style="width: 1.5rem;">
                     <label>Solicitar Pagamento</label>
                 </div>
@@ -2731,7 +2731,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
     // Técnicos;
     const tecnico = [...document.querySelectorAll('.tecnicos span')]
         .filter(span => span.id)
-        .map(span => span.id)
+        .map(span => span.textContent)
 
     if (tecnico.length == 0 && Object.keys(equipamentos).length > 0)
         return popup({ mensagem: 'Quando existirem equipamentos, selecione pelo menos 1 Técnico' })
@@ -2770,7 +2770,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
     // Executores;
     const executor = [...document.querySelectorAll('.executores span')]
         .filter(span => span.id)
-        .map(span => span.id)
+        .map(span => span.textContent)
 
     if (executor.length == 0)
         return popup({ mensagem: 'Selecione pelo menos 1 executor' })

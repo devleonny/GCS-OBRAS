@@ -11,6 +11,8 @@ async function formularioParceiro(id = crypto.randomUUID()) {
         comentario,
     } = await recuperarDado('parceiros', id) || {}
 
+    const tecnico = tecnicos?.[0]
+
     const ativo = controles?.ocorrencias?.ativo
 
     const orcamentos = await pesquisarDB({
@@ -68,6 +70,23 @@ async function formularioParceiro(id = crypto.randomUUID()) {
             <div>${valor}</div>
         </div>`
 
+    controlesCxOpcoes.tecnico = {
+        retornar: ['usuario'],
+        base: 'clientes',
+        filtros: {
+            usuario: { op: 'NOT_EMPTY' }
+        },
+        colunas: {
+            'Usuário': { chave: 'usuario' },
+            'Matrícula': { chave: 'matricula' },
+            'Nome': { chave: 'nome' },
+            'CNPJ': { chave: 'cnpj' },
+            'Permissão': { chave: 'permissao', tipoPesquisa: 'select' },
+            'Estado': { chave: 'estado' },
+            'Cidade': { chave: 'cidade' }
+        }
+    }
+
     const elemento = `
         <div style="${vertical}; padding: 1rem;">
 
@@ -80,8 +99,16 @@ async function formularioParceiro(id = crypto.randomUUID()) {
                     </div>
 
                     <div class="requisicao-dados">
-                        <button onclick="adicionarTecnicoLPU()">Adicionar Técnico</button>
-                        <div id="tecnicos" style="${vertical}; gap: 1px;"></div>
+
+
+                        ${stringHtml('Selecione o técnico', `
+                        <span ${tecnico ? `id="${tecnico}"` : ''} 
+                            class="opcoes" 
+                            name="tecnico" 
+                            onclick="cxOpcoes('tecnico')">${tecnico || 'Selecione'}
+                        </span>
+                        `)}
+
                         ${stringHtml('Margem Geral (%)', `<input id="margem_lpu" value="${margem || '40'}" oninput="calcularLpuParceiro()">`)}
                         ${stringHtml('Comentário', `<textarea id="comentario">${comentario || ''}</textarea>`)}
 
@@ -119,43 +146,8 @@ async function formularioParceiro(id = crypto.randomUUID()) {
 
     await paginacao('lpu_parceiro')
 
-    // Lançar Tecs;
-    for (const tec of (tecnicos || [])) {
-        await adicionarTecnicoLPU(tec)
-    }
-
 }
 
-async function adicionarTecnicoLPU(usuario) {
-
-    const cod = crypto.randomUUID()
-
-    controlesCxOpcoes[cod] = {
-        retornar: ['usuario'],
-        base: 'clientes',
-        filtros: {
-            usuario: { op: 'NOT_EMPTY' }
-        },
-        colunas: {
-            'Nome': { chave: 'usuario' },
-            'Setor': { chave: 'setor' },
-            'Permissão': { chave: 'permissao' },
-        }
-    }
-
-    const span = `
-        <span ${usuario ? `id="${usuario}"` : ''} 
-            class="opcoes" 
-            name="${cod}" 
-            onclick="cxOpcoes('${cod}')">${usuario || 'Selecione'}
-        </span>
-        `
-
-    const div = document.querySelector('#tecnicos')
-    if (div)
-        div.insertAdjacentHTML('beforeend', span)
-
-}
 
 async function atvRemItensEmMassa() {
 
@@ -352,15 +344,10 @@ async function salvarLpuParceiro(id = crypto.randomUUID()) {
 
     const parceiro = await recuperarDado('parceiros', id)
     const departamento = controles?.ocorrencias?.ativo
+    const tecnico = document.querySelector('[name="tecnico"]')
 
-    const spanTecs = [...document.querySelector('#tecnicos').querySelectorAll('span')]
-
-    if (spanTecs.length == 0)
-        return popup({ mensagem: 'Escolha pelo menos 1 técnico' })
-
-    const tecnicos = spanTecs
-        .filter(span => span.id)
-        .map(span => span.id)
+    if (!tecnico.id)
+        return popup({ mensagem: 'O campo técnico é obrigatório' })
 
     const dados = {
         ...parceiro,
@@ -371,7 +358,7 @@ async function salvarLpuParceiro(id = crypto.randomUUID()) {
         executor: acesso.usuario,
         data: new Date().toLocaleString(),
         comentario: document.getElementById('comentario').value,
-        tecnicos
+        tecnicos: [tecnico.textContent] // Precisa ser uma lista... bem, é complicado...
     }
 
     await enviar(`parceiros/${id}`, dados)
@@ -662,6 +649,54 @@ async function gerarPdfParceiro(id, visualizar) {
     } catch (err) {
         popup({ mensagem: err.message || 'Falha ao gerar o PDF' })
     }
+}
+
+async function atualizarDadosParceiro(id) {
+
+    overlayAguarde()
+
+    const { tecnicos } = await recuperarDado('parceiros', id) || {}
+
+    const tecnico = tecnicos?.[0]
+
+    const pesquisa = await pesquisarDB({
+        base: 'clientes',
+        filtros: {
+            usuario: { op: '=', value: tecnico }
+        }
+    })
+
+    const {
+        cnpj,
+        ddd,
+        celular,
+        chave_pix
+    } = pesquisa.resultados?.[0] || {}
+
+    const linhas = [
+        {
+            texto: 'CPF/CNPJ',
+            elemento: `<input placeholder="CPF ou CNPJ" oninput="formatarCnpj(this)" name="cnpj" value="${cnpj || ''}">`
+        },
+        {
+            texto: 'Chave Pix',
+            elemento: `<textarea placeholder="Chave Pix" name="chave_pix">${chave_pix || ''}</textarea>`
+        },
+        {
+            texto: 'Celular',
+            elemento: `
+            <input name="ddd" placeholder="DDD" style="width: 40px;" value="${ddd || ''}">
+            <input name="celular" placeholder="Celular" value="${celular || ''}">
+            `
+        }
+    ]
+
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: '' }
+    ]
+
+    popup({ linhas, botoes, titulo: 'Atualize os dados do técnico' })
+
 }
 
 async function solicitarPagamentoParceiro(id) {
