@@ -2348,9 +2348,12 @@ async function maisUsuario(usuarios, campo) {
                 ? 'verificarConflitos'
                 : null,
             colunas: {
-                'Nome': { chave: 'usuario' },
-                'Permissão': { chave: 'permissao' },
-                'Setor': { chave: 'setor' }
+                'Usuário': { chave: 'usuario' },
+                'Matrícula': { chave: 'matricula' },
+                'Nome': { chave: 'nome' },
+                'Cidade': { chave: 'cidade' },
+                'Estado': { chave: 'estado' },
+                'Permissão': { chave: 'permissao' }
             }
         }
 
