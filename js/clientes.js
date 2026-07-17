@@ -393,6 +393,7 @@ async function formularioCliente(idCliente) {
     const {
         matricula,
         endereco_entrega = {},
+        chave_pix,
         ddd,
         celular,
         email,
@@ -469,6 +470,10 @@ async function formularioCliente(idCliente) {
             <input name="ddd" placeholder="DDD" style="width: 40px;" value="${ddd || ''}">
             <input name="celular" placeholder="Celular" value="${celular || ''}">
             `
+        },
+        {
+            texto: 'Chave Pix',
+            elemento: `<textarea placeholder="Chave Pix" name="chave_pix">${chave_pix || ''}</textarea>`
         },
         {
             texto: 'Usuário',
@@ -718,6 +723,7 @@ async function salvarCliente(idCliente = null) {
             cidade: obVal('cidade'),
             estado: obVal('estado'),
             comentario: obVal('comentario'),
+            chave_pix: obVal('chave_pix'),
             tags,
             endereco_entrega: {
                 endereco: obVal('e_endereco'),

@@ -667,6 +667,7 @@ async function atualizarDadosParceiro(id) {
     })
 
     const {
+        id: idCliente,
         cnpj,
         ddd,
         celular,
@@ -692,20 +693,34 @@ async function atualizarDadosParceiro(id) {
     ]
 
     const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: '' }
+        { texto: 'Salvar', img: 'concluido', funcao: `solicitarPagamentoParceiro('${id}', ${idCliente})` }
     ]
 
     popup({ linhas, botoes, titulo: 'Atualize os dados do técnico' })
 
 }
 
-async function solicitarPagamentoParceiro(id) {
-
-    // o id da LPU PARCEIRO será o mesmo para aba e para idCorrecao;
+async function solicitarPagamentoParceiro(id, idCliente) {
 
     try {
 
         overlayAguarde()
+
+        // Atualização cadastral;
+
+        const chave_pix = document.querySelector('[name="chave_pix"]').value
+
+        if (!chave_pix)
+            return popup({ mensagem: 'A Chave Pix é obrigatória' })
+
+        const dados = {
+            chave_pix,
+            cnpj: document.querySelector('[name="chave_pix"]').value,
+            ddd: document.querySelector('[name="ddd"]').value,
+            celular: document.querySelector('[name="celular"]').value
+        }
+
+        // o id da LPU PARCEIRO será o mesmo para aba e para idCorrecao;
 
         const { usuario } = acesso || {}
 
@@ -735,7 +750,12 @@ async function solicitarPagamentoParceiro(id) {
             dtCorrecaoFinal: '' //???
         }
 
-        await enviar(`dados_ocorrencias/${departamento}/correcoes/${id}`, correcao)
+        await Promise.all([
+            enviar(`clientes/${idCliente}`, dados),
+            enviar(`dados_ocorrencias/${departamento}/correcoes/${id}`, correcao)
+        ])
+
+        removerTodosPopups()
 
         popup({ mensagem: 'Pagamento do parceiro enviado para aprovação do gerente' })
 

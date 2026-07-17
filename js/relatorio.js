@@ -152,6 +152,8 @@ async function criarLinhaRelatorio(ocorrencia) {
 
 async function abrirCorrecaoRelatorio(idOcorrencia) {
 
+    overlayAguarde()
+
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
     const correcoesOC = ocorrencia?.correcoes || {}
     const { cliente } = ocorrencia?.snapshots || {}
@@ -271,7 +273,7 @@ async function telaRelatorioCorrecoes() {
                 tabela: 'correcoes',
                 campoBusca: 'id',
                 retorno: 'nome',
-                destino: 'status'
+                destino: 'tipoCorrecaoNome'
             }
         ],
         explode: {
@@ -297,7 +299,7 @@ async function telaRelatorioCorrecoes() {
 
 async function criarLinhasCorrecoes(correcao) {
 
-    const { id, snapshots, tipoCorrecao, descricao, executor, data, usuario, status } = correcao || {}
+    const { id, snapshots, tipoCorrecao, descricao, executor, data, usuario, tipoCorrecaoNome } = correcao || {}
     const { cliente, empresa, sistema } = snapshots || {}
     const { nome, cidade, estado } = cliente || {}
 
@@ -305,18 +307,10 @@ async function criarLinhasCorrecoes(correcao) {
         ? data.split(',')[0]
         : ''
 
-    const estilo = status == 'Solucionada'
-        ? 'fin'
-        : status == 'Não analisada'
-            ? 'na'
-            : 'and'
-
     const tds = `
         <td>${empresa}</td>
         <td>${id}</td>
-        <td>
-            <span class="${estilo}">${status}</span>
-        </td>
+        <td>${formatacaoTipoCorrecao(tipoCorrecaoNome)}</td>
         <td>
             <div style="white-space: pre-wrap;">${descricao || ''}</div>
         </td>
@@ -436,6 +430,7 @@ async function criarLinhasPecas(equipamento) {
 }
 
 async function baixarExcelRelatorioOcorrencias() {
+    
     overlayAguarde()
 
     const schema = {
