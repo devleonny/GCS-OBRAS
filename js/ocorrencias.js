@@ -361,7 +361,7 @@ function carregarCorrecoes(ocorrencia) {
             : null
 
         // Pagamento de parceiro
-        const pagamentoParceiro = tipoCorrecaoNome.includes('PAGAMENTO DE PARCEIRO')
+        const pagamentoParceiro = tipoCorrecaoNome && tipoCorrecaoNome.includes('PAGAMENTO DE PARCEIRO')
         const btnAprovar = (executor.includes(usuario) && pagamentoParceiro)
             ? `
                 <span 
