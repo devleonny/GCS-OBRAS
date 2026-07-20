@@ -276,15 +276,14 @@ function carregarCorrecoes(ocorrencia) {
             return ''
 
         return `
-        <div style="${horizontal}; align-items: start; gap: 1rem; margin-bottom: 5px; width: 100%;">
+        <div style="${horizontal}; gap: 1rem; margin-bottom: 5px; width: 100%;">
             <label style="width: 30%; text-align: right;"><b>${valor1}</b></label>
             <div style="width: 70%; text-align: left;">${valor2}</div>
         </div>`
     }
 
     const { usuario } = acesso || {}
-    const idOcorrencia = ocorrencia.id
-    const { correcoes, snapshots } = ocorrencia || {}
+    const { id: idOcorrencia, correcoes, snapshots } = ocorrencia || {}
     const { abas } = snapshots || {}
     const divsCorrecoesPorAba = { geral: [] }
 
@@ -362,12 +361,15 @@ function carregarCorrecoes(ocorrencia) {
             : null
 
         // Pagamento de parceiro
-        const btnAprovar = (executor.includes(usuario) && tipoCorrecaoNome == 'PAGAMENTO DE PARCEIRO')
+        const pagamentoParceiro = tipoCorrecaoNome.includes('PAGAMENTO DE PARCEIRO')
+        const btnAprovar = (executor.includes(usuario) && pagamentoParceiro)
             ? `
-                <div class="alerta-piscando">
-                    <span style="padding: 0 1rem;" onclick="aprovarPagamentoPaceiro('${idCorrecao}')">Aprovar Pagamento</span>
-                    <img src="imagens/pdf.png" onclick="gerarPdfParceiro('${idCorrecao}', true)">
-                </div>
+                <span 
+                    class="alerta-piscando"
+                    onclick="confirmarAprovarPagamentoPaceiro('${idCorrecao}', '${tecnico[0]}')"
+                    style="padding: 0 1rem;">
+                    Aprovar Pagamento
+                </span>
                 <br>
                 `
             : ''
@@ -382,8 +384,11 @@ function carregarCorrecoes(ocorrencia) {
 
                     ${btnAprovar}
 
+                    ${pagamentoParceiro ? modelo('Ver LPU Parceiro', `<img src="imagens/todos.png" onclick="gerarPdfParceiro('${idCorrecao}', true)">`) : ''}
+
                     ${modelo('Código de Autorização', autorizacao)}
-                    ${modelo('Data Inicial de Execução', `
+
+                    ${dtCorrecao ? modelo('Data Inicial de Execução', `
                         <div style="${horizontal}; align-items: start; justify-content: start; gap: 1rem;">
                             <div class="agendamentos">
                                 <span style="font-weight: bold;">${dtFormatada(dtCorrecao)}</span>
@@ -391,13 +396,14 @@ function carregarCorrecoes(ocorrencia) {
                             </div>
                             ${imgR}
                         </div>
-                        `)}
-                    ${modelo('Data Final de Execução', `
+                        `) : ''}
+                    ${(dtCorrecaoFinal || dtCorrecao) ? modelo('Data Final de Execução', `
                         <div style="${horizontal}; justify-content: start; gap: 1rem;">
                             <span style="font-weight: bold;">${dtFormatada(dtCorrecaoFinal || dtCorrecao)}</span>
                         </div>
                         <div class="agendamentos">${agendamentosFinais}</div>
-                        `)}
+                        `) : ''}
+
                     ${modelo('Solicitante', `<span>${usuario || ''}</span>`)}
                     ${modelo('Executores', `<span>${listaExecutores || ''}</span>`)}
                     ${modelo('Técnicos', `<span>${tecnico ? tecnico.join(', ') : ''}</span>`)}
@@ -475,9 +481,118 @@ function carregarCorrecoes(ocorrencia) {
 
 }
 
+async function confirmarAprovarPagamentoPaceiro(idCorrecaoLpuParceiro, parceiro, idOcorrencia) {
+
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `aprovarPagamentoPaceiro('${idCorrecaoLpuParceiro}')` }
+    ]
+
+    popup({
+        titulo: 'Pagamento de Parceiro',
+        botoes,
+        mensagem: `Será criada uma fatura a pagar para <b>${parceiro}</b>, deseja confirmar?`
+    })
+
+}
+
 async function aprovarPagamentoPaceiro(idCorrecaoLpuParceiro) {
 
-    console.log('ok')
+
+    try {
+
+        overlayAguarde()
+
+        const { usuario } = acesso || {}
+        const app = 'AC'
+        const {
+            tecnicos,
+            total,
+            departamento,
+            anexos,
+            executor: criado
+        } = await recuperarDado('parceiros', idCorrecaoLpuParceiro) || {}
+
+        const pesquisaTecnico = await pesquisarDB({
+            base: 'clientes',
+            filtros: {
+                usuario: { op: '=', value: tecnicos?.[0] }
+            }
+        })
+
+        if (!pesquisaTecnico.resultados.length)
+            return popup({ mensagem: 'Técnico não localizado: fale com o suporte' })
+
+        const { apps } = pesquisaTecnico.resultados?.[0] || {}
+
+        const codOmie = apps?.[app]?.codigo
+
+        if (!codOmie)
+            return popup({ mensagem: 'O técnico não está cadastrado na <b>AC</b>: Fale com o suporte' })
+
+        const pesquisaDepartamento = await pesquisarDB({
+            base: 'departamentos',
+            filtros: {
+                app: { op: '=', value: app },
+                descricao: { op: '=', value: departamento }
+            }
+        })
+
+        if (!pesquisaDepartamento.resultados.length) {
+
+            const botoes = [
+                { texto: 'Criar', img: 'concluido', funcao: `salvarDepartamento({nome: '${departamento}'})` }
+            ]
+
+            return popup({ botoes, mensagem: `O departamento ${departamento} não existe no Omie: Deseja criar agora?` })
+        }
+
+        const { codigo: cCodDep } = pesquisaDepartamento.resultados[0] || {}
+        const dataEstipulada = dataRegras(new Date().toLocaleDateString(), 2) // Pagamento de Parceiros
+
+        const pagamento = {
+            status: 'Aguardando aprovação da Diretoria',
+            app,
+            criado,
+            anexos, // Anexos da LPU
+            data_registro: new Date().toLocaleString(),
+            param: [
+                {
+                    codigo_cliente_fornecedor: codOmie,
+                    valor_documento: total,
+                    data_previsao: dataEstipulada,
+                    data_vencimento: dataEstipulada,
+                    observacao: `Solicitante: ${criado}\n Pagamento de parceiro, LPU disponível`,
+                    categorias: [
+                        {
+                            valor: total,
+                            codigo_categoria: '2.01.99'
+                        }
+                    ],
+                    distribuicao: [
+                        {
+                            cCodDep,
+                            nValDep: total
+                        }
+                    ]
+                }
+            ]
+        }
+
+        await Promise.all([
+            enviar(`lista_pagamentos/${idCorrecaoLpuParceiro}`, pagamento),
+            enviar(`dados_ocorrencias/${departamento}/correcoes/${idCorrecaoLpuParceiro}/tipoCorrecao`, '3ec335e5-3d6f-4e66-95bc-476be1924930')
+        ])
+
+        removerTodosPopups()
+
+        popup({ mensagem: 'Pagamento registrado com sucesso: Aguardando aprovação da Diretoria' })
+
+    } catch (err) {
+
+        console.log(err)
+        popup({ mensagem: 'Falha ao gerar o pagamento' })
+
+    }
 
 }
 
@@ -1880,7 +1995,12 @@ async function auxPendencias() {
     controles.ocorrencias ??= {}
     controles.ocorrencias.filtros ??= {}
 
-    const ordemFinal = ['CANCELADO', 'SOLUCIONADA', 'TODOS']
+    const ordemFinal = [
+        'PAGAMENTO DE PARCEIRO APROVADO',
+        'CANCELADO',
+        'SOLUCIONADA',
+        'TODOS'
+    ]
 
     if (!['cliente', 'técnico'].includes(acesso.permissao)) {
         const esquema = {

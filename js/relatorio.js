@@ -239,7 +239,7 @@ async function telaRelatorioCorrecoes() {
     const colunas = {
         'Empresa': { chave: 'snapshots.empresa' },
         'Chamado': { chave: 'id' },
-        'Tipo Correção': { chave: 'tipoCorrecao' },
+        'Tipo Correção': {},
         'Descrição': { chave: 'descricao' },
         'Data Registro': { chave: 'data', tipoPesquisa: 'data' },
         'Solicitante': { chave: 'usuario' },

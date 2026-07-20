@@ -140,22 +140,27 @@ async function recuperarLPUS() {
         LPUS = resposta.lpus
 }
 
-async function salvarDepartamento(img) {
+async function salvarDepartamento({ img, nome }) {
 
     overlayAguarde()
 
-    const input = img.previousElementSibling
-    const nome = input.value
+    const input = img ? img.previousElementSibling : null
+    nome = nome || input.value || null
 
-    if (!nome) return popup({ mensagem: 'Nome em branco', })
+    if (!nome)
+        return popup({ mensagem: 'Nome em branco' })
 
-    const resposta = await criarDepDiretamente(nome)
+    const resposta = await criarDepartamento(nome)
 
-    if (resposta.mensagem) return popup({ mensagem: resposta.mensagem, })
-    input.value = ''
-    img.style.display = 'none'
+    if (resposta.mensagem)
+        return popup({ mensagem: resposta.mensagem })
 
-    popup({ mensagem: 'Salvo com successo', })
+    if (input) {
+        input.value = ''
+        img.style.display = 'none'
+    }
+
+    popup({ imagem: 'imagens/concluido.png', mensagem: 'Salvo com successo' })
 }
 
 async function respostaSincronizacao(script) {
@@ -373,12 +378,12 @@ async function painelUsuarios() {
 
 function criarLinhaPainelUsuarios(dados) {
 
-    const { 
+    const {
         id,
-        usuario, 
-        status, 
-        setor, 
-        permissao 
+        usuario,
+        status,
+        setor,
+        permissao
     } = dados || {}
 
     let gerenciarStatus = `<label>${status || 'offline'}</label>`
@@ -954,6 +959,13 @@ async function painelClientes(idOrcamento = null) {
         .map(o => `<option ${transportadora == o ? 'selected' : ''}>${o}</option>`)
         .join('')
 
+    const {
+        nome,
+        ddd,
+        celular,
+        email
+    } = acesso || {}
+
     const linhas = [
         {
             texto: 'Contrato',
@@ -1079,15 +1091,15 @@ async function painelClientes(idOrcamento = null) {
         },
         {
             texto: 'Analista',
-            elemento: `<input id="analista" value="${analista || acesso.nome_completo}">`
+            elemento: `<input id="analista" value="${analista || nome || ''}">`
         },
         {
             texto: 'E-mail',
-            elemento: `<textarea id="email_analista">${email_analista || acesso.email}</textarea>`
+            elemento: `<textarea id="email_analista">${email_analista || email || ''}</textarea>`
         },
         {
-            texto: 'Telefone',
-            elemento: `<input id="telefone_analista" value="${telefone_analista || acesso.telefone}">`
+            texto: 'Celular',
+            elemento: `<input id="telefone_analista" value="${telefone_analista || `${ddd || ''} ${celular || ''}` }">`
         },
         {
             texto: 'Empresa',
@@ -1349,12 +1361,18 @@ async function buscarDANFE(codOmieNF) {
 
 }
 
-async function criarDepartamento(numOrc) {
+async function criarDepartamento(nome) {
     try {
+
+        const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
+
         const response = await fetch(`${api}/criar-departamento`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ numOrc })
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ numOrc: nome })
         })
 
         if (!response.ok)
@@ -1372,23 +1390,6 @@ async function numORC(idOrcamento) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ idOrcamento })
-        })
-
-        if (!response.ok)
-            throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`)
-
-        return await response.json()
-    } catch (error) {
-        return { mensagem: error.messagem || error.mensage || error }
-    }
-}
-
-async function criarDepDiretamente(nome) {
-    try {
-        const response = await fetch(`${api}/criar-departamento-diretamente`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nome, usuario: acesso.usuario })
         })
 
         if (!response.ok)

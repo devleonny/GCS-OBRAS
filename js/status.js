@@ -426,7 +426,7 @@ async function abrirAtalhos(id, idMaster) {
         botoesDisponiveis.push(modeloBotoes('link', 'Vincular Orçamento', `vincularOrcamento('${id}')`))
 
     botoesDisponiveis.push(
-        modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)
+        modeloBotoes('duplicar', 'Duplicar Orçamento', `confirmarDuplicarOrcamento('${id}')`)
     )
 
     if (orcamento?.usuario == acesso.usuario || permAtalhos.includes(acesso.permissao) || autorizados.includes(acesso.usuario)) {

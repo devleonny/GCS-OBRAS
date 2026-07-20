@@ -352,6 +352,7 @@ async function salvarLpuParceiro(id = crypto.randomUUID()) {
     const dados = {
         ...parceiro,
         departamento,
+        total: conversor(document.getElementById('total_parceiro').textContent),
         itens: obterBaseLpuParceiro(),
         totais: controles.lpu_parceiro.totais || {},
         margem: Number(document.getElementById('margem_lpu').value),

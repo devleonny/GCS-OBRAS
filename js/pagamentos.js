@@ -344,10 +344,16 @@ async function abrirDetalhesPagamentos(id) {
                 <br>${total}`, `abrirAtalhos('${resultado.id}')`)
         }).join('')
 
+
     const liberados = ['adm', 'Diretoria']
     const bEspeciais = [
         btnDetalhes('reembolso', 'Duplicar Pagamento', `duplicarPagamento('${id}')`)
     ]
+
+    // Pagamento migrado LPU
+    const lpuParceiro = await recuperarDado('parceiros', id)
+    if (lpuParceiro)
+        bEspeciais.push(btnDetalhes('tecnico', 'Ver LPU Parceiro', `gerarPdfParceiro('${id}', true)`))
 
     if (liberados.includes(permissao) || pagamento.criado == usuario)
         bEspeciais.push(btnDetalhes('editar', 'Editar Pagamento', `editarPagamento('${id}')`))

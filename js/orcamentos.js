@@ -426,7 +426,25 @@ async function editar(id) {
 
 }
 
-async function duplicar(orcam_) {
+async function confirmarDuplicarOrcamento(id) {
+
+
+    popup({
+        botoes: [
+            {
+                texto: 'Confirmar',
+                img: 'concluido',
+                funcao: `duplicar('${id}')`
+            }
+        ],
+        mensagem: `Deseja duplicar este orçamento? <br>Tudo ficará igual, <b>apenas os dados do cliente</b> que serão removidos.`
+    })
+
+}
+
+async function duplicar(id) {
+
+    overlayAguarde()
 
     const {
         esquema_composicoes,
@@ -435,7 +453,7 @@ async function duplicar(orcam_) {
         tags,
         snapshots,
         dados_orcam
-    } = await recuperarDado('dados_orcamentos', orcam_) || {}
+    } = await recuperarDado('dados_orcamentos', id) || {}
 
     const novoOrcamento = {
         snapshots: {
@@ -446,8 +464,9 @@ async function duplicar(orcam_) {
         dados_composicoes,
         lpu_ativa: lpu_ativa || 'LPU HOPE',
         dados_orcam: {
-            ...dados_orcam || {},
-            contrato: '',
+            ...dados_orcam || {}, 
+            contrato: 'sequencial',
+            omie_cliente: null, // Sem os dados do cliente;
             analista: acesso.nome_completo,
             email_analista: acesso.email,
             telefone_analista: acesso.telefone
@@ -456,7 +475,7 @@ async function duplicar(orcam_) {
 
     baseOrcamento(novoOrcamento)
 
-    removerPopup()
+    removerTodosPopups()
 
     novoOrcamento.lpu_ativa == 'ALUGUEL'
         ? await telaCriarOrcamentoAluguel()

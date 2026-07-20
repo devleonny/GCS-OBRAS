@@ -39,6 +39,7 @@ let controlesCxOpcoes = {}
 const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
 const usuariosPermitidosParaEditar = ['log', 'editor', 'adm', 'gerente', 'diretoria', 'coordenacao']
 let LPUS = null
+let overlayTimeout = null;
 
 // Service work para apps no dispositivo;
 const emArquivoLocal = location.protocol === 'file:'
@@ -130,7 +131,7 @@ async function f2() {
             elemento: `
                 <div style="${horizontal}; gap: 0.5rem;">
                     <input oninput="this.nextElementSibling.style.display = ''">
-                    <img src="imagens/concluido.png" onclick="salvarDepartamento(this)" style="display: none;">
+                    <img src="imagens/concluido.png" onclick="salvarDepartamento({img: this})" style="display: none;">
                 </div>
                 <div id="localResposta"></div>
             `
@@ -225,31 +226,54 @@ function inicialMaiuscula(string) {
 
 function overlayAguarde() {
 
-    if (sOverlay) return
+    if (sOverlay)
+        return
 
-    const aguarde = document.querySelector('.aguarde')
-    if (aguarde) aguarde.remove()
+    const aguardeAntigo = document.querySelector('.aguarde')
+
+    if (aguardeAntigo) 
+        aguardeAntigo.remove()
 
     const elemento = `
         <div class="aguarde">
-            <div class="div-mensagem"></div>
-            <img src="gifs/loading.gif">
+
+            <div class="loading-container">
+                <img src="gifs/loading.gif" alt="Carregando">
+                <div class="div-mensagem">Aguarde...</div>
+            </div>
+            
         </div>
     `
+
     document.body.insertAdjacentHTML('beforeend', elemento)
+
+    const aguarde = document.querySelector('.aguarde')
 
     let pageHeight = Math.max(
         document.body.scrollHeight,
         document.documentElement.scrollHeight
-    );
+    )
 
-    document.querySelector('.aguarde').style.height = `${pageHeight}px`;
+    aguarde.style.height = `${pageHeight}px`
 
+    clearTimeout(overlayTimeout)
+
+    overlayTimeout = setTimeout(() => {
+
+        const loadingContainer = aguarde.querySelector('.loading-container')
+
+        if (!loadingContainer)
+            return
+
+        loadingContainer.innerHTML = `<img src="imagens/cancel.png" onclick="removerOverlay()">`
+
+    }, 30000)
 }
 
 function removerOverlay() {
     let aguarde = document.querySelector('.aguarde')
-    if (aguarde) aguarde.remove()
+    if (aguarde) 
+        aguarde.remove()
 }
 
 setInterval(async function () {
