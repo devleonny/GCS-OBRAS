@@ -265,7 +265,12 @@ function overlayAguarde() {
         if (!loadingContainer)
             return
 
-        loadingContainer.innerHTML = `<img src="imagens/cancel.png" onclick="removerOverlay()">`
+        loadingContainer.innerHTML = `
+            <div class="popup-fechar">
+                <span>O processo demorou muito, verifique se sua ação foi realizada ou fale com o suporte.</span>
+                <button onclick="removerOverlay()">Fechar</button>
+            </div>
+            `
 
     }, 30000)
 }
