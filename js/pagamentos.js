@@ -146,7 +146,7 @@ async function criarLinhaPagamento(pagamento) {
 
     const deps = (snapshots?.departamentos || [])
         .map(({ departamento }) => {
-            return `<span style="text-align: left;">• <b>${departamento || ''}</b></span>`
+            return `<span class="etiquetas">${departamento || ''}</span>`
         })
         .join('')
 
@@ -163,9 +163,7 @@ async function criarLinhaPagamento(pagamento) {
         </td>
         <td>${data_vencimento}</td>
         <td>
-            <div style="${vertical}; gap: 2px;">
-                ${deps}
-            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 3px;">${deps}</div>
         </td>
         <td>${app || 'AC'}</td>
         <td style="white-space: nowrap; text-align: left;">${dinheiro(valor_documento || 0)}</td>
