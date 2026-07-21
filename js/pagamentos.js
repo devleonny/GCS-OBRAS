@@ -584,7 +584,7 @@ async function formularioPagamento() {
 
         const ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
         const {
-            app = 'IAC',
+            app,
             param,
             data_modificada = null,
             id,
@@ -631,6 +631,14 @@ async function formularioPagamento() {
 
         const linhas = [
             {
+                texto: '<span style="padding-right: 2rem;"><b>IAC</b> Apenas reembolso para funcionário</span>',
+                elemento: `
+                <select name="app" onchange="calculadoraPagamento(); alterarAPP(this.value)">
+                    ${empresas.map(op => `<option ${app == op ? 'selected' : ''}>${op}</option>`).join('')}
+                </select>
+            `
+            },
+            {
                 texto: 'Recebedor',
                 elemento: `
             <div style="${horizontal}; gap: 1rem;">
@@ -671,14 +679,6 @@ async function formularioPagamento() {
             {
                 texto: 'Total do Pagamento',
                 elemento: `<div id="totalPagamento">${dinheiro(valor_documento)}</div>`
-            },
-            {
-                texto: '<span style="padding-right: 2rem;"><b>IAC</b> Apenas reembolso para funcionário</span>',
-                elemento: `
-                <select name="app" onchange="calculadoraPagamento(); alterarAPP(this.value)">
-                    ${empresas.map(op => `<option ${app == op ? 'selected' : ''}>${op}</option>`).join('')}
-                </select>
-            `
             },
             {
                 texto: 'Data de Pagamento',
@@ -751,7 +751,8 @@ async function formularioPagamento() {
 
 }
 
-async function alterarAPP(app) {
+async function alterarAPP(app = 'AC') {
+
     for (const [id, controle] of Object.entries(controlesCxOpcoes)) {
         if (typeof controle == 'string')
             continue
@@ -1078,7 +1079,7 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
 
     if (!base) return
 
-    const { app = 'IAC' } = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
+    const { app } = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
 
     const aleatorio = crypto.randomUUID()
     let elemento = {}
