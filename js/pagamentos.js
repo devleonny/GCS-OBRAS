@@ -1079,7 +1079,7 @@ async function maisCampo({ valor = '', base, id, atualizar = true }) {
 
     if (!base) return
 
-    const { app } = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
+    const { app = 'AC' } = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
 
     const aleatorio = crypto.randomUUID()
     let elemento = {}
