@@ -932,7 +932,6 @@ async function painelClientes(idOrcamento = null) {
         },
         funcaoAdicional: ['buscarDadosCliente'],
         colunas: {
-
             'Nome Fantasia': { chave: 'nome' },
             'Cidade': { chave: 'cidade' },
             'Estado': { chave: 'estado' },
@@ -1264,12 +1263,12 @@ async function salvarDadosCliente(idOrcamento) {
         // Executores;
         const executor = [...document.querySelectorAll('.executores span')]
             .filter(span => span.id)
-            .map(span => span.id)
+            .map(span => span.textContent)
 
         // Técnicos;
         const tecnico = [...document.querySelectorAll('.tecnicos span')]
             .filter(span => span.id)
-            .map(span => span.id)
+            .map(span => span.textContent)
 
         if (tecnico.length == 0 && ['LPU PEÇAS', 'LPU FERRAMENTAS'].includes(orcamentoBase.lpu_ativa))
             return popup({ mensagem: 'LPU PEÇAS & FERRAMENTAS > O campo técnico não fica em branco!' })
