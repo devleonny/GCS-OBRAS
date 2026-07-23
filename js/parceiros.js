@@ -3,6 +3,12 @@ async function formularioParceiro(id = crypto.randomUUID()) {
 
     overlayAguarde()
 
+    // Verificar se tem pagamento ativo;
+    const pagamento = await recuperarDado('lista_pagamento', id)
+
+    if (pagamento)
+        return popup({ mensagem: 'Já existe uma solicitação de pagamento: não é possível editar.' })
+
     const {
         itens,
         departamento,

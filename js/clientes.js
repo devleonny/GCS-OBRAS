@@ -757,8 +757,10 @@ async function salvarCliente(idCliente = null) {
         if (permissao)
             cliente.permissao = permissao
 
-        await enviar(`clientes/${idCliente || 'novo'}`, cliente)
+        const resposta = await enviar(`clientes/${idCliente || 'novo'}`, cliente)
 
+        console.log(resposta)
+        
         removerTodosPopups()
 
         popup({ mensagem: 'Cadastro atualizado com sucesso' })

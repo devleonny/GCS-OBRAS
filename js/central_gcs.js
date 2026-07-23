@@ -190,36 +190,53 @@ async function mudarStatus(id, select) {
 
 }
 
-function balaoUsuario(st, texto) {
+function balaoNotificacao({ imagem, texto, tempo = 5 }) {
 
-    if (document.title == 'PDF') return
+    if (document.title == 'PDF') 
+        return;
 
-    let msg = document.querySelector('.popup-mensagem')
-    if (msg) msg.remove()
+    let container = document.querySelector('.popup-mensagens');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'popup-mensagens';
+        container.style.cssText = `
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            z-index: 999999;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: flex-end;
+            gap: 10px;
+            max-width: 420px;
+        `;
+        document.body.appendChild(container);
+    }
 
-    const mensagemPop = `
-        <div class="popup-mensagem">
-            <img src="imagens/${st}.png">
-            <span>${st}</span>
-            <span>${texto}</span>
-        </div>
+    const msg = document.createElement('div');
+    msg.className = 'popup-mensagem';
+    msg.style.opacity = '0';
+    msg.style.transform = 'translateY(20px)';
+    msg.style.transition = 'opacity .4s ease, transform .4s ease';
+
+    msg.innerHTML = `
+        <img src="${imagem || 'imagens/comentario.png'}">
+        <span>${texto}</span>
     `
-    document.body.insertAdjacentHTML('beforeend', mensagemPop)
 
-    msg = document.querySelector('.popup-mensagem')
+    container.appendChild(msg);
 
     requestAnimationFrame(() => {
-        msg.style.opacity = '1'
-        msg.style.transform = 'translateY(0)'
-    })
+        msg.style.opacity = '1';
+        msg.style.transform = 'translateY(0)';
+    });
 
     setTimeout(() => {
-        msg.style.opacity = '0'
-        msg.style.transform = 'translateY(20px)'
-        setTimeout(() => msg.remove(), 400)
-    }, 5000)
+        msg.style.opacity = '0';
+        msg.style.transform = 'translateY(20px)';
+        setTimeout(() => msg.remove(), 400);
+    }, tempo * 1000);
 }
-
 async function usuariosToolbar() {
 
     if (!acesso)
@@ -1098,7 +1115,7 @@ async function painelClientes(idOrcamento = null) {
         },
         {
             texto: 'Celular',
-            elemento: `<input id="telefone_analista" value="${telefone_analista || `${ddd || ''} ${celular || ''}` }">`
+            elemento: `<input id="telefone_analista" value="${telefone_analista || `${ddd || ''} ${celular || ''}`}">`
         },
         {
             texto: 'Empresa',

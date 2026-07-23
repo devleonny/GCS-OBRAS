@@ -171,7 +171,7 @@ async function comunicacao() {
         if (tipo == 'status') {
 
             await usuariosToolbar()
-            balaoUsuario(status, usuario)
+            balaoNotificacao({ imagem: `imagens/${status}.png`, texto: `${usuario} ${status}` })
 
         }
     }

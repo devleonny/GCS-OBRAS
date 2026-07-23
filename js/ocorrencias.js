@@ -285,7 +285,7 @@ function carregarCorrecoes(ocorrencia) {
     const { usuario } = acesso || {}
     const { id: idOcorrencia, correcoes, snapshots } = ocorrencia || {}
     const { abas } = snapshots || {}
-    const divsCorrecoesPorAba = { geral: [] }
+    const divsCorrecoesPorAba = {}
 
     // Organizado com a última correção primeiro;
     const correcoesOrganizadas = Object.entries(correcoes || {})
@@ -313,8 +313,8 @@ function carregarCorrecoes(ocorrencia) {
         } = correcao
 
         const listaExecutores = Array.isArray(executor)
-            ? executor.join(', ')
-            : executor
+            ? executor
+            : [executor]
 
         const edicao = (usuario == acesso.usuario || autE.includes(acesso.permissao))
             ? `
@@ -361,7 +361,9 @@ function carregarCorrecoes(ocorrencia) {
             : null
 
         // Pagamento de parceiro
-        const pagamentoParceiro = tipoCorrecaoNome && tipoCorrecaoNome.includes('PAGAMENTO DE PARCEIRO')
+        const aprovacaoParceiro = descricao.includes('🟢 Pagamento aprovado')
+        const pagamentoParceiro = tipoCorrecaoNome.includes('PAGAMENTO DE PARCEIRO')
+
         const btnAprovar = (executor.includes(usuario) && pagamentoParceiro)
             ? `
                 <span 
@@ -374,6 +376,35 @@ function carregarCorrecoes(ocorrencia) {
                 `
             : ''
 
+        // Rodapé só funciona se for != de pagamento de parceiro ou aprovação;
+        const blocoRodape = (pagamentoParceiro || aprovacaoParceiro)
+            ? ''
+            : `
+            <div style="${horizontal}">
+
+                <div style="${horizontal}; gap: 2px; padding: 0.5rem;"> 
+                    ${edicao}
+                    <img 
+                        src="imagens/anexo.png"
+                        style="cursor:pointer;"
+                        onclick="document.getElementById('inputArquivos_${idCorrecao}').click()">
+                    <input
+                        type="file"
+                        id="inputArquivos_${idCorrecao}"
+                        multiple
+                        style="display:none;"
+                        onchange="salvarAnexosCorrecoes(this, '${idOcorrencia}', '${idCorrecao}')">
+                </div>
+
+                <div style="${vertical}; padding: 0.5rem;">
+                    ${imagensExistentes}
+                    <div id="anexos" style="flex-wrap: wrap; display: flex; gap: 2px;">
+                        ${anexos}
+                    </div>
+                </div>
+            </div>
+        `
+
         // Organização por aba;
         divsCorrecoesPorAba[aba] ??= []
 
@@ -384,7 +415,7 @@ function carregarCorrecoes(ocorrencia) {
 
                     ${btnAprovar}
 
-                    ${pagamentoParceiro ? modelo('Ver LPU Parceiro', `<img src="imagens/todos.png" onclick="gerarPdfParceiro('${idCorrecao}', true)">`) : ''}
+                    ${pagamentoParceiro ? modelo('Ver LPU Parceiro', `<img src="imagens/cotacao.png" onclick="gerarPdfParceiro('${idCorrecao}', true)">`) : ''}
 
                     ${modelo('Código de Autorização', autorizacao)}
 
@@ -405,8 +436,8 @@ function carregarCorrecoes(ocorrencia) {
                         `) : ''}
 
                     ${modelo('Solicitante', `<span>${usuario || ''}</span>`)}
-                    ${modelo('Executores', `<span>${listaExecutores || ''}</span>`)}
-                    ${modelo('Técnicos', `<span>${tecnico ? tecnico.join(', ') : ''}</span>`)}
+                    ${listaExecutores.length ? modelo('Executores', `<span>${listaExecutores.join(', ')}</span>`) : ''}
+                    ${(tecnico && tecnico.length) ? modelo('Técnicos', `<span>${tecnico.join(', ')}</span>`) : ''}
                     ${modelo('Correção', labelTipoCorrecao)}
                     ${modelo('Descrição', `<div style="white-space: pre-wrap;">${descricao || ''}</div>`)}
                     ${modelo('Criado em', `<span>${data || ''}</span>`)}
@@ -414,47 +445,35 @@ function carregarCorrecoes(ocorrencia) {
                     
                 </div>
 
-                <div style="${horizontal}">
-
-                    <div style="${horizontal}; gap: 2px; padding: 0.5rem;"> 
-                        ${edicao}
-                        <img 
-                            src="imagens/anexo.png"
-                            style="cursor:pointer;"
-                            onclick="document.getElementById('inputArquivos_${idCorrecao}').click()">
-                        <input
-                            type="file"
-                            id="inputArquivos_${idCorrecao}"
-                            multiple
-                            style="display:none;"
-                            onchange="salvarAnexosCorrecoes(this, '${idOcorrencia}', '${idCorrecao}')">
-                    </div>
-
-                    <div style="${vertical}; padding: 0.5rem;">
-                        ${imagensExistentes}
-                        <div id="anexos" style="flex-wrap: wrap; display: flex; gap: 2px;">
-                            ${anexos}
-                        </div>
-                    </div>
-                </div>
+                ${blocoRodape}
+                
             </div>`
         )
     }
 
-    const abasHTML = [... new Set(Object.values(correcoes || {})
+    // Caso vazio, é criado o default Geral;
+    if (!Object.keys(divsCorrecoesPorAba).length)
+        divsCorrecoesPorAba.geral = []
+
+    const abasExistentes = Object.keys(divsCorrecoesPorAba)
+    const abaInicial = abasExistentes.includes('geral')
+        ? 'geral'
+        : abasExistentes[0]
+
+    const abasHTML = [...new Set(Object.values(correcoes || {})
         .map(c => {
             const aba = c?.aba || 'geral'
             const st = abas?.[aba]?.nome
             return `<div 
                 id="aba_${idOcorrencia}_${aba}" 
                 onclick="exibirAba('${idOcorrencia}', '${aba}')" 
-                style="opacity: ${aba == 'geral' ? 1 : 0.5};"
+                style="opacity: ${aba == abaInicial ? 1 : 0.5};"
                 class="aba-correcao">${formatacaoTipoCorrecao(st)}</div>`
         })
     )]
 
     const detalhamentos = Object.entries(divsCorrecoesPorAba)
-        .map(([aba, corrHTML]) => abaCorrecao({ idOcorrencia, aba, corrHTML }))
+        .map(([aba, corrHTML]) => abaCorrecao({ idOcorrencia, aba, corrHTML, abaInicial }))
 
     const acumulado = `
         
@@ -483,8 +502,16 @@ function carregarCorrecoes(ocorrencia) {
 
 async function confirmarAprovarPagamentoPaceiro(idCorrecaoLpuParceiro, parceiro, idOcorrencia) {
 
+    overlayAguarde()
+
+    const pagamento = await recuperarDado('lista_pagamentos', idCorrecaoLpuParceiro)
+
+    if (pagamento)
+        return popup({ mensagem: 'Esse pagamento já foi lançado ao financeiro' })
+
     const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `aprovarPagamentoPaceiro('${idCorrecaoLpuParceiro}')` }
+        { texto: '(7 dias) Adiantamento de Parceiro', img: 'concluido', funcao: `aprovarPagamentoPaceiro(1, '${idCorrecaoLpuParceiro}')` },
+        { texto: '(10 de cada mês) Pagamento de Parceiro', img: 'concluido', funcao: `aprovarPagamentoPaceiro(2, '${idCorrecaoLpuParceiro}')` },
     ]
 
     popup({
@@ -495,15 +522,18 @@ async function confirmarAprovarPagamentoPaceiro(idCorrecaoLpuParceiro, parceiro,
 
 }
 
-async function aprovarPagamentoPaceiro(idCorrecaoLpuParceiro) {
-
+async function aprovarPagamentoPaceiro(modalidade, idCorrecaoLpuParceiro) {
 
     try {
 
         overlayAguarde()
 
         const { usuario } = acesso || {}
-        const app = 'AC'
+        const app = 'AC' // Parceiros é só na AC
+        const codigo_categoria = modalidade == 1
+            ? '2.01.81'
+            : '2.01.99'
+
         const {
             tecnicos,
             total,
@@ -522,7 +552,7 @@ async function aprovarPagamentoPaceiro(idCorrecaoLpuParceiro) {
         if (!pesquisaTecnico.resultados.length)
             return popup({ mensagem: 'Técnico não localizado: fale com o suporte' })
 
-        const { apps } = pesquisaTecnico.resultados?.[0] || {}
+        const { apps, chave_pix } = pesquisaTecnico.resultados?.[0] || {}
 
         const codOmie = apps?.[app]?.codigo
 
@@ -547,9 +577,16 @@ async function aprovarPagamentoPaceiro(idCorrecaoLpuParceiro) {
         }
 
         const { codigo: cCodDep } = pesquisaDepartamento.resultados[0] || {}
-        const dataEstipulada = dataRegras(new Date().toLocaleDateString(), 2) // Pagamento de Parceiros
+        const dataEstipulada = dataRegras(new Date().toLocaleDateString(), modalidade)
+
+        const observacao = `
+            Solicitante: ${criado}\n 
+            Pagamento de parceiro, LPU disponível
+            ${chave_pix ? `Chave Pix: ${chave_pix}` : ''}
+        `
 
         const pagamento = {
+            excluido: null, // Caso tenha sido excluído o pagamento, isso vai ressuscitar o coitado;
             status: 'Aguardando aprovação da Diretoria',
             app,
             criado,
@@ -561,11 +598,11 @@ async function aprovarPagamentoPaceiro(idCorrecaoLpuParceiro) {
                     valor_documento: total,
                     data_previsao: dataEstipulada,
                     data_vencimento: dataEstipulada,
-                    observacao: `Solicitante: ${criado}\n Pagamento de parceiro, LPU disponível`,
+                    observacao,
                     categorias: [
                         {
                             valor: total,
-                            codigo_categoria: '2.01.99'
+                            codigo_categoria
                         }
                     ],
                     distribuicao: [
@@ -578,9 +615,18 @@ async function aprovarPagamentoPaceiro(idCorrecaoLpuParceiro) {
             ]
         }
 
+        const correcao = {
+            usuario,
+            data: new Date().toLocaleString(),
+            aba: idCorrecaoLpuParceiro,
+            descricao: `🟢 Pagamento aprovado por ${usuario} no valor de ${dinheiro(total)}`,
+            dtCorrecao: '',
+            tipoCorrecao: 'WRuo2' // Solucionada;
+        }
+
         await Promise.all([
             enviar(`lista_pagamentos/${idCorrecaoLpuParceiro}`, pagamento),
-            enviar(`dados_ocorrencias/${departamento}/correcoes/${idCorrecaoLpuParceiro}/tipoCorrecao`, '3ec335e5-3d6f-4e66-95bc-476be1924930')
+            enviar(`dados_ocorrencias/${departamento}/correcoes/${crypto.randomUUID()}`, correcao)
         ])
 
         removerTodosPopups()
@@ -622,21 +668,19 @@ function exibirAba(idOcorrencia, aba) {
 
 }
 
-function abaCorrecao({ idOcorrencia, aba = crypto.randomUUID(), corrHTML = [] }) {
-
+function abaCorrecao({ idOcorrencia, aba = crypto.randomUUID(), corrHTML, abaInicial }) {
     let btnCorrecao = ''
+    const pagParceiro = corrHTML.some(corr => corr.includes('24e1ea27-1bd8-451a-b5bf-edda134cfdd6'))
 
-    const pagParceiro = corrHTML
-        .some(corr => corr.includes('24e1ea27-1bd8-451a-b5bf-edda134cfdd6')) // tipoCorrecao == 'PAGAMENTO DE PARCEIRO'
-
-    if (acesso.permissao !== 'cliente' && !pagParceiro)
+    if (acesso.permissao != 'cliente' && !pagParceiro)
         btnCorrecao = `<button class="botao-correcao" onclick="formularioCorrecao('${idOcorrencia}', null, '${aba}')">Incluir Correção</button>`
 
     const elemento = `
-        <div class="detalhamento-correcoes" style="display: ${aba == 'geral' ? '' : 'none'}" id="${idOcorrencia}_${aba}">
+        <div class="detalhamento-correcoes" style="display: ${aba == abaInicial ? '' : 'none'};" id="${idOcorrencia}_${aba}">
             ${btnCorrecao}
             ${corrHTML.join('')}
-        </div>`
+        </div>
+    `
 
     return elemento
 }
@@ -886,7 +930,7 @@ async function abrirAtalhosContrato(contrato) {
     })
 
     if (!orcs.resultados.length)
-        return popup({ botoes, mensagem: 'Sem orçamento, ou orçamento excluído: verifique com o suporte ou crie um orçamento' })
+        return popup({ mensagem: 'Sem orçamento, ou orçamento excluído: verifique com o suporte ou crie um orçamento' })
 
 
     const { id } = orcs.resultados[0] // Primeiro;
@@ -1016,6 +1060,7 @@ function criarLinhaOcorrencia(ocorrencia) {
         </div>
 
         ${modeloCampos('', 'AC SOLUÇÕES')}
+        <br>
         ${existeAntigo}
         ${modeloCampos('Unidade', cliente?.nome)}
         ${modeloCampos('Endereço', cliente?.endereco)}
@@ -1029,7 +1074,7 @@ function criarLinhaOcorrencia(ocorrencia) {
         ${modeloCampos('Sistema', sistema)}
         ${modeloCampos('Prioridade', prioridade)}
         ${modeloCampos('Equipamentos', tabEquipamentos(equipamentos || {}))}
-        ${modeloCampos('Anexos', divAnexos ? `<div id="anexos" style="${vertical};">${divAnexos || 'Sem anexos'}</div>` : 'Sem anexos')}
+        ${modeloCampos('Anexos', divAnexos ? `<div id="anexos" style="flex-wrap: wrap; display: flex; gap 2px;">${divAnexos || 'Sem anexos'}</div>` : 'Sem anexos')}
         ${modeloCampos('Fotos', imagens ? imagensExistentes : 'Sem Imagens')}
     `
 
@@ -1996,7 +2041,6 @@ async function auxPendencias() {
     controles.ocorrencias.filtros ??= {}
 
     const ordemFinal = [
-        'PAGAMENTO DE PARCEIRO APROVADO',
         'CANCELADO',
         'SOLUCIONADA',
         'TODOS'
@@ -2225,6 +2269,13 @@ async function formularioOcorrencia(idOcorrencia) {
             elemento: `<span ${unidade ? `id="${unidade}"` : ''} 
                 class="campos" name="unidade" onclick="cxOpcoes('unidade')">
                 ${cliente?.nome || 'Selecione'}
+            </span>`
+        },
+        {
+            texto: 'Sistema',
+            elemento: `<span ${ocorrencia.sistema ? `id="${ocorrencia.sistema}"` : ''} 
+            class="campos" name="sistema" onclick="cxOpcoes('sistema')">
+                ${sistema || 'Selecione'}
             </span>`
         },
         {

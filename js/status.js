@@ -860,16 +860,27 @@ async function salvarAnexo(id, tabela, input) {
 async function apagarGenerico(id, tabela) {
 
     const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `confirmarApagarGenerico('${id}','${tabela}')` }
+        {
+            texto: 'Confirmar',
+            img: 'concluido',
+            fechar: true,
+            funcao: `confirmarApagarGenerico('${id}','${tabela}')`
+        }
     ]
 
-    popup({ botoes, mensagem: 'Excluir item?', titulo: 'Excluir Status' })
+    popup({ botoes, mensagem: 'Excluir item?', titulo: 'Excluir Status', removerAnteriores: true })
 }
 
 
 async function confirmarApagarGenerico(id, tabela) {
 
-    removerPopup()
+    if (tabela == 'parceiros') {
+        const pagamento = await recuperarDado('lista_pagamentos', id)
+
+        if (pagamento)
+            return popup({ mensagem: 'Você não pode excluir essa LPU: Já existe um pagamento solicitado.' })
+    }
+
     await deletar(`${tabela}/${id}`)
 
 }

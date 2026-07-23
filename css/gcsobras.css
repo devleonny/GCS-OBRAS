@@ -234,14 +234,23 @@ span[name="titulo"] {
     margin: 2vw;
 }
 
+.popup-mensagens {
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    gap: 10px;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+
 .popup-mensagem {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 1rem;
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
+    position: relative;
     background: #333;
     color: #fff;
     padding: 10px 16px;
@@ -251,7 +260,6 @@ span[name="titulo"] {
     opacity: 0;
     transform: translateY(20px);
     transition: opacity 0.4s, transform 0.4s;
-    z-index: 9999;
 }
 
 .popup-mensagem img {
