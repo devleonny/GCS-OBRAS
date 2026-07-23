@@ -2998,6 +2998,7 @@ async function salvarOcorrencia(idOcorrencia) {
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
     const input = obter('anexos')
     const anexos = await anexosOcorrencias(input)
+
     const novo = {
         equipamentos: {},
         unidade: Number(obter('unidade')?.id),
@@ -3006,7 +3007,7 @@ async function salvarOcorrencia(idOcorrencia) {
         tipo: obter('tipo')?.id || '',
         descricao: document.querySelector('.editor-conteudo')?.innerHTML || '',
         data_registro: new Date().toLocaleString('pt-BR'),
-        usuario: acesso.usuario,
+        usuario: ocorrencia.usuario || acesso.usuario,
         anexos: {
             ...ocorrencia.anexos,
             ...anexos

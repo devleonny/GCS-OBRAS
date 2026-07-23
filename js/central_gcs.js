@@ -192,7 +192,7 @@ async function mudarStatus(id, select) {
 
 function balaoNotificacao({ imagem, texto, tempo = 5 }) {
 
-    if (document.title == 'PDF') 
+    if (document.title == 'PDF')
         return;
 
     let container = document.querySelector('.popup-mensagens');
@@ -231,12 +231,16 @@ function balaoNotificacao({ imagem, texto, tempo = 5 }) {
         msg.style.transform = 'translateY(0)';
     });
 
+    if (tempo == 0)
+        return
+
     setTimeout(() => {
         msg.style.opacity = '0';
         msg.style.transform = 'translateY(20px)';
         setTimeout(() => msg.remove(), 400);
     }, tempo * 1000);
 }
+
 async function usuariosToolbar() {
 
     if (!acesso)
