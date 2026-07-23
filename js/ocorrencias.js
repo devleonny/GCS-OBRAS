@@ -2999,13 +2999,18 @@ async function salvarOcorrencia(idOcorrencia) {
     const input = obter('anexos')
     const anexos = await anexosOcorrencias(input)
 
+    const unidade = obter('unidade')?.id
+
+    if (!unidade)
+        return popup({ mensagem: 'O campo Unidade é obrigatório' })
+
     const novo = {
         equipamentos: {},
-        unidade: Number(obter('unidade')?.id),
-        sistema: obter('sistema')?.id || '',
-        prioridade: obter('prioridade')?.id || '',
-        tipo: obter('tipo')?.id || '',
-        descricao: document.querySelector('.editor-conteudo')?.innerHTML || '',
+        unidade: Number(unidade),
+        sistema: obter('sistema')?.id || null,
+        prioridade: obter('prioridade')?.id || null,
+        tipo: obter('tipo')?.id || null,
+        descricao: document.querySelector('.editor-conteudo')?.innerHTML || null,
         data_registro: new Date().toLocaleString('pt-BR'),
         usuario: ocorrencia.usuario || acesso.usuario,
         anexos: {
