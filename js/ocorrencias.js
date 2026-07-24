@@ -398,7 +398,7 @@ function carregarCorrecoes(ocorrencia) {
 
                 <div style="${vertical}; padding: 0.5rem;">
                     ${imagensExistentes}
-                    <div id="anexos" style="flex-wrap: wrap; display: flex; gap: 2px;">
+                    <div id="anexos" class="local-anexos">
                         ${anexos}
                     </div>
                 </div>
@@ -1074,7 +1074,7 @@ function criarLinhaOcorrencia(ocorrencia) {
         ${modeloCampos('Sistema', sistema)}
         ${modeloCampos('Prioridade', prioridade)}
         ${modeloCampos('Equipamentos', tabEquipamentos(equipamentos || {}))}
-        ${modeloCampos('Anexos', divAnexos ? `<div id="anexos" style="flex-wrap: wrap; display: flex; gap 2px;">${divAnexos || 'Sem anexos'}</div>` : 'Sem anexos')}
+        ${modeloCampos('Anexos', divAnexos ? `<div id="anexos" class="local-anexos">${divAnexos || 'Sem anexos'}</div>` : 'Sem anexos')}
         ${modeloCampos('Fotos', imagens ? imagensExistentes : 'Sem Imagens')}
     `
 
@@ -2313,7 +2313,7 @@ async function formularioOcorrencia(idOcorrencia) {
             elemento: `
             <div style="${vertical}; gap: 3px;">
                 <input name="anexos" type="file" multiple>
-                <div id="anexos" style="${vertical};">
+                <div id="anexos" class="local-anexos">
                     ${a}
                 </div>
             </div>
@@ -2459,7 +2459,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
             elemento: `
             <div style="${vertical}; gap: 5px;">
                 <input name="anexos" type="file" multiple>
-                <div id="anexos" style="${vertical};">
+                <div id="anexos" class="local-anexos">
                     ${Object
                     .entries(correcao?.anexos || {})
                     .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}', '${idOcorrencia}', '${idCorrecao}')`))

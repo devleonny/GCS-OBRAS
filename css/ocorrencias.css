@@ -369,6 +369,12 @@
     width: 2rem;
 }
 
+.local-anexos {
+    flex-wrap: wrap;
+    display: flex;
+    gap: 2px;
+}
+
 .telaInferior {
     width: 100%;
 }
