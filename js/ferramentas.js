@@ -596,7 +596,7 @@ async function pdf({ id, estilos = [], nome = 'documento', orientacao = '' }) {
                 <meta charset="UTF-8">
                 ${estilos}
                 <style>
-                    @page { size: 297mm 297mm }
+                    @page { size: A4; margin: 10mm; }
                     html, body { margin: 0; padding: 0; }
                     body { font-family: 'Poppins', sans-serif; background: white; }
                     .topo-tabela * { visibility: hidden; }

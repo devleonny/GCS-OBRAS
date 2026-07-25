@@ -170,6 +170,7 @@ async function telaClientes() {
         'Check': {},
         'CPF/CNPJ': { chave: 'cnpj' },
         'Empresa': { chave: 'nomeEmpresa' },
+        'Setor': { chave: 'setor' },
         'Permissão': { chave: 'permissao' },
         'Usuário': { chave: 'usuario' },
         'Matrícula': { chave: 'matricula' },
@@ -279,6 +280,7 @@ function criarLinhaClienteGCS(cliente) {
         usuario,
         matricula,
         permissao,
+        setor,
         tags,
         comentario,
         nomeEmpresa
@@ -318,6 +320,7 @@ function criarLinhaClienteGCS(cliente) {
             ${nomeEmpresa ? `<span class="and">${nomeEmpresa}` : ''}</span>
         </td>
 
+        <td>${setor ? `<span class="fin">${setor}</span>` : ''}</td>
         <td>${permissao ? `<span class="fin">${permissao}</span>` : ''}</td>
         <td>${usuario ? `<span class="fin">${usuario}</span>` : ''}</td>
         <td>${matricula ? `<span class="fin">${matricula}</span>` : ''}</td>
@@ -405,6 +408,7 @@ async function formularioCliente(idCliente) {
         nome,
         usuario,
         permissao,
+        setor,
         cnpj,
         comentario,
         empresa,
@@ -483,6 +487,10 @@ async function formularioCliente(idCliente) {
                     <div data-valido="${usuario ? 'S' : 'N'}" id="status_usuario"></div>
                 </div>
             `
+        },
+        {
+            texto: 'Setor',
+            elemento: `<select name="setor">${setores.map(s => `<option ${setor == s ? 'selected' : ''}>${s}</option>`).join('')}</select>`
         },
         editarPermissao,
         {
@@ -720,6 +728,7 @@ async function salvarCliente(idCliente = null) {
             endereco: obVal('endereco'),
             bairro: obVal('bairro'),
             cep: obVal('cep'),
+            setor: obVal('setor'),
             cidade: obVal('cidade'),
             estado: obVal('estado'),
             comentario: obVal('comentario'),
@@ -759,8 +768,6 @@ async function salvarCliente(idCliente = null) {
 
         const resposta = await enviar(`clientes/${idCliente || 'novo'}`, cliente)
 
-        console.log(resposta)
-        
         removerTodosPopups()
 
         popup({ mensagem: 'Cadastro atualizado com sucesso' })

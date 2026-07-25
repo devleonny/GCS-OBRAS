@@ -62,6 +62,58 @@ async function telaRH() {
 
 }
 
+async function atalhoDocumentos(idCliente = null) {
+
+    const colunas = {
+        'Editar': {},
+        'Nome': {},
+        'Cidade': { chave: 'snapshots.cidade' },
+        'Clínica': { chave: 'clinica' },
+        'Realizado': { chave: 'snapshots.realizado' },
+        'Validade': { chave: 'snapshots.validade' },
+        'Dif/Dias': {},
+        'Arquivo': { chave: 'doc' }
+    }
+
+    const btnExtras = `
+    <div style="${horizontal}; gap: 2px;">
+        <button onclick="filtrarPorTempo('atrasados')">Atrasados</button>
+        <button onclick="filtrarPorTempo('proximo')">Venc. Próximo (60d)</button>
+        <button onclick="filtrarPorTempo()">Todos</button>
+    </div>
+    `
+
+    const pag = 'rh'
+
+    const filtros = idCliente
+        ? {
+            funcionario: { op: '=', value: idCliente }
+        }
+        : {}
+
+    const tabela = await modTab({
+        btnExtras,
+        pag,
+        body: 'bodyDocumentos',
+        filtros,
+        funcaoAdicional: ['criarPastinhas'],
+        base: 'documentos',
+        colunas,
+        criarLinha: 'criarLinhaRH'
+    })
+
+    const elemento = `
+        <div style="padding: 0.5rem;">
+            ${tabela}
+        </div>
+    `
+
+    popup({ elemento, titulo: 'Documentos' })
+
+    await paginacao(pag)
+
+}
+
 async function filtrarPorTempo(tempo) {
 
     controles.rh.filtros ??= {}

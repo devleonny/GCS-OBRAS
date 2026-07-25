@@ -66,31 +66,6 @@ function exibirSenha(img) {
 
 }
 
-async function capturarLocalizacao() {
-    return new Promise(resolve => {
-
-        navigator.geolocation.getCurrentPosition(
-            pos => {
-                resolve({
-                    ok: true,
-                    latitude: pos.coords.latitude,
-                    longitude: pos.coords.longitude
-                })
-            },
-            err => {
-                resolve({
-                    ok: false,
-                    mensagem: 'Permissão recusada pelo usuário, para prosseguir libere a permissão.'
-                })
-            },
-            {
-                enableHighAccuracy: true,
-                maximumAge: 0
-            }
-        )
-    })
-}
-
 async function criarElementosIniciais() {
     const pFundo = document.querySelector('.planoFundo')
     if (!pFundo)
@@ -108,11 +83,19 @@ async function criarElementosIniciais() {
         { op: '!=', value: 'CANCELADO' }
     ]
 
-    const filtroCliente = acesso.permissao == 'cliente'
-        ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
-        : {}
+    const [tSetor, tAtrasados, tCorrecoes, bAbertas] = await Promise.all([
 
-    const [tAtrasados, tCorrecoes, bAbertas] = await Promise.all([
+        modTab({
+            base: 'dados_ocorrencias',
+            pag: 'tSetor',
+            body: 'tSetor',
+            explode: { path: 'snapshots.ultimaCorrecao' },
+            filtros: {
+                'snapshots.ultimaCorrecao.*.setor': { op: 'includes', value: acesso.setor }
+            },
+            criarLinha: 'linCorrecoes'
+        }),
+
         modTab({
             base: 'dados_ocorrencias',
             pag: 'tAtrasados',
@@ -121,8 +104,7 @@ async function criarElementosIniciais() {
             filtros: {
                 'snapshots.ultimaCorrecao.*.usuario': { op: 'includes', value: acesso.usuario },
                 'snapshots.ultimaCorrecao.*.nome': filtrosTipoCorrecao,
-                'dtCorrecao': { op: '<d', value: new Date().toLocaleDateString() },
-                ...filtroCliente
+                'snapshots.ultimaCorrecao.*.dtCorrecao': { op: '<d', value: new Date().toLocaleDateString() }
             },
             criarLinha: 'linCorrecoes'
         }),
@@ -134,8 +116,7 @@ async function criarElementosIniciais() {
             explode: { path: 'snapshots.ultimaCorrecao' },
             filtros: {
                 'snapshots.ultimaCorrecao.*.executor': { op: 'includes', value: acesso.usuario },
-                'snapshots.ultimaCorrecao.*.nome': filtrosTipoCorrecao,
-                ...filtroCliente
+                'snapshots.ultimaCorrecao.*.nome': filtrosTipoCorrecao
             },
             criarLinha: 'linCorrecoes'
         }),
@@ -175,6 +156,15 @@ async function criarElementosIniciais() {
             </div>
         `
 
+    const correcoesPorSetor = acesso.permissao == 'técnico'
+        ? ''
+        : `
+            <div class="b-atalhos">
+                <span class="titul-1">Correções Por Setor: <b>${acesso?.setor || ''}</b></span>
+                ${tSetor}
+            </div>
+        `
+
     pFundo.innerHTML = `    
         <div style="${horizontal}; gap: 1rem;">
             <img src="imagens/BG.png" style="width: 10rem;">
@@ -184,12 +174,16 @@ async function criarElementosIniciais() {
         </div>
 
         <div class="b-painel">
+
             ${ocorrenciasAbertas}
 
             <div class="b-atalhos">
                 <span class="titul-1">Correções <b>para você</b></span>
                 ${tCorrecoes}
             </div>
+
+            ${correcoesPorSetor}
+
         </div>`
 
     await paginacao()

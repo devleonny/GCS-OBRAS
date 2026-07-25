@@ -861,12 +861,6 @@ async function enviarDadosOrcamento() {
     if (!orcamentoBase.dados_orcam)
         return painelClientes()
 
-    if (['LPU FERRAMENTAS', 'LPU PEÇAS'].includes(lpu_ativa) && (!dados_orcam?.tecnico || dados_orcam.tecnico.length == 0)) {
-        await painelClientes()
-        popup({ mensagem: 'Preencha o campo técnico' })
-        return
-    }
-
     if (dados_orcam.omie_cliente == '')
         return popup({ mensagem: 'Cliente em branco' })
 
@@ -896,6 +890,7 @@ async function enviarDadosOrcamento() {
 
             // Se existir idOrcamento, então é vinculado;
             if (idOrcamento) {
+
                 const dados = {
                     data: new Date().toLocaleString(),
                     usuario: acesso.usuario
@@ -903,18 +898,38 @@ async function enviarDadosOrcamento() {
 
                 // Salvando o orçamento vinculado no master;
                 await enviar(`dados_orcamentos/${idOrcamento}/vinculados/${orcamentoBase.id}`, dados)
+
             }
 
-            // Criação da correção;
-            const correcao = {
-                data: new Date().toLocaleString(),
-                datas: {},
-                descricao: `Orçamento criado ${contrato || ''}`,
-                dtCorrecao: new Date().toISOString().slice(0, 10),
-                equipamentos: {},
-                executor: [acesso.usuario],
-                tipoCorrecao: 'WiGZl',
-                usuario: acesso.usuario
+
+            // Correção principal da criação do orçamento, vem com o ID do orçamento;
+            const dataRegistro = new Date()
+            const correcoes = {
+                [orcamentoBase.id]: {
+                    data: dataRegistro.toLocaleString(),
+                    datas: {},
+                    descricao: `Orçamento criado ${contrato || ''}`,
+                    dtCorrecao: new Date().toISOString().slice(0, 10),
+                    tipoCorrecao: 'WiGZl',
+                    usuario: acesso.usuario
+                }
+            }
+
+            // Correção para Logística;
+            if (['LPU FERRAMENTAS', 'LPU PEÇAS'].includes(orcamentoBase.lpu_ativa)) {
+
+                const dataMais1s = new Date(dataRegistro.getTime() + 1000)
+
+                correcoes[crypto.randomUUID()] = {
+                    data: dataMais1s.toLocaleString(),
+                    datas: {},
+                    descricao: `Requisição de materiais para o Funcionário`,
+                    dtCorrecao: new Date().toISOString().slice(0, 10),
+                    setor: ['LOGÍSTICA'],
+                    tipoCorrecao: '4Zmd3',
+                    usuario: acesso.usuario
+                }
+
             }
 
             // Salvamento da ocorrência, observar bifurcação (ORC ou G);
@@ -927,7 +942,9 @@ async function enviarDadosOrcamento() {
             }
 
             // Salvar uma correção obrigatoriamente;
-            await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${orcamentoBase.id}`, correcao)
+            for (const [idCorrecao, correcao] of Object.entries(correcoes)) {
+                await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, correcao)
+            }
 
             await telaOcorrencias()
 

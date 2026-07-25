@@ -298,6 +298,7 @@ function carregarCorrecoes(ocorrencia) {
             equipamentos,
             idOrcamento,
             data,
+            setor,
             tecnico,
             descricao = '',
             datas_agendadas,
@@ -428,6 +429,7 @@ function carregarCorrecoes(ocorrencia) {
                             ${imgR}
                         </div>
                         `) : ''}
+
                     ${(dtCorrecaoFinal || dtCorrecao) ? modelo('Data Final de Execução', `
                         <div style="${horizontal}; justify-content: start; gap: 1rem;">
                             <span style="font-weight: bold;">${dtFormatada(dtCorrecaoFinal || dtCorrecao)}</span>
@@ -436,6 +438,9 @@ function carregarCorrecoes(ocorrencia) {
                         `) : ''}
 
                     ${modelo('Solicitante', `<span>${usuario || ''}</span>`)}
+
+                    ${modelo('Setor', setor)}
+
                     ${listaExecutores.length ? modelo('Executores', `<span>${listaExecutores.join(', ')}</span>`) : ''}
                     ${(tecnico && tecnico.length) ? modelo('Técnicos', `<span>${tecnico.join(', ')}</span>`) : ''}
                     ${modelo('Correção', labelTipoCorrecao)}
@@ -863,14 +868,6 @@ async function telaOcorrencias() {
         relacionados: [
             {
                 path: 'id',
-                campoBusca: 'dados_orcam.contrato',
-                tabela: 'dados_orcamentos',
-                destino: 'orcamento',
-                tipo: 'objeto',
-                camposRetorno: ['dados_orcam']
-            },
-            {
-                path: 'id',
                 campoBusca: 'contrato',
                 tabela: 'vw_orcamentos_vinculados',
                 destino: 'vinculados',
@@ -885,7 +882,14 @@ async function telaOcorrencias() {
                 campoBusca: 'id',
                 retorno: 'nome',
                 destino: 'correcoes.*.tipoCorrecaoNome'
-            }
+            },
+            {
+                path: 'unidade',
+                tabela: 'clientes',
+                campoBusca: 'id',
+                retorno: 'usuario',
+                destino: 'id_usuario_funcionario'
+            },
         ]
     })
 
@@ -945,16 +949,15 @@ function criarLinhaOcorrencia(ocorrencia) {
         id,
         fotos,
         correcoes,
+        unidade,
         anexos,
         usuario,
+        id_usuario_funcionario,
         id_antigo,
         snapshots,
         equipamentos,
         vinculados,
-        orcamento
     } = ocorrencia || {}
-
-    const { dados_orcam } = orcamento || {}
 
     const {
         sistema,
@@ -994,9 +997,12 @@ function criarLinhaOcorrencia(ocorrencia) {
         : ''
 
     const btnOS = `<div class="botaoImg" onclick="telaOS('${id}')"><span>OS</span></div>`
-    const tec1 = dados_orcam?.tecnico?.[0]
-    const btsFP = tec1
-        ? `<div class="botaoImg" onclick="abrirResumo('${tec1}')"><span>SALDOS</span></div>`
+
+    const btsFP = id_usuario_funcionario
+        ? `
+            <div class="botaoImg" onclick="abrirResumo('${id_usuario_funcionario}')"><span>SALDOS</span></div>
+            <div class="botaoImg" onclick="atalhoDocumentos(${unidade})"><span>DOCUMENTOS</span></div>
+        `
         : ''
 
     const modeloCampos = (valor1, valor2) => {
@@ -2378,7 +2384,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
     }
 
     const { nome } = await recuperarDado('correcoes', correcao?.tipoCorrecao) || {}
-    const { executor, tecnico, garantia, autorizacao } = correcao
+    const { executor, tecnico, garantia, autorizacao, setor } = correcao
 
     const linhas = [
         ...(novoFluxo
@@ -2415,6 +2421,10 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
                 name="tipoCorrecao" onclick="cxOpcoes('tipoCorrecao')">
                     ${nome || 'Selecione'}
                 </span>`
+        },
+        {
+            texto: 'Setor',
+            elemento: `<select name="setor">${setores.map(s => `<option ${setor == s ? 'selected': ''}>${s}</option>`).join('')}</select>`
         },
         {
             texto: `
@@ -2941,12 +2951,15 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
 
     await Promise.all(emMassa)
 
+    // Setor;
+    const setor = obter('setor').value
+
     // Executores;
     const executor = [...document.querySelectorAll('.executores span')]
         .filter(span => span.id)
         .map(span => span.textContent)
 
-    if (executor.length == 0)
+    if (executor.length == 0 && !setor)
         return popup({ mensagem: 'Selecione pelo menos 1 executor' })
 
     const garantia = obter('garantia').checked ? 'S' : 'N'
@@ -2969,6 +2982,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
         dtCorrecaoFinal,
         tecnico,
         executor,
+        setor,
         usuario: correcao.usuario || acesso.usuario,
         tipoCorrecao,
         descricao: document.querySelector('.editor-conteudo')?.innerHTML || ''
