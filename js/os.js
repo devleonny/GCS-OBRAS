@@ -1,9 +1,27 @@
 async function carregarOS(id) {
 
-    const orcamento = await recuperarDado('dados_orcamentos', id) || {}
-    const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
-    const { nome, cidade, endereco, cnpj } = await recuperarDado('clientes', omie_cliente) || ''
-    const contrato = orcamento?.dados_orcam?.chamado || orcamento?.dados_orcam?.contrato || ''
+    const { dados_orcam } = await recuperarDado('dados_orcamentos', id) || {}
+    const { omie_cliente, consideracoes, tecnico, contrato } = dados_orcam || {}
+    const { nome, cidade, endereco, cnpj } = await recuperarDado('clientes', omie_cliente) || {}
+
+    const nomesTecnicos = await Promise.all(
+        (tecnico || [])
+            .map(async (t) => {
+
+                const pesquisa = await pesquisarDB({
+                    base: 'clientes',
+                    filtros: {
+                        usuario: { op: '=', value: t }
+                    }
+                })
+
+                if (!pesquisa.resultados.length)
+                    return null
+
+                const { nome } = pesquisa.resultados[0]
+                return nome
+            })
+    )
 
     const modelo = (valor1, valor2) => {
 
@@ -78,13 +96,13 @@ async function carregarOS(id) {
                 <tbody>${linhas}</tbody>
             </table>
 
-            ${modelo('RESUMO ATIVIDADE', orcamento.dados_orcam.consideracoes)}
+            ${modelo('RESUMO ATIVIDADE', consideracoes)}
 
             ${modelo('DESCRIÇÃO DO TÉCNICO', '<br><br><br><br><br>')}
 
-            ${modelo('OBSERVAÇÕES DO CLIENTE')}
+            ${modelo('OBSERVAÇÕES DO CLIENTE', '<br><br><br><br><br>')}
 
-            ${modelo('TÉCNICOS')}
+            ${modelo('TÉCNICOS', nomesTecnicos.join(', '))}
 
             <label>De acordo,</label>
 
