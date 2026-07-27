@@ -67,6 +67,9 @@ function exibirSenha(img) {
 }
 
 async function criarElementosIniciais() {
+
+    const { setor, permissao, usuario } = acesso || {}
+
     const pFundo = document.querySelector('.planoFundo')
     if (!pFundo)
         return
@@ -85,30 +88,34 @@ async function criarElementosIniciais() {
 
     const [tSetor, tAtrasados, tCorrecoes, bAbertas] = await Promise.all([
 
-        modTab({
-            base: 'dados_ocorrencias',
-            pag: 'tSetor',
-            body: 'tSetor',
-            explode: { path: 'snapshots.ultimaCorrecao' },
-            filtros: {
-                'snapshots.ultimaCorrecao.*.nome': filtrosTipoCorrecao,
-                'snapshots.ultimaCorrecao.*.setor': { op: 'includes', value: acesso.setor }
-            },
-            criarLinha: 'linCorrecoes'
-        }),
+        (!setor || permissao == 'técnico' || permissao == 'cliente')
+            ? null
+            : modTab({
+                base: 'dados_ocorrencias',
+                pag: 'tSetor',
+                body: 'tSetor',
+                explode: { path: 'snapshots.ultimaCorrecao' },
+                filtros: {
+                    'snapshots.ultimaCorrecao.*.nome': filtrosTipoCorrecao,
+                    'snapshots.ultimaCorrecao.*.setor': { op: 'includes', value: setor }
+                },
+                criarLinha: 'linCorrecoes'
+            }),
 
-        modTab({
-            base: 'dados_ocorrencias',
-            pag: 'tAtrasados',
-            body: 'tAtrasados',
-            explode: { path: 'snapshots.ultimaCorrecao' },
-            filtros: {
-                'snapshots.ultimaCorrecao.*.usuario': { op: 'includes', value: acesso.usuario },
-                'snapshots.ultimaCorrecao.*.nome': filtrosTipoCorrecao,
-                'snapshots.ultimaCorrecao.*.dtCorrecao': { op: '<d', value: new Date().toLocaleDateString() }
-            },
-            criarLinha: 'linCorrecoes'
-        }),
+        permissao == 'técnico'
+            ? null
+            : modTab({
+                base: 'dados_ocorrencias',
+                pag: 'tAtrasados',
+                body: 'tAtrasados',
+                explode: { path: 'snapshots.ultimaCorrecao' },
+                filtros: {
+                    'snapshots.ultimaCorrecao.*.usuario': { op: 'includes', value: usuario },
+                    'snapshots.ultimaCorrecao.*.nome': filtrosTipoCorrecao,
+                    'snapshots.ultimaCorrecao.*.dtCorrecao': { op: '<d', value: new Date().toLocaleDateString() }
+                },
+                criarLinha: 'linCorrecoes'
+            }),
 
         modTab({
             base: 'dados_ocorrencias',
@@ -116,7 +123,7 @@ async function criarElementosIniciais() {
             body: 'tCorrecoes',
             explode: { path: 'snapshots.ultimaCorrecao' },
             filtros: {
-                'snapshots.ultimaCorrecao.*.executor': { op: 'includes', value: acesso.usuario },
+                'snapshots.ultimaCorrecao.*.executor': { op: 'includes', value: usuario },
                 'snapshots.ultimaCorrecao.*.nome': filtrosTipoCorrecao
             },
             criarLinha: 'linCorrecoes'
@@ -128,7 +135,7 @@ async function criarElementosIniciais() {
             explode: { path: 'snapshots.ultimaCorrecao' },
             filtros: {
                 'snapshots.ultimaCorrecao.*.nome': filtrosTipoCorrecao,
-                'usuario': { op: '=', value: acesso.usuario }
+                'usuario': { op: '=', value: usuario }
             }
         })
     ])
@@ -144,9 +151,8 @@ async function criarElementosIniciais() {
         })
         .join('')
 
-    const ocorrenciasAbertas = acesso.permissao == 'técnico'
-        ? ''
-        : `
+    const ocorrenciasAbertas = tAtrasados
+        ? `
             <div class="b-atalhos">
                 <span class="titul-1">Minhas ocorrências abertas</span>
                 ${baloesMeus || `<div style="${horizontal}; color: white; gap: 3px;"><span>Tudo certo por aqui</span> <img src="imagens/concluido.png"></div>`}
@@ -156,15 +162,16 @@ async function criarElementosIniciais() {
                 ${tAtrasados}
             </div>
         `
+        : ''
 
-    const correcoesPorSetor = acesso.permissao == 'técnico'
-        ? ''
-        : `
+    const correcoesPorSetor = tSetor
+        ? `
             <div class="b-atalhos">
-                <span class="titul-1">Correções Por Setor: <b>${acesso?.setor || ''}</b></span>
+                <span class="titul-1">Correções Por Setor: <b>${setor}</b></span>
                 ${tSetor}
             </div>
         `
+        : ''
 
     pFundo.innerHTML = `    
         <div style="${horizontal}; gap: 1rem;">

@@ -362,8 +362,8 @@ function carregarCorrecoes(ocorrencia) {
             : null
 
         // Pagamento de parceiro
-        const aprovacaoParceiro = descricao.includes('🟢 Pagamento aprovado')
-        const pagamentoParceiro = tipoCorrecaoNome.includes('PAGAMENTO DE PARCEIRO')
+        const aprovacaoParceiro = descricao && descricao.includes('🟢 Pagamento aprovado')
+        const pagamentoParceiro = tipoCorrecaoNome && tipoCorrecaoNome.includes('PAGAMENTO DE PARCEIRO')
 
         const btnAprovar = (executor && executor.includes(usuario) && pagamentoParceiro)
             ? `
