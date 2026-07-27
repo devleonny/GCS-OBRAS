@@ -11,7 +11,7 @@ const esquemas = {
 }
 
 const permissoes = ['', 'adm', 'técnico', 'cliente', 'user', 'visitante', 'analista', 'gerente', 'coordenacao', 'diretoria', 'editor', 'log', 'qualidade', 'novo']
-const setores = ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE', 'POC']
+const setores = ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE', 'POC', 'GCS']
 const tagsClientes = ['', 'FUNCIONÁRIO', 'CLIENTE', 'MOTORISTA', 'TÉCNICO', 'TÉCNICO PARCEIRO', 'FORNECEDOR', 'MATRIZ']
 const parcelas = ["--", "15 dias", "20 dias", "21 dias", "30 dias", "35 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
 const empresas = ['AC', 'IAC', 'HNK', 'HNW']
@@ -51,6 +51,11 @@ if (!emArquivoLocal && 'serviceWorker' in navigator) {
 }
 
 document.addEventListener('click', verificarClique, true)
+
+function mostrarBtn(input) {
+    const img = input.nextElementSibling
+    img.style.display = ''
+}
 
 const pdfDanfe = ({ id, n_nota, categoria, total = null }) => {
 
