@@ -408,6 +408,9 @@ async function incluirDocumento(id) {
     controlesCxOpcoes.funcionario = {
         base: 'clientes',
         retornar: ['nome'],
+        filtros: {
+            usuario: { op: 'NOT_EMPTY' }
+        },
         colunas: {
             'Nome': { chave: 'nome' },
             'Estado': { chave: 'estado' },
@@ -423,6 +426,7 @@ async function incluirDocumento(id) {
         'NR 06 - EPI',
         'RECEBIMENTO - EPI',
         'NR 10',
+        'NR 18',
         'NR 35'
     ]
         .sort((a, b) => a.localeCompare(b))

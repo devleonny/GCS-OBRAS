@@ -91,6 +91,7 @@ async function criarElementosIniciais() {
             body: 'tSetor',
             explode: { path: 'snapshots.ultimaCorrecao' },
             filtros: {
+                'snapshots.ultimaCorrecao.*.nome': filtrosTipoCorrecao,
                 'snapshots.ultimaCorrecao.*.setor': { op: 'includes', value: acesso.setor }
             },
             criarLinha: 'linCorrecoes'

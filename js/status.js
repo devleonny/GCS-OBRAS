@@ -407,7 +407,8 @@ async function abrirAtalhos(id, idMaster) {
     const orcamento = await recuperarDado('dados_orcamentos', id) || {}
     const emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
     const botoesDisponiveis = []
-    const autorizados = orcamento?.dados_orcam?.executor || []
+    const { executor: autorizados, contrato } = orcamento.dados_orcam || {}
+
 
     // Gambiarra para não mudar a posição das paradas;
     if (!emAnalise)
@@ -415,7 +416,7 @@ async function abrirAtalhos(id, idMaster) {
             modeloBotoes('esquema', 'Histórico', `abrirEsquema('${id}')`),
             modeloBotoes('painelcustos', 'Painel de Custos', `painelCustos('${id}')`),
             modeloBotoes('pdf', 'Abrir Orçamento em PDF', `irPdf('${id}')`),
-            modeloBotoes('checklist', 'CHECKLIST', `telaChecklist('${id}')`),
+            modeloBotoes('checklist', 'Checklist', `telaChecklist('${contrato}')`),
             modeloBotoes('excel', 'Baixar Orçamento em Excel', `irExcelOrcamento('${id}')`),
             modeloBotoes('LG', 'OS em PDF', `carregarOS('${id}')`),
         )
