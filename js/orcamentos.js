@@ -549,23 +549,16 @@ async function baixarExcelOrcamentos() {
 
     overlayAguarde()
 
-    const schema = {
-        view: "vw_relatorio_orcamentos",
-        titulo: "Relatorio_Orcamentos.xlsx",
-
-        // Os filtros fixos que você já tinha no relatório
-        filtros: [
-            { custom: "dados_composicoes IS NOT NULL" }
-        ],
-
-        // Dizemos ao gerador quais colunas a View retorna que precisam de formatação visual
+    const dados = {
+        base: "vw_relatorio_orcamentos",
+        titulo: `Orçamentos_${Date.now()}`,
         formatacao: {
             datas: ['Última alteração'], // Transforma em DD/MM/AAAA
             moedas: ["Total Geral"]      // Transforma em R$
         }
     }
 
-    await baixarRelatorioExcel(schema, `Orçamentos_${Date.now()}`)
+    await baixarRelatorioExcel(dados)
 
     removerOverlay()
 

@@ -1170,21 +1170,16 @@ async function baixarExcelComposicoes() {
 
     overlayAguarde()
 
-    const schema = {
-        view: "vw_relatorio_composicoes",
-        titulo: "composicoes.xlsx",
-
-        filtros: [
-            { custom: "(excluido IS NULL OR excluido = '')" }
-        ],
-
+    const dados = {
+        base: "vw_relatorio_composicoes",
+        titulo: `Composições_${Date.now()}`,
         formatacao: {
             moedas: ['LPU HOPE', 'LPU BOTICÁRIO', 'LPU CF BOTICÁRIO', 'LPU CONTAGEM - BOTICÁRIO A']
         }
     }
 
     try {
-        await baixarRelatorioExcel(schema, `Composições_${Date.now()}`)
+        await baixarRelatorioExcel(dados)
     } catch (err) {
         popup({ mensagem: err.mensage || 'Falha ao gerar Excel' })
     } finally {

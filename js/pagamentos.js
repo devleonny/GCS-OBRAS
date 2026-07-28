@@ -1274,21 +1274,16 @@ async function baixarExcelRelatorioPagamentos() {
 
     overlayAguarde()
 
-    const schema = {
-        view: "vw_relatorio_pagamentos",
-        titulo: "pagamentos.xlsx",
-
-        filtros: [
-            { custom: "(excluido IS NULL OR excluido = '')" }
-        ],
-
+    const dados = {
+        base: "vw_relatorio_pagamentos",
+        titulo: `Pagamentos_${Date.now()}`,
         formatacao: {
             moedas: ["Valor Documento"]
         }
     }
 
     try {
-        await baixarRelatorioExcel(schema, `Pagamentos_${Date.now()}`)
+        await baixarRelatorioExcel(dados)
     } catch (err) {
         popup({ mensagem: err.mensage || 'Falha ao gerar Excel' })
     } finally {

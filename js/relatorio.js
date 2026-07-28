@@ -433,29 +433,16 @@ async function baixarExcelRelatorioOcorrencias() {
     
     overlayAguarde()
 
-    const schema = {
-        view: "vw_relatorio_ocorrencias",
-        titulo: `Ocorrencias_${Date.now()}.xlsx`,
-
-        filtros: [
-            { custom: "(excluido IS NULL OR excluido = '')" }
-        ],
-
+    const dados = {
+        base: "vw_relatorio_ocorrencias",
+        titulo: `Ocorrências_${Date.now()}`,
         formatacao: {
             datas: ["Data Registro", "Data Agendamento"]
         }
     }
 
-    if (acesso.permissao === 'cliente') {
-        schema.filtros.push({
-            field: "id_empresa",
-            op: "=",
-            value: acesso.empresa
-        })
-    }
-
     try {
-        await baixarRelatorioExcel(schema, `Ocorrências_${Date.now()}`)
+        await baixarRelatorioExcel(dados)
     } catch (err) {
         popup({ mensagem: err.mensage || 'Falha ao gerar Excel' })
     } finally {
@@ -466,27 +453,14 @@ async function baixarExcelRelatorioOcorrencias() {
 async function baixarExcelRelatorioCorrecoes() {
 
     overlayAguarde()
-    const schema = {
-        view: "vw_relatorio_correcoes",
-        titulo: "Relatorio_correcoes.xlsx",
-
-        filtros: [
-            { custom: "(excluido IS NULL OR excluido = '')" }
-        ],
-
+    const dados = {
+        base: "vw_relatorio_correcoes",
+        titulo: `Correções_${Date.now()}`,
         formatacao: {}
     }
 
-    if (acesso.permissao === 'cliente') {
-        schema.filtros.push({
-            field: "id_empresa",
-            op: "=",
-            value: acesso.empresa
-        })
-    }
-
     try {
-        await baixarRelatorioExcel(schema, `Correções_${Date.now()}`)
+        await baixarRelatorioExcel(dados)
     } catch (err) {
         popup({ mensagem: err.mensage || 'Falha ao gerar Excel' })
     } finally {
@@ -498,27 +472,14 @@ async function baixarExcelRelatorioPecas() {
 
     overlayAguarde()
 
-    const schema = {
-        view: "vw_relatorio_pecas",
-        titulo: "Relatorio_pecas.xlsx",
-
-        filtros: [
-            { custom: "(excluido IS NULL OR excluido = '')" }
-        ],
-
+    const dados = {
+        base: "vw_relatorio_pecas",
+        titulo: `Peças_${Date.now()}`,
         formatacao: {}
     }
 
-    if (acesso.permissao === 'cliente') {
-        schema.filtros.push({
-            field: "id_empresa",
-            op: "=",
-            value: acesso.empresa
-        })
-    }
-
     try {
-        await baixarRelatorioExcel(schema, `Peças_${Date.now()}`)
+        await baixarRelatorioExcel(dados)
     } catch (err) {
         popup({ mensagem: err.mensage || 'Falha ao gerar Excel' })
     } finally {
