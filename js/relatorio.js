@@ -59,7 +59,7 @@ async function atualizarToolbarRelatorio() {
             <label>${texto}</label>
 
             <div style="${horizontal}; gap: 1rem;">
-                <label style="font-size: 2rem;">${qtde}</label>
+                <label style="font-size: 2rem;">${qtde || 0}</label>
                 ${porcentagem ? `<label>${(porcentagem * 100).toFixed(0)}%</label>` : ''}
             </div>
 
@@ -76,12 +76,25 @@ async function atualizarToolbarRelatorio() {
 
     const { todos, SOLUCIONADA } = contador
 
-    const campos = []
-    campos.push(
-        modelo({ texto: 'Total', qtde: todos, cor: '#222' }),
-        modelo({ texto: 'Solucionados', porcentagem: SOLUCIONADA / todos, qtde: SOLUCIONADA || 0, cor: '#1d7e45' }),
-        modelo({ texto: 'Em Aberto', porcentagem: (todos - SOLUCIONADA) / todos, qtde: todos ? (todos - SOLUCIONADA) : 0, cor: '#b12425' })
-    )
+    const campos = [
+        modelo({
+            texto: 'Total',
+            qtde: todos,
+            cor: '#222'
+        }),
+        modelo({
+            texto: 'Solucionados',
+            porcentagem: SOLUCIONADA / todos,
+            qtde: SOLUCIONADA || 0,
+            cor: '#1d7e45'
+        }),
+        modelo({
+            texto: 'Em Aberto',
+            porcentagem: (todos - SOLUCIONADA) / todos,
+            qtde: todos ? (todos - SOLUCIONADA) : 0,
+            cor: '#b12425'
+        })
+    ]
 
     if (toolbarRelatorio)
         toolbarRelatorio.innerHTML = campos.join('')
@@ -430,7 +443,7 @@ async function criarLinhasPecas(equipamento) {
 }
 
 async function baixarExcelRelatorioOcorrencias() {
-    
+
     overlayAguarde()
 
     const dados = {
