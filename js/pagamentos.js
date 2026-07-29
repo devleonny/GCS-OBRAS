@@ -1237,18 +1237,12 @@ function compararDatas(data1, data2) {
 async function duplicarPagamento(id) {
 
     overlayAguarde()
-    const pagamento = await recuperarDado('lista_pagamentos', id)
-    const assinatura = `Solicitante: ${pagamento.criado}`
+    const { param, criado } = await recuperarDado('lista_pagamentos', id)
 
-    delete pagamento.id
-    delete pagamento.criado
-    delete pagamento.param[0].codigo_lancamento_integracao
-    delete pagamento.historico
-    delete pagamento.status
+    param[0].observacao = param[0].observacao.replace(`Solicitante: ${criado}`, '')
+    delete param[0].codigo_lancamento_integracao
 
-    pagamento.param[0].observacao = pagamento.param[0].observacao.replace(assinatura, '')
-
-    localStorage.setItem('ultimoPagamento', JSON.stringify(pagamento))
+    localStorage.setItem('ultimoPagamento', JSON.stringify({ param }))
 
     await formularioPagamento()
 
