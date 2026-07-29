@@ -375,10 +375,6 @@ async function carregarTabelasOrcamento(resposta = 'S') {
     const tabelaOrcamento = await modTab({
         base: Object.values(orcamentoBase?.esquema_composicoes || orcamentoBase.dados_composicoes || {}),
         pag,
-        ordenar: {
-            direcao: 'asc',
-            path: 'ordem'
-        },
         filtros: {},
         priBase: resposta,
         substituicoes: resposta == 'N'
@@ -1308,10 +1304,6 @@ async function incluirItem(codigo, novaQuantidade) {
     const { agrupamento, descricao, tipo, unidade, imagem, snapshots } = dadosMaster
     const custo = snapshots?.[lpuATIVA]?.[0] || 0
 
-    // Ordem
-    const ordem = (orcamentoBase?.ordem || 0) + 1
-    orcamentoBase.ordem = ordem
-
     orcamentoBase.esquema_composicoes ??= {}
     orcamentoBase.esquema_composicoes[codigo] ??= {}
 
@@ -1345,8 +1337,7 @@ async function incluirItem(codigo, novaQuantidade) {
         tipo,
         imagem,
         unidade,
-        qtde: novaQuantidade,
-        ordem
+        qtde: novaQuantidade
     }
 
     baseOrcamento(orcamentoBase)
