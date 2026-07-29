@@ -697,7 +697,6 @@ function calcularSubtotais() {
     const orcamento = baseOrcamento()
     orcamento.total_geral = totais.GERAL
     orcamento.total_bruto = totais.BRUTO
-    orcamento.diferenca = dif
     baseOrcamento(orcamento)
 
 }
