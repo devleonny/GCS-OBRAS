@@ -766,7 +766,7 @@ async function salvarCliente(idCliente = null) {
         if (permissao)
             cliente.permissao = permissao
 
-        const resposta = await enviar(`clientes/${idCliente || 'novo'}`, cliente)
+        const resposta = await enviar(`clientes/${idCliente || '0000'}`, cliente)
 
         removerTodosPopups()
 

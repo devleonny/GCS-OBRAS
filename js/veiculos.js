@@ -349,7 +349,7 @@ async function enviarOmie() {
                 }
             })
         )
-        
+
         const distribuicaoAgrupada = {}
         let totalGeral = 0
 
@@ -749,16 +749,18 @@ async function novoVeiculo(idVeiculo) {
 function confirmarExcluirVeiculo(idVeiculo) {
 
     const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `excluirVeiculo('${idVeiculo}')` }
+        {
+            fechar: true,
+            texto: 'Confirmar',
+            img: 'concluido',
+            funcao: `excluirVeiculo('${idVeiculo}')`
+        }
     ]
 
-    popup({ mensagem: 'Excluir Veículo', botoes })
+    popup({ mensagem: 'Excluir Veículo', botoes, removerAnteriores: true })
 }
 
 async function excluirVeiculo(idVeiculo) {
-
-    removerPopup()
-    removerPopup()
 
     await deletar(`veiculos/${idVeiculo}`)
 
@@ -769,22 +771,28 @@ function adicionarMotorista({ id, nome } = {}) {
     const div = document.querySelector('.motoristas')
     const aleatorio = id || crypto.randomUUID()
     const label = `
-    <div style="${horizontal}; gap: 1rem;">
-        <span 
-        class="opcoes" 
-        ${id ? `id="${aleatorio}"` : ''} 
-        name="${aleatorio}" 
-        onclick="cxOpcoes('${aleatorio}')">
-            ${nome || 'Selecione'}
-        </span>
-        <img src="imagens/cancel.png" onclick="this.parentElement.remove()">
-    </div>`
+        <div style="${horizontal}; gap: 1rem;">
+            <span 
+            class="opcoes"
+            ${id ? `id="${aleatorio}"` : ''}
+            name="${aleatorio}"
+            onclick="cxOpcoes('${aleatorio}')">
+                ${nome || 'Selecione'}
+            </span>
+            <img src="imagens/cancel.png" onclick="this.parentElement.remove()">
+        </div>
+    `
 
     // Controles;
     controlesCxOpcoes[aleatorio] = {
         base: 'clientes',
         retornar: ['nome'],
+        filtros: {
+            usuario: { op: 'NOT_EMPTY' }
+        },
         colunas: {
+            'Usuário': { chave: 'usuario' },
+            'Matrícula': { chave: 'matricula' },
             'Nome': { chave: 'nome' },
             'Estado': { chave: 'estado' },
             'Cidade': { chave: 'cidade' }
