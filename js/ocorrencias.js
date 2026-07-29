@@ -948,6 +948,8 @@ function criarLinhaOcorrencia(ocorrencia) {
     const {
         id,
         fotos,
+        data_solicitacao,
+        data_registro,
         correcoes,
         unidade,
         anexos,
@@ -1074,7 +1076,8 @@ function criarLinhaOcorrencia(ocorrencia) {
         ${modeloCampos('Cidade', cliente?.cidade)}
         ${modeloCampos('Descrição', `<div style="white-space: pre-wrap;">${descricao}</div>`)}
         ${modeloCampos('Criado por', criador)}
-        ${modeloCampos('Data Registro', ocorrencia?.data_registro || '')}
+        ${modeloCampos('Data Solicitação', data_solicitacao)}
+        ${modeloCampos('Data Registro', data_registro)}
         ${modeloCampos('Empresa', empresa)}
         ${modeloCampos('Tipo', tipo)}
         ${modeloCampos('Sistema', sistema)}
@@ -2221,8 +2224,21 @@ async function formularioOcorrencia(idOcorrencia) {
     overlayAguarde()
 
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
-    const { unidade = unidadeOrc, snapshots, anexos, fotos, descricao } = ocorrencia
-    const { sistema, tipo, prioridade } = snapshots || {}
+
+    const { 
+        data_solicitacao,
+        unidade = unidadeOrc, 
+        snapshots, 
+        anexos, 
+        fotos, 
+        descricao 
+    } = ocorrencia
+
+    const { 
+        sistema, 
+        tipo, 
+        prioridade 
+    } = snapshots || {}
 
     const equipamentos = (
         await Promise.all(
@@ -2297,6 +2313,10 @@ async function formularioOcorrencia(idOcorrencia) {
             class="campos" name="tipo" onclick="cxOpcoes('tipo')">
                 ${tipo || 'Selecione'}
             </span>`
+        },
+        {
+            texto: 'Data da Solicitação',
+            elemento: `<input name="data_solicitacao" type="date" value="${data_solicitacao || ''}">`
         },
         {
             editor: descricao || ''
@@ -3019,6 +3039,7 @@ async function salvarOcorrencia(idOcorrencia) {
         return popup({ mensagem: 'O campo Unidade é obrigatório' })
 
     const novo = {
+        data_solicitacao: obter('data_solicitacao')?.value || null,
         equipamentos: {},
         unidade: Number(unidade),
         sistema: obter('sistema')?.id || null,
