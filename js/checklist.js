@@ -1,130 +1,128 @@
 
 
-async function telaChecklist(contrato) {
+async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d015489f') {
 
-    const colunas = {
-        'Descrição': {},
-        'Rack': {},
-        'Pilar': {},
-        'Setor': {},
-        'IP': {},
-        'Local': {},
-        'Qtde': {},
-        'Equipamento': {},
-        'Calha': {},
-        'Tubo': {},
-        'Cabo': {},
 
-        'Calha': {},
-        'Derivação da Calha': {},
-        'Infra Tubo': {},
-        'Cabo': {},
-        'Inst. Equipamento': {},
-        'Conf. Equipamento': {},
-        'Observações': {}
-    }
+    const {
+        id,
+        checklist: base
+    } = await recuperarDado('vw_checklist', idOrcamento)
 
-    const { relatorio } = await baixarChecklist()
-    const linhas = relatorio.map(({ descricao, rack, pilar, setor, ip, local, equipamento }) => {
 
-        return `
-        <tr>
-        
-            <td>${descricao}</td>
-            <td>${rack}</td>
-            <td>${pilar}</td>
-            <td>${setor}</td>
-            <td>${ip}</td>
-            <td>${local}</td>
-            <td></td>
-            <td>${equipamento}</td>
-
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-
-        </tr>
-        `
+    const tabela = await modTab({
+        id,
+        base,
+        criarLinha: 'criarLinhaChecklist',
+        colunas: {
+            'Código': { chave: 'codigo' },
+            'Descrição': { chave: 'descricao' },
+            'Unidade': { chave: 'unidade' },
+            'Quantidade': { chave: 'qtde' },
+            'Realizado': {},
+            'Andamento': {},
+            'Registrar': {}
+        },
+        pag: 'checklist',
+        body: 'checklist'
     })
-    .join('')
 
-    const tabela = `
-        <table class="tabela">
-            <thead>
-                ${Object.keys(colunas).map(col => `<th>${col}</th>`).join('')}
-            </thead>
-            <tbody>
-                ${linhas}
-            </tbody>
-        </table>
-    `
 
     tela.innerHTML = `
         <div style="${vertical}; padding: 2rem;">
+
             ${tabela}
-        </div>`
+
+        </div>
+    `
+
+    await paginacao()
 
 }
 
-async function criarLinhaChecklist(checklist) {
+
+async function criarLinhaChecklist(item) {
 
     const {
+        codigo,
         descricao,
-        rack,
-        pilar,
-        setor,
-        ip,
-        local,
-        equipamento
-    } = checklist
+        unidade,
+        qtde,
+        realizado,
+    } = item
 
-    const tr = `
+
+    const andamento = Number(((realizado / qtde) * 100).toFixed(0))
+
+    return `
         <tr>
+            <td>${codigo}</td>
             <td>${descricao}</td>
-            <td>${rack}</td>
-            <td>${pilar}</td>
-            <td>${setor}</td>
-            <td>${ip}</td>
-            <td>${local}</td>
-            <td contentEditable="true"></td>
-            <td>${equipamento}</td>
-
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
+            <td>${unidade}</td>
+            <td>${qtde}</td>
+            <td>${realizado || 0}</td>
+            <td>
+                ${divPorcentagem(andamento)}
+            </td>
+            <td style="text-align: center;">
+                <img src="imagens/lapis.png" onclick="registrarChecklist('${codigo}')">
+            </td>
         </tr>
     `
-    return tr
+
 }
 
+async function registrarChecklist(codigo) {
 
-async function baixarChecklist() {
+    const hoje = new Date().toISOString().slice(0, 10)
 
-    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
-
-    const resposta = await fetch(`${read}/checklist`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+    const linhas = [
+        {
+            texto: 'Quantidade realizada',
+            elemento: `<input id="realizado" type="number">`
         },
-        body: JSON.stringify()
+        {
+            texto: 'Data da atividade',
+            elemento: `<input type="date" value="${hoje}">`
+        }
+    ]
+
+    const botoes = [
+        {
+            texto: 'Salvar',
+            funcao: `salvarRegistroChecklist('${codigo}')`,
+            img: 'concluido'
+        }
+    ]
+
+    popup({
+        linhas,
+        botoes
     })
 
-    if (!resposta.ok) {
-        const erro = await resposta.text()
-        throw new Error(erro || 'Falha ao consultar o checklist')
+}
+
+async function salvarRegistroChecklist(codigo) {
+
+    try {
+
+        overlayAguarde()
+        const id_orcamento = controles?.checklist?.id
+        const realizado = Number(document.getElementById('realizado')?.value || 0)
+
+        if (realizado === 0)
+            return popup({ mensagem: 'Realizado não pode ser 0' })
+
+        await enviar(`checklist/${crypto.randomUUID()}`, {
+            codigo,
+            id_orcamento,
+            realizado
+        })
+
+        removerTodosPopups()
+
+    } catch (err) {
+        console.log(err)
+        popup({ mensagem: 'Falha ao registrar a quantidade: Fale com o suporte.' })
     }
 
-    return await resposta.json()
 }

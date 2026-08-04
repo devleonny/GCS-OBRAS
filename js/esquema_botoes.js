@@ -151,6 +151,17 @@ const esquemaBotoes = {
                 { nome: 'Clientes, Usuários & Fornecedores', funcao: 'telaClientes', img: 'prancheta' }
             ]
         },
+        /*
+        {
+            nome: 'Contratos',
+            bloqueio: ['cliente', 'técnico'],
+            img: 'contratos',
+            sub: [
+                { nome: 'Adicionar Contrato', funcao: 'gerenciarContrato', img: 'baixar' },
+                { nome: 'Ver Contratos', funcao: 'telaContratos', img: 'contratos' }
+            ]
+        },
+        */
         {
             nome: 'Técnicos',
             bloqueio: ['cliente', 'técnico'],

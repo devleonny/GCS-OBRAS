@@ -261,6 +261,23 @@
     padding: 0 3px 0 3px;
 }
 
+.tag {
+    border: solid 1px #222;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 3px 0 3px 0;
+}
+
+.tag span {
+    text-align: left;
+    margin: 0 1rem 0 1rem;
+}
+
 .parcelas-notas {
     margin-left: 5px;
     display: flex;

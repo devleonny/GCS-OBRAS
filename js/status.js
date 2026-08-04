@@ -430,7 +430,7 @@ async function abrirAtalhos(id, idMaster) {
         modeloBotoes('duplicar', 'Duplicar Orçamento', `confirmarDuplicarOrcamento('${id}')`)
     )
 
-    if (orcamento?.usuario == acesso.usuario || permAtalhos.includes(acesso.permissao) || autorizados.includes(acesso.usuario)) {
+    if (orcamento?.usuario == acesso.usuario || permAtalhos.includes(acesso.permissao) || (autorizados || []).includes(acesso.usuario)) {
         botoesDisponiveis.push(
             modeloBotoes('apagar', 'Excluir Orçamento', `confirmarExclusaoOrcamentoBase('${id}')`),
             modeloBotoes('editar', 'Editar Orçamento', `editar('${id}')`),

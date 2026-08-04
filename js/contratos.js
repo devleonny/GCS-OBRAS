@@ -146,8 +146,6 @@ async function salvarContrato(id) {
             data_vencimento: document.querySelector('[name="data_vencimento"]')?.value
         }
 
-        delete mesclado.contrato
-
         await enviar(`contratos/${id || '0000'}`, mesclado)
 
         removerTodosPopups()
