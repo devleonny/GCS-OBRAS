@@ -77,6 +77,7 @@ async function formularioParceiro(id = crypto.randomUUID()) {
         </div>`
 
     controlesCxOpcoes.tecnico = {
+        btnExtras: `<button onclick="formularioCliente()">Adicionar Técnico</button>`,
         retornar: ['usuario'],
         base: 'clientes',
         filtros: {

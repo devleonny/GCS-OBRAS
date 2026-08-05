@@ -20,7 +20,7 @@ async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d01
             'Quantidade': { chave: 'qtde' },
             'Realizado': {},
             'Andamento': {},
-            'Registrar': {}
+            'Registrar': {}    
         },
         pag: 'checklist',
         body: 'checklist'
