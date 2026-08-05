@@ -86,9 +86,11 @@ async function criarElementosIniciais() {
         { op: '!=', value: 'CANCELADO' }
     ]
 
-    const [tSetor, tAtrasados, tCorrecoes, bAbertas] = await Promise.all([
+    const tecOuCliente = ['técnico', 'cliente'].includes(permissao)
 
-        (!setor || permissao == 'técnico' || permissao == 'cliente')
+    const [tSetor, tAtrasados, tCorrecoes, tPermissao] = await Promise.all([
+
+        (!setor || tecOuCliente)
             ? null
             : modTab({
                 base: 'dados_ocorrencias',
@@ -129,49 +131,65 @@ async function criarElementosIniciais() {
             criarLinha: 'linCorrecoes'
         }),
 
-        contarPorCampo({
-            base: 'dados_ocorrencias',
-            path: 'nome',
-            explode: { path: 'snapshots.ultimaCorrecao' },
-            filtros: {
-                'snapshots.ultimaCorrecao.*.nome': filtrosTipoCorrecao,
-                'usuario': { op: '=', value: usuario }
-            }
-        })
+        (!permissao || tecOuCliente)
+            ? null
+            : modTab({
+                base: 'dados_ocorrencias',
+                pag: 'tPermissao',
+                body: 'tPermissao',
+                explode: { path: 'snapshots.ultimaCorrecao' },
+                filtros: {
+                    'snapshots.ultimaCorrecao.*.nome': filtrosTipoCorrecao,
+                    'snapshots.ultimaCorrecao.*.permissao': { op: 'includes', value: permissao }
+                },
+                criarLinha: 'linCorrecoes'
+            })
     ])
 
-    const baloesMeus = Object.entries(bAbertas)
-        .filter(([st]) => st !== 'todos')
-        .map(([status, total]) => {
-            return `
-                <div class="pill" onclick="filtrarMinhasOcorrencias('${status}')">
-                    <span class="pill-a" style="background: #b12425;">${total}</span>
-                    <span class="pill-b">${status}</span>
-                </div>`
+    const esquemaTabelas = [
+        {
+            t1: 'Agendamento atrasado:',
+            t2: 'Reagendar',
+            tabela: tAtrasados
+        },
+        {
+            t1: 'Correções por Permissão:',
+            t2: permissao,
+            tabela: tPermissao
+        },
+        {
+            t1: 'Correções por setor:',
+            t2: setor,
+            tabela: tSetor
+        },
+        {
+            t1: 'Correções para:',
+            t2: usuario,
+            tabela: tCorrecoes
+        },
+    ]
+
+    const modeloTabPendencias = ({ t1, t2, tabela }) => {
+
+        if (!tabela)
+            return ''
+
+        return `
+            <div class="b-atalhos">
+                <div style="${horizontal}; gap: 1rem;">
+                    <span class="titul-1">${t1}</span>
+                    <span class="tag-pendencias">${t2}</span>
+                </div>
+                ${tabela}
+            </div>
+        `
+    }
+
+    const todasAsTabelas = esquemaTabelas
+        .map(esq => {
+            return modeloTabPendencias(esq)
         })
         .join('')
-
-    const ocorrenciasAbertas = tAtrasados
-        ? `
-            <div class="b-atalhos">
-                <span class="titul-1">Minhas ocorrências abertas</span>
-                ${baloesMeus || `<div style="${horizontal}; color: white; gap: 3px;"><span>Tudo certo por aqui</span> <img src="imagens/concluido.png"></div>`}
-            </div>
-            <div class="b-atalhos">
-                <span class="titul-1">Atrasadas: <b>Verifique ou Reagende</b></span>
-                ${tAtrasados}
-            </div>
-        `
-        : ''
-
-    const correcoesPorSetor = tSetor
-        ? `
-            <div class="b-atalhos">
-                <span class="titul-1">Correções Por Setor: <b>${setor}</b></span>
-                ${tSetor}
-            </div>
-        `
-        : ''
 
     pFundo.innerHTML = `    
         <div style="${horizontal}; gap: 1rem;">
@@ -183,18 +201,15 @@ async function criarElementosIniciais() {
 
         <div class="b-painel">
 
-            ${ocorrenciasAbertas}
-
-            <div class="b-atalhos">
-                <span class="titul-1">Correções <b>para você</b></span>
-                ${tCorrecoes}
-            </div>
-
-            ${correcoesPorSetor}
+            ${todasAsTabelas}
 
         </div>`
 
-    await paginacao()
+    const emMassa = ['tSetor', 'tAtrasados', 'tCorrecoes', 'tPermissao']
+        .map(async (pag) => await paginacao(pag))
+
+    await Promise.all(emMassa)
+
 }
 
 async function filtrarMinhasOcorrencias(st) {

@@ -2042,57 +2042,120 @@ async function filtrarAtrasados(input) {
 
 
 async function auxPendencias() {
-    const divPendencias = document.querySelector('.painel-pendencias')
-    if (!divPendencias)
-        return
 
-    controles.ocorrencias ??= {}
-    controles.ocorrencias.filtros ??= {}
+    try {
+        const divPendencias = document.querySelector('.painel-pendencias')
+        if (!divPendencias)
+            return
 
-    const ordemFinal = [
-        'CANCELADO',
-        'SOLUCIONADA',
-        'TODOS'
-    ]
+        controles.ocorrencias ??= {}
+        controles.ocorrencias.filtros ??= {}
 
-    if (!['cliente', 'técnico'].includes(acesso.permissao)) {
-        const esquema = {
-            'FUNCIONÁRIOS': 'f7aec8c1-ce57-40f8-9ea1-c032c3971a9f',
-            'PARCEIROS': 'c0bfd4a8-6bca-40e7-a71b-5990630f4b19'
+        const ordemFinal = [
+            'CANCELADO',
+            'SOLUCIONADA',
+            'TODOS'
+        ]
+
+        if (!['cliente', 'técnico'].includes(acesso.permissao)) {
+            const esquema = {
+                'FUNCIONÁRIOS': 'f7aec8c1-ce57-40f8-9ea1-c032c3971a9f',
+                'PARCEIROS': 'c0bfd4a8-6bca-40e7-a71b-5990630f4b19'
+            }
+
+            const [contadores, ctg, ctgFluxo, ctgEmpresa] = await Promise.all([
+                contarPorCampo({
+                    base: 'dados_ocorrencias',
+                    explode: { path: 'snapshots.ultimaCorrecao' },
+                    path: 'nome'
+                }),
+                contarPorCampo({
+                    filtros: {
+                        tipo: {
+                            modo: 'OR',
+                            regras: [
+                                { op: '=', value: 'f7aec8c1-ce57-40f8-9ea1-c032c3971a9f' },
+                                { op: '=', value: 'c0bfd4a8-6bca-40e7-a71b-5990630f4b19' },
+                            ]
+                        }
+                    },
+                    base: 'dados_ocorrencias',
+                    path: 'tipo'
+                }),
+                contarPorCampo({
+                    base: 'dados_ocorrencias',
+                    path: 'prioridade',
+                    filtros: {
+                        prioridade: { op: '=', value: 'lauka' }
+                    }
+                }),
+                contarPorCampo({
+                    base: 'dados_ocorrencias',
+                    path: 'snapshots.empresa',
+                    filtros: { 'snapshots.empresa': { op: '=', value: 'SAVEGNAGO' } }
+                })
+            ])
+
+            const etiquetas = Object
+                .entries(contadores || {})
+                .sort((a, b) => {
+                    const [nomeA] = a
+                    const [nomeB] = b
+
+                    const priA = ordemFinal.includes(nomeA)
+                    const priB = ordemFinal.includes(nomeB)
+
+                    if (priA && !priB) return 1
+                    if (!priA && priB) return -1
+
+                    return nomeA.localeCompare(nomeB)
+                })
+                .map(([correcao, total]) => {
+                    const cor = padraoCor(correcao)
+
+                    return `
+                <div class="pill" onclick="atalhoAuxiliar('${correcao}', 'snapshots.ultimaCorrecao.*.nome')">
+                    <span class="pill-a" style="background: ${cor};">${total}</span>
+                    <span class="pill-b">${correcao.toUpperCase()}</span>
+                </div>`
+                })
+
+            etiquetas.push('<br>')
+
+            for (const [titulo, cod] of Object.entries(esquema)) {
+                etiquetas.push(`
+                <div class="pill" onclick="atalhoAuxiliar('${cod}', 'tipo')">
+                    <span class="pill-a" style="background: #5E35B1;">${ctg?.[cod] || 0}</span>
+                    <span class="pill-b">${titulo}</span>
+                </div>
+            `)
+            }
+
+            etiquetas.push(`
+            <br>
+            <div class="pill" onclick="atalhoContagemFluxo()">
+                <span class="pill-a" style="background: #5E35B1;">${ctgFluxo?.lauka || 0}</span>
+                <span class="pill-b">CONTAGEM DE FLUXO</span>
+            </div>
+        `)
+
+            etiquetas.push(`
+            <br>
+            <div class="pill" onclick="atalhoAuxiliar('SAVEGNAGO', 'snapshots.empresa')">
+                <span class="pill-a" style="background: #5E35B1;">${ctgEmpresa?.['SAVEGNAGO'] || 0}</span>
+                <span class="pill-b">SAVEGNAGO</span>
+            </div>
+        `)
+
+            divPendencias.innerHTML = etiquetas.join('')
+            return
         }
 
-        const [contadores, ctg, ctgFluxo, ctgEmpresa] = await Promise.all([
-            contarPorCampo({
-                base: 'dados_ocorrencias',
-                explode: { path: 'snapshots.ultimaCorrecao' },
-                path: 'nome'
-            }),
-            contarPorCampo({
-                filtros: {
-                    tipo: {
-                        modo: 'OR',
-                        regras: [
-                            { op: '=', value: 'f7aec8c1-ce57-40f8-9ea1-c032c3971a9f' },
-                            { op: '=', value: 'c0bfd4a8-6bca-40e7-a71b-5990630f4b19' },
-                        ]
-                    }
-                },
-                base: 'dados_ocorrencias',
-                path: 'tipo'
-            }),
-            contarPorCampo({
-                base: 'dados_ocorrencias',
-                path: 'prioridade',
-                filtros: {
-                    prioridade: { op: '=', value: 'lauka' }
-                }
-            }),
-            contarPorCampo({
-                base: 'dados_ocorrencias',
-                path: 'snapshots.empresa',
-                filtros: { 'snapshots.empresa': { op: '=', value: 'SAVEGNAGO' } }
-            })
-        ])
+        const contadores = await contarPorCampo({
+            base: 'dados_ocorrencias',
+            explode: { path: 'snapshots.ultimaCorrecao' },
+            path: 'nome'
+        })
 
         const etiquetas = Object
             .entries(contadores || {})
@@ -2112,74 +2175,18 @@ async function auxPendencias() {
                 const cor = padraoCor(correcao)
 
                 return `
-                <div class="pill" onclick="atalhoAuxiliar('${correcao}', 'snapshots.ultimaCorrecao.*.nome')">
-                    <span class="pill-a" style="background: ${cor};">${total}</span>
-                    <span class="pill-b">${correcao.toUpperCase()}</span>
-                </div>`
-            })
-
-        etiquetas.push('<br>')
-
-        for (const [titulo, cod] of Object.entries(esquema)) {
-            etiquetas.push(`
-                <div class="pill" onclick="atalhoAuxiliar('${cod}', 'tipo')">
-                    <span class="pill-a" style="background: #5E35B1;">${ctg?.[cod] || 0}</span>
-                    <span class="pill-b">${titulo}</span>
-                </div>
-            `)
-        }
-
-        etiquetas.push(`
-            <br>
-            <div class="pill" onclick="atalhoContagemFluxo()">
-                <span class="pill-a" style="background: #5E35B1;">${ctgFluxo?.lauka || 0}</span>
-                <span class="pill-b">CONTAGEM DE FLUXO</span>
-            </div>
-        `)
-
-        etiquetas.push(`
-            <br>
-            <div class="pill" onclick="atalhoAuxiliar('SAVEGNAGO', 'snapshots.empresa')">
-                <span class="pill-a" style="background: #5E35B1;">${ctgEmpresa?.['SAVEGNAGO'] || 0}</span>
-                <span class="pill-b">SAVEGNAGO</span>
-            </div>
-        `)
-
-        divPendencias.innerHTML = etiquetas.join('')
-        return
-    }
-
-    const contadores = await contarPorCampo({
-        base: 'dados_ocorrencias',
-        explode: { path: 'snapshots.ultimaCorrecao' },
-        path: 'nome'
-    })
-
-    const etiquetas = Object
-        .entries(contadores || {})
-        .sort((a, b) => {
-            const [nomeA] = a
-            const [nomeB] = b
-
-            const priA = ordemFinal.includes(nomeA)
-            const priB = ordemFinal.includes(nomeB)
-
-            if (priA && !priB) return 1
-            if (!priA && priB) return -1
-
-            return nomeA.localeCompare(nomeB)
-        })
-        .map(([correcao, total]) => {
-            const cor = padraoCor(correcao)
-
-            return `
             <div class="pill" onclick="atalhoAuxiliar('${correcao}', 'snapshots.ultimaCorrecao.*.nome')">
                 <span class="pill-a" style="background: ${cor};">${total}</span>
                 <span class="pill-b">${correcao.toUpperCase()}</span>
             </div>`
-        })
+            })
 
-    divPendencias.innerHTML = etiquetas.join('')
+        divPendencias.innerHTML = etiquetas.join('')
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao carregar atalhos das ocorrências...' })
+    }
 }
 
 async function atalhoContagemFluxo() {
@@ -2225,19 +2232,19 @@ async function formularioOcorrencia(idOcorrencia) {
 
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
 
-    const { 
+    const {
         data_solicitacao,
-        unidade = unidadeOrc, 
-        snapshots, 
-        anexos, 
-        fotos, 
-        descricao 
+        unidade = unidadeOrc,
+        snapshots,
+        anexos,
+        fotos,
+        descricao
     } = ocorrencia
 
-    const { 
-        sistema, 
-        tipo, 
-        prioridade 
+    const {
+        sistema,
+        tipo,
+        prioridade
     } = snapshots || {}
 
     const equipamentos = (
@@ -2444,7 +2451,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
         },
         {
             texto: 'Setor',
-            elemento: `<select name="setor">${setores.map(s => `<option ${setor == s ? 'selected': ''}>${s}</option>`).join('')}</select>`
+            elemento: `<select name="setor">${setores.map(s => `<option ${setor == s ? 'selected' : ''}>${s}</option>`).join('')}</select>`
         },
         {
             texto: `

@@ -746,16 +746,9 @@ async function solicitarPagamentoParceiro(id, idCliente) {
             data: new Date().toLocaleString(),
             tecnico: tecnicos,
             descricao: `Solicitação de pagamento de parceiro de ${dinheiro(total)} para ${(tecnicos || []).map(t => t).join(', ')}.`,
-            executor: [
-                'Leonny'
-                /*
-                'felipe_felix',
-                'percivalreis'
-                */
-            ],
+            permissao: ['gerente'],
             usuario,
-            tipoCorrecao: '24e1ea27-1bd8-451a-b5bf-edda134cfdd6', // PAGAMENTO DE PARCEIRO
-            dtCorrecaoFinal: '' //???
+            tipoCorrecao: '24e1ea27-1bd8-451a-b5bf-edda134cfdd6' // PAGAMENTO DE PARCEIRO
         }
 
         await Promise.all([
@@ -768,7 +761,9 @@ async function solicitarPagamentoParceiro(id, idCliente) {
         popup({ mensagem: 'Pagamento do parceiro enviado para aprovação do gerente' })
 
     } catch (err) {
+
         popup({ mensagem: err.message || 'Falha ao gerar o pagamento do parceiro' })
+
     }
 
 }

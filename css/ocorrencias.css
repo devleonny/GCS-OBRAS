@@ -386,6 +386,14 @@
     justify-content: start;
 }
 
+.tag-pendencias {
+    color: white;
+    border-radius: 15px 3px;
+    padding: 5px 10px;
+    border: solid 1px red;
+    background-color: #ff0000db;
+}
+
 .detalhamento-correcoes {
     position: relative;
     resize: vertical;
