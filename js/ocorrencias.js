@@ -282,7 +282,7 @@ function carregarCorrecoes(ocorrencia) {
         </div>`
     }
 
-    const { usuario } = acesso || {}
+    const { usuario, permissao } = acesso || {}
     const { id: idOcorrencia, correcoes, snapshots } = ocorrencia || {}
     const { abas } = snapshots || {}
     const divsCorrecoesPorAba = {}
@@ -312,6 +312,9 @@ function carregarCorrecoes(ocorrencia) {
             dtCorrecaoFinal,
             executor = []
         } = correcao
+
+        if (tipoCorrecaoNome == 'PAGAMENTO DE PARCEIRO' && permissao == 'cliente')
+            continue
 
         const listaExecutores = Array.isArray(executor)
             ? executor
@@ -467,8 +470,12 @@ function carregarCorrecoes(ocorrencia) {
 
     const abasHTML = [...new Set(Object.values(correcoes || {})
         .map(c => {
+
             const aba = c?.aba || 'geral'
             const st = abas?.[aba]?.nome
+            if (st == 'PAGAMENTO DE PARCEIRO' && permissao == 'cliente')
+                return ''
+
             return `<div 
                 id="aba_${idOcorrencia}_${aba}" 
                 onclick="exibirAba('${idOcorrencia}', '${aba}')" 
@@ -2042,20 +2049,52 @@ async function filtrarAtrasados(input) {
 
 
 async function auxPendencias() {
-
     try {
         const divPendencias = document.querySelector('.painel-pendencias')
-        if (!divPendencias)
-            return
+        if (!divPendencias) return
+
+        const { permissao } = acesso || {}
 
         controles.ocorrencias ??= {}
         controles.ocorrencias.filtros ??= {}
 
-        const ordemFinal = [
-            'CANCELADO',
-            'SOLUCIONADA',
-            'TODOS'
-        ]
+        const ordemFinal = ['CANCELADO', 'SOLUCIONADA', 'TODOS']
+
+        const ordenarEtiquetas = (a, b) => {
+            const [nomeA] = a
+            const [nomeB] = b
+
+            const priA = ordemFinal.includes(nomeA)
+            const priB = ordemFinal.includes(nomeB)
+
+            if (priA && !priB) return 1
+            if (!priA && priB) return -1
+
+            return nomeA.localeCompare(nomeB)
+        }
+
+        const montarPills = (contadores) => {
+            return Object.entries(contadores || {})
+                .sort(ordenarEtiquetas)
+                .map(([correcao, total]) => {
+                    
+                    if (
+                        correcao === 'PAGAMENTO DE PARCEIRO' &&
+                        permissao === 'cliente'
+                    ) {
+                        return ''
+                    }
+
+                    const cor = padraoCor(correcao)
+
+                    return `
+                        <div class="pill" onclick="atalhoAuxiliar('${correcao}', 'snapshots.ultimaCorrecao.*.nome')">
+                            <span class="pill-a" style="background: ${cor};">${total}</span>
+                            <span class="pill-b">${correcao.toUpperCase()}</span>
+                        </div>
+                    `
+                })
+        }
 
         if (!['cliente', 'técnico'].includes(acesso.permissao)) {
             const esquema = {
@@ -2075,7 +2114,7 @@ async function auxPendencias() {
                             modo: 'OR',
                             regras: [
                                 { op: '=', value: 'f7aec8c1-ce57-40f8-9ea1-c032c3971a9f' },
-                                { op: '=', value: 'c0bfd4a8-6bca-40e7-a71b-5990630f4b19' },
+                                { op: '=', value: 'c0bfd4a8-6bca-40e7-a71b-5990630f4b19' }
                             ]
                         }
                     },
@@ -2092,60 +2131,41 @@ async function auxPendencias() {
                 contarPorCampo({
                     base: 'dados_ocorrencias',
                     path: 'snapshots.empresa',
-                    filtros: { 'snapshots.empresa': { op: '=', value: 'SAVEGNAGO' } }
+                    filtros: {
+                        'snapshots.empresa': { op: '=', value: 'SAVEGNAGO' }
+                    }
                 })
             ])
 
-            const etiquetas = Object
-                .entries(contadores || {})
-                .sort((a, b) => {
-                    const [nomeA] = a
-                    const [nomeB] = b
-
-                    const priA = ordemFinal.includes(nomeA)
-                    const priB = ordemFinal.includes(nomeB)
-
-                    if (priA && !priB) return 1
-                    if (!priA && priB) return -1
-
-                    return nomeA.localeCompare(nomeB)
-                })
-                .map(([correcao, total]) => {
-                    const cor = padraoCor(correcao)
-
-                    return `
-                <div class="pill" onclick="atalhoAuxiliar('${correcao}', 'snapshots.ultimaCorrecao.*.nome')">
-                    <span class="pill-a" style="background: ${cor};">${total}</span>
-                    <span class="pill-b">${correcao.toUpperCase()}</span>
-                </div>`
-                })
-
-            etiquetas.push('<br>')
+            const etiquetas = [
+                ...montarPills(contadores),
+                '<br>'
+            ]
 
             for (const [titulo, cod] of Object.entries(esquema)) {
                 etiquetas.push(`
-                <div class="pill" onclick="atalhoAuxiliar('${cod}', 'tipo')">
-                    <span class="pill-a" style="background: #5E35B1;">${ctg?.[cod] || 0}</span>
-                    <span class="pill-b">${titulo}</span>
-                </div>
-            `)
+                    <div class="pill" onclick="atalhoAuxiliar('${cod}', 'tipo')">
+                        <span class="pill-a" style="background: #5E35B1;">${ctg?.[cod] || 0}</span>
+                        <span class="pill-b">${titulo}</span>
+                    </div>
+                `)
             }
 
             etiquetas.push(`
-            <br>
-            <div class="pill" onclick="atalhoContagemFluxo()">
-                <span class="pill-a" style="background: #5E35B1;">${ctgFluxo?.lauka || 0}</span>
-                <span class="pill-b">CONTAGEM DE FLUXO</span>
-            </div>
-        `)
+                <br>
+                <div class="pill" onclick="atalhoContagemFluxo()">
+                    <span class="pill-a" style="background: #5E35B1;">${ctgFluxo?.lauka || 0}</span>
+                    <span class="pill-b">CONTAGEM DE FLUXO</span>
+                </div>
+            `)
 
             etiquetas.push(`
-            <br>
-            <div class="pill" onclick="atalhoAuxiliar('SAVEGNAGO', 'snapshots.empresa')">
-                <span class="pill-a" style="background: #5E35B1;">${ctgEmpresa?.['SAVEGNAGO'] || 0}</span>
-                <span class="pill-b">SAVEGNAGO</span>
-            </div>
-        `)
+                <br>
+                <div class="pill" onclick="atalhoAuxiliar('SAVEGNAGO', 'snapshots.empresa')">
+                    <span class="pill-a" style="background: #5E35B1;">${ctgEmpresa?.['SAVEGNAGO'] || 0}</span>
+                    <span class="pill-b">SAVEGNAGO</span>
+                </div>
+            `)
 
             divPendencias.innerHTML = etiquetas.join('')
             return
@@ -2157,32 +2177,7 @@ async function auxPendencias() {
             path: 'nome'
         })
 
-        const etiquetas = Object
-            .entries(contadores || {})
-            .sort((a, b) => {
-                const [nomeA] = a
-                const [nomeB] = b
-
-                const priA = ordemFinal.includes(nomeA)
-                const priB = ordemFinal.includes(nomeB)
-
-                if (priA && !priB) return 1
-                if (!priA && priB) return -1
-
-                return nomeA.localeCompare(nomeB)
-            })
-            .map(([correcao, total]) => {
-                const cor = padraoCor(correcao)
-
-                return `
-            <div class="pill" onclick="atalhoAuxiliar('${correcao}', 'snapshots.ultimaCorrecao.*.nome')">
-                <span class="pill-a" style="background: ${cor};">${total}</span>
-                <span class="pill-b">${correcao.toUpperCase()}</span>
-            </div>`
-            })
-
-        divPendencias.innerHTML = etiquetas.join('')
-
+        divPendencias.innerHTML = montarPills(contadores).join('')
     } catch (err) {
         console.error(err)
     }

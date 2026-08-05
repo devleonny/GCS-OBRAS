@@ -2,8 +2,12 @@
 async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d015489f') {
 
     const {
+        dados_orcam,
         dados_composicoes
     } = await recuperarDado('dados_orcamentos', idOrcamento) || {}
+
+    const { contrato, omie_cliente } = dados_orcam || {}
+    const { nome } = await recuperarDado('clientes', omie_cliente) || {}
 
     const {
         checklist
@@ -40,54 +44,70 @@ async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d01
         })
         .join('')
 
-    tela.innerHTML = `
-        <div class="checklist-painel">
-            <div style="flex-direction: row;">${blocos}</div>
-            <button>Atualizar Checklist</button>
-        </div>
-    `
+    const itensInst = checklist
+        .filter(item => item.filtro == 'INSTALAÇÃO')
 
-}
-
-async function editarChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d015489f') {
-
-    const {
-        id,
-        checklist: base
-    } = await recuperarDado('vw_checklist', idOrcamento)
-
-
-    const tabela = await modTab({
-        id,
-        base,
-        criarLinha: 'criarLinhaChecklist',
-        colunas: {
-            'Código': { chave: 'codigo' },
-            'Descrição': { chave: 'descricao' },
-            'Unidade': { chave: 'unidade' },
-            'Quantidade': { chave: 'qtde' },
-            'Realizado': {},
-            'Andamento': {},
-            'Registrar': {}
-        },
-        pag: 'checklist',
-        body: 'checklist'
-    })
-
+    const itensConf = checklist
+        .filter(item => item.filtro == 'CONFIGURAÇÃO')
 
     tela.innerHTML = `
-        <div style="${vertical}; padding: 2rem;">
+        <div class="painel-geral-checklist">
 
-            
-            ${tabela}
+            <span class="titulo-checklist">${contrato} - ${nome}</span>
+            <div class="checklist-painel">
+                ${blocos}
+            </div>
+
+            <div style="${horizontal}; align-items: start; flex-direction: row; gap: 1rem;">
+
+                ${await tabela(itensInst, 'inst', 'INSTALAÇÃO')}
+                ${await tabela(itensConf, 'conf', 'CONFIGURAÇÃO')}
+
+            </div>
 
         </div>
     `
-
     await paginacao()
 
-}
+    async function tabela(base, pag, titulo) {
 
+        if (!base.length)
+            return ''
+
+        const t = await modTab({
+            pag,
+            body: pag,
+            id: idOrcamento,
+            base,
+            ordenar: {
+                path: 'descricao',
+                direcao: 'asc'
+            },
+            filtros: {
+                'filtro': { op: '!=', value: null }
+            },
+            criarLinha: 'criarLinhaChecklist',
+            colunas: {
+                'Código': { chave: 'codigo' },
+                'Descrição': { chave: 'descricao' },
+                'Unidade': { chave: 'unidade' },
+                'Quantidade': { chave: 'qtde' },
+                'Realizado': {},
+                'Andamento': {},
+                'Registrar': {}
+            },
+        })
+
+        return `
+            <div style="flex-direction: column;">
+                <span class="titulo-2">${titulo}</span>
+                ${t}
+            </div>
+        `
+
+    }
+
+}
 
 async function criarLinhaChecklist(item) {
 
