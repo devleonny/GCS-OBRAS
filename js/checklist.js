@@ -1,7 +1,55 @@
 
-
 async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d015489f') {
 
+    const {
+        dados_composicoes
+    } = await recuperarDado('dados_orcamentos', idOrcamento) || {}
+
+    const {
+        checklist
+    } = await recuperarDado('vw_checklist', idOrcamento)
+
+    const totais = {}
+
+    for (const { tipo, custo, qtde } of Object.values(dados_composicoes || {})) {
+
+        totais[tipo] ??= {
+            total: 0,
+            qtde: 0
+        }
+
+        totais[tipo].total += (qtde * custo)
+        totais[tipo].qtde += 1
+
+    }
+
+    const blocos = Object.entries(totais)
+        .map(([tipo, { total, qtde }]) => {
+
+            const estilo = tipo.replaceAll(' ', '-')
+
+            return `
+                <div class="tag-checklist ${estilo}">
+                    <div style="${vertical}">
+                        <span>${tipo}</span>
+                        <span>${qtde} Itens</span>
+                    </div>
+                    <span>${dinheiro(total)}</span>
+                </div>
+            `
+        })
+        .join('')
+
+    tela.innerHTML = `
+        <div class="checklist-painel">
+            <div style="flex-direction: row;">${blocos}</div>
+            <button>Atualizar Checklist</button>
+        </div>
+    `
+
+}
+
+async function editarChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d015489f') {
 
     const {
         id,
@@ -20,7 +68,7 @@ async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d01
             'Quantidade': { chave: 'qtde' },
             'Realizado': {},
             'Andamento': {},
-            'Registrar': {}    
+            'Registrar': {}
         },
         pag: 'checklist',
         body: 'checklist'
@@ -30,6 +78,7 @@ async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d01
     tela.innerHTML = `
         <div style="${vertical}; padding: 2rem;">
 
+            
             ${tabela}
 
         </div>

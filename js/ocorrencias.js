@@ -2185,7 +2185,6 @@ async function auxPendencias() {
 
     } catch (err) {
         console.error(err)
-        popup({ mensagem: 'Falha ao carregar atalhos das ocorrências...' })
     }
 }
 
