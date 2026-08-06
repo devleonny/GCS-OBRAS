@@ -723,7 +723,7 @@ async function solicitarPagamentoParceiro(id, idCliente) {
 
         const dados = {
             chave_pix,
-            cnpj: document.querySelector('[name="chave_pix"]').value,
+            cnpj: document.querySelector('[name="cnpj"]').value,
             ddd: document.querySelector('[name="ddd"]').value,
             celular: document.querySelector('[name="celular"]').value
         }
