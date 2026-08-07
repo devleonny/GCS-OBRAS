@@ -285,7 +285,7 @@
     align-items: start;
     justify-content: start;
     width: 90%;
-    box-shadow: 0 0 2px black;
+    border: solid 1px #d2d2d2;
     background-color: #00000012;
     border-radius: 3px;
     padding: 5px;

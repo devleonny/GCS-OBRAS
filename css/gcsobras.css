@@ -644,6 +644,7 @@ span[name="titulo"] {
     gap: 5px;
     max-height: 150px;
     overflow: auto;
+    overflow-x: hidden;
 }
 
 .etiquetas {

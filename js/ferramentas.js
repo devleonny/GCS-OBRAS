@@ -57,7 +57,7 @@ function mostrarBtn(input) {
     img.style.display = ''
 }
 
-const pdfDanfe = ({ id, n_nota, categoria, total = null }) => {
+const pdfDanfe = ({ id, n_nota, categoria, total = null, d_emi_inicial }) => {
 
     return `
         <div class="balaoNF">
@@ -67,7 +67,9 @@ const pdfDanfe = ({ id, n_nota, categoria, total = null }) => {
                 ${total
             ? `<label>${dinheiro(total)}</label>`
             : ''
+            
         }
+            ${d_emi_inicial || ''}
             </div>
             <div onclick="abrirDANFE('${id}')" class="balao2">PDF</div>
         </div>

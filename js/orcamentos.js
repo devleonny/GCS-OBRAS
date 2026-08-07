@@ -42,6 +42,7 @@ async function telaOrcamentos() {
         'Status': { chave: 'status.atual' },
         'Pedido': { chave: 'snapshots.pedidos' },
         'Notas': { chave: 'snapshots.notas' },
+        'Parcelas': {},
         'Tags': { chave: 'snapshots.tags.*.nome' },
         'Contrato': { chave: 'snapshots.contrato' },
         'Cidade': { chave: 'snapshots.cidade' },
@@ -96,8 +97,8 @@ async function telaOrcamentos() {
     })
 
     const acumulado = `
-        <div style="${vertical}; width: 95vw;">
-            <div style="${horizontal}; width: 95vw;">
+        <div style="${vertical}; width: 100vw;">
+            <div style="${horizontal}; width: 100vw;">
                 <img src="imagens/nav.png" style="width: 2rem;" onclick="scrollar('prev')">
                 <div id="toolbar"></div>
                 <img src="imagens/nav.png" style="width: 2rem; transform: rotate(180deg);" onclick="scrollar('next')">
@@ -201,7 +202,7 @@ async function criarLinhaOrcamento(orcamento) {
             lpu_ativa
         } = orcamento || {}
 
-        const { notas, pedidos, custos } = snapshots || {}
+        const { notas, pedidos, custos, parcelas } = snapshots || {}
         const { pagamentos = 0, abastecimentos = 0 } = custos || {}
 
         // Velocímetro
@@ -229,30 +230,29 @@ async function criarLinhaOrcamento(orcamento) {
             .join('')
 
         const notasStatus = (notas || [])
-            .map(({ id, categoria, n_nota, total, parcelas }) => {
-
-                const listaParcelas = (parcelas || [])
-                    .map(({ id, data_vencimento, valor_documento, app, status_titulo }) =>
-                        `<div class="parcelas-notas">
-                            <span>${data_vencimento}</span>
-                            <span>${dinheiro(valor_documento)}</span>
-                            <div style="${horizontal}; gap: 5px;">
-                                <img style="width: 1.5rem;" src="${iconePagamento(status_titulo)}">
-                                <span>${status_titulo}</span>
-                                <span><b>${app}</b></span>
-                            </div>
-                        </div>
-                        `
-                    )
-                    .join('')
+            .map(({ id, categoria, n_nota, total, d_emi_inicial }) => {
 
                 return `
                 <div style="${vertical}; gap: 5px; min-width: 90%;">
-                    ${pdfDanfe({ categoria, n_nota, id, total })}
-                    ${listaParcelas}
+                    ${pdfDanfe({ categoria, n_nota, id, total, d_emi_inicial })}
                 </div>
                 `
             })
+            .join('')
+
+        const listaParcelas = (parcelas || [])
+            .map(({ id, data_vencimento, valor_documento, app, status_titulo }) =>
+                `<div class="parcelas-notas">
+                    <span>${data_vencimento}</span>
+                    <span>${dinheiro(valor_documento)}</span>
+                    <div style="${horizontal}; gap: 5px;">
+                        <img style="width: 1.5rem;" src="${iconePagamento(status_titulo)}">
+                        <span>${status_titulo}</span>
+                        <span><b>${app}</b></span>
+                    </div>
+                </div>
+                `
+            )
             .join('')
 
         // Labels do campo Contrato [Revisão, chamado, cliente, etc]
@@ -319,6 +319,9 @@ async function criarLinhaOrcamento(orcamento) {
         </td>
         <td style="padding: 0px;">
             <div class="bloco-etiquetas">${notasStatus}</div>
+        </td>
+        <td style="padding: 0px;">
+            <div class="bloco-etiquetas">${listaParcelas}</div>
         </td>
         <td>
             <div style="${vertical}; gap: 2px;">
@@ -464,7 +467,7 @@ async function duplicar(id) {
         dados_composicoes,
         lpu_ativa: lpu_ativa || 'LPU HOPE',
         dados_orcam: {
-            ...dados_orcam || {}, 
+            ...dados_orcam || {},
             contrato: 'sequencial',
             omie_cliente: null, // Sem os dados do cliente;
             analista: acesso.nome_completo,
