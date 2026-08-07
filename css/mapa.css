@@ -27,6 +27,7 @@
 }
 
 .painel-mapa.ativo {
+    border-top-right-radius: 5px;
     align-self: stretch;
     padding: 0px;
     overflow: auto;
