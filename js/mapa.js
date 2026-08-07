@@ -48,7 +48,13 @@ function criarMapa({ apenasMapa, path, pag } = {}) {
 
     const elemento = `
         <div class="painel-mapa">
-            <button onclick="mostrarMapa()">Mapa</button>
+
+            <div style="${vertical}; gap: 5px;">
+                <button onclick="mostrarMapa()">Ativar/Desativar Mapa</button>
+                <button onclick="visibilidadePesquisas()">Ativar/Desativar Pesquisa</button>
+                <button onclick="limparFiltroOcorrencias()" style="background-color: red;">Limpar Filtros</button>
+            </div>
+            
             ${mapa}
         </div>
         `

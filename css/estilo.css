@@ -638,7 +638,7 @@ input:focus {
     padding: 0.5rem;
 }
 
-.botaoImg {
+.botao-imagem-ocorrencias {
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -648,17 +648,17 @@ input:focus {
     border-radius: 5px;
 }
 
-.botaoImg img {
+.botao-imagem-ocorrencias img {
     width: 1.5rem;
 }
 
-.botaoImg span {
+.botao-imagem-ocorrencias span {
     padding: 0 5px;
     color: #247eff;
     font-size: 1.1rem;
 }
 
-.botaoImg:hover {
+.botao-imagem-ocorrencias:hover {
     background-color: #cdcdcd;
 }
 

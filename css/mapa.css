@@ -22,14 +22,12 @@
     justify-content: start;
     flex-direction: row;
     overflow: hidden;
-    width: max-content;
+    min-width: max-content;
     background: transparent;
-    padding: 2rem;
 }
 
 .painel-mapa.ativo {
-    margin: 0.5rem;
-    border-radius: 3px;
+    align-self: stretch;
     padding: 0px;
     overflow: auto;
     background: linear-gradient(235deg, #249f41, #151749);

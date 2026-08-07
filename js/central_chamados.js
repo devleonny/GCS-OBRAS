@@ -4,8 +4,8 @@ const modeloCampos = (valor1, elemento) => `
         <div style="text-align: justify;">${elemento}</div>
     </div>`
 
-const botaoImg = (img, funcao) => `
-    <div class="botaoImg">
+const btnImagem = (img, funcao) => `
+    <div class="botao-imagem-ocorrencias">
         <img src="imagens/${img}.png" onclick="${funcao}">
     </div>`
 

@@ -861,8 +861,9 @@ async function telaOcorrencias() {
         <div id="filtros1" class="filtros"></div>
         <div id="filtros2" class="filtros"></div>
     </div>
+
     ${mapa}
-    <img src="imagens/olho.png" onclick="visibilidadePesquisas()">
+
     `
     const tabela = await modTab({
         btnExtras,
@@ -966,6 +967,7 @@ function criarLinhaOcorrencia(ocorrencia) {
         snapshots,
         equipamentos,
         vinculados,
+        buscar_tecnico
     } = ocorrencia || {}
 
     const {
@@ -975,6 +977,11 @@ function criarLinhaOcorrencia(ocorrencia) {
         cliente,
         empresa
     } = snapshots || {}
+
+    const { permissao } = acesso || {}
+
+    // Apenas autorizados;
+    const apenasAutorizados = !['cliente', 'técnico'].includes(acesso.permissao)
 
     const imagens = Object.entries(fotos || {})
         .map(([link,]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
@@ -997,22 +1004,33 @@ function criarLinhaOcorrencia(ocorrencia) {
         .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, podeGerenciar ? `removerAnexo(this, '${idAnexo}', '${id}')` : false))
         .join('')
 
-    const btnExclusao = podeGerenciar
-        ? botaoImg('fechar', `confirmarExclusao('${id}')`)
-        : ''
+    // Botões;
+    const botoes = []
+    if (podeGerenciar)
+        botoes.push(btnImagem('fechar', `confirmarExclusao('${id}')`), btnImagem('lapis', `formularioOcorrencia('${id}')`))
 
-    const btnEditar = podeGerenciar
-        ? botaoImg('lapis', `formularioOcorrencia('${id}')`)
-        : ''
+    botoes.push(`<div class="botao-imagem-ocorrencias" onclick="telaOS('${id}')"><span>OS</span></div>`)
 
-    const btnOS = `<div class="botaoImg" onclick="telaOS('${id}')"><span>OS</span></div>`
+    if (id_usuario_funcionario)
+        botoes.push(`
+            <div class="botao-imagem-ocorrencias" onclick="abrirResumo('${id_usuario_funcionario}')"><span>SALDOS</span></div>
+            <div class="botao-imagem-ocorrencias" onclick="atalhoDocumentos(${unidade})"><span>DOCUMENTOS</span></div>
+        `)
 
-    const btsFP = id_usuario_funcionario
-        ? `
-            <div class="botaoImg" onclick="abrirResumo('${id_usuario_funcionario}')"><span>SALDOS</span></div>
-            <div class="botaoImg" onclick="atalhoDocumentos(${unidade})"><span>DOCUMENTOS</span></div>
-        `
-        : ''
+    if (!id_usuario_funcionario && apenasAutorizados)
+        botoes.push(`
+            <div class="botao-imagem-ocorrencias">
+                <input ${buscar_tecnico == 'S' ? 'checked' : ''} onclick="marcarBuscarTecnico(this, '${id}')" style="width: 1.5rem; height: 1.5rem;" type="checkbox">
+                <span>BUSCA DE TÉCNICO</span>
+            </div>
+        `)
+
+    botoes.push(`
+            <div style="border: solid 1px ${corAssinatura}; border-radius: 3px; padding: 2px; background-color: ${corAssinatura}52;" 
+            onclick="coletarAssinatura('${id}')">
+                <img src="imagens/assinatura.png" style="width: 1.5rem;">
+            </div>
+        `)
 
     const modeloCampos = (valor1, valor2) => {
         if (!valor2)
@@ -1029,9 +1047,6 @@ function criarLinhaOcorrencia(ocorrencia) {
     const existeAntigo = id_antigo
         ? modeloCampos('ID Antigo', `<span class="etiqueta-chamado">${id_antigo}</span>`)
         : ''
-
-    // Apenas autorizados;
-    const apenasAutorizados = !['cliente', 'técnico'].includes(acesso.permissao)
 
     const criarOrcamento = apenasAutorizados
         ? `<button onclick="criarOrcamentoVinculado('${id}')">Criar orçamento</button>`
@@ -1063,19 +1078,15 @@ function criarLinhaOcorrencia(ocorrencia) {
 
     const blocoPrincipal = `
         <div class="linha-orcamentos">
-            ${btnEditar}
-            ${btnExclusao}
-            ${btnOS}
-            ${btsFP}
 
-            <div style="border: solid 1px ${corAssinatura}; border-radius: 3px; padding: 2px; background-color: ${corAssinatura}52;" 
-            onclick="coletarAssinatura('${id}')">
-                <img src="imagens/assinatura.png" style="width: 1.5rem;">
-            </div>
+            ${botoes.join('')}
+
         </div>
+        <br>
 
         ${modeloCampos('', 'AC SOLUÇÕES')}
         <br>
+
         ${existeAntigo}
         ${modeloCampos('Unidade', cliente?.nome)}
         ${modeloCampos('Endereço', cliente?.endereco)}
@@ -1119,6 +1130,16 @@ function criarLinhaOcorrencia(ocorrencia) {
         <tr>
             <td>${partes}</td>
         </tr>`
+
+}
+
+async function marcarBuscarTecnico(input, id) {
+
+    try {
+        await enviar(`dados_ocorrencias/${id}/buscar_tecnico`, input.checked ? 'S' : 'N')
+    } catch (err) {
+        popup({ mensagem: `Falha ao marcar a opção BUSCAR TÉNICO no chamado <b>${id}</b>: Tente novamente.` })
+    }
 
 }
 
@@ -2077,7 +2098,7 @@ async function auxPendencias() {
             return Object.entries(contadores || {})
                 .sort(ordenarEtiquetas)
                 .map(([correcao, total]) => {
-                    
+
                     if (
                         correcao === 'PAGAMENTO DE PARCEIRO' &&
                         permissao === 'cliente'
@@ -2096,18 +2117,21 @@ async function auxPendencias() {
                 })
         }
 
-        if (!['cliente', 'técnico'].includes(acesso.permissao)) {
+        if (!['cliente', 'técnico'].includes(permissao)) {
+
             const esquema = {
                 'FUNCIONÁRIOS': 'f7aec8c1-ce57-40f8-9ea1-c032c3971a9f',
                 'PARCEIROS': 'c0bfd4a8-6bca-40e7-a71b-5990630f4b19'
             }
 
-            const [contadores, ctg, ctgFluxo, ctgEmpresa] = await Promise.all([
+            const [contadores, ctg, ctgFluxo, ctgEmpresa, ctgBusTec] = await Promise.all([
+
                 contarPorCampo({
                     base: 'dados_ocorrencias',
                     explode: { path: 'snapshots.ultimaCorrecao' },
                     path: 'nome'
                 }),
+
                 contarPorCampo({
                     filtros: {
                         tipo: {
@@ -2121,6 +2145,7 @@ async function auxPendencias() {
                     base: 'dados_ocorrencias',
                     path: 'tipo'
                 }),
+
                 contarPorCampo({
                     base: 'dados_ocorrencias',
                     path: 'prioridade',
@@ -2128,13 +2153,19 @@ async function auxPendencias() {
                         prioridade: { op: '=', value: 'lauka' }
                     }
                 }),
+
                 contarPorCampo({
                     base: 'dados_ocorrencias',
                     path: 'snapshots.empresa',
                     filtros: {
                         'snapshots.empresa': { op: '=', value: 'SAVEGNAGO' }
                     }
-                })
+                }),
+
+                contarPorCampo({
+                    base: 'dados_ocorrencias',
+                    path: 'buscar_tecnico'
+                }),
             ])
 
             const etiquetas = [
@@ -2166,6 +2197,14 @@ async function auxPendencias() {
                     <span class="pill-b">SAVEGNAGO</span>
                 </div>
             `)
+            
+            etiquetas.push(`
+                <br>
+                <div class="pill" onclick="atalhoAuxiliar('S', 'buscar_tecnico')">
+                    <span class="pill-a" style="background: #5E35B1;">${ctgBusTec?.['S'] || 0}</span>
+                    <span class="pill-b">BUSCA DE TÉCNICOS</span>
+                </div>
+                `)
 
             divPendencias.innerHTML = etiquetas.join('')
             return
@@ -2178,6 +2217,7 @@ async function auxPendencias() {
         })
 
         divPendencias.innerHTML = montarPills(contadores).join('')
+
     } catch (err) {
         console.error(err)
     }
