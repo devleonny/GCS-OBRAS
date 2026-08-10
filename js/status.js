@@ -321,27 +321,28 @@ async function adicionarNotaAvulsa(id = crypto.randomUUID()) {
     overlayAguarde()
 
     const {
+        categoria,
         n_nota,
         total,
-        parcelas,
+        d_emi_inicial,
     } = await recuperarDado('notas', id) || {}
 
     const linhas = [
         {
             texto: 'Número da nota',
-            elemento: `<input id="nf" class="inputParcelas" value="${n_nota || ''}">`
+            elemento: `<input id="nf"  value="${n_nota || ''}">`
+        },
+        {
+            texto: 'Data de Emissão',
+            elemento: `<input id="d_emi_inicial" type="date" value="${conversorDt(d_emi_inicial, 'input')}">`
         },
         {
             texto: 'Tipo',
-            elemento: `<select id="tipo" class="inputParcelas">${['Venda', 'Serviço', 'Remessa'].map(op => `<option>${op}</option>`).join('')}</select>`
+            elemento: `<select id="tipo">${['venda', 'serviço', 'remessa'].map(op => `<option ${categoria == op ? 'selected' : ''} value="${op}">${inicialMaiuscula(op)}</option>`).join('')}</select>`
         },
         {
             texto: 'Valor',
-            elemento: `<div>R$ <input type="number" id="valor" placeholder="0,00" class="inputParcelas" value="${total || ''}"></div>`
-        },
-        {
-            texto: `<div style="${horizontal}; gap: 1rem;"><span>Parcelas</span> <img src="imagens/baixar.png" onclick="maisParcela()"></div>`,
-            elemento: `<div class="blocoParcelas"></div>`
+            elemento: `<div>R$ <input type="number" id="valor" placeholder="0,00" value="${total || ''}"></div>`
         }
     ]
 
@@ -349,24 +350,8 @@ async function adicionarNotaAvulsa(id = crypto.randomUUID()) {
         { texto: 'Salvar', img: 'concluido', funcao: `salvarNotaAvulsa('${id}')` }
     ]
 
-    popup({ linhas, botoes, titulo: 'Vincular Nota Fiscal' })
-    maisParcela()
-}
+    popup({ linhas, botoes, titulo:  'Nota Fiscal Avulsa' })
 
-function maisParcela() {
-
-    const htmlParcela = `
-        <div name="parcela" style="${horizontal}; gap: 5px;">
-            <label>R$</label>
-            <input type="number" placeholder="0,00" class="inputParcelas">
-            <input type="date" class="inputParcelas">
-            <img src="imagens/cancel.png" onclick="this.parentElement.remove()">
-        </div>
-    `
-
-    document
-        .querySelector('.blocoParcelas')
-        .insertAdjacentHTML('beforeend', htmlParcela)
 }
 
 async function salvarNotaAvulsa(id) {
@@ -379,21 +364,17 @@ async function salvarNotaAvulsa(id) {
         return document.getElementById(id).value
     }
 
-    const parcelas = [...document.querySelectorAll('[name="parcela"]')]
-        .map((input, i) => {
-            return { nParcela: (i + 1), nValor: Number(input.value), dDtVenc: new Date(input.value).toLocaleDateString('pt-BR') }
-        })
-
     const nota = {
         executor: acesso.usuario,
-        d_emi_inicial: new Date().toLocaleDateString('pt-BR'),
+        d_emi_inicial: conversorDt(valor('d_emi_inicial')),
         n_nota: valor('nf'),
-        categoria: valor('tipo'),
+        categoria: String(valor('tipo')).toLocaleLowerCase(),
         total: Number(valor('valor')),
-        parcelas,
         departamento: [contrato]
     }
 
+    console.log(nota);
+    
     await enviar(`notas/${id}`, nota)
 
     removerPopup()

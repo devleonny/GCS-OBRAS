@@ -75,9 +75,10 @@ async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d01
             return ''
 
         const t = await modTab({
+            id: idOrcamento,
+            dados_composicoes,
             pag,
             body: pag,
-            id: idOrcamento,
             base,
             ordenar: {
                 path: 'descricao',
@@ -119,7 +120,6 @@ async function criarLinhaChecklist(item) {
         realizado,
     } = item
 
-
     const andamento = Number(((realizado / qtde) * 100).toFixed(0))
 
     return `
@@ -142,31 +142,86 @@ async function criarLinhaChecklist(item) {
 
 async function registrarChecklist(codigo) {
 
-    const hoje = new Date().toISOString().slice(0, 10)
+    try {
+        overlayAguarde()
 
-    const linhas = [
-        {
-            texto: 'Quantidade realizada',
-            elemento: `<input id="realizado" type="number">`
-        },
-        {
-            texto: 'Data da atividade',
-            elemento: `<input type="date" value="${hoje}">`
+        const hoje = new Date().toISOString().slice(0, 10)
+
+        const { id, dados_composicoes } = controles.inst || controles.conf || {}
+        const { qtde, descricao, imagem } = dados_composicoes?.[codigo] || {}
+        const { detalhamento } = await recuperarDado('checklist', `${codigo}_${id}`) || {}
+
+        const linhas = []
+
+        for (let i = 0; i < qtde; i++) {
+
+            const {
+                descricao,
+                rack,
+                local,
+                pilar,
+                setor,
+                ip,
+                realizado,
+                data,
+                observacao
+            } = detalhamento?.[i] || {}
+
+            linhas.push(`
+            <tr>
+                <td><input name="descricao" value="${descricao || ''}"></td>
+                <td><input name="rack" value="${rack || ''}"></td>
+                <td><input name="local" value="${local || ''}"></td>
+                <td><input name="pilar" value="${pilar || ''}"></td>
+                <td><input name="setor" value="${setor || ''}"></td>
+                <td><input name="ip" value="${ip || ''}"></td>
+                <td style="text-align: center;">
+                    <input ${realizado ? 'checked' : ''} name="realizado" style="width: 2rem; height: 2rem;" type="checkbox">
+                </td>
+                <td><input type="date" name="data" value="${data || ''}"></td>
+                <td>
+                    <textarea name="observacao">${observacao || ''}</textarea>
+                </td>
+            </tr>
+            `)
         }
-    ]
 
-    const botoes = [
-        {
-            texto: 'Salvar',
-            funcao: `salvarRegistroChecklist('${codigo}')`,
-            img: 'concluido'
-        }
-    ]
+        const ths = ['DESCRIÇÃO', 'RACK', 'LOCAL', 'PILAR', 'SETOR', 'IP', 'REALIZADO', 'DATA', 'OBSERVAÇÃO'].map(th => `<th>${th}</th>`).join('')
 
-    popup({
-        linhas,
-        botoes
-    })
+        const tabela = `
+        <div style="padding: 0.5rem;">
+            <div style="${horizontal}; justify-content: start; gap: 1rem; padding: 5px;">
+                <img src="${imagem || logo}" style="width: 5rem; border-radius: 5px;">
+                <span class="titulo-2">${descricao}</span>
+            </div>
+            <table class="tabela">
+                <thead>
+                    ${ths}
+                </thead>
+                <tbody id="checklistAtivo">
+                    ${linhas.join('')}
+                </tbody>
+            </table>
+        </div>
+        `
+        const botoes = [
+            {
+                texto: 'Salvar',
+                funcao: `salvarRegistroChecklist('${codigo}')`,
+                img: 'concluido'
+            }
+        ]
+
+        popup({
+            titulo: 'Registrar andamento',
+            elemento: tabela,
+            botoes
+        })
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir o item: Fale com o suporte.' })
+    }
 
 }
 
@@ -175,16 +230,39 @@ async function salvarRegistroChecklist(codigo) {
     try {
 
         overlayAguarde()
-        const id_orcamento = controles?.checklist?.id
-        const realizado = Number(document.getElementById('realizado')?.value || 0)
 
-        if (realizado === 0)
-            return popup({ mensagem: 'Realizado não pode ser 0' })
+        const idOrcamento = controles?.inst?.id || controles?.conf?.id
 
-        await enviar(`checklist/${crypto.randomUUID()}`, {
+        if (!idOrcamento)
+            return popup({ mensagem: 'Falha ao localizar o orçamento: Fale com o suporte.' })
+
+        const idLancamento = `${codigo}_${idOrcamento}`
+
+        const detalhamento = [...document.querySelectorAll('#checklistAtivo tr')]
+            .map(tr => {
+
+                const elemento = (n) => {
+                    const e = tr.querySelector(`[name="${n}"]`)
+                    return n == 'realizado' ? e?.checked : e?.value
+                }
+
+                return {
+                    descricao: elemento('descricao'),
+                    rack: elemento('rack'),
+                    local: elemento('local'),
+                    pilar: elemento('pilar'),
+                    setor: elemento('setor'),
+                    ip: elemento('ip'),
+                    realizado: elemento('realizado'),
+                    data: elemento('data'),
+                    observacao: elemento('observacao')
+                }
+            })
+
+        await enviar(`checklist/${idLancamento}`, {
             codigo,
-            id_orcamento,
-            realizado
+            id_orcamento: idOrcamento,
+            detalhamento
         })
 
         removerTodosPopups()

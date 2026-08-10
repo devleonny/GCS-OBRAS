@@ -101,15 +101,6 @@ async function atualizarToolbarRelatorio() {
 
 }
 
-function dtAuxOcorrencia(dt) {
-
-    if (!dt || '') return '-'
-
-    const [ano, mes, dia] = dt.split('-')
-
-    return `${dia}/${mes}/${ano}`
-}
-
 async function criarLinhaRelatorio(ocorrencia) {
 
     const { id, snapshots, data_registro } = ocorrencia || {}

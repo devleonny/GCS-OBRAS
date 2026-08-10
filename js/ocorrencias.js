@@ -229,15 +229,6 @@ function ampliarImagem(img) {
 
 }
 
-function dtAuxOcorrencia(dt) {
-
-    if (!dt || '') return '-'
-
-    const [ano, mes, dia] = dt.split('-')
-
-    return `${dia}/${mes}/${ano}`
-}
-
 function confirmarExclusao(idOcorrencia, idCorrecao) {
 
     const botoes = [
@@ -1094,7 +1085,7 @@ function criarLinhaOcorrencia(ocorrencia) {
         ${modeloCampos('Cidade', cliente?.cidade)}
         ${modeloCampos('Descrição', `<div style="white-space: pre-wrap;">${descricao}</div>`)}
         ${modeloCampos('Criado por', criador)}
-        ${modeloCampos('Data Solicitação', data_solicitacao ? dtAuxOcorrencia(data_solicitacao) : null)}
+        ${modeloCampos('Data Solicitação', data_solicitacao ? conversorDt(data_solicitacao) : null)}
         ${modeloCampos('Data Registro', data_registro)}
         ${modeloCampos('Empresa', empresa)}
         ${modeloCampos('Tipo', tipo)}

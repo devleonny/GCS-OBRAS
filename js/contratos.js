@@ -46,7 +46,7 @@ function criarLinhaContrato(dados) {
         <tr>
             <td>${contrato}</td>
             <td>${dinheiro(valor_total)}</td>
-            <td>${dtAuxOcorrencia(data_vencimento)}</td>
+            <td>${conversorDt(data_vencimento)}</td>
             <td></td>
             <td>${usuario || ''}</td>
             <td>${observacao || ''}</td>

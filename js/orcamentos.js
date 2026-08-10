@@ -53,10 +53,7 @@ async function telaOrcamentos() {
         'Ações': {}
     }
 
-    const btnExtras = `
-        <img src="imagens/alerta.png">
-        <div class="filtro-orcamentos" style="${horizontal}; gap: 5px;"></div>
-        `
+    const btnExtras = `<div class="filtro-orcamentos" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>`
 
     const tabela = await modTab({
         btnExtras,

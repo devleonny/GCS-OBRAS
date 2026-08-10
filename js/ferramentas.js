@@ -57,6 +57,27 @@ function mostrarBtn(input) {
     img.style.display = ''
 }
 
+function conversorDt(dt, formato = 'br') {
+
+    if (!dt || '')
+        return ''
+
+    if (formato == 'br') {
+
+        const [ano, mes, dia] = dt.split('-')
+        return `${dia}/${mes}/${ano}`
+
+    } else if (formato == 'input') {
+
+        const [dia, mes, ano] = dt.split('/')
+        return `${ano}-${mes}-${dia}`
+
+    } else {
+        return popup({ mensagem: 'Na função conversorDt o formato não foi reconhecido' })
+    }
+
+}
+
 const pdfDanfe = ({ id, n_nota, categoria, total = null, d_emi_inicial }) => {
 
     return `
@@ -67,7 +88,7 @@ const pdfDanfe = ({ id, n_nota, categoria, total = null, d_emi_inicial }) => {
                 ${total
             ? `<label>${dinheiro(total)}</label>`
             : ''
-            
+
         }
             ${d_emi_inicial || ''}
             </div>
