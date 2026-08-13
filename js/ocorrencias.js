@@ -2436,12 +2436,12 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
     }
 
     const { nome } = await recuperarDado('correcoes', correcao?.tipoCorrecao) || {}
-    const { executor, tecnico, garantia, autorizacao, setor } = correcao
+    const { turno, executor, tecnico, garantia, autorizacao, setor } = correcao
     const opcoesTurno = ['MANHÃ', 'TARDE', 'NOITE', 'MADRUGADA']
         .map(t => {
             return `
             <div style="${horizontal}; gap: 0.5rem;">
-                <input style="width: 2rem; height: 2rem;" data-turno="${t}" type="radio" name="turno">
+                <input ${t == turno ? 'checked' : ''} style="width: 2rem; height: 2rem;" data-turno="${t}" type="radio" name="turno">
                 <span>${t}</span>
             </div>
             `
