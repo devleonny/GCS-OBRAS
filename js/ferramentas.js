@@ -179,63 +179,88 @@ async function f2() {
 
 function criarVelocimetroHTML({
     valor = 0,
-    limite = 80,
+    limite,
     tamanho = 220,
     espessura = 10,
     rotulo = 'Uso'
 } = {}) {
-    const valorSeguro = Math.max(0, Math.min(100, Number(valor) || 0));
-    const limiteSeguro = Math.max(0, Math.min(100, Number(limite) || 0));
+    const valorNumero = Number(valor);
+    const valorSeguro = Math.max(
+        0,
+        Math.min(100, Number.isFinite(valorNumero) ? valorNumero : 0)
+    );
+
+    const limiteNumero = Number(limite);
+    const temLimite =
+        limite !== null &&
+        limite !== undefined &&
+        limite !== '' &&
+        Number.isFinite(limiteNumero);
+
+    const limiteSeguro = temLimite
+        ? Math.max(0, Math.min(100, limiteNumero))
+        : null;
 
     let situacao = 'normal';
 
-    if (valorSeguro >= limiteSeguro) {
-        situacao = 'critico';
-    } else if (valorSeguro >= limiteSeguro - 10) {
-        situacao = 'alerta';
+    if (temLimite) {
+        if (valorSeguro >= limiteSeguro) {
+            situacao = 'critico';
+        } else if (valorSeguro >= limiteSeguro - 10) {
+            situacao = 'alerta';
+        }
     }
 
     const raio = 50 - espessura / 2;
     const comprimentoSemicirculo = Math.PI * raio;
-    const deslocamentoProgresso = comprimentoSemicirculo * (1 - valorSeguro / 100);
+    const deslocamentoProgresso =
+        comprimentoSemicirculo * (1 - valorSeguro / 100);
+
+    const textoLimite = temLimite
+        ? `Limite: ${limiteSeguro}%`
+        : '';
+
+    const ariaLabel = temLimite
+        ? `${rotulo}: ${valorSeguro}% de 100, limite ${limiteSeguro}%`
+        : `${rotulo}: ${valorSeguro}% de 100, sem limite`;
 
     return `
-    <div
-      class="velocimetro velocimetro--${situacao}"
-      style="
-        --velocimetro-tamanho: ${tamanho}px;
-        --velocimetro-espessura: ${espessura};
-        --velocimetro-deslocamento: ${deslocamentoProgresso};
-        --velocimetro-comprimento: ${comprimentoSemicirculo};
-      "
-      data-valor="${valorSeguro}"
-      data-limite="${limiteSeguro}"
-    >
-      <div class="velocimetro__area-svg">
-        <svg
-          class="velocimetro__svg"
-          viewBox="0 0 100 60"
-          aria-label="${rotulo}: ${valorSeguro}% de 100, limite ${limiteSeguro}%"
+        <div
+            class="velocimetro velocimetro--${situacao}"
+            style="
+                --velocimetro-tamanho: ${tamanho}px;
+                --velocimetro-espessura: ${espessura};
+                --velocimetro-deslocamento: ${deslocamentoProgresso};
+                --velocimetro-comprimento: ${comprimentoSemicirculo};
+            "
+            data-valor="${valorSeguro}"
+            data-limite="${temLimite ? limiteSeguro : ''}"
         >
-          <path
-            class="velocimetro__trilha"
-            d="M 10 50 A 40 40 0 0 1 90 50"
-          ></path>
+            <div class="velocimetro__area-svg">
+                <svg
+                    class="velocimetro__svg"
+                    viewBox="0 0 100 60"
+                    aria-label="${ariaLabel}"
+                >
+                    <path
+                        class="velocimetro__trilha"
+                        d="M 10 50 A 40 40 0 0 1 90 50"
+                    ></path>
 
-          <path
-            class="velocimetro__progresso"
-            d="M 10 50 A 40 40 0 0 1 90 50"
-          ></path>
-        </svg>
+                    <path
+                        class="velocimetro__progresso"
+                        d="M 10 50 A 40 40 0 0 1 90 50"
+                    ></path>
+                </svg>
 
-        <div class="velocimetro__conteudo">
-          <div class="velocimetro__valor">${valorSeguro}%</div>
-          <div class="velocimetro__rotulo">${rotulo}</div>
-          <div class="velocimetro__limite">Limite: ${limiteSeguro}%</div>
+                <div class="velocimetro__conteudo">
+                    <div class="velocimetro__valor">${valorSeguro}%</div>
+                    <div class="velocimetro__rotulo">${rotulo}</div>
+                    <div class="velocimetro__limite">${textoLimite}</div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  `;
+    `;
 }
 
 function inicialMaiuscula(string) {

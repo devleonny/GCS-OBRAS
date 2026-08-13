@@ -152,9 +152,6 @@ async function comunicacao() {
 
             for (const { pag, base } of Object.values(controles)) {
 
-                if (tabela == 'checklist' && ['inst', 'config'].includes(pag))
-                    await paginacao(pag)
-
                 if (base == tabela || (typeof (base) == 'string' && base.includes('vw')))
                     await paginacao(pag)
 

@@ -294,6 +294,7 @@ function carregarCorrecoes(ocorrencia) {
             descricao = '',
             datas_agendadas,
             datas_agendadas_final,
+            turno,
             tipoCorrecaoNome,
             tipoCorrecao,
             localizacao,
@@ -430,6 +431,8 @@ function carregarCorrecoes(ocorrencia) {
                         </div>
                         <div class="agendamentos">${agendamentosFinais}</div>
                         `) : ''}
+
+                    ${modelo('Turno', turno)}
 
                     ${modelo('Solicitante', `<span>${usuario || ''}</span>`)}
 
@@ -842,9 +845,6 @@ function lembrarVisibilidadePesquisas() {
 async function telaOcorrencias() {
 
     overlayAguarde()
-
-    const empresaAtiva = await recuperarDado('empresas', acesso?.empresa)
-    titulo.innerHTML = empresaAtiva?.nome || 'Desatualizado'
 
     const mapa = criarMapa()
     const btnExtras = `
@@ -2188,7 +2188,7 @@ async function auxPendencias() {
                     <span class="pill-b">SAVEGNAGO</span>
                 </div>
             `)
-            
+
             etiquetas.push(`
                 <br>
                 <div class="pill" onclick="atalhoAuxiliar('S', 'buscar_tecnico')">
@@ -2437,6 +2437,16 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
 
     const { nome } = await recuperarDado('correcoes', correcao?.tipoCorrecao) || {}
     const { executor, tecnico, garantia, autorizacao, setor } = correcao
+    const opcoesTurno = ['MANHÃ', 'TARDE', 'NOITE', 'MADRUGADA']
+        .map(t => {
+            return `
+            <div style="${horizontal}; gap: 0.5rem;">
+                <input style="width: 2rem; height: 2rem;" data-turno="${t}" type="radio" name="turno">
+                <span>${t}</span>
+            </div>
+            `
+        })
+        .join('')
 
     const linhas = [
         ...(novoFluxo
@@ -2465,6 +2475,14 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
         {
             texto: 'Data Final Execução',
             elemento: `<input name="dtCorrecaoFinal" onchange="verificarConflitos()" type="date" value="${correcao?.dtCorrecaoFinal || ''}">`
+        },
+        {
+            texto: 'Turno da Execução',
+            elemento: `
+                <div style="${vertical}; gap: 5px;">
+                    ${opcoesTurno}
+                </div>
+            `
         },
         {
             texto: 'Status da Correção',
@@ -3014,6 +3032,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
     if (executor.length == 0 && !setor)
         return popup({ mensagem: 'Selecione pelo menos 1 executor' })
 
+    const turno = document.querySelectorAll('[name="turno"]:checked')?.[0]?.dataset?.turno
     const garantia = obter('garantia').checked ? 'S' : 'N'
     const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
     const atualizado = {
@@ -3032,6 +3051,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
         },
         dtCorrecao,
         dtCorrecaoFinal,
+        turno,
         tecnico,
         executor,
         setor,

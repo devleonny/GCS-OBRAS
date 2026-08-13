@@ -76,9 +76,22 @@ async function modTab(configuracoes) {
             if (query.tipoPesquisa == 'data')
                 return `
                     <th style="background-color: white;">
-                        <div style="${horizontal}; gap: 2px;">
-                            <input data-chave="${query.chave}" data-op=">=d" type="date" onchange="confirmarPesquisa({ event, chave: '${query.chave}', op: '>=d', elemento: this, pag: '${pag}'})">
-                            <input data-chave="${query.chave}" data-op="<=d" type="date" onchange="confirmarPesquisa({ event, chave: '${query.chave}', op: '<=d', elemento: this, pag: '${pag}'})">
+                        <div style="display: flex; flex-direction: column; gap: 2px; align-items: center;">
+
+                            <input
+                            data-chave="${query.chave}"
+                            data-op=">=d"
+                            type="date"
+                            onchange="confirmarPesquisa({ event, chave: '${query.chave}', op: '>=d', elemento: this, pag: '${pag}'})"
+                            style="width: 7rem; font-size: 0.75rem; padding: 0; height: 1.3rem;">
+
+                            <input
+                            data-chave="${query.chave}"
+                            data-op="<=d"
+                            type="date"
+                            onchange="confirmarPesquisa({ event, chave: '${query.chave}', op: '<=d', elemento: this, pag: '${pag}'})"
+                            style="width: 7rem; font-size: 0.75rem; padding: 0; height: 1.3rem;">
+                            
                         </div>
                     </th>`
 

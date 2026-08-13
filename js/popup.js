@@ -152,8 +152,12 @@ function limparRecursosPopup(id) {
 }
 
 function removerTodosPopups() {
+
+    removerOverlay()
+
     const popups = [...document.querySelectorAll('.popup')]
-    if (!popups.length) return
+    if (!popups.length) 
+        return
 
     popups.forEach(p => {
         limparRecursosPopup(p.id)

@@ -372,8 +372,6 @@ async function salvarNotaAvulsa(id) {
         total: Number(valor('valor')),
         departamento: [contrato]
     }
-
-    console.log(nota);
     
     await enviar(`notas/${id}`, nota)
 
@@ -397,7 +395,7 @@ async function abrirAtalhos(id, idMaster) {
             modeloBotoes('esquema', 'Histórico', `abrirEsquema('${id}')`),
             modeloBotoes('painelcustos', 'Painel de Custos', `painelCustos('${id}')`),
             modeloBotoes('pdf', 'Abrir Orçamento em PDF', `irPdf('${id}')`),
-            modeloBotoes('checklist', 'Checklist', `telaChecklist('${contrato}')`),
+            modeloBotoes('checklist', 'Checklist', `telaChecklist('${id}')`),
             modeloBotoes('excel', 'Baixar Orçamento em Excel', `irExcelOrcamento('${id}')`),
             modeloBotoes('LG', 'OS em PDF', `carregarOS('${id}')`),
         )
@@ -605,7 +603,7 @@ function divPorcentagem(porcentagem) {
 
     return `
         <div class="div-porcentagem">
-            <div style="width: ${valor}%; height: 100%; background: ${valor >= 70 ? "#4caf50" : valor >= 40 ? "#ffc107" : "#f44336"};"></div>
+            <div style="width: ${valor}%; height: 100%; background: ${valor >= 70 ? "#7ee182" : valor >= 40 ? "#ffc107" : "#f44336"};"></div>
             <label style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7rem; color: #000;">
                 ${valor}%
             </label>
