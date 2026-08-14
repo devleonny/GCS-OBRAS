@@ -13,6 +13,7 @@ function popup({
     titulo,
     removerAnteriores = false
 }) {
+
     if (!elemento && !mensagem)
         mensagem = 'Função <b>inativa</b>. <br>Fale com o suporte para reativação.'
 
@@ -134,6 +135,7 @@ function popup({
 
     document.querySelector('.aguarde')?.remove()
     document.body.insertAdjacentHTML('beforeend', html)
+    document.body.style.overflow = 'hidden'
 
     if (tempo)
         setTimeout(() => removerPopup(idPopup), tempo * 1000)
@@ -165,6 +167,7 @@ function removerTodosPopups() {
     })
 
     document.querySelector('.aguarde')?.remove()
+    document.body.style.overflow = 'auto'
 }
 
 function removerPopup(id = null) {
@@ -181,6 +184,7 @@ function removerPopup(id = null) {
     alvo.remove()
 
     document.querySelector('.aguarde')?.remove()
+    document.body.style.overflow = 'auto'
 }
 
 function colarNoEditor(event) {

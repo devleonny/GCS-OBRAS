@@ -50,15 +50,17 @@ function renderMenuItem(item, id, nivel) {
     `
 }
 
-function criarAtalhoMenu({ nome, img }, nivel) {
+function criarAtalhoMenu({ nome, img, gif }, nivel) {
+
+    const imagem = gif
+        ? `gifs/${gif}.gif`
+        : `imagens/${img}.png`
 
     return `
-    <div 
-        class="botao-lateral nivel-${nivel}" 
-        style="margin-left:${nivel * 12}px"
-    >
-        <img src="imagens/${img}.png">
-        <div>${nome}</div>
+    <div class="botao-lateral nivel-${nivel}" 
+        style="margin-left:${nivel * 12}px">
+        <img src="${imagem}">
+            <div>${nome}</div>
     </div>
     `
 }
@@ -139,6 +141,14 @@ const esquemaBotoes = {
                 { nome: 'Relatório de Ocorrências', funcao: 'telaRelatorio', img: 'planilha' },
                 { nome: 'Relatório de Correções', funcao: 'telaRelatorioCorrecoes', img: 'planilha' },
                 { nome: 'Relatório de Peças', funcao: 'telaRelatorioPecas', img: 'planilha' }
+            ]
+        },
+        {
+            nome: 'Checklist',
+            bloqueio: ['cliente', 'técnico'],
+            img: 'checklist',
+            sub: [
+                { nome: 'Ver Checklists', funcao: 'telaTodosChecklists', img: 'checklist' }
             ]
         },
         {

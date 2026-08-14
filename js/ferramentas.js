@@ -178,89 +178,95 @@ async function f2() {
 }
 
 function criarVelocimetroHTML({
-    valor = 0,
-    limite,
-    tamanho = 220,
-    espessura = 10,
-    rotulo = 'Uso'
+  valor = 0,
+  limite,
+  tamanho = 220,
+  espessura = 10,
+  rotulo = 'Uso'
 } = {}) {
-    const valorNumero = Number(valor);
-    const valorSeguro = Math.max(
-        0,
-        Math.min(100, Number.isFinite(valorNumero) ? valorNumero : 0)
-    );
+  const valorNumero = Number(valor);
+  const valorBruto = Number.isFinite(valorNumero) ? valorNumero : 0;
 
-    const limiteNumero = Number(limite);
-    const temLimite =
-        limite !== null &&
-        limite !== undefined &&
-        limite !== '' &&
-        Number.isFinite(limiteNumero);
+  // valor para stroke: limitar só para cálculo geométrico (0–100),
+  // mas deixar o texto mostrar o valor real (pode ser 120, 150 etc.).
+  const valorStroke = Math.max(0, Math.min(100, valorBruto));
 
-    const limiteSeguro = temLimite
-        ? Math.max(0, Math.min(100, limiteNumero))
-        : null;
+  const limiteNumero = Number(limite);
+  const temLimite =
+    limite !== null &&
+    limite !== undefined &&
+    limite !== '' &&
+    Number.isFinite(limiteNumero);
 
-    let situacao = 'normal';
+  const limiteSeguro = temLimite
+    ? Math.max(0, Math.min(100, limiteNumero))
+    : null;
 
-    if (temLimite) {
-        if (valorSeguro >= limiteSeguro) {
-            situacao = 'critico';
-        } else if (valorSeguro >= limiteSeguro - 10) {
-            situacao = 'alerta';
-        }
+  let situacao = 'normal';
+
+  if (temLimite) {
+    if (valorBruto >= limiteSeguro) {
+      situacao = 'critico';
+    } else if (valorBruto >= limiteSeguro - 10) {
+      situacao = 'alerta';
     }
+  }
 
-    const raio = 50 - espessura / 2;
-    const comprimentoSemicirculo = Math.PI * raio;
-    const deslocamentoProgresso =
-        comprimentoSemicirculo * (1 - valorSeguro / 100);
+  // se passar de 100, força uma classe específica pra ficar azul
+  if (valorBruto > 100) {
+    situacao = 'ultrapassado'; // css vai pintar azul
+  }
 
-    const textoLimite = temLimite
-        ? `Limite: ${limiteSeguro}%`
-        : '';
+  const raio = 50 - espessura / 2;
+  const comprimentoSemicirculo = Math.PI * raio;
+  const deslocamentoProgresso =
+    comprimentoSemicirculo * (1 - valorStroke / 100);
 
-    const ariaLabel = temLimite
-        ? `${rotulo}: ${valorSeguro}% de 100, limite ${limiteSeguro}%`
-        : `${rotulo}: ${valorSeguro}% de 100, sem limite`;
+  const textoLimite = temLimite
+    ? `Limite: ${limiteSeguro}%`
+    : '';
 
-    return `
-        <div
-            class="velocimetro velocimetro--${situacao}"
-            style="
-                --velocimetro-tamanho: ${tamanho}px;
-                --velocimetro-espessura: ${espessura};
-                --velocimetro-deslocamento: ${deslocamentoProgresso};
-                --velocimetro-comprimento: ${comprimentoSemicirculo};
-            "
-            data-valor="${valorSeguro}"
-            data-limite="${temLimite ? limiteSeguro : ''}"
+  const ariaLabel = temLimite
+    ? `${rotulo}: ${valorBruto}% de 100, limite ${limiteSeguro}%`
+    : `${rotulo}: ${valorBruto}% de 100, sem limite`;
+
+  return `
+    <div
+      class="velocimetro velocimetro--${situacao}"
+      style="
+        --velocimetro-tamanho: ${tamanho}px;
+        --velocimetro-espessura: ${espessura};
+        --velocimetro-deslocamento: ${deslocamentoProgresso};
+        --velocimetro-comprimento: ${comprimentoSemicirculo};
+      "
+      data-valor="${valorBruto}"
+      data-limite="${temLimite ? limiteSeguro : ''}"
+    >
+      <div class="velocimetro__area-svg">
+        <svg
+          class="velocimetro__svg"
+          viewBox="0 0 100 60"
+          aria-label="${ariaLabel}"
         >
-            <div class="velocimetro__area-svg">
-                <svg
-                    class="velocimetro__svg"
-                    viewBox="0 0 100 60"
-                    aria-label="${ariaLabel}"
-                >
-                    <path
-                        class="velocimetro__trilha"
-                        d="M 10 50 A 40 40 0 0 1 90 50"
-                    ></path>
+          <path
+            class="velocimetro__trilha"
+            d="M 10 50 A 40 40 0 0 1 90 50"
+          ></path>
 
-                    <path
-                        class="velocimetro__progresso"
-                        d="M 10 50 A 40 40 0 0 1 90 50"
-                    ></path>
-                </svg>
+          <path
+            class="velocimetro__progresso"
+            d="M 10 50 A 40 40 0 0 1 90 50"
+          ></path>
+        </svg>
 
-                <div class="velocimetro__conteudo">
-                    <div class="velocimetro__valor">${valorSeguro}%</div>
-                    <div class="velocimetro__rotulo">${rotulo}</div>
-                    <div class="velocimetro__limite">${textoLimite}</div>
-                </div>
-            </div>
+        <div class="velocimetro__conteudo">
+          <div class="velocimetro__valor">${valorBruto}%</div>
+          <div class="velocimetro__rotulo">${rotulo}</div>
+          <div class="velocimetro__limite">${textoLimite}</div>
         </div>
-    `;
+      </div>
+    </div>
+  `;
 }
 
 function inicialMaiuscula(string) {
@@ -649,7 +655,7 @@ async function pdf({ id, estilos = [], nome = 'documento', orientacao = '' }) {
                 <meta charset="UTF-8">
                 ${estilos}
                 <style>
-                    @page { size: A4; margin: 10mm; }
+                    @page { size: A4; margin: 10mm; ${orientacao ? `orientation: ${orientacao}` : ''} }
                     html, body { margin: 0; padding: 0; }
                     body { font-family: 'Poppins', sans-serif; background: white; }
                     .topo-tabela * { visibility: hidden; }

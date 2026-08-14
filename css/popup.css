@@ -5,13 +5,14 @@
     align-items: center;
     justify-content: start;
     max-width: 90vw;
+    max-height: 95vw;
     text-align: center;
     border-radius: 10px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .janela {
-    min-width: 200px;
+    min-width: 250px;
     max-width: 90vw;
     overflow: auto;
     max-height: 90vh;

@@ -82,3 +82,7 @@
   font-size: 0.8rem;
   color: var(--velocimetro-texto-suave);
 }
+
+.velocimetro--ultrapassado .velocimetro__progresso {
+  stroke: #2563eb; /* azul */
+}

@@ -14,40 +14,15 @@ async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d01
     const { contrato } = dados_orcam || {}
     const { cliente } = snapshots || {}
 
-    const pag1 = 'checklist'
+    // TABELA 
+    const pag = 'detalhamento_checklist'
     const tabela1 = await modTab({
       id: idOrcamento,
       dados_composicoes,
-      pag: pag1,
-      body: pag1,
+      pag,
+      body: pag,
       base: 'vw_checklist',
-      funcaoAdicional: ['atualizarAndamentoChecklist', 'graficoDiario'],
-      explode: {
-        path: 'checklist'
-      },
-      filtros: {
-        'id': { op: '=', value: idOrcamento },
-        'checklist.*.filtro': { op: '!=', value: null }
-      },
-      criarLinha: 'criarLinhaChecklist',
-      colunas: {
-        'Código': { chave: 'checklist.*.codigo' },
-        'Descrição': { chave: 'checklist.*.descricao' },
-        'Unidade': { chave: 'checklist.*.unidade' },
-        'Quantidade': { chave: 'checklist.*.qtde' },
-        'Realizado': {},
-        'Andamento': {},
-        'Registrar': {}
-      },
-    })
-
-    // TABELA 2
-    const pag2 = 'detalhamento_checklist'
-    const tabela2 = await modTab({
-      dados_composicoes,
-      pag: pag2,
-      body: pag2,
-      base: 'vw_checklist',
+      funcaoAdicional: ['atualizarAndamentoChecklist'],
       filtros: {
         id: { op: '=', value: idOrcamento }
       },
@@ -61,6 +36,8 @@ async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d01
         'Rack': { chave: 'detalhamento.*.rack' },
         'Local': { chave: 'detalhamento.*.local' },
         'Equipamento': { chave: 'detalhamento.*.descricao_item' },
+        'Quantidade': {},
+        'Unidade': {},
         'Realizado': {},
         'Data': { chave: 'detalhamento.*.data', tipoPesquisa: 'data' },
         'Observação': { chave: 'detalhamento.*.observacao' }
@@ -70,44 +47,87 @@ async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d01
     tela.innerHTML = `
         <div class="painel-geral-checklist">
 
+          <div id="pdf" style="${vertical}; padding: 1rem;">
+
             <div style="${horizontal}; gap: 1rem;">
               <span class="tag-pendencias">${contrato}</span>
               <span class="titulo-1">${cliente}</span>
             </div>
 
-            <div style="display: flex; flex-direction: row; gap: 5px;">
+            <div id="indicadorGeral" style="width: 100%; ${vertical}; gap: 1rem;"></div>
 
-                <div id="indicadorGeral" class="checklist-painel"></div>
+          </div>
 
-                <div class="checklist-painel">
-                    <div id="graficoDiario"></div>
-                </div>
-
-            </div>
-
-            <div style="display: flex; flex-direction: row; gap: 1rem;">
-
-              <div class="checklist-tabelas">
-                <span class="titulo-2">Itens do Orçamento <b>***Apenas Instalação & Configuração</b></span>
-                ${tabela1}
-              </div>  
-
-              <div class="checklist-tabelas">
-                <span class="titulo-2">Detalhamento Por Dia</span>
-                ${tabela2}
-              </div> 
-
-            </div>
+          <div class="checklist-tabelas">
+            <span class="titulo-2">Todas as atividades realizadas Por Data</span>
+            ${tabela1}
+          </div>  
 
         </div>
     `
-    await paginacao()
+    await paginacao(pag)
 
     removerTodosPopups()
 
   } catch (err) {
     console.error(err)
     popup({ mensagem: 'Falha ao abrir o checklist: Fale com o suporte.' })
+  }
+
+}
+
+async function abrirTabelaInstConf(tipo) {
+
+  try {
+    overlayAguarde()
+
+    const idOrcamento = controles.detalhamento_checklist.id
+
+    const {
+      dados_orcam,
+      dados_composicoes,
+      snapshots
+    } = await recuperarDado('dados_orcamentos', idOrcamento) || {}
+
+    const { contrato } = dados_orcam || {}
+    const { cliente } = snapshots || {}
+
+    const pag = 'checklist'
+    const tabela = await modTab({
+      id: idOrcamento,
+      dados_composicoes,
+      pag,
+      body: pag,
+      base: 'vw_checklist',
+      explode: {
+        path: 'checklist'
+      },
+      filtros: {
+        'id': { op: '=', value: idOrcamento },
+        'checklist.*.filtro': { op: '=', value: tipo }
+      },
+      criarLinha: 'criarLinhaChecklist',
+      colunas: {
+        'Código': { chave: 'checklist.*.codigo' },
+        'Descrição': { chave: 'checklist.*.descricao' },
+        'Unidade': { chave: 'checklist.*.unidade' },
+        'Quantidade': { chave: 'checklist.*.qtde' },
+        'Realizado': {},
+        'Andamento': {},
+        'Registrar': {}
+      },
+    })
+
+    popup({
+      titulo: `Itens do Orçamento`,
+      elemento: `<div style="padding: 1rem;">${tabela}</div>`
+    })
+
+    await paginacao(pag)
+
+  } catch (err) {
+    popup({ mensagem: 'Falha ao abrir o formulário: Fale com o suporte.' })
+    console.error(err)
   }
 
 }
@@ -122,8 +142,10 @@ function criarLinhaDetalhada(registro) {
     local,
     descricao,
     observacao,
+    unidade,
     descricao_item,
     codigo,
+    quantidade,
     realizado
   } = registro || {}
 
@@ -134,6 +156,8 @@ function criarLinhaDetalhada(registro) {
       <td>${rack || ''}</td>
       <td>${local || ''}</td>
       <td>${descricao_item}</td>
+      <td>${quantidade || 1}</td>
+      <td>${unidade || 'UN'}</td>
       <td style="text-align: center;">
         <img src="imagens/${realizado ? 'concluido' : 'cancel'}.png">
       </td>
@@ -147,31 +171,60 @@ async function atualizarAndamentoChecklist() {
 
   const painel = document.querySelector('#indicadorGeral')
 
-  const { id } = controles.checklist
+  const idOrcamento = controles.detalhamento_checklist.id
   const {
-    checklist_mao_obra,
     andamento,
+    detalhamento,
     total_dias,
     previsao_dias,
     data_inicial,
     data_final
-  } = await recuperarDado('vw_checklist', id)
+  } = await recuperarDado('vw_checklist', idOrcamento) || {}
 
-  const andamentosExtras = (checklist_mao_obra || [])
-    .map(({ codigo, descricao }) => {
+  // Porcentagem Geral
+  const numeradorSomado = (andamento || [])
+    .reduce((acc, item) => acc + (item.numerador), 0)
+
+  const denominadorSomado = (andamento || [])
+    .reduce((acc, item) => acc + (item.denominador), 0)
+
+  const andGeralPorc = Number(((numeradorSomado / denominadorSomado) * 100).toFixed(1))
+  const porcentagemGeral = criarVelocimetroHTML({ rotulo: 'Porcentagem Geral', valor: andGeralPorc })
+
+  const req = {
+    andamento,
+    detalhamento
+  }
+
+  const porcentagens = (andamento || [])
+    .map(({ tipo, codigo, descricao, unidade, andamento, numerador, denominador }) => {
+
+      const ehMaoObra = tipo == 'MÃO_DE_OBRA'
+      const funcao = ehMaoObra
+        ? `registrarChecklist('${codigo}')`
+        : `abrirTabelaInstConf('${tipo}')`
+
+      const grafico = graficoDiario({
+        ...req,
+        ...(
+          ehMaoObra ? { codigo } : { tipo }
+        )
+      })
+
       return `
-        <div style="${vertical}; gap: 5px;">
-          ${criarVelocimetroHTML({ rotulo: '%', valor: 15 })}
-          <div style="${horizontal}; gap: 0.5rem;">
-            <img src="imagens/pesquisar2.png" onclick="registrarChecklist('${codigo}')">
-            <span>${descricao}</span>
+        <div class="checklist-painel">
+          <div style="${vertical}; max-width: 300px; margin-left: 1rem; gap: 5px;">
+            ${criarVelocimetroHTML({ rotulo: `${numerador} / ${denominador} ${unidade || 'UN'}S`, valor: andamento })}
+            <div style="${horizontal}; gap: 0.5rem;">
+              <img src="imagens/pesquisar2.png" onclick="${funcao}">
+              <span>${descricao || tipo}</span>
+            </div>
           </div>
+          ${grafico}
         </div>
         `
     })
     .join('')
-
-  const andamentoGeral = criarVelocimetroHTML({ rotulo: 'Instalação', valor: andamento })
 
   const modelo = ({ titulo, valor, funcao }) => `
     <div ${funcao ? `onclick="${funcao}"` : ''} class="checklist-indicador">
@@ -186,7 +239,7 @@ async function atualizarAndamentoChecklist() {
       valor: total_dias,
     },
     {
-      titulo: 'Previsão Conclusão',
+      titulo: 'Dias para Conclusão',
       valor: previsao_dias,
     },
     {
@@ -199,7 +252,7 @@ async function atualizarAndamentoChecklist() {
     },
     {
       titulo: 'Ver Opções',
-      funcao: `abrirAtalhos('${id}')`,
+      funcao: `abrirAtalhos('${idOrcamento}')`,
     }
   ]
 
@@ -208,13 +261,11 @@ async function atualizarAndamentoChecklist() {
     .join('')
 
   painel.innerHTML = `
-    <div style="display: flex; flex-direction: row; gap: 1rem;">
-      <div style="${vertical}; min-width: 300px;">
-        ${andamentoGeral}
-        ${andamentosExtras}
+      <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+        ${porcentagemGeral}
+        ${etiquetas}
       </div>
-      <div style="display: flex; flex-wrap: wrap; gap: 5px;">${etiquetas}</div>
-    </div>
+      ${porcentagens}
     `
 
 }
@@ -256,7 +307,7 @@ async function registrarChecklist(codigo) {
 
     const hoje = new Date().toISOString().slice(0, 10)
 
-    const { id, dados_composicoes } = controles.checklist
+    const { id, dados_composicoes } = controles.detalhamento_checklist
     const { qtde, descricao, imagem, unidade } = dados_composicoes?.[codigo] || {}
     const { detalhamento, mao_obra } = await recuperarDado('checklist', `${codigo}_${id}`) || {}
     let ths = []
@@ -267,6 +318,7 @@ async function registrarChecklist(codigo) {
     if (ehMaoObra) {
 
       ths = [
+        'REMOVER',
         'UNIDADE',
         'QUANTIDADE',
         `
@@ -283,8 +335,11 @@ async function registrarChecklist(codigo) {
 
           return `
             <tr>
-              <td name="quantidade" ${fixo}>${quantidade || 0}</td>
+              <td style="text-align: center;">
+                <img onclick="this.parentElement.parentElement.remove()" src="imagens/fechar.png">
+              </td>
               <td>${unidade || 'UN'}</td>
+              <td style="text-align: center;" name="quantidade" ${fixo}>${quantidade || 0}</td>
               <td>
                 <input type="date" name="data" value="${data || ''}">
               </td>
@@ -370,15 +425,7 @@ async function registrarChecklist(codigo) {
         </div>
         `
 
-    const botoes = [
-      {
-        texto: 'Salvar',
-        funcao: ehMaoObra
-          ? `salvarRegistroMO('${codigo}')`
-          : `salvarRegistroChecklist('${codigo}')`,
-        img: 'concluido'
-      }
-    ]
+    const botoes = []
 
     if (ehMaoObra)
       botoes.push({
@@ -386,6 +433,15 @@ async function registrarChecklist(codigo) {
         funcao: `adicionarLinhaChecklistMO('${unidade}')`,
         img: 'baixar'
       })
+
+    botoes.push({
+      texto: 'Salvar',
+      funcao: ehMaoObra
+        ? `salvarRegistroMO('${codigo}')`
+        : `salvarRegistroChecklist('${codigo}')`,
+      img: 'concluido'
+    }
+    )
 
     popup({
       cor: 'white',
@@ -408,6 +464,9 @@ function adicionarLinhaChecklistMO(unidade) {
 
   document.getElementById('checklistAtivo').insertAdjacentHTML('beforeend', `
       <tr>
+        <td style="text-align: center;">
+          <img onclick="this.parentElement.parentElement.remove()" src="imagens/fechar.png">
+        </td>
         <td>${unidade || 'UN'}</td>
         <td name="quantidade" ${fixo}></td>
         <td>
@@ -439,7 +498,7 @@ async function salvarRegistroMO(codigo) {
 
     overlayAguarde()
 
-    const idOrcamento = controles?.checklist?.id
+    const idOrcamento = controles.detalhamento_checklist.id
 
     if (!idOrcamento)
       return popup({ mensagem: 'Falha ao localizar o orçamento: Fale com o suporte.' })
@@ -455,6 +514,7 @@ async function salvarRegistroMO(codigo) {
         }
 
         return {
+          realizado: true,
           quantidade: Number(elemento('quantidade') || 0),
           data: elemento('data'),
           observacao: elemento('observacao')
@@ -468,7 +528,7 @@ async function salvarRegistroMO(codigo) {
       mao_obra
     })
 
-    removerTodosPopups()
+    removerPopup()
 
   } catch (err) {
     console.log(err)
@@ -483,7 +543,7 @@ async function salvarRegistroChecklist(codigo) {
 
     overlayAguarde()
 
-    const idOrcamento = controles?.checklist?.id
+    const idOrcamento = controles.detalhamento_checklist.id
 
     if (!idOrcamento)
       return popup({ mensagem: 'Falha ao localizar o orçamento: Fale com o suporte.' })
@@ -517,7 +577,7 @@ async function salvarRegistroChecklist(codigo) {
       detalhamento
     })
 
-    removerTodosPopups()
+    removerPopup()
 
   } catch (err) {
     console.log(err)
@@ -526,72 +586,100 @@ async function salvarRegistroChecklist(codigo) {
 
 }
 
-async function graficoDiario() {
-  const idOrcamento = controles.checklist.id;
+function graficoDiario({ andamento, detalhamento, codigo = null, tipo = null }) {
 
-  const dadosView = await recuperarDado('vw_checklist', idOrcamento) || {};
-  const { checklist = [], total_itens_filtrados = 0 } = dadosView;
+  const realizadosPorData = {}
+  let realizadosSemData = 0
 
-  const elemento = document.getElementById('graficoDiario');
-  if (!elemento) {
-    console.warn('Elemento #graficoDiario não encontrado.');
-    return;
-  }
+  const ehMaoObra = codigo ? true : false
 
-  elemento.innerHTML = '';
+  const detalhamentoFiltrado = (detalhamento || [])
+    .filter(item => {
 
-  const detalhamentoGeral = checklist
-    .map(c => c.detalhamento || [])
-    .flat();
+      if (codigo && item.codigo_item !== codigo)
+        return false
 
-  const realizadosPorData = {};
-  let realizadosSemData = 0;
+      if (tipo && item.tipo !== tipo)
+        return false
 
-  for (const { data, realizado } of detalhamentoGeral) {
-    const ok = realizado === true || realizado === 'true';
-    if (!ok) continue;
+      return item.realizado
+    })
+
+  for (const { data, tipo, codigo, quantidade } of detalhamentoFiltrado) {
 
     if (!data) {
-      realizadosSemData++;
-      continue;
+      realizadosSemData++
+      continue
     }
 
-    const chaveData = String(data).slice(0, 10); // 'aaaa-mm-dd'
-    realizadosPorData[chaveData] ??= 0;
-    realizadosPorData[chaveData]++;
+    const chaveData = String(data).slice(0, 10)
+    realizadosPorData[chaveData] ??= 0
+    realizadosPorData[chaveData] += ehMaoObra ? quantidade : 1
   }
 
-  const totalObra = Number(total_itens_filtrados) || 0;
+  const totalObra =
+    andamento.find(item => {
+
+      if (ehMaoObra) {
+        return item.codigo == codigo;
+      }
+
+      if (tipo && item.tipo == tipo) {
+        return true;
+      }
+
+      if (codigo && item.codigo == codigo) {
+        return true;
+      }
+
+      return false;
+    })?.denominador ?? 0;
+
+  const dadosLista = Object.entries(realizadosPorData)
+    .map(([data, realizadosNoDia]) => ({
+      data,
+      realizadosNoDia,
+      totalObra,
+      realizadosSemData,
+    }))
 
   if (totalObra === 0) {
-    elemento.innerHTML = `
+    return `
       <div class="grafico-diario-vazio">
         Não há itens filtrados para calcular o gráfico.
       </div>
-    `;
-    return;
+    `
+    return
   }
 
-  const dados = Object.entries(realizadosPorData)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([data, realizadosNoDia]) => {
-      const percentual = Number(((realizadosNoDia / totalObra) * 100).toFixed(1));
-      const [ano, mes, dia] = data.split('-');
+  // Ordena por data e calcula percentuais
+  const dados = dadosLista
+    .slice()
+    .sort((a, b) => String(a.data).localeCompare(String(b.data)))
+    .map(item => {
+      const percentual = Number(
+        ((item.realizadosNoDia / totalObra) * 100).toFixed(1)
+      );
+      const [ano, mes, dia] = String(item.data).split('-');
       const rotulo = `${dia}/${mes}`;
-      return { data, rotulo, realizadosNoDia, percentual };
-    });
+      return {
+        data: String(item.data),
+        rotulo,
+        realizadosNoDia: Number(item.realizadosNoDia),
+        percentual,
+      }
+    })
 
   if (dados.length === 0 && realizadosSemData === 0) {
-    elemento.innerHTML = `
+    return `
       <div class="grafico-diario-vazio">
         Nenhum item realizado foi encontrado.
       </div>
-    `;
-    return;
+    `
   }
 
   if (dados.length === 0) {
-    elemento.innerHTML = `
+    return `
       <div class="grafico-diario-wrapper">
         <div class="grafico-diario-titulo">
           Andamento diário
@@ -600,37 +688,35 @@ async function graficoDiario() {
           Todos os itens realizados estão sem data (${realizadosSemData}/${totalObra}).
         </div>
       </div>
-    `;
-    return;
+    `
   }
 
   // --- gráfico ---
-
-  const largura = 800;
-  const altura = 200;
-  const margem = { topo: 40, direita: 20, inferior: 60, esquerda: 20 };
-  const larguraGrafico = largura - margem.esquerda - margem.direita;
-  const alturaGrafico = altura - margem.topo - margem.inferior;
+  const largura = 800
+  const altura = 200
+  const margem = { topo: 40, direita: 20, inferior: 60, esquerda: 20 }
+  const larguraGrafico = largura - margem.esquerda - margem.direita
+  const alturaGrafico = altura - margem.topo - margem.inferior
 
   const espacoX = dados.length === 1
     ? larguraGrafico
-    : larguraGrafico / (dados.length - 1);
+    : larguraGrafico / (dados.length - 1)
 
   const calcularX = (i) =>
     margem.esquerda + (dados.length === 1
       ? larguraGrafico / 2
-      : i * espacoX);
+      : i * espacoX)
 
   const calcularY = (percentual) =>
     margem.topo + alturaGrafico - (percentual / 100) * alturaGrafico;
 
   const pontosPolyline = dados
     .map((item, i) => `${calcularX(i)},${calcularY(item.percentual)}`)
-    .join(' ');
+    .join(' ')
 
   const pontos = dados.map((item, i) => {
-    const x = calcularX(i);
-    const y = calcularY(item.percentual);
+    const x = calcularX(i)
+    const y = calcularY(item.percentual)
     return `
       <circle
         cx="${x}"
@@ -646,14 +732,13 @@ async function graficoDiario() {
         text-anchor="middle"
         fill="#2563eb"
         font-size="11"
-        font-weight="600"
-      >${item.percentual.toLocaleString()}%</text>
-    `;
-  }).join('');
+        font-weight="600">${item.percentual.toLocaleString()}%</text>
+    `
+  }).join('')
 
   const labelsX = dados.map((item, i) => {
     const x = calcularX(i);
-    const y = altura - margem.inferior + 20;
+    const y = altura - margem.inferior + 20
     return `
       <text
         x="${x}"
@@ -663,10 +748,9 @@ async function graficoDiario() {
         font-size="11"
         transform="rotate(-45 ${x} ${y})"
       >${item.rotulo}</text>
-    `;
-  }).join('');
+    `
+  }).join('')
 
-  // linha base (eixo X) e grade horizontal
   const yBase = margem.topo + alturaGrafico;
 
   const linhasGrade = [25, 50, 75].map(p => {
@@ -681,10 +765,10 @@ async function graficoDiario() {
         stroke-width="1"
         stroke-dasharray="4 4"
       ></line>
-    `;
-  }).join('');
+    `
+  }).join('')
 
-  elemento.innerHTML = `
+  return `
     <div class="grafico-diario-wrapper">
       <div class="grafico-diario-titulo">
         Andamento diário (% dos itens filtrados por dia)
@@ -695,8 +779,7 @@ async function graficoDiario() {
         viewBox="0 0 ${largura} ${altura}"
         preserveAspectRatio="none"
         role="img"
-        aria-label="Andamento diário"
-      >
+        aria-label="Andamento diário">
         <!-- linha base (eixo X) -->
         <line
           x1="${margem.esquerda}"
@@ -704,8 +787,7 @@ async function graficoDiario() {
           x2="${largura - margem.direita}"
           y2="${yBase}"
           stroke="#d1d5db"
-          stroke-width="1"
-        ></line>
+          stroke-width="1"></line>
 
         ${linhasGrade}
 
@@ -715,8 +797,7 @@ async function graficoDiario() {
           stroke="#2564eb71"
           stroke-width="2"
           stroke-linecap="round"
-          stroke-linejoin="round"
-        ></polyline>
+          stroke-linejoin="round"></polyline>
 
         ${pontos}
         ${labelsX}
@@ -729,5 +810,112 @@ async function graficoDiario() {
       : ''
     }
     </div>
-  `;
+  `
+}
+
+async function telaTodosChecklists() {
+
+  try {
+    overlayAguarde()
+
+    const pag = 'lista_checklist'
+
+    const tabela = await modTab({
+      base: 'vw_checklist',
+      pag,
+      criarLinha: 'criarLinhaOrcamentoChecklist',
+      body: pag,
+      colunas: {
+        'Orçamento': { chave: 'snapshots.contrato' },
+        'Tags': { chave: 'snapshots.tags' },
+        'Dias Trabalhados': {},
+        'Previsão Dias': {},
+        'Início das atividades': { chave: 'data_inicial', tipoPesquisa: 'data' },
+        'Última atividade': { chave: 'data_final', tipoPesquisa: 'data' },
+        'Previsão Dias': {},
+        'Andamento': {},
+        'Ver Checklist': {}
+      }
+    })
+
+    tela.innerHTML = `
+      <div style="padding: 2rem;">
+          ${tabela}
+      </div>
+    `
+
+    await paginacao(pag)
+
+    removerOverlay()
+
+  } catch (err) {
+    console.error(err)
+    popup({ mensagem: 'Falha ao abrir a listagem de Checklists: Fale com o suporte.' })
+  }
+
+}
+
+function criarLinhaOrcamentoChecklist(checklist) {
+
+  const {
+    id,
+    total_dias,
+    previsao_dias,
+    andamento,
+    total_geral,
+    total_realizado,
+    data_final,
+    data_inicial,
+    snapshots
+  } = checklist || {}
+
+  const { contrato: dadosOrcamento, tags } = snapshots || {}
+
+  // Tags;
+  const listaTags = Object.values(tags || {})
+    .map(tag => modeloTag(tag, id))
+    .join('')
+
+  const valor = Number(((total_realizado / total_geral) * 100).toFixed(1))
+
+  return `
+    <tr>
+      <td>
+        ${dadosOrcamento.map(d => d).join('<br>')}
+      </td>
+      <td>
+        <div style="display: flex; flex-wrap: wrap; gap: 3px;">${listaTags}</div>
+      </td>
+      <td>
+        <span class="etiqueta-valores">${total_dias}</span>
+      </td>
+      <td>
+        <span class="etiqueta-valores">${previsao_dias}</span>
+      </td>
+      <td>
+        <span class="etiqueta-valores">${data_inicial}</span>
+      </td>
+      <td>
+        <span class="etiqueta-valores">${data_final}</span>
+      </td>
+      <td>
+        ${divPorcentagem(valor)}
+      </td>
+      <td style="text-align: center;">
+        <img onclick="telaChecklist('${id}')" src="imagens/pesquisar2.png">
+      </td>
+  </tr>
+  `
+
+}
+
+async function pdfChecklist() {
+
+      await pdf({
+        orientacao: 'landscape',
+        id: 'pdf',
+        estilos: ['checklist', 'velocimetro', 'ocorrencias'],
+        nome: `Checklist_${1}`
+    })
+  
 }

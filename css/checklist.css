@@ -11,16 +11,16 @@
     justify-content: center;
     flex-direction: column;
     height: 100%;
-    width: 98vw;
+    width: 90%;
     background-color: #f7f8f5;
 }
 
 .checklist-painel {
+    width: 100%;
     display: flex;
     align-items: center;
-    width: 100%;
     gap: 1rem;
-    padding: 1rem;
+    padding: 1rem 0;
     border: 1px solid var(--linha);
     background: rgb(255, 255, 255);
     border-radius: 12px;
@@ -92,4 +92,12 @@
     width: 100%;
     display: flex;
     flex-direction: column;
+}
+
+.etiqueta-valores {
+    border-radius: 10px;
+    border: solid 1px #9e9e9e;
+    background-color: #ebebeb;
+    padding: 2px 2rem;
+    font-size: 1rem;
 }
