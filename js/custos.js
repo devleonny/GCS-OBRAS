@@ -60,7 +60,7 @@ async function painelCustos(id) {
         .map(({ titulo, id, funcao }) => {
 
             return `
-            <div onclick="${funcao}" class="balao-checklist">
+            <div onclick="${funcao}" class="balao-custo">
                 <label>${titulo}</label>
                 <div id="${id}" style="font-size: 1.4rem;">
                     <img src="gifs/loading.gif" style="width: 5rem">
@@ -74,7 +74,7 @@ async function painelCustos(id) {
         <div class="painel-custos">
 
             <h2>Resumo de Custos</h2>
-            <div class="toolbar-checklist">
+            <div class="toolbar-custo">
 
                 <div style="${vertical}">${dados}</div>
 
@@ -82,7 +82,7 @@ async function painelCustos(id) {
                     <div style="width: 300px;">${resumo}</div>
                     <div class="resultados">
                         
-                        <div onclick="inicioCustos()" class="balao-checklist">
+                        <div onclick="inicioCustos()" class="balao-custo">
                             <label>Início</label>
                         </div>
                         ${toolbar}

@@ -21,7 +21,7 @@ async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d01
       dados_composicoes,
       pag,
       body: pag,
-      base: 'vw_checklist',
+      base: 'dados_orcamentos',
       funcaoAdicional: ['atualizarAndamentoChecklist'],
       filtros: {
         id: { op: '=', value: idOrcamento }
@@ -47,9 +47,10 @@ async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d01
     tela.innerHTML = `
         <div class="painel-geral-checklist">
 
-          <div id="pdf" style="${vertical}; padding: 1rem;">
+          <div id="pdf" style="${vertical}; padding: 1rem; gap: 1rem;">
 
             <div style="${horizontal}; gap: 1rem;">
+              <span>ANDAMENTO • </span>
               <span class="tag-pendencias">${contrato}</span>
               <span class="titulo-1">${cliente}</span>
             </div>
@@ -98,13 +99,13 @@ async function abrirTabelaInstConf(tipo) {
       dados_composicoes,
       pag,
       body: pag,
-      base: 'vw_checklist',
+      base: 'dados_orcamentos',
       explode: {
-        path: 'checklist'
+        path: 'snapshots.checklist.itens'
       },
       filtros: {
         'id': { op: '=', value: idOrcamento },
-        'checklist.*.filtro': { op: '=', value: tipo }
+        'snapshots.checklist.itens.*.tipo': { op: '=', value: tipo }
       },
       criarLinha: 'criarLinhaChecklist',
       colunas: {
@@ -114,8 +115,9 @@ async function abrirTabelaInstConf(tipo) {
         'Quantidade': { chave: 'checklist.*.qtde' },
         'Realizado': {},
         'Andamento': {},
-        'Registrar': {}
-      },
+        'Registrar': {},
+        'Desativar': {}
+      }
     })
 
     popup({
@@ -172,6 +174,7 @@ async function atualizarAndamentoChecklist() {
   const painel = document.querySelector('#indicadorGeral')
 
   const idOrcamento = controles.detalhamento_checklist.id
+  const { snapshots } = await recuperarDado('dados_orcamentos', idOrcamento) || {}
   const {
     andamento,
     detalhamento,
@@ -179,7 +182,7 @@ async function atualizarAndamentoChecklist() {
     previsao_dias,
     data_inicial,
     data_final
-  } = await recuperarDado('vw_checklist', idOrcamento) || {}
+  } = snapshots?.checklist || {}
 
   // Porcentagem Geral
   const numeradorSomado = (andamento || [])
@@ -188,7 +191,7 @@ async function atualizarAndamentoChecklist() {
   const denominadorSomado = (andamento || [])
     .reduce((acc, item) => acc + (item.denominador), 0)
 
-  const andGeralPorc = Number(((numeradorSomado / denominadorSomado) * 100).toFixed(1))
+  const andGeralPorc = Number(((numeradorSomado / denominadorSomado) * 100).toFixed(2))
   const porcentagemGeral = criarVelocimetroHTML({ rotulo: 'Porcentagem Geral', valor: andGeralPorc })
 
   const req = {
@@ -213,7 +216,7 @@ async function atualizarAndamentoChecklist() {
 
       return `
         <div class="checklist-painel">
-          <div style="${vertical}; max-width: 300px; margin-left: 1rem; gap: 5px;">
+          <div style="${vertical}; width: 300px; margin-left: 1rem; gap: 5px;">
             ${criarVelocimetroHTML({ rotulo: `${numerador} / ${denominador} ${unidade || 'UN'}S`, valor: andamento })}
             <div style="${horizontal}; gap: 0.5rem;">
               <img src="imagens/pesquisar2.png" onclick="${funcao}">
@@ -253,6 +256,10 @@ async function atualizarAndamentoChecklist() {
     {
       titulo: 'Ver Opções',
       funcao: `abrirAtalhos('${idOrcamento}')`,
+    },
+    {
+      titulo: 'Baixar em PDF',
+      funcao: `pdfChecklist()`,
     }
   ]
 
@@ -278,12 +285,13 @@ async function criarLinhaChecklist(item) {
     unidade,
     qtde,
     realizado,
+    desativado
   } = item
 
   const andamento = Number(((realizado / qtde) * 100).toFixed(0))
 
   return `
-        <tr>
+        <tr style="opacity: ${desativado ? 0.2 : 1};">
             <td>${codigo}</td>
             <td>${descricao}</td>
             <td>${unidade}</td>
@@ -295,8 +303,34 @@ async function criarLinhaChecklist(item) {
             <td style="text-align: center;">
                 <img src="imagens/lapis.png" onclick="registrarChecklist('${codigo}')">
             </td>
+            <td style="text-align: center;">
+                <input ${desativado ? 'checked' : ''} onchange="habDesab(this, '${codigo}')" style="width: 2rem; height: 2rem;" type="checkbox">
+            </td>
         </tr>
     `
+}
+
+async function habDesab(input, codigo) {
+
+  try {
+
+    const desativado = input.checked
+
+    const tr = input.closest('tr')
+    tr.style.opacity = desativado ? 0.2 : 1
+
+    const { id: id_orcamento } = controles.detalhamento_checklist
+
+    await enviar(`checklist/${codigo}_${id_orcamento}`, {
+      codigo,
+      id_orcamento,
+      desativado
+    })
+
+  } catch (err) {
+    console.error(err)
+    popup({ mensagem: 'Falha ao ativar/desativar o item: Fale com o suporte.' })
+  }
 
 }
 
@@ -821,13 +855,14 @@ async function telaTodosChecklists() {
     const pag = 'lista_checklist'
 
     const tabela = await modTab({
-      base: 'vw_checklist',
+      base: 'dados_orcamentos',
       pag,
       criarLinha: 'criarLinhaOrcamentoChecklist',
       body: pag,
       colunas: {
         'Orçamento': { chave: 'snapshots.contrato' },
         'Tags': { chave: 'snapshots.tags' },
+        'Total Orçamento': { chave: 'snapshots.total' },
         'Dias Trabalhados': {},
         'Previsão Dias': {},
         'Início das atividades': { chave: 'data_inicial', tipoPesquisa: 'data' },
@@ -855,48 +890,60 @@ async function telaTodosChecklists() {
 
 }
 
-function criarLinhaOrcamentoChecklist(checklist) {
+function criarLinhaOrcamentoChecklist(orcamento) {
 
   const {
     id,
+    snapshots,
+    dados_orcam,
+    total_geral: valor_orcamento
+  } = orcamento || {}
+
+  const {
+    checklist,
+    contrato,
+    tags
+  } = snapshots || {}
+
+  const {
     total_dias,
     previsao_dias,
     andamento,
     total_geral,
     total_realizado,
     data_final,
-    data_inicial,
-    snapshots
+    data_inicial
   } = checklist || {}
-
-  const { contrato: dadosOrcamento, tags } = snapshots || {}
 
   // Tags;
   const listaTags = Object.values(tags || {})
     .map(tag => modeloTag(tag, id))
     .join('')
 
-  const valor = Number(((total_realizado / total_geral) * 100).toFixed(1))
+  const valor = Number(((total_realizado / total_geral) * 100).toFixed(2))
 
   return `
     <tr>
       <td>
-        ${dadosOrcamento.map(d => d).join('<br>')}
+        ${(contrato || []).map(d => d).join('<br>')}
       </td>
       <td>
         <div style="display: flex; flex-wrap: wrap; gap: 3px;">${listaTags}</div>
       </td>
       <td>
-        <span class="etiqueta-valores">${total_dias}</span>
+        ${dinheiro(valor_orcamento)}
       </td>
       <td>
-        <span class="etiqueta-valores">${previsao_dias}</span>
+        <span class="etiqueta-valores">${total_dias || 0}</span>
       </td>
       <td>
-        <span class="etiqueta-valores">${data_inicial}</span>
+        <span class="etiqueta-valores">${previsao_dias || 0}</span>
       </td>
       <td>
-        <span class="etiqueta-valores">${data_final}</span>
+        <span class="etiqueta-valores">${data_inicial || 'Sem data'}</span>
+      </td>
+      <td>
+        <span class="etiqueta-valores">${data_final || 'Sem data'}</span>
       </td>
       <td>
         ${divPorcentagem(valor)}
@@ -911,11 +958,10 @@ function criarLinhaOrcamentoChecklist(checklist) {
 
 async function pdfChecklist() {
 
-      await pdf({
-        orientacao: 'landscape',
-        id: 'pdf',
-        estilos: ['checklist', 'velocimetro', 'ocorrencias'],
-        nome: `Checklist_${1}`
-    })
-  
+  await pdf({
+    id: 'pdf',
+    estilos: ['checklist', 'velocimetro', 'ocorrencias'],
+    nome: `Checklist_${1}`
+  })
+
 }

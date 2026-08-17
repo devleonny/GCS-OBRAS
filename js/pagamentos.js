@@ -256,9 +256,16 @@ async function abrirDetalhesPagamentos(id) {
             <div>${elemento}</div>
         </div>`
 
-    let valores = ''
     const { permissao, usuario } = acesso
     const pagamento = await recuperarDado('lista_pagamentos', id) || {}
+
+    const valoresPorCategoria = (pagamento?.snapshots?.categorias || [])
+        .map(({ categoria, valor }) => `
+                <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
+                    <label style="text-align: left;"><b>${dinheiro(valor)}</b> - ${categoria}</label>
+                </div>
+            `)
+        .join('')
 
     const anexos = Object.entries(pagamento?.anexos || {})
         .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoPagamento('${id}', '${idAnexo}')`))
@@ -283,15 +290,6 @@ async function abrirDetalhesPagamentos(id) {
             </div>`)
         .join('')
 
-    for (const item of pagamento.param[0].categorias) {
-        const nomeCategoria = (await recuperarDado('categorias', item.codigo_categoria))?.categoria || '?'
-
-        valores += `
-        <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
-            <label style="text-align: left;"><strong>${dinheiro(item.valor)}</strong> - ${nomeCategoria}</label>
-        </div>`
-    }
-
     const divValores = `
         <hr style="width: 100%;">
         <div style="${vertical}">
@@ -299,7 +297,7 @@ async function abrirDetalhesPagamentos(id) {
                 <label style="font-size: 1.5rem;">${dinheiro(pagamento.param[0].valor_documento)}</label>
                 <label>Total</label>
             </div>
-            ${valores}
+            ${valoresPorCategoria}
         </div>
         <hr style="width: 100%;">
         `
@@ -501,18 +499,24 @@ async function autorizarPagamentos(resposta, id) {
             ? `Aprovado por ${permissao}`
             : `Reprovado por ${permissao}`
 
-        const historico = {
-            status,
-            usuario,
-            justificativa,
-            data: new Date().toLocaleString('pt-BR')
-        }
+        const { historico } = await recuperarDado('lista_pagamentos', id) || {}
 
-        await enviar(`lista_pagamentos/${id}/historico/${crypto.randomUUID()}`, historico)
+        await enviar(`lista_pagamentos/${id}`, {
+            status,
+            historico: {
+                ...historico,
+                [crypto.randomUUID()]: {
+
+                    status,
+                    usuario,
+                    justificativa,
+                    data: new Date().toLocaleString('pt-BR')
+                }
+            }
+        })
+
         await abrirDetalhesPagamentos(id)
 
-        // Aprovação disparada sem precisar aguardar...
-        aprovarPagamento(id)
 
     } catch (err) {
         popup({ mensagem: 'Ocorreu um erro ao processar a solicitação. Tente novamente.' })
@@ -1283,27 +1287,6 @@ async function baixarExcelRelatorioPagamentos() {
     } finally {
         removerOverlay()
     }
-}
-
-async function aprovarPagamento(id) {
-
-    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
-
-    const resposta = await fetch(`${api}/aprovar-pagamento`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ id })
-    })
-
-    if (!resposta.ok) {
-        const erro = await resposta.text()
-        throw new Error(erro || 'Erro ao contar por campo')
-    }
-
-    return await resposta.json()
 }
 
 async function excluirPagamentoOmie(id) {

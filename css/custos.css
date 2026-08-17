@@ -64,3 +64,41 @@
     border-radius: 5px;
     background-color: #f7c5c5;
 }
+
+.toolbar-custo {
+    padding: 0.5rem;
+    width: 100%;
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.toolbar-custo .balao-custo {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 1rem;
+    border-radius: 5px;
+    background: linear-gradient(85deg, #151749, #249f41);
+    color: white;
+}
+
+.toolbar-custo .balao-custo input {
+    padding: 5px;
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
+}
+
+.toolbar-custo .balao-custo span {
+    font-size: 1.2rem;
+}
+
+.resultados {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+}
