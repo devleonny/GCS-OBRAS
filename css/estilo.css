@@ -25,6 +25,8 @@ html {
 }
 
 .loading-container {
+    position: fixed;
+    margin-top: 30vh;
     display: flex;
     align-items: center;
     justify-content: center;

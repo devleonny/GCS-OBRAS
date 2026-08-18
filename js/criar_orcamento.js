@@ -874,9 +874,19 @@ async function enviarDadosOrcamento() {
     if (!orcamentoBase?.id)
         orcamentoBase.id = crypto.randomUUID()
 
-    const { success, contrato } = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoFinal) || {}
+    const { success } = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoFinal) || {}
 
     if (success) {
+
+        const { dados_orcam } = await recuperarDado('dados_orcamentos', orcamentoBase.id) || {}
+
+        if (!dados_orcam)
+            return popup({ mensagem: 'Não foi possível recuperar o ORC_ORÇAMENTO: Fale com o suporte.' })
+
+        const { contrato } = dados_orcam || {}
+
+        if (contrato == 'sequencial')
+            return popup({ mensagem: 'ORC_sequencial detectado: Fale com o suporte.' })
 
         // Caso seja um orçamento vinculado ou troca de Ocorrência para ORC;
         if (orcamentoBase.origem) {
@@ -895,7 +905,6 @@ async function enviarDadosOrcamento() {
                 await enviar(`dados_orcamentos/${idOrcamento}/vinculados/${orcamentoBase.id}`, dados)
 
             }
-
 
             // Correção principal da criação do orçamento, vem com o ID do orçamento;
             const dataRegistro = new Date()

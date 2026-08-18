@@ -27,7 +27,7 @@ async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d01
         id: { op: '=', value: idOrcamento }
       },
       explode: {
-        path: 'detalhamento'
+        path: 'realizado.*'
       },
       criarLinha: 'criarLinhaDetalhada',
       colunas: {
@@ -80,6 +80,7 @@ async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d01
 async function abrirTabelaInstConf(tipo) {
 
   try {
+
     overlayAguarde()
 
     const idOrcamento = controles.detalhamento_checklist.id
@@ -96,7 +97,6 @@ async function abrirTabelaInstConf(tipo) {
     const pag = 'checklist'
     const tabela = await modTab({
       id: idOrcamento,
-      dados_composicoes,
       pag,
       body: pag,
       base: 'dados_orcamentos',
@@ -137,7 +137,6 @@ async function abrirTabelaInstConf(tipo) {
 function criarLinhaDetalhada(registro) {
 
   const {
-    codigo_item,
     data,
     ip,
     rack,
@@ -145,19 +144,21 @@ function criarLinhaDetalhada(registro) {
     descricao,
     observacao,
     unidade,
-    descricao_item,
     codigo,
     quantidade,
     realizado
   } = registro || {}
 
+  const { dados_composicoes } = controles.detalhamento_checklist || {}
+  const { descricao: descricao_item } = dados_composicoes?.[codigo] || {}
+
   return `
     <tr>
-      <td>${codigo_item}</td>
+      <td>${codigo}</td>
       <td>${descricao || ''}</td>
       <td>${rack || ''}</td>
       <td>${local || ''}</td>
-      <td>${descricao_item}</td>
+      <td>${descricao_item || ''}</td>
       <td>${quantidade || 1}</td>
       <td>${unidade || 'UN'}</td>
       <td style="text-align: center;">
@@ -174,10 +175,9 @@ async function atualizarAndamentoChecklist() {
   const painel = document.querySelector('#indicadorGeral')
 
   const idOrcamento = controles.detalhamento_checklist.id
-  const { snapshots } = await recuperarDado('dados_orcamentos', idOrcamento) || {}
+  const { snapshots, realizado } = await recuperarDado('dados_orcamentos', idOrcamento) || {}
   const {
     andamento,
-    detalhamento,
     total_dias,
     previsao_dias,
     data_inicial,
@@ -196,7 +196,7 @@ async function atualizarAndamentoChecklist() {
 
   const req = {
     andamento,
-    detalhamento
+    realizado
   }
 
   const porcentagens = (andamento || [])
@@ -216,13 +216,16 @@ async function atualizarAndamentoChecklist() {
 
       return `
         <div class="checklist-painel">
+
           <div style="${vertical}; width: 300px; margin-left: 1rem; gap: 5px;">
             ${criarVelocimetroHTML({ rotulo: `${numerador} / ${denominador} ${unidade || 'UN'}S`, valor: andamento })}
+
             <div style="${horizontal}; gap: 0.5rem;">
               <img src="imagens/pesquisar2.png" onclick="${funcao}">
               <span>${descricao || tipo}</span>
             </div>
           </div>
+
           ${grafico}
         </div>
         `
@@ -268,9 +271,9 @@ async function atualizarAndamentoChecklist() {
     .join('')
 
   painel.innerHTML = `
-      <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+      <div style="display: flex; gap: 5px;">
         ${porcentagemGeral}
-        ${etiquetas}
+        <div style="display: flex; flex-wrap: wrap; gap: 5px;">${etiquetas}</div>
       </div>
       ${porcentagens}
     `
@@ -343,11 +346,16 @@ async function registrarChecklist(codigo) {
 
     const { id, dados_composicoes } = controles.detalhamento_checklist
     const { qtde, descricao, imagem, unidade } = dados_composicoes?.[codigo] || {}
-    const { detalhamento, mao_obra } = await recuperarDado('checklist', `${codigo}_${id}`) || {}
+    const { realizado } = await recuperarDado('dados_orcamentos', id) || {}
+
     let ths = []
     let linhas = []
     const fixo = 'style="min-width: 100px" contentEditable="true"'
     const ehMaoObra = descricao.includes('MÃO DE OBRA')
+    const realizadoItem = realizado?.[codigo] || []
+    const tipo = descricao.includes('CONFIGURAÇÃO')
+      ? 'CONFIGURAÇÃO'
+      : 'INSTALAÇÃO'
 
     if (ehMaoObra) {
 
@@ -364,7 +372,7 @@ async function registrarChecklist(codigo) {
         'OBSERVAÇÃO'
       ].map(th => `<th>${th}</th>`).join('')
 
-      linhas = (mao_obra || [])
+      linhas = (realizadoItem || [])
         .map(({ data, quantidade, observacao }, i) => {
 
           return `
@@ -396,7 +404,7 @@ async function registrarChecklist(codigo) {
           realizado,
           data,
           observacao
-        } = detalhamento?.[i] || {}
+        } = realizadoItem?.[i] || {}
 
         linhas.push(`
             <tr>
@@ -472,7 +480,7 @@ async function registrarChecklist(codigo) {
       texto: 'Salvar',
       funcao: ehMaoObra
         ? `salvarRegistroMO('${codigo}')`
-        : `salvarRegistroChecklist('${codigo}')`,
+        : `salvarRegistroChecklist('${codigo}', '${tipo}')`,
       img: 'concluido'
     }
     )
@@ -537,9 +545,7 @@ async function salvarRegistroMO(codigo) {
     if (!idOrcamento)
       return popup({ mensagem: 'Falha ao localizar o orçamento: Fale com o suporte.' })
 
-    const idLancamento = `${codigo}_${idOrcamento}`
-
-    const mao_obra = [...document.querySelectorAll('#checklistAtivo tr')]
+    const realizado = [...document.querySelectorAll('#checklistAtivo tr')]
       .map(tr => {
 
         const elemento = (n) => {
@@ -548,6 +554,8 @@ async function salvarRegistroMO(codigo) {
         }
 
         return {
+          tipo: 'MÃO DE OBRA',
+          codigo,
           realizado: true,
           quantidade: Number(elemento('quantidade') || 0),
           data: elemento('data'),
@@ -556,11 +564,7 @@ async function salvarRegistroMO(codigo) {
 
       })
 
-    await enviar(`checklist/${idLancamento}`, {
-      codigo,
-      id_orcamento: idOrcamento,
-      mao_obra
-    })
+    await enviar(`dados_orcamentos/${idOrcamento}/realizado/${codigo}`, realizado)
 
     removerPopup()
 
@@ -571,7 +575,7 @@ async function salvarRegistroMO(codigo) {
 
 }
 
-async function salvarRegistroChecklist(codigo) {
+async function salvarRegistroChecklist(codigo, tipo) {
 
   try {
 
@@ -582,8 +586,6 @@ async function salvarRegistroChecklist(codigo) {
     if (!idOrcamento)
       return popup({ mensagem: 'Falha ao localizar o orçamento: Fale com o suporte.' })
 
-    const idLancamento = `${codigo}_${idOrcamento}`
-
     const detalhamento = [...document.querySelectorAll('#checklistAtivo tr')]
       .map(tr => {
 
@@ -592,24 +594,24 @@ async function salvarRegistroChecklist(codigo) {
           return n == 'realizado' ? e?.checked : e?.value || e?.textContent
         }
 
+        const realizado = elemento('realizado')
+
         return {
+          codigo,
+          tipo,
           descricao: elemento('descricao'),
           rack: elemento('rack'),
           local: elemento('local'),
           pilar: elemento('pilar'),
           setor: elemento('setor'),
           ip: elemento('ip'),
-          realizado: elemento('realizado'),
+          realizado,
           data: elemento('data'),
           observacao: elemento('observacao')
         }
       })
 
-    await enviar(`checklist/${idLancamento}`, {
-      codigo,
-      id_orcamento: idOrcamento,
-      detalhamento
-    })
+    await enviar(`dados_orcamentos/${idOrcamento}/realizado/${codigo}`, detalhamento)
 
     removerPopup()
 
@@ -620,14 +622,14 @@ async function salvarRegistroChecklist(codigo) {
 
 }
 
-function graficoDiario({ andamento, detalhamento, codigo = null, tipo = null }) {
+function graficoDiario({ andamento, realizado, codigo = null, tipo = null }) {
 
   const realizadosPorData = {}
   let realizadosSemData = 0
 
   const ehMaoObra = codigo ? true : false
 
-  const detalhamentoFiltrado = (detalhamento || [])
+  const detalhamentoFiltrado = Object.values(realizado || {}).flat()
     .filter(item => {
 
       if (codigo && item.codigo_item !== codigo)
