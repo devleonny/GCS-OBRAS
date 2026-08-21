@@ -66,20 +66,20 @@
 }
 
 .velocimetro__valor {
-  font-size: 2rem;
+  font-size: 1.4vw;
   font-weight: 700;
   line-height: 1;
 }
 
 .velocimetro__rotulo {
   margin-top: 6px;
-  font-size: 0.95rem;
+  font-size: 0.8vw;
   font-weight: 600;
 }
 
 .velocimetro__limite {
   margin-top: 2px;
-  font-size: 0.8rem;
+  font-size: 0.6vw;
   color: var(--velocimetro-texto-suave);
 }
 

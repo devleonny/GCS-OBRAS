@@ -5,7 +5,7 @@
     align-items: center;
     justify-content: start;
     max-width: 90vw;
-    max-height: 95vw;
+    max-height: 95vh;
     text-align: center;
     border-radius: 10px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
@@ -99,6 +99,7 @@
     border-top-left-radius: 5px;
     border-top-right-radius: 5px;
     overflow: hidden;
+    min-height: max-content;
 }
 
 .popup-top label {
@@ -307,6 +308,7 @@
     width: 100%;
     border-top: 1px solid #6a6a6a;
     border-radius: 0 0 10px 10px;
+    min-height: max-content;
 }
 
 

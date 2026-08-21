@@ -19,57 +19,63 @@ const botaoVeiculos = (valor1, funcao, cor) => `
 `
 async function telaVeiculos() {
 
-    const colunas = {
-        'Data de Registro': { chave: 'data', tipoPesquisa: 'data' },
-        'Usuário': { chave: 'usuario' },
-        'Motorista': { chave: 'veiculo.snapshots.motoristas' },
-        'Data Pagamento': { chave: 'data_pagamento', tipoPesquisa: 'data' },
-        'Marcador': {},
-        'Valor': { chave: 'custo_total' },
-        'Realizado': { chave: 'realizado' },
-        'Cartão': { chave: 'veiculo.cartao' },
-        'Comentário': { chave: 'comentario' },
-        'Departamentos': { chave: 'snapshots.departamentos' },
-        'Editar': {}
+    try {
+
+        overlayAguarde()
+
+        const colunas = {
+            'Data de Registro': { chave: 'data', tipoPesquisa: 'data' },
+            'Usuário': { chave: 'usuario' },
+            'Motorista': { chave: 'veiculo.snapshots.motoristas' },
+            'Data Pagamento': { chave: 'data_pagamento', tipoPesquisa: 'data' },
+            'Marcador': {},
+            'Valor': { chave: 'custo_total' },
+            'Realizado': { chave: 'realizado' },
+            'Cartão': { chave: 'veiculo.cartao' },
+            'Comentário': { chave: 'comentario' },
+            'Departamentos': { chave: 'snapshots.departamentos' },
+            'Editar': {}
+        }
+
+        const btnExtras = (acesso.permissao == 'adm' || acesso.setor == 'FINANCEIRO')
+            ? `<div id="viabilidade"></div>`
+            : ''
+
+        const tabela = await modTab({
+            pag: 'custoVeiculos',
+            btnExtras,
+            body: 'bodyCustoVeiculos',
+            base: 'custo_veiculos',
+            colunas,
+            criarLinha: 'criarLinhaCusto',
+            substituicoes: [
+                {
+                    path: 'distribuicao.*.departamento',
+                    tabela: 'departamentos',
+                    campoBusca: 'codigo',
+                    retorno: 'descricao',
+                    destino: 'distribuicao.*.nomeDepartamento'
+                },
+                {
+                    path: 'veiculo.motoristas.*.id',
+                    tabela: 'clientes',
+                    campoBusca: 'id',
+                    retorno: 'nome',
+                    destino: 'veiculo.motoristas.*.nomeMotorista'
+                }
+            ]
+        })
+
+        tela.innerHTML = montarPagina({ titulo: 'Combustíveis', tabela, imagem: 'combustivel' })
+
+        await paginacao()
+
+        removerOverlay()
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir tabela de Combustíveis: Fale com o suporte.' })
     }
-
-    const btnExtras = (acesso.permissao == 'adm' || acesso.setor == 'FINANCEIRO')
-        ? `<div id="viabilidade"></div>`
-        : ''
-
-    const tabela = await modTab({
-        pag: 'custoVeiculos',
-        btnExtras,
-        body: 'bodyCustoVeiculos',
-        base: 'custo_veiculos',
-        colunas,
-        criarLinha: 'criarLinhaCusto',
-        substituicoes: [
-            {
-                path: 'distribuicao.*.departamento',
-                tabela: 'departamentos',
-                campoBusca: 'codigo',
-                retorno: 'descricao',
-                destino: 'distribuicao.*.nomeDepartamento'
-            },
-            {
-                path: 'veiculo.motoristas.*.id',
-                tabela: 'clientes',
-                campoBusca: 'id',
-                retorno: 'nome',
-                destino: 'veiculo.motoristas.*.nomeMotorista'
-            }
-        ]
-    })
-
-    const acumulado = `
-        <div class="tela-veiculos">
-            ${tabela}
-        </div>`
-
-    tela.innerHTML = acumulado
-
-    await paginacao()
 
 }
 

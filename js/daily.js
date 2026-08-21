@@ -2,46 +2,53 @@ let chartMapaCalor = null
 
 async function daily() {
 
-    overlayAguarde()
+    try {
 
-    const { criadores } = await recuperarDado('vw_opcoes_filtros', 1) || {}
+        overlayAguarde()
 
-    const dropdownUsuarios = montarDropdownCheckbox({
-        titulo: 'Usuários',
-        pag: 'daily',
-        path: 'usuario',
-        opcoes: criadores || []
-    })
+        const { criadores } = await recuperarDado('vw_opcoes_filtros', 1) || {}
 
-    const tabela = await modTab({
-        btnExtras: dropdownUsuarios,
-        base: 'logs_rotas',
-        pag: 'daily',
-        body: 'bodyDaily',
-        funcaoAdicional: ['graficoMapaCalor'],
-        criarLinha: 'linDaily',
-        filtros: {
-            'rota': { op: '!=', value: '/acesso' }
-        },
-        colunas: {
-            'Usuário': { chave: 'usuario' },
-            'Data': { chave: 'data', tipoPesquisa: 'data' },
-            'Tabela': { chave: 'body.caminho' },
-            'Detalhes': {}
-        }
-    })
+        const dropdownUsuarios = montarDropdownCheckbox({
+            titulo: 'Usuários',
+            pag: 'daily',
+            path: 'usuario',
+            opcoes: criadores || []
+        })
 
-    tela.innerHTML = `
-        <div class="daily">
-            ${tabela}
-            <div class="mapa-calor">
-                <h2>Dias x Horários de maior uso do GCS</h2>
-            </div>
-        </div>
-    `
-    await paginacao()
+        const tabela = await modTab({
+            btnExtras: dropdownUsuarios,
+            base: 'logs_rotas',
+            pag: 'daily',
+            body: 'bodyDaily',
+            funcaoAdicional: ['graficoMapaCalor'],
+            criarLinha: 'linDaily',
+            filtros: {
+                'rota': { op: '!=', value: '/acesso' }
+            },
+            colunas: {
+                'Usuário': { chave: 'usuario' },
+                'Data': { chave: 'data', tipoPesquisa: 'data' },
+                'Tabela': { chave: 'body.caminho' },
+                'Detalhes': {}
+            }
+        })
 
-    removerOverlay()
+        tela.innerHTML = `
+            <div class="daily">
+                ${montarPagina({ tabela, titulo: 'Atividades no GCS', imagem: 'lista' })}
+                <div class="mapa-calor">
+                    <h2>Dias x Horários de maior uso do GCS</h2>
+                </div>
+            </div>`
+
+        await paginacao()
+
+        removerOverlay()
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir o histórico de Uso: Fale com o suporte.' })
+    }
 
 }
 

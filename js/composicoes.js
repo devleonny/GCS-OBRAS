@@ -1,36 +1,40 @@
 async function telaComposicoes() {
 
-    if (!LPUS)
-        return popup({ mensagem: 'LPUs não carregaram... espere um pouco mais.' })
+    try {
 
-    const colunas = {
-        'Código': { chave: 'id' },
-        'Editar': {},
-        'Imagem': {},
-        'Descrição': { chave: 'descricao' },
-        'Agrupamento': {},
-        'Cod Omie': { chave: 'omie' },
-        'ncm': { chave: 'ncm' },
-        'Tipo': { chave: 'tipo' },
-        'Unidade': { chave: 'unidade' },
-        'Fabricante': { chave: 'fabricante' },
-        'Modelo': { chave: 'modelo' },
-        'Sistema': { chave: 'sistema' },
-        'Tempo': {},
-        'Descrição ': { chave: 'descricao' },
-        ...Object.fromEntries(
-            LPUS.map(lpu => [inicialMaiuscula(lpu), { chave: `snapshots.${lpu}` }])
-        )
-    }
+        overlayAguarde()
 
-    const filtroLpu = montarDropdownCheckbox({
-        pag: 'composicoes',
-        titulo: 'LPU',
-        path: 'snapshots.validades.*.lpu',
-        opcoes: LPUS || []
-    })
+        if (!LPUS)
+            return popup({ mensagem: 'LPUs não carregaram... espere um pouco mais.' })
 
-    const btnExtras = `
+        const colunas = {
+            'Código': { chave: 'id' },
+            'Editar': {},
+            'Imagem': {},
+            'Descrição': { chave: 'descricao' },
+            'Agrupamento': {},
+            'Cod Omie': { chave: 'omie' },
+            'ncm': { chave: 'ncm' },
+            'Tipo': { chave: 'tipo' },
+            'Unidade': { chave: 'unidade' },
+            'Fabricante': { chave: 'fabricante' },
+            'Modelo': { chave: 'modelo' },
+            'Sistema': { chave: 'sistema' },
+            'Tempo': {},
+            'Descrição ': { chave: 'descricao' },
+            ...Object.fromEntries(
+                LPUS.map(lpu => [inicialMaiuscula(lpu), { chave: `snapshots.${lpu}` }])
+            )
+        }
+
+        const filtroLpu = montarDropdownCheckbox({
+            pag: 'composicoes',
+            titulo: 'LPU',
+            path: 'snapshots.validades.*.lpu',
+            opcoes: LPUS || []
+        })
+
+        const btnExtras = `
         <img src="imagens/alerta.png">
         <div class="filtros">
             <div class="campo-pesquisa">
@@ -43,40 +47,41 @@ async function telaComposicoes() {
         </div>
     `
 
-    const pag = 'composicoes'
-    const tabela = await modTab({
-        btnExtras,
-        colunas,
-        pag,
-        base: 'dados_composicoes',
-        body: 'bodyComposicoes',
-        criarLinha: 'criarLinhaComposicao',
-        substituicoes: [
-            {
-                path: 'agrupamento.*.codigo',
-                tabela: 'dados_composicoes',
-                campoBusca: 'codigo',
-                retorno: 'descricao',
-                destino: 'agrupamento.*.descricao'
-            },
-            {
-                path: 'agrupamento.*.codigo',
-                tabela: 'dados_composicoes',
-                campoBusca: 'codigo',
-                retorno: 'tipo',
-                destino: 'agrupamento.*.tipo'
-            }
-        ]
-    })
+        const pag = 'composicoes'
+        const tabela = await modTab({
+            btnExtras,
+            colunas,
+            pag,
+            base: 'dados_composicoes',
+            body: 'bodyComposicoes',
+            criarLinha: 'criarLinhaComposicao',
+            substituicoes: [
+                {
+                    path: 'agrupamento.*.codigo',
+                    tabela: 'dados_composicoes',
+                    campoBusca: 'codigo',
+                    retorno: 'descricao',
+                    destino: 'agrupamento.*.descricao'
+                },
+                {
+                    path: 'agrupamento.*.codigo',
+                    tabela: 'dados_composicoes',
+                    campoBusca: 'codigo',
+                    retorno: 'tipo',
+                    destino: 'agrupamento.*.tipo'
+                }
+            ]
+        })
 
-    tela.innerHTML = `
-        <div style="width: 95vw;">
-            ${tabela}
-        </div>`
+        tela.innerHTML = montarPagina({ titulo: 'Composições', tabela, imagem: 'composicoes' })
+        removerOverlay()
 
-    removerOverlay()
+        await paginacao(pag)
 
-    await paginacao(pag)
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir as composições: Fale com o suporte.' })
+    }
 
 }
 

@@ -3,14 +3,47 @@ html {
     zoom: 1;
     background: linear-gradient(45deg, #249f41, #151749);
     font-family: 'Poppins', sans-serif;
-    min-height: 100vh;
-    width: 100vw;
+    height: 100vh;
+    width: 100%;
     margin: 0;
     display: flex;
     justify-content: start;
     align-items: center;
     flex-direction: column;
     font-size: 0.9rem;
+}
+
+.toolbar-top {
+    z-index: 9999;
+    height: 6vh;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background-color: #222222ec;
+    width: 100%;
+    position: sticky;
+    top: 0;
+}
+
+.tela {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    overflow-y: auto;
+    box-sizing: border-box;
+    flex-direction: column;
+    padding: 1rem;
+    justify-content: start;
+    align-items: stretch;
+    display: flex;
+}
+
+.layout {
+    width: 100%;
+    height: 94vh;
+    display: flex;
+    align-items: stretch;
 }
 
 .popup-fechar {
@@ -37,7 +70,6 @@ html {
     display: flex;
     align-items: start;
     justify-content: center;
-    flex-direction: column;
     gap: 1rem;
     background-color: rgba(255, 255, 255, 0.104);
     padding: 1rem;
@@ -85,7 +117,6 @@ html {
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    width: 90vw;
     background-color: #0000005e;
     border-radius: 5px;
     padding: 1rem;
@@ -160,17 +191,25 @@ html {
     gap: 1px;
 }
 
-.loginBloco {
+.tela-login {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    width: 100%;
+}
+
+.login-bloco {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    width: auto;
+    width: 500px;
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 4px 15px rgb(0 0 0 / 30%);
 }
 
-.loginBloco input {
+.login-bloco input {
     padding: 5px;
     border-radius: 3px;
     border: solid 1px #696969;
@@ -194,11 +233,12 @@ html {
     width: 10vw;
 }
 
-.baixoLogin {
+.baixo-login {
+    min-height: 20px;
     flex: 1;
     display: flex;
     align-items: center;
-    flex-direction: column;
+    flex-wrap: wrap;
     justify-content: space-evenly;
     background-color: white;
     padding: 1rem;
@@ -231,13 +271,6 @@ html {
 
 .olho {
     width: 2rem;
-}
-
-.telaInterna {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .painel-recuperacao {
@@ -419,6 +452,24 @@ input:focus {
     background-color: #f3f3f3;
 }
 
+.menu-item {
+    flex-direction: column;
+    display: flex;
+    gap: 1px;
+    width: 100%;
+}
+
+.menu-principal {
+    gap: 1px;
+}
+
+.menu-secundario {
+    flex-direction: column;
+    gap: 1px;
+    display: none;
+    margin-left: 16px;
+}
+
 .menu-secundario .menu-item:last-child>.menu-principal .botao-lateral {
     border-bottom-left-radius: 8px;
     margin-bottom: 5px;
@@ -444,16 +495,20 @@ input:focus {
 }
 
 .side-menu {
-    position: fixed;
-    top: 0;
-    left: -250px;
-    width: 250px;
+    flex-shrink: 0;
     height: 100%;
-    background: #222222ec;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
-    transition: 0.3s;
-    z-index: 100000;
-    overflow: auto;
+    overflow-y: auto;
+    z-index: 9998;
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 0;
+    width: 0;
+    min-width: 0;
+    overflow-y: auto;
+    transition: flex-basis 0.3s ease, width 0.3s ease;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    background-color: #222222ec;
 }
 
 .side-menu::-webkit-scrollbar {
@@ -461,7 +516,9 @@ input:focus {
 }
 
 .side-menu.active {
-    left: 0;
+    flex-basis: 250px;
+    width: 250px;
+    min-width: 250px;
 }
 
 .painelBotoes {
@@ -761,7 +818,7 @@ input:focus {
     display: grid;
     grid-template-columns: 35% 1fr;
     align-items: stretch;
-    border-radius: 999px;
+    border-radius: 5px;
     overflow: hidden;
     font-size: .85rem;
     font-weight: 500;
@@ -777,7 +834,7 @@ input:focus {
 
 /* Parte esquerda */
 .pill-a {
-    font-size: 1rem;
+    font-size: 1.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -816,73 +873,27 @@ input:focus {
     width: 90%;
 }
 
-@media screen and (orientation: landscape),
-screen and (min-aspect-ratio: 13/9) {
+.titulo-tabelas {
+    gap: 1rem;
+    display: flex;
+    align-items: start;
+    justify-content: center;
+    margin-left: 2rem;
+    border-radius: 1rem 1rem 0 0;
+    background-color: #d2d2d2;
+    padding: 5px 2rem;
+    font-size: 1.5rem;
+    color: #212121;
+}
 
-    .b-painel {
-        flex-direction: row;
-    }
+.titulo-tabelas img {
+    filter: drop-shadow(0 0 0.2px black);
+}
 
-    .b-atalhos {
-        width: 50%;
-    }
+@media screen and (orientation: portrait) {
 
-    .painel-cadastro {
-        min-width: 40vw;
-    }
-
-    .rodape-login button {
-        padding: 1vw;
-    }
-
-    .tabTarefas table {
-        width: -webkit-fill-available;
-        table-layout: fixed;
-        border-collapse: collapse;
-        display: table;
-    }
-
-    .painel-1-tarefas {
-        align-items: center;
-        display: flex;
-        justify-content: space-between;
-        gap: 2vw;
-    }
-
-    .baixoLogin {
-        flex-direction: row;
-    }
-
-    .btnRodape {
-        width: auto;
-        right: 3vw;
-        bottom: 3vh;
-    }
-
-    .btnExcel {
-        gap: 10vw;
-        display: flex;
-    }
-
-    .camposCadastro {
-        padding: 2vw;
-    }
-
-    .contornoInterno img {
-        width: 2vw
-    }
-
-    .botoes {
-        align-items: center;
-        flex-direction: row;
-    }
-
-    .painelPin {
-        flex-direction: row;
-    }
-
-    .camposTd img {
-        width: 3vw;
+    .login-bloco {
+        width: 95%;
     }
 
 }

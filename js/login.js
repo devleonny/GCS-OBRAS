@@ -4,48 +4,52 @@ async function telaLogin() {
 
     acesso = JSON.parse(localStorage.getItem('acesso'))
 
-    if (acesso)
+    if (acesso?.token)
         return await telaInicialGCS()
 
-    const tLogin = document.querySelector('.loginBloco')
+    const tLogin = document.querySelector('.login-bloco')
     if (tLogin) return
 
     toolbar.style.display = 'none'
 
     const acumulado = `
-        <div id="acesso" class="loginBloco">
+        <div class="tela-login">
 
-            <div class="botaoSuperiorLogin">
-                <span>Painel de acesso ao GCS</span>
-            </div>
+            <div id="acesso" class="login-bloco">
 
-            <div class="baixoLogin">
+                <div class="botaoSuperiorLogin">
+                    <span>Painel de acesso ao GCS</span>
+                </div>
 
-                <img src="imagens/GrupoCostaSilva.png" class="cadeado">
-                
-                <div class="credenciais">
+                <div class="baixo-login">
 
-                    <label>Digite seu usuário</label>
-                    <input type="text" placeholder="Usuário">
+                    <img src="imagens/GrupoCostaSilva.png" class="cadeado">
+                    
+                    <div class="credenciais">
 
-                    <label>Digite sua senha</label>
-                    <div style="${horizontal}; gap: 10px;">
-                        <input type="password" placeholder="Senha">
-                        <img src="imagens/olhoFechado.png" class="olho" onclick="exibirSenha(this)">
+                        <label>Digite seu usuário</label>
+                        <input type="text" placeholder="Usuário">
+
+                        <label>Digite sua senha</label>
+                        <div style="${horizontal}; gap: 10px;">
+                            <input onkeydown="if (event.key === 'Enter') acessoLogin()" type="password" placeholder="Senha">
+                            <img src="imagens/olhoFechado.png" class="olho" onclick="exibirSenha(this)">
+                        </div>
+
+                        <br>
+
+                        <span onclick="recuperarSenha()" style="text-decoration: underline; cursor: pointer;">Esqueceu sua senha?</span>
+
                     </div>
 
                     <br>
 
-                    <span onclick="recuperarSenha()" style="text-decoration: underline; cursor: pointer;">Esqueceu sua senha?</span>
-
                 </div>
 
-                <br>
+                <div class="rodape-padrao">
+                    <label class="botoes-rodape" style="color: white; background-color: #249f41;" onclick="acessoLogin()">Entrar</label>
+                </div>
 
-            </div>
-
-            <div class="rodape-padrao">
-                <label class="botoes-rodape" style="color: white; background-color: #249f41;" onclick="acessoLogin()">Entrar</label>
             </div>
 
         </div>
