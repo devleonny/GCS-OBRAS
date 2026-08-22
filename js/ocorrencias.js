@@ -273,7 +273,7 @@ function carregarCorrecoes(ocorrencia) {
         </div>`
     }
 
-    const { usuario, permissao } = acesso || {}
+    const { permissao } = acesso || {}
     const { id: idOcorrencia, correcoes, snapshots } = ocorrencia || {}
     const { abas } = snapshots || {}
     const divsCorrecoesPorAba = {}
@@ -287,7 +287,6 @@ function carregarCorrecoes(ocorrencia) {
         const {
             aba = 'geral',
             equipamentos,
-            idOrcamento,
             data,
             setor,
             tecnico,
@@ -297,7 +296,6 @@ function carregarCorrecoes(ocorrencia) {
             turno,
             tipoCorrecaoNome,
             tipoCorrecao,
-            localizacao,
             usuario,
             autorizacao,
             dtCorrecao,
@@ -351,10 +349,6 @@ function carregarCorrecoes(ocorrencia) {
             : '<img src="imagens/img.png" style="width: 4rem;">'
 
         const labelTipoCorrecao = formatacaoTipoCorrecao(tipoCorrecaoNome)
-
-        const dtCorrecaoFinalformatada = dtCorrecaoFinal
-            ? dtFormatada(dtCorrecaoFinal)
-            : null
 
         // Pagamento de parceiro
         const aprovacaoParceiro = descricao && descricao.includes('🟢 Pagamento aprovado')
@@ -949,7 +943,6 @@ function criarLinhaOcorrencia(ocorrencia) {
         fotos,
         data_solicitacao,
         data_registro,
-        correcoes,
         unidade,
         anexos,
         usuario,
@@ -968,8 +961,6 @@ function criarLinhaOcorrencia(ocorrencia) {
         cliente,
         empresa
     } = snapshots || {}
-
-    const { permissao } = acesso || {}
 
     // Apenas autorizados;
     const apenasAutorizados = !['cliente', 'técnico'].includes(acesso.permissao)
@@ -2943,132 +2934,139 @@ async function verSaldoTecnico(tecnico) {
 
 async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
 
-    overlayAguarde()
+    try {
 
-    if (conflitoAgenda())
-        return
+        overlayAguarde()
 
-    if (conflitoKit())
-        return
+        if (conflitoAgenda())
+            return
 
-    const tipoCorrecao = obter('tipoCorrecao').id
-    const dtCorrecao = obter('dtCorrecao').value
-    const dtCorrecaoFinal = obter('dtCorrecaoFinal').value
+        if (conflitoKit())
+            return
 
-    if (!tipoCorrecao)
-        return popup({ mensagem: 'Defina um <b>status</b> para a correção' })
+        const tipoCorrecao = obter('tipoCorrecao').id
+        const dtCorrecao = obter('dtCorrecao').value
+        const dtCorrecaoFinal = obter('dtCorrecaoFinal').value
 
-    if (!dtCorrecao)
-        return popup({ mensagem: 'Não deixe em branco <b>Data Limite</b>' })
+        if (!tipoCorrecao)
+            return popup({ mensagem: 'Defina um <b>status</b> para a correção' })
 
-    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
-    if (tipoCorrecao == 'WRuo2' && !ocorrencia.assinatura && acesso.permissao == 'técnico') {
-        coletarAssinatura(idOcorrencia)
-        return
+        if (!dtCorrecao)
+            return popup({ mensagem: 'Não deixe em branco <b>Data Limite</b>' })
+
+        const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
+        if (tipoCorrecao == 'WRuo2' && !ocorrencia.assinatura && acesso.permissao == 'técnico') {
+            coletarAssinatura(idOcorrencia)
+            return
+        }
+
+        const equipamentos = {}
+        const fotos = {}
+        const input = obter('anexos')
+        const anexos = await anexosOcorrencias(input)
+
+        // Fotos;
+        const divFotos = document.querySelector('.fotos')
+        const imgs = divFotos.querySelectorAll('img') || []
+
+        for (const img of imgs) {
+            if (img.dataset && img.dataset.salvo == 'sim') continue
+            const foto = await importarAnexos({ foto: img.src })
+            fotos[foto[0].link] = foto[0]
+        }
+
+        // Técnicos;
+        const tecnico = [...document.querySelectorAll('.tecnicos span')]
+            .filter(span => span.id)
+            .map(span => span.textContent)
+
+        if (tecnico.length == 0 && Object.keys(equipamentos).length > 0)
+            return popup({ mensagem: 'Quando existirem equipamentos, selecione pelo menos 1 Técnico' })
+
+        // Equipamentos
+        const divs = [...document.querySelectorAll('[name="equipamentos"]')]
+
+        const emMassa = divs
+            .filter(div => div.querySelector('span')?.id)
+            .map(async (div) => {
+
+                const equip = div.querySelector('span')
+                const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', equip.id)
+                const inputQuantidade = div.querySelector('#quantidade')
+                const quantidade = Number(inputQuantidade.value)
+                const serie = [...div.querySelectorAll('[name="serie"]')]
+                    .map(input => input.value)
+                const origem = div.querySelector('input[name^="origem_"]:checked')?.dataset.origem || ''
+                const codigo = equip.id
+
+                equipamentos[codigo] = {
+                    codigo,
+                    modelo,
+                    origem,
+                    serie,
+                    descricao,
+                    fabricante,
+                    quantidade,
+                    unidade
+                }
+
+            })
+
+        await Promise.all(emMassa)
+
+        // Setor;
+        const setor = obter('setor').value
+
+        // Executores;
+        const executor = [...document.querySelectorAll('.executores span')]
+            .filter(span => span.id)
+            .map(span => span.textContent)
+
+        if (executor.length == 0 && !setor)
+            return popup({ mensagem: 'Selecione pelo menos 1 executor' })
+
+        const turno = document.querySelectorAll('[name="turno"]:checked')?.[0]?.dataset?.turno
+        const garantia = obter('garantia').checked ? 'S' : 'N'
+        const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
+        const atualizado = {
+            ...correcao,
+            garantia,
+            autorizacao: obter('autorizacao').value || '',
+            fotos: {
+                ...fotos,
+                ...correcao?.fotos,
+            },
+            equipamentos,
+            data: new Date().toLocaleString(),
+            anexos: {
+                ...anexos,
+                ...correcao?.anexos
+            },
+            dtCorrecao,
+            dtCorrecaoFinal,
+            turno,
+            tecnico,
+            executor,
+            setor,
+            usuario: correcao.usuario || acesso.usuario,
+            tipoCorrecao,
+            descricao: document.querySelector('.editor-conteudo')?.innerHTML || ''
+        }
+
+        // Novo fluxo, se existir;
+        const novoFluxo = document.getElementById('novoFluxo')
+        if (novoFluxo)
+            atualizado.aba = novoFluxo.dataset.aba == 'S'
+                ? crypto.randomUUID()
+                : novoFluxo.dataset.aba
+
+        await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, atualizado)
+        removerPopup()
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao salvar a correção: Fale com o suporte.' })
     }
-
-    const equipamentos = {}
-    const fotos = {}
-    const input = obter('anexos')
-    const anexos = await anexosOcorrencias(input)
-
-    // Fotos;
-    const divFotos = document.querySelector('.fotos')
-    const imgs = divFotos.querySelectorAll('img') || []
-
-    for (const img of imgs) {
-        if (img.dataset && img.dataset.salvo == 'sim') continue
-        const foto = await importarAnexos({ foto: img.src })
-        fotos[foto[0].link] = foto[0]
-    }
-
-    // Técnicos;
-    const tecnico = [...document.querySelectorAll('.tecnicos span')]
-        .filter(span => span.id)
-        .map(span => span.textContent)
-
-    if (tecnico.length == 0 && Object.keys(equipamentos).length > 0)
-        return popup({ mensagem: 'Quando existirem equipamentos, selecione pelo menos 1 Técnico' })
-
-    // Equipamentos
-    const divs = [...document.querySelectorAll('[name="equipamentos"]')]
-
-    const emMassa = divs
-        .filter(div => div.querySelector('span')?.id)
-        .map(async (div) => {
-
-            const equip = div.querySelector('span')
-            const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', equip.id)
-            const inputQuantidade = div.querySelector('#quantidade')
-            const quantidade = Number(inputQuantidade.value)
-            const serie = [...div.querySelectorAll('[name="serie"]')]
-                .map(input => input.value)
-            const origem = div.querySelector('input[name^="origem_"]:checked')?.dataset.origem || ''
-            const codigo = equip.id
-
-            equipamentos[codigo] = {
-                codigo,
-                modelo,
-                origem,
-                serie,
-                descricao,
-                fabricante,
-                quantidade,
-                unidade
-            }
-
-        })
-
-    await Promise.all(emMassa)
-
-    // Setor;
-    const setor = obter('setor').value
-
-    // Executores;
-    const executor = [...document.querySelectorAll('.executores span')]
-        .filter(span => span.id)
-        .map(span => span.textContent)
-
-    if (executor.length == 0 && !setor)
-        return popup({ mensagem: 'Selecione pelo menos 1 executor' })
-
-    const turno = document.querySelectorAll('[name="turno"]:checked')?.[0]?.dataset?.turno
-    const garantia = obter('garantia').checked ? 'S' : 'N'
-    const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
-    const atualizado = {
-        ...correcao,
-        garantia,
-        autorizacao: obter('autorizacao').value || '',
-        fotos: {
-            ...fotos,
-            ...correcao?.fotos,
-        },
-        equipamentos,
-        data: new Date().toLocaleString(),
-        anexos: {
-            ...anexos,
-            ...correcao?.anexos
-        },
-        dtCorrecao,
-        dtCorrecaoFinal,
-        turno,
-        tecnico,
-        executor,
-        setor,
-        usuario: correcao.usuario || acesso.usuario,
-        tipoCorrecao,
-        descricao: document.querySelector('.editor-conteudo')?.innerHTML || ''
-    }
-
-    // Novo fluxo, se existir;
-    const novoFluxo = document.getElementById('novoFluxo')
-    if (novoFluxo)
-        atualizado.aba = novoFluxo.dataset.aba == 'S'
-            ? crypto.randomUUID()
-            : novoFluxo.dataset.aba
-
-    await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, atualizado)
-    removerPopup()
 
 }
 
@@ -3081,18 +3079,50 @@ async function salvarOcorrencia(idOcorrencia) {
 
     overlayAguarde()
 
-    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
-    const input = obter('anexos')
-    const anexos = await anexosOcorrencias(input)
-
     const unidade = obter('unidade')?.id
-
     if (!unidade)
         return popup({ mensagem: 'O campo Unidade é obrigatório' })
 
+    const [ocorrenciaBase, anexos] = await Promise.all([
+        idOcorrencia ? recuperarDado('dados_ocorrencias', idOcorrencia) : null,
+        anexosOcorrencias(obter('anexos'))
+    ])
+
+    const ocorrencia = ocorrenciaBase || {}
+
+    const divs = [...document.querySelectorAll('[name="equipamentos"]')]
+    const promessasEquips = divs.map(async div => {
+        const id = div.querySelector('span')?.id
+        if (!id) return null
+
+        const { unidade: un, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', id)
+        const quantidade = Number(div.querySelector('#quantidade')?.value || 0)
+        const serie = [...div.querySelectorAll('[name="serie"]')].map(input => input.value)
+
+        return {
+            id,
+            dados: { codigo: id, modelo, serie, descricao, fabricante, quantidade, unidade: un }
+        }
+    })
+
+    const imgs = [...document.querySelectorAll('.fotos img')].filter(i => i.dataset.salvo == 'não')
+    const promessasFotos = imgs.map(async img => {
+        const [dados] = await importarAnexos({ foto: img.src })
+        return dados
+    })
+
+    const [listaEquips, fotosCarregadas] = await Promise.all([
+        Promise.all(promessasEquips),
+        Promise.all(promessasFotos)
+    ])
+
+    const equipamentos = Object.fromEntries(
+        listaEquips.filter(Boolean).map(e => [e.id, e.dados])
+    )
+
     const novo = {
         data_solicitacao: obter('data_solicitacao')?.value || null,
-        equipamentos: {},
+        equipamentos,
         unidade: Number(unidade),
         sistema: obter('sistema')?.id || null,
         prioridade: obter('prioridade')?.id || null,
@@ -3106,75 +3136,38 @@ async function salvarOcorrencia(idOcorrencia) {
         }
     }
 
-    // Equipamentos
-    const divs = document.querySelectorAll('[name="equipamentos"]')
-
-    for (const div of divs) {
-
-        const equip = div.querySelector('span')
-
-        if (!equip?.id)
-            continue
-
-        const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', equip.id)
-
-        const quantidade = Number(div.querySelector('#quantidade').value)
-        const serie = [...div.querySelectorAll('[name="serie"]')]
-            .map(input => input.value)
-
-        novo.equipamentos[equip.id] = {
-            codigo: equip.id,
-            modelo,
-            serie,
-            descricao,
-            fabricante,
-            quantidade,
-            unidade
-        }
-    }
-
     ocorrencia.fotos ??= {}
-
-    const imgs = [...document.querySelectorAll('.fotos img')]
-        .filter(i => i.dataset.salvo == 'não')
-
-    if (imgs.length > 0) {
-        for (const img of imgs) {
-            const foto = await importarAnexos({ foto: img.src })
-            const dados = foto[0]
-            ocorrencia.fotos[dados.link] = dados
-        }
+    for (const foto of fotosCarregadas) {
+        if (foto?.link) ocorrencia.fotos[foto.link] = foto
     }
 
     if (idOcorrencia) {
         Object.assign(ocorrencia, novo)
-
         await enviar(`dados_ocorrencias/${idOcorrencia}`, ocorrencia)
         removerPopup()
-
-    } else {
-
-        try {
-            const resposta = await enviar('dados_ocorrencias/0000', novo)
-
-            if (resposta.mensagem)
-                return popup({ mensagem: resposta.mensagem })
-
-            removerTodosPopups()
-
-            const painelHistorico = document.querySelector('.painel-historico')
-            if (painelHistorico)
-                await telaOcorrencias()
-
-
-        } catch (err) {
-            popup({ mensagem: err.mensagem || 'Falha ao salvar a ocorrência, fale com o Suporte!' })
-        }
+        return
     }
 
+    try {
+        const resposta = await enviar('dados_ocorrencias/0000', novo)
+        if (resposta?.mensagem)
+            return popup({ mensagem: resposta.mensagem })
+
+        removerTodosPopups()
+
+        if (document.querySelector('.painel-historico'))
+            await telaOcorrencias()
+
+    } catch (err) {
+        popup({ mensagem: err?.mensagem || 'Falha ao salvar a ocorrência, fale com o Suporte!' })
+    }
 }
 
 async function anexosOcorrencias(input) {
+
+    if (input?.files?.length)
+        return {}
+
     const anexos = await importarAnexos({ input }) || []
     const objeto = {}
     anexos.forEach(anexo => {

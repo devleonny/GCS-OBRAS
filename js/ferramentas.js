@@ -692,7 +692,8 @@ function base64ToBlob(base64) {
 
 async function importarAnexos({ input, foto }) {
 
-    if (!foto && !input?.files?.length) return []
+    if (!foto && !input?.files?.length) 
+        return []
 
     const formData = new FormData()
 

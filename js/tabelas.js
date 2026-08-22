@@ -633,7 +633,7 @@ function criarDino(cols) {
 }
 
 function achou() {
-    return Math.random() < 0.01
+    return Math.random() < 0.1
 }
 
 function ordenarColuna({ pag, path }) {

@@ -87,15 +87,6 @@ async function abrirTabelaInstConf(tipo) {
 
     const idOrcamento = controles.detalhamento_checklist.id
 
-    const {
-      dados_orcam,
-      dados_composicoes,
-      snapshots
-    } = await recuperarDado('dados_orcamentos', idOrcamento) || {}
-
-    const { contrato } = dados_orcam || {}
-    const { cliente } = snapshots || {}
-
     const pag = 'checklist'
     const tabela = await modTab({
       id: idOrcamento,
@@ -207,16 +198,17 @@ async function atualizarAndamentoChecklist() {
   }
 
   const porcentagens = (andamento || [])
-    .map(({ tipo, codigo, descricao, unidade, andamento, numerador, denominador }) => {
+    .map(({ tipo, codigo, descricao, unidade, ordem, andamento, numerador, denominador }) => {
 
       const ehMaoObra = tipo == 'MÃO_DE_OBRA'
       const funcao = ehMaoObra
-        ? `registrarChecklist('${codigo}')`
+        ? `abrirTabMO('${idOrcamento}', '${codigo}', '${unidade}', '${descricao}')`
         : `abrirTabelaInstConf('${tipo}')`
 
       const grafico = graficoDiario({
         ...req,
         ehMaoObra,
+        ordem,
         codigo,
         tipo
       })
@@ -359,22 +351,79 @@ async function desativarEmMassa() {
 
 }
 
+async function abrirTabMO(idOrcamento, codigo, unidade, descricao) {
+
+  overlayAguarde()
+
+  const tabela = await modTab({
+    colunas: {
+      'Código': {},
+      'Quantidade': {},
+      'Data': {},
+      'Observação': {}
+    },
+    base: 'checklist',
+    body: 'mo',
+    pag: 'mo',
+    criarLinha: 'criarLinhaMO',
+    filtros: {
+      id_orcamento: { op: '=', value: idOrcamento },
+      codigo: { op: '=', value: codigo }
+    }
+  })
+
+  const elemento = `
+    <div style="padding: 1rem;">
+      ${montarPagina({ tabela, titulo: `${descricao.slice(0, 30)}...`, imagem: 'checklist' })}
+    </div>
+    `
+  const botoes = [
+    {
+      texto: 'Adicionar Linha',
+      funcao: `adicionarLinhaChecklistMO('${codigo}', '${unidade}')`,
+      img: 'baixar'
+    }
+  ]
+
+  popup({ elemento, botoes, titulo: descricao })
+
+  await paginacao('mo')
+
+}
+
+function criarLinhaMO(item) {
+
+  const {
+    observacao,
+    quantidade,
+    data,
+    codigo
+  } = item || {}
+
+  return `
+    <tr>
+      <td>${codigo}</td>
+      <td>${quantidade || 0}</td>
+      <td>${dtFormatada(data)}</td>
+      <td style="white-space: wrap;">${observacao}</td>
+    </tr>
+  `
+
+}
+
 async function registrarChecklist(codigo) {
 
   try {
     overlayAguarde()
 
-    const hoje = new Date().toISOString().slice(0, 10)
-
     const { id, dados_composicoes } = controles.detalhamento_checklist
     const { qtde, descricao, imagem, unidade } = dados_composicoes?.[codigo] || {}
-    const { realizado } = await recuperarDado('dados_orcamentos', id) || {}
+    const { realizado: realizadoGeral } = await recuperarDado('dados_orcamentos', id) || {}
 
     let ths = []
     let linhas = []
     const fixo = 'style="min-width: 100px; vertical-align: top;" contentEditable="true"'
     const ehMaoObra = descricao.includes('MÃO DE OBRA')
-    const realizadoItem = realizado?.[codigo] || []
     const tipo = descricao.includes('CONFIGURAÇÃO')
       ? 'CONFIGURAÇÃO'
       : 'INSTALAÇÃO'
@@ -394,7 +443,7 @@ async function registrarChecklist(codigo) {
         'OBSERVAÇÃO'
       ].map(th => `<th>${th}</th>`).join('')
 
-      linhas = (realizadoItem || [])
+      linhas = (realizadoGeral?.[codigo] || [])
         .map(({ data, quantidade, observacao }, i) => {
 
           return `
@@ -416,6 +465,8 @@ async function registrarChecklist(codigo) {
 
       for (let i = 0; i < qtde; i++) {
 
+        const ordem = i + 1
+
         const {
           descricao,
           rack,
@@ -426,16 +477,55 @@ async function registrarChecklist(codigo) {
           realizado,
           data,
           observacao,
-          foto
-        } = realizadoItem?.[i] || {}
+          fotos
+        } = realizadoGeral?.[codigo]?.[ordem] || {}
 
-        const linkFoto = foto 
-          ? `${api}/uploads/${foto}`
-          : 'imagens/LG.png' 
+        const idInputFoto = `foto-${crypto.randomUUID()}`
+        const qtdeFotos = Object.keys(fotos || {}).length
+
+        const divFoto = `
+          <div style="${vertical}; gap: 5px;">
+
+            <div style="${horizontal}; gap: 5px;">
+
+              <span class="labelQuantidade" ${qtdeFotos > 0 ? 'style="background-color: #249f41;"' : ''}>
+                ${qtdeFotos}
+              </span>
+
+              <label
+                for="${idInputFoto}"
+                style="cursor: pointer; display: inline-flex;"
+                title="Selecionar fotos">
+                <img
+                  src="imagens/camera.png"
+                  alt="Selecionar fotos"
+                  style="
+                    width: 24px;
+                    height: 24px;
+                    object-fit: contain;
+                  ">
+              </label>
+
+            </div>
+
+            <input
+              id="${idInputFoto}"
+              name="foto"
+              type="file"
+              multiple
+              accept="image/png, image/jpeg, image/webp"
+              required
+              style="display: none;"
+              onchange="alterarImagemPreview(this)">
+
+            <span class="textoArquivosSelecionados"></span>
+
+          </div>
+        `
 
         linhas.push(`
             <tr>
-                <td style="text-align: center;">${i + 1}</td>
+                <td style="text-align: center;" name="ordem">${ordem}</td>
                 <td ${fixo} name="descricao">${descricao || ''}</td>
                 <td ${fixo} name="rack">${rack || ''}</td>
                 <td ${fixo} name="local">${local || ''}</td>
@@ -443,17 +533,7 @@ async function registrarChecklist(codigo) {
                 <td ${fixo} name="setor">${setor || ''}</td>
                 <td ${fixo} name="ip">${ip || ''}</td>
                 <td>
-                  <div style="${vertical}; gap: 5px;">
-                      <img  src="${linkFoto}" style="width: 100px;">
-                      <input 
-                        name="foto"
-                        data-novo="${foto ? 'N' : 'S'}"
-                        ${foto ? `data-foto="${foto}"` : ''}
-                        type="file" 
-                        accept="image/png, image/jpeg, image/webp" 
-                        required 
-                        onchange="alterarImagemPreview(this)">
-                  </div>
+                    ${divFoto}
                 </td>
                 <td style="text-align: center;">
                     <input ${realizado ? 'checked' : ''} name="realizado" style="width: 2rem; height: 2rem;" type="checkbox">
@@ -474,7 +554,7 @@ async function registrarChecklist(codigo) {
         'PILAR',
         'SETOR',
         'IP',
-        'FOTO',
+        'FOTOS',
         ` 
             <div style="${horizontal}; gap: 5px;">
               <input oninput="preencherDemais(this, 'realizado')"  style="width: 2rem; height: 2rem;" type="checkbox">
@@ -512,13 +592,6 @@ async function registrarChecklist(codigo) {
 
     const botoes = []
 
-    if (ehMaoObra)
-      botoes.push({
-        texto: 'Adicionar Linha',
-        funcao: `adicionarLinhaChecklistMO('${unidade}')`,
-        img: 'baixar'
-      })
-
     botoes.push({
       texto: 'Salvar',
       funcao: ehMaoObra
@@ -543,50 +616,81 @@ async function registrarChecklist(codigo) {
 }
 
 function alterarImagemPreview(input) {
+  const container = input.closest('div')
+  const texto = container?.querySelector(
+    '.textoArquivosSelecionados'
+  )
 
-  const [arquivo] = input.files || []
+  const quantidade = input.files?.length || 0
 
-  if (!arquivo) 
-    return
+  if (!texto) return
 
-  if (!arquivo.type.startsWith('image/')) {
-    popup({ mensagem: 'Por favor, selecione apenas arquivos de imagem (PNG, JPG, WEBP).' })
-    input.value = ''
+  if (quantidade === 0) {
+    texto.textContent = ''
     return
   }
 
-  const imgElemento = input.parentElement.querySelector('img')
+  texto.textContent = quantidade === 1
+    ? '1 arquivo selecionado'
+    : `${quantidade} arquivos selecionados`
 
-  if (!imgElemento) 
-    return
-
-  const leitor = new FileReader()
-
-  leitor.onload = (evento) => {
-    imgElemento.src = evento.target.result
-    input.dataset.novo = 'S'
-  }
-
-  leitor.readAsDataURL(arquivo)
 }
 
-function adicionarLinhaChecklistMO(unidade) {
+function adicionarLinhaChecklistMO(codigo, unidade) {
 
-  const fixo = 'style="min-width: 100px" contentEditable="true"'
+  const linhas = [
+    {
+      texto: 'Unidade',
+      elemento: `<span>${unidade}</span>`
+    },
+    {
+      texto: 'Quantidade',
+      elemento: `<input name="quantidade" type="number">`
+    },
+    {
+      texto: 'Data',
+      elemento: `<input name="data" type="date">`
+    },
+    {
+      texto: 'Observação',
+      editor: ''
+    }
+  ]
 
-  document.getElementById('checklistAtivo').insertAdjacentHTML('beforeend', `
-      <tr>
-        <td style="text-align: center;">
-          <img onclick="this.parentElement.parentElement.remove()" src="imagens/fechar.png">
-        </td>
-        <td>${unidade || 'UN'}</td>
-        <td name="quantidade" ${fixo}></td>
-        <td>
-          <input type="date" name="data">
-        </td>
-        <td ${fixo} name="observacao"></td>
-      </tr>
-    `)
+  const botoes = [
+    { texto: 'Salvar', funcao: `salvarItemChecklist('${codigo}')`, img: 'concluido' }
+  ]
+
+  popup({ linhas, botoes, titulo: 'Registrar' })
+
+}
+
+async function salvarItemChecklist(codigo) {
+
+  try {
+
+    overlayAguarde()
+
+    const idOrcamento = controles.detalhamento_checklist.id
+    const id = crypto.randomUUID()
+    const item = {
+      id,
+      id_orcamento: idOrcamento,
+      quantidade: Number(document.querySelector('[name="quantidade"]').value),
+      observacao: document.querySelector('.editor-conteudo').innerHTML,
+      data: document.querySelector('[name="data"]').value,
+      tipo: 'MÃO_OBRA',
+      codigo
+    }
+
+    await enviar(`checklist/${id}`, item)
+
+    removerPopup()
+
+  } catch (err) {
+    console.error(err)
+    popup({ mensagem: 'Falha ao salvar o registro: Fale com o suporte.' })
+  }
 
 }
 
@@ -634,7 +738,7 @@ async function salvarRegistroMO(codigo) {
 
       })
 
-    await enviar(`dados_orcamentos/${idOrcamento}/realizado/${codigo}`, realizado)
+    await enviar(`checklist/${idOrcamento}/realizado/${codigo}`, realizado)
 
     removerPopup()
 
@@ -656,7 +760,9 @@ async function salvarRegistroChecklist(codigo, tipo) {
     if (!idOrcamento)
       return popup({ mensagem: 'Falha ao localizar o orçamento: Fale com o suporte.' })
 
-    const emMassa = [...document.querySelectorAll('#checklistAtivo tr')]
+    const { realizado: realizadoAtual } = await recuperarDado('dados_orcamentos', idOrcamento) || {}
+
+    const lista = await Promise.all([...document.querySelectorAll('#checklistAtivo tr')]
       .map(async (tr) => {
 
         const elemento = (n) => {
@@ -664,21 +770,21 @@ async function salvarRegistroChecklist(codigo, tipo) {
           return n == 'realizado' ? e?.checked : e?.value || e?.textContent
         }
 
-        // Fotos;
-        let foto = null
-        const input = tr.querySelector('[name="foto"]')
+        const realizado = elemento('realizado')
+        const ordem = elemento('ordem')
 
-        if(input.dataset.novo == 'S') {
-          const resultado = await importarAnexos({ input })
-          foto = resultado?.[0]?.link
-        } else {
-          foto = input?.dataset?.foto
+        // Fotos;
+        const input = tr.querySelector('[name="foto"]')
+        const resposta = (await importarAnexos({ input }) || [])
+          .map(anexo => ({ [crypto.randomUUID()]: anexo }))
+        const fotos = {
+          ...realizadoAtual?.[codigo]?.[ordem]?.fotos || {},
+          ...Object.assign({}, ...resposta)
         }
 
-        const realizado = elemento('realizado')
-
-        return {
-          foto,
+        const dados = {
+          ordem,
+          fotos,
           codigo,
           tipo,
           descricao: elemento('descricao'),
@@ -691,9 +797,13 @@ async function salvarRegistroChecklist(codigo, tipo) {
           data: elemento('data'),
           observacao: elemento('observacao')
         }
-      })
 
-    const detalhamento = await Promise.all(emMassa)
+        return { [ordem]: dados }
+
+      })
+    )
+
+    const detalhamento = Object.assign({}, ...lista)
 
     await enviar(`dados_orcamentos/${idOrcamento}/realizado/${codigo}`, detalhamento)
 
@@ -706,7 +816,8 @@ async function salvarRegistroChecklist(codigo, tipo) {
 
 }
 
-function graficoDiario({ desativados_checklist, andamento, realizado, ehMaoObra, codigo = null, tipo = null }) {
+function graficoDiario({ desativados_checklist, ordem, andamento, realizado, ehMaoObra, codigo = null, tipo = null }) {
+
   const realizadosPorData = {}
   let realizadosSemData = 0
 
