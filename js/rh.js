@@ -20,45 +20,56 @@ const modeloRH = (valor1, elemento, funcao) => {
 
 async function telaRH() {
 
-    const colunas = {
-        'Editar': {},
-        'Nome': { chave: 'snapshots.nome' },
-        'Cidade': { chave: 'snapshots.cidade' },
-        'Clínica': { chave: 'clinica' },
-        'Realizado': { chave: 'snapshots.realizado' },
-        'Validade': { chave: 'snapshots.validade' },
-        'Dif/Dias': {},
-        'Arquivo': { chave: 'doc' }
+    try {
+
+        overlayAguarde()
+
+        const colunas = {
+            'Editar': {},
+            'Nome': { chave: 'snapshots.nome' },
+            'Cidade': { chave: 'snapshots.cidade' },
+            'Clínica': { chave: 'clinica' },
+            'Realizado': { chave: 'snapshots.realizado' },
+            'Validade': { chave: 'snapshots.validade' },
+            'Dif/Dias': {},
+            'Arquivo': { chave: 'doc' }
+        }
+
+        const btnExtras = `
+            <div style="${horizontal}; gap: 2px;">
+                <button onclick="filtrarPorTempo('atrasados')">Atrasados</button>
+                <button onclick="filtrarPorTempo('proximo')">Venc. Próximo (60d)</button>
+                <button onclick="filtrarPorTempo()">Todos</button>
+            </div>
+            `
+        const pag = 'rh'
+        const tabela = await modTab({
+            btnExtras,
+            pag,
+            body: 'bodyDocumentos',
+            funcaoAdicional: ['criarPastinhas'],
+            base: 'documentos',
+            colunas,
+            criarLinha: 'criarLinhaRH'
+        })
+
+        const acumulado = `
+            <div class="tela-rh">
+                <div class="esquema-cidades"></div>
+                ${montarPagina({ tabela, titulo: 'Documentos Salvos', imagem: 'contratos' })}
+            </div>
+        `
+
+        tela.innerHTML = acumulado
+
+        await paginacao(pag)
+
+        removerOverlay()
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir documentos RH: Fale com o suporte.' })
     }
-
-    const btnExtras = `
-    <div style="${horizontal}; gap: 2px;">
-        <button onclick="filtrarPorTempo('atrasados')">Atrasados</button>
-        <button onclick="filtrarPorTempo('proximo')">Venc. Próximo (60d)</button>
-        <button onclick="filtrarPorTempo()">Todos</button>
-    </div>
-    `
-
-    const tabela = await modTab({
-        btnExtras,
-        pag: 'rh',
-        body: 'bodyDocumentos',
-        funcaoAdicional: ['criarPastinhas'],
-        base: 'documentos',
-        colunas,
-        criarLinha: 'criarLinhaRH'
-    })
-
-    const acumulado = `
-        <div class="tela-rh">
-            <div class="esquema-cidades"></div>
-            <div class="tabela-documentos">${tabela}</div>
-        </div>
-    `
-
-    tela.innerHTML = acumulado
-
-    await paginacao()
 
 }
 

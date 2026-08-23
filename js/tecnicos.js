@@ -1,154 +1,179 @@
 async function telaSaldoFerramentas(tecnico = null) {
 
-    const titulo = tecnico
-        ? `SALDO DE FERRAMENTAS ${tecnico}`
-        : 'SALDO DE FERRAMENTAS POR TÉCNICO'
+    try {
 
-    const filtros = tecnico
-        ? {
-            tecnico: { op: 'includes', value: tecnico }
-        }
-        : {}
+        overlayAguarde()
 
-    const pag = 'tecnicosResumido'
-    const tabelaResumida = await modTab({
-        pag,
-        filtros: {
-            ...filtros,
-            origem: { op: '=', value: 'Ferramentas' }
-        },
-        base: 'vw_tecnicos_saldo',
-        btnExtras: `<span style="font-size: 1.1rem; color: white;">${titulo}</span>`,
-        body: 'bodyTecResumido',
-        criarLinha: 'criarLinhaTecsResumido',
-        colunas: {
-            'Técnico': {
-                ...(tecnico
-                    ? {}
-                    : { chave: 'tecnico' })
+        const filtros = tecnico
+            ? {
+                tecnico: { op: 'includes', value: tecnico }
+            }
+            : {}
+
+        const pag = 'tecnicosResumido'
+        const tabela = await modTab({
+            pag,
+            filtros: {
+                ...filtros,
+                origem: { op: '=', value: 'Ferramentas' }
             },
-            'Código': { chave: 'codigo' },
-            'Descrição': { chave: 'descricao_peca' },
-            'Unidade': { chave: 'unidade' },
-            'Modelo': { chave: 'modelo' },
-            'Fabricante': { chave: 'fabricante' },
-            'Sinal': {},
-            'Saldo': {}
-        }
-    })
+            base: 'vw_tecnicos_saldo',
+            body: 'bodyTecResumido',
+            criarLinha: 'criarLinhaTecsResumido',
+            colunas: {
+                'Técnico': {
+                    ...(tecnico
+                        ? {}
+                        : { chave: 'tecnico' })
+                },
+                'Código': { chave: 'codigo' },
+                'Descrição': { chave: 'descricao_peca' },
+                'Unidade': { chave: 'unidade' },
+                'Modelo': { chave: 'modelo' },
+                'Fabricante': { chave: 'fabricante' },
+                'Sinal': {},
+                'Saldo': {}
+            }
+        })
 
-    const elemento = `<div class="painel-saldos">${tabelaResumida}</div>`
+        const titulo = tecnico
+            ? `SALDO DE FERRAMENTAS ${tecnico}`
+            : 'SALDO DE FERRAMENTAS POR TÉCNICO'
 
-    const painel_resumo = document.getElementById('painel_resumo')
+        const painel_resumo = document.getElementById('painel_resumo')
 
-    if (painel_resumo)
-        painel_resumo.innerHTML = tabelaResumida
-    else
-        tela.innerHTML = elemento
+        if (painel_resumo)
+            painel_resumo.innerHTML = tabela
+        else
+            tela.innerHTML = montarPagina({ tabela, titulo, imagem: 'planilha' })
 
-    await paginacao(pag)
+        await paginacao(pag)
+
+        removerOverlay()
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir Ferramentas: Fale com o suporte.' })
+    }
 
 }
 
 async function telaSaldoPecas(tecnico = null) {
 
-    const titulo = tecnico
-        ? `SALDO DE PEÇAS ${tecnico}`
-        : 'SALDO DE PEÇAS POR TÉCNICO'
+    try {
 
-    const filtros = tecnico
-        ? {
-            tecnico: { op: 'includes', value: tecnico }
-        }
-        : {}
+        overlayAguarde()
 
-    const pag = 'tecnicosResumido'
-    const tabelaResumida = await modTab({
-        pag,
-        filtros: {
-            ...filtros,
-            origem: { op: '=', value: 'Kit' }
-        },
-        base: 'vw_tecnicos_saldo',
-        btnExtras: `<span style="font-size: 1.1rem; color: white;">${titulo}</span>`,
-        body: 'bodyTecResumido',
-        criarLinha: 'criarLinhaTecsResumido',
-        colunas: {
-            'Técnico': {
-                ...(tecnico
-                    ? {}
-                    : { chave: 'tecnico' })
+        const filtros = tecnico
+            ? {
+                tecnico: { op: 'includes', value: tecnico }
+            }
+            : {}
+
+        const pag = 'tecnicosResumido'
+        const tabela = await modTab({
+            pag,
+            filtros: {
+                ...filtros,
+                origem: { op: '=', value: 'Kit' }
             },
-            'Código': { chave: 'codigo' },
-            'Descrição': { chave: 'descricao_peca' },
-            'Unidade': { chave: 'unidade' },
-            'Modelo': { chave: 'modelo' },
-            'Fabricante': { chave: 'fabricante' },
-            'Sinal': {},
-            'Saldo': {}
-        }
-    })
+            base: 'vw_tecnicos_saldo',
+            body: 'bodyTecResumido',
+            criarLinha: 'criarLinhaTecsResumido',
+            colunas: {
+                'Técnico': {
+                    ...(tecnico
+                        ? {}
+                        : { chave: 'tecnico' })
+                },
+                'Código': { chave: 'codigo' },
+                'Descrição': { chave: 'descricao_peca' },
+                'Unidade': { chave: 'unidade' },
+                'Modelo': { chave: 'modelo' },
+                'Fabricante': { chave: 'fabricante' },
+                'Sinal': {},
+                'Saldo': {}
+            }
+        })
 
-    const elemento = `<div class="painel-saldos">${tabelaResumida}</div>`
+        const titulo = tecnico
+            ? `SALDO DE PEÇAS ${tecnico}`
+            : 'SALDO DE PEÇAS POR TÉCNICO'
 
-    const painel_resumo = document.getElementById('painel_resumo')
+        const painel_resumo = document.getElementById('painel_resumo')
 
-    if (painel_resumo)
-        painel_resumo.innerHTML = tabelaResumida
-    else
-        tela.innerHTML = elemento
+        if (painel_resumo)
+            painel_resumo.innerHTML = tabelaResumida
+        else
+            tela.innerHTML = montarPagina({ titulo, tabela, imagem: 'planilha' })
 
-    await paginacao(pag)
+        await paginacao(pag)
+
+        removerOverlay()
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir Saldos: Fale com o suporte.' })
+    }
 
 }
 
 async function criarTabelaTecDetalhada(tecnico = null) {
 
-    const filtros = tecnico
-        ? { tecnico: { op: 'includes', value: tecnico } }
-        : {}
+    try {
 
-    const titulo = tecnico
-        ? `Detalhamento ${tecnico}`
-        : 'TODOS OS MOVIMENTOS'
+        overlayAguarde()
 
-    const pag = 'estoque_tecnicos'
-    const tabelaResumida = await modTab({
-        pag,
-        filtros,
-        base: 'vw_tecnicos_movimentos',
-        btnExtras: `<span style="font-size: 1.1rem; color: white;">${titulo}</span>`,
-        colunas: {
-            'Data': { chave: 'data', tipoPesquisa: 'data' },
-            'Solicitante': { chave: 'usuario' },
-            'Técnicos': tecnico
-                ? {}
-                : { chave: 'tecnico' },
-            'Contrato': { chave: 'id_ocorrencia' },
-            'Sinal': {},
-            'Operação': { chave: 'operacao' },
-            'Quantidade': { chave: 'quantidade' },
-            'Origem': { chave: 'origem' },
-            'Código': { chave: 'codigo' },
-            'Descrição': { chave: 'equipamentos.*.descricao' }
-        },
-        explode: {
-            path: 'equipamentos'
-        },
-        body: 'bodyTecnicos',
-        criarLinha: 'criarLinhaMovimento'
-    })
+        const filtros = tecnico
+            ? { tecnico: { op: 'includes', value: tecnico } }
+            : {}
 
-    const elemento = `<div class="painel-saldos">${tabelaResumida}</div>`
+        const titulo = tecnico
+            ? `Detalhamento ${tecnico}`
+            : 'TODOS OS MOVIMENTOS'
 
-    const painel_resumo = document.getElementById('painel_resumo')
+        const pag = 'estoque_tecnicos'
+        const tabela = await modTab({
+            pag,
+            filtros,
+            base: 'vw_tecnicos_movimentos',
+            colunas: {
+                'Data': { chave: 'data', tipoPesquisa: 'data' },
+                'Solicitante': { chave: 'usuario' },
+                'Técnicos': tecnico
+                    ? {}
+                    : { chave: 'tecnico' },
+                'Contrato': { chave: 'id_ocorrencia' },
+                'Sinal': {},
+                'Operação': { chave: 'operacao' },
+                'Quantidade': { chave: 'quantidade' },
+                'Origem': { chave: 'origem' },
+                'Código': { chave: 'codigo' },
+                'Descrição': { chave: 'equipamentos.*.descricao' }
+            },
+            explode: {
+                path: 'equipamentos'
+            },
+            body: 'bodyTecnicos',
+            criarLinha: 'criarLinhaMovimento'
+        })
 
-    if (painel_resumo)
-        painel_resumo.innerHTML = tabelaResumida
-    else
-        tela.innerHTML = elemento
+        const painel_resumo = document.getElementById('painel_resumo')
 
-    await paginacao(pag)
+        if (painel_resumo)
+            painel_resumo.innerHTML = tabela
+        else
+            tela.innerHTML = montarPagina({ titulo, tabela, imagem: 'planilha' })
+
+        await paginacao(pag)
+
+        removerOverlay()
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir Movimentos: Fale com o suporte.' })
+    }
+
 
 }
 

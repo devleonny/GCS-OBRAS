@@ -52,7 +52,6 @@
     display: flex;
     align-items: start;
     justify-content: start;
-    width: 95vw;
     gap: 1rem;
 }
 

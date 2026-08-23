@@ -50,8 +50,6 @@ if (!emArquivoLocal && 'serviceWorker' in navigator) {
         .catch(err => console.error('Erro ao registrar SW:', err))
 }
 
-document.addEventListener('click', verificarClique, true)
-
 function mostrarBtn(input) {
     const img = input.nextElementSibling
     img.style.display = ''
@@ -95,20 +93,6 @@ const pdfDanfe = ({ id, n_nota, categoria, total = null, d_emi_inicial }) => {
             <div onclick="abrirDANFE('${id}')" class="balao2">PDF</div>
         </div>
     `
-}
-
-function verificarClique(event) {
-
-    const menu = document.querySelector('.side-menu')
-
-    if (!menu) return
-
-    if (
-        menu.classList.contains('active') &&
-        !menu.contains(event.target)
-    ) {
-        menu.classList.remove('active')
-    }
 }
 
 function conversorData(data) {
@@ -458,7 +442,7 @@ async function sair() {
 
     toolbar.style.display = 'none'
     nomeUsuario.innerHTML = ''
-    mostrarMenus(false)
+    mostrarMenus()
 
     acesso = null
     localStorage.removeItem('acesso')
@@ -468,20 +452,12 @@ async function sair() {
 
 function mostrarMenus(operacao) {
 
-    if (document.title !== 'GCS')
-        return
-
-    if (ignorarMenus)
-        return // Quando atualizações forem recebidas;
-
     const menu = document.querySelector('.side-menu').classList
+    const tela = document.querySelector('.tela').classList
 
-    if (operacao == 'toggle')
-        return menu.toggle('active')
+    menu.toggle('active')
+    tela.toggle('active')
 
-    operacao
-        ? menu.add('active')
-        : menu.remove('active')
 }
 
 let shell = null;
@@ -716,7 +692,8 @@ function base64ToBlob(base64) {
 
 async function importarAnexos({ input, foto }) {
 
-    if (!foto && !input?.files?.length) return []
+    if (!foto && !input?.files?.length) 
+        return []
 
     const formData = new FormData()
 
@@ -903,4 +880,17 @@ function validarCpfCnpj(val) {
     }
 
     return false // Se não tem 11 nem 14 números
+}
+
+function montarPagina({ titulo, imagem, tabela }) {
+
+    return `
+            <div style="${vertical};">
+                <div class="titulo-tabelas">
+                    <img src="imagens/${imagem}.png">
+                    <span>${titulo}</span>
+                </div>
+                ${tabela}
+            </div>
+        `
 }

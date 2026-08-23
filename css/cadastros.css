@@ -12,7 +12,6 @@
     justify-content: start;
     gap: 2rem;
     padding: 0.5rem;
-    width: 90vw;
     overflow: auto;
     min-height: 70vh;
 }

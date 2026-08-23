@@ -227,7 +227,7 @@ async function telaClientes() {
 
     tela.innerHTML = `
         <div class="tela-clientes">
-            <div class="bloco-clientes">${tabela}</div>
+            ${montarPagina({ tabela, titulo: 'Clientes, Usuários & Fornecedores', imagem: 'prancheta' })}
             <div class="bloco-clientes mapa">
                 <div class="cabecalho-etiquetas">
                     ${dropdownTags}

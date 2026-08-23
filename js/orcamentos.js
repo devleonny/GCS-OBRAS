@@ -94,8 +94,8 @@ async function telaOrcamentos() {
     })
 
     const acumulado = `
-        <div style="${vertical}; width: 100vw;">
-            <div style="${horizontal}; width: 100vw;">
+        <div style="${vertical};">
+            <div style="${horizontal}; width: 100%;">
                 <img src="imagens/nav.png" style="width: 2rem;" onclick="scrollar('prev')">
                 <div id="toolbar"></div>
                 <img src="imagens/nav.png" style="width: 2rem; transform: rotate(180deg);" onclick="scrollar('next')">

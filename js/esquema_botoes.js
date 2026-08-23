@@ -66,9 +66,13 @@ function criarAtalhoMenu({ nome, img, gif }, nivel) {
 }
 
 function acaoMenu(id, funcao, temFilhos) {
+
     const el = document.getElementById(id)
     const partes = id.split('_')
     const nivel = partes.length - 1
+
+    if (titulo && nivel >= 2)
+        titulo.innerHTML = 'GCS'
 
     // pega o pai (ex: menu_1_0 -> menu_1)
     const pai = partes.slice(0, -1).join('_')
@@ -143,15 +147,14 @@ const esquemaBotoes = {
                 { nome: 'Relatório de Peças', funcao: 'telaRelatorioPecas', img: 'planilha' }
             ]
         },
-        /*
         {
             nome: 'Checklist',
-            bloqueio: ['cliente', 'técnico'],
+            bloqueio: ['adm'],
             img: 'checklist',
             sub: [
                 { nome: 'Ver Checklists', funcao: 'telaTodosChecklists', img: 'checklist' }
             ]
-        },*/
+        },
         {
             nome: 'Cadastros',
             bloqueio: ['cliente', 'técnico'],
@@ -162,17 +165,15 @@ const esquemaBotoes = {
                 { nome: 'Clientes, Usuários & Fornecedores', funcao: 'telaClientes', img: 'prancheta' }
             ]
         },
-        /*
         {
             nome: 'Contratos',
-            bloqueio: ['cliente', 'técnico'],
+            permitido: ['adm'],
             img: 'contratos',
             sub: [
                 { nome: 'Adicionar Contrato', funcao: 'gerenciarContrato', img: 'baixar' },
                 { nome: 'Ver Contratos', funcao: 'telaContratos', img: 'contratos' }
             ]
         },
-        */
         {
             nome: 'Técnicos',
             bloqueio: ['cliente', 'técnico'],

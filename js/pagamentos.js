@@ -506,7 +506,6 @@ async function autorizarPagamentos(resposta, id) {
             historico: {
                 ...historico,
                 [crypto.randomUUID()]: {
-
                     status,
                     usuario,
                     justificativa,

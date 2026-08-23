@@ -3,7 +3,6 @@
 }
 
 .tela-ocorrencias {
-    min-width: 95vw;
     display: flex;
     align-items: start;
     justify-content: start;
