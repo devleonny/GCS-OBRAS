@@ -149,7 +149,7 @@ const esquemaBotoes = {
         },
         {
             nome: 'Checklist',
-            bloqueio: ['cliente', 'técnico'],
+            bloqueio: ['adm'],
             img: 'checklist',
             sub: [
                 { nome: 'Ver Checklists', funcao: 'telaTodosChecklists', img: 'checklist' }
@@ -165,17 +165,15 @@ const esquemaBotoes = {
                 { nome: 'Clientes, Usuários & Fornecedores', funcao: 'telaClientes', img: 'prancheta' }
             ]
         },
-        /*
         {
             nome: 'Contratos',
-            bloqueio: ['cliente', 'técnico'],
+            permitido: ['adm'],
             img: 'contratos',
             sub: [
                 { nome: 'Adicionar Contrato', funcao: 'gerenciarContrato', img: 'baixar' },
                 { nome: 'Ver Contratos', funcao: 'telaContratos', img: 'contratos' }
             ]
         },
-        */
         {
             nome: 'Técnicos',
             bloqueio: ['cliente', 'técnico'],

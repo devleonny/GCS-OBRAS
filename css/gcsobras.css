@@ -231,8 +231,7 @@ span[name="titulo"] {
     width: 3rem;
 }
 
-.botaoUsuarios {
-    padding: 4px;
+.botao-usuarios {
     display: flex;
     align-items: center;
     justify-content: left;
@@ -243,7 +242,7 @@ span[name="titulo"] {
     gap: 5px;
 }
 
-.botaoUsuarios label {
+.botao-usuarios label {
     cursor: pointer;
     font-size: 0.6rem;
 }

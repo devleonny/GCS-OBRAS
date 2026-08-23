@@ -291,6 +291,10 @@ async function criarLinhaChecklist(item) {
     desativado
   } = item
 
+  const tipo = (descricao || '').includes('CONFIGURA')
+    ? 'CONFIGURAÇÃO'
+    : 'INSTALAÇÃO'
+
   const andamento = Number(((realizado / qtde) * 100).toFixed(0))
 
   return `
@@ -304,7 +308,7 @@ async function criarLinhaChecklist(item) {
                 ${divPorcentagem(andamento)}
             </td>
             <td style="text-align: center;">
-                <img src="imagens/lapis.png" onclick="registrarChecklist('${codigo}')">
+                <img src="imagens/lapis.png" onclick="tabInstConf('${codigo}', '${tipo}')">
             </td>
             <td style="text-align: center;">
                 <input name="desativar" data-codigo="${codigo}"  ${desativado ? 'checked' : ''} style="width: 2rem; height: 2rem;" type="checkbox">
@@ -374,7 +378,7 @@ async function abrirTabMO(idOrcamento, codigo, unidade, descricao) {
 
   const elemento = `
     <div style="padding: 1rem;">
-      ${montarPagina({ tabela, titulo: `${descricao.slice(0, 30)}...`, imagem: 'checklist' })}
+      ${montarPagina({ tabela, titulo: descricao, imagem: 'checklist' })}
     </div>
     `
   const botoes = [
@@ -385,7 +389,7 @@ async function abrirTabMO(idOrcamento, codigo, unidade, descricao) {
     }
   ]
 
-  popup({ elemento, botoes, titulo: descricao })
+  popup({ elemento, botoes, titulo: 'Mão de Obra', descricao })
 
   await paginacao('mo')
 
@@ -411,207 +415,194 @@ function criarLinhaMO(item) {
 
 }
 
-async function registrarChecklist(codigo) {
+async function tabInstConf(codigo, tipo) {
 
   try {
+
     overlayAguarde()
 
-    const { id, dados_composicoes } = controles.detalhamento_checklist
-    const { qtde, descricao, imagem, unidade } = dados_composicoes?.[codigo] || {}
-    const { realizado: realizadoGeral } = await recuperarDado('dados_orcamentos', id) || {}
+    const { id: idOrcamento } = controles.detalhamento_checklist
 
-    let ths = []
-    let linhas = []
-    const fixo = 'style="min-width: 100px; vertical-align: top;" contentEditable="true"'
-    const ehMaoObra = descricao.includes('MÃO DE OBRA')
-    const tipo = descricao.includes('CONFIGURAÇÃO')
-      ? 'CONFIGURAÇÃO'
-      : 'INSTALAÇÃO'
-
-    if (ehMaoObra) {
-
-      ths = [
-        'REMOVER',
-        'UNIDADE',
-        'QUANTIDADE',
-        `
-            <div style="${horizontal}; gap: 5px;">
-              <input oninput="preencherDemais(this, 'data')" type="date">
-              <span>DATA</span>
-            </div>
-          `,
-        'OBSERVAÇÃO'
-      ].map(th => `<th>${th}</th>`).join('')
-
-      linhas = (realizadoGeral?.[codigo] || [])
-        .map(({ data, quantidade, observacao }, i) => {
-
-          return `
-            <tr>
-              <td style="text-align: center;">
-                <img onclick="this.parentElement.parentElement.remove()" src="imagens/fechar.png">
-              </td>
-              <td>${unidade || 'UN'}</td>
-              <td style="text-align: center;" name="quantidade" ${fixo}>${quantidade || 0}</td>
-              <td style="text-align: center;">
-                <input type="date" name="data" value="${data || ''}">
-              </td>
-              <td ${fixo} name="observacao">${observacao || ''}</td>
-            </tr>
-          `
-        })
-
-    } else {
-
-      for (let i = 0; i < qtde; i++) {
-
-        const ordem = i + 1
-
-        const {
-          descricao,
-          rack,
-          local,
-          pilar,
-          setor,
-          ip,
-          realizado,
-          data,
-          observacao,
-          fotos
-        } = realizadoGeral?.[codigo]?.[ordem] || {}
-
-        const idInputFoto = `foto-${crypto.randomUUID()}`
-        const qtdeFotos = Object.keys(fotos || {}).length
-
-        const divFoto = `
-          <div style="${vertical}; gap: 5px;">
-
-            <div style="${horizontal}; gap: 5px;">
-
-              <span class="labelQuantidade" ${qtdeFotos > 0 ? 'style="background-color: #249f41;"' : ''}>
-                ${qtdeFotos}
-              </span>
-
-              <label
-                for="${idInputFoto}"
-                style="cursor: pointer; display: inline-flex;"
-                title="Selecionar fotos">
-                <img
-                  src="imagens/camera.png"
-                  alt="Selecionar fotos"
-                  style="
-                    width: 24px;
-                    height: 24px;
-                    object-fit: contain;
-                  ">
-              </label>
-
-            </div>
-
-            <input
-              id="${idInputFoto}"
-              name="foto"
-              type="file"
-              multiple
-              accept="image/png, image/jpeg, image/webp"
-              required
-              style="display: none;"
-              onchange="alterarImagemPreview(this)">
-
-            <span class="textoArquivosSelecionados"></span>
-
-          </div>
-        `
-
-        linhas.push(`
-            <tr>
-                <td style="text-align: center;" name="ordem">${ordem}</td>
-                <td ${fixo} name="descricao">${descricao || ''}</td>
-                <td ${fixo} name="rack">${rack || ''}</td>
-                <td ${fixo} name="local">${local || ''}</td>
-                <td ${fixo} name="pilar">${pilar || ''}</td>
-                <td ${fixo} name="setor">${setor || ''}</td>
-                <td ${fixo} name="ip">${ip || ''}</td>
-                <td>
-                    ${divFoto}
-                </td>
-                <td style="text-align: center;">
-                    <input ${realizado ? 'checked' : ''} name="realizado" style="width: 2rem; height: 2rem;" type="checkbox">
-                </td>
-                <td style="text-align: center;">
-                  <input type="date" name="data" value="${data || ''}">
-                </td>
-                <td ${fixo} name="observacao">${observacao || ''}</td>
-            </tr>
-            `)
+    const pag = 'InstConf'
+    const tabela = await modTab({
+      colunas: {
+        'Descrição': {},
+        'Rack': {},
+        'Local': {},
+        'Pilar': {},
+        'Setor': {},
+        'IP': {},
+        'Fotos': {},
+        'Quantidade': {},
+        'Data': {}
+      },
+      base: 'checklist',
+      body: pag,
+      pag,
+      criarLinha: 'criarLinhaInstConf',
+      filtros: {
+        id_orcamento: { op: '=', value: idOrcamento },
+        codigo: { op: '=', value: codigo }
       }
+    })
 
-      ths = [
-        'ORDEM',
-        'DESCRIÇÃO',
-        'RACK',
-        'LOCAL',
-        'PILAR',
-        'SETOR',
-        'IP',
-        'FOTOS',
-        ` 
-            <div style="${horizontal}; gap: 5px;">
-              <input oninput="preencherDemais(this, 'realizado')"  style="width: 2rem; height: 2rem;" type="checkbox">
-              <span>REALIZADO</span>
-            </div>
-            `,
-        `
-            <div style="${horizontal}; gap: 5px;">
-              <input oninput="preencherDemais(this, 'data')" type="date">
-              <span>DATA</span>
-            </div>
-          `,
-        'OBSERVAÇÃO'
-      ].map(th => `<th>${th}</th>`).join('')
+    const elemento = `
+      <div style="padding: 1rem;">
+          ${montarPagina({ tabela, titulo: '', imagem: 'checklist' })}
+      </div>
+    `
 
-    }
-
-    // TABELA GENÉRICA;
-    const tabela = `
-        <div style="padding: 0.5rem;">
-            <div style="${horizontal}; justify-content: start; gap: 1rem; padding: 5px;">
-                <img src="${imagem || logo}" style="width: 5rem; border-radius: 5px;">
-                <span class="titulo-2">${descricao}</span>
-            </div>
-            <table class="tabela">
-                <thead>
-                    ${ths}
-                </thead>
-                <tbody id="checklistAtivo">
-                    ${linhas.join('')}
-                </tbody>
-            </table>
-        </div>
-        `
-
-    const botoes = []
-
-    botoes.push({
-      texto: 'Salvar',
-      funcao: ehMaoObra
-        ? `salvarRegistroMO('${codigo}')`
-        : `salvarRegistroChecklist('${codigo}', '${tipo}')`,
-      img: 'concluido'
-    }
-    )
+    const botoes = [
+      {
+        texto: 'Adicionar Linha',
+        funcao: `adicionarLinhaChecklistInstConf('${codigo}', '${tipo}')`,
+        img: 'concluido'
+      }
+    ]
 
     popup({
-      cor: 'white',
       titulo: 'Registrar Andamento',
-      elemento: tabela,
+      elemento,
       botoes
     })
+
+    await paginacao(pag)
 
   } catch (err) {
     console.error(err)
     popup({ mensagem: 'Falha ao abrir o item: Fale com o suporte.' })
   }
+
+}
+
+async function adicionarLinhaChecklistInstConf(codigo, tipo, id) {
+
+  const {
+    fotos,
+  } = id
+      ? await recuperarDado('checklist', id) || {}
+      : {}
+
+  const linhas = [
+    {
+      texto: 'Quantidade',
+      elemento: `<input name="quantidade" type="number">`
+    },
+    {
+      texto: 'Data',
+      elemento: `<input name="data" type="date">`
+    },
+    {
+      texto: 'Descrição',
+      elemento: `<input name="descricao">`
+    },
+    {
+      texto: 'Rack',
+      elemento: `<input name="rack">`
+    },
+    {
+      texto: 'Local',
+      elemento: `<input name="local">`
+    },
+    {
+      texto: 'Pilar',
+      elemento: `<input name="pilar">`
+    },
+    {
+      texto: 'Setor',
+      elemento: `<input name="setor">`
+    },
+    {
+      texto: 'IP',
+      elemento: `<input name="ip">`
+    },
+    {
+      texto: 'Fotos',
+      elemento: `
+          <input
+            name="foto"
+            type="file"
+            multiple
+            accept="image/png, image/jpeg, image/webp"
+            required>
+      `
+    },
+    {
+      texto: 'Observação',
+      editor: ''
+    }
+  ]
+
+  const botoes = [
+    { texto: 'Salvar', funcao: `salvarItemChecklistInstConf('${codigo}', '${tipo}')`, img: 'concluido' }
+  ]
+
+  popup({ linhas, botoes, titulo: 'Registrar' })
+
+}
+
+async function salvarItemChecklistInstConf(codigo, tipo) {
+
+  try {
+
+    overlayAguarde()
+
+    const idOrcamento = controles.detalhamento_checklist.id
+    const id = crypto.randomUUID()
+    const camposFixos = ['descricao', 'rack', 'local', 'pilar', 'setor', 'ip', 'data']
+
+    const item = {
+      id,
+      id_orcamento: idOrcamento,
+      quantidade: Number(document.querySelector('[name="quantidade"]').value),
+      observacao: document.querySelector('.editor-conteudo').innerHTML,
+      tipo,
+      codigo
+    }
+
+    camposFixos.forEach(campo => {
+      item[campo] = document.querySelector(`[name="${campo}"]`).value
+    })
+
+    await enviar(`checklist/${id}`, item)
+
+    removerPopup()
+
+  } catch (err) {
+    console.error(err)
+    popup({ mensagem: 'Falha ao salvar o registro: Fale com o suporte.' })
+  }
+
+}
+
+function criarLinhaInstConf(item) {
+
+  const {
+    descricao,
+    rack,
+    ip,
+    local,
+    pilar,
+    setor,
+    fotos,
+    realizado,
+    data
+  } = item || {}
+
+
+  return `
+    <tr>
+      <td>${descricao || ''}</td>
+      <td>${rack || ''}</td>
+      <td>${local || ''}</td>
+      <td>${pilar || ''}</td>
+      <td>${setor || ''}</td>
+      <td>${ip || ''}</td>
+      <td>${fotos || ''}</td>
+      <td>${realizado || ''}</td>
+      <td>${data || ''}</td>
+    </tr>
+  `
 
 }
 
@@ -658,14 +649,14 @@ function adicionarLinhaChecklistMO(codigo, unidade) {
   ]
 
   const botoes = [
-    { texto: 'Salvar', funcao: `salvarItemChecklist('${codigo}')`, img: 'concluido' }
+    { texto: 'Salvar', funcao: `salvarItemChecklistMO('${codigo}')`, img: 'concluido' }
   ]
 
   popup({ linhas, botoes, titulo: 'Registrar' })
 
 }
 
-async function salvarItemChecklist(codigo) {
+async function salvarItemChecklistMO(codigo) {
 
   try {
 
