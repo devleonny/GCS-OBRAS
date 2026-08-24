@@ -124,7 +124,7 @@ function popup({
         <div id="${idPopup}" class="popup">
             <div class="popup-janela-fora">
                 <div class="popup-top">
-                    <label style="color:white;margin-left:1rem;">${titulo || 'GCS'}</label>
+                    <label style="color:white;margin:0 1rem;">${titulo || 'GCS'}</label>
                     <span onclick="removerPopup('${idPopup}')">×</span>
                 </div>
                 ${conteudo}

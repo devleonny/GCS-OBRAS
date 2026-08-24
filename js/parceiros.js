@@ -1,21 +1,23 @@
-
 async function formularioParceiro(id = crypto.randomUUID()) {
 
     overlayAguarde()
 
     // Verificar se tem pagamento ativo;
-    const pagamento = await recuperarDado('lista_pagamento', id)
+    const pagamento = id
+        ? await recuperarDado('lista_pagamentos', id) || null
+        : null
 
     if (pagamento)
         return popup({ mensagem: 'Já existe uma solicitação de pagamento: não é possível editar.' })
 
     const {
         itens,
-        departamento,
         margem,
         tecnicos,
         comentario,
-    } = await recuperarDado('parceiros', id) || {}
+    } = id
+            ? await recuperarDado('parceiros', id) || {}
+            : {}
 
     const tecnico = tecnicos?.[0]
 
@@ -36,7 +38,6 @@ async function formularioParceiro(id = crypto.randomUUID()) {
         .filter(i => i?.tipo !== 'VENDA')
 
     const colunas = {
-        'Check': {},
         'Código': { chave: 'codigo' },
         'Descrição': { chave: 'descricao' },
         'Unidade': { chave: 'unidade' },
@@ -51,19 +52,9 @@ async function formularioParceiro(id = crypto.randomUUID()) {
         'Desvio': {},
     }
 
-    const btnExtras = `
-    <div style="display: flex-wrap: wrap; gap: 2px;">
-        <button id="btnRem" onclick="atvRemItensEmMassa(this)">Remover Itens</button>
-        <button id="btnVer" data-mostrar="S" onclick="verItensAtvRem(this)">Ver Itens Removidos</button>
-        <button onclick="itemAdicional()">Adicionar Serviço</button>
-        <button style="background-color: green;" onclick="salvarLpuParceiro('${id}')">Salvar LPU</button>
-    </div>
-    `
     const tabela = await modTab({
         base,
-        btnExtras,
         colunas,
-        filtros: { 'removido': { op: '!=', value: 'S' } },
         funcaoAdicional: ['calcularLpuParceiro'],
         criarLinha: 'adicionarLinhaParceiro',
         pag: 'lpu_parceiro',
@@ -119,11 +110,6 @@ async function formularioParceiro(id = crypto.randomUUID()) {
                         ${stringHtml('Margem Geral (%)', `<input id="margem_lpu" value="${margem || '40'}" oninput="calcularLpuParceiro()">`)}
                         ${stringHtml('Comentário', `<textarea id="comentario">${comentario || ''}</textarea>`)}
 
-
-                        <div style="${horizontal}; gap: 1rem;">
-                            <input type="checkbox" style="width: 2rem; height: 2rem;" onclick="marcarItensLPU(this)">
-                            <span>Marcar todos os ITENS<span>
-                        </div>
                     </div>
 
                 </div>
@@ -149,94 +135,30 @@ async function formularioParceiro(id = crypto.randomUUID()) {
         </div>
         `
 
-    popup({ elemento, cor: 'white', titulo: 'LPU Parceiro', autoDestruicao: ['lpu_parceiro'] })
+    const botoes = [
+        {
+            texto: 'Adicionar Serviço',
+            funcao: 'itemAdicional()',
+            img: 'baixar'
+        },
+        {
+            texto: 'Salvar LPU',
+            funcao: `salvarLpuParceiro('${id}')`,
+            img: 'concluido'
+        },
+    ]
+
+    popup({ botoes, elemento, cor: 'white', titulo: 'LPU Parceiro', autoDestruicao: ['lpu_parceiro'] })
 
     await paginacao('lpu_parceiro')
 
 }
 
-
-async function atvRemItensEmMassa() {
-
-    const btn2 = document.getElementById('btnVer')
-    const op = btn2.dataset.mostrar
-
-    const itens = document.querySelectorAll('[name="itensLPU"]:checked')
-
-    if (itens.length == 0)
-        return
-
-    for (const check of itens) {
-
-        const tr = check.closest('tr')
-        const codigo = tr.dataset.codigo
-
-        const item = encontrarItemLpu(codigo)
-        if (item)
-            item.removido = op
-
-        tr.remove()
-
-    }
-
-    calcularLpuParceiro()
-
-}
-
-async function verItensAtvRem(elemento) {
-
-    overlayAguarde()
-
-    const mostrar = elemento.dataset.mostrar == 'S'
-    elemento.dataset.mostrar = mostrar
-        ? 'N'
-        : 'S'
-
-    const btn1 = document.getElementById('btnRem')
-    const btn2 = document.getElementById('btnVer')
-
-    btn1.textContent = mostrar
-        ? 'Recuperar Itens'
-        : 'Remover Itens'
-
-    btn2.textContent = mostrar
-        ? 'Ver Itens Ativos'
-        : 'Ver Itens Removidos'
-
-    const op = mostrar
-        ? '='
-        : '!='
-
-    controles.lpu_parceiro.filtros = {
-        'removido': { op, value: 'S' }
-    }
-
-    calcularLpuParceiro()
-    await paginacao()
-
-    removerOverlay()
-
-}
-
-function marcarItensLPU(input) {
-
-    const itensChecklist = document.querySelectorAll('[name="itensLPU"]')
-
-    for (const check of itensChecklist) {
-        const tr = check.closest('tr')
-        check.checked = tr.style.display !== 'none' && input.checked
-    }
-
-}
-
 async function adicionarLinhaParceiro(composicao) {
 
-    const { codigo, avulso, removido = 'N', descricao, vUnitParc, vTotalParc, unidade, qtde, custo } = composicao || {}
+    const { codigo, avulso, descricao, vUnitParc, vTotalParc, unidade, qtde, custo } = composicao || {}
 
     const tds = `
-        <td>
-            <input type="checkbox" style="width: 2rem; height: 2rem;" name="itensLPU">
-        </td>
         <td>${codigo}</td>
         <td>${descricao || ''}</td>
         <td>${unidade || ''}</td>
@@ -271,7 +193,7 @@ async function adicionarLinhaParceiro(composicao) {
         </td>
         <td name="desvio" style="white-space: nowrap;"></td>`
 
-    return `<tr data-removido="${removido}" data-avulso=${avulso ? 'S' : 'N'} data-codigo="${codigo}">${tds}</tr>`
+    return `<tr  data-avulso=${avulso ? 'S' : 'N'} data-codigo="${codigo}">${tds}</tr>`
 
 }
 

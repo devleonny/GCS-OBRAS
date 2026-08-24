@@ -694,7 +694,6 @@ async function abrirEsquema(id) {
 
     const orcamento = await recuperarDado('dados_orcamentos', id)
     const contrato = orcamento?.dados_orcam?.contrato
-    const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
     const { cliente } = orcamento?.snapshots || {}
     const { snapshots } = await recuperarDado('dados_ocorrencias', contrato) || {}
 

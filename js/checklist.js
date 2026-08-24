@@ -302,8 +302,12 @@ async function criarLinhaChecklist(item) {
             <td>${codigo}</td>
             <td>${descricao}</td>
             <td>${unidade}</td>
-            <td>${qtde}</td>
-            <td>${realizado || 0}</td>
+            <td style="text-align: center;">
+              <span class="checklist-num">${qtde}</span>
+            </td>
+            <td style="text-align: center;">
+              <span class="checklist-num">${realizado || 0}</span>
+            </td>
             <td>
                 ${divPorcentagem(andamento)}
             </td>

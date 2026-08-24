@@ -1136,6 +1136,9 @@ async function abrirEsquemaOcorrencias(chave, principal) {
         ? chave.split('.')
         : [chave, null]
 
+    // Balão ativo;
+    controles.ocorrencias.ativo = orc || chave
+
     const bloco = document.getElementById(id)
 
     if (!bloco)
@@ -1190,19 +1193,15 @@ async function abrirEsquemaOcorrencias(chave, principal) {
 
     blocoStatus.innerHTML = elemento
 
-    carregarTabStatus(id, orc)
+    carregarTabStatus(id)
 }
 
-async function carregarTabStatus(id, orc) {
+async function carregarTabStatus(id) {
+    
     const local = document.getElementById(id)
 
     // Verificar se existe outra tela de status ativa;
     const ativo = controles?.ocorrencias?.ativo
-
-    if (ativo && ativo !== id)
-        await abrirEsquemaOcorrencias(ativo, true)
-
-    controles.ocorrencias.ativo = id
 
     // Mapeia o array esquemaBtnStatus para um array de Promises
     const promessasTabs = Object.keys(esquemaBtnStatus).map(async (t) => {
@@ -1213,7 +1212,7 @@ async function carregarTabStatus(id, orc) {
             body: `body${t}`,
             pag: t,
             filtros: {
-                departamento: { op: 'includes', value: orc ? orc : id }
+                departamento: { op: 'includes', value: ativo }
             },
             criarLinha: `lin${inicialMaiuscula(t)}`
         }
