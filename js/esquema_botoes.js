@@ -149,7 +149,7 @@ const esquemaBotoes = {
         },
         {
             nome: 'Checklist',
-            bloqueio: ['adm'],
+            permitido: ['adm'],
             img: 'checklist',
             sub: [
                 { nome: 'Ver Checklists', funcao: 'telaTodosChecklists', img: 'checklist' }
