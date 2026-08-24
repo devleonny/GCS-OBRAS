@@ -188,14 +188,19 @@ async function atualizarAndamentoChecklist() {
     data_final
   } = snapshots?.checklist || {}
 
+  // Todos os itens realizados;
+  const pesquisa = await pesquisarDB({
+    base: 'checklist',
+    limite: 999999,
+    filtros: {
+      id_orcamento: idOrcamento
+    }
+  })
+
   // Porcentagem Geral
   const porcentagemGeral = criarVelocimetroHTML({ rotulo: '% Geral', valor: total_geral })
 
-  const req = {
-    andamento,
-    realizado,
-    desativados_checklist
-  }
+  const req = { andamento }
 
   const porcentagens = (andamento || [])
     .map(({ tipo, codigo, descricao, unidade, ordem, andamento, numerador, denominador }) => {
@@ -205,8 +210,21 @@ async function atualizarAndamentoChecklist() {
         ? `abrirTabMO('${idOrcamento}', '${codigo}', '${unidade}', '${descricao}')`
         : `abrirTabelaInstConf('${tipo}')`
 
+      const realizado = pesquisa.resultados
+        .filter(item => {
+
+          if (ehMaoObra && item.tipo == 'MÃO_DE_OBRA' && item.codigo == codigo)
+            return true
+          else if (!ehMaoObra && item.tipo == tipo)
+            return true
+          else 
+            return false
+
+        })
+
       const grafico = graficoDiario({
         ...req,
+        realizado,
         ehMaoObra,
         ordem,
         codigo,
@@ -674,7 +692,7 @@ async function salvarItemChecklistMO(codigo) {
       quantidade: Number(document.querySelector('[name="quantidade"]').value),
       observacao: document.querySelector('.editor-conteudo').innerHTML,
       data: document.querySelector('[name="data"]').value,
-      tipo: 'MÃO_OBRA',
+      tipo: 'MÃO_DE_OBRA',
       codigo
     }
 
@@ -811,7 +829,7 @@ async function salvarRegistroChecklist(codigo, tipo) {
 
 }
 
-function graficoDiario({ desativados_checklist, ordem, andamento, realizado, ehMaoObra, codigo = null, tipo = null }) {
+function graficoDiario({ desativados_checklist, andamento, realizado, ehMaoObra, codigo = null, tipo = null }) {
 
   const realizadosPorData = {}
   let realizadosSemData = 0
