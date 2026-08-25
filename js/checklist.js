@@ -16,32 +16,37 @@ async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d01
 
     // TABELA 
     const pag = 'detalhamento_checklist'
-    const tabela1 = await modTab({
+    const tabela = await modTab({
       id: idOrcamento,
       dados_composicoes,
       pag,
       body: pag,
-      base: 'dados_orcamentos',
+      base: 'checklist',
       funcaoAdicional: ['atualizarAndamentoChecklist'],
       filtros: {
-        id: { op: '=', value: idOrcamento }
+        id_orcamento: { op: '=', value: idOrcamento }
       },
-      explode: {
-        path: 'realizado.*'
-      },
+      substituicoes: [
+        {
+          path: 'codigo',
+          tabela: 'dados_composicoes',
+          campoBusca: 'codigo',
+          retorno: 'descricao',
+          destino: 'descricao_item'
+        }
+      ],
       criarLinha: 'criarLinhaDetalhada',
       colunas: {
-        'Data': { chave: 'detalhamento.*.data', tipoPesquisa: 'data' },
-        'Código': { chave: 'detalhamento.*.codigo_item', op: '=' },
-        'Descrição': { chave: 'detalhamento.*.descricao' },
-        'Rack': { chave: 'detalhamento.*.rack' },
-        'Local': { chave: 'detalhamento.*.local' },
-        'IP': { chave: 'detalhamento.*.ip' },
-        'Equipamento': { chave: 'detalhamento.*.descricao_item' },
+        'Data': { chave: 'data', tipoPesquisa: 'data' },
+        'Código': { chave: 'codigo', op: '=' },
+        'Descrição': { chave: 'descricao' },
+        'Rack': { chave: 'rack' },
+        'Local': { chave: 'local' },
+        'IP': { chave: 'ip' },
+        'Equipamento': { chave: 'descricaoItem' },
+        'Fotos': {},
         'Quantidade': {},
-        'Unidade': {},
-        'Realizado': {},
-        'Observação': { chave: 'detalhamento.*.observacao' }
+        'Observação': { chave: 'observacao' }
       },
     })
 
@@ -51,7 +56,6 @@ async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d01
           <div id="pdf" style="${vertical}; padding: 1rem; gap: 1rem;">
 
             <div style="${horizontal}; gap: 1rem;">
-              <img src="${logo}">
               <span>CHECKLIST</span>
               <span class="tag-pendencias">${contrato}</span>
               <span class="titulo-1">${cliente}</span>
@@ -63,7 +67,7 @@ async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d01
 
           <div class="checklist-tabelas">
             <span class="titulo-2">Todas as atividades realizadas Por Data</span>
-            ${tabela1}
+            ${tabela}
           </div>  
 
         </div>
@@ -78,6 +82,48 @@ async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d01
   }
 
 }
+
+
+function criarLinhaDetalhada(registro) {
+
+  const {
+    data,
+    ip,
+    rack,
+    local,
+    descricao,
+    observacao,
+    codigo,
+    fotos,
+    quantidade,
+    descricao_item
+  } = registro || {}
+
+  const divAnexos = Object
+    .entries(fotos || {})
+    .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link))
+    .join('')
+
+  return `
+    <tr>
+      <td>${dtFormatada(data)}</td>
+      <td>${codigo}</td>
+      <td>${descricao || ''}</td>
+      <td>${rack || ''}</td>
+      <td>${local || ''}</td>
+      <td>${ip || ''}</td>
+      <td>${descricao_item || ''}</td>
+      <td>
+        <div class="local-anexos">${divAnexos}</div>
+      </td>
+      <td style="text-align: center;">
+        <span class="checklist-num">${quantidade || 0}</span>
+      </td>
+      <td>${observacao || ''}</td>
+    </tr>
+  `
+}
+
 
 async function abrirTabelaInstConf(tipo) {
 
@@ -136,43 +182,6 @@ async function abrirTabelaInstConf(tipo) {
 
 }
 
-function criarLinhaDetalhada(registro) {
-
-  const {
-    data,
-    ip,
-    rack,
-    local,
-    descricao,
-    observacao,
-    unidade,
-    codigo,
-    quantidade,
-    realizado
-  } = registro || {}
-
-  const { dados_composicoes } = controles.detalhamento_checklist || {}
-  const { descricao: descricao_item } = dados_composicoes?.[codigo] || {}
-
-  return `
-    <tr>
-      <td>${dtFormatada(data)}</td>
-      <td>${codigo}</td>
-      <td>${descricao || ''}</td>
-      <td>${rack || ''}</td>
-      <td>${local || ''}</td>
-      <td>${ip || ''}</td>
-      <td>${descricao_item || ''}</td>
-      <td>${quantidade || 1}</td>
-      <td>${unidade || 'UN'}</td>
-      <td style="text-align: center;">
-        <img src="imagens/${realizado ? 'concluido' : 'cancel'}.png">
-      </td>
-      <td>${observacao || ''}</td>
-    </tr>
-  `
-}
-
 async function atualizarAndamentoChecklist() {
 
   const painel = document.querySelector('#indicadorGeral')
@@ -207,7 +216,7 @@ async function atualizarAndamentoChecklist() {
 
       const ehMaoObra = tipo == 'MÃO_DE_OBRA'
       const funcao = ehMaoObra
-        ? `abrirTabMO('${idOrcamento}', '${codigo}', '${unidade}', '${descricao}')`
+        ? `abrirTabMO('${idOrcamento}', '${codigo}')`
         : `abrirTabelaInstConf('${tipo}')`
 
       const realizado = pesquisa.resultados
@@ -217,7 +226,7 @@ async function atualizarAndamentoChecklist() {
             return true
           else if (!ehMaoObra && item.tipo == tipo)
             return true
-          else 
+          else
             return false
 
         })
@@ -377,16 +386,19 @@ async function desativarEmMassa() {
 
 }
 
-async function abrirTabMO(idOrcamento, codigo, unidade, descricao) {
+async function abrirTabMO(idOrcamento, codigo, id) {
 
   overlayAguarde()
+
+  const { descricao, unidade } = await recuperarDado('dados_composicoes', codigo) || {}
 
   const tabela = await modTab({
     colunas: {
       'Código': {},
       'Quantidade': {},
       'Data': {},
-      'Observação': {}
+      'Observação': {},
+      'Editar': {}
     },
     base: 'checklist',
     body: 'mo',
@@ -406,7 +418,9 @@ async function abrirTabMO(idOrcamento, codigo, unidade, descricao) {
   const botoes = [
     {
       texto: 'Adicionar Linha',
-      funcao: `adicionarLinhaChecklistMO('${codigo}', '${unidade}')`,
+      funcao: id
+        ? `adicionarLinhaChecklistMO('${codigo}', '${id}')`
+        : `adicionarLinhaChecklistMO('${codigo}')`,
       img: 'baixar'
     }
   ]
@@ -420,6 +434,7 @@ async function abrirTabMO(idOrcamento, codigo, unidade, descricao) {
 function criarLinhaMO(item) {
 
   const {
+    id,
     observacao,
     quantidade,
     data,
@@ -429,9 +444,14 @@ function criarLinhaMO(item) {
   return `
     <tr>
       <td>${codigo}</td>
-      <td>${quantidade || 0}</td>
+      <td style="text-align: center;">
+        <span class="checklist-num">${quantidade || 0}</span>
+      </td>
       <td>${dtFormatada(data)}</td>
       <td style="white-space: wrap;">${observacao}</td>
+      <td style="text-align: center;">
+        <img src="imagens/pesquisar2.png" onclick="adicionarLinhaChecklistMO('${codigo}', '${id}')">
+      </td>
     </tr>
   `
 
@@ -442,6 +462,8 @@ async function tabInstConf(codigo, tipo) {
   try {
 
     overlayAguarde()
+
+    const { descricao } = await recuperarDado('dados_composicoes', codigo) || {}
 
     const { id: idOrcamento } = controles.detalhamento_checklist
 
@@ -456,7 +478,8 @@ async function tabInstConf(codigo, tipo) {
         'IP': {},
         'Fotos': {},
         'Quantidade': {},
-        'Data': {}
+        'Data': {},
+        'Editar': {}
       },
       base: 'checklist',
       body: pag,
@@ -470,7 +493,7 @@ async function tabInstConf(codigo, tipo) {
 
     const elemento = `
       <div style="padding: 1rem;">
-          ${montarPagina({ tabela, titulo: '', imagem: 'checklist' })}
+          ${montarPagina({ tabela, titulo: descricao, imagem: 'checklist' })}
       </div>
     `
 
@@ -497,84 +520,179 @@ async function tabInstConf(codigo, tipo) {
 
 }
 
-async function adicionarLinhaChecklistInstConf(codigo, tipo, id) {
+async function adicionarLinhaChecklistInstConf(codigoForm, tipoForm, id) {
 
-  const {
-    fotos,
-  } = id
-      ? await recuperarDado('checklist', id) || {}
-      : {}
+  try {
 
-  const linhas = [
-    {
-      texto: 'Quantidade',
-      elemento: `<input name="quantidade" type="number">`
-    },
-    {
-      texto: 'Data',
-      elemento: `<input name="data" type="date">`
-    },
-    {
-      texto: 'Descrição',
-      elemento: `<input name="descricao">`
-    },
-    {
-      texto: 'Rack',
-      elemento: `<input name="rack">`
-    },
-    {
-      texto: 'Local',
-      elemento: `<input name="local">`
-    },
-    {
-      texto: 'Pilar',
-      elemento: `<input name="pilar">`
-    },
-    {
-      texto: 'Setor',
-      elemento: `<input name="setor">`
-    },
-    {
-      texto: 'IP',
-      elemento: `<input name="ip">`
-    },
-    {
-      texto: 'Fotos',
-      elemento: `
+    overlayAguarde()
+
+    const {
+      codigo: codigoServ,
+      tipo: tipoServ,
+      quantidade,
+      data,
+      descricao,
+      rack,
+      ip,
+      pilar,
+      local,
+      setor,
+      observacao,
+      fotos
+    } = id
+        ? await recuperarDado('checklist', id) || {}
+        : {}
+
+    const divAnexos = Object
+      .entries(fotos || {})
+      .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerFotoChecklist('${id}', '${idAnexo}')`))
+      .join('')
+
+    const codigo = codigoServ || codigoForm
+    const tipo = tipoServ || tipoForm
+
+    const linhas = [
+      {
+        texto: 'Quantidade',
+        elemento: `<input name="quantidade" type="number" value="${quantidade || ''}">`
+      },
+      {
+        texto: 'Data',
+        elemento: `<input name="data" type="date" value="${data || ''}">`
+      },
+      {
+        texto: 'Descrição',
+        elemento: `<input name="descricao" value="${descricao || ''}">`
+      },
+      {
+        texto: 'Rack',
+        elemento: `<input name="rack" value="${rack || ''}">`
+      },
+      {
+        texto: 'Local',
+        elemento: `<input name="local" value="${local || ''}">`
+      },
+      {
+        texto: 'Pilar',
+        elemento: `<input name="pilar" value="${pilar || ''}">`
+      },
+      {
+        texto: 'Setor',
+        elemento: `<input name="setor" value="${setor || ''}">`
+      },
+      {
+        texto: 'IP',
+        elemento: `<input name="ip" value="${ip || ''}">`
+      },
+      {
+        texto: 'Fotos',
+        elemento: `
+        <div style="${vertical}; gap: 5px;">
           <input
             name="foto"
             type="file"
             multiple
             accept="image/png, image/jpeg, image/webp"
             required>
+            <div class="local-anexos">${divAnexos}</div>
+        </div>
       `
-    },
-    {
-      texto: 'Observação',
-      editor: ''
-    }
-  ]
+      },
+      {
+        texto: 'Observação',
+        editor: observacao || ''
+      }
+    ]
 
-  const botoes = [
-    { texto: 'Salvar', funcao: `salvarItemChecklistInstConf('${codigo}', '${tipo}')`, img: 'concluido' }
-  ]
+    const botoes = [
+      {
+        texto: 'Salvar',
+        funcao: id
+          ? `salvarItemChecklistInstConf('${codigo}', '${tipo}', '${id}')`
+          : `salvarItemChecklistInstConf('${codigo}', '${tipo}')`,
+        img: 'concluido'
+      }
+    ]
 
-  popup({ linhas, botoes, titulo: 'Registrar' })
+    if (id)
+      botoes.push({
+        img: 'cancel',
+        funcao: `confirmarExcluirRegistroChecklist('${id}')`,
+        texto: 'Excluir'
+      })
+
+    popup({ linhas, botoes, titulo: 'Registrar' })
+
+  } catch (err) {
+    console.error(err)
+    popup({ mensagem: 'Falha ao abrir o lançamento/edição do item: Fale com o suporte.' })
+
+  }
 
 }
 
-async function salvarItemChecklistInstConf(codigo, tipo) {
+function confirmarExcluirRegistroChecklist(id) {
+
+  const botoes = [
+    {
+      texto: 'Confirmar',
+      img: 'concluido',
+      funcao: `excluirRegistroChecklist('${id}')`
+    }
+  ]
+
+  popup({ botoes, mensagem: 'Tem certeza que deseja excluir este item?' })
+
+}
+
+async function excluirRegistroChecklist(id) {
+
+  overlayAguarde()
+
+  await deletar(`checklist/${id}`)
+
+  removerPopup()
+  removerPopup()
+
+}
+
+async function removerFotoChecklist(idChecklist, idAnexo) {
+
+  try {
+    overlayAguarde()
+    await deletar(`checklist/${idChecklist}/fotos/${idAnexo}`)
+    removerOverlay()
+  } catch (err) {
+    console.error(err)
+    popup({ mensagem: 'Falha ao excluir a foto: Fale com o suporte.' })
+  }
+
+}
+
+async function salvarItemChecklistInstConf(codigo, tipo, id) {
 
   try {
 
     overlayAguarde()
 
+    const { fotos: fotosAtuais } = id
+      ? await recuperarDado('checklist', id) || {}
+      : {}
+
+    id = id || crypto.randomUUID()
     const idOrcamento = controles.detalhamento_checklist.id
-    const id = crypto.randomUUID()
     const camposFixos = ['descricao', 'rack', 'local', 'pilar', 'setor', 'ip', 'data']
+
+    const input = document.querySelector('[name="foto"]')
+    const anexos = await importarAnexos({ input })
+    const novasFotos = Object.assign({}, ...anexos.map(anexo => ({ [crypto.randomUUID()]: anexo })))
 
     const item = {
       id,
+      fotos: {
+        ...fotosAtuais,
+        ...novasFotos
+      },
       id_orcamento: idOrcamento,
       quantidade: Number(document.querySelector('[name="quantidade"]').value),
       observacao: document.querySelector('.editor-conteudo').innerHTML,
@@ -600,6 +718,7 @@ async function salvarItemChecklistInstConf(codigo, tipo) {
 function criarLinhaInstConf(item) {
 
   const {
+    id,
     descricao,
     rack,
     ip,
@@ -607,10 +726,14 @@ function criarLinhaInstConf(item) {
     pilar,
     setor,
     fotos,
-    realizado,
+    quantidade,
     data
   } = item || {}
 
+  const divAnexos = Object
+    .entries(fotos || {})
+    .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerFotoChecklist('${id}', '${idAnexo}')`))
+    .join('')
 
   return `
     <tr>
@@ -620,72 +743,77 @@ function criarLinhaInstConf(item) {
       <td>${pilar || ''}</td>
       <td>${setor || ''}</td>
       <td>${ip || ''}</td>
-      <td>${fotos || ''}</td>
-      <td>${realizado || ''}</td>
-      <td>${data || ''}</td>
+      <td>
+        <div class="local-anexos">${divAnexos}</div>
+      </td>
+      <td style="text-align: center;">
+        <span class="checklist-num">${quantidade || 0}</span>
+      </td>
+      <td>${dtFormatada(data)}</td>
+      <td style="text-align: center;">
+          <img src="imagens/pesquisar2.png" onclick="adicionarLinhaChecklistInstConf(null, null, '${id}')">
+      </td>
     </tr>
   `
 
 }
 
-function alterarImagemPreview(input) {
-  const container = input.closest('div')
-  const texto = container?.querySelector(
-    '.textoArquivosSelecionados'
-  )
+async function adicionarLinhaChecklistMO(codigo, id) {
 
-  const quantidade = input.files?.length || 0
+  overlayAguarde()
 
-  if (!texto) return
-
-  if (quantidade === 0) {
-    texto.textContent = ''
-    return
-  }
-
-  texto.textContent = quantidade === 1
-    ? '1 arquivo selecionado'
-    : `${quantidade} arquivos selecionados`
-
-}
-
-function adicionarLinhaChecklistMO(codigo, unidade) {
+  const {
+    quantidade,
+    data,
+    observacao
+  } = id
+      ? await recuperarDado('checklist', id) || {}
+      : {}
 
   const linhas = [
     {
-      texto: 'Unidade',
-      elemento: `<span>${unidade}</span>`
-    },
-    {
       texto: 'Quantidade',
-      elemento: `<input name="quantidade" type="number">`
+      elemento: `<input name="quantidade" type="number" value="${quantidade || 0}">`
     },
     {
       texto: 'Data',
-      elemento: `<input name="data" type="date">`
+      elemento: `<input name="data" type="date" value="${data || ''}">`
     },
     {
       texto: 'Observação',
-      editor: ''
+      editor: observacao || ''
     }
   ]
 
   const botoes = [
-    { texto: 'Salvar', funcao: `salvarItemChecklistMO('${codigo}')`, img: 'concluido' }
+    {
+      texto: 'Salvar',
+      funcao: id
+        ? `salvarItemChecklistMO('${codigo}', '${id}')`
+        : `salvarItemChecklistMO('${codigo}')`,
+      img: 'concluido'
+    }
   ]
+
+  if (id)
+    botoes.push({
+      img: 'cancel',
+      funcao: `confirmarExcluirRegistroChecklist('${id}')`,
+      texto: 'Excluir'
+    })
 
   popup({ linhas, botoes, titulo: 'Registrar' })
 
 }
 
-async function salvarItemChecklistMO(codigo) {
+async function salvarItemChecklistMO(codigo, id = crypto.randomUUID()) {
 
   try {
 
     overlayAguarde()
 
     const idOrcamento = controles.detalhamento_checklist.id
-    const id = crypto.randomUUID()
+
     const item = {
       id,
       id_orcamento: idOrcamento,

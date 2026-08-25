@@ -599,12 +599,42 @@ async function arquivarOrcamento(id) {
 }
 
 function divPorcentagem(porcentagem) {
-    const valor = Math.max(0, Math.min(100, Number(porcentagem) || 0))
+    const valor = Math.max(
+        0,
+        Number(porcentagem) || 0
+    )
+
+    const largura = Math.min(valor, 100)
+
+    const cor =
+        valor > 100
+            ? '#2196f399'
+            : valor >= 70
+                ? '#7ee182'
+                : valor >= 40
+                    ? '#ffc107'
+                    : '#f44336'
 
     return `
         <div class="div-porcentagem">
-            <div style="width: ${valor}%; height: 100%; background: ${valor >= 70 ? "#7ee182" : valor >= 40 ? "#ffc107" : "#f44336"};"></div>
-            <label style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7rem; color: #000;">
+            <div
+                style="
+                    width: ${largura}%;
+                    height: 100%;
+                    background: ${cor};
+                "
+            ></div>
+
+            <label
+                style="
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    font-size: 0.7rem;
+                    color: #000;
+                "
+            >
                 ${valor}%
             </label>
         </div>

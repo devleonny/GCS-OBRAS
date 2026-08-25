@@ -694,20 +694,28 @@ async function salvarAnexosCorrecoes(input, idOcorrencia, idCorrecao) {
         if (!input || !input.files || input.files.length === 0)
             return
 
-        const anexos = await importarAnexos({ input })
+        const resposta = (await importarAnexos({ input }) || [])
 
-        const emMassa = anexos.map(async (anexo) => {
+        if (!resposta.length)
+            return popup({ mensagem: 'Escolha alguns anexos' })
 
-            enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}/anexos/${crypto.randomUUID()}`, anexo)
+        const anexosAtuais = Object.assign({},
+            ...resposta.map(anexo => ({ [crypto.randomUUID()]: anexo }))
+        )
 
+        const { correcoes } = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
+        const { anexos } = correcoes?.[idCorrecao] || {}
+
+        await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}/anexos`, {
+            ...anexosAtuais,
+            ...anexos
         })
-
-        await Promise.all(emMassa)
 
         removerOverlay()
 
     } catch (err) {
-        popup({ mensagem: err.message || 'Falha ao anexas arquivos, tente novamente em breve' })
+        console.error(err)
+        popup({ mensagem: 'Falha ao anexas arquivos, tente novamente em breve' })
     }
 
 }
@@ -1197,7 +1205,7 @@ async function abrirEsquemaOcorrencias(chave, principal) {
 }
 
 async function carregarTabStatus(id) {
-    
+
     const local = document.getElementById(id)
 
     // Verificar se existe outra tela de status ativa;
@@ -3070,7 +3078,8 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
 }
 
 function obter(name) {
-    const elemento = document.querySelector(`[name=${name}]`)
+    const painel = document.querySelector('.painel-padrao')
+    const elemento = painel.querySelector(`[name=${name}]`)
     return elemento
 }
 
@@ -3164,10 +3173,11 @@ async function salvarOcorrencia(idOcorrencia) {
 
 async function anexosOcorrencias(input) {
 
-    if (input?.files?.length)
+    if (!input?.files?.length)
         return {}
 
     const anexos = await importarAnexos({ input }) || []
+
     const objeto = {}
     anexos.forEach(anexo => {
         const idAnexo = crypto.randomUUID()

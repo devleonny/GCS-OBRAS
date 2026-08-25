@@ -874,6 +874,7 @@ input:focus {
 }
 
 .titulo-tabelas {
+    box-shadow: 0 0 3px #222;
     gap: 1rem;
     display: flex;
     align-items: start;

@@ -707,14 +707,15 @@ async function importarAnexos({ input, foto }) {
     }
 
     try {
+
         const response = await fetch(`${api}/upload`, {
             method: 'POST',
             body: formData
-        });
-        return await response.json();
+        })
+
+        return await response.json()
     } catch (err) {
-        popup({ mensagem: `Erro na API: ${err}` })
-        throw err;
+        return popup({ mensagem: `Erro na API: ${err}` })
     }
 }
 
