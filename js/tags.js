@@ -144,20 +144,38 @@ async function removerTag(idTag, idOrcamento) {
 
 }
 
-async function abrirEdicaoTag(id = crypto.randomUUID()) {
-    const tag = await recuperarDado('tags_orcamentos', id) || {}
+async function abrirEdicaoTag(id = null) {
 
-    const elemento = `
-        <div class="painel-adicionar-etiqueta">
-            <input name="nome" placeholder="Nome" value="${tag.nome || ''}">
-            <input name="cor" type="color" value="${tag.cor || '#999'}">
-        </div>
-    `
-    const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: `salvarTag('${id}')` }
-    ]
+    try {
+        overlayAguarde()
 
-    popup({ elemento, botoes, titulo: 'Tags' })
+        const { nome, cor } = id
+            ? await recuperarDado('tags_orcamentos', id) || {}
+            : {}
+
+        id = id || crypto.randomUUID()
+
+        const linhas = [
+            {
+                texto: 'Nome da Tag',
+                elemento: `<input name="nome" placeholder="Nome" value="${nome || ''}">`
+            },
+            {
+                texto: 'Cor',
+                elemento: `<input name="cor" type="color" value="${cor || '#999'}">`
+            }
+        ]
+
+        const botoes = [
+            { texto: 'Salvar', img: 'concluido', funcao: `salvarTag('${id}')` }
+        ]
+
+        popup({ linhas, botoes, titulo: 'Tags' })
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Não foi possível abrir a tag: Fale com o suporte.' })
+    }
 }
 
 async function salvarTag(id) {

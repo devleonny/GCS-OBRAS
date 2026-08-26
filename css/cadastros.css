@@ -1,4 +1,5 @@
 .tabela-cadastro {
+    height: 100%;
     overflow: auto;
     border-radius: 5px;
     overflow: hidden;
@@ -11,7 +12,7 @@
     align-items: start;
     justify-content: start;
     gap: 2rem;
-    padding: 0.5rem;
+    padding: 0 0.5rem;
     overflow: auto;
-    min-height: 70vh;
+    height: 100%;
 }

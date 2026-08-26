@@ -1,7 +1,6 @@
 async function telaPIT() {
 
     const acumulado = `
-    <div class="scroll-top"></div>
     <div class="scroll-content">
         <div class="contorno-quadros">
             <div id="quadros" class="tabela-cadastro-recorte"></div>

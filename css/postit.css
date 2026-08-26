@@ -2,7 +2,12 @@
     width: 95vw;
 }
 
+.scroll-content {
+    height: 100%;
+}
+
 .contorno-quadros {
+    height: 100%;
     overflow: hidden;
     border-radius: 8px;
 }

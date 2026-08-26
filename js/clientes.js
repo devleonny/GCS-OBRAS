@@ -32,11 +32,19 @@ const aEstados = [
 const tagCliente = (nome, ativarRemover = false) => {
     return `
         <div style="${horizontal}; gap: 5px;">
-            <span data-nome="${nome}" class="tag-cliente">
+            ${ativarRemover ? `<img onclick="removerTagCliente(this)" src="imagens/fechar.png">` : ''}
+            <span data-nome="${nome}" class="tag-pendencias">
                 ${nome || '--'}
             </span>
-            ${ativarRemover ? `<img onclick="this.parentElement.remove()" src="imagens/cancel.png">` : ''}
         </div>`
+}
+
+function removerTagCliente(img) {
+
+    img.parentElement.remove()
+    const painel = document.querySelector('.painel-padrao')
+    verificarDisponibilidade(painel.querySelector('[name="nome"]'))
+
 }
 
 async function classificarUnidades() {
@@ -378,7 +386,7 @@ function adicionarTag() {
     const tag = painel.querySelector('[name="tag"]')
 
     const divtags = painel.querySelector('[name="tags"]')
-    const tagsExistente = divtags.querySelectorAll('.tag-cliente')
+    const tagsExistente = divtags.querySelectorAll('.tag-pendencias')
 
     const existente = [...tagsExistente]
         .some(span => span.dataset.nome == tag.value)
@@ -387,6 +395,9 @@ function adicionarTag() {
         return
 
     divtags.insertAdjacentHTML('beforeend', tagCliente(tag.value, true))
+
+    verificarDisponibilidade(painel.querySelector('[name="nome"]'))
+
 }
 
 async function formularioCliente(idCliente) {
@@ -461,39 +472,6 @@ async function formularioCliente(idCliente) {
             elemento: `<input placeholder="CPF ou CNPJ" oninput="formatarCnpj(this)" name="cnpj" value="${cnpj || ''}">`
         },
         {
-            texto: 'Nome',
-            elemento: `<textarea placeholder="Nome Completo" maxlength="60" oninput="this.value = this.value.toUpperCase()" name="nome">${nome || ''}</textarea>`
-        },
-        {
-            texto: 'E-mail',
-            elemento: `<textarea name="email" placeholder="E-mail">${email || ''}</textarea>`
-        },
-        {
-            texto: 'Celular',
-            elemento: `
-            <input name="ddd" placeholder="DDD" style="width: 40px;" value="${ddd || ''}">
-            <input name="celular" placeholder="Celular" value="${celular || ''}">
-            `
-        },
-        {
-            texto: 'Chave Pix',
-            elemento: `<textarea placeholder="Chave Pix" name="chave_pix">${chave_pix || ''}</textarea>`
-        },
-        {
-            texto: 'Usuário',
-            elemento: `
-                <div style="${vertical}; gap: 5px;">
-                    <input name="usuario" placeholder="Usuário" oninput="verificarDisponibilidade(this)" value="${usuario || ''}" ${usuario ? 'readOnly="true"' : ''}>
-                    <div data-valido="${usuario ? 'S' : 'N'}" id="status_usuario"></div>
-                </div>
-            `
-        },
-        {
-            texto: 'Setor',
-            elemento: `<select name="setor">${setores.map(s => `<option ${setor == s ? 'selected' : ''}>${s}</option>`).join('')}</select>`
-        },
-        editarPermissao,
-        {
             texto: 'Tags',
             elemento: `
             <div style="${vertical}; gap: 5px;">
@@ -510,6 +488,44 @@ async function formularioCliente(idCliente) {
                 </div>
             </div>
             `
+        },
+        {
+            texto: 'Nome',
+            elemento: `
+            <textarea 
+            placeholder="Nome Completo" 
+            maxlength="60" 
+            ${!usuario ? `oninput="verificarDisponibilidade(this)"` : ''}
+            name="nome">${nome || ''}</textarea>`
+        },
+        {
+            texto: 'Usuário',
+            elemento: `
+                <div style="${vertical}; align-items: end; gap: 5px;">
+                    <input name="usuario" placeholder="Usuário" value="${usuario || ''}" readOnly="true">
+                    <div data-valido="${usuario ? 'F' : 'N'}" id="status_usuario"></div>
+                </div>
+            `
+        },
+        editarPermissao,
+        {
+            texto: 'E-mail',
+            elemento: `<textarea name="email" placeholder="E-mail">${email || ''}</textarea>`
+        },
+        {
+            texto: 'Celular',
+            elemento: `
+            <input name="ddd" placeholder="DDD" style="width: 40px;" value="${ddd || ''}">
+            <input name="celular" placeholder="Celular" value="${celular || ''}">
+            `
+        },
+        {
+            texto: 'Chave Pix',
+            elemento: `<textarea placeholder="Chave Pix" name="chave_pix">${chave_pix || ''}</textarea>`
+        },
+        {
+            texto: 'Setor',
+            elemento: `<select name="setor">${setores.map(s => `<option ${setor == s ? 'selected' : ''}>${s}</option>`).join('')}</select>`
         },
         {
             texto: 'Comentário',
@@ -594,42 +610,183 @@ async function formularioCliente(idCliente) {
 
 }
 
-async function verificarDisponibilidade(input) {
+function normalizarTexto(texto = '') {
+    return String(texto)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+}
 
-    const usuario = input.value.trim('')
+function gerarUsuario(nome = '') {
+    const partes = normalizarTexto(nome)
+        .split(' ')
+        .filter(Boolean)
 
-    const statusUsuario = document.getElementById('status_usuario')
-
-    let pesquisa = null
-
-    if (usuario.length > 5) {
-
-        pesquisa = await pesquisarDB({
-            base: 'clientes',
-            filtros: {
-                usuario: { op: '=', value: usuario }
-            }
-        })
-
+    if (partes.length < 2) {
+        return {
+            primeiraOpcao: null,
+            segundaOpcao: null
+        }
     }
 
-    const modelo = (texto, img) => `
+    const primeiroNome = partes[0]
+    const segundoNome = partes[1]
+    const ultimoNome = partes.at(-1)
+
+    return {
+        primeiraOpcao: `${primeiroNome}_${segundoNome}`,
+        segundaOpcao: `${primeiroNome}_${ultimoNome}`
+    }
+}
+
+async function verificarDisponibilidade(input) {
+
+    const modelo = (texto, imagem) => `
         <div style="${horizontal}; gap: 0.5rem;">
-            <img src="imagens/${img}.png" style="width: 1.5rem;">
+            <img src="imagens/${imagem}.png" style="width: 1.5rem;">
             <span>${texto}</span>
         </div>
     `
+    const painel = document.querySelector('.painel-padrao')
+    const divtags = painel.querySelector('[name="tags"]')
+    const tagsExistente = [...divtags.querySelectorAll('.tag-pendencias')]
+    const tagsValidas = ['FUNCIONÁRIO', 'CLIENTE', 'TÉCNICO', 'TÉCNICO PARCEIRO', 'MATRIZ']
+    const tagValida = tagsExistente.some(span => tagsValidas.includes(span.dataset.nome))
 
-    // Validador;
-    statusUsuario.dataset.valido = (!pesquisa || pesquisa.resultados.length)
-        ? 'N'
-        : 'S'
+    const campoNome = document.querySelector('[name="nome"]')
+    const campoUsuario = document.querySelector('[name="usuario"]')
+    const statusUsuario = document.getElementById('status_usuario')
 
-    statusUsuario.innerHTML = (!pesquisa || pesquisa.resultados.length)
-        ? modelo('Não disponível', 'cancel')
-        : modelo('Usuário válido', 'concluido')
+    // Fixo, já foi cadastrado e não deve alterar;
+    if (statusUsuario.dataset.valido == 'F')
+        return
 
+    if (!tagValida) {
+        statusUsuario.innerHTML = modelo('Preencha outra tag', 'alerta')
+        return
+    }
 
+    const valorInformado = typeof input === 'string'
+        ? input
+        : input?.value
+
+    const nomeInformado = String(
+        valorInformado || campoNome?.value || ''
+    )
+
+    const nomeLimpo = nomeInformado.trim()
+
+    const bloquear = texto => {
+        if (campoUsuario) {
+            campoUsuario.value = ''
+        }
+
+        if (statusUsuario) {
+            statusUsuario.dataset.valido = 'N'
+            statusUsuario.innerHTML = modelo(texto, 'cancel')
+        }
+
+        return null
+    }
+
+    const aprovar = (usuario, mensagem) => {
+        if (campoUsuario) {
+            campoUsuario.value = usuario
+        }
+
+        if (statusUsuario) {
+            statusUsuario.dataset.valido = 'S'
+            statusUsuario.innerHTML = modelo(
+                mensagem,
+                'concluido'
+            )
+        }
+
+        return usuario
+    }
+
+    if (!nomeLimpo) {
+        return bloquear(
+            'Informe o nome para gerar o usuário'
+        )
+    }
+
+    const partesNome = normalizarTexto(nomeLimpo)
+        .split(' ')
+        .filter(Boolean)
+
+    if (partesNome.length < 2) {
+        return bloquear(
+            'Informe pelo menos nome e sobrenome'
+        )
+    }
+
+    if (nomeLimpo.length < 6) {
+        return bloquear(
+            'Nome curto (mínimo de 6 caracteres)'
+        )
+    }
+
+    const {
+        primeiraOpcao,
+        segundaOpcao
+    } = gerarUsuario(nomeLimpo)
+
+    if (!primeiraOpcao) {
+        return bloquear(
+            'Não foi possível gerar o nome de usuário'
+        )
+    }
+
+    const pesquisarUsuario = async usuario => {
+        const pesquisa = await pesquisarDB({
+            base: 'clientes',
+            filtros: {
+                usuario: {
+                    op: '=',
+                    value: usuario
+                }
+            }
+        })
+
+        return Boolean(
+            pesquisa?.resultados?.length
+        )
+    }
+
+    const primeiraEmUso = await pesquisarUsuario(
+        primeiraOpcao
+    )
+
+    if (!primeiraEmUso) {
+        return aprovar(
+            primeiraOpcao,
+            'Usuário disponível'
+        )
+    }
+
+    if (
+        segundaOpcao &&
+        segundaOpcao !== primeiraOpcao
+    ) {
+        const segundaEmUso = await pesquisarUsuario(
+            segundaOpcao
+        )
+
+        if (!segundaEmUso) {
+            return aprovar(
+                segundaOpcao,
+                'Usuário disponível (2)'
+            )
+        }
+    }
+
+    return bloquear(
+        'Nome de usuário em uso'
+    )
 }
 
 async function datalistCidades(estado, local) {
@@ -677,14 +834,9 @@ async function excluirCliente(idCliente) {
 
 async function salvarCliente(idCliente = null) {
 
-    overlayAguarde()
-
-    // Se novo, a tabela é outra;
-    const cadastro = idCliente
-        ? false
-        : true
-
     try {
+
+        overlayAguarde()
 
         // Último painel
         const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
@@ -693,7 +845,8 @@ async function salvarCliente(idCliente = null) {
             return el ? el.value || el.id : null
         }
 
-        const usuarioValido = document.getElementById('status_usuario').dataset.valido == 'S'
+        // FIXO ou S = SIM, é válido;
+        const usuarioValido = ['S', 'F'].includes(document.getElementById('status_usuario').dataset.valido)
 
         // Verificações do CNPJ
         const cnpj = obVal('cnpj')
@@ -718,13 +871,13 @@ async function salvarCliente(idCliente = null) {
         }
 
         const divtags = painel.querySelector('[name="tags"]')
-        const tagsExistente = divtags.querySelectorAll('.tag-cliente')
+        const tagsExistente = divtags.querySelectorAll('.tag-pendencias')
         const tags = [...tagsExistente || []]
             .map(span => { return { tag: span.dataset.nome } })
 
         const novo = {
             cnpj,
-            nome: obVal('nome'),
+            nome: obVal('nome').toUpperCase(),
             endereco: obVal('endereco'),
             bairro: obVal('bairro'),
             cep: obVal('cep'),
@@ -756,24 +909,25 @@ async function salvarCliente(idCliente = null) {
             ...novo
         }
 
-        // Se novo;
-        if (cadastro && cliente.cnpj)
-            cliente.cadastrar_omie = true
-
         // Permissão;
         const permissao = obVal('permissao')
+
+        // Cadastrar Omie;
+        if (!idCliente && cliente.cnpj)
+            cliente.cadastrar_omie = true
 
         if (permissao)
             cliente.permissao = permissao
 
-        const resposta = await enviar(`clientes/${idCliente || '0000'}`, cliente)
+        await enviar(`clientes/${idCliente || '0000'}`, cliente)
 
         removerTodosPopups()
 
-        popup({ mensagem: 'Cadastro atualizado com sucesso' })
+        popup({ imagem: 'imagens/concluido.png', mensagem: 'Cadastro atualizado com sucesso' })
 
     } catch (err) {
-        popup({ mensage: 'Não foi possível salvar o cliente. Fale com o suporte.' })
+        console.error(err)
+        popup({ mensagem: 'Não foi possível salvar o cliente. Fale com o suporte.' })
     }
 
 }
@@ -832,6 +986,10 @@ async function buscarEndereco(cep) {
 }
 
 function formatarCnpj(input) {
+
+    if (!input)
+        return null
+
     let v = input.value.replace(/\D/g, '')
 
     if (v.length <= 11) {

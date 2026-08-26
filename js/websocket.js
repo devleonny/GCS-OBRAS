@@ -83,8 +83,7 @@ async function validarAcesso() {
     } catch {
 
         localStorage.removeItem('acesso')
-
-        await telaLogin()
+        location.reload()
         popup({ mensagem: 'Sessão expirada, faça login novamente' })
     }
 }
