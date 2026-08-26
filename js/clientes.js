@@ -621,24 +621,41 @@ function normalizarTexto(texto = '') {
 }
 
 function gerarUsuario(nome = '') {
-    const partes = normalizarTexto(nome)
+    const palavrasIgnoradas = [
+        'de',
+        'da',
+        'do',
+        'das',
+        'dos'
+    ]
+
+    const partesValidas = normalizarTexto(nome)
         .split(' ')
         .filter(Boolean)
+        .filter(parte => {
+            return !palavrasIgnoradas.includes(parte)
+        })
 
-    if (partes.length < 2) {
+    if (partesValidas.length < 2) {
         return {
             primeiraOpcao: null,
             segundaOpcao: null
         }
     }
 
-    const primeiroNome = partes[0]
-    const segundoNome = partes[1]
-    const ultimoNome = partes.at(-1)
+    const primeiroNome = partesValidas[0]
+    const segundoNome = partesValidas[1]
+    const ultimoNome = partesValidas.at(-1)
+
+    const primeiraOpcao = `${primeiroNome}_${segundoNome}`
+
+    const segundaOpcao = primeiroNome === ultimoNome
+        ? null
+        : `${primeiroNome}_${ultimoNome}`
 
     return {
-        primeiraOpcao: `${primeiroNome}_${segundoNome}`,
-        segundaOpcao: `${primeiroNome}_${ultimoNome}`
+        primeiraOpcao,
+        segundaOpcao
     }
 }
 
