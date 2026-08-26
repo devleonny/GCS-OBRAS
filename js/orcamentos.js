@@ -215,7 +215,7 @@ async function criarLinhaOrcamento(orcamento) {
             .map(({ tipo, pedido, valor, autorizado_por }) => {
 
                 const label = `
-                <div class="etiquetas" style="text-align: left; min-width: 90%;">
+                <div class="etiquetas" style="text-align: left;">
                     <label>${tipo || ''}</label>
                     <label>${pedido}</label>
                     ${autorizado_por ? `<label><b>${autorizado_por}</b></label>` : ''}

@@ -6,7 +6,7 @@ const dadosEmpresas = {
     'IAC': {
         'Razão Social': 'IAC',
         'CNPJ': '61.807.993/0001-00',
-        'E-mail': 'financeiroiac@outlook.com.br',
+        'E-mail': 'financeiro@grupocostasilva.com.br',
         'Telefones': '(11) 96300-7299',
         'Localização': 'CEP 42.702-901, Avenida Luiz Tarquínio Pontes, nº 132, Galpões 06, 07 e 08, CENTRO - Lauro de Freitas (BA)'
     },

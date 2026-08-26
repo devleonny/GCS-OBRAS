@@ -280,39 +280,48 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
 
 async function salvarPedido(id) {
 
-    overlayAguarde()
+    try {
+        overlayAguarde()
 
-    const departamento = document.getElementById('departamento').value
-    const comentario_status = document.getElementById('comentario_status')
-    const valor = document.getElementById('valor')
-    const tipo = document.getElementById('tipo')
-    const pedido = document.getElementById('pedido')
-    const empresa = document.getElementById('empresa')
-    const pagamento = document.getElementById('pagamento')
-    const autorizado_por = document.querySelector('[name="autorizado_por"]').id
+        const departamento = document.getElementById('departamento').value
+        const comentario_status = document.getElementById('comentario_status')
+        const valor = document.getElementById('valor')
+        const tipo = document.getElementById('tipo')
+        const pedido = document.getElementById('pedido')
+        const empresa = document.getElementById('empresa')
+        const pagamento = document.getElementById('pagamento')
+        const autorizado_por = document.querySelector('[name="autorizado_por"]').id
 
-    if (!valor.value || !tipo.value || !pedido.value)
-        return popup({ mensagem: 'Existem campos em Branco' })
+        if (!valor.value || !tipo.value || !pedido.value)
+            return popup({ mensagem: 'Existem campos em Branco' })
 
-    if (pedido.value == 'Sem Pedido' && autorizado_por == '')
-        return popup({ mensagem: 'Quem autorizou este pedido?' })
+        if (pedido.value == 'Sem Pedido' && autorizado_por == '')
+            return popup({ mensagem: 'Quem autorizou este pedido?' })
 
-    const dados = {
-        departamento,
-        data: new Date().toLocaleString(),
-        executor: acesso.usuario,
-        comentario: comentario_status.value,
-        pagamento: pagamento.value,
-        valor: Number(valor.value),
-        tipo: tipo.value,
-        pedido: pedido.value,
-        autorizado_por,
-        empresa: empresa.value
+        const dados = {
+            departamento,
+            data: new Date().toLocaleString(),
+            executor: acesso.usuario,
+            comentario: comentario_status.value,
+            pagamento: pagamento.value,
+            valor: Number(valor.value),
+            tipo: tipo.value,
+            pedido: pedido.value,
+            autorizado_por,
+            empresa: empresa.value
+        }
+
+        console.log(dados);
+        
+
+        await enviar(`pedidos/${id}`, dados)
+
+        removerPopup()
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao salvar o pedido: Fale com o suporte.' })
     }
-
-    await enviar(`pedidos/${id}`, dados)
-
-    removerPopup()
 
 }
 
@@ -350,7 +359,7 @@ async function adicionarNotaAvulsa(id = crypto.randomUUID()) {
         { texto: 'Salvar', img: 'concluido', funcao: `salvarNotaAvulsa('${id}')` }
     ]
 
-    popup({ linhas, botoes, titulo:  'Nota Fiscal Avulsa' })
+    popup({ linhas, botoes, titulo: 'Nota Fiscal Avulsa' })
 
 }
 
@@ -370,9 +379,9 @@ async function salvarNotaAvulsa(id) {
         n_nota: valor('nf'),
         categoria: String(valor('tipo')).toLocaleLowerCase(),
         total: Number(valor('valor')),
-        departamento: [contrato]
+        departamento: contrato
     }
-    
+
     await enviar(`notas/${id}`, nota)
 
     removerPopup()
