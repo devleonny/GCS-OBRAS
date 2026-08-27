@@ -1,69 +1,31 @@
 .tabela-v2 {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 0.8rem;
-  background: #ffffff;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 0 1px #222;
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 5px;
+    overflow: hidden;
 }
 
-.tabela-v2 thead {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #ffffff;
+.tabela-v2 tr {
+  border-top: solid 1px #c0c0c0;
 }
 
-.tabela-v2 thead th {
-  padding: 16px 12px;
-  text-align: left;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.tabela-v2 th {
+    background-color: #dfdede;
+    padding: 10px;
+    text-align: left;
 }
 
-.tabela-v2 tbody tr {
-  border-bottom: 1px solid #e5e7eb;
-  transition: background-color 0.2s ease;
+.tabela-v2 th, .tabela td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
 }
 
-.tabela-v2 tbody tr:last-child {
-  border-bottom: none;
+.tabela-v2 td {
+    background-color: #ffffff;
 }
 
-.tabela-v2 tbody tr:hover {
-  background-color: #f9fafb;
-}
-
-.tabela-v2 tbody td {
-  padding: 14px 12px;
-  color: #374151;
-  vertical-align: middle;
-}
-
-.tabela-v2 tbody tr:nth-child(even) {
-  background-color: #fafafa;
-}
-
-.tabela-v2 tbody tr:nth-child(even):hover {
-  background-color: #f3f4f6;
-}
-
-/* Badges de status */
-.tabela-v2 .status {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.tabela-v2 .status.ativo {
-  background-color: #d1fae5;
-  color: #065f46;
-}
-
-.tabela-v2 .status.inativo {
-  background-color: #fee2e2;
-  color: #991b1b;
+.tabela-v2 tr:nth-child(even) td {
+    background-color: #f9f9f9;
 }

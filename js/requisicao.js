@@ -767,9 +767,9 @@ async function gerarPdfRequisicao(id, visualizar) {
     const html = `
         <div id="pdf" style="${vertical}; gap: 1rem; width: 95%; padding: 1rem;">
 
-            <div style="${horizontal}; justify-content: space-between;">
-                <span style="font-size: 1.5rem;">REQUISIÇÃO DE MATERIAIS</span>
+            <div style="${horizontal}; gap: 1rem;">
                 <img style="width: 7rem;" src="https://i.imgur.com/5zohUo8.png">
+                <span style="font-size: 1.5rem;">REQUISIÇÃO DE MATERIAIS</span>
             </div>
 
             <div style="${horizontal}; justify-content: start; gap: 2rem;">
@@ -824,7 +824,7 @@ async function gerarPdfRequisicao(id, visualizar) {
 
         await pdf({
             html,
-            estilos: ['tabelas-vers-2', 'estilos'], 
+            estilos: ['tabelas-vers-2'], 
             nome
         })
 
