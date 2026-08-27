@@ -729,7 +729,7 @@ async function gerarPdfRequisicao(id, visualizar) {
                 <td>${codigo}</td>
                 <td>${omie || ''}</td>
                 <td>
-                    <div style="${vertical}">
+                    <div style="${vertical}; text-align: start;">
                         ${descFinal}
                     </div>
                 </td>
