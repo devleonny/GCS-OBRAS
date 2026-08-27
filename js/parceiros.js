@@ -585,7 +585,15 @@ async function atualizarDadosParceiro(id) {
 
     overlayAguarde()
 
-    const { tecnicos } = await recuperarDado('parceiros', id) || {}
+    const [pagamento, parceiro] = await Promise.all([
+        recuperarDado('lista_pagamentos', id) || null,
+        recuperarDado('parceiros', id) || {}
+    ])
+
+    if (pagamento)
+        return popup({ mensagem: 'Já existe um pagamento lançado para esta LPU.' })
+
+    const { tecnicos } = parceiro
 
     const tecnico = tecnicos?.[0]
 
@@ -619,6 +627,10 @@ async function atualizarDadosParceiro(id) {
             <input name="ddd" placeholder="DDD" style="width: 40px;" value="${ddd || ''}">
             <input name="celular" placeholder="Celular" value="${celular || ''}">
             `
+        },
+        {
+            texto: 'Previsão de Pagamento',
+            elemento: `<input name="data_pagamento" type="date">`
         }
     ]
 
@@ -664,6 +676,7 @@ async function solicitarPagamentoParceiro(id, idCliente) {
             .reduce((acc, item) => acc + (item.vTotalParc), 0)
 
         const correcao = {
+            data_pagamento: document.querySelector('[name="data_pagamento"]')?.value || null,
             aba: id,
             data: new Date().toLocaleString(),
             tecnico: tecnicos,

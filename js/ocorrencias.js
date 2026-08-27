@@ -358,7 +358,7 @@ function carregarCorrecoes(ocorrencia) {
             ? `
                 <span 
                     class="alerta-piscando"
-                    onclick="confirmarAprovarPagamentoPaceiro('${idCorrecao}', '${tecnico[0]}')"
+                    onclick="confirmarAprovarPagamentoPaceiro('${idOcorrencia}', '${idCorrecao}')"
                     style="padding: 0 1rem;">
                     Aprovar Pagamento
                 </span>
@@ -500,39 +500,88 @@ function carregarCorrecoes(ocorrencia) {
 
 }
 
-async function confirmarAprovarPagamentoPaceiro(idCorrecaoLpuParceiro, parceiro, idOcorrencia) {
-
-    overlayAguarde()
-
-    const pagamento = await recuperarDado('lista_pagamentos', idCorrecaoLpuParceiro)
-
-    if (pagamento)
-        return popup({ mensagem: 'Esse pagamento já foi lançado ao financeiro' })
-
-    const botoes = [
-        { texto: '(7 dias) Adiantamento de Parceiro', img: 'concluido', funcao: `aprovarPagamentoPaceiro(1, '${idCorrecaoLpuParceiro}')` },
-        { texto: '(10 de cada mês) Pagamento de Parceiro', img: 'concluido', funcao: `aprovarPagamentoPaceiro(2, '${idCorrecaoLpuParceiro}')` },
-    ]
-
-    popup({
-        titulo: 'Pagamento de Parceiro',
-        botoes,
-        mensagem: `Será criada uma fatura a pagar para <b>${parceiro}</b>, deseja confirmar?`
-    })
-
-}
-
-async function aprovarPagamentoPaceiro(modalidade, idCorrecaoLpuParceiro) {
+async function confirmarAprovarPagamentoPaceiro(idOcorrencia, idCorrecaoLpuParceiro) {
 
     try {
 
         overlayAguarde()
 
+        const [pagamento, ocorrencia] = await Promise.all([
+            recuperarDado('lista_pagamentos', idCorrecaoLpuParceiro) || {},
+            recuperarDado('dados_ocorrencias', idOcorrencia) || {}
+        ])
+
+        if (pagamento)
+            return popup({ mensagem: 'Esse pagamento já foi lançado ao financeiro' })
+
+        const { correcoes } = ocorrencia
+        const { data_pagamento, tecnico } = correcoes?.[idCorrecaoLpuParceiro] || {}
+        const usuarioTecnico = tecnico?.[0]
+
+        if (!usuarioTecnico)
+            return popup({ mensagem: 'Por alguma razão o técnico não existe na LPU: Fale com o suporte.' })
+
+        const linhas = [
+            {
+                elemento: `<span>Será criada uma fatura a pagar para <b>${usuarioTecnico}</b>, <br>escolha uma modalidade abaixo:</span>`
+            },
+            {
+                texto: '(7 dias) Adiantamento de Parceiro',
+                elemento: `<input data-modalidade="1" name="modalidade" type="radio">`
+            },
+            {
+                texto: '(10 de cada mês) Pagamento de Parceiro',
+                elemento: `<input data-modalidade="2" name="modalidade" type="radio">`
+            },
+            {
+                texto: `<input name="data_pagamento" type="date" value="${data_pagamento || ''}">`,
+                elemento: `<input data-modalidade="3" name="modalidade" type="radio">`
+            }
+        ]
+
+        const botoes = [
+            {
+                texto: 'Aprovar Pagamento',
+                img: 'joinha',
+                funcao: `aprovarPagamentoParceiro('${idCorrecaoLpuParceiro}')`
+            }
+        ]
+
+        popup({
+            linhas,
+            titulo: 'Pagamento de Parceiro',
+            botoes
+        })
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir o formulário de aprovação: Fale com o suporte.' })
+    }
+
+}
+
+async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro) {
+
+    try {
+
+        overlayAguarde()
+
+        const selecionado = [...document.querySelectorAll('[name="modalidade"]:checked')]
+
+        if (!selecionado.length)
+            return popup({ mensagem: 'Selecione 1 opção de data' })
+
+        const modalidade = Number(selecionado[0].dataset.modalidade)
         const { usuario } = acesso || {}
         const app = 'AC' // Parceiros é só na AC
-        const codigo_categoria = modalidade == 1
-            ? '2.01.81'
-            : '2.01.99'
+        const codigo_categoria = modalidade == 2
+            ? '2.01.99' // Pagamento de Parceiro (30 dias)
+            : '2.01.81' // Adiantamento ou data flexível
+
+        const dataPagamento = document.querySelector('[name="data_pagamento"]').value
+
+        if (modalidade == 3 && !dataPagamento)
+            return popup({ mensagem: 'Não deixe a data em branco' })
 
         const {
             tecnicos,
@@ -577,7 +626,9 @@ async function aprovarPagamentoPaceiro(modalidade, idCorrecaoLpuParceiro) {
         }
 
         const { codigo: cCodDep } = pesquisaDepartamento.resultados[0] || {}
-        const dataEstipulada = dataRegras(new Date().toLocaleDateString(), modalidade)
+        const dataEstipulada = modalidade == 3
+            ? dtFormatada(dataPagamento)
+            : dataRegras(new Date().toLocaleDateString(), modalidade)
 
         const observacao = `
             Solicitante: ${criado}\n 
@@ -635,7 +686,7 @@ async function aprovarPagamentoPaceiro(modalidade, idCorrecaoLpuParceiro) {
 
     } catch (err) {
 
-        console.log(err)
+        console.error(err)
         popup({ mensagem: 'Falha ao gerar o pagamento' })
 
     }
@@ -1459,9 +1510,6 @@ async function linParceiros(par) {
         data,
         comentario,
         executor,
-        itens,
-        margem,
-        tecnicos,
         anexos,
         fotos,
         totais
