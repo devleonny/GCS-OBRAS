@@ -1,5 +1,4 @@
 .tabela-v2 {
-  width: 100%;
   border-collapse: collapse;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-size: 14px;
@@ -68,42 +67,4 @@
 .tabela-v2 .status.inativo {
   background-color: #fee2e2;
   color: #991b1b;
-}
-
-/* Responsividade */
-@media (max-width: 600px) {
-  .tabela-v2 {
-    font-size: 13px;
-  }
-
-  .tabela-v2 thead {
-    display: none;
-  }
-
-  .tabela-v2 tbody tr {
-    display: block;
-    margin-bottom: 12px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 12px;
-    background: #ffffff;
-  }
-
-  .tabela-v2 tbody td {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid #f3f4f6;
-  }
-
-  .tabela-v2 tbody td:last-child {
-    border-bottom: none;
-  }
-
-  .tabela-v2 tbody td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    color: #6b7280;
-    margin-right: 12px;
-  }
 }

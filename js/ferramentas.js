@@ -162,59 +162,59 @@ async function f2() {
 }
 
 function criarVelocimetroHTML({
-  valor = 0,
-  limite,
-  tamanho = 220,
-  espessura = 10,
-  rotulo = 'Uso'
+    valor = 0,
+    limite,
+    tamanho = 220,
+    espessura = 10,
+    rotulo = 'Uso'
 } = {}) {
-  const valorNumero = Number(valor);
-  const valorBruto = Number.isFinite(valorNumero) ? valorNumero : 0;
+    const valorNumero = Number(valor);
+    const valorBruto = Number.isFinite(valorNumero) ? valorNumero : 0;
 
-  // valor para stroke: limitar só para cálculo geométrico (0–100),
-  // mas deixar o texto mostrar o valor real (pode ser 120, 150 etc.).
-  const valorStroke = Math.max(0, Math.min(100, valorBruto));
+    // valor para stroke: limitar só para cálculo geométrico (0–100),
+    // mas deixar o texto mostrar o valor real (pode ser 120, 150 etc.).
+    const valorStroke = Math.max(0, Math.min(100, valorBruto));
 
-  const limiteNumero = Number(limite);
-  const temLimite =
-    limite !== null &&
-    limite !== undefined &&
-    limite !== '' &&
-    Number.isFinite(limiteNumero);
+    const limiteNumero = Number(limite);
+    const temLimite =
+        limite !== null &&
+        limite !== undefined &&
+        limite !== '' &&
+        Number.isFinite(limiteNumero);
 
-  const limiteSeguro = temLimite
-    ? Math.max(0, Math.min(100, limiteNumero))
-    : null;
+    const limiteSeguro = temLimite
+        ? Math.max(0, Math.min(100, limiteNumero))
+        : null;
 
-  let situacao = 'normal';
+    let situacao = 'normal';
 
-  if (temLimite) {
-    if (valorBruto >= limiteSeguro) {
-      situacao = 'critico';
-    } else if (valorBruto >= limiteSeguro - 10) {
-      situacao = 'alerta';
+    if (temLimite) {
+        if (valorBruto >= limiteSeguro) {
+            situacao = 'critico';
+        } else if (valorBruto >= limiteSeguro - 10) {
+            situacao = 'alerta';
+        }
     }
-  }
 
-  // se passar de 100, força uma classe específica pra ficar azul
-  if (valorBruto > 100) {
-    situacao = 'ultrapassado'; // css vai pintar azul
-  }
+    // se passar de 100, força uma classe específica pra ficar azul
+    if (valorBruto > 100) {
+        situacao = 'ultrapassado'; // css vai pintar azul
+    }
 
-  const raio = 50 - espessura / 2;
-  const comprimentoSemicirculo = Math.PI * raio;
-  const deslocamentoProgresso =
-    comprimentoSemicirculo * (1 - valorStroke / 100);
+    const raio = 50 - espessura / 2;
+    const comprimentoSemicirculo = Math.PI * raio;
+    const deslocamentoProgresso =
+        comprimentoSemicirculo * (1 - valorStroke / 100);
 
-  const textoLimite = temLimite
-    ? `Limite: ${limiteSeguro}%`
-    : '';
+    const textoLimite = temLimite
+        ? `Limite: ${limiteSeguro}%`
+        : '';
 
-  const ariaLabel = temLimite
-    ? `${rotulo}: ${valorBruto}% de 100, limite ${limiteSeguro}%`
-    : `${rotulo}: ${valorBruto}% de 100, sem limite`;
+    const ariaLabel = temLimite
+        ? `${rotulo}: ${valorBruto}% de 100, limite ${limiteSeguro}%`
+        : `${rotulo}: ${valorBruto}% de 100, sem limite`;
 
-  return `
+    return `
     <div
       class="velocimetro velocimetro--${situacao}"
       style="
@@ -614,51 +614,52 @@ async function selecionar(name, cod) {
         await window[funcaoAdicional]()
 }
 
-async function pdf({ id, estilos = [], nome = 'documento' }) {
-
-    const htmlPdf = document.getElementById(id)
-    if (!id || !htmlPdf) return
-
-    overlayAguarde()
-
-    estilos = estilos
-        .map(estilo => `<link rel="stylesheet" href="https://devleonny.github.io/GCS-OBRAS/css/${estilo}.css">`)
-        .join('')
-
-    const html = `
-        <html>
-            <head>
-                <meta charset="UTF-8">
-                ${estilos}
-                <style>
-                    @page { size: A4; margin: 10mm; }
-                    html, body { margin: 0; padding: 0; }
-                    body { font-family: 'Poppins', sans-serif; background: white; }
-                    .topo-tabela * { visibility: hidden; }
-                    .div-tabela { max-height: max-content; }
-                    .tabela thead tr:nth-child(2) { display: none; }
-                </style>
-            </head>
-            <body>${htmlPdf.outerHTML}</body>
-        </html>`
+async function pdf({ id, html = null, estilos = [], nome = 'documento' }) {
 
     try {
-        const response = await fetch(`${api}/pdf-vers2`, {
+        overlayAguarde()
+
+        if (!id && !html)
+            return popup({ mensagem: 'ID do elemento ou html não localizado: Fale com o suporte.' })
+
+        const htmlPdf = html || document.getElementById(id).outerHTML
+
+        estilos = estilos
+            .map(estilo => `<link rel="stylesheet" href="https://devleonny.github.io/GCS-OBRAS/css/${estilo}.css">`)
+            .join('')
+
+        const htmlFinal = `
+            <html>
+                <head>
+                    <meta charset="UTF-8">
+                    ${estilos}
+                    <style>
+                        @page { size: A4; margin: 10mm; }
+                        html, body { margin: 0; padding: 0; }
+                        body { 
+                            font-family: 'Poppins', 
+                            sans-serif; 
+                            background: white; 
+                        }
+
+                    </style>
+                </head>
+                <body>${htmlPdf}</body>
+            </html>`
+
+        const response = await fetch(`${api}/pdf`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ html })
+            body: JSON.stringify({ html: htmlFinal })
         })
 
         if (!response.ok) {
             let msg = 'Falha ao baixar PDF'
-            try {
-                const text = await response.text()
-                const j = JSON.parse(text)
-                msg = j?.mensagem || j?.error || text || msg
-            } catch { }
+            const text = await response.text()
+            const j = JSON.parse(text)
+            msg = j?.mensagem || j?.error || text || msg
+
             popup({ mensagem: msg })
-            removerOverlay()
-            return
         }
 
         const blob = await response.blob()
@@ -673,8 +674,8 @@ async function pdf({ id, estilos = [], nome = 'documento' }) {
         removerOverlay()
 
     } catch (err) {
-        removerOverlay()
-        popup({ mensagem: err?.message || 'Falha ao gerar PDF' })
+        console.error(err)
+        popup({ mensagem: 'Falha ao gerar PDF: Fale com o suporte.' })
     }
 }
 
@@ -692,7 +693,7 @@ function base64ToBlob(base64) {
 
 async function importarAnexos({ input, foto }) {
 
-    if (!foto && !input?.files?.length) 
+    if (!foto && !input?.files?.length)
         return []
 
     const formData = new FormData()

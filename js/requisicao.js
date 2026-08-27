@@ -647,7 +647,7 @@ async function gerarPdfRequisicao(id, visualizar) {
     })
 
     // Primeiro resultado;
-    const { status, dados_orcam, snapshots } = orcamentos?.resultados?.[0] || {}
+    const { dados_orcam, snapshots } = orcamentos?.resultados?.[0] || {}
 
     // Pedido vinculado;
     const dadosPedido = await recuperarDado('pedidos', pedido) || {}
@@ -764,15 +764,15 @@ async function gerarPdfRequisicao(id, visualizar) {
 
     }
 
-    const htmlContent = `
-        <div id="pdf" style="${vertical}; gap: 1rem;">
+    const html = `
+        <div id="pdf" style="${vertical}; gap: 1rem; padding: 1rem;">
 
-            <div style="${horizontal}; width: 100%; justify-content: space-between;">
+            <div style="${horizontal}; justify-content: space-between;">
                 <span style="font-size: 1.5rem;">REQUISIÇÃO DE MATERIAIS</span>
                 <img style="width: 7rem;" src="https://i.imgur.com/5zohUo8.png">
             </div>
 
-            <div style="${horizontal}; justify-content: start; width: 100%; gap: 2rem;">
+            <div style="${horizontal}; justify-content: start; gap: 2rem;">
 
                 <div style="${vertical}; gap: 2px;">
 
@@ -805,7 +805,7 @@ async function gerarPdfRequisicao(id, visualizar) {
         </div>
         `
 
-    const elemento = `<div style="padding: 2rem;">${htmlContent}</div>`
+    const elemento = `<div style="padding: 2rem;">${html}</div>`
 
     if (visualizar)
         return popup({ elemento, titulo: 'PDF' })
@@ -823,7 +823,7 @@ async function gerarPdfRequisicao(id, visualizar) {
             .join('-')
 
         await pdf({
-            id: 'pdf',
+            html,
             estilos: ['tabelas-vers-2', 'estilos'], 
             nome
         })
