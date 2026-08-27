@@ -765,7 +765,7 @@ async function gerarPdfRequisicao(id, visualizar) {
     }
 
     const html = `
-        <div id="pdf" style="${vertical}; gap: 1rem; padding: 1rem;">
+        <div id="pdf" style="${vertical}; gap: 1rem; width: 95%; padding: 1rem;">
 
             <div style="${horizontal}; justify-content: space-between;">
                 <span style="font-size: 1.5rem;">REQUISIÇÃO DE MATERIAIS</span>
