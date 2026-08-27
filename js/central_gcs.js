@@ -441,43 +441,6 @@ function criarLinhaPainelUsuarios(dados) {
     </tr>`
 }
 
-async function gerarPdfOnline(htmlString, nome) {
-
-    const encoded = new TextEncoder().encode(htmlString)
-    const compressed = pako.gzip(encoded)
-
-    try {
-
-        const response = await fetch(`${api}/pdf`, {
-            method: "POST",
-            headers: { "Content-Type": "application/octet-stream" },
-            body: compressed
-        })
-
-        const contentType = response.headers.get("content-type") || ""
-
-        if (contentType.includes("application/json")) {
-
-            const erro = await response.json()
-            popup({ mensagem: erro.mensagem || 'Falha ao gerar o PDF' })
-            return
-
-        }
-
-        const blob = await response.blob()
-
-        const link = document.createElement("a")
-        link.href = URL.createObjectURL(blob)
-        link.download = `${nome}.pdf`
-        link.click()
-
-    } catch (err) {
-
-        popup({ mensagem: err.message || 'Falha ao gerar o PDF' })
-
-    }
-}
-
 async function reprocessarAnexos(idPagamento) {
     overlayAguarde()
     return new Promise((resolve, reject) => {

@@ -765,81 +765,7 @@ async function gerarPdfRequisicao(id, visualizar) {
     }
 
     const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-            <style>
-
-            @page {
-                size: A4;
-                margin: 0.5cm;
-            }
-
-            body {
-                overflow-x: hidden;
-                padding: 2rem;
-                font-size: 0.7rem;
-                font-family: 'Poppins', sans-serif;
-                margin: 0;
-                padding: 20px;
-                display: flex;
-                align-items: start;
-                justify-content: start;
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-
-            .header {
-                width: 100%;
-                text-align: center;
-                margin-bottom: 20px;
-                padding: 10px 0;
-                border-radius: 5px;
-            }
-
-            .header img {
-                height: 70px;
-            }
-
-            .tabela {
-                width: 100%;
-                border-collapse: collapse;
-                border-radius: 5px;
-                overflow: hidden;
-                margin-bottom: 20px;
-            }
-
-            .tabela th {
-                background-color: #dfdede;
-                padding: 10px;
-                text-align: left;
-            }
-
-            .tabela th, .tabela td {
-                border: 1px solid #ddd;
-                padding: 8px;
-                text-align: left;
-            }
-
-            .tabela td {
-                background-color: #ffffff;
-            }
-
-            .tabela tr:nth-child(even) td {
-                background-color: #f9f9f9;
-            }
-
-            @media print {
-                body {
-                    -webkit-print-color-adjust: exact;
-                    print-color-adjust: exact;
-                }
-            }
-
-            </style>
-        </head>
-        <body>
+        <div id="pdf" style="${vertical}; gap: 1rem;">
 
             <div style="${horizontal}; width: 100%; justify-content: space-between;">
                 <span style="font-size: 1.5rem;">REQUISIÇÃO DE MATERIAIS</span>
@@ -866,10 +792,8 @@ async function gerarPdfRequisicao(id, visualizar) {
                 </div>
 
             </div>
-
-            <br>
             
-            <table class="tabela">
+            <table class="tabela-v2">
                 <thead>
                     ${colunas.map(c => `<th>${c}</th>`).join('')}
                 </thead>
@@ -877,8 +801,9 @@ async function gerarPdfRequisicao(id, visualizar) {
                     ${linhas.join('')}
                 </tbody>
             </table>
-        </body>
-        </html>`
+
+        </div>
+        `
 
     const elemento = `<div style="padding: 2rem;">${htmlContent}</div>`
 
@@ -897,8 +822,11 @@ async function gerarPdfRequisicao(id, visualizar) {
             .filter(c => c)
             .join('-')
 
-        await gerarPdfOnline(htmlContent, nome)
-        removerOverlay()
+        await pdf({
+            id: 'pdf',
+            estilos: ['tabelas-vers-2', 'estilos'], 
+            nome
+        })
 
     } catch (err) {
         popup({ mensagem: err.message || 'Falha ao gerar o PDF, tente novamente ou fale com o Suporte' })

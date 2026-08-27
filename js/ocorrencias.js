@@ -523,7 +523,10 @@ async function confirmarAprovarPagamentoPaceiro(idOcorrencia, idCorrecaoLpuParce
 
         const linhas = [
             {
-                elemento: `<span>Será criada uma fatura a pagar para <b>${usuarioTecnico}</b>, <br>escolha uma modalidade abaixo:</span>`
+                elemento: `
+                    <span>Será criada uma fatura a pagar para <b>${usuarioTecnico}</b>, <br>escolha uma modalidade abaixo:</span>
+                    <button onclick="gerarPdfParceiro('${idCorrecaoLpuParceiro}', true)">Ver LPU</button>
+                    `
             },
             {
                 texto: '(7 dias) Adiantamento de Parceiro',

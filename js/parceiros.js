@@ -465,83 +465,10 @@ async function gerarPdfParceiro(id, visualizar) {
         }).join('')
 
     const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-            <style>
+        <div id="pdf" style="${vertical}; gap: 1rem;">
+            <img src="https://i.imgur.com/5zohUo8.png" style="width: 5rem;">
 
-            @page {
-                size: A4;
-                margin: 1cm;
-            }
-
-            body {
-                font-family: 'Poppins', sans-serif;
-                margin: 0;
-                padding: 20px;
-                width: 21cm;
-                min-height: 29.7cm;
-                display: flex;
-                align-itens: start;
-                justify-content: start;
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-
-            .header {
-                width: 100%;
-                text-align: center;
-                margin-bottom: 20px;
-                padding: 10px 0;
-                border-radius: 5px;
-            }
-
-            .header img {
-                height: 70px;
-            }
-
-            .tabela {
-                width: 100%;
-                border-collapse: collapse;
-                border-radius: 5px;
-                overflow: hidden;
-                margin-bottom: 20px;
-            }
-
-            .tabela th {
-                background-color: #dfdede;
-                padding: 10px;
-                text-align: left;
-            }
-
-            .tabela th, .tabela td {
-                border: 1px solid #ddd;
-                padding: 8px;
-                text-align: left;
-            }
-
-            .tabela td {
-                background-color: #ffffff;
-            }
-
-            .tabela tr:nth-child(even) td {
-                background-color: #f9f9f9;
-            }
-
-            @media print {
-                body {
-                    -webkit-print-color-adjust: exact;
-                    print-color-adjust: exact;
-                }
-            }
-
-            </style>
-        </head>
-        <body>
-            <img src="https://i.imgur.com/5zohUo8.png" style="width: 10rem;">
-
-            <table class="tabela">
+            <table class="tabela-v2">
                 <thead>
                     ${colunas.map(c => `<th>${c}</th>`).join('')}
                 </thead>
@@ -550,7 +477,7 @@ async function gerarPdfParceiro(id, visualizar) {
                 </tbody>
             </table>
 
-            <table class="tabela">
+            <table class="tabela-v2">
                 <tbody>
                     <tr>
                         <td colspan="5" style="background-color: #eaeaea; text-align: right;">TOTAL</td>
@@ -565,8 +492,8 @@ async function gerarPdfParceiro(id, visualizar) {
                 <span><b>COMENTÁRIO</b></span>
                 <div style="white-space: pre-wrap;">${comentario || ''}</div>
             </div>
-        </body>
-        </html>`
+        </div>
+`
 
     const elemento = `<div style="padding: 2rem;">${htmlContent}</div>`
 
@@ -574,8 +501,13 @@ async function gerarPdfParceiro(id, visualizar) {
         return popup({ cor: '#fbfbfb', elemento, titulo: 'PDF' })
 
     try {
-        await gerarPdfOnline(htmlContent, `LPU PARCEIRO - ${Date.now()}`)
-        removerOverlay()
+
+        await pdf({
+            id: 'pdf', 
+            estilos: ['tabelas-vers-2', 'estilos'], 
+            nome: `LPU PARCEIRO - ${Date.now()}`
+        })
+
     } catch (err) {
         popup({ mensagem: err.message || 'Falha ao gerar o PDF' })
     }
