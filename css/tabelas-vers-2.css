@@ -1,9 +1,10 @@
 .tabela-v2 {
-    box-shadow: 0 0 1px #222;
-    width: 100%;
-    border-collapse: collapse;
-    border-radius: 5px;
-    overflow: hidden;
+  font-size: 10px;
+  box-shadow: 0 0 1px #222;
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 5px;
+  overflow: hidden;
 }
 
 .tabela-v2 tr {
@@ -11,21 +12,22 @@
 }
 
 .tabela-v2 th {
-    background-color: #dfdede;
-    padding: 10px;
-    text-align: left;
+  background-color: #dfdede;
+  padding: 10px;
+  text-align: left;
 }
 
-.tabela-v2 th, .tabela td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
+.tabela-v2 th,
+.tabela td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
 }
 
 .tabela-v2 td {
-    background-color: #ffffff;
+  background-color: #ffffff;
 }
 
 .tabela-v2 tr:nth-child(even) td {
-    background-color: #f9f9f9;
+  background-color: #f9f9f9;
 }
