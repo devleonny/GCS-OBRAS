@@ -637,8 +637,11 @@ async function pdf({ id, html = null, estilos = [], nome = 'documento' }) {
                         @page { size: A4; margin: 10mm; }
                         html, body { margin: 0; padding: 0; }
                         body { 
-                            font-family: 'Poppins', 
-                            sans-serif; 
+                            width: 100%;
+                            display: flex; 
+                            align-items: start;
+                            justify-content: center;
+                            font-family: 'Poppins', sans-serif; 
                             background: white; 
                         }
 

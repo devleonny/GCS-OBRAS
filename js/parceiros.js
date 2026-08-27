@@ -464,8 +464,8 @@ async function gerarPdfParceiro(id, visualizar) {
             `
         }).join('')
 
-    const htmlContent = `
-        <div id="pdf" style="${vertical}; gap: 1rem;">
+    const html = `
+        <div id="pdf" style="font-size: 12px; ${vertical}; width: 90%; gap: 1rem;">
             <img src="https://i.imgur.com/5zohUo8.png" style="width: 5rem;">
 
             <table class="tabela-v2">
@@ -495,7 +495,7 @@ async function gerarPdfParceiro(id, visualizar) {
         </div>
 `
 
-    const elemento = `<div style="padding: 2rem;">${htmlContent}</div>`
+    const elemento = `<div style="padding: 2rem;">${html}</div>`
 
     if (visualizar)
         return popup({ cor: '#fbfbfb', elemento, titulo: 'PDF' })
@@ -503,7 +503,7 @@ async function gerarPdfParceiro(id, visualizar) {
     try {
 
         await pdf({
-            id: 'pdf', 
+            html, 
             estilos: ['tabelas-vers-2', 'estilos'], 
             nome: `LPU PARCEIRO - ${Date.now()}`
         })

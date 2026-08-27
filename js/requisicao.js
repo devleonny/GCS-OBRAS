@@ -772,7 +772,7 @@ async function gerarPdfRequisicao(id, visualizar) {
                 <span style="font-size: 1.5rem;">REQUISIÇÃO DE MATERIAIS</span>
             </div>
 
-            <div style="${horizontal}; justify-content: start; gap: 2rem;">
+            <div style="font-size: 12px; ${horizontal}; justify-content: start; gap: 2rem;">
 
                 <div style="${vertical}; gap: 2px;">
 
