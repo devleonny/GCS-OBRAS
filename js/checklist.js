@@ -1,5 +1,7 @@
+let tituloOrcamento = null
 
-async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d015489f') {
+
+async function telaChecklist(idOrcamento) {
 
   try {
 
@@ -13,6 +15,14 @@ async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d01
 
     const { contrato } = dados_orcam || {}
     const { cliente } = snapshots || {}
+
+    tituloOrcamento = `
+        <div style="${horizontal}; gap: 1rem; margin-bottom: 1rem;">
+          <span>CHECKLIST</span>
+          <span class="tag-pendencias">${contrato}</span>
+          <span class="titulo-1">${cliente}</span>
+        </div>
+    `
 
     // TABELA 
     const pag = 'detalhamento_checklist'
@@ -47,34 +57,49 @@ async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d01
         'Fotos': {},
         'Quantidade': {},
         'Observação': { chave: 'observacao' }
-      },
+      }
     })
+
+    const toolbar = [
+      {
+        titulo: 'Indicadores',
+        id: 'indicadorGeral'
+      },
+      {
+        titulo: 'Detalhamento Diário',
+        id: 'indicadorDiario'
+      },
+      {
+        titulo: 'Relatório Fotográfico',
+        id: 'relatorioFotografico'
+      }
+    ].map(({ id, titulo }) => `<span id="toolbar-${id}" onclick="mostrarAba('${id}')">${titulo}</span>`).join('')
 
     tela.innerHTML = `
         <div class="painel-geral-checklist">
 
-          <div id="pdf" style="${vertical}; padding: 1rem; gap: 1rem;">
+          ${tituloOrcamento}
 
-            <div style="${horizontal}; gap: 1rem;">
-              <span>CHECKLIST</span>
-              <span class="tag-pendencias">${contrato}</span>
-              <span class="titulo-1">${cliente}</span>
+          <div class="toolbar-checklist">${toolbar}</div>
+
+          <div class="painel-atras-checklist">
+            <div id="indicadorGeral"></div>
+
+            <div id="indicadorDiario">
+              ${tituloChecklist('Atividades Realizadas Por Data')}
+              ${tabela}
             </div>
 
-            <div id="indicadorGeral" style="width: 100%; ${vertical}; gap: 1rem;"></div>
-
+            <div id="relatorioFotografico"></div>
           </div>
-
-          <div class="checklist-tabelas">
-            <span class="titulo-2">Todas as atividades realizadas Por Data</span>
-            ${tabela}
-          </div>  
 
         </div>
     `
     await paginacao(pag)
 
     removerTodosPopups()
+
+    mostrarAba('indicadorGeral')
 
   } catch (err) {
     console.error(err)
@@ -83,9 +108,20 @@ async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d01
 
 }
 
+function mostrarAba(id) {
+
+  const abas = ['indicadorGeral', 'indicadorDiario', 'relatorioFotografico']
+
+  abas.forEach(aba => {
+    document.getElementById(`toolbar-${aba}`).style.opacity = id == aba ? 1 : 0.5
+    document.getElementById(aba).style.display = id == aba ? 'flex' : 'none'
+  })
+
+}
+
 function especialFotosChecklist(registro) {
 
-  if(!registro)
+  if (!registro)
     return ''
 
   const {
@@ -103,8 +139,8 @@ function especialFotosChecklist(registro) {
 
       return taxaDuplicidade > 90
         ? `<div class="imagem-duplicada">
-          ${elemento}
-          <span>Imagem Duplicada ${taxaDuplicidade}%</span>
+            ${elemento}
+            <span>Imagem Duplicada ${taxaDuplicidade}%</span>
         </div>`
         : elemento
 
@@ -126,8 +162,7 @@ function criarLinhaDetalhada(registro) {
     observacao,
     codigo,
     quantidade,
-    descricao_item,
-    snapshots
+    descricao_item
   } = registro || {}
 
   const divAnexos = especialFotosChecklist(registro)
@@ -215,7 +250,7 @@ async function atualizarAndamentoChecklist() {
   const painel = document.querySelector('#indicadorGeral')
 
   const idOrcamento = controles.detalhamento_checklist.id
-  const { snapshots, realizado, desativados_checklist } = await recuperarDado('dados_orcamentos', idOrcamento) || {}
+  const { dados_composicoes, snapshots } = await recuperarDado('dados_orcamentos', idOrcamento) || {}
   const {
     andamento,
     total_geral,
@@ -230,9 +265,47 @@ async function atualizarAndamentoChecklist() {
     base: 'checklist',
     limite: 999999,
     filtros: {
-      id_orcamento: idOrcamento
+      id_orcamento: { op: '=', value: idOrcamento }
     }
   })
+
+  const linhas = pesquisa.resultados
+    .sort((a, b) => String(a.data || '').localeCompare(String(b.data || '')))
+    .map(registro => {
+
+      const { codigo, data, observacao } = registro
+
+      const descricao = dados_composicoes?.[codigo]?.descricao || 'Não localizado'
+
+      const divAnexos = especialFotosChecklist(registro)
+
+      return `
+      <tr>
+        <td>${codigo}</td>
+        <td style="text-align: left;">${descricao}</td>
+        <td>${dtFormatada(data)}</td>
+        <td>
+          <div class="local-anexos relatorio-fotografico">${divAnexos}</div>
+        </td>
+        <td>${observacao}</td>
+      </tr>
+      `})
+    .join('')
+
+  // Relatório Fotográfico
+  const colunas = ['Código', 'Descrição', 'Data', 'Foto', 'Observação']
+  const relatorioFotografico = `
+    ${tituloChecklist('Relatório Fotográfico')}
+    <table class="tabela-relatorio-fotografico">
+      <thead>
+          ${colunas.map(th => `<th>${th}</th>`).join('')}
+      <thead>
+      <tbody>
+          ${linhas || `<tr><td colspan="${colunas.length}">Sem resultados</td></tr>`}
+      </tbody>
+    </table>
+  `
+  document.getElementById('relatorioFotografico').innerHTML = relatorioFotografico
 
   // Porcentagem Geral
   const porcentagemGeral = criarVelocimetroHTML({ rotulo: '% Geral', valor: total_geral })
@@ -270,7 +343,6 @@ async function atualizarAndamentoChecklist() {
 
       return `
         <div class="checklist-painel">
-
           <div style="${vertical}; width: 300px; margin-left: 1rem; gap: 5px;">
 
             ${criarVelocimetroHTML({ rotulo: `${numerador} / ${denominador} ${unidade || 'UN'}S`, valor: andamento })}
@@ -318,21 +390,34 @@ async function atualizarAndamentoChecklist() {
     .join('')
 
   painel.innerHTML = `
+      ${tituloChecklist('Indicadores Por Categoria')}
       <div style="display: flex; gap: 5px;">
-        <div style="${vertical}; align-items: center; gap: 5px;">
+        <div class="indicador-geral">
           ${porcentagemGeral}
-          <div style="${horizontal}; gap: 5px;">
-            <img src="imagens/pesquisar2.png" onclick="abrirAtalhos('${idOrcamento}')">
-            <img src="imagens/pdf.png" onclick="pdfChecklist()">
-          </div>
+          <img src="imagens/pesquisar2.png" onclick="abrirAtalhos('${idOrcamento}')">
         </div>
         <div style="display: flex; flex-wrap: wrap; gap: 5px;">
           ${etiquetas}
         </div>
       </div>
       ${porcentagens}
+
+
+      <div class="botao-pdf" onclick="gerarPdfChecklist('indicadorGeral')">
+        Baixar PDF
+      </div>
     `
 
+}
+
+function tituloChecklist(texto) {
+
+  return `
+    <div class="titulo-relatorio-fotografico">
+      <img src="${logo}">
+      <span>${texto}</span>
+    </div>
+  `
 }
 
 async function criarLinhaChecklist(item) {
@@ -555,8 +640,8 @@ async function adicionarLinhaChecklistInstConf(codigoForm, tipoForm, id) {
     overlayAguarde()
 
     const registro = id
-        ? await recuperarDado('checklist', id) || {}
-        : {}
+      ? await recuperarDado('checklist', id) || {}
+      : {}
 
     const {
       codigo: codigoServ,
@@ -1309,7 +1394,6 @@ function criarLinhaOrcamentoChecklist(orcamento) {
       </td>
   </tr>
   `
-
 }
 
 async function pdfChecklist() {

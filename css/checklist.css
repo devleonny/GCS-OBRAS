@@ -3,14 +3,37 @@
 }
 
 .painel-geral-checklist {
+    height: max-content;
+    position: relative;
+    width: fit-content;
     border-radius: 5px;
-    gap: 2rem;
-    padding: 1rem;
+    padding: 0.5rem;
     display: flex;
     align-items: start;
     justify-content: start;
     flex-direction: column;
     background-color: #f7f8f5;
+}
+
+.indicador-geral {
+    box-shadow: 0 0 3px red;
+    padding: 5px;
+    background-color: white;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.painel-atras-checklist {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    background: linear-gradient(117deg, #b12425, #ffffff);
+    padding: 0.5rem;
+    border-radius: 0 5px 5px 5px;
 }
 
 .grafico-diario-cabecalho {
@@ -34,16 +57,17 @@
 }
 
 .checklist-painel {
+    box-shadow: 0 0 3px red;
     break-inside: avoid;
     page-break-inside: avoid;
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.5rem;
     padding: 1rem 0;
     border: 1px solid var(--linha);
-    background: rgb(255, 255, 255);
-    border-radius: 12px;
+    background: #ffffff;
+    border-radius: 5px;
 }
 
 .tag-checklist {
@@ -75,11 +99,6 @@
     font-size: 1.5rem;
 }
 
-.titulo-2 {
-    font-size: 1.5rem;
-    color: #646464;
-}
-
 .grafico-diario-svg {
     display: block;
     width: 100%;
@@ -98,6 +117,7 @@
 }
 
 .checklist-indicador {
+    box-shadow: 0 0 3px red;
     cursor: pointer;
     border-radius: 5px;
     gap: 1rem;
@@ -119,10 +139,27 @@
     width: 100%;
 }
 
-.checklist-tabelas {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
+.relatorio-fotografico img {
+    width: 500px;
+}
+
+.tabela-relatorio-fotografico {
+    background-color: white;
+    border-collapse: collapse;
+    border: solid 1px #797979;
+}
+
+.tabela-relatorio-fotografico th {
+    padding: 8px;
+    text-align: center;
+    background-color: #e7e7e7;
+    border: solid 1px #797979;
+}
+
+.tabela-relatorio-fotografico td {
+    padding: 8px;
+    text-align: center;
+    border: solid 1px #797979;
 }
 
 .etiqueta-valores {
@@ -131,4 +168,55 @@
     background-color: #ebebeb;
     padding: 2px 2rem;
     font-size: 1rem;
+}
+
+.toolbar-checklist {
+    display: flex;
+    align-items: start;
+    flex-direction: row;
+    gap: 0.5rem;
+}
+
+.toolbar-checklist span {
+    cursor: pointer;
+    color: white;
+    background-color: #bd2b2b;
+    border-radius: 10px 10px 0 0;
+    padding: 5px 1rem;
+}
+
+#indicadorGeral,
+#indicadorDiario,
+#relatorioFotografico {
+    display: none;
+    flex-direction: column;
+    align-items: start;
+    gap: 0.5rem;
+}
+
+.titulo-relatorio-fotografico {
+    padding: 5px 3rem;
+    font-size: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    background: linear-gradient(45deg, #ffffff, #ffffff82);
+    color: #4a4a4a;
+    border-radius: 10px;
+}
+
+.titulo-relatorio-fotografico img {
+    width: 45px;
+}
+
+.botao-pdf {
+    cursor: pointer;
+    border-radius: 0 5px 0 2rem;
+    padding: 1rem;
+    color: white;
+    background-color: red;
+    position: absolute;
+    top: 0;
+    right: 0;
 }
