@@ -83,10 +83,41 @@ async function telaChecklist(idOrcamento = 'ORCA_1faf8f5a-7413-40ac-98d7-11d3d01
 
 }
 
+function especialFotosChecklist(registro) {
+
+  if(!registro)
+    return ''
+
+  const {
+    id,
+    snapshots,
+    fotos
+  } = registro || {}
+
+  return Object
+    .entries(fotos || {})
+    .map(([idAnexo, anexo]) => {
+
+      const elemento = criarAnexoVisual(anexo.nome, anexo.link, `removerFotoChecklist('${id}', '${idAnexo}')`)
+      const taxaDuplicidade = Number((snapshots?.fotos?.[idAnexo]?.taxaDuplicidade || 0).toFixed(0))
+
+      return taxaDuplicidade > 90
+        ? `<div class="imagem-duplicada">
+          ${elemento}
+          <span>Imagem Duplicada ${taxaDuplicidade}%</span>
+        </div>`
+        : elemento
+
+    })
+    .join('')
+
+}
+
 
 function criarLinhaDetalhada(registro) {
 
   const {
+    id,
     data,
     ip,
     rack,
@@ -94,15 +125,12 @@ function criarLinhaDetalhada(registro) {
     descricao,
     observacao,
     codigo,
-    fotos,
     quantidade,
-    descricao_item
+    descricao_item,
+    snapshots
   } = registro || {}
 
-  const divAnexos = Object
-    .entries(fotos || {})
-    .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link))
-    .join('')
+  const divAnexos = especialFotosChecklist(registro)
 
   return `
     <tr>
@@ -282,14 +310,6 @@ async function atualizarAndamentoChecklist() {
     {
       titulo: 'Última Atividade',
       valor: data_final,
-    },
-    {
-      titulo: 'Ver Opções',
-      funcao: `abrirAtalhos('${idOrcamento}')`,
-    },
-    {
-      titulo: 'Baixar em PDF',
-      funcao: `pdfChecklist()`,
     }
   ]
 
@@ -299,8 +319,16 @@ async function atualizarAndamentoChecklist() {
 
   painel.innerHTML = `
       <div style="display: flex; gap: 5px;">
-        ${porcentagemGeral}
-        <div style="display: flex; flex-wrap: wrap; gap: 5px;">${etiquetas}</div>
+        <div style="${vertical}; align-items: center; gap: 5px;">
+          ${porcentagemGeral}
+          <div style="${horizontal}; gap: 5px;">
+            <img src="imagens/pesquisar2.png" onclick="abrirAtalhos('${idOrcamento}')">
+            <img src="imagens/pdf.png" onclick="pdfChecklist()">
+          </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+          ${etiquetas}
+        </div>
       </div>
       ${porcentagens}
     `
@@ -526,6 +554,10 @@ async function adicionarLinhaChecklistInstConf(codigoForm, tipoForm, id) {
 
     overlayAguarde()
 
+    const registro = id
+        ? await recuperarDado('checklist', id) || {}
+        : {}
+
     const {
       codigo: codigoServ,
       tipo: tipoServ,
@@ -537,17 +569,10 @@ async function adicionarLinhaChecklistInstConf(codigoForm, tipoForm, id) {
       pilar,
       local,
       setor,
-      observacao,
-      fotos
-    } = id
-        ? await recuperarDado('checklist', id) || {}
-        : {}
+      observacao
+    } = registro
 
-    const divAnexos = Object
-      .entries(fotos || {})
-      .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerFotoChecklist('${id}', '${idAnexo}')`))
-      .join('')
-
+    const divAnexos = especialFotosChecklist(registro)
     const codigo = codigoServ || codigoForm
     const tipo = tipoServ || tipoForm
 
@@ -725,15 +750,11 @@ function criarLinhaInstConf(item) {
     local,
     pilar,
     setor,
-    fotos,
     quantidade,
     data
   } = item || {}
 
-  const divAnexos = Object
-    .entries(fotos || {})
-    .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerFotoChecklist('${id}', '${idAnexo}')`))
-    .join('')
+  const divAnexos = especialFotosChecklist(item)
 
   return `
     <tr>

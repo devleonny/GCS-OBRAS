@@ -904,40 +904,49 @@ async function excluirItemComposicao(codigo) {
 
 async function cadastrarItem(codigo) {
 
-    const produto = await recuperarDado('dados_composicoes', codigo) || {}
-    const funcao = codigo ? `salvarComposicao('${codigo}')` : `salvarComposicao()`
+    try {
 
-    const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao }
-    ]
+        overlayAguarde()
 
-    if (codigo)
-        botoes.push({
-            texto: 'Excluir',
-            img: 'cancel',
-            funcao: `confirmarExclusaoItem('${codigo}')`
-        })
+        const produto = await recuperarDado('dados_composicoes', codigo) || {}
+        const funcao = codigo ? `salvarComposicao('${codigo}')` : `salvarComposicao()`
 
-    const tipos = esquemas.tipo
-        .map(op => `<option ${op == produto?.tipo ? 'selected' : ''}>${op}</option>`)
-        .join('')
+        const botoes = [
+            { texto: 'Salvar', img: 'concluido', funcao }
+        ]
 
-    const sistemas = esquemas.sistema
-        .map(op => `<option ${op == produto?.sistema ? 'selected' : ''}>${op}</option>`)
-        .join('')
+        if (codigo)
+            botoes.push({
+                texto: 'Excluir',
+                img: 'cancel',
+                funcao: `confirmarExclusaoItem('${codigo}')`
+            })
 
-    const linhas = [
-        { texto: 'Descrição', elemento: `<textarea name="descricao" rows="5">${produto?.descricao || ''}</textarea>` },
-        { texto: 'Fabricante', elemento: `<input name="fabricante" value="${produto?.fabricante || ''}">` },
-        { texto: 'Modelo', elemento: `<input name="modelo" value="${produto?.modelo || ''}">` },
-        { texto: 'Unidade', elemento: `<input name="unidade" value="${produto?.unidade || 'UN'}">` },
-        { texto: 'ncm', elemento: `<input name="ncm" value="${produto?.ncm || ''}">` },
-        { texto: 'Omie', elemento: `<input name="omie" value="${produto?.omie || ''}">` },
-        { texto: 'Tipo', elemento: `<select name="tipo">${tipos}</select>` },
-        { texto: 'Sistema', elemento: `<select name="sistema">${sistemas}</select>` },
-    ]
+        const tipos = esquemas.tipo
+            .map(op => `<option ${op == produto?.tipo ? 'selected' : ''}>${op}</option>`)
+            .join('')
 
-    popup({ linhas, botoes, titulo: 'Dados do Item' })
+        const sistemas = esquemas.sistema
+            .map(op => `<option ${op == produto?.sistema ? 'selected' : ''}>${op}</option>`)
+            .join('')
+
+        const linhas = [
+            { texto: 'Descrição', elemento: `<textarea name="descricao" rows="5">${produto?.descricao || ''}</textarea>` },
+            { texto: 'Fabricante', elemento: `<input name="fabricante" value="${produto?.fabricante || ''}">` },
+            { texto: 'Modelo', elemento: `<input name="modelo" value="${produto?.modelo || ''}">` },
+            { texto: 'Unidade', elemento: `<input name="unidade" value="${produto?.unidade || 'UN'}">` },
+            { texto: 'ncm', elemento: `<input name="ncm" value="${produto?.ncm || ''}">` },
+            { texto: 'Omie', elemento: `<input name="omie" value="${produto?.omie || ''}">` },
+            { texto: 'Tipo', elemento: `<select name="tipo">${tipos}</select>` },
+            { texto: 'Sistema', elemento: `<select name="sistema">${sistemas}</select>` },
+        ]
+
+        popup({ linhas, botoes, titulo: 'Dados do Item' })
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir o item: Fale com o suporte.' })
+    }
 
 }
 
