@@ -873,13 +873,14 @@ select {
 
 button {
     margin: 5px;
-    padding: 7px;
-    color: #f5f5f5;
+    padding: 7px 1rem;
+    color: #fff4f4;
     cursor: pointer;
     background-color: #249f41;
-    border-radius: 3px;
-    border: solid 1px #222;
+    border-radius: 8px;
+    border: solid 1px #545454;
     white-space: nowrap;
+    font-weight: bolder;
 }
 
 .flutuante {
