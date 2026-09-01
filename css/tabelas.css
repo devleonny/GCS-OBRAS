@@ -12,7 +12,6 @@
     width: 100%;
     background-color: white;
     border-collapse: collapse;
-    font-size: 0.8rem;
 }
 
 .tabela.nude {
@@ -29,6 +28,7 @@
 }
 
 .tabela th {
+    font-size: 12px;
     background-color: #efefef;
     font-weight: lighter;
     border: solid 1px #d2d2d2;
@@ -36,6 +36,7 @@
 }
 
 .tabela td {
+    font-size: 12px;
     vertical-align: middle;
     text-align: start;
     padding: 8px;
@@ -82,8 +83,6 @@
     border-left: solid 1px #434343;
     background-color: white;
     width: 100%;
-    height: max-content;
-    max-height: 65vh;
     overflow: auto;
 }
 

@@ -179,18 +179,24 @@ async function abrirEdicaoTag(id = null) {
 }
 
 async function salvarTag(id) {
-    overlayAguarde()
 
-    const painel = document.querySelector('.painel-adicionar-etiqueta')
-    const nome = painel.querySelector('[name="nome"]').value
-    const cor = painel.querySelector('[name="cor"]').value
+    try {
+        overlayAguarde()
 
-    if (!nome)
-        return removerPopup()
+        const painel = document.querySelector('.painel-padrao')
+        const nome = painel.querySelector('[name="nome"]').value
+        const cor = painel.querySelector('[name="cor"]').value
 
-    const tag = { nome, cor, id }
+        if (!nome)
+            return removerPopup()
 
-    await enviar(`tags_orcamentos/${id}`, tag)
+        const tag = { nome, cor, id }
 
-    removerPopup()
+        await enviar(`tags_orcamentos/${id}`, tag)
+
+        removerPopup()
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao criar a Etiqueta: Fale com o suporte.' })
+    }
 }
