@@ -898,6 +898,29 @@ input:focus {
 
 @media screen and (orientation: portrait) {
 
+    .side-menu {
+        position: fixed;
+        top: 0;
+        left: -100%;
+        width: 90%;
+    }
+
+    .side-menu.active {
+        left: 0;
+    }
+
+    .side-menu.active+.tela {
+        margin-left: 0;
+    }
+
+    .tela.active {
+        width: 0;
+    }
+
+    .b-painel {
+        flex-direction: column;
+    }
+
     .login-bloco {
         width: 95%;
     }
