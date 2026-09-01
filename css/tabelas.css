@@ -12,6 +12,7 @@
     width: 100%;
     background-color: white;
     border-collapse: collapse;
+    font-size: 10px;
 }
 
 .tabela.nude {
@@ -28,18 +29,16 @@
 }
 
 .tabela th {
-    font-size: 12px;
     background-color: #efefef;
     font-weight: lighter;
     border: solid 1px #d2d2d2;
-    padding: 8px;
+    padding: 5px;
 }
 
 .tabela td {
-    font-size: 12px;
     vertical-align: middle;
     text-align: start;
-    padding: 8px;
+    padding: 5px;
     overflow: hidden;
     border: 1px solid #d2d2d2;
 }
@@ -82,7 +81,10 @@
     border-right: solid 1px #434343;
     border-left: solid 1px #434343;
     background-color: white;
+    max-height: 65vh;
     width: 100%;
+    height: max-content;
+    margin-right: 2rem;
     overflow: auto;
 }
 

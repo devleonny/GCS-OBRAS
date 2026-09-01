@@ -113,7 +113,9 @@ async function modTab(configuracoes) {
                 <div id="paginacao_${pag}"></div>
                 ${btnExtras || ''}
             </div>
+
             <div style="${!scroll ? `max-height: max-content` : ''};" class="div-tabela${nude ? ' nude' : ''}">
+
                 <table class="tabela${nude ? ' nude' : ''}">
                     <thead>
                         <tr>${ths}</tr>
@@ -122,6 +124,7 @@ async function modTab(configuracoes) {
                     <tbody id="${body}"></tbody>
                 </table>
             </div>
+
             ${nude ? '' : '<div class="rodape-tabela"></div>'}
         </div>
     `
@@ -708,4 +711,14 @@ function aplicarColunasOcultas(pag) {
             if (td) td.style.display = deveOcultar ? 'none' : ''
         })
     })
+}
+
+function moverPag(direcao) {
+
+    const pag = document.querySelector('.div-tabela')
+
+    pag.scrollLeft += direcao == 'esquerda'
+        ? (-100) 
+        : 100
+
 }
