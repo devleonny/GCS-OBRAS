@@ -7,8 +7,6 @@ function campoBloq() {
 async function modTab(configuracoes) {
     const {
         btnExtras = null,
-        ocultarPaginacao = false,
-        ocultarLegenda = false,
         ocultarPesquisa = false,
         scroll = true,
         cor = null,
@@ -413,6 +411,7 @@ async function paginacao(pag) {
             pagina,
             base,
             body,
+            limite,
             ocultarPaginacao,
             ocultarLegenda,
             substituicoes,
@@ -455,6 +454,7 @@ async function paginacao(pag) {
         }
 
         const dados = await pesquisarDB({
+            limite,
             base: baseResolvida,
             substituicoes,
             relacionados,

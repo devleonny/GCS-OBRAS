@@ -194,7 +194,7 @@
     gap: 0.5rem;
 }
 
-.titulo-relatorio-fotografico {
+.titulo-relatorio {
     padding: 5px 3rem;
     font-size: 30px;
     display: flex;
@@ -206,7 +206,7 @@
     border-radius: 10px;
 }
 
-.titulo-relatorio-fotografico img {
+.titulo-relatorio img {
     width: 45px;
 }
 

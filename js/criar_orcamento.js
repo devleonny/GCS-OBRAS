@@ -375,6 +375,7 @@ async function carregarTabelasOrcamento(resposta = 'S') {
     const tabelaOrcamento = await modTab({
         base: Object.values(orcamentoBase?.esquema_composicoes || orcamentoBase.dados_composicoes || {}),
         pag,
+        limite: 9999,
         filtros: {},
         priBase: resposta,
         substituicoes: resposta == 'N'

@@ -304,6 +304,10 @@ async function atualizarAndamentoChecklist() {
           ${linhas || `<tr><td colspan="${colunas.length}">Sem resultados</td></tr>`}
       </tbody>
     </table>
+
+    <div class="botao-pdf" onclick="gerarPdfChecklist('relatorioFotografico')">
+      Baixar PDF
+    </div>
   `
   document.getElementById('relatorioFotografico').innerHTML = relatorioFotografico
 
@@ -413,7 +417,7 @@ async function atualizarAndamentoChecklist() {
 function tituloChecklist(texto) {
 
   return `
-    <div class="titulo-relatorio-fotografico">
+    <div class="titulo-relatorio">
       <img src="${logo}">
       <span>${texto}</span>
     </div>
@@ -1396,10 +1400,10 @@ function criarLinhaOrcamentoChecklist(orcamento) {
   `
 }
 
-async function pdfChecklist() {
+async function gerarPdfChecklist(idElemento) {
 
   await pdf({
-    id: 'pdf',
+    id: idElemento,
     estilos: ['checklist', 'velocimetro', 'ocorrencias'],
     nome: `Checklist_${1}`
   })
