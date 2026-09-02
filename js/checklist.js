@@ -1402,8 +1402,10 @@ function criarLinhaOrcamentoChecklist(orcamento) {
 
 async function gerarPdfChecklist(idElemento) {
 
+  const html = document.querySelector('.painel-atras-checklist').outerHTML
+
   await pdf({
-    id: idElemento,
+    html,
     estilos: ['checklist', 'velocimetro', 'ocorrencias'],
     nome: `Checklist_${1}`
   })
