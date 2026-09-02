@@ -1136,6 +1136,7 @@ function criarLinhaOcorrencia(ocorrencia) {
         ${modeloCampos('Endereço', cliente?.endereco)}
         ${modeloCampos('Bairro', cliente?.bairro)}
         ${modeloCampos('Cidade', cliente?.cidade)}
+        ${modeloCampos('Cidade', cliente?.cep)}
         ${modeloCampos('Descrição', `<div style="white-space: pre-wrap;">${descricao}</div>`)}
         ${modeloCampos('Criado por', criador)}
         ${modeloCampos('Data Solicitação', data_solicitacao ? conversorDt(data_solicitacao) : null)}
