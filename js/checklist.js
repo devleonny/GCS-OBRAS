@@ -78,6 +78,10 @@ async function telaChecklist(idOrcamento) {
     tela.innerHTML = `
         <div class="painel-geral-checklist">
 
+          <div class="botao-pdf" onclick="gerarPdfChecklist()">
+            Baixar PDF
+          </div>
+
           ${tituloOrcamento}
 
           <div class="toolbar-checklist">${toolbar}</div>
@@ -304,10 +308,6 @@ async function atualizarAndamentoChecklist() {
           ${linhas || `<tr><td colspan="${colunas.length}">Sem resultados</td></tr>`}
       </tbody>
     </table>
-
-    <div class="botao-pdf" onclick="gerarPdfChecklist('relatorioFotografico')">
-      Baixar PDF
-    </div>
   `
   document.getElementById('relatorioFotografico').innerHTML = relatorioFotografico
 
@@ -405,11 +405,6 @@ async function atualizarAndamentoChecklist() {
         </div>
       </div>
       ${porcentagens}
-
-
-      <div class="botao-pdf" onclick="gerarPdfChecklist('indicadorGeral')">
-        Baixar PDF
-      </div>
     `
 
 }
@@ -1406,7 +1401,7 @@ async function gerarPdfChecklist(idElemento) {
 
   await pdf({
     html,
-    estilos: ['checklist', 'velocimetro', 'ocorrencias'],
+    estilos: ['checklist', 'velocimetro'],
     nome: `Checklist_${1}`
   })
 
