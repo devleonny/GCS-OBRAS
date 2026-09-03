@@ -142,16 +142,16 @@ function renderAppsCircle(id, apps = []) {
 
                 <!-- textos -->
                 <text x="68" y="28" text-anchor="middle" dominant-baseline="middle"
-                      font-size="11" font-weight="700" fill="#111827">AC</text>
+                      font-size="13" font-weight="700" fill="#111827">AC</text>
 
                 <text x="72" y="68" text-anchor="middle" dominant-baseline="middle"
-                      font-size="10" font-weight="700" fill="#111827">IAC</text>
+                      font-size="13" font-weight="700" fill="#111827">IAC</text>
 
                 <text x="30" y="72" text-anchor="middle" dominant-baseline="middle"
-                      font-size="10" font-weight="700" fill="#111827">HNK</text>
+                      font-size="13" font-weight="700" fill="#111827">HNK</text>
 
                 <text x="28" y="30" text-anchor="middle" dominant-baseline="middle"
-                      font-size="10" font-weight="700" fill="#111827">HNW</text>
+                      font-size="13" font-weight="700" fill="#111827">HNW</text>
             </svg>
         </div>
     `
@@ -176,6 +176,7 @@ async function telaClientes() {
 
     const colunas = {
         'Check': {},
+        'Disponível em': {},
         'CPF/CNPJ': { chave: 'cnpj' },
         'Empresa': { chave: 'nomeEmpresa' },
         'Setor': { chave: 'setor' },
@@ -186,7 +187,6 @@ async function telaClientes() {
         'E-mail': { chave: 'email' },
         'Endereço Cadastro': { chave: 'snapshots.enderecoCadastro' },
         'Comentário': { chave: 'comentario' },
-        'Apps': {},
         'Ações': {}
     }
 
@@ -322,6 +322,8 @@ function criarLinhaClienteGCS(cliente) {
             style="width: 1.5rem; height: 1.5rem;"
             name="empresa">
         </td>
+
+        <td>${renderAppsCircle(cnpj ? id : null, Object.keys(apps || []))}</td>
         <td style="white-space: nowrap;">${cnpj || ''}</td>
 
         <td>
@@ -346,11 +348,10 @@ function criarLinhaClienteGCS(cliente) {
         <td>
             <div style="white-space: pre-wrap;">${comentario || ''}</div>
         </td>
-
-        <td>${renderAppsCircle(cnpj ? id : null, Object.keys(apps || []))}</td>
         <td>
             <img src="imagens/pesquisar2.png" onclick="formularioCliente(${id})">
-        </td>`
+        </td>
+        `
 
     return `<tr>${tds}</tr>`
 
@@ -458,6 +459,9 @@ async function formularioCliente(idCliente) {
 
     }
 
+    // Validação incial para mostrar um aviso;
+    const cnpjValido = validarCpfCnpj(cnpj)
+
     const linhas = [
         {
             texto: 'Matrícula',
@@ -469,7 +473,15 @@ async function formularioCliente(idCliente) {
         },
         {
             texto: 'CPF/CNPJ',
-            elemento: `<input placeholder="CPF ou CNPJ" oninput="formatarCnpj(this)" name="cnpj" value="${cnpj || ''}">`
+            elemento: `
+                <div style="${vertical}; gap: 5px;">
+                    <input placeholder="CPF ou CNPJ" oninput="formatarCnpj(this)" name="cnpj" value="${cnpj || ''}">
+                    <div style="font-size: 11px; display: ${cnpjValido ? 'none' : 'flex'}; align-items: center; justify-content: center; gap: 5px;" id="avisoCnpj">
+                        <img src="gifs/alerta.gif">
+                        <span>Sem CPF/CNPJ: Sem pagamento!</span>
+                    </div>
+                </div>
+                `
         },
         {
             texto: 'Tags',
@@ -868,7 +880,7 @@ async function salvarCliente(idCliente = null) {
         // Verificações do CNPJ
         const cnpj = obVal('cnpj')
 
-        if (!usuarioValido) { // Se usuário preenchido e válido, cnpj não é obrigatório;
+        if (cnpj) { // Se preencher o cnpj, vai ter que ser válido;
 
             if (!validarCpfCnpj(cnpj))
                 return popup({ mensagem: 'Campo CPF/CNPJ inválido!' })
@@ -1023,4 +1035,10 @@ function formatarCnpj(input) {
     }
 
     input.value = v
+
+    const aviso = document.getElementById('avisoCnpj')
+    if (aviso) {
+        const valido = validarCpfCnpj(v)
+        aviso.style.display = valido ? 'none' : 'flex'
+    }
 }
