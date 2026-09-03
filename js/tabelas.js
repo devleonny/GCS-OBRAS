@@ -444,7 +444,6 @@ async function paginacao(pag) {
         })
 
         const mesmaConsulta = controles[pag].ultimaAssinaturaConsulta === assinaturaAtualConsulta
-
         const tabela = tbody.parentElement
         const cols = tabela.querySelectorAll('thead th').length
 

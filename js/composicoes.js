@@ -909,10 +909,15 @@ async function cadastrarItem(codigo) {
         overlayAguarde()
 
         const produto = await recuperarDado('dados_composicoes', codigo) || {}
-        const funcao = codigo ? `salvarComposicao('${codigo}')` : `salvarComposicao()`
 
         const botoes = [
-            { texto: 'Salvar', img: 'concluido', funcao }
+            {
+                texto: 'Salvar',
+                img: 'concluido',
+                funcao: codigo
+                    ? `salvarComposicao('${codigo}')`
+                    : `salvarComposicao()`
+            }
         ]
 
         if (codigo)
@@ -952,68 +957,34 @@ async function cadastrarItem(codigo) {
 
 async function salvarComposicao(codigo) {
 
-    overlayAguarde()
-    const item = await recuperarDado('dados_composicoes', codigo) || {};
+    try {
 
-    if (!codigo) {
+        overlayAguarde()
 
-        const resposta = await verificarCodigoExistente();
+        const campos = ['descricao', 'unidade', 'fabricante', 'modelo', 'ncm', 'omie', 'tipo', 'sistema']
+        const produto = {}
+        const painel = document.querySelector('.painel-padrao')
 
-        if (resposta.status == 'Falha') {
-            return popup({ mensagem: 'Não foi possível cadastrar o item... tente novamente' })
+        for (const campo of campos) {
+            const el = painel.querySelector(`[name="${campo}"]`)
+            // Normalização unicode;
+            produto[campo] = campo !== 'tipo'
+                ? String(el.value)
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .toUpperCase()
+                : el?.value || ''
         }
 
-        codigo = resposta.status // Aqui é retornado o último número sequencial +1 para cadasto;
+        await enviar(`dados_composicoes/${codigo || '0000'}`, produto)
+
+        removerPopup()
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao cadastrar item: Fale com o suporte.' })
     }
 
-    const campos = ['descricao', 'unidade', 'fabricante', 'modelo', 'ncm', 'omie', 'tipo', 'sistema']
-    let novosDados = {}
-    const painel = document.querySelector('.painel-padrao')
-
-    for (const campo of campos) {
-        const el = painel.querySelector(`[name="${campo}"]`)
-        // Normalização unicode;
-        novosDados[campo] = campo !== 'tipo'
-            ? String(el.value)
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .toUpperCase()
-            : el?.value || ''
-    }
-
-    const final = {
-        ...item,
-        ...novosDados,
-        codigo: String(codigo)
-    }
-
-    await enviar(`dados_composicoes/${codigo}`, final)
-
-    removerPopup()
-
-}
-
-async function verificarCodigoExistente() {
-    return new Promise((resolve, reject) => {
-
-        fetch(`${api}/codigo`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" }
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                resolve(data);
-            })
-            .catch(err => {
-                console.error(err)
-                reject()
-            });
-    })
 }
 
 async function verAgrupamento(codigo) {
