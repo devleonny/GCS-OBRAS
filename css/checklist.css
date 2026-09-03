@@ -13,6 +13,7 @@
     justify-content: start;
     flex-direction: column;
     background-color: #f7f8f5;
+    min-width: 50vw;
 }
 
 .indicador-geral {
@@ -46,14 +47,6 @@
 .grafico-diario-titulo {
     font-size: 1.2rem;
     color: #2d7da6;
-}
-
-.checklist-num {
-    font-size: 1.1rem;
-    border: solid 1px #2d7da66e;
-    background-color: #2d7ea669;
-    border-radius: 5px 1rem;
-    padding: 0.5rem 2rem;
 }
 
 .checklist-painel {
@@ -211,13 +204,40 @@
     width: 45px;
 }
 
-.botao-pdf {
+.botoes-cabecalho {
+    overflow: hidden;
+    background-color: transparent;
     cursor: pointer;
     border-radius: 0 5px 0 2rem;
-    padding: 1rem;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
     color: white;
-    background-color: red;
     position: absolute;
     top: 0;
     right: 0;
+}
+
+.botoes-cabecalho div {
+    background-color: #b12425;
+    padding: 1rem;
+}
+
+.botoes-cabecalho div:hover {
+    background-color: #e32e2e;
+}
+
+.checklist-num {
+    font-size: 1.1rem;
+    border: solid 1px #9d9d9d;
+    background: linear-gradient(45deg, #249f41, #151749);
+    border-radius: 5px 1rem;
+    color: #ffffff;
+    padding: 0.5rem 2rem;
+    display: flex;
+    text-align: center;
+    justify-content: center;
+    width: 50px;
 }

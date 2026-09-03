@@ -354,6 +354,14 @@
     width: 5rem;
 }
 
+.loading-container {
+    position: fixed;
+    margin-top: 30vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 @media screen and (orientation: portrait) {
     .botoes-rodape {
         justify-content: start;

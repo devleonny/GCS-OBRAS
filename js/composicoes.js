@@ -1159,7 +1159,8 @@ async function baixarExcelComposicoes() {
         base: "vw_relatorio_composicoes",
         titulo: `Composições_${Date.now()}`,
         formatacao: {
-            moedas: ['LPU HOPE', 'LPU BOTICÁRIO', 'LPU CF BOTICÁRIO', 'LPU CONTAGEM - BOTICÁRIO A']
+            datas: ['Data'],
+            moedas: ['Valor LPU']
         }
     }
 

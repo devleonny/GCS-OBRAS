@@ -72,14 +72,26 @@ async function telaChecklist(idOrcamento) {
       {
         titulo: 'Relatório Fotográfico',
         id: 'relatorioFotografico'
+      },
+      {
+        titulo: 'Detalhes do Orçamento',
+        id: 'detalhamento'
       }
     ].map(({ id, titulo }) => `<span id="toolbar-${id}" onclick="mostrarAba('${id}')">${titulo}</span>`).join('')
 
     tela.innerHTML = `
         <div class="painel-geral-checklist">
 
-          <div class="botao-pdf" onclick="gerarPdfChecklist()">
-            Baixar PDF
+          <div class="botoes-cabecalho">
+
+            <div onclick="gerarPdfChecklist()">
+              Baixar PDF
+            </div>
+
+            <div onclick="abrirAtalhos('${idOrcamento}')">
+              Atalhos do Orçamento
+            </div>
+
           </div>
 
           ${tituloOrcamento}
@@ -87,6 +99,7 @@ async function telaChecklist(idOrcamento) {
           <div class="toolbar-checklist">${toolbar}</div>
 
           <div class="painel-atras-checklist">
+
             <div id="indicadorGeral"></div>
 
             <div id="indicadorDiario">
@@ -95,6 +108,9 @@ async function telaChecklist(idOrcamento) {
             </div>
 
             <div id="relatorioFotografico"></div>
+
+            <div id="detalhamento"></div>
+
           </div>
 
         </div>
@@ -114,7 +130,7 @@ async function telaChecklist(idOrcamento) {
 
 function mostrarAba(id) {
 
-  const abas = ['indicadorGeral', 'indicadorDiario', 'relatorioFotografico']
+  const abas = ['indicadorGeral', 'indicadorDiario', 'relatorioFotografico', 'detalhamento']
 
   abas.forEach(aba => {
     document.getElementById(`toolbar-${aba}`).style.opacity = id == aba ? 1 : 0.5
@@ -398,7 +414,6 @@ async function atualizarAndamentoChecklist() {
       <div style="display: flex; gap: 5px;">
         <div class="indicador-geral">
           ${porcentagemGeral}
-          <img src="imagens/pesquisar2.png" onclick="abrirAtalhos('${idOrcamento}')">
         </div>
         <div style="display: flex; flex-wrap: wrap; gap: 5px;">
           ${etiquetas}
@@ -1395,7 +1410,7 @@ function criarLinhaOrcamentoChecklist(orcamento) {
   `
 }
 
-async function gerarPdfChecklist(idElemento) {
+async function gerarPdfChecklist() {
 
   const html = document.querySelector('.painel-atras-checklist').outerHTML
 
