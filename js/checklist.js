@@ -1,6 +1,5 @@
 let tituloOrcamento = null
 
-
 async function telaChecklist(idOrcamento) {
 
   try {
@@ -13,7 +12,7 @@ async function telaChecklist(idOrcamento) {
       snapshots
     } = await recuperarDado('dados_orcamentos', idOrcamento) || {}
 
-    const { contrato } = dados_orcam || {}
+    const { contrato, omie_cliente } = dados_orcam || {}
     const { cliente } = snapshots || {}
 
     tituloOrcamento = `
@@ -74,7 +73,7 @@ async function telaChecklist(idOrcamento) {
         id: 'relatorioFotografico'
       },
       {
-        titulo: 'Detalhes do Orçamento',
+        titulo: 'Valor Orçado x Notas Emitidas',
         id: 'detalhamento'
       }
     ].map(({ id, titulo }) => `<span id="toolbar-${id}" onclick="mostrarAba('${id}')">${titulo}</span>`).join('')
@@ -121,12 +120,38 @@ async function telaChecklist(idOrcamento) {
 
     mostrarAba('indicadorGeral')
 
+    carregarDetalhamento(contrato, dados_composicoes)
+
+    await preencherCabecalho(omie_cliente, contrato)
+
   } catch (err) {
     console.error(err)
     popup({ mensagem: 'Falha ao abrir o checklist: Fale com o suporte.' })
   }
 
 }
+
+async function preencherCabecalho(omie_cliente, contrato) {
+
+  const { nome, cnpj, cidade, endereco, bairro, cep } = await recuperarDado('clientes', omie_cliente) || {}
+
+  const html = `
+          <div class="checklist-cabecalho">
+            <span class="tag-pendencias">${contrato}</span>
+            <span><small>Cliente:</small> ${nome || ''}</span>
+            <span><small>CNPJ:</small> ${cnpj || ''}</span>
+            <span><small>Cidade:</small> ${cidade || ''}</span>
+            <span><small>Endereço:</small> ${endereco || ''}</span>
+            <span><small>Bairro:</small> ${bairro || ''}</span>
+            <span><small>Cep:</small> ${cep || ''}</span>
+          </div>
+      `
+
+  for (const local of [...document.querySelectorAll('[name="cabecalho"]')])
+    local.innerHTML = html
+
+}
+
 
 function mostrarAba(id) {
 
@@ -137,6 +162,74 @@ function mostrarAba(id) {
     document.getElementById(aba).style.display = id == aba ? 'flex' : 'none'
   })
 
+}
+
+async function carregarDetalhamento(contrato, dados_composicoes) {
+
+  // Carregar detalhamentos;
+
+  const totaisPorTipo = {}
+
+  for (const { tipo, custo, qtde } of Object.values(dados_composicoes || {})) {
+
+    const tipoFinal = tipo.includes('USO') ? 'SERVIÇO' : tipo
+
+    totaisPorTipo[tipoFinal] ??= { orcamento: 0, nota: 0 }
+    totaisPorTipo[tipoFinal].orcamento += qtde * custo
+
+  }
+
+  const pesquisa = await pesquisarDB({
+    base: 'notas',
+    filtros: {
+      'departamento': { op: 'includes', value: contrato }
+    }
+  })
+
+  pesquisa.resultados.map(({ categoria, total }) => {
+
+    const tipoFinal = String(categoria).toUpperCase()
+
+    totaisPorTipo[tipoFinal] ??= { orcamento: 0, nota: 0 }
+    totaisPorTipo[tipoFinal].nota += total
+
+  })
+
+  const baloes = Object.entries(totaisPorTipo)
+    .map(([tipo, { orcamento, nota }]) => {
+
+      const valor = nota == 0 || orcamento == 0
+        ? 0
+        : Number((nota / orcamento * 100).toFixed(1))
+
+      return `
+        <div class="checklist-detalhamento">
+
+          ${criarVelocimetroHTML({ rotulo: tipo, valor })}
+
+          <div style="${vertical}; gap: 2px;">
+            <span>Orçamento</span>
+            <label>${dinheiro(orcamento)}</label>
+          </div>
+
+          <div style="${vertical}; gap: 2px;">
+            <span>Notas</span>
+            <label>${dinheiro(nota)}</label>
+          </div>
+
+        </div>
+    `})
+    .join('')
+
+  document.getElementById('detalhamento').innerHTML =
+    `
+      <div style="${vertical}; gap: 5px;">
+        ${tituloChecklist('Valor Orçado x Notas Emitidas')}
+        <div class="painel-detalhamento">
+          ${baloes}
+        </div>
+      <div>
+      `
 }
 
 function especialFotosChecklist(registro) {
@@ -293,29 +386,46 @@ async function atualizarAndamentoChecklist() {
     .sort((a, b) => String(a.data || '').localeCompare(String(b.data || '')))
     .map(registro => {
 
-      const { codigo, data, observacao } = registro
+      const {
+        codigo,
+        data,
+        descricao,
+        local,
+        ip,
+        pilar,
+        setor,
+        rack,
+        observacao
+      } = registro
 
-      const descricao = dados_composicoes?.[codigo]?.descricao || 'Não localizado'
+      const descricaoItem = dados_composicoes?.[codigo]?.descricao || 'Não localizado'
 
       const divAnexos = especialFotosChecklist(registro)
 
       return `
       <tr>
         <td>${codigo}</td>
-        <td style="text-align: left;">${descricao}</td>
+        <td style="text-align: left;">${descricaoItem}</td>
+        <td>${descricao || ''}</td>
+        <td>${local || ''}</td>
+        <td>${ip || ''}</td>
+        <td>${pilar || ''}</td>
+        <td>${setor || ''}</td>
+        <td>${rack || ''}</td>
+        <td style="text-align: left;">${observacao}</td>
         <td>${dtFormatada(data)}</td>
         <td>
           <div class="local-anexos relatorio-fotografico">${divAnexos}</div>
         </td>
-        <td>${observacao}</td>
       </tr>
       `})
     .join('')
 
   // Relatório Fotográfico
-  const colunas = ['Código', 'Descrição', 'Data', 'Foto', 'Observação']
+  const colunas = ['Código', 'Descrição Item', 'Descrição', 'Local', 'IP', 'Pilar', 'Setor', 'Rack', 'Observação', 'Data', 'Foto']
   const relatorioFotografico = `
     ${tituloChecklist('Relatório Fotográfico')}
+    <div name="cabecalho"></div>
     <table class="tabela-relatorio-fotografico">
       <thead>
           ${colunas.map(th => `<th>${th}</th>`).join('')}
@@ -415,6 +525,7 @@ async function atualizarAndamentoChecklist() {
         <div class="indicador-geral">
           ${porcentagemGeral}
         </div>
+        <div name="cabecalho"></div>
         <div style="display: flex; flex-wrap: wrap; gap: 5px;">
           ${etiquetas}
         </div>
@@ -571,8 +682,8 @@ function criarLinhaMO(item) {
   return `
     <tr>
       <td>${codigo}</td>
-      <td style="text-align: center;">
-        <span class="checklist-num">${quantidade || 0}</span>
+      <td>
+        <div style="${horizontal}"><span class="checklist-num">${quantidade || 0}</span></div>
       </td>
       <td>${dtFormatada(data)}</td>
       <td style="white-space: wrap;">${observacao}</td>
@@ -1416,7 +1527,8 @@ async function gerarPdfChecklist() {
 
   await pdf({
     html,
-    estilos: ['checklist', 'velocimetro'],
+    orientacao: 'landscape',
+    estilos: ['checklist', 'velocimetro', 'ocorrencias'],
     nome: `Checklist_${1}`
   })
 

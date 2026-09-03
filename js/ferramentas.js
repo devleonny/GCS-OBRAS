@@ -614,7 +614,7 @@ async function selecionar(name, cod) {
         await window[funcaoAdicional]()
 }
 
-async function pdf({ id, html = null, estilos = [], nome = 'documento' }) {
+async function pdf({ id, html = null, orientacao = 'portrait', estilos = [], nome = 'documento' }) {
 
     try {
         overlayAguarde()
@@ -634,9 +634,8 @@ async function pdf({ id, html = null, estilos = [], nome = 'documento' }) {
                     <meta charset="UTF-8">
                     ${estilos}
                     <style>
-                        @page { size: A4; margin: 10mm; }
-                        html, body { margin: 0; padding: 0; }
-                        body { 
+
+                        body {
                             width: 100%;
                             display: flex; 
                             align-items: start;
@@ -653,7 +652,7 @@ async function pdf({ id, html = null, estilos = [], nome = 'documento' }) {
         const response = await fetch(`${api}/pdf`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ html: htmlFinal })
+            body: JSON.stringify({ html: htmlFinal, orientacao })
         })
 
         if (!response.ok) {
