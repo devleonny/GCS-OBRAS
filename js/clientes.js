@@ -47,6 +47,13 @@ function removerTagCliente(img) {
 
 }
 
+// Último painel
+const obVal = (n) => {
+    const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
+    const el = painel.querySelector(`[name="${n}"]`)
+    return el ? el.value || el.id : null
+}
+
 async function classificarUnidades() {
 
     if (Object.keys(controles?.clientes?.cp || {}).length == 0)
@@ -866,13 +873,6 @@ async function salvarCliente(idCliente = null) {
     try {
 
         overlayAguarde()
-
-        // Último painel
-        const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
-        const obVal = (n) => {
-            const el = painel.querySelector(`[name="${n}"]`)
-            return el ? el.value || el.id : null
-        }
 
         // FIXO ou S = SIM, é válido;
         const usuarioValido = ['S', 'F'].includes(document.getElementById('status_usuario').dataset.valido)

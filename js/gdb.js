@@ -104,7 +104,7 @@ async function pesquisarDB(params) {
 
 async function baixarRelatorioExcel(dados = null) {
 
-    if(!dados)
+    if (!dados)
         return
 
     const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
@@ -228,8 +228,8 @@ async function enviar(caminho, info) {
 
         if (!response.ok) {
             // Se a API respondeu erro (ex: 400, 500);
-            console.error("Erro HTTP:", response.status, data);
-            return null;
+            console.error("Erro HTTP:", response.status, data)
+            return { mensagem: data?.mensagem || 'Falha ao salvar: Fale com o suporte.' }
         }
 
         return data;

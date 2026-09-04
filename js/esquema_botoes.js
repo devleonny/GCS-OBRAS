@@ -170,7 +170,7 @@ const esquemaBotoes = {
         },
         {
             nome: 'Contratos',
-            permitido: ['adm'],
+            bloqueio: ['cliente', 'técnico'],
             img: 'contratos',
             sub: [
                 { nome: 'Adicionar Contrato', funcao: 'gerenciarContrato', img: 'baixar' },
