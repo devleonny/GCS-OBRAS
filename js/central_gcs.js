@@ -489,9 +489,6 @@ function sincronizar(script) {
 
 async function verAprovacoes() {
 
-    if (telaAtiva.includes('criarOrcamento'))
-        return popup({ mensagem: 'Não é possível ver aprovações enquanto um orçamento é editado' })
-
     const pag = 'aprovacao'
 
     const tabela = await modTab({

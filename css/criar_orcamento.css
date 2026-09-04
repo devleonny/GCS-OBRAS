@@ -273,17 +273,15 @@
   gap: 1rem;
 }
 
-.contornoTela {
-  width: 80vw;
-  margin-top: 3vh;
+.contorno-tela-criar-orcamento {
   border-radius: 5px;
   border: 1px solid white;
   padding: 5px;
   margin-bottom: 1rem;
 }
 
-.contornoTela input,
-.contornoTela select {
+.contorno-tela-criar-orcamento input,
+.contorno-tela-criar-orcamento select {
   text-align: center;
   word-break: break-all;
 }

@@ -478,7 +478,7 @@ async function atualizarAndamentoChecklist() {
             ${criarVelocimetroHTML({ rotulo: `${numerador} / ${denominador} ${unidade || 'UN'}S`, valor: andamento })}
             <div style="${horizontal}; gap: 0.5rem;">
               <img src="imagens/pesquisar2.png" onclick="${funcao}">
-              <span>${descricao || tipo}</span>
+              <span style="font-size: 12px;">${descricao || tipo}</span>
             </div>
 
           </div>

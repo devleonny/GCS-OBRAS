@@ -1,7 +1,7 @@
 let menusAbertos = {}
 
 function criarMenus(chave) {
-    telaAtiva = chave
+
     const botoesMenu = document.querySelector('.botoesMenu')
     const { permissao } = JSON.parse(localStorage.getItem('acesso')) || {}
     const lista = esquemaBotoes[chave] || []
@@ -65,14 +65,11 @@ function criarAtalhoMenu({ nome, img, gif }, nivel) {
     `
 }
 
-function acaoMenu(id, funcao, temFilhos) {
+async function acaoMenu(id, funcao, temFilhos) {
 
     const el = document.getElementById(id)
     const partes = id.split('_')
     const nivel = partes.length - 1
-
-    if (titulo && nivel >= 2)
-        titulo.innerHTML = 'GCS'
 
     // pega o pai (ex: menu_1_0 -> menu_1)
     const pai = partes.slice(0, -1).join('_')
@@ -106,8 +103,14 @@ function acaoMenu(id, funcao, temFilhos) {
     }
 
     if (funcao && typeof window[funcao] === 'function') {
-        window[funcao]()
+        await window[funcao]()
     }
+
+    // Especial titulo dos orçamentos;
+    const elemento = document.querySelector('.contorno-tela-criar-orcamento')
+    if (!elemento)
+        titulo.innerHTML = 'GCS'
+
 }
 
 const esquemaBotoes = {
@@ -221,7 +224,6 @@ const esquemaBotoes = {
             img: 'gerente',
             sub: [
                 { nome: 'Ver Documentos', funcao: 'telaRH', img: 'gerente' },
-                { nome: 'Baixar em Excel', funcao: 'rhExcel', img: 'excel' },
                 { nome: 'Incluir Documento', funcao: 'incluirDocumento', img: 'baixar' }
             ]
         },

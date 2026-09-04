@@ -437,7 +437,7 @@ input:focus {
     gap: 10px;
     padding-top: 5px;
     padding-bottom: 5px;
-    width: 100%;
+    width: stretch;
     background-color: #ffffff;
 }
 

@@ -30,7 +30,6 @@ let progressCircle = null
 let percentageText = null
 let telaInterna = null
 let pExecucao = true
-let telaAtiva = null
 let funcaoAtiva = null
 let funcaoTela = null
 let sOverlay = false

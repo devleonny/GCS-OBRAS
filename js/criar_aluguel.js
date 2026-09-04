@@ -25,7 +25,7 @@ async function telaCriarOrcamentoAluguel() {
     modo = 'ALUGUEL'
 
     const acumulado = `
-    <div class="contornoTela">
+    <div class="contorno-tela-criar-orcamento">
 
         <div id="orcamento_aluguel">
 

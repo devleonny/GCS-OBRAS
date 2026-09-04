@@ -66,7 +66,7 @@ async function telaCriarOrcamento() {
     `
 
     const acumulado = `
-    <div class="contornoTela">
+    <div class="contorno-tela-criar-orcamento">
 
         <div id="orcamento_padrao" style="width: 100%;">
 
@@ -173,12 +173,7 @@ async function manterPrecosAntigos(resposta) {
 
 }
 
-async function atualizarToolbar(remover) {
-
-    titulo = document.querySelector('[name="titulo"]')
-
-    if (remover)
-        return titulo.textContent = 'GCS'
+async function atualizarToolbar() {
 
     const orcamentoBase = baseOrcamento()
     const edicao = orcamentoBase?.dados_orcam?.contrato == 'sequencial' || (orcamentoBase && orcamentoBase?.dados_orcam?.contrato)
@@ -963,8 +958,6 @@ async function enviarDadosOrcamento() {
             baseOrcamento(undefined, true)
             await telaOrcamentos()
 
-            // GCS no título
-            atualizarToolbar(true)
         }
 
         criarMenus('inicial')
