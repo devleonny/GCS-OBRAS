@@ -211,6 +211,13 @@ async function atualizarToolbar() {
                 ${revisoes.length !== 0 ? `<img src="imagens/cancel.png" onclick="excluirRevisao()" style="width: 1.5rem;">` : ''}
             `)}
 
+            <img src="imagens/avanco.png" style="width: 1.5rem;">
+            
+            <div style="${horizontal}; gap: 5px; cursor: pointer;" onclick="clonarOrcamento()">
+                <img src="gifs/copiar.gif">
+                <span>Clonar Orçamento</span>
+            </div>
+
         </div>
     `
 }
@@ -307,6 +314,84 @@ async function salvarRevisao() {
 
     baseOrcamento(orcamento)
     await atualizarToolbar()
+}
+
+function clonarOrcamento() {
+
+    try {
+
+        controlesCxOpcoes.orcamento = {
+            base: 'dados_orcamentos',
+            ordenar: {
+                direcao: 'desc',
+                path: 'timestamp'
+            },
+            retornar: ['dados_orcam.contrato'],
+            colunas: {
+                'Número do Orçamento': { chave: 'dados_orcam.contrato' },
+                'Valor': { chave: 'snapshots.valor.1' },
+                'Cidade': { chave: 'snapshots.cidade' },
+                'Cliente': { chave: 'snapshots.cliente' }
+            }
+        }
+
+        const linhas = [
+            {
+                texto: 'Escolha o orçamento',
+                elemento: `<span class="opcoes" name="orcamento" onclick="cxOpcoes('orcamento')">Selecione</span>`
+            }
+        ]
+
+        const botoes = [
+            {
+                texto: 'Clonar',
+                img: 'gifs/copiar.gif',
+                funcao: 'confirmarClonagem()'
+            }
+        ]
+
+        popup({
+            linhas,
+            botoes
+        })
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falhou: Fale com o suporte.' })
+    }
+
+}
+
+async function confirmarClonagem() {
+
+    try {
+
+        const idOrcamento = document.querySelector('[name="orcamento"]')?.id
+
+        if (!idOrcamento)
+            return popup({ mensagem: 'Escolha um orçamento' })
+
+        const oClone = await recuperarDado('dados_orcamentos', idOrcamento) || {}
+
+        const { dados_composicoes, esquema_composicoes } = oClone
+
+        const orcamento = {
+            ...baseOrcamento(),
+            dados_composicoes,
+            esquema_composicoes
+        }
+
+        baseOrcamento(orcamento)
+
+        removerTodosPopups()
+
+        await telaCriarOrcamento()
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao clonar o orçamento: Fale com o suporte.' })
+    }
+
 }
 
 async function atualizarOpcoesLPU() {
@@ -439,7 +524,7 @@ function carregarLinhaOrcamento(produto) {
 
     const linha = `
         <tr>
-            <td>
+            <td style="padding: 0px;">
                 <div id="ORCA_${codigoMaster}" style="${vertical};">
                     <div data-hierarquia="master" class="linha-orcamento" data-codigo="${codigoMaster}">${celulasMaster}</div>
                     <div class="linha-bloco">${linhaSlave}</div>

@@ -86,12 +86,19 @@ function popup({
             </div>`
     }
 
-    const botaoPadrao = ({ funcao = '', img, texto, fechar = false }) => `
+    const botaoPadrao = ({ funcao = '', img = 'concluido', texto, fechar = false }) => {
+
+        img = img.includes('/')
+            ? img 
+            : `imagens/${img}.png` 
+            
+        return `
         <div onclick="${funcao}${fechar ? `${funcao ? ';' : ''}${removerAnteriores ? 'removerTodosPopups()' : `removerPopup('${idPopup}')`}` : ''}" class="botoes-rodape">
-            <img src="imagens/${img}.png">
+            <img src="${img}">
             <span>${texto}</span>
         </div>
     `
+    }
 
     let conteudo = ''
 
@@ -158,7 +165,7 @@ function removerTodosPopups() {
     removerOverlay()
 
     const popups = [...document.querySelectorAll('.popup')]
-    if (!popups.length) 
+    if (!popups.length)
         return
 
     popups.forEach(p => {
