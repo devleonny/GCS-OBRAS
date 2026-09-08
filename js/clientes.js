@@ -184,13 +184,13 @@ async function telaClientes() {
     const colunas = {
         'Check': {},
         'Disponível em': {},
+        'Nome': { chave: 'nome' },
         'CPF/CNPJ': { chave: 'cnpj' },
         'Empresa': { chave: 'nomeEmpresa' },
         'Setor': { chave: 'setor' },
         'Permissão': { chave: 'permissao' },
         'Usuário': { chave: 'usuario' },
         'Matrícula': { chave: 'matricula' },
-        'Nome': { chave: 'nome' },
         'E-mail': { chave: 'email' },
         'Endereço Cadastro': { chave: 'snapshots.enderecoCadastro' },
         'Comentário': { chave: 'comentario' },
@@ -331,6 +331,16 @@ function criarLinhaClienteGCS(cliente) {
         </td>
 
         <td>${renderAppsCircle(cnpj ? id : null, Object.keys(apps || []))}</td>
+
+        <td>
+            <div style="${vertical}; gap: 2px;">
+                <span>${nome || ''}</span>
+                <div style="display: flex; flex-wrap: wrap; gap: 2px; min-width: 200px;">
+                    ${labelsTags}
+                </div>
+            </div>
+        </td>
+        
         <td style="white-space: nowrap;">${cnpj || ''}</td>
 
         <td>
@@ -341,15 +351,6 @@ function criarLinhaClienteGCS(cliente) {
         <td>${permissao ? `<span class="fin">${permissao}</span>` : ''}</td>
         <td>${usuario ? `<span class="fin">${usuario}</span>` : ''}</td>
         <td>${matricula ? `<span class="fin">${matricula}</span>` : ''}</td>
-
-        <td>
-            <div style="${vertical}; gap: 2px;">
-                <span>${nome || ''}</span>
-                <div style="display: flex; flex-wrap: wrap; gap: 2px; min-width: 200px;">
-                    ${labelsTags}
-                </div>
-            </div>
-        </td>
         <td>${email || ''}</td>
         <td>${eCadastro}</td>
         <td>
@@ -874,6 +875,8 @@ async function salvarCliente(idCliente = null) {
 
         overlayAguarde()
 
+        const painel = document.querySelector('.painel-padrao')
+        
         // FIXO ou S = SIM, é válido;
         const usuarioValido = ['S', 'F'].includes(document.getElementById('status_usuario').dataset.valido)
 
