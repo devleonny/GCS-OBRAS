@@ -916,11 +916,10 @@ async function telaOcorrencias() {
         btnExtras,
         alinPag: vertical,
         funcaoAdicional: ['contadoresMapaOcorrencias'],
-        base: 'vw_dados_ocorrencias',
+        base: 'dados_ocorrencias',
         pag: 'ocorrencias',
         body: 'bodyOcorrencias',
         criarLinha: 'criarLinhaOcorrencia',
-        /*
         relacionados: [
             {
                 path: 'id',
@@ -947,7 +946,6 @@ async function telaOcorrencias() {
                 destino: 'id_usuario_funcionario'
             },
         ]
-        */
     })
 
     const acumulado = `
