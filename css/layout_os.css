@@ -3,8 +3,9 @@
 }
 
 .campo-descricao {
-    background-color: #dfdfdf;
-    padding: 3px;
+    width: stretch;
+    background-color: #f2f2f2;
+    padding: 3px 1rem;
     border-radius: 3px;
 }
 
@@ -34,7 +35,7 @@
 
 .fotos-os img {
     margin: 2px;
-    width: 5rem;
+    width: 15rem;
 }
 
 .corpo {
@@ -77,6 +78,7 @@
     align-items: start;
     justify-content: start;
     flex-direction: column;
+    background-color: #22874317;
 }
 
 .painel-2 {
