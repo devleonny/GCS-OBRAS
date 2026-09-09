@@ -975,17 +975,8 @@ async function enviarDadosOrcamento() {
             let { idOrcamento, idOcorrencia } = orcamentoBase.origem || {}
 
             // Se existir idOrcamento, então é vinculado;
-            if (idOrcamento) {
-
-                const dados = {
-                    data: new Date().toLocaleString(),
-                    usuario: acesso.usuario
-                }
-
-                // Salvando o orçamento vinculado no master;
-                await enviar(`dados_orcamentos/${idOrcamento}/vinculados/${orcamentoBase.id}`, dados)
-
-            }
+            if (idOrcamento)
+                await enviarVinculo({ slave: contrato, master: idOcorrencia })
 
             // Correção principal da criação do orçamento, vem com o ID do orçamento;
             const dataRegistro = new Date()
@@ -1005,7 +996,10 @@ async function enviarDadosOrcamento() {
 
                 const dataMais1s = new Date(dataRegistro.getTime() + 1000)
 
-                correcoes[crypto.randomUUID()] = {
+                const idLog = crypto.randomUUID()
+
+                correcoes[idLog] = {
+                    aba: idLog,
                     data: dataMais1s.toLocaleString(),
                     datas: {},
                     descricao: `Requisição de materiais para o Funcionário`,
@@ -1027,9 +1021,8 @@ async function enviarDadosOrcamento() {
             }
 
             // Salvar uma correção obrigatoriamente;
-            for (const [idCorrecao, correcao] of Object.entries(correcoes)) {
+            for (const [idCorrecao, correcao] of Object.entries(correcoes))
                 await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, correcao)
-            }
 
             await telaOcorrencias()
 

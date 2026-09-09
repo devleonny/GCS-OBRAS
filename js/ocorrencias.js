@@ -916,36 +916,10 @@ async function telaOcorrencias() {
         btnExtras,
         alinPag: vertical,
         funcaoAdicional: ['contadoresMapaOcorrencias'],
-        base: 'dados_ocorrencias',
+        base: 'vw_dados_ocorrencias',
         pag: 'ocorrencias',
         body: 'bodyOcorrencias',
-        criarLinha: 'criarLinhaOcorrencia',
-        relacionados: [
-            {
-                path: 'id',
-                campoBusca: 'contrato',
-                tabela: 'vw_orcamentos_vinculados',
-                destino: 'vinculados',
-                tipo: 'objeto',
-                camposRetorno: ['contratos_vinculados']
-            }
-        ],
-        substituicoes: [
-            {
-                path: 'correcoes.*.tipoCorrecao',
-                tabela: 'correcoes',
-                campoBusca: 'id',
-                retorno: 'nome',
-                destino: 'correcoes.*.tipoCorrecaoNome'
-            },
-            {
-                path: 'unidade',
-                tabela: 'clientes',
-                campoBusca: 'id',
-                retorno: 'usuario',
-                destino: 'id_usuario_funcionario'
-            },
-        ]
+        criarLinha: 'criarLinhaOcorrencia'
     })
 
     const acumulado = `
@@ -1012,7 +986,7 @@ function criarLinhaOcorrencia(ocorrencia) {
         id_antigo,
         snapshots,
         equipamentos,
-        vinculados,
+        contratos_vinculados,
         buscar_tecnico
     } = ocorrencia || {}
 
@@ -1096,7 +1070,7 @@ function criarLinhaOcorrencia(ocorrencia) {
         ? `<button onclick="criarOrcamentoVinculado('${id}')">Criar orçamento</button>`
         : ''
 
-    const spanNumOrcs = [id, vinculados?.contratos_vinculados || []].flat()
+    const spanNumOrcs = [id, contratos_vinculados || []].flat()
         .map(c => {
 
             const chave = c !== id
@@ -2216,7 +2190,7 @@ async function auxPendencias() {
 
             for (const [titulo, cod] of Object.entries(esquema)) {
                 etiquetas.push(`
-                    <div class="pill" onclick="atalhoAuxiliar('${cod}', 'tipo')">
+                    <div class="pill" onclick="atalhoAuxiliar('${titulo}', 'tipo')">
                         <span class="pill-a" style="background: #5E35B1;">${ctg?.[cod] || 0}</span>
                         <span class="pill-b">${titulo}</span>
                     </div>
@@ -2225,7 +2199,7 @@ async function auxPendencias() {
 
             etiquetas.push(`
                 <br>
-                <div class="pill" onclick="atalhoContagemFluxo()">
+                <div class="pill" onclick="atalhoAuxiliar('CONTAGEM DE FLUXO', 'prioridade')">
                     <span class="pill-a" style="background: #5E35B1;">${ctgFluxo?.lauka || 0}</span>
                     <span class="pill-b">CONTAGEM DE FLUXO</span>
                 </div>
@@ -2233,7 +2207,7 @@ async function auxPendencias() {
 
             etiquetas.push(`
                 <br>
-                <div class="pill" onclick="atalhoAuxiliar('SAVEGNAGO', 'snapshots.empresa')">
+                <div class="pill" onclick="atalhoAuxiliar('SAVEGNAGO', 'empresa')">
                     <span class="pill-a" style="background: #5E35B1;">${ctgEmpresa?.['SAVEGNAGO'] || 0}</span>
                     <span class="pill-b">SAVEGNAGO</span>
                 </div>
@@ -2264,22 +2238,9 @@ async function auxPendencias() {
     }
 }
 
-async function atalhoContagemFluxo() {
-
-    controles.ocorrencias.filtros.prioridade = {
-        op: '=', value: 'lauka'
-    }
-
-    if (document.querySelector('.tela-ocorrencias'))
-        await paginacao()
-    else
-        await telaOcorrencias()
-
-}
-
 async function atalhoAuxiliar(termo, chave) {
 
-    controles.ocorrencias.filtros ??= {}
+    controles.ocorrencias.filtros = {}
 
     controles.ocorrencias.filtros[chave] = {
         modo: 'OR',
@@ -2290,7 +2251,7 @@ async function atalhoAuxiliar(termo, chave) {
     }
 
     if (termo == 'todos')
-        delete controles.ocorrencias.filtros[chave]
+        delete controles.ocorrencias.filtros
 
     if (document.querySelector('.tela-ocorrencias')) {
         const pag = 'ocorrencias'
