@@ -278,6 +278,27 @@
     margin: 0 1rem 0 1rem;
 }
 
+.tag-vinculado {
+    cursor: pointer;
+    display:  flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
+    gap: 5px;
+    padding: 5px 1rem;
+    border-radius: 20px;
+}
+
+.slave {
+    border: solid 1px #41a6ff;
+    background-color: #b9dbf9;
+}
+
+.master {
+    border: solid 1px rgb(255, 179, 0);
+    background-color: #ffe85285;
+}
+
 .parcelas-notas {
     margin-left: 5px;
     display: flex;

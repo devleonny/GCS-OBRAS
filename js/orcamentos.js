@@ -33,8 +33,6 @@ async function telaOrcamentos() {
 
     overlayAguarde()
 
-    atualizarToolbar(true) // GCS no título
-
     funcaoTela = 'telaOrcamentos'
 
     const colunas = {
@@ -45,6 +43,7 @@ async function telaOrcamentos() {
         'Parcelas': {},
         'Tags': { chave: 'snapshots.tags.*.nome' },
         'Contrato': { chave: 'snapshots.contrato' },
+        'Vinculações': { chave: 'vinculados' },
         'Cidade': { chave: 'snapshots.cidade' },
         'Status em Ocorrências': { chave: 'nomesStatus' },
         'Responsaveis': { chave: 'snapshots.responsavel' },
@@ -63,34 +62,10 @@ async function telaOrcamentos() {
             path: 'timestamp',
             direcao: 'desc'
         },
-        base: 'dados_orcamentos',
+        base: 'vw_dados_orcamentos',
         criarLinha: 'criarLinhaOrcamento',
         body: 'linhas',
-        pag: 'orcamentos',
-        relacionados: [
-            {
-                path: 'id',
-                tabela: 'vw_orcamentos_vinculados',
-                destino: 'vinculados',
-                tipo: 'objeto'
-            }
-        ],
-        substituicoes: [
-            {
-                path: 'dados_orcam.contrato',
-                tabela: 'departamentos',
-                campoBusca: 'descricao',
-                retorno: 'descricao',
-                destino: 'departamentoExistente'
-            },
-            {
-                path: 'dados_orcam.contrato',
-                tabela: 'dados_ocorrencias',
-                campoBusca: 'id',
-                retorno: 'snapshots.nomesStatus',
-                destino: 'nomesStatus'
-            }
-        ]
+        pag: 'orcamentos'
     })
 
     const acumulado = `
@@ -165,56 +140,34 @@ async function criarLinhaOrcamento(orcamento) {
 
     const {
         id,
+        usuario,
         dados_orcam,
+        departamento_existente,
         vinculados,
+        nomes_status,
+        timestamp,
+        snapshots,
+        total_geral,
+        lpu_ativa
     } = orcamento || {}
 
-    const master = vinculados?.master
-    const idMaster = vinculados
-        ? id
-        : null
+    const { notas, pedidos, custos, parcelas } = snapshots || {}
+    const { pagamentos = 0, abastecimentos = 0 } = custos || {}
+    const { contrato, executor, venda_direta } = dados_orcam || {}
 
-    // Vinculados > relacionados > vw_orcamentos_vinculados;
-    const orcsVinculados = Object.values(vinculados?.orcamentos || {})
-        .map(orc => linhaOrcamento(orc, dados_orcam?.contrato))
+    // Velocímetro
+    const totalCusto = pagamentos + abastecimentos
+    const porcentagem = Number(((totalCusto / total_geral) * 100).toFixed(1))
+    const resumo = criarVelocimetroHTML({ rotulo: 'Custos', limite: 40, valor: porcentagem })
+
+    const labelTipoCorrecao = (nomes_status || [])
+        .map(st => formatacaoTipoCorrecao(st))
         .join('')
 
-    return `
-        ${linhaOrcamento(orcamento)}
-        ${orcsVinculados}
-    `
+    const pedidosStatus = (pedidos || [])
+        .map(({ tipo, pedido, valor, autorizado_por }) => {
 
-    function linhaOrcamento(orcamento = {}, masterAgrupado) {
-
-        const {
-            id,
-            vinculados,
-            usuario,
-            dados_orcam,
-            departamentoExistente,
-            nomesStatus,
-            timestamp,
-            snapshots,
-            total_geral,
-            lpu_ativa
-        } = orcamento || {}
-
-        const { notas, pedidos, custos, parcelas } = snapshots || {}
-        const { pagamentos = 0, abastecimentos = 0 } = custos || {}
-
-        // Velocímetro
-        const totalCusto = pagamentos + abastecimentos
-        const porcentagem = Number(((totalCusto / total_geral) * 100).toFixed(1))
-        const resumo = criarVelocimetroHTML({ rotulo: 'Custos', limite: 40, valor: porcentagem })
-
-        const labelTipoCorrecao = (nomesStatus || [])
-            .map(st => formatacaoTipoCorrecao(st))
-            .join('')
-
-        const pedidosStatus = (pedidos || [])
-            .map(({ tipo, pedido, valor, autorizado_por }) => {
-
-                const label = `
+            const label = `
                 <div class="etiquetas" style="text-align: left;">
                     <label>${tipo || ''}</label>
                     <label>${pedido}</label>
@@ -222,24 +175,24 @@ async function criarLinhaOrcamento(orcamento) {
                     <label>${dinheiro(valor)}</label>
                 </div>
                 `
-                return label
-            })
-            .join('')
+            return label
+        })
+        .join('')
 
-        const notasStatus = (notas || [])
-            .map(({ id, categoria, n_nota, total, d_emi_inicial }) => {
+    const notasStatus = (notas || [])
+        .map(({ id, categoria, n_nota, total, d_emi_inicial }) => {
 
-                return `
+            return `
                 <div style="${vertical}; gap: 5px; min-width: 90%;">
                     ${pdfDanfe({ categoria, n_nota, id, total, d_emi_inicial })}
                 </div>
                 `
-            })
-            .join('')
+        })
+        .join('')
 
-        const listaParcelas = (parcelas || [])
-            .map(({ id, data_vencimento, valor_documento, app, status_titulo }) =>
-                `<div class="parcelas-notas">
+    const listaParcelas = (parcelas || [])
+        .map(({ id, data_vencimento, valor_documento, app, status_titulo }) =>
+            `<div class="parcelas-notas">
                     <span>${data_vencimento}</span>
                     <span>${dinheiro(valor_documento)}</span>
                     <div style="${horizontal}; gap: 5px;">
@@ -249,53 +202,51 @@ async function criarLinhaOrcamento(orcamento) {
                     </div>
                 </div>
                 `
-            )
-            .join('')
+        )
+        .join('')
 
-        // Labels do campo Contrato [Revisão, chamado, cliente, etc]
-        const { contrato, executor, venda_direta } = dados_orcam || {}
+    const baloesVinculos = (vinculados || [])
+        .map(contratoItem => {
 
-        const rAtual = orcamento?.revisoes?.atual
-        const etiqRevAtual = rAtual
-            ? `<span class="etiqueta-revisao">${rAtual}</span>`
-            : ''
+            const master = contrato == contratoItem
 
-        const responsaveis = (executor || [])
-            .join(', ')
-
-        // idMaster existe e orçamento difrente do master; (Ou seja, slaves);
-        const nomeVinculado = master || masterAgrupado
-            ? `
-            <div style="${horizontal}; gap: 5px;">
-                <span>${contrato}</span>
-                <div class="viculado">
-                    <img src="imagens/link2.png">
-                    <span>${master || masterAgrupado}</span>
-                </div>
+            return `
+            <div class="tag-vinculado ${master ? 'master' : 'slave'}">
+                <img src="imagens/${master ? 'chave' : 'link2'}.png">
+                <span>${contratoItem}</span>
             </div>
-            `
-            : `<span name="contrato">${contrato}</span>`
+        `})
+        .join('')
 
-        const etiqVendaDireta = venda_direta
-            ? `<span class="etiqueta-revisao">Venda Direta</span>`
-            : ''
+    const rAtual = orcamento?.revisoes?.atual
+    const etiqRevAtual = rAtual
+        ? `<span class="etiqueta-revisao">${rAtual}</span>`
+        : ''
 
-        const finalContrato = `
-        <div style="${vertical};text-align: left; gap: 2px;">
-            ${nomeVinculado}
+    const responsaveis = (executor || [])
+        .join(', ')
+
+    const etiqVendaDireta = venda_direta
+        ? `<span class="etiqueta-revisao">Venda Direta</span>`
+        : ''
+
+    const finalContrato = `
+        <div style="${vertical}; min-width: 150px; text-align: left; gap: 2px;">
+            <span>${contrato}</span>
             ${etiqRevAtual}
             ${etiqVendaDireta}
             <span>${(snapshots?.cliente || '').toUpperCase()}</span>
             <span>${snapshots?.cnpj || ''}</span>
         </div>`
 
-        // Tags;
-        const listaTags = Object.values(snapshots?.tags || {})
-            .map(tag => modeloTag(tag, id))
-            .join('')
+    // Tags;
+    const listaTags = Object.values(snapshots?.tags || {})
+        .map(tag => modeloTag(tag, id))
+        .join('')
 
-        const data = new Date(timestamp).toLocaleString()
-        const celulas = `
+    const data = new Date(timestamp).toLocaleString()
+
+    const celulas = `
         <td>
             <div style="${vertical}">
                 <span><b>${lpu_ativa || ''}</b></span>
@@ -307,7 +258,7 @@ async function criarLinhaOrcamento(orcamento) {
                 ${seletorStatus(orcamento)}
                 <div style="${horizontal}; width: 100%; justify-content: end; gap: 5px;">
                     <span>Dep</span>
-                    <img src="imagens/${departamentoExistente ? 'concluido' : 'cancel'}.png" style="width: 1.5rem;">
+                    <img src="imagens/${departamento_existente ? 'concluido' : 'cancel'}.png" style="width: 1.5rem;">
                 </div>
             </div>
         </td>
@@ -331,7 +282,13 @@ async function criarLinhaOrcamento(orcamento) {
                 </div>
             </div>
         </td>
+
         <td>${finalContrato}</td>
+
+        <td>
+            <div style="${vertical}; gap: 2px;">${baloesVinculos}</div>
+        </td>
+
         <td>${(snapshots?.cidade || '').toUpperCase()}</td>
         <td>
             <div style="${vertical}; gap: 2px;">
@@ -354,17 +311,15 @@ async function criarLinhaOrcamento(orcamento) {
         </td>
         <td>
             <img 
-                onclick="${idMaster ? `abrirAtalhos('${id}', '${idMaster}')` : `abrirAtalhos('${id}')`}"
+                onclick="abrirAtalhos('${id}')"
                 src="imagens/pesquisar2.png"
                 style="width: 1.5rem;">
         </td>`
 
-        return `
-            <tr class="linha-master">
-                ${celulas}
-            </tr>`
-
-    }
+    return `
+        <tr class="linha-master">
+            ${celulas}
+        </tr>`
 
 }
 

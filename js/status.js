@@ -312,7 +312,7 @@ async function salvarPedido(id) {
         }
 
         console.log(dados);
-        
+
 
         await enviar(`pedidos/${id}`, dados)
 
@@ -388,7 +388,7 @@ async function salvarNotaAvulsa(id) {
 
 }
 
-async function abrirAtalhos(id, idMaster) {
+async function abrirAtalhos(id) {
 
     overlayAguarde()
 
@@ -406,13 +406,36 @@ async function abrirAtalhos(id, idMaster) {
             modeloBotoes('pdf', 'Abrir Orçamento em PDF', `irPdf('${id}')`),
             modeloBotoes('checklist', 'Checklist', `telaChecklist('${id}')`),
             modeloBotoes('excel', 'Baixar Orçamento em Excel', `irExcelOrcamento('${id}')`),
-            modeloBotoes('LG', 'OS em PDF', `carregarOS('${id}')`),
+            modeloBotoes('LG', 'OS em PDF', `carregarOS('${id}')`)
         )
 
-    if (idMaster)
-        botoesDisponiveis.push(modeloBotoes('exclamacao', 'Desvincular Orçamento', `confirmarRemoverVinculo('${id}', '${idMaster}')`))
-    else
-        botoesDisponiveis.push(modeloBotoes('link', 'Vincular Orçamento', `vincularOrcamento('${id}')`))
+    // Vinculados;
+    const [estaVinculado, pesqMaster] = await Promise.all([
+        recuperarDado('contratos_vinculados', contrato),
+        pesquisarDB({ base: 'contratos_vinculados', filtros: { 'master': { op: '=', value: contrato } } })
+    ])
+
+    let avisoMaster = ''
+
+    if (estaVinculado) {
+        botoesDisponiveis.push(modeloBotoes('exclamacao', 'Desvincular Orçamento', `confirmarRemoverVinculo('${contrato}')`))
+    } else if (!pesqMaster.resultados.length) {
+        botoesDisponiveis.push(modeloBotoes('link', 'Vincular Orçamento', `vincularOrcamento('${contrato}')`))
+    } else {
+
+        const slaves = pesqMaster.resultados
+            .map(res => `<span class="tag-vinculado slave">${res.slave}</span>`)
+            .join('')
+
+        avisoMaster = `
+            <hr>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+                <span style="text-align: left; width: 400px;">Este orçamento é <b>master</b>, ele não pode ser vinculado a ninguém. 
+                <br>A não ser que estes filhos sejam desvinculados...</span>
+                ${slaves}
+            </div>
+            `
+    }
 
     botoesDisponiveis.push(
         modeloBotoes('duplicar', 'Duplicar Orçamento', `confirmarDuplicarOrcamento('${id}')`)
@@ -454,6 +477,7 @@ async function abrirAtalhos(id, idMaster) {
         <hr>
         ${aviso}
         <div class="opcoes-orcamento">${botoesDisponiveis.join('')}</div>
+        ${avisoMaster}
 
     `
 
@@ -508,79 +532,97 @@ async function iniciarChamadoProspeccao(id) {
 
 }
 
-async function vincularOrcamento(idOrcamento) {
+async function vincularOrcamento(contratoSlave) {
+
+    overlayAguarde()
 
     controlesCxOpcoes.orcamento = {
         base: 'dados_orcamentos',
-        retornar: ['snapshots.contrato'],
+        retornar: ['dados_orcam.contrato'],
         colunas: {
             'Orçamento': { chave: 'snapshots.contrato' },
             'Cidade': { chave: 'snapshots.cidade' },
-            'Criado por': { chave: 'usuario' },
             'Responsáveis': { chave: 'snapshots.responsavel' }
         }
     }
 
-    const elemento = `
-        <div style="${vertical}; padding: 1rem;">
-            <span>Escolha o <b>Orçamento</b> para vincular</span>
-
-            <div style="${horizontal}; gap: 1rem;">
-                <span class="opcoes"
-                name="orcamento"
-                onclick="cxOpcoes('orcamento')">
-                    Selecione
-                </span>
-                <img src="imagens/concluido.png" style="width: 2rem;" onclick="confirmarVinculo('${idOrcamento}')">
-            </div>
-        </div>`
-
-    popup({ elemento, titulo: 'Vincular orçamentos' })
-
-}
-
-async function confirmarVinculo(idOrcamento) {
-
-    overlayAguarde()
-
-    const orcamentoMaster = document.querySelector('[name="orcamento"]')
-    const idMaster = orcamentoMaster.id
-
-    if (!idMaster)
-        return popup({ mensagem: 'Escolha um orçamento' })
-
-    if (idMaster == idOrcamento)
-        return popup({ mensagem: 'Os orçamentos são iguais [O mesmo]' })
-
-    const dados = {
-        data: new Date().toLocaleString(),
-        usuario: acesso.usuario
-    }
-
-    await enviar(`dados_orcamentos/${idMaster}/vinculados/${idOrcamento}`, dados)
-
-    removerPopup()
-    removerPopup()
-
-}
-
-async function confirmarRemoverVinculo(idOrcamento, master) {
+    const linhas = [
+        {
+            texto: 'Escolha o orçamento para vincular',
+            elemento: `<span class="opcoes" data-slave="${contratoSlave}" name="orcamento" onclick="cxOpcoes('orcamento')">Selecione</span>`
+        }
+    ]
 
     const botoes = [
-        { texto: 'Confirmar', img: 'concluido', funcao: `desfazerVinculo('${idOrcamento}', '${master}')` }
+        {
+            texto: 'Salvar',
+            img: 'concluido',
+            funcao: `confirmarVinculo()`
+        }
+    ]
+
+    popup({ linhas, botoes, titulo: 'Vincular orçamentos' })
+
+}
+
+async function confirmarVinculo() {
+
+    try {
+
+        overlayAguarde()
+
+        const contratos = document.querySelector('[name="orcamento"]')
+        const master = contratos?.textContent
+        const slave = contratos.dataset.slave
+
+        if (master == 'Selecione')
+            return popup({ mensagem: 'Escolha um orçamento' })
+
+        if (master == slave)
+            return popup({ mensagem: 'Os orçamentos são iguais!' })
+
+        const { mensagem = 'Falha ao vincular: Fale com o suporte.' } = await enviarVinculo({ master, slave })
+
+        removerTodosPopups()
+
+        popup({ mensagem })
+
+    } catch (err) {
+
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir a ferramenta: Fale com o suporte.' })
+
+    }
+
+}
+
+async function confirmarRemoverVinculo(contrato) {
+
+    const botoes = [
+        { texto: 'Confirmar', img: 'concluido', funcao: `desfazerVinculo('${contrato}')` }
     ]
 
     popup({ botoes, mensagem: 'Deseja desfazer vínculo?', })
 
 }
 
-async function desfazerVinculo(idSlave, idMaster) {
+async function desfazerVinculo(contrato) {
 
-    overlayAguarde()
+    try {
 
-    await deletar(`dados_orcamentos/${idMaster}/vinculados/${idSlave}`)
+        removerTodosPopups()
+        
+        overlayAguarde()
 
-    removerPopup()
+        const { mensagem } = await enviarVinculo({ slave: contrato, desvincular: true })
+
+        if (mensagem)
+            return popup({ mensagem })
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao desvincular o orçamento: Fale com o suporte.' })
+    }
 
 }
 
@@ -1090,4 +1132,26 @@ async function excluirDocAdicional(id) {
     removerPopup()
     await deletar(`anexos/${id}`)
 
+}
+
+
+async function enviarVinculo({ master, slave, desvincular = null }) {
+
+    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
+
+    const resposta = await fetch(`${api}/vincular-contrato`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ master, slave, desvincular })
+    })
+
+    if (!resposta.ok) {
+        const erro = await resposta.text()
+        throw new Error(erro || 'Erro ao contar por campo')
+    }
+
+    return await resposta.json()
 }
