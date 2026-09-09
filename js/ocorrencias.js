@@ -1813,7 +1813,7 @@ async function criarPesquisas() {
         )
     }
 
-    const listagens = await recuperarDado('vw_opcoes_filtros', 1) || {}
+    const listagens = await recuperarDado('mvw_opcoes_filtros', 1) || {}
 
     const emMassa = Object.entries(camposFechados)
         .map(([titulo, conf]) => {

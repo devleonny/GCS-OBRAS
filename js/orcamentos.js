@@ -93,7 +93,7 @@ async function carregarPesquisaOrcamento() {
 
     const menuOrcamento = document.querySelector('.filtro-orcamentos')
 
-    const listagens = await recuperarDado('vw_opcoes_filtros', 1) || {}
+    const listagens = await recuperarDado('mvw_opcoes_filtros', 1) || {}
 
     const camposFechados = {
         'Status': {

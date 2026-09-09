@@ -6,7 +6,7 @@ async function daily() {
 
         overlayAguarde()
 
-        const { criadores } = await recuperarDado('vw_opcoes_filtros', 1) || {}
+        const { criadores } = await recuperarDado('mvw_opcoes_filtros', 1) || {}
 
         const dropdownUsuarios = montarDropdownCheckbox({
             titulo: 'Usuários',
