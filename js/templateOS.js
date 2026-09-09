@@ -10,9 +10,10 @@ async function telaOS(idOcorrencia) {
 
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
     const cliente = await recuperarDado('clientes', ocorrencia?.unidade) || {}
-    const { tipo, sistema, prioridade, ultimaCorrecao, nomesStatus } = ocorrencia?.snapshots || {}
+    const { tipo, sistema, prioridade, nomesStatus } = ocorrencia?.snapshots || {}
 
     const labelTipoCorrecao = (nomesStatus || [])
+        .filter(st => st !== 'PAGAMENTO DE PARCEIRO')
         .map(st => formatacaoTipoCorrecao(st))
         .join('')
 
@@ -94,59 +95,109 @@ async function telaOS(idOcorrencia) {
 
         </div>
     `
-    let linhasCorrecoes = ''
+    const promessasCorrecoes = Object.values(
+        ocorrencia?.correcoes || {}
+    )
+    .filter(correcao => correcao.tipoCorrecao !== '24e1ea27-1bd8-451a-b5bf-edda134cfdd6')
+    .map(async (correcao) => {
+        const {
+            equipamentos,
+            fotos,
+            anexos,
+            data,
+            usuario,
+            tecnico,
+            tipoCorrecao,
+            descricao
+        } = correcao
 
-    for (const correcao of Object.values(ocorrencia?.correcoes || {})) {
 
-        const { nome } = await recuperarDado('correcoes', correcao?.tipoCorrecao) || {}
-        const { equipamentos, fotos, anexos, data, usuario, tecnico } = correcao || {}
+        const { nome } = recuperarDado('correcoes', tipoCorrecao) || {}
+
 
         const tEquipamentos = equipamentos
-            ? tabEquipamentos(equipamentos, idOcorrencia) // Sem idCorrecao os botões não são lançados;
+            ? tabEquipamentos(equipamentos, idOcorrencia)
             : ''
 
-        let imagens = ''
 
-        imagens += Object.values(fotos || {})
-            .map(foto => `<img id="${foto.link}" src="${api}/uploads/${foto.link}" onclick="ampliarImagem(this, '${foto.link}')">`)
-            .join('')
-
-        imagens += Object.values(anexos || {})
+        const imagensFotos = Object.values(fotos || {})
             .map(foto => {
-                const link = foto.link
-                const extensao = link.split('.').pop().toLowerCase()
-                if (!extensoes.includes(extensao)) return ''
-                return `<img name="foto" id="${link}" src="${api}/uploads/${link}" onclick="ampliarImagem(this, '${link}')">`
+                if (!foto?.link) return ''
+
+
+                return `
+                <img
+                    id="${foto.link}"
+                    src="${api}/uploads/${foto.link}"
+                    onclick="ampliarImagem(this, '${foto.link}')"
+                >
+            `
             })
             .join('')
 
-        linhasCorrecoes += `
-            <div class="painel-2">
 
-                <div class="fotos-os" style="width: 30%;">
-                    ${imagens || semImagem}
-                </div>
+        const imagensAnexos = Object.values(anexos || {})
+            .map(foto => {
+                const link = foto?.link
 
-                <div class="vertical" style="width: 100%; gap: 0.5rem;">
 
-                    <span><b>Correção</b></span>
-                    <div class="campo-descricao" style="width: 70%;">
-                        <p>${correcao.descricao}</p>
-                    </div>
-                    
-                    ${tEquipamentos}
+                if (!link) return ''
 
-                    <div class="horizontal" style="gap: 1rem;">
-                        ${modelo('Status da Correção', nome)}
-                        ${modelo('Registrado em', data)}
-                        ${modelo('Executor', usuario)}
-                        ${modelo('Técnico', tecnico)}
-                    </div>
-                </div>
 
+                const extensao = link.split('.').pop().toLowerCase()
+
+
+                if (!extensoes.includes(extensao)) return ''
+
+
+                return `
+                <img
+                    name="foto"
+                    id="${link}"
+                    src="${api}/uploads/${link}"
+                    onclick="ampliarImagem(this, '${link}')"
+                >
+            `
+            })
+            .join('')
+
+
+        const imagens = imagensFotos + imagensAnexos
+
+
+        return `
+        <div class="painel-2">
+            <div class="fotos-os" style="width: 30%;">
+                ${imagens || semImagem}
             </div>
-        `
-    }
+
+
+            <div class="vertical" style="width: 100%; gap: 0.5rem;">
+                <span><b>Correção</b></span>
+
+
+                <div class="campo-descricao">
+                    <p>${descricao || 'Sem descrição'}</p>
+                </div>
+
+
+                ${tEquipamentos}
+
+
+                <div class="horizontal" style="gap: 1rem;">
+                    ${modelo('Status da Correção', nome)}
+                    ${modelo('Registrado em', data)}
+                    ${modelo('Executor', usuario)}
+                    ${modelo('Técnico', tecnico)}
+                </div>
+            </div>
+        </div>
+    `
+    })
+
+    const linhasCorrecoes = (
+        await Promise.all(promessasCorrecoes)
+    ).join('')
 
     const acumulado = `
         <div id="pdf">
@@ -195,5 +246,6 @@ async function gerarPdfOS(nome) {
         'layout_os'
     ]
 
-    await pdf({ id, estilos, nome })
+    await pdf({ id, estilos, nome, orientacao: 'landscape' })
+
 }
