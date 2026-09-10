@@ -205,10 +205,8 @@ async function criarElementosIniciais() {
 
         </div>`
 
-    const emMassa = ['tSetor', 'tAtrasados', 'tCorrecoes', 'tPermissao']
-        .map(async (pag) => await paginacao(pag))
+    await paginacao()
 
-    await Promise.all(emMassa)
 
 }
 
