@@ -1806,12 +1806,15 @@ async function criarPesquisas() {
         'Última Correção': { chave: 'ultima_correcao', path: 'snapshots.ultimaCorrecao.*.nome', explode: { path: 'snapshots.ultimaCorrecao' } },
         'Executor': { op: 'includes', chave: 'executores', path: 'snapshots.ultimaCorrecao.*.executor', explode: { path: 'snapshots.ultimaCorrecao' } },
         'Estado': { chave: 'estados', path: 'snapshots.cliente.estado' },
-        'Empresa': { chave: 'empresas', path: 'snapshots.empresa' },
-        'Tags': { chave: 'tags', path: 'tags.*.nome' }
+        ...(
+            acesso.permissao == 'cliente'
+                ? {}
+                : {
+                    'Empresa': { chave: 'empresas', path: 'snapshots.empresa' },
+                    'Tags': { chave: 'tags', path: 'tags.*.nome' }
+                }
+        )
     }
-
-    if (acesso.permissao == 'cliente')
-        delete camposFechados.Empresa
 
     const filtros = []
 
