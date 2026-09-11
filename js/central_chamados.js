@@ -259,7 +259,7 @@ async function linCorrecoes(ocorrencia) {
         <tr>
             <td>
                 <div class="balao-correcao"
-                    onclick="atalhoAuxiliar('${id}', 'chamados')">
+                    onclick="minhaCorrecao('${id}')">
                     <span>Solicitado por <b>${usuario || 'Desconhecido'}</b>${titulo}</span>
                     <div style="${horizontal}; gap: 1rem;">
 
@@ -285,7 +285,7 @@ async function minhaCorrecao(id) {
 
     controles.ocorrencias ??= {}
     controles.ocorrencias.filtros = {
-        'snapshots.contrato': { op: 'includes', value: id }
+        'chamados': { op: 'includes', value: id }
     }
 
     await telaOcorrencias()
