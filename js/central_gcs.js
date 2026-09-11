@@ -193,12 +193,12 @@ async function mudarStatus(id, select) {
 function balaoNotificacao({ imagem, texto, tempo = 5 }) {
 
     if (document.title == 'PDF')
-        return;
+        return
 
-    let container = document.querySelector('.popup-mensagens');
+    let container = document.querySelector('.popup-mensagens')
     if (!container) {
-        container = document.createElement('div');
-        container.className = 'popup-mensagens';
+        container = document.createElement('div')
+        container.className = 'popup-mensagens'
         container.style.cssText = `
             position: fixed;
             right: 16px;
@@ -210,14 +210,14 @@ function balaoNotificacao({ imagem, texto, tempo = 5 }) {
             gap: 10px;
             max-width: 420px;
         `;
-        document.body.appendChild(container);
+        document.body.appendChild(container)
     }
 
-    const msg = document.createElement('div');
-    msg.className = 'popup-mensagem';
-    msg.style.opacity = '0';
-    msg.style.transform = 'translateY(20px)';
-    msg.style.transition = 'opacity .4s ease, transform .4s ease';
+    const msg = document.createElement('div')
+    msg.className = 'popup-mensagem'
+    msg.style.opacity = '0'
+    msg.style.transform = 'translateY(20px)'
+    msg.style.transition = 'opacity .4s ease, transform .4s ease'
 
     msg.innerHTML = `
         <img src="${imagem || 'imagens/comentario.png'}">
@@ -228,17 +228,17 @@ function balaoNotificacao({ imagem, texto, tempo = 5 }) {
 
     requestAnimationFrame(() => {
         msg.style.opacity = '1';
-        msg.style.transform = 'translateY(0)';
-    });
+        msg.style.transform = 'translateY(0)'
+    })
 
     if (tempo == 0)
         return
 
     setTimeout(() => {
         msg.style.opacity = '0';
-        msg.style.transform = 'translateY(20px)';
-        setTimeout(() => msg.remove(), 400);
-    }, tempo * 1000);
+        msg.style.transform = 'translateY(20px)'
+        setTimeout(() => msg.remove(), 400)
+    }, tempo * 1000)
 }
 
 async function usuariosToolbar() {
