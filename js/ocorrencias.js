@@ -277,7 +277,7 @@ function carregarCorrecoes(ocorrencia) {
     const { id: idOcorrencia, correcoes, snapshots } = ocorrencia || {}
     const { abas } = snapshots || {}
     const divsCorrecoesPorAba = {}
-
+    
     // Organizado com a última correção primeiro;
     const correcoesOrganizadas = Object.entries(correcoes || {})
         .sort(([, a], [, b]) => toTimestamp(b.data) - toTimestamp(a.data))
@@ -594,6 +594,11 @@ async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro) {
             executor: criado
         } = await recuperarDado('parceiros', idCorrecaoLpuParceiro) || {}
 
+        // Apenas o departamento master recebe atualizações nos chamados;
+        // Porém o centro de custo continua o do orçamento;
+        const { master } = await recuperarDado('contratos_vinculados', departamento)
+        const departamentoMaster = master || departamento
+
         const pesquisaTecnico = await pesquisarDB({
             base: 'clientes',
             filtros: {
@@ -680,7 +685,7 @@ async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro) {
 
         await Promise.all([
             enviar(`lista_pagamentos/${idCorrecaoLpuParceiro}`, pagamento),
-            enviar(`dados_ocorrencias/${departamento}/correcoes/${crypto.randomUUID()}`, correcao)
+            enviar(`dados_ocorrencias/${departamentoMaster}/correcoes/${crypto.randomUUID()}`, correcao)
         ])
 
         removerTodosPopups()
@@ -1738,11 +1743,11 @@ async function criarPesquisas() {
     const divF2 = document.querySelector('#filtros2')
 
     const camposLivres = {
-        'Chamado': { path: 'snapshots.contrato' },
+        'Chamado': { path: 'chamados' },
         'Nº Série': { path: 'equipamentos.*.serie' },
         'Cidade': { path: 'snapshots.cliente.cidade' },
         'Descricao': { path: 'descricao' },
-        'Unidade': { path: 'snapshots.cliente.nome' },
+        'Unidade': { path: 'unidade' },
         'Autorização': { path: 'correcoes.*.autorizacao' }
     }
 

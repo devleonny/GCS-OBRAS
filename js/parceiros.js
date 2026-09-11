@@ -503,8 +503,8 @@ async function gerarPdfParceiro(id, visualizar) {
     try {
 
         await pdf({
-            html, 
-            estilos: ['tabelas-vers-2', 'estilos'], 
+            html,
+            estilos: ['tabelas-vers-2', 'estilos'],
             nome: `LPU PARCEIRO - ${Date.now()}`
         })
 
@@ -581,7 +581,6 @@ async function solicitarPagamentoParceiro(id, idCliente) {
         overlayAguarde()
 
         // Atualização cadastral;
-
         const chave_pix = document.querySelector('[name="chave_pix"]').value
 
         if (!chave_pix)
@@ -595,14 +594,13 @@ async function solicitarPagamentoParceiro(id, idCliente) {
         }
 
         // o id da LPU PARCEIRO será o mesmo para aba e para idCorrecao;
-
         const { usuario } = acesso || {}
+        const { ativo } = controles.ocorrencias || {}
 
-        const {
-            tecnicos,
-            itens,
-            departamento
-        } = await recuperarDado('parceiros', id) || {}
+        const [{ tecnicos, itens }, { master }] = await Promise.all([
+            recuperarDado('parceiros', id),
+            recuperarDado('contratos_vinculados', ativo)
+        ])
 
         const total = (itens || [])
             .reduce((acc, item) => acc + (item.vTotalParc), 0)
@@ -618,6 +616,8 @@ async function solicitarPagamentoParceiro(id, idCliente) {
             tipoCorrecao: '24e1ea27-1bd8-451a-b5bf-edda134cfdd6' // PAGAMENTO DE PARCEIRO
         }
 
+        // Departamento sempre do master, caso não exista, o ativo é o master;
+        const departamento = master || ativo
         await Promise.all([
             enviar(`clientes/${idCliente}`, dados),
             enviar(`dados_ocorrencias/${departamento}/correcoes/${id}`, correcao)
@@ -628,7 +628,8 @@ async function solicitarPagamentoParceiro(id, idCliente) {
         popup({ mensagem: 'Pagamento do parceiro enviado para aprovação do gerente' })
 
     } catch (err) {
-
+        
+        console.error(err)
         popup({ mensagem: err.message || 'Falha ao gerar o pagamento do parceiro' })
 
     }

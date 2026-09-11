@@ -855,7 +855,6 @@ async function painelClientes(idOrcamento = null) {
         ? await recuperarDado('dados_orcamentos', idOrcamento) || {}
         : baseOrcamento()
 
-    const { usuarios, dados_orcam, snapshots } = orcamento || {}
     const {
         venda_direta,
         contrato,
@@ -872,7 +871,7 @@ async function painelClientes(idOrcamento = null) {
         telefone_analista,
         omie_cliente,
         condicoes
-    } = dados_orcam || {}
+    } = orcamento?.dados_orcam || {}
 
     const bloq = orcamento?.hierarquia
         ? true
@@ -882,17 +881,6 @@ async function painelClientes(idOrcamento = null) {
         recuperarDado('clientes', omie_cliente),
         recuperarDado('clientes', venda_direta)
     ])
-
-    const levantamentos = Object.entries(orcamento?.levantamentos || {})
-        .map(([idAnexo, anexo]) =>
-            criarAnexoVisual(
-                anexo.nome,
-                anexo.link,
-                idOrcamento
-                    ? `excluirLevantamentoStatus('${idAnexo}', '${idOrcamento}')`
-                    : `excluirLevantamentoStatus('${idAnexo}')`))
-        .join('')
-
 
     const botoes = [
         {
