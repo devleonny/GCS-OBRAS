@@ -259,7 +259,7 @@ async function linCorrecoes(ocorrencia) {
         <tr>
             <td>
                 <div class="balao-correcao"
-                    onclick="minhaCorrecao('${id}')">
+                    onclick="atalhoAuxiliar('${id}', 'chamados')">
                     <span>Solicitado por <b>${usuario || 'Desconhecido'}</b>${titulo}</span>
                     <div style="${horizontal}; gap: 1rem;">
 

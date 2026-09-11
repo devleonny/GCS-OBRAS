@@ -277,7 +277,7 @@ function carregarCorrecoes(ocorrencia) {
     const { id: idOcorrencia, correcoes, snapshots } = ocorrencia || {}
     const { abas } = snapshots || {}
     const divsCorrecoesPorAba = {}
-    
+
     // Organizado com a última correção primeiro;
     const correcoesOrganizadas = Object.entries(correcoes || {})
         .sort(([, a], [, b]) => toTimestamp(b.data) - toTimestamp(a.data))
@@ -992,7 +992,8 @@ function criarLinhaOcorrencia(ocorrencia) {
         snapshots,
         equipamentos,
         contratos_vinculados,
-        buscar_tecnico
+        buscar_tecnico,
+        tags
     } = ocorrencia || {}
 
     const {
@@ -1002,6 +1003,11 @@ function criarLinhaOcorrencia(ocorrencia) {
         cliente,
         empresa
     } = snapshots || {}
+
+    // Tags;
+    const listaTags = Object.values(tags || {})
+        .map(tag => modeloTag(tag, id))
+        .join('')
 
     // Apenas autorizados;
     const apenasAutorizados = !['cliente', 'técnico'].includes(acesso.permissao)
@@ -1099,6 +1105,13 @@ function criarLinhaOcorrencia(ocorrencia) {
         })
         .join('<img src="imagens/link2.png">')
 
+    const possiveisTags = (apenasAutorizados && listaTags)
+        ? `<div style="${vertical}; gap: 1px;">
+                <span><b>Tags no Orçamento</b></span>
+                ${listaTags}
+            </div>`
+        : ''
+
     const blocoPrincipal = `
         <div class="linha-orcamentos">
 
@@ -1110,23 +1123,35 @@ function criarLinhaOcorrencia(ocorrencia) {
         ${modeloCampos('', 'AC SOLUÇÕES')}
         <br>
 
-        ${existeAntigo}
-        ${modeloCampos('Unidade', cliente?.nome)}
-        ${modeloCampos('Endereço', cliente?.endereco)}
-        ${modeloCampos('Bairro', cliente?.bairro)}
-        ${modeloCampos('Cidade', cliente?.cidade)}
-        ${modeloCampos('Cep', cliente?.cep)}
-        ${modeloCampos('Descrição', `<div style="white-space: pre-wrap;">${descricao}</div>`)}
-        ${modeloCampos('Criado por', criador)}
-        ${modeloCampos('Data Solicitação', data_solicitacao ? conversorDt(data_solicitacao) : null)}
-        ${modeloCampos('Data Registro', data_registro)}
-        ${modeloCampos('Empresa', empresa)}
-        ${modeloCampos('Tipo', tipo)}
-        ${modeloCampos('Sistema', sistema)}
-        ${modeloCampos('Prioridade', prioridade)}
-        ${modeloCampos('Equipamentos', tabEquipamentos(equipamentos || {}))}
-        ${modeloCampos('Anexos', divAnexos ? `<div id="anexos" class="local-anexos">${divAnexos || 'Sem anexos'}</div>` : 'Sem anexos')}
-        ${modeloCampos('Fotos', imagens ? imagensExistentes : 'Sem Imagens')}
+        
+
+        <div class="linha-divisor-tag">
+
+            <div style="${vertical}; width: 100%;">
+                ${existeAntigo}
+                ${modeloCampos('Unidade', cliente?.nome)}
+                ${modeloCampos('Endereço', cliente?.endereco)}
+                ${modeloCampos('Bairro', cliente?.bairro)}
+                ${modeloCampos('Cidade', cliente?.cidade)}
+                ${modeloCampos('Cep', cliente?.cep)}
+                ${modeloCampos('Descrição', `<div style="white-space: pre-wrap;">${descricao}</div>`)}
+                ${modeloCampos('Criado por', criador)}
+                ${modeloCampos('Data Solicitação', data_solicitacao ? conversorDt(data_solicitacao) : null)}
+                ${modeloCampos('Data Registro', data_registro)}
+                ${modeloCampos('Empresa', empresa)}
+                ${modeloCampos('Tipo', tipo)}
+                ${modeloCampos('Sistema', sistema)}
+                ${modeloCampos('Prioridade', prioridade)}
+                ${modeloCampos('Equipamentos', tabEquipamentos(equipamentos || {}))}
+                ${modeloCampos('Anexos', divAnexos ? `<div id="anexos" class="local-anexos">${divAnexos || 'Sem anexos'}</div>` : 'Sem anexos')}
+                ${modeloCampos('Fotos', imagens ? imagensExistentes : 'Sem Imagens')}
+            </div>
+
+            ${possiveisTags}
+
+        </div>
+
+        
     `
 
     const partes = `
@@ -1781,7 +1806,8 @@ async function criarPesquisas() {
         'Última Correção': { chave: 'ultima_correcao', path: 'snapshots.ultimaCorrecao.*.nome', explode: { path: 'snapshots.ultimaCorrecao' } },
         'Executor': { op: 'includes', chave: 'executores', path: 'snapshots.ultimaCorrecao.*.executor', explode: { path: 'snapshots.ultimaCorrecao' } },
         'Estado': { chave: 'estados', path: 'snapshots.cliente.estado' },
-        'Empresa': { chave: 'empresas', path: 'snapshots.empresa' }
+        'Empresa': { chave: 'empresas', path: 'snapshots.empresa' },
+        'Tags': { chave: 'tags', path: 'tags.*.nome' }
     }
 
     if (acesso.permissao == 'cliente')
@@ -1836,7 +1862,6 @@ async function criarPesquisas() {
     filtros.push(emMassa)
 
     // Filtro de autorizados e atrasados;
-
     filtros.push(`
             <div class="campo-pesquisa">
                 <span style="color: white;">Autorização</span>

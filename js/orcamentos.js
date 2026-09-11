@@ -151,7 +151,7 @@ async function criarLinhaOrcamento(orcamento) {
         lpu_ativa
     } = orcamento || {}
 
-    const { notas, pedidos, custos, parcelas } = snapshots || {}
+    const { notas, pedidos, custos, parcelas, tags, cliente, cnpj } = snapshots || {}
     const { pagamentos = 0, abastecimentos = 0 } = custos || {}
     const { contrato, executor, venda_direta } = dados_orcam || {}
 
@@ -191,7 +191,7 @@ async function criarLinhaOrcamento(orcamento) {
         .join('')
 
     const listaParcelas = (parcelas || [])
-        .map(({ id, data_vencimento, valor_documento, app, status_titulo }) =>
+        .map(({ data_vencimento, valor_documento, app, status_titulo }) =>
             `<div class="parcelas-notas">
                     <span>${data_vencimento}</span>
                     <span>${dinheiro(valor_documento)}</span>
@@ -235,12 +235,12 @@ async function criarLinhaOrcamento(orcamento) {
             <span>${contrato}</span>
             ${etiqRevAtual}
             ${etiqVendaDireta}
-            <span>${(snapshots?.cliente || '').toUpperCase()}</span>
-            <span>${snapshots?.cnpj || ''}</span>
+            <span>${(cliente || '').toUpperCase()}</span>
+            <span>${cnpj || ''}</span>
         </div>`
 
     // Tags;
-    const listaTags = Object.values(snapshots?.tags || {})
+    const listaTags = Object.values(tags || {})
         .map(tag => modeloTag(tag, id))
         .join('')
 

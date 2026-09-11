@@ -605,19 +605,20 @@ async function solicitarPagamentoParceiro(id, idCliente) {
         const total = (itens || [])
             .reduce((acc, item) => acc + (item.vTotalParc), 0)
 
+        // Departamento sempre do master, caso não exista, o ativo é o master;
+        const departamento = master || ativo
+
         const correcao = {
             data_pagamento: document.querySelector('[name="data_pagamento"]')?.value || null,
             aba: id,
             data: new Date().toLocaleString(),
             tecnico: tecnicos,
-            descricao: `Solicitação de pagamento de parceiro de ${dinheiro(total)} para ${(tecnicos || []).map(t => t).join(', ')}.`,
+            descricao: `[${departamento}] Solicitação de pagamento de parceiro de ${dinheiro(total)} para ${(tecnicos || []).map(t => t).join(', ')}.`,
             permissao: ['gerente'],
             usuario,
             tipoCorrecao: '24e1ea27-1bd8-451a-b5bf-edda134cfdd6' // PAGAMENTO DE PARCEIRO
         }
 
-        // Departamento sempre do master, caso não exista, o ativo é o master;
-        const departamento = master || ativo
         await Promise.all([
             enviar(`clientes/${idCliente}`, dados),
             enviar(`dados_ocorrencias/${departamento}/correcoes/${id}`, correcao)
@@ -628,7 +629,7 @@ async function solicitarPagamentoParceiro(id, idCliente) {
         popup({ mensagem: 'Pagamento do parceiro enviado para aprovação do gerente' })
 
     } catch (err) {
-        
+
         console.error(err)
         popup({ mensagem: err.message || 'Falha ao gerar o pagamento do parceiro' })
 

@@ -9,6 +9,13 @@
     flex-direction: column;
 }
 
+.linha-divisor-tag {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
 .titul-1 {
     color: white;
     font-size: 1.1rem;

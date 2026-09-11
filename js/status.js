@@ -611,7 +611,7 @@ async function desfazerVinculo(contrato) {
     try {
 
         removerTodosPopups()
-        
+
         overlayAguarde()
 
         const { mensagem } = await enviarVinculo({ slave: contrato, desvincular: true })
@@ -939,6 +939,16 @@ async function confirmarApagarGenerico(id, tabela) {
 
         if (pagamento)
             return popup({ mensagem: 'Você não pode excluir essa LPU: Já existe um pagamento solicitado.' })
+
+        // Deletar também o cartão da correção;
+        const { ativo } = controles.ocorrencias
+        const { master } = await recuperarDado('contratos_vinculados', ativo)
+        const departamento = master || ativo
+
+        if (!departamento)
+            return popup({ mensagem: 'Falha ao excluir o cartão: Fale com o suporte' })
+
+        await deletar(`dados_ocorrencias/${departamento}/correcoes/${id}`)
     }
 
     await deletar(`${tabela}/${id}`)
