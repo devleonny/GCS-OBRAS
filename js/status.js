@@ -777,6 +777,7 @@ async function abrirEsquema(id) {
     const contrato = orcamento?.dados_orcam?.contrato
     const { cliente } = orcamento?.snapshots || {}
     const { snapshots } = await recuperarDado('dados_ocorrencias', contrato) || {}
+    const statusOrcamento = orcamento?.status?.atual || 'Sem Status'
 
     controles.ocorrencias ??= {}
     controles.ocorrencias.ativo = contrato
@@ -791,8 +792,13 @@ async function abrirEsquema(id) {
             <div style="${horizontal}; gap: 2rem;">
 
                 <div style="${vertical}; gap: 2px;">
-                    <label>Status atual</label>
+                    <label>Status da Ocorrência</label>
                     ${labelTipoCorrecao}
+                </div>
+
+                <div style="${vertical}; gap: 2px;">
+                    <label>Status do Orçamento</label>
+                    <span class="and">${statusOrcamento}</span>
                 </div>
 
                 <label style="font-size: 1.5rem;">${contrato} - ${cliente || '??'}</label>

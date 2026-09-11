@@ -596,7 +596,7 @@ async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro) {
 
         // Apenas o departamento master recebe atualizações nos chamados;
         // Porém o centro de custo continua o do orçamento;
-        const { master } = await recuperarDado('contratos_vinculados', departamento)
+        const { master } = await recuperarDado('contratos_vinculados', departamento) || {}
         const departamentoMaster = master || departamento
 
         const pesquisaTecnico = await pesquisarDB({
