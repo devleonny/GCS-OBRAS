@@ -598,8 +598,8 @@ async function solicitarPagamentoParceiro(id, idCliente) {
         const { ativo } = controles.ocorrencias || {}
 
         const [{ tecnicos, itens }, { master }] = await Promise.all([
-            recuperarDado('parceiros', id),
-            recuperarDado('contratos_vinculados', ativo)
+            recuperarDado('parceiros', id) || {},
+            recuperarDado('contratos_vinculados', ativo) || {}
         ])
 
         const total = (itens || [])
