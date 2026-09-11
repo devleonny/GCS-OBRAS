@@ -294,8 +294,8 @@ function carregarCorrecoes(ocorrencia) {
             datas_agendadas,
             datas_agendadas_final,
             turno,
-            tipoCorrecaoNome,
             tipoCorrecao,
+            tipoCorrecaoNome,
             usuario,
             autorizacao,
             dtCorrecao,
@@ -303,14 +303,16 @@ function carregarCorrecoes(ocorrencia) {
             executor = []
         } = correcao
 
-        if (tipoCorrecaoNome == 'PAGAMENTO DE PARCEIRO' && permissao == 'cliente')
+        const ehPagParceiro = tipoCorrecaoNome.includes('PAGAMENTO DE PARCEIRO')
+
+        if (ehPagParceiro && permissao == 'cliente')
             continue
 
         const listaExecutores = Array.isArray(executor)
             ? executor
             : [executor]
 
-        const edicao = (usuario == acesso.usuario || autE.includes(acesso.permissao))
+        const edicao = !ehPagParceiro && (usuario == acesso.usuario || autE.includes(acesso.permissao))
             ? `
                 <button onclick="formularioCorrecao('${idOcorrencia}', '${idCorrecao}')">Editar</button>
                 <button style="background-color: #B12425;" onclick="confirmarExclusao('${idOcorrencia}', '${idCorrecao}')">Excluir</button>
@@ -352,7 +354,7 @@ function carregarCorrecoes(ocorrencia) {
 
         // Pagamento de parceiro
         const aprovacaoParceiro = descricao && descricao.includes('🟢 Pagamento aprovado')
-        const pagamentoParceiro = tipoCorrecaoNome && tipoCorrecaoNome.includes('PAGAMENTO DE PARCEIRO')
+        const pagamentoParceiro = tipoCorrecaoNome === 'PAGAMENTO DE PARCEIRO'
 
         const btnAprovar = (permissao == 'gerente' && pagamentoParceiro)
             ? `
@@ -461,7 +463,7 @@ function carregarCorrecoes(ocorrencia) {
 
             const aba = c?.aba || 'geral'
             const st = abas?.[aba]?.nome
-            if (st == 'PAGAMENTO DE PARCEIRO' && permissao == 'cliente')
+            if (st.includes('PAGAMENTO DE PARCEIRO') && permissao == 'cliente')
                 return ''
 
             return `<div 
@@ -544,9 +546,14 @@ async function confirmarAprovarPagamentoPaceiro(idOcorrencia, idCorrecaoLpuParce
 
         const botoes = [
             {
-                texto: 'Aprovar Pagamento',
-                img: 'joinha',
+                texto: 'Aprovar',
+                img: 'concluido',
                 funcao: `aprovarPagamentoParceiro('${idCorrecaoLpuParceiro}')`
+            },
+            {
+                texto: 'Reprovar',
+                img: 'cancel',
+                funcao: `reprovarPagamentoParceiro('${idOcorrencia}', '${idCorrecaoLpuParceiro}')`
             }
         ]
 
@@ -559,6 +566,76 @@ async function confirmarAprovarPagamentoPaceiro(idOcorrencia, idCorrecaoLpuParce
     } catch (err) {
         console.error(err)
         popup({ mensagem: 'Falha ao abrir o formulário de aprovação: Fale com o suporte.' })
+    }
+
+}
+
+async function reprovarPagamentoParceiro(idOcorrencia, idCorrecaoLpuParceiro) {
+
+    try {
+
+        removerTodosPopups()
+
+        overlayAguarde()
+
+        const { correcoes } = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
+        const { usuario } = correcoes[idCorrecaoLpuParceiro] || {} // Deve retornar como executor para receber a pendência;
+
+        const linhas = [
+            {
+                editor: ''
+            },
+            {
+                texto: 'Executor',
+                elemento: `<input name="executor" value="${usuario}" readOnly>`
+            }
+        ]
+
+        const botoes = [
+            {
+                texto: 'Reprovar',
+                img: 'cancel',
+                funcao: `confirmarReprovacaoParceiro('${idOcorrencia}', '${idCorrecaoLpuParceiro}')`
+            }
+        ]
+
+        popup({ titulo: 'Motivo da Reprovação', linhas, botoes })
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao tentar Reprovar: Fale com o suporte.' })
+    }
+
+}
+
+async function confirmarReprovacaoParceiro(idOcorrencia, idCorrecaoLpuParceiro) { //29
+
+    try {
+
+        overlayAguarde()
+
+        const { usuario } = acesso
+        const correcao = {
+            usuario,
+            aba: idCorrecaoLpuParceiro, // Ficar na mesma aba que a do pagamento;
+            tipoCorrecao: '2bfa34c1-1c48-4570-8b12-6ed8e58807c4',
+            executor: [
+                obVal('executor')
+            ],
+            data: new Date().toLocaleString(),
+            descricao: document.querySelector('.editor-conteudo')?.innerHTML || ''
+        }
+
+        const { success } = await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${crypto.randomUUID()}`, correcao)
+
+        if (!success)
+            popup({ mensagem: 'Falha ao tentar Reprovar: Fale com o suporte.' })
+
+        removerTodosPopups()
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao tentar Reprovar: Fale com o suporte.' })
     }
 
 }
@@ -2148,7 +2225,7 @@ async function auxPendencias() {
                 .map(([correcao, total]) => {
 
                     if (
-                        correcao === 'PAGAMENTO DE PARCEIRO' &&
+                        correcao.includes('PAGAMENTO DE PARCEIRO') &&
                         permissao === 'cliente'
                     ) {
                         return ''
