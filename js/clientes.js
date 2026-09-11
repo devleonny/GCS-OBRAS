@@ -875,7 +875,7 @@ async function salvarCliente(idCliente = null) {
 
         overlayAguarde()
 
-        const painel = document.querySelector('.painel-padrao')
+        const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
         
         // FIXO ou S = SIM, é válido;
         const usuarioValido = ['S', 'F'].includes(document.getElementById('status_usuario').dataset.valido)

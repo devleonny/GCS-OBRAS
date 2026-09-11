@@ -636,7 +636,10 @@ async function adicionarCotacao(codigo, lpu, cotacao) {
 }
 
 function obValComp(id, valorRetorno) {
-    const el = document.getElementById(id)
+    
+    const painel = [...document.querySelectorAll('.painel-padrao')]
+    const ultimoPainel = painel[painel.length] // último
+    const el = ultimoPainel.getElementById(id)
 
     if (!el)
         return ''
