@@ -480,7 +480,7 @@ function carregarCorrecoes(ocorrencia) {
     const acumulado = `
         
         <div class="toolbar-correcao">
-            <button class="botao-trilho" onclick="scrollAbas(-120, '${idOcorrencia}')">◀</button>
+            <span class="botao-trilho" onclick="scrollAbas(-120, '${idOcorrencia}')"><</span>
 
             <div class="toolbar-janela" id="janela_${idOcorrencia}">
                 <div class="toolbar-trilho" id="toolbarAbas">
@@ -489,7 +489,7 @@ function carregarCorrecoes(ocorrencia) {
                 </div>
             </div>
 
-            <button class="botao-trilho" onclick="scrollAbas(120, '${idOcorrencia}')">▶</button>
+            <span class="botao-trilho" onclick="scrollAbas(120, '${idOcorrencia}')">></span>
         </div>
 
         <div style="width: 100%;" id="detalhamento_${idOcorrencia}">
