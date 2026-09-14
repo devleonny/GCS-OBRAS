@@ -1023,6 +1023,11 @@ async function telaOcorrencias() {
 
 async function contadoresMapaOcorrencias() {
 
+    const fazerPesquisa = document.querySelector('.painel-mapa').getAttribute('class').includes('ativo')
+
+    if(!fazerPesquisa)
+        return
+
     const dados = await contarPorCampo({
         base: 'dados_ocorrencias',
         filtros: controles?.ocorrencias?.filtros || {},

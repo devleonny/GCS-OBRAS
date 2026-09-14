@@ -59,9 +59,6 @@ async function pesquisarDB(params) {
         body: JSON.stringify(params)
     })
 
-    console.log(params);
-    
-
     if (!resposta.ok) {
         // tenta ler JSON primeiro
         let erroTexto = ''

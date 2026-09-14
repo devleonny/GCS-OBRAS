@@ -83,7 +83,7 @@ async function telaChecklist(idOrcamento) {
 
           <div class="botoes-cabecalho">
 
-            <div onclick="gerarPdfChecklist()">
+            <div onclick="gerarPdfChecklist('${cliente}', '${contrato}')">
               Baixar PDF
             </div>
 
@@ -1206,7 +1206,7 @@ function graficoDiario({ desativados_checklist, andamento, realizado, ehMaoObra,
 
     const chaveData = String(data).slice(0, 10)
     realizadosPorData[chaveData] ??= 0
-    realizadosPorData[chaveData] += ehMaoObra ? (Number(quantidade) || 0) : 1
+    realizadosPorData[chaveData] += Number(quantidade)
   }
 
   const totalObra =
@@ -1247,7 +1247,7 @@ function graficoDiario({ desativados_checklist, andamento, realizado, ehMaoObra,
       const percentual = Number(
         ((item.realizadosNoDia / totalObra) * 100).toFixed(1)
       )
-      const [ano, mes, dia] = String(item.data).split('-')
+      const [, mes, dia] = String(item.data).split('-')
       const rotulo = `${dia}/${mes}`
       return {
         data: String(item.data),
@@ -1465,7 +1465,6 @@ function criarLinhaOrcamentoChecklist(orcamento) {
   const {
     id,
     snapshots,
-    dados_orcam,
     total_geral: valor_orcamento
   } = orcamento || {}
 
@@ -1521,7 +1520,7 @@ function criarLinhaOrcamentoChecklist(orcamento) {
   `
 }
 
-async function gerarPdfChecklist() {
+async function gerarPdfChecklist(cliente, contrato) {
 
   const html = document.querySelector('.painel-atras-checklist').outerHTML
 
@@ -1529,7 +1528,7 @@ async function gerarPdfChecklist() {
     html,
     orientacao: 'landscape',
     estilos: ['checklist', 'velocimetro', 'ocorrencias'],
-    nome: `Checklist_${1}`
+    nome: `Checklist_${contrato}_${cliente}`
   })
 
 }

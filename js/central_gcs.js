@@ -246,22 +246,17 @@ async function usuariosToolbar() {
     if (!acesso)
         return
 
-    acesso = JSON.parse(localStorage.getItem('acesso')) || null
-
+    const { status, permissao, usuario } = JSON.parse(localStorage.getItem('acesso')) || {}
     const uOnline = await contarPorCampo({ base: 'clientes', path: 'status' })
-
-    const { status } = await recuperarDado('clientes', acesso?.id) || {}
-
-    const indicadorStatus = status || 'offline'
 
     const usuariosToolbarString = `
         <div class="botao-usuarios">
-            <img name="imgStatus" onclick="painelUsuarios()" src="imagens/${indicadorStatus}.png">
+            <img name="imgStatus" onclick="painelUsuarios()" src="imagens/${status}.png">
             <label style="font-size: 1.2rem;">${uOnline?.online || 0}</label>
         </div>`
 
     if (nomeUsuario)
-        nomeUsuario.innerHTML = `<span><b>${inicialMaiuscula(acesso?.permissao || '')}</b> ${acesso.usuario || ''}</span>`
+        nomeUsuario.innerHTML = `<span><b>${inicialMaiuscula(permissao || '')}</b> ${usuario || ''}</span>`
 
     const divUsuarios = document.getElementById('divUsuarios')
     if (divUsuarios)

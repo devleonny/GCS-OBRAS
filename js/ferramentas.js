@@ -119,6 +119,7 @@ document.head.appendChild(link);
 
 function atribuirVariaveis() {
 
+    acesso = JSON.parse(localStorage.getItem('acesso'))
     nomeUsuario = document.querySelector('.nomeUsuario')
     cUsuario = document.querySelector('.cabecalho-usuario')
     toolbar = document.querySelector('.toolbar-top')

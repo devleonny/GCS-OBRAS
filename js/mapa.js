@@ -140,4 +140,6 @@ function mostrarMapa() {
 
     if (pMapa)
         pMapa.classList.toggle('ativo')
+
+    paginacao() // Um refresh nas tabelas;
 }

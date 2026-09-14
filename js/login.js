@@ -2,8 +2,6 @@ async function telaLogin() {
 
     atribuirVariaveis()
 
-    acesso = JSON.parse(localStorage.getItem('acesso'))
-
     if (acesso?.token)
         return await telaInicialGCS()
 
