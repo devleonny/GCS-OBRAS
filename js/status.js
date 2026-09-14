@@ -801,6 +801,8 @@ async function abrirEsquema(id) {
                     <span class="and">${statusOrcamento}</span>
                 </div>
 
+                <img onclick="verHistoricoStatus('${id}')" src="imagens/historico.png">
+
                 <label style="font-size: 1.5rem;">${contrato} - ${cliente || '??'}</label>
 
             </div>

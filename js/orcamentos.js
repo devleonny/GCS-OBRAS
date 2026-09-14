@@ -255,7 +255,10 @@ async function criarLinhaOrcamento(orcamento) {
         </td>
             <td>
             <div style="${vertical}; gap: 5px;">
-                ${seletorStatus(orcamento)}
+                <div style="${horizontal}; gap: 5px;">
+                    <img onclick="verHistoricoStatus('${id}')" src="imagens/historico.png">
+                    ${seletorStatus(orcamento)}
+                </div>
                 <div style="${horizontal}; width: 100%; justify-content: end; gap: 5px;">
                     <span>Dep</span>
                     <img src="imagens/${departamento_existente ? 'concluido' : 'cancel'}.png" style="width: 1.5rem;">
@@ -516,5 +519,64 @@ async function baixarExcelOrcamentos() {
     await baixarRelatorioExcel(dados)
 
     removerOverlay()
+
+}
+
+async function verHistoricoStatus(id) {
+
+    try {
+
+        overlayAguarde()
+
+        const pag = 'vw_historico_status'
+        const tabela = await modTab({
+            base: 'vw_historico_status',
+            body: 'vw_historico',
+            pag,
+            criarLinha: 'criarLinhaHistStatus',
+            colunas: {
+                'Data': { chave: 'data' },
+                'Usuário': { chave: 'usuario' },
+                'Status': { chave: 'status' }
+            },
+            filtros: {
+                id_orcamento: { op: '=', value: id }
+            }
+        })
+
+        const elemento = `
+            <div style="padding: 0.5rem;">
+                ${montarPagina({ tabela, titulo: 'Histórico de Alterações do Status', imagem: 'historico' })}
+            </div>
+        `
+
+        popup({ elemento })
+
+        await paginacao(pag)
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao buscar o histórico: Fale com o suporte.' })
+    }
+
+}
+
+function criarLinhaHistStatus(historico) {
+
+    const {
+        data,
+        usuario,
+        status
+    } = historico
+
+    return `
+        <tr>
+            <td>${data}</td>
+            <td>${usuario}</td>
+            <td>
+                <span class="and">${status}</span>
+            </td>
+        </tr>
+    `
 
 }
