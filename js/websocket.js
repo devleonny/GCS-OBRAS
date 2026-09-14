@@ -40,8 +40,6 @@ function connectWebSocket() {
         reconectando = false
         msgStatus('Servidor offline', 3)
 
-        // telaOffline()
-
         clearTimeout(reconnectTimeout)
         reconnectTimeout = setTimeout(connectWebSocket, reconnectInterval)
     }

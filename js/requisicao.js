@@ -824,7 +824,7 @@ async function gerarPdfRequisicao(id, visualizar) {
 
         await pdf({
             html,
-            estilos: ['tabelas-vers-2'], 
+            estilos: ['tabelas-parceiro'], 
             nome
         })
 

@@ -504,7 +504,7 @@ async function gerarPdfParceiro(id, visualizar) {
 
         await pdf({
             html,
-            estilos: ['tabelas-vers-2', 'estilos'],
+            estilos: ['tabelas-parceiro', 'estilos'],
             nome: `LPU PARCEIRO - ${Date.now()}`
         })
 

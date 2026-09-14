@@ -64,22 +64,7 @@
     border-radius: 3px;
 }
 
-.rodape-tabela {
-    display: flex;
-    align-items: start;
-    justify-content: start;
-    gap: 5px;
-    border: 1px solid #434343;
-    width: 100%;
-    min-height: 2vh;
-    border-bottom-left-radius: 5px;
-    border-bottom-right-radius: 5px;
-    background-color: #b1b1b1;
-}
-
 .div-tabela {
-    border-right: solid 1px #434343;
-    border-left: solid 1px #434343;
     background-color: white;
     max-height: 65vh;
     width: 100%;
@@ -98,16 +83,24 @@
     position: relative;
     justify-content: start;
     width: 100%;
-    background-color: #707070;
-    border: 1px solid #434343;
-    border-bottom: none;
+    background: linear-gradient(45deg, #4e4e4e, #868686);
     min-height: 2vh;
     display: flex;
     align-items: center;
-    border-top-right-radius: 5px;
-    border-top-left-radius: 5px;
+    border-radius: 5px 5px 0 0;
     gap: 2px;
     width: 100%;
+}
+
+.rodape-tabela {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    gap: 5px;
+    background: linear-gradient(45deg, #4e4e4e, #868686);
+    width: 100%;
+    min-height: 2vh;
+    border-radius: 0 0 5px 5px;
 }
 
 .topo-tabela.nude {
