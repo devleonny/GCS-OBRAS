@@ -10,15 +10,10 @@ function formatacaoPagina() {
     const pag = 'orcamentos'
     let status = ''
 
-    if (controles?.[pag]?.filtros?.['preventiva']) {
-        status = 'preventiva'
-
-    } else {
-        const pesq = controles?.[pag]?.filtros?.['status.atual']
-        status = pesq?.op == 'IS_EMPTY'
-            ? 'SEM STATUS'
-            : pesq?.value || 'todos'
-    }
+    const pesq = controles?.[pag]?.filtros?.['status.atual']
+    status = pesq?.op == 'IS_EMPTY'
+        ? 'SEM STATUS'
+        : pesq?.value || 'todos'
 
     const abas = document.querySelectorAll('.aba-toolbar')
 
@@ -444,16 +439,14 @@ async function duplicar(id) {
 async function carregarToolbar() {
 
     const cont1 = await contarPorCampo({ base: 'dados_orcamentos', path: 'status.atual' })
-    const cont4 = await contarPorCampo({ base: 'dados_orcamentos', path: 'preventiva' })
 
     const contToolbar = {
         ...cont1,
-        'preventiva': cont4['S'],
         'SEM STATUS': cont1['EM BRANCO'] || 0
     }
 
     const toolbar = document.getElementById('toolbar')
-    const fluxogramaCompleto = ['preventiva', 'todos', ...fluxograma]
+    const fluxogramaCompleto = ['todos', ...fluxograma]
 
     for (const campo of fluxogramaCompleto) {
 
@@ -489,10 +482,7 @@ async function filtrarToolbar(campo) {
 
     const filtros = {}
 
-    if (campo == 'preventiva') {
-        filtros['preventiva'] = { op: '=', value: 'S' }
-
-    } else if (campo !== 'todos') { // Demais campos, exceto 'todos';
+    if (campo !== 'todos') { // Demais campos, exceto 'todos';
         filtros['status.atual'] = { op: '=', value: campo }
 
     }

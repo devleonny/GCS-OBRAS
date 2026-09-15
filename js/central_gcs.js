@@ -1102,26 +1102,6 @@ function toggleVendaDireta() {
 
 }
 
-async function carregarTags() {
-
-    const id = controles.etiquetas.idOrcamento
-    const localTags = document.getElementById('tags')
-
-    localTags.innerHTML = '<img src="gifs/loading.gif" style="width: 5rem;">'
-
-    const { snapshots } = id !== 'novo'
-        ? await recuperarDado('dados_orcamentos', id) || {}
-        : baseOrcamento()
-
-    // Tags;
-    const listaTags = Object.values(snapshots?.tags || {})
-        .map(tag => modeloTag(tag, id))
-        .join('')
-
-    localTags.innerHTML = listaTags
-
-}
-
 async function buscarDadosCliente() {
     const clienteName = document.querySelector('[name="cliente"]')
     if (!clienteName) return

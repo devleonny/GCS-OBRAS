@@ -4,11 +4,34 @@ let reconnectTimeout = null
 let reconectando = false
 let priExeGCS = true
 
+const tabelasPendentesWS = new Set()
+const intervaloAtualizacaoWS = 400
+
+let timerAtualizacaoWS = null
+let atualizacaoEmExecucaoWS = false
+let atualizarTodasWS = false
+let toolbarPendenteWS = false
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') {
+        clearTimeout(timerAtualizacaoWS)
+        timerAtualizacaoWS = null
+
+        if (tabelasPendentesWS.size)
+            atualizarTodasWS = true
+
+        return
+    }
+
+    agendarAtualizacaoWS()
+})
+
 connectWebSocket()
 
 function connectWebSocket() {
+    if (reconectando)
+        return
 
-    if (reconectando) return
     reconectando = true
 
     if (socket) {
@@ -18,7 +41,7 @@ function connectWebSocket() {
             socket.onerror = null
             socket.onclose = null
             socket.close()
-        } catch { }
+        } catch {}
     }
 
     socket = new WebSocket(`${api}:8443`)
@@ -27,9 +50,13 @@ function connectWebSocket() {
         reconectando = false
         clearTimeout(reconnectTimeout)
 
-        msgStatus('Online', 1)
-        await comunicacao()
-        await validarAcesso()
+        try {
+            msgStatus('Online', 1)
+            await comunicacao()
+            await validarAcesso()
+        } catch (err) {
+            console.error('Erro ao iniciar websocket:', err)
+        }
     }
 
     socket.onerror = () => {
@@ -41,12 +68,14 @@ function connectWebSocket() {
         msgStatus('Servidor offline', 3)
 
         clearTimeout(reconnectTimeout)
-        reconnectTimeout = setTimeout(connectWebSocket, reconnectInterval)
+        reconnectTimeout = setTimeout(
+            connectWebSocket,
+            reconnectInterval
+        )
     }
 }
 
 async function validarAcesso() {
-
     const acesso = JSON.parse(localStorage.getItem('acesso'))
     const token = acesso?.token
 
@@ -58,11 +87,10 @@ async function validarAcesso() {
     }
 
     try {
-
         const resp = await fetch(`${api}/validar-token`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${token}`
+                Authorization: `Bearer ${token}`
             }
         })
 
@@ -76,10 +104,11 @@ async function validarAcesso() {
             token
         }))
 
-        msg({ tipo: 'validar', usuario: dados.usuario })
-
+        msg({
+            tipo: 'validar',
+            usuario: dados.usuario
+        })
     } catch {
-
         localStorage.removeItem('acesso')
         location.reload()
         popup({ mensagem: 'Sessão expirada, faça login novamente' })
@@ -87,127 +116,275 @@ async function validarAcesso() {
 }
 
 function msg(dados) {
-    if (socket && socket.readyState === WebSocket.OPEN) {
+    if (socket && socket.readyState === WebSocket.OPEN)
         socket.send(JSON.stringify(dados))
-    }
 }
 
-function msgStatus(msg, s = 2) {
-
+function msgStatus(texto, s = 2) {
     const simbolos = {
         1: '🟢🟢🟢',
         2: '🟠🟠🟠',
         3: '🔴🔴🔴'
     }
 
-    msg = `${simbolos[s]} ${msg} ${new Date().toLocaleString()}`
-    console.log(msg)
+    console.log(
+        `${simbolos[s]} ${texto} ${new Date().toLocaleString()}`
+    )
+}
+
+function agendarAtualizacaoWS() {
+    if (document.visibilityState !== 'visible')
+        return
+
+    if (atualizacaoEmExecucaoWS || timerAtualizacaoWS !== null)
+        return
+
+    if (
+        !tabelasPendentesWS.size &&
+        !atualizarTodasWS &&
+        !toolbarPendenteWS
+    )
+        return
+
+    timerAtualizacaoWS = setTimeout(() => {
+        timerAtualizacaoWS = null
+
+        executarAtualizacaoWS().catch(err => {
+            console.error('Erro na atualização do websocket:', err)
+        })
+    }, intervaloAtualizacaoWS)
+}
+
+function registrarAtualizacaoWS(tabela) {
+    if (!tabela)
+        return
+
+    if (document.visibilityState !== 'visible') {
+        tabelasPendentesWS.add(tabela)
+        atualizarTodasWS = true
+        return
+    }
+
+    if (atualizacaoEmExecucaoWS)
+        return
+
+    tabelasPendentesWS.add(tabela)
+    agendarAtualizacaoWS()
+}
+
+function limparAtualizacoesWS() {
+    clearTimeout(timerAtualizacaoWS)
+    timerAtualizacaoWS = null
+
+    tabelasPendentesWS.clear()
+    atualizarTodasWS = false
+    toolbarPendenteWS = false
+}
+
+async function executarAtualizacaoWS() {
+    if (
+        atualizacaoEmExecucaoWS ||
+        document.visibilityState !== 'visible'
+    )
+        return
+
+    const tabelas = new Set(tabelasPendentesWS)
+    const atualizarTodas = atualizarTodasWS
+    const atualizarToolbar = toolbarPendenteWS
+
+    tabelasPendentesWS.clear()
+    atualizarTodasWS = false
+    toolbarPendenteWS = false
+    atualizacaoEmExecucaoWS = true
+
+    try {
+        const tarefas = []
+
+        if (atualizarTodas) {
+            tarefas.push(() => paginacao())
+        } else {
+            const paginas = new Set()
+
+            for (const { pag, base } of Object.values(controles)) {
+                if (
+                    tabelas.has(base) ||
+                    (
+                        tabelas.size > 0 &&
+                        typeof base === 'string' &&
+                        base.includes('vw')
+                    )
+                )
+                    paginas.add(pag)
+            }
+
+            for (const pag of paginas)
+                tarefas.push(() => paginacao(pag))
+        }
+
+        if (tabelas.has('dados_orcamentos'))
+            tarefas.push(() => verificarPendencias())
+
+        if (tabelas.has('dados_ocorrencias'))
+            tarefas.push(() => auxPendencias())
+
+        if (tabelas.has('lista_pagamentos'))
+            tarefas.push(() => atualizarPainelEsquerdo())
+
+        if (atualizarToolbar)
+            tarefas.push(() => usuariosToolbar())
+
+        for (const tarefa of tarefas) {
+            if (!localStorage.getItem('acesso'))
+                break
+
+            if (document.visibilityState !== 'visible') {
+                for (const tabela of tabelas)
+                    tabelasPendentesWS.add(tabela)
+
+                atualizarTodasWS = atualizarTodasWS ||
+                    atualizarTodas ||
+                    tabelas.size > 0
+
+                toolbarPendenteWS = toolbarPendenteWS ||
+                    atualizarToolbar
+
+                break
+            }
+
+            try {
+                await tarefa()
+            } catch (err) {
+                console.error('Erro ao atualizar pelo websocket:', err)
+            }
+        }
+    } finally {
+        atualizacaoEmExecucaoWS = false
+        agendarAtualizacaoWS()
+    }
 }
 
 async function comunicacao() {
+    socket.onmessage = async event => {
+        try {
+            const data = JSON.parse(event.data)
 
-    socket.onmessage = async (event) => {
+            const {
+                tabela,
+                desconectar,
+                validado,
+                tipo,
+                usuario,
+                status
+            } = data
 
-        const data = JSON.parse(event.data)
-        const { tabela, desconectar, validado, tipo, usuario, status } = data
+            if (desconectar) {
+                limparAtualizacoesWS()
+                localStorage.removeItem('acesso')
 
-        if (desconectar) {
-            localStorage.removeItem('acesso')
-            await telaLogin()
-            popup({ mensagem: 'Usuário desconectado' })
-            return
-        }
-
-        if (validado) {
-
-            if (validado == 'Sim') {
-
-                msgStatus('Acesso sem alterações')
-                if (priExeGCS)
-                    await telaInicialGCS()
-
-            } else {
-
-                overlayAguarde()
-                msgStatus('Offline', 3)
-                msgStatus('Alteração no acesso recebida...')
-
-                await telaInicialGCS()
-
-                msg({ tipo: 'confirmado', usuario: acesso.usuario })
-                msgStatus('Tudo certo', 1)
-
+                await telaLogin()
+                popup({ mensagem: 'Usuário desconectado' })
+                return
             }
 
-            await usuariosToolbar()
-            removerOverlay()
-        }
+            if (validado) {
+                try {
+                    if (validado === 'Sim') {
+                        msgStatus('Acesso sem alterações')
 
-        if (tipo == 'atualizacao') {
+                        if (priExeGCS)
+                            await telaInicialGCS()
+                    } else {
+                        overlayAguarde()
+                        msgStatus('Offline', 3)
+                        msgStatus('Alteração no acesso recebida...')
 
-            // Apenas as tabelas usadas;
+                        await telaInicialGCS()
 
-            for (const { pag, base } of Object.values(controles)) {
+                        const acessoAtual = JSON.parse(
+                            localStorage.getItem('acesso')
+                        )
 
-                if (base == tabela || (typeof (base) == 'string' && base.includes('vw')))
-                    await paginacao(pag)
+                        msg({
+                            tipo: 'confirmado',
+                            usuario: acessoAtual?.usuario
+                        })
 
+                        msgStatus('Tudo certo', 1)
+                    }
+
+                    await usuariosToolbar()
+                } finally {
+                    removerOverlay()
+                }
             }
 
-            if (tabela == 'dados_orcamentos')
-                await verificarPendencias()
+            if (tipo === 'atualizacao') {
+                registrarAtualizacaoWS(tabela)
+                return
+            }
 
-            if (tabela == 'dados_ocorrencias')
-                await auxPendencias()
+            if (tipo === 'status') {
+                toolbarPendenteWS = true
+                agendarAtualizacaoWS()
 
-            if (tabela == 'lista_pagamentos')
-                await atualizarPainelEsquerdo()
-
-        }
-
-        if (tipo == 'status') {
-
-            await usuariosToolbar()
-            balaoNotificacao({ imagem: `imagens/${status}.png`, texto: `${usuario} ${status}` })
-
+                if (document.visibilityState === 'visible') {
+                    balaoNotificacao({
+                        imagem: `imagens/${status}.png`,
+                        texto: `${usuario} ${status}`
+                    })
+                }
+            }
+        } catch (err) {
+            console.error('Erro ao processar mensagem do websocket:', err)
         }
     }
 }
 
 async function carregarControles() {
-
-    const { permissao } = JSON.parse(localStorage.getItem('acesso')) || {}
+    const { permissao } = JSON.parse(
+        localStorage.getItem('acesso')
+    ) || {}
 
     cUsuario.style.display = ''
+
     const modelo = (imagem, funcao, idElemento) => {
         return `
-        <div onclick="${funcao}" style="${horizontal};">
-            <div id="${idElemento}" style="display: none;" class="labelQuantidade"></div>
-            <img src="imagens/${imagem}.png">
-        </div>
+            <div onclick="${funcao}" style="${horizontal};">
+                <div
+                    id="${idElemento}"
+                    style="display: none;"
+                    class="labelQuantidade"
+                ></div>
+                <img src="imagens/${imagem}.png">
+            </div>
         `
     }
 
     const barraStatus = ['<div id="divUsuarios"></div>']
 
-    if (!['cliente', 'técnico'].includes(permissao))
-        barraStatus.push(modelo('kanban', 'telaPIT()', 'contadorPostIt'), modelo('projeto', 'verAprovacoes()', 'contadorPendencias'))
+    if (!['cliente', 'técnico'].includes(permissao)) {
+        barraStatus.push(
+            modelo('kanban', 'telaPIT()', 'contadorPostIt'),
+            modelo('projeto', 'verAprovacoes()', 'contadorPendencias')
+        )
+    }
 
     if (['adm', 'diretoria'].includes(permissao))
         barraStatus.push(modelo('construcao', 'f2()', ''))
 
+    const cabecalhoUsuario = document.querySelector(
+        '.cabecalho-usuario'
+    )
 
-    const cabecalhoUsuario = document.querySelector('.cabecalho-usuario')
     if (cabecalhoUsuario)
         cabecalhoUsuario.innerHTML = barraStatus.join('')
 
-    usuariosToolbar()
-    verificarPendencias() // Pendencias de aprovação;
-    verificarPostIts() // Post Its atrasados;
+    await usuariosToolbar()
+    await verificarPendencias()
+    await verificarPostIts()
 }
 
 function telaOffline() {
-
     atribuirVariaveis()
 
     tela.innerHTML = `
@@ -216,5 +393,4 @@ function telaOffline() {
             <span>GCS offline...</span>
         </div>
     `
-
 }

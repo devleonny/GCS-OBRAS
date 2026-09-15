@@ -469,16 +469,9 @@ async function abrirAtalhos(id) {
             ${dadosCabecalho}
         </div>
         <hr>
-
-        <div style="${horizontal}; gap: 5px;">
-            <span>Classificar como <b>PREVENTIVA</b></span>
-            <input ${orcamento?.preventiva == 'S' ? 'checked' : ''} onclick="ativarChave(this, '${id}', 'preventiva')" ${styChek} type="checkbox">
-        </div>
-        <hr>
         ${aviso}
         <div class="opcoes-orcamento">${botoesDisponiveis.join('')}</div>
         ${avisoMaster}
-
     `
 
     const menuOpcoesOrcamento = document.querySelector('.menu-opcoes-orcamento')

@@ -72,6 +72,7 @@ async function renderPainel(idOrcamento) {
 }
 
 async function vincularTag(idTag) {
+
     overlayAguarde()
     const id = controles.etiquetas.idOrcamento
 
@@ -119,6 +120,9 @@ function confirmarRemocaoTag(idTag, idOrcamento) {
 async function removerTag(idTag, idOrcamento) {
 
     try {
+
+        overlayAguarde()
+
         if (idOrcamento == 'novo') {
 
             const orcamento = baseOrcamento()
@@ -199,4 +203,27 @@ async function salvarTag(id) {
         console.error(err)
         popup({ mensagem: 'Falha ao criar a Etiqueta: Fale com o suporte.' })
     }
+}
+
+async function carregarTags() {
+
+    const id = controles.etiquetas.idOrcamento
+    const localTags = document.getElementById('tags')
+
+    if (!localTags)
+        return
+
+    localTags.innerHTML = '<img src="gifs/loading.gif" style="width: 5rem;">'
+
+    const { snapshots } = id !== 'novo'
+        ? await recuperarDado('dados_orcamentos', id) || {}
+        : baseOrcamento()
+
+    // Tags;
+    const listaTags = Object.values(snapshots?.tags || {})
+        .map(tag => modeloTag(tag, id))
+        .join('')
+
+    localTags.innerHTML = listaTags
+
 }

@@ -1074,36 +1074,6 @@ async function desvincularOcorrencia(id, contrato) {
     }
 }
 
-async function ativarChave(input, idOrcamento, chave) {
-
-    // Tela de criação de orçamento, não precisa continuar, o salvar irá coletar a informação;
-    if (!idOrcamento)
-        return
-
-    const ativo = input.checked
-        ? 'S'
-        : 'N'
-
-    overlayAguarde()
-    const resposta = await enviar(`dados_orcamentos/${idOrcamento}/${chave}`, ativo)
-    if (resposta.mensagem) {
-        input.checked = !ativo
-        return popup({ mensagem: resposta.mensagem })
-    }
-
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-    orcamento[chave] = ativo
-
-    const pHistorico = document.querySelector('.painel-historico')
-    if (pHistorico)
-        await abrirEsquema(idOrcamento)
-
-    removerOverlay()
-
-    await carregarToolbar()
-
-}
-
 function formatarTabela() {
 
     const tipo = controles?.composicoes_orcamento?.filtros?.tipo?.value || ''
