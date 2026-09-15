@@ -16,7 +16,6 @@ async function painelCustos(id) {
     const porcentagem = Number(((totalCusto / total_geral) * 100).toFixed(1))
     const resumo = criarVelocimetroHTML({ rotulo: 'Custos', limite: 40, valor: porcentagem })
 
-    const omieCliente = dados_orcam?.omie_cliente || ''
     const { cliente, cidade } = snapshots || {}
 
     const dados = Object.entries({
@@ -257,7 +256,7 @@ async function tabPagamentosCusto() {
             'Data': { chave: 'param.*.data_previsao', tipoPesquisa: 'data' },
             'Valor': { chave: 'descricao' },
             'Categoria': { chave: 'categoria' },
-            'Status': { chave: 'status', tipoPesquisa: 'select' },
+            'Status': { chave: 'status' },
             'Solicitante': { chave: 'criado' },
             'Recebedor': { chave: 'snapshots.cliente' },
             'Observação': { chave: 'param.*.observacao' },
@@ -471,7 +470,7 @@ async function criarLinhaNotas(nota) {
 // CARREGAR TOTAIS
 async function carregarTotaisCusto() {
 
-    const { dados_orcam, snapshots, total_geral } = controles.orcamento.save || {}
+    const { dados_orcam, total_geral } = controles.orcamento.save || {}
 
     atualizar('t-orcamento', dinheiro(total_geral))
 
@@ -485,7 +484,7 @@ async function carregarTotaisCusto() {
                 'snapshots.categorias.*.departamento': filtro,
                 'param.*.codigo_tipo_documento': { op: '!=', value: 'CTE' },
             },
-            explode: { path: 'snapshots.categorias', manterOrigem: false },
+            explode: { path: 'snapshots.categorias' },
             path: 'valor',
             modo: 'soma'
         }),
@@ -506,7 +505,7 @@ async function carregarTotaisCusto() {
             filtros: {
                 'snapshots.departamentos.*.departamento': filtro
             },
-            explode: { path: 'snapshots.departamentos', manterOrigem: false },
+            explode: { path: 'snapshots.departamentos' },
             path: 'valor',
             modo: 'soma'
         }),
@@ -516,7 +515,7 @@ async function carregarTotaisCusto() {
             filtros: {
                 'snapshots.departamentos.*.departamento': filtro
             },
-            explode: { path: 'snapshots.departamentos', manterOrigem: false },
+            explode: { path: 'snapshots.departamentos' },
             path: 'valor',
             modo: 'soma'
         })
