@@ -214,7 +214,7 @@ async function preencher() {
     }
 
     const emMassa = await Object.entries(totais)
-        .filter(([tab, dados]) => tab !== 'ICMS' && tab !== 'GERAL')
+        .filter(([tab,]) => tab !== 'ICMS' && tab !== 'GERAL')
         .map(async ([tab, { linhas, valor }]) => {
 
             const titulo = tab.includes('USO')
@@ -227,8 +227,13 @@ async function preencher() {
                 colunas: {
                     'Código': {},
                     'Descrição': {},
+                    ...(
+                        tab == 'VENDA' 
+                        ? { 'Ncm': {} } 
+                        : {}
+                    ),
                     'Imagem': {},
-                    'Unidade': {},
+                    'U.Med': {},
                     'Quantidade': {},
                     'Valor Unitário': {},
                     'Valor Total': {}
@@ -358,7 +363,6 @@ async function linhaTabelaPdf(item) {
 
     const {
         codigo,
-        tipo,
         custo,
         unidade,
         qtde,
@@ -366,6 +370,7 @@ async function linhaTabelaPdf(item) {
         imagem,
         imagemAtualizada,
         razaoSocial,
+        tipo,
         cnpj,
         fabricante,
         modelo,
@@ -394,6 +399,9 @@ async function linhaTabelaPdf(item) {
                     ${ncm ? `<label><strong>ncm:</strong> ${ncm}</label>` : ''}
                 </div>
             </td>
+            
+            ${tipo == 'VENDA' ? `<td>${ncm || '--'}</td>` : ''}
+
             <td style="text-align: center;">
                 <img src="${imagemAtualizada || imagem || 'https://i.imgur.com/Nb8sPs0.png'}" style="width: 5rem;">
             </td>

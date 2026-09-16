@@ -107,7 +107,7 @@ async function modTab(configuracoes) {
 
     const modelo = `
         <div style="${vertical}; width: 100%;">
-            <div class="topo-tabela${nude ? ' nude' : ''}" ${cor ? `style="background-color: ${cor};"` : ''}">
+            <div class="topo-tabela${nude ? ' nude' : ''}" ${cor ? `style="background: ${cor};"` : ''}">
                 <div id="paginacao_${pag}"></div>
                 ${btnExtras || ''}
             </div>
