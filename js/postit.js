@@ -314,16 +314,22 @@ async function criarPIT(id) {
 async function salvarPIT(id = crypto.randomUUID()) {
 
     overlayAguarde()
+
     const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
 
     const usuarioFin = painel.querySelector('[name="usuario"]').id
 
-    const pit = await recuperarDado('postit', id)
+    const anexos = await anexosOcorrencias(obter('anexos'))
+    const { anexos: anexosExistentes, quadro } = await recuperarDado('postit', id)
+
     const atualizado = {
-        ...pit,
         id,
+        anexos: {
+            ...anexosExistentes,
+            ...anexos
+        },
         usuario: usuarioFin,
-        quadro: pit?.quadro || null,
+        quadro: quadro || null,
         status: painel.querySelector('[name="status"]').checked ? 'S' : 'N',
         comentario: painel.querySelector('.editor-conteudo').innerHTML || '',
         prazo: painel.querySelector('[name="prazo"]').value
