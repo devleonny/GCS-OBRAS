@@ -383,14 +383,3 @@ async function carregarControles() {
     await verificarPendencias()
     await verificarPostIts()
 }
-
-function telaOffline() {
-    atribuirVariaveis()
-
-    tela.innerHTML = `
-        <div class="balao-offline">
-            <img src="gifs/offline.gif" style="width: 5rem;">
-            <span>GCS offline...</span>
-        </div>
-    `
-}
