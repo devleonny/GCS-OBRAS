@@ -313,35 +313,42 @@ async function criarPIT(id) {
 
 async function salvarPIT(id = crypto.randomUUID()) {
 
-    overlayAguarde()
+    try {
 
-    const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
+        overlayAguarde()
 
-    const usuarioFin = painel.querySelector('[name="usuario"]').id
+        const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
 
-    const anexos = await anexosOcorrencias(obter('anexos'))
-    const { anexos: anexosExistentes, quadro } = await recuperarDado('postit', id)
+        const usuarioFin = painel.querySelector('[name="usuario"]').id
 
-    const atualizado = {
-        id,
-        anexos: {
-            ...anexosExistentes,
-            ...anexos
-        },
-        usuario: usuarioFin,
-        quadro: quadro || null,
-        status: painel.querySelector('[name="status"]').checked ? 'S' : 'N',
-        comentario: painel.querySelector('.editor-conteudo').innerHTML || '',
-        prazo: painel.querySelector('[name="prazo"]').value
+        const anexos = await anexosOcorrencias(obter('anexos'))
+        const { anexos: anexosExistentes, quadro } = await recuperarDado('postit', id) || {}
+
+        const atualizado = {
+            id,
+            anexos: {
+                ...anexosExistentes,
+                ...anexos
+            },
+            usuario: usuarioFin,
+            quadro: quadro || null,
+            status: painel.querySelector('[name="status"]').checked ? 'S' : 'N',
+            comentario: painel.querySelector('.editor-conteudo').innerHTML || '',
+            prazo: painel.querySelector('[name="prazo"]').value
+        }
+
+        if (usuarioFin !== acesso.usuario)
+            atualizado.quadro = null
+
+        await enviar(`postit/${id}`, atualizado)
+        removerPopup()
+
+        await verificarPostIts()
+
+    } catch (err) {
+        console.log(err)
+        popup({ mensagem: 'Falha ao criar um Post it: Fale com o suporte.' })
     }
-
-    if (usuarioFin !== acesso.usuario)
-        atualizado.quadro = null
-
-    await enviar(`postit/${id}`, atualizado)
-    removerPopup()
-
-    await verificarPostIts()
 }
 
 async function salvarQuadro(id = crypto.randomUUID()) {
