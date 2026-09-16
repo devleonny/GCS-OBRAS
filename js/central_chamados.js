@@ -191,7 +191,7 @@ async function criarElementosIniciais() {
         })
         .join('')
 
-    pFundo.innerHTML = `    
+    pFundo.innerHTML = `
         <div style="${horizontal}; gap: 1rem;">
             <img src="imagens/BG.png" style="width: 10rem;">
             <span style="padding: 1rem; font-size: 1rem; color: white;">

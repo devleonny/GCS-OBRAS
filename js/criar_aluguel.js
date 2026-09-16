@@ -20,8 +20,6 @@ async function confirmarExclusaoAluguel() {
 
 async function telaCriarOrcamentoAluguel() {
 
-    funcaoTela = 'telaCriarOrcamentoAluguel'
-
     modo = 'ALUGUEL'
 
     const acumulado = `

@@ -15,7 +15,6 @@ async function telaPIT() {
 
 async function criarQuadros() {
 
-    const divQuadros = []
     const telaPIT = document.querySelector('#quadros')
 
     const pesqQuadros = await pesquisarDB({
@@ -249,7 +248,12 @@ async function criarPIT(id) {
 
     overlayAguarde()
 
-    const { comentario, prazo, status, usuario = acesso.usuario } = await recuperarDado('postit', id) || {}
+    const { comentario, anexos, prazo, status, usuario = acesso.usuario } = await recuperarDado('postit', id) || {}
+
+    const divAnexos = Object
+        .entries(anexos || {})
+        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link))
+        .join('')
 
     controlesCxOpcoes.usuario = {
         base: 'clientes',
@@ -275,6 +279,14 @@ async function criarPIT(id) {
         {
             texto: 'Status',
             elemento: `<input name="status" type="checkbox" style="width: 2rem; height: 2rem;" ${status == 'S' ? 'checked' : ''}>`
+        },
+        {
+            elemento: `
+                <div style="${vertical}; gap: 5px;">
+                    <input name="anexos" type="file" multiple>
+                    <div class="local-anexos">${divAnexos || 'Sem anexos'}</div>
+                </div>
+            `
         },
         {
             texto: 'Usuário',

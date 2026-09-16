@@ -280,13 +280,34 @@
 
 .tag-vinculado {
     cursor: pointer;
-    display:  flex;
+    display: flex;
     align-items: center;
     justify-content: center;
     flex-direction: row;
     gap: 5px;
     padding: 5px 1rem;
     border-radius: 20px;
+}
+
+.balao-status {
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    width: stretch;
+    justify-content: start;
+    flex-direction: column;
+    align-items: start;
+    gap: 5px;
+    padding: 5px 2rem;
+    border: solid 1px #b3b3b3;
+    border-radius: 10px;
+    background: linear-gradient(221deg, #b124252b, #15174912);
+    box-shadow: 0 0 2px #222;
+}
+
+.balao-status:hover {
+    border: solid 1px #249f41;
+    box-shadow: 0 0 3px #249f41;
 }
 
 .slave {

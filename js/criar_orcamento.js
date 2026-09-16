@@ -55,7 +55,6 @@ async function confirmarExclusaoOrcamento() {
 
 async function telaCriarOrcamento() {
 
-    funcaoTela = 'telaCriarOrcamento'
     modo = ''
 
     const modelo = (texto, img) => `

@@ -85,11 +85,6 @@ async function executar(nomeFuncao) {
         }
     }
 
-    if (nome.includes('tela'))
-        funcaoTela = nomeFuncao
-
-    funcaoAtiva = nomeFuncao
-
     if (typeof window[nome] === 'function') {
         return await window[nome](...params)
     } else {

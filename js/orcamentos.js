@@ -28,8 +28,6 @@ async function telaOrcamentos() {
 
     overlayAguarde()
 
-    funcaoTela = 'telaOrcamentos'
-
     const colunas = {
         'Última alteração': { chave: 'lpu_ativa' },
         'Status': { chave: 'status.atual' },
@@ -53,10 +51,6 @@ async function telaOrcamentos() {
         btnExtras,
         funcaoAdicional: ['formatacaoPagina'],
         colunas,
-        ordenar: {
-            path: 'timestamp',
-            direcao: 'desc'
-        },
         base: 'vw_dados_orcamentos',
         criarLinha: 'criarLinhaOrcamento',
         body: 'linhas',
@@ -146,7 +140,7 @@ async function criarLinhaOrcamento(orcamento) {
         lpu_ativa
     } = orcamento || {}
 
-    const { notas, pedidos, custos, parcelas, tags, cliente, cnpj } = snapshots || {}
+    const { status_atual, notas, pedidos, custos, parcelas, tags, cliente, cnpj } = snapshots || {}
     const { pagamentos = 0, abastecimentos = 0 } = custos || {}
     const { contrato, executor, venda_direta } = dados_orcam || {}
 
@@ -251,8 +245,8 @@ async function criarLinhaOrcamento(orcamento) {
             <td>
             <div style="${vertical}; gap: 5px;">
                 <div style="${horizontal}; gap: 5px;">
-                    <img onclick="verHistoricoStatus('${id}')" src="imagens/historico.png">
-                    ${seletorStatus(orcamento)}
+                    <img onclick="verHistoricoStatus('${id}', '${contrato}')" src="imagens/historico.png">
+                    ${seletorStatus({ id, emTabela: true, status: status_atual, contrato })}
                 </div>
                 <div style="${horizontal}; width: 100%; justify-content: end; gap: 5px;">
                     <span>Dep</span>
@@ -318,37 +312,6 @@ async function criarLinhaOrcamento(orcamento) {
         <tr class="linha-master">
             ${celulas}
         </tr>`
-
-}
-
-function seletorStatus(orcamento) {
-
-    const { id, status, dados_orcam } = orcamento || {}
-
-    const st = status?.atual || ''
-
-    const opcoes = ['', ...fluxograma]
-        .sort((a, b) => a.localeCompare(b))
-        .map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`)
-        .join('')
-
-    const funcao = dados_orcam?.contrato
-        ? `alterarStatus('${id}', this, '${dados_orcam?.contrato}')`
-        : `alterarStatus('${id}', this)`
-
-    return `
-        <select name="status" class="opcoesSelect" onchange="${funcao}">
-            ${opcoes}
-        </select>`
-
-}
-
-async function alterarStatus(id, select, numOrc) {
-
-    await enviar(`dados_orcamentos/${id}/status/atual`, select.value)
-
-    if (numOrc && select.value == 'ORC APROVADO')
-        await criarDepartamento(numOrc)
 
 }
 
@@ -512,37 +475,44 @@ async function baixarExcelOrcamentos() {
 
 }
 
-async function verHistoricoStatus(id) {
+async function verHistoricoStatus(id, contrato) {
 
     try {
 
         overlayAguarde()
 
-        const pag = 'vw_historico_status'
-        const tabela = await modTab({
-            base: 'vw_historico_status',
-            body: 'vw_historico',
-            pag,
-            criarLinha: 'criarLinhaHistStatus',
-            colunas: {
-                'Data': { chave: 'data' },
-                'Usuário': { chave: 'usuario' },
-                'Status': { chave: 'status' }
+        const linhas = [
+            {
+                texto: 'Status',
+                elemento: seletorStatus({ id, contrato })
             },
-            filtros: {
-                id_orcamento: { op: '=', value: id }
+            {
+                editor: ''
+            },
+            {
+                elemento: `
+                    <div style="${horizontal}; gap: 1rem;">
+                        <img src="imagens/alerta.png">
+                        <span>Para editar algum status, basta clicar nele.</span>
+                    </div>
+                    `
+            },
+            {
+                elemento: `<div id="historico" style="${vertical}; gap: 0.5rem; width: 100%;"></div>`
             }
-        })
+        ]
 
-        const elemento = `
-            <div style="padding: 0.5rem;">
-                ${montarPagina({ tabela, titulo: 'Histórico de Alterações do Status', imagem: 'historico' })}
-            </div>
-        `
+        const botoes = [
+            {
+                texto: 'Alterar Status',
+                img: 'observacao',
+                funcao: `alterarStatus('${id}')`
+            }
+        ]
 
-        popup({ elemento })
+        popup({ linhas, botoes, titulo: 'Histórico de Status' })
 
-        await paginacao(pag)
+        carregarHistoricoStatus(id)
 
     } catch (err) {
         console.error(err)
@@ -551,22 +521,157 @@ async function verHistoricoStatus(id) {
 
 }
 
-function criarLinhaHistStatus(historico) {
+async function carregarHistoricoStatus(id) {
 
-    const {
-        data,
-        usuario,
-        status
-    } = historico
+    const local = document.getElementById('historico')
+
+    local.innerHTML = `<img src="gifs/loading.gif" style="width: 5rem;">`
+
+    const { historico_status } = await recuperarDado('dados_orcamentos', id) || {}
+
+    const listagem = Object.entries(historico_status || {})
+        .sort(([, a], [, b]) => b.timestamp - a.timestamp)
+        .map(([idStatus, { status, usuario, observacao, timestamp }]) => {
+
+            const fechar = (acesso.usuario == usuario || ['adm', 'diretoria'].includes(acesso?.permissao))
+                ? `<span class="close" onclick="excluirStatus('${id}', '${idStatus}')">×</span>`
+                : ''
+
+            return `
+                    <div onclick="confirmarEdicaoStatus('${id}', '${idStatus}')" class="balao-status">
+
+                        ${fechar}
+
+                        <span class="and">${status}</span>
+
+                        <div style="display: flex; flex-wrap: wrap;">${observacao || ''}</div>
+                    
+                        <span style="font-style: italic;"><small><b>${usuario}</b>, ${new Date(timestamp).toLocaleString()}</small></span>
+                        
+                    </div>
+                `
+        })
+        .join('')
+
+    local.innerHTML = listagem || `
+        <div style="${horizontal}; width: stretch;">
+            <img style="width: 5rem;" src="gifs/offline.gif">
+        </div>
+        `
+
+}
+
+async function confirmarEdicaoStatus(idOrcamento, idStatus) {
+
+    overlayAguarde()
+
+    const { historico_status, dados_orcam } = await recuperarDado('dados_orcamentos', idOrcamento) || {}
+    const { contrato } = dados_orcam || {}
+    const { observacao, timestamp, status } = historico_status?.[idStatus] || {}
+
+    const linhas = [
+        {
+            elemento: seletorStatus({ id: idOrcamento, status, contrato })
+        },
+        {
+            editor: observacao || ''
+        },
+        {
+            elemento: `<span style="font-style: italic;">Alterado por: <b>${acesso.usuario}</b></span>`
+        },
+        {
+            elemento: `
+                <span style="font-style: italic;">${new Date(timestamp).toLocaleString()}</span>
+                <input name="timestamp" value="${timestamp}" type="number" style="display: none;">
+            `
+        }
+    ]
+
+    const botoes = [
+        {
+            texto: 'Salvar',
+            img: 'concluido',
+            funcao: `alterarStatus('${idOrcamento}', '${idStatus}')`
+        }
+    ]
+
+    popup({ linhas, botoes, titulo: 'Alterar Observação' })
+
+}
+
+async function excluirStatus(idOrcamento, idStatus) {
+
+    try {
+
+        overlayAguarde()
+
+        await deletar(`dados_orcamentos/${idOrcamento}/historico_status/${idStatus}`)
+
+        carregarHistoricoStatus(idOrcamento)
+
+        removerOverlay()
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao excluir o status: Fale com o suporte.' })
+    }
+
+}
+
+function seletorStatus({ id, status = null, emTabela = false, contrato = null }) {
+
+    const opcoes = ['', ...fluxograma]
+        .sort((a, b) => a.localeCompare(b))
+        .map(fluxo => `<option ${status == fluxo ? 'selected' : ''}>${fluxo}</option>`)
+        .join('')
 
     return `
-        <tr>
-            <td>${data}</td>
-            <td>${usuario}</td>
-            <td>
-                <span class="and">${status}</span>
-            </td>
-        </tr>
+        <select data-contrato="${contrato}" name="status_${id}" class="opcoesSelect" ${emTabela ? `onchange="alterarStatus('${id}')"` : ''}>
+            ${opcoes}
+        </select>
     `
+
+}
+
+async function alterarStatus(id, idStatus = crypto.randomUUID()) {
+
+    try {
+
+        overlayAguarde()
+
+        const observacao = [...document.querySelectorAll(`.editor-conteudo`)].at(-1)?.innerHTML
+        const select = [...document.querySelectorAll(`[name="status_${id}"]`)].at(-1)
+        const status = select.value
+        const contrato = select.dataset.contrato
+        const timestamp = obVal('timestamp')
+
+        if (!status)
+            return popup({ mensagem: 'Não deixe o status em braco!' })
+
+        const dado = {
+            observacao,
+            status,
+            usuario: acesso.usuario,
+            timestamp: timestamp
+                ? Number(timestamp)
+                : Date.now()
+        }
+
+        await enviar(`dados_orcamentos/${id}/historico_status/${idStatus}`, dado)
+
+        // Caso seja edição;
+        if (timestamp)
+            removerPopup()
+
+        removerOverlay()
+        carregarHistoricoStatus(id)
+
+        if (status == 'ORC APROVADO')
+            criarDepartamento(contrato)
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao salvar o status: Fale com o suporte.' })
+    }
 
 }
