@@ -205,8 +205,16 @@ async function criarElementosIniciais() {
 
         </div>`
 
-    await paginacao()
-
+    await Promise.all(
+        [
+            { pag: 'tSetor', tabela: tSetor },
+            { pag: 'tAtrasados', tabela: tAtrasados },
+            { pag: 'tCorrecoes', tabela: tCorrecoes },
+            { pag: 'tPermissao', tabela: tPermissao }
+        ]
+            .filter(({ tabela }) => Boolean(tabela))
+            .map(({ pag }) => paginacao(pag))
+    )
 
 }
 
