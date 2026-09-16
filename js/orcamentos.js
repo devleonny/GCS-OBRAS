@@ -1,10 +1,3 @@
-const stLista = [
-    'EM ANDAMENTO',
-    'OBRA PARALISADA',
-    'CONCLUÍDO',
-    'POC EM ANDAMENTO'
-]
-
 function formatacaoPagina() {
 
     const pag = 'orcamentos'
@@ -13,7 +6,7 @@ function formatacaoPagina() {
     const pesq = controles?.[pag]?.filtros?.['snapshots.status_atual']
     status = pesq?.op == 'IS_EMPTY'
         ? 'SEM STATUS'
-        : pesq?.value || 'todos'
+        : pesq?.value || 'TODOS'
 
     const abas = document.querySelectorAll('.aba-toolbar')
 
@@ -422,10 +415,6 @@ async function carregarToolbar() {
                 continue
             }
 
-            const f = campo == 'VENDA DIRETA'
-                ? 'style="background: linear-gradient(45deg, #222, #b12425);"'
-                : ''
-
             const novaTool = `
             <div
                 style="opacity: 0.5; height: 3rem;"
@@ -434,7 +423,7 @@ async function carregarToolbar() {
                 name="${campo}"
                 onclick="filtrarToolbar('${campo}')">
                 <label>${campo.toUpperCase()}</label>
-                <span ${f}>${contagem}</span>
+                <span>${contagem}</span>
             </div>
             `
             toolbar.insertAdjacentHTML('beforeend', novaTool)
@@ -449,14 +438,14 @@ async function carregarToolbar() {
 
 async function filtrarToolbar(campo) {
 
-    const filtros = {}
+    const chave = 'snapshots.status_atual'
+    controles.orcamentos.filtros
+    controles.orcamentos.filtros ?? {}
 
-    if (campo !== 'todos') { // Demais campos, exceto 'todos';
-        filtros['snapshots.status_atual'] = { op: '=', value: campo }
+    controles.orcamentos.filtros[chave] = { op: '=', value: campo }
 
-    }
-
-    controles.orcamentos.filtros = filtros
+    if (campo == 'TODOS')
+        delete controles.orcamentos.filtros[chave]
 
     await paginacao()
 
