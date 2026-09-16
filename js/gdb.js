@@ -276,3 +276,35 @@ function toTimestamp(d, fimDoDia = false) {
     const t = Date.parse(str)
     return isNaN(t) ? null : t
 }
+
+
+async function contagemStatus() {
+
+    const url = `${read}/contagem-status`
+    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
+
+    const response = await fetch(url, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            'Authorization': `Bearer ${token}`
+        }
+    })
+
+    let data
+
+    try {
+        data = await response.json()
+    } catch (parseError) {
+        console.error("Resposta não é JSON válido:", parseError)
+        return null
+    }
+
+    if (!response.ok) {
+        console.error("Erro HTTP:", response.status, data)
+        return { mensagem: data?.mensagem || 'Falha ao salvar: Fale com o suporte.' }
+    }
+
+    return data
+
+}

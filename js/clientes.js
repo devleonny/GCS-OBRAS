@@ -48,8 +48,12 @@ function removerTagCliente(img) {
 }
 
 // Último painel
-const obVal = (n) => {
+function obVal(n) {
     const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
+
+    if(!painel)
+        return null
+    
     const el = painel.querySelector(`[name="${n}"]`)
     return el ? el.value || el.id : null
 }
@@ -876,7 +880,7 @@ async function salvarCliente(idCliente = null) {
         overlayAguarde()
 
         const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
-        
+
         // FIXO ou S = SIM, é válido;
         const usuarioValido = ['S', 'F'].includes(document.getElementById('status_usuario').dataset.valido)
 

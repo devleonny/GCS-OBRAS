@@ -7,36 +7,26 @@ const permAtalhos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
 const permAltStatus = ['adm', 'diretoria']
 const statusExclusivosLog = ['ENVIADO', 'ENTREGUE']
 const fluxograma = [
-    'PROSPECÇÃO',
-    'FERRAMENTAS',
-    'KIT PEÇAS',
+    // 'FERRAMENTAS', > TAG
+    // 'KIT PEÇAS', > TAG FERRAMENTAS
     'SEM STATUS',
-    'COTAÇÃO',
     'ORC PENDENTE',
     'ORC ENVIADO',
     'ORC APROVADO',
     'ORC REPROVADO',
-    'VENDA DIRETA',
     'REQUISIÇÃO',
-    'NFE VENDA',
-    'PEND INFRA',
-    'PEND ASSISTÊNCIA TÉCNICA',
     'ENVIADO',
     'ENTREGUE',
     'AGENDAMENTO',
     'EM ANDAMENTO',
-    'POC EM ANDAMENTO',
-    'OBRA PARALISADA',
-    'PENDENTE OS/RELATÓRIO',
-    'ACORDO FINANCEIRO',
+    'PENDENTE OS/RELATÓRIO', // 
+    //'ACORDO FINANCEIRO', PODE REMOVER
     'PENDENTE PEDIDO',
     'REPROVADO PELO FINANCEIRO',
     'CONCLUÍDO',
     'FATURADO',
-    'ATRASADO',
-    'PAG RECEBIDO',
-    'LOCAÇÃO',
-    'GARANTIA'
+    //'PAG RECEBIDO', > FATURADO
+    // 'LOCAÇÃO' > TAG
 ]
 
 const esquemaBtnStatus = {

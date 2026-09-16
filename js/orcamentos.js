@@ -10,7 +10,7 @@ function formatacaoPagina() {
     const pag = 'orcamentos'
     let status = ''
 
-    const pesq = controles?.[pag]?.filtros?.['status.atual']
+    const pesq = controles?.[pag]?.filtros?.['snapshots.status_atual']
     status = pesq?.op == 'IS_EMPTY'
         ? 'SEM STATUS'
         : pesq?.value || 'todos'
@@ -30,7 +30,7 @@ async function telaOrcamentos() {
 
     const colunas = {
         'Última alteração': { chave: 'lpu_ativa' },
-        'Status': { chave: 'status.atual' },
+        'Status': { chave: 'snapshots.status_atual' },
         'Pedido': { chave: 'snapshots.pedidos' },
         'Notas': { chave: 'snapshots.notas' },
         'Parcelas': {},
@@ -49,7 +49,7 @@ async function telaOrcamentos() {
 
     const tabela = await modTab({
         btnExtras,
-        funcaoAdicional: ['formatacaoPagina'],
+        funcaoAdicional: ['formatacaoPagina', 'carregarToolbar'],
         colunas,
         base: 'vw_dados_orcamentos',
         criarLinha: 'criarLinhaOrcamento',
@@ -401,31 +401,32 @@ async function duplicar(id) {
 
 async function carregarToolbar() {
 
-    const cont1 = await contarPorCampo({ base: 'dados_orcamentos', path: 'status.atual' })
+    try {
 
-    const contToolbar = {
-        ...cont1,
-        'SEM STATUS': cont1['EM BRANCO'] || 0
-    }
+        const { resultado } = await contagemStatus()
 
-    const toolbar = document.getElementById('toolbar')
-    const fluxogramaCompleto = ['todos', ...fluxograma]
+        const contToolbar = Object.fromEntries(
+            resultado.map(res => [res.status, res.quantidade])
+        )
 
-    for (const campo of fluxogramaCompleto) {
+        const toolbar = document.getElementById('toolbar')
+        const fluxogramaCompleto = ['TODOS', ...fluxograma]
 
-        const contagem = contToolbar[campo] || 0
+        for (const campo of fluxogramaCompleto) {
 
-        const tool = toolbar.querySelector(`[name="${campo}"]`)
-        if (tool) {
-            tool.querySelector('span').textContent = contagem
-            continue
-        }
+            const contagem = contToolbar[campo] || 0
 
-        const f = campo == 'VENDA DIRETA'
-            ? 'style="background: linear-gradient(45deg, #222, #b12425);"'
-            : ''
+            const tool = toolbar.querySelector(`[name="${campo}"]`)
+            if (tool) {
+                tool.querySelector('span').textContent = contagem
+                continue
+            }
 
-        const novaTool = `
+            const f = campo == 'VENDA DIRETA'
+                ? 'style="background: linear-gradient(45deg, #222, #b12425);"'
+                : ''
+
+            const novaTool = `
             <div
                 style="opacity: 0.5; height: 3rem;"
                 class="aba-toolbar"
@@ -436,7 +437,12 @@ async function carregarToolbar() {
                 <span ${f}>${contagem}</span>
             </div>
             `
-        toolbar.insertAdjacentHTML('beforeend', novaTool)
+            toolbar.insertAdjacentHTML('beforeend', novaTool)
+        }
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao carregar as quantidades em Status: Tente novamente.' })
     }
 
 }
@@ -446,7 +452,7 @@ async function filtrarToolbar(campo) {
     const filtros = {}
 
     if (campo !== 'todos') { // Demais campos, exceto 'todos';
-        filtros['status.atual'] = { op: '=', value: campo }
+        filtros['snapshots.status_atual'] = { op: '=', value: campo }
 
     }
 
@@ -524,6 +530,9 @@ async function verHistoricoStatus(id, contrato) {
 async function carregarHistoricoStatus(id) {
 
     const local = document.getElementById('historico')
+
+    if (!local)
+        return
 
     local.innerHTML = `<img src="gifs/loading.gif" style="width: 5rem;">`
 
