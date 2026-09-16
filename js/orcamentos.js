@@ -87,7 +87,7 @@ async function carregarPesquisaOrcamento() {
     const camposFechados = {
         'Status': {
             chave: 'status_orcamentos', // Chave na tabela ref de opções;
-            path: 'status.atual'
+            path: 'snapshots.status_atual'
         },
         'Empresa': {
             chave: 'empresas',

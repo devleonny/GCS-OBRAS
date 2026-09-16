@@ -927,7 +927,7 @@ async function enviarDadosOrcamento() {
 
     const orcamentoBase = baseOrcamento()
 
-    const { lpu_ativa, dados_orcam } = orcamentoBase || {}
+    const { dados_orcam } = orcamentoBase || {}
 
     // Salvar o usuário na primeira vez apenas;
     if (!orcamentoBase.usuario)

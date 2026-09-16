@@ -7,8 +7,6 @@ const permAtalhos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
 const permAltStatus = ['adm', 'diretoria']
 const statusExclusivosLog = ['ENVIADO', 'ENTREGUE']
 const fluxograma = [
-    // 'FERRAMENTAS', > TAG
-    // 'KIT PEÇAS', > TAG FERRAMENTAS
     'SEM STATUS',
     'ORC PENDENTE',
     'ORC ENVIADO',
@@ -19,14 +17,11 @@ const fluxograma = [
     'ENTREGUE',
     'AGENDAMENTO',
     'EM ANDAMENTO',
-    'PENDENTE OS/RELATÓRIO', // 
-    //'ACORDO FINANCEIRO', PODE REMOVER
+    'PENDENTE OS/RELATÓRIO',
     'PENDENTE PEDIDO',
     'REPROVADO PELO FINANCEIRO',
     'CONCLUÍDO',
-    'FATURADO',
-    //'PAG RECEBIDO', > FATURADO
-    // 'LOCAÇÃO' > TAG
+    'FATURADO'
 ]
 
 const esquemaBtnStatus = {
@@ -760,7 +755,7 @@ async function abrirEsquema(id) {
     const contrato = orcamento?.dados_orcam?.contrato
     const { cliente } = orcamento?.snapshots || {}
     const { snapshots } = await recuperarDado('dados_ocorrencias', contrato) || {}
-    const statusOrcamento = orcamento?.status?.atual || 'Sem Status'
+    const statusOrcamento = snapshots?.status_atual || 'Sem Status'
 
     controles.ocorrencias ??= {}
     controles.ocorrencias.ativo = contrato
