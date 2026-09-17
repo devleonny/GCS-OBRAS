@@ -751,16 +751,15 @@ async function abrirEsquema(id) {
 
     overlayAguarde()
 
-    const orcamento = await recuperarDado('dados_orcamentos', id)
-    const contrato = orcamento?.dados_orcam?.contrato
-    const { cliente } = orcamento?.snapshots || {}
-    const { snapshots } = await recuperarDado('dados_ocorrencias', contrato) || {}
-    const statusOrcamento = snapshots?.status_atual || 'Sem Status'
+    const { dados_orcam, snapshots } = await recuperarDado('dados_orcamentos', id)
+    const contrato = dados_orcam?.contrato
+    const { cliente, status_atual } = snapshots || {}
+    const { snapshots: snapOcorrencias } = await recuperarDado('dados_ocorrencias', contrato) || {}
 
     controles.ocorrencias ??= {}
     controles.ocorrencias.ativo = contrato
 
-    const labelTipoCorrecao = (snapshots?.nomesStatus || [])
+    const labelTipoCorrecao = (snapOcorrencias?.nomesStatus || [])
         .map(st => formatacaoTipoCorrecao(st))
         .join('')
 
@@ -776,7 +775,7 @@ async function abrirEsquema(id) {
 
                 <div style="${vertical}; gap: 2px;">
                     <label>Status do Orçamento</label>
-                    <span class="and">${statusOrcamento}</span>
+                    <span class="and">${status_atual}</span>
                 </div>
 
                 <img onclick="verHistoricoStatus('${id}')" src="imagens/historico.png">
