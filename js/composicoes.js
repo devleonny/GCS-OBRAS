@@ -447,7 +447,7 @@ function gerarTabelas(objeto) {
                     <td>
                         <div style="display: flex; align-items: center; justify-content: center; gap: 1vw;">
                             ${campo.label}
-                            <select id="${campo.id}_select" onchange="calcular('${campo.id}_select')" class="opcoesSelect" style="width: max-content;">
+                            <select id="${campo.id}_select" onchange="calcular('${campo.id}_select')" class="opcoes-select" style="width: max-content;">
                                 ${opcoes}
                             </select>
                         </div>

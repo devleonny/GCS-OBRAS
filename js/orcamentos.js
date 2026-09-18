@@ -624,7 +624,7 @@ function seletorStatus({ id, status = null, emTabela = false, contrato = null })
         .join('')
 
     return `
-        <select data-contrato="${contrato}" name="status_${id}" class="opcoesSelect" ${emTabela ? `onchange="alterarStatus('${id}')"` : ''}>
+        <select data-contrato="${contrato}" name="status_${id}" class="opcoes-select" ${emTabela ? `onchange="alterarStatus('${id}')"` : ''}>
             ${opcoes}
         </select>
     `

@@ -1440,11 +1440,11 @@ input[type=range]::-moz-range-thumb {
     border-radius: 5px;
 }
 
-.opcoesSelect {
-    min-width: 100px;
+.opcoes-select {
     cursor: pointer;
     background-color: #f2f2f2;
     padding: 3px;
+    width: 150px;
     border-radius: 3px;
     border: solid 1px #b8b8b8;
 }

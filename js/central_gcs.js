@@ -410,7 +410,7 @@ function criarLinhaPainelUsuarios(dados) {
             statusOpcoes.push('Invisível')
 
         gerenciarStatus = `
-            <select class="opcoesSelect" onchange="mudarStatus(${id}, this)">
+            <select class="opcoes-select" onchange="mudarStatus(${id}, this)">
                 ${statusOpcoes.map(op => `<option ${status == op ? 'selected' : ''}>${op}</option>`).join('')}
             </select>`
     }

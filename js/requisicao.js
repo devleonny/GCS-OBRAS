@@ -358,12 +358,12 @@ async function criarLinhaRequisicao(item) {
                 </div>
             </td>
             <td>
-                <select class="opcoesSelect" onchange="atualizarValorRequisicao('${codigo}', 'tipo', this.value)">
+                <select class="opcoes-select" onchange="atualizarValorRequisicao('${codigo}', 'tipo', this.value)">
                     ${opcoesRequisicao.map(o => `<option ${tipo == o ? 'selected' : ''}>${o}</option>`).join('')}
                 </option>
             </td>
             <td>
-                <select class="opcoesSelect"  onchange="atualizarValorRequisicao('${codigo}', 'origem', this.value)">
+                <select class="opcoes-select"  onchange="atualizarValorRequisicao('${codigo}', 'origem', this.value)">
                     ${['Matriz', 'Região', 'Kit Técnico'].map(o => `<option ${origem == o ? 'selected' : ''}>${o}</option>`).join('')}
                 </option>
             </td>
