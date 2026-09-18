@@ -387,7 +387,7 @@ async function abrirAtalhos(id) {
     if (!emAnalise)
         botoesDisponiveis.push(
             modeloBotoes('esquema', 'Histórico', `abrirEsquema('${id}')`),
-            modeloBotoes('painelcustos', 'Painel de Custos', `painelCustos('${id}')`),
+            modeloBotoes('painelcustos', 'Painel de Custos', `painelCustos('${contrato}')`),
             modeloBotoes('pdf', 'Abrir Orçamento em PDF', `irPdf('${id}')`),
             modeloBotoes('checklist', 'Checklist', `telaChecklist('${id}')`),
             modeloBotoes('excel', 'Baixar Orçamento em Excel', `irExcelOrcamento('${id}')`),
@@ -927,7 +927,7 @@ async function confirmarApagarGenerico(id, tabela) {
 
         // Deletar também o cartão da correção;
         const { ativo } = controles.ocorrencias
-        const { master } = await recuperarDado('contratos_vinculados', ativo)
+        const { master } = await recuperarDado('contratos_vinculados', ativo) || {}
         const departamento = master || ativo
 
         if (!departamento)

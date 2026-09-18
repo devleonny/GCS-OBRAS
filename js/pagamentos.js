@@ -142,11 +142,11 @@ async function atualizarPainelEsquerdo() {
 async function criarLinhaPagamento(pagamento) {
 
     const { id, criado, app, status, snapshots, param } = pagamento || {}
-    const { recebedor, data_vencimento, valor_documento } = param?.[0] || {}
+    const { data_vencimento, valor_documento } = param?.[0] || {}
 
     const deps = (snapshots?.departamentos || [])
         .map(({ departamento }) => {
-            return `<span class="etiquetas">${departamento || ''}</span>`
+            return `<span onclick="painelCustos('${departamento}')" class="etiquetas">${departamento || ''}</span>`
         })
         .join('')
 
@@ -367,8 +367,9 @@ async function abrirDetalhesPagamentos(id) {
     const deps = (pagamento?.snapshots?.departamentos || [])
         .map(({ departamento, valor }) => {
             return `
-                <div style="${vertical}; gap: 2px; text-align: left;">
-                    <span>• <b>${departamento}</b> → ${dinheiro(valor)}</span>
+                <div style="${horizontal}; justify-content: start; gap: 2px;">
+                    <button onclick="painelCustos('${departamento}')">Ver Custos</button>
+                    <span><b>${departamento}</b> → ${dinheiro(valor)}</span>
                 </div>
             `
         }).join('')

@@ -1,145 +1,174 @@
-async function painelCustos(id) {
+async function painelCustos(contrato) {
 
-    removerPopup() // Atalhos;
-    overlayAguarde()
+    try {
 
-    const orcamento = await recuperarDado('dados_orcamentos', id) || {}
-    const { dados_orcam, snapshots, total_geral } = orcamento
-    const { pagamentos = 0, fretes = 0, abastecimentos = 0, notas } = snapshots?.custos || {}
+        overlayAguarde()
 
-    // Salvo localmente;
-    controles.orcamento ??= {}
-    controles.orcamento.save = orcamento
+        const {
+            total_pagamentos,
+            total_geral,
+            cidade,
+            cliente
+        } = await recuperarDado('mvw_custos_cc', contrato) || {}
 
-    // Velocímetro
-    const totalCusto = pagamentos + fretes + abastecimentos
-    const porcentagem = Number(((totalCusto / total_geral) * 100).toFixed(1))
-    const resumo = criarVelocimetroHTML({ rotulo: 'Custos', limite: 40, valor: porcentagem })
+        // Velocímetro
+        const porcentagem = Number(((total_pagamentos / total_geral) * 100).toFixed(1))
+        const velocimetro = total_geral
+            ? `<div class="checklist-indicador" style="width: 300px;">${criarVelocimetroHTML({ rotulo: 'Custos', limite: 40, valor: porcentagem })}</div>`
+            : ''
 
-    const { cliente, cidade } = snapshots || {}
+        const dados =
+            (!cliente && !cidade)
+                ? ''
+                : Object.entries({
+                    cliente,
+                    cidade
+                })
+                    .map(([campo, valor]) => `<span style="white-space: pre-wrap;"><b>${inicialMaiuscula(campo)}</b>\n${valor || ''}</span>`)
+                    .join('')
 
-    const dados = Object.entries({
-        cliente,
-        cidade,
-        centro_de_custo: dados_orcam?.contrato
-    })
-        .map(([campo, valor]) => `<span style="white-space: pre-wrap;"><b>${inicialMaiuscula(campo)}</b>\n${valor || ''}</span>`)
-        .join('')
 
+        const esquema = [
+            {
+                titulo: 'Início',
+                funcao: `inicioCustos('${contrato}')`
+            },
+            {
+                titulo: 'Total do Orçamento',
+                valor: total_geral,
+                indicador: true
+            },
+            {
+                titulo: 'Pagamentos Solicitados',
+                valor: total_pagamentos,
+                funcao: `tabPagamentosCusto('${contrato}')`,
+                indicador: true
+            },
+            {
+                titulo: 'Abastecimento',
+                id: 't-abastecimento',
+                valor: 0,
+                indicador: true
+            },
+            {
+                titulo: 'Fretes',
+                valor: 0,
+                indicador: true
+            },
+            {
+                titulo: 'Notas',
+                valor: 0,
+                indicador: true
+            }
+        ]
 
-    const esquema = [
-        {
-            titulo: 'Total do Orçamento',
-            id: 't-orcamento',
-            funcao: `tabOrcamentoCusto()`
-        },
-        {
-            titulo: 'Pagamentos Solicitados',
-            id: 't-pagamentos',
-            funcao: `tabPagamentosCusto()`
-        },
-        {
-            titulo: 'Abastecimento',
-            id: 't-abastecimento',
-            funcao: `tabVeiculosCusto()`
-        },
-        {
-            titulo: 'Fretes',
-            id: 't-fretes',
-            funcao: `tabFretesCusto()`
-        },
-        {
-            titulo: 'Notas',
-            id: 't-notas',
-            funcao: `tabNotasCusto()`
-        }
-    ]
+        const baloes = esquema
+            .filter(e => e.indicador && e.valor)
+            .map(({ valor, titulo }) => `
+                <div class="checklist-indicador" style="width: 300px;">
+                    <label>${dinheiro(valor)}</label>
+                    <span>${titulo}</span>
+                </div>`)
+            .join('')
 
-    const toolbar = esquema
-        .map(({ titulo, id, funcao }) => {
+        const toolbar = esquema
+            .filter(e => e.funcao)
+            .map(({ titulo, funcao }) => {
+                return `<span onclick="toggleAbas(this); ${funcao || ''}">${titulo}</span>`
+            })
+            .join('')
 
-            return `
-            <div onclick="${funcao}" class="balao-custo">
-                <label>${titulo}</label>
-                <div id="${id}" style="font-size: 1.4rem;">
-                    <img src="gifs/loading.gif" style="width: 5rem">
+        const elemento = `
+            <div class="painel-geral-checklist">
+
+                <div class="toolbar-checklist">${toolbar}</div>
+
+                <div class="painel-atras-checklist">
+
+                    ${tituloChecklist('Resumo de Custos')}
+
+                    <div style="display: flex; gap: 5px;">  
+
+                        <div class="checklist-cabecalho">
+                            <span class="tag-pendencias">${contrato}</span>
+                            ${dados}
+                        </div>
+
+                        ${velocimetro}
+
+                        <div style="display: flex; flex-wrap: wrap; gap: 5px;">${baloes}</div>
+
+                    </div>
+
+                    <div style="border-top: solid 1px #ffffff6e; width: 100%; margin: 0.5rem;"></div>
+
+                    <div class="painel-custos-tabelas"></div>
+
                 </div>
+                
             </div>
         `
-        })
-        .join('')
 
-    const elemento = `
-        <div class="painel-custos">
+        popup({ elemento })
 
-            <h2>Resumo de Custos</h2>
-            <div class="toolbar-custo">
+        removerOverlay()
 
-                <div style="${vertical}">${dados}</div>
+        await inicioCustos(contrato)
 
-                <div style="${horizontal}; gap: 0.5rem;">
-                    <div style="width: 300px;">${resumo}</div>
-                    <div class="resultados">
-                        
-                        <div onclick="inicioCustos()" class="balao-custo">
-                            <label>Início</label>
-                        </div>
-                        ${toolbar}
-                        <img src="imagens/GrupoCostaSilva.png" style="width: 7rem;">
-                    </div>
-                    
-                </div>
-
-            </div>
-
-            <hr>
-            <h2>Detalhamento</h2>
-            <div class="painel-custos-tabelas"></div>
-
-        </div>
-    `
-
-    tela.innerHTML = elemento
-
-    removerOverlay()
-
-    await inicioCustos()
-
-    await carregarTotaisCusto(id)
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir custos: Fale com o suporte.' })
+    }
 
 }
 
-// TABELAS
-async function inicioCustos() {
+function toggleAbas(span) {
+
+    [...document.querySelectorAll('.toolbar-checklist span')].map(span => span.style.opacity = 0.5)
+
+    if (span)
+        span.style.opacity = 1
+
+}
+
+async function inicioCustos(contrato) {
 
     const painel = document.querySelector('.painel-custos-tabelas')
 
     painel.innerHTML = `
-        <div class="custos-inicial">
-            <div class="painel-custos-lateral">
-                <img src="gifs/loading.gif" style="width: 5rem;">
+
+        <div style="${vertical}; gap: 5px;">
+
+            ${tituloChecklist('Valores por Categoria e Gráficos')}
+
+            <div class="custos-inicial">
+
+                <div class="painel-custos-lateral">
+                    <img src="gifs/loading.gif" style="width: 5rem;">
+                </div>
+
+                <div style="${vertical}">
+                    <div class="toolbar-checklist">
+                        <span onclick="toggleAbas(this); mostrarGrafico('pizza')">Gráfico de Pizza</span>
+                        <span onclick="toggleAbas(this); mostrarGrafico('tempo')">Linha do Tempo</span>
+                    </div>
+
+                    <div class="grafico-box">
+                        <canvas id="grafico-categorias"></canvas>
+                    </div>
+
+                    <div class="grafico-box">
+                        <canvas id="grafico-linha-tempo"></canvas>
+                    </div>
+                </div>
+
             </div>
-            <div style="${vertical};">
 
-                <div style="${horizontal}; gap: 1rem;">
-                    <button onclick="mostrarGrafico('pizza')">Gráfico de Pizza</button>
-                    <button onclick="mostrarGrafico('tempo')">Linha do Tempo</button>
-                </div>
-
-                <div class="grafico-box">
-                    <canvas id="grafico-categorias"></canvas>
-                </div>
-
-                <div class="grafico-box">
-                    <canvas id="grafico-linha-tempo"></canvas>
-                </div>
-            </div>
         </div>
     `
 
-    await somaPorCategoria()
+    await somaPorCategoria(contrato)
 
-    mostrarGrafico('pizza')
 }
 
 function mostrarGrafico(tipo) {
@@ -150,268 +179,95 @@ function mostrarGrafico(tipo) {
     boxes[tipo == 'pizza' ? 0 : 1].style.display = 'flex'
 }
 
-async function somaPorCategoria() {
+async function somaPorCategoria(contrato) {
 
-    const { dados_orcam } = controles.orcamento.save || {}
-    const contrato = dados_orcam?.contrato
-
-    const contagens = await contarPorCampo({
-        base: 'lista_pagamentos',
-        filtros: {
-            'snapshots.categorias.*.departamento': { op: '=', value: contrato }
-        },
-        explode: { path: 'snapshots.categorias' },
-        modo: 'somaAgrupada',
-        campoSoma: 'valor',
-        path: 'categoria'
-    })
+    const { categorias, valores_por_data } = await recuperarDado('mvw_custos_cc', contrato) || {}
 
     const blocoCategoria = (nome, valor) => {
 
         return `
-        <div class="bloco-categoria">
-            <span>${dinheiro(valor)}</span>
-            <label>${nome}</label>
-        </div>
+            <div class="checklist-indicador">
+                <label>${dinheiro(valor)}</label>
+                <span>${nome}</span>
+            </div>
         `
     }
 
     const painelLateral = document.querySelector('.painel-custos-lateral')
 
-    const blocos = Object.entries(contagens)
-        .filter(([categoria,]) => categoria !== 'todos' && categoria !== 'total')
-        .sort(([a,], [b,]) => a.localeCompare(b))
-        .map(([categoria, valor]) => blocoCategoria(categoria, valor))
+    const blocos = (categorias || [])
+        .sort((a, b) => b.total - a.total)
+        .map(({ categoria, total }) => blocoCategoria(categoria, total))
         .join('')
 
     if (painelLateral)
         painelLateral.innerHTML = blocos
 
     graficoRosca({
-        dados: contagens,
+        dados: categorias,
         elemento: '#grafico-categorias'
-    })
-
-    const porData = await contarPorCampo({
-        base: 'lista_pagamentos',
-        explode: { path: 'snapshots.departamentos' },
-        filtros: {
-            'snapshots.categorias.*.departamento': { op: '=', value: contrato }
-        },
-        modo: 'somaAgrupada',
-        campoSoma: 'valor',
-        path: 'data_vencimento'
     })
 
     criarGraficoLinhaTempo({
         elemento: '#grafico-linha-tempo',
-        dados: porData,
+        dados: valores_por_data,
         rotulo: 'Custos por data'
     })
 
-}
-
-async function tabOrcamentoCusto() {
-
-    const { esquema_composicoes, dados_composicoes } = controles.orcamento.save || {}
-
-    const pag = 'criarOrcamento'
-    const tabela = await modTab({
-        base: Object.values(esquema_composicoes || dados_composicoes || {}),
-        pag,
-        nude: true,
-        scroll: true,
-        editavel: false,
-        funcaoAdicional: ['formatarLinhasOrcamento', 'calcularSubtotais'],
-        body: 'bodyOrcamento',
-        criarLinha: 'carregarLinhaOrcamento',
-        colunas: {}
-    })
-
-    const painel = document.querySelector('.painel-custos-tabelas')
-
-    painel.innerHTML = tabela
-
-    await paginacao(pag)
+    mostrarGrafico('pizza')
 
 }
 
-async function tabPagamentosCusto() {
+async function tabPagamentosCusto(contrato) {
 
-    const { dados_orcam } = controles.orcamento.save || {}
-    const contrato = dados_orcam?.contrato
+    try {
 
-    const pag = 'custosPagamentos'
-    const tabela = await modTab({
-        pag,
-        body: 'bodyCustosPagamentos',
-        criarLinha: 'criarLinhaCustoPagamento',
-        base: 'lista_pagamentos',
-        explode: { path: 'snapshots.categorias' },
-        filtros: {
-            'snapshots.categorias.*.departamento': { op: '=', value: contrato },
-            'param.*.codigo_tipo_documento': { op: '!=', value: 'CTE' },
-        },
-        colunas: {
-            'Data': { chave: 'param.*.data_previsao', tipoPesquisa: 'data' },
-            'Valor': { chave: 'descricao' },
-            'Categoria': { chave: 'categoria' },
-            'Status': { chave: 'status' },
-            'Solicitante': { chave: 'criado' },
-            'Recebedor': { chave: 'snapshots.cliente' },
-            'Observação': { chave: 'param.*.observacao' },
-            'Ações': {}
-        }
-    })
+        overlayAguarde()
 
-    const painel = document.querySelector('.painel-custos-tabelas')
+        const pag = 'custosPagamentos'
+        const tabela = await modTab({
+            pag,
+            body: 'bodyCustosPagamentos',
+            criarLinha: 'criarLinhaCustoPagamento',
+            base: 'lista_pagamentos',
+            explode: { path: 'snapshots.categorias' },
+            filtros: {
+                'snapshots.categorias.*.departamento': { op: '=', value: contrato },
+                'param.*.codigo_tipo_documento': { op: '!=', value: 'CTE' },
+            },
+            colunas: {
+                'Data': { chave: 'param.*.data_previsao', tipoPesquisa: 'data' },
+                'Valor': { chave: 'descricao' },
+                'Categoria': { chave: 'categoria' },
+                'Status': { chave: 'status' },
+                'Solicitante': { chave: 'criado' },
+                'Recebedor': { chave: 'snapshots.cliente' },
+                'Observação': { chave: 'param.*.observacao' },
+                'Ações': {}
+            }
+        })
 
-    painel.innerHTML = tabela
+        const painel = document.querySelector('.painel-custos-tabelas')
 
-    await paginacao(pag)
+        painel.innerHTML = tabela
 
-}
+        await paginacao(pag)
 
-async function tabVeiculosCusto() {
+        removerOverlay()
 
-    const { dados_orcam } = controles.orcamento.save || {}
-    const contrato = dados_orcam?.contrato
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir detalhamento: Fale com o suporte.' })
+    }
 
-    const pag = 'custo-veiculos'
-    const tabela = await modTab({
-        pag,
-        body: 'bodyVeiculos',
-        base: 'custo_veiculos',
-        criarLinha: 'criarLinhaCustoVeiculo',
-        filtros: {
-            'snapshots.departamentos.*.departamento': { op: '=', value: contrato }
-        },
-        colunas: {
-            'Data Pagamento': { chave: 'data_pagamento', tipoPesquisa: 'data' },
-            'Comentário': { chave: 'comentario' },
-            'Realizado': { chave: 'snapshots.realizado' },
-            'Criado por': { chave: 'usuario' },
-            'Motorista': { chave: 'snapshots.motoristas' },
-            'Ações': {}
-        }
-    })
-
-    const painel = document.querySelector('.painel-custos-tabelas')
-
-    painel.innerHTML = tabela
-
-    await paginacao(pag)
-
-}
-
-async function tabFretesCusto() {
-
-    const { dados_orcam } = controles.orcamento.save || {}
-    const contrato = dados_orcam?.contrato
-
-    const pag = 'custosFretes'
-
-    const tabela = await modTab({
-        pag,
-        body: 'bodyCustosFretes',
-        criarLinha: 'criarLinhaCustoPagamento',
-        base: 'lista_pagamentos',
-        explode: { path: 'snapshots.categorias' },
-        filtros: {
-            'snapshots.categorias.*.departamento': { op: '=', value: contrato },
-            'param.*.codigo_tipo_documento': { op: '=', value: 'CTE' },
-        },
-        colunas: {
-            'Data': { chave: 'param.*.data_previsao', tipoPesquisa: 'data' },
-            'Valor': { chave: 'valor' },
-            'Categoria': { chave: 'categoria' },
-            'Status': { chave: 'status', tipoPesquisa: 'select' },
-            'Solicitante': { chave: 'criado' },
-            'Recebedor': {},
-            'Observação': {},
-            'Ações': {}
-        }
-    })
-
-    const painel = document.querySelector('.painel-custos-tabelas')
-
-    painel.innerHTML = tabela
-
-    await paginacao(pag)
-
-}
-
-async function tabNotasCusto() {
-
-    const { dados_orcam } = controles.orcamento.save || {}
-    const contrato = dados_orcam?.contrato
-
-    const pag = 'notas'
-    const tabela = await modTab({
-        base: 'notas',
-        filtros: {
-            'departamentos.*.departamento': { op: '=', value: contrato }
-        },
-        explode: { path: 'snapshots.departamentos' },
-        pag,
-        funcaoAdicional: [],
-        body: 'bodyNotas',
-        criarLinha: 'criarLinhaNotas',
-        colunas: {
-            'NF': { chave: 'nNota' },
-            'Tipo': { chave: 'categoria', tipoPesquisa: 'select' },
-            'Valor': { chave: 'valor' },
-            'Data Emissão': { chave: 'dEmiInicial' },
-            'Hora Emissão': { chave: 'hEmiInicial' },
-            'Ver DANFE': {}
-        }
-    })
-
-    const painel = document.querySelector('.painel-custos-tabelas')
-
-    painel.innerHTML = tabela
-
-    await paginacao(pag)
-
-}
-
-
-// LINHAS
-async function criarLinhaCustoVeiculo(combustivel) {
-
-    const { id, data_pagamento, comentario, realizado, usuario, snapshots } = combustivel || {}
-    const { dados_orcam } = controles.orcamento.save || {}
-    const contrato = dados_orcam?.contrato
-    const departamento = (snapshots?.departamentos || [])
-        .filter(d => d.departamento == contrato)
-
-    const dMotoristas = (snapshots?.motoristas || [])
-        .join('\n')
-
-    const tr = `
-        <tr>
-            <td>${new Date(data_pagamento).toLocaleDateString()}</td>
-            <td>${comentario}</td>
-            <td>${dinheiro(departamento?.[0]?.valor || 0)}</td>
-            <td>${usuario}</td>
-            <td>${dMotoristas}</td>
-            <td>
-                <img src="imagens/pesquisar2.png" onclick="painelAtalhos('${id}')">
-            </td>
-        </tr>
-    `
-
-    return tr
 }
 
 async function criarLinhaCustoPagamento(pagamento) {
 
-    const { dados_orcam } = controles?.orcamento?.save || {}
     const { criado, param, status, snapshots, valor, categoria } = pagamento || {}
     const { data_previsao, observacao } = param?.[0] || {}
 
     const cliente = snapshots?.cliente || ''
-    const contrato = dados_orcam?.contrato
 
     const imagem = iconePagamento(status)
 
@@ -441,118 +297,45 @@ async function criarLinhaCustoPagamento(pagamento) {
 
 }
 
-async function criarLinhaNotas(nota) {
-
-    const { codOmie, nNota, valor, app, categoria, dEmiInicial, hEmiInicial } = nota || {}
-
-    return `
-        <tr>
-            <td>${nNota}</td>
-            <td>${categoria}</td>
-            <td>${dinheiro(valor)}</td>
-            <td>${dEmiInicial}</td>
-            <td>${hEmiInicial}</td>
-            <td>
-                <div class="balaoNF" onclick="abrirDANFE('${codOmie}', '${categoria}', '${app}')">
-                    <div class="balao1">
-                        <label>${nNota}</label>
-                        <label><b>${categoria}</b></label>
-                    </div>
-                    <div class="balao2">PDF</div>
-                </div>
-            </td>
-        </tr>
-    `
-
-}
-
-
-// CARREGAR TOTAIS
-async function carregarTotaisCusto() {
-
-    const { dados_orcam, total_geral } = controles.orcamento.save || {}
-
-    atualizar('t-orcamento', dinheiro(total_geral))
-
-    const filtro = { op: 'includes', value: dados_orcam?.contrato }
-
-    const [somaPagamentos, somaFretes, somaCombustiveis, somaNotas] = await Promise.all([
-
-        contarPorCampo({
-            base: 'lista_pagamentos',
-            filtros: {
-                'snapshots.categorias.*.departamento': filtro,
-                'param.*.codigo_tipo_documento': { op: '!=', value: 'CTE' },
-            },
-            explode: { path: 'snapshots.categorias' },
-            path: 'valor',
-            modo: 'soma'
-        }),
-
-        contarPorCampo({
-            base: 'lista_pagamentos',
-            filtros: {
-                'param.*.codigo_tipo_documento': { op: '=', value: 'CTE' },
-                'departamento': filtro
-            },
-            explode: { path: 'snapshots.departamentos' },
-            path: 'valor',
-            modo: 'soma'
-        }),
-
-        contarPorCampo({
-            base: 'custo_veiculos',
-            filtros: {
-                'snapshots.departamentos.*.departamento': filtro
-            },
-            explode: { path: 'snapshots.departamentos' },
-            path: 'valor',
-            modo: 'soma'
-        }),
-
-        contarPorCampo({
-            base: 'notas',
-            filtros: {
-                'snapshots.departamentos.*.departamento': filtro
-            },
-            explode: { path: 'snapshots.departamentos' },
-            path: 'valor',
-            modo: 'soma'
-        })
-    ])
-
-    atualizar('t-pagamentos', dinheiro(somaPagamentos.total))
-    atualizar('t-fretes', dinheiro(somaFretes.total))
-    atualizar('t-abastecimento', dinheiro(somaCombustiveis.total))
-    atualizar('t-notas', dinheiro(somaNotas.total))
-
-    function atualizar(id, valor) {
-        const ele = document.getElementById(id)
-        if (ele)
-            ele.textContent = valor
-    }
-
-}
-
-
-function graficoRosca({ dados, elemento }) {
-
-    const labels = []
-    const valores = []
-
-    for (const [chave, valor] of Object.entries(dados)) {
-        if (chave === 'total' || chave === 'todos') continue
-
-        labels.push(chave)
-        valores.push(Number(valor) || 0)
-    }
-
-    const ctx = typeof elemento === 'string'
+function graficoRosca({ dados = [], elemento }) {
+    const canvas = typeof elemento === 'string'
         ? document.querySelector(elemento)
         : elemento
 
-    return new Chart(ctx, {
+    if (!canvas) return
+
+    Chart.getChart(canvas)?.destroy()
+
+    const labels = (dados || []).map(item => String(item.categoria ?? ''))
+    const valores = (dados || []).map(item => Number(item.total) || 0)
+
+    const contexto = canvas.getContext('2d')
+    const fonte = Chart.defaults.font.family
+
+    contexto.font = `12px ${fonte}`
+
+    const maiorTexto = Math.max(
+        0,
+        ...labels.map(texto => contexto.measureText(texto).width)
+    )
+
+    const larguraLegenda = Math.ceil(maiorTexto + 70)
+    const largura = Math.max(700, 360 + larguraLegenda, larguraLegenda * 2)
+    const altura = Math.max(360, labels.length * 26 + 40)
+
+    Object.assign(canvas.parentElement.style, {
+        position: 'relative',
+        width: `${largura}px`,
+        minWidth: `${largura}px`,
+        maxWidth: 'none',
+        height: `${altura}px`,
+        maxHeight: 'none',
+        flexShrink: '0'
+    })
+
+    return new Chart(canvas, {
         type: 'doughnut',
+        plugins: [porcentagensRosca],
         data: {
             labels,
             datasets: [{
@@ -561,9 +344,19 @@ function graficoRosca({ dados, elemento }) {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: 'right'
+                    position: 'right',
+                    labels: {
+                        boxWidth: 14,
+                        boxHeight: 14,
+                        padding: 14,
+                        font: {
+                            size: 12,
+                            family: fonte
+                        }
+                    }
                 }
             }
         }
@@ -578,18 +371,17 @@ function criarGraficoLinhaTempo({
     corFundo = 'rgba(37, 99, 235, 0.15)',
     mostrarArea = true,
     tensaoLinha = 0.25,
-    altura = '320px'
 } = {}) {
 
-    const entradasOrdenadas = Object.entries(dados)
-        .map(([dataTexto, valor]) => {
-            const [dia, mes, ano] = dataTexto.split('/');
+    const entradasOrdenadas = (dados || [])
+        .map(({ data_vencimento, total }) => {
+            const [dia, mes, ano] = data_vencimento.split('/')
 
             return {
-                dataTexto,
-                valor: Number(valor) || 0,
+                dataTexto: data_vencimento,
+                valor: Number(total) || 0,
                 ordem: new Date(`${ano}-${mes}-${dia}T00:00:00`).getTime()
-            };
+            }
         })
         .filter(item => !Number.isNaN(item.ordem))
         .sort((a, b) => a.ordem - b.ordem)
@@ -647,4 +439,53 @@ function criarGraficoLinhaTempo({
             }
         }
     })
+}
+
+const porcentagensRosca = {
+    id: 'porcentagensRosca',
+
+    afterDatasetsDraw(chart) {
+        const { ctx } = chart
+        const dataset = chart.data.datasets[0]
+        const meta = chart.getDatasetMeta(0)
+
+        if (!dataset || !chart.isDatasetVisible(0)) return
+
+        const total = dataset.data.reduce((soma, valor, indice) => {
+            return chart.getDataVisibility(indice)
+                ? soma + Math.abs(Number(valor) || 0)
+                : soma
+        }, 0)
+
+        if (!total) return
+
+        ctx.save()
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.font = `bold 16px ${Chart.defaults.font.family}`
+        ctx.fillStyle = '#fff'
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.65)'
+        ctx.lineWidth = 4
+        ctx.lineJoin = 'round'
+
+        meta.data.forEach((arco, indice) => {
+            if (!chart.getDataVisibility(indice)) return
+
+            const valor = Math.abs(Number(dataset.data[indice]) || 0)
+            const porcentagem = valor / total * 100
+
+            if (porcentagem < 4) return
+
+            const texto = `${porcentagem.toLocaleString('pt-BR', {
+                maximumFractionDigits: 1
+            })}%`
+
+            const { x, y } = arco.tooltipPosition()
+
+            ctx.strokeText(texto, x, y)
+            ctx.fillText(texto, x, y)
+        })
+
+        ctx.restore()
+    }
 }

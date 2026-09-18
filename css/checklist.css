@@ -28,6 +28,7 @@
 }
 
 .painel-atras-checklist {
+    gap: 5px;
     width: stretch;
     display: flex;
     flex-direction: column;
@@ -110,6 +111,7 @@
 }
 
 .checklist-indicador {
+    white-space: nowrap;
     box-shadow: 0 0 3px red;
     cursor: pointer;
     border-radius: 5px;
@@ -117,7 +119,7 @@
     border: solid 1px #d2d2d2;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: start;
     background-color: #efefef;
     padding: 1rem 3rem;
     font-size: 20px;
@@ -191,8 +193,9 @@
 .titulo-relatorio {
     padding: 5px 3rem;
     font-size: 30px;
+    width: stretch;
     display: flex;
-    justify-content: center;
+    justify-content: start;
     align-items: center;
     gap: 1rem;
     background: linear-gradient(45deg, #ffffff, #ffffff82);
@@ -273,11 +276,14 @@
 }
 
 .checklist-cabecalho {
+    min-width: 200px;
+    text-align: left;
     display: flex;
     align-items: start;
     justify-content: start;
     flex-direction: column;
-    background: linear-gradient(45deg, #ffffff, #ffffff82);
+    background: #efefef;
+    gap: 5px;
     padding: 0.5rem;
     border-radius: 5px;
     font-size: 12px;

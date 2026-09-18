@@ -22,6 +22,7 @@
 }
 
 .bloco-categoria {
+    text-align: left;
     box-shadow: 0 0 2px #222;
     width: 200px;
     flex-direction: column;
@@ -48,10 +49,19 @@
     justify-content: start;
 }
 
+#grafico-categorias {
+    padding: 1rem;
+}
+
 .grafico-box {
     display: none;
     width: 700px;
     height: 400px;
+}
+
+.grafico-box canvas {
+    border-radius: 0 5px 5px 5px;
+    background: linear-gradient(45deg, #ffffff, #ffffff82);
 }
 
 .etiqueta-custo {
@@ -66,6 +76,7 @@
 }
 
 .toolbar-custo {
+    text-align: left;
     padding: 0.5rem;
     width: 100%;
     display: flex;
@@ -73,28 +84,6 @@
     justify-content: space-between;
     gap: 10px;
     margin-bottom: 5px;
-}
-
-.toolbar-custo .balao-custo {
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    padding: 1rem;
-    border-radius: 5px;
-    background: linear-gradient(85deg, #151749, #249f41);
-    color: white;
-}
-
-.toolbar-custo .balao-custo input {
-    padding: 5px;
-    border-bottom-left-radius: 3px;
-    border-bottom-right-radius: 3px;
-}
-
-.toolbar-custo .balao-custo span {
-    font-size: 1.2rem;
 }
 
 .resultados {
