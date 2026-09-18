@@ -21,29 +21,24 @@ async function telaOrcamentos() {
 
     overlayAguarde()
 
-    const colunas = {
-        'Última alteração': { chave: 'lpu_ativa' },
-        'Status': { chave: 'snapshots.status_atual' },
-        'Pedido': { chave: 'snapshots.pedidos' },
-        'Notas': { chave: 'snapshots.notas' },
-        'Parcelas': {},
-        'Tags': { chave: 'snapshots.tags.*.nome' },
-        'Contrato': { chave: 'snapshots.contrato' },
-        'Vinculações': { chave: 'vinculados' },
-        'Cidade': { chave: 'snapshots.cidade' },
-        'Status em Ocorrências': { chave: 'nomesStatus' },
-        'Responsaveis': { chave: 'snapshots.responsavel' },
-        'Resumo': {},
-        'Total do Orçamento': { chave: 'snapshots.valor' },
-        'Ações': {}
-    }
-
-    const btnExtras = `<div class="filtro-orcamentos" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>`
-
     const tabela = await modTab({
-        btnExtras,
+        btnExtras: `<div class="filtro-orcamentos" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>`,
         funcaoAdicional: ['formatacaoPagina', 'carregarToolbar'],
-        colunas,
+        colunas: {
+            'Última alteração': { chave: 'lpu_ativa' },
+            'Status do Orçamento': { chave: 'snapshots.status_atual' },
+            'Status em Ocorrências': { chave: 'nomesStatus' },
+            'Pedido': { chave: 'snapshots.pedidos' },
+            'Notas': { chave: 'snapshots.notas' },
+            'Parcelas': {},
+            'Tags': { chave: 'tags.*.nome' },
+            'Contrato': { chave: 'contrato' },
+            'Vinculações': { chave: 'vinculados' },
+            'Responsaveis': { chave: 'snapshots.responsavel' },
+            'Resumo': {},
+            'Total do Orçamento': { chave: 'snapshots.valor' },
+            'Ações': {}
+        },
         base: 'vw_dados_orcamentos',
         criarLinha: 'criarLinhaOrcamento',
         body: 'linhas',
@@ -130,15 +125,16 @@ async function criarLinhaOrcamento(orcamento) {
         timestamp,
         snapshots,
         total_geral,
-        lpu_ativa
+        lpu_ativa,
+        tags,
+        contrato: colunaContrato
     } = orcamento || {}
 
-    const { status_atual, notas, pedidos, custos, parcelas, tags, cliente, cnpj } = snapshots || {}
-    const { pagamentos = 0, abastecimentos = 0 } = custos || {}
+    const { status_atual, notas, pedidos, parcelas } = snapshots || {}
     const { contrato, executor, venda_direta } = dados_orcam || {}
 
     // Velocímetro
-    const totalCusto = pagamentos + abastecimentos
+    const totalCusto = 0
     const porcentagem = Number(((totalCusto / total_geral) * 100).toFixed(1))
     const resumo = criarVelocimetroHTML({ rotulo: 'Custos', limite: 40, valor: porcentagem })
 
@@ -214,16 +210,14 @@ async function criarLinhaOrcamento(orcamento) {
 
     const finalContrato = `
         <div style="${vertical}; min-width: 150px; text-align: left; gap: 2px;">
-            <span>${contrato}</span>
             ${etiqRevAtual}
             ${etiqVendaDireta}
-            <span>${(cliente || '').toUpperCase()}</span>
-            <span>${cnpj || ''}</span>
+            ${colunaContrato.filter(Boolean).map(c => `<span>${c}</span>`).join('')}
         </div>`
 
     // Tags;
-    const listaTags = Object.values(tags || {})
-        .map(tag => modeloTag(tag, id))
+    const listaTags = tags
+        .map(tag => modeloTag(tag, tag.id))
         .join('')
 
     const data = new Date(timestamp).toLocaleString()
@@ -247,6 +241,13 @@ async function criarLinhaOrcamento(orcamento) {
                 </div>
             </div>
         </td>
+
+        <td>
+            <div style="${vertical}; gap: 2px;">
+                ${labelTipoCorrecao}
+            </div>
+        </td>
+
         <td style="padding: 0px;">
             <div class="bloco-etiquetas">${pedidosStatus}</div>
         </td>
@@ -274,12 +275,6 @@ async function criarLinhaOrcamento(orcamento) {
             <div style="${vertical}; gap: 2px;">${baloesVinculos}</div>
         </td>
 
-        <td>${(snapshots?.cidade || '').toUpperCase()}</td>
-        <td>
-            <div style="${vertical}; gap: 2px;">
-                ${labelTipoCorrecao}
-            </div>
-        </td>
         <td>
             <div style="${vertical}">
                 <span>${usuario || ''}</span>

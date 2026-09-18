@@ -51,9 +51,9 @@ function removerTagCliente(img) {
 function obVal(n) {
     const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
 
-    if(!painel)
+    if (!painel)
         return null
-    
+
     const el = painel.querySelector(`[name="${n}"]`)
     return el ? el.value || el.id : null
 }
@@ -183,84 +183,90 @@ async function ativarCadastro(id) {
 
 async function telaClientes() {
 
-    overlayAguarde()
+    try {
 
-    const colunas = {
-        'Check': {},
-        'Disponível em': {},
-        'Nome': { chave: 'nome' },
-        'CPF/CNPJ': { chave: 'cnpj' },
-        'Empresa': { chave: 'nomeEmpresa' },
-        'Setor': { chave: 'setor' },
-        'Permissão': { chave: 'permissao' },
-        'Usuário': { chave: 'usuario' },
-        'Matrícula': { chave: 'matricula' },
-        'E-mail': { chave: 'email' },
-        'Endereço Cadastro': { chave: 'snapshots.enderecoCadastro' },
-        'Comentário': { chave: 'comentario' },
-        'Ações': {}
-    }
+        overlayAguarde()
 
-    const btnExtras = `
-        <div style="${horizontal}; gap: 1rem;">
-            <input onclick="checksCliente(this)" style="width: 1.5rem; height: 1.5rem;" type="checkbox">
-            <img src="imagens/trocar.png" onclick="classificarUnidades()">
-            <button onclick="formularioCliente()">Adicionar Cadastro</button>
-        </div>`
+        const pag = 'clientes'
+        const dropdownTags = montarDropdownCheckbox({
+            titulo: 'Tags',
+            pag,
+            path: 'tags.*.tag',
+            opcoes: tagsClientes
+        })
 
-    const pag = 'clientes'
-    const tabela = await modTab({
-        pag: 'clientes',
-        colunas,
-        substituicoes: [
-            {
-                path: 'empresa',
-                tabela: 'empresas',
-                campoBusca: 'id',
-                retorno: 'nome',
-                destino: 'nomeEmpresa'
-            }
-        ],
-        funcaoAdicional: ['contarPorTagCliente'],
-        body: 'bodyClientes',
-        btnExtras,
-        criarLinha: 'criarLinhaClienteGCS',
-        base: 'clientes'
-    })
+        const dropdownEstados = montarDropdownCheckbox({
+            titulo: 'Estados',
+            pag,
+            path: 'estado',
+            opcoes: Object.keys(posicoesEstados || {})
+        })
 
-    const dropdownTags = montarDropdownCheckbox({
-        titulo: 'Tags',
-        pag,
-        path: 'tags.*.tag',
-        opcoes: tagsClientes
-    })
+        const btnExtras = `
+            <div style="${horizontal}; gap: 1rem;">
+                <input onclick="checksCliente(this)" style="width: 1.5rem; height: 1.5rem;" type="checkbox">
+                <img src="imagens/trocar.png" onclick="classificarUnidades()">
+                <button onclick="formularioCliente()">Adicionar Cadastro</button>
+                <button onclick="mostrarMapa()">Ver Mapa</button>
+                ${dropdownTags}
+                ${dropdownEstados}
+            </div>
+        `
 
-    const dropdownEstados = montarDropdownCheckbox({
-        titulo: 'Estados',
-        pag,
-        path: 'estado',
-        opcoes: Object.keys(posicoesEstados || {})
-    })
+        const tabela = await modTab({
+            pag: 'clientes',
+            colunas: {
+                'Check': {},
+                'Disponível em': {},
+                'Nome': { chave: 'nome' },
+                'CPF/CNPJ': { chave: 'cnpj' },
+                'Empresa': { chave: 'nomeEmpresa' },
+                'Setor': { chave: 'setor' },
+                'Permissão': { chave: 'permissao' },
+                'Usuário': { chave: 'usuario' },
+                'Matrícula': { chave: 'matricula' },
+                'E-mail': { chave: 'email' },
+                'Endereço Cadastro': { chave: 'snapshots.enderecoCadastro' },
+                'Comentário': { chave: 'comentario' },
+                'Ações': {}
+            },
+            substituicoes: [
+                {
+                    path: 'empresa',
+                    tabela: 'empresas',
+                    campoBusca: 'id',
+                    retorno: 'nome',
+                    destino: 'nomeEmpresa'
+                }
+            ],
+            funcaoAdicional: ['contarPorTagCliente'],
+            body: 'bodyClientes',
+            btnExtras,
+            criarLinha: 'criarLinhaClienteGCS',
+            base: 'clientes'
+        })
 
-    const mapa = criarMapa({ apenasMapa: true, path: 'estado', pag: 'clientes' })
+        const mapa = criarMapa({
+            apenasMapa: true,
+            path: 'estado',
+            pag: 'clientes'
+        })
 
-    tela.innerHTML = `
+        tela.innerHTML = `
         <div class="tela-clientes">
             ${montarPagina({ tabela, titulo: 'Clientes, Usuários & Fornecedores', imagem: 'prancheta' })}
-            <div class="bloco-clientes mapa">
-                <div class="cabecalho-etiquetas">
-                    ${dropdownTags}
-                    ${dropdownEstados}
-                </div>
-                ${mapa}
-            </div>
+            ${mapa}
         </div>`
 
+        await paginacao(pag)
 
-    await paginacao(pag)
-    mostrarMapa()
+        removerOverlay()
 
-    removerOverlay()
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir a tabela de clientes: Fale com o cliente.' })
+    }
+
 }
 
 async function contarPorTagCliente() {
