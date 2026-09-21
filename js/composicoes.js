@@ -4,8 +4,10 @@ async function telaComposicoes() {
 
         overlayAguarde()
 
-        if (!LPUS)
-            return popup({ mensagem: 'LPUs não carregaram... espere um pouco mais.' })
+        if (!LPUS) {
+            const { lpus } = await recuperarDado('mvw_lpus', 1) || {}
+            LPUS = lpus
+        }
 
         const colunas = {
             'Código': { chave: 'id' },
@@ -636,7 +638,7 @@ async function adicionarCotacao(codigo, lpu, cotacao) {
 }
 
 function obValComp(id, valorRetorno) {
-    
+
     const el = document.getElementById(id)
 
     if (!el)

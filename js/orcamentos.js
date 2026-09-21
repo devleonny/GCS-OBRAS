@@ -445,7 +445,7 @@ async function carregarToolbar() {
 async function filtrarToolbar(campo) {
 
     const chave = 'snapshots.status_atual'
-    controles.orcamentos.filtros
+    controles.orcamentos ?? {}
     controles.orcamentos.filtros ?? {}
 
     controles.orcamentos.filtros[chave] = { op: '=', value: campo }

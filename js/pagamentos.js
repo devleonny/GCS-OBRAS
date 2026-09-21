@@ -319,7 +319,7 @@ async function abrirDetalhesPagamentos(id) {
             if (!cc) return []
 
             const pesquisa = await pesquisarDB({
-                base: 'dados_orcamentos',
+                base: 'vw_dados_orcamentos',
                 filtros: {
                     'dados_orcam.contrato': { op: '=', value: cc.descricao }
                 }
@@ -332,12 +332,9 @@ async function abrirDetalhesPagamentos(id) {
     const vinculados = resultados.flat()
 
     const btnsOrcamentos = vinculados
-        .map(resultado => {
-            const total = resultado?.total_geral
-                ? dinheiro(resultado?.total_geral)
-                : ''
-            return btnDetalhes('pasta', `${resultado?.snapshots?.cliente || '...'} 
-                <br>${total}`, `abrirAtalhos('${resultado.id}')`)
+        .map(({ cliente, total_geral, id }) => {
+            return btnDetalhes('pasta', `${cliente || '...'} 
+                <br>${dinheiro(total_geral)}`, `abrirAtalhos('${id}')`)
         }).join('')
 
 

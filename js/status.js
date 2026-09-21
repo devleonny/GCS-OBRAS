@@ -377,7 +377,7 @@ async function abrirAtalhos(id) {
 
     overlayAguarde()
 
-    const orcamento = await recuperarDado('dados_orcamentos', id) || {}
+    const orcamento = await recuperarDado('vw_dados_orcamentos', id) || {}
     const emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
     const botoesDisponiveis = []
     const { executor: autorizados, contrato } = orcamento.dados_orcam || {}
@@ -442,16 +442,9 @@ async function abrirAtalhos(id) {
         </div>`
         : ''
 
-    const dadosCabecalho = [
-        ...orcamento.snapshots?.contrato || [],
-        orcamento.snapshots?.cidade
-    ]
-        .filter(o => o)
-        .join('<br>')
-
     const acumulado = `
-        <div style="text-align: left;">
-            ${dadosCabecalho}
+        <div style="${vertical}; gap: 2px;">
+            ${(orcamento?.contrato || []).map(d => `<span>${d}</span>`).join('')}
         </div>
         <hr>
         ${aviso}

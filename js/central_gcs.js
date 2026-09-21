@@ -120,19 +120,6 @@ async function telaInicialGCS() {
     await criarElementosIniciais()
     await auxPendencias()
 
-    if (!LPUS)
-        await recuperarLPUS()
-
-}
-
-async function recuperarLPUS() {
-    const resposta = await buscarLPUs()
-
-    if (resposta.mensagem)
-        return popup({ mensagem: resposta.mensagem })
-
-    if (resposta.lpus)
-        LPUS = resposta.lpus
 }
 
 async function salvarDepartamento({ img, nome }) {

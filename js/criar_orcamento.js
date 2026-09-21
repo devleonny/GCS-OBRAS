@@ -55,6 +55,11 @@ async function confirmarExclusaoOrcamento() {
 
 async function telaCriarOrcamento() {
 
+    if (!LPUS) {
+        const { lpus } = await recuperarDado('mvw_lpus', 1) || {}
+        LPUS = lpus
+    }
+
     modo = ''
 
     const modelo = (texto, img) => `

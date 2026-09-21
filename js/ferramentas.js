@@ -491,16 +491,16 @@ async function cxOpcoes(name) {
         return popup({ mensagem: `>>> cxOpcoes(null) <<<` })
 
     controlesCxOpcoes.ativo = name
-    const { 
-        colunas, 
-        base, 
-        retornar, 
+    const {
+        colunas,
+        base,
+        retornar,
         ordenar = {
             path: retornar[0],
             direcao: 'ASC'
-        }, 
-        filtros = {}, 
-        btnExtras = null 
+        },
+        filtros = {},
+        btnExtras = null
     } = controle
 
     const pag = 'cxOpcoes'
@@ -727,26 +727,6 @@ async function importarAnexos({ input, foto }) {
     }
 }
 
-async function buscarLPUs() {
-
-    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
-
-    const resposta = await fetch(`${read}/lpus`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        }
-    })
-
-    if (!resposta.ok) {
-        const erro = await resposta.text()
-        throw new Error(erro || 'Erro ao contar por campo')
-    }
-
-    return await resposta.json()
-}
-
 async function criarLPU(nomeLPU) {
 
     const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
@@ -825,7 +805,9 @@ async function salvarLPU() {
 
     popup({ mensagem: 'Criado com sucesso' })
 
-    await recuperarLPUS()
+    const { lpus } = await recuperarDado('mvw_lpus', 1) || {}
+    LPUS = lpus
+
 }
 
 function validarCpfCnpj(val) {
