@@ -6,6 +6,17 @@
     justify-content: center;
 }
 
+.label-botao-custos {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 1rem;
+    border-radius: 20px;
+    border: solid 1px #a8a8ff;
+    background-color: #0000ff26;
+}
+
 .painel-custos-tabelas {
     width: 100%;
 }

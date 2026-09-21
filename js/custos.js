@@ -5,11 +5,15 @@ async function painelCustos(contrato) {
         overlayAguarde()
 
         const {
+            contrato: departamentoExistente,
             total_pagamentos,
             total_geral,
             cidade,
             cliente
         } = await recuperarDado('mvw_custos_cc', contrato) || {}
+
+        if (!departamentoExistente)
+            return popup({ mensagem: 'Não existe centro de custo criado para este orçamento. <br><small>Mude o orçamento para aprovado primeiro!</small>' })
 
         // Velocímetro
         const porcentagem = Number(((total_pagamentos / total_geral) * 100).toFixed(1))
@@ -26,7 +30,6 @@ async function painelCustos(contrato) {
                 })
                     .map(([campo, valor]) => `<span style="white-space: pre-wrap;"><b>${inicialMaiuscula(campo)}</b>\n${valor || ''}</span>`)
                     .join('')
-
 
         const esquema = [
             {

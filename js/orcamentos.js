@@ -127,16 +127,27 @@ async function criarLinhaOrcamento(orcamento) {
         total_geral,
         lpu_ativa,
         tags,
-        contrato: colunaContrato
+        contrato: colunaContrato,
+        total_pagamentos
     } = orcamento || {}
 
     const { status_atual, notas, pedidos, parcelas } = snapshots || {}
     const { contrato, executor, venda_direta } = dados_orcam || {}
 
     // Velocímetro
-    const totalCusto = 0
-    const porcentagem = Number(((totalCusto / total_geral) * 100).toFixed(1))
-    const resumo = criarVelocimetroHTML({ rotulo: 'Custos', limite: 40, valor: porcentagem })
+    const porcentagem = total_pagamentos
+        ? Number(((total_pagamentos / total_geral) * 100).toFixed(1))
+        : 0
+
+    const resumo = `
+        <div style="${vertical}; align-items: center; gap: 2px;">
+            ${criarVelocimetroHTML({ rotulo: 'Custos', limite: 40, valor: porcentagem })}
+            <div class="label-botao-custos" onclick="painelCustos('${contrato}')">
+                <img src="imagens/painelcustos.png">
+                <span>Painel de Custos</span>
+            </div>
+        </div>
+    `
 
     const labelTipoCorrecao = (nomes_status || [])
         .map(st => formatacaoTipoCorrecao(st))
