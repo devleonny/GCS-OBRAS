@@ -1025,7 +1025,7 @@ async function contadoresMapaOcorrencias() {
 
     const fazerPesquisa = document.querySelector('.painel-mapa').getAttribute('class').includes('ativo')
 
-    if(!fazerPesquisa)
+    if (!fazerPesquisa)
         return
 
     const dados = await contarPorCampo({
@@ -1071,20 +1071,16 @@ function criarLinhaOcorrencia(ocorrencia) {
         usuario,
         id_usuario_funcionario,
         id_antigo,
-        snapshots,
+        cliente,
         equipamentos,
         contratos_vinculados,
         buscar_tecnico,
-        tags
-    } = ocorrencia || {}
-
-    const {
+        empresa,
+        tipo,
         sistema,
         prioridade,
-        tipo,
-        cliente,
-        empresa
-    } = snapshots || {}
+        tags
+    } = ocorrencia || {}
 
     // Tags;
     const listaTags = Object.values(tags || {})
@@ -2201,152 +2197,43 @@ async function filtrarAtrasados(input) {
 
 async function auxPendencias() {
     try {
+
         const divPendencias = document.querySelector('.painel-pendencias')
-        if (!divPendencias) return
 
-        const { permissao } = acesso || {}
-
-        controles.ocorrencias ??= {}
-        controles.ocorrencias.filtros ??= {}
-
-        const ordemFinal = ['CANCELADO', 'SOLUCIONADA', 'TODOS']
-
-        const ordenarEtiquetas = (a, b) => {
-            const [nomeA] = a
-            const [nomeB] = b
-
-            const priA = ordemFinal.includes(nomeA)
-            const priB = ordemFinal.includes(nomeB)
-
-            if (priA && !priB) return 1
-            if (!priA && priB) return -1
-
-            return nomeA.localeCompare(nomeB)
-        }
-
-        const montarPills = (contadores) => {
-            return Object.entries(contadores || {})
-                .sort(ordenarEtiquetas)
-                .map(([correcao, total]) => {
-
-                    if (
-                        correcao.includes('PAGAMENTO DE PARCEIRO') &&
-                        permissao === 'cliente'
-                    ) {
-                        return ''
-                    }
-
-                    const cor = padraoCor(correcao)
-
-                    return `
-                        <div class="pill" onclick="atalhoAuxiliar('${correcao}', 'snapshots.ultimaCorrecao.*.nome')">
-                            <span class="pill-a" style="background: ${cor};">${total}</span>
-                            <span class="pill-b">${correcao.toUpperCase()}</span>
-                        </div>
-                    `
-                })
-        }
-
-        if (!['cliente', 'técnico'].includes(permissao)) {
-
-            const esquema = {
-                'FUNCIONÁRIOS': 'f7aec8c1-ce57-40f8-9ea1-c032c3971a9f',
-                'PARCEIROS': 'c0bfd4a8-6bca-40e7-a71b-5990630f4b19'
-            }
-
-            const [contadores, ctg, ctgFluxo, ctgEmpresa, ctgBusTec] = await Promise.all([
-
-                contarPorCampo({
-                    base: 'dados_ocorrencias',
-                    explode: { path: 'snapshots.ultimaCorrecao' },
-                    path: 'nome'
-                }),
-
-                contarPorCampo({
-                    filtros: {
-                        tipo: {
-                            modo: 'OR',
-                            regras: [
-                                { op: '=', value: 'f7aec8c1-ce57-40f8-9ea1-c032c3971a9f' },
-                                { op: '=', value: 'c0bfd4a8-6bca-40e7-a71b-5990630f4b19' }
-                            ]
-                        }
-                    },
-                    base: 'dados_ocorrencias',
-                    path: 'tipo'
-                }),
-
-                contarPorCampo({
-                    base: 'dados_ocorrencias',
-                    path: 'prioridade',
-                    filtros: {
-                        prioridade: { op: '=', value: 'lauka' }
-                    }
-                }),
-
-                contarPorCampo({
-                    base: 'dados_ocorrencias',
-                    path: 'snapshots.empresa',
-                    filtros: {
-                        'snapshots.empresa': { op: '=', value: 'SAVEGNAGO' }
-                    }
-                }),
-
-                contarPorCampo({
-                    base: 'dados_ocorrencias',
-                    path: 'buscar_tecnico'
-                }),
-            ])
-
-            const etiquetas = [
-                ...montarPills(contadores),
-                '<br>'
-            ]
-
-            for (const [titulo, cod] of Object.entries(esquema)) {
-                etiquetas.push(`
-                    <div class="pill" onclick="atalhoAuxiliar('${titulo}', 'tipo')">
-                        <span class="pill-a" style="background: #5E35B1;">${ctg?.[cod] || 0}</span>
-                        <span class="pill-b">${titulo}</span>
-                    </div>
-                `)
-            }
-
-            etiquetas.push(`
-                <br>
-                <div class="pill" onclick="atalhoAuxiliar('CONTAGEM DE FLUXO', 'prioridade')">
-                    <span class="pill-a" style="background: #5E35B1;">${ctgFluxo?.lauka || 0}</span>
-                    <span class="pill-b">CONTAGEM DE FLUXO</span>
-                </div>
-            `)
-
-            etiquetas.push(`
-                <br>
-                <div class="pill" onclick="atalhoAuxiliar('SAVEGNAGO', 'empresa')">
-                    <span class="pill-a" style="background: #5E35B1;">${ctgEmpresa?.['SAVEGNAGO'] || 0}</span>
-                    <span class="pill-b">SAVEGNAGO</span>
-                </div>
-            `)
-
-            etiquetas.push(`
-                <br>
-                <div class="pill" onclick="atalhoAuxiliar('S', 'buscar_tecnico')">
-                    <span class="pill-a" style="background: #5E35B1;">${ctgBusTec?.['S'] || 0}</span>
-                    <span class="pill-b">BUSCA DE TÉCNICOS</span>
-                </div>
-                `)
-
-            divPendencias.innerHTML = etiquetas.join('')
+        if (!divPendencias)
             return
-        }
 
-        const contadores = await contarPorCampo({
-            base: 'dados_ocorrencias',
-            explode: { path: 'snapshots.ultimaCorrecao' },
-            path: 'nome'
-        })
+        const {
+            contagens,
+            contagens_adicionais
+        } = await recuperarDado('mvw_contagem_ultima_correcao', acesso?.empresa) || {}
 
-        divPendencias.innerHTML = montarPills(contadores).join('')
+        const atalhos = [...contagens ?? [], ...contagens_adicionais ?? []]
+            .map(item => {
+
+                const { 
+                    chave,
+                    local,
+                    nome, 
+                    quantidade, 
+                    cor 
+                } = item || {}
+                
+                return `
+                    <div class="pill" onclick="atalhoAuxiliar('${chave}', '${local}')">
+                        <span class="pill-a" style="background-color: ${cor};">${quantidade}</span>
+                        <span class="pill-b">${nome}</span>
+                    </div>
+                `
+            })
+            .join('')
+
+        divPendencias.innerHTML = atalhos || `
+            <div class="atalhos-menu">
+                <img src="gifs/interrogacao.gif">
+                <span>Empresa não vinculada</span>
+            </div>
+        `
 
     } catch (err) {
         console.error(err)
@@ -2355,6 +2242,7 @@ async function auxPendencias() {
 
 async function atalhoAuxiliar(termo, chave) {
 
+    controles.ocorrencias ??= {}
     controles.ocorrencias.filtros = {}
 
     controles.ocorrencias.filtros[chave] = {

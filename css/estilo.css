@@ -13,6 +13,19 @@ html {
     font-size: 0.9rem;
 }
 
+.atalhos-menu {
+    width: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 10px;
+}
+
+.atalhos-menu img {
+   width: 3rem;
+}
+
 .toolbar-top {
     z-index: 9999;
     height: 6vh;

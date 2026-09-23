@@ -166,7 +166,7 @@ async function criarElementosIniciais() {
             t1: 'Correções para:',
             t2: usuario,
             tabela: tCorrecoes
-        },
+        }
     ]
 
     const modeloTabPendencias = ({ t1, t2, tabela }) => {

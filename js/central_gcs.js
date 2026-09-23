@@ -116,9 +116,10 @@ async function telaInicialGCS() {
 
     tela.innerHTML = tInterna
 
+    auxPendencias()
     await carregarControles()
     await criarElementosIniciais()
-    await auxPendencias()
+
 
 }
 
