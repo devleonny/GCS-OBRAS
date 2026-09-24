@@ -1084,7 +1084,7 @@ function criarLinhaOcorrencia(ocorrencia) {
 
     // Tags;
     const listaTags = Object.values(tags || {})
-        .map(tag => modeloTag(tag, id))
+        .map(tag => modeloTag(tag, 'N'))
         .join('')
 
     // Apenas autorizados;

@@ -15,9 +15,11 @@ const modeloTag = ({ cor = '#999', nome, id }, idOrcamento = null) => {
         ? 'color: #fff;'
         : ''
 
-    const funcao = idOrcamento
-        ? `confirmarRemocaoTag('${id}', '${idOrcamento}')`
-        : `vincularTag('${id}')`
+    const funcao = idOrcamento == 'N'
+        ? ''
+        : idOrcamento
+            ? `confirmarRemocaoTag('${id}', '${idOrcamento}')`
+            : `vincularTag('${id}')`
 
     const modelo = `
         <div class="tag" style="${cLinear(cor)}; ${branco}">
