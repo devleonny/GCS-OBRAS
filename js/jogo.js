@@ -160,7 +160,39 @@ function atualizar() {
     }
 }
 
+function tratarTeclaJogo(evento) {
+    if (!canvasJogo || !canvasJogo.isConnected) {
+        limparJogo()
+        return
+    }
+
+    if (
+        evento.target.matches('input, textarea, select, [contenteditable="true"]')
+    ) return
+
+    if (evento.code === 'Space' || evento.code === 'ArrowUp') {
+        evento.preventDefault()
+        pular()
+    }
+}
+
+function limparJogo() {
+    cancelAnimationFrame(animationId)
+
+    if (canvasJogo) {
+        canvasJogo.removeEventListener('click', pular)
+    }
+
+    document.removeEventListener('keydown', tratarTeclaJogo)
+
+    canvasJogo = null
+    ctxJogo = null
+    jogoAtivo = false
+}
+
 function atribuirFuncoesJogo() {
+    limparJogo()
+
     canvasJogo = document.querySelector('#jogoPendencias')
 
     if (!canvasJogo) return
@@ -168,13 +200,7 @@ function atribuirFuncoesJogo() {
     ctxJogo = canvasJogo.getContext('2d')
 
     canvasJogo.addEventListener('click', pular)
-
-    document.addEventListener('keydown', evento => {
-        if (evento.code === 'Space' || evento.code === 'ArrowUp') {
-            evento.preventDefault()
-            pular()
-        }
-    })
+    document.addEventListener('keydown', tratarTeclaJogo)
 
     desenhar()
 }

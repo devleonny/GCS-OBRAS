@@ -67,6 +67,9 @@ function criarAtalhoMenu({ nome, img, gif }, nivel) {
 
 async function acaoMenu(id, funcao, temFilhos) {
 
+    if(canvasJogo)
+        limparJogo()
+
     const el = document.getElementById(id)
     const partes = id.split('_')
     const nivel = partes.length - 1

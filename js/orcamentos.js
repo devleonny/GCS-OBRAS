@@ -79,11 +79,11 @@ async function carregarPesquisaOrcamento() {
         },
         'Empresa': {
             chave: 'empresas',
-            path: 'snapshots.empresa'
+            path: 'empresa'
         },
         'Tags': {
             chave: 'tags',
-            path: 'snapshots.tags.*.nome'
+            path: 'tags.*.nome'
         }
     }
 
