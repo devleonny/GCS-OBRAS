@@ -2231,7 +2231,7 @@ async function auxPendencias() {
         divPendencias.innerHTML = atalhos || `
             <div class="atalhos-menu">
                 <img src="gifs/interrogacao.gif">
-                <span>Empresa não vinculada</span>
+                <span>Não disponível</span>
             </div>
         `
 
