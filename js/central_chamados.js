@@ -68,9 +68,8 @@ function exibirSenha(img) {
 
 async function criarElementosIniciais() {
 
-    const { setor, permissao, usuario } = acesso || {}
-
     const pFundo = document.querySelector('.planoFundo')
+
     if (!pFundo)
         return
 
@@ -81,140 +80,95 @@ async function criarElementosIniciais() {
             ? 'Boa tarde'
             : 'Bom dia'
 
-    const filtrosTipoCorrecao = [
-        { op: '!=', value: 'SOLUCIONADA' },
-        { op: '!=', value: 'CANCELADO' }
-    ]
+    const modeloTabPendencias = ({ t1, t2, linhas }) => {
 
-    const tecOuCliente = ['técnico', 'cliente'].includes(permissao)
+        const info = (titulo, valor) => valor
+            ? `
+                <div style="${vertical}; gap: 2px;">
+                    <span><b>${titulo}:</b></span>
+                    <div style="display: flex; flex-wrap: wrap;">${valor}</div>
+                </div>
+            `
+            : ''
 
-    const [tSetor, tAtrasados, tCorrecoes, tPermissao] = await Promise.all([
+        const baloes = linhas
+            .map(linha => {
 
-        (!setor || tecOuCliente)
-            ? null
-            : modTab({
-                base: 'dados_ocorrencias',
-                pag: 'tSetor',
-                body: 'tSetor',
-                explode: { path: 'snapshots.ultimaCorrecao' },
-                filtros: {
-                    'snapshots.ultimaCorrecao.*.nome': filtrosTipoCorrecao,
-                    'snapshots.ultimaCorrecao.*.setor': { op: 'includes', value: setor }
-                },
-                criarLinha: 'linCorrecoes'
-            }),
+                const {
+                    nome,
+                    chamado,
+                    descricao,
+                    usuario,
+                    unidade,
+                    dtCorrecaoFinal
+                } = linha.correcao || {}
 
-        permissao == 'técnico'
-            ? null
-            : modTab({
-                base: 'dados_ocorrencias',
-                pag: 'tAtrasados',
-                body: 'tAtrasados',
-                explode: { path: 'snapshots.ultimaCorrecao' },
-                filtros: {
-                    'snapshots.ultimaCorrecao.*.usuario': { op: 'includes', value: usuario },
-                    'snapshots.ultimaCorrecao.*.nome': filtrosTipoCorrecao,
-                    'snapshots.ultimaCorrecao.*.dtCorrecao': { op: '<d', value: new Date().toLocaleDateString() }
-                },
-                criarLinha: 'linCorrecoes'
-            }),
+                const tipoCorrecaoFormatado = formatacaoTipoCorrecao(nome)
+                const solicitado = usuario
+                    ? `<span>Solicitado por ${usuario}</span>`
+                    : ''
 
-        modTab({
-            base: 'dados_ocorrencias',
-            pag: 'tCorrecoes',
-            body: 'tCorrecoes',
-            explode: { path: 'snapshots.ultimaCorrecao' },
-            filtros: {
-                'snapshots.ultimaCorrecao.*.executor': { op: 'includes', value: usuario },
-                'snapshots.ultimaCorrecao.*.nome': filtrosTipoCorrecao
-            },
-            criarLinha: 'linCorrecoes'
-        }),
-
-        (!permissao || tecOuCliente)
-            ? null
-            : modTab({
-                base: 'dados_ocorrencias',
-                pag: 'tPermissao',
-                body: 'tPermissao',
-                explode: { path: 'snapshots.ultimaCorrecao' },
-                filtros: {
-                    'snapshots.ultimaCorrecao.*.nome': filtrosTipoCorrecao,
-                    'snapshots.ultimaCorrecao.*.permissao': { op: 'includes', value: permissao }
-                },
-                criarLinha: 'linCorrecoes'
+                return `
+                <div class="balao-correcao" onclick="atalhoAuxiliar('${chamado}', 'chamados', 'includes')">
+                    ${solicitado}
+                    <div style="${horizontal}; padding: 1rem; gap: 1rem;">
+                        <img src="imagens/alerta.png">
+                        <div style="${vertical};">
+                            ${tipoCorrecaoFormatado}
+                            <span style="font-size: 1rem"><b>${chamado}</b></span>
+                            ${info('Data Limite', dtCorrecaoFinal)}
+                            ${info('Unidade', unidade)}
+                            ${info('Descrição', descricao)}
+                        </div>
+                    </div>
+                </div>
+                `
             })
-    ])
-
-    const esquemaTabelas = [
-        {
-            t1: 'Agendamento atrasado:',
-            t2: 'Reagendar',
-            tabela: tAtrasados
-        },
-        {
-            t1: 'Correções por Permissão:',
-            t2: permissao,
-            tabela: tPermissao
-        },
-        {
-            t1: 'Correções por setor:',
-            t2: setor,
-            tabela: tSetor
-        },
-        {
-            t1: 'Correções para:',
-            t2: usuario,
-            tabela: tCorrecoes
-        }
-    ]
-
-    const modeloTabPendencias = ({ t1, t2, tabela }) => {
-
-        if (!tabela)
-            return ''
+            .join('')
 
         return `
             <div class="b-atalhos">
                 <div style="${horizontal}; gap: 1rem;">
+                    <span class="titul-1" style="font-size: 25px;">${linhas.length}</span>
                     <span class="titul-1">${t1}</span>
                     <span class="tag-pendencias">${t2}</span>
                 </div>
-                ${tabela}
+                <div style="overflow: hidden; border-radius: 5px;">
+                    <div class="bloco-pendencias">${baloes}</div>
+                </div>
             </div>
         `
     }
 
-    const todasAsTabelas = esquemaTabelas
-        .map(esq => {
-            return modeloTabPendencias(esq)
-        })
+    const { dados, timestamp } = await dadosIniciais()
+
+    const blocos = (dados || [])
+        .filter(dados => dados?.linhas.length)
+        .map(dados => modeloTabPendencias(dados))
         .join('')
+
+    const jogo = `<canvas id="jogoPendencias" width="620" height="180"></canvas>`
+
+    const mensagem = blocos 
+        ? `Logo abaixo veja alguns atalhos para ocorrências que precisam de atenção:`
+        : 'Não existem pendências para você!'
 
     pFundo.innerHTML = `
         <div style="${horizontal}; gap: 1rem;">
             <img src="imagens/BG.png" style="width: 10rem;">
             <span style="padding: 1rem; font-size: 1rem; color: white;">
-                <b>${saudacao}</b>,<br> Logo abaixo veja alguns atalhos para ocorrências que precisam de atenção:
+                <b>${saudacao}</b>,<br> ${mensagem}
             </span>
         </div>
 
         <div class="b-painel">
 
-            ${todasAsTabelas}
+            ${blocos || jogo}
 
         </div>`
 
-    await Promise.all(
-        [
-            { pag: 'tSetor', tabela: tSetor },
-            { pag: 'tAtrasados', tabela: tAtrasados },
-            { pag: 'tCorrecoes', tabela: tCorrecoes },
-            { pag: 'tPermissao', tabela: tPermissao }
-        ]
-            .filter(({ tabela }) => Boolean(tabela))
-            .map(({ pag }) => paginacao(pag))
-    )
+    if(!blocos)
+        await atribuirFuncoesJogo()
 
 }
 

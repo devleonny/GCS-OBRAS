@@ -2240,7 +2240,7 @@ async function auxPendencias() {
     }
 }
 
-async function atalhoAuxiliar(termo, chave) {
+async function atalhoAuxiliar(termo, chave, op = '=') {
 
     controles.ocorrencias ??= {}
     controles.ocorrencias.filtros = {}
@@ -2249,7 +2249,7 @@ async function atalhoAuxiliar(termo, chave) {
         modo: 'OR',
         origem: 'dropdown',
         regras: [
-            { op: '=', value: termo }
+            { op, value: termo }
         ]
     }
 

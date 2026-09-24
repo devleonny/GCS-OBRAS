@@ -1,0 +1,24 @@
+ .sem-pendencias {
+     display: grid;
+     justify-items: center;
+     gap: 10px;
+     padding: 30px
+ }
+
+ .titulo-vazio {
+     font-size: 20px;
+     font-weight: 700
+ }
+
+ .subtitulo-vazio {
+     color: #777;
+     font-size: 13px
+ }
+
+ #jogoPendencias {
+     width: min(620px, 100%);
+     height: auto;
+     border-radius: 12px;
+     background: #f6f8fb;
+     cursor: pointer
+ }

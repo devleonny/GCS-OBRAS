@@ -23,7 +23,7 @@ html {
 }
 
 .atalhos-menu img {
-   width: 3rem;
+    width: 3rem;
 }
 
 .toolbar-top {
@@ -76,13 +76,40 @@ html {
     align-items: start;
     justify-content: center;
     gap: 1rem;
-    background-color: rgba(255, 255, 255, 0.104);
+    background-color: #ffffff1b;
     padding: 1rem;
+}
+
+.bloco-pendencias {
+    font-size: 11px;
+    flex-direction: column;
+    background-color: #ffffffc7;
+    max-width: 500px;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    max-height: 50vh;
+    height: max-content;
+    overflow-y: auto;
+}
+
+.balao-correcao {
+    width: 100%;
+    white-space: pre-wrap;
+    cursor: pointer;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    border-bottom: solid 1px #afafaf;
+}
+
+.balao-correcao:hover {
+    background-color: #b2c9ff;
 }
 
 .b-atalhos {
     overflow-y: auto;
-    width: 100%;
     display: flex;
     align-items: start;
     justify-content: start;
