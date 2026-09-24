@@ -1888,7 +1888,7 @@ async function criarPesquisas() {
             acesso.permissao == 'cliente'
                 ? {}
                 : {
-                    'Empresa': { chave: 'empresas', path: 'snapshots.empresa' },
+                    'Empresa': { chave: 'empresas', path: 'empresa' },
                     'Tags': { chave: 'tags', path: 'tags.*.nome' }
                 }
         )
