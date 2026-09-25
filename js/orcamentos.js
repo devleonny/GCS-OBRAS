@@ -26,20 +26,20 @@ async function telaOrcamentos() {
         funcaoAdicional: ['formatacaoPagina', 'carregarToolbar'],
         colunas: {
             'Última alteração': { chave: 'lpu_ativa' },
-            'Status do Orçamento': { chave: 'snapshots.status_atual' },
+            'Status do Orçamento': { chave: 'status_atual' },
             'Status em Ocorrências': { chave: 'nomesStatus' },
-            'Pedido': { chave: 'snapshots.pedidos' },
-            'Notas': { chave: 'snapshots.notas' },
+            'Pedido': { chave: 'pedidos.*.pedido' },
+            'Notas': { chave: 'notas.*.n_nota' },
             'Parcelas': {},
             'Tags': { chave: 'tags.*.nome' },
             'Contrato': { chave: 'contrato' },
             'Vinculações': { chave: 'vinculados' },
-            'Responsaveis': { chave: 'snapshots.responsavel' },
-            'Resumo': {},
-            'Total do Orçamento': { chave: 'snapshots.valor' },
+            'Responsaveis': { chave: 'responsaveis' },
+            'Custos': {},
+            'Total do Orçamento': { chave: 'total_geral' },
             'Ações': {}
         },
-        base: 'vw_dados_orcamentos',
+        base: 'mvw_dados_orcamentos',
         criarLinha: 'criarLinhaOrcamento',
         body: 'linhas',
         pag: 'orcamentos'
@@ -75,7 +75,7 @@ async function carregarPesquisaOrcamento() {
     const camposFechados = {
         'Status': {
             chave: 'status_orcamentos', // Chave na tabela ref de opções;
-            path: 'snapshots.status_atual'
+            path: 'status_atual'
         },
         'Empresa': {
             chave: 'empresas',
@@ -123,15 +123,17 @@ async function criarLinhaOrcamento(orcamento) {
         vinculados,
         nomes_status,
         timestamp,
-        snapshots,
         total_geral,
         lpu_ativa,
         tags,
         contrato: colunaContrato,
-        total_pagamentos
+        total_pagamentos,
+        notas,
+        pedidos,
+        parcelas,
+        status_atual
     } = orcamento || {}
 
-    const { status_atual, notas, pedidos, parcelas } = snapshots || {}
     const { contrato, executor, venda_direta } = dados_orcam || {}
 
     // Velocímetro
@@ -157,7 +159,7 @@ async function criarLinhaOrcamento(orcamento) {
         .map(({ tipo, pedido, valor, autorizado_por }) => {
 
             const label = `
-                <div class="etiquetas" style="text-align: left;">
+                <div class="parcelas-notas" style="text-align: left;">
                     <label>${tipo || ''}</label>
                     <label>${pedido}</label>
                     ${autorizado_por ? `<label><b>${autorizado_por}</b></label>` : ''}
@@ -228,7 +230,7 @@ async function criarLinhaOrcamento(orcamento) {
 
     // Tags;
     const listaTags = tags
-        .map(tag => modeloTag(tag, tag.id))
+        .map(tag => modeloTag(tag, id))
         .join('')
 
     const data = new Date(timestamp).toLocaleString()

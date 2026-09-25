@@ -296,9 +296,6 @@ async function salvarPedido(id) {
             empresa: empresa.value
         }
 
-        console.log(dados);
-
-
         await enviar(`pedidos/${id}`, dados)
 
         removerPopup()
@@ -377,7 +374,7 @@ async function abrirAtalhos(id) {
 
     overlayAguarde()
 
-    const orcamento = await recuperarDado('vw_dados_orcamentos', id) || {}
+    const orcamento = await recuperarDado('mvw_dados_orcamentos', id) || {}
     const emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
     const botoesDisponiveis = []
     const { executor: autorizados, contrato } = orcamento.dados_orcam || {}
@@ -744,15 +741,19 @@ async function abrirEsquema(id) {
 
     overlayAguarde()
 
-    const { dados_orcam, snapshots } = await recuperarDado('dados_orcamentos', id)
+    const { 
+        dados_orcam, 
+        nomes_status, 
+        cliente,
+        status_atual
+    } = await recuperarDado('mvw_dados_orcamentos', id) || {}
+
     const contrato = dados_orcam?.contrato
-    const { cliente, status_atual } = snapshots || {}
-    const { snapshots: snapOcorrencias } = await recuperarDado('dados_ocorrencias', contrato) || {}
 
     controles.ocorrencias ??= {}
     controles.ocorrencias.ativo = contrato
 
-    const labelTipoCorrecao = (snapOcorrencias?.nomesStatus || [])
+    const labelTipoCorrecao = (nomes_status || [])
         .map(st => formatacaoTipoCorrecao(st))
         .join('')
 

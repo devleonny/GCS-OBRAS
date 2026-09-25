@@ -159,16 +159,13 @@ function registrarAtualizacaoWS(tabela) {
     if (!tabela)
         return
 
+    tabelasPendentesWS.add(tabela)
+
     if (document.visibilityState !== 'visible') {
-        tabelasPendentesWS.add(tabela)
         atualizarTodasWS = true
         return
     }
 
-    if (atualizacaoEmExecucaoWS)
-        return
-
-    tabelasPendentesWS.add(tabela)
     agendarAtualizacaoWS()
 }
 
