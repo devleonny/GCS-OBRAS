@@ -3,7 +3,7 @@ function formatacaoPagina() {
     const pag = 'orcamentos'
     let status = ''
 
-    const pesq = controles?.[pag]?.filtros?.['snapshots.status_atual']
+    const pesq = controles?.[pag]?.filtros?.['status_atual']
     status = pesq?.op == 'IS_EMPTY'
         ? 'SEM STATUS'
         : pesq?.value || 'TODOS'
@@ -368,14 +368,10 @@ async function duplicar(id) {
         dados_composicoes,
         lpu_ativa,
         tags,
-        snapshots,
         dados_orcam
     } = await recuperarDado('dados_orcamentos', id) || {}
 
     const novoOrcamento = {
-        snapshots: {
-            tags: snapshots?.tags || {}
-        },
         esquema_composicoes,
         tags,
         dados_composicoes,
@@ -446,7 +442,7 @@ async function carregarToolbar() {
 
 async function filtrarToolbar(campo) {
 
-    const chave = 'snapshots.status_atual'
+    const chave = 'status_atual'
     controles.orcamentos ?? {}
     controles.orcamentos.filtros ?? {}
 
