@@ -2211,14 +2211,14 @@ async function auxPendencias() {
         const atalhos = [...contagens ?? [], ...contagens_adicionais ?? []]
             .map(item => {
 
-                const { 
+                const {
                     chave,
                     local,
-                    nome, 
-                    quantidade, 
-                    cor 
+                    nome,
+                    quantidade,
+                    cor
                 } = item || {}
-                
+
                 return `
                     <div class="pill" onclick="atalhoAuxiliar('${chave}', '${local}')">
                         <span class="pill-a" style="background-color: ${cor};">${quantidade}</span>
@@ -2267,108 +2267,115 @@ async function atalhoAuxiliar(termo, chave, op = '=') {
 
 async function formularioOcorrencia(idOcorrencia) {
 
-    overlayAguarde()
+    try {
 
-    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
+        overlayAguarde()
 
-    const {
-        data_solicitacao,
-        unidade = unidadeOrc,
-        snapshots,
-        anexos,
-        fotos,
-        descricao
-    } = ocorrencia
-
-    const {
-        sistema,
-        tipo,
-        prioridade
-    } = snapshots || {}
-
-    const equipamentos = (
-        await Promise.all(
-            Object.values(ocorrencia?.equipamentos || {})
-                .map(equip => maisLabel(equip))
-        )
-    ).join('')
-
-    const cliente = unidade
-        ? await recuperarDado('clientes', unidade)
-        : snapshots?.cliente || {}
-
-    const a = Object
-        .entries(anexos || {})
-        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')`))
-        .join('')
-
-    // Campo Unidade;
-    controlesCxOpcoes.unidade = {
-        base: 'clientes',
-        retornar: ['nome'],
-        colunas: {
-            'Nome': { chave: 'nome' },
-            'CNPJ': { chave: 'cnpj' },
-            'Cidade': { chave: 'cidade' },
-            'Endereço': { chave: 'endereco' },
+        if (!LPUS) {
+            const { lpus } = await recuperarDado('mvw_lpus', 1) || {}
+            LPUS = lpus
         }
-    }
 
-    // Campos Simples;
-    Object.entries({
-        'tipo': 'tipos',
-        'sistema': 'sistemas',
-        'prioridade': 'prioridades'
-    }).forEach(([n, base]) => {
+        const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
 
-        controlesCxOpcoes[n] = {
-            base,
+        const {
+            data_solicitacao,
+            unidade = unidadeOrc,
+            snapshots,
+            anexos,
+            fotos,
+            descricao
+        } = ocorrencia
+
+        const {
+            sistema,
+            tipo,
+            prioridade
+        } = snapshots || {}
+
+        const equipamentos = (
+            await Promise.all(
+                Object.values(ocorrencia?.equipamentos || {})
+                    .map(equip => maisLabel(equip))
+            )
+        ).join('')
+
+        const cliente = unidade
+            ? await recuperarDado('clientes', unidade)
+            : snapshots?.cliente || {}
+
+        const a = Object
+            .entries(anexos || {})
+            .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')`))
+            .join('')
+
+        // Campo Unidade;
+        controlesCxOpcoes.unidade = {
+            base: 'clientes',
             retornar: ['nome'],
             colunas: {
-                'Nome': { chave: 'nome' }
+                'Nome': { chave: 'nome' },
+                'CNPJ': { chave: 'cnpj' },
+                'Cidade': { chave: 'cidade' },
+                'Endereço': { chave: 'endereco' },
             }
         }
 
-    })
+        // Campos Simples;
+        Object.entries({
+            'tipo': 'tipos',
+            'sistema': 'sistemas',
+            'prioridade': 'prioridades'
+        }).forEach(([n, base]) => {
 
-    const linhas = [
-        {
-            texto: 'Unidade de Manutenção',
-            elemento: `<span ${unidade ? `id="${unidade}"` : ''} 
+            controlesCxOpcoes[n] = {
+                base,
+                retornar: ['nome'],
+                colunas: {
+                    'Nome': { chave: 'nome' }
+                }
+            }
+
+        })
+
+        const linhas = [
+            {
+                texto: 'Unidade de Manutenção',
+                elemento: `<span ${unidade ? `id="${unidade}"` : ''} 
                 class="campos" name="unidade" onclick="cxOpcoes('unidade')">
                 ${cliente?.nome || 'Selecione'}
             </span>`
-        },
-        {
-            texto: 'Sistema',
-            elemento: `<span ${ocorrencia.sistema ? `id="${ocorrencia.sistema}"` : ''} 
+            },
+            {
+                texto: 'Sistema',
+                elemento: `<span ${ocorrencia.sistema ? `id="${ocorrencia.sistema}"` : ''} 
             class="campos" name="sistema" onclick="cxOpcoes('sistema')">
                 ${sistema || 'Selecione'}
             </span>`
-        },
-        {
-            texto: 'Prioridade',
-            elemento: `<span ${ocorrencia.prioridade ? `id="${ocorrencia.prioridade}"` : ''} 
+            },
+            {
+                texto: 'Prioridade',
+                elemento: `<span ${ocorrencia.prioridade ? `id="${ocorrencia.prioridade}"` : ''} 
             class="campos" name="prioridade" onclick="cxOpcoes('prioridade')">
                 ${prioridade || 'Selecione'}
             </span>`
-        },
-        {
-            texto: 'Tipo',
-            elemento: `<span ${ocorrencia.tipo ? `id="${ocorrencia.tipo}"` : ''} 
+            },
+            {
+                texto: 'Tipo',
+                elemento: `<span ${ocorrencia.tipo ? `id="${ocorrencia.tipo}"` : ''} 
             class="campos" name="tipo" onclick="cxOpcoes('tipo')">
                 ${tipo || 'Selecione'}
             </span>`
-        },
-        {
-            texto: 'Data da Solicitação',
-            elemento: `<input name="data_solicitacao" type="date" value="${data_solicitacao || ''}">`
-        },
-        {
-            editor: descricao || ''
-        },
-        {
-            elemento: `
+            },
+            {
+                texto: 'Data da Solicitação',
+                elemento: `<input name="data_solicitacao" type="date" value="${data_solicitacao || ''}">`
+            },
+            {
+                editor: descricao || ''
+            },
+            {
+                elemento: `
                 <div style="${vertical}; width: 100%; gap: 5px;">
                     <div style="${horizontal}; gap: 1rem;">
                         <span>Registro de peças ou equipamentos</span>
@@ -2379,10 +2386,10 @@ async function formularioOcorrencia(idOcorrencia) {
                     </div>
                 </div>
                 `
-        },
-        {
-            texto: 'Anexos',
-            elemento: `
+            },
+            {
+                texto: 'Anexos',
+                elemento: `
             <div style="${vertical}; gap: 3px;">
                 <input name="anexos" type="file" multiple>
                 <div id="anexos" class="local-anexos">
@@ -2390,26 +2397,31 @@ async function formularioOcorrencia(idOcorrencia) {
                 </div>
             </div>
             `
-        },
-        {
-            elemento: await blocoAuxiliarFotos(fotos, idOcorrencia)
-        }
-    ]
+            },
+            {
+                elemento: await blocoAuxiliarFotos(fotos, idOcorrencia)
+            }
+        ]
 
-    const botoes = [
-        { img: 'concluido', texto: 'Salvar', funcao: idOcorrencia ? `salvarOcorrencia('${idOcorrencia}')` : 'salvarOcorrencia()' },
-    ]
+        const botoes = [
+            { img: 'concluido', texto: 'Salvar', funcao: idOcorrencia ? `salvarOcorrencia('${idOcorrencia}')` : 'salvarOcorrencia()' },
+        ]
 
-    const titulo = idOcorrencia ? 'Editar Ocorrência' : 'Criar Ocorrência'
+        const titulo = idOcorrencia ? 'Editar Ocorrência' : 'Criar Ocorrência'
 
-    popup({ linhas, botoes, titulo })
+        popup({ linhas, botoes, titulo })
 
-    visibilidadeFotos()
+        visibilidadeFotos()
 
-    // Limpeza da variável para novos;
-    unidadeOrc = null
+        // Limpeza da variável para novos;
+        unidadeOrc = null
 
-    removerOverlay()
+        removerOverlay()
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir o formulário: Fale com o suporte.' })
+    }
 
 }
 
