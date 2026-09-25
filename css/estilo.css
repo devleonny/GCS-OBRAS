@@ -84,7 +84,7 @@ html {
     font-size: 11px;
     flex-direction: column;
     background-color: #ffffffc7;
-    max-width: 500px;
+    width: 500px;
     display: flex;
     align-items: start;
     justify-content: start;
