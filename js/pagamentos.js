@@ -319,7 +319,7 @@ async function abrirDetalhesPagamentos(id) {
             if (!cc) return []
 
             const pesquisa = await pesquisarDB({
-                base: 'vw_dados_orcamentos',
+                base: 'mvw_dados_orcamentos',
                 filtros: {
                     'dados_orcam.contrato': { op: '=', value: cc.descricao }
                 }
