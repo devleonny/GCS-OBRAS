@@ -320,19 +320,6 @@
     background-color: #ffe85285;
 }
 
-.parcelas-notas {
-    margin-left: 5px;
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-    justify-content: start;
-    width: 90%;
-    border: solid 1px #d2d2d2;
-    background-color: #00000012;
-    border-radius: 3px;
-    padding: 5px;
-}
-
 .comentario-orcamento {
     min-width: 300px;
     display: flex;

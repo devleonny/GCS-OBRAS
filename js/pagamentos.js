@@ -98,7 +98,7 @@ async function filtrarPagamentos(st) {
         status: { op: 'includes', value: st }
     }
 
-    if (st == 'todos')
+    if (st == 'TODOS')
         delete controles.pagamentos.filtros.status
 
     await paginacao()
@@ -107,35 +107,32 @@ async function filtrarPagamentos(st) {
 
 async function atualizarPainelEsquerdo() {
 
-    const contagens = await contarPorCampo({
-        base: 'lista_pagamentos',
-        filtros: {
-            criado: { op: '!=', value: 'Integração' }
-        },
-        path: 'status'
-    })
+    const { por_status } = await recuperarDado('mvw_contagem_pagamentos', 1) || {}
 
-    const titulos = Object.entries(contagens)
-        .map(([st, qtde]) => {
+    const titulos = (por_status || [])
+        .map(item => {
+            
+            const { status, quantidade } = item || {}
 
             return `
-            <div class="balao-pagamentos" 
-            onclick="filtrarPagamentos('${st}')">
-                
-                <div class="dir">
-                    <img src="${iconePagamento(st)}">
-                    <Label>${inicialMaiuscula(st)}</label>
-                </div>
+                <div class="balao-pagamentos" 
+                onclick="filtrarPagamentos('${status}')">
+                    
+                    <div class="dir">
+                        <img src="${iconePagamento(status)}">
+                        <Label>${inicialMaiuscula(status)}</label>
+                    </div>
 
-                <span class="esq">${qtde}</span>
-                
-            </div>
+                    <span class="esq">${quantidade}</span>
+                    
+                </div>
             `
         })
         .join('')
 
     const painelEsquerdo = document.querySelector('.painelEsquerdo')
-    if (painelEsquerdo) painelEsquerdo.innerHTML = titulos
+    if (painelEsquerdo)
+        painelEsquerdo.innerHTML = titulos
 
 }
 
@@ -217,7 +214,7 @@ function iconePagamento(status) {
         case status == 'Processando...':
             icone = 'salvo'
             break
-        case status == 'todos':
+        case status == 'TODOS':
             icone = 'todos'
             break
     }

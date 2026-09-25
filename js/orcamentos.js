@@ -159,7 +159,7 @@ async function criarLinhaOrcamento(orcamento) {
         .map(({ tipo, pedido, valor, autorizado_por }) => {
 
             const label = `
-                <div class="parcelas-notas" style="text-align: left;">
+                <div class="etiquetas" style="text-align: left;">
                     <label>${tipo || ''}</label>
                     <label>${pedido}</label>
                     ${autorizado_por ? `<label><b>${autorizado_por}</b></label>` : ''}
@@ -183,7 +183,7 @@ async function criarLinhaOrcamento(orcamento) {
 
     const listaParcelas = (parcelas || [])
         .map(({ data_vencimento, valor_documento, app, status_titulo }) =>
-            `<div class="parcelas-notas">
+            `<div class="etiquetas">
                     <span>${data_vencimento}</span>
                     <span>${dinheiro(valor_documento)}</span>
                     <div style="${horizontal}; gap: 5px;">
