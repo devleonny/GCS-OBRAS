@@ -873,21 +873,23 @@ function dataRegras(data, atraso) {
 
         const mesAlvo = dia <= 5 ? mes : mes + 1
         dataFinal = new Date(ano, mesAlvo, 10)
-
-        while (dataFinal.getDay() === 0 || dataFinal.getDay() === 6) {
-            dataFinal.setDate(dataFinal.getDate() + 1)
-        }
     }
 
     if (data) {
-        const tInformada = toTimestamp(data) // aceita yyyy-mm-dd
-        if (tInformada != null) {
-            const tFinal = dataFinal.getTime()
-            if (tInformada > tFinal) dataFinal = new Date(tInformada)
+        const tInformada = toTimestamp(data)
+
+        if (tInformada != null && tInformada > dataFinal.getTime()) {
+            dataFinal = new Date(tInformada)
         }
     }
 
-    if (dataFinal < dataMinima) dataFinal = dataMinima
+    if (dataFinal < dataMinima) {
+        dataFinal = new Date(dataMinima)
+    }
+
+    while (dataFinal.getDay() === 0 || dataFinal.getDay() === 6) {
+        dataFinal.setDate(dataFinal.getDate() + 1)
+    }
 
     return dataFinal.toLocaleDateString('pt-BR')
 }

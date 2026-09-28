@@ -67,7 +67,7 @@ function criarAtalhoMenu({ nome, img, gif }, nivel) {
 
 async function acaoMenu(id, funcao, temFilhos) {
 
-    if(canvasJogo)
+    if (canvasJogo)
         limparJogo()
 
     const el = document.getElementById(id)
@@ -178,6 +178,16 @@ const esquemaBotoes = {
             sub: [
                 { nome: 'Adicionar Contrato', funcao: 'gerenciarContrato', img: 'baixar' },
                 { nome: 'Ver Contratos', funcao: 'telaContratos', img: 'contratos' }
+            ]
+        },
+        {
+            nome: 'Frete de Material',
+            bloqueio: ['cliente', 'ténico'],
+            img: 'frete',
+            sub: [
+                { nome: 'Ver Fretes', funcao: 'telaFretes', img: 'frete' },
+                { nome: 'Adicionar Frete', funcao: 'envioMaterial', img: 'baixar' }
+
             ]
         },
         {
