@@ -27,6 +27,7 @@ async function telaFretes() {
             'UF': { chave: 'estado' },
             'Nota Fiscal': { chave: 'n_nota' },
             'Data de Saída': { chave: 'data_saida', tipoPesquisa: 'data' },
+            'Data de Previsão': { chave: 'data_previsao', tipoPesquisa: 'data' },
             'Data de Entrega': { chave: 'data_saida', tipoPesquisa: 'data' },
             'Material': {},
             'Situação': {},
@@ -82,14 +83,17 @@ function criarLinhafretes(dados) {
         estado,
         n_nota,
         data_saida,
+        data_previsao,
         data_entrega,
         situacao,
         comentario
     } = dados || {}
 
     const primeirosOrcs = departamento
-        .match(/ORC_\d+/g)
-        ?.slice(0, 3) || []
+        ? departamento
+            .match(/ORC_\d+/g)
+            ?.slice(0, 3) || []
+        : []
 
     const finalDepartamentos = primeirosOrcs
         .map(d => `<span onclick="painelCustos('${d}')" class="etiquetas">${d}</span>`)
@@ -121,6 +125,7 @@ function criarLinhafretes(dados) {
             <td>${estado || ''}</td>
             <td>${n_nota || ''}</td>
             <td>${data_saida || ''}</td>
+            <td>${data_previsao || ''}</td>
             <td>${data_entrega || ''}</td>
             <td>
                 <button>Ver itens</button>
