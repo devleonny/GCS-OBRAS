@@ -55,6 +55,7 @@ async function painelCustos(contrato) {
             },
             {
                 titulo: 'Fretes',
+                funcao: `tabFretes('${contrato}')`,
                 valor: 0,
                 indicador: true
             },
@@ -76,17 +77,17 @@ async function painelCustos(contrato) {
 
         const toolbar = esquema
             .filter(e => e.funcao)
-            .map(({ titulo, funcao }) => {
-                return `<span onclick="toggleAbas(this); ${funcao || ''}">${titulo}</span>`
+            .map(({ titulo, funcao }, i) => {
+                return `<span style="opacity: ${i == 0 ? 1 : 0.5}" onclick="toggleAbas(this); ${funcao || ''}">${titulo}</span>`
             })
             .join('')
 
         const elemento = `
             <div class="painel-geral-checklist">
 
-                <div class="toolbar-checklist">${toolbar}</div>
+                <div class="toolbar-padrao">${toolbar}</div>
 
-                <div class="painel-atras-checklist">
+                <div class="painel-atras-padrao">
 
                     ${tituloChecklist('Resumo de Custos')}
 
@@ -127,7 +128,8 @@ async function painelCustos(contrato) {
 
 function toggleAbas(span) {
 
-    [...document.querySelectorAll('.toolbar-checklist span')].map(span => span.style.opacity = 0.5)
+    const toolMaisProxima = [...span.closest('.toolbar-padrao').querySelectorAll('span')]
+    toolMaisProxima.map(span => span.style.opacity = 0.5)
 
     if (span)
         span.style.opacity = 1
@@ -137,6 +139,17 @@ function toggleAbas(span) {
 async function inicioCustos(contrato) {
 
     const painel = document.querySelector('.painel-custos-tabelas')
+
+    const tools = [
+        {
+            tipo: 'pizza',
+            titulo: 'Gráfico de Pizza'
+        },
+        {
+            tipo: 'tempo',
+            titulo: 'Linha do Tempo'
+        }
+    ].map((t, i) => `<span style="opacity: ${i == 0 ? 1 : 0.5}" onclick="toggleAbas(this); mostrarGrafico('${t.tipo}')">${t.titulo}</span>`).join('')
 
     painel.innerHTML = `
 
@@ -151,9 +164,8 @@ async function inicioCustos(contrato) {
                 </div>
 
                 <div style="${vertical}">
-                    <div class="toolbar-checklist">
-                        <span onclick="toggleAbas(this); mostrarGrafico('pizza')">Gráfico de Pizza</span>
-                        <span onclick="toggleAbas(this); mostrarGrafico('tempo')">Linha do Tempo</span>
+                    <div class="toolbar-padrao">
+                        ${tools}
                     </div>
 
                     <div class="grafico-box">
@@ -219,6 +231,57 @@ async function somaPorCategoria(contrato) {
 
     mostrarGrafico('pizza')
 
+}
+
+async function tabFretes(contrato) {
+
+    try {
+        overlayAguarde()
+
+        const pag = 'popup_fretes'
+        const tabela = await modTab({
+            base: 'vw_fretes',
+            pag,
+            colunas: {
+                'Editar': {},
+                'Método de Envio': { chave: 'metodo_envio' },
+                'Rastreio': { chave: 'rastreio' },
+                'Volumes': {},
+                'Valor da Nota': {},
+                'Custo Frete': {},
+                'Loja': { chave: 'cliente' },
+                'Orçamentos': { chave: 'departamento' },
+                'Tipo': { chave: 'categoria' },
+                'UF': { chave: 'estado' },
+                'Nota Fiscal': { chave: 'n_nota' },
+                'Data de Saída': { chave: 'data_saida', tipoPesquisa: 'data' },
+                'Data de Entrega': { chave: 'data_saida', tipoPesquisa: 'data' },
+                'Material': {},
+                'Situação': {},
+                'Comentário': {}
+            },
+            body: pag,
+            criarLinha: 'criarLinhafretes',
+            filtros: {
+                departamento: {
+                    op: 'includes',
+                    value: contrato
+                }
+            }
+        })
+
+        const painel = document.querySelector('.painel-custos-tabelas')
+
+        painel.innerHTML = tabela
+
+        await paginacao(pag)
+
+        removerOverlay()
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir o detalhamento de Fretes: Fale com o suporte.' })
+    }
 }
 
 async function tabPagamentosCusto(contrato) {

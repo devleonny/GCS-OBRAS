@@ -95,9 +95,9 @@ async function telaChecklist(idOrcamento) {
 
           ${tituloOrcamento}
 
-          <div class="toolbar-checklist">${toolbar}</div>
+          <div class="toolbar-padrao">${toolbar}</div>
 
-          <div class="painel-atras-checklist">
+          <div class="painel-atras-padrao">
 
             <div id="indicadorGeral"></div>
 
@@ -1522,7 +1522,7 @@ function criarLinhaOrcamentoChecklist(orcamento) {
 
 async function gerarPdfChecklist(cliente, contrato) {
 
-  const html = document.querySelector('.painel-atras-checklist').outerHTML
+  const html = document.querySelector('.painel-atras-padrao').outerHTML
 
   await pdf({
     html,

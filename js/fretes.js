@@ -11,31 +11,46 @@ async function telaFretes() {
         base: 'vw_fretes',
         body: 'vw_fretes',
         criarLinha: 'criarLinhafretes',
+        filtros: {
+            transportadora: { op: '=', value: 'CORREIOS' }
+        },
         colunas: {
-            'Método de Envio': {},
-            'Rastreio': {},
-            'Volume': {},
+            'Editar': {},
+            'Método de Envio': { chave: 'metodo_envio' },
+            'Rastreio': { chave: 'rastreio' },
+            'Volumes': {},
             'Valor da Nota': {},
             'Custo Frete': {},
-            'Loja': {},
-            'Orçamentos': {},
-            'Tipo': {},
-            'UF': {},
-            'Nota Fiscal': {},
-            'Data de Saída': {},
-            'Data de Entrega': {},
+            'Loja': { chave: 'cliente' },
+            'Orçamentos': { chave: 'departamento' },
+            'Tipo': { chave: 'categoria' },
+            'UF': { chave: 'estado' },
+            'Nota Fiscal': { chave: 'n_nota' },
+            'Data de Saída': { chave: 'data_saida', tipoPesquisa: 'data' },
+            'Data de Entrega': { chave: 'data_saida', tipoPesquisa: 'data' },
             'Material': {},
             'Situação': {},
             'Comentário': {}
         }
     })
 
-    tela.innerHTML =  `
-        <div>
-            <div class="toolbar">
-                
+    const { resultados } = await pesquisarDB({
+        base: 'transportadoras'
+    })
+
+    const toolbar = resultados
+        .sort((a, b) => a.nome.localeCompare(b.nome))
+        .map((r, i) => `
+            <span style="opacity: ${i == 0 ? 1 : 0.5}" 
+            onclick="toggleAbas(this); filtrarPorTransportadora('${r.nome}')">${r.nome}</span>`)
+        .join('')
+
+    tela.innerHTML = `
+        <div style="${vertical};">
+            <div class="toolbar-padrao">${toolbar}</div>
+            <div class="painel-atras-padrao">
+                ${tabela}
             </div>
-            ${tabela}
         </div>
     `
 
@@ -45,10 +60,17 @@ async function telaFretes() {
 
 }
 
+async function filtrarPorTransportadora(nome) {
+
+    controles.fretes.filtros.transportadora = { op: '=', value: nome }
+    await paginacao('fretes')
+
+}
 
 function criarLinhafretes(dados) {
 
     const {
+        id,
         metodo_envio,
         rastreio,
         volumes,
@@ -61,27 +83,39 @@ function criarLinhafretes(dados) {
         n_nota,
         data_saida,
         data_entrega,
-        itens,
         situacao,
         comentario
     } = dados || {}
 
+    const primeirosOrcs = departamento
+        .match(/ORC_\d+/g)
+        ?.slice(0, 3) || []
+
+    const finalDepartamentos = primeirosOrcs
+        .map(d => `<span onclick="painelCustos('${d}')" class="etiquetas">${d}</span>`)
+        .join('')
+
     return `
         <tr>
+            <td style="text-align: center;">
+                <img onclick="envioMaterial('${id}')" src="imagens/pesquisar2.png">
+            </td>
             <td>${metodo_envio || ''}</td>
             <td>${rastreio || ''}</td>
             <td>
                 <span class="etiquetas">${volumes || 0}</span>
             </td>
             <td>
-                <span>${dinheiro(total)}</span>
+                <span style="white-space: nowrap;">${dinheiro(total)}</span>
             </td>
             <td>
-                <span>${dinheiro(custo_frete)}</span>
+                <span style="white-space: nowrap;">${dinheiro(custo_frete)}</span>
             </td>
-            <td>${cliente || ''}</td>
             <td>
-                <div style="display: flex; flex-wrap; wrap;">${departamento || ''}</div>
+                <span style="display: flex; min-width: 200px;">${cliente || ''}</span>    
+            </td>
+            <td>
+                <div style="max-width: 200px; display: flex; flex-wrap: wrap; gap: 2px;">${finalDepartamentos || ''}</div>
             </td>
             <td>${categoria || ''}</td>
             <td>${estado || ''}</td>
@@ -98,105 +132,171 @@ function criarLinhafretes(dados) {
         </tr>
     `
 
-
 }
-
 
 async function envioMaterial(id = crypto.randomUUID()) {
 
-    const {
-        transportadora,
-        rastreio,
-        previsao,
-        custo_frete,
-        data_saida,
-        volumes,
-        nf,
-        comentario
-    } = await recuperarDado('materiais', id) || {}
+    try {
+        overlayAguarde()
 
-    const oTransportadoras = transportadoras
-        .map(o => `<option ${transportadora == o ? 'selected' : ''}>${o}</option>`)
+        const {
+            metodo_envio,
+            transportadora,
+            rastreio,
+            previsao,
+            custo_frete,
+            data_saida,
+            volumes,
+            n_nota,
+            comentario
+        } = await recuperarDado('fretes', id) || {}
+
+        const { nome: nomeTransportadora } = await recuperarDado('transportadoras', transportadora) || {}
+
+        controlesCxOpcoes.transportadora = {
+            base: 'transportadoras',
+            retornar: ['nome'],
+            colunas: {
+                'nome': { chave: 'nome' }
+            }
+        }
+
+        const linhas = [
+            {
+                texto: 'Número de rastreio',
+                elemento: `<input placeholder="ABC123" class="pedido" name="rastreio" value="${rastreio || ''}">`
+            },
+            {
+                texto: 'Transportadora',
+                elemento: `<span ${transportadora ? `id="${transportadora}"` : ''} class="opcoes" name="transportadora" onclick="cxOpcoes('transportadora')">${nomeTransportadora || 'Selecione'}</span>`
+            },
+            {
+                texto: 'Método de Envio',
+                elemento: `<input placeholder="exemplo: PAC" name="metodo_envio" value="${metodo_envio || ''}">`
+            },
+            {
+                texto: 'Custo do Frete',
+                elemento: `<div>R$ <input placeholder="0,00" type="number" name="custo_frete" value="${custo_frete || ''}"></div>`
+            },
+            {
+                texto: 'Nota Fiscal',
+                elemento: `<input placeholder="Número da nota" oninput="buscarDadosNotas(this.value)" name="n_nota" value="${n_nota || ''}">`
+            },
+            {
+                elemento: `<div class="detalhes-nota"></div>`
+            },
+            {
+                texto: 'Volumes',
+                elemento: `<input placeholder="0" type="number" name="volumes" value="${volumes || ''}">`
+            },
+            {
+                texto: 'Data de Saída',
+                elemento: `<input type="date" name="data_saida" value="${data_saida || ''}">`
+            },
+            {
+                texto: 'Data de Entrega',
+                elemento: `<input type="date" name="previsao" value="${previsao || ''}">`
+            },
+            {
+                editor: comentario || ''
+            },
+        ]
+
+        const botoes = [
+            {
+                texto: 'Salvar',
+                img: 'concluido',
+                funcao: `registrarEnvioMaterial('${id}')`
+            }
+        ]
+
+        popup({ linhas, botoes, titulo: 'Envio de Material' })
+
+        buscarDadosNotas(n_nota)
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir o envio: Fale com o suporte.' })
+    }
+}
+
+async function buscarDadosNotas(n_nota) {
+
+    const local = document.querySelector('.detalhes-nota')
+
+    local.innerHTML = '<img src="gifs/loading.gif" style="width: 5rem;">'
+
+    if (!n_nota)
+        return local.innerHTML = 'Preencha o número da nota para obter detalhes'
+
+    const { resultados } = await pesquisarDB({
+        base: 'notas',
+        filtros: {
+            'n_nota': {
+                op: 'includes',
+                value: n_nota
+            }
+        }
+    })
+
+    if (!resultados.length)
+        return local.innerHTML = 'Nota não localizada'
+
+    const {
+        cnpj,
+        cliente,
+        total,
+        categoria,
+        departamento
+    } = resultados[0] || {}
+
+    const primeirosOrcs = departamento
+        .match(/ORC_\d+/g)
+        ?.slice(0, 3) || []
+
+    const finalDepartamentos = primeirosOrcs
+        .map(d => `<span onclick="painelCustos('${d}')" class="etiquetas">${d}</span>`)
         .join('')
 
-    const linhas = [
-        {
-            texto: 'Número de rastreio',
-            elemento: `<input class="pedido" id="rastreio" value="${rastreio || ''}">`
-        },
-        {
-            texto: 'Transportadora',
-            elemento: `
-            <select class="pedido" id="transportadora">
-                ${oTransportadoras}
-            </select>
-            `
-        },
-        {
-            texto: 'Custo do Frete',
-            elemento: `<input  type="number" id="custo_frete" value="${custo_frete || ''}">`
-        },
-        {
-            texto: 'Nota Fiscal',
-            elemento: `<input id="nf" value="${nf || ''}">`
-        },
-        {
-            texto: 'Comentário',
-            elemento: `<textarea id="comentario">${comentario || ''}</textarea>`
-        },
-        {
-            texto: 'Quantos volumes',
-            elemento: `<input  type="number" id="volumes" value="${volumes || ''}">`
-        },
-        {
-            texto: 'Data de Saída',
-            elemento: `<input type="date" id="data_saida" value="${data_saida || ''}">`
-        },
-        {
-            texto: 'Data de Entrega',
-            elemento: `<input type="date" id="previsao" value="${previsao || ''}">`
-        },
-    ]
+    local.innerHTML = `
+        <span><b>Categoria:</b> ${categoria}</span>
+        <span><b>CNPJ:</b> ${cnpj}</span>
+        <span><b>Cliente:</b> ${cliente}</span>
+        <span><b>Total da Nota:</b> ${dinheiro(total)}</span>
+        <div>${finalDepartamentos}</div>
+    `
 
-    const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: `registrarEnvioMaterial('${id}')"` }
-    ]
-
-    popup({ linhas, botoes, titulo: 'Envio de Material' })
 }
 
 async function registrarEnvioMaterial(id) {
 
-    overlayAguarde()
+    try {
 
-    const campos = ['rastreio', 'transportadora', 'custo_frete', 'nf', 'comentario', 'volumes', 'data_saida', 'previsao']
+        overlayAguarde()
 
-    const material = await recuperarDado('materiais', id) || {}
-    const departamento = controles?.ocorrencias?.ativo
-    const dadosCampos = campos.reduce((acc, campo) => {
-        const info = document.getElementById(campo)
-        if (!info)
-            return acc
+        const transportadora = obVal('transportadora')
 
-        let valor = info.value
+        if (!transportadora)
+            return popup({ mensagem: 'A transportadora ficou em branco' })
 
-        if (info.type === 'number') {
-            valor = Number(valor)
+        const dados = {
+            metodo_envio: obVal('metodo_envio'),
+            rastreio: obVal('rastreio'),
+            transportadora,
+            custo_frete: Number(obVal('custo_frete') || 0),
+            n_nota: obVal('n_nota'),
+            volumes: Number(obVal('volumes') || 0),
+            data_saida: obVal('data_saida'),
+            data_entrega: obVal('data_entrega')
         }
 
-        acc[campo] = valor
-        return acc
-    }, {})
+        await enviar(`fretes/${id}`, dados)
 
-    const dados = {
-        ...material,
-        departamento,
-        data: new Date().toLocaleString(),
-        ...dadosCampos
+        removerPopup()
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao salvar o registro de envio: Fale com o suporte.' })
     }
-
-    await enviar(`materiais/${id}`, dados)
-
-    removerPopup()
 
 }

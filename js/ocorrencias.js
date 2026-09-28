@@ -2342,28 +2342,28 @@ async function formularioOcorrencia(idOcorrencia) {
             {
                 texto: 'Unidade de Manutenção',
                 elemento: `<span ${unidade ? `id="${unidade}"` : ''} 
-                class="campos" name="unidade" onclick="cxOpcoes('unidade')">
+                class="opcoes" name="unidade" onclick="cxOpcoes('unidade')">
                 ${cliente?.nome || 'Selecione'}
             </span>`
             },
             {
                 texto: 'Sistema',
                 elemento: `<span ${ocorrencia.sistema ? `id="${ocorrencia.sistema}"` : ''} 
-            class="campos" name="sistema" onclick="cxOpcoes('sistema')">
+            class="opcoes" name="sistema" onclick="cxOpcoes('sistema')">
                 ${sistema || 'Selecione'}
             </span>`
             },
             {
                 texto: 'Prioridade',
                 elemento: `<span ${ocorrencia.prioridade ? `id="${ocorrencia.prioridade}"` : ''} 
-            class="campos" name="prioridade" onclick="cxOpcoes('prioridade')">
+            class="opcoes" name="prioridade" onclick="cxOpcoes('prioridade')">
                 ${prioridade || 'Selecione'}
             </span>`
             },
             {
                 texto: 'Tipo',
                 elemento: `<span ${ocorrencia.tipo ? `id="${ocorrencia.tipo}"` : ''} 
-            class="campos" name="tipo" onclick="cxOpcoes('tipo')">
+            class="opcoes" name="tipo" onclick="cxOpcoes('tipo')">
                 ${tipo || 'Selecione'}
             </span>`
             },
@@ -2513,7 +2513,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
         {
             texto: 'Status da Correção',
             elemento: `<span 
-                class="campos" ${correcao?.tipoCorrecao ? `id="${correcao?.tipoCorrecao}"` : ''} 
+                class="opcoes" ${correcao?.tipoCorrecao ? `id="${correcao?.tipoCorrecao}"` : ''} 
                 name="tipoCorrecao" onclick="cxOpcoes('tipoCorrecao')">
                     ${nome || 'Selecione'}
                 </span>`
@@ -2638,7 +2638,7 @@ async function maisUsuario(usuarios, campo) {
             <div style="${horizontal}; gap: 0.5rem;">
                 <img src="imagens/cancel.png" style="width: 1.5rem;" onclick="this.parentElement.remove()">
                 <span
-                    class="campos"
+                    class="opcoes"
                     ${usuario ? `id="${usuario}"` : ''}
                     name="${nomeControle}"
                     onclick="cxOpcoes('${nomeControle}')">${usuario || 'Selecione'}</span>
@@ -2717,7 +2717,7 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
             <div name="equipamentos" style="${horizontal}; align-items: start; gap: 1rem;">
                 <div style="${vertical};">
                     <label>Quantidade</label>
-                    <input id="quantidade" data-codigo="${codigo}" data-anterior="${quantidade || 0}" oninput="multiplicarCampoSerie(this); verificarSaldos()" style="width: 7rem;" class="campos" type="number" value="${quantidade || ''}">
+                    <input id="quantidade" data-codigo="${codigo}" data-anterior="${quantidade || 0}" oninput="multiplicarCampoSerie(this); verificarSaldos()" style="width: 7rem;" class="opcoes" type="number" value="${quantidade || ''}">
                 </div>
                 <div style="${vertical};">
                     <label>Nº série</label>
@@ -2731,7 +2731,7 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
                 <div style="${vertical};">
                     <label>Descrição</label>
                     <span 
-                        class="campos" 
+                        class="opcoes" 
                         name="${temporario}" ${codigo ? `id="${codigo}"` : ''} 
                         onclick="cxOpcoes('${temporario}')">${descricao || 'Selecione'}</span>
                 </div>

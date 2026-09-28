@@ -1,49 +1,50 @@
 async function telaCadastros() {
 
+    const bases = ['empresas', 'tipos', 'sistemas', 'prioridades', 'correcoes', 'transportadoras']
+
+    const abas = bases
+        .map(b => `<span onclick="toggleAbas(this); abrirTabelaCadastrastro('${b}')">${inicialMaiuscula(b)}</span>`)
+        .join('')
+
     tela.innerHTML = `
-    <div class="tabela-cadastro">
-        <div class="tabela-cadastro-recorte"></div>
-    </div>
+        <div style="${vertical}; max-width: max-content;">
+            <div class="toolbar-padrao">
+                ${abas}
+            </div>
+            <div class="painel-atras-padrao"></div>
+        </div>
     `
 
-    const divTabelas = document.querySelector('.tabela-cadastro-recorte')
+    await abrirTabelaCadastrastro(bases[0])
 
-    const bases = ['empresas', 'tipos', 'sistemas', 'prioridades', 'correcoes']
+}
 
-    const emMassa = bases.map(async (base) => {
+async function abrirTabelaCadastrastro(base) {
 
-        const btnExtras = `<img  src="imagens/baixar.png" onclick="editarBaseAuxiliar('${base}')">`
+    const local = document.querySelector('.painel-atras-padrao')
 
-        const pag = `cad_${base}`
-        const tabela = await modTab({
-            base,
-            btnExtras,
-            ordenar: {
-                path: 'nome',
-                direcao: 'asc'
-            },
-            colunas: {
-                'Nome': { chave: 'nome' },
-                '': {}
-            },
-            body: `cad_${base}`,
-            pag,
-            criarLinha: 'criarLinhaCadastro'
-        })
+    local.innerHTML = `<img src="gifs/loading.gif">`
 
-        const final = `
-            <div style="${vertical}">
-                <span style="font-size: 1.1rem; color: white;">${inicialMaiuscula(base)}</span>
-                ${tabela}
-            </div>`
-
-        divTabelas.insertAdjacentHTML('beforeend', final)
-
-        await paginacao(pag)
-
+    const pag = `cad_${base}`
+    const tabela = await modTab({
+        pag,
+        base,
+        btnExtras: `<img  src="imagens/baixar.png" onclick="editarBaseAuxiliar('${base}')">`,
+        ordenar: {
+            path: 'nome',
+            direcao: 'asc'
+        },
+        colunas: {
+            'Nome': { chave: 'nome' },
+            '': {}
+        },
+        body: `cad_${base}`,
+        criarLinha: 'criarLinhaCadastro'
     })
 
-    await Promise.all(emMassa)
+    local.innerHTML = tabela
+
+    await paginacao(pag)
 
 }
 
@@ -55,7 +56,8 @@ async function criarLinhaCadastro(dados) {
         <td>${nome}</td>
         <td style="width: 2rem;">
             <img src="imagens/pesquisar2.png" onclick="editarBaseAuxiliar('${base}', '${id}')">
-        </td>`
+        </td>
+    `
 
     return `<tr>${tds}</tr>`
 }
@@ -105,7 +107,7 @@ async function salvarNomeAuxiliar(nomeBase, id = crypto.randomUUID()) {
     overlayAguarde()
 
     const nome = String(document.querySelector('[name="nome"]').value).toUpperCase()
-    
+
     await enviar(`${nomeBase}/${id}/nome`, nome)
 
     removerPopup()

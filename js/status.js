@@ -2,7 +2,6 @@ let unidadeOrc = null
 const altNumOrc = ['adm', 'analista']
 const opcoesPedidos = ['', 'Locação', 'Serviço', 'Venda', 'Venda + Serviço', 'POC']
 const opcoesRequisicao = ['SERVIÇO', 'VENDA', 'USO E CONSUMO', 'LOCAÇÃO']
-const transportadoras = ['', 'JAMEF', 'CORREIOS', 'RODOVIÁRIA', 'JADLOG', 'AÉREO', 'OUTRAS']
 const permAtalhos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
 const permAltStatus = ['adm', 'diretoria']
 const statusExclusivosLog = ['ENVIADO', 'ENTREGUE']

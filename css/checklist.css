@@ -27,7 +27,7 @@
     flex-direction: column;
 }
 
-.painel-atras-checklist {
+.painel-atras-padrao {
     gap: 5px;
     width: stretch;
     display: flex;
@@ -166,14 +166,14 @@
     font-size: 1rem;
 }
 
-.toolbar-checklist {
+.toolbar-padrao {
     display: flex;
     align-items: start;
     flex-direction: row;
     gap: 0.5rem;
 }
 
-.toolbar-checklist span {
+.toolbar-padrao span {
     cursor: pointer;
     color: white;
     background-color: #bd2b2b;
@@ -200,7 +200,7 @@
     gap: 1rem;
     background: linear-gradient(45deg, #ffffff, #ffffff82);
     color: #4a4a4a;
-    border-radius: 10px;
+    border-radius: 5px;
 }
 
 .titulo-relatorio img {
