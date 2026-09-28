@@ -410,7 +410,6 @@
 }
 
 .div-linha {
-    background-color: white;
     display: flex;
     align-items: start;
     justify-content: start;

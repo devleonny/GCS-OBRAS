@@ -9,10 +9,8 @@
 }
 
 .tabela {
-    width: 100%;
-    background-color: white;
     border-collapse: collapse;
-    font-size: 10px;
+    font-size: 11px;
 }
 
 .tabela.nude {
@@ -29,18 +27,34 @@
 }
 
 .tabela th {
-    background-color: #efefef;
-    font-weight: lighter;
-    border: solid 1px #d2d2d2;
-    padding: 3px;
+    background-color: #f3f3f3;
+    font-weight: 500;
+    border: 1px solid #dedede;
+    padding: 5px 4px;
 }
 
 .tabela td {
-    vertical-align: middle;
-    text-align: center;
-    padding: 5px;
-    overflow: hidden;
-    border: 1px solid #d2d2d2;
+    padding: 6px 5px;
+    border: 1px solid #e3e3e3;
+}
+
+.tabela tbody tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+.tabela tbody tr:hover {
+    background-color: #f1f5f9;
+}
+
+.tabela thead input,
+.tabela thead select {
+    background-color: #f8f8f8;
+    border: 1px solid #d8d8d8;
+    padding: 4px 5px;
+}
+
+.tabela thead {
+    box-shadow: 0 1px 0 #d6d6d6;
 }
 
 .tabela.nude td {
@@ -83,7 +97,7 @@
     position: relative;
     justify-content: start;
     width: 100%;
-    background: linear-gradient(45deg, #4e4e4e, #868686);
+    background: linear-gradient(254deg, #4e4e4e, #868686);
     min-height: 2vh;
     display: flex;
     align-items: center;
@@ -97,7 +111,7 @@
     align-items: start;
     justify-content: start;
     gap: 5px;
-    background: linear-gradient(45deg, #4e4e4e, #868686);
+    background: linear-gradient(254deg, #4e4e4e, #868686);
     width: 100%;
     min-height: 2vh;
     border-radius: 0 0 5px 5px;
