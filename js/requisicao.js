@@ -46,7 +46,6 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
         avulso = 'N',
         volumes,
         comentario,
-        transportadora,
         requisicao,
         prazo,
         recebedor
@@ -87,13 +86,6 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
                     <input id="recebedor" value="${recebedor || ''}">
                 </div>
                 
-                <div style="${vertical}; width: 100%;">
-                    <span>Transportadora</span>
-                    <select id="transportadora">
-                        ${transportadoras.map(op => `<option ${transportadora == op ? 'selected' : ''}>${op}</option>`).join('')}
-                    </select>
-                </div>
-
                 <div style="${vertical}; width: 100%;">
                     <span>Volumes</span>
                     <input value="${volumes || ''}" id="volumes" type="number">
@@ -598,7 +590,6 @@ async function salvarRequisicao(id) {
             recebedor: document.querySelector('#recebedor')?.value || '',
             prazo: document.querySelector('#prazo')?.value || '',
             volumes: document.querySelector('#volumes').value || 0,
-            transportadora: document.querySelector('#transportadora').value || '',
             total_requisicao: conversor(document.querySelector('#total_requisicao').textContent),
             requisicao: Object.fromEntries(
                 (controles.requisicao.base || [])

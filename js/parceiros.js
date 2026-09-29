@@ -72,7 +72,7 @@ async function formularioParceiro(id = crypto.randomUUID()) {
         retornar: ['usuario'],
         base: 'clientes',
         filtros: {
-            usuario: { op: 'NOT_EMPTY' }
+            permissao: { op: 'NOT_EMPTY' }
         },
         colunas: {
             'Usuário': { chave: 'usuario' },
