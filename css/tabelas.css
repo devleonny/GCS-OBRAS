@@ -9,6 +9,7 @@
 }
 
 .tabela {
+    width: 100%;
     border-collapse: collapse;
     font-size: 11px;
 }
@@ -83,7 +84,6 @@
     max-height: 65vh;
     width: 100%;
     height: max-content;
-    margin-right: 2rem;
     overflow: auto;
 }
 
