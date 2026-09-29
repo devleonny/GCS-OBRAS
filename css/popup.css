@@ -73,11 +73,6 @@
     color: white;
 }
 
-.opcoes-v2:hover {
-    color: white;
-    background-color: #323940;
-}
-
 .popup {
     position: fixed;
     z-index: 10001;
