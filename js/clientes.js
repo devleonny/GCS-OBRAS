@@ -216,6 +216,7 @@ async function telaClientes() {
         const tabela = await modTab({
             pag: 'clientes',
             colunas: {
+                'Ações': {},
                 'Check': {},
                 'Disponível em': {},
                 'Nome': { chave: 'nome' },
@@ -227,8 +228,7 @@ async function telaClientes() {
                 'Matrícula': { chave: 'matricula' },
                 'E-mail': { chave: 'email' },
                 'Endereço Cadastro': { chave: 'snapshots.enderecoCadastro' },
-                'Comentário': { chave: 'comentario' },
-                'Ações': {}
+                'Comentário': { chave: 'comentario' }
             },
             substituicoes: [
                 {
@@ -330,6 +330,9 @@ function criarLinhaClienteGCS(cliente) {
 
     const tds = `
         <td>
+            <img src="imagens/pesquisar2.png" onclick="formularioCliente(${id})">
+        </td>
+        <td>
             <input
             onchange="checkPoint(this)"
             data-id="${id}"
@@ -366,9 +369,6 @@ function criarLinhaClienteGCS(cliente) {
         <td>
             <div style="white-space: pre-wrap;">${comentario || ''}</div>
         </td>
-        <td>
-            <img src="imagens/pesquisar2.png" onclick="formularioCliente(${id})">
-        </td>
         `
 
     return `<tr>${tds}</tr>`
@@ -400,7 +400,8 @@ function checksCliente(inputM) {
 }
 
 function adicionarTag() {
-    const painel = document.querySelector('.painel-padrao')
+
+    const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
 
     const tag = painel.querySelector('[name="tag"]')
 
@@ -697,7 +698,7 @@ async function verificarDisponibilidade(input) {
             <span>${texto}</span>
         </div>
     `
-    const painel = document.querySelector('.painel-padrao')
+    const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
     const divtags = painel.querySelector('[name="tags"]')
     const tagsExistente = [...divtags.querySelectorAll('.tag-pendencias')]
     const tagsValidas = ['FUNCIONÁRIO', 'CLIENTE', 'TÉCNICO', 'TÉCNICO PARCEIRO', 'MATRIZ']
@@ -963,7 +964,7 @@ async function salvarCliente(idCliente = null) {
 
         await enviar(`clientes/${idCliente || '0000'}`, cliente)
 
-        removerTodosPopups()
+        removerPopup()
 
         popup({ imagem: 'imagens/concluido.png', mensagem: 'Cadastro atualizado com sucesso' })
 

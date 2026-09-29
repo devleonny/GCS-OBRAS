@@ -853,10 +853,6 @@ async function painelClientes(idOrcamento = null) {
         condicoes
     } = orcamento?.dados_orcam || {}
 
-    const bloq = orcamento?.hierarquia
-        ? true
-        : false
-
     const [cliente, clienteVendaDireta] = await Promise.all([
         recuperarDado('clientes', omie_cliente),
         recuperarDado('clientes', venda_direta)
@@ -919,17 +915,15 @@ async function painelClientes(idOrcamento = null) {
             texto: 'Cliente',
             elemento: `
             <div style="${horizontal}; gap: 3px">
-                ${bloq
-                    ? `<img src="imagens/proibido.png">` : ''}
                 <span ${omie_cliente
                     ? `id="${omie_cliente}"`
                     : ''} 
                     class="opcoes" 
                     name="cliente" 
-                    ${bloq ? '' : `onclick="cxOpcoes('cliente')"`}>
+                    onclick="cxOpcoes('cliente')">
                         ${cliente?.nome || 'Selecione'}
                 </span>
-                ${bloq ? '' : `<img onclick="formularioCliente()" src="imagens/baixar.png">`}
+                <img onclick="formularioCliente()" src="imagens/baixar.png">
             </div>
             ` },
         {

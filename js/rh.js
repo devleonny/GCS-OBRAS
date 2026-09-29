@@ -423,6 +423,7 @@ async function incluirDocumento(id) {
             usuario: { op: 'NOT_EMPTY' }
         },
         colunas: {
+            'Usuário': { chave: 'usuario' },
             'Nome': { chave: 'nome' },
             'Estado': { chave: 'estado' },
             'Cidade': { chave: 'cidade' }
@@ -452,13 +453,17 @@ async function incluirDocumento(id) {
         {
             texto: 'Funcionário',
             elemento: `
-            <span 
-            ${funcionario ? `id="${funcionario}"` : ''} 
-            class="opcoes" 
-            name="funcionario" 
-            onclick="cxOpcoes('funcionario')">
-                ${snapshots?.nome || 'Selecionar'}
-            </span>`
+            <div style="${horizontal}; gap: 3px;">
+                <span 
+                ${funcionario ? `id="${funcionario}"` : ''} 
+                class="opcoes" 
+                name="funcionario" 
+                onclick="cxOpcoes('funcionario')">
+                    ${snapshots?.nome || 'Selecionar'}
+                </span>
+                <img onclick="formularioCliente()" src="imagens/baixar.png">
+            </div>
+            `
         },
         {
             texto: 'Doc',
