@@ -33,7 +33,7 @@ const tagCliente = (nome, ativarRemover = false) => {
     return `
         <div style="${horizontal}; gap: 5px;">
             ${ativarRemover ? `<img onclick="removerTagCliente(this)" src="imagens/fechar.png">` : ''}
-            <span data-nome="${nome}" class="tag-pendencias">
+            <span data-nome="${nome}" class="etiquetas">
                 ${nome || '--'}
             </span>
         </div>`
@@ -214,42 +214,26 @@ async function telaClientes() {
         `
 
         const tabela = await modTab({
-            pag: 'clientes',
+            pag,
+            base: 'vw_2_clientes',
             colunas: {
                 'Ações': {},
-                'Check': {},
-                'Disponível em': {},
-                'Nome': { chave: 'nome' },
-                'CPF/CNPJ': { chave: 'cnpj' },
-                'Empresa': { chave: 'nomeEmpresa' },
-                'Setor': { chave: 'setor' },
-                'Permissão': { chave: 'permissao' },
-                'Usuário': { chave: 'usuario' },
-                'Matrícula': { chave: 'matricula' },
-                'E-mail': { chave: 'email' },
+                'Disp. em': {},
+                'Nome': { chave: 'cadastrais', op: 'includes' },
+                'IDs': { chave: 'ids', op: 'includes' },
                 'Endereço Cadastro': { chave: 'snapshots.enderecoCadastro' },
                 'Comentário': { chave: 'comentario' }
             },
-            substituicoes: [
-                {
-                    path: 'empresa',
-                    tabela: 'empresas',
-                    campoBusca: 'id',
-                    retorno: 'nome',
-                    destino: 'nomeEmpresa'
-                }
-            ],
             funcaoAdicional: ['contarPorTagCliente'],
             body: 'bodyClientes',
             btnExtras,
-            criarLinha: 'criarLinhaClienteGCS',
-            base: 'clientes'
+            criarLinha: 'criarLinhaClienteGCS'
         })
 
         const mapa = criarMapa({
             apenasMapa: true,
             path: 'estado',
-            pag: 'clientes'
+            pag
         })
 
         tela.innerHTML = `
@@ -302,14 +286,11 @@ function criarLinhaClienteGCS(cliente) {
         nome,
         cnpj,
         email,
-        usuario,
-        matricula,
-        permissao,
-        setor,
         tags,
         comentario,
-        nomeEmpresa
-    } = cliente
+        cadastrais,
+        ids
+    } = cliente || {}
 
     const modelo = ({ endereco, bairro, cep, cidade, estado }) => {
         return `
@@ -324,16 +305,17 @@ function criarLinhaClienteGCS(cliente) {
 
     const eCadastro = modelo({ ...cliente })
 
-    const labelsTags = (tags || [])
+    const tags1 = (tags || [])
         .map(item => tagCliente(item.tag))
         .join('')
 
-    const tds = `
-        <td>
-            <img src="imagens/pesquisar2.png" onclick="formularioCliente(${id})">
-        </td>
-        <td>
-            <input
+    const tags2 = (ids || [])
+        .filter(Boolean)
+        .map(t => `<span class="fin">${t}</span>`)
+        .join('')
+
+    const check = `
+        <input
             onchange="checkPoint(this)"
             data-id="${id}"
             data-nome="${nome}"
@@ -341,30 +323,35 @@ function criarLinhaClienteGCS(cliente) {
             ${controles?.clientes?.cp?.[id] ? 'checked' : ''}
             style="width: 1.5rem; height: 1.5rem;"
             name="empresa">
+    `
+
+    const tds = `
+        <td>
+            <img src="imagens/pesquisar2.png" onclick="formularioCliente(${id})">
         </td>
 
         <td>${renderAppsCircle(cnpj ? id : null, Object.keys(apps || []))}</td>
 
         <td>
-            <div style="${vertical}; gap: 2px;">
-                <span>${nome || ''}</span>
-                <div style="display: flex; flex-wrap: wrap; gap: 2px; min-width: 200px;">
-                    ${labelsTags}
+            <div style="${horizontal}; justify-content: start; gap: 5px;">
+
+                ${check}
+                <div style="${vertical}; gap: 2px;">
+
+                    ${(cadastrais || []).map(c => `<span>${c || ''}</span>`).join('')}
+
+                    <div style="display: flex; flex-wrap: wrap; gap: 2px;">
+                        ${tags1}
+                    </div>
                 </div>
+
             </div>
         </td>
         
-        <td style="white-space: nowrap;">${cnpj || ''}</td>
-
         <td>
-            ${nomeEmpresa ? `<span class="and">${nomeEmpresa}` : ''}</span>
+            <div style="display: flex; flex-wrap: wrap; gap: 2px;">${tags2}</div>
         </td>
 
-        <td>${setor ? `<span class="fin">${setor}</span>` : ''}</td>
-        <td>${permissao ? `<span class="fin">${permissao}</span>` : ''}</td>
-        <td>${usuario ? `<span class="fin">${usuario}</span>` : ''}</td>
-        <td>${matricula ? `<span class="fin">${matricula}</span>` : ''}</td>
-        <td>${email || ''}</td>
         <td>${eCadastro}</td>
         <td>
             <div style="white-space: pre-wrap;">${comentario || ''}</div>
@@ -700,7 +687,7 @@ async function verificarDisponibilidade(input) {
     `
     const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
     const divtags = painel.querySelector('[name="tags"]')
-    const tagsExistente = [...divtags.querySelectorAll('.tag-pendencias')]
+    const tagsExistente = [...divtags.querySelectorAll('.etiquetas')]
     const tagsValidas = ['FUNCIONÁRIO', 'CLIENTE', 'TÉCNICO', 'TÉCNICO PARCEIRO', 'MATRIZ']
     const tagValida = tagsExistente.some(span => tagsValidas.includes(span.dataset.nome))
 
