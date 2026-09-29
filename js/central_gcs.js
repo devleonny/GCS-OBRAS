@@ -842,7 +842,6 @@ async function painelClientes(idOrcamento = null) {
         executor,
         tecnico,
         tipo_de_frete,
-        transportadora,
         consideracoes,
         validade,
         garantia,
@@ -903,10 +902,6 @@ async function painelClientes(idOrcamento = null) {
             'CNPJ/CPF': { chave: 'cnpj' }
         }
     }
-
-    const oTransportadoras = transportadoras
-        .map(o => `<option ${transportadora == o ? 'selected' : ''}>${o}</option>`)
-        .join('')
 
     const {
         nome,
@@ -990,14 +985,6 @@ async function painelClientes(idOrcamento = null) {
                 ${['', 'CIF', 'FOB'].map(op => `<option ${tipo_de_frete == op ? 'selected' : ''}>${op}</option>`).join('')}
             </select>
             `
-        },
-        {
-            texto: 'Transportadora',
-            elemento: `
-                <select class="pedido" id="transportadora">
-                    ${oTransportadoras}
-                </select>
-                `
         },
         {
             texto: 'Escopo',
@@ -1212,7 +1199,6 @@ async function salvarDadosCliente(idOrcamento) {
             data: new Date().toLocaleString('pt-BR'),
             garantia: el('garantia').value,
             validade: Number(el('validade').value),
-            transportadora: el('transportadora').value,
             tipo_de_frete: el('tipo_de_frete').value,
             emissor: el('emissor').value,
             email_analista: el('email_analista').value,
