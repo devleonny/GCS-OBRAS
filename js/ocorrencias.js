@@ -958,28 +958,6 @@ async function salvarDataCorrecao(idOcorrencia, idCorrecao) {
 
 }
 
-function visibilidadeFiltros(painel, mostrar) {
-    painel.style.display = mostrar
-        ? 'none'
-        : ''
-}
-
-function visibilidadePesquisas() {
-    const painel = document.querySelector('.painel-filtros')
-    if (!painel) return
-
-    const oculto = painel.classList.toggle('visibilidade')
-    localStorage.setItem('painel_filtros_oculto', oculto ? 'sim' : 'nao')
-}
-
-function lembrarVisibilidadePesquisas() {
-    const painel = document.querySelector('.painel-filtros')
-    if (!painel) return
-
-    const oculto = localStorage.getItem('painel_filtros_oculto') === 'sim'
-    painel.classList.toggle('visibilidade', oculto)
-}
-
 async function telaOcorrencias() {
 
     overlayAguarde()
@@ -987,8 +965,29 @@ async function telaOcorrencias() {
     const mapa = criarMapa()
     const btnExtras = `
     <div class="painel-filtros">
-        <div id="filtros1" class="filtros"></div>
-        <div id="filtros2" class="filtros"></div>
+
+        <div class="divisao-filtro-botoes">
+
+            <div style="${vertical}">
+                <div id="filtros1" class="filtros"></div>
+                <div id="filtros2" class="filtros"></div>
+            </div>
+
+            <div style="${vertical}; gap: 5px;">
+
+                <div style="${horizontal}; gap: 1rem;">
+                    <label class="interruptor">
+                        <input onchange="mostrarMapa()" type="checkbox">
+                        <span class="trilho"></span>
+                    </label>
+                    <label style="color: white;">Mapa</label>
+                </div>
+
+                <button onclick="limparFiltroOcorrencias()" style="background-color: red;">Limpar Filtros</button>
+            </div>
+
+        </div>
+
     </div>
 
     ${mapa}
@@ -1011,8 +1010,6 @@ async function telaOcorrencias() {
 
     tela.innerHTML = acumulado
 
-    lembrarVisibilidadePesquisas()
-
     await paginacao('ocorrencias')
 
     removerOverlay()
@@ -1029,9 +1026,9 @@ async function contadoresMapaOcorrencias() {
         return
 
     const dados = await contarPorCampo({
-        base: 'dados_ocorrencias',
+        base: 'vw_dados_ocorrencias',
         filtros: controles?.ocorrencias?.filtros || {},
-        path: 'snapshots.cliente.estado'
+        path: 'cliente.estado'
     })
 
     auxMapa(dados)
@@ -1878,12 +1875,12 @@ async function criarPesquisas() {
 
     const camposFechados = {
         'Criador': { chave: 'criadores', path: 'usuario' }, // Chave na tabela ref de opções;
-        'Tipo': { chave: 'tipos', path: 'snapshots.tipo' },
-        'Sistema': { chave: 'sistemas', path: 'snapshots.sistema' },
-        'Prioridade': { chave: 'prioridades', path: 'snapshots.prioridade' },
+        'Tipo': { chave: 'tipos', path: 'tipo' },
+        'Sistema': { chave: 'sistemas', path: 'sistema' },
+        'Prioridade': { chave: 'prioridades', path: 'prioridade' },
         'Última Correção': { chave: 'ultima_correcao', path: 'snapshots.ultimaCorrecao.*.nome', explode: { path: 'snapshots.ultimaCorrecao' } },
         'Executor': { op: 'includes', chave: 'executores', path: 'snapshots.ultimaCorrecao.*.executor', explode: { path: 'snapshots.ultimaCorrecao' } },
-        'Estado': { chave: 'estados', path: 'snapshots.cliente.estado' },
+        'Estado': { chave: 'estados', path: 'cliente.estado' },
         ...(
             acesso.permissao == 'cliente'
                 ? {}
@@ -1911,16 +1908,16 @@ async function criarPesquisas() {
         const idFiltro = controles?.ocorrencias?.idFiltro
 
         const funcao = ['diretoria', 'adm'].includes(acesso.permissao)
-            ? `<img src="imagens/pesquisar.png" onclick="formFiltro(${idFiltro ? `'${idFiltro}'` : ''})">`
-            : `<img src="imagens/limpar.png" onclick="limparFiltroOcorrencias()">`
+            ? `<img src="imagens/pesquisar.png" style="width: 1.5rem;" onclick="formFiltro(${idFiltro ? `'${idFiltro}'` : ''})">`
+            : `<img src="imagens/fechar.png" style="width: 1.5rem;" onclick="limparFiltroOcorrencias()">`
 
         filtros.push(`
         <div class="campo-pesquisa">
             <div style="${horizontal}; gap: 3px;">
-                <span style="color: white;">Filtros</span>
                 ${funcao}
+                <label style="color: white;">Filtros</label>
             </div>
-            <span  ${idFiltro ? `id="${idFiltro}"` : ''} style="padding: 0 10px 0 10px;" class="filtro-dropdown-botao" name="filtros" onclick="cxOpcoes('filtros')">${nome}</span>
+            <label  ${idFiltro ? `id="${idFiltro}"` : ''} style="padding: 0 10px 0 10px;" class="filtro-dropdown-botao" name="filtros" onclick="cxOpcoes('filtros')">${nome}</label>
         </div>`
         )
     }
@@ -1945,7 +1942,7 @@ async function criarPesquisas() {
     // Filtro de autorizados e atrasados;
     filtros.push(`
             <div class="campo-pesquisa">
-                <span style="color: white;">Autorização</span>
+                <label style="color: white;">Autorização</label>
                 <select onchange="filtrarAutorizados(this)">
                     ${['', 'Sim', 'Não'].map(o => `<option>${o}</option>`).join('')}
                 </select>
@@ -1954,7 +1951,7 @@ async function criarPesquisas() {
 
     filtros.push(`
             <div class="campo-pesquisa">
-                <span style="color: white;">Atrasados</span>
+                <label style="color: white;">Atrasados</label>
                 <select onchange="filtrarAtrasados(this)">
                     ${['', 'Sim', 'Não'].map(o => `<option>${o}</option>`).join('')}
                 </select>
@@ -1967,7 +1964,7 @@ async function criarPesquisas() {
 
         filtros.push(`
             <div class="campo-pesquisa">
-                <span style="color: white;">${t}</span>
+                <label style="color: white;">${t}</label>
                 <input type="date" data-operador="${t}" onchange="filtrarPorData(this)">
             </div>
         `)

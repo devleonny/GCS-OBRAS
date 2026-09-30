@@ -499,7 +499,6 @@
     flex-direction: column;
     align-items: start;
     justify-content: start;
-    max-height: 1000px;
     transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
     opacity: 1;
 }
@@ -665,7 +664,8 @@
     display: flex;
     align-items: center;
     justify-content: start;
-
+    gap: 5px;
+    margin-bottom: 3px;
 }
 
 .dropdown-item input {
@@ -703,7 +703,19 @@
     color: white;
 }
 
+.divisao-filtro-botoes {
+    display:  flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
 @media screen and (orientation: portrait) {
+
+    .divisao-filtro-botoes, .linha-divisor-tag {
+        flex-direction: column;
+    }
 
     .painel-tecnicos {
         flex-direction: column;

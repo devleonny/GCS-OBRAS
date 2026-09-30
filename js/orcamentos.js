@@ -226,7 +226,8 @@ async function criarLinhaOrcamento(orcamento) {
             ${etiqRevAtual}
             ${etiqVendaDireta}
             ${colunaContrato.filter(Boolean).map(c => `<span>${c}</span>`).join('')}
-        </div>`
+        </div>
+    `
 
     // Tags;
     const listaTags = tags

@@ -109,7 +109,9 @@ async function modTab(configuracoes) {
         <div style="${vertical}; width: 100%;">
             <div class="topo-tabela${nude ? ' nude' : ''}" ${cor ? `style="background: ${cor};"` : ''}">
                 <div id="paginacao_${pag}"></div>
-                ${btnExtras || ''}
+                <div style="padding: 0 1rem;">
+                    ${btnExtras || ''}
+                </div>
             </div>
 
             <div style="${!scroll ? `max-height: max-content` : ''};" class="div-tabela${nude ? ' nude' : ''}">
@@ -484,16 +486,19 @@ async function paginacao(pag) {
 
         if (!paginaAtual) {
             divPaginacao.innerHTML = `
-                <div style="${alinPag}; align-items: center; padding: 2px; color: white;">
-                    <div style="display: ${ocultarPaginacao ? 'none' : 'flex'}; align-items: center; justify-content: center;" gap: 5px;">
+                <div style="${alinPag}; align-items: center; padding: 2px; color: white; gap: 5px;">
+
+                    <div style="display: ${ocultarPaginacao ? 'none' : 'flex'}; align-items: center; justify-content: center; gap: 5px;">
                         <img src="imagens/esq.png" style="width: 2rem;" onclick="mudarPagina(-1, '${pag}')">
                         <span id="paginaAtual_${pag}">${pagina}</span> de
                         <span id="totalPaginas_${pag}">${dados.paginas}</span> 
                         <img src="imagens/dir.png" style="width: 2rem;" onclick="mudarPagina(1, '${pag}')">
                     </div>
-                    <span style="display: ${ocultarLegenda ? 'none' : 'flex'}; align-items: center; justify-content: center; white-space: nowrap;">
-                        <span style="font-size: 1rem;" id="resultados_${pag}">${dados.total}</span> ${dados.total !== 1 ? 'Itens' : 'Item'}
+                    <span style="display: ${ocultarLegenda ? 'none' : 'flex'}; align-items: center; justify-content: center; white-space: nowrap; gap: 5px;">
+                        <span style="font-size: 1rem;" id="resultados_${pag}">${dados.total}</span>
+                        <span>${dados.total !== 1 ? 'Itens' : 'Item'}</span>
                     </span>
+
                 </div>
             `
         } else {

@@ -46,19 +46,7 @@ function criarMapa({ apenasMapa, path, pag } = {}) {
     if (apenasMapa)
         return mapa
 
-    const elemento = `
-        <div class="painel-mapa">
-
-            <div style="${vertical}; gap: 5px;">
-                <button onclick="mostrarMapa()">Ativar/Desativar Mapa</button>
-                <button onclick="visibilidadePesquisas()">Ativar/Desativar Pesquisa</button>
-                <button onclick="limparFiltroOcorrencias()" style="background-color: red;">Limpar Filtros</button>
-            </div>
-            
-            ${mapa}
-        </div>
-        `
-    return elemento
+    return `<div class="painel-mapa">${mapa}</div>`
 
 }
 
@@ -141,5 +129,6 @@ function mostrarMapa() {
     if (pMapa)
         pMapa.classList.toggle('ativo')
 
-    paginacao() // Um refresh nas tabelas;
+    paginacao()
+
 }

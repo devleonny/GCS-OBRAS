@@ -203,13 +203,19 @@ async function telaClientes() {
         })
 
         const btnExtras = `
-            <div style="${horizontal}; gap: 1rem;">
+            <div style="${horizontal}; gap: 1rem; padding: 3px;">
                 <input onclick="checksCliente(this)" style="width: 1.5rem; height: 1.5rem;" type="checkbox">
                 <img src="imagens/trocar.png" onclick="classificarUnidades()">
                 <button onclick="formularioCliente()">Adicionar Cadastro</button>
-                <button onclick="mostrarMapa()">Ver Mapa</button>
                 ${dropdownTags}
                 ${dropdownEstados}
+                <div style="${horizontal}; gap: 1rem;">
+                    <label class="interruptor">
+                        <input onchange="mostrarMapa()" type="checkbox">
+                        <span class="trilho"></span>
+                    </label>
+                    <label style="color: white;">Mapa</label>
+                </div>
             </div>
         `
 
@@ -237,7 +243,7 @@ async function telaClientes() {
         })
 
         tela.innerHTML = `
-        <div class="tela-clientes">
+        <div style="${horizontal}; gap: 1rem;">
             ${montarPagina({ tabela, titulo: 'Clientes, Usuários & Fornecedores', imagem: 'prancheta' })}
             ${mapa}
         </div>`

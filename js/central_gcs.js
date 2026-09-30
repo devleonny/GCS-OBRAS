@@ -1168,7 +1168,7 @@ async function salvarDadosCliente(idOrcamento) {
         // Venda Direta;
         const spanVendaDireta = document.querySelector('[name="venda_direta"]')
         const venda_direta = spanVendaDireta.dataset.ativo == 'S'
-            ? document.querySelector('[name="venda_direta"]')?.id || null
+            ? Number(obVal('venda_direta'))
             : null
 
         // Executores;

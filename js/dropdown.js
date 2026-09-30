@@ -350,18 +350,18 @@ function montarDropdownCheckbox({ titulo, op = '=', pag, funcao = null, path, op
                 value="${String(o).replace(/"/g, '&quot;')}"
                 ${checked ? 'checked' : ''}
                 onchange="alternarFiltroDropdown(this.checked, '${encodeURIComponent(JSON.stringify(dados))}')">
-            <span>${o}</span>
+            <label>${o}</label>
         </label>
         `;
     }).join('');
 
     return `
         <div class="campo-pesquisa">
-            <span style="color: white;">${titulo}</span>
+            <label style="color: white;">${titulo}</label>
             <div class="filtro-dropdown" data-path="${path}" data-pag="${pag}">
                 <div class="filtro-dropdown-botao" onclick="toggleDropdown(this)">
-                    <span class="dropdown-label">${labelDropdown(path, pag, validas)}</span>
-                    <span>▾</span>
+                    <label class="dropdown-label">${labelDropdown(path, pag, validas)}</label>
+                    <label style="padding: 0 0.5rem;">▾</label>
                 </div>
                 <div class="dropdown-menu" data-aberto="N">
                     <label class="dropdown-item" style="border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-bottom: 6px;">
@@ -370,10 +370,10 @@ function montarDropdownCheckbox({ titulo, op = '=', pag, funcao = null, path, op
                             data-item="todos"
                             ${todosAtivos ? 'checked' : ''}
                             onchange="alternarTodosDropdown('${path.replace(/'/g, "\\'")}', ${JSON.stringify(validas).replace(/"/g, '&quot;')}, '${pag.replace(/'/g, "\\'")}'${funcao ? `, '${funcao.replace(/'/g, "\\'")}'` : ''})">
-                        <span>Todos</span>
+                        <label>Todos</label>
                     </label>
 
-                    ${itens || '<span>Nenhuma opção</span>'}
+                    ${itens || '<label>Nenhuma opção</label>'}
                 </div>
             </div>
         </div>
