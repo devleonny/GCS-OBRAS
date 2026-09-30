@@ -5,6 +5,7 @@ function campoBloq() {
 }
 
 async function modTab(configuracoes) {
+
     const {
         btnExtras = null,
         ocultarPesquisa = false,
@@ -107,6 +108,7 @@ async function modTab(configuracoes) {
 
     const modelo = `
         <div style="${vertical}; width: 100%;">
+
             <div class="topo-tabela${nude ? ' nude' : ''}" ${cor ? `style="background: ${cor};"` : ''}">
                 <div id="paginacao_${pag}"></div>
                 <div style="padding: 0 1rem;">

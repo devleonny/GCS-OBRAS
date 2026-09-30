@@ -3,7 +3,7 @@ async function telaPIT() {
     const acumulado = `
     <div class="scroll-content">
         <div class="contorno-quadros">
-            <div id="quadros" class="tabela-cadastro-recorte"></div>
+            <div id="quadros" class="tabela-atras-postit"></div>
         </div>
     </div>
     `
@@ -157,7 +157,7 @@ async function soltarPIT(event) {
 }
 
 function iniciarAutoScrollPIT() {
-    const contorno = document.querySelector('.tabela-cadastro-recorte')
+    const contorno = document.querySelector('.tabela-atras-postit')
     if (!contorno) return
 
     pararAutoScrollPIT()

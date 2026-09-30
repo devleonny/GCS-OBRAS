@@ -326,10 +326,6 @@ function clonarOrcamento() {
 
         controlesCxOpcoes.orcamento = {
             base: 'dados_orcamentos',
-            ordenar: {
-                direcao: 'desc',
-                path: 'timestamp'
-            },
             retornar: ['dados_orcam.contrato'],
             colunas: {
                 'Número do Orçamento': { chave: 'dados_orcam.contrato' },
@@ -622,7 +618,7 @@ function carregarLinhaOrcamento(produto) {
             
             <div>
                 ${editavel
-                ? `<img src="imagens/cancel.png" 
+                ? `<img src="imagens/fechar.png" 
                     onclick="removerItemOrcamento('${chave}')" 
                     style="display: ${bloqReq ? 'none' : 'block'}; width: 1.5rem;">`
                 : ''

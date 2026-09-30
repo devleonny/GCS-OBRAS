@@ -78,3 +78,14 @@
     padding: 4px 8px;
     border-radius: 999px;
 }
+
+.tabela-atras-postit {
+    font-size: 0.8rem;
+    background: linear-gradient(45deg, black, transparent);
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    gap: 2rem;
+    overflow: auto;
+    height: 100%;
+}

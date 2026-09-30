@@ -39,11 +39,11 @@
     border: 1px solid #e3e3e3;
 }
 
-.tabela tbody tr:nth-child(even) {
+.tabela:not(.nude) tbody tr:nth-child(even) {
     background-color: #fafafa;
 }
 
-.tabela tbody tr:hover {
+.tabela:not(.nude) tbody tr:hover {
     background-color: #f1f5f9;
 }
 
@@ -93,6 +93,7 @@
     background-color: transparent;
 }
 
+
 .topo-tabela {
     position: relative;
     justify-content: start;
@@ -118,5 +119,5 @@
 }
 
 .topo-tabela.nude {
-    border-radius: 5px;
+    display: none;
 }
