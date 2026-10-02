@@ -399,7 +399,7 @@ function adicionarTag() {
     const tag = painel.querySelector('[name="tag"]')
 
     const divtags = painel.querySelector('[name="tags"]')
-    const tagsExistente = divtags.querySelectorAll('.tag-pendencias')
+    const tagsExistente = divtags.querySelectorAll('.etiquetas')
 
     const existente = [...tagsExistente]
         .some(span => span.dataset.nome == tag.value)
@@ -907,7 +907,7 @@ async function salvarCliente(idCliente = null) {
         }
 
         const divtags = painel.querySelector('[name="tags"]')
-        const tagsExistente = divtags.querySelectorAll('.tag-pendencias')
+        const tagsExistente = divtags.querySelectorAll('.etiquetas')
         const tags = [...tagsExistente || []]
             .map(span => { return { tag: span.dataset.nome } })
 
