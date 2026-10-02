@@ -2281,14 +2281,11 @@ async function formularioOcorrencia(idOcorrencia) {
             snapshots,
             anexos,
             fotos,
-            descricao
-        } = ocorrencia
-
-        const {
-            sistema,
+            descricao,
             tipo,
-            prioridade
-        } = snapshots || {}
+            prioridade,
+            sistema
+        } = ocorrencia || {}
 
         const equipamentos = (
             await Promise.all(
@@ -2335,6 +2332,16 @@ async function formularioOcorrencia(idOcorrencia) {
 
         })
 
+        const [
+            pesqTipo,
+            pesqSist,
+            pesqPri
+        ] = await Promise.all([
+            recuperarDado('tipos', tipo),
+            recuperarDado('sistemas', sistema),
+            recuperarDado('prioridades', prioridade)
+        ])
+
         const linhas = [
             {
                 texto: 'Unidade de Manutenção',
@@ -2345,24 +2352,24 @@ async function formularioOcorrencia(idOcorrencia) {
             },
             {
                 texto: 'Sistema',
-                elemento: `<span ${ocorrencia.sistema ? `id="${ocorrencia.sistema}"` : ''} 
+                elemento: `<span ${sistema ? `id="${sistema}"` : ''} 
             class="opcoes" name="sistema" onclick="cxOpcoes('sistema')">
-                ${sistema || 'Selecione'}
+                ${pesqSist?.nome || 'Selecione'}
             </span>`
             },
             {
                 texto: 'Prioridade',
-                elemento: `<span ${ocorrencia.prioridade ? `id="${ocorrencia.prioridade}"` : ''} 
+                elemento: `<span ${prioridade ? `id="${prioridade}"` : ''} 
             class="opcoes" name="prioridade" onclick="cxOpcoes('prioridade')">
-                ${prioridade || 'Selecione'}
+                ${pesqPri?.nome || 'Selecione'}
             </span>`
             },
             {
                 texto: 'Tipo',
-                elemento: `<span ${ocorrencia.tipo ? `id="${ocorrencia.tipo}"` : ''} 
-            class="opcoes" name="tipo" onclick="cxOpcoes('tipo')">
-                ${tipo || 'Selecione'}
-            </span>`
+                elemento: `<span ${tipo ? `id="${tipo}"` : ''} 
+                class="opcoes" name="tipo" onclick="cxOpcoes('tipo')">
+                    ${pesqTipo?.nome || 'Selecione'}
+                </span>`
             },
             {
                 texto: 'Data da Solicitação',
