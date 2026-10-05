@@ -992,29 +992,37 @@ async function salvarComposicao(codigo) {
 
 async function verAgrupamento(codigo) {
 
-    const produto = await recuperarDado('dados_composicoes', codigo)
+    try {
 
-    const linhas = [
-        {
-            elemento: `
+        overlayAguarde()
+
+        const {
+            agrupamento,
+            imagem,
+            descricao
+        } = await recuperarDado('dados_composicoes', codigo)
+
+        const linhas = [
+            {
+                elemento: `
             <div style="${horizontal}; max-width: 400px; text-align: left; gap: 0.5rem;">
 
-                <img src="${produto.imagem || logo}" style="width: 6rem;">
+                <img src="${imagem || logo}" style="width: 6rem;">
 
                 <div style="${vertical}">
                     <span>Agrupamento do Item:</span>
-                    <span><b>${produto.descricao}</b></span>
+                    <span><b>${descricao}</b></span>
                     <br>
                     <span>
-                        Explicação: <br>Para cada 1 <b>${String(produto.descricao).slice(0, 10)}</b><br> 
+                        Explicação: <br>Para cada 1 <b>${String(descricao || '').slice(0, 10)}</b><br> 
                         Será lançada a quantidade abaixo de cada item
                     </span>
                 </div>
                 
             </div>`
-        },
-        {
-            elemento: `
+            },
+            {
+                elemento: `
             <div class="borda-tabela">
                 <div class="topo-tabela"></div>
                 <div class="div-tabela">
@@ -1027,19 +1035,31 @@ async function verAgrupamento(codigo) {
                 </div>
                 <div class="rodape-tabela"></div>
             </div>`
-        }
-    ]
+            }
+        ]
 
-    const botoes = [
-        { texto: 'Adicionar Item', img: 'baixar', funcao: `criarLinhaAgrupamento()` },
-        { texto: 'Salvar Agrupamento', img: 'concluido', funcao: `salvarAgrupamento('${codigo}')` }
-    ]
+        const botoes = [
+            { texto: 'Adicionar Item', img: 'baixar', funcao: `criarLinhaAgrupamento()` },
+            { texto: 'Salvar Agrupamento', img: 'concluido', funcao: `salvarAgrupamento('${codigo}')` }
+        ]
 
-    popup({ linhas, botoes, titulo: 'Gerenciar itens do agrupamento' })
+        popup({ linhas, botoes, titulo: 'Gerenciar itens do agrupamento' })
 
-    const agrupamento = produto.agrupamento || {}
-    for (const [cod, dados] of Object.entries(agrupamento))
-        await criarLinhaAgrupamento(cod, dados)
+        await Promise.all(
+            Object.entries(agrupamento || {})
+                .map(async ([cod, dados]) => {
+
+                    criarLinhaAgrupamento(cod, dados)
+
+                })
+        )
+
+        removerOverlay()
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir o agrupamento: Fale com o suporte.' })
+    }
 
 }
 
@@ -1063,7 +1083,7 @@ async function criarLinhaAgrupamento(cod, dados) {
     const tds = `
         <td>
             <div style="${horizontal}; gap: 1rem;">
-            <img src="imagens/cancel.png" onclick="this.closest('tr').remove()">
+            <img src="imagens/fechar.png" onclick="this.closest('tr').remove()">
             <span 
             class="opcoes"
             ${cod ? `id="${cod}"` : ''}

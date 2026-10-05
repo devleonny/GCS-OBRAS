@@ -81,7 +81,7 @@ async function telaCriarOrcamento() {
                 <div style="${vertical}">
 
                     <label style="font-size: 1.2rem;">TOTAL GERAL</label>
-                    <label style="font-size: 1.7rem;" id="total_geral"></label>
+                    <div style="font-size: 1.7rem;" id="total_geral"></div>
                     <br>
                     
                     <div style="${horizontal}; gap: 1rem;">
@@ -102,9 +102,9 @@ async function telaCriarOrcamento() {
                     <label>RESUMO</label>
                     <hr>
                     <label><b>Total Bruto</b></label>
-                    <label id="total-bruto"></label>
+                    <div id="total-bruto"></div>
                     <label><b>Diferença</b></label>
-                    <label id="diferenca-rs"></label>
+                    <div id="diferenca-rs"></div>
                 </div>
 
                 <div style="${vertical}; gap: 3px; margin-right: 0.5rem;">
@@ -727,12 +727,12 @@ function calcularSubtotais() {
             const total = valor * qtde
             totalBloco += total
 
-            linha.querySelector('[name="total"]').textContent = dinheiro(total)
+            linha.querySelector('[name="total"]').innerHTML = dinheiro(total)
         })
 
         const totalBlocoDiv = bloco.querySelector('.total-linha')
         if (totalBlocoDiv)
-            totalBlocoDiv.querySelector('span').textContent = dinheiro(totalBloco)
+            totalBlocoDiv.querySelector('span').innerHTML = dinheiro(totalBloco)
     })
 
     const modeloToolbar = (tool, total) => `
@@ -753,7 +753,7 @@ function calcularSubtotais() {
     if (!document.getElementById('total-bruto'))
         return
 
-    document.getElementById('total-bruto').textContent = dinheiro(totais.BRUTO)
+    document.getElementById('total-bruto').innerHTML = dinheiro(totais.BRUTO)
     document.getElementById('diferenca-rs').innerHTML = !sinal
         ? 'Sem diferença'
         : `
@@ -762,7 +762,7 @@ function calcularSubtotais() {
             <span>${dinheiro(dif)} (${((dif / totais.BRUTO) * 100).toFixed(1)} %)</span>
         </div>
     `
-    document.getElementById('total_geral').textContent = dinheiro(totais.GERAL)
+    document.getElementById('total_geral').innerHTML = dinheiro(totais.GERAL)
 
     const toolbar = Object.entries(totais)
         .filter(([tool,]) => tool !== 'BRUTO')
@@ -805,7 +805,7 @@ function formatarLinhasOrcamento() {
 
     const topoTabela = menuPaginacao.closest('.topo-tabela')
     const filtro = controles?.criarOrcamento?.filtros?.tipo?.value || 'GERAL'
-    topoTabela.style.backgroundColor = coresTabelas(filtro)
+    topoTabela.style.background = coresTabelas(filtro)
 
     // Quando não tiver pesquisa ou filtragem por tipo;
     document.querySelectorAll('#bodyOrcamento .linha-orcamento').forEach(linha => {
@@ -1082,7 +1082,7 @@ function formatarTabela() {
 
     const topoTabela = menuPaginacao.closest('.topo-tabela')
 
-    topoTabela.style.backgroundColor = coresTabelas(tipo)
+    topoTabela.style.background = coresTabelas(tipo)
 
 }
 

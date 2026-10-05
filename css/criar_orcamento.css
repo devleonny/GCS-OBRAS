@@ -252,20 +252,13 @@
   width: 90%;
 }
 
-.label_data {
-  padding: 10px;
-  color: white;
-  background-color: rgba(0, 0, 0, 0.9);
-  border-radius: 5px;
-}
-
 .tag-zerado {
-  margin: 2px;
+  margin: 5px;
   background-color: #ffffff85;
-  padding: 3px;
-  border-radius: 3px;
+  padding: 3px 1rem;
+  border-radius: 20px;
   border: solid 1px #d9d9d9;
-  color: black;
+  color: #222;
   display: flex;
   align-items: center;
   justify-content: center;
