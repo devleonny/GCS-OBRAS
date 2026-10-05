@@ -594,7 +594,7 @@ function carregarLinhaOrcamento(produto) {
             <div name="medida">${unidade || 'UN'}</div>
 
             <div>
-                <input name="quantidade" ${bloqReq ? 'readOnly' : ''}  class="campo-valor${bloqReq ? ' bloqueio' : ''}" oninput="atualizarQtde('${chave}', this)" type="number" value="${qtde}" ${editavel ? '' : 'readOnly'}>
+                <input name="quantidade" ${bloqReq ? 'readOnly' : ''} oninput="atualizarQtde('${chave}', this)" type="number" value="${qtde}" ${editavel ? '' : 'readOnly'}>
             </div>
 
             <div style="${horizontal}; justify-content: start; gap: 1rem;">
@@ -1214,14 +1214,14 @@ function linhasComposicoesOrcamento(produto) {
         </td>
         <td>${produto?.unidade || ''}</td>
         <td>
-            <input id="prod_${codigo}" type="number" class="campo-valor" oninput="incluirItem('${codigo}', this.value)">
+            <input id="prod_${codigo}" type="number" oninput="incluirItem('${codigo}', this.value)">
         </td>
         <td>
-            <div style="${horizontal}; gap: 1px;">
+            <div style="${horizontal}; justify-content: space-between; gap:">
+                
+                <label class="campo-valor ${preco > 0 ? 'verde' : 'vermelho' }">${dinheiro(preco)}</label>
                 ${sinalizacao}
-                <label class="campo-valor ${preco > 0 ? 'verde' : 'vermelho'}">
-                    ${dinheiro(preco)}
-                </label>
+
             </div>
         </td>
         <td>
@@ -1287,7 +1287,7 @@ async function alterarValorUnitario(chave, campo) {
         },
         {
             texto: 'Novo Valor',
-            elemento: `<input class="campo-valor" id="novoValor" type="number">`
+            elemento: `<input id="novoValor" type="number">`
         }
     ]
 

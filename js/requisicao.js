@@ -111,8 +111,6 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
         'Origem': { chave: 'origem' },
         'Quantidade Enviar': {},
         'Quantidade Orçada': {},
-        'Valor Unit Bruto': {},
-        'Valor Total Bruto': {},
         'Valor Unitário': {},
         'Valor Total': {}
     }
@@ -273,26 +271,11 @@ async function criarLinhaRequisicao(item) {
         custo,
         origem,
         tipo,
-        adicionais,
-        custo_original,
-        desconto,
         descricao,
         omie,
         qtde_enviar = 0,
         qtde
     } = item || {}
-
-    // Tipo desconto vem por padrão em dinheiro;
-    // No caso de acréscimo a chave "custo" já vem no valor final;
-
-    const total = (custo * qtde) - desconto
-    const unitario = custo_original || custo || 0
-
-    const sinal = unitario < custo
-        ? '<img src="imagens/up.png" style="width: 1.5rem;">'
-        : unitario > custo
-            ? '<img src="imagens/down.png" style="width: 1.5rem;">'
-            : ''
 
     let descricaoFinal = null
 
@@ -334,31 +317,33 @@ async function criarLinhaRequisicao(item) {
             <td>
                 <img src="${imagem || logo}">
             </td>
+
             <td style="font-size: 1.2em; white-space: nowrap;">
                 ${codigo || ''}
             </td>
+
             <td>
-                <input class="requisicao-campo" style="min-width: 10rem;" value="${omie || ''}">
+                <input oninput="calcularRequisicao()" name="omie" class="requisicao-campo" style="min-width: 10rem;" value="${omie || ''}">
             </td>
+            
             <td>
-                <div style="${horizontal}; justify-content: space-between; min-width: 200px; gap: 1rem;">
-                    <div style="${vertical}; gap: 2px;">
-                        <label><b>DESCRIÇÃO</b></label>
-                        ${descricaoFinal}
-                    </div>
-                    ${codigo ? `<img src="imagens/construcao.png" onclick="abrirAdicionais('${codigo}')">` : ''}
+                <div style="${vertical}; gap: 2px; text-align: left;">
+                    <label><b>DESCRIÇÃO</b></label>
+                    ${descricaoFinal}
                 </div>
             </td>
+
             <td>
-                <select class="opcoes-select" onchange="atualizarValorRequisicao('${codigo}', 'tipo', this.value)">
+                <select name="tipo" class="opcoes-select" onchange="calcularRequisicao()">
                     ${opcoesRequisicao.map(o => `<option ${tipo == o ? 'selected' : ''}>${o}</option>`).join('')}
                 </option>
             </td>
             <td>
-                <select class="opcoes-select"  onchange="atualizarValorRequisicao('${codigo}', 'origem', this.value)">
+                <select name="origem" class="opcoes-select" onchange="calcularRequisicao()">
                     ${['Matriz', 'Região', 'Kit Técnico'].map(o => `<option ${origem == o ? 'selected' : ''}>${o}</option>`).join('')}
                 </option>
             </td>
+            
             <td>
                 <input 
                     class="requisicao-campo" 
@@ -367,130 +352,22 @@ async function criarLinhaRequisicao(item) {
                     min="0" 
                     value="${qtde_enviar || ''}">
             </td>
+
             <td style="text-align: center;" name="qtde_orcamento">
                 ${qtde || 0}
             </td>
 
-            <td style="white-space: nowrap;" name="unitarioBruto">
-                ${dinheiro(unitario || 0)}
-            </td>
-            <td style="white-space: nowrap;" name="totalBruto"></td>
-
             <td style="white-space: nowrap;" name="custo">
                 ${dinheiro(custo || 0)}
             </td>
-            <td>
-                <div style="${horizontal}; gap: 1rem;"> 
-                    <span name="total" style="white-space: nowrap;"></span>
-                    ${sinal}
-                </div>
-            </td>
+
+            <td style="white-space: nowrap;" name="total"></td>
+
         </tr>
         `
 
-    const linhaAdicional = Object.values(adicionais || {})
-        .map(a => {
-            const tr = `
-                    <tr style="background-color: #ededed;">
-                        <td></td>
-                        <td>${codigo}</td>
-                        <td></td>
-                        <td>${a.descricao}</td>
-                        <td>ITEM ADICIONAL</td>
-                        <td style="text-align: center;">${a.qtde}</td>
-                        <td colspan="3">${a.comentario}</td>
-                    </tr>
-                `
-            return tr
-        })
-        .join('')
+    return linhaPrincipal
 
-    return linhaPrincipal + linhaAdicional
-}
-
-function atualizarValorRequisicao(codigo, campo, valor) {
-    const base = controles.requisicao.base
-
-    if (!Array.isArray(base))
-        return
-
-    let item = base.find(i => i.codigo == codigo)
-
-    if (!item) {
-        item = { codigo }
-        base.push(item)
-    }
-
-    item[campo] = valor
-}
-
-async function abrirAdicionais(codigo) {
-    const ths = ['Descrição', 'Quantidade', 'Comentário', '']
-        .map(op => `<th>${op}</th>`)
-        .join('')
-
-    const botoes = [
-        { texto: 'Adicionar Peça', img: 'baixar', funcao: `criarLinhaPeca()` },
-        { texto: 'Salvar', img: 'concluido', funcao: `salvarAdicionais('${codigo}')` }
-    ]
-
-    const linhas = [
-        {
-            elemento: `
-            <div style="${vertical}; width: 100%;">
-                <div class="topo-tabela"></div>
-                    <div class="div-tabela">
-                        <table class="tabela">
-                            <thead><tr>${ths}</tr></thead>
-                            <tbody id="linhasManutencao"></tbody>
-                        </table>
-                    </div>
-                <div class="rodape-tabela"></div>
-            </div>`
-        }
-    ]
-
-    popup({ linhas, botoes, titulo: 'Itens Adicionais' })
-
-    const item = (controles.requisicao.base || []).find(i => i.codigo == codigo)
-    const adicionais = item?.adicionais || {}
-
-    for (const [codigoAdicional, dados] of Object.entries(adicionais)) {
-        criarLinhaPeca(codigoAdicional, dados)
-    }
-}
-
-async function salvarAdicionais(codigo) {
-    const linhas = document.querySelectorAll('#linhasManutencao tr')
-
-    const adicionais = [...linhas].reduce((acc, linha) => {
-        const tds = linha.querySelectorAll('td')
-        const cod = linha.id
-
-        const span = tds[0].querySelector('span')
-        const qtde = Number(tds[1].querySelector('input')?.value || 0)
-        const comentario = tds[2].querySelector('textarea')?.value || ''
-
-        acc[cod] = {
-            descricao: span.textContent,
-            qtde,
-            comentario
-        }
-
-        return acc
-    }, {})
-
-    let item = controles.requisicao.base.find(i => i.codigo == codigo)
-
-    if (!item) {
-        item = { codigo }
-        controles.requisicao.base.push(item)
-    }
-
-    item.adicionais = adicionais
-
-    removerPopup()
-    await paginacao()
 }
 
 async function calcularRequisicao() {
@@ -522,9 +399,16 @@ async function calcularRequisicao() {
     controles.requisicao.base ??= []
 
     for (const linha of linhas) {
+
         const codigo = linha.dataset.codigo
+
         if (!codigo)
             continue
+
+        const obVal = (n) => {
+            const el = linha.querySelector(`[name="${n}"]`)
+            return el.value || el.id || null
+        }
 
         const totalExistente = requisicoes.resultados
             .map(r => Number(r?.requisicao?.[codigo]?.qtde_enviar || 0))
@@ -539,9 +423,13 @@ async function calcularRequisicao() {
             campoQtde.value = quantidadeRestante
 
         const custo = conversor(linha.querySelector('[name="custo"]').textContent)
-        const unitarioBruto = conversor(linha.querySelector('[name="unitarioBruto"]').textContent)
-        const qtde = Number(campoQtde?.value || 0)
+        const qtdeEnviar = Number(campoQtde?.value || 0)
+        const totalLinha = custo * qtdeEnviar
 
+        total += totalLinha
+        linha.querySelector('[name="total"]').textContent = dinheiro(totalLinha)
+
+        // Salvamento
         let item = controles.requisicao.base.find(i => i.codigo == codigo)
 
         if (!item) {
@@ -549,15 +437,14 @@ async function calcularRequisicao() {
             controles.requisicao.base.push(item)
         }
 
-        item.qtde_enviar = qtde
+        Object.assign(item, {
+            custo,
+            origem: obVal('origem'),
+            omie: obVal('omie'),
+            tipo: obVal('tipo'),
+            qtde_enviar: qtdeEnviar
+        })
 
-        const totalBruto = unitarioBruto * qtde
-        const totalLinha = custo * qtde
-
-        total += totalLinha
-
-        linha.querySelector('[name="totalBruto"]').textContent = dinheiro(totalBruto)
-        linha.querySelector('[name="total"]').textContent = dinheiro(totalLinha)
     }
 
     document.querySelector('#total_requisicao').textContent = dinheiro(total)
@@ -565,10 +452,9 @@ async function calcularRequisicao() {
 
 async function salvarRequisicao(id) {
 
-    overlayAguarde()
-
     try {
 
+        overlayAguarde()
         const departamento = controles?.ocorrencias?.ativo
         if (!departamento)
             return popup({ mensagem: 'Departamento não encontrado...' })
@@ -672,7 +558,16 @@ async function gerarPdfRequisicao(id, visualizar) {
 
     const { nome, cnpj, cidade, bairro, endereco, cep } = await recuperarDado('clientes', dados_orcam?.omie_cliente) || {}
 
-    const dCabecalho = Object.entries({ orçamento: dados_orcam?.contrato, chamado: dados_orcam?.chamado, nome, cnpj, endereco, bairro, cidade, cep })
+    const dCabecalho = Object.entries({
+        orçamento: dados_orcam?.contrato,
+        chamado: dados_orcam?.chamado,
+        nome,
+        cnpj,
+        endereco,
+        bairro,
+        cidade,
+        cep
+    })
         .filter(([, valor]) => valor)
         .map(([chave, valor]) => {
             return `<span><b>${inicialMaiuscula(chave)}</b> ${valor}</span>`
@@ -691,28 +586,37 @@ async function gerarPdfRequisicao(id, visualizar) {
         'Valor Unitário',
         'Valor Total'
     ]
+        .map(c => `<th>${c}</th>`)
+        .join('')
 
-    const linhas = []
+    const linhas = Object.values(requisicao || {})
+        .filter(i => i.qtde_enviar > 0)
+        .map(item => {
 
-    const modTR = (dados) => {
+            const {
+                imagem,
+                codigo,
+                omie,
+                descricao,
+                modelo,
+                fabricante,
+                unidade,
+                tipo,
+                origem,
+                qtde_enviar,
+                custo
+            } = item || {}
 
-        const { imagem, codigo, omie, descricao, modelo, desconto = 0, fabricante, unidade, tipo, origem, qtde_enviar = 0, custo = 0 } = dados || {}
+            const tFinal = custo * qtde_enviar
 
-        // Tipo desconto vem por padrão em dinheiro;
-        // No caso de acréscimo a chave "custo" já vem no valor final;
+            const descFinal = Object.entries({ descricao, modelo, fabricante })
+                .filter(([, valor]) => valor)
+                .map(([chave, valor]) => {
+                    return `<span><b>${chave.toUpperCase()}</b> ${valor}</span>`
+                })
+                .join('')
 
-        const tBruto = custo * qtde_enviar
-        const tFinal = tBruto - desconto
-        const unitario = (tFinal / qtde_enviar).toFixed(2)
-
-        const descFinal = Object.entries({ descricao, modelo, fabricante })
-            .filter(([, valor]) => valor)
-            .map(([chave, valor]) => {
-                return `<span><b>${chave.toUpperCase()}</b> ${valor}</span>`
-            })
-            .join('')
-
-        const tr = `
+            const tr = `
             <tr>
                 <td>
                     <img src="${imagem || logo}" style="width: 4rem;">
@@ -728,32 +632,16 @@ async function gerarPdfRequisicao(id, visualizar) {
                 <td>${tipo || 'ADICIONAL'}</td>
                 <td>${origem || ''}</td>
                 <td style="text-align: center;">${qtde_enviar || ''}</td>
-                <td style="white-space: nowrap;">${dinheiro(unitario)}</td>
+                <td style="white-space: nowrap;">${dinheiro(custo)}</td>
                 <td style="white-space: nowrap;">${dinheiro(tFinal)}</td>
             </tr>
         `
 
-        return tr
-    }
+            return tr
 
-    for (const [codigo, item] of Object.entries(requisicao || {})) {
+        })
+        .join('')
 
-        const { qtde_enviar = 0, adicionais } = item || {}
-
-        if (qtde_enviar < 1)
-            continue
-
-        const produto = await recuperarDado('dados_composicoes', codigo) || {}
-
-        // Item principal || a "descrição" final sobrepõe a do item;
-        linhas.push(modTR({ ...produto, ...item }))
-
-        // Adicionais qtde nele é equivalente ao qtde_enviar do Item principal;
-        for (const adicional of Object.values(adicionais || {})) {
-            linhas.push(modTR({ qtde_enviar: adicional.qtde, ...adicional, codigo: produto.codigo }))
-        }
-
-    }
 
     const html = `
         <div id="pdf" style="${vertical}; gap: 1rem; width: 95%; padding: 1rem;">
@@ -786,17 +674,17 @@ async function gerarPdfRequisicao(id, visualizar) {
             
             <table class="tabela-v2">
                 <thead>
-                    ${colunas.map(c => `<th>${c}</th>`).join('')}
+                    ${colunas}
                 </thead>
                 <tbody>
-                    ${linhas.join('')}
+                    ${linhas}
                 </tbody>
             </table>
 
         </div>
         `
 
-    const elemento = `<div style="padding: 2rem;">${html}</div>`
+    const elemento = `<div>${html}</div>`
 
     if (visualizar)
         return popup({ elemento, titulo: 'PDF' })
@@ -815,7 +703,7 @@ async function gerarPdfRequisicao(id, visualizar) {
 
         await pdf({
             html,
-            estilos: ['tabelas-parceiro'], 
+            estilos: ['tabelas-parceiro'],
             nome
         })
 

@@ -253,6 +253,14 @@
     background: #b7b7b7;
 }
 
+.listagem-departamentos {
+    max-height: 150px;
+    overflow: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+
 @media screen and (orientation: portrait) {
 
     .detalhes-pagamento {

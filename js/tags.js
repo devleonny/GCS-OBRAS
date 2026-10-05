@@ -163,6 +163,21 @@ async function abrirEdicaoTag(id = null) {
 
         id = id || crypto.randomUUID()
 
+        const cores = [
+            '#e11d48',
+            '#f472b6',
+            '#fb923c',
+            '#facc15',
+            '#84cc16',
+            '#10b981',
+            '#0ea5e9',
+            '#3b82f6',
+            '#8b5cf6',
+            '#a78bfa'
+        ]
+            .map(cor => `<button onclick="escolherCor('${cor}')" class="item-color" style="--color: ${cor}"></button>`)
+            .join('')
+
         const linhas = [
             {
                 texto: 'Nome da Tag',
@@ -170,7 +185,14 @@ async function abrirEdicaoTag(id = null) {
             },
             {
                 texto: 'Cor',
-                elemento: `<input name="cor" type="color" value="${cor || '#999'}">`
+                elemento: `
+                    <div style="${horizontal}; gap: 1rem;">
+                        <button data-cor="${cor}" style="background-color: ${cor || '#222'};" class="cor-atual"></button>
+                        <div class="container-items">
+                            ${cores}
+                        </div>
+                    </div>
+                `
             }
         ]
 
@@ -186,6 +208,13 @@ async function abrirEdicaoTag(id = null) {
     }
 }
 
+function escolherCor(cor) {
+    const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
+    const local = painel.querySelector('.cor-atual')
+    local.style.backgroundColor = cor
+    local.dataset.cor = cor
+}
+
 async function salvarTag(id) {
 
     try {
@@ -193,7 +222,7 @@ async function salvarTag(id) {
 
         const painel = document.querySelector('.painel-padrao')
         const nome = painel.querySelector('[name="nome"]').value
-        const cor = painel.querySelector('[name="cor"]').value
+        const cor = painel.querySelector('.cor-atual').dataset.cor
 
         if (!nome)
             return removerPopup()

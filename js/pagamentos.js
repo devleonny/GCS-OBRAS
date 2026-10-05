@@ -160,7 +160,7 @@ async function criarLinhaPagamento(pagamento) {
         </td>
         <td>${data_vencimento}</td>
         <td>
-            <div style="display: flex; flex-wrap: wrap; gap: 3px;">${deps}</div>
+            <div class="listagem-departamentos">${deps}</div>
         </td>
         <td>${app || 'AC'}</td>
         <td style="white-space: nowrap; text-align: left;">${dinheiro(valor_documento || 0)}</td>

@@ -538,7 +538,7 @@
 }
 
 .etiqueta-chamado {
-    background: linear-gradient(45deg, #FA5252, #B12425);
+    background: linear-gradient(266deg, #FA5252, #B12425);
     cursor: pointer;
     width: max-content;
     flex-direction: row;
@@ -547,9 +547,9 @@
     color: white;
     display: flex;
     padding: 3px 8px;
+    border: solid 1px #717171;
     gap: 5px;
-    box-shadow: 0 0 2px #222;
-    border-radius: 5px;
+    border-radius: 20px;
 }
 
 .etiqueta-chamado img {

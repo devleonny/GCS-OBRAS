@@ -39,6 +39,16 @@
     border: 1px solid #e3e3e3;
 }
 
+.tabela td input[type="number"] {
+    border: solid 1px #676767;
+    text-align: start;
+    padding: 0.5rem 1rem;
+    background-color: #b2e2b4;
+    border-radius: 20px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
 .tabela:not(.nude) tbody tr:nth-child(even) {
     background-color: #fafafa;
 }

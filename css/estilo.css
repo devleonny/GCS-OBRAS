@@ -941,6 +941,7 @@ input:focus {
     filter: drop-shadow(0 0 0.2px black);
 }
 
+
 @media screen and (orientation: portrait) {
 
     .side-menu {

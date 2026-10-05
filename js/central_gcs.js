@@ -528,7 +528,7 @@ async function criarLinhaAprovacao(orcamento) {
             <td style="text-align: left;">${(snapshots?.cliente || '').toUpperCase()}</td>
             <td style="white-space: nowrap;">${dinheiro(orcamento.total_bruto)}</td>
             <td style="white-space: nowrap;">${dinheiro(orcamento.total_geral)}</td>
-            <td><label class="labelAprovacao" style="background-color: ${porcentagemDiferenca > 0 ? 'green' : '#B12425'}">${porcentagemDiferenca}%</label></td>
+            <td><label class="label-aprovacao" style="background-color: ${porcentagemDiferenca > 0 ? 'green' : '#B12425'}">${porcentagemDiferenca}%</label></td>
             <td>${(snapshots?.cidade || '').toUpperCase()}</td>
             <td>${aprovacao?.usuario || '--'}</td>
             <td>
@@ -622,7 +622,7 @@ async function verPedidoAprovacao(idOrcamento) {
                     <div style="${vertical}">
                         ${divOrganizada(dinheiro(totalGeral), 'Total Geral')}
                         ${divOrganizada(dinheiro(totalBruto), 'Total Original (sem Acréscimo e/ou Desconto)')}
-                        ${divOrganizada(`<label class="labelAprovacao" style="background-color: ${diferencaDinheiro > 0 ? 'green' : '#B12425'}">${dinheiro(diferencaDinheiro)}</label>`, 'Diferença em Dinheiro')}
+                        ${divOrganizada(`<label class="label-aprovacao" style="background-color: ${diferencaDinheiro > 0 ? 'green' : '#B12425'}">${dinheiro(diferencaDinheiro)}</label>`, 'Diferença em Dinheiro')}
                         ${divOrganizada(diferencaPorcentagem, 'Percentual')}
                     </div>
                 </div>

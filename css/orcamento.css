@@ -262,15 +262,15 @@
 }
 
 .tag {
-    border: solid 1px #222;
+    border: solid 1px #545454;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    width: 100%;
+    width: stretch;
     cursor: pointer;
-    border-radius: 8px;
-    padding: 3px 0 3px 0;
+    border-radius: 20px;
+    padding: 3px 1rem;
 }
 
 .tag span {
