@@ -419,10 +419,11 @@ function conversor(stringMonetario) {
 }
 
 function dinheiro(valor) {
-    if (valor === '') return 'R$ 0,00';
+    if (valor === '') return 'R$ 0,00'
 
-    valor = Number(valor);
-    return 'R$ ' + valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    valor = Number(valor)
+    const valorString = 'R$ ' + valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    return `<span style="white-space: nowrap;">${valorString}</span>`
 }
 
 function deslogarUsuario() {

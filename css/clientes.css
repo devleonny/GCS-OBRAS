@@ -93,8 +93,8 @@
     background: linear-gradient(90deg, #222 0%, rgba(0, 0, 0, 0.7) 85%);
     border: solid 1px #222;
     cursor: pointer;
-    border-radius: 8px;
-    padding: 3px;
+    border-radius: 20px;
+    padding: 3px 1rem;
 }
 
 @media screen and (orientation: portrait) {

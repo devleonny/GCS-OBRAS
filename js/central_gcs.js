@@ -470,53 +470,70 @@ function sincronizar(script) {
 
 async function verAprovacoes() {
 
-    const pag = 'aprovacao'
+    try {
 
-    const tabela = await modTab({
-        colunas: {
-            'Contrato': { chave: 'snapshots.contrato' },
-            'Cliente': { chave: 'snapshots.cliente' },
-            'Total Original <br>[s/desc ou acres]': {},
-            'Total Geral': { chave: 'snapshots.valor' },
-            '%': '',
-            'Localização': { chave: 'snapshots.cidade' },
-            'Usuário': { chave: 'snapshots.responsavel' },
-            'Aprovação': { chave: 'aprovacao.status', tipoPesquisa: 'select' },
-            'Comentário': { chave: 'aprovacao.justificativa' },
-            'Detalhes': ''
-        },
-        pag,
-        base: 'dados_orcamentos',
-        pag: 'aprovacao',
-        criarLinha: 'criarLinhaAprovacao',
-        body: 'tAprovacao',
-        filtros: {
-            'aprovacao': { op: 'NOT_EMPTY' },
-            'aprovacao.status': { op: '=', value: 'pendente' },
-        }
-    })
+        overlayAguarde()
 
-    const elemento = `
-        <div style="${vertical}; padding: 1rem;">
+        const pag = 'aprovacao'
 
-            ${tabela}
+        const tabela = await modTab({
+            colunas: {
+                'Contrato': { chave: 'contrato' },
+                'Cliente': { chave: 'cliente' },
+                'Total Original <br>[s/desc ou acres]': {},
+                'Total Geral': { chave: 'total_geral' },
+                '%': '',
+                'Localização': { chave: 'cidade' },
+                'Usuário': { chave: 'responsaveis' },
+                'Aprovação': { chave: 'aprovacao.status', tipoPesquisa: 'select' },
+                'Comentário': { chave: 'aprovacao.justificativa' },
+                'Detalhes': {}
+            },
+            pag,
+            base: 'mvw_dados_orcamentos',
+            pag: 'aprovacao',
+            criarLinha: 'criarLinhaAprovacao',
+            body: 'tAprovacao',
+            filtros: {
+                'aprovacao': { op: 'NOT_EMPTY' },
+                'aprovacao.status': { op: '=', value: 'pendente' },
+            }
+        })
 
-        </div>
-    `
-    popup({ elemento, titulo: 'Aprovações de Orçamento' })
+        const elemento = `
+            <div style="${vertical}; padding: 1rem;">
+                ${tabela}
+            </div>
+        `
 
-    await paginacao(pag)
+        popup({ elemento, titulo: 'Aprovações de Orçamento' })
+
+        await paginacao(pag)
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir aprovações de orçamento: Fale com o suporte.' })
+    }
 
 }
 
 async function criarLinhaAprovacao(orcamento) {
 
-    const { dados_orcam = {}, snapshots = {} } = orcamento || {}
-    const idOrcamento = orcamento.id
-    const aprovacao = orcamento.aprovacao
+    const {
+        timestamp,
+        id,
+        contrato,
+        aprovacao,
+        cliente,
+        usuario,
+        cidade,
+        total_bruto,
+        total_geral
+    } = orcamento || {}
+
     const status = aprovacao?.status || 'desconhecido'
-    const porcentagemDiferenca = (((orcamento.total_geral - orcamento.total_bruto) / orcamento.total_bruto) * 100).toFixed(2)
-    const campos = [dados_orcam?.chamado, dados_orcam?.contrato, dados_orcam?.data]
+    const porcentagemDiferenca = (((total_geral - total_bruto) / total_bruto) * 100).toFixed(2)
+    const campos = (contrato || [])
         .filter(c => c)
         .join('<br>')
 
@@ -525,12 +542,17 @@ async function criarLinhaAprovacao(orcamento) {
             <td style="text-align: left;">
                 ${campos}
             </td>
-            <td style="text-align: left;">${(snapshots?.cliente || '').toUpperCase()}</td>
-            <td style="white-space: nowrap;">${dinheiro(orcamento.total_bruto)}</td>
-            <td style="white-space: nowrap;">${dinheiro(orcamento.total_geral)}</td>
-            <td><label class="label-aprovacao" style="background-color: ${porcentagemDiferenca > 0 ? 'green' : '#B12425'}">${porcentagemDiferenca}%</label></td>
-            <td>${(snapshots?.cidade || '').toUpperCase()}</td>
-            <td>${aprovacao?.usuario || '--'}</td>
+            <td style="text-align: left;">
+                ${cliente || ''} <br>
+                ${new Date(timestamp).toLocaleString()}
+            </td>
+            <td>${dinheiro(total_bruto)}</td>
+            <td>${dinheiro(total_geral)}</td>
+            <td>
+                <label class="label-aprovacao" style="background-color: ${porcentagemDiferenca > 0 ? 'green' : '#B12425'}">${porcentagemDiferenca}%</label>
+            </td>
+            <td>${cidade || ''}</td>
+            <td>${usuario || '--'}</td>
             <td>
                 <div style="display: flex; align-items: center; justify-content: start; gap: 1vw;">
                     <img src="imagens/${status}.png">
@@ -539,7 +561,7 @@ async function criarLinhaAprovacao(orcamento) {
             </td>
             <td>${aprovacao?.justificativa || '--'}</td>
             <td>
-                <img src="imagens/pesquisar2.png" onclick="verPedidoAprovacao('${idOrcamento}')">
+                <img src="imagens/pesquisar2.png" onclick="verPedidoAprovacao('${id}')">
             </td>
         </tr>
         `
@@ -575,23 +597,37 @@ async function verPedidoAprovacao(idOrcamento) {
     if (!pessoasPermitidas.includes(permissao))
         return popup({ mensagem: 'Você não tem acesso' })
 
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-    const { cidade, cliente } = orcamento?.snapshots || {}
-    const lpu = orcamento.lpu_ativa
-        ? String(orcamento.lpu_ativa).toLowerCase()
-        : null
+    const {
+        dados_composicoes,
+        cliente,
+        cidade,
+        usuario,
+        total_bruto,
+        total_geral,
+        lpu_ativa
+    } = await recuperarDado('mvw_dados_orcamentos', idOrcamento) || {}
 
-    const pag = 'criarOrcamento'
+    const base = Object.values(dados_composicoes || {})
+    const pag = 'orcAprovacao'
     const tabela = await modTab({
-        base: Object.values(orcamento.esquema_composicoes || orcamento.dados_composicoes || {}),
+        base,
         pag,
-        nude: true,
-        scroll: false,
-        editavel: false,
+        body: pag,
         funcaoAdicional: ['formatarLinhasOrcamento', 'calcularSubtotais'],
-        body: 'bodyOrcamento',
-        criarLinha: 'carregarLinhaOrcamento',
-        colunas: {}
+        criarLinha: 'linhasOrcAprovacao',
+        colunas: {
+            'Código': {},
+            'Descrição': {},
+            'Medida': {},
+            'Tipo': {},
+            'Quantidade': {},
+            'Unit Original': {},
+            'Total Original': {},
+            'Unitário': {},
+            'Total': {},
+            'Diferença': {},
+            'Imagem': {}
+        }
     })
 
     const divOrganizada = (valor, termo) => {
@@ -603,8 +639,8 @@ async function verPedidoAprovacao(idOrcamento) {
             `
     }
 
-    const totalBruto = orcamento?.total_bruto
-    const totalGeral = conversor(orcamento.total_geral)
+    const totalBruto = total_bruto
+    const totalGeral = conversor(total_geral)
     const diferencaDinheiro = totalGeral - totalBruto
     const diferencaPorcentagem = `${(diferencaDinheiro / totalBruto * 100).toFixed(2)}%`
 
@@ -615,7 +651,8 @@ async function verPedidoAprovacao(idOrcamento) {
                 
                 <div style="${horizontal}; gap: 2rem;">
                     <div style="${vertical}">
-                        ${divOrganizada(orcamento?.dados_orcam?.analista || '--', 'Solicitante')}
+                        ${divOrganizada(lpu_ativa, 'LPU')}
+                        ${divOrganizada(usuario, 'Solicitante')}
                         ${divOrganizada(cliente || '?', 'Cliente')}
                         ${divOrganizada(cidade || '?', 'Localidade')}
                     </div>
@@ -668,6 +705,66 @@ function visibilidadeOrcamento(div) {
     }
 }
 
+function linhasOrcAprovacao(orcamento) {
+
+    const {
+        codigo,
+        descricao,
+        qtde,
+        custo,
+        custo_original,
+        imagem,
+        medida,
+        tipo
+    } = orcamento || {}
+
+    const total = custo * qtde
+    const totalOriginal = custo_original
+        ? custo_original * qtde
+        : 0
+
+    let divDiferenca = ''
+
+    if (custo_original) {
+
+        const diferenca = totalOriginal - total
+
+        divDiferenca = `
+            <div style="${horizontal}; gap: 1rem;">
+                <img src="imagens/${diferenca > 0 ? 'acima' : 'abaixo'}.png">
+                <span>${dinheiro(diferenca)}</span>
+            </div>
+        `
+    }
+
+
+    return `
+        <tr>
+            <td>${codigo}</td>
+            <td>${descricao || ''}</td>
+            <td>${medida || 'UN'}</td>
+            <td>${tipo}</td>
+            <td>${qtde}</td>
+
+            <td>${dinheiro(custo_original)}</td>
+            <td>${dinheiro(totalOriginal)}</td>
+
+            <td>${dinheiro(custo)}</td>
+            <td>${dinheiro(total)}</td>
+
+            <td>
+                ${divDiferenca}
+            </td>
+
+            <td>
+                <img src="${imagem || logo}">
+            </td>
+
+        </tr>
+    `
+
+}
+
 async function respostaAprovacao(idOrcamento, status) {
 
     overlayAguarde()
@@ -718,7 +815,7 @@ function painelEdicao(tela) {
                     <td>${dinheiro(orc?.total_geral || 0)}</td>
                     <td>${lpu_ativa || 'LPU HOPE'}</td>
                     <td>${new Date(orc?.timestamp || Date.now()).toLocaleString()}</td>
-                    <td><img src="imagens/cancel.png" onclick="removerOrcTemp(this, '${idEdicao}')"></td>
+                    <td><img src="imagens/fechar.png" onclick="removerOrcTemp(this, '${idEdicao}')"></td>
                 </tr>
                 `
 
