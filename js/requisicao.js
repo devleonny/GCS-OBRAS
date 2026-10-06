@@ -40,16 +40,20 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
         endereco,
         bairro
     } = await recuperarDado('clientes', orcamento?.dados_orcam?.omie_cliente) || {}
-    const dadosRequisicao = await recuperarDado('requisicoes', id) || {}
-    const { pedido } = await recuperarDado('pedidos', dadosRequisicao?.pedido) || {}
+
     const {
+        pedido,
         avulso = 'N',
         volumes,
         comentario,
         requisicao,
         prazo,
         recebedor
-    } = dadosRequisicao
+    } = await recuperarDado('requisicoes', id) || {}
+
+    const {
+        pedido: numeroPedido
+    } = await recuperarDado('pedidos', pedido) || {}
 
     controlesCxOpcoes.pedido = {
         base: 'pedidos',
@@ -122,9 +126,9 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
             linha: 1,
             v1: 'Número do Pedido',
             v2: `
-            <span ${pedido ? `id="${dadosRequisicao?.pedido}"` : ''} name="pedido" class="opcoes" onclick="cxOpcoes('pedido')">
-                ${pedido || 'Selecione'}
-            </span>
+                <span ${pedido ? `id="${pedido}"` : ''} name="pedido" class="opcoes" onclick="cxOpcoes('pedido')">
+                    ${numeroPedido || 'Selecione'}
+                </span>
             `
         },
         {
@@ -562,7 +566,7 @@ async function gerarPdfRequisicao(id, visualizar) {
 
     const ativo = controles?.ocorrencias?.ativo
     const orcamentos = await pesquisarDB({
-        base: 'dados_orcamentos',
+        base: 'mvw_dados_orcamentos',
         filtros: {
             'dados_orcam.contrato': {
                 op: '=',
@@ -572,7 +576,10 @@ async function gerarPdfRequisicao(id, visualizar) {
     })
 
     // Primeiro resultado;
-    const { dados_orcam, snapshots } = orcamentos?.resultados?.[0] || {}
+    const { 
+        dados_orcam,
+        contrato 
+    } = orcamentos?.resultados?.[0] || {}
 
     // Pedido vinculado;
     const dadosPedido = await recuperarDado('pedidos', pedido) || {}
@@ -604,7 +611,14 @@ async function gerarPdfRequisicao(id, visualizar) {
         })
         .join('')
 
-    const { nome, cnpj, cidade, bairro, endereco, cep } = await recuperarDado('clientes', dados_orcam?.omie_cliente) || {}
+    const { 
+        nome, 
+        cnpj, 
+        cidade, 
+        bairro, 
+        endereco, 
+        cep 
+    } = await recuperarDado('clientes', dados_orcam?.omie_cliente) || {}
 
     const dCabecalho = Object.entries({
         orçamento: dados_orcam?.contrato,
@@ -741,7 +755,7 @@ async function gerarPdfRequisicao(id, visualizar) {
 
         const campos = [
             'Requisição',
-            ...snapshots?.contrato,
+            ...contrato,
             Date.now()
         ]
 
@@ -756,8 +770,8 @@ async function gerarPdfRequisicao(id, visualizar) {
         })
 
     } catch (err) {
-        popup({ mensagem: err.message || 'Falha ao gerar o PDF, tente novamente ou fale com o Suporte' })
-
+        console.error(err)
+        popup({ mensagem: 'Falha ao gerar o PDF, tente novamente ou fale com o Suporte!' })
     }
 
 }

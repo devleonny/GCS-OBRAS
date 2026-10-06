@@ -1589,6 +1589,7 @@ async function linNotas(nota) {
 async function linParceiros(par) {
 
     const {
+        pedido,
         id,
         data,
         comentario,
@@ -1597,6 +1598,12 @@ async function linParceiros(par) {
         fotos,
         totais
     } = par
+
+    const {
+        pedido: numeroPedido
+    } = pedido
+            ? await recuperarDado('pedidos', pedido) || {}
+            : {}
 
     const cor = '#0062d5'
     const tabela = 'parceiros'
@@ -1613,11 +1620,12 @@ async function linParceiros(par) {
             <div class="bloco-status-interno" style="background-color: ${cor}1f;">
 
                 ${excluir}
+                ${labelDestaque('Pedido', numeroPedido)}
                 ${labelDestaque('Executor', executor)}
                 ${labelDestaque('Data', data)}
                 ${labelDestaque('Comentário', comentario)}
                 ${labelDestaque('Total Parceiro', dinheiro(totais?.parceiro))}
-                ${labelDestaque('Magem Disponível', dinheiro(totais?.margem))}
+                ${labelDestaque('Margem Disponível', dinheiro(totais?.margem))}
                 ${labelDestaque('Desvio', dinheiro(totais?.desvio))}
                 ${botaoAnexoStatus({ id, tabela: 'parceiros', cor })}
                 ${botaoFotoStatus({ id, tabela, cor })}
@@ -1909,7 +1917,7 @@ async function criarPesquisas() {
 
         const funcao = ['diretoria', 'adm'].includes(acesso.permissao)
             ? `<img src="imagens/pesquisar.png" style="width: 1.5rem;" onclick="formFiltro(${idFiltro ? `'${idFiltro}'` : ''})">`
-            : `<img src="imagens/fechar.png" style="width: 1.5rem;" onclick="limparFiltroOcorrencias()">`
+            : ''
 
         filtros.push(`
         <div class="campo-pesquisa">

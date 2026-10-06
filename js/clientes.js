@@ -51,10 +51,7 @@ function removerTagCliente(img) {
 function obVal(n) {
     const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
 
-    if (!painel)
-        return null
-
-    const el = painel.querySelector(`[name="${n}"]`)
+    const el = (painel || document).querySelector(`[name="${n}"]`)
     return el ? el.value || el.id : null
 }
 

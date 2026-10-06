@@ -1,157 +1,184 @@
 async function formularioParceiro(id = crypto.randomUUID()) {
 
-    overlayAguarde()
+    try {
+        overlayAguarde()
 
-    // Verificar se tem pagamento ativo;
-    const pagamento = id
-        ? await recuperarDado('lista_pagamentos', id) || null
-        : null
+        // Verificar se tem pagamento ativo;
+        const pagamento = id
+            ? await recuperarDado('lista_pagamentos', id) || null
+            : null
 
-    if (pagamento)
-        return popup({ mensagem: 'Já existe uma solicitação de pagamento: não é possível editar.' })
+        if (pagamento)
+            return popup({ mensagem: 'Já existe uma solicitação de pagamento: não é possível editar.' })
 
-    const {
-        itens,
-        margem,
-        tecnicos,
-        comentario,
-    } = id
-            ? await recuperarDado('parceiros', id) || {}
-            : {}
+        const {
+            itens,
+            margem,
+            tecnicos,
+            comentario,
+            pedido
+        } = id
+                ? await recuperarDado('parceiros', id) || {}
+                : {}
+        const { 
+            pedido: numeroPedido
+         } = pedido ? await recuperarDado('pedidos', pedido) || {} : {}
 
-    const tecnico = tecnicos?.[0]
+        const tecnico = tecnicos?.[0]
 
-    const ativo = controles?.ocorrencias?.ativo
+        const ativo = controles?.ocorrencias?.ativo
 
-    const orcamentos = await pesquisarDB({
-        base: 'dados_orcamentos',
-        filtros: {
-            'dados_orcam.contrato': {
-                op: '=',
-                value: ativo
+        const orcamentos = await pesquisarDB({
+            base: 'dados_orcamentos',
+            filtros: {
+                'dados_orcam.contrato': {
+                    op: '=',
+                    value: ativo
+                }
+            }
+        })
+
+        const orcamento = orcamentos?.resultados?.[0]
+        const base = Object.values(itens || orcamento?.dados_composicoes || {})
+            .filter(i => i?.tipo !== 'VENDA')
+
+        const colunas = {
+            'Código': { chave: 'codigo' },
+            'Descrição': { chave: 'descricao' },
+            'Unidade': { chave: 'unidade' },
+            'Quantidade': { chave: 'qtde' },
+            'Valor Orçamento': { chave: 'custo' },
+            'Valor Total Orçado': {},
+            'Impostos (20%)': {},
+            'Margem Unitária': {},
+            'Margem Total': {},
+            'Parceiro Unitário': {},
+            'Parceiro Total': {},
+            'Desvio': {},
+        }
+
+        const tabela = await modTab({
+            base,
+            colunas,
+            funcaoAdicional: ['calcularLpuParceiro'],
+            criarLinha: 'adicionarLinhaParceiro',
+            pag: 'lpu_parceiro',
+            body: 'bodyParceiros'
+        })
+
+        controlesCxOpcoes.tecnico = {
+            btnExtras: `<button onclick="formularioCliente()">Adicionar Técnico</button>`,
+            retornar: ['usuario'],
+            base: 'clientes',
+            filtros: {
+                permissao: { op: 'NOT_EMPTY' }
+            },
+            colunas: {
+                'Usuário': { chave: 'usuario' },
+                'Matrícula': { chave: 'matricula' },
+                'Nome': { chave: 'nome' },
+                'CNPJ': { chave: 'cnpj' },
+                'Permissão': { chave: 'permissao', tipoPesquisa: 'select' },
+                'Estado': { chave: 'estado' },
+                'Cidade': { chave: 'cidade' }
             }
         }
-    })
 
-    const orcamento = orcamentos?.resultados?.[0]
-    const base = Object.values(itens || orcamento?.dados_composicoes || {})
-        .filter(i => i?.tipo !== 'VENDA')
+        const modeloLabel = ({ v1, v2 }) => {
 
-    const colunas = {
-        'Código': { chave: 'codigo' },
-        'Descrição': { chave: 'descricao' },
-        'Unidade': { chave: 'unidade' },
-        'Quantidade': { chave: 'qtde' },
-        'Valor Orçamento': { chave: 'custo' },
-        'Valor Total Orçado': {},
-        'Impostos (20%)': {},
-        'Margem Unitária': {},
-        'Margem Total': {},
-        'Parceiro Unitário': {},
-        'Parceiro Total': {},
-        'Desvio': {},
-    }
-
-    const tabela = await modTab({
-        base,
-        colunas,
-        funcaoAdicional: ['calcularLpuParceiro'],
-        criarLinha: 'adicionarLinhaParceiro',
-        pag: 'lpu_parceiro',
-        body: 'bodyParceiros'
-    })
-
-    controlesCxOpcoes.tecnico = {
-        btnExtras: `<button onclick="formularioCliente()">Adicionar Técnico</button>`,
-        retornar: ['usuario'],
-        base: 'clientes',
-        filtros: {
-            permissao: { op: 'NOT_EMPTY' }
-        },
-        colunas: {
-            'Usuário': { chave: 'usuario' },
-            'Matrícula': { chave: 'matricula' },
-            'Nome': { chave: 'nome' },
-            'CNPJ': { chave: 'cnpj' },
-            'Permissão': { chave: 'permissao', tipoPesquisa: 'select' },
-            'Estado': { chave: 'estado' },
-            'Cidade': { chave: 'cidade' }
-        }
-    }
-
-    const modeloLabel = ({ v1, v2 }) => {
-
-        return `
+            return `
             <div class="campo-requisicao">
                 ${v1 ? `<span><small><b>${v1}</b></small></span>` : ''}
                 <div>${v2}</div>
             </div>
         `
-    }
+        }
 
-    const campos = [
-        {
-            linha: 1,
-            v1: 'Selecione o técnico',
-            v2: `
+        controlesCxOpcoes.pedido = {
+            base: 'pedidos',
+            filtros: {
+                departamento: { op: 'includes', value: ativo }
+            },
+            retornar: ['pedido'],
+            colunas: {
+                'Pedido': { chave: 'pedido' },
+                'Tipo': { chave: 'tipo' },
+                'Valor': { chave: 'valor' },
+            }
+        }
+
+        const campos = [
+            {
+                linha: 1,
+                v1: 'Selecione o técnico',
+                v2: `
                 <span ${tecnico ? `id="${tecnico}"` : ''} 
                     class="opcoes" 
                     name="tecnico" 
                     onclick="cxOpcoes('tecnico')">${tecnico || 'Selecione'}
                 </span>
             `
-        },
-        {
-            linha: 1,
-            v1: 'Margem Geral (%)',
-            v2: `<input id="margem_lpu" value="${margem || '40'}" oninput="calcularLpuParceiro()">`
-        },
-        {
-            linha: 1,
-            v1: 'Comentário',
-            v2: `<textarea id="comentario">${comentario || ''}</textarea>`
-        },
-        {
-            linha: 2,
-            v1: 'Total do Orçamento',
-            v2: `<label class="campo-valor verde" id="total_orcamento"></label>`
-        },
-        {
-            linha: 2,
-            v1: 'Total Margem Disponível',
-            v2: `<label class="campo-valor verde" id="total_margem"></label>`
-        },
-        {
-            linha: 2,
-            v1: 'Total do Valor Parceiro',
-            v2: `<label class="campo-valor vermelho" id="total_parceiro"l></label>`
-        },
-        {
-            linha: 2,
-            v1: 'Total Desvio',
-            v2: `<label class="campo-valor verde" id="total_desvio"></label>`
-        }
+            },
+            {
+                linha: 1,
+                v1: 'Número do Pedido',
+                v2: `
+                    <span ${pedido ? `id="${pedido}"` : ''} name="pedido" class="opcoes" onclick="cxOpcoes('pedido')">
+                        ${numeroPedido || 'Selecione'}
+                    </span>
+            `
+            },
+            {
+                linha: 1,
+                v1: 'Margem Geral (%)',
+                v2: `<input id="margem_lpu" value="${margem || '40'}" oninput="calcularLpuParceiro()">`
+            },
+            {
+                linha: 1,
+                v1: 'Comentário',
+                v2: `<textarea id="comentario">${comentario || ''}</textarea>`
+            },
+            {
+                linha: 2,
+                v1: 'Total do Orçamento',
+                v2: `<label class="campo-valor verde" id="total_orcamento"></label>`
+            },
+            {
+                linha: 2,
+                v1: 'Total Margem Disponível',
+                v2: `<label class="campo-valor verde" id="total_margem"></label>`
+            },
+            {
+                linha: 2,
+                v1: 'Total do Valor Parceiro',
+                v2: `<label class="campo-valor vermelho" id="total_parceiro"l></label>`
+            },
+            {
+                linha: 2,
+                v1: 'Total Desvio',
+                v2: `<label class="campo-valor verde" id="total_desvio"></label>`
+            }
 
-    ]
+        ]
 
-    const linhas = [
-        {
-            linha: 1,
-            titulo: 'Dados da LPU Parceiro'
-        },
-        {
-            linha: 2,
-            titulo: 'Totais'
-        }
-    ]
-        .map(({ linha, titulo }) => {
+        const linhas = [
+            {
+                linha: 1,
+                titulo: 'Dados da LPU Parceiro'
+            },
+            {
+                linha: 2,
+                titulo: 'Totais'
+            }
+        ]
+            .map(({ linha, titulo }) => {
 
-            const c = campos
-                .filter(c => c.linha == linha)
-                .map(c => modeloLabel(c))
-                .join('')
+                const c = campos
+                    .filter(c => c.linha == linha)
+                    .map(c => modeloLabel(c))
+                    .join('')
 
-            return `
+                return `
                 <div class="requisicao-contorno">
                     <div class="requisicao-titulo">
                         ${titulo}
@@ -161,10 +188,10 @@ async function formularioParceiro(id = crypto.randomUUID()) {
                     </div>
                 </div>
             `
-        })
-        .join('<hr>')
+            })
+            .join('<hr>')
 
-    const elemento = `
+        const elemento = `
         <div class="requisicao-tela">
 
             ${linhas}
@@ -174,22 +201,27 @@ async function formularioParceiro(id = crypto.randomUUID()) {
         </div>
         `
 
-    const botoes = [
-        {
-            texto: 'Adicionar Serviço',
-            funcao: 'itemAdicional()',
-            img: 'baixar'
-        },
-        {
-            texto: 'Salvar LPU',
-            funcao: `salvarLpuParceiro('${id}')`,
-            img: 'concluido'
-        },
-    ]
+        const botoes = [
+            {
+                texto: 'Adicionar Serviço',
+                funcao: 'itemAdicional()',
+                img: 'baixar'
+            },
+            {
+                texto: 'Salvar LPU',
+                funcao: `salvarLpuParceiro('${id}')`,
+                img: 'concluido'
+            },
+        ]
 
-    popup({ botoes, elemento, cor: 'white', titulo: 'LPU Parceiro', autoDestruicao: ['lpu_parceiro'] })
+        popup({ botoes, elemento, cor: 'white', titulo: 'LPU Parceiro', autoDestruicao: ['lpu_parceiro'] })
 
-    await paginacao('lpu_parceiro')
+        await paginacao('lpu_parceiro')
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir a LPU do Parceiro: Fale com o suporte.' })
+    }
 
 }
 
@@ -317,6 +349,7 @@ async function salvarLpuParceiro(id = crypto.randomUUID()) {
     const dados = {
         ...parceiro,
         departamento,
+        pedido: obVal('pedido'),
         total: conversor(document.getElementById('total_parceiro').textContent),
         itens: obterBaseLpuParceiro(),
         totais: controles.lpu_parceiro.totais || {},
