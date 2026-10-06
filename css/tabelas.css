@@ -47,6 +47,7 @@
     background-color: #b2e2b4;
     border-radius: 20px;
     width: 100%;
+    min-width: 100px;
     box-sizing: border-box;
 }
 

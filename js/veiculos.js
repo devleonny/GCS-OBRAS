@@ -265,7 +265,8 @@ function viabilidadeOmie() {
         possibilidade = false
 
     viabilidade.innerHTML = `
-        <div ${possibilidade ? `onclick="criarPagamentoVeiculo()"` : ''} class="etiquetas" style="flex-direction: row; align-items: center; gap: 0.5rem; margin: 0.5rem;">
+        <div ${possibilidade ? `onclick="criarPagamentoVeiculo()"` : ''} 
+            class="botao-criar-pagamento">
             <img src="imagens/${possibilidade ? 'concluido' : 'proibido'}.png">
             <span>Criar pagamento no Omie</span>
             <span style="white-space: nowrap;">${dinheiro(total)}</span>
@@ -400,7 +401,7 @@ async function enviarOmie() {
 
         const pagamento = {
             app,
-            status: 'Processando...',
+            status: 'Aprovado pelo fin',
             criado: acesso.usuario,
             param: [{
                 codigo_cliente_fornecedor: codigoCliente,

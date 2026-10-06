@@ -6,6 +6,24 @@
     gap: 1px;
 }
 
+.botao-criar-pagamento {
+    gap: 5px;
+    display: flex;
+    margin: 5px;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    background: #ffffffe0;
+    border-radius: 20px;
+    padding: 0 1rem 0 0;
+    cursor: pointer;
+}
+
+.botao-criar-pagamento:hover {
+    color: white;
+    background-color: #097fe6;    
+}
+
 .contorno-destaque {
     background-color: #ffffffc4;
     width: 100%;
