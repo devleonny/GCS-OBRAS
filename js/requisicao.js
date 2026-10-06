@@ -407,7 +407,7 @@ async function calcularRequisicao() {
 
         const obVal = (n) => {
             const el = linha.querySelector(`[name="${n}"]`)
-            return el.value || el.id || null
+            return el.value || el.id || el.textContent || null
         }
 
         const totalExistente = requisicoes.resultados
@@ -415,19 +415,19 @@ async function calcularRequisicao() {
             .reduce((soma, valor) => soma + valor, 0)
 
         const avulso = linha.dataset.avulso == 'S'
-        const qtdeOrcamento = conversor(linha.querySelector('[name="qtde_orcamento"]').textContent)
+        const qtdeOrcamento = conversor(obVal('qtde_orcamento"]'))
         const quantidadeRestante = qtdeOrcamento - totalExistente
         const campoQtde = linha.querySelector('[name="qtde"]')
 
         if (!avulso && Number(campoQtde.value) > quantidadeRestante)
             campoQtde.value = quantidadeRestante
 
-        const custo = conversor(linha.querySelector('[name="custo"]').textContent)
+        const custo = conversor(obVal('custo'))
         const qtdeEnviar = Number(campoQtde?.value || 0)
         const totalLinha = custo * qtdeEnviar
 
         total += totalLinha
-        linha.querySelector('[name="total"]').textContent = dinheiro(totalLinha)
+        linha.querySelector('[name="total"]').innerHTML = dinheiro(totalLinha)
 
         // Salvamento
         let item = controles.requisicao.base.find(i => i.codigo == codigo)
@@ -447,7 +447,7 @@ async function calcularRequisicao() {
 
     }
 
-    document.querySelector('#total_requisicao').textContent = dinheiro(total)
+    document.querySelector('#total_requisicao').innerHTML = dinheiro(total)
 }
 
 async function salvarRequisicao(id) {

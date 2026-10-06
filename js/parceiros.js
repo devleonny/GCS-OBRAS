@@ -288,7 +288,7 @@ async function salvarLpuParceiro(id = crypto.randomUUID()) {
         executor: acesso.usuario,
         data: new Date().toLocaleString(),
         comentario: document.getElementById('comentario').value,
-        tecnicos: [tecnico.textContent] // Precisa ser uma lista... bem, é complicado...
+        tecnicos: [String(tecnico.textContent).trim()] // Precisa ser uma lista... bem, é complicado...
     }
 
     await enviar(`parceiros/${id}`, dados)
@@ -364,15 +364,15 @@ function calcularLpuParceiro() {
         totais.desvio += removido ? 0 : desvio
         totais.orcamento += removido ? 0 : totalLinha
 
-        tr.querySelector('[name="vTotalOrcado"]').textContent = dinheiro(totalLinha)
-        tr.querySelector('[name="tImpostos"]').textContent = dinheiro(totalLinha * 0.2)
+        tr.querySelector('[name="vTotalOrcado"]').innerHTML = dinheiro(totalLinha)
+        tr.querySelector('[name="tImpostos"]').innerHTML = dinheiro(totalLinha * 0.2)
 
         // Para itens avulsos não existe margem;
-        tr.querySelector('[name="mUnit"]').textContent = !avulso
+        tr.querySelector('[name="mUnit"]').innerHTML = !avulso
             ? dinheiro(margemPorItem)
             : ''
 
-        tr.querySelector('[name="mTotal"]').textContent = !avulso
+        tr.querySelector('[name="mTotal"]').innerHTML = !avulso
             ? dinheiro(totalMargem)
             : ''
 
@@ -400,7 +400,7 @@ function calcularLpuParceiro() {
     for (const [campo, total] of Object.entries(totais)) {
         const el = document.getElementById(`total_${campo}`)
         if (el)
-            el.textContent = dinheiro(total)
+            el.innerHTML = dinheiro(total)
     }
 
 }
