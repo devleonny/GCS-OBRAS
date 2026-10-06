@@ -39,7 +39,8 @@
     border: 1px solid #e3e3e3;
 }
 
-.tabela td input[type="number"] {
+.tabela td input[type="number"],
+.tabela td input[type="text"] {
     border: solid 1px #676767;
     text-align: start;
     padding: 0.5rem 1rem;

@@ -64,57 +64,6 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
         }
     }
 
-    const campos = `
-        <div class="requisicao-contorno" style="width: 500px;">
-            <div class="requisicao-titulo">Dados da Requisição</div>
-            <div class="requisicao-dados">
-
-                <div style="${vertical}; width: 100%;">
-                    <span>Número do Pedido</span>
-                    <span ${pedido ? `id="${dadosRequisicao?.pedido}"` : ''} name="pedido" class="opcoes" onclick="cxOpcoes('pedido')">
-                        ${pedido || 'Selecione'}
-                    </span>
-                </div>
-
-                <div style="${vertical}; width: 100%;">
-                    <span>Prazo</span>
-                    <input id="prazo" type="date" value="${prazo || ''}">
-                </div>
-
-                <div style="${vertical}; width: 100%;">
-                    <span>Quem recebeu?</span>
-                    <input id="recebedor" value="${recebedor || ''}">
-                </div>
-                
-                <div style="${vertical}; width: 100%;">
-                    <span>Volumes</span>
-                    <input value="${volumes || ''}" id="volumes" type="number">
-                </div>
-
-                <div style="${vertical}; width: 100%;">
-                    <label>Comentário</label>
-                    <textarea rows="3" id="comentario" style="width: 80%;">${comentario || ''}</textarea>
-                </div>
-
-                <button data-ocultar onclick="salvarRequisicao('${id}')">Salvar Requisição</button>
-            </div>
-        </div>`
-
-    const modeloLabel = (valor1, valor2) => `<label><b>${valor1}</b> ${valor2}</label>`
-
-    const colunas = {
-        'Imagem': {},
-        'Cod GCS': { chave: 'codigo' },
-        'Cod OMIE': {},
-        'Informações do Item': { chave: 'descricao' },
-        'Tipo': { chave: 'tipo' },
-        'Origem': { chave: 'origem' },
-        'Quantidade Enviar': {},
-        'Quantidade Orçada': {},
-        'Valor Unitário': {},
-        'Valor Total': {}
-    }
-
     const base = Object.entries(requisicao || orcamento?.dados_composicoes || {})
         .filter(([, { tipo }]) => tipo !== 'SERVIÇO')
         .map(([id, dados]) => ({
@@ -122,21 +71,30 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
             ...dados
         }))
 
-    const btnExtras = `
+    const tabela = await modTab({
+        base,
+        btnExtras: `
         <div id="painelAvulso">
             <button class="etiqueta-chamado" onclick="mudarParaAvulso(true)">Requisição AVULSA</button>
         </div>
-        `
-
-    const tabela = await modTab({
-        base,
-        btnExtras,
+        `,
         pag: 'requisicao',
         id,
         lpu_ativa: orcamento?.lpu_ativa,
         funcaoAdicional: ['calcularRequisicao'],
         body: 'bodyRequisicao',
-        colunas,
+        colunas: {
+            'Imagem': {},
+            'Cod GCS': { chave: 'codigo' },
+            'Cod OMIE': {},
+            'Informações do Item': { chave: 'descricao' },
+            'Tipo': { chave: 'tipo' },
+            'Origem': { chave: 'origem' },
+            'Quantidade Enviar': {},
+            'Quantidade Orçada': {},
+            'Valor Unitário': {},
+            'Valor Total': {}
+        },
         substituicoes: [
             {
                 path: 'codigo',
@@ -149,48 +107,137 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
         criarLinha: 'criarLinhaRequisicao'
     })
 
+    const modeloLabel = ({ v1, v2 }) => {
+
+        return `
+            <div class="campo-requisicao">
+                ${v1 ? `<span><small><b>${v1}</b></small></span>` : ''}
+                <div>${v2}</div>
+            </div>
+        `
+    }
+
+    const campos = [
+        {
+            linha: 1,
+            v1: 'Número do Pedido',
+            v2: `
+            <span ${pedido ? `id="${dadosRequisicao?.pedido}"` : ''} name="pedido" class="opcoes" onclick="cxOpcoes('pedido')">
+                ${pedido || 'Selecione'}
+            </span>
+            `
+        },
+        {
+            linha: 1,
+            v1: 'Prazo',
+            v2: `<input id="prazo" type="date" value="${prazo || ''}">`
+        },
+        {
+            linha: 1,
+            v1: 'Quem recebeu?',
+            v2: `<input id="recebedor" value="${recebedor || ''}">`
+        },
+        {
+            linha: 1,
+            v1: 'Volumes',
+            v2: `<input value="${volumes || ''}" id="volumes" type="number">`
+        },
+        {
+            linha: 1,
+            v1: 'Comentário',
+            v2: `<textarea rows="3" id="comentario">${comentario || ''}</textarea>`
+        },
+        {
+            linha: 2,
+            v1: 'Cliente',
+            v2: nome
+        },
+        {
+            linha: 2,
+            v1: 'CNPJ',
+            v2: cnpj
+        },
+        {
+            linha: 2,
+            v1: 'Endereço',
+            v2: endereco
+        },
+        {
+            linha: 2,
+            v1: 'Bairro',
+            v2: bairro
+        },
+        {
+            linha: 2,
+            v1: 'Cidade',
+            v2: cidade
+        },
+        {
+            linha: 2,
+            v1: 'Departamento',
+            v2: ativo
+        },
+        {
+            linha: 2,
+            v1: 'Total',
+            v2: `<span class="campo-valor verde" id="total_requisicao"></span> `
+        }
+    ]
+
+    const linhas = [
+        {
+            linha: 1,
+            titulo: 'Dados da Requisição'
+        },
+        {
+            linha: 2,
+            titulo: 'Dados do Cliente'
+        }
+    ]
+        .map(({ linha, titulo }) => {
+
+            const c = campos
+                .filter(c => c.linha == linha)
+                .map(c => modeloLabel(c))
+                .join('')
+
+            return `
+                <div class="requisicao-contorno">
+                    <div class="requisicao-titulo">
+                        ${titulo}
+                    </div>
+                    <div class="requisicao-dados">
+                        ${c}
+                    </div>
+                </div>
+            `
+        })
+        .join('<hr>')
+
     const elemento = `
-    <div id="pdf" class="requisicao-tela" data-id="${id}">
+        <div id="pdf" class="requisicao-tela" data-id="${id}">
 
-        <div class="requisicao-contorno" style="width: 98%">
-            <div class="requisicao-cabecalho">
-                <img src="https://i.imgur.com/5zohUo8.png">
-                <span>REQUISIÇÃO DE COMPRA DE MATERIAL</span>
-            </div>
-        </div>
-
-        <div style="${horizontal}; gap: 2rem; margin: 10px;">
-
-            ${campos}
-                
-            <div class="requisicao-contorno">
-                <div class="requisicao-titulo">Dados do Cliente</div>
-                <div class="requisicao-dados">
-
-                    ${modeloLabel('Cliente', nome || '')}
-                    ${modeloLabel('CNPJ', cnpj || '')}
-                    ${modeloLabel('Endereço', endereco || '')}
-                    ${modeloLabel('Bairro', bairro || '')}
-                    ${modeloLabel('Cidade', cidade || '')}
-                    ${modeloLabel('Departamento', ativo)}
-
-                </div>
-            </div>
-
-            <div class="requisicao-contorno">
-                <div class="requisicao-titulo">Total</div>
-                <div class="requisicao-dados">
-                    <label style="white-space: nowrap;" id="total_requisicao"></label> 
-                </div>
-            </div>
+            ${linhas}
+            <hr>
+            ${tabela}
 
         </div>
+    `
 
-        ${tabela}
+    const botoes = [
+        {
+            texto: 'Salvar',
+            funcao: `salvarRequisicao('${id}')`,
+            img: 'concluido'
+        }
+    ]
 
-    <div>`
-
-    popup({ elemento, cor: 'white', titulo: 'Requisição', autoDestruicao: ['requisicao'] })
+    popup({
+        botoes,
+        elemento,
+        titulo: 'Requisição de Materiais',
+        autoDestruicao: ['requisicao']
+    })
 
     if (avulso == 'S')
         await mudarParaAvulso()
@@ -323,7 +370,7 @@ async function criarLinhaRequisicao(item) {
             </td>
 
             <td>
-                <input oninput="calcularRequisicao()" name="omie" class="requisicao-campo" style="min-width: 10rem;" value="${omie || ''}">
+                <input type="text" oninput="calcularRequisicao()" name="omie" value="${omie || ''}">
             </td>
             
             <td>
@@ -346,7 +393,6 @@ async function criarLinhaRequisicao(item) {
             
             <td>
                 <input 
-                    class="requisicao-campo" 
                     type="number" name="qtde" 
                     oninput="calcularRequisicao()" 
                     min="0" 
@@ -407,7 +453,9 @@ async function calcularRequisicao() {
 
         const obVal = (n) => {
             const el = linha.querySelector(`[name="${n}"]`)
-            return el.value || el.id || el.textContent || null
+            return el
+                ? el.value || el.id || el.textContent || null
+                : null
         }
 
         const totalExistente = requisicoes.resultados
@@ -415,7 +463,7 @@ async function calcularRequisicao() {
             .reduce((soma, valor) => soma + valor, 0)
 
         const avulso = linha.dataset.avulso == 'S'
-        const qtdeOrcamento = conversor(obVal('qtde_orcamento"]'))
+        const qtdeOrcamento = conversor(obVal('qtde_orcamento'))
         const quantidadeRestante = qtdeOrcamento - totalExistente
         const campoQtde = linha.querySelector('[name="qtde"]')
 

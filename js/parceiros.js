@@ -61,12 +61,6 @@ async function formularioParceiro(id = crypto.randomUUID()) {
         body: 'bodyParceiros'
     })
 
-    const stringHtml = (titulo, valor) => `
-        <div style="${vertical}; gap: 3px;">
-            <label><b>${titulo}</b>:</label>
-            <div>${valor}</div>
-        </div>`
-
     controlesCxOpcoes.tecnico = {
         btnExtras: `<button onclick="formularioCliente()">Adicionar Técnico</button>`,
         retornar: ['usuario'],
@@ -85,53 +79,98 @@ async function formularioParceiro(id = crypto.randomUUID()) {
         }
     }
 
-    const elemento = `
-        <div style="${vertical}; padding: 1rem;">
+    const modeloLabel = ({ v1, v2 }) => {
 
-            <div style="${horizontal}; align-items: start; gap: 2rem;">
-
-                <div class="requisicao-contorno">
-
-                    <div class="requisicao-titulo">
-                        Informações Complementares
-                    </div>
-
-                    <div class="requisicao-dados">
-
-
-                        ${stringHtml('Selecione o técnico', `
-                        <span ${tecnico ? `id="${tecnico}"` : ''} 
-                            class="opcoes" 
-                            name="tecnico" 
-                            onclick="cxOpcoes('tecnico')">${tecnico || 'Selecione'}
-                        </span>
-                        `)}
-
-                        ${stringHtml('Margem Geral (%)', `<input id="margem_lpu" value="${margem || '40'}" oninput="calcularLpuParceiro()">`)}
-                        ${stringHtml('Comentário', `<textarea id="comentario">${comentario || ''}</textarea>`)}
-
-                    </div>
-
-                </div>
-        
-                <div class="requisicao-contorno">
-
-                    <div class="requisicao-titulo">
-                        Totais
-                    </div>
-
-                    <div class="requisicao-dados">
-                        ${stringHtml('Total do Valor Orçamento', '<label id="total_orcamento"></label>')}
-                        ${stringHtml('Total Margem Disponível', '<label id="total_margem"></label>')}
-                        ${stringHtml('Total do Valor Parceiro', '<label id="total_parceiro"l></label>')}
-                        ${stringHtml('Total Desvio', '<label id="total_desvio"></label>')}
-                    </div>
-                </div>
-
+        return `
+            <div class="campo-requisicao">
+                ${v1 ? `<span><small><b>${v1}</b></small></span>` : ''}
+                <div>${v2}</div>
             </div>
+        `
+    }
 
-            <br>
+    const campos = [
+        {
+            linha: 1,
+            v1: 'Selecione o técnico',
+            v2: `
+                <span ${tecnico ? `id="${tecnico}"` : ''} 
+                    class="opcoes" 
+                    name="tecnico" 
+                    onclick="cxOpcoes('tecnico')">${tecnico || 'Selecione'}
+                </span>
+            `
+        },
+        {
+            linha: 1,
+            v1: 'Margem Geral (%)',
+            v2: `<input id="margem_lpu" value="${margem || '40'}" oninput="calcularLpuParceiro()">`
+        },
+        {
+            linha: 1,
+            v1: 'Comentário',
+            v2: `<textarea id="comentario">${comentario || ''}</textarea>`
+        },
+        {
+            linha: 2,
+            v1: 'Total do Orçamento',
+            v2: `<label class="campo-valor verde" id="total_orcamento"></label>`
+        },
+        {
+            linha: 2,
+            v1: 'Total Margem Disponível',
+            v2: `<label class="campo-valor verde" id="total_margem"></label>`
+        },
+        {
+            linha: 2,
+            v1: 'Total do Valor Parceiro',
+            v2: `<label class="campo-valor vermelho" id="total_parceiro"l></label>`
+        },
+        {
+            linha: 2,
+            v1: 'Total Desvio',
+            v2: `<label class="campo-valor verde" id="total_desvio"></label>`
+        }
+
+    ]
+
+    const linhas = [
+        {
+            linha: 1,
+            titulo: 'Dados da LPU Parceiro'
+        },
+        {
+            linha: 2,
+            titulo: 'Totais'
+        }
+    ]
+        .map(({ linha, titulo }) => {
+
+            const c = campos
+                .filter(c => c.linha == linha)
+                .map(c => modeloLabel(c))
+                .join('')
+
+            return `
+                <div class="requisicao-contorno">
+                    <div class="requisicao-titulo">
+                        ${titulo}
+                    </div>
+                    <div class="requisicao-dados">
+                        ${c}
+                    </div>
+                </div>
+            `
+        })
+        .join('<hr>')
+
+    const elemento = `
+        <div class="requisicao-tela">
+
+            ${linhas}
+            <hr>
             ${tabela}
+
         </div>
         `
 
@@ -164,7 +203,6 @@ async function adicionarLinhaParceiro(composicao) {
         <td>${unidade || ''}</td>
         <td>
             <input 
-                class="requisicao-campo" 
                 name="qtde"
                 oninput="calcularLpuParceiro()" 
                 type="number" 
@@ -177,7 +215,6 @@ async function adicionarLinhaParceiro(composicao) {
         <td name="mTotal" style="white-space: nowrap;"></td>
         <td>
             <input 
-            class="requisicao-campo" 
             name="vUnitParc"
             oninput="this.closest('tr').dataset.edicao = 'unitario'; calcularLpuParceiro()" 
             type="number" 
@@ -185,7 +222,6 @@ async function adicionarLinhaParceiro(composicao) {
         </td>
         <td>
             <input 
-            class="requisicao-campo" 
             name="vTotalParc"
             oninput="this.closest('tr').dataset.edicao = 'total'; calcularLpuParceiro()" 
             type="number"

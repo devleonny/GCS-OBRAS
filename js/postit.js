@@ -92,7 +92,18 @@ async function criarQuadros() {
 
 async function linPostIT(dados) {
 
-    const { id, comentario, prazo, status } = dados || {}
+    const { 
+        id, 
+        comentario, 
+        prazo, 
+        status,
+        anexos
+    } = dados || {}
+
+    const divAnexos = Object
+        .entries(anexos || {})
+        .map(([, anexo]) => criarAnexoVisual(anexo.nome, anexo.link))
+        .join('')
 
     const prazoFin = prazo
         ? new Date(toTimestamp(prazo)).toLocaleDateString()
@@ -113,6 +124,7 @@ async function linPostIT(dados) {
                 draggable="true"
                 ondragstart="arrastarPIT(event, '${id}')">
                 <span>${comentario || ''}</span>
+                <div class="local-anexos">${divAnexos || ''}</div>
                 <span class="prazo"><b>Prazo:</b> ${prazoFin}</span>
                 <img class="postit-editar" src="imagens/editar.png" onclick="criarPIT('${id}')">
             </div>
@@ -252,7 +264,7 @@ async function criarPIT(id) {
 
     const divAnexos = Object
         .entries(anexos || {})
-        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link))
+        .map(([, anexo]) => criarAnexoVisual(anexo.nome, anexo.link))
         .join('')
 
     controlesCxOpcoes.usuario = {

@@ -318,6 +318,7 @@
     justify-content: center;
     gap: 10px;
     height: 5vh;
+    padding: 5px;
 }
 
 .botoes-rodape img {
