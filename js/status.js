@@ -375,7 +375,6 @@ async function abrirAtalhos(id) {
                 modeloBotoes('esquema', 'Histórico', `abrirEsquema('${id}')`),
                 modeloBotoes('painelcustos', 'Painel de Custos', `painelCustos('${contrato}')`),
                 modeloBotoes('pdf', 'Abrir Orçamento em PDF', `irPdf('${id}')`),
-                modeloBotoes('checklist', 'Checklist', `telaChecklist('${id}')`),
                 modeloBotoes('excel', 'Baixar Orçamento em Excel', `irExcelOrcamento('${id}')`),
                 modeloBotoes('LG', 'OS em PDF', `carregarOS('${id}')`)
             )

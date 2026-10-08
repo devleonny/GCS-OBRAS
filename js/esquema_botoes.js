@@ -153,16 +153,6 @@ const esquemaBotoes = {
                 { nome: 'Relatório de Peças', funcao: 'telaRelatorioPecas', img: 'planilha' }
             ]
         },
-        /*
-        {
-            nome: 'Checklist',
-            permitido: ['adm'],
-            img: 'checklist',
-            sub: [
-                { nome: 'Ver Checklists', funcao: 'telaTodosChecklists', img: 'checklist' }
-            ]
-        },
-        */
         {
             nome: 'Cadastros',
             bloqueio: ['cliente', 'técnico'],
