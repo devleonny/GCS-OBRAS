@@ -46,23 +46,6 @@ async function painelCustos(contrato) {
                 valor: total_pagamentos,
                 funcao: `tabPagamentosCusto('${contrato}')`,
                 indicador: true
-            },
-            {
-                titulo: 'Abastecimento',
-                id: 't-abastecimento',
-                valor: 0,
-                indicador: true
-            },
-            {
-                titulo: 'Fretes',
-                funcao: `tabFretes('${contrato}')`,
-                valor: 0,
-                indicador: true
-            },
-            {
-                titulo: 'Notas',
-                valor: 0,
-                indicador: true
             }
         ]
 
@@ -124,6 +107,16 @@ async function painelCustos(contrato) {
         popup({ mensagem: 'Falha ao abrir custos: Fale com o suporte.' })
     }
 
+}
+
+function tituloChecklist(texto) {
+
+  return `
+    <div class="titulo-relatorio">
+      <img src="${logo}">
+      <span>${texto}</span>
+    </div>
+  `
 }
 
 function toggleAbas(span) {
@@ -231,57 +224,6 @@ async function somaPorCategoria(contrato) {
 
     mostrarGrafico('pizza')
 
-}
-
-async function tabFretes(contrato) {
-
-    try {
-        overlayAguarde()
-
-        const pag = 'popup_fretes'
-        const tabela = await modTab({
-            base: 'vw_fretes',
-            pag,
-            colunas: {
-                'Editar': {},
-                'Método de Envio': { chave: 'metodo_envio' },
-                'Rastreio': { chave: 'rastreio' },
-                'Volumes': {},
-                'Valor da Nota': {},
-                'Custo Frete': {},
-                'Loja': { chave: 'cliente' },
-                'Orçamentos': { chave: 'departamento' },
-                'Tipo': { chave: 'categoria' },
-                'UF': { chave: 'estado' },
-                'Nota Fiscal': { chave: 'n_nota' },
-                'Data de Saída': { chave: 'data_saida', tipoPesquisa: 'data' },
-                'Data de Entrega': { chave: 'data_saida', tipoPesquisa: 'data' },
-                'Material': {},
-                'Situação': {},
-                'Comentário': {}
-            },
-            body: pag,
-            criarLinha: 'criarLinhafretes',
-            filtros: {
-                departamento: {
-                    op: 'includes',
-                    value: contrato
-                }
-            }
-        })
-
-        const painel = document.querySelector('.painel-custos-tabelas')
-
-        painel.innerHTML = tabela
-
-        await paginacao(pag)
-
-        removerOverlay()
-
-    } catch (err) {
-        console.error(err)
-        popup({ mensagem: 'Falha ao abrir o detalhamento de Fretes: Fale com o suporte.' })
-    }
 }
 
 async function tabPagamentosCusto(contrato) {
