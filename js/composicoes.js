@@ -651,14 +651,14 @@ function obValComp(id, valorRetorno) {
                 ? conversor(valorRetorno)
                 : Number(valorRetorno)
         } else {
-            el.textContent = valorRetorno
+            el.innerHTML = valorRetorno
         }
         return
     }
 
     let valor = 'value' in el
         ? el.value
-        : el.textContent
+        : el.innerHTML
 
     if (el.type === 'number') {
         valor = Number(valor || 0)
