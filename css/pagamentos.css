@@ -119,15 +119,15 @@
 }
 
 .vitrificado {
-    padding: 1vw;
+    padding: 0.5rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    width: 70%;
+    width: stretch;
     text-align: left;
     background-color: #ffffffde;
     border-radius: 3px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 10px #00000033;
 }
 
 .balao {

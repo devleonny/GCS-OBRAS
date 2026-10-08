@@ -359,8 +359,18 @@ async function abrirDetalhesPagamentos(id) {
 
                 ${modListagem(btnsOrcamentos)}
                 ${modListagem(bEspeciais.join(''))}
-                ${modListagem(deps)}
-                ${modListagem(valoresPorCategoria)}
+
+                ${modListagem(
+                    modelo('Valor Total do Pagamento', `<span class ="campo-valor vermelho">${dinheiro(pagamento.param[0].valor_documento)}</span>`)
+                )}
+
+                ${modListagem(
+                    modelo('Por Departamento', deps)
+                )}
+
+                ${modListagem(
+                    modelo('Por Categoria', valoresPorCategoria)
+                )}
 
                 ${modListagem(`
                     ${modelo('Status Atual', divStatus)}
