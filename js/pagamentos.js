@@ -111,7 +111,7 @@ async function atualizarPainelEsquerdo() {
 
     const titulos = (por_status || [])
         .map(item => {
-            
+
             const { status, quantidade } = item || {}
 
             return `
@@ -222,207 +222,184 @@ function iconePagamento(status) {
     return `imagens/${icone}.png`
 }
 
-function justificativaHTML(idPagamento) {
-
-    return `
-        <div class="balao" style="${horizontal}; width: 100%;">
-
-            <img src="gifs/alerta.gif" style="padding: 1rem;">
-
-            <div style="${vertical}; width: 100%; gap: 3px;">
-                <label>Aprovação do pagamento</label>
-
-                <textarea id="justificativa" placeholder="Descreva o motivo da aprovação/reprovação"></textarea>
-
-                <div style="${horizontal}; gap: 1rem">
-                    <button onclick="autorizarPagamentos('S', '${idPagamento}')">Aprovar</button>
-                    <button style="background-color: #b12425 ;" onclick="autorizarPagamentos('N', '${idPagamento}')">Reprovar</button>
-                </div>
-            </div>
-        </div>
-        `
-}
-
 async function abrirDetalhesPagamentos(id) {
 
-    overlayAguarde()
+    try {
+        overlayAguarde()
 
-    const modelo = (texto1, elemento) => `
-        <div style="${vertical}; gap: 2px;">
-            <span><b>${texto1}</b></span>
-            <div>${elemento}</div>
-        </div>`
-
-    const { permissao, usuario } = acesso
-    const pagamento = await recuperarDado('lista_pagamentos', id) || {}
-
-    const valoresPorCategoria = (pagamento?.snapshots?.categorias || [])
-        .map(({ categoria, valor }) => `
-                <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
-                    <label style="text-align: left;"><b>${dinheiro(valor)}</b> - ${categoria}</label>
-                </div>
-            `)
-        .join('')
-
-    const anexos = Object.entries(pagamento?.anexos || {})
-        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoPagamento('${id}', '${idAnexo}')`))
-        .join('')
-
-    const btnDetalhes = (img, nome, funcao) => `
-        <div class="btnDetalhes" onclick="${funcao}">
-            <img src="imagens/${img}.png">
-            <label style="cursor: pointer;">${nome}</label>
-        </div>`
-
-    const historico = Object.entries(pagamento?.historico || {})
-        .map(([, justificativa]) => `
-            <div class="vitrificado" style="border: 1px solid ${imagemEspecifica(justificativa).cor}">
-                <div style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;">
-                    <label><strong>Status </strong>${justificativa.status}</label>
-                    <label><strong>Usuário </strong>${justificativa.usuario}</label>
-                    <label><strong>Data </strong>${justificativa.data}</label>
-                    <label><strong>Justificativa</strong> ${justificativa.justificativa.replace(/\n/g, "<br>")}</label>
-                </div>
-                <img src="${imagemEspecifica(justificativa).imagem}">
-            </div>`)
-        .join('')
-
-    const divValores = `
-        <hr style="width: 100%;">
-        <div style="${vertical}">
-            <div style="${horizontal}; justify-content: start; gap: 10px;">
-                <label style="font-size: 1.5rem;">${dinheiro(pagamento.param[0].valor_documento)}</label>
-                <label>Total</label>
+        const modelo = (texto1, elemento) => `
+            <div style="${vertical}; gap: 2px;">
+                ${texto1 ? `<span><b>${texto1}</b></span>` : ''}
+                ${elemento ? `<div style="text-align: left;">${elemento}</div>`: ''}
             </div>
-            ${valoresPorCategoria}
-        </div>
-        <hr style="width: 100%;">
+            `
+        const botoes = (img, nome, funcao) => `
+            <div class="btn-detalhes" onclick="${funcao}">
+                <img src="imagens/${img}.png">
+                <label style="cursor: pointer;">${nome}</label>
+            </div>
+            `
+        const modListagem = (listagem) => `
+            <div style="${vertical}; width: 100%; border-radius: 8px; overflow: hidden;">
+                <div class="bloco-arredondado">${listagem}</div>
+            </div>
         `
+        const { permissao, usuario } = acesso
+        const pagamento = await recuperarDado('lista_pagamentos', id) || {}
 
-    // Edição de Status;
-    const divStatus = (permissao == 'adm')
-        ? `
-        <select class="selectStatus" onchange="alterarStatusPagamento('${id}', this)">
-            ${opcoesStatus.map(op => `<option ${pagamento.status == op ? 'selected' : ''}>${op}</option>`).join('')}
-        </select>`
-        : `<label>${pagamento.status}</label>`;
+        const valoresPorCategoria = (pagamento?.snapshots?.categorias || [])
+            .map(({ categoria, valor }) =>
+                `<label style="margin-left: 1rem; text-align: left;"><b>${dinheiro(valor)}</b> - ${categoria}</label>`
+            )
+            .join('')
 
-    const depPagam = pagamento?.param?.[0]?.distribuicao || []
+        const anexos = Object.entries(pagamento?.anexos || {})
+            .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoPagamento('${id}', '${idAnexo}')`))
+            .join('')
 
-    // Orçamentos & chamados vinculados;
-    const resultados = await Promise.all(
-        depPagam.map(async (dep) => {
-            const cc = await recuperarDado('departamentos', dep.cCodDep)
-            if (!cc) return []
-
-            const pesquisa = await pesquisarDB({
-                base: 'mvw_dados_orcamentos',
-                filtros: {
-                    'dados_orcam.contrato': { op: '=', value: cc.descricao }
-                }
-            })
-
-            return pesquisa.resultados || []
-        })
-    )
-
-    const vinculados = resultados.flat()
-
-    const btnsOrcamentos = vinculados
-        .map(({ cliente, total_geral, id }) => {
-            return btnDetalhes('pasta', `${cliente || '...'} 
-                <br>${dinheiro(total_geral)}`, `abrirAtalhos('${id}')`)
-        }).join('')
-
-
-    const liberados = ['adm', 'Diretoria']
-    const bEspeciais = [
-        btnDetalhes('reembolso', 'Duplicar Pagamento', `duplicarPagamento('${id}')`)
-    ]
-
-    // Pagamento migrado LPU
-    const lpuParceiro = await recuperarDado('parceiros', id)
-    if (lpuParceiro)
-        bEspeciais.push(btnDetalhes('tecnico', 'Ver LPU Parceiro', `gerarPdfParceiro('${id}', true)`))
-
-    if (liberados.includes(permissao) || pagamento.criado == usuario)
-        bEspeciais.push(btnDetalhes('editar', 'Editar Pagamento', `editarPagamento('${id}')`))
-
-    bEspeciais.push(
-        ...(liberados.includes(permissao)
-            ? [
-                btnDetalhes('cancel', 'Excluir pagamento', `confirmarExclusaoPagamento('${id}')`),
-                btnDetalhes('anexo', 'Reimportar Anexos no Omie', `reprocessarAnexos('${id}')`)
-            ]
-            : []
-        )
-    )
-
-    const deps = (pagamento?.snapshots?.departamentos || [])
-        .map(({ departamento, valor }) => {
-            return `
-                <div style="${horizontal}; justify-content: start; gap: 2px;">
-                    <button onclick="painelCustos('${departamento}')">Ver Custos</button>
-                    <span><b>${departamento}</b> → ${dinheiro(valor)}</span>
+        const historico = Object.entries(pagamento?.historico || {})
+            .map(([, justificativa]) => `
+                <div class="vitrificado" style="border: 1px solid ${imagemEspecifica(justificativa).cor}">
+                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;">
+                        <label><strong>Status </strong>${justificativa.status}</label>
+                        <label><strong>Usuário </strong>${justificativa.usuario}</label>
+                        <label><strong>Data </strong>${justificativa.data}</label>
+                        <label><strong>Justificativa</strong> ${justificativa.justificativa.replace(/\n/g, "<br>")}</label>
+                    </div>
+                    <img src="${imagemEspecifica(justificativa).imagem}">
                 </div>
             `
-        }).join('')
+            )
+            .join('')
 
-    const acumulado = `
-        ${justificativaHTML(id)}
+        // Edição de Status;
+        const divStatus = (permissao == 'adm')
+            ? `
+                <select onchange="alterarStatusPagamento('${id}', this)">
+                    ${opcoesStatus.map(op => `<option ${pagamento.status == op ? 'selected' : ''}>${op}</option>`).join('')}
+                </select>
+            `
+            : `<label>${pagamento.status}</label>`;
 
-        <div class="detalhes-pagamento">
-            <div style="${vertical}; gap: 1px; width: 100%;">
-                ${btnsOrcamentos}
-                ${bEspeciais.join('')}
+        const depPagam = pagamento?.param?.[0]?.distribuicao || []
 
-            </div>
+        // Orçamentos & chamados vinculados;
+        const resultados = await Promise.all(
+            depPagam.map(async (dep) => {
+                const cc = await recuperarDado('departamentos', dep.cCodDep)
+                if (!cc) return []
 
-            <hr>
+                const pesquisa = await pesquisarDB({
+                    base: 'mvw_dados_orcamentos',
+                    filtros: {
+                        'dados_orcam.contrato': { op: '=', value: cc.descricao }
+                    }
+                })
 
-            ${modelo('Departamentos', deps)}
-            ${modelo('Status Atual', divStatus)}
-            ${modelo('Quem recebe', pagamento?.snapshots?.cliente || '')}
-            ${modelo('Data de Solicitação', pagamento?.data_registro || '')}
-            ${modelo('Data de Pagamento', pagamento.param[0].data_vencimento)}
+                return pesquisa.resultados || []
+            })
+        )
 
-            ${divValores}
+        const vinculados = resultados.flat()
 
-            <div id="comentario" class="contorno" style="width: 90%;">
-                <div class="contorno-iterno" style="background-color: #ffffffde;">
-                    <label style="width: 100%; text-align: left;"><strong>Observações </strong><br> ${(pagamento?.param?.[0]?.observacao || '').replace(/\||\n/g, "<br>")}</label>
+        const btnsOrcamentos = vinculados
+            .map(({ cliente, total_geral, id }) => {
+                return botoes('pasta', `${cliente || '...'} 
+                <br>${dinheiro(total_geral)}`, `abrirAtalhos('${id}')`)
+            })
+            .join('')
+
+        const liberados = ['adm', 'diretoria']
+        const bEspeciais = [
+            botoes('reembolso', 'Duplicar Pagamento', `duplicarPagamento('${id}')`)
+        ]
+
+        // Pagamento migrado LPU
+        const lpuParceiro = await recuperarDado('parceiros', id)
+        if (lpuParceiro)
+            bEspeciais.push(botoes('tecnico', 'Ver LPU Parceiro', `gerarPdfParceiro('${id}', true)`))
+
+        if (liberados.includes(permissao) || pagamento.criado == usuario)
+            bEspeciais.push(botoes('editar', 'Editar Pagamento', `editarPagamento('${id}')`))
+
+        bEspeciais.push(
+            ...(liberados.includes(permissao)
+                ? [
+                    botoes('cancel', 'Excluir pagamento', `confirmarExclusaoPagamento('${id}')`),
+                    botoes('anexo', 'Reimportar Anexos no Omie', `reprocessarAnexos('${id}')`)
+                ]
+                : []
+            )
+        )
+
+        const deps = (pagamento?.snapshots?.departamentos || [])
+            .map(({ departamento, valor }) => {
+                return `
+                    <div style="${horizontal}; justify-content: start; gap: 2px;">
+                        <button onclick="painelCustos('${departamento}')">Ver Custos</button>
+                        <span><b>${departamento}</b> → ${dinheiro(valor)}</span>
+                    </div>
+            `
+            }).join('')
+
+        const acumulado = `
+        
+            <div class="balao">
+
+                <div style="${vertical}; gap: 2px;">
+                    <button onclick="autorizarPagamentos('S', '${id}')">Aprovar</button>
+                    <button style="background-color: #b12425 ;" onclick="autorizarPagamentos('N', '${id}')">Reprovar</button>
                 </div>
-            </div>
 
-            <div style="display: flex; align-items: center; justify-content: center; gap: 1vw;">
-                <label><strong>Anexos</strong> • </label>  
-                
-                <label for="anexoPagamento" style="text-decoration: underline; cursor: pointer;">
-                    Incluir Anexo
-                    <input type="file" id="anexoPagamento" style="display: none;" onchange="salvarAnexosPagamentos(this, '${id}')" multiple>
-                </label>
+                <textarea id="justificativa" placeholder="Descreva o motivo da aprovação ou reprovação"></textarea>
 
             </div>
-            
-            <div class="detalhes-anexos">
-                ${anexos}
+
+            <div class="detalhes-pagamento">
+
+                ${modListagem(btnsOrcamentos)}
+                ${modListagem(bEspeciais.join(''))}
+                ${modListagem(deps)}io
+                ${modListagem(valoresPorCategoria)}
+
+                ${modListagem(`
+                    ${modelo('Status Atual', divStatus)}
+                    ${modelo('Quem recebe', pagamento?.snapshots?.cliente || '')}
+                    ${modelo('Data de Solicitação', pagamento?.data_registro || '')}
+                    ${modelo('Data de Pagamento', pagamento.param[0].data_vencimento)}
+                    ${modelo('Observação', pagamento?.param?.[0]?.observacao)}
+                    ${modelo('Anexos', `
+                            <label for="anexoPagamento" style="text-decoration: underline; cursor: pointer;">
+                                Incluir Anexo
+                                <input type="file" id="anexoPagamento" style="display: none;" onchange="salvarAnexosPagamentos(this, '${id}')" multiple>
+                            </label>
+                        `)}
+                    ${modelo(null, `
+                            <div class="detalhes-anexos">
+                                ${anexos}
+                            </div>
+                        `)}
+                    `)}
+
+                <label><b>Histórico</b></label>
+
+                ${historico}
+
             </div>
+        `
 
-            <label><strong>Histórico</strong></label>
+        const telaDetalhes = document.querySelector('.tela-detalhes')
+        if (telaDetalhes) {
+            removerOverlay()
+            return telaDetalhes.innerHTML = acumulado
+        }
 
-            ${historico}
+        popup({ elemento: `<div class="tela-detalhes">${acumulado}</div>`, titulo: 'Detalhes do Pagamento' })
 
-        </div>
-        <div class="rodape-detalhes"></div>
-    `
-
-    const telaDetalhes = document.querySelector('.tela-detalhes')
-    if (telaDetalhes) {
-        removerOverlay()
-        return telaDetalhes.innerHTML = acumulado
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir detalhes do pagamento: Fale com o suporte.' })
     }
-
-    popup({ elemento: `<div class="tela-detalhes">${acumulado}</div>`, titulo: 'Detalhes do Pagamento' })
 
 }
 

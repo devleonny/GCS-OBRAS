@@ -272,12 +272,6 @@
   margin-bottom: 1rem;
 }
 
-.contorno-tela-criar-orcamento input,
-.contorno-tela-criar-orcamento select {
-  text-align: center;
-  word-break: break-all;
-}
-
 .pesquisa-orcamento {
   display: flex;
   align-items: center;

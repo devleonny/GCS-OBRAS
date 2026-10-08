@@ -470,7 +470,6 @@ async function iniciarChamadoProspeccao(id) {
 
     const novo = {
         id: contrato,
-        equipamentos: {},
         unidade: omie_cliente,
         sistema: '17', // SERVIÇO DE INFRA
         prioridade: 'v2ttQ', // Serviço de INFRA
@@ -478,18 +477,17 @@ async function iniciarChamadoProspeccao(id) {
         descricao: `Chamado de Prospecção do ${contrato}`,
         data_registro: new Date().toLocaleString('pt-BR'),
         usuario: acesso.usuario,
-        anexos: {}
     }
 
     await enviar(`dados_ocorrencias/${contrato}`, novo)
 
-    await telaOcorrencias()
-
+    controles.ocorrencias ??={}
+    controles.ocorrencias.filtros ??= {}
     controles.ocorrencias.filtros = {
-        'snapshots.contrato': { op: 'includes', value: contrato }
+        'chamados': { op: 'includes', value: contrato }
     }
 
-    await paginacao('ocorrencias')
+    await telaOcorrencias()
 
 }
 

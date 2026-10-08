@@ -91,8 +91,7 @@ async function telaCriarOrcamento() {
 
                     <div style="${horizontal}; gap: 1rem;">
                         <label style="font-size: 1em;">Tabela de preço</label>
-                        <select id="lpu" onchange="alterarTabelaLPU(this.value)"
-                            style="background-color: white; border-radius: 3px; padding: 5px;">
+                        <select id="lpu" onchange="alterarTabelaLPU(this.value)">
                         </select>
                     </div>
 

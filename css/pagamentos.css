@@ -94,20 +94,28 @@
 }
 
 .detalhes-pagamento {
-    width: 60vw;
-    max-height: 60vh;
+    width: 600px;
     padding: 1rem;
     gap: 5px;
     display: flex;
     flex-direction: column;
     align-items: start;
     justify-content: start;
-    overflow-y: auto;
-    overflow-x: hidden;
 }
 
-.rodape-detalhes {
-    height: 1vh;
+.bloco-arredondado {
+    width: stretch;
+    display: flex;
+    align-items: start;
+    flex-direction: column;
+    justify-content: start;
+    gap: 2px;
+    height: max-content;
+    max-height: 250px;
+    background-color: #efefef;
+    overflow: auto;
+    border-radius: 8px;
+    padding: 5px;
 }
 
 .vitrificado {
@@ -123,17 +131,18 @@
 }
 
 .balao {
+    width: stretch;
     padding: 5px;
     display: flex;
-    color: wheat;
-    align-items: center;
-    justify-content: center;
+    flex-direction: row;
+    align-items: start;
+    justify-content: start;
     background-color: #222;
 }
 
 .balao textarea {
-    width: 90%;
-    border-radius: 3px;
+    width: stretch;
+    height: 70px;
 }
 
 .contagem {
@@ -167,9 +176,8 @@
     gap: 5px;
 }
 
-.btnDetalhes {
+.btn-detalhes {
     text-align: left;
-    min-height: 3vh;
     width: 100%;
     display: flex;
     align-items: center;
@@ -179,16 +187,17 @@
     cursor: pointer;
 }
 
-.btnDetalhes label {
+.btn-detalhes label {
     padding: 10px;
 }
 
-.btnDetalhes:hover {
+.btn-detalhes:hover {
+    border-radius: 8px;
     background-color: #222;
     color: white;
 }
 
-.btnDetalhes img {
+.btn-detalhes img {
     margin-left: 1rem;
 }
 
