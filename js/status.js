@@ -23,57 +23,46 @@ const fluxograma = [
     'FATURADO'
 ]
 
-const esquemaBtnStatus = {
-    pedidos: [
-        {
-            titulo: 'Novo Pedido',
-            cor: '#4CAF50',
-            funcao: `painelAdicionarPedido()`
-        }
-    ],
-    requisicoes: [
-        {
-            titulo: 'Requisição de Materiais',
-            cor: '#B12425',
-            funcao: `formularioRequisicao()`
-        }
-    ],
-    notas: [
-        {
-            titulo: 'Nota Avulsa',
-            cor: '#ff4500',
-            funcao: `adicionarNotaAvulsa()`
-        }
-    ],
-    materiais: [
-        {
-            titulo: 'Envio de Material',
-            cor: '#b17724',
-            funcao: `envioMaterial()`
-        }
-    ],
-    parceiros: [
-        {
-            titulo: 'LPU Parceiro',
-            cor: '#0062d5',
-            funcao: `formularioParceiro()`
-        }
-    ],
-    levantamentos: [
-        {
-            titulo: 'Levantamentos',
-            cor: '#222',
-            funcao: `formDocAdicional('LEVANTAMENTO')`
-        }
-    ],
-    finalizado: [
-        {
-            titulo: 'Finalizações',
-            cor: '#222',
-            funcao: `formDocAdicional('FINALIZADO')`
-        }
-    ]
-}
+const esquemaBtnStatus = [
+    {
+        chave: 'pedidos',
+        titulo: 'Novo Pedido',
+        cor: '#4CAF50',
+        funcao: `painelAdicionarPedido()`
+    },
+    {
+        chave: 'requisicoes',
+        titulo: 'Requisição de Materiais',
+        cor: '#B12425',
+        funcao: `formularioRequisicao()`
+    },
+    {
+        chave: 'notas',
+        titulo: 'Nota Avulsa',
+        cor: '#ff4500',
+        funcao: `adicionarNotaAvulsa()`
+    },
+    {
+        chave: 'parceiros',
+        titulo: 'LPU Parceiro',
+        cor: '#0062d5',
+        funcao: `formularioParceiro()`
+    },
+    {
+        chave: 'levantamentos',
+        titulo: 'Levantamentos',
+        cor: '#222',
+        funcao: `formDocAdicional('LEVANTAMENTO')`
+    }
+    ,
+    {
+        chave: 'finalizado',
+        titulo: 'Finalizações',
+        cor: '#222',
+        funcao: `formDocAdicional('FINALIZADO')`
+    }
+
+]
 
 const botaoAnexoStatus = ({ id, cor, tabela }) => {
 
@@ -371,44 +360,45 @@ async function salvarNotaAvulsa(id) {
 
 async function abrirAtalhos(id) {
 
-    overlayAguarde()
+    try {
 
-    const orcamento = await recuperarDado('mvw_dados_orcamentos', id) || {}
-    const emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
-    const botoesDisponiveis = []
-    const { executor: autorizados, contrato } = orcamento.dados_orcam || {}
+        overlayAguarde()
 
+        const orcamento = await recuperarDado('mvw_dados_orcamentos', id) || {}
+        const emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
+        const botoesDisponiveis = []
+        const { executor: autorizados, contrato } = orcamento.dados_orcam || {}
 
-    // Gambiarra para não mudar a posição das paradas;
-    if (!emAnalise)
-        botoesDisponiveis.push(
-            modeloBotoes('esquema', 'Histórico', `abrirEsquema('${id}')`),
-            modeloBotoes('painelcustos', 'Painel de Custos', `painelCustos('${contrato}')`),
-            modeloBotoes('pdf', 'Abrir Orçamento em PDF', `irPdf('${id}')`),
-            modeloBotoes('checklist', 'Checklist', `telaChecklist('${id}')`),
-            modeloBotoes('excel', 'Baixar Orçamento em Excel', `irExcelOrcamento('${id}')`),
-            modeloBotoes('LG', 'OS em PDF', `carregarOS('${id}')`)
-        )
+        // Gambiarra para não mudar a posição das paradas;
+        if (!emAnalise)
+            botoesDisponiveis.push(
+                modeloBotoes('esquema', 'Histórico', `abrirEsquema('${id}')`),
+                modeloBotoes('painelcustos', 'Painel de Custos', `painelCustos('${contrato}')`),
+                modeloBotoes('pdf', 'Abrir Orçamento em PDF', `irPdf('${id}')`),
+                modeloBotoes('checklist', 'Checklist', `telaChecklist('${id}')`),
+                modeloBotoes('excel', 'Baixar Orçamento em Excel', `irExcelOrcamento('${id}')`),
+                modeloBotoes('LG', 'OS em PDF', `carregarOS('${id}')`)
+            )
 
-    // Vinculados;
-    const [estaVinculado, pesqMaster] = await Promise.all([
-        recuperarDado('contratos_vinculados', contrato),
-        pesquisarDB({ base: 'contratos_vinculados', filtros: { 'master': { op: '=', value: contrato } } })
-    ])
+        // Vinculados;
+        const [estaVinculado, pesqMaster] = await Promise.all([
+            recuperarDado('contratos_vinculados', contrato),
+            pesquisarDB({ base: 'contratos_vinculados', filtros: { 'master': { op: '=', value: contrato } } })
+        ])
 
-    let avisoMaster = ''
+        let avisoMaster = ''
 
-    if (estaVinculado) {
-        botoesDisponiveis.push(modeloBotoes('exclamacao', 'Desvincular Orçamento', `confirmarRemoverVinculo('${contrato}')`))
-    } else if (!pesqMaster.resultados.length) {
-        botoesDisponiveis.push(modeloBotoes('link', 'Vincular Orçamento', `vincularOrcamento('${contrato}')`))
-    } else {
+        if (estaVinculado) {
+            botoesDisponiveis.push(modeloBotoes('exclamacao', 'Desvincular Orçamento', `confirmarRemoverVinculo('${contrato}')`))
+        } else if (!pesqMaster.resultados.length) {
+            botoesDisponiveis.push(modeloBotoes('link', 'Vincular Orçamento', `vincularOrcamento('${contrato}')`))
+        } else {
 
-        const slaves = pesqMaster.resultados
-            .map(res => `<span class="tag-vinculado slave">${res.slave}</span>`)
-            .join('')
+            const slaves = pesqMaster.resultados
+                .map(res => `<span class="tag-vinculado slave">${res.slave}</span>`)
+                .join('')
 
-        avisoMaster = `
+            avisoMaster = `
             <hr>
             <div style="display: flex; flex-direction: column; gap: 2px;">
                 <span style="text-align: left; width: 400px;">Este orçamento é <b>master</b>, ele não pode ser vinculado a ninguém. 
@@ -416,44 +406,49 @@ async function abrirAtalhos(id) {
                 ${slaves}
             </div>
             `
-    }
+        }
 
-    botoesDisponiveis.push(
-        modeloBotoes('duplicar', 'Duplicar Orçamento', `confirmarDuplicarOrcamento('${id}')`)
-    )
-
-    if (orcamento?.usuario == acesso.usuario || permAtalhos.includes(acesso.permissao) || (autorizados || []).includes(acesso.usuario)) {
         botoesDisponiveis.push(
-            modeloBotoes('apagar', 'Excluir Orçamento', `confirmarExclusaoOrcamentoBase('${id}')`),
-            modeloBotoes('editar', 'Editar Orçamento', `editar('${id}')`),
-            modeloBotoes('gerente', 'Editar Dados do Cliente', `painelClientes('${id}')`)
+            modeloBotoes('duplicar', 'Duplicar Orçamento', `confirmarDuplicarOrcamento('${id}')`)
         )
-    }
 
-    const aviso = emAnalise
-        ? `
-        <div style="${horizontal}; gap: 1rem; padding: 1rem;">
-            <img src="gifs/alerta.gif">
-            <span>Este orçamento precisa ser aprovado!</span>
-        </div>`
-        : ''
+        if (orcamento?.usuario == acesso.usuario || permAtalhos.includes(acesso.permissao) || (autorizados || []).includes(acesso.usuario)) {
+            botoesDisponiveis.push(
+                modeloBotoes('apagar', 'Excluir Orçamento', `confirmarExclusaoOrcamentoBase('${id}')`),
+                modeloBotoes('editar', 'Editar Orçamento', `editar('${id}')`),
+                modeloBotoes('gerente', 'Editar Dados do Cliente', `painelClientes('${id}')`)
+            )
+        }
 
-    const acumulado = `
-        <div style="${vertical}; gap: 2px;">
-            ${(orcamento?.contrato || []).map(d => `<span>${d}</span>`).join('')}
-        </div>
-        <hr>
-        ${aviso}
-        <div class="opcoes-orcamento">${botoesDisponiveis.join('')}</div>
-        ${avisoMaster}
+        const aviso = emAnalise
+            ? `
+                <div style="${horizontal}; gap: 1rem; padding: 1rem;">
+                    <img src="gifs/alerta.gif">
+                    <span>Este orçamento precisa ser aprovado!</span>
+                </div>`
+                    : ''
+
+                const acumulado = `
+                <div style="${vertical}; gap: 2px;">
+                    ${(orcamento?.contrato || []).map(d => `<span>${d}</span>`).join('')}
+                </div>
+                <hr>
+                ${aviso}
+                <div class="opcoes-orcamento">${botoesDisponiveis.join('')}</div>
+                ${avisoMaster}
     `
 
-    const menuOpcoesOrcamento = document.querySelector('.menu-opcoes-orcamento')
+        const menuOpcoesOrcamento = document.querySelector('.menu-opcoes-orcamento')
 
-    if (menuOpcoesOrcamento)
-        return menuOpcoesOrcamento.innerHTML = acumulado
+        if (menuOpcoesOrcamento)
+            return menuOpcoesOrcamento.innerHTML = acumulado
 
-    popup({ elemento: `<div class="menu-opcoes-orcamento">${acumulado}</div>`, titulo: 'Opções do Orçamento' })
+        popup({ elemento: `<div class="menu-opcoes-orcamento">${acumulado}</div>`, titulo: 'Opções do Orçamento' })
+
+    } catch (err) {
+        console.log(err)
+        popup({ mensagem: 'Falha ao abrir os atalhos: Fale com o suporte.' })
+    }
 
 }
 
@@ -664,43 +659,19 @@ async function checklistChamado(id) {
     const contrato = controles.ocorrencias.ativo
 
     // Para abrir transformar um orcamento em chamado, ele precisa ter um pedido (Enviado e Aprovado);
-    const pedidos = await pesquisarDB({
-        base: 'pedidos',
-        filtros: {
-            departamento: {
-                op: 'includes',
-                value: contrato
-            }
-        }
-    })
-
     const existente = await recuperarDado('dados_ocorrencias', contrato)
 
     const pChamado = existente
-        ? `
-        <div style="${horizontal}; gap: 1rem;">
-            <img src="imagens/concluido.png">
-            <span>Ocorrência já aberta ${contrato}</span>
-        </div>
-    `
+        ?
+        `
+                <div class="chamado-aberto">
+                    <img src="imagens/concluido.png">
+                    <span>Chamado já aberto > ${contrato}</span>
+                </div>
+            `
         : `
-        <span>Abra uma <b>OCORRÊNCIA</b> de duas formas:<br></span>
-        <br>
-        <span>
-            Para orçamentos de levantamento: 
-            O orçamento pode ser R$ 0,00 para edição posterior.
-        </span>
-        <button onclick="confirmarProspeccao('${id}')">Orçamento Prospecção</button>
-        <br>
-        <span>
-            Quando o orçamento é solicitado 
-            pelo cliente de forma <b>padrão</b>.<br>
-            Mas antes, faça o envio do 
-            orçamento por e-mail, aguarde 
-            a aprovação e crie um pedido: 
-            Esse botão verde "<b>Novo Pedido</b>" aqui ao lado.
-        </span>
-        <button onclick="auxAberturaChamado('${id}')">Orçamento Aprovado</button>
+        <button onclick="auxAberturaChamado('${id}')">Abrir Chamado</button>
+        <button onclick="confirmarProspeccao('${id}')">Chamado Prospecção</button>
     `
 
     const local = document.querySelector('.status-check-ocorrencias')
@@ -738,63 +709,120 @@ async function auxAberturaChamado(id) {
 
 async function abrirEsquema(id) {
 
-    overlayAguarde()
+    try {
 
-    const { 
-        dados_orcam, 
-        nomes_status, 
-        cliente,
-        status_atual
-    } = await recuperarDado('mvw_dados_orcamentos', id) || {}
+        overlayAguarde()
 
-    const contrato = dados_orcam?.contrato
+        const {
+            dados_orcam,
+            nomes_status,
+            cliente,
+            status_atual
+        } = await recuperarDado('mvw_dados_orcamentos', id) || {}
 
-    controles.ocorrencias ??= {}
-    controles.ocorrencias.ativo = contrato
+        const contrato = dados_orcam?.contrato
 
-    const labelTipoCorrecao = (nomes_status || [])
-        .map(st => formatacaoTipoCorrecao(st))
-        .join('')
+        controles.ocorrencias ??= {}
+        controles.ocorrencias.ativo = contrato
 
-    const acumulado = `
-        <div style="${vertical}; gap: 10px; padding: 3px;">
+        const labelTipoCorrecao = (nomes_status || ['CHAMADO NÃO ABERTO'])
+            .map(st => formatacaoTipoCorrecao(st))
+            .join('')
 
-            <div style="${horizontal}; gap: 2rem;">
+        const elemento = `
+            <div class="painel-historico">
 
-                <div style="${vertical}; gap: 2px;">
-                    <label>Status da Ocorrência</label>
-                    ${labelTipoCorrecao}
+                <div style="${horizontal}; justify-content: start; gap: 1rem;">
+
+                    <div class="status-check-ocorrencias"></div>
+
+                    <div style="${vertical}; gap: 2px;">
+                        <label>Status da Ocorrência</label>
+                        ${labelTipoCorrecao}
+                    </div>
+
+                    <div style="${vertical}; gap: 2px;">
+                        <label>Status do Orçamento</label>
+                        <span class="and">${status_atual}</span>
+                    </div>
+
+                    <img onclick="verHistoricoStatus('${id}')" src="imagens/historico.png">
+
+                    <label style="font-size: 1.5rem;">${contrato} - ${cliente || '??'}</label>
+
                 </div>
 
-                <div style="${vertical}; gap: 2px;">
-                    <label>Status do Orçamento</label>
-                    <span class="and">${status_atual}</span>
-                </div>
+                <hr>
 
-                <img onclick="verHistoricoStatus('${id}')" src="imagens/historico.png">
-
-                <label style="font-size: 1.5rem;">${contrato} - ${cliente || '??'}</label>
+                <div class="bloco-st"></div>
 
             </div>
+    `
 
-        </div>
+        popup({ elemento, titulo: 'Histórico do Orçamento' })
 
-        <div id="${contrato}" class="container-blocos">
+        // Checklist Chamado;
+        checklistChamado(id)
 
-            <div class="status-check-ocorrencias">
-                <img src="gifs/loading.gif" style="width: 5rem;">
-            </div>
+        const local = document.querySelector('.bloco-st')
 
-            <div class="bloco-st"></div>
-        </div>`
+        await Promise.all(
+            esquemaBtnStatus
+                .map(async (botao) => {
 
-    popup({ elemento: `<div class="painel-historico">${acumulado}</div>`, titulo: 'Histórico do Orçamento' })
+                    const {
+                        chave,
+                        titulo,
+                        cor,
+                        funcao
+                    } = botao
 
-    // Carregar tabelas adicionais;
-    abrirEsquemaOcorrencias(contrato)
+                    const dados = {
+                        base: chave,
+                        body: `body_${chave}`,
+                        pag: chave,
+                        filtros: {
+                            departamento: {
+                                op: 'includes',
+                                value: contrato
+                            }
+                        },
+                        criarLinha: `lin${inicialMaiuscula(chave)}`
+                    }
 
-    // Checklist Chamado;
-    checklistChamado(id)
+                    if (chave == 'levantamentos' || chave == 'finalizado') {
+                        dados.base = 'anexos'
+                        dados.criarLinha = 'linAnexos'
+                        dados.filtros.origem = {
+                            op: '=',
+                            value: chave == 'levantamentos'
+                                ? 'LEVANTAMENTO'
+                                : 'FINALIZADO'
+                        }
+                    }
+
+                    const tabela = await modTab(dados)
+
+                    local.insertAdjacentHTML('beforeend', `
+                        <div style="${vertical}; gap: 2px;">
+                            <button
+                                style="background-color: ${cor};" 
+                                onclick="${funcao}">
+                                ${titulo}
+                            </button>
+                            ${tabela}
+                        </div>
+                    `)
+
+                    await paginacao(chave)
+                })
+        )
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir o esquema: Fale com o suporte.' })
+    }
+
 
 }
 

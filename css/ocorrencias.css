@@ -296,6 +296,7 @@
     align-items: center;
     flex-wrap: wrap;
     gap: 0.5rem;
+    margin: 2px;
 }
 
 .campos {
@@ -525,11 +526,6 @@
 .bloco-principal {
     width: 100%;
     display: flex;
-    flex-direction: column;
-}
-
-.bloco-st {
-    display: none;
     flex-direction: column;
 }
 

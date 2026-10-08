@@ -596,7 +596,7 @@ span[name="titulo"] {
     overflow-x: hidden;
 }
 
-.balaoNF label {
+.balao-nf label {
     cursor: pointer;
 }
 
@@ -610,7 +610,7 @@ span[name="titulo"] {
     justify-content: start;
     width: 90%;
     border: solid 1px #bababa;
-    background-color: #00000012;
+    background-color: #ebebeb;
     padding: 5px;
 }
 
@@ -628,6 +628,7 @@ span[name="titulo"] {
 }
 
 .etiquetas {
+    text-align: left;
     width: stretch;
     cursor: pointer;
     display: flex;
@@ -635,7 +636,7 @@ span[name="titulo"] {
     align-items: start;
     justify-content: center;
     border: solid 1px #bababa;
-    background-color: #00000012;
+    background-color: #ebebeb;
     border-radius: 3px;
     padding: 5px;
 }
@@ -1626,31 +1627,6 @@ input[type=range]::-moz-range-thumb {
     color: #333;
 }
 
-.bloco-status {
-    background-color: white;
-    justify-content: center;
-    gap: 0px;
-    display: flex;
-    position: relative;
-    flex-direction: column;
-    border-radius: 3px;
-    font-size: 0.7rem;
-    height: max-content;
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    overflow-y: auto;
-    flex-shrink: 0;
-}
-
-.bloco-status-interno {
-    width: 150px;
-    flex-direction: column;
-    gap: 1px;
-    display: flex;
-    align-items: start;
-    justify-content: start;
-    padding: 5px;
-}
-
 .alerta-pendencia {
     text-align: left;
     cursor: pointer;
@@ -1829,10 +1805,9 @@ input[type="file"]#input-anexos:hover {
     background: #282a3a;
 }
 
-.balaoNF {
-    margin-left: 5px;
+.balao-nf {
     cursor: pointer;
-    width: 90%;
+    width: stretch;
     border-radius: 5px;
     display: flex;
     flex-direction: row;
@@ -1869,9 +1844,6 @@ input[type="file"]#input-anexos:hover {
 }
 
 .painel-historico {
-    background-color: white;
-    max-height: 80vh;
-    overflow: auto;
     display: flex;
     flex-direction: column;
     gap: 15px;

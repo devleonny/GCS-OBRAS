@@ -23,28 +23,17 @@ const labelDestaque = (valor1, valor2) => {
 }
 
 const botao = (valor1, funcao, cor) => `
-        <div class="contorno-botoes" style="background-color: ${cor}e3; border: solid 1px ${cor};" onclick="${funcao}">
-            <label style="white-space: nowrap;">${valor1}</label>
-        </div>`
+    <div class="contorno-botoes" style="background-color: ${cor}e3; border: solid 1px ${cor};" onclick="${funcao}">
+        <label style="white-space: nowrap;">${valor1}</label>
+    </div>
+`
 
 const avisoHTML = (termo) => `
     <div style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 2vw;">
         <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
         <label>${termo}</label>
-    </div>`
-
-const balaoPDF = ({ nf, tipo, codOmie, app }) => {
-    return `
-    <div class="balaoNF" onclick="abrirDANFE('${codOmie}', '${tipo}', '${app}')">
-        <div class="balao1">
-            <label>${nf}</label>
-            <label><b>${tipo}</b></label>
-        </div>
-        <div class="balao2">
-            PDF
-        </div>
-    </div>`
-}
+    </div>
+`
 
 const modeloBotoes = (imagem, nome, funcao) => {
 

@@ -6,15 +6,40 @@
     margin: 5px;
 }
 
-.container-blocos {
-    gap: 0.5rem;
-    display: flex;
-    width: max-content;
-}
-
 .foto-status {
     border-radius: 3px;
     width: 5rem;
+}
+
+.bloco-st {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: row;
+    gap: 5px;
+}
+
+.bloco-status-interno {
+    position: relative;
+    max-width: 200px;
+    width: stretch;
+    flex-direction: column;
+    gap: 1px;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    padding: 5px;
+}
+
+.chamado-aberto {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 0 2px #222;
+    padding: 5px 1rem 5px 5px;
+    background-color: white;
+    border-radius: 20px;
 }
 
 .cartao-status {
@@ -92,10 +117,8 @@
 
 .barra-status {
     box-shadow: 0 0 5px #7b7b7b;
-    border: solid 1px #8e8e8e;
-    background-color: #f1f1f1;
+    background-color: #ffffff;
     border-radius: 5px;
-
     padding: 1rem;
     display: flex;
     justify-content: start;
@@ -104,23 +127,10 @@
 }
 
 .status-check-ocorrencias {
-    box-shadow: 0 0 5px #7b7b7b;
-    border: solid 1px #8e8e8e;
-    background-color: #f1f1f1;
-    border-radius: 5px;
-
-    max-width: 200px;
-    height: max-content;
-    padding: 0.5rem;
     display: flex;
     align-items: start;
     justify-content: start;
     flex-direction: column;
-    gap: 2px;
-}
-
-.status-check-ocorrencias span {
-    text-align: start;
 }
 
 .status-check-item {

@@ -183,16 +183,6 @@ const esquemaBotoes = {
             ]
         },
         {
-            nome: 'Frete de Material',
-            bloqueio: ['cliente', 'ténico'],
-            img: 'frete',
-            sub: [
-                { nome: 'Ver Fretes', funcao: 'telaFretes', img: 'frete' },
-                { nome: 'Adicionar Frete', funcao: 'envioMaterial', img: 'baixar' }
-
-            ]
-        },
-        {
             nome: 'Técnicos',
             bloqueio: ['cliente', 'técnico'],
             img: 'tecnico',

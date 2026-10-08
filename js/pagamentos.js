@@ -165,7 +165,7 @@ async function criarLinhaPagamento(pagamento) {
         <td>${app || 'AC'}</td>
         <td style="white-space: nowrap; text-align: left;">${dinheiro(valor_documento || 0)}</td>
         <td>
-            <div style="${horizontal}; justify-content: start; gap: 5px;">
+            <div style="${horizontal}; justify-content: start; gap: 5px; min-width: 200px;">
                 <img src="${iconePagamento(status)}" style="width: 1.5rem;">
                 <label style="text-align: left;">${status}</label>
             </div>

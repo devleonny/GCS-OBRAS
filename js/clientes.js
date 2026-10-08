@@ -240,7 +240,7 @@ async function telaClientes() {
         })
 
         tela.innerHTML = `
-        <div style="${horizontal}; gap: 1rem;">
+        <div style="${horizontal}; align-items: start; gap: 1rem;">
             ${montarPagina({ tabela, titulo: 'Clientes, Usuários & Fornecedores', imagem: 'prancheta' })}
             ${mapa}
         </div>`

@@ -75,19 +75,19 @@ function conversorDt(dt, formato = 'br') {
 
 const pdfDanfe = ({ id, n_nota, categoria, total = null, d_emi_inicial }) => {
 
+    const labelTotal = total 
+        ? `<label>${dinheiro(total)}</label>`
+        : ''
+
     return `
-        <div class="balaoNF">
+        <div class="balao-nf" onclick="abrirDANFE('${id}')">
             <div class="balao1">
                 <label>${n_nota}</label>
                 <label><b>${categoria}</b></label>
-                ${total
-            ? `<label>${dinheiro(total)}</label>`
-            : ''
-
-        }
-            ${d_emi_inicial || ''}
+                ${labelTotal}
+                ${d_emi_inicial || ''}
             </div>
-            <div onclick="abrirDANFE('${id}')" class="balao2">PDF</div>
+            <div class="balao2">PDF</div>
         </div>
     `
 }

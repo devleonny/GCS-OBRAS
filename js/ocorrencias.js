@@ -1035,27 +1035,6 @@ async function contadoresMapaOcorrencias() {
 
 }
 
-async function abrirAtalhosContrato(contrato) {
-
-    overlayAguarde()
-
-    const orcs = await pesquisarDB({
-        base: 'dados_orcamentos',
-        filtros: {
-            'dados_orcam.contrato': { op: 'includes', value: contrato }
-        }
-    })
-
-    if (!orcs.resultados.length)
-        return popup({ mensagem: 'Sem orçamento, ou orçamento excluído: verifique com o suporte ou crie um orçamento' })
-
-
-    const { id } = orcs.resultados[0] // Primeiro;
-
-    await abrirAtalhos(id)
-
-}
-
 function criarLinhaOcorrencia(ocorrencia) {
 
     const {
@@ -1156,24 +1135,25 @@ function criarLinhaOcorrencia(ocorrencia) {
         ? `<button onclick="criarOrcamentoVinculado('${id}')">Criar orçamento</button>`
         : ''
 
-    const spanNumOrcs = [id, contratos_vinculados || []].flat()
+    const spanNumOrcs = (contratos_vinculados || {})
         .map(c => {
 
-            const chave = c !== id
-                ? `${id}.${c}`
-                : c
+            const {
+                contrato,
+                id_orcamento
+            } = c
 
-            const btns = apenasAutorizados
+            const btns = apenasAutorizados && id_orcamento
                 ? `
-                    <img src="imagens/pesquisar.png" onclick="abrirAtalhosContrato('${c}')">
-                    <img src="imagens/pasta2.png" onclick="abrirEsquemaOcorrencias('${chave}')">
+                    <img src="imagens/pesquisar.png" onclick="abrirAtalhos('${id_orcamento}')">
+                    <img src="imagens/pasta2.png" onclick="abrirEsquema('${id_orcamento}')">
                 `
                 : ''
 
             return `
                 <div class="etiqueta-chamado">
                     ${btns}
-                    <span>${c}</span>
+                    <span>${contrato}</span>
                 </div>
                 `
 
@@ -1225,7 +1205,6 @@ function criarLinhaOcorrencia(ocorrencia) {
             ${possiveisTags}
 
         </div>
-
         
     `
 
@@ -1235,13 +1214,11 @@ function criarLinhaOcorrencia(ocorrencia) {
             <div class="bloco-linha">
 
                 <div class="linha-orcamentos">
-                    <img onclick="abrirEsquemaOcorrencias('${id}', true)" src="imagens/home.png">
                     ${spanNumOrcs}
                     ${criarOrcamento}
                 </div>
 
                 <div class="bloco-principal">${blocoPrincipal}</div>
-                <div class="bloco-st"></div>
 
             </div>
 
@@ -1265,123 +1242,6 @@ async function marcarBuscarTecnico(input, id) {
         popup({ mensagem: `Falha ao marcar a opção BUSCAR TÉNICO no chamado <b>${id}</b>: Tente novamente.` })
     }
 
-}
-
-async function abrirEsquemaOcorrencias(chave, principal) {
-
-    const { permissao } = JSON.parse(localStorage.getItem('acesso')) || {}
-
-    if (['cliente', 'técnico'].includes(permissao))
-        return
-
-    const [id, orc] = chave.includes('.')
-        ? chave.split('.')
-        : [chave, null]
-
-    // Balão ativo;
-    controles.ocorrencias.ativo = orc || chave
-
-    const bloco = document.getElementById(id)
-
-    if (!bloco)
-        return
-
-    const blocoPrincipal = bloco.querySelector('.bloco-principal')
-    const blocoStatus = bloco.querySelector('.bloco-st')
-    const linhaCorrecoes = bloco.querySelector('#correcoes')
-
-    if (blocoPrincipal)
-        blocoPrincipal.style.display = principal ? 'flex' : 'none'
-
-    if (linhaCorrecoes)
-        linhaCorrecoes.style.display = principal ? 'flex' : 'none'
-
-    blocoStatus.style.display = principal ? 'none' : 'flex'
-
-    if (principal) {
-        blocoStatus.innerHTML = ''
-        return
-    }
-
-    const slots = Object.keys(esquemaBtnStatus)
-        .map(c => {
-
-            const botoes = esquemaBtnStatus[c]
-                .map(({ titulo, cor, funcao }) => {
-
-                    return `
-                        <button
-                        style="background-color: ${cor};" 
-                        onclick="${funcao}">
-                            ${titulo}
-                        </button>`
-                })
-                .join('')
-
-            return `
-            <div style="${vertical}; gap: 2px;">
-                ${botoes}
-                <div id="${c}"></div>
-            </div>
-            `
-        })
-        .join('')
-
-    const elemento = `
-        <div class="barra-status">
-            ${slots}
-        </div>
-    `
-
-    blocoStatus.innerHTML = elemento
-
-    carregarTabStatus(id)
-}
-
-async function carregarTabStatus(id) {
-
-    const local = document.getElementById(id)
-
-    // Verificar se existe outra tela de status ativa;
-    const ativo = controles?.ocorrencias?.ativo
-
-    // Mapeia o array esquemaBtnStatus para um array de Promises
-    const promessasTabs = Object.keys(esquemaBtnStatus).map(async (t) => {
-
-        // Padrão;
-        const dados = {
-            base: t,
-            body: `body${t}`,
-            pag: t,
-            filtros: {
-                departamento: { op: 'includes', value: ativo }
-            },
-            criarLinha: `lin${inicialMaiuscula(t)}`
-        }
-
-        if (t == 'levantamentos' || t == 'finalizado') {
-            dados.base = 'anexos'
-            dados.criarLinha = 'linAnexos'
-            dados.filtros.origem = {
-                op: '=',
-                value: t == 'levantamentos'
-                    ? 'LEVANTAMENTO'
-                    : 'FINALIZADO'
-            }
-        }
-
-        const tabela = await modTab(dados)
-
-        const bloco = local.querySelector(`#${t}`)
-        if (bloco) {
-            bloco.innerHTML = tabela
-        }
-
-        await paginacao(t)
-    })
-
-    // Aguarda todas as abas carregarem e renderizarem simultaneamente
-    await Promise.all(promessasTabs)
 }
 
 async function linPedidos(ped) {
@@ -1412,30 +1272,26 @@ async function linPedidos(ped) {
         : ''
 
     const bloco = `
-        <div class="bloco-status" style="border: 1px solid ${cor};">
+        <div class="bloco-status-interno" style="border: 1px solid ${cor}; background-color: ${cor}1f;">
 
-            <div class="bloco-status-interno" style="background-color: ${cor}1f;">
+            ${excluir}
+            ${labelDestaque('Executor', executor)}
+            ${labelDestaque('Data', data)}
+            ${labelDestaque('Comentário', comentario)}
+            ${labelDestaque('Empresa a faturar', empresa)}
+            ${labelDestaque('Pagamento', pagamento)}
+            ${labelDestaque('Pedido', pedido)}
+            ${labelDestaque('Autorizado por', autorizado_por)}
+            ${labelDestaque('Valor', dinheiro(valor || 0))}
+            ${labelDestaque('Tipo', tipo)}
+            ${botaoAnexoStatus({ id, tabela, cor })}
+            ${botaoFotoStatus({ id, tabela, cor })}
+            ${botaoEditarStatus({ id, cor, funcao: `painelAdicionarPedido('${id}')` })}
 
-                ${excluir}
-                ${labelDestaque('Executor', executor)}
-                ${labelDestaque('Data', data)}
-                ${labelDestaque('Comentário', comentario)}
-                ${labelDestaque('Empresa a faturar', empresa)}
-                ${labelDestaque('Pagamento', pagamento)}
-                ${labelDestaque('Pedido', pedido)}
-                ${labelDestaque('Autorizado por', autorizado_por)}
-                ${labelDestaque('Valor', dinheiro(valor || 0))}
-                ${labelDestaque('Tipo', tipo)}
-                ${botaoAnexoStatus({ id, tabela, cor })}
-                ${botaoFotoStatus({ id, tabela, cor })}
-                ${botaoEditarStatus({ id, cor, funcao: `painelAdicionarPedido('${id}')` })}
+            <br>
 
-                <br>
-
-                ${blocoAnexosCompleto({ id, tabela, anexos })}
-                ${blocoFotosCompleto({ id, tabela, fotos })}
-
-            </div>
+            ${blocoAnexosCompleto({ id, tabela, anexos })}
+            ${blocoFotosCompleto({ id, tabela, fotos })}
 
         </div>
     `
@@ -1461,12 +1317,16 @@ async function linRequisicoes(req) {
         total_requisicao,
         volumes,
         transportadora,
-        snapshots
+        pedido
     } = req
 
     const cor = '#B12425'
     const tabela = 'requisicoes'
-    const { pedido } = await recuperarDado('pedidos', req?.pedido) || {}
+    const {
+        pedido: numeroPedido
+    } = pedido
+            ? await recuperarDado('pedidos', pedido) || {}
+            : {}
 
     const excluir = (executor == acesso.usuario || acesso.permissao == 'adm')
         ? `<span 
@@ -1484,7 +1344,7 @@ async function linRequisicoes(req) {
                 ${labelDestaque('Executor', executor)}
                 ${labelDestaque('Data', data)}
                 ${labelDestaque('Comentário', comentario)}
-                ${labelDestaque('Nº Pedido', pedido)}
+                ${labelDestaque('Número do Pedido', numeroPedido)}
                 ${labelDestaque('Total Requisição', dinheiro(total_requisicao))}
                 ${labelDestaque('Transportadora', transportadora)}
                 ${labelDestaque('Volumes', volumes)}
