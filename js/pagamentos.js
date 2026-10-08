@@ -230,7 +230,7 @@ async function abrirDetalhesPagamentos(id) {
         const modelo = (texto1, elemento) => `
             <div style="${vertical}; gap: 2px;">
                 ${texto1 ? `<span><b>${texto1}</b></span>` : ''}
-                ${elemento ? `<div style="text-align: left;">${elemento}</div>`: ''}
+                ${elemento ? `<div style="${vertical}; text-align: left;">${elemento}</div>`: ''}
             </div>
             `
         const botoes = (img, nome, funcao) => `
