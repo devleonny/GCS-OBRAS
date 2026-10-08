@@ -359,7 +359,7 @@ async function abrirDetalhesPagamentos(id) {
 
                 ${modListagem(btnsOrcamentos)}
                 ${modListagem(bEspeciais.join(''))}
-                ${modListagem(deps)}io
+                ${modListagem(deps)}
                 ${modListagem(valoresPorCategoria)}
 
                 ${modListagem(`
