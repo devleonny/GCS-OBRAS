@@ -133,7 +133,7 @@ async function criarElementosIniciais() {
                     <span class="titul-1">${t1}</span>
                     <span class="tag-pendencias">${t2}</span>
                 </div>
-                <div style="overflow: hidden; border-radius: 5px;">
+                <div style="overflow: hidden; border-radius: 5px; width: stretch;">
                     <div class="bloco-pendencias">${baloes}</div>
                 </div>
             </div>
