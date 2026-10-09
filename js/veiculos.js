@@ -401,7 +401,7 @@ async function enviarOmie() {
 
         const pagamento = {
             app,
-            status: 'Aprovado pelo fin',
+            status: 'Aprovado por fin',
             criado: acesso.usuario,
             param: [{
                 codigo_cliente_fornecedor: codigoCliente,
