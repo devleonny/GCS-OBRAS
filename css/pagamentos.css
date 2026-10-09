@@ -1,3 +1,166 @@
+.popup .tela-detalhes {
+    background: #f7f9f8;
+    color: #324b3c;
+    width: min(640px, 88vw);
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.tela-detalhes .balao {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px;
+    gap: 12px;
+    background: #edf3ef;
+    border-bottom: 1px solid #dfe7e2;
+}
+
+.tela-detalhes .balao textarea {
+    flex: 1;
+    min-width: 0;
+    min-height: 90px;
+    margin: 0;
+    padding: 10px;
+    box-sizing: border-box;
+    background: white;
+    border: 1px solid #cddbd2;
+    border-radius: 8px;
+    color: #324b3c;
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+.tela-detalhes textarea:focus,
+.tela-detalhes select:focus {
+    outline: 2px solid #8cb69a;
+    outline-offset: 1px;
+}
+
+.tela-detalhes .detalhes-pagamento {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px;
+    gap: 12px;
+    min-width: 0;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.tela-detalhes .bloco-arredondado {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px;
+    gap: 10px;
+    border: 1px solid #dfe7e2;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px #17251e08;
+}
+
+.tela-detalhes .bloco-arredondado > div {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.tela-detalhes .btn-detalhes {
+    box-sizing: border-box;
+    min-width: 0;
+    padding: 8px 10px;
+    gap: 10px;
+    border: 1px solid #e3ebe6;
+    border-radius: 7px;
+    background: #f8faf9;
+    color: #324b3c;
+}
+
+.tela-detalhes .btn-detalhes:hover {
+    background: #e8f2ec;
+    border-color: #a9c9b3;
+    color: #324b3c;
+}
+
+.tela-detalhes .btn-detalhes label {
+    padding: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.tela-detalhes .btn-detalhes img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.tela-detalhes select {
+    padding: 8px 10px;
+    max-width: 100%;
+    border: 1px solid #cddbd2;
+    border-radius: 7px;
+    background: #f8faf9;
+    color: #324b3c;
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.tela-detalhes .campo-valor {
+    padding: 6px 10px;
+    background: #e8f2ec;
+    border: 1px solid #cdded3;
+    border-radius: 7px;
+    color: #356443;
+    font-size: 18px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.tela-detalhes .vitrificado {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 12px;
+    gap: 12px;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 2px 6px #17251e08;
+    align-items: flex-start;
+    overflow-wrap: anywhere;
+}
+
+.tela-detalhes .vitrificado > div {
+    min-width: 0;
+    flex: 1;
+}
+
+.tela-detalhes .vitrificado > img {
+    width: 24px;
+    flex-shrink: 0;
+}
+
+.tela-detalhes .detalhes-anexos {
+    gap: 8px;
+}
+
+@media (max-width: 480px) {
+    .tela-detalhes .balao {
+        flex-direction: column;
+    }
+
+    .tela-detalhes .balao > div {
+        flex-direction: row !important;
+        flex-wrap: wrap;
+    }
+
+    .tela-detalhes .balao textarea {
+        width: 100%;
+        flex: 0 0 auto;
+    }
+}
+
 .formulario-pagamento {
     display: flex;
     align-items: start;
@@ -213,12 +376,13 @@
     align-items: end;
     justify-content: start;
     flex-direction: column;
-    gap: 2px;
+    gap: 8px;
     width: 30%;
 }
 
 .painelDireito {
     width: 70%;
+    min-width: 0;
 }
 
 .balao-pagamentos {
@@ -226,40 +390,81 @@
     width: 100%;
     display: flex;
     align-items: center;
-    justify-content: center;
-    border-radius: 5px;
-    overflow: hidden;
-    align-items: stretch;
+    justify-content: space-between;
+    border-radius: 10px;
+    min-height: 64px;
+    padding: 12px;
+    gap: 12px;
+    box-sizing: border-box;
+    border: 1px solid #dfe7e2;
+    background: #fff;
+    box-shadow: 0 2px 6px #17251e0a;
+    transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.balao-pagamentos:hover {
+    background: #f3f8f5;
+    border-color: #a9c9b3;
+}
+
+.balao-pagamentos.selecionado {
+    background: #edf6f0;
+    border-color: #76a987;
+    box-shadow: inset 3px 0 #52745c;
 }
 
 .balao-pagamentos label {
-    width: max-content;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-align: left;
+    line-height: 1.5;
+    font-size: 12px;
+    font-weight: 500;
+    color: #324b3c;
     cursor: pointer;
 }
 
 .balao-pagamentos img {
-    width: 2rem;
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
+    flex-shrink: 0;
 }
 
 .balao-pagamentos .dir {
-    width: 60%;
-    gap: 1rem;
-    padding: 0.5rem;
+    flex: 1;
+    min-width: 0;
+    gap: 10px;
     display: flex;
     align-items: center;
     justify-content: start;
-    background: #d2d2d2;
 }
 
 .balao-pagamentos .esq {
-    width: 40%;
-    padding: 1rem;
+    min-width: 42px;
+    min-height: 36px;
+    padding: 4px 10px;
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
-    flex: 1;
-    background: #b7b7b7;
+    font-size: 18px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+    border-radius: 7px;
+    color: #356443;
+    background: #eef4f0;
+}
+
+.balao-pagamentos.selecionado .esq {
+    background: #d8eadf;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .balao-pagamentos {
+        transition: none;
+    }
 }
 
 .listagem-departamentos {

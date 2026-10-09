@@ -383,6 +383,190 @@
     justify-content: start;
 }
 
+.tela-ocorrencias {
+    width: 100%;
+    min-width: 0;
+}
+
+.tela-ocorrencias > .painel-filtros {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.tela-ocorrencias .pesquisas-ocorrencias {
+    width: 100%;
+}
+
+.tela-ocorrencias > .painel-mapa {
+    display: none;
+    min-width: 0;
+}
+
+.tela-ocorrencias > .painel-mapa.ativo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    padding: 12px;
+    margin-bottom: 12px;
+    box-sizing: border-box;
+    background: #edf3ef;
+    border: 1px solid #dfe7e2;
+    border-radius: 10px;
+    overflow: visible;
+}
+
+.tela-ocorrencias .painel-mapa .fundo-mapa {
+    width: min(100%, 340px);
+    flex: 0 1 340px;
+    aspect-ratio: 1;
+    border-radius: 0;
+}
+
+.tela-ocorrencias .painel-mapa .mapa {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: none;
+}
+
+.pesquisas-ocorrencias {
+    padding: 10px 12px;
+    gap: 12px;
+    box-sizing: border-box;
+    border: 1px solid #ffffff18;
+    border-radius: 8px;
+    background: linear-gradient(120deg, #324b3c, #4f6859);
+    align-items: flex-start;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.pesquisas-ocorrencias-campos {
+    flex: 1;
+    min-width: 0;
+    gap: 8px;
+}
+
+.pesquisas-ocorrencias .filtros {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.pesquisas-ocorrencias .campo-pesquisa {
+    align-items: stretch;
+    gap: 5px;
+    min-width: 0;
+    flex: 0 1 145px;
+    max-width: 180px;
+}
+
+.pesquisas-ocorrencias label[style*="color: white"],
+.pesquisas-ocorrencias .pesquisa-livre > label {
+    color: #e1eae4 !important;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: left;
+}
+
+.pesquisas-ocorrencias .pesquisa {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 0 9px;
+    border: 1px solid #cddbd2;
+    border-radius: 7px;
+    background: white;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.pesquisas-ocorrencias .pesquisa input {
+    min-width: 0;
+    padding: 6px 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    font-size: 12px;
+    color: #324b3c;
+    font-family: inherit;
+}
+
+.pesquisas-ocorrencias .pesquisa img {
+    width: 18px;
+    flex-shrink: 0;
+}
+
+.pesquisas-ocorrencias .filtro-dropdown {
+    min-width: 0;
+    width: 100%;
+}
+
+.pesquisas-ocorrencias .filtro-dropdown-botao,
+.pesquisas-ocorrencias .campo-pesquisa > select,
+.pesquisas-ocorrencias .campo-pesquisa > input {
+    border: 1px solid #cddbd2;
+    border-radius: 7px;
+    background: white;
+    padding: 5px 8px;
+    min-height: 30px;
+    box-sizing: border-box;
+    margin: 0;
+    font-size: 12px;
+    font-family: inherit;
+    color: #324b3c;
+}
+
+.pesquisas-ocorrencias .pesquisa:focus-within {
+    border-color: #76a987;
+    box-shadow: 0 0 0 2px #76a98726;
+}
+
+.pesquisas-ocorrencias .dropdown-menu {
+    border-radius: 8px;
+    border: 1px solid #dfe7e2;
+    box-shadow: 0 8px 24px #17251e20;
+}
+
+.pesquisas-ocorrencias .pesquisa-livre > label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.pesquisas-ocorrencias .pesquisas-ocorrencias-acoes {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.pesquisas-ocorrencias-acoes button {
+    margin: 0;
+    padding: 6px 10px;
+    border: 1px solid #ffffff35;
+    border-radius: 6px;
+    background: #ffffff10;
+    color: #fff;
+    font-size: 11px;
+}
+
+.pesquisas-ocorrencias-acoes button:hover {
+    background: #ffffff20;
+}
+
 .tag-pendencias {
     color: white;
     border-radius: 15px 3px;

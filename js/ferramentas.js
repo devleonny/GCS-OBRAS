@@ -872,16 +872,3 @@ function validarCpfCnpj(val) {
 
     return false // Se não tem 11 nem 14 números
 }
-
-function montarPagina({ titulo, imagem, tabela }) {
-
-    return `
-            <div style="${vertical}; width: stretch;">
-                <div class="titulo-tabelas">
-                    <img src="imagens/${imagem}.png">
-                    <span>${titulo}</span>
-                </div>
-                ${tabela}
-            </div>
-        `
-}

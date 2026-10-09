@@ -56,7 +56,10 @@ async function telaRH() {
         const acumulado = `
             <div class="tela-rh">
                 <div class="esquema-cidades"></div>
-                ${montarPagina({ tabela, titulo: 'Documentos Salvos', imagem: 'contratos' })}
+                <div class="pagina-conteudo">
+                <div class="cabecalho-pagina"><h2>Documentos Salvos</h2></div>
+                ${tabela}
+            </div>
             </div>
         `
 

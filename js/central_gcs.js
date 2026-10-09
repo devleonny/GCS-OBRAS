@@ -338,6 +338,7 @@ async function painelUsuarios() {
     const pag = 'usuariosOnline'
     const tOnline = await modTab({
         pag,
+        alturaMinima: '300px',
         colunas,
         body: 'bodyUsuariosOnline',
         base: 'clientes',

@@ -1,82 +1,153 @@
+.tabela .tabela-coluna-detalhes {
+    width: 2rem;
+    text-align: center;
+}
+
+.tabela-coluna-detalhes .tabela-expandir {
+    margin-right: 0;
+}
+
+.tabela-expandir {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    margin-right: 0.5rem;
+    padding: 0;
+    border: 1px solid #cdded3;
+    border-radius: 6px;
+    background: #f0f7f2;
+    color: #356443;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.tabela-expandir:focus-visible {
+    outline: 2px solid #52745c;
+    outline-offset: 2px;
+}
+
+.tabela-expandir:hover,
+.tabela-expandir[aria-expanded="true"] {
+    background: #dceee1;
+    border-color: #8cb69a;
+}
+
+.tabela-linha-detalhes[hidden] {
+    display: none;
+}
+
+.tabela .tabela-linha-detalhes > td {
+    background: #f3f8f5;
+    border-left: 3px solid #8cb69a;
+}
+
+.tabela-detalhes-conteudo {
+    padding: 1rem;
+    line-height: 1.6;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
 .tabela-sem-resultados {
-    padding: 1rem 0;
+    padding: 2rem 0;
     display: flex;
     width: 100%;
     align-items: center;
     justify-content: center;
     background-color: white;
     border-radius: 3px;
+    color: #65756b;
 }
 
 .tabela {
     width: 100%;
     border-collapse: collapse;
     font-size: 11px;
+    line-height: 1.5;
 }
 
 .tabela.nude {
     background-color: transparent;
 }
 
+/* Bordas próprias das células acompanham o cabeçalho durante o sticky. */
+.tabela:not(.nude) {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.tabela:not(.nude) > thead > tr > th,
+.tabela:not(.nude) > tbody > tr > td {
+    border-width: 0 1px 1px 0;
+}
+
+.tabela:not(.nude) > thead > tr:first-child > th {
+    border-top-width: 1px;
+}
+
+.tabela:not(.nude) > thead > tr,
+.tabela:not(.nude) > thead {
+    background-color: #f1f5f2;
+}
+
 .tabela thead input,
 .tabela thead select {
-    background-color: #f0f0f0;
-    border-radius: 3px;
-    padding: 5px;
-    border: solid 1px #d2d2d2;
+    background-color: #fff;
+    border-radius: 6px;
+    padding: 6px 8px;
+    border: solid 1px #dce5df;
     width: max-content;
 }
 
 .tabela th {
-    background-color: #f3f3f3;
-    font-weight: 500;
-    border: 1px solid #dedede;
-    padding: 5px 4px;
+    background-color: #f1f5f2;
+    font-weight: 600;
+    border: 1px solid #dfe7e2;
+    padding: 9px 10px;
 }
 
 .tabela td {
-    padding: 6px 5px;
-    border: 1px solid #e3e3e3;
+    padding: 9px 10px;
+    border: 1px solid #e8eeea;
 }
 
 .tabela td input[type="number"],
 .tabela td input[type="text"] {
-    border: solid 1px #676767;
+    border: solid 1px #a9c9b3;
     text-align: start;
     padding: 0.5rem 1rem;
-    background-color: #b2e2b4;
-    border-radius: 20px;
+    background-color: #eff8f1;
+    border-radius: 7px;
     width: 100%;
     min-width: 100px;
     box-sizing: border-box;
 }
 
 .tabela:not(.nude) tbody tr:nth-child(even) {
-    background-color: #fafafa;
+    background-color: #f8faf9;
 }
 
 .tabela:not(.nude) tbody tr:hover {
-    background-color: #f1f5f9;
+    background-color: #edf5ef;
 }
 
-.tabela thead input,
-.tabela thead select {
-    background-color: #f8f8f8;
-    border: 1px solid #d8d8d8;
-    padding: 4px 5px;
-}
-
-.tabela thead {
-    box-shadow: 0 1px 0 #d6d6d6;
+.tabela thead input:focus,
+.tabela thead select:focus,
+.tabela thead [contenteditable="true"]:focus {
+    outline: 2px solid #8cb69a;
+    outline-offset: -2px;
+    background-color: #f3faf5 !important;
 }
 
 .tabela.nude td {
     border: none;
 }
 
-.tabela thead {
-    box-shadow: 0 1px 0 #ccc;
-    background-color: #d2d2d2;
+.tabela > thead {
+    box-shadow: 0 2px 4px #243b2e0d;
+    background-color: #f1f5f2;
     position: sticky;
     top: 0;
     z-index: 2;
@@ -93,15 +164,20 @@
 
 .div-tabela {
     background-color: white;
-    max-height: 65vh;
+    max-height: max(min(var(--altura-minima-tabela, 0px), 60dvh), var(--altura-disponivel-tabela, 100dvh));
+    min-height: 0;
+    flex-shrink: 0;
     width: 100%;
     height: max-content;
     overflow: auto;
+    box-sizing: border-box;
+    border-inline: 1px solid #dfe7e2;
 }
 
 .div-tabela.nude {
-    border: none;
     overflow: hidden;
+    max-height: max-content;
+    border: none;
     background-color: transparent;
 }
 
@@ -110,13 +186,15 @@
     position: relative;
     justify-content: start;
     width: 100%;
-    background: linear-gradient(254deg, #4e4e4e, #868686);
+    background: linear-gradient(120deg, #324b3c, #4f6859);
     min-height: 2vh;
     display: flex;
     align-items: center;
-    border-radius: 5px 5px 0 0;
-    gap: 2px;
-    width: 100%;
+    border-radius: 10px 10px 0 0;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 6px 8px;
+    box-sizing: border-box;
 }
 
 .rodape-tabela {
@@ -124,10 +202,13 @@
     align-items: start;
     justify-content: start;
     gap: 5px;
-    background: linear-gradient(254deg, #4e4e4e, #868686);
+    background: #eef3f0;
     width: 100%;
-    min-height: 2vh;
-    border-radius: 0 0 5px 5px;
+    min-height: 8px;
+    border: 1px solid #dfe7e2;
+    border-top: none;
+    box-sizing: border-box;
+    border-radius: 0 0 10px 10px;
 }
 
 .topo-tabela.nude {

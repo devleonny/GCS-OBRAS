@@ -454,9 +454,10 @@ function carregarCorrecoes(ocorrencia) {
         divsCorrecoesPorAba.geral = []
 
     const abasExistentes = Object.keys(divsCorrecoesPorAba)
-    const abaInicial = abasExistentes.includes('geral')
+    const abaFiltrada = obterAbaCorrecaoFiltrada(correcoesOrganizadas, abasExistentes)
+    const abaInicial = abaFiltrada || (abasExistentes.includes('geral')
         ? 'geral'
-        : abasExistentes[0]
+        : abasExistentes[0])
 
     const abasHTML = [...new Set(Object.values(correcoes || {})
         .map(c => {
@@ -500,6 +501,29 @@ function carregarCorrecoes(ocorrencia) {
 
     return { correcoes: acumulado }
 
+}
+
+function obterAbaCorrecaoFiltrada(correcoesOrganizadas, abasExistentes) {
+    const filtros = controles.ocorrencias?.filtros || {}
+    const regrasStatus = Object.entries(filtros)
+        .filter(([path]) => /correc|abas/i.test(path) && /\.(nome|tipoCorrecaoNome)$/.test(path))
+        .flatMap(([, filtro]) => {
+            const regras = Array.isArray(filtro) ? filtro : [filtro]
+            return regras.flatMap(regra => regra?.modo === 'OR' ? regra.regras || [] : [regra])
+        })
+        .filter(regra => ['=', 'includes'].includes(regra?.op) && regra.value)
+
+    const correcao = correcoesOrganizadas.find(([, item]) => {
+        if (!abasExistentes.includes(item.aba || 'geral')) return false
+        if (acesso.permissao === 'cliente' && String(item.tipoCorrecaoNome).includes('PAGAMENTO DE PARCEIRO')) return false
+        const nome = String(item.tipoCorrecaoNome || '').trim().toLowerCase()
+        return regrasStatus.some(regra => {
+            const termo = String(regra.value).trim().toLowerCase()
+            return regra.op === 'includes' ? nome.includes(termo) : nome === termo
+        })
+    })
+
+    return correcao ? correcao[1].aba || 'geral' : null
 }
 
 async function confirmarAprovarPagamentoPaceiro(idOcorrencia, idCorrecaoLpuParceiro) {
@@ -962,18 +986,18 @@ async function telaOcorrencias() {
 
     overlayAguarde()
 
-    const mapa = criarMapa()
+    const mapa = criarMapa({ path: 'cliente.estado', pag: 'ocorrencias' })
     const btnExtras = `
     <div class="painel-filtros">
 
-        <div class="divisao-filtro-botoes">
+        <div class="divisao-filtro-botoes pesquisas-ocorrencias">
 
-            <div style="${vertical}">
+            <div class="pesquisas-ocorrencias-campos" style="${vertical}">
                 <div id="filtros1" class="filtros"></div>
                 <div id="filtros2" class="filtros"></div>
             </div>
 
-            <div style="${vertical}; gap: 5px;">
+            <div class="pesquisas-ocorrencias-acoes">
 
                 <div style="${horizontal}; gap: 1rem;">
                     <label class="interruptor">
@@ -983,7 +1007,7 @@ async function telaOcorrencias() {
                     <label style="color: white;">Mapa</label>
                 </div>
 
-                <button onclick="limparFiltroOcorrencias()" style="background-color: red;">Limpar Filtros</button>
+                <button onclick="limparFiltroOcorrencias()">Limpar Filtros</button>
             </div>
 
         </div>
@@ -994,8 +1018,8 @@ async function telaOcorrencias() {
 
     `
     const tabela = await modTab({
-        btnExtras,
-        alinPag: vertical,
+        alinPag: horizontal,
+        alturaMinima: '300px',
         funcaoAdicional: ['contadoresMapaOcorrencias'],
         base: 'vw_dados_ocorrencias',
         pag: 'ocorrencias',
@@ -1005,6 +1029,7 @@ async function telaOcorrencias() {
 
     const acumulado = `
         <div class="tela-ocorrencias">
+            ${btnExtras}
             ${tabela}
         </div>`
 
@@ -1284,9 +1309,12 @@ async function linPedidos(ped) {
             ${labelDestaque('Autorizado por', autorizado_por)}
             ${labelDestaque('Valor', dinheiro(valor || 0))}
             ${labelDestaque('Tipo', tipo)}
-            ${botaoAnexoStatus({ id, tabela, cor })}
-            ${botaoFotoStatus({ id, tabela, cor })}
-            ${botaoEditarStatus({ id, cor, funcao: `painelAdicionarPedido('${id}')` })}
+
+            <div class="painel-botoes">
+                ${botaoAnexoStatus({ id, tabela, cor })}
+                ${botaoFotoStatus({ id, tabela, cor })}
+                ${botaoEditarStatus({ id, cor, funcao: `painelAdicionarPedido('${id}')` })}
+            </div>
 
             <br>
 
@@ -1335,19 +1363,19 @@ async function linRequisicoes(req) {
             onclick="apagarGenerico('${id}', 'requisicoes')">&times;</span>`
         : ''
 
-    const bloco = `
-        <div class="bloco-status" style="border: 1px solid ${cor};">
+    const bloco = ` 
+        <div class="bloco-status-interno" style="border: 1px solid ${cor}; background-color: ${cor}1f;">
+            ${excluir}
+            ${avulso == 'S' ? '<span><b>REQ AVULSA</b></span>' : ''}
+            ${labelDestaque('Executor', executor)}
+            ${labelDestaque('Data', data)}
+            ${labelDestaque('Comentário', comentario)}
+            ${labelDestaque('Número do Pedido', numeroPedido)}
+            ${labelDestaque('Total Requisição', dinheiro(total_requisicao))}
+            ${labelDestaque('Transportadora', transportadora)}
+            ${labelDestaque('Volumes', volumes)}
 
-            <div class="bloco-status-interno" style="background-color: ${cor}1f;">
-                ${excluir}
-                ${avulso == 'S' ? '<span><b>REQ AVULSA</b></span>' : ''}
-                ${labelDestaque('Executor', executor)}
-                ${labelDestaque('Data', data)}
-                ${labelDestaque('Comentário', comentario)}
-                ${labelDestaque('Número do Pedido', numeroPedido)}
-                ${labelDestaque('Total Requisição', dinheiro(total_requisicao))}
-                ${labelDestaque('Transportadora', transportadora)}
-                ${labelDestaque('Volumes', volumes)}
+            <div class="painel-botoes">
                 ${botaoAnexoStatus({ id, tabela, cor })}
                 ${botaoFotoStatus({ id, tabela, cor })}
                 ${botaoEditarStatus({ id, cor, funcao: `formularioRequisicao('${id}')` })}
@@ -1364,15 +1392,15 @@ async function linRequisicoes(req) {
                     <img src="imagens/pdfw.png" style="width: 1.5rem;">
                     <label>Baixar PDF</label>
                 </div>
-
-                <br>
-
-                ${blocoAnexosCompleto({ id, tabela, anexos })}
-                ${blocoFotosCompleto({ id, tabela, fotos })}
-
             </div>
 
-        </div>`
+            <br>
+
+            ${blocoAnexosCompleto({ id, tabela, anexos })}
+            ${blocoFotosCompleto({ id, tabela, fotos })}
+
+        </div>
+        `
 
     return `
     <tr>
@@ -1408,32 +1436,31 @@ async function linNotas(nota) {
         : ''
 
     const bloco = `
-        <div class="bloco-status" style="border: 1px solid ${cor};">
+        <div class="bloco-status-interno" style="border: 1px solid ${cor}; background-color: ${cor}1f;">
 
-            <div class="bloco-status-interno" style="background-color: ${cor}1f;">
+            ${excluir}
+            ${labelDestaque('Executor', executor || 'Integração')}
+            ${labelDestaque('Data', data)}
+            ${labelDestaque('Comentário', comentario)}
+            ${labelDestaque('Nota', n_nota)}
+            ${labelDestaque('Tipo', categoria)}
+            ${labelDestaque('Valor', dinheiro(total))}
+            ${labelDestaque('Data Emissão', d_emi_inicial)}
 
-                ${excluir}
-                ${labelDestaque('Executor', executor || 'Integração')}
-                ${labelDestaque('Data', data)}
-                ${labelDestaque('Comentário', comentario)}
-                ${labelDestaque('Nota', n_nota)}
-                ${labelDestaque('Tipo', categoria)}
-                ${labelDestaque('Valor', dinheiro(total))}
-                ${labelDestaque('Data Emissão', d_emi_inicial)}
+            <div class="painel-botoes">
                 ${botaoAnexoStatus({ id, tabela: 'notas', cor })}
                 ${botaoFotoStatus({ id, tabela, cor })}
                 ${botaoEditarStatus({ id, cor, funcao: `adicionarNotaAvulsa('${id}')` })}
-
-                <br>
-
-                ${pdfDanfe({ categoria, n_nota, id, total })}
-
-                <br>
-
-                ${blocoAnexosCompleto({ id, tabela, anexos })}
-                ${blocoFotosCompleto({ id, tabela, fotos })}
-
             </div>
+
+            <br>
+
+            ${pdfDanfe({ categoria, n_nota, id, total })}
+
+            <br>
+
+            ${blocoAnexosCompleto({ id, tabela, anexos })}
+            ${blocoFotosCompleto({ id, tabela, fotos })}
 
         </div>
     `
@@ -1475,18 +1502,18 @@ async function linParceiros(par) {
         : ''
 
     const bloco = `
-        <div class="bloco-status" style="border: 1px solid ${cor};">
+        <div class="bloco-status-interno" style="border: 1px solid ${cor}; background-color: ${cor}1f;">
 
-            <div class="bloco-status-interno" style="background-color: ${cor}1f;">
+            ${excluir}
+            ${labelDestaque('Pedido', numeroPedido)}
+            ${labelDestaque('Executor', executor)}
+            ${labelDestaque('Data', data)}
+            ${labelDestaque('Comentário', comentario)}
+            ${labelDestaque('Total Parceiro', dinheiro(totais?.parceiro))}
+            ${labelDestaque('Margem Disponível', dinheiro(totais?.margem))}
+            ${labelDestaque('Desvio', dinheiro(totais?.desvio))}
 
-                ${excluir}
-                ${labelDestaque('Pedido', numeroPedido)}
-                ${labelDestaque('Executor', executor)}
-                ${labelDestaque('Data', data)}
-                ${labelDestaque('Comentário', comentario)}
-                ${labelDestaque('Total Parceiro', dinheiro(totais?.parceiro))}
-                ${labelDestaque('Margem Disponível', dinheiro(totais?.margem))}
-                ${labelDestaque('Desvio', dinheiro(totais?.desvio))}
+            <div class="painel-botoes">
                 ${botaoAnexoStatus({ id, tabela: 'parceiros', cor })}
                 ${botaoFotoStatus({ id, tabela, cor })}
                 ${botaoEditarStatus({ id, cor, funcao: `formularioParceiro('${id}')` })}
@@ -1511,13 +1538,12 @@ async function linParceiros(par) {
                     <img src="imagens/dinheirow.png" style="width: 1.5rem;">
                     <label>Solicitar Pagamento</label>
                 </div>
-
-                <br>
-
-                ${blocoAnexosCompleto({ id, tabela, anexos })}
-                ${blocoFotosCompleto({ id, tabela, fotos })}
-
             </div>
+
+            <br>
+
+            ${blocoAnexosCompleto({ id, tabela, anexos })}
+            ${blocoFotosCompleto({ id, tabela, fotos })}
 
         </div>
     `
@@ -1555,28 +1581,24 @@ async function linMateriais(mat) {
         : ''
 
     const bloco = `
-        <div class="bloco-status" style="border: 1px solid ${cor};">
+        <div class="bloco-status-interno" style="border: 1px solid ${cor}; background-color: ${cor}1f;">
 
-            <div class="bloco-status-interno" style="background-color: ${cor}1f;">
+            ${excluir}
+            ${labelDestaque('Executor', executor)}
+            ${labelDestaque('Data', data)}
+            ${labelDestaque('Comentário', comentario)}
+            ${labelDestaque('Rastreio', rastreio)}
+            ${labelDestaque('Transportadora', transportadora)}
+            ${labelDestaque('Data de Saída', conversorData(data_saida))}
+            ${labelDestaque('Data de Entrega', conversorData(previsao))}
+            ${botaoAnexoStatus({ id, tabela: 'materiais', cor })}
+            ${botaoFotoStatus({ id, tabela, cor })}
+            ${botaoEditarStatus({ id, cor, funcao: `envioMaterial('${id}')` })}
 
-                ${excluir}
-                ${labelDestaque('Executor', executor)}
-                ${labelDestaque('Data', data)}
-                ${labelDestaque('Comentário', comentario)}
-                ${labelDestaque('Rastreio', rastreio)}
-                ${labelDestaque('Transportadora', transportadora)}
-                ${labelDestaque('Data de Saída', conversorData(data_saida))}
-                ${labelDestaque('Data de Entrega', conversorData(previsao))}
-                ${botaoAnexoStatus({ id, tabela: 'materiais', cor })}
-                ${botaoFotoStatus({ id, tabela, cor })}
-                ${botaoEditarStatus({ id, cor, funcao: `envioMaterial('${id}')` })}
+            <br>
 
-                <br>
-
-                ${blocoAnexosCompleto({ id, tabela, anexos })}
-                ${blocoFotosCompleto({ id, tabela, fotos })}
-
-            </div>
+            ${blocoAnexosCompleto({ id, tabela, anexos })}
+            ${blocoFotosCompleto({ id, tabela, fotos })}
 
         </div>
     `
@@ -1726,7 +1748,9 @@ async function criarPesquisas() {
         const valor = controles?.ocorrencias?.filtros?.[path]?.value || ''
 
         const pesquisa = `
-        <div class="pesquisa">
+        <div class="campo-pesquisa pesquisa-livre">
+            <label for="campo_${path}">${titulo}</label>
+            <div class="pesquisa">
             <input
                 onkeydown="if (event.key === 'Enter') pesquisarOcorrencias('${path}', this.value)"
                 placeholder="${titulo}"
@@ -1734,7 +1758,8 @@ async function criarPesquisas() {
                 style="width: 100%;" 
                 value="${valor}">
 
-            <img src="imagens/pesquisar4.png">
+            <img src="imagens/pesquisar4.png" alt="">
+            </div>
         </div>`
 
         divF1.insertAdjacentHTML('beforeend', pesquisa)
@@ -1781,7 +1806,7 @@ async function criarPesquisas() {
 
         filtros.push(`
         <div class="campo-pesquisa">
-            <div style="${horizontal}; gap: 3px;">
+            <div style="display: flex; align-items: center; justify-content: start; gap: 1rem;">
                 ${funcao}
                 <label style="color: white;">Filtros</label>
             </div>
@@ -2214,60 +2239,65 @@ async function formularioOcorrencia(idOcorrencia) {
             {
                 texto: 'Unidade de Manutenção',
                 elemento: `<span ${unidade ? `id="${unidade}"` : ''} 
-                class="opcoes" name="unidade" onclick="cxOpcoes('unidade')">
-                ${cliente?.nome || 'Selecione'}
-            </span>`
+                    class="opcoes" name="unidade" onclick="cxOpcoes('unidade')">
+                        ${cliente?.nome || 'Selecione'}
+                    </span>
+            `
             },
             {
                 texto: 'Sistema',
                 elemento: `<span ${sistema ? `id="${sistema}"` : ''} 
-            class="opcoes" name="sistema" onclick="cxOpcoes('sistema')">
-                ${pesqSist?.nome || 'Selecione'}
-            </span>`
+                    class="opcoes" name="sistema" onclick="cxOpcoes('sistema')">
+                        ${pesqSist?.nome || 'Selecione'}
+                    </span>
+            `
             },
             {
                 texto: 'Prioridade',
                 elemento: `<span ${prioridade ? `id="${prioridade}"` : ''} 
-            class="opcoes" name="prioridade" onclick="cxOpcoes('prioridade')">
-                ${pesqPri?.nome || 'Selecione'}
-            </span>`
+                    class="opcoes" name="prioridade" onclick="cxOpcoes('prioridade')">
+                        ${pesqPri?.nome || 'Selecione'}
+                    </span>
+            `
             },
             {
                 texto: 'Tipo',
                 elemento: `<span ${tipo ? `id="${tipo}"` : ''} 
-                class="opcoes" name="tipo" onclick="cxOpcoes('tipo')">
-                    ${pesqTipo?.nome || 'Selecione'}
-                </span>`
+                    class="opcoes" name="tipo" onclick="cxOpcoes('tipo')">
+                        ${pesqTipo?.nome || 'Selecione'}
+                    </span>
+                `
             },
             {
                 texto: 'Data da Solicitação',
                 elemento: `<input name="data_solicitacao" type="date" value="${data_solicitacao || ''}">`
             },
             {
+                texto: 'Descrição',
                 editor: descricao || ''
             },
             {
                 elemento: `
-                <div style="${vertical}; width: 100%; gap: 5px;">
-                    <div style="${horizontal}; gap: 1rem;">
-                        <span>Registro de peças ou equipamentos</span>
-                        <img src="imagens/baixar.png" onclick="maisLabel()">
+                    <div style="${vertical}; width: 100%; gap: 5px;">
+                        <div style="${horizontal}; gap: 1rem;">
+                            <span>Registro de peças ou equipamentos</span>
+                            <img src="imagens/baixar.png" onclick="maisLabel()">
+                        </div>
+                        <div style="${vertical}; width: 100%; gap: 2px;" id="equipamentos">
+                            ${equipamentos}
+                        </div>
                     </div>
-                    <div style="${vertical}; width: 100%; gap: 2px;" id="equipamentos">
-                        ${equipamentos}
-                    </div>
-                </div>
                 `
             },
             {
                 texto: 'Anexos',
                 elemento: `
-            <div style="${vertical}; gap: 3px;">
-                <input name="anexos" type="file" multiple>
-                <div id="anexos" class="local-anexos">
-                    ${a}
-                </div>
-            </div>
+                    <div style="${vertical}; gap: 3px;">
+                        <input name="anexos" type="file" multiple>
+                        <div id="anexos" class="local-anexos">
+                            ${a}
+                        </div>
+                    </div>
             `
             },
             {
@@ -2414,6 +2444,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
             elemento: '<div class="tecnicos"></div>'
         },
         {
+            texto: 'Descrição',
             editor: correcao?.descricao || ''
         },
         {

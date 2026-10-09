@@ -559,6 +559,24 @@ span[name="titulo"] {
     cursor: pointer;
 }
 
+.envelope-etiquetas {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    gap: 2px;
+    border: solid 1px #696969;
+    background-color: #8a8a8a;
+    overflow: hidden;
+    padding: 5px;
+    border-radius: 8px;
+}
+
+.envelope-etiquetas .titulo {
+    font-size: 1rem;
+    color: white;
+}
+
 .bloco-etiquetas {
     min-width: 180px;
     padding: 3px;
@@ -569,7 +587,9 @@ span[name="titulo"] {
     gap: 5px;
     max-height: 150px;
     overflow: auto;
-    overflow-x: hidden;
+    background-color: white;
+    padding: 5px;
+    border: solid 1px #696969;
 }
 
 .balao-nf label {
@@ -624,18 +644,6 @@ span[name="titulo"] {
 .titulo_paginas {
     width: 5%;
     margin-right: 30px;
-}
-
-.titulo {
-    border-radius: 5px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #151749;
-    padding: 10px;
-    font-size: 1.5em;
-    color: white;
-    height: 20px;
 }
 
 .detalhes {
@@ -1562,17 +1570,24 @@ input[type=range]::-moz-range-thumb {
     justify-content: start;
 }
 
+.painel-botoes {
+    display: flex;
+    flex-direction: column;
+    width: stretch;
+    gap: 1px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
 .contorno-botoes {
     background-color: #222222e3;
     display: flex;
     align-items: center;
     justify-content: start;
-    width: 95%;
-    padding: 2px;
+    width: stretch;
+    padding: 4px 1rem;
     cursor: pointer;
-    display: flex;
     gap: 5px;
-    border-radius: 3px;
 }
 
 .contorno-botoes label {

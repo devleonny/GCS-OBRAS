@@ -45,21 +45,19 @@ async function telaPagamentos() {
     overlayAguarde()
 
     const pag = 'pagamentos'
-    const colunas = {
-        'Categorias': { chave: 'snapshots.categorias.*.categoria' },
-        'Data de Previsão': { chave: 'param.*.data_vencimento', tipoPesquisa: 'data' },
-        'Departamentos': { chave: 'snapshots.departamentos.*.departamento' },
-        'APP': { chave: 'app', op: '=', tipoPesquisa: 'select' },
-        'Valor': { chave: 'snapshots.valor' },
-        'Status': { chave: 'status' },
-        'Solicitante': { chave: 'criado' },
-        'Recebedor': { chave: 'snapshots.cliente' },
-        'Detalhes': {}
-    }
-
     const tabela = await modTab({
         pag,
-        colunas,
+        colunas: {
+            'Categorias': { chave: 'snapshots.categorias.*.categoria' },
+            'Data de Vencimento': { chave: 'param.*.data_vencimento', tipoPesquisa: 'data' },
+            'Departamentos': { chave: 'snapshots.departamentos.*.departamento' },
+            'APP': { chave: 'app', op: '=', tipoPesquisa: 'select' },
+            'Valor': { chave: 'snapshots.valor' },
+            'Status': { chave: 'status' },
+            'Solicitante': { chave: 'criado' },
+            'Recebedor': { chave: 'snapshots.cliente' },
+            'Detalhes': {}
+        },
         filtros: {
             criado: { op: '!=', value: 'Integração' }
         },
@@ -85,7 +83,7 @@ async function telaPagamentos() {
 
     tela.innerHTML = acumulado
 
-    await paginacao()
+    await paginacao(pag)
 
     removerOverlay()
 
@@ -113,9 +111,13 @@ async function atualizarPainelEsquerdo() {
         .map(item => {
 
             const { status, quantidade } = item || {}
+            const filtroStatus = controles.pagamentos?.filtros?.status?.value
+            const selecionado = filtroStatus
+                ? String(status).toLowerCase().includes(String(filtroStatus).toLowerCase())
+                : status === 'TODOS'
 
             return `
-                <div class="balao-pagamentos" 
+                <div class="balao-pagamentos${selecionado ? ' selecionado' : ''}"
                 onclick="filtrarPagamentos('${status}')">
                     
                     <div class="dir">
@@ -230,7 +232,7 @@ async function abrirDetalhesPagamentos(id) {
         const modelo = (texto1, elemento) => `
             <div style="${vertical}; gap: 2px;">
                 ${texto1 ? `<span><b>${texto1}</b></span>` : ''}
-                ${elemento ? `<div style="${vertical}; text-align: left;">${elemento}</div>`: ''}
+                ${elemento ? `<div style="${vertical}; text-align: left;">${elemento}</div>` : ''}
             </div>
             `
         const botoes = (img, nome, funcao) => `
@@ -361,16 +363,16 @@ async function abrirDetalhesPagamentos(id) {
                 ${modListagem(bEspeciais.join(''))}
 
                 ${modListagem(
-                    modelo('Valor Total do Pagamento', `<span class ="campo-valor vermelho">${dinheiro(pagamento.param[0].valor_documento)}</span>`)
-                )}
+            modelo('Valor Total do Pagamento', `<span class ="campo-valor vermelho">${dinheiro(pagamento.param[0].valor_documento)}</span>`)
+        )}
 
                 ${modListagem(
-                    modelo('Por Departamento', deps)
-                )}
+            modelo('Por Departamento', deps)
+        )}
 
                 ${modListagem(
-                    modelo('Por Categoria', valoresPorCategoria)
-                )}
+            modelo('Por Categoria', valoresPorCategoria)
+        )}
 
                 ${modListagem(`
                     ${modelo('Status Atual', divStatus)}

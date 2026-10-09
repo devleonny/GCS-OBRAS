@@ -128,12 +128,12 @@ async function criarElementosIniciais() {
 
         return `
             <div class="b-atalhos">
-                <div style="${horizontal}; gap: 1rem;">
+                <div class="cabecalho-pendencias" style="${horizontal}; gap: 1rem;">
                     <span class="titul-1" style="font-size: 25px;">${linhas.length}</span>
                     <span class="titul-1">${t1}</span>
                     <span class="tag-pendencias">${t2}</span>
                 </div>
-                <div style="overflow: hidden; border-radius: 5px; width: stretch;">
+                <div class="contorno-pendencias">
                     <div class="bloco-pendencias">${baloes}</div>
                 </div>
             </div>

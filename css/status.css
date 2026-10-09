@@ -21,8 +21,8 @@
 
 .bloco-status-interno {
     position: relative;
-    max-width: 200px;
-    width: stretch;
+    width: 200px;
+    border-radius: 8px;
     flex-direction: column;
     gap: 1px;
     display: flex;

@@ -23,7 +23,12 @@ async function telaContratos() {
         }
     })
 
-    tela.innerHTML = montarPagina({ tabela, titulo: 'Contratos', imagem: 'contratos' })
+    tela.innerHTML = `
+            <div class="pagina-conteudo">
+                <div class="cabecalho-pagina"><h2>Contratos</h2></div>
+                ${tabela}
+            </div>
+        `
 
     await paginacao('contratos')
 
@@ -140,6 +145,7 @@ async function gerenciarContrato(id) {
                 `
             },
             {
+                texto: 'Observação',
                 editor: observacao || ''
             }
 
@@ -154,6 +160,7 @@ async function gerenciarContrato(id) {
         ]
 
         popup({
+            titulo: 'Gerenciar Contrato',
             linhas,
             botoes
         })
@@ -166,7 +173,6 @@ async function gerenciarContrato(id) {
     }
 
 }
-
 
 async function salvarContrato(id = null) {
 

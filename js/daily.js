@@ -35,7 +35,10 @@ async function daily() {
 
         tela.innerHTML = `
             <div class="daily">
-                ${montarPagina({ tabela, titulo: 'Atividades no GCS', imagem: 'lista' })}
+                <div class="pagina-conteudo">
+                <div class="cabecalho-pagina"><h2>Atividades no GCS</h2></div>
+                ${tabela}
+            </div>
                 <div class="mapa-calor">
                     <h2>Dias x Horários de maior uso do GCS</h2>
                 </div>

@@ -45,7 +45,12 @@ async function telaSaldoFerramentas(tecnico = null) {
         if (painel_resumo)
             painel_resumo.innerHTML = tabela
         else
-            tela.innerHTML = montarPagina({ tabela, titulo, imagem: 'planilha' })
+            tela.innerHTML = `
+            <div class="pagina-conteudo">
+                <div class="cabecalho-pagina"><h2>${titulo}</h2></div>
+                ${tabela}
+            </div>
+        `
 
         await paginacao(pag)
 
@@ -105,7 +110,12 @@ async function telaSaldoPecas(tecnico = null) {
         if (painel_resumo)
             painel_resumo.innerHTML = tabelaResumida
         else
-            tela.innerHTML = montarPagina({ titulo, tabela, imagem: 'planilha' })
+            tela.innerHTML = `
+            <div class="pagina-conteudo">
+                <div class="cabecalho-pagina"><h2>${titulo}</h2></div>
+                ${tabela}
+            </div>
+        `
 
         await paginacao(pag)
 
@@ -163,7 +173,12 @@ async function criarTabelaTecDetalhada(tecnico = null) {
         if (painel_resumo)
             painel_resumo.innerHTML = tabela
         else
-            tela.innerHTML = montarPagina({ titulo, tabela, imagem: 'planilha' })
+            tela.innerHTML = `
+            <div class="pagina-conteudo">
+                <div class="cabecalho-pagina"><h2>${titulo}</h2></div>
+                ${tabela}
+            </div>
+        `
 
         await paginacao(pag)
 

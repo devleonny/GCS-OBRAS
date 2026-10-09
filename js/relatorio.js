@@ -37,7 +37,12 @@ async function telaRelatorio() {
         criarLinha: 'criarLinhaRelatorio'
     })
 
-    tela.innerHTML = montarPagina({ tabela, titulo: 'Relatório de Ocorrências', imagem: 'alerta' })
+    tela.innerHTML = `
+            <div class="pagina-conteudo">
+                <div class="cabecalho-pagina"><h2>Relatório de Ocorrências</h2></div>
+                ${tabela}
+            </div>
+        `
 
     removerOverlay()
 
@@ -288,7 +293,12 @@ async function telaRelatorioCorrecoes() {
     })
 
 
-    tela.innerHTML = montarPagina({ titulo: 'Relatório de Correções', tabela, imagem: 'alerta' })
+    tela.innerHTML = `
+            <div class="pagina-conteudo">
+                <div class="cabecalho-pagina"><h2>Relatório de Correções</h2></div>
+                ${tabela}
+            </div>
+        `
 
     removerOverlay()
 
@@ -377,7 +387,12 @@ async function telaRelatorioPecas() {
         criarLinha: 'criarLinhasPecas',
     })
 
-    tela.innerHTML = montarPagina({ titulo: 'Relatório de Peças', tabela, imagem: 'alerta' })
+    tela.innerHTML = `
+            <div class="pagina-conteudo">
+                <div class="cabecalho-pagina"><h2>Relatório de Peças</h2></div>
+                ${tabela}
+            </div>
+        `
 
     removerOverlay()
 

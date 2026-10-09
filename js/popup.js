@@ -80,7 +80,7 @@ function popup({
         }
 
         return `
-            <div class="linha-padrao">
+            <div class="linha-padrao${editor !== undefined ? ' linha-editor' : ''}">
                 ${texto || ''}
                 ${elemento || ''}
             </div>`

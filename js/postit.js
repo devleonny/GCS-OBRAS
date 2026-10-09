@@ -1,11 +1,14 @@
 async function telaPIT() {
 
     const acumulado = `
-    <div class="scroll-content">
-        <div class="contorno-quadros">
-            <div id="quadros" class="tabela-atras-postit"></div>
+        <div class="scroll-content tela-postits">
+            <div class="postits-toolbar">
+                <div><h2>Post-its</h2><p>Organize suas tarefas e arraste os cartões entre os quadros.</p></div>
+            </div>
+            <div class="contorno-quadros">
+                <div id="quadros" class="tabela-atras-postit"></div>
+            </div>
         </div>
-    </div>
     `
 
     tela.innerHTML = acumulado
@@ -31,7 +34,13 @@ async function criarQuadros() {
         .sort((a, b) => a.ordem - b.ordem)
 
     // Todos os quadros de vez;
-    const quadrosEmMassa = quadros.map(async (q) => {
+    const quadrosEmMassa = quadros.map(async (q, indice) => {
+
+        // Reserva a posição antes das consultas assíncronas.
+        const coluna = document.createElement('div')
+        coluna.className = 'postits-coluna'
+        coluna.style.order = indice
+        telaPIT.appendChild(coluna)
 
         const { id, descricao } = q || {}
         const chave = id || 'Novos'
@@ -41,8 +50,8 @@ async function criarQuadros() {
             : ''
 
         const btnExtras = `
-            <div style="${horizontal}; gap: 0.5rem;">
-                <span style="font-size: 1.1rem; color: white;">${descricao}</span>
+            <div class="postits-titulo-quadro">
+                <span>${descricao}</span>
                 ${editar}
             </div>
             `
@@ -50,6 +59,8 @@ async function criarQuadros() {
         const pag = `pit_${chave}`
         const quadro = await modTab({
             btnExtras,
+            ocultarPesquisa: true,
+            scroll: false,
             base: 'postit',
             pag,
             body: `body_${chave}`,
@@ -70,7 +81,7 @@ async function criarQuadros() {
             }
         })
 
-        telaPIT.insertAdjacentHTML('beforeend', `<div style="max-width: 350px;">${quadro}</div>`)
+        coluna.innerHTML = quadro
 
         await paginacao(pag)
 
@@ -123,10 +134,10 @@ async function linPostIT(dados) {
                 class="postit ${estilo}"
                 draggable="true"
                 ondragstart="arrastarPIT(event, '${id}')">
-                <span>${comentario || ''}</span>
+                <span class="postit-comentario">${comentario || ''}</span>
                 <div class="local-anexos">${divAnexos || ''}</div>
-                <span class="prazo"><b>Prazo:</b> ${prazoFin}</span>
-                <img class="postit-editar" src="imagens/editar.png" onclick="criarPIT('${id}')">
+                <span class="prazo">${prazoFin ? `<b>Prazo:</b> ${prazoFin}` : 'Sem prazo'}</span>
+                <img class="postit-editar" src="imagens/editar.png" title="Editar post-it" onclick="criarPIT('${id}')">
             </div>
         </td>
     </tr>
@@ -169,7 +180,7 @@ async function soltarPIT(event) {
 }
 
 function iniciarAutoScrollPIT() {
-    const contorno = document.querySelector('.tabela-atras-postit')
+    const contorno = document.querySelector('.tela-postits')?.closest('.tela')
     if (!contorno) return
 
     pararAutoScrollPIT()

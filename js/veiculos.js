@@ -66,7 +66,12 @@ async function telaVeiculos() {
             ]
         })
 
-        tela.innerHTML = montarPagina({ titulo: 'Combustíveis', tabela, imagem: 'combustivel' })
+        tela.innerHTML = `
+            <div class="pagina-conteudo">
+                <div class="cabecalho-pagina"><h2>Combustíveis</h2></div>
+                ${tabela}
+            </div>
+        `
 
         await paginacao()
 

@@ -9,26 +9,6 @@ async function telaComposicoes() {
             LPUS = lpus
         }
 
-        const colunas = {
-            'Código': { chave: 'id' },
-            'Editar': {},
-            'Imagem': {},
-            'Descrição': { chave: 'descricao' },
-            'Agrupamento': {},
-            'Cod Omie': { chave: 'omie' },
-            'ncm': { chave: 'ncm' },
-            'Tipo': { chave: 'tipo' },
-            'Unidade': { chave: 'unidade' },
-            'Fabricante': { chave: 'fabricante' },
-            'Modelo': { chave: 'modelo' },
-            'Sistema': { chave: 'sistema' },
-            'Tempo': {},
-            'Descrição ': { chave: 'descricao' },
-            ...Object.fromEntries(
-                LPUS.map(lpu => [inicialMaiuscula(lpu), { chave: `snapshots.${lpu}` }])
-            )
-        }
-
         const filtroLpu = montarDropdownCheckbox({
             pag: 'composicoes',
             titulo: 'LPU',
@@ -37,22 +17,34 @@ async function telaComposicoes() {
         })
 
         const btnExtras = `
-        <img src="imagens/alerta.png">
-        <div class="filtros">
-            <div class="campo-pesquisa">
-                <span style="color: white;">Atrasados</span>
-                <select onchange="filtrarAtrasadosComposicoes(this)">
-                    <option></option><option>Sim</option><option>Não</option>
-                </select>
+            <div class="filtros">
+                <div class="campo-pesquisa">
+                    <span style="color: white;">Atrasados</span>
+                    <select onchange="filtrarAtrasadosComposicoes(this)">
+                        <option></option><option>Sim</option><option>Não</option>
+                    </select>
+                </div>
+                ${filtroLpu}
             </div>
-            ${filtroLpu}
-        </div>
-    `
+        `
 
         const pag = 'composicoes'
         const tabela = await modTab({
             btnExtras,
-            colunas,
+            detalhes: true,
+            colunas: {
+                'Código': { chave: 'id' },
+                'Editar': {},
+                'Imagem': {},
+                'Descrição': { chave: 'descricao' },
+                'Cod Omie': { chave: 'omie' },
+                'ncm': { chave: 'ncm' },
+                'Tipo': { chave: 'tipo' },
+                'Unidade': { chave: 'unidade' },
+                'Fabricante': { chave: 'fabricante' },
+                'Modelo': { chave: 'modelo' },
+                'Sistema': { chave: 'sistema' }
+            },
             pag,
             base: 'dados_composicoes',
             body: 'bodyComposicoes',
@@ -75,7 +67,12 @@ async function telaComposicoes() {
             ]
         })
 
-        tela.innerHTML = montarPagina({ titulo: 'Composições', tabela, imagem: 'composicoes' })
+        tela.innerHTML = `
+            <div class="pagina-conteudo">
+                <div class="cabecalho-pagina"><h2>Composições</h2></div>
+                ${tabela}
+            </div>
+        `
         removerOverlay()
 
         await paginacao(pag)
@@ -92,8 +89,6 @@ async function filtrarAtrasadosComposicoes(select) {
     const atrasados = select.value
     const chave = 'snapshots.validades.*.validade'
     controles.composicoes.filtros ??= {}
-
-    const ocultar = [...LPUS]
 
     controles.composicoes.filtros = {
         ...controles.composicoes.filtros,
@@ -129,34 +124,30 @@ async function criarLinhaComposicao(produto) {
     for (const [cod, { tipo, qtde, descricao }] of Object.entries(agrupamento || {})) {
 
         divAgrupamento.push(`
-            <div style="${horizontal}; gap: 5px;">
-                <span class="balao-redondo-agrupamento" 
-                style="background-color: ${tipo == 'VENDA' ? '#B12425' : tipo == 'SERVIÇO' ? 'green' : '#24729d'}">
-                    ${cod} 
-                </span>
-                <span class="balao-redondo-agrupamento">${qtde || 0}</span>
-                <span style="text-align: left;">${String(descricao || '??').slice(0, 10)}...</span>
-            </div>
+            <tr>
+                <td><span class="composicao-codigo" style="--cor-tipo: ${tipo == 'VENDA' ? '#a63c3c' : tipo == 'SERVIÇO' ? '#356443' : '#24729d'}">${cod}</span></td>
+                <td>${descricao || 'Sem descrição'}</td>
+                <td class="composicao-numero">${qtde || 0}</td>
+            </tr>
             `
         )
     }
 
-    const tdsLPUS = LPUS
+    const tdsLPUS = (LPUS || [])
         .map(lpu => {
             const tabela = produto[lpu] || {}
             const ativo = tabela?.ativo
             const valor = tabela?.historico?.[ativo]?.valor || 0
             return `
-            <td>
-                
-                <label class="campo-valor ${valor > 0 ? 'verde' : 'vermelho'}" 
-                    ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `onclick="abrirHistoricoPrecos('${id}', '${lpu}')"` : ''}> 
-                    ${dinheiro(conversor(valor))}
-                </label>
-            </td>`
+                    <td class="composicao-numero">
+                        ${usuariosPermitidosParaEditar.includes(acesso.permissao)
+                            ? `<button type="button" class="composicao-preco ${valor > 0 ? '' : 'sem-valor'}" title="Ver histórico de preços" onclick="abrirHistoricoPrecos('${id}', '${lpu}')">${dinheiro(conversor(valor))}</button>`
+                            : `<span class="composicao-preco ${valor > 0 ? '' : 'sem-valor'}">${dinheiro(conversor(valor))}</span>`}
+                    </td>
+            `
         }).join('')
 
-    return `
+    const linha = `
         <tr>
             <td>${id}</td>
             <td>
@@ -165,18 +156,12 @@ async function criarLinhaComposicao(produto) {
             : ''}
             </td>
 
-            <td><img name="${id}" onclick="abrirImagem('${id}')" style="width: 5rem;" src="${imagem || logo}"></td>
-            <td style="text-align: left; min-width: 200px;">${descricao || ''}</td>
-
             <td>
-                <div style="${vertical}; gap: 3px;">
-                    <div onclick="verAgrupamento('${id}')" class="ver-agrupamento">
-                        <img src="imagens/construcao.png">
-                        <span>Editar Agrupamento</span>
-                    </div>
-                    ${divAgrupamento.join('')}
-                </div>
+                <img name="${id}" 
+                onclick="abrirImagem('${id}')" 
+                style="width: 5rem;" src="${imagem || logo}">
             </td>
+            <td style="text-align: left; min-width: 200px;">${descricao || ''}</td>
 
             <td>${omie || ''}</td>
             <td>${ncm || ''}</td>
@@ -185,12 +170,35 @@ async function criarLinhaComposicao(produto) {
             <td>${fabricante || ''}</td>
             <td>${modelo || ''}</td>
             <td>${sistema || ''}</td>
-            <td>${tempo || ''}</td>
-
-            <td style="text-align: right;">${descricao || ''}</td>
-            ${tdsLPUS}
-        <tr>
+            
+        </tr>
     `
+
+    const detalhes = `
+        <div class="composicao-detalhes">
+            <section class="composicao-bloco">
+                <div class="composicao-bloco-topo">
+                    <h3>Agrupamento <span class="composicao-contagem">${divAgrupamento.length}</span></h3>
+                    <button type="button" class="composicao-agrupamento" onclick="verAgrupamento('${id}')">
+                        <img src="imagens/construcao.png" alt="">Editar agrupamento
+                    </button>
+                </div>
+                ${divAgrupamento.length ? `
+                    <div class="composicao-tabela-contorno"><table class="composicao-tabela">
+                        <thead><tr><th>Código</th><th>Descrição</th><th>Quantidade</th></tr></thead>
+                        <tbody>${divAgrupamento.join('')}</tbody>
+                    </table></div>` : '<p class="composicao-vazio">Nenhum item no agrupamento.</p>'}
+            </section>
+            <section class="composicao-bloco composicao-bloco-precos">
+                <div class="composicao-bloco-topo"><h3>Preços por tabela</h3></div>
+                <div class="composicao-tabela-contorno"><table class="composicao-tabela">
+                    <thead><tr>${(LPUS || []).map(lpu => `<th>${String(lpu).toUpperCase()}</th>`).join('')}</tr></thead>
+                    <tbody><tr>${tdsLPUS || '<td>Nenhuma tabela disponível.</td>'}</tr></tbody>
+                </table></div>
+            </section>
+        </div>
+    `
+    return { linha, detalhes }
 
 }
 

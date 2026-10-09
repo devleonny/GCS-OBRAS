@@ -10,10 +10,13 @@ function formatacaoPagina() {
 
     const abas = document.querySelectorAll('.aba-toolbar')
 
-    abas.forEach(a => a.style.opacity = 0.5)
+    abas.forEach(a => {
+        a.classList.toggle('selecionada', a.dataset.status === status)
+        a.setAttribute('aria-pressed', String(a.dataset.status === status))
+    })
 
     const aba = document.querySelector(`[name="${status}"]`)
-    if (aba) aba.style.opacity = 1
+    if (aba) aba.classList.add('selecionada')
 
 }
 
@@ -28,18 +31,19 @@ async function telaOrcamentos() {
             'Última alteração': { chave: 'lpu_ativa' },
             'Status do Orçamento': { chave: 'status_atual' },
             'Status em Ocorrências': { chave: 'nomesStatus' },
-            'Pedido': { chave: 'pedidos.*.pedido' },
-            'Notas': { chave: 'notas.*.n_nota' },
-            'Parcelas': {},
+            //'Pedido': { chave: 'pedidos.*.pedido' },
+            //'Notas': { chave: 'notas.*.n_nota' },
+            //'Parcelas': {},
             'Tags': { chave: 'tags.*.nome' },
             'Contrato': { chave: 'contrato' },
-            'Vinculações': { chave: 'vinculados' },
+            //'Vinculações': { chave: 'vinculados' },
             'Responsaveis': { chave: 'responsaveis' },
-            'Custos': {},
+            //'Custos': {},
             'Total do Orçamento': { chave: 'total_geral' },
             'Ações': {}
         },
         base: 'mvw_dados_orcamentos',
+        detalhes: true,
         criarLinha: 'criarLinhaOrcamento',
         body: 'linhas',
         pag: 'orcamentos'
@@ -47,10 +51,10 @@ async function telaOrcamentos() {
 
     const acumulado = `
         <div style="${vertical};">
-            <div style="${horizontal}; width: 100%;">
-                <img src="imagens/nav.png" style="width: 2rem;" onclick="scrollar('prev')">
+            <div class="orcamentos-toolbar">
+                <button type="button" class="orcamentos-toolbar-nav" aria-label="Ver status anteriores" onclick="scrollar('prev')">‹</button>
                 <div id="toolbar"></div>
-                <img src="imagens/nav.png" style="width: 2rem; transform: rotate(180deg);" onclick="scrollar('next')">
+                <button type="button" class="orcamentos-toolbar-nav" aria-label="Ver próximos status" onclick="scrollar('next')">›</button>
             </div>
 
             ${tabela}
@@ -159,11 +163,10 @@ async function criarLinhaOrcamento(orcamento) {
         .map(({ tipo, pedido, valor, autorizado_por }) => {
 
             const label = `
-                <div class="etiquetas">
-                    <label>${tipo || ''}</label>
-                    <label>${pedido}</label>
-                    ${autorizado_por ? `<label><b>${autorizado_por}</b></label>` : ''}
-                    <label>${dinheiro(valor)}</label>
+                <div class="orcamento-documento">
+                    <div class="orcamento-documento-topo"><strong>${pedido}</strong><span class="orcamento-documento-valor">${dinheiro(valor)}</span></div>
+                    <span class="orcamento-documento-info">${tipo || ''}</span>
+                    ${autorizado_por ? `<span class="orcamento-documento-info">Autorizado por <b>${autorizado_por}</b></span>` : ''}
                 </div>
                 `
             return label
@@ -178,11 +181,10 @@ async function criarLinhaOrcamento(orcamento) {
 
     const listaParcelas = (parcelas || [])
         .map(({ data_vencimento, valor_documento, app, status_titulo }) =>
-            `<div class="etiquetas">
-                    <span>${data_vencimento}</span>
-                    <span>${dinheiro(valor_documento)}</span>
-                    <div style="${horizontal}; gap: 5px;">
-                        <img style="width: 1.5rem;" src="${iconePagamento(status_titulo)}">
+            `<div class="orcamento-documento">
+                    <div class="orcamento-documento-topo"><span>${data_vencimento || 'Sem vencimento'}</span><span class="orcamento-documento-valor">${dinheiro(valor_documento)}</span></div>
+                    <div class="orcamento-parcela-status">
+                        <img src="${iconePagamento(status_titulo)}">
                         <span>${status_titulo}</span>
                         <span><b>${app}</b></span>
                     </div>
@@ -231,84 +233,91 @@ async function criarLinhaOrcamento(orcamento) {
 
     const data = new Date(timestamp).toLocaleString()
 
-    const celulas = `
-        <td>
-            <div style="${vertical}">
-                <span><b>${lpu_ativa || ''}</b></span>
-                <span>${data}</span>
-            </div>
-        </td>
-            <td>
-            <div style="${vertical}; gap: 5px;">
-                <div style="${horizontal}; gap: 5px;">
-                    <img onclick="verHistoricoStatus('${id}', '${contrato}')" src="imagens/historico.png">
-                    ${seletorStatus({ id, emTabela: true, status: status_atual, contrato })}
-                </div>
-                <div style="${horizontal}; width: 100%; justify-content: end; gap: 5px;">
-                    <span>Dep</span>
-                    <img src="imagens/${departamento_existente ? 'concluido' : 'cancel'}.png" style="width: 1.5rem;">
-                </div>
-            </div>
-        </td>
-
-        <td>
-            <div style="${vertical}; gap: 2px;">
-                ${labelTipoCorrecao}
-            </div>
-        </td>
-
-        <td style="padding: 0px;">
-            <div class="bloco-etiquetas">${pedidosStatus}</div>
-        </td>
-        <td style="padding: 0px;">
-            <div class="bloco-etiquetas">${notasStatus}</div>
-        </td>
-        <td style="padding: 0px;">
-            <div class="bloco-etiquetas">${listaParcelas}</div>
-        </td>
-        <td>
-            <div style="${vertical}; gap: 2px;">
-                <img 
-                    src="imagens/etiqueta.png" 
-                    style="width: 1.2rem;" 
-                    onclick="renderPainel('${id}')">
-                <div name="tags" style="${vertical}; gap: 1px;">
-                    ${listaTags}
-                </div>
-            </div>
-        </td>
-
-        <td>${finalContrato}</td>
-
-        <td>
-            <div style="${vertical}; gap: 2px;">${baloesVinculos}</div>
-        </td>
-
-        <td>
-            <div style="${vertical}">
-                <span>${usuario || ''}</span>
-                <span>${responsaveis}</span>
-            </div>
-        </td>
-        <td>
-            ${resumo}
-        </td>
-        <td>
-            <div style="${vertical}; width: 100%;">
-                <span style="font-size: 0.8rem; white-space: nowrap;">${dinheiro(total_geral)}</span>
-            </div>
-        </td>
-        <td>
-            <img 
-                onclick="abrirAtalhos('${id}')"
-                src="imagens/pesquisar2.png"
-                style="width: 1.5rem;">
-        </td>`
-
-    return `
+    const linha = `
         <tr class="linha-master">
-            ${celulas}
-        </tr>`
+            <td>
+                <div style="${vertical}">
+                    <span><b>${lpu_ativa || ''}</b></span>
+                    <span>${data}</span>
+                </div>
+            </td>
+
+            <td>
+                <div style="${vertical}; gap: 5px;">
+                    <div style="${horizontal}; gap: 5px;">
+                        <img onclick="verHistoricoStatus('${id}', '${contrato}')" src="imagens/historico.png">
+                        ${seletorStatus({ id, emTabela: true, status: status_atual, contrato })}
+                    </div>
+                    <div style="${horizontal}; width: 100%; justify-content: end; gap: 5px;">
+                        <span>Dep</span>
+                        <img src="imagens/${departamento_existente ? 'concluido' : 'cancel'}.png" style="width: 1.5rem;">
+                    </div>
+                </div>
+            </td>
+
+            <td>
+                <div style="${vertical}; gap: 2px;">
+                    ${labelTipoCorrecao}
+                </div>
+            </td>
+
+            <td>
+                <div style="${vertical}; gap: 2px;">
+                    <img 
+                        src="imagens/etiqueta.png" 
+                        style="width: 1.2rem;" 
+                        onclick="renderPainel('${id}')">
+                    <div name="tags" style="${vertical}; gap: 1px;">
+                        ${listaTags}
+                    </div>
+                </div>
+            </td>
+
+            <td>${finalContrato}</td>
+
+            <td>
+                <div style="${vertical}">
+                    <span>${usuario || ''}</span>
+                    <span>${responsaveis}</span>
+                </div>
+            </td>
+            
+            <td>
+                <div style="${vertical}; width: 100%;">
+                    <span style="font-size: 0.8rem; white-space: nowrap;">${dinheiro(total_geral)}</span>
+                </div>
+            </td>
+
+            <td>
+                <img 
+                    onclick="abrirAtalhos('${id}')"
+                    src="imagens/pesquisar2.png"
+                    style="width: 1.5rem;">
+            </td>
+        </tr>
+    `
+
+    const envelopar = (titulo, lista, quantidade = 0) => {
+
+        return `
+            <div class="envelope-etiquetas">
+                <div class="orcamento-bloco-titulo"><label class="titulo">${titulo}</label><span class="orcamento-bloco-contagem">${quantidade}</span></div>
+                <div class="bloco-etiquetas">${lista}</div>
+            </div>
+        `
+    }
+
+    const detalhes = `
+        <div class="detalhes-orcamento">
+            ${resumo}
+            ${envelopar('Vinculados', baloesVinculos || 'Sem vínculos', (vinculados || []).length)}
+            ${envelopar('Pedidos', pedidosStatus || 'Sem pedidos', (pedidos || []).length)}
+            ${envelopar('Notas', notasStatus || 'Sem notas', (notas || []).length)}
+            ${envelopar('Parcelas', listaParcelas || 'Sem parcelas', (parcelas || []).length)}
+        </div>
+    `
+
+    return { linha, detalhes }
 
 }
 
@@ -416,18 +425,18 @@ async function carregarToolbar() {
             }
 
             const novaTool = `
-            <div
-                style="opacity: 0.5; height: 3rem;"
+            <button type="button"
                 class="aba-toolbar"
                 data-status="${campo}"
                 name="${campo}"
                 onclick="filtrarToolbar('${campo}')">
                 <label>${campo.toUpperCase()}</label>
                 <span>${contagem}</span>
-            </div>
+            </button>
             `
             toolbar.insertAdjacentHTML('beforeend', novaTool)
         }
+        formatacaoPagina()
 
     } catch (err) {
         console.error(err)

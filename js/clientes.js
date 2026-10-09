@@ -132,36 +132,33 @@ function renderAppsCircle(id, apps = []) {
         (Array.isArray(apps) ? apps : Object.keys(apps || {}))
             .map(v => String(v).toUpperCase().trim())
     )
-
-    const corAtiva = '#16a34a'
-    const corInativa = '#d1d5db'
-    const stroke = '#ffffff'
-
-    const cor = sigla => ativos.has(sigla) ? corAtiva : corInativa
+    const setores = [
+        { sigla: 'AC', x: 67, y: 32, caminho: 'M50 50V7a43 43 0 0 1 43 43Z' },
+        { sigla: 'IAC', x: 68, y: 67, caminho: 'M50 50h43a43 43 0 0 1-43 43Z' },
+        { sigla: 'HNK', x: 32, y: 68, caminho: 'M50 50v43A43 43 0 0 1 7 50Z' },
+        { sigla: 'HNW', x: 32, y: 32, caminho: 'M50 50H7A43 43 0 0 1 50 7Z' }
+    ]
+    const resumo = setores.map(({ sigla }) => sigla + ': ' + (ativos.has(sigla) ? 'cadastrado' : 'sem cadastro')).join(' ? ')
+    const fatias = setores.map(({ sigla, x, y, caminho }) => {
+        const ativo = ativos.has(sigla)
+        return `
+            <g>
+                <title>${sigla}: ${ativo ? 'Cadastrado no Omie' : 'Sem cadastro no Omie'}</title>
+                <path d="${caminho}" fill="${ativo ? '#527d60' : '#e8eeea'}" stroke="#fff" stroke-width="2.5"></path>
+                <text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle"
+                    font-size="11" font-weight="600" fill="${ativo ? '#fff' : '#65756b'}">${sigla}</text>
+            </g>`
+    }).join('')
 
     return `
-        <div class="pizza-apps">
-            <svg viewBox="0 0 100 100" width="100" height="100" aria-label="Apps" onclick="ativarCadastro(${id})">
-                <!-- fatias -->
-                <path d="M50 50 L50 0 A50 50 0 0 1 100 50 Z" fill="${cor('AC')}" stroke="${stroke}" stroke-width="2"></path>
-                <path d="M50 50 L100 50 A50 50 0 0 1 50 100 Z" fill="${cor('IAC')}" stroke="${stroke}" stroke-width="2"></path>
-                <path d="M50 50 L50 100 A50 50 0 0 1 0 50 Z" fill="${cor('HNK')}" stroke="${stroke}" stroke-width="2"></path>
-                <path d="M50 50 L0 50 A50 50 0 0 1 50 0 Z" fill="${cor('HNW')}" stroke="${stroke}" stroke-width="2"></path>
-
-                <!-- textos -->
-                <text x="68" y="28" text-anchor="middle" dominant-baseline="middle"
-                      font-size="13" font-weight="700" fill="#111827">AC</text>
-
-                <text x="72" y="68" text-anchor="middle" dominant-baseline="middle"
-                      font-size="13" font-weight="700" fill="#111827">IAC</text>
-
-                <text x="30" y="72" text-anchor="middle" dominant-baseline="middle"
-                      font-size="13" font-weight="700" fill="#111827">HNK</text>
-
-                <text x="28" y="30" text-anchor="middle" dominant-baseline="middle"
-                      font-size="13" font-weight="700" fill="#111827">HNW</text>
+        <button type="button" class="pizza-apps" title="${resumo}. Clique para solicitar cadastro no Omie."
+            aria-label="${resumo}. Solicitar cadastro no Omie" onclick="ativarCadastro(${id})">
+            <svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+                <circle cx="50" cy="50" r="47" fill="#fff" stroke="#d5e2d9" stroke-width="1.5"></circle>
+                ${fatias}
+                <circle cx="50" cy="50" r="3" fill="#fff"></circle>
             </svg>
-        </div>
+        </button>
     `
 }
 
@@ -200,7 +197,7 @@ async function telaClientes() {
         })
 
         const btnExtras = `
-            <div style="${horizontal}; gap: 1rem; padding: 3px;">
+            <div class="clientes-filtros" style="${horizontal}; gap: 1rem; padding: 3px;">
                 <input onclick="checksCliente(this)" style="width: 1.5rem; height: 1.5rem;" type="checkbox">
                 <img src="imagens/trocar.png" onclick="classificarUnidades()">
                 <button onclick="formularioCliente()">Adicionar Cadastro</button>
@@ -240,8 +237,11 @@ async function telaClientes() {
         })
 
         tela.innerHTML = `
-        <div style="${horizontal}; align-items: start; gap: 1rem;">
-            ${montarPagina({ tabela, titulo: 'Clientes, Usuários & Fornecedores', imagem: 'prancheta' })}
+        <div class="clientes-layout">
+            <div class="pagina-conteudo">
+                <div class="cabecalho-pagina"><h2>Clientes, Usuários & Fornecedores</h2></div>
+                ${tabela}
+            </div>
             ${mapa}
         </div>`
 

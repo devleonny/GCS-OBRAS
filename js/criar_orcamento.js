@@ -76,13 +76,12 @@ async function telaCriarOrcamento() {
 
             <div class="menu-superior">
 
-                <img src="imagens/GrupoCostaSilva.png" style="width: 10vw;">
+                <img class="logo-cabecalho-orcamento" src="imagens/GrupoCostaSilva.png">
 
                 <div style="${vertical}">
 
-                    <label style="font-size: 1.2rem;">TOTAL GERAL</label>
-                    <div style="font-size: 1.7rem;" id="total_geral"></div>
-                    <br>
+                    <label style="font-size: 0.9rem;">TOTAL GERAL</label>
+                    <div style="font-size: 1.4rem;" id="total_geral"></div>
                     
                     <div style="${horizontal}; gap: 1rem;">
                         <img src="imagens/alerta.png">
@@ -524,10 +523,16 @@ function carregarLinhaOrcamento(produto) {
     const linha = `
         <tr>
             <td style="padding: 0px;">
-                <div id="ORCA_${codigoMaster}" style="${vertical};">
+                <div id="ORCA_${codigoMaster}" class="orcamento-item-bloco" style="${vertical};">
+                    <div class="orcamento-item-cabecalho">
+                        <strong>Item ${codigoMaster}</strong>
+                        <label>${linhaSlave ? `Composição · ${Object.keys(agrupamento || {}).length} componentes` : 'Item individual'}</label>
+                    </div>
+                    <div class="orcamento-colunas"><label>Código</label><label>Descrição</label><label>Unidade</label><label>Quantidade</label><label>Valor unitário</label><label>Total</label><label>Ajuste</label><label>Imagem</label><label></label></div>
                     <div data-hierarquia="master" class="linha-orcamento" data-codigo="${codigoMaster}">${celulasMaster}</div>
                     <div class="linha-bloco">${linhaSlave}</div>
                     <div class="total-linha">
+                        <label>Subtotal do item</label>
                         <span name="totalBloco"></span>
                     </div>
                 </div>
@@ -1122,6 +1127,7 @@ async function tabelaProdutosOrcamentos() {
     const pag = 'composicoes_orcamento'
     const tabela = await modTab({
         pag,
+        alturaMinima: '300px',
         colunas,
         funcaoAdicional: ['formatarTabela', 'totalOrcamento'],
         btnExtras,

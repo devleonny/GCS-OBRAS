@@ -425,9 +425,9 @@ async function abrirAtalhos(id) {
                     <img src="gifs/alerta.gif">
                     <span>Este orçamento precisa ser aprovado!</span>
                 </div>`
-                    : ''
+            : ''
 
-                const acumulado = `
+        const acumulado = `
                 <div style="${vertical}; gap: 2px;">
                     ${(orcamento?.contrato || []).map(d => `<span>${d}</span>`).join('')}
                 </div>
@@ -481,7 +481,7 @@ async function iniciarChamadoProspeccao(id) {
 
     await enviar(`dados_ocorrencias/${contrato}`, novo)
 
-    controles.ocorrencias ??={}
+    controles.ocorrencias ??= {}
     controles.ocorrencias.filtros ??= {}
     controles.ocorrencias.filtros = {
         'chamados': { op: 'includes', value: contrato }
@@ -719,6 +719,11 @@ async function abrirEsquema(id) {
 
         const contrato = dados_orcam?.contrato
 
+        if (!contrato) {
+            await enviar(`dados_orcamentos/${id}/excluido`, null)
+            popup({ mensagem: 'O orçamento estava inacessível, tente de novo em instantes!' })
+        }
+
         controles.ocorrencias ??= {}
         controles.ocorrencias.ativo = contrato
 
@@ -754,7 +759,7 @@ async function abrirEsquema(id) {
                 <div class="bloco-st"></div>
 
             </div>
-    `
+        `
 
         popup({ elemento, titulo: 'Histórico do Orçamento' })
 
@@ -778,6 +783,7 @@ async function abrirEsquema(id) {
                         base: chave,
                         body: `body_${chave}`,
                         pag: chave,
+                        nude: true,
                         filtros: {
                             departamento: {
                                 op: 'includes',
@@ -926,35 +932,43 @@ async function apagarGenerico(id, tabela) {
         {
             texto: 'Confirmar',
             img: 'concluido',
-            fechar: true,
             funcao: `confirmarApagarGenerico('${id}','${tabela}')`
         }
     ]
 
-    popup({ botoes, mensagem: 'Excluir item?', titulo: 'Excluir Status', removerAnteriores: true })
+    popup({ botoes, mensagem: 'Excluir item?', titulo: 'Excluir Status' })
 }
 
 
 async function confirmarApagarGenerico(id, tabela) {
 
-    if (tabela == 'parceiros') {
-        const pagamento = await recuperarDado('lista_pagamentos', id)
+    try {
+        removerPopup()
+        overlayAguarde()
 
-        if (pagamento)
-            return popup({ mensagem: 'Você não pode excluir essa LPU: Já existe um pagamento solicitado.' })
+        if (tabela == 'parceiros') {
+            const pagamento = await recuperarDado('lista_pagamentos', id)
 
-        // Deletar também o cartão da correção;
-        const { ativo } = controles.ocorrencias
-        const { master } = await recuperarDado('contratos_vinculados', ativo) || {}
-        const departamento = master || ativo
+            if (pagamento)
+                return popup({ mensagem: 'Você não pode excluir essa LPU: Já existe um pagamento solicitado.' })
 
-        if (!departamento)
-            return popup({ mensagem: 'Falha ao excluir o cartão: Fale com o suporte' })
+            // Deletar também o cartão da correção;
+            const { ativo } = controles.ocorrencias
+            const { master } = await recuperarDado('contratos_vinculados', ativo) || {}
+            const departamento = master || ativo
 
-        await deletar(`dados_ocorrencias/${departamento}/correcoes/${id}`)
+            if (!departamento)
+                return popup({ mensagem: 'Falha ao excluir o cartão: Fale com o suporte' })
+
+            await deletar(`dados_ocorrencias/${departamento}/correcoes/${id}`)
+        }
+
+        await deletar(`${tabela}/${id}`)
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao tentar excluir o status: Fale com o suporte.' })
     }
-
-    await deletar(`${tabela}/${id}`)
 
 }
 
