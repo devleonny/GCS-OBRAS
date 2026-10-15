@@ -24,7 +24,6 @@ async function telaVeiculos() {
         overlayAguarde()
 
         const colunas = {
-            'Data de Registro': { chave: 'data', tipoPesquisa: 'data' },
             'Usuário': { chave: 'usuario' },
             'Motorista': { chave: 'veiculo.snapshots.motoristas' },
             'Data Pagamento': { chave: 'data_pagamento', tipoPesquisa: 'data' },
@@ -32,7 +31,6 @@ async function telaVeiculos() {
             'Valor': { chave: 'custo_total' },
             'Realizado': { chave: 'realizado' },
             'Cartão': { chave: 'veiculo.cartao' },
-            'Comentário': { chave: 'comentario' },
             'Departamentos': { chave: 'snapshots.departamentos' },
             'Editar': {}
         }
@@ -43,6 +41,7 @@ async function telaVeiculos() {
 
         const tabela = await modTab({
             pag: 'custoVeiculos',
+            detalhes: true,
             btnExtras,
             body: 'bodyCustoVeiculos',
             base: 'custo_veiculos',
@@ -138,7 +137,7 @@ async function criarLinhaVeiculo(veiculo) {
             </div>
         </td>
         <td>
-            <img src="imagens/pesquisar2.png" onclick="novoVeiculo('${veiculo.id}')">
+            <img src="imagens/pesquisar.svg" onclick="novoVeiculo('${veiculo.id}')">
         </td>
     </tr>
     `
@@ -147,7 +146,7 @@ async function criarLinhaVeiculo(veiculo) {
 
 async function criarLinhaCusto(custo) {
 
-    const { veiculo, id, usuario, snapshots, data_pagamento, comentario, data, realizado, custo_total, distribuicao = {} } = custo
+    const { veiculo, id, usuario, data_pagamento, comentario, data, realizado, custo_total, distribuicao = {} } = custo
     const { cartao, placa, modelo, motoristas, status } = veiculo || {}
     const editavel = acesso.permissao == 'adm' || acesso.setor == 'FINANCEIRO'
 
@@ -169,7 +168,7 @@ async function criarLinhaCusto(custo) {
 
         deps.push(`
             <div style="${horizontal}; gap: 2px;">
-                <div class="etiquetas"
+                <div class="tag-pendencias pagamento-balao pagamento-balao-departamento"
                 name="departamento"
                 data-departamento="${nomeDepartamento}"
                 data-valor="${valor}"
@@ -180,7 +179,6 @@ async function criarLinhaCusto(custo) {
     }
 
     const tds = `
-        <td>${data || ''}</td>
         <td>${usuario}</td>
 
         <td>
@@ -216,17 +214,23 @@ async function criarLinhaCusto(custo) {
 
         <td>${cartao || ''}</td>
 
-        <td>${comentario || ''}</td>
 
         <td>
             <div style="${vertical}; gap: 1px;">${deps.join('')}</div>
         </td>
 
         <td>
-            <img src="imagens/pesquisar2.png" onclick="painelAtalhos('${id}')">
+            <img src="imagens/pesquisar.svg" onclick="painelAtalhos('${id}')">
         </td>`
 
-    return `<tr>${tds}</tr>`
+    const detalhes = `
+        <div class="veiculo-detalhes">
+            <div><strong>Data de Registro</strong><span>${escaparAtributo(data || 'Sem data')}</span></div>
+            <div><strong>Comentário</strong><span>${escaparAtributo(comentario || 'Sem comentário')}</span></div>
+        </div>
+    `
+
+    return { linha: `<tr>${tds}</tr>`, detalhes }
 }
 
 function viabilidadeOmie() {
@@ -238,7 +242,7 @@ function viabilidadeOmie() {
     totalDepartamentos = {}
     let total = 0
 
-    const linhas = document.querySelectorAll('#bodyCustoVeiculos tr')
+    const linhas = document.querySelectorAll('#bodyCustoVeiculos tr:not(.tabela-linha-detalhes)')
     for (const linha of linhas) {
 
         const deps = linha.querySelectorAll('[name="departamento"]')

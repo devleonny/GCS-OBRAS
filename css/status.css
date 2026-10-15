@@ -157,3 +157,177 @@
         min-width: 90vw;
     }
 }
+.requisicao-formulario {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    padding: 16px;
+    background: #f7f9f8;
+    color: #324b3c;
+    box-sizing: border-box;
+    width: min(1280px, 88vw);
+    min-width: 0;
+}
+
+.requisicao-cabecalho-cartoes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: stretch;
+}
+
+.requisicao-formulario .requisicao-contorno {
+    width: 100%;
+    margin: 0;
+    border: 1px solid #8fb39c;
+    border-radius: 10px;
+    box-sizing: border-box;
+    min-width: 0;
+    background: #dcebe1;
+    box-shadow: 0 3px 10px #243b2e14;
+}
+
+.requisicao-formulario .requisicao-titulo {
+    padding: 8px 12px;
+    background: #aacfb6;
+    border-bottom: 1px solid #8fb39c;
+    color: #324b3c;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.requisicao-formulario .requisicao-dados {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 8px 12px;
+    padding: 10px 12px;
+    background: #dcebe1;
+}
+
+.requisicao-formulario .requisicao-grupo-2 .requisicao-dados {
+    background: #dcebe1;
+}
+
+.requisicao-formulario .requisicao-grupo-2 .campo-requisicao:first-child {
+    grid-column: 1 / -1;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #aac5b3;
+}
+
+.requisicao-formulario .requisicao-grupo-2 .campo-requisicao:first-child > div {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.requisicao-formulario .campo-requisicao {
+    min-width: 0;
+    gap: 3px;
+    overflow-wrap: anywhere;
+}
+
+.requisicao-formulario .campo-requisicao > span {
+    color: #536e5d;
+    font-size: 12px;
+}
+
+.requisicao-formulario .campo-requisicao > div {
+    width: 100%;
+    font-size: 13px;
+    min-width: 0;
+}
+
+.requisicao-formulario input,
+.requisicao-formulario textarea,
+.requisicao-formulario [name="pedido"] {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 5px 8px;
+    border: 1px solid #bdd4c5;
+    border-radius: 7px;
+    background: #f7fbf8;
+    color: #324b3c;
+    font: inherit;
+}
+
+.lpu-parceiro-formulario [name="tecnico"] {
+    display: block;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 5px 8px;
+    border: 1px solid #bdd4c5;
+    border-radius: 7px;
+    background: #f7fbf8;
+    color: #324b3c;
+    font: inherit;
+}
+
+.lpu-parceiro-formulario [name="tecnico"]:focus-visible {
+    outline: 2px solid #527d60;
+    outline-offset: 2px;
+}
+
+.requisicao-formulario textarea {
+    resize: vertical;
+    min-height: 44px;
+}
+
+.requisicao-formulario .requisicao-campo-comentario {
+    grid-column: 1 / -1;
+}
+
+.requisicao-formulario input:focus-visible,
+.requisicao-formulario textarea:focus-visible,
+.requisicao-formulario [name="pedido"]:focus-visible {
+    outline: 2px solid #527d60;
+    outline-offset: 2px;
+}
+
+@media (max-width: 800px) {
+    .requisicao-cabecalho-cartoes {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .requisicao-formulario .requisicao-dados {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 480px) {
+    .requisicao-formulario .requisicao-dados {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+.parceiro-historico {
+    width: min(1080px, 86vw);
+    padding: 16px;
+    box-sizing: border-box;
+    color: #324b3c;
+}
+
+.parceiro-indicadores {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+    text-align: left;
+}
+
+.parceiro-indicadores > div {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px;
+    border: 1px solid #8fb39c;
+    border-radius: 8px;
+    background: #dcebe1;
+}
+
+.parceiro-indicadores span { font-size: 12px; }
+.parceiro-indicadores strong { font-size: 18px; }
+.parceiro-historico-tabela { overflow: auto; max-height: 55dvh; }
+.parceiro-historico td { overflow-wrap: anywhere; }

@@ -2,17 +2,8 @@ async function telaRelatorio() {
 
     overlayAguarde()
 
-    const btnExtras = `
-        <div class="toolbar-itens">
-            <img src="imagens/GrupoCostaSilva.png" style="width: 5rem;">
-            <span onclick="baixarExcelRelatorioOcorrencias()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
-            <div style="${horizontal}; gap: 2px;" id="toolbarRelatorio"></div>
-        </div>
-    `
-
     const colunas = {
-        '': {},
-        'Empresa': { chave: 'snapshots.empresa' },
+        'Empresa': { chave: 'empresa' },
         'Chamado': { chave: 'id' },
         'Status': { chave: 'snapshots.nomesStatus' },
         'Data da Abertura': { chave: 'data_registro', tipoPesquisa: 'data' },
@@ -20,20 +11,19 @@ async function telaRelatorio() {
         'Solicitante': { chave: 'usuario' },
         'Executores': { chave: 'snapshots.executores' },
         'Tipo Correção': { chave: 'snapshots.ultimaCorrecao.*.nome' },
-        'Loja': { chave: 'snapshots.cliente.nome' },
-        'Cidade': { chave: 'snapshots.cliente.cidade' },
-        'Estado': { chave: 'snapshots.cliente.estado' },
-        'Sistema': { chave: 'snapshots.sistema' },
-        'Prioridade': { chave: 'snapshots.prioridade' }
+        'Loja': { chave: 'cliente.nome' },
+        'Cidade': { chave: 'cliente.cidade' },
+        'Estado': { chave: 'cliente.estado' },
+        'Sistema': { chave: 'sistema' },
+        'Prioridade': { chave: 'prioridade' }
     }
 
     const tabela = await modTab({
         colunas,
-        btnExtras,
         pag: 'relatorioOcorrencias',
+        detalhes: true,
         body: 'bodyRelatorioOcorrencias',
-        base: 'dados_ocorrencias',
-        funcaoAdicional: ['atualizarToolbarRelatorio'],
+        base: 'vw_dados_ocorrencias',
         criarLinha: 'criarLinhaRelatorio'
     })
 
@@ -50,66 +40,18 @@ async function telaRelatorio() {
 
 }
 
-async function atualizarToolbarRelatorio() {
-
-    const toolbarRelatorio = document.getElementById('toolbarRelatorio')
-
-    if (toolbarRelatorio)
-        toolbarRelatorio.innerHTML = `<img src="gifs/loading.gif" style="width: 5rem;">`
-
-    const modelo = ({ texto, qtde, porcentagem, cor }) => `
-        <div style="background-color: ${cor};" class="balao-totais">
-            <label>${texto}</label>
-
-            <div style="${horizontal}; gap: 1rem;">
-                <label style="font-size: 2rem;">${qtde || 0}</label>
-                ${porcentagem ? `<label>${(porcentagem * 100).toFixed(0)}%</label>` : ''}
-            </div>
-
-        </div>`
-
-    const filtros = controles?.relatorioOcorrencias?.filtros || {}
-
-    const contador = await contarPorCampo({
-        base: 'dados_ocorrencias',
-        filtros,
-        explode: { path: 'snapshots.ultimaCorrecao' },
-        path: 'nome'
-    })
-
-    const { todos, SOLUCIONADA } = contador
-
-    const campos = [
-        modelo({
-            texto: 'Total',
-            qtde: todos,
-            cor: '#222'
-        }),
-        modelo({
-            texto: 'Solucionados',
-            porcentagem: SOLUCIONADA / todos,
-            qtde: SOLUCIONADA || 0,
-            cor: '#1d7e45'
-        }),
-        modelo({
-            texto: 'Em Aberto',
-            porcentagem: (todos - SOLUCIONADA) / todos,
-            qtde: todos ? (todos - SOLUCIONADA) : 0,
-            cor: '#b12425'
-        })
-    ]
-
-    if (toolbarRelatorio)
-        toolbarRelatorio.innerHTML = campos.join('')
-
+function textoRelatorioOcorrencia(valor) {
+    return valor == null || String(valor).trim() === '' ? '—' : escaparAtributo(valor)
 }
 
 async function criarLinhaRelatorio(ocorrencia) {
 
     const { id, snapshots, data_registro } = ocorrencia || {}
-    const { nomesStatus, ultimaCorrecao, cliente, empresa, tipo, prioridade, sistema } = snapshots || {}
+    const { nomesStatus, ultimaCorrecao } = snapshots || {}
+    const { cliente, empresa, tipo, prioridade, sistema } = ocorrencia || {}
 
-    const labelTipoCorrecao = (nomesStatus || [])
+    const labelTipoCorrecao = (Array.isArray(nomesStatus) ? nomesStatus : [nomesStatus])
+        .filter(st => st != null && String(st).trim() !== '')
         .map(st => formatacaoTipoCorrecao(st))
         .join('')
 
@@ -118,42 +60,73 @@ async function criarLinhaRelatorio(ocorrencia) {
             .flatMap(correcao => correcao?.executor)
             .filter(Boolean) // Remove valores nulos, indefinidos ou strings vazias
     )]
-        .map(nome => `<span>• ${nome}</span>`)
+        .map(nome => `<span>• ${escaparAtributo(nome)}</span>`)
         .join('')
 
-    const datasAgendadas = (ultimaCorrecao || [])
-        .filter(corr => corr.dtCorrecao)
+    const datasAgendadas = (Array.isArray(ultimaCorrecao) ? ultimaCorrecao : [])
+        .filter(corr => corr?.dtCorrecao)
         .map(corr => corr.dtCorrecao)
 
     const tds = `
+        <td>${textoRelatorioOcorrencia(empresa)}</td>
+        <td>${textoRelatorioOcorrencia(id)}</td>
         <td>
-            <div style="${horizontal}">
-                <img src="imagens/pesquisar2.png" style="width: 2rem; cursor: pointer;" onclick="abrirCorrecaoRelatorio('${id}')">
-            </div>
+            <div style="${vertical}; gap: 1px;">${labelTipoCorrecao || '—'}</div>
         </td>
-        <td>${empresa}</td>
-        <td>${id}</td>
+        <td>${textoRelatorioOcorrencia(data_registro)}</td>
         <td>
-            <div style="${vertical}; gap: 1px;">${labelTipoCorrecao}</div>
+            ${textoRelatorioOcorrencia(datasAgendadas.join(', '))}
         </td>
-        <td>${data_registro || ''}</td>
+        <td>${textoRelatorioOcorrencia(ocorrencia?.usuario)}</td>
         <td>
-            ${datasAgendadas.join(', ')}
+            <div style="${vertical}; gap: 2px;">${executores || '—'}</div>
         </td>
-        <td>${ocorrencia?.usuario || ''}</td>
-        <td>
-            <div style="${vertical}; gap: 2px;">${executores}</div>
-        </td>
-        <td>${tipo}</td>
-        <td>${cliente?.nome || '-'}</td>
-        <td>${cliente?.cidade || '-'}</td>
-        <td>${cliente?.estado || '-'}</td>
-        <td>${sistema}</td>
-        <td>${prioridade}</td>
+        <td>${textoRelatorioOcorrencia(tipo)}</td>
+        <td>${textoRelatorioOcorrencia(cliente?.nome)}</td>
+        <td>${textoRelatorioOcorrencia(cliente?.cidade)}</td>
+        <td>${textoRelatorioOcorrencia(cliente?.estado)}</td>
+        <td>${textoRelatorioOcorrencia(sistema)}</td>
+        <td>${textoRelatorioOcorrencia(prioridade)}</td>
     `
 
-    return `<tr>${tds}</tr>`
+    return { linha: `<tr>${tds}</tr>`, detalhes: tabelaCorrecoesRelatorio(ocorrencia?.correcoes) }
 
+}
+
+function tabelaCorrecoesRelatorio(correcoes = {}) {
+    const registro = correcao => toTimestamp(String(correcao.data || '')
+        .replace(/^(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:)/, '$1, $2')) ?? -Infinity
+    const dataBR = valor => String(valor || '').replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$3/$2/$1')
+    const lista = Object.values(correcoes || {})
+        .filter(Boolean)
+        .sort((a, b) => registro(b) - registro(a))
+    const linhas = lista.map(correcao => {
+        const executor = Array.isArray(correcao.executor) ? correcao.executor.filter(Boolean).join(', ') : correcao.executor
+        const fotos = new Set([
+            ...Object.keys(correcao.fotos || {}),
+            ...Object.values(correcao.anexos || {})
+                .map(anexo => anexo?.link)
+                .filter(link => link && extensoes.includes(link.split('.').pop().toLowerCase()))
+        ])
+        const imagens = [...fotos].map(link => `<img src="${escaparAtributo(`${api}/uploads/${link}`)}" alt="Foto da correção" data-link="${escaparAtributo(link)}" onclick="ampliarImagem(this, this.dataset.link)">`).join('')
+        return `<tr>
+            <td>${textoRelatorioOcorrencia(correcao.data)}</td>
+            <td>${textoRelatorioOcorrencia(correcao.tipoCorrecaoNome || correcao.nome)}</td>
+            <td>${escaparAtributo(executor || 'Sem executor')}</td>
+            <td>${textoRelatorioOcorrencia(dataBR(correcao.dtCorrecao))}</td>
+            <td>${textoRelatorioOcorrencia(dataBR(correcao.dtCorrecaoFinal))}</td>
+            <td class="relatorio-correcao-descricao">${correcao.descricao || '—'}</td>
+            <td><div class="relatorio-correcao-fotos">${imagens || 'Sem imagens'}</div></td>
+        </tr>`
+    }).join('')
+    return `<div class="relatorio-correcoes-detalhes">
+        <strong>Correções (${lista.length})</strong>
+        <div class="relatorio-correcoes-rolagem">
+            <table class="tabela"><thead><tr>
+                <th>Registro</th><th>Tipo de correção</th><th>Executores</th><th>Agendamento</th><th>Data limite</th><th>Descrição</th><th>Imagens</th>
+            </tr></thead><tbody>${linhas || '<tr><td colspan="7">Nenhuma correção registrada.</td></tr>'}</tbody></table>
+        </div>
+    </div>`
 }
 
 
@@ -244,49 +217,22 @@ async function telaRelatorioCorrecoes() {
     overlayAguarde()
 
     const colunas = {
-        'Empresa': { chave: 'snapshots.empresa' },
-        'Chamado': { chave: 'id' },
-        'Tipo Correção': {},
-        'Descrição': { chave: 'descricao' },
-        'Data Registro': { chave: 'data', tipoPesquisa: 'data' },
-        'Solicitante': { chave: 'usuario' },
-        'Executor': { chave: 'executor' },
-        'Loja': { chave: 'snapshots.cliente.nome' },
-        'Cidade': { chave: 'snapshots.cliente.cidade' },
-        'Estado': { chave: 'snapshots.cliente.estado' },
-        'Sistema': { chave: 'snapshots.sistema' }
+        'Empresa': { chave: 'empresa' },
+        'Chamado': { chave: 'Chamado' },
+        'Tipo Correção': { chave: 'Tipo Correção' },
+        'Descrição': { chave: 'Descrição' },
+        'Data Registro': { chave: 'Data Registro', tipoPesquisa: 'data' },
+        'Solicitante': { chave: 'Solicitante' },
+        'Executor': { chave: 'Executor' },
+        'Loja': { chave: 'Loja' },
+        'Cidade': { chave: 'Cidade' },
+        'Estado': { chave: 'Estado' },
+        'Sistema': { chave: 'Sistema' }
     }
-
-    const btnExtras = `
-        <div class="toolbar-itens">
-            <img src="imagens/GrupoCostaSilva.png" style="width: 5rem;">
-            <span onclick="baixarExcelRelatorioCorrecoes()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
-        </div>
-    `
 
     const tabela = await modTab({
         colunas,
-        btnExtras,
-        filtros: {
-            ...(
-                acesso.permissao == 'cliente'
-                    ? { 'snapshots.cliente.empresa': { op: '=', value: acesso?.empresa } }
-                    : {}
-            )
-        },
-        substituicoes: [
-            {
-                path: 'tipoCorrecao',
-                tabela: 'correcoes',
-                campoBusca: 'id',
-                retorno: 'nome',
-                destino: 'tipoCorrecaoNome'
-            }
-        ],
-        explode: {
-            path: 'correcoes'
-        },
-        base: 'dados_ocorrencias',
+        base: 'vw_relatorio_correcoes',
         pag: 'relatorioCorrecoes',
         body: 'bodyCorrecoes',
         criarLinha: 'criarLinhasCorrecoes',
@@ -308,30 +254,16 @@ async function telaRelatorioCorrecoes() {
 }
 
 async function criarLinhasCorrecoes(correcao) {
-
-    const { id, snapshots, tipoCorrecao, descricao, executor, data, usuario, tipoCorrecaoNome } = correcao || {}
-    const { cliente, empresa, sistema } = snapshots || {}
-    const { nome, cidade, estado } = cliente || {}
-
-    const dtRegistro = data
-        ? data.split(',')[0]
-        : ''
-
-    const tds = `
-        <td>${empresa}</td>
-        <td>${id}</td>
-        <td>${formatacaoTipoCorrecao(tipoCorrecaoNome)}</td>
-        <td>
-            <div style="white-space: pre-wrap;">${descricao || ''}</div>
-        </td>
-        <td>${dtRegistro}</td>
-        <td>${usuario || ''}</td>
-        <td>${executor || ''}</td>
-        <td>${nome || ''}</td>
-        <td>${cidade || ''}</td>
-        <td>${estado || ''}</td>
-        <td>${sistema}</td>
-        `
+    const dados = correcao || {}
+    const campos = ['empresa', 'Chamado', 'Tipo Correção', 'Descrição', 'Data Registro', 'Solicitante', 'Executor', 'Loja', 'Cidade', 'Estado', 'Sistema']
+    const tds = campos.map(campo => {
+        const valor = dados[campo]
+        if (campo === 'Tipo Correção' && valor)
+            return `<td>${formatacaoTipoCorrecao(escaparAtributo(valor))}</td>`
+        if (campo === 'Descrição')
+            return `<td><div style="white-space: pre-wrap;">${valor || '—'}</div></td>`
+        return `<td>${textoRelatorioOcorrencia(valor)}</td>`
+    }).join('')
 
     return `<tr>${tds}</tr>`
 
@@ -342,46 +274,23 @@ async function telaRelatorioPecas() {
     overlayAguarde()
 
     const colunas = {
-        'Chamado': { chave: 'id' },
-        'Empresa': { chave: 'snapshots.empresa' },
-        'Loja': { chave: 'snapshots.cliente.nome' },
-        'Técnico': { chave: 'tecnico' },
-        'Data Correção': { chave: 'dtCorrecao', tipoPesquisa: 'data' },
-        'Origem': { chave: 'origem' },
-        'Série': { chave: 'serie' },
-        'Descrição': { chave: 'descricao' },
-        'Unidade': { chave: 'unidade' },
-        'Quantidade': { chave: 'quantidade' },
-        'Modelo': { chave: 'modelo' },
-        'Fabricante': { chave: 'fabricante' },
+        'Chamado': { chave: 'Chamado' },
+        'Empresa': { chave: 'empresa' },
+        'Loja': { chave: 'Loja' },
+        'Técnico': { chave: 'Técnico' },
+        'Data Correção': { chave: 'Data Correção', tipoPesquisa: 'data' },
+        'Origem': { chave: 'Origem' },
+        'Série': { chave: 'Série' },
+        'Descrição': { chave: 'Descrição' },
+        'Unidade': { chave: 'Unidade' },
+        'Quantidade': { chave: 'Quantidade' },
+        'Modelo': { chave: 'Modelo' },
+        'Fabricante': { chave: 'Fabricante' },
     }
-
-    const btnExtras = `
-        <div class="toolbar-itens">
-            <img src="imagens/GrupoCostaSilva.png" style="width: 5rem;">
-            <span onclick="baixarExcelRelatorioPecas()" style="cursor: pointer;"><u>Baixar em Excel</u></span>
-        </div>
-    `
 
     const tabela = await modTab({
         colunas,
-        btnExtras,
-        filtros: {
-            ...(
-                acesso.permissao == 'cliente'
-                    ? {
-                        'snapshots.cliente.empresa': [
-                            { op: 'NOT_EMPTY' },
-                            { op: '=', value: acesso?.empresa }
-                        ]
-                    }
-                    : {}
-            )
-        },
-        explode: {
-            path: 'snapshots.equipamentos'
-        },
-        base: 'dados_ocorrencias',
+        base: 'vw_relatorio_pecas',
         pag: 'relatorioPecas',
         body: 'bodyPecas',
         criarLinha: 'criarLinhasPecas',
@@ -401,42 +310,10 @@ async function telaRelatorioPecas() {
 }
 
 async function criarLinhasPecas(equipamento) {
-
-    const {
-        id,
-        departamento,
-        correcoes,
-        snapshots,
-        tecnico = [],
-        dtCorrecao,
-        serie,
-        descricao,
-        unidade,
-        quantidade,
-        modelo,
-        origem,
-        fabricante
-    } = equipamento || {}
-
-    const {
-        cliente,
-        empresa
-    } = snapshots || {}
-
-    const tds = `
-            <td>${departamento}</td>
-            <td>${empresa || ''}</td>
-            <td>${cliente?.nome || ''}</td>
-            <td>${tecnico ? tecnico.join(', ') : ''}</td>
-            <td>${dtCorrecao || ''}</td>
-            <td>${origem || ''}</td>
-            <td>${serie ? serie.filter(v => v).join(' ,') : ''}</td>
-            <td>${descricao || ''}</td>
-            <td>${unidade || ''}</td>
-            <td>${quantidade || ''}</td>
-            <td>${modelo || ''}</td>
-            <td>${fabricante || ''}</td>
-            `
+    const campos = ['Chamado', 'empresa', 'Loja', 'Técnico', 'Data Correção', 'Origem', 'Série', 'Descrição', 'Unidade', 'Quantidade', 'Modelo', 'Fabricante']
+    const tds = campos
+        .map(campo => `<td>${textoRelatorioOcorrencia(equipamento?.[campo])}</td>`)
+        .join('')
 
     return `<tr>${tds}</tr>`
 
@@ -450,7 +327,7 @@ async function baixarExcelRelatorioOcorrencias() {
         base: "vw_relatorio_ocorrencias",
         titulo: `Ocorrências_${Date.now()}`,
         formatacao: {
-            datas: ["Data Registro", "Data Agendamento"]
+            datas: ["Data Registro"]
         }
     }
 

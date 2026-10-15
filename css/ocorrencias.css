@@ -600,6 +600,16 @@
     justify-content: start;
     flex-direction: row;
     gap: 1rem;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.div-linha > .bloco-linha {
+    flex: 1 1 0;
+    width: calc((100% - 1rem) / 2);
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .linha-parte-1 {
@@ -738,8 +748,9 @@
     transition: ease-in-out 0.2s;
 }
 
-.etiqueta-chamado img:hover {
-    filter: drop-shadow(0 0 1px black);
+.etiqueta-chamado img[src="imagens/pasta.svg"] {
+    height: 1.5rem;
+    filter: none;
 }
 
 .bloco-linha {
@@ -905,4 +916,13 @@
         flex-direction: column;
     }
 
+    .div-linha > .bloco-linha {
+        flex: 0 1 auto;
+        width: 100%;
+    }
+
+}
+.pesquisar-branco,
+.etiqueta-chamado img[src="imagens/pesquisar.svg"] {
+    filter: brightness(0) invert(1);
 }

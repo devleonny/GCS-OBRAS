@@ -331,7 +331,7 @@ function criarLinhaRH(documento) {
 
     const tds = `
         <td>
-            <img src="imagens/pesquisar2.png" onclick="incluirDocumento('${id}')">
+            <img src="imagens/pesquisar.svg" onclick="incluirDocumento('${id}')">
         </td>
         <td>${nome || ''}</td>
         <td>${cidade || ''}</td>

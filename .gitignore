@@ -1,5 +1,7 @@
 # Ignorar diretórios
 node_modules/
+tests/
+sql/
 dist/
 chrome-win64/
 .vscode/

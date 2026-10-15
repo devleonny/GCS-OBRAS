@@ -291,7 +291,7 @@ async function criarLinhaOrcamento(orcamento) {
             <td>
                 <img 
                     onclick="abrirAtalhos('${id}')"
-                    src="imagens/pesquisar2.png"
+                    src="imagens/pesquisar.svg"
                     style="width: 1.5rem;">
             </td>
         </tr>

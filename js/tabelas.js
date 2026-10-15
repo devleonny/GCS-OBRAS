@@ -388,12 +388,11 @@ function injetarMetaTr(html, dado, indice = 0) {
     )
 }
 
-function assinaturaConsulta({ base, substituicoes, ordenar, explode, pagina, filtros }) {
+function assinaturaConsulta({ base, substituicoes, ordenar, pagina, filtros }) {
     return stableStringify({
         base,
         substituicoes: substituicoes || null,
         ordenar: ordenar || null,
-        explode: explode || null,
         pagina,
         filtros: filtros || null
     })
@@ -428,7 +427,6 @@ async function paginacao(pag) {
             relacionados,
             ordenar,
             alinPag = horizontal,
-            explode = null,
             criarLinha,
             funcaoAdicional,
             filtros
@@ -448,7 +446,6 @@ async function paginacao(pag) {
             substituicoes,
             relacionados,
             ordenar,
-            explode,
             pagina,
             filtros
         })
@@ -468,7 +465,6 @@ async function paginacao(pag) {
             substituicoes,
             relacionados,
             ordenar,
-            explode,
             pagina,
             filtros
         })

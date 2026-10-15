@@ -1,3 +1,139 @@
+function arredondarValorParceiro(valor) {
+    return Math.round((Number(valor) + Number.EPSILON) * 100) / 100
+}
+
+async function salvarEtapaParceiro(caminho, dados) {
+    const resultado = await enviar(caminho, dados)
+    if (!resultado?.success)
+        throw new Error(resultado?.mensagem || 'Não foi possível salvar o fluxo do parceiro.')
+    return resultado
+}
+
+async function validarSaldoPagamentoParceiro(pagamento, id) {
+    if (!pagamento?.lpu_parceiro_id) return
+    const c = await obterControlePagamentosParceiro(pagamento.lpu_parceiro_id, id)
+    const valor = arredondarValorParceiro((pagamento.param || []).reduce((soma, item) => soma + Number(item.valor_documento || 0), 0))
+    const solicitacao = c.parceiro.solicitacoes?.[id]
+    if (solicitacao && valor !== arredondarValorParceiro(solicitacao.valor))
+        throw new Error('O valor do pagamento deve permanecer igual ao da solicitação parcial aprovada.')
+    if (!(valor > 0) || valor > c.disponivel)
+        throw new Error('Saldo insuficiente na LPU para liberar este pagamento.')
+}
+
+async function concluirAprovacaoParceiro(id, idLpu, idOcorrencia, pagamento) {
+    const idRegistro = `${id}_aprovacao`
+    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
+    if (!ocorrencia?.correcoes?.[idRegistro]) {
+        const valor = (pagamento.param || []).reduce((soma, item) => soma + Number(item.valor_documento || 0), 0)
+        await salvarEtapaParceiro(`dados_ocorrencias/${idOcorrencia}/correcoes/${idRegistro}`, {
+            usuario: pagamento.aprovado_gerente_por || acesso.usuario,
+            data: pagamento.data_registro,
+            aba: id,
+            descricao: `🟢 Pagamento aprovado por ${pagamento.aprovado_gerente_por || acesso.usuario} no valor de ${dinheiro(valor)}`,
+            dtCorrecao: '', tipoCorrecao: 'WRuo2'
+        })
+    }
+    if (id !== idLpu) {
+        const parceiro = await recuperarDado('parceiros', idLpu)
+        if (parceiro?.solicitacoes?.[id]?.status === 'Aguardando gerente')
+            await salvarEtapaParceiro(`parceiros/${idLpu}/solicitacoes/${id}/status`, 'Enviada ao financeiro')
+    }
+}
+
+async function obterControlePagamentosParceiro(id, ignorarSolicitacao = null) {
+    const parceiro = await recuperarDado('parceiros', id)
+    if (!parceiro) throw new Error('LPU do parceiro não encontrada.')
+    const total = arredondarValorParceiro(parceiro.total ?? parceiro.totais?.parceiro ?? 0)
+    const solicitacoes = Object.entries(parceiro.solicitacoes || {})
+    const pagamentos = await Promise.all([
+        recuperarDado('lista_pagamentos', id),
+        ...solicitacoes.map(([chave]) => recuperarDado('lista_pagamentos', chave))
+    ])
+    const linhas = solicitacoes.map(([chave, solicitacao], indice) => ({
+        ...solicitacao, id: chave, pagamento: pagamentos[indice + 1]
+    }))
+    if (pagamentos[0]) {
+        linhas.unshift({ id, valor: total, data: pagamentos[0].data_registro, status: 'Pagamento legado', pagamento: pagamentos[0], legado: true })
+    } else {
+        const { master } = await recuperarDado('contratos_vinculados', parceiro.departamento) || {}
+        const ocorrencia = await recuperarDado('dados_ocorrencias', master || parceiro.departamento)
+        if (ocorrencia?.correcoes?.[id]?.tipoCorrecao === '24e1ea27-1bd8-451a-b5bf-edda134cfdd6')
+            linhas.unshift({ id, valor: total, status: 'Solicitação legada aguardando gerente', legado: true })
+    }
+    let pago = 0, reservado = 0
+    for (const linha of linhas) {
+        const pagamento = linha.pagamento
+        const status = String(pagamento?.status || linha.status || '')
+        const liberado = pagamento?.excluido || /reprovad|cancelad|excluíd|excluid|falha na solicitação/i.test(status)
+        const valor = arredondarValorParceiro(pagamento
+            ? (pagamento.param || []).reduce((soma, item) => soma + Number(item.valor_documento || 0), 0)
+            : linha.valor)
+        linha.valor = valor
+        linha.statusAtual = status
+        linha.encerrada = Boolean(liberado)
+        if (linha.id === ignorarSolicitacao || liberado) continue
+        if (/^(PAGO|RECEBIDO)$/i.test(status.trim())) pago += valor
+        else reservado += valor
+    }
+    pago = arredondarValorParceiro(pago)
+    reservado = arredondarValorParceiro(reservado)
+    return { parceiro, total, pago, reservado, disponivel: arredondarValorParceiro(total - pago - reservado), faltaPagar: arredondarValorParceiro(total - pago), linhas }
+}
+
+async function historicoPagamentosParceiro(id) {
+    try {
+        overlayAguarde()
+        const c = await obterControlePagamentosParceiro(id)
+        const indicadores = [['Combinado', c.total], ['Pago', c.pago], ['Em aprovação / pagamento', c.reservado], ['Disponível', c.disponivel], ['Falta pagar', c.faltaPagar]]
+            .map(([nome, valor]) => `<div><span>${nome}</span><strong>${dinheiro(valor)}</strong></div>`).join('')
+        const linhas = c.linhas.map(linha => `<tr>
+            <td>${escaparAtributo(linha.data || '')}</td>
+            <td>${dinheiro(linha.valor)}</td>
+            <td>${escaparAtributo(linha.statusAtual)}</td>
+            <td>${escaparAtributo(linha.comentario || (linha.legado ? 'Fluxo anterior' : ''))}</td>
+            <td>
+                ${linha.pagamento ? `<button onclick="abrirDetalhesPagamentos('${linha.id}')">Ver pagamento</button>` : ''}
+                ${linha.ocorrencia_id ? `<button onclick="irOcorrenciaParceiro('${linha.ocorrencia_id}', '${linha.id}')">Ver correções</button>` : ''}
+                ${!linha.legado && !linha.pagamento && !linha.encerrada ? `<button onclick="cancelarSolicitacaoParceiro('${id}', '${linha.id}')">Cancelar solicitação</button>` : ''}
+            </td></tr>`).join('')
+        popup({ titulo: 'Pagamentos da LPU Parceiro', elemento: `<div class="parceiro-historico">
+            <div class="parceiro-indicadores">${indicadores}</div>
+            <div class="parceiro-historico-tabela"><table class="tabela"><thead><tr><th>Solicitado em</th><th>Valor</th><th>Status</th><th>Etapa / motivo</th><th>Ações</th></tr></thead><tbody>${linhas || '<tr><td colspan="5">Nenhum pagamento solicitado.</td></tr>'}</tbody></table></div>
+            </div>`, botoes: c.disponivel > 0 ? [{ texto: 'Solicitar pagamento parcial', funcao: `atualizarDadosParceiro('${id}')`, img: 'baixar' }] : [] })
+    } catch (erro) { popup({ mensagem: erro.message }) }
+}
+
+async function irOcorrenciaParceiro(id, aba) {
+    removerTodosPopups()
+    await telaOcorrencias()
+    await pesquisarOcorrencias('id', id)
+    const tab = document.getElementById(`aba_${id}_${aba}`)
+    const conteudo = document.getElementById(`${id}_${aba}`)
+    if (tab && conteudo) {
+        exibirAba(id, aba)
+        tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+    }
+}
+
+async function cancelarSolicitacaoParceiro(id, idSolicitacao, confirmar = false) {
+    if (!confirmar)
+        return popup({ mensagem: 'Cancelar esta solicitação e liberar seu saldo?', botoes: [{ texto: 'Confirmar cancelamento', funcao: `cancelarSolicitacaoParceiro('${id}', '${idSolicitacao}', true)`, img: 'cancel' }] })
+    try {
+        overlayAguarde()
+        const c = await obterControlePagamentosParceiro(id)
+        const linha = c.linhas.find(item => item.id === idSolicitacao)
+        if (!linha || linha.legado || linha.pagamento) throw new Error('Esta solicitação já possui pagamento. O cancelamento deve seguir o fluxo do financeiro.')
+        if (linha.usuario !== acesso.usuario && acesso.permissao !== 'adm') throw new Error('Apenas o solicitante ou administrador pode cancelar.')
+        await salvarEtapaParceiro(`dados_ocorrencias/${linha.ocorrencia_id}/correcoes/${idSolicitacao}_cancelamento`, {
+            aba: idSolicitacao, tipoCorrecao: 'WRuo2', data: new Date().toLocaleString(), usuario: acesso.usuario,
+            descricao: 'Solicitação de pagamento parcial cancelada; saldo liberado.'
+        })
+        await salvarEtapaParceiro(`parceiros/${id}/solicitacoes/${idSolicitacao}/status`, 'Cancelada')
+        removerTodosPopups()
+        await historicoPagamentosParceiro(id)
+    } catch (erro) { popup({ mensagem: erro.message }) }
+}
+
 async function formularioParceiro(id = crypto.randomUUID()) {
 
     try {
@@ -8,7 +144,8 @@ async function formularioParceiro(id = crypto.randomUUID()) {
             ? await recuperarDado('lista_pagamentos', id) || null
             : null
 
-        if (pagamento)
+        const lpuExistente = await recuperarDado('parceiros', id)
+        if (pagamento || Object.keys(lpuExistente?.solicitacoes || {}).length)
             return popup({ mensagem: 'Já existe uma solicitação de pagamento: não é possível editar.' })
 
         const {
@@ -63,6 +200,7 @@ async function formularioParceiro(id = crypto.randomUUID()) {
             funcaoAdicional: ['calcularLpuParceiro'],
             criarLinha: 'adicionarLinhaParceiro',
             pag: 'lpu_parceiro',
+            alturaMinima: '60dvh',
             body: 'bodyParceiros'
         })
 
@@ -87,7 +225,7 @@ async function formularioParceiro(id = crypto.randomUUID()) {
         const modeloLabel = ({ v1, v2 }) => {
 
             return `
-            <div class="campo-requisicao">
+            <div class="campo-requisicao${v1 === 'Comentário' ? ' requisicao-campo-comentario' : ''}">
                 ${v1 ? `<span><small><b>${v1}</b></small></span>` : ''}
                 <div>${v2}</div>
             </div>
@@ -136,7 +274,7 @@ async function formularioParceiro(id = crypto.randomUUID()) {
             {
                 linha: 1,
                 v1: 'Comentário',
-                v2: `<textarea id="comentario">${comentario || ''}</textarea>`
+                v2: `<textarea rows="2" id="comentario">${comentario || ''}</textarea>`
             },
             {
                 linha: 2,
@@ -147,11 +285,6 @@ async function formularioParceiro(id = crypto.randomUUID()) {
                 linha: 2,
                 v1: 'Total Margem Disponível',
                 v2: `<label class="campo-valor verde" id="total_margem"></label>`
-            },
-            {
-                linha: 2,
-                v1: 'Total do Valor Parceiro',
-                v2: `<label class="campo-valor vermelho" id="total_parceiro"l></label>`
             },
             {
                 linha: 2,
@@ -179,23 +312,22 @@ async function formularioParceiro(id = crypto.randomUUID()) {
                     .join('')
 
                 return `
-                <div class="requisicao-contorno">
+                <section class="requisicao-contorno">
                     <div class="requisicao-titulo">
                         ${titulo}
                     </div>
                     <div class="requisicao-dados">
                         ${c}
                     </div>
-                </div>
+                </section>
             `
             })
-            .join('<hr>')
+            .join('')
 
         const elemento = `
-        <div class="requisicao-tela">
+        <div class="requisicao-tela requisicao-formulario lpu-parceiro-formulario">
 
-            ${linhas}
-            <hr>
+            <div class="requisicao-cabecalho-cartoes">${linhas}</div>
             ${tabela}
 
         </div>
@@ -214,7 +346,14 @@ async function formularioParceiro(id = crypto.randomUUID()) {
             },
         ]
 
-        popup({ botoes, elemento, cor: 'white', titulo: 'LPU Parceiro', autoDestruicao: ['lpu_parceiro'] })
+        popup({
+            botoes,
+            elemento,
+            conteudoRodape: `<div class="rodape-resumo"><span>Total do parceiro</span><strong id="total_parceiro">${dinheiro(0)}</strong></div>`,
+            cor: 'white',
+            titulo: 'LPU Parceiro',
+            autoDestruicao: ['lpu_parceiro']
+        })
 
         await paginacao('lpu_parceiro')
 
@@ -340,6 +479,9 @@ async function salvarLpuParceiro(id = crypto.randomUUID()) {
     overlayAguarde()
 
     const parceiro = await recuperarDado('parceiros', id)
+    const pagamentoExistente = await recuperarDado('lista_pagamentos', id)
+    if (pagamentoExistente || Object.keys(parceiro?.solicitacoes || {}).length)
+        return popup({ mensagem: 'Esta LPU já possui solicitações. Seus itens, valor e parceiro não podem ser alterados.' })
     const departamento = controles?.ocorrencias?.ativo
     const tecnico = document.querySelector('[name="tecnico"]')
 
@@ -586,13 +728,10 @@ async function atualizarDadosParceiro(id) {
 
     overlayAguarde()
 
-    const [pagamento, parceiro] = await Promise.all([
-        recuperarDado('lista_pagamentos', id) || null,
-        recuperarDado('parceiros', id) || {}
-    ])
-
-    if (pagamento)
-        return popup({ mensagem: 'Já existe um pagamento lançado para esta LPU.' })
+    const controle = await obterControlePagamentosParceiro(id)
+    const { parceiro } = controle
+    if (controle.disponivel <= 0)
+        return popup({ mensagem: 'Esta LPU não tem saldo disponível para novas solicitações.' })
 
     const { tecnicos } = parceiro
 
@@ -614,6 +753,17 @@ async function atualizarDadosParceiro(id) {
     } = pesquisa.resultados?.[0] || {}
 
     const linhas = [
+        {
+            elemento: `<div class="rodape-resumo"><span>Disponível para solicitar</span><strong>${dinheiro(controle.disponivel)}</strong></div>`
+        },
+        {
+            texto: 'Valor deste pagamento',
+            elemento: `<input name="valor_parcial" type="number" min="0.01" step="0.01" max="${controle.disponivel}" value="${controle.disponivel}">`
+        },
+        {
+            texto: 'Etapa / motivo do pagamento',
+            elemento: '<textarea name="comentario_parcela" rows="2"></textarea>'
+        },
         {
             texto: 'CPF/CNPJ',
             elemento: `<input placeholder="CPF ou CNPJ" oninput="formatarCnpj(this)" name="cnpj" value="${cnpj || ''}">`
@@ -639,7 +789,7 @@ async function atualizarDadosParceiro(id) {
         { texto: 'Salvar', img: 'concluido', funcao: `solicitarPagamentoParceiro('${id}', ${idCliente})` }
     ]
 
-    popup({ linhas, botoes, titulo: 'Atualize os dados do técnico' })
+    popup({ linhas, botoes, titulo: 'Solicitar pagamento parcial' })
 
 }
 
@@ -662,9 +812,14 @@ async function solicitarPagamentoParceiro(id, idCliente) {
             celular: document.querySelector('[name="celular"]').value
         }
 
-        // o id da LPU PARCEIRO será o mesmo para aba e para idCorrecao;
+        const controle = await obterControlePagamentosParceiro(id)
+        const valor = arredondarValorParceiro(Number(document.querySelector('[name="valor_parcial"]').value))
+        if (!Number.isFinite(valor) || valor <= 0 || valor > controle.disponivel)
+            return popup({ mensagem: 'Informe um valor positivo dentro do saldo disponível da LPU.' })
+        const comentario = document.querySelector('[name="comentario_parcela"]').value.trim()
+        const idSolicitacao = crypto.randomUUID()
         const { usuario } = acesso || {}
-        const { ativo } = controles.ocorrencias || {}
+        const ativo = controle.parceiro.departamento
 
         const [parceiro, contrato] = await Promise.all([
             recuperarDado('parceiros', id),
@@ -672,23 +827,23 @@ async function solicitarPagamentoParceiro(id, idCliente) {
         ])
 
         const {
-            tecnicos,
-            itens
+            tecnicos
         } = parceiro ?? {}
 
         const {
             master
         } = contrato ?? {}
 
-        const total = (itens || [])
-            .reduce((acc, item) => acc + (item.vTotalParc), 0)
+        const total = valor
 
         const correcao = {
             data_pagamento: document.querySelector('[name="data_pagamento"]')?.value || null,
-            aba: id,
+            aba: idSolicitacao,
+            lpu_id: id,
+            valor_parcial: valor,
             data: new Date().toLocaleString(),
             tecnico: tecnicos,
-            descricao: `[${ativo}] Solicitação de pagamento de parceiro de ${dinheiro(total)} para ${(tecnicos || []).map(t => t).join(', ')}.`,
+            descricao: `[${ativo}] Solicitação parcial de ${dinheiro(total)} para ${(tecnicos || []).join(', ')}. LPU: ${dinheiro(controle.total)}.${comentario ? ` Etapa: ${comentario}` : ''}`,
             permissao: ['gerente'],
             usuario,
             tipoCorrecao: '24e1ea27-1bd8-451a-b5bf-edda134cfdd6' // PAGAMENTO DE PARCEIRO
@@ -696,11 +851,22 @@ async function solicitarPagamentoParceiro(id, idCliente) {
 
         // Departamento sempre do master, caso não exista, o ativo é o master;
         const chamadoPai = master || ativo
+        if (!await recuperarDado('dados_ocorrencias', chamadoPai))
+            return popup({ mensagem: 'A ocorrência principal não foi encontrada. Abra o chamado antes de solicitar o pagamento.' })
 
-        await Promise.all([
-            enviar(`clientes/${idCliente}`, dados),
-            enviar(`dados_ocorrencias/${chamadoPai}/correcoes/${id}`, correcao)
-        ])
+        const solicitacao = {
+            valor, comentario, ocorrencia_id: chamadoPai,
+            data: correcao.data, usuario, status: 'Aguardando gerente',
+            data_pagamento: correcao.data_pagamento
+        }
+        await salvarEtapaParceiro(`clientes/${idCliente}`, dados)
+        await salvarEtapaParceiro(`parceiros/${id}/solicitacoes/${idSolicitacao}`, solicitacao)
+        try {
+            await salvarEtapaParceiro(`dados_ocorrencias/${chamadoPai}/correcoes/${idSolicitacao}`, correcao)
+        } catch (erro) {
+            await salvarEtapaParceiro(`parceiros/${id}/solicitacoes/${idSolicitacao}/status`, 'Falha na solicitação')
+            throw erro
+        }
 
         removerTodosPopups()
 

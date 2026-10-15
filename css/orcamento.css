@@ -95,9 +95,9 @@
     min-width: 0;
     padding: 0;
     gap: 0;
-    border: 1px solid #dfe7e2;
+    border: 1px solid #a9c5b2;
     border-radius: 9px;
-    background: #fff;
+    background: #f0f6f2;
     box-sizing: border-box;
 }
 
@@ -107,7 +107,7 @@
     justify-content: space-between;
     gap: 12px;
     padding: 8px 10px;
-    background: #edf3ef;
+    background: #cce2d3;
     align-self: stretch;
 }
 
@@ -120,8 +120,8 @@
 .orcamento-bloco-contagem {
     padding: 1px 7px;
     border-radius: 12px;
-    background: #dcebe1;
-    color: #356443;
+    background: #aacfb6;
+    color: #254c31;
     font-size: 11px;
 }
 
@@ -136,13 +136,17 @@
     scrollbar-gutter: stable;
 }
 
+.detalhes-orcamento .bloco-etiquetas > * {
+    flex-shrink: 0;
+}
+
 .orcamento-documento {
     width: 100%;
     box-sizing: border-box;
     padding: 8px 10px;
-    border: 1px solid #e3ebe6;
+    border: 1px solid #bdd4c5;
     border-radius: 6px;
-    background: #f8faf9;
+    background: #e2efe7;
     display: flex;
     flex-direction: column;
     gap: 5px;
@@ -186,10 +190,10 @@
     width: 100%;
     box-sizing: border-box;
     justify-content: space-between;
-    border: 1px solid #dfe7e2;
+    border: 1px solid #bdd4c5;
     border-radius: 6px;
     overflow: hidden;
-    background: #f8faf9;
+    background: #e2efe7;
 }
 
 .detalhes-orcamento .balao1 {
@@ -207,7 +211,7 @@
     align-items: center;
     justify-content: center;
     padding: 8px;
-    background: #e8f2ec;
+    background: #c5dfce;
     color: #356443;
     font-size: 11px;
     font-weight: 600;

@@ -243,7 +243,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
                 : ''}
             </td>
             <td style="text-align: center;">
-               <img src="imagens/pesquisar2.png" style="width: 1.7rem; cursor: pointer;" onclick="adicionarCotacao('${codigo}', '${tabela}', '${id}')">
+               <img src="imagens/pesquisar.svg" style="width: 1.7rem; cursor: pointer;" onclick="adicionarCotacao('${codigo}', '${tabela}', '${id}')">
             </td>
         </tr>
         `)

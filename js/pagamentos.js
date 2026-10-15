@@ -59,7 +59,10 @@ async function telaPagamentos() {
             'Detalhes': {}
         },
         filtros: {
-            criado: { op: '!=', value: 'Integração' }
+            'snapshots.criado': {
+                op: '!=',
+                value: 'Integração'
+            }
         },
         funcaoAdicional: ['atualizarPainelEsquerdo'],
         body: 'bodyPagamentos',
@@ -91,15 +94,18 @@ async function telaPagamentos() {
 
 async function filtrarPagamentos(st) {
 
+    controles.pagamentos.pagina = 1
+    const status = String(st || '').trim()
+
     controles.pagamentos.filtros = {
         ...controles?.pagamentos?.filtros,
-        status: { op: 'includes', value: st }
+        status: { op: '=', value: status }
     }
 
     if (st == 'TODOS')
         delete controles.pagamentos.filtros.status
 
-    await paginacao()
+    await paginacao('pagamentos')
 
 }
 
@@ -111,18 +117,20 @@ async function atualizarPainelEsquerdo() {
         .map(item => {
 
             const { status, quantidade } = item || {}
-            const filtroStatus = controles.pagamentos?.filtros?.status?.value
+            const filtro = controles.pagamentos?.filtros?.status
+            const filtroStatus = filtro?.original || filtro?.value
             const selecionado = filtroStatus
-                ? String(status).toLowerCase().includes(String(filtroStatus).toLowerCase())
+                ? String(status) === String(filtroStatus)
                 : status === 'TODOS'
 
             return `
                 <div class="balao-pagamentos${selecionado ? ' selecionado' : ''}"
-                onclick="filtrarPagamentos('${status}')">
+                data-status="${escaparAtributo(status)}"
+                onclick="filtrarPagamentos(this.dataset.status)">
                     
                     <div class="dir">
                         <img src="${iconePagamento(status)}">
-                        <Label>${inicialMaiuscula(status)}</label>
+                        <label>${escaparAtributo(status)}</label>
                     </div>
 
                     <span class="esq">${quantidade}</span>
@@ -145,7 +153,7 @@ async function criarLinhaPagamento(pagamento) {
 
     const deps = (snapshots?.departamentos || [])
         .map(({ departamento }) => {
-            return `<span onclick="painelCustos('${departamento}')" class="etiquetas">${departamento || ''}</span>`
+            return `<span onclick="painelCustos(this.dataset.departamento)" data-departamento="${escaparAtributo(departamento || '')}" class="tag-pendencias pagamento-balao pagamento-balao-departamento">${escaparAtributo(departamento || '')}</span>`
         })
         .join('')
 
@@ -153,12 +161,12 @@ async function criarLinhaPagamento(pagamento) {
         .map(({ categoria }) => categoria)
 
     const spanCategorias = [... new Set(categorias)]
-        .map(categoria => `<span class="etiquetas">${categoria}</span>`)
+        .map(categoria => `<span class="tag-pendencias pagamento-balao">${escaparAtributo(categoria || '')}</span>`)
         .join('')
 
     const tds = `
         <td>
-            <div style="display: flex; flex-wrap: wrap; gap: 3px;">${spanCategorias}</div>
+            <div class="pagamento-lista-baloes">${spanCategorias}</div>
         </td>
         <td>${data_vencimento}</td>
         <td>
@@ -175,7 +183,7 @@ async function criarLinhaPagamento(pagamento) {
         <td>${criado || ''}</td>
         <td>${snapshots?.cliente || ''}</td>
         <td style="text-align: center;">
-            <img src="imagens/pesquisar2.png" style="width: 1.5rem; cursor: pointer;" onclick="abrirDetalhesPagamentos('${id}')">
+            <img src="imagens/pesquisar.svg" style="width: 1.5rem; cursor: pointer;" onclick="abrirDetalhesPagamentos('${id}')">
         </td>
         `
     return `<tr>${tds}</tr>`
@@ -317,9 +325,10 @@ async function abrirDetalhesPagamentos(id) {
         ]
 
         // Pagamento migrado LPU
-        const lpuParceiro = await recuperarDado('parceiros', id)
+        const idLpuParceiro = pagamento.lpu_parceiro_id || id
+        const lpuParceiro = await recuperarDado('parceiros', idLpuParceiro)
         if (lpuParceiro)
-            bEspeciais.push(botoes('tecnico', 'Ver LPU Parceiro', `gerarPdfParceiro('${id}', true)`))
+            bEspeciais.push(botoes('tecnico', 'Ver LPU Parceiro', `gerarPdfParceiro('${idLpuParceiro}', true)`))
 
         if (liberados.includes(permissao) || pagamento.criado == usuario)
             bEspeciais.push(botoes('editar', 'Editar Pagamento', `editarPagamento('${id}')`))
@@ -363,7 +372,7 @@ async function abrirDetalhesPagamentos(id) {
                 ${modListagem(bEspeciais.join(''))}
 
                 ${modListagem(
-            modelo('Valor Total do Pagamento', `<span class ="campo-valor vermelho">${dinheiro(pagamento.param[0].valor_documento)}</span>`)
+            modelo('Valor Total do Pagamento', `<span class="valor-total-pagamento">${dinheiro(pagamento.param[0].valor_documento)}</span>`)
         )}
 
                 ${modListagem(
@@ -417,6 +426,11 @@ async function abrirDetalhesPagamentos(id) {
 
 async function alterarStatusPagamento(idPagamento, select) {
 
+    const pagamento = await recuperarDado('lista_pagamentos', idPagamento)
+    if (!/reprovad|cancelad|excluíd|excluid/i.test(select.value)) {
+        try { await validarSaldoPagamentoParceiro(pagamento, idPagamento) }
+        catch (erro) { select.value = pagamento.status; return popup({ mensagem: erro.message }) }
+    }
     await enviar(`lista_pagamentos/${idPagamento}/status`, select.value)
 
 }
@@ -437,12 +451,27 @@ async function excluirPagamento(id) {
 
     overlayAguarde()
 
-    await deletar(`lista_pagamentos/${id}`)
+    const pagamento = await recuperarDado('lista_pagamentos', id)
 
     const resposta = await excluirPagamentoOmie(id)
 
     if (resposta.mensagem)
         return popup({ mensagem: resposta.mensagem })
+
+    if (pagamento?.lpu_parceiro_id && pagamento.solicitacao_parceiro_id !== pagamento.lpu_parceiro_id) {
+        const parceiro = await recuperarDado('parceiros', pagamento.lpu_parceiro_id)
+        const solicitacao = parceiro?.solicitacoes?.[pagamento.solicitacao_parceiro_id]
+        if (solicitacao?.ocorrencia_id)
+            await salvarEtapaParceiro(`dados_ocorrencias/${solicitacao.ocorrencia_id}/correcoes/${id}_cancelamento`, {
+                aba: id, tipoCorrecao: 'WRuo2', data: new Date().toLocaleString(), usuario: acesso.usuario,
+                descricao: 'Pagamento parcial cancelado pelo financeiro; saldo liberado.'
+            })
+        await salvarEtapaParceiro(`parceiros/${pagamento.lpu_parceiro_id}/solicitacoes/${pagamento.solicitacao_parceiro_id}`, {
+            ...solicitacao, status: 'Cancelada pelo financeiro', pagamento_cancelado: pagamento,
+            cancelado_por: acesso.usuario, cancelado_em: new Date().toLocaleString()
+        })
+    }
+    await deletar(`lista_pagamentos/${id}`)
 
     removerPopup()
 
@@ -483,7 +512,9 @@ async function autorizarPagamentos(resposta, id) {
             ? `Aprovado por ${permissao}`
             : `Reprovado por ${permissao}`
 
-        const { historico } = await recuperarDado('lista_pagamentos', id) || {}
+        const pagamento = await recuperarDado('lista_pagamentos', id) || {}
+        const { historico } = pagamento
+        if (resposta == 'S') await validarSaldoPagamentoParceiro(pagamento, id)
 
         await enviar(`lista_pagamentos/${id}`, {
             status,
@@ -502,7 +533,7 @@ async function autorizarPagamentos(resposta, id) {
 
 
     } catch (err) {
-        popup({ mensagem: 'Ocorreu um erro ao processar a solicitação. Tente novamente.' })
+        popup({ mensagem: err.message || 'Ocorreu um erro ao processar a solicitação. Tente novamente.' })
     }
 
 }
@@ -542,6 +573,7 @@ async function salvarPagamento() {
     try {
 
         const id = ultimoPagamento.id || crypto.randomUUID()
+        await validarSaldoPagamentoParceiro(ultimoPagamento, id)
         await enviar(`lista_pagamentos/${id}`, ultimoPagamento)
 
         localStorage.removeItem('ultimoPagamento')
@@ -553,7 +585,7 @@ async function salvarPagamento() {
 
     } catch (e) {
         console.log(e)
-        popup({ mensagem: 'Falha ao salvar ou ao abrir o pagamento, verifique com o suporte.' })
+        popup({ mensagem: e.message || 'Falha ao salvar ou ao abrir o pagamento, verifique com o suporte.' })
     }
 
 }
@@ -1226,7 +1258,10 @@ function compararDatas(data1, data2) {
 async function duplicarPagamento(id) {
 
     overlayAguarde()
-    const { param, criado } = await recuperarDado('lista_pagamentos', id)
+    const pagamento = await recuperarDado('lista_pagamentos', id)
+    if (pagamento?.lpu_parceiro_id)
+        return popup({ mensagem: 'Para manter o saldo e as aprovações, solicite outro pagamento parcial na LPU.' })
+    const { param, criado } = pagamento
 
     param[0].observacao = param[0].observacao.replace(`Solicitante: ${criado}`, '')
     delete param[0].codigo_lancamento_integracao

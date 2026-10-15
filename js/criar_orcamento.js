@@ -235,7 +235,30 @@ function excluirRevisao() {
 
 }
 
-function confirmarExclusaoRevisao() {
+function campoComposicoesRevisao(orcamento) {
+    return orcamento.lpu_ativa === 'ALUGUEL' ? 'dados_composicoes' : 'esquema_composicoes'
+}
+
+function sincronizarRevisaoAtual(orcamento) {
+    const atual = orcamento?.revisoes?.atual
+    if (atual && Object.hasOwn(orcamento.revisoes.historico || {}, atual))
+        orcamento.revisoes.historico[atual] = structuredClone(orcamento[campoComposicoesRevisao(orcamento)] || {})
+}
+
+async function atualizarTabelaRevisao() {
+    const orcamento = baseOrcamento()
+    if (orcamento.lpu_ativa === 'ALUGUEL') {
+        document.getElementById('tabelas').innerHTML = ''
+        await carregarTabelasAluguel()
+    } else {
+        controles.criarOrcamento.base = Object.values(orcamento.esquema_composicoes || {})
+        await paginacao('criarOrcamento')
+        calcularSubtotais()
+    }
+    await atualizarToolbar()
+}
+
+async function confirmarExclusaoRevisao() {
     const revisao = document.querySelector('[name="revisao"]').value
     const orcamento = baseOrcamento()
     orcamento.revisoes ??= {}
@@ -246,21 +269,17 @@ function confirmarExclusaoRevisao() {
     delete orcamento.revisoes.historico[revisao]
     const chavesRevisoes = Object.keys(orcamento?.revisoes?.historico || {})
     const RX = chavesRevisoes[0]
-    const composicoes = structuredClone(orcamento?.revisoes?.historico?.[RX] || {})
-
-    if (orcamento.lpu_ativa == 'ALUGUEL')
-        orcamento.dados_composicoes = composicoes
-    else
-        orcamento.esquema_composicoes = composicoes
-
-    orcamento.revisoes.atual = RX
-
-    revisao.innerHTML = chavesRevisoes.map(r => `<option ${r == RX ? 'selected' : ''}>${r}</option>`).join('')
+    if (RX) {
+        orcamento[campoComposicoesRevisao(orcamento)] = structuredClone(orcamento.revisoes.historico[RX])
+        orcamento.revisoes.atual = RX
+    } else {
+        delete orcamento.revisoes.atual
+    }
 
     baseOrcamento(orcamento)
 
-    atualizarToolbar()
     removerPopup()
+    await atualizarTabelaRevisao()
 }
 
 
@@ -268,26 +287,14 @@ async function alterarRevisao() {
     const revisao = document.querySelector('[name="revisao"]').value
 
     const orcamento = baseOrcamento()
-    const revisaoAtual = orcamento?.revisoes?.atual
+    if (!Object.hasOwn(orcamento.revisoes?.historico || {}, revisao)) return
+    sincronizarRevisaoAtual(orcamento)
+    orcamento[campoComposicoesRevisao(orcamento)] = structuredClone(orcamento.revisoes.historico[revisao])
     orcamento.revisoes.atual = revisao
-
-    const cloneComposicoes = structuredClone(orcamento.lpu_ativa == 'ALUGUEL' ? orcamento.dados_composicoes : orcamento.esquema_composicoes)
-
-    if (revisaoAtual)
-        orcamento.revisoes.historico[revisaoAtual] = cloneComposicoes
-
-    if (orcamento.lpu_ativa == 'ALUGUEL') {
-        orcamento.dados_composicoes = orcamento.revisoes.historico[revisao]
-
-    } else {
-        orcamento.esquema_composicoes = orcamento.revisoes.historico[revisao]
-    }
 
     baseOrcamento(orcamento)
 
-    controles.criarOrcamento.base = Object.values(orcamento?.esquema_composicoes || {})
-
-    await paginacao('criarOrcamento')
+    await atualizarTabelaRevisao()
 
 }
 
@@ -296,9 +303,11 @@ async function salvarRevisao() {
 
     orcamento.revisoes ??= {}
     orcamento.revisoes.historico ??= {}
+    sincronizarRevisaoAtual(orcamento)
 
     const numeros = Object.keys(orcamento.revisoes.historico)
-        .map(r => Number(r.replace('R', '')))
+        .filter(r => /^R\d+$/.test(r))
+        .map(r => Number(r.slice(1)))
 
     const proximoNumero = numeros.length
         ? Math.max(...numeros) + 1
@@ -864,6 +873,7 @@ function gerarDadosComposicoes(esquema = {}) {
     const adicionar = (codigo, item = {}) => {
         const qtde = Number(item.qtde) || 0
         const custo = Number(item.custo) || 0
+        const custoOriginal = Number(item.custo_original || custo) || 0
 
         if (!acc[codigo]) {
             acc[codigo] = {
@@ -871,13 +881,15 @@ function gerarDadosComposicoes(esquema = {}) {
                 codigo,
                 qtde: 0,
                 _somaCusto: 0,
-                _countCusto: 0
+                _somaCustoOriginal: 0,
+                _temCustoOriginal: false
             }
         } else {
             for (const [chave, valor] of Object.entries(item)) {
                 if (
                     chave !== 'qtde' &&
                     chave !== 'custo' &&
+                    chave !== 'custo_original' &&
                     chave !== 'agrupamento' &&
                     (acc[codigo][chave] === undefined || acc[codigo][chave] === null || acc[codigo][chave] === '')
                 ) {
@@ -887,8 +899,9 @@ function gerarDadosComposicoes(esquema = {}) {
         }
 
         acc[codigo].qtde += qtde
-        acc[codigo]._somaCusto += custo
-        acc[codigo]._countCusto++
+        acc[codigo]._somaCusto += custo * qtde
+        acc[codigo]._somaCustoOriginal += custoOriginal * qtde
+        acc[codigo]._temCustoOriginal ||= Boolean(item.custo_original)
     }
 
     for (const [codigoMaster, comp] of Object.entries(esquema || {})) {
@@ -901,14 +914,15 @@ function gerarDadosComposicoes(esquema = {}) {
 
     return Object.fromEntries(
         Object.entries(acc).map(([codigo, item]) => {
-            const { _somaCusto, _countCusto, agrupamento, ...resto } = item
+            const { _somaCusto, _somaCustoOriginal, _temCustoOriginal, custo_original, agrupamento, ...resto } = item
 
             return [
                 codigo,
                 {
                     ...resto,
                     codigo,
-                    custo: _countCusto ? _somaCusto / _countCusto : 0
+                    custo: item.qtde ? _somaCusto / item.qtde : 0,
+                    ...(_temCustoOriginal ? { custo_original: item.qtde ? _somaCustoOriginal / item.qtde : 0 } : {})
                 }
             ]
         })
@@ -933,6 +947,7 @@ async function enviarDadosOrcamento() {
     const orcamentoBase = baseOrcamento()
 
     const { dados_orcam } = orcamentoBase || {}
+    sincronizarRevisaoAtual(orcamentoBase)
 
     // Salvar o usuário na primeira vez apenas;
     if (!orcamentoBase.usuario)

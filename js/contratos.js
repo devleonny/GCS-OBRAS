@@ -75,7 +75,7 @@ function criarLinhaContrato(dados) {
             <td>${usuario || ''}</td>
             <td>${observacao || ''}</td>
             <td style="text-align: center;">
-                <img src="imagens/pesquisar2.png" onclick="gerenciarContrato('${id}')">
+                <img src="imagens/pesquisar.svg" onclick="gerenciarContrato('${id}')">
             </td>
         </tr>
     `

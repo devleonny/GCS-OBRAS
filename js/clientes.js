@@ -330,7 +330,7 @@ function criarLinhaClienteGCS(cliente) {
 
     const tds = `
         <td>
-            <img src="imagens/pesquisar2.png" onclick="formularioCliente(${id})">
+            <img src="imagens/pesquisar.svg" onclick="formularioCliente(${id})">
         </td>
 
         <td>${renderAppsCircle(cnpj ? id : null, Object.keys(apps || []))}</td>

@@ -407,7 +407,7 @@ function carregarCorrecoes(ocorrencia) {
 
                     ${btnAprovar}
 
-                    ${pagamentoParceiro ? modelo('Ver LPU Parceiro', `<img src="imagens/cotacao.png" onclick="gerarPdfParceiro('${idCorrecao}', true)">`) : ''}
+                    ${pagamentoParceiro ? modelo('Ver LPU Parceiro', `<img src="imagens/cotacao.png" onclick="gerarPdfParceiro('${correcao.lpu_id || idCorrecao}', true)">`) : ''}
 
                     ${modelo('Código de Autorização', autorizacao)}
 
@@ -537,11 +537,20 @@ async function confirmarAprovarPagamentoPaceiro(idOcorrencia, idCorrecaoLpuParce
             recuperarDado('dados_ocorrencias', idOcorrencia) || {}
         ])
 
-        if (pagamento)
-            return popup({ mensagem: 'Esse pagamento já foi lançado ao financeiro' })
+        if (pagamento) {
+            if (pagamento.lpu_parceiro_id && pagamento.aprovado_gerente_por)
+                await concluirAprovacaoParceiro(idCorrecaoLpuParceiro, pagamento.lpu_parceiro_id, idOcorrencia, pagamento)
+            return popup({ mensagem: 'Esse pagamento já foi lançado ao financeiro; registros de aprovação conferidos.' })
+        }
 
         const { correcoes } = ocorrencia
-        const { data_pagamento, tecnico } = correcoes?.[idCorrecaoLpuParceiro] || {}
+        const { data_pagamento, tecnico, lpu_id, valor_parcial } = correcoes?.[idCorrecaoLpuParceiro] || {}
+        if (lpu_id) {
+            const controle = await obterControlePagamentosParceiro(lpu_id)
+            const solicitacao = controle.linhas.find(item => item.id === idCorrecaoLpuParceiro)
+            if (!solicitacao || solicitacao.encerrada)
+                return popup({ mensagem: 'Esta solicitação foi encerrada. Consulte o histórico da LPU.' })
+        }
         const usuarioTecnico = tecnico?.[0]
 
         if (!usuarioTecnico)
@@ -551,7 +560,8 @@ async function confirmarAprovarPagamentoPaceiro(idOcorrencia, idCorrecaoLpuParce
             {
                 elemento: `
                     <span>Será criada uma fatura a pagar para <b>${usuarioTecnico}</b>, <br>escolha uma modalidade abaixo:</span>
-                    <button onclick="gerarPdfParceiro('${idCorrecaoLpuParceiro}', true)">Ver LPU</button>
+                    ${lpu_id ? `<strong>Valor desta parcela: ${dinheiro(valor_parcial)}</strong>` : ''}
+                    <button onclick="gerarPdfParceiro('${lpu_id || idCorrecaoLpuParceiro}', true)">Ver LPU</button>
                     `
             },
             {
@@ -572,7 +582,7 @@ async function confirmarAprovarPagamentoPaceiro(idOcorrencia, idCorrecaoLpuParce
             {
                 texto: 'Aprovar',
                 img: 'concluido',
-                funcao: `aprovarPagamentoParceiro('${idCorrecaoLpuParceiro}')`
+                funcao: `aprovarPagamentoParceiro('${idCorrecaoLpuParceiro}', '${idOcorrencia}')`
             },
             {
                 texto: 'Reprovar',
@@ -638,6 +648,15 @@ async function confirmarReprovacaoParceiro(idOcorrencia, idCorrecaoLpuParceiro) 
 
         overlayAguarde()
 
+        const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
+        const origem = ocorrencia?.correcoes?.[idCorrecaoLpuParceiro]
+        if (origem?.lpu_id) {
+            const controle = await obterControlePagamentosParceiro(origem.lpu_id)
+            const solicitacao = controle.linhas.find(item => item.id === idCorrecaoLpuParceiro)
+            if (!solicitacao || solicitacao.pagamento || solicitacao.encerrada)
+                return popup({ mensagem: 'Esta solicitação já foi processada.' })
+        }
+
         const { usuario } = acesso
         const correcao = {
             usuario,
@@ -653,7 +672,10 @@ async function confirmarReprovacaoParceiro(idOcorrencia, idCorrecaoLpuParceiro) 
         const { success } = await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${crypto.randomUUID()}`, correcao)
 
         if (!success)
-            popup({ mensagem: 'Falha ao tentar Reprovar: Fale com o suporte.' })
+            throw new Error('Falha ao tentar Reprovar: Fale com o suporte.')
+
+        if (origem?.lpu_id)
+            await salvarEtapaParceiro(`parceiros/${origem.lpu_id}/solicitacoes/${idCorrecaoLpuParceiro}/status`, 'Reprovada pelo gerente')
 
         removerTodosPopups()
 
@@ -664,7 +686,7 @@ async function confirmarReprovacaoParceiro(idOcorrencia, idCorrecaoLpuParceiro) 
 
 }
 
-async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro) {
+async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro, idOcorrencia) {
 
     try {
 
@@ -687,13 +709,30 @@ async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro) {
         if (modalidade == 3 && !dataPagamento)
             return popup({ mensagem: 'Não deixe a data em branco' })
 
+        const ocorrenciaOrigem = idOcorrencia ? await recuperarDado('dados_ocorrencias', idOcorrencia) : null
+        const origem = ocorrenciaOrigem?.correcoes?.[idCorrecaoLpuParceiro]
+        const idLpu = origem?.lpu_id || idCorrecaoLpuParceiro
+        const pagamentoExistente = await recuperarDado('lista_pagamentos', idCorrecaoLpuParceiro)
+        if (pagamentoExistente) {
+            if (pagamentoExistente.aprovado_gerente_por && idOcorrencia)
+                await concluirAprovacaoParceiro(idCorrecaoLpuParceiro, idLpu, idOcorrencia, pagamentoExistente)
+            return popup({ mensagem: 'Este pagamento já foi lançado ao financeiro; registros de aprovação conferidos.' })
+        }
+        const controle = await obterControlePagamentosParceiro(idLpu, idCorrecaoLpuParceiro)
+        const solicitacao = controle.linhas.find(item => item.id === idCorrecaoLpuParceiro)
+        if (origem?.lpu_id && (!solicitacao || solicitacao.encerrada))
+            return popup({ mensagem: 'Esta solicitação foi encerrada.' })
+        const valorPagamento = origem?.lpu_id ? Number(solicitacao.valor) : controle.total
+        if (!(valorPagamento > 0) || valorPagamento > controle.disponivel)
+            return popup({ mensagem: 'O valor desta solicitação supera o saldo disponível da LPU.' })
+
         const {
             tecnicos,
-            total,
             departamento,
             anexos,
             executor: criado
-        } = await recuperarDado('parceiros', idCorrecaoLpuParceiro) || {}
+        } = controle.parceiro
+        const total = valorPagamento
 
         // Apenas o departamento master recebe atualizações nos chamados;
         // Porém o centro de custo continua o do orçamento;
@@ -746,6 +785,9 @@ async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro) {
         `
 
         const pagamento = {
+            lpu_parceiro_id: idLpu,
+            solicitacao_parceiro_id: idCorrecaoLpuParceiro,
+            aprovado_gerente_por: usuario,
             excluido: null, // Caso tenha sido excluído o pagamento, isso vai ressuscitar o coitado;
             status: 'Aguardando aprovação da Diretoria',
             app,
@@ -775,19 +817,8 @@ async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro) {
             ]
         }
 
-        const correcao = {
-            usuario,
-            data: new Date().toLocaleString(),
-            aba: idCorrecaoLpuParceiro,
-            descricao: `🟢 Pagamento aprovado por ${usuario} no valor de ${dinheiro(total)}`,
-            dtCorrecao: '',
-            tipoCorrecao: 'WRuo2' // Solucionada;
-        }
-
-        await Promise.all([
-            enviar(`lista_pagamentos/${idCorrecaoLpuParceiro}`, pagamento),
-            enviar(`dados_ocorrencias/${departamentoMaster}/correcoes/${crypto.randomUUID()}`, correcao)
-        ])
+        await salvarEtapaParceiro(`lista_pagamentos/${idCorrecaoLpuParceiro}`, pagamento)
+        await concluirAprovacaoParceiro(idCorrecaoLpuParceiro, idLpu, departamentoMaster, pagamento)
 
         removerTodosPopups()
 
@@ -1170,8 +1201,8 @@ function criarLinhaOcorrencia(ocorrencia) {
 
             const btns = apenasAutorizados && id_orcamento
                 ? `
-                    <img src="imagens/pesquisar.png" onclick="abrirAtalhos('${id_orcamento}')">
-                    <img src="imagens/pasta2.png" onclick="abrirEsquema('${id_orcamento}')">
+                    <img class="pesquisar-branco" src="imagens/pesquisar.svg" onclick="abrirAtalhos('${id_orcamento}')">
+                    <img src="imagens/pasta.svg" onclick="abrirEsquema('${id_orcamento}')">
                 `
                 : ''
 
@@ -1536,7 +1567,11 @@ async function linParceiros(par) {
                     class="contorno-botoes" 
                     onclick="atualizarDadosParceiro('${id}')">
                     <img src="imagens/dinheirow.png" style="width: 1.5rem;">
-                    <label>Solicitar Pagamento</label>
+                    <label>Solicitar pagamento parcial</label>
+                </div>
+                <div style="background-color: ${cor}" class="contorno-botoes" onclick="historicoPagamentosParceiro('${id}')">
+                    <img src="imagens/historico.png" style="width: 1.5rem;">
+                    <label>Pagamentos e saldo</label>
                 </div>
             </div>
 
@@ -1771,8 +1806,8 @@ async function criarPesquisas() {
         'Tipo': { chave: 'tipos', path: 'tipo' },
         'Sistema': { chave: 'sistemas', path: 'sistema' },
         'Prioridade': { chave: 'prioridades', path: 'prioridade' },
-        'Última Correção': { chave: 'ultima_correcao', path: 'snapshots.ultimaCorrecao.*.nome', explode: { path: 'snapshots.ultimaCorrecao' } },
-        'Executor': { op: 'includes', chave: 'executores', path: 'snapshots.ultimaCorrecao.*.executor', explode: { path: 'snapshots.ultimaCorrecao' } },
+        'Última Correção': { chave: 'ultima_correcao', path: 'snapshots.ultimaCorrecao.*.nome' },
+        'Executor': { op: 'includes', chave: 'executores', path: 'snapshots.ultimaCorrecao.*.executor' },
         'Estado': { chave: 'estados', path: 'cliente.estado' },
         ...(
             acesso.permissao == 'cliente'
@@ -1801,7 +1836,7 @@ async function criarPesquisas() {
         const idFiltro = controles?.ocorrencias?.idFiltro
 
         const funcao = ['diretoria', 'adm'].includes(acesso.permissao)
-            ? `<img src="imagens/pesquisar.png" style="width: 1.5rem;" onclick="formFiltro(${idFiltro ? `'${idFiltro}'` : ''})">`
+            ? `<img class="pesquisar-branco" src="imagens/pesquisar.svg" style="width: 1.5rem;" onclick="formFiltro(${idFiltro ? `'${idFiltro}'` : ''})">`
             : ''
 
         filtros.push(`

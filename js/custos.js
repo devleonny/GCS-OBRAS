@@ -210,17 +210,17 @@ async function tabPagamentosCusto(contrato) {
         const pag = 'custosPagamentos'
         const tabela = await modTab({
             pag,
+            alturaMinima: '60dvh',
             body: 'bodyCustosPagamentos',
             criarLinha: 'criarLinhaCustoPagamento',
-            base: 'lista_pagamentos',
-            explode: { path: 'snapshots.categorias' },
+            base: 'vw_pagamentos_categorias',
             filtros: {
-                'snapshots.categorias.*.departamento': { op: '=', value: contrato },
+                'departamento': { op: '=', value: contrato },
                 'param.*.codigo_tipo_documento': { op: '!=', value: 'CTE' },
             },
             colunas: {
                 'Data': { chave: 'param.*.data_previsao', tipoPesquisa: 'data' },
-                'Valor': { chave: 'descricao' },
+                'Valor': { chave: 'valor' },
                 'Categoria': { chave: 'categoria' },
                 'Status': { chave: 'status' },
                 'Solicitante': { chave: 'criado' },
@@ -272,7 +272,7 @@ async function criarLinhaCustoPagamento(pagamento) {
             <div style="white-space: pre-wrap;">${observacao || ''}</div>
         </td>
         <td>
-            <img src="imagens/pesquisar2.png" onclick="abrirDetalhesPagamentos('${pagamento.id}')">
+            <img src="imagens/pesquisar.svg" onclick="abrirDetalhesPagamentos('${pagamento.pagamento_id}')">
         </td>
         `
 

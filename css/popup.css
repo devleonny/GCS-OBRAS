@@ -339,7 +339,7 @@
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
     background-color: #eef3f0;
     gap: 8px;
     padding: 10px 12px;
@@ -352,9 +352,45 @@
 }
 
 
+.rodape-conteudo {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: left;
+    overflow-wrap: anywhere;
+    color: #324b3c;
+}
+
+.rodape-acoes {
+    display: flex;
+    flex: 0 1 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+    margin-left: auto;
+}
+
+.rodape-resumo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 12px;
+    padding: 4px 0;
+    font-size: 12px;
+}
+
+.rodape-resumo strong {
+    font-size: 18px;
+    color: #356443;
+    font-variant-numeric: tabular-nums;
+}
+
 /* Botões */
 .botoes-rodape {
-    flex: 1 1 100px;
+    flex: 0 1 auto;
+    max-width: 100%;
+    overflow-wrap: anywhere;
     cursor: pointer;
     background-color: #fff;
     color: #356443;
@@ -426,12 +462,4 @@
         min-width: min(250px, calc(100vw - 34px));
     }
 
-    .botoes-rodape {
-        justify-content: start;
-        flex: 1 1 100%;
-    }
-
-    .botoes-rodape img {
-        margin-left: 1rem;
-    }
 }

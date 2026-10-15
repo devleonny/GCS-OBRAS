@@ -41,7 +41,7 @@ function linAcoes(pda) {
         <tr>    
             <div class="etiqueta-${estilo}" style="width: 95%; flex-direction: row; gap: 0.5rem; margin: 1px;">
 
-                <img src="imagens/pesquisar2.png" style="width: 2rem;" onclick="irAcao('${id}')">
+                <img src="imagens/pesquisar.svg" style="width: 2rem;" onclick="irAcao('${id}')">
 
                 <div style="${vertical};">
                     <span><b>ID:</b> ${contrato}</span>

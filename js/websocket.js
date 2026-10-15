@@ -327,6 +327,8 @@ async function comunicacao() {
                 if (document.visibilityState === 'visible') {
                     balaoNotificacao({
                         imagem: `imagens/${status}.png`,
+                        usuario,
+                        status,
                         texto: `${usuario} ${status}`
                     })
                 }
@@ -376,7 +378,9 @@ async function carregarControles() {
     if (cabecalhoUsuario)
         cabecalhoUsuario.innerHTML = barraStatus.join('')
 
-    await usuariosToolbar()
-    await verificarPendencias()
-    await verificarPostIts()
+    await Promise.allSettled([
+        usuariosToolbar(),
+        verificarPendencias(),
+        verificarPostIts()
+    ])
 }

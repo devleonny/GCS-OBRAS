@@ -146,7 +146,7 @@ async function criarTabelaTecDetalhada(tecnico = null) {
         const tabela = await modTab({
             pag,
             filtros,
-            base: 'vw_tecnicos_movimentos',
+            base: 'vw_tecnicos_movimentos_itens',
             colunas: {
                 'Data': { chave: 'data', tipoPesquisa: 'data' },
                 'Solicitante': { chave: 'usuario' },
@@ -159,10 +159,7 @@ async function criarTabelaTecDetalhada(tecnico = null) {
                 'Quantidade': { chave: 'quantidade' },
                 'Origem': { chave: 'origem' },
                 'Código': { chave: 'codigo' },
-                'Descrição': { chave: 'equipamentos.*.descricao' }
-            },
-            explode: {
-                path: 'equipamentos'
+                'Descrição': { chave: 'descricao' }
             },
             body: 'bodyTecnicos',
             criarLinha: 'criarLinhaMovimento'

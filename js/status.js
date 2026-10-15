@@ -20,7 +20,8 @@ const fluxograma = [
     'PENDENTE PEDIDO',
     'REPROVADO PELO FINANCEIRO',
     'CONCLUÍDO',
-    'FATURADO'
+    'FATURADO',
+    'FERRAMENTAS'
 ]
 
 const esquemaBtnStatus = [
@@ -734,27 +735,31 @@ async function abrirEsquema(id) {
         const elemento = `
             <div class="painel-historico">
 
-                <div style="${horizontal}; justify-content: start; gap: 1rem;">
-
-                    <div class="status-check-ocorrencias"></div>
-
-                    <div style="${vertical}; gap: 2px;">
-                        <label>Status da Ocorrência</label>
-                        ${labelTipoCorrecao}
+                <div class="historico-cabecalho">
+                    <div class="historico-identificacao">
+                        <span class="historico-contrato">${escaparAtributo(contrato || '')}</span>
+                        <span class="historico-cliente">${escaparAtributo(cliente || 'Cliente não informado')}</span>
                     </div>
-
-                    <div style="${vertical}; gap: 2px;">
-                        <label>Status do Orçamento</label>
-                        <span class="and">${status_atual}</span>
-                    </div>
-
-                    <img onclick="verHistoricoStatus('${id}')" src="imagens/historico.png">
-
-                    <label style="font-size: 1.5rem;">${contrato} - ${cliente || '??'}</label>
-
+                    <button class="historico-ver-status" onclick="verHistoricoStatus('${id}')">
+                        <img src="imagens/historico.png" alt="">
+                        Histórico de status
+                    </button>
                 </div>
 
-                <hr>
+                <div class="historico-resumo">
+                    <div class="historico-resumo-item">
+                        <label class="historico-rotulo">Chamado</label>
+                        <div class="status-check-ocorrencias"></div>
+                    </div>
+                    <div class="historico-resumo-item">
+                        <label class="historico-rotulo">Status da Ocorrência</label>
+                        <div class="historico-status-lista">${labelTipoCorrecao}</div>
+                    </div>
+                    <div class="historico-resumo-item">
+                        <label class="historico-rotulo">Status do Orçamento</label>
+                        <span class="and">${escaparAtributo(status_atual || 'Sem status')}</span>
+                    </div>
+                </div>
 
                 <div class="bloco-st"></div>
 
@@ -807,14 +812,15 @@ async function abrirEsquema(id) {
                     const tabela = await modTab(dados)
 
                     local.insertAdjacentHTML('beforeend', `
-                        <div style="${vertical}; gap: 2px;">
+                        <section class="historico-secao" style="--cor-secao: ${cor};">
                             <button
+                                class="historico-secao-acao"
                                 style="background-color: ${cor};" 
                                 onclick="${funcao}">
                                 ${titulo}
                             </button>
                             ${tabela}
-                        </div>
+                        </section>
                     `)
 
                     await paginacao(chave)
@@ -948,8 +954,9 @@ async function confirmarApagarGenerico(id, tabela) {
 
         if (tabela == 'parceiros') {
             const pagamento = await recuperarDado('lista_pagamentos', id)
+            const parceiro = await recuperarDado('parceiros', id)
 
-            if (pagamento)
+            if (pagamento || Object.keys(parceiro?.solicitacoes || {}).length)
                 return popup({ mensagem: 'Você não pode excluir essa LPU: Já existe um pagamento solicitado.' })
 
             // Deletar também o cartão da correção;

@@ -1,3 +1,26 @@
+.veiculo-detalhes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    text-align: left;
+}
+
+.veiculo-detalhes > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    border: 1px solid #a9c5b2;
+    border-radius: 8px;
+    background: #e2efe7;
+    color: #324b3c;
+}
+
+.veiculo-detalhes span {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
 .motoristas {
     display: flex;
     align-items: start;

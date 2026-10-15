@@ -7,28 +7,25 @@ function criarMenus(chave) {
     const lista = esquemaBotoes[chave] || []
 
     const html = lista
-        .map((item, i) => {
-
-            const permitido = item.permitido || []
-            const bloqueio = item.bloqueio || []
-
-            if (permitido.length > 0 && !permitido.includes(permissao)) {
-                return ''
-            }
-
-            if (permitido.length === 0 && bloqueio.includes(permissao)) {
-                return ''
-            }
-
-            return renderMenuItem(item, `menu_${i}`, 0)
-        })
+        .map((item, i) => renderMenuItem(item, `menu_${i}`, 0, permissao))
         .join('')
 
     botoesMenu.innerHTML = html
 }
 
-function renderMenuItem(item, id, nivel) {
-    const temFilhos = item.sub && item.sub.length
+function renderMenuItem(item, id, nivel, permissao) {
+    const permitido = item.permitido || []
+    const bloqueio = item.bloqueio || []
+
+    if (permitido.length > 0 && !permitido.includes(permissao)) return ''
+    if (permitido.length === 0 && bloqueio.includes(permissao)) return ''
+
+    const filhos = (item.sub || [])
+        .map((sub, i) => renderMenuItem(sub, `${id}_${i}`, nivel + 1, permissao))
+        .join('')
+    const temFilhos = Boolean(filhos)
+
+    if (item.sub?.length && !temFilhos && !item.funcao) return ''
 
     return `
         <div class="menu-item">
@@ -40,10 +37,7 @@ function renderMenuItem(item, id, nivel) {
 
             ${temFilhos ? `
                 <div class="menu-secundario" id="${id}">
-                    ${item.sub
-                .map((sub, i) => renderMenuItem(sub, `${id}_${i}`, nivel + 1))
-                .join('')
-            }
+                    ${filhos}
                 </div>
             ` : ''}
         </div>
@@ -177,9 +171,30 @@ const esquemaBotoes = {
             sub: [
                 { nome: 'Ver Ocorrências', funcao: 'telaOcorrencias', img: 'alerta' },
                 { nome: 'Criar Ocorrência', funcao: 'formularioOcorrencia', img: 'baixar' },
-                { nome: 'Relatório de Ocorrências', funcao: 'telaRelatorio', img: 'planilha' },
-                { nome: 'Relatório de Correções', funcao: 'telaRelatorioCorrecoes', img: 'planilha' },
-                { nome: 'Relatório de Peças', funcao: 'telaRelatorioPecas', img: 'planilha' }
+                {
+                    nome: 'Relatório de Ocorrências',
+                    funcao: 'telaRelatorio',
+                    img: 'planilha',
+                    sub: [
+                        { nome: 'Baixar em Excel', funcao: 'baixarExcelRelatorioOcorrencias', img: 'excel' }
+                    ]
+                },
+                {
+                    nome: 'Relatório de Correções',
+                    funcao: 'telaRelatorioCorrecoes',
+                    img: 'planilha',
+                    sub: [
+                        { nome: 'Baixar em Excel', funcao: 'baixarExcelRelatorioCorrecoes', img: 'excel' }
+                    ]
+                },
+                {
+                    nome: 'Relatório de Peças',
+                    funcao: 'telaRelatorioPecas',
+                    img: 'planilha',
+                    sub: [
+                        { nome: 'Baixar em Excel', funcao: 'baixarExcelRelatorioPecas', img: 'excel' }
+                    ]
+                }
             ]
         },
         {
@@ -229,7 +244,12 @@ const esquemaBotoes = {
             sub: [
                 { nome: 'Ver Pagamentos', funcao: 'telaPagamentos', img: 'reembolso' },
                 { nome: 'Solicitar Pagamento', funcao: 'formularioPagamento', img: 'dinheiro' },
-                { nome: 'Baixar Excel', funcao: 'baixarExcelRelatorioPagamentos', img: 'excel' }
+                {
+                    nome: 'Baixar Excel',
+                    permitido: ['fin', 'diretoria', 'adm'],
+                    funcao: 'baixarExcelRelatorioPagamentos',
+                    img: 'excel'
+                }
             ]
         },
         {

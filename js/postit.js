@@ -414,26 +414,28 @@ async function excluirPIT(id) {
 
 async function verificarPostIts() {
 
-    if (!navigator.onLine)
-        return
-
-    const dados = await pesquisarDB({
-        base: 'postit',
-        filtros: {
-            'usuario': { op: '=', value: acesso.usuario },
-            'status': { op: '!=', value: 'S' },
-            'prazo': { op: '<=d', value: new Date().toLocaleDateString() }
-        }
-    })
-
     const contadorPostIt = document.getElementById('contadorPostIt')
-    if (!contadorPostIt)
+    if (!navigator.onLine || !contadorPostIt)
         return
 
-    contadorPostIt.style.display = dados.total > 0
-        ? 'flex'
-        : 'none'
+    try {
+        const dados = await pesquisarDB({
+            base: 'postit',
+            filtros: {
+                'usuario': { op: '=', value: acesso.usuario },
+                'status': { op: '!=', value: 'S' },
+                'prazo': { op: '<=d', value: new Date().toLocaleDateString() }
+            }
+        })
 
-    contadorPostIt.textContent = dados.total
+        contadorPostIt.style.display = dados.total > 0
+            ? 'flex'
+            : 'none'
+
+        contadorPostIt.textContent = dados.total
+    } catch {
+        contadorPostIt.style.display = 'none'
+        contadorPostIt.textContent = ''
+    }
 
 }

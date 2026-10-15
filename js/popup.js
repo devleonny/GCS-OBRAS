@@ -10,6 +10,7 @@ function popup({
     cor = '#ebebeb',
     linhas = [],
     botoes = [],
+    conteudoRodape = '',
     titulo,
     removerAnteriores = false
 }) {
@@ -22,7 +23,7 @@ function popup({
     autoDestruicaoGlobal[idPopup] = autoDestruicao
     configPopupGlobal[idPopup] = { removerAnteriores }
 
-    const arredondado = botoes.length
+    const arredondado = botoes.length || conteudoRodape
         ? ''
         : 'border-bottom-left-radius: 10px; border-bottom-right-radius: 10px;'
 
@@ -86,14 +87,14 @@ function popup({
             </div>`
     }
 
-    const botaoPadrao = ({ funcao = '', img = 'concluido', texto, fechar = false }) => {
+    const botaoPadrao = ({ id, funcao = '', img = 'concluido', texto, fechar = false }) => {
 
         img = img.includes('/')
             ? img 
             : `imagens/${img}.png` 
             
         return `
-        <div onclick="${funcao}${fechar ? `${funcao ? ';' : ''}${removerAnteriores ? 'removerTodosPopups()' : `removerPopup('${idPopup}')`}` : ''}" class="botoes-rodape">
+        <div ${id ? `id="${escaparAtributo(id)}"` : ''} onclick="${funcao}${fechar ? `${funcao ? ';' : ''}${removerAnteriores ? 'removerTodosPopups()' : `removerPopup('${idPopup}')`}` : ''}" class="botoes-rodape">
             <img src="${img}">
             <span>${texto}</span>
         </div>
@@ -123,8 +124,11 @@ function popup({
         `
     }
 
-    const rodape = botoes.length
-        ? `<div class="rodape-padrao">${botoes.map(botaoPadrao).join('')}</div>`
+    const rodape = botoes.length || conteudoRodape
+        ? `<div class="rodape-padrao">
+            ${conteudoRodape ? `<div class="rodape-conteudo">${conteudoRodape}</div>` : ''}
+            ${botoes.length ? `<div class="rodape-acoes">${botoes.map(botaoPadrao).join('')}</div>` : ''}
+        </div>`
         : ''
 
     const html = `
