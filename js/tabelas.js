@@ -428,6 +428,7 @@ async function paginacao(pag) {
             ordenar,
             alinPag = horizontal,
             criarLinha,
+            consultarDados,
             funcaoAdicional,
             filtros
         } = controles[pag] || {}
@@ -454,12 +455,14 @@ async function paginacao(pag) {
         const tabela = tbody.parentElement
         const cols = tabela.querySelector('thead tr')?.children.length || 1
 
-        if (!mesmaConsulta || !tbody.children.length) {
+        // Bases locais são renderizadas diretamente. Apagar antes cria um colapso
+        // temporário da página e altera a rolagem do catálogo abaixo do orçamento.
+        if (!consultarDados && (!mesmaConsulta || !tbody.children.length)) {
             tbody.innerHTML = ''
             tbody.appendChild(criarLoading(cols))
         }
 
-        const dados = await pesquisarDB({
+        const dados = await (consultarDados || pesquisarDB)({
             limite,
             base: baseResolvida,
             substituicoes,
@@ -470,7 +473,7 @@ async function paginacao(pag) {
         })
 
         // Para casos de base objeto;
-        if (typeof base === 'object' && controles[pag]?.priBase !== 'S') {
+        if (!consultarDados && typeof base === 'object' && controles[pag]?.priBase !== 'S') {
             controles[pag].priBase = 'S'
             controles[pag].base = dados.resultados
         }

@@ -12,7 +12,7 @@ async function salvarEtapaParceiro(caminho, dados) {
 async function validarSaldoPagamentoParceiro(pagamento, id) {
     if (!pagamento?.lpu_parceiro_id) return
     const c = await obterControlePagamentosParceiro(pagamento.lpu_parceiro_id, id)
-    const valor = arredondarValorParceiro((pagamento.param || []).reduce((soma, item) => soma + Number(item.valor_documento || 0), 0))
+    const valor = arredondarValorParceiro((pagamento.param_estavel ? [pagamento.param_estavel] : pagamento.param || []).reduce((soma, item) => soma + Number(item.valor_documento || 0), 0))
     const solicitacao = c.parceiro.solicitacoes?.[id]
     if (solicitacao && valor !== arredondarValorParceiro(solicitacao.valor))
         throw new Error('O valor do pagamento deve permanecer igual ao da solicitação parcial aprovada.')
@@ -24,7 +24,7 @@ async function concluirAprovacaoParceiro(id, idLpu, idOcorrencia, pagamento) {
     const idRegistro = `${id}_aprovacao`
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
     if (!ocorrencia?.correcoes?.[idRegistro]) {
-        const valor = (pagamento.param || []).reduce((soma, item) => soma + Number(item.valor_documento || 0), 0)
+        const valor = (pagamento.param_estavel ? [pagamento.param_estavel] : pagamento.param || []).reduce((soma, item) => soma + Number(item.valor_documento || 0), 0)
         await salvarEtapaParceiro(`dados_ocorrencias/${idOcorrencia}/correcoes/${idRegistro}`, {
             usuario: pagamento.aprovado_gerente_por || acesso.usuario,
             data: pagamento.data_registro,
@@ -66,7 +66,7 @@ async function obterControlePagamentosParceiro(id, ignorarSolicitacao = null) {
         const status = String(pagamento?.status || linha.status || '')
         const liberado = pagamento?.excluido || /reprovad|cancelad|excluíd|excluid|falha na solicitação/i.test(status)
         const valor = arredondarValorParceiro(pagamento
-            ? (pagamento.param || []).reduce((soma, item) => soma + Number(item.valor_documento || 0), 0)
+            ? (pagamento.param_estavel ? [pagamento.param_estavel] : pagamento.param || []).reduce((soma, item) => soma + Number(item.valor_documento || 0), 0)
             : linha.valor)
         linha.valor = valor
         linha.statusAtual = status
