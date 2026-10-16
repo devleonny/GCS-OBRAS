@@ -1,3 +1,169 @@
+.popup .tela-detalhes {
+    background: #f7f9f8;
+    color: #324b3c;
+    width: min(640px, 88vw);
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.tela-detalhes .balao {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px;
+    gap: 12px;
+    background: #dcebe1;
+    border-bottom: 1px solid #b0cbb9;
+}
+
+.tela-detalhes .balao textarea {
+    flex: 1;
+    min-width: 0;
+    min-height: 90px;
+    margin: 0;
+    padding: 10px;
+    box-sizing: border-box;
+    background: white;
+    border: 1px solid #cddbd2;
+    border-radius: 8px;
+    color: #324b3c;
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+.tela-detalhes textarea:focus,
+.tela-detalhes select:focus {
+    outline: 2px solid #8cb69a;
+    outline-offset: 1px;
+}
+
+.tela-detalhes .detalhes-pagamento {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px;
+    gap: 12px;
+    min-width: 0;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.tela-detalhes .bloco-arredondado {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px;
+    gap: 10px;
+    border: 1px solid #dfe7e2;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px #17251e08;
+}
+
+.tela-detalhes .bloco-arredondado > div {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.tela-detalhes .btn-detalhes {
+    box-sizing: border-box;
+    min-width: 0;
+    padding: 8px 10px;
+    gap: 10px;
+    border: 1px solid #aac5b3;
+    border-radius: 7px;
+    background: #dcebe1;
+    color: #324b3c;
+}
+
+.tela-detalhes .btn-detalhes:hover {
+    background: #c5dfce;
+    border-color: #8fb39c;
+    color: #324b3c;
+}
+
+.tela-detalhes .btn-detalhes label {
+    padding: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.tela-detalhes .btn-detalhes img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.tela-detalhes select {
+    padding: 8px 10px;
+    max-width: 100%;
+    border: 1px solid #cddbd2;
+    border-radius: 7px;
+    background: #f8faf9;
+    color: #324b3c;
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.tela-detalhes .valor-total-pagamento {
+    display: inline-block;
+    text-align: center;
+    width: fit-content;
+    padding: 6px 18px;
+    background: #c5dfce;
+    border: 1px solid #9dbda8;
+    border-radius: 7px;
+    color: #356443;
+    font-size: 18px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.tela-detalhes .vitrificado {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 12px;
+    gap: 12px;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 2px 6px #17251e08;
+    align-items: flex-start;
+    overflow-wrap: anywhere;
+}
+
+.tela-detalhes .vitrificado > div {
+    min-width: 0;
+    flex: 1;
+}
+
+.tela-detalhes .vitrificado > img {
+    width: 24px;
+    flex-shrink: 0;
+}
+
+.tela-detalhes .detalhes-anexos {
+    gap: 8px;
+}
+
+@media (max-width: 480px) {
+    .tela-detalhes .balao {
+        flex-direction: column;
+    }
+
+    .tela-detalhes .balao > div {
+        flex-direction: row !important;
+        flex-wrap: wrap;
+    }
+
+    .tela-detalhes .balao textarea {
+        width: 100%;
+        flex: 0 0 auto;
+    }
+}
+
 .formulario-pagamento {
     display: flex;
     align-items: start;
@@ -213,12 +379,13 @@
     align-items: end;
     justify-content: start;
     flex-direction: column;
-    gap: 2px;
+    gap: 8px;
     width: 30%;
 }
 
 .painelDireito {
     width: 70%;
+    min-width: 0;
 }
 
 .balao-pagamentos {
@@ -226,40 +393,81 @@
     width: 100%;
     display: flex;
     align-items: center;
-    justify-content: center;
-    border-radius: 5px;
-    overflow: hidden;
-    align-items: stretch;
+    justify-content: space-between;
+    border-radius: 10px;
+    min-height: 64px;
+    padding: 12px;
+    gap: 12px;
+    box-sizing: border-box;
+    border: 1px solid #dfe7e2;
+    background: #fff;
+    box-shadow: 0 2px 6px #17251e0a;
+    transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.balao-pagamentos:hover {
+    background: #f3f8f5;
+    border-color: #a9c9b3;
+}
+
+.balao-pagamentos.selecionado {
+    background: #edf6f0;
+    border-color: #76a987;
+    box-shadow: inset 3px 0 #52745c;
 }
 
 .balao-pagamentos label {
-    width: max-content;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-align: left;
+    line-height: 1.5;
+    font-size: 12px;
+    font-weight: 500;
+    color: #324b3c;
     cursor: pointer;
 }
 
 .balao-pagamentos img {
-    width: 2rem;
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
+    flex-shrink: 0;
 }
 
 .balao-pagamentos .dir {
-    width: 60%;
-    gap: 1rem;
-    padding: 0.5rem;
+    flex: 1;
+    min-width: 0;
+    gap: 10px;
     display: flex;
     align-items: center;
     justify-content: start;
-    background: #d2d2d2;
 }
 
 .balao-pagamentos .esq {
-    width: 40%;
-    padding: 1rem;
+    min-width: 42px;
+    min-height: 36px;
+    padding: 4px 10px;
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
-    flex: 1;
-    background: #b7b7b7;
+    font-size: 18px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+    border-radius: 7px;
+    color: #356443;
+    background: #eef4f0;
+}
+
+.balao-pagamentos.selecionado .esq {
+    background: #d8eadf;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .balao-pagamentos {
+        transition: none;
+    }
 }
 
 .listagem-departamentos {
@@ -284,4 +492,109 @@
     .divPagamentos {
         flex-direction: column;
     }
+}
+.pagamento-lista-baloes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.pagamento-balao.tag-pendencias {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 4px 9px;
+    border: 1px solid #bdd4c5;
+    border-radius: 12px;
+    background: #e2efe7;
+    color: #324b3c;
+    font-size: 11px;
+    line-height: 1.4;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    cursor: default;
+}
+
+.pagamento-balao-departamento.tag-pendencias {
+    border-color: #9dbda8;
+    background: #cce2d3;
+    color: #254c31;
+    cursor: pointer;
+}
+
+.pagamento-balao-departamento:hover {
+    background: #b8d7c2;
+}
+.pagamentos-pesquisas-referencias {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 6px 0;
+}
+.pagamentos-pesquisas-referencias label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: white;
+    font-size: 11px;
+}
+.pagamentos-pesquisas-referencias input {
+    width: 210px;
+    max-width: 100%;
+    padding: 7px 10px;
+    border: 1px solid #cddbd2;
+    border-radius: 7px;
+    background: white;
+    color: #29382f;
+    font-size: 11px;
+    box-sizing: border-box;
+}
+.pagamentos-referencias-detalhes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px 32px;
+}
+.pagamentos-referencias-detalhes > div { display: grid; gap: 8px; }
+
+.divPagamentos .pagamentos-status-lateral {
+    flex: 0 0 108px;
+    width: 108px;
+    min-width: 0;
+    position: relative;
+    z-index: 10;
+}
+.pagamentos-status-lateral .painelEsquerdo {
+    width: 108px;
+    align-items: stretch;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+.pagamentos-status-lateral .balao-pagamentos {
+    min-height: 52px;
+    padding: 8px;
+    gap: 6px;
+}
+.pagamentos-status-lateral .balao-pagamentos label { display: none; }
+.pagamentos-status-lateral .balao-pagamentos .dir { flex: 0 0 26px; }
+.pagamentos-status-lateral .balao-pagamentos .esq {
+    min-width: 44px;
+    padding: 4px 6px;
+    font-size: 15px;
+}
+.pagamentos-status-lateral:hover .painelEsquerdo,
+.pagamentos-status-lateral:focus-within .painelEsquerdo {
+    width: min(360px, calc(100vw - 64px));
+}
+.pagamentos-status-lateral:hover .balao-pagamentos label,
+.pagamentos-status-lateral:focus-within .balao-pagamentos label { display: block; }
+.pagamentos-status-lateral:hover .balao-pagamentos .dir,
+.pagamentos-status-lateral:focus-within .balao-pagamentos .dir { flex: 1; }
+.divPagamentos .painelDireito { flex: 1; width: auto; min-width: 0; }
+.pagamentos-status-lateral .balao-pagamentos:focus-visible { outline: 2px solid #52745c; outline-offset: 2px; }
+@media screen and (orientation: portrait) {
+    .divPagamentos { flex-direction: row; gap: 8px; padding: 8px; }
 }

@@ -1,3 +1,135 @@
+.composicao-detalhes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 10px;
+    text-align: left;
+}
+
+.composicao-bloco {
+    flex: 0 1 auto;
+    max-width: 100%;
+    min-width: 0;
+    border: 1px solid #dfe7e2;
+    border-radius: 10px;
+    background: white;
+    overflow: hidden;
+}
+
+.composicao-bloco-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 6px 10px;
+    background: #edf3ef;
+}
+
+.composicao-bloco-topo h3 {
+    margin: 0;
+    color: #324b3c;
+    font-size: 13px;
+}
+
+.composicao-contagem {
+    margin-left: 6px;
+    padding: 2px 7px;
+    background: #dcebe1;
+    border-radius: 20px;
+    font-size: 11px;
+}
+
+.composicao-agrupamento {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0;
+    padding: 5px 10px;
+    font-size: 11px;
+}
+
+.composicao-agrupamento img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+}
+
+.composicao-tabela-contorno {
+    overflow: auto;
+    max-height: 180px;
+}
+
+.composicao-tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.composicao-tabela > thead {
+    position: static;
+    z-index: auto;
+    box-shadow: none;
+}
+
+.composicao-tabela > thead > tr > th,
+.composicao-tabela > tbody > tr > td {
+    padding: 5px 10px;
+    border: 0;
+    border-bottom: 1px solid #e8eeea;
+    text-align: left;
+}
+
+.composicao-tabela > tbody > tr:last-child > td {
+    border-bottom: 0;
+}
+
+.composicao-tabela .composicao-numero {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.composicao-codigo {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 5px;
+    background: #f1f5f2;
+    color: var(--cor-tipo);
+    font-weight: 600;
+}
+
+.composicao-preco {
+    display: inline-block;
+    margin: 0;
+    padding: 5px 9px;
+    border: 1px solid #cdded3;
+    border-radius: 6px;
+    background: #eff7f1;
+    color: #356443;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.composicao-preco.sem-valor {
+    background: #fff1ef;
+    color: #a63c3c;
+    border-color: #eed3cf;
+}
+
+.composicao-vazio {
+    margin: 0;
+    padding: 8px 10px;
+    color: #65756b;
+}
+
+.composicao-bloco-precos .composicao-tabela th,
+.composicao-bloco-precos .composicao-tabela td {
+    text-align: center;
+    white-space: nowrap;
+}
+
 .valor_zero {
     cursor: pointer;
     white-space: nowrap;

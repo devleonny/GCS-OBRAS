@@ -107,7 +107,8 @@ async function telaInicialGCS() {
 
     criarElementosIniciais()
     auxPendencias()
-    carregarControles()
+    await carregarControles()
+    await carregarComunicadoGCS()
 
 }
 
@@ -161,7 +162,7 @@ async function mudarStatus(id, select) {
 
 }
 
-function balaoNotificacao({ imagem, texto, tempo = 5 }) {
+function balaoNotificacao({ imagem, texto, usuario, status, tempo = 5 }) {
 
     if (document.title == 'PDF')
         return
@@ -179,21 +180,29 @@ function balaoNotificacao({ imagem, texto, tempo = 5 }) {
             flex-direction: column-reverse;
             align-items: flex-end;
             gap: 10px;
-            max-width: 420px;
+            max-width: min(420px, calc(100vw - 32px));
         `;
         document.body.appendChild(container)
     }
 
     const msg = document.createElement('div')
     msg.className = 'popup-mensagem'
+    msg.setAttribute('role', 'status')
     msg.style.opacity = '0'
     msg.style.transform = 'translateY(20px)'
     msg.style.transition = 'opacity .4s ease, transform .4s ease'
 
     msg.innerHTML = `
-        <img src="${imagem || 'imagens/comentario.png'}">
-        <span>${texto}</span>
+        <img src="${escaparAtributo(imagem || 'imagens/comentario.png')}" alt="">
+        <div class="popup-mensagem-conteudo">
+            ${usuario !== undefined
+                ? `<strong>${escaparAtributo(usuario)}</strong><span class="popup-mensagem-status">${escaparAtributo(status || 'offline')}</span>`
+                : (texto || '')}
+        </div>
+        <button class="popup-mensagem-fechar" type="button" aria-label="Fechar notificação">×</button>
     `
+
+    msg.querySelector('.popup-mensagem-fechar').addEventListener('click', () => msg.remove())
 
     container.appendChild(msg);
 
@@ -219,10 +228,12 @@ async function usuariosToolbar() {
 
     const { permissao, usuario } = JSON.parse(localStorage.getItem('acesso')) || {}
 
-    const [uOnline, user] = await Promise.all([
+    const [contagem, cadastro] = await Promise.allSettled([
         contarPorCampo({ base: 'clientes', path: 'status' }),
         recuperarDado('clientes', acesso.id)
     ])
+    const uOnline = contagem.status === 'fulfilled' ? contagem.value : null
+    const user = cadastro.status === 'fulfilled' ? cadastro.value : null
 
     const usuariosToolbarString = `
         <div class="botao-usuarios">
@@ -338,6 +349,7 @@ async function painelUsuarios() {
     const pag = 'usuariosOnline'
     const tOnline = await modTab({
         pag,
+        alturaMinima: '300px',
         colunas,
         body: 'bodyUsuariosOnline',
         base: 'clientes',
@@ -550,7 +562,7 @@ async function criarLinhaAprovacao(orcamento) {
             </td>
             <td>${aprovacao?.justificativa || '--'}</td>
             <td>
-                <img src="imagens/pesquisar2.png" onclick="verPedidoAprovacao('${id}')">
+                <img src="imagens/pesquisar.svg" onclick="verPedidoAprovacao('${id}')">
             </td>
         </tr>
         `
@@ -559,20 +571,21 @@ async function criarLinhaAprovacao(orcamento) {
 
 async function verificarPendencias() {
 
-    if (!navigator.onLine)
-        return
-
-    const contador = await contarPorCampo({
-        base: 'dados_orcamentos',
-        path: 'aprovacao.status'
-    })
-
     const contadorPendencias = document.getElementById('contadorPendencias')
-    if (!contadorPendencias)
+    if (!navigator.onLine || !contadorPendencias)
         return
 
-    contadorPendencias.style.display = contador.pendente > 0 ? 'flex' : 'none'
-    contadorPendencias.textContent = contador.pendente
+    try {
+        const contador = await contarPorCampo({
+            base: 'dados_orcamentos',
+            path: 'aprovacao.status'
+        })
+        contadorPendencias.style.display = contador?.pendente > 0 ? 'flex' : 'none'
+        contadorPendencias.textContent = contador?.pendente || 0
+    } catch {
+        contadorPendencias.style.display = 'none'
+        contadorPendencias.textContent = ''
+    }
 
 }
 
@@ -601,6 +614,7 @@ async function verPedidoAprovacao(idOrcamento) {
     const tabela = await modTab({
         base,
         pag,
+        alturaMinima: '60dvh',
         body: pag,
         funcaoAdicional: ['formatarLinhasOrcamento', 'calcularSubtotais'],
         criarLinha: 'linhasOrcAprovacao',
@@ -621,9 +635,9 @@ async function verPedidoAprovacao(idOrcamento) {
 
     const divOrganizada = (valor, termo) => {
         return `
-            <div style="${vertical}; width: 100%; margin-bottom: 5px;">
-                <label style="text-align: left;"><b>${termo}</b></label>
-                <label style="text-align: left;"><small>${valor}</small></label>
+            <div class="pedido-aprovacao-campo campo-requisicao">
+                <span class="pedido-aprovacao-rotulo">${termo}</span>
+                <div class="pedido-aprovacao-valor">${valor}</div>
             </div>
             `
     }
@@ -636,21 +650,27 @@ async function verPedidoAprovacao(idOrcamento) {
     const linhas = [
         {
             elemento: `
-            <div style="${vertical}; gap: 5px;">
+            <div class="pedido-aprovacao requisicao-formulario">
                 
-                <div style="${horizontal}; gap: 2rem;">
-                    <div style="${vertical}">
+                <div class="pedido-aprovacao-resumo">
+                    <section class="pedido-aprovacao-cartao requisicao-contorno">
+                        <h3 class="requisicao-titulo">Dados do orçamento</h3>
+                        <div class="pedido-aprovacao-campos requisicao-dados">
                         ${divOrganizada(lpu_ativa, 'LPU')}
                         ${divOrganizada(usuario, 'Solicitante')}
                         ${divOrganizada(cliente || '?', 'Cliente')}
                         ${divOrganizada(cidade || '?', 'Localidade')}
-                    </div>
-                    <div style="${vertical}">
+                        </div>
+                    </section>
+                    <section class="pedido-aprovacao-cartao requisicao-contorno">
+                        <h3 class="requisicao-titulo">Resumo de valores</h3>
+                        <div class="pedido-aprovacao-campos requisicao-dados">
                         ${divOrganizada(dinheiro(totalGeral), 'Total Geral')}
                         ${divOrganizada(dinheiro(totalBruto), 'Total Original (sem Acréscimo e/ou Desconto)')}
                         ${divOrganizada(`<label class="label-aprovacao" style="background-color: ${diferencaDinheiro > 0 ? 'green' : '#B12425'}">${dinheiro(diferencaDinheiro)}</label>`, 'Diferença em Dinheiro')}
                         ${divOrganizada(diferencaPorcentagem, 'Percentual')}
-                    </div>
+                        </div>
+                    </section>
                 </div>
 
                 <div style="${horizontal} gap: 5px;" onclick="visibilidadeOrcamento(this)">
@@ -658,7 +678,7 @@ async function verPedidoAprovacao(idOrcamento) {
                     <label style="text-decoration: underline; cursor: pointer;">Ver itens do Orçamento</label>
                 </div>
 
-                <div style="${horizontal}; display: none;">
+                <div class="pedido-aprovacao-itens" style="display: none;">
                     ${tabela}
                 </div>
 
@@ -671,7 +691,7 @@ async function verPedidoAprovacao(idOrcamento) {
         { texto: 'Reprovar', img: 'cancel', funcao: `respostaAprovacao('${idOrcamento}', 'reprovado')` },
     ]
 
-    popup({ linhas, botoes, titulo: 'Detalhes' })
+    popup({ elemento: linhas[0].elemento, botoes, titulo: 'Detalhes' })
 
     await paginacao(pag)
 

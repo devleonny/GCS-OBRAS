@@ -197,6 +197,7 @@ async function removerItem(codigo, img) {
 async function enviarDadosAluguel() {
 
     const orcamentoBase = baseOrcamento()
+    sincronizarRevisaoAtual(orcamentoBase)
 
     if (!orcamentoBase?.dados_orcam?.omie_cliente) 
         return painelClientes()

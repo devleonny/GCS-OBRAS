@@ -77,12 +77,8 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
 
     const tabela = await modTab({
         base,
-        btnExtras: `
-        <div id="painelAvulso">
-            <button class="etiqueta-chamado" onclick="mudarParaAvulso(true)">Requisição AVULSA</button>
-        </div>
-        `,
         pag: 'requisicao',
+        alturaMinima: '60dvh',
         id,
         lpu_ativa: orcamento?.lpu_ativa,
         funcaoAdicional: ['calcularRequisicao'],
@@ -114,7 +110,7 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
     const modeloLabel = ({ v1, v2 }) => {
 
         return `
-            <div class="campo-requisicao">
+            <div class="campo-requisicao${v1 === 'Comentário' ? ' requisicao-campo-comentario' : ''}">
                 ${v1 ? `<span><small><b>${v1}</b></small></span>` : ''}
                 <div>${v2}</div>
             </div>
@@ -149,7 +145,7 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
         {
             linha: 1,
             v1: 'Comentário',
-            v2: `<textarea rows="3" id="comentario">${comentario || ''}</textarea>`
+            v2: `<textarea rows="2" id="comentario">${comentario || ''}</textarea>`
         },
         {
             linha: 2,
@@ -180,11 +176,6 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
             linha: 2,
             v1: 'Departamento',
             v2: ativo
-        },
-        {
-            linha: 2,
-            v1: 'Total',
-            v2: `<span class="campo-valor verde" id="total_requisicao"></span> `
         }
     ]
 
@@ -206,29 +197,34 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
                 .join('')
 
             return `
-                <div class="requisicao-contorno">
+                <section class="requisicao-contorno requisicao-grupo-${linha}">
                     <div class="requisicao-titulo">
                         ${titulo}
                     </div>
                     <div class="requisicao-dados">
                         ${c}
                     </div>
-                </div>
+                </section>
             `
         })
-        .join('<hr>')
+        .join('')
 
     const elemento = `
-        <div id="pdf" class="requisicao-tela" data-id="${id}">
+        <div id="pdf" class="requisicao-tela requisicao-formulario" data-id="${id}">
 
-            ${linhas}
-            <hr>
+            <div class="requisicao-cabecalho-cartoes">${linhas}</div>
             ${tabela}
 
         </div>
     `
 
     const botoes = [
+        {
+            id: 'botaoRequisicaoAvulsa',
+            texto: 'Requisição avulsa',
+            funcao: 'mudarParaAvulso(true)',
+            img: 'baixar'
+        },
         {
             texto: 'Salvar',
             funcao: `salvarRequisicao('${id}')`,
@@ -239,6 +235,7 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
     popup({
         botoes,
         elemento,
+        conteudoRodape: `<div class="rodape-resumo"><span>Total da requisição</span><strong id="total_requisicao">${dinheiro(0)}</strong></div>`,
         titulo: 'Requisição de Materiais',
         autoDestruicao: ['requisicao']
     })
@@ -257,9 +254,9 @@ async function mudarParaAvulso(removerBase) {
 
     await paginacao('requisicao')
 
-    const painelAvulso = document.getElementById('painelAvulso')
-
-    painelAvulso.innerHTML = `<button class="etiqueta-chamado" onclick="adicionarLinhaAvulso()">Adicionar Linha</button>`
+    const botaoAvulso = document.getElementById('botaoRequisicaoAvulsa')
+    botaoAvulso.querySelector('span').textContent = 'Adicionar linha'
+    botaoAvulso.setAttribute('onclick', 'adicionarLinhaAvulso()')
 
 }
 
@@ -535,7 +532,29 @@ async function salvarRequisicao(id) {
             )
         }
 
-        await enviar(`requisicoes/${id}`, dados)
+        const resultado = await enviar(`requisicoes/${id}`, dados)
+        if (!resultado?.success)
+            throw new Error(resultado?.mensagem || 'Falha ao salvar Requisição')
+
+        const ocorrencia = await recuperarDado('dados_ocorrencias', departamento)
+
+        if (ocorrencia && !ocorrencia.correcoes?.[id]) {
+            const correcao = {
+                aba: id,
+                data: dados.data,
+                datas: {},
+                descricao: 'Requisição de materiais criada',
+                dtCorrecao: new Date().toISOString().slice(0, 10),
+                setor: ['LOGÍSTICA'],
+                tipoCorrecao: '4Zmd3',
+                usuario: acesso.usuario
+            }
+
+            const resultadoCorrecao = await enviar(`dados_ocorrencias/${departamento}/correcoes/${id}`, correcao)
+            if (!resultadoCorrecao?.success)
+                throw new Error('Requisição salva, mas a correção de Logística não foi criada. Salve novamente para tentar de novo.')
+        }
+
         removerPopup()
 
     } catch (err) {

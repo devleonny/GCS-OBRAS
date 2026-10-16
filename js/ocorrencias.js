@@ -407,7 +407,7 @@ function carregarCorrecoes(ocorrencia) {
 
                     ${btnAprovar}
 
-                    ${pagamentoParceiro ? modelo('Ver LPU Parceiro', `<img src="imagens/cotacao.png" onclick="gerarPdfParceiro('${idCorrecao}', true)">`) : ''}
+                    ${pagamentoParceiro ? modelo('Ver LPU Parceiro', `<img src="imagens/cotacao.png" onclick="gerarPdfParceiro('${correcao.lpu_id || idCorrecao}', true)">`) : ''}
 
                     ${modelo('Código de Autorização', autorizacao)}
 
@@ -454,9 +454,10 @@ function carregarCorrecoes(ocorrencia) {
         divsCorrecoesPorAba.geral = []
 
     const abasExistentes = Object.keys(divsCorrecoesPorAba)
-    const abaInicial = abasExistentes.includes('geral')
+    const abaFiltrada = obterAbaCorrecaoFiltrada(correcoesOrganizadas, abasExistentes)
+    const abaInicial = abaFiltrada || (abasExistentes.includes('geral')
         ? 'geral'
-        : abasExistentes[0]
+        : abasExistentes[0])
 
     const abasHTML = [...new Set(Object.values(correcoes || {})
         .map(c => {
@@ -502,6 +503,29 @@ function carregarCorrecoes(ocorrencia) {
 
 }
 
+function obterAbaCorrecaoFiltrada(correcoesOrganizadas, abasExistentes) {
+    const filtros = controles.ocorrencias?.filtros || {}
+    const regrasStatus = Object.entries(filtros)
+        .filter(([path]) => /correc|abas/i.test(path) && /\.(nome|tipoCorrecaoNome)$/.test(path))
+        .flatMap(([, filtro]) => {
+            const regras = Array.isArray(filtro) ? filtro : [filtro]
+            return regras.flatMap(regra => regra?.modo === 'OR' ? regra.regras || [] : [regra])
+        })
+        .filter(regra => ['=', 'includes'].includes(regra?.op) && regra.value)
+
+    const correcao = correcoesOrganizadas.find(([, item]) => {
+        if (!abasExistentes.includes(item.aba || 'geral')) return false
+        if (acesso.permissao === 'cliente' && String(item.tipoCorrecaoNome).includes('PAGAMENTO DE PARCEIRO')) return false
+        const nome = String(item.tipoCorrecaoNome || '').trim().toLowerCase()
+        return regrasStatus.some(regra => {
+            const termo = String(regra.value).trim().toLowerCase()
+            return regra.op === 'includes' ? nome.includes(termo) : nome === termo
+        })
+    })
+
+    return correcao ? correcao[1].aba || 'geral' : null
+}
+
 async function confirmarAprovarPagamentoPaceiro(idOcorrencia, idCorrecaoLpuParceiro) {
 
     try {
@@ -513,11 +537,20 @@ async function confirmarAprovarPagamentoPaceiro(idOcorrencia, idCorrecaoLpuParce
             recuperarDado('dados_ocorrencias', idOcorrencia) || {}
         ])
 
-        if (pagamento)
-            return popup({ mensagem: 'Esse pagamento já foi lançado ao financeiro' })
+        if (pagamento) {
+            if (pagamento.lpu_parceiro_id && pagamento.aprovado_gerente_por)
+                await concluirAprovacaoParceiro(idCorrecaoLpuParceiro, pagamento.lpu_parceiro_id, idOcorrencia, pagamento)
+            return popup({ mensagem: 'Esse pagamento já foi lançado ao financeiro; registros de aprovação conferidos.' })
+        }
 
         const { correcoes } = ocorrencia
-        const { data_pagamento, tecnico } = correcoes?.[idCorrecaoLpuParceiro] || {}
+        const { data_pagamento, tecnico, lpu_id, valor_parcial } = correcoes?.[idCorrecaoLpuParceiro] || {}
+        if (lpu_id) {
+            const controle = await obterControlePagamentosParceiro(lpu_id)
+            const solicitacao = controle.linhas.find(item => item.id === idCorrecaoLpuParceiro)
+            if (!solicitacao || solicitacao.encerrada)
+                return popup({ mensagem: 'Esta solicitação foi encerrada. Consulte o histórico da LPU.' })
+        }
         const usuarioTecnico = tecnico?.[0]
 
         if (!usuarioTecnico)
@@ -527,7 +560,8 @@ async function confirmarAprovarPagamentoPaceiro(idOcorrencia, idCorrecaoLpuParce
             {
                 elemento: `
                     <span>Será criada uma fatura a pagar para <b>${usuarioTecnico}</b>, <br>escolha uma modalidade abaixo:</span>
-                    <button onclick="gerarPdfParceiro('${idCorrecaoLpuParceiro}', true)">Ver LPU</button>
+                    ${lpu_id ? `<strong>Valor desta parcela: ${dinheiro(valor_parcial)}</strong>` : ''}
+                    <button onclick="gerarPdfParceiro('${lpu_id || idCorrecaoLpuParceiro}', true)">Ver LPU</button>
                     `
             },
             {
@@ -548,7 +582,7 @@ async function confirmarAprovarPagamentoPaceiro(idOcorrencia, idCorrecaoLpuParce
             {
                 texto: 'Aprovar',
                 img: 'concluido',
-                funcao: `aprovarPagamentoParceiro('${idCorrecaoLpuParceiro}')`
+                funcao: `aprovarPagamentoParceiro('${idCorrecaoLpuParceiro}', '${idOcorrencia}')`
             },
             {
                 texto: 'Reprovar',
@@ -614,6 +648,15 @@ async function confirmarReprovacaoParceiro(idOcorrencia, idCorrecaoLpuParceiro) 
 
         overlayAguarde()
 
+        const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
+        const origem = ocorrencia?.correcoes?.[idCorrecaoLpuParceiro]
+        if (origem?.lpu_id) {
+            const controle = await obterControlePagamentosParceiro(origem.lpu_id)
+            const solicitacao = controle.linhas.find(item => item.id === idCorrecaoLpuParceiro)
+            if (!solicitacao || solicitacao.pagamento || solicitacao.encerrada)
+                return popup({ mensagem: 'Esta solicitação já foi processada.' })
+        }
+
         const { usuario } = acesso
         const correcao = {
             usuario,
@@ -629,7 +672,10 @@ async function confirmarReprovacaoParceiro(idOcorrencia, idCorrecaoLpuParceiro) 
         const { success } = await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${crypto.randomUUID()}`, correcao)
 
         if (!success)
-            popup({ mensagem: 'Falha ao tentar Reprovar: Fale com o suporte.' })
+            throw new Error('Falha ao tentar Reprovar: Fale com o suporte.')
+
+        if (origem?.lpu_id)
+            await salvarEtapaParceiro(`parceiros/${origem.lpu_id}/solicitacoes/${idCorrecaoLpuParceiro}/status`, 'Reprovada pelo gerente')
 
         removerTodosPopups()
 
@@ -640,7 +686,7 @@ async function confirmarReprovacaoParceiro(idOcorrencia, idCorrecaoLpuParceiro) 
 
 }
 
-async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro) {
+async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro, idOcorrencia) {
 
     try {
 
@@ -655,21 +701,38 @@ async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro) {
         const { usuario } = acesso || {}
         const app = 'AC' // Parceiros é só na AC
         const codigo_categoria = modalidade == 2
-            ? '2.01.99' // Pagamento de Parceiro (30 dias)
-            : '2.01.81' // Adiantamento ou data flexível
+            ? 'Pagamento de Parceiros'
+            : 'Adiantamento de Parceiros'
 
         const dataPagamento = document.querySelector('[name="data_pagamento"]').value
 
         if (modalidade == 3 && !dataPagamento)
             return popup({ mensagem: 'Não deixe a data em branco' })
 
+        const ocorrenciaOrigem = idOcorrencia ? await recuperarDado('dados_ocorrencias', idOcorrencia) : null
+        const origem = ocorrenciaOrigem?.correcoes?.[idCorrecaoLpuParceiro]
+        const idLpu = origem?.lpu_id || idCorrecaoLpuParceiro
+        const pagamentoExistente = await recuperarDado('lista_pagamentos', idCorrecaoLpuParceiro)
+        if (pagamentoExistente) {
+            if (pagamentoExistente.aprovado_gerente_por && idOcorrencia)
+                await concluirAprovacaoParceiro(idCorrecaoLpuParceiro, idLpu, idOcorrencia, pagamentoExistente)
+            return popup({ mensagem: 'Este pagamento já foi lançado ao financeiro; registros de aprovação conferidos.' })
+        }
+        const controle = await obterControlePagamentosParceiro(idLpu, idCorrecaoLpuParceiro)
+        const solicitacao = controle.linhas.find(item => item.id === idCorrecaoLpuParceiro)
+        if (origem?.lpu_id && (!solicitacao || solicitacao.encerrada))
+            return popup({ mensagem: 'Esta solicitação foi encerrada.' })
+        const valorPagamento = origem?.lpu_id ? Number(solicitacao.valor) : controle.total
+        if (!(valorPagamento > 0) || valorPagamento > controle.disponivel)
+            return popup({ mensagem: 'O valor desta solicitação supera o saldo disponível da LPU.' })
+
         const {
             tecnicos,
-            total,
             departamento,
             anexos,
             executor: criado
-        } = await recuperarDado('parceiros', idCorrecaoLpuParceiro) || {}
+        } = controle.parceiro
+        const total = valorPagamento
 
         // Apenas o departamento master recebe atualizações nos chamados;
         // Porém o centro de custo continua o do orçamento;
@@ -686,31 +749,12 @@ async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro) {
         if (!pesquisaTecnico.resultados.length)
             return popup({ mensagem: 'Técnico não localizado: fale com o suporte' })
 
-        const { apps, chave_pix } = pesquisaTecnico.resultados?.[0] || {}
+        const cliente = pesquisaTecnico.resultados?.[0] || {}
+        const codigo_cliente_fornecedor = String(cliente.id || '')
+        const chave_pix = cliente.chave_pix || ''
 
-        const codOmie = apps?.[app]?.codigo
-
-        if (!codOmie)
-            return popup({ mensagem: 'O técnico não está cadastrado na <b>AC</b>: Fale com o suporte' })
-
-        const pesquisaDepartamento = await pesquisarDB({
-            base: 'departamentos',
-            filtros: {
-                app: { op: '=', value: app },
-                descricao: { op: '=', value: departamento }
-            }
-        })
-
-        if (!pesquisaDepartamento.resultados.length) {
-
-            const botoes = [
-                { texto: 'Criar', img: 'concluido', funcao: `salvarDepartamento({nome: '${departamento}'})` }
-            ]
-
-            return popup({ botoes, mensagem: `O departamento ${departamento} não existe no Omie: Deseja criar agora?` })
-        }
-
-        const { codigo: cCodDep } = pesquisaDepartamento.resultados[0] || {}
+        if (!codigo_cliente_fornecedor)
+            return popup({ mensagem: 'O cadastro estável do técnico não foi localizado: fale com o suporte' })
         const dataEstipulada = modalidade == 3
             ? dtFormatada(dataPagamento)
             : dataRegras(new Date().toLocaleDateString(), modalidade)
@@ -722,48 +766,35 @@ async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro) {
         `
 
         const pagamento = {
+            lpu_parceiro_id: idLpu,
+            solicitacao_parceiro_id: idCorrecaoLpuParceiro,
+            aprovado_gerente_por: usuario,
             excluido: null, // Caso tenha sido excluído o pagamento, isso vai ressuscitar o coitado;
             status: 'Aguardando aprovação da Diretoria',
             app,
             criado,
             anexos, // Anexos da LPU
             data_registro: new Date().toLocaleString(),
-            param: [
-                {
-                    codigo_cliente_fornecedor: codOmie,
-                    valor_documento: total,
-                    data_previsao: dataEstipulada,
-                    data_vencimento: dataEstipulada,
-                    observacao,
-                    categorias: [
-                        {
-                            valor: total,
-                            codigo_categoria
-                        }
-                    ],
-                    distribuicao: [
-                        {
-                            cCodDep,
-                            nValDep: total
-                        }
-                    ]
-                }
-            ]
+            param_estavel: {
+                codigo_cliente_fornecedor,
+                chave_pix,
+                valor_documento: total,
+                data_previsao: dataEstipulada,
+                data_vencimento: dataEstipulada,
+                observacao,
+                categorias: [{ valor: total, codigo_categoria }],
+                distribuicao: [{ cCodDep: String(departamento), nValDep: total }]
+            },
+            snapshots: {
+                cliente: cliente.nome || cliente.usuario || criado || '',
+                valor: total,
+                categorias: [{ categoria: codigo_categoria, valor: total }],
+                departamentos: [{ departamento: String(departamento), valor: total }]
+            }
         }
 
-        const correcao = {
-            usuario,
-            data: new Date().toLocaleString(),
-            aba: idCorrecaoLpuParceiro,
-            descricao: `🟢 Pagamento aprovado por ${usuario} no valor de ${dinheiro(total)}`,
-            dtCorrecao: '',
-            tipoCorrecao: 'WRuo2' // Solucionada;
-        }
-
-        await Promise.all([
-            enviar(`lista_pagamentos/${idCorrecaoLpuParceiro}`, pagamento),
-            enviar(`dados_ocorrencias/${departamentoMaster}/correcoes/${crypto.randomUUID()}`, correcao)
-        ])
+        await salvarEtapaParceiro(`lista_pagamentos/${idCorrecaoLpuParceiro}`, pagamento)
+        await concluirAprovacaoParceiro(idCorrecaoLpuParceiro, idLpu, departamentoMaster, pagamento)
 
         removerTodosPopups()
 
@@ -774,6 +805,8 @@ async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro) {
         console.error(err)
         popup({ mensagem: 'Falha ao gerar o pagamento' })
 
+    } finally {
+        removerOverlay()
     }
 
 }
@@ -958,22 +991,41 @@ async function salvarDataCorrecao(idOcorrencia, idCorrecao) {
 
 }
 
+function definirFiltrosOcorrencias(painel, aberto) {
+    painel.classList.toggle('filtros-abertos', aberto)
+    painel.querySelector('.ocorrencias-filtros-gatilho')?.setAttribute('aria-expanded', String(aberto))
+}
+
+function fecharFiltrosOcorrenciasFora(evento) {
+    document.querySelectorAll('.tela-ocorrencias > .painel-filtros.filtros-abertos').forEach(painel => {
+        if (!painel.contains(evento.target)) definirFiltrosOcorrencias(painel, false)
+    })
+}
+
 async function telaOcorrencias() {
 
     overlayAguarde()
+    document.removeEventListener('click', fecharFiltrosOcorrenciasFora)
+    // Fecha só quando a interação começa fora; arrastar uma seleção para fora
+    // de um campo não deve fechar o painel ao soltar o botão do mouse.
+    document.removeEventListener('pointerdown', fecharFiltrosOcorrenciasFora, true)
+    document.addEventListener('pointerdown', fecharFiltrosOcorrenciasFora, true)
 
-    const mapa = criarMapa()
+    const mapa = criarMapa({ path: 'cliente.estado', pag: 'ocorrencias' })
     const btnExtras = `
-    <div class="painel-filtros">
+    <div class="painel-filtros"
+        onkeydown="if (event.key === 'Escape') definirFiltrosOcorrencias(this, false)">
+        <button type="button" class="ocorrencias-filtros-gatilho" aria-controls="ocorrencias-painel-pesquisas" aria-expanded="false"
+            onclick="definirFiltrosOcorrencias(this.parentElement, !this.parentElement.classList.contains('filtros-abertos'))">Filtros de ocorrências ▾</button>
 
-        <div class="divisao-filtro-botoes">
+        <div id="ocorrencias-painel-pesquisas" class="divisao-filtro-botoes pesquisas-ocorrencias">
 
-            <div style="${vertical}">
+            <div class="pesquisas-ocorrencias-campos" style="${vertical}">
                 <div id="filtros1" class="filtros"></div>
                 <div id="filtros2" class="filtros"></div>
             </div>
 
-            <div style="${vertical}; gap: 5px;">
+            <div class="pesquisas-ocorrencias-acoes">
 
                 <div style="${horizontal}; gap: 1rem;">
                     <label class="interruptor">
@@ -983,7 +1035,7 @@ async function telaOcorrencias() {
                     <label style="color: white;">Mapa</label>
                 </div>
 
-                <button onclick="limparFiltroOcorrencias()" style="background-color: red;">Limpar Filtros</button>
+                <button onclick="limparFiltroOcorrencias()">Limpar Filtros</button>
             </div>
 
         </div>
@@ -994,8 +1046,8 @@ async function telaOcorrencias() {
 
     `
     const tabela = await modTab({
-        btnExtras,
-        alinPag: vertical,
+        alinPag: horizontal,
+        alturaMinima: '300px',
         funcaoAdicional: ['contadoresMapaOcorrencias'],
         base: 'vw_dados_ocorrencias',
         pag: 'ocorrencias',
@@ -1005,6 +1057,7 @@ async function telaOcorrencias() {
 
     const acumulado = `
         <div class="tela-ocorrencias">
+            ${btnExtras}
             ${tabela}
         </div>`
 
@@ -1096,7 +1149,6 @@ function criarLinhaOcorrencia(ocorrencia) {
 
     if (id_usuario_funcionario)
         botoes.push(`
-            <div class="botao-imagem-ocorrencias" onclick="abrirResumo('${id_usuario_funcionario}')"><span>SALDOS</span></div>
             <div class="botao-imagem-ocorrencias" onclick="atalhoDocumentos(${unidade})"><span>DOCUMENTOS</span></div>
         `)
 
@@ -1145,8 +1197,8 @@ function criarLinhaOcorrencia(ocorrencia) {
 
             const btns = apenasAutorizados && id_orcamento
                 ? `
-                    <img src="imagens/pesquisar.png" onclick="abrirAtalhos('${id_orcamento}')">
-                    <img src="imagens/pasta2.png" onclick="abrirEsquema('${id_orcamento}')">
+                    <img class="pesquisar-branco" src="imagens/pesquisar.svg" onclick="abrirAtalhos('${id_orcamento}')">
+                    <img src="imagens/pasta.svg" onclick="abrirEsquema('${id_orcamento}')">
                 `
                 : ''
 
@@ -1197,7 +1249,6 @@ function criarLinhaOcorrencia(ocorrencia) {
                 ${modeloCampos('Tipo', tipo)}
                 ${modeloCampos('Sistema', sistema)}
                 ${modeloCampos('Prioridade', prioridade)}
-                ${modeloCampos('Equipamentos', tabEquipamentos(equipamentos || {}))}
                 ${modeloCampos('Anexos', divAnexos ? `<div id="anexos" class="local-anexos">${divAnexos || 'Sem anexos'}</div>` : 'Sem anexos')}
                 ${modeloCampos('Fotos', imagens ? imagensExistentes : 'Sem Imagens')}
             </div>
@@ -1209,7 +1260,7 @@ function criarLinhaOcorrencia(ocorrencia) {
     `
 
     const partes = `
-        <div id="${id}" class="div-linha">
+        <div id="${id}" class="div-linha ocorrencia-blocos-triangulo">
 
             <div class="bloco-linha">
 
@@ -1225,6 +1276,10 @@ function criarLinhaOcorrencia(ocorrencia) {
             <div id="correcoes" class="bloco-linha">
                 ${divCorrecoes.correcoes}
             </div>
+            ${Object.keys(equipamentos || {}).length ? `
+                <div class="bloco-linha ocorrencia-equipamentos-amplo">
+                    ${tabEquipamentos(equipamentos)}
+                </div>` : ''}
         </div>`
 
     return `
@@ -1284,9 +1339,12 @@ async function linPedidos(ped) {
             ${labelDestaque('Autorizado por', autorizado_por)}
             ${labelDestaque('Valor', dinheiro(valor || 0))}
             ${labelDestaque('Tipo', tipo)}
-            ${botaoAnexoStatus({ id, tabela, cor })}
-            ${botaoFotoStatus({ id, tabela, cor })}
-            ${botaoEditarStatus({ id, cor, funcao: `painelAdicionarPedido('${id}')` })}
+
+            <div class="painel-botoes">
+                ${botaoAnexoStatus({ id, tabela, cor })}
+                ${botaoFotoStatus({ id, tabela, cor })}
+                ${botaoEditarStatus({ id, cor, funcao: `painelAdicionarPedido('${id}')` })}
+            </div>
 
             <br>
 
@@ -1335,19 +1393,19 @@ async function linRequisicoes(req) {
             onclick="apagarGenerico('${id}', 'requisicoes')">&times;</span>`
         : ''
 
-    const bloco = `
-        <div class="bloco-status" style="border: 1px solid ${cor};">
+    const bloco = ` 
+        <div class="bloco-status-interno" style="border: 1px solid ${cor}; background-color: ${cor}1f;">
+            ${excluir}
+            ${avulso == 'S' ? '<span><b>REQ AVULSA</b></span>' : ''}
+            ${labelDestaque('Executor', executor)}
+            ${labelDestaque('Data', data)}
+            ${labelDestaque('Comentário', comentario)}
+            ${labelDestaque('Número do Pedido', numeroPedido)}
+            ${labelDestaque('Total Requisição', dinheiro(total_requisicao))}
+            ${labelDestaque('Transportadora', transportadora)}
+            ${labelDestaque('Volumes', volumes)}
 
-            <div class="bloco-status-interno" style="background-color: ${cor}1f;">
-                ${excluir}
-                ${avulso == 'S' ? '<span><b>REQ AVULSA</b></span>' : ''}
-                ${labelDestaque('Executor', executor)}
-                ${labelDestaque('Data', data)}
-                ${labelDestaque('Comentário', comentario)}
-                ${labelDestaque('Número do Pedido', numeroPedido)}
-                ${labelDestaque('Total Requisição', dinheiro(total_requisicao))}
-                ${labelDestaque('Transportadora', transportadora)}
-                ${labelDestaque('Volumes', volumes)}
+            <div class="painel-botoes">
                 ${botaoAnexoStatus({ id, tabela, cor })}
                 ${botaoFotoStatus({ id, tabela, cor })}
                 ${botaoEditarStatus({ id, cor, funcao: `formularioRequisicao('${id}')` })}
@@ -1364,15 +1422,15 @@ async function linRequisicoes(req) {
                     <img src="imagens/pdfw.png" style="width: 1.5rem;">
                     <label>Baixar PDF</label>
                 </div>
-
-                <br>
-
-                ${blocoAnexosCompleto({ id, tabela, anexos })}
-                ${blocoFotosCompleto({ id, tabela, fotos })}
-
             </div>
 
-        </div>`
+            <br>
+
+            ${blocoAnexosCompleto({ id, tabela, anexos })}
+            ${blocoFotosCompleto({ id, tabela, fotos })}
+
+        </div>
+        `
 
     return `
     <tr>
@@ -1408,32 +1466,31 @@ async function linNotas(nota) {
         : ''
 
     const bloco = `
-        <div class="bloco-status" style="border: 1px solid ${cor};">
+        <div class="bloco-status-interno" style="border: 1px solid ${cor}; background-color: ${cor}1f;">
 
-            <div class="bloco-status-interno" style="background-color: ${cor}1f;">
+            ${excluir}
+            ${labelDestaque('Executor', executor || 'Integração')}
+            ${labelDestaque('Data', data)}
+            ${labelDestaque('Comentário', comentario)}
+            ${labelDestaque('Nota', n_nota)}
+            ${labelDestaque('Tipo', categoria)}
+            ${labelDestaque('Valor', dinheiro(total))}
+            ${labelDestaque('Data Emissão', d_emi_inicial)}
 
-                ${excluir}
-                ${labelDestaque('Executor', executor || 'Integração')}
-                ${labelDestaque('Data', data)}
-                ${labelDestaque('Comentário', comentario)}
-                ${labelDestaque('Nota', n_nota)}
-                ${labelDestaque('Tipo', categoria)}
-                ${labelDestaque('Valor', dinheiro(total))}
-                ${labelDestaque('Data Emissão', d_emi_inicial)}
+            <div class="painel-botoes">
                 ${botaoAnexoStatus({ id, tabela: 'notas', cor })}
                 ${botaoFotoStatus({ id, tabela, cor })}
                 ${botaoEditarStatus({ id, cor, funcao: `adicionarNotaAvulsa('${id}')` })}
-
-                <br>
-
-                ${pdfDanfe({ categoria, n_nota, id, total })}
-
-                <br>
-
-                ${blocoAnexosCompleto({ id, tabela, anexos })}
-                ${blocoFotosCompleto({ id, tabela, fotos })}
-
             </div>
+
+            <br>
+
+            ${pdfDanfe({ categoria, n_nota, id, total })}
+
+            <br>
+
+            ${blocoAnexosCompleto({ id, tabela, anexos })}
+            ${blocoFotosCompleto({ id, tabela, fotos })}
 
         </div>
     `
@@ -1475,18 +1532,18 @@ async function linParceiros(par) {
         : ''
 
     const bloco = `
-        <div class="bloco-status" style="border: 1px solid ${cor};">
+        <div class="bloco-status-interno" style="border: 1px solid ${cor}; background-color: ${cor}1f;">
 
-            <div class="bloco-status-interno" style="background-color: ${cor}1f;">
+            ${excluir}
+            ${labelDestaque('Pedido', numeroPedido)}
+            ${labelDestaque('Executor', executor)}
+            ${labelDestaque('Data', data)}
+            ${labelDestaque('Comentário', comentario)}
+            ${labelDestaque('Total Parceiro', dinheiro(totais?.parceiro))}
+            ${labelDestaque('Margem Disponível', dinheiro(totais?.margem))}
+            ${labelDestaque('Desvio', dinheiro(totais?.desvio))}
 
-                ${excluir}
-                ${labelDestaque('Pedido', numeroPedido)}
-                ${labelDestaque('Executor', executor)}
-                ${labelDestaque('Data', data)}
-                ${labelDestaque('Comentário', comentario)}
-                ${labelDestaque('Total Parceiro', dinheiro(totais?.parceiro))}
-                ${labelDestaque('Margem Disponível', dinheiro(totais?.margem))}
-                ${labelDestaque('Desvio', dinheiro(totais?.desvio))}
+            <div class="painel-botoes">
                 ${botaoAnexoStatus({ id, tabela: 'parceiros', cor })}
                 ${botaoFotoStatus({ id, tabela, cor })}
                 ${botaoEditarStatus({ id, cor, funcao: `formularioParceiro('${id}')` })}
@@ -1509,15 +1566,18 @@ async function linParceiros(par) {
                     class="contorno-botoes" 
                     onclick="atualizarDadosParceiro('${id}')">
                     <img src="imagens/dinheirow.png" style="width: 1.5rem;">
-                    <label>Solicitar Pagamento</label>
+                    <label>Solicitar pagamento parcial</label>
                 </div>
-
-                <br>
-
-                ${blocoAnexosCompleto({ id, tabela, anexos })}
-                ${blocoFotosCompleto({ id, tabela, fotos })}
-
+                <div style="background-color: ${cor}" class="contorno-botoes" onclick="historicoPagamentosParceiro('${id}')">
+                    <img src="imagens/historico.png" style="width: 1.5rem;">
+                    <label>Pagamentos e saldo</label>
+                </div>
             </div>
+
+            <br>
+
+            ${blocoAnexosCompleto({ id, tabela, anexos })}
+            ${blocoFotosCompleto({ id, tabela, fotos })}
 
         </div>
     `
@@ -1555,28 +1615,24 @@ async function linMateriais(mat) {
         : ''
 
     const bloco = `
-        <div class="bloco-status" style="border: 1px solid ${cor};">
+        <div class="bloco-status-interno" style="border: 1px solid ${cor}; background-color: ${cor}1f;">
 
-            <div class="bloco-status-interno" style="background-color: ${cor}1f;">
+            ${excluir}
+            ${labelDestaque('Executor', executor)}
+            ${labelDestaque('Data', data)}
+            ${labelDestaque('Comentário', comentario)}
+            ${labelDestaque('Rastreio', rastreio)}
+            ${labelDestaque('Transportadora', transportadora)}
+            ${labelDestaque('Data de Saída', conversorData(data_saida))}
+            ${labelDestaque('Data de Entrega', conversorData(previsao))}
+            ${botaoAnexoStatus({ id, tabela: 'materiais', cor })}
+            ${botaoFotoStatus({ id, tabela, cor })}
+            ${botaoEditarStatus({ id, cor, funcao: `envioMaterial('${id}')` })}
 
-                ${excluir}
-                ${labelDestaque('Executor', executor)}
-                ${labelDestaque('Data', data)}
-                ${labelDestaque('Comentário', comentario)}
-                ${labelDestaque('Rastreio', rastreio)}
-                ${labelDestaque('Transportadora', transportadora)}
-                ${labelDestaque('Data de Saída', conversorData(data_saida))}
-                ${labelDestaque('Data de Entrega', conversorData(previsao))}
-                ${botaoAnexoStatus({ id, tabela: 'materiais', cor })}
-                ${botaoFotoStatus({ id, tabela, cor })}
-                ${botaoEditarStatus({ id, cor, funcao: `envioMaterial('${id}')` })}
+            <br>
 
-                <br>
-
-                ${blocoAnexosCompleto({ id, tabela, anexos })}
-                ${blocoFotosCompleto({ id, tabela, fotos })}
-
-            </div>
+            ${blocoAnexosCompleto({ id, tabela, anexos })}
+            ${blocoFotosCompleto({ id, tabela, fotos })}
 
         </div>
     `
@@ -1726,7 +1782,9 @@ async function criarPesquisas() {
         const valor = controles?.ocorrencias?.filtros?.[path]?.value || ''
 
         const pesquisa = `
-        <div class="pesquisa">
+        <div class="campo-pesquisa pesquisa-livre">
+            <label for="campo_${path}">${titulo}</label>
+            <div class="pesquisa">
             <input
                 onkeydown="if (event.key === 'Enter') pesquisarOcorrencias('${path}', this.value)"
                 placeholder="${titulo}"
@@ -1734,7 +1792,8 @@ async function criarPesquisas() {
                 style="width: 100%;" 
                 value="${valor}">
 
-            <img src="imagens/pesquisar4.png">
+            <img src="imagens/pesquisar4.png" alt="">
+            </div>
         </div>`
 
         divF1.insertAdjacentHTML('beforeend', pesquisa)
@@ -1746,8 +1805,8 @@ async function criarPesquisas() {
         'Tipo': { chave: 'tipos', path: 'tipo' },
         'Sistema': { chave: 'sistemas', path: 'sistema' },
         'Prioridade': { chave: 'prioridades', path: 'prioridade' },
-        'Última Correção': { chave: 'ultima_correcao', path: 'snapshots.ultimaCorrecao.*.nome', explode: { path: 'snapshots.ultimaCorrecao' } },
-        'Executor': { op: 'includes', chave: 'executores', path: 'snapshots.ultimaCorrecao.*.executor', explode: { path: 'snapshots.ultimaCorrecao' } },
+        'Última Correção': { chave: 'ultima_correcao', path: 'snapshots.ultimaCorrecao.*.nome' },
+        'Executor': { op: 'includes', chave: 'executores', path: 'snapshots.ultimaCorrecao.*.executor' },
         'Estado': { chave: 'estados', path: 'cliente.estado' },
         ...(
             acesso.permissao == 'cliente'
@@ -1776,12 +1835,12 @@ async function criarPesquisas() {
         const idFiltro = controles?.ocorrencias?.idFiltro
 
         const funcao = ['diretoria', 'adm'].includes(acesso.permissao)
-            ? `<img src="imagens/pesquisar.png" style="width: 1.5rem;" onclick="formFiltro(${idFiltro ? `'${idFiltro}'` : ''})">`
+            ? `<img class="pesquisar-branco" src="imagens/pesquisar.svg" style="width: 1.5rem;" onclick="formFiltro(${idFiltro ? `'${idFiltro}'` : ''})">`
             : ''
 
         filtros.push(`
         <div class="campo-pesquisa">
-            <div style="${horizontal}; gap: 3px;">
+            <div style="display: flex; align-items: center; justify-content: start; gap: 1rem;">
                 ${funcao}
                 <label style="color: white;">Filtros</label>
             </div>
@@ -2214,60 +2273,65 @@ async function formularioOcorrencia(idOcorrencia) {
             {
                 texto: 'Unidade de Manutenção',
                 elemento: `<span ${unidade ? `id="${unidade}"` : ''} 
-                class="opcoes" name="unidade" onclick="cxOpcoes('unidade')">
-                ${cliente?.nome || 'Selecione'}
-            </span>`
+                    class="opcoes" name="unidade" onclick="cxOpcoes('unidade')">
+                        ${cliente?.nome || 'Selecione'}
+                    </span>
+            `
             },
             {
                 texto: 'Sistema',
                 elemento: `<span ${sistema ? `id="${sistema}"` : ''} 
-            class="opcoes" name="sistema" onclick="cxOpcoes('sistema')">
-                ${pesqSist?.nome || 'Selecione'}
-            </span>`
+                    class="opcoes" name="sistema" onclick="cxOpcoes('sistema')">
+                        ${pesqSist?.nome || 'Selecione'}
+                    </span>
+            `
             },
             {
                 texto: 'Prioridade',
                 elemento: `<span ${prioridade ? `id="${prioridade}"` : ''} 
-            class="opcoes" name="prioridade" onclick="cxOpcoes('prioridade')">
-                ${pesqPri?.nome || 'Selecione'}
-            </span>`
+                    class="opcoes" name="prioridade" onclick="cxOpcoes('prioridade')">
+                        ${pesqPri?.nome || 'Selecione'}
+                    </span>
+            `
             },
             {
                 texto: 'Tipo',
                 elemento: `<span ${tipo ? `id="${tipo}"` : ''} 
-                class="opcoes" name="tipo" onclick="cxOpcoes('tipo')">
-                    ${pesqTipo?.nome || 'Selecione'}
-                </span>`
+                    class="opcoes" name="tipo" onclick="cxOpcoes('tipo')">
+                        ${pesqTipo?.nome || 'Selecione'}
+                    </span>
+                `
             },
             {
                 texto: 'Data da Solicitação',
                 elemento: `<input name="data_solicitacao" type="date" value="${data_solicitacao || ''}">`
             },
             {
+                texto: 'Descrição',
                 editor: descricao || ''
             },
             {
                 elemento: `
-                <div style="${vertical}; width: 100%; gap: 5px;">
-                    <div style="${horizontal}; gap: 1rem;">
-                        <span>Registro de peças ou equipamentos</span>
-                        <img src="imagens/baixar.png" onclick="maisLabel()">
+                    <div style="${vertical}; width: 100%; gap: 5px;">
+                        <div style="${horizontal}; gap: 1rem;">
+                            <span>Registro de peças ou equipamentos</span>
+                            <img src="imagens/baixar.png" onclick="maisLabel()">
+                        </div>
+                        <div style="${vertical}; width: 100%; gap: 2px;" id="equipamentos">
+                            ${equipamentos}
+                        </div>
                     </div>
-                    <div style="${vertical}; width: 100%; gap: 2px;" id="equipamentos">
-                        ${equipamentos}
-                    </div>
-                </div>
                 `
             },
             {
                 texto: 'Anexos',
                 elemento: `
-            <div style="${vertical}; gap: 3px;">
-                <input name="anexos" type="file" multiple>
-                <div id="anexos" class="local-anexos">
-                    ${a}
-                </div>
-            </div>
+                    <div style="${vertical}; gap: 3px;">
+                        <input name="anexos" type="file" multiple>
+                        <div id="anexos" class="local-anexos">
+                            ${a}
+                        </div>
+                    </div>
             `
             },
             {
@@ -2414,6 +2478,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
             elemento: '<div class="tecnicos"></div>'
         },
         {
+            texto: 'Descrição',
             editor: correcao?.descricao || ''
         },
         {
@@ -2464,7 +2529,6 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
     await maisUsuario(executor, 'executores')
     await maisUsuario(tecnico, 'tecnicos')
     await verificarConflitos()
-    await verificarSaldos()
 
     visibilidadeFotos()
 
@@ -2552,7 +2616,6 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
         base: 'dados_composicoes',
         retornar: ['descricao'],
         btnExtras,
-        funcaoAdicional: ['verificarSaldos'],
         filtros: {
             'tipo': { op: '!=', value: 'SERVIÇO' }
         },
@@ -2575,7 +2638,7 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
                 <label>Origem</label>
                 ${['Kit', 'Ferramentas', 'Parceiro', 'Matriz', 'Compra Região'].map(o => `
                     <div style="${horizontal}; gap: 1rem;">
-                        <input onchange="verificarSaldos()" name="origem_${temporario}" data-origem="${o}" type="radio" ${origem == o ? 'checked' : ''}>
+                        <input name="origem_${temporario}" data-origem="${o}" type="radio" ${origem == o ? 'checked' : ''}>
                         <label style="text-align: left;">${o}</label>
                     </div>
                     `).join('')}
@@ -2589,7 +2652,7 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
             <div name="equipamentos" style="${horizontal}; align-items: start; gap: 1rem;">
                 <div style="${vertical};">
                     <label>Quantidade</label>
-                    <input id="quantidade" data-codigo="${codigo}" data-anterior="${quantidade || 0}" oninput="multiplicarCampoSerie(this); verificarSaldos()" style="width: 7rem;" class="opcoes" type="number" value="${quantidade || ''}">
+                    <input id="quantidade" data-codigo="${codigo}" data-anterior="${quantidade || 0}" oninput="multiplicarCampoSerie(this)" style="width: 7rem;" class="opcoes" type="number" value="${quantidade || ''}">
                 </div>
                 <div style="${vertical};">
                     <label>Nº série</label>
@@ -2753,92 +2816,6 @@ function conflitoAgenda() {
 
 }
 
-function conflitoKit() {
-
-    const pecasConflito = [...document.querySelectorAll('[name="alerta-saldo"]')]
-        .map(img => img.dataset.descricao)
-
-    if (pecasConflito.length > 0) {
-        popup({
-            titulo: 'Técnico sem saldo',
-            botoes: [
-                { texto: 'Estou ciente', img: 'concluido', funcao: `removerAlertas('alerta-saldo')` }
-            ],
-            mensagem: `O técnico não possui saldo de algumas peças, confirmar mesmo assim?`
-        })
-    }
-
-    return pecasConflito.length > 0
-
-}
-
-async function verificarSaldos() {
-    for (const img of [...document.querySelectorAll('[name="alerta-saldo"]')])
-        img.remove()
-
-    const tecnicos = [...document.querySelectorAll('.tecnicos span')]
-        .filter(span => span.id)
-        .map(span => span.id)
-
-    if (!tecnicos.length)
-        return
-
-    const tecnicoNum1 = tecnicos[0]
-
-    const pesquisa = await pesquisarDB({
-        base: 'vw_tecnicos_saldo',
-        filtros: {
-            origem: { op: '=', value: 'Kit' },
-            tecnico: { op: 'includes', value: tecnicoNum1 }
-        }
-    })
-
-    const saldoPecas = Object.fromEntries(
-        (pesquisa.resultados || []).map(peca => [peca.codigo, peca])
-    )
-
-    const divs = [...document.querySelectorAll('[name="equipamentos"]')]
-
-    for (const div of divs) {
-        const equip = div.querySelector('span')
-        const codigo = equip?.id || ''
-        const origem = div.querySelector('input[name^="origem_"]:checked')?.dataset.origem || ''
-        const inputQuantidade = div.querySelector('#quantidade')
-
-        const quantidade = Number(inputQuantidade?.value) || 0
-        // Se o código for diferente, então desconsidere o saldo anterior;
-        const codigoAnterior = inputQuantidade?.dataset?.codigo || 0
-        const quantidadeAnterior = codigoAnterior !== codigo
-            ? 0
-            : Number(inputQuantidade?.dataset.anterior) || 0
-
-        const itemSaldo = saldoPecas[codigo]
-        const saldoItem = Number(itemSaldo?.saldo_atual) || 0
-
-        const saldo = saldoItem + quantidadeAnterior
-        const saldoDisponivel = saldo - quantidade
-
-        if (origem === 'Kit' && quantidade > 0 && saldoDisponivel < 0) {
-            const alerta = `<img src="gifs/alerta.gif" data-descricao="${equip.textContent}" name="alerta-saldo" onclick="verSaldoTecnico('${tecnicoNum1}')">`
-            div.insertAdjacentHTML('beforeend', alerta)
-        }
-    }
-}
-
-async function verSaldoTecnico(tecnico) {
-
-    popup({
-        elemento: `
-        <div class="painel-saldos-flutuante">
-            <div id="painel_resumo"></div>
-        </div>
-        `
-    })
-
-    await telaSaldoPecas(tecnico)
-
-}
-
 async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
 
     try {
@@ -2848,8 +2825,6 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
         if (conflitoAgenda())
             return
 
-        if (conflitoKit())
-            return
 
         const tipoCorrecao = obter('tipoCorrecao').id
         const dtCorrecao = obter('dtCorrecao').value

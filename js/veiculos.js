@@ -24,7 +24,6 @@ async function telaVeiculos() {
         overlayAguarde()
 
         const colunas = {
-            'Data de Registro': { chave: 'data', tipoPesquisa: 'data' },
             'Usuário': { chave: 'usuario' },
             'Motorista': { chave: 'veiculo.snapshots.motoristas' },
             'Data Pagamento': { chave: 'data_pagamento', tipoPesquisa: 'data' },
@@ -32,7 +31,6 @@ async function telaVeiculos() {
             'Valor': { chave: 'custo_total' },
             'Realizado': { chave: 'realizado' },
             'Cartão': { chave: 'veiculo.cartao' },
-            'Comentário': { chave: 'comentario' },
             'Departamentos': { chave: 'snapshots.departamentos' },
             'Editar': {}
         }
@@ -43,19 +41,13 @@ async function telaVeiculos() {
 
         const tabela = await modTab({
             pag: 'custoVeiculos',
+            detalhes: true,
             btnExtras,
             body: 'bodyCustoVeiculos',
             base: 'custo_veiculos',
             colunas,
             criarLinha: 'criarLinhaCusto',
             substituicoes: [
-                {
-                    path: 'distribuicao.*.departamento',
-                    tabela: 'departamentos',
-                    campoBusca: 'codigo',
-                    retorno: 'descricao',
-                    destino: 'distribuicao.*.nomeDepartamento'
-                },
                 {
                     path: 'veiculo.motoristas.*.id',
                     tabela: 'clientes',
@@ -66,7 +58,12 @@ async function telaVeiculos() {
             ]
         })
 
-        tela.innerHTML = montarPagina({ titulo: 'Combustíveis', tabela, imagem: 'combustivel' })
+        tela.innerHTML = `
+            <div class="pagina-conteudo">
+                <div class="cabecalho-pagina"><h2>Combustíveis</h2></div>
+                ${tabela}
+            </div>
+        `
 
         await paginacao()
 
@@ -133,7 +130,7 @@ async function criarLinhaVeiculo(veiculo) {
             </div>
         </td>
         <td>
-            <img src="imagens/pesquisar2.png" onclick="novoVeiculo('${veiculo.id}')">
+            <img src="imagens/pesquisar.svg" onclick="novoVeiculo('${veiculo.id}')">
         </td>
     </tr>
     `
@@ -142,7 +139,7 @@ async function criarLinhaVeiculo(veiculo) {
 
 async function criarLinhaCusto(custo) {
 
-    const { veiculo, id, usuario, snapshots, data_pagamento, comentario, data, realizado, custo_total, distribuicao = {} } = custo
+    const { veiculo, id, usuario, data_pagamento, comentario, data, realizado, custo_total, distribuicao = {} } = custo
     const { cartao, placa, modelo, motoristas, status } = veiculo || {}
     const editavel = acesso.permissao == 'adm' || acesso.setor == 'FINANCEIRO'
 
@@ -156,6 +153,7 @@ async function criarLinhaCusto(custo) {
     for (const dados of Object.values(distribuicao || {})) {
 
         const { km, nomeDepartamento, departamento } = dados || {}
+        const departamentoEstavel = String(departamento || nomeDepartamento || '')
 
         const porcentagem = km / custo.km
         const valor = realizado
@@ -164,18 +162,17 @@ async function criarLinhaCusto(custo) {
 
         deps.push(`
             <div style="${horizontal}; gap: 2px;">
-                <div class="etiquetas"
+                <div class="tag-pendencias pagamento-balao pagamento-balao-departamento"
                 name="departamento"
-                data-departamento="${nomeDepartamento}"
+                data-departamento="${escaparAtributo(departamentoEstavel)}"
                 data-valor="${valor}"
-                data-codigo="${departamento}">
-                    <span>${nomeDepartamento || departamento || '...'}</span>
+                data-codigo="${escaparAtributo(departamentoEstavel)}">
+                    <span>${escaparAtributo(departamentoEstavel || '...')}</span>
                 </div>
             </div>`)
     }
 
     const tds = `
-        <td>${data || ''}</td>
         <td>${usuario}</td>
 
         <td>
@@ -211,17 +208,23 @@ async function criarLinhaCusto(custo) {
 
         <td>${cartao || ''}</td>
 
-        <td>${comentario || ''}</td>
 
         <td>
             <div style="${vertical}; gap: 1px;">${deps.join('')}</div>
         </td>
 
         <td>
-            <img src="imagens/pesquisar2.png" onclick="painelAtalhos('${id}')">
+            <img src="imagens/pesquisar.svg" onclick="painelAtalhos('${id}')">
         </td>`
 
-    return `<tr>${tds}</tr>`
+    const detalhes = `
+        <div class="veiculo-detalhes">
+            <div><strong>Data de Registro</strong><span>${escaparAtributo(data || 'Sem data')}</span></div>
+            <div><strong>Comentário</strong><span>${escaparAtributo(comentario || 'Sem comentário')}</span></div>
+        </div>
+    `
+
+    return { linha: `<tr>${tds}</tr>`, detalhes }
 }
 
 function viabilidadeOmie() {
@@ -233,7 +236,7 @@ function viabilidadeOmie() {
     totalDepartamentos = {}
     let total = 0
 
-    const linhas = document.querySelectorAll('#bodyCustoVeiculos tr')
+    const linhas = document.querySelectorAll('#bodyCustoVeiculos tr:not(.tabela-linha-detalhes)')
     for (const linha of linhas) {
 
         const deps = linha.querySelectorAll('[name="departamento"]')
@@ -268,7 +271,7 @@ function viabilidadeOmie() {
         <div ${possibilidade ? `onclick="criarPagamentoVeiculo()"` : ''} 
             class="botao-criar-pagamento">
             <img src="imagens/${possibilidade ? 'concluido' : 'proibido'}.png">
-            <span>Criar pagamento no Omie</span>
+            <span>Criar pagamento</span>
             <span style="white-space: nowrap;">${dinheiro(total)}</span>
         </div>
     `
@@ -284,15 +287,21 @@ async function criarPagamentoVeiculo() {
 
         totalDeps += valor
         deps.push(`
-            <div class="etiquetas" style="flex-direction: row; gap: 0.5rem;">
-                <span>${descricao || 'Desatualizado...'}</span>
-                <span>${dinheiro(valor)}</span>
+            <div class="tag-pendencias pagamento-balao pagamento-veiculo-resumo">
+                <span>${escaparAtributo(descricao || 'Desatualizado...')}</span>
+                <strong>${dinheiro(valor)}</strong>
             </div>`)
     }
 
     const linhas = [
         { texto: 'App', elemento: `<select id="app">${['AC', 'IAC'].map(op => `<option>${op}</option>`).join('')}</select>` },
-        { texto: 'Taxa', elemento: `R$ <input id="taxa" oninput="somarTaxa(this)" type="number">` },
+        {
+            texto: 'Taxa', elemento: `
+                <div class="campo-moeda-combustivel">
+                    <span>R$</span>
+                    <input id="taxa" oninput="somarTaxa(this)" type="number">
+                </div>`
+        },
         { texto: 'Valor', elemento: `<span id="total" data-total="${totalDeps}">${dinheiro(totalDeps)}</span>` },
         { texto: 'Data', elemento: `<input id="data" type="date">` },
         { texto: 'Observação', elemento: `<textarea id="observacao"></textarea>` },
@@ -300,14 +309,14 @@ async function criarPagamentoVeiculo() {
     ]
 
     const botoes = [
-        { img: 'salvo', funcao: 'enviarOmie()', texto: 'Enviar/Omie' }
+        { img: 'salvo', funcao: 'salvarPagamentoVeiculo()', texto: 'Criar pagamento' }
     ]
 
-    popup({ linhas, botoes, titulo: 'Criar pagamento no Omie' })
+    popup({ linhas, botoes, titulo: 'Criar pagamento' })
 
 }
 
-async function enviarOmie() {
+async function salvarPagamentoVeiculo() {
     const el = (id) => {
         const elem = document.getElementById(id)
         return elem.value
@@ -318,7 +327,7 @@ async function enviarOmie() {
     const taxa = Number(el('taxa'))
     const inpData = el('data')
 
-    if (!taxa || !inpData)
+    if (!Number.isFinite(taxa) || taxa < 0 || !inpData)
         return popup({ mensagem: 'Preencha a data e/ou o valor da taxa' })
 
     overlayAguarde()
@@ -332,30 +341,13 @@ async function enviarOmie() {
         const data = dt(inpData)
         const idPagamento = crypto.randomUUID()
 
-        totalDepartamentos.EMPRESA ??= 0
-        totalDepartamentos.EMPRESA += taxa
+        const valoresPorDepartamento = { ...totalDepartamentos }
+        valoresPorDepartamento.EMPRESA = Number(valoresPorDepartamento.EMPRESA || 0) + taxa
 
-        const itensDistribuicao = await Promise.all(
-            Object.entries({ ...totalDepartamentos }).map(async ([departamento, valor]) => {
-                const pesquisa = await pesquisarDB({
-                    base: 'departamentos',
-                    filtros: {
-                        app: { op: '=', value: app },
-                        descricao: { op: '=', value: departamento }
-                    }
-                })
-
-                const codigo = pesquisa?.resultados?.[0]?.codigo
-
-                if (!codigo)
-                    throw new Error(`Departamento não localizado: ${departamento}`)
-
-                return {
-                    cCodDep: codigo,
-                    nValDep: Number(valor || 0)
-                }
-            })
-        )
+        const itensDistribuicao = Object.entries(valoresPorDepartamento).map(([departamento, valor]) => ({
+            cCodDep: String(departamento),
+            nValDep: Number(valor || 0)
+        }))
 
         const distribuicaoAgrupada = {}
         let totalGeral = 0
@@ -373,68 +365,55 @@ async function enviarOmie() {
 
         const distribuicao = Object.values(distribuicaoAgrupada)
 
-        const pesqCategoria = await pesquisarDB({
-            base: 'categorias',
-            filtros: {
-                app: { op: '=', value: app },
-                categoria: { op: '=', value: 'Combustível' }
-            }
-        })
+        const codigoCategoria = 'Combustível'
 
-        const codigoCategoria = pesqCategoria?.resultados?.[0]?.id
-
-        if (!codigoCategoria)
-            throw new Error('Categoria Combustível não localizada no app selecionado')
-
-        const pesqCliente = await pesquisarDB({
-            base: 'vw_clientes',
-            filtros: {
-                app: { op: '=', value: app },
-                nome: { op: '=', value: 'TICKET LOG' }
-            }
-        })
-
-        const codigoCliente = pesqCliente?.resultados?.[0]?.id
-
-        if (!codigoCliente)
-            throw new Error('Cliente TICKET LOG não localizado no app selecionado')
+        const codigoCliente = 6066446384
 
         const pagamento = {
             app,
             status: 'Aprovado por fin',
             criado: acesso.usuario,
-            param: [{
+            data_registro: new Date().toLocaleString(),
+            param_estavel: {
                 codigo_cliente_fornecedor: codigoCliente,
-                codigo_lancamento_integracao: idPagamento,
+                chave_pix: '',
                 data_vencimento: data,
                 data_previsao: data,
                 distribuicao,
                 observacao,
                 valor_documento: totalGeral,
-                categorias: [
-                    {
-                        codigo_categoria: codigoCategoria,
-                        percentual: 100
-                    }
-                ]
-            }]
+                categorias: [{ codigo_categoria: codigoCategoria, valor: totalGeral }]
+            },
+            snapshots: {
+                cliente: 'TICKET LOG',
+                valor: totalGeral,
+                categorias: [{ categoria: codigoCategoria, valor: totalGeral }],
+                departamentos: distribuicao.map(({ cCodDep, nValDep }) => ({
+                    departamento: cCodDep,
+                    valor: nValDep
+                }))
+            }
         }
 
-        await enviar(`lista_pagamentos/${idPagamento}`, pagamento)
+        const resultado = await enviar(`lista_pagamentos/${idPagamento}`, pagamento)
+        if (!resultado?.success)
+            throw new Error(resultado?.mensagem || 'Falha ao criar pagamento')
 
         removerPopup()
         popup({ mensagem: 'Lançado no GCS', imagem: 'imagens/concluido.png' })
 
     } catch (err) {
         removerPopup()
-        popup({ mensagem: err.message || 'Erro ao enviar para o Omie' })
+        popup({ mensagem: err.message || 'Erro ao criar pagamento' })
+    } finally {
+        removerOverlay()
     }
 }
 
 function somarTaxa(input) {
     const elemTotal = document.getElementById('total')
     const total = Number(elemTotal.dataset.total)
-    elemTotal.textContent = dinheiro(total + Number(input.value))
+    elemTotal.innerHTML = dinheiro(total + Number(input.value || 0))
 }
 
 async function atualizarRealizado(img, idCusto) {
@@ -493,22 +472,13 @@ async function painelValores(idCusto, duplicar) {
         veiculo?.modelo
     ].filter(Boolean)
 
-    const tabela = `
-        <div style="${vertical}">
-            <div class="topo-tabela">
-                <img src="imagens/baixar.png" onclick="linDist()">
+    const distribuicaoVisual = `
+        <div class="distribuicao-combustivel">
+            <div class="distribuicao-combustivel-topo">
+                <span>Divisão dos quilômetros por departamento</span>
+                <button type="button" onclick="linDist()">+ Adicionar departamento</button>
             </div>
-            <div class="div-tabela">
-                <table class="tabela">
-                    <thead>
-                        <th>Departamento</th>
-                        <th>KM</th>
-                        <th></th>
-                    </thead>
-                    <tbody id="distribuicao"></tbody>
-                </table>
-            </div>
-            <div class="rodape-tabela"></div>
+            <div id="distribuicao" class="distribuicao-combustivel-lista vazio"></div>
         </div>
     `
 
@@ -516,8 +486,14 @@ async function painelValores(idCusto, duplicar) {
         { texto: 'Comentário', elemento: `<textarea rows="5" style="padding: 0.5rem;" id="comentario">${custo?.comentario || ''}</textarea>` },
         { texto: 'Data Pagamento', elemento: `<input id="data_pagamento" type="date" value="${custo?.data_pagamento || ''}">` },
         { texto: 'KM/L', elemento: `<input oninput="calcularValorCombustivel()" value="${custo?.kml || ''}" type="number" id="kml" type="number">` },
-        { texto: 'Valor Combustível', elemento: `R$ <input  oninput="calcularValorCombustivel()" value="${custo?.combustivel || ''}" type="number" id="combustivel" type="number">` },
-        { texto: 'Distribuição', elemento: tabela },
+        {
+            texto: 'Valor Combustível', elemento: `
+                <div class="campo-moeda-combustivel">
+                    <span>R$</span>
+                    <input oninput="calcularValorCombustivel()" value="${custo?.combustivel || ''}" type="number" id="combustivel">
+                </div>`
+        },
+        { texto: 'Distribuição', elemento: distribuicaoVisual },
         {
             texto: 'Total KM', elemento: `
             <div style="${horizontal}; gap: 0.5rem;">
@@ -566,55 +542,60 @@ async function painelValores(idCusto, duplicar) {
     }
 
     for (const [codigo, { km }] of Object.entries(custo.distribuicao || {})) {
-        const { descricao } = await recuperarDado('departamentos', Number(codigo))
-        linDist({ codigo, km, descricao })
+        linDist({ codigo, km, descricao: codigo })
     }
 
 }
 
 function linDist({ descricao, codigo, km } = {}) {
 
-    const tbody = document.getElementById('distribuicao')
+    const lista = document.getElementById('distribuicao')
+    if (!lista) return
     const chave = crypto.randomUUID()
+    lista.classList.remove('vazio')
 
-    tbody.insertAdjacentHTML('beforeend', `
-        <tr>
-            <td>
+    lista.insertAdjacentHTML('beforeend', `
+        <div class="distribuicao-combustivel-item">
+            <div class="distribuicao-combustivel-campo departamento">
+                <label>Departamento</label>
                 <span 
                 class="opcoes" 
                 name="${chave}" 
-                ${codigo ? `id="${codigo}"` : ''}
+                    data-campo="departamento"
+                ${codigo ? `id="${escaparAtributo(String(codigo))}"` : ''}
                 onclick="cxOpcoes('${chave}')">
-                    ${descricao || 'Selecione'}
+                    ${escaparAtributo(descricao || 'Selecione')}
                 </span>
-            </td>
-            <td>
-                <input value="${km || ''}" style="width: 5rem;" oninput="calcularValorCombustivel()" name="km" type="number">
-            </td>
-            <td>
-                <img onclick="this.closest('tr').remove(); calcularValorCombustivel()" src="imagens/cancel.png" style="width: 1.5rem;">
-            </td>
-        </tr>`
+            </div>
+            <div class="distribuicao-combustivel-campo km">
+                <label>KM</label>
+                <input value="${km || ''}" min="0" step="0.01" oninput="calcularValorCombustivel()" name="km" type="number" placeholder="0">
+            </div>
+            <span class="close"
+                onclick="removerDistribuicaoCombustivel(this)"
+                role="button" tabindex="0" aria-label="Remover departamento">&times;</span>
+        </div>`
     )
 
     controlesCxOpcoes[chave] = {
-        base: 'departamentos',
-        filtros: {
-            'app': {
-                op: '=',
-                value: 'AC'
-            }
-        },
-        retornar: ['descricao'],
+        base: 'mesc_departamentos',
+        retornar: ['id'],
         colunas: {
-            'Descrição': { chave: 'descricao' }
+            'Descrição': { chave: 'id' }
         }
     }
 
 }
 
+function removerDistribuicaoCombustivel(botao) {
+    const lista = document.getElementById('distribuicao')
+    botao.closest('.distribuicao-combustivel-item')?.remove()
+    lista?.classList.toggle('vazio', !lista.querySelector('.distribuicao-combustivel-item'))
+    calcularValorCombustivel()
+}
+
 function calcularValorCombustivel() {
-    const linhas = document.querySelectorAll('#distribuicao tr')
+    const linhas = document.querySelectorAll('#distribuicao .distribuicao-combustivel-item')
     const kml = Number(document.getElementById('kml').value)
     const combustivel = Number(document.getElementById('combustivel').value)
 
@@ -625,10 +606,12 @@ function calcularValorCombustivel() {
         totalKM += km
     }
 
-    const valor = (totalKM / kml) * combustivel
+    const calculoValido = kml > 0 && combustivel > 0
+    const litros = calculoValido ? totalKM / kml : 0
+    const valor = litros * combustivel
 
     document.getElementById('km').value = totalKM
-    document.getElementById('litros').value = totalKM ? Math.ceil(totalKM / kml) : 0
+    document.getElementById('litros').value = totalKM ? Math.ceil(litros) : 0
 
     const ct = document.getElementById('custo_total')
 
@@ -658,11 +641,10 @@ async function salvarValores(idCusto = crypto.randomUUID()) {
         return popup({ mensagem: `Preencha a data de pagamento` })
 
     const distribuicao = {}
-    const linhas = document.querySelectorAll('#distribuicao tr')
+    const linhas = document.querySelectorAll('#distribuicao .distribuicao-combustivel-item')
 
     for (const linha of linhas) {
-        const tds = linha.querySelectorAll('td')
-        const span = tds[0].querySelector('span')
+        const span = linha.querySelector('[data-campo="departamento"]')
 
         if (!span.id)
             return popup({ mensagem: 'Departamento em branco' })

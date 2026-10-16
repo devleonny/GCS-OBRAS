@@ -66,7 +66,7 @@ async function painelCustos(contrato) {
             .join('')
 
         const elemento = `
-            <div class="painel-geral-checklist">
+            <div class="painel-geral-checklist painel-custos-erp">
 
                 <div class="toolbar-padrao">${toolbar}</div>
 
@@ -74,20 +74,20 @@ async function painelCustos(contrato) {
 
                     ${tituloChecklist('Resumo de Custos')}
 
-                    <div style="display: flex; gap: 5px;">  
+                    <div class="custos-resumo">
+
+                        ${velocimetro}
 
                         <div class="checklist-cabecalho">
                             <span class="tag-pendencias">${contrato}</span>
                             ${dados}
                         </div>
 
-                        ${velocimetro}
-
-                        <div style="display: flex; flex-wrap: wrap; gap: 5px;">${baloes}</div>
+                        <div class="custos-resumo-valores">${baloes}</div>
 
                     </div>
 
-                    <div style="border-top: solid 1px #ffffff6e; width: 100%; margin: 0.5rem;"></div>
+                    <div class="custos-divisor"></div>
 
                     <div class="painel-custos-tabelas"></div>
 
@@ -113,7 +113,6 @@ function tituloChecklist(texto) {
 
   return `
     <div class="titulo-relatorio">
-      <img src="${logo}">
       <span>${texto}</span>
     </div>
   `
@@ -133,17 +132,6 @@ async function inicioCustos(contrato) {
 
     const painel = document.querySelector('.painel-custos-tabelas')
 
-    const tools = [
-        {
-            tipo: 'pizza',
-            titulo: 'Gráfico de Pizza'
-        },
-        {
-            tipo: 'tempo',
-            titulo: 'Linha do Tempo'
-        }
-    ].map((t, i) => `<span style="opacity: ${i == 0 ? 1 : 0.5}" onclick="toggleAbas(this); mostrarGrafico('${t.tipo}')">${t.titulo}</span>`).join('')
-
     painel.innerHTML = `
 
         <div style="${vertical}; gap: 5px;">
@@ -156,18 +144,15 @@ async function inicioCustos(contrato) {
                     <img src="gifs/loading.gif" style="width: 5rem;">
                 </div>
 
-                <div style="${vertical}">
-                    <div class="toolbar-padrao">
-                        ${tools}
-                    </div>
-
-                    <div class="grafico-box">
-                        <canvas id="grafico-categorias"></canvas>
-                    </div>
-
-                    <div class="grafico-box">
-                        <canvas id="grafico-linha-tempo"></canvas>
-                    </div>
+                <div class="custos-graficos">
+                    <section class="custos-grafico-cartao">
+                        <h3>Custos por categoria</h3>
+                        <div class="grafico-box"><canvas id="grafico-categorias"></canvas></div>
+                    </section>
+                    <section class="custos-grafico-cartao">
+                        <h3>Linha do tempo</h3>
+                        <div class="grafico-box"><canvas id="grafico-linha-tempo"></canvas></div>
+                    </section>
                 </div>
 
             </div>
@@ -177,14 +162,6 @@ async function inicioCustos(contrato) {
 
     await somaPorCategoria(contrato)
 
-}
-
-function mostrarGrafico(tipo) {
-    const boxes = document.querySelectorAll('.grafico-box')
-
-    boxes.forEach(b => b.style.display = 'none')
-
-    boxes[tipo == 'pizza' ? 0 : 1].style.display = 'flex'
 }
 
 async function somaPorCategoria(contrato) {
@@ -222,8 +199,6 @@ async function somaPorCategoria(contrato) {
         rotulo: 'Custos por data'
     })
 
-    mostrarGrafico('pizza')
-
 }
 
 async function tabPagamentosCusto(contrato) {
@@ -235,17 +210,17 @@ async function tabPagamentosCusto(contrato) {
         const pag = 'custosPagamentos'
         const tabela = await modTab({
             pag,
+            alturaMinima: '60dvh',
             body: 'bodyCustosPagamentos',
             criarLinha: 'criarLinhaCustoPagamento',
-            base: 'lista_pagamentos',
-            explode: { path: 'snapshots.categorias' },
+            base: 'vw_pagamentos_categorias',
             filtros: {
-                'snapshots.categorias.*.departamento': { op: '=', value: contrato },
+                'departamento': { op: '=', value: contrato },
                 'param.*.codigo_tipo_documento': { op: '!=', value: 'CTE' },
             },
             colunas: {
                 'Data': { chave: 'param.*.data_previsao', tipoPesquisa: 'data' },
-                'Valor': { chave: 'descricao' },
+                'Valor': { chave: 'valor' },
                 'Categoria': { chave: 'categoria' },
                 'Status': { chave: 'status' },
                 'Solicitante': { chave: 'criado' },
@@ -297,7 +272,7 @@ async function criarLinhaCustoPagamento(pagamento) {
             <div style="white-space: pre-wrap;">${observacao || ''}</div>
         </td>
         <td>
-            <img src="imagens/pesquisar2.png" onclick="abrirDetalhesPagamentos('${pagamento.id}')">
+            <img src="imagens/pesquisar.svg" onclick="abrirDetalhesPagamentos('${pagamento.pagamento_id}')">
         </td>
         `
 
@@ -331,12 +306,13 @@ function graficoRosca({ dados = [], elemento }) {
     const largura = Math.max(700, 360 + larguraLegenda, larguraLegenda * 2)
     const altura = Math.max(360, labels.length * 26 + 40)
 
+    const ladoALado = !!canvas.closest('.custos-graficos')
     Object.assign(canvas.parentElement.style, {
         position: 'relative',
-        width: `${largura}px`,
-        minWidth: `${largura}px`,
-        maxWidth: 'none',
-        height: `${altura}px`,
+        width: ladoALado ? '100%' : `${largura}px`,
+        minWidth: ladoALado ? '0' : `${largura}px`,
+        maxWidth: ladoALado ? '100%' : 'none',
+        height: `${ladoALado ? Math.max(360, 220 + Math.ceil(labels.length / 2) * 26) : altura}px`,
         maxHeight: 'none',
         flexShrink: '0'
     })
@@ -355,7 +331,7 @@ function graficoRosca({ dados = [], elemento }) {
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: 'right',
+                    position: ladoALado ? 'bottom' : 'right',
                     labels: {
                         boxWidth: 14,
                         boxHeight: 14,

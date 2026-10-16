@@ -11,7 +11,7 @@ const esquemas = {
 }
 
 const permissoes = ['', 'adm', 'técnico', 'cliente', 'user', 'visitante', 'analista', 'gerente', 'coordenacao', 'diretoria', 'editor', 'log', 'qualidade', 'novo']
-const setores = ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE', 'POC', 'GCS']
+const setores = ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE', 'POC', 'GCS', 'CNR']
 const tagsClientes = ['', 'FUNCIONÁRIO', 'CLIENTE', 'MOTORISTA', 'TÉCNICO', 'TÉCNICO PARCEIRO', 'FORNECEDOR', 'MATRIZ', 'CFTV', 'CATRACAS', 'INFRA', 'ALARME']
 const parcelas = ["--", "15 dias", "20 dias", "21 dias", "30 dias", "35 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
 const empresas = ['AC', 'IAC', 'HNK', 'HNW']
@@ -871,17 +871,4 @@ function validarCpfCnpj(val) {
     }
 
     return false // Se não tem 11 nem 14 números
-}
-
-function montarPagina({ titulo, imagem, tabela }) {
-
-    return `
-            <div style="${vertical}; width: stretch;">
-                <div class="titulo-tabelas">
-                    <img src="imagens/${imagem}.png">
-                    <span>${titulo}</span>
-                </div>
-                ${tabela}
-            </div>
-        `
 }

@@ -1,3 +1,69 @@
+.clientes-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    width: 100%;
+    min-width: 0;
+}
+
+.clientes-layout > .pagina-conteudo {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.clientes-layout > .fundo-mapa {
+    flex: 0 1 45%;
+    width: 45%;
+    min-width: 0;
+    position: relative;
+    z-index: 0;
+}
+
+.clientes-layout .topo-tabela {
+    z-index: 3;
+}
+
+.clientes-layout .topo-tabela > div:last-child {
+    flex: 1 1 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.clientes-layout .clientes-filtros {
+    flex-wrap: wrap;
+    justify-content: flex-start !important;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.clientes-filtros .campo-pesquisa {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.clientes-filtros .filtro-dropdown {
+    min-width: min(180px, 100%);
+    max-width: 100%;
+}
+
+@media (max-width: 800px) {
+    .clientes-layout {
+        flex-direction: column;
+    }
+
+    .clientes-layout > .pagina-conteudo {
+        flex: 0 0 auto;
+        width: 100%;
+    }
+
+    .clientes-layout > .fundo-mapa {
+        flex: 0 0 auto;
+        width: 100%;
+        align-self: center;
+    }
+}
+
 .paginacao-clientes {
     display: flex;
     align-items: center;
@@ -46,8 +112,32 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 70px;
-    height: 70px;
+    width: 68px;
+    height: 68px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    font-family: inherit;
+}
+
+.pizza-apps svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.pizza-apps:hover {
+    background: transparent;
+    box-shadow: 0 0 0 3px #dcebe1;
+}
+
+.pizza-apps:focus-visible {
+    outline: 2px solid #527d60;
+    outline-offset: 3px;
 }
 
 .toolbar-clientes {

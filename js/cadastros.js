@@ -55,7 +55,7 @@ async function criarLinhaCadastro(dados) {
     const tds = `
         <td>${nome}</td>
         <td style="width: 2rem;">
-            <img src="imagens/pesquisar2.png" onclick="editarBaseAuxiliar('${base}', '${id}')">
+            <img src="imagens/pesquisar.svg" onclick="editarBaseAuxiliar('${base}', '${id}')">
         </td>
     `
 

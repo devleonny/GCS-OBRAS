@@ -65,6 +65,7 @@ async function irExcelOrcamento(orcam_) {
             ws_orcamento.getCell('G1').alignment = { horizontal: 'right', vertical: 'middle' }
 
             const intervalosItens = []
+            const subtotaisPorTipo = new Map()
 
             for (const tipo in listagem) {
                 ws_orcamento.addRow([])
@@ -98,6 +99,7 @@ async function irExcelOrcamento(orcam_) {
                     '', '', '', `Total ${tipo}`,
                     { formula: `SUM(E${start}:E${end})` }
                 ])
+                subtotaisPorTipo.set(tipo, totalRow.number)
                 totalRow.eachCell(c => {
                     c.font = { bold: true, color: { argb: 'FFFFFF' } }
                     c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '1155CC' } }
@@ -140,8 +142,8 @@ async function irExcelOrcamento(orcam_) {
 
             const refs = []
             for (const tipo in listagem) {
-                const ultima = ws_orcamento.lastRow.number
-                ws_total.addRow([`TOTAL ${tipo}`, { formula: `Orçamento!E${ultima}` }])
+                const linhaSubtotal = subtotaisPorTipo.get(tipo)
+                ws_total.addRow([`TOTAL ${tipo}`, { formula: `'Orçamento'!E${linhaSubtotal}` }])
                 refs.push(`TOTAL!B${ws_total.lastRow.number}`)
             }
 

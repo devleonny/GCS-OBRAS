@@ -1,4 +1,16 @@
 let lpuATIVA = null
+let observadorResumoOrcamento = null
+
+function acompanharCabecalhoOrcamento() {
+    observadorResumoOrcamento?.disconnect()
+    const resumo = document.getElementById('orcamento-resumo-fixo')
+    const cabecalho = document.querySelector('#orcamento_padrao .menu-superior')
+    if (!resumo || !cabecalho) return
+    observadorResumoOrcamento = new IntersectionObserver(([entrada]) => {
+        resumo.hidden = entrada.boundingClientRect.bottom > (entrada.rootBounds?.top || 0)
+    }, { root: cabecalho.closest('.tela'), threshold: [0, 1] })
+    observadorResumoOrcamento.observe(cabecalho)
+}
 
 const substituicoes = (lpu) => {
     return [
@@ -74,15 +86,24 @@ async function telaCriarOrcamento() {
 
         <div id="orcamento_padrao" style="width: 100%;">
 
+            <div id="orcamento-resumo-fixo" class="orcamento-resumo-fixo" hidden>
+                <div class="orcamento-resumo-valor">
+                    <span>Total geral do orçamento</span>
+                    <strong id="orcamento-total-fixo">${dinheiro(baseOrcamento()?.total_geral || 0)}</strong>
+                </div>
+                <div id="orcamento-diferenca-fixa" class="orcamento-resumo-valor orcamento-resumo-diferenca" hidden></div>
+                <button type="button" class="orcamento-botao-subir" onclick="document.querySelector('#orcamento_padrao .menu-superior')?.scrollIntoView({ behavior: 'smooth', block: 'start' })">↑ Subir</button>
+            </div>
             <div class="menu-superior">
 
-                <img src="imagens/GrupoCostaSilva.png" style="width: 10vw;">
+                <div class="orcamento-atalho-composicoes">
+                    <button type="button" onclick="document.getElementById('tabelaItens')?.scrollIntoView({ behavior: 'smooth', block: 'start' })">Ir para Composições ↓</button>
+                </div>
 
                 <div style="${vertical}">
 
-                    <label style="font-size: 1.2rem;">TOTAL GERAL</label>
-                    <div style="font-size: 1.7rem;" id="total_geral"></div>
-                    <br>
+                    <label style="font-size: 0.9rem;">TOTAL GERAL</label>
+                    <div style="font-size: 1.4rem;" id="total_geral"></div>
                     
                     <div style="${horizontal}; gap: 1rem;">
                         <img src="imagens/alerta.png">
@@ -133,6 +154,7 @@ async function telaCriarOrcamento() {
     if (!orcamentoPadrao)
         tela.innerHTML = acumulado
 
+    acompanharCabecalhoOrcamento()
     // Inicializar tabelas;
     const orcamento = baseOrcamento()
     if (orcamento?.esquema_composicoes)
@@ -168,11 +190,15 @@ async function manterPrecosAntigos(resposta) {
 
     overlayAguarde()
 
-    await atualizarOpcoesLPU()
-    await tabelaProdutosOrcamentos()
-    await carregarTabelasOrcamento(resposta)
+    try {
+        await atualizarOpcoesLPU()
+        await carregarTabelasOrcamento(resposta)
+    } finally {
+        removerOverlay()
+    }
 
-    removerOverlay()
+    // O catálogo carrega depois, sem bloquear a edição do orçamento já exibido.
+    await tabelaProdutosOrcamentos()
 
 }
 
@@ -236,7 +262,30 @@ function excluirRevisao() {
 
 }
 
-function confirmarExclusaoRevisao() {
+function campoComposicoesRevisao(orcamento) {
+    return orcamento.lpu_ativa === 'ALUGUEL' ? 'dados_composicoes' : 'esquema_composicoes'
+}
+
+function sincronizarRevisaoAtual(orcamento) {
+    const atual = orcamento?.revisoes?.atual
+    if (atual && Object.hasOwn(orcamento.revisoes.historico || {}, atual))
+        orcamento.revisoes.historico[atual] = structuredClone(orcamento[campoComposicoesRevisao(orcamento)] || {})
+}
+
+async function atualizarTabelaRevisao() {
+    const orcamento = baseOrcamento()
+    if (orcamento.lpu_ativa === 'ALUGUEL') {
+        document.getElementById('tabelas').innerHTML = ''
+        await carregarTabelasAluguel()
+    } else {
+        controles.criarOrcamento.base = Object.values(orcamento.esquema_composicoes || {})
+        await paginacao('criarOrcamento')
+        calcularSubtotais()
+    }
+    await atualizarToolbar()
+}
+
+async function confirmarExclusaoRevisao() {
     const revisao = document.querySelector('[name="revisao"]').value
     const orcamento = baseOrcamento()
     orcamento.revisoes ??= {}
@@ -247,21 +296,17 @@ function confirmarExclusaoRevisao() {
     delete orcamento.revisoes.historico[revisao]
     const chavesRevisoes = Object.keys(orcamento?.revisoes?.historico || {})
     const RX = chavesRevisoes[0]
-    const composicoes = structuredClone(orcamento?.revisoes?.historico?.[RX] || {})
-
-    if (orcamento.lpu_ativa == 'ALUGUEL')
-        orcamento.dados_composicoes = composicoes
-    else
-        orcamento.esquema_composicoes = composicoes
-
-    orcamento.revisoes.atual = RX
-
-    revisao.innerHTML = chavesRevisoes.map(r => `<option ${r == RX ? 'selected' : ''}>${r}</option>`).join('')
+    if (RX) {
+        orcamento[campoComposicoesRevisao(orcamento)] = structuredClone(orcamento.revisoes.historico[RX])
+        orcamento.revisoes.atual = RX
+    } else {
+        delete orcamento.revisoes.atual
+    }
 
     baseOrcamento(orcamento)
 
-    atualizarToolbar()
     removerPopup()
+    await atualizarTabelaRevisao()
 }
 
 
@@ -269,26 +314,14 @@ async function alterarRevisao() {
     const revisao = document.querySelector('[name="revisao"]').value
 
     const orcamento = baseOrcamento()
-    const revisaoAtual = orcamento?.revisoes?.atual
+    if (!Object.hasOwn(orcamento.revisoes?.historico || {}, revisao)) return
+    sincronizarRevisaoAtual(orcamento)
+    orcamento[campoComposicoesRevisao(orcamento)] = structuredClone(orcamento.revisoes.historico[revisao])
     orcamento.revisoes.atual = revisao
-
-    const cloneComposicoes = structuredClone(orcamento.lpu_ativa == 'ALUGUEL' ? orcamento.dados_composicoes : orcamento.esquema_composicoes)
-
-    if (revisaoAtual)
-        orcamento.revisoes.historico[revisaoAtual] = cloneComposicoes
-
-    if (orcamento.lpu_ativa == 'ALUGUEL') {
-        orcamento.dados_composicoes = orcamento.revisoes.historico[revisao]
-
-    } else {
-        orcamento.esquema_composicoes = orcamento.revisoes.historico[revisao]
-    }
 
     baseOrcamento(orcamento)
 
-    controles.criarOrcamento.base = Object.values(orcamento?.esquema_composicoes || {})
-
-    await paginacao('criarOrcamento')
+    await atualizarTabelaRevisao()
 
 }
 
@@ -297,9 +330,11 @@ async function salvarRevisao() {
 
     orcamento.revisoes ??= {}
     orcamento.revisoes.historico ??= {}
+    sincronizarRevisaoAtual(orcamento)
 
     const numeros = Object.keys(orcamento.revisoes.historico)
-        .map(r => Number(r.replace('R', '')))
+        .filter(r => /^R\d+$/.test(r))
+        .map(r => Number(r.slice(1)))
 
     const proximoNumero = numeros.length
         ? Math.max(...numeros) + 1
@@ -450,16 +485,22 @@ async function carregarTabelasOrcamento(resposta = 'S') {
         }
     }
 
+    let itensOrcamento = Object.values(orcamentoBase?.esquema_composicoes || orcamentoBase.dados_composicoes || {})
+    if (resposta === 'N' && itensOrcamento.length) {
+        const dados = await pesquisarDB({ base: itensOrcamento, limite: itensOrcamento.length, pagina: 1, filtros: {}, substituicoes: substituicoes(lpuATIVA) })
+        if (!Array.isArray(dados?.resultados) || dados.resultados.length !== itensOrcamento.length)
+            throw new Error('Falha ao atualizar os precos do orcamento.')
+        itensOrcamento = dados.resultados
+    }
     const pag = 'criarOrcamento'
     const tabelaOrcamento = await modTab({
-        base: Object.values(orcamentoBase?.esquema_composicoes || orcamentoBase.dados_composicoes || {}),
+        base: itensOrcamento,
+        consultarDados: pesquisarItensOrcamentoLocal,
         pag,
         limite: 9999,
         filtros: {},
         priBase: resposta,
-        substituicoes: resposta == 'N'
-            ? substituicoes(lpuATIVA)
-            : [],
+        substituicoes: [],
         scroll: false,
         nude: true,
         editavel: true,
@@ -473,11 +514,11 @@ async function carregarTabelasOrcamento(resposta = 'S') {
         <div style="display: flex; align-items: center; justify-content: center; margin-left: 1rem; gap: 1rem;">
 
             <div class="pesquisa-orcamento">
-                <input id="termoPesquisa" oninput="pesquisarEmOrcamentos({path: 'codigo', op: 'includes', value: this.value})" placeholder="Código">
+                <input oninput="pesquisarEmOrcamentos({path: 'codigo', op: 'includes', value: this.value})" placeholder="Código">
                 <img src="imagens/pesquisar4.png" style="width: 1.5rem; padding: 0.5rem;"> 
             </div>
             <div class="pesquisa-orcamento">
-                <input id="termoPesquisa" oninput="pesquisarEmOrcamentos({path: 'descricao', op: 'includes', value: this.value})" placeholder="Descrição">
+                <input oninput="pesquisarEmOrcamentos({path: 'descricao', op: 'includes', value: this.value})" placeholder="Descrição">
                 <img src="imagens/pesquisar4.png" style="width: 1.5rem; padding: 0.5rem;"> 
             </div>
             <div class="toolbarSuperior"></div>
@@ -508,6 +549,13 @@ function carregarLinhaOrcamento(produto) {
     const editavel = controles?.criarOrcamento?.editavel || false
     const { requisicoesExistentes } = controles?.criarOrcamento || {}
 
+    if (produto._chaveOrcamento) {
+        return `<tr><td style="padding: 0;"><div class="orcamento-item-plano">
+            ${produto._cabecalhoPlano ? '<div class="orcamento-colunas"><label>Código</label><label>Descrição / Origem</label><label>Unidade</label><label>Quantidade</label><label>Valor unitário</label><label>Total</label><label>Ajuste</label><label>Imagem</label><label></label></div>' : ''}
+            <div class="linha-orcamento" data-hierarquia="${produto._grupoOrigem ? 'slave' : 'master'}">${criarLinha(produto)}</div>
+        </div></td></tr>`
+    }
+
     const linhaSlave = Object.values(agrupamento || {})
         .map(produto => {
 
@@ -519,15 +567,23 @@ function carregarLinhaOrcamento(produto) {
         })
         .join('')
 
-    const celulasMaster = criarLinha(produto)
+    const celulasMaster = produto.principal_removido ? '' : criarLinha(produto)
 
     const linha = `
         <tr>
             <td style="padding: 0px;">
-                <div id="ORCA_${codigoMaster}" style="${vertical};">
-                    <div data-hierarquia="master" class="linha-orcamento" data-codigo="${codigoMaster}">${celulasMaster}</div>
+                <div id="ORCA_${codigoMaster}" class="orcamento-item-bloco" style="${vertical};">
+                    <div class="orcamento-item-cabecalho">
+                        <div><strong>${produto.principal_removido ? 'Grupo' : 'Item'} ${escaparAtributo(codigoMaster)}</strong>
+                        ${produto.principal_removido ? `<span class="orcamento-grupo-simbolico">Principal removido · componentes mantidos</span><span>${escaparAtributo(produto.descricao || '')}</span>` : ''}</div>
+                        ${produto.principal_removido && editavel ? `<button type="button" class="orcamento-restaurar" data-codigo="${escaparAtributo(codigoMaster)}" onclick="restaurarPrincipalOrcamento(this.dataset.codigo)">Restaurar principal</button>` : ''}
+                        <label>${linhaSlave ? `Composição · ${Object.keys(agrupamento || {}).length} componentes` : 'Item individual'}</label>
+                    </div>
+                    <div class="orcamento-colunas"><label>Código</label><label>Descrição</label><label>Unidade</label><label>Quantidade</label><label>Valor unitário</label><label>Total</label><label>Ajuste</label><label>Imagem</label><label></label></div>
+                    ${produto.principal_removido ? '' : `<div data-hierarquia="master" class="linha-orcamento" data-codigo="${codigoMaster}">${celulasMaster}</div>`}
                     <div class="linha-bloco">${linhaSlave}</div>
                     <div class="total-linha">
+                        <label>Subtotal do item</label>
                         <span name="totalBloco"></span>
                     </div>
                 </div>
@@ -551,9 +607,9 @@ function carregarLinhaOrcamento(produto) {
             imagem
         } = produto || {}
         const total = custo * qtde
-        const chave = codigoMaster !== codigo
+        const chave = produto._chaveOrcamento || (codigoMaster !== codigo
             ? `${codigoMaster}_${codigo}`
-            : codigo
+            : codigo)
 
         const qtdeReq = requisicoesExistentes?.[codigo]
         const bloqReq = qtdeReq && qtde >= qtdeReq
@@ -582,6 +638,7 @@ function carregarLinhaOrcamento(produto) {
 
             <div style="${vertical}">
                 <span name="descricao">${descricao || 'N/A'}</span>
+                ${produto._grupoOrigem ? `<small class="orcamento-origem">Componente do grupo ${escaparAtributo(produto._grupoOrigem)}</small>` : ''}
                 <b><span name="tipo" style="font-size: 0.7rem">${tipo}</span></b>
                 <div name="descVD" style="${horizontal}; display: none; gap: 2px;">
                     <textarea placeholder="CNPJ" oninput="totalOrcamento()" name="cnpj">${cnpj || ''}</textarea>
@@ -660,6 +717,16 @@ function atualizarQtde(chave, input) {
 
 }
 
+function sincronizarQuantidadesCatalogo() {
+    const esquema = baseOrcamento()?.esquema_composicoes || {}
+    document.querySelectorAll('#tabelaItens input[id^="prod_"]').forEach(input => {
+        // Preserva a digitação em andamento enquanto a consulta de inclusão termina.
+        if (input === document.activeElement) return
+        const item = esquema[input.id.slice(5)]
+        input.value = item && !item.principal_removido ? item.qtde ?? '' : ''
+    })
+}
+
 async function totalOrcamento() {
 
     atualizarToolbar()
@@ -669,6 +736,7 @@ async function totalOrcamento() {
 
     formatarLinhasOrcamento()
     calcularSubtotais()
+    sincronizarQuantidadesCatalogo()
 
 }
 
@@ -689,12 +757,14 @@ function calcularSubtotais() {
         const { tipo, custo, custo_original, qtde, agrupamento } = item
 
         // Bruto
+        if (!item.principal_removido) {
         totais.BRUTO += ((custo_original || custo) * qtde)
 
         const total = custo * qtde
         totais[tipo] ??= 0
         totais[tipo] += total
         totais.GERAL += total
+        }
 
         // Agrupados;
         for (const item of Object.values(agrupamento || {})) {
@@ -714,6 +784,11 @@ function calcularSubtotais() {
     }
 
     // Atualizar visualmente apenas;
+    document.querySelectorAll('.orcamento-item-plano .linha-orcamento').forEach(linha => {
+        const valor = conversor(linha.querySelector('[name="unitario"]').textContent)
+        const quantidade = Number(linha.querySelector('[name="quantidade"]').value)
+        linha.querySelector('[name="total"]').innerHTML = dinheiro(valor * quantidade)
+    })
     const blocos = [...document.querySelectorAll('div[id^="ORCA_"]')]
     blocos.forEach(bloco => {
         const linhas = [...bloco.querySelectorAll('.linha-orcamento')]
@@ -762,6 +837,19 @@ function calcularSubtotais() {
         </div>
     `
     document.getElementById('total_geral').innerHTML = dinheiro(totais.GERAL)
+    const totalFixo = document.getElementById('orcamento-total-fixo')
+    if (totalFixo) totalFixo.innerHTML = dinheiro(totais.GERAL)
+    const diferencaFixa = document.getElementById('orcamento-diferenca-fixa')
+    if (diferencaFixa) {
+        const diferencaCentavos = Math.round(dif * 100)
+        const percentual = totais.BRUTO > 0
+            ? `${(Math.abs(dif) / totais.BRUTO * 100).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
+            : null
+        diferencaFixa.hidden = diferencaCentavos === 0
+        diferencaFixa.innerHTML = diferencaCentavos === 0 ? '' : `
+            <span>${diferencaCentavos > 0 ? 'Acréscimo' : 'Desconto'}${percentual ? ` (${percentual})` : ''}</span>
+            <strong>${dinheiro(Math.abs(diferencaCentavos) / 100)}</strong>`
+    }
 
     const toolbar = Object.entries(totais)
         .filter(([tool,]) => tool !== 'BRUTO')
@@ -781,7 +869,36 @@ function calcularSubtotais() {
 
 }
 
+function pesquisarItensOrcamentoLocal({ base = [], filtros = {}, ordenar, pagina = 1, limite = 9999 }) {
+    const normalizar = valor => String(valor ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR')
+    const campo = (item, path) => path.split('.').reduce((valor, chave) => valor?.[chave], item)
+    const corresponde = item => Object.entries(filtros).every(([path, filtro]) => {
+        const esperado = normalizar(filtro.original ?? filtro.value)
+        const atual = normalizar(campo(item, path))
+        if (filtro.op === 'includes') return atual.includes(esperado)
+        if (filtro.op === '!=') return atual !== esperado
+        return atual === esperado
+    })
+    const exibirPlano = ['tipo', 'codigo', 'descricao'].some(path =>
+        String(filtros[path]?.original ?? filtros[path]?.value ?? '').trim() !== '')
+    const candidatos = exibirPlano ? base.flatMap(item => {
+        const linhas = []
+        if (!item.principal_removido)
+            linhas.push({ ...item, id: `principal:${item.codigo}`, _chaveOrcamento: String(item.codigo) })
+        for (const [codigo, filho] of Object.entries(item.agrupamento || {}))
+            linhas.push({ ...filho, id: `componente:${item.codigo}:${codigo}`,
+                _chaveOrcamento: `${item.codigo}_${codigo}`, _grupoOrigem: String(item.codigo) })
+        return linhas
+    }) : base
+    const resultados = candidatos.filter(item => corresponde(item) || (!exibirPlano && Object.values(item.agrupamento || {}).some(corresponde)))
+    if (ordenar?.path) resultados.sort((a, b) => normalizar(campo(a, ordenar.path)).localeCompare(normalizar(campo(b, ordenar.path)), 'pt-BR', { numeric: true }) * (ordenar.direcao === 'desc' ? -1 : 1))
+    const visiveis = resultados.slice((pagina - 1) * limite, pagina * limite)
+    if (exibirPlano && visiveis.length) visiveis[0]._cabecalhoPlano = true
+    return { resultados: visiveis, total: resultados.length, paginas: Math.max(1, Math.ceil(resultados.length / limite)) }
+}
+
 async function pesquisarEmOrcamentos({ path, op = '=', value }) {
+    controles.criarOrcamento.pagina = 1
 
     controles.criarOrcamento.filtros = {
         ...controles.criarOrcamento.filtros,
@@ -816,7 +933,7 @@ function formatarLinhasOrcamento() {
 
         linha.style.borderRadius = '0px'
 
-        if (hierarquia === 'master') {
+        if (hierarquia === 'master' && !linha.closest('.orcamento-item-plano')) {
             linha.style.borderTopLeftRadius = '8px'
             linha.style.borderTopRightRadius = '8px'
         }
@@ -831,26 +948,37 @@ function formatarLinhasOrcamento() {
 }
 
 async function removerItemOrcamento(chave) {
-
     overlayAguarde()
-    const [codigoMaster, codigoSlave] = chave.includes('_')
-        ? chave.split('_')
-        : [chave, null]
+    try {
+        const [codigoMaster, codigoSlave] = chave.includes('_') ? chave.split('_') : [chave, null]
+        const orcamento = baseOrcamento()
+        const principal = orcamento.esquema_composicoes?.[codigoMaster]
+        if (!principal) return
+        if (codigoSlave) {
+            delete principal.agrupamento[codigoSlave]
+            if (principal.principal_removido && !Object.keys(principal.agrupamento).length)
+                delete orcamento.esquema_composicoes[codigoMaster]
+        } else if (Object.keys(principal.agrupamento || {}).length) {
+            principal.principal_removido = true
+        } else {
+            delete orcamento.esquema_composicoes[codigoMaster]
+        }
+        baseOrcamento(orcamento)
+        controles.criarOrcamento.base = Object.values(orcamento.esquema_composicoes)
+        await paginacao('criarOrcamento')
+    } finally { removerOverlay() }
+}
 
+async function restaurarPrincipalOrcamento(codigo, mostrarOverlay = true) {
     const orcamento = baseOrcamento()
-
-    if (codigoSlave) {
-        delete orcamento.esquema_composicoes[codigoMaster].agrupamento[codigoSlave]
-
-    } else {
-        delete orcamento.esquema_composicoes[codigoMaster]
-
-    }
-
+    const principal = orcamento.esquema_composicoes?.[codigo]
+    if (!principal?.principal_removido) return
+    delete principal.principal_removido
     baseOrcamento(orcamento)
     controles.criarOrcamento.base = Object.values(orcamento.esquema_composicoes)
-    await paginacao('criarOrcamento')
-    removerOverlay()
+    if (mostrarOverlay) overlayAguarde()
+    try { await paginacao('criarOrcamento') }
+    finally { if (mostrarOverlay) removerOverlay() }
 }
 
 function gerarDadosComposicoes(esquema = {}) {
@@ -859,6 +987,7 @@ function gerarDadosComposicoes(esquema = {}) {
     const adicionar = (codigo, item = {}) => {
         const qtde = Number(item.qtde) || 0
         const custo = Number(item.custo) || 0
+        const custoOriginal = Number(item.custo_original || custo) || 0
 
         if (!acc[codigo]) {
             acc[codigo] = {
@@ -866,13 +995,15 @@ function gerarDadosComposicoes(esquema = {}) {
                 codigo,
                 qtde: 0,
                 _somaCusto: 0,
-                _countCusto: 0
+                _somaCustoOriginal: 0,
+                _temCustoOriginal: false
             }
         } else {
             for (const [chave, valor] of Object.entries(item)) {
                 if (
                     chave !== 'qtde' &&
                     chave !== 'custo' &&
+                    chave !== 'custo_original' &&
                     chave !== 'agrupamento' &&
                     (acc[codigo][chave] === undefined || acc[codigo][chave] === null || acc[codigo][chave] === '')
                 ) {
@@ -882,12 +1013,13 @@ function gerarDadosComposicoes(esquema = {}) {
         }
 
         acc[codigo].qtde += qtde
-        acc[codigo]._somaCusto += custo
-        acc[codigo]._countCusto++
+        acc[codigo]._somaCusto += custo * qtde
+        acc[codigo]._somaCustoOriginal += custoOriginal * qtde
+        acc[codigo]._temCustoOriginal ||= Boolean(item.custo_original)
     }
 
     for (const [codigoMaster, comp] of Object.entries(esquema || {})) {
-        adicionar(codigoMaster, comp)
+        if (!comp.principal_removido) adicionar(codigoMaster, comp)
 
         for (const [codigoSlave, item] of Object.entries(comp.agrupamento || {})) {
             adicionar(codigoSlave, item)
@@ -896,14 +1028,15 @@ function gerarDadosComposicoes(esquema = {}) {
 
     return Object.fromEntries(
         Object.entries(acc).map(([codigo, item]) => {
-            const { _somaCusto, _countCusto, agrupamento, ...resto } = item
+            const { _somaCusto, _somaCustoOriginal, _temCustoOriginal, custo_original, agrupamento, principal_removido, ...resto } = item
 
             return [
                 codigo,
                 {
                     ...resto,
                     codigo,
-                    custo: _countCusto ? _somaCusto / _countCusto : 0
+                    custo: item.qtde ? _somaCusto / item.qtde : 0,
+                    ...(_temCustoOriginal ? { custo_original: item.qtde ? _somaCustoOriginal / item.qtde : 0 } : {})
                 }
             ]
         })
@@ -928,6 +1061,7 @@ async function enviarDadosOrcamento() {
     const orcamentoBase = baseOrcamento()
 
     const { dados_orcam } = orcamentoBase || {}
+    sincronizarRevisaoAtual(orcamentoBase)
 
     // Salvar o usuário na primeira vez apenas;
     if (!orcamentoBase.usuario)
@@ -1122,6 +1256,7 @@ async function tabelaProdutosOrcamentos() {
     const pag = 'composicoes_orcamento'
     const tabela = await modTab({
         pag,
+        alturaMinima: '60dvh',
         colunas,
         funcaoAdicional: ['formatarTabela', 'totalOrcamento'],
         btnExtras,
@@ -1174,6 +1309,10 @@ async function filtrarPorComposicoes({ path, op = '=', value }) {
 function linhasComposicoesOrcamento(produto) {
 
     const { codigo } = produto
+    const itemOrcamento = baseOrcamento()?.esquema_composicoes?.[codigo]
+    const quantidadeOrcamento = itemOrcamento && !itemOrcamento.principal_removido
+        ? itemOrcamento.qtde ?? ''
+        : ''
 
     const lpu = String(document.getElementById('lpu').value).toLocaleLowerCase()
 
@@ -1213,7 +1352,7 @@ function linhasComposicoesOrcamento(produto) {
         </td>
         <td>${produto?.unidade || ''}</td>
         <td>
-            <input id="prod_${codigo}" type="number" oninput="incluirItem('${codigo}', this.value)">
+            <input id="prod_${codigo}" type="number" value="${escaparAtributo(quantidadeOrcamento)}" oninput="incluirItem('${codigo}', this.value, this)">
         </td>
         <td>
             <div style="${horizontal}; justify-content: space-between; gap:">
@@ -1344,57 +1483,66 @@ async function confirmarNovoPreco() {
 }
 
 
-async function incluirItem(codigo, novaQuantidade) {
+const consultasQuantidadeOrcamento = new Map()
 
-    overlayAguarde()
+async function preservarPosicaoCatalogo(atualizar, codigo, disparador) {
+    try {
+        return await atualizar()
+    } finally {
+        // Rola o painel da aplicação e a página até o fim após atualizar o orçamento.
+        requestAnimationFrame(() => {
+            const catalogo = document.getElementById('tabelaItens')
+            for (let painel = catalogo?.parentElement; painel; painel = painel.parentElement)
+                painel.scrollTop = painel.scrollHeight
+            if (document.scrollingElement)
+                document.scrollingElement.scrollTop = document.scrollingElement.scrollHeight
+        })
+    }
+}
 
-    const orcamentoBase = baseOrcamento()
-    const dadosMaster = await recuperarDado('dados_composicoes', codigo) || {}
-    const { agrupamento, descricao, tipo, unidade, imagem, snapshots } = dadosMaster
-    const custo = snapshots?.[lpuATIVA]?.[0] || 0
-
-    orcamentoBase.esquema_composicoes ??= {}
-    orcamentoBase.esquema_composicoes[codigo] ??= {}
-
-    // garante o objeto de agrupamento;
-    orcamentoBase.esquema_composicoes[codigo].agrupamento = {}
-
-    // Slaves
-    for (const [cod, dados] of Object.entries(agrupamento || {})) {
-
-        const dadosSlave = await recuperarDado('dados_composicoes', cod) || {}
-        const { descricao, unidade, tipo, imagem, snapshots } = dadosSlave
+async function incluirItem(codigo, novaQuantidade, disparador) {
+    const consulta = Symbol()
+    consultasQuantidadeOrcamento.set(codigo, consulta)
+    if (String(novaQuantidade).trim() === '') return
+    novaQuantidade = Number(novaQuantidade)
+    if (!Number.isFinite(novaQuantidade) || novaQuantidade < 0) return
+    const atual = baseOrcamento().esquema_composicoes?.[codigo]
+    if (atual?.principal_removido) {
+        atual.qtde = novaQuantidade
+        const orcamento = baseOrcamento()
+        orcamento.esquema_composicoes[codigo] = atual
+        baseOrcamento(orcamento)
+        await preservarPosicaoCatalogo(() => restaurarPrincipalOrcamento(codigo, false), codigo, disparador)
+        return
+    }
+    try {
+        const dadosMaster = await recuperarDado('dados_composicoes', codigo) || {}
+        const { agrupamento, descricao, tipo, unidade, imagem, snapshots } = dadosMaster
         const custo = snapshots?.[lpuATIVA]?.[0] || 0
-
-        orcamentoBase.esquema_composicoes[codigo].agrupamento[cod] = {
-            codigo: cod,
-            qtde: dados.qtde * novaQuantidade,
-            descricao,
-            unidade,
-            custo,
-            tipo,
-            imagem
+        const filhos = {}
+        for (const [cod, dados] of Object.entries(agrupamento || {})) {
+            const filho = await recuperarDado('dados_composicoes', cod) || {}
+            filhos[cod] = {
+                codigo: cod, qtde: dados.qtde * novaQuantidade,
+                descricao: filho.descricao, unidade: filho.unidade,
+                custo: filho.snapshots?.[lpuATIVA]?.[0] || 0, tipo: filho.tipo, imagem: filho.imagem
+            }
         }
+        // Uma resposta antiga nunca substitui a quantidade digitada mais recentemente.
+        if (consultasQuantidadeOrcamento.get(codigo) !== consulta) return
+        const orcamento = baseOrcamento()
+        orcamento.esquema_composicoes ??= {}
+        orcamento.esquema_composicoes[codigo] = {
+            ...orcamento.esquema_composicoes[codigo], codigo, descricao, custo, tipo, imagem, unidade,
+            qtde: novaQuantidade, agrupamento: filhos
+        }
+        baseOrcamento(orcamento)
+        controles.criarOrcamento.base = Object.values(orcamento.esquema_composicoes)
+        await preservarPosicaoCatalogo(() => paginacao('criarOrcamento'), codigo, disparador)
+    } catch (erro) {
+        if (consultasQuantidadeOrcamento.get(codigo) === consulta)
+            popup({ mensagem: erro.message || 'Falha ao atualizar quantidade.' })
     }
-
-    // Item principal;
-    orcamentoBase.esquema_composicoes[codigo] = {
-        ...orcamentoBase.esquema_composicoes[codigo],
-        codigo,
-        descricao,
-        custo,
-        tipo,
-        imagem,
-        unidade,
-        qtde: novaQuantidade
-    }
-
-    baseOrcamento(orcamentoBase)
-    controles.criarOrcamento.base = Object.values(orcamentoBase.esquema_composicoes)
-    await paginacao('criarOrcamento')
-
-    removerOverlay()
-
 }
 
 async function pesquisarRequisicoes() {

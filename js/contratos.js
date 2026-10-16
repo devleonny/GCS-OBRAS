@@ -23,7 +23,12 @@ async function telaContratos() {
         }
     })
 
-    tela.innerHTML = montarPagina({ tabela, titulo: 'Contratos', imagem: 'contratos' })
+    tela.innerHTML = `
+            <div class="pagina-conteudo">
+                <div class="cabecalho-pagina"><h2>Contratos</h2></div>
+                ${tabela}
+            </div>
+        `
 
     await paginacao('contratos')
 
@@ -70,7 +75,7 @@ function criarLinhaContrato(dados) {
             <td>${usuario || ''}</td>
             <td>${observacao || ''}</td>
             <td style="text-align: center;">
-                <img src="imagens/pesquisar2.png" onclick="gerenciarContrato('${id}')">
+                <img src="imagens/pesquisar.svg" onclick="gerenciarContrato('${id}')">
             </td>
         </tr>
     `
@@ -140,6 +145,7 @@ async function gerenciarContrato(id) {
                 `
             },
             {
+                texto: 'Observação',
                 editor: observacao || ''
             }
 
@@ -154,6 +160,7 @@ async function gerenciarContrato(id) {
         ]
 
         popup({
+            titulo: 'Gerenciar Contrato',
             linhas,
             botoes
         })
@@ -166,7 +173,6 @@ async function gerenciarContrato(id) {
     }
 
 }
-
 
 async function salvarContrato(id = null) {
 

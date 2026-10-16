@@ -218,9 +218,10 @@ function escolherCor(cor) {
 async function salvarTag(id) {
 
     try {
+
         overlayAguarde()
 
-        const painel = document.querySelector('.painel-padrao')
+        const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
         const nome = painel.querySelector('[name="nome"]').value
         const cor = painel.querySelector('.cor-atual').dataset.cor
 
@@ -232,6 +233,7 @@ async function salvarTag(id) {
         await enviar(`tags_orcamentos/${id}`, tag)
 
         removerPopup()
+        
     } catch (err) {
         console.error(err)
         popup({ mensagem: 'Falha ao criar a Etiqueta: Fale com o suporte.' })

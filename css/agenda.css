@@ -1,9 +1,12 @@
 .agenda-wrap {
   display: grid;
-  width: 90%;
-  justify-content: start;
-  align-items: start;
-  gap: 5px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 16px;
+  box-sizing: border-box;
   font-family: Inter, Arial, sans-serif;
   color: #1f2937;
 }
@@ -35,13 +38,6 @@
   line-height: 1.35;
 }
 
-.painel-saldos {
-  display: flex;
-  padding: 2rem;
-  justify-content: start;
-  align-items: start;
-}
-
 .campo-pesquisa {
   display: flex;
   align-items: center;
@@ -55,17 +51,26 @@
   justify-content: start;
   flex-direction: row;
   gap: 16px;
+  flex-wrap: wrap;
+  flex: 1 1 400px;
+  min-width: 0;
 }
 
 .agenda-topo {
   display: grid;
   gap: 12px;
+  background: #f5f8f6;
+  padding: 16px;
+  border: 1px solid #d8e3dc;
+  border-radius: 12px;
+  min-width: 0;
 }
 
 .agenda-titulo {
   margin: 0;
   font-size: 20px;
   font-weight: 700;
+  color: #294e35;
 }
 
 .agenda-subtitulo {
@@ -76,8 +81,9 @@
 
 .agenda-filtro {
   display: flex;
-  gap: 8px;
-  align-items: center;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
 }
 
 .agenda-filtro input {
@@ -114,6 +120,7 @@
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 14px;
+  border-left: 3px solid #648e73;
 }
 
 .agenda-card-label {
@@ -123,23 +130,30 @@
 }
 
 .agenda-card-valor {
-  font-size: 24px;
+  font-size: 21px;
   font-weight: 700;
   color: #111827;
 }
 
 .agenda-flutuante {
-  gap: 1rem;
-  display: flex;
-  align-items: start;
-  justify-content: start;
-  flex-direction: column;
+  gap: 16px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(1200px, calc(100vw - 64px));
+  height: 78dvh;
+  min-height: 0;
+  min-width: 0;
+  box-sizing: border-box;
   padding: 1rem;
-  background: linear-gradient(45deg, #249f41, #151749);
+  background: #f5f8f6;
 }
 
 .agenda-box {
   width: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 14px;
@@ -151,11 +165,16 @@
   border-bottom: 1px solid #e5e7eb;
   font-size: 15px;
   font-weight: 600;
+  background: #e8f0eb;
+  color: #294e35;
+  flex-shrink: 0;
 }
 
 .agenda-table-wrap {
   overflow: auto;
-  max-height: 50vh;
+  flex: 1;
+  min-height: 0;
+  scrollbar-gutter: stable;
 }
 
 .agenda-table {
@@ -237,17 +256,57 @@
   color: #6b7280;
 }
 
-.painel-saldos-flutuante {
-  background: linear-gradient(45deg, #151749, #249f41);
-  display: flex;
-  flex-direction: column;
-  align-items: start;
-  justify-content: start;
-  gap: 5px;
-  padding: 0.5rem;
+.agenda-topo .campo-pesquisa { align-items: stretch; gap: 6px; min-width: 0; }
+.agenda-topo .campo-pesquisa > label,
+.agenda-topo .campo-pesquisa > span { color: #43574a; font-size: 12px; font-weight: 600; }
+.agenda-filtro input { box-sizing: border-box; min-width: 0; max-width: 100%; font-size: 12px; }
+.agenda-filtro input:focus-visible { outline: 2px solid #648e73; outline-offset: 2px; }
+.agenda-topo .pesquisa { border: 1px solid #d1d5db; border-radius: 8px; background: white; }
+.agenda-solucionados { display: flex; align-items: center; gap: 8px; padding: 9px 0; font-size: 12px; color: #43574a; cursor: pointer; }
+.agenda-solucionados input { width: 16px; height: 16px; accent-color: #477d59; }
+.agenda-table tbody tr:nth-child(even) .agenda-celula,
+.agenda-table tbody tr:nth-child(even) .agenda-tecnico { background: #f7faf8; }
+.agenda-table tbody tr:hover .agenda-celula,
+.agenda-table tbody tr:hover .agenda-tecnico { background: #edf4ef; }
+@media (max-width: 700px) {
+  .agenda-wrap, .agenda-flutuante { gap: 10px; }
+  .agenda-topo { padding: 10px; }
+  .agenda-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .agenda-card { padding: 10px; }
+  .agenda-tecnico { min-width: 130px; max-width: 130px; }
+  .agenda-dropdown { flex-basis: 100%; gap: 10px; }
+  .agenda-flutuante { width: calc(100vw - 48px); padding: 8px; }
 }
 
-.painel-saldos-flutuante button {
-  background: linear-gradient(45deg, #FA5252, #B12425);
-  color: white;
+.agenda-topo .campo-pesquisa > label { color: #43574a !important; }
+.agenda-dropdown .filtro-dropdown-botao,
+.agenda-dropdown .filtro-dropdown-botao label { color: #294e35; }
+.agenda-filtros-recolhiveis { position: relative; min-width: 0; }
+.agenda-filtros-gatilho {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cddbd2;
+  border-radius: 8px;
+  background: #e8f0eb;
+  color: #294e35;
+  text-align: left;
+  cursor: pointer;
+  font-size: 12px;
 }
+.agenda-filtros-recolhiveis > .agenda-filtro {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #cddbd2;
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 8px 20px #0002;
+  box-sizing: border-box;
+}
+.agenda-filtros-recolhiveis:hover > .agenda-filtro,
+.agenda-filtros-recolhiveis:focus-within > .agenda-filtro,
+.agenda-filtros-recolhiveis.fixado > .agenda-filtro { display: flex; }
