@@ -281,32 +281,12 @@
 .agenda-topo .campo-pesquisa > label { color: #43574a !important; }
 .agenda-dropdown .filtro-dropdown-botao,
 .agenda-dropdown .filtro-dropdown-botao label { color: #294e35; }
-.agenda-filtros-recolhiveis { position: relative; min-width: 0; }
-.agenda-filtros-gatilho {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #cddbd2;
-  border-radius: 8px;
-  background: #e8f0eb;
-  color: #294e35;
-  text-align: left;
-  cursor: pointer;
-  font-size: 12px;
+
+.agenda-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 120px;
+    grid-column: 1 / -1;
 }
-.agenda-filtros-recolhiveis > .agenda-filtro {
-  display: none;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 20;
-  padding: 16px;
-  background: #fff;
-  border: 1px solid #cddbd2;
-  border-radius: 0 0 10px 10px;
-  box-shadow: 0 8px 20px #0002;
-  box-sizing: border-box;
-}
-.agenda-filtros-recolhiveis:hover > .agenda-filtro,
-.agenda-filtros-recolhiveis:focus-within > .agenda-filtro,
-.agenda-filtros-recolhiveis.fixado > .agenda-filtro { display: flex; }

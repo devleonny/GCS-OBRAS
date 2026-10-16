@@ -1,3 +1,35 @@
+function statusAgenda(valor) {
+    if (Array.isArray(valor)) return valor
+    try { const lista = JSON.parse(valor); return Array.isArray(lista) ? lista : [] } catch { return [] }
+}
+
+function listaAtendimentosAgenda(valor) {
+    if (Array.isArray(valor)) return valor
+    try { const lista = JSON.parse(valor); return Array.isArray(lista) ? lista : [] } catch { return [] }
+}
+
+function correspondeFiltrosAgenda(item, filtros) {
+    const data = valor => {
+        const texto = String(valor || '').split(' ')[0]
+        return texto.includes('/') ? texto.split('/').reverse().join('-') : texto.slice(0, 10)
+    }
+    return Object.entries(filtros).every(([chave, config]) => {
+        const valores = chave === 'ultimaCorrecao.*.nome'
+            ? statusAgenda(item.ultimaCorrecao).map(c => c.nome) : [item[chave]]
+        const regras = Array.isArray(config) ? config : config.regras || [config]
+        const resultados = regras.map(regra => {
+            const comparar = valor => {
+                if (regra.op === '>=d') return data(valor) >= data(regra.value)
+                if (regra.op === '<=d') return data(valor) <= data(regra.value)
+                if (regra.op === 'includes') return String(valor || '').toLocaleLowerCase().includes(String(regra.value || '').toLocaleLowerCase())
+                return String(valor ?? '') === String(regra.value ?? '')
+            }
+            return regra.op === '!=' ? valores.every(v => !comparar(v)) : valores.some(comparar)
+        })
+        return config.modo === 'OR' ? resultados.some(Boolean) : resultados.every(Boolean)
+    })
+}
+
 // AGENDA
 function pegarSegunda(date = new Date()) {
     const d = new Date(date)
@@ -15,10 +47,6 @@ async function telaAgenda({ flutuante = false, filtros = null } = {}) {
     const agenda = `
 
         <div class="agenda-topo">
-            <div><h2 class="agenda-titulo">Agenda de atendimentos</h2><p class="agenda-subtitulo">Acompanhe a programação por técnico, data e loja.</p></div>
-            <div class="agenda-filtros-recolhiveis">
-                <button type="button" class="agenda-filtros-gatilho" aria-controls="agenda-painel-filtros" aria-expanded="false"
-                    onclick="const fixar = this.parentElement.classList.toggle('fixado'); this.setAttribute('aria-expanded', String(fixar))">Filtros · datas, técnico, estado e loja ▾</button>
             <div class="agenda-filtro" id="agenda-painel-filtros">
 
                 <div class="campo-pesquisa">
@@ -34,14 +62,12 @@ async function telaAgenda({ flutuante = false, filtros = null } = {}) {
                 <div class="agenda-dropdown"></div>
 
             </div>
-            </div>
 
             <div class="agenda-cards"></div>
 
         </div>
 
         <div class="agenda-box">
-            <div class="agenda-box-titulo">Atendimentos Técnico x Data x Loja</div>
             <div class="agenda-table-wrap"></div>
         </div>
     `
@@ -69,39 +95,26 @@ async function criarPesquisasAgenda() {
     controles[pag] ??= {}
     controles[pag].filtros ??= {}
 
+    const listagens = await recuperarDado('mvw_opcoes_filtros', 1) || {}
     const campos = [
-        { path: 'tecnico', titulo: 'Técnico' },
-        { path: 'Estado', titulo: 'Estado' }
+        { path: 'tecnico', titulo: 'T\u00e9cnico', chave: 'executores' },
+        { path: 'Estado', titulo: 'Estado', chave: 'estados' }
     ]
-
-    const drops = []
-
-    const emMassa = campos.map(async ({ path, titulo }) => {
-
-        const contagem = await contarPorCampo({ base: 'vw_tecnicos', path })
-
-        const drop = montarDropdownCheckbox({
-            titulo,
-            pag,
-            funcao: 'carregarAgenda',
-            path,
-            opcoes: Object.keys(contagem)
-        })
-
-        drops.push(drop)
-    })
-
-    await Promise.all(emMassa)
+    const drops = campos.map(({ path, titulo, chave }) => montarDropdownCheckbox({
+        titulo,
+        pag,
+        funcao: 'carregarAgenda',
+        path,
+        opcoes: listagens[chave] || []
+    }))
 
     drops.push(`
         <div class="campo-pesquisa">
             <span>Loja</span>
-            <div class="pesquisa">
                 <input onkeydown="if (event.key === 'Enter') pesquisarCampoLivreAgenda('Loja', this.value)" 
+                    onchange="pesquisarCampoLivreAgenda('Loja', this.value)"
                     placeholder="Loja" 
                     style="width: 100%;">
-                <img src="imagens/pesquisar4.png">
-            </div>
         </div>
 
         <label class="agenda-solucionados">
@@ -120,21 +133,24 @@ async function pesquisarCampoLivreAgenda(chave, value) {
     controles.agenda.filtros ??= {}
     controles.agenda.filtros = {
         ...controles.agenda.filtros,
-        [chave]: { op: 'includes', value }
+        [chave]: { op: 'includes', value: value.trim() }
     }
+    if (!value.trim()) delete controles.agenda.filtros[chave]
 
     await carregarAgenda()
 
 }
 
-async function carregarAgenda(filtros) {
+async function carregarAgenda(filtros, pagina = 1) {
+
+    controles.agenda ??= {}
+    controles.agenda.filtros ??= {}
 
     const local = document.querySelector('.agenda-table-wrap')
     const baloes = document.querySelector('.agenda-cards')
-    const paginacao = document.querySelector('.agenda-paginacao')
     const inicio = document.getElementById('inicio')?.value
     const fim = document.getElementById('fim')?.value
-    const loading = '<img src="gifs/loading.gif" style="width: 5rem;">'
+    const loading = '<div class="agenda-loading" role="status" aria-label="Carregando agenda"><img src="gifs/loading.gif" alt="" style="width: 5rem;"></div>'
 
     local.innerHTML = loading;
     baloes.innerHTML = loading;
@@ -191,21 +207,38 @@ async function carregarAgenda(filtros) {
     // Solucionados
     const checkSolucionados = document.getElementById('checkbox_solucionados')?.checked ?? false
 
-    const { resultados, total, paginas } = await pesquisarDB({
-        base: 'vw_tecnicos',
-        limite: 9999999,
-        filtros: {
-            ...controles?.agenda?.filtros,
-            ...(
-                checkSolucionados
-                    ? {}
-                    : { 'ultimaCorrecao.*.nome': { op: '!=', value: 'SOLUCIONADA' } }
-            ),
-            dtCorrecao: filtro
-        }
-    })
-
-    const linhas = resultados || []
+    const filtrosItens = {
+        ...controles.agenda.filtros,
+        ...(!checkSolucionados ? { 'ultimaCorrecao.*.nome': { op: '!=', value: 'SOLUCIONADA' } } : {}),
+        dtCorrecao: filtro
+    }
+    // O status é verificado por atendimento. Aplicar != no array agrupado
+    // pode excluir o técnico inteiro por ter um atendimento solucionado.
+    const filtrosConsulta = Object.fromEntries(Object.entries(filtrosItens)
+        .filter(([chave]) => !['ultimaCorrecao.*.nome', 'Loja'].includes(chave)).map(([chave, regra]) =>
+        [chave === 'tecnico' ? chave : 'atendimentos.*.' + chave, regra]))
+    let resposta
+    try {
+        resposta = await pesquisarDB({
+        base: 'vw_agenda_tecnicos',
+        limite: 9999,
+        pagina,
+        ordenar: { path: 'tecnico', direcao: 'ASC' },
+        filtros: filtrosConsulta
+        })
+    } catch (erro) {
+        console.error('Erro ao carregar agenda:', erro)
+        baloes.innerHTML = ''
+        const aviso = document.createElement('div')
+        aviso.className = 'agenda-vazia'
+        aviso.textContent = `Não foi possível carregar a agenda: ${erro.message || erro}`
+        local.replaceChildren(aviso)
+        return
+    }
+    const { resultados } = resposta || {}
+    const linhas = (resultados || []).flatMap(grupo => listaAtendimentosAgenda(grupo.atendimentos)
+        .map(item => ({ ...item, ultimaCorrecao: statusAgenda(item.ultimaCorrecao) }))
+        .filter(item => correspondeFiltrosAgenda(item, filtrosItens)))
 
     function esc(v) {
         return String(v ?? '')
@@ -396,6 +429,8 @@ async function carregarAgenda(filtros) {
 
     baloes.innerHTML = cards
     local.innerHTML = agenda
+
+
 
 }
 
