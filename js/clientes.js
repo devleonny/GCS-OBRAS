@@ -31,10 +31,10 @@ const aEstados = [
 
 const tagCliente = (nome, ativarRemover = false) => {
     return `
-        <div style="${horizontal}; gap: 5px;">
-            ${ativarRemover ? `<img onclick="removerTagCliente(this)" src="imagens/fechar.png">` : ''}
-            <span data-nome="${nome}" class="etiquetas">
-                ${nome || '--'}
+        <div class="cliente-tag">
+            ${ativarRemover ? `<button type="button" class="cliente-tag-remover" aria-label="Remover tag" onclick="removerTagCliente(this)">×</button>` : ''}
+            <span data-nome="${escaparAtributo(nome || '')}" class="etiquetas">
+                ${escaparAtributo(nome || '--')}
             </span>
         </div>`
 }
@@ -219,6 +219,7 @@ async function telaClientes() {
             colunas: {
                 'Ações': {},
                 'Disp. em': {},
+                'Foto': {},
                 'Nome': { chave: 'cadastrais', op: 'includes' },
                 'IDs': { chave: 'ids', op: 'includes' },
                 'Endereço Cadastro': { chave: 'snapshots.enderecoCadastro' },
@@ -281,11 +282,77 @@ async function filtrarPorTag(tag) {
 
 }
 
+function previaFotoCliente(input) {
+    const arquivo = input.files?.[0]
+    if (!arquivo) return
+    if (!arquivo.type.startsWith('image/')) {
+        input.value = ''
+        return popup({ mensagem: 'Selecione uma imagem para a foto.' })
+    }
+    const bloco = input.closest('[data-foto-cliente]')
+    const leitor = new FileReader()
+    leitor.onload = () => {
+        if (!bloco.isConnected || input.files?.[0] !== arquivo) return
+        bloco.querySelector('img').src = leitor.result
+        bloco.classList.add('tem-foto')
+    }
+    leitor.onerror = () => {
+        input.value = ''
+        popup({ mensagem: 'Não foi possível ler a imagem. Selecione novamente.' })
+    }
+    leitor.readAsDataURL(arquivo)
+}
+
+function removerFotoCliente(botao) {
+    const bloco = botao.closest('[data-foto-cliente]')
+    bloco.querySelector('[name=foto]').value = ''
+    bloco.querySelector('[name=arquivo_foto]').value = ''
+    bloco.querySelector('img').src = logo
+    bloco.classList.remove('tem-foto')
+}
+
+async function baixarFotoCliente(botao) {
+    const bloco = botao.closest('[data-foto-cliente]')
+    const arquivo = bloco.querySelector('[name="arquivo_foto"]')?.files?.[0]
+    const foto = bloco.querySelector('[name="foto"]')?.value
+    if (!arquivo && !foto)
+        return popup({ mensagem: 'Este cadastro não possui foto para baixar.' })
+
+    let url
+    try {
+        let blob = arquivo
+        if (!blob) {
+            const resposta = await fetch(urlFotoCliente(foto))
+            if (!resposta.ok) throw new Error('Falha ao baixar foto')
+            blob = await resposta.blob()
+        }
+        url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        const extensao = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/svg+xml': 'svg', 'image/avif': 'avif' }[blob.type]
+        link.download = arquivo?.name || `foto-cliente${extensao ? `.${extensao}` : ''}`
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+    } catch (erro) {
+        console.error('Erro ao baixar foto do cliente:', erro)
+        popup({ mensagem: 'Não foi possível baixar a foto. Tente novamente.' })
+    } finally {
+        if (url) setTimeout(() => URL.revokeObjectURL(url), 1000)
+    }
+}
+
+function urlFotoCliente(foto) {
+    if (!foto) return logo
+    return /^https?:\/\//i.test(foto) ? foto : `${api}/uploads/${foto}`
+}
+
 function criarLinhaClienteGCS(cliente) {
 
     const {
         id,
         apps,
+        foto,
         nome,
         cnpj,
         email,
@@ -334,6 +401,12 @@ function criarLinhaClienteGCS(cliente) {
         </td>
 
         <td>${renderAppsCircle(cnpj ? id : null, Object.keys(apps || []))}</td>
+        <td><button type="button" title="Abrir cadastro" aria-label="Abrir cadastro"
+            data-cliente="${escaparAtributo(id)}" onclick="formularioCliente(Number(this.dataset.cliente))"
+            style="padding: 0; border: none; background: transparent; cursor: pointer;">
+            <img class="cliente-foto" src="${escaparAtributo(urlFotoCliente(foto))}" alt="" loading="lazy"
+                onerror="this.onerror = null; this.src = logo">
+        </button></td>
 
         <td>
             <div style="${horizontal}; justify-content: start; gap: 5px;">
@@ -416,6 +489,7 @@ async function formularioCliente(idCliente) {
 
     const {
         matricula,
+        foto,
         endereco_entrega = {},
         chave_pix,
         ddd,
@@ -430,6 +504,7 @@ async function formularioCliente(idCliente) {
         usuario,
         permissao,
         setor,
+        cargo,
         cnpj,
         comentario,
         empresa,
@@ -472,6 +547,21 @@ async function formularioCliente(idCliente) {
     const cnpjValido = validarCpfCnpj(cnpj)
 
     const linhas = [
+        {
+            elemento: `<div data-foto-cliente class="${foto ? 'tem-foto' : ''}" style="${vertical}; align-items: center; width: 100%; gap: 8px;">
+                <button type="button" class="cliente-foto-escolher" title="Clique para trocar a foto" aria-label="Escolher foto do cliente"
+                    onclick="this.closest('[data-foto-cliente]').querySelector('[name=arquivo_foto]').click()">
+                    <img class="cliente-foto" src="${escaparAtributo(urlFotoCliente(foto))}" alt=""
+                        onerror="if (this.src !== logo) this.src = logo; this.closest('[data-foto-cliente]').classList.remove('tem-foto')">
+                </button>
+                <input type="hidden" name="foto" value="${escaparAtributo(foto || '')}">
+                <input type="file" name="arquivo_foto" accept="image/*" hidden onchange="previaFotoCliente(this)">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" onclick="baixarFotoCliente(this)">Baixar foto</button>
+                    <button type="button" onclick="removerFotoCliente(this)">Remover foto</button>
+                </div>
+            </div>`
+        },
         {
             texto: 'Matrícula',
             elemento: `<span class="fin">${matricula || 'automático'}</span>`
@@ -543,6 +633,10 @@ async function formularioCliente(idCliente) {
         {
             texto: 'Chave Pix',
             elemento: `<textarea placeholder="Chave Pix" name="chave_pix">${chave_pix || ''}</textarea>`
+        },
+        {
+            texto: 'Cargo',
+            elemento: `<textarea name="cargo" placeholder="Cargo">${escaparAtributo(cargo || '')}</textarea>`
         },
         {
             texto: 'Setor',
@@ -908,13 +1002,30 @@ async function salvarCliente(idCliente = null) {
         const tags = [...tagsExistente || []]
             .map(span => { return { tag: span.dataset.nome } })
 
+        let foto = obVal('foto') || ''
+        const arquivoFoto = painel.querySelector('[name="arquivo_foto"]')
+        if (arquivoFoto?.files?.length) {
+            if (!arquivoFoto.files[0].type.startsWith('image/'))
+                return popup({ mensagem: 'Selecione uma imagem para a foto.' })
+
+            const arquivos = await importarAnexos({ input: arquivoFoto })
+            if (!Array.isArray(arquivos) || !arquivos[0]?.link)
+                throw new Error('Não foi possível enviar a foto do cliente.')
+
+            foto = arquivos[0].link
+            painel.querySelector('[name="foto"]').value = foto
+            arquivoFoto.value = ''
+        }
+
         const novo = {
+            foto,
             cnpj,
             nome: obVal('nome').toUpperCase(),
             endereco: obVal('endereco'),
             bairro: obVal('bairro'),
             cep: obVal('cep'),
             setor: obVal('setor'),
+            cargo: obVal('cargo'),
             cidade: obVal('cidade'),
             estado: obVal('estado'),
             comentario: obVal('comentario'),

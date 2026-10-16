@@ -1,3 +1,91 @@
+.cliente-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 4px 9px;
+    border: 1px solid #bdd4c5;
+    border-radius: 12px;
+    background: #e2efe7;
+    color: #324b3c;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.cliente-tag .etiquetas {
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: left;
+    box-shadow: none;
+}
+
+.cliente-tag .cliente-tag-remover {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: transparent;
+    color: #356443;
+    font-size: 16px;
+}
+
+.cliente-tag .cliente-tag-remover:hover {
+    background: #c5dfce;
+    color: #254c31;
+}
+
+.cliente-foto {
+    width: 48px;
+    height: 48px;
+    max-width: none;
+    object-fit: cover;
+    border-radius: 50%;
+    padding: 3px;
+    border: 3px solid transparent;
+    background: linear-gradient(white, white) padding-box,
+        linear-gradient(135deg, #2374e1, #28b463, #e53935) border-box;
+}
+
+[data-foto-cliente] .cliente-foto {
+    width: 64px;
+    height: 64px;
+    box-sizing: border-box;
+}
+
+[data-foto-cliente].tem-foto .cliente-foto {
+    width: min(360px, 70vw);
+    height: min(360px, 70vw);
+}
+
+[data-foto-cliente] .cliente-foto-escolher,
+[data-foto-cliente] .cliente-foto-escolher:hover {
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    box-shadow: none;
+    cursor: pointer;
+    line-height: 0;
+}
+
+.cliente-foto-escolher:focus-visible {
+    outline: 2px solid #2374e1;
+    outline-offset: 3px;
+}
+
 .clientes-layout {
     display: flex;
     align-items: flex-start;

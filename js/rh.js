@@ -26,11 +26,12 @@ async function telaRH() {
 
         const colunas = {
             'Editar': {},
-            'Nome': { chave: 'snapshots.nome' },
-            'Cidade': { chave: 'snapshots.cidade' },
+            'Foto': {},
+            'Nome': { chave: 'nome_cargo', op: 'includes' },
+            'Cidade': { chave: 'cidade' },
             'Clínica': { chave: 'clinica' },
-            'Realizado': { chave: 'snapshots.realizado' },
-            'Validade': { chave: 'snapshots.validade' },
+            'Realizado': { chave: 'realizado' },
+            'Validade': { chave: 'validade' },
             'Dif/Dias': {},
             'Arquivo': { chave: 'doc' }
         }
@@ -48,7 +49,7 @@ async function telaRH() {
             pag,
             body: 'bodyDocumentos',
             funcaoAdicional: ['criarPastinhas'],
-            base: 'documentos',
+            base: 'vw_documentos',
             colunas,
             criarLinha: 'criarLinhaRH'
         })
@@ -80,11 +81,12 @@ async function atalhoDocumentos(idCliente = null) {
 
     const colunas = {
         'Editar': {},
-        'Nome': {},
-        'Cidade': { chave: 'snapshots.cidade' },
+        'Foto': {},
+        'Nome': { chave: 'nome_cargo', op: 'includes' },
+        'Cidade': { chave: 'cidade' },
         'Clínica': { chave: 'clinica' },
-        'Realizado': { chave: 'snapshots.realizado' },
-        'Validade': { chave: 'snapshots.validade' },
+        'Realizado': { chave: 'realizado' },
+        'Validade': { chave: 'validade' },
         'Dif/Dias': {},
         'Arquivo': { chave: 'doc' }
     }
@@ -111,7 +113,7 @@ async function atalhoDocumentos(idCliente = null) {
         body: 'bodyDocumentos',
         filtros,
         funcaoAdicional: ['criarPastinhas'],
-        base: 'documentos',
+        base: 'vw_documentos',
         colunas,
         criarLinha: 'criarLinhaRH'
     })
@@ -135,18 +137,18 @@ async function filtrarPorTempo(tempo) {
     const hoje = new Date().toLocaleDateString()
 
     if (tempo == 'atrasados') {
-        controles.rh.filtros['snapshots.validade'] = { op: '<=d', value: hoje }
+        controles.rh.filtros['validade'] = { op: '<=d', value: hoje }
 
     } else if (tempo == 'proximo') {
 
         const dias60 = 60 * 24 * 60 * 60 * 1000
-        controles.rh.filtros['snapshots.validade'] = [
+        controles.rh.filtros['validade'] = [
             { op: '<=d', value: new Date(Date.now() + dias60).toLocaleDateString() },
             { op: '>=d', value: hoje }
         ]
 
     } else {
-        delete controles.rh.filtros['snapshots.validade']
+        delete controles.rh.filtros['validade']
     }
 
     await paginacao()
@@ -156,14 +158,16 @@ async function filtrarPorTempo(tempo) {
 async function criarPastinhas() {
 
     const cidadesDB = await contarPorCampo({
-        base: 'documentos',
-        path: 'snapshots.cidade'
+        base: 'vw_documentos',
+        path: 'cidade'
     })
 
     const cidades = Object.keys(cidadesDB)
         .filter(c => c !== 'todos' && c !== 'EM BRANCO')
 
     const container = document.querySelector('.esquema-cidades')
+
+    if (!container) return
 
     const cidadesDOM = [...container.children]
         .map(el => el.dataset.cidade)
@@ -216,9 +220,9 @@ async function funcionariosPorCidade(cidade) {
     pastaAberta[cidade] ??= []
 
     const funcionarios = Object.keys(await contarPorCampo({
-        base: 'documentos',
-        path: 'snapshots.nome',
-        filtros: { 'snapshots.cidade': { op: '=', value: cidade } }
+        base: 'vw_documentos',
+        path: 'nome',
+        filtros: { 'cidade': { op: '=', value: cidade } }
     }))
         .filter(c => c !== 'todos')
         .sort((a, b) => a.localeCompare(b))
@@ -228,10 +232,10 @@ async function funcionariosPorCidade(cidade) {
     for (const c of funcionarios) {
 
         const docs = Object.keys(await contarPorCampo({
-            base: 'documentos',
+            base: 'vw_documentos',
             path: 'doc',
             filtros: {
-                'snapshots.nome': {
+                'nome': {
                     op: '=',
                     value: c
                 }
@@ -277,9 +281,9 @@ async function documentosPorFuncionario(funcionario, cidade) {
     pastaAberta[cidade].push(funcionario)
 
     const funcionarios = await contarPorCampo({
-        base: 'documentos',
+        base: 'vw_documentos',
         path: 'doc',
-        filtros: { 'snapshots.nome': { op: '=', value: funcionario } }
+        filtros: { 'nome': { op: '=', value: funcionario } }
     })
 
     const pastinhas = Object.keys(funcionarios)
@@ -304,10 +308,10 @@ async function documentosPorFuncionario(funcionario, cidade) {
 async function abrirDoc(funcionario, doc) {
 
     const docs = await pesquisarDB({
-        base: 'documentos',
+        base: 'vw_documentos',
         path: 'doc',
         filtros: {
-            'snapshots.nome': { op: '=', value: funcionario },
+            'nome': { op: '=', value: funcionario },
             'doc': { op: '=', value: doc },
         }
     })
@@ -322,8 +326,8 @@ async function abrirDoc(funcionario, doc) {
 
 function criarLinhaRH(documento) {
 
-    const { doc, anexo, snapshots, local, clinica, id } = documento || {}
-    const { cidade, nome, realizado, prazo, validade, validadeData } = snapshots || {}
+    const { doc, anexo, local, clinica, id, funcionario, cidade, nome_cargo, foto, realizado, validade } = documento || {}
+    const [nome, cargo] = Array.isArray(nome_cargo) ? nome_cargo : []
 
     const tempoExpiracao = expiraEm(validade)
     const a = (typeof anexo === 'object' && anexo) ? anexo : {}
@@ -333,14 +337,26 @@ function criarLinhaRH(documento) {
         <td>
             <img src="imagens/pesquisar.svg" onclick="incluirDocumento('${id}')">
         </td>
-        <td>${nome || ''}</td>
+        <td>${funcionario ? `<button type="button" title="Abrir cadastro do funcionário" aria-label="Abrir cadastro do funcionário"
+            data-funcionario="${escaparAtributo(funcionario)}" onclick="formularioCliente(Number(this.dataset.funcionario))"
+            style="padding: 0; border: none; background: transparent; cursor: pointer;">
+            <img class="cliente-foto" src="${escaparAtributo(urlFotoCliente(foto))}" alt="" loading="lazy"
+                onerror="this.onerror = null; this.src = logo">
+        </button>` : `<img class="cliente-foto" src="${escaparAtributo(urlFotoCliente(foto))}" alt="" loading="lazy"
+            onerror="this.onerror = null; this.src = logo">`}</td>
+        <td>
+            <div style="${vertical}; align-items: start; text-align: left; gap: 3px;">
+                <span>${escaparAtributo(nome || '')}</span>
+                ${cargo ? `<strong>${escaparAtributo(cargo)}</strong>` : ''}
+            </div>
+        </td>
         <td>${cidade || ''}</td>
         <td>
             ${clinica || ''}<br>
             <b>${local || ''}</b>
         </td>
-        <td>${realizado}</td>
-        <td>${validade}</td>
+        <td>${realizado || ''}</td>
+        <td>${validade || ''}</td>
         <td>
             <div style="${horizontal}; justify-content: left; gap: 5px;">
                 <img src="${tempoExpiracao.icone}" style="width: 1.2rem;">
@@ -417,7 +433,7 @@ function expiraEm(dtValidade) {
 
 async function incluirDocumento(id) {
 
-    const { local, doc, clinica, funcionario, snapshots, realizado } = await recuperarDado('documentos', id) || {}
+    const { local, doc, clinica, funcionario, nome, realizado } = await recuperarDado('vw_documentos', id) || {}
 
     controlesCxOpcoes.funcionario = {
         base: 'clientes',
@@ -433,20 +449,13 @@ async function incluirDocumento(id) {
         }
     }
 
-    const docs = [
-        'ASO',
-        'PTA',
-        'NR 01',
-        'NR 05 - CIPA',
-        'NR 06 - EPI',
-        'RECEBIMENTO - EPI',
-        'NR 10',
-        'NR 18',
-        'NR 35'
-    ]
-        .sort((a, b) => a.localeCompare(b))
-        .map(d => `<option ${doc == d ? 'selected' : ''}>${d}</option>`)
-        .join('')
+    controlesCxOpcoes.doc = {
+        base: 'rh_documentos_regras',
+        retornar: ['id'],
+        colunas: {
+            'Documento': { chave: 'id' }
+        }
+    }
 
     const linhas = [
         {
@@ -462,7 +471,7 @@ async function incluirDocumento(id) {
                 class="opcoes" 
                 name="funcionario" 
                 onclick="cxOpcoes('funcionario')">
-                    ${snapshots?.nome || 'Selecionar'}
+                    ${escaparAtributo(nome || 'Selecionar')}
                 </span>
                 <img onclick="formularioCliente()" src="imagens/baixar.png">
             </div>
@@ -470,7 +479,7 @@ async function incluirDocumento(id) {
         },
         {
             texto: 'Doc',
-            elemento: `<select name="doc">${docs}</select>`
+            elemento: `<span ${doc ? `id="${escaparAtributo(doc)}"` : ''} class="opcoes" name="doc" onclick="cxOpcoes('doc')">${escaparAtributo(doc || 'Selecionar')}</span>`
         },
         {
             texto: 'realizado',
@@ -521,7 +530,7 @@ async function excluirDocumento(id) {
 async function verificarDoc(funcionario, doc) {
 
     const exsitente = await pesquisarDB({
-        base: 'documentos',
+        base: 'vw_documentos',
         filtros: {
             'funcionario': { op: '=', value: funcionario },
             'doc': { op: '=', value: doc }
@@ -547,16 +556,16 @@ async function salvarDocumento(id = crypto.randomUUID()) {
     // só retorna 1, porque é o limite para este formulário;
     const anexoAPI = await importarAnexos({ input })
     const funcionario = obVal('funcionario')?.id
-    const doc = obVal('doc')
+    const doc = obVal('doc')?.id
 
-    if (!doc?.value)
+    if (!doc)
         return popup({ mensagem: 'Selecione o tipo de exame' })
 
     if (!funcionario)
         return popup({ mensagem: 'Escolha um funcionário' })
 
     // Se existir algum documento para este funcionário do mesmo tipo, substituir;
-    const existente = await verificarDoc(Number(funcionario), doc.value)
+    const existente = await verificarDoc(Number(funcionario), doc)
     const resultados = existente?.resultados || []
     if (resultados.length)
         id = existente.resultados[0].id
@@ -568,11 +577,12 @@ async function salvarDocumento(id = crypto.randomUUID()) {
 
     const { usuario, anexo } = await recuperarDado('documentos', id) || {}
 
-    const campos = ['doc', 'realizado', 'clinica', 'local']
+    const campos = ['realizado', 'clinica', 'local']
 
     const atualizado = {
         id,
         funcionario: Number(funcionario),
+        doc,
         usuario: usuario || acesso.usuario,
         anexo: anexoAPI?.[0] ?? anexo ?? {},
         ...Object.fromEntries(
