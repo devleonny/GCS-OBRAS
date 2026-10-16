@@ -24,6 +24,7 @@ async function telaVeiculos() {
         overlayAguarde()
 
         const colunas = {
+            'Data de registro': { chave: 'timestamp', tipoPesquisa: 'data' },
             'Usuário': { chave: 'usuario' },
             'Motorista': { chave: 'veiculo.snapshots.motoristas' },
             'Data Pagamento': { chave: 'data_pagamento', tipoPesquisa: 'data' },
@@ -173,6 +174,7 @@ async function criarLinhaCusto(custo) {
     }
 
     const tds = `
+        <td>${data || ''}</td>
         <td>${usuario}</td>
 
         <td>
