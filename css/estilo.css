@@ -1192,11 +1192,12 @@ input:focus {
     box-sizing: border-box;
     gap: 10px;
     border-radius: 7px;
+    border: 1px solid #ffffff20;
     background: transparent;
     color: #d5e4da;
     font-size: 12px;
     line-height: 1.45;
-    transition: background-color 150ms ease, color 150ms ease;
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
 }
 
 .side-menu .botao-lateral.nivel-0 {
@@ -1215,6 +1216,7 @@ input:focus {
 
 .side-menu .menu-principal:hover > .botao-lateral {
     background: #ffffff0d;
+    border-color: #ffffff38;
     color: #fff;
 }
 

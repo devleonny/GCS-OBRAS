@@ -363,13 +363,13 @@ async function carregarControles() {
 
     if (!['cliente', 'técnico'].includes(permissao)) {
         barraStatus.push(
-            modelo('tarefas', 'telaPIT()', 'contadorPostIt', 'svg'),
-            modelo('aprovacoes', 'verAprovacoes()', 'contadorPendencias', 'svg')
+            modelo('kanban', 'telaPIT()', 'contadorPostIt'),
+            modelo('projeto', 'verAprovacoes()', 'contadorPendencias')
         )
     }
 
     if (['adm', 'diretoria'].includes(permissao))
-        barraStatus.push(modelo('configuracoes', 'f2()', '', 'svg'))
+        barraStatus.push(modelo('construcao', 'f2()', ''))
 
     const cabecalhoUsuario = document.querySelector(
         '.cabecalho-usuario'

@@ -82,7 +82,7 @@ function criarAtalhoMenu({ nome, img, gif }, nivel) {
     return `
     <div class="botao-lateral nivel-${nivel}" 
         style="margin-left:${nivel * 12}px">
-        ${iconeSilhuetaMenu(img || gif) || `<img src="${imagem}" alt="">`}
+        <img src="${imagem}" alt="">
             <div>${nome}</div>
     </div>
     `

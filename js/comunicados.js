@@ -204,7 +204,7 @@ function mostrarLembreteComunicadosGCS() {
         <button id="lembreteComunicadoGCS" class="lembrete-comunicado-gcs" type="button"
             onclick="abrirCentralComunicadosGCS()" title="Abrir central de atualizações"
             aria-label="Abrir central de atualizações">
-            <img src="imagens/sino.svg" alt="">
+            <img src="imagens/sino.png" alt="">
             ${naoLidos ? `<b class="lembrete-comunicado-contador contador-toolbar-gcs">${naoLidos}</b>` : ''}
         </button>`)
 }
