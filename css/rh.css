@@ -1,8 +1,66 @@
 .esquema-cidades {
-    width: 30%;
-    border-radius: 5px;
-    padding: 1rem;
-    background-color: #e9e9e9;
+    flex: 0 0 clamp(280px, 30%, 390px);
+    min-width: 0;
+    box-sizing: border-box;
+    border: 1px solid #d6e2da;
+    border-radius: 12px;
+    padding: 14px;
+    background: #f7f9f8;
+    color: #324b3c;
+}
+
+.tela-rh > .pagina-conteudo { flex: 1; min-width: 0; }
+.rh-pastas-resumo h3 { margin: 0 0 10px; font-size: 15px; }
+.rh-pastas-totais { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.rh-pastas-totais > span { padding: 6px 9px; border-radius: 7px; background: #e2efe7; font-size: 12px; }
+.rh-obrigatorios { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid #d6e2da; }
+.rh-obrigatorios > strong { display: block; margin-bottom: 8px; font-size: 12px; }
+.rh-obrigatorios > small { display: block; margin-top: 8px; color: #65756b; font-size: 11px; }
+.rh-lista-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.rh-tag-obrigatorio { background: #e2efe7; border: 1px solid #bdd4c5; border-radius: 8px; padding: 3px 7px; font-size: 11px; }
+.rh-estados-lista { display: grid; gap: 10px; }
+.rh-estado { border: 1px solid #d6e2da; border-radius: 10px; background: white; overflow: hidden; }
+.esquema-cidades .rh-pasta-gatilho,
+.esquema-cidades .rh-documento-item {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    margin: 0;
+    padding: 12px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: #324b3c;
+    text-align: left;
+    white-space: normal;
+    font-weight: 400;
+    box-sizing: border-box;
+}
+.esquema-cidades .rh-estado-gatilho { background: #e9f1ec; font-weight: 600; }
+.esquema-cidades .rh-pasta-gatilho:hover,
+.esquema-cidades .rh-documento-item:hover { background: #edf5ef; }
+.esquema-cidades button:focus-visible { outline-offset: -3px; }
+.rh-chevron { flex: 0 0 12px; font-size: 22px; line-height: 1; transition: transform 150ms ease; }
+.rh-pasta-gatilho[aria-expanded="true"] > .rh-chevron { transform: rotate(90deg); }
+.rh-pasta-textos { display: grid; min-width: 0; gap: 5px; overflow-wrap: anywhere; }
+.rh-pasta-textos small { color: #65756b; font-size: 11px; }
+.rh-funcionarios-lista { padding: 0 8px 8px; }
+.rh-funcionario + .rh-funcionario { border-top: 1px solid #e5ece7; }
+.rh-documentos-lista { margin: 0 0 10px 24px; border-left: 2px solid #c5dace; padding-left: 6px; }
+.esquema-cidades .rh-documento-item { align-items: center; padding: 8px 6px; gap: 6px; font-size: 11px; }
+.rh-documento-nome { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.rh-contagem { color: #65756b; font-size: 10px; white-space: nowrap; }
+.rh-pendencia-titulo { font-size: 10px; color: #8a3c36; }
+.rh-sem-pendencias { font-size: 10px; color: #356443; }
+.esquema-cidades .docs-faltantes { background: #fcecea; color: #963e36; border: 1px solid #edc7c2; padding: 2px 6px; font-size: 10px; }
+@media (max-width: 900px) {
+    .tela-rh { flex-direction: column; }
+    .tela-rh > .esquema-cidades { flex: none; width: 100%; }
+    .tela-rh > .pagina-conteudo { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .rh-chevron { transition: none; }
 }
 
 .tabela-documentos {

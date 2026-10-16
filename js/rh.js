@@ -1,13 +1,7 @@
-let pastaAberta = {}
-const obrigatorios = [
-    'ASO',
-    'PTA',
-    'NR 06 - EPI',
-    'RECEBIMENTO - EPI',
-    'NR 10',
-    'NR 35'
-]
-
+let pastasRH = []
+let obrigatoriosRH = []
+const pastasAbertasRH = new Set()
+let consultaPastasRH = 0
 
 const modeloRH = (valor1, elemento, funcao) => {
     return `
@@ -156,172 +150,122 @@ async function filtrarPorTempo(tempo) {
 }
 
 async function criarPastinhas() {
-
-    const cidadesDB = await contarPorCampo({
-        base: 'vw_documentos',
-        path: 'cidade'
-    })
-
-    const cidades = Object.keys(cidadesDB)
-        .filter(c => c !== 'todos' && c !== 'EM BRANCO')
-
     const container = document.querySelector('.esquema-cidades')
-
     if (!container) return
-
-    const cidadesDOM = [...container.children]
-        .map(el => el.dataset.cidade)
-
-    // remover cidades que não existem mais
-    cidadesDOM.forEach(cidade => {
-        if (!cidades.includes(cidade)) {
-            const el = container.querySelector(`[data-cidade="${cidade}"]`)
-            if (el) el.remove()
-            delete pastaAberta[cidade]
-        }
-    })
-
-    // adicionar novas cidades
-    cidades.forEach(cidade => {
-        if (!cidadesDOM.includes(cidade)) {
-
-            const div = document.createElement('div')
-            div.dataset.cidade = cidade
-            div.style = `${vertical}; width: 100%;`
-
-            div.innerHTML = `
-                <div class="btnPessoas" onclick="funcionariosPorCidade('${cidade}')">
-                    <img src="imagens/pasta.png">
-                    <span>${cidade}</span>
-                </div>
-                <div id="${cidade}" style="${vertical}; align-items: start; margin-left: 2rem; width: 90%;"></div>
-            `
-
-            container.appendChild(div)
-        }
-    })
-
+    const consulta = ++consultaPastasRH
+    try {
+        const estados = []
+        let pagina = 1
+        let paginas = 1
+        do {
+            const resposta = await pesquisarDB({
+                base: 'vw_rh_pastas', pagina,
+                ordenar: { path: 'id', direcao: 'ASC' }
+            })
+            estados.push(...(resposta.resultados || []))
+            paginas = Number(resposta.paginas) || 1
+            pagina++
+        } while (pagina <= paginas)
+        const regras = []
+        pagina = 1
+        paginas = 1
+        do {
+            const resposta = await pesquisarDB({ base: 'rh_documentos_regras', pagina })
+            regras.push(...(resposta.resultados || []))
+            paginas = Number(resposta.paginas) || 1
+            pagina++
+        } while (pagina <= paginas)
+        if (consulta !== consultaPastasRH || !container.isConnected) return
+        const padrao = ['ASO', 'PTA', 'NR 06 - EPI', 'RECEBIMENTO - EPI', 'NR 10', 'NR 35']
+        obrigatoriosRH = regras.filter(regra => Object.hasOwn(regra, 'obrigatorio')
+            ? ['true', 't', '1', 'sim'].includes(String(regra.obrigatorio).toLowerCase())
+            : padrao.includes(regra.id)).map(regra => regra.id).sort((a, b) => a.localeCompare(b))
+        pastasRH = estados
+        renderizarPastasRH(container)
+    } catch (erro) {
+        if (consulta !== consultaPastasRH || !container.isConnected) return
+        console.error('Erro ao carregar pastas do RH:', erro)
+        container.innerHTML = '<button type="button" onclick="criarPastinhas()">Falha ao carregar pastas. Tentar novamente</button>'
+    }
 }
 
-
-async function funcionariosPorCidade(cidade) {
-
-    overlayAguarde()
-
-    const local = document.getElementById(cidade)
-
-    if (pastaAberta[cidade]) {
-        delete pastaAberta[cidade]
-        if (local) local.innerHTML = ''
-        removerOverlay()
-        return
-    }
-
-    pastaAberta[cidade] ??= []
-
-    const funcionarios = Object.keys(await contarPorCampo({
-        base: 'vw_documentos',
-        path: 'nome',
-        filtros: { 'cidade': { op: '=', value: cidade } }
-    }))
-        .filter(c => c !== 'todos')
-        .sort((a, b) => a.localeCompare(b))
-
-    const pastinhas = []
-
-    for (const c of funcionarios) {
-
-        const docs = Object.keys(await contarPorCampo({
-            base: 'vw_documentos',
-            path: 'doc',
-            filtros: {
-                'nome': {
-                    op: '=',
-                    value: c
-                }
-            }
-        }))
-
-        const docsFaltantes = obrigatorios
-            .filter(o => !docs.includes(o))
-            .map(o => `<span class="docs-faltantes">${o}</span>`)
-            .join('')
-
-        pastinhas.push(`
-            <div style="${vertical}; width: 100%;">
-                <div class="btnPessoas" style="flex-direction: column; align-items: start;" onclick="documentosPorFuncionario('${c}', '${cidade}')">
-                    <div style="${horizontal}; gap: 3px;">
-                        <img src="imagens/pasta.png">
-                        <span>${c}</span>
-                    </div>
-                    <div class="bloco-etiquetas-rh">${docsFaltantes}</div>
-                </div>
-                <div id="${c}" style="${vertical}; align-items: start; margin-left: 2rem; width: 90%;"></div>
-            </div>`)
-    }
-
-    if (local)
-        local.innerHTML = pastinhas.join('')
-
-    removerOverlay()
-
+function chavePastaRH(estado, funcionario) {
+    return JSON.stringify(funcionario === undefined ? [estado.id] : [estado.id, funcionario.id])
 }
 
-async function documentosPorFuncionario(funcionario, cidade) {
-
-    const local = document.getElementById(funcionario)
-    if (pastaAberta[cidade].includes(funcionario)) {
-        pastaAberta[cidade] = pastaAberta[cidade]
-            .filter(f => f != funcionario)
-
-        if (local) local.innerHTML = ''
-        return
-    }
-
-    pastaAberta[cidade].push(funcionario)
-
-    const funcionarios = await contarPorCampo({
-        base: 'vw_documentos',
-        path: 'doc',
-        filtros: { 'nome': { op: '=', value: funcionario } }
-    })
-
-    const pastinhas = Object.keys(funcionarios)
-        .filter(c => c != 'todos')
-        .map(c => {
-
-            return `
-                <div style="${vertical}; width: 100%;">
-                    <div class="btnPessoas" onclick="abrirDoc('${funcionario}', '${c}')">
-                        <img src="imagens/pasta.png">
-                        <span>${c}</span>
-                    </div>
-                </div>`
-        })
-        .join('')
-
-    if (local)
-        local.innerHTML = pastinhas
-
+function renderizarPastasRH(container = document.querySelector('.esquema-cidades')) {
+    if (!container) return
+    const quantidade = valor => new Intl.NumberFormat('pt-BR').format(Number(valor) || 0)
+    const totalFuncionarios = pastasRH.reduce((soma, estado) => soma + Number(estado.quantidade_funcionarios || 0), 0)
+    const totalDocumentos = pastasRH.reduce((soma, estado) => soma + Number(estado.quantidade_documentos || 0), 0)
+    const cabecalho = `<div class="rh-pastas-resumo">
+        <h3>Documentos por estado</h3>
+        <div class="rh-pastas-totais"><span><strong>${quantidade(totalFuncionarios)}</strong> funcionários</span><span><strong>${quantidade(totalDocumentos)}</strong> documentos</span></div>
+        <div class="rh-obrigatorios"><strong>Documentos obrigatórios</strong>
+            <div class="rh-lista-tags">${obrigatoriosRH.map(doc => '<span class="rh-tag-obrigatorio">' + escaparAtributo(doc) + '</span>').join('') || '<span>Nenhum definido.</span>'}</div>
+            <small>As pendências abaixo indicam documentos ainda não registrados.</small>
+        </div>
+    </div>`
+    const pastas = pastasRH.map((estado, indiceEstado) => {
+        const aberta = pastasAbertasRH.has(chavePastaRH(estado))
+        const funcionarios = (estado.funcionarios || []).map((funcionario, indiceFuncionario) => {
+            const expandido = pastasAbertasRH.has(chavePastaRH(estado, funcionario))
+            const faltantes = funcionario.documentos_faltantes || []
+            const documentos = (funcionario.documentos || []).map((doc, indiceDoc) => `
+                <button type="button" class="rh-documento-item"
+                    data-estado="${indiceEstado}" data-funcionario="${indiceFuncionario}" data-doc="${indiceDoc}"
+                    onclick="abrirDoc(this.dataset.estado, this.dataset.funcionario, this.dataset.doc)">
+                    <span class="rh-documento-nome">${escaparAtributo(doc.doc || 'Sem tipo')}</span>
+                    <span class="rh-contagem">${quantidade(doc.quantidade)} registro(s)</span>
+                    <span aria-hidden="true">↗</span>
+                </button>`).join('')
+            return `<div class="rh-funcionario">
+                <button type="button" class="rh-pasta-gatilho rh-funcionario-gatilho" aria-expanded="${expandido}"
+                    data-estado="${indiceEstado}" data-funcionario="${indiceFuncionario}" onclick="alternarPastaRH(this)">
+                    <span class="rh-chevron" aria-hidden="true">›</span>
+                    <span class="rh-pasta-textos"><strong>${escaparAtributo(funcionario.nome || 'Sem nome')}</strong>
+                        ${funcionario.cargo ? '<small>' + escaparAtributo(funcionario.cargo) + '</small>' : ''}
+                        <small>${quantidade(funcionario.quantidade_documentos)} documentos</small>
+                        <span class="rh-lista-tags">${faltantes.length
+                            ? '<span class="rh-pendencia-titulo">Faltam:</span>' + faltantes.map(doc => '<span class="docs-faltantes">' + escaparAtributo(doc) + '</span>').join('')
+                            : '<span class="rh-sem-pendencias">Obrigatórios registrados</span>'}</span>
+                    </span>
+                </button>
+                <div class="rh-documentos-lista" ${expandido ? '' : 'hidden'}>${documentos || '<small>Nenhum documento.</small>'}</div>
+            </div>`
+        }).join('')
+        return `<section class="rh-estado">
+            <button type="button" class="rh-pasta-gatilho rh-estado-gatilho" aria-expanded="${aberta}"
+                data-estado="${indiceEstado}" onclick="alternarPastaRH(this)">
+                <span class="rh-chevron" aria-hidden="true">›</span>
+                <span class="rh-pasta-textos"><span>${escaparAtributo(estado.id || '')}</span>
+                    <small>${quantidade(estado.quantidade_funcionarios)} funcionários · ${quantidade(estado.quantidade_documentos)} documentos</small>
+                </span>
+            </button>
+            <div class="rh-funcionarios-lista" ${aberta ? '' : 'hidden'}>${funcionarios}</div>
+        </section>`
+    }).join('')
+    container.innerHTML = cabecalho + '<div class="rh-estados-lista">' + (pastas || '<span>Nenhum documento encontrado.</span>') + '</div>'
 }
 
-async function abrirDoc(funcionario, doc) {
+function alternarPastaRH(elemento) {
+    const estado = pastasRH[Number(elemento.dataset.estado)]
+    if (!estado) return
+    const funcionario = elemento.dataset.funcionario === undefined
+        ? undefined : estado.funcionarios?.[Number(elemento.dataset.funcionario)]
+    const chave = chavePastaRH(estado, funcionario)
+    const aberta = !pastasAbertasRH.has(chave)
+    if (aberta) pastasAbertasRH.add(chave)
+    else pastasAbertasRH.delete(chave)
+    elemento.setAttribute('aria-expanded', String(aberta))
+    elemento.nextElementSibling.hidden = !aberta
+}
 
-    const docs = await pesquisarDB({
-        base: 'vw_documentos',
-        path: 'doc',
-        filtros: {
-            'nome': { op: '=', value: funcionario },
-            'doc': { op: '=', value: doc },
-        }
-    })
-
-    for (const doc of (docs.resultados || [])) {
-        const link = doc?.anexo?.link
-        if (link)
-            abrirArquivo(doc.anexo.link)
-    }
-
+function abrirDoc(indiceEstado, indiceFuncionario, indiceDoc) {
+    const doc = pastasRH[Number(indiceEstado)]?.funcionarios?.[Number(indiceFuncionario)]?.documentos?.[Number(indiceDoc)]
+    const links = [...new Set((doc?.registros || []).map(registro => registro.anexo?.link).filter(Boolean))]
+    if (!links.length) return popup({ mensagem: 'Este documento não possui anexo.' })
+    for (const link of links) abrirArquivo(link)
 }
 
 function criarLinhaRH(documento) {
