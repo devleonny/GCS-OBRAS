@@ -1,3 +1,10 @@
+.modtab:not(.nude) {
+    box-sizing: border-box;
+    min-width: 0;
+    border: 1px solid #cddbd2;
+    border-radius: 10px;
+}
+
 .tabela .tabela-coluna-detalhes {
     width: 2rem;
     text-align: center;

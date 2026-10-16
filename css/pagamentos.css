@@ -573,6 +573,31 @@
     border: none;
     box-shadow: none;
 }
+
+.pagamentos-status-lateral::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: #10201938;
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 180ms ease, visibility 180ms ease;
+}
+
+.pagamentos-status-lateral:hover::before,
+.pagamentos-status-lateral:focus-within::before {
+    opacity: 1;
+    visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pagamentos-status-lateral::before { transition: none; }
+}
+
 .pagamentos-status-lateral .balao-pagamentos {
     min-height: 52px;
     padding: 8px;

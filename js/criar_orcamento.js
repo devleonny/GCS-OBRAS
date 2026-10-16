@@ -1056,129 +1056,143 @@ async function enviarDadosPrincipal() {
 
 async function enviarDadosOrcamento() {
 
+    try {
+        // Releia a sess?o: a vari?vel global pode estar desatualizada.
+        const acesso = JSON.parse(localStorage.getItem('acesso'))
+
+        if (!acesso?.token || !acesso?.usuario) {
+            popup({ mensagem: 'Sess?o indispon?vel. Fa?a login novamente antes de salvar. O or?amento em edi??o foi mantido.' })
+            return
+        }
+
     overlayAguarde()
 
-    const orcamentoBase = baseOrcamento()
+        const orcamentoBase = baseOrcamento()
 
-    const { dados_orcam } = orcamentoBase || {}
-    sincronizarRevisaoAtual(orcamentoBase)
+        const { dados_orcam } = orcamentoBase || {}
+        sincronizarRevisaoAtual(orcamentoBase)
 
-    // Salvar o usuário na primeira vez apenas;
-    if (!orcamentoBase.usuario)
-        orcamentoBase.usuario = acesso.usuario
+        // Salvar o usuário na primeira vez apenas;
+        if (!orcamentoBase.usuario)
+            orcamentoBase.usuario = acesso.usuario
 
-    if (!orcamentoBase.dados_orcam)
-        return painelClientes()
+        if (!orcamentoBase.dados_orcam)
+            return painelClientes()
 
-    if (dados_orcam.omie_cliente == '')
-        return popup({ mensagem: 'Cliente em branco' })
+        if (dados_orcam.omie_cliente == '')
+            return popup({ mensagem: 'Cliente em branco' })
 
-    if (dados_orcam.contrato == '')
-        dados_orcam.contrato = 'sequencial'
+        if (dados_orcam.contrato == '')
+            dados_orcam.contrato = 'sequencial'
 
-    // Se tiver desconto: total bruto > total_geral: aprovação será necessária;
-    orcamentoBase.aprovacao = orcamentoBase.total_bruto > orcamentoBase.total_geral
-        ? { status: 'pendente', usuario: acesso.usuario }
-        : null
+        // Se tiver desconto: total bruto > total_geral: aprovação será necessária;
+        orcamentoBase.aprovacao = orcamentoBase.total_bruto > orcamentoBase.total_geral
+            ? { status: 'pendente', usuario: acesso.usuario }
+            : null
 
-    // Unificador para dados_composições;
-    orcamentoBase.dados_composicoes = gerarDadosComposicoes(orcamentoBase.esquema_composicoes || {})
+        // Unificador para dados_composições;
+        orcamentoBase.dados_composicoes = gerarDadosComposicoes(orcamentoBase.esquema_composicoes || {})
 
-    const { origem, ...orcamentoFinal } = orcamentoBase // Origem não precisa continuar no objeto;
-    if (!orcamentoBase?.id)
-        orcamentoBase.id = crypto.randomUUID()
+        const { origem, ...orcamentoFinal } = orcamentoBase // Origem não precisa continuar no objeto;
+        if (!orcamentoBase?.id)
+            orcamentoBase.id = crypto.randomUUID()
 
-    const { success } = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoFinal) || {}
+        const { success } = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoFinal) || {}
 
-    if (success) {
+        if (success) {
 
-        const { dados_orcam } = await recuperarDado('dados_orcamentos', orcamentoBase.id) || {}
+            const { dados_orcam } = await recuperarDado('dados_orcamentos', orcamentoBase.id) || {}
 
-        if (!dados_orcam)
-            return popup({ mensagem: 'Não foi possível recuperar o ORC_ORÇAMENTO: Fale com o suporte.' })
+            if (!dados_orcam)
+                return popup({ mensagem: 'Não foi possível recuperar o ORC_ORÇAMENTO: Fale com o suporte.' })
 
-        const { contrato } = dados_orcam || {}
+            const { contrato } = dados_orcam || {}
 
-        if (contrato == 'sequencial')
-            return popup({ mensagem: 'ORC_sequencial detectado: Fale com o suporte.' })
+            if (contrato == 'sequencial')
+                return popup({ mensagem: 'ORC_sequencial detectado: Fale com o suporte.' })
 
-        // Caso seja um orçamento vinculado ou troca de Ocorrência para ORC;
-        if (orcamentoBase.origem) {
+            // Caso seja um orçamento vinculado ou troca de Ocorrência para ORC;
+            if (orcamentoBase.origem) {
 
-            let { idOrcamento, idOcorrencia } = orcamentoBase.origem || {}
+                let { idOrcamento, idOcorrencia } = orcamentoBase.origem || {}
 
-            // Se existir idOrcamento, então é vinculado;
-            if (idOrcamento)
-                await enviarVinculo({ slave: contrato, master: idOcorrencia })
+                // Se existir idOrcamento, então é vinculado;
+                if (idOrcamento)
+                    await enviarVinculo({ slave: contrato, master: idOcorrencia })
 
-            // Correção principal da criação do orçamento, vem com o ID do orçamento;
-            const dataRegistro = new Date()
-            const correcoes = {
-                [orcamentoBase.id]: {
-                    data: dataRegistro.toLocaleString(),
-                    datas: {},
-                    descricao: `Orçamento criado ${contrato || ''}`,
-                    dtCorrecao: new Date().toISOString().slice(0, 10),
-                    tipoCorrecao: 'WiGZl',
-                    usuario: acesso.usuario
-                }
-            }
-
-            // Correção para Logística;
-            if (['LPU FERRAMENTAS', 'LPU PEÇAS'].includes(orcamentoBase.lpu_ativa)) {
-
-                const dataMais1s = new Date(dataRegistro.getTime() + 1000)
-
-                const idLog = crypto.randomUUID()
-
-                correcoes[idLog] = {
-                    aba: idLog,
-                    data: dataMais1s.toLocaleString(),
-                    datas: {},
-                    descricao: `Requisição de materiais para o Funcionário`,
-                    dtCorrecao: new Date().toISOString().slice(0, 10),
-                    setor: ['LOGÍSTICA'],
-                    tipoCorrecao: '4Zmd3',
-                    usuario: acesso.usuario
+                // Correção principal da criação do orçamento, vem com o ID do orçamento;
+                const dataRegistro = new Date()
+                const correcoes = {
+                    [orcamentoBase.id]: {
+                        data: dataRegistro.toLocaleString(),
+                        datas: {},
+                        descricao: `Orçamento criado ${contrato || ''}`,
+                        dtCorrecao: new Date().toISOString().slice(0, 10),
+                        tipoCorrecao: 'WiGZl',
+                        usuario: acesso.usuario
+                    }
                 }
 
+                // Correção para Logística;
+                if (['LPU FERRAMENTAS', 'LPU PEÇAS'].includes(orcamentoBase.lpu_ativa)) {
+
+                    const dataMais1s = new Date(dataRegistro.getTime() + 1000)
+
+                    const idLog = crypto.randomUUID()
+
+                    correcoes[idLog] = {
+                        aba: idLog,
+                        data: dataMais1s.toLocaleString(),
+                        datas: {},
+                        descricao: `Requisição de materiais para o Funcionário`,
+                        dtCorrecao: new Date().toISOString().slice(0, 10),
+                        setor: ['LOGÍSTICA'],
+                        tipoCorrecao: '4Zmd3',
+                        usuario: acesso.usuario
+                    }
+
+                }
+
+                // Salvamento da ocorrência, observar bifurcação (ORC ou G);
+                // Se ORC, então este orçamento é vinculado;
+
+                if (!idOcorrencia.includes('ORC')) {
+                    // Se G ou qualquer outro, então é substitutivo para ORC;
+                    await desvincularOcorrencia(idOcorrencia, contrato)
+                    idOcorrencia = contrato
+                }
+
+                // Salvar uma correção obrigatoriamente;
+                for (const [idCorrecao, correcao] of Object.entries(correcoes))
+                    await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, correcao)
+
+                await telaOcorrencias()
+
+                removerOverlay()
+
+            } else {
+
+                popup({ tempo: 4, mensagem: 'Aguarde... redirecionando...', imagem: 'imagens/concluido.png' })
+
+                // Limpeza do orçamento em edição;
+                baseOrcamento(undefined, true)
+                await telaOrcamentos()
+
             }
 
-            // Salvamento da ocorrência, observar bifurcação (ORC ou G);
-            // Se ORC, então este orçamento é vinculado;
-
-            if (!idOcorrencia.includes('ORC')) {
-                // Se G ou qualquer outro, então é substitutivo para ORC;
-                await desvincularOcorrencia(idOcorrencia, contrato)
-                idOcorrencia = contrato
-            }
-
-            // Salvar uma correção obrigatoriamente;
-            for (const [idCorrecao, correcao] of Object.entries(correcoes))
-                await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, correcao)
-
-            await telaOcorrencias()
-
-            removerOverlay()
+            criarMenus('inicial')
 
         } else {
 
-            popup({ tempo: 4, mensagem: 'Aguarde... redirecionando...', imagem: 'imagens/concluido.png' })
-
-            // Limpeza do orçamento em edição;
-            baseOrcamento(undefined, true)
-            await telaOrcamentos()
+            popup({ mensagem: 'Falha no salvamento, tente de novo em alguns minutos' })
 
         }
-
-        criarMenus('inicial')
-
-    } else {
-
-        popup({ mensagem: 'Falha no salvamento, tente de novo em alguns minutos' })
-
+    } catch (erro) {
+        console.error('Erro ao salvar or?amento:', erro)
+        popup({ mensagem: 'N?o foi poss?vel concluir o salvamento. O or?amento em edi??o foi mantido. Confira sua sess?o e tente novamente.' })
+    } finally {
+        removerOverlay()
     }
-
 }
 
 async function desvincularOcorrencia(id, contrato) {

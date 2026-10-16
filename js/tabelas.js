@@ -111,7 +111,7 @@ async function modTab(configuracoes) {
     )).join('')
 
     const modelo = `
-        <div style="${vertical}; width: 100%;">
+        <div class="modtab${nude ? ' nude' : ''}" style="${vertical}; width: 100%;">
 
             <div class="topo-tabela${nude ? ' nude' : ''}" ${cor ? `style="background: ${cor};"` : ''}">
                 ${detalhes === true ? `<button type="button" class="tabela-expandir" data-expandir-todos data-body="${escaparAtributo(body)}" aria-expanded="false" aria-label="Expandir todos os detalhes" title="Expandir todos os detalhes" onclick="alternarTodosDetalhes(this)">+</button>` : ''}

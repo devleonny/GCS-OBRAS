@@ -991,32 +991,13 @@ async function salvarDataCorrecao(idOcorrencia, idCorrecao) {
 
 }
 
-function definirFiltrosOcorrencias(painel, aberto) {
-    painel.classList.toggle('filtros-abertos', aberto)
-    painel.querySelector('.ocorrencias-filtros-gatilho')?.setAttribute('aria-expanded', String(aberto))
-}
-
-function fecharFiltrosOcorrenciasFora(evento) {
-    document.querySelectorAll('.tela-ocorrencias > .painel-filtros.filtros-abertos').forEach(painel => {
-        if (!painel.contains(evento.target)) definirFiltrosOcorrencias(painel, false)
-    })
-}
-
 async function telaOcorrencias() {
 
     overlayAguarde()
-    document.removeEventListener('click', fecharFiltrosOcorrenciasFora)
-    // Fecha só quando a interação começa fora; arrastar uma seleção para fora
-    // de um campo não deve fechar o painel ao soltar o botão do mouse.
-    document.removeEventListener('pointerdown', fecharFiltrosOcorrenciasFora, true)
-    document.addEventListener('pointerdown', fecharFiltrosOcorrenciasFora, true)
 
     const mapa = criarMapa({ path: 'cliente.estado', pag: 'ocorrencias' })
     const btnExtras = `
-    <div class="painel-filtros"
-        onkeydown="if (event.key === 'Escape') definirFiltrosOcorrencias(this, false)">
-        <button type="button" class="ocorrencias-filtros-gatilho" aria-controls="ocorrencias-painel-pesquisas" aria-expanded="false"
-            onclick="definirFiltrosOcorrencias(this.parentElement, !this.parentElement.classList.contains('filtros-abertos'))">Filtros de ocorrências ▾</button>
+    <div class="painel-filtros">
 
         <div id="ocorrencias-painel-pesquisas" class="divisao-filtro-botoes pesquisas-ocorrencias">
 

@@ -422,33 +422,11 @@
     margin-bottom: 12px;
 }
 
-.ocorrencias-filtros-gatilho {
-    width: 100%;
-    padding: 11px 14px;
-    border: 1px solid #cddbd2;
-    border-radius: 8px;
-    background: #e8f0eb;
-    color: #294e35;
-    font-size: 12px;
-    font-weight: 600;
-    text-align: left;
-    cursor: pointer;
-}
-
 .tela-ocorrencias > .painel-filtros > .pesquisas-ocorrencias {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
+    display: flex;
     box-sizing: border-box;
     border: 1px solid #cddbd2;
-    border-radius: 0 0 10px 10px;
-    box-shadow: 0 8px 20px #0002;
-}
-
-.tela-ocorrencias > .painel-filtros.filtros-abertos > .pesquisas-ocorrencias {
-    display: flex;
+    border-radius: 10px;
 }
 
 .tela-ocorrencias .pesquisas-ocorrencias {
