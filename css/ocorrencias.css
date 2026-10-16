@@ -386,12 +386,69 @@
 .tela-ocorrencias {
     width: 100%;
     min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
+
+.tela-ocorrencias .div-tabela {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.tela-ocorrencias .tabela {
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+}
+
+.tela-ocorrencias .tabela td {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.tela-ocorrencias .div-linha { flex-wrap: wrap; }
+.tela-ocorrencias .div-linha > .bloco-linha { flex: 1 1 320px; max-width: 100%; }
+.tela-ocorrencias .tabela td img { max-width: 100%; }
 
 .tela-ocorrencias > .painel-filtros {
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    margin-bottom: 12px;
+}
+
+.ocorrencias-filtros-gatilho {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1px solid #cddbd2;
+    border-radius: 8px;
+    background: #e8f0eb;
+    color: #294e35;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+.tela-ocorrencias > .painel-filtros > .pesquisas-ocorrencias {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    box-sizing: border-box;
+    border: 1px solid #cddbd2;
+    border-radius: 0 0 10px 10px;
+    box-shadow: 0 8px 20px #0002;
+}
+
+.tela-ocorrencias > .painel-filtros.filtros-abertos > .pesquisas-ocorrencias {
+    display: flex;
 }
 
 .tela-ocorrencias .pesquisas-ocorrencias {
@@ -926,3 +983,41 @@
 .etiqueta-chamado img[src="imagens/pesquisar.svg"] {
     filter: brightness(0) invert(1);
 }
+.tela-ocorrencias .ocorrencia-blocos-triangulo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+}
+.tela-ocorrencias .ocorrencia-blocos-triangulo > .bloco-linha {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+}
+.tela-ocorrencias .ocorrencia-blocos-triangulo > .ocorrencia-equipamentos-amplo {
+    grid-column: 1 / -1;
+}
+@media (max-width: 800px) {
+    .tela-ocorrencias .ocorrencia-blocos-triangulo { grid-template-columns: minmax(0, 1fr); }
+}
+.tela-ocorrencias .linha-divisor-tag { flex-wrap: wrap; }
+.tela-ocorrencias .linha-divisor-tag > div:first-child { flex: 1 1 280px; min-width: 0; }
+.tela-ocorrencias .linha-divisor-tag > div:last-child:not(:first-child) {
+    flex: 0 1 auto;
+    max-width: 100%;
+}
+.tela-ocorrencias .tag,
+.tela-ocorrencias .etiqueta-chamado {
+    flex-shrink: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+.tela-ocorrencias .tag span,
+.tela-ocorrencias .etiqueta-chamado span {
+    overflow-wrap: normal;
+    word-break: normal;
+    white-space: normal;
+}
+.tela-ocorrencias .tag img,
+.tela-ocorrencias .etiqueta-chamado img { flex-shrink: 0; }

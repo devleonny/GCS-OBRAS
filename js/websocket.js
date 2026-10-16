@@ -346,15 +346,15 @@ async function carregarControles() {
 
     cUsuario.style.display = ''
 
-    const modelo = (imagem, funcao, idElemento) => {
+    const modelo = (imagem, funcao, idElemento, extensao = 'png') => {
         return `
-            <div onclick="${funcao}" style="${horizontal};">
+            <div class="atalho-cabecalho-gcs" onclick="${funcao}">
+                <img src="imagens/${imagem}.${extensao}">
                 <div
                     id="${idElemento}"
                     style="display: none;"
-                    class="labelQuantidade"
+                    class="labelQuantidade contador-toolbar-gcs"
                 ></div>
-                <img src="imagens/${imagem}.png">
             </div>
         `
     }
@@ -363,20 +363,24 @@ async function carregarControles() {
 
     if (!['cliente', 'técnico'].includes(permissao)) {
         barraStatus.push(
-            modelo('kanban', 'telaPIT()', 'contadorPostIt'),
-            modelo('projeto', 'verAprovacoes()', 'contadorPendencias')
+            modelo('tarefas', 'telaPIT()', 'contadorPostIt', 'svg'),
+            modelo('aprovacoes', 'verAprovacoes()', 'contadorPendencias', 'svg')
         )
     }
 
     if (['adm', 'diretoria'].includes(permissao))
-        barraStatus.push(modelo('construcao', 'f2()', ''))
+        barraStatus.push(modelo('configuracoes', 'f2()', '', 'svg'))
 
     const cabecalhoUsuario = document.querySelector(
         '.cabecalho-usuario'
     )
 
-    if (cabecalhoUsuario)
+    if (cabecalhoUsuario) {
         cabecalhoUsuario.innerHTML = barraStatus.join('')
+
+        if (typeof mostrarLembreteComunicadosGCS === 'function')
+            mostrarLembreteComunicadosGCS()
+    }
 
     await Promise.allSettled([
         usuariosToolbar(),

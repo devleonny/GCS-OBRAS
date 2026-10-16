@@ -528,3 +528,73 @@
 .pagamento-balao-departamento:hover {
     background: #b8d7c2;
 }
+.pagamentos-pesquisas-referencias {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 6px 0;
+}
+.pagamentos-pesquisas-referencias label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: white;
+    font-size: 11px;
+}
+.pagamentos-pesquisas-referencias input {
+    width: 210px;
+    max-width: 100%;
+    padding: 7px 10px;
+    border: 1px solid #cddbd2;
+    border-radius: 7px;
+    background: white;
+    color: #29382f;
+    font-size: 11px;
+    box-sizing: border-box;
+}
+.pagamentos-referencias-detalhes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px 32px;
+}
+.pagamentos-referencias-detalhes > div { display: grid; gap: 8px; }
+
+.divPagamentos .pagamentos-status-lateral {
+    flex: 0 0 108px;
+    width: 108px;
+    min-width: 0;
+    position: relative;
+    z-index: 10;
+}
+.pagamentos-status-lateral .painelEsquerdo {
+    width: 108px;
+    align-items: stretch;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+.pagamentos-status-lateral .balao-pagamentos {
+    min-height: 52px;
+    padding: 8px;
+    gap: 6px;
+}
+.pagamentos-status-lateral .balao-pagamentos label { display: none; }
+.pagamentos-status-lateral .balao-pagamentos .dir { flex: 0 0 26px; }
+.pagamentos-status-lateral .balao-pagamentos .esq {
+    min-width: 44px;
+    padding: 4px 6px;
+    font-size: 15px;
+}
+.pagamentos-status-lateral:hover .painelEsquerdo,
+.pagamentos-status-lateral:focus-within .painelEsquerdo {
+    width: min(360px, calc(100vw - 64px));
+}
+.pagamentos-status-lateral:hover .balao-pagamentos label,
+.pagamentos-status-lateral:focus-within .balao-pagamentos label { display: block; }
+.pagamentos-status-lateral:hover .balao-pagamentos .dir,
+.pagamentos-status-lateral:focus-within .balao-pagamentos .dir { flex: 1; }
+.divPagamentos .painelDireito { flex: 1; width: auto; min-width: 0; }
+.pagamentos-status-lateral .balao-pagamentos:focus-visible { outline: 2px solid #52745c; outline-offset: 2px; }
+@media screen and (orientation: portrait) {
+    .divPagamentos { flex-direction: row; gap: 8px; padding: 8px; }
+}

@@ -1,288 +1,3 @@
-async function telaSaldoFerramentas(tecnico = null) {
-
-    try {
-
-        overlayAguarde()
-
-        const filtros = tecnico
-            ? {
-                tecnico: { op: 'includes', value: tecnico }
-            }
-            : {}
-
-        const pag = 'tecnicosResumido'
-        const tabela = await modTab({
-            pag,
-            filtros: {
-                ...filtros,
-                origem: { op: '=', value: 'Ferramentas' }
-            },
-            base: 'vw_tecnicos_saldo',
-            body: 'bodyTecResumido',
-            criarLinha: 'criarLinhaTecsResumido',
-            colunas: {
-                'Técnico': {
-                    ...(tecnico
-                        ? {}
-                        : { chave: 'tecnico' })
-                },
-                'Código': { chave: 'codigo' },
-                'Descrição': { chave: 'descricao_peca' },
-                'Unidade': { chave: 'unidade' },
-                'Modelo': { chave: 'modelo' },
-                'Fabricante': { chave: 'fabricante' },
-                'Sinal': {},
-                'Saldo': {}
-            }
-        })
-
-        const titulo = tecnico
-            ? `SALDO DE FERRAMENTAS ${tecnico}`
-            : 'SALDO DE FERRAMENTAS POR TÉCNICO'
-
-        const painel_resumo = document.getElementById('painel_resumo')
-
-        if (painel_resumo)
-            painel_resumo.innerHTML = tabela
-        else
-            tela.innerHTML = `
-            <div class="pagina-conteudo">
-                <div class="cabecalho-pagina"><h2>${titulo}</h2></div>
-                ${tabela}
-            </div>
-        `
-
-        await paginacao(pag)
-
-        removerOverlay()
-
-    } catch (err) {
-        console.error(err)
-        popup({ mensagem: 'Falha ao abrir Ferramentas: Fale com o suporte.' })
-    }
-
-}
-
-async function telaSaldoPecas(tecnico = null) {
-
-    try {
-
-        overlayAguarde()
-
-        const filtros = tecnico
-            ? {
-                tecnico: { op: 'includes', value: tecnico }
-            }
-            : {}
-
-        const pag = 'tecnicosResumido'
-        const tabela = await modTab({
-            pag,
-            filtros: {
-                ...filtros,
-                origem: { op: '=', value: 'Kit' }
-            },
-            base: 'vw_tecnicos_saldo',
-            body: 'bodyTecResumido',
-            criarLinha: 'criarLinhaTecsResumido',
-            colunas: {
-                'Técnico': {
-                    ...(tecnico
-                        ? {}
-                        : { chave: 'tecnico' })
-                },
-                'Código': { chave: 'codigo' },
-                'Descrição': { chave: 'descricao_peca' },
-                'Unidade': { chave: 'unidade' },
-                'Modelo': { chave: 'modelo' },
-                'Fabricante': { chave: 'fabricante' },
-                'Sinal': {},
-                'Saldo': {}
-            }
-        })
-
-        const titulo = tecnico
-            ? `SALDO DE PEÇAS ${tecnico}`
-            : 'SALDO DE PEÇAS POR TÉCNICO'
-
-        const painel_resumo = document.getElementById('painel_resumo')
-
-        if (painel_resumo)
-            painel_resumo.innerHTML = tabelaResumida
-        else
-            tela.innerHTML = `
-            <div class="pagina-conteudo">
-                <div class="cabecalho-pagina"><h2>${titulo}</h2></div>
-                ${tabela}
-            </div>
-        `
-
-        await paginacao(pag)
-
-        removerOverlay()
-
-    } catch (err) {
-        console.error(err)
-        popup({ mensagem: 'Falha ao abrir Saldos: Fale com o suporte.' })
-    }
-
-}
-
-async function criarTabelaTecDetalhada(tecnico = null) {
-
-    try {
-
-        overlayAguarde()
-
-        const filtros = tecnico
-            ? { tecnico: { op: 'includes', value: tecnico } }
-            : {}
-
-        const titulo = tecnico
-            ? `Detalhamento ${tecnico}`
-            : 'TODOS OS MOVIMENTOS'
-
-        const pag = 'estoque_tecnicos'
-        const tabela = await modTab({
-            pag,
-            filtros,
-            base: 'vw_tecnicos_movimentos_itens',
-            colunas: {
-                'Data': { chave: 'data', tipoPesquisa: 'data' },
-                'Solicitante': { chave: 'usuario' },
-                'Técnicos': tecnico
-                    ? {}
-                    : { chave: 'tecnico' },
-                'Contrato': { chave: 'id_ocorrencia' },
-                'Sinal': {},
-                'Operação': { chave: 'operacao' },
-                'Quantidade': { chave: 'quantidade' },
-                'Origem': { chave: 'origem' },
-                'Código': { chave: 'codigo' },
-                'Descrição': { chave: 'descricao' }
-            },
-            body: 'bodyTecnicos',
-            criarLinha: 'criarLinhaMovimento'
-        })
-
-        const painel_resumo = document.getElementById('painel_resumo')
-
-        if (painel_resumo)
-            painel_resumo.innerHTML = tabela
-        else
-            tela.innerHTML = `
-            <div class="pagina-conteudo">
-                <div class="cabecalho-pagina"><h2>${titulo}</h2></div>
-                ${tabela}
-            </div>
-        `
-
-        await paginacao(pag)
-
-        removerOverlay()
-
-    } catch (err) {
-        console.error(err)
-        popup({ mensagem: 'Falha ao abrir Movimentos: Fale com o suporte.' })
-    }
-
-
-}
-
-async function criarLinhaTecsResumido(tec) {
-
-    const {
-        tecnico,
-        codigo,
-        fabricante,
-        modelo,
-        unidade,
-        descricao_peca,
-        saldo_atual
-    } = tec || {}
-
-    const img = saldo_atual == 0
-        ? 'congelado'
-        : saldo_atual > 0
-            ? 'aprovado'
-            : 'reprovado'
-
-    return `
-        <tr>
-            <td>${tecnico}</td>
-            <td>${codigo}</td>
-            <td>${descricao_peca}</td>
-            <td>${unidade || ''}</td>
-            <td>${modelo || ''}</td>
-            <td>${fabricante || ''}</td>
-            <td style="text-align: center;">
-                <img src="imagens/${img}.png">
-            </td>
-            <td style="text-align: center;">${saldo_atual}</td>
-        </tr>
-    `
-
-}
-
-async function criarLinhaMovimento(movimento) {
-
-    const {
-        id,
-        usuario,
-        tecnico,
-        id_ocorrencia,
-        operacao,
-        data,
-        codigo,
-        comentario,
-        descricao,
-        quantidade,
-        origem
-    } = movimento || {}
-
-    const sinal = operacao == 'Entrada'
-        ? 'up_estoque'
-        : 'down_estoque'
-
-    return `
-        <tr>
-            <td>${data ? conversorData(data) : ''}</td>
-            <td>${usuario || ''}</td>
-            <td style="white-space: pre;">${tecnico ? tecnico.map(t => `• ${t}`).join('\n') : ''}</td>
-            <td>${id_ocorrencia || ''}</td>
-            <td style="text-align: center;">
-                <img src="imagens/${sinal}.png">
-            </td>
-            <td>${operacao || ''}</td>
-            <td>${quantidade || ''}</td>
-            <td>${origem || ''}</td>
-            <td>${codigo || ''}</td>
-            <td>${descricao || ''}</td>
-        </tr>
-    `
-
-}
-
-
-async function abrirResumo(tecnico) {
-
-    const elemento = `
-        <div class="painel-saldos-flutuante">
-            <div style="${horizontal}; gap: 5px;">
-                <button onclick="telaSaldoPecas('${tecnico}')">Saldo Peças</button>
-                <button onclick="telaSaldoFerramentas('${tecnico}')">Saldo Ferramentas</button>
-                <button onclick="criarTabelaTecDetalhada('${tecnico}')">Histórico de Movimentos</button>
-            </div>
-            <div id="painel_resumo"></div>
-        </div>
-    `
-
-    popup({ elemento, titulo: `Saldos de ${tecnico}` })
-
-    await telaSaldoPecas(tecnico)
-
-}
-
 // AGENDA
 function pegarSegunda(date = new Date()) {
     const d = new Date(date)
@@ -300,22 +15,25 @@ async function telaAgenda({ flutuante = false, filtros = null } = {}) {
     const agenda = `
 
         <div class="agenda-topo">
-            <div class="agenda-filtro">
-
-                <img src="imagens/BG.png" style="width: 12rem; filter: drop-shadow(2px 2px 2px black);">
+            <div><h2 class="agenda-titulo">Agenda de atendimentos</h2><p class="agenda-subtitulo">Acompanhe a programação por técnico, data e loja.</p></div>
+            <div class="agenda-filtros-recolhiveis">
+                <button type="button" class="agenda-filtros-gatilho" aria-controls="agenda-painel-filtros" aria-expanded="false"
+                    onclick="const fixar = this.parentElement.classList.toggle('fixado'); this.setAttribute('aria-expanded', String(fixar))">Filtros · datas, técnico, estado e loja ▾</button>
+            <div class="agenda-filtro" id="agenda-painel-filtros">
 
                 <div class="campo-pesquisa">
-                    <span style="color: white;">Início</span>
+                    <label for="inicio">Início</label>
                     <input type="date" id="inicio" value="${dtCorrecao || ''}" onchange="carregarAgenda()">
                 </div>
 
                 <div class="campo-pesquisa">
-                    <span style="color: white;">Fim</span>
+                    <label for="fim">Fim</label>
                     <input type="date" id="fim" onchange="carregarAgenda()">
                 </div>
 
                 <div class="agenda-dropdown"></div>
 
+            </div>
             </div>
 
             <div class="agenda-cards"></div>
@@ -377,7 +95,7 @@ async function criarPesquisasAgenda() {
 
     drops.push(`
         <div class="campo-pesquisa">
-            <span style="color: white;">Loja</span>
+            <span>Loja</span>
             <div class="pesquisa">
                 <input onkeydown="if (event.key === 'Enter') pesquisarCampoLivreAgenda('Loja', this.value)" 
                     placeholder="Loja" 
@@ -386,10 +104,10 @@ async function criarPesquisasAgenda() {
             </div>
         </div>
 
-        <div style="${horizontal}; gap: 5px;">
-            <input onchange="carregarAgenda()" id="checkbox_solucionados" type="checkbox" style="width: 2rem; height: 2rem;">
-            <span style="color: white;">Mostrar SOLUCIONADOS</span>
-        </div>
+        <label class="agenda-solucionados">
+            <input onchange="carregarAgenda()" id="checkbox_solucionados" type="checkbox">
+            <span>Mostrar solucionados</span>
+        </label>
 
         `)
 

@@ -701,8 +701,8 @@ async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro, idOcorrencia) {
         const { usuario } = acesso || {}
         const app = 'AC' // Parceiros é só na AC
         const codigo_categoria = modalidade == 2
-            ? '2.01.99' // Pagamento de Parceiro (30 dias)
-            : '2.01.81' // Adiantamento ou data flexível
+            ? 'Pagamento de Parceiros'
+            : 'Adiantamento de Parceiros'
 
         const dataPagamento = document.querySelector('[name="data_pagamento"]').value
 
@@ -749,31 +749,12 @@ async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro, idOcorrencia) {
         if (!pesquisaTecnico.resultados.length)
             return popup({ mensagem: 'Técnico não localizado: fale com o suporte' })
 
-        const { apps, chave_pix } = pesquisaTecnico.resultados?.[0] || {}
+        const cliente = pesquisaTecnico.resultados?.[0] || {}
+        const codigo_cliente_fornecedor = String(cliente.id || '')
+        const chave_pix = cliente.chave_pix || ''
 
-        const codOmie = apps?.[app]?.codigo
-
-        if (!codOmie)
-            return popup({ mensagem: 'O técnico não está cadastrado na <b>AC</b>: Fale com o suporte' })
-
-        const pesquisaDepartamento = await pesquisarDB({
-            base: 'departamentos',
-            filtros: {
-                app: { op: '=', value: app },
-                descricao: { op: '=', value: departamento }
-            }
-        })
-
-        if (!pesquisaDepartamento.resultados.length) {
-
-            const botoes = [
-                { texto: 'Criar', img: 'concluido', funcao: `salvarDepartamento({nome: '${departamento}'})` }
-            ]
-
-            return popup({ botoes, mensagem: `O departamento ${departamento} não existe no Omie: Deseja criar agora?` })
-        }
-
-        const { codigo: cCodDep } = pesquisaDepartamento.resultados[0] || {}
+        if (!codigo_cliente_fornecedor)
+            return popup({ mensagem: 'O cadastro estável do técnico não foi localizado: fale com o suporte' })
         const dataEstipulada = modalidade == 3
             ? dtFormatada(dataPagamento)
             : dataRegras(new Date().toLocaleDateString(), modalidade)
@@ -794,27 +775,22 @@ async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro, idOcorrencia) {
             criado,
             anexos, // Anexos da LPU
             data_registro: new Date().toLocaleString(),
-            param: [
-                {
-                    codigo_cliente_fornecedor: codOmie,
-                    valor_documento: total,
-                    data_previsao: dataEstipulada,
-                    data_vencimento: dataEstipulada,
-                    observacao,
-                    categorias: [
-                        {
-                            valor: total,
-                            codigo_categoria
-                        }
-                    ],
-                    distribuicao: [
-                        {
-                            cCodDep,
-                            nValDep: total
-                        }
-                    ]
-                }
-            ]
+            param_estavel: {
+                codigo_cliente_fornecedor,
+                chave_pix,
+                valor_documento: total,
+                data_previsao: dataEstipulada,
+                data_vencimento: dataEstipulada,
+                observacao,
+                categorias: [{ valor: total, codigo_categoria }],
+                distribuicao: [{ cCodDep: String(departamento), nValDep: total }]
+            },
+            snapshots: {
+                cliente: cliente.nome || cliente.usuario || criado || '',
+                valor: total,
+                categorias: [{ categoria: codigo_categoria, valor: total }],
+                departamentos: [{ departamento: String(departamento), valor: total }]
+            }
         }
 
         await salvarEtapaParceiro(`lista_pagamentos/${idCorrecaoLpuParceiro}`, pagamento)
@@ -829,6 +805,8 @@ async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro, idOcorrencia) {
         console.error(err)
         popup({ mensagem: 'Falha ao gerar o pagamento' })
 
+    } finally {
+        removerOverlay()
     }
 
 }
@@ -1013,15 +991,34 @@ async function salvarDataCorrecao(idOcorrencia, idCorrecao) {
 
 }
 
+function definirFiltrosOcorrencias(painel, aberto) {
+    painel.classList.toggle('filtros-abertos', aberto)
+    painel.querySelector('.ocorrencias-filtros-gatilho')?.setAttribute('aria-expanded', String(aberto))
+}
+
+function fecharFiltrosOcorrenciasFora(evento) {
+    document.querySelectorAll('.tela-ocorrencias > .painel-filtros.filtros-abertos').forEach(painel => {
+        if (!painel.contains(evento.target)) definirFiltrosOcorrencias(painel, false)
+    })
+}
+
 async function telaOcorrencias() {
 
     overlayAguarde()
+    document.removeEventListener('click', fecharFiltrosOcorrenciasFora)
+    // Fecha só quando a interação começa fora; arrastar uma seleção para fora
+    // de um campo não deve fechar o painel ao soltar o botão do mouse.
+    document.removeEventListener('pointerdown', fecharFiltrosOcorrenciasFora, true)
+    document.addEventListener('pointerdown', fecharFiltrosOcorrenciasFora, true)
 
     const mapa = criarMapa({ path: 'cliente.estado', pag: 'ocorrencias' })
     const btnExtras = `
-    <div class="painel-filtros">
+    <div class="painel-filtros"
+        onkeydown="if (event.key === 'Escape') definirFiltrosOcorrencias(this, false)">
+        <button type="button" class="ocorrencias-filtros-gatilho" aria-controls="ocorrencias-painel-pesquisas" aria-expanded="false"
+            onclick="definirFiltrosOcorrencias(this.parentElement, !this.parentElement.classList.contains('filtros-abertos'))">Filtros de ocorrências ▾</button>
 
-        <div class="divisao-filtro-botoes pesquisas-ocorrencias">
+        <div id="ocorrencias-painel-pesquisas" class="divisao-filtro-botoes pesquisas-ocorrencias">
 
             <div class="pesquisas-ocorrencias-campos" style="${vertical}">
                 <div id="filtros1" class="filtros"></div>
@@ -1152,7 +1149,6 @@ function criarLinhaOcorrencia(ocorrencia) {
 
     if (id_usuario_funcionario)
         botoes.push(`
-            <div class="botao-imagem-ocorrencias" onclick="abrirResumo('${id_usuario_funcionario}')"><span>SALDOS</span></div>
             <div class="botao-imagem-ocorrencias" onclick="atalhoDocumentos(${unidade})"><span>DOCUMENTOS</span></div>
         `)
 
@@ -1253,7 +1249,6 @@ function criarLinhaOcorrencia(ocorrencia) {
                 ${modeloCampos('Tipo', tipo)}
                 ${modeloCampos('Sistema', sistema)}
                 ${modeloCampos('Prioridade', prioridade)}
-                ${modeloCampos('Equipamentos', tabEquipamentos(equipamentos || {}))}
                 ${modeloCampos('Anexos', divAnexos ? `<div id="anexos" class="local-anexos">${divAnexos || 'Sem anexos'}</div>` : 'Sem anexos')}
                 ${modeloCampos('Fotos', imagens ? imagensExistentes : 'Sem Imagens')}
             </div>
@@ -1265,7 +1260,7 @@ function criarLinhaOcorrencia(ocorrencia) {
     `
 
     const partes = `
-        <div id="${id}" class="div-linha">
+        <div id="${id}" class="div-linha ocorrencia-blocos-triangulo">
 
             <div class="bloco-linha">
 
@@ -1281,6 +1276,10 @@ function criarLinhaOcorrencia(ocorrencia) {
             <div id="correcoes" class="bloco-linha">
                 ${divCorrecoes.correcoes}
             </div>
+            ${Object.keys(equipamentos || {}).length ? `
+                <div class="bloco-linha ocorrencia-equipamentos-amplo">
+                    ${tabEquipamentos(equipamentos)}
+                </div>` : ''}
         </div>`
 
     return `
@@ -2530,7 +2529,6 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
     await maisUsuario(executor, 'executores')
     await maisUsuario(tecnico, 'tecnicos')
     await verificarConflitos()
-    await verificarSaldos()
 
     visibilidadeFotos()
 
@@ -2618,7 +2616,6 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
         base: 'dados_composicoes',
         retornar: ['descricao'],
         btnExtras,
-        funcaoAdicional: ['verificarSaldos'],
         filtros: {
             'tipo': { op: '!=', value: 'SERVIÇO' }
         },
@@ -2641,7 +2638,7 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
                 <label>Origem</label>
                 ${['Kit', 'Ferramentas', 'Parceiro', 'Matriz', 'Compra Região'].map(o => `
                     <div style="${horizontal}; gap: 1rem;">
-                        <input onchange="verificarSaldos()" name="origem_${temporario}" data-origem="${o}" type="radio" ${origem == o ? 'checked' : ''}>
+                        <input name="origem_${temporario}" data-origem="${o}" type="radio" ${origem == o ? 'checked' : ''}>
                         <label style="text-align: left;">${o}</label>
                     </div>
                     `).join('')}
@@ -2655,7 +2652,7 @@ async function maisLabel({ codigo, descricao, quantidade, origem, serie, formula
             <div name="equipamentos" style="${horizontal}; align-items: start; gap: 1rem;">
                 <div style="${vertical};">
                     <label>Quantidade</label>
-                    <input id="quantidade" data-codigo="${codigo}" data-anterior="${quantidade || 0}" oninput="multiplicarCampoSerie(this); verificarSaldos()" style="width: 7rem;" class="opcoes" type="number" value="${quantidade || ''}">
+                    <input id="quantidade" data-codigo="${codigo}" data-anterior="${quantidade || 0}" oninput="multiplicarCampoSerie(this)" style="width: 7rem;" class="opcoes" type="number" value="${quantidade || ''}">
                 </div>
                 <div style="${vertical};">
                     <label>Nº série</label>
@@ -2819,92 +2816,6 @@ function conflitoAgenda() {
 
 }
 
-function conflitoKit() {
-
-    const pecasConflito = [...document.querySelectorAll('[name="alerta-saldo"]')]
-        .map(img => img.dataset.descricao)
-
-    if (pecasConflito.length > 0) {
-        popup({
-            titulo: 'Técnico sem saldo',
-            botoes: [
-                { texto: 'Estou ciente', img: 'concluido', funcao: `removerAlertas('alerta-saldo')` }
-            ],
-            mensagem: `O técnico não possui saldo de algumas peças, confirmar mesmo assim?`
-        })
-    }
-
-    return pecasConflito.length > 0
-
-}
-
-async function verificarSaldos() {
-    for (const img of [...document.querySelectorAll('[name="alerta-saldo"]')])
-        img.remove()
-
-    const tecnicos = [...document.querySelectorAll('.tecnicos span')]
-        .filter(span => span.id)
-        .map(span => span.id)
-
-    if (!tecnicos.length)
-        return
-
-    const tecnicoNum1 = tecnicos[0]
-
-    const pesquisa = await pesquisarDB({
-        base: 'vw_tecnicos_saldo',
-        filtros: {
-            origem: { op: '=', value: 'Kit' },
-            tecnico: { op: 'includes', value: tecnicoNum1 }
-        }
-    })
-
-    const saldoPecas = Object.fromEntries(
-        (pesquisa.resultados || []).map(peca => [peca.codigo, peca])
-    )
-
-    const divs = [...document.querySelectorAll('[name="equipamentos"]')]
-
-    for (const div of divs) {
-        const equip = div.querySelector('span')
-        const codigo = equip?.id || ''
-        const origem = div.querySelector('input[name^="origem_"]:checked')?.dataset.origem || ''
-        const inputQuantidade = div.querySelector('#quantidade')
-
-        const quantidade = Number(inputQuantidade?.value) || 0
-        // Se o código for diferente, então desconsidere o saldo anterior;
-        const codigoAnterior = inputQuantidade?.dataset?.codigo || 0
-        const quantidadeAnterior = codigoAnterior !== codigo
-            ? 0
-            : Number(inputQuantidade?.dataset.anterior) || 0
-
-        const itemSaldo = saldoPecas[codigo]
-        const saldoItem = Number(itemSaldo?.saldo_atual) || 0
-
-        const saldo = saldoItem + quantidadeAnterior
-        const saldoDisponivel = saldo - quantidade
-
-        if (origem === 'Kit' && quantidade > 0 && saldoDisponivel < 0) {
-            const alerta = `<img src="gifs/alerta.gif" data-descricao="${equip.textContent}" name="alerta-saldo" onclick="verSaldoTecnico('${tecnicoNum1}')">`
-            div.insertAdjacentHTML('beforeend', alerta)
-        }
-    }
-}
-
-async function verSaldoTecnico(tecnico) {
-
-    popup({
-        elemento: `
-        <div class="painel-saldos-flutuante">
-            <div id="painel_resumo"></div>
-        </div>
-        `
-    })
-
-    await telaSaldoPecas(tecnico)
-
-}
-
 async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
 
     try {
@@ -2914,8 +2825,6 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
         if (conflitoAgenda())
             return
 
-        if (conflitoKit())
-            return
 
         const tipoCorrecao = obter('tipoCorrecao').id
         const dtCorrecao = obter('dtCorrecao').value

@@ -107,7 +107,8 @@ async function telaInicialGCS() {
 
     criarElementosIniciais()
     auxPendencias()
-    carregarControles()
+    await carregarControles()
+    await carregarComunicadoGCS()
 
 }
 

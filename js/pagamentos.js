@@ -63,10 +63,21 @@ async function telaPagamentos() {
     const pag = 'pagamentos'
     const tabela = await modTab({
         pag,
+        detalhes: true,
+        btnExtras: `<div class="pagamentos-pesquisas-referencias">
+            <label>Categorias
+                <input type="search" placeholder="Pesquisar categoria" aria-label="Pesquisar categoria"
+                    onkeydown="confirmarPesquisa({ event, chave: 'snapshots.categorias.*.categoria', op: 'includes', elemento: this, pag: 'pagamentos' })"
+                    onchange="confirmarPesquisa({ chave: 'snapshots.categorias.*.categoria', op: 'includes', elemento: this, pag: 'pagamentos' })">
+            </label>
+            <label>Departamentos
+                <input type="search" placeholder="Pesquisar departamento" aria-label="Pesquisar departamento"
+                    onkeydown="confirmarPesquisa({ event, chave: 'snapshots.departamentos.*.departamento', op: 'includes', elemento: this, pag: 'pagamentos' })"
+                    onchange="confirmarPesquisa({ chave: 'snapshots.departamentos.*.departamento', op: 'includes', elemento: this, pag: 'pagamentos' })">
+            </label>
+        </div>`,
         colunas: {
-            'Categorias': { chave: 'snapshots.categorias.*.categoria' },
             'Data de Vencimento': { chave: 'param_estavel.data_vencimento', tipoPesquisa: 'data' },
-            'Departamentos': { chave: 'snapshots.departamentos.*.departamento' },
             'APP': { chave: 'app', op: '=', tipoPesquisa: 'select' },
             'Valor': { chave: 'snapshots.valor' },
             'Status': { chave: 'status' },
@@ -89,7 +100,9 @@ async function telaPagamentos() {
     const acumulado = `
         <div class="divPagamentos">
 
-            <div class="painelEsquerdo"></div>
+            <aside class="pagamentos-status-lateral" aria-label="Filtrar pagamentos por status">
+                <div class="painelEsquerdo"></div>
+            </aside>
 
             <div class="painelDireito">
 
@@ -141,7 +154,10 @@ async function atualizarPainelEsquerdo() {
 
             return `
                 <div class="balao-pagamentos${selecionado ? ' selecionado' : ''}"
+                role="button" tabindex="0" aria-label="${escaparAtributo(status)}: ${quantidade} pagamentos"
+                title="${escaparAtributo(status)}"
                 data-status="${escaparAtributo(status)}"
+                onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); filtrarPagamentos(this.dataset.status) }"
                 onclick="filtrarPagamentos(this.dataset.status)">
                     
                     <div class="dir">
@@ -181,13 +197,7 @@ async function criarLinhaPagamento(pagamento) {
         .join('')
 
     const tds = `
-        <td>
-            <div class="pagamento-lista-baloes">${spanCategorias}</div>
-        </td>
         <td>${data_vencimento}</td>
-        <td>
-            <div class="listagem-departamentos">${deps}</div>
-        </td>
         <td>${app || 'AC'}</td>
         <td style="white-space: nowrap; text-align: left;">${dinheiro(valor_documento || 0)}</td>
         <td>
@@ -202,7 +212,13 @@ async function criarLinhaPagamento(pagamento) {
             <img src="imagens/pesquisar.svg" style="width: 1.5rem; cursor: pointer;" onclick="abrirDetalhesPagamentos('${id}')">
         </td>
         `
-    return `<tr>${tds}</tr>`
+    return {
+        linha: `<tr>${tds}</tr>`,
+        detalhes: `<div class="pagamentos-referencias-detalhes">
+            <div><strong>Categorias</strong><div class="pagamento-lista-baloes">${spanCategorias || 'Sem categorias'}</div></div>
+            <div><strong>Departamentos</strong><div class="listagem-departamentos">${deps || 'Sem departamentos'}</div></div>
+        </div>`
+    }
 }
 
 function iconePagamento(status) {
@@ -461,35 +477,49 @@ async function confirmarExclusaoPagamento(id) {
 
 }
 
+function respostaPositivaExclusaoOmie(mensagem) {
+    return /pagamento\s+(?:j[aá]\s+inexistente|exclu[ií]do)\s+no\s+omie/i.test(String(mensagem || ''))
+}
+
 async function excluirPagamento(id) {
 
     removerTodosPopups()
 
     overlayAguarde()
 
-    const pagamento = await recuperarDado('lista_pagamentos', id)
+    try {
+        const pagamento = await recuperarDado('lista_pagamentos', id)
 
-    const resposta = await excluirPagamentoOmie(id)
+        if (!pagamento)
+            throw new Error('Pagamento não localizado.')
 
-    if (resposta.mensagem)
-        return popup({ mensagem: resposta.mensagem })
+        const resposta = await excluirPagamentoOmie(id, pagamento.app)
 
-    if (pagamento?.lpu_parceiro_id && pagamento.solicitacao_parceiro_id !== pagamento.lpu_parceiro_id) {
-        const parceiro = await recuperarDado('parceiros', pagamento.lpu_parceiro_id)
-        const solicitacao = parceiro?.solicitacoes?.[pagamento.solicitacao_parceiro_id]
-        if (solicitacao?.ocorrencia_id)
-            await salvarEtapaParceiro(`dados_ocorrencias/${solicitacao.ocorrencia_id}/correcoes/${id}_cancelamento`, {
-                aba: id, tipoCorrecao: 'WRuo2', data: new Date().toLocaleString(), usuario: acesso.usuario,
-                descricao: 'Pagamento parcial cancelado pelo financeiro; saldo liberado.'
+        if (resposta?.mensagem && !respostaPositivaExclusaoOmie(resposta.mensagem))
+            throw new Error(resposta.mensagem)
+
+        if (pagamento.lpu_parceiro_id && pagamento.solicitacao_parceiro_id !== pagamento.lpu_parceiro_id) {
+            const parceiro = await recuperarDado('parceiros', pagamento.lpu_parceiro_id)
+            const solicitacao = parceiro?.solicitacoes?.[pagamento.solicitacao_parceiro_id]
+            if (solicitacao?.ocorrencia_id)
+                await salvarEtapaParceiro(`dados_ocorrencias/${solicitacao.ocorrencia_id}/correcoes/${id}_cancelamento`, {
+                    aba: id, tipoCorrecao: 'WRuo2', data: new Date().toLocaleString(), usuario: acesso.usuario,
+                    descricao: 'Pagamento parcial cancelado pelo financeiro; saldo liberado.'
+                })
+            await salvarEtapaParceiro(`parceiros/${pagamento.lpu_parceiro_id}/solicitacoes/${pagamento.solicitacao_parceiro_id}`, {
+                ...solicitacao, status: 'Cancelada pelo financeiro', pagamento_cancelado: pagamento,
+                cancelado_por: acesso.usuario, cancelado_em: new Date().toLocaleString()
             })
-        await salvarEtapaParceiro(`parceiros/${pagamento.lpu_parceiro_id}/solicitacoes/${pagamento.solicitacao_parceiro_id}`, {
-            ...solicitacao, status: 'Cancelada pelo financeiro', pagamento_cancelado: pagamento,
-            cancelado_por: acesso.usuario, cancelado_em: new Date().toLocaleString()
-        })
-    }
-    await deletar(`lista_pagamentos/${id}`)
+        }
+        await deletar(`lista_pagamentos/${id}`)
 
-    removerPopup()
+        removerPopup()
+
+    } catch (erro) {
+        popup({ mensagem: erro.message || 'Falha ao excluir pagamento.' })
+    } finally {
+        removerOverlay()
+    }
 
 }
 
@@ -712,7 +742,7 @@ async function formularioPagamento() {
                 </div>`
             },
             {
-                texto: 'Observação / Boleto',
+                texto: 'Observação',
                 elemento: `
             <textarea rows="3" style="resize: vertical; width: 70%;" name="observacao" oninput="calculadoraPagamento()">${escaparAtributo(observacao || '')}</textarea>`
             },
@@ -1213,7 +1243,7 @@ async function baixarExcelRelatorioPagamentos() {
     }
 }
 
-async function excluirPagamentoOmie(id) {
+async function excluirPagamentoOmie(id, app) {
 
     const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
 
@@ -1223,12 +1253,18 @@ async function excluirPagamentoOmie(id) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ id })
+        body: JSON.stringify({ id, app })
     })
 
     if (!resposta.ok) {
-        const erro = await resposta.text()
-        throw new Error(erro || 'Erro ao contar por campo')
+        const texto = await resposta.text()
+        let mensagem = texto
+        try {
+            mensagem = JSON.parse(texto)?.mensagem || texto
+        } catch (_) { }
+        if (respostaPositivaExclusaoOmie(mensagem))
+            return { success: true, mensagem, inexistente_no_omie: true }
+        throw new Error(mensagem || 'Falha ao excluir pagamento no servidor.')
     }
 
     return await resposta.json()

@@ -463,3 +463,11 @@
     }
 
 }
+.popup .tabela input,
+.popup .tabela select,
+.popup .tabela textarea,
+.painel-padrao .tabela input,
+.painel-padrao .tabela select,
+.painel-padrao .tabela textarea {
+    font-size: 10px;
+}
