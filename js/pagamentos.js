@@ -422,15 +422,15 @@ async function abrirDetalhesPagamentos(id) {
                     ${modelo('Chave PIX', escaparAtributo(parametroPagamento(pagamento).chave_pix || ''))}
                     ${modelo('Observação', parametroPagamento(pagamento).observacao)}
                     ${modelo('Anexos', `
+                        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0;">
                             <label for="anexoPagamento" style="text-decoration: underline; cursor: pointer;">
                                 Incluir Anexo
                                 <input type="file" id="anexoPagamento" style="display: none;" onchange="salvarAnexosPagamentos(this, '${id}')" multiple>
                             </label>
-                        `)}
-                    ${modelo(null, `
                             <div class="detalhes-anexos">
                                 ${anexos}
                             </div>
+                        </div>
                         `)}
                     `)}
 
@@ -769,7 +769,7 @@ async function formularioPagamento() {
                 texto: 'Data de Pagamento',
                 elemento: `
             <div style="${horizontal}; gap: 5px;">
-                <input type="date" name="dataPagamento" data-editada="${!!data_vencimento}" value="${dtVencimento || ''}" oninput="this.dataset.editada = 'true'; calculadoraPagamento()">
+                <input type="date" name="dataPagamento" data-editada="${!!ultimoPagamento.data_modificada || !!id}" value="${dtVencimento || ''}" oninput="this.dataset.editada = 'true'; calculadoraPagamento()">
             </div>
             `
             },
@@ -785,9 +785,6 @@ async function formularioPagamento() {
                     </div>
                 </div>
             `
-            },
-            {
-                elemento: '<div id="statusPagamento"></div>'
             }
         ]
 
@@ -797,7 +794,12 @@ async function formularioPagamento() {
             { texto: 'Recomeçar', img: 'cancel', funcao: 'apagarPagamento()' }
         ]
 
-        popup({ linhas, botoes, titulo: 'Solicitação de Pagamento' })
+        popup({
+            linhas,
+            botoes,
+            conteudoRodape: '<div id="statusPagamento" role="status"></div>',
+            titulo: 'Solicitação de Pagamento'
+        })
 
         // Categorias;
         await Promise.all(
@@ -882,7 +884,23 @@ function dataRegras(data, atraso) {
     return dataFinal.toLocaleDateString('pt-BR')
 }
 
+function atualizarDataSugeridaPagamento() {
+    const campo = document.querySelector('[name="dataPagamento"]')
+    if (!campo || campo.dataset.editada === 'true') return
+    let modalidade = 0
+    for (const input of document.querySelectorAll('[name="categorias"]')) {
+        const nome = (input.parentElement.nextElementSibling?.textContent || '')
+            .toLocaleLowerCase('pt-BR').replace(/\s+/g, ' ').trim()
+        if (/pagamento de parceiros?/.test(nome)) modalidade = 2
+        else if (modalidade !== 2 && /adiantamento.*parceiros?/.test(nome)) modalidade = 1
+    }
+    const [dia, mes, ano] = dataRegras(null, modalidade).split('/')
+    campo.value = `${ano}-${mes}-${dia}`
+}
+
 async function calculadoraPagamento() {
+
+    atualizarDataSugeridaPagamento()
 
     const obVal = (name) => {
         const elemento = document.querySelector(`[name="${name}"]`)
@@ -898,7 +916,6 @@ async function calculadoraPagamento() {
     const categorias = Object.create(null)
     const distribuicao = Object.create(null)
     let valor_documento = 0
-    let atraso = 0
     const totais = {
         cat: 0,
         dep: 0
@@ -924,12 +941,6 @@ async function calculadoraPagamento() {
             categorias[codigo_categoria].valor += valor
         }
 
-        // Atrasos por regra;
-        const nomeCategoria = span.textContent.toLocaleLowerCase('pt-BR')
-        if (/pagamento de parceiros?/.test(nomeCategoria))
-            atraso = 2
-        else if (atraso !== 2 && /adiantamento.*parceiros?/.test(nomeCategoria))
-            atraso = 1
     }
 
     // Departamentos
@@ -960,13 +971,6 @@ async function calculadoraPagamento() {
 
     // Verificar categorias [Parceiros] e postergar pagamentos;
     const dataPagamento = obVal('dataPagamento')
-    const hoje = new Date().toLocaleDateString('pt-BR')
-    const dataCalculada = dataRegras(hoje, atraso)
-
-    if (dataPagamento.dataset.editada !== 'true') {
-        const [dia, mes, ano] = dataCalculada.split('/')
-        dataPagamento.value = `${ano}-${mes}-${dia}`
-    }
     if (!dataPagamento.value) return { mensagem: 'Informe a data de pagamento.' }
     const [anoPagamento, mesPagamento, diaPagamento] = dataPagamento.value.split('-')
     const dataFinal = `${diaPagamento}/${mesPagamento}/${anoPagamento}`
@@ -1116,7 +1120,7 @@ function duvidas() {
         <div style="${vertical}; text-align: left; padding: 1rem;">
             <label>
                 • A data é sugerida automaticamente e pode ser alterada livremente no formulário;<br>
-                • Maior que <strong>R$ 500,00</strong> passa por aprovação;<br>
+                • Pagamentos de <strong>qualquer valor</strong> passam por aprovação;<br>
                 • Para pagamento de parceiro, a sugestão é o dia <strong>10 do mês seguinte</strong>;<br>
                 • Para adiantamento de parceiro, a sugestão é uma semana à frente;<br>
                 • No lançamento, datas em dias não úteis avançam para o próximo dia útil. Para hoje, a aprovação final deve ocorrer até as <strong>11h</strong>.
