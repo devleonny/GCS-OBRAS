@@ -293,13 +293,14 @@ function auxiliarFotoUsuario() {
             <form data-foto-cliente data-usuario="${escaparAtributo(acesso.id)}"
                 onsubmit="event.preventDefault(); salvarMinhaFoto(this)"
                 style="display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 20px;">
+                <button type="button" class="cliente-foto-escolher" aria-label="Alterar minha foto"
+                    onclick="this.form.querySelector('[name=arquivo_foto]').click()">
                 <img class="moldura-foto" src="${escaparAtributo(fotoAtual)}" alt="Prévia da sua foto"
                     onerror="this.onerror = null; this.src = logo"
                     style="width: 160px; height: 160px; object-fit: cover; border-radius: 50%;">
-                <label style="display: flex; flex-direction: column; gap: 8px; max-width: 100%;">
-                    Escolha uma imagem para conferir antes de salvar.
-                    <input type="file" name="arquivo_foto" accept="image/*" required onchange="previaFotoCliente(this)" style="max-width: 100%;">
-                </label>
+                </button>
+                <small>Clique na imagem para alterar</small>
+                <input type="file" name="arquivo_foto" accept="image/*" hidden onchange="previaFotoCliente(this)">
                 <span role="status" data-status-foto></span>
                 <button type="submit">Salvar foto</button>
             </form>`

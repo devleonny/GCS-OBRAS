@@ -217,12 +217,10 @@ const esquemaBotoes = {
             ]
         },
         {
-            nome: 'Técnicos',
+            nome: 'Agenda',
             bloqueio: ['cliente', 'técnico'],
-            img: 'tecnico',
-            sub: [
-                { nome: 'Agenda', funcao: 'telaAgenda', img: 'reagendar' }
-            ]
+            img: 'reagendar',
+            funcao: 'telaAgenda'
         },
         {
             nome: 'Veículos',
