@@ -265,6 +265,11 @@ async function comunicacao() {
         try {
             const data = JSON.parse(event.data)
 
+            if (data.tipo === 'foto_usuario') {
+                atualizarFotoUsuario(data)
+                return
+            }
+
             const {
                 tabela,
                 desconectar,

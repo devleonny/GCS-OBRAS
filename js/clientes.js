@@ -282,6 +282,60 @@ async function filtrarPorTag(tag) {
 
 }
 
+function auxiliarFotoUsuario() {
+    if (!acesso?.id) return
+    const perfil = JSON.parse(localStorage.getItem('acesso') || '{}')
+    const imagemMenu = document.querySelector('.nomeUsuario .foto-usuario-menu')
+    const fotoAtual = imagemMenu?.currentSrc || imagemMenu?.src || urlFotoCliente(perfil.foto)
+    popup({
+        titulo: 'Trocar minha foto',
+        elemento: `
+            <form data-foto-cliente data-usuario="${escaparAtributo(acesso.id)}"
+                onsubmit="event.preventDefault(); salvarMinhaFoto(this)"
+                style="display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 20px;">
+                <img src="${escaparAtributo(fotoAtual)}" alt="Prévia da sua foto"
+                    onerror="this.onerror = null; this.src = logo"
+                    style="width: 160px; height: 160px; object-fit: cover; border-radius: 50%;">
+                <label style="display: flex; flex-direction: column; gap: 8px; max-width: 100%;">
+                    Escolha uma imagem para conferir antes de salvar.
+                    <input type="file" name="arquivo_foto" accept="image/*" required onchange="previaFotoCliente(this)" style="max-width: 100%;">
+                </label>
+                <span role="status" data-status-foto></span>
+                <button type="submit">Salvar foto</button>
+            </form>`
+    })
+}
+
+async function salvarMinhaFoto(formulario) {
+    const botao = formulario.querySelector('[type="submit"]')
+    if (botao.disabled) return
+    const status = formulario.querySelector('[data-status-foto]')
+    const input = formulario.querySelector('[name="arquivo_foto"]')
+    if (!input.files?.[0]?.type.startsWith('image/')) {
+        status.textContent = 'Selecione uma imagem para a foto.'
+        return
+    }
+    const id = formulario.dataset.usuario
+    if (!acesso?.id || String(acesso.id) !== id) return
+    botao.disabled = true
+    input.disabled = true
+    status.textContent = 'Salvando foto...'
+    try {
+        const arquivos = await importarAnexos({ input })
+        const foto = arquivos?.[0]?.link
+        if (!foto) throw new Error('Não foi possível enviar a imagem. Tente novamente.')
+        const resposta = await enviar(`clientes/${id}/foto`, foto)
+        if (!resposta?.success) throw new Error(resposta?.mensagem || 'Não foi possível salvar a foto.')
+        atualizarFotoUsuario({ id, foto })
+        removerPopup(formulario.closest('.popup').id)
+    } catch (erro) {
+        status.textContent = erro.message || 'Não foi possível salvar a foto.'
+    } finally {
+        botao.disabled = false
+        input.disabled = false
+    }
+}
+
 function previaFotoCliente(input) {
     const arquivo = input.files?.[0]
     if (!arquivo) return

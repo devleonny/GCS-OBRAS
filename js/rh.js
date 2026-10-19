@@ -377,7 +377,13 @@ function expiraEm(dtValidade) {
 
 async function incluirDocumento(id) {
 
-    const { local, doc, clinica, funcionario, nome, realizado } = await recuperarDado('vw_documentos', id) || {}
+    const { local, doc, clinica, funcionario, realizado, anexo } = await recuperarDado('documentos', id) || {}
+    const { nome } = funcionario ? await recuperarDado('clientes', funcionario) || {} : {}
+    const dataOriginal = String(realizado || '').trim()
+    const dataBR = dataOriginal.match(/^(\d{2})\/(\d{2})\/(\d{4})/)
+    const dataFormulario = dataBR
+        ? `${dataBR[3]}-${dataBR[2]}-${dataBR[1]}`
+        : dataOriginal.slice(0, 10)
 
     controlesCxOpcoes.funcionario = {
         base: 'clientes',
@@ -404,7 +410,17 @@ async function incluirDocumento(id) {
     const linhas = [
         {
             texto: 'Anexo',
-            elemento: `<input name="anexo" type="file">`
+            elemento: `
+                <div style="display: flex; flex-direction: column; gap: 8px; min-width: 0;">
+                    ${anexo?.link ? `
+                        <button type="button" data-link="${escaparAtributo(anexo.link)}"
+                            onclick="abrirArquivo(this.dataset.link)" style="white-space: normal; overflow-wrap: anywhere;">
+                            Ver anexo: ${escaparAtributo(anexo.nome || 'Arquivo anexado')}
+                        </button>
+                        <small>Selecione outro arquivo para substituir o anexo atual.</small>
+                    ` : id ? '<small>Este documento não possui anexo.</small>' : ''}
+                    <input name="anexo" type="file" aria-label="Selecionar anexo">
+                </div>`
         },
         {
             texto: 'Funcionário',
@@ -427,7 +443,7 @@ async function incluirDocumento(id) {
         },
         {
             texto: 'realizado',
-            elemento: `<input name="realizado" value="${realizado || ''}" type="date">`
+            elemento: `<input name="realizado" value="${escaparAtributo(dataFormulario)}" type="date">`
         },
         {
             texto: 'Clínica',

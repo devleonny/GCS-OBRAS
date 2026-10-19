@@ -221,12 +221,38 @@ function balaoNotificacao({ imagem, texto, usuario, status, tempo = 5 }) {
     }, tempo * 1000)
 }
 
+function atualizarFotoUsuario(dados) {
+    const atual = JSON.parse(localStorage.getItem('acesso') || 'null')
+    if (!atual || String(atual.id) !== String(dados.id) || !Object.hasOwn(dados, 'foto')) return
+    const foto = dados.foto || null
+    if ((atual.foto || null) === foto) return
+    atual.foto = foto
+    localStorage.setItem('acesso', JSON.stringify(atual))
+    if (acesso) acesso.foto = foto
+    const imagem = document.querySelector('.nomeUsuario .foto-usuario-menu')
+    if (imagem) {
+        imagem.onerror = function () { this.onerror = null; this.src = logo }
+        imagem.src = urlFotoCliente(foto)
+    }
+}
+
 async function usuariosToolbar() {
 
     if (!acesso)
         return
 
-    const { permissao, usuario } = JSON.parse(localStorage.getItem('acesso')) || {}
+    const { permissao, usuario, foto } = JSON.parse(localStorage.getItem('acesso')) || {}
+
+    const mostrarPerfil = fotoAtual => {
+        if (!nomeUsuario) return
+        nomeUsuario.innerHTML = `
+            <button type="button" class="trocar-foto-menu" onclick="auxiliarFotoUsuario()" aria-label="Trocar minha foto" title="Trocar minha foto">
+                <img class="foto-usuario-menu" src="${escaparAtributo(urlFotoCliente(fotoAtual))}"
+                    alt="Foto do usuário" onerror="this.onerror = null; this.src = logo">
+            </button>
+            <span><b>${escaparAtributo(inicialMaiuscula(permissao || ''))}</b> ${escaparAtributo(usuario || '')}</span>`
+    }
+    mostrarPerfil(foto)
 
     const [contagem, cadastro] = await Promise.allSettled([
         contarPorCampo({ base: 'clientes', path: 'status' }),
@@ -241,8 +267,8 @@ async function usuariosToolbar() {
             <label style="font-size: 1.2rem;">${uOnline?.online || 0}</label>
         </div>`
 
-    if (nomeUsuario)
-        nomeUsuario.innerHTML = `<span><b>${inicialMaiuscula(permissao || '')}</b> ${usuario || ''}</span>`
+    if (user && Object.hasOwn(user, 'foto'))
+        mostrarPerfil(user.foto)
 
     const divUsuarios = document.getElementById('divUsuarios')
     if (divUsuarios)
