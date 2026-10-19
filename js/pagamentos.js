@@ -600,8 +600,6 @@ async function salvarPagamento() {
         return popup({ mensagem: 'Informe e confirme a chave PIX do recebedor.' })
     if (pix.dataset.cliente !== document.querySelector('[name="recebedor"]').id)
         return popup({ mensagem: 'Aguarde a consulta PIX ou selecione o recebedor novamente.' })
-    if (!ultimoPagamento.data_permitida)
-        return popup({ mensagem: 'Escolha um dia útil a partir da data mínima permitida.' })
     const anexoPagamento = document.getElementById('aPagamentos')
     const anexos = await importarAnexos({ input: anexoPagamento })
 
@@ -666,7 +664,6 @@ async function formularioPagamento() {
         }
         const {
             app,
-            data_modificada = null,
             id,
             status,
             anexos
@@ -693,7 +690,7 @@ async function formularioPagamento() {
 
         const [dia, mes, ano] = data_vencimento
             ? data_vencimento.split('/')
-            : new Date().toLocaleDateString().split('/')
+            : dataRegras(null, 0).split('/')
 
         const dtVencimento = `${ano}-${mes}-${dia}`
 
@@ -772,9 +769,7 @@ async function formularioPagamento() {
                 texto: 'Data de Pagamento',
                 elemento: `
             <div style="${horizontal}; gap: 5px;">
-                <input ${data_modificada ? '' : 'readonly'} type="date" name="dataPagamento" value="${dtVencimento || ''}" oninput="calculadoraPagamento()">
-                <input name="dataModificada" oninput="calculadoraPagamento()" ${data_modificada ? 'checked' : ''} type="checkbox" style="width: 1.5rem; height: 1.5rem;">
-                <span>Data editável</span>
+                <input type="date" name="dataPagamento" data-editada="${!!data_vencimento}" value="${dtVencimento || ''}" oninput="this.dataset.editada = 'true'; calculadoraPagamento()">
             </div>
             `
             },
@@ -967,33 +962,17 @@ async function calculadoraPagamento() {
     }
 
     // Verificar categorias [Parceiros] e postergar pagamentos;
-    const dataModificada = obVal('dataModificada')
     const dataPagamento = obVal('dataPagamento')
     const hoje = new Date().toLocaleDateString('pt-BR')
     const dataCalculada = dataRegras(hoje, atraso)
 
-    let dataFinal = null
-    let dataPermitida = true
-
-    if (dataModificada.checked) {
-        const dataEscolhida = dataPagamento.value
-        const [diaRegra, mesRegra, anoRegra] = dataCalculada.split('/')
-        const dataRegraISO = `${anoRegra}-${mesRegra}-${diaRegra}`
-
-        dataPermitida = !!dataEscolhida && dataEscolhida >= dataRegraISO && ![0, 6].includes(new Date(`${dataEscolhida}T12:00:00`).getDay())
-
-        const [ano, mes, dia] = dataEscolhida.split('-')
-        dataFinal = `${dia}/${mes}/${ano}`
-
-        dataPagamento.readOnly = false
-    } else {
-        dataFinal = dataCalculada
-        dataPermitida = true
-
+    if (dataPagamento.dataset.editada !== 'true') {
         const [dia, mes, ano] = dataCalculada.split('/')
-        dataPagamento.readOnly = true
         dataPagamento.value = `${ano}-${mes}-${dia}`
     }
+    if (!dataPagamento.value) return { mensagem: 'Informe a data de pagamento.' }
+    const [anoPagamento, mesPagamento, diaPagamento] = dataPagamento.value.split('-')
+    const dataFinal = `${diaPagamento}/${mesPagamento}/${anoPagamento}`
 
     const ulPSalvo = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
 
@@ -1013,8 +992,8 @@ async function calculadoraPagamento() {
     const ulP = {
         ...ulPSalvo,
         app,
-        data_permitida: dataPermitida,
-        data_modificada: dataModificada?.checked,
+        data_permitida: true,
+        data_modificada: dataPagamento.dataset.editada === 'true',
         data_registro: new Date().toLocaleString(),
         param_estavel: {
                 codigo_cliente_fornecedor,
@@ -1139,11 +1118,10 @@ function duvidas() {
     const elemento = `
         <div style="${vertical}; text-align: left; padding: 1rem;">
             <label>
-                • Após às <strong>11h</strong> será lançado no dia útil seguinte;<br>
+                • A data é sugerida automaticamente e pode ser alterada livremente no formulário;<br>
                 • Maior que <strong>R$ 500,00</strong> passa por aprovação;<br>
-                • Pagamento de parceiro deve ser lançado até dia <strong>5</strong> de cada mês,<br>
-                e será pago dia <strong>10</strong> do mês seguinte;<br>
-                • Adiantamento de parceiro, o pagamento ocorre em até 8 dias.
+                • Para parceiros, a sugestão considera o dia <strong>10</strong> e o limite do dia <strong>5</strong> de cada mês;<br>
+                • Para adiantamentos de parceiro, a sugestão considera 8 dias.
             </label>
         </div>
     `
