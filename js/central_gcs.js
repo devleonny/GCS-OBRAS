@@ -247,7 +247,7 @@ async function usuariosToolbar() {
         if (!nomeUsuario) return
         nomeUsuario.innerHTML = `
             <button type="button" class="trocar-foto-menu" onclick="auxiliarFotoUsuario()" aria-label="Trocar minha foto" title="Trocar minha foto">
-                <img class="foto-usuario-menu" src="${escaparAtributo(urlFotoCliente(fotoAtual))}"
+                <img class="foto-usuario-menu moldura-foto" src="${escaparAtributo(urlFotoCliente(fotoAtual))}"
                     alt="Foto do usuário" onerror="this.onerror = null; this.src = logo">
             </button>
             <span><b>${escaparAtributo(inicialMaiuscula(permissao || ''))}</b> ${escaparAtributo(usuario || '')}</span>`

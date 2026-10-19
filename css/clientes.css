@@ -47,7 +47,8 @@
     color: #254c31;
 }
 
-.cliente-foto {
+.cliente-foto,
+.moldura-foto {
     width: 48px;
     height: 48px;
     max-width: none;

@@ -293,7 +293,7 @@ function auxiliarFotoUsuario() {
             <form data-foto-cliente data-usuario="${escaparAtributo(acesso.id)}"
                 onsubmit="event.preventDefault(); salvarMinhaFoto(this)"
                 style="display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 20px;">
-                <img src="${escaparAtributo(fotoAtual)}" alt="Prévia da sua foto"
+                <img class="moldura-foto" src="${escaparAtributo(fotoAtual)}" alt="Prévia da sua foto"
                     onerror="this.onerror = null; this.src = logo"
                     style="width: 160px; height: 160px; object-fit: cover; border-radius: 50%;">
                 <label style="display: flex; flex-direction: column; gap: 8px; max-width: 100%;">
