@@ -855,16 +855,12 @@ function dataRegras(data, atraso) {
     let dataFinal = new Date(dataMinima)
 
     if (atraso === 1) {
-        dataFinal.setDate(dataFinal.getDate() + 8)
+        dataFinal = new Date(agora)
+        dataFinal.setDate(dataFinal.getDate() + 7)
     }
 
     if (atraso === 2) {
-        const dia = dataFinal.getDate()
-        const ano = dataFinal.getFullYear()
-        const mes = dataFinal.getMonth()
-
-        const mesAlvo = dia <= 5 ? mes : mes + 1
-        dataFinal = new Date(ano, mesAlvo, 10)
+        dataFinal = new Date(agora.getFullYear(), agora.getMonth() + 1, 10)
     }
 
     if (data) {
@@ -929,10 +925,11 @@ async function calculadoraPagamento() {
         }
 
         // Atrasos por regra;
-        if (atraso == 0 && span.textContent.includes('Adiantamento'))
-            atraso = 1
-        else if (span.textContent == 'Pagamento de Parceiros')
+        const nomeCategoria = span.textContent.toLocaleLowerCase('pt-BR')
+        if (/pagamento de parceiros?/.test(nomeCategoria))
             atraso = 2
+        else if (atraso !== 2 && /adiantamento.*parceiros?/.test(nomeCategoria))
+            atraso = 1
     }
 
     // Departamentos
@@ -1120,8 +1117,9 @@ function duvidas() {
             <label>
                 • A data é sugerida automaticamente e pode ser alterada livremente no formulário;<br>
                 • Maior que <strong>R$ 500,00</strong> passa por aprovação;<br>
-                • Para parceiros, a sugestão considera o dia <strong>10</strong> e o limite do dia <strong>5</strong> de cada mês;<br>
-                • Para adiantamentos de parceiro, a sugestão considera 8 dias.
+                • Para pagamento de parceiro, a sugestão é o dia <strong>10 do mês seguinte</strong>;<br>
+                • Para adiantamento de parceiro, a sugestão é uma semana à frente;<br>
+                • No lançamento, datas em dias não úteis avançam para o próximo dia útil. Para hoje, a aprovação final deve ocorrer até as <strong>11h</strong>.
             </label>
         </div>
     `
