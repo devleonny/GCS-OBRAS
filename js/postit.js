@@ -123,7 +123,7 @@ async function linPostIT(dados) {
     const estilo = status == 'S'
         ? 'concluido'
         // Se hoje é maior que o prazo, então tá atrasado;
-        : Date.now() > toTimestamp(prazo)
+        : agoraServidor() > toTimestamp(prazo)
             ? 'atrasado'
             : ''
 
@@ -424,7 +424,7 @@ async function verificarPostIts() {
             filtros: {
                 'usuario': { op: '=', value: acesso.usuario },
                 'status': { op: '!=', value: 'S' },
-                'prazo': { op: '<=d', value: new Date().toLocaleDateString() }
+                'prazo': { op: '<=d', value: dataServidor().toLocaleDateString() }
             }
         })
 

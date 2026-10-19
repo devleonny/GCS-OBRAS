@@ -467,7 +467,7 @@ async function baixarExcelOrcamentos() {
 
     const dados = {
         base: "vw_relatorio_orcamentos",
-        titulo: `Orçamentos_${Date.now()}`,
+        titulo: `Orçamentos_${agoraServidor()}`,
         formatacao: {
             datas: ['Última alteração'], // Transforma em DD/MM/AAAA
             moedas: ["Total Geral"]      // Transforma em R$
@@ -662,7 +662,7 @@ async function alterarStatus(id, idStatus = crypto.randomUUID()) {
             usuario: acesso.usuario,
             timestamp: timestamp
                 ? Number(timestamp)
-                : Date.now()
+                : agoraServidor()
         }
 
         await enviar(`dados_orcamentos/${id}/historico_status/${idStatus}`, dado)

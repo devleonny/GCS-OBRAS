@@ -49,7 +49,7 @@ async function carregarOS(id) {
                 ${modelo('STATUS')}
             </div>
             <div style="${vertical}; width: 50%; gap: 5px;">
-                ${modelo('DATA', new Date().toLocaleDateString('pt-BR'))}
+                ${modelo('DATA', dataServidor().toLocaleDateString('pt-BR'))}
                 ${modelo('CIDADE')}
                 ${modelo('FUNÇÃO')}
                 ${modelo('TELEFONE')}

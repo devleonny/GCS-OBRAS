@@ -1121,13 +1121,13 @@ async function enviarDadosOrcamento() {
                     await enviarVinculo({ slave: contrato, master: idOcorrencia })
 
                 // Correção principal da criação do orçamento, vem com o ID do orçamento;
-                const dataRegistro = new Date()
+                const dataRegistro = dataServidor()
                 const correcoes = {
                     [orcamentoBase.id]: {
                         data: dataRegistro.toLocaleString(),
                         datas: {},
                         descricao: `Orçamento criado ${contrato || ''}`,
-                        dtCorrecao: new Date().toISOString().slice(0, 10),
+                        dtCorrecao: dataServidor().toISOString().slice(0, 10),
                         tipoCorrecao: 'WiGZl',
                         usuario: acesso.usuario
                     }
@@ -1145,7 +1145,7 @@ async function enviarDadosOrcamento() {
                         data: dataMais1s.toLocaleString(),
                         datas: {},
                         descricao: `Requisição de materiais para o Funcionário`,
-                        dtCorrecao: new Date().toISOString().slice(0, 10),
+                        dtCorrecao: dataServidor().toISOString().slice(0, 10),
                         setor: ['LOGÍSTICA'],
                         tipoCorrecao: '4Zmd3',
                         usuario: acesso.usuario
@@ -1400,7 +1400,7 @@ function verificarData(data, codigo) {
         return `<img onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')" src="imagens/preco_neg.png">`
     }
 
-    const hoje = new Date()
+    const hoje = dataServidor()
     const diffDias = Math.floor((hoje - dataRef) / (1000 * 60 * 60 * 24))
     const imagem = diffDias > 30 ? 'preco_neg' : 'preco'
 

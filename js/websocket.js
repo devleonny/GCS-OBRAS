@@ -23,6 +23,7 @@ document.addEventListener('visibilitychange', () => {
         return
     }
 
+    sincronizarRelogioServidor(true).catch(err => console.error('Falha ao sincronizar horário:', err))
     agendarAtualizacaoWS()
 })
 
@@ -51,11 +52,13 @@ function connectWebSocket() {
         clearTimeout(reconnectTimeout)
 
         try {
+            await sincronizarRelogioServidor()
             msgStatus('Online', 1)
             await comunicacao()
             await validarAcesso()
         } catch (err) {
             console.error('Erro ao iniciar websocket:', err)
+            socket.close()
         }
     }
 

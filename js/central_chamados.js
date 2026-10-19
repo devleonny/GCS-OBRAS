@@ -73,7 +73,7 @@ async function criarElementosIniciais() {
     if (!pFundo)
         return
 
-    const hora = new Date().getHours()
+    const hora = dataServidor().getHours()
     const saudacao = hora > 18
         ? 'Boa noite'
         : hora > 12

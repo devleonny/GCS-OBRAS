@@ -325,7 +325,7 @@ async function baixarExcelRelatorioOcorrencias() {
 
     const dados = {
         base: "vw_relatorio_ocorrencias",
-        titulo: `Ocorrências_${Date.now()}`,
+        titulo: `Ocorrências_${agoraServidor()}`,
         formatacao: {
             datas: ["Data Registro"]
         }
@@ -345,7 +345,7 @@ async function baixarExcelRelatorioCorrecoes() {
     overlayAguarde()
     const dados = {
         base: "vw_relatorio_correcoes",
-        titulo: `Correções_${Date.now()}`,
+        titulo: `Correções_${agoraServidor()}`,
         formatacao: {}
     }
 
@@ -364,7 +364,7 @@ async function baixarExcelRelatorioPecas() {
 
     const dados = {
         base: "vw_relatorio_pecas",
-        titulo: `Peças_${Date.now()}`,
+        titulo: `Peças_${agoraServidor()}`,
         formatacao: {}
     }
 

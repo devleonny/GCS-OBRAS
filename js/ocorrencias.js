@@ -665,7 +665,7 @@ async function confirmarReprovacaoParceiro(idOcorrencia, idCorrecaoLpuParceiro) 
             executor: [
                 obVal('executor')
             ],
-            data: new Date().toLocaleString(),
+            data: dataServidor().toLocaleString(),
             descricao: document.querySelector('.editor-conteudo')?.innerHTML || ''
         }
 
@@ -757,7 +757,7 @@ async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro, idOcorrencia) {
             return popup({ mensagem: 'O cadastro estável do técnico não foi localizado: fale com o suporte' })
         const dataEstipulada = modalidade == 3
             ? dtFormatada(dataPagamento)
-            : dataRegras(new Date().toLocaleDateString(), modalidade)
+            : dataRegras(dataServidor().toLocaleDateString(), modalidade)
 
         const observacao = `
             Solicitante: ${criado}\n 
@@ -774,7 +774,7 @@ async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro, idOcorrencia) {
             app,
             criado,
             anexos, // Anexos da LPU
-            data_registro: new Date().toLocaleString(),
+            data_registro: dataServidor().toLocaleString(),
             param_estavel: {
                 codigo_cliente_fornecedor,
                 chave_pix,
@@ -2071,7 +2071,7 @@ async function pesquisarOcorrencias(path, valor) {
 
 async function filtrarAtrasados(input) {
     const ativo = input.value
-    const hoje = new Date().toLocaleDateString()
+    const hoje = dataServidor().toLocaleDateString()
 
     let regrasStatus = listaRegras('snapshots.ultimaCorrecao.*.nome')
         .filter(regra => regra.origem !== 'atrasados_status')
@@ -2900,7 +2900,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
                 ...correcao?.fotos,
             },
             equipamentos,
-            data: new Date().toLocaleString(),
+            data: dataServidor().toLocaleString(),
             anexos: {
                 ...anexos,
                 ...correcao?.anexos
@@ -2992,7 +2992,7 @@ async function salvarOcorrencia(idOcorrencia) {
         prioridade: obter('prioridade')?.id || null,
         tipo: obter('tipo')?.id || null,
         descricao: document.querySelector('.editor-conteudo')?.innerHTML || null,
-        data_registro: new Date().toLocaleString('pt-BR'),
+        data_registro: dataServidor().toLocaleString('pt-BR'),
         usuario: ocorrencia.usuario || acesso.usuario,
         anexos: {
             ...ocorrencia.anexos,

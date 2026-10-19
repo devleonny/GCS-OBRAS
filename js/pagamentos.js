@@ -503,12 +503,12 @@ async function excluirPagamento(id) {
             const solicitacao = parceiro?.solicitacoes?.[pagamento.solicitacao_parceiro_id]
             if (solicitacao?.ocorrencia_id)
                 await salvarEtapaParceiro(`dados_ocorrencias/${solicitacao.ocorrencia_id}/correcoes/${id}_cancelamento`, {
-                    aba: id, tipoCorrecao: 'WRuo2', data: new Date().toLocaleString(), usuario: acesso.usuario,
+                    aba: id, tipoCorrecao: 'WRuo2', data: dataServidor().toLocaleString(), usuario: acesso.usuario,
                     descricao: 'Pagamento parcial cancelado pelo financeiro; saldo liberado.'
                 })
             await salvarEtapaParceiro(`parceiros/${pagamento.lpu_parceiro_id}/solicitacoes/${pagamento.solicitacao_parceiro_id}`, {
                 ...solicitacao, status: 'Cancelada pelo financeiro', pagamento_cancelado: pagamento,
-                cancelado_por: acesso.usuario, cancelado_em: new Date().toLocaleString()
+                cancelado_por: acesso.usuario, cancelado_em: dataServidor().toLocaleString()
             })
         }
         await deletar(`lista_pagamentos/${id}`)
@@ -570,7 +570,7 @@ async function autorizarPagamentos(resposta, id) {
                     status,
                     usuario,
                     justificativa,
-                    data: new Date().toLocaleString('pt-BR')
+                    data: dataServidor().toLocaleString('pt-BR')
                 }
             }
         })
@@ -841,7 +841,7 @@ async function formularioPagamento() {
 }
 
 function dataRegras(data, atraso) {
-    const agora = new Date()
+    const agora = dataServidor()
     let dataMinima = new Date(agora)
 
     if (agora.getDay() === 5 && agora.getHours() >= 11) {
@@ -995,7 +995,7 @@ async function calculadoraPagamento() {
         app,
         data_permitida: true,
         data_modificada: dataPagamento.dataset.editada === 'true',
-        data_registro: new Date().toLocaleString(),
+        data_registro: dataServidor().toLocaleString(),
         param_estavel: {
                 codigo_cliente_fornecedor,
                 chave_pix: obVal('chave_pix').value.trim(),
@@ -1208,7 +1208,7 @@ async function baixarExcelRelatorioPagamentos() {
 
     const dados = {
         base: "vw_relatorio_pagamentos",
-        titulo: `Pagamentos_${Date.now()}`,
+        titulo: `Pagamentos_${agoraServidor()}`,
         formatacao: {
             moedas: ["Valor Documento"]
         }

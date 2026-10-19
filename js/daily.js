@@ -152,7 +152,7 @@ function linDaily(dados) {
 
 function obterMesAnoFiltroDaily() {
     const filtrosData = controles?.daily?.filtros?.data || []
-    const hoje = new Date()
+    const hoje = dataServidor()
 
     let dataInicial = null
     let dataFinal = null

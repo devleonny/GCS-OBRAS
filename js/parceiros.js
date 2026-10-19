@@ -125,7 +125,7 @@ async function cancelarSolicitacaoParceiro(id, idSolicitacao, confirmar = false)
         if (!linha || linha.legado || linha.pagamento) throw new Error('Esta solicitação já possui pagamento. O cancelamento deve seguir o fluxo do financeiro.')
         if (linha.usuario !== acesso.usuario && acesso.permissao !== 'adm') throw new Error('Apenas o solicitante ou administrador pode cancelar.')
         await salvarEtapaParceiro(`dados_ocorrencias/${linha.ocorrencia_id}/correcoes/${idSolicitacao}_cancelamento`, {
-            aba: idSolicitacao, tipoCorrecao: 'WRuo2', data: new Date().toLocaleString(), usuario: acesso.usuario,
+            aba: idSolicitacao, tipoCorrecao: 'WRuo2', data: dataServidor().toLocaleString(), usuario: acesso.usuario,
             descricao: 'Solicitação de pagamento parcial cancelada; saldo liberado.'
         })
         await salvarEtapaParceiro(`parceiros/${id}/solicitacoes/${idSolicitacao}/status`, 'Cancelada')
@@ -497,7 +497,7 @@ async function salvarLpuParceiro(id = crypto.randomUUID()) {
         totais: controles.lpu_parceiro.totais || {},
         margem: Number(document.getElementById('margem_lpu').value),
         executor: acesso.usuario,
-        data: new Date().toLocaleString(),
+        data: dataServidor().toLocaleString(),
         comentario: document.getElementById('comentario').value,
         tecnicos: [String(tecnico.textContent).trim()] // Precisa ser uma lista... bem, é complicado...
     }
@@ -716,7 +716,7 @@ async function gerarPdfParceiro(id, visualizar) {
         await pdf({
             html,
             estilos: ['tabelas-parceiro', 'estilos'],
-            nome: `LPU PARCEIRO - ${Date.now()}`
+            nome: `LPU PARCEIRO - ${agoraServidor()}`
         })
 
     } catch (err) {
@@ -841,7 +841,7 @@ async function solicitarPagamentoParceiro(id, idCliente) {
             aba: idSolicitacao,
             lpu_id: id,
             valor_parcial: valor,
-            data: new Date().toLocaleString(),
+            data: dataServidor().toLocaleString(),
             tecnico: tecnicos,
             descricao: `[${ativo}] Solicitação parcial de ${dinheiro(total)} para ${(tecnicos || []).join(', ')}. LPU: ${dinheiro(controle.total)}.${comentario ? ` Etapa: ${comentario}` : ''}`,
             permissao: ['gerente'],

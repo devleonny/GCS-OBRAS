@@ -806,7 +806,7 @@ async function respostaAprovacao(idOrcamento, status) {
 
     const dados = {
         usuario: acesso.usuario,
-        data: new Date().toLocaleString(),
+        data: dataServidor().toLocaleString(),
         status
     }
 
@@ -849,7 +849,7 @@ function painelEdicao(tela) {
                     </td>
                     <td>${dinheiro(orc?.total_geral || 0)}</td>
                     <td>${lpu_ativa || 'LPU HOPE'}</td>
-                    <td>${new Date(orc?.timestamp || Date.now()).toLocaleString()}</td>
+                    <td>${new Date(orc?.timestamp || agoraServidor()).toLocaleString()}</td>
                     <td><img src="imagens/fechar.png" onclick="removerOrcTemp(this, '${idEdicao}')"></td>
                 </tr>
                 `
@@ -1255,7 +1255,7 @@ async function buscarDadosCliente() {
 
         if (tagEmpresa) {
             orcamento.tags[tagEmpresa.id] = {
-                data: new Date().toLocaleDateString(),
+                data: dataServidor().toLocaleDateString(),
                 usuario: acesso.usuario,
                 auto: 'S'
             }
@@ -1322,7 +1322,7 @@ async function salvarDadosCliente(idOrcamento) {
             venda_direta,
             condicoes: el('condicoes').value,
             consideracoes: String(el('consideracoes').value).toUpperCase(),
-            data: new Date().toLocaleString('pt-BR'),
+            data: dataServidor().toLocaleString('pt-BR'),
             garantia: el('garantia').value,
             validade: Number(el('validade').value),
             tipo_de_frete: el('tipo_de_frete').value,

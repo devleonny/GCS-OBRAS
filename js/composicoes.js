@@ -92,7 +92,7 @@ async function filtrarAtrasadosComposicoes(select) {
 
     controles.composicoes.filtros = {
         ...controles.composicoes.filtros,
-        [chave]: { op: atrasados == 'Sim' ? '<d' : '>=d', value: new Date() }
+        [chave]: { op: atrasados == 'Sim' ? '<d' : '>=d', value: dataServidor() }
     }
 
     if (!select.value)
@@ -869,7 +869,7 @@ async function salvarPreco(codigo, lpu, cotacao = crypto.randomUUID()) {
 
     historico[cotacao] = {
         valor: obValComp('preco_venda'),
-        data: new Date().toLocaleString(),
+        data: dataServidor().toLocaleString(),
         usuario: acesso.usuario,
         nota: obValComp('nota'),
         comentario: obValComp('comentario'),
@@ -1154,7 +1154,7 @@ function passou60Dias(dataTexto) {
     const dataCompleta = new Date(ano, mes - 1, dia, hh, mm, ss)
     if (isNaN(dataCompleta.getTime())) return false
 
-    const hoje = new Date()
+    const hoje = dataServidor()
     const diff = hoje - dataCompleta
     const dias = diff / (1000 * 60 * 60 * 24)
 
@@ -1188,7 +1188,7 @@ async function baixarExcelComposicoes() {
 
     const dados = {
         base: "vw_relatorio_composicoes",
-        titulo: `Composições_${Date.now()}`,
+        titulo: `Composições_${agoraServidor()}`,
         formatacao: {
             datas: ['Data'],
             moedas: ['Valor LPU']

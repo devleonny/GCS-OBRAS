@@ -375,7 +375,7 @@ async function salvarPagamentoVeiculo() {
             app,
             status: 'Aprovado por fin',
             criado: acesso.usuario,
-            data_registro: new Date().toLocaleString(),
+            data_registro: dataServidor().toLocaleString(),
             param_estavel: {
                 codigo_cliente_fornecedor: codigoCliente,
                 chave_pix: '',
@@ -678,7 +678,7 @@ async function salvarValores(idCusto = crypto.randomUUID()) {
         kml: obterValores('kml'),
         comentario: obterValores('comentario'),
         data_pagamento,
-        data: new Date().toLocaleString(),
+        data: dataServidor().toLocaleString(),
         km: obterValores('km'),
         litros: obterValores('litros'),
         usuario: usuario || acesso.usuario

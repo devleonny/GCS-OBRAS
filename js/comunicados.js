@@ -11,7 +11,7 @@ function comunicadoGCSVigente(comunicado) {
     if (!comunicado || comunicado.ativo === false || !comunicado.id || !comunicado.html)
         return false
 
-    const agora = Date.now()
+    const agora = agoraServidor()
     const inicio = dataComunicadoGCS(comunicado.inicio)
     const fim = dataComunicadoGCS(comunicado.fim)
     return !(inicio !== null && agora < inicio) && !(fim !== null && agora > fim)
@@ -71,7 +71,7 @@ async function registrarLeituraComunicadoGCS(comunicado, confirmar = false) {
     if (!usuario_id || !comunicado) return false
 
     const existente = leituraComunicadoGCS(comunicado) || {}
-    const agora = new Date().toISOString()
+    const agora = dataServidor().toISOString()
     const leitura = {
         ...existente,
         id: idLeituraComunicadoGCS(comunicado),

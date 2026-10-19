@@ -3,7 +3,7 @@ const dtPrazo = (data) => {
 
     const [ano, mes, dia] = data.split('-')
     const dataPrazo = new Date(`${ano}-${mes}-${dia}T00:00:00`)
-    const hoje = new Date()
+    const hoje = dataServidor()
     hoje.setHours(0, 0, 0, 0)
 
     const atrasado = hoje > dataPrazo
@@ -189,7 +189,7 @@ async function salvarAcao(idOrcamento, formulario, idAcao = crypto.randomUUID())
         acao,
         prazo,
         status,
-        registro: new Date().getTime()
+        registro: dataServidor().getTime()
     }
 
     if (formulario == 'chamado')

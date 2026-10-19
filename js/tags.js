@@ -81,7 +81,7 @@ async function vincularTag(idTag) {
     const id = controles.etiquetas.idOrcamento
 
     const tag = {
-        data: new Date().toLocaleString(),
+        data: dataServidor().toLocaleString(),
         usuario: acesso.usuario
     }
 

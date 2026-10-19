@@ -31,7 +31,7 @@ function correspondeFiltrosAgenda(item, filtros) {
 }
 
 // AGENDA
-function pegarSegunda(date = new Date()) {
+function pegarSegunda(date = dataServidor()) {
     const d = new Date(date)
     const day = d.getDay()
     const diff = d.getDate() - day + (day === 0 ? -6 : 1)

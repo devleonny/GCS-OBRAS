@@ -274,7 +274,7 @@ async function salvarPedido(id) {
 
         const dados = {
             departamento,
-            data: new Date().toLocaleString(),
+            data: dataServidor().toLocaleString(),
             executor: acesso.usuario,
             comentario: comentario_status.value,
             pagamento: pagamento.value,
@@ -476,7 +476,7 @@ async function iniciarChamadoProspeccao(id) {
         prioridade: 'v2ttQ', // Serviço de INFRA
         tipo: 'wgVdc', // Prospecção
         descricao: `Chamado de Prospecção do ${contrato}`,
-        data_registro: new Date().toLocaleString('pt-BR'),
+        data_registro: dataServidor().toLocaleString('pt-BR'),
         usuario: acesso.usuario,
     }
 

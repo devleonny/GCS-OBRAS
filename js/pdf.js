@@ -72,6 +72,7 @@ function blocoHtml({ titulo, dados }) {
 }
 
 async function preencher() {
+    await sincronizarRelogioServidor()
 
     const parametros = new URLSearchParams(window.location.search)
     const idRecebido = parametros.get('id')

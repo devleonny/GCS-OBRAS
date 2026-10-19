@@ -519,7 +519,7 @@ async function salvarRequisicao(id) {
             avulso: controles?.requisicao?.avulso || 'N',
             departamento,
             executor: acesso.usuario,
-            data: new Date().toLocaleString(),
+            data: dataServidor().toLocaleString(),
             comentario: document.querySelector('#comentario').value || '',
             pedido,
             recebedor: document.querySelector('#recebedor')?.value || '',
@@ -544,7 +544,7 @@ async function salvarRequisicao(id) {
                 data: dados.data,
                 datas: {},
                 descricao: 'Requisição de materiais criada',
-                dtCorrecao: new Date().toISOString().slice(0, 10),
+                dtCorrecao: dataServidor().toISOString().slice(0, 10),
                 setor: ['LOGÍSTICA'],
                 tipoCorrecao: '4Zmd3',
                 usuario: acesso.usuario
@@ -775,7 +775,7 @@ async function gerarPdfRequisicao(id, visualizar) {
         const campos = [
             'Requisição',
             ...contrato,
-            Date.now()
+            agoraServidor()
         ]
 
         const nome = campos

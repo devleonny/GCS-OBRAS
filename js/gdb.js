@@ -203,6 +203,8 @@ async function deletar(caminho) {
 
 async function enviar(caminho, info) {
 
+    await sincronizarRelogioServidor()
+
     const url = `${api}/salvar`
     const objeto = { caminho, valor: info }
     const { token } = JSON.parse(localStorage.getItem('acesso')) || {}

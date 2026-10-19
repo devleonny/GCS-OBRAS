@@ -128,7 +128,7 @@ async function filtrarPorTempo(tempo) {
 
     controles.rh.filtros ??= {}
 
-    const hoje = new Date().toLocaleDateString()
+    const hoje = dataServidor().toLocaleDateString()
 
     if (tempo == 'atrasados') {
         controles.rh.filtros['validade'] = { op: '<=d', value: hoje }
@@ -137,7 +137,7 @@ async function filtrarPorTempo(tempo) {
 
         const dias60 = 60 * 24 * 60 * 60 * 1000
         controles.rh.filtros['validade'] = [
-            { op: '<=d', value: new Date(Date.now() + dias60).toLocaleDateString() },
+            { op: '<=d', value: new Date(agoraServidor() + dias60).toLocaleDateString() },
             { op: '>=d', value: hoje }
         ]
 
@@ -342,7 +342,7 @@ function expiraEm(dtValidade) {
         validade = new Date(dtValidade);
     }
 
-    const hoje = new Date();
+    const hoje = dataServidor();
 
     // Zera as horas para comparar só os dias
     validade.setHours(0, 0, 0, 0);
