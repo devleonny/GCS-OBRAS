@@ -533,10 +533,12 @@ function getByPath(obj, path) {
     return path.split('.').reduce((acc, key) => acc?.[key], obj)
 }
 
-function linCxOpcoes(dado) {
+async function linCxOpcoes(dado) {
 
     const { ativo } = controlesCxOpcoes // Ativo é o mesmo que o [name]
-    const { colunas } = controlesCxOpcoes[ativo]
+    const { colunas, prepararDado } = controlesCxOpcoes[ativo]
+    if (prepararDado)
+        dado = await prepararDado(dado)
     const cod = dado.id || dado.codigo || dado.usuario || null
     const tds = []
 
@@ -563,7 +565,7 @@ async function selecionar(name, cod) {
     if (cod == 'null')
         return popup({ mensagem: 'O objeto "base" em controlesCx precisa contem o próprio "id" / "codigo" / "etc"' })
 
-    const { funcaoAdicional, base, retornar, filtros, filtroPesquisa = null } = controlesCxOpcoes[name]
+    const { funcaoAdicional, base, retornar, filtros, prepararDado, filtroPesquisa = null } = controlesCxOpcoes[name]
 
     if (!retornar)
         return popup({ mensagem: `campo retornar: ['exemplo'] → undefined` })
@@ -597,6 +599,9 @@ async function selecionar(name, cod) {
             String(item.id ?? item.codigo ?? item.usuario) === String(cod)
         )
     }
+
+    if (prepararDado)
+        dado = await prepararDado(dado)
 
     for (const chave of retornar) {
 

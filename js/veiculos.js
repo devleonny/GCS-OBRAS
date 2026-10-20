@@ -459,10 +459,20 @@ async function excluirCusto(idCusto) {
 
 }
 
+async function prepararVeiculoCombustivel(veiculo) {
+    if (!veiculo) return {}
+    if (!Array.isArray(veiculo.motoristas)) return veiculo
+
+    const clientes = await Promise.all(veiculo.motoristas.map(m =>
+        recuperarDado('clientes', typeof m === 'object' ? m.id : m)))
+    const motoristas = [...new Set(clientes.filter(c => c && !c.excluido && c.nome).map(c => c.nome))]
+    return { ...veiculo, snapshots: { ...veiculo.snapshots, motoristas } }
+}
+
 async function painelValores(idCusto, duplicar) {
 
     const custo = await recuperarDado('custo_veiculos', idCusto) || {}
-    const { veiculo } = custo || {}
+    const veiculo = await prepararVeiculoCombustivel(custo.veiculo)
     const motoristas = Array.isArray(veiculo?.snapshots?.motoristas)
         ? veiculo.snapshots.motoristas
         : []
@@ -534,6 +544,7 @@ async function painelValores(idCusto, duplicar) {
     // Controles;
     controlesCxOpcoes.veiculo = {
         base: 'veiculos',
+        prepararDado: prepararVeiculoCombustivel,
         retornar: ['cartao', 'snapshots.motoristas', 'placa', 'modelo'],
         colunas: {
             'Final do Cartão': { chave: 'cartao' },
