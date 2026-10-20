@@ -469,6 +469,12 @@ async function iniciarChamadoProspeccao(id) {
     const { dados_orcam } = await recuperarDado('dados_orcamentos', id) || {}
     const { omie_cliente, contrato } = dados_orcam || {}
 
+    const existente = await consultarChamadoOrcamento(contrato)
+    if (existente?.excluido != null) {
+        popup({ mensagem: `O chamado ${escaparAtributo(contrato)} deste orçamento foi excluído. Restaure o chamado antes de continuar.` })
+        return
+    }
+
     const novo = {
         id: contrato,
         unidade: omie_cliente,
@@ -652,14 +658,40 @@ function divPorcentagem(porcentagem) {
     `
 }
 
-async function checklistChamado(id) {
+async function consultarChamadoOrcamento(contrato) {
+    const { token } = JSON.parse(localStorage.getItem('acesso') || '{}')
+    const resposta = await fetch(`${read}/estado-chamado`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ contrato: String(contrato || '') }),
+        signal: AbortSignal.timeout(15000)
+    })
+    if (!resposta.ok)
+        throw new Error('Não foi possível verificar o estado do chamado. Confirme se o serviço de leitura foi atualizado.')
+    const resultado = await resposta.json()
+    if (resultado.estado === 'inexistente') return null
+    if (resultado.estado === 'excluido') return { id: resultado.id, excluido: resultado.excluido }
+    if (resultado.estado !== 'ativo') throw new Error('Estado do chamado inválido.')
+    const chamado = await recuperarDado('dados_ocorrencias', contrato)
+    if (!chamado?.id) throw new Error('Não foi possível carregar o chamado existente. Tente novamente.')
+    return chamado
+}
+
+async function checklistChamado(id, chamadoConsultado = undefined) {
 
     const contrato = controles.ocorrencias.ativo
 
     // Para abrir transformar um orcamento em chamado, ele precisa ter um pedido (Enviado e Aprovado);
-    const existente = await recuperarDado('dados_ocorrencias', contrato)
+    const existente = chamadoConsultado === undefined
+        ? await consultarChamadoOrcamento(contrato)
+        : chamadoConsultado
 
-    const pChamado = existente
+    const pChamado = existente?.excluido != null
+        ? `<div role="status"><strong>Chamado excluído</strong><p>O chamado ${escaparAtributo(contrato)} deste orçamento foi excluído. É necessário restaurá-lo antes de voltar a utilizá-lo.</p></div>`
+        : existente
         ?
         `
                 <div class="chamado-aberto">
@@ -685,6 +717,12 @@ async function auxAberturaChamado(id) {
 
     const { dados_orcam } = await recuperarDado('dados_orcamentos', id) || {}
     const { contrato, omie_cliente } = dados_orcam || {}
+
+    const existente = await consultarChamadoOrcamento(contrato)
+    if (existente?.excluido != null) {
+        popup({ mensagem: `O chamado ${escaparAtributo(contrato)} deste orçamento foi excluído. Restaure o chamado antes de continuar.` })
+        return
+    }
 
     const pedidos = await pesquisarDB({
         base: 'pedidos',
@@ -723,12 +761,19 @@ async function abrirEsquema(id) {
         if (!contrato) {
             await enviar(`dados_orcamentos/${id}/excluido`, null)
             popup({ mensagem: 'O orçamento estava inacessível, tente de novo em instantes!' })
+            return
         }
 
         controles.ocorrencias ??= {}
         controles.ocorrencias.ativo = contrato
 
-        const labelTipoCorrecao = (nomes_status || ['CHAMADO NÃO ABERTO'])
+        const chamado = await consultarChamadoOrcamento(contrato)
+        const statusOcorrencia = chamado?.excluido != null
+            ? ['CHAMADO EXCLUÍDO']
+            : !chamado ? ['CHAMADO NÃO ABERTO']
+                : Array.isArray(nomes_status) && nomes_status.length
+                    ? [...new Set(nomes_status.filter(Boolean))] : ['SEM STATUS']
+        const labelTipoCorrecao = statusOcorrencia
             .map(st => formatacaoTipoCorrecao(st))
             .join('')
 
@@ -769,7 +814,7 @@ async function abrirEsquema(id) {
         popup({ elemento, titulo: 'Histórico do Orçamento' })
 
         // Checklist Chamado;
-        checklistChamado(id)
+        await checklistChamado(id, chamado)
 
         const local = document.querySelector('.bloco-st')
 

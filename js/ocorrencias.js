@@ -2941,20 +2941,51 @@ function obter(name) {
 
 async function salvarOcorrencia(idOcorrencia) {
 
+    const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
+
+    if (!painel) {
+        popup({ mensagem: 'Formulário do chamado não encontrado. Feche e abra novamente.' })
+        return
+    }
+
+    if (painel.dataset.salvando === 'true') return
+    painel.dataset.salvando = 'true'
+    const modal = painel.closest('.popup')
+    const campo = nome => painel.querySelector(`[name="${nome}"]`)
+    let status = painel.querySelector('[data-status-salvar-ocorrencia]')
+    if (!status) {
+        status = document.createElement('p')
+        status.dataset.statusSalvarOcorrencia = ''
+        status.setAttribute('role', 'status')
+        status.style.cssText = 'padding: 12px; margin: 0; text-align: left;'
+        painel.appendChild(status)
+    }
+    let etapa = ''
+    const informar = texto => { etapa = texto; status.textContent = texto }
+    informar('Validando os dados do chamado…')
+    const avisoDemora = setTimeout(() => {
+        status.textContent = `${etapa} A operação está demorando. Aguarde a confirmação antes de tentar novamente.`
+        removerOverlay()
+    }, 15000)
+
+    try {
     overlayAguarde()
-
-    const unidade = obter('unidade')?.id
+    const unidade = campo('unidade')?.id
     if (!unidade)
-        return popup({ mensagem: 'O campo Unidade é obrigatório' })
+        throw new Error('O campo Unidade é obrigatório')
 
+    informar('Consultando o chamado e preparando os anexos…')
     const [ocorrenciaBase, anexos] = await Promise.all([
-        idOcorrencia ? recuperarDado('dados_ocorrencias', idOcorrencia) : null,
-        anexosOcorrencias(obter('anexos'))
+        idOcorrencia ? consultarChamadoOrcamento(idOcorrencia) : null,
+        anexosOcorrencias(campo('anexos'))
     ])
 
     const ocorrencia = ocorrenciaBase || {}
+    if (ocorrencia.excluido != null)
+        throw new Error(`O chamado ${idOcorrencia} foi excluído. Restaure o chamado antes de salvar alterações.`)
 
-    const divs = [...document.querySelectorAll('[name="equipamentos"]')]
+    informar('Preparando equipamentos e fotos…')
+    const divs = [...painel.querySelectorAll('[name="equipamentos"]')]
     const promessasEquips = divs.map(async div => {
         const id = div.querySelector('span')?.id
         if (!id) return null
@@ -2969,7 +3000,7 @@ async function salvarOcorrencia(idOcorrencia) {
         }
     })
 
-    const imgs = [...document.querySelectorAll('.fotos img')].filter(i => i.dataset.salvo == 'não')
+    const imgs = [...painel.querySelectorAll('.fotos img')].filter(i => i.dataset.salvo == 'não')
     const promessasFotos = imgs.map(async img => {
         const [dados] = await importarAnexos({ foto: img.src })
         return dados
@@ -2985,13 +3016,13 @@ async function salvarOcorrencia(idOcorrencia) {
     )
 
     const novo = {
-        data_solicitacao: obter('data_solicitacao')?.value || null,
+        data_solicitacao: campo('data_solicitacao')?.value || null,
         equipamentos,
         unidade: Number(unidade),
-        sistema: obter('sistema')?.id || null,
-        prioridade: obter('prioridade')?.id || null,
-        tipo: obter('tipo')?.id || null,
-        descricao: document.querySelector('.editor-conteudo')?.innerHTML || null,
+        sistema: campo('sistema')?.id || null,
+        prioridade: campo('prioridade')?.id || null,
+        tipo: campo('tipo')?.id || null,
+        descricao: painel.querySelector('.editor-conteudo')?.innerHTML || null,
         data_registro: dataServidor().toLocaleString('pt-BR'),
         usuario: ocorrencia.usuario || acesso.usuario,
         anexos: {
@@ -3005,25 +3036,37 @@ async function salvarOcorrencia(idOcorrencia) {
         if (foto?.link) ocorrencia.fotos[foto.link] = foto
     }
 
+    informar('Enviando o chamado ao servidor…')
     if (idOcorrencia) {
-        Object.assign(ocorrencia, novo)
-        await enviar(`dados_ocorrencias/${idOcorrencia}`, ocorrencia)
-        removerPopup()
+        Object.assign(ocorrencia, novo, { id: idOcorrencia })
+        const resposta = await enviar(`dados_ocorrencias/${idOcorrencia}`, ocorrencia)
+        if (!resposta || resposta.success === false || resposta.mensagem)
+            throw new Error(resposta?.mensagem || 'Não foi possível salvar a ocorrência. Tente novamente.')
+        informar('Chamado salvo com sucesso.')
+        removerPopup(modal?.id)
+        if (document.querySelector('.painel-historico'))
+            await checklistChamado()
         return
     }
 
-    try {
         const resposta = await enviar('dados_ocorrencias/0000', novo)
-        if (resposta?.mensagem)
-            return popup({ mensagem: resposta.mensagem })
+        if (!resposta || resposta.success === false || resposta.mensagem)
+            throw new Error(resposta?.mensagem || 'Não foi possível salvar a ocorrência. Tente novamente.')
 
+        const abertoPeloHistorico = Boolean(document.querySelector('.painel-historico'))
         removerTodosPopups()
 
-        if (document.querySelector('.painel-historico'))
+        if (abertoPeloHistorico)
             await telaOcorrencias()
 
     } catch (err) {
-        popup({ mensagem: err?.mensagem || 'Falha ao salvar a ocorrência, fale com o Suporte!' })
+        console.error('Falha ao salvar ocorrência:', err)
+        status.textContent = `Não foi possível salvar: ${err?.message || err?.mensagem || 'falha inesperada'}`
+        popup({ mensagem: escaparAtributo(err?.message || err?.mensagem || 'Falha ao salvar a ocorrência, fale com o Suporte!') })
+    } finally {
+        clearTimeout(avisoDemora)
+        delete painel.dataset.salvando
+        removerOverlay()
     }
 }
 
