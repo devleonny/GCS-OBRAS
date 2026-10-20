@@ -224,6 +224,10 @@ async function executarAtualizacaoWS() {
         if (tabelas.has('dados_orcamentos'))
             tarefas.push(() => verificarPendencias())
 
+        if (document.querySelector('.combustivel-pagina') &&
+            ['veiculos', 'combustivel_abastecimentos', 'dados_ocorrencias'].some(base => tabelas.has(base)))
+            tarefas.push(() => telaCombustivel())
+
         if (tabelas.has('dados_ocorrencias'))
             tarefas.push(() => auxPendencias())
 

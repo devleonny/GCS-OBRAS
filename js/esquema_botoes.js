@@ -223,13 +223,13 @@ const esquemaBotoes = {
             funcao: 'telaAgenda'
         },
         {
-            nome: 'Veículos',
+            nome: 'Combustível',
             bloqueio: ['cliente', 'técnico'],
             img: 'veiculo',
             sub: [
-                { nome: 'Ver Combustíveis', funcao: 'telaVeiculos', img: 'veiculo' },
-                { nome: 'Adicionar Combustível', funcao: 'painelValores', img: 'combustivel' },
-                { nome: 'Veículos', funcao: 'auxVeiculos', img: 'veiculo' }
+                { nome: 'Tanques e abastecimentos', funcao: 'telaCombustivel', img: 'combustivel' },
+                { nome: 'Cadastrar veículo', funcao: 'formularioVeiculoCombustivel', img: 'veiculo' },
+                { nome: 'Combustíveis anteriores', funcao: 'telaVeiculos', img: 'salvo' }
             ]
         },
         {

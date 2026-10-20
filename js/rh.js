@@ -176,7 +176,7 @@ async function criarPastinhas() {
             pagina++
         } while (pagina <= paginas)
         if (consulta !== consultaPastasRH || !container.isConnected) return
-        const padrao = ['ASO', 'PTA', 'NR 06 - EPI', 'RECEBIMENTO - EPI', 'NR 10', 'NR 35']
+        const padrao = ['ASO', 'PTA', 'NR 06 - EPI', 'FICHA DE EPI', 'NR 10', 'NR 35']
         obrigatoriosRH = regras.filter(regra => Object.hasOwn(regra, 'obrigatorio')
             ? ['true', 't', '1', 'sim'].includes(String(regra.obrigatorio).toLowerCase())
             : padrao.includes(regra.id)).map(regra => regra.id).sort((a, b) => a.localeCompare(b))

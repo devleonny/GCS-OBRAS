@@ -27,7 +27,8 @@ function popup({
         ? ''
         : 'border-bottom-left-radius: 10px; border-bottom-right-radius: 10px;'
 
-    const linhaFormulario = ({ texto, elemento, editor }) => {
+    // vertical: true posiciona o texto acima do elemento da linha.
+    const linhaFormulario = ({ texto, elemento, editor, overlay = false, vertical = false }) => {
         if (texto) texto = `<span style="text-align: left;">${texto}</span>`
 
         if (editor !== undefined) {
@@ -81,9 +82,11 @@ function popup({
         }
 
         return `
-            <div class="linha-padrao${editor !== undefined ? ' linha-editor' : ''}">
+            <div class="linha-padrao${vertical ? ' linha-vertical' : ''}${editor !== undefined ? ' linha-editor' : ''}${overlay ? ' linha-popup-bloqueada' : ''}">
+                ${overlay ? '<div class="linha-popup-conteudo" inert>' : ''}
                 ${texto || ''}
                 ${elemento || ''}
+                ${overlay ? `</div><button type="button" class="linha-popup-overlay" onclick="liberarLinhaPopup(this)">Clique para editar</button>` : ''}
             </div>`
     }
 
@@ -152,6 +155,16 @@ function popup({
         setTimeout(() => removerPopup(idPopup), tempo * 1000)
 
     return idPopup
+}
+
+function liberarLinhaPopup(botao) {
+    const linha = botao.closest('.linha-popup-bloqueada')
+    if (!linha) return
+    const conteudo = linha.querySelector('.linha-popup-conteudo')
+    conteudo.replaceWith(...conteudo.childNodes)
+    linha.classList.remove('linha-popup-bloqueada')
+    botao.remove()
+    linha.querySelector('input:not([type="hidden"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), button:not(:disabled), [contenteditable="true"], .opcoes')?.focus()
 }
 
 function limparRecursosPopup(id) {

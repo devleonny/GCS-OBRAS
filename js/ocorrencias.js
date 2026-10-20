@@ -2441,22 +2441,24 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
         },
         {
             texto: `
-            <div style="${horizontal}; gap: 1rem;">
+            <div style="${horizontal}; gap: 1rem; justify-content: flex-start;">
                 <img src="imagens/baixar.png" onclick="maisUsuario([undefined], 'executores')">
                 <span>Executores</span>
             </div>
             `,
-            elemento: '<div class="executores"></div>'
+            elemento: '<div class="executores"></div>',
+            vertical: true
         },
         {
             texto: `
-            <div style="${horizontal}; gap: 1rem;">
+            <div style="${horizontal}; gap: 1rem; justify-content: flex-start;">
                 <img src="imagens/reagendar.png" onclick="telaAgenda({ flutuante: true, filtros: {estado: '${estado}'} })">
                 <img src="imagens/baixar.png" onclick="maisUsuario([undefined], 'tecnicos')">
                 <span>Técnicos</span>
             </div>
             `,
-            elemento: '<div class="tecnicos"></div>'
+            elemento: '<div class="tecnicos"></div>',
+            vertical: true
         },
         {
             texto: 'Descrição',
@@ -2507,6 +2509,10 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
 
     popup({ linhas, botoes, titulo: 'Gerenciar Correção', autoDestruicao: ['executor', 'tecnico', 'tipoCorrecao'] })
 
+    const areaTecnicosCombustivel = document.querySelector('.tecnicos')
+    areaTecnicosCombustivel.dataset.combustivelCorrecao = 'true'
+    areaTecnicosCombustivel.combustivelOriginal = correcao.combustivel || {}
+
     await maisUsuario(executor, 'executores')
     await maisUsuario(tecnico, 'tecnicos')
     await verificarConflitos()
@@ -2539,7 +2545,7 @@ async function maisUsuario(usuarios, campo) {
                 usuario: { op: 'NOT_EMPTY' }
             },
             funcaoAdicional: campo == 'tecnicos'
-                ? 'verificarConflitos'
+                ? 'atualizarTecnicosCorrecao'
                 : null,
             colunas: {
                 'Usuário': { chave: 'usuario' },
@@ -2552,9 +2558,10 @@ async function maisUsuario(usuarios, campo) {
         }
 
         spans.push(`
-            <div style="${horizontal}; gap: 0.5rem;">
-                <img src="imagens/cancel.png" style="width: 1.5rem;" onclick="this.parentElement.remove()">
+            <div data-linha-usuario style="${horizontal}; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-start;">
+                <img src="imagens/cancel.png" style="width: 1.5rem;" onclick="removerUsuarioCorrecao(this)">
                 <span
+                    data-usuario-selecao
                     class="opcoes"
                     ${usuario ? `id="${usuario}"` : ''}
                     name="${nomeControle}"
@@ -2565,6 +2572,22 @@ async function maisUsuario(usuarios, campo) {
 
     area.insertAdjacentHTML('beforeend', spans.join(''))
 
+    if (campo === 'tecnicos') await atualizarKmTecnicosCorrecao()
+
+}
+
+async function atualizarTecnicosCorrecao() {
+    await atualizarKmTecnicosCorrecao()
+    await verificarConflitos()
+}
+
+async function removerUsuarioCorrecao(botao) {
+    const linha = botao.closest('[data-linha-usuario]')
+    const nome = linha.querySelector('[data-usuario-selecao]')?.getAttribute('name')
+    if (nome) delete controlesCxOpcoes[nome]
+    const tecnico = !!linha.closest('.tecnicos')
+    linha.remove()
+    if (tecnico) await atualizarTecnicosCorrecao()
 }
 
 async function filtrarEquipamentos(select) {
@@ -2891,8 +2914,10 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
         const turno = document.querySelectorAll('[name="turno"]:checked')?.[0]?.dataset?.turno
         const garantia = obter('garantia').checked ? 'S' : 'N'
         const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
+        const combustivel = lerCombustivelCorrecao(idOcorrencia)
         const atualizado = {
             ...correcao,
+            ...(combustivel !== undefined ? { combustivel } : {}),
             garantia,
             autorizacao: obter('autorizacao').value || '',
             fotos: {
@@ -2923,7 +2948,8 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
                 ? crypto.randomUUID()
                 : novoFluxo.dataset.aba
 
-        await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, atualizado)
+        const respostaCorrecao = await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, atualizado)
+        if (!respostaCorrecao?.success) throw new Error(respostaCorrecao?.mensagem || 'Não foi possível salvar a correção.')
         removerPopup()
 
     } catch (err) {

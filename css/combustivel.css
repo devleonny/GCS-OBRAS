@@ -1,0 +1,37 @@
+.combustivel-alerta { color: #a02a22; font-weight: 600; }
+.combustivel-acoes-icones { display: flex; align-items: center; gap: 6px; }
+.combustivel-botao-icone { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; min-width: 36px; padding: 7px; box-sizing: border-box; cursor: pointer; }
+.combustivel-botao-icone svg { display: block; flex-shrink: 0; pointer-events: none; }
+.combustivel-botao-icone:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.combustivel-veiculo, .combustivel-nivel { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; text-align: left; line-height: 1.4; white-space: normal; }
+.combustivel-veiculo { min-width: 130px; }
+.combustivel-veiculo strong { letter-spacing: 0.04em; }
+.combustivel-nivel { width: 190px; max-width: 100%; font-variant-numeric: tabular-nums; }
+.combustivel-nivel > strong { font-size: 1rem; }
+.combustivel-trilho { display: block; width: 100%; box-sizing: border-box; padding: 3px; margin: 2px 0; border: 1px solid #cbd7ce; border-radius: 999px; background: #e1e8e3; box-shadow: inset 0 1px 2px #0000000a; }
+.combustivel-barra { display: block; width: 100%; height: 6px; margin: 0; padding: 0; border: 0; border-radius: 999px; overflow: hidden; background: transparent; appearance: none; -webkit-appearance: none; }
+.combustivel-barra::-webkit-meter-bar { height: 6px; background: transparent; border: 0; border-radius: 999px; box-shadow: none; }
+.combustivel-barra::-webkit-meter-optimum-value { background: var(--cor-nivel); border-radius: 999px; }
+.combustivel-barra::-moz-meter-bar { background: var(--cor-nivel); border-radius: 999px; }
+.combustivel-form { display: flex; flex-direction: column; gap: 12px; padding: 16px; max-width: 540px; box-sizing: border-box; color: #324b3c; }
+.combustivel-form label { display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.combustivel-form input, .combustivel-form select, .combustivel-form textarea { max-width: 100%; box-sizing: border-box; }
+.combustivel-form [role="status"] { color: #a02a22; }
+.combustivel-modal-form { margin: 0; min-width: 0; }
+.combustivel-modal-form [role="status"] { color: #a02a22; margin: 0; }
+.combustivel-movimentos { display: grid; gap: 12px; padding: 16px; max-width: 760px; }
+.combustivel-motorista { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.combustivel-titulo-motoristas { display: flex; align-items: center; gap: 1rem; }
+.combustivel-controle-motorista { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.combustivel-controle-motorista img { display: block; width: 1.5rem; height: 1.5rem; object-fit: contain; }
+.combustivel-controle-motorista:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.combustivel-motorista .opcoes { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.tecnicos[data-combustivel-correcao] { width: 100%; gap: 12px; overflow-x: auto; min-width: 0; align-items: flex-start; justify-content: flex-start; align-self: flex-start; text-align: left; }
+.tecnicos[data-combustivel-correcao] > [data-linha-usuario] { width: 100%; min-width: max-content; }
+.combustivel-percurso-tecnico { display: flex; flex: 0 0 auto; align-items: flex-end; flex-wrap: nowrap; gap: 12px; padding: 0; }
+.combustivel-percurso-tecnico label { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin: 0; flex: 0 0 auto; text-align: left; white-space: nowrap; }
+.combustivel-percurso-tecnico input, .combustivel-percurso-tecnico select { min-width: 0; box-sizing: border-box; }
+.combustivel-percurso-tecnico select { width: 190px; }
+.combustivel-percurso-tecnico input { width: 100px; }
+
+.combustivel-movimentos { width: min(1100px, 85vw); max-width: 100%; box-sizing: border-box; min-width: 0; }
