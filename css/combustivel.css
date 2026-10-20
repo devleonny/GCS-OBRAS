@@ -33,5 +33,7 @@
 .combustivel-percurso-tecnico input, .combustivel-percurso-tecnico select { min-width: 0; box-sizing: border-box; }
 .combustivel-percurso-tecnico select { width: 190px; }
 .combustivel-percurso-tecnico input { width: 100px; }
+.combustivel-percurso-tecnico input[type="date"] { width: 145px; }
+.combustivel-percurso-tecnico input[type="time"] { width: 110px; }
 
 .combustivel-movimentos { width: min(1100px, 85vw); max-width: 100%; box-sizing: border-box; min-width: 0; }
