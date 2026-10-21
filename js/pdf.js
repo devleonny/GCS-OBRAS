@@ -342,8 +342,8 @@ async function preencher() {
 
                 ${tabelas.join('')}
 
-                <div style="display: flex; align-items: center; justify-content: start; gap: 10px;">
-                    <div style="display: flex; flex-direction: column;">
+                <div class="rodape-totais-pdf">
+                    <div class="lista-totais-pdf">
                         ${divTotais}
                     </div> 
 
