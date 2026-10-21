@@ -1,4 +1,57 @@
 let frotaCombustivel = []
+let intervaloAlertaCombustivel
+let consultandoAlertaCombustivel = false
+
+function veiculosComPoucoCombustivel(veiculos) {
+    return veiculos.filter(v => v.ativo && Number(v.capacidade_tanque) > 0 &&
+        Number(v.consumo_medio) > 0 &&
+        (Number(v.saldo_inicial) > 0 || Number(v.litros_abastecidos) > 0 || Number(v.litros_consumidos) > 0) &&
+        v.percentual != null && Number.isFinite(Number(v.percentual)) && Number(v.percentual) <= 20)
+        .sort((a, b) => Number(a.percentual) - Number(b.percentual))
+}
+
+async function atualizarAlertaCombustivel() {
+    const sessao = JSON.parse(localStorage.getItem('acesso') || 'null')
+    const permitido = s => ['diretoria', 'adm', 'analista', 'log', 'fin', 'gerente'].includes(s?.permissao)
+    if (!permitido(sessao)) {
+        document.getElementById('alerta-reserva-combustivel')?.remove()
+        return
+    }
+    if (consultandoAlertaCombustivel) return
+    consultandoAlertaCombustivel = true
+    try {
+        const veiculos = veiculosComPoucoCombustivel(await consultarCombustivel('vw_combustivel_saldos'))
+        const atual = JSON.parse(localStorage.getItem('acesso') || 'null')
+        if (!permitido(atual) || atual?.usuario !== sessao.usuario) {
+            document.getElementById('alerta-reserva-combustivel')?.remove()
+            return
+        }
+        let painel = document.getElementById('alerta-reserva-combustivel')
+        if (!veiculos.length) { painel?.remove(); return }
+        if (!painel) {
+            const cabecalho = document.querySelector('.cabecalho-usuario')
+            if (!cabecalho) return
+            painel = document.createElement('button')
+            painel.type = 'button'
+            painel.id = 'alerta-reserva-combustivel'
+            painel.className = 'atalho-cabecalho-gcs combustivel-reserva'
+            painel.onclick = () => telaCombustivel()
+            cabecalho.insertBefore(painel, cabecalho.querySelector('[onclick="f2()"]'))
+        }
+        const descricao = `${veiculos.length} veículo(s) com combustível até 20%. Abrir tanques e abastecimentos.`
+        painel.title = descricao
+        painel.setAttribute('aria-label', descricao)
+        painel.innerHTML = `<img src="imagens/veiculo.png" alt=""><span class="labelQuantidade contador-toolbar-gcs" role="status">${veiculos.length}</span>`
+    } catch (erro) {
+        console.warn('Falha ao atualizar alerta de combustível:', erro)
+    } finally { consultandoAlertaCombustivel = false }
+}
+
+function iniciarAlertaCombustivel() {
+    clearInterval(intervaloAlertaCombustivel)
+    void atualizarAlertaCombustivel()
+    intervaloAlertaCombustivel = setInterval(atualizarAlertaCombustivel, 60000)
+}
 
 function resumoDivergenciasCombustivel(conferencias, limiteKm = 20, limitePercentual = 10) {
     const relevantes = conferencias.filter(c => c.anterior_id &&
@@ -12,14 +65,16 @@ async function formularioOutroUsoCombustivel(veiculoId, id) {
     try {
         const uso = id ? await recuperarDado('combustivel_outros_usos', id) : {}
         if (id && (!uso?.id || uso.excluido)) throw new Error('Uso não encontrado.')
+        const departamento = uso.departamento || 'KM OUTROS USOS'
         controlesCxOpcoes.comb_uso_departamento = { base: 'mesc_departamentos', retornar: ['id'], colunas: { 'Departamento': { chave: 'id' } } }
-        popupFormularioCombustivel({ titulo: id ? 'Editar outro uso' : 'Registrar outro uso', elemento: `
-            <form data-id="${escaparAtributo(id || crypto.randomUUID())}" data-veiculo="${escaparAtributo(veiculoId)}" onsubmit="event.preventDefault(); salvarOutroUsoCombustivel(this)">
+        popupFormularioCombustivel({ titulo: id ? 'Editar outro uso' : 'Registrar outro uso',
+            botoes: id ? idForm => [{ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirOutroUsoCombustivel(document.getElementById('${idForm}').dataset.veiculo, document.getElementById('${idForm}').dataset.id)` }] : [], elemento: `
+            <form data-outro-uso-edicao data-id="${escaparAtributo(id || crypto.randomUUID())}" data-veiculo="${escaparAtributo(veiculoId)}" onsubmit="event.preventDefault(); salvarOutroUsoCombustivel(this)">
                 <label>Data<input name="data_consumo" type="date" required value="${uso.data_consumo ? escaparAtributo(String(uso.data_consumo).slice(0, 10)) : dataServidor().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })}"></label>
                 <label>Tipo de uso<select name="categoria">${['Particular', 'Administrativo', 'Oficina', 'Outro'].map(c => `<option ${uso.categoria === c ? 'selected' : ''}>${c}</option>`).join('')}</select></label>
                 <label>km<input name="km" inputmode="decimal" required value="${escaparAtributo(uso.km ?? '')}"></label>
                 <label>Motivo<textarea name="motivo" required minlength="10">${escaparAtributo(uso.motivo || '')}</textarea></label>
-                <label>Departamento do custo<span name="comb_uso_departamento" class="opcoes" ${uso.departamento ? `id="${escaparAtributo(uso.departamento)}"` : ''} onclick="cxOpcoes('comb_uso_departamento')">${escaparAtributo(uso.departamento || 'Selecionar')}</span></label>
+                <label>Departamento do custo<span name="comb_uso_departamento" class="opcoes" id="${escaparAtributo(departamento)}" onclick="cxOpcoes('comb_uso_departamento')">${escaparAtributo(departamento)}</span></label>
                 <p role="status"></p><button type="submit">Salvar uso</button>
             </form>` })
     } catch (erro) { popup({ mensagem: escaparAtributo(erro.message) }) }
@@ -43,6 +98,58 @@ async function salvarOutroUsoCombustivel(form) {
         const movimentos = document.querySelector('.combustivel-movimentos')?.closest('.popup')
         if (movimentos) removerPopup(movimentos.id)
     })
+}
+
+async function confirmarExcluirOutroUsoCombustivel(veiculoId, id) {
+    try {
+        const uso = await recuperarDado('combustivel_outros_usos', id)
+        if (!uso?.id || uso.excluido || String(uso.veiculo_id) !== String(veiculoId))
+            throw new Error('Uso não encontrado.')
+        popupFormularioCombustivel({ titulo: 'Excluir outro uso', elemento: `
+            <form data-id="${escaparAtributo(id)}" data-veiculo="${escaparAtributo(veiculoId)}" onsubmit="event.preventDefault(); excluirOutroUsoCombustivel(this)">
+                <p>Excluir ${escaparAtributo(uso.categoria)} de ${escaparAtributo(formatarDataHistoricoCombustivel(uso.data_consumo))}, com ${formatarCombustivel(uso.km)} km?</p>
+                <p>O consumo vinculado será estornado e o saldo do tanque será atualizado. O histórico será preservado.</p>
+                <p role="status"></p><button type="submit">Confirmar exclusão</button>
+            </form>` })
+    } catch (erro) { popup({ mensagem: escaparAtributo(erro.message) }) }
+}
+
+async function excluirOutroUsoCombustivel(form) {
+    const botao = form.querySelector('[type="submit"]')
+    if (botao.disabled) return
+    botao.disabled = true
+    estadoEnvioCombustivel(form, true)
+    let salvo = false
+    try {
+        const uso = await recuperarDado('combustivel_outros_usos', form.dataset.id)
+        if (!uso?.id || String(uso.veiculo_id) !== String(form.dataset.veiculo)) throw new Error('Uso não encontrado.')
+        if (!uso.excluido) {
+            const resposta = await enviar(`combustivel_outros_usos/${uso.id}`, { ...uso, excluido: dataServidor().toISOString() })
+            if (!resposta?.success) throw new Error(resposta?.mensagem || 'Falha ao excluir outro uso.')
+        }
+        salvo = true
+        const edicao = [...document.querySelectorAll('form[data-outro-uso-edicao]')].find(item => item.dataset.id === form.dataset.id)?.closest('.popup')
+        if (edicao) removerPopup(edicao.id)
+        const movimentos = document.querySelector('.combustivel-movimentos')?.closest('.popup')
+        if (movimentos) removerPopup(movimentos.id)
+        removerPopup(form.closest('.popup').id)
+        await telaCombustivel()
+        await atualizarAlertaCombustivel()
+        await detalhesCombustivel(form.dataset.veiculo)
+    } catch (erro) {
+        if (salvo) popup({ mensagem: 'Uso excluído. Reabra a tela para atualizar os movimentos.' })
+        else form.querySelector('[role="status"]').textContent = erro.message
+    } finally { botao.disabled = false; estadoEnvioCombustivel(form, false) }
+}
+
+function tabelaOutrosUsosCombustivel(usos, veiculoId) {
+    const e = escaparAtributo, n = formatarCombustivel
+    if (!usos.length) return '<p class="combustivel-usos-vazio">Nenhum outro uso registrado.</p>'
+    return `<div class="combustivel-usos-tabela"><table><thead><tr><th>Data</th><th>Tipo de uso</th><th>Distância</th><th>Departamento</th><th>Motivo</th><th>Registrado por</th><th>Ações</th></tr></thead><tbody>${[...usos].sort((a, b) => String(b.data_consumo).localeCompare(String(a.data_consumo))).map(u => `<tr>
+        <td>${e(formatarDataHistoricoCombustivel(u.data_consumo))}</td><td><span class="combustivel-uso-tipo">${e(u.categoria)}</span></td>
+        <td>${n(u.km)} km</td><td>${e(u.departamento)}</td><td class="combustivel-uso-motivo">${e(u.motivo)}</td><td>${e(u.usuario)}</td>
+        <td><div class="combustivel-usos-acoes"><button type="button" data-veiculo="${e(veiculoId)}" data-id="${e(u.id)}" onclick="formularioOutroUsoCombustivel(this.dataset.veiculo, this.dataset.id)">Editar</button></div></td>
+    </tr>`).join('')}</tbody></table></div>`
 }
 
 function formatarDataHistoricoCombustivel(valor) {
@@ -156,6 +263,7 @@ async function telaCombustivel() {
                 { path: 'percentual', direcao: 'ASC' }
             ], criarLinha: 'criarLinhaTanqueCombustivel', colunas: {
             'Veículo': { chave: 'placa' },
+            'Final do cartão': { chave: 'cartao' },
             'Motoristas': { chave: 'motoristas_nomes' },
             'Combustível': { chave: 'combustivel' },
             'Tanque estimado': { chave: 'percentual' },
@@ -174,7 +282,7 @@ async function telaCombustivel() {
     } finally { removerOverlay() }
 }
 
-function popupFormularioCombustivel({ titulo, elemento }) {
+function popupFormularioCombustivel({ titulo, elemento, botoes = [] }) {
     const modelo = document.createElement('template')
     modelo.innerHTML = elemento.trim()
     const form = modelo.content.querySelector('form')
@@ -193,7 +301,7 @@ function popupFormularioCombustivel({ titulo, elemento }) {
     const idPopup = popup({
         titulo,
         linhas,
-        botoes: [{ id: `${idForm}-salvar`, texto: botaoSalvar.textContent, img: 'concluido', funcao: `document.getElementById('${idForm}').requestSubmit()` }]
+        botoes: [{ id: `${idForm}-salvar`, texto: botaoSalvar.textContent, img: 'concluido', funcao: `document.getElementById('${idForm}').requestSubmit()` }, ...(typeof botoes === 'function' ? botoes(idForm) : botoes)]
     })
     const painel = document.getElementById(idPopup).querySelector('.painel-padrao')
     form.replaceChildren()
@@ -255,6 +363,7 @@ async function formularioVeiculoCombustivel(id) {
             <form class="combustivel-form" data-id="${escaparAtributo(id || crypto.randomUUID())}" onsubmit="event.preventDefault(); salvarVeiculoCombustivel(this)">
                 ${campo('placa', 'Placa', v.placa)}${campo('modelo', 'Marca e modelo', v.modelo)}
                 ${campo('ano', 'Ano', v.ano, 'number')}
+                ${campo('cartao', 'Final do cartão', v.cartao)}
                 <div data-campo-motoristas>
                     <div class="combustivel-titulo-motoristas" data-titulo-motoristas>
                         <button type="button" class="combustivel-controle-motorista" title="Adicionar motorista" aria-label="Adicionar motorista" onclick="adicionarMotoristaCombustivel(this)"><img src="imagens/baixar.png" alt=""></button>
@@ -287,7 +396,9 @@ async function executarFormularioCombustivel(form, tarefa) {
     try {
         await tarefa()
         removerPopup(form.closest('.popup').id)
-        await telaCombustivel()
+        if (form.dataset.retornoPendencias) await telaComplementacoesCombustivel()
+        else if (form.dataset.retornoDiarios) await telaPagamentosDiariosCombustivel()
+        else await telaCombustivel()
     } catch (erro) { form.querySelector('[role="status"]').textContent = erro.message }
     finally { botao.disabled = false; estadoEnvioCombustivel(form, false) }
 }
@@ -305,61 +416,99 @@ async function salvarVeiculoCombustivel(form) {
         const motoristas = lerMotoristasCombustivel(form)
         const resposta = await enviar(`veiculos/${form.dataset.id}`, { ...anterior, id: form.dataset.id,
             placa: valor('placa').toUpperCase().replace(/[^A-Z0-9]/g, ''), modelo: valor('modelo'),
-            ano: valor('ano') ? Number(valor('ano')) : null, combustivel: valor('combustivel'),
+            cartao: valor('cartao'), ano: valor('ano') ? Number(valor('ano')) : null, combustivel: valor('combustivel'),
             capacidade_tanque, consumo_medio, saldo_inicial, motoristas, ativo: form.elements.ativo.checked })
         if (!resposta?.success) throw new Error(resposta?.mensagem || 'Não foi possível salvar o veículo.')
     })
 }
 
-function formularioAbastecimento(veiculoId) {
-    for (const [nome, base, rotulo] of [
-        ['comb_fornecedor', 'clientes', 'nome'], ['comb_categoria', 'mesc_categorias', 'id'], ['comb_transitorio', 'mesc_departamentos', 'id']
-    ]) controlesCxOpcoes[nome] = { base, retornar: [rotulo], colunas: { 'Cadastro': { chave: rotulo } } }
-    const opcao = (nome, texto, id, descricao = id) => `<label data-overlay>${texto}<span name="${nome}" id="${escaparAtributo(id)}" class="opcoes" onclick="cxOpcoes('${nome}')">${escaparAtributo(descricao)}</span></label>`
-    popupFormularioCombustivel({ titulo: 'Registrar abastecimento', elemento: `
-        <form class="combustivel-form" data-veiculo="${escaparAtributo(veiculoId)}" data-id="${crypto.randomUUID()}" data-pagamento="${crypto.randomUUID()}"
-            onsubmit="event.preventDefault(); salvarAbastecimento(this)">
-            <label>Data do abastecimento<input name="data_abastecimento" type="date" required value="${dataServidor().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })}"></label>
-            <label>Hodômetro (km)<input name="hodometro" type="number" min="0" step="0.001" required></label>
-            <label>Foto do hodômetro<input name="foto_hodometro" type="file" accept="image/*" capture="environment" required></label>
-            <label>Litros abastecidos<input name="litros" inputmode="decimal" placeholder="Ex.: 20,5" required></label>
-            <label>Valor total (R$)<input name="valor_total" inputmode="decimal" required></label>
-            <label>Observação<textarea name="observacao"></textarea></label>
-            <label>Empresa do pagamento<select name="app">${empresas.filter(a => ['AC', 'IAC', 'HNK'].includes(a)).map(a => `<option>${escaparAtributo(a)}</option>`).join('')}</select></label>
-            ${opcao('comb_fornecedor', 'Fornecedor', '6066446384', 'TICKET LOG')}${opcao('comb_categoria', 'Categoria do pagamento', 'Combustível')}
-            ${opcao('comb_transitorio', 'Centro de custo transitório', 'COMBUSTÍVEL NÃO ALOCADO')}
-            <p role="status"></p><button type="submit">Salvar abastecimento</button>
-        </form>` })
+async function formularioAbastecimento(veiculoId, id, complementar = false) {
+    try {
+        const a = id ? await recuperarDado('combustivel_abastecimentos', id) : {}
+        if (id && (!a?.id || a.excluido)) throw new Error('Abastecimento não encontrado.')
+        const e = escaparAtributo
+        const pendencias = pendenciasAbastecimento(a)
+        popupFormularioCombustivel({ titulo: complementar ? 'Complementar abastecimento' : id ? 'Editar abastecimento' : 'Registrar abastecimento',
+            botoes: id ? idForm => [{ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirAbastecimento(document.getElementById('${idForm}').dataset.id)` }] : [], elemento: `
+            <form ${document.querySelector('.combustivel-pendencias-pagina') ? 'data-retorno-pendencias="true"' : ''} ${document.querySelector('.combustivel-diario-detalhes') ? 'data-retorno-diarios="true"' : ''} data-veiculo="${e(veiculoId)}" data-id="${e(id || crypto.randomUUID())}" data-pagamento="${e(a.pagamento_id || crypto.randomUUID())}" onsubmit="event.preventDefault(); salvarAbastecimento(this)">
+                <label>Valor total (R$)<input name="valor_total" inputmode="decimal" required value="${e(a.valor_total ?? '')}"></label>
+                <label>Observação<textarea name="observacao">${e(a.observacao || '')}</textarea></label>
+                <label>Data do abastecimento<input name="data_abastecimento" type="date" required value="${e(a.data_abastecimento ? String(a.data_abastecimento).slice(0,10) : dataServidor().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }))}"></label>
+                ${id ? `<details class="combustivel-complementacao" ${complementar ? 'open' : ''}><summary>${pendencias.length ? `Complementação pendente · ${pendencias.length} campo(s)` : 'Dados do abastecimento · Completo'}</summary>
+                ${pendencias.length ? `<p class="combustivel-alerta">Falta informar: ${pendencias.map(e).join(', ')}.</p>` : ''}
+                <label>Litros abastecidos<input name="litros" inputmode="decimal" value="${e(a.litros ?? '')}"></label>
+                <label>Hodômetro (km)<input name="hodometro" type="number" min="0" step="0.001" value="${e(a.hodometro ?? '')}"></label>
+                <label>${a.foto_hodometro ? 'Substituir foto do hodômetro' : 'Foto do hodômetro'}<input name="foto_hodometro" type="file" accept="image/*" capture="environment"></label>
+                </details>` : ''}
+                <p role="status"></p><button type="submit">Salvar abastecimento</button>
+            </form>` })
+    } catch (erro) { popup({ mensagem: escaparAtributo(erro.message) }) }
 }
 
 async function salvarAbastecimento(form) {
     return executarFormularioCombustivel(form, async () => {
-        const valor = nome => form.elements.namedItem(nome).value.trim()
-        const litros = numeroCombustivel(valor('litros')), valor_total = numeroCombustivel(valor('valor_total'))
-        if (litros <= 0 || valor_total <= 0 || Math.abs(valor_total * 100 - Math.round(valor_total * 100)) > 1e-7)
-            throw new Error('Informe litros positivos e valor com até duas casas decimais.')
-        const referencia = nome => form.querySelector(`[name="${nome}"]`).id
-        const fornecedor = referencia('comb_fornecedor'), categoria = referencia('comb_categoria'), transitorio = referencia('comb_transitorio')
-        if (!fornecedor || !categoria || !transitorio) throw new Error('Selecione fornecedor, categoria e centro de custo transitório.')
-        const hodometro = numeroCombustivel(valor('hodometro'))
-        const marcado_em = horarioCombustivel(valor('data_abastecimento'), '00:00')
-        if (new Date(marcado_em) > dataServidor()) throw new Error('A marcação não pode ser futura.')
-        const inputFoto = form.elements.namedItem('foto_hodometro')
-        if (!inputFoto.files?.[0]?.type.startsWith('image/')) throw new Error('Selecione uma foto do hodômetro.')
-        if (!form.fotoHodometro || form.arquivoHodometro !== inputFoto.files[0]) {
-            const fotos = await importarAnexos({ input: inputFoto })
-            if (!fotos?.[0]?.link) throw new Error('Não foi possível enviar a foto do hodômetro.')
-            form.fotoHodometro = fotos[0].link
-            form.arquivoHodometro = inputFoto.files[0]
+        const anterior = await recuperarDado('combustivel_abastecimentos', form.dataset.id)
+        const valor = nome => form.elements.namedItem(nome)?.value.trim() || ''
+        const litros = form.elements.namedItem('litros') ? (valor('litros') ? numeroCombustivel(valor('litros')) : null) : anterior?.litros ?? null
+        const valor_total = numeroCombustivel(valor('valor_total'))
+        if ((litros != null && litros <= 0) || valor_total <= 0 || Math.abs(valor_total * 100 - Math.round(valor_total * 100)) > 1e-7)
+            throw new Error('Informe valor positivo com até duas casas decimais e, quando conhecidos, litros positivos.')
+        const data = valor('data_abastecimento')
+        const inicioDia = horarioCombustivel(data, '00:00')
+        if (new Date(inicioDia) > dataServidor()) throw new Error('A data não pode ser futura.')
+        const hodometro = form.elements.namedItem('hodometro') ? (valor('hodometro') ? numeroCombustivel(valor('hodometro')) : null) : anterior?.hodometro ?? null
+        if (anterior?.excluido) throw new Error('Este abastecimento foi excluído. Reabra a tela.')
+        const input = form.elements.namedItem('foto_hodometro')
+        let foto = anterior?.foto_hodometro || null
+        if (input?.files?.length) {
+            if (hodometro == null) throw new Error('Informe o hodômetro da foto.')
+            if (!input.files[0].type.startsWith('image/')) throw new Error('Selecione uma imagem do hodômetro.')
+            if (!form.fotoHodometro || form.arquivoHodometro !== input.files[0]) {
+                const fotos = await importarAnexos({ input })
+                if (!fotos?.[0]?.link) throw new Error('Não foi possível enviar a foto.')
+                form.fotoHodometro = fotos[0].link
+                form.arquivoHodometro = input.files[0]
+            }
+            foto = form.fotoHodometro
         }
+        if (foto && hodometro == null) throw new Error('Mantenha a leitura correspondente à foto do hodômetro.')
         const resposta = await enviar(`combustivel_abastecimentos/${form.dataset.id}`, {
-            id: form.dataset.id, veiculo_id: form.dataset.veiculo, data_abastecimento: valor('data_abastecimento'),
-            litros, valor_total, observacao: valor('observacao'),
-            hodometro, marcado_em, foto_hodometro: form.fotoHodometro,
-            pagamento_id: form.dataset.pagamento, usuario: acesso.usuario,
-            pagamento_config: { fornecedor, categoria, transitorio, app: valor('app') }
+            id: form.dataset.id, veiculo_id: form.dataset.veiculo, data_abastecimento: data,
+            litros, valor_total, observacao: valor('observacao'), hodometro,
+            marcado_em: hodometro == null ? null : inicioDia, foto_hodometro: foto,
+            pagamento_id: anterior?.pagamento_id || form.dataset.pagamento, usuario: acesso.usuario, sincronizar_omie: true,
+            pagamento_config: anterior?.pagamento_config || {}
         })
         if (!resposta?.success) throw new Error(resposta?.mensagem || 'Não foi possível salvar o abastecimento.')
+        const movimentos = document.querySelector('.combustivel-movimentos')?.closest('.popup')
+        if (movimentos) removerPopup(movimentos.id)
+        const diario = document.querySelector('.combustivel-diario-detalhes')?.closest('.popup')
+        if (diario) removerPopup(diario.id)
+    })
+}
+
+async function confirmarExcluirAbastecimento(id) {
+    try {
+        const a = await recuperarDado('combustivel_abastecimentos', id)
+        if (!a?.id || a.excluido) throw new Error('Abastecimento não encontrado.')
+        popupFormularioCombustivel({ titulo: 'Excluir abastecimento', elemento: `<form ${document.querySelector('.combustivel-diario-detalhes') ? 'data-retorno-diarios="true"' : ''} data-id="${escaparAtributo(id)}" onsubmit="event.preventDefault(); excluirAbastecimentoDiario(this)">
+            <p>Excluir o abastecimento de ${escaparAtributo(formatarDataHistoricoCombustivel(a.data_abastecimento))}, no valor de R$ ${formatarCombustivel(a.valor_total)}? O pagamento diário e o saldo serão recalculados.</p>
+            <p role="status"></p><button type="submit">Confirmar exclusão</button></form>` })
+    } catch (erro) { popup({ mensagem: escaparAtributo(erro.message) }) }
+}
+
+async function excluirAbastecimentoDiario(form) {
+    return executarFormularioCombustivel(form, async () => {
+        const abastecimento = await recuperarDado('combustivel_abastecimentos', form.dataset.id)
+        if (!abastecimento?.id) throw new Error('Abastecimento não encontrado. Reabra a tela.')
+        const resposta = await enviar(`combustivel_abastecimentos/${form.dataset.id}`, { ...abastecimento, excluido: dataServidor().toISOString() })
+        if (!resposta?.success) throw new Error(resposta?.mensagem || 'Falha ao excluir abastecimento.')
+        const edicoes = [...document.querySelectorAll('form[data-id]')].filter(f => f !== form && f.dataset.id === form.dataset.id)
+        for (const edicao of edicoes) { const p = edicao.closest('.popup'); if (p) removerPopup(p.id) }
+        const movimentos = document.querySelector('.combustivel-movimentos')?.closest('.popup')
+        if (movimentos) removerPopup(movimentos.id)
+        const diario = document.querySelector('.combustivel-diario-detalhes')?.closest('.popup')
+        if (diario) removerPopup(diario.id)
     })
 }
 
@@ -405,13 +554,14 @@ async function detalhesCombustivel(id) {
                 'Diferença': { chave: 'diferenca_km' }, 'Situação': { chave: 'situacao' }, 'Evidência / Justificativa': {}
             } })
         popup({ titulo: 'Movimentos de combustível', elemento: `<div class="combustivel-movimentos">
+            <p><strong>${e(veiculo?.placa || '')}</strong> · ${e(veiculo?.modelo || '')} · Final do cartão: ${e(veiculo?.cartao || 'Sem cartão')}</p>
             ${semOrigem > 0.001 ? `<p class="combustivel-alerta">${n(semOrigem)} L consumidos sem abastecimento anterior compatível. Confira datas e saldo inicial antes de distribuir custos.</p>` : ''}
             <h3>Abastecimentos</h3>
             ${tabelaAbastecimento}
             <h3>Conferência do hodômetro <button type="button" class="combustivel-ajuda" onclick="ajudaConferenciaHodometro()" title="Sobre a conferência do hodômetro" aria-label="Sobre a conferência do hodômetro">?</button></h3>
             ${tabelaConferencia}
             <h3>Outros usos <button type="button" data-id="${e(id)}" onclick="formularioOutroUsoCombustivel(this.dataset.id)">Registrar</button></h3>
-            <div class="combustivel-outros-usos">${outrosUsos.map(u => `<div class="combustivel-uso"><strong>${e(u.categoria)} · ${n(u.km)} km</strong><span>${e(formatarDataHistoricoCombustivel(u.data_consumo))} · ${e(u.motorista)} · ${e(u.departamento)}</span><span>${e(u.motivo)}</span><small>Registrado por ${e(u.usuario)}</small><button type="button" data-veiculo="${e(id)}" data-id="${e(u.id)}" onclick="formularioOutroUsoCombustivel(this.dataset.veiculo, this.dataset.id)">Editar</button></div>`).join('') || '<p>Nenhum outro uso registrado.</p>'}</div>
+            ${tabelaOutrosUsosCombustivel(outrosUsos, id)}
             <h3>Consumos nas correções</h3>
             ${tabelaConsumo}
         </div>` })
@@ -426,6 +576,7 @@ async function prepararPagamentoAbastecimento(id) {
     try {
         const a = await recuperarDado('combustivel_abastecimentos', id)
         if (!a) throw new Error('Abastecimento não encontrado.')
+        if (a.pagamento_diario_id) return detalhesPagamentoDiarioCombustivel(a.pagamento_diario_id)
         const existente = await recuperarDado('lista_pagamentos', a.pagamento_id)
         if (existente?.id) return abrirDetalhesPagamentos(a.pagamento_id)
         const estado = await recuperarDado('vw_combustivel_pagamentos', a.id)
@@ -443,17 +594,18 @@ async function camposCombustivelCorrecao(correcao) {
             consumo_medio: { op: '>', value: 0 },
             capacidade_tanque: { op: '>', value: 0 }
         },
-        retornar: ['placa', 'modelo', 'motoristas_nomes'],
+        retornar: ['placa', 'modelo', 'cartao', 'motoristas_nomes'],
         colunas: {
             'Placa': { chave: 'placa' },
             'Modelo': { chave: 'modelo' },
+            'Final do cartão': { chave: 'cartao' },
             'Motoristas': { chave: 'motoristas_nomes' },
             'km/l': { chave: 'consumo_medio' }
         }
     }
     const selecionado = atual.veiculo_id ? await recuperarDado('vw_veiculos_opcoes', atual.veiculo_id) : null
     const descricaoVeiculo = selecionado
-        ? [selecionado.placa, selecionado.modelo, selecionado.motoristas_nomes].filter(Boolean).join(' · ')
+        ? [selecionado.placa, selecionado.modelo, `Cartão: ${selecionado.cartao || 'Sem cartão'}`, selecionado.motoristas_nomes].filter(Boolean).join(' · ')
         : atual.veiculo_id || 'Selecionar veículo'
     return `<div class="combustivel-form" data-combustivel-correcao>
         <label>Veículo utilizado<span name="comb_veiculo" class="opcoes" ${atual.veiculo_id ? `id="${escaparAtributo(atual.veiculo_id)}"` : ''}
@@ -538,7 +690,7 @@ async function atualizarKmTecnicosCorrecao() {
             const selecionado = salvo?.veiculo_id || (carros.length === 1 ? String(carros[0].id) : '')
             linha.insertAdjacentHTML('beforeend', `<div class="combustivel-percurso-tecnico" data-percurso-tecnico="${escaparAtributo(tecnico)}" data-percurso-em="${escaparAtributo(salvo?.percurso_em || '')}">
                 <label>Veículo<select name="veiculo_tecnico">${carros.length > 1 ? '<option value="">Selecionar veículo</option>' : ''}
-                    ${carros.map(v => `<option value="${escaparAtributo(v.id)}" ${String(v.id) === selecionado ? 'selected' : ''}>${escaparAtributo(v.placa || '')} · ${escaparAtributo(v.modelo || '')}</option>`).join('')}</select></label>
+                    ${carros.map(v => `<option value="${escaparAtributo(v.id)}" ${String(v.id) === selecionado ? 'selected' : ''}>${escaparAtributo(v.placa || '')} · ${escaparAtributo(v.modelo || '')} · Cartão: ${escaparAtributo(v.cartao || 'Sem cartão')}</option>`).join('')}</select></label>
                 <label>km<input name="km_tecnico" inputmode="decimal" placeholder="Ex.: 65,5" value="${escaparAtributo(salvo?.km ?? '')}"></label>
             </div>`)
         }
@@ -570,7 +722,13 @@ function menuAcoesVeiculoCombustivel(id) {
     const acoes = [['editar', 'Editar veículo'], ['movimentos', 'Ver movimentos']]
     if (v.ativo && Number(v.capacidade_tanque) > 0 && Number(v.consumo_medio) > 0)
         acoes.push(['abastecer', 'Registrar abastecimento'], ['outros', 'Registrar outros usos'])
-    popup({ titulo: v.placa || 'Ações do veículo', elemento: `<div class="combustivel-menu-acoes">${acoes.map(([acao, texto]) => `<button type="button" data-id="${escaparAtributo(id)}" data-acao="${acao}" onclick="executarAcaoVeiculoCombustivel(this)">${texto}</button>`).join('')}</div>` })
+    const icones = {
+        editar: '<path d="m16 3 5 5-12 12-6 1 1-6Z"/><path d="m14 5 5 5"/>',
+        movimentos: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5m4-1v5l3 2"/>',
+        abastecer: '<path d="M3 21h12M5 21V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v17M5 10h8m0 3h2a2 2 0 0 1 2 2v2a2 2 0 0 0 4 0V9l-4-4"/><path d="M18 6v4h3"/>',
+        outros: '<path d="M5 3h14v18H5zM8 7h8m-8 4h8m-8 4h3m4-1v4m-2-2h4"/>'
+    }
+    popup({ titulo: v.placa || 'Ações do veículo', elemento: `<div class="combustivel-menu-acoes">${acoes.map(([acao, texto]) => `<button type="button" data-id="${escaparAtributo(id)}" data-acao="${acao}" onclick="executarAcaoVeiculoCombustivel(this)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${icones[acao]}</svg><span>${texto}</span></button>`).join('')}</div>` })
 }
 
 function executarAcaoVeiculoCombustivel(botao) {
@@ -589,11 +747,12 @@ function criarLinhaTanqueCombustivel(v) {
     const alerta = Number(v.saldo_litros) < 0 ? 'Saldo negativo: revise abastecimentos e percursos.'
         : Number(v.saldo_litros) > Number(v.capacidade_tanque) && configurado ? 'Saldo acima do tanque: revise os movimentos.' : ''
     return `<tr>
-        <td><div class="combustivel-veiculo">
+        <td><div class="combustivel-veiculo${v.ativo ? '' : ' combustivel-veiculo-inativo'}">
             <strong>${e(v.placa || 'Sem placa')}</strong>
             <span>${e(v.modelo || 'Veículo')}</span>
-            <small>${v.ativo ? 'Ativo' : 'Inativo'}</small>
+            <small>${v.ativo ? 'Ativo' : 'Desativado'}</small>
         </div></td>
+        <td>${e(v.cartao || 'Sem cartão')}</td>
         <td>${e(v.motoristas_nomes || 'Nenhum vinculado')}</td>
         <td>${e(v.combustivel || 'Não informado')}</td>
         <td><div class="combustivel-nivel" style="--cor-nivel: ${percentual <= 15 ? '#b83b32' : percentual <= 30 ? '#a36b13' : '#38794c'};">${configurado ? `<strong>${formatarCombustivel(percentual, 1)}%</strong>
@@ -612,89 +771,18 @@ function criarLinhaTanqueCombustivel(v) {
 async function editarHodometroAbastecimento(id) {
     try {
         const a = await recuperarDado('combustivel_abastecimentos', id)
-        if (!a?.id) throw new Error('Abastecimento não encontrado.')
-        popupFormularioCombustivel({ titulo: 'Editar abastecimento', elemento: `
-            <form data-id="${escaparAtributo(id)}" onsubmit="event.preventDefault(); salvarEdicaoHodometro(this)">
-                <p>Abastecimento de ${escaparAtributo(a.data_abastecimento)}. Informe a leitura desse abastecimento.</p>
-                <label>Litros abastecidos<input name="litros" inputmode="decimal" required value="${escaparAtributo(a.litros)}"></label>
-                <label>Valor total (R$)<input name="valor_total" inputmode="decimal" required value="${escaparAtributo(a.valor_total)}"></label>
-                <label>Hodômetro (km)<input name="hodometro" type="number" min="0" step="0.001" required value="${escaparAtributo(a.hodometro ?? '')}"></label>
-                <label>${a.foto_hodometro ? 'Substituir foto do hodômetro (opcional)' : 'Foto do hodômetro'}<input name="foto_hodometro" type="file" accept="image/*" ${a.foto_hodometro ? '' : 'required'}></label>
-                <p>Ao salvar, o mesmo pagamento no Omie será atualizado com os valores e departamentos calculados.</p>
-                <p role="status"></p><button type="submit">Salvar abastecimento</button>
-            </form>` })
+        if (!a?.id || a.excluido) throw new Error('Abastecimento não encontrado.')
+        return formularioAbastecimento(a.veiculo_id, id, true)
     } catch (erro) { popup({ mensagem: escaparAtributo(erro.message) }) }
-}
-
-async function salvarEdicaoHodometro(form) {
-    const botao = form.querySelector('[type="submit"]')
-    if (botao.disabled) return
-    botao.disabled = true
-    estadoEnvioCombustivel(form, true)
-    let salvo = false
-    try {
-        const a = await recuperarDado('combustivel_abastecimentos', form.dataset.id)
-        if (!a?.id) throw new Error('Abastecimento não encontrado.')
-        const litros = numeroCombustivel(form.elements.litros.value)
-        const valor_total = numeroCombustivel(form.elements.valor_total.value)
-        if (litros <= 0 || valor_total <= 0 || Math.abs(valor_total * 100 - Math.round(valor_total * 100)) > 1e-7)
-            throw new Error('Informe litros positivos e valor com até duas casas decimais.')
-        const hodometro = numeroCombustivel(form.elements.hodometro.value)
-        const marcado_em = horarioCombustivel(String(a.data_abastecimento).slice(0, 10), '00:00')
-        if (new Date(marcado_em) > dataServidor()) throw new Error('A marcação não pode ser futura.')
-        const input = form.elements.foto_hodometro
-        let foto_hodometro = a.foto_hodometro
-        if (input.files?.length) {
-            if (!input.files[0].type.startsWith('image/')) throw new Error('Selecione uma imagem do hodômetro.')
-            if (!form.fotoEnviada || form.arquivoEnviado !== input.files[0]) {
-                const fotos = await importarAnexos({ input })
-                if (!fotos?.[0]?.link) throw new Error('Não foi possível enviar a foto.')
-                form.fotoEnviada = fotos[0].link
-                form.arquivoEnviado = input.files[0]
-            }
-            foto_hodometro = form.fotoEnviada
-        }
-        if (!foto_hodometro) throw new Error('Inclua a foto do hodômetro.')
-        const resposta = await enviar(`combustivel_abastecimentos/${a.id}`, {
-            ...a, litros, valor_total, hodometro, marcado_em, foto_hodometro, sincronizar_omie: true
-        })
-        if (!resposta?.success) throw new Error(resposta?.mensagem || 'Não foi possível salvar a marcação.')
-        salvo = true
-        removerPopup(form.closest('.popup').id)
-        // Atualiza as duas tabelas do modal aberto, incluindo intervalos vizinhos recalculados.
-        const filtro = { veiculo_id: { op: '=', value: a.veiculo_id } }
-        const [abastecimentos, conferencias, rateios, pagamentos] = await Promise.all([
-            consultarCombustivel('combustivel_abastecimentos', filtro),
-            consultarCombustivel('vw_combustivel_conferencia_usos', filtro),
-            consultarCombustivel('vw_combustivel_rateios', filtro),
-            consultarCombustivel('vw_combustivel_pagamentos', filtro)
-        ])
-        controles.abastecimentosCombustivel.base = abastecimentos.map(item => ({ ...item,
-            rateio: rateios.find(v => v.id === item.id), sincronizacao: pagamentos.find(v => v.id === item.id) }))
-        controles.conferenciaHodometro.base = conferencias
-        controles.abastecimentosCombustivel.priBase = null
-        controles.conferenciaHodometro.priBase = null
-        await paginacao('abastecimentosCombustivel')
-        await paginacao('conferenciaHodometro')
-    } catch (erro) {
-        console.error('Falha ao editar abastecimento:', erro)
-        const mensagem = salvo
-            ? 'Abastecimento salvo. Falha ao atualizar as tabelas; reabra os movimentos. ' + erro.message
-            : erro.message || 'Falha ao salvar o abastecimento.'
-        const status = form.querySelector('[role="status"]')
-        if (status) status.textContent = mensagem
-        popup({ titulo: salvo ? 'Falha ao atualizar a tela' : 'Falha ao salvar abastecimento', mensagem: escaparAtributo(mensagem) })
-    }
-    finally { botao.disabled = false; estadoEnvioCombustivel(form, false) }
 }
 
 function criarLinhaAbastecimentoCombustivel(a) {
     const e = escaparAtributo, n = formatarCombustivel
     const r = a.rateio
-    return `<tr><td>${e(formatarDataHistoricoCombustivel(a.data_abastecimento))}</td><td>${n(a.litros)} L</td><td>R$ ${n(a.valor_total)}</td>
-        <td>${e(a.observacao || '—')}</td>
-        <td>${n(r?.litros_pendentes)} L</td>
-        <td>${(r?.departamentos || []).map(d => `<span>${e(d.departamento)}: ${n(d.litros)} L · R$ ${n(d.custo)}</span>`).join('') || '—'}</td>
+    return `<tr><td>${e(formatarDataHistoricoCombustivel(a.data_abastecimento))}</td><td>${a.litros == null ? 'Aguardando dados' : n(a.litros) + ' L'}</td><td>R$ ${n(a.valor_total)}</td>
+        <td>${e(a.observacao || '—')}${a.litros == null || a.hodometro == null || !a.foto_hodometro ? '<br><small class="combustivel-alerta">Aguardando dados complementares</small>' : ''}</td>
+        <td>${a.litros == null ? 'Valor no centro transitório' : n(r?.litros_pendentes) + ' L'}</td>
+        <td><div class="combustivel-rateio">${(r?.departamentos || []).map(d => `<span>${e(d.departamento)}: ${n(d.litros)} L · R$ ${n(d.custo)}</span>`).join('') || '—'}</div></td>
         <td><div class="combustivel-sincronizacao"><small>${e(a.sincronizacao?.situacao || 'Aguardando sincronização')}</small>${a.sincronizacao?.erro ? `<small class="combustivel-alerta">${e(a.sincronizacao.erro)}</small>` : ''}</div><div class="combustivel-acoes-icones">${botaoAcaoCombustivel(r?.pagamento_criado ? 'abrirPagamento' : 'prepararPagamento', a.id)}
         <button type="button" class="combustivel-botao-icone" data-id="${e(a.id)}" title="Editar abastecimento" aria-label="Editar abastecimento" onclick="editarHodometroAbastecimento(this.dataset.id)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18a9 9 0 1 1 16 0M12 13l4-5M6 15h1m10 0h1M8 7l1 1m3-3v1"/><circle cx="12" cy="15" r="2"/></svg></button></div></td>
     </tr>`

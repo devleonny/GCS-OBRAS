@@ -5,6 +5,9 @@ async function telaLogin() {
     if (acesso?.token)
         return await telaInicialGCS()
 
+    clearInterval(intervaloAlertaCombustivel)
+    document.getElementById('alerta-reserva-combustivel')?.remove()
+
     const tLogin = document.querySelector('.login-bloco')
     if (tLogin) return
 

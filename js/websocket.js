@@ -392,6 +392,7 @@ async function carregarControles() {
 
         if (typeof mostrarLembreteComunicadosGCS === 'function')
             mostrarLembreteComunicadosGCS()
+        void atualizarAlertaCombustivel()
     }
 
     await Promise.allSettled([

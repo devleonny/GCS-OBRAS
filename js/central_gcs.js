@@ -108,6 +108,7 @@ async function telaInicialGCS() {
     criarElementosIniciais()
     auxPendencias()
     await carregarControles()
+    iniciarAlertaCombustivel()
     await carregarComunicadoGCS()
 
 }

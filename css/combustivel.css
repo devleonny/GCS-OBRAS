@@ -1,9 +1,43 @@
 .combustivel-alerta { color: #a02a22; font-weight: 600; }
+.combustivel-complementacao { padding: 12px; border: 1px solid #d9e4dc; border-radius: 8px; background: #f6f9f7; text-align: left; }
+.combustivel-complementacao summary { cursor: pointer; font-weight: 600; color: #324b3c; }
+.combustivel-complementacao label { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.combustivel-pendencias { padding: 4px 8px; background: #fff0d5; color: #79500d; border: 1px solid #e4cc9b; border-radius: 6px; cursor: pointer; }
+.combustivel-pagamentos-diarios .tabela { width: auto; }
+.combustivel-pagamentos-diarios > .modtab { width: fit-content !important; max-width: 100%; align-self: flex-start; }
+.combustivel-diario-detalhe-celula { text-align: center; vertical-align: middle; }
+.combustivel-diario-detalhe-celula .combustivel-botao-icone { margin: 0 auto; }
+.combustivel-diario-detalhes { width: min(1000px, 80vw); max-width: 100%; display: grid; gap: 10px; text-align: left; }
+.combustivel-diario-detalhes h3, .combustivel-diario-detalhes p { margin: 0; }
+.combustivel-diario-totais { display: flex; gap: 12px; flex-wrap: wrap; }
+.combustivel-diario-totais > span { display: flex; flex-direction: column; gap: 5px; padding: 12px; border-radius: 8px; background: #edf3ef; color: #324b3c; }
+.combustivel-diario-totais strong { font-size: 1.2rem; }
+.combustivel-usos-tabela { overflow-x: auto; min-width: 0; border: 1px solid #d9e4dc; border-radius: 8px; }
+.combustivel-usos-tabela table { width: 100%; border-collapse: collapse; font-size: 0.85rem; background: #fff; color: #324b3c; }
+.combustivel-usos-tabela tbody td { background: #fff; }
+.combustivel-usos-tabela tbody tr:hover td { background: #f6f9f7; }
+.combustivel-usos-tabela th, .combustivel-usos-tabela td { padding: 10px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid #e4ebe6; }
+.combustivel-usos-tabela th { background: #edf3ef; color: #324b3c; white-space: nowrap; }
+.combustivel-usos-tabela tbody tr:last-child td { border-bottom: 0; }
+.combustivel-usos-tabela tbody tr:hover { background: #f6f9f7; }
+.combustivel-usos-tabela .combustivel-uso-motivo { min-width: 180px; max-width: 300px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.combustivel-uso-tipo { display: inline-block; padding: 3px 8px; border-radius: 12px; background: #edf3ef; color: #324b3c; }
+.combustivel-usos-acoes { display: flex; gap: 6px; }
+.combustivel-usos-acoes button { margin: 0; padding: 6px 10px; cursor: pointer; }
+.combustivel-uso-excluir { background: #fbe5e3; color: #842c22; border: 1px solid #e4b8b3; padding: 6px 10px; cursor: pointer; }
+.combustivel-usos-vazio { padding: 16px; border: 1px dashed #cbd7ce; border-radius: 8px; color: #666; }
+.combustivel-veiculo-inativo > strong, .combustivel-veiculo-inativo > span { text-decoration: line-through; color: #666; }
+.combustivel-veiculo-inativo > small { padding: 3px 8px; border-radius: 4px; background: #fbe5e3; color: #842c22; font-weight: 700; }
+.combustivel-reserva { border: 0; background: transparent; color: inherit; font: inherit; margin: 0; box-shadow: none; }
+.combustivel-reserva:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.combustivel-rateio { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; }
 .combustivel-menu-gatilho { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #324b3c; font-size: 26px; cursor: pointer; }
 .combustivel-menu-gatilho:hover { background: transparent; color: #24382c; }
 .combustivel-menu-acoes { display: flex; flex-direction: column; gap: 0; padding: 4px 12px; min-width: 220px; }
 .combustivel-menu-acoes button { display: block; width: 100%; margin: 0; padding: 12px 4px; text-align: left; border: 0; border-radius: 0; background: transparent; color: #324b3c; font-size: 14px; font-weight: 500; box-shadow: none; transform: none; transition: none; cursor: pointer; }
 .combustivel-menu-acoes button + button { border-top: 1px solid #324b3c20; }
+.combustivel-menu-acoes button { display: flex; align-items: center; gap: 10px; }
+.combustivel-menu-acoes button svg { flex-shrink: 0; pointer-events: none; }
 .combustivel-menu-acoes button:hover, .combustivel-menu-acoes button:active { background: transparent; color: #324b3c; box-shadow: none; transform: none; text-decoration: underline; text-underline-offset: 3px; }
 .combustivel-menu-acoes button:focus-visible, .combustivel-menu-gatilho:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 .combustivel-conferencia { text-align: left; white-space: normal; cursor: pointer; }
