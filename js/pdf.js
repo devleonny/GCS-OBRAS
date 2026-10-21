@@ -456,8 +456,11 @@ async function gerarPDF() {
     const parametros = new URLSearchParams(window.location.search)
     const idRecebido = parametros.get('id')
     const orcamentoBase = await recuperarDado('dados_orcamentos', idRecebido) || {}
-    const contrato = orcamentoBase.dados_orcam.contrato
-    const nomeCliente = orcamentoBase?.snapshots?.cliente || new Date().getTime()
+    const { contrato, omie_cliente } = orcamentoBase.dados_orcam
+    const cliente = await recuperarDado('clientes', omie_cliente) || {}
+    const nomeCliente = String(cliente.nome || orcamentoBase?.snapshots?.cliente || new Date().getTime())
+        .replace(/[\\/:*?"<>|]/g, '')
+        .trim()
 
     const divDescontoAcrescimo = document.getElementById(`total_DIFERENÇA`)
 
