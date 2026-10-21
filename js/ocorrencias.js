@@ -2713,12 +2713,18 @@ function multiplicarCampoSerie(input) {
 
 async function verificarConflitos() {
 
+    const area = document.querySelector('.tecnicos')
+    if (!area) return
+    const versao = (area.consultaConflitos || 0) + 1
+    area.consultaConflitos = versao
+    area.conflitosPendentes ??= new Map()
+
     const dtCorrecao = document.querySelector('[name="dtCorrecao"]')?.value
     const dtCorrecaoFinal = document.querySelector('[name="dtCorrecaoFinal"]')?.value
 
     const alerta = (funcao, tecnico) => `<img src="gifs/alerta.gif" name="alerta" data-tecnico="${tecnico}" onclick="${funcao}">`
 
-    for (const img of [...document.querySelectorAll('[name="alerta"]')])
+    for (const img of [...area.querySelectorAll('[name="alerta"]')])
         img.remove()
 
     if (!dtCorrecao)
@@ -2727,14 +2733,19 @@ async function verificarConflitos() {
     const inicioNovo = dtCorrecao
     const fimNovo = dtCorrecaoFinal || dtCorrecao
 
-    const tecs = [...document.querySelectorAll('.tecnicos span')]
+    const tecs = [...area.querySelectorAll('[data-usuario-selecao]')]
         .filter(span => span.id)
         .map(async (span) => {
 
             const tecnico = span.id
 
-            const pesquisa = await pesquisarDB({
+            const chave = JSON.stringify([tecnico, inicioNovo, fimNovo])
+            let consulta = area.conflitosPendentes.get(chave)
+            if (!consulta) {
+                consulta = pesquisarDB({
                 base: 'vw_tecnicos',
+                limite: 1,
+                ordenar: { path: 'dtCorrecao', direcao: 'ASC' },
                 filtros: {
                     ultimaCorrecao: {
                         op: '!=',
@@ -2753,7 +2764,17 @@ async function verificarConflitos() {
                         value: inicioNovo
                     }
                 }
-            })
+                })
+                area.conflitosPendentes.set(chave, consulta)
+            }
+            let pesquisa
+            try {
+                pesquisa = await consulta
+            } finally {
+                if (area.conflitosPendentes.get(chave) === consulta)
+                    area.conflitosPendentes.delete(chave)
+            }
+            if (area.consultaConflitos !== versao || !span.isConnected || span.id !== tecnico) return
 
             const dtCorrecaoMaisAntiga = obterDataMaisAntiga(pesquisa.resultados) // Retorna null para resultados vazios;
 

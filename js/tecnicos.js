@@ -83,8 +83,7 @@ async function telaAgenda({ flutuante = false, filtros = null } = {}) {
     else
         tela.innerHTML = elemento
 
-    await carregarAgenda(filtros)
-    await criarPesquisasAgenda()
+    await Promise.all([carregarAgenda(filtros), criarPesquisasAgenda()])
 
 }
 
@@ -148,6 +147,9 @@ async function carregarAgenda(filtros, pagina = 1) {
 
     const local = document.querySelector('.agenda-table-wrap')
     const baloes = document.querySelector('.agenda-cards')
+    if (!local || !baloes) return
+    const versao = (local.consultaAgenda || 0) + 1
+    local.consultaAgenda = versao
     const inicio = document.getElementById('inicio')?.value
     const fim = document.getElementById('fim')?.value
     const loading = '<div class="agenda-loading" role="status" aria-label="Carregando agenda"><img src="gifs/loading.gif" alt="" style="width: 5rem;"></div>'
@@ -227,6 +229,7 @@ async function carregarAgenda(filtros, pagina = 1) {
         filtros: filtrosConsulta
         })
     } catch (erro) {
+        if (local.consultaAgenda !== versao || !local.isConnected) return
         console.error('Erro ao carregar agenda:', erro)
         baloes.innerHTML = ''
         const aviso = document.createElement('div')
@@ -235,6 +238,7 @@ async function carregarAgenda(filtros, pagina = 1) {
         local.replaceChildren(aviso)
         return
     }
+    if (local.consultaAgenda !== versao || !local.isConnected) return
     const { resultados } = resposta || {}
     const linhas = (resultados || []).flatMap(grupo => listaAtendimentosAgenda(grupo.atendimentos)
         .map(item => ({ ...item, ultimaCorrecao: statusAgenda(item.ultimaCorrecao) }))

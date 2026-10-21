@@ -1,4 +1,19 @@
 .combustivel-alerta { color: #a02a22; font-weight: 600; }
+.combustivel-menu-gatilho { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #324b3c; font-size: 26px; cursor: pointer; }
+.combustivel-menu-gatilho:hover { background: transparent; color: #24382c; }
+.combustivel-menu-acoes { display: flex; flex-direction: column; gap: 0; padding: 4px 12px; min-width: 220px; }
+.combustivel-menu-acoes button { display: block; width: 100%; margin: 0; padding: 12px 4px; text-align: left; border: 0; border-radius: 0; background: transparent; color: #324b3c; font-size: 14px; font-weight: 500; box-shadow: none; transform: none; transition: none; cursor: pointer; }
+.combustivel-menu-acoes button + button { border-top: 1px solid #324b3c20; }
+.combustivel-menu-acoes button:hover, .combustivel-menu-acoes button:active { background: transparent; color: #324b3c; box-shadow: none; transform: none; text-decoration: underline; text-underline-offset: 3px; }
+.combustivel-menu-acoes button:focus-visible, .combustivel-menu-gatilho:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.combustivel-conferencia { text-align: left; white-space: normal; cursor: pointer; }
+.combustivel-conferencia-ok { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; background: #edf5ef; color: #38794c; font-size: 0.8rem; white-space: nowrap; }
+.combustivel-outros-usos { display: grid; gap: 6px; }
+.combustivel-uso { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 8px; border: 1px solid #d9e4dc; border-radius: 6px; text-align: left; }
+.combustivel-ajuda { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; min-width: 22px; margin-left: 4px; padding: 0; border: 1px solid currentColor; border-radius: 50%; background: transparent; color: inherit; font: inherit; font-size: 0.8rem; vertical-align: middle; cursor: pointer; }
+.combustivel-ajuda:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.combustivel-sincronizacao { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; }
+.combustivel-sincronizacao > small { display: block; }
 .combustivel-acoes-icones { display: flex; align-items: center; gap: 6px; }
 .combustivel-botao-icone { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; min-width: 36px; padding: 7px; box-sizing: border-box; cursor: pointer; }
 .combustivel-botao-icone svg { display: block; flex-shrink: 0; pointer-events: none; }
@@ -19,7 +34,8 @@
 .combustivel-form [role="status"] { color: #a02a22; }
 .combustivel-modal-form { margin: 0; min-width: 0; }
 .combustivel-modal-form [role="status"] { color: #a02a22; margin: 0; }
-.combustivel-movimentos { display: grid; gap: 12px; padding: 16px; max-width: 760px; }
+.combustivel-movimentos { display: grid; gap: 6px; padding: 12px; max-width: 760px; text-align: left; }
+.combustivel-movimentos > h3, .combustivel-movimentos > p { margin: 0; text-align: left; justify-self: stretch; }
 .combustivel-motorista { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .combustivel-titulo-motoristas { display: flex; align-items: center; gap: 1rem; }
 .combustivel-controle-motorista { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 0; border: 0; background: transparent; cursor: pointer; }
@@ -37,3 +53,13 @@
 .combustivel-percurso-tecnico input[type="time"] { width: 110px; }
 
 .combustivel-movimentos { width: min(1100px, 85vw); max-width: 100%; box-sizing: border-box; min-width: 0; }
+
+.tecnicos[data-combustivel-correcao] { gap: 6px; overflow-x: visible; }
+.tecnicos[data-combustivel-correcao] > [data-linha-usuario] { width: 340px; max-width: 100%; min-width: 0; box-sizing: border-box; padding: 8px; border: 1px solid #d9e4dc; border-radius: 8px; background: #f6f9f7; }
+.tecnicos[data-combustivel-correcao] [data-usuario-selecao] { flex: 1; min-width: 120px; text-align: left; font-weight: 600; }
+.tecnicos[data-combustivel-correcao] .combustivel-percurso-tecnico { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 90px; gap: 6px; }
+.tecnicos[data-combustivel-correcao] .combustivel-percurso-tecnico label { min-width: 0; gap: 3px; white-space: normal; font-size: 0.8rem; color: #324b3c; }
+.tecnicos[data-combustivel-correcao] .combustivel-percurso-tecnico input, .tecnicos[data-combustivel-correcao] .combustivel-percurso-tecnico select { width: 100%; padding: 5px 6px; border: 1px solid #cbd7ce; border-radius: 6px; background: white; }
+@media (max-width: 540px) {
+    .tecnicos[data-combustivel-correcao] .combustivel-percurso-tecnico { grid-template-columns: minmax(0, 1fr) 80px; }
+}

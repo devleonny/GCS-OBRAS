@@ -1,5 +1,60 @@
 let frotaCombustivel = []
 
+function resumoDivergenciasCombustivel(conferencias, limiteKm = 20, limitePercentual = 10) {
+    const relevantes = conferencias.filter(c => c.anterior_id &&
+        c.situacao !== 'Conferir marcações no mesmo dia' && Number(c.km_rodados) >= 0)
+    const grandes = relevantes.filter(c => Math.abs(Number(c.diferenca_km)) > limiteKm &&
+        (Number(c.km_rodados) === 0 || Math.abs(Number(c.diferenca_km)) * 100 / Number(c.km_rodados) > limitePercentual))
+    return { quantidade: grandes.length, km: grandes.reduce((s, c) => s + Math.abs(Number(c.diferenca_km)), 0) }
+}
+
+async function formularioOutroUsoCombustivel(veiculoId, id) {
+    try {
+        const uso = id ? await recuperarDado('combustivel_outros_usos', id) : {}
+        if (id && (!uso?.id || uso.excluido)) throw new Error('Uso não encontrado.')
+        controlesCxOpcoes.comb_uso_departamento = { base: 'mesc_departamentos', retornar: ['id'], colunas: { 'Departamento': { chave: 'id' } } }
+        popupFormularioCombustivel({ titulo: id ? 'Editar outro uso' : 'Registrar outro uso', elemento: `
+            <form data-id="${escaparAtributo(id || crypto.randomUUID())}" data-veiculo="${escaparAtributo(veiculoId)}" onsubmit="event.preventDefault(); salvarOutroUsoCombustivel(this)">
+                <label>Data<input name="data_consumo" type="date" required value="${uso.data_consumo ? escaparAtributo(String(uso.data_consumo).slice(0, 10)) : dataServidor().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })}"></label>
+                <label>Tipo de uso<select name="categoria">${['Particular', 'Administrativo', 'Oficina', 'Outro'].map(c => `<option ${uso.categoria === c ? 'selected' : ''}>${c}</option>`).join('')}</select></label>
+                <label>km<input name="km" inputmode="decimal" required value="${escaparAtributo(uso.km ?? '')}"></label>
+                <label>Motivo<textarea name="motivo" required minlength="10">${escaparAtributo(uso.motivo || '')}</textarea></label>
+                <label>Departamento do custo<span name="comb_uso_departamento" class="opcoes" ${uso.departamento ? `id="${escaparAtributo(uso.departamento)}"` : ''} onclick="cxOpcoes('comb_uso_departamento')">${escaparAtributo(uso.departamento || 'Selecionar')}</span></label>
+                <p role="status"></p><button type="submit">Salvar uso</button>
+            </form>` })
+    } catch (erro) { popup({ mensagem: escaparAtributo(erro.message) }) }
+}
+
+async function salvarOutroUsoCombustivel(form) {
+    return executarFormularioCombustivel(form, async () => {
+        const valor = nome => form.elements.namedItem(nome).value.trim()
+        const km = numeroCombustivel(valor('km'))
+        const departamento = form.querySelector('[name="comb_uso_departamento"]').id
+        if (km <= 0 || !departamento || valor('motivo').length < 10)
+            throw new Error('Informe km positivo, departamento e motivo com pelo menos 10 caracteres.')
+        if (!valor('data_consumo') || valor('data_consumo') > dataServidor().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }))
+            throw new Error('Informe uma data válida, sem ser futura.')
+        const resposta = await enviar(`combustivel_outros_usos/${form.dataset.id}`, {
+            id: form.dataset.id, veiculo_id: form.dataset.veiculo, km, departamento,
+            data_consumo: valor('data_consumo'), categoria: valor('categoria'),
+            motorista: '', motivo: valor('motivo'), usuario: acesso.usuario
+        })
+        if (!resposta?.success) throw new Error(resposta?.mensagem || 'Falha ao registrar outro uso.')
+        const movimentos = document.querySelector('.combustivel-movimentos')?.closest('.popup')
+        if (movimentos) removerPopup(movimentos.id)
+    })
+}
+
+function formatarDataHistoricoCombustivel(valor) {
+    if (!valor) return '—'
+    const texto = String(valor)
+    const data = /^(\d{4})-(\d{2})-(\d{2})$/.exec(texto)
+    if (data) return `${data[3]}/${data[2]}/${data[1]}`
+    const instante = new Date(texto)
+    return Number.isNaN(instante.getTime()) ? '—'
+        : instante.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+}
+
 function horarioCombustivel(data, hora) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(data) || !/^\d{2}:\d{2}$/.test(hora))
         throw new Error('Informe a data e a hora da marcação ou do percurso.')
@@ -8,13 +63,17 @@ function horarioCombustivel(data, hora) {
     return instante.toISOString()
 }
 
+function ajudaConferenciaHodometro() {
+    popup({ titulo: 'Conferência do hodômetro', mensagem: 'Diferença = km rodados menos km dos chamados e dos outros usos registrados.<br><br>O primeiro registro é a referência inicial.<br><br>A soma considera os dias após a marcação anterior até o dia da atual, inclusive. Sem horários, os limites do intervalo são aproximados.<br><br>O alerta principal destaca diferenças maiores que 20 km e 10% do intervalo, incluindo diferenças negativas. Justificar não elimina a divergência.<br><br>Revise os chamados ou registre uso particular, administrativo, oficina ou outro. Percursos nos dias dos abastecimentos precisam ser conferidos.' })
+}
+
 function criarLinhaConferenciaHodometro(c) {
     const e = escaparAtributo, n = formatarCombustivel
     const foto = /^https:\/\//i.test(c.foto_hodometro || '')
         ? `<a href="${e(c.foto_hodometro)}" target="_blank" rel="noopener noreferrer">Ver foto</a>` : ''
-    return `<tr><td>${e(new Date(c.marcado_em).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }))}</td>
+    return `<tr><td>${e(formatarDataHistoricoCombustivel(c.marcado_em))}</td>
         <td>${n(c.hodometro)} km</td><td>${c.anterior_id ? n(c.km_rodados) : '—'}</td>
-        <td>${c.anterior_id ? n(c.km_chamados) : '—'}</td><td>${c.anterior_id ? n(c.diferenca_km) : '—'}</td>
+        <td>${c.anterior_id ? n(c.km_so_chamados ?? c.km_chamados) : '—'}${Number(c.km_outros_usos) ? `<br><small>Outros usos: ${n(c.km_outros_usos)} km</small>` : ''}</td><td>${c.anterior_id ? n(c.diferenca_km) : '—'}</td>
         <td>${e(c.situacao)}${Number(c.percursos_sem_horario) ? `<br>${n(c.percursos_sem_horario)} percurso(s) sem horário` : ''}</td>
         <td>${foto}<p>${e(c.justificativa_hodometro?.texto || '')}</p>
         ${c.situacao === 'Pendente de justificativa' ? `<button type="button" data-id="${e(c.id)}" onclick="formularioJustificativaHodometro(this.dataset.id)">Justificar diferença</button>` : ''}</td></tr>`
@@ -47,7 +106,7 @@ async function salvarJustificativaHodometro(form) {
         if (!resposta?.success) throw new Error(resposta?.mensagem || 'Não foi possível salvar a justificativa.')
         removerPopup(form.closest('.popup').id)
         const controle = controles.conferenciaHodometro
-        controle.base = await consultarCombustivel('vw_combustivel_conferencia', { veiculo_id: { op: '=', value: form.dataset.veiculo } })
+        controle.base = await consultarCombustivel('vw_combustivel_conferencia_usos', { veiculo_id: { op: '=', value: form.dataset.veiculo } })
         controle.priBase = null
         await paginacao('conferenciaHodometro')
     } catch (erro) { form.querySelector('[role="status"]').textContent = erro.message }
@@ -81,11 +140,13 @@ async function consultarCombustivel(base, filtros = {}) {
 async function telaCombustivel() {
     overlayAguarde()
     try {
-        const [saldos, opcoes] = await Promise.all([
-            consultarCombustivel('vw_combustivel_saldos'), consultarCombustivel('vw_veiculos_opcoes')
+        const [saldos, opcoes, conferencias] = await Promise.all([
+            consultarCombustivel('vw_combustivel_saldos'), consultarCombustivel('vw_veiculos_opcoes'),
+            consultarCombustivel('vw_combustivel_conferencia_usos')
         ])
         const motoristas = new Map(opcoes.map(v => [String(v.id), v.motoristas_nomes]))
         frotaCombustivel = saldos.map(v => ({ ...v,
+            divergencia: resumoDivergenciasCombustivel(conferencias.filter(c => String(c.veiculo_id) === String(v.id))),
             motoristas_nomes: motoristas.get(String(v.id)) || '',
             sem_registro_combustivel: Number(v.saldo_inicial) > 0 || Number(v.litros_abastecidos) > 0 || Number(v.litros_consumidos) > 0 ? 0 : 1
         }))
@@ -100,6 +161,7 @@ async function telaCombustivel() {
             'Tanque estimado': { chave: 'percentual' },
             'Consumo médio': { chave: 'consumo_medio' },
             'Consumido': { chave: 'litros_consumidos' },
+            'Conferência de km': { chave: 'divergencia.km' },
             'Ações': {}
         } })
         tela.innerHTML = `<div class="pagina-conteudo">
@@ -131,11 +193,12 @@ function popupFormularioCombustivel({ titulo, elemento }) {
     const idPopup = popup({
         titulo,
         linhas,
-        botoes: [{ texto: botaoSalvar.textContent, img: 'concluido', funcao: `document.getElementById('${idForm}').requestSubmit()` }]
+        botoes: [{ id: `${idForm}-salvar`, texto: botaoSalvar.textContent, img: 'concluido', funcao: `document.getElementById('${idForm}').requestSubmit()` }]
     })
     const painel = document.getElementById(idPopup).querySelector('.painel-padrao')
     form.replaceChildren()
     form.id = idForm
+    form.botaoSalvarVisivel = document.getElementById(`${idForm}-salvar`)
     form.className = 'combustivel-modal-form'
     painel.replaceWith(form)
     form.appendChild(painel)
@@ -210,16 +273,23 @@ async function formularioVeiculoCombustivel(id) {
     } catch (erro) { popup({ mensagem: escaparAtributo(erro.message) }) }
 }
 
+function estadoEnvioCombustivel(form, salvando) {
+    form.setAttribute?.('aria-busy', String(salvando))
+    if (salvando) overlayAguarde()
+    else removerOverlay()
+}
+
 async function executarFormularioCombustivel(form, tarefa) {
     const botao = form.querySelector('[type="submit"]')
     if (botao.disabled) return
     botao.disabled = true
+    estadoEnvioCombustivel(form, true)
     try {
         await tarefa()
         removerPopup(form.closest('.popup').id)
         await telaCombustivel()
     } catch (erro) { form.querySelector('[role="status"]').textContent = erro.message }
-    finally { botao.disabled = false }
+    finally { botao.disabled = false; estadoEnvioCombustivel(form, false) }
 }
 
 async function salvarVeiculoCombustivel(form) {
@@ -297,11 +367,12 @@ async function detalhesCombustivel(id) {
     overlayAguarde()
     try {
         const filtro = { veiculo_id: { op: '=', value: id } }
-        const [abastecimentos, consumos, rateios, conferencias, pagamentosOmie] = await Promise.all([
+        const [abastecimentos, consumos, rateios, conferencias, pagamentosOmie, outrosUsos] = await Promise.all([
             consultarCombustivel('combustivel_abastecimentos', { ...filtro, excluido: { op: 'IS_EMPTY' } }),
             consultarCombustivel('combustivel_consumos', filtro), consultarCombustivel('vw_combustivel_rateios', filtro),
-            consultarCombustivel('vw_combustivel_conferencia', filtro),
-            consultarCombustivel('vw_combustivel_pagamentos', filtro)
+            consultarCombustivel('vw_combustivel_conferencia_usos', filtro),
+            consultarCombustivel('vw_combustivel_pagamentos', filtro),
+            consultarCombustivel('combustivel_outros_usos', { ...filtro, excluido: { op: 'IS_EMPTY' } })
         ])
         const e = escaparAtributo, n = formatarCombustivel
         const veiculo = frotaCombustivel.find(v => String(v.id) === id)
@@ -312,12 +383,12 @@ async function detalhesCombustivel(id) {
             'Data': { chave: 'data_abastecimento' , tipoPesquisa: 'data' },
             'Litros': { chave: 'litros' },
             'Valor total': { chave: 'valor_total' },
-            'Motorista / Observação': { chave: 'motorista' },
+            'Observação': { chave: 'observacao' },
             'Sem departamento': { chave: 'rateio.litros_pendentes' },
             'Rateio por departamento': {},
             'Pagamento / Omie': { chave: 'sincronizacao.situacao' }
         } })
-        const tabelaConsumo = await modTab({ pag: 'consumosCombustivel', body: 'bodyConsumoCombustivel', base: consumos, criarLinha: 'criarLinhaConsumoCombustivel', scroll: false, colunas: {
+        const tabelaConsumo = await modTab({ pag: 'consumosCombustivel', body: 'bodyConsumoCombustivel', base: consumos.filter(c => !String(c.id).startsWith('outro-uso:')), criarLinha: 'criarLinhaConsumoCombustivel', scroll: false, colunas: {
             'Data': { chave: 'data_consumo' , tipoPesquisa: 'data' },
             'Distância': { chave: 'km' },
             'Litros': { chave: 'litros' },
@@ -337,12 +408,12 @@ async function detalhesCombustivel(id) {
             ${semOrigem > 0.001 ? `<p class="combustivel-alerta">${n(semOrigem)} L consumidos sem abastecimento anterior compatível. Confira datas e saldo inicial antes de distribuir custos.</p>` : ''}
             <h3>Abastecimentos</h3>
             ${tabelaAbastecimento}
-            <h3>Conferência do hodômetro</h3>
-            <p>Diferença = km rodados menos km registrados nos chamados. O primeiro registro é a referência inicial. A soma considera os dias após a marcação anterior até o dia da atual, inclusive. Percursos nos dias dos abastecimentos precisam ser conferidos.</p>
+            <h3>Conferência do hodômetro <button type="button" class="combustivel-ajuda" onclick="ajudaConferenciaHodometro()" title="Sobre a conferência do hodômetro" aria-label="Sobre a conferência do hodômetro">?</button></h3>
             ${tabelaConferencia}
+            <h3>Outros usos <button type="button" data-id="${e(id)}" onclick="formularioOutroUsoCombustivel(this.dataset.id)">Registrar</button></h3>
+            <div class="combustivel-outros-usos">${outrosUsos.map(u => `<div class="combustivel-uso"><strong>${e(u.categoria)} · ${n(u.km)} km</strong><span>${e(formatarDataHistoricoCombustivel(u.data_consumo))} · ${e(u.motorista)} · ${e(u.departamento)}</span><span>${e(u.motivo)}</span><small>Registrado por ${e(u.usuario)}</small><button type="button" data-veiculo="${e(id)}" data-id="${e(u.id)}" onclick="formularioOutroUsoCombustivel(this.dataset.veiculo, this.dataset.id)">Editar</button></div>`).join('') || '<p>Nenhum outro uso registrado.</p>'}</div>
             <h3>Consumos nas correções</h3>
             ${tabelaConsumo}
-            <p>O rateio FIFO é sincronizado com o mesmo título no Omie. Valores ainda sem departamento ficam no centro transitório. Reabra os movimentos para atualizar o estado da sincronização.</p>
         </div>` })
         await paginacao('abastecimentosCombustivel')
         await paginacao('consumosCombustivel')
@@ -387,10 +458,7 @@ async function camposCombustivelCorrecao(correcao) {
     return `<div class="combustivel-form" data-combustivel-correcao>
         <label>Veículo utilizado<span name="comb_veiculo" class="opcoes" ${atual.veiculo_id ? `id="${escaparAtributo(atual.veiculo_id)}"` : ''}
             onclick="cxOpcoes('comb_veiculo')">${escaparAtributo(descricaoVeiculo)}</span></label>
-        <button type="button" onclick="const bloco = this.closest('[data-combustivel-correcao]'); const veiculo = bloco.querySelector('[name=comb_veiculo]'); veiculo.removeAttribute('id'); veiculo.textContent = 'Selecionar veículo'; bloco.querySelector('[name=comb_km]').value = ''">Sem deslocamento</button>
-        <label>Quilômetros percorridos no total da correção<input name="comb_km" inputmode="decimal" value="${escaparAtributo(atual.km || '')}" placeholder="Ex.: 65,5"></label>
-        <label>Motorista<input name="comb_motorista" value="${escaparAtributo(atual.motorista || '')}"></label>
-        <small>Preencha somente o percurso realizado. O consumo é estimado pelo km/l do veículo.</small>
+        <label>km<input name="comb_km" inputmode="decimal" value="${escaparAtributo(atual.km || '')}" placeholder="Ex.: 65,5"></label>
     </div>`
 }
 
@@ -408,9 +476,7 @@ function lerCombustivelCorrecao(idChamado) {
             if (km <= 0) throw new Error('Informe quilômetros positivos ou deixe o campo vazio para não consumir.')
             const veiculo_id = bloco.querySelector('[name="veiculo_tecnico"]').value
             if (!veiculo_id) throw new Error(`Selecione o veículo de ${bloco.dataset.percursoTecnico}.`)
-            const data = bloco.querySelector('[name="data_percurso"]').value
-            const hora = bloco.querySelector('[name="hora_percurso"]').value
-            const percurso_em = horarioCombustivel(data, hora)
+            const percurso_em = bloco.dataset.percursoEm || null
             if (percursos.some(p => p.tecnico === bloco.dataset.percursoTecnico)) throw new Error('O técnico está repetido. Registre seu percurso em uma única linha.')
             percursos.push({ tecnico: bloco.dataset.percursoTecnico, motorista: bloco.dataset.percursoTecnico,
                 veiculo_id, km, percurso_em, departamento: String(idChamado) })
@@ -427,7 +493,7 @@ function lerCombustivelCorrecao(idChamado) {
     if (km <= 0) throw new Error('Informe os quilômetros percorridos.')
     const departamento = String(idChamado || '')
     if (!departamento) throw new Error('Chamado do percurso não identificado.')
-    return { veiculo_id, km, departamento, motorista: bloco.querySelector('[name="comb_motorista"]').value.trim() }
+    return { veiculo_id, km, departamento, motorista: '' }
 }
 
 async function atualizarKmTecnicosCorrecao() {
@@ -470,12 +536,10 @@ async function atualizarKmTecnicosCorrecao() {
                 (salvo && String(v.id) === String(salvo.veiculo_id)))
             if (!carros.length) continue
             const selecionado = salvo?.veiculo_id || (carros.length === 1 ? String(carros[0].id) : '')
-            linha.insertAdjacentHTML('beforeend', `<div class="combustivel-percurso-tecnico" data-percurso-tecnico="${escaparAtributo(tecnico)}">
+            linha.insertAdjacentHTML('beforeend', `<div class="combustivel-percurso-tecnico" data-percurso-tecnico="${escaparAtributo(tecnico)}" data-percurso-em="${escaparAtributo(salvo?.percurso_em || '')}">
                 <label>Veículo<select name="veiculo_tecnico">${carros.length > 1 ? '<option value="">Selecionar veículo</option>' : ''}
                     ${carros.map(v => `<option value="${escaparAtributo(v.id)}" ${String(v.id) === selecionado ? 'selected' : ''}>${escaparAtributo(v.placa || '')} · ${escaparAtributo(v.modelo || '')}</option>`).join('')}</select></label>
-                <label>Quilômetros percorridos<input name="km_tecnico" inputmode="decimal" placeholder="Ex.: 65,5" value="${escaparAtributo(salvo?.km ?? '')}"></label>
-                <label>Data do percurso<input name="data_percurso" type="date" value="${salvo?.percurso_em ? escaparAtributo(new Date(salvo.percurso_em).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })) : ''}"></label>
-                <label>Hora de conclusão<input name="hora_percurso" type="time" value="${salvo?.percurso_em ? escaparAtributo(new Date(salvo.percurso_em).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })) : ''}"></label>
+                <label>km<input name="km_tecnico" inputmode="decimal" placeholder="Ex.: 65,5" value="${escaparAtributo(salvo?.km ?? '')}"></label>
             </div>`)
         }
     } catch (erro) {
@@ -500,6 +564,24 @@ function botaoAcaoCombustivel(acao, id) {
     return `<button type="button" class="combustivel-botao-icone" data-id="${escaparAtributo(id)}" title="${item.titulo}" aria-label="${item.titulo}" onclick="${item.funcao}(this.dataset.id)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${item.desenho}</svg></button>`
 }
 
+function menuAcoesVeiculoCombustivel(id) {
+    const v = frotaCombustivel.find(item => String(item.id) === String(id))
+    if (!v) return
+    const acoes = [['editar', 'Editar veículo'], ['movimentos', 'Ver movimentos']]
+    if (v.ativo && Number(v.capacidade_tanque) > 0 && Number(v.consumo_medio) > 0)
+        acoes.push(['abastecer', 'Registrar abastecimento'], ['outros', 'Registrar outros usos'])
+    popup({ titulo: v.placa || 'Ações do veículo', elemento: `<div class="combustivel-menu-acoes">${acoes.map(([acao, texto]) => `<button type="button" data-id="${escaparAtributo(id)}" data-acao="${acao}" onclick="executarAcaoVeiculoCombustivel(this)">${texto}</button>`).join('')}</div>` })
+}
+
+function executarAcaoVeiculoCombustivel(botao) {
+    const funcoes = { editar: formularioVeiculoCombustivel, movimentos: detalhesCombustivel,
+        abastecer: formularioAbastecimento, outros: formularioOutroUsoCombustivel }
+    const funcao = funcoes[botao.dataset.acao]
+    if (!funcao) return
+    removerPopup(botao.closest('.popup').id)
+    return funcao(botao.dataset.id)
+}
+
 function criarLinhaTanqueCombustivel(v) {
     const e = escaparAtributo
     const configurado = Number(v.capacidade_tanque) > 0 && Number(v.consumo_medio) > 0
@@ -521,11 +603,8 @@ function criarLinhaTanqueCombustivel(v) {
             ${alerta ? `<small class="combustivel-alerta">${alerta}</small>` : ''}</div></td>
         <td>${configurado ? `${formatarCombustivel(v.consumo_medio)} km/l` : '—'}</td>
         <td>${formatarCombustivel(v.litros_consumidos)} L</td>
-        <td><div class="combustivel-acoes-icones">
-            ${botaoAcaoCombustivel('editar', v.id)}
-            ${botaoAcaoCombustivel('movimentos', v.id)}
-            ${configurado && v.ativo ? botaoAcaoCombustivel('abastecer', v.id) : ''}
-        </div></td>
+        <td>${v.divergencia?.quantidade ? `<button type="button" class="combustivel-conferencia combustivel-alerta" data-id="${e(v.id)}" onclick="detalhesCombustivel(this.dataset.id)">${v.divergencia.quantidade} intervalo(s): ${formatarCombustivel(v.divergencia.km)} km de divergência</button>` : '<span class="combustivel-conferencia-ok" title="Nenhuma divergência acima dos limites de alerta"><span aria-hidden="true">✓</span> Sem alerta</span>'}</td>
+        <td><button type="button" class="combustivel-menu-gatilho" data-id="${e(v.id)}" onclick="menuAcoesVeiculoCombustivel(this.dataset.id)" aria-label="Ações do veículo" aria-haspopup="dialog" title="Ações do veículo">⋮</button></td>
     </tr>`
 
 }
@@ -551,6 +630,8 @@ async function salvarEdicaoHodometro(form) {
     const botao = form.querySelector('[type="submit"]')
     if (botao.disabled) return
     botao.disabled = true
+    estadoEnvioCombustivel(form, true)
+    let salvo = false
     try {
         const a = await recuperarDado('combustivel_abastecimentos', form.dataset.id)
         if (!a?.id) throw new Error('Abastecimento não encontrado.')
@@ -559,7 +640,7 @@ async function salvarEdicaoHodometro(form) {
         if (litros <= 0 || valor_total <= 0 || Math.abs(valor_total * 100 - Math.round(valor_total * 100)) > 1e-7)
             throw new Error('Informe litros positivos e valor com até duas casas decimais.')
         const hodometro = numeroCombustivel(form.elements.hodometro.value)
-        const marcado_em = horarioCombustivel(a.data_abastecimento, '00:00')
+        const marcado_em = horarioCombustivel(String(a.data_abastecimento).slice(0, 10), '00:00')
         if (new Date(marcado_em) > dataServidor()) throw new Error('A marcação não pode ser futura.')
         const input = form.elements.foto_hodometro
         let foto_hodometro = a.foto_hodometro
@@ -578,12 +659,13 @@ async function salvarEdicaoHodometro(form) {
             ...a, litros, valor_total, hodometro, marcado_em, foto_hodometro, sincronizar_omie: true
         })
         if (!resposta?.success) throw new Error(resposta?.mensagem || 'Não foi possível salvar a marcação.')
+        salvo = true
         removerPopup(form.closest('.popup').id)
         // Atualiza as duas tabelas do modal aberto, incluindo intervalos vizinhos recalculados.
         const filtro = { veiculo_id: { op: '=', value: a.veiculo_id } }
         const [abastecimentos, conferencias, rateios, pagamentos] = await Promise.all([
             consultarCombustivel('combustivel_abastecimentos', filtro),
-            consultarCombustivel('vw_combustivel_conferencia', filtro),
+            consultarCombustivel('vw_combustivel_conferencia_usos', filtro),
             consultarCombustivel('vw_combustivel_rateios', filtro),
             consultarCombustivel('vw_combustivel_pagamentos', filtro)
         ])
@@ -594,18 +676,26 @@ async function salvarEdicaoHodometro(form) {
         controles.conferenciaHodometro.priBase = null
         await paginacao('abastecimentosCombustivel')
         await paginacao('conferenciaHodometro')
-    } catch (erro) { form.querySelector('[role="status"]').textContent = erro.message }
-    finally { botao.disabled = false }
+    } catch (erro) {
+        console.error('Falha ao editar abastecimento:', erro)
+        const mensagem = salvo
+            ? 'Abastecimento salvo. Falha ao atualizar as tabelas; reabra os movimentos. ' + erro.message
+            : erro.message || 'Falha ao salvar o abastecimento.'
+        const status = form.querySelector('[role="status"]')
+        if (status) status.textContent = mensagem
+        popup({ titulo: salvo ? 'Falha ao atualizar a tela' : 'Falha ao salvar abastecimento', mensagem: escaparAtributo(mensagem) })
+    }
+    finally { botao.disabled = false; estadoEnvioCombustivel(form, false) }
 }
 
 function criarLinhaAbastecimentoCombustivel(a) {
     const e = escaparAtributo, n = formatarCombustivel
     const r = a.rateio
-    return `<tr><td>${e(a.data_abastecimento)}</td><td>${n(a.litros)} L</td><td>R$ ${n(a.valor_total)}</td>
-        <td>${e(a.motorista || '—')}<small>${e(a.observacao || '')}</small></td>
+    return `<tr><td>${e(formatarDataHistoricoCombustivel(a.data_abastecimento))}</td><td>${n(a.litros)} L</td><td>R$ ${n(a.valor_total)}</td>
+        <td>${e(a.observacao || '—')}</td>
         <td>${n(r?.litros_pendentes)} L</td>
         <td>${(r?.departamentos || []).map(d => `<span>${e(d.departamento)}: ${n(d.litros)} L · R$ ${n(d.custo)}</span>`).join('') || '—'}</td>
-        <td><small>${e(a.sincronizacao?.situacao || 'Aguardando sincronização')}</small>${a.sincronizacao?.erro ? `<small class="combustivel-alerta">${e(a.sincronizacao.erro)}</small>` : ''}<div class="combustivel-acoes-icones">${botaoAcaoCombustivel(r?.pagamento_criado ? 'abrirPagamento' : 'prepararPagamento', a.id)}
+        <td><div class="combustivel-sincronizacao"><small>${e(a.sincronizacao?.situacao || 'Aguardando sincronização')}</small>${a.sincronizacao?.erro ? `<small class="combustivel-alerta">${e(a.sincronizacao.erro)}</small>` : ''}</div><div class="combustivel-acoes-icones">${botaoAcaoCombustivel(r?.pagamento_criado ? 'abrirPagamento' : 'prepararPagamento', a.id)}
         <button type="button" class="combustivel-botao-icone" data-id="${e(a.id)}" title="Editar abastecimento" aria-label="Editar abastecimento" onclick="editarHodometroAbastecimento(this.dataset.id)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18a9 9 0 1 1 16 0M12 13l4-5M6 15h1m10 0h1M8 7l1 1m3-3v1"/><circle cx="12" cy="15" r="2"/></svg></button></div></td>
     </tr>`
 
@@ -613,7 +703,7 @@ function criarLinhaAbastecimentoCombustivel(a) {
 
 function criarLinhaConsumoCombustivel(c) {
     const e = escaparAtributo, n = formatarCombustivel
-    return `<tr><td>${e(c.data_consumo)}</td><td>${n(c.km)} km</td><td>${n(c.litros)} L</td>
+    return `<tr><td>${e(formatarDataHistoricoCombustivel(c.data_consumo))}</td><td>${n(c.km)} km</td><td>${n(c.litros)} L</td>
                     <td>${e(c.departamento)}</td><td>${e(c.motorista || '—')}</td><td>${n(c.consumo_medio)} km/l</td>
                     <td>${e(c.ocorrencia_id)}</td></tr>`
 }
