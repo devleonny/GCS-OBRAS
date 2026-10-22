@@ -302,6 +302,62 @@ span[name="titulo"] {
     outline-offset: 2px;
 }
 
+/* Aviso de nova versão (index.html): texto em cima, botões empilhados embaixo. */
+.aviso-versao {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.aviso-versao strong {
+    font-size: 14px;
+    color: #243b2e;
+}
+
+.aviso-versao > span {
+    color: #65756b;
+    font-size: 12px;
+}
+
+.aviso-versao-botoes {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.aviso-versao-botoes button {
+    width: 100%;
+    margin: 0;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 150ms ease;
+}
+
+.aviso-versao-atualizar {
+    border: 0;
+    background: #527d60;
+    color: white;
+}
+
+.aviso-versao-atualizar:hover {
+    background: #3f6a4d;
+}
+
+.aviso-versao-adiar {
+    border: 1px solid #c6dacd;
+    background: white;
+    color: #324b3c;
+}
+
+.aviso-versao-adiar:hover {
+    background: #e2efe7;
+}
+
 .botao-usuarios {
     display: flex;
     align-items: center;

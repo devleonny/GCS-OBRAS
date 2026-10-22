@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="css/jogo.css?v=baa3f388">
     <link rel="stylesheet" href="css/clientes.css?v=31a7eeb2">
     <link rel="stylesheet" href="css/status.css?v=3e5d1e14">
-    <link rel="stylesheet" href="css/gcsobras.css?v=5baffa3c">
+    <link rel="stylesheet" href="css/gcsobras.css?v=f6f99ea6">
     <link rel="stylesheet" href="css/ocorrencias.css?v=c9e84093">
     <link rel="stylesheet" href="css/orcamento.css?v=8a0b0303">
     <link rel="stylesheet" href="css/criar_orcamento.css?v=5ab41e23">
@@ -39,7 +39,7 @@
     <link rel="stylesheet" href="css/assinatura.css?v=0c1634b9">
     <link rel="stylesheet" href="css/relatorio.css?v=f7e31e2f">
     <link rel="stylesheet" href="css/relatorios.css?v=9257dc3c">
-    <link rel="stylesheet" href="css/postit.css?v=eb4b18a2">
+    <link rel="stylesheet" href="css/postit.css?v=b2cd0b61">
     <link rel="stylesheet" href="css/festas.css?v=86e0c91c">
     <link rel="stylesheet" href="css/comunicados.css?v=60dd1bc1">
     <link rel="stylesheet" href="css/cadastros.css?v=9d7fce36">
@@ -100,7 +100,7 @@
     <script src="js/festas.js?v=4b4c0060"></script>
     <script src="js/tabelas.js?v=7b1e0241"></script>
     <script src="js/relogio.js?v=a745b52b"></script>
-    <script src="js/versoes_css.js?v=57f47226"></script>
+    <script src="js/versoes_css.js?v=74cb71c6"></script>
     <script src="js/ferramentas.js?v=9c3d079a"></script>
     <script src="js/central_gcs.js?v=1e1fd6ad"></script>
     <script src="js/central_chamados.js?v=2f7520c4"></script>
@@ -120,7 +120,7 @@
     <script src="js/criar_orcamento.js?v=ab6aa7e2"></script>
     <script src="js/criar_aluguel.js?v=ae363056"></script>
     <script src="js/composicoes.js?v=d3ad1c81"></script>
-    <script src="js/veiculos.js?v=a590fd8c"></script>
+    <script src="js/veiculos.js?v=87ba73bd"></script>
     <script src="js/pagamentos.js?v=8f51e23a"></script>
     <script src="js/rh.js?v=ac381129"></script>
     <script src="js/tags.js?v=aba24fd5"></script>
@@ -133,7 +133,7 @@
     <script src="js/gdb.js?v=3b0900c9"></script>
     <script src="js/os.js?v=4617030e"></script>
     <script src="js/pdf_orcamento.js?v=09b6231e"></script>
-    <script src="js/postit.js?v=577a4f4d"></script>
+    <script src="js/postit.js?v=c3fef52e"></script>
     <script src="js/requisicao.js?v=e5ff575f"></script>
     <script src="js/daily.js?v=e233f083"></script>
     <script src="js/tecnicos.js?v=82ba1fdb"></script>
@@ -157,8 +157,7 @@
     <script>
 
         // Carimbado por scripts/versionar.js no commit; comparado com versao.json publicado.
-        const versaoAtual = '8818ef7a'
-        let avisoVersaoAberto = false
+        const versaoAtual = '0a413850'
 
         verificarVersao()
 
@@ -171,7 +170,10 @@
 
         async function verificarVersao() {
 
-            if (avisoVersaoAberto || location.protocol === 'file:')
+            // O aviso na tela é o próprio controle: fechado pelo X ou por Adiar, volta no próximo ciclo.
+            const avisoAberto = () => document.querySelector('.aviso-versao')
+
+            if (avisoAberto() || location.protocol === 'file:')
                 return
 
             try {
@@ -181,17 +183,19 @@
 
                 const { versao = null } = await resposta.json()
 
-                if (!versao || versao === String(versaoAtual))
+                if (!versao || versao === String(versaoAtual) || avisoAberto())
                     return
 
-                avisoVersaoAberto = true
                 balaoNotificacao({
                     imagem: 'imagens/atualizacao.png',
                     texto: `
-                            <div style="${horizontal}; gap: 5px;">
-                                <span>Nova versão disponível</span>
-                                <button onclick="atualizarVersao()">Atualizar</button>
-                                <button style="background-color: #097fe6;" onclick="avisoVersaoAberto = false; this.closest('.popup-mensagem').remove()">Adiar</button>
+                            <div class="aviso-versao">
+                                <strong>Nova versão disponível</strong>
+                                <span>Atualize para carregar as últimas melhorias.</span>
+                                <div class="aviso-versao-botoes">
+                                    <button type="button" class="aviso-versao-atualizar" onclick="atualizarVersao()">Atualizar agora</button>
+                                    <button type="button" class="aviso-versao-adiar" onclick="this.closest('.popup-mensagem').remove()">Lembrar mais tarde</button>
+                                </div>
                             </div>
                             `,
                     tempo: 0 // Sempre

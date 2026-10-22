@@ -49,7 +49,7 @@ async function criarQuadros() {
         telaPIT.appendChild(coluna)
 
         const editar = id
-            ? `<img src="imagens/editar.png" draggable="false" onclick="criarQuadro('${id}')">`
+            ? `<img src="imagens/pesquisar.svg" title="Editar quadro" draggable="false" onclick="criarQuadro('${id}')">`
             : ''
 
         // "Novos" fica sempre em primeiro; os demais são arrastados pelo título.
@@ -109,6 +109,59 @@ async function criarQuadros() {
 
 }
 
+// Formatação que o editor gera (negrito, itálico, sublinhado, listas, cor, quebras de linha).
+const tagsPostIT = new Set(['B', 'STRONG', 'I', 'EM', 'U', 'S', 'STRIKE', 'UL', 'OL', 'LI', 'BR', 'DIV', 'P', 'SPAN', 'FONT', 'H1', 'H2', 'H3', 'BLOCKQUOTE'])
+const estilosPostIT = ['color', 'background-color', 'font-weight', 'font-style', 'text-decoration']
+
+// O post-it pode ser de outro usuário: mantém só a formatação, sem scripts, eventos ou links.
+function limparHtmlPostIT(no) {
+    for (const filho of [...no.childNodes]) {
+        if (filho.nodeType === Node.TEXT_NODE)
+            continue
+
+        if (filho.nodeType !== Node.ELEMENT_NODE || ['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT'].includes(filho.tagName)) {
+            filho.remove()
+            continue
+        }
+
+        limparHtmlPostIT(filho)
+
+        // Tag fora da lista: fica só o conteúdo.
+        if (!tagsPostIT.has(filho.tagName)) {
+            filho.replaceWith(...filho.childNodes)
+            continue
+        }
+
+        const cor = filho.getAttribute('color')
+        const estilos = estilosPostIT
+            .map(prop => [prop, filho.style.getPropertyValue(prop)])
+            .filter(([, valor]) => valor)
+
+        for (const { name } of [...filho.attributes])
+            filho.removeAttribute(name)
+
+        if (cor && /^(#[0-9a-f]{3,8}|[a-z]+)$/i.test(cor))
+            filho.setAttribute('color', cor)
+
+        for (const [prop, valor] of estilos)
+            filho.style.setProperty(prop, valor)
+    }
+}
+
+function comentarioPostIT(comentario) {
+    const texto = String(comentario || '')
+
+    // Post-its antigos em texto puro mantêm as quebras de linha.
+    if (!/<[a-z/!]/i.test(texto))
+        return `<div class="postit-comentario texto-simples">${escaparAtributo(texto)}</div>`
+
+    const doc = new DOMParser().parseFromString(`<div>${texto}</div>`, 'text/html')
+    const raiz = doc.body.firstElementChild
+    limparHtmlPostIT(raiz)
+
+    return `<div class="postit-comentario">${raiz.innerHTML}</div>`
+}
+
 async function linPostIT(dados) {
 
     const { 
@@ -145,10 +198,10 @@ async function linPostIT(dados) {
                 class="postit ${estilo}"
                 draggable="true"
                 ondragstart="arrastarPIT(event, '${id}')">
-                <span class="postit-comentario">${comentario || ''}</span>
+                ${comentarioPostIT(comentario)}
                 <div class="local-anexos">${divAnexos || ''}</div>
                 <span class="prazo">${prazoFin ? `<b>Prazo:</b> ${prazoFin}` : 'Sem prazo'}</span>
-                <img class="postit-editar" src="imagens/editar.png" title="Editar post-it" onclick="criarPIT('${id}')">
+                <img class="postit-editar" src="imagens/pesquisar.svg" title="Editar post-it" onclick="criarPIT('${id}')">
             </div>
         </td>
     </tr>
@@ -310,16 +363,13 @@ function pararAutoScrollPIT() {
 
 async function criarQuadro(id) {
 
-    const { descricao, ordem = 0 } = await recuperarDado('quadros', id) || {}
+    const { descricao } = await recuperarDado('quadros', id) || {}
 
+    // A ordem é definida arrastando os quadros pelo título.
     const linhas = [
         {
             texto: 'Nome do Quadro',
             elemento: `<textarea name="descricao">${descricao || ''}</textarea>`
-        },
-        {
-            texto: 'Ordem',
-            elemento: `<input name="ordem" type="number" step="1" value="${ordem}">`
         }
     ]
 
@@ -446,6 +496,19 @@ async function salvarPIT(id = crypto.randomUUID()) {
     }
 }
 
+// Quadro novo entra no fim.
+async function proximaOrdemQuadro() {
+    const pesquisa = await pesquisarDB({
+        base: 'quadros',
+        limite: 1,
+        ordenar: { path: 'ordem', direcao: 'desc' },
+        filtros: {
+            usuario: { op: '=', value: acesso.usuario }
+        }
+    })
+    return (Number(pesquisa?.resultados?.[0]?.ordem) || 0) + 1
+}
+
 async function salvarQuadro(id = crypto.randomUUID()) {
 
     overlayAguarde()
@@ -457,7 +520,7 @@ async function salvarQuadro(id = crypto.randomUUID()) {
         id,
         timestamp: 0,
         usuario: acesso.usuario,
-        ordem: Number(painel.querySelector('[name="ordem"]').value),
+        ordem: quadro?.ordem ?? await proximaOrdemQuadro(),
         descricao: painel.querySelector('[name="descricao"]').value
     }
 

@@ -79,9 +79,10 @@ async function telaVeiculos() {
 
 async function auxVeiculos() {
 
+    // vw_veiculos traz os nomes dos motoristas resolvidos (nomes_motoristas), pesquisáveis.
     const colunas = {
         'Cartão': { chave: 'cartao' },
-        'Motoristas': { chave: 'snapshots.motoristas' },
+        'Motoristas': { chave: 'nomes_motoristas' },
         'Modelo': { chave: 'modelo' },
         'Placa': { chave: 'placa' },
         'Status': { chave: 'status' },
@@ -95,7 +96,7 @@ async function auxVeiculos() {
         pag: 'veiculos',
         body: 'bodyVeiculos',
         colunas,
-        base: 'veiculos',
+        base: 'vw_veiculos',
         criarLinha: 'criarLinhaVeiculo'
     })
 
@@ -110,13 +111,13 @@ async function auxVeiculos() {
 
 async function criarLinhaVeiculo(veiculo) {
 
-    const { snapshots } = veiculo || {}
+    const nomes = veiculo?.nomes_motoristas || []
 
     return `
     <tr>
         <td>${veiculo?.cartao || 'Sem cartão'}</td>
         <td>
-            ${(snapshots?.motoristas || []).join('<br>')}
+            ${nomes.join('<br>')}
         </td>
         <td>
             <label name="veículo">${veiculo?.modelo || ''}</label>
@@ -543,24 +544,14 @@ async function painelValores(idCusto, duplicar) {
 
     // Controles;
     controlesCxOpcoes.veiculo = {
-        base: 'veiculos',
-        prepararDado: prepararVeiculoCombustivel,
-        retornar: ['cartao', 'snapshots.motoristas', 'placa', 'modelo'],
+        base: 'vw_veiculos',
+        retornar: ['cartao', 'nomes_motoristas', 'placa', 'modelo'],
         colunas: {
             'Final do Cartão': { chave: 'cartao' },
             'Placa': { chave: 'placa' },
             'Modelo': { chave: 'modelo' },
-            'Motoristas': { chave: 'snapshots.motoristas' }
-        },
-        substituicoes: [
-            {
-                path: 'motoristas.*.id',
-                tabela: 'clientes',
-                campoBusca: 'id',
-                retorno: 'nome',
-                destino: 'snapshots.motoristas'
-            }
-        ]
+            'Motoristas': { chave: 'nomes_motoristas' }
+        }
     }
 
     for (const [codigo, { km }] of Object.entries(custo.distribuicao || {})) {
