@@ -488,8 +488,11 @@ function tooltipAgenda(elemento, dados) {
 // correção cobrindo hoje e não solucionada, a mesma regra de verificarConflitos.
 
 const PERMISSOES_SEM_TECNICOS_LIVRES = ['técnico', 'cliente']
+// Atualiza na hora quando uma ocorrência é salva (websocket.js) e à meia-noite;
+// o intervalo é só reserva, para o caso de o websocket cair.
 const INTERVALO_TECNICOS_LIVRES = 10 * 60 * 1000
 let temporizadorTecnicosLivres = null
+let temporizadorMeiaNoiteTecnicos = null
 let ultimosTecnicosLivres = null
 
 function hojeTecnicosLivres() {
@@ -572,9 +575,15 @@ function renderTecnicosLivres(livres, hoje) {
     area.hidden = false
 }
 
-function abrirTecnicosLivres() {
+async function abrirTecnicosLivres() {
 
-    if (!ultimosTecnicosLivres) return
+    // Consulta de novo ao abrir: a lista do popup é a de agora, não a da última atualização.
+    overlayAguarde()
+    await atualizarTecnicosLivres()
+    removerOverlay()
+
+    if (!ultimosTecnicosLivres)
+        return popup({ mensagem: 'Não foi possível consultar os técnicos livres agora.' })
 
     const { livres, hoje } = ultimosTecnicosLivres
     const [ano, mes, dia] = hoje.split('-')
@@ -644,8 +653,21 @@ async function atualizarTecnicosLivres() {
     }
 }
 
+// Agenda a troca de dia pelo relógio do servidor (5 s depois da meia-noite).
+function agendarMeiaNoiteTecnicosLivres() {
+    clearTimeout(temporizadorMeiaNoiteTecnicos)
+    const agora = dataServidor()
+    const virada = new Date(agora)
+    virada.setHours(24, 0, 5, 0)
+    temporizadorMeiaNoiteTecnicos = setTimeout(() => {
+        atualizarTecnicosLivres()
+        agendarMeiaNoiteTecnicosLivres()
+    }, virada - agora)
+}
+
 function iniciarTecnicosLivres() {
     atualizarTecnicosLivres()
     if (!temporizadorTecnicosLivres)
         temporizadorTecnicosLivres = setInterval(atualizarTecnicosLivres, INTERVALO_TECNICOS_LIVRES)
+    agendarMeiaNoiteTecnicosLivres()
 }

@@ -345,6 +345,21 @@ async function reprocessarOffline() {
     }
 }
 
+// Cor do selo de tipo no cartão de anexo.
+function corTipoAnexo(extensao) {
+    const cores = {
+        pdf: '#d1453b',
+        xls: '#1f8a4c', xlsx: '#1f8a4c', csv: '#1f8a4c',
+        doc: '#2b6cb0', docx: '#2b6cb0', txt: '#2b6cb0',
+        ppt: '#d9822b', pptx: '#d9822b',
+        zip: '#7b4fb0', rar: '#7b4fb0', '7z': '#7b4fb0',
+        dwg: '#0f8a8a', dxf: '#0f8a8a'
+    }
+    return cores[extensao] || '#6b7a72'
+}
+
+// Cartão de anexo (imagem ou arquivo). O botão de remover é filho direto do cartão:
+// quem remove usa this.parentElement (ex.: removerAnexo) e assim tira o cartão inteiro.
 function criarAnexoVisual(nome, link, funcao) {
 
     const formImg = ['jpg', 'jpeg', 'png']
@@ -352,43 +367,43 @@ function criarAnexoVisual(nome, link, funcao) {
     const resultado = nome.match(regex)
     const formato = resultado ? resultado[1] : null
 
+    // Fora da área clicável e sem propagar: remover não abre o anexo junto.
+    const excluir = funcao
+        ? `<button type="button" class="anexo-remover" title="Remover anexo" aria-label="Remover anexo"
+            onclick="event.stopPropagation(); ${funcao}">&times;</button>`
+        : ''
+
     // Formato imagem;
     if (formImg.includes(formato)) {
 
-        const excluir = funcao
-            ? `<img onclick="${funcao}" src="imagens/cancel.png" style="position: absolute; top: 2px; right: 2px; width: 1.5rem;">`
-            : ''
-
         return `
-            <div style="position: relative; width: max-content;">
+            <div class="anexo-imagem" title="${nome}">
                 ${excluir}
                 <img
                     class="foto-status"
                     id="${link}"
                     src="${api}/uploads/${link}"
+                    alt="${nome}"
                     onclick="ampliarImagem(this, '${link}')">
             </div>
         `
 
     } else {
 
-        const nomeFormatado = nome.length > 15
-            ? `${nome.slice(0, 6)}...${nome.slice(-6)}`
-            : nome;
-
-        const excluir = funcao
-            ? `<img src="imagens/cancel.png" style="width: 1.5rem;" onclick="${funcao}">`
-            : ''
+        // A extensão vai no selo colorido; o nome aparece sem ela (cortado com … pelo CSS).
+        const extensao = (formato || 'arq').toLowerCase()
+        const nomeSemExtensao = formato ? nome.slice(0, -(formato.length + 1)) : nome
 
         return `
-            <div class="contorno-anexos" name="${link}">
-                <div onclick="abrirArquivo('${link}')" 
-                class="contorno-iterno" 
-                style="width: 100%; display: flex; align-items: center; justify-content: start; gap: 2px;">
-                    <img src="imagens/anexo2.png" style="width: 1.5rem;">
-                    <label style="font-size: 0.7rem; cursor: pointer;" title="${nome}">${nomeFormatado}</label>
-                    ${excluir}
+            <div class="contorno-anexos" name="${link}" title="${nome}" style="--anexo-cor: ${corTipoAnexo(extensao)}">
+                <div class="contorno-iterno" onclick="abrirArquivo('${link}')">
+                    <span class="anexo-tipo">${extensao.slice(0, 4)}</span>
+                    <span class="anexo-textos">
+                        <span class="anexo-nome">${nomeSemExtensao || nome}</span>
+                        <small>Clique para abrir</small>
+                    </span>
                 </div>
+                ${excluir}
             </div>
         `
     }

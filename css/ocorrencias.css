@@ -412,14 +412,12 @@
 .tela-ocorrencias .div-linha > .bloco-linha { flex: 1 1 320px; max-width: 100%; }
 .tela-ocorrencias .tabela td img { max-width: 100%; }
 
+/* Cabeçalho de filtros rola junto com a página (não fica fixo no topo). */
 .tela-ocorrencias > .painel-filtros {
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
-    position: sticky;
-    top: 0;
-    z-index: 30;
-    margin-bottom: 12px;
+    margin-bottom: 4px;
 }
 
 .tela-ocorrencias > .painel-filtros > .pesquisas-ocorrencias {

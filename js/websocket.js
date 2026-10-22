@@ -227,6 +227,10 @@ async function executarAtualizacaoWS() {
         if (tabelas.has('dados_ocorrencias'))
             tarefas.push(() => auxPendencias())
 
+        // Correção salva pode ocupar/liberar técnico: o letreiro de livres acompanha na hora.
+        if ((atualizarTodas || tabelas.has('dados_ocorrencias')) && typeof atualizarTecnicosLivres === 'function')
+            tarefas.push(() => atualizarTecnicosLivres())
+
         if (tabelas.has('lista_pagamentos'))
             tarefas.push(() => atualizarPainelEsquerdo())
 

@@ -231,7 +231,7 @@ async function montarOS(idOcorrencia) {
     `
 }
 
-const ESTILOS_PDF_OS = ['gcsobras', 'relatorio', 'layout_os']
+const ESTILOS_PDF_OS = ['gcsobras', 'tabelas', 'relatorio', 'layout_os']
 
 async function telaOS(idOcorrencia) {
 
