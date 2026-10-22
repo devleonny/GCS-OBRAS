@@ -120,12 +120,15 @@ async function linPostIT(dados) {
         ? new Date(toTimestamp(prazo)).toLocaleDateString()
         : ''
 
+    // Sem prazo vem antes do atraso: sem data, a comparação abaixo dava sempre "atrasado".
     const estilo = status == 'S'
         ? 'concluido'
-        // Se hoje é maior que o prazo, então tá atrasado;
-        : agoraServidor() > toTimestamp(prazo)
-            ? 'atrasado'
-            : ''
+        : !prazo
+            ? 'sem-prazo'
+            // Se hoje é maior que o prazo, então tá atrasado;
+            : agoraServidor() > toTimestamp(prazo)
+                ? 'atrasado'
+                : ''
 
     return `
     <tr>

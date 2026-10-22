@@ -9,6 +9,16 @@ function isDark(cor) {
     return (0.299 * r + 0.587 * g + 0.114 * b) < 150
 }
 
+// Vincular/remover muda a tela na hora e grava em seguida; se o servidor recusar,
+// a tela volta. A lista de orçamentos só atualizaria depois do refresh da
+// mvw_dados_orcamentos + aviso do websocket, o que dava a sensação de não ter vinculado.
+const estadoTags = {
+    idOrcamento: null,
+    vinculadas: new Set(),
+    pendentes: new Set(),
+    catalogo: null
+}
+
 const modeloTag = (tag, idOrcamento = null) => {
 
     const { cor = '#999', nome, id } = tag || {}
@@ -24,92 +34,199 @@ const modeloTag = (tag, idOrcamento = null) => {
             : `vincularTag('${id}')`
 
     const modelo = `
-        <div class="tag" style="${cLinear(cor)}; ${branco}">
+        <div class="tag" data-tag="${escaparAtributo(String(id || ''))}" style="${cLinear(cor)}; ${branco}">
             <span onclick="${funcao}">
                 ${nome || '--'}
             </span>
             <img src="imagens/tag_${branco == 'color: #fff;' ? 'branca' : 'preta'}.png"
                 style="width:1.4rem"
-                onclick="abrirEdicaoTag('${id}')">
+                onclick="event.stopPropagation(); abrirEdicaoTag('${id}')">
         </div>
         `
 
     return modelo
 }
 
+// Catálogo de tags (nome e cor), carregado uma vez; renovado ao salvar uma tag.
+async function catalogoTags(recarregar = false) {
+    if (estadoTags.catalogo && !recarregar) return estadoTags.catalogo
+    const { resultados } = await pesquisarDB({ base: 'tags_orcamentos', limite: 5000 }) || {}
+    estadoTags.catalogo = new Map((resultados || []).map(tag => [String(tag.id), tag]))
+    return estadoTags.catalogo
+}
+
+async function idsTagsDoOrcamento(idOrcamento) {
+    const { tags } = idOrcamento === 'novo'
+        ? baseOrcamento()
+        : await recuperarDado('dados_orcamentos', idOrcamento) || {}
+    return new Set(Object.keys(tags || {}))
+}
+
+// Redesenha as tags do orçamento onde ele estiver na tela: linha da lista e dados do orçamento.
+async function atualizarTagsNaTela(idOrcamento, ids) {
+    const catalogo = await catalogoTags()
+    const html = [...ids]
+        .map(idTag => catalogo.get(String(idTag)))
+        .filter(Boolean)
+        .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'))
+        .map(tag => modeloTag(tag, idOrcamento))
+        .join('')
+
+    document.querySelectorAll(`[name="tags"][data-orcamento="${CSS.escape(String(idOrcamento))}"]`)
+        .forEach(local => { local.innerHTML = html })
+
+    const formulario = document.getElementById('tags')
+    if (formulario && controles?.etiquetas?.idOrcamento === idOrcamento)
+        formulario.innerHTML = html
+}
+
 async function criarLinhaTag(tag) {
+
+    const id = String(tag?.id || '')
+    const vinculada = estadoTags.vinculadas.has(id)
 
     return `
         <tr>
-            <td>${modeloTag(tag)}</td>
+            <td>
+                <div class="tag-opcao${vinculada ? ' vinculada' : ''}" data-tag-opcao="${escaparAtributo(id)}"
+                    role="button" tabindex="0" aria-pressed="${vinculada}"
+                    onclick="alternarTag(this.dataset.tagOpcao)"
+                    onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); alternarTag(this.dataset.tagOpcao) }">
+                    ${modeloTag(tag, 'N')}
+                    <span class="tag-opcao-estado">${vinculada ? '✓ Vinculada' : 'Vincular'}</span>
+                </div>
+            </td>
         </tr>`
 
 }
 
+function marcarOpcaoTag(idTag) {
+    const opcao = document.querySelector(`[data-tag-opcao="${CSS.escape(String(idTag))}"]`)
+    if (!opcao) return
+    const vinculada = estadoTags.vinculadas.has(String(idTag))
+    opcao.classList.toggle('vinculada', vinculada)
+    opcao.classList.toggle('salvando', estadoTags.pendentes.has(String(idTag)))
+    opcao.setAttribute('aria-pressed', String(vinculada))
+    opcao.querySelector('.tag-opcao-estado').textContent = vinculada ? '✓ Vinculada' : 'Vincular'
+}
+
 async function renderPainel(idOrcamento) {
 
-    const colunas = {
-        'Etiquetas': { chave: 'nome' }
+    try {
+
+        overlayAguarde()
+
+        estadoTags.idOrcamento = idOrcamento
+        controles.etiquetas ??= {}
+        controles.etiquetas.idOrcamento = idOrcamento
+
+        // O estado de cada tag precisa estar pronto antes de desenhar as linhas.
+        const [vinculadas] = await Promise.all([idsTagsDoOrcamento(idOrcamento), catalogoTags()])
+        estadoTags.vinculadas = vinculadas
+
+        const pag = 'etiquetas'
+        const tabela = await modTab({
+            pag,
+            colunas: { 'Etiquetas': { chave: 'nome' } },
+            criarLinha: 'criarLinhaTag',
+            body: 'bodyEtiquetas',
+            base: 'tags_orcamentos'
+        })
+
+        const botoes = [
+            { texto: 'Criar Etiqueta', img: 'etiqueta', funcao: `abrirEdicaoTag()` }
+        ]
+
+        popup({ titulo: 'Gerenciar Etiquetas', elemento: `<div class="painel-tags">${tabela}</div>`, botoes })
+
+        await paginacao(pag)
+
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Não foi possível abrir as etiquetas: Fale com o suporte.' })
     }
-
-    const pag = 'etiquetas'
-    const tabela = await modTab({
-        pag,
-        colunas,
-        criarLinha: 'criarLinhaTag',
-        body: 'bodyEtiquetas',
-        base: 'tags_orcamentos'
-    })
-
-    controles.etiquetas.idOrcamento = idOrcamento
-
-    const botoes = [
-        { texto: 'Criar Etiqueta', img: 'etiqueta', funcao: `abrirEdicaoTag()` }
-    ]
-
-    const elemento = `<div style="padding: 1rem;">${tabela}</div>`
-
-    popup({ titulo: 'Gerenciar Etiquetas', elemento, botoes })
-
-    await paginacao(pag)
 
 }
 
-async function vincularTag(idTag) {
+// Grava o vínculo; devolve true se o servidor aceitou.
+async function gravarVinculoTag(idOrcamento, idTag, vincular) {
 
-    overlayAguarde()
-    const id = controles.etiquetas.idOrcamento
-
-    const tag = {
-        data: dataServidor().toLocaleString(),
-        usuario: acesso.usuario
-    }
-
-    if (id == 'novo') {
-
-        const tag = await recuperarDado('tags_orcamentos', idTag) || {}
+    if (idOrcamento === 'novo') {
         const orcamento = baseOrcamento()
-
-        // Snapshots;
+        orcamento.tags ??= {}
         orcamento.snapshots ??= {}
         orcamento.snapshots.tags ??= {}
-        orcamento.snapshots.tags[idTag] = tag
 
-        // Padrão;
-        orcamento.tags ??= {}
-        orcamento.tags[idTag] = tag
+        if (vincular) {
+            orcamento.tags[idTag] = { data: dataServidor().toLocaleString(), usuario: acesso.usuario }
+            orcamento.snapshots.tags[idTag] = (await catalogoTags()).get(String(idTag)) || {}
+        } else {
+            delete orcamento.tags[idTag]
+            delete orcamento.snapshots.tags[idTag]
+        }
 
-        // Devolver pra memória;
         baseOrcamento(orcamento)
-
-    } else {
-        await enviar(`dados_orcamentos/${id}/tags/${idTag}`, tag)
+        return true
     }
 
-    // Não precisa esperar;
-    carregarTags(id)
+    const resultado = vincular
+        ? await enviar(`dados_orcamentos/${idOrcamento}/tags/${idTag}`, {
+            data: dataServidor().toLocaleString(),
+            usuario: acesso.usuario
+        })
+        : await deletar(`dados_orcamentos/${idOrcamento}/tags/${idTag}`)
 
-    removerOverlay()
+    // enviar falha com null ou { mensagem }; deletar com null ou o id do popup que já abriu.
+    return Boolean(resultado) && typeof resultado === 'object' && !resultado.mensagem
+}
+
+// Muda a tela primeiro e grava depois; se falhar, volta ao estado anterior.
+async function definirTag(idOrcamento, idTag, vincular) {
+
+    idTag = String(idTag)
+    if (estadoTags.pendentes.has(idTag)) return
+
+    const ids = idOrcamento === estadoTags.idOrcamento
+        ? estadoTags.vinculadas
+        : await idsTagsDoOrcamento(idOrcamento)
+
+    const anterior = ids.has(idTag)
+    if (anterior === vincular) return
+
+    vincular ? ids.add(idTag) : ids.delete(idTag)
+    estadoTags.pendentes.add(idTag)
+    marcarOpcaoTag(idTag)
+    atualizarTagsNaTela(idOrcamento, ids)
+
+    let gravou = false
+    try {
+        gravou = await gravarVinculoTag(idOrcamento, idTag, vincular)
+    } catch (err) {
+        console.error(err)
+    }
+
+    estadoTags.pendentes.delete(idTag)
+
+    if (!gravou) {
+        anterior ? ids.add(idTag) : ids.delete(idTag)
+        atualizarTagsNaTela(idOrcamento, ids)
+        if (!document.querySelector('.popup .mensagem'))
+            popup({ mensagem: vincular ? 'Não foi possível vincular a etiqueta.' : 'Não foi possível remover a etiqueta.' })
+    }
+
+    marcarOpcaoTag(idTag)
+}
+
+async function alternarTag(idTag) {
+    const idOrcamento = estadoTags.idOrcamento
+    if (!idOrcamento) return
+    await definirTag(idOrcamento, idTag, !estadoTags.vinculadas.has(String(idTag)))
+}
+
+// Mantido para chamadas antigas: vincula ao orçamento do painel aberto.
+async function vincularTag(idTag) {
+    if (estadoTags.idOrcamento)
+        await definirTag(estadoTags.idOrcamento, idTag, true)
 }
 
 function confirmarRemocaoTag(idTag, idOrcamento) {
@@ -122,34 +239,8 @@ function confirmarRemocaoTag(idTag, idOrcamento) {
 }
 
 async function removerTag(idTag, idOrcamento) {
-
-    try {
-
-        overlayAguarde()
-
-        if (idOrcamento == 'novo') {
-
-            const orcamento = baseOrcamento()
-
-            delete orcamento.tags[idTag]
-            delete orcamento.snapshots.tags[idTag]
-
-            baseOrcamento(orcamento)
-
-        } else {
-            await deletar(`dados_orcamentos/${idOrcamento}/tags/${idTag}`)
-        }
-
-        removerPopup() // Confirmação;
-
-        // Não precisa esperar;
-        carregarTags()
-
-    } catch (err) {
-        removerPopup() // Confirmação;
-        popup({ mensagem: 'Falha ao remover Tag' })
-    }
-
+    removerPopup() // Confirmação;
+    await definirTag(idOrcamento, idTag, false)
 }
 
 async function abrirEdicaoTag(id = null) {
@@ -181,13 +272,13 @@ async function abrirEdicaoTag(id = null) {
         const linhas = [
             {
                 texto: 'Nome da Tag',
-                elemento: `<input name="nome" placeholder="Nome" value="${nome || ''}">`
+                elemento: `<input name="nome" placeholder="Nome" value="${escaparAtributo(nome || '')}">`
             },
             {
                 texto: 'Cor',
                 elemento: `
                     <div style="${horizontal}; gap: 1rem;">
-                        <button data-cor="${cor}" style="background-color: ${cor || '#222'};" class="cor-atual"></button>
+                        <button data-cor="${cor || ''}" style="background-color: ${cor || '#222'};" class="cor-atual"></button>
                         <div class="container-items">
                             ${cores}
                         </div>
@@ -222,43 +313,50 @@ async function salvarTag(id) {
         overlayAguarde()
 
         const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
-        const nome = painel.querySelector('[name="nome"]').value
-        const cor = painel.querySelector('.cor-atual').dataset.cor
+        const nome = painel.querySelector('[name="nome"]').value.trim()
+        const cor = painel.querySelector('.cor-atual').dataset.cor || '#222'
 
         if (!nome)
             return removerPopup()
 
         const tag = { nome, cor, id }
 
-        await enviar(`tags_orcamentos/${id}`, tag)
+        const resultado = await enviar(`tags_orcamentos/${id}`, tag)
+        if (!resultado || resultado.mensagem)
+            return popup({ mensagem: resultado?.mensagem || 'Falha ao salvar a Etiqueta: Fale com o suporte.' })
 
         removerPopup()
-        
+
+        // Nome/cor novos aparecem no painel e nas tags já exibidas.
+        await catalogoTags(true)
+        if (controles.etiquetas?.pag || document.getElementById('bodyEtiquetas'))
+            await paginacao('etiquetas')
+        if (estadoTags.idOrcamento)
+            atualizarTagsNaTela(estadoTags.idOrcamento, estadoTags.vinculadas)
+
     } catch (err) {
         console.error(err)
         popup({ mensagem: 'Falha ao criar a Etiqueta: Fale com o suporte.' })
     }
 }
 
-async function carregarTags() {
+// Tags do orçamento nos dados do orçamento (#tags), a partir do vínculo + catálogo.
+async function carregarTags(idOrcamento = controles?.etiquetas?.idOrcamento) {
 
-    const id = controles.etiquetas.idOrcamento
     const localTags = document.getElementById('tags')
 
-    if (!localTags)
+    if (!localTags || !idOrcamento)
         return
 
     localTags.innerHTML = '<img src="gifs/loading.gif" style="width: 5rem;">'
 
-    const { snapshots } = id !== 'novo'
-        ? await recuperarDado('dados_orcamentos', id) || {}
-        : baseOrcamento()
-
-    // Tags;
-    const listaTags = Object.values(snapshots?.tags || {})
-        .map(tag => modeloTag(tag, id))
-        .join('')
-
-    localTags.innerHTML = listaTags
+    try {
+        const ids = await idsTagsDoOrcamento(idOrcamento)
+        if (idOrcamento === estadoTags.idOrcamento) estadoTags.vinculadas = ids
+        await atualizarTagsNaTela(idOrcamento, ids)
+    } catch (err) {
+        console.error(err)
+        localTags.innerHTML = ''
+    }
 
 }

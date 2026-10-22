@@ -311,7 +311,7 @@ async function montarPdfOrcamento(idRecebido, raiz = document) {
     const titulo = 'GERAL'
     divTotais += `
         <div id="total_${titulo}" class="totais" style="background-color: ${totais[titulo].cor}">
-            TOTAL ${titulo} ${dinheiro(totalGeral)}
+            <label>TOTAL ${titulo} ${dinheiro(totalGeral)}</label>
         </div>
     `
 

@@ -268,7 +268,7 @@ async function criarLinhaOrcamento(orcamento) {
                         src="imagens/etiqueta.png" 
                         style="width: 1.2rem;" 
                         onclick="renderPainel('${id}')">
-                    <div name="tags" style="${vertical}; gap: 1px;">
+                    <div name="tags" data-orcamento="${escaparAtributo(String(id))}" style="${vertical}; gap: 1px;">
                         ${listaTags}
                     </div>
                 </div>

@@ -153,11 +153,13 @@ button {
     width: 100%;
 }
 
+/* Metade da largura como mínimo; cresce até o maior total caber numa linha. */
 .lista-totais-pdf {
     display: flex;
     flex-direction: column;
-    flex: 0 0 50%;
-    min-width: 0;
+    flex: 0 1 auto;
+    min-width: 50%;
+    max-width: 100%;
 }
 
 .totais {
@@ -174,6 +176,7 @@ button {
     align-items: flex-start;
     justify-content: flex-start;
     flex-direction: column;
+    white-space: nowrap;
 }
 
 #container {

@@ -232,10 +232,19 @@ function atualizarFotoUsuario(dados) {
     localStorage.setItem('acesso', JSON.stringify(atual))
     if (acesso) acesso.foto = foto
     const imagem = document.querySelector('.nomeUsuario .foto-usuario-menu')
-    if (imagem) {
-        imagem.onerror = function () { this.onerror = null; this.src = logo }
-        imagem.src = urlFotoCliente(foto)
-    }
+    if (imagem) trocarFotoSemPiscar(imagem, urlFotoCliente(foto))
+}
+
+// Carrega a foto nova antes de trocar: a <img> nunca fica vazia no meio do caminho.
+// data-foto guarda a foto pedida (não a exibida), para uma foto com erro não ser
+// recarregada a cada atualização.
+function trocarFotoSemPiscar(imagem, url) {
+    if (imagem.dataset.foto === url) return
+    imagem.dataset.foto = url
+    const previa = new Image()
+    previa.onload = () => { if (imagem.dataset.foto === url) imagem.src = url }
+    previa.onerror = () => { if (imagem.dataset.foto === url) imagem.src = logo }
+    previa.src = url
 }
 
 async function usuariosToolbar() {
@@ -245,14 +254,27 @@ async function usuariosToolbar() {
 
     const { permissao, usuario, foto } = JSON.parse(localStorage.getItem('acesso')) || {}
 
+    // Esta função roda a cada aviso do websocket que mexe na toolbar. Recriar a <img>
+    // toda vez fazia a foto piscar; por isso, se o perfil já está na tela, atualiza no lugar.
     const mostrarPerfil = fotoAtual => {
         if (!nomeUsuario) return
+        const url = urlFotoCliente(fotoAtual)
+        const rotulo = `<b>${escaparAtributo(inicialMaiuscula(permissao || ''))}</b> ${escaparAtributo(usuario || '')}`
+
+        const imagem = nomeUsuario.querySelector('.foto-usuario-menu')
+        const textoAtual = nomeUsuario.querySelector('.rotulo-usuario-menu')
+        if (imagem && textoAtual) {
+            trocarFotoSemPiscar(imagem, url)
+            if (textoAtual.innerHTML !== rotulo) textoAtual.innerHTML = rotulo
+            return
+        }
+
         nomeUsuario.innerHTML = `
             <button type="button" class="trocar-foto-menu" onclick="auxiliarFotoUsuario()" aria-label="Trocar minha foto" title="Trocar minha foto">
-                <img class="foto-usuario-menu moldura-foto" src="${escaparAtributo(urlFotoCliente(fotoAtual))}"
+                <img class="foto-usuario-menu moldura-foto" src="${escaparAtributo(url)}" data-foto="${escaparAtributo(url)}"
                     alt="Foto do usuário" onerror="this.onerror = null; this.src = logo">
             </button>
-            <span><b>${escaparAtributo(inicialMaiuscula(permissao || ''))}</b> ${escaparAtributo(usuario || '')}</span>`
+            <span class="rotulo-usuario-menu">${rotulo}</span>`
     }
     mostrarPerfil(foto)
 

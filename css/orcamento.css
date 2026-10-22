@@ -483,6 +483,60 @@
     margin: 0 1rem 0 1rem;
 }
 
+/* Painel de etiquetas: cada linha mostra se a tag está no orçamento e alterna no clique. */
+.painel-tags {
+    padding: 1rem;
+    min-width: min(420px, 86vw);
+}
+
+.tag-opcao {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 6px;
+    border: 1px solid transparent;
+    border-radius: 24px;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.tag-opcao:hover,
+.tag-opcao:focus-visible {
+    background: #eef3f0;
+    border-color: #c9d8ce;
+    outline: none;
+}
+
+.tag-opcao > .tag {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.tag-opcao-estado {
+    flex: 0 0 auto;
+    min-width: 92px;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    color: #4f6058;
+    background: white;
+    border: 1px solid #b8c9be;
+    border-radius: 999px;
+}
+
+.tag-opcao.vinculada .tag-opcao-estado {
+    color: white;
+    background: #356443;
+    border-color: #2d5739;
+}
+
+/* Gravando: a mudança já aparece, mas o clique fica bloqueado até o servidor responder. */
+.tag-opcao.salvando {
+    cursor: progress;
+    opacity: 0.6;
+}
+
 .tag-vinculado {
     cursor: pointer;
     display: flex;

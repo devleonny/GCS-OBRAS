@@ -61,6 +61,11 @@
     border-left-color: #f08c8c;
 }
 
+.postit.sem-prazo {
+    background: #d6e8fb;
+    border-left-color: #6fa8dc;
+}
+
 .postit-editar {
     width: 20px;
     height: 20px;
