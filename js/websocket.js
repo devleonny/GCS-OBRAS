@@ -1,8 +1,30 @@
 let socket
-let reconnectInterval = 30000
 let reconnectTimeout = null
 let reconectando = false
 let priExeGCS = true
+
+// Reconecta rápido nas primeiras tentativas: o servidor só marca offline depois de
+// uma carência, então uma queda curta de rede não chega a aparecer para os outros.
+const esperasReconexaoWS = [1000, 2000, 5000, 10000, 20000, 30000]
+let tentativasReconexaoWS = 0
+
+function agendarReconexaoWS() {
+    clearTimeout(reconnectTimeout)
+    const espera = esperasReconexaoWS[Math.min(tentativasReconexaoWS, esperasReconexaoWS.length - 1)]
+    tentativasReconexaoWS++
+    reconnectTimeout = setTimeout(connectWebSocket, espera)
+}
+
+function reconectarSeFechadoWS() {
+    if (!socket || [WebSocket.CLOSED, WebSocket.CLOSING].includes(socket.readyState)) {
+        tentativasReconexaoWS = 0
+        clearTimeout(reconnectTimeout)
+        connectWebSocket()
+    }
+}
+
+// Rede voltou ou o PC acordou: não espera o próximo ciclo.
+window.addEventListener('online', reconectarSeFechadoWS)
 
 const tabelasPendentesWS = new Set()
 const intervaloAtualizacaoWS = 400
@@ -25,6 +47,7 @@ document.addEventListener('visibilitychange', () => {
 
     sincronizarRelogioServidor(true).catch(err => console.error('Falha ao sincronizar horário:', err))
     agendarAtualizacaoWS()
+    reconectarSeFechadoWS()
 })
 
 connectWebSocket()
@@ -70,39 +93,70 @@ function connectWebSocket() {
         reconectando = false
         msgStatus('Servidor offline', 3)
 
-        clearTimeout(reconnectTimeout)
-        reconnectTimeout = setTimeout(
-            connectWebSocket,
-            reconnectInterval
-        )
+        agendarReconexaoWS()
     }
 }
 
-async function validarAcesso() {
-    const acesso = JSON.parse(localStorage.getItem('acesso'))
-    const token = acesso?.token
+function sessaoExpirada() {
+    localStorage.removeItem('acesso')
+    location.reload()
+    popup({ mensagem: 'Sessão expirada, faça login novamente' })
+}
 
+async function validarAcesso(tentouRenovar = false) {
     msgStatus('Validando acesso...')
 
-    if (!token || !acesso) {
+    // Token de acesso perto de vencer (ou vencido com o PC dormindo): renova antes de validar.
+    if (await renovarSessao() === 'expirada')
+        return sessaoExpirada()
+
+    const acessoAtual = JSON.parse(localStorage.getItem('acesso'))
+    const token = acessoAtual?.token
+
+    if (!token || !acessoAtual) {
         localStorage.removeItem('acesso')
         return await telaLogin()
     }
 
+    let resp
     try {
-        const resp = await fetch(`${api}/validar-token`, {
+        resp = await fetch(`${api}/validar-token`, {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${token}`
             }
         })
+    } catch {
+        // Falha de rede não é sessão expirada: mantém o login e tenta de novo na reconexão.
+        msgStatus('Sem rede para validar o acesso', 3)
+        socket?.close()
+        return
+    }
 
-        if (resp.status === 401)
-            throw new Error('Token inválido')
+    if (resp.status === 401 || resp.status === 403) {
+        // Última chance antes de deslogar: o token de renovação ainda pode estar válido.
+        if (!tentouRenovar) {
+            const renovacao = await renovarSessao({ forcar: true, tokenRecusado: token })
+            if (renovacao === 'renovado')
+                return validarAcesso(true)
+            if (['sem-rede', 'erro'].includes(renovacao)) {
+                socket?.close()
+                return
+            }
+        }
+        return sessaoExpirada()
+    }
+
+    try {
+        if (!resp.ok)
+            throw new Error(`HTTP ${resp.status}`)
 
         const dados = await resp.json()
 
+        // Mantém o que a validação não devolve (token de renovação, foto, empresa).
+        const anterior = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
         localStorage.setItem('acesso', JSON.stringify({
+            ...anterior,
             ...dados,
             token
         }))
@@ -111,10 +165,10 @@ async function validarAcesso() {
             tipo: 'validar',
             usuario: dados.usuario
         })
-    } catch {
-        localStorage.removeItem('acesso')
-        location.reload()
-        popup({ mensagem: 'Sessão expirada, faça login novamente' })
+    } catch (err) {
+        // Servidor instável (5xx, resposta inválida): também não desloga.
+        msgStatus(`Falha ao validar o acesso: ${err.message}`, 3)
+        socket?.close()
     }
 }
 
@@ -296,6 +350,8 @@ async function comunicacao() {
             }
 
             if (validado) {
+                tentativasReconexaoWS = 0
+
                 try {
                     if (validado === 'Sim') {
                         msgStatus('Acesso sem alterações')

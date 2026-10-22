@@ -459,6 +459,9 @@ async function sair() {
     if (typeof ocultarTecnicosLivres === 'function') ocultarTecnicosLivres()
     mostrarMenus()
 
+    // Encerra a sessão no servidor: o token de renovação deixa de valer neste aparelho.
+    await encerrarSessaoServidor()
+
     acesso = null
     localStorage.removeItem('acesso')
     telaLogin()
