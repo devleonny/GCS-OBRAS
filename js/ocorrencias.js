@@ -60,7 +60,8 @@ const tabEquipamentos = (equipamentos, idOcorrencia, idCorrecao) => {
             <div class="topo-tabela">
                 <span style="font-size: 1rem; color: white;">Listagem de Peças e/ou Equipamentos</span>
             </div>
-            <div class="div-tabela">
+            <!-- Altura livre: dentro de cartões e da OS a altura automática das telas espremia a lista. -->
+            <div class="div-tabela" data-altura-adaptavel="false" style="max-height: none;">
                 <table class="tabela">
                     <thead>
                         ${['Código', 'Nº série', 'Origem', 'Quantidade', 'Unidade', 'Descrição'].map(th => `<th>${th}</th>`).join('')}
@@ -1126,7 +1127,7 @@ function criarLinhaOcorrencia(ocorrencia) {
     if (podeGerenciar)
         botoes.push(btnImagem('fechar', `confirmarExclusao('${id}')`), btnImagem('lapis', `formularioOcorrencia('${id}')`))
 
-    botoes.push(`<div class="botao-imagem-ocorrencias" onclick="telaOS('${id}')"><span>OS</span></div>`)
+    botoes.push(`<div class="botao-imagem-ocorrencias" onclick="baixarPdfOS('${id}')" title="Baixar a OS em PDF"><span>OS</span></div>`)
 
     if (id_usuario_funcionario)
         botoes.push(`

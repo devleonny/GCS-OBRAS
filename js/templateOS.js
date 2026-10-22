@@ -4,9 +4,8 @@ const semImagem = `
         <span>Sem Imagens</span>
     </div>
 `
-async function telaOS(idOcorrencia) {
-
-    overlayAguarde()
+// Monta o HTML da OS do chamado. Usado na tela (telaOS) e no PDF direto (baixarPdfOS).
+async function montarOS(idOcorrencia) {
 
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
     const cliente = await recuperarDado('clientes', ocorrencia?.unidade) || {}
@@ -80,10 +79,10 @@ async function telaOS(idOcorrencia) {
 
                 <div class="vertical">
                     ${modelo('Unidade de Manutenção', cliente?.nome)}
-                    ${cliente?.cnpj}<br>
-                    ${cliente?.bairro}<br>
-                    ${cliente?.cidade}<br>
-                    ${cliente?.cep}<br>
+                    ${[cliente?.cnpj, cliente?.bairro, cliente?.cidade, cliente?.cep]
+                        .filter(Boolean)
+                        .map(dado => `<span>${dado}</span>`)
+                        .join('')}
                 </div>
 
                 <div class="vertical">
@@ -92,6 +91,10 @@ async function telaOS(idOcorrencia) {
                 </div>
 
             </div>
+
+            ${Object.keys(ocorrencia?.equipamentos || {}).length
+                ? `<div class="os-equipamentos-chamado">${tabEquipamentos(ocorrencia.equipamentos)}</div>`
+                : ''}
 
         </div>
     `
@@ -112,7 +115,7 @@ async function telaOS(idOcorrencia) {
         } = correcao
 
 
-        const { nome } = recuperarDado('correcoes', tipoCorrecao) || {}
+        const { nome } = await recuperarDado('correcoes', tipoCorrecao) || {}
 
 
         const tEquipamentos = equipamentos
@@ -199,13 +202,9 @@ async function telaOS(idOcorrencia) {
         await Promise.all(promessasCorrecoes)
     ).join('')
 
-    const acumulado = `
-        <div id="pdf">
-            <div class="botoes-flutuantes">
-                <img src="imagens/voltar.png" style="width: 2.5rem;" onclick="telaOcorrencias()">
-                <img src="imagens/pdf.png" style="width: 2.5rem;" onclick="gerarPdfOS('${idOcorrencia}')">
-            </div>
-
+    // Só o conteúdo: os botões da tela ficam fora, para não irem parar no PDF.
+    return `
+        <div id="pdf" class="os-chamado">
             <div class="relatorio">
 
                 <div class="corpo">
@@ -230,8 +229,21 @@ async function telaOS(idOcorrencia) {
             </div>
         </div>
     `
+}
 
-    tela.innerHTML = acumulado
+const ESTILOS_PDF_OS = ['gcsobras', 'relatorio', 'layout_os']
+
+async function telaOS(idOcorrencia) {
+
+    overlayAguarde()
+
+    tela.innerHTML = `
+        <div class="botoes-flutuantes">
+            <img src="imagens/voltar.png" style="width: 2.5rem;" onclick="telaOcorrencias()">
+            <img src="imagens/pdf.png" style="width: 2.5rem;" onclick="gerarPdfOS('${idOcorrencia}')">
+        </div>
+        ${await montarOS(idOcorrencia)}
+    `
 
     removerOverlay()
 
@@ -239,13 +251,19 @@ async function telaOS(idOcorrencia) {
 
 async function gerarPdfOS(nome) {
 
-    const id = 'pdf'
-    const estilos = [
-        'gcsobras',
-        'relatorio',
-        'layout_os'
-    ]
+    await pdf({ id: 'pdf', estilos: ESTILOS_PDF_OS, nome, orientacao: 'landscape' })
 
-    await pdf({ id, estilos, nome, orientacao: 'landscape' })
+}
+
+// Gera e baixa o PDF da OS sem abrir a tela do relatório.
+async function baixarPdfOS(idOcorrencia) {
+
+    try {
+        overlayAguarde()
+        await pdf({ html: await montarOS(idOcorrencia), estilos: ESTILOS_PDF_OS, nome: idOcorrencia, orientacao: 'landscape' })
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao gerar o PDF da OS: Fale com o suporte.' })
+    }
 
 }

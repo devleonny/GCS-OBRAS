@@ -89,20 +89,37 @@
 
 .relatorio-cc-indicadores {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
     gap: 10px;
 }
 
+/* A barra de destaque fica dentro do balão, cercada de branco: na borda ela
+   encostava no fundo verde da página e sumia. */
 .relatorio-cc-indicador {
+    --indicador-cor: #4f6859;
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 3px;
-    padding: 12px 14px;
+    padding: 12px 14px 12px 24px;
     background: white;
     border: 1px solid #b8c9be;
-    border-left: 4px solid #4f6859;
     border-radius: 8px;
     box-shadow: 0 2px 6px #10201914;
+    min-width: 0;
+    /* Referência de largura para o valor encolher junto com o balão. */
+    container-type: inline-size;
+}
+
+.relatorio-cc-indicador::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 10px;
+    width: 5px;
+    border-radius: 3px;
+    background: var(--indicador-cor);
 }
 
 .relatorio-cc-indicador span {
@@ -110,8 +127,12 @@
     color: #4f6058;
 }
 
+/* Valor numa linha só: a fonte diminui quando o balão é estreito para o número.
+   Navegadores sem container query ficam com o 1.25rem da primeira linha. */
 .relatorio-cc-indicador strong {
     font-size: 1.25rem;
+    font-size: clamp(0.85rem, 10cqi, 1.25rem);
+    white-space: nowrap;
     color: #22332a;
     font-variant-numeric: tabular-nums;
 }
@@ -122,11 +143,11 @@
 }
 
 .relatorio-cc-indicador.ok {
-    border-left-color: #356443;
+    --indicador-cor: #2f8a4f;
 }
 
 .relatorio-cc-indicador.alerta {
-    border-left-color: #a63c3c;
+    --indicador-cor: #c0392b;
 }
 
 .relatorio-cc-indicador.alerta strong {

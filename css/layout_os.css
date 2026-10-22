@@ -97,3 +97,80 @@
     color: #228743;
     font-size: 1.5rem;
 }
+
+/* OS do chamado: mais respiro entre os blocos, sem mudar a estrutura.
+   Restrito a .os-chamado porque .vertical/.horizontal/.painel acima valem para o sistema todo. */
+.os-chamado .corpo {
+    padding: 2rem 2.25rem;
+}
+
+.os-chamado .painel {
+    gap: 14px;
+    width: 100%;
+}
+
+.os-chamado .painel-1,
+.os-chamado .painel-2 {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 8px;
+}
+
+.os-chamado .painel-1 {
+    gap: 14px;
+}
+
+.os-chamado .painel-2 {
+    gap: 18px;
+    align-items: flex-start;
+}
+
+.os-chamado .painel-0 {
+    line-height: 1.6;
+}
+
+.os-chamado .horizontal-2 {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 1.5rem 2.5rem;
+}
+
+.os-chamado .vertical {
+    gap: 8px;
+}
+
+/* Rótulo e valor de cada campo um pouco mais próximos entre si do que dos vizinhos. */
+.os-chamado .vertical > .vertical {
+    gap: 2px;
+}
+
+.os-chamado .horizontal {
+    flex-wrap: wrap;
+    gap: 10px 24px;
+}
+
+.os-chamado .campo-descricao {
+    box-sizing: border-box;
+    padding: 8px 12px;
+    border-radius: 6px;
+    line-height: 1.6;
+}
+
+.os-chamado .campo-descricao p {
+    margin: 0;
+}
+
+.os-chamado .fotos-os {
+    gap: 6px;
+}
+
+.os-chamado .fotos-os img {
+    margin: 0;
+    border-radius: 4px;
+}
+
+.os-chamado .os-equipamentos-chamado {
+    width: 100%;
+}
