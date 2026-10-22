@@ -150,9 +150,9 @@ async function criarLinhaComposicao(produto) {
     const linha = `
         <tr>
             <td>${id}</td>
-            <td>
+            <td style="text-align: center;">
                 ${usuariosPermitidosParaEditar.includes(acesso.permissao)
-            ? `<img src="imagens/editar.png" onclick="cadastrarItem('${id}')">`
+            ? `<img src="imagens/pesquisar.svg" style="width: 1.5rem; cursor: pointer;" onclick="cadastrarItem('${id}')">`
             : ''}
             </td>
 
@@ -277,7 +277,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
 
     const colunas = [
         'Preço Unitário',
-        'Preço Unitário',
+        'Valor de Custo',
         'Margem %',
         'Pr. Venda',
         'Data',
@@ -290,7 +290,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
     ]
 
     const acumulado = `
-        <div style="${horizontal}; align-items: start; width: 100%; justify-content: space-between; gap 1vw;">
+        <div style="${horizontal}; align-items: start; width: 100%; justify-content: space-between; gap: 1rem;">
             <div style="${horizontal}; gap: 5px;">
                 <img style="width: 7vw; border-radius: 5px;" src="${produto?.imagem || logo}">
                 <div style="${vertical}">
@@ -306,6 +306,22 @@ async function abrirHistoricoPrecos(codigo, tabela) {
         <hr>
 
         <div class="tabelas-preco">
+            <!-- Vem antes no HTML para, empilhada no retrato, não reduzir a altura do histórico. -->
+            <div class="borda-tabela">
+                <div class="topo-tabela">
+                    <span style="color: white; font-size: 1.1rem;">Preços em outras tabelas</span>
+                </div>
+                <div class="div-tabela" data-altura-adaptavel="false">
+                    <table class="tabela">
+                        <thead>
+                            ${['Tabela', 'Valor'].map(op => `<th>${op}</th>`).join('')} 
+                        </thead>
+                        <tbody>${linOutrosPrecos.join('')}</tbody>
+                    </table>
+                </div>
+                <div class="rodape-tabela"></div>
+            </div>
+
             <div class="borda-tabela">
                 <div class="topo-tabela">
                     <span style="color: white; font-size: 1.1rem;">Histórico de Preços</span>
@@ -316,21 +332,6 @@ async function abrirHistoricoPrecos(codigo, tabela) {
                             ${colunas.map(op => `<th>${op}</th>`).join('')} 
                         </thead>
                         <tbody>${linhas.join('')}</tbody>
-                    </table>
-                </div>
-                <div class="rodape-tabela"></div>
-            </div>
-
-            <div class="borda-tabela">
-                <div class="topo-tabela">
-                    <span style="color: white; font-size: 1.1rem;">Preços em outras tabelas</span>
-                </div>
-                <div class="div-tabela">
-                    <table class="tabela">
-                        <thead>
-                            ${['Tabela', 'Valor'].map(op => `<th>${op}</th>`).join('')} 
-                        </thead>
-                        <tbody>${linOutrosPrecos.join('')}</tbody>
                     </table>
                 </div>
                 <div class="rodape-tabela"></div>
@@ -389,469 +390,327 @@ async function excluirCotacao(codigo, lpu, cotacao) {
 
 }
 
-function gerarTabelas(objeto) {
-
-    let acumulado = {}
-
-    for (const [chave, campos] of Object.entries(objeto)) {
-
-        const titulos = {
-            camposIniciais: 'Campos Iniciais',
-            presuncoes: 'Presunções',
-            impostos: 'Impostos',
-            resultados: 'Resultados',
-            complementares: 'Complemetares',
-            maoObra: 'Mão de Obra'
-        }
-
-        let linhas = ''
-
-        campos.forEach(campo => {
-
-            let tdInicial = `<td>${campo.label}</td>`
-            let tdFinal = `<td id="${campo?.id || ''}""></td>`
-            if (chave == 'camposIniciais' || chave == 'complementares') {
-                tdFinal = `
-                <td style="background-color: ${campo?.cor || ''};">
-                    <input 
-                    id="${campo?.id || ''}" 
-                    autocomplete="off" 
-                    type="number" 
-                    oninput="calcular('${campo?.id}')"
-                    style="text-align: center; width: max-content; background-color: transparent;" 
-                    value="${campo?.valor || ''}"
-                    ${campo.readOnly ? 'readOnly' : ''}
-                    >
-                </td>`
-            }
-
-            if (chave == 'resultados') {
-                tdFinal = `<td><label style="font-size: 0.9vw;" id="${campo?.id || ''}"></label></td>`
-            }
-
-            if (campo.label == 'NF de Compra') {
-                tdFinal = `
-                <td style="text-align: left; background-color: ${campo?.cor || ''};">
-                    <input style="text-align: left; background-color: transparent;" id="${campo.id}" value="${campo?.valor || ''}">
-                </td>`
-            }
-
-            if (campo.label == 'Fornecedor') {
-                tdFinal = `
-                <td style="text-align: left; background-color: ${campo?.cor || ''};">
-                    <input style="text-align: left; background-color: transparent;" id="${campo.id}" value="${campo?.valor || ''}">
-                </td>`
-            }
-
-            if (campo.label == 'Comentário') {
-                tdFinal = `
-                <td style="text-align: left; background-color: ${campo?.cor || ''};">
-                    <textarea style="background-color: transparent; border: none; padding: 0px;" id="${campo.id}">${campo?.valor || ''}</textarea>
-                </td>`
-            }
-
-            if (campo.opcoes) {
-                let opcoes = ''
-                campo.opcoes.forEach(op => { opcoes += `<option ${campo?.valorSelect == op ? 'selected' : ''}>${op}</option>` })
-                tdInicial = `
-                    <td>
-                        <div style="display: flex; align-items: center; justify-content: center; gap: 1vw;">
-                            ${campo.label}
-                            <select id="${campo.id}_select" onchange="calcular('${campo.id}_select')" class="opcoes-select" style="width: max-content;">
-                                ${opcoes}
-                            </select>
-                        </div>
-                    </td>`
-            }
-
-            linhas += `
-                <tr>
-                    ${tdInicial}
-                    ${tdFinal}
-                </tr>
-                `
-        })
-
-        if (chave == 'impostos') {
-            linhas += `
-                <tr>
-                    <td style="text-align: right;">Total</td>
-                    <td id="total_impostos"></td>
-                </tr>
-            `}
-
-        const tabelaHtml = `
-            <div style="${vertical}; width: 100%;">
-                <div class="painelBotoes"></div>
-                <div class="div-tabela">
-                    <table class="tabela">
-                        <thead>
-                            <th>${titulos[chave]}</th>
-                            <th>Valores</th>
-                        </thead>
-                        <tbody>${linhas}</tbody>
-                    </table>
-                </div>
-                <div class="rodape-tabela"></div>
-            </div>
-        `
-
-        if (!acumulado[chave]) acumulado[chave] = ''
-
-        acumulado[chave] += tabelaHtml
-
-    }
-
-    return acumulado
+const ICMS_POR_ORIGEM = {
+    'IMPORTADO': 4,
+    'NACIONAL': 12,
+    'BAHIA': 20.5,
+    '7%': 7
 }
 
-function modelos(produto) {
+const ICMS_BAHIA = 20.5
 
-    const blocos = {
-        'VENDA': {
-            camposIniciais: [
-                { label: 'Preço Unitário (R$)', cor: '#91b7d9', id: 'custo', valor: produto?.custo || '' },
-                { label: 'Frete de Compra (2%)', readOnly: true, id: 'frete' },
-                { label: 'ICMS Creditado em nota (%)', valorSelect: produto?.icms_creditado_select, opcoes: ['IMPORTADO', 'NACIONAL', 'BAHIA', '7%'], cor: '#91b7d9', id: 'icms_creditado', valor: produto?.icms_creditado || '' },
-                { label: 'Aliquota ICMS (Bahia) (20.5%)', readOnly: true, id: 'icms_aliquota', valor: 20.5 },
-                { label: 'ICMS a ser pago (DIFAL) (%)', readOnly: true, id: 'difal', valor: '' },
-                { label: 'Valor do ICMS de Entrada (R$)', readOnly: true, id: 'icms_entrada' },
-                { label: 'Valor de Custo (R$)', readOnly: true, id: 'valor_custo', valor: produto?.valor_custo || '' },
-                { label: 'Margem de Acréscimo (%)', cor: '#91b7d9', id: 'margem', valor: produto?.margem || '' },
-                { label: 'Preço de Venda (R$)', cor: '#91b7d9', id: 'preco_venda', valor: produto?.valor || '' },
-                { label: 'Frete de Venda (5%)', readOnly: true, id: 'frete_venda' }
-            ],
-            presuncoes: [
-                { label: 'Aliquota do Lucro Presumido Comercio (8%)', id: 'porc_LP' },
-                { label: 'Alíquota da Presunção CSLL (12%)', id: 'porc_CSLL' }
-            ],
-            impostos: [
-                { label: 'IRPJ (15%)', id: 'irpj' },
-                { label: 'Adicional IRPJ (10%)', id: 'adicional_irpj' },
-                { label: 'CSLL (9%)', id: 'csll' },
-                { label: 'PIS (0,65%)', id: 'pis' },
-                { label: 'COFINS (3%)', id: 'cofins' },
-                { label: 'ICMS de Saída', opcoes: ['20,5%', '12%', '4%'], id: 'icms_saida' }
-            ]
-        },
-        'SERVIÇO': {
-            camposIniciais: [
-                { label: 'Valor do Serviço', cor: '#91b7d9', id: 'preco_venda', valor: produto?.valor || '' }
-            ],
-            maoObra: [
-                { label: 'Coeficiente de Mão de Obra (30%)', id: 'maoObra' }
-            ],
-            presuncoes: [
-                { label: 'Aliquota do Lucro Presumido Serviço (32%)', id: 'aliq_presumido' },
-                { label: 'Alíquota da Presunção CSLL (32%)', id: 'presuncao_csll' }
-            ],
-            impostos: [
-                { label: 'IRPJ (15%)', id: 'irpj' },
-                { label: 'Adicional IRPJ (10%)', id: 'adicional_irpj' },
-                { label: 'CSLL (9%)', id: 'presuncao_csll_pagar' },
-                { label: 'PIS (0,65%)', id: 'pis' },
-                { label: 'COFINS (3%)', id: 'cofins' },
-                { label: 'ISS (5%)', id: 'iss' }
-            ]
-        },
-        'USO E CONSUMO': {
-            camposIniciais: [
-                { label: 'Preço Unitário (R$)', cor: '#91b7d9', id: 'custo', valor: produto?.custo || '' },
-                { label: 'Frete de Compra (2%)', readOnly: true, id: 'frete' },
-                { label: 'ICMS Creditado em nota (%)', opcoes: ['IMPORTADO', 'NACIONAL', 'BAHIA'], cor: '#91b7d9', id: 'icms_creditado', valorSelect: produto?.icms_creditado_select, valor: produto?.icms_creditado || '' },
-                { label: 'Aliquota ICMS (Bahia) (20.5%)', readOnly: true, id: 'icms_aliquota', valor: 20.5 },
-                { label: 'ICMS a ser pago (DIFAL) (%)', readOnly: true, id: 'difal', valor: '' },
-                { label: 'Valor do ICMS de Entrada (R$)', readOnly: true, id: 'icms_entrada' },
-                { label: 'Valor de Custo (R$)', readOnly: true, id: 'valor_custo', valor: produto?.valor_custo || '' },
-                { label: 'Margem de Acréscimo (%)', cor: '#91b7d9', id: 'margem', valor: produto?.margem || '' },
-                { label: 'Preço de Venda (R$)', cor: '#91b7d9', id: 'preco_venda', valor: produto?.valor || '' },
-                { label: 'Frete de Venda (5%)', readOnly: true, id: 'frete_venda' }
-            ],
-            presuncoes: [
-                { label: 'Aliquota do Lucro Presumido Serviço (32%)', id: 'aliq_presumido' },
-                { label: 'Alíquota da Presunção CSLL (32%)', id: 'presuncao_csll' }
-            ],
-            impostos: [
-                { label: 'IRPJ (15%)', id: 'irpj' },
-                { label: 'Adicional IRPJ (10%)', id: 'adicional_irpj' },
-                { label: 'CSLL (9%)', id: 'presuncao_csll_pagar' },
-                { label: 'PIS (0,65%)', id: 'pis' },
-                { label: 'COFINS (3%)', id: 'cofins' },
-                { label: 'ISS (5%)', id: 'iss' }
-            ]
+// Último cálculo exibido no modal; o salvamento usa os mesmos valores mostrados.
+let ultimoCalculoPreco = null
+
+function porcentagem(valor) {
+    return `${(Number(valor) || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`
+}
+
+// Lucro presumido de serviço, também aplicado a Uso e Consumo.
+function impostosPresumidoServico(precoVenda) {
+    const aliqPresumido = precoVenda * 0.32
+    const presuncaoCsll = precoVenda * 0.32
+    const irpj = aliqPresumido * 0.15
+    const adicionalIrpj = aliqPresumido * 0.10
+    const csll = presuncaoCsll * 0.09
+    const pis = precoVenda * 0.0065
+    const cofins = precoVenda * 0.03
+    const iss = precoVenda * 0.05
+    const totalImpostos = irpj + adicionalIrpj + csll + pis + cofins + iss
+
+    return { aliqPresumido, presuncaoCsll, irpj, adicionalIrpj, csll, pis, cofins, iss, totalImpostos }
+}
+
+function impostosPresumidoComercio(precoVenda, aliquotaIcmsSaida) {
+    const lucroPresumido = precoVenda * 0.08
+    const presuncaoCsll = precoVenda * 0.12
+    const irpj = lucroPresumido * 0.15
+    const adicionalIrpj = lucroPresumido * 0.1
+    const csll = presuncaoCsll * 0.09
+    const pis = precoVenda * 0.0065
+    const cofins = precoVenda * 0.03
+    const icms = precoVenda * (aliquotaIcmsSaida / 100)
+    const totalImpostos = irpj + adicionalIrpj + csll + pis + cofins + icms
+
+    return { lucroPresumido, presuncaoCsll, irpj, adicionalIrpj, csll, pis, cofins, icms, totalImpostos }
+}
+
+// Custo de entrada da mercadoria; com fixarPreco a margem é derivada do preço informado.
+function custoMercadoria({ precoCompra, icmsCreditado, aliquotaIcms, margem, precoVenda, fixarPreco }) {
+    const frete = precoCompra * 0.02
+    const difal = aliquotaIcms - icmsCreditado
+    const icmsEntrada = difal / 100 * precoCompra
+    const valorCusto = icmsEntrada + precoCompra + frete
+
+    if (fixarPreco)
+        margem = valorCusto ? Number(((precoVenda / valorCusto - 1) * 100).toFixed(2)) : 0
+    else
+        precoVenda = (1 + margem / 100) * valorCusto
+
+    const freteVenda = precoVenda * 0.05
+
+    return { frete, difal, icmsEntrada, valorCusto, margem, precoVenda, freteVenda }
+}
+
+function resumoLucro(base, totalCusto) {
+    base = Number(base) || 0
+    const lucroLiquido = base - (Number(totalCusto) || 0)
+    const lucroPorcentagem = base ? lucroLiquido / base * 100 : 0
+
+    return { lucroLiquido, lucroPorcentagem }
+}
+
+function calcularPreco(tipo, entradas) {
+
+    if (tipo == 'SERVIÇO') {
+        const { precoVenda } = entradas
+        const maoObra = precoVenda * 0.3
+        const impostos = impostosPresumidoServico(precoVenda)
+
+        return {
+            precoVenda,
+            maoObra,
+            ...impostos,
+            ...resumoLucro(precoVenda, impostos.totalImpostos + maoObra)
         }
     }
 
-    const geral = {
-        complementares: [
-            { label: 'NF de Compra', id: 'nota', cor: '#91b7d9', valor: produto?.nota || '' },
-            { label: 'Fornecedor', id: 'fornecedor', cor: '#91b7d9', valor: produto?.fornecedor || '' },
-            { label: 'Comentário', id: 'comentario', cor: '#91b7d9', valor: produto?.comentario || '' }
-        ],
-        resultados: [
-            { label: 'LUCRO LÍQUIDO', id: 'lucro_liquido' },
-            { label: 'PERCENTUAL DE LUCRO', id: 'lucro_porcentagem' }
-        ]
+    if (tipo == 'VENDA' || tipo == 'USO E CONSUMO') {
+        const venda = tipo == 'VENDA'
+        const custo = custoMercadoria({
+            ...entradas,
+            aliquotaIcms: venda ? entradas.aliquotaIcmsSaida : ICMS_BAHIA
+        })
+        const impostos = venda
+            ? impostosPresumidoComercio(custo.precoVenda, entradas.aliquotaIcmsSaida)
+            : impostosPresumidoServico(custo.precoVenda)
+
+        return {
+            icmsCreditado: entradas.icmsCreditado,
+            ...custo,
+            ...impostos,
+            ...resumoLucro(custo.precoVenda, impostos.totalImpostos + (custo.valorCusto + custo.freteVenda))
+        }
     }
 
-    return { ...blocos[produto.tipo], ...geral }
+    return null
+}
+
+function entradasPreco(campo) {
+    const numero = id => Number(document.getElementById(id)?.value || 0)
+    const opcao = id => document.getElementById(id)?.value || ''
+
+    return {
+        precoCompra: numero('custo'),
+        margem: numero('margem'),
+        precoVenda: numero('preco_venda'),
+        icmsCreditado: ICMS_POR_ORIGEM[opcao('icms_creditado_select')],
+        aliquotaIcmsSaida: conversor(opcao('icms_saida_select')),
+        fixarPreco: campo == 'preco_venda'
+    }
+}
+
+function calcular(campo) {
+
+    const painel = document.querySelector('.calc-preco')
+    if (!painel) return
+
+    const resultado = calcularPreco(painel.dataset.tipo, entradasPreco(campo))
+    ultimoCalculoPreco = resultado
+    if (!resultado) return
+
+    // Margem e preço se alimentam: atualiza o que não foi digitado.
+    if (resultado.valorCusto !== undefined) {
+        if (campo == 'preco_venda')
+            document.getElementById('margem').value = resultado.margem
+        else
+            document.getElementById('preco_venda').value = Number(resultado.precoVenda.toFixed(2))
+    }
+
+    for (const el of painel.querySelectorAll('[data-chave]')) {
+        const valor = resultado[el.dataset.chave]
+        el.innerHTML = el.dataset.formato == 'porcentagem'
+            ? porcentagem(valor)
+            : dinheiro(valor)
+
+        if ('lucro' in el.dataset) {
+            el.classList.toggle('lucroPositivo', resultado.lucroLiquido > 0)
+            el.classList.toggle('lucroNegativo', !(resultado.lucroLiquido > 0))
+        }
+    }
+}
+
+function linhaPreco({ label, id, tipo = 'saida', valor, chave, formato, select, opcoes = [], valorSelect, classe = '' }) {
+
+    const caixaSelecao = select
+        ? `<select id="${select}" onchange="calcular('${select}')">
+            ${opcoes.map(op => `<option ${valorSelect == op ? 'selected' : ''}>${op}</option>`).join('')}
+        </select>`
+        : ''
+
+    const valorCampo = escaparAtributo(String(valor || ''))
+
+    const campos = {
+        numero: `<input id="${id}" type="number" step="any" inputmode="decimal" autocomplete="off" oninput="calcular('${id}')" value="${valorCampo}">`,
+        texto: `<input id="${id}" autocomplete="off" value="${valorCampo}">`,
+        area: `<textarea id="${id}" rows="3">${valorCampo}</textarea>`,
+        fixo: `<span class="calc-preco-valor">${valor}</span>`,
+        saida: `<output class="calc-preco-valor" data-chave="${chave}" ${formato ? `data-formato="${formato}"` : ''}></output>`
+    }
+
+    const largura = ['texto', 'area'].includes(tipo) ? ' calc-preco-linha-larga' : ''
+
+    return `
+        <div class="calc-preco-linha${largura} ${classe}">
+            <label class="calc-preco-rotulo" ${id ? `for="${id}"` : ''}>${label}${caixaSelecao}</label>
+            ${campos[tipo]}
+        </div>`
+}
+
+function cardPreco(titulo, linhas) {
+    return `
+        <section class="calc-preco-card">
+            <h3>${titulo}</h3>
+            ${linhas.map(linhaPreco).join('')}
+        </section>`
+}
+
+function secoesPreco(produto) {
+
+    const { tipo } = produto
+    const mercadoria = tipo == 'VENDA' || tipo == 'USO E CONSUMO'
+    if (!mercadoria && tipo != 'SERVIÇO')
+        return null
+
+    const precoVenda = { label: 'Preço de Venda (R$)', id: 'preco_venda', tipo: 'numero', valor: produto?.valor }
+
+    const esquerda = []
+    const direita = []
+
+    if (mercadoria) {
+        esquerda.push(
+            cardPreco('Custo de Compra', [
+                { label: 'Preço Unitário (R$)', id: 'custo', tipo: 'numero', valor: produto?.custo },
+                { label: 'Frete de Compra (2%)', chave: 'frete' },
+                {
+                    label: 'ICMS Creditado em nota',
+                    select: 'icms_creditado_select',
+                    opcoes: tipo == 'VENDA' ? ['IMPORTADO', 'NACIONAL', 'BAHIA', '7%'] : ['IMPORTADO', 'NACIONAL', 'BAHIA'],
+                    valorSelect: produto?.icms_creditado_select,
+                    chave: 'icmsCreditado',
+                    formato: 'porcentagem'
+                },
+                { label: 'Alíquota ICMS (Bahia)', tipo: 'fixo', valor: porcentagem(ICMS_BAHIA) },
+                { label: 'ICMS a ser pago (DIFAL)', chave: 'difal', formato: 'porcentagem' },
+                { label: 'Valor do ICMS de Entrada', chave: 'icmsEntrada' },
+                { label: 'Valor de Custo', chave: 'valorCusto', classe: 'calc-preco-total' }
+            ]),
+            cardPreco('Preço de Venda', [
+                { label: 'Margem de Acréscimo (%)', id: 'margem', tipo: 'numero', valor: produto?.margem },
+                precoVenda,
+                { label: 'Frete de Venda (5%)', chave: 'freteVenda' }
+            ])
+        )
+    } else {
+        esquerda.push(
+            cardPreco('Serviço', [{ ...precoVenda, label: 'Valor do Serviço (R$)' }]),
+            cardPreco('Mão de Obra', [{ label: 'Coeficiente de Mão de Obra (30%)', chave: 'maoObra' }])
+        )
+    }
+
+    esquerda.push(cardPreco('Complementares', [
+        { label: 'NF de Compra', id: 'nota', tipo: 'texto', valor: produto?.nota },
+        { label: 'Fornecedor', id: 'fornecedor', tipo: 'texto', valor: produto?.fornecedor },
+        { label: 'Comentário', id: 'comentario', tipo: 'area', valor: produto?.comentario }
+    ]))
+
+    const impostosComuns = [
+        { label: 'IRPJ (15%)', chave: 'irpj' },
+        { label: 'Adicional IRPJ (10%)', chave: 'adicionalIrpj' },
+        { label: 'CSLL (9%)', chave: 'csll' },
+        { label: 'PIS (0,65%)', chave: 'pis' },
+        { label: 'COFINS (3%)', chave: 'cofins' }
+    ]
+
+    const total = { label: 'Total de Impostos', chave: 'totalImpostos', classe: 'calc-preco-total' }
+
+    if (tipo == 'VENDA') {
+        direita.push(
+            cardPreco('Presunções', [
+                { label: 'Lucro Presumido Comércio (8%)', chave: 'lucroPresumido' },
+                { label: 'Presunção CSLL (12%)', chave: 'presuncaoCsll' }
+            ]),
+            cardPreco('Impostos', [
+                ...impostosComuns,
+                { label: 'ICMS de Saída', select: 'icms_saida_select', opcoes: ['20,5%', '12%', '4%'], chave: 'icms' },
+                total
+            ])
+        )
+    } else {
+        direita.push(
+            cardPreco('Presunções', [
+                { label: 'Lucro Presumido Serviço (32%)', chave: 'aliqPresumido' },
+                { label: 'Presunção CSLL (32%)', chave: 'presuncaoCsll' }
+            ]),
+            cardPreco('Impostos', [
+                ...impostosComuns,
+                { label: 'ISS (5%)', chave: 'iss' },
+                total
+            ])
+        )
+    }
+
+    const resultado = `
+        <section class="calc-preco-card">
+            <h3>Resultado</h3>
+            <div class="calc-preco-resultado">
+                <div>
+                    <span>Lucro Líquido</span>
+                    <strong data-chave="lucroLiquido" data-lucro></strong>
+                </div>
+                <div>
+                    <span>Percentual de Lucro</span>
+                    <strong data-chave="lucroPorcentagem" data-formato="porcentagem" data-lucro></strong>
+                </div>
+            </div>
+        </section>`
+
+    return `
+        <div class="calc-preco" data-tipo="${escaparAtributo(tipo)}">
+            <div class="calc-preco-coluna">${esquerda.join('')}</div>
+            <div class="calc-preco-coluna">${resultado}${direita.join('')}</div>
+        </div>`
 }
 
 async function adicionarCotacao(codigo, lpu, cotacao) {
 
     overlayAguarde()
 
-    let produto = await recuperarDado('dados_composicoes', codigo)
-    const funcao = cotacao
-        ? `salvarPreco('${codigo}', '${lpu}', '${cotacao}')`
-        : `salvarPreco('${codigo}', '${lpu}')`
+    let produto = await recuperarDado('dados_composicoes', codigo) || {}
 
     if (lpu && cotacao) {
         produto = {
             ...produto,
-            ...produto[lpu].historico[cotacao]
+            ...produto[lpu]?.historico?.[cotacao]
         }
     }
 
-    const tabelas = gerarTabelas(modelos(produto))
-    const gap = `gap: 0.5rem;`
+    const elemento = secoesPreco(produto)
+    if (!elemento)
+        return popup({ mensagem: 'Defina o tipo do item (VENDA, SERVIÇO ou USO E CONSUMO) para calcular o preço.' })
 
-    const acumulado = `
-        <div style="${horizontal}; border-radius: 5px; background-color: #575757; padding: 0.5rem; align-items: start; ${gap}">
-            <span style="display: none" id="modalidadeCalculo">${produto.tipo}</span>
-            <div style="${vertical}; ${gap}">
-                ${tabelas.camposIniciais}
-                ${tabelas.complementares}
-                ${produto.tipo == 'SERVIÇO' ? tabelas.maoObra : ''}
-            </div>
-
-            <div style="${vertical}; ${gap}">
-                ${tabelas.resultados}
-                ${tabelas.presuncoes}
-                ${tabelas.impostos}
-            </div>
-
-        </div>
-    `
+    const funcao = cotacao
+        ? `salvarPreco('${codigo}', '${lpu}', '${cotacao}')`
+        : `salvarPreco('${codigo}', '${lpu}')`
 
     const botoes = []
 
     if (usuariosPermitidosParaEditar)
         botoes.push({ texto: 'Salvar Preço', img: 'concluido', funcao })
 
-    popup({ botoes, elemento: `<div class="painel-precos">${acumulado}</div>`, titulo: produto.tipo })
+    popup({ botoes, elemento, titulo: produto.tipo, cor: '#eef3f0' })
 
     calcular()
-
-}
-
-function obValComp(id, valorRetorno) {
-
-    const el = document.getElementById(id)
-
-    if (!el)
-        return ''
-
-    if (valorRetorno !== undefined) {
-
-        if ('value' in el) {
-            el.value = (typeof (valorRetorno) == 'string' && valorRetorno.includes('R$'))
-                ? conversor(valorRetorno)
-                : Number(valorRetorno)
-        } else {
-            el.innerHTML = valorRetorno
-        }
-        return
-    }
-
-    let valor = 'value' in el
-        ? el.value
-        : el.innerHTML
-
-    if (el.type === 'number') {
-        valor = Number(valor || 0)
-    }
-
-    return valor
-}
-
-function calcular(campo, dadosCalculo = null) {
-
-    const modalidadeCalculo = dadosCalculo?.modalidadeCalculo || document.getElementById('modalidadeCalculo').textContent
-
-    const tabelaIcmsSaida = {
-        'IMPORTADO': 4,
-        'NACIONAL': 12,
-        'BAHIA': 20.5,
-        '7%': 7
-    }
-
-    function atualizarLucro({ valRef = 0, totImp = 0, custoFinal = 0, coeficienteMaoObra = 0, extras = {} }) {
-        const base = Number(valRef) || 0
-        const totalCusto = (Number(totImp) || 0) + (Number(custoFinal) || 0) + (Number(coeficienteMaoObra) || 0)
-        const lucroLiquido = base - totalCusto
-        let porcentagem = base ? (lucroLiquido / base * 100) : 0
-
-        if (dadosCalculo) {
-            return { lucroLiquido, lucroPorcentagem: porcentagem, totalImpostos: totImp, ...extras }
-        }
-
-        obValComp('lucro_liquido', dinheiro(lucroLiquido))
-        obValComp('lucro_porcentagem', `${porcentagem.toFixed(2)}%`)
-        const estilo = lucroLiquido > 0 ? 'lucroPositivo' : 'lucroNegativo'
-        document.getElementById('lucro_liquido').classList = estilo
-        document.getElementById('lucro_porcentagem').classList = estilo
-    }
-
-
-    if (modalidadeCalculo == 'SERVIÇO') {
-
-        const precoVenda = obValComp('preco_venda')
-        const coeficienteMaoObra = precoVenda * 0.3
-        const aliqLp = precoVenda * 0.32
-        const presuncaoCsll = precoVenda * 0.32
-        const irpj = aliqLp * 0.15
-        const adicionalIrpj = aliqLp * 0.10
-        const presuncaoCsllAPagar = presuncaoCsll * 0.09
-        const pis = precoVenda * 0.0065
-        const cofins = precoVenda * 0.03
-        const iss = precoVenda * 0.05
-        const totImp = irpj + adicionalIrpj + presuncaoCsllAPagar + pis + cofins + iss
-
-        if (!dadosCalculo) {
-            obValComp('maoObra', dinheiro(coeficienteMaoObra))
-            obValComp('aliq_presumido', dinheiro(aliqLp))
-            obValComp('presuncao_csll', dinheiro(presuncaoCsll))
-            obValComp('irpj', dinheiro(irpj))
-            obValComp('adicional_irpj', dinheiro(adicionalIrpj))
-            obValComp('presuncao_csll_pagar', dinheiro(presuncaoCsllAPagar))
-            obValComp('pis', dinheiro(pis))
-            obValComp('cofins', dinheiro(cofins))
-            obValComp('iss', dinheiro(iss))
-            obValComp('total_impostos', dinheiro(totImp))
-        }
-
-        const extras = {
-            coeficienteMaoObra
-        }
-
-        return atualizarLucro({ valRef: precoVenda, totImp, coeficienteMaoObra, extras })
-
-    } else if (modalidadeCalculo == 'VENDA') {
-
-        const icmsCreditadoSelect = obValComp('icms_creditado_select')
-        const icmsCreditado = dadosCalculo?.icms_creditado || tabelaIcmsSaida[icmsCreditadoSelect]
-        const precoCompra = dadosCalculo?.custo || obValComp('custo')
-        const frete = precoCompra * 0.02
-        const icmsAliquota = conversor(obValComp('icms_saida_select'))
-        const difal = icmsAliquota - icmsCreditado
-        const icmsEntrada = difal / 100 * precoCompra
-        const valorCusto = icmsEntrada + precoCompra + frete
-        let margem = obValComp('margem')
-        let precoVenda = (1 + margem / 100) * valorCusto
-
-        if (campo == 'preco_venda' || dadosCalculo) {
-            precoVenda = dadosCalculo?.valor || obValComp('preco_venda')
-            margem = ((precoVenda / valorCusto - 1) * 100).toFixed(2)
-            obValComp('margem', margem)
-        } else {
-            obValComp('preco_venda', precoVenda.toFixed(2))
-        }
-
-        const freteVenda = precoVenda * 0.05
-        const porcLP = 0.08
-        const porcCSLL = 0.12
-        const lucroPresumido = precoVenda * porcLP
-        const presuncaoCsll = precoVenda * porcCSLL
-        const irpj = lucroPresumido * 0.15
-        const adicionalIrpj = lucroPresumido * 0.1
-        const csll = presuncaoCsll * 0.09
-        const pis = precoVenda * 0.0065
-        const cofins = precoVenda * 0.03
-
-        const icmsSaidaSelect = icmsAliquota / 100
-        const icmsSaida = dadosCalculo?.icmsSaida / 100 || icmsSaidaSelect
-        const icms = precoVenda * icmsSaida
-        const totImp = irpj + adicionalIrpj + csll + pis + cofins + icms
-
-        if (!dadosCalculo) {
-            obValComp('icms_creditado', icmsCreditado)
-            obValComp('frete_venda', freteVenda.toFixed(2))
-            obValComp('porc_LP', dinheiro(lucroPresumido))
-            obValComp('porc_CSLL', dinheiro(presuncaoCsll))
-            obValComp('icms_saida', dinheiro(icms.toFixed(0)))
-            obValComp('frete', frete.toFixed(2))
-            obValComp('difal', difal)
-            obValComp('icms_entrada', icmsEntrada.toFixed(2))
-            obValComp('valor_custo', valorCusto.toFixed(2))
-            obValComp('irpj', dinheiro(irpj))
-            obValComp('adicional_irpj', dinheiro(adicionalIrpj))
-            obValComp('csll', dinheiro(csll))
-            obValComp('pis', dinheiro(pis))
-            obValComp('cofins', dinheiro(cofins))
-            obValComp('total_impostos', dinheiro(totImp))
-        }
-
-        const extras = {
-            freteCompra: frete,
-            freteVenda,
-            difal,
-            margem: Number(margem)
-        }
-
-        return atualizarLucro({ valRef: precoVenda, totImp, custoFinal: (valorCusto + freteVenda), extras })
-
-    }
-
-    if (modalidadeCalculo == 'USO E CONSUMO') {
-
-        const icmsCreditadoSelect = obValComp('icms_creditado_select')
-        const icmsCreditado = dadosCalculo?.icms_creditado || tabelaIcmsSaida[icmsCreditadoSelect]
-        const precoCompra = Number(dadosCalculo?.custo || obValComp('custo') || 0)
-        const frete = precoCompra * 0.02
-        const icmsAliquota = 20.5
-        const difal = icmsAliquota - icmsCreditado
-        const icmsEntrada = (difal / 100) * precoCompra
-        const valorCusto = icmsEntrada + precoCompra + frete
-
-        let margem = Number(obValComp('margem') || 0)
-        let precoVenda = (1 + margem / 100) * valorCusto
-
-        if (campo == 'preco_venda' || dadosCalculo) {
-            precoVenda = Number(dadosCalculo?.valor || obValComp('preco_venda') || 0)
-            margem = valorCusto ? ((precoVenda / valorCusto - 1) * 100).toFixed(2) : 0
-            obValComp('margem', margem)
-        } else {
-            obValComp('preco_venda', precoVenda.toFixed(2))
-        }
-
-        const freteVenda = precoVenda * 0.05
-        const aliqLp = precoVenda * 0.32
-        const presuncaoCsll = precoVenda * 0.32
-        const irpj = aliqLp * 0.15
-        const adicionalIrpj = aliqLp * 0.10
-        const presuncaoCsllAPagar = presuncaoCsll * 0.09
-        const pis = precoVenda * 0.0065
-        const cofins = precoVenda * 0.03
-        const iss = precoVenda * 0.05
-        const totImp = irpj + adicionalIrpj + presuncaoCsllAPagar + pis + cofins + iss
-
-        if (!dadosCalculo) {
-            obValComp('frete_venda', dinheiro(freteVenda))
-            obValComp('difal', dinheiro(difal))
-            obValComp('irpj', dinheiro(irpj))
-            obValComp('adicional_irpj', dinheiro(adicionalIrpj))
-            obValComp('presuncao_csll_pagar', dinheiro(presuncaoCsllAPagar))
-            obValComp('pis', dinheiro(pis))
-            obValComp('cofins', dinheiro(cofins))
-            obValComp('iss', dinheiro(iss))
-            obValComp('total_impostos', dinheiro(totImp))
-        }
-
-        const extras = { freteCompra: frete, freteVenda, difal, margem: Number(margem) }
-
-        return atualizarLucro({ valRef: precoVenda, totImp, custoFinal: valorCusto + freteVenda, extras })
-    }
 
 }
 
@@ -859,34 +718,41 @@ async function salvarPreco(codigo, lpu, cotacao = crypto.randomUUID()) {
 
     overlayAguarde()
 
-    const icmsSaida = obValComp('icms_saida_select')
+    // Campos ausentes no tipo (ex.: custo em SERVIÇO) são gravados vazios.
+    const campo = id => document.getElementById(id)
+    const numero = id => campo(id) ? Number(campo(id).value || 0) : ''
+    const texto = id => campo(id)?.value ?? ''
 
-    let produto = await recuperarDado('dados_composicoes', codigo)
-    let historico = produto[lpu]?.historico || {}
+    const icmsSaida = texto('icms_saida_select')
+
+    const produto = await recuperarDado('dados_composicoes', codigo) || {}
+    const historico = produto[lpu]?.historico || {}
 
     if (produto.tipo == 'VENDA' && icmsSaida !== '20,5%')
         return popup({ mensagem: 'ICMS de saída por segurança não pode ser menor que <b>20,5%</b>.', titulo: 'ICMS de Saída bloqueado' })
 
+    const calculo = ultimoCalculoPreco || {}
+
     historico[cotacao] = {
-        valor: obValComp('preco_venda'),
+        valor: numero('preco_venda'),
         data: dataServidor().toLocaleString(),
         usuario: acesso.usuario,
-        nota: obValComp('nota'),
-        comentario: obValComp('comentario'),
-        margem: obValComp('margem'),
-        fornecedor: obValComp('fornecedor'),
-        custo: obValComp('custo'),
-        valor_custo: obValComp('valor_custo'),
-        icms_creditado: obValComp('icms_creditado'),
-        icms_creditado_select: obValComp('icms_creditado_select'),
-        modalidade_icms: obValComp('modalidade_icms_select'),
-        icms_saida: conversor(obValComp('icms_saida'))
+        nota: texto('nota'),
+        comentario: texto('comentario'),
+        margem: numero('margem'),
+        fornecedor: texto('fornecedor'),
+        custo: numero('custo'),
+        valor_custo: calculo.valorCusto !== undefined ? Number(calculo.valorCusto.toFixed(2)) : '',
+        icms_creditado: calculo.icmsCreditado ?? '',
+        icms_creditado_select: texto('icms_creditado_select'),
+        modalidade_icms: '',
+        icms_saida: calculo.icms !== undefined ? Number(calculo.icms.toFixed(0)) : 0
     }
 
     // Verificar antes se a porcentagem é aceitável;
     const permitidos = ['adm', 'diretoria']
-    const resultado = calcular(undefined, historico[cotacao])
-    if (resultado.lucroPorcentagem < 10 && !permitidos.includes(acesso.permissao))
+    const resultado = calcularPreco(produto.tipo, entradasPreco('preco_venda'))
+    if (resultado?.lucroPorcentagem < 10 && !permitidos.includes(acesso.permissao))
         return popup({ mensagem: 'Percentual de lucro não pode ser menor que 10%' })
 
     removerPopup()
@@ -895,6 +761,7 @@ async function salvarPreco(codigo, lpu, cotacao = crypto.randomUUID()) {
     await abrirHistoricoPrecos(codigo, lpu)
 
 }
+
 
 async function confirmarExclusaoItem(codigo) {
 

@@ -248,6 +248,15 @@ const esquemaBotoes = {
             ]
         },
         {
+            nome: 'Relatórios',
+            permitido: ['fin', 'diretoria', 'adm'],
+            img: 'relatorio',
+            sub: [
+                { nome: 'Custos por Centro de Custo', funcao: 'telaCustosCentroCusto', img: 'planilha' },
+                { nome: 'Custos por Período', funcao: 'telaCustosPorPeriodo', img: 'reagendar' }
+            ]
+        },
+        {
             nome: 'Post-it',
             bloqueio: ['cliente', 'técnico'],
             img: 'kanban',

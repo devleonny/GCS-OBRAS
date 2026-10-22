@@ -1,0 +1,7 @@
+#!/bin/sh
+# Atualiza o ?v= dos css/js nos HTMLs com o hash do conteúdo que vai no commit.
+# Ativar uma vez por clone:  git config core.hooksPath .githooks
+node scripts/versionar.js --staged || {
+    echo "versionar: falhou; commit cancelado. Rode 'node scripts/versionar.js' para ver o erro."
+    exit 1
+}

@@ -275,12 +275,13 @@ async function abrirDetalhesPagamentos(id) {
                 ${elemento ? `<div style="${vertical}; text-align: left;">${elemento}</div>` : ''}
             </div>
             `
-        const botoes = (img, nome, funcao) => `
+        const botoes = (icone, nome, funcao) => `
             <div class="btn-detalhes" onclick="${funcao}">
-                <img src="imagens/${img}.png">
+                ${icone}
                 <label style="cursor: pointer;">${nome}</label>
             </div>
             `
+        const iconePasta = `<svg class="btn-detalhes-icone" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M2 5a2 2 0 0 1 2-2h5l2 2h9a2 2 0 0 1 2 2v1H2V5z"/><path d="M2 9h20v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9z"/></svg>`
         const modListagem = (listagem) => `
             <div style="${vertical}; width: 100%; border-radius: 8px; overflow: hidden;">
                 <div class="bloco-arredondado">${listagem}</div>
@@ -345,34 +346,31 @@ async function abrirDetalhesPagamentos(id) {
 
         const btnsOrcamentos = vinculados
             .map(({ cliente, total_geral, id }) => {
-                return botoes('pasta', `${cliente || '...'} 
+                return botoes(iconePasta, `${cliente || '...'} 
                 <br>${dinheiro(total_geral)}`, `abrirAtalhos('${id}')`)
             })
             .join('')
 
+        // Ações do pagamento vão para o rodapé padrão do popup.
         const liberados = ['adm', 'diretoria']
-        const bEspeciais = [
-            botoes('reembolso', 'Duplicar Pagamento', `duplicarPagamento('${id}')`)
+        const acoesRodape = [
+            { texto: 'Duplicar Pagamento', img: 'reembolso', funcao: `duplicarPagamento('${id}')` }
         ]
 
         // Pagamento migrado LPU
         const idLpuParceiro = pagamento.lpu_parceiro_id || id
         const lpuParceiro = await recuperarDado('parceiros', idLpuParceiro)
         if (lpuParceiro)
-            bEspeciais.push(botoes('tecnico', 'Ver LPU Parceiro', `gerarPdfParceiro('${idLpuParceiro}', true)`))
+            acoesRodape.push({ texto: 'Ver LPU Parceiro', img: 'tecnico', funcao: `gerarPdfParceiro('${idLpuParceiro}', true)` })
 
         if (liberados.includes(permissao) || pagamento.criado == usuario)
-            bEspeciais.push(botoes('editar', 'Editar Pagamento', `editarPagamento('${id}')`))
+            acoesRodape.push({ texto: 'Editar Pagamento', img: 'editar', funcao: `editarPagamento('${id}')` })
 
-        bEspeciais.push(
-            ...(liberados.includes(permissao)
-                ? [
-                    botoes('cancel', 'Excluir pagamento', `confirmarExclusaoPagamento('${id}')`),
-                    botoes('anexo', 'Reimportar Anexos no Omie', `reprocessarAnexos('${id}')`)
-                ]
-                : []
+        if (liberados.includes(permissao))
+            acoesRodape.push(
+                { texto: 'Reimportar Anexos no Omie', img: 'anexo', funcao: `reprocessarAnexos('${id}')` },
+                { texto: 'Excluir pagamento', img: 'cancel', funcao: `confirmarExclusaoPagamento('${id}')` }
             )
-        )
 
         const deps = (pagamento?.snapshots?.departamentos || [])
             .map(({ departamento, valor }) => {
@@ -400,7 +398,6 @@ async function abrirDetalhesPagamentos(id) {
             <div class="detalhes-pagamento">
 
                 ${modListagem(btnsOrcamentos)}
-                ${modListagem(bEspeciais.join(''))}
 
                 ${modListagem(
             modelo('Valor Total do Pagamento', `<span class="valor-total-pagamento">${dinheiro(parametroPagamento(pagamento).valor_documento)}</span>`)
@@ -447,7 +444,7 @@ async function abrirDetalhesPagamentos(id) {
             return telaDetalhes.innerHTML = acumulado
         }
 
-        popup({ elemento: `<div class="tela-detalhes">${acumulado}</div>`, titulo: 'Detalhes do Pagamento' })
+        popup({ elemento: `<div class="tela-detalhes">${acumulado}</div>`, titulo: 'Detalhes do Pagamento', botoes: acoesRodape })
 
     } catch (err) {
         console.error(err)

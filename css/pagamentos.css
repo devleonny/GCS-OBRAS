@@ -1,18 +1,47 @@
-.popup .tela-detalhes {
-    background: #f7f9f8;
-    color: #324b3c;
-    width: min(640px, 88vw);
+/* Detalhes do Pagamento (popup). Tudo restrito a .tela-detalhes; as regras
+   genéricas de .bloco-arredondado/.btn-detalhes mais abaixo são neutralizadas aqui. */
+/* A janela tem largura própria; conteúdo e rodapé de botões ocupam toda ela
+   (sem isso, uma linha longa de botões alarga a janela e o conteúdo fica estreito). */
+.popup-janela-fora:has(.tela-detalhes) {
+    width: min(760px, 90vw);
+}
+
+.popup-janela-fora:has(.tela-detalhes) > .janela,
+.popup-janela-fora:has(.tela-detalhes) > .rodape-padrao {
+    align-self: stretch;
     box-sizing: border-box;
+}
+
+.popup .tela-detalhes {
+    width: 100%;
+    box-sizing: border-box;
+    background: #eef3f0;
+    color: #22332a;
     text-align: left;
 }
 
+/* Faixa de aprovação: botões à esquerda, justificativa ao lado. */
 .tela-detalhes .balao {
     width: 100%;
     box-sizing: border-box;
+    align-items: stretch;
     padding: 14px;
     gap: 12px;
-    background: #dcebe1;
-    border-bottom: 1px solid #b0cbb9;
+    background: #cfe1d5;
+    border-bottom: 1px solid #9cb5a5;
+}
+
+.tela-detalhes .balao > div {
+    flex: 0 0 120px;
+    justify-content: center;
+    gap: 8px !important;
+}
+
+.tela-detalhes .balao button {
+    width: 100%;
+    margin: 0;
+    padding: 8px 12px;
+    font-weight: 600;
 }
 
 .tela-detalhes .balao textarea {
@@ -23,9 +52,9 @@
     padding: 10px;
     box-sizing: border-box;
     background: white;
-    border: 1px solid #cddbd2;
+    border: 1px solid #9cb5a5;
     border-radius: 8px;
-    color: #324b3c;
+    color: #22332a;
     font-family: inherit;
     font-size: 12px;
     line-height: 1.5;
@@ -34,29 +63,37 @@
 
 .tela-detalhes textarea:focus,
 .tela-detalhes select:focus {
-    outline: 2px solid #8cb69a;
+    outline: 2px solid #4f6859;
     outline-offset: 1px;
 }
 
 .tela-detalhes .detalhes-pagamento {
     width: 100%;
     box-sizing: border-box;
+    align-items: stretch;
     padding: 14px;
     gap: 12px;
     min-width: 0;
     font-size: 12px;
-    line-height: 1.6;
+    line-height: 1.5;
+}
+
+/* Blocos vazios (ex.: sem orçamentos vinculados) não ocupam espaço. */
+.tela-detalhes .detalhes-pagamento > div:has(> .bloco-arredondado:empty) {
+    display: none;
 }
 
 .tela-detalhes .bloco-arredondado {
     width: 100%;
+    max-height: none;
+    overflow: visible;
     box-sizing: border-box;
-    padding: 12px;
+    padding: 12px 14px;
     gap: 10px;
-    border: 1px solid #dfe7e2;
     background: white;
+    border: 1px solid #b8c9be;
     border-radius: 8px;
-    box-shadow: 0 2px 6px #17251e08;
+    box-shadow: 0 2px 6px #10201914;
 }
 
 .tela-detalhes .bloco-arredondado > div {
@@ -65,21 +102,41 @@
     overflow-wrap: anywhere;
 }
 
+/* Título de cada campo: rótulo pequeno acima do valor. */
+.tela-detalhes .bloco-arredondado > div > span:first-child,
+.tela-detalhes .bloco-arredondado > div > span:first-child b {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #4f6058;
+}
+
+/* Bloco de ações e de orçamentos vinculados: botões em grade, não um por linha. */
+.tela-detalhes .bloco-arredondado:has(> .btn-detalhes) {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 8px;
+}
+
 .tela-detalhes .btn-detalhes {
+    width: auto;
     box-sizing: border-box;
     min-width: 0;
     padding: 8px 10px;
     gap: 10px;
-    border: 1px solid #aac5b3;
+    background: #d3e6da;
+    border: 1px solid #8fb39c;
     border-radius: 7px;
-    background: #dcebe1;
-    color: #324b3c;
+    color: #22332a;
+    font-weight: 600;
 }
 
 .tela-detalhes .btn-detalhes:hover {
-    background: #c5dfce;
-    border-color: #8fb39c;
-    color: #324b3c;
+    background: #bcd8c6;
+    border-color: #4f6859;
+    border-radius: 7px;
+    color: #1a2a21;
 }
 
 .tela-detalhes .btn-detalhes label {
@@ -88,64 +145,114 @@
     overflow-wrap: anywhere;
 }
 
+.tela-detalhes .btn-detalhes-icone {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    color: #4f6859;
+}
+
+.tela-detalhes .btn-detalhes:hover .btn-detalhes-icone {
+    color: #324b3c;
+}
+
 .tela-detalhes .btn-detalhes img {
     width: 22px;
     height: 22px;
-    object-fit: contain;
     margin: 0;
     flex-shrink: 0;
+    object-fit: contain;
+}
+
+/* Dados do pagamento em duas colunas; observação e anexos ocupam a linha toda. */
+.tela-detalhes .bloco-arredondado:has(> div:nth-child(3)):not(:has(> .btn-detalhes)) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px 20px;
+}
+
+.tela-detalhes .bloco-arredondado:has(> div:nth-child(3)):not(:has(> .btn-detalhes)) > div:nth-child(n + 6) {
+    grid-column: 1 / -1;
+}
+
+/* Linhas de departamento: botão compacto antes do valor. */
+.tela-detalhes .bloco-arredondado div > button {
+    margin: 0 8px 0 0;
+    padding: 3px 10px;
+    font-size: 11px;
+}
+
+.tela-detalhes .bloco-arredondado div:has(> button) + div:has(> button) {
+    margin-top: 6px;
 }
 
 .tela-detalhes select {
-    padding: 8px 10px;
     max-width: 100%;
-    border: 1px solid #cddbd2;
+    padding: 8px 10px;
+    background: white;
+    border: 1px solid #9cb5a5;
     border-radius: 7px;
-    background: #f8faf9;
-    color: #324b3c;
+    color: #22332a;
     font-family: inherit;
     font-size: 12px;
 }
 
 .tela-detalhes .valor-total-pagamento {
     display: inline-block;
-    text-align: center;
     width: fit-content;
     padding: 6px 18px;
-    background: #c5dfce;
-    border: 1px solid #9dbda8;
+    text-align: center;
+    background: #d3e6da;
+    border: 1px solid #6f9c7d;
     border-radius: 7px;
-    color: #356443;
-    font-size: 18px;
-    font-weight: 600;
+    color: #2b5236;
+    font-size: 20px;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
 }
 
+.tela-detalhes .detalhes-anexos {
+    gap: 8px;
+}
+
+/* Título "Histórico". */
+.tela-detalhes .detalhes-pagamento > label {
+    margin-top: 4px;
+    padding-bottom: 4px;
+    font-size: 12px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #324b3c;
+    border-bottom: 1px solid #b8c9be;
+}
+
+/* Cartões do histórico: a cor do status vem inline na borda; aqui só engrossa a lateral. */
 .tela-detalhes .vitrificado {
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
-    padding: 12px;
-    gap: 12px;
-    border-radius: 8px;
-    background: white;
-    box-shadow: 0 2px 6px #17251e08;
     align-items: flex-start;
+    padding: 10px 12px;
+    gap: 12px;
+    background: white;
+    border-left-width: 4px !important;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px #10201914;
     overflow-wrap: anywhere;
 }
 
 .tela-detalhes .vitrificado > div {
-    min-width: 0;
     flex: 1;
+    min-width: 0;
+}
+
+.tela-detalhes .vitrificado strong {
+    color: #4f6058;
 }
 
 .tela-detalhes .vitrificado > img {
     width: 24px;
     flex-shrink: 0;
-}
-
-.tela-detalhes .detalhes-anexos {
-    gap: 8px;
 }
 
 @media (max-width: 480px) {
@@ -154,8 +261,14 @@
     }
 
     .tela-detalhes .balao > div {
+        flex: 0 0 auto;
         flex-direction: row !important;
         flex-wrap: wrap;
+    }
+
+    .tela-detalhes .balao button {
+        width: auto;
+        flex: 1 1 0;
     }
 
     .tela-detalhes .balao textarea {

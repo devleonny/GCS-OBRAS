@@ -10,10 +10,11 @@
     flex: 0 1 auto;
     max-width: 100%;
     min-width: 0;
-    border: 1px solid #dfe7e2;
+    border: 1px solid #b8c9be;
     border-radius: 10px;
     background: white;
     overflow: hidden;
+    box-shadow: 0 2px 6px #10201914;
 }
 
 .composicao-bloco-topo {
@@ -22,20 +23,21 @@
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 10px;
-    padding: 6px 10px;
-    background: #edf3ef;
+    padding: 7px 10px;
+    background: linear-gradient(120deg, #324b3c, #4f6859);
 }
 
 .composicao-bloco-topo h3 {
     margin: 0;
-    color: #324b3c;
+    color: white;
     font-size: 13px;
+    font-weight: 600;
 }
 
 .composicao-contagem {
     margin-left: 6px;
     padding: 2px 7px;
-    background: #dcebe1;
+    background: #ffffff2e;
     border-radius: 20px;
     font-size: 11px;
 }
@@ -48,6 +50,15 @@
     margin: 0;
     padding: 5px 10px;
     font-size: 11px;
+    color: #324b3c;
+    background: white;
+    border: 1px solid #ffffff80;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.composicao-agrupamento:hover {
+    background: #e3eee7;
 }
 
 .composicao-agrupamento img {
@@ -75,10 +86,26 @@
 
 .composicao-tabela > thead > tr > th,
 .composicao-tabela > tbody > tr > td {
-    padding: 5px 10px;
+    padding: 6px 10px;
     border: 0;
-    border-bottom: 1px solid #e8eeea;
+    border-bottom: 1px solid #d5e1d9;
     text-align: left;
+    color: #22332a;
+}
+
+.composicao-tabela > thead > tr > th {
+    background: #dbe7df;
+    color: #324b3c;
+    font-weight: 600;
+    border-bottom: 1px solid #b8c9be;
+}
+
+.composicao-tabela > tbody > tr:nth-child(even) > td {
+    background: #f4f8f5;
+}
+
+.composicao-tabela > tbody > tr:hover > td {
+    background: #e8f1eb;
 }
 
 .composicao-tabela > tbody > tr:last-child > td {
@@ -95,7 +122,8 @@
     display: inline-block;
     padding: 3px 8px;
     border-radius: 5px;
-    background: #f1f5f2;
+    background: white;
+    border: 1px solid currentColor;
     color: var(--cor-tipo);
     font-weight: 600;
 }
@@ -104,24 +132,32 @@
     display: inline-block;
     margin: 0;
     padding: 5px 9px;
-    border: 1px solid #cdded3;
+    border: 1px solid #9cbfa6;
     border-radius: 6px;
-    background: #eff7f1;
-    color: #356443;
+    background: #e3f0e7;
+    color: #2b5236;
     font-weight: 600;
     font-size: 12px;
 }
 
 .composicao-preco.sem-valor {
-    background: #fff1ef;
-    color: #a63c3c;
-    border-color: #eed3cf;
+    background: #fbe4e1;
+    color: #962f2f;
+    border-color: #e0aaa3;
+}
+
+button.composicao-preco {
+    cursor: pointer;
+}
+
+button.composicao-preco:hover {
+    filter: brightness(0.95);
 }
 
 .composicao-vazio {
     margin: 0;
     padding: 8px 10px;
-    color: #65756b;
+    color: #4f6058;
 }
 
 .composicao-bloco-precos .composicao-tabela th,
@@ -177,12 +213,144 @@
     padding: 1rem;
 }
 
-.painel-precos {
+/* Modal de cálculo de preço: um único bloco rolável, sem tabelas com altura própria. */
+.calc-preco {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+    align-items: start;
+    gap: 12px;
+    width: min(920px, 86vw);
+    padding: 12px;
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.calc-preco-coluna {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+.calc-preco-card {
+    background-color: white;
+    border: 1px solid #dfe7e2;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.calc-preco-card > h3 {
+    margin: 0;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: white;
+    background: linear-gradient(120deg, #324b3c, #4f6859);
+}
+
+.calc-preco-linha {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 38px;
+    padding: 5px 12px;
+    border-top: 1px solid #eef3f0;
+    box-sizing: border-box;
+}
+
+.calc-preco-card > h3 + .calc-preco-linha {
+    border-top: none;
+}
+
+.calc-preco-linha-larga {
     flex-direction: column;
-    padding: 1rem;
+    align-items: stretch;
+    gap: 4px;
+}
+
+.calc-preco-rotulo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    min-width: 0;
+    font-size: 0.85rem;
+    color: #324b3c;
+}
+
+.calc-preco-rotulo select {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    background-color: #f2f2f2;
+    border: 1px solid #b8b8b8;
+    cursor: pointer;
+}
+
+.calc-preco-valor {
+    flex: 0 0 auto;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* Campos editáveis mantêm o azul que já indicava entrada de dados. */
+.calc-preco-linha input,
+.calc-preco-linha textarea {
+    flex: 0 0 auto;
+    width: 140px;
+    margin: 0;
+    padding: 5px 8px;
+    font: inherit;
+    font-size: 0.85rem;
+    text-align: right;
+    background-color: #eaf2fb;
+    border: 1px solid #91b7d9;
+    border-radius: 6px;
+    box-sizing: border-box;
+}
+
+.calc-preco-linha-larga input,
+.calc-preco-linha-larga textarea {
+    width: 100%;
+    text-align: left;
+    resize: vertical;
+}
+
+.calc-preco-linha input:focus,
+.calc-preco-linha textarea:focus {
+    border-color: #356443;
+    box-shadow: 0 0 0 2px #35644333;
+}
+
+.calc-preco-total {
+    font-weight: 600;
+    background-color: #f4f7f5;
+}
+
+.calc-preco-total .calc-preco-rotulo {
+    font-weight: 600;
+}
+
+.calc-preco-resultado {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    padding: 12px;
+}
+
+.calc-preco-resultado > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: #5b6b61;
+}
+
+.calc-preco-resultado strong {
+    font-size: 1.1rem;
+    font-variant-numeric: tabular-nums;
 }
 
 .elementos {
@@ -301,7 +469,8 @@
     display: flex;
     align-items: start;
     justify-content: center;
-    flex-direction: row;
+    /* "Outras tabelas" vem antes no HTML; o histórico continua à esquerda. */
+    flex-direction: row-reverse;
     gap: 1rem;
 }
 

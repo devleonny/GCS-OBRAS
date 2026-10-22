@@ -1400,3 +1400,171 @@ td img[src="imagens/pesquisar.svg"] {
     border-radius: 5px;
     cursor: pointer;
 }
+
+/* Letreiro de técnicos livres hoje (toolbar) */
+/* A faixa tem a largura de todos os nomes; sem estes limites ela alarga a toolbar
+   e empurra os botões da direita para fora da tela. */
+.toolbar-top > .toolbar-interno {
+    min-width: 0;
+}
+
+.toolbar-top > .cabecalho-usuario {
+    flex-shrink: 0;
+}
+
+.tecnicos-livres {
+    display: flex;
+    flex: 1 1 0;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    margin: 0 12px;
+    overflow: hidden;
+    color: white;
+    font-size: 0.8rem;
+}
+
+/* Sem isto o display: flex acima vence o atributo hidden e o letreiro nunca some. */
+.tecnicos-livres[hidden] {
+    display: none;
+}
+
+.tecnicos-livres[role="button"] {
+    cursor: pointer;
+}
+
+.tecnicos-livres:focus-visible {
+    outline: 2px solid #7fb38e;
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+.tecnicos-livres-lista {
+    width: min(620px, 86vw);
+    max-height: 65vh;
+    overflow: auto;
+    padding: 12px;
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.tecnicos-livres-aviso {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    color: #6b4a12;
+    background: #fdf1e4;
+    border: 1px solid #e6b97a;
+    border-left: 4px solid #c46a12;
+    border-radius: 6px;
+}
+
+.tecnicos-livres-aviso img {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.tecnicos-livres-lista > p {
+    margin: 0 0 10px;
+    color: #324b3c;
+}
+
+/* Tabela em cartão: contorno, cabeçalho verde-escuro e nomes em destaque. */
+.tecnicos-livres-lista .relatorio-cc-tab {
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid #9cb5a5;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px #1020191f;
+}
+
+.tecnicos-livres-lista .relatorio-cc-tab th {
+    cursor: default;
+    color: white;
+    background: linear-gradient(120deg, #324b3c, #4f6859);
+    border-bottom: 0;
+}
+
+.tecnicos-livres-lista .relatorio-cc-tab td {
+    border-bottom: 1px solid #d5e1d9;
+}
+
+.tecnicos-livres-lista .relatorio-cc-tab tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.tecnicos-livres-lista .relatorio-cc-tab td:first-child {
+    font-weight: 600;
+    color: #1a2a21;
+    border-left: 3px solid #4f6859;
+}
+
+.tecnicos-livres-data {
+    flex: 0 0 auto;
+    padding: 3px 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    background: #356443;
+    border: 1px solid #7fb38e;
+    border-radius: 999px;
+}
+
+.tecnicos-livres-janela {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    contain: inline-size;
+    /* Esmaece as bordas para os nomes entrarem e saírem suavemente. */
+    mask-image: linear-gradient(90deg, transparent, black 24px, black calc(100% - 24px), transparent);
+}
+
+.tecnicos-livres-faixa {
+    display: flex;
+    width: max-content;
+    animation: letreiro-tecnicos var(--duracao-letreiro, 30s) linear infinite;
+}
+
+.tecnicos-livres-janela:hover .tecnicos-livres-faixa {
+    animation-play-state: paused;
+}
+
+.tecnicos-livres-grupo {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 14px;
+    padding-right: 14px;
+    white-space: nowrap;
+}
+
+.tecnicos-livres-nome small {
+    opacity: 0.65;
+}
+
+.tecnicos-livres-separador {
+    color: #7fb38e;
+}
+
+@keyframes letreiro-tecnicos {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+
+/* Sem animação para quem pede menos movimento: a lista rola na mão. */
+@media (prefers-reduced-motion: reduce) {
+    .tecnicos-livres-janela {
+        overflow-x: auto;
+    }
+
+    .tecnicos-livres-faixa {
+        animation: none;
+    }
+
+    .tecnicos-livres-grupo[aria-hidden="true"] {
+        display: none;
+    }
+}

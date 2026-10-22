@@ -95,10 +95,12 @@
     min-width: 0;
     padding: 0;
     gap: 0;
-    border: 1px solid #a9c5b2;
-    border-radius: 9px;
-    background: #f0f6f2;
+    border: 1px solid #b8c9be;
+    border-radius: 10px;
+    background: white;
     box-sizing: border-box;
+    overflow: hidden;
+    box-shadow: 0 2px 6px #10201914;
 }
 
 .orcamento-bloco-titulo {
@@ -107,12 +109,12 @@
     justify-content: space-between;
     gap: 12px;
     padding: 8px 10px;
-    background: #cce2d3;
+    background: linear-gradient(120deg, #324b3c, #4f6859);
     align-self: stretch;
 }
 
 .detalhes-orcamento .envelope-etiquetas .titulo {
-    color: #324b3c;
+    color: white;
     font-size: 12px;
     font-weight: 600;
 }
@@ -120,8 +122,8 @@
 .orcamento-bloco-contagem {
     padding: 1px 7px;
     border-radius: 12px;
-    background: #aacfb6;
-    color: #254c31;
+    background: #ffffff2e;
+    color: white;
     font-size: 11px;
 }
 
@@ -132,7 +134,7 @@
     padding: 8px;
     gap: 7px;
     border: 0;
-    color: #1e1e1e;
+    color: #22332a;
     scrollbar-gutter: stable;
 }
 
@@ -144,13 +146,14 @@
     width: 100%;
     box-sizing: border-box;
     padding: 8px 10px;
-    border: 1px solid #bdd4c5;
+    border: 1px solid #c9d8ce;
+    border-left: 3px solid #4f6859;
     border-radius: 6px;
-    background: #e2efe7;
+    background: #f7faf8;
     display: flex;
     flex-direction: column;
     gap: 5px;
-    color: #324b3c;
+    color: #22332a;
     font-size: 11px;
     overflow-wrap: anywhere;
 }
@@ -170,7 +173,7 @@
 }
 
 .orcamento-documento-info {
-    color: #65756b;
+    color: #4f6058;
 }
 
 .orcamento-parcela-status {
@@ -190,10 +193,10 @@
     width: 100%;
     box-sizing: border-box;
     justify-content: space-between;
-    border: 1px solid #bdd4c5;
+    border: 1px solid #c9d8ce;
     border-radius: 6px;
     overflow: hidden;
-    background: #e2efe7;
+    background: #f7faf8;
 }
 
 .detalhes-orcamento .balao1 {
@@ -202,7 +205,7 @@
     margin: 0;
     padding: 8px 10px;
     background: transparent;
-    color: #324b3c;
+    color: #22332a;
     overflow-wrap: anywhere;
 }
 
@@ -211,14 +214,15 @@
     align-items: center;
     justify-content: center;
     padding: 8px;
-    background: #c5dfce;
-    color: #356443;
+    background: #4f6859;
+    color: white;
     font-size: 11px;
     font-weight: 600;
 }
 
 .detalhes-orcamento .balao-nf:hover {
-    border-color: #76a987;
+    border-color: #4f6859;
+    background: #eef4f0;
 }
 
 .opcoes-orcamento {

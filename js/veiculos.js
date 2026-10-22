@@ -551,7 +551,16 @@ async function painelValores(idCusto, duplicar) {
             'Placa': { chave: 'placa' },
             'Modelo': { chave: 'modelo' },
             'Motoristas': { chave: 'snapshots.motoristas' }
-        }
+        },
+        substituicoes: [
+            {
+                path: 'motoristas.*.id',
+                tabela: 'clientes',
+                campoBusca: 'id',
+                retorno: 'nome',
+                destino: 'snapshots.motoristas'
+            }
+        ]
     }
 
     for (const [codigo, { km }] of Object.entries(custo.distribuicao || {})) {

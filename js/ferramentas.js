@@ -441,6 +441,7 @@ async function sair() {
 
     toolbar.style.display = 'none'
     nomeUsuario.innerHTML = ''
+    if (typeof ocultarTecnicosLivres === 'function') ocultarTecnicosLivres()
     mostrarMenus()
 
     acesso = null
@@ -501,6 +502,7 @@ async function cxOpcoes(name) {
             direcao: 'ASC'
         },
         filtros = {},
+        substituicoes,
         btnExtras = null
     } = controle
 
@@ -512,6 +514,7 @@ async function cxOpcoes(name) {
         base,
         ordenar,
         filtros,
+        substituicoes,
         criarLinha: 'linCxOpcoes',
         body: 'cxOpcoes'
     })
@@ -635,7 +638,11 @@ async function pdf({ id, html = null, orientacao = 'portrait', estilos = [], nom
         const htmlPdf = html || document.getElementById(id).outerHTML
 
         estilos = estilos
-            .map(estilo => `<link rel="stylesheet" href="https://devleonny.github.io/GCS-OBRAS/css/${estilo}.css">`)
+            // Versão vinda de js/versoes_css.js (gerado no commit), para o servidor não usar CSS em cache.
+            .map(estilo => {
+                const versao = typeof VERSOES_CSS !== 'undefined' ? VERSOES_CSS[estilo] : null
+                return `<link rel="stylesheet" href="https://devleonny.github.io/GCS-OBRAS/css/${estilo}.css${versao ? `?v=${versao}` : ''}">`
+            })
             .join('')
 
         const htmlFinal = `
@@ -659,19 +666,27 @@ async function pdf({ id, html = null, orientacao = 'portrait', estilos = [], nom
                 <body>${htmlPdf}</body>
             </html>`
 
+        const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
+
         const response = await fetch(`${api}/pdf`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify({ html: htmlFinal, orientacao })
         })
 
+        // Sem o return a resposta de erro era baixada como se fosse o PDF.
         if (!response.ok) {
-            let msg = 'Falha ao baixar PDF'
             const text = await response.text()
-            const j = JSON.parse(text)
-            msg = j?.mensagem || j?.error || text || msg
+            let j = null
+            try { j = JSON.parse(text) } catch { }
+            const msg = response.status === 401 || response.status === 403
+                ? 'Sessão expirada: entre novamente no sistema para gerar o PDF.'
+                : j?.mensagem || j?.erro || j?.error || text || 'Falha ao baixar PDF'
 
-            popup({ mensagem: msg })
+            return popup({ mensagem: msg })
         }
 
         const blob = await response.blob()

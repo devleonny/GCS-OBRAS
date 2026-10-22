@@ -1,0 +1,495 @@
+/* Relatório de Custos por Centro de Custo */
+.relatorio-cc-filtros {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 10px 14px;
+    padding: 12px;
+    background: white;
+    border: 1px solid #b8c9be;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px #10201914;
+}
+
+.relatorio-cc-filtros label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #324b3c;
+}
+
+.relatorio-cc-filtros input,
+.relatorio-cc-filtros select {
+    min-height: 34px;
+    padding: 4px 10px;
+    font: inherit;
+    font-weight: 400;
+    color: #22332a;
+    background: #f7faf8;
+    border: 1px solid #b8c9be;
+    border-radius: 6px;
+    box-sizing: border-box;
+}
+
+/* Pesquisa: dispara pela lupa ou Enter; limpar o campo mostra tudo de novo. */
+.relatorio-cc-busca {
+    display: flex;
+    flex: 1 1 260px;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #324b3c;
+}
+
+.relatorio-cc-pesquisa {
+    display: flex;
+}
+
+.relatorio-cc-filtros .relatorio-cc-pesquisa input {
+    flex: 1 1 auto;
+    min-width: 0;
+    border-right: 0;
+    border-radius: 6px 0 0 6px;
+}
+
+.relatorio-cc-pesquisa button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    min-height: 34px;
+    margin: 0;
+    padding: 0;
+    background-color: #356443;
+    border: 1px solid #2d5739;
+    border-radius: 0 6px 6px 0;
+}
+
+.relatorio-cc-pesquisa button img {
+    width: 18px;
+    height: 18px;
+    filter: brightness(0) invert(1);
+}
+
+.relatorio-cc-filtros .relatorio-cc-check {
+    flex-direction: row;
+    align-items: center;
+    min-height: 34px;
+    font-weight: 400;
+}
+
+.relatorio-cc-filtros .relatorio-cc-check input {
+    min-height: 0;
+    width: 16px;
+    height: 16px;
+}
+
+.relatorio-cc-indicadores {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 10px;
+}
+
+.relatorio-cc-indicador {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 12px 14px;
+    background: white;
+    border: 1px solid #b8c9be;
+    border-left: 4px solid #4f6859;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px #10201914;
+}
+
+.relatorio-cc-indicador span {
+    font-size: 12px;
+    color: #4f6058;
+}
+
+.relatorio-cc-indicador strong {
+    font-size: 1.25rem;
+    color: #22332a;
+    font-variant-numeric: tabular-nums;
+}
+
+.relatorio-cc-indicador small {
+    font-size: 11px;
+    color: #7a8b80;
+}
+
+.relatorio-cc-indicador.ok {
+    border-left-color: #356443;
+}
+
+.relatorio-cc-indicador.alerta {
+    border-left-color: #a63c3c;
+}
+
+.relatorio-cc-indicador.alerta strong {
+    color: #a63c3c;
+}
+
+.relatorio-cc-graficos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+    gap: 12px;
+}
+
+.relatorio-cc-cartao {
+    min-width: 0;
+    background: white;
+    border: 1px solid #b8c9be;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px #10201914;
+}
+
+.relatorio-cc-cartao-largo {
+    grid-column: 1 / -1;
+}
+
+.relatorio-cc-cartao > h3 {
+    margin: 0;
+    padding: 9px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: white;
+    background: linear-gradient(120deg, #324b3c, #4f6859);
+}
+
+.relatorio-cc-contagem {
+    font-weight: 400;
+    opacity: 0.85;
+}
+
+.relatorio-cc-grafico {
+    position: relative;
+    height: 340px;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.relatorio-cc-cartao-largo .relatorio-cc-grafico {
+    height: 380px;
+}
+
+.relatorio-cc-tabela {
+    max-height: 70vh;
+    overflow: auto;
+}
+
+.relatorio-cc-tab {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.relatorio-cc-tab th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 8px 10px;
+    text-align: left;
+    white-space: nowrap;
+    color: #324b3c;
+    background: #dbe7df;
+    border-bottom: 1px solid #b8c9be;
+    cursor: pointer;
+    user-select: none;
+}
+
+.relatorio-cc-tab td {
+    padding: 7px 10px;
+    color: #22332a;
+    border-bottom: 1px solid #d5e1d9;
+}
+
+.relatorio-cc-tab tbody tr:nth-child(even) td {
+    background: #f4f8f5;
+}
+
+.relatorio-cc-tab tbody tr:hover td {
+    background: #e8f1eb;
+}
+
+.relatorio-cc-tab .relatorio-cc-numero {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.relatorio-cc-tab .negativo {
+    color: #a63c3c;
+    font-weight: 600;
+}
+
+/* Barra de custo sobre orçado: verde até o limite, laranja acima, vermelho acima de 100%. */
+.relatorio-cc-barra {
+    --barra-cor: #356443;
+    --barra-preenchimento: linear-gradient(90deg, #7fb38e, #4f9161);
+    --barra-fundo: #eaf4ed;
+    position: relative;
+    min-width: 110px;
+    height: 22px;
+    background: var(--barra-fundo);
+    border: 1.5px solid var(--barra-cor);
+    border-radius: 999px;
+    overflow: hidden;
+    box-sizing: border-box;
+    box-shadow: 0 1px 3px #10201926, inset 0 1px 2px #10201914;
+}
+
+.relatorio-cc-barra span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--barra-preenchimento);
+    border-right: 1.5px solid var(--barra-cor);
+    box-sizing: border-box;
+}
+
+.relatorio-cc-barra.alerta {
+    --barra-cor: #c46a12;
+    --barra-preenchimento: linear-gradient(90deg, #f5c08a, #ea9a4c);
+    --barra-fundo: #fdf1e4;
+}
+
+.relatorio-cc-barra.estourado {
+    --barra-cor: #a63c3c;
+    --barra-preenchimento: linear-gradient(90deg, #ec9a91, #d2645a);
+    --barra-fundo: #fbe7e5;
+}
+
+.relatorio-cc-barra label {
+    position: relative;
+    display: block;
+    padding: 0 9px;
+    line-height: 19px;
+    text-align: right;
+    font-size: 12px;
+    font-weight: 700;
+    color: #1a2a21;
+    text-shadow: 0 0 3px #ffffffd9, 0 0 1px white;
+    font-variant-numeric: tabular-nums;
+}
+
+/* No topo escuro do ano o contorno claro mantém o destaque. */
+.relatorio-periodos-ano > summary .relatorio-cc-barra {
+    border-color: white;
+    box-shadow: 0 0 0 1px var(--barra-cor), 0 2px 6px #00000040;
+}
+
+.relatorio-cc-vazio {
+    margin: 0;
+    padding: 16px;
+    color: #4f6058;
+}
+
+/* Custos por Período: Ano > Mês > Contratos */
+.relatorio-periodos-acoes button {
+    margin: 0;
+    padding: 5px 12px;
+    font-size: 12px;
+}
+
+button.secundario {
+    color: #324b3c;
+    background-color: white;
+    border-color: #9cb5a5;
+}
+
+button.secundario:hover:not(:disabled) {
+    background-color: #e3eee7;
+    border-color: #4f6859;
+}
+
+.relatorio-periodos-acoes button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.relatorio-periodos-arvore {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.relatorio-periodos-ano,
+.relatorio-periodos-arvore > .relatorio-periodos-mes {
+    background: white;
+    border: 1px solid #b8c9be;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px #10201914;
+}
+
+/* Resumos em grade: as mesmas colunas, alinhadas pela direita, em anos e meses.
+   O mês dentro do ano fica 11px mais recuado à direita (padding + bordas);
+   por isso o ano e o mês de nível superior compensam no padding-right. */
+.relatorio-periodos-arvore {
+    --periodos-colunas: 12px minmax(150px, 1fr) 90px repeat(2, 130px) 140px repeat(2, 130px);
+}
+
+.relatorio-periodos-arvore summary {
+    display: grid;
+    grid-template-columns: var(--periodos-colunas);
+    align-items: center;
+    column-gap: 14px;
+    padding: 10px 14px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.relatorio-periodos-ano > summary,
+.relatorio-periodos-arvore > .relatorio-periodos-mes > summary {
+    padding-right: 25px;
+}
+
+.relatorio-periodos-arvore summary::-webkit-details-marker {
+    display: none;
+}
+
+/* Seta própria, que gira ao abrir. */
+.relatorio-periodos-arvore summary::before {
+    content: '';
+    flex: 0 0 auto;
+    width: 0;
+    height: 0;
+    border-block: 5px solid transparent;
+    border-left: 7px solid currentColor;
+    transition: transform 0.15s;
+}
+
+.relatorio-periodos-arvore details[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.relatorio-periodos-ano > summary {
+    color: white;
+    background: linear-gradient(120deg, #324b3c, #4f6859);
+}
+
+.relatorio-periodos-titulo {
+    min-width: 0;
+    font-size: 15px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.relatorio-periodos-meses {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    background: #f4f8f5;
+}
+
+.relatorio-periodos-mes {
+    background: white;
+    border: 1px solid #c9d8ce;
+    border-left: 4px solid #4f6859;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.relatorio-periodos-mes > summary {
+    color: #22332a;
+    background: #edf3ef;
+}
+
+.relatorio-periodos-mes[open] > summary {
+    border-bottom: 1px solid #c9d8ce;
+}
+
+.relatorio-periodos-mes .relatorio-periodos-titulo {
+    font-size: 14px;
+}
+
+/* Os itens do resumo viram células da grade do summary. */
+.relatorio-periodos-resumo {
+    display: contents;
+}
+
+.relatorio-periodos-resumo > span {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+    min-width: 0;
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.relatorio-periodos-resumo small {
+    font-size: 10px;
+    opacity: 0.8;
+}
+
+.relatorio-periodos-resumo b {
+    font-size: 13px;
+}
+
+.relatorio-periodos-ano > summary .negativo {
+    color: #ffc9c2;
+}
+
+.relatorio-periodos-mes .negativo {
+    color: #a63c3c;
+}
+
+.relatorio-periodos-percentual .relatorio-cc-barra {
+    width: 100%;
+    min-width: 0;
+}
+
+/* Colunas fixas: as tabelas de todos os meses ficam alinhadas entre si. */
+.relatorio-periodos-tab {
+    table-layout: fixed;
+}
+
+.relatorio-periodos-tab th {
+    white-space: normal;
+    vertical-align: bottom;
+}
+
+.relatorio-periodos-tab td {
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+.relatorio-periodos-tab .relatorio-cc-barra {
+    min-width: 0;
+}
+
+/* Em telas estreitas a grade fixa não cabe: os resumos voltam a quebrar linha. */
+@media (max-width: 1100px) {
+    .relatorio-periodos-arvore summary {
+        grid-template-columns: 12px repeat(auto-fill, minmax(120px, 1fr));
+        row-gap: 8px;
+    }
+
+    .relatorio-periodos-titulo {
+        grid-column: 2 / -1;
+    }
+
+    .relatorio-periodos-resumo > span {
+        align-items: flex-start;
+        text-align: left;
+    }
+}
+
+.relatorio-periodos-tab th {
+    cursor: default;
+}
+
+/* Se faltar espaço os botões descem de linha, em vez de vazar para fora da tabela. */
+.relatorio-periodos-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+}

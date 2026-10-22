@@ -89,6 +89,8 @@ async function telaInicialGCS() {
 
     criarMenus('inicial')
 
+    iniciarTecnicosLivres()
+
     cUsuario.style.display = 'none'
     toolbar.style.display = 'flex'
     titulo.textContent = 'GCS'
@@ -306,9 +308,10 @@ async function carregarXLSX() {
     });
 }
 
+// Gera e baixa o PDF direto daqui (pdf_orcamento.js), sem abrir a página de prévia.
 async function irPdf(id) {
 
-    window.open(`pdf.html?id=${id}`, '_blank')
+    await baixarPdfOrcamento(id)
 
 }
 

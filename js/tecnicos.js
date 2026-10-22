@@ -481,3 +481,171 @@ function tooltipAgenda(elemento, dados) {
     tooltipEl.style.top = `${topPage - alturaTooltip - 8}px`
     tooltipEl.style.left = `${leftPage + (rect.width / 2) - (larguraTooltip / 2)}px`
 }
+
+
+// TÉCNICOS LIVRES HOJE (letreiro da toolbar)
+// Efetivos (vw_tecnicos_efetivos: técnico com documento no RH) menos quem tem
+// correção cobrindo hoje e não solucionada, a mesma regra de verificarConflitos.
+
+const PERMISSOES_SEM_TECNICOS_LIVRES = ['técnico', 'cliente']
+const INTERVALO_TECNICOS_LIVRES = 10 * 60 * 1000
+let temporizadorTecnicosLivres = null
+let ultimosTecnicosLivres = null
+
+function hojeTecnicosLivres() {
+    const hoje = dataServidor()
+    return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`
+}
+
+async function buscarTecnicosLivres(hoje) {
+
+    const [efetivos, emPeriodo, noDia] = await Promise.all([
+        pesquisarDB({ base: 'vw_tecnicos_efetivos', limite: 5000 }),
+        // Correções com período que inclui hoje e as de um dia só marcadas para hoje.
+        pesquisarDB({
+            base: 'vw_tecnicos',
+            limite: 20000,
+            filtros: {
+                dtCorrecao: { op: '<=d', value: hoje },
+                dtCorrecaoFinal: { op: '>=d', value: hoje }
+            }
+        }),
+        pesquisarDB({
+            base: 'vw_tecnicos',
+            limite: 20000,
+            filtros: { dtCorrecao: [{ op: '>=d', value: hoje }, { op: '<=d', value: hoje }] }
+        })
+    ])
+
+    // O status é conferido aqui: um != no servidor também descartaria correções sem status.
+    const ocupados = new Set(
+        [...(emPeriodo?.resultados || []), ...(noDia?.resultados || [])]
+            .filter(c => String(c.ultimaCorrecao || '').toUpperCase() !== 'SOLUCIONADA')
+            .flatMap(c => Array.isArray(c.tecnico) ? c.tecnico : [c.tecnico])
+            .map(t => String(t || '').trim())
+            .filter(Boolean)
+    )
+
+    return (efetivos?.resultados || [])
+        .filter(t => !ocupados.has(String(t.usuario).trim()))
+        .sort((a, b) => String(a.nome || a.usuario).localeCompare(String(b.nome || b.usuario), 'pt-BR'))
+}
+
+function renderTecnicosLivres(livres, hoje) {
+
+    const area = document.querySelector('.tecnicos-livres')
+    if (!area) return
+
+    ultimosTecnicosLivres = { livres, hoje }
+
+    const [, mes, dia] = hoje.split('-')
+    // No letreiro só a cidade; o estado fica na lista do popup.
+    const nomes = livres.map(({ nome, usuario, cidade }) =>
+        `<span class="tecnicos-livres-nome">${escaparAtributo(nome || usuario)}${cidade ? ` <small>${escaparAtributo(cidade)}</small>` : ''}</span>`)
+
+    const conteudo = nomes.length
+        ? nomes.join('<span class="tecnicos-livres-separador" aria-hidden="true">•</span>')
+        : '<span class="tecnicos-livres-nome">Nenhum técnico livre</span>'
+
+    // O conteúdo vai duplicado para o loop emendar sem salto (a faixa anda metade da largura).
+    area.innerHTML = `
+        <span class="tecnicos-livres-data" title="Técnicos efetivos sem correção agendada hoje">Livres hoje · ${dia}/${mes}</span>
+        <div class="tecnicos-livres-janela" aria-label="${livres.length} técnicos livres hoje">
+            <div class="tecnicos-livres-faixa" style="--duracao-letreiro: ${Math.max(20, livres.length * 4)}s">
+                <div class="tecnicos-livres-grupo">${conteudo}</div>
+                <div class="tecnicos-livres-grupo" aria-hidden="true">${conteudo}</div>
+            </div>
+        </div>`
+
+    // Clique (ou Enter/espaço) abre a lista completa.
+    area.setAttribute('role', 'button')
+    area.tabIndex = 0
+    area.title = 'Ver lista de técnicos livres hoje'
+    area.onclick = abrirTecnicosLivres
+    area.onkeydown = evento => {
+        if (evento.key === 'Enter' || evento.key === ' ') {
+            evento.preventDefault()
+            abrirTecnicosLivres()
+        }
+    }
+
+    area.hidden = false
+}
+
+function abrirTecnicosLivres() {
+
+    if (!ultimosTecnicosLivres) return
+
+    const { livres, hoje } = ultimosTecnicosLivres
+    const [ano, mes, dia] = hoje.split('-')
+
+    const linhas = livres
+        .map(({ nome, usuario, cidade, estado }) => `
+            <tr>
+                <td>${escaparAtributo(nome || '')}</td>
+                <td>${escaparAtributo(usuario || '')}</td>
+                <td>${escaparAtributo(cidade || '')}</td>
+                <td>${escaparAtributo(estado || '')}</td>
+            </tr>`)
+        .join('')
+
+    const elemento = `
+        <div class="tecnicos-livres-lista">
+            <div class="tecnicos-livres-aviso" role="note">
+                <img src="imagens/alerta.png" alt="">
+                <span>Para o técnico aparecer aqui é necessário ter algum documento cadastrado no RH.</span>
+            </div>
+            <p>${livres.length} ${livres.length === 1 ? 'técnico efetivo' : 'técnicos efetivos'} sem correção agendada em ${dia}/${mes}/${ano}.</p>
+            ${livres.length
+                ? `<table class="relatorio-cc-tab">
+                        <thead><tr><th>Nome</th><th>Usuário</th><th>Cidade</th><th>Estado</th></tr></thead>
+                        <tbody>${linhas}</tbody>
+                    </table>`
+                : ''}
+        </div>`
+
+    popup({ elemento, titulo: 'Técnicos livres hoje' })
+}
+
+function podeVerTecnicosLivres() {
+    const { permissao, token } = JSON.parse(localStorage.getItem('acesso')) || {}
+    return Boolean(token) && !PERMISSOES_SEM_TECNICOS_LIVRES.includes(permissao)
+}
+
+// Esconde e apaga: o logout não recarrega a página, e a lista não pode passar para o próximo usuário.
+function ocultarTecnicosLivres() {
+    const area = document.querySelector('.tecnicos-livres')
+    ultimosTecnicosLivres = null
+    if (!area) return
+    area.hidden = true
+    area.innerHTML = ''
+    area.onclick = null
+    area.onkeydown = null
+    area.removeAttribute('role')
+    area.removeAttribute('tabindex')
+}
+
+async function atualizarTecnicosLivres() {
+
+    if (!document.querySelector('.tecnicos-livres') || !podeVerTecnicosLivres())
+        return ocultarTecnicosLivres()
+
+    try {
+        const hoje = hojeTecnicosLivres()
+        const livres = await buscarTecnicosLivres(hoje)
+        // O usuário pode ter trocado durante a consulta.
+        if (!podeVerTecnicosLivres())
+            return ocultarTecnicosLivres()
+        renderTecnicosLivres(livres, hoje)
+    } catch (erro) {
+        // Sem conseguir saber quem está ocupado, é melhor não mostrar do que mostrar errado.
+        console.error('Técnicos livres:', erro)
+        ocultarTecnicosLivres()
+    }
+}
+
+function iniciarTecnicosLivres() {
+    atualizarTecnicosLivres()
+    if (!temporizadorTecnicosLivres)
+        temporizadorTecnicosLivres = setInterval(atualizarTecnicosLivres, INTERVALO_TECNICOS_LIVRES)
+}

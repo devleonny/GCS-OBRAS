@@ -605,10 +605,11 @@
 #bodyOrcamento > tr:only-child .orcamento-item-plano {
   border-radius: 8px;
 }
+
 .orcamento-resumo-fixo {
   position: fixed;
   right: 24px;
-  top: 50px;
+  top: 7vh;
   z-index: 20;
   display: flex;
   align-items: center;
