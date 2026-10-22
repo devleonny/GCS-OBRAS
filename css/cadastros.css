@@ -1,0 +1,162 @@
+/* Tela "Categorias de Formulário" (js/cadastros.js). */
+.tela-cadastros {
+    --cad-marca: #b12425;
+    --cad-marca-escura: #8e1c1d;
+    --cad-borda: #dfe7e2;
+    --cad-fundo: #f6f8f7;
+    --cad-texto-suave: #6b7a70;
+
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: 760px;
+    box-sizing: border-box;
+}
+
+.cadastros-cabecalho {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: white;
+    border: 1px solid var(--cad-borda);
+    border-left: 4px solid var(--cad-marca);
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.cadastros-titulo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.cadastros-titulo span {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #222;
+}
+
+.cadastros-titulo small {
+    font-size: 0.75rem;
+    color: var(--cad-texto-suave);
+}
+
+.cadastros-novo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: 0;
+    border-radius: 8px;
+    background: var(--cad-marca);
+    color: white;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.cadastros-novo:hover,
+.cadastros-novo:focus-visible {
+    background: var(--cad-marca-escura);
+}
+
+.cadastros-novo b {
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+.cadastros-abas {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: var(--cad-fundo);
+    border: 1px solid var(--cad-borda);
+    border-radius: 10px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.cadastros-aba {
+    flex: 0 0 auto;
+    padding: 0.45rem 0.9rem;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #4a564e;
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+}
+
+.cadastros-aba:hover {
+    background: #e9eeeb;
+}
+
+.cadastros-aba.ativa {
+    background: white;
+    color: var(--cad-marca);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.cadastros-painel {
+    padding: 0.75rem;
+    background: white;
+    border: 1px solid var(--cad-borda);
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    min-width: 0;
+}
+
+.cadastros-carregando {
+    display: flex;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.cadastros-painel .tabela {
+    font-size: 0.85rem;
+}
+
+.cadastros-painel .tabela td {
+    padding: 8px 10px;
+}
+
+.cadastros-painel .tabela tbody tr:hover {
+    background-color: #fdf3f3;
+}
+
+.cadastros-acao {
+    width: 2.5rem;
+    text-align: center;
+}
+
+.cadastros-acao img {
+    width: 1.3rem;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.15s;
+}
+
+.cadastros-acao img:hover {
+    opacity: 1;
+}
+
+@media (max-width: 600px) {
+    .cadastros-cabecalho {
+        padding: 0.75rem 1rem;
+    }
+
+    .cadastros-novo {
+        width: 100%;
+        justify-content: center;
+    }
+}

@@ -1,17 +1,39 @@
+const basesCadastro = {
+    empresas: { titulo: 'Empresas', singular: 'Empresa' },
+    tipos: { titulo: 'Tipos', singular: 'Tipo' },
+    sistemas: { titulo: 'Sistemas', singular: 'Sistema' },
+    prioridades: { titulo: 'Prioridades', singular: 'Prioridade' },
+    correcoes: { titulo: 'Correções', singular: 'Correção' },
+    transportadoras: { titulo: 'Transportadoras', singular: 'Transportadora' }
+}
+
 async function telaCadastros() {
 
-    const bases = ['empresas', 'tipos', 'sistemas', 'prioridades', 'correcoes', 'transportadoras']
+    const bases = Object.keys(basesCadastro)
 
     const abas = bases
-        .map(b => `<span onclick="toggleAbas(this); abrirTabelaCadastrastro('${b}')">${inicialMaiuscula(b)}</span>`)
+        .map(b => `
+            <button type="button" class="cadastros-aba" data-base="${b}" onclick="abrirTabelaCadastrastro('${b}')">
+                ${basesCadastro[b].titulo}
+            </button>`)
         .join('')
 
     tela.innerHTML = `
-        <div style="${vertical}; max-width: max-content;">
-            <div class="toolbar-padrao">
+        <div class="tela-cadastros">
+            <div class="cadastros-cabecalho">
+                <div class="cadastros-titulo">
+                    <span>Categorias de Formulário</span>
+                    <small>Listas de opções usadas nos formulários do sistema</small>
+                </div>
+                <button type="button" class="cadastros-novo" onclick="editarBaseAuxiliar(document.querySelector('.cadastros-aba.ativa')?.dataset.base)">
+                    <b>+</b>
+                    <span>Adicionar</span>
+                </button>
+            </div>
+            <div class="cadastros-abas" role="tablist">
                 ${abas}
             </div>
-            <div class="painel-atras-padrao"></div>
+            <div class="cadastros-painel"></div>
         </div>
     `
 
@@ -21,15 +43,26 @@ async function telaCadastros() {
 
 async function abrirTabelaCadastrastro(base) {
 
-    const local = document.querySelector('.painel-atras-padrao')
+    const local = document.querySelector('.cadastros-painel')
+    if (!local)
+        return
 
-    local.innerHTML = `<img src="gifs/loading.gif">`
+    for (const aba of document.querySelectorAll('.cadastros-aba')) {
+        const ativa = aba.dataset.base === base
+        aba.classList.toggle('ativa', ativa)
+        aba.setAttribute('aria-selected', ativa)
+    }
+
+    const novo = document.querySelector('.cadastros-novo span')
+    if (novo)
+        novo.textContent = `Adicionar ${basesCadastro[base]?.singular || ''}`.trim()
+
+    local.innerHTML = `<div class="cadastros-carregando"><img src="gifs/loading.gif"></div>`
 
     const pag = `cad_${base}`
     const tabela = await modTab({
         pag,
         base,
-        btnExtras: `<img  src="imagens/baixar.png" onclick="editarBaseAuxiliar('${base}')">`,
         ordenar: {
             path: 'nome',
             direcao: 'asc'
@@ -54,8 +87,8 @@ async function criarLinhaCadastro(dados) {
 
     const tds = `
         <td>${nome}</td>
-        <td style="width: 2rem;">
-            <img src="imagens/pesquisar.svg" onclick="editarBaseAuxiliar('${base}', '${id}')">
+        <td class="cadastros-acao">
+            <img src="imagens/pesquisar.svg" title="Editar" onclick="editarBaseAuxiliar('${base}', '${id}')">
         </td>
     `
 
@@ -63,6 +96,9 @@ async function criarLinhaCadastro(dados) {
 }
 
 async function editarBaseAuxiliar(nomeBase, id) {
+
+    if (!nomeBase)
+        return
 
     const dados = await recuperarDado(nomeBase, id)
     const funcao = id
@@ -76,14 +112,16 @@ async function editarBaseAuxiliar(nomeBase, id) {
     if (id)
         botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirItemTabela('${nomeBase}', '${id}')` })
 
+    const { singular = nomeBase } = basesCadastro[nomeBase] || {}
+
     const linhas = [
         {
             texto: 'Nome',
-            elemento: `<textarea name="nome" style="text-transform: uppercase;" placeholder="${inicialMaiuscula(nomeBase)}">${dados?.nome || ''}</textarea>`
+            elemento: `<textarea name="nome" style="text-transform: uppercase;" placeholder="${singular}">${dados?.nome || ''}</textarea>`
         }
     ]
 
-    popup({ linhas, botoes, titulo: `Gerenciar ${inicialMaiuscula(nomeBase)}` })
+    popup({ linhas, botoes, titulo: id ? `Editar ${singular}` : `Adicionar ${singular}` })
 
 }
 
