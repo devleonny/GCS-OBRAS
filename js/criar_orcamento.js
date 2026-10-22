@@ -1117,8 +1117,12 @@ async function enviarDadosOrcamento() {
                 let { idOrcamento, idOcorrencia } = orcamentoBase.origem || {}
 
                 // Se existir idOrcamento, então é vinculado;
-                if (idOrcamento)
-                    await enviarVinculo({ slave: contrato, master: idOcorrencia })
+                if (idOrcamento) {
+                    const vinculo = await enviarVinculo({ slave: contrato, master: idOcorrencia })
+                    // Aviso flutuante: o fluxo segue e troca de tela, um popup seria fechado.
+                    if (!vinculo?.success)
+                        balaoNotificacao({ imagem: 'imagens/alerta.png', texto: `Orçamento salvo, mas não vinculado: ${vinculo?.mensagem}`, tempo: 15 })
+                }
 
                 // Correção principal da criação do orçamento, vem com o ID do orçamento;
                 const dataRegistro = dataServidor()

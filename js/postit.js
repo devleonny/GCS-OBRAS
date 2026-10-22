@@ -34,23 +34,31 @@ async function criarQuadros() {
         .sort((a, b) => a.ordem - b.ordem)
 
     // Todos os quadros de vez;
-    const quadrosEmMassa = quadros.map(async (q, indice) => {
+    const quadrosEmMassa = quadros.map(async q => {
+
+        const { id, descricao, ordem } = q || {}
+        const chave = id || 'Novos'
 
         // Reserva a posição antes das consultas assíncronas.
         const coluna = document.createElement('div')
         coluna.className = 'postits-coluna'
-        coluna.style.order = indice
+        coluna.dataset.quadro = id || ''
+        coluna.dataset.ordem = ordem ?? ''
+        coluna.ondragover = sobreQuadroPIT
+        coluna.ondrop = soltarQuadroPIT
         telaPIT.appendChild(coluna)
 
-        const { id, descricao } = q || {}
-        const chave = id || 'Novos'
-
         const editar = id
-            ? `<img src="imagens/editar.png" onclick="criarQuadro('${id}')">`
+            ? `<img src="imagens/editar.png" draggable="false" onclick="criarQuadro('${id}')">`
+            : ''
+
+        // "Novos" fica sempre em primeiro; os demais são arrastados pelo título.
+        const arrastar = id
+            ? `draggable="true" title="Segure e arraste para reorganizar" ondragstart="arrastarQuadroPIT(event)" ondragend="finalizarQuadroPIT()"`
             : ''
 
         const btnExtras = `
-            <div class="postits-titulo-quadro">
+            <div class="postits-titulo-quadro${id ? ' arrastavel' : ''}" ${arrastar}>
                 <span>${descricao}</span>
                 ${editar}
             </div>
@@ -182,6 +190,64 @@ async function soltarPIT(event) {
     await enviar(`postit/${id}`, atualizado)
 }
 
+let quadroArrastadoPIT = null
+
+function arrastarQuadroPIT(event) {
+    const coluna = event.currentTarget.closest('.postits-coluna')
+    if (!coluna) return
+
+    quadroArrastadoPIT = coluna
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('application/x-quadro', coluna.dataset.quadro)
+    event.dataTransfer.setDragImage(coluna, 40, 20)
+
+    // Depois do frame, para a imagem do arraste não sair esmaecida.
+    requestAnimationFrame(() => coluna.classList.add('arrastando'))
+    iniciarAutoScrollPIT()
+}
+
+// Move a coluna enquanto o cursor passa sobre as outras; post-its arrastados são ignorados.
+function sobreQuadroPIT(event) {
+    const arrastado = quadroArrastadoPIT
+    if (!arrastado) return
+    event.preventDefault()
+
+    const alvo = event.currentTarget
+    if (alvo === arrastado) return
+
+    const rect = alvo.getBoundingClientRect()
+    const depois = !alvo.dataset.quadro || event.clientX > rect.left + rect.width / 2
+    const referencia = depois ? alvo.nextElementSibling : alvo
+
+    if (referencia !== arrastado && referencia !== arrastado.nextElementSibling)
+        alvo.parentNode.insertBefore(arrastado, referencia)
+}
+
+function soltarQuadroPIT(event) {
+    if (quadroArrastadoPIT)
+        event.preventDefault()
+}
+
+async function finalizarQuadroPIT() {
+    const arrastado = quadroArrastadoPIT
+    quadroArrastadoPIT = null
+    pararAutoScrollPIT()
+    if (!arrastado) return
+
+    arrastado.classList.remove('arrastando')
+
+    const colunas = [...document.querySelectorAll('#quadros .postits-coluna')]
+        .filter(coluna => coluna.dataset.quadro)
+
+    for (const [indice, coluna] of colunas.entries()) {
+        const ordem = indice + 1
+        if (coluna.dataset.ordem === String(ordem)) continue
+
+        coluna.dataset.ordem = ordem
+        await enviar(`quadros/${coluna.dataset.quadro}/ordem`, ordem)
+    }
+}
+
 function iniciarAutoScrollPIT() {
     const contorno = document.querySelector('.tela-postits')?.closest('.tela')
     if (!contorno) return
@@ -266,6 +332,9 @@ async function criarQuadro(id) {
                 : `salvarQuadro()`
         }
     ]
+
+    if (id)
+        botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirQuadro('${id}')` })
 
     popup({ linhas, botoes, titulo: 'Edição de quadros' })
 }
@@ -412,6 +481,50 @@ async function excluirPIT(id) {
 
     await deletar(`postit/${id}`)
     await verificarPostIts()
+
+}
+
+function confirmarExcluirQuadro(id) {
+
+    const botoes = [
+        { texto: 'Confirmar', fechar: true, img: 'concluido', funcao: `excluirQuadro('${id}')` }
+    ]
+
+    popup({ mensagem: 'Excluir este quadro? Os post-its dele voltam para "Novos".', botoes, removerAnteriores: true })
+
+}
+
+async function excluirQuadro(id) {
+
+    overlayAguarde()
+
+    // Coleta tudo antes de mover: mover tira o post-it do filtro e embaralharia as páginas.
+    const ids = []
+    let pagina = 1
+    let paginas = 1
+    do {
+        const pesquisa = await pesquisarDB({
+            base: 'postit',
+            pagina,
+            filtros: {
+                quadro: { op: '=', value: id }
+            }
+        })
+        ids.push(...(pesquisa?.resultados || []).map(pit => pit.id))
+        paginas = pesquisa?.paginas || 1
+        pagina++
+    } while (pagina <= paginas)
+
+    for (const idPit of ids)
+        await enviar(`postit/${idPit}/quadro`, null)
+
+    // Em falha o deletar já abre o popup com o erro do servidor; não pode ser fechado aqui.
+    const resposta = await deletar(`quadros/${id}`)
+    if (!resposta?.success)
+        return
+
+    await telaPIT()
+    removerPopup()
 
 }
 

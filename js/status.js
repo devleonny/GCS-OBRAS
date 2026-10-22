@@ -1128,10 +1128,11 @@ async function enviarVinculo({ master, slave, desvincular = null }) {
         body: JSON.stringify({ master, slave, desvincular })
     })
 
-    if (!resposta.ok) {
-        const erro = await resposta.text()
-        throw new Error(erro || 'Erro ao contar por campo')
-    }
+    // Recusas de validação chegam com status 4xx e a mensagem para o usuário.
+    const dados = await resposta.json().catch(() => ({}))
 
-    return await resposta.json()
+    if (!resposta.ok)
+        return { success: false, mensagem: dados.mensagem || 'Falha ao vincular: Fale com o suporte.' }
+
+    return dados
 }

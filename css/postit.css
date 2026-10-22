@@ -177,6 +177,22 @@
     flex-shrink: 0;
 }
 
+.postits-titulo-quadro.arrastavel {
+    cursor: grab;
+    user-select: none;
+}
+
+.postits-titulo-quadro.arrastavel span::before {
+    content: '⋮⋮';
+    margin-right: 6px;
+    color: #9aaa9f;
+    letter-spacing: -2px;
+}
+
+.postits-coluna.arrastando {
+    opacity: 0.4;
+}
+
 .postits-coluna [id^="paginacao_"] > div {
     color: #65756b !important;
     font-size: 11px;

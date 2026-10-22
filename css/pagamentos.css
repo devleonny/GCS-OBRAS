@@ -679,12 +679,22 @@
     position: relative;
     z-index: 10;
 }
+/* Abertura suave: largura, texto e fundo animados juntos. O atraso ao abrir evita
+   abrir quando o mouse só passa por cima; o atraso ao fechar evita piscar na borda. */
+.pagamentos-status-lateral {
+    --lateral-curva: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --lateral-duracao: 240ms;
+    --lateral-atraso-abrir: 120ms;
+    --lateral-atraso-fechar: 150ms;
+}
+
 .pagamentos-status-lateral .painelEsquerdo {
     width: 108px;
     align-items: stretch;
     background: transparent;
     border: none;
     box-shadow: none;
+    transition: width var(--lateral-duracao) var(--lateral-curva) var(--lateral-atraso-fechar);
 }
 
 .pagamentos-status-lateral::before {
@@ -698,39 +708,72 @@
     backdrop-filter: blur(4px);
     opacity: 0;
     visibility: hidden;
-    transition: opacity 180ms ease, visibility 180ms ease;
+    transition:
+        opacity var(--lateral-duracao) ease var(--lateral-atraso-fechar),
+        visibility 0s linear calc(var(--lateral-duracao) + var(--lateral-atraso-fechar));
 }
 
 .pagamentos-status-lateral:hover::before,
 .pagamentos-status-lateral:focus-within::before {
     opacity: 1;
     visibility: visible;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .pagamentos-status-lateral::before { transition: none; }
+    transition:
+        opacity var(--lateral-duracao) ease var(--lateral-atraso-abrir),
+        visibility 0s linear var(--lateral-atraso-abrir);
 }
 
 .pagamentos-status-lateral .balao-pagamentos {
     min-height: 52px;
     padding: 8px;
     gap: 6px;
+    overflow: hidden;
 }
-.pagamentos-status-lateral .balao-pagamentos label { display: none; }
-.pagamentos-status-lateral .balao-pagamentos .dir { flex: 0 0 26px; }
+
+.pagamentos-status-lateral .balao-pagamentos .dir { gap: 0; }
+
+/* O texto fica sempre no layout (sem display: none) e cresce junto com o painel. */
+.pagamentos-status-lateral .balao-pagamentos label {
+    max-width: 0;
+    margin-left: 0;
+    opacity: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition:
+        opacity 120ms ease var(--lateral-atraso-fechar),
+        max-width var(--lateral-duracao) var(--lateral-curva) var(--lateral-atraso-fechar),
+        margin-left var(--lateral-duracao) var(--lateral-curva) var(--lateral-atraso-fechar);
+}
+
 .pagamentos-status-lateral .balao-pagamentos .esq {
     min-width: 44px;
     padding: 4px 6px;
     font-size: 15px;
 }
+
 .pagamentos-status-lateral:hover .painelEsquerdo,
 .pagamentos-status-lateral:focus-within .painelEsquerdo {
     width: min(360px, calc(100vw - 64px));
+    transition-delay: var(--lateral-atraso-abrir);
 }
+
 .pagamentos-status-lateral:hover .balao-pagamentos label,
-.pagamentos-status-lateral:focus-within .balao-pagamentos label { display: block; }
-.pagamentos-status-lateral:hover .balao-pagamentos .dir,
-.pagamentos-status-lateral:focus-within .balao-pagamentos .dir { flex: 1; }
+.pagamentos-status-lateral:focus-within .balao-pagamentos label {
+    max-width: 260px;
+    margin-left: 10px;
+    opacity: 1;
+    /* O texto aparece depois que o painel já começou a abrir. */
+    transition:
+        opacity 180ms ease calc(var(--lateral-atraso-abrir) + 80ms),
+        max-width var(--lateral-duracao) var(--lateral-curva) var(--lateral-atraso-abrir),
+        margin-left var(--lateral-duracao) var(--lateral-curva) var(--lateral-atraso-abrir);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pagamentos-status-lateral .painelEsquerdo,
+    .pagamentos-status-lateral::before,
+    .pagamentos-status-lateral .balao-pagamentos label { transition: none !important; }
+}
 .divPagamentos .painelDireito { flex: 1; width: auto; min-width: 0; }
 .pagamentos-status-lateral .balao-pagamentos:focus-visible { outline: 2px solid #52745c; outline-offset: 2px; }
 @media screen and (orientation: portrait) {
