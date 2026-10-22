@@ -157,11 +157,6 @@ async function carregarAgenda(filtros, pagina = 1) {
 
     const inicioFinal = inicio || (!fim ? pegarSegunda() : '')
 
-    const filtro = [
-        inicioFinal && { op: '>=d', value: inicioFinal },
-        fim && { op: '<=d', value: fim }
-    ].filter(Boolean)
-
     // Existentes & dropdown;
     if (filtros) {
 
@@ -207,16 +202,22 @@ async function carregarAgenda(filtros, pagina = 1) {
     // Solucionados
     const checkSolucionados = document.getElementById('checkbox_solucionados')?.checked ?? false
 
+    // Datas não entram aqui: o período é tratado por sobreposição logo abaixo.
+    const { dtCorrecao: _filtroDataAntigo, ...filtrosSemData } = controles.agenda.filtros
     const filtrosItens = {
-        ...controles.agenda.filtros,
-        ...(!checkSolucionados ? { 'ultimaCorrecao.*.nome': { op: '!=', value: 'SOLUCIONADA' } } : {}),
-        dtCorrecao: filtro
+        ...filtrosSemData,
+        ...(!checkSolucionados ? { 'ultimaCorrecao.*.nome': { op: '!=', value: 'SOLUCIONADA' } } : {})
     }
     // O status é verificado por atendimento. Aplicar != no array agrupado
     // pode excluir o técnico inteiro por ter um atendimento solucionado.
     const filtrosConsulta = Object.fromEntries(Object.entries(filtrosItens)
         .filter(([chave]) => !['ultimaCorrecao.*.nome', 'Loja'].includes(chave)).map(([chave, regra]) =>
         [chave === 'tecnico' ? chave : 'atendimentos.*.' + chave, regra]))
+
+    // No servidor só o limite superior: uma tarefa iniciada antes do filtro ainda pode
+    // ocupar dias dentro dele, então o limite inferior é conferido pelo fim da tarefa (abaixo).
+    if (fim)
+        filtrosConsulta['atendimentos.*.dtCorrecao'] = { op: '<=d', value: fim }
     let resposta
     try {
         resposta = await pesquisarDB({
@@ -248,9 +249,19 @@ async function carregarAgenda(filtros, pagina = 1) {
             .replaceAll('"', '&quot;');
     }
 
+    // Aceita "AAAA-MM-DD..." e "DD/MM/AAAA..." (correções antigas usam o formato brasileiro).
+    function dataISO(value) {
+        const texto = String(value || '').trim();
+        const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(texto);
+        if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+        const br = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(texto);
+        return br ? `${br[3]}-${br[2]}-${br[1]}` : '';
+    }
+
     function parseISODate(value) {
-        if (!value || typeof value !== 'string' || !value.trim()) return null;
-        const d = new Date(value + 'T00:00:00');
+        const iso = dataISO(value);
+        if (!iso) return null;
+        const d = new Date(iso + 'T00:00:00');
         return Number.isNaN(d.getTime()) ? null : d;
     }
 
@@ -287,13 +298,20 @@ async function carregarAgenda(filtros, pagina = 1) {
         return `${ano}-${mes}-${dia}`;
     }
 
+    const janelaInicio = parseISODate(inicioFinal);
+    const janelaFim = parseISODate(fim);
+
+    // Um bloco por dia do período da tarefa, só nos dias dentro do filtro.
+    // Tarefa que não encosta no filtro devolve lista vazia e some da agenda.
     function expandirPeriodo(item) {
-        const inicio = parseISODate(item.dtCorrecao);
+        const inicioTarefa = parseISODate(item.dtCorrecao);
         const fimInformado = parseISODate(item.dtCorrecaoFinal);
 
-        if (!inicio) return [];
+        if (!inicioTarefa) return [];
 
-        const fim = fimInformado && fimInformado >= inicio ? fimInformado : inicio;
+        const fimTarefa = fimInformado && fimInformado >= inicioTarefa ? fimInformado : inicioTarefa;
+        const inicio = janelaInicio && janelaInicio > inicioTarefa ? janelaInicio : inicioTarefa;
+        const fim = janelaFim && janelaFim < fimTarefa ? janelaFim : fimTarefa;
         const dias = [];
 
         const atual = new Date(inicio);
