@@ -32,6 +32,10 @@ async function modTab(configuracoes) {
     }
     controles[pag].detalhes = detalhes === true
     controles[pag].estadoDetalhes ??= new Map()
+    // Filtros fixos: sempre aplicados e nunca alterados pela pesquisa das colunas.
+    controles[pag].filtrosFixos = configuracoes.filtrosFixos
+        ? structuredClone(configuracoes.filtrosFixos)
+        : null
 
     const ths = Object.entries(colunas)
         .map(([th, query]) => `
@@ -388,6 +392,21 @@ function injetarMetaTr(html, dado, indice = 0) {
     )
 }
 
+// Na mesma chave, as condições do usuário e as fixas viram uma lista (o servidor aplica todas com AND).
+function combinarFiltros(filtros, filtrosFixos) {
+    if (!filtrosFixos)
+        return filtros
+
+    const combinados = { ...(filtros || {}) }
+    for (const [chave, fixo] of Object.entries(filtrosFixos)) {
+        const doUsuario = combinados[chave]
+        combinados[chave] = doUsuario
+            ? [...[doUsuario].flat(), ...[fixo].flat()]
+            : fixo
+    }
+    return combinados
+}
+
 function assinaturaConsulta({ base, substituicoes, ordenar, pagina, filtros }) {
     return stableStringify({
         base,
@@ -430,8 +449,10 @@ async function paginacao(pag) {
             criarLinha,
             consultarDados,
             funcaoAdicional,
-            filtros
+            filtrosFixos
         } = controles[pag] || {}
+
+        const filtros = combinarFiltros(controles[pag]?.filtros, filtrosFixos)
 
         const tbody = document.getElementById(body)
 

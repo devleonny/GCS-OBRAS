@@ -209,7 +209,7 @@ async function formularioParceiro(id = crypto.randomUUID()) {
             retornar: ['usuario'],
             base: 'clientes',
             filtros: {
-                permissao: { op: 'NOT_EMPTY' }
+                usuario: { op: 'NOT_EMPTY' }
             },
             colunas: {
                 'Usuário': { chave: 'usuario' },
@@ -487,6 +487,9 @@ async function salvarLpuParceiro(id = crypto.randomUUID()) {
 
     if (!tecnico.id)
         return popup({ mensagem: 'O campo técnico é obrigatório' })
+
+    if (!tecnico.textContent.trim())
+        return popup({ mensagem: 'O parceiro selecionado não possui usuário cadastrado' })
 
     const dados = {
         ...parceiro,

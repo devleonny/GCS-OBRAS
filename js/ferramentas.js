@@ -528,7 +528,9 @@ async function cxOpcoes(name) {
         pag,
         base,
         ordenar,
-        filtros,
+        // Os filtros do controle restringem a lista; a pesquisa nas colunas começa vazia e só soma condições.
+        filtros: {},
+        filtrosFixos: filtros,
         substituicoes,
         criarLinha: 'linCxOpcoes',
         body: 'cxOpcoes'
