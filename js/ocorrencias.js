@@ -256,6 +256,7 @@ async function excluirOcorrenciaCorrecao(idOcorrencia, idCorrecao) {
         await deletar(`dados_ocorrencias/${idOcorrencia}`)
     }
 
+    atualizarTecnicosLivresJa()
     removerOverlay()
 
 }
@@ -2508,8 +2509,11 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
 
     popup({ linhas, botoes, titulo: 'Gerenciar Correção', autoDestruicao: ['executor', 'tecnico', 'tipoCorrecao'] })
 
-    await maisUsuario(executor, 'executores')
+    // Sem executor, quem está lançando entra como executor.
+    const executores = [executor].flat().filter(Boolean)
+    await maisUsuario(executores.length ? executores : [acesso.usuario], 'executores')
     await maisUsuario(tecnico, 'tecnicos')
+    perguntarTecnicosMemorizados(ocorrencia)
     await verificarConflitos()
 
     visibilidadeFotos()
@@ -2924,7 +2928,14 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
                 ? crypto.randomUUID()
                 : novoFluxo.dataset.aba
 
-        await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, atualizado)
+        const resultado = await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, atualizado)
+        if (resultado && !resultado.mensagem)
+            memorizarTecnicos(tecnico, ocorrencia, idOcorrencia)
+
+        // Letreiro: tira na hora quem ficou ocupado e confirma com o servidor logo depois.
+        if (typeof retirarDosLivresAgora === 'function')
+            retirarDosLivresAgora(tecnico, dtCorrecao, dtCorrecaoFinal)
+        atualizarTecnicosLivresJa()
         removerPopup()
 
     } catch (err) {
@@ -2932,6 +2943,54 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
         popup({ mensagem: 'Falha ao salvar a correção: Fale com o suporte.' })
     }
 
+}
+
+// Quem salva/exclui uma correção vê o letreiro de técnicos livres mudar na hora; o aviso
+// do websocket só chega depois do pós-salvamento do servidor (snapshot e views), e é
+// ele que atualiza os demais usuários.
+function atualizarTecnicosLivresJa() {
+    if (typeof atualizarTecnicosLivres === 'function')
+        atualizarTecnicosLivres().catch(err => console.error('Técnicos livres:', err))
+}
+
+// MEMÓRIA DE TÉCNICOS
+// O chamado guarda os técnicos da última correção salva (dados_ocorrencias.tecnicos_memorizados,
+// só o array). Agendamento, retorno etc. do mesmo chamado costumam repetir a equipe:
+// num formulário de correção sem técnicos, pergunta se quer usá-los.
+function memorizarTecnicos(tecnicos, ocorrencia, idOcorrencia) {
+    if (!tecnicos?.length || !idOcorrencia) return
+    const atuais = ocorrencia?.tecnicos_memorizados || []
+    if (JSON.stringify(atuais) === JSON.stringify(tecnicos)) return
+    // Não espera: a correção já foi salva; a memória é um complemento.
+    enviar(`dados_ocorrencias/${idOcorrencia}/tecnicos_memorizados`, tecnicos)
+        .catch(err => console.error('Memória de técnicos:', err))
+}
+
+function perguntarTecnicosMemorizados(ocorrencia) {
+    const tecnicos = Array.isArray(ocorrencia?.tecnicos_memorizados) ? ocorrencia.tecnicos_memorizados : []
+    const area = document.querySelector('.tecnicos')
+    if (!tecnicos.length || !area || area.querySelector('span[id]')) return
+
+    area.insertAdjacentHTML('beforebegin', `
+        <div class="tecnicos-memoria" role="group" aria-label="Técnicos memorizados"
+            data-tecnicos="${escaparAtributo(JSON.stringify(tecnicos))}">
+            <span>Deseja disparar os técnicos memorizados?
+                <b>${tecnicos.map(t => escaparAtributo(String(t))).join(', ')}</b></span>
+            <div class="tecnicos-memoria-acoes">
+                <button type="button" onclick="dispararTecnicosMemorizados(this)">Sim</button>
+                <button type="button" class="secundario" onclick="this.closest('.tecnicos-memoria').remove()">Não</button>
+            </div>
+        </div>`)
+}
+
+async function dispararTecnicosMemorizados(botao) {
+    const pergunta = botao.closest('.tecnicos-memoria')
+    let tecnicos = []
+    try { tecnicos = JSON.parse(pergunta?.dataset.tecnicos || '[]') } catch { }
+    pergunta?.remove()
+    if (!tecnicos.length) return
+    await maisUsuario(tecnicos, 'tecnicos')
+    await verificarConflitos()
 }
 
 function obter(name) {

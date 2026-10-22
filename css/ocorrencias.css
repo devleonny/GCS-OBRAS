@@ -413,6 +413,38 @@
 .tela-ocorrencias .tabela td img { max-width: 100%; }
 
 /* Cabeçalho de filtros rola junto com a página (não fica fixo no topo). */
+/* Pergunta dos técnicos memorizados no formulário de correção. */
+.tecnicos-memoria {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    text-align: left;
+    color: #22332a;
+    background: #eaf4ed;
+    border: 1px solid #9cc5a7;
+    border-left: 4px solid #356443;
+    border-radius: 8px;
+}
+
+.tecnicos-memoria small {
+    color: #4f6058;
+}
+
+.tecnicos-memoria-acoes {
+    display: flex;
+    gap: 6px;
+}
+
+.tecnicos-memoria-acoes button {
+    margin: 0;
+    padding: 4px 14px;
+    font-size: 12px;
+}
+
 .tela-ocorrencias > .painel-filtros {
     width: 100%;
     min-width: 0;

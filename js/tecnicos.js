@@ -484,8 +484,8 @@ function tooltipAgenda(elemento, dados) {
 
 
 // TÉCNICOS LIVRES HOJE (letreiro da toolbar)
-// Efetivos (vw_tecnicos_efetivos: técnico com documento no RH) menos quem tem
-// correção cobrindo hoje e não solucionada, a mesma regra de verificarConflitos.
+// Efetivos (técnico com documento no RH) que não aparecem em nenhuma correção cobrindo hoje,
+// seja qual for o status do chamado. O cálculo é da vw_tecnicos_livres_hoje.
 
 const PERMISSOES_SEM_TECNICOS_LIVRES = ['técnico', 'cliente']
 // Atualiza na hora quando uma ocorrência é salva (websocket.js) e à meia-noite;
@@ -500,38 +500,13 @@ function hojeTecnicosLivres() {
     return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`
 }
 
-async function buscarTecnicosLivres(hoje) {
-
-    const [efetivos, emPeriodo, noDia] = await Promise.all([
-        pesquisarDB({ base: 'vw_tecnicos_efetivos', limite: 5000 }),
-        // Correções com período que inclui hoje e as de um dia só marcadas para hoje.
-        pesquisarDB({
-            base: 'vw_tecnicos',
-            limite: 20000,
-            filtros: {
-                dtCorrecao: { op: '<=d', value: hoje },
-                dtCorrecaoFinal: { op: '>=d', value: hoje }
-            }
-        }),
-        pesquisarDB({
-            base: 'vw_tecnicos',
-            limite: 20000,
-            filtros: { dtCorrecao: [{ op: '>=d', value: hoje }, { op: '<=d', value: hoje }] }
-        })
-    ])
-
-    // O status é conferido aqui: um != no servidor também descartaria correções sem status.
-    const ocupados = new Set(
-        [...(emPeriodo?.resultados || []), ...(noDia?.resultados || [])]
-            .filter(c => String(c.ultimaCorrecao || '').toUpperCase() !== 'SOLUCIONADA')
-            .flatMap(c => Array.isArray(c.tecnico) ? c.tecnico : [c.tecnico])
-            .map(t => String(t || '').trim())
-            .filter(Boolean)
-    )
-
-    return (efetivos?.resultados || [])
-        .filter(t => !ocupados.has(String(t.usuario).trim()))
+// Uma consulta só: a vw_tecnicos_livres_hoje (gcs/SQL/tecnicos_livres_hoje.sql) já cruza, no
+// banco, os efetivos com as correções que cobrem hoje. O "hoje" também vem do banco.
+async function buscarTecnicosLivres() {
+    const { resultados } = await pesquisarDB({ base: 'vw_tecnicos_livres_hoje', limite: 5000 }) || {}
+    const livres = (resultados || [])
         .sort((a, b) => String(a.nome || a.usuario).localeCompare(String(b.nome || b.usuario), 'pt-BR'))
+    return { livres, hoje: livres[0]?.dia || hojeTecnicosLivres() }
 }
 
 function renderTecnicosLivres(livres, hoje) {
@@ -573,6 +548,20 @@ function renderTecnicosLivres(livres, hoje) {
     }
 
     area.hidden = false
+}
+
+// Ao salvar uma correção, tira do letreiro na hora os técnicos que ela ocupa hoje, com os
+// dados do próprio formulário; a consulta ao servidor vem em seguida e confirma.
+function retirarDosLivresAgora(tecnicos, inicio, fim) {
+    if (!ultimosTecnicosLivres || !tecnicos?.length || !inicio) return
+    const { livres, hoje } = ultimosTecnicosLivres
+    // Datas do formulário em AAAA-MM-DD: comparação de texto basta. Sem data final, vale só o início.
+    if (inicio > hoje || (fim || inicio) < hoje) return
+    const ocupados = new Set(tecnicos.map(t => String(t).trim()))
+    const restantes = livres.filter(t => !ocupados.has(String(t.usuario).trim()))
+    if (restantes.length === livres.length) return
+    geracaoTecnicosLivres++ // invalida uma consulta que ainda esteja em andamento
+    renderTecnicosLivres(restantes, hoje)
 }
 
 async function abrirTecnicosLivres() {
@@ -634,19 +623,26 @@ function ocultarTecnicosLivres() {
     area.removeAttribute('tabindex')
 }
 
+// Várias origens disparam a atualização (salvar, websocket, meia-noite, reserva); se duas
+// rodarem juntas, só a mais recente desenha, para uma resposta antiga não voltar a lista.
+let geracaoTecnicosLivres = 0
+
 async function atualizarTecnicosLivres() {
 
     if (!document.querySelector('.tecnicos-livres') || !podeVerTecnicosLivres())
         return ocultarTecnicosLivres()
 
+    const geracao = ++geracaoTecnicosLivres
+
     try {
-        const hoje = hojeTecnicosLivres()
-        const livres = await buscarTecnicosLivres(hoje)
+        const { livres, hoje } = await buscarTecnicosLivres()
+        if (geracao !== geracaoTecnicosLivres) return
         // O usuário pode ter trocado durante a consulta.
         if (!podeVerTecnicosLivres())
             return ocultarTecnicosLivres()
         renderTecnicosLivres(livres, hoje)
     } catch (erro) {
+        if (geracao !== geracaoTecnicosLivres) return
         // Sem conseguir saber quem está ocupado, é melhor não mostrar do que mostrar errado.
         console.error('Técnicos livres:', erro)
         ocultarTecnicosLivres()
