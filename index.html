@@ -156,47 +156,58 @@
 
     <script>
 
-        const versaoAtual = 9.13
+        // Carimbado por scripts/versionar.js no commit; comparado com versao.json publicado.
+        const versaoAtual = '086cec46'
+        let avisoVersaoAberto = false
 
         verificarVersao()
 
-        setInterval(async () => (
-            verificarVersao()
-        ), 15 * 60 * 1000)
+        setInterval(verificarVersao, 5 * 60 * 1000)
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible')
+                verificarVersao()
+        })
 
         async function verificarVersao() {
 
-            const resposta = await fetch(`${read}/versao`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-
-            if (!resposta.ok) {
-                const erro = await resposta.text()
-                throw new Error(erro || 'Erro ao contar por campo')
-            }
-
-            const { versao = null } = await resposta.json()
-
-            if (!versao)
+            if (avisoVersaoAberto || location.protocol === 'file:')
                 return
 
-            if (versao > versaoAtual)
+            try {
+                const resposta = await fetch(`versao.json?t=${Date.now()}`, { cache: 'no-store' })
+                if (!resposta.ok)
+                    return
+
+                const { versao = null } = await resposta.json()
+
+                if (!versao || versao === String(versaoAtual))
+                    return
+
+                avisoVersaoAberto = true
                 balaoNotificacao({
                     imagem: 'imagens/atualizacao.png',
                     texto: `
                             <div style="${horizontal}; gap: 5px;">
                                 <span>Nova versão disponível</span>
-                                <button onclick="window.location.reload()">Atualizar</button>
-                                <button style="background-color: #097fe6;" onclick="this.closest('.popup-mensagem').remove()">Adiar</button>
+                                <button onclick="atualizarVersao()">Atualizar</button>
+                                <button style="background-color: #097fe6;" onclick="avisoVersaoAberto = false; this.closest('.popup-mensagem').remove()">Adiar</button>
                             </div>
                             `,
                     tempo: 0 // Sempre
                 })
+            } catch {
+                // Sem rede: tenta no próximo ciclo.
+            }
 
+        }
 
+        // Renova o index.html no cache do navegador antes de recarregar.
+        async function atualizarVersao() {
+            try {
+                await fetch(location.href, { cache: 'reload' })
+            } catch { }
+            location.reload()
         }
 
 

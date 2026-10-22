@@ -21,6 +21,10 @@ const RAIZ = path.resolve(__dirname, '..')
 const PAGINAS = ['index.html', 'pdf.html']
 const MAPA_CSS = 'js/versoes_css.js'
 const REFERENCIA = /((?:src|href)=")((?:css|js)\/[^"?#]+)(\?v=[^"#]*)?(")/g
+// Versão do site: carimbada no index.html e publicada em versao.json para o aviso de nova versão.
+const PAGINA_VERSAO = 'index.html'
+const ARQUIVO_VERSAO = 'versao.json'
+const VERSAO_PAGINA = /(const versaoAtual = )[^\n;]*/
 
 const staged = process.argv.includes('--staged')
 
@@ -143,6 +147,65 @@ for (const pagina of PAGINAS) {
     if (quantidade) console.log(`versionar: ${pagina} — ${quantidade} referência(s) atualizada(s)`)
     total += quantidade
 }
+
+// Hash das páginas já carimbadas: muda com qualquer css/js referenciado ou com o próprio HTML.
+// O valor de versaoAtual fica de fora, senão a versão dependeria dela mesma.
+function versaoSite(lerPagina) {
+    const hash = crypto.createHash('sha1')
+    for (const pagina of PAGINAS) {
+        const conteudo = lerPagina(pagina)
+        if (conteudo)
+            hash.update(conteudo.toString('utf8').replace(/\r\n/g, '\n').replace(VERSAO_PAGINA, '$1'))
+    }
+    return hash.digest('hex').slice(0, 8)
+}
+
+function lerIndexado(relativo) {
+    try { return git(['show', `:${relativo}`]) } catch { return null }
+}
+
+function lerPasta(relativo) {
+    const absoluto = path.join(RAIZ, relativo)
+    return fs.existsSync(absoluto) ? fs.readFileSync(absoluto) : null
+}
+
+function carimbarVersaoSite() {
+    const versaoNova = versaoSite(staged ? lerIndexado : lerPasta)
+    const json = `${JSON.stringify({ versao: versaoNova })}\n`
+    const carimbarPagina = conteudo => conteudo.replace(VERSAO_PAGINA, `$1'${versaoNova}'`)
+    let alterou = false
+
+    if (staged) {
+        const indexado = lerIndexado(PAGINA_VERSAO)?.toString('utf8')
+        if (indexado && carimbarPagina(indexado) !== indexado) {
+            const modo = git(['ls-files', '-s', '--', PAGINA_VERSAO]).toString().split(' ')[0] || '100644'
+            gravarNoIndice(PAGINA_VERSAO, carimbarPagina(indexado), modo)
+            alterou = true
+        }
+        if (lerIndexado(ARQUIVO_VERSAO)?.toString('utf8') !== json) {
+            gravarNoIndice(ARQUIVO_VERSAO, json)
+            alterou = true
+        }
+    }
+
+    // A pasta acompanha o commit.
+    const naPasta = lerPasta(PAGINA_VERSAO)?.toString('utf8')
+    if (naPasta && carimbarPagina(naPasta) !== naPasta) {
+        fs.writeFileSync(path.join(RAIZ, PAGINA_VERSAO), carimbarPagina(naPasta))
+        alterou ||= !staged
+    }
+    if (lerPasta(ARQUIVO_VERSAO)?.toString('utf8') !== json) {
+        fs.writeFileSync(path.join(RAIZ, ARQUIVO_VERSAO), json)
+        alterou ||= !staged
+    }
+
+    if (alterou)
+        console.log(`versionar: versão do site ${versaoNova}`)
+    return alterou
+}
+
+if (carimbarVersaoSite())
+    total++
 
 for (const arquivo of ausentes)
     console.warn(`versionar: aviso — ${arquivo} não encontrado; versão mantida`)
