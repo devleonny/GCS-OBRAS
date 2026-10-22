@@ -142,15 +142,30 @@ async function solicitarCodigo() {
     if (resposta.success) {
 
         removerPopup()
+        const usuario = escaparAtributo(identificador.value)
         const linhas = [
             {
-                texto: 'Preencha com os números recebidos no e-mail',
                 elemento: `
-                <div style="${vertical}; gap: 2px;">
-                    <input id="identificador" style="display: none;" value="${identificador.value}">
-                    <input id="codigo" placeholder="Código" class="camp-1" type="number">
-                    <input id="novaSenha" placeholder="Nova Senha" class="camp-1">
+                <div style="text-align: left; line-height: 1.5; width: 100%; max-width: 360px;">
+                    Enviamos um código de 6 dígitos para o e-mail cadastrado do usuário <b>${usuario}</b>.
+                    <br><small style="color: #65756b;">Ele vale por 10 minutos. Não chegou? Confira o lixo eletrônico.</small>
+                    <input name="identificador" type="hidden" value="${usuario}">
                 </div>`
+            },
+            {
+                texto: 'Código',
+                elemento: `<input name="codigo" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000">`
+            },
+            {
+                texto: 'Nova senha',
+                elemento: `<input name="novaSenha" type="password" autocomplete="new-password" placeholder="Nova senha">`
+            },
+            {
+                texto: 'Repita a nova senha',
+                elemento: `<input name="confirmarSenha" type="password" autocomplete="new-password" placeholder="Repita a nova senha">`
+            },
+            {
+                elemento: `<small style="color: #65756b; text-align: left;">${REGRA_SENHA}</small>`
             }
         ]
 
@@ -168,11 +183,23 @@ async function solicitarCodigo() {
 
 async function salvarSenha() {
 
-    overlayAguarde()
+    const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
+    const valor = nome => painel?.querySelector(`[name="${nome}"]`)?.value?.trim() || ''
 
-    const identificador = document.getElementById('identificador').value
-    const novaSenha = document.getElementById('novaSenha').value
-    const codigo = document.getElementById('codigo').value
+    const identificador = valor('identificador')
+    const codigo = valor('codigo')
+    const novaSenha = painel?.querySelector('[name="novaSenha"]')?.value || ''
+
+    if (!/^\d{6}$/.test(codigo))
+        return popup({ mensagem: 'Digite os 6 números do código recebido no e-mail.' })
+
+    if (novaSenha !== (painel?.querySelector('[name="confirmarSenha"]')?.value || ''))
+        return popup({ mensagem: 'A confirmação não confere com a nova senha.' })
+
+    if (novaSenha.length < 8)
+        return popup({ mensagem: REGRA_SENHA })
+
+    overlayAguarde()
 
     const resposta = await salvarNovaSenha({ identificador, novaSenha, codigo })
 

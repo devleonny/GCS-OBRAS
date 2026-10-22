@@ -66,7 +66,8 @@ function iconeSilhuetaMenu(chave) {
         kanban: '<path fill-rule="evenodd" d="M2 3h20v18H2V3zm3 3v10h3V6H5zm6 0v6h3V6h-3zm6 0v12h3V6h-3z"/>',
         composicoes: '<path d="m12 2 10 5-10 5L2 7l10-5zM2 11l10 5 10-5v4l-10 5-10-5v-4zm0 8 10 5 10-5v-2l-10 5-10-5v2z"/>',
         pesquisar5: '<path fill-rule="evenodd" d="M10 2a8 8 0 1 0 5 14l6 6 2-2-6-6a8 8 0 0 0-7-12zm0 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/>',
-        sair: '<path d="M3 2h10v3H6v14h7v3H3V2zm12 5 7 5-7 5v-3H9v-4h6V7z"/>'
+        sair: '<path d="M3 2h10v3H6v14h7v3H3V2zm12 5 7 5-7 5v-3H9v-4h6V7z"/>',
+        cadeado: '<path fill-rule="evenodd" d="M7 10V7a5 5 0 0 1 10 0v3h2v12H5V10h2zm3 0h4V7a2 2 0 1 0-4 0v3zm1 4v4h2v-4h-2z"/>'
     }
 
     if (!icones[chave]) return ''
@@ -292,6 +293,11 @@ const esquemaBotoes = {
             sub: [
                 { nome: 'Ver histórico', funcao: 'daily', img: 'pesquisar5' }
             ]
+        },
+        {
+            nome: 'Trocar Senha',
+            funcao: 'formularioTrocarSenha',
+            img: 'cadeado'
         },
         {
             nome: 'Desconectar',

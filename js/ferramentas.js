@@ -441,6 +441,73 @@ function dinheiro(valor) {
     return `<span style="white-space: nowrap;">${valorString}</span>`
 }
 
+// Mesma regra do servidor (validarNovaSenha), só para avisar antes de enviar.
+const REGRA_SENHA = 'Mínimo de 8 caracteres, sem conter o seu usuário e sem senhas óbvias (ex.: 12345678).'
+
+function formularioTrocarSenha() {
+
+    const campo = (nome, placeholder) =>
+        `<input name="${nome}" type="password" autocomplete="${nome === 'senhaAtual' ? 'current-password' : 'new-password'}" placeholder="${placeholder}">`
+
+    const linhas = [
+        { texto: 'Senha atual', elemento: campo('senhaAtual', 'Senha atual') },
+        { texto: 'Nova senha', elemento: campo('novaSenha', 'Nova senha') },
+        { texto: 'Repita a nova senha', elemento: campo('confirmarSenha', 'Repita a nova senha') },
+        { elemento: `<small style="color: #65756b; text-align: left;">${REGRA_SENHA}</small>` }
+    ]
+
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: 'salvarTrocaSenha()' }
+    ]
+
+    popup({ linhas, botoes, titulo: 'Trocar senha' })
+}
+
+async function salvarTrocaSenha() {
+
+    const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
+    const valor = nome => painel?.querySelector(`[name="${nome}"]`)?.value || ''
+
+    const senhaAtual = valor('senhaAtual')
+    const novaSenha = valor('novaSenha')
+
+    if (!senhaAtual || !novaSenha)
+        return popup({ mensagem: 'Preencha a senha atual e a nova senha.' })
+
+    if (novaSenha !== valor('confirmarSenha'))
+        return popup({ mensagem: 'A confirmação não confere com a nova senha.' })
+
+    if (novaSenha.length < 8)
+        return popup({ mensagem: REGRA_SENHA })
+
+    overlayAguarde()
+
+    try {
+        const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
+        const resposta = await fetch(`${api}/trocar-senha`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({ senhaAtual, novaSenha })
+        })
+        const dados = await resposta.json().catch(() => ({}))
+
+        // Erro de validação: mantém o formulário aberto para corrigir.
+        if (!resposta.ok || !dados.success) {
+            removerOverlay()
+            return popup({ mensagem: dados.mensagem || 'Falha ao trocar a senha.' })
+        }
+
+        removerTodosPopups()
+        popup({ mensagem: dados.mensagem, imagem: 'imagens/concluido.png' })
+    } catch {
+        removerOverlay()
+        popup({ mensagem: 'Sem conexão com o servidor. Tente novamente.' })
+    }
+}
+
 function deslogarUsuario() {
 
     const botoes = [
