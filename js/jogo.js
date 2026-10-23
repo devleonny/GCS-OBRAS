@@ -10,7 +10,27 @@ const ROTA = {
     impulso: -10.6,
     pulinho: -4.2,      // soltar cedo = pulo curto
     velocidadeInicial: 4.2,
-    chaveRecorde: 'jogoRotaRecorde'
+    chaveRecorde: 'jogoRotaRecorde',
+    // Ciclo dia/noite em distância percorrida (~300 px/s no início):
+    // dia até 4500 (~15s), anoitece até 6000 (~20s), noite até 9000, amanhece até 10500 e repete.
+    ciclo: { dia: 4500, anoitecer: 1500, noite: 3000, amanhecer: 1500 }
+}
+
+// 0 = dia pleno, 1 = noite plena.
+function fatorNoiteRota(distancia) {
+    const { dia, anoitecer, noite, amanhecer } = ROTA.ciclo
+    const d = distancia % (dia + anoitecer + noite + amanhecer)
+    const suave = t => t * t * (3 - 2 * t)
+    if (d < dia) return 0
+    if (d < dia + anoitecer) return suave((d - dia) / anoitecer)
+    if (d < dia + anoitecer + noite) return 1
+    return 1 - suave((d - dia - anoitecer - noite) / amanhecer)
+}
+
+function misturarCorRota(corA, corB, t) {
+    const a = parseInt(corA.slice(1), 16), b = parseInt(corB.slice(1), 16)
+    const canal = deslocamento => Math.round(((a >> deslocamento) & 255) + ((((b >> deslocamento) & 255) - ((a >> deslocamento) & 255)) * t))
+    return `rgb(${canal(16)}, ${canal(8)}, ${canal(0)})`
 }
 
 let canvasJogo = null
@@ -32,9 +52,17 @@ function novoCenarioRota() {
     // Prédios ao fundo (parallax), gerados uma vez e reciclados.
     const predios = []
     for (let x = 0; x < ROTA.largura + 120; x += 34 + Math.random() * 30) {
-        predios.push({ x, largura: 26 + Math.random() * 34, altura: 30 + Math.random() * 55, tom: Math.random() })
+        predios.push({ x, largura: 26 + Math.random() * 34, altura: 30 + Math.random() * 55, tom: Math.random(), semente: Math.random() * 1000 })
     }
+    const estrelas = Array.from({ length: 40 }, () => ({
+        x: Math.random() * ROTA.largura,
+        y: 6 + Math.random() * 80,
+        raio: 0.6 + Math.random() * 1.1,
+        brilho: Math.random() * 6
+    }))
     return {
+        estrelas,
+        noite: 0,
         estado: 'parado',      // parado | jogando | fim
         pontos: 0,
         distancia: 0,
@@ -148,6 +176,8 @@ function atualizarRota(passo) {
 
     // Cenário
     rota.distancia += v
+    rota.noite = fatorNoiteRota(rota.distancia)
+    for (const e of rota.estrelas) e.brilho += 0.05 * passo
     rota.deslocamentoFaixa = (rota.deslocamentoFaixa + v) % 40
     for (const p of rota.predios) {
         p.x -= v * 0.25
@@ -220,41 +250,92 @@ function retanguloArredondado(ctx, x, y, w, h, r) {
 
 function desenharCenarioRota(ctx) {
     const { largura, altura, chao } = ROTA
+    const n = rota.noite
+    const cor = (dia, noite) => misturarCorRota(dia, noite, n)
 
     const ceu = ctx.createLinearGradient(0, 0, 0, chao)
-    ceu.addColorStop(0, '#dbeafe')
-    ceu.addColorStop(1, '#f6f8fb')
+    ceu.addColorStop(0, cor('#dbeafe', '#0b1226'))
+    ceu.addColorStop(1, cor('#f6f8fb', '#1e2a47'))
     ctx.fillStyle = ceu
     ctx.fillRect(0, 0, largura, altura)
 
-    // Sol
-    ctx.fillStyle = '#fde68a'
-    ctx.beginPath()
-    ctx.arc(540, 38, 18, 0, Math.PI * 2)
-    ctx.fill()
+    // Estrelas (piscando)
+    if (n > 0) {
+        ctx.fillStyle = '#ffffff'
+        for (const e of rota.estrelas) {
+            ctx.globalAlpha = n * (0.55 + Math.sin(e.brilho) * 0.45)
+            ctx.beginPath()
+            ctx.arc(e.x, e.y, e.raio, 0, Math.PI * 2)
+            ctx.fill()
+        }
+        ctx.globalAlpha = 1
+    }
 
-    // Prédios
+    // Sol desce e some; lua sobe no lugar
+    if (n < 1) {
+        ctx.globalAlpha = 1 - n
+        ctx.fillStyle = '#fde68a'
+        ctx.beginPath()
+        ctx.arc(540, 38 + n * 50, 18, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.globalAlpha = 1
+    }
+    if (n > 0) {
+        const luaY = 38 + (1 - n) * 50
+        ctx.globalAlpha = n
+        ctx.fillStyle = 'rgba(241, 245, 249, 0.15)'
+        ctx.beginPath(); ctx.arc(470, luaY, 24, 0, Math.PI * 2); ctx.fill()
+        ctx.fillStyle = '#f1f5f9'
+        ctx.beginPath(); ctx.arc(470, luaY, 14, 0, Math.PI * 2); ctx.fill()
+        ctx.fillStyle = cor('#dbeafe', '#0b1226')
+        ctx.beginPath(); ctx.arc(476, luaY - 4, 12, 0, Math.PI * 2); ctx.fill()
+        ctx.globalAlpha = 1
+    }
+
+    // Prédios: escurecem e acendem janelas (sempre as mesmas, pela semente do prédio)
     for (const p of rota.predios) {
-        ctx.fillStyle = p.tom > 0.5 ? '#c7d2de' : '#b6c3d1'
+        ctx.fillStyle = p.tom > 0.5 ? cor('#c7d2de', '#25314d') : cor('#b6c3d1', '#1c2740')
         ctx.fillRect(p.x, chao - 18 - p.altura, p.largura, p.altura)
-        ctx.fillStyle = '#e8eef5'
+        let i = 0
         for (let jy = chao - 12 - p.altura; jy < chao - 24; jy += 10)
-            for (let jx = p.x + 4; jx < p.x + p.largura - 6; jx += 8)
+            for (let jx = p.x + 4; jx < p.x + p.largura - 6; jx += 8) {
+                const acesa = ((p.semente + i++ * 7.3) % 10) < 4
+                ctx.fillStyle = acesa ? cor('#e8eef5', '#fcd34d') : cor('#e8eef5', '#2c3a58')
                 ctx.fillRect(jx, jy, 4, 5)
+            }
     }
 
     // Calçada e rua
-    ctx.fillStyle = '#94a3b8'
+    ctx.fillStyle = cor('#94a3b8', '#3b4660')
     ctx.fillRect(0, chao - 18, largura, 4)
-    ctx.fillStyle = '#475569'
+    ctx.fillStyle = cor('#475569', '#262f42')
     ctx.fillRect(0, chao - 14, largura, altura - chao + 14)
-    ctx.fillStyle = '#334155'
+    ctx.fillStyle = cor('#334155', '#1a2132')
     ctx.fillRect(0, chao + 4, largura, altura - chao)
 
     // Faixa central tracejada
-    ctx.fillStyle = '#f8fafc'
+    ctx.fillStyle = cor('#f8fafc', '#cbd5e1')
     for (let x = -rota.deslocamentoFaixa; x < largura; x += 40)
         ctx.fillRect(x, chao + 14, 20, 3)
+}
+
+// Facho do farol: só aparece com o escurecer, por cima do cenário e dos obstáculos.
+function desenharFarolRota(ctx) {
+    const n = rota.noite
+    if (n <= 0) return
+    const x = van.x + van.largura - 1
+    const y = van.y + 20
+    const facho = ctx.createLinearGradient(x, y, x + 170, y)
+    facho.addColorStop(0, `rgba(253, 230, 138, ${0.55 * n})`)
+    facho.addColorStop(1, 'rgba(253, 230, 138, 0)')
+    ctx.fillStyle = facho
+    ctx.beginPath()
+    ctx.moveTo(x, y - 2)
+    ctx.lineTo(x + 170, y - 22)
+    ctx.lineTo(x + 170, Math.min(ROTA.altura, y + 34))
+    ctx.lineTo(x, y + 3)
+    ctx.closePath()
+    ctx.fill()
 }
 
 function desenharVanRota(ctx) {
@@ -370,6 +451,13 @@ function desenharObstaculoRota(ctx, o) {
 }
 
 function desenharChamadoRota(ctx, c) {
+    // À noite o chamado ganha um brilho, para continuar visível.
+    if (rota.noite > 0) {
+        ctx.fillStyle = `rgba(134, 239, 172, ${0.35 * rota.noite})`
+        ctx.beginPath()
+        ctx.arc(c.x + 9, c.y + 9, 15, 0, Math.PI * 2)
+        ctx.fill()
+    }
     ctx.fillStyle = '#ffffff'
     ctx.strokeStyle = '#2f7d4a'
     ctx.lineWidth = 2
@@ -380,21 +468,101 @@ function desenharChamadoRota(ctx, c) {
 }
 
 function desenharHudRota(ctx) {
+    const cor = (dia, noite) => misturarCorRota(dia, noite, rota.noite)
     ctx.font = 'bold 13px Arial'
     ctx.textAlign = 'left'
-    ctx.fillStyle = '#1e293b'
+    ctx.fillStyle = cor('#1e293b', '#f1f5f9')
     ctx.fillText(`Pontos: ${Math.floor(rota.pontos)}`, 14, 22)
-    ctx.fillStyle = '#2f7d4a'
+    ctx.fillStyle = cor('#2f7d4a', '#86efac')
     ctx.fillText(`🔧 ${rota.chamados}`, 120, 22)
     ctx.textAlign = 'right'
-    ctx.fillStyle = '#64748b'
+    ctx.fillStyle = cor('#64748b', '#cbd5e1')
     ctx.font = '12px Arial'
     ctx.fillText(`Recorde: ${Math.floor(rota.recorde)}`, ROTA.largura - 14, 22)
     ctx.textAlign = 'left'
 }
 
-function painelRota(ctx, titulo, linhas) {
-    const w = 330, h = 30 + linhas.length * 20
+// Título como placa de rodovia: fundo verde, filete branco por dentro, letras brancas e seta.
+function placaTituloRota(ctx, texto, centroX, topo) {
+    ctx.save()
+    ctx.font = 'bold 22px "Arial Black", Arial, sans-serif'
+    ctx.letterSpacing = '1px'
+    const larguraTexto = ctx.measureText(texto).width
+    const larguraSeta = 26
+    const w = larguraTexto + larguraSeta + 44, h = 46
+    const x = centroX - w / 2
+
+    // Sombra + placa
+    ctx.shadowColor = 'rgba(15, 23, 42, 0.35)'
+    ctx.shadowOffsetY = 3
+    ctx.shadowBlur = 6
+    ctx.fillStyle = '#15803d'
+    retanguloArredondado(ctx, x, topo, w, h, 8)
+    ctx.fill()
+    ctx.shadowColor = 'transparent'
+
+    // Brilho sutil no alto da placa
+    const brilho = ctx.createLinearGradient(0, topo, 0, topo + h)
+    brilho.addColorStop(0, 'rgba(255, 255, 255, 0.16)')
+    brilho.addColorStop(0.5, 'rgba(255, 255, 255, 0)')
+    ctx.fillStyle = brilho
+    retanguloArredondado(ctx, x, topo, w, h, 8)
+    ctx.fill()
+
+    // Filete branco interno
+    ctx.strokeStyle = '#ffffff'
+    ctx.lineWidth = 2
+    retanguloArredondado(ctx, x + 4, topo + 4, w - 8, h - 8, 5)
+    ctx.stroke()
+
+    // Texto
+    ctx.fillStyle = '#ffffff'
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'middle'
+    const inicioTexto = x + 18
+    ctx.fillText(texto, inicioTexto, topo + h / 2 + 1)
+
+    // Seta de rota
+    const sx = inicioTexto + larguraTexto + 10, sy = topo + h / 2
+    ctx.beginPath()
+    ctx.moveTo(sx, sy - 3)
+    ctx.lineTo(sx + 12, sy - 3)
+    ctx.lineTo(sx + 12, sy - 9)
+    ctx.lineTo(sx + larguraSeta - 4, sy)
+    ctx.lineTo(sx + 12, sy + 9)
+    ctx.lineTo(sx + 12, sy + 3)
+    ctx.lineTo(sx, sy + 3)
+    ctx.closePath()
+    ctx.fill()
+
+    ctx.restore()
+    return topo + h
+}
+
+function painelRota(ctx, titulo, linhas, { logo = false } = {}) {
+    const centro = ROTA.largura / 2
+
+    if (logo) {
+        // Placa no alto e um balão separado com as instruções
+        const fimPlaca = placaTituloRota(ctx, titulo.toUpperCase(), centro, 28)
+        ctx.font = '12px Arial'
+        const w = Math.max(...linhas.map(l => ctx.measureText(l).width)) + 32
+        const h = 12 + linhas.length * 17
+        const y = fimPlaca + 10
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
+        retanguloArredondado(ctx, centro - w / 2, y, w, h, h / 2)
+        ctx.fill()
+        ctx.textAlign = 'center'
+        linhas.forEach((linha, i) => {
+            ctx.font = i === 0 ? 'bold italic 12px Arial' : '12px Arial'
+            ctx.fillStyle = i === 0 ? '#15803d' : '#475569'
+            ctx.fillText(linha, centro, y + 18 + i * 17)
+        })
+        ctx.textAlign = 'left'
+        return
+    }
+
+    const w = 340, h = 30 + linhas.length * 18
     const x = (ROTA.largura - w) / 2, y = 44
     ctx.fillStyle = 'rgba(255, 255, 255, 0.92)'
     ctx.strokeStyle = '#cbd5e1'
@@ -404,10 +572,10 @@ function painelRota(ctx, titulo, linhas) {
     ctx.textAlign = 'center'
     ctx.fillStyle = '#1e293b'
     ctx.font = 'bold 17px Arial'
-    ctx.fillText(titulo, ROTA.largura / 2, y + 24)
+    ctx.fillText(titulo, centro, y + 24)
     ctx.font = '12px Arial'
     ctx.fillStyle = '#475569'
-    linhas.forEach((linha, i) => ctx.fillText(linha, ROTA.largura / 2, y + 44 + i * 18))
+    linhas.forEach((linha, i) => ctx.fillText(linha, centro, y + 44 + i * 18))
     ctx.textAlign = 'left'
 }
 
@@ -418,6 +586,7 @@ function desenharRota() {
 
     for (const o of rota.obstaculos) desenharObstaculoRota(ctx, o)
     for (const c of rota.coletaveis) desenharChamadoRota(ctx, c)
+    desenharFarolRota(ctx)
 
     for (const p of rota.particulas) {
         ctx.globalAlpha = Math.max(0, p.vida)
@@ -432,7 +601,7 @@ function desenharRota() {
 
     for (const t of rota.textos) {
         ctx.globalAlpha = Math.max(0, t.vida)
-        ctx.fillStyle = '#2f7d4a'
+        ctx.fillStyle = misturarCorRota('#2f7d4a', '#86efac', rota.noite)
         ctx.font = 'bold 12px Arial'
         ctx.fillText(t.texto, t.x - 10, t.y)
     }
@@ -441,7 +610,10 @@ function desenharRota() {
     desenharHudRota(ctx)
 
     if (rota.estado === 'parado')
-        painelRota(ctx, '🚐 Técnico na rota', ['Toque, clique ou espaço para pular', 'Desvie dos cones e buracos e pegue os chamados 🔧'])
+        painelRota(ctx, 'Técnico na Rota', [
+            'Zero pendências? Bora pra rua!',
+            'Toque, clique ou espaço para pular · pegue os chamados no caminho'
+        ], { logo: true })
 
     if (rota.estado === 'fim')
         painelRota(ctx, rota.novoRecorde ? '🏆 Novo recorde!' : 'Rota encerrada!', [
