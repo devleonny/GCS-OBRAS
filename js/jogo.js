@@ -48,6 +48,49 @@ function salvarRecordeRota(valor) {
     try { localStorage.setItem(ROTA.chaveRecorde, String(valor)) } catch { }
 }
 
+// ---------- PLACAR GLOBAL (servidor: /jogo-rota/*, gcs/SCRIPTS/jogo_rota.js) ----------
+// { usuario, pessoal: { recorde, chamados, partidas, posicao }, ranking: [{ usuario, nome, recorde, chamados }] }
+// Sem login/servidor (ex.: prévia local) o jogo segue só com o recorde do navegador.
+let placarRota = null
+
+async function chamarPlacarRota(caminho, corpo = {}) {
+    try {
+        const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
+        if (!token || typeof api === 'undefined') return null
+        const resposta = await fetch(`${api}/jogo-rota/${caminho}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify(corpo)
+        })
+        const dados = await resposta.json().catch(() => null)
+        return resposta.ok ? dados : null
+    } catch {
+        return null
+    }
+}
+
+function aplicarPlacarRota(dados) {
+    if (!dados?.ranking) return
+    placarRota = dados
+    if (rota) rota.recorde = Math.max(rota.recorde, Number(dados.pessoal?.recorde) || 0)
+    // Parado ou no fim de jogo o quadro não está animando: redesenha para mostrar o ranking.
+    if (rota && rota.estado !== 'jogando' && ctxJogo) desenharRota()
+}
+
+async function carregarPlacarRota() {
+    aplicarPlacarRota(await chamarPlacarRota('ranking'))
+}
+
+async function enviarPontuacaoRota() {
+    const dados = await chamarPlacarRota('pontuacao', {
+        pontos: Math.floor(rota.pontos),
+        chamados: rota.chamados,
+        duracaoMs: Math.round(performance.now() - rota.inicio)
+    })
+    if (dados?.novoRecorde) rota.novoRecorde = true
+    aplicarPlacarRota(dados)
+}
+
 function novoCenarioRota() {
     // Prédios ao fundo (parallax), gerados uma vez e reciclados.
     const predios = []
@@ -107,6 +150,7 @@ function comecarRota() {
     van.vy = 0
     van.noChao = true
     rota.ultimoQuadro = performance.now()
+    rota.inicio = rota.ultimoQuadro
     animationId = requestAnimationFrame(quadroRota)
 }
 
@@ -118,6 +162,7 @@ function encerrarRota() {
         salvarRecordeRota(rota.pontos)
     }
     for (let i = 0; i < 14; i++) poeiraRota(van.x + van.largura - 6, van.y + van.altura / 2, '#f59e0b')
+    enviarPontuacaoRota()
 }
 
 // ---------- LÓGICA ----------
@@ -379,8 +424,7 @@ function desenharVanRota(ctx) {
     ctx.fillStyle = '#1e293b'
     ctx.font = 'bold 8px Arial'
     ctx.fillText('GCS', x + 6, y + 11)
-    ctx.font = '9px Arial'
-    ctx.fillText('🔧', x + 28, y + 12)
+    desenharChaveRota(ctx, x + 32, y + 8, 9, '#15803d')
 
     // Farol
     ctx.fillStyle = '#facc15'
@@ -450,6 +494,28 @@ function desenharObstaculoRota(ctx, o) {
     }
 }
 
+// Chave inglesa desenhada (o emoji 🔧 sai claro e descentralizado conforme a fonte do sistema).
+// (cx, cy) é o centro visual; t é o tamanho total na diagonal.
+function desenharChaveRota(ctx, cx, cy, t, cor) {
+    ctx.save()
+    ctx.translate(cx, cy)
+    ctx.rotate(Math.PI / 4)
+    ctx.strokeStyle = cor
+    ctx.lineCap = 'round'
+    // Cabo
+    ctx.lineWidth = t * 0.2
+    ctx.beginPath()
+    ctx.moveTo(0, -t * 0.05)
+    ctx.lineTo(0, t * 0.42)
+    ctx.stroke()
+    // Boca aberta (C virado para cima)
+    ctx.lineWidth = t * 0.17
+    ctx.beginPath()
+    ctx.arc(0, -t * 0.22, t * 0.18, -Math.PI / 2 + 0.75, Math.PI * 1.5 - 0.75)
+    ctx.stroke()
+    ctx.restore()
+}
+
 function desenharChamadoRota(ctx, c) {
     // À noite o chamado ganha um brilho, para continuar visível.
     if (rota.noite > 0) {
@@ -459,12 +525,11 @@ function desenharChamadoRota(ctx, c) {
         ctx.fill()
     }
     ctx.fillStyle = '#ffffff'
-    ctx.strokeStyle = '#2f7d4a'
+    ctx.strokeStyle = '#15803d'
     ctx.lineWidth = 2
     retanguloArredondado(ctx, c.x, c.y, 18, 18, 5)
     ctx.fill(); ctx.stroke()
-    ctx.font = '11px Arial'
-    ctx.fillText('🔧', c.x + 3, c.y + 13)
+    desenharChaveRota(ctx, c.x + 9, c.y + 9, 13, '#15803d')
 }
 
 function desenharHudRota(ctx) {
@@ -473,8 +538,10 @@ function desenharHudRota(ctx) {
     ctx.textAlign = 'left'
     ctx.fillStyle = cor('#1e293b', '#f1f5f9')
     ctx.fillText(`Pontos: ${Math.floor(rota.pontos)}`, 14, 22)
-    ctx.fillStyle = cor('#2f7d4a', '#86efac')
-    ctx.fillText(`🔧 ${rota.chamados}`, 120, 22)
+    const corChamados = cor('#15803d', '#86efac')
+    desenharChaveRota(ctx, 126, 17, 14, corChamados)
+    ctx.fillStyle = corChamados
+    ctx.fillText(`${rota.chamados}`, 138, 22)
     ctx.textAlign = 'right'
     ctx.fillStyle = cor('#64748b', '#cbd5e1')
     ctx.font = '12px Arial'
@@ -485,11 +552,11 @@ function desenharHudRota(ctx) {
 // Título como placa de rodovia: fundo verde, filete branco por dentro, letras brancas e seta.
 function placaTituloRota(ctx, texto, centroX, topo) {
     ctx.save()
-    ctx.font = 'bold 22px "Arial Black", Arial, sans-serif'
+    ctx.font = 'bold 20px "Arial Black", Arial, sans-serif'
     ctx.letterSpacing = '1px'
     const larguraTexto = ctx.measureText(texto).width
-    const larguraSeta = 26
-    const w = larguraTexto + larguraSeta + 44, h = 46
+    const larguraSeta = 24
+    const w = larguraTexto + larguraSeta + 40, h = 42
     const x = centroX - w / 2
 
     // Sombra + placa
@@ -539,16 +606,86 @@ function placaTituloRota(ctx, texto, centroX, topo) {
     return topo + h
 }
 
+// Com o ranking à direita, os painéis centrais andam para a esquerda.
+function rankingVisivelRota() {
+    return rota?.estado !== 'jogando' && placarRota?.ranking?.length > 0
+}
+
+function nomeCurtoRota(ctx, nome, larguraMax) {
+    const partes = String(nome || '').trim().split(/\s+/)
+    let texto = partes.length > 1 ? `${partes[0]} ${partes[partes.length - 1][0]}.` : partes[0] || '—'
+    while (texto.length > 1 && ctx.measureText(texto).width > larguraMax) texto = texto.slice(0, -2) + '…'
+    return texto
+}
+
+function desenharRankingRota(ctx) {
+    if (!rankingVisivelRota()) return
+    const LINHAS = 5, ALTURA_LINHA = 14
+    const { ranking, pessoal, usuario } = placarRota
+    const top = ranking.slice(0, LINHAS)
+    const estouNoTop = top.some(r => r.usuario === usuario)
+    const mostrarEu = !estouNoTop && pessoal?.posicao
+    const x = 436, y = 32, w = 172
+    const h = 24 + top.length * ALTURA_LINHA + (mostrarEu ? ALTURA_LINHA + 4 : 0)
+
+    ctx.save()
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.93)'
+    ctx.strokeStyle = '#cbd5e1'
+    ctx.lineWidth = 1
+    retanguloArredondado(ctx, x, y, w, h, 10)
+    ctx.fill(); ctx.stroke()
+
+    ctx.fillStyle = '#15803d'
+    ctx.font = 'bold 11px Arial'
+    ctx.textAlign = 'left'
+    ctx.fillText('RANKING GERAL', x + 10, y + 16)
+
+    const linha = (r, posicao, ly, destaque) => {
+        if (destaque) {
+            ctx.fillStyle = '#dcfce7'
+            retanguloArredondado(ctx, x + 5, ly - 10, w - 10, ALTURA_LINHA, 4)
+            ctx.fill()
+        }
+        const corMedalha = ['#d4a017', '#94a3b8', '#b45309'][posicao - 1]
+        ctx.fillStyle = corMedalha || '#e2e8f0'
+        ctx.beginPath(); ctx.arc(x + 16, ly - 3, 5.5, 0, Math.PI * 2); ctx.fill()
+        ctx.fillStyle = corMedalha ? '#ffffff' : '#475569'
+        ctx.font = 'bold 8px Arial'
+        ctx.textAlign = 'center'
+        ctx.fillText(String(posicao), x + 16, ly)
+
+        ctx.textAlign = 'left'
+        ctx.font = destaque ? 'bold 11px Arial' : '11px Arial'
+        ctx.fillStyle = '#1e293b'
+        ctx.fillText(nomeCurtoRota(ctx, destaque && !estouNoTop ? 'Você' : r.nome, 96), x + 27, ly)
+
+        ctx.textAlign = 'right'
+        ctx.font = 'bold 11px Arial'
+        ctx.fillStyle = '#15803d'
+        ctx.fillText(String(r.recorde), x + w - 10, ly)
+    }
+
+    top.forEach((r, i) => linha(r, i + 1, y + 34 + i * ALTURA_LINHA, r.usuario === usuario))
+
+    if (mostrarEu) {
+        const ly = y + 38 + top.length * ALTURA_LINHA
+        ctx.strokeStyle = '#e2e8f0'
+        ctx.beginPath(); ctx.moveTo(x + 10, ly - 13); ctx.lineTo(x + w - 10, ly - 13); ctx.stroke()
+        linha({ nome: 'Você', recorde: pessoal.recorde }, pessoal.posicao, ly, true)
+    }
+    ctx.restore()
+}
+
 function painelRota(ctx, titulo, linhas, { logo = false } = {}) {
-    const centro = ROTA.largura / 2
+    const centro = rankingVisivelRota() ? 220 : ROTA.largura / 2
 
     if (logo) {
-        // Placa no alto e um balão separado com as instruções
-        const fimPlaca = placaTituloRota(ctx, titulo.toUpperCase(), centro, 28)
+        // Placa no alto e um balão separado com as instruções (tudo acima da van)
+        const fimPlaca = placaTituloRota(ctx, titulo.toUpperCase(), centro, 22)
         ctx.font = '12px Arial'
         const w = Math.max(...linhas.map(l => ctx.measureText(l).width)) + 32
-        const h = 12 + linhas.length * 17
-        const y = fimPlaca + 10
+        const h = 8 + linhas.length * 16
+        const y = fimPlaca + 6
         ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
         retanguloArredondado(ctx, centro - w / 2, y, w, h, h / 2)
         ctx.fill()
@@ -556,14 +693,14 @@ function painelRota(ctx, titulo, linhas, { logo = false } = {}) {
         linhas.forEach((linha, i) => {
             ctx.font = i === 0 ? 'bold italic 12px Arial' : '12px Arial'
             ctx.fillStyle = i === 0 ? '#15803d' : '#475569'
-            ctx.fillText(linha, centro, y + 18 + i * 17)
+            ctx.fillText(linha, centro, y + 16 + i * 16)
         })
         ctx.textAlign = 'left'
         return
     }
 
     const w = 340, h = 30 + linhas.length * 18
-    const x = (ROTA.largura - w) / 2, y = 44
+    const x = centro - w / 2, y = 30
     ctx.fillStyle = 'rgba(255, 255, 255, 0.92)'
     ctx.strokeStyle = '#cbd5e1'
     ctx.lineWidth = 1
@@ -612,14 +749,19 @@ function desenharRota() {
     if (rota.estado === 'parado')
         painelRota(ctx, 'Técnico na Rota', [
             'Zero pendências? Bora pra rua!',
-            'Toque, clique ou espaço para pular · pegue os chamados no caminho'
+            'Toque ou espaço para pular · pegue os chamados'
         ], { logo: true })
 
-    if (rota.estado === 'fim')
-        painelRota(ctx, rota.novoRecorde ? '🏆 Novo recorde!' : 'Rota encerrada!', [
+    if (rota.estado === 'fim') {
+        const posicao = placarRota?.pessoal?.posicao
+        painelRota(ctx, rota.novoRecorde ? 'Novo recorde!' : 'Rota encerrada!', [
             `${Math.floor(rota.pontos)} pontos · ${rota.chamados} chamado${rota.chamados === 1 ? '' : 's'} atendido${rota.chamados === 1 ? '' : 's'}`,
+            posicao ? `Seu recorde: ${placarRota.pessoal.recorde} · ${posicao}º no ranking` : `Seu recorde: ${Math.floor(rota.recorde)}`,
             'Toque ou espaço para sair de novo'
         ])
+    }
+
+    desenharRankingRota(ctx)
 }
 
 function quadroRota(agora) {
@@ -694,5 +836,7 @@ function atribuirFuncoesJogo() {
     document.addEventListener('keydown', tratarTeclaJogo)
     document.addEventListener('keyup', tratarTeclaJogo)
 
+    if (placarRota) rota.recorde = Math.max(rota.recorde, Number(placarRota.pessoal?.recorde) || 0)
     desenharRota()
+    carregarPlacarRota()
 }
