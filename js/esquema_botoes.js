@@ -254,7 +254,8 @@ const esquemaBotoes = {
             img: 'relatorio',
             sub: [
                 { nome: 'Custos por Centro de Custo', funcao: 'telaCustosCentroCusto', img: 'planilha' },
-                { nome: 'Custos por Período', funcao: 'telaCustosPorPeriodo', img: 'reagendar' }
+                { nome: 'Custos por Período', funcao: 'telaCustosPorPeriodo', img: 'reagendar' },
+                { nome: 'Custos de Pessoal', funcao: 'telaCustosPessoal', img: 'gerente' }
             ]
         },
         {

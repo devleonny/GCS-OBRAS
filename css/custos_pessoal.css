@@ -1,0 +1,281 @@
+/* Tela "Custos de Pessoal" (js/custos_pessoal.js). */
+.tela-custos-pessoal {
+    --custos-borda: #dfe7e2;
+    --custos-suave: #65756b;
+    --custos-marca: #527d60;
+    --custos-alerta: #b45309;
+
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.custos-cabecalho {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 18px;
+    background: white;
+    border: 1px solid var(--custos-borda);
+    border-left: 4px solid var(--custos-marca);
+    border-radius: 10px;
+    text-align: left;
+}
+
+.custos-cabecalho h2 {
+    margin: 0 0 4px;
+    font-size: 18px;
+    color: #243b2e;
+}
+
+.custos-cabecalho small {
+    color: var(--custos-suave);
+}
+
+.custos-navegacao {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.custos-seta {
+    width: 32px;
+    padding: 4px 0;
+    font-size: 18px;
+}
+
+.custos-secundario {
+    background: white;
+    color: #324b3c;
+    border-color: var(--custos-borda);
+}
+
+.custos-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.custos-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    background: white;
+    border: 1px solid var(--custos-borda);
+    border-radius: 10px;
+    text-align: left;
+}
+
+.custos-card span,
+.custos-card small {
+    color: var(--custos-suave);
+    font-size: 12px;
+}
+
+.custos-card b {
+    font-size: 18px;
+    color: #243b2e;
+}
+
+.custos-card.alerta {
+    border-color: #f2c48d;
+    background: #fff8ef;
+}
+
+.custos-card.alerta b {
+    color: var(--custos-alerta);
+}
+
+.custos-aviso {
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #fff4d6;
+    color: #6b4b00;
+    font-size: 13px;
+    text-align: left;
+}
+
+.custos-pendentes {
+    padding: 10px 14px;
+    background: #fff8ef;
+    border: 1px solid #f2c48d;
+    border-radius: 10px;
+    text-align: left;
+    font-size: 13px;
+}
+
+.custos-pendentes summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--custos-alerta);
+}
+
+.custos-pendentes p {
+    margin: 6px 0;
+    color: #6b4b00;
+}
+
+.custos-pendentes-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.custos-pendentes-lista > div {
+    display: grid;
+    grid-template-columns: minmax(160px, 1fr) auto auto;
+    gap: 12px;
+    padding: 4px 0;
+    border-bottom: 1px dashed #f2d3ad;
+}
+
+.custos-pendentes-lista small {
+    grid-column: 1 / -1;
+    color: var(--custos-suave);
+}
+
+.custos-tabela-wrap {
+    overflow: auto;
+    background: white;
+    border: 1px solid var(--custos-borda);
+    border-radius: 10px;
+}
+
+.custos-tabela {
+    font-size: 12px;
+}
+
+.custos-tabela td {
+    vertical-align: top;
+    text-align: left;
+}
+
+.custos-num {
+    white-space: nowrap;
+    text-align: right !important;
+}
+
+.custos-alerta {
+    color: var(--custos-alerta);
+    font-weight: 600;
+}
+
+.custos-expandir {
+    width: 22px;
+    margin: 0 4px 0 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #324b3c;
+}
+
+.custos-itens {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.custos-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    margin: 0;
+    padding: 3px 8px;
+    border: 1px solid var(--custos-borda);
+    border-radius: 999px;
+    background: white;
+    color: #324b3c;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.custos-chip small {
+    color: var(--custos-suave);
+    font-size: 10px;
+}
+
+.custos-chip.omie {
+    border-color: #b6d4f0;
+    background: #eef6fd;
+}
+
+.custos-chip.herdado {
+    background: #f6f8f7;
+    color: var(--custos-suave);
+}
+
+.custos-chip.manual {
+    border-color: #a9c9b3;
+    background: #edf6f0;
+}
+
+.custos-chip.avulso {
+    border-color: #f2c48d;
+    background: #fff8ef;
+}
+
+.custos-chip.novo {
+    border-style: dashed;
+    color: var(--custos-marca);
+}
+
+button.custos-chip:hover {
+    background: #e2efe7;
+}
+
+.custos-detalhe td {
+    background: #f8faf9;
+}
+
+.custos-obra {
+    display: grid;
+    grid-template-columns: minmax(160px, 1fr) auto auto;
+    gap: 12px;
+    max-width: 520px;
+    padding: 2px 0;
+}
+
+.custos-obra small {
+    color: var(--custos-suave);
+}
+
+.custos-obra.sem-obra {
+    color: var(--custos-alerta);
+}
+
+.custos-rodape {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.custos-vazio {
+    display: flex;
+    justify-content: center;
+    padding: 2rem;
+    color: var(--custos-suave);
+}
+
+.custos-config-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.custos-config-linha {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.custos-remover {
+    width: 28px;
+    padding: 2px 0;
+}

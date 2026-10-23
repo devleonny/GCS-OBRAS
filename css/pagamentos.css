@@ -665,12 +665,37 @@
     font-size: 11px;
     box-sizing: border-box;
 }
+/* Detalhe da linha: blocos e etiquetas em uma linha só; a rolagem horizontal
+   do detalhe (tabelas.css) mostra o que passar da largura. */
 .pagamentos-referencias-detalhes {
     display: flex;
-    flex-wrap: wrap;
-    gap: 16px 32px;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 32px;
 }
-.pagamentos-referencias-detalhes > div { display: grid; gap: 8px; }
+
+.pagamentos-referencias-detalhes > div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.pagamentos-referencias-detalhes strong {
+    white-space: nowrap;
+}
+
+.pagamentos-referencias-detalhes .pagamento-lista-baloes,
+.pagamentos-referencias-detalhes .listagem-departamentos {
+    flex-wrap: nowrap;
+    max-height: none;
+    overflow: visible;
+}
+
+.pagamentos-referencias-detalhes .pagamento-balao.tag-pendencias {
+    max-width: none;
+    white-space: nowrap;
+}
 
 .divPagamentos .pagamentos-status-lateral {
     flex: 0 0 108px;

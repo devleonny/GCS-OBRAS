@@ -81,18 +81,26 @@
     flex-direction: column;
 }
 
+/* Detalhe da linha do orçamento: uma faixa baixa, blocos e itens em linha.
+   Passa da largura da tela de propósito; a rolagem horizontal fica no detalhe
+   (tabelas.css). */
 .detalhes-orcamento {
     display: flex;
-    align-items: start;
+    align-items: stretch;
     justify-content: start;
-    gap: 1rem;
-    flex-wrap: wrap;
+    gap: 12px;
+    flex-wrap: nowrap;
     text-align: left;
 }
 
+.detalhes-orcamento > div:first-child {
+    flex: 0 0 auto;
+    justify-content: center;
+}
+
 .detalhes-orcamento .envelope-etiquetas {
-    flex: 0 1 260px;
-    min-width: 0;
+    flex: 0 0 auto;
+    min-width: 200px;
     padding: 0;
     gap: 0;
     border: 1px solid #b8c9be;
@@ -127,19 +135,32 @@
     font-size: 11px;
 }
 
+/* Itens empilhados dentro do bloco; a altura é limitada e o excesso rola na vertical. */
 .detalhes-orcamento .bloco-etiquetas {
-    width: 100%;
+    flex: 1;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    width: auto;
     min-width: 0;
+    max-height: 220px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
     box-sizing: border-box;
     padding: 8px;
     gap: 7px;
     border: 0;
     color: #22332a;
-    scrollbar-gutter: stable;
 }
 
 .detalhes-orcamento .bloco-etiquetas > * {
     flex-shrink: 0;
+}
+
+.detalhes-orcamento .bloco-etiquetas > .orcamento-documento,
+.detalhes-orcamento .bloco-etiquetas > .balao-nf {
+    width: 210px;
 }
 
 .orcamento-documento {

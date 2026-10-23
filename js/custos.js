@@ -1,3 +1,35 @@
+// Painel de Custos: os números vêm de /painel-custos, a mesma fonte do relatório de custos
+// (pagamentos válidos + PESSOAL). Todos veem o pessoal como valor geral; adm/diretoria/fin
+// veem também o detalhe mensal e o atalho para a tela Custos de Pessoal.
+const dadosPainelCustos = new Map()
+
+async function buscarPainelCustos(contrato) {
+    const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
+    const resposta = await fetch(`${api}/painel-custos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ contrato })
+    })
+    const dados = await resposta.json().catch(() => ({}))
+    if (!resposta.ok)
+        throw new Error(dados.mensagem || `Falha ao abrir custos (${resposta.status})`)
+    dadosPainelCustos.set(contrato, dados)
+    return dados
+}
+
+function mesCurtoPainel(mes) {
+    const [ano, numero] = String(mes).split('-').map(Number)
+    return new Date(ano, numero - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '')
+}
+
+function abrirCustosPessoalDoPainel() {
+    removerTodosPopups()
+    telaCustosPessoal()
+}
+
+// Acima de 40% do orçamento o custo fica em alerta; acima de 100%, estourado.
+const LIMITE_ALERTA_CUSTO = 40
+
 async function painelCustos(contrato) {
 
     try {
@@ -5,94 +37,106 @@ async function painelCustos(contrato) {
         overlayAguarde()
 
         const {
-            contrato: departamentoExistente,
-            total_pagamentos,
+            existe,
             total_geral,
+            custo_total,
+            custo_realizado,
+            custo_previsto,
+            custo_pessoal,
+            pessoal_por_mes,
             cidade,
             cliente
-        } = await recuperarDado('mvw_custos_cc', contrato) || {}
+        } = await buscarPainelCustos(contrato)
 
-        if (!departamentoExistente)
+        if (!existe)
             return popup({ mensagem: 'Não existe centro de custo criado para este orçamento. <br><small>Mude o orçamento para aprovado primeiro!</small>' })
 
-        // Velocímetro
-        const porcentagem = Number(((total_pagamentos / total_geral) * 100).toFixed(1))
-        const velocimetro = total_geral
-            ? `<div class="checklist-indicador" style="width: 300px;">${criarVelocimetroHTML({ rotulo: 'Custos', limite: 40, valor: porcentagem })}</div>`
+        const orcamento = Number(total_geral || 0)
+        const percentual = orcamento ? Math.round(custo_total / orcamento * 1000) / 10 : null
+        // Mesmas faixas do velocímetro: atenção 10 pontos antes do limite, crítico no limite.
+        const faixa = percentual === null ? ''
+            : percentual > 100 ? 'estourado'
+                : percentual >= LIMITE_ALERTA_CUSTO ? 'critico'
+                    : percentual >= LIMITE_ALERTA_CUSTO - 10 ? 'alerta' : 'ok'
+        const situacao = {
+            ok: 'Dentro do esperado',
+            alerta: 'Atenção: perto do limite',
+            critico: 'Acima do limite de custo',
+            estourado: 'Custo acima do orçamento'
+        }[faixa] || 'Sem orçamento vinculado'
+        const saldo = orcamento - custo_total
+        const percentualTexto = percentual === null ? '—' : `${String(percentual).replace('.', ',')}%`
+
+        // Detalhe do pessoal só chega do servidor para adm/diretoria/fin.
+        const detalhePessoal = Array.isArray(pessoal_por_mes)
+            ? `
+                ${pessoal_por_mes.length ? `<div class="pc-meses">${pessoal_por_mes.map(p => `<span>${mesCurtoPainel(p.mes)} <b>${dinheiro(p.valor)}</b></span>`).join('')}</div>` : ''}
+                <button type="button" class="pc-link" onclick="abrirCustosPessoalDoPainel()">Ver Custos de Pessoal →</button>`
             : ''
 
-        const dados =
-            (!cliente && !cidade)
-                ? ''
-                : Object.entries({
-                    cliente,
-                    cidade
-                })
-                    .map(([campo, valor]) => `<span style="white-space: pre-wrap;"><b>${inicialMaiuscula(campo)}</b>\n${valor || ''}</span>`)
-                    .join('')
-
-        const esquema = [
-            {
-                titulo: 'Início',
-                funcao: `inicioCustos('${contrato}')`
-            },
-            {
-                titulo: 'Total do Orçamento',
-                valor: total_geral,
-                indicador: true
-            },
-            {
-                titulo: 'Pagamentos Solicitados',
-                valor: total_pagamentos,
-                funcao: `tabPagamentosCusto('${contrato}')`,
-                indicador: true
-            }
-        ]
-
-        const baloes = esquema
-            .filter(e => e.indicador && e.valor)
-            .map(({ valor, titulo }) => `
-                <div class="checklist-indicador" style="width: 300px;">
-                    <label>${dinheiro(valor)}</label>
-                    <span>${titulo}</span>
-                </div>`)
-            .join('')
-
-        const toolbar = esquema
-            .filter(e => e.funcao)
-            .map(({ titulo, funcao }, i) => {
-                return `<span style="opacity: ${i == 0 ? 1 : 0.5}" onclick="toggleAbas(this); ${funcao || ''}">${titulo}</span>`
-            })
-            .join('')
+        const local = [cliente, cidade].filter(Boolean).map(v => escaparAtributo(v)).join(' · ')
 
         const elemento = `
-            <div class="painel-geral-checklist painel-custos-erp">
+            <div class="painel-custos-erp pc-painel">
 
-                <div class="toolbar-padrao">${toolbar}</div>
+                <header class="pc-topo">
+                    <div class="pc-identificacao">
+                        <span class="pc-contrato">${escaparAtributo(contrato)}</span>
+                        ${local ? `<span class="pc-local">${local}</span>` : ''}
+                    </div>
+                    <nav class="pc-abas" role="tablist">
+                        <button type="button" class="ativa" onclick="abaPainelCustos(this, 'resumo', '${escaparAtributo(contrato)}')">Resumo</button>
+                        <button type="button" onclick="abaPainelCustos(this, 'pagamentos', '${escaparAtributo(contrato)}')">Pagamentos</button>
+                    </nav>
+                </header>
 
-                <div class="painel-atras-padrao">
+                <div class="pc-resumo">
 
-                    ${tituloChecklist('Resumo de Custos')}
+                <section class="pc-card pc-medidor pc-${faixa}">
+                    <span class="pc-rotulo">Custo sobre o orçamento</span>
+                    ${percentual !== null
+                        // O próprio velocímetro já escreve o percentual e o limite.
+                        ? criarVelocimetroHTML({ rotulo: 'do orçamento', limite: LIMITE_ALERTA_CUSTO, valor: percentual, tamanho: 220 })
+                        : `<b class="pc-percentual">${percentualTexto}</b>`}
+                    <span class="pc-situacao">${situacao}</span>
+                </section>
 
-                    <div class="custos-resumo">
-
-                        ${velocimetro}
-
-                        <div class="checklist-cabecalho">
-                            <span class="tag-pendencias">${contrato}</span>
-                            ${dados}
-                        </div>
-
-                        <div class="custos-resumo-valores">${baloes}</div>
-
+                <section class="pc-indicadores">
+                    <div class="pc-card">
+                        <span class="pc-rotulo">Orçamento</span>
+                        <b class="pc-valor">${orcamento ? dinheiro(orcamento) : '—'}</b>
                     </div>
 
-                    <div class="custos-divisor"></div>
+                    <div class="pc-card pc-${faixa}">
+                        <span class="pc-rotulo">Custo total</span>
+                        <b class="pc-valor">${dinheiro(custo_total)}</b>
+                        ${percentual !== null ? `
+                            <div class="pc-barra" title="${percentualTexto} do orçamento (limite ${LIMITE_ALERTA_CUSTO}%)">
+                                <div style="width: ${Math.min(percentual, 100)}%"></div>
+                                <i style="left: ${LIMITE_ALERTA_CUSTO}%"></i>
+                            </div>
+                            <span class="pc-chip-percentual">${percentualTexto} do orçamento</span>` : ''}
+                        <small class="pc-sub">Realizado ${dinheiro(custo_realizado)} · Previsto ${dinheiro(custo_previsto)}</small>
+                    </div>
 
-                    <div class="painel-custos-tabelas"></div>
+                    <div class="pc-card">
+                        <span class="pc-rotulo">Custo de pessoal</span>
+                        <b class="pc-valor">${dinheiro(custo_pessoal)}</b>
+                        ${custo_total ? `<small>${String(Math.round(custo_pessoal / custo_total * 1000) / 10).replace('.', ',')}% do custo</small>` : ''}
+                        ${detalhePessoal}
+                    </div>
+
+                    <div class="pc-card ${orcamento && saldo < 0 ? 'pc-estourado' : ''}">
+                        <span class="pc-rotulo">Saldo do orçamento</span>
+                        <b class="pc-valor">${orcamento ? dinheiro(saldo) : '—'}</b>
+                        ${orcamento ? `<small>${saldo < 0 ? 'Custo acima do orçamento' : 'Disponível'}</small>` : '<small>Sem orçamento vinculado</small>'}
+                    </div>
+                </section>
 
                 </div>
-                
+
+                <div class="painel-custos-tabelas"></div>
+
             </div>
         `
 
@@ -104,9 +148,15 @@ async function painelCustos(contrato) {
 
     } catch (err) {
         console.error(err)
-        popup({ mensagem: 'Falha ao abrir custos: Fale com o suporte.' })
+        popup({ mensagem: err.message || 'Falha ao abrir custos: Fale com o suporte.' })
     }
 
+}
+
+function abaPainelCustos(botao, aba, contrato) {
+    for (const item of botao.closest('.pc-abas').querySelectorAll('button'))
+        item.classList.toggle('ativa', item === botao)
+    return aba === 'pagamentos' ? tabPagamentosCusto(contrato) : inicioCustos(contrato)
 }
 
 function tituloChecklist(texto) {
@@ -133,30 +183,22 @@ async function inicioCustos(contrato) {
     const painel = document.querySelector('.painel-custos-tabelas')
 
     painel.innerHTML = `
-
-        <div style="${vertical}; gap: 5px;">
-
-            ${tituloChecklist('Valores por Categoria e Gráficos')}
-
-            <div class="custos-inicial">
-
-                <div class="painel-custos-lateral">
-                    <img src="gifs/loading.gif" style="width: 5rem;">
-                </div>
-
-                <div class="custos-graficos">
-                    <section class="custos-grafico-cartao">
-                        <h3>Custos por categoria</h3>
-                        <div class="grafico-box"><canvas id="grafico-categorias"></canvas></div>
-                    </section>
-                    <section class="custos-grafico-cartao">
-                        <h3>Linha do tempo</h3>
-                        <div class="grafico-box"><canvas id="grafico-linha-tempo"></canvas></div>
-                    </section>
-                </div>
-
+        <div class="pc-corpo">
+            <section class="pc-bloco pc-categorias">
+                <h3>Custos por categoria</h3>
+                <div class="pc-lista-categorias"><img src="gifs/loading.gif" style="width: 4rem;" alt=""></div>
+            </section>
+            <div class="pc-graficos">
+                <section class="pc-bloco">
+                    <h3>Distribuição</h3>
+                    <div class="grafico-box pc-rosca"><canvas id="grafico-categorias"></canvas></div>
+                    <div class="pc-legenda" id="legenda-categorias"></div>
+                </section>
+                <section class="pc-bloco">
+                    <h3>Custo por mês</h3>
+                    <div class="grafico-box"><canvas id="grafico-linha-tempo"></canvas></div>
+                </section>
             </div>
-
         </div>
     `
 
@@ -166,37 +208,42 @@ async function inicioCustos(contrato) {
 
 async function somaPorCategoria(contrato) {
 
-    const { categorias, valores_por_data } = await recuperarDado('mvw_custos_cc', contrato) || {}
+    // Mesmos números do resumo (já trazem a categoria PESSOAL).
+    const dadosPainel = dadosPainelCustos.get(contrato) || await buscarPainelCustos(contrato).catch(() => ({}))
+    const categorias = [...(dadosPainel.categorias || [])].sort((a, b) => b.total - a.total)
+    const total = categorias.reduce((s, c) => s + Number(c.total || 0), 0)
+    const maior = Math.max(...categorias.map(c => Number(c.total || 0)), 0)
 
-    const blocoCategoria = (nome, valor) => {
+    // Linha do tempo mensal, como o relatório de custos.
+    const valores_por_data = (dadosPainel.por_mes || []).map(({ mes, total }) => {
+        const [ano, numero] = mes.split('-')
+        return { data_vencimento: `01/${numero}/${ano}`, rotulo: mesCurtoPainel(mes), total }
+    })
 
-        return `
-            <div class="checklist-indicador">
-                <label>${dinheiro(valor)}</label>
-                <span>${nome}</span>
-            </div>
-        `
-    }
-
-    const painelLateral = document.querySelector('.painel-custos-lateral')
-
-    const blocos = (categorias || [])
-        .sort((a, b) => b.total - a.total)
-        .map(({ categoria, total }) => blocoCategoria(categoria, total))
-        .join('')
-
-    if (painelLateral)
-        painelLateral.innerHTML = blocos
+    const lista = document.querySelector('.pc-lista-categorias')
+    if (lista)
+        lista.innerHTML = categorias.length
+            ? categorias.map(({ categoria, total: valor }) => `
+                <div class="pc-categoria ${categoria === 'PESSOAL' ? 'pessoal' : ''}">
+                    <div class="pc-categoria-topo">
+                        <span>${escaparAtributo(categoria)}</span>
+                        <b>${dinheiro(valor)}</b>
+                    </div>
+                    <div class="pc-categoria-barra"><div style="width: ${maior ? valor / maior * 100 : 0}%"></div></div>
+                    <small>${total ? String(Math.round(valor / total * 1000) / 10).replace('.', ',') : 0}% do custo</small>
+                </div>`).join('')
+            : '<small>Nenhum custo lançado neste centro de custo.</small>'
 
     graficoRosca({
         dados: categorias,
-        elemento: '#grafico-categorias'
+        elemento: '#grafico-categorias',
+        legenda: '#legenda-categorias'
     })
 
     criarGraficoLinhaTempo({
         elemento: '#grafico-linha-tempo',
         dados: valores_por_data,
-        rotulo: 'Custos por data'
+        rotulo: 'Custo do mês'
     })
 
 }
@@ -280,7 +327,9 @@ async function criarLinhaCustoPagamento(pagamento) {
 
 }
 
-function graficoRosca({ dados = [], elemento }) {
+// Com "legenda" (elemento ou seletor), a legenda é HTML fora do canvas: a rosca usa
+// a caixa inteira e a lista não a espreme. Sem ela, mantém a legenda do Chart.js.
+function graficoRosca({ dados = [], elemento, legenda = null }) {
     const canvas = typeof elemento === 'string'
         ? document.querySelector(elemento)
         : elemento
@@ -288,6 +337,10 @@ function graficoRosca({ dados = [], elemento }) {
     if (!canvas) return
 
     Chart.getChart(canvas)?.destroy()
+
+    const destinoLegenda = typeof legenda === 'string' ? document.querySelector(legenda) : legenda
+    if (destinoLegenda)
+        return graficoRoscaComLegendaHtml({ dados, canvas, destinoLegenda })
 
     const labels = (dados || []).map(item => String(item.categoria ?? ''))
     const valores = (dados || []).map(item => Number(item.total) || 0)
@@ -347,6 +400,48 @@ function graficoRosca({ dados = [], elemento }) {
     })
 }
 
+function graficoRoscaComLegendaHtml({ dados, canvas, destinoLegenda }) {
+    const labels = (dados || []).map(item => String(item.categoria ?? ''))
+    const valores = (dados || []).map(item => Number(item.total) || 0)
+    const total = valores.reduce((s, v) => s + v, 0)
+
+    const grafico = new Chart(canvas, {
+        type: 'doughnut',
+        plugins: [porcentagensRosca],
+        data: { labels, datasets: [{ data: valores }] },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '58%',
+            layout: { padding: 8 },
+            plugins: { legend: { display: false } }
+        }
+    })
+
+    // Cores reais de cada fatia (paleta automática do Chart.js). A geração por fatia
+    // fica nos ajustes da rosca; o padrão geral gera um item por conjunto de dados.
+    const gerarItens = Chart.overrides?.doughnut?.plugins?.legend?.labels?.generateLabels
+        || Chart.defaults.plugins.legend.labels.generateLabels
+    const itens = gerarItens(grafico)
+
+    destinoLegenda.innerHTML = itens.map((item, indice) => `
+        <button type="button" class="pc-legenda-item" data-indice="${indice}" title="Mostrar/ocultar no gráfico">
+            <i style="background: ${item.fillStyle}"></i>
+            <span>${escaparAtributo(labels[indice])}</span>
+            <b>${total ? String(Math.round(valores[indice] / total * 1000) / 10).replace('.', ',') : 0}%</b>
+        </button>`).join('')
+
+    for (const botao of destinoLegenda.querySelectorAll('.pc-legenda-item')) {
+        botao.addEventListener('click', () => {
+            grafico.toggleDataVisibility(Number(botao.dataset.indice))
+            grafico.update()
+            botao.classList.toggle('oculto')
+        })
+    }
+
+    return grafico
+}
+
 function criarGraficoLinhaTempo({
     elemento,
     dados = {},
@@ -358,11 +453,11 @@ function criarGraficoLinhaTempo({
 } = {}) {
 
     const entradasOrdenadas = (dados || [])
-        .map(({ data_vencimento, total }) => {
+        .map(({ data_vencimento, total, rotulo }) => {
             const [dia, mes, ano] = data_vencimento.split('/')
 
             return {
-                dataTexto: data_vencimento,
+                dataTexto: rotulo || data_vencimento,
                 valor: Number(total) || 0,
                 ordem: new Date(`${ano}-${mes}-${dia}T00:00:00`).getTime()
             }

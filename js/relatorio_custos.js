@@ -443,7 +443,7 @@ function celulaCC(linha, { chave, tipo }) {
 
     if (tipo === 'moeda')
         return Number.isFinite(valor)
-            ? `<td class="relatorio-cc-numero${valor < 0 ? ' negativo' : ''}">${moedaCC(valor)}</td>`
+            ? `<td class="relatorio-cc-numero${valor < 0 ? ' negativo-relatorio' : ''}">${moedaCC(valor)}</td>`
             : '<td class="relatorio-cc-numero">—</td>'
 
     if (tipo === 'percentual') {
@@ -631,7 +631,7 @@ function resumoPeriodoCC(t) {
             <span><small>Custo</small><b>${moedaCC(t.custoTotal)}</b></span>
             <span class="relatorio-periodos-percentual"><small>Custo / Orçado</small>${barra}</span>
             <span><small>Receita</small><b>${moedaCC(t.receita)}</b></span>
-            <span><small>Saldo</small><b class="${t.saldo < 0 ? 'negativo' : ''}">${moedaCC(t.saldo)}</b></span>
+            <span><small>Saldo</small><b class="${t.saldo < 0 ? 'negativo-relatorio' : ''}">${moedaCC(t.saldo)}</b></span>
         </span>`
 }
 

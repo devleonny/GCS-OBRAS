@@ -642,7 +642,26 @@ function definirDetalhesExpandidos(linha, expandir) {
     linha.botaoDetalhesTabela.textContent = expandir ? '−' : '+'
     linha.botaoDetalhesTabela.setAttribute('aria-expanded', String(expandir))
     linha.botaoDetalhesTabela.setAttribute('aria-label', expandir ? 'Recolher detalhes' : 'Expandir detalhes')
+
+    // Depois do frame: a linha pode ainda não estar no documento (montagem da página).
+    if (expandir)
+        requestAnimationFrame(() => ajustarLarguraDetalhe(linha.detalhesTabela.querySelector('.tabela-detalhes-conteudo')))
 }
+
+// O detalhe aberto ocupa a largura VISÍVEL da tabela (não a soma das colunas) e fica
+// preso à esquerda ao rolar a tabela na horizontal; conteúdo mais largo rola dentro dele.
+function ajustarLarguraDetalhe(conteudo) {
+    const caixa = conteudo?.closest('.div-tabela')
+    if (!caixa || !conteudo.isConnected) return
+    const celula = conteudo.parentElement
+    const borda = celula ? parseFloat(getComputedStyle(celula).borderLeftWidth) || 0 : 0
+    conteudo.style.width = `${Math.max(0, caixa.clientWidth - borda)}px`
+}
+
+window.addEventListener('resize', () => {
+    for (const conteudo of document.querySelectorAll('.tabela-linha-detalhes:not([hidden]) .tabela-detalhes-conteudo'))
+        ajustarLarguraDetalhe(conteudo)
+})
 
 function adicionarLinhaTabela(fragment, linha) {
     if (!linha) return
