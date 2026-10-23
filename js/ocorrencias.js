@@ -1,8 +1,13 @@
 const autE = ['adm', 'gerente', 'diretoria']
 
+// Correções que encerram o atendimento: verdes na tela e fora de agenda/atrasados.
+const statusSolucionados = ['SOLUCIONADA', 'SOLUCIONADA - ASSISTÊNCIA TÉCNICA', 'SOLUCIONADA - INFRA', 'FATURADO']
+const statusTerminados = [...statusSolucionados, 'CANCELADO']
+const regrasNaoTerminado = (origem) => statusTerminados.map(value => ({ op: '!=', value, ...(origem ? { origem } : {}) }))
+
 const formatacaoTipoCorrecao = (tipoCorrecaoNome) => {
 
-    const estilo = tipoCorrecaoNome == 'SOLUCIONADA'
+    const estilo = statusSolucionados.includes(tipoCorrecaoNome)
         ? 'fin'
         : tipoCorrecaoNome == 'CANCELADO'
             ? 'na'
@@ -14,13 +19,13 @@ const formatacaoTipoCorrecao = (tipoCorrecaoNome) => {
 }
 
 const padraoCor = (st) => {
+    if (statusSolucionados.includes(st))
+        return '#3c9f15'
     switch (st) {
         case 'CANCELADO':
             return '#b12425'
         case 'todos':
             return '#004cff'
-        case 'SOLUCIONADA':
-            return '#3c9f15'
         default:
             return '#bd8315'
     }
@@ -284,6 +289,12 @@ function carregarCorrecoes(ocorrencia) {
     const correcoesOrganizadas = Object.entries(correcoes || {})
         .sort(([, a], [, b]) => toTimestamp(b.data) - toTimestamp(a.data))
 
+    // Abas do fluxo de pagamento de parceiro: registros de aprovação, cancelamento e ajuste
+    // usam outro tipo de correção, mas também não podem ser editados ou excluídos.
+    const abasParceiro = new Set(correcoesOrganizadas
+        .filter(([, c]) => String(c.tipoCorrecaoNome || '').includes('PAGAMENTO DE PARCEIRO'))
+        .map(([, c]) => c.aba || 'geral'))
+
     for (const [idCorrecao, correcao] of correcoesOrganizadas) {
 
         const {
@@ -314,7 +325,10 @@ function carregarCorrecoes(ocorrencia) {
             ? executor
             : [executor]
 
-        const edicao = !ehPagParceiro && (usuario == acesso.usuario || autE.includes(acesso.permissao))
+        const fluxoParceiro = ehPagParceiro || abasParceiro.has(aba)
+        const parceiroCancelado = Boolean(correcoes?.[`${aba}_cancelamento`])
+
+        const edicao = !fluxoParceiro && (usuario == acesso.usuario || autE.includes(acesso.permissao))
             ? `
                 <button onclick="formularioCorrecao('${idOcorrencia}', '${idCorrecao}')">Editar</button>
                 <button style="background-color: #B12425;" onclick="confirmarExclusao('${idOcorrencia}', '${idCorrecao}')">Excluir</button>
@@ -358,7 +372,7 @@ function carregarCorrecoes(ocorrencia) {
         const aprovacaoParceiro = descricao && descricao.includes('🟢 Pagamento aprovado')
         const pagamentoParceiro = tipoCorrecaoNome === 'PAGAMENTO DE PARCEIRO'
 
-        const btnAprovar = (permissao == 'gerente' && pagamentoParceiro)
+        const btnAprovar = (['gerente', 'adm'].includes(permissao) && pagamentoParceiro && !parceiroCancelado)
             ? `
                 <span 
                     class="alerta-piscando"
@@ -1496,7 +1510,8 @@ async function linParceiros(par) {
         executor,
         anexos,
         fotos,
-        totais
+        totais,
+        solicitacoes
     } = par
 
     const {
@@ -1505,9 +1520,12 @@ async function linParceiros(par) {
             ? await recuperarDado('pedidos', pedido) || {}
             : {}
 
+    // Com solicitação (mesmo cancelada) ou pagamento legado a LPU fica travada: sem editar nem excluir.
+    const travada = Object.keys(solicitacoes || {}).length > 0 || Boolean(await recuperarDado('lista_pagamentos', id))
+
     const cor = '#0062d5'
     const tabela = 'parceiros'
-    const excluir = (executor == acesso.usuario || acesso.permissao == 'adm')
+    const excluir = !travada && (executor == acesso.usuario || acesso.permissao == 'adm')
         ? `<span 
             class="close" 
             style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
@@ -1529,7 +1547,7 @@ async function linParceiros(par) {
             <div class="painel-botoes">
                 ${botaoAnexoStatus({ id, tabela: 'parceiros', cor })}
                 ${botaoFotoStatus({ id, tabela, cor })}
-                ${botaoEditarStatus({ id, cor, funcao: `formularioParceiro('${id}')` })}
+                ${travada ? '' : botaoEditarStatus({ id, cor, funcao: `formularioParceiro('${id}')` })}
 
                 <div style="background-color: ${cor}" 
                     class="contorno-botoes" 
@@ -1790,6 +1808,7 @@ async function criarPesquisas() {
         'Prioridade': { chave: 'prioridades', path: 'prioridade' },
         'Última Correção': { chave: 'ultima_correcao', path: 'snapshots.ultimaCorrecao.*.nome' },
         'Executor': { op: 'includes', chave: 'executores', path: 'snapshots.ultimaCorrecao.*.executor' },
+        'Técnico': { op: 'includes', chave: 'executores', path: 'snapshots.ultimaCorrecao.*.tecnico' },
         'Estado': { chave: 'estados', path: 'cliente.estado' },
         ...(
             acesso.permissao == 'cliente'
@@ -2082,11 +2101,7 @@ async function filtrarAtrasados(input) {
         .filter(regra => regra.origem !== 'atrasados_data')
 
     if (ativo) {
-        regrasStatus.push({
-            op: '!=',
-            value: 'Solucionada',
-            origem: 'atrasados_status'
-        })
+        regrasStatus.push(...regrasNaoTerminado('atrasados_status'))
 
         regrasData.push({
             op: ativo == 'Sim' ? '<d' : '>=d',
@@ -2718,10 +2733,7 @@ async function verificarConflitos() {
             const pesquisa = await pesquisarDB({
                 base: 'vw_tecnicos',
                 filtros: {
-                    ultimaCorrecao: {
-                        op: '!=',
-                        value: 'SOLUCIONADA'
-                    },
+                    ultimaCorrecao: regrasNaoTerminado(),
                     tecnico: {
                         op: '=',
                         value: tecnico
@@ -2813,6 +2825,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
 
 
         const tipoCorrecao = obter('tipoCorrecao').id
+        const nomeTipoCorrecao = obter('tipoCorrecao').textContent.trim()
         const dtCorrecao = obter('dtCorrecao').value
         const dtCorrecaoFinal = obter('dtCorrecaoFinal').value
 
@@ -2823,7 +2836,9 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
             return popup({ mensagem: 'Não deixe em branco <b>Data Limite</b>' })
 
         const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
-        if (tipoCorrecao == 'WRuo2' && !ocorrencia.assinatura && acesso.permissao == 'técnico') {
+        // Técnico encerrando (qualquer SOLUCIONADA; FATURADO não é ação do técnico) precisa da assinatura.
+        const encerramentoTecnico = tipoCorrecao == 'WRuo2' || nomeTipoCorrecao.startsWith('SOLUCIONADA')
+        if (encerramentoTecnico && !ocorrencia.assinatura && acesso.permissao == 'técnico') {
             coletarAssinatura(idOcorrencia)
             return
         }

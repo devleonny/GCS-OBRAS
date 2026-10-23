@@ -95,6 +95,7 @@ async function historicoPagamentosParceiro(id) {
                 ${linha.pagamento ? `<button onclick="abrirDetalhesPagamentos('${linha.id}')">Ver pagamento</button>` : ''}
                 ${linha.ocorrencia_id ? `<button onclick="irOcorrenciaParceiro('${linha.ocorrencia_id}', '${linha.id}')">Ver correções</button>` : ''}
                 ${!linha.legado && !linha.pagamento && !linha.encerrada ? `<button onclick="cancelarSolicitacaoParceiro('${id}', '${linha.id}')">Cancelar solicitação</button>` : ''}
+                ${podeAjustarValorParceiro(c.parceiro, linha) ? `<button onclick="ajustarValorParceiro('${id}', '${linha.id}')">Ajustar valor</button>` : ''}
             </td></tr>`).join('')
         popup({ titulo: 'Pagamentos da LPU Parceiro', elemento: `<div class="parceiro-historico">
             <div class="parceiro-indicadores">${indicadores}</div>
@@ -132,6 +133,123 @@ async function cancelarSolicitacaoParceiro(id, idSolicitacao, confirmar = false)
         removerTodosPopups()
         await historicoPagamentosParceiro(id)
     } catch (erro) { popup({ mensagem: erro.message }) }
+}
+
+// Ajuste de valor (ex.: aprovado 350, precisa ser 400) sem refazer LPU e solicitação.
+// Pagamento já lançado volta para a Diretoria com o novo valor; PAGO não se ajusta (vira complemento).
+function podeAjustarValorParceiro(parceiro, linha) {
+    if (linha.encerrada || /^(PAGO|RECEBIDO)$/i.test(String(linha.statusAtual).trim())) return false
+    if (linha.pagamento ? !linha.pagamento.param_estavel : linha.legado) return false
+    const { usuario, permissao } = acesso || {}
+    const analistas = [linha.usuario, linha.pagamento?.criado, parceiro?.executor]
+    return ['gerente', 'adm', 'fin', 'diretoria'].includes(permissao) || analistas.includes(usuario)
+}
+
+function redistribuirValorParceiro(lista = [], campo, novoTotal) {
+    const atual = lista.reduce((soma, item) => soma + Number(item[campo] || 0), 0)
+    let restante = novoTotal
+    return lista.map((item, indice) => {
+        const valor = indice === lista.length - 1
+            ? arredondarValorParceiro(restante)
+            : arredondarValorParceiro(atual ? Number(item[campo] || 0) * novoTotal / atual : novoTotal / lista.length)
+        restante -= valor
+        return { ...item, [campo]: valor }
+    })
+}
+
+async function ajustarValorParceiro(id, idSolicitacao) {
+    try {
+        overlayAguarde()
+        const c = await obterControlePagamentosParceiro(id)
+        const linha = c.linhas.find(item => item.id === idSolicitacao)
+        if (!linha || !podeAjustarValorParceiro(c.parceiro, linha))
+            throw new Error('Este pagamento não pode ser ajustado. Se já foi pago, solicite um pagamento parcial complementar.')
+        popup({
+            titulo: 'Ajustar valor do pagamento',
+            linhas: [
+                { elemento: `<div class="rodape-resumo"><span>Valor atual</span><strong>${dinheiro(linha.valor)}</strong></div>` },
+                { elemento: `<div class="rodape-resumo"><span>Disponível na LPU</span><strong>${dinheiro(c.disponivel)}</strong></div>` },
+                { texto: 'Novo valor', elemento: `<input name="valor_ajuste" type="number" min="0.01" step="0.01" value="${linha.valor}">` },
+                { texto: 'Motivo do ajuste', elemento: '<textarea name="motivo_ajuste" rows="2"></textarea>' },
+                { elemento: `<span style="max-width: 360px; text-align: left;">${linha.pagamento ? 'O pagamento volta para <b>aprovação da Diretoria</b> com o novo valor.' : 'A solicitação segue para o gerente com o novo valor.'} Se faltar saldo, o total da LPU é aumentado com a diferença.</span>` }
+            ],
+            botoes: [{ texto: 'Confirmar ajuste', img: 'concluido', funcao: `confirmarAjusteValorParceiro('${id}', '${idSolicitacao}')` }]
+        })
+    } catch (erro) { popup({ mensagem: erro.message }) }
+}
+
+async function confirmarAjusteValorParceiro(id, idSolicitacao) {
+    try {
+        const novoValor = arredondarValorParceiro(Number(document.querySelector('[name="valor_ajuste"]').value))
+        const motivo = document.querySelector('[name="motivo_ajuste"]').value.trim()
+        if (!Number.isFinite(novoValor) || novoValor <= 0) return popup({ mensagem: 'Informe um valor positivo.' })
+        if (!motivo) return popup({ mensagem: 'Descreva o motivo do ajuste.' })
+
+        overlayAguarde()
+        const c = await obterControlePagamentosParceiro(id)
+        const linha = c.linhas.find(item => item.id === idSolicitacao)
+        if (!linha || !podeAjustarValorParceiro(c.parceiro, linha))
+            throw new Error('Este pagamento não pode mais ser ajustado.')
+        const valorAnterior = linha.valor
+        if (novoValor === valorAnterior) return popup({ mensagem: 'O novo valor é igual ao atual.' })
+
+        const data = dataServidor().toLocaleString()
+        const { usuario } = acesso
+        const registro = { data, usuario, valor_anterior: valorAnterior, valor_novo: novoValor, motivo }
+
+        // Saldo: se a diferença não cabe no disponível, a LPU sobe só o que falta.
+        const falta = arredondarValorParceiro(novoValor - valorAnterior - c.disponivel)
+        if (falta > 0) {
+            const totalNovo = arredondarValorParceiro(c.total + falta)
+            await salvarEtapaParceiro(`parceiros/${id}/total`, totalNovo)
+            await salvarEtapaParceiro(`parceiros/${id}/revisoes/${crypto.randomUUID()}`, {
+                ...registro, total_anterior: c.total, total_novo: totalNovo, solicitacao: idSolicitacao
+            })
+        }
+
+        if (!linha.legado) {
+            await salvarEtapaParceiro(`parceiros/${id}/solicitacoes/${idSolicitacao}/valor`, novoValor)
+            await salvarEtapaParceiro(`parceiros/${id}/solicitacoes/${idSolicitacao}/ajustes/${crypto.randomUUID()}`, registro)
+            if (!linha.pagamento && linha.ocorrencia_id)
+                await salvarEtapaParceiro(`dados_ocorrencias/${linha.ocorrencia_id}/correcoes/${idSolicitacao}/valor_parcial`, novoValor)
+        }
+
+        let ocorrencia = linha.ocorrencia_id
+        if (linha.pagamento) {
+            const { param_estavel, snapshots = {} } = linha.pagamento
+            const status = 'Aguardando aprovação da Diretoria'
+            await salvarEtapaParceiro(`lista_pagamentos/${idSolicitacao}/param_estavel`, {
+                ...param_estavel,
+                valor_documento: novoValor,
+                categorias: redistribuirValorParceiro(param_estavel.categorias, 'valor', novoValor),
+                distribuicao: redistribuirValorParceiro(param_estavel.distribuicao, 'nValDep', novoValor)
+            })
+            await salvarEtapaParceiro(`lista_pagamentos/${idSolicitacao}/snapshots`, {
+                ...snapshots,
+                valor: novoValor,
+                categorias: redistribuirValorParceiro(snapshots.categorias, 'valor', novoValor),
+                departamentos: redistribuirValorParceiro(snapshots.departamentos, 'valor', novoValor)
+            })
+            await salvarEtapaParceiro(`lista_pagamentos/${idSolicitacao}/historico/${crypto.randomUUID()}`, {
+                status, usuario, data,
+                justificativa: `Valor ajustado de ${dinheiro(valorAnterior)} para ${dinheiro(novoValor)}. Motivo: ${motivo}`
+            })
+            await salvarEtapaParceiro(`lista_pagamentos/${idSolicitacao}/status`, status)
+            if (!ocorrencia) {
+                const { master } = await recuperarDado('contratos_vinculados', c.parceiro.departamento) || {}
+                ocorrencia = master || c.parceiro.departamento
+            }
+        }
+
+        if (ocorrencia)
+            await salvarEtapaParceiro(`dados_ocorrencias/${ocorrencia}/correcoes/${idSolicitacao}_ajuste_${Date.now()}`, {
+                aba: idSolicitacao, tipoCorrecao: 'WRuo2', data, usuario,
+                descricao: `✏️ Valor ajustado de ${dinheiro(valorAnterior)} para ${dinheiro(novoValor)} por ${usuario}.${falta > 0 ? ` LPU aumentada em ${dinheiro(falta)}.` : ''} Motivo: ${motivo}`
+            })
+
+        removerTodosPopups()
+        await historicoPagamentosParceiro(id)
+    } catch (erro) { popup({ mensagem: erro.message || 'Falha ao ajustar o valor.' }) }
 }
 
 async function formularioParceiro(id = crypto.randomUUID()) {

@@ -206,7 +206,7 @@ async function carregarAgenda(filtros, pagina = 1) {
     const { dtCorrecao: _filtroDataAntigo, ...filtrosSemData } = controles.agenda.filtros
     const filtrosItens = {
         ...filtrosSemData,
-        ...(!checkSolucionados ? { 'ultimaCorrecao.*.nome': { op: '!=', value: 'SOLUCIONADA' } } : {})
+        ...(!checkSolucionados ? { 'ultimaCorrecao.*.nome': regrasNaoTerminado() } : {})
     }
     // O status é verificado por atendimento. Aplicar != no array agrupado
     // pode excluir o técnico inteiro por ter um atendimento solucionado.
@@ -380,7 +380,7 @@ async function carregarAgenda(filtros, pagina = 1) {
             const labels = itens.map(item => {
 
                 const solucionada = item.ultimaCorrecao
-                    .some(corr => corr.nome == 'SOLUCIONADA')
+                    .some(corr => statusSolucionados.includes(corr.nome))
 
                 const { Loja, origem_id } = item || {}
                 const cor = colorFromString(item.Loja);

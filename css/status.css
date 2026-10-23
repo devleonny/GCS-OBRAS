@@ -31,6 +31,14 @@
     padding: 5px;
 }
 
+/* Com align-items: start os filhos ficam do tamanho do conteúdo (ex.: wrapper dos anexos = 230px)
+   e o max-width: 100% do cartão de anexo não tem referência; aqui eles respeitam a largura do bloco. */
+.bloco-status-interno > * {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
 .chamado-aberto {
     display: flex;
     align-items: center;
@@ -322,12 +330,24 @@
     flex-direction: column;
     gap: 6px;
     padding: 12px;
-    border: 1px solid #8fb39c;
+    border: 1px solid #6f9479;
+    border-left: 4px solid #52745c;
     border-radius: 8px;
-    background: #dcebe1;
+    background: #e6f1ea;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .parceiro-indicadores span { font-size: 12px; }
 .parceiro-indicadores strong { font-size: 18px; }
-.parceiro-historico-tabela { overflow: auto; max-height: 55dvh; }
+.parceiro-historico-tabela {
+    overflow: auto;
+    max-height: 55dvh;
+    border: 1px solid #8fae99;
+    border-radius: 8px;
+}
+.parceiro-historico-tabela .tabela { border-collapse: collapse; }
+.parceiro-historico-tabela .tabela th,
+.parceiro-historico-tabela .tabela td { border-bottom: 1px solid #c3d6c9; }
+.parceiro-historico-tabela .tabela tbody td { background: #ffffff; }
+.parceiro-historico-tabela .tabela tbody tr:hover td { background: #f1f7f3; }
 .parceiro-historico td { overflow-wrap: anywhere; }

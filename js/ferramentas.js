@@ -2,7 +2,9 @@ const api = 'https://api.gcs.app.br'
 const read = 'https://read.gcs.app.br'
 const horizontal = `display: flex; align-items: center; justify-content: center;`
 const vertical = `display: flex; align-items: start; justify-content: start; flex-direction: column;`
-const logo = 'https://i.imgur.com/Nb8sPs0.png'
+// Local: o Imgur responde 403 quando a página roda em localhost. URL absoluta para comparar com img.src.
+// logo-centralizada.png: recorte quadrado do LG.png com o "S" no centro, para molduras redondas.
+const logo = new URL('imagens/logo-centralizada.png', location.href).href
 
 const esquemas = {
     'sistema': ['', 'ALARME', 'CFTV', 'EAS', 'INFORMÁTICA', 'LICENÇA', 'CONTROLE DE ACESSO', 'INFRAESTRUTURA E CABEAMENTO', 'CUSTOS INDIRETOS', 'FIBRA DE REDE', 'FERRAMENTAS', 'PEÇAS'],

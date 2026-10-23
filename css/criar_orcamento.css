@@ -404,6 +404,45 @@
   margin-bottom: 1rem;
 }
 
+/* Aluguel: tabela do orçamento larga rola na horizontal em vez de empurrar a tela. */
+#orcamento_aluguel #ALUGUEL {
+  width: 100%;
+  overflow-x: auto;
+  /* Cantos arredondados: o overflow recorta cabeçalho e linhas no raio. */
+  border: 1px solid #d2d2d2;
+  border-radius: 10px;
+  box-sizing: border-box;
+}
+
+/* Sem bordas externas nas células: a moldura arredondada já faz esse papel. */
+#orcamento_aluguel .tabela-orcamento tr > :first-child { border-left: none; }
+#orcamento_aluguel .tabela-orcamento tr > :last-child { border-right: none; }
+#orcamento_aluguel .tabela-orcamento tbody tr:last-child td { border-bottom: none; }
+
+#orcamento_aluguel .tabela-orcamento td {
+  vertical-align: middle;
+}
+
+/* Inputs do aluguel no mesmo padrão dos inputs de tabela do orçamento (.tabela td input). */
+.campo-aluguel {
+  border: solid 1px #a9c9b3;
+  text-align: start;
+  padding: 0.5rem 1rem;
+  background-color: #eff8f1;
+  border-radius: 7px;
+  width: 100%;
+  min-width: 90px;
+  box-sizing: border-box;
+  font-size: 0.85rem;
+}
+
+.campo-aluguel:focus {
+  outline: none;
+  border-color: #477d59;
+  background-color: white;
+  box-shadow: 0 0 0 3px #477d5920;
+}
+
 .pesquisa-orcamento {
   display: flex;
   align-items: center;

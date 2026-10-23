@@ -681,8 +681,10 @@ async function formularioCliente(idCliente) {
         {
             texto: 'Celular',
             elemento: `
-            <input name="ddd" placeholder="DDD" style="width: 40px;" value="${ddd || ''}">
-            <input name="celular" placeholder="Celular" value="${celular || ''}">
+            <div style="${horizontal}; justify-content: start; gap: 5px;">
+                <input name="ddd" placeholder="DDD" style="width: 40px;" value="${ddd || ''}">
+                <input name="celular" placeholder="Celular" style="flex: 1;" value="${celular || ''}">
+            </div>
             `
         },
         {

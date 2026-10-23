@@ -40,12 +40,12 @@ async function telaCriarOrcamentoAluguel() {
 
                     <div style="${vertical}">
                         <label>Quantidade</label>
-                        <input id="quantidade_periodo" oninput="total()" class="campo-valor">
+                        <input id="quantidade_periodo" type="number" oninput="total()" class="campo-aluguel">
                     </div>
 
                     <div style="${vertical}">
                         <label>Período de Locação</label>
-                        <select id="lpu" onchange="atualizarPeriodo(this.value)" class="campo-valor">
+                        <select id="lpu" onchange="atualizarPeriodo(this.value)" class="campo-aluguel">
                             ${['DIAS', 'SEMANAS', 'MESES', 'ANOS'].map(op => `<option>${op}</option>`).join('')}
                         </select>
                     </div>
@@ -85,17 +85,10 @@ async function carregarTabelasAluguel() {
 
     if (linhas) return total()
 
-    document.getElementById('lpu').value = orcamentoBase?.periodo || 'DIA'
+    document.getElementById('lpu').value = orcamentoBase?.periodo || 'DIAS'
     document.getElementById('quantidade_periodo').value = orcamentoBase?.quantidade_periodo || ''
     const colunas = ['Código', 'Descrição', 'Unidade', 'Quantidade', 'Custo Unit', 'Valor Total', 'Imagem', 'Remover']
     if (!linhas) divTabelas.innerHTML = `
-        <div id="toolbarSuperior" style="display: none; justify-content: right; width: 100%;">
-            <div class="menu-top" style="background-color: ${coresTabelas(tabela)};">
-                <span>${tabela}</span>
-                <label id="total_ALUGUEL">R$ -- </label>
-            </div>
-        </div>
-
         <div id="${tabela}">
             <table id="cabecalho_${tabela}" class="tabela-orcamento">
                 <thead style="background-color: ${coresTabelas(tabela)};">
@@ -108,6 +101,23 @@ async function carregarTabelasAluguel() {
 
     const dadosComposicoes = orcamentoBase?.dados_composicoes || {}
 
+    // Itens salvos sem descrição (ex.: gravados como {} por versão antiga) recuperam do cadastro.
+    const semDescricao = Object.entries(dadosComposicoes)
+        .filter(([, produto]) => !descricaoValidaAluguel(produto?.descricao))
+    if (semDescricao.length) {
+        await Promise.all(semDescricao.map(async ([codigo, produto]) => {
+            const cadastro = await recuperarDado('dados_composicoes', codigo) || {}
+            dadosComposicoes[codigo] = {
+                ...produto,
+                descricao: descricaoValidaAluguel(cadastro.descricao) ? cadastro.descricao : '',
+                unidade: produto?.unidade || cadastro.unidade,
+                imagem: produto?.imagem || cadastro.imagem
+            }
+        }))
+        orcamentoBase.dados_composicoes = dadosComposicoes
+        baseOrcamento(orcamentoBase)
+    }
+
     for (const [codigo, produto] of Object.entries(dadosComposicoes)) {
 
         criarLinhaOrcAluguel(codigo, produto)
@@ -118,24 +128,29 @@ async function carregarTabelasAluguel() {
 
 }
 
+function descricaoValidaAluguel(descricao) {
+    return typeof descricao === 'string' && descricao.trim() !== '' && descricao !== 'N/A'
+}
+
+// Única montagem da linha do orçamento: usada ao reabrir e ao incluir item.
 function criarLinhaOrcAluguel(codigo, produto) {
     const idLinha = `orc_${codigo}`
     const tds = `
         <td>${codigo}</td>
-        <td>${produto?.descricao || 'N/A'}</td>
-        <td>${produto?.unidade || 'UN'}</td>
+        <td name="descricao">${descricaoValidaAluguel(produto?.descricao) ? produto.descricao : 'N/A'}</td>
+        <td style="text-align: center;">${produto?.unidade || 'UN'}</td>
         <td style="text-align: center;">
-            <input oninput="total()" type="number" class="campo-valor" value="${produto?.qtde || ''}">
+            <input name="quantidade" oninput="total()" type="number" class="campo-aluguel" value="${produto?.qtde ?? ''}">
         </td>
         <td style="text-align: center;">
-            <input oninput="total()" type="number" class="campo-valor" value="${produto?.custo || ''}">
+            <input name="custo" oninput="total()" type="number" class="campo-aluguel" value="${produto?.custo || ''}">
         </td>
-        <td style="text-align: center;"><label></label></td>
+        <td style="text-align: center;"><span name="total" class="valor-orcamento"></span></td>
         <td style="text-align: center;">
-            <img onclick="abrirImagem(this, '${codigo}')" src="${produto?.imagem || logo}" style="width: 4rem;">
+            <img class="imagem-orc" onclick="abrirImagem(this, '${codigo}')" src="${produto?.imagem || logo}">
         </td>
-        <td>
-            <img src="imagens/cancel.png" onclick="removerItem('${codigo}', this)" style="width: 1.5rem;">
+        <td style="text-align: center;">
+            <img src="imagens/fechar.png" title="Remover item" onclick="removerItem('${codigo}', this)" style="width: 1.5rem;">
         </td>
     `
 
@@ -150,31 +165,6 @@ function atualizarPeriodo(periodo) {
     let orcamentoBase = baseOrcamento()
     orcamentoBase.periodo = periodo
     baseOrcamento(orcamentoBase)
-}
-
-function mostrarTabelaAluguel(tabela) {
-
-    if (!tabela) return
-
-    let divTabelas = document.getElementById('tabelas')
-    let tabelas = divTabelas.querySelectorAll('table')
-
-    tabelas.forEach(tab => {
-        tab.parentElement.style.display = 'none'
-    })
-
-    let displayTabela = document.getElementById(tabela)
-
-    displayTabela.style.display == 'none' ? displayTabela.style.display = 'flex' : ''
-
-    let toolbarSuperior = document.getElementById('toolbarSuperior')
-    let divs = toolbarSuperior.querySelectorAll('div')
-
-    divs.forEach(div => {
-        div.style.opacity = '0.7'
-    })
-
-    document.getElementById(`toolbar_${tabela}`).style.opacity = '1'
 }
 
 async function removerItem(codigo, img) {
@@ -240,8 +230,11 @@ async function tabelaProdutosAluguel() {
             </div>`
     }
 
+    // Fica abaixo da tabela do orçamento: sem altura mínima, a altura disponível chega a 0
+    // quando o orçamento cresce e a tabela some. Mesmo valor da tela de orçamento normal.
     const tabela = await modTab({
         base: 'dados_composicoes',
+        alturaMinima: '60dvh',
         colunas,
         funcaoAdicional: ['total'],
         criarLinha: 'criarLinhaProdAluguel',
@@ -259,33 +252,30 @@ async function tabelaProdutosAluguel() {
 function criarLinhaProdAluguel(produto) {
 
     const { codigo } = produto
+    // Mesma ideia do orçamento normal: a quantidade já lançada volta preenchida.
+    const quantidadeOrcamento = baseOrcamento()?.dados_composicoes?.[codigo]?.qtde ?? ''
 
     const tds = `
         <td>
-            <div style="${horizontal}; gap: 5px;">
-                <label>${codigo}</label>
-                <div style="${horizontal}">
-                    ${moduloComposicoes ? `<img src="imagens/editar.png" style="width: 1.5vw; cursor: pointer;" onclick="cadastrarItem('${codigo}')">` : ''}
-                    ${moduloComposicoes ? `<img src="imagens/excluir.png" style="width: 1.5vw; cursor: pointer;" onclick="confirmarExclusao_item('${codigo}')">` : ''}
-                </div>
+            <div class="campo-codigo-composicao">
+                <span>${codigo}</span>
+                ${moduloComposicoes ? `<div class="composicao"><img src="imagens/editar.png" onclick="cadastrarItem('${codigo}')"></div>` : ''}
             </div>
         </td>
         <td>
             <div style="${vertical}; text-align: left;">
                 <b>Descrição</b>
-                ${produto.descricao}<br>
-                <b>Fabricante</b>
-                ${produto.fabricante}<br>
-                <b>Modelo</b>
-                ${produto.modelo}<br>
+                ${produto.descricao || ''}<br>
+                ${produto.fabricante ? `<b>Fabricante</b> ${produto.fabricante}<br>` : ''}
+                ${produto.modelo ? `<b>Modelo</b> ${produto.modelo}<br>` : ''}
             </div>
         </td>
-        <td>${produto.tipo}</td>
-        <td style="text-align: center;">
-            <input type="number" class="campo-valor" oninput="incluirItemAluguel('${codigo}', this.value)">
+        <td>${produto.tipo || ''}</td>
+        <td>
+            <input type="number" value="${escaparAtributo(quantidadeOrcamento)}" oninput="incluirItemAluguel('${codigo}', this.value)">
         </td>
         <td style="text-align: center;">
-            <img src="${produto?.imagem || logo}" style="width: 4rem; cursor: pointer;" onclick="abrirImagem(this, '${codigo}')">
+            <img class="imagem-orc" src="${produto?.imagem || logo}" onclick="abrirImagem(this, '${codigo}')">
         </td>
     `
 
@@ -335,7 +325,7 @@ async function total() {
             let tdDescricao = tds[1]
             let tdQuantidade = tds[3].querySelector('input')
             let tdCusto = tds[4].querySelector('input')
-            let tdTotal = tds[5].querySelector('label')
+            let tdTotal = tds[5].querySelector('[name="total"]')
 
             let valorUnitario = Number(tdCusto.value)
             let quantidade = Number(tdQuantidade.value)
@@ -351,16 +341,21 @@ async function total() {
             totais[modo].valor += totalLinha
             totais.GERAL.valor += totalLinha
 
-            tdTotal.classList = 'campo-valor'
-            tdTotal.textContent = dinheiro(totalLinha)
+            tdTotal.innerHTML = dinheiro(totalLinha)
 
             // Salvamento dos itens no Orcamento
             orcamentoBase.dados_composicoes[codigo] ??= {}
 
+            // Texto da célula ("N/A" é só exibição); senão mantém a descrição já salva.
+            const textoDescricao = tdDescricao.textContent.trim()
+            const descricaoSalva = orcamentoBase.dados_composicoes[codigo].descricao
+
             orcamentoBase.dados_composicoes[codigo] = {
                 ...orcamentoBase.dados_composicoes[codigo],
                 codigo,
-                descricao: tdDescricao || '',
+                descricao: descricaoValidaAluguel(textoDescricao)
+                    ? textoDescricao
+                    : descricaoValidaAluguel(descricaoSalva) ? descricaoSalva : '',
                 qtde: quantidade,
                 custo: valorUnitario,
                 tipo: modo // Salvar como 'ALUGUEL' para que as próximas tabelas sejam configuradas de acordo;
@@ -371,10 +366,10 @@ async function total() {
 
     for (tot in totais) {
         let divTotal = document.getElementById(`total_${tot}`)
-        if (divTotal) divTotal.textContent = dinheiro(totais[tot].valor)
+        if (divTotal) divTotal.innerHTML = dinheiro(totais[tot].valor)
     }
 
-    document.getElementById('total_geral').textContent = dinheiro(totais.GERAL.valor)
+    document.getElementById('total_geral').innerHTML = dinheiro(totais.GERAL.valor)
     orcamentoBase.total_geral = totais.GERAL.valor
 
     // Salvar a revisão, se existirem;
@@ -396,16 +391,12 @@ async function total() {
     const tabelas = document.getElementById('tabelas')
     const divQuieto = document.querySelector('.quieto')
     const tab = document.getElementById('ALUGUEL')
-    const toolbarSuperior = document.getElementById('toolbarSuperior')
     if (divQuieto) divQuieto.remove()
 
     if (orcamentoBase.dados_composicoes && Object.keys(orcamentoBase.dados_composicoes).length > 0) {
-        document.getElementById('toolbarSuperior').style.display = 'flex'
         tab.style.display = ''
-        toolbarSuperior.style.display = 'flex'
     } else {
         tab.style.display = 'none'
-        toolbarSuperior.style.display = 'none'
         tabelas.insertAdjacentHTML('afterbegin', quieto)
     }
 
@@ -415,27 +406,6 @@ async function incluirItemAluguel(codigo, novaQuantidade) {
 
     const orcamentoBase = baseOrcamento()
     const produto = await recuperarDado('dados_composicoes', codigo) || {}
-
-    const linha = `
-        <tr>
-            <td>${codigo}</td>
-            <td style="position: relative;"></td>
-            <td style="text-align: center;">${produto?.unidade}</td>
-            <td style="text-align: center;">
-                <input oninput="total()" type="number" class="campo-valor" value="${novaQuantidade}">
-            </td>
-            <td style="text-align: center;">
-                <input oninput="total()" type="number" class="campo-valor">
-            </td>
-            <td>
-                <label></label>
-            </td>
-            <td style="text-align: center;">
-                <img onclick="abrirImagem(this, '${codigo}')" src="${produto?.imagem || logo}" style="width: 3vw; cursor: pointer;">
-            </td>
-            <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${codigo}', this)" style="cursor: pointer; width: 2vw;"></td>
-        </tr>
-    `
 
     if (itemExistente(modo, codigo, novaQuantidade)) {
 
@@ -460,7 +430,12 @@ async function incluirItemAluguel(codigo, novaQuantidade) {
             return carregarTabelasAluguel()
 
         } else {
-            tbody.insertAdjacentHTML('beforeend', linha)
+            criarLinhaOrcAluguel(codigo, {
+                descricao: produto?.descricao,
+                unidade: produto?.unidade,
+                imagem: produto?.imagem,
+                qtde: novaQuantidade
+            })
         }
     }
 
