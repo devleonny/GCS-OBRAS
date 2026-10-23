@@ -526,6 +526,7 @@ async function sair() {
     toolbar.style.display = 'none'
     nomeUsuario.innerHTML = ''
     if (typeof ocultarTecnicosLivres === 'function') ocultarTecnicosLivres()
+    if (typeof ocultarAvisoAniversario === 'function') ocultarAvisoAniversario()
     mostrarMenus()
 
     // Encerra a sessão no servidor: o token de renovação deixa de valer neste aparelho.

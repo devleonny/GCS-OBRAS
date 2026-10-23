@@ -965,6 +965,10 @@ async function salvarDataCorrecao(idOcorrencia, idCorrecao) {
     if (!dtCorrecao || !dtCorrecaoFinal)
         return popup({ mensagem: 'Não deixe datas em branco' })
 
+    // Final antes da inicial deixava o chamado "atrasado" com a execução ainda por vir.
+    if (dtCorrecaoFinal < dtCorrecao)
+        return popup({ mensagem: 'A <b>Data Final</b> não pode ser antes da <b>Data Inicial</b>. Ao adiar o início, adie também o fim.' })
+
     overlayAguarde()
 
     if (conflitoAgenda())
@@ -2090,14 +2094,24 @@ async function pesquisarOcorrencias(path, valor) {
     await paginacao()
 }
 
+// Atrasado = data limite (dtCorrecaoFinal; o snapshot usa a inicial quando não há final)
+// de ontem para trás, e ainda não terminado. Mesma regra de vw_correcoes_atrasadas_por_usuario.
+// A data vai como AAAA-MM-DD: assim o servidor compara só a data. Com DD/MM/AAAA ele comparava
+// em milissegundos (meia-noite UTC x meia-noite local) e as correções de hoje entravam como atrasadas.
 async function filtrarAtrasados(input) {
     const ativo = input.value
-    const hoje = dataServidor().toLocaleDateString()
+    const agora = dataServidor()
+    const hoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`
+    const pathData = 'snapshots.ultimaCorrecao.*.dtCorrecaoFinal'
 
     let regrasStatus = listaRegras('snapshots.ultimaCorrecao.*.nome')
         .filter(regra => regra.origem !== 'atrasados_status')
 
-    let regrasData = listaRegras('snapshots.ultimaCorrecao.*.dtCorrecao')
+    // Versões antigas gravavam a regra na data inicial: limpa de lá também.
+    salvarRegras('snapshots.ultimaCorrecao.*.dtCorrecao', listaRegras('snapshots.ultimaCorrecao.*.dtCorrecao')
+        .filter(regra => regra.origem !== 'atrasados_data'))
+
+    let regrasData = listaRegras(pathData)
         .filter(regra => regra.origem !== 'atrasados_data')
 
     if (ativo) {
@@ -2111,7 +2125,7 @@ async function filtrarAtrasados(input) {
     }
 
     salvarRegras('snapshots.ultimaCorrecao.*.nome', regrasStatus)
-    salvarRegras('snapshots.ultimaCorrecao.*.dtCorrecao', regrasData)
+    salvarRegras(pathData, regrasData)
 
     await paginacao()
 }
@@ -2834,6 +2848,9 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
 
         if (!dtCorrecao)
             return popup({ mensagem: 'Não deixe em branco <b>Data Limite</b>' })
+
+        if (dtCorrecaoFinal && dtCorrecaoFinal < dtCorrecao)
+            return popup({ mensagem: 'A <b>Data Final</b> não pode ser antes da <b>Data Inicial</b>.' })
 
         const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
         // Técnico encerrando (qualquer SOLUCIONADA; FATURADO não é ação do técnico) precisa da assinatura.

@@ -170,6 +170,10 @@ async function criarElementosIniciais() {
     if(!blocos)
         await atribuirFuncoesJogo()
 
+    // Popup de aniversariantes do dia (uma vez por dia; não espera para não travar a tela).
+    if (typeof verificarAniversarios === 'function')
+        verificarAniversarios()
+
 }
 
 async function filtrarMinhasOcorrencias(st) {

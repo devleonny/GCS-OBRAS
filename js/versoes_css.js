@@ -12,7 +12,7 @@ const VERSOES_CSS = {
     "custos_pessoal": "c5dbe7fd",
     "estilo": "e0dcf5d7",
     "estoque": "ff848a67",
-    "festas": "86e0c91c",
+    "festas": "81ec7e62",
     "gcsobras": "f6f99ea6",
     "inicial": "0e21d68b",
     "interruptor": "45635901",

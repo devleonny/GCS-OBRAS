@@ -40,7 +40,7 @@
     <link rel="stylesheet" href="css/relatorio.css?v=f7e31e2f">
     <link rel="stylesheet" href="css/relatorios.css?v=25d91be1">
     <link rel="stylesheet" href="css/postit.css?v=b2cd0b61">
-    <link rel="stylesheet" href="css/festas.css?v=86e0c91c">
+    <link rel="stylesheet" href="css/festas.css?v=81ec7e62">
     <link rel="stylesheet" href="css/comunicados.css?v=60dd1bc1">
     <link rel="stylesheet" href="css/cadastros.css?v=9d7fce36">
     <link rel="stylesheet" href="css/custos_pessoal.css?v=c5dbe7fd">
@@ -65,6 +65,7 @@
         <div class="toolbar-interno">
             <img src="imagens/menu.png" style="margin-left: 1rem;" onclick="mostrarMenus('toggle')">
             <span name="titulo">GCS</span>
+            <button type="button" class="aniversario-aviso" hidden onclick="abrirAniversariosHoje()"></button>
             <div class="tecnicos-livres" hidden></div>
         </div>
         <div class="cabecalho-usuario"></div>
@@ -101,10 +102,10 @@
     <script src="js/festas.js?v=4b4c0060"></script>
     <script src="js/tabelas.js?v=030d5965"></script>
     <script src="js/relogio.js?v=a745b52b"></script>
-    <script src="js/versoes_css.js?v=a827261d"></script>
-    <script src="js/ferramentas.js?v=1ece7365"></script>
+    <script src="js/versoes_css.js?v=524ac8af"></script>
+    <script src="js/ferramentas.js?v=447c96f6"></script>
     <script src="js/central_gcs.js?v=1e1fd6ad"></script>
-    <script src="js/central_chamados.js?v=2f7520c4"></script>
+    <script src="js/central_chamados.js?v=ddcb3e94"></script>
     <script src="js/login.js?v=c2e39462"></script>
     <script src="js/sessao.js?v=2d243446"></script>
     <script src="js/popup.js?v=9b8d09fa"></script>
@@ -112,7 +113,7 @@
     <script src="js/websocket.js?v=9c380c95"></script>
     <script src="js/mapa.js?v=e7fc907d"></script>
     <script src="js/custos.js?v=f7956577"></script>
-    <script src="js/clientes.js?v=133d6ef3"></script>
+    <script src="js/clientes.js?v=d978ca0a"></script>
     <script src="js/parceiros.js?v=a30a92ba"></script>
     <script src="js/gerar_excel.js?v=d72311c2"></script>
     <script src="js/inicial.js?v=716d106a"></script>
@@ -128,8 +129,8 @@
     <script src="js/tags.js?v=aba24fd5"></script>
     <script src="js/relatorio.js?v=2d68682a"></script>
     <script src="js/relatorio_custos.js?v=799fdc4a"></script>
-    <script src="js/custos_pessoal.js?v=20574752"></script>
-    <script src="js/ocorrencias.js?v=2ee5054f"></script>
+    <script src="js/custos_pessoal.js?v=6fc5b654"></script>
+    <script src="js/ocorrencias.js?v=63c31a79"></script>
     <script src="js/templateOS.js?v=7a558bbd"></script>
     <script src="js/assinatura.js?v=058130d1"></script>
     <script src="js/cadastros.js?v=f0a291ce"></script>
@@ -141,6 +142,7 @@
     <script src="js/daily.js?v=e233f083"></script>
     <script src="js/tecnicos.js?v=62224ce5"></script>
     <script src="js/contratos.js?v=9d80b9cc"></script>
+    <script src="js/aniversarios.js?v=676bb14b"></script>
 
     <script>
         if ('serviceWorker' in navigator && location.protocol !== 'file:') {
@@ -160,7 +162,7 @@
     <script>
 
         // Carimbado por scripts/versionar.js no commit; comparado com versao.json publicado.
-        const versaoAtual = '72a0e27d'
+        const versaoAtual = '14300a0f'
 
         verificarVersao()
 

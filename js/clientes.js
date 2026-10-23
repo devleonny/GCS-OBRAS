@@ -538,6 +538,39 @@ function adicionarTag() {
 
 }
 
+const MESES_ANIVERSARIO = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+// Maior dia de cada mês (fevereiro aceita 29; em ano não bissexto a view comemora em 28/02).
+const DIAS_MES_ANIVERSARIO = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+
+// Aceita 'MM-DD' (atual) e 'AAAA-MM-DD' (se algum cadastro já tiver ano).
+function campoAniversarioCliente(aniversario) {
+    const [, mes = '', dia = ''] = String(aniversario || '').match(/(\d{2})-(\d{2})$/) || []
+    const opcoesDia = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'))
+        .map(d => `<option value="${d}" ${d === dia ? 'selected' : ''}>${Number(d)}</option>`).join('')
+    const opcoesMes = MESES_ANIVERSARIO
+        .map((nome, i) => {
+            const m = String(i + 1).padStart(2, '0')
+            return `<option value="${m}" ${m === mes ? 'selected' : ''}>${nome}</option>`
+        }).join('')
+    return `
+        <div style="${horizontal}; justify-content: start; gap: 5px;">
+            <select name="aniversario_dia" aria-label="Dia do aniversário"><option value="">Dia</option>${opcoesDia}</select>
+            <select name="aniversario_mes" aria-label="Mês do aniversário"><option value="">Mês</option>${opcoesMes}</select>
+        </div>`
+}
+
+// '' quando incompleto; lança erro se o dia não existe no mês (ex.: 31 de abril).
+function valorAniversarioCliente() {
+    const dia = obVal('aniversario_dia') || ''
+    const mes = obVal('aniversario_mes') || ''
+    if (!dia && !mes) return ''
+    if (!dia || !mes) throw new Error('Preencha o dia e o mês do aniversário, ou deixe os dois em branco.')
+    if (Number(dia) > DIAS_MES_ANIVERSARIO[Number(mes) - 1])
+        throw new Error(`${MESES_ANIVERSARIO[Number(mes) - 1]} não tem dia ${Number(dia)}.`)
+    return `${mes}-${dia}`
+}
+
 async function formularioCliente(idCliente) {
 
     overlayAguarde()
@@ -549,6 +582,7 @@ async function formularioCliente(idCliente) {
         chave_pix,
         ddd,
         celular,
+        aniversario,
         email,
         endereco,
         bairro,
@@ -686,6 +720,11 @@ async function formularioCliente(idCliente) {
                 <input name="celular" placeholder="Celular" style="flex: 1;" value="${celular || ''}">
             </div>
             `
+        },
+        {
+            // Só dia e mês, sem ano: gravado como 'MM-DD' (popup de aniversariantes).
+            texto: 'Aniversário',
+            elemento: campoAniversarioCliente(aniversario)
         },
         {
             texto: 'Chave Pix',
@@ -1032,6 +1071,10 @@ async function salvarCliente(idCliente = null) {
         // FIXO ou S = SIM, é válido;
         const usuarioValido = ['S', 'F'].includes(document.getElementById('status_usuario').dataset.valido)
 
+        let aniversario
+        try { aniversario = valorAniversarioCliente() }
+        catch (erro) { return popup({ mensagem: erro.message }) }
+
         // Verificações do CNPJ
         const cnpj = obVal('cnpj')
 
@@ -1100,6 +1143,7 @@ async function salvarCliente(idCliente = null) {
             usuario: usuarioValido ? obVal('usuario') : null,
             ddd: obVal('ddd'),
             celular: obVal('celular'),
+            aniversario,
             email: obVal('email'),
             empresa: obVal('empresa')
         }

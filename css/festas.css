@@ -126,3 +126,273 @@
     image-rendering: pixelated;
     z-index: 9999;
 }
+/* ANIVERSÁRIOS (js/aniversarios.js) */
+
+.aniversarios {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(220px, 1fr);
+    gap: 16px;
+    width: min(760px, 88vw);
+    padding: 16px;
+    box-sizing: border-box;
+    overflow: hidden;
+    color: #1e293b;
+    text-align: left;
+}
+
+@media (max-width: 640px) {
+    .aniversarios { grid-template-columns: minmax(0, 1fr); }
+}
+
+.aniversario-confetes {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.aniversario-confetes i {
+    position: absolute;
+    top: -14px;
+    left: var(--x);
+    width: 7px;
+    height: 11px;
+    border-radius: 2px;
+    background: var(--cor);
+    opacity: 0;
+    animation: aniversario-queda var(--duracao) ease-in var(--atraso) 2 forwards;
+}
+
+@keyframes aniversario-queda {
+    0% { opacity: 1; transform: translateY(0) rotate(0); }
+    85% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(440px) rotate(var(--giro)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .aniversario-confetes { display: none; }
+}
+
+.aniversario-destaque {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 16px;
+    border-radius: 14px;
+    background: linear-gradient(160deg, #f0fdf4, #fefce8);
+    border: 1px solid #d9f99d;
+}
+
+.aniversario-titulo {
+    font-size: 22px;
+    font-weight: 900;
+    font-style: italic;
+    color: #15803d;
+    letter-spacing: 0.5px;
+}
+
+.aniversario-cartoes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 18px;
+}
+
+.aniversario-cartao {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    max-width: 260px;
+    text-align: center;
+}
+
+.aniversario-foto {
+    position: relative;
+}
+
+.aniversario-foto .cliente-foto {
+    width: 112px;
+    height: 112px;
+    box-sizing: border-box;
+}
+
+.aniversario-selo {
+    position: absolute;
+    right: -2px;
+    bottom: 2px;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    font-size: 18px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px #0f172a33;
+}
+
+.aniversario-nome {
+    margin-top: 4px;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.aniversario-funcao {
+    color: #64748b;
+    font-size: 12px;
+}
+
+.aniversario-mensagem {
+    margin: 6px 0 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: #334155;
+}
+
+.aniversario-proximos {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.aniversario-subtitulo {
+    font-size: 13px;
+    font-weight: 700;
+    color: #15803d;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.aniversario-proximos ul {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    max-height: 320px;
+    overflow-y: auto;
+    list-style: none;
+}
+
+.aniversario-proximos li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: white;
+}
+
+.aniversario-proximos li .cliente-foto {
+    width: 34px;
+    height: 34px;
+    padding: 2px;
+    border-width: 2px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.aniversario-proximo-nome {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.aniversario-proximo-data {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    flex-shrink: 0;
+    font-size: 13px;
+    color: #15803d;
+}
+
+.aniversario-proximo-data small {
+    color: #64748b;
+    font-size: 11px;
+}
+
+.aniversario-proximos .aniversario-vazio {
+    justify-content: center;
+    color: #64748b;
+    font-size: 12px;
+}
+
+/* Aviso de aniversário na barra do topo (antes do letreiro de técnicos livres). */
+.aniversario-aviso {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 6px;
+    margin-left: 12px;
+    padding: 3px 12px 3px 6px;
+    max-width: 40vw;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #422006;
+    white-space: nowrap;
+    background: linear-gradient(90deg, #fde68a, #fbcfe8);
+    border: 1px solid #fcd34d;
+    border-radius: 999px;
+    box-shadow: 0 1px 4px #0000002e;
+    cursor: pointer;
+}
+
+.aniversario-aviso[hidden] {
+    display: none;
+}
+
+.aniversario-aviso span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.aniversario-aviso:hover {
+    filter: brightness(1.05);
+}
+
+.aniversario-aviso:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+}
+
+.aniversario-aviso-icone {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    font-size: 14px;
+    background: white;
+    border-radius: 50%;
+    animation: aniversario-balanco 2.4s ease-in-out infinite;
+}
+
+@keyframes aniversario-balanco {
+    0%, 70%, 100% { transform: rotate(0); }
+    78% { transform: rotate(-14deg); }
+    86% { transform: rotate(12deg); }
+    94% { transform: rotate(-6deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .aniversario-aviso-icone { animation: none; }
+}
+
+/* Aniversário que caiu em fim de semana/feriado ("🎈 25/10 · no sábado"). */
+.aniversario-quando {
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #9a3412;
+    background: #ffedd5;
+    border-radius: 999px;
+}

@@ -1,6 +1,7 @@
 // Custos de Pessoal: custo mensal por pessoa (Omie + lançamentos manuais) distribuído
 // pelos dias em cada obra. Só adm, diretoria e fin. Cálculo: gcs/SCRIPTS/custos_pessoal.js.
-const estadoCustosPessoal = { mes: null, dados: null, abertos: new Set() }
+// pendentesAbertos: a lista "Dias úteis sem obra" começa recolhida e só abre no clique.
+const estadoCustosPessoal = { mes: null, dados: null, abertos: new Set(), pendentesAbertos: false }
 const ITENS_SUGERIDOS_CUSTOS = ['Alimentação', 'Café', 'Janta', 'Ajuda de custo', 'Ajuste']
 
 function mesAtualCustos(deslocamento = 0) {
@@ -130,7 +131,8 @@ function renderizarCustosPessoal() {
     // Quem mais ficou sem obra primeiro: é a lista para cobrar o preenchimento das correções.
     const pendentes = pessoas.filter(p => p.naoDistribuido > 0).sort((a, b) => b.naoDistribuido - a.naoDistribuido)
     const blocoPendentes = pendentes.length ? `
-        <details class="custos-pendentes" open>
+        <details class="custos-pendentes" ${estadoCustosPessoal.pendentesAbertos ? 'open' : ''}
+            ontoggle="estadoCustosPessoal.pendentesAbertos = this.open">
             <summary>Dias úteis sem obra nas correções (${pendentes.length})</summary>
             <p>Esses valores não chegam a nenhum centro de custo. Peça para incluírem o técnico nas correções dos chamados.</p>
             <div class="custos-pendentes-lista">
