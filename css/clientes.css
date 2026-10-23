@@ -112,8 +112,9 @@
     z-index: 3;
 }
 
+/* Em linha com a paginação (modTab topoEmLinha): os filtros ocupam o resto da barra. */
 .clientes-layout .topo-tabela > div:last-child {
-    flex: 1 1 100%;
+    flex: 1 1 auto;
     min-width: 0;
     box-sizing: border-box;
 }
@@ -124,6 +125,38 @@
     min-width: 0;
     max-width: 100%;
     box-sizing: border-box;
+}
+
+/* Na barra verde da tabela o botão verde padrão sumia: aqui ele é claro, com texto verde. */
+.clientes-filtros .clientes-adicionar {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px 5px 10px;
+    color: #2f5a3c;
+    background-color: #ffffff;
+    border: 1px solid #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.clientes-filtros .clientes-adicionar::before {
+    content: '+';
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    font-size: 15px;
+    line-height: 1;
+    color: #ffffff;
+    background-color: #356443;
+    border-radius: 50%;
+}
+
+.clientes-filtros .clientes-adicionar:hover,
+.clientes-filtros .clientes-adicionar:focus-visible {
+    color: #1f3f29;
+    background-color: #e8f3ec;
+    border-color: #e8f3ec;
 }
 
 .clientes-filtros .campo-pesquisa {

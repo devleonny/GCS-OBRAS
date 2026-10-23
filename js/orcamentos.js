@@ -264,13 +264,14 @@ async function criarLinhaOrcamento(orcamento) {
 
             <td>
                 <div style="${vertical}; gap: 2px;">
-                    <img 
-                        src="imagens/etiqueta.png" 
-                        style="width: 1.2rem;" 
-                        onclick="renderPainel('${id}')">
-                    <div name="tags" data-orcamento="${escaparAtributo(String(id))}" style="${vertical}; gap: 1px;">
+                    <div name="tags" data-orcamento="${escaparAtributo(String(id))}" style="${vertical}; gap: 1px; width: 100%;">
                         ${listaTags}
                     </div>
+                    <!-- Fora do [name="tags"]: atualizarTagsNaTela troca só a lista, o botão fica. -->
+                    <button type="button" class="tag-adicionar" title="Incluir ou remover tags" onclick="renderPainel('${id}')">
+                        <img src="imagens/etiqueta.png" alt="">
+                        <span>Tag</span>
+                    </button>
                 </div>
             </td>
 

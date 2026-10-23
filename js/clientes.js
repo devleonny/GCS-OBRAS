@@ -200,7 +200,7 @@ async function telaClientes() {
             <div class="clientes-filtros" style="${horizontal}; gap: 1rem; padding: 3px;">
                 <input onclick="checksCliente(this)" style="width: 1.5rem; height: 1.5rem;" type="checkbox">
                 <img src="imagens/trocar.png" onclick="classificarUnidades()">
-                <button onclick="formularioCliente()">Adicionar Cadastro</button>
+                <button type="button" class="clientes-adicionar" onclick="formularioCliente()">Adicionar Cadastro</button>
                 ${dropdownTags}
                 ${dropdownEstados}
                 <div style="${horizontal}; gap: 1rem;">
@@ -228,6 +228,7 @@ async function telaClientes() {
             funcaoAdicional: ['contarPorTagCliente'],
             body: 'bodyClientes',
             btnExtras,
+            topoEmLinha: true,
             criarLinha: 'criarLinhaClienteGCS'
         })
 

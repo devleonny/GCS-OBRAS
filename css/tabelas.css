@@ -236,3 +236,29 @@
 .topo-tabela.nude {
     display: none;
 }
+
+/* modTab({ topoEmLinha: true }): paginação e btnExtras lado a lado; os extras ficam com
+   o espaço que sobra e quebram os próprios itens por dentro. Em tela estreita volta a empilhar. */
+.topo-tabela.em-linha {
+    flex-wrap: nowrap;
+}
+
+.topo-tabela.em-linha > [id^="paginacao_"] {
+    flex: 0 0 auto;
+}
+
+.topo-tabela.em-linha > div:last-child {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0 0.5rem !important;
+}
+
+@media (max-width: 800px) {
+    .topo-tabela.em-linha {
+        flex-wrap: wrap;
+    }
+
+    .topo-tabela.em-linha > div:last-child {
+        flex-basis: 100%;
+    }
+}

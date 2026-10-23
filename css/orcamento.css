@@ -487,21 +487,90 @@
     padding: 0 3px 0 3px;
 }
 
+/* Tag de orçamento: pílula com o degradê da cor da tag (inline, tags.js).
+   Borda suave, respiro igual dos dois lados e ícone de editar menor e alinhado. */
 .tag {
-    border: solid 1px #545454;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    gap: 6px;
     width: stretch;
+    min-height: 26px;
+    box-sizing: border-box;
+    padding: 2px 6px 2px 12px;
+    font-size: 0.8em;
+    font-weight: 600;
+    line-height: 1.25;
+    color: #1e293b;
+    border: 1px solid rgba(15, 23, 42, 0.18);
+    /* 14px: pílula com uma linha, cantos suaves (e não cápsula) quando o nome quebra. */
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
     cursor: pointer;
-    border-radius: 20px;
-    padding: 3px 1rem;
 }
 
 .tag span {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
     text-align: left;
-    margin: 0 1rem 0 1rem;
+    overflow-wrap: anywhere;
+}
+
+.tag .tag-editar {
+    flex-shrink: 0;
+    width: 1.05rem;
+    height: 1.05rem;
+    padding: 3px;
+    border-radius: 50%;
+    opacity: 0.75;
+    transition: opacity 0.15s, background-color 0.15s;
+}
+
+.tag .tag-editar:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.35);
+}
+
+/* "+ Tag" no fim da lista de tags do orçamento: mesmo formato da tag, tracejado. */
+.tag-adicionar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: stretch;
+    min-height: 24px;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 2px 10px;
+    font-size: 0.75em;
+    font-weight: 600;
+    color: #64748b;
+    background: transparent;
+    border: 1px dashed #b6c3cf;
+    border-radius: 14px;
+    box-shadow: none;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+}
+
+.tag-adicionar::before {
+    content: '+';
+    font-size: 1.2em;
+    line-height: 1;
+}
+
+.tag-adicionar img {
+    width: 0.95rem;
+    height: 0.95rem;
+    opacity: 0.85;
+}
+
+.tag-adicionar:hover,
+.tag-adicionar:focus-visible {
+    color: #2f7d4a;
+    border-color: #2f7d4a;
+    background-color: #eef7f1;
 }
 
 /* Painel de etiquetas: cada linha mostra se a tag está no orçamento e alterna no clique. */

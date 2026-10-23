@@ -14,6 +14,8 @@ async function modTab(configuracoes) {
         alturaMinima = '0px',
         cor = null,
         nude = null,
+        // true: paginação e btnExtras na mesma linha do topo (os extras ocupam o resto e quebram por dentro).
+        topoEmLinha = false,
         criarLinha,
         base,
         colunas = {},
@@ -117,7 +119,7 @@ async function modTab(configuracoes) {
     const modelo = `
         <div class="modtab${nude ? ' nude' : ''}" style="${vertical}; width: 100%;">
 
-            <div class="topo-tabela${nude ? ' nude' : ''}" ${cor ? `style="background: ${cor};"` : ''}">
+            <div class="topo-tabela${nude ? ' nude' : ''}${topoEmLinha ? ' em-linha' : ''}" ${cor ? `style="background: ${cor};"` : ''}>
                 ${detalhes === true ? `<button type="button" class="tabela-expandir" data-expandir-todos data-body="${escaparAtributo(body)}" aria-expanded="false" aria-label="Expandir todos os detalhes" title="Expandir todos os detalhes" onclick="alternarTodosDetalhes(this)">+</button>` : ''}
                 <div id="paginacao_${pag}"></div>
                 <div style="padding: 0 1rem;">

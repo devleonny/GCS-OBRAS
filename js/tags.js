@@ -35,11 +35,9 @@ const modeloTag = (tag, idOrcamento = null) => {
 
     const modelo = `
         <div class="tag" data-tag="${escaparAtributo(String(id || ''))}" style="${cLinear(cor)}; ${branco}">
-            <span onclick="${funcao}">
-                ${nome || '--'}
-            </span>
-            <img src="imagens/tag_${branco == 'color: #fff;' ? 'branca' : 'preta'}.png"
-                style="width:1.4rem"
+            <span onclick="${funcao}">${nome || '--'}</span>
+            <img class="tag-editar" src="imagens/tag_${branco == 'color: #fff;' ? 'branca' : 'preta'}.png"
+                title="Editar tag" alt=""
                 onclick="event.stopPropagation(); abrirEdicaoTag('${id}')">
         </div>
         `
