@@ -390,10 +390,13 @@
     box-sizing: border-box;
 }
 
+/* Tabela sem altura limitada (modTab scroll: false): a página rola, não a tabela.
+   Sem overflow próprio, o thead sticky (tabelas.css) gruda no topo da área da página. */
 .tela-ocorrencias .div-tabela {
     width: 100%;
     max-width: 100%;
     min-width: 0;
+    overflow: visible;
 }
 
 .tela-ocorrencias .tabela {

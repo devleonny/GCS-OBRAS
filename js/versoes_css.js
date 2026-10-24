@@ -19,8 +19,8 @@ const VERSOES_CSS = {
     "jogo": "baa3f388",
     "layout_os": "2580d9ae",
     "mapa": "e7317551",
-    "ocorrencias": "c9e84093",
-    "orcamento": "0192e200",
+    "ocorrencias": "1c3a6ba5",
+    "orcamento": "2b49e457",
     "os": "423f800a",
     "pagamentos": "5d22896e",
     "pdf": "c05b00c3",
@@ -33,7 +33,7 @@ const VERSOES_CSS = {
     "seletor-cores": "c0e10ff3",
     "status": "56a3b4fa",
     "tabelas-parceiro": "22c15cc9",
-    "tabelas": "47a457b8",
+    "tabelas": "c141ac09",
     "veiculos": "c85e8b90",
     "velocimetro": "f8422d69"
 }

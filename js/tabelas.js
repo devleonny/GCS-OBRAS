@@ -923,6 +923,43 @@ function calcularAlturaDisponivelTabela(div) {
     return Math.max(0, Math.floor(Math.min(limite - topo - reserva, limiteInterno)))
 }
 
+// TELAS COM A PÁGINA ROLANDO (modTab com scroll: false; ex.: ocorrências e orçamentos)
+
+// Botão flutuante "↑ Filtros" (CSS .botao-subir-filtros em tabelas.css).
+function botaoSubirFiltrosHTML(texto = 'Filtros') {
+    return `<button type="button" class="botao-subir-filtros" hidden><span aria-hidden="true">↑</span> ${texto}</button>`
+}
+
+// Mostra o botão quando `alvo` sai de vista na área que rola (.tela); o clique rola até `destino`.
+// Um observador por tela (chave): reabrir a tela desliga o anterior.
+const observadoresSubirFiltros = {}
+function observarBotaoSubirFiltros(chave, alvo, botao, destino = alvo) {
+    observadoresSubirFiltros[chave]?.disconnect()
+    if (!alvo || !botao || typeof IntersectionObserver === 'undefined') return
+
+    botao.onclick = () => destino.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    const observador = new IntersectionObserver(([entrada]) => {
+        // A tela foi trocada: o botão saiu do DOM junto e o observador não serve mais.
+        if (!botao.isConnected) return observador.disconnect()
+        botao.hidden = entrada.isIntersecting
+    }, { root: alvo.closest('.tela'), threshold: 0 })
+    observador.observe(alvo)
+    observadoresSubirFiltros[chave] = observador
+}
+
+// Trocar de página ou filtro deixava a pessoa no meio da lista nova: volta ao topo da tabela
+// se ela já saiu da tela. Só quando página/filtros mudam: recarga por aviso do servidor
+// (mesmos página e filtros) não pode tirar a pessoa do lugar.
+const assinaturasTopoTabela = {}
+function voltarTopoTabelaSeMudou(pag, elemento) {
+    const { pagina, filtros } = controles[pag] || {}
+    const assinatura = JSON.stringify([pagina, filtros])
+    const mudou = pag in assinaturasTopoTabela && assinatura !== assinaturasTopoTabela[pag]
+    assinaturasTopoTabela[pag] = assinatura
+    if (mudou && elemento && elemento.getBoundingClientRect().top < 0)
+        elemento.scrollIntoView({ block: 'start' })
+}
+
 let ajusteAlturaTabelaPendente = false
 const elementosAlturaTabela = new Set()
 const observadorAlturaTabela = new ResizeObserver(agendarAlturaTabelas)

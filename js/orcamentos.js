@@ -24,9 +24,12 @@ async function telaOrcamentos() {
 
     overlayAguarde()
 
+    // Sem altura limitada: a tabela cresce e quem rola é a área da direita da página (.tela),
+    // com o cabeçalho fixo no topo (css/orcamento.css). Mesmo esquema da tela de ocorrências.
     const tabela = await modTab({
         btnExtras: `<div class="filtro-orcamentos" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>`,
-        funcaoAdicional: ['formatacaoPagina', 'carregarToolbar'],
+        scroll: false,
+        funcaoAdicional: ['formatacaoPagina', 'carregarToolbar', 'voltarTopoOrcamentos'],
         colunas: {
             'Última alteração': { chave: 'lpu_ativa' },
             'Status do Orçamento': { chave: 'status_atual' },
@@ -50,7 +53,7 @@ async function telaOrcamentos() {
     })
 
     const acumulado = `
-        <div style="${vertical};">
+        <div class="tela-orcamentos" style="${vertical};">
             <div class="orcamentos-toolbar">
                 <button type="button" class="orcamentos-toolbar-nav" aria-label="Ver status anteriores" onclick="scrollar('prev')">‹</button>
                 <div id="toolbar"></div>
@@ -58,16 +61,27 @@ async function telaOrcamentos() {
             </div>
 
             ${tabela}
+            ${botaoSubirFiltrosHTML()}
         </div>
         `
 
     tela.innerHTML = acumulado
+    // Aparece quando a barra da tabela (dropdowns de filtro) sai de vista; volta para a faixa de status.
+    observarBotaoSubirFiltros('orcamentos',
+        document.querySelector('.tela-orcamentos .topo-tabela'),
+        document.querySelector('.tela-orcamentos .botao-subir-filtros'),
+        document.querySelector('.tela-orcamentos .orcamentos-toolbar'))
 
     removerOverlay()
     await paginacao()
     await carregarToolbar()
     await carregarPesquisaOrcamento()
 
+}
+
+// funcaoAdicional do modTab: volta ao topo da tabela ao trocar página/filtro (tabelas.js).
+function voltarTopoOrcamentos() {
+    voltarTopoTabelaSeMudou('orcamentos', document.querySelector('.tela-orcamentos .modtab'))
 }
 
 async function carregarPesquisaOrcamento() {

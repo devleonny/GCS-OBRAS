@@ -1046,10 +1046,12 @@ async function telaOcorrencias() {
     ${mapa}
 
     `
+    // Sem altura limitada: a tabela cresce e quem rola é a área da direita da página (.tela).
+    // O cabeçalho continua fixo no topo enquanto rola (css/ocorrencias.css).
     const tabela = await modTab({
         alinPag: horizontal,
-        alturaMinima: '300px',
-        funcaoAdicional: ['contadoresMapaOcorrencias'],
+        scroll: false,
+        funcaoAdicional: ['contadoresMapaOcorrencias', 'voltarTopoOcorrencias'],
         base: 'vw_dados_ocorrencias',
         pag: 'ocorrencias',
         body: 'bodyOcorrencias',
@@ -1060,9 +1062,13 @@ async function telaOcorrencias() {
         <div class="tela-ocorrencias">
             ${btnExtras}
             ${tabela}
+            ${botaoSubirFiltrosHTML()}
         </div>`
 
     tela.innerHTML = acumulado
+    observarBotaoSubirFiltros('ocorrencias',
+        document.querySelector('.tela-ocorrencias > .painel-filtros'),
+        document.querySelector('.tela-ocorrencias .botao-subir-filtros'))
 
     await paginacao('ocorrencias')
 
@@ -1070,6 +1076,11 @@ async function telaOcorrencias() {
 
     criarPesquisas()
 
+}
+
+// funcaoAdicional do modTab: volta ao topo da tabela ao trocar página/filtro (tabelas.js).
+function voltarTopoOcorrencias() {
+    voltarTopoTabelaSeMudou('ocorrencias', document.querySelector('.tela-ocorrencias .modtab'))
 }
 
 async function contadoresMapaOcorrencias() {

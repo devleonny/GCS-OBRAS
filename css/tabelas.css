@@ -262,3 +262,53 @@
         flex-basis: 100%;
     }
 }
+
+/* Botão flutuante "↑ Filtros" das telas em que a página rola (tabelas.js: observarBotaoSubirFiltros). */
+.botao-subir-filtros {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 50;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    padding: 8px 16px 8px 12px;
+    font-size: 13px;
+    color: #ffffff;
+    background-color: #356443;
+    border: 1px solid #2d5739;
+    border-radius: 999px;
+    box-shadow: 0 4px 14px rgba(16, 32, 25, 0.3);
+    animation: botao-subir-entrar 0.18s ease-out;
+}
+
+.botao-subir-filtros[hidden] {
+    display: none;
+}
+
+.botao-subir-filtros span {
+    font-size: 15px;
+    line-height: 1;
+}
+
+.botao-subir-filtros:hover,
+.botao-subir-filtros:focus-visible {
+    background-color: #2d5739;
+}
+
+@keyframes botao-subir-entrar {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .botao-subir-filtros { animation: none; }
+}
+
+@media (max-width: 800px) {
+    .botao-subir-filtros {
+        right: 16px;
+        bottom: 16px;
+    }
+}
