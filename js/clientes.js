@@ -105,9 +105,10 @@ async function vincularEmpresas() {
             return { id, nome }
         })
 
+    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
     const response = await fetch(`${api}/vincular-empresas`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ unidades, empresa: selectEmp.value })
     })
 

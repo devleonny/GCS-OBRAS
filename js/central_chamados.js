@@ -80,16 +80,9 @@ async function criarElementosIniciais() {
             ? 'Boa tarde'
             : 'Bom dia'
 
-    const modeloTabPendencias = ({ t1, t2, linhas }) => {
-
-        const info = (titulo, valor) => valor
-            ? `
-                <div style="${vertical}; gap: 2px;">
-                    <span><b>${titulo}:</b></span>
-                    <div style="display: flex; flex-wrap: wrap;">${valor}</div>
-                </div>
-            `
-            : ''
+    // Um só modelo de balão para todos os blocos; muda só o título, os campos e o clique.
+    // tipo 'colaboradores': ferramentas e materiais (js/colaboradores.js), abre a ficha do colaborador.
+    const modeloTabPendencias = ({ tipo, t1, t2, linhas }) => {
 
         const baloes = linhas
             .map(linha => {
@@ -100,27 +93,34 @@ async function criarElementosIniciais() {
                     descricao,
                     usuario,
                     unidade,
-                    dtCorrecaoFinal
+                    dtCorrecaoFinal,
+                    movimento
                 } = linha.correcao || {}
 
-                const tipoCorrecaoFormatado = formatacaoTipoCorrecao(nome)
-                const solicitado = usuario
-                    ? `<span>Solicitado por ${usuario}</span>`
-                    : ''
+                const colaborador = tipo == 'colaboradores'
+
+                const clique = colaborador
+                    ? `irParaColaborador('${escaparAtributo(linha.colaborador)}', '${escaparAtributo(linha.requisicao || '')}')`
+                    : `atalhoAuxiliar('${chamado}', 'chamados', 'includes')`
+
+                const titulo = colaborador ? unidade || 'Sem cadastro' : chamado
+
+                const campos = (colaborador
+                    ? [['Movimento', movimento == 'DEVOLUÇÃO' ? 'Devolução' : 'Saída']]
+                    : [['Data limite', dtCorrecaoFinal], ['Unidade', unidade]])
+                    .filter(([, valor]) => valor)
+                    .map(([rotulo, valor]) => `<span><small>${rotulo}</small>${escaparAtributo(valor)}</span>`)
+                    .join('')
 
                 return `
-                <div class="balao-correcao" onclick="atalhoAuxiliar('${chamado}', 'chamados', 'includes')">
-                    ${solicitado}
-                    <div style="${horizontal}; padding: 1rem; gap: 1rem;">
-                        <img src="imagens/alerta.png">
-                        <div style="${vertical};">
-                            ${tipoCorrecaoFormatado}
-                            <span style="font-size: 1rem"><b>${chamado}</b></span>
-                            ${info('Data Limite', dtCorrecaoFinal)}
-                            ${info('Unidade', unidade)}
-                            ${info('Descrição', descricao)}
-                        </div>
+                <div class="pendencia-card" onclick="${clique}">
+                    <div class="pendencia-card-topo">
+                        ${formatacaoTipoCorrecao(nome)}
+                        ${usuario ? `<small>por ${escaparAtributo(usuario)}</small>` : ''}
                     </div>
+                    <b class="pendencia-card-titulo">${escaparAtributo(titulo || '')}</b>
+                    ${campos ? `<div class="pendencia-card-campos">${campos}</div>` : ''}
+                    ${descricao ? `<p class="pendencia-card-descricao">${escaparAtributo(descricao)}</p>` : ''}
                 </div>
                 `
             })

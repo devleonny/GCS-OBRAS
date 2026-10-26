@@ -1,0 +1,1226 @@
+/* Tela "Ferramentas e Materiais" (js/colaboradores.js): requisições de colaboradores e o que está em mãos.
+   Variáveis também no formulário de requisição: o popup fica fora de .tela-colaboradores. */
+.tela-colaboradores,
+.colab-requisicao {
+    /* Contornos mais escuros: os claros sumiam nos fundos cinza do popup e da tela. */
+    --colab-borda: #b4c4b9;
+    --colab-suave: #65756b;
+    --colab-marca: #527d60;
+    --colab-texto: #243b2e;
+    --colab-alerta: #b45309;
+    --colab-devolucao: #1d4ed8;
+    --colab-contador: #e5383b;
+}
+
+.tela-colaboradores {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.tela-colaboradores button.secundario,
+.colab-requisicao button.secundario {
+    background: white;
+    color: #324b3c;
+    border-color: var(--colab-borda);
+}
+
+.tela-colaboradores button:disabled,
+.colab-requisicao button:disabled,
+.colab-requisicao input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.colab-cabecalho {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 18px;
+    background: white;
+    border: 1px solid var(--colab-borda);
+    border-radius: 10px;
+}
+
+.colab-cabecalho h2 {
+    margin: 0 0 4px;
+    font-size: 18px;
+    color: var(--colab-texto);
+}
+
+.colab-cabecalho small {
+    color: var(--colab-suave);
+}
+
+.colab-controles {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.colab-controles input[type="search"] {
+    min-width: 220px;
+    padding: 6px 10px;
+    border: 1px solid var(--colab-borda);
+    border-radius: 7px;
+    font: inherit;
+}
+
+.colab-segmento {
+    display: flex;
+    border: 1px solid var(--colab-borda);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* margin: 0 anula o margin: 5px global de button (gcsobras.css). */
+.colab-segmento button {
+    margin: 0;
+    background: white;
+    color: #324b3c;
+    border: none;
+    border-radius: 0;
+    padding: 6px 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.colab-segmento button + button {
+    border-left: 1px solid var(--colab-borda);
+}
+
+.colab-segmento button.ativo {
+    background: var(--colab-marca);
+    color: white;
+}
+
+.colab-conteudo {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.colab-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 10px;
+}
+
+.colab-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    background: white;
+    border: 1px solid var(--colab-borda);
+    border-radius: 10px;
+}
+
+.colab-card span,
+.colab-card small {
+    color: var(--colab-suave);
+    font-size: 12px;
+}
+
+.colab-card b {
+    font-size: 20px;
+    color: var(--colab-texto);
+    font-variant-numeric: tabular-nums;
+}
+
+.colab-card.alerta b {
+    color: var(--colab-alerta);
+}
+
+.colab-grade {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1px;
+}
+
+/* Balão do colaborador em duas faixas: foto, nome e status em cima; números embaixo. */
+.colab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    /* margin: 0 anula o margin: 5px global de button (gcsobras.css), que somava ao gap da grade. */
+    margin: 0;
+    padding: 12px;
+    font: inherit;
+    background: white;
+    color: var(--colab-texto);
+    /* Linha cinza entre os cartões: contorno de 1px por fora (box-shadow) no lugar da borda.
+       Com o gap de 1px da grade, os contornos vizinhos caem na mesma fresta e viram uma linha só. */
+    border: none;
+    box-shadow: 0 0 0 1px #c9cfcb;
+    /* Retos por padrão; só os cantos externos da grade arredondam (data-cantos, js/colaboradores.js). */
+    border-radius: 0;
+    text-align: left;
+    cursor: pointer;
+    transition: box-shadow 0.15s;
+}
+
+.colab-item[data-cantos~="se"] { border-top-left-radius: 10px; }
+.colab-item[data-cantos~="sd"] { border-top-right-radius: 10px; }
+.colab-item[data-cantos~="ie"] { border-bottom-left-radius: 10px; }
+.colab-item[data-cantos~="id"] { border-bottom-right-radius: 10px; }
+
+/* Por cima dos vizinhos para o contorno verde aparecer inteiro. */
+.colab-item:hover,
+.colab-item:focus-visible {
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 0 0 1px var(--colab-marca), 0 2px 8px rgba(36, 59, 46, 0.12);
+}
+
+.colab-item-topo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.colab-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    min-width: 0;
+}
+
+.colab-item-info b {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.colab-item-info small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--colab-suave);
+}
+
+.colab-item-numeros {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-top: 10px;
+    border-top: 1px solid var(--colab-borda);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.colab-item-numeros > span {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #eef4f0;
+    color: var(--colab-suave);
+    white-space: nowrap;
+}
+
+.colab-item-numeros > span b {
+    color: var(--colab-texto);
+}
+
+/* Moldura colorida igual à da foto do perfil (.moldura-foto, css/clientes.css);
+   border-box para a moldura caber no tamanho do avatar. */
+.colab-avatar {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.colab-avatar.grande {
+    width: 72px;
+    height: 72px;
+    padding: 4px;
+    border-width: 4px;
+}
+
+/* Sem foto: o fundo claro fica só por dentro, a borda continua em degradê. */
+.colab-iniciais {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(#e5efe8, #e5efe8) padding-box,
+        linear-gradient(135deg, #2374e1, #28b463, #e53935) border-box;
+    color: var(--colab-marca);
+    font-weight: 600;
+}
+
+.colab-avatar.grande.colab-iniciais {
+    font-size: 22px;
+}
+
+.colab-item-info .and,
+.colab-item-info .fin,
+.colab-item-info .na {
+    align-self: start;
+}
+
+/* Aviso no balão do colaborador: alguma requisição ainda não solucionada. */
+.colab-item-numeros > .colab-pendente {
+    background: #fef3c7;
+    color: var(--colab-alerta);
+    font-weight: 600;
+}
+
+.colab-item-numeros > .colab-pendente b {
+    color: inherit;
+}
+
+/* Sem termo assinado: mesmo vermelho do "Não enviado" da ficha. */
+.colab-item-numeros > .colab-pendente.falta {
+    background: #fee2e2;
+    color: #b12425;
+}
+
+/* Termo de responsabilidade assinado, na ficha. */
+.colab-termo {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+    background: white;
+    border: 1px solid var(--colab-borda);
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(36, 59, 46, 0.14);
+    color: var(--colab-texto);
+}
+
+.colab-termo small {
+    color: var(--colab-suave);
+}
+
+.colab-termo-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.colab-termo-topo > div:first-child {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.colab-termo-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.colab-termo-acoes button {
+    margin: 0;
+}
+
+.colab-termo-situacao {
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.colab-termo-situacao.ok {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.colab-termo-situacao.atencao {
+    background: #fef3c7;
+    color: var(--colab-alerta);
+}
+
+.colab-termo-situacao.falta {
+    background: #fee2e2;
+    color: #b12425;
+}
+
+.colab-termo-arquivo {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.colab-termo-mudancas {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    font-size: 12px;
+}
+
+/* Cartão "Requisições em andamento": abre a fila global. */
+.colab-card-acao {
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.colab-card-acao:hover,
+.colab-card-acao:focus-visible {
+    border-color: var(--colab-marca);
+    box-shadow: 0 2px 10px rgba(36, 59, 46, 0.2);
+    transform: translateY(-1px);
+}
+
+.colab-card-acao small {
+    color: var(--colab-marca);
+    font-weight: 600;
+}
+
+/* Fila global das requisições em andamento. */
+.colab-fila {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.colab-fila-topo {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px 18px;
+    padding: 12px 18px;
+    background: white;
+    border: 1px solid var(--colab-borda);
+    border-radius: 10px;
+}
+
+.colab-fila-topo h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 2px;
+    color: var(--colab-texto);
+}
+
+.colab-fila-topo small {
+    color: var(--colab-suave);
+}
+
+.colab-fila-item {
+    align-items: start;
+}
+
+.colab-fila-colaborador {
+    display: flex;
+    align-items: start;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+.colab-fila-colaborador .colab-escolhidos-lista {
+    max-height: none;
+    margin-top: 4px;
+}
+
+.colab-filtro-status {
+    padding: 6px 10px;
+    border: 1px solid var(--colab-borda);
+    border-radius: 7px;
+    background: white;
+    font: inherit;
+}
+
+.colab-vazio {
+    display: flex;
+    justify-content: center;
+    padding: 24px;
+    background: white;
+    border: 1px dashed var(--colab-borda);
+    border-radius: 10px;
+    color: var(--colab-suave);
+    text-align: center;
+}
+
+/* Loading das telas de colaboradores. */
+.colab-vazio img {
+    width: 7rem;
+}
+
+.colab-painel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.colab-painel-topo {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px 18px;
+    padding: 14px 18px;
+    background: white;
+    border: 1px solid var(--colab-borda);
+    border-radius: 10px;
+}
+
+.colab-voltar {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    color: var(--colab-marca);
+    border: 1px solid var(--colab-borda);
+    border-radius: 8px;
+    padding: 5px 12px 5px 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.colab-voltar:hover,
+.colab-voltar:focus-visible {
+    background: var(--colab-marca);
+    color: white;
+}
+
+.colab-voltar svg {
+    flex-shrink: 0;
+    transition: transform 0.15s;
+}
+
+.colab-voltar:hover svg {
+    transform: translateX(-2px);
+}
+
+.colab-identificacao {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 240px;
+}
+
+.colab-identificacao h3 {
+    margin: 0 0 2px;
+    color: var(--colab-texto);
+}
+
+.colab-identificacao small {
+    color: var(--colab-suave);
+}
+
+.colab-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.colab-abas {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--colab-borda);
+    overflow-x: auto;
+}
+
+.colab-abas button {
+    background: transparent;
+    color: var(--colab-suave);
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    padding: 8px 12px;
+    white-space: nowrap;
+}
+
+.colab-abas button.ativo {
+    color: var(--colab-texto);
+    border-bottom-color: var(--colab-marca);
+    font-weight: 600;
+}
+
+.colab-tabela-rolagem {
+    overflow-x: auto;
+    background: white;
+    border: 1px solid var(--colab-borda);
+    border-radius: 10px;
+}
+
+.colab-tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.colab-tabela th,
+.colab-tabela td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--colab-borda);
+    text-align: left;
+}
+
+.colab-tabela th {
+    background: #f4f8f5;
+    color: var(--colab-suave);
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.colab-tabela .num {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.colab-miniatura {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+}
+
+.colab-movimentos {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.colab-movimento {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 14px;
+    background: white;
+    border: 1px solid var(--colab-borda);
+    border-radius: 10px;
+}
+
+.colab-movimento-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.colab-movimento-info small {
+    color: var(--colab-suave);
+}
+
+.colab-comentario {
+    white-space: pre-wrap;
+}
+
+.colab-movimento-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* Cartão é branco: o secundário ganha fundo para não sumir nele. */
+.colab-movimento-acoes button.secundario {
+    background: #eef4f0;
+}
+
+.colab-movimento-acoes button.perigo {
+    background: #fdecec;
+    color: #b12425;
+    border-color: #e8b4b4;
+}
+
+.colab-chip {
+    display: inline-block;
+    margin-right: 4px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #e5efe8;
+    color: var(--colab-marca);
+}
+
+.colab-chip.devolucao {
+    background: #e0e7ff;
+    color: var(--colab-devolucao);
+}
+
+/* Ficha aberta: contornos mais escuros e sombra para os elementos se destacarem no fundo verde. */
+.tela-colaboradores:has(.colab-painel) {
+    --colab-borda: #a9bcb0;
+}
+
+/* O cabeçalho (busca, filtro, nova requisição) é da lista: a ficha tem as próprias ações. */
+.tela-colaboradores:has(.colab-painel) .colab-cabecalho {
+    display: none;
+}
+
+.colab-painel .colab-painel-topo,
+.colab-painel .colab-card,
+.colab-painel .colab-tabela-rolagem,
+.colab-painel .colab-movimento,
+.colab-painel .colab-historico-lista,
+.colab-painel .colab-vazio {
+    box-shadow: 0 1px 4px rgba(36, 59, 46, 0.14);
+}
+
+.colab-painel .colab-tabela th {
+    background: #e8f0eb;
+    color: var(--colab-texto);
+    border-bottom: 1px solid var(--colab-borda);
+}
+
+/* Abas como botões claros: o texto cinza sobre o fundo verde escuro quase não aparecia. */
+/* Abas de pasta: a ativa é branca e emenda no painel de conteúdo logo abaixo;
+   as inativas ficam atrás, mais apagadas. */
+/* overflow visível: a rolagem cortava o 1px em que a aba ativa cobre a borda do painel.
+   Em tela estreita as abas quebram linha em vez de rolar. */
+.colab-painel .colab-abas {
+    gap: 4px;
+    align-items: end;
+    flex-wrap: wrap;
+    border-bottom: none;
+    padding: 0 8px;
+    overflow: visible;
+}
+
+/* margin: 0 anula o margin: 5px global de button (gcsobras.css), que afastava a aba do painel. */
+.colab-painel .colab-abas button {
+    position: relative;
+    top: 1px;
+    margin: 0;
+    background: #d9e5dd;
+    color: var(--colab-suave);
+    border: 1px solid var(--colab-borda);
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+    padding: 8px 16px 7px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.colab-painel .colab-abas button:hover {
+    background: #eef4f0;
+    color: var(--colab-texto);
+}
+
+.colab-painel .colab-abas button.ativo {
+    z-index: 1;
+    background: white;
+    color: var(--colab-texto);
+    padding-top: 10px;
+    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.12);
+}
+
+/* Painel da aba: colado nas abas (sem o espaçamento da coluna). */
+.colab-ficha-saldo .colab-abas + .colab-aba-conteudo {
+    margin-top: -12px;
+}
+
+.colab-painel .colab-aba-conteudo {
+    padding: 10px;
+    background: white;
+    border: 1px solid var(--colab-borda);
+    /* As abas começam recuadas (padding das abas), então o canto esquerdo também é arredondado. */
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(36, 59, 46, 0.14);
+}
+
+.colab-painel .colab-aba-conteudo .colab-tabela-rolagem,
+.colab-painel .colab-aba-conteudo .colab-movimento,
+.colab-painel .colab-aba-conteudo .colab-vazio {
+    box-shadow: none;
+}
+
+/* Contador das abas: bolinha com o número, apagada quando zero. */
+.colab-abas button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.colab-contador {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 7px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    background: var(--colab-marca);
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+/* Cartão da lista: status acumulados das requisições não solucionadas. */
+.colab-status-abertos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+}
+
+.colab-status-aberto {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.colab-status-aberto .colab-contador {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    font-size: 11px;
+}
+
+.colab-contador.zerado {
+    background: #c9d4cd;
+    color: #4b5f52;
+}
+
+/* Vermelho só para requisições em andamento, inclusive na aba ativa. */
+.colab-contador.alerta,
+.colab-abas button.ativo .colab-contador.alerta {
+    background: var(--colab-contador);
+    color: white;
+}
+
+.colab-painel .colab-historico-topo {
+    border-bottom-color: var(--colab-borda);
+}
+
+.colab-painel .colab-historico-lista .detalhes-correcoes-1 {
+    border-bottom-color: var(--colab-borda);
+}
+
+.colab-painel .colab-vazio {
+    background: #f7faf8;
+}
+
+/* Ficha: termo e cards na largura toda; abaixo, as abas à esquerda e, só com uma requisição
+   em "Ver", o histórico dela (como as correções dos chamados) à direita, na altura das abas. */
+.colab-ficha {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 12px;
+}
+
+.colab-ficha.com-historico {
+    grid-template-columns: minmax(0, 3fr) minmax(320px, 2fr);
+}
+
+.colab-ficha-saldo {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+/* Lista longa: o histórico acompanha a rolagem em vez de ficar lá em cima. */
+.colab-historico {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    position: sticky;
+    top: 8px;
+}
+
+.colab-historico-topo {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 8px;
+    border-bottom: 1px solid #797979;
+}
+
+.colab-historico-topo .aba-correcao {
+    background-color: #d6d6d6;
+}
+
+/* Painel do "Ver": itens da requisição acima do histórico. */
+.colab-req-itens {
+    margin-bottom: 12px;
+    background: white;
+    border: 1px solid var(--colab-borda);
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(36, 59, 46, 0.14);
+}
+
+.colab-req-itens-topo,
+.colab-req-itens-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    color: var(--colab-texto);
+}
+
+.colab-req-itens-topo {
+    border-bottom: 1px solid var(--colab-borda);
+}
+
+.colab-req-itens-topo b {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.colab-req-itens-topo button {
+    margin: 0;
+    padding: 3px 12px;
+}
+
+.colab-req-itens-total {
+    border-top: 1px solid var(--colab-borda);
+    background: #f7faf8;
+    border-radius: 0 0 10px 10px;
+}
+
+.colab-req-itens-lista {
+    max-height: 30vh;
+    overflow-y: auto;
+}
+
+.colab-req-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+.colab-req-item + .colab-req-item {
+    border-top: 1px solid #e3ebe6;
+}
+
+.colab-req-item-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.colab-req-item-info small,
+.colab-req-item-qtde small {
+    color: var(--colab-suave);
+}
+
+.colab-req-item-qtde {
+    display: flex;
+    flex-direction: column;
+    align-items: end;
+    white-space: nowrap;
+}
+
+.colab-historico-topo button.colab-incluir-correcao {
+    background: #e67e22;
+    border-color: #e67e22;
+    color: white;
+}
+
+.colab-historico-topo button.colab-incluir-correcao:hover {
+    background: #cf6d17;
+}
+
+/* Requisição com o histórico aberto ao lado: é ela que identifica de quem é o bloco.
+   Seletor longo para vencer o box-shadow: none dos cartões dentro da aba. */
+.colab-painel .colab-aba-conteudo .colab-movimento.selecionada {
+    background: #e8f3ec;
+    border-color: var(--colab-marca);
+    border-left-width: 5px;
+    box-shadow: 0 0 0 1px var(--colab-marca), 0 2px 8px rgba(36, 59, 46, 0.25);
+}
+
+/* No cartão esverdeado, o secundário volta a ser branco para não sumir. */
+.colab-movimento.selecionada .colab-movimento-acoes button.secundario {
+    background: white;
+}
+
+.colab-movimento-acoes button.ativo {
+    background: #324b3c;
+}
+
+.colab-historico-topo button {
+    margin-bottom: 4px;
+}
+
+.colab-historico-lista {
+    display: flex;
+    flex-direction: column;
+    max-height: 50vh;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid var(--colab-borda);
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+}
+
+.colab-etapa {
+    gap: 2px;
+    padding: 8px 12px;
+    box-sizing: border-box;
+    font-size: 13px;
+}
+
+.colab-etapa-linha {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+}
+
+.colab-etapa-linha > label {
+    width: 30%;
+    flex-shrink: 0;
+    text-align: right;
+}
+
+.colab-etapa-linha > div {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+.colab-etapa-acoes {
+    display: flex;
+    gap: 4px;
+    align-self: end;
+}
+
+/* Formulário de requisição (popup). */
+.colab-requisicao {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    /* A janela do popup já tem 90vw no máximo; sobra para as bordas e a rolagem. */
+    width: min(1100px, calc(90vw - 2rem));
+    padding: 1rem;
+    box-sizing: border-box;
+    text-align: left;
+    color: var(--colab-texto);
+}
+
+/* Colaborador e movimento na primeira linha; comentário na linha inteira de baixo. */
+.colab-requisicao-campos {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 10px 16px;
+    padding: 12px 14px;
+    background: white;
+    border: 1px solid var(--colab-borda);
+    border-radius: 10px;
+}
+
+.colab-requisicao-campos label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--colab-suave);
+}
+
+/* Nome fixo (aberto pela ficha). O seletor (.opcoes, popup.css) tem fundo escuro e
+   mantém o texto branco dele; só perde o negrito herdado do rótulo. */
+.colab-requisicao-campos label > span:not(.opcoes) {
+    font-size: 14px;
+    font-weight: normal;
+    color: var(--colab-texto);
+}
+
+.colab-requisicao-campos .opcoes {
+    align-self: start;
+    max-width: none;
+    margin: 0;
+    font-weight: normal;
+}
+
+.colab-requisicao-comentario {
+    grid-column: 1 / -1;
+}
+
+.colab-requisicao-comentario textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 10px;
+    border: 1px solid var(--colab-borda);
+    border-radius: 8px;
+    font: inherit;
+    font-weight: normal;
+    color: var(--colab-texto);
+    resize: vertical;
+}
+
+.colab-escolhidos {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 10px;
+    background: #f4f8f5;
+    border: 1px solid var(--colab-borda);
+    border-radius: 8px;
+}
+
+.colab-escolhidos-topo {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+/* Muitos itens escolhidos não podem empurrar a tabela de composições para fora do popup. */
+.colab-escolhidos-lista {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-height: 5.5rem;
+    overflow-y: auto;
+}
+
+.colab-escolhido {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 4px 2px 10px;
+    background: white;
+    border: 1px solid var(--colab-borda);
+    border-radius: 999px;
+    font-size: 12px;
+}
+
+.colab-escolhido button {
+    padding: 0 6px;
+    background: transparent;
+    color: #b12425;
+    border: none;
+    font-size: 16px;
+    line-height: 1;
+}
+
+/* Campo de quantidade com caixa visível (sem estilo próprio sumia na linha). */
+.colab-qtde {
+    width: 6rem;
+    padding: 5px 8px;
+    box-sizing: border-box;
+    background: white;
+    border: 1px solid #8fa598;
+    border-radius: 6px;
+    font: inherit;
+    font-size: 14px;
+    color: var(--colab-texto);
+    text-align: right;
+}
+
+.colab-qtde:focus-visible {
+    outline: 2px solid var(--colab-marca);
+    outline-offset: 1px;
+    border-color: var(--colab-marca);
+}
+
+/* Linha com quantidade preenchida: fica marcada como escolhida. */
+#colabItensRequisicao tr.escolhido td {
+    background: #e3f2e8;
+}
+
+#colabItensRequisicao tr.escolhido .colab-qtde {
+    border-color: var(--colab-marca);
+    background: #f4fbf6;
+    font-weight: 600;
+}
+
+/* Devolução: instrução, "Devolver tudo" e o "Tudo" de cada linha. */
+.colab-devolucao-ajuda {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    padding: 8px 12px;
+    background: #eff6ff;
+    border: 1px solid #93c5fd;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.colab-devolucao-ajuda button,
+.colab-devolver button {
+    margin: 0;
+}
+
+.colab-devolver {
+    display: flex;
+    align-items: center;
+    justify-content: end;
+    gap: 6px;
+}
+
+.colab-devolver button {
+    padding: 3px 10px;
+}
+
+/* Bloco reservado nos atalhos do menu lateral (auxPendencias). */
+.side-menu .painel-pendencias .atalhos-grupo-titulo {
+    padding: 6px 2px 0;
+    color: #8fa898;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+@media (max-width: 900px) {
+    .colab-ficha,
+    .colab-ficha.com-historico {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 700px) {
+    .colab-controles,
+    .colab-controles input[type="search"] {
+        width: 100%;
+    }
+}
+
+/* Requisição: "Criar item" no topo da tabela (btnExtras do modTab). */
+.colab-requisicao .colab-criar-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    padding: 4px 12px;
+    /* A barra do topo da tabela é verde: botão branco para destacar. */
+    background: white;
+    color: var(--colab-marca);
+    border: 1px solid white;
+}
+
+.colab-requisicao .colab-criar-item:hover {
+    background: #eef4f0;
+}
+
+.colab-requisicao .colab-criar-item img {
+    width: 18px;
+}
+
+/* Detalhes da linha da requisição: bloco de preços alinhado à direita. */
+.composicao-detalhes.colab-detalhes-precos {
+    align-items: flex-end;
+}

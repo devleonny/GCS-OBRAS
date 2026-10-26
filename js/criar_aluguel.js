@@ -147,7 +147,7 @@ function criarLinhaOrcAluguel(codigo, produto) {
         </td>
         <td style="text-align: center;"><span name="total" class="valor-orcamento"></span></td>
         <td style="text-align: center;">
-            <img class="imagem-orc" onclick="abrirImagem(this, '${codigo}')" src="${produto?.imagem || logo}">
+            <img class="imagem-orc" onclick="abrirImagem(this, '${codigo}')" referrerpolicy="no-referrer" onerror="this.onerror = null; this.src = logo" src="${produto?.imagem || logo}">
         </td>
         <td style="text-align: center;">
             <img src="imagens/fechar.png" title="Remover item" onclick="removerItem('${codigo}', this)" style="width: 1.5rem;">
@@ -275,7 +275,7 @@ function criarLinhaProdAluguel(produto) {
             <input type="number" value="${escaparAtributo(quantidadeOrcamento)}" oninput="incluirItemAluguel('${codigo}', this.value)">
         </td>
         <td style="text-align: center;">
-            <img class="imagem-orc" src="${produto?.imagem || logo}" onclick="abrirImagem(this, '${codigo}')">
+            <img class="imagem-orc" referrerpolicy="no-referrer" onerror="this.onerror = null; this.src = logo" src="${produto?.imagem || logo}" onclick="abrirImagem(this, '${codigo}')">
         </td>
     `
 

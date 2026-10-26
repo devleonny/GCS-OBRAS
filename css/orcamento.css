@@ -324,12 +324,6 @@
     cursor: pointer;
 }
 
-/* Tabela sem altura limitada (modTab scroll: false): a página rola, não a tabela.
-   Sem overflow próprio, o thead sticky (tabelas.css) gruda no topo da área da página. */
-.tela-orcamentos .div-tabela {
-    overflow: visible;
-}
-
 .orcamentos-toolbar {
     display: flex;
     align-items: center;

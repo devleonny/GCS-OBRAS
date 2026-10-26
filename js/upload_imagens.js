@@ -5,7 +5,7 @@ function abrirImagem(codigo) {
     const elemento = `
         <div style="${vertical}; gap: 1rem; padding: 1rem;">
             
-            <img id="imgPreview" src="${localImagem.src}" style="background-color:white;width:30vw;margin:auto;border-radius:5px;">
+            <img id="imgPreview" referrerpolicy="no-referrer" src="${localImagem.src}" style="background-color:white;width:30vw;margin:auto;border-radius:5px;">
             
             <input 
                 id="fileInput" 

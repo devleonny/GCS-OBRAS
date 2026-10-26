@@ -224,6 +224,12 @@ const esquemaBotoes = {
             funcao: 'telaAgenda'
         },
         {
+            nome: 'Ferramentas e Materiais',
+            bloqueio: ['cliente', 'técnico'],
+            img: 'furadeira',
+            funcao: 'telaColaboradores'
+        },
+        {
             nome: 'Veículos',
             bloqueio: ['cliente', 'técnico'],
             img: 'veiculo',

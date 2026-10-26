@@ -669,7 +669,7 @@ function carregarLinhaOrcamento(produto) {
 
             <div>
                 <img class="imagem-orc" name="${codigo}" 
-                    onclick="abrirImagem('${codigo}')" src="${imagem || logo}">
+                    onclick="abrirImagem('${codigo}')" referrerpolicy="no-referrer" onerror="this.onerror = null; this.src = logo" src="${imagem || logo}">
             </div>
             
             <div>
@@ -1162,7 +1162,9 @@ async function enviarDadosOrcamento() {
 
                 if (!idOcorrencia.includes('ORC')) {
                     // Se G ou qualquer outro, então é substitutivo para ORC;
-                    await desvincularOcorrencia(idOcorrencia, contrato)
+                    // Sem a troca, as correções iriam para um chamado que não existe.
+                    if (!await desvincularOcorrencia(idOcorrencia, contrato))
+                        return
                     idOcorrencia = contrato
                 }
 
@@ -1199,12 +1201,15 @@ async function enviarDadosOrcamento() {
     }
 }
 
+// Retorna true quando o chamado passou a usar o número do orçamento.
 async function desvincularOcorrencia(id, contrato) {
     try {
+        const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
         const resposta = await fetch(`${api}/desvincular-ocorrencia`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
                 id,
@@ -1213,15 +1218,18 @@ async function desvincularOcorrencia(id, contrato) {
             })
         })
 
-        const dados = await resposta.json()
+        const dados = await resposta.json().catch(() => ({}))
 
-        if (!resposta.ok || !dados.success)
-            return popup({ mensagem: dados.mensagem || 'Erro na requisição' })
+        if (!resposta.ok || !dados.success) {
+            popup({ mensagem: `Orçamento ${contrato} salvo, mas o chamado não foi atualizado: ${dados.mensagem || 'Erro na requisição'}` })
+            return false
+        }
 
-        return
+        return true
 
     } catch (err) {
         popup({ mensagem: err.message || 'Erro de conexão com o servidor' })
+        return false
     }
 }
 
@@ -1381,7 +1389,7 @@ function linhasComposicoesOrcamento(produto) {
             </div>
         </td>
         <td>
-            <img name="${codigo}" onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}" style="width: 4rem;">
+            <img name="${codigo}" onclick="abrirImagem('${codigo}')" referrerpolicy="no-referrer" onerror="this.onerror = null; this.src = logo" src="${produto?.imagem || logo}" style="width: 4rem;">
         </td>
         `
 

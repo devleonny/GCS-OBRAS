@@ -159,7 +159,7 @@ async function criarLinhaComposicao(produto) {
             <td>
                 <img name="${id}" 
                 onclick="abrirImagem('${id}')" 
-                style="width: 5rem;" src="${imagem || logo}">
+                style="width: 5rem;" referrerpolicy="no-referrer" onerror="this.onerror = null; this.src = logo" src="${imagem || logo}">
             </td>
             <td style="text-align: left; min-width: 200px;">${descricao || ''}</td>
 
@@ -202,9 +202,37 @@ async function criarLinhaComposicao(produto) {
 
 }
 
+// Popup que fica por baixo do histórico de preços quando ele abre de dentro de outro
+// (ex.: requisição de colaboradores). Só os popups acima dele são fechados ao reabrir.
+let popupBaseHistoricoPrecos = null
+
+// Abre o histórico mantendo o popup atual aberto por baixo.
+async function abrirHistoricoPrecosSobre(codigo, tabela) {
+    popupBaseHistoricoPrecos = [...document.querySelectorAll('.popup')].at(-1)?.id || null
+    await abrirHistoricoPrecos(codigo, tabela)
+}
+
+function fecharPopupsHistoricoPrecos() {
+    const base = popupBaseHistoricoPrecos && document.getElementById(popupBaseHistoricoPrecos)
+    if (!base) {
+        popupBaseHistoricoPrecos = null
+        return removerTodosPopups()
+    }
+
+    const popups = [...document.querySelectorAll('.popup')]
+    popups.slice(popups.indexOf(base) + 1).forEach(p => removerPopup(p.id))
+    removerOverlay()
+}
+
 async function abrirHistoricoPrecos(codigo, tabela) {
 
     overlayAguarde()
+
+    // LPUS só é carregada por composições/orçamentos; de outras telas vem vazia.
+    if (!LPUS) {
+        const { lpus } = await recuperarDado('mvw_lpus', 1) || {}
+        LPUS = lpus
+    }
 
     const produto = await recuperarDado('dados_composicoes', codigo) || {}
     const linhas = []
@@ -250,7 +278,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
     }
 
     const linOutrosPrecos = []
-    for (const lpu of LPUS) {
+    for (const lpu of LPUS || []) {
         const tab = produto[lpu] || {}
 
         const ativo = tab?.ativo
@@ -292,7 +320,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
     const acumulado = `
         <div style="${horizontal}; align-items: start; width: 100%; justify-content: space-between; gap: 1rem;">
             <div style="${horizontal}; gap: 5px;">
-                <img style="width: 7vw; border-radius: 5px;" src="${produto?.imagem || logo}">
+                <img style="width: 7vw; border-radius: 5px;" referrerpolicy="no-referrer" onerror="this.onerror = null; this.src = logo" src="${produto?.imagem || logo}">
                 <div style="${vertical}">
                     <label><b>Descrição</b></label>
                     <label>${produto?.descricao || ''}</label>
@@ -340,7 +368,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
         </div>
     `
 
-    removerTodosPopups()
+    fecharPopupsHistoricoPrecos()
 
     popup({ elemento: `<div class="historico-preco">${acumulado}</div>`, titulo: 'Preços Cadastrados' })
 
@@ -841,7 +869,8 @@ async function salvarComposicao(codigo) {
 
         const campos = ['descricao', 'unidade', 'fabricante', 'modelo', 'ncm', 'omie', 'tipo', 'sistema']
         const produto = {}
-        const painel = document.querySelector('.painel-padrao')
+        // O mais recente: "Criar item" também abre por cima de outros popups (ex.: requisição).
+        const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
 
         for (const campo of campos) {
             const el = painel.querySelector(`[name="${campo}"]`)
@@ -882,7 +911,7 @@ async function verAgrupamento(codigo) {
                 elemento: `
             <div style="${horizontal}; max-width: 400px; text-align: left; gap: 0.5rem;">
 
-                <img src="${imagem || logo}" style="width: 6rem;">
+                <img referrerpolicy="no-referrer" onerror="this.onerror = null; this.src = logo" src="${imagem || logo}" style="width: 6rem;">
 
                 <div style="${vertical}">
                     <span>Agrupamento do Item:</span>

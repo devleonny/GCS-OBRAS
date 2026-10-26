@@ -209,8 +209,10 @@ html {
     box-sizing: border-box;
 }
 
+/* Cada bloco do tamanho do conteúdo (máx. 500px), centralizados juntos: com flex: 1 eles
+   dividiam a largura toda e sobrava uma lacuna entre um bloco e outro. */
 .planoFundo .b-atalhos {
-    flex: 1 1 0;
+    flex: 0 1 500px;
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
@@ -220,6 +222,99 @@ html {
 .cabecalho-pendencias {
     max-width: 100%;
     flex-wrap: wrap;
+}
+
+/* Etiqueta do bloco (setor, usuário, "Reagendar"): pílula discreta sobre o fundo escuro. */
+.cabecalho-pendencias .tag-pendencias {
+    padding: 3px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+/* Balões da tela inicial: mesmo cartão para chamados e ferramentas e materiais. */
+.planoFundo .bloco-pendencias {
+    gap: 6px;
+    padding: 6px;
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.pendencia-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    background: white;
+    border-left: 4px solid #e2a03f;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    font-size: 12px;
+    color: #2b3a31;
+    cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.pendencia-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.22);
+}
+
+.pendencia-card-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.pendencia-card-topo small {
+    color: #6b7d72;
+    white-space: nowrap;
+}
+
+.pendencia-card-titulo {
+    font-size: 14px;
+    overflow-wrap: anywhere;
+}
+
+.pendencia-card-campos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+}
+
+.pendencia-card-campos span {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.pendencia-card-campos small {
+    color: #6b7d72;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+/* Descrição longa: até 3 linhas no balão; o restante fica no chamado/ficha. */
+.pendencia-card-descricao {
+    margin: 2px 0 0;
+    padding-top: 6px;
+    border-top: 1px solid #e6ece8;
+    color: #4b5d52;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .contorno-pendencias {

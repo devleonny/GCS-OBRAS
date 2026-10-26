@@ -248,6 +248,7 @@
 
 .requisicao-formulario input,
 .requisicao-formulario textarea,
+.requisicao-formulario select,
 .requisicao-formulario [name="pedido"] {
     display: block;
     width: 100%;
@@ -291,6 +292,7 @@
 
 .requisicao-formulario input:focus-visible,
 .requisicao-formulario textarea:focus-visible,
+.requisicao-formulario select:focus-visible,
 .requisicao-formulario [name="pedido"]:focus-visible {
     outline: 2px solid #527d60;
     outline-offset: 2px;

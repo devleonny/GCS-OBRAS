@@ -1429,7 +1429,7 @@ async function linRequisicoes(req) {
                 </div>
 
                 <div style="background-color: ${cor}"
-                    class="contorno-botoes" 
+                    class="contorno-botoes"
                     onclick="gerarPdfRequisicao('${id}')">
                     <img src="imagens/pdfw.png" style="width: 1.5rem;">
                     <label>Baixar PDF</label>
@@ -2150,10 +2150,17 @@ async function auxPendencias() {
         if (!divPendencias)
             return
 
-        const {
-            contagens,
-            contagens_adicionais
-        } = await recuperarDado('mvw_contagem_ultima_correcao', acesso?.empresa) || {}
+        // Ferramentas e materiais ficam num bloco reservado no topo (js/colaboradores.js).
+        const [
+            {
+                contagens,
+                contagens_adicionais
+            } = {},
+            reservado
+        ] = await Promise.all([
+            recuperarDado('mvw_contagem_ultima_correcao', acesso?.empresa).then(d => d || {}),
+            atalhosColaboradoresHTML()
+        ])
 
         const atalhos = [...contagens ?? [], ...contagens_adicionais ?? []]
             .map(item => {
@@ -2175,12 +2182,12 @@ async function auxPendencias() {
             })
             .join('')
 
-        divPendencias.innerHTML = atalhos || `
+        divPendencias.innerHTML = reservado + (atalhos || `
             <div class="atalhos-menu">
                 <img src="gifs/interrogacao.gif">
                 <span>Não disponível</span>
             </div>
-        `
+        `)
 
     } catch (err) {
         console.error(err)
