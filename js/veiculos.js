@@ -660,7 +660,8 @@ async function salvarValores(idCusto = crypto.randomUUID()) {
     const painel = document.querySelector('.painel-padrao')
     const idVeiculo = painel.querySelector('[name="veiculo"]').id
     const veiculo = await recuperarDado('veiculos', idVeiculo)
-    const { usuario } = await recuperarDado('custo_veiculos', idCusto) || {}
+    // Edição mantém quem registrou e quando; novo (ou duplicado, que ganha outro id) usa agora.
+    const { usuario, data } = await recuperarDado('custo_veiculos', idCusto) || {}
 
     const custo_total = obterValores('custo_total')
     const data_pagamento = obterValores('data_pagamento')
@@ -710,7 +711,7 @@ async function salvarValores(idCusto = crypto.randomUUID()) {
         kml: obterValores('kml'),
         comentario: obterValores('comentario'),
         data_pagamento,
-        data: dataServidor().toLocaleString(),
+        data: data || dataServidor().toLocaleString(),
         km: obterValores('km'),
         litros: obterValores('litros'),
         usuario: usuario || acesso.usuario
