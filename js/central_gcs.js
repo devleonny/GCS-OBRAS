@@ -444,7 +444,8 @@ function criarLinhaPainelUsuarios(dados) {
 
     if (usuario == acesso.usuario) {
 
-        const statusOpcoes = ['online', 'Em almoço', 'Não perturbe', 'Em reunião', 'Apenas Whatsapp']
+        // Ausente também é posto sozinho após inatividade (js/websocket.js) e sai na próxima interação.
+        const statusOpcoes = ['online', 'Ausente', 'Em almoço', 'Não perturbe', 'Em reunião', 'Apenas Whatsapp']
         if (acesso?.permissao == 'adm')
             statusOpcoes.push('Invisível')
 

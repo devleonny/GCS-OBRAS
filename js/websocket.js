@@ -50,6 +50,53 @@ document.addEventListener('visibilitychange', () => {
     reconectarSeFechadoWS()
 })
 
+// Ausência automática: sem interação por TEMPO_AUSENCIA_MS em nenhuma aba, avisa o servidor
+// (online -> Ausente); na primeira interação depois disso, volta (Ausente -> online). Quem decide
+// é o servidor, que só troca entre esses dois status (gcs/websocket.js, tratarAusencia).
+// O horário fica no localStorage para as abas abertas valerem como uma só.
+const TEMPO_AUSENCIA_MS = 10 * 60 * 1000
+const CHAVE_ATIVIDADE = 'ultimaAtividadeGCS'
+let ultimaAtividadeGravada = 0
+let ausenciaInformada = false
+
+function ultimaAtividade() {
+    let compartilhada = 0
+    try { compartilhada = Number(localStorage.getItem(CHAVE_ATIVIDADE)) || 0 } catch {}
+    return Math.max(ultimaAtividadeGravada, compartilhada)
+}
+
+function informarAusencia(ausente) {
+    ausenciaInformada = ausente
+    msg({ tipo: 'ausencia', ausente })
+}
+
+function registrarAtividade() {
+    const agora = Date.now()
+
+    // Gravar a cada movimento do mouse seria excessivo: no máximo a cada 5 s.
+    if (agora - ultimaAtividadeGravada > 5000) {
+        ultimaAtividadeGravada = agora
+        try { localStorage.setItem(CHAVE_ATIVIDADE, String(agora)) } catch {}
+    }
+
+    if (ausenciaInformada)
+        informarAusencia(false)
+}
+
+for (const evento of ['mousemove', 'mousedown', 'keydown', 'wheel', 'touchstart', 'scroll'])
+    window.addEventListener(evento, registrarAtividade, { passive: true, capture: true })
+
+setInterval(() => {
+    const parado = Date.now() - ultimaAtividade() >= TEMPO_AUSENCIA_MS
+
+    if (parado && !ausenciaInformada)
+        informarAusencia(true)
+    else if (!parado && ausenciaInformada)
+        informarAusencia(false) // houve interação em outra aba
+}, 30000)
+
+registrarAtividade()
+
 connectWebSocket()
 
 function connectWebSocket() {
@@ -75,6 +122,8 @@ function connectWebSocket() {
         clearTimeout(reconnectTimeout)
 
         try {
+            // Ao reconectar o servidor volta o status para online; se continuar parado, avisa de novo.
+            ausenciaInformada = false
             await sincronizarRelogioServidor()
             msgStatus('Online', 1)
             await comunicacao()
@@ -339,7 +388,8 @@ async function comunicacao() {
                 validado,
                 tipo,
                 usuario,
-                status
+                status,
+                automatico
             } = data
 
             if (desconectar) {
@@ -394,7 +444,8 @@ async function comunicacao() {
                 toolbarPendenteWS = true
                 agendarAtualizacaoWS()
 
-                if (document.visibilityState === 'visible') {
+                // Ausente/online automático atualiza a lista, sem balão para todos a cada ida e volta.
+                if (document.visibilityState === 'visible' && !automatico) {
                     balaoNotificacao({
                         imagem: `imagens/${status}.png`,
                         usuario,
