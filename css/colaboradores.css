@@ -138,96 +138,212 @@
     color: var(--colab-alerta);
 }
 
-.colab-grade {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1px;
-}
-
-/* Balão do colaborador em duas faixas: foto, nome e status em cima; números embaixo. */
-.colab-item {
+/* Lista de colaboradores: um bloco só, uma linha por colaborador, separadas por linha cinza.
+   As colunas do cabeçalho e das linhas usam o mesmo grid para ficarem alinhadas. */
+.colab-lista {
+    --colab-lista-colunas: minmax(220px, 2.2fr) minmax(170px, 2fr) repeat(3, minmax(100px, 1fr)) 20px;
     display: flex;
     flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    /* margin: 0 anula o margin: 5px global de button (gcsobras.css), que somava ao gap da grade. */
+    background: white;
+    border: 1px solid var(--colab-borda);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(36, 59, 46, 0.12);
+}
+
+.colab-lista-cabecalho,
+.colab-linha {
+    display: grid;
+    grid-template-columns: var(--colab-lista-colunas);
+    align-items: center;
+    gap: 14px;
+    padding: 0 16px;
+}
+
+.colab-lista-cabecalho {
+    padding-top: 9px;
+    padding-bottom: 9px;
+    background: #eef4f0;
+    border-bottom: 1px solid var(--colab-borda);
+    color: var(--colab-suave);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.colab-lista-cabecalho .num {
+    text-align: right;
+}
+
+/* margin: 0 anula o margin: 5px global de button (gcsobras.css). */
+.colab-linha {
+    position: relative;
+    width: 100%;
     margin: 0;
-    padding: 12px;
+    padding-top: 10px;
+    padding-bottom: 10px;
     font: inherit;
     background: white;
     color: var(--colab-texto);
-    /* Linha cinza entre os cartões: contorno de 1px por fora (box-shadow) no lugar da borda.
-       Com o gap de 1px da grade, os contornos vizinhos caem na mesma fresta e viram uma linha só. */
     border: none;
-    box-shadow: 0 0 0 1px #c9cfcb;
-    /* Retos por padrão; só os cantos externos da grade arredondam (data-cantos, js/colaboradores.js). */
     border-radius: 0;
     text-align: left;
     cursor: pointer;
-    transition: box-shadow 0.15s;
+    transition: background-color 0.12s;
 }
 
-.colab-item[data-cantos~="se"] { border-top-left-radius: 10px; }
-.colab-item[data-cantos~="sd"] { border-top-right-radius: 10px; }
-.colab-item[data-cantos~="ie"] { border-bottom-left-radius: 10px; }
-.colab-item[data-cantos~="id"] { border-bottom-right-radius: 10px; }
-
-/* Por cima dos vizinhos para o contorno verde aparecer inteiro. */
-.colab-item:hover,
-.colab-item:focus-visible {
-    position: relative;
-    z-index: 1;
-    box-shadow: 0 0 0 1px var(--colab-marca), 0 2px 8px rgba(36, 59, 46, 0.12);
+.colab-linha + .colab-linha {
+    border-top: 1px solid #e1e7e3;
 }
 
-.colab-item-topo {
+/* Faixa verde à esquerda marca a linha sob o mouse. */
+.colab-linha::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: transparent;
+    transition: background-color 0.12s;
+}
+
+.colab-linha:hover,
+.colab-linha:focus-visible {
+    background: #f4f8f5;
+}
+
+.colab-linha:hover::before,
+.colab-linha:focus-visible::before {
+    background: var(--colab-marca);
+}
+
+.colab-linha-pessoa {
     display: flex;
     align-items: center;
     gap: 12px;
     min-width: 0;
 }
 
-.colab-item-info {
+.colab-linha-pessoa .colab-avatar {
+    width: 40px;
+    height: 40px;
+}
+
+.colab-linha-pessoa > div {
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    flex: 1;
+    gap: 2px;
     min-width: 0;
 }
 
-.colab-item-info b {
+.colab-linha-pessoa b,
+.colab-linha-pessoa small {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.colab-item-info small {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.colab-linha-pessoa small {
     color: var(--colab-suave);
+    font-size: 12px;
 }
 
-.colab-item-numeros {
+.colab-linha-status {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    gap: 4px;
+    min-width: 0;
+}
+
+.colab-linha-avisos {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    padding-top: 10px;
-    border-top: 1px solid var(--colab-borda);
-    font-size: 12px;
+    gap: 4px;
+    font-size: 11px;
+}
+
+.colab-linha-avisos > span {
+    padding: 1px 8px;
+    border-radius: 999px;
+}
+
+/* Número em destaque e, embaixo, o valor ou o detalhe. */
+.colab-linha-num {
+    display: flex;
+    flex-direction: column;
+    align-items: end;
+    gap: 1px;
     font-variant-numeric: tabular-nums;
 }
 
-.colab-item-numeros > span {
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: #eef4f0;
+.colab-linha-num b {
+    font-size: 16px;
+}
+
+.colab-linha-num small {
     color: var(--colab-suave);
+    font-size: 12px;
     white-space: nowrap;
 }
 
-.colab-item-numeros > span b {
-    color: var(--colab-texto);
+.colab-linha-num small.alerta {
+    color: var(--colab-alerta);
+    font-weight: 600;
+}
+
+.colab-linha-seta {
+    color: #a3b2a9;
+    font-size: 20px;
+    line-height: 1;
+    text-align: right;
+    transition: transform 0.12s, color 0.12s;
+}
+
+.colab-linha:hover .colab-linha-seta {
+    color: var(--colab-marca);
+    transform: translateX(2px);
+}
+
+/* Tela estreita: sem cabeçalho; nome e status em cima, os três números lado a lado embaixo,
+   cada um com o próprio rótulo (data-rotulo). */
+@media (max-width: 900px) {
+    .colab-lista-cabecalho {
+        display: none;
+    }
+
+    .colab-linha {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        padding: 12px 14px;
+    }
+
+    .colab-linha-pessoa,
+    .colab-linha-status {
+        grid-column: 1 / -1;
+    }
+
+    .colab-linha-num {
+        align-items: start;
+        padding: 6px 8px;
+        background: #f4f8f5;
+        border-radius: 8px;
+    }
+
+    .colab-linha-num::before {
+        content: attr(data-rotulo);
+        color: var(--colab-suave);
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .colab-linha-seta {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+    }
 }
 
 /* Moldura colorida igual à da foto do perfil (.moldura-foto, css/clientes.css);
@@ -263,25 +379,21 @@
     font-size: 22px;
 }
 
-.colab-item-info .and,
-.colab-item-info .fin,
-.colab-item-info .na {
+.colab-linha-status .and,
+.colab-linha-status .fin,
+.colab-linha-status .na {
     align-self: start;
 }
 
-/* Aviso no balão do colaborador: alguma requisição ainda não solucionada. */
-.colab-item-numeros > .colab-pendente {
+/* Aviso na linha do colaborador: termo desatualizado. */
+.colab-linha-avisos > .colab-pendente {
     background: #fef3c7;
     color: var(--colab-alerta);
     font-weight: 600;
 }
 
-.colab-item-numeros > .colab-pendente b {
-    color: inherit;
-}
-
 /* Sem termo assinado: mesmo vermelho do "Não enviado" da ficha. */
-.colab-item-numeros > .colab-pendente.falta {
+.colab-linha-avisos > .colab-pendente.falta {
     background: #fee2e2;
     color: #b12425;
 }
@@ -368,8 +480,13 @@
 }
 
 /* Cartão "Requisições em andamento": abre a fila global. */
+/* white-space: normal anula o nowrap global de button (gcsobras.css), que vazava o texto do balão. */
 .colab-card-acao {
+    min-width: 0;
+    margin: 0;
     font: inherit;
+    white-space: normal;
+    overflow-wrap: anywhere;
     text-align: left;
     cursor: pointer;
     transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
@@ -382,7 +499,8 @@
     transform: translateY(-1px);
 }
 
-.colab-card-acao small {
+.colab-card-acao small.colab-card-link,
+.colab-card-acao small:only-of-type {
     color: var(--colab-marca);
     font-weight: 600;
 }
@@ -1223,4 +1341,54 @@
 /* Detalhes da linha da requisição: bloco de preços alinhado à direita. */
 .composicao-detalhes.colab-detalhes-precos {
     align-items: flex-end;
+}
+
+/* Relatório geral (balões do topo): o resumo ativo indica a aba mostrada na tabela. */
+.colab-card-acao.selecionado {
+    border-color: var(--colab-marca);
+    box-shadow: inset 0 -3px 0 var(--colab-marca);
+}
+
+.colab-relatorio-descricao {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 180px;
+}
+
+.colab-relatorio-descricao small {
+    color: var(--colab-suave);
+    font-size: 11px;
+}
+
+/* Quem tem o item: um selo por colaborador, que abre a ficha. */
+.colab-relatorio-quem {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-width: 200px;
+}
+
+/* margin: 0 anula o margin: 5px global de button (gcsobras.css). */
+.colab-relatorio-quem button {
+    margin: 0;
+    padding: 2px 10px;
+    background: #eef4f0;
+    color: var(--colab-texto);
+    border: 1px solid var(--colab-borda);
+    border-radius: 999px;
+    font-size: 12px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.colab-relatorio-quem button:hover {
+    background: var(--colab-marca);
+    border-color: var(--colab-marca);
+    color: white;
+}
+
+.colab-tabela tfoot td {
+    background: #f4f8f5;
+    border-bottom: none;
 }

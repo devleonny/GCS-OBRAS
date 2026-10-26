@@ -5,7 +5,7 @@ const VERSOES_CSS = {
     "assinatura": "0c1634b9",
     "cadastros": "9d7fce36",
     "clientes": "b1e4430e",
-    "colaboradores": "9b00e14f",
+    "colaboradores": "a53bad5e",
     "composicoes": "3bdc874c",
     "comunicados": "60dd1bc1",
     "criar_orcamento": "a398d6ec",

@@ -306,20 +306,28 @@ async function criarPagamentoVeiculo() {
                 </div>`
         },
         { texto: 'Valor', elemento: `<span id="total" data-total="${totalDeps}">${dinheiro(totalDeps)}</span>` },
-        { texto: 'Data', elemento: `<input id="data" type="date">` },
+        // Vem com o dia de hoje; a data escolhida vai ao Omie como está (sem ajuste de dia útil).
+        { texto: 'Data', elemento: `<input id="data" type="date" value="${dataServidor().toLocaleDateString('en-CA')}">` },
         { texto: 'Observação', elemento: `<textarea id="observacao"></textarea>` },
         { texto: 'Departamentos', elemento: `<div style="${vertical}; gap: 1px;">${deps.join('')}</div>` }
     ]
 
     const botoes = [
-        { img: 'salvo', funcao: 'salvarPagamentoVeiculo()', texto: 'Criar pagamento' }
+        { img: 'salvo', funcao: 'salvarPagamentoVeiculo()', texto: 'Lançar no Omie' }
     ]
 
-    popup({ linhas, botoes, titulo: 'Criar pagamento' })
+    popup({ linhas, botoes, titulo: 'Pagamento Ticket Log' })
 
 }
 
+// Ticket Log: sem aprovação, direto ao Omie com a data informada. O servidor confere de novo
+// a permissão e o fornecedor (gcs/SCRIPTS/pagamento_aprovacao.js).
+const perfisTicketLog = ['fin', 'diretoria', 'adm']
+
 async function salvarPagamentoVeiculo() {
+    if (!perfisTicketLog.includes(acesso?.permissao))
+        return popup({ mensagem: 'Pagamento da Ticket Log: apenas fin, diretoria e adm.' })
+
     const el = (id) => {
         const elem = document.getElementById(id)
         return elem.value
@@ -374,10 +382,12 @@ async function salvarPagamentoVeiculo() {
 
         const pagamento = {
             app,
+            // O servidor troca "fin" pela permissão real de quem lança.
             status: 'Aprovado por fin',
             criado: acesso.usuario,
             data_registro: dataServidor().toLocaleString(),
             param_estavel: {
+                origem: 'TICKET LOG',
                 codigo_cliente_fornecedor: codigoCliente,
                 chave_pix: '',
                 data_vencimento: data,
@@ -402,8 +412,19 @@ async function salvarPagamentoVeiculo() {
         if (!resultado?.success)
             throw new Error(resultado?.mensagem || 'Falha ao criar pagamento')
 
+        // Dispara no Omie na hora; se falhar, o pagamento fica salvo no GCS com o erro.
+        const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
+        const resposta = await fetch(`${api}/pagamentos/ticket-log`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ id: idPagamento })
+        })
+        const omie = await resposta.json().catch(() => ({}))
+        if (!resposta.ok)
+            throw new Error(`Salvo no GCS, mas não foi lançado no Omie: ${omie.mensagem || `falha ${resposta.status}`}`)
+
         removerPopup()
-        popup({ mensagem: 'Lançado no GCS', imagem: 'imagens/concluido.png' })
+        popup({ mensagem: omie.mensagem || `Lançado no Omie para ${data}`, imagem: 'imagens/concluido.png' })
 
     } catch (err) {
         removerPopup()

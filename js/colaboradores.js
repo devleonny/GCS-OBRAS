@@ -7,7 +7,8 @@
 // visao 'andamento': fila global das requisições não solucionadas (no lugar da lista).
 // contextoEtapa: ficha carregada só para atualizar status a partir da fila, sem abrir a ficha.
 // historico: id da requisição cujo histórico está aberto ao lado na ficha (botão "Ver").
-const estadoColaboradores = { lista: [], filtroStatus: 'TODOS', busca: '', detalhe: null, aba: 'requisicoes', requisicao: null, visao: null, andamento: [], contextoEtapa: null, historico: null }
+// visao 'relatorio': relatório geral por item (balões do topo); relatorio guarda os dados e a aba.
+const estadoColaboradores = { lista: [], filtroStatus: 'TODOS', busca: '', detalhe: null, aba: 'requisicoes', requisicao: null, visao: null, andamento: [], contextoEtapa: null, historico: null, relatorio: { dados: null, aba: 'ferramentas' } }
 
 // Status com que a requisição nasce, o mesmo das requisições de chamados (js/requisicao.js).
 const etapaInicialColaborador = { tipoCorrecao: '4Zmd3', setor: ['LOGÍSTICA'] }
@@ -110,9 +111,11 @@ function renderizarListaColaboradores() {
     if (!local || estadoColaboradores.detalhe)
         return
 
-    // A busca do cabeçalho também filtra a fila global.
+    // A busca do cabeçalho também filtra a fila global e o relatório.
     if (estadoColaboradores.visao == 'andamento')
         return renderizarAndamentoColaboradores()
+    if (estadoColaboradores.visao == 'relatorio')
+        return renderizarRelatorioColaboradores()
 
     const { filtroStatus } = estadoColaboradores
     // Filtro pelo status atual ou por qualquer status acumulado no cartão.
@@ -131,88 +134,72 @@ function renderizarListaColaboradores() {
 
     const soma = campo => lista.reduce((s, c) => s + Number(c[campo] || 0), 0)
 
+    // Ferramentas, valor e materiais abrem o relatório geral por item.
     const cards = `
         <div class="colab-cards">
             <div class="colab-card"><span>Colaboradores</span><b>${lista.length}</b></div>
-            <div class="colab-card"><span>Ferramentas em mãos</span><b>${numeroColab(soma('unidadesFerramentas'))}</b><small>unidades</small></div>
-            <div class="colab-card"><span>Valor em mãos</span><b>${dinheiro(soma('valorEmMaos'))}</b><small>custo da última saída</small></div>
+            <button type="button" class="colab-card colab-card-acao" onclick="abrirRelatorioColaboradores('ferramentas')" title="Relatório geral de ferramentas">
+                <span>Ferramentas em mãos</span><b>${dinheiro(soma('valorEmMaos'))}</b><small>${numeroColab(soma('unidadesFerramentas'))} unidade(s)</small><small class="colab-card-link">ver relatório ›</small></button>
+            <button type="button" class="colab-card colab-card-acao" onclick="abrirRelatorioColaboradores('materiais')" title="Relatório geral de materiais">
+                <span>Materiais entregues</span><b>${dinheiro(soma('valorMateriais'))}</b><small>entregue menos devolvido</small><small class="colab-card-link">ver relatório ›</small></button>
             <button type="button" class="colab-card colab-card-acao ${soma('emAndamento') ? 'alerta' : ''}" onclick="abrirAndamentoColaboradores()"
                 title="Ver todas as requisições em andamento"><span>Requisições em andamento</span><b>${soma('emAndamento')}</b><small>ver todas ›</small></button>
         </div>`
 
-    const grade = lista.length
-        ? lista.map(c => `
-            <button type="button" class="colab-item" onclick="abrirColaborador('${escaparAtributo(c.id)}')">
-                <div class="colab-item-topo">
+    // Lista em linhas: um colaborador por linha, números em colunas para comparar de relance.
+    // Em tela estreita cada linha vira um bloco (css/colaboradores.css, .colab-lista).
+    const linhas = lista.map(c => {
+        const avisos = [
+            c.termo == 'DESATUALIZADO' ? '<span class="colab-pendente">Termo desatualizado</span>' : '',
+            c.termo == 'PENDENTE' ? '<span class="colab-pendente falta">Sem termo assinado</span>' : ''
+        ].join('')
+
+        return `
+            <button type="button" class="colab-linha" onclick="abrirColaborador('${escaparAtributo(c.id)}')">
+                <div class="colab-linha-pessoa">
                     ${avatarColaborador(c)}
-                    <div class="colab-item-info">
+                    <div>
                         <b title="${escaparAtributo(c.nome || '')}">${escaparAtributo(c.nome || 'Sem cadastro')}</b>
                         <small>${escaparAtributo([c.usuario, localColaborador(c)].filter(Boolean).join(' · '))}</small>
-                        ${statusAbertosColaborador(c)}
                     </div>
                 </div>
-                <div class="colab-item-numeros">
-                    <span title="Ferramentas diferentes em mãos"><b>${c.ferramentas}</b> ${c.ferramentas == 1 ? 'ferramenta' : 'ferramentas'}</span>
-                    <span title="Valor das ferramentas em mãos"><b>${dinheiro(c.valorEmMaos)}</b></span>
-                    <span title="Materiais diferentes entregues"><b>${c.materiais || 0}</b> ${c.materiais == 1 ? 'material' : 'materiais'}</span>
-                    <span title="Valor dos materiais entregues"><b>${dinheiro(c.valorMateriais)}</b></span>
-                    <span><b>${c.requisicoes}</b> ${c.requisicoes == 1 ? 'requisição' : 'requisições'}</span>
-                    ${c.termo == 'DESATUALIZADO' ? '<span class="colab-pendente">Termo desatualizado</span>' : ''}
-                    ${c.termo == 'PENDENTE' ? '<span class="colab-pendente falta">Sem termo assinado</span>' : ''}
-                    ${c.emAndamento ? `<span class="colab-pendente"><b>${c.emAndamento}</b> em andamento</span>` : ''}
+                <div class="colab-linha-status">
+                    ${statusAbertosColaborador(c)}
+                    ${avisos ? `<div class="colab-linha-avisos">${avisos}</div>` : ''}
                 </div>
+                <div class="colab-linha-num" data-rotulo="Ferramentas em mãos">
+                    <b>${c.ferramentas}</b><small>${dinheiro(c.valorEmMaos)}</small>
+                </div>
+                <div class="colab-linha-num" data-rotulo="Materiais entregues">
+                    <b>${c.materiais || 0}</b><small>${dinheiro(c.valorMateriais)}</small>
+                </div>
+                <div class="colab-linha-num" data-rotulo="Requisições">
+                    <b>${c.requisicoes}</b>
+                    <small class="${c.emAndamento ? 'alerta' : ''}">${c.emAndamento ? `${c.emAndamento} em andamento` : 'nenhuma aberta'}</small>
+                </div>
+                <span class="colab-linha-seta" aria-hidden="true">›</span>
             </button>
-        `).join('')
+        `
+    }).join('')
+
+    const corpo = lista.length
+        ? `
+            <div class="colab-lista">
+                <div class="colab-lista-cabecalho" aria-hidden="true">
+                    <span>Colaborador</span>
+                    <span>Status em aberto</span>
+                    <span class="num">Ferramentas em mãos</span>
+                    <span class="num">Materiais entregues</span>
+                    <span class="num">Requisições</span>
+                    <span></span>
+                </div>
+                ${linhas}
+            </div>`
         : `<div class="colab-vazio">${estadoColaboradores.lista.length
             ? 'Nenhum colaborador com esse filtro.'
             : 'Nenhuma requisição ainda. Use "Nova requisição" e escolha o colaborador.'}</div>`
 
-    local.innerHTML = `${cards}<div class="colab-grade">${grade}</div>`
-    observarCantosGradeColab(local.querySelector('.colab-grade'))
-}
-
-// Cantos da grade: um canto do cartão só arredonda quando não há vizinho em nenhum dos dois
-// lados que formam aquele canto (ex.: superior esquerdo = nada acima e nada à esquerda).
-// O número de colunas muda com a largura, por isso é calculado aqui e não no CSS.
-const observadorCantosColab = new ResizeObserver(entradas => entradas.forEach(e => arredondarCantosGradeColab(e.target)))
-
-function observarCantosGradeColab(grade) {
-    // A lista é redesenhada inteira: só a grade atual fica observada.
-    observadorCantosColab.disconnect()
-    if (!grade)
-        return
-    arredondarCantosGradeColab(grade)
-    observadorCantosColab.observe(grade)
-}
-
-function arredondarCantosGradeColab(grade) {
-    const itens = [...grade.querySelectorAll(':scope > .colab-item')]
-    if (!itens.length)
-        return
-
-    // Linhas pela posição vertical; a coluna é a posição dentro da linha (grade da esquerda para a direita).
-    const linhas = []
-    for (const item of itens) {
-        const ultima = linhas.at(-1)
-        if (ultima && Math.abs(ultima[0].offsetTop - item.offsetTop) < 2) ultima.push(item)
-        else linhas.push([item])
-    }
-
-    linhas.forEach((linha, l) => {
-        linha.forEach((item, c) => {
-            const acima = !!linhas[l - 1]?.[c]
-            const abaixo = !!linhas[l + 1]?.[c]
-            const esquerda = c > 0
-            const direita = c < linha.length - 1
-
-            item.dataset.cantos = [
-                !acima && !esquerda && 'se',
-                !acima && !direita && 'sd',
-                !abaixo && !esquerda && 'ie',
-                !abaixo && !direita && 'id'
-            ].filter(Boolean).join(' ')
-        })
-    })
+    local.innerHTML = `${cards}${corpo}`
 }
 
 // Cartão da lista: um selo por status das requisições não solucionadas, com a quantidade
@@ -279,6 +266,7 @@ async function atualizarColaboradoresWS() {
         const id = estadoColaboradores.detalhe?.id
         if (id) await atualizarPainelColaborador(id)
         else if (estadoColaboradores.visao == 'andamento') await carregarAndamentoColaboradores()
+        else if (estadoColaboradores.visao == 'relatorio') await carregarRelatorioColaboradores()
         else await carregarListaColaboradores()
     }
 }
@@ -369,6 +357,130 @@ function renderizarAndamentoColaboradores() {
                 </div>
             </div>
             ${cards || '<div class="colab-vazio">Nenhuma requisição em andamento.</div>'}
+        </div>
+    `
+}
+
+// ---------------- Relatório geral (balões do topo) ----------------
+
+async function abrirRelatorioColaboradores(aba = 'ferramentas') {
+    estadoColaboradores.visao = 'relatorio'
+    estadoColaboradores.relatorio.aba = aba
+    const local = document.querySelector('.colab-conteudo')
+    if (local)
+        local.innerHTML = `<div class="colab-vazio"><img src="gifs/loading.gif" alt=""></div>`
+    await carregarRelatorioColaboradores()
+}
+
+async function carregarRelatorioColaboradores() {
+    try {
+        estadoColaboradores.relatorio.dados = await chamarColaboradores('relatorio')
+        renderizarRelatorioColaboradores()
+    } catch (erro) {
+        const local = document.querySelector('.colab-conteudo')
+        if (local) local.innerHTML = `<div class="colab-vazio">${escaparAtributo(erro.message)}</div>`
+    }
+}
+
+function trocarAbaRelatorioColab(aba) {
+    estadoColaboradores.relatorio.aba = aba
+    renderizarRelatorioColaboradores()
+}
+
+function renderizarRelatorioColaboradores() {
+    const local = document.querySelector('.colab-conteudo')
+    const { dados, aba } = estadoColaboradores.relatorio
+    if (!local || !dados || estadoColaboradores.detalhe || estadoColaboradores.visao != 'relatorio')
+        return
+
+    const ferramenta = aba == 'ferramentas'
+    const { totais = {} } = dados
+
+    // A busca do cabeçalho filtra por item (código/descrição) ou por quem tem o item.
+    const busca = estadoColaboradores.busca.trim().toLowerCase()
+    const itens = (dados[aba] || [])
+        .filter(i => !busca || [i.codigo, i.descricao, i.modelo, i.fabricante, ...i.colaboradores.map(c => c.nome)]
+            .join(' ').toLowerCase().includes(busca))
+
+    const total = itens.reduce((s, i) => s + i.valor, 0)
+
+    const resumo = (titulo, t = {}, chave) => `
+        <button type="button" class="colab-card colab-card-acao ${aba == chave ? 'selecionado' : ''}" onclick="trocarAbaRelatorioColab('${chave}')">
+            <span>${titulo}</span><b>${dinheiro(t.valor)}</b>
+            <small>${t.itens || 0} item(ns) · ${numeroColab(t.quantidade)} unidade(s)</small>
+        </button>`
+
+    const linhas = itens.map(i => `
+        <tr>
+            <td><img class="colab-miniatura" src="${i.imagem || logo}" alt="" referrerpolicy="no-referrer" onerror="this.onerror = null; this.src = logo"></td>
+            <td>${escaparAtributo(i.codigo)}</td>
+            <td>
+                <div class="colab-relatorio-descricao">
+                    <span>${escaparAtributo(i.descricao || '')}</span>
+                    ${i.modelo || i.fabricante ? `<small>${escaparAtributo([i.modelo, i.fabricante].filter(Boolean).join(' · '))}</small>` : ''}
+                </div>
+            </td>
+            <td>${escaparAtributo(i.unidade)}</td>
+            <td class="num">${numeroColab(i.entregue)}</td>
+            <td class="num">${numeroColab(i.devolvido)}</td>
+            <td class="num"><b>${numeroColab(i.quantidade)}</b></td>
+            <td class="num">${dinheiro(i.valor)}</td>
+            <td>
+                <div class="colab-relatorio-quem">
+                    ${i.colaboradores.map(c => `
+                        <button type="button" onclick="abrirColaborador('${escaparAtributo(c.id)}')"
+                            title="Abrir a ficha">${escaparAtributo(c.nome || 'Sem cadastro')} · <b>${numeroColab(c.quantidade)}</b></button>
+                    `).join('')}
+                </div>
+            </td>
+        </tr>
+    `).join('')
+
+    local.innerHTML = `
+        <div class="colab-fila">
+            <div class="colab-fila-topo">
+                <button type="button" class="colab-voltar" onclick="voltarListaColaboradores()" title="Voltar para a lista de colaboradores">
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+                        <path d="M19 12H5M11 18l-6-6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Voltar</span>
+                </button>
+                <div>
+                    <h3>Relatório geral</h3>
+                    <small>Todos os colaboradores somados por item. Conta só requisições solucionadas; valor pelo custo da última saída.</small>
+                </div>
+            </div>
+
+            <div class="colab-cards">
+                ${resumo('Ferramentas em mãos', totais.ferramentas, 'ferramentas')}
+                ${resumo('Materiais entregues', totais.materiais, 'materiais')}
+            </div>
+
+            ${itens.length ? `
+                <div class="colab-tabela-rolagem">
+                    <table class="colab-tabela">
+                        <thead>
+                            <tr>
+                                <th></th><th>Código</th><th>Descrição</th><th>Un.</th>
+                                <th class="num">Entregue</th><th class="num">Devolvido</th>
+                                <th class="num">${ferramenta ? 'Em mãos' : 'Líquido'}</th>
+                                <th class="num">Valor</th>
+                                <th>Com quem</th>
+                            </tr>
+                        </thead>
+                        <tbody>${linhas}</tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="7" class="num"><b>Total${busca ? ' (filtrado)' : ''}</b></td>
+                                <td class="num"><b>${dinheiro(total)}</b></td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>`
+            : `<div class="colab-vazio">${busca
+                ? 'Nenhum item com essa busca.'
+                : ferramenta ? 'Nenhuma ferramenta em mãos.' : 'Nenhum material entregue.'}</div>`}
         </div>
     `
 }

@@ -154,12 +154,11 @@ async function validarAcesso(tentouRenovar = false) {
         const dados = await resp.json()
 
         // Mantém o que a validação não devolve (token de renovação, foto, empresa).
+        // A página aberta também passa a usar os dados novos (ex.: permissão alterada),
+        // senão ações como aprovar pagamento seguiriam com a permissão antiga até recarregar.
         const anterior = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
-        localStorage.setItem('acesso', JSON.stringify({
-            ...anterior,
-            ...dados,
-            token
-        }))
+        acesso = { ...anterior, ...dados, token }
+        localStorage.setItem('acesso', JSON.stringify(acesso))
 
         msg({
             tipo: 'validar',
