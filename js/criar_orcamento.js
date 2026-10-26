@@ -12,6 +12,10 @@ function acompanharCabecalhoOrcamento() {
     observadorResumoOrcamento.observe(cabecalho)
 }
 
+// Item avulso (ex.: "1-AVULSO"): criado fora do catálogo, com preço próprio. O código não é uma
+// composição de verdade, então nada aqui busca preço ou histórico dele em dados_composicoes.
+const ehItemAvulso = item => item?.avulso === true || /AVULSO/i.test(String(item?.codigo ?? ''))
+
 const substituicoes = (lpu) => {
     return [
         {
@@ -490,7 +494,21 @@ async function carregarTabelasOrcamento(resposta = 'S') {
         const dados = await pesquisarDB({ base: itensOrcamento, limite: itensOrcamento.length, pagina: 1, filtros: {}, substituicoes: substituicoes(lpuATIVA) })
         if (!Array.isArray(dados?.resultados) || dados.resultados.length !== itensOrcamento.length)
             throw new Error('Falha ao atualizar os precos do orcamento.')
-        itensOrcamento = dados.resultados
+
+        // Avulsos mantêm o preço do orçamento: se houver no catálogo uma composição com o
+        // mesmo código (ex.: "1-AVULSO"), o preço dela não pode substituir o do item.
+        const originais = new Map(itensOrcamento.map(item => [String(item.codigo), item]))
+        itensOrcamento = dados.resultados.map(item => {
+            const original = originais.get(String(item.codigo))
+            if (!original) return item
+
+            if (ehItemAvulso(original)) return original
+            if (!item.agrupamento) return item
+
+            const agrupamento = Object.fromEntries(Object.entries(item.agrupamento || {})
+                .map(([codigo, filho]) => [codigo, ehItemAvulso(filho) ? original.agrupamento?.[codigo] || filho : filho]))
+            return { ...item, agrupamento }
+        })
     }
     const pag = 'criarOrcamento'
     const tabelaOrcamento = await modTab({
@@ -655,7 +673,9 @@ function carregarLinhaOrcamento(produto) {
 
             <div style="${horizontal}; justify-content: start; gap: 1rem;">
                 ${editavel ? `<img onclick="alterarValorUnitario('${chave}', 'unitario')" src="imagens/ajustar.png" style="width: 1.5rem;">` : ''}
-                <span name="unitario" onclick="abrirHistoricoPrecos('${codigo}', '${lpuATIVA}')" class="valor-orcamento">${dinheiro(custo || '')}</span>
+                ${ehItemAvulso(produto)
+                ? `<span name="unitario" class="valor-orcamento" title="Item avulso: preço próprio do orçamento, sem histórico no catálogo">${dinheiro(custo || '')}</span>`
+                : `<span name="unitario" onclick="abrirHistoricoPrecos('${codigo}', '${lpuATIVA}')" class="valor-orcamento">${dinheiro(custo || '')}</span>`}
             </div>
 
             <div style="${horizontal}; justify-content: start; gap: 1rem;">
@@ -1426,12 +1446,20 @@ async function alterarValorUnitario(chave, campo) {
         ? chave.split('_')
         : [chave, null]
 
-    const produto = await recuperarDado('dados_composicoes', codigoSlave || codigoMaster) || {}
+    const { esquema_composicoes } = baseOrcamento()
+    const itemOrcamento = codigoSlave
+        ? esquema_composicoes[codigoMaster]?.agrupamento?.[codigoSlave]
+        : esquema_composicoes[codigoMaster]
+    const avulso = ehItemAvulso(itemOrcamento)
+
+    // Avulso não tem preço de catálogo: o "original" é o preço com que ele entrou no orçamento.
+    const produto = avulso ? { descricao: itemOrcamento.descricao } : await recuperarDado('dados_composicoes', codigoSlave || codigoMaster) || {}
     const lpu = String(document.getElementById('lpu').value).toLowerCase()
     const ativo = produto?.[lpu]?.ativo || 0
     const historico = produto?.[lpu]?.historico || {}
-    const precoOriginal = historico?.[ativo]?.valor || 0
-    const { esquema_composicoes } = baseOrcamento()
+    const precoOriginal = avulso
+        ? Number(itemOrcamento.custo_original ?? itemOrcamento.custo) || 0
+        : historico?.[ativo]?.valor || 0
     const qtde = codigoSlave
         ? esquema_composicoes[codigoMaster].agrupamento[codigoSlave].qtde
         : esquema_composicoes[codigoMaster].qtde
