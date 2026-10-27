@@ -362,14 +362,16 @@ function clonarOrcamento() {
 
     try {
 
+        // Lista pela mvw_dados_orcamentos, que tem cliente/cidade/total (os snapshots de
+        // dados_orcamentos não têm); a clonagem continua lendo o orçamento completo pelo id.
         controlesCxOpcoes.orcamento = {
-            base: 'dados_orcamentos',
+            base: 'mvw_dados_orcamentos',
             retornar: ['dados_orcam.contrato'],
             colunas: {
                 'Número do Orçamento': { chave: 'dados_orcam.contrato' },
-                'Valor': { chave: 'snapshots.valor.1' },
-                'Cidade': { chave: 'snapshots.cidade' },
-                'Cliente': { chave: 'snapshots.cliente' }
+                'Valor': { chave: 'total_geral' },
+                'Cidade': { chave: 'cidade' },
+                'Cliente': { chave: 'cliente' }
             }
         }
 

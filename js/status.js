@@ -502,13 +502,16 @@ async function vincularOrcamento(contratoSlave) {
 
     overlayAguarde()
 
+    // mvw_dados_orcamentos (a mesma da tela de orçamentos) já traz cliente, cidade e responsáveis;
+    // dados_orcamentos não tem esses campos em snapshots, e as linhas vinham em branco.
     controlesCxOpcoes.orcamento = {
-        base: 'dados_orcamentos',
+        base: 'mvw_dados_orcamentos',
         retornar: ['dados_orcam.contrato'],
         colunas: {
-            'Orçamento': { chave: 'snapshots.contrato' },
-            'Cidade': { chave: 'snapshots.cidade' },
-            'Responsáveis': { chave: 'snapshots.responsavel' }
+            'Orçamento': { chave: 'dados_orcam.contrato' },
+            'Cliente': { chave: 'cliente' },
+            'Cidade': { chave: 'cidade' },
+            'Responsáveis': { chave: 'responsaveis' }
         }
     }
 
