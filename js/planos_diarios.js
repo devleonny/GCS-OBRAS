@@ -33,7 +33,7 @@ function carregarBibliotecasDiario() {
 async function telaPlanosDiarios() {
     if (acesso.permissao === 'cliente') return popup({ mensagem: 'Acesso restrito à equipe.' })
     try {
-        if (estadoPlanoDiario.alterado && !confirm('Há alterações sem salvar. Deseja descartá-las?')) return
+        if (estadoPlanoDiario.alterado && !(await confirmarPopup({ mensagem: 'Há alterações sem salvar. Deseja descartá-las?', textoConfirmar: 'Descartar alterações' }))) return
         estadoPlanoDiario.alterado = false
         const { planos } = await apiPlanoDiario('lista')
         tela.innerHTML = `<div class="planos-diarios">
@@ -56,7 +56,7 @@ async function telaPlanosDiarios() {
 
 async function abrirPlanoDiario(id) {
     if (estadoPlanoDiario.carregando || estadoPlanoDiario.renderizando) return
-    if (estadoPlanoDiario.alterado && !confirm('Há alterações sem salvar. Deseja descartá-las?')) {
+    if (estadoPlanoDiario.alterado && !(await confirmarPopup({ mensagem: 'Há alterações sem salvar. Deseja descartá-las?', textoConfirmar: 'Descartar alterações' }))) {
         document.getElementById('planoDiarioEscolha').value = estadoPlanoDiario.plano?.id || ''
         return
     }
@@ -83,7 +83,7 @@ async function selecionarDataPlanoDiario(data, origem = false) {
         if (campo) campo.value = estado.data
         return popup({ mensagem: `Selecione uma data a partir de ${dataPlanoDiario(estado.plano.inicio)}.` })
     }
-    if (estado.alterado && !confirm('Há alterações sem salvar. Deseja descartá-las?')) { if (campo) campo.value = estado.data; return }
+    if (estado.alterado && !(await confirmarPopup({ mensagem: 'Há alterações sem salvar. Deseja descartá-las?', textoConfirmar: 'Descartar alterações' }))) { if (campo) campo.value = estado.data; return }
     estado.data = data; estado.origem = origem; estado.alterado = false
     await renderizarPlanoDiario()
 }
@@ -123,10 +123,10 @@ async function renderizarPlanoDiario() {
         const [arquivo] = await Promise.all([apiPlanoDiario('visualizar', { plano: e.plano.id, data: e.data, origem: e.origem }, true), carregarBibliotecasDiario()])
         if (sequencia !== e.sequencia || !local.isConnected) return
         const frame = document.createElement('iframe')
-        frame.id = 'documentoPlanoDiario'; frame.title = 'Checklist'; frame.setAttribute('sandbox', 'allow-same-origin')
+        frame.id = 'documentoPlanoDiario'; frame.title = 'Checklist'; frame.setAttribute('sandbox', 'allow-same-origin allow-scripts')
         const pronto = new Promise(resolve => frame.addEventListener('load', resolve, { once: true }))
         frame.srcdoc = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
-            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; font-src data: blob:">
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; font-src data: blob:; connect-src 'none'; form-action 'none'; base-uri 'none'">
             <style>html,body{margin:0;background:#fff;}
             input{font:inherit;color:inherit;text-align:inherit;box-sizing:border-box;background:transparent;border:0;border-radius:0;margin:0;padding:0;width:100%;min-width:0;outline:0;}
             input:focus{outline:1px solid #96b6a5;outline-offset:2px;}input[type=number]{appearance:textfield;-moz-appearance:textfield;}input::-webkit-inner-spin-button,input::-webkit-outer-spin-button{appearance:none;margin:0;}input[type=date]{font-size:inherit;}
@@ -204,7 +204,7 @@ function prepararCamposDocumentoDiario(doc) {
             { min: 0, max: a.previsto, step: '0.001', 'data-atividade': a.id, 'aria-label': `${tabelas[1].rows[0].cells[5].textContent}: ${descricao}` })
         return { ...a, descricao, linha }
     })
-    e.destaques = [...doc.querySelectorAll('p')].filter(p => /^(Eletrocalha\s*-|Cabo\s*–|Instalação Câmeras\s*–)/.test(p.textContent.trim()))
+    e.graficoResumo = [...doc.images].at(-3)
     e.grafico = [...doc.images].at(-2)
     e.graficoGeral = [...doc.images].at(-1)
     atualizarNumerosPlanoDiario()
@@ -234,16 +234,18 @@ function atualizarNumerosPlanoDiario() {
         textoCelulaDiario(a.linha.cells[6], `${numeroPlanoDiario(percentual)}%`)
         return { ...a, percentual }
     })
-    for (const p of e.destaques || []) {
-        const id = p.textContent.trim().startsWith('Eletrocalha') ? '10' : p.textContent.trim().startsWith('Cabo') ? '8' : '7'
-        const item = itens.find(a => a.id === id)
-        if (item) textoCelulaDiario(p, p.textContent.replace(/([–-])\s*[\d.,]+%/, `$1${numeroPlanoDiario(item.percentual)}%`))
-    }
     if (e.alterado && e.grafico) {
-        const altura = 65 + itens.length * 49
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="${altura}" viewBox="0 0 1100 ${altura}"><rect width="1100" height="${altura}" fill="white"/>
+        const svgAtividades = itens => {
+            const altura = 65 + itens.length * 49
+            return `<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="${altura}" viewBox="0 0 1100 ${altura}"><rect width="1100" height="${altura}" fill="white"/>
             ${itens.map((a, i) => `<text x="20" y="${67 + i * 49}" font-family="Arial" font-size="15">${escaparAtributo(a.descricao)}</text><rect x="510" y="${49 + i * 49}" width="480" height="24" rx="4" fill="#e6eee9"/><rect x="510" y="${49 + i * 49}" width="${Math.max(0, Math.min(100, a.percentual)) * 4.8}" height="24" rx="4" fill="#269368"/><text x="1000" y="${67 + i * 49}" font-family="Arial" font-size="16">${numeroPlanoDiario(a.percentual)}%</text>`).join('')}</svg>`
-        e.grafico.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+        }
+        e.grafico.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgAtividades(itens))}`
+        if (e.graficoResumo) {
+            const resumo = [['10', 'Eletrocalha'], ['8', 'Cabo'], ['7', 'Instalação Câmeras']]
+                .map(([id, descricao]) => ({ ...itens.find(a => a.id === id), descricao }))
+            e.graficoResumo.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgAtividades(resumo))}`
+        }
         if (e.graficoGeral) {
             const validos = itens.filter(a => Number(a.previsto) > 0 && Number.isFinite(a.percentual))
             const geral = validos.length ? validos.reduce((s, a) => s + Math.max(0, Math.min(100, a.percentual)), 0) / validos.length : 0
@@ -286,7 +288,7 @@ async function excluirDiaPlanoDiario() {
     const e = estadoPlanoDiario
     const dia = e.dias.find(d => d.data_ref === e.data)
     if (e.carregando || e.renderizando || e.origem || !dia) return
-    if (!confirm(`Excluir o checklist de ${dataPlanoDiario(e.data)}? Os acumulados dos dias seguintes serão recalculados.`)) return
+    if (!(await confirmarPopup({ titulo: 'Excluir checklist do dia', mensagem: `Excluir o checklist de ${dataPlanoDiario(e.data)}? Os acumulados dos dias seguintes serão recalculados.`, textoConfirmar: 'Excluir' }))) return
     e.carregando = true; controlesDocumentoDiario()
     try {
         await apiPlanoDiario('excluir', { plano: e.plano.id, data: e.data, versao: dia.versao })

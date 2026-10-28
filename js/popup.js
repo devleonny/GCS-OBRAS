@@ -1,6 +1,30 @@
 let autoDestruicaoGlobal = {}
 let configPopupGlobal = {}
 
+function confirmarPopup({ mensagem, titulo = 'Confirmar', textoConfirmar = 'Confirmar' }) {
+    return new Promise(resolve => {
+        const chave = crypto.randomUUID()
+        const id = popup({
+            titulo, mensagem,
+            botoes: [
+                { id: `cancelar-${chave}`, texto: 'Cancelar', img: 'cancel' },
+                { id: `confirmar-${chave}`, texto: textoConfirmar }
+            ]
+        })
+        const observador = new MutationObserver(() => {
+            if (!document.getElementById(id)) finalizar(false)
+        })
+        function finalizar(confirmado) {
+            observador.disconnect()
+            removerPopup(id)
+            resolve(confirmado)
+        }
+        document.getElementById(`cancelar-${chave}`).addEventListener('click', () => finalizar(false), { once: true })
+        document.getElementById(`confirmar-${chave}`).addEventListener('click', () => finalizar(true), { once: true })
+        observador.observe(document.body, { childList: true })
+    })
+}
+
 function popup({
     tempo = null,
     autoDestruicao = [],
