@@ -11,10 +11,12 @@
 .diario-dia { background: #fff; color: #286541; border: 1px solid #c4dccb; border-radius: 5px; padding: 7px 10px; cursor: pointer; }
 .diario-dia span { color: #14863b; font-weight: bold; }
 .diario-dia.selecionado { border-color: #14863b; }
+.diario-origem { font-weight: 600; }
+#excluirPlanoDiario { color: #9c2b28; border-color: #dbb6b4; }
 .diario-folha { width: 100%; overflow-x: auto; background: #fff; }
 #documentoPlanoDiario { display: block; width: 100%; min-width: 816px; border: 0; background: #fff; }
 .diario-carregando { text-align: center; padding: 60px; }
-.diario-carregando img { width: 40px; }
+.diario-carregando img { width: 5rem; }
 .diario-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .side-menu .menu-item.menu-especial { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #ffffff32; }
 .menu-etiqueta-especial { font-size: 10px; font-weight: 500; padding: 2px 7px; border: 1px solid #ffffff4d; border-radius: 4px; margin-left: auto; color: #e1ebe5; }

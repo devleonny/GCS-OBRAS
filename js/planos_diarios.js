@@ -1,4 +1,4 @@
-const estadoPlanoDiario = { plano: null, dias: [], data: '', alterado: false, carregando: false, renderizando: false, sequencia: 0 }
+const estadoPlanoDiario = { plano: null, dias: [], data: '', origem: false, alterado: false, carregando: false, renderizando: false, sequencia: 0 }
 const numeroPlanoDiario = n => Number(n || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 })
 const dataPlanoDiario = data => data.split('-').reverse().join('/')
 let bibliotecasDocumentoDiario
@@ -42,7 +42,8 @@ async function telaPlanosDiarios() {
                 ${planos.map(p => `<option value="${escaparAtributo(p.id)}">${escaparAtributo(p.titulo)}</option>`).join('')}</select></label>
                 <div class="diario-acoes"><button id="botaoSalvarPlanoDiario" onclick="salvarPlanoDiario()" disabled>Salvar</button>
                 <button id="baixarPlanoDiario" onclick="baixarWordPlanoDiario()" disabled>Baixar Word</button>
-                <button id="baixarPdfPlanoDiario" onclick="baixarWordPlanoDiario('pdf')" disabled>Baixar PDF</button></div>
+                <button id="baixarPdfPlanoDiario" onclick="baixarWordPlanoDiario('pdf')" disabled>Baixar PDF</button>
+                <button id="excluirPlanoDiario" onclick="excluirDiaPlanoDiario()" hidden>Excluir dia</button></div>
             </header><div id="diasPlanoDiario" class="diario-dias"></div>
             <div id="statusPlanoDiario" class="diario-status" role="status" aria-live="polite"></div>
             <div id="planoDiarioConteudo"></div></div>`
@@ -68,13 +69,13 @@ async function abrirPlanoDiario(id) {
     try {
         const dados = await apiPlanoDiario('detalhe', { plano: id })
         Object.assign(estadoPlanoDiario, dados, { alterado: false })
-        const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
-        estadoPlanoDiario.data = hoje < dados.plano.inicio ? dados.plano.inicio : hoje
+        estadoPlanoDiario.origem = true
+        estadoPlanoDiario.data = dados.plano.inicio
         await renderizarPlanoDiario()
     } catch (e) { popup({ mensagem: e.message }) }
 }
 
-async function selecionarDataPlanoDiario(data) {
+async function selecionarDataPlanoDiario(data, origem = false) {
     const estado = estadoPlanoDiario
     const campo = estado.documento?.getElementById('dataPlanoDiario')
     if (estado.carregando || estado.renderizando) { if (campo) campo.value = estado.data; return }
@@ -83,7 +84,7 @@ async function selecionarDataPlanoDiario(data) {
         return popup({ mensagem: `Selecione uma data a partir de ${dataPlanoDiario(estado.plano.inicio)}.` })
     }
     if (estado.alterado && !confirm('Há alterações sem salvar. Deseja descartá-las?')) { if (campo) campo.value = estado.data; return }
-    estado.data = data; estado.alterado = false
+    estado.data = data; estado.origem = origem; estado.alterado = false
     await renderizarPlanoDiario()
 }
 
@@ -92,13 +93,19 @@ function controlesDocumentoDiario() {
     const ocupado = e.carregando || e.renderizando
     const salvar = document.getElementById('botaoSalvarPlanoDiario')
     const baixar = document.getElementById('baixarPlanoDiario')
-    if (salvar) salvar.disabled = ocupado || !e.plano || !e.documento
-    if (baixar) baixar.disabled = ocupado || e.alterado || !e.plano || !e.dias.some(d => d.data_ref === e.data)
+    if (salvar) salvar.disabled = ocupado || e.origem || !e.plano || !e.documento
+    if (baixar) baixar.disabled = ocupado || e.alterado || !e.plano || (!e.origem && !e.dias.some(d => d.data_ref === e.data))
+    const excluir = document.getElementById('excluirPlanoDiario')
+    if (excluir) {
+        excluir.hidden = e.origem || !e.plano || !e.dias.some(d => d.data_ref === e.data)
+        excluir.disabled = ocupado
+    }
     const pdf = document.getElementById('baixarPdfPlanoDiario')
     if (pdf) pdf.disabled = baixar?.disabled ?? true
     const seletor = document.getElementById('planoDiarioEscolha')
     if (seletor) seletor.disabled = ocupado
-    e.documento?.querySelectorAll('input').forEach(el => { el.disabled = ocupado })
+    e.documento?.querySelectorAll('input').forEach(el => { el.disabled = ocupado; el.readOnly = e.origem && el.type !== 'date' })
+    document.querySelectorAll('#diasPlanoDiario button').forEach(el => { el.disabled = ocupado })
 }
 
 async function renderizarPlanoDiario() {
@@ -109,10 +116,11 @@ async function renderizarPlanoDiario() {
     controlesDocumentoDiario()
     const local = document.getElementById('planoDiarioConteudo')
     local.innerHTML = '<div class="diario-carregando"><img src="gifs/loading.gif" alt="Carregando"></div>'
-    document.getElementById('diasPlanoDiario').innerHTML = e.dias.slice().sort((a, b) => a.data_ref.localeCompare(b.data_ref)).map(d =>
-        `<button type="button" class="diario-dia ${d.data_ref === e.data ? 'selecionado' : ''}" onclick="selecionarDataPlanoDiario('${d.data_ref}')"><span aria-label="Preenchido">✓</span> ${dataPlanoDiario(d.data_ref)}</button>`).join('')
+    document.getElementById('diasPlanoDiario').innerHTML = `<button type="button" class="diario-dia diario-origem ${e.origem ? 'selecionado' : ''}" onclick="selecionarDataPlanoDiario('${e.plano.inicio}', true)">Origem</button>`
+        + e.dias.slice().sort((a, b) => a.data_ref.localeCompare(b.data_ref)).map(d =>
+        `<button type="button" class="diario-dia ${!e.origem && d.data_ref === e.data ? 'selecionado' : ''}" onclick="selecionarDataPlanoDiario('${d.data_ref}')"><span aria-label="Preenchido">✓</span> ${dataPlanoDiario(d.data_ref)}</button>`).join('')
     try {
-        const [arquivo] = await Promise.all([apiPlanoDiario('visualizar', { plano: e.plano.id, data: e.data }, true), carregarBibliotecasDiario()])
+        const [arquivo] = await Promise.all([apiPlanoDiario('visualizar', { plano: e.plano.id, data: e.data, origem: e.origem }, true), carregarBibliotecasDiario()])
         if (sequencia !== e.sequencia || !local.isConnected) return
         const frame = document.createElement('iframe')
         frame.id = 'documentoPlanoDiario'; frame.title = 'Checklist'; frame.setAttribute('sandbox', 'allow-same-origin')
@@ -166,9 +174,9 @@ function prepararCamposDocumentoDiario(doc) {
     const tabelas = doc.querySelectorAll('table')
     if (tabelas.length < 2) throw new Error('O modelo não contém as tabelas esperadas.')
     const gerais = tabelas[0].rows
-    const salvo = e.dias.find(d => d.data_ref === e.data)
+    const salvo = e.origem ? null : e.dias.find(d => d.data_ref === e.data)
     const anteriores = e.dias.filter(d => d.data_ref < e.data).sort((a, b) => a.data_ref.localeCompare(b.data_ref))
-    const dados = salvo?.dados || anteriores.at(-1)?.dados || e.plano
+    const dados = e.origem ? e.plano : salvo?.dados || anteriores.at(-1)?.dados || e.plano
     const campo = (celula, id, tipo, valor, atributos = {}) => {
         const formato = doc.defaultView.getComputedStyle(celula.querySelector('span') || celula)
         const input = doc.createElement('input')
@@ -197,7 +205,8 @@ function prepararCamposDocumentoDiario(doc) {
         return { ...a, descricao, linha }
     })
     e.destaques = [...doc.querySelectorAll('p')].filter(p => /^(Eletrocalha\s*-|Cabo\s*–|Instalação Câmeras\s*–)/.test(p.textContent.trim()))
-    e.grafico = [...doc.images].at(-1)
+    e.grafico = [...doc.images].at(-2)
+    e.graficoGeral = [...doc.images].at(-1)
     atualizarNumerosPlanoDiario()
 }
 
@@ -218,9 +227,9 @@ function atualizarNumerosPlanoDiario() {
     if (!e.documento || !e.linhas) return
     const dados = lerPlanoDiario()
     const itens = e.linhas.map(a => {
-        const acumulado = Math.round((Number(a.inicial || 0) + e.dias.filter(d => d.data_ref < e.data)
+        const acumulado = Math.round((Number(a.inicial || 0) + (e.origem ? [] : e.dias).filter(d => d.data_ref < e.data)
             .reduce((s, d) => s + Number(d.dados.executado[a.id] || 0), 0) + dados.executado[a.id]) * 1000) / 1000
-        const percentual = a.previsto > 0 ? acumulado / a.previsto * 100 : 0
+        const percentual = !e.origem && a.previsto > 0 ? acumulado / a.previsto * 100 : 0
         textoCelulaDiario(a.linha.cells[4], numeroPlanoDiario(acumulado))
         textoCelulaDiario(a.linha.cells[6], `${numeroPlanoDiario(percentual)}%`)
         return { ...a, percentual }
@@ -235,13 +244,19 @@ function atualizarNumerosPlanoDiario() {
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="${altura}" viewBox="0 0 1100 ${altura}"><rect width="1100" height="${altura}" fill="white"/>
             ${itens.map((a, i) => `<text x="20" y="${67 + i * 49}" font-family="Arial" font-size="15">${escaparAtributo(a.descricao)}</text><rect x="510" y="${49 + i * 49}" width="480" height="24" rx="4" fill="#e6eee9"/><rect x="510" y="${49 + i * 49}" width="${Math.max(0, Math.min(100, a.percentual)) * 4.8}" height="24" rx="4" fill="#269368"/><text x="1000" y="${67 + i * 49}" font-family="Arial" font-size="16">${numeroPlanoDiario(a.percentual)}%</text>`).join('')}</svg>`
         e.grafico.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+        if (e.graficoGeral) {
+            const validos = itens.filter(a => Number(a.previsto) > 0 && Number.isFinite(a.percentual))
+            const geral = validos.length ? validos.reduce((s, a) => s + Math.max(0, Math.min(100, a.percentual)), 0) / validos.length : 0
+            const svgGeral = `<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="310" viewBox="0 0 1100 310"><rect width="1100" height="310" fill="white"/><circle cx="170" cy="155" r="100" fill="none" stroke="#e6eee9" stroke-width="30"/><circle cx="170" cy="155" r="100" fill="none" stroke="#269368" stroke-width="30" stroke-dasharray="${geral * Math.PI * 2} ${200 * Math.PI}" transform="rotate(-90 170 155)"/><text x="350" y="90" font-family="Arial" font-size="28" fill="#193c32">Andamento geral</text><text x="350" y="155" font-family="Arial" font-size="52" fill="#269368">${numeroPlanoDiario(geral)}%</text><text x="350" y="200" font-family="Arial" font-size="20" fill="#52685b">Média dos percentuais das atividades</text><text x="350" y="240" font-family="Arial" font-size="20" fill="#52685b">Restante: ${numeroPlanoDiario(100 - geral)}%</text></svg>`
+            e.graficoGeral.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgGeral)}`
+        }
     }
     controlesDocumentoDiario()
 }
 
 async function salvarPlanoDiario() {
     const e = estadoPlanoDiario
-    if (e.carregando || e.renderizando || !e.documento) return
+    if (e.carregando || e.renderizando || e.origem || !e.documento) return
     for (const input of e.documento.querySelectorAll('input')) if (!input.reportValidity()) return
     e.carregando = true; controlesDocumentoDiario()
     try {
@@ -258,11 +273,26 @@ async function baixarWordPlanoDiario(formato = 'word') {
     if (e.alterado || e.carregando || e.renderizando) return
     e.carregando = true; controlesDocumentoDiario()
     try {
-        const blob = await apiPlanoDiario(formato, { plano: e.plano.id, data: e.data }, true)
+        const blob = await apiPlanoDiario(formato, { plano: e.plano.id, data: e.data, origem: e.origem }, true)
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
-        link.href = url; link.download = `Diario-${e.data}.${formato === 'pdf' ? 'pdf' : 'docx'}`; link.click()
+        link.href = url; link.download = `Diario-${e.origem ? 'Origem' : e.data}.${formato === 'pdf' ? 'pdf' : 'docx'}`; link.click()
         setTimeout(() => URL.revokeObjectURL(url), 10000)
+    } catch (err) { popup({ mensagem: err.message }) }
+    finally { e.carregando = false; controlesDocumentoDiario() }
+}
+
+async function excluirDiaPlanoDiario() {
+    const e = estadoPlanoDiario
+    const dia = e.dias.find(d => d.data_ref === e.data)
+    if (e.carregando || e.renderizando || e.origem || !dia) return
+    if (!confirm(`Excluir o checklist de ${dataPlanoDiario(e.data)}? Os acumulados dos dias seguintes serão recalculados.`)) return
+    e.carregando = true; controlesDocumentoDiario()
+    try {
+        await apiPlanoDiario('excluir', { plano: e.plano.id, data: e.data, versao: dia.versao })
+        Object.assign(e, await apiPlanoDiario('detalhe', { plano: e.plano.id }), { alterado: false })
+        await renderizarPlanoDiario()
+        document.getElementById('statusPlanoDiario').textContent = 'Dia excluído.'
     } catch (err) { popup({ mensagem: err.message }) }
     finally { e.carregando = false; controlesDocumentoDiario() }
 }
