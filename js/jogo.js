@@ -37,6 +37,29 @@ let canvasJogo = null
 let ctxJogo = null
 let animationId = null
 let rota = null
+let medalhaHoverRota = -1
+
+function moverSobreMedalhasRota(evento) {
+    let indice = -1
+    if (canvasJogo && rota?.estado !== 'jogando' && placarRota?.ranking?.length) {
+        const r = canvasJogo.getBoundingClientRect()
+        const x = (evento.clientX - r.left) * ROTA.largura / r.width
+        const y = (evento.clientY - r.top) * ROTA.altura / r.height
+        const total = Math.min(3, placarRota.ranking.length)
+        const largura = medalhaHoverRota >= 0 ? 180 : 40
+        if (x >= ROTA.largura - largura - 12 && x <= ROTA.largura - 12 && y >= 32 && y <= 48 + total * 28) indice = 0
+    }
+    if (indice !== medalhaHoverRota) {
+        medalhaHoverRota = indice
+        if (rota && ctxJogo && rota.estado !== 'jogando') desenharRota()
+    }
+}
+
+function sairDasMedalhasRota() {
+    if (medalhaHoverRota === -1) return
+    medalhaHoverRota = -1
+    if (rota && ctxJogo && rota.estado !== 'jogando') desenharRota()
+}
 
 const van = { x: 64, y: 0, largura: 58, altura: 30, vy: 0, noChao: true, giroRoda: 0 }
 
@@ -141,6 +164,7 @@ function soltarRota() {
 }
 
 function comecarRota() {
+    medalhaHoverRota = -1
     cancelAnimationFrame(animationId)
     const recorde = rota?.recorde ?? lerRecordeRota()
     rota = novoCenarioRota()
@@ -606,78 +630,51 @@ function placaTituloRota(ctx, texto, centroX, topo) {
     return topo + h
 }
 
-// Com o ranking à direita, os painéis centrais andam para a esquerda.
-function rankingVisivelRota() {
-    return rota?.estado !== 'jogando' && placarRota?.ranking?.length > 0
-}
-
-function nomeCurtoRota(ctx, nome, larguraMax) {
-    const partes = String(nome || '').trim().split(/\s+/)
-    let texto = partes.length > 1 ? `${partes[0]} ${partes[partes.length - 1][0]}.` : partes[0] || '—'
-    while (texto.length > 1 && ctx.measureText(texto).width > larguraMax) texto = texto.slice(0, -2) + '…'
-    return texto
-}
-
-function desenharRankingRota(ctx) {
-    if (!rankingVisivelRota()) return
-    const LINHAS = 5, ALTURA_LINHA = 14
-    const { ranking, pessoal, usuario } = placarRota
-    const top = ranking.slice(0, LINHAS)
-    const estouNoTop = top.some(r => r.usuario === usuario)
-    const mostrarEu = !estouNoTop && pessoal?.posicao
-    const x = 436, y = 32, w = 172
-    const h = 24 + top.length * ALTURA_LINHA + (mostrarEu ? ALTURA_LINHA + 4 : 0)
-
+// Medalhas sem listagem de nomes ou pontos.
+function desenharMedalhasRota(ctx) {
+    if (rota?.estado === 'jogando' || !placarRota?.ranking?.length) return
+    const medalhas = placarRota.ranking.slice(0, 3)
+    const cores = ['#d4a017', '#94a3b8', '#b45309']
+    const expandido = medalhaHoverRota >= 0
+    const w = expandido ? 180 : 40, x = ROTA.largura - w - 12, y = 32
     ctx.save()
     ctx.fillStyle = 'rgba(255, 255, 255, 0.93)'
-    ctx.strokeStyle = '#cbd5e1'
-    ctx.lineWidth = 1
-    retanguloArredondado(ctx, x, y, w, h, 10)
+    ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1
+    retanguloArredondado(ctx, x, y, w, 16 + medalhas.length * 28, 10)
     ctx.fill(); ctx.stroke()
-
-    ctx.fillStyle = '#15803d'
-    ctx.font = 'bold 11px Arial'
-    ctx.textAlign = 'left'
-    ctx.fillText('RANKING GERAL', x + 10, y + 16)
-
-    const linha = (r, posicao, ly, destaque) => {
-        if (destaque) {
-            ctx.fillStyle = '#dcfce7'
-            retanguloArredondado(ctx, x + 5, ly - 10, w - 10, ALTURA_LINHA, 4)
-            ctx.fill()
-        }
-        const corMedalha = ['#d4a017', '#94a3b8', '#b45309'][posicao - 1]
-        ctx.fillStyle = corMedalha || '#e2e8f0'
-        ctx.beginPath(); ctx.arc(x + 16, ly - 3, 5.5, 0, Math.PI * 2); ctx.fill()
-        ctx.fillStyle = corMedalha ? '#ffffff' : '#475569'
-        ctx.font = 'bold 8px Arial'
-        ctx.textAlign = 'center'
-        ctx.fillText(String(posicao), x + 16, ly)
-
-        ctx.textAlign = 'left'
-        ctx.font = destaque ? 'bold 11px Arial' : '11px Arial'
-        ctx.fillStyle = '#1e293b'
-        ctx.fillText(nomeCurtoRota(ctx, destaque && !estouNoTop ? 'Você' : r.nome, 96), x + 27, ly)
-
-        ctx.textAlign = 'right'
-        ctx.font = 'bold 11px Arial'
+    medalhas.forEach((pessoa, i) => {
+        const mx = x + 20, my = y + 22 + i * 28
         ctx.fillStyle = '#15803d'
-        ctx.fillText(String(r.recorde), x + w - 10, ly)
-    }
-
-    top.forEach((r, i) => linha(r, i + 1, y + 34 + i * ALTURA_LINHA, r.usuario === usuario))
-
-    if (mostrarEu) {
-        const ly = y + 38 + top.length * ALTURA_LINHA
-        ctx.strokeStyle = '#e2e8f0'
-        ctx.beginPath(); ctx.moveTo(x + 10, ly - 13); ctx.lineTo(x + w - 10, ly - 13); ctx.stroke()
-        linha({ nome: 'Você', recorde: pessoal.recorde }, pessoal.posicao, ly, true)
-    }
+        ctx.beginPath()
+        ctx.moveTo(mx - 7, my - 12); ctx.lineTo(mx - 2, my)
+        ctx.lineTo(mx + 3, my); ctx.lineTo(mx - 2, my - 12); ctx.fill()
+        ctx.fillStyle = '#86efac'
+        ctx.beginPath()
+        ctx.moveTo(mx + 2, my - 12); ctx.lineTo(mx - 3, my)
+        ctx.lineTo(mx + 2, my); ctx.lineTo(mx + 7, my - 12); ctx.fill()
+        ctx.fillStyle = cores[i]
+        ctx.beginPath(); ctx.arc(mx, my, 8, 0, Math.PI * 2); ctx.fill()
+        ctx.strokeStyle = pessoa.usuario === placarRota.usuario ? '#15803d' : '#ffffffaa'
+        ctx.lineWidth = 1.5; ctx.stroke()
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 9px Arial'; ctx.textAlign = 'center'
+        ctx.fillText(String(i + 1), mx, my + 3)
+        if (expandido) {
+            ctx.font = pessoa.usuario === placarRota.usuario ? 'bold 11px Arial' : '11px Arial'
+            let nome = String(pessoa.nome || pessoa.usuario || '').trim().split(/\s+/)[0]
+            const pontos = String(pessoa.recorde ?? 0)
+            const larguraNome = Math.max(20, w - 56 - ctx.measureText(pontos).width)
+            while (nome.length > 1 && ctx.measureText(nome).width > larguraNome) nome = nome.slice(0, -2) + '…'
+            ctx.fillStyle = '#1e293b'; ctx.textAlign = 'left'
+            ctx.fillText(nome, x + 36, my + 4)
+            ctx.font = 'bold 11px Arial'; ctx.fillStyle = '#15803d'; ctx.textAlign = 'right'
+            ctx.fillText(pontos, x + w - 10, my + 4)
+        }
+    })
     ctx.restore()
 }
 
 function painelRota(ctx, titulo, linhas, { logo = false } = {}) {
-    const centro = rankingVisivelRota() ? 220 : ROTA.largura / 2
+    const centro = medalhaHoverRota >= 0 ? 220 : ROTA.largura / 2
 
     if (logo) {
         // Placa no alto e um balão separado com as instruções (tudo acima da van)
@@ -753,15 +750,14 @@ function desenharRota() {
         ], { logo: true })
 
     if (rota.estado === 'fim') {
-        const posicao = placarRota?.pessoal?.posicao
         painelRota(ctx, rota.novoRecorde ? 'Novo recorde!' : 'Rota encerrada!', [
             `${Math.floor(rota.pontos)} pontos · ${rota.chamados} chamado${rota.chamados === 1 ? '' : 's'} atendido${rota.chamados === 1 ? '' : 's'}`,
-            posicao ? `Seu recorde: ${placarRota.pessoal.recorde} · ${posicao}º no ranking` : `Seu recorde: ${Math.floor(rota.recorde)}`,
+            `Seu recorde: ${Math.floor(rota.recorde)}`,
             'Toque ou espaço para sair de novo'
         ])
     }
 
-    desenharRankingRota(ctx)
+    desenharMedalhasRota(ctx)
 }
 
 function quadroRota(agora) {
@@ -801,12 +797,15 @@ function tocarJogo(evento) {
 }
 
 function limparJogo() {
+    medalhaHoverRota = -1
     cancelAnimationFrame(animationId)
 
     if (canvasJogo) {
         canvasJogo.removeEventListener('pointerdown', tocarJogo)
         canvasJogo.removeEventListener('pointerup', soltarRota)
         canvasJogo.removeEventListener('pointerleave', soltarRota)
+        canvasJogo.removeEventListener('pointermove', moverSobreMedalhasRota)
+        canvasJogo.removeEventListener('pointerleave', sairDasMedalhasRota)
     }
 
     document.removeEventListener('keydown', tratarTeclaJogo)
@@ -833,6 +832,8 @@ function atribuirFuncoesJogo() {
     canvasJogo.addEventListener('pointerdown', tocarJogo)
     canvasJogo.addEventListener('pointerup', soltarRota)
     canvasJogo.addEventListener('pointerleave', soltarRota)
+    canvasJogo.addEventListener('pointermove', moverSobreMedalhasRota)
+    canvasJogo.addEventListener('pointerleave', sairDasMedalhasRota)
     document.addEventListener('keydown', tratarTeclaJogo)
     document.addEventListener('keyup', tratarTeclaJogo)
 

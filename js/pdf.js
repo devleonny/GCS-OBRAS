@@ -19,6 +19,7 @@ async function gerarPDF() {
 
     await pdf({
         html: htmlPdfOrcamento(document),
+        visualizar: true,
         estilos: ESTILOS_PDF_ORCAMENTO,
         nome: await nomeArquivoPdfOrcamento(orcamentoBase)
     })

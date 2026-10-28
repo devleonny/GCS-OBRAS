@@ -717,7 +717,30 @@ async function selecionar(name, cod) {
         await window[funcaoAdicional]()
 }
 
-async function pdf({ id, html = null, orientacao = 'portrait', estilos = [], nome = 'documento' }) {
+function mostrarPreviaPdf(blob, nome) {
+    const url = URL.createObjectURL(blob)
+    const idBotao = `baixar-pdf-${crypto.randomUUID()}`
+    const idPopup = popup({
+        titulo: escaparAtributo(nome),
+        elemento: `<iframe src="${url}" title="Prévia do PDF" style="display:block;width:min(1100px,86vw);height:72vh;border:0;background:white;"></iframe>`,
+        botoes: [{ id: idBotao, texto: 'Baixar PDF', img: 'pdf' }]
+    })
+    document.getElementById(idBotao).addEventListener('click', () => {
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `${nome}.pdf`
+        link.click()
+    })
+    const observador = new MutationObserver(() => {
+        if (!document.getElementById(idPopup)) {
+            URL.revokeObjectURL(url)
+            observador.disconnect()
+        }
+    })
+    observador.observe(document.body, { childList: true })
+}
+
+async function pdf({ id, html = null, orientacao = 'portrait', estilos = [], nome = 'documento', visualizar = false }) {
 
     try {
         overlayAguarde()
@@ -780,6 +803,11 @@ async function pdf({ id, html = null, orientacao = 'portrait', estilos = [], nom
         }
 
         const blob = await response.blob()
+        if (visualizar) {
+            mostrarPreviaPdf(blob, nome)
+            removerOverlay()
+            return
+        }
         const url = URL.createObjectURL(blob)
 
         const a = document.createElement('a')

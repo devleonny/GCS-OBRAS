@@ -506,6 +506,7 @@ async function baixarPdfOrcamento(idOrcamento) {
 
         await pdf({
             html: htmlPdfOrcamento(raiz),
+            visualizar: true,
             estilos: ESTILOS_PDF_ORCAMENTO,
             nome: await nomeArquivoPdfOrcamento(montado.orcamentoBase)
         })
