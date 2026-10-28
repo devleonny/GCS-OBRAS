@@ -220,10 +220,10 @@ async function telaRelatorioCorrecoes() {
         'Empresa': { chave: 'empresa' },
         'Chamado': { chave: 'Chamado' },
         'Tipo Correção': { chave: 'Tipo Correção' },
-        'Descrição': { chave: 'Descrição' },
         'Data Registro': { chave: 'Data Registro', tipoPesquisa: 'data' },
         'Solicitante': { chave: 'Solicitante' },
         'Executor': { chave: 'Executor' },
+        'Técnico': { chave: 'Técnico' },
         'Loja': { chave: 'Loja' },
         'Cidade': { chave: 'Cidade' },
         'Estado': { chave: 'Estado' },
@@ -232,7 +232,8 @@ async function telaRelatorioCorrecoes() {
 
     const tabela = await modTab({
         colunas,
-        base: 'vw_relatorio_correcoes',
+        base: 'mvw_relatorio_correcoes',
+        detalhes: true,
         pag: 'relatorioCorrecoes',
         body: 'bodyCorrecoes',
         criarLinha: 'criarLinhasCorrecoes',
@@ -255,17 +256,18 @@ async function telaRelatorioCorrecoes() {
 
 async function criarLinhasCorrecoes(correcao) {
     const dados = correcao || {}
-    const campos = ['empresa', 'Chamado', 'Tipo Correção', 'Descrição', 'Data Registro', 'Solicitante', 'Executor', 'Loja', 'Cidade', 'Estado', 'Sistema']
+    const campos = ['empresa', 'Chamado', 'Tipo Correção', 'Data Registro', 'Solicitante', 'Executor', 'Técnico', 'Loja', 'Cidade', 'Estado', 'Sistema']
     const tds = campos.map(campo => {
         const valor = dados[campo]
         if (campo === 'Tipo Correção' && valor)
             return `<td>${formatacaoTipoCorrecao(escaparAtributo(valor))}</td>`
-        if (campo === 'Descrição')
-            return `<td><div style="white-space: pre-wrap;">${valor || '—'}</div></td>`
         return `<td>${textoRelatorioOcorrencia(valor)}</td>`
     }).join('')
 
-    return `<tr>${tds}</tr>`
+    return {
+        linha: `<tr>${tds}</tr>`,
+        detalhes: `<strong>Descrição</strong><div style="white-space: pre-wrap; overflow-wrap: anywhere;">${dados['Descrição'] || '—'}</div>`
+    }
 
 }
 
@@ -290,7 +292,7 @@ async function telaRelatorioPecas() {
 
     const tabela = await modTab({
         colunas,
-        base: 'vw_relatorio_pecas',
+        base: 'mvw_relatorio_pecas',
         pag: 'relatorioPecas',
         body: 'bodyPecas',
         criarLinha: 'criarLinhasPecas',
@@ -327,7 +329,7 @@ async function baixarExcelRelatorioOcorrencias() {
         base: "vw_relatorio_ocorrencias",
         titulo: `Ocorrências_${agoraServidor()}`,
         formatacao: {
-            datas: ["Data Registro"]
+            datas: ["Data Registro", "Data da Abertura", "Data do Agendamento"]
         }
     }
 
@@ -344,9 +346,11 @@ async function baixarExcelRelatorioCorrecoes() {
 
     overlayAguarde()
     const dados = {
-        base: "vw_relatorio_correcoes",
+        base: "mvw_relatorio_correcoes",
         titulo: `Correções_${agoraServidor()}`,
-        formatacao: {}
+        formatacao: {
+            datas: ['Data Registro', 'Data Agendamento', 'Data Limite']
+        }
     }
 
     try {
@@ -363,9 +367,11 @@ async function baixarExcelRelatorioPecas() {
     overlayAguarde()
 
     const dados = {
-        base: "vw_relatorio_pecas",
+        base: "mvw_relatorio_pecas",
         titulo: `Peças_${agoraServidor()}`,
-        formatacao: {}
+        formatacao: {
+            datas: ['Data Correção']
+        }
     }
 
     try {

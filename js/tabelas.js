@@ -485,15 +485,27 @@ async function paginacao(pag) {
             tbody.appendChild(criarLoading(cols))
         }
 
-        const dados = await (consultarDados || pesquisarDB)({
-            limite,
-            base: baseResolvida,
-            substituicoes,
-            relacionados,
-            ordenar,
-            pagina,
-            filtros
-        })
+        // Falha ou tempo esgotado na consulta: mostra o erro na tabela em vez de deixar o
+        // carregando para sempre (o erro também segue para o console).
+        let dados
+        try {
+            dados = await (consultarDados || pesquisarDB)({
+                limite,
+                base: baseResolvida,
+                substituicoes,
+                relacionados,
+                ordenar,
+                pagina,
+                filtros
+            })
+        } catch (erro) {
+            console.error(`[paginacao ${pag}]`, erro)
+            tbody.innerHTML = `
+                <tr><td colspan="${cols}" style="padding: 1rem; text-align: center; color: #b12425;">
+                    Não foi possível carregar os dados: ${escaparAtributo(erro?.message || 'erro desconhecido')}
+                </td></tr>`
+            return
+        }
 
         // Para casos de base objeto;
         if (!consultarDados && typeof base === 'object' && controles[pag]?.priBase !== 'S') {

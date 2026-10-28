@@ -1822,6 +1822,7 @@ async function criarPesquisas() {
         'Sistema': { chave: 'sistemas', path: 'sistema' },
         'Prioridade': { chave: 'prioridades', path: 'prioridade' },
         'Última Correção': { chave: 'ultima_correcao', path: 'snapshots.ultimaCorrecao.*.nome' },
+        'Solicitante': { op: 'includes', chave: 'executores', path: 'correcoes.*.usuario' },
         'Executor': { op: 'includes', chave: 'executores', path: 'snapshots.ultimaCorrecao.*.executor' },
         'Técnico': { op: 'includes', chave: 'executores', path: 'snapshots.ultimaCorrecao.*.tecnico' },
         'Estado': { chave: 'estados', path: 'cliente.estado' },
