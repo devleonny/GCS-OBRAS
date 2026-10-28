@@ -28,7 +28,7 @@ function renderMenuItem(item, id, nivel, permissao) {
     if (item.sub?.length && !temFilhos && !item.funcao) return ''
 
     return `
-        <div class="menu-item">
+        <div class="menu-item${item.especial ? ' menu-especial' : ''}">
             <div 
                 class="menu-principal nivel-${nivel}" 
                 onclick="acaoMenu('${id}', '${item.funcao || ''}', ${temFilhos})">
@@ -74,7 +74,7 @@ function iconeSilhuetaMenu(chave) {
     return `<svg class="icone-menu" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">${icones[chave]}</svg>`
 }
 
-function criarAtalhoMenu({ nome, img, gif }, nivel) {
+function criarAtalhoMenu({ nome, img, gif, especial }, nivel) {
 
     const imagem = gif
         ? `gifs/${gif}.gif`
@@ -85,6 +85,7 @@ function criarAtalhoMenu({ nome, img, gif }, nivel) {
         style="margin-left:${nivel * 12}px">
         <img src="${imagem}" alt="">
             <div>${nome}</div>
+            ${especial ? '<span class="menu-etiqueta-especial">especial</span>' : ''}
     </div>
     `
 }
@@ -142,6 +143,13 @@ async function acaoMenu(id, funcao, temFilhos) {
 
 const esquemaBotoes = {
     inicial: [
+        {
+            nome: 'Checklist',
+            bloqueio: ['cliente'],
+            img: 'prancheta',
+            especial: true,
+            funcao: 'telaPlanosDiarios'
+        },
         {
             nome: 'Início',
             funcao: 'telaInicialGCS',

@@ -329,7 +329,7 @@ async function executarAtualizacaoWS() {
         if (tabelas.has('dados_ocorrencias') || tabelas.has('colaboradores'))
             tarefas.push(() => auxPendencias())
 
-        if (tabelas.has('colaboradores'))
+        if (tabelas.has('colaboradores') || tabelas.has('requisicoes'))
             tarefas.push(() => atualizarColaboradoresWS())
 
         // Correção salva pode ocupar/liberar técnico: o letreiro de livres acompanha na hora.

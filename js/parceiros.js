@@ -527,9 +527,7 @@ async function itemAdicional() {
     controlesCxOpcoes.composicao = {
         retornar: ['descricao'],
         base: 'dados_composicoes',
-        filtros: {
-            'tipo': { op: '!=', value: 'SERVIÇO' }
-        },
+        ordenar: null,
         colunas: {
             'Código': { chave: 'codigo' },
             'Descrição': { chave: 'descricao' },

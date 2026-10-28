@@ -49,6 +49,7 @@ function localColaborador({ cidade, estado }) {
 }
 
 const numeroColab = valor => Number(valor || 0).toLocaleString('pt-BR', { maximumFractionDigits: 3 })
+const numeroFinitoColab = valor => Number.isFinite(Number(valor)) ? Number(valor) : 0
 const movimentoColab = movimento => movimento == 'DEVOLUÇÃO'
     ? '<span class="colab-chip devolucao">Devolução</span>'
     : '<span class="colab-chip saida">Saída</span>'
@@ -303,8 +304,15 @@ function renderizarAndamentoColaboradores() {
         return
 
     const busca = estadoColaboradores.busca.trim().toLowerCase()
+    const dataRequisicao = r => {
+        const ts = Number(r.ts)
+        if (Number.isFinite(ts) && ts > 0) return ts
+        const data = toTimestamp(r.data)
+        return Number.isFinite(data) ? data : Infinity
+    }
     const lista = estadoColaboradores.andamento
         .filter(r => !busca || `${r.colaborador?.nome || ''} ${r.colaborador?.usuario || ''} ${r.colaborador?.cidade || ''}`.toLowerCase().includes(busca))
+        .sort((a, b) => dataRequisicao(a) - dataRequisicao(b))
 
     const itensResumo = itens => {
         const visiveis = itens.slice(0, 4)
@@ -519,14 +527,14 @@ function renderizarPainelColaborador() {
         return
 
     const ferramentas = itens.filter(i => i.classe == 'FERRAMENTA' && i.saldo > 0)
-    const materiais = itens.filter(i => i.classe == 'MATERIAL' && i.entregue > 0)
+    const materiais = itens.filter(i => i.classe == 'MATERIAL' && (i.entregue > 0 || i.utilizado > 0))
     const contador = n => `<span class="colab-contador ${n ? '' : 'zerado'}">${n}</span>`
     // Requisições: o contador só aparece com alguma ainda não solucionada (cancelada não conta).
     const emAndamento = requisicoes.filter(r => !r.concluida && !r.cancelada).length
     const abas = {
         requisicoes: `Requisições ${emAndamento ? `<span class="colab-contador alerta" title="Em andamento">${emAndamento}</span>` : ''}`,
         maos: `Ferramentas em mãos ${contador(ferramentas.length)}`,
-        materiais: `Materiais entregues ${contador(materiais.length)}`
+        materiais: `Saldo de materiais ${contador(materiais.length)}`
     }
 
     const conteudoAba = {
@@ -677,7 +685,8 @@ function tabelaItensColaborador(itens, ferramenta) {
                     <tr>
                         <th></th><th>Código</th><th>Descrição</th><th>Un.</th>
                         <th class="num">Entregue</th><th class="num">Devolvido</th>
-                        ${ferramenta ? '<th class="num">Em mãos</th>' : ''}
+                        <th class="num">Utilizado em Kit Técnico</th>
+                        <th class="num">${ferramenta ? 'Em mãos' : 'Saldo'}</th>
                         <th class="num">Valor unit.</th>
                         ${ferramenta ? '<th class="num">Total em mãos</th>' : ''}
                     </tr>
@@ -691,7 +700,8 @@ function tabelaItensColaborador(itens, ferramenta) {
                             <td>${escaparAtributo(i.unidade)}</td>
                             <td class="num">${numeroColab(i.entregue)}</td>
                             <td class="num">${numeroColab(i.devolvido)}</td>
-                            ${ferramenta ? `<td class="num"><b>${numeroColab(i.saldo)}</b></td>` : ''}
+                            <td class="num">${numeroColab(i.utilizado)}</td>
+                            <td class="num"><b>${numeroColab(i.saldo)}</b></td>
                             <td class="num">${dinheiro(i.custo)}</td>
                             ${ferramenta ? `<td class="num">${dinheiro(i.saldo * i.custo)}</td>` : ''}
                         </tr>
@@ -700,6 +710,12 @@ function tabelaItensColaborador(itens, ferramenta) {
             </table>
         </div>
     `
+}
+
+function podeEditarRequisicaoColaborador(r) {
+    const etapas = Object.values(r?.etapas || {})
+    return !!r && podeGerenciarColab(r.usuario) && !r.concluida && !r.cancelada
+        && etapas.length > 0 && etapas.every(e => e.tipoCorrecao == etapaInicialColaborador.tipoCorrecao)
 }
 
 function listaRequisicoesColaborador(requisicoes) {
@@ -722,6 +738,7 @@ function listaRequisicoesColaborador(requisicoes) {
                             ${r.comentario ? `<small class="colab-comentario">${escaparAtributo(r.comentario)}</small>` : ''}
                         </div>
                         <div class="colab-movimento-acoes">
+                            ${podeEditarRequisicaoColaborador(r) ? `<button type="button" onclick="formularioRequisicaoColaborador({ colaborador: '${escaparAtributo(estadoColaboradores.detalhe.id)}', idRequisicao: '${escaparAtributo(r.id)}' })">Editar requisição</button>` : ''}
                             ${excluir}
                             <button type="button" ${aberta ? 'class="ativo"' : ''} onclick="verHistoricoColaborador('${escaparAtributo(r.id)}')">${aberta ? 'Ocultar' : 'Ver'}</button>
                         </div>
@@ -757,11 +774,23 @@ function custoComposicaoColab(produto) {
 }
 
 // colaborador: id em clientes (aberto pela ficha) ou vazio para escolher na hora.
-async function formularioRequisicaoColaborador({ colaborador = null, movimento = 'SAÍDA' } = {}) {
+async function formularioRequisicaoColaborador({ colaborador = null, movimento = 'SAÍDA', idRequisicao = null } = {}) {
+
+    let existente
+    if (idRequisicao) {
+        const ficha = await chamarColaboradores('detalhe', { id: colaborador })
+        existente = ficha.requisicoes?.find(r => r.id == idRequisicao)
+        if (!podeEditarRequisicaoColaborador(existente))
+            return popup({ mensagem: 'Só é possível editar requisições na etapa inicial de Logística, pelo autor ou gestores.' })
+        movimento = existente.movimento
+    }
 
     overlayAguarde()
 
-    estadoColaboradores.requisicao = { colaborador, movimento, itens: {} }
+    estadoColaboradores.requisicao = { colaborador, movimento, idRequisicao, itensOriginais: existente?.itens || [],
+        itens: Object.fromEntries((existente?.itens || []).map(i => [i.codigo, {
+            ...i, qtde: numeroFinitoColab(i.qtde ?? i.quantidade), custo: numeroFinitoColab(i.custo)
+        }])) }
 
     const { nome } = colaborador ? await recuperarDado('clientes', colaborador) || {} : {}
 
@@ -791,11 +820,11 @@ async function formularioRequisicaoColaborador({ colaborador = null, movimento =
                 <div class="colab-segmento" role="group" aria-label="Movimento">
                     ${['SAÍDA', 'DEVOLUÇÃO'].map(m => `
                         <button type="button" data-movimento="${m}" class="${m == movimento ? 'ativo' : ''}"
-                            onclick="trocarMovimentoColab('${m}')">${m == 'SAÍDA' ? 'Saída' : 'Devolução'}</button>
+                            ${idRequisicao ? 'disabled' : ''} onclick="trocarMovimentoColab('${m}')">${m == 'SAÍDA' ? 'Saída' : 'Devolução'}</button>
                     `).join('')}
                 </div>
                 <label class="colab-requisicao-comentario">Comentário
-                    <textarea id="comentarioColab" rows="2"></textarea>
+                    <textarea id="comentarioColab" rows="2">${escaparAtributo(existente?.comentario || '')}</textarea>
                 </label>
             </div>
             <div id="colabEscolhidos" class="colab-escolhidos"></div>
@@ -860,7 +889,12 @@ async function renderizarItensRequisicaoColab() {
         let emMaos = []
         try {
             const { itens = [] } = await chamarColaboradores('detalhe', { id: colaborador })
-            emMaos = itens.filter(i => i.saldo > 0)
+            const estado = estadoColaboradores.requisicao
+            emMaos = itens.filter(i => i.saldo > 0).map(i => {
+                const original = estado.itensOriginais?.find(item => item.codigo == i.codigo)
+                const propria = estado.idRequisicao ? numeroFinitoColab(original?.qtde ?? original?.quantidade) : 0
+                return { ...i, disponivel: (i.disponivel ?? i.saldo) + propria, emDevolucao: Math.max(0, (i.emDevolucao || 0) - propria) }
+            })
         } catch (erro) {
             emMaos = []
         }
@@ -900,6 +934,7 @@ async function renderizarItensRequisicaoColab() {
                                     <td class="num">
                                         <div class="colab-devolver">
                                             <input class="colab-qtde" type="number" min="0" max="${disponivel(i)}" step="any" placeholder="0"
+                                                value="${estadoColaboradores.requisicao.itens[i.codigo]?.qtde || ''}"
                                                 ${disponivel(i) > 0 ? '' : 'disabled title="Tudo já está em outra devolução"'} oninput="qtdeItemColab(this)">
                                             <button type="button" class="secundario" onclick="devolverTudoColab(this)" ${disponivel(i) > 0 ? '' : 'disabled'}>Tudo</button>
                                         </div>
@@ -1053,18 +1088,20 @@ function atualizarEscolhidosColab() {
     if (!local)
         return
 
-    const total = itens.reduce((s, i) => s + i.qtde * i.custo, 0)
+    const total = itens.reduce((s, i) => s + numeroFinitoColab(
+        numeroFinitoColab(i.qtde ?? i.quantidade) * numeroFinitoColab(i.custo)), 0)
+    const quantidadeTotal = itens.reduce((s, i) => s + numeroFinitoColab(i.qtde ?? i.quantidade), 0)
 
     local.innerHTML = itens.length
         ? `
             <div class="colab-escolhidos-topo">
-                <b>${itens.length} item(ns) escolhido(s)</b>
+                <b>Quantidade total: ${numeroColab(quantidadeTotal)}</b>
                 <span>Total ${dinheiro(total)}</span>
             </div>
             <div class="colab-escolhidos-lista">
                 ${itens.map(i => `
                     <span class="colab-escolhido">
-                        ${numeroColab(i.qtde)} ${escaparAtributo(i.unidade || 'UN')} · ${escaparAtributo(i.descricao || i.codigo)}
+                        ${numeroColab(numeroFinitoColab(i.qtde ?? i.quantidade))} ${escaparAtributo(i.unidade || 'UN')} · ${escaparAtributo(i.descricao || i.codigo)}
                         <button type="button" title="Remover" onclick="removerItemColab('${escaparAtributo(i.codigo)}')">&times;</button>
                     </span>
                 `).join('')}
@@ -1087,6 +1124,18 @@ async function salvarRequisicaoColaborador() {
     overlayAguarde()
 
     try {
+        let anterior
+        if (estado.idRequisicao) {
+            const ficha = await chamarColaboradores('detalhe', { id: colaborador })
+            if (!podeEditarRequisicaoColaborador(ficha.requisicoes?.find(r => r.id == estado.idRequisicao)))
+                throw new Error('Esta requisição avançou no fluxo ou você não tem permissão para editá-la.')
+            const registro = await recuperarDado('colaboradores', colaborador)
+            anterior = registro?.requisicoes?.[estado.idRequisicao]
+            if (!anterior)
+                throw new Error('Requisição não encontrada. Atualize a tela.')
+            if (!podeEditarRequisicaoColaborador(anterior))
+                throw new Error('Esta requisição não está mais disponível para edição.')
+        }
         const agora = dataServidor()
         const data = agora.toLocaleString()
         const devolucao = estado.movimento == 'DEVOLUÇÃO'
@@ -1113,7 +1162,14 @@ async function salvarRequisicaoColaborador() {
             }
         }
 
-        const resultado = await enviar(`colaboradores/${colaborador}/requisicoes/${crypto.randomUUID()}`, requisicao)
+        const dados = anterior ? {
+            ...anterior,
+            comentario: requisicao.comentario,
+            itens: requisicao.itens,
+            editadoPor: acesso.usuario,
+            editadoEm: data
+        } : requisicao
+        const resultado = await enviar(`colaboradores/${colaborador}/requisicoes/${estado.idRequisicao || crypto.randomUUID()}`, dados)
         if (!resultado?.success)
             throw new Error(resultado?.mensagem || 'Falha ao salvar a requisição.')
 
@@ -1164,6 +1220,19 @@ async function formularioEtapaColaborador(idRequisicao, idEtapa = null) {
     const etapa = idEtapa
         ? requisicao.etapas.find(e => e.id == idEtapa) || {}
         : {}
+
+    if (!idEtapa) {
+        const pesquisa = await pesquisarDB({
+            base: 'correcoes',
+            filtros: { nome: { op: '=', value: 'SOLUCIONADA' } },
+            limite: 1
+        })
+        const solucionada = pesquisa?.resultados?.[0]
+        if (solucionada?.id) {
+            etapa.tipoCorrecao = solucionada.id
+            etapa.nome = solucionada.nome
+        }
+    }
 
     controlesCxOpcoes.tipoCorrecaoColab = {
         base: 'correcoes',

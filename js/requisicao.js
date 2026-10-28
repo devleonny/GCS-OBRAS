@@ -19,8 +19,17 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
         comentario,
         requisicao,
         prazo,
-        recebedor
+        recebedor,
+        recebedor_id
     } = await recuperarDado('requisicoes', id) || {}
+
+    controlesCxOpcoes.recebedorRequisicao = {
+        base: 'clientes',
+        filtros: { usuario: { op: 'NOT_EMPTY' } },
+        retornar: ['nome'],
+        colunas: { 'Nome': { chave: 'nome' }, 'Usuário': { chave: 'usuario' } }
+    }
+    const cadastroRecebedor = recebedor_id ? await recuperarDado('clientes', recebedor_id) : null
 
     const { idChamado, ocorrencia } = await chamadoDaRequisicao(ativo)
 
@@ -178,7 +187,8 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
         {
             linha: 1,
             v1: 'Quem recebeu?',
-            v2: `<input id="recebedor" value="${recebedor || ''}">`
+            v2: `<span class="opcoes" name="recebedorRequisicao" ${recebedor_id ? `id="${escaparAtributo(recebedor_id)}"` : ''}
+                onclick="cxOpcoes('recebedorRequisicao')">${escaparAtributo(cadastroRecebedor?.nome || recebedor || 'Selecione')}</span>`
         },
         {
             linha: 1,
@@ -293,7 +303,7 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
         elemento,
         conteudoRodape: `<div class="rodape-resumo"><span>Total da requisição</span><strong id="total_requisicao">${dinheiro(0)}</strong></div>`,
         titulo: 'Requisição de Materiais',
-        autoDestruicao: ['requisicao']
+        autoDestruicao: ['requisicao', 'recebedorRequisicao']
     })
 
     controles.requisicao.idChamado = idChamado
@@ -587,6 +597,17 @@ async function salvarRequisicao(id) {
         const itens = (controles.requisicao.base || [])
             .filter(i => i.codigo && i.codigo !== 'novo' && (i.avulso || Number(i.qtde_enviar) > 0))
 
+        const recebedorSelecionado = document.querySelector('[name="recebedorRequisicao"]')
+        const recebedorId = recebedorSelecionado?.id || ''
+        const temKit = itens.some(i => i.origem === 'Kit Técnico' && Number(i.qtde_enviar) > 0)
+        if (temKit && !recebedorId)
+            return popup({ mensagem: 'Selecione quem recebeu: os itens de Kit Técnico serão abatidos do saldo dessa pessoa.' })
+        if (temKit) {
+            const cadastro = await recuperarDado('clientes', recebedorId)
+            if (!cadastro?.usuario)
+                return popup({ mensagem: 'O recebedor do Kit Técnico precisa ter usuário cadastrado.' })
+        }
+
         const dados = {
             ...requisicao,
             avulso: itens.some(i => i.avulso) ? 'S' : 'N',
@@ -595,7 +616,8 @@ async function salvarRequisicao(id) {
             data: dataServidor().toLocaleString(),
             comentario: document.querySelector('#comentario').value || '',
             pedido,
-            recebedor: document.querySelector('#recebedor')?.value || '',
+            recebedor: recebedorSelecionado?.textContent.trim() === 'Selecione' ? '' : recebedorSelecionado?.textContent.trim() || '',
+            recebedor_id: recebedorId,
             prazo: document.querySelector('#prazo')?.value || '',
             volumes: document.querySelector('#volumes').value || 0,
             total_requisicao: conversor(document.querySelector('#total_requisicao').textContent),
