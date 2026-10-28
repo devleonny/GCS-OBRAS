@@ -80,9 +80,9 @@ async function selecionarDataPlanoDiario(data, origem = false) {
     const estado = estadoPlanoDiario
     const campo = estado.documento?.getElementById('dataPlanoDiario')
     if (estado.carregando || estado.renderizando) { if (campo) campo.value = estado.data; return }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(data) || data < estado.plano.inicio) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
         if (campo) campo.value = estado.data
-        return popup({ mensagem: `Selecione uma data a partir de ${dataPlanoDiario(estado.plano.inicio)}.` })
+        return popup({ mensagem: 'Selecione uma data válida.' })
     }
     if (estado.alterado && !(await confirmarPopup({ mensagem: 'Há alterações sem salvar. Deseja descartá-las?', textoConfirmar: 'Descartar alterações' }))) { if (campo) campo.value = estado.data; return }
     estado.data = data; estado.origem = origem; estado.alterado = false
@@ -204,7 +204,7 @@ function prepararCamposDocumentoDiario(doc) {
         })
         return input
     }
-    const data = campo(gerais[0].cells[3], 'dataPlanoDiario', 'date', e.data, { min: e.plano.inicio, 'aria-label': gerais[0].cells[2].textContent })
+    const data = campo(gerais[0].cells[3], 'dataPlanoDiario', 'date', e.data, { 'aria-label': gerais[0].cells[2].textContent })
     data.addEventListener('change', () => selecionarDataPlanoDiario(data.value))
     campo(gerais[1].cells[3], 'gerentePlanoDiario', 'text', dados.gerente || '', { maxlength: 150, 'aria-label': gerais[1].cells[2].textContent })
     campo(gerais[2].cells[1], 'efetivoPlanoDiario', 'number', dados.efetivo ?? e.plano.efetivo, { min: 0, step: 1, 'aria-label': gerais[2].cells[0].textContent })
