@@ -747,6 +747,39 @@ function mostrarPreviaPdf(blob, nome) {
     observador.observe(document.body, { childList: true })
 }
 
+// Documento completo enviado ao /pdf. O servidor guarda o PDF pelo hash deste texto: quem quiser
+// reaproveitar o cache (ex.: preaquecerPdfOrcamento) precisa montar por aqui, igual.
+function htmlFinalPdf(htmlPdf, estilos = []) {
+    const links = estilos
+        // Versão vinda de js/versoes_css.js (gerado no commit), para o servidor não usar CSS em cache.
+        .map(estilo => {
+            const versao = typeof VERSOES_CSS !== 'undefined' ? VERSOES_CSS[estilo] : null
+            return `<link rel="stylesheet" href="https://devleonny.github.io/GCS-OBRAS/css/${estilo}.css${versao ? `?v=${versao}` : ''}">`
+        })
+        .join('')
+
+    return `
+            <html>
+                <head>
+                    <meta charset="UTF-8">
+                    ${links}
+                    <style>
+
+                        body {
+                            width: 100%;
+                            display: flex;
+                            align-items: start;
+                            justify-content: center;
+                            font-family: 'Poppins', sans-serif;
+                            background: white;
+                        }
+
+                    </style>
+                </head>
+                <body>${htmlPdf}</body>
+            </html>`
+}
+
 async function pdf({ id, html = null, orientacao = 'portrait', estilos = [], nome = 'documento', visualizar = false }) {
 
     try {
@@ -755,36 +788,7 @@ async function pdf({ id, html = null, orientacao = 'portrait', estilos = [], nom
         if (!id && !html)
             return popup({ mensagem: 'ID do elemento ou html não localizado: Fale com o suporte.' })
 
-        const htmlPdf = html || document.getElementById(id).outerHTML
-
-        estilos = estilos
-            // Versão vinda de js/versoes_css.js (gerado no commit), para o servidor não usar CSS em cache.
-            .map(estilo => {
-                const versao = typeof VERSOES_CSS !== 'undefined' ? VERSOES_CSS[estilo] : null
-                return `<link rel="stylesheet" href="https://devleonny.github.io/GCS-OBRAS/css/${estilo}.css${versao ? `?v=${versao}` : ''}">`
-            })
-            .join('')
-
-        const htmlFinal = `
-            <html>
-                <head>
-                    <meta charset="UTF-8">
-                    ${estilos}
-                    <style>
-
-                        body {
-                            width: 100%;
-                            display: flex; 
-                            align-items: start;
-                            justify-content: center;
-                            font-family: 'Poppins', sans-serif; 
-                            background: white; 
-                        }
-
-                    </style>
-                </head>
-                <body>${htmlPdf}</body>
-            </html>`
+        const htmlFinal = htmlFinalPdf(html || document.getElementById(id).outerHTML, estilos)
 
         const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
 

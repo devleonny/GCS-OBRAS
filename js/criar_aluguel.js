@@ -110,8 +110,7 @@ async function carregarTabelasAluguel() {
             dadosComposicoes[codigo] = {
                 ...produto,
                 descricao: descricaoValidaAluguel(cadastro.descricao) ? cadastro.descricao : '',
-                unidade: produto?.unidade || cadastro.unidade,
-                imagem: produto?.imagem || cadastro.imagem
+                unidade: produto?.unidade || cadastro.unidade
             }
         }))
         orcamentoBase.dados_composicoes = dadosComposicoes
@@ -147,7 +146,7 @@ function criarLinhaOrcAluguel(codigo, produto) {
         </td>
         <td style="text-align: center;"><span name="total" class="valor-orcamento"></span></td>
         <td style="text-align: center;">
-            <img class="imagem-orc" onclick="abrirImagem(this, '${codigo}')" referrerpolicy="no-referrer" onerror="this.onerror = null; this.src = logo" src="${produto?.imagem || logo}">
+            <img class="imagem-orc" data-composicao="${escaparAtributo(codigo)}" onclick="abrirImagem(this, '${codigo}')" referrerpolicy="no-referrer" onerror="this.onerror = null; this.src = logo" src="${logo}">
         </td>
         <td style="text-align: center;">
             <img src="imagens/fechar.png" title="Remover item" onclick="removerItem('${codigo}', this)" style="width: 1.5rem;">
@@ -196,12 +195,18 @@ async function enviarDadosAluguel() {
     if (!orcamentoBase.usuario) 
         orcamentoBase.usuario = acesso.usuario
 
-    if (!orcamentoBase.id) 
+    if (!orcamentoBase.id)
         orcamentoBase.id = 'ORCA_' + crypto.randomUUID()
+
+    // Data de registro fixa e validade de 15 dias (validade_orcamento.js).
+    garantirValidadeOrcamento(orcamentoBase.dados_orcam)
 
     popup({ tempo: 3, mensagem: 'Aguarde... redirecionando...', imagem: 'imagens/concluido.png' })
 
-    await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoBase)
+    const { success } = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoBase) || {}
+
+    // Deixa o PDF pronto no cache, em segundo plano (sem await).
+    if (success) preaquecerPdfOrcamento(orcamentoBase.id)
 
     baseOrcamento(undefined, true)
     await telaOrcamentos()
@@ -433,7 +438,6 @@ async function incluirItemAluguel(codigo, novaQuantidade) {
             criarLinhaOrcAluguel(codigo, {
                 descricao: produto?.descricao,
                 unidade: produto?.unidade,
-                imagem: produto?.imagem,
                 qtde: novaQuantidade
             })
         }

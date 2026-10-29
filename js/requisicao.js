@@ -823,7 +823,7 @@ async function gerarPdfRequisicao(id, visualizar) {
         <div id="pdf" style="${vertical}; gap: 1rem; width: 95%; padding: 1rem;">
 
             <div style="${horizontal}; gap: 1rem;">
-                <img style="width: 7rem;" src="https://i.imgur.com/5zohUo8.png">
+                <img style="width: 7rem;" src="https://gcs.app.br/imagens/logo-gcs-quadrado.png">
                 <span style="font-size: 1.5rem;">REQUISIÇÃO DE MATERIAIS</span>
             </div>
 

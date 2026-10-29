@@ -10,7 +10,7 @@ async function irExcelOrcamento(orcam_) {
         const ws_orcamento = wb.addWorksheet('Orçamento')
         const ws_total = wb.addWorksheet('TOTAL')
 
-        const response = await fetch('https://i.imgur.com/5zohUo8.png')
+        const response = await fetch('imagens/logo-gcs-quadrado.png')
         const imageBlob = await response.blob()
         const reader = new FileReader()
         reader.readAsDataURL(imageBlob)

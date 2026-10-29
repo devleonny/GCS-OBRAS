@@ -197,6 +197,21 @@ button {
     margin: 5px;
 }
 
+/* Dois blocos lado a lado no PDF do orçamento: mesma largura e mesma altura (o mais baixo estica
+   até o mais alto), em vez de centralizados um em relação ao outro. */
+.linha-blocos-pdf {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+}
+
+.linha-blocos-pdf > .contorno {
+    flex: 1 1 0;
+    min-width: 0;
+    height: auto;
+    box-sizing: border-box;
+}
+
 .painelTitulo {
     min-height: 4vh;
     display: flex;

@@ -254,6 +254,10 @@ async function tabPagamentosCusto(contrato) {
 
         overlayAguarde()
 
+        selecaoPagamentosCusto.contrato = contrato
+        selecaoPagamentosCusto.ids = new Set()
+        const podeMover = PERFIS_MOVER_DEPARTAMENTO.includes(acesso?.permissao)
+
         const pag = 'custosPagamentos'
         const tabela = await modTab({
             pag,
@@ -265,7 +269,13 @@ async function tabPagamentosCusto(contrato) {
                 'departamento': { op: '=', value: contrato },
                 'param.*.codigo_tipo_documento': { op: '!=', value: 'CTE' },
             },
+            btnExtras: podeMover ? `
+                <div class="pc-mover-barra">
+                    <button type="button" class="secundario" onclick="selecionarPaginaPagamentosCusto()">Selecionar a página</button>
+                    <button type="button" class="pc-mover-botao" onclick="formularioMoverDepartamento()" disabled>Mudar departamento</button>
+                </div>` : null,
             colunas: {
+                ...(podeMover ? { '': {} } : {}),
                 'Data': { chave: 'param.*.data_previsao', tipoPesquisa: 'data' },
                 'Valor': { chave: 'valor' },
                 'Categoria': { chave: 'categoria' },
@@ -301,7 +311,14 @@ async function criarLinhaCustoPagamento(pagamento) {
 
     const imagem = iconePagamento(status)
 
+    const idPagamento = escaparAtributo(String(pagamento.pagamento_id))
+    const selecao = PERFIS_MOVER_DEPARTAMENTO.includes(acesso?.permissao)
+        ? `<td><input type="checkbox" class="pc-mover-check" data-pagamento="${idPagamento}" aria-label="Selecionar pagamento"
+            ${selecaoPagamentosCusto.ids.has(String(pagamento.pagamento_id)) ? 'checked' : ''} onchange="marcarPagamentoCusto(this)"></td>`
+        : ''
+
     const tds = `
+        ${selecao}
         <td>${data_previsao || ''}</td>
         <td style="white-space: nowrap;">${dinheiro(valor)}</td>
         <td>
@@ -325,6 +342,127 @@ async function criarLinhaCustoPagamento(pagamento) {
 
     return `<tr>${tds}</tr>`
 
+}
+
+// ---------------------------------------------------------------------------
+// Mudar departamento: move os pagamentos selecionados do centro de custo aberto para outro
+// departamento, no Omie (/pagamentos/trocar-departamento). Só a parte do rateio deste
+// departamento muda; valores e as outras partes ficam como estão.
+// ---------------------------------------------------------------------------
+
+const PERFIS_MOVER_DEPARTAMENTO = ['adm', 'diretoria', 'fin']
+// Linhas são pagamento x categoria: a seleção guarda o pagamento, e marcar uma linha marca todas dele.
+const selecaoPagamentosCusto = { contrato: null, ids: new Set() }
+
+function atualizarBotaoMoverDepartamento() {
+    const botao = document.querySelector('.pc-mover-botao')
+    if (!botao) return
+    const quantidade = selecaoPagamentosCusto.ids.size
+    botao.disabled = !quantidade
+    botao.textContent = quantidade ? `Mudar departamento (${quantidade})` : 'Mudar departamento'
+}
+
+function marcarPagamentoCusto(caixa) {
+    const id = caixa.dataset.pagamento
+    caixa.checked ? selecaoPagamentosCusto.ids.add(id) : selecaoPagamentosCusto.ids.delete(id)
+    for (const outra of document.querySelectorAll('.pc-mover-check'))
+        if (outra.dataset.pagamento === id) outra.checked = caixa.checked
+    atualizarBotaoMoverDepartamento()
+}
+
+function selecionarPaginaPagamentosCusto() {
+    const caixas = [...document.querySelectorAll('.pc-mover-check')]
+    const marcar = caixas.some(c => !c.checked)
+    for (const caixa of caixas) {
+        caixa.checked = marcar
+        marcar ? selecaoPagamentosCusto.ids.add(caixa.dataset.pagamento) : selecaoPagamentosCusto.ids.delete(caixa.dataset.pagamento)
+    }
+    atualizarBotaoMoverDepartamento()
+}
+
+async function formularioMoverDepartamento() {
+
+    const { contrato, ids } = selecaoPagamentosCusto
+    if (!ids.size) return
+
+    overlayAguarde()
+    const { resultados } = await pesquisarDB({ base: 'mesc_departamentos', limite: 20000 }) || {}
+    // Departamentos de mês ("OUTUBRO - 2026") são só agrupadores do Omie.
+    const mes = /^(JANEIRO|FEVEREIRO|MAR[CÇ]O|ABRIL|MAIO|JUNHO|JULHO|AGOSTO|SETEMBRO|OUTUBRO|NOVEMBRO|DEZEMBRO)\s*-\s*\d{4}$/i
+    const nomes = (resultados || []).map(d => d.id).filter(nome => nome && nome !== contrato && !mes.test(String(nome).trim()))
+        .sort((a, b) => String(a).localeCompare(String(b), 'pt-BR'))
+
+    const linhas = [
+        { elemento: `<span style="text-align: left;"><b>${ids.size}</b> pagamento(s) saem de <b>${escaparAtributo(contrato)}</b>. Só a parte do rateio deste departamento muda; os valores ficam iguais.</span>` },
+        {
+            texto: 'Para o departamento',
+            elemento: `
+                <input name="departamentoDestino" list="listaDepartamentosDestino" placeholder="Digite para buscar" autocomplete="off" style="min-width: 320px;">
+                <datalist id="listaDepartamentosDestino">${nomes.map(n => `<option value="${escaparAtributo(n)}"></option>`).join('')}</datalist>`
+        },
+        { elemento: '<small style="text-align: left; color: #65756b;">A alteração é feita direto no Omie, um pagamento por vez.</small>' }
+    ]
+
+    popup({
+        linhas,
+        botoes: [{ texto: 'Mudar no Omie', img: 'concluido', funcao: 'confirmarMoverDepartamento()' }],
+        titulo: 'Mudar departamento'
+    })
+    removerOverlay()
+}
+
+async function confirmarMoverDepartamento() {
+
+    const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
+    const para = painel?.querySelector('[name="departamentoDestino"]')?.value.trim() || ''
+    const { contrato, ids } = selecaoPagamentosCusto
+
+    // Só nomes da lista: o servidor também recusa, mas aqui o aviso é imediato.
+    const opcoes = [...(painel?.querySelectorAll('#listaDepartamentosDestino option') || [])].map(o => o.value)
+    if (!opcoes.includes(para))
+        return popup({ mensagem: 'Escolha um departamento da lista.' })
+
+    overlayAguarde()
+
+    try {
+        const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
+        const resposta = await fetch(`${api}/pagamentos/trocar-departamento`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ ids: [...ids], de: contrato, para })
+        })
+        const dados = await resposta.json().catch(() => ({}))
+
+        if (!resposta.ok || !dados.success) {
+            removerOverlay()
+            return popup({ mensagem: dados.mensagem || 'Falha ao mudar o departamento.' })
+        }
+
+        const resultados = dados.resultados || []
+        const certos = resultados.filter(r => r.ok)
+        const falhas = resultados.filter(r => !r.ok)
+
+        // Os que mudaram saem da seleção; os que falharam continuam marcados para tentar de novo.
+        for (const r of certos) ids.delete(String(r.id))
+
+        removerTodosPopups()
+        popup({
+            titulo: 'Mudar departamento',
+            elemento: `
+                <div class="pc-mover-resultado">
+                    <p><b>${certos.length}</b> de ${resultados.length} pagamento(s) movido(s) para <b>${escaparAtributo(para)}</b>.</p>
+                    ${falhas.length ? `
+                        <p>Não foram alterados:</p>
+                        <ul>${falhas.map(f => `<li><b>${escaparAtributo(f.id)}</b>: ${escaparAtributo(f.mensagem)}</li>`).join('')}</ul>` : ''}
+                </div>`
+        })
+
+        await paginacao('custosPagamentos')
+        atualizarBotaoMoverDepartamento()
+    } catch {
+        removerOverlay()
+        popup({ mensagem: 'Sem conexão com o servidor. Tente novamente.' })
+    }
 }
 
 // Com "legenda" (elemento ou seletor), a legenda é HTML fora do canvas: a rosca usa

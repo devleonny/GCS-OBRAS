@@ -211,7 +211,7 @@ async function montarOS(idOcorrencia) {
 
                     <div style="display: flex; align-items: center; justify-content: space-between;">
                         <span class="titulo-os">Relatório da Ocorrência</span>
-                        <img src="https://i.imgur.com/gUcc7iG.png" style="width: 3rem;">
+                        <img src="https://gcs.app.br/imagens/simbolo-gcs.png" style="width: 3rem;">
                     </div>
                     <br>
                     <div class="painel">

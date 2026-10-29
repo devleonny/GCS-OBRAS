@@ -105,8 +105,8 @@ async function montarPdfOrcamento(idRecebido, raiz = document) {
 
     const imgLogo = raiz.querySelector('#logo')
     imgLogo.src = emissor == 'IAC'
-        ? 'https://i.imgur.com/6FWwz7l.png'
-        : 'https://i.imgur.com/qZLbNfb.png'
+        ? 'https://gcs.app.br/imagens/logo-iac.png'
+        : 'https://gcs.app.br/imagens/marca.png'
 
     imgLogo.style.width = emissor == 'IAC'
         ? '100px'
@@ -318,12 +318,12 @@ async function montarPdfOrcamento(idRecebido, raiz = document) {
     html_orcamento.innerHTML = `
     ${carimboDataPdfOrcamento(orcamentoBase?.dados_orcam)}
 
-    <div style="${horizontal};">
+    <div class="linha-blocos-pdf">
         ${blocoPdfOrcamento(dadosPorBloco.proposta)}
         ${blocoPdfOrcamento(dadosPorBloco.cliente)}
     </div>
 
-    <div style="${horizontal};">
+    <div class="linha-blocos-pdf">
         ${blocoPdfOrcamento(dadosPorBloco.empresa)}
         ${blocoPdfOrcamento(dadosPorBloco.adicionais)}
     </div>
@@ -348,6 +348,8 @@ async function montarPdfOrcamento(idRecebido, raiz = document) {
     </div>
 
     ${consideracoes ? blocoPdfOrcamento(dadosPorBloco.escopo) : ''}
+
+    ${blocoPdfOrcamento({ titulo: 'Condições Gerais', dados: [{ valor: TEXTO_VALIDADE_ORCAMENTO }] })}
     `
 
     await Promise.all(pags.map(pag => paginacao(pag)))
@@ -363,7 +365,7 @@ async function linhaTabelaPdf(item) {
         unidade,
         qtde,
         descricao,
-        imagem,
+        // Só a imagem atual da composição (buscada pelo código); o orçamento não guarda cópia.
         imagemAtualizada,
         razaoSocial,
         tipo,
@@ -399,7 +401,7 @@ async function linhaTabelaPdf(item) {
             ${tipo == 'VENDA' ? `<td>${ncm || '--'}</td>` : ''}
 
             <td style="text-align: center;">
-                <img src="${imagemAtualizada || imagem || 'https://i.imgur.com/Nb8sPs0.png'}" style="width: 5rem;">
+                <img src="${imagemAtualizada || 'https://gcs.app.br/imagens/simbolo-gcs.png'}" style="width: 5rem;">
             </td>
             <td style="text-align: center;">${unidade || 'UN'}</td>
             <td style="text-align: center;">${qtde}</td>
@@ -412,34 +414,19 @@ async function linhaTabelaPdf(item) {
 
 }
 
+// Data de registro (fixa) e validade (validade_orcamento.js). Só usa dados do orçamento, nunca a
+// data de hoje: o PDF fica no cache do servidor pelo hash do HTML.
 function carimboDataPdfOrcamento(dados_orcam) {
 
-    if (!dados_orcam?.data) return ''
+    const { registro, ate } = validadeOrcamento(dados_orcam || {})
+    if (!registro) return ''
 
-    const validade = Number(dados_orcam.validade || 30)
-
-    // espera: "dd/mm/aaaa, hh:mm"
-    const [dataStr, horaStr = '00:00'] = dados_orcam.data.split(',').map(s => s.trim())
-    const [dia, mes, ano] = dataStr.split('/').map(Number)
-    const [hh, mm] = horaStr.split(':').map(Number)
-
-    const dataBase = new Date(ano, mes - 1, dia, hh, mm)
-
-    // soma os dias de validade
-    const dataValidade = new Date(dataBase)
-    dataValidade.setDate(dataValidade.getDate() + validade)
-
-    const fmt = d =>
-        `${String(d.getDate()).padStart(2, '0')}/` +
-        `${String(d.getMonth() + 1).padStart(2, '0')}/` +
-        `${d.getFullYear()}, ` +
-        `${String(d.getHours()).padStart(2, '0')}:` +
-        `${String(d.getMinutes()).padStart(2, '0')}`
+    const hora = `${String(registro.getHours()).padStart(2, '0')}:${String(registro.getMinutes()).padStart(2, '0')}`
 
     return `
         <div style="${vertical}; gap: 3px;">
-            <span>Salvador, Bahia, ${fmt(dataBase)}</span>
-            <span>Válido até: ${fmt(dataValidade)}</span>
+            <span>Salvador, Bahia, ${brDataOrcamento(registro)}, ${hora}</span>
+            ${ate ? `<span>Válido até: ${brDataOrcamento(ate)}</span>` : ''}
         </div>
     `
 }
@@ -488,33 +475,72 @@ function htmlPdfOrcamento(raiz) {
     return html
 }
 
+// As montagens usam tabelas com os mesmos nomes (controles pdfOrcamento_*): uma de cada vez,
+// senão o preaquecimento e um "abrir PDF" ao mesmo tempo misturariam as linhas.
+let filaMontagemPdfOrcamento = Promise.resolve()
+
+// Monta o orçamento fora da tela e devolve o HTML do PDF (o mesmo para abrir e para preaquecer).
+function montarHtmlPdfOrcamento(idOrcamento) {
+    const montagem = filaMontagemPdfOrcamento.catch(() => { }).then(async () => {
+        const raiz = document.createElement('div')
+        raiz.setAttribute('aria-hidden', 'true')
+        raiz.style.cssText = 'position: fixed; left: -10000px; top: 0; width: 794px; pointer-events: none;'
+        raiz.innerHTML = modeloPdfOrcamento()
+        document.body.appendChild(raiz)
+
+        let pags = []
+        try {
+            const montado = await montarPdfOrcamento(idOrcamento, raiz)
+            pags = montado.pags
+            return { html: htmlPdfOrcamento(raiz), orcamentoBase: montado.orcamentoBase }
+        } finally {
+            raiz.remove()
+            pags.forEach(pag => delete controles[pag])
+        }
+    })
+    filaMontagemPdfOrcamento = montagem
+    return montagem
+}
+
 // Gera e baixa o PDF a partir do sistema principal, montando o orçamento fora da tela.
 async function baixarPdfOrcamento(idOrcamento) {
 
     overlayAguarde()
 
-    const raiz = document.createElement('div')
-    raiz.setAttribute('aria-hidden', 'true')
-    raiz.style.cssText = 'position: fixed; left: -10000px; top: 0; width: 794px; pointer-events: none;'
-    raiz.innerHTML = modeloPdfOrcamento()
-    document.body.appendChild(raiz)
-
-    let pags = []
     try {
-        const montado = await montarPdfOrcamento(idOrcamento, raiz)
-        pags = montado.pags
+        const { html, orcamentoBase } = await montarHtmlPdfOrcamento(idOrcamento)
 
         await pdf({
-            html: htmlPdfOrcamento(raiz),
+            html,
             visualizar: true,
             estilos: ESTILOS_PDF_ORCAMENTO,
-            nome: await nomeArquivoPdfOrcamento(montado.orcamentoBase)
+            nome: await nomeArquivoPdfOrcamento(orcamentoBase)
         })
     } catch (erro) {
         console.error(erro)
         popup({ mensagem: 'Falha ao gerar o PDF do orçamento: Fale com o suporte.' })
+    }
+}
+
+// Depois de salvar: gera o PDF em segundo plano para ele já estar no cache do servidor quando
+// alguém abrir. Silencioso: sem overlay nem aviso; se falhar, o PDF só é gerado na hora de abrir.
+// O servidor responde sem o arquivo (aquecer: true). Um preaquecimento por orçamento de cada vez.
+const preaquecimentosPdfOrcamento = new Set()
+
+async function preaquecerPdfOrcamento(idOrcamento) {
+    if (!idOrcamento || preaquecimentosPdfOrcamento.has(idOrcamento)) return
+    preaquecimentosPdfOrcamento.add(idOrcamento)
+    try {
+        const { html } = await montarHtmlPdfOrcamento(idOrcamento)
+        const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
+        await fetch(`${api}/pdf`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ html: htmlFinalPdf(html, ESTILOS_PDF_ORCAMENTO), orientacao: 'portrait', aquecer: true })
+        })
+    } catch (erro) {
+        console.warn('[PDF ORÇAMENTO] preaquecimento não concluído:', erro?.message || erro)
     } finally {
-        raiz.remove()
-        pags.forEach(pag => delete controles[pag])
+        preaquecimentosPdfOrcamento.delete(idOrcamento)
     }
 }

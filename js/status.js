@@ -440,10 +440,13 @@ async function abrirAtalhos(id) {
 
         const menuOpcoesOrcamento = document.querySelector('.menu-opcoes-orcamento')
 
-        if (menuOpcoesOrcamento)
-            return menuOpcoesOrcamento.innerHTML = acumulado
-
-        popup({ elemento: `<div class="menu-opcoes-orcamento">${acumulado}</div>`, titulo: 'Opções do Orçamento' })
+        if (menuOpcoesOrcamento) {
+            menuOpcoesOrcamento.innerHTML = acumulado
+        } else {
+            popup({ elemento: `<div class="menu-opcoes-orcamento">${acumulado}</div>`, titulo: 'Opções do Orçamento' })
+            // Vencido e ainda sem centro de custo: pergunta (por cima das opções) se quer estender.
+            perguntarProrrogacaoOrcamento(id, orcamento)
+        }
 
     } catch (err) {
         console.log(err)

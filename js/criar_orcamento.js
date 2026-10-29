@@ -623,8 +623,7 @@ function carregarLinhaOrcamento(produto) {
             razaoSocial,
             custo_original,
             descricao,
-            unidade,
-            imagem
+            unidade
         } = produto || {}
         const total = custo * qtde
         const chave = produto._chaveOrcamento || (codigoMaster !== codigo
@@ -690,8 +689,8 @@ function carregarLinhaOrcamento(produto) {
             </div>
 
             <div>
-                <img class="imagem-orc" name="${codigo}" 
-                    onclick="abrirImagem('${codigo}')" referrerpolicy="no-referrer" onerror="this.onerror = null; this.src = logo" src="${imagem || logo}">
+                <img class="imagem-orc" name="${codigo}" ${ehItemAvulso(produto) ? '' : `data-composicao="${escaparAtributo(codigo)}"`}
+                    onclick="abrirImagem('${codigo}')" referrerpolicy="no-referrer" onerror="this.onerror = null; this.src = logo" src="${logo}">
             </div>
             
             <div>
@@ -1107,6 +1106,9 @@ async function enviarDadosOrcamento() {
         if (dados_orcam.contrato == '')
             dados_orcam.contrato = 'sequencial'
 
+        // Data de registro fixa e validade de 15 dias (validade_orcamento.js).
+        garantirValidadeOrcamento(dados_orcam)
+
         // Se tiver desconto: total bruto > total_geral: aprovação será necessária;
         orcamentoBase.aprovacao = orcamentoBase.total_bruto > orcamentoBase.total_geral
             ? { status: 'pendente', usuario: acesso.usuario }
@@ -1132,6 +1134,9 @@ async function enviarDadosOrcamento() {
 
             if (contrato == 'sequencial')
                 return popup({ mensagem: 'ORC_sequencial detectado: Fale com o suporte.' })
+
+            // Já com o contrato definitivo: deixa o PDF pronto no cache, em segundo plano (sem await).
+            preaquecerPdfOrcamento(orcamentoBase.id)
 
             // Caso seja um orçamento vinculado ou troca de Ocorrência para ORC;
             if (orcamentoBase.origem) {
@@ -1573,7 +1578,8 @@ async function incluirItem(codigo, novaQuantidade, disparador) {
     }
     try {
         const dadosMaster = await recuperarDado('dados_composicoes', codigo) || {}
-        const { agrupamento, descricao, tipo, unidade, imagem, snapshots } = dadosMaster
+        // Imagem não entra no orçamento: a tela busca a da composição pelo código (upload_imagens.js).
+        const { agrupamento, descricao, tipo, unidade, snapshots } = dadosMaster
         const custo = snapshots?.[lpuATIVA]?.[0] || 0
         const filhos = {}
         for (const [cod, dados] of Object.entries(agrupamento || {})) {
@@ -1581,7 +1587,7 @@ async function incluirItem(codigo, novaQuantidade, disparador) {
             filhos[cod] = {
                 codigo: cod, qtde: dados.qtde * novaQuantidade,
                 descricao: filho.descricao, unidade: filho.unidade,
-                custo: filho.snapshots?.[lpuATIVA]?.[0] || 0, tipo: filho.tipo, imagem: filho.imagem
+                custo: filho.snapshots?.[lpuATIVA]?.[0] || 0, tipo: filho.tipo
             }
         }
         // Uma resposta antiga nunca substitui a quantidade digitada mais recentemente.
@@ -1589,7 +1595,7 @@ async function incluirItem(codigo, novaQuantidade, disparador) {
         const orcamento = baseOrcamento()
         orcamento.esquema_composicoes ??= {}
         orcamento.esquema_composicoes[codigo] = {
-            ...orcamento.esquema_composicoes[codigo], codigo, descricao, custo, tipo, imagem, unidade,
+            ...orcamento.esquema_composicoes[codigo], codigo, descricao, custo, tipo, unidade,
             qtde: novaQuantidade, agrupamento: filhos
         }
         baseOrcamento(orcamento)

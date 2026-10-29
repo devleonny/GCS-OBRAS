@@ -80,9 +80,9 @@ async function carregarOS(id) {
 
         <div id="pdf" style="${vertical}; padding: 2rem; gap: 1rem;">
             <div style="display: flex; align-items: center; justify-content: space-evenly; width: 100%;">
-                <img src="https://i.imgur.com/pHNkXRQ.png" style="width: 7rem;">
-                <img src="https://i.imgur.com/5zohUo8.png" style="width: 7rem;">
-                <img src="https://i.imgur.com/vhCX7qQ.png" style="width: 7rem;">
+                <img src="https://gcs.app.br/imagens/logo-ac-solucoes.png" style="width: 7rem;">
+                <img src="https://gcs.app.br/imagens/logo-gcs-quadrado.png" style="width: 7rem;">
+                <img src="https://gcs.app.br/imagens/logo-hope.png" style="width: 7rem;">
             </div>
 
             <div class="tituloOS">RELATÓRIO OBRAS - TERMO DE RECEBIMENTO DA OBRA</div>

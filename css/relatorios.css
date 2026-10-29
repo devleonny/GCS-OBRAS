@@ -66,6 +66,134 @@
     text-align: center;
 }
 
+/* Abas e filtros rápidos dentro da barra verde da tabela (modTab btnExtras, topoEmLinha). */
+.relatorio-dep-barra {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+    min-width: 0;
+}
+
+.relatorio-dep-abas {
+    display: inline-flex;
+    padding: 3px;
+    background: #ffffff1f;
+    border-radius: 8px;
+}
+
+.relatorio-dep-abas button {
+    margin: 0;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #e5eee8;
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+.relatorio-dep-abas button:hover:not(.ativa) {
+    background: #ffffff1a;
+}
+
+.relatorio-dep-abas button.ativa {
+    color: #22332a;
+    background: white;
+    box-shadow: 0 1px 3px #0000003d;
+}
+
+/* Filtros rápidos por situação; o contador segue a pesquisa das colunas. */
+.relatorio-dep-filtros {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.relatorio-dep-chip {
+    --chip-cor: #e5eee8;
+    margin: 0;
+    padding: 4px 11px;
+    font-size: 12px;
+    color: white;
+    background: #ffffff14;
+    border: 1px solid #ffffff4d;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+/* Bolinha com a cor da faixa (mesmas do medidor). */
+.relatorio-dep-chip::before {
+    content: '';
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-right: 6px;
+    vertical-align: 1px;
+    background: var(--chip-cor);
+    border-radius: 50%;
+}
+
+.relatorio-dep-chip--todos::before { display: none; }
+.relatorio-dep-chip--acima { --chip-cor: #f87171; }
+.relatorio-dep-chip--estourado { --chip-cor: #60a5fa; }
+.relatorio-dep-chip--semorcamento { --chip-cor: #cbd5d0; }
+
+.relatorio-dep-chip b {
+    margin-left: 4px;
+    font-variant-numeric: tabular-nums;
+}
+
+.relatorio-dep-chip:hover:not(.ativo) {
+    background: #ffffff26;
+}
+
+.relatorio-dep-chip.ativo {
+    color: #22332a;
+    background: white;
+    border-color: white;
+}
+
+.relatorio-dep-responsavel {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 4px 3px 11px;
+    font-size: 12px;
+    color: #22332a;
+    background: #fdf1e4;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.relatorio-dep-responsavel button {
+    margin: 0;
+    padding: 0 6px;
+    font-size: 12px;
+    line-height: 18px;
+    color: #4f6058;
+    background: transparent;
+    border: 0;
+}
+
+.relatorio-dep-ver {
+    margin: 0;
+    padding: 4px 12px;
+    font-size: 12px;
+}
+
+.relatorio-dep-alerta {
+    color: #b91c1c;
+    font-weight: 700;
+}
+
+.relatorio-dep-estourado {
+    color: #1d4ed8;
+    font-weight: 700;
+}
+
 /* Tabela simples (lista de técnicos livres hoje, em tecnicos.js). */
 .relatorio-cc-tab {
     width: 100%;

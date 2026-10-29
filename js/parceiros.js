@@ -796,7 +796,7 @@ async function gerarPdfParceiro(id, visualizar) {
 
     const html = `
         <div id="pdf" style="font-size: 12px; ${vertical}; width: 90%; gap: 1rem;">
-            <img src="https://i.imgur.com/5zohUo8.png" style="width: 5rem;">
+            <img src="https://gcs.app.br/imagens/logo-gcs-quadrado.png" style="width: 5rem;">
 
             <table class="tabela-v2">
                 <thead>

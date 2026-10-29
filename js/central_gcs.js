@@ -831,7 +831,6 @@ function linhasOrcAprovacao(orcamento) {
         qtde,
         custo,
         custo_original,
-        imagem,
         medida,
         tipo
     } = orcamento || {}
@@ -875,7 +874,7 @@ function linhasOrcAprovacao(orcamento) {
             </td>
 
             <td>
-                <img src="${imagem || logo}">
+                <img data-composicao="${escaparAtributo(codigo)}" src="${logo}" referrerpolicy="no-referrer" onerror="this.onerror = null; this.src = logo">
             </td>
 
         </tr>
@@ -1058,7 +1057,6 @@ async function painelClientes(idOrcamento = null) {
         tecnico,
         tipo_de_frete,
         consideracoes,
-        validade,
         garantia,
         emissor,
         analista,
@@ -1067,6 +1065,9 @@ async function painelClientes(idOrcamento = null) {
         omie_cliente,
         condicoes
     } = orcamento?.dados_orcam || {}
+
+    const { ate: validadeAte } = validadeOrcamento(orcamento?.dados_orcam || {})
+    const validadeAteFormulario = validadeAte ? brDataOrcamento(validadeAte) : ''
 
     const [cliente, clienteVendaDireta] = await Promise.all([
         recuperarDado('clientes', omie_cliente),
@@ -1228,7 +1229,8 @@ async function painelClientes(idOrcamento = null) {
         },
         {
             texto: 'Validade da Proposta',
-            elemento: `<div style="${horizontal}; gap: 3px;"><input id="validade" style="width: 3rem;" type="number" value="${validade || 30}"> <span>dias</span></div>`
+            // Fixa (validade_orcamento.js): conta da data de registro; ao vencer, oferece estender ao abrir.
+            elemento: `<span>${VALIDADE_ORCAMENTO_DIAS} dias corridos${validadeAteFormulario ? ` · válido até <b>${validadeAteFormulario}</b>` : ''}</span>`
         },
         {
             texto: 'Garantia',
@@ -1399,6 +1401,9 @@ async function salvarDadosCliente(idOrcamento) {
         if (tecnico.length == 0 && ['LPU PEÇAS', 'LPU FERRAMENTAS'].includes(orcamentoBase.lpu_ativa))
             return popup({ mensagem: 'LPU PEÇAS & FERRAMENTAS > O campo técnico não fica em branco!' })
 
+        // Antes de "data" ser sobrescrita: orçamento antigo usa a última data gravada como registro.
+        garantirValidadeOrcamento(orcamentoBase.dados_orcam ??= {})
+
         orcamentoBase.dados_orcam = {
             ...orcamentoBase.dados_orcam,
             omie_cliente,
@@ -1407,7 +1412,6 @@ async function salvarDadosCliente(idOrcamento) {
             consideracoes: String(el('consideracoes').value).toUpperCase(),
             data: dataServidor().toLocaleString('pt-BR'),
             garantia: el('garantia').value,
-            validade: Number(el('validade').value),
             tipo_de_frete: el('tipo_de_frete').value,
             emissor: el('emissor').value,
             email_analista: el('email_analista').value,
