@@ -212,7 +212,7 @@ function prepararCamposDocumentoDiario(doc) {
     e.linhas = e.plano.atividades.map((a, i) => {
         const linha = tabelas[1].rows[i + 1]
         const descricao = linha.cells[1].textContent.trim()
-        campo(linha.cells[5], `executadoDiario${a.id}`, 'number', salvo?.dados?.executado?.[a.id] || 0,
+        campo(linha.cells[5], `executadoDiario${a.id}`, 'number', e.origem ? a.diaModelo || 0 : salvo?.dados?.executado?.[a.id] || 0,
             { min: 0, max: a.previsto, step: '0.001', 'data-atividade': a.id, 'aria-label': `${tabelas[1].rows[0].cells[5].textContent}: ${descricao}` })
         return { ...a, descricao, linha }
     })
@@ -242,7 +242,7 @@ function atualizarNumerosPlanoDiario() {
     const itens = e.linhas.map(a => {
         const acumulado = Math.round((Number(a.inicial || 0) + (e.origem ? [] : e.dias).filter(d => d.data_ref < e.data)
             .reduce((s, d) => s + Number(d.dados.executado[a.id] || 0), 0) + dados.executado[a.id]) * 1000) / 1000
-        const percentual = !e.origem && a.previsto > 0 ? acumulado / a.previsto * 100 : 0
+        const percentual = a.previsto > 0 ? acumulado / a.previsto * 100 : 0
         textoCelulaDiario(a.linha.cells[4], numeroPlanoDiario(acumulado))
         textoCelulaDiario(a.linha.cells[6], `${numeroPlanoDiario(percentual)}%`)
         return { ...a, percentual }
