@@ -712,11 +712,6 @@
     max-width: 100%;
 }
 
-/* O percentual do próprio velocímetro é o destaque do bloco. */
-.pc-medidor .velocimetro__valor {
-    font-size: 38px;
-}
-
 .pc-percentual {
     font-size: 34px;
     line-height: 1.1;

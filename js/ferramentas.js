@@ -210,9 +210,15 @@ function criarVelocimetroHTML({
         ? `Limite: ${limiteSeguro}%`
         : '';
 
+    const textoValor = `${valorBruto.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
+
+    // A fonte do número acompanha a largura do velocímetro (cqi) e diminui com a quantidade
+    // de caracteres, para "101,9%" caber no arco tanto quanto "42%".
+    const fonteValor = { 1: 16, 2: 16, 3: 16, 4: 14, 5: 12.5 }[textoValor.length] || 11;
+
     const ariaLabel = temLimite
-        ? `${rotulo}: ${valorBruto}% de 100, limite ${limiteSeguro}%`
-        : `${rotulo}: ${valorBruto}% de 100, sem limite`;
+        ? `${rotulo}: ${textoValor} de 100%, limite ${limiteSeguro}%`
+        : `${rotulo}: ${textoValor} de 100%, sem limite`;
 
     return `
     <div
@@ -222,6 +228,7 @@ function criarVelocimetroHTML({
         --velocimetro-espessura: ${espessura};
         --velocimetro-deslocamento: ${deslocamentoProgresso};
         --velocimetro-comprimento: ${comprimentoSemicirculo};
+        --velocimetro-fonte-valor: ${fonteValor};
       "
       data-valor="${valorBruto}"
       data-limite="${temLimite ? limiteSeguro : ''}"
@@ -244,7 +251,7 @@ function criarVelocimetroHTML({
         </svg>
 
         <div class="velocimetro__conteudo">
-          <div class="velocimetro__valor">${valorBruto}%</div>
+          <div class="velocimetro__valor">${textoValor}</div>
           <div class="velocimetro__rotulo">${rotulo}</div>
           <div class="velocimetro__limite">${textoLimite}</div>
         </div>

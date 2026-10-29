@@ -298,6 +298,9 @@ async function usuariosToolbar() {
     if (divUsuarios)
         divUsuarios.innerHTML = usuariosToolbarString
 
+    // Painel de usuários aberto acompanha a mudança de status que disparou esta atualização.
+    await atualizarPainelUsuarios()
+
 }
 
 async function carregarXLSX() {
@@ -388,91 +391,145 @@ function capturarValorCelula(celula) {
     return celula.textContent.toLowerCase()
 }
 
-async function painelUsuarios() {
+// Painel de Usuários: agrupado por disponibilidade (online primeiro, offline por último), com busca
+// local e atualização ao vivo (usuariosToolbar chama atualizarPainelUsuarios a cada aviso de status).
+const painelUsuariosEstado = { usuarios: [], busca: '', offlineAberto: false }
 
-    const colunas = {
-        'Status': { chave: 'status' },
-        'Usuários': { chave: 'usuario' },
-        'Permissão': { chave: 'permissao' },
-        'Setor': { chave: 'setor' }
-    }
+// Ausente também é posto sozinho após inatividade (js/websocket.js) e sai na próxima interação.
+const STATUS_USUARIO_OPCOES = ['online', 'Ausente', 'Em almoço', 'Não perturbe', 'Em reunião', 'Apenas Whatsapp']
 
-    const pag = 'usuariosOnline'
-    const tOnline = await modTab({
-        pag,
-        alturaMinima: '300px',
-        colunas,
-        body: 'bodyUsuariosOnline',
-        base: 'clientes',
-        filtros: {
-            usuario: { op: 'NOT_EMPTY' }
-        },
-        criarLinha: 'criarLinhaPainelUsuarios',
-        ordenar: {
-            path: 'status',
-            direcao: 'desc'
-        }
-    })
+const GRUPOS_PAINEL_USUARIOS = [
+    { chave: 'disponivel', titulo: 'Disponíveis', status: ['online'] },
+    { chave: 'ocupado', titulo: 'Ocupados', status: ['Em reunião', 'Em almoço', 'Não perturbe', 'Apenas Whatsapp'] },
+    { chave: 'ausente', titulo: 'Ausentes', status: ['Ausente'] },
+    { chave: 'offline', titulo: 'Offline', status: ['offline', 'Invisível'] }
+]
 
-    const elemento = `
-        <div class="conteinerOnline">
-
-            ${tOnline}
-
-        </div>`
-
-    const divOnline = document.querySelector('.divOnline')
-    if (divOnline)
-        return
-
-    popup({ elemento, titulo: 'Painel de Usuários', })
-
-    await paginacao(pag)
+// Invisível é offline para os outros; só a própria pessoa vê o status real.
+function statusVisivelUsuario({ usuario, status }) {
+    if (status === 'Invisível' && usuario !== acesso?.usuario) return 'offline'
+    return status || 'offline'
 }
 
-function criarLinhaPainelUsuarios(dados) {
+function grupoStatusUsuario(status) {
+    return GRUPOS_PAINEL_USUARIOS.find(g => g.status.includes(status))?.chave || 'disponivel'
+}
 
-    const {
-        id,
-        usuario,
-        status,
-        setor,
-        permissao
-    } = dados || {}
+async function painelUsuarios() {
 
-    let gerenciarStatus = `<label>${status || 'offline'}</label>`
+    overlayAguarde()
 
-    if (usuario == acesso.usuario) {
+    try {
+        painelUsuariosEstado.busca = ''
+        await carregarUsuariosPainel()
 
-        // Ausente também é posto sozinho após inatividade (js/websocket.js) e sai na próxima interação.
-        const statusOpcoes = ['online', 'Ausente', 'Em almoço', 'Não perturbe', 'Em reunião', 'Apenas Whatsapp']
-        if (acesso?.permissao == 'adm')
-            statusOpcoes.push('Invisível')
+        const elemento = `
+            <div class="painel-usuarios">
+                <div class="painel-usuarios-topo">
+                    <div class="painel-usuarios-meu-status"></div>
+                    <input type="search" class="painel-usuarios-busca" placeholder="Buscar usuário, setor ou permissão"
+                        aria-label="Buscar usuário" oninput="painelUsuariosEstado.busca = this.value; renderizarPainelUsuarios()">
+                </div>
+                <div class="painel-usuarios-resumo"></div>
+                <div class="painel-usuarios-lista"></div>
+            </div>`
 
-        gerenciarStatus = `
-            <select class="opcoes-select" onchange="mudarStatus(${id}, this)">
-                ${statusOpcoes.map(op => `<option ${status == op ? 'selected' : ''}>${op}</option>`).join('')}
-            </select>`
+        popup({ elemento, titulo: 'Usuários' })
+        renderizarPainelUsuarios()
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir o painel de usuários.' })
+    }
+}
+
+async function carregarUsuariosPainel() {
+    const { resultados } = await pesquisarDB({
+        base: 'clientes',
+        filtros: { usuario: { op: 'NOT_EMPTY' } },
+        limite: 5000
+    }) || {}
+    painelUsuariosEstado.usuarios = (resultados || [])
+        .map(({ id, usuario, nome, status, setor, permissao, foto }) => ({ id, usuario, nome, status, setor, permissao, foto }))
+}
+
+// Chamado a cada aviso de status do websocket: só recarrega se o painel estiver aberto.
+async function atualizarPainelUsuarios() {
+    if (!document.querySelector('.painel-usuarios')) return
+    await carregarUsuariosPainel()
+    renderizarPainelUsuarios()
+}
+
+function renderizarPainelUsuarios() {
+
+    const painel = document.querySelector('.painel-usuarios')
+    if (!painel) return
+
+    const normalizar = texto => String(texto || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    const busca = normalizar(painelUsuariosEstado.busca).trim()
+
+    const usuarios = painelUsuariosEstado.usuarios
+        .map(u => ({ ...u, statusVisivel: statusVisivelUsuario(u) }))
+    const eu = usuarios.find(u => u.usuario === acesso?.usuario)
+    const filtrados = usuarios.filter(u => !busca
+        || [u.usuario, u.nome, u.setor, u.permissao].some(campo => normalizar(campo).includes(busca)))
+
+    // Meu status fica no topo, fora da lista: é a única informação que a pessoa edita.
+    const opcoes = [...STATUS_USUARIO_OPCOES, ...(acesso?.permissao === 'adm' ? ['Invisível'] : [])]
+    painel.querySelector('.painel-usuarios-meu-status').innerHTML = eu ? `
+        <img src="imagens/${escaparAtributo(eu.statusVisivel)}.png" alt="">
+        <label>Meu status
+            <select onchange="mudarStatus(${Number(eu.id)}, this)">
+                ${opcoes.map(op => `<option ${eu.status === op ? 'selected' : ''}>${op}</option>`).join('')}
+            </select>
+        </label>` : ''
+
+    const porGrupo = Object.fromEntries(GRUPOS_PAINEL_USUARIOS.map(g => [g.chave, []]))
+    for (const u of filtrados)
+        porGrupo[grupoStatusUsuario(u.statusVisivel)].push(u)
+    for (const lista of Object.values(porGrupo))
+        lista.sort((a, b) => String(a.usuario).localeCompare(String(b.usuario), 'pt-BR'))
+
+    painel.querySelector('.painel-usuarios-resumo').innerHTML = GRUPOS_PAINEL_USUARIOS
+        .map(g => `<span class="painel-usuarios-chip painel-usuarios-chip--${g.chave}"><b>${porGrupo[g.chave].length}</b> ${g.titulo.toLowerCase()}</span>`)
+        .join('')
+
+    const cartao = u => {
+        const iniciais = String(u.nome || u.usuario || '?').trim().split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase()
+        const detalhe = [u.setor, u.permissao].filter(Boolean).map(inicialMaiuscula).join(' · ')
+        return `
+            <div class="painel-usuarios-item${u.usuario === acesso?.usuario ? ' painel-usuarios-item--eu' : ''}">
+                <span class="painel-usuarios-avatar" data-iniciais="${escaparAtributo(iniciais)}">
+                    ${u.foto ? `<img src="${escaparAtributo(urlFotoCliente(u.foto))}" alt="" onerror="this.remove()">` : ''}
+                    <img class="painel-usuarios-status-icone" src="imagens/${escaparAtributo(u.statusVisivel)}.png" alt="${escaparAtributo(u.statusVisivel)}" title="${escaparAtributo(u.statusVisivel)}">
+                </span>
+                <span class="painel-usuarios-texto">
+                    <b>${escaparAtributo(u.usuario)}</b>
+                    ${detalhe ? `<small>${escaparAtributo(detalhe)}</small>` : ''}
+                </span>
+                ${grupoStatusUsuario(u.statusVisivel) === 'ocupado'
+                    ? `<span class="painel-usuarios-status">${escaparAtributo(u.statusVisivel)}</span>` : ''}
+            </div>`
     }
 
-    return `
-    <tr>
-        <td>
-            <div style="${horizontal}; justify-content: start; gap: 0.5rem;">
-                <img src="imagens/${status || 'offline'}.png" style="width: 1.5rem;">
-                ${gerenciarStatus}
-            </div>
-        </td>
-        <td>
-            ${usuario}
-        </td>
-        <td>
-            ${permissao || ''}
-        </td>
-        <td>
-            ${setor || ''}
-        </td>
-    </tr>`
+    // Offline começa recolhido (costuma ser a maior lista); com busca, abre.
+    const lista = GRUPOS_PAINEL_USUARIOS
+        .filter(g => porGrupo[g.chave].length)
+        .map(g => {
+            const itens = porGrupo[g.chave].map(cartao).join('')
+            const cabecalho = `<span>${g.titulo}</span><b>${porGrupo[g.chave].length}</b>`
+            if (g.chave !== 'offline')
+                return `<section class="painel-usuarios-grupo painel-usuarios-grupo--${g.chave}"><h4>${cabecalho}</h4><div class="painel-usuarios-grade">${itens}</div></section>`
+            return `
+                <details class="painel-usuarios-grupo painel-usuarios-grupo--offline" ${painelUsuariosEstado.offlineAberto || busca ? 'open' : ''}
+                    ontoggle="if (!painelUsuariosEstado.busca) painelUsuariosEstado.offlineAberto = this.open">
+                    <summary><h4>${cabecalho}</h4></summary>
+                    <div class="painel-usuarios-grade">${itens}</div>
+                </details>`
+        })
+        .join('')
+
+    painel.querySelector('.painel-usuarios-lista').innerHTML = lista
+        || '<p class="painel-usuarios-vazio">Nenhum usuário encontrado.</p>'
 }
 
 async function reprocessarAnexos(idPagamento) {

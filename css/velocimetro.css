@@ -28,6 +28,8 @@
   position: relative;
   width: 100%;
   aspect-ratio: 2 / 1.2;
+  /* Referência de largura para o número (cqi) acompanhar o tamanho real do velocímetro. */
+  container-type: inline-size;
 }
 
 .velocimetro__svg {
@@ -65,9 +67,13 @@
   color: var(--velocimetro-texto);
 }
 
+/* --velocimetro-fonte-valor vem de criarVelocimetroHTML (menor quando o texto é longo).
+   Navegadores sem container query ficam com os 30px da primeira linha. */
 .velocimetro__valor {
   font-size: 30px;
+  font-size: calc(var(--velocimetro-fonte-valor, 14) * 1cqi);
   font-weight: 700;
+  white-space: nowrap;
   line-height: 1;
 }
 

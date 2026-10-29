@@ -175,23 +175,241 @@ span[name="titulo"] {
     ;
 }
 
-.conteinerOnline {
-    padding: 1rem;
-    background-color: #d2d2d2;
-    max-height: 70vh;
-    overflow-y: auto;
-    overflow-x: hidden;
+/* Painel de Usuários (central_gcs.js, painelUsuarios) */
+.painel-usuarios {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: min(760px, 92vw);
+    max-height: 72vh;
+    padding: 14px;
+    box-sizing: border-box;
+    background: #f3f6f4;
+    overflow: hidden;
 }
 
-.divOnline {
-    margin-bottom: 1rem;
-    gap: 2px;
-    width: max-content;
-    padding: 1rem;
+.painel-usuarios-topo {
     display: flex;
-    align-items: start;
-    justify-content: start;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+}
+
+.painel-usuarios-meu-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: white;
+    border: 1px solid #b8c9be;
+    border-radius: 8px;
+}
+
+.painel-usuarios-meu-status img {
+    width: 1.3rem;
+}
+
+.painel-usuarios-meu-status label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #324b3c;
+}
+
+.painel-usuarios-meu-status select {
+    min-height: 30px;
+    padding: 2px 8px;
+    border: 1px solid #b8c9be;
+    border-radius: 6px;
+    background: #f7faf8;
+}
+
+.painel-usuarios-busca {
+    flex: 1 1 220px;
+    min-height: 34px;
+    padding: 4px 12px;
+    border: 1px solid #b8c9be;
+    border-radius: 8px;
+    background: white;
+    box-sizing: border-box;
+}
+
+.painel-usuarios-resumo {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.painel-usuarios-chip {
+    --chip-cor: #6b7280;
+    padding: 3px 10px;
+    font-size: 12px;
+    color: var(--chip-cor);
+    background: white;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+}
+
+.painel-usuarios-chip--disponivel { --chip-cor: #15803d; }
+.painel-usuarios-chip--ocupado { --chip-cor: #b45309; }
+.painel-usuarios-chip--ausente { --chip-cor: #a16207; }
+.painel-usuarios-chip--offline { --chip-cor: #6b7280; }
+
+.painel-usuarios-lista {
+    display: flex;
     flex-direction: column;
+    gap: 14px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.painel-usuarios-grupo h4 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #4f6058;
+}
+
+.painel-usuarios-grupo h4 b {
+    padding: 0 7px;
+    font-size: 11px;
+    color: white;
+    background: #8a9a90;
+    border-radius: 999px;
+}
+
+.painel-usuarios-grupo--disponivel h4 b { background: #15803d; }
+.painel-usuarios-grupo--ocupado h4 b { background: #b45309; }
+.painel-usuarios-grupo--ausente h4 b { background: #a16207; }
+
+.painel-usuarios-grupo summary {
+    list-style: none;
+    cursor: pointer;
+}
+
+.painel-usuarios-grupo summary::-webkit-details-marker {
+    display: none;
+}
+
+.painel-usuarios-grupo summary h4::before {
+    content: '▸';
+    font-size: 11px;
+}
+
+.painel-usuarios-grupo[open] summary h4::before {
+    content: '▾';
+}
+
+.painel-usuarios-grade {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 6px;
+}
+
+.painel-usuarios-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 7px 10px;
+    background: white;
+    border: 1px solid #d5e1d9;
+    border-radius: 8px;
+}
+
+.painel-usuarios-item--eu {
+    border-color: #356443;
+    box-shadow: inset 3px 0 0 #356443;
+}
+
+/* Ausentes e offline ficam esmaecidos: o olho vai primeiro para quem está disponível. */
+.painel-usuarios-grupo--ausente .painel-usuarios-item,
+.painel-usuarios-grupo--offline .painel-usuarios-item {
+    opacity: 0.65;
+}
+
+.painel-usuarios-avatar {
+    position: relative;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #324b3c;
+    background: #dbe7df;
+    border-radius: 50%;
+}
+
+/* Sem foto (ou foto quebrada), mostra as iniciais. */
+.painel-usuarios-avatar::before {
+    content: attr(data-iniciais);
+}
+
+.painel-usuarios-avatar > img:not(.painel-usuarios-status-icone) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.painel-usuarios-status-icone {
+    position: absolute;
+    right: -3px;
+    bottom: -3px;
+    width: 15px;
+    height: 15px;
+    background: white;
+    border-radius: 50%;
+}
+
+.painel-usuarios-texto {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.painel-usuarios-texto b,
+.painel-usuarios-texto small {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.painel-usuarios-texto b {
+    font-size: 13px;
+    color: #22332a;
+}
+
+.painel-usuarios-texto small {
+    font-size: 11px;
+    color: #6b7c72;
+}
+
+.painel-usuarios-status {
+    margin-left: auto;
+    flex: 0 0 auto;
+    padding: 2px 8px;
+    font-size: 11px;
+    color: #7c4a03;
+    background: #fdf1e4;
+    border-radius: 999px;
+}
+
+.painel-usuarios-vazio {
+    margin: 0;
+    padding: 16px;
+    color: #4f6058;
 }
 
 .cabecalho-usuario {
