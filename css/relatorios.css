@@ -87,79 +87,6 @@
     height: 16px;
 }
 
-.relatorio-cc-indicadores {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-    gap: 10px;
-}
-
-/* A barra de destaque fica dentro do balão, cercada de branco: na borda ela
-   encostava no fundo verde da página e sumia. */
-.relatorio-cc-indicador {
-    --indicador-cor: #4f6859;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    padding: 12px 14px 12px 24px;
-    background: white;
-    border: 1px solid #b8c9be;
-    border-radius: 8px;
-    box-shadow: 0 2px 6px #10201914;
-    min-width: 0;
-    /* Referência de largura para o valor encolher junto com o balão. */
-    container-type: inline-size;
-}
-
-.relatorio-cc-indicador::before {
-    content: '';
-    position: absolute;
-    top: 10px;
-    bottom: 10px;
-    left: 10px;
-    width: 5px;
-    border-radius: 3px;
-    background: var(--indicador-cor);
-}
-
-.relatorio-cc-indicador span {
-    font-size: 12px;
-    color: #4f6058;
-}
-
-/* Valor numa linha só: a fonte diminui quando o balão é estreito para o número.
-   Navegadores sem container query ficam com o 1.25rem da primeira linha. */
-.relatorio-cc-indicador strong {
-    font-size: 1.25rem;
-    font-size: clamp(0.85rem, 10cqi, 1.25rem);
-    white-space: nowrap;
-    color: #22332a;
-    font-variant-numeric: tabular-nums;
-}
-
-.relatorio-cc-indicador small {
-    font-size: 11px;
-    color: #7a8b80;
-}
-
-.relatorio-cc-indicador.ok {
-    --indicador-cor: #2f8a4f;
-}
-
-.relatorio-cc-indicador.alerta {
-    --indicador-cor: #c0392b;
-}
-
-.relatorio-cc-indicador.alerta strong {
-    color: #a63c3c;
-}
-
-.relatorio-cc-graficos {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
-    gap: 12px;
-}
-
 .relatorio-cc-cartao {
     min-width: 0;
     background: white;
@@ -169,33 +96,89 @@
     box-shadow: 0 2px 6px #10201914;
 }
 
-.relatorio-cc-cartao-largo {
-    grid-column: 1 / -1;
+/* Relatório de Custos por Departamento */
+.relatorio-departamentos-totais {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    min-height: 120px;
 }
 
-.relatorio-cc-cartao > h3 {
-    margin: 0;
-    padding: 9px 12px;
-    font-size: 13px;
-    font-weight: 600;
-    color: white;
-    background: linear-gradient(120deg, #324b3c, #4f6859);
+.relatorio-departamentos-indicadores {
+    flex: 1 1 520px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
 }
 
-.relatorio-cc-contagem {
-    font-weight: 400;
-    opacity: 0.85;
+.relatorio-departamentos-indicador {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 12px 14px;
+    background: white;
+    border: 1px solid #b8c9be;
+    border-left: 5px solid #356443;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px #10201914;
+    min-width: 0;
 }
 
-.relatorio-cc-grafico {
-    position: relative;
-    height: 340px;
-    padding: 10px;
-    box-sizing: border-box;
+.relatorio-departamentos-indicador span {
+    font-size: 12px;
+    color: #4f6058;
 }
 
-.relatorio-cc-cartao-largo .relatorio-cc-grafico {
-    height: 380px;
+.relatorio-departamentos-indicador strong {
+    font-size: 1.2rem;
+    white-space: nowrap;
+    color: #22332a;
+    font-variant-numeric: tabular-nums;
+}
+
+.relatorio-departamentos-indicador small {
+    font-size: 11px;
+    color: #7a8b80;
+}
+
+.relatorio-departamentos-geral {
+    display: flex;
+    justify-content: center;
+    padding: 10px 16px 6px;
+    background: white;
+    border: 1px solid #b8c9be;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px #10201914;
+    color: #4f6058;
+}
+
+.relatorio-departamentos-numero {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.relatorio-departamentos-medidor {
+    text-align: center;
+}
+
+/* Na linha o velocímetro é pequeno: fica só o percentual, rótulo e limite vão para o resumo do topo. */
+.relatorio-departamentos-medidor .velocimetro {
+    margin: 0 auto;
+}
+
+.relatorio-departamentos-medidor .velocimetro__valor {
+    font-size: 16px;
+}
+
+.relatorio-departamentos-medidor .velocimetro__rotulo,
+.relatorio-departamentos-medidor .velocimetro__limite {
+    display: none;
+}
+
+.relatorio-departamentos-medidor .velocimetro__conteudo {
+    bottom: 2px;
 }
 
 .relatorio-cc-tabela {
@@ -243,7 +226,8 @@
     font-variant-numeric: tabular-nums;
 }
 
-.relatorio-cc-tab .negativo-relatorio {
+.relatorio-cc-tab .negativo-relatorio,
+.relatorio-departamentos .negativo-relatorio {
     color: #a63c3c;
     font-weight: 600;
 }

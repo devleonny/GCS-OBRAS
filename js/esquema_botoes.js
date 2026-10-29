@@ -267,7 +267,7 @@ const esquemaBotoes = {
             permitido: ['fin', 'diretoria', 'adm'],
             img: 'relatorio',
             sub: [
-                { nome: 'Custos por Centro de Custo', funcao: 'telaCustosCentroCusto', img: 'planilha' },
+                { nome: 'Custos por Departamento', funcao: 'telaCustosDepartamentos', img: 'planilha' },
                 { nome: 'Custos por Período', funcao: 'telaCustosPorPeriodo', img: 'reagendar' },
                 { nome: 'Custos de Pessoal', funcao: 'telaCustosPessoal', img: 'gerente' }
             ]

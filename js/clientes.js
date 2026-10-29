@@ -812,6 +812,9 @@ async function formularioCliente(idCliente) {
         }
     ]
 
+    if (idCliente && usuario && ['adm', 'diretoria'].includes(permissaoUsuario))
+        botoes.push({ texto: 'Senha provisória', img: 'chave', funcao: `confirmarSenhaProvisoria(${idCliente})` })
+
     if (idCliente && ['adm', 'diretoria'].includes(permissaoUsuario))
         botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirCliente(${idCliente})` })
 
@@ -821,6 +824,68 @@ async function formularioCliente(idCliente) {
 
     popup({ linhas, botoes, titulo })
 
+}
+
+// Senha provisória: para usuário novo ou para quem perdeu o acesso. No primeiro login com ela
+// a pessoa é obrigada a criar a própria senha (login.js, formularioPrimeiroAcesso).
+function confirmarSenhaProvisoria(idCliente) {
+
+    const botoes = [
+        { texto: 'Gerar', img: 'chave', funcao: `gerarSenhaProvisoriaCliente(${idCliente})` }
+    ]
+
+    popup({
+        mensagem: `
+            Gerar uma senha provisória para este usuário?<br>
+            <small>A senha atual deixa de funcionar e os aparelhos conectados saem. A provisória vale 48 horas
+            e, no primeiro acesso, a pessoa cria a senha dela.</small>`,
+        botoes
+    })
+}
+
+async function gerarSenhaProvisoriaCliente(idCliente) {
+
+    overlayAguarde()
+
+    try {
+        const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
+        const resposta = await fetch(`${api}/senha-provisoria`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ id: idCliente })
+        })
+        const dados = await resposta.json().catch(() => ({}))
+
+        removerPopup()
+
+        if (!resposta.ok || !dados.success)
+            return popup({ mensagem: dados.mensagem || 'Falha ao gerar a senha provisória.' })
+
+        const validade = new Date(dados.expiraEm).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+        const semAcesso = !dados.permissao || ['novo', 'desativado'].includes(dados.permissao)
+
+        const linhas = [
+            { texto: 'Usuário', elemento: `<input value="${escaparAtributo(dados.usuario)}" readOnly>` },
+            {
+                texto: 'Senha provisória',
+                elemento: `
+                    <div style="${horizontal}; gap: 5px;">
+                        <input value="${escaparAtributo(dados.senha)}" readOnly style="font-family: monospace; font-size: 1.1rem;">
+                        <button type="button" onclick="navigator.clipboard.writeText(this.previousElementSibling.value).then(() => this.textContent = 'Copiada')">Copiar</button>
+                    </div>`
+            },
+            { elemento: `<small style="text-align: left;">Válida até ${validade}. Ela aparece só agora: copie e envie para a pessoa.</small>` },
+            semAcesso
+                ? { elemento: `<small style="text-align: left; color: #a63c3c;">A permissão deste usuário está como "${escaparAtributo(dados.permissao || 'sem permissão')}": ajuste a permissão no cadastro para ele conseguir entrar.</small>` }
+                : {}
+        ]
+
+        popup({ linhas, titulo: 'Senha provisória' })
+
+    } catch {
+        removerOverlay()
+        popup({ mensagem: 'Sem conexão com o servidor. Tente novamente.' })
+    }
 }
 
 function normalizarTexto(texto = '') {

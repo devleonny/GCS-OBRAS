@@ -788,9 +788,12 @@ function ordenarColuna({ pag, path }) {
     if (atual.path === path) {
         ctrl.ordenar.direcao = atual.direcao === 'asc' ? 'desc' : 'asc'
     } else {
+        // Sem tipo o servidor ordena como texto ("100" antes de "20"); a coluna pode informar o seu.
+        const { tipoOrdenacao } = Object.values(ctrl.colunas || {}).find(c => c.chave === path) || {}
         ctrl.ordenar = {
             path,
-            direcao: 'asc'
+            direcao: 'asc',
+            ...(tipoOrdenacao && { tipoOrdenacao })
         }
     }
 

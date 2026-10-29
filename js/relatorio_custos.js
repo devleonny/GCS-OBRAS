@@ -1,24 +1,10 @@
-// Relatório de Custos por Centro de Custo (contrato).
-// Dados: vw_relatorio_cc_contratos e vw_relatorio_cc_movimentos (gcs/SQL/relatorio_custos_cc.sql).
-
-const relatorioCC = {
-    contratos: [],
-    movimentos: [],
-    ordenacao: { chave: 'custoTotal', direcao: -1 },
-    linhas: []
-}
+// Relatórios de custos.
+// - Custos por Departamento: vw_relatorio_custos_departamentos (gcs/SQL/relatorio_custos_departamentos.sql),
+//   com as mesmas fontes do Painel de Custos (orçado e custo), para não divergir do centro de custo.
+// - Custos por Período: vw_relatorio_cc_contratos (gcs/SQL/relatorio_custos_cc.sql).
 
 // Acima deste percentual de custo sobre o orçado o contrato fica em alerta (mesmo limite do velocímetro).
 const LIMITE_CUSTO_ORCADO = 40
-
-const LIMITE_LINHAS_RELATORIO_CC = 500
-
-function mesAtualCC(deslocamento = 0) {
-    const data = dataServidor()
-    data.setDate(1)
-    data.setMonth(data.getMonth() + deslocamento)
-    return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`
-}
 
 function rotuloMesCC(mes) {
     if (!mes) return 'Sem data'
@@ -28,26 +14,8 @@ function rotuloMesCC(mes) {
         .replace('.', '')
 }
 
-function mesesEntreCC(de, ate) {
-    const meses = []
-    let [ano, mes] = de.split('-').map(Number)
-    const [anoFim, mesFim] = ate.split('-').map(Number)
-    while (ano < anoFim || (ano === anoFim && mes <= mesFim)) {
-        meses.push(`${ano}-${String(mes).padStart(2, '0')}`)
-        if (++mes > 12) { mes = 1; ano++ }
-        if (meses.length > 120) break
-    }
-    return meses
-}
-
 function moedaCC(valor) {
     return (Number(valor) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
-
-function moedaCurtaCC(valor) {
-    return (Number(valor) || 0).toLocaleString('pt-BR', {
-        style: 'currency', currency: 'BRL', notation: 'compact', maximumFractionDigits: 1
-    })
 }
 
 function percentualCC(valor) {
@@ -69,90 +37,53 @@ async function carregarContratosCC() {
     }))
 }
 
-async function telaCustosCentroCusto() {
+
+// ---------------------------------------------------------------------------
+// Custos por Departamento: lista paginada de todos os departamentos, com o somatório
+// e o custo sobre o orçado. A pesquisa por coluna é a do modTab; os totais seguem os filtros.
+// ---------------------------------------------------------------------------
+
+const PAG_CUSTOS_DEPARTAMENTOS = 'custosDepartamentos'
+const BASE_CUSTOS_DEPARTAMENTOS = 'vw_relatorio_custos_departamentos'
+
+async function telaCustosDepartamentos() {
 
     try {
 
         overlayAguarde()
 
-        const [contratos, movimentos] = await Promise.all([
-            carregarContratosCC(),
-            pesquisarDB({ base: 'vw_relatorio_cc_movimentos', limite: 500000 })
-        ])
-
-        relatorioCC.contratos = contratos
-        relatorioCC.movimentos = (movimentos?.resultados || []).map(m => ({
-            ...m,
-            valor: Number(m.valor) || 0
-        }))
-
-        const empresas = [...new Set(relatorioCC.movimentos.map(m => m.app).filter(Boolean))].sort()
+        const tabela = await modTab({
+            pag: PAG_CUSTOS_DEPARTAMENTOS,
+            base: BASE_CUSTOS_DEPARTAMENTOS,
+            body: 'bodyCustosDepartamentos',
+            criarLinha: 'criarLinhaCustoDepartamento',
+            funcaoAdicional: ['totaisCustosDepartamentos'],
+            // Desempate pelo nome: sem ele, departamentos com o mesmo custo trocam de página.
+            ordenar: [
+                { path: 'custo', direcao: 'desc', tipoOrdenacao: 'numero' },
+                { path: 'departamento', direcao: 'asc' }
+            ],
+            colunas: {
+                'Departamento': { chave: 'departamento' },
+                'Cliente': { chave: 'cliente' },
+                'Cidade': { chave: 'cidade' },
+                // Nos números a pesquisa é "a partir de": 40 em Custo / Orçado mostra quem está em 40% ou mais.
+                'Orçado': { chave: 'orcado', op: '>=', tipoOrdenacao: 'numero' },
+                'Custo': { chave: 'custo', op: '>=', tipoOrdenacao: 'numero' },
+                'Custo / Orçado': { chave: 'percentual', op: '>=', tipoOrdenacao: 'numero' },
+                'Centro de custo': {}
+            }
+        })
 
         tela.innerHTML = `
-            <div class="pagina-conteudo relatorio-cc">
-                <div class="cabecalho-pagina"><h2>Custos por Centro de Custo</h2></div>
-
-                <div class="relatorio-cc-filtros">
-                    <label>Visão
-                        <select name="visao" onchange="atualizarRelatorioCC()">
-                            <option value="vencimento">Por mês de vencimento</option>
-                            <option value="orcamento">Por mês do orçamento</option>
-                        </select>
-                    </label>
-                    <label>De
-                        <input type="month" name="de" value="${mesAtualCC(-11)}" onchange="atualizarRelatorioCC()">
-                    </label>
-                    <label>Até
-                        <input type="month" name="ate" value="${mesAtualCC()}" onchange="atualizarRelatorioCC()">
-                    </label>
-                    <label>Empresa
-                        <select name="empresa" onchange="atualizarRelatorioCC()">
-                            <option value="">Todas</option>
-                            ${empresas.map(e => `<option>${escaparAtributo(e)}</option>`).join('')}
-                        </select>
-                    </label>
-                    <div class="relatorio-cc-busca">
-                        <span>Pesquisar</span>
-                        <div class="relatorio-cc-pesquisa">
-                            <input type="search" name="busca" placeholder="Contrato, cliente ou cidade" aria-label="Pesquisar"
-                                onkeydown="if (event.key === 'Enter') atualizarRelatorioCC()"
-                                oninput="if (!this.value) atualizarRelatorioCC()">
-                            <button type="button" title="Pesquisar" aria-label="Pesquisar" onclick="atualizarRelatorioCC()">
-                                <img src="imagens/pesquisar.svg" alt="">
-                            </button>
-                        </div>
-                    </div>
-                    <label class="relatorio-cc-check">
-                        <input type="checkbox" name="previstos" checked onchange="atualizarRelatorioCC()">
-                        Incluir previstos (a pagar / a receber)
-                    </label>
-                </div>
-
-                <div class="relatorio-cc-indicadores"></div>
-
-                <div class="relatorio-cc-graficos">
-                    <section class="relatorio-cc-cartao relatorio-cc-cartao-largo">
-                        <h3>Mês a mês</h3>
-                        <div class="relatorio-cc-grafico"><canvas id="relatorio-cc-mensal"></canvas></div>
-                    </section>
-                    <section class="relatorio-cc-cartao">
-                        <h3>Custos por categoria</h3>
-                        <div class="relatorio-cc-grafico"><canvas id="relatorio-cc-categorias"></canvas></div>
-                    </section>
-                    <section class="relatorio-cc-cartao">
-                        <h3>Maiores custos por contrato</h3>
-                        <div class="relatorio-cc-grafico"><canvas id="relatorio-cc-contratos"></canvas></div>
-                    </section>
-                </div>
-
-                <section class="relatorio-cc-cartao">
-                    <h3>Contratos <span class="relatorio-cc-contagem"></span></h3>
-                    <div class="relatorio-cc-tabela"></div>
-                </section>
+            <div class="pagina-conteudo relatorio-departamentos">
+                <div class="cabecalho-pagina"><h2>Custos por Departamento</h2></div>
+                <div class="relatorio-departamentos-totais"></div>
+                ${tabela}
             </div>
         `
 
-        atualizarRelatorioCC()
+        await paginacao(PAG_CUSTOS_DEPARTAMENTOS)
 
         removerOverlay()
 
@@ -163,260 +94,89 @@ async function telaCustosCentroCusto() {
 
 }
 
-function filtrosRelatorioCC() {
-    const valor = nome => document.querySelector(`.relatorio-cc-filtros [name="${nome}"]`)
-    let de = valor('de').value || mesAtualCC(-11)
-    let ate = valor('ate').value || mesAtualCC()
-    if (de > ate) [de, ate] = [ate, de]
-
-    return {
-        visao: valor('visao').value,
-        de,
-        ate,
-        empresa: valor('empresa').value,
-        busca: valor('busca').value.trim().toLocaleLowerCase('pt-BR'),
-        previstos: valor('previstos').checked
-    }
+function velocimetroCustoDepartamento(percentual, tamanho) {
+    return criarVelocimetroHTML({ rotulo: 'do orçado', limite: LIMITE_CUSTO_ORCADO, valor: percentual, tamanho })
 }
 
-// Agrega os movimentos conforme a visão:
-// - vencimento: custos e receitas datados pelo vencimento dentro do período (fluxo de caixa);
-// - orçamento: contratos cujo mês de referência (estrutura) está no período, com todos os seus custos (orçado x realizado).
-function agregarRelatorioCC(filtros) {
+function criarLinhaCustoDepartamento(d) {
 
-    const { visao, de, ate, empresa, busca, previstos } = filtros
-    const meses = mesesEntreCC(de, ate)
-    const noPeriodo = mes => mes && mes >= de && mes <= ate
+    const orcado = Number(d.orcado) || 0
+    const custo = Number(d.custo) || 0
+    const percentual = d.percentual === null || d.percentual === '' ? NaN : Number(d.percentual)
 
-    const contratos = new Map(relatorioCC.contratos.map(c => [c.contrato, c]))
+    const texto = valor => escaparAtributo(valor || '—')
 
-    const combinaBusca = contrato => {
-        if (!busca) return true
-        const c = contratos.get(contrato) || {}
-        return [contrato, c.cliente, c.cidade]
-            .some(texto => String(texto || '').toLocaleLowerCase('pt-BR').includes(busca))
-    }
+    return `
+        <tr>
+            <td>${escaparAtributo(d.departamento)}</td>
+            <td>${texto(d.cliente)}</td>
+            <td>${texto(d.cidade)}</td>
+            <td class="relatorio-departamentos-numero">${orcado ? moedaCC(orcado) : '—'}</td>
+            <td class="relatorio-departamentos-numero">${moedaCC(custo)}</td>
+            <td class="relatorio-departamentos-medidor">
+                ${Number.isFinite(percentual) ? velocimetroCustoDepartamento(percentual, 110) : '<span title="Sem orçamento vinculado">—</span>'}
+            </td>
+            <td style="text-align: center;">
+                ${d.tem_centro_custo
+                    ? `<img src="imagens/pesquisar.svg" style="width: 1.5rem; cursor: pointer;" title="Painel de custos"
+                        onclick="painelCustos(this.dataset.departamento)" data-departamento="${escaparAtributo(d.departamento)}">`
+                    : '<span title="Sem centro de custo criado">—</span>'}
+            </td>
+        </tr>`
+}
 
-    const contratoNaVisao = contrato => visao !== 'orcamento' || noPeriodo(contratos.get(contrato)?.mes_orcamento)
+// Somas no servidor com os mesmos filtros da tabela (valem para todas as páginas, não só a visível).
+// O percentual geral considera só departamentos com orçado: custo sem orçamento não tem base de comparação.
+async function totaisCustosDepartamentos() {
 
-    const porContrato = new Map()
-    const porMes = new Map(meses.map(m => [m, { custoRealizado: 0, custoPrevisto: 0, receita: 0, orcado: 0 }]))
-    const porCategoria = new Map()
+    const div = document.querySelector('.relatorio-departamentos-totais')
+    if (!div) return
 
-    const linhaContrato = contrato => {
-        if (!porContrato.has(contrato)) {
-            porContrato.set(contrato, {
-                contrato,
-                ...contratos.get(contrato),
-                custoRealizado: 0,
-                custoPrevisto: 0,
-                receitaRealizada: 0,
-                receitaPrevista: 0
-            })
-        }
-        return porContrato.get(contrato)
-    }
+    const filtros = controles[PAG_CUSTOS_DEPARTAMENTOS]?.filtros || {}
+    const comOrcado = combinarFiltros(filtros, { orcado: { op: '>', value: '0' } })
+    const somar = (path, filtros) => contarPorCampo({ base: BASE_CUSTOS_DEPARTAMENTOS, path, filtros, modo: 'soma' })
 
-    for (const m of relatorioCC.movimentos) {
-        if (empresa && m.app !== empresa) continue
-        if (!previstos && m.situacao === 'PREVISTO') continue
-        if (!combinaBusca(m.contrato) || !contratoNaVisao(m.contrato)) continue
-        if (visao === 'vencimento' && !noPeriodo(m.mes)) continue
+    try {
 
-        const linha = linhaContrato(m.contrato)
-        const realizado = m.situacao === 'REALIZADO'
+        const [orcado, custo, custoComOrcado] = await Promise.all([
+            somar('orcado', filtros),
+            somar('custo', filtros),
+            somar('custo', comOrcado)
+        ])
 
-        // Na visão por orçamento o eixo é o mês de referência do contrato.
-        const mesEixo = visao === 'orcamento' ? linha.mes_orcamento : m.mes
-        const mes = porMes.get(mesEixo)
+        const percentual = orcado.total ? Math.round(custoComOrcado.total / orcado.total * 1000) / 10 : NaN
 
-        if (m.tipo === 'CUSTO') {
-            linha[realizado ? 'custoRealizado' : 'custoPrevisto'] += m.valor
-            if (mes) mes[realizado ? 'custoRealizado' : 'custoPrevisto'] += m.valor
-            porCategoria.set(m.categoria, (porCategoria.get(m.categoria) || 0) + m.valor)
-        } else {
-            linha[realizado ? 'receitaRealizada' : 'receitaPrevista'] += m.valor
-            if (mes) mes.receita += m.valor
-        }
-    }
+        const indicador = (titulo, valor, detalhe = '') => `
+            <div class="relatorio-departamentos-indicador">
+                <span>${titulo}</span>
+                <strong>${valor}</strong>
+                ${detalhe ? `<small>${detalhe}</small>` : ''}
+            </div>`
 
-    // Orçamentos do mês: contratos cuja estrutura aponta para o mês, independentemente de terem custo.
-    for (const c of relatorioCC.contratos) {
-        if (!noPeriodo(c.mes_orcamento) || !combinaBusca(c.contrato)) continue
-        porMes.get(c.mes_orcamento).orcado += c.total_orcado
-        if (visao === 'orcamento') linhaContrato(c.contrato)
+        div.innerHTML = `
+            <div class="relatorio-departamentos-indicadores">
+                ${indicador('Departamentos', custo.todos.toLocaleString('pt-BR'))}
+                ${indicador('Orçado', moedaCC(orcado.total))}
+                ${indicador('Custo', moedaCC(custo.total), custo.total !== custoComOrcado.total
+                    ? `${moedaCC(custo.total - custoComOrcado.total)} em departamentos sem orçado`
+                    : '')}
+                ${indicador('Saldo', moedaCC(orcado.total - custoComOrcado.total), 'orçado − custo dos orçados')}
+            </div>
+            <div class="relatorio-departamentos-geral">
+                ${Number.isFinite(percentual)
+                    ? velocimetroCustoDepartamento(percentual, 200)
+                    : '<span>Sem orçado nos filtros escolhidos</span>'}
+            </div>
+        `
+
+    } catch (err) {
+        console.error(err)
+        div.innerHTML = '<p class="relatorio-cc-vazio">Não foi possível somar os custos.</p>'
     }
 
-    const linhas = [...porContrato.values()].map(l => {
-        const custoTotal = l.custoRealizado + l.custoPrevisto
-        const orcado = Number(l.total_orcado) || 0
-        return {
-            ...l,
-            orcado,
-            custoTotal,
-            receita: l.receitaRealizada + l.receitaPrevista,
-            percentual: orcado ? custoTotal / orcado * 100 : NaN,
-            saldo: orcado ? orcado - custoTotal : NaN
-        }
-    })
-
-    return { meses, porMes, porCategoria, linhas }
 }
 
-function atualizarRelatorioCC() {
-
-    if (!document.querySelector('.relatorio-cc')) return
-
-    const filtros = filtrosRelatorioCC()
-    const dados = agregarRelatorioCC(filtros)
-    relatorioCC.linhas = dados.linhas
-
-    renderIndicadoresCC(dados, filtros)
-    renderGraficoMensalCC(dados)
-    renderGraficoCategoriasCC(dados)
-    renderGraficoContratosCC(dados)
-    renderTabelaCC()
-}
-
-function renderIndicadoresCC({ linhas, porMes }, { visao }) {
-
-    const soma = chave => linhas.reduce((total, l) => total + (Number(l[chave]) || 0), 0)
-
-    const custoRealizado = soma('custoRealizado')
-    const custoPrevisto = soma('custoPrevisto')
-    const custoTotal = custoRealizado + custoPrevisto
-    const receita = soma('receita')
-
-    // Na visão por vencimento o orçado é o dos orçamentos do período; na outra, o dos contratos listados.
-    const orcado = visao === 'orcamento'
-        ? soma('orcado')
-        : [...porMes.values()].reduce((total, m) => total + m.orcado, 0)
-
-    const percentual = orcado ? custoTotal / orcado * 100 : NaN
-    const alerta = percentual > LIMITE_CUSTO_ORCADO
-
-    const indicador = (titulo, valor, detalhe = '', classe = '') => `
-        <div class="relatorio-cc-indicador ${classe}">
-            <span>${titulo}</span>
-            <strong>${valor}</strong>
-            ${detalhe ? `<small>${detalhe}</small>` : ''}
-        </div>`
-
-    document.querySelector('.relatorio-cc-indicadores').innerHTML = [
-        indicador('Orçado', moedaCC(orcado), visao === 'orcamento' ? 'contratos do período' : 'orçamentos do período'),
-        indicador('Custo realizado', moedaCC(custoRealizado), 'pago'),
-        indicador('Custo previsto', moedaCC(custoPrevisto), 'a pagar'),
-        indicador('Custo total', moedaCC(custoTotal)),
-        indicador('Custo / Orçado', percentualCC(percentual), `alerta acima de ${LIMITE_CUSTO_ORCADO}%`, alerta ? 'alerta' : 'ok'),
-        indicador('Receita', moedaCC(receita), 'recebimentos lançados'),
-        indicador('Receita − Custo', moedaCC(receita - custoTotal), '', receita - custoTotal < 0 ? 'alerta' : 'ok')
-    ].join('')
-}
-
-function graficoCC(seletor, configuracao) {
-    const canvas = document.querySelector(seletor)
-    if (!canvas || typeof Chart === 'undefined') return
-    Chart.getChart(canvas)?.destroy()
-    return new Chart(canvas, configuracao)
-}
-
-const coresCC = {
-    realizado: '#356443',
-    previsto: '#9cc5a7',
-    orcado: '#24729d',
-    receita: '#d97302',
-    categorias: ['#356443', '#24729d', '#d97302', '#a63c3c', '#6b4c9a', '#2a9d8f', '#e9c46a', '#8d6e63', '#5c7cfa', '#b5838d', '#7a8b80']
-}
-
-const tooltipMoedaCC = {
-    callbacks: {
-        label: contexto => `${contexto.dataset.label || contexto.label}: ${moedaCC(contexto.raw)}`
-    }
-}
-
-function renderGraficoMensalCC({ meses, porMes }) {
-
-    const serie = chave => meses.map(m => porMes.get(m)[chave])
-
-    graficoCC('#relatorio-cc-mensal', {
-        data: {
-            labels: meses.map(rotuloMesCC),
-            datasets: [
-                { type: 'bar', label: 'Custo realizado', data: serie('custoRealizado'), backgroundColor: coresCC.realizado, stack: 'custo', order: 2 },
-                { type: 'bar', label: 'Custo previsto', data: serie('custoPrevisto'), backgroundColor: coresCC.previsto, stack: 'custo', order: 2 },
-                { type: 'line', label: 'Orçado', data: serie('orcado'), borderColor: coresCC.orcado, backgroundColor: coresCC.orcado, tension: 0.25, order: 1 },
-                { type: 'line', label: 'Receita', data: serie('receita'), borderColor: coresCC.receita, backgroundColor: coresCC.receita, borderDash: [6, 4], tension: 0.25, order: 1 }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: { tooltip: tooltipMoedaCC, legend: { position: 'bottom' } },
-            scales: {
-                x: { stacked: true },
-                y: { stacked: true, beginAtZero: true, ticks: { callback: moedaCurtaCC } }
-            }
-        }
-    })
-}
-
-function renderGraficoCategoriasCC({ porCategoria }) {
-
-    // Mantém as 10 maiores e agrupa o restante para o gráfico continuar legível.
-    const ordenadas = [...porCategoria].sort((a, b) => b[1] - a[1])
-    const principais = ordenadas.slice(0, 10)
-    const outras = ordenadas.slice(10).reduce((total, [, valor]) => total + valor, 0)
-    if (outras) principais.push(['Outras', outras])
-
-    graficoCC('#relatorio-cc-categorias', {
-        type: 'doughnut',
-        plugins: typeof porcentagensRosca !== 'undefined' ? [porcentagensRosca] : [],
-        data: {
-            labels: principais.map(([categoria]) => categoria),
-            datasets: [{ data: principais.map(([, valor]) => valor), backgroundColor: coresCC.categorias }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'bottom', labels: { boxWidth: 12 } },
-                tooltip: { callbacks: { label: c => `${c.label}: ${moedaCC(c.parsed)}` } }
-            }
-        }
-    })
-}
-
-function renderGraficoContratosCC({ linhas }) {
-
-    const maiores = [...linhas]
-        .filter(l => l.custoTotal > 0)
-        .sort((a, b) => b.custoTotal - a.custoTotal)
-        .slice(0, 10)
-
-    graficoCC('#relatorio-cc-contratos', {
-        type: 'bar',
-        data: {
-            labels: maiores.map(l => l.contrato),
-            datasets: [
-                { label: 'Custo total', data: maiores.map(l => l.custoTotal), backgroundColor: coresCC.realizado },
-                { label: 'Orçado', data: maiores.map(l => l.orcado), backgroundColor: coresCC.orcado }
-            ]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { tooltip: tooltipMoedaCC, legend: { position: 'bottom' } },
-            scales: { x: { beginAtZero: true, ticks: { callback: moedaCurtaCC } } },
-            onClick: (_, elementos) => {
-                const contrato = maiores[elementos[0]?.index]?.contrato
-                if (contrato) painelCustos(contrato)
-            }
-        }
-    })
-}
-
+// Colunas reaproveitadas pelas tabelas do relatório por período.
 const colunasTabelaCC = [
     { titulo: 'Contrato', chave: 'contrato', tipo: 'texto' },
     { titulo: 'Mês do orçamento', chave: 'mes_orcamento', tipo: 'mes' },
@@ -430,13 +190,6 @@ const colunasTabelaCC = [
     { titulo: 'Receita', chave: 'receita', tipo: 'moeda' },
     { titulo: 'Saldo (Orçado − Custo)', chave: 'saldo', tipo: 'moeda' }
 ]
-
-function ordenarTabelaCC(chave) {
-    const { ordenacao } = relatorioCC
-    ordenacao.direcao = ordenacao.chave === chave ? -ordenacao.direcao : -1
-    ordenacao.chave = chave
-    renderTabelaCC()
-}
 
 function celulaCC(linha, { chave, tipo }) {
     const valor = linha[chave]
@@ -462,50 +215,6 @@ function celulaCC(linha, { chave, tipo }) {
         return `<td>${valor ? rotuloMesCC(valor) : '—'}</td>`
 
     return `<td>${escaparAtributo(String(valor || ''))}</td>`
-}
-
-function renderTabelaCC() {
-
-    const { chave, direcao } = relatorioCC.ordenacao
-    const comparar = (a, b) => {
-        const va = a[chave], vb = b[chave]
-        const vazioA = va == null || va === '' || Number.isNaN(va)
-        const vazioB = vb == null || vb === '' || Number.isNaN(vb)
-        if (vazioA || vazioB) return vazioA - vazioB
-        return (typeof va === 'number' ? va - vb : String(va).localeCompare(String(vb), 'pt-BR')) * direcao
-    }
-
-    const linhas = [...relatorioCC.linhas].sort(comparar)
-    const visiveis = linhas.slice(0, LIMITE_LINHAS_RELATORIO_CC)
-
-    const ths = colunasTabelaCC
-        .map(c => `
-            <th onclick="ordenarTabelaCC('${c.chave}')" class="${c.tipo !== 'texto' && c.tipo !== 'mes' ? 'relatorio-cc-numero' : ''}">
-                ${c.titulo}${c.chave === chave ? (direcao < 0 ? ' ▼' : ' ▲') : ''}
-            </th>`)
-        .join('')
-
-    const trs = visiveis
-        .map(l => `
-            <tr>
-                ${colunasTabelaCC.map(c => celulaCC(l, c)).join('')}
-                <td style="text-align: center;">
-                    <img src="imagens/pesquisar.svg" style="width: 1.5rem; cursor: pointer;" title="Painel de custos"
-                        onclick="painelCustos(this.dataset.contrato)" data-contrato="${escaparAtributo(l.contrato)}">
-                </td>
-            </tr>`)
-        .join('')
-
-    document.querySelector('.relatorio-cc-contagem').textContent = linhas.length > visiveis.length
-        ? `(${visiveis.length} de ${linhas.length}, refine os filtros)`
-        : `(${linhas.length})`
-
-    document.querySelector('.relatorio-cc-tabela').innerHTML = linhas.length
-        ? `<table class="relatorio-cc-tab">
-                <thead><tr>${ths}<th>Custos</th></tr></thead>
-                <tbody>${trs}</tbody>
-            </table>`
-        : '<p class="relatorio-cc-vazio">Nenhum dado para os filtros escolhidos.</p>'
 }
 
 

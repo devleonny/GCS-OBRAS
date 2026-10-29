@@ -92,6 +92,11 @@ async function acessoLogin() {
 
             const data = await response.json()
 
+            if (data.trocarSenha) {
+                divAcesso.style.display = 'flex'
+                return formularioPrimeiroAcesso(data.usuario, inputs[1].value)
+            }
+
             if (data.mensagem) {
                 divAcesso.style.display = 'flex'
                 return popup({ mensagem: data.mensagem });
@@ -110,6 +115,74 @@ async function acessoLogin() {
             divAcesso.style.display = 'flex'
             popup({ mensagem: err.message || `Falha ao acessar o sistema, tente novamente em instantes` })
         }
+    }
+}
+
+// Primeiro acesso com senha provisória (gerada pelo suporte): cria a senha definitiva e entra.
+// A provisória fica só em memória, não vai para o formulário.
+let primeiroAcesso = null
+
+function formularioPrimeiroAcesso(usuario, senhaProvisoria) {
+
+    primeiroAcesso = { usuario, senhaProvisoria }
+
+    const campo = (nome, placeholder) =>
+        `<input name="${nome}" type="password" autocomplete="new-password" placeholder="${placeholder}">`
+
+    const linhas = [
+        { elemento: `<span style="text-align: left;">Você entrou com uma senha provisória. Crie a sua senha para continuar.</span>` },
+        { texto: 'Nova senha', elemento: campo('novaSenha', 'Nova senha') },
+        { texto: 'Repita a nova senha', elemento: campo('confirmarSenha', 'Repita a nova senha') },
+        { elemento: `<small style="color: #65756b; text-align: left;">${REGRA_SENHA}</small>` }
+    ]
+
+    const botoes = [
+        { texto: 'Salvar e entrar', img: 'concluido', funcao: 'salvarPrimeiroAcesso()' }
+    ]
+
+    popup({ linhas, botoes, titulo: 'Crie sua senha' })
+}
+
+async function salvarPrimeiroAcesso() {
+
+    const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
+    const valor = nome => painel?.querySelector(`[name="${nome}"]`)?.value || ''
+    const novaSenha = valor('novaSenha')
+
+    if (!primeiroAcesso)
+        return removerTodosPopups()
+
+    if (novaSenha !== valor('confirmarSenha'))
+        return popup({ mensagem: 'A confirmação não confere com a nova senha.' })
+
+    if (novaSenha.length < 8)
+        return popup({ mensagem: REGRA_SENHA })
+
+    overlayAguarde()
+
+    try {
+        const resposta = await fetch(`${api}/definir-senha`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...primeiroAcesso, novaSenha })
+        })
+        const dados = await resposta.json().catch(() => ({}))
+
+        // Erro de validação: mantém o formulário aberto para corrigir.
+        if (!resposta.ok || !dados.success) {
+            removerOverlay()
+            return popup({ mensagem: dados.mensagem || 'Falha ao criar a senha.' })
+        }
+
+        primeiroAcesso = null
+        removerTodosPopups()
+
+        // Entra com a senha nova, pelo login normal.
+        document.querySelectorAll('#acesso input')[1].value = novaSenha
+        acessoLogin()
+    } catch {
+        removerOverlay()
+        popup({ mensagem: 'Sem conexão com o servidor. Tente novamente.' })
     }
 }
 

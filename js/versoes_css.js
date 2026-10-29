@@ -30,7 +30,7 @@ const VERSOES_CSS = {
     "postit": "b2cd0b61",
     "relatorio": "d9b3bb23",
     "relatorio_omie": "e91d89db",
-    "relatorios": "25d91be1",
+    "relatorios": "5e9d9b05",
     "rh": "4b3844e2",
     "seletor-cores": "c0e10ff3",
     "status": "ea093268",
