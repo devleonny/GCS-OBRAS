@@ -141,6 +141,39 @@ try {
             .catch(() => {})
 } catch { }
 
+// Imagem de /uploads que falhou: quase sempre o cookie dos arquivos ainda não estava gravado
+// (tela desenhada antes da renovação acima terminar, ou cookie vencido com o PC parado).
+// Renova a sessão, que grava o cookie, e recarrega as imagens que falharam (uma vez cada).
+// Renovação forçada no máximo a cada minuto: arquivo apagado de verdade também cai aqui.
+const imagensArquivosFalhas = []
+let recargaArquivosAgendada = null
+let ultimaRenovacaoArquivos = 0
+
+document.addEventListener('error', evento => {
+    const img = evento.target
+    if (!(img instanceof HTMLImageElement) || img.dataset.arquivoRecarregado || typeof api === 'undefined')
+        return
+
+    let url
+    try { url = new URL(img.src) } catch { return }
+    if (url.origin !== new URL(api).origin || !url.pathname.startsWith('/uploads/'))
+        return
+
+    img.dataset.arquivoRecarregado = 'sim'
+    imagensArquivosFalhas.push({ img, src: img.src })
+
+    recargaArquivosAgendada ??= (async () => {
+        if (Date.now() - ultimaRenovacaoArquivos > 60 * 1000) {
+            ultimaRenovacaoArquivos = Date.now()
+            const resultado = await renovarSessao({ forcar: true }).catch(() => 'erro')
+            if (resultado === 'renovado') localStorage.setItem('cookieArquivosGCS', '1')
+        }
+        // Só recarrega quem ainda mostra o mesmo endereço (onerror pode ter trocado pelo logo).
+        for (const { img, src } of imagensArquivosFalhas.splice(0))
+            if (img.src === src) img.src = `${src}${src.includes('?') ? '&' : '?'}r=${Date.now()}`
+    })().finally(() => { recargaArquivosAgendada = null })
+}, true)
+
 // PC acordou ou a aba voltou: o token pode ter vencido enquanto os timers estavam parados.
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && localStorage.getItem('acesso'))
