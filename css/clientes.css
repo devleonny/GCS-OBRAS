@@ -27,24 +27,40 @@
     box-shadow: none;
 }
 
-.cliente-tag .cliente-tag-remover {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 20px;
-    height: 20px;
-    padding: 0;
-    margin: 0;
-    border: none;
-    background: transparent;
-    color: #356443;
-    font-size: 16px;
+/* Tags no formulário de clientes: lista de checkbox em pílulas, marcada = verde */
+.cliente-tags-lista {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
 }
 
-.cliente-tag .cliente-tag-remover:hover {
-    background: #c5dfce;
-    color: #254c31;
+.cliente-tag-opcao {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0;
+    padding: 3px 10px 3px 6px;
+    border: 1px solid #cfdcd3;
+    border-radius: 999px;
+    background: #f7f9f8;
+    color: #4d5f54;
+    font-size: 11px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.cliente-tag-opcao input {
+    width: auto;
+    margin: 0;
+    accent-color: #249f41;
+    cursor: pointer;
+}
+
+.cliente-tag-opcao:has(input:checked) {
+    border-color: #8cc7a0;
+    background: #e2efe7;
+    color: #24693a;
+    font-weight: 600;
 }
 
 .cliente-foto,
@@ -323,4 +339,118 @@
         width: 100%;
     }
 
+}
+
+/* Resultado da consulta do CNPJ na Receita (preencherClientePorCnpj, clientes.js) */
+.cnpj-receita { font-size: 11px; line-height: 1.3; padding: 3px 8px; border-radius: 8px; background: #eef1ef; color: #65756b; text-align: left; }
+.cnpj-receita.ok { background: #e2efe7; color: #2f6b43; }
+.cnpj-receita.alerta { background: #fff4dc; color: #8a5a00; }
+.cnpj-receita.erro { background: #fcecea; color: #963e36; font-weight: 600; }
+
+/* Formulário de clientes (formularioCliente): janela larga e de largura fixa. Identificado pelo
+   campo oculto [data-form-cliente]; as linhas viram grade rótulo | campo. */
+.popup-janela-fora:has([data-form-cliente]) {
+    width: min(760px, calc(100vw - 24px));
+    max-width: none;
+}
+
+.popup-janela-fora:has([data-form-cliente]) .painel-padrao {
+    max-width: none;
+    box-sizing: border-box;
+}
+
+.popup-janela-fora:has([data-form-cliente]) .linha-padrao {
+    display: grid;
+    grid-template-columns: 9rem minmax(0, 1fr);
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 6px;
+}
+
+.popup-janela-fora:has([data-form-cliente]) .linha-padrao > :only-child,
+.popup-janela-fora:has([data-form-cliente]) .linha-padrao > .cliente-secao {
+    grid-column: 1 / -1;
+}
+
+.popup-janela-fora:has([data-form-cliente]) .linha-padrao > :nth-child(2) {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.popup-janela-fora:has([data-form-cliente]) .cnpj-receita {
+    grid-column: 2;
+}
+
+/* Títulos de seção (Endereço de cadastro, Dados de contato, Endereço de entrega) */
+.popup-janela-fora:has([data-form-cliente]) .linha-padrao:has(> .cliente-secao) {
+    background: #eef5f0;
+    padding: 8px 12px;
+}
+
+.cliente-secao {
+    text-align: left;
+    color: #24693a;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.cliente-secao::before {
+    content: '›';
+    margin-right: 6px;
+    font-size: 14px;
+}
+
+/* Rodapé: matrícula e usuário em balões */
+.cliente-rodape {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.cliente-balao {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    padding: 3px 10px;
+    border: 1px solid #cfdcd3;
+    border-radius: 999px;
+    background: white;
+    color: #324b3c;
+    font-size: 12px;
+}
+
+.cliente-balao small {
+    color: #65756b;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.cliente-balao b {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cliente-status-usuario {
+    font-size: 11px;
+}
+
+.cliente-status-usuario img {
+    width: 1rem !important;
+}
+
+@media (max-width: 600px) {
+    .popup-janela-fora:has([data-form-cliente]) .linha-padrao {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .popup-janela-fora:has([data-form-cliente]) .cnpj-receita {
+        grid-column: 1;
+    }
 }

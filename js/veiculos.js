@@ -21,8 +21,6 @@ async function telaVeiculos() {
 
     try {
 
-        overlayAguarde()
-
         const colunas = {
             'Data de registro': { chave: 'timestamp', tipoPesquisa: 'data' },
             'Usuário': { chave: 'usuario' },

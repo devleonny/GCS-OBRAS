@@ -29,22 +29,13 @@ const aEstados = [
     'TO'
 ]
 
-const tagCliente = (nome, ativarRemover = false) => {
+const tagCliente = nome => {
     return `
         <div class="cliente-tag">
-            ${ativarRemover ? `<button type="button" class="cliente-tag-remover" aria-label="Remover tag" onclick="removerTagCliente(this)">×</button>` : ''}
             <span data-nome="${escaparAtributo(nome || '')}" class="etiquetas">
                 ${escaparAtributo(nome || '--')}
             </span>
         </div>`
-}
-
-function removerTagCliente(img) {
-
-    img.parentElement.remove()
-    const painel = document.querySelector('.painel-padrao')
-    verificarDisponibilidade(painel.querySelector('[name="nome"]'))
-
 }
 
 // Último painel
@@ -179,8 +170,6 @@ async function ativarCadastro(id) {
 async function telaClientes() {
 
     try {
-
-        overlayAguarde()
 
         const pag = 'clientes'
         const dropdownTags = montarDropdownCheckbox({
@@ -519,25 +508,10 @@ function checksCliente(inputM) {
     }
 }
 
-function adicionarTag() {
-
-    const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
-
-    const tag = painel.querySelector('[name="tag"]')
-
-    const divtags = painel.querySelector('[name="tags"]')
-    const tagsExistente = divtags.querySelectorAll('.etiquetas')
-
-    const existente = [...tagsExistente]
-        .some(span => span.dataset.nome == tag.value)
-
-    if (existente || tag.value == '')
-        return
-
-    divtags.insertAdjacentHTML('beforeend', tagCliente(tag.value, true))
-
-    verificarDisponibilidade(painel.querySelector('[name="nome"]'))
-
+// Tags marcadas na lista de checkbox do formulário de clientes.
+function tagsMarcadasCliente(painel) {
+    return [...(painel?.querySelectorAll('[name="tags"] input[type="checkbox"]:checked') || [])]
+        .map(caixa => caixa.value)
 }
 
 const MESES_ANIVERSARIO = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -602,12 +576,15 @@ async function formularioCliente(idCliente) {
         tags
     } = await recuperarDado('clientes', idCliente) || {}
 
-    const labelsTags = (tags || [])
-        .map(item => tagCliente(item.tag, true))
-        .join('')
-
-    const opcoes = tagsClientes
-        .map(o => `<option>${o}</option>`)
+    // Tags em lista de checkbox: as da lista padrão e, marcadas, as antigas que não estão nela.
+    const marcadas = new Set((tags || []).map(item => item.tag).filter(Boolean))
+    const opcoesTags = [...new Set([...tagsClientes.filter(Boolean), ...marcadas])]
+        .map(tag => `
+            <label class="cliente-tag-opcao">
+                <input type="checkbox" value="${escaparAtributo(tag)}" ${marcadas.has(tag) ? 'checked' : ''}
+                    onchange="verificarDisponibilidade(this.closest('.painel-padrao').querySelector('[name=nome]'))">
+                <span>${escaparAtributo(tag)}</span>
+            </label>`)
         .join('')
 
     const { nome: nomeEmpresa } = empresa
@@ -634,9 +611,6 @@ async function formularioCliente(idCliente) {
 
     }
 
-    // Validação incial para mostrar um aviso;
-    const cnpjValido = validarCpfCnpj(cnpj)
-
     const linhas = [
         {
             elemento: `<div data-foto-cliente class="${foto ? 'tem-foto' : ''}" style="${vertical}; align-items: center; width: 100%; gap: 8px;">
@@ -654,61 +628,51 @@ async function formularioCliente(idCliente) {
             </div>`
         },
         {
-            texto: 'Matrícula',
-            elemento: `<span class="fin">${matricula || 'automático'}</span>`
-        },
-        {
             texto: 'Empresa',
             elemento: `<span ${empresa ? `id="${empresa}"` : ''} name="empresa" class="opcoes" onclick="cxOpcoes('empresa')">${nomeEmpresa || 'Selecionar'}</span>`
         },
         {
-            texto: 'CPF/CNPJ',
-            elemento: `
-                <div style="${vertical}; gap: 5px;">
-                    <input placeholder="CPF ou CNPJ" oninput="formatarCnpj(this)" name="cnpj" value="${cnpj || ''}">
-                    <div style="font-size: 11px; display: ${cnpjValido ? 'none' : 'flex'}; align-items: center; justify-content: center; gap: 5px;" id="avisoCnpj">
-                        <img src="gifs/alerta.gif">
-                        <span>Sem CPF/CNPJ: Sem pagamento!</span>
-                    </div>
-                </div>
-                `
-        },
-        {
             texto: 'Tags',
-            elemento: `
-            <div style="${vertical}; gap: 5px;">
-                <div style="${horizontal}; gap: 5px;">
-                    <select name="tag">
-                        ${opcoes}
-                    </select>
-
-                    <button onclick="adicionarTag()">Confirmar</button>
-                </div>
-                
-                <div name="tags" style="${vertical}; gap: 2px;">
-                    ${labelsTags}
-                </div>
-            </div>
-            `
+            elemento: `<div name="tags" class="cliente-tags-lista">${opcoesTags}</div>`
         },
         {
+            texto: 'CPF/CNPJ',
+            elemento: `<input placeholder="CPF ou CNPJ" oninput="formatarCnpj(this)" name="cnpj" value="${cnpj || ''}">`
+        },
+        {
+            // Usuário fica oculto aqui (obVal e verificarDisponibilidade leem do painel);
+            // o rodapé mostra o valor em balão (cliente-rodape).
             texto: 'Nome',
             elemento: `
-            <textarea 
-            placeholder="Nome Completo" 
-            maxlength="60" 
+            <textarea
+            placeholder="Nome Completo"
+            maxlength="60"
             ${!usuario ? `oninput="verificarDisponibilidade(this)"` : ''}
-            name="nome">${nome || ''}</textarea>`
+            name="nome">${nome || ''}</textarea>
+            <input type="hidden" name="usuario" value="${escaparAtributo(usuario || '')}" data-form-cliente>`
+        },
+        { elemento: '<span class="cliente-secao">Endereço de cadastro</span>' },
+        {
+            texto: 'Cep',
+            elemento: `<input oninput="formatarCep(this, 'cadastro')" name="cep" value="${cep || ''}">`
         },
         {
-            texto: 'Usuário',
-            elemento: `
-                <div style="${vertical}; align-items: end; gap: 5px;">
-                    <input name="usuario" placeholder="Usuário" value="${usuario || ''}" readOnly="true">
-                    <div data-valido="${usuario ? 'F' : 'N'}" id="status_usuario"></div>
-                </div>
-            `
+            texto: 'Estado',
+            elemento: `<select onchange="datalistCidades(this.value, 'cidade')" name="estado">${aEstados.map(e => `<option ${estado == e ? 'selected' : ''}>${e}</option>`)}</select>`
         },
+        {
+            texto: 'Cidade',
+            elemento: `<select name="cidade">${cidade ? `<option>${cidade}</option>` : ''}</select>`
+        },
+        {
+            texto: 'Endereço',
+            elemento: `<textarea maxlength="60" name="endereco">${endereco || ''}</textarea>`
+        },
+        {
+            texto: 'Bairro',
+            elemento: `<textarea name="bairro">${bairro || ''}</textarea>`
+        },
+        { elemento: '<span class="cliente-secao">Dados de contato</span>' },
         editarPermissao,
         {
             texto: 'E-mail',
@@ -744,42 +708,7 @@ async function formularioCliente(idCliente) {
             texto: 'Comentário',
             elemento: `<textarea placeholder="Comentário" name="comentario">${comentario || ''}</textarea>`
         },
-        {
-            elemento: `
-                <div style="${horizontal}; gap: 1rem;">
-                    <h3>Endereço de Cadastro</h3>
-                    <img src="gifs/cadastro.gif">
-                </div>
-                `
-        },
-        {
-            texto: 'Cep',
-            elemento: `<input oninput="formatarCep(this, 'cadastro')" name="cep" value="${cep || ''}">`
-        },
-        {
-            texto: 'Estado',
-            elemento: `<select onchange="datalistCidades(this.value, 'cidade')" name="estado">${aEstados.map(e => `<option ${estado == e ? 'selected' : ''}>${e}</option>`)}</select>`
-        },
-        {
-            texto: 'Cidade',
-            elemento: `<select name="cidade">${cidade ? `<option>${cidade}</option>` : ''}</select>`
-        },
-        {
-            texto: 'Endereço',
-            elemento: `<textarea maxlength="60" name="endereco">${endereco || ''}</textarea>`
-        },
-        {
-            texto: 'Bairro',
-            elemento: `<textarea name="bairro">${bairro || ''}</textarea>`
-        },
-        {
-            elemento: `
-                <div style="${horizontal}; gap: 1rem;">
-                    <h3>Endereço de Entrega</h3>
-                    <img src="gifs/entrega.gif">
-                </div>
-                `
-        },
+        { elemento: '<span class="cliente-secao">Endereço de entrega</span>' },
         {
             texto: 'Cep',
             elemento: `<input oninput="formatarCep(this)" name="e_cep" value="${endereco_entrega?.cep || ''}">`
@@ -822,7 +751,15 @@ async function formularioCliente(idCliente) {
         ? 'Editar Cliente'
         : 'Criar Cliente'
 
-    popup({ linhas, botoes, titulo })
+    // Matrícula e usuário em balões no rodapé; o status da geração do usuário fica ao lado.
+    const conteudoRodape = `
+        <div class="cliente-rodape">
+            <span class="cliente-balao"><small>Matrícula</small><b>${escaparAtributo(matricula || 'automático')}</b></span>
+            <span class="cliente-balao"><small>Usuário</small><b id="balao_usuario">${escaparAtributo(usuario || 'automático')}</b></span>
+            <div data-valido="${usuario ? 'F' : 'N'}" id="status_usuario" class="cliente-status-usuario"></div>
+        </div>`
+
+    popup({ linhas, botoes, titulo, conteudoRodape })
 
 }
 
@@ -946,10 +883,8 @@ async function verificarDisponibilidade(input) {
         </div>
     `
     const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
-    const divtags = painel.querySelector('[name="tags"]')
-    const tagsExistente = [...divtags.querySelectorAll('.etiquetas')]
     const tagsValidas = ['FUNCIONÁRIO', 'CLIENTE', 'TÉCNICO', 'TÉCNICO PARCEIRO', 'MATRIZ']
-    const tagValida = tagsExistente.some(span => tagsValidas.includes(span.dataset.nome))
+    const tagValida = tagsMarcadasCliente(painel).some(tag => tagsValidas.includes(tag))
 
     const campoNome = document.querySelector('[name="nome"]')
     const campoUsuario = document.querySelector('[name="usuario"]')
@@ -974,10 +909,14 @@ async function verificarDisponibilidade(input) {
 
     const nomeLimpo = nomeInformado.trim()
 
+    const balaoUsuario = document.getElementById('balao_usuario')
+
     const bloquear = texto => {
         if (campoUsuario) {
             campoUsuario.value = ''
         }
+
+        if (balaoUsuario) balaoUsuario.textContent = 'automático'
 
         if (statusUsuario) {
             statusUsuario.dataset.valido = 'N'
@@ -991,6 +930,8 @@ async function verificarDisponibilidade(input) {
         if (campoUsuario) {
             campoUsuario.value = usuario
         }
+
+        if (balaoUsuario) balaoUsuario.textContent = usuario
 
         if (statusUsuario) {
             statusUsuario.dataset.valido = 'S'
@@ -1164,10 +1105,7 @@ async function salvarCliente(idCliente = null) {
 
         }
 
-        const divtags = painel.querySelector('[name="tags"]')
-        const tagsExistente = divtags.querySelectorAll('.etiquetas')
-        const tags = [...tagsExistente || []]
-            .map(span => { return { tag: span.dataset.nome } })
+        const tags = tagsMarcadasCliente(painel).map(tag => ({ tag }))
 
         let foto = obVal('foto') || ''
         const arquivoFoto = painel.querySelector('[name="arquivo_foto"]')
@@ -1319,9 +1257,122 @@ function formatarCnpj(input) {
 
     input.value = v
 
-    const aviso = document.getElementById('avisoCnpj')
-    if (aviso) {
-        const valido = validarCpfCnpj(v)
-        aviso.style.display = valido ? 'none' : 'flex'
+    // Número diferente do consultado (outro CNPJ, CPF ou apagado): sai a empresa anterior.
+    const digitos = v.replace(/\D/g, '')
+    if (input.dataset.cnpjConsultado && input.dataset.cnpjConsultado !== digitos) {
+        input.dataset.cnpjConsultado = ''
+        desfazerPreenchimentoCnpj(input)
     }
+
+    // CNPJ completo e válido: busca na Receita uma vez por número. Só em formulários com endereço
+    // (cadastro de clientes); o pedido de pagamento a parceiro usa a mesma máscara e não consulta.
+    const temEndereco = (input.closest('.painel-padrao') || document).querySelector('[name="endereco"]')
+    if (temEndereco && digitos.length === 14 && validarCpfCnpj(v) && input.dataset.cnpjConsultado !== digitos) {
+        input.dataset.cnpjConsultado = digitos
+        preencherClientePorCnpj(input, digitos)
+    }
+}
+
+// O que a consulta preencheu em cada formulário (por campo de CNPJ). Ao trocar o número, é
+// desfeito onde o valor continua o mesmo (o usuário não mexeu) e a nova empresa preenche de novo.
+const preenchidosPorCnpj = new WeakMap()
+
+function desfazerPreenchimentoCnpj(input) {
+    const painel = input.closest('.painel-padrao') || document
+    painel.querySelector('#statusReceitaCnpj')?.remove()
+
+    for (const [nome, valor] of Object.entries(preenchidosPorCnpj.get(input) || {})) {
+        const elemento = painel.querySelector(`[name="${nome}"]`)
+        if (!elemento || elemento.value !== valor) continue
+        if (elemento.tagName === 'SELECT') elemento.innerHTML = ''
+        else elemento.value = ''
+    }
+    preenchidosPorCnpj.delete(input)
+}
+
+// Preenche nome e endereço de cadastro com os dados da Receita. Só campos vazios: na edição de
+// um cliente nada do que já existe é sobrescrito. Avisa se a empresa não está ativa.
+async function preencherClientePorCnpj(input, cnpj) {
+
+    const painel = input.closest('.painel-padrao') || document
+    const campo = nome => painel.querySelector(`[name="${nome}"]`)
+    const vazio = nome => !String(campo(nome)?.value || '').trim()
+    const preenchidos = {}
+    const definir = (nome, valor) => {
+        if (!valor || !campo(nome) || !vazio(nome)) return
+        campo(nome).value = valor
+        preenchidos[nome] = campo(nome).value
+    }
+
+    let status = painel.querySelector('#statusReceitaCnpj')
+    if (!status) {
+        status = document.createElement('div')
+        status.id = 'statusReceitaCnpj'
+        status.className = 'cnpj-receita'
+        input.insertAdjacentElement('afterend', status)
+    }
+    status.className = 'cnpj-receita'
+    status.textContent = 'Consultando CNPJ na Receita...'
+
+    // Minha Receita (fonte dos dados) e, se falhar, a BrasilAPI (mesmos campos). 404/400 = não existe.
+    const fontes = [`https://minhareceita.org/${cnpj}`, `https://brasilapi.com.br/api/cnpj/v1/${cnpj}`]
+    let dados
+    let consultou = false
+    for (const url of fontes) {
+        try {
+            const resposta = await fetch(url, { signal: AbortSignal.timeout(8000) })
+            if (resposta.ok) { dados = await resposta.json(); consultou = true; break }
+            if ([400, 404].includes(resposta.status)) { consultou = true; break }
+            throw new Error(`HTTP ${resposta.status}`)
+        } catch (erro) {
+            console.warn('Consulta de CNPJ falhou em', url, erro)
+        }
+    }
+
+    // O usuário trocou o número enquanto a consulta rodava: a resposta é descartada.
+    if (input.value.replace(/\D/g, '') !== cnpj) return
+
+    if (!consultou) {
+        input.dataset.cnpjConsultado = '' // tenta de novo na próxima digitação
+        status.className = 'cnpj-receita alerta'
+        status.textContent = 'Não foi possível consultar a Receita agora. Preencha manualmente.'
+        return
+    }
+
+    if (!dados) {
+        status.className = 'cnpj-receita alerta'
+        status.textContent = 'CNPJ não encontrado na Receita.'
+        return
+    }
+
+    const situacao = dados.descricao_situacao_cadastral || ''
+    const ativa = situacao.toUpperCase() === 'ATIVA'
+    status.className = `cnpj-receita ${ativa ? 'ok' : 'erro'}`
+    status.textContent = `${dados.razao_social || ''} · ${situacao || 'situação desconhecida'}`
+    status.title = ativa ? 'Dados da Receita Federal' : 'Empresa não está ativa na Receita Federal: confira antes de cadastrar.'
+
+    const nome = (dados.razao_social || dados.nome_fantasia || '').toUpperCase().slice(0, 60)
+    const logradouro = [dados.descricao_tipo_de_logradouro, dados.logradouro].filter(Boolean).join(' ')
+    const endereco = [logradouro, dados.numero, dados.complemento].filter(Boolean).join(', ').toUpperCase().slice(0, 60)
+    const cep = String(dados.cep || '').replace(/\D/g, '').replace(/(\d{5})(\d{3})/, '$1-$2')
+
+    definir('nome', nome)
+    definir('endereco', endereco)
+    definir('bairro', (dados.bairro || '').toUpperCase())
+    definir('cep', cep)
+    definir('email', (dados.email || '').toLowerCase())
+
+    // Estado e cidade: só se a cidade ainda não foi escolhida. A lista vem do IBGE (com acento);
+    // a Receita manda sem acento, então compara sem acentos.
+    if (dados.uf && vazio('cidade') && campo('estado') && campo('cidade')) {
+        campo('estado').value = dados.uf
+        await datalistCidades(dados.uf, 'cidade')
+        const semAcento = t => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase()
+        const opcao = [...campo('cidade').options].find(o => semAcento(o.value) === semAcento(dados.municipio))
+        if (opcao) campo('cidade').value = opcao.value
+        else if (dados.municipio) campo('cidade').innerHTML = `<option>${escaparAtributo(dados.municipio)}</option>`
+        preenchidos.cidade = campo('cidade').value
+    }
+
+    preenchidosPorCnpj.set(input, preenchidos)
 }

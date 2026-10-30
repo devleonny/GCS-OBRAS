@@ -186,7 +186,7 @@ async function inicioCustos(contrato) {
         <div class="pc-corpo">
             <section class="pc-bloco pc-categorias">
                 <h3>Custos por categoria</h3>
-                <div class="pc-lista-categorias"><img src="gifs/loading.gif" style="width: 4rem;" alt=""></div>
+                <div class="pc-lista-categorias"><img src="gifs/loading-gcs.gif" style="width: 4rem;" alt=""></div>
             </section>
             <div class="pc-graficos">
                 <section class="pc-bloco">
@@ -251,8 +251,6 @@ async function somaPorCategoria(contrato) {
 async function tabPagamentosCusto(contrato) {
 
     try {
-
-        overlayAguarde()
 
         selecaoPagamentosCusto.contrato = contrato
         selecaoPagamentosCusto.ids = new Set()

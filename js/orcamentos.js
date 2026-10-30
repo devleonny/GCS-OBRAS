@@ -22,8 +22,6 @@ function formatacaoPagina() {
 
 async function telaOrcamentos() {
 
-    overlayAguarde()
-
     const tabela = await modTab({
         btnExtras: `<div class="filtro-orcamentos" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>`,
         funcaoAdicional: ['formatacaoPagina', 'carregarToolbar'],
@@ -534,7 +532,7 @@ async function carregarHistoricoStatus(id) {
     if (!local)
         return
 
-    local.innerHTML = `<img src="gifs/loading.gif" style="width: 5rem;">`
+    local.innerHTML = `<img src="gifs/loading-gcs.gif" style="width: 5rem;">`
 
     const { historico_status } = await recuperarDado('dados_orcamentos', id) || {}
 

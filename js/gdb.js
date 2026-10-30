@@ -159,7 +159,57 @@ async function contarPorCampo(params) {
     return await resposta.json()
 }
 
+// A linha excluída só some quando o servidor termina de atualizar e avisa as telas, o que às vezes
+// demora. Enquanto isso ela fica bloqueada com "Excluindo item...". O bloqueio vai embora sozinho
+// quando a tela redesenha a linha; se a exclusão falhar (ou a tela não redesenhar), é retirado.
+// Itens que não são <tr>, pela coleção do caminho (ex.: dados_ocorrencias/ID/correcoes/ID).
+const CARTOES_EXCLUIVEIS = { correcoes: '.detalhes-correcoes-1' }
+const LIMITE_BLOQUEIO_EXCLUSAO_MS = 45 * 1000
+
+function bloquearItensExclusao(caminho) {
+    const partes = String(caminho).split('/')
+    const chave = partes.at(-1)
+    if (partes.length < 2 || !chave) return () => {}
+
+    // Linha da tabela com a mesma chave; senão, o cartão que traz o id (botões de editar/excluir).
+    const alvos = [...document.querySelectorAll(`tr[data-id="${CSS.escape(chave)}"]`)]
+    const cartao = CARTOES_EXCLUIVEIS[partes.at(-2)]
+    if (!alvos.length && cartao)
+        alvos.push(...[...document.querySelectorAll(cartao)].filter(item => item.innerHTML.includes(`'${chave}'`)))
+
+    const bloqueios = alvos.map(alvo => {
+        const overlay = document.createElement('div')
+        overlay.className = 'item-excluindo'
+        overlay.innerHTML = '<img src="gifs/loading-gcs.gif" alt=""><span>Excluindo item...</span>'
+        alvo.classList.add('item-em-exclusao')
+        alvo.setAttribute('aria-busy', 'true')
+        // Em <tr> o overlay vai na primeira célula e se estica sobre a linha (tr é a referência).
+        ;(alvo.tagName === 'TR' ? alvo.cells[0] || alvo : alvo).appendChild(overlay)
+        return { alvo, overlay }
+    })
+
+    const liberar = () => {
+        for (const { alvo, overlay } of bloqueios) {
+            overlay.remove()
+            alvo.classList.remove('item-em-exclusao')
+            alvo.removeAttribute('aria-busy')
+        }
+    }
+    setTimeout(liberar, LIMITE_BLOQUEIO_EXCLUSAO_MS)
+    return liberar
+}
+
 async function deletar(caminho) {
+
+    const liberarItens = bloquearItensExclusao(caminho)
+    const resultado = await deletarNoServidor(caminho)
+    // O servidor responde { success: true }; erro vira popup e devolve vazio.
+    if (!resultado?.success)
+        liberarItens()
+    return resultado
+}
+
+async function deletarNoServidor(caminho) {
 
     const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
 

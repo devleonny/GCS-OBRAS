@@ -1,7 +1,5 @@
 async function telaRelatorio() {
 
-    overlayAguarde()
-
     const colunas = {
         'Empresa': { chave: 'empresa' },
         'Chamado': { chave: 'id' },
@@ -214,8 +212,6 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
 
 async function telaRelatorioCorrecoes() {
 
-    overlayAguarde()
-
     const colunas = {
         'Empresa': { chave: 'empresa' },
         'Chamado': { chave: 'Chamado' },
@@ -272,8 +268,6 @@ async function criarLinhasCorrecoes(correcao) {
 }
 
 async function telaRelatorioPecas() {
-
-    overlayAguarde()
 
     const colunas = {
         'Chamado': { chave: 'Chamado' },

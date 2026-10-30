@@ -82,7 +82,7 @@ async function carregarCustosPessoal(dados = null) {
     if (!local) return
 
     if (!dados) {
-        local.innerHTML = `<div class="custos-vazio"><img src="gifs/loading.gif" alt=""></div>`
+        local.innerHTML = `<div class="custos-vazio"><img src="gifs/loading-gcs.gif" alt=""></div>`
         try {
             dados = await chamarCustosPessoal('mes', { mes: estadoCustosPessoal.mes })
         } catch (erro) {

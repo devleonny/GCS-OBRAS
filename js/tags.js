@@ -112,8 +112,6 @@ async function renderPainel(idOrcamento) {
 
     try {
 
-        overlayAguarde()
-
         estadoTags.idOrcamento = idOrcamento
         controles.etiquetas ??= {}
         controles.etiquetas.idOrcamento = idOrcamento
@@ -346,7 +344,7 @@ async function carregarTags(idOrcamento = controles?.etiquetas?.idOrcamento) {
     if (!localTags || !idOrcamento)
         return
 
-    localTags.innerHTML = '<img src="gifs/loading.gif" style="width: 5rem;">'
+    localTags.innerHTML = '<img src="gifs/loading-gcs.gif" style="width: 5rem;">'
 
     try {
         const ids = await idsTagsDoOrcamento(idOrcamento)

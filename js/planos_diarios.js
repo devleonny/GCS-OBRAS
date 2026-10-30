@@ -126,7 +126,7 @@ async function renderizarPlanoDiario() {
     e.renderizando = true; e.documento = null
     controlesDocumentoDiario()
     const local = document.getElementById('planoDiarioConteudo')
-    local.innerHTML = '<div class="diario-carregando"><img src="gifs/loading.gif" alt="Carregando"></div>'
+    local.innerHTML = '<div class="diario-carregando"><img src="gifs/loading-gcs.gif" alt="Carregando"></div>'
     document.getElementById('diasPlanoDiario').innerHTML = `<button type="button" class="diario-dia diario-origem ${e.origem ? 'selecionado' : ''}" onclick="selecionarDataPlanoDiario('${e.plano.inicio}', true)">Origem</button>`
         + e.dias.slice().sort((a, b) => a.data_ref.localeCompare(b.data_ref)).map(d =>
         `<button type="button" class="diario-dia ${!e.origem && d.data_ref === e.data ? 'selecionado' : ''}" onclick="selecionarDataPlanoDiario('${d.data_ref}')"><span aria-label="Preenchido">✓</span> ${dataPlanoDiario(d.data_ref)}</button>`).join('')

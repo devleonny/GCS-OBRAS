@@ -78,7 +78,7 @@ async function telaColaboradores() {
                     <button type="button" onclick="formularioRequisicaoColaborador()">Nova requisição</button>
                 </div>
             </div>
-            <div class="colab-conteudo"><div class="colab-vazio"><img src="gifs/loading.gif" alt=""></div></div>
+            <div class="colab-conteudo"><div class="colab-vazio"><img src="gifs/loading-gcs.gif" alt=""></div></div>
         </div>
     `
 
@@ -230,7 +230,7 @@ async function abrirColaborador(id) {
     if (!local)
         return
 
-    local.innerHTML = `<div class="colab-vazio"><img src="gifs/loading.gif" alt=""></div>`
+    local.innerHTML = `<div class="colab-vazio"><img src="gifs/loading-gcs.gif" alt=""></div>`
     await atualizarPainelColaborador(id)
 }
 
@@ -278,7 +278,7 @@ async function abrirAndamentoColaboradores() {
     estadoColaboradores.visao = 'andamento'
     const local = document.querySelector('.colab-conteudo')
     if (local)
-        local.innerHTML = `<div class="colab-vazio"><img src="gifs/loading.gif" alt=""></div>`
+        local.innerHTML = `<div class="colab-vazio"><img src="gifs/loading-gcs.gif" alt=""></div>`
     await carregarAndamentoColaboradores()
 }
 
@@ -376,7 +376,7 @@ async function abrirRelatorioColaboradores(aba = 'ferramentas') {
     estadoColaboradores.relatorio.aba = aba
     const local = document.querySelector('.colab-conteudo')
     if (local)
-        local.innerHTML = `<div class="colab-vazio"><img src="gifs/loading.gif" alt=""></div>`
+        local.innerHTML = `<div class="colab-vazio"><img src="gifs/loading-gcs.gif" alt=""></div>`
     await carregarRelatorioColaboradores()
 }
 
@@ -884,7 +884,7 @@ async function renderizarItensRequisicaoColab() {
             return
         }
 
-        local.innerHTML = '<div class="colab-vazio"><img src="gifs/loading.gif" alt=""></div>'
+        local.innerHTML = '<div class="colab-vazio"><img src="gifs/loading-gcs.gif" alt=""></div>'
 
         let emMaos = []
         try {

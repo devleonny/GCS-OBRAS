@@ -4,7 +4,7 @@ const VERSOES_CSS = {
     "agenda": "f5a251d9",
     "assinatura": "0c1634b9",
     "cadastros": "9d7fce36",
-    "clientes": "b1e4430e",
+    "clientes": "9ae00693",
     "colaboradores": "f66375e1",
     "composicoes": "3bdc874c",
     "comunicados": "c9e16f77",
@@ -31,11 +31,11 @@ const VERSOES_CSS = {
     "relatorio": "d9b3bb23",
     "relatorio_omie": "e91d89db",
     "relatorios": "213abe1a",
-    "rh": "65752158",
+    "rh": "03d2ddf3",
     "seletor-cores": "c0e10ff3",
     "status": "ea093268",
     "tabelas-parceiro": "22c15cc9",
-    "tabelas": "05dafd15",
+    "tabelas": "8c24070b",
     "veiculos": "c85e8b90",
     "velocimetro": "2cfa4cff"
 }

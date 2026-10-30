@@ -16,19 +16,16 @@ async function telaRH() {
 
     try {
 
-        overlayAguarde()
-
         const colunas = {
             'Editar': {},
+            'Arquivo': { chave: 'doc' },
             'Foto': {},
             'Nome': { chave: 'nome_cargo', op: 'includes' },
             'Cidade': { chave: 'cidade' },
             'Clínica': { chave: 'clinica' },
             'Realizado': { chave: 'realizado' },
             'Validade': { chave: 'validade' },
-            'Dif/Dias': {},
-            'Arquivo': { chave: 'doc' },
-            'Assinatura': {}
+            'Dif/Dias': {}
         }
 
         const btnExtras = `
@@ -76,15 +73,14 @@ async function atalhoDocumentos(idCliente = null) {
 
     const colunas = {
         'Editar': {},
+        'Arquivo': { chave: 'doc' },
         'Foto': {},
         'Nome': { chave: 'nome_cargo', op: 'includes' },
         'Cidade': { chave: 'cidade' },
         'Clínica': { chave: 'clinica' },
         'Realizado': { chave: 'realizado' },
         'Validade': { chave: 'validade' },
-        'Dif/Dias': {},
-        'Arquivo': { chave: 'doc' },
-        'Assinatura': {}
+        'Dif/Dias': {}
     }
 
     const btnExtras = `
@@ -283,6 +279,18 @@ function criarLinhaRH(documento) {
         <td>
             <img src="imagens/pesquisar.svg" onclick="incluirDocumento('${id}')">
         </td>
+        <td>
+            <div class="rh-arquivo">
+                <div class="rh-arquivo-pilula ${temAnexo ? 'com-anexo' : 'sem-anexo'}">
+                    <span class="rh-arquivo-tipo" title="${escaparAtributo(doc || '')}">${escaparAtributo(doc || '--')}</span>
+                    ${temAnexo
+                        ? `<button type="button" class="rh-arquivo-acao" title="${escaparAtributo(a.nome || '')}"
+                            data-link="${escaparAtributo(a.link)}" onclick="abrirArquivo(this.dataset.link)">Ver</button>`
+                        : '<span class="rh-arquivo-acao">Ausente</span>'}
+                </div>
+                ${assinaturaRH(a)}
+            </div>
+        </td>
         <td>${funcionario ? `<button type="button" title="Abrir cadastro do funcionário" aria-label="Abrir cadastro do funcionário"
             data-funcionario="${escaparAtributo(funcionario)}" onclick="formularioCliente(Number(this.dataset.funcionario))"
             style="padding: 0; border: none; background: transparent; cursor: pointer;">
@@ -308,24 +316,7 @@ function criarLinhaRH(documento) {
                 <img src="${tempoExpiracao.icone}" style="width: 1.2rem;">
                 <label>${tempoExpiracao.dias}</label>
             </div>
-        </td>
-        <td>
-            <div style="${horizontal}; justify-content: start; gap: 5px;">
-                <div class="capsula">
-                    <div class="esquerda">
-                        ${doc || '--'}
-                    </div>
-                    <div
-                        style="background-color: ${temAnexo ? 'green' : 'red'};"
-                        class="direita"
-                        title="${anexo?.nome || ''}"
-                        ${temAnexo ? `onclick="abrirArquivo('${anexo.link}')"` : ''}>
-                        ${temAnexo ? 'Ver' : 'Ausente'}
-                    </div>
-                </div>
-            </div>
-        </td>
-        <td>${seloAssinaturaRH(a)}</td>`
+        </td>`
 
     return `<tr>${tds}</tr>`
 }
@@ -341,26 +332,44 @@ const SITUACOES_ASSINATURA_RH = {
     erro: { classe: 'neutro', texto: 'Não verificado', detalhe: 'Não foi possível ler o PDF (protegido por senha ou corrompido).' }
 }
 
-function seloAssinaturaRH(anexo) {
+// Nomes vêm do certificado em maiúsculas: "MARIA DA SILVA" vira "Maria da Silva".
+function nomeAssinanteRH(nome) {
+    return String(nome || 'Sem nome').toLowerCase()
+        .replace(/(^|\s)(\p{L})/gu, (_, espaco, letra) => espaco + letra.toUpperCase())
+        .replace(/ (Da|De|Do|Das|Dos|E) /g, parte => parte.toLowerCase())
+}
+
+// Quem assinou, um por linha com ✓ (ou ✗ se a assinatura não confere), cortado com … pelo CSS;
+// os detalhes ficam no title. Selo só quando há algo a avisar (sem assinatura, inválida...).
+function assinaturaRH(anexo) {
     if (!anexo?.link) return ''
 
     const resultado = anexo.assinatura_digital
     if (!resultado)
-        return '<span class="selo-assinatura-rh neutro" title="Ainda não verificado">Verificando...</span>'
+        return '<div class="rh-assinatura neutro" title="Ainda não verificado"><span class="rh-assinatura-selo">Verificando...</span></div>'
 
     const situacao = SITUACOES_ASSINATURA_RH[resultado.situacao] || SITUACOES_ASSINATURA_RH.erro
     const assinaturas = resultado.assinaturas || []
     const linhas = assinaturas.map(a => {
         const data = a.data && !Number.isNaN(new Date(a.data).getTime()) ? new Date(a.data).toLocaleString('pt-BR') : ''
-        return `${a.confere ? '✓' : '✗'} ${a.nome || 'Sem nome'} (${a.origem === 'outro' ? 'outro certificado' : a.origem})${data ? ' em ' + data : ''}`
+        return `${a.confere ? '✓' : '✗'} ${nomeAssinanteRH(a.nome)} (${a.origem === 'outro' ? 'outro certificado' : a.origem})${data ? ' em ' + data : ''}`
     })
     if (situacao.detalhe) linhas.unshift(situacao.detalhe)
     if (resultado.alterado_depois) linhas.push('Atenção: o arquivo recebeu alterações depois da última assinatura.')
 
-    const classe = resultado.alterado_depois && situacao.classe === 'ok' ? 'alerta' : situacao.classe
-    const texto = assinaturas.length ? `${situacao.texto} (${assinaturas.length})` : situacao.texto
+    const selo = resultado.alterado_depois && situacao.classe === 'ok'
+        ? { classe: 'alerta', texto: 'Alterado após assinar' }
+        : situacao.classe === 'ok' ? null : situacao
+    const nomes = assinaturas.map(a => `
+        <span class="rh-assinante ${a.confere ? 'confere' : 'nao-confere'}">
+            <span class="rh-assinante-marca" aria-hidden="true">${a.confere ? '✓' : '✗'}</span>
+            <span class="rh-assinante-nome">${escaparAtributo(nomeAssinanteRH(a.nome))}</span>
+        </span>`).join('')
 
-    return `<span class="selo-assinatura-rh ${classe}" title="${escaparAtributo(linhas.join('\n'))}">${texto}</span>`
+    return `<div class="rh-assinatura ${selo?.classe || 'ok'}" title="${escaparAtributo(linhas.join('\n'))}">
+        ${selo ? `<span class="rh-assinatura-selo">${selo.texto}</span>` : ''}
+        ${nomes}
+    </div>`
 }
 
 function expiraEm(dtValidade) {

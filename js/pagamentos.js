@@ -58,8 +58,6 @@ function imagemEspecifica(justificativa) {
 
 async function telaPagamentos() {
 
-    overlayAguarde()
-
     const pag = 'pagamentos'
     const tabela = await modTab({
         pag,
@@ -786,9 +784,9 @@ async function formularioPagamento() {
         ]
 
         const botoes = [
-            { texto: 'Salvar Pagamento', img: 'concluido', funcao: 'salvarPagamento()' },
+            { texto: 'Recomeçar', img: 'cancel', funcao: 'confirmarRecomecarPagamento()' },
             { texto: 'Regras', img: 'alerta', funcao: 'duvidas()' },
-            { texto: 'Recomeçar', img: 'cancel', funcao: 'apagarPagamento()' }
+            { texto: 'Salvar Pagamento', img: 'concluido', funcao: 'salvarPagamento()' }
         ]
 
         popup({
@@ -1104,6 +1102,16 @@ async function removerCampo(xis) {
     delete controlesCxOpcoes[idAleatorio]
 
     await calculadoraPagamento()
+}
+
+// Recomeçar apaga o rascunho inteiro (campos e anexos): pede confirmação antes.
+async function confirmarRecomecarPagamento() {
+    const confirmado = await confirmarPopup({
+        titulo: 'Recomeçar',
+        mensagem: 'Apagar tudo o que foi preenchido nesta solicitação e começar de novo?',
+        textoConfirmar: 'Recomeçar'
+    })
+    if (confirmado) await apagarPagamento()
 }
 
 async function apagarPagamento() {

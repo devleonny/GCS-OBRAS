@@ -1,7 +1,5 @@
 async function telaContratos() {
 
-    overlayAguarde()
-
     const tabela = await modTab({
         base: 'contratos',
         criarLinha: 'criarLinhaContrato',

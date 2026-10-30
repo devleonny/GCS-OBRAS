@@ -57,7 +57,7 @@ async function abrirTabelaCadastrastro(base) {
     if (novo)
         novo.textContent = `Adicionar ${basesCadastro[base]?.singular || ''}`.trim()
 
-    local.innerHTML = `<div class="cadastros-carregando"><img src="gifs/loading.gif"></div>`
+    local.innerHTML = `<div class="cadastros-carregando"><img src="gifs/loading-gcs.gif"></div>`
 
     const pag = `cad_${base}`
     const tabela = await modTab({

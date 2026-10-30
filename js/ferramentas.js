@@ -288,8 +288,7 @@ function overlayAguarde() {
         <div class="aguarde">
 
             <div class="loading-container">
-                <img src="gifs/loading.gif" alt="Carregando">
-                <div class="div-mensagem">Aguarde...</div>
+                <img src="gifs/loading-gcs.gif" alt="Carregando">
             </div>
             
         </div>

@@ -97,7 +97,7 @@ async function telaInicialGCS() {
 
     const planoFundo = `
         <div class="planoFundo">
-            <img src="gifs/loading.gif" style="width: 5rem;">
+            <img src="gifs/loading-gcs.gif" style="width: 5rem;">
         </div>`
 
     const tInterna = `
@@ -141,7 +141,7 @@ async function respostaSincronizacao(script) {
 
     let localResposta = document.getElementById('localResposta')
 
-    localResposta.innerHTML = `<img src="gifs/loading.gif" style="width: 5rem;">`
+    localResposta.innerHTML = `<img src="gifs/loading-gcs.gif" style="width: 5rem;">`
 
     const resposta = await sincronizar(script)
 
@@ -581,8 +581,6 @@ function sincronizar(script) {
 async function verAprovacoes() {
 
     try {
-
-        overlayAguarde()
 
         const pag = 'aprovacao'
 

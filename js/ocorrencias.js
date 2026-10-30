@@ -1013,8 +1013,6 @@ async function salvarDataCorrecao(idOcorrencia, idCorrecao) {
 
 async function telaOcorrencias() {
 
-    overlayAguarde()
-
     const mapa = criarMapa({ path: 'cliente.estado', pag: 'ocorrencias' })
     const btnExtras = `
     <div class="painel-filtros">

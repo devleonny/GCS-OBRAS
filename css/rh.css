@@ -253,9 +253,102 @@
     }
 }
 
-/* Selo de assinatura digital do anexo (coluna Assinatura) */
-.selo-assinatura-rh { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 0.75rem; white-space: nowrap; cursor: help; border: 1px solid transparent; }
-.selo-assinatura-rh.ok { background: #e2efe7; color: #2f6b43; border-color: #bdd4c5; }
-.selo-assinatura-rh.alerta { background: #fff4dc; color: #8a5a00; border-color: #f0d9a6; }
-.selo-assinatura-rh.erro { background: #fcecea; color: #963e36; border-color: #edc7c2; }
-.selo-assinatura-rh.neutro { background: #eef1ef; color: #65756b; border-color: #d6e2da; }
+/* Coluna Arquivo: pílula (tipo + Ver/Ausente) e, embaixo, a assinatura digital com quem assinou */
+.rh-arquivo {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    width: max-content;
+    max-width: 15rem;
+    text-align: left;
+}
+
+.rh-arquivo-pilula {
+    display: inline-flex;
+    align-items: stretch;
+    max-width: 100%;
+    border: 1px solid #cfdcd3;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #f3f7f4;
+    box-shadow: 0 1px 2px #243b2e14;
+    font-size: 0.8rem;
+}
+
+.rh-arquivo-tipo {
+    min-width: 0;
+    padding: 4px 10px 4px 12px;
+    color: #324b3c;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rh-arquivo-acao {
+    flex: none;
+    display: flex;
+    align-items: center;
+    margin: 0;
+    padding: 4px 12px;
+    border: none;
+    border-radius: 0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: white;
+    background: #249f41;
+}
+
+button.rh-arquivo-acao { cursor: pointer; transition: background-color 0.15s; }
+button.rh-arquivo-acao:hover { background: #1c8235; }
+.rh-arquivo-pilula.sem-anexo { border-color: #edc7c2; background: #fdf3f2; }
+.rh-arquivo-pilula.sem-anexo .rh-arquivo-acao { background: #b3202a; }
+
+.rh-assinatura {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    max-width: 100%;
+    font-size: 0.72rem;
+    cursor: help;
+}
+
+.rh-assinatura-selo {
+    flex: none;
+    padding: 1px 8px;
+    border: 1px solid #d6e2da;
+    border-radius: 999px;
+    background: #eef1ef;
+    color: #65756b;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.rh-assinante {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 100%;
+    color: #4d5f54;
+}
+
+.rh-assinante-marca {
+    flex: none;
+    font-weight: 700;
+    color: #249f41;
+}
+
+.rh-assinante.nao-confere .rh-assinante-marca { color: #b3202a; }
+
+.rh-assinante-nome {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rh-assinatura.ok .rh-assinatura-selo { background: #e2efe7; color: #2f6b43; border-color: #bdd4c5; }
+.rh-assinatura.alerta .rh-assinatura-selo { background: #fff4dc; color: #8a5a00; border-color: #f0d9a6; }
+.rh-assinatura.erro .rh-assinatura-selo { background: #fcecea; color: #963e36; border-color: #edc7c2; }
