@@ -145,6 +145,28 @@ try {
 // (tela desenhada antes da renovação acima terminar, ou cookie vencido com o PC parado).
 // Renova a sessão, que grava o cookie, e recarrega as imagens que falharam (uma vez cada).
 // Renovação forçada no máximo a cada minuto: arquivo apagado de verdade também cai aqui.
+// Fora de *.gcs.app.br (ex.: Live Server em localhost) o navegador não manda o cookie nas imagens
+// (SameSite=Lax entre sites diferentes): a imagem é baixada com o token no cabeçalho, que o
+// servidor também aceita, e exibida da memória. Em produção não passa por aqui.
+const FORA_DO_DOMINIO_GCS = !/(^|\.)gcs\.app\.br$/.test(location.hostname)
+const imagensComToken = new Map()
+
+async function carregarImagemComToken(img, src) {
+    const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
+    if (!token) return
+
+    if (!imagensComToken.has(src))
+        imagensComToken.set(src, fetch(src, { headers: { Authorization: `Bearer ${token}` } })
+            .then(resposta => resposta.ok ? resposta.blob() : null)
+            .then(blob => blob && URL.createObjectURL(blob))
+            .catch(() => null))
+
+    const local = await imagensComToken.get(src)
+    if (!local) return imagensComToken.delete(src)
+    // Mesmo endereço, ou trocado pelo logo no onerror da tela: mostra a imagem verdadeira.
+    if (img.src === src || !img.src.includes('/uploads/')) img.src = local
+}
+
 const imagensArquivosFalhas = []
 let recargaArquivosAgendada = null
 let ultimaRenovacaoArquivos = 0
@@ -160,6 +182,10 @@ document.addEventListener('error', evento => {
         return
 
     img.dataset.arquivoRecarregado = 'sim'
+
+    if (FORA_DO_DOMINIO_GCS)
+        return carregarImagemComToken(img, img.src)
+
     imagensArquivosFalhas.push({ img, src: img.src })
 
     recargaArquivosAgendada ??= (async () => {
