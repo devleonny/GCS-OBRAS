@@ -373,10 +373,19 @@ span[name="titulo"] {
     border-radius: 50%;
 }
 
+/* Nome e setor à esquerda (o popup centraliza o texto por padrão), afastados da foto. */
 .painel-usuarios-texto {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     min-width: 0;
+    padding-left: 4px;
+    text-align: left;
+}
+
+.painel-usuarios-texto b,
+.painel-usuarios-texto small {
+    max-width: 100%;
 }
 
 .painel-usuarios-texto b,

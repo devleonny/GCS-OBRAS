@@ -24,7 +24,7 @@ async function telaVeiculos() {
         const colunas = {
             'Data de registro': { chave: 'timestamp', tipoPesquisa: 'data' },
             'Usuário': { chave: 'usuario' },
-            'Motorista': { chave: 'veiculo.snapshots.motoristas' },
+            'Motorista': { chave: 'nomes_motoristas' },
             'Data Pagamento': { chave: 'data_pagamento', tipoPesquisa: 'data' },
             'Marcador': {},
             'Valor': { chave: 'custo_total' },
@@ -38,23 +38,16 @@ async function telaVeiculos() {
             ? `<div id="viabilidade"></div>`
             : ''
 
+        // vw_custo_veiculos = custo_veiculos + nomes_motoristas (nomes do cadastro, pesquisáveis).
+        // As gravações continuam em custo_veiculos.
         const tabela = await modTab({
             pag: 'custoVeiculos',
             detalhes: true,
             btnExtras,
             body: 'bodyCustoVeiculos',
-            base: 'custo_veiculos',
+            base: 'vw_custo_veiculos',
             colunas,
-            criarLinha: 'criarLinhaCusto',
-            substituicoes: [
-                {
-                    path: 'veiculo.motoristas.*.id',
-                    tabela: 'clientes',
-                    campoBusca: 'id',
-                    retorno: 'nome',
-                    destino: 'veiculo.motoristas.*.nomeMotorista'
-                }
-            ]
+            criarLinha: 'criarLinhaCusto'
         })
 
         tela.innerHTML = `
@@ -140,12 +133,11 @@ async function criarLinhaVeiculo(veiculo) {
 async function criarLinhaCusto(custo) {
 
     const { veiculo, id, usuario, data_pagamento, comentario, data, realizado, custo_total, distribuicao = {} } = custo
-    const { cartao, placa, modelo, motoristas, status } = veiculo || {}
+    const { cartao, placa, modelo, status } = veiculo || {}
     const editavel = acesso.permissao == 'adm' || acesso.setor == 'FINANCEIRO'
 
-    const nomes = (motoristas || [])
-        .filter(m => m.nomeMotorista)
-        .map(m => `<b>${m?.nomeMotorista || ''}</b>`)
+    const nomes = (custo.nomes_motoristas || [])
+        .map(nome => `<b>${escaparAtributo(nome)}</b>`)
         .join('<br>')
 
     const deps = []

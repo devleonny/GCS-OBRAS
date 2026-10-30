@@ -23,25 +23,156 @@
     max-height: 90vh;
 }
 
+/* Editor de texto dos formulários (barraEditor, popup.js) */
+.editor-toolbar {
+    background: #f0f5f2;
+    padding: 6px;
+    border-bottom: 1px solid #dce5df;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.editor-grupo {
+    display: flex;
+    gap: 2px;
+}
+
+.editor-grupo + .editor-grupo {
+    padding-left: 6px;
+    border-left: 1px solid #dce5df;
+}
+
 .editor-botao {
     display: flex;
     justify-content: center;
     align-items: center;
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    padding: 0;
     background-color: #fff;
     border: 1px solid #dce5df;
     border-radius: 5px;
+    color: #324b3c;
+    font-size: 13px;
+    line-height: 1;
     cursor: pointer;
-    width: 30px;
-    height: 30px;
 }
 
-.editor-toolbar {
-    background: #f0f5f2;
-    padding: 8px;
-    border-bottom: 1px solid #dce5df;
+.editor-botao:hover {
+    background-color: #e8f1eb;
+}
+
+.editor-botao.ativo {
+    background-color: #d3ecd9;
+    border-color: #8cc7a0;
+    color: #1c6b31;
+}
+
+.editor-botao sub {
+    font-size: 9px;
+}
+
+/* Botões de cor: letra + faixa com a última cor usada */
+.editor-botao-cor {
+    flex-direction: column;
+    gap: 2px;
+}
+
+.editor-botao-cor i {
+    display: block;
+    width: 16px;
+    height: 4px;
+    border-radius: 2px;
+    border: 1px solid #0000001a;
+}
+
+/* Ícone de alinhamento desenhado com linhas */
+.editor-alinhar {
+    display: block;
+    width: 14px;
+    height: 11px;
+    background:
+        linear-gradient(currentColor, currentColor) 0 0 / 100% 2px no-repeat,
+        linear-gradient(currentColor, currentColor) var(--x, 0) 4.5px / 60% 2px no-repeat,
+        linear-gradient(currentColor, currentColor) 0 9px / 100% 2px no-repeat;
+}
+
+.editor-alinhar[data-alinhar="centro"] { --x: 50%; }
+.editor-alinhar[data-alinhar="direita"] { --x: 100%; }
+
+/* Paleta de cores (abre dentro da barra, ocupando a linha toda) */
+.editor-paleta {
+    flex: 1 1 100%;
     display: flex;
-    gap: 5px;
     flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px;
+    background: #fff;
+    border: 1px solid #dce5df;
+    border-radius: 6px;
+}
+
+.editor-paleta[hidden] {
+    display: none;
+}
+
+.editor-paleta-cores {
+    display: grid;
+    grid-template-columns: repeat(6, 22px);
+    gap: 4px;
+}
+
+.editor-cor {
+    width: 22px;
+    height: 22px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid #0000002a;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.editor-cor:hover {
+    transform: scale(1.12);
+    box-shadow: 0 0 0 2px #fff, 0 0 0 3px #249f41;
+}
+
+.editor-paleta-acoes {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    font-size: 12px;
+}
+
+.editor-paleta-acoes button,
+.editor-paleta-acoes label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin: 0;
+    padding: 4px 8px;
+    border: 1px solid #dce5df;
+    border-radius: 5px;
+    background: #f7f9f8;
+    color: #324b3c;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.editor-paleta-acoes input[type="color"] {
+    width: 22px;
+    height: 18px;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
 }
 
 .editor-container {

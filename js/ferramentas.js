@@ -288,7 +288,7 @@ function overlayAguarde() {
         <div class="aguarde">
 
             <div class="loading-container">
-                <img src="gifs/loading-gcs.gif" alt="Carregando">
+                <img src="gifs/loading-gcs.png" alt="Carregando">
             </div>
             
         </div>
@@ -844,6 +844,32 @@ function base64ToBlob(base64) {
         u8arr[n] = bstr.charCodeAt(n);
     }
     return new Blob([u8arr], { type: mime });
+}
+
+// Arquivo arrastado para fora de uma área de anexo: o navegador abriria o arquivo numa nova guia.
+// Aqui ele nunca abre. Se o popup aberto tiver uma área [data-soltar-arquivo="funcao"], soltar em
+// qualquer ponto do popup vale como soltar nela; fora disso o cursor mostra que não pode soltar.
+// Áreas que tratam o próprio drop (preventDefault) não passam por aqui.
+function areaSoltarArquivo(evento) {
+    return evento.target.closest?.('.popup')?.querySelector('[data-soltar-arquivo]') || null
+}
+
+for (const tipo of ['dragover', 'drop']) {
+    document.addEventListener(tipo, evento => {
+        if (evento.defaultPrevented || !evento.dataTransfer?.types?.includes('Files'))
+            return
+
+        evento.preventDefault()
+        const area = areaSoltarArquivo(evento)
+
+        if (tipo === 'dragover') {
+            evento.dataTransfer.dropEffect = area ? 'copy' : 'none'
+            return
+        }
+
+        const funcao = window[area?.dataset.soltarArquivo]
+        if (typeof funcao === 'function') funcao(evento, area)
+    })
 }
 
 async function importarAnexos({ input, foto }) {

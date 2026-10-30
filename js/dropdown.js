@@ -1,7 +1,11 @@
+// Filtro de seleção com checkbox (montarDropdownCheckbox).
+// Nada marcado = sem filtro (o botão mostra "Todos"); marcar opções filtra por elas.
+// O que aparece na tela vem sempre do filtro em controles[pag].filtros[path] (grupo OR com
+// origem 'dropdown'), inclusive quando outra tela monta o filtro e chama atualizarVisualDropdown.
+
 function garantirControlesDropdown(pag) {
     controles[pag] ??= {};
     controles[pag].filtros ??= {};
-    controles[pag].dropdownEstado ??= {};
 }
 
 function regrasAtuaisDropdown(path, pag) {
@@ -24,15 +28,6 @@ function opcoesDropdownValidas(opcoes = []) {
     return opcoes
         .filter(o => o && o !== 'todos')
         .sort((a, b) => String(a).localeCompare(String(b)));
-}
-
-function getEstadoVisualDropdown(path, pag) {
-    return controles?.[pag]?.dropdownEstado?.[path] || null; // 'todos' | 'nenhum' | 'parcial' | null
-}
-
-function setEstadoVisualDropdown(path, pag, estado) {
-    garantirControlesDropdown(pag);
-    controles[pag].dropdownEstado[path] = estado;
 }
 
 function limparFiltroDropdown(path, pag, outrasRegras = null) {
@@ -89,112 +84,85 @@ function getDropdownElement(path, pag) {
     return document.querySelector(getDropdownSeletor(path, pag));
 }
 
-function getOpcoesDropdownDOM(path, pag) {
-    const drop = getDropdownElement(path, pag);
-    if (!drop) return [];
-
-    return [...drop.querySelectorAll('input[type="checkbox"][data-item="opcao"]')];
-}
-
-function getValoresOpcoesDropdownDOM(path, pag) {
-    return getOpcoesDropdownDOM(path, pag).map(input => input.value);
-}
-
-function tudoMarcadoDropdown(path, opcoes = [], pag) {
-    const validas = opcoesDropdownValidas(opcoes);
-    const estado = getEstadoVisualDropdown(path, pag);
-
-    if (estado === 'todos') return true;
-    if (estado === 'nenhum') return false;
-
-    const marcados = valoresMarcadosDropdown(path, pag);
-
-    if (validas.length > 0 && marcados.length === 0) return true;
-
-    return validas.length > 0 && validas.every(o => marcados.includes(o));
-}
-
-function nadaMarcadoDropdown(path, opcoes = [], pag) {
-    const validas = opcoesDropdownValidas(opcoes);
-    const estado = getEstadoVisualDropdown(path, pag);
-
-    if (estado === 'nenhum') return validas.length > 0;
-    if (estado === 'todos') return false;
-
-    const marcados = valoresMarcadosDropdown(path, pag);
-    return validas.length > 0 && marcados.length === 0 && estado === 'nenhum';
-}
-
-function labelDropdown(path, pag, opcoes = []) {
-    const total = opcoesDropdownValidas(opcoes).length;
-    const estado = getEstadoVisualDropdown(path, pag);
-    const marcados = valoresMarcadosDropdown(path, pag);
-
-    if (estado === 'todos' || (estado === null && marcados.length === 0)) {
-        return 'Selecionar';
-    }
-
-    if (estado === 'nenhum') {
-        return 'Nenhum';
-    }
-
-    if (marcados.length === 0) return 'Selecionar';
+function labelDropdown(marcados = []) {
+    if (marcados.length === 0) return 'Todos';
     if (marcados.length === 1) return marcados[0];
-
-    if (total > 0 && marcados.length === total) {
-        return 'Selecionar';
-    }
-
     return `${marcados.length} selecionados`;
 }
 
+function opcoesVisiveisDropdown(drop) {
+    return [...drop.querySelectorAll('input[data-item="opcao"]')]
+        .filter(input => !input.closest('.dropdown-item').hidden);
+}
+
+function buscaAtivaDropdown(drop) {
+    return !!drop?.querySelector('.dropdown-busca')?.value.trim();
+}
+
+// Reflete o filtro atual: checkboxes, texto do botão e ações do topo do menu.
 function atualizarVisualDropdown(path, pag) {
     const drop = getDropdownElement(path, pag);
     if (!drop) return;
 
-    const checkboxes = [...drop.querySelectorAll('input[type="checkbox"][data-item="opcao"]')];
-    const checkTodos = drop.querySelector('input[type="checkbox"][data-item="todos"]');
-    const label = drop.querySelector('.dropdown-label');
-
-    const validas = checkboxes.map(input => input.value);
-    const estado = getEstadoVisualDropdown(path, pag);
     const marcados = valoresMarcadosDropdown(path, pag);
 
-    if (estado === 'todos' || (estado === null && marcados.length === 0)) {
-        checkboxes.forEach(input => {
-            input.checked = true;
-        });
+    drop.querySelectorAll('input[data-item="opcao"]').forEach(input => {
+        input.checked = marcados.includes(input.value);
+    });
 
-        if (checkTodos) {
-            checkTodos.checked = true;
-            checkTodos.indeterminate = false;
-        }
-    } else if (estado === 'nenhum') {
-        checkboxes.forEach(input => {
-            input.checked = false;
-        });
-
-        if (checkTodos) {
-            checkTodos.checked = false;
-            checkTodos.indeterminate = false;
-        }
-    } else {
-        checkboxes.forEach(input => {
-            input.checked = marcados.includes(input.value);
-        });
-
-        if (checkTodos) {
-            const totalMarcados = marcados.length;
-            const total = validas.length;
-
-            checkTodos.checked = total > 0 && totalMarcados === total;
-            checkTodos.indeterminate = totalMarcados > 0 && totalMarcados < total;
-        }
-    }
-
+    const label = drop.querySelector('.dropdown-label');
     if (label) {
-        label.textContent = labelDropdown(path, pag, validas);
+        label.textContent = labelDropdown(marcados);
+        label.title = label.textContent;
     }
+
+    drop.classList.toggle('com-selecao', marcados.length > 0);
+    atualizarAcoesDropdown(drop);
+}
+
+// Topo do menu: "Limpar" (com seleção) e, com busca, marcar/desmarcar só as encontradas.
+function atualizarAcoesDropdown(drop) {
+    const limpar = drop.querySelector('[data-acao="limpar"]');
+    const encontrados = drop.querySelector('[data-acao="encontrados"]');
+    const marcados = drop.querySelectorAll('input[data-item="opcao"]:checked').length;
+
+    if (limpar) {
+        limpar.disabled = marcados === 0;
+        limpar.textContent = marcados ? `Limpar (${marcados})` : 'Limpar';
+    }
+
+    if (!encontrados) return;
+
+    const visiveis = buscaAtivaDropdown(drop) ? opcoesVisiveisDropdown(drop) : [];
+    encontrados.hidden = visiveis.length === 0;
+
+    const todosMarcados = visiveis.length > 0 && visiveis.every(input => input.checked);
+    encontrados.dataset.marcar = todosMarcados ? 'N' : 'S';
+    encontrados.textContent = `${todosMarcados ? 'Desmarcar' : 'Marcar'} ${visiveis.length === 1 ? 'o encontrado' : `os ${visiveis.length} encontrados`}`;
+}
+
+// Marcar várias opções seguidas faz uma consulta só: a tela atualiza na pausa entre cliques
+// (ESPERA_FILTRO_DROPDOWN_MS) ou na hora em que o menu fecha.
+const ESPERA_FILTRO_DROPDOWN_MS = 600;
+const acoesDropdownPendentes = new Map();
+
+function agendarAcaoDropdown(funcao = null, pag = null) {
+    const chave = `${pag || ''}|${funcao || ''}`;
+    clearTimeout(acoesDropdownPendentes.get(chave)?.timer);
+    const timer = setTimeout(() => executarPendenteDropdown(chave), ESPERA_FILTRO_DROPDOWN_MS);
+    acoesDropdownPendentes.set(chave, { timer, funcao, pag });
+}
+
+function executarPendenteDropdown(chave) {
+    const pendente = acoesDropdownPendentes.get(chave);
+    if (!pendente) return;
+    clearTimeout(pendente.timer);
+    acoesDropdownPendentes.delete(chave);
+    executarAcaoDropdown(pendente.funcao, pendente.pag).catch(erro => console.error(erro));
+}
+
+function executarDropdownsPendentes() {
+    for (const chave of [...acoesDropdownPendentes.keys()]) executarPendenteDropdown(chave);
 }
 
 async function executarAcaoDropdown(funcao = null, pag = null) {
@@ -211,92 +179,80 @@ async function executarAcaoDropdown(funcao = null, pag = null) {
     await paginacao();
 }
 
-async function alternarTodosDropdown(path, opcoes = [], pag, funcao = null) {
+// Grava a seleção (vazia = sem filtro) e agenda a consulta.
+function aplicarSelecaoDropdown(drop, selecionados) {
+    const { path, pag, op = '=', funcao = '' } = drop.dataset;
     garantirControlesDropdown(pag);
 
-    const validas = opcoesDropdownValidas(opcoes);
-    if (validas.length === 0) return;
-
-    const estadoAtual = getEstadoVisualDropdown(path, pag);
-    const estaTudoMarcado = estadoAtual === 'todos' || (estadoAtual === null && valoresMarcadosDropdown(path, pag).length === 0);
-
-    if (estaTudoMarcado) {
-        setEstadoVisualDropdown(path, pag, 'nenhum');
-        limparFiltroDropdown(path, pag);
-    } else {
-        setEstadoVisualDropdown(path, pag, 'todos');
-        limparFiltroDropdown(path, pag);
-    }
+    const valores = [...new Set(selecionados)];
+    salvarFiltroDropdown(path, pag, valores.map(value => ({ op, value })));
 
     atualizarVisualDropdown(path, pag);
-    await executarAcaoDropdown(funcao, pag);
+    agendarAcaoDropdown(funcao || null, pag);
 }
 
-async function alternarFiltroDropdown(marcado, strg) {
-    const {
-        path,
-        valor,
-        pag,
-        funcao = null,
-        op
-    } = JSON.parse(decodeURIComponent(strg));
-
-    garantirControlesDropdown(pag);
-
-    const validas = opcoesDropdownValidas(getValoresOpcoesDropdownDOM(path, pag));
-    if (validas.length === 0) return;
-
-    const estadoAtual = getEstadoVisualDropdown(path, pag);
-    const grupoAtual = grupoDropdownAtual(path, pag);
-
-    let selecionados = [];
-
-    if (estadoAtual === 'todos' || (estadoAtual === null && valoresMarcadosDropdown(path, pag).length === 0)) {
-        selecionados = [...validas];
-    } else if (estadoAtual === 'nenhum') {
-        selecionados = [];
-    } else {
-        selecionados = [...(grupoAtual?.regras || [])].map(r => r.value);
-    }
-
-    selecionados = selecionados.filter(v => v !== valor);
-
-    if (marcado) {
-        selecionados.push(valor);
-    }
-
-    selecionados = [...new Set(selecionados)];
-
-    const total = validas.length;
-    const qtd = selecionados.length;
-    const selecionouTodas = total > 0 && qtd === total;
-    const selecionouNenhuma = qtd === 0;
-
-    if (selecionouTodas) {
-        setEstadoVisualDropdown(path, pag, 'todos');
-        limparFiltroDropdown(path, pag);
-    } else if (selecionouNenhuma) {
-        setEstadoVisualDropdown(path, pag, 'nenhum');
-        limparFiltroDropdown(path, pag);
-    } else {
-        setEstadoVisualDropdown(path, pag, 'parcial');
-        salvarFiltroDropdown(
-            path,
-            pag,
-            selecionados.map(value => ({ op, value }))
-        );
-    }
-
-    atualizarVisualDropdown(path, pag);
-    await executarAcaoDropdown(funcao, pag);
+function alternarFiltroDropdown(input) {
+    const drop = input.closest('.filtro-dropdown');
+    const { path, pag } = drop.dataset;
+    const atuais = valoresMarcadosDropdown(path, pag).filter(valor => valor !== input.value);
+    aplicarSelecaoDropdown(drop, input.checked ? [...atuais, input.value] : atuais);
 }
 
+function limparSelecaoDropdown(botao) {
+    aplicarSelecaoDropdown(botao.closest('.filtro-dropdown'), []);
+}
+
+function alternarEncontradosDropdown(botao) {
+    const drop = botao.closest('.filtro-dropdown');
+    const { path, pag } = drop.dataset;
+    const visiveis = opcoesVisiveisDropdown(drop).map(input => input.value);
+    const atuais = valoresMarcadosDropdown(path, pag);
+
+    aplicarSelecaoDropdown(drop, botao.dataset.marcar === 'S'
+        ? [...atuais, ...visiveis]
+        : atuais.filter(valor => !visiveis.includes(valor)));
+}
+
+// Busca dentro do menu (listas longas): esconde as opções que não batem com o texto.
+function filtrarOpcoesDropdown(campo) {
+    const drop = campo.closest('.filtro-dropdown');
+    const termo = normalizarBuscaDropdown(campo.value);
+    drop?.querySelectorAll('input[data-item="opcao"]')
+        .forEach(input => {
+            input.closest('.dropdown-item').hidden = !normalizarBuscaDropdown(input.value).includes(termo);
+        });
+    if (drop) atualizarAcoesDropdown(drop);
+}
+
+function normalizarBuscaDropdown(texto) {
+    return String(texto || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
+
+// Fechar o menu aplica na hora o que ficou pendente e limpa a busca (reabre com a lista toda).
 function fecharTodosDropdowns() {
     document.querySelectorAll('.filtro-dropdown .dropdown-menu').forEach(menu => {
         menu.style.display = 'none';
         menu.dataset.aberto = 'N';
+
+        const busca = menu.querySelector('.dropdown-busca');
+        if (busca?.value) {
+            busca.value = '';
+            filtrarOpcoesDropdown(busca);
+        }
     });
+    executarDropdownsPendentes();
 }
+
+// Clique fora de qualquer filtro ou Esc fecham o menu aberto.
+document.addEventListener('click', evento => {
+    if (!evento.target.closest?.('.filtro-dropdown') && document.querySelector('.filtro-dropdown .dropdown-menu[data-aberto="S"]'))
+        fecharTodosDropdowns();
+});
+
+document.addEventListener('keydown', evento => {
+    if (evento.key === 'Escape' && document.querySelector('.filtro-dropdown .dropdown-menu[data-aberto="S"]'))
+        fecharTodosDropdowns();
+});
 
 function toggleDropdown(botao) {
     const drop = botao.closest('.filtro-dropdown');
@@ -310,70 +266,51 @@ function toggleDropdown(botao) {
     if (!aberto) {
         menu.style.display = 'block';
         menu.dataset.aberto = 'S';
+        menu.querySelector('.dropdown-busca')?.focus();
     }
 }
 
 function montarDropdownCheckbox({ titulo, op = '=', pag, funcao = null, path, opcoes = [] }) {
     garantirControlesDropdown(pag);
 
+    const atributo = valor => String(valor ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
     const validas = opcoesDropdownValidas(opcoes);
-    const estado = getEstadoVisualDropdown(path, pag);
     const marcados = valoresMarcadosDropdown(path, pag);
 
-    const todosAtivos = estado === 'todos' || (estado === null && marcados.length === 0);
-    const nenhumAtivo = estado === 'nenhum';
+    const itens = validas.map(o => `
+        <label class="dropdown-item" title="${atributo(o)}">
+            <input type="checkbox" data-item="opcao" value="${atributo(o)}"
+                ${marcados.includes(o) ? 'checked' : ''} onchange="alternarFiltroDropdown(this)">
+            <span class="dropdown-item-texto">${o}</span>
+        </label>`).join('');
 
-    const itens = validas.map(o => {
-        const dados = {
-            op,
-            path,
-            valor: o,
-            pag,
-            funcao
-        };
-
-        let checked = false;
-
-        if (todosAtivos) {
-            checked = true;
-        } else if (nenhumAtivo) {
-            checked = false;
-        } else {
-            checked = marcados.includes(o);
-        }
-
-        return `
-        <label class="dropdown-item">
-            <input
-                type="checkbox"
-                data-item="opcao"
-                value="${String(o).replace(/"/g, '&quot;')}"
-                ${checked ? 'checked' : ''}
-                onchange="alternarFiltroDropdown(this.checked, '${encodeURIComponent(JSON.stringify(dados))}')">
-            <label>${o}</label>
-        </label>
-        `;
-    }).join('');
+    const rotulo = labelDropdown(marcados);
+    const busca = validas.length > 8
+        ? '<input type="search" class="dropdown-busca" placeholder="Buscar..." oninput="filtrarOpcoesDropdown(this)">'
+        : '';
 
     return `
         <div class="campo-pesquisa">
             <label style="color: white;">${titulo}</label>
-            <div class="filtro-dropdown" data-path="${path}" data-pag="${pag}">
+            <div class="filtro-dropdown ${marcados.length ? 'com-selecao' : ''}"
+                data-path="${atributo(path)}" data-pag="${atributo(pag)}" data-op="${atributo(op)}" data-funcao="${atributo(funcao || '')}">
                 <div class="filtro-dropdown-botao" onclick="toggleDropdown(this)">
-                    <label class="dropdown-label">${labelDropdown(path, pag, validas)}</label>
-                    <label style="padding: 0 0.5rem;">▾</label>
+                    <label class="dropdown-label" title="${atributo(rotulo)}">${rotulo}</label>
+                    <label class="dropdown-seta">▾</label>
                 </div>
                 <div class="dropdown-menu" data-aberto="N">
-                    <label class="dropdown-item" style="border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-bottom: 6px;">
-                        <input
-                            type="checkbox"
-                            data-item="todos"
-                            ${todosAtivos ? 'checked' : ''}
-                            onchange="alternarTodosDropdown('${path.replace(/'/g, "\\'")}', ${JSON.stringify(validas).replace(/"/g, '&quot;')}, '${pag.replace(/'/g, "\\'")}'${funcao ? `, '${funcao.replace(/'/g, "\\'")}'` : ''})">
-                        <label>Todos</label>
-                    </label>
+                    <div class="dropdown-topo">
+                        ${busca}
+                        <div class="dropdown-acoes">
+                            <span class="dropdown-dica">Nada marcado = todos</span>
+                            <button type="button" data-acao="encontrados" data-marcar="S" hidden
+                                onclick="alternarEncontradosDropdown(this)"></button>
+                            <button type="button" data-acao="limpar" ${marcados.length ? '' : 'disabled'}
+                                onclick="limparSelecaoDropdown(this)">${marcados.length ? `Limpar (${marcados.length})` : 'Limpar'}</button>
+                        </div>
+                    </div>
 
-                    ${itens || '<label>Nenhuma opção</label>'}
+                    ${itens || '<span class="dropdown-vazio">Nenhuma opção</span>'}
                 </div>
             </div>
         </div>

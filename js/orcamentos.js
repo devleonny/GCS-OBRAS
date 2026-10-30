@@ -532,7 +532,7 @@ async function carregarHistoricoStatus(id) {
     if (!local)
         return
 
-    local.innerHTML = `<img src="gifs/loading-gcs.gif" style="width: 5rem;">`
+    local.innerHTML = `<img src="gifs/loading-gcs.png" style="width: 5rem;">`
 
     const { historico_status } = await recuperarDado('dados_orcamentos', id) || {}
 

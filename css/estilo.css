@@ -1984,3 +1984,10 @@ td img[src="imagens/pesquisar.svg"] {
         display: none;
     }
 }
+
+/* Loading do sistema (gifs/loading-gcs.png, 160px): no máximo 5rem em qualquer tela, inclusive
+   onde a tela não define tamanho (antes aparecia com 160px). max-* vale sobre width de outras regras. */
+img[src$="loading-gcs.png"] {
+    max-width: 5rem;
+    max-height: 5rem;
+}

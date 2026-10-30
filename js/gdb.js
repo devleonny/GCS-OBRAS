@@ -180,7 +180,7 @@ function bloquearItensExclusao(caminho) {
     const bloqueios = alvos.map(alvo => {
         const overlay = document.createElement('div')
         overlay.className = 'item-excluindo'
-        overlay.innerHTML = '<img src="gifs/loading-gcs.gif" alt=""><span>Excluindo item...</span>'
+        overlay.innerHTML = '<img src="gifs/loading-gcs.png" alt=""><span>Excluindo item...</span>'
         alvo.classList.add('item-em-exclusao')
         alvo.setAttribute('aria-busy', 'true')
         // Em <tr> o overlay vai na primeira célula e se estica sobre a linha (tr é a referência).

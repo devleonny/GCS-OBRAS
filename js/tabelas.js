@@ -596,7 +596,7 @@ function criarLoading(cols) {
     // Estilo em tabelas.css (.tabela-carregando): sem estourar a largura da célula.
     td.innerHTML = `
         <div class="tabela-carregando">
-            <img src="gifs/loading-gcs.gif" alt="Carregando">
+            <img src="gifs/loading-gcs.png" alt="Carregando">
         </div>
     `
 

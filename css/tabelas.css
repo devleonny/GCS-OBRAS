@@ -329,11 +329,10 @@
     padding: 6px 0;
 }
 
-/* Recorta a sobra de cima e de baixo do gif: só o ícone ocupa altura. */
+/* loading-gcs.png é quadrado e sem sobra em volta: mostra inteiro. */
 .tabela-carregando img {
     width: 5rem;
-    height: 2.4rem;
-    object-fit: cover;
+    height: 5rem;
 }
 
 /* Linha ou cartão sendo excluído (bloquearItensExclusao, gdb.js): fica coberto até sumir da tela. */

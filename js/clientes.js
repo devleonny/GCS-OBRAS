@@ -46,72 +46,247 @@ function obVal(n) {
     return el ? el.value || el.id : null
 }
 
+// Vínculo em massa de clientes a uma empresa: popup com busca própria (todas as páginas, não só a
+// visível na tabela), "marcar todos os encontrados" e a lista dos selecionados, que se mantém entre
+// buscas. A seleção é feita só aqui (a tabela não tem mais checkbox).
+const vinculoMassa = { selecionados: new Map(), encontrados: [], total: 0, termo: '', consulta: 0, timer: null }
+const LIMITE_BUSCA_VINCULO = 50
+const LIMITE_MARCAR_VINCULO = 1000
+
 async function classificarUnidades() {
 
-    if (Object.keys(controles?.clientes?.cp || {}).length == 0)
-        return popup({ mensagem: 'Marque pelo menos 1 unidade' })
-
-    const empresas = await pesquisarDB({
-        base: 'empresas'
-    })
-
+    const empresas = await pesquisarDB({ base: 'empresas', limite: 500 })
     const opcoes = (empresas.resultados || [])
-        .sort((a, b) => a.nome.localeCompare(b.nome))
-        .map((empresa) => {
-            if (empresa.id == 'mQK7') return ''
-            return `<option value="${empresa.id}">${empresa.nome}</option>`
-        }).join('')
+        .filter(empresa => empresa.id != 'mQK7')
+        .sort((a, b) => String(a.nome).localeCompare(String(b.nome)))
+        .map(empresa => `<option value="${escaparAtributo(empresa.id)}">${escaparAtributo(empresa.nome)}</option>`)
+        .join('')
 
-    const linhas = [
-        {
-            elemento: `
-            <div style="${vertical}; gap: 5px; padding: 0.5rem;">
-                <select id="selectEmp">
-                    <option value=""></option>
-                    ${opcoes}
-                </select>
-                ${Object.entries(controles.clientes.cp || {}).map(([, u]) => `<span style="text-align: left; max-width: 30rem;">• ${u}</span>`).join('')}
-            </div>
-            `
+    vinculoMassa.selecionados = new Map()
+    vinculoMassa.encontrados = []
+    vinculoMassa.total = 0
+    vinculoMassa.termo = ''
+
+    const elemento = `
+        <div class="vinculo-massa">
+            <section class="vinculo-busca">
+                <input type="search" class="vinculo-campo" placeholder="Buscar por nome, CNPJ ou ID..."
+                    oninput="buscarVinculoMassa(this.value)" onkeydown="if (event.key === 'Enter') buscarVinculoMassa(this.value, true)">
+                <div class="vinculo-busca-topo">
+                    <span class="vinculo-info" data-vinculo="info">Digite para buscar clientes.</span>
+                    <button type="button" data-vinculo="marcar" hidden onclick="marcarEncontradosVinculo()"></button>
+                </div>
+                <div class="vinculo-lista" data-vinculo="resultados"></div>
+            </section>
+            <section class="vinculo-selecao">
+                <div class="vinculo-busca-topo">
+                    <strong data-vinculo="contagem">Selecionados</strong>
+                    <button type="button" onclick="limparSelecaoVinculo()">Limpar</button>
+                </div>
+                <div class="vinculo-lista" data-vinculo="selecionados"></div>
+            </section>
+        </div>`
+
+    const conteudoRodape = `
+        <label class="vinculo-empresa">
+            <span>Empresa</span>
+            <select data-vinculo="empresa">
+                <option value="" disabled selected>Escolha a empresa</option>
+                <option value="">(sem empresa: remover vínculo)</option>
+                ${opcoes}
+            </select>
+        </label>`
+
+    const botoes = [{ texto: 'Vincular', img: 'concluido', funcao: 'vincularEmpresas()' }]
+
+    popup({ elemento, botoes, conteudoRodape, titulo: 'Vincular clientes em massa' })
+    renderizarSelecionadosVinculo()
+    document.querySelector('.vinculo-campo')?.focus()
+}
+
+function campoVinculo(nome) {
+    return document.querySelector(`.popup-janela-fora [data-vinculo="${nome}"]`)
+}
+
+// Busca com pausa curta entre teclas (Enter busca na hora).
+function buscarVinculoMassa(termo, agora = false) {
+    clearTimeout(vinculoMassa.timer)
+    vinculoMassa.timer = setTimeout(() => executarBuscaVinculo(termo), agora ? 0 : 350)
+}
+
+function filtroBuscaVinculo(termo) {
+    return { cadastrais: { op: 'includes', value: termo } }
+}
+
+async function executarBuscaVinculo(termo) {
+    const consulta = ++vinculoMassa.consulta
+    termo = String(termo || '').trim()
+    const info = campoVinculo('info')
+
+    if (!termo) {
+        vinculoMassa.encontrados = []
+        vinculoMassa.total = 0
+        vinculoMassa.termo = ''
+        if (info) info.textContent = 'Digite para buscar clientes.'
+        return renderizarEncontradosVinculo()
+    }
+
+    if (info) info.textContent = 'Buscando...'
+    const resposta = await pesquisarDB({ base: 'vw_2_clientes', filtros: filtroBuscaVinculo(termo), limite: LIMITE_BUSCA_VINCULO })
+        .catch(() => null)
+    if (consulta !== vinculoMassa.consulta) return // chegou resposta de uma busca antiga
+
+    vinculoMassa.encontrados = resposta?.resultados || []
+    vinculoMassa.total = Number(resposta?.total) || vinculoMassa.encontrados.length
+    vinculoMassa.termo = termo
+    renderizarEncontradosVinculo()
+}
+
+function nomeClienteVinculo(cliente) {
+    return cliente?.nome || (cliente?.cadastrais || []).find(Boolean) || `Cliente ${cliente?.id}`
+}
+
+function renderizarEncontradosVinculo() {
+    const lista = campoVinculo('resultados')
+    const info = campoVinculo('info')
+    const marcar = campoVinculo('marcar')
+    if (!lista) return
+
+    const { encontrados, total, selecionados } = vinculoMassa
+
+    lista.innerHTML = encontrados.map(cliente => {
+        const id = String(cliente.id)
+        const empresa = cliente.snapshots?.empresa || ''
+        return `
+            <label class="vinculo-item">
+                <input type="checkbox" value="${escaparAtributo(id)}" data-nome="${escaparAtributo(nomeClienteVinculo(cliente))}"
+                    ${selecionados.has(id) ? 'checked' : ''} onchange="alternarClienteVinculo(this)">
+                <span class="vinculo-item-texto">
+                    <span>${escaparAtributo(nomeClienteVinculo(cliente))}</span>
+                    ${empresa ? `<small>${escaparAtributo(empresa)}</small>` : ''}
+                </span>
+            </label>`
+    }).join('') || (vinculoMassa.termo ? '<span class="vinculo-vazio">Nenhum cliente encontrado.</span>' : '')
+
+    if (info && encontrados.length)
+        info.textContent = total > encontrados.length
+            ? `Mostrando ${encontrados.length} de ${total}`
+            : `${total} encontrado${total === 1 ? '' : 's'}`
+    else if (info && vinculoMassa.termo && !encontrados.length)
+        info.textContent = '0 encontrados'
+
+    if (marcar) {
+        const ids = idsTodosEncontradosVinculo()
+        const todosMarcados = !!ids?.length && ids.every(id => selecionados.has(id))
+        marcar.hidden = !encontrados.length
+        marcar.dataset.marcar = todosMarcados ? 'N' : 'S'
+        marcar.textContent = todosMarcados
+            ? 'Desmarcar encontrados'
+            : `Marcar ${total === 1 ? 'o encontrado' : `os ${Math.min(total, LIMITE_MARCAR_VINCULO)} encontrados`}`
+    }
+}
+
+function renderizarSelecionadosVinculo() {
+    const lista = campoVinculo('selecionados')
+    const contagem = campoVinculo('contagem')
+    if (!lista) return
+
+    const itens = [...vinculoMassa.selecionados]
+    if (contagem) contagem.textContent = `Selecionados (${itens.length})`
+
+    lista.innerHTML = itens.map(([id, nome]) => `
+        <span class="vinculo-chip" title="${escaparAtributo(nome)}">
+            <span>${escaparAtributo(nome)}</span>
+            <button type="button" aria-label="Remover" data-id="${escaparAtributo(id)}" onclick="removerClienteVinculo(this.dataset.id)">×</button>
+        </span>`).join('') || '<span class="vinculo-vazio">Nenhum cliente selecionado.</span>'
+
+    const vincular = [...document.querySelectorAll('.popup-janela-fora .botoes-rodape span')].find(span => span.textContent.startsWith('Vincular'))
+    if (vincular) vincular.textContent = itens.length ? `Vincular ${itens.length} cliente${itens.length === 1 ? '' : 's'}` : 'Vincular'
+}
+
+function alternarClienteVinculo(input) {
+    if (input.checked) vinculoMassa.selecionados.set(input.value, input.dataset.nome)
+    else vinculoMassa.selecionados.delete(input.value)
+    renderizarSelecionadosVinculo()
+    renderizarEncontradosVinculo()
+}
+
+function removerClienteVinculo(id) {
+    vinculoMassa.selecionados.delete(String(id))
+    renderizarSelecionadosVinculo()
+    renderizarEncontradosVinculo()
+}
+
+function limparSelecaoVinculo() {
+    vinculoMassa.selecionados.clear()
+    renderizarSelecionadosVinculo()
+    renderizarEncontradosVinculo()
+}
+
+// Ids de todos os encontrados pela busca atual: os da lista, se couberam, ou os buscados por
+// completo no "Marcar todos" (a lista mostra só os 50 primeiros). null = ainda não conhecidos.
+function idsTodosEncontradosVinculo() {
+    const { encontrados, total, termo, todosDoTermo } = vinculoMassa
+    if (total <= encontrados.length) return encontrados.map(cliente => String(cliente.id))
+    return todosDoTermo?.termo === termo ? todosDoTermo.ids : null
+}
+
+// Marca todos os encontrados pela busca, inclusive além dos 50 mostrados (até LIMITE_MARCAR_VINCULO).
+async function marcarEncontradosVinculo() {
+    const botao = campoVinculo('marcar')
+    const { encontrados, total, termo } = vinculoMassa
+
+    if (botao?.dataset.marcar === 'N') {
+        (idsTodosEncontradosVinculo() || []).forEach(id => vinculoMassa.selecionados.delete(id))
+    } else {
+        let todos = encontrados
+        if (total > encontrados.length) {
+            if (botao) botao.textContent = 'Marcando...'
+            const resposta = await pesquisarDB({ base: 'vw_2_clientes', filtros: filtroBuscaVinculo(termo), limite: LIMITE_MARCAR_VINCULO })
+                .catch(() => null)
+            todos = resposta?.resultados || encontrados
+            vinculoMassa.todosDoTermo = { termo, ids: todos.map(cliente => String(cliente.id)) }
         }
-    ]
+        todos.forEach(cliente => vinculoMassa.selecionados.set(String(cliente.id), nomeClienteVinculo(cliente)))
+    }
 
-    const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: 'vincularEmpresas()' }
-    ]
-
-    popup({ linhas, botoes, titulo: `Vincular clientes` })
-
+    renderizarSelecionadosVinculo()
+    renderizarEncontradosVinculo()
 }
 
 async function vincularEmpresas() {
 
-    overlayAguarde()
-
-    const selectEmp = document.getElementById('selectEmp')
+    const selectEmp = campoVinculo('empresa')
     if (!selectEmp) return
 
-    const unidades = Object.entries(controles?.clientes?.cp || {})
-        .map(([id, nome]) => {
-            return { id, nome }
+    const unidades = [...vinculoMassa.selecionados].map(([id, nome]) => ({ id, nome }))
+
+    if (!unidades.length)
+        return popup({ mensagem: 'Selecione pelo menos 1 cliente.' })
+
+    if (selectEmp.selectedIndex <= 0)
+        return popup({ mensagem: 'Escolha a empresa (ou "sem empresa" para remover o vínculo).' })
+
+    const nomeEmpresa = selectEmp.value ? selectEmp.selectedOptions[0].textContent : 'nenhuma empresa'
+
+    overlayAguarde()
+
+    try {
+        const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
+        const response = await fetch(`${api}/vincular-empresas`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ unidades, empresa: selectEmp.value })
         })
 
-    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
-    const response = await fetch(`${api}/vincular-empresas`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ unidades, empresa: selectEmp.value })
-    })
+        const data = await response.json()
+        if (data.mensagem || data.erro)
+            return popup({ mensagem: data.mensagem || data.erro })
 
-    let data
-    try {
-        data = await response.json()
-        if (data.mensagem)
-            return popup({ mensagem: data.mensagem })
-
-        controles.clientes.cp = {}
+        vinculoMassa.selecionados.clear()
 
         removerPopup()
+        popup({ mensagem: `${unidades.length} cliente${unidades.length === 1 ? '' : 's'} vinculado${unidades.length === 1 ? '' : 's'} a ${escaparAtributo(nomeEmpresa)}.`, imagem: 'imagens/concluido.png' })
 
     } catch (err) {
         return popup({ mensagem: err.message || 'Falha no vínculo das empresas' })
@@ -188,8 +363,7 @@ async function telaClientes() {
 
         const btnExtras = `
             <div class="clientes-filtros" style="${horizontal}; gap: 1rem; padding: 3px;">
-                <input onclick="checksCliente(this)" style="width: 1.5rem; height: 1.5rem;" type="checkbox">
-                <img src="imagens/trocar.png" onclick="classificarUnidades()">
+                <button type="button" class="clientes-adicionar clientes-vincular" onclick="classificarUnidades()">Vincular em massa</button>
                 <button type="button" class="clientes-adicionar" onclick="formularioCliente()">Adicionar Cadastro</button>
                 ${dropdownTags}
                 ${dropdownEstados}
@@ -430,17 +604,6 @@ function criarLinhaClienteGCS(cliente) {
         .map(t => `<span class="fin">${t}</span>`)
         .join('')
 
-    const check = `
-        <input
-            onchange="checkPoint(this)"
-            data-id="${id}"
-            data-nome="${nome}"
-            type="checkbox"
-            ${controles?.clientes?.cp?.[id] ? 'checked' : ''}
-            style="width: 1.5rem; height: 1.5rem;"
-            name="empresa">
-    `
-
     const tds = `
         <td>
             <img src="imagens/pesquisar.svg" onclick="formularioCliente(${id})">
@@ -457,7 +620,6 @@ function criarLinhaClienteGCS(cliente) {
         <td>
             <div style="${horizontal}; justify-content: start; gap: 5px;">
 
-                ${check}
                 <div style="${vertical}; gap: 2px;">
 
                     ${(cadastrais || []).map(c => `<span>${c || ''}</span>`).join('')}
@@ -482,30 +644,6 @@ function criarLinhaClienteGCS(cliente) {
 
     return `<tr>${tds}</tr>`
 
-}
-
-function checkPoint(input) {
-
-    const codCliente = input.dataset.id
-
-    controles.clientes.cp ??= {}
-
-    if (input.checked)
-        controles.clientes.cp[codCliente] = input.dataset.nome
-    else
-        delete controles.clientes.cp[codCliente]
-
-}
-
-function checksCliente(inputM) {
-    const inputs = document.querySelectorAll('[name="empresa"]')
-
-    for (const input of inputs) {
-
-        input.checked = inputM.checked
-        checkPoint(input)
-
-    }
 }
 
 // Tags marcadas na lista de checkbox do formulário de clientes.
@@ -761,6 +899,10 @@ async function formularioCliente(idCliente) {
 
     popup({ linhas, botoes, titulo, conteudoRodape })
 
+    // Cadastro sem usuário: já avalia ao abrir (antes só ao digitar o nome ou mexer nas tags).
+    if (!usuario)
+        verificarDisponibilidade([...document.querySelectorAll('.painel-padrao')].at(-1)?.querySelector('[name="nome"]'))
+
 }
 
 // Senha provisória: para usuário novo ou para quem perdeu o acesso. No primeiro login com ela
@@ -954,22 +1096,29 @@ async function verificarDisponibilidade(input) {
         .split(' ')
         .filter(Boolean)
 
-    if (partesNome.length < 2) {
+    // Empresa (CNPJ): nome de uma palavra vale (ex.: SERFORTE → serforte, ou serforte_4964 se em uso).
+    // Pessoa continua exigindo nome e sobrenome.
+    const cnpjDigitos = String(painel.querySelector('[name="cnpj"]')?.value || '').replace(/\D/g, '')
+    const empresaUmaPalavra = cnpjDigitos.length === 14 && partesNome.length === 1
+
+    if (partesNome.length < 2 && !empresaUmaPalavra) {
         return bloquear(
             'Informe pelo menos nome e sobrenome'
         )
     }
 
-    if (nomeLimpo.length < 6) {
+    if (nomeLimpo.length < (empresaUmaPalavra ? 3 : 6)) {
         return bloquear(
-            'Nome curto (mínimo de 6 caracteres)'
+            `Nome curto (mínimo de ${empresaUmaPalavra ? 3 : 6} caracteres)`
         )
     }
 
     const {
         primeiraOpcao,
         segundaOpcao
-    } = gerarUsuario(nomeLimpo)
+    } = empresaUmaPalavra
+        ? { primeiraOpcao: partesNome[0].replace(/\s/g, ''), segundaOpcao: `${partesNome[0]}_${cnpjDigitos.slice(0, 4)}` }
+        : gerarUsuario(nomeLimpo)
 
     if (!primeiraOpcao) {
         return bloquear(
@@ -1266,11 +1415,16 @@ function formatarCnpj(input) {
 
     // CNPJ completo e válido: busca na Receita uma vez por número. Só em formulários com endereço
     // (cadastro de clientes); o pedido de pagamento a parceiro usa a mesma máscara e não consulta.
-    const temEndereco = (input.closest('.painel-padrao') || document).querySelector('[name="endereco"]')
+    const painelCliente = input.closest('.painel-padrao') || document
+    const temEndereco = painelCliente.querySelector('[name="endereco"]')
     if (temEndereco && digitos.length === 14 && validarCpfCnpj(v) && input.dataset.cnpjConsultado !== digitos) {
         input.dataset.cnpjConsultado = digitos
         preencherClientePorCnpj(input, digitos)
     }
+
+    // CPF ou CNPJ muda a regra do usuário (empresa aceita nome de uma palavra): reavalia.
+    if (temEndereco && document.getElementById('status_usuario'))
+        verificarDisponibilidade(painelCliente.querySelector('[name="nome"]'))
 }
 
 // O que a consulta preencheu em cada formulário (por campo de CNPJ). Ao trocar o número, é

@@ -168,6 +168,12 @@
     border-radius: 50%;
 }
 
+/* "Vincular em massa": elo de corrente no lugar do + */
+.clientes-filtros .clientes-vincular::before {
+    content: '';
+    background: #356443 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2'/%3E%3Cpath d='M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2'/%3E%3C/svg%3E") center / 12px no-repeat;
+}
+
 .clientes-filtros .clientes-adicionar:hover,
 .clientes-filtros .clientes-adicionar:focus-visible {
     color: #1f3f29;
@@ -453,4 +459,178 @@
     .popup-janela-fora:has([data-form-cliente]) .cnpj-receita {
         grid-column: 1;
     }
+}
+
+/* Vínculo em massa (classificarUnidades): busca à esquerda, selecionados à direita */
+.vinculo-massa {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 12px;
+    width: min(760px, calc(100vw - 48px));
+    padding: 12px;
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.vinculo-massa section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.vinculo-campo {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 7px 10px;
+    border: 1px solid #cddbd2;
+    border-radius: 7px;
+    font-size: 13px;
+}
+
+.vinculo-busca-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 24px;
+    font-size: 12px;
+    color: #4d5f54;
+}
+
+.vinculo-busca-topo button {
+    margin: 0;
+    padding: 2px 10px;
+    border: 1px solid #cfdcd3;
+    border-radius: 999px;
+    background: #f3f7f4;
+    color: #24693a;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.vinculo-lista {
+    height: min(340px, 45dvh);
+    overflow-y: auto;
+    border: 1px solid #e0e8e3;
+    border-radius: 8px;
+    background: white;
+    padding: 4px;
+    box-sizing: border-box;
+}
+
+.vinculo-selecao .vinculo-lista {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 4px;
+}
+
+.vinculo-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 5px 6px;
+    border-radius: 5px;
+    font-size: 12px;
+    color: #324b3c;
+    cursor: pointer;
+}
+
+.vinculo-item:hover { background: #eef5f0; }
+
+.vinculo-item input {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    accent-color: #249f41;
+}
+
+.vinculo-item-texto {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.vinculo-item-texto > span,
+.vinculo-item-texto > small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vinculo-item-texto > small { color: #8a978f; font-size: 10px; }
+
+.vinculo-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    max-width: 100%;
+    padding: 2px 4px 2px 9px;
+    border: 1px solid #bdd4c5;
+    border-radius: 999px;
+    background: #e2efe7;
+    color: #24693a;
+    font-size: 11px;
+}
+
+.vinculo-chip > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vinculo-chip button {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #356443;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.vinculo-chip button:hover { background: #c5dfce; }
+
+.vinculo-vazio {
+    display: block;
+    padding: 10px 6px;
+    color: #8a978f;
+    font-size: 12px;
+}
+
+.vinculo-empresa {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #324b3c;
+}
+
+.vinculo-empresa select {
+    min-width: 0;
+    max-width: 260px;
+    padding: 5px 8px;
+    border: 1px solid #cddbd2;
+    border-radius: 7px;
+    font-size: 12px;
+}
+
+@media (max-width: 640px) {
+    .vinculo-massa { grid-template-columns: minmax(0, 1fr); }
+    .vinculo-lista { height: min(240px, 30dvh); }
+    .vinculo-empresa { flex-wrap: wrap; }
+    .vinculo-empresa select { max-width: 100%; flex: 1; }
 }

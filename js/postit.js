@@ -4,6 +4,10 @@ async function telaPIT() {
         <div class="scroll-content tela-postits">
             <div class="postits-toolbar">
                 <div><h2>Post-its</h2><p>Organize suas tarefas e arraste os cartões entre os quadros.</p></div>
+                <div class="postits-acoes">
+                    <button type="button" class="postits-adicionar" onclick="criarPIT()">Post-it</button>
+                    <button type="button" class="postits-adicionar" onclick="criarQuadro()">Quadro</button>
+                </div>
             </div>
             <div class="contorno-quadros">
                 <div id="quadros" class="tabela-atras-postit"></div>

@@ -173,7 +173,7 @@ let ultimaRenovacaoArquivos = 0
 
 document.addEventListener('error', evento => {
     const img = evento.target
-    if (!(img instanceof HTMLImageElement) || img.dataset.arquivoRecarregado || typeof api === 'undefined')
+    if (!(img instanceof HTMLImageElement) || typeof api === 'undefined')
         return
 
     let url
@@ -181,10 +181,15 @@ document.addEventListener('error', evento => {
     if (url.origin !== new URL(api).origin || !url.pathname.startsWith('/uploads/'))
         return
 
-    img.dataset.arquivoRecarregado = 'sim'
-
+    // Fora do domínio, toda falha é recuperada: telas que trocam a foto do mesmo elemento
+    // (lista de online, linhas redesenhadas) voltam ao endereço original e falhariam de novo.
+    // Sem repetição: a imagem baixada fica em memória e, se o download falhar, o src não muda.
     if (FORA_DO_DOMINIO_GCS)
         return carregarImagemComToken(img, img.src)
+
+    if (img.dataset.arquivoRecarregado)
+        return
+    img.dataset.arquivoRecarregado = 'sim'
 
     imagensArquivosFalhas.push({ img, src: img.src })
 

@@ -344,7 +344,7 @@ async function carregarTags(idOrcamento = controles?.etiquetas?.idOrcamento) {
     if (!localTags || !idOrcamento)
         return
 
-    localTags.innerHTML = '<img src="gifs/loading-gcs.gif" style="width: 5rem;">'
+    localTags.innerHTML = '<img src="gifs/loading-gcs.png" style="width: 5rem;">'
 
     try {
         const ids = await idsTagsDoOrcamento(idOrcamento)

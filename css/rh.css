@@ -352,3 +352,115 @@ button.rh-arquivo-acao:hover { background: #1c8235; }
 .rh-assinatura.ok .rh-assinatura-selo { background: #e2efe7; color: #2f6b43; border-color: #bdd4c5; }
 .rh-assinatura.alerta .rh-assinatura-selo { background: #fff4dc; color: #8a5a00; border-color: #f0d9a6; }
 .rh-assinatura.erro .rh-assinatura-selo { background: #fcecea; color: #963e36; border-color: #edc7c2; }
+
+/* Anexo do formulário de documentos: área pontilhada para arrastar ou clicar (soltarAnexoRH) */
+.rh-anexo-area {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 14px 12px;
+    border: 2px dashed #a9c4b2;
+    border-radius: 10px;
+    background: #f7faf8;
+    color: #4d5f54;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.rh-anexo-area:hover,
+.rh-anexo-area:focus-within {
+    border-color: #249f41;
+    background: #eef6f0;
+}
+
+.rh-anexo-area.arrastando {
+    border-color: #249f41;
+    border-style: solid;
+    background: #e2efe7;
+}
+
+.rh-anexo-area.com-arquivo {
+    border-style: solid;
+    border-color: #8cc7a0;
+    background: #eef6f0;
+}
+
+/* O input fica invisível por cima da área: o clique abre o seletor de arquivos */
+.rh-anexo-area input[type="file"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.rh-anexo-icone {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #249f41;
+    color: #fff;
+    font-size: 16px;
+}
+
+.rh-anexo-texto {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.rh-anexo-texto small {
+    color: #7b8b81;
+    font-size: 11px;
+}
+
+/* Botões do topo da tabela (Atrasados / Venc. Próximo / Todos): invertidos, como em clientes */
+.rh-filtro-tempo {
+    margin: 0;
+    padding: 5px 14px;
+    border: 1px solid #ffffff;
+    border-radius: 999px;
+    background-color: #ffffff;
+    color: #2f5a3c;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+}
+
+/* "+ Documento": mesmo botão, com o + verde dos botões de adicionar */
+.rh-adicionar {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding-left: 8px;
+    margin-right: 6px;
+}
+
+.rh-adicionar::before {
+    content: '+';
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #356443;
+    color: #ffffff;
+    font-size: 15px;
+    line-height: 1;
+}
+
+.rh-filtro-tempo:hover,
+.rh-filtro-tempo:focus-visible {
+    color: #1f3f29;
+    background-color: #e8f3ec;
+    border-color: #e8f3ec;
+}

@@ -61,45 +61,11 @@ function popup({
 
             elemento = `
                 <div class="editor-container">
-                    
-                    <div class="editor-toolbar">
-
-                        <span 
-                            onclick="document.execCommand('bold', false, null)" 
-                            class="editor-botao"
-                            onmousedown="event.preventDefault()"
-                            style="font-weight: bold;">B</span>
-                        
-                        <span 
-                            onclick="document.execCommand('italic', false, null)"
-                            class="editor-botao"
-                            onmousedown="event.preventDefault()"
-                            style="font-style: italic;">I</span>
-                        
-                        <span 
-                            onclick="document.execCommand('underline', false, null)"
-                            class="editor-botao" 
-                            onmousedown="event.preventDefault()"
-                            style="text-decoration: underline;">U</span>
-                    
-                        <span onclick="document.execCommand('insertUnorderedList', false, null)"
-                            class="editor-botao"
-                            onmousedown="event.preventDefault()"
-                            style="width: 30px; height: 30px;">•</span>
-                        
-                        <input 
-                            type="color"
-                            onmousedown="event.preventDefault()"
-                            onchange="document.execCommand('foreColor', false, this.value)" 
-                            style="width: 30px; height: 30px; padding: 0; border: none;">
-
-                    </div>
-                    
-                    <div id="${idGerado}" 
-                    class="editor-conteudo" 
+                    ${barraEditor()}
+                    <div id="${idGerado}"
+                    class="editor-conteudo"
                     onpaste="colarNoEditor(event)"
                     contenteditable="true">${editor}</div>
-                
                 </div>
             `
         }
@@ -247,3 +213,139 @@ function colarNoEditor(event) {
     sel.removeAllRanges()
     sel.addRange(range)
 }
+
+// Editor de texto dos formulários (linhas com "editor" no popup).
+// A seleção de cada editor fica guardada: clicar num botão, na paleta ou no seletor de cor tira o
+// foco do texto, e sem restaurar a seleção o comando não tem onde aplicar (era o que fazia a cor
+// não pintar nada). Botões usam mousedown + preventDefault para não roubar o foco.
+const CORES_EDITOR = [
+    ['#000000', 'Preto'], ['#434343', 'Cinza escuro'], ['#666666', 'Cinza'], ['#999999', 'Cinza médio'], ['#cccccc', 'Cinza claro'], ['#ffffff', 'Branco'],
+    ['#b3202a', 'Vermelho'], ['#e8590c', 'Laranja'], ['#f2c200', 'Amarelo'], ['#249f41', 'Verde'], ['#0a4dff', 'Azul'], ['#6f42c1', 'Roxo'],
+    ['#f8d7da', 'Vermelho claro'], ['#ffe8cc', 'Laranja claro'], ['#fff3bf', 'Amarelo claro'], ['#d3f9d8', 'Verde claro'], ['#d0ebff', 'Azul claro'], ['#e5dbff', 'Roxo claro']
+]
+const selecoesEditor = new WeakMap()
+
+function barraEditor() {
+    const botao = (comando, titulo, conteudo, estado = false) => `
+        <button type="button" class="editor-botao" title="${titulo}" aria-label="${titulo}"
+            ${estado ? `data-estado="${comando}"` : ''}
+            onmousedown="event.preventDefault()" onclick="comandoEditor(this, '${comando}')">${conteudo}</button>`
+
+    const paleta = (tipo, comando, semCor) => `
+        <div class="editor-paleta" data-paleta="${tipo}" hidden>
+            <div class="editor-paleta-cores">
+                ${CORES_EDITOR.map(([cor, nome]) => `
+                    <button type="button" class="editor-cor" style="background: ${cor};" title="${nome}" aria-label="${nome}"
+                        onmousedown="event.preventDefault()" onclick="aplicarCorEditor(this, '${comando}', '${cor}')"></button>`).join('')}
+            </div>
+            <div class="editor-paleta-acoes">
+                <button type="button" onmousedown="event.preventDefault()" onclick="aplicarCorEditor(this, '${comando}', '${semCor.valor}')">${semCor.texto}</button>
+                <label>Outra cor…
+                    <input type="color" onchange="aplicarCorEditor(this, '${comando}', this.value)">
+                </label>
+            </div>
+        </div>`
+
+    return `
+        <div class="editor-toolbar" role="toolbar" aria-label="Formatação">
+            <div class="editor-grupo">
+                ${botao('bold', 'Negrito', '<b>B</b>', true)}
+                ${botao('italic', 'Itálico', '<i>I</i>', true)}
+                ${botao('underline', 'Sublinhado', '<u>U</u>', true)}
+                ${botao('strikeThrough', 'Riscado', '<s>S</s>', true)}
+            </div>
+            <div class="editor-grupo">
+                <button type="button" class="editor-botao editor-botao-cor" title="Cor do texto" aria-label="Cor do texto"
+                    onmousedown="event.preventDefault()" onclick="alternarPaletaEditor(this, 'texto')">
+                    <span>A</span><i data-cor-atual="texto" style="background: #b3202a;"></i>
+                </button>
+                <button type="button" class="editor-botao editor-botao-cor" title="Marca-texto" aria-label="Marca-texto"
+                    onmousedown="event.preventDefault()" onclick="alternarPaletaEditor(this, 'destaque')">
+                    <span>✎</span><i data-cor-atual="destaque" style="background: #fff3bf;"></i>
+                </button>
+            </div>
+            <div class="editor-grupo">
+                ${botao('insertUnorderedList', 'Lista com marcadores', '•', true)}
+                ${botao('insertOrderedList', 'Lista numerada', '1.', true)}
+            </div>
+            <div class="editor-grupo">
+                ${botao('justifyLeft', 'Alinhar à esquerda', '<span class="editor-alinhar" data-alinhar="esquerda"></span>', true)}
+                ${botao('justifyCenter', 'Centralizar', '<span class="editor-alinhar" data-alinhar="centro"></span>', true)}
+                ${botao('justifyRight', 'Alinhar à direita', '<span class="editor-alinhar" data-alinhar="direita"></span>', true)}
+            </div>
+            <div class="editor-grupo">
+                ${botao('removeFormat', 'Limpar formatação', 'T<sub>×</sub>')}
+                ${botao('undo', 'Desfazer', '↶')}
+                ${botao('redo', 'Refazer', '↷')}
+            </div>
+            ${paleta('texto', 'foreColor', { valor: '#324b3c', texto: 'Automático' })}
+            ${paleta('destaque', 'hiliteColor', { valor: 'transparent', texto: 'Sem destaque' })}
+        </div>`
+}
+
+function editorDoElemento(elemento) {
+    return elemento.closest('.editor-container')?.querySelector('.editor-conteudo')
+}
+
+// Devolve o foco ao texto com a última seleção feita nele.
+function restaurarSelecaoEditor(editor) {
+    editor.focus()
+    const range = selecoesEditor.get(editor)
+    if (!range) return
+    const selecao = window.getSelection()
+    selecao.removeAllRanges()
+    selecao.addRange(range)
+}
+
+function comandoEditor(botao, comando, valor = null) {
+    const editor = editorDoElemento(botao)
+    if (!editor) return
+    restaurarSelecaoEditor(editor)
+    // Cores em <span style>, não em <font> (styleWithCSS só para elas: negrito etc. seguem <b>, <i>...).
+    const comCss = ['foreColor', 'hiliteColor'].includes(comando)
+    if (comCss) document.execCommand('styleWithCSS', false, true)
+    document.execCommand(comando, false, valor)
+    if (comCss) document.execCommand('styleWithCSS', false, false)
+    guardarSelecaoEditor(editor)
+    atualizarBarraEditor(editor)
+}
+
+function alternarPaletaEditor(botao, tipo) {
+    const barra = botao.closest('.editor-toolbar')
+    barra.querySelectorAll('.editor-paleta').forEach(paleta => {
+        paleta.hidden = paleta.dataset.paleta !== tipo || !paleta.hidden
+    })
+}
+
+function aplicarCorEditor(elemento, comando, cor) {
+    const barra = elemento.closest('.editor-toolbar')
+    comandoEditor(elemento, comando, cor)
+    const tipo = comando === 'foreColor' ? 'texto' : 'destaque'
+    const indicador = barra.querySelector(`[data-cor-atual="${tipo}"]`)
+    if (indicador && cor !== 'transparent') indicador.style.background = cor
+    barra.querySelectorAll('.editor-paleta').forEach(paleta => { paleta.hidden = true })
+}
+
+function guardarSelecaoEditor(editor) {
+    const selecao = window.getSelection()
+    if (selecao.rangeCount && editor.contains(selecao.anchorNode))
+        selecoesEditor.set(editor, selecao.getRangeAt(0).cloneRange())
+}
+
+// Botões ativos conforme o trecho do cursor (negrito, lista, alinhamento...).
+function atualizarBarraEditor(editor) {
+    editor.closest('.editor-container')?.querySelectorAll('[data-estado]').forEach(botao => {
+        let ativo = false
+        try { ativo = document.queryCommandState(botao.dataset.estado) } catch { }
+        botao.classList.toggle('ativo', ativo)
+    })
+}
+
+document.addEventListener('selectionchange', () => {
+    const selecao = window.getSelection()
+    const no = selecao.anchorNode
+    const editor = (no?.nodeType === Node.ELEMENT_NODE ? no : no?.parentElement)?.closest?.('.editor-conteudo')
+    if (!editor) return
+    guardarSelecaoEditor(editor)
+    atualizarBarraEditor(editor)
+})

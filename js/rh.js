@@ -30,9 +30,10 @@ async function telaRH() {
 
         const btnExtras = `
             <div style="${horizontal}; gap: 2px;">
-                <button onclick="filtrarPorTempo('atrasados')">Atrasados</button>
-                <button onclick="filtrarPorTempo('proximo')">Venc. Próximo (60d)</button>
-                <button onclick="filtrarPorTempo()">Todos</button>
+                <button type="button" class="rh-filtro-tempo rh-adicionar" onclick="incluirDocumento()">Documento</button>
+                <button type="button" class="rh-filtro-tempo" onclick="filtrarPorTempo('atrasados')">Atrasados</button>
+                <button type="button" class="rh-filtro-tempo" onclick="filtrarPorTempo('proximo')">Venc. Próximo (60d)</button>
+                <button type="button" class="rh-filtro-tempo" onclick="filtrarPorTempo()">Todos</button>
             </div>
             `
         const pag = 'rh'
@@ -85,9 +86,9 @@ async function atalhoDocumentos(idCliente = null) {
 
     const btnExtras = `
     <div style="${horizontal}; gap: 2px;">
-        <button onclick="filtrarPorTempo('atrasados')">Atrasados</button>
-        <button onclick="filtrarPorTempo('proximo')">Venc. Próximo (60d)</button>
-        <button onclick="filtrarPorTempo()">Todos</button>
+        <button type="button" class="rh-filtro-tempo" onclick="filtrarPorTempo('atrasados')">Atrasados</button>
+        <button type="button" class="rh-filtro-tempo" onclick="filtrarPorTempo('proximo')">Venc. Próximo (60d)</button>
+        <button type="button" class="rh-filtro-tempo" onclick="filtrarPorTempo()">Todos</button>
     </div>
     `
 
@@ -327,6 +328,7 @@ const SITUACOES_ASSINATURA_RH = {
     assinado: { classe: 'ok', texto: 'Digital' },
     invalida: { classe: 'erro', texto: 'Inválida', detalhe: 'O arquivo foi alterado depois de assinado: a assinatura não confere.' },
     sem_assinatura: { classe: 'alerta', texto: 'Sem assinatura digital', detalhe: 'O PDF não tem assinatura digital. Se há assinatura, ela é escaneada ou desenhada.' },
+    invalidada: { classe: 'erro', texto: 'Assinatura invalidada', detalhe: 'O PDF foi assinado, mas depois foi salvo de novo por outro programa (ex.: aberto no navegador e salvo, ou "imprimir em PDF") e as assinaturas perderam a validade. Envie o arquivo original assinado.' },
     nao_pdf: { classe: 'neutro', texto: 'Não é PDF', detalhe: 'Só PDFs podem ter assinatura digital.' },
     arquivo_ausente: { classe: 'neutro', texto: 'Não verificado', detalhe: 'O arquivo não foi encontrado no servidor.' },
     erro: { classe: 'neutro', texto: 'Não verificado', detalhe: 'Não foi possível ler o PDF (protegido por senha ou corrompido).' }
@@ -334,7 +336,8 @@ const SITUACOES_ASSINATURA_RH = {
 
 // Nomes vêm do certificado em maiúsculas: "MARIA DA SILVA" vira "Maria da Silva".
 function nomeAssinanteRH(nome) {
-    return String(nome || 'Sem nome').toLowerCase()
+    if (!String(nome || '').trim()) return 'Assinante não identificado'
+    return String(nome).toLowerCase()
         .replace(/(^|\s)(\p{L})/gu, (_, espaco, letra) => espaco + letra.toUpperCase())
         .replace(/ (Da|De|Do|Das|Dos|E) /g, parte => parte.toLowerCase())
 }
@@ -352,7 +355,8 @@ function assinaturaRH(anexo) {
     const assinaturas = resultado.assinaturas || []
     const linhas = assinaturas.map(a => {
         const data = a.data && !Number.isNaN(new Date(a.data).getTime()) ? new Date(a.data).toLocaleString('pt-BR') : ''
-        return `${a.confere ? '✓' : '✗'} ${nomeAssinanteRH(a.nome)} (${a.origem === 'outro' ? 'outro certificado' : a.origem})${data ? ' em ' + data : ''}`
+        const origem = a.origem === 'outro' ? 'outro certificado' : a.origem
+        return `${a.confere ? '✓' : '✗'} ${nomeAssinanteRH(a.nome)}${origem ? ` (${origem})` : ''}${data ? ' em ' + data : ''}`
     })
     if (situacao.detalhe) linhas.unshift(situacao.detalhe)
     if (resultado.alterado_depois) linhas.push('Atenção: o arquivo recebeu alterações depois da última assinatura.')
@@ -420,6 +424,34 @@ function expiraEm(dtValidade) {
     return { dias: isNaN(dias) ? 0 : dias, icone, status, validade: dataValidade };
 }
 
+// Área pontilhada do anexo: o arquivo solto vai para o próprio <input name="anexo">, que é o que
+// salvarDocumento lê. Um arquivo por documento (fica o primeiro, se vierem vários).
+function soltarAnexoRH(event, area) {
+    event.preventDefault()
+    area.classList.remove('arrastando')
+
+    const arquivo = event.dataTransfer?.files?.[0]
+    if (!arquivo) return
+
+    const input = area.querySelector('input[type="file"]')
+    const transferencia = new DataTransfer()
+    transferencia.items.add(arquivo)
+    input.files = transferencia.files
+    mostrarAnexoRH(input)
+}
+
+function mostrarAnexoRH(input) {
+    const area = input.closest('.rh-anexo-area')
+    const texto = area?.querySelector('.rh-anexo-texto')
+    const arquivo = input.files?.[0]
+    if (!texto) return
+
+    area.classList.toggle('com-arquivo', !!arquivo)
+    texto.innerHTML = arquivo
+        ? `<b>${escaparAtributo(arquivo.name)}</b><small>Clique ou arraste outro para trocar</small>`
+        : 'Arraste o arquivo aqui ou <u>clique para escolher</u>'
+}
+
 async function incluirDocumento(id) {
 
     const { local, doc, clinica, funcionario, realizado, anexo } = await recuperarDado('documentos', id) || {}
@@ -464,7 +496,15 @@ async function incluirDocumento(id) {
                         </button>
                         <small>Selecione outro arquivo para substituir o anexo atual.</small>
                     ` : id ? '<small>Este documento não possui anexo.</small>' : ''}
-                    <input name="anexo" type="file" aria-label="Selecionar anexo">
+                    <label class="rh-anexo-area" data-soltar-arquivo="soltarAnexoRH"
+                        ondragenter="event.preventDefault(); this.classList.add('arrastando')"
+                        ondragover="event.preventDefault()"
+                        ondragleave="if (!this.contains(event.relatedTarget)) this.classList.remove('arrastando')"
+                        ondrop="soltarAnexoRH(event, this)">
+                        <input name="anexo" type="file" aria-label="Selecionar anexo" onchange="mostrarAnexoRH(this)">
+                        <span class="rh-anexo-icone" aria-hidden="true">⇪</span>
+                        <span class="rh-anexo-texto">Arraste o arquivo aqui ou <u>clique para escolher</u></span>
+                    </label>
                 </div>`
         },
         {

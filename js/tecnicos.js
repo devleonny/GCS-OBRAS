@@ -150,7 +150,7 @@ async function carregarAgenda(filtros, pagina = 1) {
     const baloes = document.querySelector('.agenda-cards')
     const inicio = document.getElementById('inicio')?.value
     const fim = document.getElementById('fim')?.value
-    const loading = '<div class="agenda-loading" role="status" aria-label="Carregando agenda"><img src="gifs/loading-gcs.gif" alt="" style="width: 5rem;"></div>'
+    const loading = '<div class="agenda-loading" role="status" aria-label="Carregando agenda"><img src="gifs/loading-gcs.png" alt="" style="width: 5rem;"></div>'
 
     local.innerHTML = loading;
     baloes.innerHTML = loading;
@@ -821,7 +821,7 @@ async function tooltipChamadoTecnicos(elemento) {
     const tooltip = document.createElement('div')
     tooltip.className = 'tooltip-chamado'
     tooltip.dataset.chamado = id
-    tooltip.innerHTML = '<img class="tooltip-chamado-loading" src="gifs/loading-gcs.gif" alt="Carregando">'
+    tooltip.innerHTML = '<img class="tooltip-chamado-loading" src="gifs/loading-gcs.png" alt="Carregando">'
     document.body.appendChild(tooltip)
     posicionarTooltipChamado(tooltip, elemento)
     // Se o popup fechar com o mouse em cima, o mouseleave não acontece: some junto com o chamado.

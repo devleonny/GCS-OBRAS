@@ -136,6 +136,40 @@
     gap: 6px;
 }
 
+/* "+ Post-it" e "+ Quadro" no topo do painel */
+.postits-adicionar {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    padding: 6px 14px 6px 8px;
+    border: 1px solid #ffffff;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #2f5a3c;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+}
+
+.postits-adicionar::before {
+    content: '+';
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #249f41;
+    color: #ffffff;
+    font-size: 14px;
+    line-height: 1;
+}
+
+.postits-adicionar:hover {
+    background: #eef5f0;
+}
+
 .tela-postits .contorno-quadros {
     flex: 0 0 auto;
     min-height: 0;
