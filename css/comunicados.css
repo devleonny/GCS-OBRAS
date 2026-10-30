@@ -79,6 +79,21 @@
     font-size: 10px;
     font-weight: 700;
     line-height: 19px;
+    /* Pulsar: anel que se expande e some (box-shadow), sem mudar tamanho nem posição do número.
+       Contador escondido (display: none) não anima. */
+    animation: pulsar-contador-toolbar 2s ease-out infinite;
+}
+
+@keyframes pulsar-contador-toolbar {
+    0% { box-shadow: 0 0 0 0 #b12425b3; }
+    70% { box-shadow: 0 0 0 7px #b1242500; }
+    100% { box-shadow: 0 0 0 0 #b1242500; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .contador-toolbar-gcs {
+        animation: none;
+    }
 }
 
 .central-atualizacoes-gcs {

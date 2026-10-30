@@ -27,7 +27,8 @@ async function telaRH() {
             'Realizado': { chave: 'realizado' },
             'Validade': { chave: 'validade' },
             'Dif/Dias': {},
-            'Arquivo': { chave: 'doc' }
+            'Arquivo': { chave: 'doc' },
+            'Assinatura': {}
         }
 
         const btnExtras = `
@@ -82,7 +83,8 @@ async function atalhoDocumentos(idCliente = null) {
         'Realizado': { chave: 'realizado' },
         'Validade': { chave: 'validade' },
         'Dif/Dias': {},
-        'Arquivo': { chave: 'doc' }
+        'Arquivo': { chave: 'doc' },
+        'Assinatura': {}
     }
 
     const btnExtras = `
@@ -322,9 +324,43 @@ function criarLinhaRH(documento) {
                     </div>
                 </div>
             </div>
-        </td>`
+        </td>
+        <td>${seloAssinaturaRH(a)}</td>`
 
     return `<tr>${tds}</tr>`
+}
+
+// Resultado gravado pelo servidor (SCRIPTS/assinaturas_digitais.js) depois do upload.
+// Assinatura escaneada ou desenhada é só imagem: aparece como "Sem assinatura digital".
+const SITUACOES_ASSINATURA_RH = {
+    assinado: { classe: 'ok', texto: 'Digital' },
+    invalida: { classe: 'erro', texto: 'Inválida', detalhe: 'O arquivo foi alterado depois de assinado: a assinatura não confere.' },
+    sem_assinatura: { classe: 'alerta', texto: 'Sem assinatura digital', detalhe: 'O PDF não tem assinatura digital. Se há assinatura, ela é escaneada ou desenhada.' },
+    nao_pdf: { classe: 'neutro', texto: 'Não é PDF', detalhe: 'Só PDFs podem ter assinatura digital.' },
+    arquivo_ausente: { classe: 'neutro', texto: 'Não verificado', detalhe: 'O arquivo não foi encontrado no servidor.' },
+    erro: { classe: 'neutro', texto: 'Não verificado', detalhe: 'Não foi possível ler o PDF (protegido por senha ou corrompido).' }
+}
+
+function seloAssinaturaRH(anexo) {
+    if (!anexo?.link) return ''
+
+    const resultado = anexo.assinatura_digital
+    if (!resultado)
+        return '<span class="selo-assinatura-rh neutro" title="Ainda não verificado">Verificando...</span>'
+
+    const situacao = SITUACOES_ASSINATURA_RH[resultado.situacao] || SITUACOES_ASSINATURA_RH.erro
+    const assinaturas = resultado.assinaturas || []
+    const linhas = assinaturas.map(a => {
+        const data = a.data && !Number.isNaN(new Date(a.data).getTime()) ? new Date(a.data).toLocaleString('pt-BR') : ''
+        return `${a.confere ? '✓' : '✗'} ${a.nome || 'Sem nome'} (${a.origem === 'outro' ? 'outro certificado' : a.origem})${data ? ' em ' + data : ''}`
+    })
+    if (situacao.detalhe) linhas.unshift(situacao.detalhe)
+    if (resultado.alterado_depois) linhas.push('Atenção: o arquivo recebeu alterações depois da última assinatura.')
+
+    const classe = resultado.alterado_depois && situacao.classe === 'ok' ? 'alerta' : situacao.classe
+    const texto = assinaturas.length ? `${situacao.texto} (${assinaturas.length})` : situacao.texto
+
+    return `<span class="selo-assinatura-rh ${classe}" title="${escaparAtributo(linhas.join('\n'))}">${texto}</span>`
 }
 
 function expiraEm(dtValidade) {

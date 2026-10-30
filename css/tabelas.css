@@ -312,3 +312,26 @@
         bottom: 16px;
     }
 }
+
+/* Linha de carregando das tabelas (tabelas.js, criarLoading). Antes: width 100% + padding na
+   própria caixa estourava a célula (barra de rolagem horizontal) e o gif (640x360, com muita
+   margem em volta do ícone) deixava a linha alta demais. */
+#loading-tabela > td {
+    padding: 0;
+}
+
+.tabela-carregando {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 6px 0;
+}
+
+/* Recorta a sobra de cima e de baixo do gif: só o ícone ocupa altura. */
+.tabela-carregando img {
+    width: 5rem;
+    height: 2.4rem;
+    object-fit: cover;
+}

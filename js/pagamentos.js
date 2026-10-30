@@ -1246,3 +1246,160 @@ async function excluirPagamentoOmie(id, app) {
 
     return await resposta.json()
 }
+
+// ---------------------------------------------------------------------------
+// Pagamentos reprovados de quem está logado (ícone no topo, websocket.js carregarControles).
+// - Ícone com contador só aparece se houver algum.
+// - Alerta uma vez por pagamento: os já avisados ficam no navegador (localStorage, por usuário).
+// - O popup lista cada um com o histórico de justificativas, para decidir entre editar e excluir.
+// Excluir aqui usa /pagamentos/excluir-reprovado: só o solicitante e só se estiver reprovado.
+// ---------------------------------------------------------------------------
+
+let ultimosPagamentosReprovados = []
+
+async function buscarPagamentosReprovados() {
+    const { usuario } = acesso || {}
+    if (!usuario) return []
+    const { resultados } = await pesquisarDB({
+        base: 'lista_pagamentos',
+        filtros: {
+            criado: { op: '=', value: usuario },
+            status: { op: 'includes', value: 'reprovad' }
+        },
+        limite: 200
+    }) || {}
+    // O filtro "=" ignora maiúsculas/acentos: confirma o solicitante exato.
+    return (resultados || []).filter(p => p.criado === usuario && /^reprovad/i.test(p.status || ''))
+}
+
+async function verificarPagamentosReprovados() {
+    const atalho = document.getElementById('atalhoReprovados')
+    const contador = document.getElementById('contadorReprovados')
+    if (!navigator.onLine || !atalho || !contador) return
+
+    try {
+        const reprovados = await buscarPagamentosReprovados()
+        ultimosPagamentosReprovados = reprovados
+
+        atalho.style.display = reprovados.length ? '' : 'none'
+        contador.style.display = reprovados.length ? 'flex' : 'none'
+        contador.textContent = reprovados.length || ''
+
+        // Alerta só pelos que ainda não foram avisados neste navegador.
+        const chave = `pagamentosReprovadosAvisados_${acesso.usuario}`
+        let avisados = []
+        try { avisados = JSON.parse(localStorage.getItem(chave) || '[]') } catch { }
+        const novos = reprovados.filter(p => !avisados.includes(String(p.id)))
+        // Guarda só os que ainda estão reprovados, para a lista não crescer para sempre.
+        try { localStorage.setItem(chave, JSON.stringify(reprovados.map(p => String(p.id)))) } catch { }
+
+        if (novos.length)
+            popup({
+                titulo: 'Pagamento reprovado',
+                mensagem: `
+                    ${novos.length === 1 ? 'Um pagamento seu foi reprovado' : `${novos.length} pagamentos seus foram reprovados`}.<br>
+                    <small>Veja as justificativas e decida se edita e reenvia, ou se exclui.</small>`,
+                botoes: [{ texto: 'Ver pagamentos', img: 'pagamento', funcao: 'abrirPagamentosReprovados()' }]
+            })
+    } catch {
+        atalho.style.display = 'none'
+    }
+}
+
+function historicoJustificativasReprovado(pagamento) {
+    const entradas = Object.values(pagamento?.historico || {})
+        .filter(h => h && typeof h === 'object')
+        .sort((a, b) => toTimestamp(a.data) - toTimestamp(b.data))
+    if (!entradas.length)
+        return '<p class="reprovado-sem-historico">Sem justificativas registradas.</p>'
+
+    return entradas.map(h => {
+        const { cor } = imagemEspecifica(h)
+        return `
+            <div class="reprovado-justificativa" style="--cor-justificativa: ${cor}">
+                <div class="reprovado-justificativa-topo">
+                    <b>${escaparAtributo(h.status || '')}</b>
+                    <small>${escaparAtributo(h.usuario || '')} · ${escaparAtributo(h.data || '')}</small>
+                </div>
+                <div class="reprovado-justificativa-texto">${escaparAtributo(h.justificativa || '—').replace(/\n/g, '<br>')}</div>
+            </div>`
+    }).join('')
+}
+
+async function abrirPagamentosReprovados() {
+    overlayAguarde()
+    let reprovados
+    try {
+        reprovados = await buscarPagamentosReprovados()
+        ultimosPagamentosReprovados = reprovados
+    } catch {
+        return popup({ mensagem: 'Não foi possível consultar seus pagamentos reprovados.' })
+    }
+
+    if (!reprovados.length) {
+        verificarPagamentosReprovados()
+        return popup({ mensagem: 'Você não tem pagamentos reprovados.', imagem: 'imagens/concluido.png' })
+    }
+
+    const cartoes = reprovados.map(p => {
+        const id = escaparAtributo(String(p.id))
+        const param = p.param_estavel || (Array.isArray(p.param) ? p.param[0] : p.param) || {}
+        const valor = Number(p.snapshots?.valor?.[0] ?? param.valor_documento ?? 0)
+        const departamentos = (p.snapshots?.departamentos || []).map(d => d.departamento).filter(Boolean)
+        const categorias = (p.snapshots?.categorias || []).map(c => c.categoria).filter(Boolean)
+        return `
+            <div class="reprovado-cartao" data-pagamento="${id}">
+                <div class="reprovado-cabecalho">
+                    <div>
+                        <b>${escaparAtributo(p.snapshots?.cliente || 'Recebedor não informado')}</b>
+                        <small>${dinheiro(valor)}${param.data_previsao ? ` · previsto para ${escaparAtributo(param.data_previsao)}` : ''}</small>
+                        ${departamentos.length ? `<small>${departamentos.map(escaparAtributo).join(', ')}</small>` : ''}
+                        ${categorias.length ? `<small>${categorias.map(escaparAtributo).join(', ')}</small>` : ''}
+                    </div>
+                    <span class="reprovado-status">${escaparAtributo(p.status)}</span>
+                </div>
+                <div class="reprovado-historico">${historicoJustificativasReprovado(p)}</div>
+                <div class="reprovado-acoes">
+                    <button type="button" class="secundario" onclick="abrirDetalhesPagamentos('${id}')">Ver detalhes</button>
+                    <button type="button" class="secundario" onclick="editarPagamento('${id}')">Editar e reenviar</button>
+                    <button type="button" class="reprovado-excluir" onclick="confirmarExcluirReprovado('${id}')">Excluir</button>
+                </div>
+            </div>`
+    }).join('')
+
+    popup({
+        titulo: `Pagamentos reprovados (${reprovados.length})`,
+        elemento: `<div class="reprovados-lista">${cartoes}</div>`
+    })
+}
+
+function confirmarExcluirReprovado(id) {
+    popup({
+        mensagem: 'Excluir este pagamento reprovado? Ele sai da sua lista e não pode ser reenviado depois.',
+        botoes: [{ texto: 'Excluir', img: 'cancel', funcao: `excluirPagamentoReprovado('${id}')` }]
+    })
+}
+
+async function excluirPagamentoReprovado(id) {
+    overlayAguarde()
+    try {
+        const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
+        const resposta = await fetch(`${api}/pagamentos/excluir-reprovado`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ id })
+        })
+        const dados = await resposta.json().catch(() => ({}))
+        if (!resposta.ok || !dados.success)
+            throw new Error(dados.mensagem || 'Falha ao excluir o pagamento.')
+
+        removerTodosPopups()
+        await verificarPagamentosReprovados()
+        // Ainda há outros: reabre a lista atualizada.
+        if (ultimosPagamentosReprovados.length) await abrirPagamentosReprovados()
+        else popup({ mensagem: 'Pagamento excluído. Não há mais pagamentos reprovados.', imagem: 'imagens/concluido.png' })
+    } catch (erro) {
+        removerOverlay()
+        popup({ mensagem: erro.message })
+    }
+}

@@ -865,10 +865,16 @@ async function importarAnexos({ input, foto }) {
 
     try {
 
+        // /upload exige login: o token vai no cabeçalho (sem Content-Type: o FormData define).
+        const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
         const response = await fetch(`${api}/upload`, {
             method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
             body: formData
         })
+
+        if (!response.ok)
+            throw new Error(response.status === 401 ? 'sessão expirada: entre no sistema de novo.' : `falha no envio (${response.status}).`)
 
         return await response.json()
     } catch (err) {

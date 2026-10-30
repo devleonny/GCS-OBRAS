@@ -53,13 +53,13 @@ const ABAS_CUSTOS_DEP = {
         ],
         colunas: {
             'Centro de custo': {},
-            'Custo / Orçado': { chave: 'percentual', op: '>=', tipoOrdenacao: 'numero' },
             'Departamento': { chave: 'departamento' },
+            'Custo / Orçado': { chave: 'percentual', op: '>=', tipoOrdenacao: 'numero' },
+            'Orçado': { chave: 'orcado', op: '>=', tipoOrdenacao: 'numero' },
+            'Custo': { chave: 'custo', op: '>=', tipoOrdenacao: 'numero' },
             'Responsável': { chave: 'responsavel' },
             'Cliente': { chave: 'cliente' },
-            'Cidade': { chave: 'cidade' },
-            'Orçado': { chave: 'orcado', op: '>=', tipoOrdenacao: 'numero' },
-            'Custo': { chave: 'custo', op: '>=', tipoOrdenacao: 'numero' }
+            'Cidade': { chave: 'cidade' }
         }
     },
     responsaveis: {
@@ -76,12 +76,12 @@ const ABAS_CUSTOS_DEP = {
         colunas: {
             'Orçamentos': {},
             'Custo / Orçado': { chave: 'percentual', op: '>=', tipoOrdenacao: 'numero' },
+            'Orçado': { chave: 'orcado', op: '>=', tipoOrdenacao: 'numero' },
+            'Custo': { chave: 'custo', op: '>=', tipoOrdenacao: 'numero' },
             'Responsável': { chave: 'responsavel' },
             'Qtd. orçamentos': { chave: 'orcamentos', op: '>=', tipoOrdenacao: 'numero' },
             [`Acima de ${LIMITE_CUSTO_ORCADO}%`]: { chave: 'acima_limite', op: '>=', tipoOrdenacao: 'numero' },
-            'Estourados': { chave: 'estourados', op: '>=', tipoOrdenacao: 'numero' },
-            'Orçado': { chave: 'orcado', op: '>=', tipoOrdenacao: 'numero' },
-            'Custo': { chave: 'custo', op: '>=', tipoOrdenacao: 'numero' }
+            'Estourados': { chave: 'estourados', op: '>=', tipoOrdenacao: 'numero' }
         }
     }
 }
@@ -234,12 +234,12 @@ function criarLinhaCustoResponsavel(r) {
                     onclick="filtrarResponsavelCustosDep(this.dataset.responsavel)" data-responsavel="${escaparAtributo(r.responsavel)}">Ver</button>
             </td>
             <td class="relatorio-departamentos-medidor">${medidorCustoDepartamento(percentual)}</td>
+            <td class="relatorio-departamentos-numero">${moedaCC(r.orcado)}</td>
+            <td class="relatorio-departamentos-numero">${moedaCC(r.custo)}</td>
             <td>${escaparAtributo(r.responsavel)}</td>
             <td class="relatorio-departamentos-numero">${numero(r.orcamentos)}</td>
             <td class="relatorio-departamentos-numero${acima ? ' relatorio-dep-alerta' : ''}">${numero(acima)}</td>
             <td class="relatorio-departamentos-numero${estourados ? ' relatorio-dep-estourado' : ''}">${numero(estourados)}</td>
-            <td class="relatorio-departamentos-numero">${moedaCC(r.orcado)}</td>
-            <td class="relatorio-departamentos-numero">${moedaCC(r.custo)}</td>
         </tr>`
 }
 
@@ -291,12 +291,12 @@ function criarLinhaCustoDepartamento(d) {
                         onclick="painelCustos(this.dataset.departamento)" data-departamento="${escaparAtributo(d.departamento)}">`
                     : '<span title="Sem centro de custo criado">—</span>'}
             </td>
-            <td class="relatorio-departamentos-medidor">${medidorCustoDepartamento(percentual)}</td>
             <td>${escaparAtributo(d.departamento)}</td>
+            <td class="relatorio-departamentos-medidor">${medidorCustoDepartamento(percentual)}</td>
+            <td class="relatorio-departamentos-numero">${orcado ? moedaCC(orcado) : '—'}</td>
+            <td class="relatorio-departamentos-numero">${moedaCC(custo)}</td>
             <td>${texto(d.responsavel)}</td>
             <td>${texto(d.cliente)}</td>
             <td>${texto(d.cidade)}</td>
-            <td class="relatorio-departamentos-numero">${orcado ? moedaCC(orcado) : '—'}</td>
-            <td class="relatorio-departamentos-numero">${moedaCC(custo)}</td>
         </tr>`
 }

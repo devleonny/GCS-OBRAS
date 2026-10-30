@@ -804,3 +804,125 @@
 @media screen and (orientation: portrait) {
     .divPagamentos { flex-direction: row; gap: 8px; padding: 8px; }
 }
+
+/* Pagamentos reprovados de quem está logado (pagamentos.js, abrirPagamentosReprovados). */
+.reprovados-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: min(620px, 90vw);
+    max-height: 70vh;
+    padding: 12px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    background: #f3f6f4;
+}
+
+.reprovado-cartao {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px;
+    background: white;
+    border: 1px solid #f0c4c4;
+    border-left: 5px solid #b12425;
+    border-radius: 8px;
+}
+
+.reprovado-cabecalho {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.reprovado-cabecalho > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    text-align: left;
+}
+
+.reprovado-cabecalho b {
+    font-size: 14px;
+    color: #22332a;
+}
+
+.reprovado-cabecalho small {
+    font-size: 12px;
+    color: #6b7c72;
+}
+
+.reprovado-status {
+    flex: 0 0 auto;
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #b12425;
+    background: #fdecec;
+    border-radius: 999px;
+}
+
+.reprovado-historico {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.reprovado-justificativa {
+    padding: 6px 10px;
+    text-align: left;
+    background: #f7faf8;
+    border-left: 3px solid var(--cor-justificativa, #8a9a90);
+    border-radius: 4px;
+}
+
+.reprovado-justificativa-topo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 10px;
+    font-size: 12px;
+}
+
+.reprovado-justificativa-topo b {
+    color: var(--cor-justificativa, #22332a);
+}
+
+.reprovado-justificativa-topo small {
+    color: #6b7c72;
+}
+
+.reprovado-justificativa-texto {
+    margin-top: 3px;
+    font-size: 13px;
+    color: #22332a;
+    overflow-wrap: anywhere;
+}
+
+.reprovado-sem-historico {
+    margin: 0;
+    font-size: 12px;
+    color: #6b7c72;
+}
+
+.reprovado-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.reprovado-acoes button {
+    margin: 0;
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.reprovado-excluir {
+    color: white;
+    background-color: #b12425;
+    border-color: #8f1c1d;
+}

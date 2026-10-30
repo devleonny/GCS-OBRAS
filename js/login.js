@@ -80,8 +80,10 @@ async function acessoLogin() {
         }
 
         try {
+            // credentials: o login grava o cookie que libera os arquivos (/uploads exige login).
             const response = await fetch(url, {
                 method: "POST",
+                credentials: 'include',
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(requisicao)
             })

@@ -252,3 +252,10 @@
         flex-direction: column;
     }
 }
+
+/* Selo de assinatura digital do anexo (coluna Assinatura) */
+.selo-assinatura-rh { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 0.75rem; white-space: nowrap; cursor: help; border: 1px solid transparent; }
+.selo-assinatura-rh.ok { background: #e2efe7; color: #2f6b43; border-color: #bdd4c5; }
+.selo-assinatura-rh.alerta { background: #fff4dc; color: #8a5a00; border-color: #f0d9a6; }
+.selo-assinatura-rh.erro { background: #fcecea; color: #963e36; border-color: #edc7c2; }
+.selo-assinatura-rh.neutro { background: #eef1ef; color: #65756b; border-color: #d6e2da; }

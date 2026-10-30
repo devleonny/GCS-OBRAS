@@ -593,9 +593,10 @@ function criarLoading(cols) {
 
     const td = document.createElement('td')
     td.colSpan = cols
+    // Estilo em tabelas.css (.tabela-carregando): sem estourar a largura da célula.
     td.innerHTML = `
-        <div style="${horizontal}; width: 100%; gap: 1rem; justify-content: center; padding: 1rem;">
-            <img src="gifs/loading.gif" style="width: 5rem;">
+        <div class="tabela-carregando">
+            <img src="gifs/loading.gif" alt="Carregando">
         </div>
     `
 

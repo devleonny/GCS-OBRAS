@@ -33,8 +33,10 @@ function renovarSessao({ forcar = false, tokenRecusado = null } = {}) {
 
             let resposta
             try {
+                // credentials: a resposta também renova o cookie dos arquivos (/uploads exige login).
                 resposta = await fetch(`${api}/renovar-token`, {
                     method: 'POST',
+                    credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ refreshToken: atual.refreshToken })
                 })
@@ -116,6 +118,7 @@ async function encerrarSessaoServidor() {
     try {
         await fetch(`${api}/sair`, {
             method: 'POST',
+            credentials: 'include', // apaga o cookie dos arquivos
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refreshToken })
         })
@@ -128,6 +131,15 @@ setInterval(() => {
     if (localStorage.getItem('acesso'))
         renovarSessao().catch(err => console.error('Falha ao renovar a sessão:', err))
 }, 5 * 60 * 1000)
+
+// Quem já estava logado antes de /uploads exigir login ainda não tem o cookie dos arquivos:
+// uma renovação forçada (uma vez por navegador) grava o cookie sem precisar entrar de novo.
+try {
+    if (localStorage.getItem('acesso') && localStorage.getItem('cookieArquivosGCS') !== '1')
+        renovarSessao({ forcar: true })
+            .then(resultado => { if (resultado === 'renovado') localStorage.setItem('cookieArquivosGCS', '1') })
+            .catch(() => {})
+} catch { }
 
 // PC acordou ou a aba voltou: o token pode ter vencido enquanto os timers estavam parados.
 document.addEventListener('visibilitychange', () => {

@@ -337,7 +337,7 @@ async function executarAtualizacaoWS() {
             tarefas.push(() => atualizarTecnicosLivres())
 
         if (tabelas.has('lista_pagamentos'))
-            tarefas.push(() => atualizarPainelEsquerdo())
+            tarefas.push(() => atualizarPainelEsquerdo(), () => verificarPagamentosReprovados())
 
         if (atualizarToolbar)
             tarefas.push(() => usuariosToolbar())
@@ -482,6 +482,13 @@ async function carregarControles() {
 
     const barraStatus = ['<div id="divUsuarios"></div>']
 
+    // Pagamentos reprovados de quem está logado: só aparece se houver algum (verificarPagamentosReprovados).
+    if (permissao !== 'cliente')
+        barraStatus.push(`
+            <div id="atalhoReprovados" style="display: none;">
+                ${modelo('pagamento', 'abrirPagamentosReprovados()', 'contadorReprovados')}
+            </div>`)
+
     if (!['cliente', 'técnico'].includes(permissao)) {
         barraStatus.push(
             modelo('kanban', 'telaPIT()', 'contadorPostIt'),
@@ -506,6 +513,7 @@ async function carregarControles() {
     await Promise.allSettled([
         usuariosToolbar(),
         verificarPendencias(),
-        verificarPostIts()
+        verificarPostIts(),
+        verificarPagamentosReprovados()
     ])
 }

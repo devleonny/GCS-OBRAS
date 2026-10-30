@@ -545,7 +545,9 @@ function renderTecnicosLivres(livres, hoje) {
 
     // O conteúdo vai duplicado para o loop emendar sem salto (a faixa anda metade da largura).
     area.innerHTML = `
-        <span class="tecnicos-livres-data" title="Técnicos efetivos sem correção agendada hoje">Livres hoje · ${dia}/${mes}</span>
+        <span class="tecnicos-livres-data" role="button" tabindex="0" title="Abrir o calendário dos técnicos"
+            onclick="event.stopPropagation(); abrirCalendarioTecnicos()"
+            onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); abrirCalendarioTecnicos() }"><img src="imagens/agenda.png" alt=""> Livres hoje · ${dia}/${mes}</span>
         <div class="tecnicos-livres-janela" aria-label="${livres.length} técnicos livres hoje">
             <div class="tecnicos-livres-faixa" style="--duracao-letreiro: ${Math.max(20, livres.length * 4)}s">
                 <div class="tecnicos-livres-grupo">${conteudo}</div>
@@ -582,45 +584,11 @@ function retirarDosLivresAgora(tecnicos, inicio, fim) {
     renderTecnicosLivres(restantes, hoje)
 }
 
-async function abrirTecnicosLivres() {
-
-    // Consulta de novo ao abrir: a lista do popup é a de agora, não a da última atualização.
-    overlayAguarde()
-    await atualizarTecnicosLivres()
-    removerOverlay()
-
-    if (!ultimosTecnicosLivres)
-        return popup({ mensagem: 'Não foi possível consultar os técnicos livres agora.' })
-
-    const { livres, hoje } = ultimosTecnicosLivres
-    const [ano, mes, dia] = hoje.split('-')
-
-    const linhas = livres
-        .map(({ nome, usuario, cidade, estado }) => `
-            <tr>
-                <td>${escaparAtributo(nome || '')}</td>
-                <td>${escaparAtributo(usuario || '')}</td>
-                <td>${escaparAtributo(cidade || '')}</td>
-                <td>${escaparAtributo(estado || '')}</td>
-            </tr>`)
-        .join('')
-
-    const elemento = `
-        <div class="tecnicos-livres-lista">
-            <div class="tecnicos-livres-aviso" role="note">
-                <img src="imagens/alerta.png" alt="">
-                <span>Para o técnico aparecer aqui é necessário ter algum documento cadastrado no RH.</span>
-            </div>
-            <p>${livres.length} ${livres.length === 1 ? 'técnico efetivo' : 'técnicos efetivos'} sem correção agendada em ${dia}/${mes}/${ano}.</p>
-            ${livres.length
-                ? `<table class="relatorio-cc-tab">
-                        <thead><tr><th>Nome</th><th>Usuário</th><th>Cidade</th><th>Estado</th></tr></thead>
-                        <tbody>${linhas}</tbody>
-                    </table>`
-                : ''}
-        </div>`
-
-    popup({ elemento, titulo: 'Técnicos livres hoje' })
+// Clique no letreiro: o mesmo popup do dia do calendário, com hoje (abrirDiaTecnicos).
+// O letreiro é atualizado junto, para não ficar diferente do que o popup mostra.
+function abrirTecnicosLivres() {
+    atualizarTecnicosLivres()
+    return abrirDiaTecnicos(hojeTecnicosLivres())
 }
 
 function podeVerTecnicosLivres() {
@@ -684,4 +652,350 @@ function iniciarTecnicosLivres() {
     if (!temporizadorTecnicosLivres)
         temporizadorTecnicosLivres = setInterval(atualizarTecnicosLivres, INTERVALO_TECNICOS_LIVRES)
     agendarMeiaNoiteTecnicosLivres()
+}
+
+// ---------------------------------------------------------------------------
+// Calendário dos técnicos (clique na data do letreiro): calendário compacto logo abaixo da data,
+// sem consultar nada (abre na hora). Clicar num dia abre o popup daquele dia: livres, indisponíveis
+// (Atestado, Férias... em vermelho, com cadeado) e com correção agendada.
+// Dados do dia: /tecnicos/agenda (tecnicos_disponibilidade() no banco). Indisponibilidade é marcada
+// e removida por /tecnicos/indisponibilidade, só para os perfis que o servidor libera (podeMarcar).
+// ---------------------------------------------------------------------------
+
+const calendarioTecnicos = { ano: 0, mes: 0 }
+const NOMES_MESES_TECNICOS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+const DIAS_SEMANA_TECNICOS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
+
+const isoDiaTecnicos = data =>
+    `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`
+const brDiaTecnicos = iso => iso ? iso.split('-').reverse().join('/') : ''
+
+async function chamarApiTecnicos(rota, corpo) {
+    const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
+    const resposta = await fetch(`${api}${rota}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(corpo)
+    })
+    const dados = await resposta.json().catch(() => ({}))
+    if (!resposta.ok) throw new Error(dados.mensagem || 'Falha ao consultar os técnicos.')
+    return dados
+}
+
+function fecharCalendarioTecnicos() {
+    document.querySelector('.cal-tec-flutuante')?.remove()
+    document.removeEventListener('mousedown', fecharCalendarioTecnicosFora, true)
+    document.removeEventListener('keydown', fecharCalendarioTecnicosEsc, true)
+}
+
+function fecharCalendarioTecnicosFora(evento) {
+    if (!evento.target.closest('.cal-tec-flutuante, .tecnicos-livres-data')) fecharCalendarioTecnicos()
+}
+
+function fecharCalendarioTecnicosEsc(evento) {
+    if (evento.key === 'Escape') fecharCalendarioTecnicos()
+}
+
+// Abre (ou fecha, se já aberto) logo abaixo da data do letreiro.
+function abrirCalendarioTecnicos() {
+    if (document.querySelector('.cal-tec-flutuante')) return fecharCalendarioTecnicos()
+
+    const hoje = dataServidor()
+    calendarioTecnicos.ano = hoje.getFullYear()
+    calendarioTecnicos.mes = hoje.getMonth()
+
+    const caixa = document.createElement('div')
+    caixa.className = 'cal-tec-flutuante'
+    caixa.setAttribute('role', 'dialog')
+    caixa.setAttribute('aria-label', 'Calendário dos técnicos')
+    document.body.appendChild(caixa)
+    renderCalendarioTecnicos()
+
+    // Posição: abaixo da data, sem passar da borda direita da tela.
+    const ancora = document.querySelector('.tecnicos-livres-data')?.getBoundingClientRect()
+    if (ancora) {
+        caixa.style.top = `${ancora.bottom + 6}px`
+        caixa.style.left = `${Math.max(8, Math.min(ancora.left, window.innerWidth - caixa.offsetWidth - 8))}px`
+    }
+
+    document.addEventListener('mousedown', fecharCalendarioTecnicosFora, true)
+    document.addEventListener('keydown', fecharCalendarioTecnicosEsc, true)
+}
+
+function mudarMesTecnicos(passo) {
+    const data = new Date(calendarioTecnicos.ano, calendarioTecnicos.mes + passo, 1)
+    calendarioTecnicos.ano = data.getFullYear()
+    calendarioTecnicos.mes = data.getMonth()
+    renderCalendarioTecnicos()
+}
+
+function renderCalendarioTecnicos() {
+    const caixa = document.querySelector('.cal-tec-flutuante')
+    if (!caixa) return
+
+    const { ano, mes } = calendarioTecnicos
+    const hoje = dataServidor()
+    const isoHoje = isoDiaTecnicos(hoje)
+    const extenso = hoje.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
+
+    // Sempre 6 semanas: dias do mês anterior e do seguinte completam a grade, esmaecidos.
+    const primeiro = new Date(ano, mes, 1)
+    const inicio = new Date(ano, mes, 1 - primeiro.getDay())
+    const dias = Array.from({ length: 42 }, (_, i) => {
+        const data = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + i)
+        const iso = isoDiaTecnicos(data)
+        const classes = ['cal-tec-dia', data.getMonth() !== mes && 'fora', iso === isoHoje && 'hoje'].filter(Boolean).join(' ')
+        return `<button type="button" class="${classes}" onclick="abrirDiaTecnicos('${iso}')"
+            aria-label="Técnicos em ${brDiaTecnicos(iso)}">${data.getDate()}</button>`
+    })
+
+    caixa.innerHTML = `
+        <div class="cal-tec-hoje">${extenso}</div>
+        <div class="cal-tec-mes">
+            <b>${NOMES_MESES_TECNICOS[mes]} de ${ano}</b>
+            <span>
+                <button type="button" onclick="mudarMesTecnicos(-1)" aria-label="Mês anterior">▲</button>
+                <button type="button" onclick="mudarMesTecnicos(1)" aria-label="Próximo mês">▼</button>
+            </span>
+        </div>
+        <div class="cal-tec-grade">
+            ${DIAS_SEMANA_TECNICOS.map(d => `<span class="cal-tec-semana">${d}</span>`).join('')}
+            ${dias.join('')}
+        </div>`
+}
+
+// Chamados no popup do dia: passar o mouse mostra um resumo (local, descrição e última correção).
+function etiquetasChamadosTecnicos(chamados = []) {
+    return chamados.map(id => `<span class="cal-tec-chamado" data-chamado="${escaparAtributo(id)}"
+        onmouseenter="tooltipChamadoTecnicos(this)" onmouseleave="removerTooltipChamadoTecnicos()">${escaparAtributo(id)}</span>`).join(' ')
+}
+
+// Cada chamado é buscado uma vez por sessão (o tooltip reaparece instantâneo depois).
+const resumosChamadosTecnicos = new Map()
+
+function resumoChamadoTecnicos(id) {
+    if (!resumosChamadosTecnicos.has(id)) {
+        resumosChamadosTecnicos.set(id, (async () => {
+            const ocorrencia = await recuperarDado('dados_ocorrencias', id) || {}
+            const cliente = ocorrencia.unidade
+                ? await recuperarDado('clientes', ocorrencia.unidade) || {}
+                : ocorrencia.snapshots?.cliente || {}
+
+            // Última correção = a de data mais recente (mesma ordem da tela de ocorrências).
+            const [ultima] = Object.values(ocorrencia.correcoes || {})
+                .filter(c => c && typeof c === 'object')
+                .sort((a, b) => toTimestamp(b.data) - toTimestamp(a.data))
+            const tipo = ultima?.tipoCorrecaoNome
+                || (ultima?.tipoCorrecao ? (await recuperarDado('correcoes', ultima.tipoCorrecao) || {}).nome : '')
+
+            return { ocorrencia, cliente, ultima, tipo }
+        })().catch(erro => {
+            // Falha não fica guardada: na próxima passada tenta de novo.
+            resumosChamadosTecnicos.delete(id)
+            throw erro
+        }))
+    }
+    return resumosChamadosTecnicos.get(id)
+}
+
+function removerTooltipChamadoTecnicos() {
+    const tooltip = document.querySelector('.tooltip-chamado')
+    if (!tooltip) return
+    clearInterval(tooltip.vigia)
+    tooltip.remove()
+}
+
+// Abaixo do chamado (ou acima, se não couber), sem sair da tela.
+function posicionarTooltipChamado(tooltip, elemento) {
+    const alvo = elemento.getBoundingClientRect()
+    const { offsetWidth: largura, offsetHeight: altura } = tooltip
+    const cabeAbaixo = alvo.bottom + 8 + altura <= window.innerHeight
+    tooltip.style.top = `${Math.max(8, cabeAbaixo ? alvo.bottom + 8 : alvo.top - altura - 8)}px`
+    tooltip.style.left = `${Math.max(8, Math.min(alvo.left + alvo.width / 2 - largura / 2, window.innerWidth - largura - 8))}px`
+}
+
+async function tooltipChamadoTecnicos(elemento) {
+    const id = elemento.dataset.chamado
+    removerTooltipChamadoTecnicos()
+
+    const tooltip = document.createElement('div')
+    tooltip.className = 'tooltip-chamado'
+    tooltip.dataset.chamado = id
+    tooltip.innerHTML = '<img class="tooltip-chamado-loading" src="gifs/loading.gif" alt="Carregando">'
+    document.body.appendChild(tooltip)
+    posicionarTooltipChamado(tooltip, elemento)
+    // Se o popup fechar com o mouse em cima, o mouseleave não acontece: some junto com o chamado.
+    tooltip.vigia = setInterval(() => {
+        if (!elemento.isConnected) removerTooltipChamadoTecnicos()
+    }, 300)
+
+    let resumo
+    try {
+        resumo = await resumoChamadoTecnicos(id)
+    } catch {
+        resumo = null
+    }
+
+    // O mouse pode ter saído (ou ido para outro chamado) enquanto buscava.
+    if (!tooltip.isConnected) return
+
+    if (!resumo) {
+        tooltip.innerHTML = '<div class="tooltip-chamado-vazio">Não foi possível carregar o chamado.</div>'
+        return posicionarTooltipChamado(tooltip, elemento)
+    }
+
+    const { ocorrencia, cliente, ultima, tipo } = resumo
+    const texto = valor => escaparAtributo(String(valor ?? '').trim())
+    const local = [cliente.endereco, cliente.bairro, [cliente.cidade, cliente.estado].filter(Boolean).join('/')]
+        .filter(Boolean).map(texto).join(' · ')
+    const tecnicos = [ultima?.tecnico].flat().filter(Boolean).map(texto).join(', ')
+    const linha = (rotulo, valor) => valor ? `<div class="tooltip-chamado-linha"><b>${rotulo}</b><span>${valor}</span></div>` : ''
+    // Descrições são HTML (como na tela de ocorrências): vão numa div, sem escapar.
+    const linhaHtml = (rotulo, html) => `
+        <div class="tooltip-chamado-linha"><b>${rotulo}</b><div class="tooltip-chamado-html">${String(html ?? '').trim() || '—'}</div></div>`
+
+    tooltip.innerHTML = `
+        <div class="tooltip-chamado-titulo">Chamado ${texto(id)}</div>
+        <div class="tooltip-chamado-bloco">
+            ${linha('Local', texto(cliente.nome) || '—')}
+            ${linha('Endereço', local)}
+        </div>
+        <div class="tooltip-chamado-bloco">
+            ${linhaHtml('Descrição', ocorrencia.descricao)}
+        </div>
+        <div class="tooltip-chamado-bloco">
+            ${ultima ? `
+                ${linha('Última correção', `${tipo ? formatacaoTipoCorrecao(texto(tipo)) : '—'} <small>${texto(ultima.data)}</small>`)}
+                ${linha('Técnico', tecnicos)}
+                ${linhaHtml('Descrição da correção', ultima.descricao)}`
+            : linha('Última correção', 'Nenhuma correção registrada')}
+        </div>`
+    posicionarTooltipChamado(tooltip, elemento)
+}
+
+// Popup do dia (mesmo estilo da lista de livres de hoje), com uma consulta de um dia só.
+async function abrirDiaTecnicos(iso) {
+    fecharCalendarioTecnicos()
+    overlayAguarde()
+
+    let resposta
+    try {
+        resposta = await chamarApiTecnicos('/tecnicos/agenda', { de: iso, ate: iso })
+    } catch (erro) {
+        return popup({ mensagem: erro.message })
+    }
+
+    const { dias = [], podeMarcar, tipos = [] } = resposta
+    const grupo = situacao => dias.filter(l => l.situacao === situacao)
+    const [ano, mes, dia] = iso.split('-').map(Number)
+    const semana = new Date(ano, mes - 1, dia).toLocaleDateString('pt-BR', { weekday: 'long' })
+    const local = l => [l.cidade, l.estado].filter(Boolean).map(escaparAtributo).join('/')
+
+    const linhas = (lista, classe, extra = () => '') => lista.map(l => `
+        <tr class="cal-tec-linha ${classe}">
+            <td>${classe === 'indisponivel' ? '<img src="imagens/cadeado.png" alt="Indisponível">' : ''}${escaparAtributo(l.nome || l.usuario)}</td>
+            <td>${local(l)}</td>
+            <td>${extra(l)}</td>
+        </tr>`).join('')
+
+    const motivo = l => `
+        <b>${escaparAtributo(l.motivo || 'Indisponível')}</b> · ${brDiaTecnicos(l.indisponivel_de)} a ${brDiaTecnicos(l.indisponivel_ate)}
+        ${l.observacao ? `<br><small>${escaparAtributo(l.observacao)}</small>` : ''}
+        ${l.chamados?.length ? `<br><small class="cal-tec-conflito">Tem correção agendada: ${etiquetasChamadosTecnicos(l.chamados)}</small>` : ''}
+        ${podeMarcar ? `<button type="button" class="cal-tec-remover" title="Remover indisponibilidade"
+            onclick="confirmarRemoverIndisponibilidade('${escaparAtributo(l.usuario)}', '${escaparAtributo(l.indisponibilidade_id)}', '${iso}')">✕</button>` : ''}`
+
+    const secao = (titulo, classe, lista, extra, cabecalho) => lista.length ? `
+        <h4 class="cal-tec-titulo ${classe}">${titulo} <span>${lista.length}</span></h4>
+        <table class="relatorio-cc-tab cal-tec-tabela">
+            <thead><tr><th>Técnico</th><th>Cidade</th><th>${cabecalho}</th></tr></thead>
+            <tbody>${linhas(lista, classe, extra)}</tbody>
+        </table>` : ''
+
+    // Lista de técnicos para o formulário: todos os efetivos aparecem em todo dia.
+    calendarioTecnicos.formulario = {
+        iso, tipos,
+        tecnicos: dias.map(l => [l.usuario, l.nome || l.usuario]).sort((a, b) => String(a[1]).localeCompare(String(b[1]), 'pt-BR'))
+    }
+
+    popup({
+        titulo: `Técnicos em ${brDiaTecnicos(iso)}`,
+        elemento: `
+            <div class="tecnicos-livres-lista cal-tec-popup">
+                <div class="cal-tec-popup-topo">
+                    <span class="cal-tec-semana-dia">${semana}</span>
+                    ${podeMarcar ? `<button type="button" onclick="formularioIndisponibilidade()"><img src="imagens/bloqueio.png" alt=""> Sinalizar técnico indisponível</button>` : ''}
+                </div>
+                <div class="tecnicos-livres-aviso" role="note">
+                    <img src="imagens/alerta.png" alt="">
+                    <span>Para o técnico aparecer aqui é necessário ter algum documento cadastrado no RH.</span>
+                </div>
+                ${dias.length ? '' : '<p>Nenhum técnico efetivo encontrado.</p>'}
+                ${secao('Livres', 'livre', grupo('livre'), () => '', '')}
+                ${secao('Indisponíveis', 'indisponivel', grupo('indisponivel'), motivo, 'Motivo')}
+                ${secao('Com correção agendada', 'ocupado', grupo('ocupado'), l => etiquetasChamadosTecnicos(l.chamados), 'Chamados')}
+            </div>`
+    })
+}
+
+function formularioIndisponibilidade() {
+    const { iso, tipos, tecnicos } = calendarioTecnicos.formulario || {}
+    if (!iso) return
+    const opcoes = tecnicos.map(([usuario, nome]) => `<option value="${escaparAtributo(usuario)}">${escaparAtributo(nome)}</option>`).join('')
+
+    popup({
+        titulo: 'Sinalizar técnico indisponível',
+        linhas: [
+            { texto: 'Técnico', elemento: `<select name="indTecnico"><option value=""></option>${opcoes}</select>` },
+            { texto: 'Motivo', elemento: `<select name="indTipo">${tipos.map(t => `<option>${escaparAtributo(t)}</option>`).join('')}</select>` },
+            { texto: 'De', elemento: `<input type="date" name="indInicio" value="${iso}">` },
+            { texto: 'Até', elemento: `<input type="date" name="indFim" value="${iso}">` },
+            { texto: 'Observação', elemento: '<textarea name="indObs" maxlength="300" placeholder="Opcional"></textarea>' }
+        ],
+        botoes: [{ texto: 'Salvar', img: 'concluido', funcao: 'salvarIndisponibilidade()' }]
+    })
+}
+
+// Depois de salvar/remover: reabre o popup do dia (atualizado) e atualiza o letreiro.
+async function reabrirDiaTecnicos(iso) {
+    removerTodosPopups()
+    atualizarTecnicosLivres()
+    await abrirDiaTecnicos(iso)
+}
+
+async function salvarIndisponibilidade() {
+    const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
+    const valor = nome => painel?.querySelector(`[name="${nome}"]`)?.value?.trim() || ''
+    const dados = { usuario: valor('indTecnico'), tipo: valor('indTipo'), inicio: valor('indInicio'), fim: valor('indFim'), obs: valor('indObs') }
+
+    if (!dados.usuario) return popup({ mensagem: 'Escolha o técnico.' })
+    if (!dados.inicio || !dados.fim || dados.fim < dados.inicio)
+        return popup({ mensagem: 'Informe o período: o fim não pode ser antes do início.' })
+
+    overlayAguarde()
+    try {
+        await chamarApiTecnicos('/tecnicos/indisponibilidade', dados)
+        await reabrirDiaTecnicos(calendarioTecnicos.formulario?.iso || dados.inicio)
+    } catch (erro) {
+        removerOverlay()
+        popup({ mensagem: erro.message })
+    }
+}
+
+function confirmarRemoverIndisponibilidade(usuario, id, iso) {
+    popup({
+        mensagem: 'Remover esta indisponibilidade? O técnico volta a aparecer como disponível no período.',
+        botoes: [{ texto: 'Remover', img: 'cancel', funcao: `removerIndisponibilidade('${usuario}', '${id}', '${iso}')` }]
+    })
+}
+
+async function removerIndisponibilidade(usuario, id, iso) {
+    overlayAguarde()
+    try {
+        await chamarApiTecnicos('/tecnicos/indisponibilidade/remover', { usuario, id })
+        await reabrirDiaTecnicos(iso)
+    } catch (erro) {
+        removerOverlay()
+        popup({ mensagem: erro.message })
+    }
 }

@@ -105,7 +105,9 @@ async function importarImagem(codigo) {
         // Com nome e extensão: o servidor grava "<timestamp>.<ext>" e serve com o tipo certo.
         formData.append('arquivos', blob, `composicao.${extensao}`)
 
-        const resposta = await fetch(`${api}/upload`, { method: 'POST', body: formData })
+        // /upload exige login: o token vai no cabeçalho (sem Content-Type: o FormData define).
+        const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
+        const resposta = await fetch(`${api}/upload`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData })
         const [arquivo] = await resposta.json().catch(() => [])
         if (!resposta.ok || !arquivo?.link)
             return popup({ mensagem: 'Ocorreu um erro no upload. Tente novamente.' })
