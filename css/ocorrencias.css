@@ -1214,6 +1214,28 @@
 @media (max-width: 800px) {
     .tela-ocorrencias .ocorrencia-blocos-triangulo { grid-template-columns: minmax(0, 1fr); }
 }
+/* Lado a lado, as correções acompanham a altura do chamado: o bloco não empurra a linha
+   (contain: size), estica até a altura do bloco principal e a lista rola por dentro.
+   A altura mínima equivale à de antes (faixa de garantia + abas + 300px). */
+@media (min-width: 801px) {
+    .tela-ocorrencias .ocorrencia-blocos-triangulo { align-items: stretch; }
+    .tela-ocorrencias .ocorrencia-blocos-triangulo > #correcoes {
+        contain: size;
+        min-height: 390px;
+    }
+    .tela-ocorrencias #correcoes > [id^="detalhamento_"] {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    .tela-ocorrencias #correcoes .detalhamento-correcoes {
+        flex: 1 1 auto;
+        height: auto;
+        min-height: 0;
+        resize: none;
+    }
+}
 .tela-ocorrencias .linha-divisor-tag { flex-wrap: wrap; }
 .tela-ocorrencias .linha-divisor-tag > div:first-child { flex: 1 1 280px; min-width: 0; }
 .tela-ocorrencias .linha-divisor-tag > div:last-child:not(:first-child) {

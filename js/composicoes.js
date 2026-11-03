@@ -133,18 +133,37 @@ async function criarLinhaComposicao(produto) {
         )
     }
 
-    const tdsLPUS = (LPUS || [])
+    // Um cartão por LPU: com preço primeiro, sem preço apagados no fim.
+    const hojeISO = dataServidor().toLocaleDateString('en-CA') // AAAA-MM-DD no fuso local
+    const validades = Object.fromEntries((produto?.snapshots?.validades || []).map(v => [v.lpu, v.validade]))
+    const podeEditar = usuariosPermitidosParaEditar.includes(acesso.permissao)
+
+    const precosLPU = (LPUS || [])
         .map(lpu => {
             const tabela = produto[lpu] || {}
-            const ativo = tabela?.ativo
-            const valor = tabela?.historico?.[ativo]?.valor || 0
-            return `
-                    <td class="composicao-numero">
-                        ${usuariosPermitidosParaEditar.includes(acesso.permissao)
-                            ? `<button type="button" class="composicao-preco ${valor > 0 ? '' : 'sem-valor'}" title="Ver histórico de preços" onclick="abrirHistoricoPrecos('${id}', '${lpu}')">${dinheiro(conversor(valor))}</button>`
-                            : `<span class="composicao-preco ${valor > 0 ? '' : 'sem-valor'}">${dinheiro(conversor(valor))}</span>`}
-                    </td>
-            `
+            const cotacao = tabela?.historico?.[tabela?.ativo] || {}
+            return { lpu, valor: Number(conversor(cotacao.valor || 0)) || 0, data: cotacao.data, validade: validades[lpu] }
+        })
+        .sort((a, b) => (b.valor > 0) - (a.valor > 0))
+
+    const comPreco = precosLPU.filter(p => p.valor > 0).length
+
+    const cartoesLPU = precosLPU
+        .map(({ lpu, valor, data, validade }) => {
+            const nome = String(lpu).replace(/^lpu\s+/i, '').toUpperCase()
+            const vencido = valor > 0 && validade && validade < hojeISO
+            const rodape = valor > 0
+                ? `${data ? String(data).split(',')[0] : ''}${vencido ? ' <b class="composicao-lpu-vencido">vencido</b>' : ''}`
+                : 'Sem preço'
+            const conteudo = `
+                <span class="composicao-lpu-nome" title="${escaparAtributo(String(lpu))}">${nome}</span>
+                <span class="composicao-lpu-valor">${valor > 0 ? dinheiro(valor) : '—'}</span>
+                <span class="composicao-lpu-rodape">${rodape}</span>`
+            const classe = `composicao-lpu${valor > 0 ? '' : ' sem-valor'}${vencido ? ' vencido' : ''}`
+
+            return podeEditar
+                ? `<button type="button" class="${classe}" title="Ver histórico de preços" onclick="abrirHistoricoPrecos('${id}', '${lpu}')">${conteudo}</button>`
+                : `<div class="${classe}">${conteudo}</div>`
         }).join('')
 
     const linha = `
@@ -190,11 +209,12 @@ async function criarLinhaComposicao(produto) {
                     </table></div>` : '<p class="composicao-vazio">Nenhum item no agrupamento.</p>'}
             </section>
             <section class="composicao-bloco composicao-bloco-precos">
-                <div class="composicao-bloco-topo"><h3>Preços por tabela</h3></div>
-                <div class="composicao-tabela-contorno"><table class="composicao-tabela">
-                    <thead><tr>${(LPUS || []).map(lpu => `<th>${String(lpu).toUpperCase()}</th>`).join('')}</tr></thead>
-                    <tbody><tr>${tdsLPUS || '<td>Nenhuma tabela disponível.</td>'}</tr></tbody>
-                </table></div>
+                <div class="composicao-bloco-topo">
+                    <h3>Preços por tabela <span class="composicao-contagem">${comPreco} de ${precosLPU.length}</span></h3>
+                </div>
+                ${cartoesLPU
+                    ? `<div class="composicao-lpus">${cartoesLPU}</div>`
+                    : '<p class="composicao-vazio">Nenhuma tabela disponível.</p>'}
             </section>
         </div>
     `

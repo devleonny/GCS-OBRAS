@@ -1661,10 +1661,16 @@ td img[src="imagens/pesquisar.svg"] {
     background: #3f7650;
 }
 
-.tecnicos-livres-data img {
-    width: 14px;
-    height: 14px;
-    filter: brightness(0) invert(1);
+/* Ícone em traço (pessoa com visto), na cor do texto. */
+.tecnicos-livres-icone {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 /* Calendário dos técnicos (tecnicos.js, abrirCalendarioTecnicos): compacto, abaixo da data. */

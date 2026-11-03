@@ -1,0 +1,418 @@
+/* Dashboard de chamados (js/dashboard_chamados.js). Cores dos gráficos como papéis:
+   série 1/2 = abertos/solucionados; rampa sequencial azul no mapa e nas barras. */
+.dash {
+    --dash-superficie: #ffffff;
+    --dash-cartao: #f6f8f7;
+    --dash-destaque: #2a78d6;
+    --dash-tinta: #1d2a22;
+    --dash-tinta-2: #4f5d55;
+    --dash-apagado: #7d8a82;
+    --dash-grade: #e3e8e5;
+    --dash-base: #c5cfc9;
+    --dash-borda: #dbe3de;
+    --dash-serie-1: #2a78d6;
+    --dash-serie-2: #eb6834;
+    --dash-barra: #3987e5;
+    --dash-trilho: #e8f0fb;
+    --dash-vazio: #e9ecea;
+    --dash-bom: #006300;
+    --dash-ruim: #b42f2f;
+
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    /* .tela é coluna flex de altura fixa: sem flex: none o painel encolheria até a altura
+       da tela e o conteúdo vazaria para fora do fundo branco. */
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    min-height: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+    background: var(--dash-superficie);
+    border-radius: 12px;
+    color: var(--dash-tinta);
+    text-align: left;
+}
+
+.dash-topo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.dash-titulo {
+    margin: 0;
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: var(--dash-tinta);
+}
+
+.dash-subtitulo {
+    margin: 2px 0 0;
+    color: var(--dash-tinta-2);
+    font-size: 0.9rem;
+}
+
+.dash-filtros {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.dash-filtro {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 0.75rem;
+    color: var(--dash-tinta-2);
+}
+
+.dash-filtro select,
+.dash-filtro input {
+    padding: 6px 8px;
+    border: 1px solid var(--dash-base);
+    border-radius: 6px;
+    background: var(--dash-superficie);
+    color: var(--dash-tinta);
+    font: inherit;
+    font-size: 0.85rem;
+}
+
+.dash-datas > div {
+    display: flex;
+    gap: 6px;
+}
+
+.dash-conteudo {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: opacity 0.15s;
+}
+
+.dash-conteudo.atualizando {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+.dash-carregando {
+    display: flex;
+    justify-content: center;
+    padding: 3rem;
+}
+
+.dash-carregando img {
+    width: 5rem;
+}
+
+.dash-vazio {
+    margin: 0;
+    padding: 1rem;
+    color: var(--dash-tinta-2);
+}
+
+.dash-rotulo {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--dash-tinta-2);
+}
+
+.dash-nota {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--dash-apagado);
+}
+
+/* Números principais */
+.dash-kpis {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.4fr) repeat(4, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+/* Página branca; cartões em cinza bem claro, com borda e sombra leve para se destacarem. */
+.dash-hero,
+.dash-tile,
+.dash-atividade,
+.dash-card {
+    background: var(--dash-cartao);
+    border: 1px solid var(--dash-borda);
+    border-radius: 10px;
+    box-shadow: 0 1px 3px #1020191a;
+    min-width: 0;
+}
+
+.dash-hero {
+    border-left: 4px solid var(--dash-destaque);
+}
+
+.dash-hero,
+.dash-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+}
+
+.dash-hero-valor {
+    font-size: 3rem;
+    font-weight: 700;
+    line-height: 1.05;
+}
+
+.dash-valor {
+    font-size: 1.6rem;
+    font-weight: 650;
+    line-height: 1.15;
+}
+
+.dash-delta {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--dash-tinta-2);
+}
+
+.dash-delta.bom { color: var(--dash-bom); }
+.dash-delta.ruim { color: var(--dash-ruim); }
+
+.dash-atividades {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.dash-atividade {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 14px;
+}
+
+.dash-atividade .dash-valor {
+    font-size: 1.3rem;
+}
+
+/* Cartões de gráfico */
+.dash-linha {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.dash-linha-mapa {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+}
+
+.dash-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 16px;
+}
+
+.dash-card h3 {
+    margin: 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--dash-borda);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--dash-tinta);
+}
+
+/* Mapa */
+.dash-mapa {
+    width: 100%;
+    max-height: 460px;
+}
+
+.dash-uf {
+    stroke: var(--dash-cartao);
+    stroke-width: 1;
+    stroke-linejoin: round;
+    cursor: default;
+    outline: none;
+}
+
+.dash-uf:hover,
+.dash-uf:focus-visible {
+    stroke: var(--dash-tinta);
+    stroke-width: 1.5;
+}
+
+.dash-mapa-legenda,
+.dash-legenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    font-size: 0.75rem;
+    color: var(--dash-tinta-2);
+}
+
+.dash-mapa-legenda span,
+.dash-legenda span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.dash-mapa-legenda i,
+.dash-legenda i {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+}
+
+/* Barras horizontais */
+.dash-barras {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.dash-barra-linha {
+    display: grid;
+    grid-template-columns: minmax(90px, 38%) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.82rem;
+}
+
+.dash-barra-nome {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dash-barra-trilho {
+    height: 14px;
+    border-radius: 0 4px 4px 0;
+}
+
+.dash-barra-trilho i {
+    display: block;
+    height: 100%;
+    border-radius: 0 4px 4px 0;
+    background: var(--dash-barra);
+}
+
+.dash-barra-valor {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    white-space: nowrap;
+    text-align: right;
+}
+
+/* Colunas mensais */
+.dash-mensal {
+    width: 100%;
+    height: auto;
+}
+
+.dash-grade {
+    stroke: var(--dash-grade);
+    stroke-width: 1;
+}
+
+.dash-grade.base {
+    stroke: var(--dash-base);
+}
+
+.dash-eixo {
+    fill: var(--dash-apagado);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+
+.dash-alvo {
+    fill: transparent;
+    outline: none;
+}
+
+.dash-alvo:hover,
+.dash-alvo:focus-visible {
+    fill: #0b0b0b0d;
+}
+
+/* Tabelas */
+.dash-tabela-detalhe summary {
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--dash-tinta-2);
+}
+
+.dash-tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+}
+
+.dash-tabela th,
+.dash-tabela td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--dash-grade);
+    text-align: left;
+}
+
+.dash-tabela th {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--dash-tinta-2);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.dash-tabela td:not(:first-child) {
+    font-variant-numeric: tabular-nums;
+}
+
+.dash-celula-barra {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 120px;
+}
+
+.dash-celula-barra b {
+    flex: none;
+    white-space: nowrap;
+}
+
+.dash-celula-barra i {
+    flex: 0 1 auto;
+    display: block;
+    height: 10px;
+    border-radius: 0 3px 3px 0;
+    background: var(--dash-barra);
+}
+
+/* Dica flutuante */
+.dash-dica {
+    position: fixed;
+    z-index: 10001;
+    max-width: 260px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: #1d2a22;
+    color: #ffffff;
+    font-size: 0.8rem;
+    pointer-events: none;
+    box-shadow: 0 4px 14px #10201933;
+}
+
+@media (max-width: 1100px) {
+    .dash-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dash-hero { grid-column: 1 / -1; }
+    .dash-atividades { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+    .dash-linha,
+    .dash-linha-mapa { grid-template-columns: minmax(0, 1fr); }
+    .dash-atividades { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dash-unidades th:nth-child(2),
+    .dash-unidades td:nth-child(2) { display: none; }
+}

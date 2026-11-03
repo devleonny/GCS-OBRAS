@@ -161,6 +161,7 @@ const esquemaBotoes = {
             bloqueio: ['cliente', 'técnico'],
             sub: [
                 { nome: 'Ver Orçamentos', funcao: 'telaOrcamentos', img: 'projeto' },
+                { nome: 'Dashboard', funcao: 'telaDashboardOrcamentos', img: 'dashboard' },
                 {
                     nome: 'Criar Orçamento',
                     img: 'projeto',
@@ -179,6 +180,7 @@ const esquemaBotoes = {
             img: 'alerta',
             sub: [
                 { nome: 'Ver Ocorrências', funcao: 'telaOcorrencias', img: 'alerta' },
+                { nome: 'Dashboard', funcao: 'telaDashboardChamados', img: 'dashboard' },
                 { nome: 'Criar Ocorrência', funcao: 'formularioOcorrencia', img: 'baixar' },
                 {
                     nome: 'Relatório de Ocorrências',

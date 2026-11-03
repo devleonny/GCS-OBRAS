@@ -161,10 +161,88 @@ button.composicao-preco:hover {
     color: #4f6058;
 }
 
-.composicao-bloco-precos .composicao-tabela th,
-.composicao-bloco-precos .composicao-tabela td {
-    text-align: center;
+/* Preços por tabela: um cartão por LPU em grade (antes, uma linha com 13 colunas). */
+.composicao-bloco-precos {
+    align-self: stretch;
+}
+
+.composicao-lpus {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+    padding: 10px;
+}
+
+.composicao-lpu {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+    margin: 0;
+    padding: 8px 10px;
+    border: 1px solid #9cbfa6;
+    border-left-width: 4px;
+    border-radius: 8px;
+    background: #f1f7f3;
+    color: #22332a;
+    font: inherit;
+    text-align: left;
+}
+
+button.composicao-lpu {
+    cursor: pointer;
+}
+
+button.composicao-lpu:hover {
+    background: #e3f0e7;
+}
+
+.composicao-lpu-nome {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: #4f6859;
+}
+
+.composicao-lpu-valor {
+    font-size: 15px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #2b5236;
+}
+
+.composicao-lpu-rodape {
+    min-height: 1.2em;
+    font-size: 10.5px;
+    color: #5d6b62;
+}
+
+.composicao-lpu.sem-valor {
+    border-color: #d5ddd8;
+    background: #f7f8f7;
+}
+
+.composicao-lpu.sem-valor .composicao-lpu-nome,
+.composicao-lpu.sem-valor .composicao-lpu-valor,
+.composicao-lpu.sem-valor .composicao-lpu-rodape {
+    color: #98a39c;
+}
+
+.composicao-lpu.vencido {
+    border-color: #e0aaa3;
+}
+
+.composicao-lpu-vencido {
+    padding: 0 5px;
+    border-radius: 4px;
+    background: #fbe4e1;
+    color: #962f2f;
+    font-weight: 600;
 }
 
 .valor_zero {
