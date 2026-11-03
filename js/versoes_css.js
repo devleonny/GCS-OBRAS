@@ -25,7 +25,7 @@ const VERSOES_CSS = {
     "os": "423f800a",
     "pagamentos": "345bf529",
     "pdf": "e66db2e0",
-    "planos_diarios": "a35dc0ee",
+    "planos_diarios": "5a56caf2",
     "popup": "153a9fa5",
     "postit": "9e23a73b",
     "relatorio": "d9b3bb23",

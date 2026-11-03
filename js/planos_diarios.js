@@ -1,6 +1,7 @@
 const estadoPlanoDiario = { plano: null, dias: [], data: '', origem: false, alterado: false, carregando: false, renderizando: false, sequencia: 0 }
 const numeroPlanoDiario = n => Number(n || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 })
 const dataPlanoDiario = data => data.split('-').reverse().join('/')
+const LIMITE_FOTOS_DIARIO = 12
 let bibliotecasDocumentoDiario
 
 async function apiPlanoDiario(rota, dados = {}, arquivo = false) {
@@ -42,11 +43,14 @@ async function telaPlanosDiarios() {
                 ${planos.map(p => `<option value="${escaparAtributo(p.id)}">${escaparAtributo(p.titulo)}</option>`).join('')}</select></label>
                 <div class="diario-acoes"><button id="botaoSalvarPlanoDiario" onclick="salvarPlanoDiario()" disabled>Salvar</button>
                 <button id="marcarPlantasDiario" onclick="alternarMarcacaoPlanoDiario()" aria-pressed="false" disabled>Marcar plantas</button>
+                <button id="fotosPlanoDiario" onclick="document.getElementById('arquivoFotosDiario').click()" hidden>Adicionar fotos</button>
+                <input type="file" id="arquivoFotosDiario" accept="image/jpeg,image/png,image/webp" multiple hidden onchange="enviarFotosPlanoDiario(this)">
                 <button id="baixarPlanoDiario" onclick="baixarWordPlanoDiario()" disabled>Baixar Word</button>
                 <button id="baixarPdfPlanoDiario" onclick="baixarWordPlanoDiario('pdf')" disabled>Baixar PDF</button>
                 <button id="excluirPlanoDiario" onclick="excluirDiaPlanoDiario()" hidden>Excluir dia</button></div>
             </header><div id="diasPlanoDiario" class="diario-dias"></div>
             <div id="statusPlanoDiario" class="diario-status" role="status" aria-live="polite"></div>
+            <div id="fotosPlanoDiarioLista" class="diario-fotos" hidden></div>
             <div id="planoDiarioConteudo"></div></div>`
         if (planos.length === 1) {
             document.getElementById('planoDiarioEscolha').value = planos[0].id
@@ -108,6 +112,14 @@ function controlesDocumentoDiario() {
     }
     const pdf = document.getElementById('baixarPdfPlanoDiario')
     if (pdf) pdf.disabled = baixar?.disabled ?? true
+    // Fotos do dia: só nos modelos com a seção "04 Fotos da execução", e não na Origem.
+    const fotos = document.getElementById('fotosPlanoDiario')
+    if (fotos) {
+        fotos.hidden = !e.modelo?.fotos || e.origem || !e.plano
+        fotos.disabled = ocupado || (e.fotos?.length || 0) >= LIMITE_FOTOS_DIARIO
+    }
+    document.querySelectorAll('#fotosPlanoDiarioLista button').forEach(b => { b.disabled = ocupado })
+    if (marcar && !e.plantas?.length) marcar.disabled = true
     const seletor = document.getElementById('planoDiarioEscolha')
     if (seletor) seletor.disabled = ocupado
     e.documento?.querySelectorAll('input').forEach(el => { el.disabled = ocupado; el.readOnly = e.origem && el.type !== 'date' })
@@ -124,6 +136,8 @@ async function renderizarPlanoDiario() {
     e.observador?.disconnect()
     e.modoMarcar = false; e.plantas = []
     e.renderizando = true; e.documento = null
+    e.fotos = e.origem ? [] : (e.dias.find(d => d.data_ref === e.data)?.dados?.fotos || []).map(f => ({ ...f }))
+    desenharFotosPlanoDiario()
     controlesDocumentoDiario()
     const local = document.getElementById('planoDiarioConteudo')
     local.innerHTML = '<div class="diario-carregando"><img src="gifs/loading-gcs.png" alt="Carregando"></div>'
@@ -158,7 +172,8 @@ async function renderizarPlanoDiario() {
         prepararCamposDocumentoDiario(doc)
         await Promise.all([...doc.images].map(img => img.decode().catch(() => {})))
         if (doc.fonts?.ready) await doc.fonts.ready
-        prepararMarcacoesPlanoDiario(doc)
+        await prepararMarcacoesPlanoDiario(doc, arquivo)
+        if (sequencia !== e.sequencia || !frame.isConnected) return
         const ajustar = () => { if (frame.isConnected) frame.style.height = `${Math.ceil(doc.getElementById('documento').getBoundingClientRect().height) + 4}px` }
         ajustar()
         const observer = new ResizeObserver(ajustar)
@@ -231,8 +246,62 @@ function lerPlanoDiario() {
         efetivo: Number(doc.getElementById('efetivoPlanoDiario').value),
         horario: doc.getElementById('horarioPlanoDiario').value,
         observacoes: e.dias.find(d => d.data_ref === e.data)?.dados?.observacoes || '',
-        marcacoes: e.marcacoes || []
+        marcacoes: e.marcacoes || [],
+        ...(e.modelo?.fotos ? { fotos: e.fotos || [] } : {})
     }
+}
+
+// Fotos do dia (seção 04 do Word): enviadas por /upload e gravadas no dia ao Salvar.
+function desenharFotosPlanoDiario() {
+    const e = estadoPlanoDiario
+    const lista = document.getElementById('fotosPlanoDiarioLista')
+    if (!lista) return
+    lista.hidden = !e.modelo?.fotos || e.origem || !e.plano
+    if (lista.hidden) return lista.replaceChildren()
+    const fotos = e.fotos || []
+    lista.innerHTML = `<span class="diario-fotos-titulo">Fotos do dia (${fotos.length}/${LIMITE_FOTOS_DIARIO})</span>`
+        + (fotos.length
+            ? fotos.map((f, i) => `<figure class="diario-foto" title="${escaparAtributo(f.nome || f.link)}">
+                <img src="${escaparAtributo(`${api}/uploads/${f.link}`)}" alt="${escaparAtributo(f.nome || 'Foto do dia')}">
+                <button type="button" aria-label="Remover foto" title="Remover foto" onclick="removerFotoPlanoDiario(${i})">×</button></figure>`).join('')
+            : '<small>Nenhuma foto neste dia. Use "Adicionar fotos"; elas entram no relatório ao Salvar.</small>')
+    controlesDocumentoDiario()
+}
+
+async function enviarFotosPlanoDiario(input) {
+    const e = estadoPlanoDiario
+    if (!input.files?.length || e.carregando || e.renderizando) return
+    const restantes = LIMITE_FOTOS_DIARIO - (e.fotos?.length || 0)
+    if (input.files.length > restantes) {
+        input.value = ''
+        return popup({ mensagem: `Cada dia aceita até ${LIMITE_FOTOS_DIARIO} fotos. Você pode enviar mais ${restantes}.` })
+    }
+    const status = document.getElementById('statusPlanoDiario')
+    e.carregando = true; controlesDocumentoDiario()
+    status.textContent = 'Enviando fotos...'
+    try {
+        const enviadas = await importarAnexos({ input })
+        // Em falha o importarAnexos já mostrou o aviso.
+        if (!Array.isArray(enviadas) || !enviadas.length) { status.textContent = ''; return }
+        e.fotos.push(...enviadas.filter(a => a?.link).map(a => ({ link: a.link, nome: a.nome || '' })))
+        e.alterado = true
+        status.textContent = 'Fotos adicionadas. Salve para incluí-las no relatório.'
+    } catch (err) {
+        status.textContent = ''
+        popup({ mensagem: err.message || 'Falha ao enviar as fotos.' })
+    } finally {
+        input.value = ''
+        e.carregando = false
+        desenharFotosPlanoDiario()
+    }
+}
+
+function removerFotoPlanoDiario(indice) {
+    const e = estadoPlanoDiario
+    if (e.carregando || e.renderizando) return
+    e.fotos.splice(indice, 1)
+    e.alterado = true
+    desenharFotosPlanoDiario()
 }
 
 function atualizarNumerosPlanoDiario() {
@@ -313,14 +382,29 @@ async function excluirDiaPlanoDiario() {
     finally { e.carregando = false; controlesDocumentoDiario() }
 }
 
-function prepararMarcacoesPlanoDiario(doc) {
+// As plantas marcáveis vêm do servidor (modelo.plantas = arquivos de word/media). Cada uma é achada
+// na prévia pelo conteúdo (o docx-preview mostra a imagem em base64), não pela posição na página:
+// o logo do cabeçalho se repete por página e o número de plantas muda de uma obra para outra.
+async function imagensPlantasPlanoDiario(doc, arquivo) {
+    const nomes = estadoPlanoDiario.modelo?.plantas || []
+    if (!nomes.length) return []
+    const zip = await window.JSZip.loadAsync(arquivo)
+    const imagens = [...doc.images]
+    const plantas = []
+    for (const nome of nomes) {
+        const base64 = await zip.file(`word/media/${nome}`)?.async('base64')
+        const imagem = base64 && imagens.find(img => img.src.slice(img.src.indexOf(',') + 1) === base64)
+        if (imagem) plantas.push({ nome, imagem })
+    }
+    return plantas
+}
+
+async function prepararMarcacoesPlanoDiario(doc, arquivo) {
     const e = estadoPlanoDiario
     const ultimo = e.origem ? null : e.dias.filter(d => d.data_ref <= e.data && Array.isArray(d.dados?.marcacoes))
         .sort((a, b) => b.data_ref.localeCompare(a.data_ref))[0]
     e.marcacoes = (ultimo?.dados.marcacoes ?? e.plano.marcacoesOrigem ?? []).map(m => ({ ...m }))
-    const imagens = [...doc.images]
-    e.plantas = ['image2.png', 'image3.png', 'image4.png'].map((nome, i) => {
-        const imagem = imagens[i + 1]
+    e.plantas = (await imagensPlantasPlanoDiario(doc, arquivo)).map(({ nome, imagem }) => {
         const largura = imagem.getBoundingClientRect().width
         const camada = doc.createElement('span')
         camada.style.cssText = `display:inline-block;position:relative;vertical-align:top;width:${largura}px;max-width:100%;`
