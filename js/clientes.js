@@ -711,6 +711,7 @@ async function formularioCliente(idCliente) {
         cnpj,
         comentario,
         empresa,
+        garantia_meses,
         tags
     } = await recuperarDado('clientes', idCliente) || {}
 
@@ -768,6 +769,11 @@ async function formularioCliente(idCliente) {
         {
             texto: 'Empresa',
             elemento: `<span ${empresa ? `id="${empresa}"` : ''} name="empresa" class="opcoes" onclick="cxOpcoes('empresa')">${nomeEmpresa || 'Selecionar'}</span>`
+        },
+        {
+            // Prazo de garantia dos chamados deste cliente (garantia_chamado no banco).
+            texto: 'Garantia (meses)',
+            elemento: `<input name="garantia_meses" type="number" min="1" max="120" step="1" placeholder="12 (padrão)" value="${garantia_meses ?? ''}">`
         },
         {
             texto: 'Tags',
@@ -1254,6 +1260,12 @@ async function salvarCliente(idCliente = null) {
 
         }
 
+        // Vazio = padrão de 12 meses.
+        const garantiaTexto = obVal('garantia_meses')
+        const garantia_meses = garantiaTexto == null || garantiaTexto === '' ? null : Number(garantiaTexto)
+        if (garantia_meses !== null && !(Number.isInteger(garantia_meses) && garantia_meses >= 1 && garantia_meses <= 120))
+            return popup({ mensagem: 'Garantia (meses): informe um número inteiro de 1 a 120, ou deixe vazio para 12.' })
+
         const tags = tagsMarcadasCliente(painel).map(tag => ({ tag }))
 
         let foto = obVal('foto') || ''
@@ -1299,7 +1311,8 @@ async function salvarCliente(idCliente = null) {
             celular: obVal('celular'),
             aniversario,
             email: obVal('email'),
-            empresa: obVal('empresa')
+            empresa: obVal('empresa'),
+            garantia_meses
         }
 
         // Mesclagem;

@@ -507,7 +507,6 @@ function carregarCorrecoes(ocorrencia) {
             </div>
 
             <span class="botao-trilho" onclick="scrollAbas(120, '${idOcorrencia}')">></span>
-            <span class="garantia-selo" data-garantia-selo="${idOcorrencia}"></span>
         </div>
 
         <div style="width: 100%;" id="detalhamento_${idOcorrencia}">
@@ -1285,6 +1284,10 @@ function criarLinhaOcorrencia(ocorrencia) {
             </div>
 
             <div id="correcoes" class="bloco-linha">
+                <div class="garantia-chamado" data-garantia-chamado="${id}">
+                    <span class="garantia-chamado-rotulo">Garantia</span>
+                    <span>Consultando…</span>
+                </div>
                 ${divCorrecoes.correcoes}
             </div>
             ${Object.keys(equipamentos || {}).length ? `
@@ -2414,22 +2417,60 @@ function textoGarantia(garantia) {
         : `Garantia encerrada em ${fim} · ${origem}`
 }
 
-// funcaoAdicional da lista de chamados: preenche os selos da página numa consulta só.
-async function carregarSelosGarantia() {
-    const selos = [...document.querySelectorAll('[data-garantia-selo]:not([data-carregado])')]
-    if (!selos.length) return
+// "faltam 11 meses" / "há 12 dias": dias até (ou desde) a data ISO informada.
+function tempoGarantia(iso) {
+    const [ano, mes, dia] = iso.split('-').map(Number)
+    const hoje = new Date()
+    const dias = Math.round((new Date(ano, mes - 1, dia) - new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate())) / 86400000)
+    const abs = Math.abs(dias)
+    const meses = Math.round(abs / 30.44)
+    const quanto = abs < 60
+        ? `${abs} ${abs === 1 ? 'dia' : 'dias'}`
+        : `${meses} ${meses === 1 ? 'mês' : 'meses'}`
+    return dias >= 0 ? `faltam ${quanto}` : `há ${quanto}`
+}
 
-    for (const selo of selos) selo.dataset.carregado = ''
+function detalheGarantia(garantia) {
+    const situacao = garantia?.situacao || 'sem_inicio'
+    const meses = `${garantia?.meses || 12} meses`
+
+    if (situacao === 'sem_inicio')
+        return { situacao, titulo: 'Ainda não iniciada', detalhe: `Começa na primeira nota ou na solução do chamado · prazo de ${meses}` }
+
+    const data = iso => iso.split('-').reverse().join('/')
+    const origem = garantia.origem === 'nota'
+        ? `NF ${escaparAtributo(String(garantia.nota))}`
+        : 'solução do chamado'
+    const inicio = `Desde ${data(garantia.inicio)} (${origem}) · prazo de ${meses}`
+
+    return situacao === 'vigente'
+        ? { situacao, titulo: `Em garantia até ${data(garantia.fim)} · ${tempoGarantia(garantia.fim)}`, detalhe: inicio }
+        : { situacao, titulo: `Encerrada em ${data(garantia.fim)} · ${tempoGarantia(garantia.fim)}`, detalhe: `${inicio}. Novo atendimento: abrir novo chamado.` }
+}
+
+// funcaoAdicional da lista de chamados: preenche a garantia dos chamados da página numa consulta só.
+async function carregarSelosGarantia() {
+    const campos = [...document.querySelectorAll('[data-garantia-chamado]:not([data-carregado])')]
+    if (!campos.length) return
+
+    for (const campo of campos) campo.dataset.carregado = ''
 
     try {
-        const garantias = await consultarGarantias(selos.map(selo => selo.dataset.garantiaSelo))
-        for (const selo of selos) {
-            const garantia = garantias[selo.dataset.garantiaSelo]
-            selo.textContent = textoGarantia(garantia)
-            selo.dataset.situacao = garantia?.situacao || 'sem_inicio'
+        const garantias = await consultarGarantias(campos.map(campo => campo.dataset.garantiaChamado))
+        for (const campo of campos) {
+            const { situacao, titulo, detalhe } = detalheGarantia(garantias[campo.dataset.garantiaChamado])
+            campo.dataset.situacao = situacao
+            campo.innerHTML = `
+                <span class="garantia-chamado-rotulo">Garantia</span>
+                <div class="garantia-chamado-texto">
+                    <span class="garantia-chamado-titulo">${titulo}</span>
+                    <small>${detalhe}</small>
+                </div>`
         }
     } catch (err) {
         console.error(err)
+        for (const campo of campos)
+            campo.innerHTML = '<span class="garantia-chamado-rotulo">Garantia</span><span>Não foi possível consultar.</span>'
     }
 }
 

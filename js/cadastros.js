@@ -1,9 +1,6 @@
 // "campos": colunas extras da base além do nome (usadas pela garantia dos chamados).
 const basesCadastro = {
-    empresas: {
-        titulo: 'Empresas', singular: 'Empresa',
-        campos: [{ chave: 'garantia_meses', texto: 'Garantia (meses)', tipo: 'meses', padrao: 12 }]
-    },
+    empresas: { titulo: 'Empresas', singular: 'Empresa' },
     tipos: { titulo: 'Tipos', singular: 'Tipo' },
     sistemas: { titulo: 'Sistemas', singular: 'Sistema' },
     prioridades: { titulo: 'Prioridades', singular: 'Prioridade' },

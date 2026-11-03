@@ -20,7 +20,7 @@ const VERSOES_CSS = {
     "jogo": "baa3f388",
     "layout_os": "2580d9ae",
     "mapa": "e7317551",
-    "ocorrencias": "2c4c92f0",
+    "ocorrencias": "5e7c8ec6",
     "orcamento": "0192e200",
     "os": "423f800a",
     "pagamentos": "345bf529",
