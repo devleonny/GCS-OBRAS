@@ -324,8 +324,9 @@ function atualizarNumerosPlanoDiario() {
         }
         e.grafico.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgAtividades(itens))}`
         if (e.graficoResumo) {
-            const resumo = [['10', 'Eletrocalha'], ['8', 'Cabo'], ['7', 'Instalação Câmeras']]
-                .map(([id, descricao]) => ({ ...itens.find(a => a.id === id), descricao }))
+            // Itens do resumo vêm do modelo da obra (ex.: Picus usa outros ids que o iMile).
+            const resumo = (e.modelo?.destaques || []).filter(d => itens.some(a => a.id === d.id))
+                .map(({ id, rotulo }) => ({ ...itens.find(a => a.id === id), descricao: rotulo }))
             e.graficoResumo.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgAtividades(resumo))}`
         }
         if (e.graficoGeral) {
