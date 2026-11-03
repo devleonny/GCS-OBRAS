@@ -427,6 +427,16 @@ const ICMS_POR_ORIGEM = {
 
 const ICMS_BAHIA = 20.5
 
+// Reforma tributária (EC 132/2023, LC 214/2025) — só simulação, não altera o preço salvo.
+// Alíquotas de referência ainda estimadas (CBS + IBS ≈ 26,5%); cada estado usa a de
+// referência até publicar a própria em IBS_POR_UF.
+const REFORMA = { cbs: 8.8, ibsUF: 14.7, ibsMun: 3 }
+const IBS_POR_UF = {}
+const UFS = ['AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 'PA', 'PB',
+    'PE', 'PI', 'PR', 'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO']
+// Fração de ICMS/ISS que ainda resta em cada ano da transição.
+const TRANSICAO = { 2027: 1, 2028: 1, 2029: 0.9, 2030: 0.8, 2031: 0.7, 2032: 0.6, 2033: 0 }
+
 // Último cálculo exibido no modal; o salvamento usa os mesmos valores mostrados.
 let ultimoCalculoPreco = null
 
@@ -524,6 +534,50 @@ function calcularPreco(tipo, entradas) {
     return null
 }
 
+// Preço líquido que mantém o lucro de hoje sem PIS/COFINS e com ICMS/ISS reduzidos;
+// IBS e CBS entram por fora, sobre a base sem ICMS/ISS. IRPJ/CSLL seguem iguais.
+function calcularReforma(tipo, entradas, atual, ano, uf) {
+    if (!atual) return null
+
+    const antigo = TRANSICAO[ano] ?? 0
+    const ibsUF = IBS_POR_UF[uf] ?? REFORMA.ibsUF
+    const cbsAliq = ano <= 2028 ? REFORMA.cbs - 0.1 : REFORMA.cbs
+    const ibsAliq = ano <= 2028 ? 0.1 : (ibsUF + REFORMA.ibsMun) * (1 - antigo)
+
+    const venda = tipo == 'VENDA'
+    const servico = tipo == 'SERVIÇO'
+
+    // O IBS/CBS pago na compra vira crédito; o ICMS de entrada cai junto com o ICMS.
+    const custo = servico ? 0 : entradas.precoCompra + atual.frete + atual.icmsEntrada * antigo
+
+    const presumido = venda ? 0.08 * 0.25 + 0.12 * 0.09 : 0.32 * 0.25 + 0.32 * 0.09
+    const icmsPerc = venda ? entradas.aliquotaIcmsSaida / 100 * antigo : 0
+    const issPerc = venda ? 0 : 0.05 * antigo
+    const despesaPerc = servico ? 0.3 : 0.05 // mão de obra ou frete de venda
+
+    const precoLiquido = (atual.lucroLiquido + custo) / (1 - presumido - icmsPerc - issPerc - despesaPerc)
+    const base = precoLiquido * (1 - icmsPerc - issPerc)
+    const cbs = base * cbsAliq / 100
+    const ibs = base * ibsAliq / 100
+    const total = precoLiquido + cbs + ibs
+
+    return {
+        custo,
+        precoLiquido,
+        antigoPerc: antigo * 100,
+        icmsIss: precoLiquido * (icmsPerc + issPerc),
+        irpjCsll: precoLiquido * presumido,
+        base,
+        cbsAliq,
+        ibsAliq,
+        cbs,
+        ibs,
+        total,
+        totalHoje: atual.precoVenda,
+        diferenca: atual.precoVenda ? (total / atual.precoVenda - 1) * 100 : 0
+    }
+}
+
 function entradasPreco(campo) {
     const numero = id => Number(document.getElementById(id)?.value || 0)
     const opcao = id => document.getElementById(id)?.value || ''
@@ -555,8 +609,13 @@ function calcular(campo) {
             document.getElementById('preco_venda').value = Number(resultado.precoVenda.toFixed(2))
     }
 
+    const opcao = id => document.getElementById(id)?.value
+    const reforma = calcularReforma(painel.dataset.tipo, entradasPreco(campo), resultado, Number(opcao('reforma_ano')), opcao('reforma_uf')) || {}
+    const valores = { ...resultado }
+    for (const [chave, valor] of Object.entries(reforma)) valores[`r_${chave}`] = valor
+
     for (const el of painel.querySelectorAll('[data-chave]')) {
-        const valor = resultado[el.dataset.chave]
+        const valor = valores[el.dataset.chave]
         el.innerHTML = el.dataset.formato == 'porcentagem'
             ? porcentagem(valor)
             : dinheiro(valor)
@@ -703,10 +762,46 @@ function secoesPreco(produto) {
             </div>
         </section>`
 
+    const aliquota = chave => `<small class="calc-preco-aliquota" data-chave="${chave}" data-formato="porcentagem"></small>`
+    const tributoAntigo = tipo == 'VENDA' ? 'ICMS' : 'ISS'
+
+    const reforma = `
+        <section class="calc-preco-card calc-preco-reforma">
+            <h3>Reforma Tributária (simulação)</h3>
+            <p class="calc-preco-nota">Mantém o lucro líquido de hoje. IBS e CBS são cobrados por fora; alíquotas de referência ainda estimadas.</p>
+            <div class="calc-preco-resultado">
+                <div>
+                    <span>Total hoje</span>
+                    <strong data-chave="r_totalHoje"></strong>
+                </div>
+                <div>
+                    <span>Total ao cliente</span>
+                    <strong data-chave="r_total"></strong>
+                </div>
+                <div>
+                    <span>Diferença</span>
+                    <strong data-chave="r_diferenca" data-formato="porcentagem"></strong>
+                </div>
+            </div>
+            ${[
+            { label: 'Estado de destino', select: 'reforma_uf', opcoes: UFS, valorSelect: 'BA', chave: 'r_ibsAliq', formato: 'porcentagem' },
+            { label: `Ano de faturamento <small>(${tributoAntigo} restante)</small>`, select: 'reforma_ano', opcoes: Object.keys(TRANSICAO), valorSelect: '2033', chave: 'r_antigoPerc', formato: 'porcentagem' },
+            ...(mercadoria ? [{ label: 'Custo (com crédito de IBS/CBS)', chave: 'r_custo' }] : []),
+            { label: 'Preço Líquido', chave: 'r_precoLiquido', classe: 'calc-preco-total' },
+            { label: `${tributoAntigo} da transição`, chave: 'r_icmsIss' },
+            { label: 'IRPJ + CSLL', chave: 'r_irpjCsll' },
+            { label: 'Base do IBS/CBS', chave: 'r_base' },
+            { label: `CBS ${aliquota('r_cbsAliq')}`, chave: 'r_cbs' },
+            { label: `IBS ${aliquota('r_ibsAliq')}`, chave: 'r_ibs' },
+            { label: 'Total ao cliente', chave: 'r_total', classe: 'calc-preco-total' }
+        ].map(linhaPreco).join('')}
+        </section>`
+
     return `
         <div class="calc-preco" data-tipo="${escaparAtributo(tipo)}">
             <div class="calc-preco-coluna">${esquerda.join('')}</div>
             <div class="calc-preco-coluna">${resultado}${direita.join('')}</div>
+            <div class="calc-preco-coluna">${reforma}</div>
         </div>`
 }
 

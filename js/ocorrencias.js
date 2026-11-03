@@ -507,6 +507,7 @@ function carregarCorrecoes(ocorrencia) {
             </div>
 
             <span class="botao-trilho" onclick="scrollAbas(120, '${idOcorrencia}')">></span>
+            <span class="garantia-selo" data-garantia-selo="${idOcorrencia}"></span>
         </div>
 
         <div style="width: 100%;" id="detalhamento_${idOcorrencia}">
@@ -1049,7 +1050,7 @@ async function telaOcorrencias() {
     const tabela = await modTab({
         alinPag: horizontal,
         scroll: false,
-        funcaoAdicional: ['contadoresMapaOcorrencias', 'voltarTopoOcorrencias'],
+        funcaoAdicional: ['contadoresMapaOcorrencias', 'voltarTopoOcorrencias', 'carregarSelosGarantia'],
         base: 'vw_dados_ocorrencias',
         pag: 'ocorrencias',
         body: 'bodyOcorrencias',
@@ -2390,11 +2391,72 @@ async function formularioOcorrencia(idOcorrencia) {
 
 }
 
+// GARANTIA DO CHAMADO
+// A regra roda no servidor ao salvar (garantia_chamados.js); aqui só mostra a situação
+// e limita os status quando a garantia acabou.
+async function consultarGarantias(ids) {
+    const { token } = JSON.parse(localStorage.getItem('acesso') || '{}')
+    const resposta = await fetch(`${api}/garantia-chamados`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ids })
+    })
+    if (!resposta.ok) throw new Error('Falha ao consultar a garantia.')
+    return resposta.json()
+}
+
+function textoGarantia(garantia) {
+    if (!garantia || garantia.situacao === 'sem_inicio') return ''
+    const fim = garantia.fim.split('-').reverse().join('/')
+    const origem = garantia.origem === 'nota' ? `NF ${garantia.nota}` : 'desde a solução'
+    return garantia.situacao === 'vigente'
+        ? `Garantia até ${fim} · ${origem}`
+        : `Garantia encerrada em ${fim} · ${origem}`
+}
+
+// funcaoAdicional da lista de chamados: preenche os selos da página numa consulta só.
+async function carregarSelosGarantia() {
+    const selos = [...document.querySelectorAll('[data-garantia-selo]:not([data-carregado])')]
+    if (!selos.length) return
+
+    for (const selo of selos) selo.dataset.carregado = ''
+
+    try {
+        const garantias = await consultarGarantias(selos.map(selo => selo.dataset.garantiaSelo))
+        for (const selo of selos) {
+            const garantia = garantias[selo.dataset.garantiaSelo]
+            selo.textContent = textoGarantia(garantia)
+            selo.dataset.situacao = garantia?.situacao || 'sem_inicio'
+        }
+    } catch (err) {
+        console.error(err)
+    }
+}
+
+function faixaGarantia(garantia, correcao) {
+    const texto = textoGarantia(garantia)
+    const desta = correcao?.garantia === 'S' ? ' Esta correção foi lançada em garantia.' : ''
+
+    if (garantia?.situacao === 'encerrada')
+        return `<div class="garantia-faixa encerrada"><b>${texto}.</b> Para novo atendimento, abra um novo chamado.
+            Aqui só é possível lançar status administrativos.${desta}</div>`
+
+    if (garantia?.situacao === 'vigente')
+        return `<div class="garantia-faixa vigente"><b>Em garantia:</b> ${texto.replace('Garantia até', 'até')}.${desta}</div>`
+
+    return `<div class="garantia-faixa">Chamado ainda não concluído: a garantia começa na primeira nota ou na solução.${desta}</div>`
+}
+
 async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
 
     overlayAguarde()
 
-    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || ''
+    // Sem a consulta da garantia o formulário abre igual; o servidor confere ao salvar.
+    const [ocorrencia, garantias] = await Promise.all([
+        recuperarDado('dados_ocorrencias', idOcorrencia),
+        consultarGarantias([idOcorrencia]).catch(() => ({}))
+    ])
+    const garantia = garantias[idOcorrencia]
     const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
     const estado = ocorrencia?.snapshots?.cliente?.estado || 'N'
 
@@ -2420,6 +2482,9 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
 
     controlesCxOpcoes.tipoCorrecao = {
         base: 'correcoes',
+        ...(garantia?.situacao === 'encerrada'
+            ? { filtros: { fora_garantia: { op: '=', value: 'S' } } }
+            : {}),
         retornar: ['nome'],
         colunas: {
             'Nome': { chave: 'nome' }
@@ -2427,7 +2492,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
     }
 
     const { nome } = await recuperarDado('correcoes', correcao?.tipoCorrecao) || {}
-    const { turno, executor, tecnico, garantia, autorizacao, setor } = correcao
+    const { turno, executor, tecnico, autorizacao, setor } = correcao
     const opcoesTurno = ['MANHÃ', 'TARDE', 'NOITE', 'MADRUGADA']
         .map(t => {
             return `
@@ -2452,8 +2517,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
             : []
         ),
         {
-            texto: 'Em GARANTIA',
-            elemento: `<input name="garantia" type="checkbox" style="width: 2rem; height: 2rem;" ${garantia == 'S' ? 'checked' : ''}>`
+            elemento: faixaGarantia(garantia, correcao)
         },
         {
             texto: 'Código de autorização',
@@ -2943,11 +3007,10 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
             return popup({ mensagem: 'Selecione pelo menos 1 executor' })
 
         const turno = document.querySelectorAll('[name="turno"]:checked')?.[0]?.dataset?.turno
-        const garantia = obter('garantia').checked ? 'S' : 'N'
         const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
+        // "garantia" da correção nova é calculada pelo servidor; nas antigas fica como está.
         const atualizado = {
             ...correcao,
-            garantia,
             autorizacao: obter('autorizacao').value || '',
             fotos: {
                 ...fotos,
@@ -2977,9 +3040,12 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
                 ? crypto.randomUUID()
                 : novoFluxo.dataset.aba
 
+        // Recusa do servidor (ex.: garantia encerrada) mantém o formulário aberto.
         const resultado = await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, atualizado)
-        if (resultado && !resultado.mensagem)
-            memorizarTecnicos(tecnico, ocorrencia, idOcorrencia)
+        if (!resultado || resultado.mensagem)
+            return popup({ mensagem: resultado?.mensagem || 'Falha ao salvar a correção: tente de novo.' })
+
+        memorizarTecnicos(tecnico, ocorrencia, idOcorrencia)
 
         // Letreiro: tira na hora quem ficou ocupado e confirma com o servidor logo depois.
         if (typeof retirarDosLivresAgora === 'function')

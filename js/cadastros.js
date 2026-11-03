@@ -1,10 +1,23 @@
+// "campos": colunas extras da base além do nome (usadas pela garantia dos chamados).
 const basesCadastro = {
-    empresas: { titulo: 'Empresas', singular: 'Empresa' },
+    empresas: {
+        titulo: 'Empresas', singular: 'Empresa',
+        campos: [{ chave: 'garantia_meses', texto: 'Garantia (meses)', tipo: 'meses', padrao: 12 }]
+    },
     tipos: { titulo: 'Tipos', singular: 'Tipo' },
     sistemas: { titulo: 'Sistemas', singular: 'Sistema' },
     prioridades: { titulo: 'Prioridades', singular: 'Prioridade' },
-    correcoes: { titulo: 'Correções', singular: 'Correção' },
+    correcoes: {
+        titulo: 'Correções', singular: 'Correção',
+        campos: [{ chave: 'fora_garantia', texto: 'Permitido fora da garantia', tipo: 'simNao' }]
+    },
     transportadoras: { titulo: 'Transportadoras', singular: 'Transportadora' }
+}
+
+function valorCampoCadastro(campo, dados) {
+    const valor = dados?.[campo.chave]
+    if (campo.tipo === 'simNao') return valor === 'S' ? 'Sim' : 'Não'
+    return valor ?? `${campo.padrao} (padrão)`
 }
 
 async function telaCadastros() {
@@ -69,6 +82,7 @@ async function abrirTabelaCadastrastro(base) {
         },
         colunas: {
             'Nome': { chave: 'nome' },
+            ...Object.fromEntries((basesCadastro[base]?.campos || []).map(c => [c.texto, { chave: c.chave }])),
             '': {}
         },
         body: `cad_${base}`,
@@ -84,9 +98,13 @@ async function abrirTabelaCadastrastro(base) {
 async function criarLinhaCadastro(dados) {
 
     const { id, base, nome } = dados || {}
+    const extras = (basesCadastro[base]?.campos || [])
+        .map(campo => `<td>${valorCampoCadastro(campo, dados)}</td>`)
+        .join('')
 
     const tds = `
         <td>${nome}</td>
+        ${extras}
         <td class="cadastros-acao">
             <img src="imagens/pesquisar.svg" title="Editar" onclick="editarBaseAuxiliar('${base}', '${id}')">
         </td>
@@ -112,13 +130,19 @@ async function editarBaseAuxiliar(nomeBase, id) {
     if (id)
         botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirItemTabela('${nomeBase}', '${id}')` })
 
-    const { singular = nomeBase } = basesCadastro[nomeBase] || {}
+    const { singular = nomeBase, campos = [] } = basesCadastro[nomeBase] || {}
 
     const linhas = [
         {
             texto: 'Nome',
             elemento: `<textarea name="nome" style="text-transform: uppercase;" placeholder="${singular}">${dados?.nome || ''}</textarea>`
-        }
+        },
+        ...campos.map(campo => ({
+            texto: campo.texto,
+            elemento: campo.tipo === 'simNao'
+                ? `<input name="${campo.chave}" type="checkbox" style="width: 2rem; height: 2rem;" ${dados?.[campo.chave] === 'S' ? 'checked' : ''}>`
+                : `<input name="${campo.chave}" type="number" min="1" max="120" step="1" placeholder="${campo.padrao} (padrão)" value="${dados?.[campo.chave] ?? ''}">`
+        }))
     ]
 
     popup({ linhas, botoes, titulo: id ? `Editar ${singular}` : `Adicionar ${singular}` })
@@ -144,9 +168,28 @@ async function salvarNomeAuxiliar(nomeBase, id = crypto.randomUUID()) {
 
     overlayAguarde()
 
-    const nome = String(document.querySelector('[name="nome"]').value).toUpperCase()
+    const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
+    const nome = String(painel.querySelector('[name="nome"]').value).toUpperCase()
 
-    await enviar(`${nomeBase}/${id}/nome`, nome)
+    // Campos extras: vazio em "meses" volta ao padrão; caixa de seleção vira S/N.
+    const extras = []
+    for (const campo of basesCadastro[nomeBase]?.campos || []) {
+        const input = painel.querySelector(`[name="${campo.chave}"]`)
+        if (campo.tipo === 'simNao') {
+            extras.push([campo.chave, input.checked ? 'S' : 'N'])
+            continue
+        }
+        const meses = input.value === '' ? null : Number(input.value)
+        if (meses !== null && !(Number.isInteger(meses) && meses >= 1 && meses <= 120))
+            return popup({ mensagem: `${campo.texto}: informe um número inteiro de 1 a 120, ou deixe vazio para ${campo.padrao}.` })
+        extras.push([campo.chave, meses])
+    }
+
+    for (const [caminho, valor] of [['nome', nome], ...extras]) {
+        const resposta = await enviar(`${nomeBase}/${id}/${caminho}`, valor)
+        if (!resposta?.success)
+            return popup({ mensagem: `Não foi possível salvar: ${resposta?.mensagem || 'sem resposta do servidor'}.` })
+    }
 
     removerPopup()
 

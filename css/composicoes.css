@@ -217,13 +217,20 @@ button.composicao-preco:hover {
 /* Modal de cálculo de preço: um único bloco rolável, sem tabelas com altura própria. */
 .calc-preco {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+    /* Três colunas sempre lado a lado para comparar; cabe na janela do popup (máx. 90vw). */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: start;
-    gap: 12px;
-    width: min(920px, 86vw);
-    padding: 12px;
+    gap: 10px;
+    width: min(1180px, 86vw);
+    padding: 8px;
     box-sizing: border-box;
     text-align: left;
+}
+
+@media (max-width: 760px) {
+    .calc-preco {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 .calc-preco-coluna {
@@ -255,7 +262,7 @@ button.composicao-preco:hover {
     justify-content: space-between;
     gap: 8px;
     min-height: 38px;
-    padding: 5px 12px;
+    padding: 5px 10px;
     border-top: 1px solid #eef3f0;
     box-sizing: border-box;
 }
@@ -300,7 +307,7 @@ button.composicao-preco:hover {
 .calc-preco-linha input,
 .calc-preco-linha textarea {
     flex: 0 0 auto;
-    width: 140px;
+    width: 110px;
     margin: 0;
     padding: 5px 8px;
     font: inherit;
@@ -346,6 +353,21 @@ button.composicao-preco:hover {
     flex-direction: column;
     gap: 4px;
     font-size: 0.75rem;
+    color: #5b6b61;
+}
+
+.calc-preco-reforma > h3 {
+    background: linear-gradient(120deg, #2f4a6b, #4a6a8f);
+}
+
+.calc-preco-nota {
+    margin: 0;
+    padding: 8px 12px 0;
+    font-size: 0.75rem;
+    color: #5b6b61;
+}
+
+.calc-preco-aliquota {
     color: #5b6b61;
 }
 

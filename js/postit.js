@@ -166,15 +166,39 @@ function comentarioPostIT(comentario) {
     return `<div class="postit-comentario">${raiz.innerHTML}</div>`
 }
 
+// Último estado de cada post-it na tela. As ações mudam o cartão na hora e o servidor
+// confirma em segundo plano; se ele recusar, a tela volta ao que era e avisa.
+const postitsPIT = new Map()
+
+function linhaPIT(id) {
+    return document.querySelector(`#quadros tr[data-pit="${CSS.escape(id)}"]`)
+}
+
+// Guarda onde a linha estava para recolocá-la se o servidor recusar.
+function posicaoPIT(linha) {
+    const pai = linha?.parentElement
+    const proxima = linha?.nextElementSibling
+    return () => {
+        if (!linha || !pai?.isConnected) return
+        pai.insertBefore(linha, proxima?.parentElement === pai ? proxima : null)
+    }
+}
+
+function falhaPIT(acao, resposta) {
+    popup({ mensagem: `Não foi possível ${acao}: ${resposta?.mensagem || 'sem resposta do servidor'}. O post-it voltou ao que era.` })
+}
+
 async function linPostIT(dados) {
 
-    const { 
+    const {
         id, 
         comentario, 
         prazo, 
         status,
         anexos
     } = dados || {}
+
+    if (id) postitsPIT.set(id, dados)
 
     const divAnexos = Object
         .entries(anexos || {})
@@ -196,7 +220,7 @@ async function linPostIT(dados) {
                 : ''
 
     return `
-    <tr>
+    <tr data-pit="${id}">
         <td>
             <div
                 class="postit ${estilo}"
@@ -228,23 +252,26 @@ async function soltarPIT(event) {
     pararAutoScrollPIT()
 
     const id = event.dataTransfer.getData('text/plain')
-    if (!id) return
+    const linha = id && linhaPIT(id)
+    if (!linha) return
 
-    const quadro = event.currentTarget.dataset.quadro || null
-
-    const pit = await recuperarDado('postit', id)
-    if (!pit) return
-
-    if ((pit.quadro || null) == quadro)
+    const destino = event.currentTarget
+    const quadro = destino.dataset.quadro || null
+    if ((linha.parentElement.dataset.quadro || null) == quadro)
         return
 
-    const atualizado = {
-        ...pit,
-        id,
-        quadro
+    const voltar = posicaoPIT(linha)
+    destino.prepend(linha)
+
+    const resposta = await enviar(`postit/${id}/quadro`, quadro)
+    if (resposta?.success) {
+        const dados = postitsPIT.get(id)
+        if (dados) dados.quadro = quadro
+        return
     }
 
-    await enviar(`postit/${id}`, atualizado)
+    voltar()
+    falhaPIT('mover o post-it', resposta)
 }
 
 let quadroArrastadoPIT = null
@@ -301,7 +328,11 @@ async function finalizarQuadroPIT() {
         if (coluna.dataset.ordem === String(ordem)) continue
 
         coluna.dataset.ordem = ordem
-        await enviar(`quadros/${coluna.dataset.quadro}/ordem`, ordem)
+        const resposta = await enviar(`quadros/${coluna.dataset.quadro}/ordem`, ordem)
+        if (!resposta?.success) {
+            popup({ mensagem: `Não foi possível salvar a nova ordem dos quadros: ${resposta?.mensagem || 'sem resposta do servidor'}.` })
+            return telaPIT()
+        }
     }
 }
 
@@ -395,9 +426,14 @@ async function criarQuadro(id) {
 
 async function criarPIT(id) {
 
-    overlayAguarde()
+    // O que está na tela já basta para abrir; só busca no servidor o que não está.
+    let dados = id && postitsPIT.get(id)
+    if (!dados) {
+        overlayAguarde()
+        dados = await recuperarDado('postit', id)
+    }
 
-    const { comentario, anexos, prazo, status, usuario = acesso.usuario } = await recuperarDado('postit', id) || {}
+    const { comentario, anexos, prazo, status, usuario = acesso.usuario } = dados || {}
 
     const divAnexos = Object
         .entries(anexos || {})
@@ -460,44 +496,90 @@ async function criarPIT(id) {
     popup({ linhas, botoes, autoDestruicao: ['usuario'] })
 }
 
-async function salvarPIT(id = crypto.randomUUID()) {
+// Coloca o cartão na tela sem esperar o servidor; devolve a função que desfaz.
+async function mostrarPIT(dados, anterior) {
+    const atual = linhaPIT(dados.id)
+    const voltar = posicaoPIT(atual)
+    const destino = document.getElementById(`body_${dados.quadro || 'Novos'}`)
+
+    // Post-it passado para outro usuário sai da tela.
+    let nova = null
+    if (dados.usuario === acesso.usuario && (atual || destino)) {
+        const molde = document.createElement('tbody')
+        molde.innerHTML = await linPostIT(dados)
+        nova = molde.firstElementChild
+    }
+
+    if (atual && nova) atual.replaceWith(nova)
+    else if (atual) atual.remove()
+    else if (nova) destino.prepend(nova)
+
+    return () => {
+        nova?.remove()
+        voltar()
+        if (anterior) postitsPIT.set(dados.id, anterior)
+        else postitsPIT.delete(dados.id)
+    }
+}
+
+async function salvarPIT(id) {
+
+    const novo = !id
+    id ||= crypto.randomUUID()
+
+    const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
+    const usuarioFin = painel.querySelector('[name="usuario"]').id
+    const campos = {
+        usuario: usuarioFin,
+        status: painel.querySelector('[name="status"]').checked ? 'S' : 'N',
+        comentario: painel.querySelector('.editor-conteudo').innerHTML || '',
+        prazo: painel.querySelector('[name="prazo"]').value
+    }
+
+    // Arquivo novo precisa terminar de subir antes de fechar, senão se perderia.
+    let anexos = {}
+    if (obter('anexos')?.files?.length) {
+        overlayAguarde()
+        try {
+            anexos = await anexosOcorrencias(obter('anexos'))
+        } catch (err) {
+            console.log(err)
+            removerOverlay()
+            return popup({ mensagem: 'Falha ao enviar os anexos do post-it. Tente de novo.' })
+        }
+    }
+
+    const anterior = postitsPIT.get(id)
+    const local = {
+        id,
+        ...campos,
+        anexos: { ...anterior?.anexos, ...anexos },
+        quadro: usuarioFin !== acesso.usuario ? null : anterior?.quadro || null
+    }
+
+    removerPopup()
+    const desfazer = await mostrarPIT(local, anterior)
 
     try {
-
-        overlayAguarde()
-
-        const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
-
-        const usuarioFin = painel.querySelector('[name="usuario"]').id
-
-        const anexos = await anexosOcorrencias(obter('anexos'))
-        const { anexos: anexosExistentes, quadro } = await recuperarDado('postit', id) || {}
-
+        // Mescla com o que está gravado: anexos ou quadro mudados em outra aba não se perdem.
+        const gravado = novo ? {} : await recuperarDado('postit', id) || {}
         const atualizado = {
-            id,
-            anexos: {
-                ...anexosExistentes,
-                ...anexos
-            },
-            usuario: usuarioFin,
-            quadro: quadro || null,
-            status: painel.querySelector('[name="status"]').checked ? 'S' : 'N',
-            comentario: painel.querySelector('.editor-conteudo').innerHTML || '',
-            prazo: painel.querySelector('[name="prazo"]').value
+            ...local,
+            anexos: { ...gravado.anexos, ...local.anexos },
+            quadro: usuarioFin !== acesso.usuario ? null : gravado.quadro ?? local.quadro
         }
 
-        if (usuarioFin !== acesso.usuario)
-            atualizado.quadro = null
+        const resposta = await enviar(`postit/${id}`, atualizado)
+        if (!resposta?.success) throw resposta
 
-        await enviar(`postit/${id}`, atualizado)
-        removerPopup()
-
-        await verificarPostIts()
-
-    } catch (err) {
-        console.log(err)
-        popup({ mensagem: 'Falha ao criar um Post it: Fale com o suporte.' })
+        postitsPIT.set(id, atualizado)
+    } catch (erro) {
+        console.log(erro)
+        desfazer()
+        falhaPIT('salvar o post-it', erro)
     }
+
+    verificarPostIts()
 }
 
 // Quadro novo entra no fim.
@@ -546,8 +628,17 @@ async function confirmarExcluirPIT(id) {
 
 async function excluirPIT(id) {
 
-    await deletar(`postit/${id}`)
-    await verificarPostIts()
+    const linha = linhaPIT(id)
+    const voltar = posicaoPIT(linha)
+    linha?.remove()
+
+    // Em falha o deletar já mostra o erro do servidor; aqui só devolve o cartão.
+    const resposta = await deletar(`postit/${id}`)
+    if (!resposta?.success)
+        return voltar()
+
+    postitsPIT.delete(id)
+    verificarPostIts()
 
 }
 

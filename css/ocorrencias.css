@@ -710,6 +710,50 @@
     width: 100%;
 }
 
+/* Garantia do chamado (carregarSelosGarantia / faixaGarantia em ocorrencias.js) */
+.garantia-selo {
+    flex: none;
+    align-self: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+    background-color: #e3efe6;
+    color: #2f6b45;
+}
+
+.garantia-selo:empty {
+    display: none;
+}
+
+.garantia-selo[data-situacao="encerrada"] {
+    background-color: #f6e3dc;
+    color: #a2412a;
+}
+
+.garantia-faixa {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    box-sizing: border-box;
+    text-align: left;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    background-color: #eef3f0;
+    color: #324b3c;
+}
+
+.garantia-faixa.vigente {
+    background-color: #e3efe6;
+    color: #2f6b45;
+}
+
+.garantia-faixa.encerrada {
+    background-color: #f6e3dc;
+    color: #8e3a24;
+}
+
 .toolbar-janela {
     flex: 1;
     min-width: 0;

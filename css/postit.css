@@ -242,8 +242,11 @@
     overflow: visible;
 }
 
-.postits-coluna .tabela > tbody > tr,
-.postits-coluna .tabela > tbody > tr:hover {
+/* Linha da tabela é só suporte do cartão: sem zebra nem hover da tabela padrão. */
+#quadros .tabela > tbody > tr,
+#quadros .tabela > tbody > tr:nth-child(even),
+#quadros .tabela > tbody > tr:hover,
+#quadros .tabela > tbody > tr > td {
     background: transparent;
 }
 
