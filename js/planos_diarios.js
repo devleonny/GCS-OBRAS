@@ -1,7 +1,6 @@
 const estadoPlanoDiario = { plano: null, dias: [], data: '', origem: false, alterado: false, carregando: false, renderizando: false, sequencia: 0 }
 const numeroPlanoDiario = n => Number(n || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 })
 const dataPlanoDiario = data => data.split('-').reverse().join('/')
-const LIMITE_FOTOS_DIARIO = 12
 let bibliotecasDocumentoDiario
 
 async function apiPlanoDiario(rota, dados = {}, arquivo = false) {
@@ -43,15 +42,13 @@ async function telaPlanosDiarios() {
                 ${planos.map(p => `<option value="${escaparAtributo(p.id)}">${escaparAtributo(p.titulo)}</option>`).join('')}</select></label>
                 <div class="diario-acoes"><button id="botaoSalvarPlanoDiario" onclick="salvarPlanoDiario()" disabled>Salvar</button>
                 <button id="marcarPlantasDiario" onclick="alternarMarcacaoPlanoDiario()" aria-pressed="false" disabled>Marcar plantas</button>
-                <button id="fotosPlanoDiario" onclick="document.getElementById('arquivoFotosDiario').click()" hidden>Adicionar fotos</button>
-                <input type="file" id="arquivoFotosDiario" accept="image/jpeg,image/png,image/webp" multiple hidden onchange="enviarFotosPlanoDiario(this)">
                 <button id="baixarPlanoDiario" onclick="baixarWordPlanoDiario()" disabled>Baixar Word</button>
                 <button id="baixarPdfPlanoDiario" onclick="baixarWordPlanoDiario('pdf')" disabled>Baixar PDF</button>
                 <button id="excluirPlanoDiario" onclick="excluirDiaPlanoDiario()" hidden>Excluir dia</button></div>
             </header><div id="diasPlanoDiario" class="diario-dias"></div>
             <div id="statusPlanoDiario" class="diario-status" role="status" aria-live="polite"></div>
-            <div id="fotosPlanoDiarioLista" class="diario-fotos" hidden></div>
-            <div id="planoDiarioConteudo"></div></div>`
+            <div id="planoDiarioConteudo"></div>
+            <section id="galeriaPlanoDiario" class="diario-galeria" aria-label="Fotos das seções" hidden></section></div>`
         if (planos.length === 1) {
             document.getElementById('planoDiarioEscolha').value = planos[0].id
             await abrirPlanoDiario(planos[0].id)
@@ -69,6 +66,7 @@ async function abrirPlanoDiario(id) {
         estadoPlanoDiario.plano = null; estadoPlanoDiario.alterado = false
         document.getElementById('planoDiarioConteudo').replaceChildren()
         document.getElementById('diasPlanoDiario').replaceChildren()
+        desenharGaleriaPlanoDiario()
         controlesDocumentoDiario(); return
     }
     try {
@@ -112,13 +110,6 @@ function controlesDocumentoDiario() {
     }
     const pdf = document.getElementById('baixarPdfPlanoDiario')
     if (pdf) pdf.disabled = baixar?.disabled ?? true
-    // Fotos do dia: só nos modelos com a seção "04 Fotos da execução", e não na Origem.
-    const fotos = document.getElementById('fotosPlanoDiario')
-    if (fotos) {
-        fotos.hidden = !e.modelo?.fotos || e.origem || !e.plano
-        fotos.disabled = ocupado || (e.fotos?.length || 0) >= LIMITE_FOTOS_DIARIO
-    }
-    document.querySelectorAll('#fotosPlanoDiarioLista button').forEach(b => { b.disabled = ocupado })
     if (marcar && !e.plantas?.length) marcar.disabled = true
     const seletor = document.getElementById('planoDiarioEscolha')
     if (seletor) seletor.disabled = ocupado
@@ -136,8 +127,7 @@ async function renderizarPlanoDiario() {
     e.observador?.disconnect()
     e.modoMarcar = false; e.plantas = []
     e.renderizando = true; e.documento = null
-    e.fotos = e.origem ? [] : (e.dias.find(d => d.data_ref === e.data)?.dados?.fotos || []).map(f => ({ ...f }))
-    desenharFotosPlanoDiario()
+    desenharGaleriaPlanoDiario()
     controlesDocumentoDiario()
     const local = document.getElementById('planoDiarioConteudo')
     local.innerHTML = '<div class="diario-carregando"><img src="gifs/loading-gcs.png" alt="Carregando"></div>'
@@ -246,62 +236,107 @@ function lerPlanoDiario() {
         efetivo: Number(doc.getElementById('efetivoPlanoDiario').value),
         horario: doc.getElementById('horarioPlanoDiario').value,
         observacoes: e.dias.find(d => d.data_ref === e.data)?.dados?.observacoes || '',
-        marcacoes: e.marcacoes || [],
-        ...(e.modelo?.fotos ? { fotos: e.fotos || [] } : {})
+        marcacoes: e.marcacoes || []
     }
 }
 
-// Fotos do dia (seção 04 do Word): enviadas por /upload e gravadas no dia ao Salvar.
-function desenharFotosPlanoDiario() {
+// GALERIA DAS SEÇÕES 03 E 04 (abaixo da prévia): fotos com data e comentário, incluídas, alteradas e
+// removidas a qualquer momento e gravadas na hora (/planos-diarios/fotos), sem o Salvar do dia.
+// O Word/PDF de um dia leva as fotos com aquela data; a prévia só avisa (ela atualiza os gráficos
+// pelas últimas imagens da página, que as fotos deslocariam).
+function desenharGaleriaPlanoDiario() {
     const e = estadoPlanoDiario
-    const lista = document.getElementById('fotosPlanoDiarioLista')
-    if (!lista) return
-    lista.hidden = !e.modelo?.fotos || e.origem || !e.plano
-    if (lista.hidden) return lista.replaceChildren()
-    const fotos = e.fotos || []
-    lista.innerHTML = `<span class="diario-fotos-titulo">Fotos do dia (${fotos.length}/${LIMITE_FOTOS_DIARIO})</span>`
-        + (fotos.length
-            ? fotos.map((f, i) => `<figure class="diario-foto" title="${escaparAtributo(f.nome || f.link)}">
-                <img src="${escaparAtributo(`${api}/uploads/${f.link}`)}" alt="${escaparAtributo(f.nome || 'Foto do dia')}">
-                <button type="button" aria-label="Remover foto" title="Remover foto" onclick="removerFotoPlanoDiario(${i})">×</button></figure>`).join('')
-            : '<small>Nenhuma foto neste dia. Use "Adicionar fotos"; elas entram no relatório ao Salvar.</small>')
-    controlesDocumentoDiario()
+    const area = document.getElementById('galeriaPlanoDiario')
+    if (!area) return
+    const secoes = e.modelo?.secoes || []
+    area.hidden = !e.plano || !secoes.length
+    if (area.hidden) return area.replaceChildren()
+
+    const galeria = e.plano.galeria || []
+    const dia = e.origem ? null : e.data
+    area.innerHTML = secoes.map(({ secao, titulo }) => {
+        const fotos = galeria.filter(f => f.secao === secao)
+            .sort((a, b) => b.data.localeCompare(a.data) || String(b.criado_em).localeCompare(String(a.criado_em)))
+        const doDia = dia ? fotos.filter(f => f.data === dia).length : 0
+        const resumo = `${fotos.length} ${fotos.length === 1 ? 'foto' : 'fotos'}`
+            + (dia ? ` · ${doDia} no relatório de ${dataPlanoDiario(dia)}` : '')
+        return `
+            <div class="diario-galeria-secao">
+                <div class="diario-galeria-topo">
+                    <div><h3>${secao} · ${escaparAtributo(titulo)}</h3><small>${resumo}</small></div>
+                    <label class="diario-galeria-adicionar">Adicionar fotos
+                        <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden
+                            onchange="enviarFotosGaleriaDiario(this, '${secao}')">
+                    </label>
+                </div>
+                <div class="diario-galeria-grade">
+                    ${fotos.length ? fotos.map(f => `
+                        <figure class="diario-galeria-foto${f.data === dia ? ' no-dia' : ''}">
+                            <img src="${escaparAtributo(`${api}/uploads/${f.link}`)}" alt="${escaparAtributo(f.comentario || f.nome || 'Foto')}" loading="lazy">
+                            <button type="button" class="diario-galeria-remover" aria-label="Remover foto" title="Remover foto"
+                                onclick="removerFotoGaleriaDiario('${escaparAtributo(f.id)}')">×</button>
+                            <label>Data <input type="date" value="${escaparAtributo(f.data)}" required
+                                onchange="alterarFotoGaleriaDiario('${escaparAtributo(f.id)}', { data: this.value })"></label>
+                            <textarea rows="2" maxlength="1000" placeholder="Comentário" aria-label="Comentário da foto"
+                                onchange="alterarFotoGaleriaDiario('${escaparAtributo(f.id)}', { comentario: this.value })">${escaparAtributo(f.comentario || '')}</textarea>
+                        </figure>`).join('')
+                    : '<small class="diario-galeria-vazio">Nenhuma foto nesta seção.</small>'}
+                </div>
+            </div>`
+    }).join('')
 }
 
-async function enviarFotosPlanoDiario(input) {
+async function gravarGaleriaDiario(corpo, aviso) {
     const e = estadoPlanoDiario
-    if (!input.files?.length || e.carregando || e.renderizando) return
-    const restantes = LIMITE_FOTOS_DIARIO - (e.fotos?.length || 0)
-    if (input.files.length > restantes) {
-        input.value = ''
-        return popup({ mensagem: `Cada dia aceita até ${LIMITE_FOTOS_DIARIO} fotos. Você pode enviar mais ${restantes}.` })
-    }
     const status = document.getElementById('statusPlanoDiario')
-    e.carregando = true; controlesDocumentoDiario()
+    try {
+        const { galeria } = await apiPlanoDiario('fotos', { plano: e.plano.id, ...corpo })
+        e.plano.galeria = galeria
+        if (status && aviso) status.textContent = aviso
+    } catch (err) {
+        popup({ mensagem: err.message || 'Falha ao gravar a foto.' })
+    } finally {
+        desenharGaleriaPlanoDiario()
+    }
+}
+
+async function enviarFotosGaleriaDiario(input, secao) {
+    const e = estadoPlanoDiario
+    if (!input.files?.length || !e.plano) return
+    const status = document.getElementById('statusPlanoDiario')
+    const rotulo = input.closest('label')
+    rotulo?.classList.add('enviando')
     status.textContent = 'Enviando fotos...'
     try {
         const enviadas = await importarAnexos({ input })
         // Em falha o importarAnexos já mostrou o aviso.
         if (!Array.isArray(enviadas) || !enviadas.length) { status.textContent = ''; return }
-        e.fotos.push(...enviadas.filter(a => a?.link).map(a => ({ link: a.link, nome: a.nome || '' })))
-        e.alterado = true
-        status.textContent = 'Fotos adicionadas. Salve para incluí-las no relatório.'
+        // Data inicial: o dia aberto (na Origem, hoje); dá para trocar em cada foto depois.
+        const data = e.origem ? dataServidor().toLocaleDateString('en-CA') : e.data
+        await gravarGaleriaDiario({ acao: 'incluir', secao, data,
+            fotos: enviadas.filter(a => a?.link).map(a => ({ link: a.link, nome: a.nome || '' })) },
+            `Fotos gravadas com data de ${dataPlanoDiario(data)}. Elas entram no Word/PDF desse dia.`)
     } catch (err) {
         status.textContent = ''
         popup({ mensagem: err.message || 'Falha ao enviar as fotos.' })
     } finally {
         input.value = ''
-        e.carregando = false
-        desenharFotosPlanoDiario()
+        rotulo?.classList.remove('enviando')
     }
 }
 
-function removerFotoPlanoDiario(indice) {
-    const e = estadoPlanoDiario
-    if (e.carregando || e.renderizando) return
-    e.fotos.splice(indice, 1)
-    e.alterado = true
-    desenharFotosPlanoDiario()
+async function alterarFotoGaleriaDiario(id, campos) {
+    if (campos.data !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(campos.data)) {
+        desenharGaleriaPlanoDiario()
+        return popup({ mensagem: 'Informe uma data válida para a foto.' })
+    }
+    await gravarGaleriaDiario({ acao: 'alterar', id, ...campos }, 'Foto atualizada.')
+}
+
+async function removerFotoGaleriaDiario(id) {
+    if (!(await confirmarPopup({ mensagem: 'Remover esta foto da galeria? Ela sai de todos os relatórios.', textoConfirmar: 'Remover foto' })))
+        return
+    await gravarGaleriaDiario({ acao: 'remover', id }, 'Foto removida.')
 }
 
 function atualizarNumerosPlanoDiario() {
