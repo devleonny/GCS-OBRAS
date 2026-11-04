@@ -255,6 +255,7 @@ const esquemaBotoes = {
             img: 'reembolso',
             sub: [
                 { nome: 'Ver Pagamentos', funcao: 'telaPagamentos', img: 'reembolso' },
+                { nome: 'Dashboard', funcao: 'telaDashboardReembolsos', img: 'dashboard', permitido: ['fin', 'diretoria', 'adm'] },
                 { nome: 'Solicitar Pagamento', funcao: 'formularioPagamento', img: 'dinheiro' },
                 {
                     nome: 'Baixar Excel',

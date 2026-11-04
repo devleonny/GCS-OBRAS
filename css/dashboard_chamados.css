@@ -376,6 +376,33 @@
     min-width: 120px;
 }
 
+/* Lista longa com cabeçalho fixo (pagamentos sem departamento). */
+.dash-rolagem {
+    max-height: 420px;
+    overflow: auto;
+}
+
+.dash-rolagem thead th {
+    position: sticky;
+    top: 0;
+    background: var(--dash-cartao);
+}
+
+.dash-tabela-clicavel tbody tr {
+    cursor: pointer;
+}
+
+.dash-tabela-clicavel tbody tr:hover,
+.dash-tabela-clicavel tbody tr:focus-visible {
+    background: #e8f0fb;
+    outline: none;
+}
+
+.dash-tabela-clicavel td:last-child {
+    text-align: right;
+    white-space: nowrap;
+}
+
 .dash-celula-barra b {
     flex: none;
     white-space: nowrap;

@@ -11,7 +11,7 @@ const VERSOES_CSS = {
     "criar_orcamento": "a398d6ec",
     "custos": "0fbcf30d",
     "custos_pessoal": "c5dbe7fd",
-    "dashboard_chamados": "4b044810",
+    "dashboard_chamados": "928a2e8b",
     "estilo": "083d70db",
     "estoque": "ff848a67",
     "festas": "81ec7e62",
