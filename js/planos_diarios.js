@@ -246,7 +246,7 @@ function lerPlanoDiario() {
 
 // GALERIA DAS SEÇÕES 03 E 04 (abaixo da prévia): fotos com data e comentário, incluídas, alteradas e
 // removidas a qualquer momento e gravadas na hora (/planos-diarios/fotos), sem o Salvar do dia.
-// A prévia e o Word/PDF de um dia levam as fotos com aquela data, no fim de cada seção.
+// A prévia e o Word/PDF de um dia levam as fotos até aquela data (acumulado), no fim de cada seção.
 function desenharGaleriaPlanoDiario() {
     const e = estadoPlanoDiario
     const area = document.getElementById('galeriaPlanoDiario')
@@ -260,7 +260,7 @@ function desenharGaleriaPlanoDiario() {
     area.innerHTML = secoes.map(({ secao, titulo }) => {
         const fotos = galeria.filter(f => f.secao === secao)
             .sort((a, b) => b.data.localeCompare(a.data) || String(b.criado_em).localeCompare(String(a.criado_em)))
-        const doDia = dia ? fotos.filter(f => f.data === dia).length : 0
+        const doDia = dia ? fotos.filter(f => f.data <= dia).length : 0
         const resumo = `${fotos.length} ${fotos.length === 1 ? 'foto' : 'fotos'}`
             + (dia ? ` · ${doDia} no relatório de ${dataPlanoDiario(dia)}` : '')
         return `
@@ -274,7 +274,7 @@ function desenharGaleriaPlanoDiario() {
                 </div>
                 <div class="diario-galeria-grade">
                     ${fotos.length ? fotos.map(f => `
-                        <figure class="diario-galeria-foto${f.data === dia ? ' no-dia' : ''}">
+                        <figure class="diario-galeria-foto${dia && f.data <= dia ? ' no-dia' : ''}">
                             <img src="${escaparAtributo(`${api}/uploads/${f.link}`)}" alt="${escaparAtributo(f.comentario || f.nome || 'Foto')}" loading="lazy">
                             <button type="button" class="diario-galeria-remover" aria-label="Remover foto" title="Remover foto"
                                 onclick="removerFotoGaleriaDiario('${escaparAtributo(f.id)}')">×</button>
@@ -327,7 +327,7 @@ async function enviarFotosGaleriaDiario(input, secao) {
         const data = e.origem ? dataServidor().toLocaleDateString('en-CA') : e.data
         await gravarGaleriaDiario({ acao: 'incluir', secao, data,
             fotos: enviadas.filter(a => a?.link).map(a => ({ link: a.link, nome: a.nome || '' })) },
-            `Fotos gravadas com data de ${dataPlanoDiario(data)}. Elas aparecem na prévia e no Word/PDF desse dia.`)
+            `Fotos gravadas com data de ${dataPlanoDiario(data)}. Elas aparecem na prévia e no Word/PDF desse dia em diante.`)
     } catch (err) {
         status.textContent = ''
         popup({ mensagem: err.message || 'Falha ao enviar as fotos.' })
