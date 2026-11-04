@@ -221,9 +221,13 @@ function prepararCamposDocumentoDiario(doc) {
             { min: 0, max: a.previsto, step: '0.001', 'data-atividade': a.id, 'aria-label': `${tabelas[1].rows[0].cells[5].textContent}: ${descricao}` })
         return { ...a, descricao, linha }
     })
-    e.graficoResumo = [...doc.images].at(-3)
-    e.grafico = [...doc.images].at(-2)
-    e.graficoGeral = [...doc.images].at(-1)
+    // Gráficos pelo tamanho que o servidor dá a eles (468pt de largura, cada um com sua altura):
+    // as fotos das seções 03 e 04 (até 425pt) também aparecem e podem vir depois dos gráficos.
+    const grafico = altura => [...doc.images]
+        .filter(img => img.style.width === '468pt' && Math.abs(parseFloat(img.style.height) - altura) < 0.1).at(-1) || null
+    e.graficoResumo = grafico(90.2)
+    e.grafico = grafico(257.95)
+    e.graficoGeral = grafico(132)
     atualizarNumerosPlanoDiario()
 }
 
@@ -242,8 +246,7 @@ function lerPlanoDiario() {
 
 // GALERIA DAS SEÇÕES 03 E 04 (abaixo da prévia): fotos com data e comentário, incluídas, alteradas e
 // removidas a qualquer momento e gravadas na hora (/planos-diarios/fotos), sem o Salvar do dia.
-// O Word/PDF de um dia leva as fotos com aquela data; a prévia só avisa (ela atualiza os gráficos
-// pelas últimas imagens da página, que as fotos deslocariam).
+// A prévia e o Word/PDF de um dia levam as fotos com aquela data, no fim de cada seção.
 function desenharGaleriaPlanoDiario() {
     const e = estadoPlanoDiario
     const area = document.getElementById('galeriaPlanoDiario')
@@ -289,15 +292,24 @@ function desenharGaleriaPlanoDiario() {
 async function gravarGaleriaDiario(corpo, aviso) {
     const e = estadoPlanoDiario
     const status = document.getElementById('statusPlanoDiario')
+    let gravou = false
     try {
         const { galeria } = await apiPlanoDiario('fotos', { plano: e.plano.id, ...corpo })
         e.plano.galeria = galeria
-        if (status && aviso) status.textContent = aviso
+        gravou = true
     } catch (err) {
         popup({ mensagem: err.message || 'Falha ao gravar a foto.' })
     } finally {
         desenharGaleriaPlanoDiario()
     }
+    if (!gravou) return
+    // Redesenhar a prévia descarta números digitados e não salvos: com pendência, só avisa.
+    if (e.alterado || e.renderizando) {
+        if (status) status.textContent = `${aviso} Salve o dia para vê-las na prévia.`
+        return
+    }
+    await renderizarPlanoDiario()
+    if (status && aviso) status.textContent = aviso
 }
 
 async function enviarFotosGaleriaDiario(input, secao) {
@@ -315,7 +327,7 @@ async function enviarFotosGaleriaDiario(input, secao) {
         const data = e.origem ? dataServidor().toLocaleDateString('en-CA') : e.data
         await gravarGaleriaDiario({ acao: 'incluir', secao, data,
             fotos: enviadas.filter(a => a?.link).map(a => ({ link: a.link, nome: a.nome || '' })) },
-            `Fotos gravadas com data de ${dataPlanoDiario(data)}. Elas entram no Word/PDF desse dia.`)
+            `Fotos gravadas com data de ${dataPlanoDiario(data)}. Elas aparecem na prévia e no Word/PDF desse dia.`)
     } catch (err) {
         status.textContent = ''
         popup({ mensagem: err.message || 'Falha ao enviar as fotos.' })
