@@ -185,8 +185,8 @@ function desenharDashOrcamentos({ empresa, periodo, empresas, dados }) {
 
         <section class="dash-linha">
             <div class="dash-card">
-                <h3>Orçamentos por analista</h3>
-                ${barrasDash(dados.analistas, { complemento: a => moedaDash(a.valor) })}
+                <h3>Orçamentos por usuário</h3>
+                ${barrasDash(dados.usuarios, { complemento: u => moedaDash(u.valor) })}
             </div>
             <div class="dash-card">
                 <h3>Clientes que mais faturaram</h3>
