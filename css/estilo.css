@@ -1997,3 +1997,125 @@ img[src$="loading-gcs.png"] {
     max-width: 5rem;
     max-height: 5rem;
 }
+
+/* Toolbar no celular: os ícones da direita saíam da tela e o círculo de usuários cobria o
+   título. Aqui vira grade: menu, título, botão de técnicos livres (só o ícone, sem os nomes
+   rolando) e ícones numa linha; o aviso de aniversário, quando há, numa segunda linha.
+   O conteúdo (.layout) passa a ocupar o que sobrar da altura, em vez de 94vh fixos. */
+@media (max-width: 760px) {
+    .toolbar-top {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto auto;
+        align-items: center;
+        gap: 2px 8px;
+        height: auto;
+        min-height: 48px;
+        padding: 4px 8px;
+        box-sizing: border-box;
+        flex: none;
+    }
+
+    .toolbar-top > .toolbar-interno {
+        display: contents;
+    }
+
+    .toolbar-interno > img {
+        width: 28px;
+        margin-left: 0 !important;
+    }
+
+    .toolbar-interno > [name="titulo"] {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: white;
+        font-size: 0.95rem;
+    }
+
+    .toolbar-top > .cabecalho-usuario {
+        grid-column: 4;
+        grid-row: 1;
+        gap: 2px;
+        margin-right: 0;
+        padding: 0;
+    }
+
+    /* Só o botão do calendário, ao lado dos ícones; os nomes rolando ficam desligados no celular. */
+    .toolbar-top .tecnicos-livres {
+        grid-column: 3;
+        grid-row: 1;
+        flex: none;
+        margin: 0;
+    }
+
+    .toolbar-top .tecnicos-livres-janela {
+        display: none;
+    }
+
+    /* Botão do calendário vira só o ícone no contorno verde; o texto continua para leitores de tela. */
+    .toolbar-top .tecnicos-livres-data {
+        padding: 4px 8px;
+    }
+
+    .toolbar-top .tecnicos-livres-texto {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .toolbar-top .aniversario-aviso {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        justify-self: start;
+        max-width: 100%;
+        min-width: 0;
+        margin: 0 0 4px;
+        contain: inline-size;
+    }
+
+    /* Ícones menores, com o contador como selo no canto (antes ficava ao lado e dobrava a largura). */
+    .cabecalho-usuario .atalho-cabecalho-gcs,
+    .cabecalho-usuario .lembrete-comunicado-gcs {
+        position: relative;
+        min-height: 32px;
+        padding: 4px;
+    }
+
+    .cabecalho-usuario .atalho-cabecalho-gcs img,
+    .cabecalho-usuario .lembrete-comunicado-gcs img,
+    .cabecalho-usuario .botao-usuarios img {
+        width: 22px;
+        height: 22px;
+    }
+
+    .cabecalho-usuario .contador-toolbar-gcs,
+    .cabecalho-usuario .lembrete-comunicado-contador {
+        position: absolute;
+        top: 0;
+        right: -2px;
+        min-width: 16px;
+        height: 16px;
+        min-height: 16px;
+        padding: 0 4px;
+        font-size: 9px;
+        line-height: 16px;
+    }
+
+    .cabecalho-usuario .botao-usuarios {
+        padding-right: 0.5rem;
+    }
+
+    .cabecalho-usuario .botao-usuarios label {
+        font-size: 0.85rem !important;
+    }
+
+    .layout {
+        flex: 1 1 auto;
+        height: auto;
+        min-height: 0;
+    }
+}

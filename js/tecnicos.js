@@ -549,7 +549,7 @@ function renderTecnicosLivres(livres, hoje) {
             onclick="event.stopPropagation(); abrirCalendarioTecnicos()"
             onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); abrirCalendarioTecnicos() }"><svg class="tecnicos-livres-icone" viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M15.5 11.5l2.2 2.2 4.3-4.4"/>
-            </svg> Livres hoje · ${dia}/${mes}</span>
+            </svg> <span class="tecnicos-livres-texto">Livres hoje · ${dia}/${mes}</span></span>
         <div class="tecnicos-livres-janela" aria-label="${livres.length} técnicos livres hoje">
             <div class="tecnicos-livres-faixa" style="--duracao-letreiro: ${Math.max(20, livres.length * 4)}s">
                 <div class="tecnicos-livres-grupo">${conteudo}</div>
