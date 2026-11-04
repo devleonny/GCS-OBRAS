@@ -200,7 +200,8 @@ function desenharDashReembolsos({ empresa, empresas, periodo, dados }) {
             ${semDepartamentoRe(dados.semDepartamento, tipo('Sem departamento').lancamentos)}
         </section>
 
-        <p class="dash-nota">Período pelo vencimento. Fora da análise: pagamentos cancelados, excluídos, reprovados e operações financeiras (CDB e pagamento de empréstimos).
+        <p class="dash-nota">Período pelo vencimento. Fora da análise: pagamentos cancelados, reprovados, operações financeiras (CDB e pagamento de empréstimos)
+            e excluídos, exceto salários, 13º, bonificações, férias e rescisões, que a integração esconde da lista mas foram pagos.
             Departamentos pela parte de cada um na distribuição do pagamento; nomes iguais com e sem acento são somados juntos.</p>`
 
     ligarTooltipsDash(conteudo)
