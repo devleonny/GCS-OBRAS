@@ -842,11 +842,13 @@ function linhasOrcAprovacao(orcamento) {
 
     if (custo_original) {
 
-        const diferenca = totalOriginal - total
+        // Novo menos original, como no resumo do topo: positivo = acréscimo, negativo = desconto.
+        const diferenca = total - totalOriginal
+        const seta = diferenca > 0 ? 'acima' : diferenca < 0 ? 'abaixo' : null
 
         divDiferenca = `
-            <div style="${horizontal}; gap: 1rem;">
-                <img src="imagens/${diferenca > 0 ? 'acima' : 'abaixo'}.png">
+            <div style="${horizontal}; gap: 1rem;" title="${diferenca > 0 ? 'Acréscimo' : diferenca < 0 ? 'Desconto' : 'Sem diferença'}">
+                ${seta ? `<img src="imagens/${seta}.png">` : ''}
                 <span>${dinheiro(diferenca)}</span>
             </div>
         `

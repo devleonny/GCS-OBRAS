@@ -771,9 +771,17 @@ async function formularioPagamento() {
             {
                 texto: 'Anexos Diversos',
                 elemento: `
-                <div style="${vertical}; align-items: end; gap: 5px;">
+                <div style="${vertical}; align-items: stretch; gap: 5px; width: 100%;">
 
-                    <input type="file" id="aPagamentos" multiple>
+                    <label class="pag-anexo-area"
+                        ondragenter="event.preventDefault(); this.classList.add('arrastando')"
+                        ondragover="event.preventDefault()"
+                        ondragleave="if (!this.contains(event.relatedTarget)) this.classList.remove('arrastando')"
+                        ondrop="soltarAnexosPagamento(event, this)">
+                        <input type="file" id="aPagamentos" multiple aria-label="Selecionar anexos" onchange="mostrarAnexosPagamento(this)">
+                        <span class="pag-anexo-icone" aria-hidden="true">⇪</span>
+                        <span class="pag-anexo-texto">Arraste os arquivos aqui ou <u>clique para escolher</u></span>
+                    </label>
 
                     <div id="anexosDiversos" style="${vertical}; gap: 2px;">
                         ${Object.values(anexos || {}).map(anexo => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoTemporario('${anexo.link}')`)).join('')}
@@ -1102,6 +1110,42 @@ async function removerCampo(xis) {
     delete controlesCxOpcoes[idAleatorio]
 
     await calculadoraPagamento()
+}
+
+// Área de arrastar dos anexos: os arquivos soltos somam aos já escolhidos no próprio
+// <input id="aPagamentos">, que é o que o salvamento lê (importarAnexos).
+function soltarAnexosPagamento(event, area) {
+    event.preventDefault()
+    area.classList.remove('arrastando')
+
+    const novos = [...(event.dataTransfer?.files || [])]
+    if (!novos.length) return
+
+    const input = area.querySelector('input[type="file"]')
+    const transferencia = new DataTransfer()
+    for (const arquivo of [...input.files, ...novos])
+        transferencia.items.add(arquivo)
+    input.files = transferencia.files
+    mostrarAnexosPagamento(input)
+}
+
+function mostrarAnexosPagamento(input) {
+    const area = input.closest('.pag-anexo-area')
+    const texto = area?.querySelector('.pag-anexo-texto')
+    if (!texto) return
+
+    const arquivos = [...input.files]
+    area.classList.toggle('com-arquivo', arquivos.length > 0)
+
+    if (!arquivos.length) {
+        texto.innerHTML = 'Arraste os arquivos aqui ou <u>clique para escolher</u>'
+        return
+    }
+
+    // Nome do arquivo vem do usuário: textContent, nunca innerHTML.
+    texto.textContent = arquivos.length === 1
+        ? arquivos[0].name
+        : `${arquivos.length} arquivos: ${arquivos.map(a => a.name).join(', ')}`
 }
 
 // Recomeçar apaga o rascunho inteiro (campos e anexos): pede confirmação antes.

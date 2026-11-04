@@ -926,3 +926,65 @@
     background-color: #b12425;
     border-color: #8f1c1d;
 }
+
+/* Área de arrastar dos anexos do formulário (soltarAnexosPagamento): mesmo visual do RH. */
+.pag-anexo-area {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 14px 12px;
+    border: 2px dashed #a9c4b2;
+    border-radius: 10px;
+    background: #f7faf8;
+    color: #4d5f54;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.pag-anexo-area:hover,
+.pag-anexo-area:focus-within {
+    border-color: #249f41;
+    background: #eef6f0;
+}
+
+.pag-anexo-area.arrastando {
+    border-color: #249f41;
+    border-style: solid;
+    background: #e2efe7;
+}
+
+.pag-anexo-area.com-arquivo {
+    border-style: solid;
+    border-color: #8cc7a0;
+    background: #eef6f0;
+}
+
+/* O input fica invisível por cima da área: o clique abre o seletor de arquivos. */
+.pag-anexo-area input[type="file"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.pag-anexo-icone {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #249f41;
+    color: #fff;
+}
+
+.pag-anexo-texto {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
