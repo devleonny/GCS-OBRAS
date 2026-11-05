@@ -120,7 +120,9 @@ function atualizarVisualDropdown(path, pag) {
     atualizarAcoesDropdown(drop);
 }
 
-// Topo do menu: "Limpar" (com seleção) e, com busca, marcar/desmarcar só as encontradas.
+// Topo do menu: "Limpar" (com seleção) e marcar/desmarcar em bloco: sem busca, todas as opções
+// ("Marcar todos", para depois desmarcar só as que não interessam, ex.: todos os status menos
+// SOLUCIONADA e CANCELADO); com busca, só as encontradas.
 function atualizarAcoesDropdown(drop) {
     const limpar = drop.querySelector('[data-acao="limpar"]');
     const encontrados = drop.querySelector('[data-acao="encontrados"]');
@@ -133,12 +135,15 @@ function atualizarAcoesDropdown(drop) {
 
     if (!encontrados) return;
 
-    const visiveis = buscaAtivaDropdown(drop) ? opcoesVisiveisDropdown(drop) : [];
-    encontrados.hidden = visiveis.length === 0;
+    const busca = buscaAtivaDropdown(drop);
+    const visiveis = opcoesVisiveisDropdown(drop);
+    encontrados.hidden = visiveis.length < (busca ? 1 : 2);
 
     const todosMarcados = visiveis.length > 0 && visiveis.every(input => input.checked);
     encontrados.dataset.marcar = todosMarcados ? 'N' : 'S';
-    encontrados.textContent = `${todosMarcados ? 'Desmarcar' : 'Marcar'} ${visiveis.length === 1 ? 'o encontrado' : `os ${visiveis.length} encontrados`}`;
+    encontrados.textContent = busca
+        ? `${todosMarcados ? 'Desmarcar' : 'Marcar'} ${visiveis.length === 1 ? 'o encontrado' : `os ${visiveis.length} encontrados`}`
+        : `${todosMarcados ? 'Desmarcar' : 'Marcar'} todos`;
 }
 
 // Marcar várias opções seguidas faz uma consulta só: a tela atualiza na pausa entre cliques
@@ -303,8 +308,8 @@ function montarDropdownCheckbox({ titulo, op = '=', pag, funcao = null, path, op
                         ${busca}
                         <div class="dropdown-acoes">
                             <span class="dropdown-dica">Nada marcado = todos</span>
-                            <button type="button" data-acao="encontrados" data-marcar="S" hidden
-                                onclick="alternarEncontradosDropdown(this)"></button>
+                            <button type="button" data-acao="encontrados" data-marcar="${validas.length && validas.every(o => marcados.includes(o)) ? 'N' : 'S'}"
+                                ${validas.length < 2 ? 'hidden' : ''} onclick="alternarEncontradosDropdown(this)">${validas.length && validas.every(o => marcados.includes(o)) ? 'Desmarcar' : 'Marcar'} todos</button>
                             <button type="button" data-acao="limpar" ${marcados.length ? '' : 'disabled'}
                                 onclick="limparSelecaoDropdown(this)">${marcados.length ? `Limpar (${marcados.length})` : 'Limpar'}</button>
                         </div>
