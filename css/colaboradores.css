@@ -1583,10 +1583,11 @@
 .colab-anexar {
     display: inline-flex;
     align-items: center;
-    padding: 6px 12px;
+    padding: 3px 14px;
     background: var(--colab-marca);
+    border: 1px solid #2d5739;
     color: white;
-    border-radius: 7px;
+    border-radius: 999px;
     font-weight: 600;
     font-size: 13px;
     cursor: pointer;

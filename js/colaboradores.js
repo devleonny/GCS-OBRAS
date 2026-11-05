@@ -1283,11 +1283,15 @@ async function gerarDocumentoColab(idColab, idReq) {
     if (!r)
         return popup({ mensagem: 'Requisição não encontrada. Atualize a tela.' })
 
+    // Emitente: a IAC, com os mesmos dados dos orçamentos dela (js/pdf_orcamento.js).
+    const iac = (typeof EMPRESAS_PDF_ORCAMENTO !== 'undefined' && EMPRESAS_PDF_ORCAMENTO.IAC) || {}
+    const empresa = [iac['Razão Social'] || 'IAC', iac.CNPJ ? `CNPJ ${iac.CNPJ}` : ''].filter(Boolean).join(', ')
+
     const devolucao = r.movimento == 'DEVOLUÇÃO'
     const titulo = devolucao ? 'COMPROVANTE DE DEVOLUÇÃO DE FERRAMENTAS E MATERIAIS' : 'RECIBO DE ENTREGA DE FERRAMENTAS E MATERIAIS'
     const declaracao = devolucao
-        ? 'Declaro ter recebido de volta os itens relacionados abaixo, nas quantidades indicadas.'
-        : 'Declaro ter recebido os itens relacionados abaixo, nas quantidades indicadas, para uso exclusivo nas atividades profissionais. '
+        ? `Declaro ter recebido de volta, para a ${empresa}, os itens relacionados abaixo, nas quantidades indicadas.`
+        : `Declaro ter recebido da ${empresa} os itens relacionados abaixo, nas quantidades indicadas, para uso exclusivo nas atividades profissionais. `
             + 'As ferramentas ficam sob minha guarda e devem ser devolvidas quando solicitado ou ao término do vínculo.'
 
     const linhas = r.itens.map(i => `
@@ -1306,8 +1310,15 @@ async function gerarDocumentoColab(idColab, idReq) {
     const html = `
         <div id="pdf" style="${vertical}; gap: 1rem; width: 95%; padding: 1rem; font-size: 12px;">
             <div style="${horizontal}; gap: 1rem;">
-                <img style="width: 7rem;" src="https://gcs.app.br/imagens/GrupoCostaSilva.png">
+                <img style="width: 100px;" src="https://gcs.app.br/imagens/logo-iac.png">
                 <span style="font-size: 1.4rem;">${titulo}</span>
+            </div>
+
+            <div style="${vertical}; gap: 2px; padding: 8px 10px; border: 1px solid #c9d4cd; border-radius: 6px;">
+                <span><b>Empresa</b> ${escaparAtributo(iac['Razão Social'] || 'IAC')}</span>
+                <span><b>CNPJ</b> ${escaparAtributo(iac.CNPJ || '')}</span>
+                ${iac['Localização'] ? `<span><b>Endereço</b> ${escaparAtributo(iac['Localização'])}</span>` : ''}
+                ${iac['E-mail'] || iac.Telefones ? `<span><b>Contato</b> ${escaparAtributo([iac['E-mail'], iac.Telefones].filter(Boolean).join(' · '))}</span>` : ''}
             </div>
 
             <div style="${vertical}; gap: 2px;">
