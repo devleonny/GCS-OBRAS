@@ -93,3 +93,7 @@
 .diario-galeria-fora { font-size: 11px; font-weight: 600; color: #b45309; }
 /* Arrastando fotos sobre a seção da galeria. */
 .diario-galeria-secao.soltando { border-color: #269368; border-style: dashed; background: #eef8f2; box-shadow: 0 0 0 2px #26936855; }
+/* O cartão é um <button>: o estilo global não quebra o texto e ele saía do cartão. */
+.diario-galeria-foto { min-width: 0; }
+.diario-galeria-abrir { min-width: 0; white-space: normal; }
+.diario-galeria-fora, .diario-galeria-comentario, .diario-galeria-dados { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
