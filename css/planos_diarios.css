@@ -90,3 +90,4 @@
 .diario-editor-comentario { flex: 1 1 320px; }
 .diario-editor-comentario textarea { width: 100%; box-sizing: border-box; resize: vertical; padding: 5px 6px; border: 1px solid #cbd5cf; border-radius: 5px; font: inherit; font-size: 13px; }
 @media(max-width:700px) { .diario-galeria { padding: 12px 14px 20px; } .diario-editor { padding: 8px; } .diario-ferramenta span:last-child { font-size: 11px; } }
+.diario-galeria-fora { font-size: 11px; font-weight: 600; color: #b45309; }
