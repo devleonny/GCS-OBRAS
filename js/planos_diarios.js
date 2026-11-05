@@ -41,7 +41,6 @@ async function telaPlanosDiarios() {
                 <select id="planoDiarioEscolha" onchange="abrirPlanoDiario(this.value)"><option value="">Selecione</option>
                 ${planos.map(p => `<option value="${escaparAtributo(p.id)}">${escaparAtributo(p.titulo)}</option>`).join('')}</select></label>
                 <div class="diario-acoes"><button id="botaoSalvarPlanoDiario" onclick="salvarPlanoDiario()" disabled>Salvar</button>
-                <button id="marcarPlantasDiario" onclick="alternarMarcacaoPlanoDiario()" aria-pressed="false" disabled>Marcar plantas</button>
                 <button id="baixarPlanoDiario" onclick="baixarWordPlanoDiario()" disabled>Baixar Word</button>
                 <button id="baixarPdfPlanoDiario" onclick="baixarWordPlanoDiario('pdf')" disabled>Baixar PDF</button>
                 <button id="excluirPlanoDiario" onclick="excluirDiaPlanoDiario()" hidden>Excluir dia</button></div>
@@ -97,11 +96,6 @@ function controlesDocumentoDiario() {
     const salvar = document.getElementById('botaoSalvarPlanoDiario')
     const baixar = document.getElementById('baixarPlanoDiario')
     if (salvar) salvar.disabled = ocupado || (e.origem && !e.alterado) || !e.plano || !e.documento
-    const marcar = document.getElementById('marcarPlantasDiario')
-    if (marcar) {
-        marcar.disabled = ocupado || !e.documento
-        marcar.setAttribute('aria-pressed', e.modoMarcar ? 'true' : 'false')
-    }
     if (baixar) baixar.disabled = ocupado || e.alterado || !e.plano || (!e.origem && !e.dias.some(d => d.data_ref === e.data))
     const excluir = document.getElementById('excluirPlanoDiario')
     if (excluir) {
@@ -110,22 +104,16 @@ function controlesDocumentoDiario() {
     }
     const pdf = document.getElementById('baixarPdfPlanoDiario')
     if (pdf) pdf.disabled = baixar?.disabled ?? true
-    if (marcar && !e.plantas?.length) marcar.disabled = true
     const seletor = document.getElementById('planoDiarioEscolha')
     if (seletor) seletor.disabled = ocupado
     e.documento?.querySelectorAll('input').forEach(el => { el.disabled = ocupado; el.readOnly = e.origem && el.type !== 'date' })
     document.querySelectorAll('#diasPlanoDiario button').forEach(el => { el.disabled = ocupado })
-    e.plantas?.forEach(({ imagem, camada }) => {
-        imagem.style.cursor = e.modoMarcar && !ocupado ? 'crosshair' : ''
-        camada.querySelectorAll('button').forEach(b => { b.disabled = ocupado || !e.modoMarcar; b.style.pointerEvents = b.disabled ? 'none' : 'auto' })
-    })
 }
 
 async function renderizarPlanoDiario() {
     const e = estadoPlanoDiario
     const sequencia = ++e.sequencia
     e.observador?.disconnect()
-    e.modoMarcar = false; e.plantas = []
     e.renderizando = true; e.documento = null
     desenharGaleriaPlanoDiario()
     controlesDocumentoDiario()
@@ -135,7 +123,7 @@ async function renderizarPlanoDiario() {
         + e.dias.slice().sort((a, b) => a.data_ref.localeCompare(b.data_ref)).map(d =>
         `<button type="button" class="diario-dia ${!e.origem && d.data_ref === e.data ? 'selecionado' : ''}" onclick="selecionarDataPlanoDiario('${d.data_ref}')"><span aria-label="Preenchido">✓</span> ${dataPlanoDiario(d.data_ref)}</button>`).join('')
     try {
-        const [arquivo] = await Promise.all([apiPlanoDiario('visualizar', { plano: e.plano.id, data: e.data, origem: e.origem, semMarcacoes: true }, true), carregarBibliotecasDiario()])
+        const [arquivo] = await Promise.all([apiPlanoDiario('visualizar', { plano: e.plano.id, data: e.data, origem: e.origem }, true), carregarBibliotecasDiario()])
         if (sequencia !== e.sequencia || !local.isConnected) return
         const frame = document.createElement('iframe')
         frame.id = 'documentoPlanoDiario'; frame.title = 'Checklist'; frame.setAttribute('sandbox', 'allow-same-origin allow-scripts')
@@ -162,7 +150,6 @@ async function renderizarPlanoDiario() {
         prepararCamposDocumentoDiario(doc)
         await Promise.all([...doc.images].map(img => img.decode().catch(() => {})))
         if (doc.fonts?.ready) await doc.fonts.ready
-        await prepararMarcacoesPlanoDiario(doc, arquivo)
         if (sequencia !== e.sequencia || !frame.isConnected) return
         const ajustar = () => { if (frame.isConnected) frame.style.height = `${Math.ceil(doc.getElementById('documento').getBoundingClientRect().height) + 4}px` }
         ajustar()
@@ -239,14 +226,76 @@ function lerPlanoDiario() {
         gerente: doc.getElementById('gerentePlanoDiario').value,
         efetivo: Number(doc.getElementById('efetivoPlanoDiario').value),
         horario: doc.getElementById('horarioPlanoDiario').value,
-        observacoes: e.dias.find(d => d.data_ref === e.data)?.dados?.observacoes || '',
-        marcacoes: e.marcacoes || []
+        observacoes: e.dias.find(d => d.data_ref === e.data)?.dados?.observacoes || ''
     }
 }
 
-// GALERIA DAS SEÇÕES 03 E 04 (abaixo da prévia): fotos com data e comentário, incluídas, alteradas e
-// removidas a qualquer momento e gravadas na hora (/planos-diarios/fotos), sem o Salvar do dia.
-// A prévia e o Word/PDF de um dia levam as fotos até aquela data (acumulado), no fim de cada seção.
+// GALERIA DAS SEÇÕES 03 E 04 (abaixo da prévia): fotos com data, comentário e marcações, incluídas,
+// alteradas e removidas a qualquer momento e gravadas na hora (/planos-diarios/fotos), sem o Salvar
+// do dia. A prévia e o Word/PDF de um dia levam as fotos até aquela data (acumulado), no fim de cada
+// seção, com as marcações de data até o dia. Data, comentário e marcações mudam só pelo editor da foto.
+
+// Tipos de marcação: os da legenda das plantas e a linha livre. Mesma tabela no servidor
+// (gcs/SCRIPTS/planos_diarios.js, TIPOS_MARCACAO). Coordenadas de 0 a 1, proporcionais à imagem.
+const TIPOS_MARCACAO_DIARIO = {
+    rack: { rotulo: 'Rack IDF', cor: '#e11d2e', tracejado: true, forma: 'retangulo' },
+    eletroduto_dados: { rotulo: 'Eletroduto de dados', cor: '#16a34a', tracejado: true, forma: 'linha' },
+    eletrocalha: { rotulo: 'Eletrocalha', cor: '#c99a06', tracejado: true, forma: 'linha' },
+    utp: { rotulo: 'Cabo UTP', cor: '#1d63ed', tracejado: false, forma: 'linha' },
+    fibra: { rotulo: 'Fibra óptica', cor: '#e11d2e', tracejado: false, forma: 'linha' },
+    eletroduto_eletrico: { rotulo: 'Eletroduto elétrico', cor: '#16a34a', tracejado: false, forma: 'linha' },
+    circuito: { rotulo: 'Circuito elétrico', cor: '#1d63ed', tracejado: true, forma: 'linha' },
+    camera: { rotulo: 'Câmera', cor: '#35d000', tracejado: false, forma: 'ponto' },
+    livre: { rotulo: 'Linha livre', cor: null, tracejado: false, forma: 'linha' }
+}
+
+// SVG das marcações sobre uma imagem largura x altura (px naturais), igual ao do Word (svgMarcacoes).
+// interativo: cada marcação vira um <g data-marcacao> com uma faixa larga invisível para o clique de apagar.
+function svgMarcacoesDiario(marcacoes, largura, altura, { interativo = false } = {}) {
+    const traco = Math.max(2, largura * 0.0035)
+    const raio = Math.max(3, largura * 0.007)
+    const n = v => Math.round(v * 10) / 10
+    const elementos = marcacoes.map(m => {
+        const tipo = TIPOS_MARCACAO_DIARIO[m.tipo]
+        if (!tipo) return ''
+        const cor = m.tipo === 'livre' ? m.cor : tipo.cor
+        const tracejado = tipo.tracejado ? ` stroke-dasharray="${n(traco * 4)} ${n(traco * 3)}"` : ''
+        let forma, toque
+        if (tipo.forma === 'ponto') {
+            forma = `<circle cx="${n(m.x * largura)}" cy="${n(m.y * altura)}" r="${n(raio)}" fill="${cor}" stroke="#168b00" stroke-width="${n(traco * 0.4)}"/>`
+            toque = `<circle cx="${n(m.x * largura)}" cy="${n(m.y * altura)}" r="${n(raio * 2)}" fill="transparent"/>`
+        } else if (tipo.forma === 'retangulo') {
+            const r = `x="${n(Math.min(m.x1, m.x2) * largura)}" y="${n(Math.min(m.y1, m.y2) * altura)}" width="${n(Math.abs(m.x2 - m.x1) * largura)}" height="${n(Math.abs(m.y2 - m.y1) * altura)}" fill="none"`
+            forma = `<rect ${r} stroke="${cor}" stroke-width="${n(traco)}"${tracejado}/>`
+            toque = `<rect ${r} stroke="transparent" stroke-width="${n(traco * 6)}"/>`
+        } else {
+            const pontos = `points="${m.pontos.map(([x, y]) => `${n(x * largura)},${n(y * altura)}`).join(' ')}" fill="none" stroke-linecap="round" stroke-linejoin="round"`
+            forma = `<polyline ${pontos} stroke="${cor}" stroke-width="${n(traco)}"${tracejado}/>`
+            toque = `<polyline ${pontos} stroke="transparent" stroke-width="${n(traco * 6)}"/>`
+        }
+        return interativo ? `<g data-marcacao="${escaparAtributo(m.id)}">${toque}${forma}</g>` : forma
+    }).join('')
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${largura} ${altura}" preserveAspectRatio="none">${elementos}</svg>`
+}
+
+// Amostra do tipo nos botões do editor (traço com a cor e o tracejado da legenda).
+function amostraMarcacaoDiario(chave, cor) {
+    const tipo = TIPOS_MARCACAO_DIARIO[chave]
+    const c = cor || tipo.cor
+    if (tipo.forma === 'ponto') return `<svg viewBox="0 0 28 14" aria-hidden="true"><circle cx="14" cy="7" r="5" fill="${c}" stroke="#168b00"/></svg>`
+    if (tipo.forma === 'retangulo') return `<svg viewBox="0 0 28 14" aria-hidden="true"><rect x="7" y="1.5" width="14" height="11" fill="none" stroke="${c}" stroke-width="2" stroke-dasharray="3 2"/></svg>`
+    return `<svg viewBox="0 0 28 14" aria-hidden="true"><line x1="2" y1="7" x2="26" y2="7" stroke="${c}" stroke-width="3"${tipo.tracejado ? ' stroke-dasharray="5 3"' : ''}/></svg>`
+}
+
+// Miniatura: as marcações por cima, quando a imagem termina de carregar (o tamanho natural dá o viewBox).
+function miniaturaFotoDiario(img) {
+    const foto = (estadoPlanoDiario.plano?.galeria || []).find(f => f.id === img.dataset.foto)
+    const local = img.parentElement
+    local.querySelector('svg')?.remove()
+    if (!foto?.marcacoes?.length || !img.naturalWidth) return
+    local.insertAdjacentHTML('beforeend', svgMarcacoesDiario(foto.marcacoes, img.naturalWidth, img.naturalHeight))
+}
+
 function desenharGaleriaPlanoDiario() {
     const e = estadoPlanoDiario
     const area = document.getElementById('galeriaPlanoDiario')
@@ -266,30 +315,240 @@ function desenharGaleriaPlanoDiario() {
         return `
             <div class="diario-galeria-secao">
                 <div class="diario-galeria-topo">
-                    <div><h3>${secao} · ${escaparAtributo(titulo)}</h3><small>${resumo}</small></div>
+                    <div><h3>${secao} · ${escaparAtributo(titulo)}</h3><small>${resumo} · clique numa foto para marcar e comentar</small></div>
                     <label class="diario-galeria-adicionar">Adicionar fotos
                         <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden
                             onchange="enviarFotosGaleriaDiario(this, '${secao}')">
                     </label>
                 </div>
                 <div class="diario-galeria-grade">
-                    ${fotos.length ? fotos.map(f => `
+                    ${fotos.length ? fotos.map(f => {
+                        const qtde = (f.marcacoes || []).length
+                        return `
                         <figure class="diario-galeria-foto${dia && f.data <= dia ? ' no-dia' : ''}">
-                            <img src="${escaparAtributo(`${api}/uploads/${f.link}`)}" alt="${escaparAtributo(f.comentario || f.nome || 'Foto')}" loading="lazy">
+                            <button type="button" class="diario-galeria-abrir" onclick="abrirEditorFotoDiario('${escaparAtributo(f.id)}')"
+                                title="Abrir para marcar e comentar">
+                                <span class="diario-galeria-imagem">
+                                    <img src="${escaparAtributo(`${api}/uploads/${f.link}`)}" alt="${escaparAtributo(f.comentario || f.nome || 'Foto')}"
+                                        loading="lazy" data-foto="${escaparAtributo(f.id)}" onload="miniaturaFotoDiario(this)">
+                                </span>
+                                <span class="diario-galeria-dados">
+                                    <b>${dataPlanoDiario(f.data)}</b>
+                                    ${qtde ? `<small>${qtde} ${qtde === 1 ? 'marcação' : 'marcações'}</small>` : ''}
+                                </span>
+                                ${f.comentario ? `<span class="diario-galeria-comentario">${escaparAtributo(f.comentario)}</span>` : ''}
+                            </button>
                             <button type="button" class="diario-galeria-remover" aria-label="Remover foto" title="Remover foto"
                                 onclick="removerFotoGaleriaDiario('${escaparAtributo(f.id)}')">×</button>
-                            <label>Data <input type="date" value="${escaparAtributo(f.data)}" required
-                                onchange="alterarFotoGaleriaDiario('${escaparAtributo(f.id)}', { data: this.value })"></label>
-                            <textarea rows="2" maxlength="1000" placeholder="Comentário" aria-label="Comentário da foto"
-                                onchange="alterarFotoGaleriaDiario('${escaparAtributo(f.id)}', { comentario: this.value })">${escaparAtributo(f.comentario || '')}</textarea>
-                        </figure>`).join('')
+                        </figure>`
+                    }).join('')
                     : '<small class="diario-galeria-vazio">Nenhuma foto nesta seção.</small>'}
                 </div>
             </div>`
     }).join('')
 }
 
-async function gravarGaleriaDiario(corpo, aviso) {
+// ---------- Editor da foto: marcações, data e comentário, gravados juntos no Salvar ----------
+
+function abrirEditorFotoDiario(id) {
+    const e = estadoPlanoDiario
+    const foto = (e.plano?.galeria || []).find(f => f.id === id)
+    if (!foto) return
+    const diaAberto = e.origem ? e.plano.inicio : e.data
+    e.editor = {
+        id, ferramenta: 'camera', cor: '#7c3aed', zoom: 100, largura: 0, altura: 0,
+        marcacoes: (foto.marcacoes || []).map(m => ({ ...m, pontos: m.pontos?.map(p => [...p]) })),
+        desfazer: [], linha: null, retangulo: null, cursor: null
+    }
+    const ferramentas = Object.keys(TIPOS_MARCACAO_DIARIO).filter(t => t !== 'livre').map(t => `
+        <button type="button" class="diario-ferramenta" data-ferramenta="${t}" onclick="ferramentaEditorDiario('${t}')">
+            ${amostraMarcacaoDiario(t)}<span>${TIPOS_MARCACAO_DIARIO[t].rotulo}</span></button>`).join('')
+    e.editor.popup = popup({
+        titulo: `Foto de ${dataPlanoDiario(foto.data)}`,
+        elemento: `
+            <div class="diario-editor">
+                <div class="diario-editor-ferramentas" role="toolbar" aria-label="Marcações">
+                    ${ferramentas}
+                    <span class="diario-ferramenta diario-ferramenta-livre" data-ferramenta="livre">
+                        <button type="button" onclick="ferramentaEditorDiario('livre')">
+                            <span id="amostraLivreDiario">${amostraMarcacaoDiario('livre', e.editor.cor)}</span><span>Linha livre</span></button>
+                        <input type="color" value="${e.editor.cor}" aria-label="Cor da linha livre"
+                            oninput="estadoPlanoDiario.editor.cor = this.value; ferramentaEditorDiario('livre')">
+                    </span>
+                    <span class="diario-editor-separador"></span>
+                    <button type="button" class="diario-ferramenta" data-ferramenta="apagar" onclick="ferramentaEditorDiario('apagar')">
+                        <span aria-hidden="true">⌫</span><span>Apagar</span></button>
+                    <button type="button" class="diario-ferramenta" onclick="desfazerEditorDiario()"><span aria-hidden="true">↶</span><span>Desfazer</span></button>
+                    <span class="diario-editor-zoom">
+                        <button type="button" onclick="zoomEditorDiario(-25)" aria-label="Diminuir">−</button>
+                        <span id="zoomEditorDiario">100%</span>
+                        <button type="button" onclick="zoomEditorDiario(25)" aria-label="Aumentar">+</button>
+                    </span>
+                </div>
+                <small id="dicaEditorDiario" class="diario-editor-dica"></small>
+                <div class="diario-editor-area">
+                    <div class="diario-editor-quadro" id="quadroEditorDiario">
+                        <img src="${escaparAtributo(`${api}/uploads/${foto.link}`)}" alt="" draggable="false" onload="iniciarEditorDiario(this)">
+                    </div>
+                </div>
+                <div class="diario-editor-campos">
+                    <label>Data da foto <input type="date" id="dataFotoEditorDiario" value="${escaparAtributo(foto.data)}" required></label>
+                    <label>Novas marcações valem a partir de <input type="date" id="dataMarcacoesEditorDiario" value="${escaparAtributo(diaAberto)}" required></label>
+                    <label class="diario-editor-comentario">Comentário
+                        <textarea id="comentarioEditorDiario" rows="2" maxlength="1000" placeholder="Ex.: em azul o perfilado">${escaparAtributo(foto.comentario || '')}</textarea></label>
+                </div>
+                <small class="diario-editor-dica">O relatório de cada dia mostra as marcações com data até ele.</small>
+            </div>`,
+        botoes: [{ texto: 'Salvar', img: 'concluido', funcao: 'salvarEditorFotoDiario()' }]
+    })
+    ferramentaEditorDiario('camera')
+}
+
+function iniciarEditorDiario(img) {
+    const ed = estadoPlanoDiario.editor
+    if (!ed || ed.largura) return
+    ed.largura = img.naturalWidth; ed.altura = img.naturalHeight
+    const quadro = document.getElementById('quadroEditorDiario')
+    quadro.insertAdjacentHTML('beforeend', '<div class="diario-editor-camada"></div>')
+    const camada = quadro.querySelector('.diario-editor-camada')
+    const posicao = ev => {
+        const r = camada.getBoundingClientRect()
+        return [Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)), Math.max(0, Math.min(1, (ev.clientY - r.top) / r.height))]
+    }
+    camada.addEventListener('pointerdown', ev => {
+        if (ev.button !== 0) return
+        const [x, y] = posicao(ev)
+        const forma = TIPOS_MARCACAO_DIARIO[ed.ferramenta]?.forma
+        if (ed.ferramenta === 'apagar') {
+            const alvo = ev.target.closest?.('[data-marcacao]')?.dataset.marcacao
+            if (alvo) mudarMarcacoesEditorDiario(ed.marcacoes.filter(m => m.id !== alvo))
+        } else if (forma === 'ponto') {
+            adicionarMarcacaoEditorDiario({ tipo: 'camera', x, y })
+        } else if (forma === 'retangulo') {
+            ed.retangulo = { x1: x, y1: y, x2: x, y2: y }
+            camada.setPointerCapture(ev.pointerId)
+        } else if (forma === 'linha') {
+            // Clique de novo no último ponto (ou duplo clique) termina a linha.
+            const ultimo = ed.linha?.at(-1)
+            if (ultimo && Math.hypot((x - ultimo[0]) * ed.largura, (y - ultimo[1]) * ed.altura) < ed.largura * 0.006) return concluirLinhaEditorDiario()
+            ed.linha = [...(ed.linha || []), [x, y]]
+        }
+        desenharEditorDiario()
+    })
+    camada.addEventListener('pointermove', ev => {
+        if (ed.retangulo) { [ed.retangulo.x2, ed.retangulo.y2] = posicao(ev); desenharEditorDiario() }
+        else if (ed.linha) { ed.cursor = posicao(ev); desenharEditorDiario() }
+    })
+    camada.addEventListener('pointerup', () => {
+        const r = ed.retangulo
+        if (!r) return
+        ed.retangulo = null
+        if (Math.abs(r.x2 - r.x1) > 0.005 && Math.abs(r.y2 - r.y1) > 0.005) adicionarMarcacaoEditorDiario({ tipo: 'rack', ...r })
+        desenharEditorDiario()
+    })
+    camada.addEventListener('dblclick', () => concluirLinhaEditorDiario())
+    ed.teclas = ev => {
+        if (!document.getElementById(ed.popup)) return document.removeEventListener('keydown', ed.teclas)
+        if (ev.key === 'Enter' && ed.linha && ev.target.tagName !== 'TEXTAREA') { ev.preventDefault(); concluirLinhaEditorDiario() }
+        if (ev.key === 'Escape' && ed.linha) { ev.stopPropagation(); ed.linha = null; ed.cursor = null; desenharEditorDiario() }
+    }
+    document.addEventListener('keydown', ed.teclas)
+    desenharEditorDiario()
+}
+
+function desenharEditorDiario() {
+    const ed = estadoPlanoDiario.editor
+    const camada = document.querySelector('#quadroEditorDiario .diario-editor-camada')
+    if (!ed || !camada || !ed.largura) return
+    const tipo = TIPOS_MARCACAO_DIARIO[ed.ferramenta]
+    // Em andamento: a linha sendo traçada (até o cursor) e o retângulo sendo arrastado.
+    const rascunho = []
+    if (ed.linha) {
+        const pontos = [...ed.linha, ...(ed.cursor ? [ed.cursor] : [])]
+        rascunho.push({ id: 'rascunho', tipo: ed.ferramenta, cor: ed.cor, pontos: pontos.length > 1 ? pontos : [pontos[0], pontos[0]] })
+    }
+    if (ed.retangulo) rascunho.push({ id: 'rascunho', tipo: 'rack', ...ed.retangulo })
+    camada.innerHTML = svgMarcacoesDiario([...ed.marcacoes, ...rascunho], ed.largura, ed.altura, { interativo: true })
+    camada.classList.toggle('apagando', ed.ferramenta === 'apagar')
+    const dica = document.getElementById('dicaEditorDiario')
+    if (dica) dica.textContent = ed.ferramenta === 'apagar' ? 'Clique numa marcação para apagar.'
+        : tipo?.forma === 'ponto' ? 'Clique na imagem para marcar.'
+        : tipo?.forma === 'retangulo' ? 'Clique e arraste para desenhar o rack.'
+        : ed.linha ? 'Clique para continuar a linha. Duplo clique, Enter ou clique no último ponto termina; Esc cancela.'
+        : 'Clique ponto a ponto para traçar o caminho.'
+}
+
+function ferramentaEditorDiario(ferramenta) {
+    const ed = estadoPlanoDiario.editor
+    if (!ed) return
+    if (ed.linha && ferramenta !== ed.ferramenta) concluirLinhaEditorDiario()
+    ed.ferramenta = ferramenta
+    document.querySelectorAll('.diario-editor [data-ferramenta]').forEach(b => {
+        b.classList.toggle('ativa', b.dataset.ferramenta === ferramenta)
+        if (b.tagName === 'BUTTON') b.setAttribute('aria-pressed', b.dataset.ferramenta === ferramenta ? 'true' : 'false')
+    })
+    const amostra = document.getElementById('amostraLivreDiario')
+    if (amostra) amostra.innerHTML = amostraMarcacaoDiario('livre', ed.cor)
+    desenharEditorDiario()
+}
+
+function adicionarMarcacaoEditorDiario(m) {
+    const ed = estadoPlanoDiario.editor
+    const data = document.getElementById('dataMarcacoesEditorDiario')?.value
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data || '')) return popup({ mensagem: 'Informe a data a partir da qual as novas marcações valem.' })
+    if (ed.marcacoes.length >= 2000) return popup({ mensagem: 'O limite é de 2.000 marcações por foto.' })
+    mudarMarcacoesEditorDiario([...ed.marcacoes, { id: crypto.randomUUID(), data, ...m }])
+}
+
+function concluirLinhaEditorDiario() {
+    const ed = estadoPlanoDiario.editor
+    if (!ed?.linha) return
+    const pontos = ed.linha.filter((p, i, a) => !i || p[0] !== a[i - 1][0] || p[1] !== a[i - 1][1])
+    ed.linha = null; ed.cursor = null
+    if (pontos.length >= 2) adicionarMarcacaoEditorDiario({ tipo: ed.ferramenta, pontos, ...(ed.ferramenta === 'livre' ? { cor: ed.cor } : {}) })
+    desenharEditorDiario()
+}
+
+function mudarMarcacoesEditorDiario(marcacoes) {
+    const ed = estadoPlanoDiario.editor
+    ed.desfazer.push(ed.marcacoes)
+    ed.marcacoes = marcacoes
+    desenharEditorDiario()
+}
+
+function desfazerEditorDiario() {
+    const ed = estadoPlanoDiario.editor
+    if (!ed) return
+    if (ed.linha) { ed.linha = ed.linha.length > 1 ? ed.linha.slice(0, -1) : null; return desenharEditorDiario() }
+    if (!ed.desfazer.length) return
+    ed.marcacoes = ed.desfazer.pop()
+    desenharEditorDiario()
+}
+
+function zoomEditorDiario(passo) {
+    const ed = estadoPlanoDiario.editor
+    if (!ed) return
+    ed.zoom = Math.max(50, Math.min(400, ed.zoom + passo))
+    document.getElementById('quadroEditorDiario').style.width = `${ed.zoom}%`
+    document.getElementById('zoomEditorDiario').textContent = `${ed.zoom}%`
+}
+
+async function salvarEditorFotoDiario() {
+    const ed = estadoPlanoDiario.editor
+    if (!ed) return
+    concluirLinhaEditorDiario()
+    const data = document.getElementById('dataFotoEditorDiario').value
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return popup({ mensagem: 'Informe uma data válida para a foto.' })
+    const comentario = document.getElementById('comentarioEditorDiario').value
+    // Só os campos de cada forma (o servidor confere tudo de novo).
+    const marcacoes = ed.marcacoes.map(({ id, tipo, data, x, y, x1, y1, x2, y2, pontos, cor }) =>
+        ({ id, tipo, data, x, y, x1, y1, x2, y2, pontos, cor }))
+    await gravarGaleriaDiario({ acao: 'alterar', id: ed.id, data, comentario, marcacoes }, 'Foto atualizada.',
+        () => { removerPopup(ed.popup); estadoPlanoDiario.editor = null })
+}
+
+// aoGravar: roda logo que o servidor confirma (ex.: fechar o editor), antes de redesenhar a prévia.
+async function gravarGaleriaDiario(corpo, aviso, aoGravar = null) {
     const e = estadoPlanoDiario
     const status = document.getElementById('statusPlanoDiario')
     let gravou = false
@@ -297,6 +556,7 @@ async function gravarGaleriaDiario(corpo, aviso) {
         const { galeria } = await apiPlanoDiario('fotos', { plano: e.plano.id, ...corpo })
         e.plano.galeria = galeria
         gravou = true
+        aoGravar?.()
     } catch (err) {
         popup({ mensagem: err.message || 'Falha ao gravar a foto.' })
     } finally {
@@ -335,14 +595,6 @@ async function enviarFotosGaleriaDiario(input, secao) {
         input.value = ''
         rotulo?.classList.remove('enviando')
     }
-}
-
-async function alterarFotoGaleriaDiario(id, campos) {
-    if (campos.data !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(campos.data)) {
-        desenharGaleriaPlanoDiario()
-        return popup({ mensagem: 'Informe uma data válida para a foto.' })
-    }
-    await gravarGaleriaDiario({ acao: 'alterar', id, ...campos }, 'Foto atualizada.')
 }
 
 async function removerFotoGaleriaDiario(id) {
@@ -428,84 +680,4 @@ async function excluirDiaPlanoDiario() {
         document.getElementById('statusPlanoDiario').textContent = 'Dia excluído.'
     } catch (err) { popup({ mensagem: err.message }) }
     finally { e.carregando = false; controlesDocumentoDiario() }
-}
-
-// As plantas marcáveis vêm do servidor (modelo.plantas = arquivos de word/media). Cada uma é achada
-// na prévia pelo conteúdo (o docx-preview mostra a imagem em base64), não pela posição na página:
-// o logo do cabeçalho se repete por página e o número de plantas muda de uma obra para outra.
-// As fotos da galeria da seção 03 também recebem marcações ("galeria:<id>"): o servidor grava cada
-// uma como word/media/diario-foto-<n>-<id>.jpeg, e o id diz de qual foto é.
-async function imagensPlantasPlanoDiario(doc, arquivo) {
-    const e = estadoPlanoDiario
-    const daSecao03 = new Set((e.plano?.galeria || []).filter(f => f.secao === '03').map(f => String(f.id)))
-    const zip = await window.JSZip.loadAsync(arquivo)
-    const arquivos = [
-        ...(e.modelo?.plantas || []).map(nome => ({ nome, caminho: `word/media/${nome}` })),
-        ...Object.keys(zip.files).map(caminho => ({ caminho, id: caminho.match(/^word\/media\/diario-foto-\d+-([\w-]+)\.jpeg$/)?.[1] }))
-            .filter(({ id }) => id && daSecao03.has(id))
-            .map(({ caminho, id }) => ({ nome: `galeria:${id}`, caminho }))
-    ]
-    if (!arquivos.length) return []
-    const imagens = [...doc.images]
-    const plantas = []
-    for (const { nome, caminho } of arquivos) {
-        const base64 = await zip.file(caminho)?.async('base64')
-        const imagem = base64 && imagens.find(img => img.src.slice(img.src.indexOf(',') + 1) === base64)
-        if (imagem) plantas.push({ nome, imagem })
-    }
-    return plantas
-}
-
-async function prepararMarcacoesPlanoDiario(doc, arquivo) {
-    const e = estadoPlanoDiario
-    const ultimo = e.origem ? null : e.dias.filter(d => d.data_ref <= e.data && Array.isArray(d.dados?.marcacoes))
-        .sort((a, b) => b.data_ref.localeCompare(a.data_ref))[0]
-    e.marcacoes = (ultimo?.dados.marcacoes ?? e.plano.marcacoesOrigem ?? []).map(m => ({ ...m }))
-    e.plantas = (await imagensPlantasPlanoDiario(doc, arquivo)).map(({ nome, imagem }) => {
-        const largura = imagem.getBoundingClientRect().width
-        const camada = doc.createElement('span')
-        camada.style.cssText = `display:inline-block;position:relative;vertical-align:top;width:${largura}px;max-width:100%;`
-        imagem.parentNode.insertBefore(camada, imagem)
-        camada.append(imagem)
-        imagem.style.width = '100%'; imagem.style.display = 'block'
-        imagem.draggable = false
-        imagem.addEventListener('click', ev => {
-            if (!e.modoMarcar || e.carregando || e.renderizando) return
-            if (e.marcacoes.length >= 2000) return popup({ mensagem: 'O limite é de 2.000 marcações por registro.' })
-            const r = imagem.getBoundingClientRect()
-            e.marcacoes.push({ id: crypto.randomUUID(), imagem: nome,
-                x: Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)),
-                y: Math.max(0, Math.min(1, (ev.clientY - r.top) / r.height)) })
-            e.alterado = true; desenharMarcacoesPlanoDiario(); controlesDocumentoDiario()
-        })
-        return { nome, imagem, camada }
-    })
-    desenharMarcacoesPlanoDiario()
-}
-
-function desenharMarcacoesPlanoDiario() {
-    const e = estadoPlanoDiario
-    for (const { nome, camada } of e.plantas || []) {
-        camada.querySelectorAll('button').forEach(b => b.remove())
-        for (const m of e.marcacoes.filter(m => m.imagem === nome)) {
-            const bolinha = camada.ownerDocument.createElement('button')
-            bolinha.type = 'button'; bolinha.title = 'Remover marcação'; bolinha.setAttribute('aria-label', 'Remover marcação')
-            bolinha.style.cssText = `position:absolute;left:${m.x * 100}%;top:${m.y * 100}%;width:1.4%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:#35d000;border:1px solid #168b00;padding:0;margin:0;cursor:pointer;box-sizing:border-box;`
-            bolinha.addEventListener('click', ev => {
-                ev.stopPropagation()
-                if (!e.modoMarcar || e.carregando || e.renderizando) return
-                e.marcacoes = e.marcacoes.filter(p => p.id !== m.id)
-                e.alterado = true; desenharMarcacoesPlanoDiario(); controlesDocumentoDiario()
-            })
-            camada.append(bolinha)
-        }
-    }
-    controlesDocumentoDiario()
-}
-
-function alternarMarcacaoPlanoDiario() {
-    const e = estadoPlanoDiario
-    if (e.carregando || e.renderizando || !e.documento) return
-    e.modoMarcar = !e.modoMarcar
-    controlesDocumentoDiario()
 }

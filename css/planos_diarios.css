@@ -52,10 +52,41 @@
 .diario-galeria-vazio { color: #66766d; }
 .diario-galeria-foto { position: relative; display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 6px; border: 1px solid #cbd5cf; border-radius: 8px; background: #fff; }
 .diario-galeria-foto.no-dia { border-color: #269368; box-shadow: 0 0 0 1px #269368; }
-.diario-galeria-foto img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 5px; display: block; background: #eef2ef; }
-.diario-galeria-foto label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #4f5d55; }
-.diario-galeria-foto input[type=date] { flex: 1; min-width: 0; padding: 3px 6px; border: 1px solid #cbd5cf; border-radius: 5px; font: inherit; }
-.diario-galeria-foto textarea { width: 100%; box-sizing: border-box; resize: vertical; padding: 5px 6px; border: 1px solid #cbd5cf; border-radius: 5px; font: inherit; font-size: 12px; }
 .diario-galeria-remover { position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; padding: 0; border: none; border-radius: 50%; background: #000000a0; color: #fff; font-size: 15px; line-height: 1; cursor: pointer; }
 .diario-galeria-remover:hover { background: #9c2b28; }
-@media(max-width:700px) { .diario-galeria { padding: 12px 14px 20px; } }
+/* Cartão da foto: tudo é um botão que abre o editor (marcações, data e comentário). */
+.diario-galeria-abrir { display: flex; flex-direction: column; gap: 5px; width: 100%; margin: 0; padding: 0; border: none; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.diario-galeria-abrir:focus-visible { outline: 2px solid #269368; outline-offset: 3px; border-radius: 5px; }
+.diario-galeria-imagem { position: relative; display: block; border-radius: 5px; overflow: hidden; background: #eef2ef; }
+.diario-galeria-imagem img { display: block; width: 100%; height: auto; max-height: 220px; object-fit: contain; }
+.diario-galeria-imagem svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.diario-galeria-dados { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; font-size: 12px; color: #244a37; }
+.diario-galeria-dados small { color: #269368; font-weight: 600; }
+.diario-galeria-comentario { font-size: 12px; color: #4f5d55; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* Editor da foto (popup). */
+.diario-editor { display: flex; flex-direction: column; gap: 8px; width: min(1150px, 92vw); padding: 12px; box-sizing: border-box; text-align: left; }
+.diario-editor-ferramentas { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.diario-ferramenta { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 5px 9px; border: 1px solid #cbd5cf; border-radius: 6px; background: #fff; color: #244a37; font: inherit; font-size: 12px; cursor: pointer; }
+.diario-ferramenta svg { width: 28px; height: 14px; flex: none; }
+.diario-ferramenta.ativa { border-color: #269368; background: #e3f2e8; box-shadow: 0 0 0 1px #269368; font-weight: 600; }
+.diario-ferramenta-livre { padding: 0 4px 0 0; gap: 2px; }
+.diario-ferramenta-livre button { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 5px 4px 5px 9px; border: none; background: none; color: inherit; font: inherit; cursor: pointer; }
+.diario-ferramenta-livre input[type=color] { width: 26px; height: 22px; padding: 0; border: 1px solid #cbd5cf; border-radius: 4px; background: none; cursor: pointer; }
+.diario-editor-separador { flex: 1; }
+.diario-editor-zoom { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #4f5d55; }
+.diario-editor-zoom button { margin: 0; width: 26px; height: 26px; padding: 0; border: 1px solid #cbd5cf; border-radius: 6px; background: #fff; color: #244a37; font-size: 16px; cursor: pointer; }
+.diario-editor-dica { color: #66766d; font-size: 12px; min-height: 1em; }
+.diario-editor-area { max-height: 62vh; overflow: auto; border: 1px solid #cbd5cf; border-radius: 8px; background: #2b3530; }
+.diario-editor-quadro { position: relative; width: 100%; margin: 0 auto; }
+.diario-editor-quadro img { display: block; width: 100%; height: auto; user-select: none; }
+.diario-editor-camada { position: absolute; inset: 0; cursor: crosshair; touch-action: none; }
+.diario-editor-camada svg { display: block; width: 100%; height: 100%; }
+.diario-editor-camada.apagando { cursor: pointer; }
+.diario-editor-camada.apagando [data-marcacao] { cursor: pointer; }
+.diario-editor-campos { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: flex-end; }
+.diario-editor-campos label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: #4f5d55; }
+.diario-editor-campos input[type=date] { padding: 4px 6px; border: 1px solid #cbd5cf; border-radius: 5px; font: inherit; }
+.diario-editor-comentario { flex: 1 1 320px; }
+.diario-editor-comentario textarea { width: 100%; box-sizing: border-box; resize: vertical; padding: 5px 6px; border: 1px solid #cbd5cf; border-radius: 5px; font: inherit; font-size: 13px; }
+@media(max-width:700px) { .diario-galeria { padding: 12px 14px 20px; } .diario-editor { padding: 8px; } .diario-ferramenta span:last-child { font-size: 11px; } }
