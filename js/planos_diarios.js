@@ -313,9 +313,10 @@ function desenharGaleriaPlanoDiario() {
         const resumo = `${fotos.length} ${fotos.length === 1 ? 'foto' : 'fotos'}`
             + (dia ? ` · ${doDia} no relatório de ${dataPlanoDiario(dia)}` : '')
         return `
-            <div class="diario-galeria-secao">
+            <div class="diario-galeria-secao" ondragenter="arrastarFotosDiario(event, this)" ondragover="arrastarFotosDiario(event, this)"
+                ondragleave="sairArrastarFotosDiario(event, this)" ondrop="soltarFotosDiario(event, '${secao}', this)">
                 <div class="diario-galeria-topo">
-                    <div><h3>${secao} · ${escaparAtributo(titulo)}</h3><small>${resumo} · clique numa foto para marcar e comentar</small></div>
+                    <div><h3>${secao} · ${escaparAtributo(titulo)}</h3><small>${resumo} · clique numa foto para marcar e comentar · arraste fotos para cá</small></div>
                     <label class="diario-galeria-adicionar">Adicionar fotos
                         <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden
                             onchange="enviarFotosGaleriaDiario(this, '${secao}')">
@@ -579,26 +580,58 @@ async function gravarGaleriaDiario(corpo, aviso, aoGravar = null) {
 }
 
 async function enviarFotosGaleriaDiario(input, secao) {
-    const e = estadoPlanoDiario
-    if (!input.files?.length || !e.plano) return
+    try { await enviarArquivosGaleriaDiario([...(input.files || [])], secao, input.closest('label')) }
+    finally { input.value = '' }
+}
+
+// Arrastar fotos para a seção da galeria: o quadro da seção inteiro aceita o soltar.
+// preventDefault aqui faz o tratamento global de arquivos (js/ferramentas.js) não bloquear.
+function arrastarFotosDiario(evento, secao) {
+    if (!evento.dataTransfer?.types?.includes('Files')) return
+    evento.preventDefault()
+    evento.dataTransfer.dropEffect = 'copy'
+    if (evento.type === 'dragenter' || evento.type === 'dragover') secao.classList.add('soltando')
+}
+
+function sairArrastarFotosDiario(evento, secao) {
+    if (!secao.contains(evento.relatedTarget)) secao.classList.remove('soltando')
+}
+
+async function soltarFotosDiario(evento, secao, quadro) {
+    if (!evento.dataTransfer?.types?.includes('Files')) return
+    evento.preventDefault()
+    quadro.classList.remove('soltando')
+    const arquivos = [...evento.dataTransfer.files]
+    const imagens = arquivos.filter(f => /^image\/(jpeg|png|webp)$/.test(f.type) || /\.(jpe?g|png|webp)$/i.test(f.name))
+    if (!imagens.length) return popup({ mensagem: 'Solte fotos em JPG, PNG ou WEBP.' })
+    await enviarArquivosGaleriaDiario(imagens, secao, quadro.querySelector('.diario-galeria-adicionar'))
     const status = document.getElementById('statusPlanoDiario')
-    const rotulo = input.closest('label')
+    if (imagens.length < arquivos.length && status)
+        status.textContent = `${status.textContent} ${arquivos.length - imagens.length} arquivo(s) que não eram JPG, PNG ou WEBP ficaram de fora.`.trim()
+}
+
+// Envia os arquivos (do botão ou arrastados) e inclui na galeria, de 30 em 30 (limite da rota).
+async function enviarArquivosGaleriaDiario(arquivos, secao, rotulo) {
+    const e = estadoPlanoDiario
+    if (!arquivos.length || !e.plano) return
+    const status = document.getElementById('statusPlanoDiario')
     rotulo?.classList.add('enviando')
     status.textContent = 'Enviando fotos...'
     try {
-        const enviadas = await importarAnexos({ input })
-        // Em falha o importarAnexos já mostrou o aviso.
-        if (!Array.isArray(enviadas) || !enviadas.length) { status.textContent = ''; return }
         // Data inicial: o dia aberto (na Origem, hoje); dá para trocar em cada foto depois.
         const data = e.origem ? dataServidor().toLocaleDateString('en-CA') : e.data
-        await gravarGaleriaDiario({ acao: 'incluir', secao, data,
-            fotos: enviadas.filter(a => a?.link).map(a => ({ link: a.link, nome: a.nome || '' })) },
-            `Fotos gravadas com data de ${dataPlanoDiario(data)}. Elas aparecem na prévia e no Word/PDF desse dia em diante.`)
+        for (let i = 0; i < arquivos.length; i += 30) {
+            const enviadas = await importarAnexos({ input: { files: arquivos.slice(i, i + 30) } })
+            // Em falha o importarAnexos já mostrou o aviso.
+            if (!Array.isArray(enviadas) || !enviadas.length) { status.textContent = ''; return }
+            await gravarGaleriaDiario({ acao: 'incluir', secao, data,
+                fotos: enviadas.filter(a => a?.link).map(a => ({ link: a.link, nome: a.nome || '' })) },
+                `Fotos gravadas com data de ${dataPlanoDiario(data)}. Elas aparecem na prévia e no Word/PDF desse dia em diante.`)
+        }
     } catch (err) {
         status.textContent = ''
         popup({ mensagem: err.message || 'Falha ao enviar as fotos.' })
     } finally {
-        input.value = ''
         rotulo?.classList.remove('enviando')
     }
 }
