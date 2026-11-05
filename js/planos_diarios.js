@@ -325,11 +325,10 @@ function desenharGaleriaPlanoDiario() {
                 <div class="diario-galeria-grade">
                     ${fotos.length ? fotos.map(f => {
                         const qtde = (f.marcacoes || []).length
-                        // Foto com data depois do documento aberto não entra nele (a Origem é o dia de início
-                        // e só leva a seção 03): avisa no cartão, para não parecer que sumiu.
-                        const referencia = e.origem ? (secao === '03' ? e.plano.inicio : null) : e.data
-                        const fora = e.origem && secao !== '03' ? 'Não entra na Origem'
-                            : referencia && f.data > referencia ? `Entra no relatório a partir de ${dataPlanoDiario(f.data)}` : ''
+                        // Foto com data depois do documento aberto (a Origem é o dia de início) não entra
+                        // nele: avisa no cartão, para não parecer que sumiu.
+                        const referencia = e.origem ? e.plano.inicio : e.data
+                        const fora = f.data > referencia ? `Entra no relatório a partir de ${dataPlanoDiario(f.data)}` : ''
                         return `
                         <figure class="diario-galeria-foto${dia && f.data <= dia ? ' no-dia' : ''}">
                             <button type="button" class="diario-galeria-abrir" onclick="abrirEditorFotoDiario('${escaparAtributo(f.id)}')"
