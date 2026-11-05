@@ -560,7 +560,7 @@ function desfazerEditorDiario() {
 function zoomEditorDiario(passo) {
     const ed = estadoPlanoDiario.editor
     if (!ed) return
-    ed.zoom = Math.max(50, Math.min(400, ed.zoom + passo))
+    ed.zoom = Math.max(25, Math.min(400, ed.zoom + passo))
     document.getElementById('quadroEditorDiario').style.width = `${ed.zoom}%`
     document.getElementById('zoomEditorDiario').textContent = `${ed.zoom}%`
 }
