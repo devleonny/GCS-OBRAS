@@ -702,7 +702,7 @@ async function formularioPagamento() {
             retornar: ['nome'],
             funcaoAdicional: ['atualizarPixPagamento'],
             colunas: {
-                'Nome': { chave: 'nome' },
+                'Nome': { chave: 'nome', alinhar: 'esquerda' },
                 'CNPJ/CPF': { chave: 'cnpj' },
                 'Cidade': { chave: 'cidade' },
                 'Estado': { chave: 'estado' }
@@ -991,7 +991,7 @@ async function abrirContasCorrentesPagamento(atualizar = false) {
         retornar: ['nome'],
         funcaoAdicional: ['escolherContaPagamento'],
         colunas: {
-            'Conta': { chave: 'nome' },
+            'Conta': { chave: 'nome', alinhar: 'esquerda' },
             'Banco': { chave: 'banco' },
             'Agência': { chave: 'agencia' },
             'Número': { chave: 'conta' }

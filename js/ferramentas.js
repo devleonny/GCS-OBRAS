@@ -632,6 +632,14 @@ function getByPath(obj, path) {
     return path.split('.').reduce((acc, key) => acc?.[key], obj)
 }
 
+// Alinhamento de uma coluna de tabela, pela configuração da coluna: { chave, alinhar: 'esquerda' }.
+// Aceita 'esquerda' | 'direita' | 'centro' (ou left/right/center). Sem alinhar: o padrão da tabela (centro).
+// Reutilizável em qualquer criarLinha: `<td${estiloAlinhamentoColuna(coluna.alinhar)}>`.
+function estiloAlinhamentoColuna(alinhar) {
+    const valor = { esquerda: 'left', direita: 'right', centro: 'center', left: 'left', right: 'right', center: 'center' }[alinhar]
+    return valor ? ` style="text-align: ${valor};"` : ''
+}
+
 async function linCxOpcoes(dado) {
 
     const { ativo } = controlesCxOpcoes // Ativo é o mesmo que o [name]
@@ -646,7 +654,7 @@ async function linCxOpcoes(dado) {
         const d = getByPath(dado, coluna?.chave)
 
         tds.push(`
-            <td>
+            <td${estiloAlinhamentoColuna(coluna?.alinhar)}>
                 ${Array.isArray(d) ? d.join('<br>') : d || ''}
             </td>`)
     }
