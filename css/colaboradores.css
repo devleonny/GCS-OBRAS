@@ -1685,7 +1685,7 @@
     font-size: 15px;
 }
 
-.colab-tabela td.negativo b {
+.colab-tabela td.colab-negativo b {
     color: #b12425;
 }
 
@@ -1716,4 +1716,55 @@
     .colab-req-total {
         margin-left: 0;
     }
+}
+
+/* ---------- Fundo branco na tela inteira (Ferramentas e materiais) ----------
+   A área .tela que contém esta tela fica branca. Sem o fundo verde, os blocos que eram só
+   brancos ganham um tom claro (cabeçalho, cartões, ficha, termo) ou contorno com sombra
+   (listas, tabelas, requisições), para continuarem destacados. */
+.tela:has(> .tela-colaboradores) {
+    background: #fff;
+}
+
+.tela-colaboradores {
+    --colab-borda: #b9c9be;
+}
+
+.tela-colaboradores .colab-cabecalho,
+.tela-colaboradores .colab-card,
+.tela-colaboradores .colab-painel-topo,
+.tela-colaboradores .colab-termo,
+.tela-colaboradores .colab-fila-topo {
+    background: #f1f6f2;
+    border-color: var(--colab-borda);
+    box-shadow: none;
+}
+
+.tela-colaboradores .colab-card-acao.selecionado {
+    background: #e2efe6;
+}
+
+.tela-colaboradores .colab-lista,
+.tela-colaboradores .colab-tabela-rolagem,
+.tela-colaboradores .colab-fila {
+    border-color: var(--colab-borda);
+    box-shadow: 0 2px 8px rgba(36, 59, 46, 0.12);
+}
+
+/* Requisição: só os outros lados mudam; a faixa da esquerda mostra a situação (aberta, solucionada, cancelada). */
+.tela-colaboradores .colab-req {
+    border-top-color: var(--colab-borda);
+    border-right-color: var(--colab-borda);
+    border-bottom-color: var(--colab-borda);
+    box-shadow: 0 2px 8px rgba(36, 59, 46, 0.12);
+}
+
+.tela-colaboradores .colab-vazio {
+    background: #f7faf8;
+}
+
+/* Títulos das seções da ficha: faixa verde à esquerda para marcar o começo de cada bloco. */
+.tela-colaboradores .colab-secao h4 {
+    padding-left: 10px;
+    border-left: 4px solid var(--colab-marca);
 }

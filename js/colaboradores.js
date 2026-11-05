@@ -654,7 +654,7 @@ function tabelaItensColaborador(itens, ferramenta) {
                             <td class="num">${numeroColab(i.entregue)}</td>
                             <td class="num">${i.devolvido ? numeroColab(i.devolvido) : '—'}</td>
                             <td class="num">${i.utilizado ? numeroColab(i.utilizado) : '—'}</td>
-                            <td class="num ${i.saldo < 0 ? 'negativo' : ''}" ${i.saldo < 0 ? 'title="Usou mais do que recebeu"' : ''}><b>${numeroColab(i.saldo)}</b></td>
+                            <td class="num ${i.saldo < 0 ? 'colab-negativo' : ''}" ${i.saldo < 0 ? 'title="Usou mais do que recebeu"' : ''}><b>${numeroColab(i.saldo)}</b></td>
                             <td class="num">${dinheiro(i.custo)}</td>
                             <td class="num">${dinheiro(Math.max(0, i.saldo) * i.custo)}</td>
                             <td>${disponivel > 0
