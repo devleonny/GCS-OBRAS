@@ -1,134 +1,170 @@
-const posicoesEstados = {
-    "AC": { x: 80, y: 230 },
-    "AL": { x: 575, y: 225 },
-    "AP": { x: 340, y: 60 },
-    "AM": { x: 150, y: 150 },
-    "BA": { x: 480, y: 270 },
-    "CE": { x: 515, y: 150 },
-    "DF": { x: 395, y: 322 },
-    "ES": { x: 500, y: 380 },
-    "GO": { x: 365, y: 325 },
-    "MA": { x: 435, y: 155 },
-    "MG": { x: 450, y: 360 },
-    "MS": { x: 295, y: 390 },
-    "MT": { x: 280, y: 280 },
-    "PA": { x: 320, y: 165 },
-    "PB": { x: 580, y: 190 },
-    "PE": { x: 540, y: 210 },
-    "PI": { x: 470, y: 200 },
-    "PR": { x: 345, y: 455 },
-    "RJ": { x: 470, y: 420 },
-    "RN": { x: 570, y: 155 },
-    "RO": { x: 175, y: 250 },
-    "RR": { x: 200, y: 60 },
-    "RS": { x: 320, y: 530 },
-    "SC": { x: 365, y: 495 },
-    "SE": { x: 565, y: 255 },
-    "SP": { x: 385, y: 415 },
-    "TO": { x: 390, y: 240 }
-}
+// Mapa do Brasil por estado (telas de ocorrências e de clientes), no desenho do dashboard: cada UF
+// pintada pela quantidade, com a mesma escala de cores (RAMPA_DASH, js/dashboard_chamados.js) e a
+// malha do IBGE (MAPA_BR, js/mapa_br.js). Dica com o número ao passar o mouse.
+//
+// Clicar numa UF liga/desliga o filtro de estado da tela (o mesmo do dropdown de Estado).
+// Contagem sem pesar as pesquisas: só com o mapa aberto e só quando os filtros mudam (trocar de
+// página reaproveita a última). O filtro do próprio estado fica fora da contagem: o mapa continua
+// mostrando a distribuição e destaca as UFs escolhidas (sem recontar a cada clique).
 
-function criarMapa({ apenasMapa, path, pag } = {}) {
+// Siglas das UFs (a tela de clientes usa as chaves como opções do filtro de estados).
+const posicoesEstados = Object.fromEntries(['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
+    'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'].map(uf => [uf, true]))
 
-    // SavePoint
-    controles.mapa = { path, pag }
+// base: tabela contada; path: campo do estado; unidade: [singular, plural] da dica.
+// ativo: já nasce aberto (sem interruptor), como nas ocorrências.
+function criarMapa({ apenasMapa, path, pag, base = null, unidade = ['chamado', 'chamados'], ativo = false } = {}) {
+    controles.mapa = { path, pag, base, unidade, chave: null, dados: {} }
 
     const mapa = `
-        <div class="fundo-mapa">
-            <img src="imagens/mapa.png" class="mapa">
-
-            <svg id="mapaOverlay"
-                viewBox="0 0 600 600"
-                style="position:absolute; top:0; left:0; width:100%; height:100%;">
-            </svg>
+        <div class="fundo-mapa ${ativo ? 'ativo' : ''}">
+            <div class="mapa-cabecalho">
+                <b>Por estado</b>
+                <small id="mapaResumo"></small>
+            </div>
+            <div id="mapaOverlay" class="mapa-br"></div>
         </div>`
 
-    if (apenasMapa)
-        return mapa
-
-    return `<div class="painel-mapa">${mapa}</div>`
-
+    return apenasMapa ? mapa : `<div class="painel-mapa">${mapa}</div>`
 }
 
-function auxMapa(dados = {}) {
-    const svg = document.getElementById("mapaOverlay")
+const mapaVisivel = () => !!document.querySelector('.fundo-mapa.ativo')
 
-    if (!svg)
-        return
+// Chamado pelas telas depois de cada paginação (funcaoAdicional do modTab).
+async function atualizarMapa() {
+    const estado = controles.mapa
+    if (!estado?.path || !estado.base || !mapaVisivel()) return
 
-    svg.querySelectorAll(".overlay-estado").forEach(el => el.remove())
+    const filtros = controles?.[estado.pag]?.filtros || {}
+    const semEstado = Object.fromEntries(Object.entries(filtros).filter(([p]) => p !== estado.path))
+    const chave = JSON.stringify([estado.base, semEstado])
 
-    for (const [estado, total] of Object.entries(dados)) {
-        preencherMapa(estado, total)
+    if (estado.chave !== chave) {
+        estado.chave = chave
+        try {
+            const dados = await contarPorCampo({ base: estado.base, path: estado.path, filtros: semEstado })
+            if (estado.chave !== chave) return // outra contagem começou depois desta
+            estado.dados = dados || {}
+        } catch (erro) {
+            estado.chave = null
+            console.error('Mapa:', erro)
+            return
+        }
     }
 
+    auxMapa(estado.dados)
 }
 
-function preencherMapa(estado, numero) {
-    const svg = document.getElementById("mapaOverlay")
-    const pos = posicoesEstados[estado]
-    if (!pos) return
-
-    const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
-    group.classList.add("overlay-estado")
-
-    const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect")
-    bg.setAttribute("x", pos.x - 18)
-    bg.setAttribute("y", pos.y - 14)
-    bg.setAttribute("width", "36")
-    bg.setAttribute("height", "28")
-    bg.setAttribute("rx", "8")
-    bg.setAttribute("fill", "#ffffff")
-    bg.setAttribute("stroke", "#333")
-    bg.setAttribute("stroke-width", "1.2")
-    bg.setAttribute("cursor", "pointer")
-
-    const texto = document.createElementNS("http://www.w3.org/2000/svg", "text")
-    texto.setAttribute("x", pos.x)
-    texto.setAttribute("y", pos.y + 2)
-    texto.setAttribute("font-size", "16")
-    texto.setAttribute("font-weight", "bold")
-    texto.setAttribute("fill", "#333")
-    texto.setAttribute("text-anchor", "middle")
-    texto.setAttribute("dominant-baseline", "middle")
-    texto.setAttribute("cursor", "pointer")
-    texto.textContent = numero
-
-    group.addEventListener('click', async () => {
-        await filtrarEspecial(estado)
-    })
-
-    group.appendChild(bg)
-    group.appendChild(texto)
-    svg.appendChild(group)
-}
-
-async function filtrarEspecial(value) {
-
+function ufsMarcadasMapa() {
     const { path, pag } = controles.mapa || {}
-
-    controles[pag].filtros ??= {}
-
-    // Se existir, remove a pesquisa; (toggle)
-    if (controles[pag].filtros?.[path]?.value == value)
-        delete controles[pag].filtros[path]
-    else
-        controles[pag].filtros[path] = { op: '=', value }
-
-    await paginacao()
-
+    if (!path || !pag || typeof valoresMarcadosDropdown !== 'function') return []
+    return valoresMarcadosDropdown(path, pag)
 }
 
+// Desenha o mapa com a contagem { UF: quantidade }.
+function auxMapa(dados = {}) {
+    const local = document.getElementById('mapaOverlay')
+    if (!local || typeof MAPA_BR === 'undefined') return
+    if (controles.mapa) controles.mapa.dados = dados
+
+    const rampa = typeof RAMPA_DASH !== 'undefined' ? RAMPA_DASH : ['#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#184f95']
+    const [um, varios] = controles.mapa?.unidade || ['chamado', 'chamados']
+    // A contagem do servidor traz { todos, 'EM BRANCO', UF: n, ... }: "todos" é o total (o mesmo da
+    // paginação, sem o filtro de estado) e não é estado; sem estado ou com valor fora das UFs fica à parte.
+    const valores = {}
+    let todos = null
+    for (const [chave, q] of Object.entries(dados || {})) {
+        if (chave === 'todos') { todos = Number(q) || 0; continue }
+        const uf = String(chave).trim().toUpperCase()
+        if (MAPA_BR.estados[uf]) valores[uf] = (valores[uf] || 0) + (Number(q) || 0)
+    }
+    const total = Object.values(valores).reduce((s, q) => s + q, 0)
+    const geral = todos ?? total
+    const semEstado = Math.max(0, geral - total)
+    const maximo = Math.max(0, ...Object.values(valores))
+    // Cor pela raiz da proporção do máximo, em faixas (igual ao mapa do dashboard).
+    const faixa = v => v > 0 ? Math.min(rampa.length - 1, Math.ceil(Math.sqrt(v / maximo) * rampa.length) - 1) : -1
+    const limite = i => Math.round(maximo * ((i + 1) / rampa.length) ** 2)
+    const numero = v => Number(v || 0).toLocaleString('pt-BR')
+    const marcadas = ufsMarcadasMapa()
+
+    const estados = Object.entries(MAPA_BR.estados).map(([uf, d]) => {
+        const v = valores[uf] || 0
+        const f = faixa(v)
+        const dica = `${uf} · ${numero(v)} ${v === 1 ? um : varios}${geral ? ` (${Math.round(v / geral * 100)}%)` : ''} · clique para ${marcadas.includes(uf) ? 'tirar do' : 'pôr no'} filtro`
+        const classes = ['mapa-uf', marcadas.includes(uf) ? 'marcada' : '', marcadas.length && !marcadas.includes(uf) ? 'apagada' : ''].filter(Boolean).join(' ')
+        return `<path d="${d}" class="${classes}" data-uf="${uf}" fill="${f < 0 ? '#e9ecea' : rampa[f]}"
+            tabindex="0" role="button" aria-pressed="${marcadas.includes(uf)}" aria-label="${dica}" data-dica="${dica}"></path>`
+    })
+    // UF escolhida por cima, para o contorno grosso não ficar escondido pelas vizinhas.
+    const ordem = [...estados.filter(e => !e.includes(' marcada')), ...estados.filter(e => e.includes(' marcada'))]
+
+    const legenda = maximo
+        ? `<div class="mapa-legenda" aria-hidden="true">
+                <span><i style="background: #e9ecea"></i>0</span>
+                ${rampa.map((cor, i) => `<span><i style="background: ${cor}"></i>até ${numero(limite(i))}</span>`).join('')}
+            </div>`
+        : ''
+
+    local.innerHTML = `
+        <svg viewBox="0 0 ${MAPA_BR.largura} ${MAPA_BR.altura}" role="group" aria-label="Mapa do Brasil por estado">${ordem.join('')}</svg>
+        ${legenda}`
+
+    const resumo = document.getElementById('mapaResumo')
+    // Sem estado escolhido: o total bate com a paginação. Com escolha: "X de Y" (X é o que a tabela mostra).
+    const escolhidos = marcadas.reduce((s, uf) => s + (valores[uf] || 0), 0)
+    if (resumo) resumo.innerHTML = marcadas.length
+        ? `${numero(escolhidos)} de ${numero(geral)} ${varios} · ${marcadas.join(', ')} <button type="button" class="mapa-limpar" onclick="limparEstadosMapa()">limpar</button>`
+        : `${numero(geral)} ${geral === 1 ? um : varios}`
+            + (semEstado ? ` · <span title="Sem estado no cadastro do cliente (ou com valor que não é UF)">${numero(semEstado)} sem estado</span>` : '')
+
+    if (!local.dataset.ligado) {
+        local.dataset.ligado = 'S'
+        local.addEventListener('click', ev => {
+            const uf = ev.target.closest?.('[data-uf]')?.dataset.uf
+            if (uf) alternarEstadoMapa(uf)
+        })
+        local.addEventListener('keydown', ev => {
+            const uf = ev.target.closest?.('[data-uf]')?.dataset.uf
+            if (uf && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); alternarEstadoMapa(uf) }
+        })
+    }
+    if (typeof ligarTooltipsDash === 'function') ligarTooltipsDash(local)
+}
+
+// Liga/desliga a UF no filtro de estado da tela (o mesmo grupo do dropdown, que fica marcado junto).
+function alternarEstadoMapa(uf) {
+    const { path, pag } = controles.mapa || {}
+    if (!path || !pag) return
+    const atuais = ufsMarcadasMapa()
+    aplicarEstadosMapa(atuais.includes(uf) ? atuais.filter(v => v !== uf) : [...atuais, uf])
+}
+
+function limparEstadosMapa() {
+    aplicarEstadosMapa([])
+}
+
+function aplicarEstadosMapa(ufs) {
+    const { path, pag } = controles.mapa || {}
+    if (!path || !pag) return
+    const drop = typeof getDropdownElement === 'function' ? getDropdownElement(path, pag) : null
+    if (drop) aplicarSelecaoDropdown(drop, ufs)
+    else {
+        salvarFiltroDropdown(path, pag, ufs.map(value => ({ op: '=', value })))
+        paginacao(pag)
+    }
+    // Destaque na hora; a tabela recarrega pelo filtro e o mapa reaproveita a contagem.
+    auxMapa(controles.mapa.dados)
+}
+
+// Nome antigo (clique no estado), mantido para quem ainda chama.
+async function filtrarEspecial(uf) {
+    alternarEstadoMapa(uf)
+}
+
+// Interruptor "Mapa": mostra/esconde. Ao abrir, só conta (a tabela não recarrega).
 function mostrarMapa() {
-    const fMapa = document.querySelector('.fundo-mapa')
-    const pMapa = document.querySelector('.painel-mapa')
-
-    if (fMapa)
-        fMapa.classList.toggle('ativo')
-
-    if (pMapa)
-        pMapa.classList.toggle('ativo')
-
-    paginacao()
-
+    document.querySelector('.fundo-mapa')?.classList.toggle('ativo')
+    document.querySelector('.painel-mapa')?.classList.toggle('ativo')
+    atualizarMapa()
 }

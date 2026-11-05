@@ -470,38 +470,47 @@
     width: 100%;
 }
 
-.tela-ocorrencias > .painel-mapa {
-    display: none;
-    min-width: 0;
+/* Mapa por estado (js/mapa.js), sempre aberto, sozinho no canto direito do painel de pesquisa, com a
+   legenda numa coluna ao lado. O Limpar Filtros é o último item da linha de filtros 2. */
+.pesquisas-ocorrencias-acoes .fundo-mapa {
+    width: auto;
+    padding: 6px 8px;
+    gap: 2px;
+    border-radius: 8px;
+    box-shadow: none;
 }
 
-.tela-ocorrencias > .painel-mapa.ativo {
+.pesquisas-ocorrencias-acoes .mapa-cabecalho {
+    font-size: 12px;
+}
+
+.pesquisas-ocorrencias-acoes .mapa-cabecalho small {
+    font-size: 11px;
+}
+
+.pesquisas-ocorrencias-acoes .mapa-br {
     display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    min-width: 0;
-    padding: 12px;
-    margin-bottom: 12px;
-    box-sizing: border-box;
-    background: #edf3ef;
-    border: 1px solid #dfe7e2;
-    border-radius: 10px;
-    overflow: visible;
+    align-items: flex-end;
+    gap: 8px;
 }
 
-.tela-ocorrencias .painel-mapa .fundo-mapa {
-    width: min(100%, 340px);
-    flex: 0 1 340px;
-    aspect-ratio: 1;
-    border-radius: 0;
+.pesquisas-ocorrencias-acoes .mapa-br svg {
+    flex: none;
+    width: 280px;
+    max-height: none;
 }
 
-.tela-ocorrencias .painel-mapa .mapa {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    filter: none;
+.pesquisas-ocorrencias-acoes .mapa-legenda {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 1px;
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+.pesquisas-ocorrencias-acoes .mapa-legenda i {
+    width: 9px;
+    height: 9px;
 }
 
 .pesquisas-ocorrencias {
@@ -625,6 +634,13 @@
     flex-shrink: 0;
 }
 
+/* Limpar Filtros: último item da linha de filtros 2, alinhado embaixo como os campos. */
+.pesquisas-ocorrencias .campo-limpar-filtros {
+    flex: 0 0 auto;
+    justify-content: flex-end;
+}
+
+.campo-limpar-filtros button,
 .pesquisas-ocorrencias-acoes button {
     margin: 0;
     padding: 6px 10px;
@@ -635,6 +651,7 @@
     font-size: 11px;
 }
 
+.campo-limpar-filtros button:hover,
 .pesquisas-ocorrencias-acoes button:hover {
     background: #ffffff20;
 }

@@ -1013,7 +1013,8 @@ async function salvarDataCorrecao(idOcorrencia, idCorrecao) {
 
 async function telaOcorrencias() {
 
-    const mapa = criarMapa({ path: 'cliente.estado', pag: 'ocorrencias' })
+    // Mapa sempre aberto no canto direito do painel de pesquisa; o Limpar é o último da linha de filtros 2 (criarPesquisas).
+    const mapa = criarMapa({ apenasMapa: true, ativo: true, path: 'cliente.estado', pag: 'ocorrencias', base: 'vw_dados_ocorrencias' })
     const btnExtras = `
     <div class="painel-filtros">
 
@@ -1025,23 +1026,12 @@ async function telaOcorrencias() {
             </div>
 
             <div class="pesquisas-ocorrencias-acoes">
-
-                <div style="${horizontal}; gap: 1rem;">
-                    <label class="interruptor">
-                        <input onchange="mostrarMapa()" type="checkbox">
-                        <span class="trilho"></span>
-                    </label>
-                    <label style="color: white;">Mapa</label>
-                </div>
-
-                <button onclick="limparFiltroOcorrencias()">Limpar Filtros</button>
+                ${mapa}
             </div>
 
         </div>
 
     </div>
-
-    ${mapa}
 
     `
     // Sem altura limitada: a tabela cresce e quem rola é a área da direita da página (.tela).
@@ -1081,21 +1071,9 @@ function voltarTopoOcorrencias() {
     voltarTopoTabelaSeMudou('ocorrencias', document.querySelector('.tela-ocorrencias .modtab'))
 }
 
+// Mapa por estado (js/mapa.js): só conta com o mapa aberto e quando os filtros mudam.
 async function contadoresMapaOcorrencias() {
-
-    const fazerPesquisa = document.querySelector('.painel-mapa').getAttribute('class').includes('ativo')
-
-    if (!fazerPesquisa)
-        return
-
-    const dados = await contarPorCampo({
-        base: 'vw_dados_ocorrencias',
-        filtros: controles?.ocorrencias?.filtros || {},
-        path: 'cliente.estado'
-    })
-
-    auxMapa(dados)
-
+    await atualizarMapa()
 }
 
 function criarLinhaOcorrencia(ocorrencia) {
@@ -1871,6 +1849,14 @@ async function criarPesquisas() {
 
     const listagens = await recuperarDado('mvw_opcoes_filtros', 1) || {}
 
+    // Estados: se a mvw_opcoes_filtros vier sem a lista, as 27 UFs (o chamado grava a sigla em cliente.estado).
+    const ufs = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO']
+    const opcoesDe = chave => {
+        const lista = listagens?.[chave]
+        if (chave === 'estados' && !(Array.isArray(lista) && lista.some(Boolean))) return ufs
+        return lista || []
+    }
+
     const emMassa = Object.entries(camposFechados)
         .map(([titulo, conf]) => {
 
@@ -1879,7 +1865,7 @@ async function criarPesquisas() {
                 pag: 'ocorrencias',
                 titulo,
                 path: conf.path,
-                opcoes: listagens?.[conf?.chave] || []
+                opcoes: opcoesDe(conf?.chave)
             })
 
         })
@@ -1917,6 +1903,13 @@ async function criarPesquisas() {
         `)
 
     })
+
+    // Limpar Filtros: último item da linha de filtros 2 (refeito junto quando os filtros são remontados).
+    filtros.push(`
+            <div class="campo-pesquisa campo-limpar-filtros">
+                <button type="button" onclick="limparFiltroOcorrencias()">Limpar Filtros</button>
+            </div>
+        `)
 
     divF2.insertAdjacentHTML('beforeend', filtros.flat().join(''))
 }

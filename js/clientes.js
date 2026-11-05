@@ -399,7 +399,9 @@ async function telaClientes() {
         const mapa = criarMapa({
             apenasMapa: true,
             path: 'estado',
-            pag
+            pag,
+            base: 'clientes',
+            unidade: ['cadastro', 'cadastros']
         })
 
         tela.innerHTML = `
@@ -422,16 +424,9 @@ async function telaClientes() {
 
 }
 
+// Mapa por estado (js/mapa.js): só conta com o mapa aberto e quando os filtros mudam.
 async function contarPorTagCliente() {
-
-    const contagem = await contarPorCampo({
-        base: 'clientes',
-        path: 'estado',
-        filtros: controles?.clientes?.filtros || {}
-    })
-
-    auxMapa(contagem)
-
+    await atualizarMapa()
 }
 
 async function filtrarPorTag(tag) {

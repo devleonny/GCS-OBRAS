@@ -1,7 +1,15 @@
+/* Mapa do Brasil por estado (js/mapa.js), no desenho do mapa do dashboard (css/dashboard_chamados.css).
+   Fica num cartão branco para as cores da escala aparecerem sobre o fundo verde das telas. */
 .fundo-mapa {
     display: none;
-    max-width: 600px;
-    border-top-right-radius: 5px;
+    flex-direction: column;
+    gap: 6px;
+    width: min(560px, 100%);
+    box-sizing: border-box;
+    padding: 10px 12px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(16, 32, 25, 0.25);
     position: relative;
 }
 
@@ -9,11 +17,82 @@
     display: flex;
 }
 
-.mapa {
-    width: 100%;
-    height: auto;
+.mapa-cabecalho {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    color: #1d2a22;
+    text-align: left;
+}
+
+.mapa-cabecalho small {
+    color: #4f5d55;
+    font-size: 12px;
+}
+
+/* .fundo-mapa na frente: os botões dos painéis (ex.: .pesquisas-ocorrencias-acoes button) são brancos. */
+.fundo-mapa .mapa-limpar {
+    margin: 0 0 0 4px;
+    padding: 0 8px;
+    border: 1px solid #c5cfc9;
+    border-radius: 999px;
+    background: #fff;
+    color: #1d2a22;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 18px;
+    cursor: pointer;
+}
+
+.mapa-br svg {
     display: block;
-    filter: drop-shadow(1px 1px 3px #222);
+    width: 100%;
+    max-height: 460px;
+}
+
+.mapa-uf {
+    stroke: #f6f8f7;
+    stroke-width: 1;
+    stroke-linejoin: round;
+    cursor: pointer;
+    outline: none;
+    transition: opacity 0.15s;
+}
+
+.mapa-uf:focus-visible {
+    stroke: #1d2a22;
+    stroke-width: 1.5;
+}
+
+/* UFs no filtro: contorno escuro; as demais ficam apagadas enquanto houver escolha. */
+.mapa-uf.marcada {
+    stroke: #1d2a22;
+    stroke-width: 2.5;
+}
+
+.mapa-uf.apagada {
+    opacity: 0.45;
+}
+
+.mapa-legenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    font-size: 0.72rem;
+    color: #4f5d55;
+}
+
+.mapa-legenda span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.mapa-legenda i {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
 }
 
 .painel-mapa {
@@ -27,18 +106,18 @@
 }
 
 .painel-mapa.ativo {
-    border-top-right-radius: 5px;
     align-self: stretch;
-    padding: 0px;
+    padding: 10px;
     overflow: auto;
-    background: linear-gradient(235deg, #249f41, #151749);
     width: 100%;
+    box-sizing: border-box;
 }
 
 @media screen and (orientation: portrait) {
 
     .painel-mapa {
         flex-direction: column;
+        min-width: 0;
     }
 
 }
