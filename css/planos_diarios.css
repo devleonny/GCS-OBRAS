@@ -97,3 +97,4 @@
 .diario-galeria-foto { min-width: 0; }
 .diario-galeria-abrir { min-width: 0; white-space: normal; }
 .diario-galeria-fora, .diario-galeria-comentario, .diario-galeria-dados { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+.diario-editor-camada.sem-ferramenta { cursor: default; }

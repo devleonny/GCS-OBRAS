@@ -362,7 +362,7 @@ function abrirEditorFotoDiario(id) {
     if (!foto) return
     const diaAberto = e.origem ? e.plano.inicio : e.data
     e.editor = {
-        id, ferramenta: 'camera', cor: '#7c3aed', zoom: 100, largura: 0, altura: 0,
+        id, ferramenta: null, cor: '#7c3aed', zoom: 100, largura: 0, altura: 0,
         marcacoes: (foto.marcacoes || []).map(m => ({ ...m, pontos: m.pontos?.map(p => [...p]) })),
         desfazer: [], linha: null, retangulo: null, cursor: null
     }
@@ -407,7 +407,7 @@ function abrirEditorFotoDiario(id) {
             </div>`,
         botoes: [{ texto: 'Salvar', img: 'concluido', funcao: 'salvarEditorFotoDiario()' }]
     })
-    ferramentaEditorDiario('camera')
+    ferramentaEditorDiario(null)
 }
 
 function iniciarEditorDiario(img) {
@@ -427,9 +427,10 @@ function iniciarEditorDiario(img) {
         const forma = TIPOS_MARCACAO_DIARIO[ed.ferramenta]?.forma
         if (ed.ferramenta === 'apagar') {
             const alvo = ev.target.closest?.('[data-marcacao]')?.dataset.marcacao
-            if (alvo) mudarMarcacoesEditorDiario(ed.marcacoes.filter(m => m.id !== alvo))
+            if (alvo) { mudarMarcacoesEditorDiario(ed.marcacoes.filter(m => m.id !== alvo)); return ferramentaEditorDiario(null) }
         } else if (forma === 'ponto') {
             adicionarMarcacaoEditorDiario({ tipo: 'camera', x, y })
+            return ferramentaEditorDiario(null)
         } else if (forma === 'retangulo') {
             ed.retangulo = { x1: x, y1: y, x2: x, y2: y }
             camada.setPointerCapture(ev.pointerId)
@@ -449,7 +450,10 @@ function iniciarEditorDiario(img) {
         const r = ed.retangulo
         if (!r) return
         ed.retangulo = null
-        if (Math.abs(r.x2 - r.x1) > 0.005 && Math.abs(r.y2 - r.y1) > 0.005) adicionarMarcacaoEditorDiario({ tipo: 'rack', ...r })
+        if (Math.abs(r.x2 - r.x1) > 0.005 && Math.abs(r.y2 - r.y1) > 0.005) {
+            adicionarMarcacaoEditorDiario({ tipo: 'rack', ...r })
+            return ferramentaEditorDiario(null)
+        }
         desenharEditorDiario()
     })
     camada.addEventListener('dblclick', () => concluirLinhaEditorDiario())
@@ -476,8 +480,11 @@ function desenharEditorDiario() {
     if (ed.retangulo) rascunho.push({ id: 'rascunho', tipo: 'rack', ...ed.retangulo })
     camada.innerHTML = svgMarcacoesDiario([...ed.marcacoes, ...rascunho], ed.largura, ed.altura, { interativo: true })
     camada.classList.toggle('apagando', ed.ferramenta === 'apagar')
+    camada.classList.toggle('sem-ferramenta', !ed.ferramenta)
     const dica = document.getElementById('dicaEditorDiario')
-    if (dica) dica.textContent = ed.ferramenta === 'apagar' ? 'Clique numa marcação para apagar.'
+    // Cada marcação feita desliga o marcador: para a próxima, escolhe de novo (evita marcar sem querer).
+    if (dica) dica.textContent = !ed.ferramenta ? 'Escolha uma marcação acima. Depois de cada uma, o marcador desliga.'
+        : ed.ferramenta === 'apagar' ? 'Clique numa marcação para apagar.'
         : tipo?.forma === 'ponto' ? 'Clique na imagem para marcar.'
         : tipo?.forma === 'retangulo' ? 'Clique e arraste para desenhar o rack.'
         : ed.linha ? 'Clique para continuar a linha. Duplo clique, Enter ou clique no último ponto termina; Esc cancela.'
@@ -511,7 +518,10 @@ function concluirLinhaEditorDiario() {
     if (!ed?.linha) return
     const pontos = ed.linha.filter((p, i, a) => !i || p[0] !== a[i - 1][0] || p[1] !== a[i - 1][1])
     ed.linha = null; ed.cursor = null
-    if (pontos.length >= 2) adicionarMarcacaoEditorDiario({ tipo: ed.ferramenta, pontos, ...(ed.ferramenta === 'livre' ? { cor: ed.cor } : {}) })
+    if (pontos.length >= 2) {
+        adicionarMarcacaoEditorDiario({ tipo: ed.ferramenta, pontos, ...(ed.ferramenta === 'livre' ? { cor: ed.cor } : {}) })
+        return ferramentaEditorDiario(null)
+    }
     desenharEditorDiario()
 }
 
