@@ -265,7 +265,6 @@ async function tabPagamentosCusto(contrato) {
             base: 'vw_pagamentos_categorias',
             filtros: {
                 'departamento': { op: '=', value: contrato },
-                'param.*.codigo_tipo_documento': { op: '!=', value: 'CTE' },
             },
             btnExtras: podeMover ? `
                 <div class="pc-mover-barra">
@@ -320,7 +319,7 @@ async function criarLinhaCustoPagamento(pagamento) {
         <td>${data_previsao || ''}</td>
         <td style="white-space: nowrap;">${dinheiro(valor)}</td>
         <td>
-            <span class="etiquetas">${categoria}</span>
+            <span class="tag-pendencias pagamento-balao">${escaparAtributo(categoria || '')}</span>
         </td>
         <td>
             <div style="${horizontal}; justify-content: start; gap: 1rem;">
