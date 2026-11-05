@@ -489,14 +489,13 @@
     overflow-wrap: anywhere;
     text-align: left;
     cursor: pointer;
-    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
 }
 
-.colab-card-acao:hover,
+/* Sem hover (cartões da tela inicial e do relatório); só o foco do teclado fica marcado. */
 .colab-card-acao:focus-visible {
     border-color: var(--colab-marca);
     box-shadow: 0 2px 10px rgba(36, 59, 46, 0.2);
-    transform: translateY(-1px);
+    outline: none;
 }
 
 .colab-card-acao small.colab-card-link,
@@ -792,11 +791,6 @@
 /* Ficha aberta: contornos mais escuros e sombra para os elementos se destacarem no fundo verde. */
 .tela-colaboradores:has(.colab-painel) {
     --colab-borda: #a9bcb0;
-}
-
-/* O cabeçalho (busca, filtro, nova requisição) é da lista: a ficha tem as próprias ações. */
-.tela-colaboradores:has(.colab-painel) .colab-cabecalho {
-    display: none;
 }
 
 .colab-painel .colab-painel-topo,
@@ -1398,13 +1392,328 @@
     cursor: pointer;
 }
 
-.colab-relatorio-quem button:hover {
-    background: var(--colab-marca);
-    border-color: var(--colab-marca);
-    color: white;
+/* Cartões do relatório compactos: largura do conteúdo (até 260px), sem esticar na linha toda. */
+.colab-relatorio .colab-cards {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 260px));
+    /* .colab-fila não tem gap: sem isto os cartões encostam nas bordas e na tabela. */
+    padding: 12px 14px 16px;
+}
+
+.colab-relatorio .colab-card {
+    gap: 2px;
+    padding: 8px 12px;
+}
+
+/* Selos sem hover; o foco do teclado continua visível. */
+.colab-relatorio-quem button:focus-visible {
+    outline: 2px solid var(--colab-marca);
+    outline-offset: 1px;
+}
+
+/* Mais espaço entre as linhas da tabela do relatório. */
+.colab-relatorio .colab-tabela td {
+    padding-top: 14px;
+    padding-bottom: 14px;
+}
+
+.colab-relatorio .colab-relatorio-quem {
+    gap: 6px;
 }
 
 .colab-tabela tfoot td {
     background: #f4f8f5;
     border-bottom: none;
+}
+
+/* ---------- Fluxo linear (js/colaboradores.js): lista de requisições, por pessoa, por item ---------- */
+
+.colab-nav button {
+    white-space: nowrap;
+}
+
+.colab-req-barra {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+}
+
+.colab-req-total {
+    margin-left: auto;
+    color: var(--colab-suave);
+    font-size: 13px;
+}
+
+.colab-reqs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Um item da lista: a faixa da esquerda mostra a situação (aberta, solucionada, cancelada). */
+.colab-req {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px;
+    background: white;
+    border: 1px solid var(--colab-borda);
+    border-left: 4px solid #bd8315;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(36, 59, 46, 0.1);
+}
+
+.colab-req.ok {
+    border-left-color: #3c9f15;
+}
+
+.colab-req.cancelada {
+    border-left-color: #b12425;
+    opacity: 0.8;
+}
+
+.colab-req-principal {
+    display: grid;
+    grid-template-columns: minmax(170px, 230px) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Na ficha da pessoa não há a coluna da pessoa. */
+.colab-req-principal:not(:has(.colab-req-pessoa)) {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.colab-req-pessoa {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--colab-texto);
+    text-align: left;
+    cursor: pointer;
+}
+
+.colab-req-pessoa > span {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.colab-req-pessoa b,
+.colab-req-pessoa small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.colab-req-pessoa small {
+    color: var(--colab-suave);
+}
+
+.colab-req-pessoa:focus-visible {
+    outline: 2px solid var(--colab-marca);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+.colab-req-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.colab-req-info > div:first-child {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.colab-req-info small {
+    color: var(--colab-suave);
+}
+
+.colab-req-acoes {
+    display: flex;
+    align-items: center;
+    justify-content: end;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.colab-req-acoes button,
+.colab-req-acoes .colab-anexar {
+    margin: 0;
+}
+
+/* Status: cxOpcoes com cara de seletor (seta), na cor da situação. */
+.opcoes.colab-req-status {
+    max-width: 240px;
+    margin: 0;
+    gap: 8px;
+    background: #bd8315;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.opcoes.colab-req-status.ok {
+    background: #3c9f15;
+}
+
+.opcoes.colab-req-status.cancelada {
+    background: #b12425;
+}
+
+.opcoes.colab-req-status::after {
+    content: '▾';
+    font-size: 0.9em;
+}
+
+.opcoes.colab-req-status:focus-visible {
+    outline: 2px solid var(--colab-texto);
+    outline-offset: 2px;
+}
+
+.colab-anexar {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: var(--colab-marca);
+    color: white;
+    border-radius: 7px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.colab-anexar:focus-within {
+    outline: 2px solid var(--colab-texto);
+    outline-offset: 2px;
+}
+
+.colab-req-mais {
+    min-width: 34px;
+    padding: 4px 8px;
+    background: #eef4f0;
+    color: var(--colab-texto);
+    border: 1px solid var(--colab-borda);
+}
+
+.colab-req-mais.ativo {
+    background: var(--colab-marca);
+    color: white;
+}
+
+.colab-req-docs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--colab-borda);
+}
+
+/* Detalhes: itens à esquerda, histórico de status à direita. */
+.colab-req-detalhe {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(240px, 2fr);
+    align-items: start;
+    gap: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--colab-borda);
+}
+
+.colab-req-historico {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.colab-req-historico ol {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.colab-req-historico li {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 10px;
+    background: #f4f8f5;
+    border-left: 3px solid var(--colab-marca);
+    border-radius: 6px;
+}
+
+.colab-req-historico li small {
+    color: var(--colab-suave);
+}
+
+.colab-req-historico li button {
+    align-self: start;
+    margin: 4px 0 0;
+    padding: 2px 10px;
+    font-size: 12px;
+}
+
+.colab-req-etapa-status {
+    font-weight: 600;
+    color: var(--colab-texto);
+}
+
+/* Ficha da pessoa: seções empilhadas (ferramentas, materiais, requisições). */
+.colab-secao {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.colab-secao h4 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0 0;
+    color: var(--colab-texto);
+    font-size: 15px;
+}
+
+.colab-tabela td.negativo b {
+    color: #b12425;
+}
+
+.colab-devolver-item {
+    margin: 0;
+    padding: 3px 10px;
+    font-size: 12px;
+}
+
+.colab-linha-num b.alerta {
+    color: var(--colab-alerta);
+}
+
+@media (max-width: 900px) {
+    .colab-req-principal,
+    .colab-req-principal:not(:has(.colab-req-pessoa)) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .colab-req-acoes {
+        justify-content: start;
+    }
+
+    .colab-req-detalhe {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .colab-req-total {
+        margin-left: 0;
+    }
 }
