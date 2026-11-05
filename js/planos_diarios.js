@@ -433,14 +433,23 @@ async function excluirDiaPlanoDiario() {
 // As plantas marcáveis vêm do servidor (modelo.plantas = arquivos de word/media). Cada uma é achada
 // na prévia pelo conteúdo (o docx-preview mostra a imagem em base64), não pela posição na página:
 // o logo do cabeçalho se repete por página e o número de plantas muda de uma obra para outra.
+// As fotos da galeria da seção 03 também recebem marcações ("galeria:<id>"): o servidor grava cada
+// uma como word/media/diario-foto-<n>-<id>.jpeg, e o id diz de qual foto é.
 async function imagensPlantasPlanoDiario(doc, arquivo) {
-    const nomes = estadoPlanoDiario.modelo?.plantas || []
-    if (!nomes.length) return []
+    const e = estadoPlanoDiario
+    const daSecao03 = new Set((e.plano?.galeria || []).filter(f => f.secao === '03').map(f => String(f.id)))
     const zip = await window.JSZip.loadAsync(arquivo)
+    const arquivos = [
+        ...(e.modelo?.plantas || []).map(nome => ({ nome, caminho: `word/media/${nome}` })),
+        ...Object.keys(zip.files).map(caminho => ({ caminho, id: caminho.match(/^word\/media\/diario-foto-\d+-([\w-]+)\.jpeg$/)?.[1] }))
+            .filter(({ id }) => id && daSecao03.has(id))
+            .map(({ caminho, id }) => ({ nome: `galeria:${id}`, caminho }))
+    ]
+    if (!arquivos.length) return []
     const imagens = [...doc.images]
     const plantas = []
-    for (const nome of nomes) {
-        const base64 = await zip.file(`word/media/${nome}`)?.async('base64')
+    for (const { nome, caminho } of arquivos) {
+        const base64 = await zip.file(caminho)?.async('base64')
         const imagem = base64 && imagens.find(img => img.src.slice(img.src.indexOf(',') + 1) === base64)
         if (imagem) plantas.push({ nome, imagem })
     }
