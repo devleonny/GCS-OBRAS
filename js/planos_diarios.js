@@ -379,7 +379,7 @@ function abrirEditorFotoDiario(id) {
                         <button type="button" onclick="ferramentaEditorDiario('livre')">
                             <span id="amostraLivreDiario">${amostraMarcacaoDiario('livre', e.editor.cor)}</span><span>Linha livre</span></button>
                         <input type="color" value="${e.editor.cor}" aria-label="Cor da linha livre"
-                            oninput="estadoPlanoDiario.editor.cor = this.value; ferramentaEditorDiario('livre')">
+                            oninput="corLivreEditorDiario(this.value)">
                     </span>
                     <span class="diario-editor-separador"></span>
                     <button type="button" class="diario-ferramenta" data-ferramenta="apagar" onclick="ferramentaEditorDiario('apagar')">
@@ -483,17 +483,22 @@ function desenharEditorDiario() {
     camada.classList.toggle('sem-ferramenta', !ed.ferramenta)
     const dica = document.getElementById('dicaEditorDiario')
     // Cada marcação feita desliga o marcador: para a próxima, escolhe de novo (evita marcar sem querer).
-    if (dica) dica.textContent = !ed.ferramenta ? 'Escolha uma marcação acima. Depois de cada uma, o marcador desliga.'
+    if (dica) dica.textContent = !ed.ferramenta ? 'Escolha uma marcação acima. Ela desliga depois de feita ou ao clicar nela de novo.'
         : ed.ferramenta === 'apagar' ? 'Clique numa marcação para apagar.'
         : tipo?.forma === 'ponto' ? 'Clique na imagem para marcar.'
         : tipo?.forma === 'retangulo' ? 'Clique e arraste para desenhar o rack.'
-        : ed.linha ? 'Clique para continuar a linha. Duplo clique, Enter ou clique no último ponto termina; Esc cancela.'
+        : ed.linha ? 'Clique para continuar a linha. Para terminar: duplo clique, Enter, clique no último ponto ou no botão do marcador. Esc cancela.'
         : 'Clique ponto a ponto para traçar o caminho.'
 }
 
+// Clicar no marcador ativo desliga (e conclui a linha em andamento, se tiver 2 pontos ou mais).
 function ferramentaEditorDiario(ferramenta) {
     const ed = estadoPlanoDiario.editor
     if (!ed) return
+    if (ferramenta && ferramenta === ed.ferramenta) {
+        concluirLinhaEditorDiario()
+        ferramenta = null
+    }
     if (ed.linha && ferramenta !== ed.ferramenta) concluirLinhaEditorDiario()
     ed.ferramenta = ferramenta
     document.querySelectorAll('.diario-editor [data-ferramenta]').forEach(b => {
@@ -502,6 +507,17 @@ function ferramentaEditorDiario(ferramenta) {
     })
     const amostra = document.getElementById('amostraLivreDiario')
     if (amostra) amostra.innerHTML = amostraMarcacaoDiario('livre', ed.cor)
+    desenharEditorDiario()
+}
+
+// Trocar a cor liga a linha livre (sem desligar, se já estiver ativa).
+function corLivreEditorDiario(cor) {
+    const ed = estadoPlanoDiario.editor
+    if (!ed) return
+    ed.cor = cor
+    if (ed.ferramenta !== 'livre') return ferramentaEditorDiario('livre')
+    const amostra = document.getElementById('amostraLivreDiario')
+    if (amostra) amostra.innerHTML = amostraMarcacaoDiario('livre', cor)
     desenharEditorDiario()
 }
 
