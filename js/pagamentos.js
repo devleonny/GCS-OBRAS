@@ -697,6 +697,8 @@ async function formularioPagamento() {
             base: 'clientes',
             // Cadastros de cartão de crédito ("CARTÃO SANTANDER…") não são recebedor de pagamento.
             filtros: { nome: { op: 'not_includes', value: 'cartao' } },
+            // Sem ordem forçada (o cxOpcoes ordenaria por nome): fica a ordem nativa do servidor.
+            ordenar: null,
             retornar: ['nome'],
             funcaoAdicional: ['atualizarPixPagamento'],
             colunas: {
