@@ -11,6 +11,10 @@ const ROTA = {
     pulinho: -4.2,      // soltar cedo = pulo curto
     velocidadeInicial: 4.2,
     chaveRecorde: 'jogoRotaRecorde',
+    // Correção especial (dourada): de vez em quando no lugar de um chamado; pegar deixa a van
+    // invencível por alguns segundos. Vale o mesmo que um chamado (o servidor valida os pontos
+    // pela duração da partida, gcs/SCRIPTS/jogo_rota.js).
+    especial: { chance: 0.12, distanciaMinima: 1500, duracaoMs: 6000, avisoMs: 1500 },
     // Ciclo dia/noite em distância percorrida (~300 px/s no início):
     // dia até 4500 (~15s), anoitece até 6000 (~20s), noite até 9000, amanhece até 10500 e repete.
     ciclo: { dia: 4500, anoitecer: 1500, noite: 3000, amanhecer: 1500 }
@@ -144,6 +148,7 @@ function novoCenarioRota() {
         deslocamentoFaixa: 0,
         recorde: lerRecordeRota(),
         novoRecorde: false,
+        invencivelMs: 0,       // tempo que resta da invencibilidade (correção especial)
         ultimoQuadro: 0
     }
 }
@@ -204,7 +209,21 @@ function criarObstaculoRota() {
 
 function criarChamadoRota() {
     const alto = Math.random() < 0.55
-    rota.coletaveis.push({ x: ROTA.largura + 10, y: alto ? 70 : 112, base: alto ? 70 : 112, fase: Math.random() * 6 })
+    const { chance, distanciaMinima } = ROTA.especial
+    // Especial: só depois do começo, nunca durante a invencibilidade nem com outra na tela.
+    const especial = rota.distancia > distanciaMinima && rota.invencivelMs <= 0
+        && !rota.coletaveis.some(c => c.especial) && Math.random() < chance
+    rota.coletaveis.push({ x: ROTA.largura + 10, y: alto ? 70 : 112, base: alto ? 70 : 112, fase: Math.random() * 6, especial })
+}
+
+// Com invencibilidade, cone e barreira voam longe; o buraco a van só atravessa.
+function derrubarObstaculoRota(o) {
+    if (o.tipo === 'buraco' || o.derrubado) return
+    o.derrubado = true
+    o.vx = 2.5 + Math.random() * 2
+    o.vy = -5 - Math.random() * 3
+    o.giro = 0
+    for (let i = 0; i < 8; i++) poeiraRota(o.x + o.largura / 2, o.y + o.altura / 2, i % 2 ? '#fbbf24' : '#fde68a')
 }
 
 function poeiraRota(x, y, cor = '#cbd5e1') {
@@ -265,12 +284,25 @@ function atualizarRota(passo) {
         rota.proximoChamado = 260 + Math.random() * 320
     }
 
+    // Invencibilidade (correção especial): conta em tempo de jogo.
+    if (rota.invencivelMs > 0) rota.invencivelMs = Math.max(0, rota.invencivelMs - passo * (1000 / 60))
+
     // Obstáculos
     for (const o of rota.obstaculos) {
         o.x -= v
-        if (bateuRota(o)) return encerrarRota()
+        if (o.derrubado) {
+            o.x += o.vx * passo
+            o.y += o.vy * passo
+            o.vy += ROTA.gravidade * passo
+            o.giro += 0.25 * passo
+            continue
+        }
+        if (bateuRota(o)) {
+            if (rota.invencivelMs > 0) derrubarObstaculoRota(o)
+            else return encerrarRota()
+        }
     }
-    rota.obstaculos = rota.obstaculos.filter(o => o.x + o.largura > -10)
+    rota.obstaculos = rota.obstaculos.filter(o => o.x + o.largura > -10 && o.y < ROTA.altura + 30)
 
     // Chamados
     for (const c of rota.coletaveis) {
@@ -282,7 +314,11 @@ function atualizarRota(passo) {
             c.pego = true
             rota.chamados++
             rota.pontos += 25
-            rota.textos.push({ x: c.x, y: c.y, texto: '+25 chamado!', vida: 1 })
+            if (c.especial) {
+                rota.invencivelMs = ROTA.especial.duracaoMs
+                rota.textos.push({ x: c.x, y: c.y, texto: 'Invencível!', vida: 1.3, especial: true })
+                for (let i = 0; i < 16; i++) poeiraRota(c.x + 9, c.y + 9, i % 2 ? '#fbbf24' : '#fef3c7')
+            } else rota.textos.push({ x: c.x, y: c.y, texto: '+25 chamado!', vida: 1 })
         }
     }
     rota.coletaveis = rota.coletaveis.filter(c => !c.pego && c.x > -20)
@@ -407,15 +443,71 @@ function desenharFarolRota(ctx) {
     ctx.fill()
 }
 
+// Intensidade do brilho da invencibilidade (0 a 1). No fim (avisoMs) pisca, cada vez mais rápido,
+// para o jogador perceber que vai acabar.
+function brilhoInvencivelRota() {
+    const resta = rota?.invencivelMs || 0
+    if (resta <= 0) return 0
+    if (resta < ROTA.especial.avisoMs) {
+        const periodo = resta < 600 ? 70 : 140
+        return Math.floor(resta / periodo) % 2 ? 1 : 0
+    }
+    return 0.8 + Math.sin(performance.now() / 120) * 0.2
+}
+
+// Halo dourado pulsante: o mesmo na correção especial e na van invencível.
+function haloDouradoRota(ctx, cx, cy, rx, ry, intensidade) {
+    if (intensidade <= 0) return
+    const pulso = 1 + Math.sin(performance.now() / 150) * 0.08
+    ctx.save()
+    ctx.translate(cx, cy)
+    ctx.scale(rx * pulso, ry * pulso)
+    const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, 1)
+    halo.addColorStop(0, `rgba(253, 224, 71, ${0.75 * intensidade})`)
+    halo.addColorStop(0.55, `rgba(251, 191, 36, ${0.35 * intensidade})`)
+    halo.addColorStop(1, 'rgba(251, 191, 36, 0)')
+    ctx.fillStyle = halo
+    ctx.beginPath()
+    ctx.arc(0, 0, 1, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
+}
+
+// Estrela de 4 pontas (brilho) girando.
+function faiscaRota(ctx, cx, cy, tamanho, angulo, cor = '#ffffff') {
+    ctx.save()
+    ctx.translate(cx, cy)
+    ctx.rotate(angulo)
+    ctx.fillStyle = cor
+    ctx.beginPath()
+    for (let i = 0; i < 8; i++) {
+        const r = i % 2 ? tamanho * 0.28 : tamanho
+        const a = i * Math.PI / 4
+        ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r)
+    }
+    ctx.closePath()
+    ctx.fill()
+    ctx.restore()
+}
+
 function desenharVanRota(ctx) {
     const { x, largura: w, altura: h } = van
     const y = van.y
+    const brilho = brilhoInvencivelRota()
 
     // Sombra
     ctx.fillStyle = 'rgba(15, 23, 42, 0.18)'
     ctx.beginPath()
     ctx.ellipse(x + w / 2, ROTA.chao + 1, w / 2 - (ROTA.chao - (y + h)) * 0.15, 3, 0, 0, Math.PI * 2)
     ctx.fill()
+
+    // Invencível: halo atrás e contorno dourado em toda a van (shadowBlur vale para tudo até o restore).
+    ctx.save()
+    if (brilho > 0) {
+        haloDouradoRota(ctx, x + w / 2, y + h / 2, w * 0.95, h * 1.25, brilho)
+        ctx.shadowColor = '#fbbf24'
+        ctx.shadowBlur = 12 * brilho
+    }
 
     // Carroceria
     ctx.fillStyle = '#ffffff'
@@ -471,9 +563,28 @@ function desenharVanRota(ctx) {
             ctx.stroke()
         }
     }
+    ctx.restore()
+
+    // Faíscas em volta da van enquanto brilha.
+    if (brilho > 0) {
+        const t = performance.now() / 300
+        faiscaRota(ctx, x + w * 0.15, y - 2, 4 * brilho, t, '#fde047')
+        faiscaRota(ctx, x + w * 0.85, y + 2, 3.2 * brilho, -t * 1.3, '#ffffff')
+        faiscaRota(ctx, x + w * 0.5, y - 6, 2.6 * brilho, t * 0.8, '#fbbf24')
+    }
 }
 
 function desenharObstaculoRota(ctx, o) {
+    // Derrubado pela van invencível: gira em volta do próprio centro enquanto voa.
+    if (o.derrubado) {
+        ctx.save()
+        ctx.translate(o.x + o.largura / 2, o.y + o.altura / 2)
+        ctx.rotate(o.giro)
+        ctx.translate(-(o.x + o.largura / 2), -(o.y + o.altura / 2))
+        desenharObstaculoRota(ctx, { ...o, derrubado: false })
+        ctx.restore()
+        return
+    }
     if (o.tipo === 'cone') {
         ctx.fillStyle = '#f97316'
         ctx.beginPath()
@@ -541,6 +652,22 @@ function desenharChaveRota(ctx, cx, cy, t, cor) {
 }
 
 function desenharChamadoRota(ctx, c) {
+    // Correção especial: dourada, com o mesmo halo que a van ganha ao pegar, e uma faísca girando.
+    if (c.especial) {
+        haloDouradoRota(ctx, c.x + 9, c.y + 9, 22, 22, 1)
+        ctx.save()
+        ctx.shadowColor = '#f59e0b'
+        ctx.shadowBlur = 10
+        ctx.fillStyle = '#fef3c7'
+        ctx.strokeStyle = '#d97706'
+        ctx.lineWidth = 2.2
+        retanguloArredondado(ctx, c.x, c.y, 18, 18, 5)
+        ctx.fill(); ctx.stroke()
+        ctx.restore()
+        desenharChaveRota(ctx, c.x + 9, c.y + 9, 13, '#b45309')
+        faiscaRota(ctx, c.x + 18, c.y, 4.5, performance.now() / 250, '#ffffff')
+        return
+    }
     // À noite o chamado ganha um brilho, para continuar visível.
     if (rota.noite > 0) {
         ctx.fillStyle = `rgba(134, 239, 172, ${0.35 * rota.noite})`
@@ -571,6 +698,30 @@ function desenharHudRota(ctx) {
     ctx.font = '12px Arial'
     ctx.fillText(`Recorde: ${Math.floor(rota.recorde)}`, ROTA.largura - 14, 22)
     ctx.textAlign = 'left'
+
+    // Invencível: barra dourada com o tempo que resta (pisca junto com a van no fim).
+    if (rota.estado === 'jogando' && rota.invencivelMs > 0) {
+        const resta = rota.invencivelMs / ROTA.especial.duracaoMs
+        const piscando = rota.invencivelMs < ROTA.especial.avisoMs
+        const visivel = !piscando || brilhoInvencivelRota() > 0
+        const x = 230, y = 11, w = 160, h = 12
+        ctx.save()
+        ctx.globalAlpha = visivel ? 1 : 0.35
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.25)'
+        retanguloArredondado(ctx, x, y, w, h, 6)
+        ctx.fill()
+        const barra = ctx.createLinearGradient(x, 0, x + w, 0)
+        barra.addColorStop(0, '#f59e0b')
+        barra.addColorStop(1, '#fde047')
+        ctx.fillStyle = barra
+        retanguloArredondado(ctx, x, y, Math.max(h, w * resta), h, 6)
+        ctx.fill()
+        ctx.fillStyle = '#78350f'
+        ctx.font = 'bold 9px Arial'
+        ctx.textAlign = 'center'
+        ctx.fillText(`INVENCÍVEL ${Math.ceil(rota.invencivelMs / 1000)}s`, x + w / 2, y + 9)
+        ctx.restore()
+    }
 }
 
 // Título como placa de rodovia: fundo verde, filete branco por dentro, letras brancas e seta.
@@ -734,9 +885,9 @@ function desenharRota() {
     desenharVanRota(ctx)
 
     for (const t of rota.textos) {
-        ctx.globalAlpha = Math.max(0, t.vida)
-        ctx.fillStyle = misturarCorRota('#2f7d4a', '#86efac', rota.noite)
-        ctx.font = 'bold 12px Arial'
+        ctx.globalAlpha = Math.max(0, Math.min(1, t.vida))
+        ctx.fillStyle = t.especial ? '#d97706' : misturarCorRota('#2f7d4a', '#86efac', rota.noite)
+        ctx.font = t.especial ? 'bold 14px Arial' : 'bold 12px Arial'
         ctx.fillText(t.texto, t.x - 10, t.y)
     }
     ctx.globalAlpha = 1
