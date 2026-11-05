@@ -1,0 +1,35 @@
+test('termo assinado: envia o arquivo e guarda as ferramentas em mãos como referência', async () => {
+    const { context, estado, writes } = ambiente();
+    context.importarAnexos = async () => [{ nome: 'termo.pdf', link: 'abc.pdf' }];
+    const atualizados = [];
+    context.atualizarPainelColaborador = async id => atualizados.push(id);
+    estado.detalhe = {
+        id: 'C1',
+        itens: [
+            { codigo: 'F1', classe: 'FERRAMENTA', saldo: 2 },
+            { codigo: 'F2', classe: 'FERRAMENTA', saldo: 0 },
+            { codigo: 'M1', classe: 'MATERIAL', saldo: 9 }
+        ]
+    };
+    const input = { files: [{ name: 'termo.pdf' }], value: 'x' };
+    await context.enviarTermoAssinado(input);
+    assert.equal(writes[0].caminho, 'colaboradores/C1/termo');
+    assert.equal(writes[0].valor.link, 'abc.pdf');
+    assert.deepEqual(JSON.parse(JSON.stringify(writes[0].valor.ferramentas)), { F1: 2 });
+    assert.deepEqual(atualizados, ['C1']);
+    assert.equal(input.value, '');
+});
+
+test('bloco do termo mostra situação e o que mudou', () => {
+    const { context } = ambiente();
+    context.criarAnexoVisual = nome => `<anexo>${nome}</anexo>`;
+    const html = context.blocoTermoColaborador({
+        situacao: 'DESATUALIZADO', nome: 'termo.pdf', link: 'abc.pdf', data: '01/10', usuario: 'ana',
+        mudancas: [{ codigo: 'F1', descricao: 'Furadeira', antes: 1, agora: 2 }]
+    }, 1);
+    assert.match(html, /Desatualizado/);
+    assert.match(html, /Furadeira: <b>1 → 2<\/b>/);
+    assert.match(html, /<anexo>termo.pdf<\/anexo>/);
+    assert.equal(context.blocoTermoColaborador({ situacao: null, mudancas: [] }, 0), '');
+});
+

@@ -1,0 +1,69 @@
+// A requisição é a unidade do fluxo. A ficha do funcionário é o resultado das entregas.
+async function abrirFluxoMateriais(aba = 'andamento') {
+    estadoColaboradores.detalhe = null
+    estadoColaboradores.fluxoAba = aba
+    estadoColaboradores.visao = aba === 'pessoas' ? null : 'fluxo'
+    for (const [indice, botao] of [...document.querySelectorAll('.colab-fluxo-nav button')].entries())
+        botao.classList.toggle('ativo', indice === ['andamento','historico','pessoas'].indexOf(aba))
+    const filtro = document.querySelector('.colab-filtro-status')
+    if (filtro) filtro.hidden = aba !== 'pessoas'
+    if (aba === 'pessoas') return carregarListaColaboradores()
+    try {
+        const {requisicoes=[]} = await chamarColaboradores('andamento',{historico:aba==='historico'})
+        estadoColaboradores.fluxoLista = requisicoes
+        renderizarFluxoMateriais()
+    } catch(erro) { popup({mensagem:erro.message}) }
+}
+
+function renderizarFluxoMateriais() {
+    const local = document.querySelector('.colab-conteudo')
+    if (!local) return
+    const historico = estadoColaboradores.fluxoAba === 'historico'
+    const busca = estadoColaboradores.busca.trim().toLowerCase()
+    const lista = (estadoColaboradores.fluxoLista || []).filter(r=>!busca || `${r.colaborador?.nome} ${r.etapa?.setor?.join(' ')} ${r.status} ${r.itens.map(i=>i.descricao).join(' ')}`.toLowerCase().includes(busca))
+    local.innerHTML = `<section class="colab-fluxo">
+        <header class="colab-fluxo-titulo"><div><h3>${historico?'Histórico de entregas':'O que precisa ser atendido'}</h3><p>${historico?'Cada entrega conserva seus itens, documento e atualizações.':'Abra uma requisição para entregar os itens. Qualquer setor pode atender.'}</p></div><span>${lista.length} requisição(ões)</span></header>
+        ${lista.length ? `<div class="colab-fluxo-lista">${lista.map(r=>`<article class="colab-fluxo-card ${r.concluida?'concluida':''}">
+            <div class="colab-fluxo-pessoa">${avatarColaborador(r.colaborador || {})}<div><h4>${escaparAtributo(r.colaborador?.nome || '')}</h4><small>${escaparAtributo(r.data)} · ${r.itens.length} item(ns)</small></div><span class="colab-chip">${escaparAtributo(r.cancelada?'Cancelada':r.concluida?'Concluída':r.etapa?.setor?.join(', ') || 'Aguardando atendimento')}</span></div>
+            <p>${r.itens.slice(0,3).map(i=>`${numeroColab(i.quantidade)} ${escaparAtributo(i.unidade)} ${escaparAtributo(i.descricao || i.codigo)}`).join(' · ')}${r.itens.length>3?'…':''}</p>
+            <footer><small>${escaparAtributo(r.status)}</small><button type="button" onclick="abrirAtendimentoMaterial('${escaparAtributo(r.colaborador.id)}','${escaparAtributo(r.id)}')">${historico?'Ver entrega':'Atender requisição'} →</button></footer>
+        </article>`).join('')}</div>` : `<div class="colab-vazio">${historico?'Nenhuma entrega neste histórico.':'Tudo em dia. Nenhuma requisição aguardando atendimento.'}</div>`}
+    </section>`
+}
+
+async function abrirAtendimentoMaterial(id, requisicao) {
+    try {
+        const ficha = {id,...await chamarColaboradores('detalhe',{id})}
+        const r = ficha.requisicoes?.find(r=>r.id===requisicao)
+        if (!r) throw new Error('Requisição não encontrada.')
+        estadoColaboradores.detalhe = null
+        estadoColaboradores.contextoEtapa = ficha
+        estadoColaboradores.atendimento = {ficha,requisicao:r}
+        estadoColaboradores.visao = 'atendimento'
+        renderizarAtendimentoMaterial()
+    } catch(erro) {popup({mensagem:erro.message})}
+}
+
+function renderizarAtendimentoMaterial() {
+    const local = document.querySelector('.colab-conteudo')
+    const entrega = estadoColaboradores.atendimento
+    if (!local || !entrega) return
+    const {ficha,requisicao:r} = entrega
+    const fechado = r.concluida || r.cancelada
+    estadoColaboradores.entregaParaConcluir = entrega
+    const setor = r.etapas?.[0]?.setor?.join(', ') || 'Sem setor definido'
+    local.innerHTML = `<section class="colab-atendimento">
+        <button type="button" class="colab-voltar" onclick="abrirFluxoMateriais('${fechado?'historico':'andamento'}')">← Voltar às requisições</button>
+        <header class="colab-atendimento-topo"><div><small>${r.movimento==='DEVOLUÇÃO'?'Devolução':'Entrega de materiais e ferramentas'}</small><h2>${escaparAtributo(ficha.colaborador.nome)}</h2><p>Solicitada em ${escaparAtributo(r.data)} por ${escaparAtributo(r.usuario)}</p></div><span class="colab-chip">${escaparAtributo(r.cancelada?'Cancelada':r.concluida?'Concluída':r.status)}</span></header>
+        <ol class="colab-fluxo-passos"><li class="feito"><b>1</b><span>Requisição criada</span></li><li class="${fechado?'feito':'atual'}"><b>2</b><span>Atendimento do setor</span></li><li class="${r.concluida?'feito':''}"><b>3</b><span>Documento e conclusão</span></li></ol>
+        <div class="colab-atendimento-corpo"><section class="colab-atendimento-itens"><h3>Itens desta requisição</h3><div class="colab-tabela-rolagem"><table class="colab-tabela"><thead><tr><th>Item</th><th>Quantidade</th><th>Valor</th></tr></thead><tbody>${r.itens.map(i=>`<tr><td><b>${escaparAtributo(i.descricao || i.codigo)}</b><small>${escaparAtributo(i.codigo)}</small></td><td>${numeroColab(i.quantidade)} ${escaparAtributo(i.unidade)}</td><td>${dinheiro(i.quantidade*i.custo)}</td></tr>`).join('')}</tbody></table></div>${r.comentario?`<p>${escaparAtributo(r.comentario)}</p>`:''}</section>
+        <aside class="colab-atendimento-acao">
+            <small>Setor responsável</small><b>${escaparAtributo(setor)}</b>
+            ${fechado ? `<h3>${r.cancelada?'Requisição cancelada':'Entrega concluída'}</h3><p>${r.cancelada?'Não adiciona itens ao saldo.':'Os itens desta entrega já estão contabilizados na ficha do funcionário.'}</p>${(r.documentos||[]).map(d=>criarAnexoVisual(d.nome,d.link,false)).join('') || '<small>Registro anterior concluído por status. Consulte os documentos na ficha.</small>'}<button type="button" class="secundario" onclick="abrirColaborador('${escaparAtributo(ficha.id)}')">Ver itens do funcionário</button>`
+            : r.movimento==='DEVOLUÇÃO' ? `<h3>Confira a devolução</h3><p>Registre o recebimento dos itens para atualizar o saldo.</p><button type="button" onclick="formularioEtapaColaborador('${escaparAtributo(r.id)}')">Registrar recebimento</button>`
+            : `<h3>Entregou os itens?</h3><p>Anexe o documento desta entrega. A requisição encerra e os itens entram no saldo do funcionário automaticamente.</p><label class="colab-anexar-entrega">Anexar documento e encerrar<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.heif" onchange="concluirEntregaAssinadaColab(this)"></label><button type="button" class="secundario" onclick="gerarReciboRequisicaoColab('${escaparAtributo(ficha.id)}','${escaparAtributo(r.id)}')">Preciso gerar o recibo</button><div class="colab-atendimento-provisorio"><b>Ainda está em atendimento?</b><p>Registre “separado”, altere o setor ou use outro status existente.</p><button type="button" class="secundario" onclick="formularioEtapaColaborador('${escaparAtributo(r.id)}')">Atualizar andamento ou setor</button></div>`}
+        </aside></div>
+        <details class="colab-fluxo-historico"><summary>Histórico desta requisição (${r.etapas.length})</summary>${r.etapas.map(e=>`<div><b>${escaparAtributo(e.nome)}</b><span>${escaparAtributo(e.data)} · ${escaparAtributo(e.usuario)}</span><p>${escaparAtributo(e.descricao || '')}</p></div>`).join('')}</details>
+    </section>`
+}
+

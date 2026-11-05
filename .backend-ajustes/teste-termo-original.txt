@@ -1,0 +1,17 @@
+test('termo: pendente sem envio, em dia quando bate, desatualizado com o que mudou', () => {
+    const itens = [
+        { codigo: 'F1', descricao: 'Furadeira', classe: 'FERRAMENTA', saldo: 2 },
+        { codigo: 'F2', descricao: 'Serra', classe: 'FERRAMENTA', saldo: 0 },
+        { codigo: 'M1', descricao: 'Cabo', classe: 'MATERIAL', saldo: 50 }
+    ]
+    assert.deepEqual(situacaoTermo(null, itens), { situacao: 'PENDENTE', mudancas: [] })
+    assert.deepEqual(situacaoTermo(null, []), { situacao: null, mudancas: [] })
+    assert.equal(situacaoTermo({ link: 'a.pdf', ferramentas: { F1: 2 } }, itens).situacao, 'EM DIA')
+    const { situacao, mudancas } = situacaoTermo({ link: 'a.pdf', ferramentas: { F1: 1, F2: 1 } }, itens)
+    assert.equal(situacao, 'DESATUALIZADO')
+    assert.deepEqual(mudancas, [
+        { codigo: 'F1', descricao: 'Furadeira', antes: 1, agora: 2 },
+        { codigo: 'F2', descricao: 'Serra', antes: 1, agora: 0 }
+    ])
+})
+

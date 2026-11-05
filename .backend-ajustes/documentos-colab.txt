@@ -1,0 +1,86 @@
+// Documentos independentes: anexar uma entrega não substitui os assinados anteriores.
+function blocoTermoColaborador(termo = {}) {
+    const documentos = Array.isArray(termo.documentos) ? termo.documentos
+        : termo.link ? [{ nome: termo.nome, link: termo.link, data: termo.data, usuario: termo.usuario }] : []
+    return `<section class="colab-termo">
+        <div class="colab-termo-topo">
+            <div><b>Documentos assinados</b><span class="colab-chip">${documentos.length} arquivo(s)</span></div>
+            <div class="colab-termo-acoes">
+                <button type="button" class="secundario" onclick="escolherItensReciboColab()">Gerar recibo de entrega</button>
+                <button type="button" onclick="document.getElementById('termoAssinadoColab').click()">Anexar assinados</button>
+                <input type="file" id="termoAssinadoColab" accept=".pdf,image/*" multiple hidden onchange="enviarTermoAssinado(this)">
+            </div>
+        </div>
+        <small>Guarde aqui os documentos de cada entrega. Você pode anexar vários arquivos, sem juntar ou substituir os anteriores.</small>
+        ${documentos.length ? `<details class="colab-documentos"><summary>Ver documentos (${documentos.length})</summary>
+            ${documentos.map(d => `<div class="colab-termo-arquivo">${criarAnexoVisual(d.nome || 'Documento assinado', d.link, false)}<small>${escaparAtributo(d.data || '')}${d.usuario ? ` · ${escaparAtributo(d.usuario)}` : ''}</small></div>`).join('')}
+        </details>` : '<small>Nenhum documento anexado.</small>'}
+    </section>`
+}
+
+async function enviarTermoAssinado(input) {
+    const id = estadoColaboradores.detalhe?.id
+    if (!id || !input?.files?.length || input.disabled) return
+    if (input.files.length > 30) {
+        input.value = ''
+        return popup({ mensagem: 'Envie até 30 documentos por vez.' })
+    }
+    input.disabled = true
+    overlayAguarde()
+    try {
+        const arquivos = await importarAnexos({ input })
+        if (!Array.isArray(arquivos) || arquivos.length !== input.files.length || arquivos.some(a => !a.link))
+            throw new Error('Nem todos os arquivos foram enviados. Confira e tente novamente.')
+        await chamarColaboradores('documentos', { id, arquivos: arquivos.map(a => ({ nome: a.nome, link: a.link })) })
+        if (estadoColaboradores.detalhe?.id === id) await atualizarPainelColaborador(id)
+    } catch (erro) {
+        popup({ mensagem: erro.message || 'Falha ao anexar os documentos.' })
+    } finally {
+        removerOverlay()
+        input.disabled = false
+        input.value = ''
+    }
+}
+
+function itensReciboColab() {
+    return (estadoColaboradores.detalhe?.itens || []).filter(i => i.saldo > 0)
+}
+
+function escolherItensReciboColab() {
+    const { requisicoes = [], colaborador = {} } = estadoColaboradores.detalhe || {}
+    const itens = itensReciboColab()
+    if (!itens.length) return popup({ mensagem: 'Nenhum item disponível para gerar recibo.' })
+    const entrega = [...requisicoes].filter(r => r.concluida && r.movimento !== 'DEVOLUÇÃO').sort((a, b) => b.ts - a.ts)[0]
+    const recentes = new Map((entrega?.itens || []).map(i => [i.codigo, i.quantidade]))
+    estadoColaboradores.reciboColaborador = estadoColaboradores.detalhe.id
+    popup({ titulo: `Recibo de entrega — ${colaborador.nome || ''}`,
+        elemento: `<div class="colab-recibo-selecao">
+            <p>Escolha somente os itens desta entrega. Os documentos antigos continuam na ficha.</p>
+            <small>${entrega ? 'Começamos pelos itens da última entrega concluída.' : 'Informe as quantidades que vão neste recibo.'}</small>
+            <div class="colab-termo-acoes"><button type="button" class="secundario" onclick="preencherReciboColab(true)">Todos em mãos</button><button type="button" class="secundario" onclick="preencherReciboColab(false)">Limpar</button></div>
+            <div class="colab-recibo-itens">${itens.map((i, indice) => `<label class="colab-recibo-item"><span><b>${escaparAtributo(i.descricao || i.codigo)}</b><small>${escaparAtributo(i.codigo)} · ${numeroColab(i.saldo)} ${escaparAtributo(i.unidade)} em mãos</small></span><input type="number" data-recibo-indice="${indice}" aria-label="Quantidade de ${escaparAtributo(i.descricao || i.codigo)}" min="0" max="${i.saldo}" step="0.001" value="${Math.min(i.saldo, recentes.get(i.codigo) || 0)}"></label>`).join('')}</div>
+        </div>`,
+        botoes: [{ texto: 'Gerar recibo', img: 'pdf', funcao: 'gerarReciboSelecionadoColab()' }]
+    })
+}
+
+function preencherReciboColab(todos) {
+    for (const input of document.querySelectorAll('[data-recibo-indice]')) input.value = todos ? input.max : 0
+}
+
+async function gerarReciboSelecionadoColab() {
+    if (estadoColaboradores.reciboColaborador !== estadoColaboradores.detalhe?.id)
+        return popup({ mensagem: 'Reabra a seleção de itens deste colaborador.' })
+    const itens = itensReciboColab()
+    const selecionados = []
+    for (const input of document.querySelectorAll('[data-recibo-indice]')) {
+        const item = itens[Number(input.dataset.reciboIndice)]
+        const quantidade = Number(input.value)
+        if (!item || !Number.isFinite(quantidade) || quantidade < 0 || quantidade > item.saldo)
+            return popup({ mensagem: 'Confira as quantidades: use valores entre zero e o saldo em mãos.' })
+        if (quantidade > 0) selecionados.push({ ...item, saldo: quantidade })
+    }
+    if (!selecionados.length) return popup({ mensagem: 'Selecione pelo menos um item.' })
+    await termoResponsabilidade(selecionados)
+}
+
