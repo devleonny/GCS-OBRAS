@@ -21,7 +21,7 @@ const VERSOES_CSS = {
     "jogo": "baa3f388",
     "layout_os": "2580d9ae",
     "mapa": "2a3b2db5",
-    "notificacoes": "f5aa371b",
+    "notificacoes": "76e234cb",
     "ocorrencias": "1a2640e2",
     "orcamento": "0192e200",
     "os": "423f800a",

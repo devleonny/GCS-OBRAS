@@ -288,34 +288,141 @@ async function abrirDocumentosAVencer() {
 }
 
 // ---------------- Envio manual (adm/diretoria) ----------------
-function formularioEnviarNotificacao() {
+// Destinatários escolhidos de listas reais (rota /notificacoes/destinatarios), sem texto livre:
+// setores e permissões em botões liga/desliga, usuários por busca (nome ou login). O resumo mostra
+// quantas pessoas recebem, e "ver quem" lista os nomes antes de enviar.
+const estadoAviso = { opcoes: null, todos: false, setores: new Set(), permissoes: new Set(), usuarios: new Set() }
+const normalizarAviso = texto => String(texto || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+
+async function formularioEnviarNotificacao() {
+    const aberto = document.querySelector('.aviso-destino')
+    if (aberto) return trazerJanelaParaFrente(aberto)
+    overlayAguarde()
+    try {
+        estadoAviso.opcoes = await chamarNotificacoes('destinatarios')
+    } catch (erro) {
+        removerOverlay()
+        return popup({ mensagem: escaparAtributo(erro.message) })
+    }
+    Object.assign(estadoAviso, { todos: false, setores: new Set(), permissoes: new Set(), usuarios: new Set() })
+    removerOverlay()
     popup({
         titulo: 'Enviar aviso',
         linhas: [
             { texto: 'Título', elemento: '<input name="tituloAviso" maxlength="120" placeholder="Ex.: Sistema em manutenção às 18h">' },
             { texto: 'Mensagem', elemento: '<textarea name="corpoAviso" maxlength="300" placeholder="Detalhes (opcional)"></textarea>' },
-            { texto: 'Para todos', elemento: '<input type="checkbox" name="todosAviso" style="width: 1.5rem; height: 1.5rem;">' },
-            { texto: 'Setores', elemento: '<input name="setoresAviso" placeholder="Ex.: LOGÍSTICA, FINANCEIRO">' },
-            { texto: 'Permissões', elemento: '<input name="permissoesAviso" placeholder="Ex.: gerente, diretoria">' },
-            { texto: 'Usuários', elemento: '<input name="usuariosAviso" placeholder="Ex.: Leonny, vaneli">' }
+            {
+                texto: 'Para',
+                elemento: `
+                <div class="aviso-destino">
+                    <label class="aviso-todos"><input type="checkbox" onchange="estadoAviso.todos = this.checked; renderizarDestinoAviso()"> Todos os usuários</label>
+                    <div class="aviso-grupo"><small>Setores</small><div class="aviso-chips" data-grupo="setores"></div></div>
+                    <div class="aviso-grupo"><small>Permissões</small><div class="aviso-chips" data-grupo="permissoes"></div></div>
+                    <div class="aviso-grupo">
+                        <small>Usuários</small>
+                        <div class="aviso-selecionados"></div>
+                        <input type="search" class="aviso-busca" placeholder="Buscar por nome ou usuário" oninput="buscarUsuarioAviso(this.value)" autocomplete="off">
+                        <div class="aviso-resultados"></div>
+                    </div>
+                    <div class="aviso-resumo"></div>
+                </div>`
+            }
         ],
         botoes: [{ texto: 'Enviar', img: 'concluido', funcao: 'enviarNotificacaoManual(this)' }]
+    })
+    renderizarDestinoAviso()
+}
+
+function destinatariosAviso() {
+    const { opcoes, todos, setores, permissoes, usuarios } = estadoAviso
+    const setoresNorm = new Set([...setores].map(s => s.toUpperCase()))
+    return (opcoes?.usuarios || []).filter(u => todos || usuarios.has(u.usuario) ||
+        (u.setor && setoresNorm.has(u.setor.toUpperCase())) || (u.permissao && permissoes.has(u.permissao)))
+}
+
+function renderizarDestinoAviso() {
+    const destino = document.querySelector('.aviso-destino')
+    if (!destino || !estadoAviso.opcoes) return
+    destino.classList.toggle('para-todos', estadoAviso.todos)
+    for (const grupo of ['setores', 'permissoes']) {
+        destino.querySelector(`[data-grupo="${grupo}"]`).innerHTML = estadoAviso.opcoes[grupo].map(({ valor, quantidade }) => `
+            <button type="button" class="aviso-chip ${estadoAviso[grupo].has(valor) ? 'ativo' : ''}"
+                data-grupo="${grupo}" data-valor="${escaparAtributo(valor)}" onclick="alternarChipAviso(this)">
+                ${escaparAtributo(valor)} <small>${quantidade}</small>
+            </button>`).join('')
+    }
+    const porLogin = new Map(estadoAviso.opcoes.usuarios.map(u => [u.usuario, u]))
+    destino.querySelector('.aviso-selecionados').innerHTML = [...estadoAviso.usuarios].map(login => `
+        <span class="aviso-chip ativo">
+            ${escaparAtributo(porLogin.get(login)?.nome || login)} <small>${escaparAtributo(login)}</small>
+            <button type="button" title="Tirar" data-usuario="${escaparAtributo(login)}" onclick="removerUsuarioAviso(this)">×</button>
+        </span>`).join('')
+    const total = destinatariosAviso().length
+    destino.querySelector('.aviso-resumo').innerHTML = total
+        ? `Vai para <b>${total}</b> pessoa(s). <button type="button" onclick="verDestinatariosAviso()">ver quem</button>`
+        : 'Escolha para quem vai o aviso.'
+}
+
+function alternarChipAviso(botao) {
+    const conjunto = estadoAviso[botao.dataset.grupo]
+    conjunto.has(botao.dataset.valor) ? conjunto.delete(botao.dataset.valor) : conjunto.add(botao.dataset.valor)
+    renderizarDestinoAviso()
+}
+
+function buscarUsuarioAviso(texto) {
+    const resultados = document.querySelector('.aviso-destino .aviso-resultados')
+    if (!resultados) return
+    const termo = normalizarAviso(texto).trim()
+    if (!termo) return resultados.innerHTML = ''
+    const achados = estadoAviso.opcoes.usuarios
+        .filter(u => !estadoAviso.usuarios.has(u.usuario) && (normalizarAviso(u.nome).includes(termo) || normalizarAviso(u.usuario).includes(termo)))
+        .slice(0, 8)
+    resultados.innerHTML = achados.map(u => `
+        <button type="button" class="aviso-resultado" data-usuario="${escaparAtributo(u.usuario)}" onclick="adicionarUsuarioAviso(this)">
+            <b>${escaparAtributo(u.nome || u.usuario)}</b>
+            <small>${escaparAtributo(u.usuario)}${u.setor ? ` · ${escaparAtributo(u.setor)}` : ''}${u.permissao ? ` · ${escaparAtributo(u.permissao)}` : ''}</small>
+        </button>`).join('') || '<small class="aviso-sem-resultado">Ninguém com esse nome.</small>'
+}
+
+function adicionarUsuarioAviso(botao) {
+    estadoAviso.usuarios.add(botao.dataset.usuario)
+    const busca = document.querySelector('.aviso-destino .aviso-busca')
+    if (busca) { busca.value = ''; busca.focus() }
+    buscarUsuarioAviso('')
+    renderizarDestinoAviso()
+}
+
+function removerUsuarioAviso(botao) {
+    estadoAviso.usuarios.delete(botao.dataset.usuario)
+    renderizarDestinoAviso()
+}
+
+function verDestinatariosAviso() {
+    const lista = destinatariosAviso()
+    popup({
+        titulo: `Destinatários (${lista.length})`,
+        elemento: `<div class="aviso-lista-destinatarios">${lista.map(u => `
+            <div><b>${escaparAtributo(u.nome || u.usuario)}</b> <small>${escaparAtributo(u.usuario)}${u.setor ? ` · ${escaparAtributo(u.setor)}` : ''}${u.permissao ? ` · ${escaparAtributo(u.permissao)}` : ''}</small></div>`).join('')}
+        </div>`
     })
 }
 
 async function enviarNotificacaoManual(botao) {
     const janela = botao.closest('.popup')
     const campo = nome => janela.querySelector(`[name="${nome}"]`)
-    const lista = nome => String(campo(nome).value || '').split(',').map(v => v.trim()).filter(Boolean)
     const corpo = {
         titulo: campo('tituloAviso').value.trim(),
         corpo: campo('corpoAviso').value.trim(),
-        todos: campo('todosAviso').checked,
-        setores: lista('setoresAviso').map(s => s.toUpperCase()),
-        permissoes: lista('permissoesAviso').map(p => p.toLowerCase()),
-        usuarios: lista('usuariosAviso')
+        todos: estadoAviso.todos,
+        setores: [...estadoAviso.setores],
+        permissoes: [...estadoAviso.permissoes],
+        usuarios: [...estadoAviso.usuarios]
     }
     if (!corpo.titulo) return popup({ mensagem: 'Informe o título do aviso.' })
+    const total = destinatariosAviso().length
+    if (!total) return popup({ mensagem: 'Escolha para quem vai o aviso.' })
+    const ok = await confirmarPopup({ titulo: 'Enviar aviso', mensagem: `Enviar <b>${escaparAtributo(corpo.titulo)}</b> para <b>${total}</b> pessoa(s)?`, textoConfirmar: 'Enviar' })
+    if (!ok) return
     overlayAguarde()
     try {
         const { destinatarios } = await chamarNotificacoes('enviar', corpo)

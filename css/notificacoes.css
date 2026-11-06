@@ -200,3 +200,156 @@
 .precos-vencidos-dias {
     color: #b12425;
 }
+
+/* Formulário "Enviar aviso": destinatários só de listas reais (js/notificacoes.js). */
+.aviso-destino {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(520px, 80vw);
+    text-align: left;
+}
+
+.aviso-todos {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+.aviso-todos input {
+    width: 1.2rem;
+    height: 1.2rem;
+}
+
+.aviso-destino.para-todos .aviso-grupo {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+.aviso-grupo {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.aviso-grupo > small {
+    color: #607068;
+    font-weight: 600;
+}
+
+.aviso-chips,
+.aviso-selecionados {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.aviso-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0;
+    padding: 3px 10px;
+    border: 1px solid #c8d6cd;
+    border-radius: 999px;
+    background: #fff;
+    color: #2d3d33;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.aviso-chip small {
+    color: #7a8a80;
+}
+
+.aviso-chip.ativo {
+    border-color: #249f41;
+    background: #249f41;
+    color: #fff;
+}
+
+.aviso-chip.ativo small {
+    color: #e3f6e7;
+}
+
+.aviso-chip button {
+    margin: 0 -4px 0 2px;
+    padding: 0 4px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.aviso-busca {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.aviso-resultados {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.aviso-resultado {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin: 0;
+    padding: 5px 10px;
+    border: 1px solid #e0e8e3;
+    border-radius: 8px;
+    background: #fff;
+    color: #2d3d33;
+    text-align: left;
+    cursor: pointer;
+}
+
+.aviso-resultado:hover {
+    border-color: #249f41;
+    background: #f1faf3;
+}
+
+.aviso-resultado small,
+.aviso-sem-resultado {
+    color: #7a8a80;
+}
+
+.aviso-resumo {
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #f1faf3;
+    color: #1f3328;
+    font-size: 0.85rem;
+}
+
+.aviso-resumo button {
+    margin: 0 0 0 6px;
+    padding: 2px 10px;
+    border: 1px solid #249f41;
+    border-radius: 999px;
+    background: #fff;
+    color: #1f5133;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.aviso-lista-destinatarios {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 60dvh;
+    min-width: min(380px, 80vw);
+    padding: 12px;
+    overflow-y: auto;
+    text-align: left;
+}
+
+.aviso-lista-destinatarios small {
+    color: #7a8a80;
+}
