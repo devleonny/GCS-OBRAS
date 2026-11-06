@@ -427,10 +427,9 @@ function iniciarEditorDiario(img) {
         const forma = TIPOS_MARCACAO_DIARIO[ed.ferramenta]?.forma
         if (ed.ferramenta === 'apagar') {
             const alvo = ev.target.closest?.('[data-marcacao]')?.dataset.marcacao
-            if (alvo) { mudarMarcacoesEditorDiario(ed.marcacoes.filter(m => m.id !== alvo)); return ferramentaEditorDiario(null) }
+            if (alvo) return mudarMarcacoesEditorDiario(ed.marcacoes.filter(m => m.id !== alvo))
         } else if (forma === 'ponto') {
-            adicionarMarcacaoEditorDiario({ tipo: 'camera', x, y })
-            return ferramentaEditorDiario(null)
+            return adicionarMarcacaoEditorDiario({ tipo: 'camera', x, y })
         } else if (forma === 'retangulo') {
             ed.retangulo = { x1: x, y1: y, x2: x, y2: y }
             camada.setPointerCapture(ev.pointerId)
@@ -451,8 +450,7 @@ function iniciarEditorDiario(img) {
         if (!r) return
         ed.retangulo = null
         if (Math.abs(r.x2 - r.x1) > 0.005 && Math.abs(r.y2 - r.y1) > 0.005) {
-            adicionarMarcacaoEditorDiario({ tipo: 'rack', ...r })
-            return ferramentaEditorDiario(null)
+            return adicionarMarcacaoEditorDiario({ tipo: 'rack', ...r })
         }
         desenharEditorDiario()
     })
@@ -482,11 +480,11 @@ function desenharEditorDiario() {
     camada.classList.toggle('apagando', ed.ferramenta === 'apagar')
     camada.classList.toggle('sem-ferramenta', !ed.ferramenta)
     const dica = document.getElementById('dicaEditorDiario')
-    // Cada marcação feita desliga o marcador: para a próxima, escolhe de novo (evita marcar sem querer).
-    if (dica) dica.textContent = !ed.ferramenta ? 'Escolha uma marcação acima. Ela desliga depois de feita ou ao clicar nela de novo.'
-        : ed.ferramenta === 'apagar' ? 'Clique numa marcação para apagar.'
-        : tipo?.forma === 'ponto' ? 'Clique na imagem para marcar.'
-        : tipo?.forma === 'retangulo' ? 'Clique e arraste para desenhar o rack.'
+    // O marcador fica ligado para várias marcações seguidas; desliga ao clicar nele de novo.
+    if (dica) dica.textContent = !ed.ferramenta ? 'Escolha uma marcação acima. Ela fica ligada até você clicar nela de novo.'
+        : ed.ferramenta === 'apagar' ? 'Clique nas marcações para apagar. Clique no marcador de novo para desligar.'
+        : tipo?.forma === 'ponto' ? 'Clique na imagem para marcar (quantas vezes quiser). Clique no marcador de novo para desligar.'
+        : tipo?.forma === 'retangulo' ? 'Clique e arraste para desenhar o rack (quantos quiser). Clique no marcador de novo para desligar.'
         : ed.linha ? 'Clique para continuar a linha. Para terminar: duplo clique, Enter, clique no último ponto ou no botão do marcador. Esc cancela.'
         : 'Clique ponto a ponto para traçar o caminho.'
 }
@@ -534,10 +532,8 @@ function concluirLinhaEditorDiario() {
     if (!ed?.linha) return
     const pontos = ed.linha.filter((p, i, a) => !i || p[0] !== a[i - 1][0] || p[1] !== a[i - 1][1])
     ed.linha = null; ed.cursor = null
-    if (pontos.length >= 2) {
-        adicionarMarcacaoEditorDiario({ tipo: ed.ferramenta, pontos, ...(ed.ferramenta === 'livre' ? { cor: ed.cor } : {}) })
-        return ferramentaEditorDiario(null)
-    }
+    if (pontos.length >= 2)
+        return adicionarMarcacaoEditorDiario({ tipo: ed.ferramenta, pontos, ...(ed.ferramenta === 'livre' ? { cor: ed.cor } : {}) })
     desenharEditorDiario()
 }
 
