@@ -556,14 +556,19 @@
 }
 
 /* Desligado (clientes.desligado): etiqueta na lista de clientes, RH, ferramentas e tela inicial. */
+/* Mesma caixa das tags do cliente (.cliente-tag): alinha na mesma linha sem desnível. */
 .etiqueta-desligado {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 4px 9px;
+    border: 1px solid #3a3f44;
+    border-radius: 12px;
     background: #4a4f54;
     color: #fff;
-    font-size: 0.65rem;
+    font-size: 11px;
     font-weight: 700;
+    line-height: 1.4;
     letter-spacing: 0.04em;
     vertical-align: middle;
     white-space: nowrap;
