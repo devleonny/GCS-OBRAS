@@ -486,6 +486,71 @@
     white-space: nowrap;
 }
 
+/* Funcionário pelo qual o painel foi aberto (cartão da tela inicial): verde-claro com barra à
+   esquerda, para não se confundir com as etiquetas amarelas de "faltando". */
 .precos-vencidos-tabela tbody tr.linha-destaque td {
-    background: #fff3bf;
+    background: #e7f6ea;
+}
+
+.precos-vencidos-tabela tbody tr.linha-destaque td:first-child {
+    box-shadow: inset 4px 0 0 #249f41;
+}
+
+/* Nome do funcionário com espaço (antes quebrava em 3 ou 4 linhas). */
+.painel-pendencias-rh .rh-col-funcionario {
+    width: 36%;
+    min-width: 240px;
+}
+
+/* Vencidos um embaixo do outro. */
+.rh-lista-vertical {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+}
+
+/* Recorte de um funcionário (cartão da tela inicial). */
+.pendencia-rh-funcionario {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: min(480px, 86vw);
+    padding: 16px;
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.pendencia-rh-cabecalho {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    color: #1f3328;
+}
+
+.pendencia-rh-cabecalho small,
+.pendencia-rh-grupos small {
+    color: #607068;
+}
+
+.pendencia-rh-grupos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.pendencia-rh-grupos > div {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    border: 1px solid #d3dfd7;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.pendencia-rh-acoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
 }

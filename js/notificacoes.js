@@ -290,6 +290,11 @@ async function abrirDocumentosAVencer(funcionario = null) {
         const { pendencias = [] } = await chamarNotificacoes('documentos')
         Object.assign(estadoPendenciasRH, { lista: pendencias, busca: '', destaque: funcionario })
         removerOverlay()
+        // Cartão de um funcionário: só o recorte dele (a lista de todos fica no "Ver todos").
+        if (funcionario) {
+            const pessoa = pendencias.find(f => String(f.funcionario) === String(funcionario))
+            if (pessoa) return abrirPendenciaRHFuncionario(pessoa)
+        }
         const aberto = document.getElementById('painelPendenciasRH')
         if (aberto) {
             renderizarPendenciasRH()
@@ -307,11 +312,11 @@ async function abrirDocumentosAVencer(funcionario = null) {
                     </p>
                     <div class="precos-vencidos-filtros">
                         <input type="search" placeholder="Buscar funcionário, cargo ou documento" oninput="estadoPendenciasRH.busca = this.value; renderizarPendenciasRH()">
-                        <button type="button" class="precos-vencidos-recarregar" onclick="telaRH(); removerPopup(this.closest('.popup').id)">Abrir tela do RH</button>
+                        <button type="button" class="precos-vencidos-recarregar" onclick="removerPopup(this.closest('.popup').id); telaRH()">Abrir tela do RH</button>
                     </div>
                     <div class="precos-vencidos-tabela">
                         <table>
-                            <thead><tr><th style="text-align: left;">Funcionário</th><th>Estado</th><th>Vencidos</th><th>Faltam (obrigatórios)</th></tr></thead>
+                            <thead><tr><th class="rh-col-funcionario" style="text-align: left;">Funcionário</th><th>Estado</th><th>Vencidos</th><th>Faltam (obrigatórios)</th></tr></thead>
                             <tbody id="corpoPendenciasRH"></tbody>
                         </table>
                     </div>
@@ -324,6 +329,44 @@ async function abrirDocumentosAVencer(funcionario = null) {
     }
 }
 
+function abrirPendenciaRHFuncionario(f) {
+    const aberto = document.querySelector(`.pendencia-rh-funcionario[data-funcionario="${CSS.escape(String(f.funcionario))}"]`)
+    if (aberto) return trazerJanelaParaFrente(aberto)
+    const lista = (itens, classe, vazio) => itens.length
+        ? `<div class="rh-lista-vertical">${itens.map(t => `<span class="documento-situacao ${classe}">${t}</span>`).join('')}</div>`
+        : `<small>${vazio}</small>`
+    popup({
+        titulo: `Documentos do RH · ${escaparAtributo(f.nome || 'Sem nome')}`,
+        elemento: `
+            <div class="pendencia-rh-funcionario" data-funcionario="${escaparAtributo(String(f.funcionario))}">
+                <div class="pendencia-rh-cabecalho">
+                    <b>${escaparAtributo(f.nome || 'Sem nome')}</b>
+                    <small>${[f.cargo, (f.estados || []).join(', ')].filter(Boolean).map(escaparAtributo).join(' · ')}</small>
+                </div>
+                <div class="pendencia-rh-grupos">
+                    <div><small>Vencidos</small>${lista(f.vencidos.map(v => `${escaparAtributo(v.doc)} · ${escaparAtributo(v.validade || '')}`), 'vencido', 'Nenhum vencido.')}</div>
+                    <div><small>Faltam (obrigatórios)</small>${lista(f.faltantes.map(escaparAtributo), 'vence', 'Nenhum obrigatório faltando.')}</div>
+                </div>
+                <div class="pendencia-rh-acoes">
+                    <button type="button" class="precos-vencidos-recarregar" onclick="abrirDocumentosAVencer(); removerPopup(this.closest('.popup').id)">Ver todos</button>
+                    <button type="button" class="precos-vencidos-validar" data-nome="${escaparAtributo(f.nome || '')}" onclick="irParaRHFuncionario(this)">Abrir no RH</button>
+                </div>
+            </div>`
+    })
+}
+
+// Atalho: tela do RH já filtrada pelo nome do funcionário (mesmo filtro da coluna Nome).
+async function irParaRHFuncionario(botao) {
+    const nome = botao.dataset.nome || ''
+    const janela = botao.closest('.popup')?.id
+    if (janela) removerPopup(janela)
+    await telaRH()
+    if (!nome || !controles?.rh) return
+    controles.rh.pagina = 1
+    controles.rh.filtros = { ...(controles.rh.filtros || {}), nome_cargo: { op: 'includes', value: nome.toLowerCase(), original: nome } }
+    await paginacao('rh')
+}
+
 function renderizarPendenciasRH() {
     const corpo = document.getElementById('corpoPendenciasRH')
     if (!corpo) return
@@ -331,9 +374,9 @@ function renderizarPendenciasRH() {
     const lista = estadoPendenciasRH.lista.filter(f => !termo || normalizarAviso([f.nome, f.cargo, ...f.faltantes, ...f.vencidos.map(v => v.doc)].join(' ')).includes(termo))
     corpo.innerHTML = lista.map(f => `
         <tr class="${f.funcionario === estadoPendenciasRH.destaque ? 'linha-destaque' : ''}">
-            <td style="text-align: left;"><b>${escaparAtributo(f.nome || 'Sem nome')}</b>${f.cargo ? `<br><small>${escaparAtributo(f.cargo)}</small>` : ''}</td>
+            <td class="rh-col-funcionario" style="text-align: left;" title="${f.funcionario === estadoPendenciasRH.destaque ? 'Aberto pelo cartão da tela inicial' : ''}"><b>${escaparAtributo(f.nome || 'Sem nome')}</b>${f.cargo ? `<br><small>${escaparAtributo(f.cargo)}</small>` : ''}</td>
             <td>${escaparAtributo((f.estados || []).join(', '))}</td>
-            <td>${f.vencidos.map(v => `<span class="documento-situacao vencido" title="Venceu em ${escaparAtributo(v.validade || '')}">${escaparAtributo(v.doc)} · ${escaparAtributo(v.validade || '')}</span>`).join(' ') || '—'}</td>
+            <td>${f.vencidos.length ? `<div class="rh-lista-vertical">${f.vencidos.map(v => `<span class="documento-situacao vencido" title="Venceu em ${escaparAtributo(v.validade || '')}">${escaparAtributo(v.doc)} · ${escaparAtributo(v.validade || '')}</span>`).join('')}</div>` : '—'}</td>
             <td>${f.faltantes.map(d => `<span class="documento-situacao vence">${escaparAtributo(d)}</span>`).join(' ') || '—'}</td>
         </tr>`).join('') || '<tr><td colspan="4" style="padding: 1rem;">Nenhum funcionário com pendência neste filtro.</td></tr>'
     corpo.querySelector('.linha-destaque')?.scrollIntoView({ block: 'center' })
