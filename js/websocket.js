@@ -329,6 +329,10 @@ async function executarAtualizacaoWS() {
         if (tabelas.has('dados_ocorrencias') || tabelas.has('colaboradores'))
             tarefas.push(() => auxPendencias())
 
+        // Preço salvo/confirmado: o painel "Preços a confirmar" aberto se atualiza (js/precos_vencidos.js).
+        if ((tabelas.has('dados_composicoes') || atualizarTodas) && typeof recarregarPrecosVencidos === 'function')
+            tarefas.push(() => recarregarPrecosVencidos())
+
         if (tabelas.has('colaboradores') || tabelas.has('requisicoes'))
             tarefas.push(() => atualizarColaboradoresWS())
 

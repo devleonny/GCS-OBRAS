@@ -2,6 +2,8 @@
 // SCRIPTS/notificacoes.js, rotas /notificacoes/precos-vencidos e /validar-precos).
 // A logística confere e marca "Está válido": a data do preço ativo passa a ser hoje e o item só
 // volta a aparecer daqui a 60 dias. Tela inicial (bloco 'precos') e notificações abrem aqui.
+// Só a permissão log. "Editar preço" abre o editor de composições por cima do painel; ao salvar,
+// o websocket (dados_composicoes) recarrega a lista (recarregarPrecosVencidos).
 
 const estadoPrecosVencidos = { precos: [], dias: 60, lpu: '', busca: '', selecionados: new Set() }
 const LIMITE_LINHAS_PRECOS = 300
@@ -29,7 +31,7 @@ async function abrirPrecosVencidos(lpu = null) {
                     <p class="precos-vencidos-aviso">
                         Preço ativo com mais de <b>${dias} dias</b>. Se continua valendo, marque e clique em
                         <b>Está válido</b>: a data passa a ser hoje e o item só volta em ${dias} dias.
-                        Se mudou, atualize o preço pela tela de composições.
+                        Se mudou, clique em <b>Editar</b> na linha e lance o preço novo.
                     </p>
                     <div class="precos-vencidos-filtros">
                         <select onchange="estadoPrecosVencidos.lpu = this.value; renderizarPrecosVencidos()">
@@ -41,11 +43,12 @@ async function abrirPrecosVencidos(lpu = null) {
                     <div class="precos-vencidos-acoes">
                         <label><input type="checkbox" id="precosVencidosTodos" onchange="selecionarFiltradosPrecos(this.checked)"> Marcar todos do filtro</label>
                         <span id="precosVencidosResumo"></span>
+                        <button type="button" class="precos-vencidos-recarregar" onclick="recarregarPrecosVencidos()" title="Buscar a lista de novo">Atualizar lista</button>
                         <button type="button" class="precos-vencidos-validar" onclick="confirmarValidarPrecos()">Está válido</button>
                     </div>
                     <div class="precos-vencidos-tabela">
                         <table>
-                            <thead><tr><th></th><th>Código</th><th style="text-align: left;">Descrição</th><th>LPU</th><th>Preço</th><th>Data do preço</th><th>Dias</th></tr></thead>
+                            <thead><tr><th></th><th>Código</th><th style="text-align: left;">Descrição</th><th>LPU</th><th>Preço</th><th>Data do preço</th><th>Dias</th><th>Editar</th></tr></thead>
                             <tbody id="corpoPrecosVencidos"></tbody>
                         </table>
                     </div>
@@ -81,11 +84,12 @@ function renderizarPrecosVencidos() {
                 <td>${p.valor == null || p.valor === '' ? '--' : dinheiro(p.valor)}</td>
                 <td>${escaparAtributo(p.data || 'sem data')}</td>
                 <td><b class="precos-vencidos-dias">${p.dias ?? '?'}</b></td>
+                <td><button type="button" class="precos-vencidos-editar" title="Editar preço" data-codigo="${escaparAtributo(p.codigo)}" data-lpu="${escaparAtributo(p.lpu)}" onclick="editarPrecoVencido(this)"><img src="imagens/preco.png" alt=""> Editar</button></td>
             </tr>`
     }).join('')
-    corpo.innerHTML = linhas || '<tr><td colspan="7" style="padding: 1rem;">Nenhum preço para conferir neste filtro.</td></tr>'
+    corpo.innerHTML = linhas || '<tr><td colspan="8" style="padding: 1rem;">Nenhum preço para conferir neste filtro.</td></tr>'
     if (filtrados.length > LIMITE_LINHAS_PRECOS)
-        corpo.insertAdjacentHTML('beforeend', `<tr><td colspan="7" style="padding: 8px;"><small>Mostrando ${LIMITE_LINHAS_PRECOS} de ${filtrados.length}. Use a busca ou a LPU para ver os outros (o "Marcar todos do filtro" vale para os ${filtrados.length}).</small></td></tr>`)
+        corpo.insertAdjacentHTML('beforeend', `<tr><td colspan="8" style="padding: 8px;"><small>Mostrando ${LIMITE_LINHAS_PRECOS} de ${filtrados.length}. Use a busca ou a LPU para ver os outros (o "Marcar todos do filtro" vale para os ${filtrados.length}).</small></td></tr>`)
     atualizarResumoPrecosVencidos(filtrados)
 }
 
@@ -107,6 +111,25 @@ function selecionarFiltradosPrecos(marcar) {
     const { selecionados } = estadoPrecosVencidos
     for (const p of precosFiltrados()) marcar ? selecionados.add(chavePrecoVencido(p)) : selecionados.delete(chavePrecoVencido(p))
     renderizarPrecosVencidos()
+}
+
+// Editor de preço da tela de composições, por cima do painel (mesmo de requisições).
+async function editarPrecoVencido(botao) {
+    await abrirHistoricoPrecosSobre(botao.dataset.codigo, botao.dataset.lpu)
+}
+
+// Lista de novo do servidor, mantendo LPU, busca e marcados que ainda estão na lista.
+async function recarregarPrecosVencidos() {
+    if (!document.getElementById('painelPrecosVencidos')) return
+    try {
+        const { precos = [] } = await chamarNotificacoes('precos-vencidos')
+        const existentes = new Set(precos.map(chavePrecoVencido))
+        estadoPrecosVencidos.precos = precos
+        estadoPrecosVencidos.selecionados = new Set([...estadoPrecosVencidos.selecionados].filter(c => existentes.has(c)))
+        renderizarPrecosVencidos()
+    } catch (erro) {
+        console.error('[PRECOS] recarregar', erro)
+    }
 }
 
 async function confirmarValidarPrecos() {

@@ -101,15 +101,69 @@
     padding: 1rem;
 }
 
+/* Tabelas dos painéis (documentos e preços): contorno arredondado, cabeçalho fixo e discreto,
+   linhas zebradas, destaque ao passar o mouse e divisórias suaves entre colunas. */
+.tabela-documentos-vencer,
+.precos-vencidos-tabela table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.8rem;
+    color: #2d3d33;
+}
+
 .tabela-documentos-vencer {
-    border-collapse: collapse;
-    font-size: 0.85rem;
+    overflow: hidden;
+    border: 1px solid #d3dfd7;
+    border-radius: 10px;
+    background: #fff;
 }
 
 .tabela-documentos-vencer th,
-.tabela-documentos-vencer td {
-    padding: 6px 10px;
-    border-bottom: 1px solid #e3e9e5;
+.precos-vencidos-tabela th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 9px 10px;
+    border-bottom: 1px solid #d3dfd7;
+    background: #eef4f0;
+    color: #1f3328;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.tabela-documentos-vencer td,
+.precos-vencidos-tabela td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #edf2ee;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.tabela-documentos-vencer th + th,
+.tabela-documentos-vencer td + td,
+.precos-vencidos-tabela th + th,
+.precos-vencidos-tabela td + td {
+    border-left: 1px solid #f0f4f1;
+}
+
+.tabela-documentos-vencer tbody tr:nth-child(even) td,
+.precos-vencidos-tabela tbody tr:nth-child(even) td {
+    background: #fafcfb;
+}
+
+.tabela-documentos-vencer tbody tr:hover td,
+.precos-vencidos-tabela tbody tr:hover td {
+    background: #f0f9f2;
+}
+
+.tabela-documentos-vencer tbody tr:last-child td,
+.precos-vencidos-tabela tbody tr:last-child td {
+    border-bottom: 0;
 }
 
 /* Painel de preços a confirmar */
@@ -117,7 +171,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    width: min(1000px, 92vw);
+    width: min(1060px, 92vw);
     padding: 12px;
     box-sizing: border-box;
     text-align: left;
@@ -125,8 +179,9 @@
 
 .precos-vencidos-aviso {
     margin: 0;
-    padding: 8px 12px;
-    border-radius: 8px;
+    padding: 9px 12px;
+    border: 1px solid #f2d98b;
+    border-radius: 10px;
     background: #fff8e1;
     color: #5c4300;
     font-size: 0.85rem;
@@ -138,6 +193,16 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 10px;
+}
+
+.precos-vencidos-filtros select,
+.precos-vencidos-filtros input {
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid #c8d6cd;
+    border-radius: 8px;
+    background: #fff;
+    box-sizing: border-box;
 }
 
 .precos-vencidos-filtros input {
@@ -159,46 +224,75 @@
     font-size: 0.85rem;
 }
 
-.precos-vencidos-validar {
+.precos-vencidos-validar,
+.precos-vencidos-recarregar {
     margin: 0;
     padding: 6px 16px;
-    border: 0;
     border-radius: 999px;
-    background: #249f41;
-    color: #fff;
     font-weight: 700;
     cursor: pointer;
+}
+
+.precos-vencidos-validar {
+    border: 1px solid #1e8a37;
+    background: #249f41;
+    color: #fff;
+}
+
+.precos-vencidos-recarregar {
+    border: 1px solid #c8d6cd;
+    background: #fff;
+    color: #1f5133;
 }
 
 .precos-vencidos-tabela {
     max-height: 55dvh;
     overflow: auto;
-    border-radius: 8px;
+    border: 1px solid #d3dfd7;
+    border-radius: 10px;
     background: #fff;
+    box-shadow: 0 1px 3px #1020190f;
 }
 
-.precos-vencidos-tabela table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.8rem;
+.precos-vencidos-tabela td:first-child,
+.precos-vencidos-tabela th:first-child {
+    width: 36px;
 }
 
-.precos-vencidos-tabela th {
-    position: sticky;
-    top: 0;
-    padding: 8px;
-    background: #e8efe9;
-    color: #1f3328;
-}
-
-.precos-vencidos-tabela td {
-    padding: 6px 8px;
-    border-bottom: 1px solid #edf1ee;
-    text-align: center;
+.precos-vencidos-tabela input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
 }
 
 .precos-vencidos-dias {
     color: #b12425;
+}
+
+.precos-vencidos-editar {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0;
+    padding: 3px 10px;
+    border: 1px solid #c8d6cd;
+    border-radius: 999px;
+    background: #fff;
+    color: #1f5133;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.precos-vencidos-editar:hover {
+    border-color: #249f41;
+    background: #f1faf3;
+}
+
+.precos-vencidos-editar img {
+    width: 16px;
+    height: 16px;
 }
 
 /* Formulário "Enviar aviso": destinatários só de listas reais (js/notificacoes.js). */
