@@ -84,15 +84,18 @@ async function criarElementosIniciais() {
     // tipo 'colaboradores': ferramentas e materiais (js/colaboradores.js), abre a ficha do colaborador.
     // tipo 'documentos': documentos do próprio usuário vencendo/vencidos (abre a lista dele).
     // tipo 'precos': preços a confirmar, um cartão por LPU (abre o painel de preços).
-    const cartaoDocumento = ({ doc, vencimento, dias, fase }) => `
-        <div class="pendencia-card" onclick="abrirDocumentosAVencer()">
+    // Documentos do RH (adm e fin): um cartão por funcionário com vencidos e obrigatórios faltando.
+    const cartaoDocumento = ({ funcionario, nome, cargo, vencidos = [], faltantes = [] }) => `
+        <div class="pendencia-card" onclick="abrirDocumentosAVencer('${escaparAtributo(funcionario)}')">
             <div class="pendencia-card-topo">
-                <span class="documento-situacao ${fase}">${fase === 'vencido' ? 'VENCIDO' : 'A VENCER'}</span>
+                ${vencidos.length ? '<span class="documento-situacao vencido">VENCIDO</span>' : ''}
+                ${faltantes.length ? '<span class="documento-situacao vence">FALTANDO</span>' : ''}
             </div>
-            <b class="pendencia-card-titulo">${escaparAtributo(doc)}</b>
+            <b class="pendencia-card-titulo">${escaparAtributo(nome || 'Sem nome')}</b>
             <div class="pendencia-card-campos">
-                <span><small>Vencimento</small>${String(vencimento).split('-').reverse().join('/')}</span>
-                <span><small>Situação</small>${fase === 'vencido' ? `há ${-dias} dia(s)` : dias === 0 ? 'vence hoje' : `em ${dias} dia(s)`}</span>
+                ${cargo ? `<span><small>Cargo</small>${escaparAtributo(cargo)}</span>` : ''}
+                ${vencidos.length ? `<span><small>Vencidos</small>${vencidos.map(v => escaparAtributo(v.doc)).join(', ')}</span>` : ''}
+                ${faltantes.length ? `<span><small>Faltam</small>${faltantes.map(d => escaparAtributo(d)).join(', ')}</span>` : ''}
             </div>
         </div>`
 

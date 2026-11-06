@@ -280,32 +280,63 @@ function abrirAvisoNotificacao(acao, titulo) {
     })
 }
 
-// ---------------- Documentos a renovar (do próprio usuário) ----------------
-async function abrirDocumentosAVencer() {
+// ---------------- Documentos do RH (adm e fin) ----------------
+// Funcionários com documento vencido ou obrigatório faltando (mesma conta da tela do RH).
+const estadoPendenciasRH = { lista: [], busca: '', destaque: null }
+
+async function abrirDocumentosAVencer(funcionario = null) {
     overlayAguarde()
     try {
-        const { documentos = [] } = await chamarNotificacoes('documentos')
+        const { pendencias = [] } = await chamarNotificacoes('documentos')
+        Object.assign(estadoPendenciasRH, { lista: pendencias, busca: '', destaque: funcionario })
         removerOverlay()
-        const linhas = documentos.map(d => `
-            <tr>
-                <td style="text-align: left;"><b>${escaparAtributo(d.doc)}</b></td>
-                <td>${d.realizado.split('-').reverse().join('/')}</td>
-                <td>${d.vencimento.split('-').reverse().join('/')}</td>
-                <td><span class="documento-situacao ${d.fase}">${d.fase === 'vencido' ? `Vencido há ${-d.dias} dia(s)` : d.dias === 0 ? 'Vence hoje' : `Vence em ${d.dias} dia(s)`}</span></td>
-            </tr>`).join('')
+        const aberto = document.getElementById('painelPendenciasRH')
+        if (aberto) {
+            renderizarPendenciasRH()
+            return trazerJanelaParaFrente(aberto)
+        }
+        const vencidos = pendencias.filter(f => f.vencidos.length).length
+        const faltando = pendencias.filter(f => f.faltantes.length).length
         popup({
-            titulo: 'Documentos a renovar',
-            elemento: documentos.length
-                ? `<div class="documentos-a-vencer"><table class="tabela-documentos-vencer">
-                        <thead><tr><th style="text-align: left;">Documento</th><th>Realizado</th><th>Vencimento</th><th>Situação</th></tr></thead>
-                        <tbody>${linhas}</tbody></table>
-                        <p><small>Procure o RH para agendar a renovação.</small></p></div>`
-                : '<p style="padding: 1rem;">Nenhum documento seu vence nos próximos 30 dias.</p>'
+            titulo: 'Documentos do RH',
+            elemento: `
+                <div class="painel-pendencias-rh" id="painelPendenciasRH">
+                    <p class="precos-vencidos-aviso">
+                        <b>${pendencias.length}</b> funcionário(s) com pendência:
+                        <b>${vencidos}</b> com documento vencido e <b>${faltando}</b> faltando obrigatório.
+                    </p>
+                    <div class="precos-vencidos-filtros">
+                        <input type="search" placeholder="Buscar funcionário, cargo ou documento" oninput="estadoPendenciasRH.busca = this.value; renderizarPendenciasRH()">
+                        <button type="button" class="precos-vencidos-recarregar" onclick="telaRH(); removerPopup(this.closest('.popup').id)">Abrir tela do RH</button>
+                    </div>
+                    <div class="precos-vencidos-tabela">
+                        <table>
+                            <thead><tr><th style="text-align: left;">Funcionário</th><th>Estado</th><th>Vencidos</th><th>Faltam (obrigatórios)</th></tr></thead>
+                            <tbody id="corpoPendenciasRH"></tbody>
+                        </table>
+                    </div>
+                </div>`
         })
+        renderizarPendenciasRH()
     } catch (erro) {
         removerOverlay()
-        popup({ mensagem: `Falha ao carregar os documentos: ${escaparAtributo(erro.message)}` })
+        popup({ mensagem: `Falha ao carregar os documentos do RH: ${escaparAtributo(erro.message)}` })
     }
+}
+
+function renderizarPendenciasRH() {
+    const corpo = document.getElementById('corpoPendenciasRH')
+    if (!corpo) return
+    const termo = normalizarAviso(estadoPendenciasRH.busca).trim()
+    const lista = estadoPendenciasRH.lista.filter(f => !termo || normalizarAviso([f.nome, f.cargo, ...f.faltantes, ...f.vencidos.map(v => v.doc)].join(' ')).includes(termo))
+    corpo.innerHTML = lista.map(f => `
+        <tr class="${f.funcionario === estadoPendenciasRH.destaque ? 'linha-destaque' : ''}">
+            <td style="text-align: left;"><b>${escaparAtributo(f.nome || 'Sem nome')}</b>${f.cargo ? `<br><small>${escaparAtributo(f.cargo)}</small>` : ''}</td>
+            <td>${escaparAtributo((f.estados || []).join(', '))}</td>
+            <td>${f.vencidos.map(v => `<span class="documento-situacao vencido" title="Venceu em ${escaparAtributo(v.validade || '')}">${escaparAtributo(v.doc)} · ${escaparAtributo(v.validade || '')}</span>`).join(' ') || '—'}</td>
+            <td>${f.faltantes.map(d => `<span class="documento-situacao vence">${escaparAtributo(d)}</span>`).join(' ') || '—'}</td>
+        </tr>`).join('') || '<tr><td colspan="4" style="padding: 1rem;">Nenhum funcionário com pendência neste filtro.</td></tr>'
+    corpo.querySelector('.linha-destaque')?.scrollIntoView({ block: 'center' })
 }
 
 // ---------------- Envio manual (adm/diretoria) ----------------

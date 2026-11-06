@@ -469,3 +469,23 @@
 .aviso-mensagem p {
     margin: 0 0 8px;
 }
+
+/* Painel "Documentos do RH" (adm e fin): mesmo acabamento das tabelas de preços. */
+.painel-pendencias-rh {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(980px, 92vw);
+    padding: 12px;
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.painel-pendencias-rh .documento-situacao {
+    margin: 2px;
+    white-space: nowrap;
+}
+
+.precos-vencidos-tabela tbody tr.linha-destaque td {
+    background: #fff3bf;
+}
