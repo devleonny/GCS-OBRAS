@@ -359,7 +359,8 @@ async function confirmarDuplicarOrcamento(id) {
                 funcao: `duplicar('${id}')`
             }
         ],
-        mensagem: `Deseja duplicar este orçamento? <br>Tudo ficará igual, <b>apenas os dados do cliente</b> que serão removidos.`
+        mensagem: `Deseja duplicar este orçamento? <br>Tudo ficará igual, <b>apenas os dados do cliente</b> que serão removidos.`,
+        modal: true
     })
 
 }

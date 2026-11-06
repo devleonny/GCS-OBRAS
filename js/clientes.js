@@ -870,21 +870,22 @@ async function formularioCliente(idCliente) {
         }
     ]
 
-    const botoes = [
-        {
-            texto: 'Salvar',
-            img: 'concluido',
-            funcao: idCliente
-                ? `salvarCliente(${idCliente})`
-                : 'salvarCliente()'
-        }
-    ]
+    const botoes = []
 
     if (idCliente && usuario && ['adm', 'diretoria'].includes(permissaoUsuario))
         botoes.push({ texto: 'Senha provisória', img: 'chave', funcao: `confirmarSenhaProvisoria(${idCliente})` })
 
     if (idCliente && ['adm', 'diretoria'].includes(permissaoUsuario))
         botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirCliente(${idCliente})` })
+
+    // Salvar sempre por último (à direita).
+    botoes.push({
+        texto: 'Salvar',
+        img: 'concluido',
+        funcao: idCliente
+            ? `salvarCliente(${idCliente})`
+            : 'salvarCliente()'
+    })
 
     const titulo = idCliente
         ? 'Editar Cliente'
@@ -900,9 +901,17 @@ async function formularioCliente(idCliente) {
 
     popup({ linhas, botoes, titulo, conteudoRodape })
 
+    const painelCliente = [...document.querySelectorAll('.painel-padrao')].at(-1)
+
+    // O navegador lê CEP/endereço/e-mail como dados do próprio usuário e, ao salvar, oferece
+    // guardá-los. Um valor de autocomplete não reconhecido tira os campos dessa heurística
+    // (o "off" puro o Chrome ignora em campos de endereço).
+    painelCliente?.querySelectorAll('input:not([type=hidden]):not([type=file]):not([type=checkbox]), textarea, select')
+        .forEach(campo => campo.setAttribute('autocomplete', 'gcs-cadastro-cliente'))
+
     // Cadastro sem usuário: já avalia ao abrir (antes só ao digitar o nome ou mexer nas tags).
     if (!usuario)
-        verificarDisponibilidade([...document.querySelectorAll('.painel-padrao')].at(-1)?.querySelector('[name="nome"]'))
+        verificarDisponibilidade(painelCliente?.querySelector('[name="nome"]'))
 
 }
 
@@ -1026,7 +1035,7 @@ async function verificarDisponibilidade(input) {
         </div>
     `
     const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
-    const tagsValidas = ['FUNCIONÁRIO', 'CLIENTE', 'TÉCNICO', 'TÉCNICO PARCEIRO', 'MATRIZ']
+    const tagsValidas = ['FUNCIONÁRIO', 'CLIENTE', 'TÉCNICO', 'MATRIZ']
     const tagValida = tagsMarcadasCliente(painel).some(tag => tagsValidas.includes(tag))
 
     const campoNome = document.querySelector('[name="nome"]')
@@ -1226,6 +1235,11 @@ async function salvarCliente(idCliente = null) {
 
         const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
 
+        // Tags: obrigatório, pelo menos uma.
+        const tags = tagsMarcadasCliente(painel).map(tag => ({ tag }))
+        if (!tags.length)
+            return popup({ mensagem: 'Marque pelo menos uma <b>tag</b> no cadastro.' })
+
         // FIXO ou S = SIM, é válido;
         const usuarioValido = ['S', 'F'].includes(document.getElementById('status_usuario').dataset.valido)
 
@@ -1260,8 +1274,6 @@ async function salvarCliente(idCliente = null) {
         const garantia_meses = garantiaTexto == null || garantiaTexto === '' ? null : Number(garantiaTexto)
         if (garantia_meses !== null && !(Number.isInteger(garantia_meses) && garantia_meses >= 1 && garantia_meses <= 120))
             return popup({ mensagem: 'Garantia (meses): informe um número inteiro de 1 a 120, ou deixe vazio para 12.' })
-
-        const tags = tagsMarcadasCliente(painel).map(tag => ({ tag }))
 
         let foto = obVal('foto') || ''
         const arquivoFoto = painel.querySelector('[name="arquivo_foto"]')

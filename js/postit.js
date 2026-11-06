@@ -493,7 +493,7 @@ async function criarPIT(id) {
     if (id)
         botoes.push({ img: 'cancel', texto: 'Excluir', funcao: `confirmarExcluirPIT('${id}')` })
 
-    popup({ linhas, botoes, autoDestruicao: ['usuario'] })
+    popup({ linhas, botoes, titulo: id ? 'Editar post-it' : 'Novo post-it', autoDestruicao: ['usuario'] })
 }
 
 // Coloca o cartão na tela sem esperar o servidor; devolve a função que desfaz.

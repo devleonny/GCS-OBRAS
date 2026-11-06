@@ -584,6 +584,13 @@ async function verAprovacoes() {
 
         const pag = 'aprovacao'
 
+        // Uma lista só (tabela com id fixo): pedir de novo traz a aberta para frente e recarrega.
+        const listaAberta = document.getElementById('tAprovacao')
+        if (listaAberta) {
+            trazerJanelaParaFrente(listaAberta)
+            return await paginacao(pag)
+        }
+
         const tabela = await modTab({
             colunas: {
                 'Contrato': { chave: 'contrato' },
@@ -706,6 +713,14 @@ async function verPedidoAprovacao(idOrcamento) {
     if (!pessoasPermitidas.includes(permissao))
         return popup({ mensagem: 'Você não tem acesso' })
 
+    // Um painel por orçamento, cada um com a sua tabela de itens (antes o id era fixo: o segundo
+    // painel desenhava os itens dentro do primeiro).
+    const painelAberto = document.querySelector(`.pedido-aprovacao[data-orcamento="${CSS.escape(idOrcamento)}"]`)
+    if (painelAberto) {
+        removerOverlay()
+        return trazerJanelaParaFrente(painelAberto)
+    }
+
     const {
         dados_composicoes,
         cliente,
@@ -713,11 +728,12 @@ async function verPedidoAprovacao(idOrcamento) {
         usuario,
         total_bruto,
         total_geral,
-        lpu_ativa
+        lpu_ativa,
+        contrato
     } = await recuperarDado('mvw_dados_orcamentos', idOrcamento) || {}
 
     const base = Object.values(dados_composicoes || {})
-    const pag = 'orcAprovacao'
+    const pag = `orcAprovacao_${String(idOrcamento).replace(/[^\w-]/g, '_')}`
     const tabela = await modTab({
         base,
         pag,
@@ -757,7 +773,7 @@ async function verPedidoAprovacao(idOrcamento) {
     const linhas = [
         {
             elemento: `
-            <div class="pedido-aprovacao requisicao-formulario">
+            <div class="pedido-aprovacao requisicao-formulario" data-orcamento="${escaparAtributo(idOrcamento)}">
                 
                 <div class="pedido-aprovacao-resumo">
                     <section class="pedido-aprovacao-cartao requisicao-contorno">
@@ -798,7 +814,8 @@ async function verPedidoAprovacao(idOrcamento) {
         { texto: 'Reprovar', img: 'cancel', funcao: `respostaAprovacao('${idOrcamento}', 'reprovado')` },
     ]
 
-    popup({ elemento: linhas[0].elemento, botoes, titulo: 'Detalhes' })
+    const identificacao = [contrato].flat().filter(Boolean)[0]
+    popup({ elemento: linhas[0].elemento, botoes, titulo: `Detalhes${identificacao ? ` · ${identificacao}` : ''}`, autoDestruicao: [pag] })
 
     await paginacao(pag)
 
@@ -884,6 +901,10 @@ function linhasOrcAprovacao(orcamento) {
 
 async function respostaAprovacao(idOrcamento, status) {
 
+    // Fecha o painel DESTE orçamento (com vários abertos, "o último" pode ser outro).
+    const janelaPainel = document.querySelector(`.pedido-aprovacao[data-orcamento="${CSS.escape(idOrcamento)}"]`)
+        ?.closest('.popup')?.id || null
+
     overlayAguarde()
 
     const dados = {
@@ -901,7 +922,7 @@ async function respostaAprovacao(idOrcamento, status) {
 
     await enviar(`dados_orcamentos/${idOrcamento}/aprovacao`, orcamento.aprovacao)
 
-    removerPopup()
+    removerPopup(janelaPainel)
 
     verificarPendencias()
 
@@ -1041,10 +1062,9 @@ async function painelClientes(idOrcamento = null) {
 
     overlayAguarde()
 
-    // Salvamento do id para uso na função 'Dados do cliente';
+    // Id para as tags ('Dados do cliente'): só vai para controles.etiquetas depois da trava de
+    // "um formulário por vez" lá embaixo — senão a tentativa barrada troca o orçamento do aberto.
     const idOrcParaTag = idOrcamento || 'novo'
-    controles.etiquetas ??= {}
-    controles.etiquetas.idOrcamento = idOrcParaTag
 
     const orcamento = idOrcamento
         ? await recuperarDado('dados_orcamentos', idOrcamento) || {}
@@ -1258,11 +1278,24 @@ async function painelClientes(idOrcamento = null) {
         }
     ]
 
+    // Um "Dados do Cliente" por vez: os campos têm id fixo (salvarDadosCliente, tags e cxOpcoes leem
+    // pelo id/nome) e dois abertos misturariam os dados entre orçamentos.
     const formExistente = document.querySelector('#emissor')
-    if (formExistente)
-        return removerOverlay()
+    if (formExistente) {
+        removerOverlay()
+        trazerJanelaParaFrente(formExistente)
+        if (formExistente.closest('.painel-padrao')?.dataset.orcamento !== idOrcParaTag)
+            popup({ mensagem: 'Já existe um formulário <b>Dados do Cliente</b> aberto para outro orçamento.<br>Salve ou feche esse antes de abrir outro.' })
+        return
+    }
 
-    popup({ linhas, botoes, titulo: 'Dados do Cliente', autoDestruicao: ['cliente', 'tecnico'] })
+    controles.etiquetas ??= {}
+    controles.etiquetas.idOrcamento = idOrcParaTag
+
+    const identificacao = contrato && contrato !== 'sequencial' ? ` · ${contrato}` : ''
+    popup({ linhas, botoes, titulo: `Dados do Cliente${identificacao}`, autoDestruicao: ['cliente', 'tecnico'] })
+    const painelDados = document.getElementById('emissor')?.closest('.painel-padrao')
+    if (painelDados) painelDados.dataset.orcamento = idOrcParaTag
 
     await maisUsuario(executor, 'executores')
     await maisUsuario(tecnico, 'tecnicos')
@@ -1299,7 +1332,9 @@ async function buscarDadosCliente() {
         if (el) el.textContent = cliente?.[campo] || ''
     }
 
-    const idOrcamento = controles.etiquetas.idOrcamento
+    // O orçamento é o do formulário aberto (data-orcamento), não o último que alguém tentou abrir.
+    const idOrcamento = document.getElementById('emissor')?.closest('.painel-padrao')?.dataset.orcamento
+        || controles.etiquetas?.idOrcamento
     const isNovo = idOrcamento === 'novo'
     const orcamento = isNovo
         ? baseOrcamento()
@@ -1364,6 +1399,10 @@ async function buscarDadosCliente() {
 }
 
 async function salvarDadosCliente(idOrcamento) {
+
+    // A janela deste formulário: no fim fecha ela (e não "a última"/"a em foco", que depois do
+    // abrirAtalhos pode ser o atalho do orçamento).
+    const janelaFormulario = document.getElementById('emissor')?.closest('.popup')?.id || null
 
     overlayAguarde()
 
@@ -1438,7 +1477,7 @@ async function salvarDadosCliente(idOrcamento) {
             baseOrcamento(orcamentoBase)
         }
 
-        removerPopup()
+        removerPopup(janelaFormulario)
 
     } catch (erro) {
 

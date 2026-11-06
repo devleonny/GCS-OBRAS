@@ -693,3 +693,33 @@
 }
 .orcamento-atalho-composicoes button:hover { background: #dfebe3; }
 
+
+/* Busca + abas de totais (GERAL/VENDA/SERVIÇO) presas ao topo da tabela, como abas de pasta:
+   tudo alinhado pela base; buscas à esquerda, abas à direita encostando na tabela. */
+.orcamento-barra-busca {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 0 12px 0 0;
+}
+
+.orcamento-barra-busca .pesquisa-orcamento {
+  flex: 0 1 190px;
+  margin-bottom: 6px;
+}
+
+.orcamento-barra-busca .toolbarSuperior {
+  flex: 1;
+  width: auto;
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+
+/* Sem itens: a caixa "Sem resultados" ocupa a célula toda (sem o recuo que a separava das abas). */
+#bodyOrcamento td:has(> .tabela-sem-resultados) {
+  padding: 0;
+}
+
+#bodyOrcamento .tabela-sem-resultados {
+  border-radius: 0 0 8px 8px;
+}

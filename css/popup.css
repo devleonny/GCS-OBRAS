@@ -602,3 +602,231 @@
 .painel-padrao .tabela textarea {
     font-size: 10px;
 }
+
+/* Janelas independentes (piloto: js/janelas.js, só com a classe no <html>) */
+.janelas-independentes .popup {
+    background-color: transparent;
+    pointer-events: none;
+}
+
+/* A área das janelas termina onde começa a barra do rodapé (--barra-janelas-altura, js/janelas.js). */
+.janelas-independentes .popup {
+    height: calc(100% - var(--barra-janelas-altura, 0px));
+}
+
+.janelas-independentes .popup .popup-janela-fora {
+    pointer-events: auto;
+    max-height: calc(100dvh - var(--barra-janelas-altura, 0px) - 32px);
+}
+
+.janelas-independentes .popup .popup-janela-fora.janela-posicionada {
+    position: fixed;
+    margin: 0;
+}
+
+.janelas-independentes .popup.janela-minimizada {
+    display: none;
+}
+
+/* Separação clara entre janelas: contorno escuro + sombra em todas; a em foco ganha anel verde. */
+.janelas-independentes .popup .popup-janela-fora {
+    border: none;
+    box-shadow:
+        0 0 0 1px #10201980,
+        0 18px 48px #10201970,
+        0 4px 12px #10201945;
+}
+
+.janelas-independentes .popup.janela-em-foco .popup-janela-fora {
+    box-shadow:
+        0 0 0 2px #ffffff,
+        0 0 0 5px #249f41,
+        0 26px 70px #10201990,
+        0 6px 18px #10201955;
+}
+
+.janelas-independentes .popup:not(.janela-em-foco) .popup-top {
+    filter: saturate(0.35) brightness(1.15);
+}
+
+.janelas-independentes .popup-top {
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+
+.janelas-independentes .popup-top.arrastando {
+    cursor: grabbing;
+}
+
+/* Minimizar (azul) e fechar (vermelho) lado a lado, à direita da barra de título. */
+.janelas-independentes .popup-top .janela-botoes {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    margin-right: 10px;
+    cursor: default;
+}
+
+.janelas-independentes .popup-top .janela-botoes span {
+    width: 30px;
+    height: 30px;
+    align-self: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: filter 0.15s;
+}
+
+.janelas-independentes .popup-top .janela-botoes .janela-minimizar {
+    background-color: #2f6fdc;
+}
+
+.janelas-independentes .popup-top .janela-botoes .janela-fechar {
+    background-color: #c62f2f;
+}
+
+.janelas-independentes .popup-top .janela-botoes span:hover {
+    filter: brightness(1.15);
+}
+
+#barra-janelas {
+    position: fixed;
+    z-index: 10003;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    overflow-x: auto;
+    background: linear-gradient(180deg, #2a4535, #1a2c22);
+    border-top: 2px solid #249f41;
+    box-shadow: 0 -6px 20px #10201966;
+}
+
+#barra-janelas .barra-janela {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Espreme todos por igual (título com reticências) até o mínimo; passou disso, a barra rola. */
+    flex: 0 1 240px;
+    min-width: 96px;
+    height: 34px;
+    box-sizing: border-box;
+    padding: 0 6px 0 10px;
+    border: 1px solid #ffffff40;
+    border-radius: 10px;
+    background: #ffffff1f;
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+}
+
+#barra-janelas .barra-janela:hover {
+    background: #ffffff38;
+}
+
+/* Ícone de janela (CSS puro). */
+#barra-janelas .barra-janela-icone {
+    flex-shrink: 0;
+    width: 14px;
+    height: 11px;
+    border: 2px solid currentColor;
+    border-top-width: 4px;
+    border-radius: 3px;
+    opacity: 0.85;
+}
+
+#barra-janelas .barra-janela.em-foco {
+    background: #fff;
+    border-color: #fff;
+    color: #1f5133;
+    font-weight: 700;
+    box-shadow: 0 0 0 2px #249f41;
+}
+
+/* Minimizada: destaque âmbar — é trabalho estacionado esperando a volta. */
+#barra-janelas .barra-janela.minimizada {
+    background: #fff3bf;
+    border-color: #f2c200;
+    color: #5c4300;
+    font-weight: 600;
+    box-shadow: 0 2px 8px #f2c20055;
+}
+
+#barra-janelas .barra-janela.minimizada:hover {
+    background: #ffe98a;
+}
+
+#barra-janelas .barra-janela-titulo {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* × desenhado (duas barras), centralizado de verdade: o caractere "×" fica torto conforme a fonte. */
+#barra-janelas .barra-janela-fechar {
+    position: relative;
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 0;
+    color: inherit;
+    opacity: 0.75;
+}
+
+#barra-janelas .barra-janela-fechar::before,
+#barra-janelas .barra-janela-fechar::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 10px;
+    height: 2px;
+    border-radius: 1px;
+    background: currentColor;
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+#barra-janelas .barra-janela-fechar::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+#barra-janelas .barra-janela-fechar:hover {
+    background: #c62f2f;
+    color: #fff;
+    opacity: 1;
+}
+
+/* Em foco fica por cima mesmo antes de ir para o fim do DOM (isso só acontece no click). */
+.janelas-independentes .popup.janela-em-foco {
+    z-index: 10002;
+}
+
+/* Modal (popup({ modal: true })): fundo escuro que bloqueia a tela e a barra do rodapé. */
+.janelas-independentes .popup.janela-modal {
+    z-index: 10004;
+    height: 100%;
+    background-color: #10201999;
+    pointer-events: auto;
+}
+
+/* Aberta com um modal na tela (lista de seleção, aviso de dentro dele): fica acima do modal. */
+.janelas-independentes .popup.janela-sobre-modal {
+    z-index: 10005;
+}

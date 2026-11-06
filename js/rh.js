@@ -465,12 +465,14 @@ async function incluirDocumento(id) {
     controlesCxOpcoes.funcionario = {
         base: 'clientes',
         retornar: ['nome'],
+        // Ordem nativa do servidor (sem ordem alfabética forçada), como no recebedor de pagamentos.
+        ordenar: null,
         filtros: {
             usuario: { op: 'NOT_EMPTY' }
         },
         colunas: {
-            'Usuário': { chave: 'usuario' },
-            'Nome': { chave: 'nome' },
+            'Usuário': { chave: 'usuario', alinhar: 'esquerda' },
+            'Nome': { chave: 'nome', alinhar: 'esquerda' },
             'Estado': { chave: 'estado' },
             'Cidade': { chave: 'cidade' }
         }

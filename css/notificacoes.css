@@ -1,0 +1,197 @@
+/* Notificações do PWA (js/notificacoes.js) e preços a confirmar (js/precos_vencidos.js). */
+
+/* Sino do cabeçalho: ligado (colorido) / desligado (cinza com risco vermelho). */
+.sino-notificacoes {
+    position: relative;
+    border: 0;
+    background: transparent;
+}
+
+.sino-notificacoes svg {
+    display: block;
+}
+
+.sino-notificacoes .contador-toolbar-gcs {
+    position: absolute;
+    top: -2px;
+    right: -4px;
+}
+
+/* Caixa de avisos */
+.caixa-notificacoes {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    min-width: min(460px, 86vw);
+    max-height: 60dvh;
+    padding: 10px;
+    overflow-y: auto;
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.notificacao-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 9px 12px;
+    border: 1px solid #dfe7e2;
+    border-radius: 10px;
+    background: #fff;
+    color: #3d4b43;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.notificacao-item:hover {
+    border-color: #9db8a7;
+}
+
+.notificacao-item.nao-lida {
+    border-left: 4px solid #249f41;
+    background: #f1faf3;
+}
+
+.notificacao-item-topo {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    color: #1f3328;
+}
+
+.notificacao-item-topo small {
+    flex-shrink: 0;
+    color: #7a8a80;
+}
+
+.notificacoes-vazio {
+    padding: 1.5rem;
+    color: #607068;
+    text-align: center;
+}
+
+/* Situação de documento (tela inicial e lista) */
+.documento-situacao {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.documento-situacao.vencido {
+    background: #fde2e2;
+    color: #b12425;
+}
+
+.documento-situacao.vence {
+    background: #fff1c2;
+    color: #8a5a00;
+}
+
+.documentos-a-vencer {
+    padding: 1rem;
+}
+
+.tabela-documentos-vencer {
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.tabela-documentos-vencer th,
+.tabela-documentos-vencer td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #e3e9e5;
+}
+
+/* Painel de preços a confirmar */
+.painel-precos-vencidos {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(1000px, 92vw);
+    padding: 12px;
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.precos-vencidos-aviso {
+    margin: 0;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #fff8e1;
+    color: #5c4300;
+    font-size: 0.85rem;
+}
+
+.precos-vencidos-filtros,
+.precos-vencidos-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.precos-vencidos-filtros input {
+    flex: 1;
+    min-width: 180px;
+}
+
+.precos-vencidos-acoes label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #1f3328;
+    font-weight: 600;
+}
+
+.precos-vencidos-acoes #precosVencidosResumo {
+    flex: 1;
+    color: #3d4b43;
+    font-size: 0.85rem;
+}
+
+.precos-vencidos-validar {
+    margin: 0;
+    padding: 6px 16px;
+    border: 0;
+    border-radius: 999px;
+    background: #249f41;
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.precos-vencidos-tabela {
+    max-height: 55dvh;
+    overflow: auto;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.precos-vencidos-tabela table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+.precos-vencidos-tabela th {
+    position: sticky;
+    top: 0;
+    padding: 8px;
+    background: #e8efe9;
+    color: #1f3328;
+}
+
+.precos-vencidos-tabela td {
+    padding: 6px 8px;
+    border-bottom: 1px solid #edf1ee;
+    text-align: center;
+}
+
+.precos-vencidos-dias {
+    color: #b12425;
+}

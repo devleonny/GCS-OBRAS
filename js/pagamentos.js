@@ -701,6 +701,7 @@ async function formularioPagamento() {
             ordenar: null,
             retornar: ['nome'],
             funcaoAdicional: ['atualizarPixPagamento'],
+            btnExtras: `<button type="button" class="botao-cabecalho-tabela" onclick="cadastrarClienteRecebedor()">Cadastrar cliente</button>`,
             colunas: {
                 'Nome': { chave: 'nome', alinhar: 'esquerda' },
                 'CNPJ/CPF': { chave: 'cnpj' },
@@ -731,16 +732,13 @@ async function formularioPagamento() {
             {
                 texto: 'Recebedor',
                 elemento: `
-            <div style="${horizontal}; gap: 1rem;">
-                <span 
-                class="opcoes" 
+            <span
+                class="opcoes"
                 name="recebedor"
                 ${codigo_cliente_fornecedor ? `id="${escaparAtributo(codigo_cliente_fornecedor)}"` : ''}
                 onclick="cxOpcoes('recebedor')">
                     ${escaparAtributo(nome || 'Selecione')}
-                </span>
-                <img onclick="formularioCliente()" src="imagens/baixar.png">
-            </div>
+            </span>
             `
             },
             {
@@ -922,6 +920,12 @@ function atualizarDataSugeridaPagamento() {
     campo.value = `${ano}-${mes}-${dia}`
 }
 
+// Botão "Cadastrar cliente" do seletor de recebedor: o cadastro abre por cima da busca, que continua
+// aberta e recebe o cliente novo pelo websocket (ordem nativa: o mais recente em cima).
+function cadastrarClienteRecebedor() {
+    formularioCliente()
+}
+
 // ---------- Conta corrente (Omie) ----------
 // Cada empresa (app) tem os seus códigos de conta. Sem escolha, o servidor usa a padrão da empresa
 // (gcs/SCRIPTS/contas_correntes.js); a escolha vale só para a empresa em que foi feita.
@@ -984,8 +988,6 @@ async function abrirContasCorrentesPagamento(atualizar = false) {
     if (atualizar) removerPopup()
     if (!dados.contas?.length) return popup({ mensagem: `Nenhuma conta corrente ativa encontrada no Omie da ${app}.` })
 
-    // Lista em memória: zera o estado da tabela do seletor (página, base) de aberturas anteriores.
-    delete controles.cxOpcoes
     controlesCxOpcoes.contaCorrente = {
         base: dados.contas.map(c => ({ ...c, nome: c.padrao ? `${c.descricao} (padrão)` : c.descricao })),
         retornar: ['nome'],
@@ -996,9 +998,7 @@ async function abrirContasCorrentesPagamento(atualizar = false) {
             'Agência': { chave: 'agencia' },
             'Número': { chave: 'conta' }
         },
-        // Branco: o cabeçalho da tabela já é verde (o botão padrão sumia nele).
-        btnExtras: `<button type="button" onclick="abrirContasCorrentesPagamento(true)"
-            style="background: #fff; color: #1f5133; border: 1px solid #fff; font-weight: 600;">Atualizar do Omie</button>`
+        btnExtras: `<button type="button" class="botao-cabecalho-tabela" onclick="abrirContasCorrentesPagamento(true)">Atualizar do Omie</button>`
     }
     await cxOpcoes('contaCorrente')
 }

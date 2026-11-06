@@ -440,6 +440,13 @@ async function comunicacao() {
                 return
             }
 
+            // Notificação nova para este usuário (SCRIPTS/notificacoes.js): atualiza o contador do sino.
+            if (tipo === 'notificacao') {
+                if (typeof atualizarContadorNotificacoes === 'function' && estadoNotificacoes?.ativo)
+                    atualizarContadorNotificacoes()
+                return
+            }
+
             if (tipo === 'status') {
                 toolbarPendenteWS = true
                 agendarAtualizacaoWS()
@@ -499,6 +506,9 @@ async function carregarControles() {
     if (['adm', 'diretoria'].includes(permissao))
         barraStatus.push(modelo('construcao', 'f2()', ''))
 
+    // Sino das notificações do PWA: último, na ponta direita (js/notificacoes.js).
+    barraStatus.push('<div id="sinoNotificacoes"></div>')
+
     const cabecalhoUsuario = document.querySelector(
         '.cabecalho-usuario'
     )
@@ -508,6 +518,9 @@ async function carregarControles() {
 
         if (typeof mostrarLembreteComunicadosGCS === 'function')
             mostrarLembreteComunicadosGCS()
+
+        if (typeof iniciarSinoNotificacoes === 'function')
+            iniciarSinoNotificacoes()
     }
 
     await Promise.allSettled([

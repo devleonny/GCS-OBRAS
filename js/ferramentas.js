@@ -14,7 +14,7 @@ const esquemas = {
 
 const permissoes = ['', 'adm', 'técnico', 'cliente', 'user', 'visitante', 'analista', 'gerente', 'coordenacao', 'diretoria', 'editor', 'log', 'qualidade', 'novo']
 const setores = ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE', 'POC', 'GCS', 'CNR']
-const tagsClientes = ['', 'FUNCIONÁRIO', 'CLIENTE', 'MOTORISTA', 'TÉCNICO', 'TÉCNICO PARCEIRO', 'FORNECEDOR', 'MATRIZ', 'CFTV', 'CATRACAS', 'INFRA', 'ALARME']
+const tagsClientes = ['', 'FUNCIONÁRIO', 'CLIENTE', 'MOTORISTA', 'TÉCNICO', 'FORNECEDOR', 'MATRIZ', 'CFTV', 'CATRACAS', 'INFRA', 'ALARME']
 const parcelas = ["--", "15 dias", "20 dias", "21 dias", "30 dias", "35 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
 const empresas = ['AC', 'IAC', 'HNK', 'HNW']
 const permComposicoes = ['adm', 'log', 'gerente', 'diretoria', 'editor']
@@ -522,7 +522,7 @@ function deslogarUsuario() {
         { texto: 'Confirmar', img: 'concluido', funcao: `sair()` }
     ]
 
-    popup({ mensagem: 'Deseja Sair?', botoes })
+    popup({ mensagem: 'Deseja Sair?', botoes, modal: true })
 }
 
 async function sair() {
@@ -600,7 +600,12 @@ async function cxOpcoes(name) {
         btnExtras = null
     } = controle
 
-    const pag = 'cxOpcoes'
+    // Uma tabela por seletor (pag, tbody e função de linha próprios): dá para abrir um cxOpcoes por cima
+    // de outro (ex.: busca de recebedor -> Cadastrar cliente -> campo empresa) sem um desenhar ou
+    // reconfigurar a tabela do outro. Cada abertura começa do zero (página 1, sem pesquisa anterior).
+    const pag = pagCxOpcoes(name)
+    delete controles[pag]
+    window[`lin_${pag}`] ??= dado => linCxOpcoes(dado, name)
     const tabela = await modTab({
         colunas,
         btnExtras,
@@ -611,8 +616,8 @@ async function cxOpcoes(name) {
         filtros: {},
         filtrosFixos: filtros,
         substituicoes,
-        criarLinha: 'linCxOpcoes',
-        body: 'cxOpcoes'
+        criarLinha: `lin_${pag}`,
+        body: pag
     })
 
     const elemento = `
@@ -640,9 +645,13 @@ function estiloAlinhamentoColuna(alinhar) {
     return valor ? ` style="text-align: ${valor};"` : ''
 }
 
-async function linCxOpcoes(dado) {
+// Identificador da tabela de um seletor (controles[pag], tbody e paginação).
+const pagCxOpcoes = name => `cxOpcoes_${String(name).replace(/[^\w-]/g, '_')}`
 
-    const { ativo } = controlesCxOpcoes // Ativo é o mesmo que o [name]
+// name: o seletor dono da linha (cada tabela tem a sua função, ver cxOpcoes). Sem ele, o ativo.
+async function linCxOpcoes(dado, name = controlesCxOpcoes.ativo) {
+
+    const ativo = name // Ativo é o mesmo que o [name]
     const { colunas, prepararDado } = controlesCxOpcoes[ativo]
     if (prepararDado)
         dado = await prepararDado(dado)
@@ -677,8 +686,15 @@ async function selecionar(name, cod) {
     if (!retornar)
         return popup({ mensagem: `campo retornar: ['exemplo'] → undefined` })
 
-    // Painel quando for forms; do contrário qualquer outro elemento;
-    const painel = Array.from(document.querySelectorAll('.painel-padrao')).at(-1)
+    // Painel quando for forms; do contrário qualquer outro elemento. Com janelas independentes, o
+    // formulário certo é o que abriu esta lista (não o último do DOM: a pessoa pode ter clicado em outro).
+    // janelaQueAbriu vem do janelas.js (páginas sem ele seguem a regra do último painel).
+    const painelDono = typeof janelaQueAbriu === 'function'
+        ? janelaQueAbriu(document.getElementById(pagCxOpcoes(name)))?.querySelector('.painel-padrao')
+        : null
+    const painel = painelDono?.querySelector(`[name='${name}']`)
+        ? painelDono
+        : Array.from(document.querySelectorAll('.painel-padrao')).at(-1)
     const elemento = (painel || document).querySelector(`[name='${name}']`)
     const termos = []
 

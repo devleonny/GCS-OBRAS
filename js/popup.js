@@ -1,6 +1,16 @@
 let autoDestruicaoGlobal = {}
 let configPopupGlobal = {}
 
+// Janelas independentes (js/janelas.js) — padrões para páginas sem ele e para o modo clássico:
+// traz para frente a janela que contém o elemento (aqui não faz nada; o janelas.js substitui).
+let trazerJanelaParaFrente = () => { }
+
+// Janela (.popup) que abriu a que contém o elemento — ex.: o formulário dono de uma lista do cxOpcoes.
+let janelaQueAbriu = elemento => {
+    const id = elemento?.closest?.('.popup')?.dataset?.janelaPai
+    return id ? document.getElementById(id) : null
+}
+
 function confirmarPopup({ mensagem, titulo = 'Confirmar', textoConfirmar = 'Confirmar' }) {
     return new Promise(resolve => {
         const chave = crypto.randomUUID()
@@ -36,7 +46,14 @@ function popup({
     botoes = [],
     conteudoRodape = '',
     titulo,
-    removerAnteriores = false
+    removerAnteriores = false,
+    // Decisão que precisa ser respondida antes de tudo (ex.: "Manter preços" ao abrir um orçamento):
+    // com janelas independentes, volta ao fundo escuro que bloqueia a tela, sem barra do rodapé,
+    // sem minimizar e sem minimizar no clique fora (js/janelas.js).
+    modal = false,
+    // Perguntar antes de fechar pelo × (o usuário). Padrão: só formulários (linhas), menos os modais;
+    // painéis e mensagens fecham direto. Fechar pelo código (depois de salvar) nunca pergunta.
+    confirmarFechar = linhas.length > 0 && !modal
 }) {
 
     if (!elemento && !mensagem)
@@ -122,11 +139,11 @@ function popup({
         : ''
 
     const html = `
-        <div id="${idPopup}" class="popup">
+        <div id="${idPopup}" class="popup"${confirmarFechar ? ' data-confirmar-fechar="S"' : ''}>
             <div class="popup-janela-fora">
                 <div class="popup-top">
                     <label style="color:white;margin:0 1rem;">${titulo || 'GCS'}</label>
-                    <span onclick="removerPopup('${idPopup}')">×</span>
+                    <span onclick="fecharPopupUsuario('${idPopup}')">×</span>
                 </div>
                 ${conteudo}
                 ${rodape}
@@ -142,6 +159,29 @@ function popup({
         setTimeout(() => removerPopup(idPopup), tempo * 1000)
 
     return idPopup
+}
+
+// × do usuário: formulários perguntam antes (o que foi preenchido se perde).
+const confirmacoesFechar = new Set()
+async function fecharPopupUsuario(id, fechar = removerPopup) {
+    const alvo = document.getElementById(id)
+    if (!alvo) return
+    if (alvo.dataset.confirmarFechar === 'S') {
+        if (confirmacoesFechar.has(id)) return
+        confirmacoesFechar.add(id)
+        try {
+            const titulo = alvo.querySelector('.popup-top label')?.textContent.trim()
+            const confirmado = await confirmarPopup({
+                titulo: 'Fechar formulário',
+                mensagem: `Deseja realmente fechar${titulo ? ` <b>${titulo}</b>` : ''}?<br><small>O que não foi salvo será perdido.</small>`,
+                textoConfirmar: 'Fechar'
+            })
+            if (!confirmado) return
+        } finally {
+            confirmacoesFechar.delete(id)
+        }
+    }
+    fechar(id)
 }
 
 function limparRecursosPopup(id) {

@@ -6,7 +6,7 @@ function apagarOrcamentoAluguel() {
         { texto: 'Confirmar', img: 'concluido', funcao: `confirmarExclusaoAluguel()` }
     ]
 
-    popup({ elemento: 'Tem certeza que deseja apagar o Orçamento?', titulo: 'Limpar tela', botoes })
+    popup({ elemento: 'Tem certeza que deseja apagar o Orçamento?', titulo: 'Limpar tela', botoes, modal: true })
 
 }
 

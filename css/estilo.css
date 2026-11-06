@@ -1785,6 +1785,7 @@ td img[src="imagens/pesquisar.svg"] {
     text-transform: capitalize;
 }
 
+/* Ação de bloqueio: botão branco (destaca do verde das ações e do vermelho de fechar). */
 .cal-tec-popup-topo button {
     display: inline-flex;
     align-items: center;
@@ -1792,6 +1793,13 @@ td img[src="imagens/pesquisar.svg"] {
     margin: 0;
     padding: 6px 12px;
     font-size: 12px;
+    background-color: #fff;
+    border: 1px solid #cfd8d2;
+    color: #1f5133;
+}
+
+.cal-tec-popup-topo button:hover {
+    background-color: #f1f5f2;
 }
 
 .cal-tec-popup-topo button img {

@@ -59,7 +59,7 @@ function apagarOrcamento() {
         { texto: 'Confirmar', img: 'concluido', funcao: `confirmarExclusaoOrcamento()` }
     ]
 
-    popup({ botoes, mensagem: 'Você quer limpar essa tela? <b>Isso não apagará o orçamento salvo*</b>' })
+    popup({ botoes, mensagem: 'Você quer limpar essa tela? <b>Isso não apagará o orçamento salvo*</b>', modal: true })
 }
 
 async function confirmarExclusaoOrcamento() {
@@ -186,7 +186,8 @@ async function manterPrecos() {
         { texto: 'Manter preços', fechar: true, img: 'atrasado', funcao: `manterPrecosAntigos('S')` },
     ]
 
-    popup({ linhas, botoes, titulo: 'Manter Preços', removerAnteriores: true })
+    // Modal: responder depois, já em outra tela, carregava as tabelas no lugar errado.
+    popup({ linhas, botoes, titulo: 'Manter Preços', removerAnteriores: true, modal: true })
 
 }
 
@@ -262,7 +263,7 @@ function excluirRevisao() {
         { texto: 'Confirmar', img: 'concluido', funcao: `confirmarExclusaoRevisao()` }
     ]
 
-    popup({ botoes, mensagem: `Deseja excluir a <b>${revisao}</b>?`, titulo: 'Tem certeza?' })
+    popup({ botoes, mensagem: `Deseja excluir a <b>${revisao}</b>?`, titulo: 'Tem certeza?', modal: true })
 
 }
 
@@ -390,9 +391,12 @@ function clonarOrcamento() {
             }
         ]
 
+        // Modal: a clonagem substitui o orçamento em edição na tela atual.
         popup({
             linhas,
-            botoes
+            botoes,
+            titulo: 'Clonar orçamento',
+            modal: true
         })
 
     } catch (err) {
@@ -531,7 +535,7 @@ async function carregarTabelasOrcamento(resposta = 'S') {
 
     document.getElementById('tabelas').innerHTML = `
         
-        <div style="display: flex; align-items: center; justify-content: center; margin-left: 1rem; gap: 1rem;">
+        <div class="orcamento-barra-busca">
 
             <div class="pesquisa-orcamento">
                 <input oninput="pesquisarEmOrcamentos({path: 'codigo', op: 'includes', value: this.value})" placeholder="Código">
@@ -1501,7 +1505,8 @@ async function alterarValorUnitario(chave, campo) {
         { texto: 'Salvar', img: 'concluido', funcao: 'confirmarNovoPreco()' }
     ]
 
-    popup({ linhas, botoes, titulo: 'Ajuste de preço' })
+    // Modal: o item em ajuste fica em controles.criarOrcamento.alteracaoPreco (um por vez).
+    popup({ linhas, botoes, titulo: 'Ajuste de preço', modal: true })
 
 }
 

@@ -2718,19 +2718,23 @@ async function maisUsuario(usuarios, campo) {
 
 async function filtrarEquipamentos(select) {
     const lpu = String(select.value).toLowerCase()
-    controles.cxOpcoes.filtros ??= {}
+    // Tabela do seletor aberto (cada cxOpcoes tem a sua, js/ferramentas.js).
+    const pag = pagCxOpcoes(controlesCxOpcoes.ativo)
+    const controle = controles[pag]
+    if (!controle) return
+    controle.filtros ??= {}
 
     const filtros = Object.fromEntries(
-        Object.entries(controles.cxOpcoes.filtros)
+        Object.entries(controle.filtros)
             .filter(([chave]) => !chave.includes('lpu'))
     )
 
-    controles.cxOpcoes.filtros = {
+    controle.filtros = {
         ...filtros,
         [`snapshots.${lpu}.0`]: { op: '!=', value: 0 }
     }
 
-    await paginacao('cxOpcoes')
+    await paginacao(pag)
 }
 
 async function maisLabel({ codigo, descricao, quantidade, origem, serie, formulario } = {}) {

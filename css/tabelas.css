@@ -361,3 +361,17 @@ tr.item-em-exclusao,
 .item-excluindo img {
     width: 5rem;
 }
+
+/* Botão no cabeçalho verde das tabelas (btnExtras do modTab/cxOpcoes): branco, para não sumir no
+   verde. Ex.: "Cadastrar cliente" no recebedor e "Atualizar do Omie" nas contas correntes. */
+.botao-cabecalho-tabela {
+    margin: 0;
+    padding: 4px 14px;
+    border: 1px solid #fff;
+    border-radius: 999px;
+    background: #fff;
+    color: #1f5133;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}

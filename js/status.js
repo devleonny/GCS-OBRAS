@@ -438,12 +438,17 @@ async function abrirAtalhos(id) {
                 ${avisoMaster}
     `
 
-        const menuOpcoesOrcamento = document.querySelector('.menu-opcoes-orcamento')
+        // Um atalho por orçamento: reabrir (ou recarregar depois de salvar) atualiza a janela DESTE
+        // orçamento; outro orçamento abre a sua própria janela (antes sobrescrevia a que estivesse aberta).
+        const menuOpcoesOrcamento = document.querySelector(`.menu-opcoes-orcamento[data-orcamento="${CSS.escape(id)}"]`)
 
         if (menuOpcoesOrcamento) {
             menuOpcoesOrcamento.innerHTML = acumulado
+            removerOverlay()
+            trazerJanelaParaFrente(menuOpcoesOrcamento)
         } else {
-            popup({ elemento: `<div class="menu-opcoes-orcamento">${acumulado}</div>`, titulo: 'Opções do Orçamento' })
+            const identificacao = contrato && contrato !== 'sequencial' ? ` · ${contrato}` : ''
+            popup({ elemento: `<div class="menu-opcoes-orcamento" data-orcamento="${escaparAtributo(id)}">${acumulado}</div>`, titulo: `Opções do Orçamento${identificacao}` })
             // Vencido e ainda sem centro de custo: pergunta (por cima das opções) se quer estender.
             perguntarProrrogacaoOrcamento(id, orcamento)
         }
@@ -461,7 +466,7 @@ async function confirmarProspeccao(id) {
         { texto: 'Confirmar', fechar: true, img: 'concluido', funcao: `iniciarChamadoProspeccao('${id}')` }
     ]
 
-    popup({ botoes, imagem: 'imagens/prospeccao.png', mensagem: 'Criar uma prospecção?', removerAnteriores: true })
+    popup({ botoes, imagem: 'imagens/prospeccao.png', mensagem: 'Criar uma prospecção?', removerAnteriores: true, modal: true })
 
 }
 
@@ -503,6 +508,16 @@ async function iniciarChamadoProspeccao(id) {
 
 async function vincularOrcamento(contratoSlave) {
 
+    // Um "Vincular orçamentos" por vez: confirmarVinculo lê [name="orcamento"] da página e a lista
+    // de escolha (controlesCxOpcoes.orcamento) é uma só.
+    const vinculoAberto = document.querySelector('[name="orcamento"][data-slave]')
+    if (vinculoAberto) {
+        trazerJanelaParaFrente(vinculoAberto)
+        if (vinculoAberto.dataset.slave !== contratoSlave)
+            popup({ mensagem: `Já existe um <b>Vincular orçamentos</b> aberto para o ${escaparAtributo(vinculoAberto.dataset.slave)}.<br>Conclua ou feche esse antes de abrir outro.` })
+        return
+    }
+
     overlayAguarde()
 
     // mvw_dados_orcamentos (a mesma da tela de orçamentos) já traz cliente, cidade e responsáveis;
@@ -533,7 +548,7 @@ async function vincularOrcamento(contratoSlave) {
         }
     ]
 
-    popup({ linhas, botoes, titulo: 'Vincular orçamentos' })
+    popup({ linhas, botoes, titulo: `Vincular orçamentos · ${contratoSlave}` })
 
 }
 

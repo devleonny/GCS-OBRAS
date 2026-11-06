@@ -82,10 +82,39 @@ async function criarElementosIniciais() {
 
     // Um só modelo de balão para todos os blocos; muda só o título, os campos e o clique.
     // tipo 'colaboradores': ferramentas e materiais (js/colaboradores.js), abre a ficha do colaborador.
+    // tipo 'documentos': documentos do próprio usuário vencendo/vencidos (abre a lista dele).
+    // tipo 'precos': preços a confirmar, um cartão por LPU (abre o painel de preços).
+    const cartaoDocumento = ({ doc, vencimento, dias, fase }) => `
+        <div class="pendencia-card" onclick="abrirDocumentosAVencer()">
+            <div class="pendencia-card-topo">
+                <span class="documento-situacao ${fase}">${fase === 'vencido' ? 'VENCIDO' : 'A VENCER'}</span>
+            </div>
+            <b class="pendencia-card-titulo">${escaparAtributo(doc)}</b>
+            <div class="pendencia-card-campos">
+                <span><small>Vencimento</small>${String(vencimento).split('-').reverse().join('/')}</span>
+                <span><small>Situação</small>${fase === 'vencido' ? `há ${-dias} dia(s)` : dias === 0 ? 'vence hoje' : `em ${dias} dia(s)`}</span>
+            </div>
+        </div>`
+
+    const cartaoPrecos = ({ lpu, quantidade, maisAntigo }) => `
+        <div class="pendencia-card" onclick="abrirPrecosVencidos('${escaparAtributo(lpu)}')">
+            <div class="pendencia-card-topo">
+                <span class="documento-situacao vence">CONFIRMAR PREÇOS</span>
+            </div>
+            <b class="pendencia-card-titulo">${escaparAtributo(String(lpu).toUpperCase())}</b>
+            <div class="pendencia-card-campos">
+                <span><small>Itens</small>${quantidade}</span>
+                <span><small>Mais antigo</small>${maisAntigo ? `${maisAntigo} dias` : 'sem data'}</span>
+            </div>
+        </div>`
+
     const modeloTabPendencias = ({ tipo, t1, t2, linhas }) => {
 
         const baloes = linhas
             .map(linha => {
+
+                if (tipo == 'documentos') return cartaoDocumento(linha)
+                if (tipo == 'precos') return cartaoPrecos(linha)
 
                 const {
                     nome,
@@ -129,7 +158,7 @@ async function criarElementosIniciais() {
         return `
             <div class="b-atalhos">
                 <div class="cabecalho-pendencias" style="${horizontal}; gap: 1rem;">
-                    <span class="titul-1" style="font-size: 25px;">${linhas.length}</span>
+                    <span class="titul-1" style="font-size: 25px;">${tipo == 'precos' ? linhas.reduce((soma, l) => soma + (l.quantidade || 0), 0) : linhas.length}</span>
                     <span class="titul-1">${t1}</span>
                     <span class="tag-pendencias">${t2}</span>
                 </div>
