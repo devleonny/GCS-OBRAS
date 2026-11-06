@@ -190,23 +190,10 @@ function abrirCentralComunicadosGCS() {
     ligarCentralComunicadosGCS(container)
 }
 
+// O sino da central saiu do cabeçalho: as novidades chegam pelas notificações (js/notificacoes.js),
+// e a notificação de comunicado abre o comunicado (abrirComunicadoGCS). Só remove o botão antigo.
 function mostrarLembreteComunicadosGCS() {
-    const cabecalho = document.querySelector('.cabecalho-usuario')
-    if (!cabecalho) return
-
-    cabecalho.querySelector('#lembreteComunicadoGCS')?.remove()
-    if (!comunicadosGCS.length) return
-
-    const naoLidos = comunicadosGCS.filter(comunicado => !leituraComunicadoGCS(comunicado)?.confirmado_em).length
-    const referencia = cabecalho.querySelector('#divUsuarios')
-    const posicao = referencia ? 'afterend' : 'afterbegin'
-    ;(referencia || cabecalho).insertAdjacentHTML(posicao, `
-        <button id="lembreteComunicadoGCS" class="lembrete-comunicado-gcs" type="button"
-            onclick="abrirCentralComunicadosGCS()" title="Abrir central de atualizações"
-            aria-label="Abrir central de atualizações">
-            <img src="imagens/sino.png" alt="">
-            ${naoLidos ? `<b class="lembrete-comunicado-contador contador-toolbar-gcs">${naoLidos}</b>` : ''}
-        </button>`)
+    document.querySelector('.cabecalho-usuario #lembreteComunicadoGCS')?.remove()
 }
 
 async function pesquisarTodosComunicadosGCS(base, filtros) {

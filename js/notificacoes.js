@@ -141,10 +141,9 @@ async function ativarNotificacoes(botao) {
         await chamarNotificacoes('inscrever', { inscricao: inscricao.toJSON() })
         estadoNotificacoes.ativo = true
         renderizarSinoNotificacoes()
-        await chamarNotificacoes('testar').catch(() => { })
         await atualizarContadorNotificacoes()
         removerOverlay()
-        popup({ titulo: 'Notificações ativadas', mensagem: 'Pronto! Este aparelho vai receber as notificações do GCS.<br><small>Enviamos um aviso de teste.</small>', imagem: 'imagens/concluido.png', tempo: 4 })
+        popup({ titulo: 'Notificações ativadas', mensagem: 'Pronto! Este aparelho vai receber as notificações do GCS.', imagem: 'imagens/concluido.png', tempo: 4 })
     } catch (erro) {
         console.error('[NOTIFICACOES] ativar', erro)
         removerOverlay()
@@ -190,7 +189,7 @@ async function abrirCaixaNotificacoes() {
         window.listaCaixaNotificacoes = new Map(notificacoes.map(n => [String(n.id), n]))
 
         const itens = notificacoes.map(n => `
-            <div class="notificacao-item ${n.lida_em ? '' : 'nao-lida'}" onclick="clicarNotificacao('${n.id}')">
+            <div class="notificacao-item ${n.lida_em ? '' : 'nao-lida'} ${!n.acao?.tipo || n.acao.tipo === 'caixa' ? 'sem-destino' : ''}" onclick="clicarNotificacao('${n.id}')">
                 <div class="notificacao-item-topo">
                     <b>${escaparAtributo(n.titulo)}</b>
                     <small>${quandoNotificacao(n.criado_em)}</small>
@@ -230,7 +229,11 @@ async function clicarNotificacao(id) {
         chamarNotificacoes('lidas', { ids: [Number(id)] }).then(atualizarContadorNotificacoes).catch(() => { })
         document.querySelector(`.notificacao-item[onclick="clicarNotificacao('${id}')"]`)?.classList.remove('nao-lida')
     }
-    await abrirAcaoNotificacao(notificacao.acao)
+    // Aviso sem destino (teste, resumo, aviso manual sem tela): dentro da caixa só marca como lido;
+    // abrir "a caixa" de novo só redesenhava a mesma lista (a tela piscava).
+    const { tipo } = notificacao.acao || {}
+    if (!tipo || tipo === 'caixa') return
+    await abrirAcaoNotificacao(notificacao.acao, notificacao.titulo)
 }
 
 async function marcarTodasNotificacoesLidas() {
@@ -241,7 +244,7 @@ async function marcarTodasNotificacoesLidas() {
 }
 
 // O que cada notificação abre (acao vem do servidor).
-async function abrirAcaoNotificacao(acao) {
+async function abrirAcaoNotificacao(acao, titulo = '') {
     const { tipo } = acao || {}
     try {
         if (tipo === 'chamado' && acao.chamado) return await atalhoAuxiliar(acao.chamado, 'chamados', 'includes')
@@ -249,6 +252,16 @@ async function abrirAcaoNotificacao(acao) {
         if (tipo === 'colaborador' && acao.colaborador) return await irParaColaborador(acao.colaborador, acao.requisicao)
         if (tipo === 'documentos') return await abrirDocumentosAVencer()
         if (tipo === 'precos') return await abrirPrecosVencidos(acao.lpu || null)
+        // Aviso manual com mensagem formatada (editor): abre a mensagem completa.
+        if (tipo === 'aviso') return abrirAvisoNotificacao(acao, titulo)
+        // Push de aviso formatado traz só o id (limite de tamanho do push): busca na caixa e abre.
+        if (tipo === 'notificacao' && acao.id) {
+            const { notificacoes = [] } = await chamarNotificacoes('listar', { limite: 100 })
+            const achada = notificacoes.find(n => String(n.id) === String(acao.id))
+            return achada?.acao?.tipo && achada.acao.tipo !== 'notificacao'
+                ? abrirAcaoNotificacao(achada.acao, achada.titulo)
+                : abrirCaixaNotificacoes()
+        }
         if (tipo === 'comunicado' && acao.id) {
             if (typeof carregarComunicadoGCS === 'function' && !comunicadoPorIdGCS(acao.id)) await carregarComunicadoGCS()
             return abrirComunicadoGCS(acao.id)
@@ -257,6 +270,14 @@ async function abrirAcaoNotificacao(acao) {
     } catch (erro) {
         console.error('[NOTIFICACOES] abrir', erro)
     }
+}
+
+function abrirAvisoNotificacao(acao, titulo) {
+    const html = typeof htmlSeguroComunicadoGCS === 'function' ? htmlSeguroComunicadoGCS(acao?.html || '') : escaparAtributo(acao?.html || '')
+    popup({
+        titulo: acao?.titulo || titulo || 'Aviso',
+        elemento: `<div class="aviso-mensagem">${html || '<p>Sem mensagem.</p>'}</div>`
+    })
 }
 
 // ---------------- Documentos a renovar (do próprio usuário) ----------------
@@ -310,7 +331,7 @@ async function formularioEnviarNotificacao() {
         titulo: 'Enviar aviso',
         linhas: [
             { texto: 'Título', elemento: '<input name="tituloAviso" maxlength="120" placeholder="Ex.: Sistema em manutenção às 18h">' },
-            { texto: 'Mensagem', elemento: '<textarea name="corpoAviso" maxlength="300" placeholder="Detalhes (opcional)"></textarea>' },
+            { texto: 'Mensagem', editor: '' },
             {
                 texto: 'Para',
                 elemento: `
@@ -407,12 +428,17 @@ function verDestinatariosAviso() {
     })
 }
 
+// Editor vazio (só <br>/espaços) = sem mensagem.
+function textoEditorAviso(janela) {
+    return (janela.querySelector('.editor-conteudo')?.innerText || '').trim()
+}
+
 async function enviarNotificacaoManual(botao) {
     const janela = botao.closest('.popup')
     const campo = nome => janela.querySelector(`[name="${nome}"]`)
     const corpo = {
         titulo: campo('tituloAviso').value.trim(),
-        corpo: campo('corpoAviso').value.trim(),
+        html: textoEditorAviso(janela) ? janela.querySelector('.editor-conteudo').innerHTML.trim() : '',
         todos: estadoAviso.todos,
         setores: [...estadoAviso.setores],
         permissoes: [...estadoAviso.permissoes],
@@ -437,9 +463,27 @@ async function enviarNotificacaoManual(botao) {
 
 // ---------------- Início ----------------
 // Chamado depois de montar o cabeçalho (websocket.js): sino, contador e clique vindo da notificação.
+// Pergunta automática, uma vez por usuário em cada aparelho, enquanto as notificações não estão
+// ativas nele. Depois de respondida ("Ativar" ou "Agora não"), só pelo sino.
+function chavePerguntaNotificacoes() {
+    return `gcs_notificacoes_perguntado_${acesso?.usuario || ''}`
+}
+
+function perguntarNotificacoesUmaVez() {
+    if (!acesso?.usuario || estadoNotificacoes.ativo || !suportaPushGCS() || iosSemInstalarGCS()) return
+    if (Notification.permission === 'denied') return
+    try {
+        if (localStorage.getItem(chavePerguntaNotificacoes())) return
+        localStorage.setItem(chavePerguntaNotificacoes(), new Date().toISOString())
+    } catch { return }
+    // Espera a tela inicial assentar (aniversários, comunicados) antes de perguntar.
+    setTimeout(() => { if (!estadoNotificacoes.ativo) perguntarAtivarNotificacoes() }, 4000)
+}
+
 async function iniciarSinoNotificacoes() {
     renderizarSinoNotificacoes()
     await avaliarSinoNotificacoes()
+    perguntarNotificacoesUmaVez()
 
     clearInterval(estadoNotificacoes.temporizador)
     estadoNotificacoes.temporizador = setInterval(() => {
