@@ -242,6 +242,7 @@ function cartaoRequisicaoColab(r, colaborador = {}, mostrarPessoa = false) {
                         ${avatarColaborador(colaborador)}
                         <span>
                             <b>${escaparAtributo(colaborador.nome || 'Sem cadastro')}</b>
+                            ${colaborador.desligado ? etiquetaDesligado(colaborador.desligado) : ''}
                             <small>${escaparAtributo(colaborador.usuario || '')}</small>
                         </span>
                     </button>` : ''}
@@ -498,6 +499,7 @@ function renderizarPessoasColab() {
                 ${avatarColaborador(c)}
                 <div>
                     <b title="${escaparAtributo(c.nome || '')}">${escaparAtributo(c.nome || 'Sem cadastro')}</b>
+                    ${c.desligado ? etiquetaDesligado(c.desligado) : ''}
                     <small>${escaparAtributo([c.usuario, localColaborador(c)].filter(Boolean).join(' · '))}</small>
                 </div>
             </div>
@@ -583,8 +585,9 @@ function renderizarPessoaColab() {
                 <div class="colab-identificacao">
                     ${avatarColaborador(colaborador, 'grande')}
                     <div>
-                        <h3>${escaparAtributo(colaborador.nome || 'Sem cadastro')}</h3>
+                        <h3>${escaparAtributo(colaborador.nome || 'Sem cadastro')} ${colaborador.desligado ? etiquetaDesligado(colaborador.desligado) : ''}</h3>
                         <small>${escaparAtributo([colaborador.usuario, colaborador.setor, localColaborador(colaborador)].filter(Boolean).join(' · '))}</small>
+                        ${colaborador.desligado && colaborador.ferramentas > 0 ? `<div class="colab-recuperacao">Desligado com <b>${colaborador.ferramentas}</b> ferramenta(s) em mãos: registre a devolução para recuperar.</div>` : ''}
                     </div>
                 </div>
                 <div class="colab-acoes">

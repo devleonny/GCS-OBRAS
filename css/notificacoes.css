@@ -554,3 +554,54 @@
     justify-content: flex-end;
     gap: 8px;
 }
+
+/* Desligado (clientes.desligado): etiqueta na lista de clientes, RH, ferramentas e tela inicial. */
+.etiqueta-desligado {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #4a4f54;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.cliente-desligado {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    text-align: left;
+}
+
+.cliente-desligado label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+}
+
+.cliente-desligado input {
+    width: 1.1rem;
+    height: 1.1rem;
+}
+
+.cliente-desligado small {
+    color: #607068;
+}
+
+.cliente-desligado-aviso {
+    font-size: 0.72rem;
+}
+
+.colab-recuperacao {
+    margin-top: 6px;
+    padding: 6px 10px;
+    border: 1px solid #f2c4c4;
+    border-radius: 8px;
+    background: #fdecec;
+    color: #8a1f1f;
+    font-size: 0.8rem;
+}

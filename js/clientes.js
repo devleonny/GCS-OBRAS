@@ -562,6 +562,12 @@ function urlFotoCliente(foto) {
     return /^https?:\/\//i.test(foto) ? foto : `${api}/uploads/${foto}`
 }
 
+// Etiqueta "Desligado" (clientes.desligado): lista de clientes, RH e ferramentas e materiais.
+function etiquetaDesligado(desligado) {
+    const desde = desligado?.data ? desligado.data.split('-').reverse().join('/') : ''
+    return `<span class="etiqueta-desligado" title="${desde ? `Desligado desde ${desde}` : 'Desligado'}">DESLIGADO</span>`
+}
+
 function criarLinhaClienteGCS(cliente) {
 
     const {
@@ -574,7 +580,8 @@ function criarLinhaClienteGCS(cliente) {
         tags,
         comentario,
         cadastrais,
-        ids
+        ids,
+        desligado
     } = cliente || {}
 
     const modelo = ({ endereco, bairro, cep, cidade, estado }) => {
@@ -620,6 +627,7 @@ function criarLinhaClienteGCS(cliente) {
                     ${(cadastrais || []).map(c => `<span>${c || ''}</span>`).join('')}
 
                     <div style="display: flex; flex-wrap: wrap; gap: 2px;">
+                        ${desligado ? etiquetaDesligado(desligado) : ''}
                         ${tags1}
                     </div>
                 </div>
@@ -707,7 +715,8 @@ async function formularioCliente(idCliente) {
         comentario,
         empresa,
         garantia_meses,
-        tags
+        tags,
+        desligado
     } = await recuperarDado('clientes', idCliente) || {}
 
     // Tags em lista de checkbox: as da lista padrão e, marcadas, as antigas que não estão nela.
@@ -745,6 +754,22 @@ async function formularioCliente(idCliente) {
 
     }
 
+    // Desligado (só adm, diretoria e fin): bloqueia o acesso, tira das pendências de documentos do RH
+    // e, com ferramentas em mãos, abre a recuperação (servidor: clientes.desligado).
+    let linhaDesligado = {}
+    if (['adm', 'diretoria', 'fin'].includes(permissaoUsuario)) {
+        const desde = desligado?.data ? desligado.data.split('-').reverse().join('/') : ''
+        linhaDesligado = {
+            texto: 'Desligado',
+            elemento: `
+                <div class="cliente-desligado">
+                    <label><input type="checkbox" name="desligado" ${desligado ? 'checked' : ''}> Funcionário desligado</label>
+                    ${desligado ? `<small>Desde ${escaparAtributo(desde)}${desligado.usuario ? ` · por ${escaparAtributo(desligado.usuario)}` : ''}</small>` : ''}
+                    <small class="cliente-desligado-aviso">Bloqueia o acesso ao GCS, sai das pendências de documentos e abre a recuperação das ferramentas em mãos.</small>
+                </div>`
+        }
+    }
+
     const linhas = [
         {
             elemento: `<div data-foto-cliente class="${foto ? 'tem-foto' : ''}" style="${vertical}; align-items: center; width: 100%; gap: 8px;">
@@ -774,6 +799,7 @@ async function formularioCliente(idCliente) {
             texto: 'Tags',
             elemento: `<div name="tags" class="cliente-tags-lista">${opcoesTags}</div>`
         },
+        linhaDesligado,
         {
             texto: 'CPF/CNPJ',
             elemento: `<input placeholder="CPF ou CNPJ" oninput="formatarCnpj(this)" name="cnpj" value="${cnpj || ''}">`
@@ -1337,6 +1363,30 @@ async function salvarCliente(idCliente = null) {
 
         if (permissao)
             cliente.permissao = permissao
+
+        // Desligado: marca com data e quem marcou (pede confirmação); desmarcar religa.
+        const caixaDesligado = painel.querySelector('[name="desligado"]')
+        if (caixaDesligado) {
+            if (caixaDesligado.checked && !cliente.desligado) {
+                removerOverlay()
+                const confirmado = await confirmarPopup({
+                    titulo: 'Funcionário desligado',
+                    mensagem: `Marcar <b>${escaparAtributo(cliente.nome || '')}</b> como desligado?<br>
+                        <small>O acesso ao GCS é bloqueado na hora, ele sai das pendências de documentos do RH e,
+                        se tiver ferramentas em mãos, a recuperação vira pendência para a logística.</small>`,
+                    textoConfirmar: 'Desligar'
+                })
+                if (!confirmado) return
+                overlayAguarde()
+                cliente.desligado = {
+                    data: new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(dataServidor()),
+                    usuario: acesso.usuario,
+                    em: dataServidor().toLocaleString('pt-BR')
+                }
+            }
+            if (!caixaDesligado.checked)
+                cliente.desligado = null
+        }
 
         await enviar(`clientes/${idCliente || '0000'}`, cliente)
 

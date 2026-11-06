@@ -99,6 +99,20 @@ async function criarElementosIniciais() {
             </div>
         </div>`
 
+    // Recuperação de ferramentas (log e adm): desligado com ferramenta em mãos; abre a ficha.
+    const cartaoRecuperacao = ({ colaborador, nome, desligado, unidades, ferramentas = [] }) => `
+        <div class="pendencia-card" onclick="irParaColaborador('${escaparAtributo(colaborador)}')">
+            <div class="pendencia-card-topo">
+                <span class="etiqueta-desligado">DESLIGADO</span>
+            </div>
+            <b class="pendencia-card-titulo">${escaparAtributo(nome || 'Sem cadastro')}</b>
+            <div class="pendencia-card-campos">
+                <span><small>Em mãos</small>${ferramentas.length} ferramenta(s) · ${unidades} un.</span>
+                ${desligado?.data ? `<span><small>Desligado em</small>${escaparAtributo(desligado.data.split('-').reverse().join('/'))}</span>` : ''}
+            </div>
+            <p class="pendencia-card-descricao">${escaparAtributo(ferramentas.slice(0, 4).map(f => f.descricao).join(', '))}${ferramentas.length > 4 ? '…' : ''}</p>
+        </div>`
+
     const cartaoPrecos = ({ lpu, quantidade, maisAntigo }) => `
         <div class="pendencia-card" onclick="abrirPrecosVencidos('${escaparAtributo(lpu)}')">
             <div class="pendencia-card-topo">
@@ -118,6 +132,7 @@ async function criarElementosIniciais() {
 
                 if (tipo == 'documentos') return cartaoDocumento(linha)
                 if (tipo == 'precos') return cartaoPrecos(linha)
+                if (tipo == 'recuperacao') return cartaoRecuperacao(linha)
 
                 const {
                     nome,

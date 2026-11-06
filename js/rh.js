@@ -1,5 +1,7 @@
 let pastasRH = []
 let obrigatoriosRH = []
+// Funcionários desligados (clientes.desligado): etiqueta e sem pendência de documentos.
+let desligadosRH = new Map()
 const pastasAbertasRH = new Set()
 let consultaPastasRH = 0
 
@@ -174,6 +176,9 @@ async function criarPastinhas() {
             paginas = Number(resposta.paginas) || 1
             pagina++
         } while (pagina <= paginas)
+        const desligados = await pesquisarDB({ base: 'vw_2_clientes', limite: 1000, filtros: { desligado: { op: 'NOT_EMPTY' } } })
+            .catch(() => ({ resultados: [] }))
+        desligadosRH = new Map((desligados.resultados || []).map(c => [String(c.id), c.desligado]))
         if (consulta !== consultaPastasRH || !container.isConnected) return
         // Mesma lista padrão da vw_rh_pastas (banco), que calcula os faltantes.
         const padrao = ['ASO', 'PTA', 'NR 06 - EPI', 'FICHA DE EPI', 'NR 10', 'NR 35']
@@ -210,7 +215,8 @@ function renderizarPastasRH(container = document.querySelector('.esquema-cidades
         const aberta = pastasAbertasRH.has(chavePastaRH(estado))
         const funcionarios = (estado.funcionarios || []).map((funcionario, indiceFuncionario) => {
             const expandido = pastasAbertasRH.has(chavePastaRH(estado, funcionario))
-            const faltantes = funcionario.documentos_faltantes || []
+            const desligado = desligadosRH.get(String(funcionario.id))
+            const faltantes = desligado ? [] : funcionario.documentos_faltantes || []
             const documentos = (funcionario.documentos || []).map((doc, indiceDoc) => `
                 <button type="button" class="rh-documento-item"
                     data-estado="${indiceEstado}" data-funcionario="${indiceFuncionario}" data-doc="${indiceDoc}"
@@ -226,7 +232,7 @@ function renderizarPastasRH(container = document.querySelector('.esquema-cidades
                     <span class="rh-pasta-textos"><strong>${escaparAtributo(funcionario.nome || 'Sem nome')}</strong>
                         ${funcionario.cargo ? '<small>' + escaparAtributo(funcionario.cargo) + '</small>' : ''}
                         <small>${quantidade(funcionario.quantidade_documentos)} documentos</small>
-                        <span class="rh-lista-tags">${faltantes.length
+                        <span class="rh-lista-tags">${desligado ? `${etiquetaDesligado(desligado)}<span class="rh-sem-pendencias">Fora das pendências</span>` : faltantes.length
                             ? '<span class="rh-pendencia-titulo">Faltam:</span>' + faltantes.map(doc => '<span class="docs-faltantes">' + escaparAtributo(doc) + '</span>').join('')
                             : '<span class="rh-sem-pendencias">Obrigatórios registrados</span>'}</span>
                     </span>
