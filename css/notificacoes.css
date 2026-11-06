@@ -17,7 +17,12 @@
     right: -4px;
 }
 
-/* Caixa de avisos */
+/* Caixa de avisos: ocupa a largura toda da janela (o rodapé de botões é mais largo que a lista). */
+.popup .janela:has(> .caixa-notificacoes) {
+    align-self: stretch;
+    box-sizing: border-box;
+}
+
 .caixa-notificacoes {
     display: flex;
     flex-direction: column;
