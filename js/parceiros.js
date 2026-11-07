@@ -29,7 +29,7 @@ async function concluirAprovacaoParceiro(id, idLpu, idOcorrencia, pagamento) {
             usuario: pagamento.aprovado_gerente_por || acesso.usuario,
             data: pagamento.data_registro,
             aba: id,
-            descricao: `🟢 Pagamento aprovado por ${pagamento.aprovado_gerente_por || acesso.usuario} no valor de ${dinheiro(valor)}`,
+            descricao: `🟢 Pagamento aprovado por ${pagamento.aprovado_gerente_por || acesso.usuario} no valor de ${dinheiroTexto(valor)}`,
             dtCorrecao: '', tipoCorrecao: 'WRuo2'
         })
     }
@@ -232,7 +232,7 @@ async function confirmarAjusteValorParceiro(id, idSolicitacao) {
             })
             await salvarEtapaParceiro(`lista_pagamentos/${idSolicitacao}/historico/${crypto.randomUUID()}`, {
                 status, usuario, data,
-                justificativa: `Valor ajustado de ${dinheiro(valorAnterior)} para ${dinheiro(novoValor)}. Motivo: ${motivo}`
+                justificativa: `Valor ajustado de ${dinheiroTexto(valorAnterior)} para ${dinheiroTexto(novoValor)}. Motivo: ${motivo}`
             })
             await salvarEtapaParceiro(`lista_pagamentos/${idSolicitacao}/status`, status)
             if (!ocorrencia) {
@@ -244,7 +244,7 @@ async function confirmarAjusteValorParceiro(id, idSolicitacao) {
         if (ocorrencia)
             await salvarEtapaParceiro(`dados_ocorrencias/${ocorrencia}/correcoes/${idSolicitacao}_ajuste_${Date.now()}`, {
                 aba: idSolicitacao, tipoCorrecao: 'WRuo2', data, usuario,
-                descricao: `✏️ Valor ajustado de ${dinheiro(valorAnterior)} para ${dinheiro(novoValor)} por ${usuario}.${falta > 0 ? ` LPU aumentada em ${dinheiro(falta)}.` : ''} Motivo: ${motivo}`
+                descricao: `✏️ Valor ajustado de ${dinheiroTexto(valorAnterior)} para ${dinheiroTexto(novoValor)} por ${usuario}.${falta > 0 ? ` LPU aumentada em ${dinheiroTexto(falta)}.` : ''} Motivo: ${motivo}`
             })
 
         removerTodosPopups()
@@ -962,7 +962,7 @@ async function solicitarPagamentoParceiro(id, idCliente) {
             valor_parcial: valor,
             data: dataServidor().toLocaleString(),
             tecnico: tecnicos,
-            descricao: `[${ativo}] Solicitação parcial de ${dinheiro(total)} para ${(tecnicos || []).join(', ')}. LPU: ${dinheiro(controle.total)}.${comentario ? ` Etapa: ${comentario}` : ''}`,
+            descricao: `[${ativo}] Solicitação parcial de ${dinheiroTexto(total)} para ${(tecnicos || []).join(', ')}. LPU: ${dinheiroTexto(controle.total)}.${comentario ? ` Etapa: ${comentario}` : ''}`,
             permissao: ['gerente'],
             usuario,
             tipoCorrecao: '24e1ea27-1bd8-451a-b5bf-edda134cfdd6' // PAGAMENTO DE PARCEIRO

@@ -441,12 +441,18 @@ function conversor(stringMonetario) {
     }
 }
 
+// Valor em reais só como texto ("R$ 1.234,56"): para o que é GRAVADO (descrições, justificativas,
+// histórico) ou vai em textContent/atributos. Texto gravado é mostrado escapado: não pode levar HTML.
+function dinheiroTexto(valor) {
+    const numero = valor === '' ? 0 : Number(valor)
+    return 'R$ ' + numero.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+// Valor em reais para EXIBIR em HTML (innerHTML/template): não quebra a linha entre "R$" e o número.
+// Nunca usar em texto que será gravado: para isso, dinheiroTexto.
 function dinheiro(valor) {
     if (valor === '') return 'R$ 0,00'
-
-    valor = Number(valor)
-    const valorString = 'R$ ' + valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    return `<span style="white-space: nowrap;">${valorString}</span>`
+    return `<span style="white-space: nowrap;">${dinheiroTexto(valor)}</span>`
 }
 
 // Mesma regra do servidor (validarNovaSenha), só para avisar antes de enviar.
