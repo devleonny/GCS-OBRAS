@@ -1169,8 +1169,14 @@ async function abrirAcessoPastaRH(pasta) {
     }
     // Quem já está na lista aparece mesmo se não vier na consulta (ex.: desligado depois).
     const conhecidos = new Set(usuariosAcessoRH.map(u => u.usuario))
-    const usuarios = [...atual.usuarios.filter(u => !conhecidos.has(u)).map(u => ({ usuario: u, nome: u, permissao: '' })), ...usuariosAcessoRH]
-        .sort((a, b) => Number(atual.usuarios.includes(b.usuario)) - Number(atual.usuarios.includes(a.usuario)))
+    // Quem edita nunca perde o acesso: com a pasta restrita, o próprio usuário fica marcado e travado
+    // (o servidor também inclui). Vem primeiro na lista, depois os marcados.
+    const eu = String(acesso?.usuario || '')
+    const extras = [...atual.usuarios, ...(pode && eu ? [eu] : [])].filter((u, i, l) => !conhecidos.has(u) && l.indexOf(u) === i)
+    const peso = u => (pode && u.usuario === eu ? 2 : 0) + (atual.usuarios.includes(u.usuario) ? 1 : 0)
+    const usuarios = [...extras.map(u => ({ usuario: u, nome: u, permissao: u === eu ? String(acesso?.permissao || '') : '' })), ...usuariosAcessoRH]
+        .sort((a, b) => peso(b) - peso(a))
+    const restritaAgora = pastaRestritaRH(pasta)
     const marcado = (lista, valor) => lista.includes(valor) ? 'checked' : ''
     const bloqueio = pode ? '' : 'disabled'
 
@@ -1185,17 +1191,22 @@ async function abrirAcessoPastaRH(pasta) {
             <div class="rh2-acesso-colunas">
                 <fieldset ${bloqueio}>
                     <legend>Permissões</legend>
-                    ${PERMISSOES_PASTA_RH.map(p => `<label><input type="checkbox" name="permissao" value="${escaparAtributo(p)}" ${marcado(atual.permissoes, p)}> ${escaparAtributo(p)}</label>`).join('')}
+                    ${PERMISSOES_PASTA_RH.map(p => `<label><input type="checkbox" name="permissao" value="${escaparAtributo(p)}" ${marcado(atual.permissoes, p)} onchange="sincronizarAcessoPastaRH(this)"> ${escaparAtributo(p)}</label>`).join('')}
                 </fieldset>
                 <fieldset ${bloqueio}>
                     <legend>Usuários <small class="rh2-acesso-contagem"></small></legend>
                     <input type="search" class="rh2-acesso-busca" placeholder="Buscar usuário" oninput="filtrarUsuariosAcessoRH(this)">
                     <div class="rh2-acesso-usuarios">
-                        ${usuarios.map(u => `
-                            <label data-busca="${escaparAtributo(normalizarRH(`${u.nome} ${u.usuario} ${u.permissao}`))}" class="${atual.usuarios.includes(u.usuario) ? 'marcado' : ''}">
-                                <input type="checkbox" name="usuario" value="${escaparAtributo(u.usuario)}" ${marcado(atual.usuarios, u.usuario)} onchange="this.parentElement.classList.toggle('marcado', this.checked); contarUsuariosAcessoRH(this)">
-                                <span>${escaparAtributo(u.nome || u.usuario)}</span><small>${escaparAtributo(u.usuario)}${u.permissao ? ` · ${escaparAtributo(u.permissao)}` : ''}</small>
-                            </label>`).join('') || '<small>Nenhum usuário encontrado.</small>'}
+                        ${usuarios.map(u => {
+                            const proprio = pode && u.usuario === eu
+                            const marcar = proprio ? restritaAgora : atual.usuarios.includes(u.usuario)
+                            return `
+                            <label data-busca="${escaparAtributo(normalizarRH(`${u.nome} ${u.usuario} ${u.permissao}`))}" class="${marcar ? 'marcado' : ''} ${proprio ? 'proprio' : ''}"
+                                ${proprio ? 'title="Você sempre vê as pastas cujo acesso define: com a pasta restrita, seu usuário entra automaticamente."' : ''}>
+                                <input type="checkbox" name="usuario" value="${escaparAtributo(u.usuario)}" ${marcar ? 'checked' : ''} ${proprio ? 'data-proprio disabled' : ''} onchange="sincronizarAcessoPastaRH(this)">
+                                <span>${escaparAtributo(u.nome || u.usuario)}${proprio ? ' <b class="rh2-acesso-voce">você</b>' : ''}</span><small>${escaparAtributo(u.usuario)}${u.permissao ? ` · ${escaparAtributo(u.permissao)}` : ''}</small>
+                            </label>`
+                        }).join('') || '<small>Nenhum usuário encontrado.</small>'}
                     </div>
                 </fieldset>
             </div>
@@ -1217,6 +1228,19 @@ function filtrarUsuariosAcessoRH(input) {
         .forEach(l => { l.hidden = !!termo && !l.dataset.busca.includes(termo) })
 }
 
+// Marcou qualquer permissão ou outro usuário: a pasta fica restrita e o próprio usuário entra (travado).
+// Desmarcou tudo: volta a ser livre (o próprio sai junto).
+function sincronizarAcessoPastaRH(input) {
+    const caixa = input.closest('.rh2-acesso')
+    const proprio = caixa.querySelector('input[data-proprio]')
+    if (proprio) {
+        const outros = [...caixa.querySelectorAll('input[name="permissao"]:checked, input[name="usuario"]:checked')].filter(i => i !== proprio).length
+        proprio.checked = outros > 0
+    }
+    caixa.querySelectorAll('input[name="usuario"]').forEach(i => i.parentElement.classList.toggle('marcado', i.checked))
+    contarUsuariosAcessoRH(input)
+}
+
 function contarUsuariosAcessoRH(input) {
     const caixa = input.closest('.rh2-acesso')
     const n = caixa.querySelectorAll('input[name="usuario"]:checked').length
@@ -1229,6 +1253,7 @@ async function salvarAcessoPastaRH(pasta) {
     const valores = nome => [...caixa.querySelectorAll(`input[name="${nome}"]:checked`)].map(i => i.value)
     const registro = { id: pasta, permissoes: valores('permissao'), usuarios: valores('usuario'), usuario: acesso.usuario }
     const restrita = registro.permissoes.length + registro.usuarios.length > 0
+    if (restrita && !registro.usuarios.includes(acesso.usuario)) registro.usuarios.unshift(acesso.usuario)
     const euVejo = !restrita || registro.permissoes.includes(acesso.permissao) || registro.usuarios.includes(acesso.usuario)
 
     overlayAguarde()

@@ -1846,3 +1846,81 @@ button.rh-arquivo-acao:hover { background: #1c8235; }
 .rh2-acesso legend {
     text-align: left;
 }
+
+/* Rolagem dos painéis arredondados da hierarquia: fina, sem trilho e afastada dos cantos
+   (a global tem 10px com trilho cinza e encostava na borda arredondada). */
+.rh2-sem-hierarquia::-webkit-scrollbar,
+.rh2-org::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.rh2-sem-hierarquia::-webkit-scrollbar-track,
+.rh2-sem-hierarquia::-webkit-scrollbar-corner,
+.rh2-org::-webkit-scrollbar-track,
+.rh2-org::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+.rh2-sem-hierarquia::-webkit-scrollbar-track {
+    margin: 10px 0;
+}
+
+.rh2-org::-webkit-scrollbar-track {
+    margin: 0 10px;
+}
+
+.rh2-sem-hierarquia::-webkit-scrollbar-thumb,
+.rh2-org::-webkit-scrollbar-thumb {
+    border: 0;
+    background: #b9ccbf;
+}
+
+/* Popup de acesso à pasta: respiro nas bordas e lista de usuários sem rolagem lateral. */
+.rh2-acesso {
+    box-sizing: border-box;
+    width: min(680px, 90vw);
+    padding: 16px 18px 6px;
+}
+
+.rh2-acesso fieldset {
+    padding: 10px 12px 12px;
+}
+
+.rh2-acesso-usuarios {
+    overflow-x: hidden;
+    padding-right: 4px;
+}
+
+.rh2-acesso-usuarios label {
+    min-width: 0;
+}
+
+.rh2-acesso-usuarios label span {
+    flex: 1;
+    min-width: 0;
+}
+
+.rh2-acesso-usuarios label small {
+    flex-shrink: 0;
+    max-width: 45%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Próprio usuário no popup de acesso: travado, entra sozinho quando a pasta fica restrita. */
+.rh2-acesso-usuarios label.proprio {
+    cursor: default;
+}
+
+.rh2-acesso-voce {
+    margin-left: 6px;
+    padding: 0 6px;
+    border-radius: 999px;
+    color: #fff;
+    background: #249f41;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    vertical-align: 1px;
+}
