@@ -307,7 +307,7 @@ function cartaoDocumentoRH(d) {
             </span>
             <span class="rh2-arq-data">${escaparAtributo(d.realizado || '—')}</span>
             <span class="rh2-arq-data rh2-arq-vence">${Number(d.prazo) ? `${bolinhaRH(d.situacao)} ${escaparAtributo(d.validade || '—')}` : '<span class="rh2-arq-cinza">—</span>'}</span>
-            <button type="button" class="rh2-arq-editar" data-doc="${escaparAtributo(d.id)}" onclick="event.stopPropagation(); incluirDocumento(this.dataset.doc)" title="Editar">✎</button>
+            <button type="button" class="rh2-arq-editar" data-doc="${escaparAtributo(d.id)}" onclick="event.stopPropagation(); incluirDocumento(this.dataset.doc)" title="Editar" aria-label="Editar"><img src="imagens/editar3.png" alt=""></button>
         </div>`
 }
 
@@ -426,7 +426,7 @@ function tabelaDocumentosRH() {
                 <thead><tr><th></th><th style="text-align: left;">Documento</th><th>Pasta</th><th style="text-align: left;">Funcionário</th><th>CPF/CNPJ</th><th>Estado</th><th>Cidade</th><th>Feito em</th><th>Vencimento</th><th>Assinatura</th></tr></thead>
                 <tbody>${linhas.map(({ d, p }) => `
                     <tr>
-                        <td><button type="button" class="rh2-mais" data-doc="${escaparAtributo(d.id)}" onclick="incluirDocumento(this.dataset.doc)" title="Editar">✎</button></td>
+                        <td><button type="button" class="rh2-mais" data-doc="${escaparAtributo(d.id)}" onclick="incluirDocumento(this.dataset.doc)" title="Editar" aria-label="Editar"><img class="rh2-icone-editar" src="imagens/editar3.png" alt=""></button></td>
                         <td style="text-align: left;">
                             <div class="rh-arquivo-pilula ${d.anexo?.link ? 'com-anexo' : 'sem-anexo'}">
                                 <span class="rh-arquivo-tipo">${escaparAtributo(nomeDocRH(d))}</span>
@@ -501,11 +501,67 @@ function hierarquiaRH() {
                 ${semHierarquia.map(cartao).join('') || '<small class="rh2-pasta-vazia">Todos estão em alguma equipe.</small>'}
             </aside>
             <section class="rh2-equipes">
-                ${comEquipe.map(p => `<div class="rh2-org"><ul>${no(p)}</ul></div>`).join('')
+                ${comEquipe.map(p => {
+                    const cheia = estadoRH.orgCheia === p.id
+                    return `
+                    <div class="rh2-org-caixa ${cheia ? 'cheia' : ''}" data-gestor="${escaparAtributo(p.id)}">
+                        <div class="rh2-org-cheia-topo">
+                            <b>Equipe de ${escaparAtributo(p.nome || 'Sem nome')}</b>
+                            ${botaoTelaCheiaOrgRH(cheia)}
+                        </div>
+                        <div class="rh2-org"><ul>${no(p)}</ul></div>
+                    </div>`
+                }).join('')
                     || '<p class="rh2-vazio rh2-equipes-vazio">Nenhuma equipe montada ainda. Escolha o gestor das pessoas para formar os organogramas.</p>'}
             </section>
         </div>`
 }
+
+// ---------------- Tela cheia de um organograma ----------------
+// O botão no canto de cada equipe abre o bloco em tela cheia (Fullscreen API; sem ela, o bloco cobre a
+// janela). Volta pelo mesmo botão ou Esc. estadoRH.orgCheia guarda a equipe aberta: se a tela for
+// redesenhada (ex.: alguém salvou um documento), o bloco continua cobrindo a janela.
+function botaoTelaCheiaOrgRH(cheia) {
+    const titulo = cheia ? 'Sair da tela cheia (Esc)' : 'Ver em tela cheia'
+    const icone = cheia
+        ? '<path d="M6 2v4H2M10 2v4h4M6 14v-4H2M10 14v-4h4"/>'
+        : '<path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/>'
+    return `
+        <button type="button" class="rh2-org-cheia-botao" title="${titulo}" aria-label="${titulo}" onclick="alternarTelaCheiaOrgRH(this)">
+            <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icone}</svg>
+        </button>`
+}
+
+async function alternarTelaCheiaOrgRH(botao) {
+    const caixa = botao.closest('.rh2-org-caixa')
+    if (!caixa) return
+    if (caixa.classList.contains('cheia')) return sairTelaCheiaOrgRH()
+    estadoRH.orgCheia = caixa.dataset.gestor
+    caixa.classList.add('cheia')
+    botao.outerHTML = botaoTelaCheiaOrgRH(true)
+    try { await caixa.requestFullscreen?.() } catch { }   // sem permissão: fica cobrindo a janela
+    requestAnimationFrame(() => alinharLinhasHierarquiaRH(caixa))
+}
+
+function sairTelaCheiaOrgRH() {
+    estadoRH.orgCheia = null
+    if (document.fullscreenElement?.classList.contains('rh2-org-caixa')) document.exitFullscreen?.().catch(() => { })
+    document.querySelectorAll('.rh2-org-caixa.cheia').forEach(caixa => {
+        caixa.classList.remove('cheia')
+        const botao = caixa.querySelector('.rh2-org-cheia-botao')
+        if (botao) botao.outerHTML = botaoTelaCheiaOrgRH(false)
+        requestAnimationFrame(() => alinharLinhasHierarquiaRH(caixa))
+    })
+}
+
+// Saiu da tela cheia pelo navegador (Esc nativo): volta o bloco ao normal.
+if (typeof document !== 'undefined') document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement && document.querySelector('.rh2-org-caixa.cheia')) sairTelaCheiaOrgRH()
+})
+// Sem a Fullscreen API (bloco só cobrindo a janela): Esc também fecha.
+if (typeof document !== 'undefined') document.addEventListener('keydown', evento => {
+    if (evento.key === 'Escape' && !document.fullscreenElement && document.querySelector('.rh2-org-caixa.cheia')) sairTelaCheiaOrgRH()
+})
 
 // Linhas do organograma em pixel inteiro: a descida do gestor, a barra da equipe e a subida de cada
 // cartão. Arredondadas para o mesmo pixel, as que se encontram ficam uma sobre a outra (sem parecer

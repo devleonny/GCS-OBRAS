@@ -1924,3 +1924,105 @@ button.rh-arquivo-acao:hover { background: #1c8235; }
     letter-spacing: .02em;
     vertical-align: 1px;
 }
+
+/* Ícone de editar (imagens/editar3.png) no lugar do ✎. */
+.rh2-arq-editar img,
+.rh2-icone-editar {
+    display: block;
+    width: 15px;
+    height: 15px;
+    margin: auto;
+    object-fit: contain;
+}
+
+/* ---- Tela cheia do organograma ---- */
+.rh2-org-caixa {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.rh2-org-cheia-topo {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 3;
+}
+
+.rh2-org-cheia-topo b {
+    display: none;
+}
+
+.rh2-org-cheia-botao {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid #d3dfd7;
+    border-radius: 7px;
+    color: #3d4b43;
+    background: #ffffffd9;
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.rh2-org-cheia-botao:hover {
+    color: #fff;
+    border-color: #249f41;
+    background: #249f41;
+}
+
+/* Espaço para o botão não ficar por cima do cartão do gestor. */
+.rh2-org-caixa > .rh2-org {
+    padding-top: 40px;
+}
+
+.rh2-org-caixa.cheia {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    gap: 10px;
+    max-width: none;
+    padding: 12px 16px 16px;
+    box-sizing: border-box;
+    background: #f3f8f4;
+}
+
+.rh2-org-caixa.cheia .rh2-org-cheia-topo {
+    position: static;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.rh2-org-caixa.cheia .rh2-org-cheia-topo b {
+    display: block;
+    overflow: hidden;
+    color: #1f3328;
+    font-size: 15px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.rh2-org-caixa.cheia .rh2-org-cheia-botao {
+    width: 34px;
+    height: 34px;
+}
+
+.rh2-org-caixa.cheia > .rh2-org {
+    flex: 1;
+    min-height: 0;
+    max-width: none;
+    padding: 24px;
+    overflow: auto;
+}
+
+/* Tela cheia nativa: o fundo do próprio elemento, sem o preto padrão do navegador. */
+.rh2-org-caixa:fullscreen {
+    background: #f3f8f4;
+}
