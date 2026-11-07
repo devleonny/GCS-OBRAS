@@ -610,3 +610,13 @@
     color: #8a1f1f;
     font-size: 0.8rem;
 }
+
+/* Título comprido (nome do funcionário) alarga a janela: o conteúdo acompanha, sem faixas brancas. */
+.janela:has(> .pendencia-rh-funcionario) {
+    align-self: stretch;
+}
+
+.pendencia-rh-funcionario {
+    width: 100%;
+    min-width: min(480px, 86vw);
+}
