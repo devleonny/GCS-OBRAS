@@ -215,8 +215,48 @@ async function criarLinhaPagamento(pagamento) {
         detalhes: `<div class="pagamentos-referencias-detalhes">
             <div><strong>Categorias</strong><div class="pagamento-lista-baloes">${spanCategorias || 'Sem categorias'}</div></div>
             <div><strong>Departamentos</strong><div class="listagem-departamentos">${deps || 'Sem departamentos'}</div></div>
-        </div>`
+        </div>
+        ${detalhesExtrasPagamento(pagamento)}`
     }
+}
+
+// Linha de detalhes da lista: observação, aprovações (histórico) e anexos, só para leitura.
+// Editar anexos e aprovar/reprovar continuam no detalhe completo (lupa).
+function detalhesExtrasPagamento(pagamento) {
+    const observacao = String(parametroPagamento(pagamento).observacao || '').trim()
+
+    const aprovacoes = Object.values(pagamento?.historico || {})
+        .filter(h => h && typeof h === 'object')
+        .map(h => {
+            const { cor } = imagemEspecifica(h)
+            return `
+                <div class="pagamento-detalhe-aprovacao" style="--cor: ${cor}">
+                    <div><b>${escaparAtributo(h.status || '')}</b><small>${escaparAtributo([h.usuario, h.data].filter(Boolean).join(' · '))}</small></div>
+                    ${String(h.justificativa || '').trim() ? `<p>${escaparAtributo(h.justificativa)}</p>` : ''}
+                </div>`
+        })
+        .join('')
+
+    const anexos = Object.values(pagamento?.anexos || {})
+        .filter(a => a?.link)
+        .map(a => criarAnexoVisual(escaparAtributo(a.nome || a.link), escaparAtributo(a.link)))
+        .join('')
+
+    return `
+        <div class="pagamento-detalhes-extras">
+            <section>
+                <strong>Observação</strong>
+                ${observacao ? `<p class="pagamento-detalhe-observacao">${escaparAtributo(observacao)}</p>` : '<small class="pagamento-detalhe-vazio">Sem observação</small>'}
+            </section>
+            <section>
+                <strong>Aprovações</strong>
+                ${aprovacoes ? `<div class="pagamento-detalhe-aprovacoes">${aprovacoes}</div>` : '<small class="pagamento-detalhe-vazio">Nenhuma aprovação registrada</small>'}
+            </section>
+            <section>
+                <strong>Anexos</strong>
+                ${anexos ? `<div class="pagamento-detalhe-anexos">${anexos}</div>` : '<small class="pagamento-detalhe-vazio">Sem anexos</small>'}
+            </section>
+        </div>`
 }
 
 function iconePagamento(status) {
@@ -555,9 +595,17 @@ async function autorizarPagamentos(resposta, id) {
 
         const pagamento = await recuperarDado('lista_pagamentos', id) || {}
         const { historico } = pagamento
+
+        // Já pago, excluído ou lançado no Omie: aviso (e, para reprovar o lançado, exclusão no Omie).
+        const situacao = situacaoPagamentoProcessado(pagamento)
+        if (situacao) {
+            removerOverlay()
+            return avisoPagamentoProcessado(resposta, id, pagamento, situacao)
+        }
+
         if (resposta == 'S') await validarSaldoPagamentoParceiro(pagamento, id)
 
-        await enviar(`lista_pagamentos/${id}`, {
+        const retorno = await enviar(`lista_pagamentos/${id}`, {
             status,
             historico: {
                 ...historico,
@@ -570,6 +618,12 @@ async function autorizarPagamentos(resposta, id) {
             }
         })
 
+        // O servidor também recusa decisão em pagamento já processado (status mudou nesse meio-tempo).
+        if (retorno?.mensagem && !retorno?.success) {
+            removerOverlay()
+            return popup({ mensagem: escaparAtributo(retorno.mensagem), imagem: 'imagens/alerta.png' })
+        }
+
         await abrirDetalhesPagamentos(id)
 
 
@@ -577,6 +631,67 @@ async function autorizarPagamentos(resposta, id) {
         popup({ mensagem: err.message || 'Ocorreu um erro ao processar a solicitação. Tente novamente.' })
     }
 
+}
+
+// ---- Aprovar/reprovar pagamento já processado ----
+// PAGO/RECEBIDO ou excluído: nada a decidir. Lançado no Omie (A VENCER, VENCE HOJE, ATRASADO): aprovar
+// não se aplica; reprovar exclui o título do Omie (/pagamentos/reprovar-lancado, só adm, diretoria e fin).
+// O servidor aplica as mesmas regras (pagamento_aprovacao.js e pagamentos.js).
+const STATUS_LANCADO_OMIE_PAGAMENTO = ['A VENCER', 'VENCE HOJE', 'ATRASADO']
+const PERFIS_REPROVAM_LANCADO = ['adm', 'diretoria', 'fin']
+
+function situacaoPagamentoProcessado(pagamento = {}) {
+    const status = String(pagamento.status || '')
+    if (['PAGO', 'RECEBIDO'].includes(status)) return 'pago'
+    if (pagamento.excluido || /exclu[ií]d/i.test(status)) return 'excluido'
+    if (STATUS_LANCADO_OMIE_PAGAMENTO.includes(status)) return 'lancado'
+    return null
+}
+
+function avisoPagamentoProcessado(resposta, id, pagamento, situacao) {
+    const status = `<b>${escaparAtributo(pagamento.status || '')}</b>`
+    const aviso = mensagem => popup({ titulo: 'Pagamento já processado', mensagem, imagem: 'imagens/alerta.png' })
+
+    if (situacao === 'pago')
+        return aviso(`Este pagamento já foi pago (${status}).<br>Não há o que aprovar ou reprovar.`)
+    if (situacao === 'excluido')
+        return aviso(`Este pagamento foi excluído (${status}).<br>Não há o que aprovar ou reprovar.`)
+    if (resposta == 'S')
+        return aviso(`Este pagamento já foi processado e está lançado no Omie (${status}).<br>Não precisa de aprovação.`)
+    if (!PERFIS_REPROVAM_LANCADO.includes(acesso?.permissao))
+        return aviso(`Este pagamento já está lançado no Omie (${status}).<br>Para reprová-lo, o título precisa ser excluído do Omie: peça ao financeiro (adm, diretoria ou fin).`)
+
+    popup({
+        titulo: 'Reprovar pagamento lançado no Omie',
+        imagem: 'imagens/alerta.png',
+        mensagem: `Este pagamento já está lançado no Omie (${status}).<br><br>
+            Reprovar vai <b>excluir o título no Omie</b> e marcar o pagamento como reprovado.<br>
+            Se no Omie ele já tiver sido pago, a reprovação é recusada.<br><br>Confirma?`,
+        botoes: [{ texto: 'Excluir do Omie e reprovar', img: 'cancel', funcao: `reprovarPagamentoLancado('${escaparAtributo(id)}')` }]
+    })
+}
+
+async function reprovarPagamentoLancado(id) {
+    overlayAguarde()
+    try {
+        const justificativa = document.getElementById('justificativa')?.value || ''
+        const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
+        const resposta = await fetch(`${api}/pagamentos/reprovar-lancado`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ id, justificativa })
+        })
+        const dados = await resposta.json().catch(() => ({}))
+        if (!resposta.ok || !dados.success)
+            throw new Error(dados.mensagem || 'Falha ao reprovar o pagamento.')
+
+        removerPopup()
+        await abrirDetalhesPagamentos(id)
+        popup({ mensagem: 'Título excluído do Omie e pagamento reprovado.', imagem: 'imagens/concluido.png' })
+    } catch (erro) {
+        removerOverlay()
+        popup({ mensagem: escaparAtributo(erro.message), imagem: 'imagens/alerta.png' })
+    }
 }
 
 async function salvarPagamento() {

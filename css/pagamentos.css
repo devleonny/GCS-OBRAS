@@ -988,3 +988,140 @@
     min-width: 0;
     overflow-wrap: anywhere;
 }
+
+/* Atalho selecionado: traço verde grosso à esquerda (sem contorno), fundo branco e contador verde.
+   Contorno verde sobre fundo verde não se destacava na lateral escura. */
+.balao-pagamentos.selecionado,
+.balao-pagamentos.selecionado:hover {
+    position: relative;
+    background: #fff;
+    border-color: #dfe7e2;
+    box-shadow: 0 2px 10px #0f1f1633;
+}
+
+.balao-pagamentos.selecionado::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: 0;
+    width: 5px;
+    border-radius: 0 4px 4px 0;
+    background: #249f41;
+}
+
+.balao-pagamentos.selecionado label {
+    color: #14532d;
+    font-weight: 700;
+}
+
+.balao-pagamentos.selecionado .esq {
+    color: #fff;
+    background: #249f41;
+}
+
+/* Linha de detalhes da lista: observação, aprovações e anexos (leitura). */
+.pagamento-detalhes-extras {
+    display: grid;
+    grid-template-columns: minmax(200px, 1.2fr) minmax(220px, 1.2fr) minmax(220px, 1fr);
+    gap: 12px;
+    margin-top: 12px;
+    text-align: left;
+}
+
+@media (max-width: 900px) {
+    .pagamento-detalhes-extras {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.pagamento-detalhes-extras > section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid #dfe7e2;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.pagamento-detalhes-extras strong {
+    color: #324b3c;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+}
+
+.pagamento-detalhe-vazio {
+    color: #8a998f;
+}
+
+.pagamento-detalhe-observacao {
+    margin: 0;
+    max-height: 160px;
+    overflow-y: auto;
+    color: #2d3d33;
+    font-size: 13px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.pagamento-detalhe-aprovacoes {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.pagamento-detalhe-aprovacao {
+    padding: 6px 8px;
+    border-left: 3px solid var(--cor);
+    border-radius: 4px;
+    background: #f6f9f7;
+    font-size: 12.5px;
+}
+
+.pagamento-detalhe-aprovacao > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2px 10px;
+}
+
+.pagamento-detalhe-aprovacao b {
+    color: var(--cor);
+}
+
+.pagamento-detalhe-aprovacao small {
+    color: #6b7f72;
+}
+
+.pagamento-detalhe-aprovacao p {
+    margin: 3px 0 0;
+    color: #2d3d33;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.pagamento-detalhe-anexos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* Dentro da tabela: o bloco acompanha a largura das linhas e não alarga a tabela pelo texto. */
+.pagamento-detalhes-extras {
+    width: 0;
+    min-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Vence a regra geral .tabela-detalhes-conteudo > * (width: max-content). */
+.tabela-detalhes-conteudo > .pagamento-detalhes-extras {
+    width: 0;
+    min-width: 100%;
+}
