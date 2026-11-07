@@ -467,8 +467,17 @@ async function criarPIT(id) {
         },
         {
             elemento: `
-                <div style="${vertical}; gap: 5px;">
-                    <input name="anexos" type="file" multiple>
+                <div class="pit-anexos">
+                    <label class="rh-anexo-area pit-anexo-area" data-soltar-arquivo="soltarAnexosPIT"
+                        ondragenter="event.preventDefault(); this.classList.add('arrastando')"
+                        ondragover="event.preventDefault()"
+                        ondragleave="if (!this.contains(event.relatedTarget)) this.classList.remove('arrastando')"
+                        ondrop="soltarAnexosPIT(event, this)">
+                        <input name="anexos" type="file" multiple aria-label="Escolher anexos" onchange="mostrarAnexosPIT(this)">
+                        <span class="rh-anexo-icone" aria-hidden="true">⇪</span>
+                        <span class="rh-anexo-texto"><span>Arraste arquivos, cole um print (<b>Ctrl+V</b>) ou <u>clique para escolher</u></span></span>
+                    </label>
+                    <div class="pit-anexos-novos"></div>
                     <div class="local-anexos">${divAnexos || 'Sem anexos'}</div>
                 </div>
             `
@@ -493,7 +502,65 @@ async function criarPIT(id) {
     if (id)
         botoes.push({ img: 'cancel', texto: 'Excluir', funcao: `confirmarExcluirPIT('${id}')` })
 
-    popup({ linhas, botoes, titulo: id ? 'Editar post-it' : 'Novo post-it', autoDestruicao: ['usuario'] })
+    const janela = popup({ linhas, botoes, titulo: id ? 'Editar post-it' : 'Novo post-it', autoDestruicao: ['usuario'] })
+    // Print colado (Ctrl+V) em qualquer ponto do post-it, inclusive no texto, vira anexo.
+    document.getElementById(janela)?.addEventListener('paste', colarAnexoPIT)
+}
+
+// ---------- Anexos do post-it: arrastar, colar print e escolher ----------
+// Os arquivos ficam no próprio <input name="anexos"> (o que salvarPIT envia); a lista mostra o que
+// vai subir ao salvar, com opção de tirar.
+function adicionarArquivosPIT(input, arquivos) {
+    if (!input || !arquivos.length) return
+    const transferencia = new DataTransfer()
+    for (const arquivo of [...input.files, ...arquivos]) transferencia.items.add(arquivo)
+    input.files = transferencia.files
+    mostrarAnexosPIT(input)
+}
+
+function soltarAnexosPIT(event, area) {
+    event.preventDefault()
+    area.classList.remove('arrastando')
+    adicionarArquivosPIT(area.querySelector('input[type="file"]'), [...(event.dataTransfer?.files || [])])
+}
+
+function colarAnexoPIT(event) {
+    const itens = [...(event.clipboardData?.items || [])].filter(item => item.kind === 'file')
+    if (!itens.length) return
+    event.preventDefault()
+    const agora = new Date()
+    const carimbo = `${agora.toLocaleDateString('pt-BR').split('/').reverse().join('-')}_${agora.toLocaleTimeString('pt-BR').replaceAll(':', '-')}`
+    const arquivos = itens.map((item, indice) => {
+        const arquivo = item.getAsFile()
+        const extensao = (arquivo.type.split('/')[1] || 'png').replace('jpeg', 'jpg')
+        // Print vem como "image.png": ganha um nome com data e hora.
+        const nome = arquivo.name && !/^image\.\w+$/i.test(arquivo.name) ? arquivo.name : `print-${carimbo}${indice ? `-${indice + 1}` : ''}.${extensao}`
+        return new File([arquivo], nome, { type: arquivo.type })
+    })
+    adicionarArquivosPIT(event.currentTarget.querySelector('.pit-anexo-area input[type="file"]'), arquivos)
+}
+
+function mostrarAnexosPIT(input) {
+    const lista = input.closest('.pit-anexos')?.querySelector('.pit-anexos-novos')
+    if (!lista) return
+    lista.querySelectorAll('img[data-previa]').forEach(img => URL.revokeObjectURL(img.src))
+    lista.innerHTML = [...input.files].map((arquivo, indice) => `
+        <div class="pit-anexo-novo">
+            ${arquivo.type.startsWith('image/') ? `<img data-previa src="${URL.createObjectURL(arquivo)}" alt="">` : '<span class="pit-anexo-icone" aria-hidden="true">📄</span>'}
+            <span class="pit-anexo-nome" title="${escaparAtributo(arquivo.name)}">${escaparAtributo(arquivo.name)}</span>
+            <button type="button" title="Tirar" data-indice="${indice}" onclick="removerAnexoNovoPIT(this)">×</button>
+        </div>`).join('')
+    const area = input.closest('.pit-anexo-area')
+    area?.classList.toggle('com-arquivo', input.files.length > 0)
+}
+
+function removerAnexoNovoPIT(botao) {
+    const input = botao.closest('.pit-anexos')?.querySelector('.pit-anexo-area input[type="file"]')
+    if (!input) return
+    const transferencia = new DataTransfer()
+    ;[...input.files].forEach((arquivo, indice) => { if (indice !== Number(botao.dataset.indice)) transferencia.items.add(arquivo) })
+    input.files = transferencia.files
+    mostrarAnexosPIT(input)
 }
 
 // Coloca o cartão na tela sem esperar o servidor; devolve a função que desfaz.

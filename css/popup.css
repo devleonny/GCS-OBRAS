@@ -830,3 +830,32 @@
 .janelas-independentes .popup.janela-sobre-modal {
     z-index: 10005;
 }
+
+/* Com a barra do rodapé aberta, a área das telas (e o menu lateral) termina acima dela:
+   o fim das telas não fica escondido atrás da barra (--barra-janelas-altura, js/janelas.js). */
+.janelas-independentes .layout {
+    height: calc(94vh - var(--barra-janelas-altura, 0px));
+}
+
+@media (max-width: 760px) {
+    .janelas-independentes .layout {
+        height: auto;
+    }
+
+    .janelas-independentes body {
+        padding-bottom: var(--barra-janelas-altura, 0px);
+        box-sizing: border-box;
+    }
+}
+
+/* Elementos fixos no pé da tela sobem junto com a barra do rodapé (senão ficam atrás dela):
+   "↑ Filtros" (ocorrências e outras tabelas), balões de aviso e botões flutuantes. */
+.janelas-independentes .botao-subir-filtros {
+    bottom: calc(24px + var(--barra-janelas-altura, 0px));
+}
+
+.janelas-independentes .notificacao,
+.janelas-independentes .flutuante,
+.janelas-independentes .btnRodape {
+    bottom: calc(10px + var(--barra-janelas-altura, 0px));
+}

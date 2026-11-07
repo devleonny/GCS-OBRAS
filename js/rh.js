@@ -1,75 +1,647 @@
-let pastasRH = []
-let obrigatoriosRH = []
-// Funcionários desligados (clientes.desligado): etiqueta e sem pendência de documentos.
-let desligadosRH = new Map()
-const pastasAbertasRH = new Set()
-let consultaPastasRH = 0
+// ---------------- Documentos do RH: tela por funcionário ----------------
+// Visões: Por pessoa (tabela com "+" que abre as pastas CONTÁBIL, PESSOAL e CERTIFICADOS, com os
+// documentos arrastáveis entre elas), Por documento (lista plana) e Hierarquia (por gestor).
+// Dados: vw_documentos (documentos) + vw_2_clientes com a tag FUNCIONÁRIO (quem ainda não tem
+// documento também aparece). Tudo carregado de uma vez e filtrado no navegador.
+// Banco (migrations/rh-pastas-hierarquia.sql): documentos.pasta, rh_documentos_regras.pasta e
+// clientes.gestor. Sem essas colunas a tela funciona com a pasta padrão por tipo (PASTA_PADRAO_RH).
+const PASTAS_RH = ['CONTÁBIL', 'PESSOAL', 'CERTIFICADOS']
+const OBRIGATORIOS_RH = ['ASO', 'PTA', 'NR 06 - EPI', 'FICHA DE EPI', 'NR 10', 'NR 35']
+const DIAS_AVISO_RH = 30
+// mostrarDesligados: por padrão a tela esconde quem está desligado (clientes.desligado).
+const estadoRH = { visao: 'pessoa', busca: '', situacao: 'todos', mostrarDesligados: false, abertos: new Set(), pessoas: [], porId: new Map(), documentos: [], carregando: 0, acessoPastas: new Map() }
 
-const modeloRH = (valor1, elemento, funcao) => {
-    return `
-    <div style="${horizontal}; justify-content: space-between; width: 100%; margin-left: 5px;">
-        <label>${valor1}:</label>
-        ${elemento}
-        ${funcao ? `<img onclick="${funcao}" src="imagens/concluido.png" style="display: none; width: 1.5vw;">` : ''}
-    </div>`
+// Pasta padrão por tipo (a mesma que a migração grava em rh_documentos_regras.pasta).
+function pastaPadraoRH(tipo) {
+    const t = String(tipo || '').toUpperCase()
+    if (/^NR /.test(t) || ['PTA', 'APR'].includes(t)) return 'CERTIFICADOS'
+    if (['ASO', 'FICHA DE EPI'].includes(t)) return 'PESSOAL'
+    return null
+}
+
+const normalizarRH = texto => String(texto || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+const digitosRH = texto => String(texto || '').replace(/\D/g, '')
+
+// Situação de um documento: verde (em dia ou sem vencimento), laranja (vence em até 30 dias),
+// vermelho (vencido). Os dias de atraso ficam no título da bolinha, não na linha.
+function situacaoDocumentoRH({ prazo, validadeData }, hoje = dataServidor()) {
+    if (!Number(prazo) || !validadeData) return { cor: 'verde', texto: 'Sem vencimento', dias: null }
+    const validade = new Date(`${String(validadeData).slice(0, 10)}T12:00:00`)
+    const base = new Date(hoje); base.setHours(12, 0, 0, 0)
+    const dias = Math.round((validade - base) / 86400000)
+    if (dias < 0) return { cor: 'vermelho', texto: `Vencido há ${-dias} dia(s)`, dias }
+    if (dias <= DIAS_AVISO_RH) return { cor: 'laranja', texto: dias === 0 ? 'Vence hoje' : `Vence em ${dias} dia(s)`, dias }
+    return { cor: 'verde', texto: `Em dia (vence em ${dias} dias)`, dias }
+}
+
+const PESO_COR_RH = { vermelho: 3, laranja: 2, verde: 1 }
+const bolinhaRH = ({ cor, texto }) => `<span class="rh-bolinha ${cor}" title="${escaparAtributo(texto)}" aria-label="${escaparAtributo(texto)}"></span>`
+const dataBRDeISO = iso => iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : ''
+
+async function pesquisarTodosRH(base, filtros = {}) {
+    const resultados = []
+    let pagina = 1, paginas = 1
+    do {
+        const resposta = await pesquisarDB({ base, filtros, pagina, limite: 500 })
+        resultados.push(...(resposta?.resultados || []))
+        paginas = Number(resposta?.paginas) || 1
+        pagina++
+    } while (pagina <= paginas)
+    return resultados
+}
+
+// Monta pessoas e documentos (puro: testado em tests/rh-pastas.test.cjs).
+// Obrigatórios (OBRIGATORIOS_RH) só para técnicos: cadastro com a tag TÉCNICO (ids em tecnicos).
+function temTagRH(cadastro, tag) {
+    let tags = cadastro?.tags
+    if (typeof tags === 'string') try { tags = JSON.parse(tags) } catch { tags = [] }
+    return Array.isArray(tags) && tags.some(t => String(t?.tag ?? t).toUpperCase() === tag)
+}
+
+function montarDadosRH(documentosBrutos = [], funcionarios = [], hoje = dataServidor(), tecnicos = new Set()) {
+    const pessoas = new Map()
+    const pessoa = (id, dados = {}) => {
+        const chave = String(id)
+        const atual = pessoas.get(chave) || { id: chave, documentos: [] }
+        for (const campo of ['nome', 'cargo', 'cnpj', 'estado', 'cidade', 'foto', 'gestor', 'desligado'])
+            if (atual[campo] == null && dados[campo] != null && dados[campo] !== '') atual[campo] = dados[campo]
+        pessoas.set(chave, atual)
+        return atual
+    }
+    for (const f of funcionarios) {
+        pessoa(f.id, f)
+        if (temTagRH(f, 'TÉCNICO')) tecnicos.add(String(f.id))
+    }
+
+    const documentos = documentosBrutos
+        .filter(d => !d.excluido && d.funcionario != null)
+        .map(d => {
+            const doc = {
+                id: d.id, doc: d.doc, funcionario: String(d.funcionario), anexo: d.anexo && typeof d.anexo === 'object' ? d.anexo : {},
+                realizado: d.realizado || '', validade: d.validade || '', validadeData: d.validadeData, prazo: d.prazo,
+                pasta: d.pasta || d.pasta_padrao || pastaPadraoRH(d.doc)
+            }
+            doc.situacao = situacaoDocumentoRH(doc, hoje)
+            pessoa(d.funcionario, d).documentos.push(doc)
+            return doc
+        })
+
+    for (const p of pessoas.values()) {
+        p.documentos.sort((a, b) => String(nomeDocRH(a)).localeCompare(String(nomeDocRH(b)), 'pt-BR'))
+        const tipos = new Set(p.documentos.filter(d => d.doc).map(d => String(d.doc).toUpperCase()))
+        p.tecnico = tecnicos.has(p.id)
+        p.faltantes = p.desligado || !p.tecnico ? [] : OBRIGATORIOS_RH.filter(t => !tipos.has(t))
+        const pior = p.documentos.reduce((a, d) => PESO_COR_RH[d.situacao.cor] > PESO_COR_RH[a.cor] ? d.situacao : a, { cor: 'verde', texto: 'Em dia' })
+        p.situacao = p.faltantes.length && pior.cor === 'verde'
+            ? { cor: 'laranja', texto: `Faltam: ${p.faltantes.join(', ')}` }
+            : pior.cor === 'verde' ? { cor: 'verde', texto: 'Documentos em dia' } : { ...pior, texto: `${pior.texto} · ${p.documentos.filter(d => d.situacao.cor === pior.cor).map(d => d.doc).join(', ')}` }
+        p.proximoVencimento = p.documentos
+            .filter(d => Number(d.prazo) && d.validadeData)
+            .sort((a, b) => String(a.validadeData).localeCompare(String(b.validadeData)))[0] || null
+    }
+
+    const lista = [...pessoas.values()].sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'))
+    return { pessoas: lista, porId: pessoas, documentos }
 }
 
 async function telaRH() {
-
-    try {
-
-        const colunas = {
-            'Editar': {},
-            'Arquivo': { chave: 'doc' },
-            'Foto': {},
-            'Nome': { chave: 'nome_cargo', op: 'includes' },
-            'Cidade': { chave: 'cidade' },
-            'Clínica': { chave: 'clinica' },
-            'Realizado': { chave: 'realizado' },
-            'Validade': { chave: 'validade' },
-            'Dif/Dias': {}
-        }
-
-        const btnExtras = `
-            <div style="${horizontal}; gap: 2px;">
+    tela.innerHTML = `
+        <div class="tela-rh2">
+            <div class="rh2-topo">
+                <div class="rh2-visoes" role="tablist" aria-label="Visão">
+                    ${[['pessoa', 'Por pessoa'], ['documento', 'Por documento'], ['hierarquia', 'Hierarquia']].map(([valor, texto]) => `
+                        <button type="button" data-visao="${valor}" class="${estadoRH.visao === valor ? 'ativo' : ''}" onclick="trocarVisaoRH('${valor}')">${texto}</button>`).join('')}
+                </div>
+                <input type="search" class="rh2-busca" placeholder="Buscar nome, CPF/CNPJ, cidade ou documento" value="${escaparAtributo(estadoRH.busca)}"
+                    oninput="estadoRH.busca = this.value; renderizarRH()">
+                <select class="rh2-situacao" onchange="estadoRH.situacao = this.value; renderizarRH()">
+                    ${[['todos', 'Todas as situações'], ['vermelho', 'Vencidos'], ['laranja', 'A vencer / faltando'], ['verde', 'Em dia']].map(([v, t]) => `<option value="${v}" ${estadoRH.situacao === v ? 'selected' : ''}>${t}</option>`).join('')}
+                </select>
+                <label class="rh2-mostrar-desligados"><input type="checkbox" ${estadoRH.mostrarDesligados ? 'checked' : ''} onchange="estadoRH.mostrarDesligados = this.checked; renderizarRH()"> Mostrar desligados</label>
                 <button type="button" class="rh-filtro-tempo rh-adicionar" onclick="incluirDocumento()">Documento</button>
-                <button type="button" class="rh-filtro-tempo" onclick="filtrarPorTempo('atrasados')">Atrasados</button>
-                <button type="button" class="rh-filtro-tempo" onclick="filtrarPorTempo('proximo')">Venc. Próximo (60d)</button>
-                <button type="button" class="rh-filtro-tempo" onclick="filtrarPorTempo()">Todos</button>
             </div>
-            `
-        const pag = 'rh'
-        const tabela = await modTab({
-            btnExtras,
-            pag,
-            body: 'bodyDocumentos',
-            funcaoAdicional: ['criarPastinhas'],
-            base: 'vw_documentos',
-            colunas,
-            criarLinha: 'criarLinhaRH'
-        })
-
-        const acumulado = `
-            <div class="tela-rh">
-                <div class="esquema-cidades"></div>
-                <div class="pagina-conteudo">
-                <div class="cabecalho-pagina"><h2>Documentos Salvos</h2></div>
-                ${tabela}
+            <div class="rh2-legenda">
+                ${bolinhaRH({ cor: 'verde', texto: 'Em dia' })} Em dia
+                ${bolinhaRH({ cor: 'laranja', texto: 'Vence em até 30 dias' })} Vence em até ${DIAS_AVISO_RH} dias / faltando obrigatório
+                ${bolinhaRH({ cor: 'vermelho', texto: 'Vencido' })} Vencido
             </div>
-            </div>
-        `
+            <div class="rh2-conteudo"><p class="rh2-vazio">Carregando documentos…</p></div>
+        </div>`
+    await carregarRH()
+}
 
-        tela.innerHTML = acumulado
+async function carregarRH() {
+    const consulta = ++estadoRH.carregando
+    try {
+        const [documentos, funcionarios, tecnicos, acessoPastas] = await Promise.all([
+            pesquisarTodosRH('vw_documentos'),
+            pesquisarTodosRH('vw_2_clientes', { tags: { op: 'includes', value: 'FUNCIONÁRIO' } }),
+            // Técnicos sem a tag FUNCIONÁRIO também têm obrigatórios (só os ids importam).
+            pesquisarTodosRH('vw_2_clientes', { tags: { op: 'includes', value: 'TÉCNICO' } }),
+            // Cadeado das pastas (sem a base ainda no servidor: todas livres).
+            pesquisarTodosRH('rh_pastas_acesso').catch(() => [])
+        ])
+        if (consulta !== estadoRH.carregando) return
+        const idsTecnicos = new Set(tecnicos.filter(t => !t.excluido && temTagRH(t, 'TÉCNICO')).map(t => String(t.id)))
+        estadoRH.acessoPastas = new Map((acessoPastas || []).map(a => [String(a.id), a]))
+        Object.assign(estadoRH, montarDadosRH(documentos, funcionarios.filter(f => !f.excluido), dataServidor(), idsTecnicos))
+        renderizarRH()
+    } catch (erro) {
+        console.error('[RH] carregar', erro)
+        const conteudo = document.querySelector('.tela-rh2 .rh2-conteudo')
+        if (conteudo) conteudo.innerHTML = '<button type="button" onclick="carregarRH()">Falha ao carregar os documentos. Tentar de novo</button>'
+    }
+}
 
-        await paginacao(pag)
+function trocarVisaoRH(visao) {
+    estadoRH.visao = visao
+    document.querySelectorAll('.rh2-visoes button').forEach(b => b.classList.toggle('ativo', b.dataset.visao === visao))
+    renderizarRH()
+}
 
+function pessoaCombinaRH(p, termo, termoDigitos) {
+    if (!termo) return true
+    return normalizarRH([p.nome, p.cargo, p.cidade, p.estado, ...p.documentos.map(nomeDocRH)].join(' ')).includes(termo)
+        || (termoDigitos.length >= 3 && digitosRH(p.cnpj).includes(termoDigitos))
+}
+
+function pessoasFiltradasRH() {
+    const termo = normalizarRH(estadoRH.busca).trim()
+    const termoDigitos = digitosRH(estadoRH.busca)
+    return estadoRH.pessoas.filter(p => (estadoRH.mostrarDesligados || !p.desligado) && pessoaCombinaRH(p, termo, termoDigitos)
+        && (estadoRH.situacao === 'todos' || p.situacao.cor === estadoRH.situacao))
+}
+
+function renderizarRH() {
+    const conteudo = document.querySelector('.tela-rh2 .rh2-conteudo')
+    if (!conteudo) return
+    if (estadoRH.visao === 'documento') return conteudo.innerHTML = tabelaDocumentosRH()
+    if (estadoRH.visao === 'hierarquia') {
+        conteudo.innerHTML = hierarquiaRH()
+        return alinharLinhasHierarquiaRH(conteudo)
+    }
+    conteudo.innerHTML = tabelaPessoasRH()
+}
+
+// Foto clicável: abre o cadastro da pessoa (formularioCliente, js/clientes.js).
+const fotoPessoaRH = p => `
+    <button type="button" class="rh2-foto-botao" data-cliente="${escaparAtributo(p.id)}" title="Abrir cadastro" onclick="formularioCliente(Number(this.dataset.cliente))">
+        <img class="cliente-foto" src="${escaparAtributo(urlFotoCliente(p.foto))}" alt="Abrir cadastro de ${escaparAtributo(p.nome || '')}" loading="lazy" onerror="this.onerror = null; this.src = logo">
+    </button>`
+const nomePessoaRH = p => `
+    <div class="rh2-nome">
+        <b>${escaparAtributo(p.nome || 'Sem nome')}</b>
+        ${p.desligado ? etiquetaDesligado(p.desligado) : ''}
+        ${p.cargo ? `<small>${escaparAtributo(p.cargo)}</small>` : ''}
+    </div>`
+
+function tabelaPessoasRH() {
+    const pessoas = pessoasFiltradasRH()
+    if (!pessoas.length) return '<p class="rh2-vazio">Nenhum funcionário neste filtro.</p>'
+    const linhas = pessoas.map(p => {
+        const aberto = estadoRH.abertos.has(p.id)
+        const gestor = p.gestor ? estadoRH.porId.get(String(p.gestor)) : null
+        return `
+            <tr class="rh2-pessoa ${aberto ? 'aberta' : ''}" data-pessoa="${escaparAtributo(p.id)}">
+                <td><button type="button" class="rh2-mais" aria-expanded="${aberto}" title="${aberto ? 'Fechar' : 'Ver documentos'}" onclick="alternarPessoaRH('${escaparAtributo(p.id)}')">${aberto ? '−' : '+'}</button></td>
+                <td>${fotoPessoaRH(p)}</td>
+                <td style="text-align: left;">${nomePessoaRH(p)}</td>
+                <td>${escaparAtributo(p.cnpj || '—')}</td>
+                <td>${escaparAtributo(p.estado || '—')}</td>
+                <td>${escaparAtributo(p.cidade || '—')}</td>
+                <td>${escaparAtributo(gestor?.nome || '—')}</td>
+                <td>${p.documentos.length}</td>
+                <td style="text-align: left;"><div class="rh2-situacao-celula">${bolinhaRH(p.situacao)}<span>${p.proximoVencimento ? escaparAtributo(p.proximoVencimento.validade) : '—'}</span></div></td>
+            </tr>
+            ${aberto ? `<tr class="rh2-detalhe"><td colspan="9">${detalhePessoaRH(p)}</td></tr>` : ''}`
+    }).join('')
+    return `
+        <div class="rh2-tabela">
+            <table>
+                <thead><tr><th></th><th></th><th style="text-align: left;">Funcionário</th><th>CPF/CNPJ</th><th>Estado</th><th>Cidade</th><th>Gestor</th><th>Docs</th><th title="Próximo vencimento" style="text-align: left;">Vencimento</th></tr></thead>
+                <tbody>${linhas}</tbody>
+            </table>
+        </div>
+        <p class="rh2-rodape">${pessoas.length} funcionário(s)</p>`
+}
+
+function alternarPessoaRH(id) {
+    estadoRH.abertos.has(id) ? estadoRH.abertos.delete(id) : estadoRH.abertos.add(id)
+    renderizarRH()
+}
+
+// Detalhe (+): as 3 pastas com os documentos (arrastáveis entre elas), obrigatórios faltando e gestor.
+function detalhePessoaRH(p) {
+    const semPasta = p.documentos.filter(d => !PASTAS_RH.includes(d.pasta))
+    const pastas = [...PASTAS_RH, ...(semPasta.length ? ['SEM PASTA'] : [])]
+    const gestor = p.gestor ? estadoRH.porId.get(String(p.gestor)) : null
+    return `
+        <div class="rh2-pastas">
+            ${pastas.map(pasta => {
+                const docs = pasta === 'SEM PASTA' ? semPasta : p.documentos.filter(d => d.pasta === pasta)
+                return `
+                <div class="rh2-pasta ${pasta === 'SEM PASTA' ? 'sem-pasta' : ''}" data-pasta="${escaparAtributo(pasta)}" data-pessoa="${escaparAtributo(p.id)}"
+                    ondragover="sobrePastaRH(event, this)"
+                    ondragleave="if (!this.contains(event.relatedTarget)) this.classList.remove('soltar')"
+                    ondrop="soltarDocumentoPastaRH(event, this)">
+                    <div class="rh2-pasta-titulo"><span aria-hidden="true">📁</span> ${escaparAtributo(pasta)} ${pasta === 'SEM PASTA' ? '' : botaoCadeadoRH(pasta)} <small>${podeVerPastaRH(pasta) ? docs.length : '—'}</small></div>
+                    ${podeVerPastaRH(pasta) ? listaArquivosRH(docs) : '<small class="rh2-pasta-vazia rh2-pasta-restrita">Pasta restrita: você não tem acesso ao conteúdo.</small>'}
+                </div>`
+            }).join('')}
+        </div>
+        <div class="rh2-detalhe-rodape">
+            ${p.faltantes.length ? `<span class="rh-pendencia-titulo">Faltam (obrigatórios):</span> ${p.faltantes.map(d => `<span class="docs-faltantes">${escaparAtributo(d)}</span>`).join('')}` : p.tecnico ? '<span class="rh-sem-pendencias">Obrigatórios registrados</span>' : '<span class="rh2-arq-cinza">Sem documentos obrigatórios (não é técnico)</span>'}
+            <span class="rh2-gestor">Gestor: <button type="button" class="rh2-gestor-botao" onclick="escolherGestorRH('${escaparAtributo(p.id)}')">${escaparAtributo(gestor?.nome || 'Definir gestor')}</button></span>
+            <button type="button" class="rh-filtro-tempo" data-funcionario="${escaparAtributo(p.id)}" onclick="incluirDocumento(null, this.dataset.funcionario)">+ Documento</button>
+        </div>`
+}
+
+// Pasta no estilo "Detalhes" do Explorer do Windows: cabeçalho de colunas e uma linha por arquivo.
+// Duplo clique abre o anexo; ✎ edita; a linha é arrastável entre pastas.
+function listaArquivosRH(docs) {
+    if (!docs.length) return '<small class="rh2-pasta-vazia">Arraste documentos ou arquivos do computador para cá</small>'
+    return `
+        <div class="rh2-arquivos" role="table">
+            <div class="rh2-arq-cabecalho" role="row"><span>Nome</span><span>Feito em</span><span>Vence em</span><span></span></div>
+            ${docs.map(cartaoDocumentoRH).join('')}
+        </div>`
+}
+
+// Ícone de arquivo (folha com canto dobrado) na cor do tipo, como nos anexos (corTipoAnexo).
+function iconeArquivoRH(anexo) {
+    const nome = String(anexo?.nome || anexo?.link || '')
+    const extensao = anexo?.link ? (nome.match(/\.([^.]+)$/)?.[1] || 'arq').toLowerCase() : ''
+    const cor = anexo?.link ? corTipoAnexo(extensao) : '#b3bfb8'
+    return `
+        <span class="rh2-arq-icone ${anexo?.link ? '' : 'sem-anexo'}" style="--cor: ${cor}" aria-hidden="true">
+            <svg viewBox="0 0 16 20" width="16" height="20"><path d="M1.5 1.5h8.5l4.5 4.5v12.5h-13z" fill="#fff" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" ${anexo?.link ? '' : 'stroke-dasharray="2 1.5"'}/><path d="M10 1.5v4.5h4.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+            ${extensao ? `<b>${escaparAtributo(extensao.slice(0, 4))}</b>` : ''}
+        </span>`
+}
+
+// Assinatura digital resumida num sinal ao lado do nome (o detalhe completo fica no título).
+function marcaAssinaturaRH(anexo) {
+    const html = assinaturaRH(anexo)
+    if (!html) return ''
+    const classe = html.match(/rh-assinatura (\w+)/)?.[1] || 'neutro'
+    if (classe === 'neutro') return ''           // não verificado / não é PDF: sem sinal
+    const titulo = html.match(/title="([^"]*)"/)?.[1] || ''
+    const sinal = { ok: '✓', alerta: '!', erro: '✗', neutro: '…' }[classe] || '•'
+    return `<span class="rh2-arq-assinatura ${classe}" title="Assinatura digital: ${titulo}">${sinal}</span>`
+}
+
+function cartaoDocumentoRH(d) {
+    const link = d.anexo?.link
+    const titulo = [nomeDocRH(d), d.doc && d.anexo?.nome ? `Arquivo: ${d.anexo.nome}` : '', link ? 'Duplo clique para abrir' : 'Sem anexo', d.situacao?.texto].filter(Boolean).join('\n')
+    return `
+        <div class="rh2-doc rh2-arq ${estadoRH.movido === d.id ? 'rh2-movido' : ''}" role="row" draggable="true" tabindex="0"
+            data-doc="${escaparAtributo(d.id)}" data-pasta="${escaparAtributo(d.pasta || '')}" data-link="${escaparAtributo(link || '')}"
+            title="${escaparAtributo(titulo)}"
+            ondragstart="arrastarDocumentoRH(event, this)" ondragend="fimArrastarDocumentoRH()"
+            ondblclick="if (this.dataset.link) abrirArquivo(this.dataset.link)"
+            onkeydown="if (event.key === 'Enter' && this.dataset.link) abrirArquivo(this.dataset.link)">
+            <span class="rh2-arq-nome">
+                ${iconeArquivoRH(d.anexo)}
+                <span class="rh2-arq-texto ${d.doc ? '' : 'sem-tipo'}">${escaparAtributo(nomeDocRH(d))}</span>
+                ${marcaAssinaturaRH(d.anexo)}
+            </span>
+            <span class="rh2-arq-data">${escaparAtributo(d.realizado || '—')}</span>
+            <span class="rh2-arq-data rh2-arq-vence">${Number(d.prazo) ? `${bolinhaRH(d.situacao)} ${escaparAtributo(d.validade || '—')}` : '<span class="rh2-arq-cinza">—</span>'}</span>
+            <button type="button" class="rh2-arq-editar" data-doc="${escaparAtributo(d.id)}" onclick="event.stopPropagation(); incluirDocumento(this.dataset.doc)" title="Editar">✎</button>
+        </div>`
+}
+
+// Arquivo(s) do computador soltos numa pasta: cada arquivo vira um item daquela pasta do funcionário,
+// sem tipo de documento (o tipo pode ser definido depois no ✎, se precisar).
+async function salvarArquivosPastaRH(funcionario, pasta, arquivos) {
+    overlayAguarde()
+    try {
+        const anexos = await importarAnexos({ input: { files: arquivos } })
+        if (!Array.isArray(anexos) || !anexos.length) return
+        for (const anexo of anexos) {
+            const id = crypto.randomUUID()
+            const resposta = await enviar(`documentos/${id}`, {
+                id, funcionario: Number(funcionario), doc: null, usuario: acesso.usuario,
+                anexo, pasta, realizado: ''
+            })
+            if (!resposta?.success) throw new Error(resposta?.mensagem || 'falha ao salvar')
+        }
+        // Pasta com cadeado sem acesso: o arquivo entra, mas some da vista de quem enviou.
+        if (pasta && !podeVerPastaRH(pasta))
+            popup({ mensagem: `Arquivo enviado para a pasta ${escaparAtributo(pasta)}. Ela é restrita e você não tem acesso ao conteúdo dela.` })
+    } catch (erro) {
+        popup({ mensagem: `Não foi possível salvar o arquivo: ${escaparAtributo(erro.message || 'erro desconhecido')}` })
+    } finally {
         removerOverlay()
+        carregarRH()
+    }
+}
 
-    } catch (err) {
-        console.error(err)
-        popup({ mensagem: 'Falha ao abrir documentos RH: Fale com o suporte.' })
+// Nome mostrado: o tipo do documento ou, sem tipo, o nome do arquivo.
+const nomeDocRH = d => d.doc || d.anexo?.nome || 'Arquivo'
+
+// Arrastar documento: as pastas que aceitam ficam destacadas; a de origem e "Sem pasta" mostram que não pode soltar.
+function arrastarDocumentoRH(event, cartao) {
+    event.stopPropagation()
+    event.dataTransfer.setData('text/plain', cartao.dataset.doc)
+    event.dataTransfer.effectAllowed = 'move'
+    estadoRH.arrastandoDoc = { id: cartao.dataset.doc, pasta: cartao.dataset.pasta }
+    // Depois do frame: a "foto" do arrasto já foi tirada sem o esmaecido.
+    requestAnimationFrame(() => {
+        cartao.classList.add('rh2-arrastando')
+        cartao.closest('.rh2-pastas')?.classList.add('rh2-arrastando-doc')
+    })
+}
+
+function fimArrastarDocumentoRH() {
+    estadoRH.arrastandoDoc = null
+    document.querySelectorAll('.rh2-arrastando, .rh2-arrastando-doc, .rh2-pasta.soltar')
+        .forEach(e => e.classList.remove('rh2-arrastando', 'rh2-arrastando-doc', 'soltar'))
+}
+
+function pastaAceitaRH(pasta) {
+    const origem = estadoRH.arrastandoDoc
+    return !!origem && pasta !== 'SEM PASTA' && pasta !== origem.pasta
+}
+
+const arrastandoArquivoRH = event => !!event.dataTransfer?.types?.includes('Files')
+
+function sobrePastaRH(event, zona) {
+    // Arquivo do computador: qualquer pasta aceita (vira um documento novo nela).
+    if (arrastandoArquivoRH(event)) {
+        event.preventDefault()
+        event.dataTransfer.dropEffect = 'copy'
+        return zona.classList.add('soltar')
+    }
+    if (!estadoRH.arrastandoDoc) return          // pessoa da hierarquia: não é aqui
+    event.preventDefault()
+    const aceita = pastaAceitaRH(zona.dataset.pasta)
+    event.dataTransfer.dropEffect = aceita ? 'move' : 'none'
+    zona.classList.toggle('soltar', aceita)
+}
+
+async function soltarDocumentoPastaRH(event, zona) {
+    event.preventDefault()
+    zona.classList.remove('soltar')
+    const arquivos = [...(event.dataTransfer?.files || [])]
+    if (arquivos.length) {
+        const pasta = PASTAS_RH.includes(zona.dataset.pasta) ? zona.dataset.pasta : null
+        return salvarArquivosPastaRH(zona.dataset.pessoa, pasta, arquivos)
+    }
+    const id = event.dataTransfer.getData('text/plain') || estadoRH.arrastandoDoc?.id
+    const pasta = zona.dataset.pasta
+    const aceita = pastaAceitaRH(pasta)
+    fimArrastarDocumentoRH()
+    const doc = estadoRH.documentos.find(d => String(d.id) === String(id))
+    if (!doc || !aceita) return
+    const anterior = doc.pasta
+    doc.pasta = pasta
+    estadoRH.movido = doc.id                     // destaca o cartão na pasta nova por um instante
+    renderizarRH()
+    setTimeout(() => { if (estadoRH.movido === doc.id) estadoRH.movido = null }, 1500)
+    try {
+        const resposta = await enviar(`documentos/${doc.id}/pasta`, pasta)
+        if (resposta?.mensagem && !resposta?.success) throw new Error(resposta.mensagem)
+    } catch (erro) {
+        doc.pasta = anterior
+        renderizarRH()
+        popup({ mensagem: `Não foi possível mover o documento: ${escaparAtributo(erro.message || 'erro desconhecido')}` })
+    }
+}
+
+function tabelaDocumentosRH() {
+    const termo = normalizarRH(estadoRH.busca).trim()
+    const termoDigitos = digitosRH(estadoRH.busca)
+    const linhas = estadoRH.documentos
+        .map(d => ({ d, p: estadoRH.porId.get(d.funcionario) || {} }))
+        .filter(({ d, p }) => (estadoRH.mostrarDesligados || !p.desligado)
+            && (estadoRH.situacao === 'todos' || d.situacao.cor === estadoRH.situacao)
+            && (!termo || normalizarRH([nomeDocRH(d), d.pasta, p.nome, p.cargo, p.cidade, p.estado].join(' ')).includes(termo)
+                || (termoDigitos.length >= 3 && digitosRH(p.cnpj).includes(termoDigitos))))
+        .sort((a, b) => String(a.p.nome || '').localeCompare(String(b.p.nome || ''), 'pt-BR') || nomeDocRH(a.d).localeCompare(nomeDocRH(b.d), 'pt-BR'))
+    if (!linhas.length) return '<p class="rh2-vazio">Nenhum documento neste filtro.</p>'
+    return `
+        <div class="rh2-tabela">
+            <table>
+                <thead><tr><th></th><th style="text-align: left;">Documento</th><th>Pasta</th><th style="text-align: left;">Funcionário</th><th>CPF/CNPJ</th><th>Estado</th><th>Cidade</th><th>Feito em</th><th>Vencimento</th><th>Assinatura</th></tr></thead>
+                <tbody>${linhas.map(({ d, p }) => `
+                    <tr>
+                        <td><button type="button" class="rh2-mais" data-doc="${escaparAtributo(d.id)}" onclick="incluirDocumento(this.dataset.doc)" title="Editar">✎</button></td>
+                        <td style="text-align: left;">
+                            <div class="rh-arquivo-pilula ${d.anexo?.link ? 'com-anexo' : 'sem-anexo'}">
+                                <span class="rh-arquivo-tipo">${escaparAtributo(nomeDocRH(d))}</span>
+                                ${d.anexo?.link ? `<button type="button" class="rh-arquivo-acao" data-link="${escaparAtributo(d.anexo.link)}" onclick="abrirArquivo(this.dataset.link)">Ver</button>` : '<span class="rh-arquivo-acao">Ausente</span>'}
+                            </div>
+                        </td>
+                        <td>${escaparAtributo(d.pasta || 'Sem pasta')}</td>
+                        <td style="text-align: left;">${nomePessoaRH(p)}</td>
+                        <td>${escaparAtributo(p.cnpj || '—')}</td>
+                        <td>${escaparAtributo(p.estado || '—')}</td>
+                        <td>${escaparAtributo(p.cidade || '—')}</td>
+                        <td>${escaparAtributo(d.realizado || '—')}</td>
+                        <td><div class="rh2-situacao-celula">${bolinhaRH(d.situacao)}<span>${Number(d.prazo) ? escaparAtributo(d.validade || '—') : 'Sem vencimento'}</span></div></td>
+                        <td>${assinaturaRH(d.anexo)}</td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>
+        </div>
+        <p class="rh2-rodape">${linhas.length} documento(s)</p>`
+}
+
+// Hierarquia (clientes.gestor), com foto de cada pessoa:
+//  - à esquerda, quem não tem hierarquia (sem gestor e sem equipe);
+//  - à direita, um organograma por equipe (gestor no topo, equipe abaixo, ligados por linhas).
+// Quem tem gestor fora da lista (ou desligado escondido) sobe como topo da própria equipe.
+// O clique leva à pessoa na visão Por pessoa.
+function hierarquiaRH() {
+    const visiveis = new Set(pessoasFiltradasRH().map(p => p.id))
+    const naTela = p => estadoRH.mostrarDesligados || !p.desligado
+    const pessoas = estadoRH.pessoas.filter(naTela)
+    const porId = new Map(pessoas.map(p => [p.id, p]))
+    const filhos = new Map()
+    for (const p of pessoas) {
+        const chave = p.gestor && porId.has(String(p.gestor)) ? String(p.gestor) : ''
+        filhos.set(chave, [...(filhos.get(chave) || []), p])
+    }
+    // Só mostra ramos com alguém do filtro (o caminho até ele aparece esmaecido).
+    const temVisivel = (p, vistos = new Set()) => {
+        if (vistos.has(p.id)) return false
+        vistos.add(p.id)
+        return visiveis.has(p.id) || (filhos.get(p.id) || []).some(f => temVisivel(f, vistos))
+    }
+    const cartao = p => `
+        <button type="button" class="rh2-org-cartao ${visiveis.has(p.id) ? '' : 'caminho'}" data-pessoa="${escaparAtributo(p.id)}"
+            onclick="abrirPessoaRH(this.dataset.pessoa)" title="${escaparAtributo(p.situacao.texto)} · arraste para outra pessoa para mudar o gestor"
+            draggable="true" ondragstart="arrastarPessoaRH(event, this)" ondragend="document.querySelectorAll('.rh2-alvo').forEach(e => e.classList.remove('rh2-alvo'))"
+            ondragover="sobrePessoaRH(event, this)" ondragleave="this.classList.remove('rh2-alvo')" ondrop="soltarPessoaRH(event, this.dataset.pessoa, this)">
+            <img class="rh2-org-foto" src="${escaparAtributo(urlFotoCliente(p.foto))}" alt="" loading="lazy" onerror="this.onerror = null; this.src = logo">
+            ${bolinhaRH(p.situacao)}
+            <span class="rh2-org-textos">
+                <b>${escaparAtributo(p.nome || 'Sem nome')}</b>
+                ${p.cargo ? `<small>${escaparAtributo(p.cargo)}</small>` : ''}
+                ${p.desligado ? etiquetaDesligado(p.desligado) : ''}
+            </span>
+        </button>`
+    const no = (p, vistos = new Set()) => {
+        if (vistos.has(p.id)) return ''          // proteção contra ciclo de gestor
+        vistos.add(p.id)
+        const equipe = (filhos.get(p.id) || []).filter(f => temVisivel(f))
+        return `<li>${cartao(p)}${equipe.length ? `<ul>${equipe.map(f => no(f, new Set(vistos))).join('')}</ul>` : ''}</li>`
     }
 
+    const raizes = (filhos.get('') || []).filter(p => temVisivel(p))
+    const comEquipe = raizes.filter(p => (filhos.get(p.id) || []).length)
+    const semHierarquia = raizes.filter(p => !(filhos.get(p.id) || []).length)
+    if (!raizes.length) return '<p class="rh2-vazio">Ninguém neste filtro.</p>'
+
+    return `
+        <div class="rh2-hierarquia">
+            <aside class="rh2-sem-hierarquia" ondragover="sobrePessoaRH(event, this)" ondragleave="if (!this.contains(event.relatedTarget)) this.classList.remove('rh2-alvo')" ondrop="soltarPessoaRH(event, '', this)">
+                <div class="rh2-sem-hierarquia-titulo">Sem hierarquia <small>${semHierarquia.length}</small></div>
+                ${semHierarquia.map(cartao).join('') || '<small class="rh2-pasta-vazia">Todos estão em alguma equipe.</small>'}
+            </aside>
+            <section class="rh2-equipes">
+                ${comEquipe.map(p => `<div class="rh2-org"><ul>${no(p)}</ul></div>`).join('')
+                    || '<p class="rh2-vazio rh2-equipes-vazio">Nenhuma equipe montada ainda. Escolha o gestor das pessoas para formar os organogramas.</p>'}
+            </section>
+        </div>`
+}
+
+// Linhas do organograma em pixel inteiro: a descida do gestor, a barra da equipe e a subida de cada
+// cartão. Arredondadas para o mesmo pixel, as que se encontram ficam uma sobre a outra (sem parecer
+// mais grossas). O cartão que fica embaixo da linha do gestor sobe por ela (uma reta só); os outros
+// sobem pelo próprio centro.
+function alinharLinhasHierarquiaRH(raiz = document) {
+    for (const equipe of raiz.querySelectorAll('.rh2-org ul ul')) {
+        const caixa = equipe.getBoundingClientRect()
+        const linhaGestor = Math.round(caixa.left + caixa.width / 2)
+        equipe.style.setProperty('--descida', `${linhaGestor - 1 - caixa.left}px`)
+        const itens = [...equipe.children]
+        itens.forEach((item, indice) => {
+            const doItem = item.getBoundingClientRect()
+            const cartao = item.querySelector(':scope > .rh2-org-cartao')?.getBoundingClientRect()
+            const centro = cartao ? cartao.left + cartao.width / 2 : doItem.left + doItem.width / 2
+            const x = cartao && linhaGestor > cartao.left + 12 && linhaGestor < cartao.right - 12 ? linhaGestor : Math.round(centro)
+            item.style.setProperty('--subida', `${x - 1 - doItem.left}px`)
+            // Barra horizontal: do centro do primeiro ao centro do último (mesmos pixels das subidas).
+            item.style.setProperty('--barra-esq', indice === 0 ? `${x - 1 - doItem.left}px` : '0px')
+            item.style.setProperty('--barra-dir', indice === itens.length - 1 ? `${doItem.right - (x + 1)}px` : '0px')
+        })
+    }
+    // Organograma mais largo que a caixa: abre rolado com o gestor no meio (o resto fica a uma rolagem).
+    for (const org of raiz.querySelectorAll('.rh2-org')) {
+        if (org.scrollWidth <= org.clientWidth) continue
+        const gestor = org.querySelector(':scope > ul > li > .rh2-org-cartao')?.getBoundingClientRect()
+        if (!gestor) continue
+        const caixa = org.getBoundingClientRect()
+        org.scrollLeft += gestor.left + gestor.width / 2 - (caixa.left + caixa.width / 2)
+    }
+}
+
+function abrirPessoaRH(id) {
+    estadoRH.abertos.add(String(id))
+    estadoRH.busca = estadoRH.porId.get(String(id))?.nome || ''
+    const busca = document.querySelector('.tela-rh2 .rh2-busca')
+    if (busca) busca.value = estadoRH.busca
+    trocarVisaoRH('pessoa')
+}
+
+// Gestor: escolhido entre os funcionários (sem a própria pessoa nem quem está abaixo dela, para
+// não fechar ciclo). Grava em clientes/<id>/gestor.
+// A pessoa e todos abaixo dela (para não fechar ciclo ao escolher ou arrastar o gestor).
+function pessoaEAbaixoRH(id) {
+    const abaixo = new Set([String(id)])
+    let cresceu = true
+    while (cresceu) {
+        cresceu = false
+        for (const p of estadoRH.pessoas)
+            if (p.gestor && abaixo.has(String(p.gestor)) && !abaixo.has(p.id)) { abaixo.add(p.id); cresceu = true }
+    }
+    return abaixo
+}
+
+// Arrastar na hierarquia: soltar em cima de alguém = entra na equipe dele; soltar em
+// "Sem hierarquia" = fica sem gestor.
+function arrastarPessoaRH(event, cartao) {
+    event.dataTransfer.setData('text/plain', cartao.dataset.pessoa)
+    event.dataTransfer.setData('application/x-gcs-pessoa', cartao.dataset.pessoa)
+    event.dataTransfer.effectAllowed = 'move'
+    estadoRH.arrastando = cartao.dataset.pessoa
+}
+
+function sobrePessoaRH(event, alvo) {
+    if (!estadoRH.arrastando) return
+    const destino = alvo.dataset.pessoa
+    if (destino && pessoaEAbaixoRH(estadoRH.arrastando).has(String(destino))) return   // não pode: ciclo
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    alvo.classList.add('rh2-alvo')
+}
+
+async function soltarPessoaRH(event, gestor, alvo) {
+    event.preventDefault()
+    event.stopPropagation()
+    alvo?.classList.remove('rh2-alvo')
+    const id = event.dataTransfer.getData('application/x-gcs-pessoa') || estadoRH.arrastando
+    estadoRH.arrastando = null
+    if (!id) return
+    const pessoa = estadoRH.porId.get(String(id))
+    if (!pessoa || String(pessoa.gestor || '') === String(gestor || '')) return
+    if (gestor && pessoaEAbaixoRH(id).has(String(gestor)))
+        return popup({ mensagem: 'Não dá para colocar alguém abaixo de quem já está na equipe dele.' })
+    await salvarGestorRH(id, gestor || null)
+}
+
+async function salvarGestorRH(id, gestor) {
+    const pessoa = estadoRH.porId.get(String(id))
+    const anterior = pessoa?.gestor ?? null
+    if (pessoa) pessoa.gestor = gestor
+    renderizarRH()
+    try {
+        const resposta = await enviar(`clientes/${id}/gestor`, gestor)
+        if (resposta?.mensagem && !resposta?.success) throw new Error(resposta.mensagem)
+        return true
+    } catch (erro) {
+        if (pessoa) pessoa.gestor = anterior
+        renderizarRH()
+        popup({ mensagem: `Não foi possível definir o gestor: ${escaparAtributo(erro.message || 'erro desconhecido')}` })
+        return false
+    }
+}
+
+function escolherGestorRH(id) {
+    const abaixo = pessoaEAbaixoRH(id)
+    const opcoes = estadoRH.pessoas.filter(p => !abaixo.has(p.id) && !p.desligado)
+    const pessoa = estadoRH.porId.get(String(id))
+    popup({
+        titulo: `Gestor de ${escaparAtributo(pessoa?.nome || '')}`,
+        elemento: `
+            <div class="rh2-escolher-gestor" data-pessoa="${escaparAtributo(id)}">
+                <input type="search" placeholder="Buscar pessoa" oninput="filtrarGestoresRH(this)">
+                <div class="rh2-gestores">
+                    <button type="button" class="rh2-gestor-opcao" data-gestor="" onclick="definirGestorRH(this)"><b>Sem gestor</b></button>
+                    ${opcoes.map(p => `
+                        <button type="button" class="rh2-gestor-opcao" data-gestor="${escaparAtributo(p.id)}" data-busca="${escaparAtributo(normalizarRH([p.nome, p.cargo].join(' ')))}" onclick="definirGestorRH(this)">
+                            <b>${escaparAtributo(p.nome || 'Sem nome')}</b>${p.cargo ? `<small>${escaparAtributo(p.cargo)}</small>` : ''}
+                        </button>`).join('')}
+                </div>
+            </div>`
+    })
+}
+
+function filtrarGestoresRH(input) {
+    const termo = normalizarRH(input.value).trim()
+    input.closest('.rh2-escolher-gestor').querySelectorAll('.rh2-gestor-opcao[data-busca]')
+        .forEach(b => { b.hidden = !!termo && !b.dataset.busca.includes(termo) })
+}
+
+async function definirGestorRH(botao) {
+    const caixa = botao.closest('.rh2-escolher-gestor')
+    const id = caixa.dataset.pessoa
+    const gestor = botao.dataset.gestor || null
+    const janela = botao.closest('.popup')?.id
+    if (janela) removerPopup(janela)
+    await salvarGestorRH(id, gestor)
 }
 
 async function atalhoDocumentos(idCliente = null) {
@@ -80,7 +652,6 @@ async function atalhoDocumentos(idCliente = null) {
         'Foto': {},
         'Nome': { chave: 'nome_cargo', op: 'includes' },
         'Cidade': { chave: 'cidade' },
-        'Clínica': { chave: 'clinica' },
         'Realizado': { chave: 'realizado' },
         'Validade': { chave: 'validade' },
         'Dif/Dias': {}
@@ -107,7 +678,6 @@ async function atalhoDocumentos(idCliente = null) {
         pag,
         body: 'bodyDocumentos',
         filtros,
-        funcaoAdicional: ['criarPastinhas'],
         base: 'vw_documentos',
         colunas,
         criarLinha: 'criarLinhaRH'
@@ -150,133 +720,9 @@ async function filtrarPorTempo(tempo) {
 
 }
 
-async function criarPastinhas() {
-    const container = document.querySelector('.esquema-cidades')
-    if (!container) return
-    const consulta = ++consultaPastasRH
-    try {
-        const estados = []
-        let pagina = 1
-        let paginas = 1
-        do {
-            const resposta = await pesquisarDB({
-                base: 'vw_rh_pastas', pagina,
-                ordenar: { path: 'id', direcao: 'ASC' }
-            })
-            estados.push(...(resposta.resultados || []))
-            paginas = Number(resposta.paginas) || 1
-            pagina++
-        } while (pagina <= paginas)
-        const regras = []
-        pagina = 1
-        paginas = 1
-        do {
-            const resposta = await pesquisarDB({ base: 'rh_documentos_regras', pagina })
-            regras.push(...(resposta.resultados || []))
-            paginas = Number(resposta.paginas) || 1
-            pagina++
-        } while (pagina <= paginas)
-        const desligados = await pesquisarDB({ base: 'vw_2_clientes', limite: 1000, filtros: { desligado: { op: 'NOT_EMPTY' } } })
-            .catch(() => ({ resultados: [] }))
-        desligadosRH = new Map((desligados.resultados || []).map(c => [String(c.id), c.desligado]))
-        if (consulta !== consultaPastasRH || !container.isConnected) return
-        // Mesma lista padrão da vw_rh_pastas (banco), que calcula os faltantes.
-        const padrao = ['ASO', 'PTA', 'NR 06 - EPI', 'FICHA DE EPI', 'NR 10', 'NR 35']
-        obrigatoriosRH = regras.filter(regra => Object.hasOwn(regra, 'obrigatorio')
-            ? ['true', 't', '1', 'sim'].includes(String(regra.obrigatorio).toLowerCase())
-            : padrao.includes(regra.id)).map(regra => regra.id).sort((a, b) => a.localeCompare(b))
-        pastasRH = estados
-        renderizarPastasRH(container)
-    } catch (erro) {
-        if (consulta !== consultaPastasRH || !container.isConnected) return
-        console.error('Erro ao carregar pastas do RH:', erro)
-        container.innerHTML = '<button type="button" onclick="criarPastinhas()">Falha ao carregar pastas. Tentar novamente</button>'
-    }
-}
-
-function chavePastaRH(estado, funcionario) {
-    return JSON.stringify(funcionario === undefined ? [estado.id] : [estado.id, funcionario.id])
-}
-
-function renderizarPastasRH(container = document.querySelector('.esquema-cidades')) {
-    if (!container) return
-    const quantidade = valor => new Intl.NumberFormat('pt-BR').format(Number(valor) || 0)
-    const totalFuncionarios = pastasRH.reduce((soma, estado) => soma + Number(estado.quantidade_funcionarios || 0), 0)
-    const totalDocumentos = pastasRH.reduce((soma, estado) => soma + Number(estado.quantidade_documentos || 0), 0)
-    const cabecalho = `<div class="rh-pastas-resumo">
-        <h3>Documentos por estado</h3>
-        <div class="rh-pastas-totais"><span><strong>${quantidade(totalFuncionarios)}</strong> funcionários</span><span><strong>${quantidade(totalDocumentos)}</strong> documentos</span></div>
-        <div class="rh-obrigatorios"><strong>Documentos obrigatórios</strong>
-            <div class="rh-lista-tags">${obrigatoriosRH.map(doc => '<span class="rh-tag-obrigatorio">' + escaparAtributo(doc) + '</span>').join('') || '<span>Nenhum definido.</span>'}</div>
-            <small>As pendências abaixo indicam documentos ainda não registrados.</small>
-        </div>
-    </div>`
-    const pastas = pastasRH.map((estado, indiceEstado) => {
-        const aberta = pastasAbertasRH.has(chavePastaRH(estado))
-        const funcionarios = (estado.funcionarios || []).map((funcionario, indiceFuncionario) => {
-            const expandido = pastasAbertasRH.has(chavePastaRH(estado, funcionario))
-            const desligado = desligadosRH.get(String(funcionario.id))
-            const faltantes = desligado ? [] : funcionario.documentos_faltantes || []
-            const documentos = (funcionario.documentos || []).map((doc, indiceDoc) => `
-                <button type="button" class="rh-documento-item"
-                    data-estado="${indiceEstado}" data-funcionario="${indiceFuncionario}" data-doc="${indiceDoc}"
-                    onclick="abrirDoc(this.dataset.estado, this.dataset.funcionario, this.dataset.doc)">
-                    <span class="rh-documento-nome">${escaparAtributo(doc.doc || 'Sem tipo')}</span>
-                    <span class="rh-contagem">${quantidade(doc.quantidade)} registro(s)</span>
-                    <span aria-hidden="true">↗</span>
-                </button>`).join('')
-            return `<div class="rh-funcionario">
-                <button type="button" class="rh-pasta-gatilho rh-funcionario-gatilho" aria-expanded="${expandido}"
-                    data-estado="${indiceEstado}" data-funcionario="${indiceFuncionario}" onclick="alternarPastaRH(this)">
-                    <span class="rh-chevron" aria-hidden="true">›</span>
-                    <span class="rh-pasta-textos"><strong>${escaparAtributo(funcionario.nome || 'Sem nome')}</strong>
-                        ${funcionario.cargo ? '<small>' + escaparAtributo(funcionario.cargo) + '</small>' : ''}
-                        <small>${quantidade(funcionario.quantidade_documentos)} documentos</small>
-                        <span class="rh-lista-tags">${desligado ? `${etiquetaDesligado(desligado)}<span class="rh-sem-pendencias">Fora das pendências</span>` : faltantes.length
-                            ? '<span class="rh-pendencia-titulo">Faltam:</span>' + faltantes.map(doc => '<span class="docs-faltantes">' + escaparAtributo(doc) + '</span>').join('')
-                            : '<span class="rh-sem-pendencias">Obrigatórios registrados</span>'}</span>
-                    </span>
-                </button>
-                <div class="rh-documentos-lista" ${expandido ? '' : 'hidden'}>${documentos || '<small>Nenhum documento.</small>'}</div>
-            </div>`
-        }).join('')
-        return `<section class="rh-estado">
-            <button type="button" class="rh-pasta-gatilho rh-estado-gatilho" aria-expanded="${aberta}"
-                data-estado="${indiceEstado}" onclick="alternarPastaRH(this)">
-                <span class="rh-chevron" aria-hidden="true">›</span>
-                <span class="rh-pasta-textos"><span>${escaparAtributo(estado.id || '')}</span>
-                    <small>${quantidade(estado.quantidade_funcionarios)} funcionários · ${quantidade(estado.quantidade_documentos)} documentos</small>
-                </span>
-            </button>
-            <div class="rh-funcionarios-lista" ${aberta ? '' : 'hidden'}>${funcionarios}</div>
-        </section>`
-    }).join('')
-    container.innerHTML = cabecalho + '<div class="rh-estados-lista">' + (pastas || '<span>Nenhum documento encontrado.</span>') + '</div>'
-}
-
-function alternarPastaRH(elemento) {
-    const estado = pastasRH[Number(elemento.dataset.estado)]
-    if (!estado) return
-    const funcionario = elemento.dataset.funcionario === undefined
-        ? undefined : estado.funcionarios?.[Number(elemento.dataset.funcionario)]
-    const chave = chavePastaRH(estado, funcionario)
-    const aberta = !pastasAbertasRH.has(chave)
-    if (aberta) pastasAbertasRH.add(chave)
-    else pastasAbertasRH.delete(chave)
-    elemento.setAttribute('aria-expanded', String(aberta))
-    elemento.nextElementSibling.hidden = !aberta
-}
-
-function abrirDoc(indiceEstado, indiceFuncionario, indiceDoc) {
-    const doc = pastasRH[Number(indiceEstado)]?.funcionarios?.[Number(indiceFuncionario)]?.documentos?.[Number(indiceDoc)]
-    const links = [...new Set((doc?.registros || []).map(registro => registro.anexo?.link).filter(Boolean))]
-    if (!links.length) return popup({ mensagem: 'Este documento não possui anexo.' })
-    for (const link of links) abrirArquivo(link)
-}
-
 function criarLinhaRH(documento) {
 
-    const { doc, anexo, local, clinica, id, funcionario, cidade, nome_cargo, foto, realizado, validade } = documento || {}
+    const { doc, anexo, id, funcionario, cidade, nome_cargo, foto, realizado, validade } = documento || {}
     const [nome, cargo] = Array.isArray(nome_cargo) ? nome_cargo : []
 
     const tempoExpiracao = expiraEm(validade)
@@ -313,10 +759,6 @@ function criarLinhaRH(documento) {
             </div>
         </td>
         <td>${cidade || ''}</td>
-        <td>
-            ${clinica || ''}<br>
-            <b>${local || ''}</b>
-        </td>
         <td>${realizado || ''}</td>
         <td>${validade || ''}</td>
         <td>
@@ -459,9 +901,13 @@ function mostrarAnexoRH(input) {
         : 'Arraste o arquivo aqui ou <u>clique para escolher</u>'
 }
 
-async function incluirDocumento(id) {
+// inicial.pasta / inicial.arquivo: vindos de um arquivo do computador solto numa pasta do RH.
+async function incluirDocumento(id, funcionarioInicial = null, inicial = {}) {
 
-    const { local, doc, clinica, funcionario, realizado, anexo } = await recuperarDado('documentos', id) || {}
+    const registro = id ? await recuperarDado('documentos', id) || {} : {}
+    const { doc, realizado, anexo } = registro
+    const pasta = registro.pasta ?? inicial.pasta
+    const funcionario = registro.funcionario ?? funcionarioInicial
     const { nome } = funcionario ? await recuperarDado('clientes', funcionario) || {} : {}
     const dataOriginal = String(realizado || '').trim()
     const dataBR = dataOriginal.match(/^(\d{2})\/(\d{2})\/(\d{4})/)
@@ -536,16 +982,16 @@ async function incluirDocumento(id) {
             elemento: `<span ${doc ? `id="${escaparAtributo(doc)}"` : ''} class="opcoes" name="doc" onclick="cxOpcoes('doc')">${escaparAtributo(doc || 'Selecionar')}</span>`
         },
         {
-            texto: 'realizado',
+            texto: 'Feito em',
             elemento: `<input name="realizado" value="${escaparAtributo(dataFormulario)}" type="date">`
         },
         {
-            texto: 'Clínica',
-            elemento: `<textarea name="clinica">${clinica || ''}</textarea>`
-        },
-        {
-            texto: 'Local da Clínica',
-            elemento: `<textarea name="local">${local || ''}</textarea>`
+            // Vazio = pasta padrão do tipo (CERTIFICADOS para NRs/PTA/APR, PESSOAL para ASO/Ficha de EPI).
+            texto: 'Pasta',
+            elemento: `<select name="pasta">
+                <option value="">Padrão do tipo de documento</option>
+                ${PASTAS_RH.map(nome => `<option ${pasta === nome ? 'selected' : ''}>${nome}</option>`).join('')}
+            </select>`
         }
 
     ]
@@ -562,6 +1008,16 @@ async function incluirDocumento(id) {
         botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirDocumento('${id}')` })
 
     popup({ botoes, linhas, titulo: 'Incluir Documento' })
+
+    if (inicial.arquivo && typeof DataTransfer === 'function') {
+        const input = [...document.querySelectorAll('.rh-anexo-area input[name="anexo"]')].pop()
+        if (input) {
+            const transferencia = new DataTransfer()
+            transferencia.items.add(inicial.arquivo)
+            input.files = transferencia.files
+            mostrarAnexoRH(input)
+        }
+    }
 
 }
 
@@ -612,14 +1068,15 @@ async function salvarDocumento(id = crypto.randomUUID()) {
     const funcionario = obVal('funcionario')?.id
     const doc = obVal('doc')?.id
 
-    if (!doc)
-        return popup({ mensagem: 'Selecione o tipo de exame' })
-
     if (!funcionario)
         return popup({ mensagem: 'Escolha um funcionário' })
 
+    // Sem tipo vale para arquivo de pasta (precisa de anexo, novo ou já existente).
+    if (!doc && !anexoAPI?.[0] && !(await recuperarDado('documentos', id))?.anexo?.link)
+        return popup({ mensagem: 'Selecione o tipo de documento ou anexe um arquivo' })
+
     // Se existir algum documento para este funcionário do mesmo tipo, substituir;
-    const existente = await verificarDoc(Number(funcionario), doc)
+    const existente = doc ? await verificarDoc(Number(funcionario), doc) : null
     const resultados = existente?.resultados || []
     if (resultados.length)
         id = existente.resultados[0].id
@@ -629,9 +1086,11 @@ async function salvarDocumento(id = crypto.randomUUID()) {
             await excluirDocumento(resultados[i].id)
     }
 
-    const { usuario, anexo } = await recuperarDado('documentos', id) || {}
+    const { usuario, anexo, pasta: pastaAtual } = await recuperarDado('documentos', id) || {}
+    // Só manda "pasta" quando escolhida ou quando o documento já tinha uma (antes da migração a coluna não existe).
+    const pastaEscolhida = obVal('pasta')?.value || null
 
-    const campos = ['realizado', 'clinica', 'local']
+    const campos = ['realizado']
 
     const atualizado = {
         id,
@@ -639,6 +1098,7 @@ async function salvarDocumento(id = crypto.randomUUID()) {
         doc,
         usuario: usuario || acesso.usuario,
         anexo: anexoAPI?.[0] ?? anexo ?? {},
+        ...(pastaEscolhida || pastaAtual ? { pasta: pastaEscolhida } : {}),
         ...Object.fromEntries(
             campos.map(n => [n, obVal(n)?.value || ''])
         )
@@ -647,4 +1107,141 @@ async function salvarDocumento(id = crypto.randomUUID()) {
     await enviar(`documentos/${id}`, atualizado)
 
     removerPopup()
+
+    // Tela de documentos aberta: recarrega com o documento novo/alterado.
+    if (document.querySelector('.tela-rh2')) carregarRH()
+}
+
+// ---------------- Cadeado das pastas (rh_pastas_acesso) ----------------
+// Por pasta (vale para todos os funcionários): permissões e usuários que veem os documentos dela.
+// Listas vazias = livre (cadeado apagado). O servidor é quem esconde os documentos de quem não está
+// na lista (sem exceção, nem adm); aqui só se mostra o cadeado, a pasta "restrita" e o formulário.
+// Mudar o acesso: adm e diretoria (o servidor confere: ref_permissoes_bases, editar).
+const PERMISSOES_PASTA_RH = ['adm', 'diretoria', 'fin', 'gerente', 'analista', 'log', 'user', 'técnico']
+const EDITAM_ACESSO_PASTA_RH = ['adm', 'diretoria']
+
+function listaJsonRH(valor) {
+    if (typeof valor === 'string') try { valor = JSON.parse(valor) } catch { valor = [] }
+    return Array.isArray(valor) ? valor.map(String) : []
+}
+
+function acessoPastaRH(pasta) {
+    const a = estadoRH.acessoPastas.get(pasta) || {}
+    return { permissoes: listaJsonRH(a.permissoes), usuarios: listaJsonRH(a.usuarios) }
+}
+
+const pastaRestritaRH = pasta => { const a = acessoPastaRH(pasta); return a.permissoes.length + a.usuarios.length > 0 }
+
+function podeVerPastaRH(pasta) {
+    const a = acessoPastaRH(pasta)
+    return !pastaRestritaRH(pasta) || a.permissoes.includes(acesso?.permissao) || a.usuarios.includes(acesso?.usuario)
+}
+
+function botaoCadeadoRH(pasta) {
+    const ligado = pastaRestritaRH(pasta)
+    const titulo = ligado
+        ? `Pasta restrita${podeVerPastaRH(pasta) ? ' (você tem acesso)' : ' (você não tem acesso)'}. Clique para ver quem pode ver.`
+        : 'Pasta livre: todos veem. Clique para ver ou restringir.'
+    return `
+        <button type="button" class="rh2-cadeado ${ligado ? 'ligado' : ''}" data-pasta="${escaparAtributo(pasta)}" title="${escaparAtributo(titulo)}"
+            aria-label="${escaparAtributo(titulo)}" onclick="event.stopPropagation(); abrirAcessoPastaRH(this.dataset.pasta)">
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                <path d="${ligado ? 'M4.5 7V5a3.5 3.5 0 0 1 7 0v2' : 'M4.5 7V5a3.5 3.5 0 0 1 6.8-1.2'}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                <rect x="2.5" y="7" width="11" height="8" rx="1.6" fill="currentColor"/>
+            </svg>
+        </button>`
+}
+
+let usuariosAcessoRH = null   // [{ usuario, nome, permissao }] carregado ao abrir o formulário
+
+async function abrirAcessoPastaRH(pasta) {
+    const pode = EDITAM_ACESSO_PASTA_RH.includes(acesso?.permissao)
+    const atual = acessoPastaRH(pasta)
+    if (!usuariosAcessoRH) {
+        overlayAguarde()
+        try {
+            const lista = await pesquisarTodosRH('vw_2_clientes', { usuario: { op: 'NOT_EMPTY' } })
+            usuariosAcessoRH = lista.filter(c => !c.excluido && !c.desligado && c.usuario && c.permissao !== 'cliente')
+                .map(c => ({ usuario: String(c.usuario), nome: String(c.nome || ''), permissao: String(c.permissao || '') }))
+                .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+        } catch { usuariosAcessoRH = [] }
+        finally { removerOverlay() }
+    }
+    // Quem já está na lista aparece mesmo se não vier na consulta (ex.: desligado depois).
+    const conhecidos = new Set(usuariosAcessoRH.map(u => u.usuario))
+    const usuarios = [...atual.usuarios.filter(u => !conhecidos.has(u)).map(u => ({ usuario: u, nome: u, permissao: '' })), ...usuariosAcessoRH]
+        .sort((a, b) => Number(atual.usuarios.includes(b.usuario)) - Number(atual.usuarios.includes(a.usuario)))
+    const marcado = (lista, valor) => lista.includes(valor) ? 'checked' : ''
+    const bloqueio = pode ? '' : 'disabled'
+
+    const elemento = `
+        <div class="rh2-acesso" data-pasta="${escaparAtributo(pasta)}">
+            <p class="rh2-acesso-resumo">
+                ${pastaRestritaRH(pasta)
+                    ? `<b>Pasta restrita.</b> Só as permissões e os usuários marcados veem os documentos desta pasta, de todos os funcionários. ${podeVerPastaRH(pasta) ? 'Você tem acesso.' : 'Você não tem acesso ao conteúdo.'}`
+                    : '<b>Pasta livre.</b> Todos que acessam o RH veem os documentos desta pasta. Marque abaixo para restringir.'}
+            </p>
+            <p class="rh2-acesso-nota">Um documento arrastado para fora desta pasta passa a seguir o acesso da pasta de destino.</p>
+            <div class="rh2-acesso-colunas">
+                <fieldset ${bloqueio}>
+                    <legend>Permissões</legend>
+                    ${PERMISSOES_PASTA_RH.map(p => `<label><input type="checkbox" name="permissao" value="${escaparAtributo(p)}" ${marcado(atual.permissoes, p)}> ${escaparAtributo(p)}</label>`).join('')}
+                </fieldset>
+                <fieldset ${bloqueio}>
+                    <legend>Usuários <small class="rh2-acesso-contagem"></small></legend>
+                    <input type="search" class="rh2-acesso-busca" placeholder="Buscar usuário" oninput="filtrarUsuariosAcessoRH(this)">
+                    <div class="rh2-acesso-usuarios">
+                        ${usuarios.map(u => `
+                            <label data-busca="${escaparAtributo(normalizarRH(`${u.nome} ${u.usuario} ${u.permissao}`))}" class="${atual.usuarios.includes(u.usuario) ? 'marcado' : ''}">
+                                <input type="checkbox" name="usuario" value="${escaparAtributo(u.usuario)}" ${marcado(atual.usuarios, u.usuario)} onchange="this.parentElement.classList.toggle('marcado', this.checked); contarUsuariosAcessoRH(this)">
+                                <span>${escaparAtributo(u.nome || u.usuario)}</span><small>${escaparAtributo(u.usuario)}${u.permissao ? ` · ${escaparAtributo(u.permissao)}` : ''}</small>
+                            </label>`).join('') || '<small>Nenhum usuário encontrado.</small>'}
+                    </div>
+                </fieldset>
+            </div>
+            ${pode ? '' : '<p class="rh2-acesso-nota">Só adm e diretoria mudam o acesso das pastas.</p>'}
+        </div>`
+
+    popup({
+        titulo: `Acesso à pasta ${pasta}`,
+        elemento,
+        botoes: pode ? [{ texto: 'Salvar', img: 'concluido', funcao: `salvarAcessoPastaRH('${escaparAtributo(pasta)}')` }] : []
+    })
+    const primeiro = [...document.querySelectorAll('.rh2-acesso')].pop()?.querySelector('input[name="usuario"]')
+    if (primeiro) contarUsuariosAcessoRH(primeiro)
+}
+
+function filtrarUsuariosAcessoRH(input) {
+    const termo = normalizarRH(input.value).trim()
+    input.closest('.rh2-acesso').querySelectorAll('.rh2-acesso-usuarios label')
+        .forEach(l => { l.hidden = !!termo && !l.dataset.busca.includes(termo) })
+}
+
+function contarUsuariosAcessoRH(input) {
+    const caixa = input.closest('.rh2-acesso')
+    const n = caixa.querySelectorAll('input[name="usuario"]:checked').length
+    caixa.querySelector('.rh2-acesso-contagem').textContent = n ? `(${n} marcado${n > 1 ? 's' : ''})` : ''
+}
+
+async function salvarAcessoPastaRH(pasta) {
+    const caixa = [...document.querySelectorAll('.rh2-acesso')].find(c => c.dataset.pasta === pasta)
+    if (!caixa) return
+    const valores = nome => [...caixa.querySelectorAll(`input[name="${nome}"]:checked`)].map(i => i.value)
+    const registro = { id: pasta, permissoes: valores('permissao'), usuarios: valores('usuario'), usuario: acesso.usuario }
+    const restrita = registro.permissoes.length + registro.usuarios.length > 0
+    const euVejo = !restrita || registro.permissoes.includes(acesso.permissao) || registro.usuarios.includes(acesso.usuario)
+
+    overlayAguarde()
+    try {
+        const resposta = await enviar(`rh_pastas_acesso/${pasta}`, registro)
+        if (!resposta?.success) throw new Error(resposta?.mensagem || 'falha ao salvar')
+        estadoRH.acessoPastas.set(pasta, registro)
+        removerPopup()
+        if (!euVejo) popup({ mensagem: `Acesso salvo. Você não está na lista: os documentos da pasta ${escaparAtributo(pasta)} deixam de aparecer para você.` })
+        carregarRH()
+    } catch (erro) {
+        popup({ mensagem: `Não foi possível salvar o acesso: ${escaparAtributo(erro.message || 'erro desconhecido')}` })
+    } finally {
+        removerOverlay()
+    }
 }

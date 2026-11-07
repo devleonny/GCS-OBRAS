@@ -360,11 +360,12 @@ async function irParaRHFuncionario(botao) {
     const nome = botao.dataset.nome || ''
     const janela = botao.closest('.popup')?.id
     if (janela) removerPopup(janela)
+    // Tela de documentos já filtrada na pessoa, com as pastas dela abertas.
+    estadoRH.visao = 'pessoa'
+    estadoRH.busca = nome
     await telaRH()
-    if (!nome || !controles?.rh) return
-    controles.rh.pagina = 1
-    controles.rh.filtros = { ...(controles.rh.filtros || {}), nome_cargo: { op: 'includes', value: nome.toLowerCase(), original: nome } }
-    await paginacao('rh')
+    const pessoa = estadoRH.pessoas.find(p => p.nome === nome)
+    if (pessoa) { estadoRH.abertos.add(pessoa.id); renderizarRH() }
 }
 
 function renderizarPendenciasRH() {

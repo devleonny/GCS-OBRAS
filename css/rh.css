@@ -464,3 +464,1385 @@ button.rh-arquivo-acao:hover { background: #1c8235; }
     background-color: #e8f3ec;
     border-color: #e8f3ec;
 }
+
+/* ---------- Documentos do RH: tela por funcionário (js/rh.js, telaRH) ---------- */
+.tela-rh2 {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+}
+
+.rh2-topo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.rh2-visoes {
+    display: inline-flex;
+    padding: 3px;
+    border-radius: 999px;
+    background: #ffffff26;
+}
+
+.rh2-visoes button {
+    margin: 0;
+    padding: 6px 16px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.rh2-visoes button.ativo {
+    background: #fff;
+    color: #1f5133;
+}
+
+.rh2-busca,
+.rh2-situacao {
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid #c8d6cd;
+    border-radius: 8px;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+.rh2-busca {
+    flex: 1;
+    min-width: 220px;
+}
+
+.rh2-legenda {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    color: #fff;
+    font-size: 0.8rem;
+}
+
+.rh-bolinha {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px #ffffffb3;
+    vertical-align: middle;
+}
+
+.rh-bolinha.verde { background: #2f9e44; }
+.rh-bolinha.laranja { background: #f08c00; }
+.rh-bolinha.vermelho { background: #e03131; }
+
+.rh2-tabela {
+    overflow: auto;
+    border: 1px solid #d3dfd7;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 1px 3px #1020190f;
+}
+
+.rh2-tabela table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.82rem;
+    color: #2d3d33;
+}
+
+.rh2-tabela th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 9px 10px;
+    border-bottom: 1px solid #d3dfd7;
+    background: #eef4f0;
+    color: #1f3328;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.rh2-tabela td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #edf2ee;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.rh2-tabela tbody tr.rh2-pessoa:hover td,
+.rh2-tabela tbody tr:not(.rh2-detalhe):hover td {
+    background: #f0f9f2;
+}
+
+.rh2-tabela tr.rh2-pessoa.aberta td {
+    background: #e7f6ea;
+}
+
+.rh2-tabela .cliente-foto {
+    width: 34px;
+    height: 34px;
+}
+
+.rh2-mais {
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid #c8d6cd;
+    border-radius: 8px;
+    background: #fff;
+    color: #1f5133;
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.rh2-mais:hover {
+    border-color: #249f41;
+    background: #f1faf3;
+}
+
+.rh2-nome {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 8px;
+    min-width: 200px;
+}
+
+.rh2-nome small {
+    flex-basis: 100%;
+    color: #607068;
+}
+
+.rh2-situacao-celula {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.rh2-detalhe > td {
+    padding: 12px !important;
+    background: #f6faf7 !important;
+}
+
+.rh2-pastas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+}
+
+.rh2-pasta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 110px;
+    padding: 10px;
+    border: 2px dashed #c8d6cd;
+    border-radius: 10px;
+    background: #fff;
+    text-align: left;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.rh2-pasta.soltar {
+    border-color: #249f41;
+    background: #eaf7ee;
+}
+
+.rh2-pasta.sem-pasta {
+    border-color: #f2c4a0;
+}
+
+.rh2-pasta-titulo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #1f3328;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.03em;
+}
+
+.rh2-pasta-titulo small {
+    margin-left: auto;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: #eef4f0;
+    color: #3d4b43;
+}
+
+.rh2-pasta-vazia {
+    margin: auto;
+    color: #8a998f;
+}
+
+.rh2-doc {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid #e0e8e3;
+    border-radius: 8px;
+    background: #fbfdfc;
+    cursor: grab;
+}
+
+.rh2-doc:active {
+    cursor: grabbing;
+}
+
+.rh2-doc .rh-bolinha {
+    margin-top: 3px;
+}
+
+.rh2-doc-textos {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.rh2-doc-textos small {
+    color: #607068;
+}
+
+.rh2-doc-acoes {
+    display: flex;
+    gap: 4px;
+}
+
+.rh2-doc-acoes button {
+    margin: 0;
+    padding: 2px 8px;
+    border: 1px solid #c8d6cd;
+    border-radius: 999px;
+    background: #fff;
+    color: #1f5133;
+    font-size: 0.72rem;
+    cursor: pointer;
+}
+
+.rh2-sem-anexo {
+    color: #b12425;
+    font-size: 0.72rem;
+}
+
+.rh2-detalhe-rodape {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    margin-top: 10px;
+    text-align: left;
+}
+
+.rh2-gestor {
+    margin-left: auto;
+    color: #3d4b43;
+}
+
+.rh2-gestor-botao {
+    margin: 0;
+    padding: 3px 12px;
+    border: 1px solid #c8d6cd;
+    border-radius: 999px;
+    background: #fff;
+    color: #1f5133;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.rh2-vazio,
+.rh2-rodape,
+.rh2-aviso {
+    margin: 0;
+    color: #fff;
+    font-size: 0.85rem;
+}
+
+.rh2-arvore,
+.rh2-arvore ul {
+    margin: 0;
+    padding-left: 22px;
+    list-style: none;
+}
+
+.rh2-arvore {
+    padding: 12px;
+    border: 1px solid #d3dfd7;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.rh2-arvore li {
+    position: relative;
+    margin: 4px 0;
+}
+
+.rh2-arvore ul li::before {
+    content: '';
+    position: absolute;
+    left: -14px;
+    top: 0;
+    width: 10px;
+    height: 16px;
+    border-left: 1px solid #c8d6cd;
+    border-bottom: 1px solid #c8d6cd;
+}
+
+.rh2-no {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid #e0e8e3;
+    border-radius: 8px;
+    background: #fbfdfc;
+}
+
+.rh2-no.caminho {
+    opacity: 0.55;
+}
+
+.rh2-no small {
+    color: #607068;
+}
+
+.rh2-no-nome {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #1f3328;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.rh2-no-equipe {
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: #eef4f0;
+}
+
+.rh2-escolher-gestor {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: min(420px, 86vw);
+    padding: 12px;
+}
+
+.rh2-gestores {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 55dvh;
+    overflow-y: auto;
+}
+
+.rh2-gestor-opcao {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin: 0;
+    padding: 6px 10px;
+    border: 1px solid #e0e8e3;
+    border-radius: 8px;
+    background: #fff;
+    color: #2d3d33;
+    text-align: left;
+    cursor: pointer;
+}
+
+.rh2-gestor-opcao:hover {
+    border-color: #249f41;
+    background: #f1faf3;
+}
+
+.rh2-gestor-opcao small {
+    color: #607068;
+}
+
+/* ---------- Tela de documentos em fundo branco ---------- */
+.tela:has(> .tela-rh2) {
+    background: #fff;
+}
+
+.tela-rh2 {
+    color: #2d3d33;
+}
+
+.rh2-visoes {
+    background: #eef4f0;
+    border: 1px solid #d3dfd7;
+}
+
+.rh2-visoes button {
+    color: #3d4b43;
+}
+
+.rh2-visoes button.ativo {
+    background: #1f5133;
+    color: #fff;
+    box-shadow: 0 1px 3px #10201933;
+}
+
+.rh2-busca,
+.rh2-situacao {
+    border-color: #c3d3c9;
+    box-shadow: 0 1px 2px #10201914;
+}
+
+.rh2-busca:focus,
+.rh2-situacao:focus {
+    border-color: #249f41;
+    outline: none;
+    box-shadow: 0 0 0 3px #249f4126;
+}
+
+.tela-rh2 .rh-adicionar {
+    border: 1px solid #1e8a37;
+    background: #249f41;
+    color: #fff;
+}
+
+.rh2-legenda {
+    color: #3d4b43;
+}
+
+.rh-bolinha {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 3px #10201926;
+}
+
+.rh2-vazio,
+.rh2-rodape,
+.rh2-aviso {
+    color: #607068;
+}
+
+/* Blocos com destaque sobre o branco: contorno mais firme e sombra. */
+.rh2-tabela,
+.rh2-arvore {
+    border-color: #c3d3c9;
+    box-shadow: 0 2px 8px #1020191a;
+}
+
+.rh2-tabela th {
+    background: #1f5133;
+    border-bottom-color: #1f5133;
+    color: #fff;
+}
+
+.rh2-detalhe > td {
+    background: #f3f8f4 !important;
+    box-shadow: inset 4px 0 0 #249f41;
+}
+
+.rh2-pasta {
+    border-color: #b9ccbf;
+    box-shadow: 0 1px 4px #1020190f;
+}
+
+.rh2-doc {
+    border-color: #d5e1d9;
+    background: #fff;
+    box-shadow: 0 1px 2px #10201914;
+}
+
+.rh2-doc:hover {
+    border-color: #249f41;
+}
+
+.rh2-no {
+    border-color: #d5e1d9;
+    background: #fff;
+    box-shadow: 0 1px 2px #10201914;
+}
+
+/* Troca de visão imediata (o estilo geral dos botões anima devagar e a troca parecia apagada). */
+.rh2-visoes button {
+    transition: background-color 0.1s, color 0.1s;
+}
+
+/* Post-it: área de anexos (arrastar / colar print / escolher) e lista do que vai subir. */
+.pit-anexos {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+}
+
+.pit-anexos-novos {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.pit-anexo-novo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px;
+    border: 1px solid #d5e1d9;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.pit-anexo-novo img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.pit-anexo-icone {
+    width: 40px;
+    text-align: center;
+    font-size: 1.4rem;
+}
+
+.pit-anexo-nome {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: #2d3d33;
+    font-size: 0.8rem;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pit-anexo-novo button {
+    width: 24px;
+    height: 24px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #8a998f;
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.pit-anexo-novo button:hover {
+    background: #c62f2f;
+    color: #fff;
+}
+
+/* Popup "Gestor de …": busca com contorno e cantos, lista em cartões. */
+.rh2-escolher-gestor {
+    box-sizing: border-box;
+    background: #fff;
+}
+
+.rh2-escolher-gestor input[type="search"] {
+    width: 100%;
+    height: 38px;
+    padding: 0 12px;
+    border: 1px solid #c3d3c9;
+    border-radius: 10px;
+    background: #fff;
+    box-sizing: border-box;
+    box-shadow: 0 1px 2px #10201914;
+    font-size: 0.9rem;
+}
+
+.rh2-escolher-gestor input[type="search"]:focus {
+    border-color: #249f41;
+    outline: none;
+    box-shadow: 0 0 0 3px #249f4126;
+}
+
+.rh2-gestores {
+    padding: 4px;
+    border: 1px solid #d3dfd7;
+    border-radius: 10px;
+    background: #f6faf7;
+}
+
+.rh2-gestor-opcao {
+    width: 100%;
+    border-color: #d5e1d9;
+    border-radius: 8px;
+    box-sizing: border-box;
+    box-shadow: 0 1px 2px #1020190f;
+    transition: border-color 0.1s, background-color 0.1s;
+}
+
+.rh2-gestor-opcao[data-gestor=""] {
+    border-style: dashed;
+    color: #607068;
+}
+
+/* Filtro da busca esconde com [hidden]; o display:flex do cartão não pode vencer. */
+.rh2-gestor-opcao[hidden] {
+    display: none;
+}
+
+.rh2-mostrar-desligados {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #3d4b43;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.rh2-mostrar-desligados input {
+    width: 1rem;
+    height: 1rem;
+    accent-color: #249f41;
+}
+
+/* ---------- Hierarquia: sem hierarquia à esquerda, organogramas à direita ---------- */
+.rh2-hierarquia {
+    display: grid;
+    grid-template-columns: minmax(220px, 280px) 1fr;
+    gap: 14px;
+    align-items: start;
+}
+
+@media (max-width: 760px) {
+    .rh2-hierarquia {
+        grid-template-columns: 1fr;
+    }
+}
+
+.rh2-sem-hierarquia {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 75dvh;
+    padding: 10px;
+    overflow-y: auto;
+    border: 1px solid #c3d3c9;
+    border-radius: 10px;
+    background: #f6faf7;
+    box-shadow: 0 2px 8px #1020191a;
+}
+
+.rh2-sem-hierarquia-titulo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #1f3328;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.rh2-sem-hierarquia-titulo small {
+    margin-left: auto;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: #fff;
+    color: #3d4b43;
+}
+
+.rh2-equipes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 14px;
+    min-width: 0;
+}
+
+.rh2-equipes-vazio {
+    padding: 24px;
+    border: 2px dashed #c3d3c9;
+    border-radius: 10px;
+}
+
+/* Cartão da pessoa (lista e organograma). */
+.rh2-org-cartao {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 240px;
+    margin: 0;
+    padding: 6px 10px 6px 6px;
+    border: 1px solid #d5e1d9;
+    border-radius: 12px;
+    background: #fff;
+    color: #2d3d33;
+    text-align: left;
+    white-space: normal;
+    box-shadow: 0 1px 3px #10201914;
+    cursor: pointer;
+}
+
+.rh2-org-cartao:hover {
+    border-color: #249f41;
+    background: #f1faf3;
+}
+
+.rh2-org-cartao.caminho {
+    opacity: 0.55;
+}
+
+.rh2-org-foto {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e3ece6;
+    background: #fff;
+}
+
+.rh2-org-cartao > .rh-bolinha {
+    position: absolute;
+    left: 36px;
+    top: 34px;
+    width: 10px;
+    height: 10px;
+}
+
+.rh2-org-textos {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.rh2-org-textos b {
+    font-size: 0.8rem;
+    line-height: 1.25;
+}
+
+.rh2-org-textos small {
+    color: #607068;
+    font-size: 0.7rem;
+}
+
+/* Organograma: gestor no topo, equipe abaixo, linhas ligando. */
+.rh2-org {
+    padding: 12px;
+    overflow-x: auto;
+    border: 1px solid #c3d3c9;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 8px #1020191a;
+}
+
+.rh2-org ul {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    margin: 0;
+    padding: 18px 0 0;
+    list-style: none;
+}
+
+.rh2-org > ul {
+    padding-top: 0;
+}
+
+.rh2-org li {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 18px 6px 0;
+}
+
+.rh2-org > ul > li {
+    padding-top: 0;
+}
+
+/* Linhas: horizontal entre irmãos e vertical até o cartão. */
+.rh2-org li::before,
+.rh2-org li::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 50%;
+    height: 18px;
+    border-top: 2px solid #b9ccbf;
+}
+
+.rh2-org li::before {
+    right: 50%;
+}
+
+.rh2-org li::after {
+    left: 50%;
+    border-left: 2px solid #b9ccbf;
+}
+
+.rh2-org li:only-child::before,
+.rh2-org li:only-child::after {
+    border-top: 0;
+}
+
+.rh2-org li:first-child::before,
+.rh2-org li:last-child::after {
+    border-top: 0;
+}
+
+.rh2-org li:last-child::before {
+    border-right: 2px solid #b9ccbf;
+    border-radius: 0 6px 0 0;
+}
+
+.rh2-org li:first-child::after {
+    border-radius: 6px 0 0 0;
+}
+
+.rh2-org > ul > li::before,
+.rh2-org > ul > li::after {
+    display: none;
+}
+
+/* Linha descendo do gestor até a equipe. */
+.rh2-org ul ul::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    height: 18px;
+    border-left: 2px solid #b9ccbf;
+}
+
+.rh2-org li > .rh2-org-cartao {
+    width: auto;
+    min-width: 170px;
+}
+
+/* Último (e único) da equipe: a vertical vem só de um lado, sem traço dobrado. */
+.rh2-org li:last-child::after {
+    border-left: 0;
+}
+
+.rh2-org li:only-child::before {
+    border-right: 0;
+}
+
+.rh2-org li:only-child::after {
+    border-left: 2px solid #b9ccbf;
+}
+
+/* Linhas do organograma (substitui as de borda acima): barras sólidas de 2px no centro exato,
+   sem emenda de bordas. Cada <li> da equipe tem a subida (::before) e o trecho da barra horizontal
+   (::after); o primeiro e o último começam/terminam no centro do cartão; a descida do gestor é o
+   ::before do <ul> da equipe. */
+.rh2-org li::before,
+.rh2-org li::after,
+.rh2-org ul ul::before {
+    content: '';
+    position: absolute;
+    border: 0;
+    border-radius: 0;
+    background: #b9ccbf;
+}
+
+.rh2-org li::before {
+    top: 0;
+    right: auto;
+    left: calc(50% - 1px);
+    width: 2px;
+    height: 18px;
+}
+
+.rh2-org li::after {
+    top: 0;
+    left: 0;
+    right: 0;
+    width: auto;
+    height: 2px;
+}
+
+.rh2-org li:first-child::after {
+    left: calc(50% - 1px);
+}
+
+.rh2-org li:last-child::after {
+    right: calc(50% - 1px);
+}
+
+.rh2-org li:only-child::after,
+.rh2-org > ul > li::before,
+.rh2-org > ul > li::after {
+    display: none;
+}
+
+.rh2-org ul ul::before {
+    top: 0;
+    left: calc(50% - 1px);
+    width: 2px;
+    height: 18px;
+}
+
+.rh2-org > ul > li > .rh2-org-cartao,
+.rh2-org li > .rh2-org-cartao {
+    position: relative;
+    z-index: 1;
+}
+
+/* As regras antigas de borda (first/last/only-child) têm especificidade maior: anula todas. */
+.rh2-org li::before,
+.rh2-org li::after,
+.rh2-org ul ul::before {
+    border: 0 !important;
+    border-radius: 0 !important;
+}
+
+/* Subida do cartão: no centro dele, ou alinhada com a linha do gestor (--subida, js/rh.js). */
+.rh2-org li::before {
+    left: var(--subida, calc(50% - 1px));
+}
+
+/* Variável declarada em cada <li>: o ajuste de um cartão não passa para a equipe dele (herança). */
+.rh2-org li {
+    --subida: calc(50% - 1px);
+}
+
+/* Posições calculadas em pixel inteiro (alinharLinhasHierarquiaRH); os valores padrão valem até o cálculo. */
+.rh2-org li {
+    --barra-esq: 0px;
+    --barra-dir: 0px;
+}
+
+.rh2-org li::after {
+    left: var(--barra-esq) !important;
+    right: var(--barra-dir) !important;
+}
+
+.rh2-org li:first-child:not([style*="--barra-esq"])::after {
+    left: calc(50% - 1px) !important;
+}
+
+.rh2-org li:last-child:not([style*="--barra-dir"])::after {
+    right: calc(50% - 1px) !important;
+}
+
+.rh2-org ul ul::before {
+    left: var(--descida, calc(50% - 1px));
+}
+
+/* Arrastar na hierarquia: destino destacado (cartão de outra pessoa ou a lista "Sem hierarquia"). */
+.rh2-org-cartao[draggable="true"] {
+    cursor: grab;
+}
+
+.rh2-org-cartao[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+.rh2-org-cartao.rh2-alvo {
+    border-color: #249f41;
+    background: #e3f5e8;
+    box-shadow: 0 0 0 3px #249f4140;
+}
+
+.rh2-sem-hierarquia.rh2-alvo {
+    border-color: #249f41;
+    background: #e3f5e8;
+    box-shadow: 0 0 0 3px #249f4140;
+}
+
+/* Arrastar documento entre pastas: destino possível tracejado em verde, cartão de origem esmaecido. */
+.rh2-pastas.rh2-arrastando-doc .rh2-pasta:not(.sem-pasta) {
+    border-color: #7cc290;
+}
+
+.rh2-pasta.soltar {
+    border-color: #249f41 !important;
+    border-style: solid;
+    background: #eaf7ee;
+}
+
+.rh2-doc.rh2-arrastando {
+    opacity: .4;
+}
+
+.rh2-doc.rh2-movido {
+    animation: rh2-movido 1.4s ease-out;
+}
+
+@keyframes rh2-movido {
+    from { background: #c9efd4; box-shadow: 0 0 0 3px #249f4166; }
+    to { background: #fff; }
+}
+
+.rh2-sem-tipo {
+    color: #6b7f72;
+    font-style: italic;
+}
+
+/* Foto da visão Por pessoa: clique abre o cadastro. */
+.rh2-foto-botao {
+    display: inline-flex;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    cursor: pointer;
+}
+
+.rh2-foto-botao:hover .cliente-foto,
+.rh2-foto-botao:focus-visible .cliente-foto {
+    box-shadow: 0 0 0 2px #249f41;
+}
+
+/* Organograma largo: a árvore ocupa a própria largura (centralizada quando cabe) e a caixa rola na
+   horizontal, sem cortar os cartões do lado esquerdo (flex centralizado transborda para os dois lados). */
+.rh2-hierarquia {
+    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+}
+
+@media (max-width: 760px) {
+    .rh2-hierarquia {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.rh2-org {
+    max-width: 100%;
+    min-width: 0;
+}
+
+.rh2-org > ul {
+    width: max-content;
+    min-width: 100%;
+}
+
+/* Arquivo sem detalhes: o anexo (criarAnexoVisual) ocupa o cartão, com o ✎ ao lado. */
+.rh2-doc.rh2-doc-arquivo {
+    align-items: center;
+    padding: 4px 6px 4px 4px;
+}
+
+.rh2-doc-arquivo .contorno-anexos {
+    flex: 1;
+    width: auto;
+    margin: 0;
+}
+
+.rh2-doc-arquivo .anexo-imagem {
+    flex: 1;
+}
+
+.rh2-doc-editar {
+    flex-shrink: 0;
+}
+
+/* ---- Pastas no estilo "Detalhes" do Explorer do Windows ---- */
+.rh2-pasta {
+    gap: 4px;
+}
+
+.rh2-arquivos {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    font-size: 12.5px;
+}
+
+.rh2-arq-cabecalho,
+.rh2-doc.rh2-arq {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 74px 92px 24px;
+    align-items: center;
+    gap: 8px;
+}
+
+.rh2-arq-cabecalho {
+    padding: 2px 6px 4px;
+    border-bottom: 1px solid #e3e9e5;
+    color: #5f6f66;
+    font-size: 11.5px;
+}
+
+.rh2-arq-cabecalho span:first-child {
+    padding-left: 26px;
+}
+
+.rh2-doc.rh2-arq {
+    min-height: 30px;
+    padding: 2px 6px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: transparent;
+    box-shadow: none;
+    cursor: default;
+    user-select: none;
+}
+
+.rh2-doc.rh2-arq:hover {
+    border-color: #cce8ff;
+    background: #e5f3ff;
+}
+
+.rh2-doc.rh2-arq:focus,
+.rh2-doc.rh2-arq:focus-within {
+    outline: none;
+    border-color: #99d1ff;
+    background: #cce8ff;
+}
+
+.rh2-arq-nome {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.rh2-arq-texto {
+    overflow: hidden;
+    color: #1b1b1b;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.rh2-arq-texto.sem-tipo {
+    color: #333;
+}
+
+.rh2-arq-icone {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    width: 18px;
+    color: var(--cor);
+}
+
+.rh2-arq-icone svg {
+    display: block;
+}
+
+.rh2-arq-icone b {
+    position: absolute;
+    left: -2px;
+    bottom: 1px;
+    padding: 0 2px;
+    border-radius: 2px;
+    color: #fff;
+    background: var(--cor);
+    font-size: 6.5px;
+    line-height: 9px;
+    text-transform: uppercase;
+    letter-spacing: .2px;
+}
+
+.rh2-arq-data {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: #5f6f66;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.rh2-arq-vence .rh-bolinha {
+    flex-shrink: 0;
+}
+
+.rh2-arq-cinza {
+    color: #b3bfb8;
+}
+
+.rh2-arq-assinatura {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    color: #fff;
+    background: #8a998f;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 14px;
+    text-align: center;
+}
+
+.rh2-arq-assinatura.ok { background: #249f41; }
+.rh2-arq-assinatura.alerta { background: #e08a12; }
+.rh2-arq-assinatura.erro { background: #d1453b; }
+
+.rh2-arq-editar {
+    width: 24px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 3px;
+    color: #3d4b43;
+    background: transparent;
+    box-shadow: none;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.rh2-doc.rh2-arq:hover .rh2-arq-editar,
+.rh2-doc.rh2-arq:focus-within .rh2-arq-editar {
+    opacity: 1;
+}
+
+.rh2-arq-editar:hover {
+    background: #b9dcf7;
+}
+
+@media (hover: none) {
+    .rh2-arq-editar {
+        opacity: 1;
+    }
+}
+
+/* ---- Cadeado das pastas: apagado = livre, destacado = restrita ---- */
+.rh2-cadeado {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    color: #b8c4bd;
+    background: transparent;
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.rh2-cadeado:hover {
+    color: #6b7f72;
+    background: #eef4f0;
+}
+
+.rh2-cadeado.ligado {
+    color: #fff;
+    border-color: #b8860b;
+    background: #e0a21b;
+}
+
+.rh2-cadeado.ligado:hover {
+    background: #c98d0f;
+}
+
+.rh2-pasta-restrita {
+    color: #9a7414;
+    font-style: italic;
+}
+
+/* Popup de acesso à pasta */
+.rh2-acesso {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(640px, 86vw);
+    color: #2d3d33;
+    font-size: 13px;
+}
+
+.rh2-acesso p {
+    margin: 0;
+}
+
+.rh2-acesso-nota {
+    color: #6b7f72;
+    font-size: 12px;
+}
+
+.rh2-acesso-colunas {
+    display: grid;
+    grid-template-columns: minmax(150px, 190px) minmax(0, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 560px) {
+    .rh2-acesso-colunas {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.rh2-acesso fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    margin: 0;
+    padding: 8px 10px;
+    border: 1px solid #d3dfd7;
+    border-radius: 8px;
+}
+
+.rh2-acesso legend {
+    padding: 0 4px;
+    font-weight: 700;
+}
+
+.rh2-acesso fieldset > label,
+.rh2-acesso-usuarios label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 4px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.rh2-acesso fieldset:disabled label {
+    cursor: default;
+    opacity: .8;
+}
+
+.rh2-acesso-busca {
+    padding: 6px 8px;
+    border: 1px solid #c8d6cd;
+    border-radius: 6px;
+}
+
+.rh2-acesso-usuarios {
+    display: flex;
+    flex-direction: column;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.rh2-acesso-usuarios label span {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.rh2-acesso-usuarios label small {
+    margin-left: auto;
+    color: #6b7f72;
+    white-space: nowrap;
+}
+
+.rh2-acesso-usuarios label.marcado {
+    background: #fff4d6;
+}
+
+.rh2-acesso-usuarios label[hidden] {
+    display: none;
+}
+
+.rh2-acesso,
+.rh2-acesso legend {
+    text-align: left;
+}

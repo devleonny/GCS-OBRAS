@@ -502,7 +502,7 @@ function tooltipAgenda(elemento, dados) {
 
 
 // TÉCNICOS LIVRES HOJE (letreiro da toolbar)
-// Efetivos (técnico com documento no RH) que não aparecem em nenhuma correção cobrindo hoje,
+// Efetivos (tag TÉCNICO, login, documento no RH e não desligado) que não aparecem em nenhuma correção cobrindo hoje,
 // seja qual for o status do chamado. O cálculo é da vw_tecnicos_livres_hoje.
 
 const PERMISSOES_SEM_TECNICOS_LIVRES = ['técnico', 'cliente']
@@ -930,7 +930,7 @@ async function abrirDiaTecnicos(iso) {
                 </div>
                 <div class="tecnicos-livres-aviso" role="note">
                     <img src="imagens/alerta.png" alt="">
-                    <span>Para o técnico aparecer aqui é necessário ter algum documento cadastrado no RH.</span>
+                    <span>Para o técnico aparecer aqui, o cadastro precisa ter a tag TÉCNICO, login no sistema e algum documento no RH (desligados não aparecem).</span>
                 </div>
                 ${dias.length ? '' : '<p>Nenhum técnico efetivo encontrado.</p>'}
                 ${secao('Livres', 'livre', grupo('livre'), () => '', '')}
