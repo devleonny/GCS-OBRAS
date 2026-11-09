@@ -2,7 +2,7 @@
 // Números prontos de /dashboard-orcamentos (dashboard_orcamentos.js no servidor); os gráficos
 // são os mesmos do dashboard de chamados (dashboard_chamados.js).
 
-const estadoDashOrc = { empresa: '', preset: '12m', inicio: '', fim: '' }
+const estadoDashOrc = { empresa: '', usuario: '', preset: '12m', inicio: '', fim: '' }
 const SERIES_FATURAMENTO = [{ chave: 'venda', nome: 'Venda' }, { chave: 'servico', nome: 'Serviço' }]
 
 async function telaDashboardOrcamentos() {
@@ -22,6 +22,10 @@ async function telaDashboardOrcamentos() {
                     <label class="dash-filtro">
                         <span>Empresa</span>
                         <select id="dashOrcEmpresa" onchange="filtrarDashOrcamentos()"></select>
+                    </label>
+                    <label class="dash-filtro">
+                        <span>Criado por</span>
+                        <select id="dashOrcUsuario" onchange="filtrarDashOrcamentos()"></select>
                     </label>
                     <label class="dash-filtro">
                         <span>Período</span>
@@ -59,6 +63,7 @@ async function filtrarDashOrcamentos(trocouPreset = false) {
     const preset = document.getElementById('dashOrcPreset').value
     estadoDashOrc.preset = preset
     estadoDashOrc.empresa = document.getElementById('dashOrcEmpresa').value || ''
+    estadoDashOrc.usuario = document.getElementById('dashOrcUsuario').value || ''
     document.getElementById('dashOrcDatas').hidden = preset !== 'personalizado'
 
     if (preset !== 'personalizado') {
@@ -85,7 +90,7 @@ async function carregarDashOrcamentos() {
         const resposta = await fetch(`${api}/dashboard-orcamentos`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ empresa: estadoDashOrc.empresa || null, inicio: estadoDashOrc.inicio, fim: estadoDashOrc.fim })
+            body: JSON.stringify({ empresa: estadoDashOrc.empresa || null, usuario: estadoDashOrc.usuario || null, inicio: estadoDashOrc.inicio, fim: estadoDashOrc.fim })
         })
         const retorno = await resposta.json().catch(() => ({}))
         if (!resposta.ok) throw new Error(retorno.mensagem || 'Falha ao carregar o dashboard.')
@@ -100,15 +105,20 @@ async function carregarDashOrcamentos() {
     }
 }
 
-function desenharDashOrcamentos({ empresa, periodo, empresas, dados }) {
+function desenharDashOrcamentos({ empresa, periodo, empresas, usuario, usuarios = [], dados }) {
 
     const select = document.getElementById('dashOrcEmpresa')
     select.innerHTML = `<option value="">Todas as empresas</option>` +
         empresas.map(e => `<option value="${textoDash(e.id)}">${textoDash(e.nome)}</option>`).join('')
     select.value = empresa?.id || ''
 
+    const selectUsuario = document.getElementById('dashOrcUsuario')
+    selectUsuario.innerHTML = `<option value="">Todos os usuários</option>` +
+        usuarios.map(u => `<option value="${textoDash(u)}">${textoDash(u)}</option>`).join('')
+    selectUsuario.value = usuario || ''
+
     document.getElementById('dashOrcSubtitulo').textContent =
-        `${empresa?.nome || 'Todas as empresas'} · ${dataDash(periodo.inicio)} a ${dataDash(periodo.fim)}`
+        `${empresa?.nome || 'Todas as empresas'}${usuario ? ` · criados por ${usuario}` : ''} · ${dataDash(periodo.inicio)} a ${dataDash(periodo.fim)}`
 
     const conteudo = document.getElementById('dashOrcConteudo')
 
