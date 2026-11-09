@@ -1,81 +1,140 @@
-/* Lembrete do prazo de combustível (js/lembrete_combustivel.js): a van do GCS cruza o rodapé
-   puxando a faixa. Passar o mouse pausa, para dar tempo de clicar em "Solicitar". */
+/* Lembrete do prazo de combustível (js/lembrete_combustivel.js): pistola de abastecimento que desce
+   pela mangueira na lateral direita, balança de leve e traz o aviso do tempo ao lado. */
 
 .lembrete-combustivel {
+    --mangueira: clamp(70px, 16vh, 150px);
     position: fixed;
-    left: 0;
-    right: 0;
-    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-    height: 64px;
+    top: 0;
+    right: 28px;
     z-index: 9990;
     pointer-events: none;
-    overflow: hidden;
+    animation: lembrete-combustivel-descer 1.3s cubic-bezier(0.34, 1.45, 0.64, 1) both;
 }
 
-.lembrete-combustivel-comboio {
-    position: absolute;
-    left: 0;
-    bottom: 0;
+.lembrete-combustivel.subindo {
+    animation: lembrete-combustivel-subir 0.7s ease-in forwards;
+}
+
+@keyframes lembrete-combustivel-descer {
+    from { transform: translateY(-110%); }
+    to { transform: translateY(0); }
+}
+
+@keyframes lembrete-combustivel-subir {
+    from { transform: translateY(0); }
+    to { transform: translateY(-110%); }
+}
+
+/* Balanço: gira em volta do ponto onde a mangueira sai do topo. */
+.lembrete-combustivel-pendulo {
     display: flex;
+    flex-direction: column;
     align-items: flex-end;
-    pointer-events: auto;
-    will-change: transform;
-    animation: lembrete-combustivel-passar 22s linear forwards;
+    transform-origin: calc(100% - 86px) 0;
+    animation: lembrete-combustivel-balanco 3.2s ease-in-out 1.3s infinite;
 }
 
-.lembrete-combustivel-comboio:hover,
-.lembrete-combustivel-comboio:focus-within {
+.lembrete-combustivel:hover .lembrete-combustivel-pendulo,
+.lembrete-combustivel:focus-within .lembrete-combustivel-pendulo {
     animation-play-state: paused;
-}
-
-.lembrete-combustivel-comboio:hover .lembrete-combustivel-roda,
-.lembrete-combustivel-comboio:focus-within .lembrete-combustivel-roda,
-.lembrete-combustivel-comboio:hover .lembrete-combustivel-van,
-.lembrete-combustivel-comboio:focus-within .lembrete-combustivel-van {
-    animation-play-state: paused;
-}
-
-@keyframes lembrete-combustivel-passar {
-    from { transform: translateX(-100%); }
-    to { transform: translateX(100vw); }
-}
-
-.lembrete-combustivel-faixa {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 8px;
-    padding: 8px 8px 8px 14px;
-    background: #ffffff;
-    color: #1e293b;
-    border: 2px solid #2f7d4a;
-    border-radius: 999px;
-    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
-    font-size: 14px;
-    white-space: nowrap;
-    /* Balança de leve, como faixa puxada pelo vento */
-    transform-origin: right center;
-    animation: lembrete-combustivel-balanco 1.6s ease-in-out infinite;
 }
 
 @keyframes lembrete-combustivel-balanco {
-    0%, 100% { transform: rotate(-1deg); }
-    50% { transform: rotate(1deg); }
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-2.2deg); }
+    75% { transform: rotate(1.6deg); }
 }
 
-.lembrete-combustivel-icone {
-    font-size: 18px;
-    line-height: 1;
+/* A mangueira continua 100vh acima da tela (margem negativa não muda a altura da caixa), para
+   não aparecer a ponta solta enquanto a pistola desce. Largura igual ao encaixe da pistola. */
+.lembrete-combustivel-mangueira {
+    width: 10px;
+    height: calc(var(--mangueira) + 100vh);
+    margin-top: -100vh;
+    margin-right: 81px;
+    margin-bottom: -2px;
+    background:
+        repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0 6px, transparent 6px 12px),
+        #1e293b;
+    box-shadow: inset -2px 0 0 rgba(255, 255, 255, 0.12);
+}
+
+.lembrete-combustivel-cabeca {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: -1px;
+}
+
+.lembrete-combustivel-pistola {
+    width: 130px;
+    height: auto;
+    flex-shrink: 0;
+    filter: drop-shadow(0 6px 10px rgba(15, 23, 42, 0.25));
+}
+
+.lembrete-combustivel-gota {
+    transform-box: fill-box;
+    transform-origin: center top;
+    animation: lembrete-combustivel-pingar 2.4s ease-in 1.6s infinite;
+    opacity: 0;
+}
+
+@keyframes lembrete-combustivel-pingar {
+    0% { opacity: 0; transform: translateY(-4px) scale(0.4); }
+    20% { opacity: 1; transform: translateY(0) scale(1); }
+    60% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(22px) scale(0.8); }
+}
+
+.lembrete-combustivel-aviso {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    width: 220px;
+    margin-top: 70px;
+    padding: 12px 14px;
+    background: #ffffff;
+    color: #1e293b;
+    border: 2px solid #2f7d4a;
+    border-radius: 12px;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.2);
+    font-size: 13px;
+    line-height: 1.35;
+    pointer-events: auto;
+}
+
+/* Setinha apontando para a pistola */
+.lembrete-combustivel-aviso::after {
+    content: '';
+    position: absolute;
+    top: 18px;
+    right: -8px;
+    width: 12px;
+    height: 12px;
+    background: #ffffff;
+    border-top: 2px solid #2f7d4a;
+    border-right: 2px solid #2f7d4a;
+    transform: rotate(45deg);
+}
+
+.lembrete-combustivel-texto {
+    display: flex;
+    flex-direction: column;
+    padding-right: 16px;
 }
 
 .lembrete-combustivel-texto b {
     color: #b45309;
+    font-size: 17px;
 }
 
 .lembrete-combustivel-solicitar {
     border: none;
     border-radius: 999px;
-    padding: 6px 14px;
+    padding: 7px 14px;
     background: #2f7d4a;
     color: #ffffff;
     font-weight: bold;
@@ -88,8 +147,11 @@
 }
 
 .lembrete-combustivel-fechar {
-    width: 26px;
-    height: 26px;
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
     border: none;
     border-radius: 50%;
     background: transparent;
@@ -104,58 +166,39 @@
     color: #1e293b;
 }
 
-.lembrete-combustivel-corda {
-    width: 26px;
-    height: 0;
-    margin: 0 -2px 26px 0;
-    border-top: 2px dashed #475569;
-}
-
-.lembrete-combustivel-van {
-    width: 104px;
-    height: auto;
-    flex-shrink: 0;
-    overflow: visible;
-    animation: lembrete-combustivel-sacolejo 0.35s ease-in-out infinite alternate;
-}
-
-@keyframes lembrete-combustivel-sacolejo {
-    from { transform: translateY(0); }
-    to { transform: translateY(-1.5px); }
-}
-
-.lembrete-combustivel-roda {
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: lembrete-combustivel-giro 0.45s linear infinite;
-}
-
-@keyframes lembrete-combustivel-giro {
-    to { transform: rotate(360deg); }
-}
-
 @media (max-width: 640px) {
-    .lembrete-combustivel { height: 58px; }
-    .lembrete-combustivel-faixa { font-size: 12px; gap: 6px; padding: 6px 6px 6px 10px; }
-    .lembrete-combustivel-solicitar { padding: 5px 10px; font-size: 12px; }
-    .lembrete-combustivel-van { width: 80px; }
-    .lembrete-combustivel-comboio { animation-duration: 16s; }
+    .lembrete-combustivel { right: 12px; --mangueira: 56px; }
+    .lembrete-combustivel-pistola { width: 96px; }
+    .lembrete-combustivel-mangueira { margin-right: 60px; width: 7px; }
+    .lembrete-combustivel-pendulo { transform-origin: calc(100% - 64px) 0; }
+    .lembrete-combustivel-aviso { width: min(200px, calc(100vw - 100px)); margin-top: 45px; font-size: 12px; }
+    .lembrete-combustivel-texto b { font-size: 15px; }
 }
 
-/* Sem animação: a faixa aparece parada no centro do rodapé e some sozinha. */
+/* Sem animação: aparece já no lugar, parada, e some sem subir. */
 @media (prefers-reduced-motion: reduce) {
-    .lembrete-combustivel-comboio {
-        left: 50%;
-        animation: lembrete-combustivel-aparecer 14s ease forwards;
-    }
-    .lembrete-combustivel-faixa,
-    .lembrete-combustivel-van,
-    .lembrete-combustivel-roda {
+    .lembrete-combustivel,
+    .lembrete-combustivel.subindo,
+    .lembrete-combustivel-pendulo {
         animation: none;
     }
-    @keyframes lembrete-combustivel-aparecer {
-        0% { opacity: 0; transform: translateX(-50%); }
-        5%, 92% { opacity: 1; transform: translateX(-50%); }
-        100% { opacity: 0; transform: translateX(-50%); }
+    .lembrete-combustivel-gota {
+        animation: none;
+        opacity: 1;
     }
+    .lembrete-combustivel.subindo { opacity: 0; transition: opacity 0.3s; }
+}
+
+.lembrete-combustivel-hoje {
+    border: none;
+    background: transparent;
+    padding: 0;
+    color: #64748b;
+    font-size: 11px;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.lembrete-combustivel-hoje:hover {
+    color: #1e293b;
 }
