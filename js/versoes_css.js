@@ -33,7 +33,7 @@ const VERSOES_CSS = {
     "relatorio": "d9b3bb23",
     "relatorio_omie": "e91d89db",
     "relatorios": "213abe1a",
-    "rh": "7ea3ce72",
+    "rh": "8f49020d",
     "seletor-cores": "c0e10ff3",
     "status": "ea093268",
     "tabelas-parceiro": "22c15cc9",

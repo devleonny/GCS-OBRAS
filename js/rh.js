@@ -230,6 +230,77 @@ function alternarPessoaRH(id) {
     renderizarRH()
 }
 
+// ---------------- Baixar a pasta em .zip ----------------
+// Monta o zip no navegador (JSZip, carregado no index.html) com todos os anexos da pasta da pessoa.
+// Os arquivos vêm de /uploads com o token do usuário; o servidor já não entrega documento de pasta
+// restrita a quem não tem acesso, então o zip só tem o que a pessoa pode ver.
+// Arquivo: "NOME - PASTA.zip", com uma pasta "NOME" dentro; documento com tipo leva o tipo no nome.
+function botaoZipPastaRH(idPessoa, pasta, quantidade) {
+    const titulo = `Baixar os ${quantidade} arquivo(s) desta pasta em .zip`
+    return `
+        <button type="button" class="rh2-zip" data-pessoa="${escaparAtributo(idPessoa)}" data-pasta="${escaparAtributo(pasta)}"
+            title="${escaparAtributo(titulo)}" aria-label="${escaparAtributo(titulo)}" onclick="event.stopPropagation(); baixarPastaRH(this.dataset.pessoa, this.dataset.pasta)">
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M2.5 13.5h11"/>
+            </svg>
+        </button>`
+}
+
+const nomeArquivoSeguroRH = texto => String(texto || '').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '-').replace(/\s+/g, ' ').trim().slice(0, 120) || 'arquivo'
+
+async function baixarPastaRH(idPessoa, pasta) {
+    const p = estadoRH.porId.get(String(idPessoa))
+    if (!p) return
+    const docs = (pasta === 'SEM PASTA' ? p.documentos.filter(d => !PASTAS_RH.includes(d.pasta)) : p.documentos.filter(d => d.pasta === pasta))
+        .filter(d => d.anexo?.link)
+    if (!docs.length) return popup({ mensagem: 'Esta pasta não tem arquivos para baixar.' })
+    if (typeof JSZip !== 'function') return popup({ mensagem: 'Não foi possível montar o .zip (biblioteca não carregada). Recarregue a página.' })
+
+    overlayAguarde()
+    const nomePessoa = nomeArquivoSeguroRH(p.nome || `Funcionário ${p.id}`)
+    const zip = new JSZip()
+    const pastaZip = zip.folder(nomePessoa)
+    const usados = new Set()
+    const falhas = []
+    const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
+
+    for (const d of docs) {
+        const original = d.anexo.nome || d.anexo.link
+        const extensao = (/\.[a-z0-9]{1,6}$/i.exec(original) || /\.[a-z0-9]{1,6}$/i.exec(d.anexo.link) || [''])[0]
+        const base = nomeArquivoSeguroRH(d.doc ? `${d.doc} - ${original.replace(/\.[a-z0-9]{1,6}$/i, '')}` : original.replace(/\.[a-z0-9]{1,6}$/i, ''))
+        let nome = `${base}${extensao}`
+        for (let n = 2; usados.has(nome.toLowerCase()); n++) nome = `${base} (${n})${extensao}`
+        usados.add(nome.toLowerCase())
+        try {
+            const resposta = await fetch(`${api}/uploads/${encodeURIComponent(d.anexo.link)}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                credentials: 'include'
+            })
+            if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`)
+            pastaZip.file(nome, await resposta.blob())
+        } catch (erro) {
+            falhas.push(`${nomeDocRH(d)} (${erro.message})`)
+        }
+    }
+
+    try {
+        if (falhas.length === docs.length) throw new Error('nenhum arquivo pôde ser baixado')
+        const blob = await zip.generateAsync({ type: 'blob' })
+        const url = URL.createObjectURL(blob)
+        const link = Object.assign(document.createElement('a'), { href: url, download: `${nomePessoa} - ${nomeArquivoSeguroRH(pasta)}.zip` })
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        setTimeout(() => URL.revokeObjectURL(url), 60000)
+        removerOverlay()
+        if (falhas.length)
+            popup({ mensagem: `Zip baixado, mas ${falhas.length} arquivo(s) não vieram:<br>${falhas.map(escaparAtributo).join('<br>')}` })
+    } catch (erro) {
+        removerOverlay()
+        popup({ mensagem: `Não foi possível baixar a pasta: ${escaparAtributo(erro.message)}${falhas.length ? `<br>${falhas.map(escaparAtributo).join('<br>')}` : ''}` })
+    }
+}
+
 // Detalhe (+): as 3 pastas com os documentos (arrastáveis entre elas), obrigatórios faltando e gestor.
 function detalhePessoaRH(p) {
     const semPasta = p.documentos.filter(d => !PASTAS_RH.includes(d.pasta))
@@ -244,7 +315,9 @@ function detalhePessoaRH(p) {
                     ondragover="sobrePastaRH(event, this)"
                     ondragleave="if (!this.contains(event.relatedTarget)) this.classList.remove('soltar')"
                     ondrop="soltarDocumentoPastaRH(event, this)">
-                    <div class="rh2-pasta-titulo"><span aria-hidden="true">📁</span> ${escaparAtributo(pasta)} ${pasta === 'SEM PASTA' ? '' : botaoCadeadoRH(pasta)} <small>${podeVerPastaRH(pasta) ? docs.length : '—'}</small></div>
+                    <div class="rh2-pasta-titulo"><span aria-hidden="true">📁</span> ${escaparAtributo(pasta)} ${pasta === 'SEM PASTA' ? '' : botaoCadeadoRH(pasta)}
+                        ${podeVerPastaRH(pasta) && docs.some(d => d.anexo?.link) ? botaoZipPastaRH(p.id, pasta, docs.filter(d => d.anexo?.link).length) : ''}
+                        <small>${podeVerPastaRH(pasta) ? docs.length : '—'}</small></div>
                     ${podeVerPastaRH(pasta) ? listaArquivosRH(docs) : '<small class="rh2-pasta-vazia rh2-pasta-restrita">Pasta restrita: você não tem acesso ao conteúdo.</small>'}
                 </div>`
             }).join('')}

@@ -2052,3 +2052,25 @@ button.rh-arquivo-acao:hover { background: #1c8235; }
         grid-template-columns: repeat(2, minmax(150px, 1fr));
     }
 }
+
+/* Baixar a pasta em .zip (ao lado do cadeado). */
+.rh2-zip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid #d3dfd7;
+    border-radius: 5px;
+    color: #356443;
+    background: #fff;
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.rh2-zip:hover {
+    color: #fff;
+    border-color: #249f41;
+    background: #249f41;
+}
