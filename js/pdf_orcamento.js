@@ -193,7 +193,7 @@ async function montarPdfOrcamento(idRecebido, raiz = document) {
     for (let [codigo, item] of Object.entries(itens)) {
 
         const { tipo, custo, qtde } = item
-        const total = custo * qtde
+        const total = Number(custo || 0) * Number(qtde || 0)
 
         totais[tipo] ??= {
             valor: 0,
@@ -375,6 +375,9 @@ async function linhaTabelaPdf(item) {
         ncm
     } = item || {}
 
+    // Quantidade vazia (null) no orçamento: aparece 0, e não o texto "null".
+    const qtdeTexto = qtde == null || qtde === '' || Number.isNaN(Number(qtde)) ? 0 : qtde
+
     const descricaoCompleta = `
         ${descricao || 'N/A'}
         <b>${fabricante || ''}</b>
@@ -404,9 +407,9 @@ async function linhaTabelaPdf(item) {
                 <img src="${imagemAtualizada || 'https://gcs.app.br/imagens/simbolo-gcs.png'}" style="width: 5rem;">
             </td>
             <td style="text-align: center;">${unidade || 'UN'}</td>
-            <td style="text-align: center;">${qtde}</td>
-            <td style="text-align: center;white-space: nowrap;">${dinheiro(custo)}</td>
-            <td style="text-align: center;white-space: nowrap;">${dinheiro(qtde * custo)}</td>
+            <td style="text-align: center;">${qtdeTexto}</td>
+            <td style="text-align: center;white-space: nowrap;">${dinheiro(custo || 0)}</td>
+            <td style="text-align: center;white-space: nowrap;">${dinheiro(Number(qtde || 0) * Number(custo || 0))}</td>
         </tr>
     `
 
