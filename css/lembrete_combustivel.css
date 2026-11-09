@@ -1,0 +1,161 @@
+/* Lembrete do prazo de combustível (js/lembrete_combustivel.js): a van do GCS cruza o rodapé
+   puxando a faixa. Passar o mouse pausa, para dar tempo de clicar em "Solicitar". */
+
+.lembrete-combustivel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    height: 64px;
+    z-index: 9990;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.lembrete-combustivel-comboio {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    display: flex;
+    align-items: flex-end;
+    pointer-events: auto;
+    will-change: transform;
+    animation: lembrete-combustivel-passar 22s linear forwards;
+}
+
+.lembrete-combustivel-comboio:hover,
+.lembrete-combustivel-comboio:focus-within {
+    animation-play-state: paused;
+}
+
+.lembrete-combustivel-comboio:hover .lembrete-combustivel-roda,
+.lembrete-combustivel-comboio:focus-within .lembrete-combustivel-roda,
+.lembrete-combustivel-comboio:hover .lembrete-combustivel-van,
+.lembrete-combustivel-comboio:focus-within .lembrete-combustivel-van {
+    animation-play-state: paused;
+}
+
+@keyframes lembrete-combustivel-passar {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(100vw); }
+}
+
+.lembrete-combustivel-faixa {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    padding: 8px 8px 8px 14px;
+    background: #ffffff;
+    color: #1e293b;
+    border: 2px solid #2f7d4a;
+    border-radius: 999px;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+    font-size: 14px;
+    white-space: nowrap;
+    /* Balança de leve, como faixa puxada pelo vento */
+    transform-origin: right center;
+    animation: lembrete-combustivel-balanco 1.6s ease-in-out infinite;
+}
+
+@keyframes lembrete-combustivel-balanco {
+    0%, 100% { transform: rotate(-1deg); }
+    50% { transform: rotate(1deg); }
+}
+
+.lembrete-combustivel-icone {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.lembrete-combustivel-texto b {
+    color: #b45309;
+}
+
+.lembrete-combustivel-solicitar {
+    border: none;
+    border-radius: 999px;
+    padding: 6px 14px;
+    background: #2f7d4a;
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.lembrete-combustivel-solicitar:hover {
+    background: #256a3d;
+}
+
+.lembrete-combustivel-fechar {
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #64748b;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.lembrete-combustivel-fechar:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+.lembrete-combustivel-corda {
+    width: 26px;
+    height: 0;
+    margin: 0 -2px 26px 0;
+    border-top: 2px dashed #475569;
+}
+
+.lembrete-combustivel-van {
+    width: 104px;
+    height: auto;
+    flex-shrink: 0;
+    overflow: visible;
+    animation: lembrete-combustivel-sacolejo 0.35s ease-in-out infinite alternate;
+}
+
+@keyframes lembrete-combustivel-sacolejo {
+    from { transform: translateY(0); }
+    to { transform: translateY(-1.5px); }
+}
+
+.lembrete-combustivel-roda {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: lembrete-combustivel-giro 0.45s linear infinite;
+}
+
+@keyframes lembrete-combustivel-giro {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 640px) {
+    .lembrete-combustivel { height: 58px; }
+    .lembrete-combustivel-faixa { font-size: 12px; gap: 6px; padding: 6px 6px 6px 10px; }
+    .lembrete-combustivel-solicitar { padding: 5px 10px; font-size: 12px; }
+    .lembrete-combustivel-van { width: 80px; }
+    .lembrete-combustivel-comboio { animation-duration: 16s; }
+}
+
+/* Sem animação: a faixa aparece parada no centro do rodapé e some sozinha. */
+@media (prefers-reduced-motion: reduce) {
+    .lembrete-combustivel-comboio {
+        left: 50%;
+        animation: lembrete-combustivel-aparecer 14s ease forwards;
+    }
+    .lembrete-combustivel-faixa,
+    .lembrete-combustivel-van,
+    .lembrete-combustivel-roda {
+        animation: none;
+    }
+    @keyframes lembrete-combustivel-aparecer {
+        0% { opacity: 0; transform: translateX(-50%); }
+        5%, 92% { opacity: 1; transform: translateX(-50%); }
+        100% { opacity: 0; transform: translateX(-50%); }
+    }
+}

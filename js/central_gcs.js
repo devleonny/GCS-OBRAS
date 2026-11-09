@@ -91,6 +91,9 @@ async function telaInicialGCS() {
 
     iniciarTecnicosLivres()
 
+    if (typeof iniciarLembreteCombustivel === 'function')
+        iniciarLembreteCombustivel()
+
     cUsuario.style.display = 'none'
     toolbar.style.display = 'flex'
     titulo.textContent = 'GCS'

@@ -199,12 +199,13 @@ async function confirmarAjusteValorParceiro(id, idSolicitacao) {
 
         // Saldo: se a diferença não cabe no disponível, a LPU sobe só o que falta.
         const falta = arredondarValorParceiro(novoValor - valorAnterior - c.disponivel)
+        // Registro da revisão antes do total: se a gravação falhar, o total não muda sem motivo.
         if (falta > 0) {
             const totalNovo = arredondarValorParceiro(c.total + falta)
-            await salvarEtapaParceiro(`parceiros/${id}/total`, totalNovo)
             await salvarEtapaParceiro(`parceiros/${id}/revisoes/${crypto.randomUUID()}`, {
                 ...registro, total_anterior: c.total, total_novo: totalNovo, solicitacao: idSolicitacao
             })
+            await salvarEtapaParceiro(`parceiros/${id}/total`, totalNovo)
         }
 
         if (!linha.legado) {

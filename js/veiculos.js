@@ -481,9 +481,49 @@ async function prepararVeiculoCombustivel(veiculo) {
     return { ...veiculo, snapshots: { ...veiculo.snapshots, motoristas } }
 }
 
+// Prazo de solicitação de combustível (horário de Brasília, pelo relógio do servidor):
+// dias anteriores sempre bloqueados; o próprio dia só até 15:30. O servidor confere de novo
+// (gcs/SCRIPTS/combustivel_prazo.js). O lembrete das 15:00 fica em js/lembrete_combustivel.js.
+const HORA_LIMITE_COMBUSTIVEL = '15:30'
+
+function agoraBrasiliaCombustivel() {
+    let agora
+    try { agora = dataServidor() } catch { agora = new Date() }
+    const partes = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+    }).formatToParts(agora).map(p => [p.type, p.value]))
+    return { dia: `${partes.year}-${partes.month}-${partes.day}`, hora: `${partes.hour}:${partes.minute}` }
+}
+
+function somarDiaCombustivel(dia, n) {
+    const [a, m, d] = dia.split('-').map(Number)
+    return new Date(Date.UTC(a, m - 1, d + n)).toISOString().slice(0, 10)
+}
+
+// Primeiro dia que ainda aceita solicitação: hoje antes das 15:30, senão amanhã.
+function primeiroDiaCombustivel() {
+    const { dia, hora } = agoraBrasiliaCombustivel()
+    return hora < HORA_LIMITE_COMBUSTIVEL ? dia : somarDiaCombustivel(dia, 1)
+}
+
+function erroPrazoCombustivel(dataPagamento) {
+    const { dia: hoje, hora } = agoraBrasiliaCombustivel()
+    if (dataPagamento < hoje) return 'Não é possível solicitar combustível para dias anteriores.'
+    if (dataPagamento === hoje && hora >= HORA_LIMITE_COMBUSTIVEL)
+        return `Solicitações de combustível para hoje vão até ${HORA_LIMITE_COMBUSTIVEL}. Escolha a partir de amanhã.`
+    return null
+}
+
 async function painelValores(idCusto, duplicar) {
 
+    await sincronizarRelogioServidor().catch(() => { })
+
     const custo = await recuperarDado('custo_veiculos', idCusto) || {}
+    // Lançamento novo/duplicado: o calendário começa no primeiro dia ainda liberado. Na edição,
+    // a data já gravada fica como está (só trocar a data passa pelo prazo).
+    const minimoData = primeiroDiaCombustivel()
+    const novoLancamento = !idCusto || duplicar
     const veiculo = await prepararVeiculoCombustivel(custo.veiculo)
     const motoristas = Array.isArray(veiculo?.snapshots?.motoristas)
         ? veiculo.snapshots.motoristas
@@ -508,7 +548,13 @@ async function painelValores(idCusto, duplicar) {
 
     const linhas = [
         { texto: 'Comentário', elemento: `<textarea rows="5" style="padding: 0.5rem;" id="comentario">${custo?.comentario || ''}</textarea>` },
-        { texto: 'Data Pagamento', elemento: `<input id="data_pagamento" type="date" value="${custo?.data_pagamento || ''}">` },
+        {
+            texto: 'Data Pagamento', elemento: `
+            <div style="${vertical}; align-items: start; gap: 2px;">
+                <input id="data_pagamento" type="date" min="${minimoData}"
+                    value="${novoLancamento && (custo?.data_pagamento || '') < minimoData ? '' : custo?.data_pagamento || ''}">
+                <small style="opacity: 0.75;">Para o mesmo dia, solicite até ${HORA_LIMITE_COMBUSTIVEL}.</small>
+            </div>` },
         { texto: 'KM/L', elemento: `<input oninput="calcularValorCombustivel()" value="${custo?.kml || ''}" type="number" id="kml" type="number">` },
         {
             texto: 'Valor Combustível', elemento: `
@@ -651,7 +697,7 @@ async function salvarValores(idCusto = crypto.randomUUID()) {
     const idVeiculo = painel.querySelector('[name="veiculo"]').id
     const veiculo = await recuperarDado('veiculos', idVeiculo)
     // Edição mantém quem registrou e quando; novo (ou duplicado, que ganha outro id) usa agora.
-    const { usuario, data } = await recuperarDado('custo_veiculos', idCusto) || {}
+    const { usuario, data, data_pagamento: dataAnterior } = await recuperarDado('custo_veiculos', idCusto) || {}
 
     const custo_total = obterValores('custo_total')
     const data_pagamento = obterValores('data_pagamento')
@@ -664,6 +710,12 @@ async function salvarValores(idCusto = crypto.randomUUID()) {
 
     if (data_pagamento == '')
         return popup({ mensagem: `Preencha a data de pagamento` })
+
+    if (data_pagamento !== dataAnterior) {
+        await sincronizarRelogioServidor().catch(() => { })
+        const erroPrazo = erroPrazoCombustivel(data_pagamento)
+        if (erroPrazo) return popup({ mensagem: erroPrazo })
+    }
 
     const distribuicao = {}
     const linhas = document.querySelectorAll('#distribuicao .distribuicao-combustivel-item')
@@ -707,7 +759,9 @@ async function salvarValores(idCusto = crypto.randomUUID()) {
         usuario: usuario || acesso.usuario
     }
 
-    await enviar(`custo_veiculos/${idCusto}`, dados)
+    const resultado = await enviar(`custo_veiculos/${idCusto}`, dados)
+    if (!resultado?.success)
+        return popup({ mensagem: resultado?.mensagem || 'Falha ao salvar o combustível. Tente novamente.' })
 
     removerPopup()
 }
