@@ -16,7 +16,7 @@
 const estadoColaboradores = {
     aba: 'requisicoes', situacao: 'abertas', filtroStatus: 'TODOS', busca: '',
     requisicoes: [], aberta: null, lista: [], pessoa: null,
-    relatorio: { dados: null, aba: 'ferramentas' }, requisicao: null, statusEscolha: null, termo: null
+    relatorio: { dados: null, aba: 'ferramentas' }, requisicao: null, statusEscolha: null
 }
 
 // Status com que a requisição nasce, o mesmo das requisições de chamados (js/requisicao.js).
@@ -503,13 +503,6 @@ function renderizarPessoasColab() {
                     <small>${escaparAtributo([c.usuario, localColaborador(c)].filter(Boolean).join(' · '))}</small>
                 </div>
             </div>
-            <div class="colab-linha-status">
-                <div class="colab-linha-avisos">
-                    ${c.termo == 'DESATUALIZADO' ? '<span class="colab-pendente">Termo desatualizado</span>' : ''}
-                    ${c.termo == 'PENDENTE' ? '<span class="colab-pendente falta">Sem termo assinado</span>' : ''}
-                    ${c.termo == 'EM DIA' ? '<small>Termo em dia</small>' : ''}
-                </div>
-            </div>
             <div class="colab-linha-num" data-rotulo="Ferramentas em mãos">
                 <b>${numeroColab(c.unidadesFerramentas)}</b><small>${dinheiro(c.valorEmMaos)}</small>
             </div>
@@ -532,7 +525,7 @@ function renderizarPessoasColab() {
         ${lista.length ? `
             <div class="colab-lista">
                 <div class="colab-lista-cabecalho" aria-hidden="true">
-                    <span>Pessoa</span><span>Termo</span>
+                    <span>Pessoa</span>
                     <span class="num">Ferramentas em mãos</span><span class="num">Materiais em saldo</span><span class="num">Em aberto</span><span></span>
                 </div>
                 ${linhas}
@@ -568,7 +561,7 @@ function itensPessoaColab(itens = []) {
 
 function renderizarPessoaColab() {
     const local = document.querySelector('.colab-conteudo')
-    const { id, colaborador = {}, itens = [], requisicoes = [], termo = {} } = estadoColaboradores.pessoa || {}
+    const { id, colaborador = {}, itens = [], requisicoes = [] } = estadoColaboradores.pessoa || {}
     if (!local || !id)
         return
 
@@ -603,8 +596,6 @@ function renderizarPessoaColab() {
                 <div class="colab-card"><span>Usado em Kit Técnico</span><b>${dinheiro(kit)}</b><small>abatido pelas requisições de chamados</small></div>
                 <div class="colab-card ${abertas.length ? 'alerta' : ''}"><span>Requisições em aberto</span><b>${abertas.length}</b><small>entram no saldo quando solucionadas</small></div>
             </div>
-
-            ${blocoTermoColaborador(termo, emMaos.length)}
 
             <section class="colab-secao">
                 <h4>Ferramentas <span class="colab-contador ${emMaos.length ? '' : 'zerado'}">${emMaos.length}</span></h4>
@@ -1400,162 +1391,3 @@ async function pdfRelatorioPessoaColab() {
     await baixarPdfColab(html, `Relatorio-${colaborador.nome || ''}-${hoje.replaceAll('/', '-')}`)
 }
 
-// ---------------- Termo de responsabilidade ----------------
-
-// Termo assinado (upload) e a situação calculada no servidor: EM DIA, DESATUALIZADO
-// (ferramentas mudaram desde o envio, com a lista do que mudou) ou PENDENTE (sem envio).
-function blocoTermoColaborador(termo = {}, qtdeFerramentas = 0) {
-    const { situacao, mudancas = [], nome, link, data, usuario } = termo
-    if (!situacao && !link)
-        return ''
-
-    const rotulo = { 'EM DIA': 'Em dia', 'DESATUALIZADO': 'Desatualizado', 'PENDENTE': 'Não enviado' }[situacao] || ''
-    const classe = { 'EM DIA': 'ok', 'DESATUALIZADO': 'atencao', 'PENDENTE': 'falta' }[situacao] || ''
-
-    const listaMudancas = mudancas.length
-        ? `
-            <div class="colab-termo-mudancas">
-                <small>Mudou desde o termo assinado:</small>
-                ${mudancas.map(m => `
-                    <span>${escaparAtributo(m.descricao || m.codigo)}: <b>${numeroColab(m.antes)} → ${numeroColab(m.agora)}</b></span>
-                `).join('')}
-            </div>`
-        : ''
-
-    return `
-        <div class="colab-termo ${classe}">
-            <div class="colab-termo-topo">
-                <div>
-                    <b>Termo de responsabilidade</b>
-                    ${rotulo ? `<span class="colab-termo-situacao ${classe}">${rotulo}</span>` : ''}
-                </div>
-                <div class="colab-termo-acoes">
-                    <button type="button" class="secundario" onclick="termoResponsabilidade()" ${qtdeFerramentas ? '' : 'disabled title="Nenhuma ferramenta em mãos"'}>Gerar termo</button>
-                    <button type="button" onclick="document.getElementById('termoAssinadoColab').click()">${link ? 'Enviar novo assinado' : 'Enviar termo assinado'}</button>
-                    <input type="file" id="termoAssinadoColab" accept=".pdf,image/*" hidden onchange="enviarTermoAssinado(this)">
-                </div>
-            </div>
-            ${link ? `
-                <div class="colab-termo-arquivo">
-                    ${criarAnexoVisual(nome || 'termo.pdf', link, false)}
-                    <small>Enviado em ${escaparAtributo(data || '')} por ${escaparAtributo(usuario || '')}</small>
-                </div>` : '<small>Gere o termo, colete a assinatura e envie o arquivo assinado aqui.</small>'}
-            ${listaMudancas}
-        </div>
-    `
-}
-
-// Guarda o arquivo assinado e as ferramentas em mãos agora: é a referência para
-// sinalizar quando o saldo mudar (servidor, situacaoTermo).
-async function enviarTermoAssinado(input) {
-    const { id, itens = [] } = estadoColaboradores.pessoa || {}
-    if (!id || !input?.files?.length)
-        return
-
-    overlayAguarde()
-
-    try {
-        const [arquivo] = await importarAnexos({ input }) || []
-        if (!arquivo?.link)
-            throw new Error('Falha no envio do arquivo.')
-
-        const agora = dataServidor()
-        const resultado = await enviar(`colaboradores/${id}/termo`, {
-            nome: arquivo.nome || input.files[0].name,
-            link: arquivo.link,
-            data: agora.toLocaleString(),
-            ts: agora.getTime(),
-            usuario: acesso.usuario,
-            ferramentas: Object.fromEntries(itens
-                .filter(i => i.classe == 'FERRAMENTA' && i.saldo > 0)
-                .map(i => [i.codigo, i.saldo]))
-        })
-
-        if (!resultado?.success)
-            throw new Error(resultado?.mensagem || 'Falha ao salvar o termo.')
-
-        removerOverlay()
-        await carregarColaboradores()
-
-    } catch (erro) {
-        popup({ mensagem: erro.message || 'Falha ao enviar o termo: Fale com o suporte.' })
-    } finally {
-        input.value = ''
-    }
-}
-
-async function termoResponsabilidade() {
-
-    const { id, colaborador = {}, itens = [] } = estadoColaboradores.pessoa || {}
-    const ferramentas = itens.filter(i => i.classe == 'FERRAMENTA' && i.saldo > 0)
-    if (!ferramentas.length)
-        return popup({ mensagem: 'Nenhuma ferramenta em mãos.' })
-
-    const cadastro = await recuperarDado('clientes', id) || {}
-    const nome = cadastro.nome || colaborador.nome || ''
-    const total = ferramentas.reduce((s, i) => s + i.saldo * i.custo, 0)
-    const hoje = dataServidor().toLocaleDateString('pt-BR')
-
-    const ressarcimento = 'Em caso de perda, extravio ou dano por mau uso, comprometo-me a ressarcir o valor de reposição dos itens; '
-        + 'sendo empregado, estou ciente de que o valor poderá ser descontado, nos termos do art. 462, §1º, da CLT.'
-
-    const linhas = ferramentas.map(i => `
-        <tr>
-            <td>${escaparAtributo(i.codigo)}</td>
-            <td style="text-align: left;">${escaparAtributo(i.descricao)}</td>
-            <td>${escaparAtributo(i.unidade)}</td>
-            <td style="text-align: center;">${numeroColab(i.saldo)}</td>
-            <td style="white-space: nowrap;">${dinheiro(i.custo)}</td>
-            <td style="white-space: nowrap;">${dinheiro(i.saldo * i.custo)}</td>
-        </tr>
-    `).join('')
-
-    const html = `
-        <div id="pdf" style="${vertical}; gap: 1rem; width: 95%; padding: 1rem; font-size: 12px;">
-
-            <div style="${horizontal}; gap: 1rem;">
-                <img style="width: 7rem;" src="https://gcs.app.br/imagens/GrupoCostaSilva.png">
-                <span style="font-size: 1.4rem;">TERMO DE RESPONSABILIDADE DE FERRAMENTAS</span>
-            </div>
-
-            <div style="${vertical}; gap: 2px;">
-                <span><b>Colaborador</b> ${escaparAtributo(nome)}</span>
-                ${cadastro.cnpj ? `<span><b>CPF/CNPJ</b> ${escaparAtributo(cadastro.cnpj)}</span>` : ''}
-                ${colaborador.setor ? `<span><b>Setor</b> ${escaparAtributo(colaborador.setor)}</span>` : ''}
-                <span><b>Data</b> ${hoje}</span>
-            </div>
-
-            <p style="text-align: justify; margin: 0;">
-                Declaro ter recebido as ferramentas e equipamentos relacionados abaixo, em perfeito estado de conservação
-                e funcionamento, para uso exclusivo nas atividades profissionais. Comprometo-me a zelar pela guarda e
-                conservação dos itens e a devolvê-los quando solicitado ou ao término do vínculo. ${ressarcimento}
-            </p>
-
-            <table class="tabela-v2">
-                <thead>
-                    <tr><th>Código</th><th>Descrição</th><th>Un.</th><th>Qtde</th><th>Valor unit.</th><th>Total</th></tr>
-                </thead>
-                <tbody>
-                    ${linhas}
-                    <tr><td colspan="5" style="text-align: right;"><b>Total em mãos</b></td><td><b>${dinheiro(total)}</b></td></tr>
-                </tbody>
-            </table>
-
-            ${assinaturasPdfColab([nome || 'Colaborador', 'Colaborador'], [acesso.nome_completo || acesso.usuario || '', 'Responsável pela entrega'])}
-        </div>
-    `
-
-    popup({
-        elemento: `<div>${html}</div>`,
-        titulo: 'Termo de responsabilidade',
-        botoes: [{ texto: 'Baixar PDF', img: 'pdf', funcao: 'baixarTermoResponsabilidade()' }]
-    })
-
-    estadoColaboradores.termo = { html, nome: `Termo-${nome || id}-${hoje.replaceAll('/', '-')}` }
-}
-
-async function baixarTermoResponsabilidade() {
-    const { html, nome } = estadoColaboradores.termo || {}
-    if (html)
-        await baixarPdfColab(html, nome)
-}
