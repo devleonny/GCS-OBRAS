@@ -96,6 +96,7 @@ async function historicoPagamentosParceiro(id) {
                 ${linha.ocorrencia_id ? `<button onclick="irOcorrenciaParceiro('${linha.ocorrencia_id}', '${linha.id}')">Ver correções</button>` : ''}
                 ${!linha.legado && !linha.pagamento && !linha.encerrada ? `<button onclick="cancelarSolicitacaoParceiro('${id}', '${linha.id}')">Cancelar solicitação</button>` : ''}
                 ${podeAjustarValorParceiro(c.parceiro, linha) ? `<button onclick="ajustarValorParceiro('${id}', '${linha.id}')">Ajustar valor</button>` : ''}
+                ${/^(PAGO|RECEBIDO)$/i.test(String(linha.statusAtual).trim()) ? `<span title="Pagamento já pago: o valor não pode mais ser alterado. Para pagar a diferença, solicite um pagamento parcial complementar." style="opacity: 0.75;">🔒 Pago, sem ajuste</span>` : ''}
             </td></tr>`).join('')
         popup({ titulo: 'Pagamentos da LPU Parceiro', elemento: `<div class="parceiro-historico">
             <div class="parceiro-indicadores">${indicadores}</div>
@@ -157,6 +158,20 @@ function redistribuirValorParceiro(lista = [], campo, novoTotal) {
     })
 }
 
+// Confere o pagamento direto no Omie (gcs/server.js, /pagamentos/parceiro/ajuste): pago lá é recusado
+// com o motivo. Com executar, exclui o título ainda aberto para o pagamento voltar à aprovação.
+async function conferirAjusteNoOmieParceiro(idPagamento, executar = false) {
+    const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
+    const resposta = await fetch(`${api}/pagamentos/parceiro/ajuste`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ id: idPagamento, executar })
+    })
+    const retorno = await resposta.json().catch(() => ({}))
+    if (!resposta.ok) throw new Error(retorno.mensagem || `Não foi possível conferir o pagamento no Omie (${resposta.status}).`)
+    return retorno
+}
+
 async function ajustarValorParceiro(id, idSolicitacao) {
     try {
         overlayAguarde()
@@ -164,6 +179,7 @@ async function ajustarValorParceiro(id, idSolicitacao) {
         const linha = c.linhas.find(item => item.id === idSolicitacao)
         if (!linha || !podeAjustarValorParceiro(c.parceiro, linha))
             throw new Error('Este pagamento não pode ser ajustado. Se já foi pago, solicite um pagamento parcial complementar.')
+        const conferencia = linha.pagamento ? await conferirAjusteNoOmieParceiro(idSolicitacao) : {}
         popup({
             titulo: 'Ajustar valor do pagamento',
             linhas: [
@@ -171,7 +187,7 @@ async function ajustarValorParceiro(id, idSolicitacao) {
                 { elemento: `<div class="rodape-resumo"><span>Disponível na LPU</span><strong>${dinheiro(c.disponivel)}</strong></div>` },
                 { texto: 'Novo valor', elemento: `<input name="valor_ajuste" type="number" min="0.01" step="0.01" value="${linha.valor}">` },
                 { texto: 'Motivo do ajuste', elemento: '<textarea name="motivo_ajuste" rows="2"></textarea>' },
-                { elemento: `<span style="max-width: 360px; text-align: left;">${linha.pagamento ? 'O pagamento volta para <b>aprovação da Diretoria</b> com o novo valor.' : 'A solicitação segue para o gerente com o novo valor.'} Se faltar saldo, o total da LPU é aumentado com a diferença.</span>` }
+                { elemento: `<span style="max-width: 360px; text-align: left;">${linha.pagamento ? 'O pagamento volta para <b>aprovação da Diretoria</b> com o novo valor.' : 'A solicitação segue para o gerente com o novo valor.'}${conferencia.tituloAberto ? ' O título atual (com o valor antigo) será <b>excluído do Omie</b>; ao aprovar, um novo é lançado.' : ''} Se faltar saldo, o total da LPU é aumentado com a diferença.</span>` }
             ],
             botoes: [{ texto: 'Confirmar ajuste', img: 'concluido', funcao: `confirmarAjusteValorParceiro('${id}', '${idSolicitacao}')` }]
         })
@@ -192,6 +208,10 @@ async function confirmarAjusteValorParceiro(id, idSolicitacao) {
             throw new Error('Este pagamento não pode mais ser ajustado.')
         const valorAnterior = linha.valor
         if (novoValor === valorAnterior) return popup({ mensagem: 'O novo valor é igual ao atual.' })
+
+        // Primeiro o Omie: pago lá recusa sem mudar nada aqui; título aberto é excluído.
+        if (linha.pagamento)
+            await conferirAjusteNoOmieParceiro(idSolicitacao, true)
 
         const data = dataServidor().toLocaleString()
         const { usuario } = acesso
