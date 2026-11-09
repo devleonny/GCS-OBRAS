@@ -127,12 +127,12 @@ if (janelasIndependentesLigadas()) {
         else marcarFoco()
     }
 
-    // × do usuário (barra de título ou rodapé): formulário pergunta antes (fecharPopupUsuario,
+    // × do usuário (barra de título ou rodapé): formulário alterado pergunta antes (fecharPopupUsuario,
     // popup.js); minimizado volta à tela para a pessoa ver o que está fechando.
     function fecharJanelaUsuario(id) {
         const el = janelaAberta(id)
         if (!el) return
-        if (el.dataset.confirmarFechar === 'S') focarJanela(id)
+        if (el.dataset.confirmarFechar === 'S' && formularioAlterado(el)) focarJanela(id)
         fecharPopupUsuario(id, fecharJanela)
     }
 

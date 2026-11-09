@@ -161,12 +161,52 @@ function popup({
     return idPopup
 }
 
-// × do usuário: formulários perguntam antes (o que foi preenchido se perde).
+// × do usuário: formulários perguntam antes, mas só se algo mudou (o que foi preenchido se perde).
+// "Mudou" = o estado dos campos é diferente do retrato tirado no primeiro clique/tecla dentro do
+// formulário: nessa hora o que a tela preenche sozinha ao abrir já está lá. Sem interação nenhuma,
+// ou mexeu e voltou tudo como era, fecha direto. O retrato inclui o texto visível do formulário,
+// então escolhas feitas por listas (cxOpcoes), anexos e linhas adicionadas também contam.
 const confirmacoesFechar = new Set()
+const retratosFormulario = new Map()
+
+function estadoFormularioPopup(alvo) {
+    const valor = campo => ['checkbox', 'radio'].includes(campo.type) ? campo.checked
+        : campo.type === 'file' ? [...(campo.files || [])].map(f => f.name).join('|')
+            : campo.value
+    return JSON.stringify([
+        [...alvo.querySelectorAll('input, select, textarea')].map(valor),
+        [...alvo.querySelectorAll('[contenteditable="true"]')].map(e => e.innerHTML),
+        [...alvo.querySelectorAll('.painel-padrao, .janela, .rodape-conteudo')].map(e => e.textContent.replace(/\s+/g, ' ').trim())
+    ])
+}
+
+function retratarFormularioPopup(evento) {
+    const alvo = evento.target?.closest?.('.popup[data-confirmar-fechar="S"]')
+    if (!alvo || retratosFormulario.has(alvo.id) || evento.target.closest('.popup-top')) return
+    retratosFormulario.set(alvo.id, estadoFormularioPopup(alvo))
+}
+document.addEventListener('pointerdown', retratarFormularioPopup, true)
+document.addEventListener('keydown', retratarFormularioPopup, true)
+
+// Mudou um campo sem clique/tecla antes (preenchimento automático do navegador, colar pelo menu):
+// não há retrato para comparar, então conta como alterado.
+const ALTERADO_SEM_RETRATO = '\u0000alterado'
+function alteracaoSemRetrato(evento) {
+    const alvo = evento.target?.closest?.('.popup[data-confirmar-fechar="S"]')
+    if (alvo && !retratosFormulario.has(alvo.id)) retratosFormulario.set(alvo.id, ALTERADO_SEM_RETRATO)
+}
+document.addEventListener('input', alteracaoSemRetrato, true)
+document.addEventListener('change', alteracaoSemRetrato, true)
+
+function formularioAlterado(alvo) {
+    const retrato = retratosFormulario.get(alvo.id)
+    return retrato !== undefined && retrato !== estadoFormularioPopup(alvo)
+}
+
 async function fecharPopupUsuario(id, fechar = removerPopup) {
     const alvo = document.getElementById(id)
     if (!alvo) return
-    if (alvo.dataset.confirmarFechar === 'S') {
+    if (alvo.dataset.confirmarFechar === 'S' && formularioAlterado(alvo)) {
         if (confirmacoesFechar.has(id)) return
         confirmacoesFechar.add(id)
         try {
@@ -192,6 +232,7 @@ function limparRecursosPopup(id) {
 
     delete autoDestruicaoGlobal[id]
     delete configPopupGlobal[id]
+    retratosFormulario.delete(id)
 }
 
 function removerTodosPopups() {
