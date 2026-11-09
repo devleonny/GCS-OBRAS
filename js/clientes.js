@@ -649,6 +649,17 @@ function criarLinhaClienteGCS(cliente) {
 
 }
 
+// TÉCNICO (técnico da empresa) e TÉCNICO PARCEIRO (terceiro) não andam juntas: marcar uma desmarca
+// a outra. O servidor também recusa as duas juntas (filtros_seguranca.js).
+const TAGS_TECNICO_EXCLUSIVAS = ['TÉCNICO', 'TÉCNICO PARCEIRO']
+
+function alternarTagTecnicoCliente(caixa) {
+    if (!caixa.checked || !TAGS_TECNICO_EXCLUSIVAS.includes(caixa.value)) return
+    caixa.closest('[name="tags"]')?.querySelectorAll('input[type="checkbox"]').forEach(outra => {
+        if (outra !== caixa && TAGS_TECNICO_EXCLUSIVAS.includes(outra.value)) outra.checked = false
+    })
+}
+
 // Tags marcadas na lista de checkbox do formulário de clientes.
 function tagsMarcadasCliente(painel) {
     return [...(painel?.querySelectorAll('[name="tags"] input[type="checkbox"]:checked') || [])]
@@ -725,7 +736,7 @@ async function formularioCliente(idCliente) {
         .map(tag => `
             <label class="cliente-tag-opcao">
                 <input type="checkbox" value="${escaparAtributo(tag)}" ${marcadas.has(tag) ? 'checked' : ''}
-                    onchange="verificarDisponibilidade(this.closest('.painel-padrao').querySelector('[name=nome]'))">
+                    onchange="alternarTagTecnicoCliente(this); verificarDisponibilidade(this.closest('.painel-padrao').querySelector('[name=nome]'))">
                 <span>${escaparAtributo(tag)}</span>
             </label>`)
         .join('')
@@ -1061,7 +1072,7 @@ async function verificarDisponibilidade(input) {
         </div>
     `
     const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
-    const tagsValidas = ['FUNCIONÁRIO', 'CLIENTE', 'TÉCNICO', 'MATRIZ']
+    const tagsValidas = ['FUNCIONÁRIO', 'CLIENTE', 'TÉCNICO', 'TÉCNICO PARCEIRO', 'MATRIZ']
     const tagValida = tagsMarcadasCliente(painel).some(tag => tagsValidas.includes(tag))
 
     const campoNome = document.querySelector('[name="nome"]')

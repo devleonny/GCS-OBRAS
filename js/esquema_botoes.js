@@ -67,6 +67,7 @@ function iconeSilhuetaMenu(chave) {
         composicoes: '<path d="m12 2 10 5-10 5L2 7l10-5zM2 11l10 5 10-5v4l-10 5-10-5v-4zm0 8 10 5 10-5v-2l-10 5-10-5v2z"/>',
         pesquisar5: '<path fill-rule="evenodd" d="M10 2a8 8 0 1 0 5 14l6 6 2-2-6-6a8 8 0 0 0-7-12zm0 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/>',
         sair: '<path d="M3 2h10v3H6v14h7v3H3V2zm12 5 7 5-7 5v-3H9v-4h6V7z"/>',
+        celular: '<path fill-rule="evenodd" d="M7 1h10a2 2 0 0 1 2 2v18a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2zm0 3v14h10V4H7zm4 15v2h2v-2h-2z"/>',
         cadeado: '<path fill-rule="evenodd" d="M7 10V7a5 5 0 0 1 10 0v3h2v12H5V10h2zm3 0h4V7a2 2 0 1 0-4 0v3zm1 4v4h2v-4h-2z"/>'
     }
 
@@ -310,6 +311,11 @@ const esquemaBotoes = {
             sub: [
                 { nome: 'Ver histórico', funcao: 'daily', img: 'pesquisar5' }
             ]
+        },
+        {
+            nome: 'GCS no celular',
+            funcao: 'abrirGCSNoCelular',
+            img: 'celular'
         },
         {
             nome: 'Trocar Senha',
