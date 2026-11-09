@@ -482,11 +482,24 @@ function hierarquiaRH() {
                 ${p.desligado ? etiquetaDesligado(p.desligado) : ''}
             </span>
         </button>`
+    // Equipe grande não espalha na horizontal: quem não tem equipe própria (folha) vai para uma grade
+    // de 2 a 4 colunas embaixo do gestor; só quem tem equipe abaixo continua lado a lado (galhos).
+    const MINIMO_GRADE = 4
+    const grade = folhas => {
+        const colunas = folhas.length <= 6 ? 2 : folhas.length <= 12 ? 3 : 4
+        return `<li class="rh2-org-grade-item"><div class="rh2-org-grade" style="--colunas: ${colunas}">${folhas.map(cartao).join('')}</div></li>`
+    }
     const no = (p, vistos = new Set()) => {
         if (vistos.has(p.id)) return ''          // proteção contra ciclo de gestor
         vistos.add(p.id)
         const equipe = (filhos.get(p.id) || []).filter(f => temVisivel(f))
-        return `<li>${cartao(p)}${equipe.length ? `<ul>${equipe.map(f => no(f, new Set(vistos))).join('')}</ul>` : ''}</li>`
+        const temEquipe = f => (filhos.get(f.id) || []).some(x => temVisivel(x))
+        const galhos = equipe.filter(temEquipe)
+        const folhas = equipe.filter(f => !temEquipe(f))
+        const itens = folhas.length >= MINIMO_GRADE
+            ? [...galhos.map(f => no(f, new Set(vistos))), grade(folhas)]
+            : equipe.map(f => no(f, new Set(vistos)))
+        return `<li>${cartao(p)}${itens.length ? `<ul>${itens.join('')}</ul>` : ''}</li>`
     }
 
     const raizes = (filhos.get('') || []).filter(p => temVisivel(p))

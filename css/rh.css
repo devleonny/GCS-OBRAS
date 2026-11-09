@@ -2026,3 +2026,29 @@ button.rh-arquivo-acao:hover { background: #1c8235; }
 .rh2-org-caixa:fullscreen {
     background: #f3f8f4;
 }
+
+/* Equipe grande: as pessoas sem equipe própria ficam em grade embaixo do gestor (uma linha só liga
+   o gestor à grade), em vez de uma fileira horizontal enorme. */
+.rh2-org-grade {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(var(--colunas, 3), minmax(170px, 1fr));
+    gap: 8px;
+    padding: 10px;
+    border: 1px dashed #b9ccbf;
+    border-radius: 12px;
+    background: #f6faf7;
+}
+
+.rh2-org-grade > .rh2-org-cartao {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+}
+
+@media (max-width: 760px) {
+    .rh2-org-grade {
+        grid-template-columns: repeat(2, minmax(150px, 1fr));
+    }
+}
