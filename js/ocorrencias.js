@@ -384,8 +384,12 @@ function carregarCorrecoes(ocorrencia) {
                 `
             : ''
 
-        // Rodapé só funciona se for != de pagamento de parceiro ou aprovação;
-        const blocoRodape = (pagamentoParceiro || aprovacaoParceiro)
+        // Registros automáticos do fluxo do parceiro (js/parceiros.js): ajuste de valor e
+        // cancelamento da solicitação. Só informam; não recebem anexo nem foto.
+        const registroAutomaticoParceiro = /_(ajuste_\d+|cancelamento)$/.test(idCorrecao)
+
+        // Rodapé só funciona se for != de pagamento de parceiro, aprovação ou registro automático;
+        const blocoRodape = (pagamentoParceiro || aprovacaoParceiro || registroAutomaticoParceiro)
             ? ''
             : `
             <div style="${horizontal}">
