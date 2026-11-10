@@ -345,12 +345,6 @@ async function abrirDetalhesPagamentos(id) {
                 ${elemento ? `<div style="${vertical}; text-align: left;">${elemento}</div>` : ''}
             </div>
             `
-        const botoes = (icone, nome, funcao) => `
-            <div class="btn-detalhes" onclick="${funcao}">
-                ${icone}
-                <label style="cursor: pointer;">${nome}</label>
-            </div>
-            `
         const iconePasta = `<svg class="btn-detalhes-icone" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M2 5a2 2 0 0 1 2-2h5l2 2h9a2 2 0 0 1 2 2v1H2V5z"/><path d="M2 9h20v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9z"/></svg>`
         const modListagem = (listagem) => `
             <div style="${vertical}; width: 100%; border-radius: 8px; overflow: hidden;">
@@ -395,14 +389,23 @@ async function abrirDetalhesPagamentos(id) {
             : `<label>${pagamento.status}</label>`;
 
         // Orçamentos & chamados vinculados, com as tags de cada um (só leitura);
+        // Cartão: contrato e valor no topo, cliente abaixo e as tags como chips na cor de cada uma.
+        const corTag = cor => /^#[0-9a-f]{3,8}$/i.test(String(cor || '')) ? cor : '#94a3b8'
         const btnsOrcamentos = vinculados
-            .map(({ cliente, total_geral, id, tags }) => {
+            .map(({ cliente, total_geral, id, tags, contrato, dados_orcam }) => {
                 const listaTags = (Array.isArray(tags) ? tags : [])
-                    .map(tag => modeloTag(tag, 'N'))
+                    .map(tag => `<span class="pag-orc-tag" style="--cor: ${corTag(tag?.cor)}">${escaparAtributo(String(tag?.nome || '--').trim())}</span>`)
                     .join('')
-                return botoes(iconePasta, `${cliente || '...'}
-                <br>${dinheiro(total_geral)}
-                ${listaTags ? `<span class="pagamento-orcamento-tags">${listaTags}</span>` : ''}`, `abrirAtalhos('${id}')`)
+                return `
+                    <div class="pag-orc" role="button" tabindex="0" title="Abrir orçamento"
+                        onclick="abrirAtalhos('${escaparAtributo(id)}')" onkeydown="if (event.key === 'Enter') this.click()">
+                        <div class="pag-orc-topo">
+                            <span class="pag-orc-contrato">${iconePasta}${escaparAtributo(contrato || dados_orcam?.contrato || 'Orçamento')}</span>
+                            <span class="pag-orc-valor">${dinheiro(total_geral)}</span>
+                        </div>
+                        <span class="pag-orc-cliente">${escaparAtributo(cliente || '...')}</span>
+                        ${listaTags ? `<div class="pag-orc-tags">${listaTags}</div>` : ''}
+                    </div>`
             })
             .join('')
 
