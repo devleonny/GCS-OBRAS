@@ -302,6 +302,38 @@ function iconePagamento(status) {
     return `imagens/${icone}.png`
 }
 
+// Pagamento + orçamentos dos departamentos (com tags) + LPU do parceiro numa ida ao servidor
+// (server-read /detalhes-pagamento). Se a rota falhar, faz as consultas antigas pelo front.
+async function carregarDetalhesPagamento(id) {
+    try {
+        const { token } = JSON.parse(localStorage.getItem('acesso') || '{}')
+        const resposta = await fetch(`${read}/detalhes-pagamento`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ id })
+        })
+        if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`)
+        const dados = await resposta.json()
+        if (dados && 'pagamento' in dados) return { ...dados, pagamento: dados.pagamento || {} }
+        throw new Error('Resposta inválida')
+    } catch (erro) {
+        console.warn('[Pagamentos] /detalhes-pagamento indisponível, usando consultas antigas', erro)
+    }
+
+    const pagamento = await recuperarDado('lista_pagamentos', id) || {}
+    const departamentos = (pagamento.snapshots?.departamentos || []).map(d => d.departamento)
+    const resultados = await Promise.all(departamentos.map(async departamento => {
+        const pesquisa = await pesquisarDB({
+            base: 'mvw_dados_orcamentos',
+            filtros: { 'dados_orcam.contrato': { op: '=', value: departamento } }
+        })
+        return pesquisa?.resultados || []
+    }))
+    const idLpu = pagamento.lpu_parceiro_id || id
+    const lpu = await recuperarDado('parceiros', idLpu)
+    return { pagamento, orcamentos: resultados.flat(), lpu_parceiro: lpu ? idLpu : null }
+}
+
 async function abrirDetalhesPagamentos(id) {
 
     try {
@@ -326,7 +358,7 @@ async function abrirDetalhesPagamentos(id) {
             </div>
         `
         const { permissao, usuario } = acesso
-        const pagamento = await recuperarDado('lista_pagamentos', id) || {}
+        const { pagamento, orcamentos: vinculados, lpu_parceiro: idLpuParceiro } = await carregarDetalhesPagamento(id)
 
         const valoresPorCategoria = (pagamento?.snapshots?.categorias || [])
             .map(({ categoria, valor }) =>
@@ -362,30 +394,15 @@ async function abrirDetalhesPagamentos(id) {
             `
             : `<label>${pagamento.status}</label>`;
 
-        const depPagam = pagamento.snapshots?.departamentos?.map(d => ({ cCodDep: d.departamento })) || []
-
-        // Orçamentos & chamados vinculados;
-        const resultados = await Promise.all(
-            depPagam.map(async (dep) => {
-                const cc = { descricao: dep.cCodDep }
-
-                const pesquisa = await pesquisarDB({
-                    base: 'mvw_dados_orcamentos',
-                    filtros: {
-                        'dados_orcam.contrato': { op: '=', value: cc.descricao }
-                    }
-                })
-
-                return pesquisa.resultados || []
-            })
-        )
-
-        const vinculados = resultados.flat()
-
+        // Orçamentos & chamados vinculados, com as tags de cada um (só leitura);
         const btnsOrcamentos = vinculados
-            .map(({ cliente, total_geral, id }) => {
-                return botoes(iconePasta, `${cliente || '...'} 
-                <br>${dinheiro(total_geral)}`, `abrirAtalhos('${id}')`)
+            .map(({ cliente, total_geral, id, tags }) => {
+                const listaTags = (Array.isArray(tags) ? tags : [])
+                    .map(tag => modeloTag(tag, 'N'))
+                    .join('')
+                return botoes(iconePasta, `${cliente || '...'}
+                <br>${dinheiro(total_geral)}
+                ${listaTags ? `<span class="pagamento-orcamento-tags">${listaTags}</span>` : ''}`, `abrirAtalhos('${id}')`)
             })
             .join('')
 
@@ -396,9 +413,7 @@ async function abrirDetalhesPagamentos(id) {
         ]
 
         // Pagamento migrado LPU
-        const idLpuParceiro = pagamento.lpu_parceiro_id || id
-        const lpuParceiro = await recuperarDado('parceiros', idLpuParceiro)
-        if (lpuParceiro)
+        if (idLpuParceiro)
             acoesRodape.push({ texto: 'Ver LPU Parceiro', img: 'tecnico', funcao: `gerarPdfParceiro('${idLpuParceiro}', true)` })
 
         if (liberados.includes(permissao) || pagamento.criado == usuario)
