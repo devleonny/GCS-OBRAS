@@ -1236,7 +1236,7 @@ function criarLinhaOcorrencia(ocorrencia) {
                 ${modeloCampos('Cep', cliente?.cep)}
                 ${modeloCampos('Descrição', `<div style="white-space: pre-wrap;">${descricao}</div>`)}
                 ${modeloCampos('Criado por', criador)}
-                ${modeloCampos('Gestor Responsável', gestor_responsavel ? escaparAtributo(gestor_responsavel) : null)}
+                ${modeloCampos('Gestor Responsável', gestor_responsavel ? escaparAtributo(gestor_responsavel) : 'Em branco')}
                 ${modeloCampos('Data Solicitação', data_solicitacao ? conversorDt(data_solicitacao) : null)}
                 ${modeloCampos('Data Registro', data_registro)}
                 ${modeloCampos('Empresa', empresa)}
@@ -1804,6 +1804,8 @@ async function criarPesquisas() {
 
     const camposFechados = {
         'Criador': { chave: 'criadores', path: 'usuario' }, // Chave na tabela ref de opções;
+        // Qualquer usuário pode ser gestor: mesma lista de logins do Criador.
+        'Gestor Responsável': { chave: 'criadores', path: 'gestor_responsavel' },
         'Tipo': { chave: 'tipos', path: 'tipo' },
         'Sistema': { chave: 'sistemas', path: 'sistema' },
         'Prioridade': { chave: 'prioridades', path: 'prioridade' },
