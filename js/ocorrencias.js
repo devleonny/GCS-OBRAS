@@ -1100,7 +1100,8 @@ function criarLinhaOcorrencia(ocorrencia) {
         tipo,
         sistema,
         prioridade,
-        tags
+        tags,
+        gestor_responsavel
     } = ocorrencia || {}
 
     // Tags;
@@ -1235,6 +1236,7 @@ function criarLinhaOcorrencia(ocorrencia) {
                 ${modeloCampos('Cep', cliente?.cep)}
                 ${modeloCampos('Descrição', `<div style="white-space: pre-wrap;">${descricao}</div>`)}
                 ${modeloCampos('Criado por', criador)}
+                ${modeloCampos('Gestor Responsável', gestor_responsavel ? escaparAtributo(gestor_responsavel) : null)}
                 ${modeloCampos('Data Solicitação', data_solicitacao ? conversorDt(data_solicitacao) : null)}
                 ${modeloCampos('Data Registro', data_registro)}
                 ${modeloCampos('Empresa', empresa)}
@@ -2219,6 +2221,29 @@ async function atalhoAuxiliar(termo, chave, op = '=') {
 
 }
 
+// Gestor de um usuário pela hierarquia do RH: o cadastro do usuário (clientes.usuario) aponta o
+// gestor em clientes.gestor (id do cadastro). Devolve o login do gestor, ou null se não houver
+// (sem cadastro, sem gestor, gestor sem login, desligado ou excluído). Falha na consulta não trava o formulário.
+async function gestorDoUsuario(usuario) {
+    if (!usuario) return null
+    try {
+        const { resultados = [] } = await pesquisarDB({
+            base: 'clientes',
+            filtros: { usuario: { op: '=', value: usuario } },
+            pagina: 1,
+            limite: 10
+        }) || {}
+        const cadastro = resultados.find(c => !c.excluido && c.gestor) || null
+        if (!cadastro) return null
+        const gestor = await recuperarDado('clientes', cadastro.gestor)
+        if (!gestor?.usuario || gestor.excluido || gestor.desligado) return null
+        return gestor.usuario
+    } catch (erro) {
+        console.warn('[Ocorrências] gestor do usuário', erro)
+        return null
+    }
+}
+
 async function formularioOcorrencia(idOcorrencia) {
 
     try {
@@ -2243,6 +2268,11 @@ async function formularioOcorrencia(idOcorrencia) {
             prioridade,
             sistema
         } = ocorrencia || {}
+
+        // Gestor Responsável: chamado novo já vem com o gestor de quem está criando (hierarquia do RH).
+        const gestorResponsavel = idOcorrencia
+            ? ocorrencia.gestor_responsavel || null
+            : await gestorDoUsuario(acesso.usuario)
 
         const equipamentos = (
             await Promise.all(
@@ -2289,6 +2319,21 @@ async function formularioOcorrencia(idOcorrencia) {
 
         })
 
+        controlesCxOpcoes.gestor_responsavel = {
+            base: 'clientes',
+            retornar: ['usuario'],
+            filtros: {
+                usuario: { op: 'NOT_EMPTY' }
+            },
+            colunas: {
+                'Usuário': { chave: 'usuario' },
+                'Nome': { chave: 'nome' },
+                'Cargo': { chave: 'cargo' },
+                'Setor': { chave: 'setor' },
+                'Permissão': { chave: 'permissao' }
+            }
+        }
+
         const [
             pesqTipo,
             pesqSist,
@@ -2307,6 +2352,17 @@ async function formularioOcorrencia(idOcorrencia) {
                         ${cliente?.nome || 'Selecione'}
                     </span>
             `
+            },
+            {
+                texto: 'Gestor Responsável',
+                elemento: `
+                    <div style="${horizontal}; gap: 0.5rem;">
+                        <span ${gestorResponsavel ? `id="${escaparAtributo(gestorResponsavel)}"` : ''}
+                            class="opcoes" name="gestor_responsavel" onclick="cxOpcoes('gestor_responsavel')">${escaparAtributo(gestorResponsavel || 'Selecione')}</span>
+                        <img src="imagens/cancel.png" style="width: 1.5rem;" title="Limpar"
+                            onclick="const s = this.previousElementSibling; s.removeAttribute('id'); s.textContent = 'Selecione'">
+                    </div>
+                `
             },
             {
                 texto: 'Sistema',
@@ -3239,6 +3295,8 @@ async function salvarOcorrencia(idOcorrencia) {
         sistema: campo('sistema')?.id || null,
         prioridade: campo('prioridade')?.id || null,
         tipo: campo('tipo')?.id || null,
+        // O span mostra o login (clientes.usuario); o id dele é só marcador de "selecionado".
+        gestor_responsavel: campo('gestor_responsavel')?.id ? campo('gestor_responsavel').textContent.trim() || null : null,
         descricao: painel.querySelector('.editor-conteudo')?.innerHTML || null,
         data_registro: dataServidor().toLocaleString('pt-BR'),
         usuario: ocorrencia.usuario || acesso.usuario,
