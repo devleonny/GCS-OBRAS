@@ -1181,7 +1181,7 @@ async function enviarDadosOrcamento() {
                         datas: {},
                         descricao: `Requisição de materiais para o Funcionário`,
                         dtCorrecao: dataServidor().toISOString().slice(0, 10),
-                        setor: ['LOGÍSTICA'],
+                        permissao: ['log'],
                         tipoCorrecao: '4Zmd3',
                         usuario: acesso.usuario
                     }

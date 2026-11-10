@@ -448,7 +448,6 @@ async function criarPIT(id) {
         },
         colunas: {
             'Usuario': { chave: 'usuario' },
-            'Setor': { chave: 'setor' },
             'Permissão': { chave: 'permissao' }
         }
     }

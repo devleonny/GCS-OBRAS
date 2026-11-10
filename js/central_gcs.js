@@ -430,7 +430,7 @@ async function painelUsuarios() {
             <div class="painel-usuarios">
                 <div class="painel-usuarios-topo">
                     <div class="painel-usuarios-meu-status"></div>
-                    <input type="search" class="painel-usuarios-busca" placeholder="Buscar usuário, setor ou permissão"
+                    <input type="search" class="painel-usuarios-busca" placeholder="Buscar usuário ou permissão"
                         aria-label="Buscar usuário" oninput="painelUsuariosEstado.busca = this.value; renderizarPainelUsuarios()">
                 </div>
                 <div class="painel-usuarios-resumo"></div>
@@ -452,7 +452,7 @@ async function carregarUsuariosPainel() {
         limite: 5000
     }) || {}
     painelUsuariosEstado.usuarios = (resultados || [])
-        .map(({ id, usuario, nome, status, setor, permissao, foto }) => ({ id, usuario, nome, status, setor, permissao, foto }))
+        .map(({ id, usuario, nome, status, permissao, foto }) => ({ id, usuario, nome, status, permissao, foto }))
 }
 
 // Chamado a cada aviso de status do websocket: só recarrega se o painel estiver aberto.
@@ -474,7 +474,7 @@ function renderizarPainelUsuarios() {
         .map(u => ({ ...u, statusVisivel: statusVisivelUsuario(u) }))
     const eu = usuarios.find(u => u.usuario === acesso?.usuario)
     const filtrados = usuarios.filter(u => !busca
-        || [u.usuario, u.nome, u.setor, u.permissao].some(campo => normalizar(campo).includes(busca)))
+        || [u.usuario, u.nome, u.permissao].some(campo => normalizar(campo).includes(busca)))
 
     // Meu status fica no topo, fora da lista: é a única informação que a pessoa edita.
     const opcoes = [...STATUS_USUARIO_OPCOES, ...(acesso?.permissao === 'adm' ? ['Invisível'] : [])]
@@ -498,7 +498,7 @@ function renderizarPainelUsuarios() {
 
     const cartao = u => {
         const iniciais = String(u.nome || u.usuario || '?').trim().split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase()
-        const detalhe = [u.setor, u.permissao].filter(Boolean).map(inicialMaiuscula).join(' · ')
+        const detalhe = [u.permissao].filter(Boolean).map(inicialMaiuscula).join(' · ')
         return `
             <div class="painel-usuarios-item${u.usuario === acesso?.usuario ? ' painel-usuarios-item--eu' : ''}">
                 <span class="painel-usuarios-avatar" data-iniciais="${escaparAtributo(iniciais)}">

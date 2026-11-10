@@ -301,7 +301,7 @@ function carregarCorrecoes(ocorrencia) {
             aba = 'geral',
             equipamentos,
             data,
-            setor,
+            permissao: permissaoCorrecao,
             tecnico,
             descricao = '',
             datas_agendadas,
@@ -452,7 +452,7 @@ function carregarCorrecoes(ocorrencia) {
 
                     ${modelo('Solicitante', `<span>${usuario || ''}</span>`)}
 
-                    ${modelo('Setor', setor)}
+                    ${modelo('Permissão', [].concat(permissaoCorrecao || []).filter(Boolean).join(', '))}
 
                     ${listaExecutores.length ? modelo('Executores', `<span>${listaExecutores.join(', ')}</span>`) : ''}
                     ${(tecnico && tecnico.length) ? modelo('Técnicos', `<span>${tecnico.join(', ')}</span>`) : ''}
@@ -2331,7 +2331,6 @@ async function formularioOcorrencia(idOcorrencia) {
                 'Usuário': { chave: 'usuario' },
                 'Nome': { chave: 'nome' },
                 'Cargo': { chave: 'cargo' },
-                'Setor': { chave: 'setor' },
                 'Permissão': { chave: 'permissao' }
             }
         }
@@ -2571,8 +2570,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
         retornar: ['usuario'],
         colunas: {
             'Nome': { chave: 'usuario' },
-            'Permissão': { chave: 'permissao' },
-            'Setor': { chave: 'setor' }
+            'Permissão': { chave: 'permissao' }
         }
     }
 
@@ -2588,7 +2586,9 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
     }
 
     const { nome } = await recuperarDado('correcoes', correcao?.tipoCorrecao) || {}
-    const { turno, executor, tecnico, autorizacao, setor } = correcao
+    const { turno, executor, tecnico, autorizacao } = correcao
+    // Destino por permissão (substitui o antigo "Setor"): gravado como lista, como lê a vw_correcoes_por_permissao.
+    const permissaoAtual = [].concat(correcao?.permissao || [])[0] || ''
     const opcoesTurno = ['MANHÃ', 'TARDE', 'NOITE', 'MADRUGADA']
         .map(t => {
             return `
@@ -2644,8 +2644,8 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
                 </span>`
         },
         {
-            texto: 'Setor',
-            elemento: `<select name="setor">${setores.map(s => `<option ${setor == s ? 'selected' : ''}>${s}</option>`).join('')}</select>`
+            texto: 'Permissão',
+            elemento: `<select name="permissao">${PERMISSOES_CORRECAO.map(p => `<option ${permissaoAtual == p ? 'selected' : ''}>${p}</option>`).join('')}</select>`
         },
         {
             texto: `
@@ -3095,16 +3095,16 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
 
         await Promise.all(emMassa)
 
-        // Setor;
-        const setor = obter('setor').value
+        // Permissão que recebe a correção;
+        const permissaoDestino = obter('permissao').value
 
         // Executores;
         const executor = [...document.querySelectorAll('.executores span')]
             .filter(span => span.id)
             .map(span => span.textContent)
 
-        if (executor.length == 0 && !setor)
-            return popup({ mensagem: 'Selecione pelo menos 1 executor' })
+        if (executor.length == 0 && !permissaoDestino)
+            return popup({ mensagem: 'Selecione pelo menos 1 executor ou uma permissão' })
 
         const turno = document.querySelectorAll('[name="turno"]:checked')?.[0]?.dataset?.turno
         const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
@@ -3127,11 +3127,12 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
             turno,
             tecnico,
             executor,
-            setor,
+            permissao: permissaoDestino ? [permissaoDestino] : [],
             usuario: correcao.usuario || acesso.usuario,
             tipoCorrecao,
             descricao: document.querySelector('.editor-conteudo')?.innerHTML || ''
         }
+        delete atualizado.setor   // legado: o destino agora é só por permissão
 
         // Novo fluxo, se existir;
         const novoFluxo = document.getElementById('novoFluxo')

@@ -114,7 +114,6 @@ async function incluirResponsavel(usuario) {
         retornar: ['usuario'],
         colunas: {
             'Usuário': { chave: 'usuario' },
-            'Setor': { chave: 'setor' },
             'Permissão': { chave: 'permissao' }
         }
     }

@@ -34,7 +34,7 @@ async function telaVeiculos() {
             'Editar': {}
         }
 
-        const btnExtras = (acesso.permissao == 'adm' || acesso.setor == 'FINANCEIRO')
+        const btnExtras = ['adm', 'fin'].includes(acesso.permissao)
             ? `<div id="viabilidade"></div>`
             : ''
 
@@ -134,7 +134,7 @@ async function criarLinhaCusto(custo) {
 
     const { veiculo, id, usuario, data_pagamento, comentario, data, realizado, custo_total, distribuicao = {} } = custo
     const { cartao, placa, modelo, status } = veiculo || {}
-    const editavel = acesso.permissao == 'adm' || acesso.setor == 'FINANCEIRO'
+    const editavel = ['adm', 'fin'].includes(acesso.permissao)
 
     const nomes = (custo.nomes_motoristas || [])
         .map(nome => `<b>${escaparAtributo(nome)}</b>`)

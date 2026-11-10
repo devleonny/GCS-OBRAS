@@ -141,7 +141,7 @@ function popupAniversarios(hoje, proximos) {
                 <span class="aniversario-selo" aria-hidden="true">🎂</span>
             </div>
             <span class="aniversario-nome">${escaparAtributo(nomeAniversario(p.nome))}</span>
-            ${p.cargo || p.setor ? `<small class="aniversario-funcao">${escaparAtributo(p.cargo || p.setor)}</small>` : ''}
+            ${p.cargo ? `<small class="aniversario-funcao">${escaparAtributo(p.cargo)}</small>` : ''}
             ${p.dias_desde ? `<small class="aniversario-quando">🎈 ${escaparAtributo(p.dia_mes_comemorado)} · ${quandoFoiAniversario(p)}</small>` : ''}
             <p class="aniversario-mensagem">${mensagemAniversario(p)}</p>
         </div>`).join('')

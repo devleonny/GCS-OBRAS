@@ -639,7 +639,7 @@ async function salvarRequisicao(id) {
                 datas: {},
                 descricao: 'Requisição de materiais criada',
                 dtCorrecao: dataServidor().toISOString().slice(0, 10),
-                setor: ['LOGÍSTICA'],
+                permissao: ['log'],
                 tipoCorrecao: '4Zmd3',
                 usuario: acesso.usuario
             }

@@ -720,7 +720,6 @@ async function formularioCliente(idCliente) {
         nome,
         usuario,
         permissao,
-        setor,
         cargo,
         cnpj,
         comentario,
@@ -877,10 +876,6 @@ async function formularioCliente(idCliente) {
             elemento: `<textarea name="cargo" placeholder="Cargo">${escaparAtributo(cargo || '')}</textarea>`
         },
         {
-            texto: 'Setor',
-            elemento: `<select name="setor">${setores.map(s => `<option ${setor == s ? 'selected' : ''}>${s}</option>`).join('')}</select>`
-        },
-        {
             texto: 'Comentário',
             elemento: `<textarea placeholder="Comentário" name="comentario">${comentario || ''}</textarea>`
         },
@@ -988,7 +983,8 @@ async function gerarSenhaProvisoriaCliente(idCliente) {
             return popup({ mensagem: dados.mensagem || 'Falha ao gerar a senha provisória.' })
 
         const validade = new Date(dados.expiraEm).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-        const semAcesso = !dados.permissao || ['novo', 'desativado'].includes(dados.permissao)
+        // "novo" entra com a senha; só sem permissão ou desativado fica barrado no login.
+        const semAcesso = !dados.permissao || dados.permissao === 'desativado'
 
         const linhas = [
             { texto: 'Usuário', elemento: `<input value="${escaparAtributo(dados.usuario)}" readOnly>` },
@@ -1334,7 +1330,6 @@ async function salvarCliente(idCliente = null) {
             endereco: obVal('endereco'),
             bairro: obVal('bairro'),
             cep: obVal('cep'),
-            setor: obVal('setor'),
             cargo: obVal('cargo'),
             cidade: obVal('cidade'),
             estado: obVal('estado'),

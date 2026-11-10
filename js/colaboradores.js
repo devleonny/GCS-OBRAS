@@ -4,7 +4,7 @@
 // O servidor junta cadastro, composições, nomes de status e o Kit Técnico na hora (gcs/SCRIPTS/colaboradores.js).
 //
 // Fluxo linear, tudo no próprio item da lista:
-//   1. Nova requisição -> nasce em REQUISIÇÃO (setor Logística).
+//   1. Nova requisição -> nasce em REQUISIÇÃO (permissão log).
 //   2. Status: cxOpcoes no item; cada troca vira uma etapa no histórico.
 //   3. Documento: gera o recibo para assinar. Anexar: guarda o arquivo e muda para SOLUCIONADA.
 //   Só requisição solucionada entra no saldo da pessoa.
@@ -20,7 +20,7 @@ const estadoColaboradores = {
 }
 
 // Status com que a requisição nasce, o mesmo das requisições de chamados (js/requisicao.js).
-const etapaInicialColaborador = { tipoCorrecao: '4Zmd3', setor: ['LOGÍSTICA'] }
+const etapaInicialColaborador = { tipoCorrecao: '4Zmd3' }
 
 async function chamarColaboradores(rota, corpo = {}) {
     const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
@@ -334,11 +334,10 @@ function buscarRequisicaoColab(idColab, idReq) {
     return propria ? { requisicao: propria, colaborador: { id: idColab, ...pessoa.colaborador } } : {}
 }
 
-async function gravarEtapaColab(idColab, idReq, { tipoCorrecao, descricao, setor }) {
+async function gravarEtapaColab(idColab, idReq, { tipoCorrecao, descricao }) {
     const agora = dataServidor()
     const resultado = await enviar(`colaboradores/${idColab}/requisicoes/${idReq}/etapas/${crypto.randomUUID()}`, {
         tipoCorrecao,
-        setor: setor?.length ? setor : etapaInicialColaborador.setor,
         executor: [],
         descricao,
         usuario: acesso.usuario,
@@ -389,7 +388,7 @@ async function salvarStatusEscolhidoColab() {
     }
 
     try {
-        await gravarEtapaColab(idColab, idReq, { tipoCorrecao, setor: requisicao.etapas[0]?.setor, descricao: 'Status alterado na lista.' })
+        await gravarEtapaColab(idColab, idReq, { tipoCorrecao, descricao: 'Status alterado na lista.' })
         removerOverlay()
         await carregarColaboradores()
     } catch (erro) {
@@ -430,7 +429,6 @@ async function anexarDocumentoColab(input, idColab, idReq) {
         if (!requisicao.concluida)
             await gravarEtapaColab(idColab, idReq, {
                 tipoCorrecao: await statusSolucionadaColab(),
-                setor: requisicao.etapas[0]?.setor,
                 descricao: `Documento anexado: ${nomes.join(', ')}`
             })
 
@@ -579,7 +577,7 @@ function renderizarPessoaColab() {
                     ${avatarColaborador(colaborador, 'grande')}
                     <div>
                         <h3>${escaparAtributo(colaborador.nome || 'Sem cadastro')} ${colaborador.desligado ? etiquetaDesligado(colaborador.desligado) : ''}</h3>
-                        <small>${escaparAtributo([colaborador.usuario, colaborador.setor, localColaborador(colaborador)].filter(Boolean).join(' · '))}</small>
+                        <small>${escaparAtributo([colaborador.usuario, localColaborador(colaborador)].filter(Boolean).join(' · '))}</small>
                         ${colaborador.desligado && colaborador.ferramentas > 0 ? `<div class="colab-recuperacao">Desligado com <b>${colaborador.ferramentas}</b> ferramenta(s) em mãos: registre a devolução para recuperar.</div>` : ''}
                     </div>
                 </div>
@@ -758,7 +756,6 @@ async function salvarDevolucaoColab() {
             etapas: {
                 [crypto.randomUUID()]: {
                     tipoCorrecao: await statusSolucionadaColab(),
-                    setor: etapaInicialColaborador.setor,
                     executor: [],
                     data,
                     ts: agora.getTime(),
@@ -953,7 +950,6 @@ async function formularioRequisicaoColaborador({ colaborador = null, idRequisica
         colunas: {
             'Nome': { chave: 'nome' },
             'Usuário': { chave: 'usuario' },
-            'Setor': { chave: 'setor' },
             'Permissão': { chave: 'permissao' },
             'Cidade': { chave: 'cidade' }
         }

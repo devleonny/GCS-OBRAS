@@ -385,9 +385,9 @@ function renderizarPendenciasRH() {
 
 // ---------------- Envio manual (adm/diretoria) ----------------
 // Destinatários escolhidos de listas reais (rota /notificacoes/destinatarios), sem texto livre:
-// setores e permissões em botões liga/desliga, usuários por busca (nome ou login). O resumo mostra
+// permissões em botões liga/desliga, usuários por busca (nome ou login). O resumo mostra
 // quantas pessoas recebem, e "ver quem" lista os nomes antes de enviar.
-const estadoAviso = { opcoes: null, todos: false, setores: new Set(), permissoes: new Set(), usuarios: new Set() }
+const estadoAviso = { opcoes: null, todos: false, permissoes: new Set(), usuarios: new Set() }
 const normalizarAviso = texto => String(texto || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
 async function formularioEnviarNotificacao() {
@@ -400,7 +400,7 @@ async function formularioEnviarNotificacao() {
         removerOverlay()
         return popup({ mensagem: escaparAtributo(erro.message) })
     }
-    Object.assign(estadoAviso, { todos: false, setores: new Set(), permissoes: new Set(), usuarios: new Set() })
+    Object.assign(estadoAviso, { todos: false, permissoes: new Set(), usuarios: new Set() })
     removerOverlay()
     popup({
         titulo: 'Enviar aviso',
@@ -412,7 +412,6 @@ async function formularioEnviarNotificacao() {
                 elemento: `
                 <div class="aviso-destino">
                     <label class="aviso-todos"><input type="checkbox" onchange="estadoAviso.todos = this.checked; renderizarDestinoAviso()"> Todos os usuários</label>
-                    <div class="aviso-grupo"><small>Setores</small><div class="aviso-chips" data-grupo="setores"></div></div>
                     <div class="aviso-grupo"><small>Permissões</small><div class="aviso-chips" data-grupo="permissoes"></div></div>
                     <div class="aviso-grupo">
                         <small>Usuários</small>
@@ -430,17 +429,16 @@ async function formularioEnviarNotificacao() {
 }
 
 function destinatariosAviso() {
-    const { opcoes, todos, setores, permissoes, usuarios } = estadoAviso
-    const setoresNorm = new Set([...setores].map(s => s.toUpperCase()))
+    const { opcoes, todos, permissoes, usuarios } = estadoAviso
     return (opcoes?.usuarios || []).filter(u => todos || usuarios.has(u.usuario) ||
-        (u.setor && setoresNorm.has(u.setor.toUpperCase())) || (u.permissao && permissoes.has(u.permissao)))
+        (u.permissao && permissoes.has(u.permissao)))
 }
 
 function renderizarDestinoAviso() {
     const destino = document.querySelector('.aviso-destino')
     if (!destino || !estadoAviso.opcoes) return
     destino.classList.toggle('para-todos', estadoAviso.todos)
-    for (const grupo of ['setores', 'permissoes']) {
+    for (const grupo of ['permissoes']) {
         destino.querySelector(`[data-grupo="${grupo}"]`).innerHTML = estadoAviso.opcoes[grupo].map(({ valor, quantidade }) => `
             <button type="button" class="aviso-chip ${estadoAviso[grupo].has(valor) ? 'ativo' : ''}"
                 data-grupo="${grupo}" data-valor="${escaparAtributo(valor)}" onclick="alternarChipAviso(this)">
@@ -476,7 +474,7 @@ function buscarUsuarioAviso(texto) {
     resultados.innerHTML = achados.map(u => `
         <button type="button" class="aviso-resultado" data-usuario="${escaparAtributo(u.usuario)}" onclick="adicionarUsuarioAviso(this)">
             <b>${escaparAtributo(u.nome || u.usuario)}</b>
-            <small>${escaparAtributo(u.usuario)}${u.setor ? ` · ${escaparAtributo(u.setor)}` : ''}${u.permissao ? ` · ${escaparAtributo(u.permissao)}` : ''}</small>
+            <small>${escaparAtributo(u.usuario)}${u.permissao ? ` · ${escaparAtributo(u.permissao)}` : ''}</small>
         </button>`).join('') || '<small class="aviso-sem-resultado">Ninguém com esse nome.</small>'
 }
 
@@ -498,7 +496,7 @@ function verDestinatariosAviso() {
     popup({
         titulo: `Destinatários (${lista.length})`,
         elemento: `<div class="aviso-lista-destinatarios">${lista.map(u => `
-            <div><b>${escaparAtributo(u.nome || u.usuario)}</b> <small>${escaparAtributo(u.usuario)}${u.setor ? ` · ${escaparAtributo(u.setor)}` : ''}${u.permissao ? ` · ${escaparAtributo(u.permissao)}` : ''}</small></div>`).join('')}
+            <div><b>${escaparAtributo(u.nome || u.usuario)}</b> <small>${escaparAtributo(u.usuario)}${u.permissao ? ` · ${escaparAtributo(u.permissao)}` : ''}</small></div>`).join('')}
         </div>`
     })
 }
@@ -515,7 +513,6 @@ async function enviarNotificacaoManual(botao) {
         titulo: campo('tituloAviso').value.trim(),
         html: textoEditorAviso(janela) ? janela.querySelector('.editor-conteudo').innerHTML.trim() : '',
         todos: estadoAviso.todos,
-        setores: [...estadoAviso.setores],
         permissoes: [...estadoAviso.permissoes],
         usuarios: [...estadoAviso.usuarios]
     }

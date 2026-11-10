@@ -180,7 +180,6 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
         },
         colunas: {
             'Usuário': { chave: 'usuario' },
-            'Setor': { chave: 'setor' },
             'Permissão': { chave: 'permissao' }
         }
     }
