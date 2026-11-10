@@ -963,8 +963,10 @@ async function cadastrarItem(codigo) {
             { texto: 'Unidade', elemento: `<input name="unidade" value="${produto?.unidade || 'UN'}">` },
             { texto: 'ncm', elemento: `<input name="ncm" value="${produto?.ncm || ''}">` },
             { texto: 'Omie', elemento: `<input name="omie" value="${produto?.omie || ''}">` },
-            { texto: 'Tipo', elemento: `<select name="tipo">${tipos}</select>` },
+            { texto: 'Tipo', elemento: `<select name="tipo" onchange="alternarClassificacaoItem(this)">${tipos}</select>` },
             { texto: 'Sistema', elemento: `<select name="sistema">${sistemas}</select>` },
+            // Obrigatória para produtos: só EQUIPAMENTO entra no orçamento de locação; MATERIAL vai em orçamento comum.
+            { texto: 'Classificação *', elemento: campoClassificacaoItem(produto) },
         ]
 
         popup({ linhas, botoes, titulo: 'Dados do Item' })
@@ -976,16 +978,49 @@ async function cadastrarItem(codigo) {
 
 }
 
+const CLASSIFICACOES_ITEM = { EQUIPAMENTO: 'Equipamento', MATERIAL: 'Material' }
+
+// Serviço não tem classificação: o seletor some e o item é salvo sem ela.
+function itemPrecisaClassificacao(tipo) {
+    return tipo !== 'SERVIÇO'
+}
+
+function campoClassificacaoItem(produto) {
+    const tipo = produto?.tipo || esquemas.tipo[0]
+    const opcoes = Object.entries(CLASSIFICACOES_ITEM).map(([valor, texto]) => `
+        <label class="classificacao-opcao">
+            <input type="radio" name="classificacao" value="${valor}" ${produto?.classificacao === valor ? 'checked' : ''}>
+            <span>${texto}</span>
+        </label>`).join('')
+    return `
+        <div class="classificacao-item" data-classificacao ${itemPrecisaClassificacao(tipo) ? '' : 'hidden'}>${opcoes}</div>
+        <span class="classificacao-servico" ${itemPrecisaClassificacao(tipo) ? 'hidden' : ''}>Não se aplica a serviço</span>`
+}
+
+function alternarClassificacaoItem(select) {
+    const painel = select.closest('.painel-padrao')
+    const precisa = itemPrecisaClassificacao(select.value)
+    painel.querySelector('[data-classificacao]').hidden = !precisa
+    painel.querySelector('.classificacao-servico').hidden = precisa
+}
+
 async function salvarComposicao(codigo) {
 
     try {
-
-        overlayAguarde()
 
         const campos = ['descricao', 'unidade', 'fabricante', 'modelo', 'ncm', 'omie', 'tipo', 'sistema']
         const produto = {}
         // O mais recente: "Criar item" também abre por cima de outros popups (ex.: requisição).
         const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
+
+        const tipo = painel.querySelector('[name="tipo"]')?.value || ''
+        const classificacao = painel.querySelector('[name="classificacao"]:checked')?.value || ''
+        if (itemPrecisaClassificacao(tipo) && !classificacao)
+            return popup({ mensagem: 'Escolha a classificação do item: <b>Equipamento</b> ou <b>Material</b>.' })
+
+        overlayAguarde()
+
+        produto.classificacao = itemPrecisaClassificacao(tipo) ? classificacao : null
 
         for (const campo of campos) {
             const el = painel.querySelector(`[name="${campo}"]`)

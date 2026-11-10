@@ -404,8 +404,8 @@
   margin-bottom: 1rem;
 }
 
-/* Aluguel: tabela do orçamento larga rola na horizontal em vez de empurrar a tela. */
-#orcamento_aluguel #ALUGUEL {
+/* Locação: tabela do orçamento larga rola na horizontal em vez de empurrar a tela. */
+#orcamento_locacao .tabela-locacao {
   width: 100%;
   overflow-x: auto;
   /* Cantos arredondados: o overflow recorta cabeçalho e linhas no raio. */
@@ -415,16 +415,16 @@
 }
 
 /* Sem bordas externas nas células: a moldura arredondada já faz esse papel. */
-#orcamento_aluguel .tabela-orcamento tr > :first-child { border-left: none; }
-#orcamento_aluguel .tabela-orcamento tr > :last-child { border-right: none; }
-#orcamento_aluguel .tabela-orcamento tbody tr:last-child td { border-bottom: none; }
+#orcamento_locacao .tabela-orcamento tr > :first-child { border-left: none; }
+#orcamento_locacao .tabela-orcamento tr > :last-child { border-right: none; }
+#orcamento_locacao .tabela-orcamento tbody tr:last-child td { border-bottom: none; }
 
-#orcamento_aluguel .tabela-orcamento td {
+#orcamento_locacao .tabela-orcamento td {
   vertical-align: middle;
 }
 
-/* Inputs do aluguel no mesmo padrão dos inputs de tabela do orçamento (.tabela td input). */
-.campo-aluguel {
+/* Inputs da locação no mesmo padrão dos inputs de tabela do orçamento (.tabela td input). */
+.campo-locacao {
   border: solid 1px #a9c9b3;
   text-align: start;
   padding: 0.5rem 1rem;
@@ -436,11 +436,66 @@
   font-size: 0.85rem;
 }
 
-.campo-aluguel:focus {
+.campo-locacao:focus {
   outline: none;
   border-color: #477d59;
   background-color: white;
   box-shadow: 0 0 0 3px #477d5920;
+}
+
+/* Locação Grenke: coeficiente do prazo, validade da tabela e avisos. */
+.locacao-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem 1.25rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+}
+
+.locacao-info:empty {
+  display: none;
+}
+
+.locacao-aviso {
+  color: #b3261e;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.locacao-botao {
+  border: 1px solid #477d59;
+  background: white;
+  color: #477d59;
+  border-radius: 6px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.locacao-botao:hover {
+  background: #eff8f1;
+}
+
+.locacao-mensalidade {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.locacao-origem {
+  font-size: 0.72rem;
+  color: #5b6878;
+  white-space: nowrap;
+}
+
+.locacao-recalcular {
+  color: #1f4e79;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .pesquisa-orcamento {

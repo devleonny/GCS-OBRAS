@@ -967,7 +967,7 @@ function painelEdicao(tela) {
 
     // Se não existir orcs em edição, pode passar adiante;
     if (!listaORCS.length)
-        return editarOrcamentoTemporario(novo, tela == 1 ? 'ALUGUEL' : null)
+        return editarOrcamentoTemporario(novo, tela == 1 ? MODO_LOCACAO : null)
 
     const elemento = `
         <div style="${vertical}; padding: 1rem;">
@@ -987,7 +987,7 @@ function painelEdicao(tela) {
             <br>
 
             <button onclick="editarOrcamentoTemporario('${novo}')">Novo Orçamento</button>
-            <button onclick="editarOrcamentoTemporario('${novo}', 'ALUGUEL')">Novo Orçamento de Aluguel</button>
+            <button onclick="editarOrcamentoTemporario('${novo}', MODO_LOCACAO)">Novo Orçamento de Locação</button>
 
             <br>
 
@@ -1031,8 +1031,8 @@ async function editarOrcamentoTemporario(idEdicao, lpu) {
     sessionStorage.setItem('idEdicao', idEdicao)
     tela.innerHTML = ''
 
-    if (lpu == 'ALUGUEL')
-        await telaCriarOrcamentoAluguel()
+    if (ehOrcamentoLocacao(lpu))
+        await telaCriarOrcamentoLocacao()
     else
         await telaCriarOrcamento()
 

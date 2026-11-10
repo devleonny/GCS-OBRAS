@@ -42,7 +42,8 @@ function coresTabelas(tabela) {
         'VENDA': '#B12425',
         'SERVIÇO': '#008000',
         'USO E CONSUMO': '#24729d',
-        'ALUGUEL': '#e96300'
+        'ALUGUEL': '#e96300',
+        'LOCAÇÃO': '#e96300'
     }
 
     if (coresTabelas[tabela]) {
@@ -268,7 +269,7 @@ function excluirRevisao() {
 }
 
 function campoComposicoesRevisao(orcamento) {
-    return orcamento.lpu_ativa === 'ALUGUEL' ? 'dados_composicoes' : 'esquema_composicoes'
+    return ehOrcamentoLocacao(orcamento.lpu_ativa) ? 'dados_composicoes' : 'esquema_composicoes'
 }
 
 function sincronizarRevisaoAtual(orcamento) {
@@ -279,9 +280,9 @@ function sincronizarRevisaoAtual(orcamento) {
 
 async function atualizarTabelaRevisao() {
     const orcamento = baseOrcamento()
-    if (orcamento.lpu_ativa === 'ALUGUEL') {
+    if (ehOrcamentoLocacao(orcamento.lpu_ativa)) {
         document.getElementById('tabelas').innerHTML = ''
-        await carregarTabelasAluguel()
+        await carregarTabelasLocacao()
     } else {
         controles.criarOrcamento.base = Object.values(orcamento.esquema_composicoes || {})
         await paginacao('criarOrcamento')
@@ -349,7 +350,7 @@ async function salvarRevisao() {
 
     orcamento.revisoes.atual = numeroRevisao
 
-    const esquema = orcamento.lpu_ativa == 'ALUGUEL'
+    const esquema = ehOrcamentoLocacao(orcamento.lpu_ativa)
         ? orcamento.dados_composicoes
         : orcamento.esquema_composicoes
 
@@ -1072,8 +1073,8 @@ async function enviarDadosPrincipal() {
 
     const { lpu_ativa } = baseOrcamento()
 
-    if (lpu_ativa == 'ALUGUEL')
-        await enviarDadosAluguel()
+    if (ehOrcamentoLocacao(lpu_ativa))
+        await enviarDadosLocacao()
     else
         await enviarDadosOrcamento()
 

@@ -179,6 +179,7 @@ async function montarPdfOrcamento(idRecebido, raiz = document) {
 
     const config = {
         'ALUGUEL': { cor: 'green' },
+        'LOCAÇÃO': { cor: 'green' },
         'USO E CONSUMO': { cor: '#24729d' },
         'SERVIÇO': { cor: 'green' },
         'VENDA': { cor: '#B12425' }

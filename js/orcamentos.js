@@ -342,8 +342,8 @@ async function editar(id) {
 
     precosAntigos = null
 
-    orcamento.lpu_ativa == 'ALUGUEL'
-        ? await telaCriarOrcamentoAluguel()
+    ehOrcamentoLocacao(orcamento.lpu_ativa)
+        ? await telaCriarOrcamentoLocacao()
         : await telaCriarOrcamento()
 
 }
@@ -396,8 +396,8 @@ async function duplicar(id) {
 
     removerTodosPopups()
 
-    novoOrcamento.lpu_ativa == 'ALUGUEL'
-        ? await telaCriarOrcamentoAluguel()
+    ehOrcamentoLocacao(novoOrcamento.lpu_ativa)
+        ? await telaCriarOrcamentoLocacao()
         : await telaCriarOrcamento()
 
 }

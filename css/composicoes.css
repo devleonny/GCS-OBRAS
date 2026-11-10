@@ -582,3 +582,55 @@ button.composicao-lpu:hover {
     }
 
 }
+
+/* Classificação do item (Dados do Item): Equipamento ou Material, obrigatória para produtos. */
+.classificacao-item {
+    display: inline-flex;
+    border: 1px solid #a9c9b3;
+    border-radius: 7px;
+    overflow: hidden;
+}
+
+.classificacao-opcao {
+    position: relative;
+    cursor: pointer;
+}
+
+.classificacao-opcao input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.classificacao-opcao span {
+    display: block;
+    padding: 0.4rem 1rem;
+    font-size: 0.85rem;
+    background: #ffffff;
+    color: #2b3a30;
+}
+
+.classificacao-opcao + .classificacao-opcao span {
+    border-left: 1px solid #a9c9b3;
+}
+
+.classificacao-opcao input:checked + span {
+    background: #477d59;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.classificacao-opcao input:focus-visible + span {
+    outline: 2px solid #1f4e79;
+    outline-offset: -2px;
+}
+
+.classificacao-servico {
+    font-size: 0.85rem;
+    color: #5b6878;
+}
+
+.classificacao-item[hidden],
+.classificacao-servico[hidden] {
+    display: none;
+}
