@@ -19,7 +19,7 @@ const VERSOES_CSS = {
     "inicial": "0e21d68b",
     "interruptor": "45635901",
     "jogo": "baa3f388",
-    "layout_os": "2580d9ae",
+    "layout_os": "1349cc5e",
     "lembrete_combustivel": "4bbad5d0",
     "mapa": "2a3b2db5",
     "notificacoes": "3a3eec54",

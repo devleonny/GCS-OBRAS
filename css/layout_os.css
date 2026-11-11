@@ -174,3 +174,79 @@
 .os-chamado .os-equipamentos-chamado {
     width: 100%;
 }
+
+/* PDF da OS em A4 retrato (o servidor renderiza com mídia print, 794px de largura):
+   a OS ocupa a largura da folha em vez de crescer até o conteúdo, e fotos, colunas
+   e textos longos encolhem/quebram para tudo caber sem cortar na lateral. */
+@media print {
+    .os-chamado,
+    .os-chamado .relatorio,
+    .os-chamado .corpo {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        overflow: visible;
+    }
+
+    /* relatorio.css dá margin: 2rem ao .relatorio: somada aos 100% empurrava a OS para fora da folha. */
+    .os-chamado .relatorio {
+        margin: 0;
+    }
+
+    .os-chamado .corpo {
+        padding: 1.25rem 1.5rem;
+        border-radius: 0;
+    }
+
+    /* Só palavras gigantes (links, textos sem espaço) quebram no meio; códigos e séries ficam inteiros. */
+    .os-chamado .painel-0,
+    .os-chamado .vertical,
+    .os-chamado .campo-descricao,
+    .os-chamado .tabela td {
+        overflow-wrap: break-word;
+    }
+
+    /* Código, quantidade e unidade inteiros; série já quebra por linha (pre-wrap) e o resto quebra nos espaços. */
+    .os-chamado .tabela td:nth-child(1),
+    .os-chamado .tabela td:nth-child(4),
+    .os-chamado .tabela td:nth-child(5) {
+        white-space: nowrap;
+    }
+
+    .os-chamado .horizontal-2 {
+        gap: 1rem 1.75rem;
+    }
+
+    .os-chamado .horizontal-2 > .vertical {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .os-chamado .fotos-os img {
+        width: 9rem;
+        max-width: 100%;
+    }
+
+    /* Correção empilhada: em retrato, fotos ao lado (30%) espremiam a tabela de peças.
+       Fotos numa faixa em cima, texto e tabela com a largura toda embaixo. */
+    .os-chamado .painel-2 {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .os-chamado .painel-2 > .fotos-os {
+        width: 100% !important;
+    }
+
+    .os-chamado .painel-2 > .vertical {
+        min-width: 0;
+    }
+
+    .os-chamado .div-tabela {
+        overflow: visible;
+    }
+
+    .os-chamado .tabela tr {
+        break-inside: avoid;
+    }
+}

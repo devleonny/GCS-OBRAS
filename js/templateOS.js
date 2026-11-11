@@ -251,7 +251,7 @@ async function telaOS(idOcorrencia) {
 
 async function gerarPdfOS(nome) {
 
-    await pdf({ id: 'pdf', estilos: ESTILOS_PDF_OS, nome, orientacao: 'landscape' })
+    await pdf({ id: 'pdf', estilos: ESTILOS_PDF_OS, nome })
 
 }
 
@@ -260,7 +260,7 @@ async function baixarPdfOS(idOcorrencia) {
 
     try {
         overlayAguarde()
-        await pdf({ html: await montarOS(idOcorrencia), estilos: ESTILOS_PDF_OS, nome: idOcorrencia, orientacao: 'landscape' })
+        await pdf({ html: await montarOS(idOcorrencia), estilos: ESTILOS_PDF_OS, nome: idOcorrencia })
     } catch (err) {
         console.error(err)
         popup({ mensagem: 'Falha ao gerar o PDF da OS: Fale com o suporte.' })
