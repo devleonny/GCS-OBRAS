@@ -229,6 +229,16 @@ const esquemaBotoes = {
             ]
         },
         {
+            nome: 'Logística',
+            bloqueio: ['cliente', 'técnico', 'visitante'],
+            img: 'logistica',
+            sub: [
+                { nome: 'Controle Logístico', funcao: 'telaLogistica', img: 'logistica' },
+                { nome: 'Novo Envio', funcao: 'formularioEnvioLogistica', img: 'baixar' },
+                { nome: 'NFs sem Envio', funcao: 'painelNotasSemEnvio', img: 'frete' }
+            ]
+        },
+        {
             nome: 'Agenda',
             bloqueio: ['cliente', 'técnico'],
             img: 'reagendar',
