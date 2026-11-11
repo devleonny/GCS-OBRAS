@@ -38,8 +38,14 @@ body {
 }
 
 /* logo-gcs-quadrado.png tem muita margem branca em cima e embaixo: o recorte mostra só a marca. */
-.cp-topo img { display: block; width: 150px; height: 76px; object-fit: cover; background: #fff; border-radius: 8px; }
-.cp-topo h1 { font-size: 1.35rem; margin: 10px 0 4px; }
+.cp-marca { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+.cp-topo img { display: block; flex: none; width: 120px; height: 62px; object-fit: cover; background: #fff; border-radius: 8px; }
+.cp-topo h1 { font-size: 1.35rem; line-height: 1.25; margin: 0; }
+
+@media (max-width: 380px) {
+    .cp-topo img { width: 100px; height: 52px; }
+    .cp-topo h1 { font-size: 1.15rem; }
+}
 .cp-topo p { margin: 0; opacity: .9; font-size: .9rem; }
 .cp-topo .cp-obrig { color: #ffd2cf; }
 

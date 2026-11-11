@@ -3,7 +3,7 @@
 const VERSOES_CSS = {
     "agenda": "f5a251d9",
     "assinatura": "0c1634b9",
-    "cadastro_publico": "93f415ec",
+    "cadastro_publico": "8e3ff52a",
     "cadastros": "9d7fce36",
     "clientes": "d96eb29e",
     "colaboradores": "8e29bed3",
