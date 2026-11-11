@@ -70,7 +70,6 @@ function colunasLogistica(aba) {
             'Data de Saída': { chave: 'data_saida', tipoPesquisa: 'data' },
             'Entrega': { chave: 'previsao_entrega', tipoPesquisa: 'data' },
             'Situação': { chave: 'situacao', tipoPesquisa: 'select' },
-            'Observação': { chave: 'observacao' },
         }
 
     return {
@@ -89,7 +88,6 @@ function colunasLogistica(aba) {
         'Nota Fiscal': { chave: 'nf' },
         'Data de Saída': { chave: 'data_saida', tipoPesquisa: 'data' },
         'Entrega': { chave: 'previsao_entrega', tipoPesquisa: 'data' },
-        'Observação': { chave: 'observacao' }
     }
 }
 
@@ -230,14 +228,42 @@ function detalhesMaterialLog(material) {
         </table>`
 }
 
+// Dados da encomenda que vêm do Rastro dos Correios (só envios com rastreio consultado).
+function detalhesEncomendaLog(info) {
+    if (!info || info.mensagem || !(info.servico || info.peso || info.dimensoes || info.postagem)) return ''
+    const p = info.postagem || {}
+    const linhas = [
+        ['Serviço', p.servico || info.servico],
+        ['Frete (Correios)', p.valor != null ? dinheiroTexto(p.valor) : ''],
+        ['Postado em', p.data_postagem ? `${conversorDt(p.data_postagem)}${p.hora_postagem ? ` ${p.hora_postagem}` : ''}` : ''],
+        ['Peso', info.peso ? `${String(info.peso).replace('.', ',')} kg` : ''],
+        ['Peso tarifado', p.peso_tarifado ? `${String(p.peso_tarifado).replace('.', ',')} kg` : ''],
+        ['Dimensões', info.dimensoes],
+        ['Formato', info.formato]
+    ].filter(([, v]) => v)
+    return `
+        <div class="log-detalhes"><b>Encomenda</b>
+            <table class="log-itens">
+                <tbody>${linhas.map(([k, v]) => `<tr><th>${k}</th><td>${escLog(v)}</td></tr>`).join('')}</tbody>
+            </table>
+        </div>`
+}
+
 function criarLinhaLogistica(dado) {
     const {
         id, categoria, metodo, volumes, valor_nota, custo_frete, loja, remetente, orcamento, tipo, uf,
-        nf, nota_id, data_saida, material, situacao, observacao
+        nf, nota_id, data_saida, material, situacao, observacao, rastreio_info
     } = dado || {}
 
     const aba = estadoLogistica.aba
-    const detalhes = `<div class="log-detalhes"><b>Material</b>${detalhesMaterialLog(material)}</div>`
+    const detalhes = `
+        <div class="log-detalhes-grade">
+            <div class="log-detalhes"><b>Material</b>${detalhesMaterialLog(material)}</div>
+            ${detalhesEncomendaLog(rastreio_info)}
+            <div class="log-detalhes"><b>Observação</b>${String(observacao || '').trim()
+                ? `<div class="log-detalhes-livre">${escLog(observacao).replace(/\n/g, '<br>')}</div>`
+                : '<div class="log-detalhes-vazio">Sem observação.</div>'}</div>
+        </div>`
     const celulaNF = nf
         ? nota_id
             ? `<span class="log-link" onclick="abrirDANFE('${escLog(nota_id)}')" title="Abrir DANFE">${escLog(nf)}</span>`
@@ -264,7 +290,6 @@ function criarLinhaLogistica(dado) {
                 <td>${conversorDt(data_saida)}</td>
                 <td>${celulaEntregaLog(dado)}</td>
                 <td>${celulaSituacao}</td>
-                <td>${escLog(observacao)}</td>
             </tr>`
         }
 
@@ -287,7 +312,6 @@ function criarLinhaLogistica(dado) {
             <td>${celulaNF}</td>
             <td>${conversorDt(data_saida)}</td>
             <td>${celulaEntregaLog(dado)}</td>
-            <td>${escLog(observacao)}</td>
         </tr>`
     }
 }
@@ -368,6 +392,10 @@ function aplicarTravasLog(form = formLog()) {
             travado = nome === 'metodo' ? Boolean(form.querySelector('[name="metodo"]').value.trim()) : true
         travarCampoLog(form, nome, !manual && travado)
     }
+
+    // Custo do frete e data de saída: travados só quando vieram da postagem real dos Correios.
+    for (const nome of ['custo_frete', 'data_saida'])
+        travarCampoLog(form, nome, !manual && e.rastreio === 'encontrado' && e.postagem === 'S')
 
     // Departamento: depende da NF.
     const depTravado = !manual && (e.nf === 'pendente' || (e.nf === 'encontrado' && e.orcDaNota === 'S'))
@@ -548,18 +576,20 @@ async function formularioEnvioLogistica(id = null, inicial = null) {
         const elemento = `
             <div class="log-form">
                 <input type="hidden" data-log-form data-id="${escLog(id || '')}" data-rastreio="${etapaRastreio}"
-                    data-nf="${etapaNF}" data-orc-da-nota="${orcDaNota}" data-destino-orc="" data-manual="">
+                    data-nf="${etapaNF}" data-orc-da-nota="${orcDaNota}" data-destino-orc="" data-manual=""
+                    data-postagem="${d.rastreio_info?.postagem ? 'S' : ''}">
                 <input type="hidden" name="nota_id" value="${escLog(d.nota_id)}">
 
                 <fieldset>
                     <legend>Envio <small>— o rastreio dos Correios preenche o resto</small></legend>
                     <div class="log-grade">
-                        ${campo('Aba', `<select class="log-input" name="categoria" onchange="alternarCamposCompraLog()">${opcoes(abas, d.categoria)}</select>`)}
-                        ${campo('Rastreio', `
+                        ${campo('Rastreio <em>— preenche o envio</em>', `
                             <div class="log-com-botao">
                                 ${input('rastreio', d.rastreio, 'placeholder="Código do objeto" style="text-transform: uppercase;" onchange="consultarRastreioFormLog()"')}
                                 <button type="button" class="log-mini" data-sem-rastreio onclick="semRastreioLog()">Sem rastreio</button>
-                            </div>`, 'log-largo')}
+                            </div>
+                            <div class="log-aviso" data-aviso-rastreio></div>`, 'log-largo log-destaque')}
+                        ${campo('Aba', `<select class="log-input" name="categoria" onchange="alternarCamposCompraLog()">${opcoes(abas, d.categoria)}</select>`)}
                         ${campo('Método de envio', `${input('metodo', d.metodo, 'list="log-metodos" style="text-transform: uppercase;"')}<datalist id="log-metodos">${metodos.map(m => `<option value="${escLog(m)}">`).join('')}</datalist>`)}
                         ${campo('Situação', `<select class="log-input" name="situacao">${opcoes(['', ...SITUACOES_LOGISTICA], d.situacao)}</select>`)}
                         ${campo('Previsão de entrega', input('previsao_entrega', d.previsao_entrega, 'type="date"'))}
@@ -568,18 +598,17 @@ async function formularioEnvioLogistica(id = null, inicial = null) {
                         ${campo('Custo do frete (R$)', input('custo_frete', d.custo_frete, 'type="number" min="0" step="0.01"'))}
                         ${campo('Data de saída', input('data_saida', d.data_saida, 'type="date"'))}
                     </div>
-                    <div class="log-aviso" data-aviso-rastreio></div>
                 </fieldset>
 
                 <fieldset>
                     <legend>Nota fiscal e departamento <small>— a NF preenche o destino</small></legend>
                     <div class="log-grade">
-                        ${campo('Empresa', `<select class="log-input" name="app">${opcoes(['', ...empresas], d.app)}</select>`)}
-                        ${campo('Nota fiscal', `
+                        ${campo('Nota fiscal <em>— preenche o destino</em>', `
                             <div class="log-com-botao">
                                 ${input('nf', d.nf, 'inputmode="numeric" placeholder="ex.: 13165" onchange="buscarNotaLogistica()"')}
                                 <button type="button" class="log-mini" data-sem-nf onclick="semNotaLog()">Sem NF</button>
-                            </div>`)}
+                            </div>`, 'log-destaque')}
+                        ${campo('Empresa', `<select class="log-input" name="app">${opcoes(['', ...empresas], d.app)}</select>`)}
                         ${campo('Departamento', `
                             <div class="log-orcamentos">
                                 <input type="hidden" name="orcamento" value="${escLog(d.orcamento)}">
@@ -609,10 +638,11 @@ async function formularioEnvioLogistica(id = null, inicial = null) {
                 ${campo('Observação', `<textarea class="log-input" name="observacao" rows="2">${escLog(d.observacao)}</textarea>`, 'log-texto')}
             </div>`
 
+        // Salvar por último: fica no canto direito do rodapé.
         const botoes = [
-            { texto: 'Salvar', img: 'concluido', funcao: `salvarEnvioLogistica('${escLog(id || '')}')` },
+            ...(id ? [{ texto: 'Excluir', img: 'cancel', funcao: `excluirEnvioLogistica('${escLog(id)}')` }] : []),
             { texto: 'Editar manualmente', img: 'editar', funcao: 'editarManualmenteLog()' },
-            ...(id ? [{ texto: 'Excluir', img: 'cancel', funcao: `excluirEnvioLogistica('${escLog(id)}')` }] : [])
+            { texto: 'Salvar', img: 'concluido', funcao: `salvarEnvioLogistica('${escLog(id || '')}')` }
         ]
 
         popup({
@@ -746,7 +776,10 @@ function mostrarResumoRastreioLog(info) {
     aviso.innerHTML = `
         ${info.situacao ? `<span class="log-situacao log-${classeSituacaoLog(info.situacao)}">${escLog(info.situacao)}</span>` : ''}
         ${escLog(u.descricao || '')} ${u.local ? `· ${escLog(u.local)}` : ''} ${quando ? `· ${escLog(quando)}` : ''}
-        ${info.servico ? `<small>${escLog(info.servico)}${info.peso ? ` · ${String(info.peso).replace('.', ',')} kg` : ''}${info.dimensoes ? ` · ${escLog(info.dimensoes)}` : ''}</small>` : ''}`
+        ${info.servico ? `<small>${escLog(info.servico)}${info.peso ? ` · ${String(info.peso).replace('.', ',')} kg` : ''}${info.dimensoes ? ` · ${escLog(info.dimensoes)}` : ''}</small>` : ''}
+        ${info.postagem
+            ? `<small class="ok">Postado em ${conversorDt(info.postagem.data_postagem)}${info.postagem.hora_postagem ? ` ${escLog(info.postagem.hora_postagem)}` : ''} · frete cobrado ${dinheiroTexto(info.postagem.valor)}</small>`
+            : info.situacao ? '<small>Postagem ainda sem valor nos Correios: preencha o frete à mão.</small>' : ''}`
 }
 
 async function consultarRastreioFormLog() {
@@ -782,6 +815,15 @@ async function consultarRastreioFormLog() {
         setCampoLog(form, 'previsao_entrega', info.previsao || '')
         if (info.situacao) setCampoLog(form, 'situacao', info.situacao)
         setCampoLog(form, 'data_entrega', info.data_entrega || '')
+        // Postagem real: valor cobrado e data de saída (objeto ainda não postado não traz).
+        const marcador = form.querySelector('[data-log-form]')
+        if (info.postagem) {
+            setCampoLog(form, 'custo_frete', info.postagem.valor)
+            setCampoLog(form, 'data_saida', info.postagem.data_postagem)
+            marcador.dataset.postagem = 'S'
+        } else {
+            marcador.dataset.postagem = ''
+        }
         definirEtapaLog(form, 'rastreio', 'encontrado')
     } catch (err) {
         aviso.innerHTML = `<span class="log-alerta">${escLog(err.message)} Envio liberado para preencher.</span>`
@@ -887,6 +929,7 @@ async function detalhesRastreioLogistica(id) {
                 ${info.previsao ? `<span>Previsão: ${conversorDt(info.previsao)}</span>` : ''}
                 ${info.data_entrega ? `<span>Entregue: ${conversorDt(info.data_entrega)}</span>` : ''}
                 ${info.peso ? `<span>${String(info.peso).replace('.', ',')} kg</span>` : ''}
+                ${info.dimensoes ? `<span>${escLog(info.dimensoes)}</span>` : ''}
                 <small>Consultado em ${escLog(new Date(info.atualizado_em).toLocaleString('pt-BR'))}</small>
            </div>`
         : `<div class="log-rastreio-topo"><b>${escLog(dado.rastreio)}</b><small>Ainda não consultado nos Correios.</small></div>`

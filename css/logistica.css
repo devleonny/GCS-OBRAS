@@ -604,3 +604,42 @@ textarea.log-input {
 .log-form.compras .log-so-compras {
     display: flex;
 }
+
+/* Campos que preenchem o resto do formulário (rastreio e NF): destacados. */
+.log-campo.log-destaque {
+    padding: 8px 10px 10px;
+    background: #ecf7ef;
+    border: 1px solid #8cc39c;
+    border-left: 4px solid #2f8a4c;
+    border-radius: 8px;
+}
+
+.log-campo.log-destaque > span {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #1f5c33;
+}
+
+.log-campo.log-destaque > span em {
+    font-style: normal;
+    font-weight: 400;
+    color: #4d7a5c;
+}
+
+.painel-padrao .log-campo.log-destaque .log-input:not(.log-travado) {
+    border-color: #6fb283;
+    font-weight: 600;
+}
+
+/* "+" detalhes: material e observação lado a lado. */
+.log-detalhes-grade {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 12px 32px;
+}
+
+.log-detalhes-grade .log-detalhes-livre {
+    max-width: 32rem;
+    white-space: normal;
+}
