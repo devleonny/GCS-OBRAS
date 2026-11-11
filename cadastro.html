@@ -13,7 +13,7 @@
 <body>
     <main class="cp">
         <header class="cp-topo">
-            <img src="imagens/logo-ac-solucoes.png" alt="AC Soluções" onerror="this.remove()">
+            <img src="imagens/logo-gcs-quadrado.png" alt="Grupo Costa Silva" onerror="this.remove()">
             <h1>Ciência de Padrão de Atendimento</h1>
             <p>Cadastro do técnico. <span class="cp-obrig">*</span> indica pergunta obrigatória.</p>
             <div id="cp-tempo" class="cp-tempo" hidden></div>
@@ -24,46 +24,46 @@
         <form id="cp-form" class="cp-cartao" hidden novalidate>
             <h2>Identificação do técnico</h2>
 
-            <label>Nome completo <span class="cp-obrig">*</span>
+            <label><span class="cp-rotulo">Nome completo <span class="cp-obrig">*</span></span>
                 <input name="nome" maxlength="60" autocomplete="name" required>
             </label>
 
-            <label>Chave Pix <span class="cp-obrig">*</span>
+            <label><span class="cp-rotulo">Chave Pix <span class="cp-obrig">*</span></span>
                 <input name="chave_pix" maxlength="120" required>
             </label>
 
-            <label>CPF <span class="cp-obrig">*</span>
+            <label><span class="cp-rotulo">CPF <span class="cp-obrig">*</span></span>
                 <input name="cpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" required>
             </label>
 
-            <label>CEP <span class="cp-obrig">*</span>
+            <label><span class="cp-rotulo">CEP <span class="cp-obrig">*</span></span>
                 <input name="cep" inputmode="numeric" maxlength="9" placeholder="00000-000" autocomplete="postal-code" required>
             </label>
 
-            <label>Estado <span class="cp-obrig">*</span>
+            <label><span class="cp-rotulo">Estado <span class="cp-obrig">*</span></span>
                 <select name="estado" required>
                     <option value="">Selecione</option>
                 </select>
             </label>
 
-            <label>Cidade <span class="cp-obrig">*</span>
+            <label><span class="cp-rotulo">Cidade <span class="cp-obrig">*</span></span>
                 <input name="cidade" list="cp-cidades" maxlength="80" required>
                 <datalist id="cp-cidades"></datalist>
             </label>
 
-            <label>Endereço completo <span class="cp-obrig">*</span>
+            <label><span class="cp-rotulo">Endereço completo <span class="cp-obrig">*</span></span>
                 <input name="endereco" maxlength="60" placeholder="Rua, número e complemento" required>
             </label>
 
-            <label>Bairro
+            <label><span class="cp-rotulo">Bairro</span>
                 <input name="bairro" maxlength="60">
             </label>
 
-            <label>Telefone (WhatsApp) <span class="cp-obrig">*</span>
+            <label><span class="cp-rotulo">Telefone (WhatsApp) <span class="cp-obrig">*</span></span>
                 <input name="telefone" inputmode="tel" maxlength="15" placeholder="(00) 00000-0000" autocomplete="tel" required>
             </label>
 
-            <label>E-mail <span class="cp-obrig">*</span>
+            <label><span class="cp-rotulo">E-mail <span class="cp-obrig">*</span></span>
                 <input name="email" type="email" maxlength="120" autocomplete="email" required>
             </label>
 
