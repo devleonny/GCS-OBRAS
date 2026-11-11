@@ -459,6 +459,10 @@ function carregarCorrecoes(ocorrencia) {
                     ${modelo('Correção', labelTipoCorrecao)}
                     ${modelo('Descrição', `<div style="white-space: pre-wrap;">${descricao || ''}</div>`)}
                     ${modelo('Criado em', `<span>${data || ''}</span>`)}
+                    ${tipoCorrecao === '4Zmd3' && !permCham.includes(permissao)
+                        // Envio do Controle Logístico ligado a esta requisição (js/logistica.js → carregarEnviosRequisicoesLog).
+                        ? `<div class="log-envio-req" data-envio-req="${idCorrecao}" data-chamado="${idOcorrencia}"></div>`
+                        : ''}
                     ${tabEquipamentos(equipamentos, idOcorrencia, idCorrecao)}
                     
                 </div>
@@ -1043,7 +1047,7 @@ async function telaOcorrencias() {
     const tabela = await modTab({
         alinPag: horizontal,
         scroll: false,
-        funcaoAdicional: ['contadoresMapaOcorrencias', 'voltarTopoOcorrencias', 'carregarSelosGarantia'],
+        funcaoAdicional: ['contadoresMapaOcorrencias', 'voltarTopoOcorrencias', 'carregarSelosGarantia', 'carregarEnviosRequisicoesLog'],
         base: 'vw_dados_ocorrencias',
         pag: 'ocorrencias',
         body: 'bodyOcorrencias',

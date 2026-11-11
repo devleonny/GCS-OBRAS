@@ -105,6 +105,7 @@ function barraLogistica(abaAtiva) {
             <span class="logistica-total" title="Soma do custo de frete do que está na lista (segue as pesquisas)">Frete: <b data-total-frete>…</b></span>
             <div class="logistica-acoes">
                 <button type="button" onclick="formularioEnvioLogistica()">+ Novo envio</button>
+                <button type="button" onclick="painelRequisicoesSemEnvio()">Requisições sem envio</button>
                 <button type="button" onclick="painelNotasSemEnvio()">NFs sem envio
                     <b data-pendentes-log${pendentes ? '' : ' hidden'}>${pendentes || ''}</b></button>
                 <button type="button" onclick="atualizarRastreiosLogistica()" title="Consulta agora nos Correios os envios ainda não entregues">Atualizar rastreios</button>
@@ -260,6 +261,7 @@ function criarLinhaLogistica(dado) {
         <div class="log-detalhes-grade">
             <div class="log-detalhes"><b>Material</b>${detalhesMaterialLog(material)}</div>
             ${detalhesEncomendaLog(rastreio_info)}
+            ${detalhesEtiquetaLog(dado)}
             <div class="log-detalhes"><b>Observação</b>${String(observacao || '').trim()
                 ? `<div class="log-detalhes-livre">${escLog(observacao).replace(/\n/g, '<br>')}</div>`
                 : '<div class="log-detalhes-vazio">Sem observação.</div>'}</div>
@@ -337,17 +339,16 @@ function selectLog({ rotulo, nome, valor = '', opcoes, extra = '', classe = '' }
         </label>`
 }
 
-// Formulário no padrão de linhas do GCS. Fluxo guiado para evitar digitação errada:
-// - Rastreio é o primeiro campo: método, previsão, situação e entrega ficam travados até a
-//   consulta nos Correios. Achou → ficam com o que veio; não achou (ou "Sem rastreio") → liberam.
-// - Nota fiscal: departamento e destino ficam travados até a busca da NF. Achou → preenchidos
-//   (departamento só libera se a NF não trouxer o orçamento); não achou (ou "Sem NF") → liberam.
-// - Departamento é uma lista de orçamentos validados um a um (acumulativa, sem texto livre).
-// - Loja escolhida na lista de clientes (cxOpcoes), não digitada.
-// - "Editar manualmente" destrava tudo para correções.
+// Formulário de envio, na ordem do trabalho da logística:
+//   1. Nota fiscal → localiza o cliente (loja), o departamento, o valor e os itens.
+//   2. Destinatário → loja do cadastro de clientes do GCS + endereço do cadastro (completado pelo CEP).
+//      Trocar a loja (ou a NF/orçamento trazer outra) recarrega o endereço.
+//   3. Envio → como vai: gerar a etiqueta dos Correios (usa o endereço do passo 2), já tem o
+//      rastreio (Correios preenchem o resto) ou sem rastreio (carreto, retirada).
+// Campos que vêm de uma fonte (NF, Correios) ficam travados; "Editar manualmente" destrava tudo.
 
 const CAMPOS_RASTREIO_LOG = ['metodo', 'previsao_entrega', 'situacao', 'data_entrega']
-const CAMPOS_DESTINO_LOG = ['loja', 'uf', 'tipo', 'valor_nota', 'material']
+const CAMPOS_DESTINO_LOG = ['loja', 'tipo', 'valor_nota', 'material']
 
 function formLog() {
     return [...document.querySelectorAll('[data-log-form]')].at(-1)?.closest('.painel-padrao') || null
@@ -386,8 +387,9 @@ function aplicarTravasLog(form = formLog()) {
     const manual = e.manual === 'S'
 
     // Envio: depende do rastreio.
+    travarCampoLog(form, 'rastreio', !manual && (e.rastreio === 'etiqueta' || e.etiqueta === 'S'))
     for (const nome of CAMPOS_RASTREIO_LOG) {
-        let travado = e.rastreio === 'pendente'
+        let travado = e.rastreio === 'pendente' || e.rastreio === 'etiqueta'
         if (e.rastreio === 'encontrado')
             travado = nome === 'metodo' ? Boolean(form.querySelector('[name="metodo"]').value.trim()) : true
         travarCampoLog(form, nome, !manual && travado)
@@ -405,11 +407,12 @@ function aplicarTravasLog(form = formLog()) {
     // Destino: depende da NF; loja/UF vindas do orçamento ficam travadas mesmo sem NF.
     for (const nome of CAMPOS_DESTINO_LOG) {
         let travado = e.nf !== 'manual'
-        if (e.nf === 'manual' && ['loja', 'uf'].includes(nome)) travado = e.destinoOrc === 'S'
+        if (e.nf === 'manual' && nome === 'loja') travado = e.destinoOrc === 'S'
         travarCampoLog(form, nome, !manual && travado)
     }
 
-    form.querySelectorAll('[data-sem-rastreio]').forEach(b => { b.hidden = e.rastreio !== 'pendente' })
+    // Etiqueta emitida: o modo de envio não muda mais (cancele a etiqueta para trocar).
+    form.querySelectorAll('[data-modo-envio]').forEach(b => { b.disabled = e.etiqueta === 'S' })
     form.querySelectorAll('[data-sem-nf]').forEach(b => { b.hidden = e.nf !== 'pendente' })
 }
 
@@ -424,13 +427,6 @@ function editarManualmenteLog() {
     const form = formLog()
     if (!form) return
     definirEtapaLog(form, 'manual', 'S')
-}
-
-function semRastreioLog() {
-    const form = formLog()
-    if (!form) return
-    form.querySelector('[data-aviso-rastreio]').innerHTML = '<span class="carregando">Sem rastreio: preencha o envio à mão.</span>'
-    definirEtapaLog(form, 'rastreio', 'manual')
 }
 
 function semNotaLog() {
@@ -476,6 +472,7 @@ async function lojaEscolhidaLog() {
         ? String(estado).trim().toUpperCase()
         : String(cidade || '').match(/\(([A-Z]{2})\)\s*$/)?.[1]
     if (uf) setCampoLog(form, 'uf', uf)
+    carregarDestinatarioLog()
     removerOverlay()
 }
 
@@ -520,11 +517,13 @@ async function adicionarOrcamentoLog() {
         desenharOrcamentosLog(form, [...lista, orcamento])
         campo.value = ''
 
-        // O primeiro orçamento define a loja (a NF pode estar no CNPJ da matriz).
-        if (!lista.length && info.loja) {
+        // O orçamento só define a loja quando ainda não há loja (sem NF, ou NF sem cliente no cadastro).
+        const semLoja = form.querySelector('[name="loja_log"]')?.dataset.vazio === 'S'
+        if (!lista.length && info.loja && semLoja) {
             setLojaLog(form, { loja: info.loja, cliente: info.cliente })
             setCampoLog(form, 'uf', info.uf)
             definirEtapaLog(form, 'destinoOrc', 'S')
+            carregarDestinatarioLog()
             aviso.innerHTML = `<span class="ok">${escLog(orcamento)}: loja e UF preenchidas pelo cliente do orçamento.</span>`
         } else {
             aviso.innerHTML = `<span class="ok">${escLog(orcamento)} incluído.</span>`
@@ -572,43 +571,34 @@ async function formularioEnvioLogistica(id = null, inicial = null) {
 
         const campo = (rotulo, conteudo, classe = '') => `<div class="log-campo ${classe}"><span>${rotulo}</span>${conteudo}</div>`
 
+        // Modo de envio ao abrir: etiqueta emitida, já tem rastreio, sem rastreio (editar) ou a escolher (novo).
+        const etiquetaAtiva = d.etiqueta && !d.etiqueta.cancelada_em
+        const modoInicial = etiquetaAtiva ? 'etiqueta' : d.rastreio ? 'rastreio' : id ? 'sem' : ''
+        const passo = (n, titulo, dica) => `<legend><span class="log-num">${n}</span> ${titulo}${dica ? ` <small>— ${dica}</small>` : ''}</legend>`
+
         // Uma linha só do formulário padrão (borda e fundo do popup), com o layout em blocos dentro.
         const elemento = `
             <div class="log-form">
                 <input type="hidden" data-log-form data-id="${escLog(id || '')}" data-rastreio="${etapaRastreio}"
                     data-nf="${etapaNF}" data-orc-da-nota="${orcDaNota}" data-destino-orc="" data-manual=""
-                    data-postagem="${d.rastreio_info?.postagem ? 'S' : ''}">
+                    data-postagem="${d.rastreio_info?.postagem ? 'S' : ''}"
+                    data-etiqueta="${etiquetaAtiva ? 'S' : ''}" data-modo="${modoInicial}">
                 <input type="hidden" name="nota_id" value="${escLog(d.nota_id)}">
+                <input type="hidden" name="etiqueta" value="${escLog(d.etiqueta ? JSON.stringify(d.etiqueta) : '')}">
+                <input type="hidden" name="requisicao_id" value="${escLog(d.requisicao_id)}">
+                <input type="hidden" name="chamado" value="${escLog(d.chamado)}">
+                <input type="hidden" name="fluxo" value="${escLog(d.fluxo)}">
+                <div class="log-requisicao" data-requisicao></div>
 
-                <fieldset>
-                    <legend>Envio <small>— o rastreio dos Correios preenche o resto</small></legend>
+                <fieldset class="log-passo">
+                    ${passo(1, 'Nota fiscal', 'localiza o cliente, o departamento e os itens')}
                     <div class="log-grade">
-                        ${campo('Rastreio <em>— preenche o envio</em>', `
+                        ${campo('Nota fiscal', `
                             <div class="log-com-botao">
-                                ${input('rastreio', d.rastreio, 'placeholder="Código do objeto" style="text-transform: uppercase;" onchange="consultarRastreioFormLog()"')}
-                                <button type="button" class="log-mini" data-sem-rastreio onclick="semRastreioLog()">Sem rastreio</button>
-                            </div>
-                            <div class="log-aviso" data-aviso-rastreio></div>`, 'log-largo log-destaque')}
-                        ${campo('Aba', `<select class="log-input" name="categoria" onchange="alternarCamposCompraLog()">${opcoes(abas, d.categoria)}</select>`)}
-                        ${campo('Método de envio', `${input('metodo', d.metodo, 'list="log-metodos" style="text-transform: uppercase;"')}<datalist id="log-metodos">${metodos.map(m => `<option value="${escLog(m)}">`).join('')}</datalist>`)}
-                        ${campo('Situação', `<select class="log-input" name="situacao">${opcoes(['', ...SITUACOES_LOGISTICA], d.situacao)}</select>`)}
-                        ${campo('Previsão de entrega', input('previsao_entrega', d.previsao_entrega, 'type="date"'))}
-                        ${campo('Entregue em', input('data_entrega', d.data_entrega, 'type="date"'))}
-                        ${campo('Volumes', input('volumes', d.volumes, 'type="number" min="0" step="1"'))}
-                        ${campo('Custo do frete (R$)', input('custo_frete', d.custo_frete, 'type="number" min="0" step="0.01"'))}
-                        ${campo('Data de saída', input('data_saida', d.data_saida, 'type="date"'))}
-                    </div>
-                </fieldset>
-
-                <fieldset>
-                    <legend>Nota fiscal e departamento <small>— a NF preenche o destino</small></legend>
-                    <div class="log-grade">
-                        ${campo('Nota fiscal <em>— preenche o destino</em>', `
-                            <div class="log-com-botao">
-                                ${input('nf', d.nf, 'inputmode="numeric" placeholder="ex.: 13165" onchange="buscarNotaLogistica()"')}
+                                ${input('nf', d.nf, 'inputmode="numeric" placeholder="ex.: 13165" oninput="digitandoNFLog()" onchange="buscarNotaLogistica()" onkeydown="if (event.keyCode === 13) { event.preventDefault(); buscarNotaLogistica({ forcar: true }) }"')}
                                 <button type="button" class="log-mini" data-sem-nf onclick="semNotaLog()">Sem NF</button>
                             </div>`, 'log-destaque')}
-                        ${campo('Empresa', `<select class="log-input" name="app">${opcoes(['', ...empresas], d.app)}</select>`)}
+                        ${campo('Empresa', `<select class="log-input" name="app" onchange="buscarNotaLogistica({ forcar: true })">${opcoes(['', ...empresas], d.app)}</select>`)}
                         ${campo('Departamento', `
                             <div class="log-orcamentos">
                                 <input type="hidden" name="orcamento" value="${escLog(d.orcamento)}">
@@ -623,14 +613,79 @@ async function formularioEnvioLogistica(id = null, inicial = null) {
                     <div class="log-aviso" data-aviso-orc></div>
                 </fieldset>
 
-                <fieldset>
-                    <legend>Destino</legend>
+                <fieldset class="log-passo">
+                    ${passo(2, 'Destinatário', 'cadastro de clientes do GCS')}
                     <div class="log-grade">
+                        ${campo('Loja / cliente', `<span class="opcoes" name="loja_log" ${d.cliente ? `id="${escLog(d.cliente)}"` : ''} data-vazio="${d.loja ? '' : 'S'}" onclick="abrirLojaLog(this)">${escLog(d.loja || 'Selecionar')}</span>`, 'log-largo')}
+                        ${campo('CPF / CNPJ', input('et_doc', '', 'inputmode="numeric"'))}
                         ${campo('Remetente', input('remetente', d.remetente), 'log-so-compras')}
-                        ${campo('Loja / destinatário', `<span class="opcoes" name="loja_log" ${d.cliente ? `id="${escLog(d.cliente)}"` : ''} data-vazio="${d.loja ? '' : 'S'}" onclick="abrirLojaLog(this)">${escLog(d.loja || 'Selecionar')}</span>`, 'log-largo')}
-                        ${campo('UF', input('uf', d.uf, 'maxlength="2" style="text-transform: uppercase;"'))}
                         ${campo('Tipo', `<select class="log-input" name="tipo">${opcoes({ '': '', ...TIPOS_LOGISTICA }, d.tipo)}</select>`)}
                         ${campo('Valor da nota (R$)', input('valor_nota', d.valor_nota, 'type="number" min="0" step="0.01"'))}
+                    </div>
+                    <div class="log-etiqueta-sub">Endereço de entrega <small>— do cadastro, conferido pelo CEP dos Correios</small></div>
+                    <div class="log-grade">
+                        ${campo('CEP', input('et_cep', '', 'inputmode="numeric" maxlength="9" oninput="digitandoCepLog()" onchange="consultarCepEtiquetaLog()" onkeydown="if (event.keyCode === 13) { event.preventDefault(); consultarCepEtiquetaLog({ forcar: true }) }"'))}
+                        ${campo('Logradouro', input('et_logradouro', ''), 'log-largo')}
+                        ${campo('Número', input('et_numero', '', 'maxlength="6"'), 'log-destaque')}
+                        ${campo('Complemento', input('et_complemento', '', 'maxlength="30"'))}
+                        ${campo('Bairro', input('et_bairro', ''))}
+                        ${campo('Cidade', input('et_cidade', ''))}
+                        ${campo('UF', input('uf', d.uf, 'maxlength="2" style="text-transform: uppercase;"'))}
+                        ${campo('Celular', input('et_celular', '', 'inputmode="numeric" placeholder="DDD + número"'))}
+                        ${campo('E-mail', input('et_email', '', 'type="email"'))}
+                    </div>
+                    <div class="log-aviso" data-aviso-destinatario></div>
+                </fieldset>
+
+                <fieldset class="log-passo">
+                    ${passo(3, 'Envio', 'como vai?')}
+                    <div class="log-modos" role="radiogroup">
+                        <button type="button" class="log-modo" data-modo-envio="etiqueta" onclick="escolherModoEnvioLog('etiqueta')">
+                            <b>Gerar etiqueta</b><small>Emite a etiqueta dos Correios pelo GCS</small></button>
+                        <button type="button" class="log-modo" data-modo-envio="rastreio" onclick="escolherModoEnvioLog('rastreio')">
+                            <b>Já tenho o rastreio</b><small>Postado no balcão; os Correios preenchem o resto</small></button>
+                        <button type="button" class="log-modo" data-modo-envio="sem" onclick="escolherModoEnvioLog('sem')">
+                            <b>Sem rastreio</b><small>Carreto, retirada, transportadora</small></button>
+                    </div>
+
+                    <div class="log-painel log-painel-etiqueta" hidden>
+                        <div class="log-grade">
+                            ${campo('Modalidade', `<select class="log-input" name="et_servico">${MODALIDADES_CORREIOS_LOG
+                                .map(m => `<option value="${m.codigo}" ${metodoPorServicoLog(d.metodo) === m.nome ? 'selected' : ''}>${m.nome} · ${m.descricao}</option>`).join('')}</select>`)}
+                        </div>
+                        <div class="log-dimensoes">
+                            <button type="button" class="log-mini" data-dimensoes aria-expanded="false" onclick="alternarDimensoesLog()">Informar dimensões</button>
+                            <span class="log-dica-etiqueta">Opcional: na agência o pacote é pesado e medido, e o frete é cobrado pelo que for conferido lá.</span>
+                        </div>
+                        <div class="log-grade" data-campos-dimensoes hidden>
+                            ${campo('Peso (kg)', input('et_peso', '', 'type="number" min="0.01" step="0.01"'))}
+                            ${campo('Comprimento (cm)', input('et_comprimento', '', 'type="number" min="1" step="1"'))}
+                            ${campo('Largura (cm)', input('et_largura', '', 'type="number" min="1" step="1"'))}
+                            ${campo('Altura (cm)', input('et_altura', '', 'type="number" min="1" step="1"'))}
+                        </div>
+                        <div class="log-etiqueta-sub">Conteúdo <small data-et-fonte></small></div>
+                        <div data-et-itens></div>
+                        <div class="log-aviso" data-aviso-etiqueta></div>
+                        <div class="log-etiqueta-acoes">
+                            <button type="button" class="log-botao-principal" data-emitir-etiqueta onclick="emitirEtiquetaLog()">Emitir etiqueta</button>
+                        </div>
+                    </div>
+
+                    <div class="log-painel log-painel-rastreio" hidden>
+                        ${campo('Código de rastreio', `
+                            ${input('rastreio', d.rastreio, 'placeholder="ex.: QN960272345BR" style="text-transform: uppercase;" oninput="digitandoRastreioLog()" onchange="consultarRastreioFormLog()" onkeydown="if (event.keyCode === 13) { event.preventDefault(); consultarRastreioFormLog({ forcar: true }) }"')}
+                            <div class="log-aviso" data-aviso-rastreio></div>`, 'log-destaque')}
+                    </div>
+
+                    <div class="log-grade log-status-envio">
+                        ${campo('Aba', `<select class="log-input" name="categoria" onchange="alternarCamposCompraLog()">${opcoes(abas, d.categoria)}</select>`)}
+                        ${campo('Método de envio', `${input('metodo', d.metodo, 'list="log-metodos" style="text-transform: uppercase;"')}<datalist id="log-metodos">${metodos.map(m => `<option value="${escLog(m)}">`).join('')}</datalist>`)}
+                        ${campo('Situação', `<select class="log-input" name="situacao">${opcoes(['', ...SITUACOES_LOGISTICA], d.situacao)}</select>`)}
+                        ${campo('Volumes', input('volumes', d.volumes, 'type="number" min="0" step="1"'))}
+                        ${campo('Data de saída', input('data_saida', d.data_saida, 'type="date"'))}
+                        ${campo('Previsão de entrega', input('previsao_entrega', d.previsao_entrega, 'type="date"'))}
+                        ${campo('Entregue em', input('data_entrega', d.data_entrega, 'type="date"'))}
+                        ${campo('Custo do frete (R$)', input('custo_frete', d.custo_frete, 'type="number" min="0" step="0.01"'))}
                     </div>
                 </fieldset>
 
@@ -658,6 +713,11 @@ async function formularioEnvioLogistica(id = null, inicial = null) {
         alternarCamposCompraLog()
         aplicarTravasLog(form)
         if (d.rastreio_info) mostrarResumoRastreioLog(d.rastreio_info)
+        escolherModoEnvioLog(modoInicial, { inicial: true })
+        desenharRequisicaoLog(form)
+        if (d.etiqueta) mostrarEtiquetaEmitidaLog(form, d.etiqueta, id, Boolean(d.rastreio_info?.postagem))
+        // Envio já gravado com loja: mostra o endereço do cadastro (a NF nova recarrega sozinha).
+        if (d.cliente) carregarDestinatarioLog()
         // Veio de "NFs sem envio" → busca a NF e já trava o que veio dela.
         if (!id && inicial?.nf) buscarNotaLogistica()
     } catch (err) {
@@ -688,21 +748,30 @@ function aplicarNotaLog(form, nota, infoOrcamento = null) {
         marcador.dataset.orcDaNota = ''
     }
 
-    // Loja/UF do cliente do orçamento quando houver (a NF pode estar no CNPJ da matriz).
-    const destino = infoOrcamento?.loja ? infoOrcamento : nota
+    // Loja = cliente da NF (achado pelo CNPJ: sempre presente). O orçamento só entra se a NF não achar.
+    const destino = nota.cliente ? nota : infoOrcamento?.loja ? infoOrcamento : nota
     setLojaLog(form, { loja: destino.loja, cliente: destino.cliente || '' })
     setCampoLog(form, 'uf', destino.uf)
-    if (infoOrcamento?.loja) marcador.dataset.destinoOrc = 'S'
+    marcador.dataset.destinoOrc = destino === infoOrcamento ? 'S' : ''
 
+    // Uma informação por linha: NF carregada, envios já lançados, falta de orçamento.
     const avisos = []
-    if (nota.cancelada) avisos.push('<b>NF cancelada no Omie.</b>')
+    if (nota.cancelada) avisos.push('<b class="log-alerta">NF cancelada no Omie.</b>')
     const outros = (nota.lancamentos || []).filter(l => l.id !== marcador.dataset.id)
-    if (outros.length)
-        avisos.push(`Esta NF já tem ${outros.length} envio(s) lançado(s): ${outros.map(l => `${escLog(ABAS_LOGISTICA[l.categoria]?.titulo || l.categoria)} ${l.data_saida ? `em ${conversorDt(l.data_saida)}` : ''} ${escLog(l.rastreio || '')}`).join('; ')}.`)
+    if (outros.length) {
+        const lista = outros.map(l => `<li>${escLog(ABAS_LOGISTICA[l.categoria]?.titulo || l.categoria)}${l.data_saida ? ` em ${conversorDt(l.data_saida)}` : ''}${l.rastreio ? ` · ${escLog(l.rastreio)}` : ''}</li>`).join('')
+        avisos.push(`<span class="log-alerta">Esta NF já tem ${outros.length === 1 ? '1 envio lançado' : `${outros.length} envios lançados`}:</span><ul class="log-aviso-lista">${lista}</ul>`)
+    }
     if (!nota.orcamento && !orcamentosLog(form).length)
-        avisos.push('A NF não traz o orçamento no Omie: adicione o departamento abaixo para puxar a loja certa.')
+        avisos.push('A NF não traz o orçamento no Omie: adicione o departamento acima.')
+    if (!nota.cliente)
+        avisos.push('<span class="log-alerta">O CNPJ da NF não está no cadastro de clientes do GCS: escolha a loja no passo 2.</span>')
 
-    form.querySelector('[data-aviso-nf]').innerHTML = `<span class="ok">NF ${escLog(nota.nf)} (${escLog(nota.app)} · ${escLog(nota.categoria_nota)} · emitida ${escLog(nota.emissao)}) carregada.</span> ${avisos.join(' ')}`
+    carregarDestinatarioLog()
+    form.querySelector('[data-aviso-nf]').innerHTML = [
+        `<span class="ok">NF ${escLog(nota.nf)} (${escLog(nota.app)} · ${escLog(nota.categoria_nota)} · emitida ${escLog(nota.emissao)}) carregada.</span>`,
+        ...avisos
+    ].map(linha => `<div class="log-aviso-linha">${linha}</div>`).join('')
     definirEtapaLog(form, 'nf', 'encontrado')
 }
 
@@ -725,10 +794,35 @@ function escolherSugestaoLog(i) {
     if (form && sugestoes?.[i]) aplicarNotaLog(form, sugestoes[i], infoOrcamento)
 }
 
-async function buscarNotaLogistica() {
+// ---------- buscas enquanto digita (o onchange só dispara ao sair do campo)
+
+let pausaNFLog = null
+function digitandoNFLog() {
+    clearTimeout(pausaNFLog)
+    const form = formLog()
+    const nf = form?.querySelector('[name="nf"]').value.replace(/\D/g, '') || ''
+    if (nf.length < 3) return
+    pausaNFLog = setTimeout(() => buscarNotaLogistica(), 700)
+}
+
+function digitandoRastreioLog() {
+    const campo = formLog()?.querySelector('[name="rastreio"]')
+    if (campo && RE_RASTREIO_CORREIOS.test(campo.value.trim().toUpperCase())) consultarRastreioFormLog()
+}
+
+function digitandoCepLog() {
+    const campo = formLog()?.querySelector('[name="et_cep"]')
+    if (campo && campo.value.replace(/\D/g, '').length === 8) consultarCepEtiquetaLog()
+}
+
+async function buscarNotaLogistica({ forcar = false } = {}) {
+    clearTimeout(pausaNFLog)
     const form = formLog()
     if (!form) return
     const nf = form.querySelector('[name="nf"]').value.replace(/\D/g, '')
+    const chave = `${form.querySelector('[name="app"]').value}|${nf}`
+    if (!forcar && form._ultimaBuscaNF === chave) return
+    form._ultimaBuscaNF = chave
     const aviso = form.querySelector('[data-aviso-nf]')
     setCampoLog(form, 'nota_id', '')
     if (!nf) {
@@ -782,12 +876,14 @@ function mostrarResumoRastreioLog(info) {
             : info.situacao ? '<small>Postagem ainda sem valor nos Correios: preencha o frete à mão.</small>' : ''}`
 }
 
-async function consultarRastreioFormLog() {
+async function consultarRastreioFormLog({ forcar = false } = {}) {
     const form = formLog()
     if (!form) return
     const campo = form.querySelector('[name="rastreio"]')
     const codigo = campo.value.trim().toUpperCase()
-    campo.value = codigo
+    if (campo.value !== codigo) campo.value = codigo
+    if (!forcar && form._ultimoRastreio === codigo) return
+    form._ultimoRastreio = codigo
     const aviso = form.querySelector('[data-aviso-rastreio]')
 
     if (!codigo) {
@@ -837,7 +933,76 @@ function numeroLog(valor) {
     return Number.isFinite(n) ? n : null
 }
 
-async function salvarEnvioLogistica(id = '') {
+// ---------- bloqueios de salvamento: nada sai com etapa pela metade
+
+// Cada pendência: { texto, alvo } (alvo = seletor do campo a destacar).
+function pendenciasEnvioLog(form, envio) {
+    const e = estadoFormLog(form)
+    const val = nome => form.querySelector(`[name="${nome}"]`)?.value?.trim() ?? ''
+    const p = []
+    const add = (texto, alvo) => p.push({ texto, alvo })
+
+    // 1. Nota fiscal: encontrada, ou marcada "Sem NF" (não fica digitada e sem busca).
+    if (e.nf === 'pendente')
+        add(val('nf') ? 'A NF ainda está sendo localizada: aguarde ou escolha a nota na lista.' : 'Informe a nota fiscal ou clique em "Sem NF".', '[name="nf"]')
+
+    // 2. Destinatário.
+    if (!envio.loja) add('Escolha a loja / cliente (passo 2).', '[name="loja_log"]')
+    if (envio.categoria === 'COMPRAS' && !envio.remetente) add('Informe o remetente da compra.', '[name="remetente"]')
+    if (!envio.uf) add('Informe a UF do destino.', '[name="uf"]')
+
+    // 3. Envio: precisa escolher como vai e terminar o caminho escolhido.
+    if (!envio.categoria) add('Escolha a aba do envio.', '[name="categoria"]')
+    const modo = e.modo || ''
+    if (!modo) add('Escolha como o envio vai (passo 3): gerar etiqueta, já tenho o rastreio ou sem rastreio.', '.log-modos')
+
+    if (modo === 'etiqueta' && e.etiqueta !== 'S')
+        add('A etiqueta ainda não foi emitida: clique em "Emitir etiqueta" ou escolha outra opção no passo 3.', '[data-emitir-etiqueta]')
+
+    if (modo === 'rastreio') {
+        if (!envio.rastreio) add('Informe o código de rastreio.', '[name="rastreio"]')
+        else if (e.rastreio === 'pendente') add('O rastreio ainda está sendo consultado nos Correios: aguarde.', '[name="rastreio"]')
+    }
+
+    // Sem os Correios preenchendo (sem rastreio, ou código de transportadora): dados mínimos à mão.
+    const manual = modo === 'sem' || (modo === 'rastreio' && e.rastreio === 'manual')
+    if (manual) {
+        if (!envio.metodo) add('Informe o método de envio.', '[name="metodo"]')
+        if (!envio.situacao) add('Informe a situação.', '[name="situacao"]')
+    }
+    if (!envio.data_saida && envio.situacao !== 'AGUARDANDO ENVIO' && envio.situacao !== 'CANCELADO')
+        add('Informe a data de saída.', '[name="data_saida"]')
+    if (envio.data_entrega && envio.data_saida && envio.data_entrega < envio.data_saida)
+        add('A data de entrega está antes da data de saída.', '[name="data_entrega"]')
+    if (envio.situacao === 'ENTREGUE' && !envio.data_entrega && manual)
+        add('Situação ENTREGUE: informe a data em que foi entregue.', '[name="data_entrega"]')
+
+    return p
+}
+
+function mostrarPendenciasLog(form, pendencias) {
+    form.querySelectorAll('.log-pendente').forEach(el => el.classList.remove('log-pendente'))
+    // Mexeu no campo (ou escolheu a opção), sai o destaque.
+    if (!form._limpaPendencia) {
+        form._limpaPendencia = true
+        const limpar = ev => ev.target.closest?.('.log-pendente')?.classList.remove('log-pendente')
+        form.addEventListener('input', limpar)
+        form.addEventListener('change', limpar)
+        form.addEventListener('click', limpar)
+    }
+    for (const { alvo } of pendencias) {
+        const el = alvo && form.querySelector(alvo)
+        ;(el?.closest('.log-campo') || el)?.classList.add('log-pendente')
+    }
+    const primeiro = pendencias.map(x => x.alvo && form.querySelector(x.alvo)).find(Boolean)
+    primeiro?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    popup({
+        titulo: 'Falta completar o envio',
+        mensagem: `Não dá para salvar ainda:<ul class="log-aviso-lista">${pendencias.map(x => `<li>${x.texto}</li>`).join('')}</ul>`
+    })
+}
+
+async function salvarEnvioLogistica(id = '', { aposSalvar = null } = {}) {
     const form = formLog()
     if (!form) return
     const val = nome => form.querySelector(`[name="${nome}"]`)?.value?.trim() ?? ''
@@ -867,9 +1032,14 @@ async function salvarEnvioLogistica(id = '') {
         material: val('material') || null,
         observacao: val('observacao') || null
     }
+    const etiquetaJson = val('etiqueta')
+    if (etiquetaJson) envio.etiqueta = JSON.parse(etiquetaJson)
+    envio.requisicao_id = val('requisicao_id') || null
+    envio.chamado = envio.requisicao_id ? val('chamado') || null : null
+    envio.fluxo = envio.requisicao_id ? val('fluxo') || null : null
 
-    if (!envio.loja && !envio.nf && !envio.rastreio)
-        return popup({ mensagem: 'Informe pelo menos o rastreio, a NF ou a loja.' })
+    const pendencias = pendenciasEnvioLog(form, envio)
+    if (pendencias.length) return mostrarPendenciasLog(form, pendencias)
     // Entregue em → situação ENTREGUE (a menos que tenha sido escolhida outra final).
     if (envio.data_entrega && !['DEVOLVIDO', 'CANCELADO'].includes(envio.situacao))
         envio.situacao = 'ENTREGUE'
@@ -891,6 +1061,11 @@ async function salvarEnvioLogistica(id = '') {
     if (envio.rastreio && RE_RASTREIO_CORREIOS.test(envio.rastreio))
         apiLogistica('rastrear', { ids: [idFinal] }).catch(err => console.error('[LOGÍSTICA rastrear]', err))
     if (envio.nota_id) contarPendentesLogistica()
+    // Envio ligado a requisição: o chamado recebe EM SEPARAÇÃO / PEÇAS ENVIADAS / PEÇAS DISPONÍVEIS.
+    if (envio.requisicao_id)
+        apiLogistica('sincronizar', { ids: [idFinal] }).catch(err => console.error('[LOGÍSTICA→OCORRÊNCIA]', err))
+    if (aposSalvar) aposSalvar(idFinal)
+    return idFinal
 }
 
 async function excluirEnvioLogistica(id) {
@@ -904,43 +1079,564 @@ async function excluirEnvioLogistica(id) {
     }
 }
 
+// ---------------------------------------------------------------- envio: modo, destinatário e etiqueta
+
+const CAIXA_PADRAO_LOG = 'gcs-log-ultima-caixa'
+
+// Modalidades do contrato (mesmos códigos de SCRIPTS/correios.js → SERVICOS_ETIQUETA). PAC primeiro: é o padrão.
+const MODALIDADES_CORREIOS_LOG = [
+    { codigo: '03298', nome: 'PAC', descricao: 'mais barato, prazo maior' },
+    { codigo: '03220', nome: 'SEDEX', descricao: 'mais rápido' },
+    { codigo: '03158', nome: 'SEDEX 10', descricao: 'entrega até as 10h' },
+    { codigo: '03140', nome: 'SEDEX 12', descricao: 'entrega até as 12h' }
+]
+
+// Etiqueta / rastreio / sem rastreio. Com etiqueta emitida o modo fica fixo.
+function escolherModoEnvioLog(modo, { inicial = false } = {}) {
+    const form = formLog()
+    if (!form) return
+    const marcador = form.querySelector('[data-log-form]')
+    if (!inicial && marcador.dataset.etiqueta === 'S') return
+    marcador.dataset.modo = modo
+    const emitida = marcador.dataset.etiqueta === 'S'
+
+    form.querySelectorAll('[data-modo-envio]').forEach(b => {
+        const ativo = b.dataset.modoEnvio === modo
+        b.classList.toggle('ativo', ativo)
+        b.setAttribute('aria-checked', ativo)
+    })
+    form.querySelector('.log-painel-etiqueta').hidden = modo !== 'etiqueta' || emitida
+    form.querySelector('.log-painel-rastreio').hidden = !(modo === 'rastreio' || emitida)
+    if (inicial) return aplicarTravasLog(form)
+
+    const avisoRastreio = form.querySelector('[data-aviso-rastreio]')
+    if (modo === 'etiqueta') {
+        setCampoLog(form, 'rastreio', '')
+        avisoRastreio.innerHTML = ''
+        definirEtapaLog(form, 'rastreio', 'etiqueta')
+        if (!form._etiquetaDados) carregarDestinatarioLog()
+        else validarDestinatarioLog(form)
+    } else if (modo === 'rastreio') {
+        definirEtapaLog(form, 'rastreio', form.querySelector('[name="rastreio"]').value.trim() ? form.querySelector('[data-log-form]').dataset.rastreio : 'pendente')
+        form.querySelector('[name="rastreio"]').focus()
+    } else {
+        setCampoLog(form, 'rastreio', '')
+        avisoRastreio.innerHTML = ''
+        definirEtapaLog(form, 'rastreio', 'manual')
+    }
+}
+
+// Peso e medidas ficam ocultos (opcionais). Abrir traz a última caixa usada; fechar limpa,
+// para nada ser enviado sem estar à vista.
+function alternarDimensoesLog() {
+    const form = formLog()
+    if (!form) return
+    const campos = form.querySelector('[data-campos-dimensoes]')
+    const botao = form.querySelector('[data-dimensoes]')
+    const abrir = campos.hidden
+    campos.hidden = !abrir
+    botao.setAttribute('aria-expanded', abrir)
+    botao.textContent = abrir ? 'Não informar dimensões' : 'Informar dimensões'
+    const nomes = ['et_peso', 'et_comprimento', 'et_largura', 'et_altura']
+    if (abrir) {
+        try {
+            const caixa = JSON.parse(localStorage.getItem(CAIXA_PADRAO_LOG) || 'null')
+            if (caixa) for (const k of nomes) setCampoLog(form, k, caixa[k] || '', { soVazio: true })
+        } catch { }
+        form.querySelector('[name="et_peso"]').focus()
+    } else {
+        for (const k of nomes) setCampoLog(form, k, '')
+    }
+}
+
+// Mantido para quem ainda chama (painel antigo): equivale ao modo "sem rastreio".
+function semRastreioLog() {
+    escolherModoEnvioLog('sem')
+}
+
+function desenharItensEtiquetaLog(form, itens, fonte) {
+    form._itensEtiqueta = itens
+    const total = itens.reduce((t, i) => t + (Number(i.quantidade) || 0) * (Number(i.valor) || 0), 0)
+    form.querySelector('[data-et-fonte]').textContent = fonte === 'nf'
+        ? '— itens e valores da NF'
+        : fonte === 'total' ? '— um item com o total da NF (a nota ainda não tem o preço de cada item)' : '— sem NF: informe o que vai na caixa'
+    form.querySelector('[data-et-itens]').innerHTML = fonte === 'nf' || fonte === 'total'
+        ? `<table class="log-itens">
+                <thead><tr><th>Item</th><th>Qtde</th><th>Valor unit.</th></tr></thead>
+                <tbody>${itens.map(i => `<tr><td>${escLog(i.conteudo)}</td><td class="num">${escLog(i.quantidade)}</td><td class="num">${dinheiroTexto(i.valor)}</td></tr>`).join('')}</tbody>
+                <tfoot><tr><th colspan="2">Total declarado</th><th class="num">${dinheiroTexto(total)}</th></tr></tfoot>
+           </table>`
+        : `<div class="log-grade">
+                <div class="log-campo log-largo"><span>Descrição</span><input class="log-input" name="et_item_desc" placeholder="ex.: Materiais de CFTV"></div>
+                <div class="log-campo"><span>Valor (R$)</span><input class="log-input" name="et_item_valor" type="number" min="0.01" step="0.01"></div>
+           </div>`
+}
+
+// O que falta no destinatário para a etiqueta (mostrado no passo 2).
+function validarDestinatarioLog(form) {
+    const val = nome => form.querySelector(`[name="${nome}"]`)?.value?.trim() || ''
+    const loja = form.querySelector('[name="loja_log"]')
+    const falta = []
+    if (!loja || loja.dataset.vazio === 'S') falta.push('a loja (informe a NF ou escolha no cadastro)')
+    if (val('et_cep').replace(/\D/g, '').length !== 8) falta.push('o CEP')
+    if (!val('et_logradouro')) falta.push('o logradouro')
+    if (!val('et_numero')) falta.push('o <b>número</b>')
+    if (!val('et_bairro') || !val('et_cidade') || !val('uf')) falta.push('bairro, cidade e UF')
+    return falta
+}
+
+// Endereço da loja (cadastro de clientes do GCS + CEP) e itens da NF. Chamado quando a loja muda.
+async function carregarDestinatarioLog() {
+    const form = formLog()
+    if (!form) return
+    const aviso = form.querySelector('[data-aviso-destinatario]')
+    const cliente = form.querySelector('[name="loja_log"]')?.id || null
+    const notaId = form.querySelector('[name="nota_id"]').value || null
+    if (!cliente && !notaId) {
+        aviso.innerHTML = '<span class="carregando">Informe a NF ou escolha a loja: o endereço vem do cadastro do cliente.</span>'
+        return
+    }
+
+    aviso.innerHTML = '<span class="carregando">Buscando o endereço no cadastro do cliente…</span>'
+    try {
+        const r = await apiLogistica('etiqueta/preparar', { nota_id: notaId, cliente })
+        form._etiquetaDados = r
+        const d = r.destinatario || {}
+        const e = d.endereco || {}
+        // Número digitado à mão vale mais que o do cadastro, se o CEP for o mesmo.
+        const numeroDigitado = form.querySelector('[name="et_cep"]').value.replace(/\D/g, '') === e.cep
+            ? form.querySelector('[name="et_numero"]').value.trim() : ''
+        const campos = { et_doc: d.cpfCnpj, et_cep: e.cep, et_logradouro: e.logradouro, et_numero: numeroDigitado || e.numero,
+            et_complemento: e.complemento, et_bairro: e.bairro, et_cidade: e.cidade, uf: e.uf, et_celular: d.celular, et_email: d.email }
+        for (const [k, v] of Object.entries(campos)) if (v !== undefined) setCampoLog(form, k, v || '')
+
+        // Modalidades ficam fixas no formulário (MODALIDADES_CORREIOS_LOG): não dependem do cliente.
+        form._etiquetaNF = { nf: r.nf, chave_nfe: r.chave_nfe }
+        desenharItensEtiquetaLog(form, r.itens || [], r.fonte_itens)
+
+        const falta = validarDestinatarioLog(form)
+        aviso.innerHTML = !d.cep_valido && e.cep
+            ? '<span class="log-alerta">O CEP do cadastro não existe nos Correios: corrija o CEP.</span>'
+            : falta.length
+                ? `<span class="log-alerta">Confira: falta ${falta.join(', ')}.</span>`
+                : '<span class="ok">Endereço do cadastro, conferido pelo CEP dos Correios.</span>'
+    } catch (err) {
+        aviso.innerHTML = `<span class="log-alerta">${escLog(err.message)}</span>`
+    }
+}
+
+// Compatibilidade com chamadas antigas.
+const carregarDestinatarioEtiquetaLog = carregarDestinatarioLog
+
+async function consultarCepEtiquetaLog({ forcar = false } = {}) {
+    const form = formLog()
+    const cep = form?.querySelector('[name="et_cep"]').value.replace(/\D/g, '')
+    if (!form || cep.length !== 8) return
+    if (!forcar && form._ultimoCep === cep) return
+    form._ultimoCep = cep
+    const aviso = form.querySelector('[data-aviso-destinatario]')
+    try {
+        const { cep: info } = await apiLogistica('etiqueta/preparar', { cep })
+        if (!info) return aviso.innerHTML = '<span class="log-alerta">CEP não encontrado nos Correios.</span>'
+        setCampoLog(form, 'et_logradouro', info.logradouro)
+        setCampoLog(form, 'et_bairro', info.bairro)
+        setCampoLog(form, 'et_cidade', info.cidade)
+        setCampoLog(form, 'uf', info.uf)
+        aviso.innerHTML = '<span class="ok">Endereço atualizado pelo CEP. Confira o número.</span>'
+    } catch (err) {
+        aviso.innerHTML = `<span class="log-alerta">${escLog(err.message)}</span>`
+    }
+}
+
+async function emitirEtiquetaLog() {
+    const form = formLog()
+    if (!form) return
+    const val = nome => form.querySelector(`[name="${nome}"]`)?.value?.trim() ?? ''
+    const aviso = form.querySelector('[data-aviso-etiqueta]')
+    const botao = form.querySelector('[data-emitir-etiqueta]')
+    const loja = form.querySelector('[name="loja_log"]')
+
+    const falta = validarDestinatarioLog(form)
+    if (falta.length) {
+        aviso.innerHTML = `<span class="log-alerta">Antes de emitir, complete o destinatário (passo 2): ${falta.join(', ')}.</span>`
+        form.querySelector('[data-aviso-destinatario]').scrollIntoView({ behavior: 'smooth', block: 'center' })
+        return
+    }
+
+    let itens = form._itensEtiqueta || []
+    if (form.querySelector('[name="et_item_desc"]'))
+        itens = [{ conteudo: val('et_item_desc'), quantidade: 1, valor: numeroLog(val('et_item_valor')) }]
+
+    const corpo = {
+        servico: val('et_servico'),
+        peso_g: Math.round((numeroLog(val('et_peso')) || 0) * 1000),
+        comprimento: numeroLog(val('et_comprimento')),
+        largura: numeroLog(val('et_largura')),
+        altura: numeroLog(val('et_altura')),
+        nf: form._etiquetaNF?.nf || val('nf') || null,
+        chave_nfe: form._etiquetaNF?.chave_nfe || null,
+        itens,
+        destinatario: {
+            nome: loja.textContent.trim(),
+            cpfCnpj: val('et_doc'),
+            celular: val('et_celular'),
+            email: val('et_email'),
+            endereco: {
+                cep: val('et_cep'), logradouro: val('et_logradouro'), numero: val('et_numero'), complemento: val('et_complemento'),
+                bairro: val('et_bairro'), cidade: val('et_cidade'), uf: val('uf').toUpperCase()
+            }
+        }
+    }
+
+    botao.disabled = true
+    aviso.innerHTML = '<span class="carregando">Emitindo a etiqueta nos Correios…</span>'
+    try {
+        const { etiqueta } = await apiLogistica('etiqueta/emitir', corpo)
+        // Lembra a caixa só quando alguém informou medidas (em branco não apaga a anterior).
+        if (val('et_peso') || val('et_comprimento'))
+            try {
+                localStorage.setItem(CAIXA_PADRAO_LOG, JSON.stringify({ et_peso: val('et_peso'), et_comprimento: val('et_comprimento'), et_largura: val('et_largura'), et_altura: val('et_altura') }))
+            } catch { }
+
+        // Código no envio, etiqueta guardada; o formulário salva sozinho e abre o rótulo para imprimir.
+        form.querySelector('[name="etiqueta"]').value = JSON.stringify(etiqueta)
+        setCampoLog(form, 'rastreio', etiqueta.codigo)
+        setCampoLog(form, 'metodo', etiqueta.servico_nome || '')
+        setCampoLog(form, 'situacao', 'AGUARDANDO ENVIO')
+        definirEtapaLog(form, 'etiqueta', 'S')
+        escolherModoEnvioLog('etiqueta', { inicial: true })
+        mostrarEtiquetaEmitidaLog(form, etiqueta, form.querySelector('[data-log-form]').dataset.id, false)
+
+        await salvarEnvioLogistica(form.querySelector('[data-log-form]').dataset.id, {
+            aposSalvar: () => imprimirEtiquetaLog(etiqueta.id, etiqueta.codigo)
+        })
+        // Salvar com sucesso fecha o formulário; se ele continua aberto, o envio não foi gravado.
+        if (document.body.contains(form))
+            popup({ mensagem: `Etiqueta <b>${escLog(etiqueta.codigo)}</b> emitida, mas o envio não foi salvo. Clique em Salvar no formulário.` })
+    } catch (err) {
+        aviso.innerHTML = `<span class="log-alerta">${escLog(err.message)}</span>`
+    } finally {
+        botao.disabled = false
+    }
+}
+
+function mostrarEtiquetaEmitidaLog(form, etiqueta, idEnvio, postada) {
+    const aviso = form?.querySelector('[data-aviso-rastreio]')
+    if (!aviso || !etiqueta) return
+    if (etiqueta.cancelada_em) {
+        aviso.insertAdjacentHTML('beforeend', `<small class="log-alerta">Etiqueta ${escLog(etiqueta.codigo)} cancelada em ${escLog(new Date(etiqueta.cancelada_em).toLocaleDateString('pt-BR'))}.</small>`)
+        return
+    }
+    const prazo = etiqueta.prazo_postagem ? conversorDt(etiqueta.prazo_postagem) : ''
+    aviso.insertAdjacentHTML('beforeend', `
+        <div class="log-etiqueta-emitida">
+            <span>Etiqueta <b>${escLog(etiqueta.codigo)}</b> emitida pelo GCS${!postada && prazo ? ` · postar até <b>${escLog(prazo)}</b>` : ''}</span>
+            <button type="button" class="log-mini" onclick="imprimirEtiquetaLog('${escLog(etiqueta.id)}', '${escLog(etiqueta.codigo)}')">Imprimir</button>
+            ${!postada && idEnvio ? `<button type="button" class="log-mini" onclick="cancelarEtiquetaLog('${escLog(idEnvio)}')">Cancelar etiqueta</button>` : ''}
+        </div>`)
+}
+
+function detalhesEtiquetaLog({ id, etiqueta, rastreio_info } = {}) {
+    if (!etiqueta) return ''
+    const postada = Boolean(rastreio_info?.postagem)
+    const linhas = [
+        ['Código', etiqueta.codigo],
+        ['Serviço', etiqueta.servico_nome],
+        ['Emitida em', etiqueta.emitida_em ? new Date(etiqueta.emitida_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : ''],
+        ['Postar até', !postada && etiqueta.prazo_postagem ? conversorDt(etiqueta.prazo_postagem) : ''],
+        ['Caixa', [etiqueta.dimensoes, etiqueta.peso_g ? `${String(etiqueta.peso_g / 1000).replace('.', ',')} kg` : ''].filter(Boolean).join(' · ')
+            || (etiqueta.medidas_na_agencia ? 'Pesada e medida na agência' : '')],
+        ['Situação', etiqueta.cancelada_em ? 'Cancelada' : postada ? 'Postada' : 'Aguardando postagem']
+    ].filter(([, v]) => v)
+    const acoes = etiqueta.cancelada_em ? '' : `
+        <div class="log-etiqueta-acoes">
+            <button type="button" class="log-mini" onclick="imprimirEtiquetaLog('${escLog(etiqueta.id)}', '${escLog(etiqueta.codigo)}')">Imprimir etiqueta</button>
+            ${postada ? '' : `<button type="button" class="log-mini" onclick="cancelarEtiquetaLog('${escLog(id)}')">Cancelar etiqueta</button>`}
+        </div>`
+    return `
+        <div class="log-detalhes"><b>Etiqueta</b>
+            <table class="log-itens"><tbody>${linhas.map(([k, v]) => `<tr><th>${k}</th><td>${escLog(v)}</td></tr>`).join('')}</tbody></table>
+            ${acoes}
+        </div>`
+}
+
+async function imprimirEtiquetaLog(idPrePostagem, codigo = '') {
+    overlayAguarde()
+    try {
+        const { token } = JSON.parse(localStorage.getItem('acesso') || '{}')
+        const resposta = await fetch(`${api}/logistica/etiqueta/pdf`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ id_prepostagem: idPrePostagem })
+        })
+        if (!resposta.ok) {
+            const erro = await resposta.json().catch(() => ({}))
+            throw new Error(erro.mensagem || `Falha ao gerar o rótulo (${resposta.status})`)
+        }
+        removerOverlay()
+        mostrarPreviaPdf(await resposta.blob(), `Etiqueta ${codigo || idPrePostagem}`)
+    } catch (err) {
+        popup({ mensagem: escLog(err.message) })
+    }
+}
+
+async function cancelarEtiquetaLog(idEnvio) {
+    const confirmado = await confirmarPopup({
+        titulo: 'Cancelar etiqueta',
+        mensagem: 'Cancelar a etiqueta nos Correios? Só é possível antes da postagem, e não tem custo. O envio fica com a situação CANCELADO.',
+        textoConfirmar: 'Cancelar etiqueta'
+    })
+    if (!confirmado) return
+    overlayAguarde()
+    try {
+        await apiLogistica('etiqueta/cancelar', { id: idEnvio })
+        const form = formLog()
+        if (form?.querySelector('[data-log-form]')?.dataset.id === idEnvio) removerPopup(form.closest('.popup')?.id)
+        popup({ mensagem: 'Etiqueta cancelada nos Correios.', imagem: 'imagens/concluido.png', tempo: 4 })
+    } catch (err) {
+        popup({ mensagem: escLog(err.message) })
+    }
+}
+
+// ---------------------------------------------------------------- ligação com Ocorrências (requisições)
+// O cartão REQUISIÇÃO do chamado mostra o envio ligado; sem envio, "Criar envio". Com o envio, o
+// servidor avança o fluxo sozinho (SCRIPTS/logistica_ocorrencias.js).
+
+function desenharRequisicaoLog(form = formLog()) {
+    const faixa = form?.querySelector('[data-requisicao]')
+    if (!faixa) return
+    const req = form.querySelector('[name="requisicao_id"]').value
+    const chamado = form.querySelector('[name="chamado"]').value
+    faixa.innerHTML = req
+        ? `<span>Requisição do chamado <b>${escLog(chamado)}</b>: o fluxo do chamado anda sozinho com este envio (em separação → peças enviadas → peças disponíveis).</span>
+           <button type="button" class="log-mini" onclick="desvincularRequisicaoLog()">Desvincular</button>`
+        : `<span>Envio para uma requisição de chamado?</span>
+           <button type="button" class="log-mini" onclick="painelRequisicoesSemEnvio({ vincular: true })">Vincular a uma requisição</button>`
+    faixa.classList.toggle('vinculada', Boolean(req))
+}
+
+function desvincularRequisicaoLog() {
+    const form = formLog()
+    if (!form) return
+    for (const nome of ['requisicao_id', 'chamado', 'fluxo']) setCampoLog(form, nome, '')
+    desenharRequisicaoLog(form)
+}
+
+// Preenche o formulário aberto (ou abre um novo) com os dados da requisição.
+async function aplicarRequisicaoLog(requisicaoId, chamado, { abrirNovo = false } = {}) {
+    overlayAguarde()
+    try {
+        const r = await apiLogistica('requisicoes/preparar', { requisicao_id: requisicaoId, chamado })
+        if (r.envios > 0 && !(await confirmarPopup({ titulo: 'Requisição já tem envio', mensagem: `Esta requisição já tem ${r.envios} envio(s). Criar outro mesmo assim?`, textoConfirmar: 'Criar outro' })))
+            return removerOverlay()
+
+        const inicial = {
+            requisicao_id: r.requisicao_id, chamado: r.chamado, fluxo: r.fluxo,
+            cliente: r.cliente, loja: r.loja, uf: r.uf, orcamento: r.orcamento, volumes: r.volumes, material: r.material
+        }
+        const form = formLog()
+        if (abrirNovo || !form) {
+            removerOverlay()
+            return formularioEnvioLogistica(null, inicial)
+        }
+        // Formulário já aberto: só liga e completa o que estiver vazio.
+        for (const nome of ['requisicao_id', 'chamado', 'fluxo']) setCampoLog(form, nome, inicial[nome] || '')
+        if (form.querySelector('[name="loja_log"]')?.dataset.vazio === 'S' && r.loja) {
+            setLojaLog(form, { loja: r.loja, cliente: r.cliente })
+            setCampoLog(form, 'uf', r.uf)
+            carregarDestinatarioLog()
+        }
+        if (r.orcamento && !orcamentosLog(form).includes(r.orcamento)) desenharOrcamentosLog(form, [...orcamentosLog(form), r.orcamento])
+        setCampoLog(form, 'material', r.material, { soVazio: true })
+        desenharRequisicaoLog(form)
+        removerOverlay()
+    } catch (err) {
+        popup({ mensagem: escLog(err.message) })
+    }
+}
+
+function criarEnvioDaRequisicaoLog(requisicaoId, chamado) {
+    return aplicarRequisicaoLog(requisicaoId, chamado, { abrirNovo: true })
+}
+
+// funcaoAdicional da tabela de Ocorrências: preenche os cartões REQUISIÇÃO numa consulta só.
+async function carregarEnviosRequisicoesLog() {
+    const caixas = [...document.querySelectorAll('[data-envio-req]')]
+    if (!caixas.length) return
+    let envios = {}
+    try {
+        ({ envios } = await apiLogistica('requisicoes/resumo', { requisicoes: caixas.map(c => c.dataset.envioReq) }))
+    } catch (err) {
+        return console.error('[LOGÍSTICA requisições]', err)
+    }
+    for (const caixa of caixas) {
+        const lista = envios[caixa.dataset.envioReq] || []
+        caixa.innerHTML = lista.length
+            ? lista.map(e => {
+                const codigo = String(e.rastreio || '').toUpperCase()
+                const quando = e.data_entrega ? `entregue ${dataCurtaLog(e.data_entrega)}` : e.previsao_entrega ? `previsão ${dataCurtaLog(e.previsao_entrega)}` : ''
+                return `
+                    <div class="log-envio-cartao">
+                        <span class="log-envio-titulo">Envio</span>
+                        ${e.situacao ? `<span class="log-situacao log-${classeSituacaoLog(e.situacao)}">${escLog(e.situacao)}</span>` : ''}
+                        <span>${escLog(e.metodo || '')}</span>
+                        ${codigo ? (RE_RASTREIO_CORREIOS.test(codigo)
+                            ? `<span class="log-link" onclick="detalhesRastreioLogistica('${escLog(e.id)}')">${escLog(codigo)}</span>`
+                            : `<span>${escLog(codigo)}</span>`) : ''}
+                        ${quando ? `<span class="log-envio-quando">${escLog(quando)}</span>` : ''}
+                        ${e.ultimo_evento?.descricao && !e.data_entrega ? `<small>${escLog(e.ultimo_evento.descricao)}${e.ultimo_evento.local ? ` · ${escLog(e.ultimo_evento.local)}` : ''}</small>` : ''}
+                        <button type="button" class="log-mini" onclick="formularioEnvioLogistica('${escLog(e.id)}')">Abrir envio</button>
+                    </div>`
+            }).join('')
+            : `<div class="log-envio-cartao vazio">
+                    <span>Nenhum envio no Controle Logístico.</span>
+                    <button type="button" class="log-mini log-mini-destaque" onclick="criarEnvioDaRequisicaoLog('${escLog(caixa.dataset.envioReq)}', '${escLog(caixa.dataset.chamado)}')">Criar envio</button>
+               </div>`
+    }
+}
+
+// Requisições paradas em REQUISIÇÃO e sem envio. { vincular: true } = escolher para o formulário aberto.
+async function painelRequisicoesSemEnvio({ vincular = false, dias = 60 } = {}) {
+    overlayAguarde()
+    try {
+        const { requisicoes } = await apiLogistica('requisicoes/pendentes', { dias })
+        estadoLogistica.requisicoesPendentes = requisicoes
+        const linhas = requisicoes.map((r, i) => `
+            <tr>
+                <td>${escLog(r.data)}</td>
+                <td><b>${escLog(r.chamado)}</b></td>
+                <td class="log-loja">${escLog(r.loja || '')}</td>
+                <td>${escLog(r.uf || '')}</td>
+                <td>${escLog(r.solicitante || '')}</td>
+                <td><div class="log-material" title="${escLog(r.material || r.descricao)}">${escLog(r.material || r.descricao || '').replace(/\n/g, '<br>')}</div></td>
+                <td><button type="button" class="log-mini log-mini-destaque" onclick="usarRequisicaoPendenteLog(${i}, ${vincular})">${vincular ? 'Vincular' : 'Criar envio'}</button></td>
+            </tr>`).join('')
+
+        popup({
+            titulo: vincular ? 'Vincular a uma requisição' : 'Requisições sem envio',
+            elemento: `
+                <div class="log-pendentes">
+                    <p class="log-dica">Cartões <b>REQUISIÇÃO</b> dos últimos ${dias} dias que ainda não andaram e não têm envio. Com o envio criado, o chamado passa sozinho para <b>EM SEPARAÇÃO</b>, depois <b>PEÇAS ENVIADAS</b> e <b>PEÇAS DISPONÍVEIS</b>.</p>
+                    ${requisicoes.length ? `
+                    <div class="log-pendentes-tabela">
+                        <table class="tabela">
+                            <thead><tr><th>Data</th><th>Chamado</th><th>Loja</th><th>UF</th><th>Solicitante</th><th>Material</th><th></th></tr></thead>
+                            <tbody>${linhas}</tbody>
+                        </table>
+                    </div>` : '<p class="log-dica"><b>Nenhuma requisição esperando envio.</b></p>'}
+                </div>`
+        })
+    } catch (err) {
+        popup({ mensagem: `Falha ao buscar as requisições: ${escLog(err.message)}` })
+    }
+}
+
+async function usarRequisicaoPendenteLog(i, vincular) {
+    const r = (estadoLogistica.requisicoesPendentes || [])[i]
+    if (!r) return
+    removerPopup([...document.querySelectorAll('.popup')].at(-1)?.id)
+    await aplicarRequisicaoLog(r.requisicao_id, r.chamado, { abrirNovo: !vincular })
+}
+
 // ---------------------------------------------------------------- rastreio
+
+// Janela do rastreio: cabeçalho, etapas, números principais e linha do tempo dos Correios.
+const ETAPAS_RASTREIO_LOG = ['Postado', 'Em trânsito', 'Saiu para entrega', 'Entregue']
+
+function etapaRastreioLog(eventos = [], info = {}) {
+    const textos = eventos.map(e => String(e.descricao || '').toLowerCase())
+    if (info.entregue || textos.some(t => /entregue ao destinat/.test(t))) return 3
+    if (textos[0] && /saiu para entrega|aguardando retirada/.test(textos[0])) return 2
+    if (textos.some(t => /transfer|encaminhad|recebido|em trânsito|em transito/.test(t))) return 1
+    if (textos.some(t => /postado/.test(t))) return 0
+    return -1
+}
+
+function dataEventoLog(texto) {
+    const d = texto ? new Date(texto) : null
+    if (!d || Number.isNaN(d.getTime())) return { dia: '', hora: '', semana: '' }
+    return {
+        dia: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+        hora: d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        semana: d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')
+    }
+}
+
+function copiarRastreioLog(botao, codigo) {
+    navigator.clipboard?.writeText(codigo).then(() => {
+        botao.textContent = 'Copiado'
+        setTimeout(() => { botao.textContent = 'Copiar' }, 1500)
+    }).catch(() => {})
+}
 
 async function detalhesRastreioLogistica(id) {
     overlayAguarde()
     const dado = await recuperarDado('controle_logistico', id) || {}
-    const info = dado.rastreio_info
+    const info = dado.rastreio_info || null
     const eventos = info?.eventos || []
+    const postagem = info?.postagem || null
+    const codigo = info?.codigo || String(dado.rastreio || '').toUpperCase()
+    const situacao = dado.situacao || info?.situacao || ''
+    const etapa = etapaRastreioLog(eventos, info || {})
+    const hoje = hojeLog()
+    const atrasado = info?.previsao && !info?.data_entrega && info.previsao < hoje && !['ENTREGUE', 'CANCELADO', 'DEVOLVIDO'].includes(situacao)
 
-    const linhas = eventos.map(e => `
-        <li class="log-evento log-${classeSituacaoLog(situacaoEventoLog(e))}">
-            <div class="log-evento-data">${escLog(e.data ? new Date(e.data).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '')}</div>
-            <div>
-                <b>${escLog(e.descricao)}</b>
-                <div>${escLog(e.local || '')}${e.destino ? ` → ${escLog(e.destino)}` : ''}</div>
-                ${e.detalhe && !/survey|pesquisa/i.test(e.detalhe) ? `<small>${escLog(e.detalhe)}</small>` : ''}
-            </div>
-        </li>`).join('')
+    const cartao = (rotulo, valor, classe = '') => valor
+        ? `<div class="log-rt-cartao ${classe}"><span>${rotulo}</span><b>${valor}</b></div>` : ''
+    const cartoes = [
+        cartao('Previsão de entrega', info?.previsao ? conversorDt(info.previsao) + (atrasado ? ' · atrasado' : '') : '', atrasado ? 'alerta' : ''),
+        cartao('Entregue em', info?.data_entrega ? conversorDt(info.data_entrega) : '', info?.data_entrega ? 'ok' : ''),
+        cartao('Postado em', postagem?.data_postagem ? `${conversorDt(postagem.data_postagem)}${postagem.hora_postagem ? ` ${escLog(postagem.hora_postagem)}` : ''}` : ''),
+        cartao('Frete cobrado', postagem?.valor != null ? dinheiroTexto(postagem.valor) : ''),
+        cartao('Peso', info?.peso ? `${String(info.peso).replace('.', ',')} kg` : ''),
+        cartao('Caixa', escLog(info?.dimensoes || ''))
+    ].join('')
 
-    const cabecalho = info
-        ? `<div class="log-rastreio-topo">
-                <b>${escLog(info.codigo || dado.rastreio)}</b>
-                ${info.servico ? `<span>${escLog(info.servico)}</span>` : ''}
-                ${info.previsao ? `<span>Previsão: ${conversorDt(info.previsao)}</span>` : ''}
-                ${info.data_entrega ? `<span>Entregue: ${conversorDt(info.data_entrega)}</span>` : ''}
-                ${info.peso ? `<span>${String(info.peso).replace('.', ',')} kg</span>` : ''}
-                ${info.dimensoes ? `<span>${escLog(info.dimensoes)}</span>` : ''}
-                <small>Consultado em ${escLog(new Date(info.atualizado_em).toLocaleString('pt-BR'))}</small>
-           </div>`
-        : `<div class="log-rastreio-topo"><b>${escLog(dado.rastreio)}</b><small>Ainda não consultado nos Correios.</small></div>`
+    const etapas = etapa < 0 ? '' : `
+        <ol class="log-rt-etapas">
+            ${ETAPAS_RASTREIO_LOG.map((nome, i) => `
+                <li class="${i < etapa || etapa === 3 ? 'feita' : i === etapa ? 'atual' : ''}">
+                    <span class="ponto">${i < etapa || (i === etapa && etapa === 3) ? '✓' : i + 1}</span>
+                    <span class="nome">${nome}</span>
+                </li>`).join('')}
+        </ol>`
+
+    const linhaDoTempo = eventos.map((e, i) => {
+        const { dia, hora, semana } = dataEventoLog(e.data)
+        const detalhe = e.detalhe && !/survey|pesquisa|medallia/i.test(e.detalhe) ? `<small>${escLog(e.detalhe)}</small>` : ''
+        return `
+            <li class="log-rt-evento log-${classeSituacaoLog(situacaoEventoLog(e))}${i === 0 ? ' recente' : ''}">
+                <div class="log-rt-quando"><b>${escLog(dia)}</b><span>${escLog(semana)} · ${escLog(hora)}</span></div>
+                <div class="log-rt-marco"><span></span></div>
+                <div class="log-rt-texto">
+                    <b>${escLog(e.descricao)}</b>
+                    ${e.local ? `<div class="log-rt-local">${escLog(e.local)}${e.destino ? ` <span class="seta">→</span> ${escLog(e.destino)}` : ''}</div>` : ''}
+                    ${detalhe}
+                </div>
+            </li>`
+    }).join('')
 
     popup({
         titulo: 'Rastreio dos Correios',
         elemento: `
-            <div class="log-rastreio-painel">
-                ${cabecalho}
-                ${info?.mensagem ? `<p class="log-alerta">${escLog(info.mensagem)}</p>` : ''}
-                ${linhas ? `<ul class="log-eventos">${linhas}</ul>` : ''}
+            <div class="log-rt">
+                <div class="log-rt-topo">
+                    <div class="log-rt-codigo">
+                        <span class="codigo">${escLog(codigo)}</span>
+                        <button type="button" class="log-mini" onclick="copiarRastreioLog(this, '${escLog(codigo)}')">Copiar</button>
+                    </div>
+                    <div class="log-rt-linha">
+                        ${situacao ? `<span class="log-situacao log-${classeSituacaoLog(situacao)}">${escLog(situacao)}</span>` : ''}
+                        ${info?.servico ? `<span>${escLog(postagem?.servico || info.servico)}</span>` : ''}
+                    </div>
+                    ${dado.loja ? `<div class="log-rt-destino">Para <b>${escLog(dado.loja)}</b>${dado.uf ? ` · ${escLog(dado.uf)}` : ''}</div>` : ''}
+                </div>
+                ${info?.mensagem ? `<p class="log-rt-aviso log-alerta">${escLog(info.mensagem)}</p>` : ''}
+                ${!info ? '<p class="log-rt-aviso">Ainda não consultado nos Correios. Clique em "Consultar agora".</p>' : ''}
+                ${etapas}
+                ${cartoes ? `<div class="log-rt-cartoes">${cartoes}</div>` : ''}
+                ${linhaDoTempo ? `<div class="log-rt-titulo">Histórico</div><ul class="log-rt-eventos">${linhaDoTempo}</ul>` : ''}
+                ${info?.atualizado_em ? `<div class="log-rt-rodape">Consultado nos Correios em ${escLog(new Date(info.atualizado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }))}</div>` : ''}
             </div>`,
         botoes: [{ texto: 'Consultar agora', img: 'atualizar', funcao: `atualizarRastreioEnvioLog('${escLog(id)}')`, fechar: true }]
     })
@@ -949,8 +1645,10 @@ async function detalhesRastreioLogistica(id) {
 // Mesma regra do servidor (SCRIPTS/correios.js → situacaoPorEvento), só para colorir a linha do tempo.
 function situacaoEventoLog(evento) {
     const d = String(evento?.descricao || '').toLowerCase()
+    if (/etiqueta cancelada/.test(d)) return 'CANCELADO'
+    if (/etiqueta emitida/.test(d)) return 'AGUARDANDO ENVIO'
     if (/entregue ao destinat/.test(d)) return 'ENTREGUE'
-    if (/aguardando retirada/.test(d)) return 'AGUARDANDO RETIRADA'
+    if (/saiu para entrega|aguardando retirada/.test(d)) return 'AGUARDANDO RETIRADA'
     if (/devol/.test(d)) return 'EM DEVOLUÇÃO'
     if (/n[aã]o entregue|extravi|roub|avaria|ausente|incorreto|n[aã]o atendido|recusad/.test(d)) return 'OCORRÊNCIA'
     if (/postado/.test(d)) return 'POSTADO'
