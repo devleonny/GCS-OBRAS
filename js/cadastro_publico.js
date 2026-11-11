@@ -3,7 +3,12 @@
 // ao enviar, cria o cadastro em clientes e o link deixa de valer.
 (() => {
     const api = 'https://api.gcs.app.br'
-    const token = new URLSearchParams(location.search).get('t') || ''
+    // O código sai da barra de endereço, mas fica guardado só nesta aba: recarregar a página
+    // continua funcionando e, ao fechar a aba, ele some.
+    const lerSessao = () => { try { return sessionStorage.getItem('cp_token') || '' } catch { return '' } }
+    const gravarSessao = valor => { try { valor ? sessionStorage.setItem('cp_token', valor) : sessionStorage.removeItem('cp_token') } catch { } }
+    const token = new URLSearchParams(location.search).get('t') || lerSessao()
+    gravarSessao(token)
     const estados = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB',
         'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO']
 
@@ -30,8 +35,9 @@
         return { ...retorno, ok: resposta.ok, status: resposta.status }
     }
 
-    function encerrar(mensagem, sucesso = false) {
+    function encerrar(mensagem, sucesso = false, manterCodigo = false) {
         clearInterval(relogio)
+        if (!manterCodigo) gravarSessao('')
         form.hidden = true
         tempo.hidden = true
         aviso.hidden = false
@@ -60,7 +66,7 @@
             tic()
             relogio = setInterval(tic, 1000)
         } catch {
-            encerrar('Não foi possível verificar o link. Confira sua internet e abra o link de novo.')
+            encerrar('Não foi possível verificar o link. Confira sua internet e recarregue a página.', false, true)
         }
     }
 
@@ -162,7 +168,9 @@
         botao.textContent = 'Enviando…'
         try {
             const r = await post('enviar', { token, dados })
-            if (r.ok) return encerrar('Cadastro enviado com sucesso. Obrigado! Você já pode fechar esta página.', true)
+            if (r.ok) return encerrar(r.atualizado
+                ? 'Seus dados foram atualizados com sucesso. Obrigado! Você já pode fechar esta página.'
+                : 'Cadastro enviado com sucesso. Obrigado! Você já pode fechar esta página.', true)
             if (r.status === 410) return encerrar(r.mensagem || 'Este link não vale mais.')
             erro.hidden = false
             erro.textContent = r.mensagem || 'Não foi possível enviar. Tente de novo.'
