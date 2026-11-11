@@ -1258,9 +1258,9 @@ async function baixarPdfColab(html, nome) {
     }
 }
 
-const assinaturasPdfColab = (esquerda, direita) => `
+const assinaturasPdfColab = (...assinaturas) => `
     <div style="${horizontal}; justify-content: space-around; width: 100%; margin-top: 4rem; gap: 2rem;">
-        ${[esquerda, direita].map(([nome, papel]) => `
+        ${assinaturas.map(([nome, papel]) => `
             <div style="${vertical}; align-items: center; width: 40%; border-top: 1px solid #000; padding-top: 4px;">
                 <span>${escaparAtributo(nome)}</span>
                 <small>${papel}</small>
@@ -1282,7 +1282,8 @@ async function gerarDocumentoColab(idColab, idReq) {
     const declaracao = devolucao
         ? `Declaro ter recebido de volta, para a ${empresa}, os itens relacionados abaixo, nas quantidades indicadas.`
         : `Declaro ter recebido da ${empresa} os itens relacionados abaixo, nas quantidades indicadas, para uso exclusivo nas atividades profissionais. `
-            + 'As ferramentas ficam sob minha guarda e devem ser devolvidas quando solicitado ou ao término do vínculo.'
+            + 'As ferramentas ficam sob minha guarda e devem ser devolvidas quando solicitado ou ao término do vínculo. '
+            + 'Assumo a responsabilidade por qualquer perda, extravio ou dano aos equipamentos e materiais disponibilizados.'
 
     const linhas = r.itens.map(i => `
         <tr>
@@ -1333,7 +1334,7 @@ async function gerarDocumentoColab(idColab, idReq) {
 
             ${devolucao
                 ? assinaturasPdfColab([colaborador.nome || 'Colaborador', 'Quem devolveu'], [acesso.nome_completo || acesso.usuario || '', 'Quem recebeu'])
-                : assinaturasPdfColab([colaborador.nome || 'Colaborador', 'Quem recebeu'], [acesso.nome_completo || acesso.usuario || '', 'Quem entregou'])}
+                : assinaturasPdfColab([colaborador.nome || 'Colaborador', 'Quem recebeu'])}
         </div>
     `
 
