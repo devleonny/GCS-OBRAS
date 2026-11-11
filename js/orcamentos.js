@@ -328,6 +328,9 @@ async function editar(id) {
     if (orcamento.aprovacao)
         delete orcamento.aprovacao
 
+    if (ehOrcamentoLocacao(orcamento.lpu_ativa) && bloquearLocacao())
+        return
+
     const jaEmEdicao = Object.values(JSON.parse(localStorage.getItem('temporario')) || {})
         .some(orc => orc.id == id)
 
@@ -376,6 +379,9 @@ async function duplicar(id) {
         tags,
         dados_orcam
     } = await recuperarDado('dados_orcamentos', id) || {}
+
+    if (ehOrcamentoLocacao(lpu_ativa) && bloquearLocacao())
+        return
 
     const novoOrcamento = {
         esquema_composicoes,

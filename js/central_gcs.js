@@ -987,7 +987,7 @@ function painelEdicao(tela) {
             <br>
 
             <button onclick="editarOrcamentoTemporario('${novo}')">Novo Orçamento</button>
-            <button onclick="editarOrcamentoTemporario('${novo}', MODO_LOCACAO)">Novo Orçamento de Locação</button>
+            ${podeUsarLocacao() ? `<button onclick="editarOrcamentoTemporario('${novo}', MODO_LOCACAO)">Novo Orçamento de Locação</button>` : ''}
 
             <br>
 
@@ -1025,6 +1025,9 @@ async function removerOrcTemp(img, idEdicao) {
 }
 
 async function editarOrcamentoTemporario(idEdicao, lpu) {
+
+    if (ehOrcamentoLocacao(lpu) && bloquearLocacao())
+        return
 
     removerPopup()
 

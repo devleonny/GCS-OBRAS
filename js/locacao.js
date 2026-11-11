@@ -12,6 +12,20 @@ const MODO_LOCACAO = 'LOCAÇÃO'
 function ehOrcamentoLocacao(lpuAtiva) {
     return lpuAtiva === MODO_LOCACAO || lpuAtiva === 'ALUGUEL'
 }
+
+// Orçamento de locação (criar, editar, duplicar): só adm e diretoria.
+const PERMISSOES_LOCACAO = ['adm', 'diretoria']
+
+function podeUsarLocacao() {
+    return PERMISSOES_LOCACAO.includes(acesso?.permissao)
+}
+
+// Devolve true se bloqueou (e avisa); quem chama só segue quando der false.
+function bloquearLocacao() {
+    if (podeUsarLocacao()) return false
+    popup({ mensagem: 'O orçamento de locação é liberado só para as permissões <b>adm</b> e <b>diretoria</b>.' })
+    return true
+}
 const PERMISSOES_CONFIG_LOCACAO = ['adm', 'diretoria']
 
 // Valores padrão (validade 30/06/2026); usados só enquanto não houver tabela salva no banco.

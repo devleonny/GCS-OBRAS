@@ -20,6 +20,10 @@ async function confirmarExclusaoLocacao() {
 
 async function telaCriarOrcamentoLocacao() {
 
+    // Última barreira: qualquer caminho que chegue aqui sem permissão para no aviso.
+    if (bloquearLocacao())
+        return
+
     modo = MODO_LOCACAO
 
     const acumulado = `
