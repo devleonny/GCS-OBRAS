@@ -1269,7 +1269,13 @@ async function salvarCliente(idCliente = null) {
         const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
 
         // Tags: obrigatório, pelo menos uma.
-        const tags = tagsMarcadasCliente(painel).map(tag => ({ tag }))
+        // Cadastro com CNPJ (14 dígitos) sempre leva a tag EMPRESA.
+        const cnpjDigitosTag = String(painel.querySelector('[name="cnpj"]')?.value || '').replace(/\D/g, '')
+        const tagsMarcadas = tagsMarcadasCliente(painel)
+        if (cnpjDigitosTag.length === 14 && !tagsMarcadas.includes('EMPRESA'))
+            tagsMarcadas.push('EMPRESA')
+
+        const tags = tagsMarcadas.map(tag => ({ tag }))
         if (!tags.length)
             return popup({ mensagem: 'Marque pelo menos uma <b>tag</b> no cadastro.' })
 
@@ -1493,6 +1499,12 @@ function formatarCnpj(input) {
     // (cadastro de clientes); o pedido de pagamento a parceiro usa a mesma máscara e não consulta.
     const painelCliente = input.closest('.painel-padrao') || document
     const temEndereco = painelCliente.querySelector('[name="endereco"]')
+
+    // CNPJ (14 dígitos) no cadastro de clientes: a tag EMPRESA já vem marcada.
+    const caixaEmpresa = painelCliente.querySelector('[name="tags"] input[type="checkbox"][value="EMPRESA"]')
+    if (temEndereco && caixaEmpresa && digitos.length === 14 && !caixaEmpresa.checked)
+        caixaEmpresa.checked = true
+
     if (temEndereco && digitos.length === 14 && validarCpfCnpj(v) && input.dataset.cnpjConsultado !== digitos) {
         input.dataset.cnpjConsultado = digitos
         preencherClientePorCnpj(input, digitos)
