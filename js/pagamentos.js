@@ -816,10 +816,6 @@ async function formularioPagamento() {
             ? await recuperarDado('clientes', codigo_cliente_fornecedor) || {}
             : {}
 
-        // Conta corrente escolhida (vale só para a empresa em que foi escolhida); sem ela, a padrão.
-        const contaEscolhida = ultimoPagamento.param_estavel?.conta_corrente
-        const contaValida = contaEscolhida && contaEscolhida.app === (app || empresas[0]) ? contaEscolhida : null
-
         const [dia, mes, ano] = data_vencimento
             ? data_vencimento.split('/')
             : dataRegras(null, 0).split('/')
@@ -828,8 +824,6 @@ async function formularioPagamento() {
 
         controlesCxOpcoes.recebedor = {
             base: 'clientes',
-            // Cadastros de cartão de crédito ("CARTÃO SANTANDER…") não são recebedor de pagamento.
-            filtros: { nome: { op: 'not_includes', value: 'cartao' } },
             // Sem ordem forçada (o cxOpcoes ordenaria por nome): fica a ordem nativa do servidor.
             ordenar: null,
             retornar: ['nome'],
@@ -847,19 +841,9 @@ async function formularioPagamento() {
             {
                 texto: '<span style="padding-right: 2rem;"><b>IAC</b> Apenas reembolso para funcionário</span>',
                 elemento: `
-                <select name="app" onchange="trocarEmpresaPagamento()">
+                <select name="app" onchange="calculadoraPagamento()">
                     ${empresas.map(op => `<option ${app == op ? 'selected' : ''}>${op}</option>`).join('')}
                 </select>
-            `
-            },
-            {
-                texto: 'Conta corrente',
-                elemento: `
-                <span class="opcoes" name="contaCorrente" title="Trocar a conta corrente"
-                    ${contaValida ? `id="${escaparAtributo(contaValida.codigo)}" data-app="${escaparAtributo(contaValida.app)}" data-descricao="${escaparAtributo(contaValida.descricao || '')}"` : ''}
-                    onclick="abrirContasCorrentesPagamento()">
-                    ${escaparAtributo(contaValida ? (contaValida.descricao || `Conta ${contaValida.codigo}`) : 'Padrão da empresa')}
-                </span>
             `
             },
             {
@@ -980,9 +964,6 @@ async function formularioPagamento() {
         if (!categorias.length) await maisCampo({ base: 'categorias', atualizar: false })
         if (!distribuicao.length) await maisCampo({ base: 'departamentos', atualizar: false })
 
-        // Nome da conta padrão da empresa (sem travar a abertura do formulário).
-        mostrarContaPadraoPagamento()
-
         // Verificação inicial;
         await calculadoraPagamento()
 
@@ -1059,109 +1040,6 @@ function cadastrarClienteRecebedor() {
     formularioCliente()
 }
 
-// ---------- Conta corrente (Omie) ----------
-// Cada empresa (app) tem os seus códigos de conta. Sem escolha, o servidor usa a padrão da empresa
-// (gcs/SCRIPTS/contas_correntes.js); a escolha vale só para a empresa em que foi feita.
-const contasCorrentesPagamento = new Map() // app -> { contas, padrao }
-
-async function buscarContasCorrentesPagamento(app, atualizar = false) {
-    if (!atualizar && contasCorrentesPagamento.has(app)) return contasCorrentesPagamento.get(app)
-    const { token } = JSON.parse(localStorage.getItem('acesso') || '{}')
-    const resposta = await fetch(`${api}/pagamentos/contas-correntes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ app, atualizar })
-    })
-    const dados = await resposta.json().catch(() => ({}))
-    if (!resposta.ok) throw new Error(dados.mensagem || 'Não foi possível buscar as contas correntes.')
-    contasCorrentesPagamento.set(app, dados)
-    return dados
-}
-
-// Sem escolha: mostra o nome da conta padrão da empresa (ou pede para escolher, se não houver).
-async function mostrarContaPadraoPagamento() {
-    const campo = document.querySelector('[name="contaCorrente"]')
-    const app = document.querySelector('[name="app"]')?.value
-    if (!campo || !app || campo.id) return
-    try {
-        const { contas = [], padrao } = await buscarContasCorrentesPagamento(app)
-        if (campo.id || document.querySelector('[name="app"]')?.value !== app) return
-        const conta = contas.find(c => c.codigo === padrao)
-        campo.textContent = padrao ? `${conta?.descricao || `Conta ${padrao}`} (padrão)` : 'Escolha a conta'
-    } catch {
-        campo.textContent = 'Padrão da empresa'
-    }
-}
-
-// Empresa trocada: a conta escolhida era de outra empresa, então volta para a padrão da nova.
-function trocarEmpresaPagamento() {
-    const campo = document.querySelector('[name="contaCorrente"]')
-    const app = document.querySelector('[name="app"]')?.value
-    if (campo && campo.id && campo.dataset.app !== app) {
-        campo.removeAttribute('id')
-        delete campo.dataset.app
-        delete campo.dataset.descricao
-        campo.textContent = 'Padrão da empresa'
-    }
-    mostrarContaPadraoPagamento()
-    calculadoraPagamento()
-}
-
-async function abrirContasCorrentesPagamento(atualizar = false) {
-    const app = document.querySelector('[name="app"]')?.value
-    if (!app) return
-    overlayAguarde()
-    let dados
-    try {
-        dados = await buscarContasCorrentesPagamento(app, atualizar)
-    } catch (erro) {
-        return popup({ mensagem: erro.message })
-    }
-    // Reabrindo pelo "Atualizar do Omie": fecha a lista anterior.
-    if (atualizar) removerPopup()
-    if (!dados.contas?.length) return popup({ mensagem: `Nenhuma conta corrente ativa encontrada no Omie da ${app}.` })
-
-    controlesCxOpcoes.contaCorrente = {
-        base: dados.contas.map(c => ({ ...c, nome: c.padrao ? `${c.descricao} (padrão)` : c.descricao })),
-        retornar: ['nome'],
-        funcaoAdicional: ['escolherContaPagamento'],
-        colunas: {
-            'Conta': { chave: 'nome', alinhar: 'esquerda' },
-            'Banco': { chave: 'banco' },
-            'Agência': { chave: 'agencia' },
-            'Número': { chave: 'conta' }
-        },
-        btnExtras: `<button type="button" class="botao-cabecalho-tabela" onclick="abrirContasCorrentesPagamento(true)">Atualizar do Omie</button>`
-    }
-    await cxOpcoes('contaCorrente')
-}
-
-// funcaoAdicional do cxOpcoes: guarda de qual empresa é a conta escolhida.
-function escolherContaPagamento() {
-    const campo = document.querySelector('[name="contaCorrente"]')
-    const app = document.querySelector('[name="app"]')?.value
-    if (!campo?.id || !app) return
-    const conta = contasCorrentesPagamento.get(app)?.contas?.find(c => c.codigo === campo.id)
-    // A padrão escolhida de volta é o mesmo que não escolher: segue a padrão da empresa.
-    if (conta?.padrao) {
-        campo.removeAttribute('id')
-        delete campo.dataset.app
-        delete campo.dataset.descricao
-        campo.textContent = `${conta.descricao} (padrão)`
-    } else {
-        campo.dataset.app = app
-        campo.dataset.descricao = conta?.descricao || campo.textContent.trim()
-    }
-    calculadoraPagamento()
-}
-
-// Conta escolhida para o param_estavel (só se for da empresa selecionada).
-function contaCorrenteDoFormulario(app) {
-    const campo = document.querySelector('[name="contaCorrente"]')
-    if (!campo?.id || campo.dataset.app !== app) return null
-    return { app, codigo: campo.id, descricao: campo.dataset.descricao || campo.textContent.trim() }
-}
-
 async function calculadoraPagamento() {
 
     atualizarDataSugeridaPagamento()
@@ -1174,9 +1052,6 @@ async function calculadoraPagamento() {
     const codigo_cliente_fornecedor = obVal('recebedor').id
     if (!codigo_cliente_fornecedor)
         return { mensagem: 'Recebedor em branco' }
-    // Rascunho antigo ou duplicado com cadastro de cartão: o seletor já não oferece esses cadastros.
-    if (/cartao/.test(obVal('recebedor').textContent.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()))
-        return { mensagem: 'Cadastro de cartão não pode ser recebedor de pagamento: escolha outro recebedor.' }
 
     const observacao = obVal('observacao').value
     const app = obVal('app').value
@@ -1242,14 +1117,6 @@ async function calculadoraPagamento() {
     const [anoPagamento, mesPagamento, diaPagamento] = dataPagamento.value.split('-')
     const dataFinal = `${diaPagamento}/${mesPagamento}/${anoPagamento}`
 
-    // Conta corrente: a escolhida (desta empresa) ou nenhuma (servidor usa a padrão da empresa).
-    const conta_corrente = contaCorrenteDoFormulario(app)
-    // Uma busca por empresa (depois fica guardada): sem ela não dá para saber se há conta padrão.
-    if (!conta_corrente && !contasCorrentesPagamento.has(app))
-        await buscarContasCorrentesPagamento(app).catch(() => null)
-    if (!conta_corrente && contasCorrentesPagamento.get(app)?.padrao === null)
-        return { mensagem: `A ${app} não tem conta corrente padrão: escolha a conta.` }
-
     const ulPSalvo = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
 
     // Se existir status, então o usuário deve saber o que acontece ao salvar;
@@ -1279,8 +1146,7 @@ async function calculadoraPagamento() {
                 data_vencimento: dataFinal,
                 valor_documento: Math.round(valor_documento * 100) / 100,
                 categorias: Object.values(categorias),
-                distribuicao: Object.values(distribuicao),
-                ...(conta_corrente ? { conta_corrente } : {})
+                distribuicao: Object.values(distribuicao)
         }
     }
 
