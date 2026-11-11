@@ -215,6 +215,7 @@ const esquemaBotoes = {
             img: 'prancheta',
             sub: [
                 { nome: 'Criar Cadastro', funcao: 'formularioCliente', img: 'baixar' },
+                { nome: 'Link de Cadastro', funcao: 'formularioLinkCadastro', img: 'link' },
                 { nome: 'Categorias de Formulário', funcao: 'telaCadastros', img: 'prancheta' },
                 { nome: 'Clientes, Usuários & Fornecedores', funcao: 'telaClientes', img: 'prancheta' }
             ]

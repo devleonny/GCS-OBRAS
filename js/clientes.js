@@ -365,6 +365,7 @@ async function telaClientes() {
             <div class="clientes-filtros" style="${horizontal}; gap: 1rem; padding: 3px;">
                 <button type="button" class="clientes-adicionar clientes-vincular" onclick="classificarUnidades()">Vincular em massa</button>
                 <button type="button" class="clientes-adicionar" onclick="formularioCliente()">Adicionar Cadastro</button>
+                <button type="button" class="clientes-adicionar" onclick="formularioLinkCadastro()">Link de cadastro</button>
                 ${dropdownTags}
                 ${dropdownEstados}
                 <div style="${horizontal}; gap: 1rem;">
@@ -1004,6 +1005,60 @@ async function gerarSenhaProvisoriaCliente(idCliente) {
 
         popup({ linhas, titulo: 'Senha provisória' })
 
+    } catch {
+        removerOverlay()
+        popup({ mensagem: 'Sem conexão com o servidor. Tente novamente.' })
+    }
+}
+
+// Link público de cadastro (cadastro.html; servidor: SCRIPTS/cadastro_publico.js).
+// Vale pelos minutos escolhidos e para um único envio; o cadastro entra com a tag escolhida.
+function formularioLinkCadastro() {
+    const linhas = [
+        {
+            texto: 'Validade',
+            elemento: `<select name="link_minutos">${[10, 15, 30, 60].map(m => `<option value="${m}" ${m === 30 ? 'selected' : ''}>${m} minutos</option>`).join('')}</select>`
+        },
+        {
+            texto: 'Tag do cadastro',
+            elemento: `<select name="link_tag">${['TÉCNICO PARCEIRO', 'TÉCNICO', 'CLIENTE', 'FORNECEDOR'].map(t => `<option>${t}</option>`).join('')}</select>`
+        },
+        { elemento: '<small style="text-align: left;">Qualquer pessoa com o link preenche o formulário do técnico. Depois do prazo, ou de um envio, o link deixa de valer.</small>' }
+    ]
+    popup({ linhas, titulo: 'Link de cadastro', botoes: [{ texto: 'Gerar link', img: 'concluido', funcao: 'gerarLinkCadastro()' }] })
+}
+
+async function gerarLinkCadastro() {
+    const minutos = Number(obVal('link_minutos'))
+    const tag = obVal('link_tag')
+    overlayAguarde()
+    try {
+        const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
+        const resposta = await fetch(`${api}/cadastro-publico/gerar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ minutos, tag })
+        })
+        const dados = await resposta.json().catch(() => ({}))
+        removerPopup()
+        if (!resposta.ok || !dados.link)
+            return popup({ mensagem: dados.mensagem || 'Falha ao gerar o link de cadastro.' })
+
+        const validade = new Date(dados.expira_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        popup({
+            titulo: 'Link de cadastro',
+            linhas: [
+                {
+                    texto: 'Link',
+                    elemento: `
+                        <div style="${horizontal}; gap: 5px;">
+                            <input value="${escaparAtributo(dados.link)}" readOnly style="min-width: 260px;" onclick="this.select()">
+                            <button type="button" onclick="navigator.clipboard.writeText(this.previousElementSibling.value).then(() => this.textContent = 'Copiado')">Copiar</button>
+                        </div>`
+                },
+                { elemento: `<small style="text-align: left;">Vale até ${validade} (${dados.minutos} min) e para um único envio. Tag: <b>${escaparAtributo(dados.tag)}</b>.</small>` }
+            ]
+        })
     } catch {
         removerOverlay()
         popup({ mensagem: 'Sem conexão com o servidor. Tente novamente.' })
