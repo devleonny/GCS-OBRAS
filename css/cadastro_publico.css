@@ -163,3 +163,15 @@ button[type=submit] {
 
 button[type=submit]:hover { background: var(--cp-verde-escuro); }
 button[type=submit]:disabled { opacity: .6; cursor: wait; }
+
+.cp-outro {
+    margin-top: 14px;
+    padding: 10px 16px;
+    font: inherit;
+    font-weight: 600;
+    color: var(--cp-verde);
+    background: #fff;
+    border: 1px solid var(--cp-verde);
+    border-radius: 8px;
+    cursor: pointer;
+}

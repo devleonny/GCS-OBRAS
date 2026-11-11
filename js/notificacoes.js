@@ -251,6 +251,8 @@ async function abrirAcaoNotificacao(acao, titulo = '') {
         if (tipo === 'pagamento' && acao.id) return await abrirDetalhesPagamentos(acao.id)
         if (tipo === 'colaborador' && acao.colaborador) return await irParaColaborador(acao.colaborador, acao.requisicao)
         if (tipo === 'documentos') return await abrirDocumentosAVencer()
+        // Cadastro feito/atualizado pelo link público: abre o cadastro.
+        if (tipo === 'cliente' && acao.id) return await formularioCliente(Number(acao.id) || acao.id)
         if (tipo === 'precos') return await abrirPrecosVencidos(acao.lpu || null)
         // Aviso manual com mensagem formatada (editor): abre a mensagem completa.
         if (tipo === 'aviso') return abrirAvisoNotificacao(acao, titulo)

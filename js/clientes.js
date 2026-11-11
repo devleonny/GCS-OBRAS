@@ -727,8 +727,19 @@ async function formularioCliente(idCliente) {
         empresa,
         garantia_meses,
         tags,
-        desligado
+        desligado,
+        termos
     } = await recuperarDado('clientes', idCliente) || {}
+
+    // Termos aceitos pelo link público (PDF gerado no servidor: SCRIPTS/cadastro_publico.js).
+    const termosAceitos = (Array.isArray(termos) ? termos : [])
+        .filter(t => t?.arquivo?.link)
+        .map(t => `
+            <div style="${vertical}; gap: 2px;">
+                ${criarAnexoVisual(t.arquivo.nome || 'Termo.pdf', t.arquivo.link)}
+                <small>Aceito em ${escaparAtributo(t.aceito_em || '')}${t.ip ? ` · IP ${escaparAtributo(t.ip)}` : ''}</small>
+            </div>`)
+        .join('')
 
     // Tags em lista de checkbox: as da lista padrão e, marcadas, as antigas que não estão nela.
     const marcadas = new Set((tags || []).map(item => item.tag).filter(Boolean))
@@ -880,6 +891,9 @@ async function formularioCliente(idCliente) {
             texto: 'Comentário',
             elemento: `<textarea placeholder="Comentário" name="comentario">${comentario || ''}</textarea>`
         },
+        termosAceitos
+            ? { texto: 'Termo aceito', elemento: `<div style="${vertical}; gap: 6px;">${termosAceitos}</div>` }
+            : {},
         { elemento: '<span class="cliente-secao">Endereço de entrega</span>' },
         {
             texto: 'Cep',
@@ -1012,7 +1026,7 @@ async function gerarSenhaProvisoriaCliente(idCliente) {
 }
 
 // Link público de cadastro (cadastro.html; servidor: SCRIPTS/cadastro_publico.js).
-// Vale pelos minutos escolhidos e para um único envio; o cadastro entra com a tag escolhida.
+// Vale pelos minutos escolhidos, para quantas pessoas usarem (sem limite); o cadastro entra com a tag escolhida.
 function formularioLinkCadastro() {
     const linhas = [
         {
@@ -1023,7 +1037,7 @@ function formularioLinkCadastro() {
             texto: 'Tag do cadastro',
             elemento: `<select name="link_tag">${['TÉCNICO PARCEIRO', 'TÉCNICO', 'CLIENTE', 'FORNECEDOR'].map(t => `<option>${t}</option>`).join('')}</select>`
         },
-        { elemento: '<small style="text-align: left;">Qualquer pessoa com o link preenche o formulário do técnico. Depois do prazo, ou de um envio, o link deixa de valer.</small>' }
+        { elemento: '<small style="text-align: left;">Qualquer pessoa com o link preenche o formulário do técnico. Vale para quantas pessoas usarem até o prazo acabar; depois disso deixa de valer.</small>' }
     ]
     popup({ linhas, titulo: 'Link de cadastro', botoes: [{ texto: 'Gerar link', img: 'concluido', funcao: 'gerarLinkCadastro()' }] })
 }
@@ -1056,7 +1070,7 @@ async function gerarLinkCadastro() {
                             <button type="button" onclick="navigator.clipboard.writeText(this.previousElementSibling.value).then(() => this.textContent = 'Copiado')">Copiar</button>
                         </div>`
                 },
-                { elemento: `<small style="text-align: left;">Vale até ${validade} (${dados.minutos} min) e para um único envio. Tag: <b>${escaparAtributo(dados.tag)}</b>.</small>` }
+                { elemento: `<small style="text-align: left;">Vale até ${validade} (${dados.minutos} min), sem limite de cadastros. Tag: <b>${escaparAtributo(dados.tag)}</b>.</small>` }
             ]
         })
     } catch {

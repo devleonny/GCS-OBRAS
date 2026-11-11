@@ -18,6 +18,7 @@
     const erro = document.getElementById('cp-erro')
     const campo = nome => form.elements[nome]
     let fimEm = 0
+    let versaoTermo = ''
     let relogio = null
 
     // Some com o token da barra de endereço (não fica no histórico nem em print).
@@ -43,6 +44,15 @@
         aviso.hidden = false
         aviso.classList.toggle('ok', sucesso)
         aviso.textContent = mensagem
+        // O link vale para várias pessoas até expirar: no mesmo aparelho dá para cadastrar outra.
+        if (sucesso && fimEm > Date.now()) {
+            const outro = document.createElement('button')
+            outro.type = 'button'
+            outro.className = 'cp-outro'
+            outro.textContent = 'Cadastrar outra pessoa'
+            outro.onclick = () => location.reload()
+            aviso.append(document.createElement('br'), outro)
+        }
     }
 
     function tic() {
@@ -57,8 +67,12 @@
     async function iniciar() {
         if (!token) return encerrar('Link inválido.')
         try {
-            const { valido, segundos, motivo } = await post('consultar', { token })
+            const { valido, segundos, motivo, termo } = await post('consultar', { token })
             if (!valido) return encerrar(motivo || 'Este link não vale mais.')
+            // Texto do termo vem do servidor (mesma fonte do PDF do aceite).
+            versaoTermo = termo?.versao || ''
+            document.getElementById('cp-termo-titulo').textContent = termo?.titulo || 'Padrão geral de atendimento técnico'
+            document.getElementById('cp-termo').innerHTML = termo?.html || 'Não foi possível carregar o termo. Recarregue a página.'
             fimEm = Date.now() + segundos * 1000
             aviso.hidden = true
             form.hidden = false
@@ -130,7 +144,8 @@
             endereco: valor('endereco'), bairro: valor('bairro'), cidade: valor('cidade'), cep: valor('cep'),
             telefone: valor('telefone'), email: valor('email'),
             cracha: radio('cracha'), contrato: radio('contrato'), kit: radio('kit'),
-            aceite_termo: campo('aceite_termo').checked
+            aceite_termo: campo('aceite_termo').checked,
+            termo_versao: versaoTermo
         }
     }
 
@@ -152,6 +167,7 @@
         if (!d.cracha || !d.contrato || !d.kit) problemas.push('Responda as três perguntas de Sim/Não.')
         campo('aceite_termo').closest('label').classList.toggle('invalido', !d.aceite_termo)
         if (!d.aceite_termo) problemas.push('É preciso ler e concordar com o Padrão de Atendimento.')
+        if (!d.termo_versao) problemas.push('O termo não carregou. Recarregue a página.')
         return problemas
     }
 
@@ -169,8 +185,8 @@
         try {
             const r = await post('enviar', { token, dados })
             if (r.ok) return encerrar(r.atualizado
-                ? 'Seus dados foram atualizados com sucesso. Obrigado! Você já pode fechar esta página.'
-                : 'Cadastro enviado com sucesso. Obrigado! Você já pode fechar esta página.', true)
+                ? 'Seus dados foram atualizados com sucesso. Obrigado!'
+                : 'Cadastro enviado com sucesso. Obrigado!', true, true)
             if (r.status === 410) return encerrar(r.mensagem || 'Este link não vale mais.')
             erro.hidden = false
             erro.textContent = r.mensagem || 'Não foi possível enviar. Tente de novo.'
