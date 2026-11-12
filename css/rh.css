@@ -2074,3 +2074,355 @@ button.rh-arquivo-acao:hover { background: #1c8235; }
     border-color: #249f41;
     background: #249f41;
 }
+
+/* ---- Ficha do funcionário (js/rh_ficha.js): blocos no formato da planilha ---- */
+.rhf-barra {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.rhf-barra small { color: #5f6f66; }
+.rhf-inapto { color: #c92a2a; }
+
+.rhf-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.rhf-ficha {
+    border: 1px solid #d6e2da;
+    border-radius: 10px;
+    background: #fff;
+    overflow: hidden;
+}
+
+.rhf-ficha.compacta {
+    margin-top: 12px;
+    border-color: #e3e9e5;
+}
+
+.rhf-topo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: #f3f7f4;
+    border-bottom: 1px solid #e3e9e5;
+}
+
+.rhf-ficha.compacta .rhf-topo { padding: 8px 12px; }
+
+.rhf-identificacao {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.rhf-dados {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    color: #4b5d52;
+    font-size: 12px;
+}
+
+.rhf-chip {
+    padding: 1px 8px;
+    border: 1px solid #c9d6ce;
+    border-radius: 10px;
+    background: #fff;
+    color: #324b3c;
+    box-shadow: none;
+    font-size: 11.5px;
+    cursor: pointer;
+}
+
+.rhf-chip:hover { background: #e5f3ff; border-color: #99d1ff; }
+.rhf-ambiente.campo { background: #fff4e0; border-color: #f2c77a; }
+.rhf-salario { font-variant-numeric: tabular-nums; }
+
+.rhf-resumo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    max-width: 40%;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.rhf-resumo.vermelho { color: #c92a2a; }
+.rhf-resumo.laranja { color: #b35c00; }
+.rhf-resumo.verde { color: #2b8a3e; }
+
+.rhf-colunas {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.rhf-coluna {
+    min-width: 0;
+    padding: 8px 10px 10px;
+}
+
+.rhf-coluna + .rhf-coluna { border-left: 1px solid #e3e9e5; }
+
+.rhf-coluna-titulo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    min-height: 24px;
+    margin-bottom: 4px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+    color: #324b3c;
+}
+
+.rhf-doc {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 1px 7px;
+    border: 1px solid #d6e2da;
+    border-radius: 6px;
+    background: #f7f9f8;
+    color: #4b5d52;
+    box-shadow: none;
+    font-size: 11px;
+    text-transform: none;
+    letter-spacing: 0;
+    cursor: pointer;
+}
+
+.rhf-doc:hover { background: #e5f3ff; }
+
+.rhf-tabela {
+    display: flex;
+    flex-direction: column;
+    font-size: 12.5px;
+}
+
+.rhf-linha {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) 76px 52px;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 26px;
+    margin: 0;
+    padding: 2px 4px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: transparent;
+    color: #1b1b1b;
+    box-shadow: none;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+button.rhf-linha:nth-of-type(even) { background: #fafcfb; }
+button.rhf-linha:hover { border-color: #cce8ff; background: #e5f3ff; }
+button.rhf-linha:focus-visible { outline: 2px solid #4dabf7; outline-offset: -2px; }
+.rhf-linha.nao-exigido { color: #8a998f; }
+
+.rhf-cabecalho {
+    min-height: 0;
+    padding-bottom: 3px;
+    border-bottom: 1px solid #e3e9e5;
+    color: #5f6f66;
+    font-size: 11px;
+    cursor: default;
+}
+
+.rhf-cabecalho span:nth-child(n+3),
+.rhf-data,
+.rhf-dias { text-align: right; }
+
+.rhf-codigo { color: #7a8a80; font-size: 11px; font-variant-numeric: tabular-nums; }
+.rhf-nome { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.rhf-data { color: #4b5d52; font-variant-numeric: tabular-nums; }
+
+.rhf-dias {
+    justify-self: end;
+    min-width: 40px;
+    padding: 0 6px;
+    border-radius: 4px;
+    font-size: 11.5px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.rhf-dias.verde { color: #2b8a3e; }
+.rhf-dias.laranja { color: #fff; background: #f08c00; }
+.rhf-dias.vermelho { color: #fff; background: #e03131; }
+.rhf-dias.cinza { color: #8a998f; }
+.rh-bolinha.cinza { background: #c3ccc6; }
+
+.rhf-vazio { padding: 6px 4px; color: #8a998f; }
+
+/* Formulários da ficha */
+.rhf-vence { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.rhf-vence small { color: #5f6f66; }
+
+.rhf-historico { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.rhf-historico button {
+    padding: 3px 8px;
+    border: 1px solid #e3e9e5;
+    border-radius: 5px;
+    background: #fff;
+    color: #324b3c;
+    box-shadow: none;
+    font-size: 11.5px;
+    text-align: left;
+    white-space: normal;
+}
+.rhf-historico button.atual { border-color: #74c0fc; background: #e7f5ff; }
+
+.rhf-escolha { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px; max-width: 360px; }
+.rhf-escolha p { width: 100%; margin: 0 0 4px; }
+.rhf-checks { display: flex; gap: 14px; }
+
+.rhf-catalogo { display: flex; flex-direction: column; gap: 14px; padding: 12px; max-width: 760px; }
+.rhf-catalogo-titulo { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.rhf-catalogo-linha {
+    display: grid;
+    grid-template-columns: 70px minmax(0, 1.4fr) minmax(0, 1fr) 70px;
+    gap: 8px;
+    width: 100%;
+    padding: 4px 6px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    color: #1b1b1b;
+    box-shadow: none;
+    font-size: 12px;
+    text-align: left;
+}
+.rhf-catalogo-linha:hover { background: #e5f3ff; border-color: #cce8ff; }
+.rhf-catalogo-linha.inativo { color: #9aa8a0; text-decoration: line-through; }
+
+@media (max-width: 1100px) {
+    .rhf-colunas { grid-template-columns: 1fr; }
+    .rhf-coluna + .rhf-coluna { border-left: 0; border-top: 1px solid #e3e9e5; }
+}
+
+@media (max-width: 600px) {
+    .rhf-topo { flex-wrap: wrap; }
+    .rhf-resumo { max-width: 100%; }
+    .rhf-catalogo-linha { grid-template-columns: 60px minmax(0, 1fr); }
+}
+
+/* Sigilo (salário): cadeado e aviso "só adm e diretoria" para ninguém achar que todos veem */
+.rhf-aviso-sigilo {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding: 7px 10px;
+    border: 1px solid #e9c46a;
+    border-left: 4px solid #d9a000;
+    border-radius: 6px;
+    background: #fff8e1;
+    color: #5c4400;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.rhf-aviso-sigilo .rhf-cadeado { flex-shrink: 0; margin-top: 2px; color: #b07d00; }
+.popup .rhf-aviso-sigilo { margin: 0; max-width: 420px; }
+
+.rhf-chip.rhf-sigilo {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-color: #e9c46a;
+    background: #fff8e1;
+    color: #5c4400;
+    font-variant-numeric: tabular-nums;
+}
+
+.rhf-chip.rhf-sigilo:hover { background: #ffefc2; border-color: #d9a000; }
+.rhf-sigilo .rhf-cadeado { color: #b07d00; }
+
+.rhf-sigilo-texto {
+    padding: 0 5px;
+    border-radius: 6px;
+    background: #d9a000;
+    color: #fff;
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+}
+
+.rhf-chip.rhf-dispensa { border-color: #b8c4f0; background: #edf1ff; color: #34408a; }
+
+.rhf-regra {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+@media (max-width: 600px) {
+    .rhf-regra { grid-template-columns: 1fr; }
+}
+
+/* Leitura do PDF no formulário de documento (js/rh_leitor.js) */
+.rhl-leitura {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    max-width: 460px;
+    padding: 8px 10px;
+    border: 1px solid #b6d4f2;
+    border-radius: 6px;
+    background: #f1f7fd;
+    font-size: 12px;
+    color: #24384d;
+}
+
+.rhl-cabecalho { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.rhl-cabecalho span { color: #4b6075; }
+.rhl-cabecalho span + span::before { content: '·'; margin-right: 8px; color: #9db1c4; }
+
+.rhl-aviso {
+    padding: 5px 8px;
+    border-left: 3px solid #f08c00;
+    border-radius: 4px;
+    background: #fff4e0;
+    color: #6b3d00;
+}
+
+.rhl-usar {
+    margin-left: 4px;
+    padding: 1px 6px;
+    font-size: 11px;
+}
+
+.rhl-aplicar { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+
+.rhl-lista {
+    margin: 0;
+    padding-left: 18px;
+    max-height: 160px;
+    overflow: auto;
+    color: #34495e;
+    font-variant-numeric: tabular-nums;
+}
+
+.rhl-fora summary { cursor: pointer; color: #6b3d00; }
+.rhl-fora label { display: flex; align-items: center; gap: 6px; margin-top: 4px; }

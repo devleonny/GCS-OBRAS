@@ -330,7 +330,8 @@ async function executarAtualizacaoWS() {
             tarefas.push(() => auxPendencias())
 
         // Documento do RH salvo (por qualquer pessoa): a tela de documentos aberta recarrega (js/rh.js).
-        if ((tabelas.has('documentos') || tabelas.has('clientes') || tabelas.has('rh_pastas_acesso')) && document.querySelector('.tela-rh2') && typeof carregarRH === 'function')
+        // rh_*: acesso das pastas e a Ficha (rh_ficha_itens, rh_exames, rh_epis, rh_funcionarios, rh_salarios).
+        if ((tabelas.has('documentos') || tabelas.has('clientes') || [...tabelas].some(t => String(t).startsWith('rh_'))) && document.querySelector('.tela-rh2') && typeof carregarRH === 'function')
             tarefas.push(() => carregarRH())
 
         // Preço salvo/confirmado: o painel "Preços a confirmar" aberto se atualiza (js/precos_vencidos.js).

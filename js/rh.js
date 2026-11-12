@@ -63,7 +63,7 @@ function montarDadosRH(documentosBrutos = [], funcionarios = [], hoje = dataServ
     const pessoa = (id, dados = {}) => {
         const chave = String(id)
         const atual = pessoas.get(chave) || { id: chave, documentos: [] }
-        for (const campo of ['nome', 'cargo', 'cnpj', 'estado', 'cidade', 'foto', 'gestor', 'desligado'])
+        for (const campo of ['nome', 'cargo', 'cnpj', 'estado', 'cidade', 'foto', 'gestor', 'desligado', 'setor'])
             if (atual[campo] == null && dados[campo] != null && dados[campo] !== '') atual[campo] = dados[campo]
         pessoas.set(chave, atual)
         return atual
@@ -109,7 +109,7 @@ async function telaRH() {
         <div class="tela-rh2">
             <div class="rh2-topo">
                 <div class="rh2-visoes" role="tablist" aria-label="Visão">
-                    ${[['pessoa', 'Por pessoa'], ['documento', 'Por documento'], ['hierarquia', 'Hierarquia']].map(([valor, texto]) => `
+                    ${[['pessoa', 'Por pessoa'], ['documento', 'Por documento'], ['hierarquia', 'Hierarquia'], ['ficha', 'Ficha']].map(([valor, texto]) => `
                         <button type="button" data-visao="${valor}" class="${estadoRH.visao === valor ? 'ativo' : ''}" onclick="trocarVisaoRH('${valor}')">${texto}</button>`).join('')}
                 </div>
                 <input type="search" class="rh2-busca" placeholder="Buscar nome, CPF/CNPJ, cidade ou documento" value="${escaparAtributo(estadoRH.busca)}"
@@ -139,7 +139,9 @@ async function carregarRH() {
             // Técnicos sem a tag FUNCIONÁRIO também têm obrigatórios (só os ids importam).
             pesquisarTodosRH('vw_2_clientes', { tags: { op: 'includes', value: 'TÉCNICO' } }),
             // Cadeado das pastas (sem a base ainda no servidor: todas livres).
-            pesquisarTodosRH('rh_pastas_acesso').catch(() => [])
+            pesquisarTodosRH('rh_pastas_acesso').catch(() => []),
+            // Ficha (exames, EPIs, ambiente, salário): js/rh_ficha.js. Falha não derruba os documentos.
+            typeof carregarFichaRH === 'function' ? carregarFichaRH().catch(erro => console.error('[RH] ficha', erro)) : null
         ])
         if (consulta !== estadoRH.carregando) return
         const idsTecnicos = new Set(tecnicos.filter(t => !t.excluido && temTagRH(t, 'TÉCNICO')).map(t => String(t.id)))
@@ -176,6 +178,11 @@ function renderizarRH() {
     const conteudo = document.querySelector('.tela-rh2 .rh2-conteudo')
     if (!conteudo) return
     if (estadoRH.visao === 'documento') return conteudo.innerHTML = tabelaDocumentosRH()
+    // Ficha (js/rh_ficha.js): mesma busca e desligados; o filtro de situação usa a situação da ficha.
+    if (estadoRH.visao === 'ficha') {
+        const termo = normalizarRH(estadoRH.busca).trim(), termoDigitos = digitosRH(estadoRH.busca)
+        return conteudo.innerHTML = telaFichaRH(estadoRH.pessoas.filter(p => (estadoRH.mostrarDesligados || !p.desligado) && pessoaCombinaRH(p, termo, termoDigitos)))
+    }
     if (estadoRH.visao === 'hierarquia') {
         conteudo.innerHTML = hierarquiaRH()
         return alinharLinhasHierarquiaRH(conteudo)
@@ -326,7 +333,8 @@ function detalhePessoaRH(p) {
             ${p.faltantes.length ? `<span class="rh-pendencia-titulo">Faltam (obrigatórios):</span> ${p.faltantes.map(d => `<span class="docs-faltantes">${escaparAtributo(d)}</span>`).join('')}` : p.tecnico ? '<span class="rh-sem-pendencias">Obrigatórios registrados</span>' : '<span class="rh2-arq-cinza">Sem documentos obrigatórios (não é técnico)</span>'}
             <span class="rh2-gestor">Gestor: <button type="button" class="rh2-gestor-botao" onclick="escolherGestorRH('${escaparAtributo(p.id)}')">${escaparAtributo(gestor?.nome || 'Definir gestor')}</button></span>
             <button type="button" class="rh-filtro-tempo" data-funcionario="${escaparAtributo(p.id)}" onclick="incluirDocumento(null, this.dataset.funcionario)">+ Documento</button>
-        </div>`
+        </div>
+        ${typeof fichaPessoaRH === 'function' ? fichaPessoaRH(p, undefined, { compacto: true }) : ''}`
 }
 
 // Pasta no estilo "Detalhes" do Explorer do Windows: cabeçalho de colunas e uma linha por arquivo.
@@ -1041,13 +1049,17 @@ function mostrarAnexoRH(input) {
     texto.innerHTML = arquivo
         ? `<b>${escaparAtributo(arquivo.name)}</b><small>Clique ou arraste outro para trocar</small>`
         : 'Arraste o arquivo aqui ou <u>clique para escolher</u>'
+    // PDF de ASO, ficha de EPI ou certificado: lê e preenche o formulário (js/rh_leitor.js).
+    if (typeof analisarAnexoRH === 'function') analisarAnexoRH(input)
 }
 
 // inicial.pasta / inicial.arquivo: vindos de um arquivo do computador solto numa pasta do RH.
 async function incluirDocumento(id, funcionarioInicial = null, inicial = {}) {
 
     const registro = id ? await recuperarDado('documentos', id) || {} : {}
-    const { doc, realizado, anexo } = registro
+    const { realizado, anexo } = registro
+    // inicial.doc: tipo já escolhido (ex.: clique num treinamento ou no ASO da Ficha, js/rh_ficha.js).
+    const doc = registro.doc ?? inicial.doc
     const pasta = registro.pasta ?? inicial.pasta
     const funcionario = registro.funcionario ?? funcionarioInicial
     const { nome } = funcionario ? await recuperarDado('clientes', funcionario) || {} : {}
@@ -1246,9 +1258,22 @@ async function salvarDocumento(id = crypto.randomUUID()) {
         )
     }
 
-    await enviar(`documentos/${id}`, atualizado)
+    const resposta = await enviar(`documentos/${id}`, atualizado)
+
+    // Exames do ASO / EPIs da ficha lidos do PDF: lança na Ficha (js/rh_leitor.js), se marcado no painel.
+    const leitura = resposta?.success && typeof aplicarLeituraRH === 'function'
+        ? await aplicarLeituraRH(input, Number(funcionario)).catch(erro => (console.error('[RH] leitura', erro), { falhas: 1 }))
+        : null
 
     removerPopup()
+    if (leitura && (leitura.lancados || leitura.catalogados || leitura.falhas))
+        popup({
+            mensagem: [
+                leitura.lancados ? `Ficha atualizada: ${leitura.lancados} lançamento(s) lido(s) do arquivo.` : '',
+                leitura.catalogados ? `${leitura.catalogados} EPI(s) incluído(s) no catálogo.` : '',
+                leitura.falhas ? `${leitura.falhas} item(ns) não foram gravados: confira a Ficha.` : ''
+            ].filter(Boolean).join('<br>')
+        })
 
     // Tela de documentos aberta: recarrega com o documento novo/alterado.
     if (document.querySelector('.tela-rh2')) carregarRH()
