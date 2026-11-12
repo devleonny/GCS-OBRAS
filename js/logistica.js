@@ -1061,8 +1061,9 @@ async function salvarEnvioLogistica(id = '', { aposSalvar = null } = {}) {
     if (envio.rastreio && RE_RASTREIO_CORREIOS.test(envio.rastreio))
         apiLogistica('rastrear', { ids: [idFinal] }).catch(err => console.error('[LOGÍSTICA rastrear]', err))
     if (envio.nota_id) contarPendentesLogistica()
-    // Envio ligado a requisição: o chamado recebe EM SEPARAÇÃO / PEÇAS ENVIADAS / PEÇAS DISPONÍVEIS.
-    if (envio.requisicao_id)
+    // Envio ligado a requisição (ou, sem ela, com orçamento: o servidor abre a aba de logística no chamado)
+    // → o chamado recebe EM SEPARAÇÃO / PEÇAS ENVIADAS / PEÇAS DISPONÍVEIS.
+    if (envio.requisicao_id || envio.orcamento)
         apiLogistica('sincronizar', { ids: [idFinal] }).catch(err => console.error('[LOGÍSTICA→OCORRÊNCIA]', err))
     if (aposSalvar) aposSalvar(idFinal)
     return idFinal
