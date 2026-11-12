@@ -13,9 +13,7 @@ function correspondeFiltrosAgenda(item, filtros) {
         const texto = String(valor || '').split(' ')[0]
         return texto.includes('/') ? texto.split('/').reverse().join('-') : texto.slice(0, 10)
     }
-    return Object.entries(filtros).every(([chave, config]) => {
-        const valores = chave === 'ultimaCorrecao.*.nome'
-            ? statusAgenda(item.ultimaCorrecao).map(c => c.nome) : [item[chave]]
+    const atende = (valores, config) => {
         const regras = Array.isArray(config) ? config : config.regras || [config]
         const resultados = regras.map(regra => {
             const comparar = valor => {
@@ -27,6 +25,13 @@ function correspondeFiltrosAgenda(item, filtros) {
             return regra.op === '!=' ? valores.every(v => !comparar(v)) : valores.some(comparar)
         })
         return config.modo === 'OR' ? resultados.some(Boolean) : resultados.every(Boolean)
+    }
+    return Object.entries(filtros).every(([chave, config]) => {
+        if (chave !== 'ultimaCorrecao.*.nome') return atende([item[chave]], config)
+        // Cada entrada é o último status de um fluxo do chamado. Basta um fluxo
+        // atender ao filtro: com um fluxo solucionado e outro aberto, o chamado aparece.
+        const status = statusAgenda(item.ultimaCorrecao).map(c => c.nome)
+        return !status.length || status.some(nome => atende([nome], config))
     })
 }
 
@@ -379,8 +384,10 @@ async function carregarAgenda(filtros, pagina = 1) {
             const itens = mapa.get(`${tecnico}__${dt}`) || [];
             const labels = itens.map(item => {
 
-                const solucionada = item.ultimaCorrecao
-                    .some(corr => statusSolucionados.includes(corr.nome))
+                // Concluído só quando todos os fluxos estão encerrados e ao menos um foi solucionado.
+                const solucionada = item.ultimaCorrecao.length
+                    && item.ultimaCorrecao.every(corr => statusTerminados.includes(corr.nome))
+                    && item.ultimaCorrecao.some(corr => statusSolucionados.includes(corr.nome))
 
                 const { Loja, origem_id } = item || {}
                 const cor = colorFromString(item.Loja);

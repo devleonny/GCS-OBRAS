@@ -5,6 +5,17 @@ const statusSolucionados = ['SOLUCIONADA', 'SOLUCIONADA - ASSISTÊNCIA TÉCNICA'
 const statusTerminados = [...statusSolucionados, 'CANCELADO']
 const regrasNaoTerminado = (origem) => statusTerminados.map(value => ({ op: '!=', value, ...(origem ? { origem } : {}) }))
 
+// ultimaCorrecao traz o último status de cada fluxo (array ou texto JSON).
+// O chamado segue aberto enquanto algum fluxo não estiver encerrado; sem fluxos conta como aberto.
+const temFluxoAberto = (ultimaCorrecao) => {
+    let lista = ultimaCorrecao
+    if (!Array.isArray(lista)) {
+        try { lista = JSON.parse(lista) } catch { lista = [] }
+        if (!Array.isArray(lista)) lista = []
+    }
+    return !lista.length || lista.some(c => !statusTerminados.includes(c?.nome))
+}
+
 const formatacaoTipoCorrecao = (tipoCorrecaoNome) => {
 
     const estilo = statusSolucionados.includes(tipoCorrecaoNome)
@@ -3261,10 +3272,13 @@ async function verificarConflitos() {
 
             const tecnico = span.id
 
+            // O status não vai no filtro: ultimaCorrecao chega como texto do JSON com um
+            // status por fluxo, e o != no servidor comparava o texto inteiro (nunca filtrava).
+            // O conflito vale enquanto o chamado tiver algum fluxo não encerrado.
             const pesquisa = await pesquisarDB({
                 base: 'vw_tecnicos',
+                limite: 9999,
                 filtros: {
-                    ultimaCorrecao: regrasNaoTerminado(),
                     tecnico: {
                         op: '=',
                         value: tecnico
@@ -3280,7 +3294,8 @@ async function verificarConflitos() {
                 }
             })
 
-            const dtCorrecaoMaisAntiga = obterDataMaisAntiga(pesquisa.resultados) // Retorna null para resultados vazios;
+            const emAberto = (pesquisa?.resultados || []).filter(item => temFluxoAberto(item.ultimaCorrecao))
+            const dtCorrecaoMaisAntiga = obterDataMaisAntiga(emAberto) // Retorna null para resultados vazios;
 
             if (dtCorrecaoMaisAntiga) {
                 const funcao = `telaAgenda(
