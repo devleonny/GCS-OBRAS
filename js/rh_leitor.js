@@ -300,6 +300,53 @@ function planoLeituraRH(leitura, { funcionario, exames = [], epis = [], itens = 
 
 // ---------------- No formulário de documento (js/rh.js → mostrarAnexoRH / salvarDocumento) ----------------
 const pessoasLeituraRH = () => (typeof estadoRH !== 'undefined' ? estadoRH.pessoas : []) || []
+const ehPdfRH = arquivo => !!arquivo && (/\.pdf$/i.test(arquivo.name || '') || arquivo.type === 'application/pdf')
+
+// Um arquivo (File) → leitura. Usado pelo formulário e pelo arraste para as pastas.
+async function lerArquivoRH(arquivo) {
+    const pdfjs = await carregarPdfjsRH()
+    if (!estadoFichaRH.exames.length && typeof carregarFichaRH === 'function') await carregarFichaRH().catch(() => {})
+    const linhas = await linhasDoPdfRH(pdfjs, new Uint8Array(await arquivo.arrayBuffer()))
+    return lerDocumentoRH(linhas, estadoFichaRH.exames)
+}
+
+// Grava na Ficha os lançamentos do plano da leitura (sem repetir) e devolve quantos entraram.
+async function lancarLeituraNaFichaRH(leitura, funcionario) {
+    const resumo = { lancados: 0, falhas: 0, fora: 0 }
+    const plano = planoLeituraRH(leitura, { funcionario, exames: estadoFichaRH.exames, epis: estadoFichaRH.epis, itens: estadoFichaRH.itens })
+    resumo.fora = plano.fora.length
+    for (const novo of plano.novos) {
+        const registro = { id: crypto.randomUUID(), funcionario: Number(funcionario), tipo: novo.tipo, item: novo.item, realizado: novo.realizado,
+            vencimento: novo.vencimento, obs: novo.obs, ...(novo.tipo === 'epi' ? { ca: novo.ca } : {}), usuario: acesso.usuario }
+        const resposta = await enviar(`rh_ficha_itens/${registro.id}`, registro)
+        if (resposta?.success) { estadoFichaRH.itens.push({ ...registro, timestamp: Date.now() }); resumo.lancados++ } else resumo.falhas++
+    }
+    return resumo
+}
+
+// ---------------- Arquivo do computador solto numa pasta do RH (js/rh.js → salvarArquivosPastaRH) ----------------
+// Tipos que a leitura reconhece e que existem em rh_documentos_regras.
+const TIPOS_LIDOS_RH = ['ASO', 'FICHA DE EPI', 'NR 01', 'NR 05 - CIPA', 'NR 06 - EPI', 'NR 10', 'NR 18', 'NR 35', 'PTA']
+
+// Decide o que fazer com um arquivo lido (puro: testado em tests/rh-leitor.test.cjs).
+//   acao 'tipado'  → salva como documento do tipo, com a data lida; substitui = documento atual do tipo
+//                    (vira arquivo sem tipo na mesma pasta, para nada se perder)
+//   acao 'arquivo' → salva como hoje (sem tipo), com o motivo
+// documentos = os da pessoa (estadoRH), com doc, realizado (dd/mm/aaaa ou aaaa-mm-dd) e excluido.
+function destinoArquivoLidoRH(leitura, { funcionario, pessoas = [], documentos = [] }) {
+    if (!leitura?.temTexto) return { acao: 'arquivo', motivo: leitura ? 'PDF escaneado (sem texto)' : null }
+    if (!leitura.tipo || !TIPOS_LIDOS_RH.includes(leitura.tipo)) return { acao: 'arquivo', motivo: 'tipo não reconhecido' }
+    const achado = pessoaDaLeituraRH(leitura, pessoas)
+    if (achado && String(achado.pessoa.id) !== String(funcionario))
+        return { acao: 'arquivo', motivo: `parece ser de ${achado.pessoa.nome} (pelo ${achado.por})`, alerta: true }
+    const iso = d => { const m = String(d || '').match(/^(\d{2})\/(\d{2})\/(\d{4})/); return m ? `${m[3]}-${m[2]}-${m[1]}` : String(d || '').slice(0, 10) }
+    const atual = documentos
+        .filter(d => !d.excluido && String(d.funcionario) === String(funcionario) && d.doc === leitura.tipo)
+        .sort((a, b) => iso(b.realizado).localeCompare(iso(a.realizado)))[0] || null
+    if (atual && leitura.data && iso(atual.realizado) > leitura.data)
+        return { acao: 'arquivo', motivo: `é mais antigo que o ${leitura.tipo} atual (${dataBRDeISO(iso(atual.realizado))})` }
+    return { acao: 'tipado', substitui: atual, pessoaConfere: !!achado }
+}
 
 async function analisarAnexoRH(input) {
     const arquivo = input?.files?.[0]
@@ -314,11 +361,8 @@ async function analisarAnexoRH(input) {
     input.closest('.linha-padrao')?.after(linha)
     const caixa = linha.querySelector('.rhl-leitura')
     try {
-        const pdfjs = await carregarPdfjsRH()
-        if (!estadoFichaRH.exames.length && typeof carregarFichaRH === 'function') await carregarFichaRH().catch(() => {})
-        const linhas = await linhasDoPdfRH(pdfjs, new Uint8Array(await arquivo.arrayBuffer()))
+        const leitura = await lerArquivoRH(arquivo)
         if (input.files?.[0] !== arquivo) return
-        const leitura = lerDocumentoRH(linhas, estadoFichaRH.exames)
         input._leituraRH = leitura
         if (!leitura.temTexto) return caixa.innerHTML = '<small>PDF escaneado (sem texto): preencha os campos à mão.</small>'
         if (!leitura.tipo) return caixa.innerHTML = '<small>Não reconheci o tipo deste documento: preencha os campos à mão.</small>'
@@ -407,13 +451,9 @@ async function aplicarLeituraRH(input, funcionario) {
     }
 
     if (aplicar || catalogar) {
-        const plano = planoLeituraRH(leitura, { funcionario, exames: estadoFichaRH.exames, epis: estadoFichaRH.epis, itens: estadoFichaRH.itens })
-        for (const novo of plano.novos) {
-            const registro = { id: crypto.randomUUID(), funcionario: Number(funcionario), tipo: novo.tipo, item: novo.item, realizado: novo.realizado,
-                vencimento: novo.vencimento, obs: novo.obs, ...(novo.tipo === 'epi' ? { ca: novo.ca } : {}), usuario: acesso.usuario }
-            const resposta = await enviar(`rh_ficha_itens/${registro.id}`, registro)
-            if (resposta?.success) { estadoFichaRH.itens.push({ ...registro, timestamp: Date.now() }); resumo.lancados++ } else resumo.falhas++
-        }
+        const lancado = await lancarLeituraNaFichaRH(leitura, funcionario)
+        resumo.lancados += lancado.lancados
+        resumo.falhas += lancado.falhas
     }
     return resumo
 }

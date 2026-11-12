@@ -2426,3 +2426,17 @@ button.rhf-linha:focus-visible { outline: 2px solid #4dabf7; outline-offset: -2p
 
 .rhl-fora summary { cursor: pointer; color: #6b3d00; }
 .rhl-fora label { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+
+/* Resumo do arraste de arquivos para as pastas (js/rh.js → relatorioArquivosPastaRH) */
+.rhl-relatorio {
+    margin: 0;
+    padding: 4px 4px 4px 20px;
+    max-width: 520px;
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: left;
+}
+
+.rhl-relatorio li + li { margin-top: 4px; }
+.rhl-relatorio .rhl-ok::marker { color: #2b8a3e; }
+.rhl-relatorio .rhl-alerta { color: #a33a00; }

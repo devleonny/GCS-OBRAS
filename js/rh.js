@@ -392,30 +392,74 @@ function cartaoDocumentoRH(d) {
         </div>`
 }
 
-// Arquivo(s) do computador soltos numa pasta: cada arquivo vira um item daquela pasta do funcionário,
-// sem tipo de documento (o tipo pode ser definido depois no ✎, se precisar).
+// Arquivo(s) do computador soltos numa pasta: cada arquivo vira um item daquela pasta do funcionário.
+// PDF de ASO, ficha de EPI ou certificado é identificado (js/rh_leitor.js, destinoArquivoLidoRH): vira o
+// documento do tipo, com a data lida, e os exames/EPIs vão para a Ficha. Se já havia um documento do tipo,
+// o anterior continua na pasta como arquivo sem tipo (nada se perde); arquivo mais antigo que o atual ou de
+// outra pessoa fica só como arquivo. O resto entra sem tipo, como sempre (o tipo pode ser definido no ✎).
 async function salvarArquivosPastaRH(funcionario, pasta, arquivos) {
     overlayAguarde()
+    const relatorio = []
     try {
-        const anexos = await importarAnexos({ input: { files: arquivos } })
-        if (!Array.isArray(anexos) || !anexos.length) return
-        for (const anexo of anexos) {
+        for (const arquivo of arquivos) {
+            const enviados = await importarAnexos({ input: { files: [arquivo] } })   // erro: popup e não lista
+            const anexo = Array.isArray(enviados) ? enviados[0] : null
+            if (!anexo) throw new Error(`falha ao enviar ${arquivo.name}`)
+
+            let leitura = null, destino = { acao: 'arquivo' }
+            if (typeof lerArquivoRH === 'function' && ehPdfRH(arquivo)) {
+                leitura = await lerArquivoRH(arquivo).catch(erro => (console.error('[RH] leitura', erro), null))
+                destino = destinoArquivoLidoRH(leitura, { funcionario, pessoas: estadoRH.pessoas, documentos: estadoRH.documentos })
+            }
+            const tipado = destino.acao === 'tipado'
+
+            // O documento atual do tipo vira arquivo sem tipo, na pasta em que já estava.
+            if (tipado && destino.substitui) {
+                const anterior = destino.substitui
+                for (const [campo, valor] of [['pasta', anterior.pasta || pastaPadraoRH(anterior.doc)], ['doc', null]]) {
+                    const resposta = await enviar(`documentos/${anterior.id}/${campo}`, valor)
+                    if (!resposta?.success) throw new Error(resposta?.mensagem || 'falha ao guardar o documento anterior')
+                }
+            }
+
             const id = crypto.randomUUID()
             const resposta = await enviar(`documentos/${id}`, {
-                id, funcionario: Number(funcionario), doc: null, usuario: acesso.usuario,
-                anexo, pasta, realizado: ''
+                id, funcionario: Number(funcionario), doc: tipado ? leitura.tipo : null, usuario: acesso.usuario,
+                anexo, pasta, realizado: tipado ? leitura.data || '' : ''
             })
             if (!resposta?.success) throw new Error(resposta?.mensagem || 'falha ao salvar')
+
+            const ficha = tipado ? await lancarLeituraNaFichaRH(leitura, funcionario).catch(() => ({ falhas: 1 })) : null
+            relatorio.push({ nome: arquivo.name, leitura, destino, ficha })
         }
+        const resumo = relatorioArquivosPastaRH(relatorio)
         // Pasta com cadeado sem acesso: o arquivo entra, mas some da vista de quem enviou.
-        if (pasta && !podeVerPastaRH(pasta))
-            popup({ mensagem: `Arquivo enviado para a pasta ${escaparAtributo(pasta)}. Ela é restrita e você não tem acesso ao conteúdo dela.` })
+        const restrita = pasta && !podeVerPastaRH(pasta)
+            ? `<p>Arquivo enviado para a pasta ${escaparAtributo(pasta)}. Ela é restrita e você não tem acesso ao conteúdo dela.</p>` : ''
+        if (resumo || restrita) popup({ titulo: 'Arquivos recebidos', mensagem: `${restrita}${resumo}` })
     } catch (erro) {
         popup({ mensagem: `Não foi possível salvar o arquivo: ${escaparAtributo(erro.message || 'erro desconhecido')}` })
     } finally {
         removerOverlay()
         carregarRH()
     }
+}
+
+// Resumo do arraste: só aparece quando algum arquivo foi identificado ou tem aviso.
+function relatorioArquivosPastaRH(relatorio) {
+    if (!relatorio.some(r => r.destino.acao === 'tipado' || r.destino.motivo)) return ''
+    const linha = ({ nome, leitura, destino, ficha }) => {
+        if (destino.acao === 'tipado') {
+            const partes = [`virou <b>${escaparAtributo(leitura.tipo)}</b>${leitura.data ? ` de ${dataBRDeISO(leitura.data)}` : ' (sem data no arquivo: informe no ✎)'}`]
+            if (ficha?.lancados) partes.push(`${ficha.lancados} lançamento(s) na Ficha`)
+            if (ficha?.fora) partes.push(`${ficha.fora} item(ns) fora do catálogo da Ficha`)
+            if (ficha?.falhas) partes.push(`${ficha.falhas} lançamento(s) não gravado(s)`)
+            if (destino.substitui) partes.push(`o ${escaparAtributo(leitura.tipo)} anterior ficou na pasta como arquivo sem tipo`)
+            return `<li class="rhl-ok">${escaparAtributo(nome)}: ${partes.join(' · ')}</li>`
+        }
+        return `<li class="${destino.alerta ? 'rhl-alerta' : ''}">${escaparAtributo(nome)}: guardado sem tipo${destino.motivo ? ` (${escaparAtributo(destino.motivo)})` : ''}</li>`
+    }
+    return `<ul class="rhl-relatorio">${relatorio.map(linha).join('')}</ul>`
 }
 
 // Nome mostrado: o tipo do documento ou, sem tipo, o nome do arquivo.
