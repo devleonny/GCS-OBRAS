@@ -241,6 +241,28 @@ const esquemaBotoes = {
             ]
         },
         {
+            nome: 'Fiscal',
+            permitido: ['adm', 'diretoria', 'fin', 'log', 'gerente', 'coordenacao', 'analista'],
+            img: 'notas',
+            sub: [
+                { nome: 'Notas Recebidas', funcao: 'telaNotasRecebidas', img: 'down_estoque' },
+                { nome: 'Notas Emitidas', funcao: 'telaNotasEmitidas', img: 'up_estoque' },
+                { nome: 'Emitir NF-e', funcao: 'formularioEmissaoNFe', img: 'baixar', permitido: ['adm', 'diretoria', 'fin'] },
+                { nome: 'Emitir NFS-e', funcao: 'formularioEmissaoNFSe', img: 'baixar', permitido: ['adm', 'diretoria', 'fin'] },
+                { nome: 'Configuração Fiscal', funcao: 'telaConfigFiscal', img: 'configuracoes', permitido: ['adm', 'diretoria', 'fin'] }
+            ]
+        },
+        {
+            nome: 'Estoque',
+            permitido: ['adm', 'diretoria', 'fin', 'log', 'gerente', 'coordenacao', 'analista', 'user'],
+            img: 'estoque',
+            sub: [
+                { nome: 'Saldos', funcao: 'telaEstoque', img: 'estoque' },
+                { nome: 'Movimentações', funcao: 'telaMovimentosEstoque', img: 'lista' },
+                { nome: 'Inventário', funcao: 'telaInventarios', img: 'prancheta' }
+            ]
+        },
+        {
             nome: 'Agenda',
             bloqueio: ['cliente', 'técnico'],
             img: 'reagendar',

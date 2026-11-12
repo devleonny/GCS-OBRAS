@@ -1,0 +1,700 @@
+/* Fiscal e Estoque (js/fiscal.js, js/estoque.js). Abas reaproveitam .relatorio-dep-abas. */
+
+.fis-pagina {
+    --fis-verde: #356443;
+    --fis-borda: #c4cec8;
+    --fis-fundo: #f6f8f7;
+    --fis-texto: #1f2a24;
+    --fis-suave: #5b6b61;
+}
+
+/* ---------- barra do topo da tabela (fundo escuro do modTab) */
+
+.fis-barra {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+}
+
+.fis-total {
+    color: #e5eee8;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.fis-total b {
+    color: white;
+    font-variant-numeric: tabular-nums;
+}
+
+.fis-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.fis-acoes button {
+    margin: 0;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+    white-space: nowrap;
+    cursor: pointer;
+    background: #ffffff14;
+    border: 1px solid #ffffff4d;
+    border-radius: 6px;
+}
+
+.fis-acoes button:hover {
+    background: #ffffff2b;
+}
+
+/* ---------- cartões de contadores */
+
+.fis-cartoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0 0 12px;
+}
+
+.fis-cartao {
+    --cor: #64748b;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 150px;
+    margin: 0;
+    padding: 10px 14px;
+    color: var(--fis-texto, #1f2a24);
+    text-align: left;
+    cursor: pointer;
+    background: white;
+    border: 1px solid color-mix(in srgb, var(--cor) 30%, white);
+    border-left: 4px solid var(--cor);
+    border-radius: 8px;
+}
+
+.fis-cartao:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--cor) 6%, white);
+}
+
+.fis-cartao b {
+    font-size: 1.4rem;
+    color: var(--cor);
+    font-variant-numeric: tabular-nums;
+}
+
+.fis-cartao span {
+    font-size: 0.75rem;
+    color: #5b6b61;
+}
+
+/* ---------- etiquetas, números */
+
+.fis-etiqueta {
+    --cor: #64748b;
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--cor);
+    white-space: nowrap;
+    background: color-mix(in srgb, var(--cor) 12%, white);
+    border: 1px solid color-mix(in srgb, var(--cor) 35%, white);
+    border-radius: 999px;
+}
+
+.fis-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.fis-negativo { color: #b91c1c; }
+.fis-positivo { color: #15803d; }
+.fis-pendente { color: #b45309; font-weight: 600; }
+
+.fis-descricao {
+    min-width: 14rem;
+    text-align: left;
+}
+
+.fis-descricao small,
+.fis-tabela td small {
+    display: block;
+    color: #6b7a71;
+    font-size: 0.7rem;
+}
+
+.fis-acoes-linha img {
+    width: 1.4rem;
+    cursor: pointer;
+}
+
+.fis-link {
+    color: #1d4ed8;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.fis-estornado td {
+    color: #94a3b8;
+    text-decoration: line-through;
+}
+
+/* ---------- painéis (popup e páginas) */
+
+.fis-painel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: min(1100px, 92vw);
+    max-width: 100%;
+    padding: 12px;
+    text-align: left;
+    box-sizing: border-box;
+}
+
+.pagina-conteudo .fis-painel {
+    width: 100%;
+    background: white;
+    border-radius: 8px;
+}
+
+.fis-resumo {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 8px 16px;
+    padding: 10px 12px;
+    background: #f6f8f7;
+    border: 1px solid #dfe6e2;
+    border-radius: 8px;
+}
+
+.fis-resumo > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.fis-resumo span {
+    font-size: 0.7rem;
+    color: #5b6b61;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.fis-resumo b {
+    font-size: 0.9rem;
+    color: #1f2a24;
+    overflow-wrap: anywhere;
+}
+
+.fis-resumo b small {
+    font-weight: 400;
+    color: #5b6b61;
+}
+
+.fis-chave {
+    font-size: 0.75rem;
+    color: #5b6b61;
+}
+
+.fis-chave code {
+    font-size: 0.75rem;
+    overflow-wrap: anywhere;
+    user-select: all;
+}
+
+.fis-secao {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+details.fis-secao summary {
+    cursor: pointer;
+}
+
+.fis-secao-topo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.fis-secao-topo .fis-botao {
+    margin-left: auto;
+}
+
+.fis-acoes-claras,
+.fis-barra-clara,
+.fis-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+}
+
+.fis-separador {
+    flex: 0 0 1px;
+    align-self: stretch;
+    margin: 0 4px;
+    background: #dfe6e2;
+}
+
+.fis-explica,
+.fis-info {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: #334155;
+    background: #f1f5f9;
+    border-radius: 6px;
+}
+
+.fis-alerta {
+    flex-basis: 100%;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: #92400e;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 6px;
+}
+
+.fis-erros {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    color: #991b1b;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+}
+
+.fis-erros ul,
+.fis-lista-erros {
+    margin: 4px 0 0;
+    padding-left: 18px;
+    text-align: left;
+}
+
+.fis-ok {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #166534;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 6px;
+}
+
+.fis-vazio {
+    padding: 12px;
+    font-size: 0.8rem;
+    color: #64748b;
+    text-align: center;
+}
+
+.fis-dica {
+    font-size: 0.72rem;
+    color: #64748b;
+}
+
+.fis-lista {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    text-align: left;
+}
+
+.fis-texto {
+    padding: 8px;
+    font-size: 0.8rem;
+    white-space: normal;
+    background: #f8fafc;
+    border-radius: 6px;
+}
+
+/* ---------- tabelas simples (dentro de popups e páginas) */
+
+.fis-tabela-rolagem {
+    max-height: 55vh;
+    overflow: auto;
+    border: 1px solid #e2e8e4;
+    border-radius: 6px;
+}
+
+.fis-tabela-rolagem.fis-alta {
+    max-height: 70vh;
+}
+
+.fis-tabela {
+    width: 100%;
+    font-size: 0.8rem;
+    border-collapse: collapse;
+}
+
+.fis-tabela th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 6px 8px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #3d4b43;
+    text-align: left;
+    white-space: nowrap;
+    background: #eef2ef;
+}
+
+.fis-tabela td {
+    padding: 6px 8px;
+    vertical-align: top;
+    border-top: 1px solid #edf1ee;
+}
+
+.fis-tabela tbody tr:hover td {
+    background: #fafcfb;
+}
+
+/* ---------- vínculo do item recebido */
+
+.fis-vinculo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+    min-width: 16rem;
+    font-size: 0.78rem;
+}
+
+.fis-vinculo small {
+    flex-basis: 100%;
+}
+
+.fis-vinculo.ok b {
+    color: #166534;
+}
+
+.fis-vinculo.ignorado {
+    color: #64748b;
+    font-style: italic;
+}
+
+/* ---------- formulários */
+
+.fis-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: min(980px, 90vw);
+    max-width: 100%;
+    padding: 12px;
+    text-align: left;
+    box-sizing: border-box;
+}
+
+.fis-passo {
+    margin: 0;
+    padding: 10px 12px 12px;
+    background: white;
+    border: 1px solid #dfe6e2;
+    border-radius: 8px;
+}
+
+.fis-passo legend {
+    padding: 0 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1f2a24;
+}
+
+.fis-passo legend small {
+    font-weight: 400;
+    color: #6b7a71;
+}
+
+.fis-num-passo {
+    display: inline-grid;
+    width: 1.3rem;
+    height: 1.3rem;
+    place-items: center;
+    margin-right: 4px;
+    font-size: 0.75rem;
+    color: white;
+    background: #356443;
+    border-radius: 50%;
+}
+
+.fis-grade {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 10px;
+}
+
+.fis-campo {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    font-size: 0.75rem;
+    color: #3d4b43;
+}
+
+.fis-campo small {
+    font-weight: 400;
+    color: #6b7a71;
+}
+
+.fis-largo {
+    grid-column: span 2;
+}
+
+.fis-destaque > span {
+    font-weight: 600;
+    color: #356443;
+}
+
+.fis-input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 6px 8px;
+    font: inherit;
+    font-size: 0.85rem;
+    color: #1f2a24;
+    background: white;
+    border: 1px solid #c4cec8;
+    border-radius: 6px;
+}
+
+.fis-input:focus {
+    border-color: #356443;
+    outline: 2px solid #35644333;
+}
+
+.fis-input:disabled {
+    color: #475569;
+    background: #f1f5f9;
+}
+
+textarea.fis-input {
+    resize: vertical;
+}
+
+.fis-input.fis-curto {
+    min-width: 5.5rem;
+}
+
+.fis-busca {
+    flex: 1 1 260px;
+    width: auto;
+}
+
+.fis-contagem {
+    width: 7rem;
+}
+
+.fis-input.fis-salvo {
+    border-color: #16a34a;
+    background: #f0fdf4;
+}
+
+.fis-input.fis-erro {
+    border-color: #dc2626;
+    background: #fef2f2;
+}
+
+.fis-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.8rem;
+    color: #334155;
+    cursor: pointer;
+}
+
+.fis-com-check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.fis-retencoes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    margin-top: 8px;
+    font-size: 0.8rem;
+}
+
+.fis-aviso {
+    margin-top: 6px;
+    font-size: 0.8rem;
+}
+
+.fis-aviso:empty {
+    display: none;
+}
+
+.fis-item-cel {
+    min-width: 16rem;
+}
+
+.fis-item-cel small {
+    display: block;
+    margin-top: 2px;
+}
+
+.fis-itens-emissao {
+    min-width: 980px;
+}
+
+.fis-itens-emissao td {
+    vertical-align: middle;
+}
+
+.fis-itens-emissao [name="ncm"] { width: 7.5rem; }
+.fis-itens-emissao [name="origem"] { width: 11rem; }
+.fis-itens-emissao [name="unidade"] { width: 4.5rem; min-width: 4.5rem; }
+.fis-itens-emissao [name="quantidade"] { width: 5.5rem; }
+.fis-itens-emissao [name="valor_unitario"] { width: 7.5rem; }
+.fis-itens-emissao [name="desconto"] { width: 6rem; }
+
+/* ---------- prévia e totais */
+
+.fis-previa {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: sticky;
+    bottom: 0;
+    padding: 10px 12px;
+    background: #f6f8f7;
+    border: 1px solid #dfe6e2;
+    border-radius: 8px;
+}
+
+.fis-previa:empty {
+    display: none;
+}
+
+.fis-totais {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+}
+
+.fis-totais > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.fis-totais span {
+    font-size: 0.7rem;
+    color: #5b6b61;
+}
+
+.fis-totais b {
+    font-size: 0.95rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.fis-totais > div:last-child b {
+    color: #356443;
+}
+
+.fis-resumo-inline {
+    font-size: 0.8rem;
+    color: #475569;
+}
+
+/* ---------- botões */
+
+.fis-botao {
+    margin: 0;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: white;
+    white-space: nowrap;
+    cursor: pointer;
+    background: #356443;
+    border: 1px solid #2b5236;
+    border-radius: 6px;
+}
+
+.fis-botao:hover:not(:disabled) {
+    background: #2b5236;
+}
+
+.fis-botao:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.fis-mini {
+    margin: 0;
+    padding: 3px 10px;
+    font-size: 0.75rem;
+    color: #1f2a24;
+    white-space: nowrap;
+    cursor: pointer;
+    background: #f3f6f4;
+    border: 1px solid #c4cec8;
+    border-radius: 6px;
+}
+
+.fis-mini:hover {
+    background: #e7ede9;
+}
+
+/* ---------- configuração */
+
+/* Abas (.relatorio-dep-abas) foram feitas para fundo escuro: aqui o fundo é branco. */
+.fis-painel .relatorio-dep-abas button:not(.ativa) {
+    color: #3d4b43;
+    background: #eef2ef;
+    border-color: #dfe6e2;
+}
+
+.fis-cartoes-empresa {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(460px, 100%), 1fr));
+    gap: 12px;
+}
+
+.fis-cartao-empresa {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    background: white;
+    border: 1px solid #dfe6e2;
+    border-radius: 8px;
+}
+
+@media (max-width: 640px) {
+    .fis-largo {
+        grid-column: span 1;
+    }
+
+    .fis-painel,
+    .fis-form {
+        width: 100%;
+        padding: 8px;
+    }
+
+    .fis-cartao {
+        flex: 1 1 140px;
+        min-width: 0;
+    }
+}
