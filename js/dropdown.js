@@ -193,6 +193,8 @@ function aplicarSelecaoDropdown(drop, selecionados) {
     salvarFiltroDropdown(path, pag, valores.map(value => ({ op, value })));
 
     atualizarVisualDropdown(path, pag);
+    // Telas que mostram um resumo dos filtros (ex.: ocorrências) atualizam na hora, sem esperar a consulta.
+    document.dispatchEvent(new CustomEvent('filtro-dropdown-alterado', { detail: { path, pag } }));
     agendarAcaoDropdown(funcao || null, pag);
 }
 
@@ -275,7 +277,7 @@ function toggleDropdown(botao) {
     }
 }
 
-function montarDropdownCheckbox({ titulo, op = '=', pag, funcao = null, path, opcoes = [] }) {
+function montarDropdownCheckbox({ titulo, op = '=', pag, funcao = null, path, opcoes = [], vazio = 'Nenhuma opção' }) {
     garantirControlesDropdown(pag);
 
     const atributo = valor => String(valor ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
@@ -315,7 +317,7 @@ function montarDropdownCheckbox({ titulo, op = '=', pag, funcao = null, path, op
                         </div>
                     </div>
 
-                    ${itens || '<span class="dropdown-vazio">Nenhuma opção</span>'}
+                    ${itens || `<span class="dropdown-vazio">${vazio}</span>`}
                 </div>
             </div>
         </div>

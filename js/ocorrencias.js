@@ -1029,8 +1029,10 @@ async function telaOcorrencias() {
         <div id="ocorrencias-painel-pesquisas" class="divisao-filtro-botoes pesquisas-ocorrencias">
 
             <div class="pesquisas-ocorrencias-campos" style="${vertical}">
+                <div id="visoes-ocorrencias" class="visoes-ocorrencias" hidden></div>
                 <div id="filtros1" class="filtros"></div>
                 <div id="filtros2" class="filtros"></div>
+                <div id="filtros-ativos-ocorrencias" class="filtros-ativos-ocorrencias"></div>
             </div>
 
             <div class="pesquisas-ocorrencias-acoes">
@@ -1047,7 +1049,7 @@ async function telaOcorrencias() {
     const tabela = await modTab({
         alinPag: horizontal,
         scroll: false,
-        funcaoAdicional: ['contadoresMapaOcorrencias', 'voltarTopoOcorrencias', 'carregarSelosGarantia', 'carregarEnviosRequisicoesLog'],
+        funcaoAdicional: ['contadoresMapaOcorrencias', 'voltarTopoOcorrencias', 'carregarSelosGarantia', 'atualizarPainelFiltrosOcorrencias', 'carregarEnviosRequisicoesLog'],
         base: 'vw_dados_ocorrencias',
         pag: 'ocorrencias',
         body: 'bodyOcorrencias',
@@ -1066,11 +1068,14 @@ async function telaOcorrencias() {
         document.querySelector('.tela-ocorrencias > .painel-filtros'),
         document.querySelector('.tela-ocorrencias .botao-subir-filtros'))
 
+    // Filtros na hora (com as opções guardadas da última visita); a conferência no servidor
+    // e a tabela correm juntas, sem uma esperar a outra.
+    criarPesquisas()
+    atualizarListasFiltrosOcorrencias().catch(erro => console.error(erro))
+
     await paginacao('ocorrencias')
 
     removerOverlay()
-
-    criarPesquisas()
 
 }
 
@@ -1767,386 +1772,712 @@ async function voltarOcorrencias() {
 
 }
 
-async function criarPesquisas() {
+// ======================= Filtros do painel de ocorrências =======================
+// Montagem instantânea: o painel sai na hora com as opções e as visões guardadas da última visita
+// (memória + localStorage, por usuário) e a tabela carrega ao mesmo tempo. As listas são conferidas
+// no servidor em segundo plano (mvw_opcoes_filtros + base filtros, com as regras de acesso de sempre)
+// e só os menus fechados são trocados se algo mudou.
+// Visões = grupos de filtros salvos (base filtros), compartilhados: todos menos cliente/técnico usam;
+// só adm/diretoria criam, alteram, renomeiam e excluem.
+// A barra "Filtrando por" mostra cada filtro ativo como etiqueta: clicar leva ao campo, o × tira só ele.
 
-    const divF1 = document.querySelector('#filtros1')
-    const divF2 = document.querySelector('#filtros2')
+const PAG_OCORRENCIAS = 'ocorrencias'
+const PATH_DATA_OCORRENCIAS = 'snapshots.ultimaCorrecao.*.dtCorrecao'
+const PATH_PRAZO_OCORRENCIAS = 'snapshots.ultimaCorrecao.*.dtCorrecaoFinal'
+const PATH_STATUS_OCORRENCIAS = 'snapshots.ultimaCorrecao.*.nome'
+const PATH_AUTORIZACAO_OCORRENCIAS = 'snapshots.autorizacao'
+const ORIGENS_FIXAS_OCORRENCIAS = ['atrasados_status', 'atrasados_data', 'data_de', 'data_ate']
+// O chamado grava a sigla em cliente.estado: sem a lista na mvw_opcoes_filtros, as 27 UFs.
+const UFS_OCORRENCIAS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO']
 
-    const camposLivres = {
-        'Chamado': { path: 'chamados' },
-        'Nº Série': { path: 'equipamentos.*.serie' },
-        'Cidade': { path: 'snapshots.cliente.cidade' },
-        'Descricao': { path: 'descricao' },
-        'Unidade': { path: 'unidade' },
-        'Autorização': { path: 'correcoes.*.autorizacao' }
-    }
+const camposLivresOcorrencias = [
+    { titulo: 'Chamado', path: 'chamados' },
+    { titulo: 'Nº Série', path: 'equipamentos.*.serie' },
+    { titulo: 'Cidade', path: 'snapshots.cliente.cidade' },
+    { titulo: 'Descrição', path: 'descricao' },
+    { titulo: 'Unidade', path: 'unidade' },
+    { titulo: 'Autorização nº', path: 'correcoes.*.autorizacao' }
+]
 
-    for (const [titulo, campo] of Object.entries(camposLivres)) {
-
-        const { path } = campo
-
-        const valor = controles?.ocorrencias?.filtros?.[path]?.value || ''
-
-        const pesquisa = `
-        <div class="campo-pesquisa pesquisa-livre">
-            <label for="campo_${path}">${titulo}</label>
-            <div class="pesquisa">
-            <input
-                onkeydown="if (event.key === 'Enter') pesquisarOcorrencias('${path}', this.value)"
-                placeholder="${titulo}"
-                id="campo_${path}"
-                style="width: 100%;" 
-                value="${valor}">
-
-            <img src="imagens/pesquisar4.png" alt="">
-            </div>
-        </div>`
-
-        divF1.insertAdjacentHTML('beforeend', pesquisa)
-
-    }
-
-    const camposFechados = {
-        'Criador': { chave: 'criadores', path: 'usuario' }, // Chave na tabela ref de opções;
+function camposListaOcorrencias() {
+    return [
+        { titulo: 'Criador', chave: 'criadores', path: 'usuario' },
         // Qualquer usuário pode ser gestor: mesma lista de logins do Criador.
-        'Gestor Responsável': { chave: 'criadores', path: 'gestor_responsavel' },
-        'Tipo': { chave: 'tipos', path: 'tipo' },
-        'Sistema': { chave: 'sistemas', path: 'sistema' },
-        'Prioridade': { chave: 'prioridades', path: 'prioridade' },
-        'Última Correção': { chave: 'ultima_correcao', path: 'snapshots.ultimaCorrecao.*.nome' },
-        'Solicitante': { op: 'includes', chave: 'executores', path: 'correcoes.*.usuario' },
-        'Executor': { op: 'includes', chave: 'executores', path: 'snapshots.ultimaCorrecao.*.executor' },
-        'Técnico': { op: 'includes', chave: 'executores', path: 'snapshots.ultimaCorrecao.*.tecnico' },
-        'Estado': { chave: 'estados', path: 'cliente.estado' },
-        ...(
-            acesso.permissao == 'cliente'
-                ? {}
-                : {
-                    'Empresa': { chave: 'empresas', path: 'empresa' },
-                    'Tags': { chave: 'tags', path: 'tags.*.nome' }
-                }
-        )
-    }
+        { titulo: 'Gestor Responsável', chave: 'criadores', path: 'gestor_responsavel' },
+        { titulo: 'Tipo', chave: 'tipos', path: 'tipo' },
+        { titulo: 'Sistema', chave: 'sistemas', path: 'sistema' },
+        { titulo: 'Prioridade', chave: 'prioridades', path: 'prioridade' },
+        { titulo: 'Última Correção', chave: 'ultima_correcao', path: PATH_STATUS_OCORRENCIAS },
+        { titulo: 'Solicitante', op: 'includes', chave: 'executores', path: 'correcoes.*.usuario' },
+        { titulo: 'Executor', op: 'includes', chave: 'executores', path: 'snapshots.ultimaCorrecao.*.executor' },
+        { titulo: 'Técnico', op: 'includes', chave: 'executores', path: 'snapshots.ultimaCorrecao.*.tecnico' },
+        { titulo: 'Estado', chave: 'estados', path: 'cliente.estado' },
+        ...(acesso?.permissao == 'cliente'
+            ? []
+            : [
+                { titulo: 'Empresa', chave: 'empresas', path: 'empresa' },
+                { titulo: 'Tags', chave: 'tags', path: 'tags.*.nome' }
+            ])
+    ]
+}
 
-    const filtros = []
+const podeUsarVisoesOcorrencias = () => !['cliente', 'tecnico'].includes(acesso?.permissao)
+const podeEditarVisoesOcorrencias = () => ['diretoria', 'adm'].includes(acesso?.permissao)
 
-    controlesCxOpcoes.filtros = {
-        base: 'filtros',
-        funcaoAdicional: ['definirFiltroGrupo'],
-        retornar: ['nome'],
-        colunas: {
-            'nome': { chave: 'nome' }
+// ---------- Cache (memória + localStorage, por usuário) ----------
+const memoriaFiltrosOcorrencias = {}
+
+function cacheFiltrosOcorrencias(tipo, valor) {
+    const chave = `filtrosOcorrencias:${tipo}:${acesso?.usuario || ''}`
+    if (valor === undefined) {
+        if (memoriaFiltrosOcorrencias[chave] !== undefined) return memoriaFiltrosOcorrencias[chave]
+        try {
+            return memoriaFiltrosOcorrencias[chave] = JSON.parse(localStorage.getItem(chave) || 'null')
+        } catch {
+            return null
         }
     }
+    memoriaFiltrosOcorrencias[chave] = valor
+    try { localStorage.setItem(chave, JSON.stringify(valor)) } catch { }
+    return valor
+}
 
-    // Exlusão;
-    if (!['cliente', 'tecnico'].includes(acesso.permissao)) {
-        const nome = controles?.ocorrencias?.nomeFiltro || 'Selecionar'
-        const idFiltro = controles?.ocorrencias?.idFiltro
+async function buscarOpcoesFiltrosOcorrencias() {
+    const dados = await recuperarDado('mvw_opcoes_filtros', 1)
+    if (dados && typeof dados === 'object') cacheFiltrosOcorrencias('opcoes', dados)
+}
 
-        const funcao = ['diretoria', 'adm'].includes(acesso.permissao)
-            ? `<img class="pesquisar-branco" src="imagens/pesquisar.svg" style="width: 1.5rem;" onclick="formFiltro(${idFiltro ? `'${idFiltro}'` : ''})">`
-            : ''
+async function buscarVisoesOcorrencias() {
+    if (!podeUsarVisoesOcorrencias()) return
+    const { resultados } = await pesquisarDB({ base: 'filtros', pagina: 1, limite: 200 }) || {}
+    if (!Array.isArray(resultados)) return
+    const visoes = resultados
+        .filter(v => v?.id && !v.excluido)
+        .map(({ id, nome, filtro }) => ({ id, nome: nome || 'Sem nome', filtro: filtro || {} }))
+        .sort((a, b) => a.nome.localeCompare(b.nome))
+    cacheFiltrosOcorrencias('visoes', visoes)
+}
 
-        filtros.push(`
-        <div class="campo-pesquisa">
-            <div style="display: flex; align-items: center; justify-content: start; gap: 1rem;">
-                ${funcao}
-                <label style="color: white;">Filtros</label>
-            </div>
-            <label  ${idFiltro ? `id="${idFiltro}"` : ''} style="padding: 0 10px 0 10px;" class="filtro-dropdown-botao" name="filtros" onclick="cxOpcoes('filtros')">${nome}</label>
-        </div>`
-        )
-    }
+// Confere opções e visões no servidor sem travar a tela; redesenha só o que mudou.
+async function atualizarListasFiltrosOcorrencias() {
+    const antes = JSON.stringify([cacheFiltrosOcorrencias('opcoes'), cacheFiltrosOcorrencias('visoes')])
+    const opcoesAntes = JSON.stringify(cacheFiltrosOcorrencias('opcoes'))
 
-    const listagens = await recuperarDado('mvw_opcoes_filtros', 1) || {}
+    await Promise.all([
+        buscarOpcoesFiltrosOcorrencias().catch(erro => console.error('[filtros ocorrências] opções', erro)),
+        buscarVisoesOcorrencias().catch(erro => console.error('[filtros ocorrências] visões', erro))
+    ])
 
-    // Estados: se a mvw_opcoes_filtros vier sem a lista, as 27 UFs (o chamado grava a sigla em cliente.estado).
-    const ufs = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO']
-    const opcoesDe = chave => {
-        const lista = listagens?.[chave]
-        if (chave === 'estados' && !(Array.isArray(lista) && lista.some(Boolean))) return ufs
-        return lista || []
-    }
+    if (!document.querySelector('.tela-ocorrencias')) return
+    if (JSON.stringify(cacheFiltrosOcorrencias('opcoes')) !== opcoesAntes) trocarMenusFiltrosOcorrencias()
+    if (JSON.stringify([cacheFiltrosOcorrencias('opcoes'), cacheFiltrosOcorrencias('visoes')]) !== antes)
+        atualizarPainelFiltrosOcorrencias()
+}
 
-    const emMassa = Object.entries(camposFechados)
-        .map(([titulo, conf]) => {
+function opcoesFiltroOcorrencias(chave) {
+    const lista = cacheFiltrosOcorrencias('opcoes')?.[chave]
+    if (chave === 'estados' && !(Array.isArray(lista) && lista.some(Boolean))) return UFS_OCORRENCIAS
+    return Array.isArray(lista) ? lista : []
+}
 
-            return montarDropdownCheckbox({
-                op: conf?.op || '=',
-                pag: 'ocorrencias',
-                titulo,
-                path: conf.path,
-                opcoes: opcoesDe(conf?.chave)
-            })
-
-        })
-
-    filtros.push(emMassa)
-
-    // Filtro de autorizados e atrasados;
-    filtros.push(`
-            <div class="campo-pesquisa">
-                <label style="color: white;">Autorização</label>
-                <select onchange="filtrarAutorizados(this)">
-                    ${['', 'Sim', 'Não'].map(o => `<option>${o}</option>`).join('')}
-                </select>
-            </div>
-        `)
-
-    filtros.push(`
-            <div class="campo-pesquisa">
-                <label style="color: white;">Atrasados</label>
-                <select onchange="filtrarAtrasados(this)">
-                    ${['', 'Sim', 'Não'].map(o => `<option>${o}</option>`).join('')}
-                </select>
-            </div>
-        `)
-
-    // Filtros de data;
-    const fTempo = ['De', 'Até']
-    fTempo.forEach(t => {
-
-        filtros.push(`
-            <div class="campo-pesquisa">
-                <label style="color: white;">${t}</label>
-                <input type="date" data-operador="${t}" onchange="filtrarPorData(this)">
-            </div>
-        `)
-
+function dropdownFiltroOcorrencias(conf) {
+    return montarDropdownCheckbox({
+        op: conf.op || '=',
+        pag: PAG_OCORRENCIAS,
+        titulo: conf.titulo,
+        path: conf.path,
+        funcao: 'paginarOcorrenciasDoInicio',
+        opcoes: opcoesFiltroOcorrencias(conf.chave),
+        vazio: cacheFiltrosOcorrencias('opcoes') ? 'Nenhuma opção' : 'Carregando opções…'
     })
-
-    // Limpar Filtros: último item da linha de filtros 2 (refeito junto quando os filtros são remontados).
-    filtros.push(`
-            <div class="campo-pesquisa campo-limpar-filtros">
-                <button type="button" onclick="limparFiltroOcorrencias()">Limpar Filtros</button>
-            </div>
-        `)
-
-    divF2.insertAdjacentHTML('beforeend', filtros.flat().join(''))
 }
 
-async function filtrarAutorizados(select) {
-
-    controles.ocorrencias.filtros = {
-        ...controles.ocorrencias.filtros,
-        'snapshots.autorizacao': { op: '=', value: select.value }
-    }
-
-    if (!select.value)
-        delete controles.ocorrencias.filtros['snapshots.autorizacao']
-
-    await paginacao('ocorrencias')
-
+// Opções novas do servidor: troca os menus fechados (o aberto fica como está para não sumir na mão).
+function trocarMenusFiltrosOcorrencias() {
+    camposListaOcorrencias().forEach(conf => {
+        const drop = getDropdownElement(conf.path, PAG_OCORRENCIAS)
+        if (!drop || drop.querySelector('.dropdown-menu')?.dataset.aberto === 'S') return
+        drop.closest('.campo-pesquisa').outerHTML = dropdownFiltroOcorrencias(conf)
+    })
 }
 
-async function formFiltro(id) {
-
-    const { nome } = await recuperarDado('filtros', id) || {}
-
-    const linhas = [
-        {
-            texto: 'Nome do Filtro',
-            elemento: `<textarea name="nome">${nome || ''}</textarea>`
-        }
-    ]
-
-    const botoes = [
-        {
-            img: 'concluido',
-            texto: 'Salvar',
-            funcao: id
-                ? `salvarFiltro('${id}')`
-                : 'salvarFiltro()'
-        }]
-
-    if (id) {
-        botoes.push(
-            {
-                img: 'cancel',
-                texto: 'Excluir',
-                funcao: `confirmarExcluirFiltro('${id}')`
-            },
-            {
-                img: 'limpar',
-                texto: 'Limpar',
-                funcao: 'limparFiltroOcorrencias()'
-            }
-        )
-    }
-
-    popup({ botoes, linhas, titulo: 'Grupo de filtros' })
-
+// ---------- Leitura do estado (controles.ocorrencias.filtros) ----------
+function regrasOcorrencias(path) {
+    const atual = controles?.ocorrencias?.filtros?.[path]
+    if (!atual) return []
+    return Array.isArray(atual) ? [...atual] : [atual]
 }
 
-async function confirmarExcluirFiltro(id) {
-
-    const botoes = [
-        { texto: 'Confirmar', fechar: true, img: 'concluido', funcao: `excluirFiltroOcorrencias('${id}')` }
-    ]
-
-    popup({ mensagem: 'Tem certeza?', botoes, removerAnteriores: true })
-
-}
-
-async function excluirFiltroOcorrencias(id) {
-
-    await deletar(`filtros/${id}`)
-    await limparFiltroOcorrencias()
-}
-
-async function limparFiltroOcorrencias() {
-
-    delete controles.ocorrencias.nomeFiltro
-    delete controles.ocorrencias.idFiltro
-    delete controles.ocorrencias.filtros
-
-    document.querySelector('#filtros1').innerHTML = ''
-    document.querySelector('#filtros2').innerHTML = ''
-
-    removerPopup()
-
-    await criarPesquisas()
-    await paginacao()
-
-}
-
-async function salvarFiltro(id = crypto.randomUUID()) {
-
-    overlayAguarde()
-
-    const nome = document.querySelector('[name="nome"]').value || 'Sem nome'
-
-    const filtro = {
-        id,
-        nome,
-        filtro: controles?.ocorrencias?.filtros || {}
-    }
-
-    await enviar(`filtros/${id}`, filtro)
-
-    await definirFiltroGrupo()
-
-    removerPopup()
-
-}
-
-async function definirFiltroGrupo() {
-    const span = document.querySelector('[name="filtros"]')
-    const id = span?.id
-    if (!id) return
-
-    const { filtro, nome } = await recuperarDado('filtros', id) || {}
-    if (!filtro) return
-
-    controles.ocorrencias.nomeFiltro = nome
-    controles.ocorrencias.idFiltro = id
-    controles.ocorrencias.filtros = structuredClone(filtro)
-
-    document.querySelector('#filtros1').innerHTML = ''
-    document.querySelector('#filtros2').innerHTML = ''
-
-    await criarPesquisas()
-    span.textContent = nome || 'Selecionar'
-
-    await paginacao()
-}
-
-function listaRegras(path) {
-
+function gravarRegrasOcorrencias(path, regras) {
+    controles.ocorrencias ??= {}
     controles.ocorrencias.filtros ??= {}
-    const atual = controles.ocorrencias.filtros?.[path]
-
-    if (!atual)
-        return []
-
-    return Array.isArray(atual)
-        ? [...atual]
-        : [atual]
+    if (!regras.length) delete controles.ocorrencias.filtros[path]
+    else controles.ocorrencias.filtros[path] = regras.length === 1 ? regras[0] : regras
+    if (!Object.keys(controles.ocorrencias.filtros).length) delete controles.ocorrencias.filtros
 }
 
-function salvarRegras(path, regras) {
-    if (!regras.length) {
-        delete controles.ocorrencias.filtros[path]
-        return
-    }
-
-    controles.ocorrencias.filtros[path] = regras.length === 1
-        ? regras[0]
-        : regras
+function valorTextoOcorrencias(path) {
+    const f = controles?.ocorrencias?.filtros?.[path]
+    return f && !Array.isArray(f) && !f.modo && !f.origem && f.op === 'includes' ? String(f.value ?? '') : ''
 }
 
-async function filtrarPorData(input) {
-    const path = 'snapshots.ultimaCorrecao.*.dtCorrecao'
-    const tipo = input.dataset.operador === 'De' ? 'de' : 'ate'
-    const op = tipo === 'de' ? '>=d' : '<=d'
-    const value = input.value
+function valorAutorizacaoOcorrencias() {
+    const f = controles?.ocorrencias?.filtros?.[PATH_AUTORIZACAO_OCORRENCIAS]
+    return (!Array.isArray(f) && f?.value) || ''
+}
+
+function valorAtrasadosOcorrencias() {
+    const regra = regrasOcorrencias(PATH_PRAZO_OCORRENCIAS).find(r => r?.origem === 'atrasados_data')
+    return !regra ? '' : regra.op === '<d' ? 'Sim' : 'Não'
+}
+
+function valorDataOcorrencias(tipo) {
+    return regrasOcorrencias(PATH_DATA_OCORRENCIAS).find(r => r?.origem === `data_${tipo}`)?.value || ''
+}
+
+// ---------- Escrita do estado (só mexem em controles; quem chama aplica) ----------
+function definirTextoOcorrencias(path, valor) {
+    gravarRegrasOcorrencias(path, valor ? [{ op: 'includes', value: valor }] : [])
+}
+
+function definirAutorizacaoOcorrencias(valor) {
+    gravarRegrasOcorrencias(PATH_AUTORIZACAO_OCORRENCIAS, valor ? [{ op: '=', value: valor }] : [])
+}
+
+function definirDataOcorrencias(tipo, valor) {
     const origem = `data_${tipo}`
-
-    let regras = listaRegras(path)
-        .filter(regra => regra.origem !== origem)
-
-    if (value)
-        regras.push({ op, value, origem })
-
-    salvarRegras(path, regras)
-    await paginacao()
-}
-
-async function pesquisarOcorrencias(path, valor) {
-
-    controles.ocorrencias.filtros ??= {}
-
-    if (!valor) {
-        delete controles.ocorrencias.filtros[path]
-    } else {
-        controles.ocorrencias.filtros[path] = {
-            op: 'includes',
-            value: valor
-        }
-    }
-
-    const campo = document.getElementById(`campo_${path}`)
-    if (campo)
-        campo.value = valor
-
-    await paginacao()
+    const regras = regrasOcorrencias(PATH_DATA_OCORRENCIAS).filter(r => r?.origem !== origem)
+    if (valor) regras.push({ op: tipo === 'de' ? '>=d' : '<=d', value: valor, origem })
+    gravarRegrasOcorrencias(PATH_DATA_OCORRENCIAS, regras)
 }
 
 // Atrasado = data limite (dtCorrecaoFinal; o snapshot usa a inicial quando não há final)
 // de ontem para trás, e ainda não terminado. Mesma regra de vw_correcoes_atrasadas_por_usuario.
 // A data vai como AAAA-MM-DD: assim o servidor compara só a data. Com DD/MM/AAAA ele comparava
 // em milissegundos (meia-noite UTC x meia-noite local) e as correções de hoje entravam como atrasadas.
-async function filtrarAtrasados(input) {
-    const ativo = input.value
+function definirAtrasadosOcorrencias(valor) {
     const agora = dataServidor()
     const hoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`
-    const pathData = 'snapshots.ultimaCorrecao.*.dtCorrecaoFinal'
 
-    let regrasStatus = listaRegras('snapshots.ultimaCorrecao.*.nome')
-        .filter(regra => regra.origem !== 'atrasados_status')
-
+    const regrasStatus = regrasOcorrencias(PATH_STATUS_OCORRENCIAS).filter(r => r?.origem !== 'atrasados_status')
     // Versões antigas gravavam a regra na data inicial: limpa de lá também.
-    salvarRegras('snapshots.ultimaCorrecao.*.dtCorrecao', listaRegras('snapshots.ultimaCorrecao.*.dtCorrecao')
-        .filter(regra => regra.origem !== 'atrasados_data'))
+    const regrasInicial = regrasOcorrencias(PATH_DATA_OCORRENCIAS).filter(r => r?.origem !== 'atrasados_data')
+    const regrasPrazo = regrasOcorrencias(PATH_PRAZO_OCORRENCIAS).filter(r => r?.origem !== 'atrasados_data')
 
-    let regrasData = listaRegras(pathData)
-        .filter(regra => regra.origem !== 'atrasados_data')
-
-    if (ativo) {
+    if (valor) {
         regrasStatus.push(...regrasNaoTerminado('atrasados_status'))
+        regrasPrazo.push({ op: valor == 'Sim' ? '<d' : '>=d', value: hoje, origem: 'atrasados_data' })
+    }
 
-        regrasData.push({
-            op: ativo == 'Sim' ? '<d' : '>=d',
-            value: hoje,
-            origem: 'atrasados_data'
+    gravarRegrasOcorrencias(PATH_STATUS_OCORRENCIAS, regrasStatus)
+    gravarRegrasOcorrencias(PATH_DATA_OCORRENCIAS, regrasInicial)
+    gravarRegrasOcorrencias(PATH_PRAZO_OCORRENCIAS, regrasPrazo)
+}
+
+// ---------- Montagem ----------
+function criarPesquisas() {
+    const divF1 = document.querySelector('#filtros1')
+    const divF2 = document.querySelector('#filtros2')
+    if (!divF1 || !divF2) return
+
+    controles.ocorrencias ??= {}
+
+    divF1.innerHTML = camposLivresOcorrencias.map(({ titulo, path }) => `
+        <div class="campo-pesquisa pesquisa-livre">
+            <label for="campo_${path}">${titulo}</label>
+            <div class="pesquisa">
+                <img src="imagens/pesquisar4.png" alt="">
+                <input id="campo_${path}" placeholder="${titulo}" autocomplete="off"
+                    oninput="digitarPesquisaOcorrencias('${path}', this)"
+                    onkeydown="if (event.key === 'Enter') pesquisarOcorrencias('${path}', this.value)">
+                <button type="button" class="pesquisa-limpar" title="Limpar" onclick="pesquisarOcorrencias('${path}', '')">×</button>
+            </div>
+        </div>`).join('')
+
+    const alternador = (titulo, tipo, funcao) => `
+        <div class="campo-pesquisa campo-alternador" data-alternador="${tipo}">
+            <label style="color: white;">${titulo}</label>
+            <div class="alternador-filtro">
+                ${['', 'Sim', 'Não'].map(v => `
+                    <button type="button" data-valor="${v}" onclick="${funcao}(this.dataset.valor)">${v || 'Todos'}</button>`).join('')}
+            </div>
+        </div>`
+
+    const datas = [['De', 'de'], ['Até', 'ate']].map(([titulo, tipo]) => `
+        <div class="campo-pesquisa campo-data" data-data="${tipo}">
+            <label style="color: white;">${titulo}</label>
+            <input type="date" data-operador="${titulo}" onchange="filtrarPorData(this)">
+        </div>`).join('')
+
+    divF2.innerHTML = [
+        ...camposListaOcorrencias().map(dropdownFiltroOcorrencias),
+        alternador('Autorização', 'autorizacao', 'filtrarAutorizados'),
+        alternador('Atrasados', 'atrasados', 'filtrarAtrasados'),
+        datas
+    ].join('')
+
+    atualizarPainelFiltrosOcorrencias()
+}
+
+// Campos, visões e etiquetas refletem sempre controles.ocorrencias.filtros
+// (inclusive quando outra tela monta o filtro: atalhos, central de chamados, status).
+function atualizarPainelFiltrosOcorrencias() {
+    if (!document.querySelector('#filtros1')) return
+    sincronizarCamposOcorrencias()
+    renderizarVisoesOcorrencias()
+    renderizarFiltrosAtivosOcorrencias()
+}
+
+function sincronizarCamposOcorrencias() {
+    camposLivresOcorrencias.forEach(({ path }) => {
+        const input = document.getElementById(`campo_${path}`)
+        if (!input) return
+        const valor = valorTextoOcorrencias(path)
+        // Quem está digitando não perde o texto (a pesquisa entra na pausa).
+        if (document.activeElement !== input) input.value = valor
+        input.closest('.campo-pesquisa')?.classList.toggle('ativo', !!valor)
+    })
+
+    camposListaOcorrencias().forEach(({ path }) => atualizarVisualDropdown(path, PAG_OCORRENCIAS))
+
+    const alternadores = {
+        autorizacao: valorAutorizacaoOcorrencias(),
+        atrasados: valorAtrasadosOcorrencias()
+    }
+    for (const [tipo, valor] of Object.entries(alternadores)) {
+        const campo = document.querySelector(`.campo-alternador[data-alternador="${tipo}"]`)
+        if (!campo) continue
+        campo.classList.toggle('ativo', !!valor)
+        campo.querySelectorAll('button').forEach(b => b.classList.toggle('selecionado', b.dataset.valor === valor))
+    }
+
+    ;['de', 'ate'].forEach(tipo => {
+        const campo = document.querySelector(`.campo-data[data-data="${tipo}"]`)
+        if (!campo) return
+        const valor = valorDataOcorrencias(tipo)
+        campo.querySelector('input').value = valor
+        campo.classList.toggle('ativo', !!valor)
+    })
+}
+
+// ---------- Barra "Filtrando por" ----------
+let resumoFiltrosAtivosOcorrencias = []
+
+function tituloPathOcorrencias(path) {
+    const conhecido = [...camposLivresOcorrencias, ...camposListaOcorrencias()].find(c => c.path === path)
+    if (conhecido) return conhecido.titulo
+    return { id: 'Chamado (ID)', [PATH_STATUS_OCORRENCIAS]: 'Última Correção' }[path] || path
+}
+
+function resumirValoresOcorrencias(valores) {
+    return valores.length <= 2
+        ? valores.join(', ')
+        : `${valores.slice(0, 2).join(', ')} +${valores.length - 2}`
+}
+
+function regraConhecidaOcorrencias(path, regra, livres, listas) {
+    if (ORIGENS_FIXAS_OCORRENCIAS.includes(regra?.origem)) return true
+    if (path === PATH_AUTORIZACAO_OCORRENCIAS) return true
+    if (livres.has(path) && !regra?.modo && !regra?.origem && regra?.op === 'includes') return true
+    if (listas.has(path) && regra?.modo === 'OR' && regra?.origem === 'dropdown') return true
+    return false
+}
+
+function resumoFiltrosOcorrencias() {
+    const itens = []
+    const filtros = controles?.ocorrencias?.filtros || {}
+    const listasConf = camposListaOcorrencias()
+    const livres = new Set(camposLivresOcorrencias.map(c => c.path))
+    const listas = new Set(listasConf.map(c => c.path))
+    const data = v => { const [a, m, d] = String(v).split('-'); return d ? `${d}/${m}/${a}` : v }
+
+    camposLivresOcorrencias.forEach(({ titulo, path }) => {
+        const valor = valorTextoOcorrencias(path)
+        if (valor) itens.push({ titulo, valor, focar: `#campo_${CSS.escape(path)}`, remover: () => definirTextoOcorrencias(path, '') })
+    })
+
+    listasConf.forEach(({ titulo, path }) => {
+        const marcados = valoresMarcadosDropdown(path, PAG_OCORRENCIAS)
+        if (!marcados.length) return
+        itens.push({
+            titulo,
+            valor: resumirValoresOcorrencias(marcados),
+            dica: marcados.join('\n'),
+            abrir: path,
+            remover: () => limparFiltroDropdown(path, PAG_OCORRENCIAS)
+        })
+    })
+
+    const autorizacao = valorAutorizacaoOcorrencias()
+    if (autorizacao) itens.push({ titulo: 'Autorização', valor: autorizacao, focar: '.campo-alternador[data-alternador="autorizacao"] button', remover: () => definirAutorizacaoOcorrencias('') })
+
+    const atrasados = valorAtrasadosOcorrencias()
+    if (atrasados) itens.push({ titulo: 'Atrasados', valor: atrasados, focar: '.campo-alternador[data-alternador="atrasados"] button', remover: () => definirAtrasadosOcorrencias('') })
+
+    ;[['de', 'De'], ['ate', 'Até']].forEach(([tipo, titulo]) => {
+        const valor = valorDataOcorrencias(tipo)
+        if (valor) itens.push({ titulo, valor: data(valor), focar: `.campo-data[data-data="${tipo}"] input`, remover: () => definirDataOcorrencias(tipo, '') })
+    })
+
+    // Filtros que não têm campo no painel (atalhos, links de outras telas): etiqueta própria com ×.
+    for (const path of Object.keys(filtros)) {
+        const regras = regrasOcorrencias(path)
+        const sobras = regras.filter(r => !regraConhecidaOcorrencias(path, r, livres, listas))
+        if (!sobras.length) continue
+        const valores = sobras
+            .flatMap(r => r?.modo === 'OR' ? (r.regras || []) : [r])
+            .map(r => `${r?.op && !['=', 'includes'].includes(r.op) ? `${r.op} ` : ''}${r?.value ?? ''}`)
+        itens.push({
+            titulo: tituloPathOcorrencias(path),
+            valor: resumirValoresOcorrencias(valores),
+            dica: valores.join('\n'),
+            remover: () => gravarRegrasOcorrencias(path, regras.filter(r => !sobras.includes(r)))
         })
     }
 
-    salvarRegras('snapshots.ultimaCorrecao.*.nome', regrasStatus)
-    salvarRegras(pathData, regrasData)
+    return itens
+}
 
-    await paginacao()
+function renderizarFiltrosAtivosOcorrencias() {
+    const div = document.querySelector('#filtros-ativos-ocorrencias')
+    if (!div) return
+
+    const itens = resumoFiltrosAtivosOcorrencias = resumoFiltrosOcorrencias()
+    div.classList.toggle('vazio', !itens.length)
+
+    if (!itens.length) {
+        div.innerHTML = '<span class="filtros-ativos-titulo">Sem filtros: mostrando todos os chamados</span>'
+        return
+    }
+
+    div.innerHTML = `
+        <span class="filtros-ativos-titulo">Filtrando por</span>
+        ${itens.map((item, i) => `
+            <span class="filtro-ativo" title="${escaparAtributo(item.dica || `${item.titulo}: ${item.valor}`)}">
+                <span class="filtro-ativo-texto" onclick="focarFiltroAtivoOcorrencias(${i})">
+                    <small>${escaparAtributo(item.titulo)}</small>${escaparAtributo(item.valor)}
+                </span>
+                <button type="button" title="Tirar este filtro" onclick="removerFiltroAtivoOcorrencias(${i})">×</button>
+            </span>`).join('')}
+        <button type="button" class="filtros-ativos-limpar" onclick="limparFiltroOcorrencias()">Limpar tudo</button>
+    `
+}
+
+async function removerFiltroAtivoOcorrencias(indice) {
+    const item = resumoFiltrosAtivosOcorrencias[indice]
+    if (!item) return
+    item.remover()
+    await aplicarFiltrosOcorrencias()
+}
+
+function focarFiltroAtivoOcorrencias(indice) {
+    const item = resumoFiltrosAtivosOcorrencias[indice]
+    if (!item) return
+    if (item.abrir) {
+        const botao = getDropdownElement(item.abrir, PAG_OCORRENCIAS)?.querySelector('.filtro-dropdown-botao')
+        if (botao) {
+            botao.scrollIntoView({ block: 'nearest' })
+            if (botao.closest('.filtro-dropdown').querySelector('.dropdown-menu')?.dataset.aberto !== 'S') toggleDropdown(botao)
+        }
+        return
+    }
+    const alvo = item.focar && document.querySelector(item.focar)
+    alvo?.scrollIntoView({ block: 'nearest' })
+    alvo?.focus()
+}
+
+// ---------- Visões salvas ----------
+// Compara filtros como conjunto (ordem das regras não importa); a data do "Atrasados" é sempre
+// a de hoje, então não conta como alteração.
+function assinaturaFiltrosOcorrencias(valor) {
+    if (Array.isArray(valor)) return `[${valor.map(assinaturaFiltrosOcorrencias).sort().join(',')}]`
+    if (valor && typeof valor === 'object') {
+        const chaves = Object.keys(valor)
+            .filter(k => !(k === 'value' && valor.origem === 'atrasados_data'))
+            .sort()
+        return `{${chaves.map(k => `${JSON.stringify(k)}:${assinaturaFiltrosOcorrencias(valor[k])}`).join(',')}}`
+    }
+    return JSON.stringify(valor ?? null)
+}
+
+function visaoAtivaOcorrencias() {
+    const id = controles?.ocorrencias?.idFiltro
+    return id ? (cacheFiltrosOcorrencias('visoes') || []).find(v => v.id === id) || null : null
+}
+
+function visaoModificadaOcorrencias(visao = visaoAtivaOcorrencias()) {
+    return !!visao && assinaturaFiltrosOcorrencias(visao.filtro || {}) !== assinaturaFiltrosOcorrencias(controles?.ocorrencias?.filtros || {})
+}
+
+function renderizarVisoesOcorrencias() {
+    const div = document.querySelector('#visoes-ocorrencias')
+    if (!div) return
+
+    if (!podeUsarVisoesOcorrencias()) {
+        div.hidden = true
+        return
+    }
+
+    const visoes = cacheFiltrosOcorrencias('visoes')
+    const ativa = visaoAtivaOcorrencias()
+    const modificada = visaoModificadaOcorrencias(ativa)
+    const editar = podeEditarVisoesOcorrencias()
+    const temFiltros = Object.keys(controles?.ocorrencias?.filtros || {}).length > 0
+
+    // Mexeu nos filtros: a tela já não é a visão, então ela é esquecida (nada de "alterada"/"substituir").
+    // Alterar uma visão é sempre pelo ✎ dela.
+    if (modificada) {
+        delete controles.ocorrencias.idFiltro
+        delete controles.ocorrencias.nomeFiltro
+    }
+    const idAtiva = modificada ? null : ativa?.id
+
+    const chips = (visoes || []).map(v => {
+        const eAtiva = v.id === idAtiva
+        const id = escaparAtributo(v.id)
+        return `
+            <span class="visao-chip ${eAtiva ? 'ativa' : ''}">
+                <button type="button" class="visao-nome" onclick="alternarVisaoOcorrencias('${id}')"
+                    title="${eAtiva ? 'Clique para sair desta visão' : 'Aplicar esta visão'}">
+                    ${eAtiva ? '<span class="visao-check">✓</span>' : ''}${escaparAtributo(v.nome)}
+                </button>
+                ${editar ? `<button type="button" class="visao-editar" title="Editar visão" onclick="formFiltro('${id}')">✎</button>` : ''}
+            </span>`
+    }).join('')
+
+    const vazio = !visoes
+        ? '<span class="visoes-vazio">Carregando…</span>'
+        : !visoes.length
+            ? `<span class="visoes-vazio">Nenhuma visão salva${editar ? ': monte os filtros e salve aqui' : ''}</span>`
+            : ''
+
+    // Só adm/diretoria: "+ Nova visão" guarda o que está na tela.
+    const acoes = []
+    if (editar)
+        acoes.push('<button type="button" class="visao-acao" onclick="formFiltro()">+ Nova visão</button>')
+
+    div.hidden = false
+    div.innerHTML = `
+        <span class="visoes-titulo">Visões</span>
+        ${chips}${vazio}
+        ${acoes.length ? `<span class="visoes-acoes">${acoes.join('')}</span>` : ''}
+    `
+}
+
+async function aplicarVisaoOcorrencias(id) {
+    const visao = (cacheFiltrosOcorrencias('visoes') || []).find(v => v.id === id)
+    if (!visao) return
+
+    controles.ocorrencias ??= {}
+    controles.ocorrencias.idFiltro = visao.id
+    controles.ocorrencias.nomeFiltro = visao.nome
+    controles.ocorrencias.filtros = structuredClone(visao.filtro || {})
+    if (!Object.keys(controles.ocorrencias.filtros).length) delete controles.ocorrencias.filtros
+
+    // "Atrasados" salvo numa visão vale para hoje, não para o dia em que foi salvo.
+    const atrasados = valorAtrasadosOcorrencias()
+    if (atrasados) definirAtrasadosOcorrencias(atrasados)
+
+    await aplicarFiltrosOcorrencias()
+}
+
+// Clicar na visão selecionada sai dela (e limpa os filtros); em outra, aplica.
+async function alternarVisaoOcorrencias(id) {
+    if (controles?.ocorrencias?.idFiltro === id && !visaoModificadaOcorrencias()) return limparFiltroOcorrencias()
+    await aplicarVisaoOcorrencias(id)
+}
+
+function guardarVisaoNoCacheOcorrencias(visao, remover = false) {
+    const visoes = (cacheFiltrosOcorrencias('visoes') || []).filter(v => v.id !== visao.id)
+    if (!remover) visoes.push(visao)
+    visoes.sort((a, b) => a.nome.localeCompare(b.nome))
+    cacheFiltrosOcorrencias('visoes', visoes)
+}
+
+// Etiquetas de um conjunto de filtros qualquer (ex.: o que a visão guarda), sem mexer na tela.
+function resumoDeFiltrosOcorrencias(filtros) {
+    controles.ocorrencias ??= {}
+    const atual = controles.ocorrencias.filtros
+    controles.ocorrencias.filtros = filtros
+    try {
+        return resumoFiltrosOcorrencias()
+    } finally {
+        if (atual === undefined) delete controles.ocorrencias.filtros
+        else controles.ocorrencias.filtros = atual
+    }
+}
+
+function listaResumoOcorrencias(itens) {
+    const li = itens.map(i => `<li><b>${escaparAtributo(i.titulo)}:</b> ${escaparAtributo(i.dica ? i.dica.split('\n').join(', ') : i.valor)}</li>`).join('')
+    return `<ul style="margin: 0; padding-left: 1.2rem; text-align: left; max-width: 420px;">${li || '<li>Nenhum filtro</li>'}</ul>`
+}
+
+// Sem id: nova visão com os filtros atuais. Com id: renomear, trocar os filtros pelos da tela ou excluir.
+async function formFiltro(id) {
+    const visao = id ? (cacheFiltrosOcorrencias('visoes') || []).find(v => v.id === id) : null
+
+    // Visão nova guarda o que está na tela: sem filtro marcado, explica como fazer.
+    if (!visao && !Object.keys(controles?.ocorrencias?.filtros || {}).length)
+        return popup({
+            titulo: 'Nova visão',
+            mensagem: 'Marque primeiro os filtros que a visão deve guardar (status, criador, estado...) e depois clique em <b>+ Nova visão</b> para dar um nome.'
+        })
+
+    const linhas = [
+        {
+            texto: 'Nome da visão',
+            elemento: `<input name="nome_visao" value="${escaparAtributo(visao?.nome || '')}" placeholder="Ex.: Acompanhar chamados"
+                onkeydown="if (event.key === 'Enter') salvarFiltro(${visao ? `'${escaparAtributo(visao.id)}'` : ''})">`
+        }
+    ]
+
+    const telaTemFiltros = Object.keys(controles?.ocorrencias?.filtros || {}).length > 0
+    const telaDiferente = visao && telaTemFiltros && visaoModificadaOcorrencias(visao)
+
+    if (!visao)
+        linhas.push({ texto: 'Filtros que serão salvos', elemento: listaResumoOcorrencias(resumoFiltrosOcorrencias()) })
+    else {
+        linhas.push({ texto: 'Filtros guardados nesta visão', elemento: listaResumoOcorrencias(resumoDeFiltrosOcorrencias(structuredClone(visao.filtro || {}))) })
+        if (telaDiferente)
+            linhas.push({ texto: 'Filtros na tela agora', elemento: listaResumoOcorrencias(resumoFiltrosOcorrencias()) })
+    }
+
+    const idVisao = visao ? `'${escaparAtributo(visao.id)}'` : ''
+    const botoes = [
+        {
+            img: 'concluido',
+            texto: visao ? 'Salvar nome' : 'Salvar visão',
+            funcao: `salvarFiltro(${idVisao})`
+        }
+    ]
+
+    if (telaDiferente)
+        botoes.push({ img: 'atualizar', texto: 'Trocar pelos filtros da tela', funcao: `salvarFiltro(${idVisao}, true)` })
+
+    if (visao)
+        botoes.push({ img: 'cancel', texto: 'Excluir visão', funcao: `confirmarExcluirFiltro(${idVisao})` })
+
+    popup({ botoes, linhas, titulo: visao ? 'Editar visão' : 'Nova visão' })
+    setTimeout(() => document.querySelector('[name="nome_visao"]')?.focus(), 50)
+}
+
+// usarTela: a visão existente passa a guardar os filtros que estão na tela.
+async function salvarFiltro(id, usarTela = false) {
+    if (!podeEditarVisoesOcorrencias()) return
+
+    const nome = document.querySelector('[name="nome_visao"]')?.value.trim() || 'Sem nome'
+    const existente = id ? (cacheFiltrosOcorrencias('visoes') || []).find(v => v.id === id) : null
+    const filtrosTela = structuredClone(controles?.ocorrencias?.filtros || {})
+
+    const visao = existente
+        ? { ...existente, nome, ...(usarTela ? { filtro: filtrosTela } : {}) }
+        : { id: crypto.randomUUID(), nome, filtro: filtrosTela }
+
+    overlayAguarde()
+    await enviar(`filtros/${visao.id}`, visao)
+    guardarVisaoNoCacheOcorrencias(visao)
+
+    if (!existente || usarTela || controles?.ocorrencias?.idFiltro === visao.id) {
+        controles.ocorrencias ??= {}
+        controles.ocorrencias.idFiltro = visao.id
+        controles.ocorrencias.nomeFiltro = visao.nome
+    }
+
+    removerPopup()
+    removerOverlay()
+    atualizarPainelFiltrosOcorrencias()
+}
+
+async function confirmarExcluirFiltro(id) {
+    const nome = (cacheFiltrosOcorrencias('visoes') || []).find(v => v.id === id)?.nome || ''
+    const botoes = [
+        { texto: 'Excluir', fechar: true, img: 'concluido', funcao: `excluirFiltroOcorrencias('${escaparAtributo(id)}')` }
+    ]
+    popup({ mensagem: `Excluir a visão <b>${escaparAtributo(nome)}</b> para todos?`, botoes, removerAnteriores: true })
+}
+
+// Excluir a visão não mexe nos filtros que estão aplicados.
+async function excluirFiltroOcorrencias(id) {
+    overlayAguarde()
+    await deletar(`filtros/${id}`)
+    guardarVisaoNoCacheOcorrencias({ id }, true)
+    if (controles?.ocorrencias?.idFiltro === id) {
+        delete controles.ocorrencias.idFiltro
+        delete controles.ocorrencias.nomeFiltro
+    }
+    removerOverlay()
+    atualizarPainelFiltrosOcorrencias()
+}
+
+// ---------- Aplicar ----------
+async function aplicarFiltrosOcorrencias() {
+    atualizarPainelFiltrosOcorrencias()
+    await paginarOcorrenciasDoInicio()
+}
+
+// Filtro novo volta para a página 1 (senão a página 5 de antes pode nem existir).
+async function paginarOcorrenciasDoInicio() {
+    if (controles.ocorrencias) controles.ocorrencias.pagina = 1
+    await paginacao(PAG_OCORRENCIAS)
+}
+
+// Marcar no menu atualiza etiquetas e visões na hora; a consulta sai na pausa (dropdown.js).
+document.addEventListener('filtro-dropdown-alterado', evento => {
+    if (evento.detail?.pag === PAG_OCORRENCIAS) atualizarPainelFiltrosOcorrencias()
+})
+
+async function limparFiltroOcorrencias() {
+    if (controles.ocorrencias) {
+        delete controles.ocorrencias.nomeFiltro
+        delete controles.ocorrencias.idFiltro
+        delete controles.ocorrencias.filtros
+    }
+    Object.values(timersPesquisaOcorrencias).forEach(clearTimeout)
+    camposLivresOcorrencias.forEach(({ path }) => {
+        const input = document.getElementById(`campo_${path}`)
+        if (input) input.value = ''
+    })
+    await aplicarFiltrosOcorrencias()
+}
+
+async function filtrarAutorizados(valor) {
+    definirAutorizacaoOcorrencias(typeof valor === 'string' ? valor : valor?.value || '')
+    await aplicarFiltrosOcorrencias()
+}
+
+async function filtrarAtrasados(valor) {
+    definirAtrasadosOcorrencias(typeof valor === 'string' ? valor : valor?.value || '')
+    await aplicarFiltrosOcorrencias()
+}
+
+async function filtrarPorData(input) {
+    definirDataOcorrencias(input.dataset.operador === 'De' ? 'de' : 'ate', input.value)
+    await aplicarFiltrosOcorrencias()
+}
+
+// Pesquisa livre: entra sozinha na pausa da digitação (ou na hora com Enter).
+const timersPesquisaOcorrencias = {}
+const ESPERA_PESQUISA_OCORRENCIAS_MS = 700
+
+function digitarPesquisaOcorrencias(path, input) {
+    clearTimeout(timersPesquisaOcorrencias[path])
+    timersPesquisaOcorrencias[path] = setTimeout(() => pesquisarOcorrencias(path, input.value), ESPERA_PESQUISA_OCORRENCIAS_MS)
+}
+
+async function pesquisarOcorrencias(path, valor) {
+    clearTimeout(timersPesquisaOcorrencias[path])
+    valor = String(valor ?? '').trim()
+
+    const campo = document.getElementById(`campo_${path}`)
+    if (campo && campo.value.trim() !== valor) campo.value = valor
+
+    if (valorTextoOcorrencias(path) === valor && regrasOcorrencias(path).length === (valor ? 1 : 0)) {
+        atualizarPainelFiltrosOcorrencias()
+        return
+    }
+
+    definirTextoOcorrencias(path, valor)
+    await aplicarFiltrosOcorrencias()
 }
 
 
@@ -2206,6 +2537,9 @@ async function atalhoAuxiliar(termo, chave, op = '=') {
 
     controles.ocorrencias ??= {}
     controles.ocorrencias.filtros = {}
+    // O atalho troca todos os filtros: sai da visão salva que estiver aplicada.
+    delete controles.ocorrencias.idFiltro
+    delete controles.ocorrencias.nomeFiltro
 
     controles.ocorrencias.filtros[chave] = {
         modo: 'OR',
@@ -2219,9 +2553,7 @@ async function atalhoAuxiliar(termo, chave, op = '=') {
         delete controles.ocorrencias.filtros
 
     if (document.querySelector('.tela-ocorrencias')) {
-        const pag = 'ocorrencias'
-        atualizarVisualDropdown(chave, pag)
-        await paginacao(pag)
+        await aplicarFiltrosOcorrencias()
     } else
         await telaOcorrencias()
 

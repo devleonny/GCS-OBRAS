@@ -1275,3 +1275,334 @@
 }
 .tela-ocorrencias .tag img,
 .tela-ocorrencias .etiqueta-chamado img { flex-shrink: 0; }
+
+/* ===== Filtros do painel de ocorrências (js/ocorrencias.js, criarPesquisas) =====
+   Visões salvas no topo, campos no meio e a barra "Filtrando por" embaixo. Campo com filtro
+   fica destacado (borda verde + título claro) para ver de longe o que está filtrando. */
+.visoes-ocorrencias,
+.filtros-ativos-ocorrencias {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 0 0.5rem;
+    box-sizing: border-box;
+}
+
+.visoes-ocorrencias[hidden] {
+    display: none;
+}
+
+.visoes-titulo,
+.filtros-ativos-titulo {
+    color: #e1eae4;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-right: 4px;
+}
+
+.visoes-vazio {
+    color: #c3d3c8;
+    font-size: 12px;
+    font-style: italic;
+}
+
+.visao-chip {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid #ffffff45;
+    border-radius: 999px;
+    background: #ffffff12;
+    overflow: hidden;
+    transition: background .15s, border-color .15s;
+}
+
+.visao-chip:hover {
+    background: #ffffff24;
+}
+
+.visao-chip button {
+    margin: 0;
+    border: 0;
+    background: transparent;
+    color: #fff;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: none;
+}
+
+.visao-nome {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+}
+
+.visao-nome i {
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: #f2b84b;
+    color: #4a3300;
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 700;
+}
+
+.visao-editar {
+    padding: 4px 10px 4px 6px;
+    border-left: 1px solid #00000020 !important;
+}
+
+.visao-chip.ativa {
+    border-color: #fff;
+    background: #fff;
+}
+
+.visao-chip.ativa button {
+    color: #1f5a31;
+    font-weight: 700;
+}
+
+.visao-chip.ativa.modificada {
+    border-color: #f2b84b;
+}
+
+.visao-check {
+    display: inline-grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #249f41;
+    color: #fff;
+    font-size: 10px;
+}
+
+.visoes-acoes {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-left: 4px;
+}
+
+.visao-acao {
+    margin: 0;
+    padding: 4px 10px;
+    border: 1px dashed #ffffff70;
+    border-radius: 999px;
+    background: transparent;
+    color: #fff;
+    font-size: 11px;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.visao-acao:hover {
+    background: #ffffff1c;
+}
+
+.visao-acao.destaque {
+    border: 1px solid #f2b84b;
+    background: #f2b84b;
+    color: #4a3300;
+    font-weight: 700;
+}
+
+/* Barra "Filtrando por" */
+.filtros-ativos-ocorrencias {
+    min-height: 30px;
+    padding-top: 6px;
+    border-top: 1px solid #ffffff1f;
+}
+
+.filtros-ativos-ocorrencias.vazio .filtros-ativos-titulo {
+    color: #b9cbbf;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    font-style: italic;
+}
+
+.filtro-ativo {
+    display: inline-flex;
+    align-items: center;
+    max-width: 320px;
+    border-radius: 999px;
+    background: #e3f4e8;
+    color: #1f4d2c;
+    font-size: 12px;
+    animation: filtro-ativo-entra .18s ease-out;
+}
+
+@keyframes filtro-ativo-entra {
+    from { transform: scale(.85); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.filtro-ativo-texto {
+    min-width: 0;
+    padding: 3px 4px 3px 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.filtro-ativo-texto small {
+    margin-right: 5px;
+    color: #4b7a59;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.filtro-ativo button {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    margin: 0 3px 0 0;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #1f4d2c;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: none;
+}
+
+.filtro-ativo button:hover {
+    background: #b12425;
+    color: #fff;
+}
+
+.filtros-ativos-limpar {
+    margin: 0 0 0 auto;
+    padding: 4px 12px;
+    border: 1px solid #ffffff50;
+    border-radius: 999px;
+    background: transparent;
+    color: #fff;
+    font-size: 11px;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.filtros-ativos-limpar:hover {
+    background: #b12425;
+    border-color: #b12425;
+}
+
+/* Campo com filtro: título claro + borda verde (dropdown já usa .com-selecao). */
+.pesquisas-ocorrencias .campo-pesquisa.ativo > label,
+.pesquisas-ocorrencias .campo-pesquisa:has(.filtro-dropdown.com-selecao) > label,
+.pesquisas-ocorrencias .pesquisa-livre.ativo > label {
+    color: #fff !important;
+}
+
+.pesquisas-ocorrencias .campo-pesquisa:has(.filtro-dropdown.com-selecao) > label::after,
+.pesquisas-ocorrencias .campo-pesquisa.ativo > label::after {
+    content: ' ●';
+    color: #7fe39a;
+}
+
+.pesquisas-ocorrencias .filtro-dropdown.com-selecao .filtro-dropdown-botao,
+.pesquisas-ocorrencias .pesquisa-livre.ativo .pesquisa,
+.pesquisas-ocorrencias .campo-data.ativo > input {
+    border-color: #249f41 !important;
+    box-shadow: 0 0 0 2px #7fe39a !important;
+    background: #f1fbf3;
+}
+
+.pesquisas-ocorrencias .pesquisa-livre.ativo input {
+    color: #1c6b31;
+    font-weight: 600;
+}
+
+/* Pesquisa livre: × aparece só com texto; a lupa vai na frente. */
+.pesquisas-ocorrencias .pesquisa .pesquisa-limpar {
+    display: none;
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: #dfe7e2;
+    color: #324b3c;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: none;
+}
+
+.pesquisas-ocorrencias .pesquisa:has(input:not(:placeholder-shown)) .pesquisa-limpar {
+    display: inline-grid;
+    place-items: center;
+}
+
+.pesquisas-ocorrencias .pesquisa .pesquisa-limpar:hover {
+    background: #b12425;
+    color: #fff;
+}
+
+.pesquisas-ocorrencias .pesquisa img {
+    opacity: .6;
+}
+
+/* Autorização / Atrasados: Todos | Sim | Não num clique. */
+.alternador-filtro {
+    display: flex;
+    min-height: 30px;
+    box-sizing: border-box;
+    border: 1px solid #cddbd2;
+    border-radius: 7px;
+    background: #fff;
+    overflow: hidden;
+}
+
+.alternador-filtro button {
+    flex: 1;
+    margin: 0;
+    padding: 0 6px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #4f6859;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: none;
+}
+
+.alternador-filtro button + button {
+    border-left: 1px solid #e3ebe6;
+}
+
+.alternador-filtro button:hover {
+    background: #eef5f0;
+}
+
+.alternador-filtro button.selecionado {
+    background: #dfeee4;
+    color: #324b3c;
+    font-weight: 700;
+}
+
+.campo-alternador.ativo .alternador-filtro {
+    border-color: #249f41;
+    box-shadow: 0 0 0 2px #7fe39a;
+}
+
+.campo-alternador.ativo .alternador-filtro button.selecionado {
+    background: #249f41;
+    color: #fff;
+}
