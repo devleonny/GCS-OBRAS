@@ -16,7 +16,7 @@ const VERSOES_CSS = {
     "estilo": "44709690",
     "estoque": "ff848a67",
     "festas": "81ec7e62",
-    "gcsobras": "abc255bd",
+    "gcsobras": "93fd512b",
     "inicial": "0e21d68b",
     "interruptor": "45635901",
     "jogo": "baa3f388",

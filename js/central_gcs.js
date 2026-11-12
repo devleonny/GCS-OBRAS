@@ -167,6 +167,24 @@ async function mudarStatus(id, select) {
 
 }
 
+// Foto de cada usuário para os balões de status, buscada uma vez por sessão.
+const fotosUsuariosBalao = new Map()
+function fotoUsuarioBalao(usuario) {
+    if (!usuario) return Promise.resolve(null)
+    const daLista = painelUsuariosEstado?.usuarios?.find(u => u.usuario === usuario)
+    if (daLista?.foto) return Promise.resolve(daLista.foto)
+    if (!fotosUsuariosBalao.has(usuario))
+        fotosUsuariosBalao.set(usuario, pesquisarDB({
+            base: 'clientes',
+            filtros: { usuario: { op: '=', value: usuario } },
+            limite: 1
+        }).then(r => r?.resultados?.[0]?.foto || null).catch(() => {
+            fotosUsuariosBalao.delete(usuario)
+            return null
+        }))
+    return fotosUsuariosBalao.get(usuario)
+}
+
 function balaoNotificacao({ imagem, texto, usuario, status, tempo = 5 }) {
 
     if (document.title == 'PDF')
@@ -197,8 +215,15 @@ function balaoNotificacao({ imagem, texto, usuario, status, tempo = 5 }) {
     msg.style.transform = 'translateY(20px)'
     msg.style.transition = 'opacity .4s ease, transform .4s ease'
 
+    // Balão de status: foto da pessoa com o ícone do status no canto. Até a foto chegar
+    // (ou se não houver), fica só o ícone do status, como antes.
+    const icone = escaparAtributo(imagem || 'imagens/comentario.png')
+    const visual = usuario !== undefined
+        ? `<span class="popup-mensagem-avatar"><img class="popup-mensagem-icone" src="${icone}" alt=""></span>`
+        : `<img src="${icone}" alt="">`
+
     msg.innerHTML = `
-        <img src="${escaparAtributo(imagem || 'imagens/comentario.png')}" alt="">
+        ${visual}
         <div class="popup-mensagem-conteudo">
             ${usuario !== undefined
                 ? `<strong>${escaparAtributo(usuario)}</strong><span class="popup-mensagem-status">${escaparAtributo(status || 'offline')}</span>`
@@ -210,6 +235,17 @@ function balaoNotificacao({ imagem, texto, usuario, status, tempo = 5 }) {
     msg.querySelector('.popup-mensagem-fechar').addEventListener('click', () => msg.remove())
 
     container.appendChild(msg);
+
+    if (usuario !== undefined)
+        fotoUsuarioBalao(usuario).then(foto => {
+            const avatar = msg.querySelector('.popup-mensagem-avatar')
+            if (!foto || !avatar) return
+            const img = new Image()
+            img.className = 'popup-mensagem-foto'
+            img.alt = ''
+            img.onload = () => { avatar.prepend(img); avatar.classList.add('com-foto') }
+            img.src = urlFotoCliente(foto)
+        })
 
     requestAnimationFrame(() => {
         msg.style.opacity = '1';

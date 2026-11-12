@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="css/jogo.css?v=baa3f388">
     <link rel="stylesheet" href="css/clientes.css?v=d96eb29e">
     <link rel="stylesheet" href="css/status.css?v=ea093268">
-    <link rel="stylesheet" href="css/gcsobras.css?v=abc255bd">
+    <link rel="stylesheet" href="css/gcsobras.css?v=93fd512b">
     <link rel="stylesheet" href="css/ocorrencias.css?v=16c97aa6">
     <link rel="stylesheet" href="css/orcamento.css?v=0192e200">
     <link rel="stylesheet" href="css/criar_orcamento.css?v=3ae701b0">
@@ -108,10 +108,10 @@
     <script src="js/festas.js?v=4b4c0060"></script>
     <script src="js/tabelas.js?v=f9b1dc3f"></script>
     <script src="js/relogio.js?v=a745b52b"></script>
-    <script src="js/versoes_css.js?v=efcb6e62"></script>
+    <script src="js/versoes_css.js?v=1eae68f7"></script>
     <script src="js/ferramentas.js?v=dc2cd3bc"></script>
     <script src="js/validade_orcamento.js?v=24d3fe40"></script>
-    <script src="js/central_gcs.js?v=97fef0ef"></script>
+    <script src="js/central_gcs.js?v=952a81e8"></script>
     <script src="js/central_chamados.js?v=f8587944"></script>
     <script src="js/login.js?v=cd7ef93d"></script>
     <script src="js/sessao.js?v=a323b944"></script>
@@ -180,23 +180,34 @@
     <script>
 
         // Carimbado por scripts/versionar.js no commit; comparado com versao.json publicado.
-        const versaoAtual = '564fceaa'
+        const versaoAtual = '10f6ad1b'
+        // Mesma versão sem os CSS: se só ela bate com a publicada, a mudança foi só de CSS.
+        const versaoBase = 'b7246ba4'
+        // Versão em uso: muda quando a página troca os CSS sozinha.
+        let versaoCarregada = versaoAtual
 
         verificarVersao()
 
-        setInterval(verificarVersao, 5 * 60 * 1000)
+        setInterval(verificarVersao, 30 * 60 * 1000)
 
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible')
                 verificarVersao()
         })
 
+        // Fechado pelo X ou por "Lembrar mais tarde", o aviso só volta depois de 30 min
+        // (vale também para a volta à aba, que confere a versão de novo).
+        let versaoAdiadaAte = 0
+        function adiarAvisoVersao(botao) {
+            versaoAdiadaAte = Date.now() + 30 * 60 * 1000
+            botao.closest('.popup-mensagem')?.remove()
+        }
+
         async function verificarVersao() {
 
-            // O aviso na tela é o próprio controle: fechado pelo X ou por Adiar, volta no próximo ciclo.
             const avisoAberto = () => document.querySelector('.aviso-versao')
 
-            if (avisoAberto() || location.protocol === 'file:')
+            if (avisoAberto() || location.protocol === 'file:' || Date.now() < versaoAdiadaAte)
                 return
 
             try {
@@ -204,10 +215,17 @@
                 if (!resposta.ok)
                     return
 
-                const { versao = null } = await resposta.json()
+                const { versao = null, base = null, css = null } = await resposta.json()
 
-                if (!versao || versao === String(versaoAtual) || avisoAberto())
+                if (!versao || versao === String(versaoCarregada) || avisoAberto())
                     return
+
+                // Só CSS mudou: troca os arquivos na página aberta, sem aviso.
+                if (versaoBase && base === versaoBase && css) {
+                    await trocarCssAlterados(css)
+                    versaoCarregada = versao
+                    return
+                }
 
                 balaoNotificacao({
                     imagem: 'imagens/atualizacao.png',
@@ -217,16 +235,44 @@
                                 <span>Atualize para carregar as últimas melhorias.</span>
                                 <div class="aviso-versao-botoes">
                                     <button type="button" class="aviso-versao-atualizar" onclick="atualizarVersao()">Atualizar agora</button>
-                                    <button type="button" class="aviso-versao-adiar" onclick="this.closest('.popup-mensagem').remove()">Lembrar mais tarde</button>
+                                    <button type="button" class="aviso-versao-adiar" onclick="adiarAvisoVersao(this)">Lembrar mais tarde</button>
                                 </div>
                             </div>
                             `,
                     tempo: 0 // Sempre
                 })
+                // O X do balão também adia.
+                const aviso = avisoAberto()?.closest('.popup-mensagem')
+                aviso?.querySelector('.popup-mensagem-fechar')
+                    ?.addEventListener('click', () => { versaoAdiadaAte = Date.now() + 30 * 60 * 1000 })
             } catch {
                 // Sem rede: tenta no próximo ciclo.
             }
 
+        }
+
+        // Troca cada <link> de CSS cuja versão mudou. O novo entra ao lado do antigo e o
+        // antigo só sai depois que o novo carregar, para a tela não piscar sem estilo.
+        async function trocarCssAlterados(css) {
+            const links = [...document.querySelectorAll('link[rel="stylesheet"][href^="css/"]')]
+            await Promise.all(links.map(link => {
+                const [arquivo, query = ''] = link.getAttribute('href').split('?')
+                const nova = css[arquivo]
+                if (!nova || new URLSearchParams(query).get('v') === nova) return null
+
+                return new Promise(resolve => {
+                    const novo = link.cloneNode()
+                    novo.href = `${arquivo}?v=${nova}`
+                    novo.onload = () => { link.remove(); resolve() }
+                    novo.onerror = () => { novo.remove(); resolve() }
+                    link.after(novo)
+                })
+            }))
+
+            // Mapa usado por quem monta URL de CSS fora do HTML (pdf() em ferramentas.js).
+            if (typeof VERSOES_CSS !== 'undefined')
+                for (const [arquivo, hash] of Object.entries(css))
+                    VERSOES_CSS[arquivo.replace(/^css\//, '').replace(/\.css$/, '')] = hash
         }
 
         // Renova o index.html no cache do navegador antes de recarregar.

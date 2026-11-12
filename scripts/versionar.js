@@ -25,6 +25,11 @@ const REFERENCIA = /((?:src|href)=")((?:css|js)\/[^"?#]+)(\?v=[^"#]*)?(")/g
 const PAGINA_VERSAO = 'index.html'
 const ARQUIVO_VERSAO = 'versao.json'
 const VERSAO_PAGINA = /(const versaoAtual = )[^\n;]*/
+// Versão base: o mesmo hash, mas sem as versões dos CSS. Quando só ela não muda,
+// a página troca os CSS sozinha (index.html), sem o aviso de nova versão.
+const VERSAO_BASE_PAGINA = /(const versaoBase = )[^\n;]*/
+// Referências que só mudam quando algum CSS muda (o próprio CSS e o mapa de versões dos CSS).
+const REFERENCIA_CSS = /((?:href|src)="(?:css\/[^"?#]+|js\/versoes_css\.js))\?v=[^"#]*/g
 
 const staged = process.argv.includes('--staged')
 
@@ -150,14 +155,24 @@ for (const pagina of PAGINAS) {
 
 // Hash das páginas já carimbadas: muda com qualquer css/js referenciado ou com o próprio HTML.
 // O valor de versaoAtual fica de fora, senão a versão dependeria dela mesma.
-function versaoSite(lerPagina) {
+function versaoSite(lerPagina, { semCss = false } = {}) {
     const hash = crypto.createHash('sha1')
     for (const pagina of PAGINAS) {
         const conteudo = lerPagina(pagina)
-        if (conteudo)
-            hash.update(conteudo.toString('utf8').replace(/\r\n/g, '\n').replace(VERSAO_PAGINA, '$1'))
+        if (!conteudo) continue
+        let texto = conteudo.toString('utf8').replace(/\r\n/g, '\n')
+            .replace(VERSAO_PAGINA, '$1').replace(VERSAO_BASE_PAGINA, '$1')
+        if (semCss) texto = texto.replace(REFERENCIA_CSS, '$1')
+        hash.update(texto)
     }
     return hash.digest('hex').slice(0, 8)
+}
+
+// Versão de cada CSS, para a página trocar só os que mudaram.
+function versoesCss() {
+    return Object.fromEntries(listarCss()
+        .map(arquivo => [arquivo, versao(arquivo)])
+        .filter(([, hash]) => hash))
 }
 
 function lerIndexado(relativo) {
@@ -170,9 +185,13 @@ function lerPasta(relativo) {
 }
 
 function carimbarVersaoSite() {
-    const versaoNova = versaoSite(staged ? lerIndexado : lerPasta)
-    const json = `${JSON.stringify({ versao: versaoNova })}\n`
-    const carimbarPagina = conteudo => conteudo.replace(VERSAO_PAGINA, `$1'${versaoNova}'`)
+    const ler = staged ? lerIndexado : lerPasta
+    const versaoNova = versaoSite(ler)
+    const versaoBase = versaoSite(ler, { semCss: true })
+    const json = `${JSON.stringify({ versao: versaoNova, base: versaoBase, css: versoesCss() })}\n`
+    const carimbarPagina = conteudo => conteudo
+        .replace(VERSAO_PAGINA, `$1'${versaoNova}'`)
+        .replace(VERSAO_BASE_PAGINA, `$1'${versaoBase}'`)
     let alterou = false
 
     if (staged) {
