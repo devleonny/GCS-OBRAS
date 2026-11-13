@@ -162,6 +162,9 @@ const esquemaBotoes = {
             bloqueio: ['cliente', 'técnico'],
             sub: [
                 { nome: 'Ver Orçamentos', funcao: 'telaOrcamentos', img: 'projeto' },
+                // Kanban dos fluxos (js/fluxo_kanban.js), como o "3." do Omie.
+                { nome: 'Fluxo de Vendas', funcao: 'telaFluxoVendas', img: 'kanban' },
+                { nome: 'Fluxo de Serviços', funcao: 'telaFluxoServicos', img: 'kanban' },
                 { nome: 'Dashboard', funcao: 'telaDashboardOrcamentos', img: 'dashboard' },
                 {
                     nome: 'Criar Orçamento',
@@ -247,6 +250,7 @@ const esquemaBotoes = {
             sub: [
                 { nome: 'Notas Recebidas', funcao: 'telaNotasRecebidas', img: 'down_estoque' },
                 { nome: 'Notas Emitidas', funcao: 'telaNotasEmitidas', img: 'up_estoque' },
+                { nome: 'Fluxo de Compras', funcao: 'telaFluxoCompras', img: 'kanban' },
                 { nome: 'Emitir NF-e', funcao: 'formularioEmissaoNFe', img: 'baixar', permitido: ['adm', 'diretoria', 'fin'] },
                 { nome: 'Emitir NFS-e', funcao: 'formularioEmissaoNFSe', img: 'baixar', permitido: ['adm', 'diretoria', 'fin'] },
                 { nome: 'Configuração Fiscal', funcao: 'telaConfigFiscal', img: 'configuracoes', permitido: ['adm', 'diretoria', 'fin'] }

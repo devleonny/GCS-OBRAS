@@ -334,6 +334,12 @@ async function executarAtualizacaoWS() {
         if ((tabelas.has('documentos') || tabelas.has('clientes') || [...tabelas].some(t => String(t).startsWith('rh_'))) && document.querySelector('.tela-rh2') && typeof carregarRH === 'function')
             tarefas.push(() => carregarRH())
 
+        // Kanban dos fluxos aberto (js/fluxo_kanban.js): recarrega quando muda algo que move os cartões.
+        if (document.querySelector('.fluxo-pagina') && typeof carregarFluxo === 'function'
+            && (atualizarTodas || ['pedidos', 'requisicoes', 'notas', 'controle_logistico', 'lista_recebimentos', 'dados_orcamentos', 'dados_ocorrencias', 'fiscal_documentos']
+                .some(t => tabelas.has(t))))
+            tarefas.push(() => carregarFluxo())
+
         // Preço salvo/confirmado: o painel "Preços a confirmar" aberto se atualiza (js/precos_vencidos.js).
         if ((tabelas.has('dados_composicoes') || atualizarTodas) && typeof recarregarPrecosVencidos === 'function')
             tarefas.push(() => recarregarPrecosVencidos())

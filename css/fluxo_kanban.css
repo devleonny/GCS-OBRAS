@@ -1,0 +1,133 @@
+/* Fluxos em kanban (js/fluxo_kanban.js): colunas com cabeçalho em seta, como o "3." do Omie */
+.fluxo-pagina {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
+.fluxo-topo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.fluxo-topo h2 { margin: 0 8px 0 0; }
+.fluxo-busca { flex: 1 1 260px; max-width: 420px; }
+.fluxo-ajuda { color: #5f6f66; }
+
+.fluxo-quadro {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(240px, 1fr);
+    gap: 0;
+    overflow-x: auto;
+    border: 1px solid #dfe5e1;
+    border-radius: 8px;
+    background: #fff;
+    min-height: 60vh;
+}
+
+.fluxo-coluna {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border-right: 1px solid #e6ebe8;
+}
+
+.fluxo-coluna:last-child { border-right: 0; }
+
+.fluxo-coluna-topo {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 26px 8px 12px;
+    background: linear-gradient(#fbfcfb, #eef3f0);
+    border-bottom: 2px solid #2f7d4f;
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
+}
+
+.fluxo-coluna-topo b { font-size: 14px; color: #22382b; }
+.fluxo-coluna-topo small { color: #6b7a71; font-size: 11px; font-variant-numeric: tabular-nums; }
+.fluxo-coluna.final .fluxo-coluna-topo { border-bottom-color: #7a8a80; }
+
+.fluxo-parados {
+    margin: 6px 8px 0;
+    padding: 4px 8px;
+    border: 1px dashed #e0a24a;
+    border-radius: 6px;
+    background: #fff6e8;
+    color: #8a4b00;
+    box-shadow: none;
+    font-size: 11.5px;
+    cursor: pointer;
+}
+
+.fluxo-parados.aberto { border-style: solid; }
+
+.fluxo-cartoes {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    overflow-y: auto;
+    max-height: calc(100vh - 230px);
+}
+
+.fluxo-cartao {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    width: 100%;
+    margin: 0;
+    padding: 8px 10px;
+    border: 1px solid #e3e8e5;
+    border-left: 3px solid #2f9e44;
+    border-radius: 6px;
+    background: #fff;
+    color: #1b1b1b;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+    white-space: normal;
+    cursor: pointer;
+}
+
+.fluxo-cartao:hover { border-color: #99d1ff; border-left-color: #2f9e44; background: #f5faff; }
+.fluxo-cartao:focus-visible { outline: 2px solid #4dabf7; outline-offset: 1px; }
+.fluxo-cartao.parado { border-left-color: #e8590c; background: #fffaf3; }
+.fluxo-coluna.final .fluxo-cartao { border-left-color: #adb5bd; }
+
+.fluxo-cartao-linha { display: flex; justify-content: space-between; gap: 6px; color: #4b5d52; font-size: 11.5px; }
+.fluxo-cartao-nome { font-size: 13px; line-height: 1.25; text-transform: uppercase; }
+.fluxo-cartao small { color: #6b7a71; font-size: 11px; }
+.fluxo-cartao-contexto { color: #34495e !important; }
+.fluxo-cartao-valor { margin-top: 2px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.fluxo-cartao-valor small { font-weight: 400; }
+
+.fluxo-dias {
+    flex-shrink: 0;
+    padding: 0 5px;
+    border-radius: 4px;
+    background: #eef3f0;
+    color: #4b5d52;
+    font-size: 10.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+.fluxo-dias.morno { background: #fff1d6; color: #8a5a00; }
+.fluxo-dias.velho { background: #ffe3e3; color: #b02525; }
+
+.fluxo-receber { font-variant-numeric: tabular-nums; }
+.fluxo-receber.atrasado { color: #c92a2a !important; font-weight: 600; }
+
+.fluxo-vazio { margin: 8px; color: #9aa8a0; font-size: 12px; text-align: center; }
+
+@media (max-width: 700px) {
+    .fluxo-quadro { grid-auto-columns: 82vw; }
+    .fluxo-cartoes { max-height: none; }
+}
