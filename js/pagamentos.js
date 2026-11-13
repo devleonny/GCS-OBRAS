@@ -56,6 +56,21 @@ function imagemEspecifica(justificativa) {
 
 }
 
+// Títulos que vieram do Omie (criado = 'Integração', ~9x os lançados pelo GCS) ficam fora por padrão;
+// a caixa "Mostrar integração" no topo inclui na lista e na contagem do painel lateral.
+let mostrarIntegracaoPagamentos = false
+const FILTRO_SEM_INTEGRACAO = { op: '!=', value: 'Integração' }
+
+async function alternarIntegracaoPagamentos(mostrar) {
+    mostrarIntegracaoPagamentos = !!mostrar
+    controles.pagamentos ??= {}
+    controles.pagamentos.filtros ??= {}
+    if (mostrarIntegracaoPagamentos) delete controles.pagamentos.filtros['snapshots.criado']
+    else controles.pagamentos.filtros['snapshots.criado'] = { ...FILTRO_SEM_INTEGRACAO }
+    controles.pagamentos.pagina = 1
+    await paginacao('pagamentos')
+}
+
 async function telaPagamentos() {
 
     const pag = 'pagamentos'
@@ -73,6 +88,10 @@ async function telaPagamentos() {
                     onkeydown="confirmarPesquisa({ event, chave: 'snapshots.departamentos.*.departamento', op: 'includes', elemento: this, pag: 'pagamentos' })"
                     onchange="confirmarPesquisa({ chave: 'snapshots.departamentos.*.departamento', op: 'includes', elemento: this, pag: 'pagamentos' })">
             </label>
+            <label class="pagamentos-mostrar-integracao" title="Inclui os títulos que vieram do Omie (Solicitante: Integração)">
+                <input type="checkbox" ${mostrarIntegracaoPagamentos ? 'checked' : ''} onchange="alternarIntegracaoPagamentos(this.checked)">
+                Mostrar integração (Omie)
+            </label>
         </div>`,
         colunas: {
             'Data de Vencimento': { chave: 'param_estavel.data_vencimento', tipoPesquisa: 'data' },
@@ -83,12 +102,7 @@ async function telaPagamentos() {
             'Recebedor': { chave: 'snapshots.cliente' },
             'Detalhes': {}
         },
-        filtros: {
-            'snapshots.criado': {
-                op: '!=',
-                value: 'Integração'
-            }
-        },
+        filtros: mostrarIntegracaoPagamentos ? {} : { 'snapshots.criado': { ...FILTRO_SEM_INTEGRACAO } },
         funcaoAdicional: ['atualizarPainelEsquerdo'],
         body: 'bodyPagamentos',
         base: 'lista_pagamentos',
@@ -136,9 +150,27 @@ async function filtrarPagamentos(st) {
 
 }
 
+// Mesmo formato da mvw_contagem_pagamentos ([{ status, quantidade }], TODOS primeiro), incluindo a integração.
+async function contagemComIntegracaoPagamentos() {
+    try {
+        const dados = await contarPorCampo({ base: 'lista_pagamentos', path: 'status' }) || {}
+        const lista = Object.entries(dados)
+            .filter(([status]) => status !== 'todos' && status !== 'EM BRANCO')
+            .map(([status, quantidade]) => ({ status, quantidade }))
+            .sort((a, b) => String(a.status).localeCompare(String(b.status), 'pt-BR'))
+        return [{ status: 'TODOS', quantidade: dados.todos ?? lista.reduce((s, i) => s + Number(i.quantidade || 0), 0) }, ...lista]
+    } catch (erro) {
+        console.error('[PAGAMENTOS] contagem com integração', erro)
+        return []
+    }
+}
+
 async function atualizarPainelEsquerdo() {
 
-    const { por_status } = await recuperarDado('mvw_contagem_pagamentos', 1) || {}
+    // mvw_contagem_pagamentos não conta a integração; com ela à mostra, conta direto na base.
+    const por_status = mostrarIntegracaoPagamentos
+        ? await contagemComIntegracaoPagamentos()
+        : (await recuperarDado('mvw_contagem_pagamentos', 1) || {}).por_status
 
     const titulos = (por_status || [])
         .map(item => {
@@ -428,6 +460,9 @@ async function abrirDetalhesPagamentos(id) {
                 { texto: 'Excluir pagamento', img: 'cancel', funcao: `confirmarExclusaoPagamento('${id}')` }
             )
 
+        // Rastreio da autorização de setor (gravado pelo servidor no item do rateio).
+        const autorizacoesDep = new Map((pagamento?.param_estavel?.distribuicao || [])
+            .filter(d => d?.autorizacao).map(d => [String(d.cCodDep), d.autorizacao]))
         const deps = (pagamento?.snapshots?.departamentos || [])
             .map(({ departamento, valor }) => {
                 return `
@@ -435,6 +470,7 @@ async function abrirDetalhesPagamentos(id) {
                         <button onclick="painelCustos('${departamento}')">Ver Custos</button>
                         <span><b>${departamento}</b> → ${dinheiro(valor)}</span>
                     </div>
+                    ${rastreioAutorizacaoDepartamento(autorizacoesDep.get(String(departamento)))}
             `
             }).join('')
 
@@ -712,6 +748,8 @@ async function reprovarPagamentoLancado(id) {
     }
 }
 
+let idPagamentoNovo = null
+
 async function salvarPagamento() {
 
     try {
@@ -751,12 +789,17 @@ async function salvarPagamento() {
 
     try {
 
-        const id = ultimoPagamento.id || crypto.randomUUID()
+        // Mesmo id entre tentativas: a autorização de setor fica presa a este pagamento.
+        const id = ultimoPagamento.id || (idPagamentoNovo ||= crypto.randomUUID())
+        // Setor (não ORC_/G...) no rateio: espera alguém da diretoria/adm/fin online autorizar.
+        await autorizarSetoresPagamento(ultimoPagamento, id)
+        overlayAguarde()
         await validarSaldoPagamentoParceiro(ultimoPagamento, id)
         const resultado = await enviar(`lista_pagamentos/${id}`, ultimoPagamento)
         if (!resultado?.success) throw new Error(resultado?.mensagem || "Falha ao salvar pagamento.")
 
         localStorage.removeItem('ultimoPagamento')
+        idPagamentoNovo = null
 
         removerPopup(null, false) // Remove tudo;
         await abrirDetalhesPagamentos(id)
@@ -1299,6 +1342,7 @@ async function confirmarRecomecarPagamento() {
 
 async function apagarPagamento() {
     localStorage.removeItem('ultimoPagamento')
+    idPagamentoNovo = null
     removerPopup()
     await formularioPagamento()
 }

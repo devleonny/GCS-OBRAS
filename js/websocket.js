@@ -340,6 +340,10 @@ async function executarAtualizacaoWS() {
                 .some(t => tabelas.has(t))))
             tarefas.push(() => carregarFluxo())
 
+        // Despesas Localiza aberta (js/localiza_despesas.js): rateio gravado ou sincronizado tira o título de "A ratear".
+        if (document.querySelector('.loc-pagina') && (atualizarTodas || tabelas.has('lista_pagamentos') || tabelas.has('localiza_classificacao')))
+            tarefas.push(async () => { await paginacao('localizaDespesas'); contarAbasLocaliza() })
+
         // Preço salvo/confirmado: o painel "Preços a confirmar" aberto se atualiza (js/precos_vencidos.js).
         if ((tabelas.has('dados_composicoes') || atualizarTodas) && typeof recarregarPrecosVencidos === 'function')
             tarefas.push(() => recarregarPrecosVencidos())
@@ -452,6 +456,13 @@ async function comunicacao() {
 
             if (tipo === 'atualizacao') {
                 registrarAtualizacaoWS(tabela)
+                return
+            }
+
+            // Pedido/resposta de autorização de departamento de setor (js/autorizacao_departamento.js).
+            if (typeof tipo === 'string' && tipo.startsWith('autorizacao_departamento')) {
+                if (typeof receberAutorizacaoDepartamento === 'function')
+                    receberAutorizacaoDepartamento(data)
                 return
             }
 

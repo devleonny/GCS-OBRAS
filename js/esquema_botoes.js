@@ -250,7 +250,7 @@ const esquemaBotoes = {
         {
             nome: 'Vendas e NF-e',
             permitido: [...new Set([...PERFIS_FLUXO_MENU, ...PERFIS_FISCAL_MENU])],
-            img: 'etiqueta',
+            img: 'nfe',
             sub: [
                 { nome: 'Fluxo de Vendas', funcao: 'telaFluxoVendas', img: 'kanban', permitido: PERFIS_FLUXO_MENU },
                 { nome: 'NF-e Emitidas', funcao: 'telaNotasNFe', img: 'up_estoque', permitido: PERFIS_FISCAL_MENU },
@@ -261,7 +261,7 @@ const esquemaBotoes = {
         {
             nome: 'Serviços e NFS-e',
             permitido: [...new Set([...PERFIS_FLUXO_MENU, ...PERFIS_FISCAL_MENU])],
-            img: 'chamados',
+            img: 'nfse',
             sub: [
                 { nome: 'Fluxo de Serviços', funcao: 'telaFluxoServicos', img: 'kanban', permitido: PERFIS_FLUXO_MENU },
                 { nome: 'NFS-e Emitidas', funcao: 'telaNotasNFSe', img: 'up_estoque', permitido: PERFIS_FISCAL_MENU },
@@ -300,7 +300,8 @@ const esquemaBotoes = {
             sub: [
                 { nome: 'Ver Combustíveis', funcao: 'telaVeiculos', img: 'veiculo' },
                 { nome: 'Adicionar Combustível', funcao: 'painelValores', img: 'combustivel' },
-                { nome: 'Veículos', funcao: 'auxVeiculos', img: 'veiculo' }
+                { nome: 'Veículos', funcao: 'auxVeiculos', img: 'veiculo' },
+                { nome: 'Despesas Localiza', funcao: 'telaLocalizaDespesas', img: 'dinheiro', permitido: ['adm', 'diretoria', 'fin'] }
             ]
         },
         {

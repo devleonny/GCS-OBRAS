@@ -1,0 +1,240 @@
+/* Veículos → Despesas Localiza (js/localiza_despesas.js), no modelo do RH (css/rh.css, .tela-rh2):
+   fundo branco, visões em pílula, filtros e legenda no topo, tabela com cabeçalho verde-escuro. */
+.tela:has(> .loc-pagina) { background: #fff; }
+.loc-pagina { display: flex; flex-direction: column; gap: 10px; width: 100%; min-width: 0; color: #2d3d33; }
+
+/* Topo: visões (pílulas) · caixa Multas · filtro de departamento · Atualizar */
+.loc-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.loc-visoes { display: inline-flex; padding: 3px; border-radius: 999px; background: #eef4f0; border: 1px solid #d3dfd7; }
+.loc-visoes button {
+    margin: 0; padding: 6px 16px; border: 0; border-radius: 999px; background: transparent;
+    color: #3d4b43; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.loc-visoes button.ativo { background: #1f5133; color: #fff; box-shadow: 0 1px 3px #10201933; }
+.loc-visoes button span { font-weight: normal; opacity: .75; font-size: 12px; }
+/* Multas: mesma pílula, em vermelho quando escolhida. */
+.loc-visoes button.multa { color: #b12425; }
+.loc-visoes button.multa.ativo { background: #c92a2a; color: #fff; }
+
+/* Seletor de departamento (dropdown.js) sobre fundo branco: rótulo escuro e na mesma linha do botão. */
+.loc-filtro-dep .campo-pesquisa { display: flex; flex-direction: row; align-items: center; gap: 8px; min-width: 220px; }
+.loc-filtro-dep .campo-pesquisa > label { color: #3d4b43 !important; font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
+.loc-filtro-dep .filtro-dropdown { flex: 1; min-width: 160px; }
+
+.loc-atualizar {
+    margin-left: auto; height: 36px; padding: 0 14px; border: 1px solid #1e8a37; border-radius: 8px;
+    background: #249f41; color: #fff; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+
+.loc-legenda { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; color: #3d4b43; font-size: 0.8rem; }
+.loc-bolinha {
+    display: inline-block; flex-shrink: 0; width: 12px; height: 12px; border-radius: 50%;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 3px #10201926; vertical-align: middle;
+}
+.loc-bolinha.verde { background: #2f9e44; }
+.loc-bolinha.laranja { background: #f08c00; }
+.loc-bolinha.vermelho { background: #e03131; }
+.loc-bolinha.cinza { background: #9aa59f; }
+
+/* Tabela (modTab): cores padrão do modTab. Não pôr overflow em volta dela: o tabelas.js
+   (calcularAlturaDisponivelTabela) trata pai com overflow como limite e a tabela fica presa no tamanho inicial. */
+.loc-tabela { min-width: 0; }
+.loc-tabela .tabela-linha-detalhes > td { background: #f3f8f4 !important; box-shadow: inset 4px 0 0 #249f41; }
+/* Enquanto a tabela monta: o mesmo carregando da tabela, num quadro com o contorno do RH. */
+.loc-carregando { background: #fff; border: 1px solid #c3d3c9; border-radius: 10px; min-height: 200px; display: flex; align-items: center; justify-content: center; }
+
+.loc-ratear, .loc-confirmar, .loc-botao-multa {
+    border: 1px solid #d3ddd7; background: #fff; color: #1f3a2b; border-radius: 8px;
+    padding: 6px 12px; font-size: 13px; cursor: pointer; white-space: nowrap;
+}
+.loc-ratear { border-color: #1e8a37; background: #249f41; color: #fff; font-weight: 600; }
+.loc-botao-multa { border-color: #f1b5b5; color: #b12425; }
+.loc-botao-multa:hover { background: #fff5f5; }
+.loc-botao-multa.desfazer { border-color: #c3d3c9; color: #3d4b43; }
+.loc-acoes-linha { display: flex; gap: 6px; flex-wrap: wrap; }
+.loc-multa-origem { color: #b12425; }
+.loc-modo button.ativa { background: #1f6f43; border-color: #1f6f43; color: #fff; }
+
+.loc-confirmar:disabled { opacity: .5; cursor: not-allowed; }
+.loc-confirmar:not(:disabled) { background: #1f6f43; border-color: #1f6f43; color: #fff; }
+
+.loc-obs { max-width: 320px; white-space: pre-wrap; font-size: 13px; }
+.loc-veiculo { color: #5d6d63; }
+.loc-falta { color: #b45309; }
+.loc-vazio { color: #9aa59f; font-size: 12px; font-style: italic; }
+
+.loc-status { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #eef1ef; white-space: nowrap; }
+.loc-status.pago { background: #e7f3ec; color: #1f6f43; }
+.loc-status.atrasado { background: #fde2e1; color: #b12425; }
+.loc-status.a-vencer, .loc-status.vence-hoje { background: #fdf3d8; color: #8a6100; }
+
+.loc-link { border: none; background: none; color: #1f6f43; text-decoration: underline; cursor: pointer; padding: 2px 4px; font-size: 13px; text-align: left; }
+
+/* Detalhes da linha (+): rateio completo, sugestão e dados do título */
+/* Ocupa a largura do detalhe (que o tabelas.js ajusta à parte visível da tabela): os cartões dividem
+   o espaço num grid e descem para a linha de baixo quando não cabem; nada força largura maior. */
+.tabela-detalhes-conteudo:has(> .loc-detalhes) { overflow-x: hidden; }
+.loc-detalhes {
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; text-align: left;
+    box-sizing: border-box; width: 100%; min-width: 0;
+    margin: 4px 0 8px; padding: 12px; border-radius: 10px;
+    background: #eef3f0; border: 1px solid #d3ddd7; border-left: 4px solid #1f6f43;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, .06);
+}
+.loc-card {
+    background: #fff; border: 1px solid #d3ddd7; border-radius: 8px; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(31, 58, 43, .12); min-width: 0;
+    /* Largura do cartão: até 440px (o "Título" até 320px), encolhe quando falta espaço, nunca passa do detalhe. */
+    flex: 0 1 440px; max-width: 100%; box-sizing: border-box;
+}
+.loc-card.info { flex-basis: 320px; }
+.loc-card-topo {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 7px 12px; background: #1f3a2b; color: #fff; font-size: 13px; font-weight: bold;
+}
+.loc-card-topo small { font-weight: normal; opacity: .8; font-size: 12px; }
+.loc-card-selo { font-size: 11px; font-weight: bold; padding: 2px 8px; border-radius: 999px; background: #fff; color: #1f6f43; }
+.loc-card.pendente .loc-card-topo { background: #8a4b08; }
+.loc-card.pendente .loc-card-selo { color: #8a4b08; }
+.loc-card.sugestao .loc-card-topo { background: #2f5d8a; }
+.loc-card-corpo { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; align-items: stretch; min-width: 0; }
+.loc-card-corpo .loc-usar { align-self: flex-start; }
+.loc-usar { border: 1px solid #2f5d8a; background: #2f5d8a; color: #fff; border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
+.loc-filtro-dep .campo-pesquisa { min-width: 200px; }
+/* Tabela interna: 100% do cartão, colunas fixas em proporção (o nome do departamento quebra linha). */
+.loc-detalhes table.loc-rateio { border-collapse: collapse; font-size: 13px; width: 100%; table-layout: fixed; }
+.loc-detalhes .loc-rateio th, .loc-detalhes .loc-rateio td {
+    padding: 4px 6px; border: none; border-bottom: 1px solid #e3e9e5; background: none;
+    text-align: right; overflow-wrap: anywhere;
+}
+.loc-detalhes .loc-rateio th:nth-child(1) { width: 40%; }
+.loc-detalhes .loc-rateio th:nth-child(2) { width: 26%; }
+.loc-detalhes .loc-rateio th:nth-child(3) { width: 14%; }
+.loc-detalhes .loc-rateio th:nth-child(4) { width: 20%; }
+.loc-detalhes .loc-rateio th:first-child, .loc-detalhes .loc-rateio td:first-child { text-align: left; }
+.loc-detalhes .loc-rateio th { color: #5d6d63; font-weight: normal; font-size: 12px; }
+.loc-detalhes .loc-rateio tfoot td { font-weight: bold; border-bottom: none; }
+.loc-detalhes .loc-rateio tr.pendente td { color: #8a4b08; background: #fdf6e7; }
+.loc-detalhes .loc-barra span { display: block; height: 8px; border-radius: 4px; background: #1f6f43; max-width: 100%; }
+.loc-detalhes .loc-rateio tr.pendente .loc-barra span { background: #d97706; }
+.loc-info { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 3px 12px; margin: 0; font-size: 13px; }
+.loc-info dt { color: #5d6d63; }
+.loc-info dd { margin: 0; overflow-wrap: anywhere; }
+
+/* Editor de rateio: cabeçalho do título, barra de ferramentas, linhas (seletor fechado + número + equivalente), total */
+.loc-editor {
+    display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; text-align: left;
+    width: min(720px, 92vw); box-sizing: border-box;
+}
+.loc-editor button { font-family: inherit; }
+
+.loc-ed-titulo {
+    display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 16px; align-items: center;
+    padding: 12px 14px; border-radius: 10px; background: #1f3a2b; color: #fff;
+}
+.loc-ed-valor { display: flex; flex-direction: column; grid-row: span 2; padding-right: 16px; border-right: 1px solid #ffffff33; }
+.loc-ed-valor small { font-size: 11px; opacity: .75; text-transform: uppercase; letter-spacing: .04em; }
+.loc-ed-valor b { font-size: 22px; white-space: nowrap; }
+.loc-ed-dados { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: 13px; }
+.loc-ed-obs { font-size: 12px; opacity: .85; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.loc-ed-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.loc-ed-barra > button, .loc-ed-adicionar button, .loc-modo button {
+    border: 1px solid #d3ddd7; background: #fff; color: #1f3a2b; border-radius: 8px;
+    padding: 6px 12px; font-size: 13px; cursor: pointer;
+}
+.loc-ed-barra > button:hover, .loc-ed-adicionar button:not(:disabled):hover { background: #f1f6f3; }
+.loc-ed-sugestao { border-color: #2f5d8a !important; color: #2f5d8a !important; }
+.loc-modo { display: flex; }
+.loc-modo button { min-width: 44px; font-weight: bold; }
+.loc-modo button:first-child { border-radius: 8px 0 0 8px; }
+.loc-modo button:last-child { border-radius: 0 8px 8px 0; margin-left: -1px; }
+
+.loc-ed-lista { border: 1px solid #d3ddd7; border-radius: 10px; overflow: hidden; background: #fff; }
+.loc-ed-cab, .loc-parte {
+    display: grid; grid-template-columns: minmax(0, 1fr) 132px 96px 92px; gap: 8px; align-items: center; padding: 8px 10px;
+}
+.loc-ed-cab { background: #f1f5f2; color: #5d6d63; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+.loc-ed-cab span:nth-child(2), .loc-ed-cab span:nth-child(3) { text-align: right; }
+.loc-partes > .loc-parte { border-top: 1px solid #e8eeea; }
+.loc-parte.aberta { background: #f4f9f6; }
+.loc-parte.invalida { background: #fdecec; }
+
+.loc-dest {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; width: 100%;
+    padding: 6px 10px; border: 1px solid #c9d6ce; border-radius: 8px; background: #fff; cursor: pointer; text-align: left;
+}
+.loc-dest:hover, .loc-parte.aberta .loc-dest { border-color: #1f6f43; }
+.loc-dest-texto { display: flex; flex-direction: column; min-width: 0; }
+.loc-dest-texto small { color: #5d6d63; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.loc-dest-nome { font-weight: bold; color: #1f3a2b; font-size: 13px; }
+.loc-dest-vazio { color: #8a978f; font-size: 13px; }
+.loc-dest-erro { color: #b12425 !important; }
+.loc-dest-seta { color: #5d6d63; }
+
+.loc-numero { display: flex; align-items: center; gap: 4px; }
+.loc-numero input { width: 100%; min-width: 0; padding: 7px 8px; border: 1px solid #c9d6ce; border-radius: 8px; text-align: right; font-size: 14px; }
+.loc-numero span { color: #5d6d63; font-size: 12px; width: 18px; }
+.loc-equiv { text-align: right; color: #5d6d63; font-size: 13px; white-space: nowrap; }
+.loc-parte-acoes { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
+.loc-remover { border: none; background: none; color: #b12425; font-size: 20px; line-height: 1; cursor: pointer; padding: 0 4px; }
+
+/* Seletor fechado: abre logo abaixo da linha */
+.loc-seletor { padding: 8px 10px 10px; background: #f4f9f6; border-top: 1px dashed #c9d6ce; }
+.loc-seletor-busca {
+    width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #1f6f43; border-radius: 8px; font-size: 14px;
+}
+.loc-seletor-lista {
+    display: flex; flex-direction: column; margin-top: 6px; max-height: 260px; overflow-y: auto;
+    border: 1px solid #d3ddd7; border-radius: 8px; background: #fff;
+}
+.loc-opcao {
+    display: grid; grid-template-columns: 64px 92px minmax(0, 1fr) auto; gap: 8px; align-items: center;
+    padding: 7px 10px; border: none; border-bottom: 1px solid #eef2ef; background: #fff; cursor: pointer; text-align: left; font-size: 13px;
+}
+.loc-opcao:hover:not(:disabled) { background: #e7f3ec; }
+.loc-opcao.atual { background: #e7f3ec; }
+.loc-opcao:disabled { opacity: .45; cursor: not-allowed; }
+.loc-opcao-tipo { font-size: 10px; text-transform: uppercase; text-align: center; padding: 2px 6px; border-radius: 999px; background: #e8eef9; color: #2f5d8a; }
+.loc-opcao-tipo.setor { background: #f3ecdf; color: #8a4b08; }
+.loc-opcao-nome { font-weight: bold; color: #1f3a2b; }
+.loc-opcao-cliente { color: #3d4b43; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.loc-opcao-status { font-size: 10px; color: #5d6d63; white-space: nowrap; }
+.loc-seletor-mais { padding: 8px 10px; font-size: 12px; color: #5d6d63; }
+
+.loc-ed-adicionar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px; border-top: 1px solid #e8eeea; background: #fafcfb; }
+.loc-ed-adicionar > button:first-child { border-color: #1f6f43; color: #1f6f43; font-weight: bold; }
+.loc-ed-adicionar span { color: #5d6d63; font-size: 12px; margin-left: 8px; }
+.loc-ed-adicionar .loc-ed-setor { font-size: 12px; padding: 4px 8px; }
+.loc-ed-adicionar button:disabled { opacity: .4; cursor: not-allowed; }
+
+.loc-total { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: #f4f7f5; border-radius: 10px; font-size: 14px; }
+.loc-total-texto { display: flex; justify-content: space-between; gap: 12px; }
+.loc-total .ok { color: #1f6f43; font-weight: bold; }
+.loc-total .falta { color: #b45309; font-weight: bold; }
+.loc-total .passou { color: #b12425; font-weight: bold; }
+.loc-total-barra { height: 8px; border-radius: 4px; background: #dfe7e2; overflow: hidden; }
+.loc-total-barra span { display: block; height: 100%; background: #d97706; transition: width .2s; }
+.loc-total-barra.ok span { background: #1f6f43; }
+.loc-total-barra.passou span { background: #b12425; }
+
+.loc-rodape { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.loc-rodape small { color: #5d6d63; }
+.loc-confirmar { padding: 9px 18px !important; font-size: 14px !important; font-weight: bold; }
+
+@media (max-width: 560px) {
+    .loc-ed-cab { display: none; }
+    .loc-parte { grid-template-columns: minmax(0, 1fr) 110px; }
+    .loc-equiv { text-align: left; }
+    .loc-opcao { grid-template-columns: 56px minmax(0, 1fr); }
+    .loc-opcao-cliente, .loc-opcao-status { grid-column: 2; }
+}
+
+/* Rastreio da fatura Localiza: condutor e tipo na linha; cartão nos detalhes */
+.loc-condutor { font-weight: 600; font-size: 13px; color: #1f3a2b; }
+.loc-tipo-fatura { font-size: 10px; font-weight: 600; text-transform: uppercase; padding: 1px 6px; border-radius: 999px; background: #e8eef9; color: #2f5d8a; vertical-align: middle; }
+.loc-tipo-fatura.multa { background: #fde2e1; color: #b12425; }
+.loc-tipo-fatura.indenizacao { background: #f3ecdf; color: #8a4b08; }
+.loc-obs { color: #5d6d63; font-size: 12px; }
+.loc-card.fatura .loc-card-topo { background: #2f5d8a; }
+.loc-card.fatura { flex-basis: 360px; }
