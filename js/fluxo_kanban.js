@@ -82,9 +82,11 @@ function colunasFluxo(quadro, cartoes, { periodo = 30, busca = '', hoje = dataSe
 }
 
 // ---------------- Tela ----------------
-const telaFluxoVendas = () => telaFluxo('vendas')
-const telaFluxoServicos = () => telaFluxo('servicos')
-const telaFluxoCompras = () => telaFluxo('compras')
+// Entradas do menu (js/esquema_botoes.js chama window[funcao]): precisam ser "function", não const,
+// porque const no topo do script não vira propriedade de window e o clique no menu não faria nada.
+function telaFluxoVendas() { return telaFluxo('vendas') }
+function telaFluxoServicos() { return telaFluxo('servicos') }
+function telaFluxoCompras() { return telaFluxo('compras') }
 
 async function telaFluxo(quadro) {
     estadoFluxo.quadro = quadro
