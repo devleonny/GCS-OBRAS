@@ -1293,8 +1293,6 @@ async function gerarDocumentoColab(idColab, idReq) {
             <td>${i.classe == 'FERRAMENTA' ? 'Ferramenta' : 'Material'}</td>
             <td>${escaparAtributo(i.unidade)}</td>
             <td style="text-align: center;">${numeroColab(i.quantidade)}</td>
-            <td style="white-space: nowrap;">${dinheiro(i.custo)}</td>
-            <td style="white-space: nowrap;">${dinheiro(i.quantidade * i.custo)}</td>
         </tr>
     `).join('')
 
@@ -1324,11 +1322,10 @@ async function gerarDocumentoColab(idColab, idReq) {
 
             <table class="tabela-v2">
                 <thead>
-                    <tr><th></th><th>Código</th><th>Descrição</th><th>Tipo</th><th>Un.</th><th>Qtde</th><th>Valor unit.</th><th>Total</th></tr>
+                    <tr><th></th><th>Código</th><th>Descrição</th><th>Tipo</th><th>Un.</th><th>Qtde</th></tr>
                 </thead>
                 <tbody>
                     ${linhas}
-                    <tr><td colspan="7" style="text-align: right;"><b>Total</b></td><td><b>${dinheiro(r.total)}</b></td></tr>
                 </tbody>
             </table>
 
