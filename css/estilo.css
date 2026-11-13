@@ -83,6 +83,10 @@ html {
     min-width: 0;
     height: 100%;
     overflow-y: auto;
+    /* Espaço da barra de rolagem sempre reservado: sem ele, a barra que aparece/some muda a largura,
+       a barra de ferramentas da tabela quebra/desquebra e a altura automática da tabela (tabelas.js)
+       fica alternando (piscava com zoom na tela de Clientes). */
+    scrollbar-gutter: stable;
     box-sizing: border-box;
     flex-direction: column;
     padding: 1rem;

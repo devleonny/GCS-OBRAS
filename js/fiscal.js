@@ -482,10 +482,18 @@ async function manifestarNotaFiscal(id, tipo) {
 
 // ================================================================ NOTAS EMITIDAS
 
-async function telaNotasEmitidas() {
+// Menus "Vendas e NF-e" e "Serviços e NFS-e" (js/esquema_botoes.js): a mesma lista, presa a um modelo.
+// O modelo fica guardado para o "Limpar filtro" dos contadores não trazer as duas de volta.
+let modeloEmitidasFis = null
+function telaNotasNFe() { return telaNotasEmitidas('NFE') }
+function telaNotasNFSe() { return telaNotasEmitidas('NFSE') }
+
+async function telaNotasEmitidas(modelo = null) {
+    modeloEmitidasFis = ['NFE', 'NFSE'].includes(modelo) ? modelo : null
+    const titulo = { NFE: 'NF-e emitidas', NFSE: 'NFS-e emitidas' }[modeloEmitidasFis] || 'Notas emitidas'
     tela.innerHTML = `
         <div class="pagina-conteudo fis-pagina">
-            <div class="cabecalho-pagina"><h2>Notas emitidas</h2></div>
+            <div class="cabecalho-pagina"><h2>${titulo}</h2></div>
             <div class="fis-cartoes" data-cartoes-emitidas></div>
             <div class="fis-conteudo"></div>
         </div>`
@@ -494,6 +502,8 @@ async function telaNotasEmitidas() {
 }
 
 async function abrirTabelaEmitidas(filtroExtra = null) {
+    // fiscal_documentos.modelo é sempre NFE, NFSE, CTE ou NFCE (CHECK no banco).
+    const filtroModelo = modeloEmitidasFis ? { modelo: { op: '=', value: modeloEmitidasFis } } : {}
     try {
         delete controles.notasEmitidas
         document.querySelector('.fis-conteudo').innerHTML = await modTab({
@@ -502,11 +512,11 @@ async function abrirTabelaEmitidas(filtroExtra = null) {
             body: 'bodyNotasEmitidas',
             criarLinha: 'criarLinhaNotaEmitida',
             topoEmLinha: true,
-            filtrosFixos: { direcao: { op: '=', value: 'saida' }, ...(filtroExtra || {}) },
+            filtrosFixos: { direcao: { op: '=', value: 'saida' }, ...filtroModelo, ...(filtroExtra || {}) },
             btnExtras: `
                 <div class="fis-acoes">
-                    <button type="button" onclick="formularioEmissaoNFe()">+ NF-e</button>
-                    <button type="button" onclick="formularioEmissaoNFSe()">+ NFS-e</button>
+                    ${modeloEmitidasFis !== 'NFSE' ? '<button type="button" onclick="formularioEmissaoNFe()">+ NF-e</button>' : ''}
+                    ${modeloEmitidasFis !== 'NFE' ? '<button type="button" onclick="formularioEmissaoNFSe()">+ NFS-e</button>' : ''}
                     ${filtroExtra ? '<button type="button" onclick="abrirTabelaEmitidas()">Limpar filtro</button>' : ''}
                 </div>`,
             ordenar: [{ path: 'criado_em', direcao: 'desc' }],

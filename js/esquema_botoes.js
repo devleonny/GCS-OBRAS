@@ -142,6 +142,10 @@ async function acaoMenu(id, funcao, temFilhos) {
 
 }
 
+// Quem vê os kanbans de Vendas/Serviços (base vw_fluxo_comercial) e as notas (vw_fiscal_documentos).
+const PERFIS_FLUXO_MENU = ['adm', 'diretoria', 'fin', 'gerente', 'analista', 'log', 'user']
+const PERFIS_FISCAL_MENU = ['adm', 'diretoria', 'fin', 'log', 'gerente', 'coordenacao', 'analista']
+
 const esquemaBotoes = {
     inicial: [
         {
@@ -162,9 +166,6 @@ const esquemaBotoes = {
             bloqueio: ['cliente', 'técnico'],
             sub: [
                 { nome: 'Ver Orçamentos', funcao: 'telaOrcamentos', img: 'projeto' },
-                // Kanban dos fluxos (js/fluxo_kanban.js), como o "3." do Omie.
-                { nome: 'Fluxo de Vendas', funcao: 'telaFluxoVendas', img: 'kanban' },
-                { nome: 'Fluxo de Serviços', funcao: 'telaFluxoServicos', img: 'kanban' },
                 { nome: 'Dashboard', funcao: 'telaDashboardOrcamentos', img: 'dashboard' },
                 {
                     nome: 'Criar Orçamento',
@@ -243,24 +244,38 @@ const esquemaBotoes = {
                 { nome: 'Requisições sem Envio', funcao: 'painelRequisicoesSemEnvio', img: 'frete' }
             ]
         },
+        // Como as abas do Omie: Vendas e NF-e / Serviços e NFS-e / Compras e Estoque (antes: menu Fiscal).
+        // Menu aparece para quem vê o kanban OU as notas; cada item tem a própria permissão:
+        //   kanban (vw_fluxo_comercial): PERFIS_FLUXO_MENU; notas (vw_fiscal_documentos): PERFIS_FISCAL_MENU.
         {
-            nome: 'Fiscal',
-            permitido: ['adm', 'diretoria', 'fin', 'log', 'gerente', 'coordenacao', 'analista'],
+            nome: 'Vendas e NF-e',
+            permitido: [...new Set([...PERFIS_FLUXO_MENU, ...PERFIS_FISCAL_MENU])],
             img: 'notas',
             sub: [
-                { nome: 'Notas Recebidas', funcao: 'telaNotasRecebidas', img: 'down_estoque' },
-                { nome: 'Notas Emitidas', funcao: 'telaNotasEmitidas', img: 'up_estoque' },
-                { nome: 'Fluxo de Compras', funcao: 'telaFluxoCompras', img: 'kanban' },
+                { nome: 'Fluxo de Vendas', funcao: 'telaFluxoVendas', img: 'kanban', permitido: PERFIS_FLUXO_MENU },
+                { nome: 'NF-e Emitidas', funcao: 'telaNotasNFe', img: 'up_estoque', permitido: PERFIS_FISCAL_MENU },
                 { nome: 'Emitir NF-e', funcao: 'formularioEmissaoNFe', img: 'baixar', permitido: ['adm', 'diretoria', 'fin'] },
+                { nome: 'Configuração Fiscal', funcao: 'telaConfigFiscal', img: 'configuracoes', permitido: ['adm', 'diretoria', 'fin'] }
+            ]
+        },
+        {
+            nome: 'Serviços e NFS-e',
+            permitido: [...new Set([...PERFIS_FLUXO_MENU, ...PERFIS_FISCAL_MENU])],
+            img: 'chave',
+            sub: [
+                { nome: 'Fluxo de Serviços', funcao: 'telaFluxoServicos', img: 'kanban', permitido: PERFIS_FLUXO_MENU },
+                { nome: 'NFS-e Emitidas', funcao: 'telaNotasNFSe', img: 'up_estoque', permitido: PERFIS_FISCAL_MENU },
                 { nome: 'Emitir NFS-e', funcao: 'formularioEmissaoNFSe', img: 'baixar', permitido: ['adm', 'diretoria', 'fin'] },
                 { nome: 'Configuração Fiscal', funcao: 'telaConfigFiscal', img: 'configuracoes', permitido: ['adm', 'diretoria', 'fin'] }
             ]
         },
         {
-            nome: 'Estoque',
+            nome: 'Compras e Estoque',
             permitido: ['adm', 'diretoria', 'fin', 'log', 'gerente', 'coordenacao', 'analista', 'user'],
             img: 'estoque',
             sub: [
+                { nome: 'Fluxo de Compras', funcao: 'telaFluxoCompras', img: 'kanban', permitido: PERFIS_FISCAL_MENU },
+                { nome: 'Notas Recebidas', funcao: 'telaNotasRecebidas', img: 'down_estoque', permitido: PERFIS_FISCAL_MENU },
                 { nome: 'Saldos', funcao: 'telaEstoque', img: 'estoque' },
                 { nome: 'Movimentações', funcao: 'telaMovimentosEstoque', img: 'lista' },
                 { nome: 'Inventário', funcao: 'telaInventarios', img: 'prancheta' }

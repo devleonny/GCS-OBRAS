@@ -976,6 +976,36 @@ function voltarTopoTabelaSeMudou(pag, elemento) {
         elemento.scrollIntoView({ block: 'start' })
 }
 
+// Altura que alterna A → B → A depressa (a tabela muda, algo em volta quebra/desquebra de linha, a tabela
+// muda de novo...): fica no menor dos dois. Sem isso a tabela piscava sem parar em certos níveis de zoom.
+// Só trava se as três mudanças vierem em menos de 1,5 s (abrir e fechar um painel na mão não trava) e solta
+// quando aparece uma altura que não é nenhuma das duas, ou quando a janela muda de tamanho.
+const historicoAlturaTabela = new WeakMap()
+function estabilizarAlturaTabela(div, altura, agora = performance.now()) {
+    const h = historicoAlturaTabela.get(div) || { valores: [], travada: null }
+    if (h.travada) {
+        if (h.travada.par.includes(altura)) return h.travada.altura
+        h.travada = null
+        h.valores = []
+    }
+    const ultimo = h.valores.at(-1)
+    if (ultimo && ultimo.altura === altura) return altura
+    const penultimo = h.valores.at(-2)
+    if (penultimo && penultimo.altura === altura && agora - penultimo.quando < 1500) {
+        h.travada = { altura: Math.min(altura, ultimo.altura), par: [altura, ultimo.altura] }
+        historicoAlturaTabela.set(div, h)
+        return h.travada.altura
+    }
+    h.valores = [...h.valores.slice(-1), { altura, quando: agora }]
+    historicoAlturaTabela.set(div, h)
+    return altura
+}
+// Mudança real de tamanho (janela, zoom, teclado do celular): solta as travas e recalcula do zero.
+function soltarAlturasTravadas() {
+    for (const div of document.querySelectorAll('.div-tabela')) historicoAlturaTabela.delete(div)
+    agendarAlturaTabelas()
+}
+
 let ajusteAlturaTabelaPendente = false
 const elementosAlturaTabela = new Set()
 const observadorAlturaTabela = new ResizeObserver(agendarAlturaTabelas)
@@ -992,7 +1022,7 @@ function agendarAlturaTabelas() {
         }
         const tabelas = [...document.querySelectorAll('.div-tabela:not(.nude)')]
             .filter(div => div.dataset.alturaAdaptavel !== 'false' && div.getClientRects().length)
-        const alturas = tabelas.map(div => calcularAlturaDisponivelTabela(div))
+        const alturas = tabelas.map(div => estabilizarAlturaTabela(div, calcularAlturaDisponivelTabela(div)))
         tabelas.forEach((div, indice) => {
             const altura = `${alturas[indice]}px`
             if (div.style.getPropertyValue('--altura-disponivel-tabela') !== altura)
@@ -1011,6 +1041,6 @@ function agendarAlturaTabelas() {
 }
 
 new MutationObserver(agendarAlturaTabelas).observe(document.documentElement, { childList: true, subtree: true })
-window.addEventListener('resize', agendarAlturaTabelas)
-window.visualViewport?.addEventListener('resize', agendarAlturaTabelas)
+window.addEventListener('resize', soltarAlturasTravadas)
+window.visualViewport?.addEventListener('resize', soltarAlturasTravadas)
 agendarAlturaTabelas()

@@ -91,17 +91,28 @@ function telaFluxoCompras() { return telaFluxo('compras') }
 async function telaFluxo(quadro) {
     estadoFluxo.quadro = quadro
     estadoFluxo.abertos.clear()
+    const lupa = '<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="m13 13 4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
     tela.innerHTML = `
         <div class="pagina-conteudo fluxo-pagina" data-quadro="${quadro}">
-            <div class="fluxo-topo">
-                <h2>${QUADROS_FLUXO[quadro].titulo}</h2>
-                <input type="search" class="fluxo-busca" placeholder="${quadro === 'compras' ? 'Buscar fornecedor ou número da nota' : 'Buscar cliente, ORC, pedido, NF ou cidade'}"
-                    value="${escaparAtributo(estadoFluxo.busca)}" oninput="estadoFluxo.busca = this.value; renderizarFluxo()">
-                <select class="fluxo-periodo" aria-label="Período" onchange="estadoFluxo.periodo = Number(this.value); estadoFluxo.abertos.clear(); renderizarFluxo()">
-                    ${PERIODOS_FLUXO.map(([v, t]) => `<option value="${v}" ${estadoFluxo.periodo === v ? 'selected' : ''}>${t}</option>`).join('')}
-                </select>
-                <small class="fluxo-ajuda">${quadro === 'compras' ? 'Período pela emissão da nota.' : 'Período pela data do pedido.'} Os cartões andam sozinhos; clique para abrir.</small>
-            </div>
+            <header class="fluxo-topo">
+                <div class="fluxo-titulo">
+                    <h2>${QUADROS_FLUXO[quadro].titulo}</h2>
+                    <small>${quadro === 'compras' ? 'Período pela emissão da nota' : 'Período pela data do pedido'} · os cartões andam sozinhos conforme os dados; clique para abrir</small>
+                </div>
+                <div class="fluxo-controles">
+                    <label class="fluxo-campo fluxo-busca">
+                        ${lupa}
+                        <input type="search" placeholder="${quadro === 'compras' ? 'Fornecedor ou número da nota' : 'Cliente, ORC, pedido, NF ou cidade'}"
+                            aria-label="Buscar" value="${escaparAtributo(estadoFluxo.busca)}" oninput="estadoFluxo.busca = this.value; renderizarFluxo()">
+                    </label>
+                    <label class="fluxo-campo fluxo-periodo">
+                        <select aria-label="Período" onchange="estadoFluxo.periodo = Number(this.value); estadoFluxo.abertos.clear(); renderizarFluxo()">
+                            ${PERIODOS_FLUXO.map(([v, t]) => `<option value="${v}" ${estadoFluxo.periodo === v ? 'selected' : ''}>${t}</option>`).join('')}
+                        </select>
+                    </label>
+                    <button type="button" class="fluxo-atualizar" onclick="carregarFluxo()" title="Buscar de novo os dados">Atualizar</button>
+                </div>
+            </header>
             <div class="fluxo-quadro"><p class="fluxo-vazio">Carregando…</p></div>
         </div>`
     await carregarFluxo()
