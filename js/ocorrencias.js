@@ -1352,7 +1352,7 @@ async function linPedidos(ped) {
             ${labelDestaque('Data', data)}
             ${labelDestaque('Comentário', comentario)}
             ${labelDestaque('Empresa a faturar', empresa)}
-            ${labelDestaque('Pagamento', pagamento)}
+            ${labelDestaque('Pagamento', /^\d+$/.test(String(pagamento ?? '')) ? `${pagamento}x` : pagamento)}
             ${labelDestaque('Pedido', pedido)}
             ${labelDestaque('Autorizado por', autorizado_por)}
             ${labelDestaque('Valor', dinheiro(valor || 0))}

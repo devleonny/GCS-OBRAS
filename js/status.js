@@ -225,11 +225,15 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
             `
         },
         {
-            texto: 'Condições de pagamento',
+            // Número de vezes (parcelas) em que o pedido será pago. Antes era uma lista ("30 dias", "3x"):
+            // "3x" abre como 3; prazo em dias abre vazio para preencher.
+            texto: 'Formas de pagamento',
             elemento: `
-            <select id="pagamento">
-                ${parcelas.map(p => `<option ${pagamento == p ? 'selected' : ''}>${p}</option>`).join('')}
-            </select>
+            <div style="${vertical}; gap: 3px; width: 100%;">
+                <input type="number" id="pagamento" min="1" step="1" inputmode="numeric" placeholder="Ex.: 1"
+                    value="${escaparAtributo(String(pagamento ?? '').match(/^\s*(\d+)\s*x?\s*$/i)?.[1] || '')}">
+                <small style="color: #6b7a71;">Quantidade de vezes em que o pedido será pago (1 = à vista).</small>
+            </div>
             `
         },
         {
@@ -271,12 +275,16 @@ async function salvarPedido(id) {
         if (pedido.value == 'Sem Pedido' && autorizado_por == '')
             return popup({ mensagem: 'Quem autorizou este pedido?' })
 
+        const vezes = Number(pagamento.value)
+        if (!Number.isInteger(vezes) || vezes < 1)
+            return popup({ mensagem: 'Formas de pagamento: informe em quantas vezes o pedido será pago (número inteiro, a partir de 1).' })
+
         const dados = {
             departamento,
             data: dataServidor().toLocaleString(),
             executor: acesso.usuario,
             comentario: comentario_status.value,
-            pagamento: pagamento.value,
+            pagamento: String(vezes),
             valor: Number(valor.value),
             tipo: tipo.value,
             pedido: pedido.value,
