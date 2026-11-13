@@ -104,7 +104,9 @@
 .fluxo-quadro {
     display: grid;
     grid-auto-flow: column;
-    grid-auto-columns: minmax(240px, 1fr);
+    /* Colunas dividem a largura disponível (sem rolagem lateral em telas menores); o conteúdo do
+       cartão quebra linha. No celular (max-width 700px) volta a ser uma coluna por vez, com rolagem. */
+    grid-auto-columns: minmax(0, 1fr);
     grid-auto-rows: minmax(0, 1fr);
     gap: 0;
     flex: 1;
@@ -290,3 +292,11 @@
 }
 
 .fluxo-avancar:hover { background: #2f7d4f; color: #fff; border-color: #2f7d4f; }
+
+/* Colunas estreitas (tela menor): nada no cartão força a coluna a alargar. */
+.fluxo-cartao { min-width: 0; box-sizing: border-box; overflow-wrap: anywhere; }
+.fluxo-cartao-linha { flex-wrap: wrap; min-width: 0; }
+.fluxo-cartao-linha > span:first-child { min-width: 0; }
+.fluxo-coluna-topo { min-width: 0; padding-right: 20px; }
+.fluxo-coluna-topo b, .fluxo-coluna-topo small { overflow-wrap: anywhere; }
+.fluxo-parados, .fluxo-faturar-todas { white-space: normal; }
