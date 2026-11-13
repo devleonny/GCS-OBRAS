@@ -1,6 +1,9 @@
 let unidadeOrc = null
 const altNumOrc = ['adm', 'analista']
-const opcoesPedidos = ['', 'Locação', 'Serviço', 'Venda', 'Venda + Serviço', 'POC']
+// Desde 13/11/2026 só Venda e Serviço (cada pedido vira um item e uma nota: NF-e ou NFS-e). Locação entra
+// como Serviço; Venda + Serviço vira dois pedidos; POC saiu (nunca gerou nota). Pedido antigo com outro
+// tipo continua mostrando o dele ao editar.
+const opcoesPedidos = ['', 'Venda', 'Serviço']
 const opcoesRequisicao = ['SERVIÇO', 'VENDA', 'USO E CONSUMO', 'LOCAÇÃO']
 const permAtalhos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
 const permAltStatus = ['adm', 'diretoria']
@@ -193,7 +196,8 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
             texto: 'Tipo de Pedido',
             elemento: `
                 <select id="tipo">
-                    ${opcoesPedidos.map(op => `<option ${tipo == op ? 'selected' : ''}>${op}</option>`).join('')}
+                    ${[...opcoesPedidos, ...(tipo && !opcoesPedidos.some(op => op.toUpperCase() === String(tipo).toUpperCase()) ? [tipo] : [])]
+                        .map(op => `<option ${String(tipo || '').toUpperCase() === op.toUpperCase() ? 'selected' : ''}>${op}</option>`).join('')}
                 </select>
             `
         },
