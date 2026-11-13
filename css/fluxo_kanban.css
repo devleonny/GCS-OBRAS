@@ -300,3 +300,11 @@
 .fluxo-coluna-topo { min-width: 0; }
 .fluxo-coluna-topo b, .fluxo-coluna-topo small { overflow-wrap: anywhere; }
 .fluxo-parados, .fluxo-faturar-todas { white-space: normal; }
+
+/* Seletores (período, empresa): o select cobre o campo inteiro, inclusive embaixo da seta. Antes a seta e
+   as bordas ficavam no padding do rótulo: clicar ali só dava foco, a lista não abria. */
+.fluxo-pagina .fluxo-periodo,
+.fluxo-pagina .fluxo-empresa { padding: 0; }
+.fluxo-pagina .fluxo-periodo select,
+.fluxo-pagina .fluxo-empresa select { padding: 0 12px; cursor: pointer; }
+.fluxo-pagina .fluxo-periodo select { padding-right: 30px; }
