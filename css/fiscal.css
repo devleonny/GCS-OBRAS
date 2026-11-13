@@ -403,6 +403,9 @@ details.fis-secao summary {
 }
 
 .fis-passo {
+    /* fieldset não encolhe abaixo do conteúdo por padrão (min-width: min-content): a tabela de
+       itens empurrava o passo para fora do formulário em vez de rolar dentro dele. */
+    min-width: 0;
     margin: 0;
     padding: 10px 12px 12px;
     background: white;
@@ -555,7 +558,7 @@ textarea.fis-input {
 }
 
 .fis-itens-emissao {
-    min-width: 980px;
+    min-width: 900px;
 }
 
 .fis-itens-emissao td {
@@ -563,7 +566,7 @@ textarea.fis-input {
 }
 
 .fis-itens-emissao [name="ncm"] { width: 7.5rem; }
-.fis-itens-emissao [name="origem"] { width: 11rem; }
+.fis-itens-emissao [name="origem"] { width: 9rem; }
 .fis-itens-emissao [name="unidade"] { width: 4.5rem; min-width: 4.5rem; }
 .fis-itens-emissao [name="quantidade"] { width: 5.5rem; }
 .fis-itens-emissao [name="valor_unitario"] { width: 7.5rem; }

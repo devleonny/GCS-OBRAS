@@ -387,13 +387,14 @@ async function telaClientes() {
                 'Foto': {},
                 'Nome': { chave: 'cadastrais', op: 'includes' },
                 'IDs': { chave: 'ids', op: 'includes' },
-                'Endereço Cadastro': { chave: 'snapshots.enderecoCadastro' },
+                'Cidade / UF': { chave: 'snapshots.enderecoCadastro' },
                 'Comentário': { chave: 'comentario' }
             },
             funcaoAdicional: ['contarPorTagCliente'],
             body: 'bodyClientes',
             btnExtras,
             topoEmLinha: true,
+            detalhes: true,
             criarLinha: 'criarLinhaClienteGCS'
         })
 
@@ -558,6 +559,22 @@ async function baixarFotoCliente(botao) {
     }
 }
 
+// Iniciais do nome (até 2 letras, sem preposições/números): avatar de quem não tem foto.
+function iniciaisCliente(nome = '') {
+    const ignorar = new Set(['DA', 'DE', 'DO', 'DAS', 'DOS', 'E', 'LTDA', 'S', 'A', 'SA', 'ME', 'EPP'])
+    const palavras = String(nome).normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase()
+        .split(/[^A-Z0-9]+/).filter(p => p && /[A-Z]/.test(p[0]) && !ignorar.has(p))
+    return (palavras.slice(0, 2).map(p => p[0]).join('') || '?')
+}
+
+// Foto do cliente ou, sem foto (ou foto quebrada), círculo com as iniciais no lugar do logo.
+function avatarCliente({ foto, nome }) {
+    const iniciais = `<span class="cliente-foto cliente-iniciais" ${foto ? 'hidden' : ''} aria-hidden="true">${escaparAtributo(iniciaisCliente(nome))}</span>`
+    if (!foto) return iniciais
+    return `<img class="cliente-foto" src="${escaparAtributo(urlFotoCliente(foto))}" alt="" loading="lazy"
+        onerror="this.onerror = null; this.hidden = true; this.nextElementSibling.hidden = false">${iniciais}`
+}
+
 function urlFotoCliente(foto) {
     if (!foto) return logo
     return /^https?:\/\//i.test(foto) ? foto : `${api}/uploads/${foto}`
@@ -582,21 +599,34 @@ function criarLinhaClienteGCS(cliente) {
         comentario,
         cadastrais,
         ids,
-        desligado
+        desligado,
+        razao_social,
+        inscricao_estadual,
+        inscricao_municipal,
+        endereco_entrega
     } = cliente || {}
 
-    const modelo = ({ endereco, bairro, cep, cidade, estado }) => {
-        return `
-        <div style="${vertical}; min-width: 200px; gap: 1px; text-align: left;">
-            <span><b>Endereço:</b> ${endereco || ''}</span>
-            <span><b>Bairro:</b> ${bairro || ''}</span>
-            <span><b>Cep:</b> ${cep || ''}</span>
-            <span><b>Cidade:</b> ${cidade || ''}</span>
-            <span><b>Estado:</b> ${estado || ''}</span>
-        </div>`
-    }
+    // Detalhes recolhidos (endereços e inscrições): a coluna fica estreita e abre em blocos.
+    const dado = (rotulo, valor) => valor
+        ? `<span class="cliente-dado"><small>${rotulo}</small><b>${escaparAtributo(valor)}</b></span>`
+        : ''
+    const grupo = (titulo, conteudo) => conteudo.trim()
+        ? `<div class="cliente-detalhes-grupo"><span class="cliente-detalhes-titulo">${titulo}</span>${conteudo}</div>`
+        : ''
+    const blocoEndereco = e => [
+        dado('Endereço', e?.endereco), dado('Bairro', e?.bairro), dado('CEP', e?.cep),
+        dado('Cidade', [e?.cidade, e?.estado].filter(Boolean).join(' / '))
+    ].join('')
 
-    const eCadastro = modelo({ ...cliente })
+    const conteudoDetalhes = [
+        grupo('Cadastro', blocoEndereco(cliente)),
+        grupo('Entrega', blocoEndereco(endereco_entrega)),
+        grupo('Inscrições', dado('Estadual', inscricao_estadual) + dado('Municipal', inscricao_municipal))
+    ].join('')
+
+    // Coluna estreita só com cidade/UF; o resto abre no "+" (detalhes da tabela, js/tabelas.js).
+    const resumoLocal = [cliente?.cidade, cliente?.estado].filter(Boolean).join(' / ')
+    const eCadastro = `<span class="cliente-local">${escaparAtributo(resumoLocal || '—')}</span>`
 
     const tags1 = (tags || [])
         .map(item => tagCliente(item.tag))
@@ -616,8 +646,7 @@ function criarLinhaClienteGCS(cliente) {
         <td><button type="button" title="Abrir cadastro" aria-label="Abrir cadastro"
             data-cliente="${escaparAtributo(id)}" onclick="formularioCliente(Number(this.dataset.cliente))"
             style="padding: 0; border: none; background: transparent; cursor: pointer;">
-            <img class="cliente-foto" src="${escaparAtributo(urlFotoCliente(foto))}" alt="" loading="lazy"
-                onerror="this.onerror = null; this.src = logo">
+            ${avatarCliente({ foto, nome })}
         </button></td>
 
         <td>
@@ -625,7 +654,8 @@ function criarLinhaClienteGCS(cliente) {
 
                 <div style="${vertical}; gap: 2px;">
 
-                    ${(cadastrais || []).map(c => `<span>${c || ''}</span>`).join('')}
+                    ${(cadastrais || []).filter(c => c && (c === nome || c !== razao_social)).map(c => `<span>${c}</span>`).join('')}
+                    ${razao_social && razao_social !== nome ? `<small class="cliente-razao" title="Razão social">${escaparAtributo(razao_social)}</small>` : ''}
 
                     <div style="display: flex; flex-wrap: wrap; gap: 2px;">
                         ${desligado ? etiquetaDesligado(desligado) : ''}
@@ -646,7 +676,12 @@ function criarLinhaClienteGCS(cliente) {
         </td>
         `
 
-    return `<tr>${tds}</tr>`
+    return {
+        linha: `<tr>${tds}</tr>`,
+        detalhes: conteudoDetalhes
+            ? `<div class="cliente-detalhes-corpo">${conteudoDetalhes}</div>`
+            : ''
+    }
 
 }
 
@@ -659,6 +694,16 @@ function alternarTagTecnicoCliente(caixa) {
     caixa.closest('[name="tags"]')?.querySelectorAll('input[type="checkbox"]').forEach(outra => {
         if (outra !== caixa && TAGS_TECNICO_EXCLUSIVAS.includes(outra.value)) outra.checked = false
     })
+}
+
+// "Funcionário desligado" só faz sentido com a tag FUNCIONÁRIO; se já estiver marcado, continua
+// visível (mesmo sem a tag) para poder desfazer.
+function mostrarDesligadoCliente(painel) {
+    const caixa = painel?.querySelector('[name="desligado"]')
+    const linha = caixa?.closest('.linha-padrao')
+    if (!linha) return
+    const visivel = caixa.checked || tagsMarcadasCliente(painel).includes('FUNCIONÁRIO')
+    linha.style.display = visivel ? '' : 'none'
 }
 
 // Tags marcadas na lista de checkbox do formulário de clientes.
@@ -723,6 +768,9 @@ async function formularioCliente(idCliente) {
         permissao,
         cargo,
         cnpj,
+        razao_social,
+        inscricao_estadual,
+        inscricao_municipal,
         comentario,
         empresa,
         garantia_meses,
@@ -747,7 +795,7 @@ async function formularioCliente(idCliente) {
         .map(tag => `
             <label class="cliente-tag-opcao">
                 <input type="checkbox" value="${escaparAtributo(tag)}" ${marcadas.has(tag) ? 'checked' : ''}
-                    onchange="alternarTagTecnicoCliente(this); verificarDisponibilidade(this.closest('.painel-padrao').querySelector('[name=nome]'))">
+                    onchange="alternarTagTecnicoCliente(this); mostrarDesligadoCliente(this.closest('.painel-padrao')); verificarDisponibilidade(this.closest('.painel-padrao').querySelector('[name=nome]'))">
                 <span>${escaparAtributo(tag)}</span>
             </label>`)
         .join('')
@@ -827,6 +875,15 @@ async function formularioCliente(idCliente) {
             elemento: `<input placeholder="CPF ou CNPJ" oninput="formatarCnpj(this)" name="cnpj" value="${cnpj || ''}">`
         },
         {
+            // Vêm do Omie quando existem lá (servidor: SCRIPTS/clientes.js, só preenche se estiver vazio aqui).
+            texto: 'Inscrição estadual',
+            elemento: `<input placeholder="Inscrição estadual ou ISENTO" maxlength="20" name="inscricao_estadual" value="${escaparAtributo(inscricao_estadual || '')}">`
+        },
+        {
+            texto: 'Inscrição municipal',
+            elemento: `<input placeholder="Inscrição municipal" maxlength="20" name="inscricao_municipal" value="${escaparAtributo(inscricao_municipal || '')}">`
+        },
+        {
             // Usuário fica oculto aqui (obVal e verificarDisponibilidade leem do painel);
             // o rodapé mostra o valor em balão (cliente-rodape).
             texto: 'Nome',
@@ -837,6 +894,11 @@ async function formularioCliente(idCliente) {
             ${!usuario ? `oninput="verificarDisponibilidade(this)"` : ''}
             name="nome">${nome || ''}</textarea>
             <input type="hidden" name="usuario" value="${escaparAtributo(usuario || '')}" data-form-cliente>`
+        },
+        {
+            // Nome = nome fantasia; a razão social vem do Omie (varredura/sincronização) ou da Receita ao digitar o CNPJ.
+            texto: 'Razão social',
+            elemento: `<textarea placeholder="Razão social" maxlength="120" name="razao_social">${escaparAtributo(razao_social || '')}</textarea>`
         },
         { elemento: '<span class="cliente-secao">Endereço de cadastro</span>' },
         {
@@ -955,6 +1017,8 @@ async function formularioCliente(idCliente) {
     // (o "off" puro o Chrome ignora em campos de endereço).
     painelCliente?.querySelectorAll('input:not([type=hidden]):not([type=file]):not([type=checkbox]), textarea, select')
         .forEach(campo => campo.setAttribute('autocomplete', 'gcs-cadastro-cliente'))
+
+    mostrarDesligadoCliente(painelCliente)
 
     // Cadastro sem usuário: já avalia ao abrir (antes só ao digitar o nome ou mexer nas tags).
     if (!usuario)
@@ -1401,6 +1465,9 @@ async function salvarCliente(idCliente = null) {
         const novo = {
             foto,
             cnpj,
+            razao_social: String(obVal('razao_social') || '').replace(/\s+/g, ' ').trim().toUpperCase() || null,
+            inscricao_estadual: String(obVal('inscricao_estadual') || '').trim().toUpperCase() || null,
+            inscricao_municipal: String(obVal('inscricao_municipal') || '').trim().toUpperCase() || null,
             nome: obVal('nome').toUpperCase(),
             endereco: obVal('endereco'),
             bairro: obVal('bairro'),
@@ -1662,12 +1729,13 @@ async function preencherClientePorCnpj(input, cnpj) {
     status.textContent = `${dados.razao_social || ''} · ${situacao || 'situação desconhecida'}`
     status.title = ativa ? 'Dados da Receita Federal' : 'Empresa não está ativa na Receita Federal: confira antes de cadastrar.'
 
-    const nome = (dados.razao_social || dados.nome_fantasia || '').toUpperCase().slice(0, 60)
+    const nome = (dados.nome_fantasia || dados.razao_social || '').toUpperCase().slice(0, 60)
     const logradouro = [dados.descricao_tipo_de_logradouro, dados.logradouro].filter(Boolean).join(' ')
     const endereco = [logradouro, dados.numero, dados.complemento].filter(Boolean).join(', ').toUpperCase().slice(0, 60)
     const cep = String(dados.cep || '').replace(/\D/g, '').replace(/(\d{5})(\d{3})/, '$1-$2')
 
     definir('nome', nome)
+    definir('razao_social', (dados.razao_social || '').toUpperCase())
     definir('endereco', endereco)
     definir('bairro', (dados.bairro || '').toUpperCase())
     definir('cep', cep)

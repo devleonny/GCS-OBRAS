@@ -785,7 +785,7 @@ async function formularioEmissaoNFe(inicial = {}) {
     const app = inicial.app || empresas.find(e => e.app === 'AC')?.app || empresas[0]?.app
     const o = inicial.opcoes || {}
     const elemento = `
-        <div class="fis-form fis-form-emissao" data-form-nfe data-id="${escFis(inicial.id || '')}" oninput="agendarPreviaFis()" onchange="agendarPreviaFis()">
+        <div class="fis-form fis-form-emissao" data-form-nfe data-id="${escFis(inicial.id || '')}" data-fluxo-item="${escFis(inicial.fluxo_item || '')}" oninput="agendarPreviaFis()" onchange="agendarPreviaFis()">
             <fieldset class="fis-passo">
                 <legend><span class="fis-num-passo">1</span> Empresa e operação</legend>
                 <div class="fis-grade">
@@ -820,12 +820,15 @@ async function formularioEmissaoNFe(inicial = {}) {
             <div class="fis-previa" data-previa></div>
         </div>`
     popup({
-        titulo: inicial.id ? 'Editar NF-e' : 'Emitir NF-e',
+        titulo: inicial.fluxo_item ? 'Separar: dados da NF-e' : inicial.id ? 'Editar NF-e' : 'Emitir NF-e',
         linhas: [{ elemento }],
-        botoes: [
-            { texto: 'Salvar rascunho', img: 'salvo', funcao: 'salvarEmissaoFis(false, this)' },
-            { texto: 'Emitir', img: 'concluido', funcao: 'salvarEmissaoFis(true, this)' }
-        ]
+        // Aberta pelo kanban (Requisição → Separado): só salva; a emissão é o arraste para Faturado.
+        botoes: inicial.fluxo_item
+            ? [{ texto: 'Salvar', img: 'salvo', funcao: 'salvarEmissaoFis(false, this)' }]
+            : [
+                { texto: 'Salvar rascunho', img: 'salvo', funcao: 'salvarEmissaoFis(false, this)' },
+                { texto: 'Emitir', img: 'concluido', funcao: 'salvarEmissaoFis(true, this)' }
+            ]
     })
     const form = document.querySelector('[data-form-nfe]')
     trocarEmpresaNFe(form.querySelector('[name="app"]'), inicial.operacao_id)
@@ -1113,6 +1116,9 @@ async function salvarEmissaoFis(emitir, botao) {
         overlayAguarde()
         const r = await apiFiscal('emissao/rascunho', { id, ...entrada })
         form.dataset.id = r.id
+        // Kanban (js/fluxo_kanban.js): o rascunho salvo leva o item para Separado.
+        if (form.dataset.fluxoItem)
+            await apiModuloFiscal('fluxo-itens/separar', { id: form.dataset.fluxoItem, fiscal_id: r.id })
         removerOverlay()
         if (!emitir) {
             removerPopup(botao?.closest('.popup')?.id)

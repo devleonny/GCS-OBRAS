@@ -238,3 +238,9 @@
 .loc-obs { color: #5d6d63; font-size: 12px; }
 .loc-card.fatura .loc-card-topo { background: #2f5d8a; }
 .loc-card.fatura { flex-basis: 360px; }
+
+/* Envio do rateio ao Omie em segundo plano */
+.loc-omie { display: inline-block; margin-top: 4px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.loc-omie.enviando { background: #e8eef9; color: #2f5d8a; }
+.loc-omie.ok { background: #e7f3ec; color: #1f6f43; }
+.loc-omie.erro { background: #fde2e1; color: #b12425; white-space: normal; max-width: 220px; }

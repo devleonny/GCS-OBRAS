@@ -105,22 +105,27 @@
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: minmax(240px, 1fr);
+    grid-auto-rows: minmax(0, 1fr);
     gap: 0;
     flex: 1;
     /* Sem min-width: 0 o grid impõe a largura das colunas e a página toda estoura para a direita;
        com ele, as colunas rolam dentro do cartão. */
     min-width: 0;
     overflow-x: auto;
+    /* Altura = espaço que sobra na tela (ajustarAlturaFluxo, js/fluxo_kanban.js): o quadro não rola na
+       vertical; cada coluna enche essa altura e os cartões rolam dentro dela. */
+    overflow-y: hidden;
     border: 1px solid #e3e8e5;
     border-radius: 10px;
     background: #fafbfa;
-    min-height: 60vh;
+    min-height: 320px;
 }
 
 .fluxo-coluna {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    min-height: 0;
     border-right: 1px solid #e6ebe8;
 }
 
@@ -159,9 +164,10 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+    flex: 1;
+    min-height: 0;
     padding: 8px;
     overflow-y: auto;
-    max-height: calc(100vh - 230px);
 }
 
 .fluxo-cartao {
@@ -213,9 +219,74 @@
 .fluxo-receber { font-variant-numeric: tabular-nums; }
 .fluxo-receber.atrasado { color: #c92a2a !important; font-weight: 600; }
 
+.fluxo-carregando { display: flex; align-items: center; justify-content: center; padding: 3rem; }
+.fluxo-carregando img { width: 5rem; height: 5rem; }
+
 .fluxo-vazio { margin: 8px; color: #9aa8a0; font-size: 12px; text-align: center; }
 
 @media (max-width: 700px) {
-    .fluxo-quadro { grid-auto-columns: 82vw; }
-    .fluxo-cartoes { max-height: none; }
+    .fluxo-quadro { grid-auto-columns: 82vw; overflow-y: visible; }
+    .fluxo-cartoes { overflow-y: visible; }
 }
+
+/* Quadro novo (fluxo_itens): "Faturar todas" logo abaixo do cabeçalho de Separado (mesmo lugar do
+   "+N parados") e marca da emissão no cartão. */
+.fluxo-faturar-todas {
+    margin: 6px 8px 0;
+    padding: 5px 8px;
+    border: 1px solid #2f7d4f;
+    border-radius: 6px;
+    background: #2f7d4f;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: none;
+}
+
+.fluxo-faturar-todas:hover:not(:disabled) { background: #276b43; }
+
+.fluxo-faturar-todas:disabled {
+    border: 1px dashed #b8c7be;
+    background: #f1f5f2;
+    color: #7a8a80;
+    cursor: not-allowed;
+}
+
+.fluxo-emissao {
+    align-self: flex-start;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.fluxo-emissao.ok { background: #e3f4e8; color: #1f7a3f; }
+.fluxo-emissao.erro { background: #fde8e8; color: #b42318; }
+.fluxo-emissao.andando { background: #fff6e8; color: #8a4b00; }
+
+.fluxo-cartao:disabled { cursor: default; }
+
+/* Arraste do quadro novo: coluna que aceita o cartão e o botão "→ próxima etapa". */
+.fluxo-cartao[draggable="true"] { cursor: grab; }
+.fluxo-cartao[draggable="true"]:active { cursor: grabbing; }
+.fluxo-cartao.clicavel:focus-visible { outline: 2px solid #2f7d4f; outline-offset: 1px; }
+
+.fluxo-coluna.fluxo-alvo { background: #f1f8f3; box-shadow: inset 0 0 0 2px #9ccaa9; }
+.fluxo-coluna.fluxo-alvo-sobre { background: #e3f2e8; box-shadow: inset 0 0 0 2px #2f7d4f; }
+
+.fluxo-avancar {
+    align-self: flex-end;
+    margin-top: 4px;
+    padding: 2px 8px;
+    border: 1px solid #b9d4c2;
+    border-radius: 10px;
+    background: #f1f8f3;
+    color: #2f7d4f;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: none;
+}
+
+.fluxo-avancar:hover { background: #2f7d4f; color: #fff; border-color: #2f7d4f; }

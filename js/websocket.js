@@ -336,12 +336,12 @@ async function executarAtualizacaoWS() {
 
         // Kanban dos fluxos aberto (js/fluxo_kanban.js): recarrega quando muda algo que move os cartões.
         if (document.querySelector('.fluxo-pagina') && typeof carregarFluxo === 'function'
-            && (atualizarTodas || ['pedidos', 'requisicoes', 'notas', 'controle_logistico', 'lista_recebimentos', 'dados_orcamentos', 'dados_ocorrencias', 'fiscal_documentos']
+            && (atualizarTodas || ['fluxo_itens', 'pedidos', 'requisicoes', 'notas', 'controle_logistico', 'lista_recebimentos', 'dados_orcamentos', 'dados_ocorrencias', 'fiscal_documentos']
                 .some(t => tabelas.has(t))))
             tarefas.push(() => carregarFluxo())
 
         // Despesas Localiza aberta (js/localiza_despesas.js): rateio gravado ou sincronizado tira o título de "A ratear".
-        if (document.querySelector('.loc-pagina') && (atualizarTodas || tabelas.has('lista_pagamentos') || tabelas.has('localiza_classificacao')))
+        if (document.querySelector('.loc-pagina') && (atualizarTodas || tabelas.has('lista_pagamentos') || tabelas.has('localiza_classificacao') || tabelas.has('localiza_rateio_fila')))
             tarefas.push(async () => { await paginacao('localizaDespesas'); contarAbasLocaliza() })
 
         // Preço salvo/confirmado: o painel "Preços a confirmar" aberto se atualiza (js/precos_vencidos.js).

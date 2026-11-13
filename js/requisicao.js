@@ -6,6 +6,9 @@ async function chamadoDaRequisicao(departamento) {
     return { idChamado, ocorrencia }
 }
 
+// Pedido já escolhido quando o formulário é aberto pelo kanban (js/fluxo_kanban.js).
+let requisicaoPedidoPadrao = null
+
 // Ferramentas e materiais de funcionários e parceiros têm fluxo próprio (js/colaboradores.js).
 async function formularioRequisicao(id = crypto.randomUUID()) {
 
@@ -96,7 +99,9 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
             const texto = [numero, tipo, valor != null ? dinheiro(valor) : '']
                 .filter(Boolean)
                 .join(' - ')
-            return `<option value="${idPedido}" ${idPedido == pedido ? 'selected' : ''}>${texto}</option>`
+            // Aberta pelo kanban (arraste Pedido → Requisição): já vem com o pedido do cartão.
+            const escolhido = pedido || requisicaoPedidoPadrao
+            return `<option value="${idPedido}" ${idPedido == escolhido ? 'selected' : ''}>${texto}</option>`
         })
         .join('')
 

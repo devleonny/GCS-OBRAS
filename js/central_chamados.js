@@ -125,6 +125,16 @@ async function criarElementosIniciais() {
             </div>
         </div>`
 
+    // A descrição vem do editor com <div>/<br>: vira texto puro com quebras de linha
+    // (DOMParser não executa scripts; o resultado ainda passa pelo escape)
+    const textoDeHtml = (html) => {
+        const doc = new DOMParser().parseFromString(
+            String(html).replace(/<br\s*\/?>/gi, '\n').replace(/<\/(div|p|li)>/gi, '\n'),
+            'text/html'
+        )
+        return (doc.body.textContent || '').replace(/\n{2,}/g, '\n').trim()
+    }
+
     const modeloTabPendencias = ({ tipo, t1, t2, linhas }) => {
 
         const baloes = linhas
@@ -167,7 +177,7 @@ async function criarElementosIniciais() {
                     </div>
                     <b class="pendencia-card-titulo">${escaparAtributo(titulo || '')}</b>
                     ${campos ? `<div class="pendencia-card-campos">${campos}</div>` : ''}
-                    ${descricao ? `<p class="pendencia-card-descricao">${escaparAtributo(descricao)}</p>` : ''}
+                    ${descricao ? `<div class="pendencia-card-descricao">${escaparAtributo(textoDeHtml(descricao))}</div>` : ''}
                 </div>
                 `
             })

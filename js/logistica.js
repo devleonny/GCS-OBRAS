@@ -1278,7 +1278,8 @@ async function emitirEtiquetaLog() {
         chave_nfe: form._etiquetaNF?.chave_nfe || null,
         itens,
         destinatario: {
-            nome: loja.textContent.trim(),
+            // Razão social + nome fantasia, montado pelo servidor a partir do cadastro (pedido da logística).
+            nome: form._etiquetaDados?.destinatario?.nome || loja.textContent.trim(),
             cpfCnpj: val('et_doc'),
             celular: val('et_celular'),
             email: val('et_email'),

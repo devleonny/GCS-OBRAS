@@ -82,7 +82,7 @@ function criarAtalhoMenu({ nome, img, gif, especial }, nivel) {
         : `imagens/${img}.png`
 
     return `
-    <div class="botao-lateral nivel-${nivel}" 
+    <div class="botao-lateral nivel-${nivel}"
         style="margin-left:${nivel * 12}px">
         <img src="${imagem}" alt="">
             <div>${nome}</div>
@@ -250,23 +250,24 @@ const esquemaBotoes = {
         {
             nome: 'Vendas e NF-e',
             permitido: [...new Set([...PERFIS_FLUXO_MENU, ...PERFIS_FISCAL_MENU])],
-            img: 'nfe',
+            img: 'vendas_nfe',
             sub: [
-                { nome: 'Fluxo de Vendas', funcao: 'telaFluxoVendas', img: 'kanban', permitido: PERFIS_FLUXO_MENU },
+                // Quadro com arraste sobre fluxo_itens (desde 13/11/2026; o antigo, calculado por view, saiu do menu).
+                { nome: 'Fluxo de Vendas', funcao: 'telaFluxoItensVendas', img: 'kanban', permitido: PERFIS_FLUXO_MENU },
                 { nome: 'NF-e Emitidas', funcao: 'telaNotasNFe', img: 'up_estoque', permitido: PERFIS_FISCAL_MENU },
                 { nome: 'Emitir NF-e', funcao: 'formularioEmissaoNFe', img: 'baixar', permitido: ['adm', 'diretoria', 'fin'] },
-                { nome: 'Configuração Fiscal', funcao: 'telaConfigFiscal', img: 'configuracoes', permitido: ['adm', 'diretoria', 'fin'] }
+                { nome: 'Configuração Fiscal', funcao: 'telaConfigFiscal', img: 'engrenagem', permitido: ['adm', 'diretoria', 'fin'] }
             ]
         },
         {
             nome: 'Serviços e NFS-e',
             permitido: [...new Set([...PERFIS_FLUXO_MENU, ...PERFIS_FISCAL_MENU])],
-            img: 'nfse',
+            img: 'servicos_nfse',
             sub: [
                 { nome: 'Fluxo de Serviços', funcao: 'telaFluxoServicos', img: 'kanban', permitido: PERFIS_FLUXO_MENU },
                 { nome: 'NFS-e Emitidas', funcao: 'telaNotasNFSe', img: 'up_estoque', permitido: PERFIS_FISCAL_MENU },
                 { nome: 'Emitir NFS-e', funcao: 'formularioEmissaoNFSe', img: 'baixar', permitido: ['adm', 'diretoria', 'fin'] },
-                { nome: 'Configuração Fiscal', funcao: 'telaConfigFiscal', img: 'configuracoes', permitido: ['adm', 'diretoria', 'fin'] }
+                { nome: 'Configuração Fiscal', funcao: 'telaConfigFiscal', img: 'engrenagem', permitido: ['adm', 'diretoria', 'fin'] }
             ]
         },
         {
@@ -301,7 +302,7 @@ const esquemaBotoes = {
                 { nome: 'Ver Combustíveis', funcao: 'telaVeiculos', img: 'veiculo' },
                 { nome: 'Adicionar Combustível', funcao: 'painelValores', img: 'combustivel' },
                 { nome: 'Veículos', funcao: 'auxVeiculos', img: 'veiculo' },
-                { nome: 'Despesas Localiza', funcao: 'telaLocalizaDespesas', img: 'dinheiro', permitido: ['adm', 'diretoria', 'fin'] }
+                { nome: 'Despesas Localiza', funcao: 'telaLocalizaDespesas', img: 'dinheiro' }
             ]
         },
         {

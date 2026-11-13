@@ -634,3 +634,87 @@
     .vinculo-empresa { flex-wrap: wrap; }
     .vinculo-empresa select { max-width: 100%; flex: 1; }
 }
+
+/* Tabela de clientes: razão social sob o nome, coluna Cidade/UF estreita e
+   endereços/inscrições no painel do "+" (detalhes da tabela). */
+.cliente-razao {
+    color: #5b6b62;
+    font-size: 11px;
+    text-align: left;
+}
+
+.cliente-local {
+    display: inline-block;
+    max-width: 120px;
+    font-size: 12px;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+.cliente-detalhes-corpo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 8px;
+    padding: 4px 0;
+    text-align: left;
+}
+
+.cliente-detalhes-grupo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 180px;
+    max-width: 320px;
+    padding: 8px 10px;
+    border: 1px solid #dbe5df;
+    border-radius: 8px;
+    background: #fafcfb;
+}
+
+.cliente-detalhes-titulo {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: #4f7a61;
+}
+
+.cliente-dado {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.cliente-dado small {
+    font-size: 10px;
+    color: #7a8a80;
+}
+
+.cliente-dado b {
+    font-weight: 500;
+    color: #222;
+}
+
+/* Sem foto: iniciais no mesmo círculo da foto (no lugar do logo). */
+.cliente-iniciais {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: content-box;
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(#eef5f0, #eef5f0) padding-box,
+        linear-gradient(135deg, #2374e1, #28b463, #e53935) border-box;
+    color: #356443;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    user-select: none;
+}
+
+.cliente-iniciais[hidden] {
+    display: none;
+}

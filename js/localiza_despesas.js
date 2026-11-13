@@ -65,7 +65,7 @@ async function telaLocalizaDespesas(aba = estadoLocaliza.aba) {
                             </button>`).join('')}
                     </div>
                     <div class="loc-filtro-dep">${filtroDepartamentoLocaliza([], 'Carregando opções…')}</div>
-                    <button type="button" class="loc-atualizar" onclick="atualizarLocalizaOmie()" title="Puxa do Omie as alterações recentes de contas a pagar">Atualizar do Omie</button>
+                    ${podeEditarLocaliza() ? `<button type="button" class="loc-atualizar" onclick="atualizarLocalizaOmie()" title="Puxa do Omie as alterações recentes de contas a pagar">Atualizar do Omie</button>` : ''}
                 </div>
                 <div class="loc-legenda">
                     ${Object.keys(SITUACOES_LOCALIZA).map(s => `${bolinhaLoc(s)} ${SITUACOES_LOCALIZA[s].texto}`).join('')}
@@ -308,7 +308,9 @@ function criarLinhaLocaliza(d) {
         : ''
 
     // Multa: "Não é multa" (volta às pendências). Fora das multas: "É multa" (sai das pendências).
-    const botaoMulta = d.multa
+    // Ratear e classificar: só adm, diretoria e fin (o servidor confere); os outros perfis só veem.
+    const podeEditar = podeEditarLocaliza()
+    const botaoMulta = !podeEditar ? '' : d.multa
         ? `<button type="button" class="loc-botao-multa desfazer" onclick="classificarMultaLocaliza('${escLoc(d.id)}', false)" title="${escLoc(textoMultaLoc(d))}">Não é multa</button>`
         : `<button type="button" class="loc-botao-multa" onclick="classificarMultaLocaliza('${escLoc(d.id)}', true)" title="Tira das pendências de rateio">É multa</button>`
 
@@ -334,12 +336,40 @@ function criarLinhaLocaliza(d) {
             <td>${escLoc(d.app)}</td>
             <td>
                 <div class="loc-acoes-linha">
-                    ${d.multa ? '' : `<button type="button" class="loc-ratear" onclick="abrirRateioLocaliza('${escLoc(d.id)}')">Ratear</button>`}
+                    ${d.multa || !podeEditar ? '' : `<button type="button" class="loc-ratear" onclick="abrirRateioLocaliza('${escLoc(d.id)}')">Ratear</button>`}
                     ${botaoMulta}
                 </div>
+                ${seloOmieLoc(d, podeEditar)}
             </td>
         </tr>`
     return { linha, detalhes: detalhesLocaliza(d) }
+}
+
+const PERFIS_EDITAR_LOCALIZA = ['adm', 'diretoria', 'fin']
+const podeEditarLocaliza = () => PERFIS_EDITAR_LOCALIZA.includes(acesso?.permissao)
+
+// Envio do rateio ao Omie em segundo plano (localiza_rateio_fila): o rateio já vale no GCS; o selo mostra o
+// andamento. ERRO traz a mensagem do Omie e "Reenviar"; OK some depois de um dia.
+function seloOmieLoc(d, podeEditar) {
+    const status = d.omie_status
+    if (!status) return ''
+    if (status === 'OK') {
+        const recente = d.omie_atualizado && Date.now() - new Date(d.omie_atualizado).getTime() < 86400000
+        return recente ? '<small class="loc-omie ok" title="Rateio gravado no Omie">✓ no Omie</small>' : ''
+    }
+    if (status === 'ERRO')
+        return `<small class="loc-omie erro" title="${escLoc(d.omie_mensagem || '')}">Omie recusou: ${escLoc(d.omie_mensagem || 'erro')}</small>
+            ${podeEditar ? `<button type="button" class="loc-link" onclick="reenviarRateioLocaliza('${escLoc(d.id)}')">Reenviar</button>` : ''}`
+    return `<small class="loc-omie enviando" title="${escLoc(d.omie_mensagem || 'Na fila para o Omie')}">Enviando ao Omie…</small>`
+}
+
+async function reenviarRateioLocaliza(id) {
+    try {
+        await apiLocaliza('reenviar', { id: String(id) })
+        await paginacao('localizaDespesas')
+    } catch (erro) {
+        popup({ mensagem: erro.message })
+    }
 }
 
 // É multa / não é multa (só no GCS). Quando a marcação só repete a categoria, ela é removida
@@ -751,11 +781,11 @@ async function confirmarRateioLocaliza() {
         const { resultados = [] } = await apiLocaliza('ratear', { itens })
         const resultado = resultados[0] || { ok: false, mensagem: 'Sem resposta do servidor.' }
 
-        // Deu certo: fecha o editor e avisa. Falhou: o editor continua aberto para corrigir.
+        // Gravado no GCS na hora: fecha o editor e a linha mostra "Enviando ao Omie" (segundo plano,
+        // gcs/SCRIPTS/localiza_fila.js). Falhou a validação: o editor continua aberto para corrigir.
         removerOverlay()
         if (resultado.ok) {
             removerTodosPopups()
-            popup({ mensagem: `Rateado no Omie. ${escLoc(resultado.mensagem || '')}` })
         } else {
             popup({ mensagem: `Não foi rateado: ${escLoc(resultado.mensagem)}` })
         }

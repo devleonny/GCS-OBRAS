@@ -151,6 +151,20 @@
     background-color: #f8faf9;
 }
 
+/* Com detalhes (+), a linha de detalhe (mesmo escondida) entraria na contagem e embaralharia
+   o zebrado: alterna só entre as linhas de dados. */
+.tabela:not(.nude) tbody[data-detalhes="true"] > tr:nth-child(even) {
+    background-color: transparent;
+}
+
+.tabela:not(.nude) tbody[data-detalhes="true"] > tr:nth-child(even of :not(.tabela-linha-detalhes)) {
+    background-color: #f8faf9;
+}
+
+.tabela:not(.nude) tbody[data-detalhes="true"] > tr:not(.tabela-linha-detalhes):hover {
+    background-color: #edf5ef;
+}
+
 .tabela:not(.nude) tbody tr:hover {
     background-color: #edf5ef;
 }
