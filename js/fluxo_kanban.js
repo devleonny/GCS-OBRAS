@@ -113,7 +113,7 @@ async function telaFluxo(quadro) {
                 <div class="fluxo-titulo">
                     <h2>${QUADROS_FLUXO[quadro].titulo}</h2>
                     <small>${novo
-                        ? 'Arraste o cartão para a próxima etapa (ou use o botão → do cartão) · clique para abrir o orçamento'
+                        ? 'Arraste o cartão para a próxima etapa · clique para abrir o orçamento'
                         : `${quadro === 'compras' ? 'Período pela emissão da nota' : 'Período pela data do pedido'} · os cartões andam sozinhos conforme os dados; clique para abrir`}</small>
                 </div>
                 <div class="fluxo-controles">
@@ -254,7 +254,7 @@ function pedidoCartaoFluxo(numero) {
 //   Requisição → Separado: abre a NF-e preenchida (cliente e itens das requisições), só "Salvar" (rascunho).
 //   Separado → Faturado: emite; autorizada = verde e anda; erro = vermelho e fica em Separado.
 //   Faturado → Entregue → Concluído: confirmação.
-// No celular (sem arrastar), o botão "→" do cartão faz o mesmo.
+// Só por arraste (o botão "→" no cartão foi retirado a pedido em 13/11/2026).
 const ORDEM_ITENS_FLUXO = ['pedido', 'requisicao', 'separado', 'faturado', 'entregue', 'concluido']
 const ACAO_ITENS_FLUXO = { pedido: 'Requisição', requisicao: 'Separar (NF-e)', separado: 'Faturar', faturado: 'Entregue', entregue: 'Concluir' }
 const proximaEtapaFluxo = etapa => ORDEM_ITENS_FLUXO[ORDEM_ITENS_FLUXO.indexOf(etapa) + 1] || null
@@ -385,10 +385,9 @@ function cartaoItemFluxo(c, parado, tempo) {
         : c.emissao_status === 'ERRO' ? `<small class="fluxo-emissao erro" title="${escaparAtributo(c.emissao_mensagem || '')}">Erro na emissão: ${escaparAtributo(String(c.emissao_mensagem || '').slice(0, 90))}</small>`
             : ['EMITINDO', 'PROCESSANDO'].includes(c.emissao_status) ? '<small class="fluxo-emissao andando">Emitindo…</small>' : ''
     const id = escaparAtributo(c.id)
-    const acao = ACAO_ITENS_FLUXO[c.etapa] && !['EMITINDO', 'PROCESSANDO'].includes(c.emissao_status)
-        ? `<button type="button" class="fluxo-avancar" title="Levar para a próxima etapa" onclick="event.stopPropagation(); avancarItemFluxo('${id}')">→ ${ACAO_ITENS_FLUXO[c.etapa]}</button>`
-        : ''
-    const arrastavel = acao ? `draggable="true" ondragstart="iniciarArrasteFluxo(event, '${id}')" ondragend="terminarArrasteFluxo()"` : ''
+    // Avança só arrastando para a coluna seguinte (sem botão no cartão, a pedido).
+    const podeAvancar = ACAO_ITENS_FLUXO[c.etapa] && !['EMITINDO', 'PROCESSANDO'].includes(c.emissao_status)
+    const arrastavel = podeAvancar ? `draggable="true" ondragstart="iniciarArrasteFluxo(event, '${id}')" ondragend="terminarArrasteFluxo()"` : ''
     const abrir = c.orcamento_id ? `data-orcamento="${escaparAtributo(c.orcamento_id)}" onclick="abrirEsquema(this.dataset.orcamento)" onkeydown="if (event.key === 'Enter') abrirEsquema(this.dataset.orcamento)"` : ''
     return `
         <article class="fluxo-cartao ${parado ? 'parado' : ''} ${c.orcamento_id ? 'clicavel' : ''}" data-id="${id}" tabindex="0" ${arrastavel} ${abrir}>
@@ -398,7 +397,6 @@ function cartaoItemFluxo(c, parado, tempo) {
             ${contexto ? `<small class="fluxo-cartao-contexto">${escaparAtributo(contexto)}</small>` : ''}
             <span class="fluxo-cartao-valor">${reaisFluxo(c.valor)} <small>${c.empresa ? `${escaparAtributo(c.empresa)} · ` : ''}desde ${dataBrFluxo(c.data)}</small></span>
             ${emissao}
-            ${acao}
         </article>`
 }
 
