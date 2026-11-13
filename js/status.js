@@ -220,6 +220,7 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
             texto: 'Empresa a faturar',
             elemento: `
                 <select id="empresa">
+                    <option value="" ${empresas.includes(empresa) ? '' : 'selected'}>Selecione</option>
                     ${empresas.map(e => `<option ${empresa == e ? 'selected' : ''}>${e}</option>`).join('')}
                 </select>
             `
@@ -274,6 +275,10 @@ async function salvarPedido(id) {
 
         if (pedido.value == 'Sem Pedido' && autorizado_por == '')
             return popup({ mensagem: 'Quem autorizou este pedido?' })
+
+        // Sem empresa pré-escolhida: antes vinha AC e o pedido saía como AC sem ninguém decidir.
+        if (!empresa.value)
+            return popup({ mensagem: 'Escolha a empresa a faturar.' })
 
         const vezes = Number(pagamento.value)
         if (!Number.isInteger(vezes) || vezes < 1)
