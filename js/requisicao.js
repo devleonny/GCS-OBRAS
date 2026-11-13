@@ -158,10 +158,10 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
         criarLinha: 'criarLinhaRequisicao'
     })
 
-    const modeloLabel = ({ v1, v2 }) => {
+    const modeloLabel = ({ v1, v2, classe = '', oculto = false }) => {
 
         return `
-            <div class="campo-requisicao${v1 === 'Comentário' ? ' requisicao-campo-comentario' : ''}">
+            <div class="campo-requisicao${v1 === 'Comentário' ? ' requisicao-campo-comentario' : ''}${classe ? ` ${classe}` : ''}"${oculto ? ' style="display: none;"' : ''}>
                 ${v1 ? `<span><small><b>${v1}</b></small></span>` : ''}
                 <div>${v2}</div>
             </div>
@@ -185,8 +185,12 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
             v2: `<input id="prazo" type="date" value="${prazo || ''}">`
         },
         {
+            // Só para Kit Técnico (o servidor abate o kit do saldo dessa pessoa, js/colaboradores.js):
+            // escondido nas outras requisições; calcularRequisicao mostra/esconde conforme a origem dos itens.
             linha: 1,
-            v1: 'Quem recebeu?',
+            v1: 'Quem recebeu o Kit Técnico?',
+            classe: 'requisicao-recebedor-kit',
+            oculto: !temKitTecnicoRequisicao(Object.values(requisicao || {})),
             v2: `<span class="opcoes" name="recebedorRequisicao" ${recebedor_id ? `id="${escaparAtributo(recebedor_id)}"` : ''}
                 onclick="cxOpcoes('recebedorRequisicao')">${escaparAtributo(cadastroRecebedor?.nome || recebedor || 'Selecione')}</span>`
         },
@@ -569,6 +573,15 @@ async function calcularRequisicao() {
     }
 
     document.querySelector('#total_requisicao').innerHTML = dinheiro(total)
+
+    // "Quem recebeu o Kit Técnico?" só aparece quando algum item vai com origem Kit Técnico.
+    const campoRecebedor = document.querySelector('.requisicao-recebedor-kit')
+    if (campoRecebedor) campoRecebedor.style.display = temKitTecnicoRequisicao(controles.requisicao.base) ? '' : 'none'
+}
+
+// Algum item com origem "Kit Técnico" e quantidade a enviar (exige quem recebeu, para abater do saldo).
+function temKitTecnicoRequisicao(itens = []) {
+    return (itens || []).some(i => i?.origem === 'Kit Técnico' && Number(i.qtde_enviar) > 0)
 }
 
 async function salvarRequisicao(id) {
@@ -599,9 +612,9 @@ async function salvarRequisicao(id) {
 
         const recebedorSelecionado = document.querySelector('[name="recebedorRequisicao"]')
         const recebedorId = recebedorSelecionado?.id || ''
-        const temKit = itens.some(i => i.origem === 'Kit Técnico' && Number(i.qtde_enviar) > 0)
+        const temKit = temKitTecnicoRequisicao(itens)
         if (temKit && !recebedorId)
-            return popup({ mensagem: 'Selecione quem recebeu: os itens de Kit Técnico serão abatidos do saldo dessa pessoa.' })
+            return popup({ mensagem: 'Selecione quem recebeu o Kit Técnico: os itens serão abatidos do saldo dessa pessoa.' })
         if (temKit) {
             const cadastro = await recuperarDado('clientes', recebedorId)
             if (!cadastro?.usuario)
