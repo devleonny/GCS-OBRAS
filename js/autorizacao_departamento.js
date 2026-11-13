@@ -38,11 +38,10 @@ async function autorizarSetoresPagamento(pagamento, idPagamento) {
     const estavel = pagamento?.param_estavel || {}
     const distribuicao = Array.isArray(estavel.distribuicao) ? estavel.distribuicao : []
     distribuicao.forEach(d => delete d.autorizacao)
-    if (!distribuicao.some(d => ehSetorDepartamento(d.cCodDep))) return
-    if (PERFIS_APROVADORES_DEP.includes(acesso?.permissao)) return
 
-    const pedido = await apiAutorizacaoDep('solicitar', {
-        pagamento_id: idPagamento,
+    const pedido = await autorizarSetores({
+        origem: 'pagamento',
+        referenciaId: idPagamento,
         departamentos: distribuicao.map(d => d.cCodDep),
         contexto: {
             fornecedor: pagamento.snapshots?.cliente || '',
@@ -51,7 +50,39 @@ async function autorizarSetoresPagamento(pagamento, idPagamento) {
             rateio: distribuicao.map(d => ({ departamento: d.cCodDep, valor: d.nValDep }))
         }
     })
-    if (!pedido.necessaria) return
+    if (!pedido) return
+    for (const d of distribuicao)
+        if (pedido.departamentos.includes(String(d.cCodDep).trim())) d.autorizacao = { id: pedido.id }
+}
+
+// Abastecimento (js/veiculos.js → salvarValores): distribuicao = { [departamento]: { departamento, km } }.
+async function autorizarSetoresCombustivel(dados) {
+    const itens = Object.values(dados?.distribuicao || {})
+    itens.forEach(d => delete d.autorizacao)
+
+    const pedido = await autorizarSetores({
+        origem: 'combustivel',
+        referenciaId: dados.id,
+        departamentos: itens.map(d => d.departamento),
+        contexto: {
+            veiculo: [dados.veiculo?.placa, dados.veiculo?.modelo].filter(Boolean).join(' - '),
+            valor: dados.custo_total,
+            observacao: dados.comentario || '',
+            rateio: itens.map(d => ({ departamento: d.departamento, km: d.km }))
+        }
+    })
+    if (!pedido) return
+    for (const d of itens)
+        if (pedido.departamentos.includes(String(d.departamento).trim())) d.autorizacao = { id: pedido.id }
+}
+
+// Pede e espera. Devolve null se não precisa, o pedido se aprovado; lança erro se negado/expirado.
+async function autorizarSetores({ origem, referenciaId, departamentos, contexto }) {
+    if (!departamentos.some(ehSetorDepartamento)) return null
+    if (PERFIS_APROVADORES_DEP.includes(acesso?.permissao)) return null
+
+    const pedido = await apiAutorizacaoDep('solicitar', { origem, referencia_id: referenciaId, departamentos, contexto })
+    if (!pedido.necessaria) return null
 
     const resposta = await esperarAutorizacaoDep(pedido)
     if (resposta.status !== 'APROVADO') {
@@ -62,9 +93,8 @@ async function autorizarSetoresPagamento(pagamento, idPagamento) {
                 : 'Ninguém respondeu a tempo. Tente de novo ou use um contrato (ORC_...).')
     }
 
-    for (const d of distribuicao)
-        if (pedido.departamentos.includes(String(d.cCodDep).trim())) d.autorizacao = { id: pedido.id }
     balaoNotificacao({ imagem: 'imagens/concluido.png', texto: `${resposta.respondido_por} autorizou ${pedido.departamentos.join(', ')}` })
+    return pedido
 }
 
 function esperarAutorizacaoDep(pedido) {
@@ -143,9 +173,11 @@ function receberAutorizacaoDepartamento(data) {
 
 function mostrarPedidoAutorizacaoDep({ id, solicitante, departamentos = [], contexto = {} }) {
     if (popupsAutorizacaoDep.has(id)) return
+    const combustivel = contexto.origem === 'combustivel'
     const rateio = (contexto.rateio || []).map(r => {
         const setor = departamentos.includes(String(r.departamento).trim())
-        return `<li class="${setor ? 'autorizacao-dep-setor' : ''}">${escaparAtributo(r.departamento)} → ${dinheiro(r.valor)}</li>`
+        const quanto = combustivel ? `${Number(r.km || 0).toLocaleString('pt-BR')} km` : dinheiro(r.valor)
+        return `<li class="${setor ? 'autorizacao-dep-setor' : ''}">${escaparAtributo(r.departamento)} → ${quanto}</li>`
     }).join('')
 
     const idPopup = popup({
@@ -154,9 +186,10 @@ function mostrarPedidoAutorizacaoDep({ id, solicitante, departamentos = [], cont
         confirmarFechar: false,
         elemento: `
             <div class="autorizacao-dep" style="align-items: stretch; text-align: left;">
-                <span><b>${escaparAtributo(solicitante)}</b> quer lançar um pagamento em
+                <span><b>${escaparAtributo(solicitante)}</b> quer lançar ${combustivel ? 'um abastecimento' : 'um pagamento'} em
                     <b>${escaparAtributo(departamentos.join(', '))}</b> (departamento de setor).</span>
                 ${contexto.fornecedor ? `<span>Recebedor: <b>${escaparAtributo(contexto.fornecedor)}</b></span>` : ''}
+                ${contexto.veiculo ? `<span>Veículo: <b>${escaparAtributo(contexto.veiculo)}</b></span>` : ''}
                 <span>Valor: <b>${dinheiro(contexto.valor || 0)}</b></span>
                 ${rateio ? `<ul class="autorizacao-dep-rateio">${rateio}</ul>` : ''}
                 ${contexto.observacao ? `<small style="white-space: pre-wrap;">${escaparAtributo(contexto.observacao)}</small>` : ''}

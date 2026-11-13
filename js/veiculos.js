@@ -144,8 +144,12 @@ async function criarLinhaCusto(custo) {
 
     for (const dados of Object.values(distribuicao || {})) {
 
-        const { km, nomeDepartamento, departamento } = dados || {}
+        const { km, nomeDepartamento, departamento, autorizacao } = dados || {}
         const departamentoEstavel = String(departamento || nomeDepartamento || '')
+        // Setor autorizado (js/autorizacao_departamento.js): quem, quando e o comentário na dica.
+        const dicaAutorizacao = autorizacao?.aprovado_por
+            ? `title="${escaparAtributo(`✔ Autorizado por ${autorizacao.aprovado_por} às ${new Date(Number(autorizacao.aprovado_em)).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}${autorizacao.comentario ? ` — ${autorizacao.comentario}` : ''}`)}"`
+            : ''
 
         const porcentagem = km / custo.km
         const valor = realizado
@@ -158,8 +162,8 @@ async function criarLinhaCusto(custo) {
                 name="departamento"
                 data-departamento="${escaparAtributo(departamentoEstavel)}"
                 data-valor="${valor}"
-                data-codigo="${escaparAtributo(departamentoEstavel)}">
-                    <span>${escaparAtributo(departamentoEstavel || '...')}</span>
+                data-codigo="${escaparAtributo(departamentoEstavel)}" ${dicaAutorizacao}>
+                    <span>${escaparAtributo(departamentoEstavel || '...')}${autorizacao?.aprovado_por ? ' ✔' : ''}</span>
                 </div>
             </div>`)
     }
@@ -758,6 +762,15 @@ async function salvarValores(idCusto = crypto.randomUUID()) {
         litros: obterValores('litros'),
         usuario: usuario || acesso.usuario
     }
+
+    // Setor (não ORC_/G...) no rateio: espera alguém da diretoria/adm/fin online autorizar
+    // (js/autorizacao_departamento.js); o servidor grava o rastreio no item da distribuição.
+    try {
+        await autorizarSetoresCombustivel(dados)
+    } catch (erro) {
+        return popup({ mensagem: erro.message || 'Falha na autorização do departamento.' })
+    }
+    overlayAguarde()
 
     const resultado = await enviar(`custo_veiculos/${idCusto}`, dados)
     if (!resultado?.success)
