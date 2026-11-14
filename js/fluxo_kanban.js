@@ -133,7 +133,7 @@ async function telaFluxo(quadro) {
                             ${PERIODOS_FLUXO.map(([v, t]) => `<option value="${v}" ${estadoFluxo.periodo === v ? 'selected' : ''}>${t}</option>`).join('')}
                         </select>
                     </label>
-                    <button type="button" class="fluxo-atualizar" onclick="carregarFluxo()" title="Buscar de novo os dados">Atualizar</button>
+                    <button type="button" class="fluxo-atualizar" onclick="atualizarFluxoBotao(this)" title="Buscar de novo os dados">Atualizar</button>
                 </div>
             </header>
             <div class="fluxo-quadro"><div class="fluxo-carregando"><img src="gifs/loading-gcs.png" alt="Carregando"></div></div>
@@ -161,14 +161,38 @@ async function carregarFluxo() {
             paginas = Number(resposta?.paginas) || 1
             pagina++
         } while (pagina <= paginas)
-        if (consulta !== estadoFluxo.carregando || quadro !== estadoFluxo.quadro) return
+        if (consulta !== estadoFluxo.carregando || quadro !== estadoFluxo.quadro) return true
         estadoFluxo.linhas = cartoesFluxo(quadro, linhas)
         renderizarFluxo()
+        return true
     } catch (erro) {
         console.error('[FLUXO]', erro)
         const area = document.querySelector('.fluxo-quadro')
         if (area) area.innerHTML = '<button type="button" onclick="carregarFluxo()">Falha ao carregar. Tentar de novo</button>'
+        return false
     }
+}
+
+// Botão "Atualizar": mostra que está buscando (girando, desativado) e confirma no fim, para ninguém achar
+// que o clique não fez nada (o quadro quase sempre já está em dia pelo aviso em tempo real).
+async function atualizarFluxoBotao(botao) {
+    if (botao.disabled) return
+    const texto = botao.textContent
+    botao.disabled = true
+    botao.classList.add('atualizando')
+    botao.innerHTML = '<span class="fluxo-girando" aria-hidden="true"></span> Atualizando…'
+    const inicio = Date.now()
+    const ok = await carregarFluxo()
+    // Pelo menos meio segundo de "Atualizando…": mais rápido que isso parece que nada aconteceu.
+    await new Promise(r => setTimeout(r, Math.max(0, 500 - (Date.now() - inicio))))
+    botao.classList.remove('atualizando')
+    botao.classList.toggle('falhou', !ok)
+    botao.textContent = ok ? 'Atualizado ✓' : 'Falhou, tente de novo'
+    setTimeout(() => {
+        botao.disabled = false
+        botao.classList.remove('falhou')
+        botao.textContent = texto
+    }, ok ? 1500 : 2500)
 }
 
 function renderizarFluxo() {

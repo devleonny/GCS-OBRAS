@@ -380,3 +380,20 @@
 
 /* Painel do item: componentes do Fiscal (fis-*), um pouco mais estreito que a tela da nota. */
 .fis-painel.fluxo-item-painel { width: min(760px, 92vw); }
+
+/* Botão Atualizar: girando enquanto busca, confirmação ao terminar. */
+.fluxo-pagina .fluxo-atualizar { display: inline-flex; align-items: center; gap: 6px; transition: background-color .15s, color .15s; }
+.fluxo-pagina .fluxo-atualizar:disabled { cursor: default; }
+.fluxo-pagina .fluxo-atualizar.atualizando { background: #eef6f1; }
+.fluxo-pagina .fluxo-atualizar.falhou { border-color: #d63a3a; color: #b42318; background: #fff5f5; }
+
+.fluxo-girando {
+    width: 12px;
+    height: 12px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: fluxo-girar .7s linear infinite;
+}
+
+@keyframes fluxo-girar { to { transform: rotate(360deg); } }
