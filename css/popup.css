@@ -712,12 +712,26 @@
     margin: 0 !important;
 }
 
-.janelas-independentes .popup.janela-maximizada .janela {
-    flex: 1;
+/* Área de conteúdo (qualquer uma: .painel-padrao dos formulários, .janela, .mensagem) ocupa todo o espaço
+   entre a barra de título e o rodapé; o rodapé fica no fim. O .painel-padrao tem max 60vh / 900px. */
+.janelas-independentes .popup.janela-maximizada .popup-janela-fora > :not(.popup-top):not(.rodape-padrao) {
+    flex: 1 1 auto;
+    align-self: stretch;
     width: 100%;
     max-width: none;
     max-height: none;
+    min-height: 0;
+    overflow: auto;
     box-sizing: border-box;
+}
+
+.janelas-independentes .popup.janela-maximizada .rodape-padrao {
+    align-self: stretch;
+    flex-shrink: 0;
+}
+
+.janelas-independentes .popup.janela-maximizada .painel-padrao > .linha-padrao {
+    max-width: none;
 }
 
 /* Formulários com largura própria aproveitam a janela inteira quando maximizada. */
