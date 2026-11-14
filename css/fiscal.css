@@ -730,3 +730,59 @@ textarea.fis-input {
 
 /* "+ Item" abaixo da tabela de itens da NF-e: afastado da tabela. */
 .fis-tabela-rolagem + .fis-mini { margin-top: 10px; }
+
+/* Nota emitida: cabeçalho com número, situação e total; lateral colorida pela situação. */
+.fis-nota-topo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px 20px;
+    padding: 12px 16px;
+    background: #fff;
+    border: 1px solid #dfe6e2;
+    border-left: 5px solid #2f6fdc;
+    border-radius: 10px;
+}
+
+.fis-nota-topo.ok { border-left-color: #15803d; }
+.fis-nota-topo.erro { border-left-color: #b91c1c; }
+.fis-nota-topo.neutro { border-left-color: #64748b; }
+.fis-nota-topo.andando { border-left-color: #d97706; }
+.fis-nota-topo.rascunho { border-left-color: #2f6fdc; }
+
+.fis-nota-titulo { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fis-nota-titulo > b { font-size: 1.2rem; color: #1f2a24; }
+.fis-nota-titulo > b small { font-size: 0.8rem; font-weight: 500; color: #5b6b61; }
+.fis-nota-titulo > small { color: #5b6b61; }
+.fis-nota-etiquetas { display: flex; flex-wrap: wrap; gap: 4px; }
+
+.fis-nota-valor { display: flex; flex-direction: column; align-items: flex-end; margin-left: auto; }
+.fis-nota-valor span { font-size: 0.7rem; color: #5b6b61; text-transform: uppercase; letter-spacing: 0.02em; }
+.fis-nota-valor b { font-size: 1.4rem; color: #1f2a24; font-variant-numeric: tabular-nums; }
+
+/* Impostos em blocos iguais. */
+.fis-nota-impostos {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 6px;
+}
+
+.fis-nota-impostos:empty { display: none; }
+
+.fis-nota-impostos > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 10px;
+    background: #fff;
+    border: 1px solid #e2e8e4;
+    border-radius: 8px;
+}
+
+.fis-nota-impostos span { font-size: 0.68rem; color: #5b6b61; text-transform: uppercase; letter-spacing: 0.02em; }
+.fis-nota-impostos b { font-size: 0.9rem; color: #1f2a24; font-variant-numeric: tabular-nums; }
+
+/* Ações: uma faixa só; as que desfazem (cancelar/excluir) ficam à direita. */
+.fis-nota-acoes { padding: 8px 10px; background: #f6f8f7; border: 1px solid #e2e8e4; border-radius: 8px; }
+.fis-nota-acoes .fis-separador { flex: 1; }

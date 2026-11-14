@@ -392,6 +392,10 @@ async function abrirItemFluxo(id) {
     const etapa = etiquetaEst(ETAPAS_NOME_FLUXO[i.etapa] || i.etapa,
         i.emissao_status === 'ERRO' ? '#b91c1c' : i.emissao_status === 'OK' ? '#15803d' : '#2563eb')
 
+    // Histórico do Orçamento: junto dos botões da nota, mesmo estilo.
+    const botaoOrcamento = i.orcamento_id
+        ? `<button type="button" class="fis-mini" onclick="abrirEsquema('${esc(i.orcamento_id)}')">Histórico do Orçamento</button>` : ''
+
     const notas = (d.documentos || []).map(doc => {
         const eventos = Array.isArray(doc.eventos) ? doc.eventos.slice().reverse() : []
         const mensagens = (Array.isArray(doc.mensagens) ? doc.mensagens : []).filter(Boolean)
@@ -410,6 +414,7 @@ async function abrirItemFluxo(id) {
                     ${['RASCUNHO', 'REJEITADA'].includes(doc.status) && i.etapa === 'SEPARADO' ? `<button type="button" class="fis-mini" onclick="editarNotaItemFluxo('${esc(i.id)}')">Editar NF-e</button>` : ''}
                     ${doc.status !== 'AUTORIZADA' ? `<button type="button" class="fis-mini" onclick="espelhoNotaItemFluxo('${esc(doc.id)}')">Espelho (PDF)</button>` : ''}
                     <button type="button" class="fis-mini" onclick="abrirDocumentoFiscal('${esc(doc.id)}')">Abrir a nota</button>
+                    ${botaoOrcamento}
                 </div>
                 <details class="fis-secao" open><summary><b>Comunicação com a SEFAZ</b> (${eventos.length})</summary>
                     ${eventos.length ? lista(eventos.map(e => linhaHist(e.em, e.por, e.acao, e.detalhe))) : '<small>Sem registros.</small>'}
@@ -430,8 +435,8 @@ async function abrirItemFluxo(id) {
                 ['Etapa', etapa]
             ])}
             ${i.emissao_status === 'ERRO' && i.emissao_mensagem ? `<div class="fis-alerta"><b>Emissão recusada:</b> ${esc(i.emissao_mensagem)}</div>` : ''}
-            ${i.orcamento_id ? `<div class="fis-acoes-claras"><button type="button" class="fis-botao" onclick="abrirEsquema('${esc(i.orcamento_id)}')">Abrir orçamento</button></div>` : ''}
-            ${notas || '<div class="fis-vazio">Nenhuma NF-e do GCS para este item ainda.</div>'}
+            ${notas || `<div class="fis-vazio">Nenhuma NF-e do GCS para este item ainda.</div>
+                ${botaoOrcamento ? `<div class="fis-acoes-claras">${botaoOrcamento}</div>` : ''}`}
             ${omie.length ? `
                 <details class="fis-secao"><summary><b>Notas do Omie</b> (${omie.length})</summary>
                     ${lista(omie.map(n => `<li><small>${esc(n.data || '')}</small> NF ${esc(String(n.n_nota).replace(/^0+/, ''))} · ${esc(n.categoria || '')}${n.total ? ` · ${dinheiro(n.total)}` : ''}${n.cancelado === 'S' ? ' · <small>cancelada</small>' : ''}</li>`))}
@@ -466,7 +471,7 @@ function abrirMenuItemFluxo(evento, id) {
     const nota = notasItemFluxo(c).at(-1)
     const opcoes = [
         ['Detalhes', `abrirItemFluxo('${id}')`],
-        c.orcamento_id ? ['Abrir orçamento', `abrirEsquema('${escaparAtributo(c.orcamento_id)}')`] : null,
+        c.orcamento_id ? ['Histórico do Orçamento', `abrirEsquema('${escaparAtributo(c.orcamento_id)}')`] : null,
         nota && c.etapa === 'separado' ? ['Editar NF-e', `editarNotaItemFluxo('${id}')`] : null,
         nota && c.emissao_status !== 'OK' ? ['Espelho (PDF)', `espelhoNotaItemFluxo('${escaparAtributo(nota)}')`] : null,
         nota && c.emissao_status === 'OK' ? ['DANFE', `baixarArquivoFiscal('${escaparAtributo(nota)}', 'danfe')`] : null,

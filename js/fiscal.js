@@ -560,58 +560,111 @@ function criarLinhaNotaEmitida(d) {
 
 function htmlNotaEmitida({ documento: d, itens, movimentos }) {
     const entrada = d.payload?.entrada || {}
+    const o = entrada.opcoes || {}
     const editavel = ['RASCUNHO', 'REJEITADA'].includes(d.status)
+    const nfse = d.modelo === 'NFSE'
     const t = d.valor_impostos || {}
-    const impostos = d.modelo === 'NFSE'
+    const impostos = nfse
         ? [['Serviço', t.servico], ['ISS', t.iss], ['Retido', t.total_retido], ['Líquido', t.liquido]]
-        : [['Produtos', t.produtos], ['ICMS', t.icms], ['PIS', t.pis], ['COFINS', t.cofins], ['IBS', t.ibs], ['CBS', t.cbs], ['DIFAL', t.difal], ['Total', t.nota]]
+        : [['Produtos', t.produtos], ['Desconto', t.desconto], ['ICMS', t.icms], ['DIFAL', t.difal], ['PIS', t.pis], ['COFINS', t.cofins], ['IBS', t.ibs], ['CBS', t.cbs]]
+    const tom = { AUTORIZADA: 'ok', REJEITADA: 'erro', DENEGADA: 'erro', CANCELADA: 'neutro', PROCESSANDO: 'andando' }[d.status] || 'rascunho'
+    const transp = o.transportador
+    const infos = [o.informacoes_complementares, o.numero_pedido ? `Pedido de compra nº ${o.numero_pedido}.` : ''].filter(Boolean).join(' ')
+    const orc = String(d.orcamento || '')
+    const botao = (texto, acao, principal = false) => `<button type="button" class="${principal ? 'fis-botao' : 'fis-mini'}" onclick="${acao}">${texto}</button>`
+    const fretes = { 9: 'Sem frete', 0: 'Emitente (CIF)', 1: 'Destinatário (FOB)', 2: 'Terceiros' }
+
     return `
-        <div class="fis-painel fis-doc" data-doc-fiscal="${escFis(d.id)}">
-            ${resumoDocumentoFis(d, [
-                ['Destinatário', `${escFis(d.participante_nome)} <small>${docFormatadoFis(d.participante_documento)} ${escFis(d.participante_uf || '')}</small>`],
-                [d.modelo === 'NFSE' ? 'NFS-e' : 'NF-e', `${escFis(d.numero || '—')}${d.serie ? ` / série ${escFis(d.serie)}` : ''}`],
-                ['Empresa', `${escFis(d.app)} ${d.ambiente === 'homologacao' ? etiquetaEst('Homologação', '#d97706') : ''}`],
-                ['Operação', escFis(d.natureza_operacao || '')],
-                ['Situação', `${etiquetaFis(STATUS_FISCAL, d.status)} ${etiquetaFis(ESTOQUE_FISCAL, d.estoque_status)}`],
-                ['Criada', `${dataHoraFis(d.criado_em)} <small>${escFis(d.criado_por || '')}</small>`]
-            ])}
-            ${d.chave ? `<div class="fis-chave">Chave: <code>${escFis(d.chave)}</code></div>` : ''}
-            ${(d.mensagens || []).length ? `<div class="fis-alerta">${d.mensagens.map(escFis).join('<br>')}</div>` : ''}
-            <div class="fis-totais">${impostos.filter(([, v]) => v).map(([k, v]) => `<div><span>${k}</span><b>${dinheiro(v)}</b></div>`).join('')}</div>
-            <div class="fis-acoes-claras">
-                ${editavel ? `
-                    <button type="button" class="fis-botao" onclick="editarRascunhoFiscal('${escFis(d.id)}')">Editar</button>
-                    <button type="button" class="fis-botao" onclick="emitirDocumentoFiscal('${escFis(d.id)}')">Emitir</button>
-                    <button type="button" class="fis-mini" onclick="excluirRascunhoFiscal('${escFis(d.id)}')">Excluir rascunho</button>` : ''}
-                ${d.status === 'PROCESSANDO' || d.status === 'AUTORIZADA' ? `<button type="button" class="fis-mini" onclick="consultarDocumentoFiscal('${escFis(d.id)}')">Atualizar situação</button>` : ''}
-                ${d.status === 'AUTORIZADA' ? `
-                    <button type="button" class="fis-mini" onclick="baixarArquivoFiscal('${escFis(d.id)}', 'danfe')">${d.modelo === 'NFSE' ? 'DANFSe' : 'DANFE'}</button>
-                    <button type="button" class="fis-mini" onclick="baixarArquivoFiscal('${escFis(d.id)}', 'xml')">XML</button>
-                    <button type="button" class="fis-mini" onclick="cancelarDocumentoFiscal('${escFis(d.id)}')">Cancelar nota</button>` : ''}
-                ${!editavel ? `<button type="button" class="fis-mini" onclick="duplicarDocumentoFiscal('${escFis(d.id)}')">Duplicar</button>` : ''}
+        <div class="fis-painel fis-doc fis-nota" data-doc-fiscal="${escFis(d.id)}">
+            <div class="fis-nota-topo ${tom}">
+                <div class="fis-nota-titulo">
+                    <b>${nfse ? 'NFS-e' : 'NF-e'} ${d.numero ? `nº ${escFis(d.numero)}${d.serie ? ` <small>série ${escFis(d.serie)}</small>` : ''}` : '<small>(sem número)</small>'}</b>
+                    <div class="fis-nota-etiquetas">
+                        ${etiquetaFis(STATUS_FISCAL, d.status)}
+                        ${d.ambiente === 'homologacao' ? etiquetaEst('Homologação', '#d97706') : etiquetaEst('Produção', '#15803d')}
+                        ${etiquetaFis(ESTOQUE_FISCAL, d.estoque_status)}
+                    </div>
+                    <small>${escFis(d.natureza_operacao || '')}</small>
+                </div>
+                <div class="fis-nota-valor">
+                    <span>Total da nota</span>
+                    <b>${d.valor_total != null ? dinheiro(d.valor_total) : '—'}</b>
+                </div>
             </div>
+
+            ${resumoDocumentoFis(d, [
+                ['Destinatário', `${escFis(d.participante_nome || '—')} <small>${docFormatadoFis(d.participante_documento)}${d.participante_uf ? ` · ${escFis(d.participante_uf)}` : ''}</small>`],
+                ['Empresa', escFis(d.app)],
+                ['Orçamento', escFis(orc || '—')],
+                ['Criada', `${dataHoraFis(d.criado_em)} <small>${escFis(d.criado_por || '')}</small>`],
+                ['Autorizada', d.emissao ? dataHoraFis(d.emissao) : '']
+            ])}
+
+            ${d.chave ? `<div class="fis-chave">Chave <code>${escFis(d.chave)}</code>${d.protocolo ? ` <span>· protocolo <code>${escFis(d.protocolo)}</code></span>` : ''}</div>` : ''}
+            ${(d.mensagens || []).length ? `<div class="fis-alerta">${d.mensagens.map(escFis).join('<br>')}</div>` : ''}
+
+            <div class="fis-nota-impostos">${impostos.filter(([, v]) => v).map(([k, v]) => `<div><span>${k}</span><b>${dinheiro(v)}</b></div>`).join('')}</div>
+
+            <div class="fis-acoes-claras fis-nota-acoes">
+                ${editavel ? botao('Emitir', `emitirDocumentoFiscal('${escFis(d.id)}')`, true) + botao('Editar', `editarRascunhoFiscal('${escFis(d.id)}')`) : ''}
+                ${d.status === 'AUTORIZADA' ? botao(nfse ? 'DANFSe' : 'DANFE', `baixarArquivoFiscal('${escFis(d.id)}', 'danfe')`) + botao('XML', `baixarArquivoFiscal('${escFis(d.id)}', 'xml')`) : ''}
+                ${!nfse && d.status !== 'AUTORIZADA' && entrada.itens ? botao('Espelho (PDF)', `espelhoNotaItemFluxo('${escFis(d.id)}')`) : ''}
+                ${d.status === 'PROCESSANDO' || d.status === 'AUTORIZADA' ? botao('Atualizar situação', `consultarDocumentoFiscal('${escFis(d.id)}')`) : ''}
+                ${/^ORC_/.test(orc) ? botao('Histórico do Orçamento', `abrirEsquemaPorContratoFis('${escFis(orc)}')`) : ''}
+                ${!editavel ? botao('Duplicar', `duplicarDocumentoFiscal('${escFis(d.id)}')`) : ''}
+                <span class="fis-separador"></span>
+                ${d.status === 'AUTORIZADA' ? botao('Cancelar nota', `cancelarDocumentoFiscal('${escFis(d.id)}')`) : ''}
+                ${editavel ? botao('Excluir rascunho', `excluirRascunhoFiscal('${escFis(d.id)}')`) : ''}
+            </div>
+
             ${itens.length ? `
-                <div class="fis-secao"><div class="fis-secao-topo"><b>Itens</b></div>
+                <div class="fis-secao">
+                    <div class="fis-secao-topo"><b>Itens</b> <small>${itens.length}</small></div>
                     <div class="fis-tabela-rolagem"><table class="fis-tabela">
-                        <thead><tr><th>#</th><th>Código</th><th>Descrição</th><th>NCM</th><th>CFOP</th><th>Qtd</th><th>Unit.</th><th>Total</th><th>ICMS</th><th>PIS/COFINS</th></tr></thead>
+                        <thead><tr><th>#</th><th>Descrição</th><th>NCM</th><th>CFOP</th><th class="fis-num">Qtd</th><th class="fis-num">Unit.</th><th class="fis-num">Total</th><th class="fis-num">ICMS</th><th class="fis-num">PIS+COFINS</th></tr></thead>
                         <tbody>${itens.map(i => `
                             <tr>
-                                <td class="fis-num">${i.n_item}</td><td><small>${escFis(i.codigo)}</small></td>
-                                <td class="fis-descricao">${escFis(i.descricao)}</td><td><small>${escFis(i.ncm || '')}</small></td><td>${escFis(i.cfop || '')}</td>
+                                <td class="fis-num">${i.n_item}</td>
+                                <td class="fis-descricao">${escFis(i.descricao)}<small>${escFis(i.codigo || '')}</small></td>
+                                <td><small>${escFis(i.ncm || '')}</small></td><td>${escFis(i.cfop || '')}</td>
                                 <td class="fis-num">${qtdEst(i.quantidade)} ${escFis(i.unidade || '')}</td>
-                                <td class="fis-num">${dinheiro(i.valor_unitario || 0)}</td><td class="fis-num">${dinheiro(i.valor_total || 0)}</td>
+                                <td class="fis-num">${dinheiro(i.valor_unitario || 0)}</td><td class="fis-num"><b>${dinheiro(i.valor_total || 0)}</b></td>
                                 <td class="fis-num">${i.impostos?.icms ? dinheiro(i.impostos.icms) : ''}</td>
                                 <td class="fis-num">${i.impostos?.pis || i.impostos?.cofins ? dinheiro((i.impostos.pis || 0) + (i.impostos.cofins || 0)) : ''}</td>
                             </tr>`).join('')}</tbody>
                     </table></div>
                 </div>` : ''}
-            ${d.modelo === 'NFSE' && entrada.dados?.descricao ? `<div class="fis-secao"><b>Serviço</b><div class="fis-texto">${escFis(entrada.dados.descricao).replace(/\n/g, '<br>')}</div></div>` : ''}
+
+            ${!nfse && (transp || o.volumes) ? `
+                <div class="fis-secao">
+                    <div class="fis-secao-topo"><b>Transporte</b></div>
+                    ${resumoDocumentoFis(d, [
+                        ['Frete por conta de', escFis(fretes[o.modalidade_frete ?? 9] || '')],
+                        ['Transportadora', transp ? `${escFis(transp.nome || '')} <small>${docFormatadoFis(transp.documento)}</small>` : '—'],
+                        ['Volumes', escFis(o.volumes || '—')]
+                    ])}
+                </div>` : ''}
+
+            ${infos ? `<div class="fis-secao"><div class="fis-secao-topo"><b>Informações complementares</b></div><div class="fis-texto">${escFis(infos)}</div></div>` : ''}
+            ${nfse && entrada.dados?.descricao ? `<div class="fis-secao"><div class="fis-secao-topo"><b>Serviço</b></div><div class="fis-texto">${escFis(entrada.dados.descricao).replace(/\n/g, '<br>')}</div></div>` : ''}
             ${movimentos?.length ? `
                 <details class="fis-secao"><summary><b>Movimentos de estoque</b> (${movimentos.length})</summary>
                     <table class="fis-tabela"><tbody>${movimentos.map(m => linhaMovimentoEst(m, { comItem: true, acoes: false })).join('')}</tbody></table>
                 </details>` : ''}
             ${historicoFiscal(d)}
         </div>`
+}
+
+// Histórico do Orçamento a partir do código ORC da nota (o histórico abre pelo id do orçamento).
+async function abrirEsquemaPorContratoFis(contrato) {
+    try {
+        const { resultados } = await pesquisarDB({ base: 'vw_fluxo_itens', filtros: { contrato: { op: '=', value: contrato } }, limite: 1 })
+        const orcamentoId = resultados?.[0]?.orcamento_id
+        if (!orcamentoId) return popup({ mensagem: `Orçamento ${escFis(contrato)} não encontrado.` })
+        abrirEsquema(orcamentoId)
+    } catch (err) {
+        popup({ mensagem: mensagemErroEst(err) })
+    }
 }
 
 async function editarRascunhoFiscal(id) {
