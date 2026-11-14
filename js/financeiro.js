@@ -643,8 +643,6 @@ async function telaCategoriasFin() {
             <div class="pagina-conteudo fis-pagina fin-pagina">
                 <div class="cabecalho-pagina"><h2>Categorias</h2></div>
                 <div class="fis-painel">
-                    <div class="fis-explica">Plano de categorias do GCS (carga inicial: todas as do Omie). Grupos organizam; as faturas usam as categorias dentro deles.
-                        <b>Excluídas</b> são as do Omie fora de uso no GCS: só fin, diretoria e adm as veem.</div>
                     <div class="fis-barra-clara">
                         <input class="fis-input fis-busca" placeholder="Buscar categoria…" oninput="estadoCategoriasFin.filtro = this.value.toLowerCase(); desenharCategoriasFin()">
                         ${ver_excluidas ? `<label class="fis-check"><input type="checkbox" onchange="estadoCategoriasFin.verExcluidas = this.checked; desenharCategoriasFin()"> Mostrar excluídas</label>` : ''}
