@@ -257,7 +257,7 @@ async function telaFaturasFin(tipo, filtroExtra = null) {
             ordenar: [{ path: 'vencimento', direcao: 'asc' }],
             colunas: {
                 '': {},
-                'Vencimento': { chave: 'vencimento', tipoPesquisa: 'data' },
+                'Vencimento': { chave: 'dia_vencimento', tipoPesquisa: 'data' },
                 'Empresa': { chave: 'app', tipoPesquisa: 'select' },
                 [pagar ? 'Fornecedor' : 'Cliente']: { chave: 'participante_nome' },
                 'Descrição': { chave: 'descricao' },
