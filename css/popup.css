@@ -725,6 +725,22 @@
     box-sizing: border-box;
 }
 
+/* Telas montadas com "elemento" (.janela > um bloco com largura/altura próprias, ex.: painel de Usuários
+   min(760px, 92vw) / 72vh): o bloco também ocupa a área inteira; as listas internas rolam dentro dele. */
+.janelas-independentes .popup.janela-maximizada .janela {
+    display: flex;
+    flex-direction: column;
+}
+
+.janelas-independentes .popup.janela-maximizada .janela > * {
+    flex: 1 1 auto;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    min-height: 0;
+    box-sizing: border-box;
+}
+
 .janelas-independentes .popup.janela-maximizada .rodape-padrao {
     align-self: stretch;
     flex-shrink: 0;

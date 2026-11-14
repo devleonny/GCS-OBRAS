@@ -2653,3 +2653,6 @@ input[type="file"]#input-anexos:hover {
     height: 32px;
     object-fit: contain;
 }
+
+/* Painel de Usuários maximizado (js/janelas.js): a lista cresce e rola dentro do painel. */
+.janela-maximizada .painel-usuarios-lista { flex: 1 1 auto; min-height: 0; }
