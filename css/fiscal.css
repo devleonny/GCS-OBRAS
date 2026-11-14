@@ -574,12 +574,12 @@ textarea.fis-input {
 
 /* ---------- prévia e totais */
 
+/* Prévia (totais, "Falta corrigir", avisos de estoque): último bloco do formulário, no fluxo normal.
+   Antes era sticky no rodapé e, com os avisos, cobria o formulário (os campos passavam por trás). */
 .fis-previa {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    position: sticky;
-    bottom: 0;
     padding: 10px 12px;
     background: #f6f8f7;
     border: 1px solid #dfe6e2;
