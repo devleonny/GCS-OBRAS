@@ -373,105 +373,77 @@ const ETAPAS_NOME_FLUXO = { PEDIDO: 'Pedido de Venda', REQUISICAO: 'Requisição
 const STATUS_NOTA_FLUXO = { RASCUNHO: 'Rascunho', PROCESSANDO: 'Processando na SEFAZ', AUTORIZADA: 'Autorizada', REJEITADA: 'Recusada', DENEGADA: 'Denegada', CANCELADA: 'Cancelada' }
 const dataHoraItemFluxo = v => v ? new Date(v).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : ''
 
+// Bloco "Venda no fluxo" (etapa, pedido, requisições, notas do Omie, histórico do cartão), usado na tela
+// única da venda: dentro da nota emitida (js/fiscal.js htmlNotaEmitida) ou sozinho quando ainda não há NF-e.
+function blocoItemFluxoHtml(d) {
+    if (!d?.item) return ''
+    const i = d.item
+    const esc = escaparAtributo
+    const lista = linhas => `<ul class="fis-lista">${linhas.join('')}</ul>`
+    const contador = n => `<span class="fis-contador">${n}</span>`
+    const linhaHist = (em, por, texto, detalhe) =>
+        `<li><small>${esc(dataHoraItemFluxo(em))}${por ? ` · ${esc(por)}` : ''}</small> ${esc(texto)}${detalhe ? ` <small>— ${esc(detalhe)}</small>` : ''}</li>`
+    const cor = i.emissao_status === 'ERRO' ? '#b91c1c' : i.emissao_status === 'OK' ? '#15803d' : '#2563eb'
+    const omie = (i.notas_omie || []).filter(n => n.n_nota)
+    const historico = (i.historico || []).slice().reverse()
+    return `
+        <div class="fis-secao">
+            <div class="fis-secao-topo"><b>Venda no fluxo</b> ${etiquetaEst(ETAPAS_NOME_FLUXO[i.etapa] || i.etapa, cor)}</div>
+            ${resumoDocumentoFis({}, [
+                ['Orçamento', esc(i.contrato || i.departamento || '—')],
+                ['Pedido', esc(i.numero_pedido || '—')],
+                ['Valor do item', i.valor ? dinheiro(i.valor) : '—'],
+                ['Requisições', esc(String(i.requisicoes || 0))]
+            ])}
+        </div>
+        ${omie.length ? `
+            <details class="fis-secao"><summary><b>Notas do Omie</b> ${contador(omie.length)}</summary>
+                ${lista(omie.map(n => `<li><small>${esc(n.data || '')}</small> NF ${esc(String(n.n_nota).replace(/^0+/, ''))} · ${esc(n.categoria || '')}${n.total ? ` · ${dinheiro(n.total)}` : ''}${n.cancelado === 'S' ? ' · <small>cancelada</small>' : ''}</li>`))}
+            </details>` : ''}
+        <details class="fis-secao"><summary><b>Histórico do cartão</b> ${contador(historico.length)}</summary>
+            ${historico.length ? lista(historico.map(h => linhaHist(h.em, h.por,
+                h.de && h.para ? `${ETAPAS_NOME_FLUXO[h.de] || h.de} → ${ETAPAS_NOME_FLUXO[h.para] || h.para}` : (ETAPAS_NOME_FLUXO[h.para] || h.origem || ''),
+                h.detalhe))) : '<small>Sem registros.</small>'}
+        </details>`
+}
+
+// Clique no cartão: tela única da venda. Com NF-e do GCS, é a tela da nota (com o bloco da venda no fim);
+// sem NF-e, a mesma tela só com os dados do item.
 async function abrirItemFluxo(id) {
-    let d
+    let d, dadosNota
     try {
         overlayAguarde()
         d = await apiModuloFiscal('fluxo-itens/detalhe', { id })
+        const nota = (d.documentos || [])[0]
+        if (nota) dadosNota = await apiFiscal('documento', { id: nota.id })
         removerOverlay()
     } catch (err) {
         removerOverlay()
         return popup({ mensagem: mensagemErroEst(err) })
     }
-    // Mesmo visual da tela da nota emitida (js/fiscal.js htmlNotaEmitida): cabeçalho com lateral colorida,
-    // grade de dados, uma faixa de ações e seções em cartões com contador em balão.
+    if (dadosNota) {
+        const anterior = document.querySelector(`[data-doc-fiscal="${CSS.escape(dadosNota.documento.id)}"]`)?.closest('.popup')?.id
+        if (anterior) removerPopup(anterior)
+        return popup({ titulo: 'Nota emitida', elemento: htmlNotaEmitida(dadosNota, d) })
+    }
+
     const i = d.item
     const esc = escaparAtributo
-    const documentos = d.documentos || []
-    const nota = documentos[0] // a mais recente
-    const lista = linhas => `<ul class="fis-lista">${linhas.join('')}</ul>`
-    const linhaHist = (em, por, texto, detalhe) =>
-        `<li><small>${esc(dataHoraItemFluxo(em))}${por ? ` · ${esc(por)}` : ''}</small> ${esc(texto)}${detalhe ? ` <small>— ${esc(detalhe)}</small>` : ''}</li>`
-    const contador = n => `<span class="fis-contador">${n}</span>`
     const faturada = i.emissao_status === 'OK' || (i.notas_omie || []).some(n => n.n_nota && n.cancelado !== 'S' && n.categoria !== 'remessa')
-    const tom = i.emissao_status === 'ERRO' ? 'erro' : faturada ? 'ok' : ['EMITINDO', 'PROCESSANDO'].includes(i.emissao_status) ? 'andando' : 'rascunho'
-    const corEtapa = { erro: '#b91c1c', ok: '#15803d', andando: '#d97706', rascunho: '#2563eb' }[tom]
-    const botao = (texto, acao) => `<button type="button" class="fis-mini" onclick="${acao}">${texto}</button>`
-
-    const acoes = [
-        nota?.tem_danfe ? botao('DANFE', `baixarArquivoFiscal('${esc(nota.id)}', 'danfe')`) : '',
-        nota?.tem_xml ? botao('XML', `baixarArquivoFiscal('${esc(nota.id)}', 'xml')`) : '',
-        nota && ['RASCUNHO', 'REJEITADA'].includes(nota.status) && i.etapa === 'SEPARADO' ? botao('Editar NF-e', `editarNotaItemFluxo('${esc(i.id)}')`) : '',
-        nota && nota.status !== 'AUTORIZADA' ? botao('Espelho (PDF)', `espelhoNotaItemFluxo('${esc(nota.id)}')`) : '',
-        nota ? botao('Abrir a nota', `abrirDocumentoFiscal('${esc(nota.id)}')`) : '',
-        i.orcamento_id ? botao('Histórico do Orçamento', `abrirEsquema('${esc(i.orcamento_id)}')`) : ''
-    ].join('')
-
-    const secoesNotas = documentos.map(doc => {
-        const eventos = Array.isArray(doc.eventos) ? doc.eventos.slice().reverse() : []
-        return `
-            <div class="fis-secao">
-                <div class="fis-secao-topo">
-                    <b>NF-e ${doc.numero ? `nº ${esc(doc.numero)}${doc.serie ? ` · série ${esc(doc.serie)}` : ''}` : '· sem número'}</b>
-                    ${etiquetaFis(STATUS_FISCAL, doc.status)}
-                    <small class="fis-secao-info">${doc.ambiente === 'producao' ? 'Produção' : 'Homologação'}${doc.valor_total ? ` · ${dinheiro(doc.valor_total)}` : ''}</small>
-                </div>
-                ${doc.chave ? `<div class="fis-chave">Chave <code>${esc(doc.chave)}</code>${doc.protocolo ? ` <span>· protocolo <code>${esc(doc.protocolo)}</code></span>` : ''}</div>` : ''}
-                <span class="fis-subtitulo">Comunicação com a SEFAZ ${contador(eventos.length)}</span>
-                ${eventos.length ? lista(eventos.map(e => linhaHist(e.em, e.por, e.acao, e.detalhe))) : '<small>Sem registros.</small>'}
-            </div>`
-    }).join('')
-
-    // Motivo da recusa: uma vez só (da nota mais recente; senão, o do cartão).
-    const mensagensNota = (Array.isArray(nota?.mensagens) ? nota.mensagens : []).filter(Boolean)
-    const alerta = i.emissao_status === 'ERRO' || (nota && nota.status !== 'AUTORIZADA' && mensagensNota.length)
-        ? (mensagensNota.length ? mensagensNota.map(esc).join('<br>') : esc(i.emissao_mensagem || ''))
-        : ''
-
-    const omie = (i.notas_omie || []).filter(n => n.n_nota)
-    const historico = (i.historico || []).slice().reverse()
     const elemento = `
-        <div class="fis-painel fis-doc fis-nota fluxo-item-painel">
-            <div class="fis-nota-topo ${tom}">
+        <div class="fis-painel fis-doc fis-nota">
+            <div class="fis-nota-topo ${faturada ? 'ok' : 'rascunho'}">
                 <div class="fis-nota-titulo">
                     <b>${esc(d.cliente || 'Cliente não informado')}</b>
-                    <div class="fis-nota-etiquetas">
-                        ${etiquetaEst(ETAPAS_NOME_FLUXO[i.etapa] || i.etapa, corEtapa)}
-                        ${i.empresa ? etiquetaEst(i.empresa, '#475569') : ''}
-                    </div>
-                    <small>${esc([i.contrato || i.departamento, d.cidade].filter(Boolean).join(' · '))}</small>
+                    <div class="fis-nota-etiquetas">${i.empresa ? etiquetaEst(i.empresa, '#475569') : ''}</div>
+                    <small>${esc([i.contrato || i.departamento, d.cidade].filter(Boolean).join(' · '))} · ainda sem NF-e do GCS</small>
                 </div>
-                <div class="fis-nota-valor">
-                    <span>Valor do item</span>
-                    <b>${i.valor ? dinheiro(i.valor) : '—'}</b>
-                </div>
+                <div class="fis-nota-valor"><span>Valor do item</span><b>${i.valor ? dinheiro(i.valor) : '—'}</b></div>
             </div>
-
-            ${resumoDocumentoFis({}, [
-                ['Orçamento', esc(i.contrato || i.departamento || '—')],
-                ['Pedido', esc(i.numero_pedido || '—')],
-                ['Empresa', esc(i.empresa || '—')],
-                ['Requisições', esc(String(i.requisicoes || 0))]
-            ])}
-
-            ${alerta ? `<div class="fis-alerta"><b>Emissão recusada:</b> ${alerta}</div>` : ''}
-
-            ${acoes ? `<div class="fis-acoes-claras fis-nota-acoes">${acoes}</div>` : ''}
-
-            ${secoesNotas || `<div class="fis-secao"><div class="fis-secao-topo"><b>NF-e</b></div><small>Nenhuma NF-e do GCS para este item ainda.</small></div>`}
-
-            ${omie.length ? `
-                <details class="fis-secao"><summary><b>Notas do Omie</b> ${contador(omie.length)}</summary>
-                    ${lista(omie.map(n => `<li><small>${esc(n.data || '')}</small> NF ${esc(String(n.n_nota).replace(/^0+/, ''))} · ${esc(n.categoria || '')}${n.total ? ` · ${dinheiro(n.total)}` : ''}${n.cancelado === 'S' ? ' · <small>cancelada</small>' : ''}</li>`))}
-                </details>` : ''}
-
-            <details class="fis-secao"><summary><b>Histórico do cartão</b> ${contador(historico.length)}</summary>
-                ${historico.length ? lista(historico.map(h => linhaHist(h.em, h.por,
-                    h.de && h.para ? `${ETAPAS_NOME_FLUXO[h.de] || h.de} → ${ETAPAS_NOME_FLUXO[h.para] || h.para}` : (ETAPAS_NOME_FLUXO[h.para] || h.origem || ''),
-                    h.detalhe))) : '<small>Sem registros.</small>'}
-            </details>
+            ${i.orcamento_id ? `<div class="fis-acoes-claras fis-nota-acoes"><button type="button" class="fis-mini" onclick="abrirEsquema('${esc(i.orcamento_id)}')">Histórico do Orçamento</button></div>` : ''}
+            ${blocoItemFluxoHtml(d)}
         </div>`
-    popup({ elemento, titulo: `Item ${i.contrato || i.departamento || ''}`.trim() })
+    popup({ titulo: `Venda ${i.contrato || i.departamento || ''}`.trim(), elemento })
 }
 
 // ---------------- Menu ⋮ do cartão ----------------
@@ -494,14 +466,13 @@ function abrirMenuItemFluxo(evento, id) {
     if (!c) return
     const nota = notasItemFluxo(c).at(-1)
     const opcoes = [
-        ['Detalhes', `abrirItemFluxo('${id}')`],
         c.orcamento_id ? ['Histórico do Orçamento', `abrirEsquema('${escaparAtributo(c.orcamento_id)}')`] : null,
         nota && c.etapa === 'separado' ? ['Editar NF-e', `editarNotaItemFluxo('${id}')`] : null,
         nota && c.emissao_status !== 'OK' ? ['Espelho (PDF)', `espelhoNotaItemFluxo('${escaparAtributo(nota)}')`] : null,
         nota && c.emissao_status === 'OK' ? ['DANFE', `baixarArquivoFiscal('${escaparAtributo(nota)}', 'danfe')`] : null,
         nota && c.emissao_status === 'OK' ? ['XML', `baixarArquivoFiscal('${escaparAtributo(nota)}', 'xml')`] : null,
-        nota ? ['Abrir a nota', `abrirDocumentoFiscal('${escaparAtributo(nota)}')`] : null
     ].filter(Boolean)
+    if (!opcoes.length) return
     const menu = document.createElement('div')
     menu.className = 'fluxo-menu'
     menu.dataset.id = id

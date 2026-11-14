@@ -196,11 +196,15 @@ async function abrirDocumentoFiscal(id) {
     overlayAguarde()
     try {
         const dados = await apiFiscal('documento', { id })
+        // Nota emitida que pertence a uma venda do kanban: traz o bloco "Venda no fluxo" (tela única).
+        const contexto = dados.documento.direcao === 'SAIDA'
+            ? await apiModuloFiscal('fluxo-itens/detalhe', { nota: id }).catch(() => null)
+            : null
         removerOverlay()
         // Reabre no lugar: fecha a janela anterior do mesmo documento.
         const anterior = document.querySelector(`[data-doc-fiscal="${CSS.escape(id)}"]`)?.closest('.popup')?.id
         if (anterior) removerPopup(anterior)
-        const html = dados.documento.direcao === 'ENTRADA' ? htmlNotaRecebida(dados) : htmlNotaEmitida(dados)
+        const html = dados.documento.direcao === 'ENTRADA' ? htmlNotaRecebida(dados) : htmlNotaEmitida(dados, contexto)
         popup({ titulo: dados.documento.direcao === 'ENTRADA' ? 'Nota recebida' : 'Nota emitida', elemento: html })
     } catch (err) {
         removerOverlay()
@@ -558,7 +562,9 @@ function criarLinhaNotaEmitida(d) {
         </tr>`
 }
 
-function htmlNotaEmitida({ documento: d, itens, movimentos }) {
+// contexto (opcional): detalhe do item do Fluxo de Vendas (gcs /fluxo-itens/detalhe) — acrescenta o bloco
+// "Venda no fluxo" (tela única da venda: kanban e NF-e Emitidas).
+function htmlNotaEmitida({ documento: d, itens, movimentos }, contexto = null) {
     const entrada = d.payload?.entrada || {}
     const o = entrada.opcoes || {}
     const editavel = ['RASCUNHO', 'REJEITADA'].includes(d.status)
@@ -610,7 +616,7 @@ function htmlNotaEmitida({ documento: d, itens, movimentos }) {
                 ${d.status === 'AUTORIZADA' ? botao(nfse ? 'DANFSe' : 'DANFE', `baixarArquivoFiscal('${escFis(d.id)}', 'danfe')`) + botao('XML', `baixarArquivoFiscal('${escFis(d.id)}', 'xml')`) : ''}
                 ${!nfse && d.status !== 'AUTORIZADA' && entrada.itens ? botao('Espelho (PDF)', `espelhoNotaItemFluxo('${escFis(d.id)}')`) : ''}
                 ${d.status === 'PROCESSANDO' || d.status === 'AUTORIZADA' ? botao('Atualizar situação', `consultarDocumentoFiscal('${escFis(d.id)}')`) : ''}
-                ${/^ORC_/.test(orc) ? botao('Histórico do Orçamento', `abrirEsquemaPorContratoFis('${escFis(orc)}')`) : ''}
+                ${contexto?.item?.orcamento_id ? botao('Histórico do Orçamento', `abrirEsquema('${escFis(contexto.item.orcamento_id)}')`) : /^ORC_/.test(orc) ? botao('Histórico do Orçamento', `abrirEsquemaPorContratoFis('${escFis(orc)}')`) : ''}
                 ${!editavel ? botao('Duplicar', `duplicarDocumentoFiscal('${escFis(d.id)}')`) : ''}
                 <span class="fis-separador"></span>
                 ${d.status === 'AUTORIZADA' ? botao('Cancelar nota', `cancelarDocumentoFiscal('${escFis(d.id)}')`) : ''}
@@ -652,6 +658,7 @@ function htmlNotaEmitida({ documento: d, itens, movimentos }) {
                     <table class="fis-tabela"><tbody>${movimentos.map(m => linhaMovimentoEst(m, { comItem: true, acoes: false })).join('')}</tbody></table>
                 </details>` : ''}
             ${historicoFiscal(d)}
+            ${contexto && typeof blocoItemFluxoHtml === 'function' ? blocoItemFluxoHtml(contexto) : ''}
         </div>`
 }
 
