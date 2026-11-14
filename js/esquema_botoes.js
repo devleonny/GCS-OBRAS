@@ -63,6 +63,9 @@ function iconeSilhuetaMenu(chave) {
         combustivel: '<path fill-rule="evenodd" d="M3 2h11v18h2v2H1v-2h2V2zm2 3v5h7V5H5z"/><path d="m17 3 5 5v10a3 3 0 0 1-6 0v-5h-2v-2h4v7a1 1 0 0 0 2 0v-7h-2V7l-3-3 2-1z"/>',
         reembolso: '<path fill-rule="evenodd" d="M5 2h14v20l-3-2-4 2-4-2-3 2V2zm3 4v2h8V6H8zm0 5v2h8v-2H8zm0 5v2h5v-2H8z"/>',
         dinheiro: '<path fill-rule="evenodd" d="M2 5h20v14H2V5zm10 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/><path d="M11 8h2v8h-2z"/>',
+        // Financeiro: a pagar = dinheiro saindo (seta para cima, saindo da bandeja); a receber = entrando (seta para baixo).
+        pagar: '<path d="M12 1 6.5 6.5 8 8l3-3v9h2V5l3 3 1.5-1.5L12 1z"/><path d="M2 13h5l2 3h6l2-3h5v9H2v-9z"/>',
+        receber: '<path d="M11 1h2v9l3-3 1.5 1.5L12 14 6.5 8.5 8 7l3 3V1z"/><path d="M2 13h5l2 3h6l2-3h5v9H2v-9z"/>',
         kanban: '<path fill-rule="evenodd" d="M2 3h20v18H2V3zm3 3v10h3V6H5zm6 0v6h3V6h-3zm6 0v12h3V6h-3z"/>',
         composicoes: '<path d="m12 2 10 5-10 5L2 7l10-5zM2 11l10 5 10-5v4l-10 5-10-5v-4zm0 8 10 5 10-5v-2l-10 5-10-5v2z"/>',
         pesquisar5: '<path fill-rule="evenodd" d="M10 2a8 8 0 1 0 5 14l6 6 2-2-6-6a8 8 0 0 0-7-12zm0 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/>',
@@ -330,8 +333,8 @@ const esquemaBotoes = {
             permitido: ['fin', 'diretoria', 'adm'],
             img: 'dinheiro',
             sub: [
-                { nome: 'Faturas a Pagar', funcao: 'telaFaturasPagar', img: 'dinheiro' },
-                { nome: 'Faturas a Receber', funcao: 'telaFaturasReceber', img: 'dinheiro' },
+                { nome: 'Faturas a Pagar', funcao: 'telaFaturasPagar', img: 'pagar' },
+                { nome: 'Faturas a Receber', funcao: 'telaFaturasReceber', img: 'receber' },
                 { nome: 'Contas Correntes', funcao: 'telaContasFin', img: 'planilha' },
                 { nome: 'Categorias', funcao: 'telaCategoriasFin', img: 'prancheta' },
                 { nome: 'Dashboard', funcao: 'telaDashboardReembolsos', img: 'dashboard' }
