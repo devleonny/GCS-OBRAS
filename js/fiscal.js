@@ -706,6 +706,15 @@ const campoFis = (rotulo, conteudo, classe = '') => `<label class="fis-campo ${c
 const inputFis = (nome, valor = '', extra = '') => `<input class="fis-input" name="${nome}" value="${escFis(valor)}" ${extra}>`
 const opcoesFis = (lista, valor) => lista.map(([v, t]) => `<option value="${escFis(v)}" ${String(v) === String(valor ?? '') ? 'selected' : ''}>${escFis(t)}</option>`).join('')
 
+// Indicador de IE quando o cadastro não diz: "ISENTO" = isento (2); com IE = contribuinte (1, inclusive
+// produtor rural com CPF); sem IE (todo CPF comum) = não contribuinte (9). Antes vinha sempre 1 e a nota
+// de pessoa física era barrada por "contribuinte sem Inscrição Estadual".
+function indicadorPadraoFis(dest = {}) {
+    const ie = String(dest.inscricao_estadual || '').trim().toUpperCase()
+    if (/^ISENT/.test(ie)) return '2'
+    return ie ? '1' : '9'
+}
+
 function blocoDestinatarioFis(dest = {}, { nfse = false } = {}) {
     return `
         <fieldset class="fis-passo">
@@ -713,7 +722,7 @@ function blocoDestinatarioFis(dest = {}, { nfse = false } = {}) {
             <div class="fis-grade">
                 ${campoFis('CPF / CNPJ', inputFis('d_documento', docFormatadoFis(dest.documento), 'inputmode="numeric" onchange="buscarParticipanteFis(this)"'), 'fis-destaque')}
                 ${campoFis('Nome / razão social', inputFis('d_nome', dest.nome), 'fis-largo')}
-                ${nfse ? '' : campoFis('Contribuinte do ICMS?', `<select class="fis-input" name="d_indicador_ie" onchange="agendarPreviaFis()">${opcoesFis([['1', '1 · Contribuinte (tem IE)'], ['2', '2 · Isento'], ['9', '9 · Não contribuinte']], dest.indicador_ie || '1')}</select>`)}
+                ${nfse ? '' : campoFis('Contribuinte do ICMS?', `<select class="fis-input" name="d_indicador_ie" onchange="agendarPreviaFis()">${opcoesFis([['1', '1 · Contribuinte (tem IE)'], ['2', '2 · Isento'], ['9', '9 · Não contribuinte']], dest.indicador_ie || indicadorPadraoFis(dest))}</select>`)}
                 ${nfse ? '' : campoFis('Inscrição estadual', inputFis('d_inscricao_estadual', dest.inscricao_estadual))}
                 ${campoFis('CEP', inputFis('d_cep', dest.cep, 'inputmode="numeric" maxlength="9"'))}
                 ${campoFis('Logradouro', inputFis('d_logradouro', dest.logradouro), 'fis-largo')}
@@ -762,6 +771,9 @@ async function buscarParticipanteFis(input) {
             const campo = form.querySelector(`[name="d_${k}"]`)
             if (campo && v != null && v !== '' && k !== 'documento') campo.value = k === 'indicador_ie' ? String(v) : v
         }
+        // Sem indicador no cadastro: pelo IE (com IE = 1, ISENTO = 2, sem IE = 9).
+        const indicador = form.querySelector('[name="d_indicador_ie"]')
+        if (indicador && !p.indicador_ie) indicador.value = indicadorPadraoFis({ ...p, documento: doc })
         aviso.innerHTML = `<small class="fis-positivo">Dados ${p.fonte === 'fiscal' ? 'de notas anteriores' : 'do cadastro de clientes'}: confira.</small>`
         agendarPreviaFis()
     } catch (err) {
