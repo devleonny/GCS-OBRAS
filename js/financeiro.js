@@ -12,8 +12,9 @@ const dataFin = v => v ? String(v).slice(0, 10).split('-').reverse().join('/') :
 const hojeFin = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date())
 
 const SITUACOES_FIN = {
-    ABERTO: { cor: '#2563eb', texto: 'Em aberto' },
-    PARCIAL: { cor: '#d97706', texto: 'Parcial' },
+    // Pela data (vw_fin_titulos): venceu e não está pago = atrasado; hoje = vence hoje; depois = a vencer.
+    'A VENCER': { cor: '#2563eb', texto: 'A vencer' },
+    'VENCE HOJE': { cor: '#d97706', texto: 'Vence hoje' },
     ATRASADO: { cor: '#b91c1c', texto: 'Atrasado' },
     PAGO: { cor: '#15803d', texto: 'Pago' },
     CANCELADO: { cor: '#64748b', texto: 'Cancelado' }
@@ -265,7 +266,7 @@ async function telaFaturasFin(tipo, filtroExtra = null) {
                 'Categoria': { chave: 'categoria', tipoPesquisa: 'select' },
                 'Parcela': { chave: 'parcela_texto' },
                 'Valor': { chave: 'valor', op: '>=', tipoOrdenacao: 'numero' },
-                'Saldo': { chave: 'saldo', op: '>=', tipoOrdenacao: 'numero' },
+                [tipo === 'PAGAR' ? 'Pago em' : 'Recebido em']: { chave: 'dia_pagamento', tipoPesquisa: 'data' },
                 'Situação': { chave: 'situacao', tipoPesquisa: 'select' },
                 'Origem': { chave: 'origem', tipoPesquisa: 'select' }
             }
@@ -296,19 +297,19 @@ async function cartoesFaturasFin(tipo, forcar = true) {
     const soma = async (path, f) => {
         try { return Number((await contarPorCampo({ base: 'vw_fin_titulos', path, modo: 'soma', filtros: f }))?.total || 0) } catch { return null }
     }
-    const [atrasado, aberto, parcial, totalValor, totalSaldo] = await Promise.all([
-        soma('saldo', comSituacao('ATRASADO')), soma('saldo', comSituacao('ABERTO')), soma('saldo', comSituacao('PARCIAL')),
+    const [atrasado, hoje, aVencer, totalValor, totalSaldo] = await Promise.all([
+        soma('saldo', comSituacao('ATRASADO')), soma('saldo', comSituacao('VENCE HOJE')), soma('saldo', comSituacao('A VENCER')),
         soma('valor', filtros), soma('saldo', filtros)
     ])
     if (assinatura !== assinaturaCartoesFin) return
     const cartao = (valor, texto, cor, situacao) => `
         <button type="button" class="fis-cartao" style="--cor: ${cor}" onclick="telaFaturasFin('${tipo}', { situacao: { op: '=', value: '${situacao}' } })">
             <b>${valor == null ? '—' : dinheiroTexto(valor)}</b><span>${texto}</span></button>`
-    alvo.innerHTML = cartao(atrasado, 'atrasado', '#b91c1c', 'ATRASADO') + cartao(aberto, 'em aberto', '#2563eb', 'ABERTO')
-        + cartao(parcial, 'parcial (saldo)', '#d97706', 'PARCIAL') + `
+    alvo.innerHTML = cartao(atrasado, 'atrasado', '#b91c1c', 'ATRASADO') + cartao(hoje, 'vence hoje', '#d97706', 'VENCE HOJE')
+        + cartao(aVencer, 'a vencer', '#2563eb', 'A VENCER') + `
         <div class="fis-cartao fin-cartao-total" style="--cor: #356443">
             <b>${totalValor == null ? '—' : dinheiroTexto(totalValor)}</b>
-            <span>${filtrado ? 'total do filtro' : 'total'} · saldo ${totalSaldo == null ? '—' : dinheiroTexto(totalSaldo)}</span>
+            <span>${filtrado ? 'total do filtro' : 'total'} · falta ${tipoFaturasFin === 'PAGAR' ? 'pagar' : 'receber'} ${totalSaldo == null ? '—' : dinheiroTexto(totalSaldo)}</span>
         </div>`
 }
 
@@ -321,7 +322,10 @@ function criarLinhaFaturaFin(d) {
     const s = SITUACOES_FIN[d.situacao] || {}
     return `
         <tr>
-            <td class="fis-acoes-linha"><img src="imagens/pesquisar.svg" title="Abrir" onclick="abrirFaturaFin('${escFin(d.id)}')"></td>
+            <td class="fis-acoes-linha fin-acoes-linha">
+                <img src="imagens/pesquisar.svg" title="Abrir" onclick="abrirFaturaFin('${escFin(d.id)}')">
+                ${['PAGO', 'CANCELADO'].includes(d.situacao) ? '' : `<button type="button" class="fin-baixar" title="Dar baixa: marcar como ${d.tipo === 'PAGAR' ? 'pago' : 'recebido'}" onclick="formularioBaixaRapidaFin('${escFin(d.id)}')">✓</button>`}
+            </td>
             <td>${dataFin(d.vencimento)}</td>
             <td>${escFin(d.app)}</td>
             <td class="fis-descricao">${escFin(d.participante_nome || '')}${d.participante_documento ? `<small>${docFormatadoFis(d.participante_documento)}</small>` : ''}</td>
@@ -329,7 +333,7 @@ function criarLinhaFaturaFin(d) {
             <td><small>${escFin(d.categoria || '—')}</small></td>
             <td>${escFin(d.parcela_texto)}</td>
             <td class="fis-num">${dinheiro(d.valor)}</td>
-            <td class="fis-num"><b>${dinheiro(d.saldo)}</b></td>
+            <td>${d.dia_pagamento ? dataFin(d.dia_pagamento) : ''}</td>
             <td>${etiquetaEst(s.texto || d.situacao, s.cor)}</td>
             <td><small>${escFin(ORIGENS_FIN[d.origem] || d.origem)}</small></td>
         </tr>`
@@ -352,7 +356,7 @@ async function abrirFaturaFin(id) {
             titulo: `Fatura a ${pagar ? 'pagar' : 'receber'}`,
             elemento: `
                 <div class="fis-painel fis-doc fis-nota" data-fatura-fin="${escFin(t.id)}">
-                    <div class="fis-nota-topo ${{ PAGO: 'ok', ATRASADO: 'erro', CANCELADO: 'neutro', PARCIAL: 'andando' }[t.situacao] || 'rascunho'}">
+                    <div class="fis-nota-topo ${{ PAGO: 'ok', ATRASADO: 'erro', CANCELADO: 'neutro', 'VENCE HOJE': 'andando' }[t.situacao] || 'rascunho'}">
                         <div class="fis-nota-titulo">
                             <b>${escFin(t.participante_nome || '(sem nome)')}</b>
                             <div class="fis-nota-etiquetas">${etiquetaEst(s.texto || t.situacao, s.cor)} ${etiquetaEst(t.app, '#356443')}</div>
@@ -364,7 +368,7 @@ async function abrirFaturaFin(id) {
                         ['Vencimento', dataFin(t.vencimento)],
                         ['Parcela', escFin(t.parcela_texto)],
                         ['Valor', dinheiro(t.valor)],
-                        [pagar ? 'Pago' : 'Recebido', dinheiro(t.pago)],
+                        [pagar ? 'Pago' : 'Recebido', `${dinheiro(t.pago)}${t.dia_pagamento ? ` <small>em ${dataFin(t.dia_pagamento)}</small>` : ''}`],
                         ['Categoria', escFin(t.categoria || '—')],
                         ['Conta', escFin(t.conta || 'padrão da empresa')],
                         ['Origem', origem],
@@ -374,7 +378,9 @@ async function abrirFaturaFin(id) {
                     ${t.observacao ? `<div class="fis-info">${escFin(t.observacao)}</div>` : ''}
                     ${t.situacao === 'CANCELADO' ? `<div class="fis-alerta">Cancelada: ${escFin(t.cancelamento_motivo || '')}</div>` : ''}
                     <div class="fis-acoes-claras fis-nota-acoes">
-                        ${['ABERTO', 'PARCIAL', 'ATRASADO'].includes(t.situacao) ? `<button type="button" class="fis-botao" onclick="formularioBaixaFin('${escFin(t.id)}')">Registrar ${pagar ? 'pagamento' : 'recebimento'}</button>` : ''}
+                        ${!['PAGO', 'CANCELADO'].includes(t.situacao) ? `
+                            <button type="button" class="fis-botao" onclick="formularioBaixaRapidaFin('${escFin(t.id)}')">Dar baixa (${pagar ? 'pago' : 'recebido'})</button>
+                            <button type="button" class="fis-mini" onclick="formularioBaixaFin('${escFin(t.id)}')">${pagar ? 'Pagamento' : 'Recebimento'} parcial / com juros</button>` : ''}
                         ${t.situacao !== 'CANCELADO' ? `<button type="button" class="fis-mini" onclick="formularioFaturaFin('${t.tipo}', '${escFin(t.id)}')">Editar</button>` : ''}
                         ${['MANUAL', 'RECORRENCIA'].includes(t.origem) && t.situacao !== 'CANCELADO' && !vivas.length ? `<button type="button" class="fis-mini" onclick="cancelarFaturaFin('${escFin(t.id)}')">Cancelar ${t.recorrencia_id ? 'só esta' : 'fatura'}</button>` : ''}
                         ${t.recorrencia_id ? `<span class="fis-separador"></span><small class="fis-nota-acoes-rotulo">Repete ${escFin(nomeFrequenciaFin(t.recorrencia_frequencia).toLowerCase())}</small>
@@ -687,6 +693,63 @@ async function formularioBaixaFin(id) {
         }],
         botoes: [{ texto: 'Registrar', img: 'concluido', funcao: 'salvarBaixaFin(this)' }]
     })
+}
+
+// Dar baixa: quita o que falta da fatura escolhendo só a conta e a data real do pagamento.
+async function formularioBaixaRapidaFin(id) {
+    let op, t
+    try {
+        overlayAguarde()
+        ;[op, { titulo: t }] = await Promise.all([carregarOpcoesFin(), apiFin('titulo', { id })])
+        removerOverlay()
+    } catch (err) {
+        removerOverlay()
+        return popup({ mensagem: mensagemErroEst(err) })
+    }
+    const pagar = t.tipo === 'PAGAR'
+    const contas = op.contas.filter(k => k.app === t.app)
+    const padrao = t.conta_id || contas.find(k => k.padrao)?.id
+    popup({
+        titulo: `Dar baixa: ${pagar ? 'pago' : 'recebido'}`,
+        linhas: [{
+            elemento: `
+                <div class="fis-form" data-form-baixa-rapida data-id="${escFin(t.id)}" data-valor="${r2Fin(t.saldo)}" data-forma="${escFin(t.forma_pagamento || '')}">
+                    <div class="fin-baixa-resumo">
+                        <b>${escFin(t.participante_nome || '')}</b>
+                        <span>${escFin(t.descricao || '')} · parcela ${escFin(t.parcela_texto)} · vence ${dataFin(t.vencimento)}</span>
+                        <strong>${dinheiro(t.saldo)}</strong>
+                    </div>
+                    <div class="fis-grade">
+                        <label class="fis-campo fis-largo"><span>Conta corrente *</span><select class="fis-input" name="conta_id">
+                            ${contas.length ? contas.map(k => `<option value="${k.id}" ${k.id === padrao ? 'selected' : ''}>${escFin(k.nome)}${k.padrao ? ' (padrão)' : ''}</option>`).join('') : '<option value="">Nenhuma conta desta empresa</option>'}
+                        </select></label>
+                        <label class="fis-campo"><span>Data real ${pagar ? 'do pagamento' : 'do recebimento'} *</span><input class="fis-input" type="date" name="data" max="${hojeFin()}" value="${hojeFin()}"></label>
+                    </div>
+                    <small class="fis-dica">Valor diferente, juros ou desconto: use "${pagar ? 'Pagamento' : 'Recebimento'} parcial / com juros" na fatura.</small>
+                </div>`
+        }],
+        botoes: [{ texto: pagar ? 'Marcar como pago' : 'Marcar como recebido', img: 'concluido', funcao: 'salvarBaixaRapidaFin(this)' }]
+    })
+}
+
+async function salvarBaixaRapidaFin(botao) {
+    const form = document.querySelector('[data-form-baixa-rapida]')
+    const conta = form.querySelector('[name="conta_id"]').value
+    const data = form.querySelector('[name="data"]').value
+    if (!conta) return popup({ mensagem: 'Escolha a conta corrente.' })
+    if (!data) return popup({ mensagem: 'Informe a data real do pagamento.' })
+    const id = form.dataset.id
+    try {
+        overlayAguarde()
+        await apiFin('baixar', { titulo_id: id, data, valor: form.dataset.valor, conta_id: conta, forma: form.dataset.forma || undefined })
+        removerOverlay()
+        removerPopup(botao?.closest('.popup')?.id)
+        if (document.querySelector(`[data-fatura-fin="${CSS.escape(String(id))}"]`)) abrirFaturaFin(id)
+        if (controles.faturasFin) { paginacao('faturasFin'); cartoesFaturasFin(tipoFaturasFin) }
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
 }
 
 async function salvarBaixaFin(botao) {

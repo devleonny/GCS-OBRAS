@@ -292,3 +292,41 @@
 }
 
 .fin-repetir [hidden] { display: none; }
+
+/* ---------- baixa rápida (linha da tabela e janela) */
+.fin-acoes-linha {
+    white-space: nowrap;
+}
+
+.fin-acoes-linha > * {
+    vertical-align: middle;
+}
+
+.fin-baixar {
+    width: 1.6rem;
+    height: 1.6rem;
+    margin-left: 4px;
+    padding: 0;
+    border: 1px solid #8cb69a;
+    border-radius: 6px;
+    background: #eef8f1;
+    color: #1f8f4e;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.fin-baixar:hover,
+.fin-baixar:focus-visible { background: #1f8f4e; color: #fff; }
+
+.fin-baixa-resumo {
+    display: grid;
+    gap: 2px;
+    padding: 10px 12px;
+    border: 1px solid #c9d8ce;
+    border-left: 4px solid #1f8f4e;
+    border-radius: 8px;
+    background: #f6fbf7;
+}
+
+.fin-baixa-resumo span { font-size: 12px; color: #5b6b61; }
+.fin-baixa-resumo strong { font-size: 1.3rem; }
