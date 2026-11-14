@@ -435,6 +435,101 @@ async function abrirItemFluxo(id) {
     popup({ elemento, titulo: `Item ${i.contrato || i.departamento || ''}`.trim() })
 }
 
+// ---------------- Menu ⋮ do cartão ----------------
+// Atalhos conforme a situação: detalhes, orçamento, editar a NF-e salva (Separado), espelho, DANFE e XML.
+// fiscal_ids pode vir como array ou como texto do Postgres ('{a,b}').
+const notasItemFluxo = c => Array.isArray(c?.fiscal_ids) ? c.fiscal_ids : String(c?.fiscal_ids || '').replace(/[{}"]/g, '').split(',').filter(Boolean)
+
+function fecharMenuItemFluxo() {
+    document.querySelector('.fluxo-menu')?.remove()
+    document.removeEventListener('click', fecharMenuItemFluxo, true)
+    window.removeEventListener('scroll', fecharMenuItemFluxo, true)
+}
+
+function abrirMenuItemFluxo(evento, id) {
+    evento.stopPropagation()
+    const jaAberto = document.querySelector(`.fluxo-menu[data-id="${CSS.escape(id)}"]`)
+    fecharMenuItemFluxo()
+    if (jaAberto) return
+    const c = itemFluxo(id)
+    if (!c) return
+    const nota = notasItemFluxo(c).at(-1)
+    const opcoes = [
+        ['Detalhes', `abrirItemFluxo('${id}')`],
+        c.orcamento_id ? ['Abrir orçamento', `abrirEsquema('${escaparAtributo(c.orcamento_id)}')`] : null,
+        nota && c.etapa === 'separado' ? ['Editar NF-e', `editarNotaItemFluxo('${id}')`] : null,
+        nota && c.emissao_status !== 'OK' ? ['Espelho (PDF)', `espelhoNotaItemFluxo('${escaparAtributo(nota)}')`] : null,
+        nota && c.emissao_status === 'OK' ? ['DANFE', `baixarArquivoFiscal('${escaparAtributo(nota)}', 'danfe')`] : null,
+        nota && c.emissao_status === 'OK' ? ['XML', `baixarArquivoFiscal('${escaparAtributo(nota)}', 'xml')`] : null,
+        nota ? ['Abrir a nota', `abrirDocumentoFiscal('${escaparAtributo(nota)}')`] : null
+    ].filter(Boolean)
+    const menu = document.createElement('div')
+    menu.className = 'fluxo-menu'
+    menu.dataset.id = id
+    menu.innerHTML = opcoes.map(([texto, acao]) =>
+        `<button type="button" onclick="event.stopPropagation(); fecharMenuItemFluxo(); ${acao}">${texto}</button>`).join('')
+    document.body.appendChild(menu)
+    // Abaixo do botão, alinhado à direita, sem sair da tela.
+    const r = evento.currentTarget.getBoundingClientRect()
+    const largura = menu.offsetWidth, altura = menu.offsetHeight
+    menu.style.left = `${Math.max(8, Math.min(r.right - largura, window.innerWidth - largura - 8))}px`
+    menu.style.top = `${r.bottom + altura + 8 > window.innerHeight ? Math.max(8, r.top - altura - 4) : r.bottom + 4}px`
+    setTimeout(() => {
+        document.addEventListener('click', fecharMenuItemFluxo, true)
+        window.addEventListener('scroll', fecharMenuItemFluxo, true)
+    })
+}
+
+// Nota salva do item (rascunho/recusada) de volta no formulário da separação, para corrigir e salvar.
+async function editarNotaItemFluxo(id) {
+    const c = itemFluxo(id)
+    const notaId = notasItemFluxo(c).at(-1)
+    if (!notaId) return
+    try {
+        overlayAguarde()
+        const { documento } = await apiFiscal('documento', { id: notaId })
+        removerOverlay()
+        const entrada = documento?.payload?.entrada
+        if (!entrada) return popup({ mensagem: 'Esta nota não tem os dados de emissão salvos.' })
+        if (!['RASCUNHO', 'REJEITADA'].includes(documento.status))
+            return popup({ mensagem: `A nota está ${String(documento.status || '').toLowerCase()} e não pode mais ser alterada.` })
+        await formularioEmissaoNFe({ ...entrada, id: notaId, fluxo_item: id })
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+// Espelho (PDF) a partir da nota salva do item (sem abrir o formulário).
+async function espelhoNotaItemFluxo(notaId) {
+    const aba = window.open('', '_blank')
+    try {
+        overlayAguarde()
+        const { documento } = await apiFiscal('documento', { id: notaId })
+        const entrada = documento?.payload?.entrada
+        if (!entrada) throw new Error('Esta nota não tem os dados de emissão salvos.')
+        const { token } = JSON.parse(localStorage.getItem('acesso') || '{}')
+        const resposta = await fetch(`${api}/fiscal/emissao/espelho`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify(entrada)
+        })
+        removerOverlay()
+        if (!resposta.ok) {
+            const r = await resposta.json().catch(() => ({}))
+            throw Object.assign(new Error(r.mensagem || `Falha ao gerar o espelho (${resposta.status})`), { erros: r.erros })
+        }
+        const url = URL.createObjectURL(await resposta.blob())
+        if (aba) aba.location = url
+        else window.open(url, '_blank')
+        setTimeout(() => URL.revokeObjectURL(url), 5 * 60 * 1000)
+    } catch (err) {
+        removerOverlay()
+        aba?.close()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
 // Cartão do quadro novo (vw_fluxo_itens): item que anda até Concluído; marca verde/vermelha da emissão.
 function cartaoItemFluxo(c, parado, tempo) {
     const nfs = (Array.isArray(c.notas) ? c.notas : [])
@@ -460,7 +555,9 @@ function cartaoItemFluxo(c, parado, tempo) {
     const abrir = `onclick="abrirItemFluxo('${id}')" onkeydown="if (event.key === 'Enter') abrirItemFluxo('${id}')"`
     return `
         <article class="fluxo-cartao fluxo-item ${estado} ${parado ? 'parado' : ''} ${c.orcamento_id ? 'clicavel' : ''}" data-id="${id}" tabindex="0" ${dica} ${arrastavel} ${abrir}>
-            <span class="fluxo-cartao-linha"><span>${escaparAtributo(c.contrato || c.departamento || 'Sem orçamento')}${pedidoCartaoFluxo(c.numero_pedido)}</span>${tempo}</span>
+            <span class="fluxo-cartao-linha"><span>${escaparAtributo(c.contrato || c.departamento || 'Sem orçamento')}${pedidoCartaoFluxo(c.numero_pedido)}</span>
+                <span class="fluxo-cartao-cantos">${tempo}<button type="button" class="fluxo-menu-btn" title="Mais opções" aria-label="Mais opções"
+                    onclick="abrirMenuItemFluxo(event, '${id}')">⋮</button></span></span>
             <b class="fluxo-cartao-nome">${escaparAtributo(c.cliente || 'Cliente não informado')}</b>
             ${c.cidade ? `<small>${escaparAtributo(c.cidade)}</small>` : ''}
             ${contexto ? `<small class="fluxo-cartao-contexto">${escaparAtributo(contexto)}</small>` : ''}
