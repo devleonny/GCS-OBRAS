@@ -456,6 +456,17 @@ function grupoStatusUsuario(status) {
 
 async function painelUsuarios() {
 
+    // Já aberto (mesmo minimizado na barra do rodapé): traz de volta e atualiza, sem abrir outro.
+    const existente = document.querySelector('.popup .painel-usuarios')?.closest('.popup')
+    if (existente) {
+        existente.classList.remove('janela-minimizada')
+        // O clique é o que leva a janela para a frente e marca o foco (js/janelas.js escuta em captura).
+        existente.querySelector('.popup-janela-fora')?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+        try { await carregarUsuariosPainel() } catch (err) { console.error(err) }
+        renderizarPainelUsuarios()
+        return
+    }
+
     overlayAguarde()
 
     try {
