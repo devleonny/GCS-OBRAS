@@ -851,3 +851,17 @@ textarea.fis-input {
     vertical-align: middle;
     box-sizing: border-box;
 }
+
+/* Subtítulo dentro de um cartão de seção (ex.: "Comunicação com a SEFAZ" no painel do item). */
+.fis-nota .fis-subtitulo {
+    margin-top: 4px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #5b6b61;
+}
+
+.fis-nota .fis-secao-info { color: #5b6b61; }
+.fis-nota .fis-lista li { padding: 3px 0; border-bottom: 1px dashed #edf1ee; font-size: 0.82rem; }
+.fis-nota .fis-lista li:last-child { border-bottom: 0; }

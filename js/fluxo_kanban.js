@@ -383,65 +383,89 @@ async function abrirItemFluxo(id) {
         removerOverlay()
         return popup({ mensagem: mensagemErroEst(err) })
     }
-    // Mesma linguagem visual da nota no módulo Fiscal (fis-painel, fis-resumo, fis-secao, fis-lista).
+    // Mesmo visual da tela da nota emitida (js/fiscal.js htmlNotaEmitida): cabeçalho com lateral colorida,
+    // grade de dados, uma faixa de ações e seções em cartões com contador em balão.
     const i = d.item
     const esc = escaparAtributo
+    const documentos = d.documentos || []
+    const nota = documentos[0] // a mais recente
     const lista = linhas => `<ul class="fis-lista">${linhas.join('')}</ul>`
     const linhaHist = (em, por, texto, detalhe) =>
         `<li><small>${esc(dataHoraItemFluxo(em))}${por ? ` · ${esc(por)}` : ''}</small> ${esc(texto)}${detalhe ? ` <small>— ${esc(detalhe)}</small>` : ''}</li>`
-    const etapa = etiquetaEst(ETAPAS_NOME_FLUXO[i.etapa] || i.etapa,
-        i.emissao_status === 'ERRO' ? '#b91c1c' : i.emissao_status === 'OK' ? '#15803d' : '#2563eb')
+    const contador = n => `<span class="fis-contador">${n}</span>`
+    const faturada = i.emissao_status === 'OK' || (i.notas_omie || []).some(n => n.n_nota && n.cancelado !== 'S' && n.categoria !== 'remessa')
+    const tom = i.emissao_status === 'ERRO' ? 'erro' : faturada ? 'ok' : ['EMITINDO', 'PROCESSANDO'].includes(i.emissao_status) ? 'andando' : 'rascunho'
+    const corEtapa = { erro: '#b91c1c', ok: '#15803d', andando: '#d97706', rascunho: '#2563eb' }[tom]
+    const botao = (texto, acao) => `<button type="button" class="fis-mini" onclick="${acao}">${texto}</button>`
 
-    // Histórico do Orçamento: junto dos botões da nota, mesmo estilo.
-    const botaoOrcamento = i.orcamento_id
-        ? `<button type="button" class="fis-mini" onclick="abrirEsquema('${esc(i.orcamento_id)}')">Histórico do Orçamento</button>` : ''
+    const acoes = [
+        nota?.tem_danfe ? botao('DANFE', `baixarArquivoFiscal('${esc(nota.id)}', 'danfe')`) : '',
+        nota?.tem_xml ? botao('XML', `baixarArquivoFiscal('${esc(nota.id)}', 'xml')`) : '',
+        nota && ['RASCUNHO', 'REJEITADA'].includes(nota.status) && i.etapa === 'SEPARADO' ? botao('Editar NF-e', `editarNotaItemFluxo('${esc(i.id)}')`) : '',
+        nota && nota.status !== 'AUTORIZADA' ? botao('Espelho (PDF)', `espelhoNotaItemFluxo('${esc(nota.id)}')`) : '',
+        nota ? botao('Abrir a nota', `abrirDocumentoFiscal('${esc(nota.id)}')`) : '',
+        i.orcamento_id ? botao('Histórico do Orçamento', `abrirEsquema('${esc(i.orcamento_id)}')`) : ''
+    ].join('')
 
-    const notas = (d.documentos || []).map(doc => {
+    const secoesNotas = documentos.map(doc => {
         const eventos = Array.isArray(doc.eventos) ? doc.eventos.slice().reverse() : []
-        const mensagens = (Array.isArray(doc.mensagens) ? doc.mensagens : []).filter(Boolean)
         return `
             <div class="fis-secao">
                 <div class="fis-secao-topo">
-                    <b>NF-e ${doc.numero ? `nº ${esc(doc.numero)}${doc.serie ? ` / série ${esc(doc.serie)}` : ''}` : '(ainda sem número)'}</b>
+                    <b>NF-e ${doc.numero ? `nº ${esc(doc.numero)}${doc.serie ? ` · série ${esc(doc.serie)}` : ''}` : '· sem número'}</b>
                     ${etiquetaFis(STATUS_FISCAL, doc.status)}
-                    <small>${doc.ambiente === 'producao' ? 'Produção' : 'Homologação'}${doc.valor_total ? ` · ${dinheiro(doc.valor_total)}` : ''}</small>
+                    <small class="fis-secao-info">${doc.ambiente === 'producao' ? 'Produção' : 'Homologação'}${doc.valor_total ? ` · ${dinheiro(doc.valor_total)}` : ''}</small>
                 </div>
-                ${doc.chave ? `<div class="fis-chave">Chave: <code>${esc(doc.chave)}</code>${doc.protocolo ? ` · protocolo ${esc(doc.protocolo)}` : ''}</div>` : ''}
-                ${mensagens.length && doc.status !== 'AUTORIZADA' ? `<div class="fis-alerta">${mensagens.map(esc).join('<br>')}</div>` : ''}
-                <div class="fis-acoes-claras">
-                    ${doc.tem_danfe ? `<button type="button" class="fis-mini" onclick="baixarArquivoFiscal('${esc(doc.id)}', 'danfe')">DANFE</button>` : ''}
-                    ${doc.tem_xml ? `<button type="button" class="fis-mini" onclick="baixarArquivoFiscal('${esc(doc.id)}', 'xml')">XML</button>` : ''}
-                    ${['RASCUNHO', 'REJEITADA'].includes(doc.status) && i.etapa === 'SEPARADO' ? `<button type="button" class="fis-mini" onclick="editarNotaItemFluxo('${esc(i.id)}')">Editar NF-e</button>` : ''}
-                    ${doc.status !== 'AUTORIZADA' ? `<button type="button" class="fis-mini" onclick="espelhoNotaItemFluxo('${esc(doc.id)}')">Espelho (PDF)</button>` : ''}
-                    <button type="button" class="fis-mini" onclick="abrirDocumentoFiscal('${esc(doc.id)}')">Abrir a nota</button>
-                    ${botaoOrcamento}
-                </div>
-                <details class="fis-secao" open><summary><b>Comunicação com a SEFAZ</b> <span class="fis-contador">${eventos.length}</span></summary>
-                    ${eventos.length ? lista(eventos.map(e => linhaHist(e.em, e.por, e.acao, e.detalhe))) : '<small>Sem registros.</small>'}
-                </details>
+                ${doc.chave ? `<div class="fis-chave">Chave <code>${esc(doc.chave)}</code>${doc.protocolo ? ` <span>· protocolo <code>${esc(doc.protocolo)}</code></span>` : ''}</div>` : ''}
+                <span class="fis-subtitulo">Comunicação com a SEFAZ ${contador(eventos.length)}</span>
+                ${eventos.length ? lista(eventos.map(e => linhaHist(e.em, e.por, e.acao, e.detalhe))) : '<small>Sem registros.</small>'}
             </div>`
     }).join('')
+
+    // Motivo da recusa: uma vez só (da nota mais recente; senão, o do cartão).
+    const mensagensNota = (Array.isArray(nota?.mensagens) ? nota.mensagens : []).filter(Boolean)
+    const alerta = i.emissao_status === 'ERRO' || (nota && nota.status !== 'AUTORIZADA' && mensagensNota.length)
+        ? (mensagensNota.length ? mensagensNota.map(esc).join('<br>') : esc(i.emissao_mensagem || ''))
+        : ''
 
     const omie = (i.notas_omie || []).filter(n => n.n_nota)
     const historico = (i.historico || []).slice().reverse()
     const elemento = `
-        <div class="fis-painel fis-doc fluxo-item-painel">
+        <div class="fis-painel fis-doc fis-nota fluxo-item-painel">
+            <div class="fis-nota-topo ${tom}">
+                <div class="fis-nota-titulo">
+                    <b>${esc(d.cliente || 'Cliente não informado')}</b>
+                    <div class="fis-nota-etiquetas">
+                        ${etiquetaEst(ETAPAS_NOME_FLUXO[i.etapa] || i.etapa, corEtapa)}
+                        ${i.empresa ? etiquetaEst(i.empresa, '#475569') : ''}
+                    </div>
+                    <small>${esc([i.contrato || i.departamento, d.cidade].filter(Boolean).join(' · '))}</small>
+                </div>
+                <div class="fis-nota-valor">
+                    <span>Valor do item</span>
+                    <b>${i.valor ? dinheiro(i.valor) : '—'}</b>
+                </div>
+            </div>
+
             ${resumoDocumentoFis({}, [
-                ['Cliente', `${esc(d.cliente || 'Não informado')}${d.cidade ? ` <small>${esc(d.cidade)}</small>` : ''}`],
                 ['Orçamento', esc(i.contrato || i.departamento || '—')],
-                ['Empresa', esc(i.empresa || '—')],
                 ['Pedido', esc(i.numero_pedido || '—')],
-                ['Valor', i.valor ? dinheiro(i.valor) : ''],
-                ['Etapa', etapa]
+                ['Empresa', esc(i.empresa || '—')],
+                ['Requisições', esc(String(i.requisicoes || 0))]
             ])}
-            ${i.emissao_status === 'ERRO' && i.emissao_mensagem ? `<div class="fis-alerta"><b>Emissão recusada:</b> ${esc(i.emissao_mensagem)}</div>` : ''}
-            ${notas || `<div class="fis-vazio">Nenhuma NF-e do GCS para este item ainda.</div>
-                ${botaoOrcamento ? `<div class="fis-acoes-claras">${botaoOrcamento}</div>` : ''}`}
+
+            ${alerta ? `<div class="fis-alerta"><b>Emissão recusada:</b> ${alerta}</div>` : ''}
+
+            ${acoes ? `<div class="fis-acoes-claras fis-nota-acoes">${acoes}</div>` : ''}
+
+            ${secoesNotas || `<div class="fis-secao"><div class="fis-secao-topo"><b>NF-e</b></div><small>Nenhuma NF-e do GCS para este item ainda.</small></div>`}
+
             ${omie.length ? `
-                <details class="fis-secao"><summary><b>Notas do Omie</b> <span class="fis-contador">${omie.length}</span></summary>
+                <details class="fis-secao"><summary><b>Notas do Omie</b> ${contador(omie.length)}</summary>
                     ${lista(omie.map(n => `<li><small>${esc(n.data || '')}</small> NF ${esc(String(n.n_nota).replace(/^0+/, ''))} · ${esc(n.categoria || '')}${n.total ? ` · ${dinheiro(n.total)}` : ''}${n.cancelado === 'S' ? ' · <small>cancelada</small>' : ''}</li>`))}
                 </details>` : ''}
-            <details class="fis-secao"><summary><b>Histórico do cartão</b> <span class="fis-contador">${historico.length}</span></summary>
+
+            <details class="fis-secao"><summary><b>Histórico do cartão</b> ${contador(historico.length)}</summary>
                 ${historico.length ? lista(historico.map(h => linhaHist(h.em, h.por,
                     h.de && h.para ? `${ETAPAS_NOME_FLUXO[h.de] || h.de} → ${ETAPAS_NOME_FLUXO[h.para] || h.para}` : (ETAPAS_NOME_FLUXO[h.para] || h.origem || ''),
                     h.detalhe))) : '<small>Sem registros.</small>'}
