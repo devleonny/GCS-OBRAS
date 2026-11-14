@@ -236,9 +236,11 @@ async function telaFaturasFin(tipo, filtroExtra = null) {
         <div class="pagina-conteudo fis-pagina fin-pagina">
             <div class="cabecalho-pagina"><h2>Faturas a ${pagar ? 'pagar' : 'receber'}</h2></div>
             <div class="fis-cartoes" data-cartoes-fin></div>
+            <div class="fin-selecao" data-selecao-fin hidden></div>
             <div class="fis-conteudo"></div>
         </div>`
     assinaturaCartoesFin = null
+    selecaoFin.clear()
     try {
         delete controles.faturasFin
         document.querySelector('.fis-conteudo').innerHTML = await modTab({
@@ -249,7 +251,7 @@ async function telaFaturasFin(tipo, filtroExtra = null) {
             topoEmLinha: true,
             caber: true,
             funcaoAdicional: ['atualizarCartoesFaturasFin'],
-            filtrosFixos: { tipo: { op: '=', value: tipo }, ...(filtroExtra || {}) },
+            filtrosFixos: { tipo: { op: '=', value: tipo }, ativa: { op: '=', value: 'S' }, ...(filtroExtra || {}) },
             btnExtras: `
                 <div class="fis-acoes">
                     <button type="button" onclick="formularioFaturaFin('${tipo}')">+ Fatura</button>
@@ -315,7 +317,135 @@ async function cartoesFaturasFin(tipo, forcar = true) {
 
 // Gancho da tabela (modTab funcaoAdicional): recalcula só se o filtro mudou.
 function atualizarCartoesFaturasFin() {
+    prepararSelecaoFin()
     return cartoesFaturasFin(tipoFaturasFin, false)
+}
+
+// ---------------------------------------------------------------- seleção e ações em várias faturas
+// A seleção vale entre páginas (ids). "Marcar todas" (cabeçalho) marca as da página aberta.
+const selecaoFin = new Set()
+
+function prepararSelecaoFin() {
+    const th = document.querySelector('.fin-pagina .tabela thead tr:first-child th:first-child')
+    if (th && !th.querySelector('[data-marcar-todas-fin]'))
+        th.innerHTML = '<input type="checkbox" class="fin-marcar" data-marcar-todas-fin title="Marcar todas desta página" onclick="event.stopPropagation(); marcarTodasFin(this)">'
+    document.querySelectorAll('#bodyFaturasFin [data-marcar-fin]').forEach(c => { c.checked = selecaoFin.has(c.value) })
+    desenharSelecaoFin()
+}
+
+function marcarFaturaFin(caixa) {
+    caixa.checked ? selecaoFin.add(caixa.value) : selecaoFin.delete(caixa.value)
+    desenharSelecaoFin()
+}
+
+function marcarTodasFin(caixa) {
+    document.querySelectorAll('#bodyFaturasFin [data-marcar-fin]').forEach(c => {
+        c.checked = caixa.checked
+        caixa.checked ? selecaoFin.add(c.value) : selecaoFin.delete(c.value)
+    })
+    desenharSelecaoFin()
+}
+
+function desenharSelecaoFin() {
+    const barra = document.querySelector('[data-selecao-fin]')
+    if (!barra) return
+    const pagina = [...document.querySelectorAll('#bodyFaturasFin [data-marcar-fin]')]
+    const todas = document.querySelector('[data-marcar-todas-fin]')
+    if (todas) {
+        const marcadas = pagina.filter(c => c.checked).length
+        todas.checked = pagina.length > 0 && marcadas === pagina.length
+        todas.indeterminate = marcadas > 0 && marcadas < pagina.length
+    }
+    barra.hidden = !selecaoFin.size
+    if (!selecaoFin.size) return
+    const pagar = tipoFaturasFin === 'PAGAR'
+    barra.innerHTML = `
+        <b>${selecaoFin.size} fatura(s) marcada(s)</b>
+        <button type="button" class="fis-botao" onclick="baixaLoteFin()">Dar baixa (${pagar ? 'pago' : 'recebido'})</button>
+        <button type="button" class="fis-mini" onclick="vencimentoLoteFin()">Mudar vencimento</button>
+        <button type="button" class="fis-mini fin-perigo" onclick="excluirLoteFin()">Excluir</button>
+        <button type="button" class="fis-mini" onclick="selecaoFin.clear(); prepararSelecaoFin()">Desmarcar</button>`
+}
+
+async function baixaLoteFin() {
+    let op
+    try { op = await carregarOpcoesFin() } catch (err) { return popup({ mensagem: mensagemErroEst(err) }) }
+    const pagar = tipoFaturasFin === 'PAGAR'
+    popup({
+        titulo: `Dar baixa em ${selecaoFin.size} fatura(s)`,
+        linhas: [{
+            elemento: `
+                <div class="fis-form" data-lote-baixa>
+                    <div class="fis-grade">
+                        <label class="fis-campo"><span>Data real ${pagar ? 'do pagamento' : 'do recebimento'} *</span><input class="fis-input" type="date" name="data" max="${hojeFin()}" value="${hojeFin()}"></label>
+                        <label class="fis-campo fis-largo"><span>Conta corrente</span><select class="fis-input" name="conta_id">
+                            <option value="">A da fatura (ou a padrão da empresa dela)</option>
+                            ${op.contas.map(k => `<option value="${k.id}">${escFin(k.app)} · ${escFin(k.nome)}${k.padrao ? ' (padrão)' : ''}</option>`).join('')}
+                        </select></label>
+                    </div>
+                    <small class="fis-dica">Cada fatura é quitada pelo que falta. Escolhendo uma conta, ela vale para as faturas da mesma empresa; as de outras empresas usam a conta delas.</small>
+                </div>`
+        }],
+        botoes: [{ texto: pagar ? 'Marcar como pagas' : 'Marcar como recebidas', img: 'concluido', funcao: 'confirmarBaixaLoteFin(this)' }]
+    })
+}
+
+function confirmarBaixaLoteFin(botao) {
+    const form = document.querySelector('[data-lote-baixa]')
+    const data = form.querySelector('[name="data"]').value
+    if (!data) return popup({ mensagem: 'Informe a data real do pagamento.' })
+    return executarLoteFin({ acao: 'baixar', data, conta_id: form.querySelector('[name="conta_id"]').value || null }, botao)
+}
+
+function vencimentoLoteFin() {
+    popup({
+        titulo: `Mudar vencimento de ${selecaoFin.size} fatura(s)`,
+        linhas: [{
+            elemento: `
+                <div class="fis-form" data-lote-vencimento>
+                    <label class="fis-campo"><span>Novo vencimento *</span><input class="fis-input" type="date" name="vencimento"></label>
+                    <small class="fis-dica">As já pagas ficam como estão.</small>
+                </div>`
+        }],
+        botoes: [{ texto: 'Mudar vencimento', img: 'concluido', funcao: 'confirmarVencimentoLoteFin(this)' }]
+    })
+}
+
+function confirmarVencimentoLoteFin(botao) {
+    const vencimento = document.querySelector('[data-lote-vencimento] [name="vencimento"]').value
+    if (!vencimento) return popup({ mensagem: 'Informe o novo vencimento.' })
+    return executarLoteFin({ acao: 'vencimento', vencimento }, botao)
+}
+
+async function excluirLoteFin() {
+    const ok = await confirmarPopup({
+        titulo: `Excluir ${selecaoFin.size} fatura(s)`,
+        mensagem: 'Saem da lista. Só as lançadas aqui (manual ou repetição) e sem pagamento; as que vieram de nota ou de reembolso, ou já têm pagamento, ficam e o motivo aparece no fim.',
+        textoConfirmar: 'Excluir'
+    })
+    if (ok) executarLoteFin({ acao: 'excluir' })
+}
+
+async function executarLoteFin(corpo, botao = null) {
+    try {
+        overlayAguarde()
+        const r = await apiFin('lote', { ...corpo, ids: [...selecaoFin] })
+        removerOverlay()
+        if (botao) removerPopup(botao.closest('.popup')?.id)
+        const verbo = { baixar: corpo.acao === 'baixar' && tipoFaturasFin === 'RECEBER' ? 'recebida(s)' : 'paga(s)', vencimento: 'com vencimento novo', excluir: 'excluída(s)' }[corpo.acao]
+        popup({
+            titulo: 'Faturas marcadas',
+            mensagem: `<b>${r.feitas} fatura(s) ${verbo}.</b>${r.puladas.length ? `<br>${r.puladas.length} ficaram de fora:<ul class="fis-lista">${r.puladas.map(p => `<li>${escFin(p.fatura)}: ${escFin(p.motivo)}</li>`).join('')}</ul>` : ''}`,
+            imagem: r.puladas.length ? undefined : 'imagens/concluido.png'
+        })
+        selecaoFin.clear()
+        if (controles.faturasFin) await paginacao('faturasFin')
+        prepararSelecaoFin()
+        cartoesFaturasFin(tipoFaturasFin)
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
 }
 
 function criarLinhaFaturaFin(d) {
@@ -323,8 +453,10 @@ function criarLinhaFaturaFin(d) {
     return `
         <tr>
             <td class="fis-acoes-linha fin-acoes-linha">
+<div class="fin-acoes-celula">
+                <input type="checkbox" class="fin-marcar" data-marcar-fin value="${escFin(d.id)}" ${selecaoFin.has(String(d.id)) ? 'checked' : ''} onclick="marcarFaturaFin(this)" aria-label="Marcar fatura">
                 <img src="imagens/pesquisar.svg" title="Abrir" onclick="abrirFaturaFin('${escFin(d.id)}')">
-                ${['PAGO', 'CANCELADO'].includes(d.situacao) ? '' : `<button type="button" class="fin-baixar" title="Dar baixa: marcar como ${d.tipo === 'PAGAR' ? 'pago' : 'recebido'}" onclick="formularioBaixaRapidaFin('${escFin(d.id)}')">✓</button>`}
+            </div>
             </td>
             <td>${dataFin(d.vencimento)}</td>
             <td>${escFin(d.app)}</td>

@@ -298,25 +298,54 @@
     white-space: nowrap;
 }
 
+.tabela.caber td.fin-acoes-linha,
+.tabela.caber th:first-child:has([data-marcar-todas-fin]) {
+    min-width: 3.4rem;
+    overflow-wrap: normal;
+}
+
+.fin-acoes-celula {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.fin-acoes-celula .fin-marcar { margin: 0; }
+.fin-acoes-celula img { width: 1.3rem; flex: 0 0 auto; }
+
 .fin-acoes-linha > * {
     vertical-align: middle;
 }
 
-.fin-baixar {
-    width: 1.6rem;
-    height: 1.6rem;
-    margin-left: 4px;
-    padding: 0;
-    border: 1px solid #8cb69a;
-    border-radius: 6px;
-    background: #eef8f1;
-    color: #1f8f4e;
-    font-weight: 700;
+.fin-marcar {
+    width: 1.05rem;
+    height: 1.05rem;
+    margin: 0 6px 0 0;
+    accent-color: #356443;
     cursor: pointer;
 }
 
-.fin-baixar:hover,
-.fin-baixar:focus-visible { background: #1f8f4e; color: #fff; }
+/* Barra das faturas marcadas (aparece com 1 ou mais). */
+.fin-selecao {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    padding: 8px 12px;
+    background: #fff;
+    border: 1px solid #8cb69a;
+    border-left: 4px solid #356443;
+    border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(16, 32, 25, 0.18);
+}
+
+.fin-selecao[hidden] { display: none; }
+.fin-selecao b { margin-right: 6px; color: #1f2a24; }
+.fin-perigo { color: #b91c1c; border-color: #f0b4b4; }
+.fin-perigo:hover { background: #fdecec; }
 
 .fin-baixa-resumo {
     display: grid;
