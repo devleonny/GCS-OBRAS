@@ -135,6 +135,39 @@
     border: 1px solid #e8eeea;
 }
 
+/* modTab({ caber: true }): a tabela cabe na largura da tela, sem rolagem horizontal.
+   Sem isso, cada filtro do cabeçalho (select max-content, datas de 7rem) dita a largura da coluna:
+   uma coluna de etiqueta curta ficava com 180px. Aqui o filtro acompanha a coluna, as células
+   ficam mais justas e o texto quebra. Se nem assim couber (tela muito estreita), a rolagem volta. */
+.tabela.caber th,
+.tabela.caber td {
+    padding-inline: 6px;
+}
+
+.tabela.caber thead tr:first-child th > div {
+    gap: 4px !important;
+}
+
+.tabela.caber thead select,
+.tabela.caber thead input {
+    width: 100% !important;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.tabela.caber thead select {
+    padding-inline: 4px;
+}
+
+.tabela.caber thead input[type="date"] {
+    min-width: 6.6rem;
+    padding: 0 4px !important;
+}
+
+.tabela.caber td {
+    overflow-wrap: break-word;
+}
+
 .tabela td input[type="number"],
 .tabela td input[type="text"] {
     border: solid 1px #a9c9b3;

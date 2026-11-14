@@ -1,0 +1,235 @@
+/* Financeiro (js/financeiro.js) + locais de estoque (js/estoque.js) + entrada da nota recebida (js/fiscal.js).
+   Reaproveita as classes fis-* (css/fiscal.css); aqui só o que é novo. */
+
+/* ---------- Sim / Não obrigatório (sem valor padrão) */
+.fin-pergunta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    margin-bottom: 8px;
+}
+
+.fin-pergunta-rotulo {
+    font-weight: 600;
+    color: var(--fis-texto, #1f2a24);
+}
+
+.fin-obrigatorio { color: #b91c1c; }
+
+.fin-sim-nao {
+    display: inline-flex;
+    border: 1px solid #c4cec8;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.fin-sim-nao label {
+    position: relative;
+    cursor: pointer;
+}
+
+.fin-sim-nao input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.fin-sim-nao span {
+    display: inline-block;
+    padding: 6px 18px;
+    font-size: 13px;
+    color: #44544a;
+    background: #fff;
+}
+
+.fin-sim-nao label + label span { border-left: 1px solid #c4cec8; }
+.fin-sim-nao input:checked + span { background: #356443; color: #fff; font-weight: 600; }
+.fin-sim-nao label:last-child input:checked + span { background: #64748b; }
+.fin-sim-nao input:focus-visible + span { outline: 2px solid #52745c; outline-offset: -2px; }
+
+/* ---------- entrada da nota recebida */
+.fin-entrada {
+    border: 1px solid #c9d8ce;
+    border-left: 4px solid #2563eb;
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: #f8fbff;
+}
+
+.fin-entrada.feita {
+    border-left-color: #15803d;
+    background: #f6fbf7;
+}
+
+.fin-entrada-grade {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px 18px;
+    margin: 6px 0 10px;
+}
+
+.fin-entrada-bloco {
+    min-width: 0;
+}
+
+.fin-entrada-resumo {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin: 6px 0;
+}
+
+.fin-entrada-resumo span {
+    display: block;
+    font-size: 11px;
+    color: #6b7a71;
+}
+
+/* ---------- parcelas e rateio */
+.fin-parcelas,
+.fin-rateio {
+    border: 1px dashed #c4cec8;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin: 8px 0;
+    background: #fff;
+}
+
+.fin-parcelas-topo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    margin-bottom: 6px;
+}
+
+.fin-dividir {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #44544a;
+}
+
+.fin-dividir input[type="number"] { width: 4.5rem; }
+.fin-dividir input[type="date"] { width: 9.5rem; }
+
+.fin-parcelas-tabela input { width: 100%; box-sizing: border-box; }
+.fin-parcelas-tabela td:nth-child(2) { width: 11rem; }
+.fin-parcelas-tabela td:nth-child(3) { width: 9rem; }
+
+.fin-parcelas-rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 13px;
+}
+
+.fin-rateio-linha {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.fin-rateio-linha [name="departamento"] { flex: 1 1 auto; min-width: 0; }
+.fin-rateio-linha [name="percentual"] { width: 5.5rem; }
+
+.fin-sub {
+    display: block;
+    color: #6b7a71;
+    font-size: 0.7rem;
+}
+
+/* ---------- categorias */
+.fin-categorias h3 {
+    margin: 14px 0 6px;
+    color: #356443;
+}
+
+.fin-grupo {
+    border: 1px solid #dfe7e2;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    overflow: hidden;
+}
+
+.fin-grupo-topo .fin-categoria {
+    background: #eef3f0;
+    font-weight: 600;
+}
+
+.fin-categoria {
+    display: grid;
+    grid-template-columns: 6rem 1fr auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 10px;
+    border-top: 1px solid #eef2ef;
+    font-size: 13px;
+}
+
+.fin-grupo .fin-categoria:first-child { border-top: none; }
+.fin-grupo > .fin-categoria { padding-left: 24px; }
+.fin-cat-codigo { color: #5b6b61; font-variant-numeric: tabular-nums; }
+.fin-categoria.excluida { color: #8a968f; }
+.fin-categoria.excluida small { color: #b45309; }
+
+/* ---------- cartões de locais / contas (estoque e financeiro) */
+.est-sub { color: #dbe7df; }
+
+.est-empresa h3 {
+    margin: 14px 0 6px;
+    color: #356443;
+}
+
+.est-locais {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.est-local {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 10px 12px;
+    text-align: left;
+    background: #fff;
+    border: 1px solid #c9d8ce;
+    border-left: 4px solid #356443;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #1f2a24;
+}
+
+.est-local:hover { background: #f3f8f5; }
+.est-local.divergencia { border-left-color: #d97706; background: #fffaf2; }
+.est-local.inativo { opacity: 0.55; }
+.est-local b { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.est-local span { font-size: 12px; color: #5b6b61; }
+.est-local .est-local-nome { font-size: 14px; font-weight: 600; color: #1f2a24; }
+.est-local small { color: #6b7a71; font-weight: 400; }
+
+.est-locais-item {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.est-local-chip {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #eef6f0;
+    border: 1px solid #c9d8ce;
+    font-size: 12px;
+}
+
+.est-local-chip.divergencia { background: #fff4e5; border-color: #f3c98b; }
+
+.est-transferencia .fis-tabela-rolagem { max-height: 45vh; }

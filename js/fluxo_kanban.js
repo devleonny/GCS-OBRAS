@@ -488,7 +488,7 @@ function abrirMenuItemFluxo(evento, id) {
     const opcoes = [
         c.orcamento_id ? ['Histórico do Orçamento', `abrirEsquema('${escaparAtributo(c.orcamento_id)}')`] : null,
         nota && c.etapa === 'separado' ? ['Editar NF-e', `editarNotaItemFluxo('${id}')`] : null,
-        nota && c.emissao_status !== 'OK' ? ['Espelho (PDF)', `espelhoNotaItemFluxo('${escaparAtributo(nota)}')`] : null,
+        nota && c.emissao_status !== 'OK' ? ['Espelho', `espelhoNotaItemFluxo('${escaparAtributo(nota)}')`] : null,
         nota && c.emissao_status === 'OK' ? ['DANFE', `baixarArquivoFiscal('${escaparAtributo(nota)}', 'danfe')`] : null,
         nota && c.emissao_status === 'OK' ? ['XML', `baixarArquivoFiscal('${escaparAtributo(nota)}', 'xml')`] : null,
     ].filter(Boolean)

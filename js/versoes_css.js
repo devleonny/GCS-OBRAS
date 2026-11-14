@@ -16,7 +16,8 @@ const VERSOES_CSS = {
     "estilo": "e87d2d3f",
     "estoque": "ff848a67",
     "festas": "81ec7e62",
-    "fiscal": "33515b35",
+    "financeiro": "690cea46",
+    "fiscal": "f8f88433",
     "fluxo_kanban": "0e57838a",
     "gcsobras": "fa8a6a12",
     "inicial": "0e21d68b",
@@ -43,7 +44,7 @@ const VERSOES_CSS = {
     "seletor-cores": "c0e10ff3",
     "status": "ea093268",
     "tabelas-parceiro": "22c15cc9",
-    "tabelas": "9f8d6e73",
+    "tabelas": "e28f52b6",
     "veiculos": "c85e8b90",
     "velocimetro": "2cfa4cff"
 }

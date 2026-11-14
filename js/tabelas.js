@@ -16,6 +16,9 @@ async function modTab(configuracoes) {
         nude = null,
         // true: paginação e btnExtras na mesma linha do topo (os extras ocupam o resto e quebram por dentro).
         topoEmLinha = false,
+        // true: a tabela cabe na largura da tela (filtros acompanham a coluna, células mais justas,
+        // texto quebra). Ver .tabela.caber em css/tabelas.css.
+        caber = false,
         criarLinha,
         base,
         colunas = {},
@@ -129,7 +132,7 @@ async function modTab(configuracoes) {
 
             <div data-altura-adaptavel="${scroll && !nude}" style="--altura-minima-tabela: ${escaparAtributo(typeof alturaMinima === 'number' ? `${alturaMinima}px` : alturaMinima)}; ${!scroll ? `max-height: max-content` : ''};" class="div-tabela${nude ? ' nude' : ''}">
 
-                <table class="tabela${nude ? ' nude' : ''}">
+                <table class="tabela${nude ? ' nude' : ''}${caber ? ' caber' : ''}">
                     <thead>
                         <tr>${detalhes === true ? '<th class="tabela-coluna-detalhes" aria-label="Detalhes"></th>' : ''}${ths}</tr>
                         ${ocultarPesquisa ? '' : `<tr>${detalhes === true ? '<th class="tabela-coluna-detalhes"></th>' : ''}${pesquisa}</tr>`}

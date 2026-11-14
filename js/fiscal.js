@@ -121,8 +121,7 @@ async function contadoresFiscal() {
             : `
                 ${cartao(c.saida_rascunho, 'rascunhos', '#64748b', `abrirTabelaEmitidas({ status: { op: '=', value: 'rascunho' } })`)}
                 ${cartao(c.saida_processando, 'processando', '#2563eb', `abrirTabelaEmitidas({ status: { op: '=', value: 'processando' } })`)}
-                ${cartao(c.saida_rejeitada, 'rejeitadas', '#b91c1c', `abrirTabelaEmitidas({ status: { op: '=', value: 'rejeitada' } })`)}
-                ${semFocus.length ? `<div class="fis-alerta">Emissão pela Focus NFe ainda não configurada para ${semFocus.join(', ')}: dá para montar e salvar rascunhos, a emissão fica para quando o token estiver cadastrado.</div>` : ''}`
+                ${cartao(c.saida_rejeitada, 'rejeitadas', '#b91c1c', `abrirTabelaEmitidas({ status: { op: '=', value: 'rejeitada' } })`)}`
     } catch (err) {
         alvo.innerHTML = `<div class="fis-alerta">${escFis(err.message)}</div>`
     }
@@ -200,11 +199,13 @@ async function abrirDocumentoFiscal(id) {
         const contexto = dados.documento.direcao === 'SAIDA'
             ? await apiModuloFiscal('fluxo-itens/detalhe', { nota: id }).catch(() => null)
             : null
+        // Nota recebida: categorias/contas do Financeiro para "Gerar faturas a pagar?".
+        const opcoesFin = dados.documento.direcao === 'ENTRADA' ? await carregarOpcoesFin().catch(() => null) : null
         removerOverlay()
         // Reabre no lugar: fecha a janela anterior do mesmo documento.
         const anterior = document.querySelector(`[data-doc-fiscal="${CSS.escape(id)}"]`)?.closest('.popup')?.id
         if (anterior) removerPopup(anterior)
-        const html = dados.documento.direcao === 'ENTRADA' ? htmlNotaRecebida(dados) : htmlNotaEmitida(dados, contexto)
+        const html = dados.documento.direcao === 'ENTRADA' ? htmlNotaRecebida(dados, opcoesFin) : htmlNotaEmitida(dados, contexto)
         popup({ titulo: dados.documento.direcao === 'ENTRADA' ? 'Nota recebida' : 'Nota emitida', elemento: html })
     } catch (err) {
         removerOverlay()
@@ -216,8 +217,8 @@ function resumoDocumentoFis(d, campos) {
     return `<div class="fis-resumo">${campos.filter(([, v]) => v !== '' && v != null).map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>`
 }
 
-function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos }) {
-    const lancada = d.estoque_status === 'LANCADO'
+function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos, titulos = [], locais = [], cobranca = null }, opcoesFin = null) {
+    const lancada = d.estoque_status === 'LANCADO' || Boolean(d.entrada_em)
     const pendentes = itens.filter(i => i.vinculo === 'PENDENTE').length
     const linhas = itens.map(i => {
         let vinculo
@@ -256,7 +257,7 @@ function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos }) {
 
     // Mesmo visual da nota emitida: cabeçalho com lateral colorida (verde = lançada no estoque,
     // laranja = itens a vincular, cinza = cancelada, azul = demais), grade, faixa de ações e cartões.
-    const tom = d.status === 'CANCELADA' ? 'neutro' : lancada || d.estoque_status === 'NAO_MOVIMENTA' ? 'ok' : pendentes ? 'andando' : 'rascunho'
+    const tom = d.status === 'CANCELADA' ? 'neutro' : lancada ? 'ok' : pendentes ? 'andando' : 'rascunho'
     return `
         <div class="fis-painel fis-doc fis-nota" data-doc-fiscal="${escFis(d.id)}">
             <div class="fis-nota-topo ${tom}">
@@ -287,13 +288,13 @@ function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos }) {
             ${pagamentos?.length ? `<div class="fis-info">Pagamento lançado com esta chave: ${pagamentos.map(p => `<b>${escFis(p.id)}</b> (${escFis(p.status || '')})`).join(', ')}</div>` : ''}
 
             <div class="fis-acoes-claras fis-nota-acoes">
-                ${d.status !== 'RESUMO' && !lancada ? `<button type="button" class="fis-botao" ${pendentes ? `disabled title="Faltam ${pendentes} itens"` : ''} onclick="lancarNotaEstoque('${escFis(d.id)}')">Lançar no estoque</button>` : ''}
-                ${lancada ? `<button type="button" class="fis-mini" onclick="estornarNotaEstoque('${escFis(d.id)}')">Estornar entrada</button>` : ''}
                 ${d.tem_xml ? `<button type="button" class="fis-mini" onclick="baixarArquivoFiscal('${escFis(d.id)}', 'xml')">XML</button>` : ''}
                 <button type="button" class="fis-mini" onclick="baixarArquivoFiscal('${escFis(d.id)}', 'danfe')">DANFE</button>
                 <span class="fis-separador"></span>
                 <small class="fis-nota-acoes-rotulo">Manifestar</small> ${manifestar}
             </div>
+
+            ${htmlEntradaNotaFis(d, { pendentes, titulos, locais, cobranca, opcoesFin })}
 
             ${d.status === 'RESUMO'
                 ? '<div class="fis-vazio">A SEFAZ só mandou o resumo. Dê <b>Ciência</b> para liberar o XML completo, ou importe o XML que o fornecedor enviou.</div>'
@@ -301,7 +302,7 @@ function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos }) {
             <div class="fis-secao">
                 <div class="fis-secao-topo">
                     <b>Itens</b> <span class="fis-contador">${itens.length}</span>
-                    ${pendentes ? `<small class="fis-pendente">${pendentes} sem vínculo: a entrada só vai para o estoque com todos resolvidos</small>` : '<small class="fis-secao-info">todos resolvidos</small>'}
+                    ${pendentes ? `<small class="fis-pendente">${pendentes} sem vínculo: para gerar estoque, todos precisam estar resolvidos</small>` : '<small class="fis-secao-info">todos resolvidos</small>'}
                 </div>
                 <div class="fis-tabela-rolagem">
                     <table class="fis-tabela">
@@ -316,6 +317,168 @@ function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos }) {
                 </details>` : ''}
             ${historicoFiscal(d)}
         </div>`
+}
+
+// ---------------------------------------------------------------- entrada da nota recebida
+// Duas respostas obrigatórias (sem padrão): "Gerar estoque?" e "Gerar faturas a pagar?". Faturas: parcelas do
+// XML (cobr/dup) quando o fornecedor mandou; senão o usuário informa. Desfazer: estorna o estoque e cancela as
+// faturas; se alguma fatura tem pagamento, o servidor bloqueia e diz qual (desfaz-se o pagamento antes).
+function htmlEntradaNotaFis(d, { pendentes, titulos, locais, cobranca, opcoesFin }) {
+    if (d.status === 'RESUMO' || d.status === 'CANCELADA') return ''
+    const feita = d.entrada_em || d.estoque_status === 'LANCADO'
+    if (feita) {
+        const local = locais.find(l => l.id === d.estoque_local_id)
+        return `
+            <div class="fis-secao fin-entrada feita">
+                <div class="fis-secao-topo">
+                    <b>Entrada da nota</b>
+                    <small>${d.entrada_em ? `feita em ${dataHoraFis(d.entrada_em)} por ${escFis(d.entrada_por || '')}` : 'lançada no estoque antes do Financeiro'}</small>
+                    <button type="button" class="fis-mini" onclick="desfazerEntradaNotaFis('${escFis(d.id)}')">Desfazer entrada</button>
+                </div>
+                <div class="fin-entrada-resumo">
+                    <div><span>Estoque</span><b>${d.estoque_status === 'LANCADO' ? `Sim${local ? ` · ${escFis(local.nome)}` : ''}` : 'Não'}</b></div>
+                    <div><span>Faturas a pagar</span><b>${titulos.length ? `${titulos.length} parcela(s)` : d.gerar_faturas === false ? 'Não' : '—'}</b></div>
+                </div>
+                ${titulos.length ? `
+                <table class="fis-tabela">
+                    <thead><tr><th>Parcela</th><th>Vencimento</th><th class="fis-num">Valor</th><th class="fis-num">Pago</th><th>Situação</th><th></th></tr></thead>
+                    <tbody>${titulos.map(t => `
+                        <tr><td>${escFis(t.parcela_texto)}</td><td>${dataFin(t.vencimento)}</td><td class="fis-num">${dinheiro(t.valor)}</td><td class="fis-num">${Number(t.pago) ? dinheiro(t.pago) : ''}</td>
+                            <td>${etiquetaEst(SITUACOES_FIN[t.situacao]?.texto || t.situacao, SITUACOES_FIN[t.situacao]?.cor)}</td>
+                            <td><button type="button" class="fis-mini" onclick="abrirFaturaFin('${escFis(t.id)}')">Abrir</button></td></tr>`).join('')}
+                    </tbody>
+                </table>` : ''}
+            </div>`
+    }
+    // Parcelas sugeridas: as duplicatas do XML; o total a bater é o líquido da fatura (se as duplicatas somam ele) ou o total da nota.
+    const dups = cobranca?.duplicatas || []
+    const somaDups = Math.round(dups.reduce((a, x) => a + Number(x.valor || 0), 0) * 100) / 100
+    const total = dups.length && Math.abs(somaDups - Number(cobranca?.fatura?.valor_liquido || 0)) <= 0.01 ? somaDups : Number(d.valor_total || 0)
+    const formaXml = cobranca?.pagamentos?.[0]?.forma
+    const blocoFaturas = !opcoesFin
+        ? '<div class="fis-alerta">Sem acesso às categorias do Financeiro: peça a alguém do financeiro para dar esta entrada.</div>'
+        : `
+            <div class="fis-grade">
+                <label class="fis-campo fis-largo"><span>Categoria *</span><select class="fis-input" name="categoria_id">${opcoesCategoriasFin(opcoesFin.categorias, 'PAGAR')}</select></label>
+                <label class="fis-campo"><span>Forma</span><select class="fis-input" name="forma_pagamento"><option value=""></option>${FORMAS_FIN.filter(([v]) => v !== 'OMIE').map(([v, n]) => `<option value="${v}" ${formaXml === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+                <label class="fis-campo"><span>Conta</span><select class="fis-input" name="conta_id">${opcoesContasFin(opcoesFin.contas, d.app)}</select></label>
+            </div>
+            ${dups.length ? `<small class="fis-dica">Parcelas que o fornecedor pôs na nota (${dups.length}): confira.</small>` : '<small class="fis-dica">A nota não traz parcelas: informe os vencimentos.</small>'}
+            ${editorParcelasFin(dups.map(x => ({ vencimento: x.vencimento, valor: x.valor })), total)}
+            ${editorRateioFin(opcoesFin.departamentos, [])}`
+    return `
+        <div class="fis-secao fin-entrada" data-entrada-nota="${escFis(d.id)}">
+            <div class="fis-secao-topo"><b>Dar entrada</b> <small>responda as duas perguntas</small></div>
+            <div class="fin-entrada-grade">
+                <div class="fin-entrada-bloco">
+                    ${simNaoFin('gerar_estoque', 'Gerar estoque?', 'alternarEntradaFis(this)')}
+                    <div data-se="gerar_estoque" hidden>
+                        ${pendentes ? `<div class="fis-alerta">Faltam ${pendentes} item(ns) sem vínculo: vincule ou marque "não é estoque" na lista abaixo.</div>` : ''}
+                        <label class="fis-campo"><span>Local</span><select class="fis-input" name="local_id">${locais.filter(l => l.tipo !== 'DIVERGENCIA').map(l => `<option value="${escFis(l.id)}" ${l.padrao ? 'selected' : ''}>${escFis(l.nome)}${l.padrao ? ' (padrão)' : ''}</option>`).join('')}</select></label>
+                    </div>
+                </div>
+                <div class="fin-entrada-bloco">
+                    ${simNaoFin('gerar_faturas', 'Gerar faturas a pagar?', 'alternarEntradaFis(this)')}
+                    <div data-se="gerar_faturas" hidden>${blocoFaturas}</div>
+                </div>
+            </div>
+            <div class="fis-acoes-claras"><button type="button" class="fis-botao" onclick="darEntradaNotaFis('${escFis(d.id)}')">Dar entrada</button></div>
+        </div>`
+}
+
+function alternarEntradaFis(input) {
+    const caixa = input.closest('[data-entrada-nota]')
+    const alvo = caixa.querySelector(`[data-se="${input.name}"]`)
+    if (alvo) alvo.hidden = input.value !== 'sim'
+    const parcelas = alvo?.querySelector('[data-parcelas]')
+    if (parcelas && !alvo.hidden) somarParcelasFin(parcelas)
+}
+
+async function darEntradaNotaFis(id) {
+    const caixa = document.querySelector(`[data-entrada-nota="${CSS.escape(id)}"]`)
+    const gerar_estoque = lerSimNaoFin(caixa, 'gerar_estoque')
+    const gerar_faturas = lerSimNaoFin(caixa, 'gerar_faturas')
+    const faltas = []
+    if (gerar_estoque === null) faltas.push('Responda: gerar estoque?')
+    if (gerar_faturas === null) faltas.push('Responda: gerar faturas a pagar?')
+    const v = n => caixa.querySelector(`[name="${n}"]`)?.value || ''
+    if (gerar_faturas && !v('categoria_id')) faltas.push('Escolha a categoria das faturas.')
+    if (faltas.length) return popup({ mensagem: `<ul class="fis-lista-erros">${faltas.map(f => `<li>${escFis(f)}</li>`).join('')}</ul>` })
+    try {
+        overlayAguarde()
+        const r = await apiFiscal('recebidas/dar-entrada', {
+            id, gerar_estoque, gerar_faturas, local_id: gerar_estoque ? v('local_id') : undefined,
+            ...(gerar_faturas ? {
+                categoria_id: v('categoria_id'), forma_pagamento: v('forma_pagamento'), conta_id: v('conta_id') || null,
+                parcelas: lerParcelasFin(caixa), rateio: lerRateioFin(caixa)
+            } : {})
+        })
+        removerOverlay()
+        const partes = [gerar_estoque ? `${r.lancados} item(ns) no estoque` : 'sem estoque', gerar_faturas ? `${r.faturas} fatura(s) a pagar` : 'sem faturas']
+        popup({ mensagem: `Entrada feita: ${partes.join(' · ')}.${r.avisos?.length ? `<br>${r.avisos.map(escFis).join('<br>')}` : ''}`, imagem: 'imagens/concluido.png', tempo: 5 })
+        abrirDocumentoFiscal(id)
+        contadoresFiscal()
+        if (controles.notasRecebidas) paginacao('notasRecebidas')
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+async function desfazerEntradaNotaFis(id) {
+    const motivo = prompt('Por que desfazer a entrada? (o estoque é estornado e as faturas a pagar canceladas)')
+    if (motivo === null) return
+    try {
+        overlayAguarde()
+        const r = await apiFiscal('recebidas/desfazer-entrada', { id, motivo })
+        removerOverlay()
+        popup({ mensagem: `Entrada desfeita: ${r.estornados} movimento(s) de estoque estornado(s), ${r.faturas} fatura(s) cancelada(s).`, imagem: 'imagens/concluido.png', tempo: 5 })
+        abrirDocumentoFiscal(id)
+        contadoresFiscal()
+        if (controles.notasRecebidas) paginacao('notasRecebidas')
+    } catch (err) {
+        removerOverlay()
+        // 409 = fatura com pagamento registrado: a mensagem do servidor diz qual e o que fazer.
+        popup({ titulo: err.status === 409 ? 'Entrada não pode ser desfeita' : undefined, mensagem: mensagemErroEst(err) })
+    }
+}
+
+// ---------------------------------------------------------------- pagamento na emissão
+// Forma + nº de parcelas mensais (0 = à vista). Vai na nota (NF-e: fatura/duplicatas; NFS-e: no texto) e,
+// autorizada, vira as faturas a receber do Financeiro. Vencimentos calculados no dia da emissão.
+const FORMAS_EMISSAO_FIS = [['15', 'Boleto'], ['17', 'PIX'], ['18', 'Transferência bancária'], ['16', 'Depósito bancário'],
+    ['03', 'Cartão de crédito'], ['04', 'Cartão de débito'], ['01', 'Dinheiro'], ['14', 'Duplicata mercantil'], ['90', 'Sem pagamento (remessa, comodato, devolução…)']]
+
+function blocoPagamentoFis(numero, pagamento = {}) {
+    return `
+        <fieldset class="fis-passo" data-pagamento-emissao>
+            <legend><span class="fis-num-passo">${numero}</span> Pagamento <small>— sai na nota e vira as faturas a receber</small></legend>
+            <div class="fis-grade">
+                ${campoFis('Forma *', `<select class="fis-input" name="pag_forma" onchange="previaPagamentoFis(this)"><option value="">Selecione</option>${opcoesFis(FORMAS_EMISSAO_FIS, pagamento.forma ?? '')}</select>`)}
+                ${campoFis('Parcelas mensais <small>(0 = à vista)</small>', inputFis('pag_parcelas', pagamento.parcelas ?? 1, 'type="number" min="0" max="60" step="1" oninput="previaPagamentoFis(this)"'))}
+            </div>
+            <small class="fis-dica" data-previa-pagamento></small>
+        </fieldset>`
+}
+
+function previaPagamentoFis(el) {
+    const caixa = el.closest('[data-pagamento-emissao]')
+    if (!caixa) return
+    const forma = caixa.querySelector('[name="pag_forma"]').value
+    const n = Math.floor(Number(caixa.querySelector('[name="pag_parcelas"]').value) || 0)
+    caixa.querySelector('[name="pag_parcelas"]').disabled = forma === '90'
+    const alvo = caixa.querySelector('[data-previa-pagamento]')
+    if (!forma) { alvo.textContent = 'Escolha a forma de pagamento.'; return }
+    if (forma === '90') { alvo.textContent = 'Nota sem cobrança: não gera conta a receber.'; return }
+    if (!n) { alvo.textContent = 'À vista: uma conta a receber na data da emissão.'; return }
+    const hoje = new Date().toLocaleDateString('en-CA')
+    alvo.textContent = `${n}x mensais. Se emitir hoje: ${Array.from({ length: Math.min(n, 6) }, (_, i) => dataFin(somaMesesFin(hoje, i + 1))).join(', ')}${n > 6 ? '…' : ''} (calculado no dia da emissão).`
+}
+
+function lerPagamentoFis(form) {
+    const forma = form.querySelector('[name="pag_forma"]')?.value
+    if (!forma) return undefined
+    return { forma, parcelas: forma === '90' ? 0 : Math.max(0, Math.floor(Number(form.querySelector('[name="pag_parcelas"]').value) || 0)) }
 }
 
 function historicoFiscal(d) {
@@ -535,6 +698,7 @@ async function abrirTabelaEmitidas(filtroExtra = null) {
             body: 'bodyNotasEmitidas',
             criarLinha: 'criarLinhaNotaEmitida',
             topoEmLinha: true,
+            caber: true,
             filtrosFixos: { direcao: { op: '=', value: 'saida' }, ...filtroModelo, ...(filtroExtra || {}) },
             btnExtras: `
                 <div class="fis-acoes">
@@ -547,7 +711,8 @@ async function abrirTabelaEmitidas(filtroExtra = null) {
                 '': {},
                 'Data': { chave: 'dia', tipoPesquisa: 'data' },
                 'Empresa': { chave: 'app', tipoPesquisa: 'select' },
-                'Modelo': { chave: 'modelo', tipoPesquisa: 'select' },
+                // Nas telas presas a um modelo (NF-e ou NFS-e) a coluna repetiria sempre o mesmo valor.
+                ...(modeloEmitidasFis ? {} : { 'Modelo': { chave: 'modelo', tipoPesquisa: 'select' } }),
                 'Nº': { chave: 'numero' },
                 'Destinatário': { chave: 'participante_nome' },
                 'Operação': { chave: 'natureza_operacao' },
@@ -570,14 +735,14 @@ function criarLinhaNotaEmitida(d) {
             <td class="fis-acoes-linha"><img src="imagens/pesquisar.svg" title="Abrir" onclick="abrirDocumentoFiscal('${escFis(d.id)}')"></td>
             <td>${dataFis(d.emissao || d.criado_em)}</td>
             <td>${escFis(d.app)}</td>
-            <td>${d.modelo === 'NFSE' ? 'NFS-e' : 'NF-e'}</td>
+            ${modeloEmitidasFis ? '' : `<td>${d.modelo === 'NFSE' ? 'NFS-e' : 'NF-e'}</td>`}
             <td><b>${escFis(d.numero || '')}</b></td>
             <td class="fis-descricao">${escFis(d.participante_nome)}<small>${docFormatadoFis(d.participante_documento)}</small></td>
             <td><small>${escFis(d.natureza_operacao || '')}</small></td>
             <td class="fis-num">${d.valor_total != null ? dinheiro(d.valor_total) : ''}</td>
             <td>${etiquetaFis(STATUS_FISCAL, d.status)}</td>
             <td>${etiquetaFis(ESTOQUE_FISCAL, d.estoque_status)}</td>
-            <td>${d.ambiente === 'homologacao' ? etiquetaEst('Homologação', '#d97706') : escFis(d.ambiente || '')}</td>
+            <td>${d.ambiente === 'homologacao' ? etiquetaEst('Homologação', '#d97706') : d.ambiente === 'producao' ? etiquetaEst('Produção', '#15803d') : escFis(d.ambiente || '')}</td>
         </tr>`
 }
 
@@ -633,7 +798,7 @@ function htmlNotaEmitida({ documento: d, itens, movimentos }, contexto = null) {
             <div class="fis-acoes-claras fis-nota-acoes">
                 ${editavel ? botao('Emitir', `emitirDocumentoFiscal('${escFis(d.id)}')`, true) + botao('Editar', `editarRascunhoFiscal('${escFis(d.id)}')`) : ''}
                 ${d.status === 'AUTORIZADA' ? botao(nfse ? 'DANFSe' : 'DANFE', `baixarArquivoFiscal('${escFis(d.id)}', 'danfe')`) + botao('XML', `baixarArquivoFiscal('${escFis(d.id)}', 'xml')`) : ''}
-                ${!nfse && d.status !== 'AUTORIZADA' && entrada.itens ? botao('Espelho (PDF)', `espelhoNotaItemFluxo('${escFis(d.id)}')`) : ''}
+                ${!nfse && d.status !== 'AUTORIZADA' && entrada.itens ? botao('Espelho', `espelhoNotaItemFluxo('${escFis(d.id)}')`) : ''}
                 ${d.status === 'PROCESSANDO' || d.status === 'AUTORIZADA' ? botao('Atualizar situação', `consultarDocumentoFiscal('${escFis(d.id)}')`) : ''}
                 ${contexto?.item?.orcamento_id ? botao('Histórico do Orçamento', `abrirEsquema('${escFis(contexto.item.orcamento_id)}')`) : /^ORC_/.test(orc) ? botao('Histórico do Orçamento', `abrirEsquemaPorContratoFis('${escFis(orc)}')`) : ''}
                 ${!editavel ? botao('Duplicar', `duplicarDocumentoFiscal('${escFis(d.id)}')`) : ''}
@@ -907,8 +1072,9 @@ async function formularioEmissaoNFe(inicial = {}) {
                     ${campoFis(`Volumes${inicial.fluxo_item ? ' *' : ''}`, inputFis('volumes', o.volumes || '', 'type="number" min="1" step="1" inputmode="numeric"'))}
                 </div>
             </fieldset>
+            ${blocoPagamentoFis(5, o.pagamento || inicial.pagamento || {})}
             <fieldset class="fis-passo">
-                <legend><span class="fis-num-passo">5</span> Complementos</legend>
+                <legend><span class="fis-num-passo">6</span> Complementos</legend>
                 <div class="fis-grade">
                     ${campoFis('Consumidor final', `<select class="fis-input" name="consumidor_final">${opcoesFis([['', 'Automático (pela IE)'], ['1', 'Sim'], ['0', 'Não']], o.consumidor_final ?? '')}</select>`)}
                     ${inicial.fluxo_item
@@ -931,11 +1097,11 @@ async function formularioEmissaoNFe(inicial = {}) {
         // Aberta pelo kanban (Requisição → Separado): só salva; a emissão é o arraste para Faturado.
         botoes: inicial.fluxo_item
             ? [
-                { texto: 'Espelho (PDF)', img: 'pdf', funcao: 'espelhoEmissaoFis(this)' },
+                { texto: 'Espelho', img: 'pdf', funcao: 'espelhoEmissaoFis(this)' },
                 { texto: 'Salvar', img: 'salvo', funcao: 'salvarEmissaoFis(false, this)' }
             ]
             : [
-                { texto: 'Espelho (PDF)', img: 'pdf', funcao: 'espelhoEmissaoFis(this)' },
+                { texto: 'Espelho', img: 'pdf', funcao: 'espelhoEmissaoFis(this)' },
                 { texto: 'Salvar rascunho', img: 'salvo', funcao: 'salvarEmissaoFis(false, this)' },
                 { texto: 'Emitir', img: 'concluido', funcao: 'salvarEmissaoFis(true, this)' }
             ]
@@ -943,6 +1109,7 @@ async function formularioEmissaoNFe(inicial = {}) {
     const form = document.querySelector('[data-form-nfe]')
     trocarEmpresaNFe(form.querySelector('[name="app"]'), inicial.operacao_id)
     for (const item of inicial.itens?.length ? inicial.itens : [{}]) adicionarItemNFe(item)
+    previaPagamentoFis(form.querySelector('[name="pag_forma"]'))
     agendarPreviaFis()
 }
 
@@ -1065,7 +1232,9 @@ function lerEmissaoNFe(form) {
             } : undefined,
             volumes: Number(v('volumes')) || undefined,
             // Nº do pedido do cliente: rodapé da nota (informações complementares).
-            numero_pedido: v('numero_pedido') || undefined
+            numero_pedido: v('numero_pedido') || undefined,
+            // Forma e parcelas: fatura/duplicatas da nota e contas a receber no Financeiro.
+            pagamento: lerPagamentoFis(form)
         },
         // Separação: departamento fixo do pedido. Nota livre: rateio entre departamentos (contratos do GCS).
         orcamento: form.querySelector('[name="orcamento"]') ? v('orcamento') : (rateio.length === 1 ? rateio[0].departamento : rateio.length ? 'RATEIO' : ''),
@@ -1161,6 +1330,7 @@ async function formularioEmissaoNFSe(inicial = {}) {
                 ${campoFis('Discriminação do serviço', `<textarea class="fis-input" name="descricao" rows="4">${escFis(d.descricao || '')}</textarea>`)}
                 <div class="fis-retencoes" data-retencoes></div>
             </fieldset>
+            ${blocoPagamentoFis(4, d.pagamento || inicial.pagamento || {})}
             <div class="fis-previa" data-previa></div>
         </div>`
     popup({
@@ -1173,6 +1343,7 @@ async function formularioEmissaoNFSe(inicial = {}) {
     })
     const form = document.querySelector('[data-form-nfse]')
     trocarEmpresaNFSe(form.querySelector('[name="app"]'), inicial.servico_id, d)
+    previaPagamentoFis(form.querySelector('[name="pag_forma"]'))
 }
 
 function trocarEmpresaNFSe(select, servicoInicial, dados = {}) {
@@ -1225,7 +1396,9 @@ function lerEmissaoNFSe(form) {
             data_competencia: v('data_competencia'),
             codigo_municipio_prestacao: soDigFis(v('codigo_municipio_prestacao')) || destinatario.codigo_municipio,
             iss_retido: marcado('iss_retido'),
-            retencoes
+            retencoes,
+            // Vencimentos vão no texto da NFS-e (a DPS nacional não tem grupo de cobrança) e viram contas a receber.
+            pagamento: lerPagamentoFis(form)
         },
         orcamento: v('orcamento'),
         chamado: v('chamado')
@@ -1316,6 +1489,8 @@ async function salvarEmissaoFis(emitir, botao) {
     if (!form) return
     const entrada = lerEmissaoFis(form)
     const id = form.dataset.id || null
+    if (!(entrada.opcoes?.pagamento || entrada.dados?.pagamento))
+        return popup({ mensagem: 'Escolha a forma de pagamento (ou "Sem pagamento" para remessa, comodato, devolução…).' })
     if (entrada.modelo === 'NFE') {
         const o = entrada.opcoes || {}
         const faltas = []

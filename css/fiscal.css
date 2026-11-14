@@ -878,3 +878,8 @@ textarea.fis-input {
 .fis-nota-acoes-rotulo { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #5b6b61; }
 .fis-nota .fis-secao-topo .fis-pendente { margin-left: 4px; }
 .fis-nota .fis-vinculo { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+
+/* Notas emitidas com modTab({ caber: true }): destinatário mais estreito para a tabela caber na tela. */
+.tabela.caber .fis-descricao {
+    min-width: 10rem;
+}

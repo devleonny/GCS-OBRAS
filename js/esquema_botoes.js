@@ -145,6 +145,9 @@ async function acaoMenu(id, funcao, temFilhos) {
 // Quem vê os kanbans de Vendas/Serviços (base vw_fluxo_comercial) e as notas (vw_fiscal_documentos).
 const PERFIS_FLUXO_MENU = ['adm', 'diretoria', 'fin', 'gerente', 'analista', 'log', 'user']
 const PERFIS_FISCAL_MENU = ['adm', 'diretoria', 'fin', 'log', 'gerente', 'coordenacao', 'analista']
+// Menus Vendas e NF-e, Serviços e NFS-e e Compras e Estoque: só estes perfis (pedido de 14/11/2026).
+// Financeiro: os mesmos, menos log.
+const PERFIS_MENUS_COMERCIAIS = ['adm', 'diretoria', 'fin', 'log']
 
 const esquemaBotoes = {
     inicial: [
@@ -249,7 +252,7 @@ const esquemaBotoes = {
         //   kanban (vw_fluxo_comercial): PERFIS_FLUXO_MENU; notas (vw_fiscal_documentos): PERFIS_FISCAL_MENU.
         {
             nome: 'Vendas e NF-e',
-            permitido: [...new Set([...PERFIS_FLUXO_MENU, ...PERFIS_FISCAL_MENU])],
+            permitido: PERFIS_MENUS_COMERCIAIS,
             img: 'vendas_nfe',
             sub: [
                 // Quadro com arraste sobre fluxo_itens (desde 13/11/2026; o antigo, calculado por view, saiu do menu).
@@ -261,7 +264,7 @@ const esquemaBotoes = {
         },
         {
             nome: 'Serviços e NFS-e',
-            permitido: [...new Set([...PERFIS_FLUXO_MENU, ...PERFIS_FISCAL_MENU])],
+            permitido: PERFIS_MENUS_COMERCIAIS,
             img: 'servicos_nfse',
             sub: [
                 { nome: 'Fluxo de Serviços', funcao: 'telaFluxoServicos', img: 'kanban', permitido: PERFIS_FLUXO_MENU },
@@ -272,13 +275,14 @@ const esquemaBotoes = {
         },
         {
             nome: 'Compras e Estoque',
-            permitido: ['adm', 'diretoria', 'fin', 'log', 'gerente', 'coordenacao', 'analista', 'user'],
+            permitido: PERFIS_MENUS_COMERCIAIS,
             img: 'estoque',
             sub: [
                 { nome: 'Fluxo de Compras', funcao: 'telaFluxoCompras', img: 'kanban', permitido: PERFIS_FISCAL_MENU },
                 { nome: 'Notas Recebidas', funcao: 'telaNotasRecebidas', img: 'down_estoque', permitido: PERFIS_FISCAL_MENU },
                 { nome: 'Saldos', funcao: 'telaEstoque', img: 'estoque' },
                 { nome: 'Movimentações', funcao: 'telaMovimentosEstoque', img: 'lista' },
+                { nome: 'Locais', funcao: 'telaLocaisEstoque', img: 'estoque' },
                 { nome: 'Inventário', funcao: 'telaInventarios', img: 'prancheta' }
             ]
         },
@@ -311,7 +315,6 @@ const esquemaBotoes = {
             img: 'reembolso',
             sub: [
                 { nome: 'Ver Pagamentos', funcao: 'telaPagamentos', img: 'reembolso' },
-                { nome: 'Dashboard', funcao: 'telaDashboardReembolsos', img: 'dashboard', permitido: ['fin', 'diretoria', 'adm'] },
                 { nome: 'Solicitar Pagamento', funcao: 'formularioPagamento', img: 'dinheiro' },
                 {
                     nome: 'Baixar Excel',
@@ -319,6 +322,19 @@ const esquemaBotoes = {
                     funcao: 'baixarExcelRelatorioPagamentos',
                     img: 'excel'
                 }
+            ]
+        },
+        // Financeiro próprio do GCS (js/financeiro.js, gcs migrations/financeiro.sql). O Dashboard veio de Reembolsos.
+        {
+            nome: 'Financeiro',
+            permitido: ['fin', 'diretoria', 'adm'],
+            img: 'dinheiro',
+            sub: [
+                { nome: 'Faturas a Pagar', funcao: 'telaFaturasPagar', img: 'dinheiro' },
+                { nome: 'Faturas a Receber', funcao: 'telaFaturasReceber', img: 'dinheiro' },
+                { nome: 'Contas Correntes', funcao: 'telaContasFin', img: 'planilha' },
+                { nome: 'Categorias', funcao: 'telaCategoriasFin', img: 'prancheta' },
+                { nome: 'Dashboard', funcao: 'telaDashboardReembolsos', img: 'dashboard' }
             ]
         },
         {

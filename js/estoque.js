@@ -1,9 +1,11 @@
 // Estoque (servidor: SCRIPTS/fiscal.js → rotasEstoque, SCRIPTS/fiscal/estoque.js).
-// Um único local. O saldo é a soma dos movimentos (entrada de nota, saída de nota emitida,
-// inventário, ajuste); nada é apagado, corrige-se com estorno. Itens = base de composições.
-// - Saldos: vw_estoque_saldos (custo médio, valor em estoque, situação).
+// Locais por empresa (Matriz, Galpão... e "Divergências"). O saldo é a soma dos movimentos (entrada de nota,
+// saída de nota emitida, inventário, ajuste, transferência); nada é apagado, corrige-se com estorno.
+// - Saldos: vw_estoque_saldos (total do item em todos os locais; o detalhe mostra por local).
+// - Locais: vw_estoque_locais / vw_estoque_saldos_locais; transferência só entre locais da mesma empresa
+//   (entre empresas é nota fiscal: saída numa, entrada na outra).
 // - Movimentações: vw_estoque_movimentos.
-// - Inventário: contagem física; ao fechar, a diferença vira movimento (marco zero do estoque).
+// - Inventário: por local; ao fechar, falta vai para "Divergências" da empresa e sobra entra como ajuste.
 
 const escEst = valor => escaparAtributo(valor ?? '')
 const qtdEst = v => v == null || v === '' ? '' : Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 4 })
@@ -44,9 +46,20 @@ const TIPOS_MOVIMENTO = {
     SAIDA: { cor: '#b91c1c', texto: 'Saída' },
     AJUSTE: { cor: '#2563eb', texto: 'Ajuste' },
     INVENTARIO: { cor: '#7c3aed', texto: 'Inventário' },
-    ESTORNO: { cor: '#64748b', texto: 'Estorno' }
+    ESTORNO: { cor: '#64748b', texto: 'Estorno' },
+    TRANSFERENCIA: { cor: '#0e7490', texto: 'Transferência' }
 }
-const ORIGENS_MOVIMENTO = { NF_ENTRADA: 'Nota recebida', NF_SAIDA: 'Nota emitida', INVENTARIO: 'Inventário', MANUAL: 'Ajuste manual', ESTORNO: 'Estorno' }
+const ORIGENS_MOVIMENTO = { NF_ENTRADA: 'Nota recebida', NF_SAIDA: 'Nota emitida', INVENTARIO: 'Inventário', MANUAL: 'Ajuste manual', ESTORNO: 'Estorno', TRANSFERENCIA: 'Transferência' }
+
+// Locais ativos (cache da sessão; recarregado ao criar/editar).
+let locaisEstoqueCache = null
+async function locaisEstoque(recarregar = false) {
+    if (!locaisEstoqueCache || recarregar) locaisEstoqueCache = (await apiEstoque('locais')).locais
+    return locaisEstoqueCache
+}
+const nomeLocalEst = l => `${l.app} · ${l.nome}${l.tipo === 'DIVERGENCIA' ? ' (diferenças)' : ''}`
+const opcoesLocaisEst = (locais, atual, filtro = () => true) => locais.filter(l => l.ativo && filtro(l))
+    .map(l => `<option value="${escEst(l.id)}" ${l.id === atual ? 'selected' : ''}>${escEst(nomeLocalEst(l))}${l.padrao ? ' — padrão' : ''}</option>`).join('')
 
 function etiquetaEst(texto, cor) {
     return `<span class="fis-etiqueta" style="--cor: ${cor || '#64748b'}">${escEst(texto)}</span>`
@@ -72,6 +85,7 @@ async function telaEstoque() {
                 <div class="fis-barra">
                     <span class="fis-total">Valor em estoque: <b data-total-estoque>…</b></span>
                     <div class="fis-acoes">
+                        <button type="button" onclick="telaLocaisEstoque()">Locais</button>
                         <button type="button" onclick="telaMovimentosEstoque()">Movimentações</button>
                         <button type="button" onclick="telaInventarios()">Inventário</button>
                     </div>
@@ -142,6 +156,7 @@ function linhaMovimentoEst(m, { comItem = false, acoes = true } = {}) {
             <td>${new Date(m.data).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
             ${comItem ? `<td>${escEst(m.codigo)}</td><td class="fis-descricao">${escEst(m.descricao)}</td>` : ''}
             <td>${etiquetaEst(t.texto || m.tipo, t.cor)}${m.estornado ? ' <small>(estornado)</small>' : ''}</td>
+            <td><small>${escEst(m.app ? `${m.app} · ${m.local_nome || ''}` : m.local_nome || '')}</small></td>
             <td class="fis-num ${q < 0 ? 'fis-negativo' : 'fis-positivo'}"><b>${q > 0 ? '+' : ''}${qtdEst(q)}</b></td>
             <td class="fis-num">${m.custo_unitario != null ? dinheiro(m.custo_unitario) : ''}</td>
             <td>${escEst(ORIGENS_MOVIMENTO[m.origem] || m.origem)}</td>
@@ -155,7 +170,7 @@ function linhaMovimentoEst(m, { comItem = false, acoes = true } = {}) {
 async function detalheItemEstoque(itemId) {
     overlayAguarde()
     try {
-        const { saldo: s, movimentos } = await apiEstoque('item', { item_id: itemId })
+        const { saldo: s, movimentos, locais } = await apiEstoque('item', { item_id: itemId })
         removerOverlay()
         const elemento = `
             <div class="fis-painel" data-item-estoque="${escEst(itemId)}">
@@ -166,6 +181,13 @@ async function detalheItemEstoque(itemId) {
                     <div><span>Valor em estoque</span><b>${dinheiro(s.valor_estoque || 0)}</b></div>
                     <div><span>Situação</span>${etiquetaEst(s.situacao, SITUACOES_ESTOQUE[s.situacao])}</div>
                 </div>
+                ${locais?.length ? `
+                <div class="fis-secao">
+                    <div class="fis-secao-topo"><b>Onde está</b></div>
+                    <div class="est-locais-item">${locais.map(l => `
+                        <span class="est-local-chip ${l.local_tipo === 'DIVERGENCIA' ? 'divergencia' : ''}">${escEst(l.app)} · ${escEst(l.local_nome)} <b>${qtdEst(l.saldo)}</b></span>`).join('')}
+                    </div>
+                </div>` : ''}
                 <div class="fis-secao">
                     <div class="fis-secao-topo"><b>Movimentos</b> <small>últimos 200</small>
                         <button type="button" class="fis-botao" onclick="formularioAjusteEstoque('${escEst(itemId)}')">Ajustar saldo</button>
@@ -173,7 +195,7 @@ async function detalheItemEstoque(itemId) {
                     ${movimentos.length ? `
                     <div class="fis-tabela-rolagem">
                         <table class="fis-tabela">
-                            <thead><tr><th>Data</th><th>Tipo</th><th>Qtd</th><th>Custo</th><th>Origem</th><th>Documento</th><th>Observação</th><th>Usuário</th><th></th></tr></thead>
+                            <thead><tr><th>Data</th><th>Tipo</th><th>Local</th><th>Qtd</th><th>Custo</th><th>Origem</th><th>Documento</th><th>Observação</th><th>Usuário</th><th></th></tr></thead>
                             <tbody>${movimentos.map(m => linhaMovimentoEst(m)).join('')}</tbody>
                         </table>
                     </div>` : '<div class="fis-vazio">Nenhum movimento ainda. O saldo começa no inventário ou na primeira nota de entrada.</div>'}
@@ -186,12 +208,15 @@ async function detalheItemEstoque(itemId) {
     }
 }
 
-function formularioAjusteEstoque(itemId) {
+async function formularioAjusteEstoque(itemId) {
+    let locais
+    try { locais = await locaisEstoque() } catch (err) { return popup({ mensagem: mensagemErroEst(err) }) }
     popup({
         titulo: 'Ajustar saldo',
         linhas: [{
             elemento: `
                 <div class="fis-form" data-ajuste-estoque>
+                    <label class="fis-campo"><span>Local</span><select class="fis-input" name="local_id">${opcoesLocaisEst(locais, locais.find(l => l.padrao && l.app === 'AC')?.id)}</select></label>
                     <div class="fis-grade">
                         <label class="fis-campo"><span>Quantidade (+ entra, − sai)</span><input class="fis-input" name="quantidade" type="number" step="any" placeholder="ex.: -2"></label>
                         <label class="fis-campo"><span>Custo unitário (só entrada)</span><input class="fis-input" name="custo_unitario" type="number" step="0.0001" min="0" placeholder="custo médio"></label>
@@ -209,7 +234,7 @@ async function salvarAjusteEstoque(itemId, botao) {
     const valor = n => form.querySelector(`[name="${n}"]`).value
     try {
         overlayAguarde()
-        await apiEstoque('ajuste', { item_id: itemId, quantidade: valor('quantidade'), custo_unitario: valor('custo_unitario'), observacao: valor('observacao') })
+        await apiEstoque('ajuste', { item_id: itemId, local_id: valor('local_id'), quantidade: valor('quantidade'), custo_unitario: valor('custo_unitario'), observacao: valor('observacao') })
         removerOverlay()
         removerPopup(botao?.closest('.popup')?.id)
         fecharPopupDoItemEst(itemId)
@@ -259,13 +284,15 @@ async function telaMovimentosEstoque() {
             body: 'bodyMovimentosEstoque',
             criarLinha: 'criarLinhaMovimentoEstoque',
             topoEmLinha: true,
-            btnExtras: `<div class="fis-acoes"><button type="button" onclick="telaEstoque()">Saldos</button></div>`,
+            btnExtras: `<div class="fis-acoes"><button type="button" onclick="telaEstoque()">Saldos</button><button type="button" onclick="telaLocaisEstoque()">Locais</button></div>`,
+            caber: true,
             ordenar: [{ path: 'data', direcao: 'desc' }],
             colunas: {
                 'Data': { chave: 'dia', tipoPesquisa: 'data' },
                 'Código': { chave: 'codigo' },
                 'Descrição': { chave: 'descricao' },
                 'Tipo': { chave: 'tipo', tipoPesquisa: 'select' },
+                'Local': { chave: 'local_nome', tipoPesquisa: 'select' },
                 'Qtd': { chave: 'quantidade', tipoOrdenacao: 'numero' },
                 'Custo': { chave: 'custo_unitario', tipoOrdenacao: 'numero' },
                 'Origem': { chave: 'origem', tipoPesquisa: 'select' },
@@ -292,33 +319,34 @@ async function telaInventarios() {
     try {
         const { inventarios } = await apiEstoque('inventarios')
         removerOverlay()
-        const aberto = inventarios.find(i => i.status === 'ABERTO')
+        const abertos = inventarios.filter(i => i.status === 'ABERTO')
         tela.innerHTML = `
             <div class="pagina-conteudo fis-pagina">
                 <div class="cabecalho-pagina"><h2>Inventário</h2></div>
                 <div class="fis-painel">
                     <div class="fis-explica">
-                        A contagem física define o saldo de verdade. Ao <b>fechar</b>, a diferença entre o contado e o
-                        sistema vira um movimento de inventário. O primeiro inventário é o <b>marco zero</b> do estoque do GCS
+                        A contagem física de <b>um local</b> define o saldo de verdade dele. Ao <b>fechar</b>, o que faltou vai
+                        para o local <b>Divergências</b> da empresa (fica rastreável até ser achado ou baixado) e o que sobrou
+                        entra como ajuste de inventário. O primeiro inventário é o <b>marco zero</b> do estoque do GCS
                         (os saldos do Omie não são importados).
                     </div>
                     <div class="fis-acoes-claras">
-                        ${aberto
-                            ? `<button type="button" class="fis-botao" onclick="abrirContagemInventario('${escEst(aberto.id)}')">Continuar contagem: ${escEst(aberto.descricao)}</button>`
-                            : `<button type="button" class="fis-botao" onclick="novoInventario()">Abrir inventário</button>`}
+                        ${abertos.map(a => `<button type="button" class="fis-botao" onclick="abrirContagemInventario('${escEst(a.id)}')">Continuar: ${escEst(a.descricao)}</button>`).join('')}
+                        <button type="button" class="${abertos.length ? 'fis-mini' : 'fis-botao'}" onclick="novoInventario()">Abrir inventário</button>
                         <button type="button" class="fis-mini" onclick="telaEstoque()">Ver saldos</button>
                     </div>
                     <table class="fis-tabela">
-                        <thead><tr><th>Inventário</th><th>Situação</th><th>Itens contados</th><th>Aberto em</th><th>Fechado em</th><th></th></tr></thead>
+                        <thead><tr><th>Inventário</th><th>Local</th><th>Situação</th><th>Itens contados</th><th>Aberto em</th><th>Fechado em</th><th></th></tr></thead>
                         <tbody>${inventarios.map(i => `
                             <tr>
                                 <td>${escEst(i.descricao)}</td>
+                                <td>${escEst(i.local_app ? `${i.local_app} · ${i.local_nome}` : '')}</td>
                                 <td>${etiquetaEst(i.status, { ABERTO: '#d97706', FECHADO: '#15803d', CANCELADO: '#64748b' }[i.status])}</td>
                                 <td class="fis-num">${i.contados}</td>
                                 <td>${new Date(i.criado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} <small>${escEst(i.criado_por || '')}</small></td>
                                 <td>${i.fechado_em ? new Date(i.fechado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : ''} <small>${escEst(i.fechado_por || '')}</small></td>
                                 <td><button type="button" class="fis-mini" onclick="abrirContagemInventario('${escEst(i.id)}')">${i.status === 'ABERTO' ? 'Contar' : 'Ver'}</button></td>
-                            </tr>`).join('') || '<tr><td colspan="6" class="fis-vazio">Nenhum inventário ainda.</td></tr>'}
+                            </tr>`).join('') || '<tr><td colspan="7" class="fis-vazio">Nenhum inventário ainda.</td></tr>'}
                         </tbody>
                     </table>
                 </div>
@@ -330,10 +358,28 @@ async function telaInventarios() {
 }
 
 async function novoInventario() {
-    const descricao = prompt('Nome do inventário:', `Inventário ${new Date().toLocaleDateString('pt-BR')}`)
-    if (descricao === null) return
+    let locais
+    try { locais = await locaisEstoque(true) } catch (err) { return popup({ mensagem: mensagemErroEst(err) }) }
+    popup({
+        titulo: 'Abrir inventário',
+        linhas: [{
+            elemento: `
+                <div class="fis-form" data-novo-inventario>
+                    <label class="fis-campo"><span>Local a contar</span><select class="fis-input" name="local_id">${opcoesLocaisEst(locais, locais.find(l => l.padrao && l.app === 'AC')?.id)}</select></label>
+                    <label class="fis-campo"><span>Nome <small>(opcional)</small></span><input class="fis-input" name="descricao" placeholder="ex.: Inventário de novembro"></label>
+                </div>`
+        }],
+        botoes: [{ texto: 'Abrir', img: 'concluido', funcao: 'confirmarNovoInventario(this)' }]
+    })
+}
+
+async function confirmarNovoInventario(botao) {
+    const form = document.querySelector('[data-novo-inventario]')
     try {
-        const { id } = await apiEstoque('inventario/abrir', { descricao })
+        const { id } = await apiEstoque('inventario/abrir', {
+            local_id: form.querySelector('[name="local_id"]').value, descricao: form.querySelector('[name="descricao"]').value
+        })
+        removerPopup(botao?.closest('.popup')?.id)
         abrirContagemInventario(id)
     } catch (err) {
         popup({ mensagem: mensagemErroEst(err) })
@@ -351,7 +397,7 @@ async function abrirContagemInventario(id) {
         const aberto = inventario.status === 'ABERTO'
         tela.innerHTML = `
             <div class="pagina-conteudo fis-pagina">
-                <div class="cabecalho-pagina"><h2>${escEst(inventario.descricao)}</h2></div>
+                <div class="cabecalho-pagina"><h2>${escEst(inventario.descricao)}</h2><small class="est-sub">${escEst(inventario.local_app || '')} · ${escEst(inventario.local_nome || '')}</small></div>
                 <div class="fis-painel">
                     <div class="fis-barra-clara">
                         <input class="fis-input fis-busca" placeholder="Buscar item (código, descrição)…" oninput="filtrarInventario(this.value)">
@@ -364,7 +410,7 @@ async function abrirContagemInventario(id) {
                     </div>
                     <div class="fis-tabela-rolagem fis-alta">
                         <table class="fis-tabela">
-                            <thead><tr><th>Código</th><th>Descrição</th><th>Un.</th><th>Saldo no sistema</th><th>Contado</th><th>Diferença</th></tr></thead>
+                            <thead><tr><th>Código</th><th>Descrição</th><th>Un.</th><th>Saldo no local</th><th>Contado</th><th>Diferença</th></tr></thead>
                             <tbody data-inventario></tbody>
                         </table>
                     </div>
@@ -438,7 +484,7 @@ async function fecharInventarioTela() {
     const comDif = contados.filter(i => Number(i.quantidade_contada) !== Number(i.saldo))
     const ok = await confirmarPopup({
         titulo: 'Fechar inventário',
-        mensagem: `${contados.length} itens contados, ${comDif.length} com diferença.<br>Cada diferença vira um movimento de inventário. Itens não contados ficam como estão.<br><b>Depois de fechado não dá para alterar a contagem.</b>`,
+        mensagem: `${contados.length} itens contados, ${comDif.length} com diferença.<br>O que faltou vai para o local <b>Divergências</b> da empresa; o que sobrou entra como ajuste. Itens não contados ficam como estão.<br><b>Depois de fechado não dá para alterar a contagem.</b>`,
         textoConfirmar: 'Fechar e ajustar'
     })
     if (!ok) return
@@ -446,7 +492,7 @@ async function fecharInventarioTela() {
         overlayAguarde()
         const r = await apiEstoque('inventario/fechar', { id: estadoInventario.id })
         removerOverlay()
-        popup({ mensagem: `Inventário fechado: ${r.ajustados} itens ajustados de ${r.contados} contados.`, imagem: 'imagens/concluido.png' })
+        popup({ mensagem: `Inventário fechado: ${r.ajustados} itens ajustados de ${r.contados} contados${r.enviadosDivergencia ? ` (${r.enviadosDivergencia} com falta foram para Divergências)` : ''}.`, imagem: 'imagens/concluido.png' })
         telaInventarios()
     } catch (err) {
         removerOverlay()
@@ -461,6 +507,204 @@ async function cancelarInventarioTela() {
         await apiEstoque('inventario/cancelar', { id: estadoInventario.id })
         telaInventarios()
     } catch (err) {
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+// ---------------------------------------------------------------- locais
+
+async function telaLocaisEstoque() {
+    overlayAguarde()
+    try {
+        const locais = await locaisEstoque(true)
+        removerOverlay()
+        const empresas = [...new Set(locais.map(l => l.app))]
+        tela.innerHTML = `
+            <div class="pagina-conteudo fis-pagina">
+                <div class="cabecalho-pagina"><h2>Locais de estoque</h2></div>
+                <div class="fis-painel">
+                    <div class="fis-explica">
+                        Cada empresa tem os seus locais (Matriz, Galpão…). Transferências só entre locais da <b>mesma empresa</b>:
+                        entre empresas a mercadoria passa por nota fiscal (saída numa, entrada na outra).
+                        <b>Divergências</b> guarda as faltas encontradas nos inventários até serem achadas (transfira de volta) ou baixadas (ajuste).
+                    </div>
+                    <div class="fis-acoes-claras">
+                        <button type="button" class="fis-botao" onclick="formularioLocalEstoque()">+ Local</button>
+                        <button type="button" class="fis-mini" onclick="formularioTransferenciaEstoque()">Transferir itens</button>
+                        <button type="button" class="fis-mini" onclick="telaEstoque()">Saldos</button>
+                    </div>
+                    ${empresas.map(app => `
+                        <div class="est-empresa">
+                            <h3>${escEst(app)}</h3>
+                            <div class="est-locais">${locais.filter(l => l.app === app).map(l => `
+                                <button type="button" class="est-local ${l.tipo === 'DIVERGENCIA' ? 'divergencia' : ''} ${l.ativo ? '' : 'inativo'}" onclick="abrirLocalEstoque('${escEst(l.id)}')">
+                                    <span class="est-local-nome">${escEst(l.nome)}${l.padrao ? ' <small>padrão</small>' : ''}${l.ativo ? '' : ' <small>desativado</small>'}</span>
+                                    <b>${Number(l.itens || 0)}</b><span>item(ns) com saldo</span>
+                                </button>`).join('')}
+                            </div>
+                        </div>`).join('')}
+                </div>
+            </div>`
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+async function abrirLocalEstoque(localId) {
+    overlayAguarde()
+    try {
+        const [locais, { saldos }] = await Promise.all([locaisEstoque(), apiEstoque('locais/saldos', { local_id: localId })])
+        removerOverlay()
+        const l = locais.find(x => x.id === localId) || {}
+        popup({
+            titulo: `${l.app} · ${l.nome}`,
+            elemento: `
+                <div class="fis-painel" data-local-estoque="${escEst(localId)}">
+                    <div class="fis-acoes-claras">
+                        ${saldos.length ? `<button type="button" class="fis-botao" onclick="formularioTransferenciaEstoque('${escEst(localId)}')">Transferir daqui</button>` : ''}
+                        ${l.tipo === 'DIVERGENCIA' ? '' : `<button type="button" class="fis-mini" onclick="formularioLocalEstoque('${escEst(localId)}')">Editar local</button>`}
+                    </div>
+                    ${saldos.length ? `
+                    <div class="fis-tabela-rolagem">
+                        <table class="fis-tabela">
+                            <thead><tr><th>Código</th><th>Descrição</th><th>Un.</th><th class="fis-num">Saldo</th><th class="fis-num">Custo médio</th><th>Último movimento</th></tr></thead>
+                            <tbody>${saldos.map(s => `
+                                <tr>
+                                    <td>${escEst(s.codigo)}</td>
+                                    <td class="fis-descricao"><span class="fis-link" onclick="detalheItemEstoque('${escEst(s.item_id)}')">${escEst(s.descricao)}</span></td>
+                                    <td>${escEst(s.unidade || '')}</td>
+                                    <td class="fis-num ${Number(s.saldo) < 0 ? 'fis-negativo' : ''}"><b>${qtdEst(s.saldo)}</b></td>
+                                    <td class="fis-num">${s.custo_medio != null ? dinheiro(s.custo_medio) : ''}</td>
+                                    <td>${s.ultimo_movimento ? new Date(s.ultimo_movimento).toLocaleDateString('pt-BR') : ''}</td>
+                                </tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>` : '<div class="fis-vazio">Nenhum item com saldo neste local.</div>'}
+                </div>`
+        })
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+async function formularioLocalEstoque(localId = null) {
+    let locais
+    try { locais = await locaisEstoque() } catch (err) { return popup({ mensagem: mensagemErroEst(err) }) }
+    const l = localId ? locais.find(x => x.id === localId) : null
+    const empresas = [...new Set(locais.map(x => x.app))]
+    popup({
+        titulo: l ? `Editar local · ${l.app}` : 'Novo local de estoque',
+        linhas: [{
+            elemento: `
+                <div class="fis-form" data-form-local data-id="${escEst(localId || '')}">
+                    <div class="fis-grade">
+                        ${l ? '' : `<label class="fis-campo"><span>Empresa</span><select class="fis-input" name="app">${empresas.map(a => `<option value="${escEst(a)}">${escEst(a)}</option>`).join('')}</select></label>`}
+                        <label class="fis-campo fis-largo"><span>Nome</span><input class="fis-input" name="nome" maxlength="60" value="${escEst(l?.nome || '')}" placeholder="ex.: Galpão, Almoxarifado da obra X"></label>
+                    </div>
+                    <label class="fis-check"><input type="checkbox" name="padrao" ${l?.padrao ? 'checked disabled' : ''}> Local padrão da empresa <small>(notas emitidas saem daqui; as recebidas sugerem este)</small></label>
+                    ${l && !l.padrao ? `<label class="fis-check"><input type="checkbox" name="ativo" ${l.ativo ? 'checked' : ''}> Ativo</label>` : ''}
+                    <label class="fis-campo"><span>Observação</span><input class="fis-input" name="observacao" maxlength="300" value="${escEst(l?.observacao || '')}"></label>
+                </div>`
+        }],
+        botoes: [{ texto: 'Salvar', img: 'salvo', funcao: 'salvarLocalEstoque(this)' }]
+    })
+}
+
+async function salvarLocalEstoque(botao) {
+    const form = document.querySelector('[data-form-local]')
+    const v = n => form.querySelector(`[name="${n}"]`)
+    try {
+        overlayAguarde()
+        await apiEstoque('locais/salvar', {
+            id: form.dataset.id || undefined, app: v('app')?.value, nome: v('nome').value,
+            padrao: v('padrao').checked, ativo: v('ativo') ? v('ativo').checked : undefined, observacao: v('observacao').value
+        })
+        removerOverlay()
+        removerPopup(botao?.closest('.popup')?.id)
+        document.querySelectorAll('[data-local-estoque]').forEach(p => removerPopup(p.closest('.popup')?.id))
+        telaLocaisEstoque()
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+// Transferência: escolhe origem e destino (mesma empresa) e as quantidades dos itens que estão na origem.
+async function formularioTransferenciaEstoque(de = null) {
+    let locais
+    try { locais = await locaisEstoque() } catch (err) { return popup({ mensagem: mensagemErroEst(err) }) }
+    const origem = de || locais.find(l => l.padrao && l.app === 'AC')?.id
+    popup({
+        titulo: 'Transferir itens entre locais',
+        linhas: [{
+            elemento: `
+                <div class="fis-form est-transferencia" data-form-transferencia>
+                    <div class="fis-grade">
+                        <label class="fis-campo fis-largo"><span>De</span><select class="fis-input" name="de" onchange="trocarOrigemTransferencia()">${opcoesLocaisEst(locais, origem)}</select></label>
+                        <label class="fis-campo fis-largo"><span>Para</span><select class="fis-input" name="para"></select></label>
+                    </div>
+                    <small class="fis-dica">Só locais da mesma empresa. Entre empresas, emita a nota de saída e dê entrada na nota recebida da outra.</small>
+                    <input class="fis-input fis-busca" placeholder="Filtrar itens…" oninput="filtrarTransferencia(this.value)">
+                    <div class="fis-tabela-rolagem">
+                        <table class="fis-tabela">
+                            <thead><tr><th>Item</th><th class="fis-num">Saldo</th><th>Transferir</th></tr></thead>
+                            <tbody data-itens-transferencia><tr><td colspan="3" class="fis-vazio">Carregando…</td></tr></tbody>
+                        </table>
+                    </div>
+                    <label class="fis-campo"><span>Observação</span><input class="fis-input" name="observacao" maxlength="300" placeholder="ex.: material para a obra X"></label>
+                </div>`
+        }],
+        botoes: [{ texto: 'Transferir', img: 'concluido', funcao: 'salvarTransferenciaEstoque(this)' }]
+    })
+    trocarOrigemTransferencia()
+}
+
+async function trocarOrigemTransferencia() {
+    const form = document.querySelector('[data-form-transferencia]')
+    if (!form) return
+    const locais = await locaisEstoque()
+    const de = form.querySelector('[name="de"]').value
+    const app = locais.find(l => l.id === de)?.app
+    const para = form.querySelector('[name="para"]')
+    para.innerHTML = opcoesLocaisEst(locais, null, l => l.app === app && l.id !== de)
+    const corpo = form.querySelector('[data-itens-transferencia]')
+    try {
+        const { saldos } = await apiEstoque('locais/saldos', { local_id: de })
+        corpo.innerHTML = saldos.filter(s => Number(s.saldo) > 0).map(s => `
+            <tr data-busca="${escEst(`${s.codigo} ${s.descricao}`.toLowerCase())}">
+                <td class="fis-descricao">${escEst(s.descricao)}<small>${escEst(s.codigo)}</small></td>
+                <td class="fis-num">${qtdEst(s.saldo)} ${escEst(s.unidade || '')}</td>
+                <td><input class="fis-input fis-contagem" type="number" min="0" max="${Number(s.saldo)}" step="any" data-item="${escEst(s.item_id)}" placeholder="0"></td>
+            </tr>`).join('') || '<tr><td colspan="3" class="fis-vazio">Nada com saldo neste local.</td></tr>'
+    } catch (err) {
+        corpo.innerHTML = `<tr><td colspan="3" class="fis-vazio">${mensagemErroEst(err)}</td></tr>`
+    }
+}
+
+function filtrarTransferencia(valor) {
+    const termo = String(valor || '').toLowerCase()
+    document.querySelectorAll('[data-itens-transferencia] tr[data-busca]').forEach(tr => { tr.hidden = termo && !tr.dataset.busca.includes(termo) })
+}
+
+async function salvarTransferenciaEstoque(botao) {
+    const form = document.querySelector('[data-form-transferencia]')
+    const itens = [...form.querySelectorAll('[data-item]')].map(i => ({ item_id: i.dataset.item, quantidade: Number(i.value) || 0 })).filter(i => i.quantidade > 0)
+    if (!itens.length) return popup({ mensagem: 'Informe a quantidade de ao menos um item.' })
+    try {
+        overlayAguarde()
+        const r = await apiEstoque('transferir', {
+            de: form.querySelector('[name="de"]').value, para: form.querySelector('[name="para"]').value,
+            itens, observacao: form.querySelector('[name="observacao"]').value
+        })
+        removerOverlay()
+        removerPopup(botao?.closest('.popup')?.id)
+        document.querySelectorAll('[data-local-estoque]').forEach(p => removerPopup(p.closest('.popup')?.id))
+        popup({ mensagem: `Transferência feita: ${r.itens} item(ns).`, imagem: 'imagens/concluido.png' })
+        if (document.querySelector('.est-locais')) telaLocaisEstoque()
+    } catch (err) {
+        removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
     }
 }
