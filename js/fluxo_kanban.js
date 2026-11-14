@@ -357,7 +357,7 @@ async function faturarTodasFluxo() {
     if (!prontos.length) return popup({ mensagem: 'Nenhum cartão em Separado para faturar.' })
     const ok = await confirmarPopup({
         titulo: 'Faturar todas',
-        mensagem: `Emitir ${prontos.length} nota(s)${empresa ? ` da empresa ${empresa === '-' ? 'sem empresa' : escaparAtributo(empresa)}` : ''}? Elas saem uma por vez; cada cartão fica verde (autorizada) ou vermelho (erro).`,
+        mensagem: `Emitir ${prontos.length} nota(s)${empresa ? ` da empresa ${empresa === '-' ? 'sem empresa' : escaparAtributo(empresa)}` : ''}?`,
         textoConfirmar: 'Emitir todas'
     })
     if (!ok) return
