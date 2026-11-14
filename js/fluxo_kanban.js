@@ -178,8 +178,8 @@ function renderizarFluxo() {
     const colunas = colunasFluxo(quadro, estadoFluxo.linhas, { periodo: estadoFluxo.periodo, busca: estadoFluxo.busca, empresa: estadoFluxo.empresa })
     const novo = QUADROS_FLUXO[quadro].novo
     area.innerHTML = colunas.map(col => {
-        const aberto = estadoFluxo.abertos.has(col.etapa)
-        const lista = [...col.cartoes, ...(aberto ? col.parados : [])]
+        // Só o que está no período do filtro (os botões "+N parados" saíram: o filtro de período resolve).
+        const lista = col.cartoes
         const total = col.cartoes.length
         const soltar = novo ? `ondragover="permitirSoltarFluxo(event, '${col.etapa}')" ondragleave="sairSoltarFluxo(event)" ondrop="soltarFluxo(event, '${col.etapa}')"` : ''
         return `
@@ -188,13 +188,9 @@ function renderizarFluxo() {
                     <b>${col.titulo}</b>
                     <small>${total ? `${total} registro(s)${col.valor ? ` · ${reaisFluxo(col.valor)}` : ''}` : 'Nenhum registro no período'}</small>
                 </header>
-                ${col.parados.length ? `
-                    <button type="button" class="fluxo-parados ${aberto ? 'aberto' : ''}" onclick="alternarParadosFluxo('${col.etapa}')"
-                        title="Cartões desta etapa com data anterior ao período escolhido">
-                        ${aberto ? 'Esconder' : '+'} ${col.parados.length} parado(s) há mais de ${estadoFluxo.periodo} dias</button>` : ''}
                 ${novo && col.etapa === 'separado' ? `
                     <button type="button" class="fluxo-faturar-todas" onclick="faturarTodasFluxo()"
-                        ${[...col.cartoes, ...col.parados].some(c => !['EMITINDO', 'PROCESSANDO'].includes(c.emissao_status)) ? '' : 'disabled'}
+                        ${col.cartoes.some(c => !['EMITINDO', 'PROCESSANDO'].includes(c.emissao_status)) ? '' : 'disabled'}
                         title="Emite, uma por vez, as notas de todos os cartões de Separado da empresa escolhida">Faturar todas</button>` : ''}
                 <div class="fluxo-cartoes">
                     ${lista.length ? lista.map(c => cartaoFluxo(quadro, c, col.parados.includes(c))).join('') : '<p class="fluxo-vazio">Nenhum registro</p>'}
@@ -344,12 +340,12 @@ async function abrirNotaFluxo(c) {
         popup({ mensagem: 'As requisições deste item não têm produtos: inclua os itens da nota antes de salvar.' })
 }
 
-// "Faturar todas" (rodapé de Separado): emite em fila as notas da empresa escolhida no topo.
+// "Faturar todas" (topo de Separado): emite em fila só os cartões VISÍVEIS (empresa, busca e período do filtro).
 async function faturarTodasFluxo() {
     const empresa = estadoFluxo.empresa
-    const prontos = estadoFluxo.linhas.filter(c => c.etapa === 'separado'
-        && !['EMITINDO', 'PROCESSANDO'].includes(c.emissao_status)
-        && (!empresa || (empresa === '-' ? !c.empresa : c.empresa === empresa)))
+    const separado = colunasFluxo(estadoFluxo.quadro, estadoFluxo.linhas,
+        { periodo: estadoFluxo.periodo, busca: estadoFluxo.busca, empresa }).find(col => col.etapa === 'separado')
+    const prontos = (separado?.cartoes || []).filter(c => !['EMITINDO', 'PROCESSANDO'].includes(c.emissao_status))
     if (!prontos.length) return popup({ mensagem: 'Nenhum cartão em Separado para faturar.' })
     const ok = await confirmarPopup({
         titulo: 'Faturar todas',
@@ -359,7 +355,7 @@ async function faturarTodasFluxo() {
     if (!ok) return
     try {
         // Os cartões vão na hora para Faturado; os recusados voltam para Separado em vermelho.
-        await apiModuloFiscal('fluxo-itens/faturar', { empresa: empresa || null })
+        await apiModuloFiscal('fluxo-itens/faturar', { ids: prontos.map(c => c.id) })
         carregarFluxo()
     } catch (err) {
         popup({ mensagem: mensagemErroEst(err) })
