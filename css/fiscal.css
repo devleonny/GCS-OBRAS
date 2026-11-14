@@ -873,3 +873,8 @@ textarea.fis-input {
 .fis-nota .fis-tabela td small { font-size: 0.8rem; color: #4f6357; }
 .fis-nota .fis-tabela td.fis-descricao small { font-size: 0.72rem; color: #7a8a80; }
 .fis-nota .fis-tabela th, .fis-nota .fis-tabela td { padding: 8px 10px; }
+
+/* Nota recebida: rótulo do grupo "Manifestar" na faixa de ações. */
+.fis-nota-acoes-rotulo { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #5b6b61; }
+.fis-nota .fis-secao-topo .fis-pendente { margin-left: 4px; }
+.fis-nota .fis-vinculo { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }

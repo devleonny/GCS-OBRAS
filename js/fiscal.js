@@ -242,8 +242,7 @@ function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos }) {
         return `
             <tr>
                 <td class="fis-num">${i.n_item}</td>
-                <td><small>${escFis(i.codigo)}</small></td>
-                <td class="fis-descricao">${escFis(i.descricao)}<small>NCM ${escFis(i.ncm || '—')} · CFOP ${escFis(i.cfop || '—')}${i.ean ? ` · EAN ${escFis(i.ean)}` : ''}</small></td>
+                <td class="fis-descricao">${escFis(i.descricao)}<small>${i.codigo ? `Cód. ${escFis(i.codigo)} · ` : ''}NCM ${escFis(i.ncm || '—')} · CFOP ${escFis(i.cfop || '—')}${i.ean ? ` · EAN ${escFis(i.ean)}` : ''}</small></td>
                 <td class="fis-num">${qtdEst(i.quantidade)} ${escFis(i.unidade)}</td>
                 <td class="fis-num">${i.valor_unitario != null ? dinheiro(i.valor_unitario) : ''}</td>
                 <td class="fis-num">${i.valor_total != null ? dinheiro(i.valor_total) : ''}</td>
@@ -255,38 +254,58 @@ function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos }) {
         .filter(t => t !== d.manifestacao)
         .map(t => `<button type="button" class="fis-mini" onclick="manifestarNotaFiscal('${escFis(d.id)}', '${t}')">${MANIFESTACAO_FISCAL[t].texto}</button>`).join('')
 
+    // Mesmo visual da nota emitida: cabeçalho com lateral colorida (verde = lançada no estoque,
+    // laranja = itens a vincular, cinza = cancelada, azul = demais), grade, faixa de ações e cartões.
+    const tom = d.status === 'CANCELADA' ? 'neutro' : lancada || d.estoque_status === 'NAO_MOVIMENTA' ? 'ok' : pendentes ? 'andando' : 'rascunho'
     return `
-        <div class="fis-painel fis-doc" data-doc-fiscal="${escFis(d.id)}">
+        <div class="fis-painel fis-doc fis-nota" data-doc-fiscal="${escFis(d.id)}">
+            <div class="fis-nota-topo ${tom}">
+                <div class="fis-nota-titulo">
+                    <b>${escFis(d.participante_nome || 'Fornecedor')}</b>
+                    <div class="fis-nota-etiquetas">
+                        ${etiquetaFis(STATUS_FISCAL, d.status)}
+                        ${etiquetaFis(MANIFESTACAO_FISCAL, d.manifestacao)}
+                        ${etiquetaFis(ESTOQUE_FISCAL, d.estoque_status)}
+                    </div>
+                    <small>NF-e ${escFis(d.numero || '—')}${d.serie ? ` · série ${escFis(d.serie)}` : ''}</small>
+                </div>
+                <div class="fis-nota-valor">
+                    <span>Total da nota</span>
+                    <b>${d.valor_total != null ? dinheiro(d.valor_total) : '—'}</b>
+                </div>
+            </div>
+
             ${resumoDocumentoFis(d, [
-                ['Fornecedor', `${escFis(d.participante_nome)} <small>${docFormatadoFis(d.participante_documento)} ${escFis(d.participante_uf || '')}</small>`],
-                ['Nota', `${escFis(d.numero || '—')}${d.serie ? ` / série ${escFis(d.serie)}` : ''}`],
                 ['Emissão', dataHoraFis(d.emissao)],
                 ['Empresa', escFis(d.app)],
-                ['Valor', d.valor_total != null ? dinheiro(d.valor_total) : ''],
-                ['Natureza', escFis(d.natureza_operacao || '')],
-                ['Situação', `${etiquetaFis(STATUS_FISCAL, d.status)} ${etiquetaFis(MANIFESTACAO_FISCAL, d.manifestacao)} ${etiquetaFis(ESTOQUE_FISCAL, d.estoque_status)}`]
+                ['CNPJ do fornecedor', `${docFormatadoFis(d.participante_documento)}${d.participante_uf ? ` <small>${escFis(d.participante_uf)}</small>` : ''}`],
+                ['Natureza', escFis(d.natureza_operacao || '')]
             ])}
-            ${d.chave ? `<div class="fis-chave">Chave: <code>${escFis(d.chave)}</code></div>` : ''}
+
+            ${d.chave ? `<div class="fis-chave">Chave <code>${escFis(d.chave)}</code></div>` : ''}
             ${(d.mensagens || []).length ? `<div class="fis-alerta">${d.mensagens.map(escFis).join('<br>')}</div>` : ''}
             ${pagamentos?.length ? `<div class="fis-info">Pagamento lançado com esta chave: ${pagamentos.map(p => `<b>${escFis(p.id)}</b> (${escFis(p.status || '')})`).join(', ')}</div>` : ''}
 
-            <div class="fis-acoes-claras">
+            <div class="fis-acoes-claras fis-nota-acoes">
                 ${d.status !== 'RESUMO' && !lancada ? `<button type="button" class="fis-botao" ${pendentes ? `disabled title="Faltam ${pendentes} itens"` : ''} onclick="lancarNotaEstoque('${escFis(d.id)}')">Lançar no estoque</button>` : ''}
                 ${lancada ? `<button type="button" class="fis-mini" onclick="estornarNotaEstoque('${escFis(d.id)}')">Estornar entrada</button>` : ''}
                 ${d.tem_xml ? `<button type="button" class="fis-mini" onclick="baixarArquivoFiscal('${escFis(d.id)}', 'xml')">XML</button>` : ''}
                 <button type="button" class="fis-mini" onclick="baixarArquivoFiscal('${escFis(d.id)}', 'danfe')">DANFE</button>
                 <span class="fis-separador"></span>
-                <small>Manifestar:</small> ${manifestar}
+                <small class="fis-nota-acoes-rotulo">Manifestar</small> ${manifestar}
             </div>
 
             ${d.status === 'RESUMO'
                 ? '<div class="fis-vazio">A SEFAZ só mandou o resumo. Dê <b>Ciência</b> para liberar o XML completo, ou importe o XML que o fornecedor enviou.</div>'
                 : `
             <div class="fis-secao">
-                <div class="fis-secao-topo"><b>Itens</b> ${pendentes ? `<small class="fis-pendente">${pendentes} sem vínculo: a entrada só vai para o estoque com todos resolvidos</small>` : '<small>todos resolvidos</small>'}</div>
+                <div class="fis-secao-topo">
+                    <b>Itens</b> <span class="fis-contador">${itens.length}</span>
+                    ${pendentes ? `<small class="fis-pendente">${pendentes} sem vínculo: a entrada só vai para o estoque com todos resolvidos</small>` : '<small class="fis-secao-info">todos resolvidos</small>'}
+                </div>
                 <div class="fis-tabela-rolagem">
                     <table class="fis-tabela">
-                        <thead><tr><th>#</th><th>Cód. fornecedor</th><th>Descrição na nota</th><th>Qtd</th><th>Unit.</th><th>Total</th><th>Item do GCS</th></tr></thead>
+                        <thead><tr><th>#</th><th>Descrição na nota</th><th class="fis-num">Qtd</th><th class="fis-num">Unit.</th><th class="fis-num">Total</th><th>Item do GCS</th></tr></thead>
                         <tbody>${linhas}</tbody>
                     </table>
                 </div>
