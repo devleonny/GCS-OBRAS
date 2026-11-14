@@ -851,8 +851,12 @@ async function formularioEmissaoNFe(inicial = {}) {
         linhas: [{ elemento }],
         // Aberta pelo kanban (Requisição → Separado): só salva; a emissão é o arraste para Faturado.
         botoes: inicial.fluxo_item
-            ? [{ texto: 'Salvar', img: 'salvo', funcao: 'salvarEmissaoFis(false, this)' }]
+            ? [
+                { texto: 'Espelho (PDF)', img: 'pdf', funcao: 'espelhoEmissaoFis(this)' },
+                { texto: 'Salvar', img: 'salvo', funcao: 'salvarEmissaoFis(false, this)' }
+            ]
             : [
+                { texto: 'Espelho (PDF)', img: 'pdf', funcao: 'espelhoEmissaoFis(this)' },
                 { texto: 'Salvar rascunho', img: 'salvo', funcao: 'salvarEmissaoFis(false, this)' },
                 { texto: 'Emitir', img: 'concluido', funcao: 'salvarEmissaoFis(true, this)' }
             ]
@@ -1193,6 +1197,38 @@ async function atualizarPreviaFis() {
             ${r.itens?.length ? `<small class="fis-dica">CFOP ${[...new Set(r.itens.map(i => i.cfop))].join(', ')}</small>` : ''}`
     } catch (err) {
         alvo.innerHTML = `<div class="fis-erros">${mensagemErroEst(err)}</div>`
+    }
+}
+
+// Espelho (PDF): DANFE de pré-visualização da Focus com o que está no formulário (mesmo sem salvar),
+// com os dados reais e "SEM VALOR FISCAL", para mostrar ao cliente antes de faturar. Abre em outra aba.
+async function espelhoEmissaoFis(botao) {
+    const form = formEmissaoAberto()
+    if (!form) return
+    const entrada = lerEmissaoFis(form)
+    if (!entrada.itens?.length) return popup({ mensagem: 'Inclua pelo menos um item para gerar o espelho.' })
+    const aba = window.open('', '_blank') // aberta já no clique: depois do await o navegador bloquearia
+    try {
+        overlayAguarde()
+        const { token } = JSON.parse(localStorage.getItem('acesso') || '{}')
+        const resposta = await fetch(`${api}/fiscal/emissao/espelho`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify(entrada)
+        })
+        removerOverlay()
+        if (!resposta.ok) {
+            const r = await resposta.json().catch(() => ({}))
+            throw Object.assign(new Error(r.mensagem || `Falha ao gerar o espelho (${resposta.status})`), { erros: r.erros })
+        }
+        const url = URL.createObjectURL(await resposta.blob())
+        if (aba) aba.location = url
+        else window.open(url, '_blank')
+        setTimeout(() => URL.revokeObjectURL(url), 5 * 60 * 1000)
+    } catch (err) {
+        removerOverlay()
+        aba?.close()
+        popup({ mensagem: mensagemErroEst(err) })
     }
 }
 
