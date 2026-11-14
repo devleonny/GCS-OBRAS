@@ -377,16 +377,19 @@ function cartaoItemFluxo(c, parado, tempo) {
         nfs.length ? `NF ${nfs.join(', ')}` : '',
         Number(c.envios) ? `${c.envios} envio(s)` : ''
     ].filter(Boolean).join(' · ')
-    const emissao = c.emissao_status === 'OK' ? '<small class="fluxo-emissao ok">Nota autorizada</small>'
-        : c.emissao_status === 'ERRO' ? `<small class="fluxo-emissao erro" title="${escaparAtributo(c.emissao_mensagem || '')}">Erro na emissão: ${escaparAtributo(String(c.emissao_mensagem || '').slice(0, 90))}</small>`
-            : ['EMITINDO', 'PROCESSANDO'].includes(c.emissao_status) ? '<small class="fluxo-emissao andando">Emitindo…</small>' : ''
+    // Cor da lateral: azul (padrão), verde (nota faturada/emitida), vermelho (emissão recusada: o motivo
+    // fica só no "title", ao passar o mouse). Enquanto emite, só a marquinha "Emitindo…".
+    const faturada = c.emissao_status === 'OK' || (nfs.length > 0 && ['faturado', 'entregue', 'concluido'].includes(c.etapa))
+    const estado = c.emissao_status === 'ERRO' ? 'erro' : faturada ? 'faturada' : ''
+    const dica = c.emissao_status === 'ERRO' && c.emissao_mensagem ? `title="${escaparAtributo(`Emissão recusada: ${c.emissao_mensagem}`)}"` : ''
+    const emissao = ['EMITINDO', 'PROCESSANDO'].includes(c.emissao_status) ? '<small class="fluxo-emissao andando">Emitindo…</small>' : ''
     const id = escaparAtributo(c.id)
     // Avança só arrastando para a coluna seguinte (sem botão no cartão, a pedido).
     const podeAvancar = ACAO_ITENS_FLUXO[c.etapa] && !['EMITINDO', 'PROCESSANDO'].includes(c.emissao_status)
     const arrastavel = podeAvancar ? `draggable="true" ondragstart="iniciarArrasteFluxo(event, '${id}')" ondragend="terminarArrasteFluxo()"` : ''
     const abrir = c.orcamento_id ? `data-orcamento="${escaparAtributo(c.orcamento_id)}" onclick="abrirEsquema(this.dataset.orcamento)" onkeydown="if (event.key === 'Enter') abrirEsquema(this.dataset.orcamento)"` : ''
     return `
-        <article class="fluxo-cartao ${parado ? 'parado' : ''} ${c.orcamento_id ? 'clicavel' : ''}" data-id="${id}" tabindex="0" ${arrastavel} ${abrir}>
+        <article class="fluxo-cartao fluxo-item ${estado} ${parado ? 'parado' : ''} ${c.orcamento_id ? 'clicavel' : ''}" data-id="${id}" tabindex="0" ${dica} ${arrastavel} ${abrir}>
             <span class="fluxo-cartao-linha"><span>${escaparAtributo(c.contrato || c.departamento || 'Sem orçamento')}${pedidoCartaoFluxo(c.numero_pedido)}</span>${tempo}</span>
             <b class="fluxo-cartao-nome">${escaparAtributo(c.cliente || 'Cliente não informado')}</b>
             ${c.cidade ? `<small>${escaparAtributo(c.cidade)}</small>` : ''}

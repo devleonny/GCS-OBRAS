@@ -307,3 +307,20 @@
 .fluxo-pagina .fluxo-periodo select,
 .fluxo-pagina .fluxo-empresa select { padding: 0 12px; cursor: pointer; }
 .fluxo-pagina .fluxo-periodo select { padding-right: 30px; }
+
+/* Quadro novo: lateral azul (padrão), verde (nota faturada/emitida), vermelha (emissão recusada).
+   Vale também nas colunas finais e nos "parados" (a cor do estado manda). */
+.fluxo-cartao.fluxo-item,
+.fluxo-coluna.final .fluxo-cartao.fluxo-item,
+.fluxo-cartao.fluxo-item.parado { border-left-color: #2f6fdc; }
+.fluxo-cartao.fluxo-item:hover { border-left-color: #2f6fdc; }
+
+.fluxo-cartao.fluxo-item.faturada,
+.fluxo-coluna.final .fluxo-cartao.fluxo-item.faturada,
+.fluxo-cartao.fluxo-item.faturada:hover { border-left-color: #2f9e44; }
+
+.fluxo-cartao.fluxo-item.erro,
+.fluxo-coluna.final .fluxo-cartao.fluxo-item.erro,
+.fluxo-cartao.fluxo-item.erro:hover { border-left-color: #d63a3a; }
+
+.fluxo-cartao.fluxo-item { border-left-width: 4px; }
