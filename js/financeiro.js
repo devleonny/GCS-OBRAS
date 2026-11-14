@@ -237,7 +237,7 @@ async function telaFaturasFin(tipo, filtroExtra = null) {
             <div class="fis-cartoes" data-cartoes-fin></div>
             <div class="fis-conteudo"></div>
         </div>`
-    cartoesFaturasFin(tipo)
+    assinaturaCartoesFin = null
     try {
         delete controles.faturasFin
         document.querySelector('.fis-conteudo').innerHTML = await modTab({
@@ -247,6 +247,7 @@ async function telaFaturasFin(tipo, filtroExtra = null) {
             criarLinha: 'criarLinhaFaturaFin',
             topoEmLinha: true,
             caber: true,
+            funcaoAdicional: ['atualizarCartoesFaturasFin'],
             filtrosFixos: { tipo: { op: '=', value: tipo }, ...(filtroExtra || {}) },
             btnExtras: `
                 <div class="fis-acoes">
@@ -276,20 +277,44 @@ async function telaFaturasFin(tipo, filtroExtra = null) {
     }
 }
 
-async function cartoesFaturasFin(tipo) {
+// Cartões do topo: somam TODO o filtro da tabela (todas as páginas), não só a página aberta.
+// Chamados pela tabela depois de cada carga (funcaoAdicional); só recalculam quando o filtro muda.
+let assinaturaCartoesFin = null
+async function cartoesFaturasFin(tipo, forcar = true) {
     const alvo = document.querySelector('[data-cartoes-fin]')
     if (!alvo) return
-    const soma = async situacao => {
-        try {
-            const r = await contarPorCampo({ base: 'vw_fin_titulos', path: 'saldo', modo: 'soma', filtros: { tipo: { op: '=', value: tipo }, situacao: { op: '=', value: situacao } } })
-            return Number(r?.total || 0)
-        } catch { return null }
+    const ctrl = controles.faturasFin
+    const filtros = combinarFiltros(ctrl?.filtros, ctrl?.filtrosFixos) || { tipo: { op: '=', value: tipo } }
+    const assinatura = JSON.stringify(filtros)
+    if (!forcar && assinatura === assinaturaCartoesFin) return
+    assinaturaCartoesFin = assinatura
+    const filtrado = Object.keys(ctrl?.filtros || {}).length > 0
+    const comSituacao = situacao => {
+        const atual = filtros.situacao
+        return { ...filtros, situacao: atual ? [...[atual].flat(), { op: '=', value: situacao }] : { op: '=', value: situacao } }
     }
-    const [atrasado, aberto, parcial] = await Promise.all([soma('ATRASADO'), soma('ABERTO'), soma('PARCIAL')])
+    const soma = async (path, f) => {
+        try { return Number((await contarPorCampo({ base: 'vw_fin_titulos', path, modo: 'soma', filtros: f }))?.total || 0) } catch { return null }
+    }
+    const [atrasado, aberto, parcial, totalValor, totalSaldo] = await Promise.all([
+        soma('saldo', comSituacao('ATRASADO')), soma('saldo', comSituacao('ABERTO')), soma('saldo', comSituacao('PARCIAL')),
+        soma('valor', filtros), soma('saldo', filtros)
+    ])
+    if (assinatura !== assinaturaCartoesFin) return
     const cartao = (valor, texto, cor, situacao) => `
         <button type="button" class="fis-cartao" style="--cor: ${cor}" onclick="telaFaturasFin('${tipo}', { situacao: { op: '=', value: '${situacao}' } })">
             <b>${valor == null ? '—' : dinheiroTexto(valor)}</b><span>${texto}</span></button>`
-    alvo.innerHTML = cartao(atrasado, 'atrasado', '#b91c1c', 'ATRASADO') + cartao(aberto, 'em aberto', '#2563eb', 'ABERTO') + cartao(parcial, 'parcial (saldo)', '#d97706', 'PARCIAL')
+    alvo.innerHTML = cartao(atrasado, 'atrasado', '#b91c1c', 'ATRASADO') + cartao(aberto, 'em aberto', '#2563eb', 'ABERTO')
+        + cartao(parcial, 'parcial (saldo)', '#d97706', 'PARCIAL') + `
+        <div class="fis-cartao fin-cartao-total" style="--cor: #356443">
+            <b>${totalValor == null ? '—' : dinheiroTexto(totalValor)}</b>
+            <span>${filtrado ? 'total do filtro' : 'total'} · saldo ${totalSaldo == null ? '—' : dinheiroTexto(totalSaldo)}</span>
+        </div>`
+}
+
+// Gancho da tabela (modTab funcaoAdicional): recalcula só se o filtro mudou.
+function atualizarCartoesFaturasFin() {
+    return cartoesFaturasFin(tipoFaturasFin, false)
 }
 
 function criarLinhaFaturaFin(d) {
