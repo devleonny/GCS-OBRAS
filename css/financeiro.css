@@ -233,3 +233,62 @@
 .est-local-chip.divergencia { background: #fff4e5; border-color: #f3c98b; }
 
 .est-transferencia .fis-tabela-rolagem { max-height: 45vh; }
+
+/* ---------- departamento com busca (lista fechada: só entra clicando num item) */
+.fin-escolha {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.fin-escolha > input { width: 100%; box-sizing: border-box; }
+
+.fin-escolha-lista {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 2px);
+    left: 0;
+    right: 0;
+    max-height: 260px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #c4cec8;
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(16, 32, 25, 0.18);
+}
+
+.fin-escolha-item {
+    display: block;
+    width: 100%;
+    padding: 6px 10px;
+    text-align: left;
+    background: none;
+    border: none;
+    border-bottom: 1px solid #eef2ef;
+    font-size: 13px;
+    color: #1f2a24;
+    cursor: pointer;
+}
+
+.fin-escolha-item:hover,
+.fin-escolha-item:focus-visible { background: #eef6f0; }
+.fin-escolha-item span { color: #5b6b61; }
+
+.fin-escolha-vazio {
+    padding: 8px 10px;
+    font-size: 12px;
+    color: #8a968f;
+}
+
+/* ---------- repetir fatura */
+.fin-repetir-check { margin: 4px 0; }
+
+.fin-repetir {
+    border: 1px dashed #8cb69a;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin: 8px 0;
+    background: #f6fbf7;
+}
+
+.fin-repetir [hidden] { display: none; }
