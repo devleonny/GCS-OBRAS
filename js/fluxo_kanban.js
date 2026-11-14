@@ -383,54 +383,64 @@ async function abrirItemFluxo(id) {
         removerOverlay()
         return popup({ mensagem: mensagemErroEst(err) })
     }
+    // Mesma linguagem visual da nota no módulo Fiscal (fis-painel, fis-resumo, fis-secao, fis-lista).
     const i = d.item
     const esc = escaparAtributo
-    const linhaHist = (em, por, texto, detalhe) => `
-        <li><small>${esc(dataHoraItemFluxo(em))}${por ? ` · ${esc(por)}` : ''}</small><span>${esc(texto)}${detalhe ? ` <small>— ${esc(detalhe)}</small>` : ''}</span></li>`
+    const lista = linhas => `<ul class="fis-lista">${linhas.join('')}</ul>`
+    const linhaHist = (em, por, texto, detalhe) =>
+        `<li><small>${esc(dataHoraItemFluxo(em))}${por ? ` · ${esc(por)}` : ''}</small> ${esc(texto)}${detalhe ? ` <small>— ${esc(detalhe)}</small>` : ''}</li>`
+    const etapa = etiquetaEst(ETAPAS_NOME_FLUXO[i.etapa] || i.etapa,
+        i.emissao_status === 'ERRO' ? '#b91c1c' : i.emissao_status === 'OK' ? '#15803d' : '#2563eb')
 
     const notas = (d.documentos || []).map(doc => {
         const eventos = Array.isArray(doc.eventos) ? doc.eventos.slice().reverse() : []
         const mensagens = (Array.isArray(doc.mensagens) ? doc.mensagens : []).filter(Boolean)
         return `
-            <section class="fluxo-item-bloco">
-                <header class="fluxo-item-nota-topo">
-                    <b>NF-e ${doc.numero ? `nº ${esc(doc.numero)}${doc.serie ? ` · série ${esc(doc.serie)}` : ''}` : '(sem número)'}</b>
-                    <span class="fluxo-item-status ${esc(String(doc.status || '').toLowerCase())}">${esc(STATUS_NOTA_FLUXO[doc.status] || doc.status || '')}</span>
-                    <small>${esc(doc.app || '')} · ${doc.ambiente === 'producao' ? 'produção' : 'homologação'}${doc.valor_total ? ` · ${reaisFluxo(doc.valor_total)}` : ''}</small>
-                </header>
-                ${doc.chave ? `<small class="fluxo-item-chave">Chave ${esc(doc.chave)}${doc.protocolo ? ` · protocolo ${esc(doc.protocolo)}` : ''}</small>` : ''}
-                ${mensagens.length && doc.status !== 'AUTORIZADA' ? `<div class="fluxo-item-msg">${mensagens.map(esc).join('<br>')}</div>` : ''}
-                <div class="fluxo-item-acoes">
-                    ${doc.tem_danfe ? `<button type="button" onclick="baixarArquivoFiscal('${esc(doc.id)}', 'danfe')">DANFE</button>` : ''}
-                    ${doc.tem_xml ? `<button type="button" onclick="baixarArquivoFiscal('${esc(doc.id)}', 'xml')">XML</button>` : ''}
-                    <button type="button" onclick="abrirDocumentoFiscal('${esc(doc.id)}')">Abrir a nota</button>
+            <div class="fis-secao">
+                <div class="fis-secao-topo">
+                    <b>NF-e ${doc.numero ? `nº ${esc(doc.numero)}${doc.serie ? ` / série ${esc(doc.serie)}` : ''}` : '(ainda sem número)'}</b>
+                    ${etiquetaFis(STATUS_FISCAL, doc.status)}
+                    <small>${doc.ambiente === 'producao' ? 'Produção' : 'Homologação'}${doc.valor_total ? ` · ${dinheiro(doc.valor_total)}` : ''}</small>
                 </div>
-                <span class="fluxo-item-subtitulo">Comunicação com a SEFAZ</span>
-                ${eventos.length ? `<ul class="fluxo-item-hist">${eventos.map(e => linhaHist(e.em, e.por, e.acao, e.detalhe)).join('')}</ul>` : '<small>Sem registros.</small>'}
-            </section>`
+                ${doc.chave ? `<div class="fis-chave">Chave: <code>${esc(doc.chave)}</code>${doc.protocolo ? ` · protocolo ${esc(doc.protocolo)}` : ''}</div>` : ''}
+                ${mensagens.length && doc.status !== 'AUTORIZADA' ? `<div class="fis-alerta">${mensagens.map(esc).join('<br>')}</div>` : ''}
+                <div class="fis-acoes-claras">
+                    ${doc.tem_danfe ? `<button type="button" class="fis-mini" onclick="baixarArquivoFiscal('${esc(doc.id)}', 'danfe')">DANFE</button>` : ''}
+                    ${doc.tem_xml ? `<button type="button" class="fis-mini" onclick="baixarArquivoFiscal('${esc(doc.id)}', 'xml')">XML</button>` : ''}
+                    ${['RASCUNHO', 'REJEITADA'].includes(doc.status) && i.etapa === 'SEPARADO' ? `<button type="button" class="fis-mini" onclick="editarNotaItemFluxo('${esc(i.id)}')">Editar NF-e</button>` : ''}
+                    ${doc.status !== 'AUTORIZADA' ? `<button type="button" class="fis-mini" onclick="espelhoNotaItemFluxo('${esc(doc.id)}')">Espelho (PDF)</button>` : ''}
+                    <button type="button" class="fis-mini" onclick="abrirDocumentoFiscal('${esc(doc.id)}')">Abrir a nota</button>
+                </div>
+                <details class="fis-secao" open><summary><b>Comunicação com a SEFAZ</b> (${eventos.length})</summary>
+                    ${eventos.length ? lista(eventos.map(e => linhaHist(e.em, e.por, e.acao, e.detalhe))) : '<small>Sem registros.</small>'}
+                </details>
+            </div>`
     }).join('')
 
     const omie = (i.notas_omie || []).filter(n => n.n_nota)
     const historico = (i.historico || []).slice().reverse()
     const elemento = `
-        <div class="fluxo-item-painel">
-            <section class="fluxo-item-bloco fluxo-item-resumo">
-                <b>${esc(d.cliente || 'Cliente não informado')}</b>
-                <small>${esc([i.contrato || i.departamento, d.cidade, i.empresa].filter(Boolean).join(' · '))}</small>
-                <small>${esc(ETAPAS_NOME_FLUXO[i.etapa] || i.etapa)}${i.numero_pedido ? ` · pedido ${esc(i.numero_pedido)}` : ''}${i.valor ? ` · ${reaisFluxo(i.valor)}` : ''}${i.requisicoes ? ` · ${i.requisicoes} requisição(ões)` : ''}</small>
-                ${i.emissao_status === 'ERRO' && i.emissao_mensagem ? `<div class="fluxo-item-msg"><b>Emissão recusada:</b> ${esc(i.emissao_mensagem)}</div>` : ''}
-                ${i.orcamento_id ? `<div class="fluxo-item-acoes"><button type="button" onclick="abrirEsquema('${esc(i.orcamento_id)}')">Abrir orçamento</button></div>` : ''}
-            </section>
-            ${notas}
+        <div class="fis-painel fis-doc fluxo-item-painel">
+            ${resumoDocumentoFis({}, [
+                ['Cliente', `${esc(d.cliente || 'Não informado')}${d.cidade ? ` <small>${esc(d.cidade)}</small>` : ''}`],
+                ['Orçamento', esc(i.contrato || i.departamento || '—')],
+                ['Empresa', esc(i.empresa || '—')],
+                ['Pedido', esc(i.numero_pedido || '—')],
+                ['Valor', i.valor ? dinheiro(i.valor) : ''],
+                ['Etapa', etapa]
+            ])}
+            ${i.emissao_status === 'ERRO' && i.emissao_mensagem ? `<div class="fis-alerta"><b>Emissão recusada:</b> ${esc(i.emissao_mensagem)}</div>` : ''}
+            ${i.orcamento_id ? `<div class="fis-acoes-claras"><button type="button" class="fis-botao" onclick="abrirEsquema('${esc(i.orcamento_id)}')">Abrir orçamento</button></div>` : ''}
+            ${notas || '<div class="fis-vazio">Nenhuma NF-e do GCS para este item ainda.</div>'}
             ${omie.length ? `
-                <section class="fluxo-item-bloco">
-                    <span class="fluxo-item-subtitulo">Notas do Omie</span>
-                    <ul class="fluxo-item-hist">${omie.map(n => `<li><small>${esc(n.data || '')}</small><span>NF ${esc(String(n.n_nota).replace(/^0+/, ''))} · ${esc(n.categoria || '')}${n.total ? ` · ${reaisFluxo(n.total)}` : ''}${n.cancelado === 'S' ? ' · cancelada' : ''}</span></li>`).join('')}</ul>
-                </section>` : ''}
-            <section class="fluxo-item-bloco">
-                <span class="fluxo-item-subtitulo">Histórico do cartão</span>
-                ${historico.length ? `<ul class="fluxo-item-hist">${historico.map(h => linhaHist(h.em, h.por, h.de && h.para ? `${ETAPAS_NOME_FLUXO[h.de] || h.de} → ${ETAPAS_NOME_FLUXO[h.para] || h.para}` : (ETAPAS_NOME_FLUXO[h.para] || h.origem || ''), h.detalhe)).join('')}</ul>` : '<small>Sem registros.</small>'}
-            </section>
+                <details class="fis-secao"><summary><b>Notas do Omie</b> (${omie.length})</summary>
+                    ${lista(omie.map(n => `<li><small>${esc(n.data || '')}</small> NF ${esc(String(n.n_nota).replace(/^0+/, ''))} · ${esc(n.categoria || '')}${n.total ? ` · ${dinheiro(n.total)}` : ''}${n.cancelado === 'S' ? ' · <small>cancelada</small>' : ''}</li>`))}
+                </details>` : ''}
+            <details class="fis-secao"><summary><b>Histórico do cartão</b> (${historico.length})</summary>
+                ${historico.length ? lista(historico.map(h => linhaHist(h.em, h.por,
+                    h.de && h.para ? `${ETAPAS_NOME_FLUXO[h.de] || h.de} → ${ETAPAS_NOME_FLUXO[h.para] || h.para}` : (ETAPAS_NOME_FLUXO[h.para] || h.origem || ''),
+                    h.detalhe))) : '<small>Sem registros.</small>'}
+            </details>
         </div>`
     popup({ elemento, titulo: `Item ${i.contrato || i.departamento || ''}`.trim() })
 }
