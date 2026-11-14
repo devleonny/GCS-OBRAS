@@ -701,3 +701,29 @@ textarea.fis-input {
         min-width: 0;
     }
 }
+
+/* Rateio entre departamentos (nota livre): uma linha por departamento + percentual. */
+.fis-rateio {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 8px 10px;
+    border: 1px dashed #c4cec8;
+    border-radius: 8px;
+    background: #fbfcfb;
+}
+
+.fis-rateio-titulo { font-size: 0.8rem; font-weight: 600; color: #1f2a24; }
+.fis-rateio-titulo small { font-weight: 400; color: #6b7a71; }
+
+.fis-rateio-linha {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 6.5rem auto;
+    gap: 6px;
+    align-items: center;
+}
+
+.fis-rateio-linha .fis-input.fis-curto { min-width: 0; }
+
+.fis-rateio-rodape { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

@@ -199,11 +199,6 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
             v2: `<span class="opcoes" name="recebedorRequisicao" ${recebedor_id ? `id="${escaparAtributo(recebedor_id)}"` : ''}
                 onclick="cxOpcoes('recebedorRequisicao')">${escaparAtributo(cadastroRecebedor?.nome || recebedor || 'Selecione')}</span>`
         },
-        {
-            linha: 1,
-            v1: 'Volumes',
-            v2: `<input value="${volumes || ''}" id="volumes" type="number">`
-        },
         ...(escolherFluxo
             ? [{
                 linha: 1,
@@ -637,7 +632,8 @@ async function salvarRequisicao(id) {
             recebedor: recebedorSelecionado?.textContent.trim() === 'Selecione' ? '' : recebedorSelecionado?.textContent.trim() || '',
             recebedor_id: recebedorId,
             prazo: document.querySelector('#prazo')?.value || '',
-            volumes: document.querySelector('#volumes').value || 0,
+            // Volumes saíram daqui (13/11/2026): vão na separação (NF-e), junto com a transportadora.
+            volumes: requisicao.volumes || 0,
             total_requisicao: conversor(document.querySelector('#total_requisicao').textContent),
             requisicao: Object.fromEntries(itens.map(i => [i.codigo, i]))
         }

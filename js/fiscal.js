@@ -806,14 +806,26 @@ async function formularioEmissaoNFe(inicial = {}) {
                 <button type="button" class="fis-mini" onclick="adicionarItemNFe()">+ Item</button>
             </fieldset>
             <fieldset class="fis-passo">
-                <legend><span class="fis-num-passo">4</span> Complementos</legend>
+                <legend><span class="fis-num-passo">4</span> Transporte <small>— ${inicial.fluxo_item ? 'transportadora e volumes obrigatórios na separação' : 'o valor do frete fica para o envio (Logística)'}</small></legend>
                 <div class="fis-grade">
-                    ${campoFis('Frete', `<select class="fis-input" name="modalidade_frete">${opcoesFis([['9', 'Sem frete'], ['0', 'Por conta do emitente (CIF)'], ['1', 'Por conta do destinatário (FOB)'], ['2', 'Terceiros']], o.modalidade_frete ?? '9')}</select>`)}
-                    ${campoFis('Valor do frete (R$)', inputFis('valor_frete', o.valor_frete || '', 'type="number" min="0" step="0.01"'))}
-                    ${campoFis('Consumidor final', `<select class="fis-input" name="consumidor_final">${opcoesFis([['', 'Automático (pela IE)'], ['1', 'Sim'], ['0', 'Não']], o.consumidor_final ?? '')}</select>`)}
-                    ${campoFis('Orçamento / departamento', inputFis('orcamento', inicial.orcamento))}
-                    ${campoFis('Chamado', inputFis('chamado', inicial.chamado))}
+                    ${campoFis('Frete por conta de', `<select class="fis-input" name="modalidade_frete">${opcoesFis([['9', 'Sem frete'], ['0', 'Emitente (CIF)'], ['1', 'Destinatário (FOB)'], ['2', 'Terceiros']], o.modalidade_frete ?? (inicial.fluxo_item ? '0' : '9'))}</select>`)}
+                    ${campoFis(`Transportadora${inicial.fluxo_item ? ' *' : ''}`, `<select class="fis-input" name="transportadora">
+                        <option value="">Selecione</option>
+                        ${(op.transportadoras || []).map(t => `<option value="${escFis(t.id)}" ${String(o.transportador?.id || '') === String(t.id) ? 'selected' : ''}>${escFis(t.razao_social || t.nome)}${t.cnpj ? ` · ${escFis(docFormatadoFis(t.cnpj))}` : ''}</option>`).join('')}
+                    </select>`, 'fis-largo')}
+                    ${campoFis(`Volumes${inicial.fluxo_item ? ' *' : ''}`, inputFis('volumes', o.volumes || '', 'type="number" min="1" step="1" inputmode="numeric"'))}
                 </div>
+            </fieldset>
+            <fieldset class="fis-passo">
+                <legend><span class="fis-num-passo">5</span> Complementos</legend>
+                <div class="fis-grade">
+                    ${campoFis('Consumidor final', `<select class="fis-input" name="consumidor_final">${opcoesFis([['', 'Automático (pela IE)'], ['1', 'Sim'], ['0', 'Não']], o.consumidor_final ?? '')}</select>`)}
+                    ${inicial.fluxo_item
+                        // Separação (kanban): o departamento é o do pedido que originou o item, fixo.
+                        ? campoFis('Departamento <small>(origem do pedido)</small>', inputFis('orcamento', inicial.orcamento, 'readonly title="Fixo: departamento do pedido de origem"'))
+                        : ''}
+                </div>
+                ${inicial.fluxo_item ? '' : blocoRateioFis(op.destinos || [], inicial.rateio?.length ? inicial.rateio : (inicial.orcamento ? [{ departamento: inicial.orcamento, percentual: 100 }] : []))}
                 ${campoFis('Chave(s) da NF-e referenciada <small>(retorno, devolução; uma por linha)</small>', `<textarea class="fis-input" name="referenciadas" rows="2">${escFis((o.referenciadas || []).join('\n'))}</textarea>`)}
                 ${campoFis('Informações complementares', `<textarea class="fis-input" name="informacoes_complementares" rows="2">${escFis(o.informacoes_complementares || '')}</textarea>`)}
             </fieldset>
@@ -934,6 +946,8 @@ function lerEmissaoNFe(form) {
             quantidade: Number(c('quantidade')) || 0, valor_unitario: Number(c('valor_unitario')) || 0, desconto: Number(c('desconto')) || 0
         }
     }).filter(i => i.descricao || i.item_id)
+    const transportadora = (opcoesEmissaoFiscal?.transportadoras || []).find(t => String(t.id) === v('transportadora'))
+    const rateio = lerRateioFis(form)
     return {
         modelo: 'NFE',
         app: v('app'),
@@ -942,14 +956,71 @@ function lerEmissaoNFe(form) {
         itens,
         opcoes: {
             modalidade_frete: v('modalidade_frete'),
-            valor_frete: Number(v('valor_frete')) || 0,
             consumidor_final: v('consumidor_final') === '' ? undefined : v('consumidor_final'),
             referenciadas: v('referenciadas').split(/\s+/).map(soDigFis).filter(Boolean),
-            informacoes_complementares: v('informacoes_complementares')
+            informacoes_complementares: v('informacoes_complementares'),
+            // Bloco de transporte da nota (o valor do frete é calculado depois, no envio).
+            transportador: transportadora ? {
+                id: transportadora.id, nome: transportadora.razao_social || transportadora.nome, documento: soDigFis(transportadora.cnpj),
+                inscricao_estadual: transportadora.inscricao_estadual || '', endereco: transportadora.endereco || '',
+                municipio: String(transportadora.cidade || '').replace(/\s*\([A-Z]{2}\)\s*$/, ''), uf: transportadora.estado || ''
+            } : undefined,
+            volumes: Number(v('volumes')) || undefined
         },
-        orcamento: v('orcamento'),
-        chamado: v('chamado')
+        // Separação: departamento fixo do pedido. Nota livre: rateio entre departamentos (contratos do GCS).
+        orcamento: form.querySelector('[name="orcamento"]') ? v('orcamento') : (rateio.length === 1 ? rateio[0].departamento : rateio.length ? 'RATEIO' : ''),
+        rateio: rateio.length ? rateio : undefined
     }
+}
+
+// ---------------------------------------------------------------- rateio (nota livre)
+// Divide a nota entre departamentos (contratos do GCS e setores, mesma lista do rateio da Localiza:
+// vw_localiza_destinos). Percentuais somam 100%.
+
+function blocoRateioFis(destinos, linhas = []) {
+    const opcoes = destinos.map(d => [d.id, `${d.id}${d.cliente ? ` · ${d.cliente}` : ''}`])
+    const linha = (l = {}) => `
+        <div class="fis-rateio-linha">
+            <select class="fis-input" name="rateio_departamento">${opcoesFis([['', 'Departamento'], ...opcoes], l.departamento || '')}</select>
+            <input class="fis-input fis-curto" name="rateio_percentual" type="number" min="0" max="100" step="0.01" placeholder="%" value="${escFis(l.percentual ?? '')}">
+            <button type="button" class="fis-mini" title="Remover" onclick="this.closest('.fis-rateio-linha').remove(); somarRateioFis(this)">×</button>
+        </div>`
+    return `
+        <div class="fis-rateio" data-rateio data-opcoes="${escFis(JSON.stringify(opcoes))}">
+            <span class="fis-rateio-titulo">Departamentos <small>— rateio do valor da nota (contratos do GCS); somar 100%</small></span>
+            <div data-rateio-linhas>${(linhas.length ? linhas : [{}]).map(linha).join('')}</div>
+            <div class="fis-rateio-rodape">
+                <button type="button" class="fis-mini" onclick="adicionarRateioFis(this)">+ Departamento</button>
+                <small data-rateio-soma></small>
+            </div>
+        </div>`
+}
+
+function adicionarRateioFis(botao) {
+    const bloco = botao.closest('[data-rateio]')
+    const opcoes = JSON.parse(bloco.dataset.opcoes || '[]')
+    bloco.querySelector('[data-rateio-linhas]').insertAdjacentHTML('beforeend', `
+        <div class="fis-rateio-linha">
+            <select class="fis-input" name="rateio_departamento">${opcoesFis([['', 'Departamento'], ...opcoes], '')}</select>
+            <input class="fis-input fis-curto" name="rateio_percentual" type="number" min="0" max="100" step="0.01" placeholder="%">
+            <button type="button" class="fis-mini" title="Remover" onclick="this.closest('.fis-rateio-linha').remove(); somarRateioFis(this)">×</button>
+        </div>`)
+}
+
+function lerRateioFis(form) {
+    return [...form.querySelectorAll('[data-rateio] .fis-rateio-linha')]
+        .map(l => ({ departamento: l.querySelector('[name="rateio_departamento"]').value, percentual: Number(l.querySelector('[name="rateio_percentual"]').value) || 0 }))
+        .filter(l => l.departamento)
+}
+
+function somarRateioFis(el) {
+    const form = el?.closest?.('.fis-form') || formEmissaoAberto()
+    const alvo = form?.querySelector('[data-rateio-soma]')
+    if (!alvo) return
+    const linhas = lerRateioFis(form)
+    const soma = Math.round(linhas.reduce((s, l) => s + l.percentual, 0) * 100) / 100
+    alvo.textContent = linhas.length ? `Soma: ${soma.toLocaleString('pt-BR')}%` : ''
+    alvo.className = linhas.length && soma !== 100 ? 'fis-negativo' : ''
 }
 
 // ---------------------------------------------------------------- NFS-e
@@ -1081,6 +1152,7 @@ async function atualizarPreviaFis() {
     const form = formEmissaoAberto()
     if (!form) return
     const alvo = form.querySelector('[data-previa]')
+    somarRateioFis(form)
     const entrada = lerEmissaoFis(form)
     // Total por linha na hora (a prévia do servidor confirma os impostos).
     form.querySelectorAll('[data-itens-nfe] tr').forEach(tr => {
@@ -1112,6 +1184,20 @@ async function salvarEmissaoFis(emitir, botao) {
     if (!form) return
     const entrada = lerEmissaoFis(form)
     const id = form.dataset.id || null
+    if (entrada.modelo === 'NFE') {
+        const o = entrada.opcoes || {}
+        const faltas = []
+        if (form.dataset.fluxoItem && !o.transportador) faltas.push('Escolha a transportadora.')
+        if (form.dataset.fluxoItem && !(Number.isInteger(o.volumes) && o.volumes >= 1)) faltas.push('Informe os volumes (número inteiro, a partir de 1).')
+        if (o.transportador && String(o.modalidade_frete) === '9') faltas.push('Com transportadora, escolha por conta de quem é o frete (não pode ser "Sem frete").')
+        const rateio = entrada.rateio || []
+        if (rateio.length) {
+            const soma = Math.round(rateio.reduce((s, l) => s + l.percentual, 0) * 100) / 100
+            if (soma !== 100) faltas.push(`O rateio entre departamentos precisa somar 100% (está em ${soma.toLocaleString('pt-BR')}%).`)
+            if (new Set(rateio.map(l => l.departamento)).size !== rateio.length) faltas.push('Departamento repetido no rateio.')
+        }
+        if (faltas.length) return popup({ mensagem: `<ul class="fis-lista-erros">${faltas.map(f => `<li>${escFis(f)}</li>`).join('')}</ul>` })
+    }
     try {
         overlayAguarde()
         const r = await apiFiscal('emissao/rascunho', { id, ...entrada })

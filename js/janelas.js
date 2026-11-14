@@ -268,11 +268,31 @@ if (janelasIndependentesLigadas()) {
         grupo.className = 'janela-botoes'
         fechar.replaceWith(grupo)
         if (minimizavel) {
-            grupo.innerHTML = '<span class="janela-minimizar" title="Minimizar" aria-label="Minimizar">–</span>'
+            grupo.innerHTML = `
+                <span class="janela-minimizar" title="Minimizar" aria-label="Minimizar">–</span>
+                <span class="janela-maximizar" title="Maximizar" aria-label="Maximizar">▢</span>`
             grupo.querySelector('.janela-minimizar').addEventListener('click', () => minimizarJanela(el.id))
+            grupo.querySelector('.janela-maximizar').addEventListener('click', () => alternarMaximizarJanela(el))
+            // Duplo clique na barra de título também maximiza/restaura.
+            topo.addEventListener('dblclick', evento => {
+                if (!evento.target.closest('.janela-botoes')) alternarMaximizarJanela(el)
+            })
         }
         grupo.append(fechar)
         topo.addEventListener('pointerdown', evento => iniciarArraste(evento, el))
+    }
+
+    // Maximizar: a janela ocupa toda a área livre (acima da barra do rodapé); de novo, volta ao tamanho
+    // e à posição em que estava (o CSS sobrepõe a posição só enquanto maximizada).
+    function alternarMaximizarJanela(el) {
+        const maximizada = el.classList.toggle('janela-maximizada')
+        const botao = el.querySelector('.janela-maximizar')
+        if (botao) {
+            botao.textContent = maximizada ? '❐' : '▢'
+            botao.title = maximizada ? 'Restaurar' : 'Maximizar'
+            botao.setAttribute('aria-label', botao.title)
+        }
+        window.dispatchEvent(new Event('resize'))
     }
 
     function iniciarArraste(evento, el) {

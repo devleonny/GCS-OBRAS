@@ -693,6 +693,39 @@
     background-color: #c62f2f;
 }
 
+.janelas-independentes .popup-top .janela-botoes .janela-maximizar {
+    background-color: #3c8d5a;
+    font-size: 1rem;
+}
+
+/* Maximizada: ocupa a área livre (acima da barra de janelas do rodapé). Sobrepõe a posição de arraste
+   só enquanto a classe existir; restaurar volta ao lugar de antes. */
+.janelas-independentes .popup.janela-maximizada .popup-janela-fora {
+    position: fixed !important;
+    left: 8px !important;
+    top: 8px !important;
+    translate: none !important;
+    width: calc(100vw - 16px) !important;
+    height: calc(100dvh - var(--barra-janelas-altura, 0px) - 16px) !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+}
+
+.janelas-independentes .popup.janela-maximizada .janela {
+    flex: 1;
+    width: 100%;
+    max-width: none;
+    max-height: none;
+    box-sizing: border-box;
+}
+
+/* Formulários com largura própria aproveitam a janela inteira quando maximizada. */
+.janelas-independentes .popup.janela-maximizada .fis-form,
+.janelas-independentes .popup.janela-maximizada .fis-painel {
+    width: 100%;
+}
+
 .janelas-independentes .popup-top .janela-botoes span:hover {
     filter: brightness(1.15);
 }
