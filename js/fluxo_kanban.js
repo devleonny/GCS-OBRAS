@@ -303,13 +303,9 @@ async function avancarItemFluxo(id) {
         if (c.etapa === 'requisicao') return await abrirNotaFluxo(c)
         if (c.etapa === 'separado') {
             if (!await confirmarPopup({ titulo: 'Faturar', mensagem: `Emitir agora a NF-e de ${nome}?`, textoConfirmar: 'Emitir' })) return
-            overlayAguarde()
-            const r = await apiModuloFiscal('fluxo-itens/faturar', { id })
-            removerOverlay()
-            await carregarFluxo()
-            if (r.status === 'AUTORIZADA') return popup({ imagem: 'imagens/concluido.png', mensagem: 'Nota autorizada.', tempo: 3 })
-            if (r.status === 'PROCESSANDO') return popup({ mensagem: 'Nota enviada, aguardando a SEFAZ. O cartão anda sozinho quando for autorizada.' })
-            return popup({ mensagem: `Nota não autorizada, o cartão continua em Separado.<br><small>${escaparAtributo(r.mensagem || '')}</small>` })
+            // O cartão vai na hora para Faturado ("emitindo"); se a nota for recusada, volta para Separado em vermelho.
+            await apiModuloFiscal('fluxo-itens/faturar', { id })
+            return carregarFluxo()
         }
         if (c.etapa === 'faturado' || c.etapa === 'entregue') {
             const entregar = c.etapa === 'faturado'
@@ -362,8 +358,8 @@ async function faturarTodasFluxo() {
     })
     if (!ok) return
     try {
-        const r = await apiModuloFiscal('fluxo-itens/faturar', { empresa: empresa || null })
-        popup({ mensagem: `${r.iniciados} nota(s) em emissão. O quadro atualiza sozinho.`, tempo: 4 })
+        // Os cartões vão na hora para Faturado; os recusados voltam para Separado em vermelho.
+        await apiModuloFiscal('fluxo-itens/faturar', { empresa: empresa || null })
         carregarFluxo()
     } catch (err) {
         popup({ mensagem: mensagemErroEst(err) })
