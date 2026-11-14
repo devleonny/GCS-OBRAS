@@ -824,6 +824,9 @@ async function formularioEmissaoNFe(inicial = {}) {
                         // Separação (kanban): o departamento é o do pedido que originou o item, fixo.
                         ? campoFis('Departamento <small>(origem do pedido)</small>', inputFis('orcamento', inicial.orcamento, 'readonly title="Fixo: departamento do pedido de origem"'))
                         : ''}
+                    ${campoFis(`Nº do pedido do cliente <small>(vai no rodapé${inicial.fluxo_item ? '; atualiza o pedido' : ''})</small>`,
+                        inputFis('numero_pedido', o.numero_pedido ?? inicial.numero_pedido ?? '',
+                            `maxlength="60" placeholder="${escFis(inicial.situacao_pedido ? `${inicial.situacao_pedido}: informe o número, se houver` : 'Se houver')}"`))}
                 </div>
                 ${inicial.fluxo_item ? '' : blocoRateioFis(op.destinos || [], inicial.rateio?.length ? inicial.rateio : (inicial.orcamento ? [{ departamento: inicial.orcamento, percentual: 100 }] : []))}
                 ${campoFis('Chave(s) da NF-e referenciada <small>(retorno, devolução; uma por linha)</small>', `<textarea class="fis-input" name="referenciadas" rows="2">${escFis((o.referenciadas || []).join('\n'))}</textarea>`)}
@@ -965,7 +968,9 @@ function lerEmissaoNFe(form) {
                 inscricao_estadual: transportadora.inscricao_estadual || '', endereco: transportadora.endereco || '',
                 municipio: String(transportadora.cidade || '').replace(/\s*\([A-Z]{2}\)\s*$/, ''), uf: transportadora.estado || ''
             } : undefined,
-            volumes: Number(v('volumes')) || undefined
+            volumes: Number(v('volumes')) || undefined,
+            // Nº do pedido do cliente: rodapé da nota (informações complementares).
+            numero_pedido: v('numero_pedido') || undefined
         },
         // Separação: departamento fixo do pedido. Nota livre: rateio entre departamentos (contratos do GCS).
         orcamento: form.querySelector('[name="orcamento"]') ? v('orcamento') : (rateio.length === 1 ? rateio[0].departamento : rateio.length ? 'RATEIO' : ''),
@@ -1204,7 +1209,7 @@ async function salvarEmissaoFis(emitir, botao) {
         form.dataset.id = r.id
         // Kanban (js/fluxo_kanban.js): o rascunho salvo leva o item para Separado.
         if (form.dataset.fluxoItem)
-            await apiModuloFiscal('fluxo-itens/separar', { id: form.dataset.fluxoItem, fiscal_id: r.id })
+            await apiModuloFiscal('fluxo-itens/separar', { id: form.dataset.fluxoItem, fiscal_id: r.id, numero_pedido: entrada.opcoes?.numero_pedido })
         removerOverlay()
         if (!emitir) {
             removerPopup(botao?.closest('.popup')?.id)
