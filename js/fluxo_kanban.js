@@ -4,8 +4,8 @@
 //   Vendas e Serviços: vw_fluxo_comercial (gcs/migrations/fluxo-kanban.sql), um cartão por orçamento com pedido,
 //     etapa calculada no servidor pelo código ORC: pedido → requisição → NF do Omie → envio → recebimento.
 //   Compras: notas recebidas do Fiscal (vw_fiscal_documentos, direção entrada), etapa calculada aqui.
-// Período padrão: 30 dias (pela data do pedido / emissão). Coluna em aberto mostra no topo quantos estão
-// parados há mais tempo que o período ("+N parados"), que se abrem com um clique. As tabelas seguem com tudo.
+// Período padrão: 30 dias (pela data do pedido / emissão). Desde 14/11/2026 o quadro mostra só o que está no
+// período do filtro (os botões "+N parados" saíram a pedido). As tabelas seguem com tudo.
 
 const QUADROS_FLUXO = {
     vendas: {
