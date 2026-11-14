@@ -786,3 +786,49 @@ textarea.fis-input {
 /* Ações: uma faixa só; as que desfazem (cancelar/excluir) ficam à direita. */
 .fis-nota-acoes { padding: 8px 10px; background: #f6f8f7; border: 1px solid #e2e8e4; border-radius: 8px; }
 .fis-nota-acoes .fis-separador { flex: 1; }
+
+/* Nota emitida — acabamento (v2). */
+.fis-nota-acoes .fis-separador { flex: 1; align-self: auto; margin: 0; background: transparent; }
+
+.fis-nota .fis-nota-impostos { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+.fis-nota .fis-nota-impostos > div { padding: 8px 12px; }
+.fis-nota .fis-nota-impostos b { font-size: 1rem; }
+
+/* Seções em cartões brancos com título em destaque. */
+.fis-nota > .fis-secao {
+    gap: 8px;
+    padding: 10px 12px 12px;
+    background: #fff;
+    border: 1px solid #dfe6e2;
+    border-radius: 10px;
+}
+
+.fis-nota > .fis-secao > .fis-secao-topo b,
+.fis-nota > details.fis-secao > summary b {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #2f7d4f;
+}
+
+.fis-nota > .fis-secao > .fis-secao-topo small {
+    padding: 0 7px;
+    border-radius: 10px;
+    background: #eef3f0;
+    color: #4f6357;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.fis-nota > details.fis-secao > summary { list-style-position: inside; }
+
+/* Tabela de itens dentro do cartão: sem moldura dupla, cabeçalho discreto. */
+.fis-nota .fis-tabela-rolagem { border: 0; border-radius: 0; max-height: 50vh; }
+.fis-nota .fis-tabela th { background: #f6f8f7; border-bottom: 1px solid #e2e8e4; }
+.fis-nota .fis-tabela td { vertical-align: middle; }
+.fis-nota .fis-tabela td.fis-descricao small { display: block; color: #7a8a80; }
+
+/* Resumo de dados e textos dentro dos cartões. */
+.fis-nota > .fis-secao .fis-resumo { background: transparent; border: 0; padding: 0; }
+.fis-nota .fis-texto { font-size: 0.85rem; line-height: 1.5; color: #1f2a24; }
