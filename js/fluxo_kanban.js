@@ -416,7 +416,7 @@ async function abrirItemFluxo(id) {
                     <button type="button" class="fis-mini" onclick="abrirDocumentoFiscal('${esc(doc.id)}')">Abrir a nota</button>
                     ${botaoOrcamento}
                 </div>
-                <details class="fis-secao" open><summary><b>Comunicação com a SEFAZ</b> (${eventos.length})</summary>
+                <details class="fis-secao" open><summary><b>Comunicação com a SEFAZ</b> <span class="fis-contador">${eventos.length}</span></summary>
                     ${eventos.length ? lista(eventos.map(e => linhaHist(e.em, e.por, e.acao, e.detalhe))) : '<small>Sem registros.</small>'}
                 </details>
             </div>`
@@ -438,10 +438,10 @@ async function abrirItemFluxo(id) {
             ${notas || `<div class="fis-vazio">Nenhuma NF-e do GCS para este item ainda.</div>
                 ${botaoOrcamento ? `<div class="fis-acoes-claras">${botaoOrcamento}</div>` : ''}`}
             ${omie.length ? `
-                <details class="fis-secao"><summary><b>Notas do Omie</b> (${omie.length})</summary>
+                <details class="fis-secao"><summary><b>Notas do Omie</b> <span class="fis-contador">${omie.length}</span></summary>
                     ${lista(omie.map(n => `<li><small>${esc(n.data || '')}</small> NF ${esc(String(n.n_nota).replace(/^0+/, ''))} · ${esc(n.categoria || '')}${n.total ? ` · ${dinheiro(n.total)}` : ''}${n.cancelado === 'S' ? ' · <small>cancelada</small>' : ''}</li>`))}
                 </details>` : ''}
-            <details class="fis-secao"><summary><b>Histórico do cartão</b> (${historico.length})</summary>
+            <details class="fis-secao"><summary><b>Histórico do cartão</b> <span class="fis-contador">${historico.length}</span></summary>
                 ${historico.length ? lista(historico.map(h => linhaHist(h.em, h.por,
                     h.de && h.para ? `${ETAPAS_NOME_FLUXO[h.de] || h.de} → ${ETAPAS_NOME_FLUXO[h.para] || h.para}` : (ETAPAS_NOME_FLUXO[h.para] || h.origem || ''),
                     h.detalhe))) : '<small>Sem registros.</small>'}

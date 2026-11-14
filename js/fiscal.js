@@ -288,7 +288,7 @@ function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos }) {
                 </div>
             </div>`}
             ${movimentos?.length ? `
-                <details class="fis-secao"><summary><b>Movimentos de estoque</b> (${movimentos.length})</summary>
+                <details class="fis-secao"><summary><b>Movimentos de estoque</b> <span class="fis-contador">${movimentos.length}</span></summary>
                     <table class="fis-tabela"><tbody>${movimentos.map(m => linhaMovimentoEst(m, { comItem: true, acoes: false })).join('')}</tbody></table>
                 </details>` : ''}
             ${historicoFiscal(d)}
@@ -299,7 +299,7 @@ function historicoFiscal(d) {
     const ev = Array.isArray(d.eventos) ? d.eventos : []
     if (!ev.length) return ''
     return `
-        <details class="fis-secao"><summary><b>Histórico</b> (${ev.length})</summary>
+        <details class="fis-secao"><summary><b>Histórico</b> <span class="fis-contador">${ev.length}</span></summary>
             <ul class="fis-lista">${ev.slice().reverse().map(e => `<li><small>${dataHoraFis(e.em)} · ${escFis(e.por)}</small> ${escFis(e.acao)}${e.detalhe ? ` <small>— ${escFis(e.detalhe)}</small>` : ''}</li>`).join('')}</ul>
         </details>`
 }
@@ -619,7 +619,7 @@ function htmlNotaEmitida({ documento: d, itens, movimentos }) {
 
             ${itens.length ? `
                 <div class="fis-secao">
-                    <div class="fis-secao-topo"><b>Itens</b> <small>${itens.length}</small></div>
+                    <div class="fis-secao-topo"><b>Itens</b> <span class="fis-contador">${itens.length}</span></div>
                     <div class="fis-tabela-rolagem"><table class="fis-tabela">
                         <thead><tr><th>#</th><th>Descrição</th><th>NCM</th><th>CFOP</th><th class="fis-num">Qtd</th><th class="fis-num">Unit.</th><th class="fis-num">Total</th><th class="fis-num">ICMS</th><th class="fis-num">PIS+COFINS</th></tr></thead>
                         <tbody>${itens.map(i => `
@@ -648,7 +648,7 @@ function htmlNotaEmitida({ documento: d, itens, movimentos }) {
             ${infos ? `<div class="fis-secao"><div class="fis-secao-topo"><b>Informações complementares</b></div><div class="fis-texto">${escFis(infos)}</div></div>` : ''}
             ${nfse && entrada.dados?.descricao ? `<div class="fis-secao"><div class="fis-secao-topo"><b>Serviço</b></div><div class="fis-texto">${escFis(entrada.dados.descricao).replace(/\n/g, '<br>')}</div></div>` : ''}
             ${movimentos?.length ? `
-                <details class="fis-secao"><summary><b>Movimentos de estoque</b> (${movimentos.length})</summary>
+                <details class="fis-secao"><summary><b>Movimentos de estoque</b> <span class="fis-contador">${movimentos.length}</span></summary>
                     <table class="fis-tabela"><tbody>${movimentos.map(m => linhaMovimentoEst(m, { comItem: true, acoes: false })).join('')}</tbody></table>
                 </details>` : ''}
             ${historicoFiscal(d)}

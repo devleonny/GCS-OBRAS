@@ -832,3 +832,22 @@ textarea.fis-input {
 /* Resumo de dados e textos dentro dos cartões. */
 .fis-nota > .fis-secao .fis-resumo { background: transparent; border: 0; padding: 0; }
 .fis-nota .fis-texto { font-size: 0.85rem; line-height: 1.5; color: #1f2a24; }
+
+/* Contador em balão ao lado dos títulos (Histórico, Itens, Movimentos, Comunicação com a SEFAZ...). */
+.fis-contador {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    margin-left: 6px;
+    padding: 0 6px;
+    border-radius: 9px;
+    background: #2f7d4f;
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1;
+    vertical-align: middle;
+    box-sizing: border-box;
+}
