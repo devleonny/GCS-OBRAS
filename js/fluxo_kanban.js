@@ -366,6 +366,75 @@ async function faturarTodasFluxo() {
     }
 }
 
+// ---------------- Painel do item (clique no cartão) ----------------
+// Resumo, notas emitidas pelo GCS com o histórico de comunicação com a SEFAZ (aberto), histórico do
+// cartão e botão para o orçamento. Dados: gcs /fluxo-itens/detalhe.
+const ETAPAS_NOME_FLUXO = { PEDIDO: 'Pedido de Venda', REQUISICAO: 'Requisição', SEPARADO: 'Separado', FATURADO: 'Faturado', ENTREGUE: 'Entregue', CONCLUIDO: 'Concluído' }
+const STATUS_NOTA_FLUXO = { RASCUNHO: 'Rascunho', PROCESSANDO: 'Processando na SEFAZ', AUTORIZADA: 'Autorizada', REJEITADA: 'Recusada', DENEGADA: 'Denegada', CANCELADA: 'Cancelada' }
+const dataHoraItemFluxo = v => v ? new Date(v).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : ''
+
+async function abrirItemFluxo(id) {
+    let d
+    try {
+        overlayAguarde()
+        d = await apiModuloFiscal('fluxo-itens/detalhe', { id })
+        removerOverlay()
+    } catch (err) {
+        removerOverlay()
+        return popup({ mensagem: mensagemErroEst(err) })
+    }
+    const i = d.item
+    const esc = escaparAtributo
+    const linhaHist = (em, por, texto, detalhe) => `
+        <li><small>${esc(dataHoraItemFluxo(em))}${por ? ` · ${esc(por)}` : ''}</small><span>${esc(texto)}${detalhe ? ` <small>— ${esc(detalhe)}</small>` : ''}</span></li>`
+
+    const notas = (d.documentos || []).map(doc => {
+        const eventos = Array.isArray(doc.eventos) ? doc.eventos.slice().reverse() : []
+        const mensagens = (Array.isArray(doc.mensagens) ? doc.mensagens : []).filter(Boolean)
+        return `
+            <section class="fluxo-item-bloco">
+                <header class="fluxo-item-nota-topo">
+                    <b>NF-e ${doc.numero ? `nº ${esc(doc.numero)}${doc.serie ? ` · série ${esc(doc.serie)}` : ''}` : '(sem número)'}</b>
+                    <span class="fluxo-item-status ${esc(String(doc.status || '').toLowerCase())}">${esc(STATUS_NOTA_FLUXO[doc.status] || doc.status || '')}</span>
+                    <small>${esc(doc.app || '')} · ${doc.ambiente === 'producao' ? 'produção' : 'homologação'}${doc.valor_total ? ` · ${reaisFluxo(doc.valor_total)}` : ''}</small>
+                </header>
+                ${doc.chave ? `<small class="fluxo-item-chave">Chave ${esc(doc.chave)}${doc.protocolo ? ` · protocolo ${esc(doc.protocolo)}` : ''}</small>` : ''}
+                ${mensagens.length && doc.status !== 'AUTORIZADA' ? `<div class="fluxo-item-msg">${mensagens.map(esc).join('<br>')}</div>` : ''}
+                <div class="fluxo-item-acoes">
+                    ${doc.tem_danfe ? `<button type="button" onclick="baixarArquivoFiscal('${esc(doc.id)}', 'danfe')">DANFE</button>` : ''}
+                    ${doc.tem_xml ? `<button type="button" onclick="baixarArquivoFiscal('${esc(doc.id)}', 'xml')">XML</button>` : ''}
+                    <button type="button" onclick="abrirDocumentoFiscal('${esc(doc.id)}')">Abrir a nota</button>
+                </div>
+                <span class="fluxo-item-subtitulo">Comunicação com a SEFAZ</span>
+                ${eventos.length ? `<ul class="fluxo-item-hist">${eventos.map(e => linhaHist(e.em, e.por, e.acao, e.detalhe)).join('')}</ul>` : '<small>Sem registros.</small>'}
+            </section>`
+    }).join('')
+
+    const omie = (i.notas_omie || []).filter(n => n.n_nota)
+    const historico = (i.historico || []).slice().reverse()
+    const elemento = `
+        <div class="fluxo-item-painel">
+            <section class="fluxo-item-bloco fluxo-item-resumo">
+                <b>${esc(d.cliente || 'Cliente não informado')}</b>
+                <small>${esc([i.contrato || i.departamento, d.cidade, i.empresa].filter(Boolean).join(' · '))}</small>
+                <small>${esc(ETAPAS_NOME_FLUXO[i.etapa] || i.etapa)}${i.numero_pedido ? ` · pedido ${esc(i.numero_pedido)}` : ''}${i.valor ? ` · ${reaisFluxo(i.valor)}` : ''}${i.requisicoes ? ` · ${i.requisicoes} requisição(ões)` : ''}</small>
+                ${i.emissao_status === 'ERRO' && i.emissao_mensagem ? `<div class="fluxo-item-msg"><b>Emissão recusada:</b> ${esc(i.emissao_mensagem)}</div>` : ''}
+                ${i.orcamento_id ? `<div class="fluxo-item-acoes"><button type="button" onclick="abrirEsquema('${esc(i.orcamento_id)}')">Abrir orçamento</button></div>` : ''}
+            </section>
+            ${notas}
+            ${omie.length ? `
+                <section class="fluxo-item-bloco">
+                    <span class="fluxo-item-subtitulo">Notas do Omie</span>
+                    <ul class="fluxo-item-hist">${omie.map(n => `<li><small>${esc(n.data || '')}</small><span>NF ${esc(String(n.n_nota).replace(/^0+/, ''))} · ${esc(n.categoria || '')}${n.total ? ` · ${reaisFluxo(n.total)}` : ''}${n.cancelado === 'S' ? ' · cancelada' : ''}</span></li>`).join('')}</ul>
+                </section>` : ''}
+            <section class="fluxo-item-bloco">
+                <span class="fluxo-item-subtitulo">Histórico do cartão</span>
+                ${historico.length ? `<ul class="fluxo-item-hist">${historico.map(h => linhaHist(h.em, h.por, h.de && h.para ? `${ETAPAS_NOME_FLUXO[h.de] || h.de} → ${ETAPAS_NOME_FLUXO[h.para] || h.para}` : (ETAPAS_NOME_FLUXO[h.para] || h.origem || ''), h.detalhe)).join('')}</ul>` : '<small>Sem registros.</small>'}
+            </section>
+        </div>`
+    popup({ elemento, titulo: `Item ${i.contrato || i.departamento || ''}`.trim() })
+}
+
 // Cartão do quadro novo (vw_fluxo_itens): item que anda até Concluído; marca verde/vermelha da emissão.
 function cartaoItemFluxo(c, parado, tempo) {
     const nfs = (Array.isArray(c.notas) ? c.notas : [])
@@ -387,7 +456,8 @@ function cartaoItemFluxo(c, parado, tempo) {
     // Avança só arrastando para a coluna seguinte (sem botão no cartão, a pedido).
     const podeAvancar = ACAO_ITENS_FLUXO[c.etapa] && !['EMITINDO', 'PROCESSANDO'].includes(c.emissao_status)
     const arrastavel = podeAvancar ? `draggable="true" ondragstart="iniciarArrasteFluxo(event, '${id}')" ondragend="terminarArrasteFluxo()"` : ''
-    const abrir = c.orcamento_id ? `data-orcamento="${escaparAtributo(c.orcamento_id)}" onclick="abrirEsquema(this.dataset.orcamento)" onkeydown="if (event.key === 'Enter') abrirEsquema(this.dataset.orcamento)"` : ''
+    // Clique: painel do item (nota, histórico da SEFAZ, histórico do cartão e o orçamento).
+    const abrir = `onclick="abrirItemFluxo('${id}')" onkeydown="if (event.key === 'Enter') abrirItemFluxo('${id}')"`
     return `
         <article class="fluxo-cartao fluxo-item ${estado} ${parado ? 'parado' : ''} ${c.orcamento_id ? 'clicavel' : ''}" data-id="${id}" tabindex="0" ${dica} ${arrastavel} ${abrir}>
             <span class="fluxo-cartao-linha"><span>${escaparAtributo(c.contrato || c.departamento || 'Sem orçamento')}${pedidoCartaoFluxo(c.numero_pedido)}</span>${tempo}</span>

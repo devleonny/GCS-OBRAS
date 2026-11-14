@@ -324,3 +324,74 @@
 .fluxo-cartao.fluxo-item.erro:hover { border-left-color: #d63a3a; }
 
 .fluxo-cartao.fluxo-item { border-left-width: 4px; }
+
+/* Painel do item (clique no cartão do Fluxo de Vendas). */
+.fluxo-item-painel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(720px, 92vw);
+    padding: 12px;
+    box-sizing: border-box;
+    background: #f3f6f4;
+    text-align: left;
+}
+
+.fluxo-item-bloco {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    border: 1px solid #dfe6e2;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.fluxo-item-resumo b { font-size: 15px; color: #1f2a24; }
+.fluxo-item-resumo small { color: #5f6f66; }
+
+.fluxo-item-nota-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.fluxo-item-nota-topo small { color: #6b7a71; }
+.fluxo-item-chave { color: #5f6f66; overflow-wrap: anywhere; }
+
+.fluxo-item-status { padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: #e7eefb; color: #2f5fb3; }
+.fluxo-item-status.autorizada { background: #e3f4e8; color: #1f7a3f; }
+.fluxo-item-status.rejeitada, .fluxo-item-status.denegada { background: #fde8e8; color: #b42318; }
+.fluxo-item-status.cancelada { background: #eceff1; color: #546e7a; }
+.fluxo-item-status.processando { background: #fff6e8; color: #8a4b00; }
+
+.fluxo-item-msg {
+    padding: 6px 8px;
+    border-left: 3px solid #d63a3a;
+    border-radius: 4px;
+    background: #fff5f5;
+    color: #8c1d18;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.fluxo-item-acoes { display: flex; flex-wrap: wrap; gap: 6px; }
+.fluxo-item-acoes button {
+    padding: 4px 10px;
+    border: 1px solid #b9d4c2;
+    border-radius: 6px;
+    background: #f1f8f3;
+    color: #2f7d4f;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: none;
+}
+.fluxo-item-acoes button:hover { background: #2f7d4f; color: #fff; }
+
+.fluxo-item-subtitulo { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #4f7a61; }
+
+.fluxo-item-hist { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.fluxo-item-hist li { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr); gap: 8px; font-size: 12px; }
+.fluxo-item-hist li > small { color: #7a8a80; }
+.fluxo-item-hist li > span { overflow-wrap: anywhere; }
+.fluxo-item-hist li > span small { color: #6b7a71; }
+
+@media (max-width: 600px) {
+    .fluxo-item-hist li { grid-template-columns: 1fr; gap: 0; }
+}
