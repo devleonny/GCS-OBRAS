@@ -727,3 +727,6 @@ textarea.fis-input {
 .fis-rateio-linha .fis-input.fis-curto { min-width: 0; }
 
 .fis-rateio-rodape { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+/* "+ Item" abaixo da tabela de itens da NF-e: afastado da tabela. */
+.fis-tabela-rolagem + .fis-mini { margin-top: 10px; }
