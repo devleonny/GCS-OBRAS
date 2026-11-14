@@ -865,3 +865,11 @@ textarea.fis-input {
 .fis-nota .fis-secao-info { color: #5b6b61; }
 .fis-nota .fis-lista li { padding: 3px 0; border-bottom: 1px dashed #edf1ee; font-size: 0.82rem; }
 .fis-nota .fis-lista li:last-child { border-bottom: 0; }
+
+/* Tabela de itens da nota: títulos das colunas numéricas alinhados à direita como os valores,
+   números com largura fixa e NCM no mesmo tamanho do resto. */
+.fis-nota .fis-tabela th.fis-num,
+.fis-nota .fis-tabela td.fis-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fis-nota .fis-tabela td small { font-size: 0.8rem; color: #4f6357; }
+.fis-nota .fis-tabela td.fis-descricao small { font-size: 0.72rem; color: #7a8a80; }
+.fis-nota .fis-tabela th, .fis-nota .fis-tabela td { padding: 8px 10px; }
