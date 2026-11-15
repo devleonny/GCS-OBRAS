@@ -339,8 +339,8 @@ const esquemaBotoes = {
                 { nome: 'Categorias', funcao: 'telaCategoriasFin', img: 'prancheta' },
                 { nome: 'Dashboard', funcao: 'telaDashboardReembolsos', img: 'dashboard' },
                 // Relatórios (antes num menu próprio, com as mesmas permissões).
-                { nome: 'Custos por Departamento', funcao: 'telaCustosDepartamentos', img: 'planilha' },
-                { nome: 'Custos de Pessoal', funcao: 'telaCustosPessoal', img: 'gerente' }
+                { nome: 'Custos por Departamento', funcao: 'telaCustosDepartamentos', img: 'dashboard' },
+                { nome: 'Custos de Pessoal', funcao: 'telaCustosPessoal', img: 'dashboard' }
             ]
         },
         {
