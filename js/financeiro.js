@@ -348,7 +348,7 @@ async function telaFaturasFin(tipo, filtroExtra = null, manterFiltros = false) {
                 [pagar ? 'Pago em' : 'Recebido em']: { chave: 'dia_pagamento', tipoPesquisa: 'data' },
                 'Empresa': { chave: 'app', tipoPesquisa: 'select' },
                 [pagar ? 'Fornecedor' : 'Cliente']: { chave: 'participante_nome' },
-                'Descrição': { chave: 'descricao' },
+                'Observação': { chave: 'observacao' },
                 'Categoria': { chave: 'categoria', tipoPesquisa: 'select' },
                 'Parcela': { chave: 'parcela_texto' },
                 'Valor': { chave: 'valor', op: '>=', tipoOrdenacao: 'numero' },
@@ -469,7 +469,7 @@ async function baixarExcelFaturasFin() {
             { titulo: 'Empresa', largura: 9, centro: true, valor: d => d.app || '' },
             { titulo: pagar ? 'Fornecedor' : 'Cliente', largura: 38, valor: d => d.participante_nome || '' },
             { titulo: 'CPF/CNPJ', largura: 19, valor: d => d.participante_documento ? docFormatadoFis(d.participante_documento) : '' },
-            { titulo: 'Descrição', largura: 40, quebra: true, valor: d => d.descricao || '' },
+            { titulo: 'Observação', largura: 40, quebra: true, valor: d => d.observacao || '' },
             { titulo: 'Categoria', largura: 34, quebra: true, valor: categorias },
             { titulo: 'Departamento', largura: 22, quebra: true, valor: departamentos },
             { titulo: 'Parcela', largura: 9, centro: true, valor: d => d.parcela_texto || '' },
@@ -866,7 +866,7 @@ function criarLinhaFaturaFin(d) {
             <td class="fin-centro">${d.dia_pagamento ? dataFin(d.dia_pagamento) : '<span class="fin-vazio">&lt;não informado&gt;</span>'}</td>
             <td>${escFin(d.app)}</td>
             <td class="fis-descricao">${escFin(d.participante_nome || '')}${d.participante_documento ? `<small>${docFormatadoFis(d.participante_documento)}</small>` : ''}</td>
-            <td>${escFin(d.descricao || '')}${d.departamentos ? `<small class="fin-sub">${escFin(d.departamentos)}</small>` : ''}</td>
+            <td class="fin-obs" title="${escFin(d.observacao || '')}">${escFin(d.observacao || '')}${d.departamentos ? `<small class="fin-sub">${escFin(d.departamentos)}</small>` : ''}</td>
             <td><small>${escFin(d.categoria || '—')}${Array.isArray(d.categorias) && d.categorias.length > 1 ? ` <b class="fin-mais" title="Rateio em ${d.categorias.length} categorias">+${d.categorias.length - 1}</b>` : ''}</small></td>
             <td class="fin-centro">${escFin(d.parcela_texto)}</td>
             <td class="fis-num">${dinheiro(d.valor)}</td>
@@ -895,7 +895,7 @@ async function abrirFaturaFin(id) {
                         <div class="fis-nota-titulo">
                             <b>${escFin(t.participante_nome || '(sem nome)')}</b>
                             <div class="fis-nota-etiquetas">${etiquetaEst(s.texto || t.situacao, s.cor)} ${etiquetaEst(t.app, '#356443')}</div>
-                            <small>${escFin(t.descricao || '')}</small>
+                            <small>${escFin(t.observacao || '')}</small>
                         </div>
                         <div class="fis-nota-valor"><span>Saldo</span><b>${dinheiro(t.saldo)}</b></div>
                     </div>
@@ -1054,7 +1054,6 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
                                 <label class="fin-campo"><span>Forma de pagamento</span><select class="fis-input" name="forma_pagamento"><option value=""></option>${FORMAS_FIN.filter(([v]) => v !== 'OMIE').map(([v, n]) => `<option value="${v}" ${base?.forma_pagamento === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
                                 <label class="fin-campo"><span>CPF/CNPJ</span><input class="fis-input" name="participante_documento" value="${escFin(base?.participante_documento ? docFormatadoFis(base.participante_documento) : '')}" ${manual && !cancelada ? '' : 'readonly'}></label>
                                 <label class="fin-campo fin-campo-pix"><span>Chave Pix</span><input class="fis-input" name="chave_pix" maxlength="140" value="${escFin(base?.chave_pix || '')}" placeholder="CPF, CNPJ, e-mail, telefone ou aleatória"></label>
-                                <label class="fin-campo fin-campo-largo"><span>Descrição</span><input class="fis-input" name="descricao" maxlength="300" value="${escFin(base?.descricao || '')}"></label>
                                 <label class="fin-campo fin-campo-largo"><span>Observações</span><textarea class="fis-input" name="observacao" rows="3">${escFin(base?.observacao || '')}</textarea></label>
                             </div>
                             ${rec ? '' : `
@@ -1565,7 +1564,7 @@ async function salvarFaturaFin() {
     const corpo = {
         id: form.dataset.id || undefined, tipo: form.dataset.tipo, app: v('app') || undefined,
         participante_nome: v('participante_nome'), participante_documento: v('participante_documento'), cliente_id: form.dataset.cliente || null,
-        descricao: v('descricao'), numero_documento: v('numero_documento'),
+        numero_documento: v('numero_documento'),
         conta_id: v('conta_id') || null, forma_pagamento: v('forma_pagamento'), observacao: v('observacao'),
         chave_pix: v('chave_pix'), anexos: anexosFormFin, rateio: lerRateioFin(form)
     }
@@ -1644,11 +1643,11 @@ async function telaRecorrenciasFin(tipo) {
                     ${recorrencias.length ? `
                     <div class="fis-tabela-rolagem">
                         <table class="fis-tabela">
-                            <thead><tr><th>${tipo === 'PAGAR' ? 'Fornecedor' : 'Cliente'}</th><th>Descrição</th><th>Empresa</th><th>Repete</th><th class="fis-num">Valor</th><th>Próximo</th><th>Lançadas</th><th>Termina</th><th></th></tr></thead>
+                            <thead><tr><th>${tipo === 'PAGAR' ? 'Fornecedor' : 'Cliente'}</th><th>Observação</th><th>Empresa</th><th>Repete</th><th class="fis-num">Valor</th><th>Próximo</th><th>Lançadas</th><th>Termina</th><th></th></tr></thead>
                             <tbody>${recorrencias.map(r => `
                                 <tr class="${r.ativa ? '' : 'fis-estornado'}">
                                     <td class="fis-descricao">${escFin(r.participante_nome || '—')}</td>
-                                    <td>${escFin(r.descricao || '')}<small class="fin-sub">${escFin(r.categoria || '')}</small></td>
+                                    <td>${escFin(r.observacao || '')}<small class="fin-sub">${escFin(r.categoria || '')}</small></td>
                                     <td>${escFin(r.app)}</td>
                                     <td>${escFin(nomeFrequenciaFin(r.frequencia))}</td>
                                     <td class="fis-num">${dinheiro(r.valor)}</td>
@@ -1750,7 +1749,7 @@ async function formularioBaixaRapidaFin(id) {
                 <div class="fis-form" data-form-baixa-rapida data-id="${escFin(t.id)}" data-valor="${r2Fin(t.saldo)}" data-forma="${escFin(t.forma_pagamento || '')}">
                     <div class="fin-baixa-resumo">
                         <b>${escFin(t.participante_nome || '')}</b>
-                        <span>${escFin(t.descricao || '')} · parcela ${escFin(t.parcela_texto)} · vence ${dataFin(t.vencimento)}</span>
+                        <span>${t.observacao ? `${escFin(t.observacao)} · ` : ''}parcela ${escFin(t.parcela_texto)} · vence ${dataFin(t.vencimento)}</span>
                         <strong>${dinheiro(t.saldo)}</strong>
                     </div>
                     <div class="fis-grade">
@@ -1892,12 +1891,12 @@ async function extratoContaFin(contaId) {
                     ${movimentos.length ? `
                     <div class="fis-tabela-rolagem">
                         <table class="fis-tabela">
-                            <thead><tr><th>Data</th><th>Fornecedor / cliente</th><th>Descrição</th><th>Categoria</th><th>Forma</th><th class="fis-num">Valor</th></tr></thead>
+                            <thead><tr><th>Data</th><th>Fornecedor / cliente</th><th>Observação</th><th>Categoria</th><th>Forma</th><th class="fis-num">Valor</th></tr></thead>
                             <tbody>${movimentos.map(m => `
                                 <tr>
                                     <td>${dataFin(m.data)}</td>
                                     <td class="fis-descricao"><span class="fis-link" onclick="abrirFaturaFin('${escFin(m.titulo_id)}')">${escFin(m.participante_nome || '—')}</span></td>
-                                    <td>${escFin(m.descricao || '')} <small>${escFin(m.parcela_texto)}</small></td>
+                                    <td>${escFin(m.fatura_observacao || '')} <small>${escFin(m.parcela_texto)}</small></td>
                                     <td><small>${escFin(m.categoria || '')}</small></td>
                                     <td><small>${escFin(nomeFormaFin(m.forma))}</small></td>
                                     <td class="fis-num ${Number(m.movimento) < 0 ? 'fis-negativo' : 'fis-positivo'}"><b>${dinheiro(m.movimento)}</b></td>

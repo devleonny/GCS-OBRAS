@@ -907,3 +907,8 @@
 
 /* Baixa com total diferente do saldo: a dica vira um aviso (diferença em juros ou desconto). */
 .fin-dica-diferenca { color: #92400e; background: #fff7e6; border: 1px solid #f5d9a8; border-radius: 6px; padding: 6px 8px; }
+
+/* Coluna Observação da lista: no máximo 2 linhas (o texto inteiro fica no título, ao passar o mouse). */
+.fin-tela td.fin-obs { max-width: 300px; }
+.fin-tela td.fin-obs { display: table-cell; overflow: hidden; }
+.fin-tela td.fin-obs > small { display: block; }
