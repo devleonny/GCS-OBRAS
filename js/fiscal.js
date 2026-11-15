@@ -108,8 +108,7 @@ async function contadoresFiscal() {
     const alvo = document.querySelector('[data-cartoes-recebidas], [data-cartoes-emitidas]')
     if (!alvo) return
     try {
-        const { contadores: c, empresas } = await apiFiscal('painel')
-        const semFocus = empresas.filter(e => e.ativo && !e[`focus_${e.ambiente}`]).map(e => e.app)
+        const { contadores: c } = await apiFiscal('painel')
         const cartao = (n, texto, cor, acao) => `
             <button type="button" class="fis-cartao" style="--cor: ${cor}" ${acao ? `onclick="${acao}"` : 'disabled'}>
                 <b>${n || 0}</b><span>${texto}</span></button>`
@@ -118,8 +117,7 @@ async function contadoresFiscal() {
                 ${cartao(c.entrada_pendente_vinculo, 'com itens a vincular', '#d97706', `abrirTabelaRecebidas({ estoque_status: { op: '=', value: 'pendente_vinculo' } })`)}
                 ${cartao(c.entrada_pronta, 'prontas para lançar', '#2563eb', `abrirTabelaRecebidas({ estoque_status: { op: '=', value: 'pronto' } })`)}
                 ${cartao(c.entrada_sem_manifestacao, 'sem confirmação', '#7c3aed', `abrirTabelaRecebidas({ manifestacao: { op: '=', value: 'pendente' } })`)}
-                ${cartao(c.entrada_resumo, 'só com resumo (falta XML)', '#64748b', `abrirTabelaRecebidas({ status: { op: '=', value: 'resumo' } })`)}
-                ${semFocus.length ? `<div class="fis-alerta">Integração com a SEFAZ (Focus NFe) ainda não configurada para ${semFocus.join(', ')}. Por enquanto, importe os XMLs.</div>` : ''}`
+                ${cartao(c.entrada_resumo, 'só com resumo (falta XML)', '#64748b', `abrirTabelaRecebidas({ status: { op: '=', value: 'resumo' } })`)}`
             : `
                 ${cartao(c.saida_rascunho, 'rascunhos', '#64748b', `abrirTabelaEmitidas({ status: { op: '=', value: 'rascunho' } })`)}
                 ${cartao(c.saida_processando, 'processando', '#2563eb', `abrirTabelaEmitidas({ status: { op: '=', value: 'processando' } })`)}
