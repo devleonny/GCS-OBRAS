@@ -297,6 +297,7 @@ async function telaFaturasFin(tipo, filtroExtra = null, manterFiltros = false) {
     tipoFaturasFin = tipo
     filtroExtraFin = filtroExtra
     if (!manterFiltros) {
+        painelFinAberto = false
         faturaAtivaFin = null
         selecaoFin.clear()
     }
@@ -372,14 +373,15 @@ function aposCarregarFaturasFin() {
     return totaisFaturasFin(false)
 }
 
-function alternarPainelFin() {
-    painelFinAberto = !painelFinAberto
+function alternarPainelFin(abrir = null) {
     const corpo = document.querySelector('[data-corpo-fin]')
     if (!corpo) return
-    corpo.classList.toggle('recolhido', !painelFinAberto)
+    const aberto = abrir ?? corpo.classList.contains('recolhido')
+    corpo.classList.toggle('recolhido', !aberto)
     const botao = corpo.querySelector('.fin-recolher')
-    botao.setAttribute('aria-expanded', String(painelFinAberto))
-    botao.title = `${painelFinAberto ? 'Recolher' : 'Mostrar'} as ações`
+    botao?.setAttribute('aria-expanded', String(aberto))
+    if (botao) botao.title = `${aberto ? 'Recolher' : 'Mostrar'} as ações`
+    if (!corpo.querySelector('[data-form-fatura]')) painelFinAberto = aberto
 }
 
 // ---------------------------------------------------------------- totais embaixo das colunas de valor
@@ -638,6 +640,7 @@ function selecionarFaturaFin(id, event) {
     faturaAtivaFin = String(id)
     marcarLinhaAtivaFin()
     desenharPainelFin()
+    alternarPainelFin(true)
 }
 
 function marcarLinhaAtivaFin() {
@@ -745,6 +748,7 @@ function prepararSelecaoFin() {
 function marcarFaturaFin(caixa) {
     caixa.checked ? selecaoFin.add(caixa.value) : selecaoFin.delete(caixa.value)
     desenharSelecaoFin()
+    if (selecaoFin.size) alternarPainelFin(true)
 }
 
 function marcarTodasFin(caixa) {
@@ -753,6 +757,7 @@ function marcarTodasFin(caixa) {
         caixa.checked ? selecaoFin.add(c.value) : selecaoFin.delete(c.value)
     })
     desenharSelecaoFin()
+    if (selecaoFin.size) alternarPainelFin(true)
 }
 
 function desenharSelecaoFin() {
@@ -1014,7 +1019,7 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
         <div class="fis-pagina fin-tela">
             <section class="fin-janela">
                 <header class="fin-janela-topo"><h2>${titulo}</h2></header>
-                <div class="fin-corpo${painelFinAberto ? '' : ' recolhido'}" data-corpo-fin>
+                <div class="fin-corpo" data-corpo-fin>
                     <div class="fin-form-area" data-form-fatura data-id="${escFin(id || '')}" data-recorrencia="${escFin(recorrenciaId || '')}"
                         data-tipo="${tipo}" data-aba-ativa="${aba}" data-cliente="${escFin(base?.cliente_id || '')}">
                         <div class="fin-form-topo">
@@ -1118,8 +1123,8 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
                         </div>` : ''}
                     </div>
                     <div class="fin-lateral">
-                        <button type="button" class="fin-recolher" onclick="alternarPainelFin()" aria-expanded="${painelFinAberto}"
-                            title="${painelFinAberto ? 'Recolher' : 'Mostrar'} as ações">${iconeFin('seta')}</button>
+                        <button type="button" class="fin-recolher" onclick="alternarPainelFin()" aria-expanded="true"
+                            title="Recolher as ações">${iconeFin('seta')}</button>
                         <aside class="fin-painel" data-painel-form-fin></aside>
                     </div>
                 </div>
