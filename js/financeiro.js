@@ -476,7 +476,7 @@ async function baixarExcelFaturasFin() {
             { titulo: 'Conta corrente', largura: 22, valor: d => d.conta || '' },
             { titulo: 'Origem', largura: 14, valor: d => ORIGENS_FIN[d.origem] || d.origem || '' },
             { titulo: 'Valor', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.valor) || 0 },
-            { titulo: pagar ? 'Pago' : 'Recebido', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.pago) || 0 },
+            { titulo: pagar ? 'Pago' : 'Recebido', largura: 15, tipo: 'moeda', soma: true, valor: d => r2Fin((Number(d.pago) || 0) + (Number(d.acrescimos) || 0)) },
             { titulo: 'Saldo', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.saldo) || 0 }
         ]
         const n = colunas.length
@@ -881,7 +881,7 @@ async function abrirFaturaFin(id) {
                         ['Vencimento', dataFin(t.vencimento)],
                         ['Parcela', escFin(t.parcela_texto)],
                         ['Valor', dinheiro(t.valor)],
-                        [pagar ? 'Pago' : 'Recebido', `${dinheiro(t.pago)}${t.dia_pagamento ? ` <small>em ${dataFin(t.dia_pagamento)}</small>` : ''}`],
+                        [pagar ? 'Pago' : 'Recebido', `${dinheiro(Number(t.pago) + Number(t.acrescimos || 0))}${t.dia_pagamento ? ` <small>em ${dataFin(t.dia_pagamento)}</small>` : ''}`],
                         ['Categoria', escFin(t.categoria || '—')],
                         ['Conta', escFin(t.conta || 'padrão da empresa')],
                         ['Origem', origem],
@@ -904,7 +904,7 @@ async function abrirFaturaFin(id) {
                         <div class="fis-secao-topo"><b>${pagar ? 'Pagamentos' : 'Recebimentos'}</b> <span class="fis-contador">${vivas.length}</span></div>
                         ${baixas.length ? `
                         <table class="fis-tabela">
-                            <thead><tr><th>Data</th><th>Conta</th><th>Forma</th><th class="fis-num">Valor</th><th class="fis-num">Juros/multa</th><th class="fis-num">Desconto</th><th>Por</th><th></th></tr></thead>
+                            <thead><tr><th>Data</th><th>Conta</th><th>Forma</th><th class="fis-num">Valor</th><th class="fis-num">Juros/multa</th><th class="fis-num">Desconto</th><th class="fis-num">Total</th><th>Por</th><th></th></tr></thead>
                             <tbody>${baixas.map(b => `
                                 <tr class="${b.estornada ? 'fis-estornado' : ''}">
                                     <td>${dataFin(b.data)}</td>
@@ -1086,6 +1086,7 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
                                         <td class="fis-num">${dinheiro(b.valor)}</td>
                                         <td class="fis-num">${Number(b.juros) + Number(b.multa) ? dinheiro(Number(b.juros) + Number(b.multa)) : ''}</td>
                                         <td class="fis-num">${Number(b.desconto) ? dinheiro(b.desconto) : ''}</td>
+                                        <td class="fis-num"><b>${dinheiro(Number(b.valor) + Number(b.juros) + Number(b.multa) - Number(b.desconto))}</b></td>
                                         <td><small>${escFin(b.criado_por || '')}${b.estornada ? ` · desfeito: ${escFin(b.estorno_motivo || '')}` : ''}</small></td>
                                         <td>${b.estornada ? '' : `<button type="button" class="fis-mini" onclick="estornarBaixaFin('${escFin(b.id)}', '${escFin(t.id)}')">Desfazer</button>`}</td>
                                     </tr>`).join('')}
@@ -1093,7 +1094,7 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
                             </table>` : `<div class="fis-vazio">Nenhum ${pagar ? 'pagamento' : 'recebimento'} registrado.</div>`}
                             <div class="fin-pagamentos-resumo">
                                 <span>Valor <b>${dinheiro(t.valor)}</b></span>
-                                <span>${pagar ? 'Pago' : 'Recebido'} <b>${dinheiro(t.pago)}</b></span>
+                                <span>${pagar ? 'Pago' : 'Recebido'} <b>${dinheiro(Number(t.pago) + Number(t.acrescimos || 0))}</b>${Number(t.acrescimos) ? ` <small>(${Number(t.acrescimos) > 0 ? '+' : '−'}${dinheiro(Math.abs(t.acrescimos))} de ${Number(t.acrescimos) > 0 ? 'juros' : 'desconto'})</small>` : ''}</span>
                                 <span>Falta <b>${dinheiro(t.saldo)}</b></span>
                             </div>
                         </div>` : ''}
@@ -1746,24 +1747,45 @@ async function formularioBaixaRapidaFin(id) {
                             ${contas.length ? contas.map(k => `<option value="${k.id}" ${k.id === padrao ? 'selected' : ''}>${escFin(k.nome)}${k.padrao ? ' (padrão)' : ''}</option>`).join('') : '<option value="">Nenhuma conta desta empresa</option>'}
                         </select></label>
                         <label class="fis-campo"><span>Data real ${pagar ? 'do pagamento' : 'do recebimento'} *</span><input class="fis-input" type="date" name="data" max="${hojeFin()}" value="${hojeFin()}"></label>
+                        <label class="fis-campo"><span>Total ${pagar ? 'pago' : 'recebido'} *</span><input class="fis-input fis-num" type="number" step="0.01" min="0.01" name="total" value="${r2Fin(t.saldo)}" oninput="diferencaBaixaFin(this)"></label>
                     </div>
-                    <small class="fis-dica">Valor diferente, juros ou desconto: use "${pagar ? 'Pagamento' : 'Recebimento'} parcial / com juros" na fatura.</small>
+                    <small class="fis-dica" data-diferenca-baixa>A fatura fica quitada. Se o total for diferente, a diferença vira juros (a mais) ou desconto (a menos), sem mudar o valor da fatura.</small>
                 </div>`
         }],
         botoes: [{ texto: pagar ? 'Marcar como pago' : 'Marcar como recebido', img: 'concluido', funcao: 'salvarBaixaRapidaFin(this)' }]
     })
 }
 
+// Total realmente pago/recebido × saldo da fatura: quita o saldo e a diferença vai em juros (a mais) ou desconto (a menos).
+function diferencaBaixaFin(campo) {
+    const form = campo.closest('[data-form-baixa-rapida]')
+    const saldo = r2Fin(form.dataset.valor)
+    const total = r2Fin(campo.value || 0)
+    const dif = r2Fin(total - saldo)
+    const dica = form.querySelector('[data-diferenca-baixa]')
+    dica.classList.toggle('fin-dica-diferenca', Math.abs(dif) >= 0.01 && total > 0)
+    dica.innerHTML = !(total > 0) ? 'Informe o total.'
+        : Math.abs(dif) < 0.01 ? 'A fatura fica quitada. Se o total for diferente, a diferença vira juros (a mais) ou desconto (a menos), sem mudar o valor da fatura.'
+            : `A fatura (${dinheiro(saldo)}) fica quitada e <b>${dinheiro(Math.abs(dif))}</b> entram como <b>${dif > 0 ? 'juros / acréscimo' : 'desconto'}</b>. O valor da fatura não muda.`
+}
+
 async function salvarBaixaRapidaFin(botao) {
     const form = document.querySelector('[data-form-baixa-rapida]')
     const conta = form.querySelector('[name="conta_id"]').value
     const data = form.querySelector('[name="data"]').value
+    const saldo = r2Fin(form.dataset.valor)
+    const total = r2Fin(form.querySelector('[name="total"]').value || 0)
     if (!conta) return popup({ mensagem: 'Escolha a conta corrente.' })
     if (!data) return popup({ mensagem: `Informe a data real do ${termoFin('pagamento')}.` })
+    if (!(total > 0)) return popup({ mensagem: `Informe o total ${termoFin('pago')}.` })
+    const dif = r2Fin(total - saldo)
     const id = form.dataset.id
     try {
         overlayAguarde()
-        await apiFin('baixar', { titulo_id: id, data, valor: form.dataset.valor, conta_id: conta, forma: form.dataset.forma || undefined })
+        await apiFin('baixar', {
+            titulo_id: id, data, valor: saldo, conta_id: conta, forma: form.dataset.forma || undefined,
+            juros: dif > 0 ? dif : 0, desconto: dif < 0 ? -dif : 0
+        })
         removerOverlay()
         removerPopup(botao?.closest('.popup')?.id)
         posAcaoFaturaFin(id, Boolean(document.querySelector(`[data-fatura-fin="${CSS.escape(String(id))}"]`)))
