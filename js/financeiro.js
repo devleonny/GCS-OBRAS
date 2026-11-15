@@ -797,8 +797,9 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
         ['detalhes', 'Detalhes', true],
         ['categorias', 'Categorias', true],
         ['departamentos', 'Departamentos', true],
-        ['parcelas', 'Parcelas', nova],
-        ['repeticao', 'Repetição', nova || Boolean(rec)],
+        ['parcelas', 'Parcelas', Boolean(t)],
+        ['repeticoes', 'Repetições', nova || Boolean(t && t.origem === 'MANUAL' && !cancelada)],
+        ['repeticao', 'Repetição', Boolean(rec)],
         ['pagamentos', pagar ? 'Pagamentos' : 'Recebimentos', Boolean(t)]
     ].filter(a => a[2])
     if (!abas.some(a => a[0] === aba)) aba = 'detalhes'
@@ -869,15 +870,18 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
                             ${editorRateioFin(op.departamentos, base?.rateio || [])}
                         </div>
 
-                        ${nova ? `
+                        ${t ? `
                         <div class="fin-aba" data-painel-aba="parcelas" ${aba === 'parcelas' ? '' : 'hidden'}>
-                            <small class="fis-dica">Para dividir o valor em várias faturas: informe em quantas vezes e clique em Gerar. Com uma só, valem o vencimento e o valor do topo.</small>
-                            ${editorParcelasFin([{ vencimento: '', valor: '' }], null)}
+                            ${tabelaParcelasFin(t, dados?.irmas || [], tipo)}
                         </div>` : ''}
 
-                        ${nova || rec ? `
+                        ${nova || (t && t.origem === 'MANUAL' && !cancelada) ? `
+                        <div class="fin-aba" data-painel-aba="repeticoes" ${aba === 'repeticoes' ? '' : 'hidden'}>
+                            ${ferramentaRepeticoesFin(t, dados?.irmas || [])}
+                        </div>` : ''}
+
+                        ${rec ? `
                         <div class="fin-aba" data-painel-aba="repeticao" ${aba === 'repeticao' ? '' : 'hidden'}>
-                            ${rec ? '' : `<label class="fis-check fin-repetir-check"><input type="checkbox" name="repetir" onchange="alternarRepetirFin(this)"> <b>Repetir esta fatura</b> <small>(aluguel, mensalidade, assinatura…). Valor e 1º vencimento são os do topo.</small></label>`}
                             ${blocoRepetirFin(rec, termino)}
                         </div>` : ''}
 
@@ -915,6 +919,13 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
             </section>
         </div>`
 
+    // Favorecido do cadastro: a foto dele no lugar das iniciais (busca depois de desenhar, sem segurar a tela).
+    if (base?.cliente_id) {
+        const avatar = document.querySelector('[data-avatar-fin]')
+        recuperarDado('clientes', base.cliente_id)
+            .then(c => { if (avatar.isConnected && document.querySelector('[data-form-fatura]')?.dataset.cliente === String(base.cliente_id)) pintarAvatarFin(avatar, base.participante_nome, c?.foto) })
+            .catch(() => { })
+    }
     desenharAnexosFin()
     desenharPainelFormFin(t, rec)
     sincronizarTopoFin()
@@ -959,7 +970,7 @@ function voltarFaturasFin() {
     return telaFaturasFin(tipo, filtroExtraFin, true)
 }
 
-// Vencimento e valor do topo valem para a repetição (1º vencimento / valor de cada) e para dividir em parcelas.
+// Vencimento e valor do topo valem para a edição da repetição antiga e para a simulação da aba Repetições.
 function sincronizarTopoFin() {
     const form = document.querySelector('[data-form-fatura]')
     if (!form) return
@@ -972,15 +983,157 @@ function sincronizarTopoFin() {
         bloco.querySelector('[name="rep_valor"]').value = valor
         previaRepeticaoFin(bloco)
     }
-    const caixa = form.querySelector('[data-parcelas]')
-    if (caixa) {
-        caixa.dataset.total = valor
-        const primeiro = caixa.querySelector('[data-primeiro]')
-        if (primeiro && vencimento) primeiro.value = vencimento
-        somarParcelasFin(caixa)
-    }
+    simularRepeticoesFin(true)
     somarCategoriasFin()
 }
+
+// ---------------- aba Parcelas: as faturas do mesmo grupo (clique abre a parcela)
+function tabelaParcelasFin(t, irmas, tipo) {
+    const todas = [{ ...t, atual: true }, ...irmas]
+        .sort((a, b) => (Number(a.parcela) || 0) - (Number(b.parcela) || 0) || String(a.vencimento).localeCompare(String(b.vencimento)))
+    if (todas.length === 1)
+        return '<div class="fis-vazio">Esta fatura não tem outras parcelas. Para criar, use a aba <b>Repetições</b>.</div>'
+    return `
+        <table class="fis-tabela fin-tabela-parcelas">
+            <thead><tr><th>Parcela</th><th>Situação</th><th>Vencimento</th><th class="fis-num">Valor</th></tr></thead>
+            <tbody>${todas.map(p => `
+                <tr class="${p.atual ? 'fin-parcela-atual' : 'fin-parcela-link'}" ${p.atual ? 'title="Esta fatura"' : `title="Abrir esta parcela" onclick="formularioFaturaFin('${tipo}', '${escFin(p.id)}', null, 'parcelas')"`}>
+                    <td>${escFin(p.parcela_texto)}</td>
+                    <td>${situacaoFin(p.situacao)}</td>
+                    <td>${dataFin(p.vencimento)} <small>${diaSemanaFin(p.vencimento)}</small></td>
+                    <td class="fis-num">${dinheiro(p.valor)}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table>`
+}
+
+// ---------------- aba Repetições (como "Incluir Repetições" do Omie): cada repetição vira uma fatura do grupo
+const PASSOS_REPETICAO_FIN = { SEMANAL: { dias: 7 }, QUINZENAL: { dias: 14 }, MENSAL: { meses: 1 }, BIMESTRAL: { meses: 2 }, TRIMESTRAL: { meses: 3 }, SEMESTRAL: { meses: 6 }, ANUAL: { meses: 12 } }
+const UNIDADES_REPETICAO_FIN = { SEMANAL: 'semanas', QUINZENAL: 'quinzenas', MENSAL: 'meses', BIMESTRAL: 'bimestres', TRIMESTRAL: 'trimestres', SEMESTRAL: 'semestres', ANUAL: 'anos' }
+
+const diaSemanaFin = iso => iso ? ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][new Date(`${String(iso).slice(0, 10)}T12:00:00Z`).getUTCDay()] : ''
+
+// Feriados nacionais (lei): fixos + Sexta-feira Santa (Páscoa − 2). Chave AAAA-MM-DD.
+const feriadosCacheFin = {}
+function feriadosFin(ano) {
+    if (feriadosCacheFin[ano]) return feriadosCacheFin[ano]
+    // Páscoa (algoritmo de Meeus/Jones/Butcher).
+    const a = ano % 19, b = Math.floor(ano / 100), c = ano % 100, d = Math.floor(b / 4), e = b % 4
+    const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30
+    const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451)
+    const mes = Math.floor((h + l - 7 * m + 114) / 31), dia = ((h + l - 7 * m + 114) % 31) + 1
+    const pascoa = new Date(Date.UTC(ano, mes - 1, dia))
+    pascoa.setUTCDate(pascoa.getUTCDate() - 2)
+    const fixos = ['01-01', '04-21', '05-01', '09-07', '10-12', '11-02', '11-15', '11-20', '12-25'].map(md => `${ano}-${md}`)
+    return (feriadosCacheFin[ano] = new Set([...fixos, pascoa.toISOString().slice(0, 10)]))
+}
+
+// regra: MANTER | ANTECIPAR (dia útil anterior) | POSTERGAR (próximo dia útil).
+function ajustarDiaUtilFin(iso, regra) {
+    if (regra === 'MANTER') return iso
+    const d = new Date(`${iso}T12:00:00Z`)
+    const util = () => ![0, 6].includes(d.getUTCDay()) && !feriadosFin(d.getUTCFullYear()).has(d.toISOString().slice(0, 10))
+    for (let n = 0; n < 15 && !util(); n++) d.setUTCDate(d.getUTCDate() + (regra === 'ANTECIPAR' ? -1 : 1))
+    return d.toISOString().slice(0, 10)
+}
+
+// grupo: parcelas que já existem (fatura aberta + irmãs). A repetição parte do último vencimento do grupo.
+function ferramentaRepeticoesFin(t, irmas) {
+    const grupo = t ? [t, ...irmas] : []
+    const ultimaParcela = t ? Math.max(...grupo.map(p => Number(p.parcela) || 1)) : 1
+    const ultimoVenc = t ? grupo.map(p => String(p.vencimento).slice(0, 10)).sort().at(-1) : ''
+    const dia = Number((ultimoVenc || '').slice(8, 10)) || ''
+    return `
+        <div class="fin-repeticoes" data-repeticoes-fin data-existentes="${t ? grupo.length : 1}" data-ultima="${ultimaParcela}" data-base="${escFin(ultimoVenc)}"
+            oninput="simularRepeticoesFin(false, event)" onchange="simularRepeticoesFin(false, event)">
+            <div class="fin-rep-cabeca">
+                <b>Selecione de que forma deseja gerar as repetições.</b>
+                <small>Elas são geradas a partir do vencimento <b data-rep-base>${ultimoVenc ? dataFin(ultimoVenc) : '(informe o vencimento no topo)'}</b>${t ? ` (parcela ${String(ultimaParcela).padStart(3, '0')})` : ''}.</small>
+            </div>
+            <div class="fin-form-grade fin-rep-grade">
+                <label class="fin-campo fin-rep-largo"><span>Quanto aos sábados, domingos e feriados nacionais</span>
+                    <select class="fis-input" name="rep_regra">
+                        <option value="MANTER">Manter a data de vencimento</option>
+                        <option value="ANTECIPAR">Antecipar para o dia útil anterior</option>
+                        <option value="POSTERGAR">Postergar para o próximo dia útil</option>
+                    </select></label>
+                <label class="fin-campo"><span>Periodicidade</span>
+                    <select class="fis-input" name="rep_periodo">${FREQUENCIAS_FIN.map(([v, n]) => `<option value="${v}" ${v === 'MENSAL' ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+                <label class="fin-campo" data-rep-dia><span>Repetir todo dia</span>
+                    <input class="fis-input fis-num" type="number" min="1" max="31" step="1" name="rep_dia" value="${dia}"></label>
+                <label class="fin-campo"><span>Por</span>
+                    <div class="fin-rep-por"><input class="fis-input fis-num" type="number" min="0" max="120" step="1" name="rep_qtd" value="" placeholder="0"> <small data-rep-unidade>meses</small></div></label>
+            </div>
+            <div class="fin-rep-simulacao-topo">
+                <span><b>Simulação das repetições</b> <small>(dá para mudar o vencimento e o valor direto na linha)</small></span>
+                <button type="button" class="fis-mini" onclick="simularRepeticoesFin(true)">Simular</button>
+            </div>
+            <table class="fis-tabela fin-rep-tabela">
+                <thead><tr><th>Parcela</th><th>Vencimento</th><th></th><th class="fis-num">Valor</th></tr></thead>
+                <tbody data-simulacao-fin></tbody>
+            </table>
+            <small class="fis-dica">As repetições viram faturas ao <b>Salvar</b>, com o mesmo favorecido, categorias, departamentos e conta.</small>
+        </div>`
+}
+
+// Recalcula a simulação (mudou regra, período, dia, quantidade ou o topo). Mudar vencimento/valor
+// numa linha da simulação não recalcula (fica o que a pessoa digitou).
+function simularRepeticoesFin(forcar = false, evento = null) {
+    const caixa = document.querySelector('[data-repeticoes-fin]')
+    if (!caixa) return
+    const alvo = evento?.target
+    if (!forcar && alvo?.closest?.('[data-simulacao-fin]')) return
+    const form = caixa.closest('[data-form-fatura]')
+    const v = n => caixa.querySelector(`[name="${n}"]`).value
+    const periodo = v('rep_periodo')
+    const passo = PASSOS_REPETICAO_FIN[periodo]
+    caixa.querySelector('[data-rep-dia]').hidden = !passo.meses
+    caixa.querySelector('[data-rep-unidade]').textContent = UNIDADES_REPETICAO_FIN[periodo]
+    const nova = !form.dataset.id
+    const base = nova ? form.querySelector('[name="vencimento"]').value : caixa.dataset.base
+    if (nova) caixa.querySelector('[data-rep-base]').textContent = base ? dataFin(base) : '(informe o vencimento no topo)'
+    if (nova && base && !v('rep_dia')) caixa.querySelector('[name="rep_dia"]').value = Number(base.slice(8, 10))
+    const valor = r2Fin(form.querySelector('[name="valor"]').value || 0)
+    const qtd = Math.max(0, Math.min(120, Math.floor(Number(v('rep_qtd')) || 0)))
+    const corpo = caixa.querySelector('[data-simulacao-fin]')
+    if (!base || !qtd) {
+        corpo.innerHTML = `<tr><td colspan="4" class="fin-vazio">${!base ? 'Informe o vencimento no topo.' : 'Informe por quantos períodos repetir.'}</td></tr>`
+        return
+    }
+    const existentes = Number(caixa.dataset.existentes) || 1
+    const ultima = Number(caixa.dataset.ultima) || 1
+    const total = existentes + qtd
+    const pad = n => String(n).padStart(3, '0')
+    const dia = Math.max(1, Math.min(31, Number(v('rep_dia')) || Number(base.slice(8, 10))))
+    const linhas = []
+    for (let k = 1; k <= qtd; k++) {
+        let iso
+        if (passo.dias) {
+            const d = new Date(`${base}T12:00:00Z`)
+            d.setUTCDate(d.getUTCDate() + passo.dias * k)
+            iso = d.toISOString().slice(0, 10)
+        } else {
+            const [a, m] = base.split('-').map(Number)
+            const alvoMes = new Date(Date.UTC(a, m - 1 + passo.meses * k, 1))
+            const ultimoDia = new Date(Date.UTC(alvoMes.getUTCFullYear(), alvoMes.getUTCMonth() + 1, 0)).getUTCDate()
+            alvoMes.setUTCDate(Math.min(dia, ultimoDia))
+            iso = alvoMes.toISOString().slice(0, 10)
+        }
+        iso = ajustarDiaUtilFin(iso, v('rep_regra'))
+        linhas.push(`
+            <tr>
+                <td>${pad(ultima + k)}/${pad(total)}</td>
+                <td><input class="fis-input fin-rep-input" type="date" name="rep_vencimento" value="${iso}" oninput="this.closest('tr').querySelector('[data-dia-semana]').textContent = diaSemanaFin(this.value)"></td>
+                <td data-dia-semana>${diaSemanaFin(iso)}</td>
+                <td class="fis-num"><input class="fis-input fis-num fin-rep-input" type="number" min="0.01" step="0.01" name="rep_valor_linha" value="${valor || ''}"></td>
+            </tr>`)
+    }
+    corpo.innerHTML = linhas.join('')
+}
+
+const lerRepeticoesFin = form => [...form.querySelectorAll('[data-simulacao-fin] tr')]
+    .map(tr => ({ vencimento: tr.querySelector('[name="rep_vencimento"]')?.value, valor: r2Fin(tr.querySelector('[name="rep_valor_linha"]')?.value || 0) }))
+    .filter(p => p.vencimento)
 
 // ---------------- categorias (aba): rateio em % sobre o valor do topo
 function editorCategoriasFin(lista, tipo, travado = false) {
@@ -1077,6 +1230,24 @@ function abrirFavorecidosFin() {
     return cxOpcoes('favorecido_fin')
 }
 
+// Quadro do favorecido: a foto do cadastro (clientes.foto, arquivo em /uploads ou URL); sem foto, ou se a
+// imagem não carregar, as iniciais do nome.
+function pintarAvatarFin(el, nome, foto) {
+    if (!el) return
+    const iniciais = iniciaisFin(nome)
+    if (!foto) {
+        el.classList.remove('com-foto')
+        el.textContent = iniciais
+        return
+    }
+    const img = document.createElement('img')
+    img.alt = ''
+    img.src = /^https?:\/\//i.test(foto) ? foto : `${api}/uploads/${foto}`
+    img.onerror = () => { el.classList.remove('com-foto'); el.textContent = iniciais }
+    el.classList.add('com-foto')
+    el.replaceChildren(img)
+}
+
 // Depois de escolher na lista (o cxOpcoes já pôs o nome e o id no span): CPF/CNPJ, chave Pix e iniciais.
 async function favorecidoEscolhidoFin() {
     const form = document.querySelector('[data-form-fatura]')
@@ -1094,7 +1265,7 @@ async function favorecidoEscolhidoFin() {
     if (cliente.chave_pix) campo('chave_pix').value = cliente.chave_pix
     form.dataset.cliente = id
     form.querySelector('[data-vinculo-fin]').hidden = false
-    form.querySelector('[data-avatar-fin]').textContent = iniciaisFin(nome)
+    pintarAvatarFin(form.querySelector('[data-avatar-fin]'), nome, cliente.foto)
 }
 
 // ---------------- anexos (aba Detalhes): sobem na hora pelo /upload e ficam na fatura ao salvar
@@ -1153,13 +1324,6 @@ function blocoRepetirFin(rec, termino) {
         </div>`
 }
 
-function alternarRepetirFin(check) {
-    const form = check.closest('[data-form-fatura]')
-    form.querySelector('[data-bloco-parcelas]').hidden = check.checked
-    form.querySelector('[data-bloco-repetir]').hidden = !check.checked
-    previaRepeticaoFin(form.querySelector('[data-bloco-repetir]'))
-}
-
 function previaRepeticaoFin(el) {
     const bloco = el.closest?.('[data-bloco-repetir]') || el
     const v = n => bloco.querySelector(`[name="${n}"]`).value
@@ -1204,7 +1368,12 @@ async function salvarFaturaFin() {
     corpo.categorias = categorias
     corpo.categoria_id = categorias.reduce((a, c) => c.percentual > a.percentual ? c : a).categoria_id
     const recorrenciaId = form.dataset.recorrencia || null
-    const repetir = Boolean(recorrenciaId) || form.querySelector('[name="repetir"]')?.checked
+    const repetir = Boolean(recorrenciaId)
+    const repeticoes = lerRepeticoesFin(form)
+    if (repeticoes.some(p => !(p.valor > 0))) {
+        mostrarAbaFin('repeticoes')
+        return popup({ mensagem: 'Toda repetição precisa de um valor maior que zero.' })
+    }
     let rota = 'titulo/salvar'
     if (repetir) {
         rota = 'recorrencia/salvar'
@@ -1219,22 +1388,22 @@ async function salvarFaturaFin() {
     } else if (form.dataset.id) Object.assign(corpo, { vencimento: v('vencimento'), valor: v('valor') })
     else {
         if (!v('vencimento') || !(Number(v('valor')) > 0)) return popup({ mensagem: 'Informe o vencimento e o valor.' })
-        // Aba Parcelas com mais de uma: elas valem (somando o valor do topo); senão, uma fatura com o topo.
-        const caixa = form.querySelector('[data-parcelas]')
-        const parcelas = caixa ? lerParcelasFin(caixa) : []
-        if (parcelas.length > 1) Object.assign(corpo, { parcelas, total: r2Fin(v('valor')) })
-        else corpo.parcelas = [{ vencimento: v('vencimento'), valor: r2Fin(v('valor')) }]
+        // A do topo é a 1ª; as da aba Repetições viram as seguintes (mesmo grupo: 001/004, 002/004...).
+        corpo.parcelas = [{ vencimento: v('vencimento'), valor: r2Fin(v('valor')) }, ...repeticoes]
     }
     try {
         overlayAguarde()
         const r = await apiFin(rota, corpo)
+        // Fatura que já existia + repetições simuladas: cria as novas parcelas do grupo.
+        const repetidas = corpo.id && !repetir && repeticoes.length
+            ? (await apiFin('titulo/repetir', { id: corpo.id, repeticoes })).ids?.length || 0 : 0
         removerOverlay()
         if (repetir) {
             const partes = [r.criadas ? `${r.criadas} fatura(s) lançada(s)` : '', r.atualizadas ? `${r.atualizadas} futura(s) atualizada(s)` : '', r.canceladas ? `${r.canceladas} cancelada(s) pelo novo término` : ''].filter(Boolean)
             popup({ mensagem: `Repetição salva${partes.length ? `: ${partes.join(', ')}` : ''}.`, imagem: 'imagens/concluido.png', tempo: 4 })
         } else {
             const n = r.ids?.length || 1
-            popup({ mensagem: corpo.id ? 'Fatura salva.' : `${n > 1 ? `${n} faturas lançadas` : 'Fatura lançada'}.`, imagem: 'imagens/concluido.png', tempo: 3 })
+            popup({ mensagem: corpo.id ? `Fatura salva${repetidas ? ` e ${repetidas} repetição(ões) criada(s)` : ''}.` : `${n > 1 ? `${n} faturas lançadas` : 'Fatura lançada'}.`, imagem: 'imagens/concluido.png', tempo: 3 })
         }
         voltarFaturasFin()
     } catch (err) {
@@ -1256,7 +1425,7 @@ async function telaRecorrenciasFin(tipo) {
             titulo: `Faturas que se repetem · a ${tipo === 'PAGAR' ? 'pagar' : 'receber'}`,
             elemento: `
                 <div class="fis-painel" data-recorrencias-fin>
-                    <div class="fis-acoes-claras"><button type="button" class="fis-botao" onclick="formularioFaturaFin('${tipo}').then(() => { const c = document.querySelector('[data-form-fatura] [name=repetir]'); if (c) { c.checked = true; alternarRepetirFin(c) } })">+ Repetição</button></div>
+                    <div class="fis-acoes-claras"><button type="button" class="fis-botao" onclick="formularioFaturaFin('${tipo}', null, null, 'repeticoes')">+ Repetição</button></div>
                     ${recorrencias.length ? `
                     <div class="fis-tabela-rolagem">
                         <table class="fis-tabela">

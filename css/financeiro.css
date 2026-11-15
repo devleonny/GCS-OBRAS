@@ -860,3 +860,45 @@
 .fin-categoria-linha [name="percentual_categoria"]:read-only { background: #eef1ef; }
 .fin-categoria-valor { min-width: 7.5rem; text-align: right; font-variant-numeric: tabular-nums; color: #2f3d35; font-size: 13px; }
 .fin-mais { margin-left: 3px; padding: 0 5px; border-radius: 8px; background: #e4f2dc; color: #2c5a3a; font-size: 10px; }
+
+/* Quadro do favorecido com a foto do cadastro (sem foto: as iniciais no verde). */
+.fin-avatar.com-foto {
+    padding: 0;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid var(--fin-borda, #d6e0da);
+}
+
+.fin-avatar.com-foto img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Aba Parcelas: clique na linha abre a parcela; a atual fica destacada. */
+.fin-tabela-parcelas { max-width: 760px; }
+.fin-tabela-parcelas .fin-parcela-link { cursor: pointer; }
+.fin-tabela-parcelas .fin-parcela-link:hover { background: #edf5ef; }
+.fin-tabela-parcelas .fin-parcela-atual { background: var(--fin-verde-claro, #e4f2dc); font-weight: 600; }
+
+/* Aba Repetições (como "Incluir Repetições" do Omie). */
+.fin-repeticoes { display: flex; flex-direction: column; gap: 12px; max-width: 980px; }
+.fin-rep-cabeca { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #1f2a24; }
+.fin-rep-cabeca small { color: #44544a; }
+.fin-rep-grade { grid-template-columns: minmax(240px, 2fr) minmax(150px, 1fr) minmax(110px, 0.7fr) minmax(130px, 0.8fr); }
+.fin-rep-grade [hidden] { display: none; }
+.fin-rep-por { display: flex; align-items: center; gap: 8px; }
+.fin-rep-por input { width: 6rem; }
+.fin-rep-simulacao-topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; }
+.fin-rep-simulacao-topo small { color: #6b7a71; }
+.fin-rep-tabela td { vertical-align: middle; }
+.fin-rep-input { border: 1px solid transparent; background: transparent; padding: 3px 6px; }
+.fin-rep-input:hover,
+.fin-rep-input:focus { border-color: #c4cec8; background: #fff; }
+.fin-rep-tabela input[type="number"] { width: 8rem; text-align: right; }
+
+@media (max-width: 900px) {
+    .fin-rep-grade { grid-template-columns: 1fr 1fr; }
+    .fin-rep-largo { grid-column: 1 / -1; }
+}
