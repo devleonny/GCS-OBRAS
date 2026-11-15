@@ -26,7 +26,7 @@ const VERSOES_CSS = {
     "layout_os": "1349cc5e",
     "lembrete_combustivel": "4bbad5d0",
     "localiza": "80a4a014",
-    "logistica": "4e03ee16",
+    "logistica": "c89dc84c",
     "mapa": "2a3b2db5",
     "notificacoes": "3a3eec54",
     "ocorrencias": "16c97aa6",
