@@ -253,7 +253,7 @@ function fecharPopupDoItemEst(itemId) {
 }
 
 async function estornarMovimentoEstoque(movimentoId, itemId) {
-    const motivo = prompt('Motivo do estorno:')
+    const motivo = await pedirTextoPopup({ titulo: 'Estornar movimento', mensagem: 'Motivo do estorno:', textoConfirmar: 'Estornar' })
     if (motivo === null) return
     try {
         overlayAguarde()

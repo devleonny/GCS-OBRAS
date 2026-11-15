@@ -573,8 +573,10 @@ function cartaoItemFluxo(c, parado, tempo) {
     ].filter(Boolean).join(' · ')
     // Cor da lateral: azul (padrão), verde (nota faturada/emitida), vermelho (emissão recusada: o motivo
     // fica só no "title", ao passar o mouse). Enquanto emite, só a marquinha "Emitindo…".
-    const faturada = c.emissao_status === 'OK' || (nfs.length > 0 && ['faturado', 'entregue', 'concluido'].includes(c.etapa))
-    const estado = c.emissao_status === 'ERRO' ? 'erro' : faturada ? 'faturada' : ''
+    // NF-e do GCS cancelada: balão "Cancelada" e sem o verde de faturada.
+    const cancelada = c.nota_status === 'CANCELADA'
+    const faturada = !cancelada && (c.emissao_status === 'OK' || (nfs.length > 0 && ['faturado', 'entregue', 'concluido'].includes(c.etapa)))
+    const estado = c.emissao_status === 'ERRO' ? 'erro' : cancelada ? 'cancelada' : faturada ? 'faturada' : ''
     const dica = c.emissao_status === 'ERRO' && c.emissao_mensagem ? `title="${escaparAtributo(`Emissão recusada: ${c.emissao_mensagem}`)}"` : ''
     const emissao = ['EMITINDO', 'PROCESSANDO'].includes(c.emissao_status) ? '<small class="fluxo-emissao andando">Emitindo…</small>' : ''
     const id = escaparAtributo(c.id)
@@ -589,6 +591,7 @@ function cartaoItemFluxo(c, parado, tempo) {
                 <span class="fluxo-cartao-cantos">${tempo}<button type="button" class="fluxo-menu-btn" title="Mais opções" aria-label="Mais opções"
                     onclick="abrirMenuItemFluxo(event, '${id}')">⋮</button></span></span>
             <b class="fluxo-cartao-nome">${escaparAtributo(c.cliente || 'Cliente não informado')}</b>
+            ${cancelada ? `<span class="fluxo-cartao-balao">${etiquetaEst('Cancelada', '#b91c1c')}</span>` : ''}
             ${c.cidade ? `<small>${escaparAtributo(c.cidade)}</small>` : ''}
             ${contexto ? `<small class="fluxo-cartao-contexto">${escaparAtributo(contexto)}</small>` : ''}
             <span class="fluxo-cartao-valor">${reaisFluxo(c.valor)} <small>${c.empresa ? `${escaparAtributo(c.empresa)} · ` : ''}desde ${dataBrFluxo(c.data)}</small></span>

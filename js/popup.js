@@ -35,6 +35,61 @@ function confirmarPopup({ mensagem, titulo = 'Confirmar', textoConfirmar = 'Conf
     })
 }
 
+// Pede um texto (motivo, justificativa...) num popup modal (bloqueia o resto da tela) no lugar do prompt().
+// Resolve com o texto digitado (sem espaços nas pontas) ou null se cancelar/fechar.
+function pedirTextoPopup({ mensagem, titulo = 'Informe', textoConfirmar = 'Confirmar', minimo = 0, maximo = 255, valor = '' }) {
+    return new Promise(resolve => {
+        const chave = crypto.randomUUID()
+        const id = popup({
+            titulo, modal: true,
+            elemento: `
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem; min-width: min(28rem, 80vw); text-align: left;">
+                    <label for="texto-${chave}">${mensagem}</label>
+                    <textarea id="texto-${chave}" rows="3" maxlength="${maximo}"
+                        style="width: 100%; box-sizing: border-box; resize: vertical; padding: 0.5rem; border-radius: 6px; border: 1px solid #aaa; font: inherit;">${escaparAtributo(valor)}</textarea>
+                    <small id="aviso-${chave}" style="color: #888;"></small>
+                </div>`,
+            botoes: [
+                { id: `cancelar-${chave}`, texto: 'Cancelar', img: 'cancel' },
+                { id: `confirmar-${chave}`, texto: textoConfirmar }
+            ]
+        })
+        const campo = document.getElementById(`texto-${chave}`)
+        const aviso = document.getElementById(`aviso-${chave}`)
+        const contar = () => {
+            const n = campo.value.trim().length
+            aviso.style.color = n < minimo ? '#c0392b' : '#888'
+            aviso.textContent = minimo ? `${n} de no mínimo ${minimo} caracteres (máx. ${maximo})` : `${n}/${maximo}`
+        }
+        campo.addEventListener('input', contar)
+        contar()
+        setTimeout(() => campo.focus(), 0)
+
+        const observador = new MutationObserver(() => {
+            if (!document.getElementById(id)) finalizar(null)
+        })
+        let finalizado = false
+        function finalizar(texto) {
+            if (finalizado) return
+            finalizado = true
+            observador.disconnect()
+            removerPopup(id)
+            resolve(texto)
+        }
+        const confirmar = () => {
+            const texto = campo.value.trim()
+            if (texto.length < minimo) { contar(); campo.focus(); return }
+            finalizar(texto)
+        }
+        campo.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); confirmar() }
+        })
+        document.getElementById(`cancelar-${chave}`).addEventListener('click', () => finalizar(null), { once: true })
+        document.getElementById(`confirmar-${chave}`).addEventListener('click', confirmar)
+        observador.observe(document.body, { childList: true })
+    })
+}
+
 function popup({
     tempo = null,
     autoDestruicao = [],

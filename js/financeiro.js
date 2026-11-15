@@ -1477,7 +1477,7 @@ async function encerrarRecorrenciaFin(id, tipo) {
 }
 
 async function cancelarFaturaFin(id) {
-    const motivo = prompt('Motivo do cancelamento:')
+    const motivo = await pedirTextoPopup({ titulo: 'Cancelar fatura', mensagem: 'Motivo do cancelamento:', textoConfirmar: 'Cancelar fatura' })
     if (motivo === null) return
     try {
         overlayAguarde()
@@ -1604,7 +1604,7 @@ async function salvarBaixaFin(botao) {
 }
 
 async function estornarBaixaFin(baixaId, tituloId) {
-    const motivo = prompt('Por que desfazer este pagamento?')
+    const motivo = await pedirTextoPopup({ titulo: 'Desfazer pagamento', mensagem: 'Por que desfazer este pagamento?', textoConfirmar: 'Desfazer' })
     if (motivo === null) return
     try {
         overlayAguarde()

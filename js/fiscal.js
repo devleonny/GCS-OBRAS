@@ -19,7 +19,7 @@ const STATUS_FISCAL = {
     AUTORIZADA: { cor: '#15803d', texto: 'Autorizada' },
     REJEITADA: { cor: '#b91c1c', texto: 'Rejeitada' },
     DENEGADA: { cor: '#7f1d1d', texto: 'Denegada' },
-    CANCELADA: { cor: '#475569', texto: 'Cancelada' }
+    CANCELADA: { cor: '#b91c1c', texto: 'Cancelada' }
 }
 const ESTOQUE_FISCAL = {
     PENDENTE_VINCULO: { cor: '#d97706', texto: 'Itens a vincular' },
@@ -426,7 +426,7 @@ async function darEntradaNotaFis(id) {
 }
 
 async function desfazerEntradaNotaFis(id) {
-    const motivo = prompt('Por que desfazer a entrada? (o estoque é estornado e as faturas a pagar canceladas)')
+    const motivo = await pedirTextoPopup({ titulo: 'Desfazer entrada', mensagem: 'Por que desfazer a entrada? (o estoque é estornado e as faturas a pagar canceladas)', textoConfirmar: 'Desfazer' })
     if (motivo === null) return
     try {
         overlayAguarde()
@@ -626,7 +626,7 @@ async function lancarNotaEstoque(id) {
 }
 
 async function estornarNotaEstoque(id) {
-    const motivo = prompt('Motivo do estorno da entrada:')
+    const motivo = await pedirTextoPopup({ titulo: 'Estornar entrada', mensagem: 'Motivo do estorno da entrada:', textoConfirmar: 'Estornar' })
     if (motivo === null) return
     try {
         overlayAguarde()
@@ -643,7 +643,7 @@ async function estornarNotaEstoque(id) {
 async function manifestarNotaFiscal(id, tipo) {
     let justificativa
     if (tipo === 'NAO_REALIZADA') {
-        justificativa = prompt('Justificativa (mínimo 15 caracteres):')
+        justificativa = await pedirTextoPopup({ titulo: 'Operação não realizada', mensagem: 'Justificativa:', minimo: 15, textoConfirmar: 'Enviar à SEFAZ' })
         if (justificativa === null) return
     } else {
         const textos = {
@@ -911,7 +911,7 @@ async function consultarDocumentoFiscal(id) {
 }
 
 async function cancelarDocumentoFiscal(id) {
-    const justificativa = prompt('Justificativa do cancelamento (15 a 255 caracteres):')
+    const justificativa = await pedirTextoPopup({ titulo: 'Cancelar nota', mensagem: 'Justificativa do cancelamento:', minimo: 15, maximo: 255, textoConfirmar: 'Cancelar nota' })
     if (justificativa === null) return
     try {
         overlayAguarde()

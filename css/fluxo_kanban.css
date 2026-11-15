@@ -323,6 +323,12 @@
 .fluxo-coluna.final .fluxo-cartao.fluxo-item.erro,
 .fluxo-cartao.fluxo-item.erro:hover { border-left-color: #d63a3a; }
 
+/* NF-e do GCS cancelada: lateral vermelha (como erro) e o balão "Cancelada" abaixo do cliente. */
+.fluxo-cartao.fluxo-item.cancelada,
+.fluxo-coluna.final .fluxo-cartao.fluxo-item.cancelada,
+.fluxo-cartao.fluxo-item.cancelada:hover { border-left-color: #d63a3a; }
+.fluxo-cartao-balao { display: flex; }
+
 .fluxo-cartao.fluxo-item { border-left-width: 4px; }
 
 /* Menu ⋮ do cartão (Fluxo de Vendas). */

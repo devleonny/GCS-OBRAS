@@ -1032,7 +1032,7 @@ async function confirmarApagarGenerico(id, tabela) {
 
     try {
         removerPopup()
-        overlayAguarde()
+        // Sem overlay: o deletar() já bloqueia a linha com o loading.
 
         if (tabela == 'parceiros') {
             const pagamento = await recuperarDado('lista_pagamentos', id)
