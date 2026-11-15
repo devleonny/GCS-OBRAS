@@ -100,7 +100,7 @@ function linhaParcelaFin(p, i) {
             <td class="fis-num">${i + 1}</td>
             <td><input type="date" class="fis-input" name="vencimento" value="${escFin(p.vencimento || '')}" oninput="somarParcelasFin(this)"></td>
             <td><input type="number" class="fis-input fis-num" name="valor" min="0.01" step="0.01" value="${p.valor === '' || p.valor == null ? '' : r2Fin(p.valor)}" oninput="somarParcelasFin(this)"></td>
-            <td><button type="button" class="fis-mini" title="Tirar parcela" onclick="removerParcelaFin(this)">×</button></td>
+            <td><button type="button" class="fis-remover-linha" title="Tirar parcela" aria-label="Tirar parcela" onclick="removerParcelaFin(this)">${iconeLixeiraFis}</button></td>
         </tr>`
 }
 
@@ -182,7 +182,7 @@ function linhaRateioFin(r) {
                 <div class="fin-escolha-lista" hidden></div>
             </div>
             <input class="fis-input fis-num" type="number" min="0" max="100" step="0.01" name="percentual" value="${r.percentual ?? ''}"> %
-            <button type="button" class="fis-mini" onclick="this.parentElement.remove()">×</button>
+            <button type="button" class="fis-remover-linha" title="Tirar departamento" aria-label="Tirar departamento" onclick="this.parentElement.remove()">${iconeLixeiraFis}</button>
         </div>`
 }
 
@@ -233,6 +233,7 @@ function telaFaturasReceber() { return telaFaturasFin('RECEBER') }
 
 const ICONES_FIN = {
     incluir: '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
+    excel: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M9 12l6 6M15 12l-6 6"/>',
     repetir: '<path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/>',
     ver: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
     editar: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
@@ -258,9 +259,21 @@ const iconeFin = nome => `<svg class="fin-icone" viewBox="0 0 24 24" aria-hidden
 // Cor do ícone na tabela (padrão Omie: a vencer = círculo verde com ✓); as demais usam a cor da situação.
 const COR_ICONE_SITUACAO_FIN = { 'A VENCER': '#2e9e4f' }
 const ICONE_SITUACAO_FIN = { ATRASADO: 'alerta', PAGO: 'check', 'A VENCER': 'okCheio', 'VENCE HOJE': 'relogio', CANCELADO: 'cancelar' }
-function situacaoFin(situacao) {
+// Faturas a receber falam em recebimento: "Recebido", "recebimento", "recebidas"... (a pagar: "Pago", "pagamento").
+function termoFin(chave, tipo = tipoFaturasFin) {
+    const receber = tipo === 'RECEBER'
+    return {
+        pago: receber ? 'recebido' : 'pago', Pago: receber ? 'Recebido' : 'Pago',
+        pagas: receber ? 'recebidas' : 'pagas',
+        pagamento: receber ? 'recebimento' : 'pagamento', Pagamento: receber ? 'Recebimento' : 'Pagamento',
+        favorecido: receber ? 'cliente' : 'favorecido'
+    }[chave]
+}
+
+function situacaoFin(situacao, tipo = tipoFaturasFin) {
     const s = SITUACOES_FIN[situacao] || {}
-    return `<span class="fin-sit" style="--cor: ${COR_ICONE_SITUACAO_FIN[situacao] || s.cor || '#64748b'}">${iconeFin(ICONE_SITUACAO_FIN[situacao] || 'relogio')}${escFin(s.texto || situacao || '')}</span>`
+    const texto = situacao === 'PAGO' ? termoFin('Pago', tipo) : s.texto
+    return `<span class="fin-sit" style="--cor: ${COR_ICONE_SITUACAO_FIN[situacao] || s.cor || '#64748b'}">${iconeFin(ICONE_SITUACAO_FIN[situacao] || 'relogio')}${escFin(texto || situacao || '')}</span>`
 }
 
 const POR_PAGINA_FIN = 50
@@ -295,12 +308,12 @@ async function telaFaturasFin(tipo, filtroExtra = null, manterFiltros = false) {
             <section class="fin-janela">
                 <header class="fin-janela-topo">
                     <h2>Faturas a ${pagar ? 'pagar' : 'receber'}</h2>
-                </header>
-                <div class="fin-barra">
+                    <div class="fin-barra">
                     <button type="button" onclick="formularioFaturaFin('${tipo}')">${iconeFin('incluir')} Incluir</button>
-                    <button type="button" onclick="telaRecorrenciasFin('${tipo}')">${iconeFin('repetir')} Repetições</button>
+                    <button type="button" onclick="baixarExcelFaturasFin()" title="Baixa todos os resultados, com os filtros aplicados">${iconeFin('excel')} Excel</button>
                     ${filtroExtra ? `<button type="button" onclick="telaFaturasFin('${tipo}')">${iconeFin('fechar')} Limpar filtro</button>` : ''}
-                </div>
+                    </div>
+                </header>
                 <div class="fin-corpo${painelFinAberto ? '' : ' recolhido'}" data-corpo-fin>
                     <div class="fin-tabela-area" data-tabela-fin></div>
                     <div class="fin-lateral">
@@ -329,7 +342,7 @@ async function telaFaturasFin(tipo, filtroExtra = null, manterFiltros = false) {
             ordenar: [{ path: 'vencimento', direcao: 'asc' }],
             colunas: {
                 '': {},
-                'Situação': { chave: 'situacao', tipoPesquisa: 'select' },
+                'Situação': { chave: 'situacao', tipoPesquisa: 'select', rotulos: pagar ? {} : { PAGO: 'RECEBIDO' } },
                 'Vencimento': { chave: 'dia_vencimento', tipoPesquisa: 'data' },
                 [pagar ? 'Pago em' : 'Recebido em']: { chave: 'dia_pagamento', tipoPesquisa: 'data' },
                 'Empresa': { chave: 'app', tipoPesquisa: 'select' },
@@ -409,6 +422,181 @@ async function totaisFaturasFin(forcar = true) {
         const td = document.querySelector(`[data-total-fin="${path}"]`)
         if (td) td.innerHTML = `<span class="fin-sigma">Σ</span> ${somas[i] == null ? '—' : dinheiro(somas[i])}`
     })
+}
+
+// ---------------------------------------------------------------- Excel da lista (todos os resultados com os filtros)
+// Cabeçalho com a logo do GCS, o tipo do relatório, quando/quem gerou e os filtros; tabela com autofiltro,
+// moeda/data formatadas, totais por fórmula (SUBTOTAL: ignora o que for filtrado no Excel) e linhas zebradas.
+async function baixarExcelFaturasFin() {
+    const ctrl = controles.faturasFin
+    if (!ctrl) return
+    const tipo = tipoFaturasFin
+    const pagar = tipo === 'PAGAR'
+    overlayAguarde()
+    try {
+        const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        const ordenar = ctrl.ordenar || [{ path: 'vencimento', direcao: 'asc' }]
+        const linhas = []
+        let pagina = 1, paginas = 1
+        do {
+            const r = await pesquisarDB({ base: 'vw_fin_titulos', filtros, ordenar, pagina, limite: 2000 })
+            linhas.push(...(r?.resultados || []))
+            paginas = Number(r?.paginas) || 1
+            pagina++
+        } while (pagina <= paginas && pagina <= 50)
+
+        const opcoes = await carregarOpcoesFin().catch(() => null)
+        const nomeCategoria = new Map((opcoes?.categorias || []).map(c => [String(c.id), `${c.codigo || ''} ${c.nome || ''}`.trim()]))
+        const categorias = d => {
+            const lista = Array.isArray(d.categorias) ? d.categorias : []
+            if (lista.length < 2) return d.categoria || ''
+            return lista.map(c => `${nomeCategoria.get(String(c.categoria_id)) || c.categoria_id} (${Number(c.percentual)}%)`).join(' / ')
+        }
+        const departamentos = d => {
+            const lista = Array.isArray(d.rateio) ? d.rateio : []
+            return lista.length > 1 ? lista.map(r => `${r.departamento} (${Number(r.percentual)}%)`).join(' / ') : (d.departamentos || '')
+        }
+        // Data "pura" no Excel (meio-dia UTC: não muda de dia por fuso).
+        const data = v => v ? new Date(`${String(v).slice(0, 10)}T12:00:00Z`) : null
+        const textoSituacao = s => s === 'PAGO' ? termoFin('Pago', tipo) : (SITUACOES_FIN[s]?.texto || s || '')
+
+        const colunas = [
+            { titulo: 'Situação', largura: 13, valor: d => textoSituacao(d.situacao) },
+            { titulo: 'Vencimento', largura: 12, tipo: 'data', valor: d => data(d.vencimento) },
+            { titulo: pagar ? 'Pago em' : 'Recebido em', largura: 12, tipo: 'data', valor: d => data(d.dia_pagamento) },
+            { titulo: 'Empresa', largura: 9, centro: true, valor: d => d.app || '' },
+            { titulo: pagar ? 'Fornecedor' : 'Cliente', largura: 38, valor: d => d.participante_nome || '' },
+            { titulo: 'CPF/CNPJ', largura: 19, valor: d => d.participante_documento ? docFormatadoFis(d.participante_documento) : '' },
+            { titulo: 'Descrição', largura: 40, quebra: true, valor: d => d.descricao || '' },
+            { titulo: 'Categoria', largura: 34, quebra: true, valor: categorias },
+            { titulo: 'Departamento', largura: 22, quebra: true, valor: departamentos },
+            { titulo: 'Parcela', largura: 9, centro: true, valor: d => d.parcela_texto || '' },
+            { titulo: 'Nº documento', largura: 14, valor: d => d.numero_documento || d.documento_numero || '' },
+            { titulo: 'Forma', largura: 18, valor: d => (FORMAS_FIN.find(([v]) => v === d.forma_pagamento) || [])[1] || '' },
+            { titulo: 'Conta corrente', largura: 22, valor: d => d.conta || '' },
+            { titulo: 'Origem', largura: 14, valor: d => ORIGENS_FIN[d.origem] || d.origem || '' },
+            { titulo: 'Valor', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.valor) || 0 },
+            { titulo: pagar ? 'Pago' : 'Recebido', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.pago) || 0 },
+            { titulo: 'Saldo', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.saldo) || 0 }
+        ]
+        const n = colunas.length
+        const letra = i => { let s = ''; for (let x = i + 1; x > 0; x = Math.floor((x - 1) / 26)) s = String.fromCharCode(65 + ((x - 1) % 26)) + s; return s }
+        const ultima = letra(n - 1)
+        const VERDE = 'FF1F6B3A', VERDE_CLARO = 'FFF1F7F3', CINZA = 'FF5F6B64', BORDA = 'FFD5DED8'
+        const MOEDA = '"R$" #,##0.00;[Red]-"R$" #,##0.00'
+        const titulo = `Faturas a ${pagar ? 'pagar' : 'receber'}`
+
+        const livro = new ExcelJS.Workbook()
+        livro.creator = 'GCS'
+        const ws = livro.addWorksheet(titulo, {
+            pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9 },
+            views: [{ state: 'frozen', ySplit: 6, showGridLines: false }]
+        })
+        colunas.forEach((c, i) => { ws.getColumn(i + 1).width = c.largura })
+
+        // Cabeçalho: logo nas colunas A-B + título, geração e filtros.
+        const blob = await (await fetch('imagens/logo-gcs-quadrado.png')).blob()
+        const base64 = await new Promise((ok, falha) => {
+            const leitor = new FileReader()
+            leitor.onloadend = () => ok(String(leitor.result).split(',')[1])
+            leitor.onerror = falha
+            leitor.readAsDataURL(blob)
+        })
+        ws.addImage(livro.addImage({ base64, extension: 'png' }), { tl: { col: 0.2, row: 0.05 }, ext: { width: 88, height: 88 } })
+        ;[30, 20, 20].forEach((h, i) => { ws.getRow(i + 1).height = h })
+
+        const linhaTopo = (numero, texto, fonte) => {
+            ws.mergeCells(`C${numero}:${ultima}${numero}`)
+            const cel = ws.getCell(`C${numero}`)
+            cel.value = texto
+            cel.font = fonte
+            cel.alignment = { vertical: 'middle', wrapText: true }
+        }
+        const agora = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' })
+        linhaTopo(1, `Relatório · ${titulo}`, { size: 18, bold: true, color: { argb: VERDE } })
+        linhaTopo(2, `Gerado em ${agora}${acesso?.usuario ? ` por ${acesso.usuario}` : ''} · ${linhas.length} fatura(s)`, { size: 10, color: { argb: CINZA } })
+        linhaTopo(3, `Filtros: ${descreverFiltrosFin(ctrl)}`, { size: 10, color: { argb: CINZA } })
+        // Faixa verde fina embaixo do cabeçalho e um respiro.
+        ws.getRow(4).height = 5
+        for (let i = 1; i <= n; i++) ws.getCell(4, i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE } }
+        ws.getRow(5).height = 8
+
+        // Tabela.
+        const LINHA_CAB = 6
+        const cab = ws.getRow(LINHA_CAB)
+        cab.values = colunas.map(c => c.titulo)
+        cab.height = 24
+        cab.eachCell(cel => {
+            cel.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+            cel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE } }
+            cel.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
+        })
+
+        const corSituacao = { ATRASADO: 'FFB91C1C', PAGO: 'FF15803D', 'VENCE HOJE': 'FFD97706', 'A VENCER': 'FF2563EB', CANCELADO: 'FF64748B' }
+        linhas.forEach((d, k) => {
+            const row = ws.getRow(LINHA_CAB + 1 + k)
+            row.values = colunas.map(c => c.valor(d))
+            colunas.forEach((c, i) => {
+                const cel = row.getCell(i + 1)
+                if (c.tipo === 'moeda') cel.numFmt = MOEDA
+                if (c.tipo === 'data') cel.numFmt = 'dd/mm/yyyy'
+                cel.alignment = { vertical: 'middle', wrapText: !!c.quebra, ...(c.tipo === 'data' || c.centro ? { horizontal: 'center' } : {}) }
+                if (k % 2) cel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE_CLARO } }
+                cel.border = { bottom: { style: 'hair', color: { argb: BORDA } } }
+            })
+            row.getCell(1).font = { bold: true, color: { argb: corSituacao[d.situacao] || CINZA } }
+        })
+
+        // Totais.
+        const fim = LINHA_CAB + linhas.length
+        const tot = ws.getRow(fim + 1)
+        tot.height = 22
+        colunas.forEach((c, i) => {
+            const cel = tot.getCell(i + 1)
+            if (i === 0) cel.value = 'Total'
+            if (c.soma && linhas.length)
+                cel.value = { formula: `SUBTOTAL(9,${letra(i)}${LINHA_CAB + 1}:${letra(i)}${fim})`, result: Math.round(linhas.reduce((s, d) => s + c.valor(d), 0) * 100) / 100 }
+            if (c.tipo === 'moeda') cel.numFmt = MOEDA
+            cel.font = { bold: true, color: { argb: VERDE } }
+            cel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCEBE0' } }
+            cel.border = { top: { style: 'medium', color: { argb: VERDE } } }
+            cel.alignment = { vertical: 'middle' }
+        })
+
+        ws.autoFilter = { from: { row: LINHA_CAB, column: 1 }, to: { row: Math.max(fim, LINHA_CAB), column: n } }
+        ws.pageSetup.printTitlesRow = `${LINHA_CAB}:${LINHA_CAB}`
+
+        const buffer = await livro.xlsx.writeBuffer()
+        const arquivo = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(arquivo)
+        a.download = `${titulo} ${hojeFin().split('-').reverse().join('-')}.xlsx`
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000)
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: `Falha ao gerar o Excel: ${escFin(err.message)}` })
+    } finally {
+        removerOverlay()
+    }
+}
+
+// Texto dos filtros da tabela para o cabeçalho do Excel ("Situação: ATRASADO · Vencimento: a partir de 01/11/2026").
+function descreverFiltrosFin(ctrl) {
+    const colunas = Object.entries(ctrl.colunas || {}).filter(([, c]) => c.chave)
+    const ops = { '>=d': 'a partir de', '<=d': 'até', '>=': 'a partir de', '<=': 'até', '=': '' }
+    const valor = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v)) ? String(v).split('-').reverse().join('/') : String(v)
+    const partes = Object.entries(ctrl.filtros || {}).map(([chave, f]) => {
+        const lista = (Array.isArray(f) ? f : [f]).filter(x => x && x.value !== '' && x.value != null)
+        if (!lista.length) return ''
+        const [nome, coluna] = colunas.find(([, c]) => c.chave === chave) || [chave, {}]
+        const rotulos = coluna.rotulos || {}
+        return `${nome}: ${lista.map(x => `${ops[x.op] ?? ''} ${rotulos[String(x.value).toUpperCase()] || valor(x.value)}`.trim()).join(' e ')}`
+    }).filter(Boolean)
+    if (Object.keys(ctrl.filtrosFixos || {}).some(k => !['tipo', 'ativa'].includes(k))) partes.push('filtro vindo de outra tela')
+    return partes.length ? partes.join(' · ') : 'nenhum (todas as faturas)'
 }
 
 // ---------------------------------------------------------------- paginação do rodapé
@@ -494,7 +682,7 @@ function desenharPainelFin() {
     const lancadaAqui = ['MANUAL', 'RECORRENCIA'].includes(d?.origem)
     const comPagamento = Number(d?.pago) > 0
     const motivoQuitada = !d ? nada : cancelada ? 'Fatura cancelada' : 'Já está quitada'
-    const motivoLancada = !d ? nada : !lancadaAqui ? `Veio de ${(ORIGENS_FIN[d.origem] || d.origem).toLowerCase()}: mexa na origem.` : comPagamento ? 'Tem pagamento: desfaça o pagamento antes.' : ''
+    const motivoLancada = !d ? nada : !lancadaAqui ? `Veio de ${(ORIGENS_FIN[d.origem] || d.origem).toLowerCase()}: mexa na origem.` : comPagamento ? `Tem ${termoFin('pagamento')}: desfaça o ${termoFin('pagamento')} antes.` : ''
     const tipo = escFin(d?.tipo || tipoFaturasFin)
     const rec = escFin(d?.recorrencia_id || '')
     painel.innerHTML = `
@@ -517,7 +705,7 @@ function desenharPainelFin() {
 async function excluirFaturaFin(id) {
     const ok = await confirmarPopup({
         titulo: 'Excluir fatura',
-        mensagem: 'A fatura sai da lista. Só dá para excluir as lançadas aqui (manual ou repetição) e sem pagamento.',
+        mensagem: `A fatura sai da lista. Só dá para excluir as lançadas aqui (manual ou repetição) e sem ${termoFin('pagamento')}.`,
         textoConfirmar: 'Excluir'
     })
     if (ok) executarLoteFin({ acao: 'excluir' }, null, [String(id)])
@@ -587,7 +775,7 @@ async function baixaLoteFin() {
 function confirmarBaixaLoteFin(botao) {
     const form = document.querySelector('[data-lote-baixa]')
     const data = form.querySelector('[name="data"]').value
-    if (!data) return popup({ mensagem: 'Informe a data real do pagamento.' })
+    if (!data) return popup({ mensagem: `Informe a data real do ${termoFin('pagamento')}.` })
     return executarLoteFin({ acao: 'baixar', data, conta_id: form.querySelector('[name="conta_id"]').value || null }, botao)
 }
 
@@ -598,7 +786,7 @@ function vencimentoLoteFin() {
             elemento: `
                 <div class="fis-form" data-lote-vencimento>
                     <label class="fis-campo"><span>Novo vencimento *</span><input class="fis-input" type="date" name="vencimento"></label>
-                    <small class="fis-dica">As já pagas ficam como estão.</small>
+                    <small class="fis-dica">As já ${termoFin('pagas')} ficam como estão.</small>
                 </div>`
         }],
         botoes: [{ texto: 'Mudar vencimento', img: 'concluido', funcao: 'confirmarVencimentoLoteFin(this)' }]
@@ -614,7 +802,7 @@ function confirmarVencimentoLoteFin(botao) {
 async function excluirLoteFin() {
     const ok = await confirmarPopup({
         titulo: `Excluir ${selecaoFin.size} fatura(s)`,
-        mensagem: 'Saem da lista. Só as lançadas aqui (manual ou repetição) e sem pagamento; as que vieram de nota ou de reembolso, ou já têm pagamento, ficam e o motivo aparece no fim.',
+        mensagem: `Saem da lista. Só as lançadas aqui (manual ou repetição) e sem ${termoFin('pagamento')}; as que vieram de nota ou de reembolso, ou já têm ${termoFin('pagamento')}, ficam e o motivo aparece no fim.`,
         textoConfirmar: 'Excluir'
     })
     if (ok) executarLoteFin({ acao: 'excluir' })
@@ -788,9 +976,9 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
     anexosFormFin = Array.isArray(t?.anexos) ? [...t.anexos] : []
     const quando = (em, por) => em ? `Em ${new Date(em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}${por ? ` por ${escFin(por)}` : ''}` : '—'
     const avisos = [
-        !manual ? `Fatura de ${escFin(ORIGENS_FIN[t.origem])}: valor e favorecido vêm da origem.${Number(t.pago) ? ' Com pagamento, o vencimento também fica.' : ''}` : '',
+        !manual ? `Fatura de ${escFin(ORIGENS_FIN[t.origem])}: valor e ${termoFin('favorecido', tipo)} vêm da origem.${Number(t.pago) ? ` Com ${termoFin('pagamento', tipo)}, o vencimento também fica.` : ''}` : '',
         t?.recorrencia_id ? `Ocorrência de uma repetição (${escFin(nomeFrequenciaFin(t.recorrencia_frequencia).toLowerCase())}): a mudança vale só para ela. Para mudar as futuras, edite a repetição.` : '',
-        rec ? 'A mudança vale para as próximas faturas ainda sem pagamento. Frequência e 1º vencimento não mudam: para isso, encerre e crie outra.' : '',
+        rec ? `A mudança vale para as próximas faturas ainda sem ${termoFin('pagamento', tipo)}. Frequência e 1º vencimento não mudam: para isso, encerre e crie outra.` : '',
         cancelada ? `Fatura cancelada${t.cancelamento_motivo ? `: ${escFin(t.cancelamento_motivo)}` : ''}. Não se altera.` : ''
     ].filter(Boolean)
     const abas = [
@@ -842,7 +1030,7 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
                                 ${rec ? '' : `<label class="fin-campo"><span>Nº do documento / nota</span><input class="fis-input" name="numero_documento" maxlength="60" value="${escFin(t?.numero_documento || '')}"></label>`}
                                 <label class="fin-campo"><span>Forma de pagamento</span><select class="fis-input" name="forma_pagamento"><option value=""></option>${FORMAS_FIN.filter(([v]) => v !== 'OMIE').map(([v, n]) => `<option value="${v}" ${base?.forma_pagamento === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
                                 <label class="fin-campo"><span>CPF/CNPJ</span><input class="fis-input" name="participante_documento" value="${escFin(base?.participante_documento ? docFormatadoFis(base.participante_documento) : '')}" ${manual && !cancelada ? '' : 'readonly'}></label>
-                                <label class="fin-campo"><span>Chave Pix</span><input class="fis-input" name="chave_pix" maxlength="140" value="${escFin(base?.chave_pix || '')}" placeholder="CPF, CNPJ, e-mail, telefone ou aleatória"></label>
+                                <label class="fin-campo fin-campo-pix"><span>Chave Pix</span><input class="fis-input" name="chave_pix" maxlength="140" value="${escFin(base?.chave_pix || '')}" placeholder="CPF, CNPJ, e-mail, telefone ou aleatória"></label>
                                 <label class="fin-campo fin-campo-largo"><span>Descrição</span><input class="fis-input" name="descricao" maxlength="300" value="${escFin(base?.descricao || '')}"></label>
                                 <label class="fin-campo fin-campo-largo"><span>Observações</span><textarea class="fis-input" name="observacao" rows="3">${escFin(base?.observacao || '')}</textarea></label>
                             </div>
@@ -953,7 +1141,7 @@ function desenharPainelFormFin(t, rec) {
         ${rec ? acao('encerrar', 'Encerrar repetição', `encerrarRecorrenciaFin('${escFin(rec.id)}')`, { ativo: rec.ativa, motivo: 'Já encerrada' }) : ''}
         <hr>
         ${t ? acao('cancelar', t.recorrencia_id ? 'Cancelar só esta' : 'Cancelar fatura', `cancelarFaturaFin('${escFin(t.id)}')`,
-            { perigo: true, ativo: podeCancelar, motivo: cancelada ? 'Já está cancelada' : Number(t.pago) > 0 ? 'Tem pagamento: desfaça antes' : 'Veio de outra origem' }) : ''}
+            { perigo: true, ativo: podeCancelar, motivo: cancelada ? 'Já está cancelada' : Number(t.pago) > 0 ? `Tem ${termoFin('pagamento', tipo)}: desfaça antes` : 'Veio de outra origem' }) : ''}
         ${acao('voltar', 'Voltar à lista', 'voltarFaturasFin()')}`
 }
 
@@ -999,7 +1187,7 @@ function tabelaParcelasFin(t, irmas, tipo) {
             <tbody>${todas.map(p => `
                 <tr class="${p.atual ? 'fin-parcela-atual' : 'fin-parcela-link'}" ${p.atual ? 'title="Esta fatura"' : `title="Abrir esta parcela" onclick="formularioFaturaFin('${tipo}', '${escFin(p.id)}', null, 'parcelas')"`}>
                     <td>${escFin(p.parcela_texto)}</td>
-                    <td>${situacaoFin(p.situacao)}</td>
+                    <td>${situacaoFin(p.situacao, tipo)}</td>
                     <td>${dataFin(p.vencimento)} <small>${diaSemanaFin(p.vencimento)}</small></td>
                     <td class="fis-num">${dinheiro(p.valor)}</td>
                 </tr>`).join('')}
@@ -1072,7 +1260,7 @@ function ferramentaRepeticoesFin(t, irmas) {
                 <thead><tr><th>Parcela</th><th>Vencimento</th><th></th><th class="fis-num">Valor</th></tr></thead>
                 <tbody data-simulacao-fin></tbody>
             </table>
-            <small class="fis-dica">As repetições viram faturas ao <b>Salvar</b>, com o mesmo favorecido, categorias, departamentos e conta.</small>
+            <small class="fis-dica">As repetições viram faturas ao <b>Salvar</b>, com o mesmo ${termoFin('favorecido')}, categorias, departamentos e conta.</small>
         </div>`
 }
 
@@ -1155,7 +1343,7 @@ function linhaCategoriaFin(c, tipo, travado = false) {
             <select class="fis-input" name="categoria_rateio" ${trava} onchange="somarCategoriasFin()">${opcoesCategoriasFin(opcoesFinCache?.categorias || [], tipo, c.categoria_id)}</select>
             <input class="fis-input fis-num" type="number" min="0" max="100" step="0.01" name="percentual_categoria" value="${c.percentual ?? ''}" ${trava} oninput="somarCategoriasFin()"> %
             <span class="fin-categoria-valor" data-valor-categoria></span>
-            ${travado ? '' : '<button type="button" class="fis-mini" title="Tirar categoria" onclick="removerCategoriaFin(this)">×</button>'}
+            ${travado ? '' : `<button type="button" class="fis-remover-linha" title="Tirar categoria" aria-label="Tirar categoria" onclick="removerCategoriaFin(this)">${iconeLixeiraFis}</button>`}
         </div>`
 }
 
@@ -1438,7 +1626,7 @@ async function telaRecorrenciasFin(tipo) {
                                     <td>${escFin(nomeFrequenciaFin(r.frequencia))}</td>
                                     <td class="fis-num">${dinheiro(r.valor)}</td>
                                     <td>${r.proximo_vencimento ? dataFin(r.proximo_vencimento) : '—'}</td>
-                                    <td>${Number(r.geradas || 0)} <small>(${Number(r.pagas || 0)} pagas)</small></td>
+                                    <td>${Number(r.geradas || 0)} <small>(${Number(r.pagas || 0)} ${termoFin('pagas', tipo)})</small></td>
                                     <td>${!r.ativa ? `Encerrada ${r.encerrada_em ? dataFin(new Date(r.encerrada_em).toISOString()) : ''}` : r.ocorrencias ? `${r.ocorrencias} vezes` : r.termina_em ? dataFin(r.termina_em) : 'Nunca'}</td>
                                     <td>${r.ativa ? `
                                         <button type="button" class="fis-mini" onclick="formularioFaturaFin('${r.tipo}', null, '${escFin(r.id)}')">Editar</button>
@@ -1458,7 +1646,7 @@ async function telaRecorrenciasFin(tipo) {
 async function encerrarRecorrenciaFin(id, tipo) {
     const ok = await confirmarPopup({
         titulo: 'Encerrar repetição',
-        mensagem: 'Para de lançar novas faturas e cancela as futuras que ainda não têm pagamento. As vencidas e as pagas ficam.',
+        mensagem: `Para de lançar novas faturas e cancela as futuras que ainda não têm ${termoFin('pagamento', tipo)}. As vencidas e as ${termoFin('pagas', tipo)} ficam.`,
         textoConfirmar: 'Encerrar'
     })
     if (!ok) return
@@ -1571,7 +1759,7 @@ async function salvarBaixaRapidaFin(botao) {
     const conta = form.querySelector('[name="conta_id"]').value
     const data = form.querySelector('[name="data"]').value
     if (!conta) return popup({ mensagem: 'Escolha a conta corrente.' })
-    if (!data) return popup({ mensagem: 'Informe a data real do pagamento.' })
+    if (!data) return popup({ mensagem: `Informe a data real do ${termoFin('pagamento')}.` })
     const id = form.dataset.id
     try {
         overlayAguarde()
@@ -1604,7 +1792,7 @@ async function salvarBaixaFin(botao) {
 }
 
 async function estornarBaixaFin(baixaId, tituloId) {
-    const motivo = await pedirTextoPopup({ titulo: 'Desfazer pagamento', mensagem: 'Por que desfazer este pagamento?', textoConfirmar: 'Desfazer' })
+    const motivo = await pedirTextoPopup({ titulo: `Desfazer ${termoFin('pagamento')}`, mensagem: `Por que desfazer este ${termoFin('pagamento')}?`, textoConfirmar: 'Desfazer' })
     if (motivo === null) return
     try {
         overlayAguarde()

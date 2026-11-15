@@ -40,6 +40,8 @@ const ORIGENS_MERCADORIA = {
     6: '6 · Estrangeira direta, sem similar', 7: '7 · Estrangeira interna, sem similar', 8: '8 · Nacional, importação > 70%'
 }
 
+// Botão de tirar uma linha (categoria, departamento, parcela, item): lixeira, vermelha ao passar o mouse.
+const iconeLixeiraFis = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>'
 const etiquetaFis = (mapa, chave) => chave ? etiquetaEst(mapa[chave]?.texto || chave, mapa[chave]?.cor) : ''
 const dataFis = v => v ? new Date(v).toLocaleDateString('pt-BR') : ''
 const dataHoraFis = v => v ? new Date(v).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : ''
@@ -1153,7 +1155,7 @@ function adicionarItemNFe(item = {}) {
         <td><input class="fis-input fis-curto" name="valor_unitario" type="number" min="0" step="0.0001" value="${escFis(item.valor_unitario || '')}"></td>
         <td><input class="fis-input fis-curto" name="desconto" type="number" min="0" step="0.01" value="${escFis(item.desconto || '')}"></td>
         <td class="fis-num" data-total-item></td>
-        <td><button type="button" class="fis-mini" title="Remover" onclick="this.closest('tr').remove(); agendarPreviaFis()">×</button></td>`
+        <td><button type="button" class="fis-remover-linha" title="Remover" aria-label="Remover" onclick="this.closest('tr').remove(); agendarPreviaFis()">${iconeLixeiraFis}</button></td>`
     corpo.appendChild(tr)
 }
 
@@ -1252,7 +1254,7 @@ function blocoRateioFis(destinos, linhas = []) {
         <div class="fis-rateio-linha">
             <select class="fis-input" name="rateio_departamento">${opcoesFis([['', 'Departamento'], ...opcoes], l.departamento || '')}</select>
             <input class="fis-input fis-curto" name="rateio_percentual" type="number" min="0" max="100" step="0.01" placeholder="%" value="${escFis(l.percentual ?? '')}">
-            <button type="button" class="fis-mini" title="Remover" onclick="this.closest('.fis-rateio-linha').remove(); somarRateioFis(this)">×</button>
+            <button type="button" class="fis-remover-linha" title="Remover" aria-label="Remover" onclick="this.closest('.fis-rateio-linha').remove(); somarRateioFis(this)">${iconeLixeiraFis}</button>
         </div>`
     return `
         <div class="fis-rateio" data-rateio data-opcoes="${escFis(JSON.stringify(opcoes))}">
@@ -1272,7 +1274,7 @@ function adicionarRateioFis(botao) {
         <div class="fis-rateio-linha">
             <select class="fis-input" name="rateio_departamento">${opcoesFis([['', 'Departamento'], ...opcoes], '')}</select>
             <input class="fis-input fis-curto" name="rateio_percentual" type="number" min="0" max="100" step="0.01" placeholder="%">
-            <button type="button" class="fis-mini" title="Remover" onclick="this.closest('.fis-rateio-linha').remove(); somarRateioFis(this)">×</button>
+            <button type="button" class="fis-remover-linha" title="Remover" aria-label="Remover" onclick="this.closest('.fis-rateio-linha').remove(); somarRateioFis(this)">${iconeLixeiraFis}</button>
         </div>`)
 }
 

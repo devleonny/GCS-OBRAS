@@ -356,11 +356,12 @@
     stroke-linejoin: round;
 }
 
+/* Título e os botões (Incluir, Repetições...) na mesma linha. */
 .fin-janela-topo {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    flex-wrap: wrap;
+    gap: 6px 28px;
 }
 
 .fin-janela-topo h2 {
@@ -390,8 +391,7 @@
 .fin-barra {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px 28px;
-    padding: 4px 0 6px;
+    gap: 4px 20px;
 }
 
 .fin-corpo {
@@ -701,10 +701,12 @@
     gap: 10px 16px;
 }
 
+/* 5 colunas: Nº do documento, Forma, CPF/CNPJ e a Chave Pix ocupando 2 (chave aleatória é comprida). */
 .fin-grade-detalhes {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     max-width: 960px;
 }
+.fin-campo-pix { grid-column: span 2; }
 
 .fin-campo {
     display: flex;

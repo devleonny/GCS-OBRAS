@@ -70,7 +70,8 @@ async function modTab(configuracoes) {
                 const opcoes = Object.keys(dados)
                     .filter(r => r != 'todos' && r != 'EM BRANCO')
                     .sort((a, b) => a.localeCompare(b))
-                    .map(r => `<option value="${String(r).toLowerCase()}">${r}</option>`)
+                    // rotulos (opcional): texto exibido no lugar do valor do banco (o filtro continua pelo valor).
+                    .map(r => `<option value="${String(r).toLowerCase()}">${query.rotulos?.[r] ?? r}</option>`)
                     .join('')
 
                 return `
