@@ -337,14 +337,8 @@ const esquemaBotoes = {
                 { nome: 'Faturas a Receber', funcao: 'telaFaturasReceber', img: 'receber' },
                 { nome: 'Contas Correntes', funcao: 'telaContasFin', img: 'planilha' },
                 { nome: 'Categorias', funcao: 'telaCategoriasFin', img: 'prancheta' },
-                { nome: 'Dashboard', funcao: 'telaDashboardReembolsos', img: 'dashboard' }
-            ]
-        },
-        {
-            nome: 'Relatórios',
-            permitido: ['fin', 'diretoria', 'adm'],
-            img: 'relatorio',
-            sub: [
+                { nome: 'Dashboard', funcao: 'telaDashboardReembolsos', img: 'dashboard' },
+                // Relatórios (antes num menu próprio, com as mesmas permissões).
                 { nome: 'Custos por Departamento', funcao: 'telaCustosDepartamentos', img: 'planilha' },
                 { nome: 'Custos de Pessoal', funcao: 'telaCustosPessoal', img: 'gerente' }
             ]
