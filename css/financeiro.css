@@ -293,30 +293,8 @@
 
 .fin-repetir [hidden] { display: none; }
 
-/* ---------- baixa rápida (linha da tabela e janela) */
-.fin-acoes-linha {
-    white-space: nowrap;
-}
 
-.tabela.caber td.fin-acoes-linha,
-.tabela.caber th:first-child:has([data-marcar-todas-fin]) {
-    min-width: 3.4rem;
-    overflow-wrap: normal;
-}
-
-.fin-acoes-celula {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.fin-acoes-celula .fin-marcar { margin: 0; }
-.fin-acoes-celula img { width: 1.3rem; flex: 0 0 auto; }
-
-.fin-acoes-linha > * {
-    vertical-align: middle;
-}
-
+/* ---------- caixinhas de marcar (tabela das faturas) */
 .fin-marcar {
     width: 1.05rem;
     height: 1.05rem;
@@ -325,25 +303,13 @@
     cursor: pointer;
 }
 
-/* Barra das faturas marcadas (aparece com 1 ou mais). */
-.fin-selecao {
-    position: sticky;
-    top: 0;
-    z-index: 5;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 10px;
-    padding: 8px 12px;
-    background: #fff;
-    border: 1px solid #8cb69a;
-    border-left: 4px solid #356443;
-    border-radius: 10px;
-    box-shadow: 0 4px 14px rgba(16, 32, 25, 0.18);
+/* Sem o contorno de foco dos filtros do cabeçalho (.tabela thead input:focus) nas caixinhas. */
+.tabela thead .fin-marcar:focus,
+.fin-marcar:focus {
+    outline: none;
+    background-color: transparent !important;
 }
 
-.fin-selecao[hidden] { display: none; }
-.fin-selecao b { margin-right: 6px; color: #1f2a24; }
 .fin-perigo { color: #b91c1c; border-color: #f0b4b4; }
 .fin-perigo:hover { background: #fdecec; }
 
@@ -359,3 +325,538 @@
 
 .fin-baixa-resumo span { font-size: 12px; color: #5b6b61; }
 .fin-baixa-resumo strong { font-size: 1.3rem; }
+
+/* ---------- janela das faturas (padrão "Contas a Pagar": tabela + painel de ações à direita) */
+/* A tela inteira fica branca (sem o verde do fundo aparecendo em volta). */
+.tela:has(> .fin-tela) { background: #fff; }
+
+.fin-tela {
+    --fin-verde: #356443;
+    --fin-verde-claro: #e4f2dc;
+    --fin-borda: #d6e0da;
+    width: 100%;
+    min-width: 0;
+}
+
+.fin-janela {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: #1f2a24;
+}
+
+.fin-icone {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.fin-janela-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.fin-janela-topo h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--fin-verde);
+}
+
+.fin-barra button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: var(--fin-verde);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.fin-barra button:hover { background: #eef6f0; }
+.fin-barra .fin-icone { width: 21px; height: 21px; }
+
+.fin-barra {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 28px;
+    padding: 4px 0 6px;
+}
+
+.fin-corpo {
+    display: flex;
+    align-items: stretch;
+    gap: 14px;
+}
+
+.fin-tabela-area {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* Paginação do modTab escondida: o rodapé da janela mostra a sua. */
+.fin-tela .topo-tabela { display: none; }
+/* Faixa vazia do fim do modTab (cantos de 10px) ficava entre a tabela e o rodapé da janela. */
+.fin-tela .rodape-tabela { display: none; }
+
+/* Tabela sempre na altura disponível (mesmo com poucas linhas); a linha .fin-enchimento fica com a sobra. */
+.fin-tela .div-tabela {
+    height: max(min(var(--altura-minima-tabela, 0px), 60dvh), var(--altura-disponivel-tabela, 60dvh));
+}
+
+.fin-tela .tabela { height: 100%; }
+/* O 100% tem que estar no tbody (não só na linha): senão o Chrome dá a sobra para as linhas de dados. */
+.fin-tela .tabela .fin-enchimento,
+.fin-tela .tabela .fin-enchimento tr { height: 100%; }
+.fin-tela .tabela .fin-enchimento td { padding: 0; border: none; }
+.fin-tela .tabela:not(.nude) .fin-enchimento tr,
+.fin-tela .tabela:not(.nude) .fin-enchimento tr:hover { background: #fff; }
+.fin-tela .modtab { border-radius: 6px; }
+.fin-tela .div-tabela { border-inline: none; }
+
+.fin-tela .tabela tbody tr.fin-linha { cursor: pointer; }
+.fin-tela .tabela tbody tr.fin-linha td { padding-block: 6px; }
+.fin-tela .tabela:not(.nude) tbody tr.fin-linha-ativa,
+.fin-tela .tabela:not(.nude) tbody tr.fin-linha-ativa:hover {
+    background-color: var(--fin-verde-claro);
+    font-weight: 600;
+}
+
+.fin-tela .tabela td.fin-col-marcar,
+.fin-tela .tabela thead th:first-child {
+    width: 1.6rem;
+    min-width: 1.6rem;
+    text-align: center;
+}
+
+.fin-tela .fin-col-marcar .fin-marcar,
+.fin-tela th .fin-marcar { margin: 0; }
+
+.fin-centro { text-align: center; }
+.fin-vazio { color: #9aa69f; font-style: italic; }
+
+.fin-sit {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    color: #44544a;
+}
+
+.fin-sit .fin-icone {
+    width: 15px;
+    height: 15px;
+    color: var(--cor);
+    stroke-width: 2.2;
+}
+
+/* Totais embaixo das colunas de valor: presos no fim da área que rola. */
+.fin-tela .tabela tfoot td {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    padding: 7px 8px;
+    background: #f1f5f2;
+    border-top: 2px solid #cddbd2;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.fin-sigma { color: #6b7a71; font-weight: 400; margin-right: 2px; }
+
+.fin-rodape {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 16px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 10px;
+    border-top: 1px solid var(--fin-borda);
+    font-size: 12px;
+    color: #44544a;
+}
+
+.fin-paginas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+}
+
+.fin-paginas button {
+    padding: 3px 6px;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    color: #44544a;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.fin-paginas button:hover:not(:disabled) { background: #eef6f0; color: var(--fin-verde); }
+.fin-paginas button:disabled { color: #b8c2bc; cursor: default; }
+
+.fin-paginas input {
+    width: 4.2rem;
+    margin-left: 4px;
+    padding: 3px 6px;
+    border: 1px solid #c4cec8;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+/* Painel de ações: aberto por padrão; a seta na borda recolhe/mostra. */
+.fin-lateral {
+    position: relative;
+    flex: 0 0 auto;
+    display: flex;
+}
+
+.fin-painel {
+    width: 220px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 14px 12px;
+    background: #f6fbf8;
+    border: 1px solid var(--fin-borda);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: width 200ms ease, padding 200ms ease;
+}
+
+/* Recolhido: faixa estreita só com os ícones (o texto fica no título, ao passar o mouse). */
+.fin-corpo.recolhido .fin-painel {
+    width: 52px;
+    padding-inline: 6px;
+    align-items: center;
+}
+
+.fin-corpo.recolhido .fin-painel-texto,
+.fin-corpo.recolhido .fin-acao span { display: none; }
+
+.fin-corpo.recolhido .fin-painel-cabeca {
+    align-self: stretch;
+    align-items: center;
+    padding-inline: 0;
+}
+
+.fin-corpo.recolhido .fin-acao {
+    justify-content: center;
+    width: 38px;
+    padding: 8px 0;
+}
+
+.fin-recolher {
+    position: absolute;
+    z-index: 3;
+    top: 50%;
+    left: -13px;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transform: translateY(-50%);
+    background: #fff;
+    border: 1.5px solid var(--fin-verde);
+    border-radius: 50%;
+    color: var(--fin-verde);
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(16, 32, 25, 0.15);
+}
+
+.fin-recolher .fin-icone { width: 16px; height: 16px; stroke-width: 2.4; transition: transform 200ms ease; }
+.fin-corpo.recolhido .fin-recolher .fin-icone { transform: rotate(180deg); }
+.fin-recolher:hover { background: #eef6f0; }
+.fin-recolher:focus-visible { outline: 2px solid #52745c; outline-offset: 2px; }
+
+.fin-painel-cabeca {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 0 6px 10px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--fin-borda);
+}
+
+.fin-painel-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.fin-painel-texto b { font-size: 13px; overflow-wrap: anywhere; }
+.fin-painel-texto small { color: #6b7a71; font-size: 11px; }
+
+.fin-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: #5cb85c;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+
+.fin-acao {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 7px 8px;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: var(--fin-verde);
+    font-size: 13px;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.fin-acao:hover:not(:disabled) { background: #e6f1ea; }
+.fin-acao:disabled { color: #aab5ae; cursor: not-allowed; }
+.fin-acao.perigo:not(:disabled) { color: #b91c1c; }
+.fin-acao.perigo:hover:not(:disabled) { background: #fdecec; }
+.fin-acao span { white-space: normal; }
+
+.fin-painel hr {
+    width: 100%;
+    margin: 6px 0;
+    border: none;
+    border-top: 1px solid var(--fin-borda);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fin-painel,
+    .fin-recolher .fin-icone { transition: none; }
+}
+
+@media (max-width: 800px) {
+    .fin-corpo { flex-direction: column; }
+    .fin-painel { width: 100%; }
+    .fin-recolher { display: none; }
+    .fin-corpo.recolhido .fin-painel { width: 100%; padding: 14px 12px; align-items: stretch; }
+    .fin-corpo.recolhido .fin-painel-texto,
+    .fin-corpo.recolhido .fin-acao span { display: flex; }
+    .fin-corpo.recolhido .fin-acao { justify-content: flex-start; width: 100%; padding: 7px 8px; }
+}
+
+/* Lista: com o painel aberto, só o nome do favorecido; recolhido, as iniciais (o nome some). */
+.fin-corpo:not(.recolhido) [data-painel-fin] .fin-avatar { display: none; }
+
+/* ---------- formulário da fatura (tela) */
+.fin-form-area {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 12px;
+}
+
+.fin-form-topo {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.fin-avatar-grande {
+    width: 64px;
+    height: 64px;
+    border-radius: 10px;
+    font-size: 1.5rem;
+    font-weight: 500;
+}
+
+.fin-form-grade {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(220px, 2.2fr) minmax(140px, 1fr) minmax(140px, 1fr);
+    gap: 10px 16px;
+}
+
+.fin-grade-detalhes {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    max-width: 960px;
+}
+
+.fin-campo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    font-size: 12px;
+    color: #44544a;
+}
+
+.fin-campo > span { display: flex; align-items: center; gap: 6px; }
+.fin-campo .fis-input { width: 100%; box-sizing: border-box; }
+.fin-campo .fis-input[readonly],
+.fin-campo .fis-input:disabled { background: #eef1ef; color: #5b6b61; }
+.fin-campo-largo { grid-column: 1 / -1; }
+.fin-parcela { margin-left: auto; color: #6b7a71; font-weight: 600; }
+.fin-vinculo { font-style: normal; font-size: 11px; cursor: help; }
+.fin-vinculo[hidden] { display: none; }
+
+.fin-abas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    border-bottom: 1px solid var(--fin-borda);
+}
+
+.fin-abas button {
+    padding: 8px 16px;
+    background: none;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    color: #5b6b61;
+    font-size: 13px;
+    cursor: pointer;
+    margin-bottom: -1px;
+}
+
+.fin-abas button:hover { color: var(--fin-verde); }
+
+.fin-abas button[aria-selected="true"] {
+    background: #fff;
+    border-color: var(--fin-borda);
+    border-top: 2px solid #76b58a;
+    color: #1f2a24;
+    font-weight: 600;
+}
+
+.fin-aba[hidden] { display: none; }
+.fin-aba { display: flex; flex-direction: column; gap: 12px; }
+
+/* Repetição dentro do formulário: valor e 1º vencimento são os do topo. */
+.fin-form-area [data-bloco-repetir] label:has([name="rep_valor"]),
+.fin-form-area [data-bloco-repetir] label:has([name="rep_primeiro"]) { display: none; }
+
+.fin-anexos {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 960px;
+}
+
+.fin-anexos-topo {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    color: #44544a;
+}
+
+.fin-anexar {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border: 1px dashed #8cb69a;
+    border-radius: 6px;
+    color: var(--fin-verde);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.fin-anexar:hover { background: #eef6f0; }
+
+.fin-anexos-lista {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.fin-registro {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 48px;
+    font-size: 12px;
+    color: #44544a;
+}
+
+.fin-registro span {
+    display: block;
+    margin-bottom: 3px;
+    color: #6b7a71;
+}
+
+.fin-pagamentos-resumo {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    font-size: 13px;
+    color: #44544a;
+}
+
+@media (max-width: 900px) {
+    .fin-form-grade { grid-template-columns: 1fr 1fr; }
+    .fin-campo-favorecido,
+    .fin-campo-categoria { grid-column: 1 / -1; }
+}
+
+/* Texto da tabela das faturas um pouco mais escuro (pedido de 15/11/2026: melhor leitura). */
+.fin-tela .tabela tbody td { color: #1a241e; }
+.fin-tela .tabela tbody td small,
+.fin-tela .tabela .fin-sub { color: #4f5e55; }
+.fin-tela .fin-sit { color: #2c3a32; }
+.fin-tela .fin-vazio { color: #7d8a82; }
+.fin-tela .tabela thead th { color: #1f2a24; }
+.fin-tela .fin-rodape,
+.fin-tela .fin-paginas button:not(:disabled) { color: #2f3d35; }
+
+/* Favorecido: o seletor nativo (.opcoes / cxOpcoes, css/popup.css) ocupando a largura do campo. */
+.fin-campo .fin-opcoes {
+    max-width: none;
+    min-height: 32px;
+    margin: 0;
+    box-sizing: border-box;
+    justify-content: flex-start;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+    line-height: 22px;
+}
+
+.fin-campo .fin-opcoes.travado {
+    cursor: default;
+    background: #eef1ef;
+    color: #5b6b61;
+}
+
+/* Aba Categorias: rateio em % (com o valor em R$ de cada uma). */
+.fin-rateio-categorias { max-width: 760px; }
+.fin-categoria-linha [name="categoria_rateio"] { flex: 1 1 auto; min-width: 0; }
+.fin-categoria-linha [name="percentual_categoria"] { width: 5.5rem; }
+.fin-categoria-linha [name="percentual_categoria"]:read-only { background: #eef1ef; }
+.fin-categoria-valor { min-width: 7.5rem; text-align: right; font-variant-numeric: tabular-nums; color: #2f3d35; font-size: 13px; }
+.fin-mais { margin-left: 3px; padding: 0 5px; border-radius: 8px; background: #e4f2dc; color: #2c5a3a; font-size: 10px; }

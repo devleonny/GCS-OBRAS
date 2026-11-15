@@ -224,55 +224,125 @@ const lerRateioFin = raiz => [...raiz.querySelectorAll('.fin-rateio-linha')]
     .filter(r => r.departamento)
 
 // ---------------------------------------------------------------- faturas
+// Janela no padrão "Contas a Pagar": barra (Incluir, Repetições), tabela com filtros por coluna, total do
+// filtro embaixo da coluna Valor, paginação no rodapé e painel de ações à direita (recolhe pela seta).
+// Clique numa linha = escolhe a fatura no painel; duplo clique = abre a fatura; caixinhas = ações em lote.
 
 function telaFaturasPagar() { return telaFaturasFin('PAGAR') }
 function telaFaturasReceber() { return telaFaturasFin('RECEBER') }
 
+const ICONES_FIN = {
+    incluir: '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
+    repetir: '<path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/>',
+    ver: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+    editar: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+    baixa: '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/>',
+    parcial: '<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
+    vencimento: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    cancelar: '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
+    excluir: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+    encerrar: '<circle cx="12" cy="12" r="9"/><rect x="9" y="9" width="6" height="6"/>',
+    fechar: '<path d="M6 6l12 12M18 6L6 18"/>',
+    raio: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+    seta: '<path d="M10 7l5 5-5 5"/>',
+    salvar: '<path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9a4 4 0 0 1 0 9"/><path d="M12 12v8M9 15l3-3 3 3"/>',
+    anexo: '<path d="M20.5 11.5l-8.2 8.2a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9"/>',
+    voltar: '<path d="M10 7l-5 5 5 5"/><path d="M5 12h14"/>',
+    check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    relogio: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    okCheio: '<circle cx="12" cy="12" r="10" fill="currentColor" stroke="none"/><path d="M7.5 12.5l3 3 6-6.5" stroke="#fff" stroke-width="2.4"/>',
+    alerta: '<circle cx="12" cy="12" r="10" fill="currentColor" stroke="none"/><path d="M12 7v6" stroke="#fff"/><circle cx="12" cy="16.6" r="1.3" fill="#fff" stroke="none"/>'
+}
+const iconeFin = nome => `<svg class="fin-icone" viewBox="0 0 24 24" aria-hidden="true">${ICONES_FIN[nome] || ''}</svg>`
+
+// Cor do ícone na tabela (padrão Omie: a vencer = círculo verde com ✓); as demais usam a cor da situação.
+const COR_ICONE_SITUACAO_FIN = { 'A VENCER': '#2e9e4f' }
+const ICONE_SITUACAO_FIN = { ATRASADO: 'alerta', PAGO: 'check', 'A VENCER': 'okCheio', 'VENCE HOJE': 'relogio', CANCELADO: 'cancelar' }
+function situacaoFin(situacao) {
+    const s = SITUACOES_FIN[situacao] || {}
+    return `<span class="fin-sit" style="--cor: ${COR_ICONE_SITUACAO_FIN[situacao] || s.cor || '#64748b'}">${iconeFin(ICONE_SITUACAO_FIN[situacao] || 'relogio')}${escFin(s.texto || situacao || '')}</span>`
+}
+
+const POR_PAGINA_FIN = 50
 let tipoFaturasFin = 'PAGAR'
-async function telaFaturasFin(tipo, filtroExtra = null) {
+let painelFinAberto = true
+let faturaAtivaFin = null
+let filtroExtraFin = null
+const dadosFaturasFin = new Map()
+
+// manterFiltros: volta do formulário com os filtros, a página e a fatura escolhida de antes.
+// Menu lateral principal recolhido ao abrir as faturas: a tabela e o painel de ações precisam da largura.
+// (mostrarMenus em ferramentas.js alterna .active no menu e na .tela; aberto = .active.)
+function recolherMenuPrincipalFin() {
+    document.querySelector(".side-menu")?.classList.remove("active")
+    document.querySelector(".tela")?.classList.remove("active")
+}
+
+async function telaFaturasFin(tipo, filtroExtra = null, manterFiltros = false) {
+    // Só ao abrir pelo menu: voltando do formulário, respeita o que a pessoa fez com o menu.
+    if (!manterFiltros) recolherMenuPrincipalFin()
     tipoFaturasFin = tipo
+    filtroExtraFin = filtroExtra
+    if (!manterFiltros) {
+        faturaAtivaFin = null
+        selecaoFin.clear()
+    }
+    dadosFaturasFin.clear()
+    assinaturaTotaisFin = null
     const pagar = tipo === 'PAGAR'
     tela.innerHTML = `
-        <div class="pagina-conteudo fis-pagina fin-pagina">
-            <div class="cabecalho-pagina"><h2>Faturas a ${pagar ? 'pagar' : 'receber'}</h2></div>
-            <div class="fis-cartoes" data-cartoes-fin></div>
-            <div class="fin-selecao" data-selecao-fin hidden></div>
-            <div class="fis-conteudo"></div>
+        <div class="fis-pagina fin-tela">
+            <section class="fin-janela">
+                <header class="fin-janela-topo">
+                    <h2>Faturas a ${pagar ? 'pagar' : 'receber'}</h2>
+                </header>
+                <div class="fin-barra">
+                    <button type="button" onclick="formularioFaturaFin('${tipo}')">${iconeFin('incluir')} Incluir</button>
+                    <button type="button" onclick="telaRecorrenciasFin('${tipo}')">${iconeFin('repetir')} Repetições</button>
+                    ${filtroExtra ? `<button type="button" onclick="telaFaturasFin('${tipo}')">${iconeFin('fechar')} Limpar filtro</button>` : ''}
+                </div>
+                <div class="fin-corpo${painelFinAberto ? '' : ' recolhido'}" data-corpo-fin>
+                    <div class="fin-tabela-area" data-tabela-fin></div>
+                    <div class="fin-lateral">
+                        <button type="button" class="fin-recolher" onclick="alternarPainelFin()" aria-expanded="${painelFinAberto}"
+                            title="${painelFinAberto ? 'Recolher' : 'Mostrar'} as ações">${iconeFin('seta')}</button>
+                        <aside class="fin-painel" data-painel-fin></aside>
+                    </div>
+                </div>
+            </section>
         </div>`
-    assinaturaCartoesFin = null
-    selecaoFin.clear()
+    desenharPainelFin()
     try {
+        const anterior = manterFiltros ? controles.faturasFin : null
         delete controles.faturasFin
-        document.querySelector('.fis-conteudo').innerHTML = await modTab({
+        if (anterior) controles.faturasFin = { filtros: anterior.filtros, pagina: anterior.pagina || 1 }
+        const area = document.querySelector('[data-tabela-fin]')
+        area.innerHTML = await modTab({
             base: 'vw_fin_titulos',
             pag: 'faturasFin',
             body: 'bodyFaturasFin',
             criarLinha: 'criarLinhaFaturaFin',
-            topoEmLinha: true,
             caber: true,
-            funcaoAdicional: ['atualizarCartoesFaturasFin'],
+            limite: POR_PAGINA_FIN,
+            funcaoAdicional: ['aposCarregarFaturasFin'],
             filtrosFixos: { tipo: { op: '=', value: tipo }, ativa: { op: '=', value: 'S' }, ...(filtroExtra || {}) },
-            btnExtras: `
-                <div class="fis-acoes">
-                    <button type="button" onclick="formularioFaturaFin('${tipo}')">+ Fatura</button>
-                    <button type="button" onclick="telaRecorrenciasFin('${tipo}')">Repetições</button>
-                    ${filtroExtra ? `<button type="button" onclick="telaFaturasFin('${tipo}')">Limpar filtro</button>` : ''}
-                </div>`,
             ordenar: [{ path: 'vencimento', direcao: 'asc' }],
             colunas: {
                 '': {},
+                'Situação': { chave: 'situacao', tipoPesquisa: 'select' },
                 'Vencimento': { chave: 'dia_vencimento', tipoPesquisa: 'data' },
+                [pagar ? 'Pago em' : 'Recebido em']: { chave: 'dia_pagamento', tipoPesquisa: 'data' },
                 'Empresa': { chave: 'app', tipoPesquisa: 'select' },
                 [pagar ? 'Fornecedor' : 'Cliente']: { chave: 'participante_nome' },
                 'Descrição': { chave: 'descricao' },
                 'Categoria': { chave: 'categoria', tipoPesquisa: 'select' },
                 'Parcela': { chave: 'parcela_texto' },
                 'Valor': { chave: 'valor', op: '>=', tipoOrdenacao: 'numero' },
-                [tipo === 'PAGAR' ? 'Pago em' : 'Recebido em']: { chave: 'dia_pagamento', tipoPesquisa: 'data' },
-                'Situação': { chave: 'situacao', tipoPesquisa: 'select' },
                 'Origem': { chave: 'origem', tipoPesquisa: 'select' }
             }
         })
+        // Paginação própria no rodapé (a do modTab fica escondida no topo, só para os contadores).
+        area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-fin></div>')
         await paginacao('faturasFin')
     } catch (err) {
         console.error(err)
@@ -280,45 +350,177 @@ async function telaFaturasFin(tipo, filtroExtra = null) {
     }
 }
 
-// Cartões do topo: somam TODO o filtro da tabela (todas as páginas), não só a página aberta.
-// Chamados pela tabela depois de cada carga (funcaoAdicional); só recalculam quando o filtro muda.
-let assinaturaCartoesFin = null
-async function cartoesFaturasFin(tipo, forcar = true) {
-    const alvo = document.querySelector('[data-cartoes-fin]')
-    if (!alvo) return
+// Gancho da tabela (modTab funcaoAdicional), depois de cada carga.
+function aposCarregarFaturasFin() {
+    prepararTotaisFin()
+    prepararSelecaoFin()
+    marcarLinhaAtivaFin()
+    desenharRodapeFin()
+    return totaisFaturasFin(false)
+}
+
+function alternarPainelFin() {
+    painelFinAberto = !painelFinAberto
+    const corpo = document.querySelector('[data-corpo-fin]')
+    if (!corpo) return
+    corpo.classList.toggle('recolhido', !painelFinAberto)
+    const botao = corpo.querySelector('.fin-recolher')
+    botao.setAttribute('aria-expanded', String(painelFinAberto))
+    botao.title = `${painelFinAberto ? 'Recolher' : 'Mostrar'} as ações`
+}
+
+// ---------------------------------------------------------------- totais embaixo das colunas de valor
+// Somam TODO o filtro da tabela (todas as páginas), não só a página aberta; só recalculam quando o filtro muda.
+const COLUNAS_TOTAL_FIN = ['valor']
+let assinaturaTotaisFin = null
+
+function prepararTotaisFin() {
+    const tabela = document.getElementById('bodyFaturasFin')?.closest('table')
+    if (!tabela || tabela.tFoot) return
+    const chaves = Object.values(controles.faturasFin?.colunas || {}).map(c => c.chave || '')
+    const linha = tabela.createTFoot().insertRow()
+    linha.className = 'fin-totais'
+    chaves.forEach(chave => {
+        const td = linha.insertCell()
+        if (COLUNAS_TOTAL_FIN.includes(chave)) {
+            td.dataset.totalFin = chave
+            td.className = 'fis-num'
+        }
+    })    // Linha vazia (altura em %) que fica com a sobra da altura: com poucas faturas os totais e a
+    // paginação continuam no pé da janela, como no Omie. Fica num tbody próprio (o modTab só mexe no dele).
+    const enchimento = document.createElement('tbody')
+    enchimento.className = 'fin-enchimento'
+    enchimento.innerHTML = `<tr><td colspan="${chaves.length}"></td></tr>`
+    tabela.insertBefore(enchimento, tabela.tFoot)
+}
+
+async function totaisFaturasFin(forcar = true) {
     const ctrl = controles.faturasFin
-    const filtros = combinarFiltros(ctrl?.filtros, ctrl?.filtrosFixos) || { tipo: { op: '=', value: tipo } }
+    if (!ctrl || !document.querySelector('[data-total-fin]')) return
+    const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos)
     const assinatura = JSON.stringify(filtros)
-    if (!forcar && assinatura === assinaturaCartoesFin) return
-    assinaturaCartoesFin = assinatura
-    const filtrado = Object.keys(ctrl?.filtros || {}).length > 0
-    const comSituacao = situacao => {
-        const atual = filtros.situacao
-        return { ...filtros, situacao: atual ? [...[atual].flat(), { op: '=', value: situacao }] : { op: '=', value: situacao } }
-    }
-    const soma = async (path, f) => {
-        try { return Number((await contarPorCampo({ base: 'vw_fin_titulos', path, modo: 'soma', filtros: f }))?.total || 0) } catch { return null }
-    }
-    const [atrasado, hoje, aVencer, totalValor, totalSaldo] = await Promise.all([
-        soma('saldo', comSituacao('ATRASADO')), soma('saldo', comSituacao('VENCE HOJE')), soma('saldo', comSituacao('A VENCER')),
-        soma('valor', filtros), soma('saldo', filtros)
-    ])
-    if (assinatura !== assinaturaCartoesFin) return
-    const cartao = (valor, texto, cor, situacao) => `
-        <button type="button" class="fis-cartao" style="--cor: ${cor}" onclick="telaFaturasFin('${tipo}', { situacao: { op: '=', value: '${situacao}' } })">
-            <b>${valor == null ? '—' : dinheiroTexto(valor)}</b><span>${texto}</span></button>`
-    alvo.innerHTML = cartao(atrasado, 'atrasado', '#b91c1c', 'ATRASADO') + cartao(hoje, 'vence hoje', '#d97706', 'VENCE HOJE')
-        + cartao(aVencer, 'a vencer', '#2563eb', 'A VENCER') + `
-        <div class="fis-cartao fin-cartao-total" style="--cor: #356443">
-            <b>${totalValor == null ? '—' : dinheiroTexto(totalValor)}</b>
-            <span>${filtrado ? 'total do filtro' : 'total'} · falta ${tipoFaturasFin === 'PAGAR' ? 'pagar' : 'receber'} ${totalSaldo == null ? '—' : dinheiroTexto(totalSaldo)}</span>
+    if (!forcar && assinatura === assinaturaTotaisFin) return
+    assinaturaTotaisFin = assinatura
+    const somas = await Promise.all(COLUNAS_TOTAL_FIN.map(async path => {
+        try { return Number((await contarPorCampo({ base: 'vw_fin_titulos', path, modo: 'soma', filtros }))?.total || 0) } catch { return null }
+    }))
+    if (assinatura !== assinaturaTotaisFin) return
+    COLUNAS_TOTAL_FIN.forEach((path, i) => {
+        const td = document.querySelector(`[data-total-fin="${path}"]`)
+        if (td) td.innerHTML = `<span class="fin-sigma">Σ</span> ${somas[i] == null ? '—' : dinheiro(somas[i])}`
+    })
+}
+
+// ---------------------------------------------------------------- paginação do rodapé
+function desenharRodapeFin() {
+    const alvo = document.querySelector('[data-rodape-fin]')
+    const ctrl = controles.faturasFin
+    if (!alvo || !ctrl) return
+    const total = Number(document.getElementById('resultados_faturasFin')?.textContent) || 0
+    const paginas = Math.max(1, Number(ctrl.total) || 1)
+    const pagina = Math.min(ctrl.pagina || 1, paginas)
+    const inicio = total ? (pagina - 1) * POR_PAGINA_FIN + 1 : 0
+    const fim = Math.min(total, pagina * POR_PAGINA_FIN)
+    const botao = (texto, destino, ativo, titulo = '') =>
+        `<button type="button" ${ativo ? `onclick="irPaginaFin(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
+    alvo.innerHTML = `
+        <span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} registro${total === 1 ? '' : 's'}</span>
+        <div class="fin-paginas">
+            ${botao('|‹', 1, pagina > 1, 'Primeira página')}
+            ${botao('‹ anterior', pagina - 1, pagina > 1)}
+            <label>Página <input type="number" min="1" max="${paginas}" value="${pagina}" onchange="irPaginaFin(this.value)"></label>
+            <span>de ${paginas.toLocaleString('pt-BR')}</span>
+            ${botao('próximo ›', pagina + 1, pagina < paginas)}
+            ${botao('›|', paginas, pagina < paginas, 'Última página')}
         </div>`
 }
 
-// Gancho da tabela (modTab funcaoAdicional): recalcula só se o filtro mudou.
-function atualizarCartoesFaturasFin() {
-    prepararSelecaoFin()
-    return cartoesFaturasFin(tipoFaturasFin, false)
+async function irPaginaFin(n) {
+    const ctrl = controles.faturasFin
+    if (!ctrl) return
+    const pagina = Math.min(Math.max(1, parseInt(n) || 1), Math.max(1, Number(ctrl.total) || 1))
+    if (pagina === ctrl.pagina) return desenharRodapeFin()
+    ctrl.pagina = pagina
+    await paginacao('faturasFin')
+}
+
+// ---------------------------------------------------------------- painel de ações (lateral direita)
+function selecionarFaturaFin(id, event) {
+    if (event?.target?.closest('input, button, a, select')) return
+    faturaAtivaFin = String(id)
+    marcarLinhaAtivaFin()
+    desenharPainelFin()
+}
+
+function marcarLinhaAtivaFin() {
+    document.querySelectorAll('#bodyFaturasFin > tr[data-id]').forEach(tr => tr.classList.toggle('fin-linha-ativa', tr.dataset.id === faturaAtivaFin))
+}
+
+// Iniciais do nome (círculo do painel, como no Omie): "RECEITA FEDERAL" -> "RF".
+const iniciaisFin = nome => String(nome || '').replace(/[^\p{L}\p{N} ]/gu, ' ').trim().split(/\s+/).filter(Boolean)
+    .slice(0, 2).map(p => p[0]).join('').toUpperCase() || '?'
+
+// Aberto: ícone + texto. Recolhido (.fin-corpo.recolhido): só os ícones, com o texto no título (passar o mouse).
+function desenharPainelFin() {
+    const painel = document.querySelector('[data-painel-fin]')
+    if (!painel) return
+    const pagar = tipoFaturasFin === 'PAGAR'
+    const acao = (icone, texto, funcao, { perigo = false, ativo = true, motivo = '' } = {}) => `
+        <button type="button" class="fin-acao${perigo ? ' perigo' : ''}" title="${escFin(ativo ? texto : `${texto}: ${motivo}`)}" ${ativo ? `onclick="${funcao}"` : 'disabled'}>
+            ${iconeFin(icone)}<span>${texto}</span></button>`
+    const cabeca = (circulo, titulo, detalhe = '') => `
+        <div class="fin-painel-cabeca" title="${escFin(titulo)}">
+            <span class="fin-avatar">${escFin(circulo)}</span>
+            <div class="fin-painel-texto"><b>${escFin(titulo)}</b>${detalhe}</div>
+        </div>`
+
+    if (selecaoFin.size) {
+        painel.innerHTML = `
+            ${cabeca(String(selecaoFin.size), `${selecaoFin.size} fatura(s) marcada(s)`, '<small>As ações valem para todas as marcadas.</small>')}
+            ${acao('raio', pagar ? 'Pagar agora' : 'Receber agora', 'baixaLoteFin()')}
+            ${acao('vencimento', 'Mudar vencimento', 'vencimentoLoteFin()')}
+            <hr>
+            ${acao('excluir', 'Excluir', 'excluirLoteFin()', { perigo: true })}
+            ${acao('fechar', 'Desmarcar todas', 'selecaoFin.clear(); prepararSelecaoFin()')}`
+        return
+    }
+
+    // Sem fatura escolhida: as mesmas ações, apagadas, com a dica no topo.
+    const d = faturaAtivaFin ? dadosFaturasFin.get(faturaAtivaFin) : null
+    const nada = 'Clique numa fatura da tabela'
+    const id = escFin(d?.id || '')
+    const cancelada = d?.situacao === 'CANCELADO'
+    const aberta = !!d && !['PAGO', 'CANCELADO'].includes(d.situacao)
+    const lancadaAqui = ['MANUAL', 'RECORRENCIA'].includes(d?.origem)
+    const comPagamento = Number(d?.pago) > 0
+    const motivoQuitada = !d ? nada : cancelada ? 'Fatura cancelada' : 'Já está quitada'
+    const motivoLancada = !d ? nada : !lancadaAqui ? `Veio de ${(ORIGENS_FIN[d.origem] || d.origem).toLowerCase()}: mexa na origem.` : comPagamento ? 'Tem pagamento: desfaça o pagamento antes.' : ''
+    const tipo = escFin(d?.tipo || tipoFaturasFin)
+    const rec = escFin(d?.recorrencia_id || '')
+    painel.innerHTML = `
+        ${d
+            ? cabeca(iniciaisFin(d.participante_nome), d.participante_nome || '(sem nome)', `<small>${dataFin(d.vencimento)} · ${dinheiro(d.valor)}</small>${situacaoFin(d.situacao)}`)
+            : cabeca('?', 'Nenhuma fatura escolhida', '<small>Clique numa linha para ver as ações; duplo clique abre o formulário. Marque várias pela caixinha para agir em lote.</small>')}
+        ${acao('ver', 'Ver fatura', `abrirFaturaFin('${id}')`, { ativo: !!d, motivo: nada })}
+        ${acao('editar', 'Editar', `formularioFaturaFin('${tipo}', '${id}')`, { ativo: !!d && !cancelada, motivo: d ? 'Fatura cancelada' : nada })}
+        ${acao('raio', pagar ? 'Pagar agora' : 'Receber agora', `formularioBaixaRapidaFin('${id}')`, { ativo: aberta, motivo: motivoQuitada })}
+        ${acao('parcial', `${pagar ? 'Pagamento' : 'Recebimento'} parcial / com juros`, `formularioBaixaFin('${id}')`, { ativo: aberta, motivo: motivoQuitada })}
+        ${d?.recorrencia_id ? `
+            ${acao('repetir', 'Editar repetição', `formularioFaturaFin('${tipo}', null, '${rec}')`)}
+            ${acao('encerrar', 'Encerrar repetição', `encerrarRecorrenciaFin('${rec}')`)}` : ''}
+        <hr>
+        ${acao('excluir', 'Excluir', `excluirFaturaFin('${id}')`, { perigo: true, ativo: !!d && lancadaAqui && !comPagamento, motivo: motivoLancada })}
+        ${acao('cancelar', d?.recorrencia_id ? 'Cancelar só esta' : 'Cancelar fatura', `cancelarFaturaFin('${id}')`,
+            { ativo: !!d && lancadaAqui && !comPagamento && !cancelada, motivo: cancelada ? 'Já está cancelada' : motivoLancada })}`
+}
+
+async function excluirFaturaFin(id) {
+    const ok = await confirmarPopup({
+        titulo: 'Excluir fatura',
+        mensagem: 'A fatura sai da lista. Só dá para excluir as lançadas aqui (manual ou repetição) e sem pagamento.',
+        textoConfirmar: 'Excluir'
+    })
+    if (ok) executarLoteFin({ acao: 'excluir' }, null, [String(id)])
 }
 
 // ---------------------------------------------------------------- seleção e ações em várias faturas
@@ -326,9 +528,11 @@ function atualizarCartoesFaturasFin() {
 const selecaoFin = new Set()
 
 function prepararSelecaoFin() {
-    const th = document.querySelector('.fin-pagina .tabela thead tr:first-child th:first-child')
+    const th = document.querySelector('.fin-tela .tabela thead tr:first-child th:first-child')
     if (th && !th.querySelector('[data-marcar-todas-fin]'))
         th.innerHTML = '<input type="checkbox" class="fin-marcar" data-marcar-todas-fin title="Marcar todas desta página" onclick="event.stopPropagation(); marcarTodasFin(this)">'
+    const filtro = document.querySelector('.fin-tela .tabela thead tr:nth-child(2) th:first-child')
+    if (filtro?.querySelector('img')) filtro.innerHTML = ''
     document.querySelectorAll('#bodyFaturasFin [data-marcar-fin]').forEach(c => { c.checked = selecaoFin.has(c.value) })
     desenharSelecaoFin()
 }
@@ -347,8 +551,6 @@ function marcarTodasFin(caixa) {
 }
 
 function desenharSelecaoFin() {
-    const barra = document.querySelector('[data-selecao-fin]')
-    if (!barra) return
     const pagina = [...document.querySelectorAll('#bodyFaturasFin [data-marcar-fin]')]
     const todas = document.querySelector('[data-marcar-todas-fin]')
     if (todas) {
@@ -356,15 +558,7 @@ function desenharSelecaoFin() {
         todas.checked = pagina.length > 0 && marcadas === pagina.length
         todas.indeterminate = marcadas > 0 && marcadas < pagina.length
     }
-    barra.hidden = !selecaoFin.size
-    if (!selecaoFin.size) return
-    const pagar = tipoFaturasFin === 'PAGAR'
-    barra.innerHTML = `
-        <b>${selecaoFin.size} fatura(s) marcada(s)</b>
-        <button type="button" class="fis-botao" onclick="baixaLoteFin()">Dar baixa (${pagar ? 'pago' : 'recebido'})</button>
-        <button type="button" class="fis-mini" onclick="vencimentoLoteFin()">Mudar vencimento</button>
-        <button type="button" class="fis-mini fin-perigo" onclick="excluirLoteFin()">Excluir</button>
-        <button type="button" class="fis-mini" onclick="selecaoFin.clear(); prepararSelecaoFin()">Desmarcar</button>`
+    desenharPainelFin()
 }
 
 async function baixaLoteFin() {
@@ -426,22 +620,22 @@ async function excluirLoteFin() {
     if (ok) executarLoteFin({ acao: 'excluir' })
 }
 
-async function executarLoteFin(corpo, botao = null) {
+async function executarLoteFin(corpo, botao = null, ids = null) {
     try {
         overlayAguarde()
-        const r = await apiFin('lote', { ...corpo, ids: [...selecaoFin] })
+        const r = await apiFin('lote', { ...corpo, ids: ids || [...selecaoFin] })
         removerOverlay()
         if (botao) removerPopup(botao.closest('.popup')?.id)
         const verbo = { baixar: corpo.acao === 'baixar' && tipoFaturasFin === 'RECEBER' ? 'recebida(s)' : 'paga(s)', vencimento: 'com vencimento novo', excluir: 'excluída(s)' }[corpo.acao]
         popup({
-            titulo: 'Faturas marcadas',
+            titulo: ids ? 'Fatura' : 'Faturas marcadas',
             mensagem: `<b>${r.feitas} fatura(s) ${verbo}.</b>${r.puladas.length ? `<br>${r.puladas.length} ficaram de fora:<ul class="fis-lista">${r.puladas.map(p => `<li>${escFin(p.fatura)}: ${escFin(p.motivo)}</li>`).join('')}</ul>` : ''}`,
             imagem: r.puladas.length ? undefined : 'imagens/concluido.png'
         })
-        selecaoFin.clear()
+        if (!ids) selecaoFin.clear()
         if (controles.faturasFin) await paginacao('faturasFin')
         prepararSelecaoFin()
-        cartoesFaturasFin(tipoFaturasFin)
+        totaisFaturasFin()
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
@@ -449,24 +643,23 @@ async function executarLoteFin(corpo, botao = null) {
 }
 
 function criarLinhaFaturaFin(d) {
-    const s = SITUACOES_FIN[d.situacao] || {}
+    dadosFaturasFin.set(String(d.id), d)
+    const id = escFin(d.id)
     return `
-        <tr>
-            <td class="fis-acoes-linha fin-acoes-linha">
-<div class="fin-acoes-celula">
-                <input type="checkbox" class="fin-marcar" data-marcar-fin value="${escFin(d.id)}" ${selecaoFin.has(String(d.id)) ? 'checked' : ''} onclick="marcarFaturaFin(this)" aria-label="Marcar fatura">
-                <img src="imagens/pesquisar.svg" title="Abrir" onclick="abrirFaturaFin('${escFin(d.id)}')">
-            </div>
+        <tr class="fin-linha" onclick="selecionarFaturaFin('${id}', event)" ondblclick="${d.situacao === 'CANCELADO' ? `abrirFaturaFin('${id}')` : `formularioFaturaFin('${escFin(d.tipo || tipoFaturasFin)}', '${id}')`}">
+            <td class="fin-col-marcar">
+                <input type="checkbox" class="fin-marcar" data-marcar-fin value="${id}" ${selecaoFin.has(String(d.id)) ? 'checked' : ''}
+                    onclick="event.stopPropagation(); marcarFaturaFin(this)" ondblclick="event.stopPropagation()" aria-label="Marcar fatura">
             </td>
-            <td>${dataFin(d.vencimento)}</td>
+            <td>${situacaoFin(d.situacao)}</td>
+            <td class="fin-centro">${dataFin(d.vencimento)}</td>
+            <td class="fin-centro">${d.dia_pagamento ? dataFin(d.dia_pagamento) : '<span class="fin-vazio">&lt;não informado&gt;</span>'}</td>
             <td>${escFin(d.app)}</td>
             <td class="fis-descricao">${escFin(d.participante_nome || '')}${d.participante_documento ? `<small>${docFormatadoFis(d.participante_documento)}</small>` : ''}</td>
             <td>${escFin(d.descricao || '')}${d.departamentos ? `<small class="fin-sub">${escFin(d.departamentos)}</small>` : ''}</td>
-            <td><small>${escFin(d.categoria || '—')}</small></td>
-            <td>${escFin(d.parcela_texto)}</td>
+            <td><small>${escFin(d.categoria || '—')}${Array.isArray(d.categorias) && d.categorias.length > 1 ? ` <b class="fin-mais" title="Rateio em ${d.categorias.length} categorias">+${d.categorias.length - 1}</b>` : ''}</small></td>
+            <td class="fin-centro">${escFin(d.parcela_texto)}</td>
             <td class="fis-num">${dinheiro(d.valor)}</td>
-            <td>${d.dia_pagamento ? dataFin(d.dia_pagamento) : ''}</td>
-            <td>${etiquetaEst(s.texto || d.situacao, s.cor)}</td>
             <td><small>${escFin(ORIGENS_FIN[d.origem] || d.origem)}</small></td>
         </tr>`
 }
@@ -555,14 +748,20 @@ async function abrirFaturaFin(id) {
     }
 }
 
-// Nova fatura (parcelas ou "Repetir"), edição de uma fatura (id) ou edição de uma repetição (recorrenciaId).
-async function formularioFaturaFin(tipo, id = null, recorrenciaId = null) {
-    let op, t = null, rec = null
+// ---------------------------------------------------------------- formulário da fatura (tela, padrão "Contas a Pagar")
+// Topo: iniciais do favorecido, Favorecido (busca no cadastro de clientes), Vencimento, Valor, Categoria, Empresa e
+// Conta corrente. Abas: Detalhes (documento, forma, CPF/CNPJ, chave Pix, descrição, observação, anexos),
+// Departamentos (rateio), Parcelas (nova), Repetição (nova ou edição da repetição) e Pagamentos (edição).
+// Painel à direita: Salvar, Incluir (fatura nova), Pagar agora, Cancelar, Voltar à lista.
+let anexosFormFin = []
+
+async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 'detalhes') {
+    let op, dados = null, rec = null
     try {
         overlayAguarde()
-        ;[op, t, rec] = await Promise.all([
+        ;[op, dados, rec] = await Promise.all([
             carregarOpcoesFin(),
-            id ? apiFin('titulo', { id }).then(r => r.titulo) : null,
+            id ? apiFin('titulo', { id }) : null,
             recorrenciaId ? apiFin('recorrencia', { id: recorrenciaId }).then(r => r.recorrencia) : null
         ])
         removerOverlay()
@@ -570,54 +769,366 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null) {
         removerOverlay()
         return popup({ mensagem: mensagemErroEst(err) })
     }
+    document.querySelectorAll('[data-fatura-fin], [data-recorrencias-fin]').forEach(p => removerPopup(p.closest('.popup')?.id))
+    tipoFaturasFin = tipo
+    const t = dados?.titulo || null
+    const baixas = dados?.baixas || []
     const base = t || rec
     const pagar = tipo === 'PAGAR'
     const manual = !t || ['MANUAL', 'RECORRENCIA'].includes(t.origem)
+    const cancelada = t?.situacao === 'CANCELADO'
+    const nova = !t && !rec
     const app = base?.app || 'AC'
     const termino = rec ? (rec.ocorrencias ? 'VEZES' : rec.termina_em ? 'DATA' : 'NUNCA') : 'NUNCA'
-    const titulo = rec ? 'Editar repetição' : t ? 'Editar fatura' : `Nova fatura a ${pagar ? 'pagar' : 'receber'}`
-    popup({
-        titulo,
-        linhas: [{
-            elemento: `
-                <div class="fis-form fin-form" data-form-fatura data-id="${escFin(id || '')}" data-recorrencia="${escFin(recorrenciaId || '')}" data-tipo="${tipo}">
-                    ${manual ? '' : `<div class="fis-info">Fatura de ${escFin(ORIGENS_FIN[t.origem])}: valor e fornecedor vêm da origem.${Number(t.pago) ? ' Com pagamento, o vencimento também fica.' : ''}</div>`}
-                    ${t?.recorrencia_id ? `<div class="fis-info">Esta é uma ocorrência de uma repetição (${escFin(nomeFrequenciaFin(t.recorrencia_frequencia))}): a mudança vale só para ela. Para mudar todas as futuras, edite a repetição.</div>` : ''}
-                    ${rec ? '<div class="fis-info">A mudança vale para as próximas faturas ainda sem pagamento. Frequência e 1º vencimento não mudam: para isso, encerre e crie outra.</div>' : ''}
-                    <div class="fis-grade">
-                        ${base ? '' : `<label class="fis-campo"><span>Empresa</span><select class="fis-input" name="app" onchange="this.closest('[data-form-fatura]').querySelector('[name=conta_id]').innerHTML = opcoesContasFin(opcoesFinCache.contas, this.value)">
-                            ${op.empresas.map(e => `<option value="${escFin(e.app)}" ${e.app === app ? 'selected' : ''}>${escFin(e.app)}</option>`).join('')}</select></label>`}
-                        <label class="fis-campo fis-largo"><span>${pagar ? 'Fornecedor' : 'Cliente'}</span><input class="fis-input" name="participante_nome" maxlength="150" value="${escFin(base?.participante_nome || '')}" ${manual ? '' : 'readonly'}></label>
-                        <label class="fis-campo"><span>CPF/CNPJ</span><input class="fis-input" name="participante_documento" value="${escFin(base?.participante_documento || '')}" ${manual ? '' : 'readonly'}></label>
+    const titulo = rec ? 'Repetição' : t ? `Fatura a ${pagar ? 'pagar' : 'receber'}` : `Nova fatura a ${pagar ? 'pagar' : 'receber'}`
+    const dia = v => v ? String(v).slice(0, 10) : ''
+    const vencimento = t ? dia(t.vencimento) : rec ? dia(rec.primeiro_vencimento) : ''
+    const valor = t ? r2Fin(t.valor) : rec ? r2Fin(rec.valor) : ''
+    const travaVencimento = rec || (t && !manual && Number(t.pago)) || cancelada
+    anexosFormFin = Array.isArray(t?.anexos) ? [...t.anexos] : []
+    const quando = (em, por) => em ? `Em ${new Date(em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}${por ? ` por ${escFin(por)}` : ''}` : '—'
+    const avisos = [
+        !manual ? `Fatura de ${escFin(ORIGENS_FIN[t.origem])}: valor e favorecido vêm da origem.${Number(t.pago) ? ' Com pagamento, o vencimento também fica.' : ''}` : '',
+        t?.recorrencia_id ? `Ocorrência de uma repetição (${escFin(nomeFrequenciaFin(t.recorrencia_frequencia).toLowerCase())}): a mudança vale só para ela. Para mudar as futuras, edite a repetição.` : '',
+        rec ? 'A mudança vale para as próximas faturas ainda sem pagamento. Frequência e 1º vencimento não mudam: para isso, encerre e crie outra.' : '',
+        cancelada ? `Fatura cancelada${t.cancelamento_motivo ? `: ${escFin(t.cancelamento_motivo)}` : ''}. Não se altera.` : ''
+    ].filter(Boolean)
+    const abas = [
+        ['detalhes', 'Detalhes', true],
+        ['categorias', 'Categorias', true],
+        ['departamentos', 'Departamentos', true],
+        ['parcelas', 'Parcelas', nova],
+        ['repeticao', 'Repetição', nova || Boolean(rec)],
+        ['pagamentos', pagar ? 'Pagamentos' : 'Recebimentos', Boolean(t)]
+    ].filter(a => a[2])
+    if (!abas.some(a => a[0] === aba)) aba = 'detalhes'
+
+    tela.innerHTML = `
+        <div class="fis-pagina fin-tela">
+            <section class="fin-janela">
+                <header class="fin-janela-topo"><h2>${titulo}</h2></header>
+                <div class="fin-corpo${painelFinAberto ? '' : ' recolhido'}" data-corpo-fin>
+                    <div class="fin-form-area" data-form-fatura data-id="${escFin(id || '')}" data-recorrencia="${escFin(recorrenciaId || '')}"
+                        data-tipo="${tipo}" data-aba-ativa="${aba}" data-cliente="${escFin(base?.cliente_id || '')}">
+                        <div class="fin-form-topo">
+                            <div class="fin-avatar fin-avatar-grande" data-avatar-fin>${escFin(iniciaisFin(base?.participante_nome))}</div>
+                            <div class="fin-form-grade">
+                                <div class="fin-campo fin-campo-favorecido">
+                                    <span>${pagar ? 'Favorecido / Fornecedor' : 'Cliente'} <i class="fin-vinculo" data-vinculo-fin title="Escolhido do cadastro de clientes" ${base?.cliente_id ? '' : 'hidden'}>🔗</i></span>
+                                    <span class="opcoes fin-opcoes${manual && !cancelada ? '' : ' travado'}" name="favorecido_fin" ${base?.cliente_id ? `id="${escFin(base.cliente_id)}"` : ''}
+                                        ${manual && !cancelada ? 'onclick="abrirFavorecidosFin()"' : 'title="Vem da origem da fatura"'}>${escFin(base?.participante_nome || 'Selecione')}</span>
+                                    <input type="hidden" name="participante_nome" value="${escFin(base?.participante_nome || '')}">
+                                </div>
+                                <label class="fin-campo"><span>Vencimento *</span>
+                                    <input class="fis-input" type="date" name="vencimento" value="${escFin(vencimento)}" ${travaVencimento ? 'readonly' : ''} oninput="sincronizarTopoFin()"></label>
+                                <label class="fin-campo"><span>Valor *${t ? ` <small class="fin-parcela">${escFin(t.parcela_texto)}</small>` : ''}</span>
+                                    <input class="fis-input fis-num" type="number" step="0.01" min="0.01" name="valor" value="${valor}" ${manual && !cancelada ? '' : 'readonly'} oninput="sincronizarTopoFin()"></label>
+                                <label class="fin-campo"><span>Empresa</span>
+                                    <select class="fis-input" name="app" ${nova ? '' : 'disabled'} onchange="this.closest('[data-form-fatura]').querySelector('[name=conta_id]').innerHTML = opcoesContasFin(opcoesFinCache.contas, this.value)">
+                                        ${op.empresas.map(e => `<option value="${escFin(e.app)}" ${e.app === app ? 'selected' : ''}>${escFin(e.app)}</option>`).join('')}
+                                    </select></label>
+                                <label class="fin-campo"><span>Conta corrente</span>
+                                    <select class="fis-input" name="conta_id" ${cancelada ? 'disabled' : ''}>${opcoesContasFin(op.contas, app, base?.conta_id)}</select></label>
+                            </div>
+                        </div>
+                        ${avisos.map(a => `<div class="fis-info">${a}</div>`).join('')}
+                        <div class="fin-abas" role="tablist">
+                            ${abas.map(([chave, nome]) => `<button type="button" role="tab" data-aba="${chave}" aria-selected="${chave === aba}" onclick="mostrarAbaFin('${chave}')">${nome}</button>`).join('')}
+                        </div>
+
+                        <div class="fin-aba" data-painel-aba="detalhes" ${aba === 'detalhes' ? '' : 'hidden'}>
+                            <div class="fin-form-grade fin-grade-detalhes">
+                                ${rec ? '' : `<label class="fin-campo"><span>Nº do documento / nota</span><input class="fis-input" name="numero_documento" maxlength="60" value="${escFin(t?.numero_documento || '')}"></label>`}
+                                <label class="fin-campo"><span>Forma de pagamento</span><select class="fis-input" name="forma_pagamento"><option value=""></option>${FORMAS_FIN.filter(([v]) => v !== 'OMIE').map(([v, n]) => `<option value="${v}" ${base?.forma_pagamento === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+                                <label class="fin-campo"><span>CPF/CNPJ</span><input class="fis-input" name="participante_documento" value="${escFin(base?.participante_documento ? docFormatadoFis(base.participante_documento) : '')}" ${manual && !cancelada ? '' : 'readonly'}></label>
+                                <label class="fin-campo"><span>Chave Pix</span><input class="fis-input" name="chave_pix" maxlength="140" value="${escFin(base?.chave_pix || '')}" placeholder="CPF, CNPJ, e-mail, telefone ou aleatória"></label>
+                                <label class="fin-campo fin-campo-largo"><span>Descrição</span><input class="fis-input" name="descricao" maxlength="300" value="${escFin(base?.descricao || '')}"></label>
+                                <label class="fin-campo fin-campo-largo"><span>Observações</span><textarea class="fis-input" name="observacao" rows="3">${escFin(base?.observacao || '')}</textarea></label>
+                            </div>
+                            ${rec ? '' : `
+                            <div class="fin-anexos">
+                                <div class="fin-anexos-topo">
+                                    <span>Anexos</span>
+                                    ${cancelada ? '' : `<label class="fin-anexar">${iconeFin('anexo')} Anexar arquivo<input type="file" multiple hidden onchange="anexarFin(this)"></label>`}
+                                </div>
+                                <div class="fin-anexos-lista" data-anexos-fin></div>
+                            </div>`}
+                            ${t ? `
+                            <div class="fin-registro">
+                                <div><span>Inclusão</span>${quando(t.criado_em, t.criado_por)}</div>
+                                <div><span>Última alteração</span>${quando(t.atualizado_em, t.atualizado_por)}</div>
+                            </div>` : ''}
+                        </div>
+
+                        <div class="fin-aba" data-painel-aba="categorias" ${aba === 'categorias' ? '' : 'hidden'}>
+                            ${editorCategoriasFin(base?.categorias?.length ? base.categorias
+                                : base?.categoria_id ? [{ categoria_id: base.categoria_id, percentual: 100 }] : [{ categoria_id: '', percentual: 100 }], tipo, cancelada)}
+                        </div>
+
+                        <div class="fin-aba" data-painel-aba="departamentos" ${aba === 'departamentos' ? '' : 'hidden'}>
+                            ${editorRateioFin(op.departamentos, base?.rateio || [])}
+                        </div>
+
+                        ${nova ? `
+                        <div class="fin-aba" data-painel-aba="parcelas" ${aba === 'parcelas' ? '' : 'hidden'}>
+                            <small class="fis-dica">Para dividir o valor em várias faturas: informe em quantas vezes e clique em Gerar. Com uma só, valem o vencimento e o valor do topo.</small>
+                            ${editorParcelasFin([{ vencimento: '', valor: '' }], null)}
+                        </div>` : ''}
+
+                        ${nova || rec ? `
+                        <div class="fin-aba" data-painel-aba="repeticao" ${aba === 'repeticao' ? '' : 'hidden'}>
+                            ${rec ? '' : `<label class="fis-check fin-repetir-check"><input type="checkbox" name="repetir" onchange="alternarRepetirFin(this)"> <b>Repetir esta fatura</b> <small>(aluguel, mensalidade, assinatura…). Valor e 1º vencimento são os do topo.</small></label>`}
+                            ${blocoRepetirFin(rec, termino)}
+                        </div>` : ''}
+
+                        ${t ? `
+                        <div class="fin-aba" data-painel-aba="pagamentos" ${aba === 'pagamentos' ? '' : 'hidden'}>
+                            ${baixas.length ? `
+                            <table class="fis-tabela">
+                                <thead><tr><th>Data</th><th>Conta</th><th>Forma</th><th class="fis-num">Valor</th><th class="fis-num">Juros/multa</th><th class="fis-num">Desconto</th><th>Por</th><th></th></tr></thead>
+                                <tbody>${baixas.map(b => `
+                                    <tr class="${b.estornada ? 'fis-estornado' : ''}">
+                                        <td>${dataFin(b.data)}</td>
+                                        <td>${escFin(b.conta)}</td>
+                                        <td>${escFin(nomeFormaFin(b.forma))}</td>
+                                        <td class="fis-num">${dinheiro(b.valor)}</td>
+                                        <td class="fis-num">${Number(b.juros) + Number(b.multa) ? dinheiro(Number(b.juros) + Number(b.multa)) : ''}</td>
+                                        <td class="fis-num">${Number(b.desconto) ? dinheiro(b.desconto) : ''}</td>
+                                        <td><small>${escFin(b.criado_por || '')}${b.estornada ? ` · desfeito: ${escFin(b.estorno_motivo || '')}` : ''}</small></td>
+                                        <td>${b.estornada ? '' : `<button type="button" class="fis-mini" onclick="estornarBaixaFin('${escFin(b.id)}', '${escFin(t.id)}')">Desfazer</button>`}</td>
+                                    </tr>`).join('')}
+                                </tbody>
+                            </table>` : `<div class="fis-vazio">Nenhum ${pagar ? 'pagamento' : 'recebimento'} registrado.</div>`}
+                            <div class="fin-pagamentos-resumo">
+                                <span>Valor <b>${dinheiro(t.valor)}</b></span>
+                                <span>${pagar ? 'Pago' : 'Recebido'} <b>${dinheiro(t.pago)}</b></span>
+                                <span>Falta <b>${dinheiro(t.saldo)}</b></span>
+                            </div>
+                        </div>` : ''}
                     </div>
-                    <div class="fis-grade">
-                        <label class="fis-campo fis-largo"><span>Descrição</span><input class="fis-input" name="descricao" maxlength="300" value="${escFin(base?.descricao || '')}"></label>
-                        ${rec ? '' : `<label class="fis-campo"><span>Nº do documento</span><input class="fis-input" name="numero_documento" maxlength="60" value="${escFin(t?.numero_documento || '')}"></label>`}
+                    <div class="fin-lateral">
+                        <button type="button" class="fin-recolher" onclick="alternarPainelFin()" aria-expanded="${painelFinAberto}"
+                            title="${painelFinAberto ? 'Recolher' : 'Mostrar'} as ações">${iconeFin('seta')}</button>
+                        <aside class="fin-painel" data-painel-form-fin></aside>
                     </div>
-                    <div class="fis-grade">
-                        <label class="fis-campo fis-largo"><span>Categoria *</span><select class="fis-input" name="categoria_id">${opcoesCategoriasFin(op.categorias, tipo, base?.categoria_id)}</select></label>
-                        <label class="fis-campo"><span>Conta</span><select class="fis-input" name="conta_id">${opcoesContasFin(op.contas, app, base?.conta_id)}</select></label>
-                        <label class="fis-campo"><span>Forma</span><select class="fis-input" name="forma_pagamento"><option value=""></option>${FORMAS_FIN.filter(([v]) => v !== 'OMIE').map(([v, n]) => `<option value="${v}" ${base?.forma_pagamento === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-                    </div>
-                    ${t
-                        ? `<div class="fis-grade">
-                            <label class="fis-campo"><span>Vencimento</span><input class="fis-input" type="date" name="vencimento" value="${escFin(String(t.vencimento).slice(0, 10))}" ${manual || !Number(t.pago) ? '' : 'readonly'}></label>
-                            <label class="fis-campo"><span>Valor</span><input class="fis-input" type="number" step="0.01" min="0.01" name="valor" value="${r2Fin(t.valor)}" ${manual ? '' : 'readonly'}></label>
-                          </div>`
-                        : `
-                        ${rec ? '' : `<label class="fis-check fin-repetir-check"><input type="checkbox" name="repetir" onchange="alternarRepetirFin(this)"> <b>Repetir esta fatura</b> <small>(aluguel, mensalidade, assinatura…)</small></label>`}
-                        <div data-bloco-parcelas ${rec ? 'hidden' : ''}>${editorParcelasFin([{ vencimento: '', valor: '' }], null)}</div>
-                        ${blocoRepetirFin(rec, termino)}`}
-                    ${editorRateioFin(op.departamentos, base?.rateio || [])}
-                    <label class="fis-campo"><span>Observação</span><textarea class="fis-input" name="observacao" rows="2">${escFin(base?.observacao || '')}</textarea></label>
-                </div>`
-        }],
-        botoes: [{ texto: 'Salvar', img: 'salvo', funcao: 'salvarFaturaFin(this)' }]
-    })
+                </div>
+            </section>
+        </div>`
+
+    desenharAnexosFin()
+    desenharPainelFormFin(t, rec)
+    sincronizarTopoFin()
     const caixa = document.querySelector('[data-form-fatura] [data-parcelas]')
     if (caixa) somarParcelasFin(caixa)
-    const rep = document.querySelector('[data-form-fatura] [data-bloco-repetir]')
-    if (rep) previaRepeticaoFin(rep)
+    const bloco = document.querySelector('[data-form-fatura] [data-bloco-repetir]')
+    if (bloco) previaRepeticaoFin(bloco)
+}
+
+function desenharPainelFormFin(t, rec) {
+    const painel = document.querySelector('[data-painel-form-fin]')
+    if (!painel) return
+    const tipo = document.querySelector('[data-form-fatura]')?.dataset.tipo || tipoFaturasFin
+    const pagar = tipo === 'PAGAR'
+    const cancelada = t?.situacao === 'CANCELADO'
+    const aberta = t && !['PAGO', 'CANCELADO'].includes(t.situacao)
+    const podeCancelar = t && ['MANUAL', 'RECORRENCIA'].includes(t.origem) && !cancelada && !(Number(t.pago) > 0)
+    const acao = (icone, texto, funcao, { perigo = false, ativo = true, motivo = '' } = {}) => `
+        <button type="button" class="fin-acao${perigo ? ' perigo' : ''}" title="${escFin(ativo ? texto : `${texto}: ${motivo}`)}" ${ativo ? `onclick="${funcao}"` : 'disabled'}>
+            ${iconeFin(icone)}<span>${texto}</span></button>`
+    painel.innerHTML = `
+        ${acao('salvar', 'Salvar', 'salvarFaturaFin()', { ativo: !cancelada, motivo: 'Fatura cancelada' })}
+        ${acao('incluir', 'Incluir', `formularioFaturaFin('${tipo}')`)}
+        ${t ? acao('raio', pagar ? 'Pagar agora' : 'Receber agora', `formularioBaixaRapidaFin('${escFin(t.id)}')`, { ativo: aberta, motivo: cancelada ? 'Fatura cancelada' : 'Já está quitada' }) : ''}
+        ${rec ? acao('encerrar', 'Encerrar repetição', `encerrarRecorrenciaFin('${escFin(rec.id)}')`, { ativo: rec.ativa, motivo: 'Já encerrada' }) : ''}
+        <hr>
+        ${t ? acao('cancelar', t.recorrencia_id ? 'Cancelar só esta' : 'Cancelar fatura', `cancelarFaturaFin('${escFin(t.id)}')`,
+            { perigo: true, ativo: podeCancelar, motivo: cancelada ? 'Já está cancelada' : Number(t.pago) > 0 ? 'Tem pagamento: desfaça antes' : 'Veio de outra origem' }) : ''}
+        ${acao('voltar', 'Voltar à lista', 'voltarFaturasFin()')}`
+}
+
+function mostrarAbaFin(chave) {
+    const form = document.querySelector('[data-form-fatura]')
+    if (!form) return
+    form.dataset.abaAtiva = chave
+    form.querySelectorAll('.fin-abas [data-aba]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.aba === chave)))
+    form.querySelectorAll('[data-painel-aba]').forEach(p => { p.hidden = p.dataset.painelAba !== chave })
+}
+
+function voltarFaturasFin() {
+    const tipo = document.querySelector('[data-form-fatura]')?.dataset.tipo || tipoFaturasFin
+    return telaFaturasFin(tipo, filtroExtraFin, true)
+}
+
+// Vencimento e valor do topo valem para a repetição (1º vencimento / valor de cada) e para dividir em parcelas.
+function sincronizarTopoFin() {
+    const form = document.querySelector('[data-form-fatura]')
+    if (!form) return
+    const vencimento = form.querySelector('[name="vencimento"]').value
+    const valor = form.querySelector('[name="valor"]').value
+    const bloco = form.querySelector('[data-bloco-repetir]')
+    if (bloco) {
+        const primeiro = bloco.querySelector('[name="rep_primeiro"]')
+        if (!form.dataset.recorrencia) primeiro.value = vencimento
+        bloco.querySelector('[name="rep_valor"]').value = valor
+        previaRepeticaoFin(bloco)
+    }
+    const caixa = form.querySelector('[data-parcelas]')
+    if (caixa) {
+        caixa.dataset.total = valor
+        const primeiro = caixa.querySelector('[data-primeiro]')
+        if (primeiro && vencimento) primeiro.value = vencimento
+        somarParcelasFin(caixa)
+    }
+    somarCategoriasFin()
+}
+
+// ---------------- categorias (aba): rateio em % sobre o valor do topo
+function editorCategoriasFin(lista, tipo, travado = false) {
+    return `
+        <div class="fin-rateio fin-rateio-categorias" data-categorias-fin data-tipo="${tipo}">
+            <div class="fin-parcelas-topo"><b>Categorias *</b> <small>uma só = 100%; várias = rateio em % sobre o valor (tem que somar 100%)</small></div>
+            <div data-linhas-categorias>${lista.map(c => linhaCategoriaFin(c, tipo, travado)).join('')}</div>
+            <div class="fin-parcelas-rodape">
+                ${travado ? '<span></span>' : '<button type="button" class="fis-mini" onclick="adicionarCategoriaFin()">+ Categoria</button>'}
+                <span data-soma-categorias></span>
+            </div>
+        </div>`
+}
+
+function linhaCategoriaFin(c, tipo, travado = false) {
+    const trava = travado ? 'disabled' : ''
+    return `
+        <div class="fin-rateio-linha fin-categoria-linha">
+            <select class="fis-input" name="categoria_rateio" ${trava} onchange="somarCategoriasFin()">${opcoesCategoriasFin(opcoesFinCache?.categorias || [], tipo, c.categoria_id)}</select>
+            <input class="fis-input fis-num" type="number" min="0" max="100" step="0.01" name="percentual_categoria" value="${c.percentual ?? ''}" ${trava} oninput="somarCategoriasFin()"> %
+            <span class="fin-categoria-valor" data-valor-categoria></span>
+            ${travado ? '' : '<button type="button" class="fis-mini" title="Tirar categoria" onclick="removerCategoriaFin(this)">×</button>'}
+        </div>`
+}
+
+// Nova linha já com o que falta para 100%.
+function adicionarCategoriaFin() {
+    const caixa = document.querySelector('[data-categorias-fin]')
+    if (!caixa) return
+    const falta = r2Fin(100 - lerCategoriasFin(caixa, false).reduce((a, c) => a + c.percentual, 0))
+    caixa.querySelector('[data-linhas-categorias]').insertAdjacentHTML('beforeend',
+        linhaCategoriaFin({ categoria_id: '', percentual: falta > 0 ? falta : '' }, caixa.dataset.tipo))
+    somarCategoriasFin()
+}
+
+function removerCategoriaFin(botao) {
+    const linhas = botao.closest('[data-linhas-categorias]')
+    if (linhas.children.length === 1) {
+        linhas.querySelector('select').value = ''
+        linhas.querySelector('[name="percentual_categoria"]').value = 100
+    } else botao.closest('.fin-categoria-linha').remove()
+    somarCategoriasFin()
+}
+
+// soUmaVale100: com uma linha só, ela vale 100% (o campo de % pode estar vazio ou diferente).
+function lerCategoriasFin(raiz, soUmaVale100 = true) {
+    const linhas = [...raiz.querySelectorAll('.fin-categoria-linha')]
+    const lista = linhas.map(l => ({
+        categoria_id: l.querySelector('[name="categoria_rateio"]').value,
+        percentual: r2Fin(l.querySelector('[name="percentual_categoria"]').value || 0)
+    }))
+    if (soUmaVale100 && linhas.length === 1) lista[0].percentual = 100
+    return lista.filter(c => c.categoria_id !== '').map(c => ({ ...c, categoria_id: Number(c.categoria_id) || c.categoria_id }))
+}
+
+function somarCategoriasFin() {
+    const caixa = document.querySelector('[data-categorias-fin]')
+    if (!caixa) return
+    const valor = Number(document.querySelector('[data-form-fatura] [name="valor"]')?.value) || 0
+    const linhas = [...caixa.querySelectorAll('.fin-categoria-linha')]
+    const uma = linhas.length === 1
+    let soma = 0
+    for (const l of linhas) {
+        const campo = l.querySelector('[name="percentual_categoria"]')
+        if (uma) campo.value = 100
+        campo.readOnly = uma
+        const pct = Number(campo.value) || 0
+        soma += pct
+        l.querySelector('[data-valor-categoria]').innerHTML = valor ? dinheiro(r2Fin(valor * pct / 100)) : ''
+    }
+    soma = r2Fin(soma)
+    const alvo = caixa.querySelector('[data-soma-categorias]')
+    const confere = Math.abs(soma - 100) <= 0.01
+    alvo.className = confere ? 'fis-positivo' : 'fis-negativo'
+    alvo.textContent = uma ? '' : `Soma ${soma.toLocaleString('pt-BR')}%${confere ? ' ✓' : soma < 100 ? ` · falta ${r2Fin(100 - soma).toLocaleString('pt-BR')}%` : ` · passou ${r2Fin(soma - 100).toLocaleString('pt-BR')}%`}`
+}
+
+// ---------------- favorecido: cxOpcoes na tabela clientes (o mesmo seletor do sistema), com "Cadastrar" no cabeçalho
+function abrirFavorecidosFin() {
+    controlesCxOpcoes.favorecido_fin = {
+        base: 'clientes',
+        // Sem ordem forçada (o cxOpcoes ordenaria por nome): fica a ordem nativa do servidor, como no Recebedor.
+        ordenar: null,
+        retornar: ['nome'],
+        funcaoAdicional: ['favorecidoEscolhidoFin'],
+        btnExtras: `<button type="button" class="botao-cabecalho-tabela" onclick="formularioCliente()">+ Cadastrar</button>`,
+        colunas: {
+            'Nome': { chave: 'nome', alinhar: 'esquerda' },
+            'CNPJ/CPF': { chave: 'cnpj' },
+            'Cidade': { chave: 'cidade' },
+            'Estado': { chave: 'estado' }
+        }
+    }
+    return cxOpcoes('favorecido_fin')
+}
+
+// Depois de escolher na lista (o cxOpcoes já pôs o nome e o id no span): CPF/CNPJ, chave Pix e iniciais.
+async function favorecidoEscolhidoFin() {
+    const form = document.querySelector('[data-form-fatura]')
+    const span = form?.querySelector('[name="favorecido_fin"]')
+    if (!span?.id) return removerOverlay()
+    const id = span.id
+    let cliente = {}
+    try { cliente = await recuperarDado('clientes', id) || {} } catch { }
+    removerOverlay()
+    if (span.id !== id) return
+    const campo = n => form.querySelector(`[name="${n}"]`)
+    const nome = cliente.nome || span.textContent.trim()
+    campo('participante_nome').value = nome
+    campo('participante_documento').value = cliente.cnpj || ''
+    if (cliente.chave_pix) campo('chave_pix').value = cliente.chave_pix
+    form.dataset.cliente = id
+    form.querySelector('[data-vinculo-fin]').hidden = false
+    form.querySelector('[data-avatar-fin]').textContent = iniciaisFin(nome)
+}
+
+// ---------------- anexos (aba Detalhes): sobem na hora pelo /upload e ficam na fatura ao salvar
+function desenharAnexosFin() {
+    const alvo = document.querySelector('[data-anexos-fin]')
+    if (!alvo) return
+    const cancelada = !document.querySelector('.fin-anexar')
+    alvo.innerHTML = anexosFormFin.length
+        ? anexosFormFin.map((a, i) => criarAnexoVisual(a.nome || a.link, a.link, cancelada ? null : `removerAnexoFin(${i})`)).join('')
+        : '<small class="fin-vazio">Nenhum anexo.</small>'
+}
+
+async function anexarFin(input) {
+    if (!input.files?.length) return
+    overlayAguarde()
+    const enviados = await importarAnexos({ input })
+    removerOverlay()
+    input.value = ''
+    if (!Array.isArray(enviados)) return
+    for (const a of enviados) if (a?.link) anexosFormFin.push({ nome: a.nome || a.link, link: a.link })
+    desenharAnexosFin()
+}
+
+function removerAnexoFin(i) {
+    anexosFormFin.splice(i, 1)
+    desenharAnexosFin()
+}
+
+// Depois de pagar/cancelar/desfazer: com o formulário dessa fatura aberto, recarrega ele (na mesma aba);
+// senão, abre a janela da fatura como antes (se pedido).
+function posAcaoFaturaFin(id, abrir = true) {
+    const form = document.querySelector('[data-form-fatura]')
+    if (form && form.dataset.id === String(id)) return formularioFaturaFin(form.dataset.tipo, id, null, form.dataset.abaAtiva)
+    if (abrir) abrirFaturaFin(id)
 }
 
 function blocoRepetirFin(rec, termino) {
@@ -668,23 +1179,37 @@ function previaRepeticaoFin(el) {
     alvo.textContent = `Vencimentos: ${datas.join(', ')}…${fimTexto}.`
 }
 
-async function salvarFaturaFin(botao) {
+async function salvarFaturaFin() {
     const form = document.querySelector('[data-form-fatura]')
+    if (!form) return
     const v = n => form.querySelector(`[name="${n}"]`)?.value ?? ''
     const corpo = {
         id: form.dataset.id || undefined, tipo: form.dataset.tipo, app: v('app') || undefined,
-        participante_nome: v('participante_nome'), participante_documento: v('participante_documento'),
-        descricao: v('descricao'), numero_documento: v('numero_documento'), categoria_id: v('categoria_id') || null,
+        participante_nome: v('participante_nome'), participante_documento: v('participante_documento'), cliente_id: form.dataset.cliente || null,
+        descricao: v('descricao'), numero_documento: v('numero_documento'),
         conta_id: v('conta_id') || null, forma_pagamento: v('forma_pagamento'), observacao: v('observacao'),
-        rateio: lerRateioFin(form)
+        chave_pix: v('chave_pix'), anexos: anexosFormFin, rateio: lerRateioFin(form)
     }
+    // Categorias (aba): uma = 100%; várias têm que somar 100%. A principal (maior %) vai também em categoria_id.
+    const categorias = lerCategoriasFin(form)
+    if (!categorias.length) {
+        mostrarAbaFin('categorias')
+        return popup({ mensagem: 'Escolha a categoria na aba <b>Categorias</b>.' })
+    }
+    const somaCategorias = r2Fin(categorias.reduce((a, c) => a + c.percentual, 0))
+    if (Math.abs(somaCategorias - 100) > 0.01) {
+        mostrarAbaFin('categorias')
+        return popup({ mensagem: `O rateio das categorias soma ${somaCategorias}%: tem que dar 100%.` })
+    }
+    corpo.categorias = categorias
+    corpo.categoria_id = categorias.reduce((a, c) => c.percentual > a.percentual ? c : a).categoria_id
     const recorrenciaId = form.dataset.recorrencia || null
     const repetir = Boolean(recorrenciaId) || form.querySelector('[name="repetir"]')?.checked
     let rota = 'titulo/salvar'
     if (repetir) {
         rota = 'recorrencia/salvar'
         Object.assign(corpo, {
-            id: recorrenciaId || undefined, valor: v('rep_valor'), primeiro_vencimento: v('rep_primeiro'), frequencia: v('rep_frequencia'),
+            id: recorrenciaId || undefined, valor: v('valor'), primeiro_vencimento: v('vencimento'), frequencia: v('rep_frequencia'),
             termino: v('rep_termino'), ocorrencias: v('rep_vezes'), termina_em: v('rep_termina')
         })
         if (recorrenciaId) {
@@ -692,18 +1217,26 @@ async function salvarFaturaFin(botao) {
             Object.assign(corpo, { app: r.app, tipo: r.tipo, primeiro_vencimento: String(r.primeiro_vencimento).slice(0, 10), frequencia: r.frequencia })
         }
     } else if (form.dataset.id) Object.assign(corpo, { vencimento: v('vencimento'), valor: v('valor') })
-    else corpo.parcelas = lerParcelasFin(form)
+    else {
+        if (!v('vencimento') || !(Number(v('valor')) > 0)) return popup({ mensagem: 'Informe o vencimento e o valor.' })
+        // Aba Parcelas com mais de uma: elas valem (somando o valor do topo); senão, uma fatura com o topo.
+        const caixa = form.querySelector('[data-parcelas]')
+        const parcelas = caixa ? lerParcelasFin(caixa) : []
+        if (parcelas.length > 1) Object.assign(corpo, { parcelas, total: r2Fin(v('valor')) })
+        else corpo.parcelas = [{ vencimento: v('vencimento'), valor: r2Fin(v('valor')) }]
+    }
     try {
         overlayAguarde()
         const r = await apiFin(rota, corpo)
         removerOverlay()
-        removerPopup(botao?.closest('.popup')?.id)
         if (repetir) {
-            const partes = [r.criadas ? `${r.criadas} fatura(s) lançada(s)` : '', r.atualizadas ? `${r.atualizadas} futura(s) atualizada(s)` : '', r.canceladas ? `${r.canceladas} cancelada(s) pelo novo término` : '']
-            popup({ mensagem: `Repetição salva${partes.filter(Boolean).length ? `: ${partes.filter(Boolean).join(', ')}` : ''}.`, imagem: 'imagens/concluido.png', tempo: 4 })
-            document.querySelectorAll('[data-recorrencias-fin]').forEach(p => removerPopup(p.closest('.popup')?.id))
-        } else if (corpo.id) abrirFaturaFin(corpo.id)
-        if (controles.faturasFin) { paginacao('faturasFin'); cartoesFaturasFin(tipoFaturasFin) }
+            const partes = [r.criadas ? `${r.criadas} fatura(s) lançada(s)` : '', r.atualizadas ? `${r.atualizadas} futura(s) atualizada(s)` : '', r.canceladas ? `${r.canceladas} cancelada(s) pelo novo término` : ''].filter(Boolean)
+            popup({ mensagem: `Repetição salva${partes.length ? `: ${partes.join(', ')}` : ''}.`, imagem: 'imagens/concluido.png', tempo: 4 })
+        } else {
+            const n = r.ids?.length || 1
+            popup({ mensagem: corpo.id ? 'Fatura salva.' : `${n > 1 ? `${n} faturas lançadas` : 'Fatura lançada'}.`, imagem: 'imagens/concluido.png', tempo: 3 })
+        }
+        voltarFaturasFin()
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
@@ -767,7 +1300,7 @@ async function encerrarRecorrenciaFin(id, tipo) {
         popup({ mensagem: `Repetição encerrada: ${r.canceladas} fatura(s) futura(s) cancelada(s).`, imagem: 'imagens/concluido.png', tempo: 4 })
         if (tipo) telaRecorrenciasFin(tipo)
         document.querySelectorAll('[data-fatura-fin]').forEach(p => removerPopup(p.closest('.popup')?.id))
-        if (controles.faturasFin) { paginacao('faturasFin'); cartoesFaturasFin(tipoFaturasFin) }
+        if (controles.faturasFin) { paginacao('faturasFin'); totaisFaturasFin() }
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
@@ -781,8 +1314,8 @@ async function cancelarFaturaFin(id) {
         overlayAguarde()
         await apiFin('titulo/cancelar', { id, motivo })
         removerOverlay()
-        abrirFaturaFin(id)
-        if (controles.faturasFin) { paginacao('faturasFin'); cartoesFaturasFin(tipoFaturasFin) }
+        posAcaoFaturaFin(id)
+        if (controles.faturasFin) { paginacao('faturasFin'); totaisFaturasFin() }
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
@@ -876,8 +1409,8 @@ async function salvarBaixaRapidaFin(botao) {
         await apiFin('baixar', { titulo_id: id, data, valor: form.dataset.valor, conta_id: conta, forma: form.dataset.forma || undefined })
         removerOverlay()
         removerPopup(botao?.closest('.popup')?.id)
-        if (document.querySelector(`[data-fatura-fin="${CSS.escape(String(id))}"]`)) abrirFaturaFin(id)
-        if (controles.faturasFin) { paginacao('faturasFin'); cartoesFaturasFin(tipoFaturasFin) }
+        posAcaoFaturaFin(id, Boolean(document.querySelector(`[data-fatura-fin="${CSS.escape(String(id))}"]`)))
+        if (controles.faturasFin) { paginacao('faturasFin'); totaisFaturasFin() }
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
@@ -893,8 +1426,8 @@ async function salvarBaixaFin(botao) {
         await apiFin('baixar', { titulo_id: id, data: v('data'), valor: v('valor'), juros: v('juros'), multa: v('multa'), desconto: v('desconto'), conta_id: v('conta_id'), forma: v('forma'), observacao: v('observacao') })
         removerOverlay()
         removerPopup(botao?.closest('.popup')?.id)
-        abrirFaturaFin(id)
-        if (controles.faturasFin) { paginacao('faturasFin'); cartoesFaturasFin(tipoFaturasFin) }
+        posAcaoFaturaFin(id)
+        if (controles.faturasFin) { paginacao('faturasFin'); totaisFaturasFin() }
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
@@ -908,8 +1441,8 @@ async function estornarBaixaFin(baixaId, tituloId) {
         overlayAguarde()
         await apiFin('baixa/estornar', { baixa_id: baixaId, motivo })
         removerOverlay()
-        abrirFaturaFin(tituloId)
-        if (controles.faturasFin) { paginacao('faturasFin'); cartoesFaturasFin(tipoFaturasFin) }
+        posAcaoFaturaFin(tituloId)
+        if (controles.faturasFin) { paginacao('faturasFin'); totaisFaturasFin() }
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
