@@ -17,7 +17,7 @@ const SITUACOES_FIN = {
     'VENCE HOJE': { cor: '#d97706', texto: 'Vence hoje' },
     ATRASADO: { cor: '#b91c1c', texto: 'Atrasado' },
     PAGO: { cor: '#15803d', texto: 'Pago' },
-    CANCELADO: { cor: '#64748b', texto: 'Cancelado' }
+    CANCELADO: { cor: '#64748b', texto: 'Excluída' }
 }
 const ORIGENS_FIN = { MANUAL: 'Manual', NF_ENTRADA: 'Nota recebida', NF_SAIDA: 'Nota emitida', REEMBOLSO: 'Reembolso', RECORRENCIA: 'Repetição' }
 const FREQUENCIAS_FIN = [['MENSAL', 'Mensal'], ['SEMANAL', 'Semanal'], ['QUINZENAL', 'Quinzenal (14 dias)'], ['BIMESTRAL', 'Bimestral'],
@@ -668,6 +668,7 @@ function desenharPainelFin() {
             ${acao('raio', pagar ? 'Pagar agora' : 'Receber agora', 'baixaLoteFin()')}
             ${acao('vencimento', 'Mudar vencimento', 'vencimentoLoteFin()')}
             <hr>
+            ${acao('cancelar', `Cancelar ${termoFin('pagamento')}`, 'cancelarPagamentosFin()', { perigo: true })}
             ${acao('excluir', 'Excluir', 'excluirLoteFin()', { perigo: true })}
             ${acao('fechar', 'Desmarcar todas', 'selecaoFin.clear(); prepararSelecaoFin()')}`
         return
@@ -681,8 +682,9 @@ function desenharPainelFin() {
     const aberta = !!d && !['PAGO', 'CANCELADO'].includes(d.situacao)
     const lancadaAqui = ['MANUAL', 'RECORRENCIA'].includes(d?.origem)
     const comPagamento = Number(d?.pago) > 0
-    const motivoQuitada = !d ? nada : cancelada ? 'Fatura cancelada' : 'Já está quitada'
-    const motivoLancada = !d ? nada : !lancadaAqui ? `Veio de ${(ORIGENS_FIN[d.origem] || d.origem).toLowerCase()}: mexa na origem.` : comPagamento ? `Tem ${termoFin('pagamento')}: desfaça o ${termoFin('pagamento')} antes.` : ''
+    const motivoQuitada = !d ? nada : cancelada ? 'Fatura excluída' : 'Já está quitada'
+    const motivoLancada = !d ? nada : !lancadaAqui ? `Veio de ${(ORIGENS_FIN[d.origem] || d.origem).toLowerCase()}: mexa na origem.` : comPagamento ? `Tem ${termoFin('pagamento')}: cancele o ${termoFin('pagamento')} antes.` : ''
+    const motivoCancelar = !d ? nada : cancelada ? 'Fatura excluída' : `Sem ${termoFin('pagamento')} para cancelar`
     const tipo = escFin(d?.tipo || tipoFaturasFin)
     const rec = escFin(d?.recorrencia_id || '')
     painel.innerHTML = `
@@ -690,25 +692,40 @@ function desenharPainelFin() {
             ? cabeca(iniciaisFin(d.participante_nome), d.participante_nome || '(sem nome)', `<small>${dataFin(d.vencimento)} · ${dinheiro(d.valor)}</small>${situacaoFin(d.situacao)}`)
             : cabeca('?', 'Nenhuma fatura escolhida', '<small>Clique numa linha para ver as ações; duplo clique abre o formulário. Marque várias pela caixinha para agir em lote.</small>')}
         ${acao('ver', 'Ver fatura', `abrirFaturaFin('${id}')`, { ativo: !!d, motivo: nada })}
-        ${acao('editar', 'Editar', `formularioFaturaFin('${tipo}', '${id}')`, { ativo: !!d && !cancelada, motivo: d ? 'Fatura cancelada' : nada })}
+        ${acao('editar', 'Editar', `formularioFaturaFin('${tipo}', '${id}')`, { ativo: !!d && !cancelada, motivo: d ? 'Fatura excluída' : nada })}
         ${acao('raio', pagar ? 'Pagar agora' : 'Receber agora', `formularioBaixaRapidaFin('${id}')`, { ativo: aberta, motivo: motivoQuitada })}
         ${acao('parcial', `${pagar ? 'Pagamento' : 'Recebimento'} parcial / com juros`, `formularioBaixaFin('${id}')`, { ativo: aberta, motivo: motivoQuitada })}
         ${d?.recorrencia_id ? `
             ${acao('repetir', 'Editar repetição', `formularioFaturaFin('${tipo}', null, '${rec}')`)}
             ${acao('encerrar', 'Encerrar repetição', `encerrarRecorrenciaFin('${rec}')`)}` : ''}
         <hr>
-        ${acao('excluir', 'Excluir', `excluirFaturaFin('${id}')`, { perigo: true, ativo: !!d && lancadaAqui && !comPagamento, motivo: motivoLancada })}
-        ${acao('cancelar', d?.recorrencia_id ? 'Cancelar só esta' : 'Cancelar fatura', `cancelarFaturaFin('${id}')`,
-            { ativo: !!d && lancadaAqui && !comPagamento && !cancelada, motivo: cancelada ? 'Já está cancelada' : motivoLancada })}`
+        ${acao('cancelar', `Cancelar ${termoFin('pagamento')}`, `cancelarPagamentosFin('${id}')`, { perigo: true, ativo: !!d && comPagamento && !cancelada, motivo: motivoCancelar })}
+        ${acao('excluir', 'Excluir', `excluirFaturaFin('${id}')`, { perigo: true, ativo: !!d && lancadaAqui && !comPagamento && !cancelada, motivo: cancelada ? 'Já excluída' : motivoLancada })}`
 }
 
-async function excluirFaturaFin(id) {
+async function excluirFaturaFin(id, doFormulario = false) {
     const ok = await confirmarPopup({
         titulo: 'Excluir fatura',
-        mensagem: `A fatura sai da lista. Só dá para excluir as lançadas aqui (manual ou repetição) e sem ${termoFin('pagamento')}.`,
+        mensagem: `A fatura sai do sistema (fica registrado quem excluiu e quando). Só as lançadas aqui (manual ou repetição) e sem ${termoFin('pagamento')}.`,
         textoConfirmar: 'Excluir'
     })
-    if (ok) executarLoteFin({ acao: 'excluir' }, null, [String(id)])
+    if (!ok) return
+    if (doFormulario) voltarFaturasFin()
+    executarLoteFin({ acao: 'excluir' }, null, [String(id)])
+}
+
+// Cancelar = desfazer os pagamentos/recebimentos (todas as baixas, com motivo): a fatura volta a ficar em aberto.
+// Sem id: as faturas marcadas na tabela.
+async function cancelarPagamentosFin(id = null) {
+    const varias = !id
+    const motivo = await pedirTextoPopup({
+        titulo: `Cancelar ${termoFin('pagamento')}${varias ? ` de ${selecaoFin.size} fatura(s)` : ''}`,
+        mensagem: `A fatura volta a ficar em aberto (o ${termoFin('pagamento')} sai da conta corrente). Motivo:`,
+        minimo: 5, maximo: 300, textoConfirmar: `Cancelar ${termoFin('pagamento')}`
+    })
+    if (motivo === null) return
+    await executarLoteFin({ acao: 'cancelar', motivo }, null, varias ? null : [String(id)])
+    if (!varias) posAcaoFaturaFin(id, Boolean(document.querySelector(`[data-fatura-fin="${CSS.escape(String(id))}"]`)))
 }
 
 // ---------------------------------------------------------------- seleção e ações em várias faturas
@@ -814,7 +831,7 @@ async function executarLoteFin(corpo, botao = null, ids = null) {
         const r = await apiFin('lote', { ...corpo, ids: ids || [...selecaoFin] })
         removerOverlay()
         if (botao) removerPopup(botao.closest('.popup')?.id)
-        const verbo = { baixar: corpo.acao === 'baixar' && tipoFaturasFin === 'RECEBER' ? 'recebida(s)' : 'paga(s)', vencimento: 'com vencimento novo', excluir: 'excluída(s)' }[corpo.acao]
+        const verbo = { baixar: corpo.acao === 'baixar' && tipoFaturasFin === 'RECEBER' ? 'recebida(s)' : 'paga(s)', vencimento: 'com vencimento novo', excluir: 'excluída(s)', cancelar: `com o ${termoFin('pagamento')} cancelado` }[corpo.acao]
         popup({
             titulo: ids ? 'Fatura' : 'Faturas marcadas',
             mensagem: `<b>${r.feitas} fatura(s) ${verbo}.</b>${r.puladas.length ? `<br>${r.puladas.length} ficaram de fora:<ul class="fis-lista">${r.puladas.map(p => `<li>${escFin(p.fatura)}: ${escFin(p.motivo)}</li>`).join('')}</ul>` : ''}`,
@@ -889,13 +906,14 @@ async function abrirFaturaFin(id) {
                         ['Documento', escFin(t.numero_documento || '')]
                     ])}
                     ${t.observacao ? `<div class="fis-info">${escFin(t.observacao)}</div>` : ''}
-                    ${t.situacao === 'CANCELADO' ? `<div class="fis-alerta">Cancelada: ${escFin(t.cancelamento_motivo || '')}</div>` : ''}
+                    ${t.situacao === 'CANCELADO' ? `<div class="fis-alerta">Excluída${t.cancelado_por ? ` por ${escFin(t.cancelado_por)}` : ''}${t.cancelado_em ? ` em ${new Date(t.cancelado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}` : ''}: ${escFin(t.cancelamento_motivo || '')}</div>` : ''}
                     <div class="fis-acoes-claras fis-nota-acoes">
                         ${!['PAGO', 'CANCELADO'].includes(t.situacao) ? `
                             <button type="button" class="fis-botao" onclick="formularioBaixaRapidaFin('${escFin(t.id)}')">Dar baixa (${pagar ? 'pago' : 'recebido'})</button>
                             <button type="button" class="fis-mini" onclick="formularioBaixaFin('${escFin(t.id)}')">${pagar ? 'Pagamento' : 'Recebimento'} parcial / com juros</button>` : ''}
                         ${t.situacao !== 'CANCELADO' ? `<button type="button" class="fis-mini" onclick="formularioFaturaFin('${t.tipo}', '${escFin(t.id)}')">Editar</button>` : ''}
-                        ${['MANUAL', 'RECORRENCIA'].includes(t.origem) && t.situacao !== 'CANCELADO' && !vivas.length ? `<button type="button" class="fis-mini" onclick="cancelarFaturaFin('${escFin(t.id)}')">Cancelar ${t.recorrencia_id ? 'só esta' : 'fatura'}</button>` : ''}
+                        ${t.situacao !== 'CANCELADO' && vivas.length ? `<button type="button" class="fis-mini" onclick="cancelarPagamentosFin('${escFin(t.id)}')">Cancelar ${pagar ? 'pagamento' : 'recebimento'}</button>` : ''}
+                        ${['MANUAL', 'RECORRENCIA'].includes(t.origem) && t.situacao !== 'CANCELADO' && !vivas.length ? `<button type="button" class="fis-mini" onclick="excluirFaturaFin('${escFin(t.id)}')">Excluir</button>` : ''}
                         ${t.recorrencia_id ? `<span class="fis-separador"></span><small class="fis-nota-acoes-rotulo">Repete ${escFin(nomeFrequenciaFin(t.recorrencia_frequencia).toLowerCase())}</small>
                             <button type="button" class="fis-mini" onclick="formularioFaturaFin('${t.tipo}', null, '${escFin(t.recorrencia_id)}')">Editar repetição</button>
                             <button type="button" class="fis-mini" onclick="encerrarRecorrenciaFin('${escFin(t.recorrencia_id)}')">Encerrar repetição</button>` : ''}
@@ -979,7 +997,7 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
         !manual ? `Fatura de ${escFin(ORIGENS_FIN[t.origem])}: valor e ${termoFin('favorecido', tipo)} vêm da origem.${Number(t.pago) ? ` Com ${termoFin('pagamento', tipo)}, o vencimento também fica.` : ''}` : '',
         t?.recorrencia_id ? `Ocorrência de uma repetição (${escFin(nomeFrequenciaFin(t.recorrencia_frequencia).toLowerCase())}): a mudança vale só para ela. Para mudar as futuras, edite a repetição.` : '',
         rec ? `A mudança vale para as próximas faturas ainda sem ${termoFin('pagamento', tipo)}. Frequência e 1º vencimento não mudam: para isso, encerre e crie outra.` : '',
-        cancelada ? `Fatura cancelada${t.cancelamento_motivo ? `: ${escFin(t.cancelamento_motivo)}` : ''}. Não se altera.` : ''
+        cancelada ? `Fatura excluída${t.cancelamento_motivo ? `: ${escFin(t.cancelamento_motivo)}` : ''}. Não se altera.` : ''
     ].filter(Boolean)
     const abas = [
         ['detalhes', 'Detalhes', true],
@@ -1131,18 +1149,21 @@ function desenharPainelFormFin(t, rec) {
     const pagar = tipo === 'PAGAR'
     const cancelada = t?.situacao === 'CANCELADO'
     const aberta = t && !['PAGO', 'CANCELADO'].includes(t.situacao)
-    const podeCancelar = t && ['MANUAL', 'RECORRENCIA'].includes(t.origem) && !cancelada && !(Number(t.pago) > 0)
+    const comPagamento = Number(t?.pago) > 0
+    const podeExcluir = t && ['MANUAL', 'RECORRENCIA'].includes(t.origem) && !cancelada && !comPagamento
     const acao = (icone, texto, funcao, { perigo = false, ativo = true, motivo = '' } = {}) => `
         <button type="button" class="fin-acao${perigo ? ' perigo' : ''}" title="${escFin(ativo ? texto : `${texto}: ${motivo}`)}" ${ativo ? `onclick="${funcao}"` : 'disabled'}>
             ${iconeFin(icone)}<span>${texto}</span></button>`
     painel.innerHTML = `
-        ${acao('salvar', 'Salvar', 'salvarFaturaFin()', { ativo: !cancelada, motivo: 'Fatura cancelada' })}
+        ${acao('salvar', 'Salvar', 'salvarFaturaFin()', { ativo: !cancelada, motivo: 'Fatura excluída' })}
         ${acao('incluir', 'Incluir', `formularioFaturaFin('${tipo}')`)}
-        ${t ? acao('raio', pagar ? 'Pagar agora' : 'Receber agora', `formularioBaixaRapidaFin('${escFin(t.id)}')`, { ativo: aberta, motivo: cancelada ? 'Fatura cancelada' : 'Já está quitada' }) : ''}
+        ${t ? acao('raio', pagar ? 'Pagar agora' : 'Receber agora', `formularioBaixaRapidaFin('${escFin(t.id)}')`, { ativo: aberta, motivo: cancelada ? 'Fatura excluída' : 'Já está quitada' }) : ''}
         ${rec ? acao('encerrar', 'Encerrar repetição', `encerrarRecorrenciaFin('${escFin(rec.id)}')`, { ativo: rec.ativa, motivo: 'Já encerrada' }) : ''}
         <hr>
-        ${t ? acao('cancelar', t.recorrencia_id ? 'Cancelar só esta' : 'Cancelar fatura', `cancelarFaturaFin('${escFin(t.id)}')`,
-            { perigo: true, ativo: podeCancelar, motivo: cancelada ? 'Já está cancelada' : Number(t.pago) > 0 ? `Tem ${termoFin('pagamento', tipo)}: desfaça antes` : 'Veio de outra origem' }) : ''}
+        ${t ? acao('cancelar', `Cancelar ${termoFin('pagamento', tipo)}`, `cancelarPagamentosFin('${escFin(t.id)}')`,
+            { perigo: true, ativo: comPagamento && !cancelada, motivo: cancelada ? 'Fatura excluída' : `Sem ${termoFin('pagamento', tipo)} para cancelar` }) : ''}
+        ${t ? acao('excluir', 'Excluir', `excluirFaturaFin('${escFin(t.id)}', true)`,
+            { perigo: true, ativo: podeExcluir, motivo: cancelada ? 'Já excluída' : comPagamento ? `Tem ${termoFin('pagamento', tipo)}: cancele antes` : 'Veio de outra origem' }) : ''}
         ${acao('voltar', 'Voltar à lista', 'voltarFaturasFin()')}`
 }
 
@@ -1658,21 +1679,6 @@ async function encerrarRecorrenciaFin(id, tipo) {
         popup({ mensagem: `Repetição encerrada: ${r.canceladas} fatura(s) futura(s) cancelada(s).`, imagem: 'imagens/concluido.png', tempo: 4 })
         if (tipo) telaRecorrenciasFin(tipo)
         document.querySelectorAll('[data-fatura-fin]').forEach(p => removerPopup(p.closest('.popup')?.id))
-        if (controles.faturasFin) { paginacao('faturasFin'); totaisFaturasFin() }
-    } catch (err) {
-        removerOverlay()
-        popup({ mensagem: mensagemErroEst(err) })
-    }
-}
-
-async function cancelarFaturaFin(id) {
-    const motivo = await pedirTextoPopup({ titulo: 'Cancelar fatura', mensagem: 'Motivo do cancelamento:', textoConfirmar: 'Cancelar fatura' })
-    if (motivo === null) return
-    try {
-        overlayAguarde()
-        await apiFin('titulo/cancelar', { id, motivo })
-        removerOverlay()
-        posAcaoFaturaFin(id)
         if (controles.faturasFin) { paginacao('faturasFin'); totaisFaturasFin() }
     } catch (err) {
         removerOverlay()
