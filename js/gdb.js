@@ -1,3 +1,14 @@
+// Preços do item numa LPU: dados_composicoes.lpus = { "lpu hope": { ativo, historico }, ... },
+// montado pelo servidor a partir de lpu_precos (derivadas como a Atakarejo vêm com "gerada").
+function lpuDoItem(produto, lpu) {
+    return produto?.lpus?.[lpu] || null
+}
+
+// Caminho de gravação de preço: dados_composicoes/{codigo}/lpus/{lpu}/historico/{id} etc.
+function caminhoLpu(codigo, lpu, ...resto) {
+    return ['dados_composicoes', codigo, 'lpus', lpu, ...resto].join('/')
+}
+
 async function recuperarDado(base, chave) {
     if (chave === undefined || chave === null)
         return {}

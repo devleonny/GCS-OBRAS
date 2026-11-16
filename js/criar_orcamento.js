@@ -1378,8 +1378,8 @@ function linhasComposicoesOrcamento(produto) {
         ? 'pos'
         : 'neg'
 
-    const ativo = produto?.[lpu]?.ativo || ''
-    const historico = produto?.[lpu]?.historico || {}
+    const ativo = lpuDoItem(produto, lpu)?.ativo || ''
+    const historico = lpuDoItem(produto, lpu)?.historico || {}
     const detalhes = historico?.[ativo] || {}
     const preco = detalhes?.valor || 0
 
@@ -1467,8 +1467,8 @@ async function alterarValorUnitario(chave, campo) {
     // Avulso não tem preço de catálogo: o "original" é o preço com que ele entrou no orçamento.
     const produto = avulso ? { descricao: itemOrcamento.descricao } : await recuperarDado('dados_composicoes', codigoSlave || codigoMaster) || {}
     const lpu = String(document.getElementById('lpu').value).toLowerCase()
-    const ativo = produto?.[lpu]?.ativo || 0
-    const historico = produto?.[lpu]?.historico || {}
+    const ativo = lpuDoItem(produto, lpu)?.ativo || 0
+    const historico = lpuDoItem(produto, lpu)?.historico || {}
     const precoOriginal = avulso
         ? Number(itemOrcamento.custo_original ?? itemOrcamento.custo) || 0
         : historico?.[ativo]?.valor || 0

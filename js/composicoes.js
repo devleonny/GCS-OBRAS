@@ -140,7 +140,7 @@ async function criarLinhaComposicao(produto) {
 
     const precosLPU = (LPUS || [])
         .map(lpu => {
-            const tabela = produto[lpu] || {}
+            const tabela = lpuDoItem(produto, lpu) || {}
             const cotacao = tabela?.historico?.[tabela?.ativo] || {}
             return { lpu, valor: Number(conversor(cotacao.valor || 0)) || 0, data: cotacao.data, validade: validades[lpu], gerada: tabela?.gerada }
         })
@@ -267,15 +267,17 @@ async function abrirHistoricoPrecos(codigo, tabela) {
     const produto = await recuperarDado('dados_composicoes', codigo) || {}
     const linhas = []
 
+    const precosTabela = lpuDoItem(produto, tabela) || {}
+
     // LPU derivada (o servidor calcula a partir da base e recusa preço manual).
-    const gerada = produto?.[tabela]?.gerada
+    const gerada = precosTabela.gerada
 
     if (gerada)
         return popup({ mensagem: descreverLpuDerivada(tabela, gerada) })
 
-    for (const [id, cotacao] of Object.entries(produto?.[tabela]?.historico || {})) {
+    for (const [id, cotacao] of Object.entries(precosTabela.historico || {})) {
 
-        const marcado = produto[tabela]?.ativo == id
+        const marcado = precosTabela.ativo == id
 
         linhas.push(`
         <tr>
@@ -310,7 +312,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
 
     const linOutrosPrecos = []
     for (const lpu of LPUS || []) {
-        const tab = produto[lpu] || {}
+        const tab = lpuDoItem(produto, lpu) || {}
 
         const ativo = tab?.ativo
         const historico = tab?.historico || {}
@@ -410,10 +412,10 @@ async function confirmarCopiarPreco(codigo, lpu, idPreco, tabela) {
     overlayAguarde()
     const produto = await recuperarDado('dados_composicoes', codigo) || {}
 
-    const preco = produto?.[lpu]?.historico?.[idPreco] || {}
+    const preco = lpuDoItem(produto, lpu)?.historico?.[idPreco] || {}
     preco.usuario = acesso.usuario // Usuário atual;
 
-    await enviar(`dados_composicoes/${codigo}/${tabela}/historico/${idPreco}`, preco)
+    await enviar(caminhoLpu(codigo, tabela, 'historico', idPreco), preco)
 
     await abrirHistoricoPrecos(codigo, tabela)
 
@@ -423,7 +425,7 @@ async function confirmarCopiarPreco(codigo, lpu, idPreco, tabela) {
 
 async function salvarPrecoAtivo(codigo, idPreco, lpu) {
 
-    await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, idPreco)
+    await enviar(caminhoLpu(codigo, lpu, 'ativo'), idPreco)
 
 }
 
@@ -435,14 +437,14 @@ async function excluirCotacao(codigo, lpu, cotacao) {
     if (!historicoPreco) return
 
     let produto = await recuperarDado('dados_composicoes', codigo) || {}
-    let cotacoes = produto?.[lpu] || {}
+    let cotacoes = lpuDoItem(produto, lpu) || {}
 
     if (cotacoes?.ativo == cotacao) {
         cotacoes.ativo = ''
-        await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, '')
+        await enviar(caminhoLpu(codigo, lpu, 'ativo'), '')
     }
 
-    await deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`)
+    await deletar(caminhoLpu(codigo, lpu, 'historico', cotacao))
 
     removerPopup()
     await abrirHistoricoPrecos(codigo, lpu);
@@ -845,7 +847,7 @@ async function adicionarCotacao(codigo, lpu, cotacao) {
     if (lpu && cotacao) {
         produto = {
             ...produto,
-            ...produto[lpu]?.historico?.[cotacao]
+            ...lpuDoItem(produto, lpu)?.historico?.[cotacao]
         }
     }
 
@@ -880,7 +882,7 @@ async function salvarPreco(codigo, lpu, cotacao = crypto.randomUUID()) {
     const icmsSaida = texto('icms_saida_select')
 
     const produto = await recuperarDado('dados_composicoes', codigo) || {}
-    const historico = produto[lpu]?.historico || {}
+    const historico = lpuDoItem(produto, lpu)?.historico || {}
 
     if (produto.tipo == 'VENDA' && icmsSaida !== '20,5%')
         return popup({ mensagem: 'ICMS de saída por segurança não pode ser menor que <b>20,5%</b>.', titulo: 'ICMS de Saída bloqueado' })
@@ -911,7 +913,7 @@ async function salvarPreco(codigo, lpu, cotacao = crypto.randomUUID()) {
 
     removerPopup()
 
-    await enviar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`, historico[cotacao])
+    await enviar(caminhoLpu(codigo, lpu, 'historico', cotacao), historico[cotacao])
     await abrirHistoricoPrecos(codigo, lpu)
 
 }

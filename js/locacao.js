@@ -192,6 +192,6 @@ async function salvarConfigLocacao() {
 
 // Preço do item na LPU escolhida (histórico ativo).
 function precoLpuLocacao(produto, lpu) {
-    const dadosLpu = produto?.[lpu]
+    const dadosLpu = lpuDoItem(produto, lpu)
     return Number(dadosLpu?.historico?.[dadosLpu?.ativo]?.valor) || 0
 }

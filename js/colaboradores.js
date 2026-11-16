@@ -901,7 +901,7 @@ function podeEditarRequisicaoColaborador(r) {
 const lpusDetalheColab = ['lpu ferramentas', 'lpu hope', 'lpu peças']
 
 const valorLpuColab = (produto, lpu) => {
-    const tabela = produto?.[lpu]
+    const tabela = lpuDoItem(produto, lpu)
     return Number(produto?.snapshots?.[lpu]?.[0] || tabela?.historico?.[tabela?.ativo]?.valor || 0)
 }
 
