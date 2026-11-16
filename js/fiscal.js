@@ -7,6 +7,8 @@
 // - Configuração: empresas, perfis de operação (CFOP/CST/alíquotas) e serviços (LC 116/ISS/retenções).
 // Chamadas pelas rotas em apiModuloFiscal (js/estoque.js).
 
+// Perfis que nas notas só consultam e na separação só escolhem o transporte (gerente desde 16/11/2026).
+const PERFIS_SO_CONSULTA_FIS = ['log', 'gerente']
 const escFis = valor => escaparAtributo(valor ?? '')
 const apiFiscal = (rota, corpo) => apiModuloFiscal(`fiscal/${rota}`, corpo)
 const soDigFis = v => String(v ?? '').replace(/\D/g, '')
@@ -702,8 +704,8 @@ async function abrirTabelaEmitidas(filtroExtra = null) {
             filtrosFixos: { direcao: { op: '=', value: 'saida' }, ...filtroModelo, ...(filtroExtra || {}) },
             btnExtras: `
                 <div class="fis-acoes">
-                    ${modeloEmitidasFis !== 'NFSE' && acesso?.permissao !== 'log' ? '<button type="button" onclick="formularioEmissaoNFe()">+ NF-e</button>' : ''}
-                    ${modeloEmitidasFis !== 'NFE' && acesso?.permissao !== 'log' ? '<button type="button" onclick="formularioEmissaoNFSe()">+ NFS-e</button>' : ''}
+                    ${modeloEmitidasFis !== 'NFSE' && !PERFIS_SO_CONSULTA_FIS.includes(acesso?.permissao) ? '<button type="button" onclick="formularioEmissaoNFe()">+ NF-e</button>' : ''}
+                    ${modeloEmitidasFis !== 'NFE' && !PERFIS_SO_CONSULTA_FIS.includes(acesso?.permissao) ? '<button type="button" onclick="formularioEmissaoNFSe()">+ NFS-e</button>' : ''}
                     ${filtroExtra ? '<button type="button" onclick="abrirTabelaEmitidas()">Limpar filtro</button>' : ''}
                 </div>`,
             ordenar: [{ path: 'criado_em', direcao: 'desc' }],
@@ -753,7 +755,7 @@ function htmlNotaEmitida({ documento: d, itens, movimentos }, contexto = null) {
     const o = entrada.opcoes || {}
     // Acesso log: só consulta (DANFE, XML, espelho, situação, histórico). O transporte da separação ele
     // ajusta pelo menu ⋮ do cartão ("Editar NF-e"), que abre o formulário travado.
-    const soConsulta = acesso?.permissao === 'log'
+    const soConsulta = PERFIS_SO_CONSULTA_FIS.includes(acesso?.permissao)
     const editavel = !soConsulta && ['RASCUNHO', 'REJEITADA'].includes(d.status)
     const nfse = d.modelo === 'NFSE'
     const t = d.valor_impostos || {}
@@ -1045,7 +1047,7 @@ async function formularioEmissaoNFe(inicial = {}) {
     const o = inicial.opcoes || {}
     // Kanban: "previa" = clique no cartão em Requisição (só olhar, o cartão não anda);
     // "logistica" = separação feita pelo acesso log (só transportadora e volumes ficam abertos).
-    const trava = inicial.fluxo_item ? (inicial.previa ? 'previa' : acesso?.permissao === 'log' ? 'logistica' : '') : ''
+    const trava = inicial.fluxo_item ? (inicial.previa ? 'previa' : PERFIS_SO_CONSULTA_FIS.includes(acesso?.permissao) ? 'logistica' : '') : ''
     const avisoTrava = {
         previa: 'Prévia da separação: nada é salvo e o cartão continua em Requisição. Para separar, arraste o cartão para Separado.',
         logistica: 'Informe o frete, a transportadora e os volumes. Os dados da nota e os tributários ficam com o faturamento.'

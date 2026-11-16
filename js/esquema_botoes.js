@@ -149,8 +149,8 @@ async function acaoMenu(id, funcao, temFilhos) {
 const PERFIS_FLUXO_MENU = ['adm', 'diretoria', 'fin', 'gerente', 'analista', 'log', 'user']
 const PERFIS_FISCAL_MENU = ['adm', 'diretoria', 'fin', 'log', 'gerente', 'coordenacao', 'analista']
 // Menus Vendas e NF-e, Serviços e NFS-e e Compras e Estoque: só estes perfis (pedido de 14/11/2026).
-// Financeiro: os mesmos, menos log.
-const PERFIS_MENUS_COMERCIAIS = ['adm', 'diretoria', 'fin', 'log']
+// Gerente entrou em 16/11/2026 com o acesso do log. Financeiro: adm, diretoria e fin.
+const PERFIS_MENUS_COMERCIAIS = ['adm', 'diretoria', 'fin', 'log', 'gerente']
 
 const esquemaBotoes = {
     inicial: [
