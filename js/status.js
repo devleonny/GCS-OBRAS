@@ -160,11 +160,48 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
 
     overlayAguarde()
 
-    const { pedido, tipo, empresa, valor, comentario, pagamento, departamento } = await recuperarDado('pedidos', id) || {}
+    const registro = await recuperarDado('pedidos', id) || {}
+    const { pedido, tipo, valor, comentario, pagamento, departamento, condicao_pagamento } = registro
+    let { empresa, limite_faturamento_dia } = registro
     const depAtivo = controles?.ocorrencias?.ativo
 
     if (!departamento && !depAtivo)
         return mensagem({ mensagem: 'Departamento não localizado' })
+
+    // Ponte (gcs /condicao-pagamento-empresa), só no que o pedido ainda não tem: condição de pagamento
+    // (pedido antigo: o texto "3x" / "30 dias") e empresa a faturar vêm dos Dados do Cliente do
+    // orçamento e, sem eles, do cadastro da empresa do cliente; o limite de faturamento, da empresa.
+    let condicao = normalizarCondicaoPag(condicao_pagamento) || normalizarCondicaoPag(pagamento)
+    const doOrcamento = [], daEmpresaCampos = []
+    let nomeEmpresaCliente = ''
+    if (!condicao || !empresa || limite_faturamento_dia == null) {
+        const ponte = await condicaoPagamentoEmpresa(departamento || depAtivo) || {}
+        nomeEmpresaCliente = ponte.nome || ''
+        if (!condicao && ponte.orcamento?.condicao) {
+            condicao = ponte.orcamento.condicao
+            doOrcamento.push('condição de pagamento')
+        } else if (!condicao && ponte.condicao) {
+            condicao = ponte.condicao
+            daEmpresaCampos.push('condição de pagamento')
+        }
+        if (!empresa && ponte.orcamento?.empresa_faturamento) {
+            empresa = ponte.orcamento.empresa_faturamento
+            doOrcamento.push('empresa a faturar')
+        } else if (!empresa && ponte.empresa_faturamento) {
+            empresa = ponte.empresa_faturamento
+            daEmpresaCampos.push('empresa a faturar')
+        }
+        if (limite_faturamento_dia == null && ponte.limite_faturamento_dia) {
+            limite_faturamento_dia = ponte.limite_faturamento_dia
+            daEmpresaCampos.push('limite de faturamento')
+        }
+    }
+    const origemCondicao = [
+        doOrcamento.length ? `Do orçamento: ${doOrcamento.join(', ')}.` : '',
+        daEmpresaCampos.length ? `Do cadastro da empresa ${nomeEmpresaCliente}: ${daEmpresaCampos.join(', ')}.` : ''
+    ].filter(Boolean).join(' ')
+    condicao = { ...(condicao || { modo: 'MESES', parcelas: 1, base: 'EMISSAO' }) }
+    if (!condicao.forma) condicao.forma = '15'
 
     const opcoes = ['Sem Pedido', 'Aprovado por E-mail', 'Aprovado com número']
         .map(op => `
@@ -225,20 +262,29 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
             elemento: `
                 <select id="empresa">
                     <option value="" ${empresas.includes(empresa) ? '' : 'selected'}>Selecione</option>
-                    ${empresas.map(e => `<option ${empresa == e ? 'selected' : ''}>${e}</option>`).join('')}
+                    ${EMPRESAS_FATURAMENTO.filter(([v]) => empresas.includes(v))
+                        .map(([v, t]) => `<option value="${v}" ${empresa == v ? 'selected' : ''}>${t}</option>`).join('')}
                 </select>
             `
         },
         {
-            // Número de vezes (parcelas) em que o pedido será pago. Antes era uma lista ("30 dias", "3x"):
-            // "3x" abre como 3; prazo em dias abre vazio para preencher.
-            texto: 'Formas de pagamento',
+            texto: 'Limite de faturamento (dia)',
             elemento: `
-            <div style="${vertical}; gap: 3px; width: 100%;">
-                <input type="number" id="pagamento" min="1" step="1" inputmode="numeric" placeholder="Ex.: 1"
-                    value="${escaparAtributo(String(pagamento ?? '').match(/^\s*(\d+)\s*x?\s*$/i)?.[1] || '')}">
-                <small style="color: #6b7a71;">Quantidade de vezes em que o pedido será pago (1 = à vista).</small>
+            <div style="${vertical}; gap: 2px; width: 100%;">
+                <input type="number" id="limite_faturamento_dia" min="1" max="31" step="1" inputmode="numeric" placeholder="Sem limite"
+                    value="${escaparAtributo(limite_faturamento_dia ?? '')}" oninput="this.nextElementSibling.textContent = textoLimiteFaturamento(this.value)">
+                <small style="color: #6b7a71;">${escaparAtributo(textoLimiteFaturamento(limite_faturamento_dia))}</small>
             </div>
+            `
+        },
+        {
+            // Condição completa: vai para a NF-e (duplicatas com os vencimentos) e para as faturas a receber.
+            texto: 'Condição de pagamento',
+            elemento: `
+            <div style="${vertical}; gap: 3px; width: 100%;" id="condicao_pedido">
+                ${htmlCondicaoPag(condicao)}
+            </div>
+            ${origemCondicao ? `<small style="color: #6b7a71;">${escaparAtributo(origemCondicao)}</small>` : ''}
             `
         },
         {
@@ -257,7 +303,24 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
 
     popup({ linhas, botoes, titulo: 'Novo Pedido' })
     marcarStatusPedido()
+    iniciarCondicoesPag(document.getElementById('condicao_pedido'))
 
+}
+
+// Condição padrão da empresa do cliente faturado do departamento (gcs: /condicao-pagamento-empresa).
+async function condicaoPagamentoEmpresa(departamento) {
+    if (!departamento) return null
+    try {
+        const { token } = JSON.parse(localStorage.getItem('acesso') || '{}')
+        const r = await fetch(`${api}/condicao-pagamento-empresa`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ departamento })
+        })
+        return r.ok ? await r.json() : null
+    } catch {
+        return null
+    }
 }
 
 async function salvarPedido(id) {
@@ -271,7 +334,6 @@ async function salvarPedido(id) {
         const tipo = document.getElementById('tipo')
         const pedido = document.getElementById('pedido')
         const empresa = document.getElementById('empresa')
-        const pagamento = document.getElementById('pagamento')
         const autorizado_por = document.querySelector('[name="autorizado_por"]').id
 
         if (!valor.value || !tipo.value || !pedido.value)
@@ -284,16 +346,24 @@ async function salvarPedido(id) {
         if (!empresa.value)
             return popup({ mensagem: 'Escolha a empresa a faturar.' })
 
-        const vezes = Number(pagamento.value)
-        if (!Number.isInteger(vezes) || vezes < 1)
-            return popup({ mensagem: 'Formas de pagamento: informe em quantas vezes o pedido será pago (número inteiro, a partir de 1).' })
+        const { condicao, erros } = lerCondicaoPag(document.querySelector('#condicao_pedido [data-condicao-pag]'))
+        if (erros.length)
+            return popup({ mensagem: `Condição de pagamento: ${erros[0]}` })
+
+        const limiteTexto = document.getElementById('limite_faturamento_dia').value
+        const limite_faturamento_dia = limiteTexto === '' ? null : Number(limiteTexto)
+        if (limite_faturamento_dia !== null && !(Number.isInteger(limite_faturamento_dia) && limite_faturamento_dia >= 1 && limite_faturamento_dia <= 31))
+            return popup({ mensagem: 'Limite de faturamento: informe um dia de 1 a 31, ou deixe vazio.' })
 
         const dados = {
             departamento,
             data: dataServidor().toLocaleString(),
             executor: acesso.usuario,
             comentario: comentario_status.value,
-            pagamento: String(vezes),
+            // "pagamento" segue com o nº de vezes (telas e relatórios antigos); a condição completa vai junto.
+            pagamento: String(vezesCondicaoPag(condicao)),
+            condicao_pagamento: condicao,
+            limite_faturamento_dia,
             valor: Number(valor.value),
             tipo: tipo.value,
             pedido: pedido.value,

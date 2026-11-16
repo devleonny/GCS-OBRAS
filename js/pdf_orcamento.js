@@ -101,7 +101,9 @@ async function montarPdfOrcamento(idRecebido, raiz = document) {
         estado,
     } = cliente || {}
 
-    const empresaEmissora = EMPRESAS_PDF_ORCAMENTO[emissor || 'AC SOLUÇÕES']
+    // Desde 16/11/2026 o orçamento grava "AC"; os antigos têm "AC SOLUÇÕES". Os dois (e vazio) = AC.
+    const chaveEmissor = String(emissor || '').trim().toUpperCase()
+    const empresaEmissora = EMPRESAS_PDF_ORCAMENTO[['IAC', 'HNK', 'HNW'].find(c => chaveEmissor.startsWith(c)) || 'AC SOLUÇÕES']
 
     const imgLogo = raiz.querySelector('#logo')
     imgLogo.src = emissor == 'IAC'

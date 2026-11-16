@@ -89,7 +89,10 @@ function cartoesFluxo(quadro, linhas) {
     const desde = {
         faturado: c => c.data_faturamento, entrega: c => c.data_saida, entregue: c => c.data_entrega
     }
-    return linhas.map(c => ({ ...c, data: c.data_pedido, desde: (desde[c.etapa]?.(c)) || c.data_pedido }))
+    // Período pela data mais recente (pedido ou última nota): nota nova num ORC antigo (contrato mensal)
+    // traz o cartão de volta ao período (16/11/2026; antes contava só a data do pedido).
+    const recente = c => [c.data_pedido, c.data_faturamento].filter(Boolean).map(String).sort().at(-1) || c.data_pedido
+    return linhas.map(c => ({ ...c, data: recente(c), desde: (desde[c.etapa]?.(c)) || c.data_pedido }))
 }
 
 // Distribui nas colunas: no período (pela data) ou, se a coluna está em aberto, "parado" (mais antigo).

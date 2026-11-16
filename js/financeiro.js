@@ -866,7 +866,7 @@ function criarLinhaFaturaFin(d) {
             <td class="fin-centro">${d.dia_pagamento ? dataFin(d.dia_pagamento) : '<span class="fin-vazio">&lt;não informado&gt;</span>'}</td>
             <td>${escFin(d.app)}</td>
             <td class="fis-descricao">${escFin(d.participante_nome || '')}${d.participante_documento ? `<small>${docFormatadoFis(d.participante_documento)}</small>` : ''}</td>
-            <td class="fin-obs" title="${escFin(d.observacao || '')}">${escFin(d.observacao || '')}${d.departamentos ? `<small class="fin-sub">${escFin(d.departamentos)}</small>` : ''}</td>
+            <td class="fin-obs" title="${escFin(d.observacao || '')}"><span class="fin-obs-txt">${escFin(d.observacao || '')}</span>${d.departamentos ? `<small class="fin-sub">${escFin(d.departamentos)}</small>` : ''}</td>
             <td><small>${escFin(d.categoria || '—')}${Array.isArray(d.categorias) && d.categorias.length > 1 ? ` <b class="fin-mais" title="Rateio em ${d.categorias.length} categorias">+${d.categorias.length - 1}</b>` : ''}</small></td>
             <td class="fin-centro">${escFin(d.parcela_texto)}</td>
             <td class="fis-num">${dinheiro(d.valor)}</td>

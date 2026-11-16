@@ -446,41 +446,32 @@ async function desfazerEntradaNotaFis(id) {
 }
 
 // ---------------------------------------------------------------- pagamento na emissão
-// Forma + nº de parcelas mensais (0 = à vista). Vai na nota (NF-e: fatura/duplicatas; NFS-e: no texto) e,
-// autorizada, vira as faturas a receber do Financeiro. Vencimentos calculados no dia da emissão.
-const FORMAS_EMISSAO_FIS = [['15', 'Boleto'], ['17', 'PIX'], ['18', 'Transferência bancária'], ['16', 'Depósito bancário'],
-    ['03', 'Cartão de crédito'], ['04', 'Cartão de débito'], ['01', 'Dinheiro'], ['14', 'Duplicata mercantil'], ['90', 'Sem pagamento (remessa, comodato, devolução…)']]
-
+// Condição de pagamento (js/condicao_pagamento.js): vem do pedido (que vem da empresa do cliente). Vai na
+// nota (NF-e: fatura/duplicatas; NFS-e: no texto) e, autorizada, vira as faturas a receber do Financeiro.
+// Vencimentos pela emissão calculados no dia em que a nota sai; datas fixas valem como estão.
 function blocoPagamentoFis(numero, pagamento = {}) {
     return `
         <fieldset class="fis-passo" data-pagamento-emissao>
             <legend><span class="fis-num-passo">${numero}</span> Pagamento <small>— sai na nota e vira as faturas a receber</small></legend>
-            <div class="fis-grade">
-                ${campoFis('Forma *', `<select class="fis-input" name="pag_forma" onchange="previaPagamentoFis(this)"><option value="">Selecione</option>${opcoesFis(FORMAS_EMISSAO_FIS, pagamento.forma ?? '')}</select>`)}
-                ${campoFis('Parcelas mensais <small>(0 = à vista)</small>', inputFis('pag_parcelas', pagamento.parcelas ?? 1, 'type="number" min="0" max="60" step="1" oninput="previaPagamentoFis(this)"'))}
-            </div>
-            <small class="fis-dica" data-previa-pagamento></small>
+            ${htmlCondicaoPag(Object.keys(pagamento || {}).length ? pagamento : null)}
         </fieldset>`
 }
 
 function previaPagamentoFis(el) {
-    const caixa = el.closest('[data-pagamento-emissao]')
-    if (!caixa) return
-    const forma = caixa.querySelector('[name="pag_forma"]').value
-    const n = Math.floor(Number(caixa.querySelector('[name="pag_parcelas"]').value) || 0)
-    caixa.querySelector('[name="pag_parcelas"]').disabled = forma === '90'
-    const alvo = caixa.querySelector('[data-previa-pagamento]')
-    if (!forma) { alvo.textContent = 'Escolha a forma de pagamento.'; return }
-    if (forma === '90') { alvo.textContent = 'Nota sem cobrança: não gera conta a receber.'; return }
-    if (!n) { alvo.textContent = 'À vista: uma conta a receber na data da emissão.'; return }
-    const hoje = new Date().toLocaleDateString('en-CA')
-    alvo.textContent = `${n}x mensais. Se emitir hoje: ${Array.from({ length: Math.min(n, 6) }, (_, i) => dataFin(somaMesesFin(hoje, i + 1))).join(', ')}${n > 6 ? '…' : ''} (calculado no dia da emissão).`
+    iniciarCondicoesPag(el?.closest?.('[data-pagamento-emissao]') || document)
 }
 
 function lerPagamentoFis(form) {
-    const forma = form.querySelector('[name="pag_forma"]')?.value
-    if (!forma) return undefined
-    return { forma, parcelas: forma === '90' ? 0 : Math.max(0, Math.floor(Number(form.querySelector('[name="pag_parcelas"]').value) || 0)) }
+    const caixa = form.querySelector('[data-pagamento-emissao] [data-condicao-pag]')
+    if (!caixa) return undefined
+    const { condicao } = lerCondicaoPag(caixa)
+    return condicao?.forma ? condicao : undefined
+}
+
+// Problemas da condição na tela (sem forma é tratado à parte em salvarEmissaoFis).
+function errosPagamentoFis(form) {
+    const caixa = form.querySelector('[data-pagamento-emissao] [data-condicao-pag]')
+    return caixa ? lerCondicaoPag(caixa).erros.filter(e => !/forma de pagamento/i.test(e)) : []
 }
 
 function historicoFiscal(d) {
@@ -1078,8 +1069,9 @@ async function formularioEmissaoNFe(inicial = {}) {
                 <legend><span class="fis-num-passo">4</span> Transporte <small>— ${inicial.fluxo_item ? 'transportadora e volumes obrigatórios na separação' : 'o valor do frete fica para o envio (Logística)'}</small></legend>
                 <div class="fis-grade">
                     ${campoFis('Frete por conta de', `<select class="fis-input" name="modalidade_frete">${opcoesFis([['9', 'Sem frete'], ['0', 'Emitente (CIF)'], ['1', 'Destinatário (FOB)'], ['2', 'Terceiros']], o.modalidade_frete ?? (inicial.fluxo_item ? '0' : '9'))}</select>`)}
-                    ${campoFis(`Transportadora${inicial.fluxo_item ? ' *' : ''}`, `<select class="fis-input" name="transportadora">
+                    ${campoFis(`Transportadora${inicial.fluxo_item ? ' *' : ''}`, `<select class="fis-input" name="transportadora" onchange="trocarTransportadoraNFe(this)">
                         <option value="">Selecione</option>
+                        ${inicial.fluxo_item ? `<option value="SEM_TRANSPORTE" ${o.sem_transporte ? 'selected' : ''}>SEM TRANSPORTE</option>` : ''}
                         ${(op.transportadoras || []).map(t => `<option value="${escFis(t.id)}" ${String(o.transportador?.id || '') === String(t.id) ? 'selected' : ''}>${escFis(t.razao_social || t.nome)}${t.cnpj ? ` · ${escFis(docFormatadoFis(t.cnpj))}` : ''}</option>`).join('')}
                     </select>`, 'fis-largo')}
                     ${campoFis(`Volumes${inicial.fluxo_item ? ' *' : ''}`, inputFis('volumes', o.volumes || '', 'type="number" min="1" step="1" inputmode="numeric"'))}
@@ -1131,6 +1123,16 @@ async function formularioEmissaoNFe(inicial = {}) {
         form.querySelectorAll('.fis-passo, [data-previa]').forEach(el => {
             if (!el.querySelector('[name="transportadora"]')) el.style.display = 'none'
         })
+    agendarPreviaFis()
+}
+
+// Separação "SEM TRANSPORTE": a nota sai sem transportadora e com frete "Sem frete" (9).
+// Voltando para uma transportadora, o frete não pode ficar em "Sem frete": volta para Emitente (CIF).
+function trocarTransportadoraNFe(select) {
+    const frete = select.form?.querySelector('[name="modalidade_frete"]') || select.closest('[data-form-nfe]')?.querySelector('[name="modalidade_frete"]')
+    if (!frete) return
+    if (select.value === 'SEM_TRANSPORTE') frete.value = '9'
+    else if (select.value && frete.value === '9') frete.value = '0'
     agendarPreviaFis()
 }
 
@@ -1247,6 +1249,7 @@ function lerEmissaoNFe(form) {
         }
     }).filter(i => i.descricao || i.item_id)
     const transportadora = (opcoesEmissaoFiscal?.transportadoras || []).find(t => String(t.id) === v('transportadora'))
+    const semTransporte = v('transportadora') === 'SEM_TRANSPORTE'
     const rateio = lerRateioFis(form)
     return {
         modelo: 'NFE',
@@ -1255,7 +1258,8 @@ function lerEmissaoNFe(form) {
         destinatario: lerDestinatarioFis(form),
         itens,
         opcoes: {
-            modalidade_frete: v('modalidade_frete'),
+            modalidade_frete: semTransporte ? '9' : v('modalidade_frete'),
+            sem_transporte: semTransporte || undefined,
             consumidor_final: v('consumidor_final') === '' ? undefined : v('consumidor_final'),
             referenciadas: v('referenciadas').split(/\s+/).map(soDigFis).filter(Boolean),
             informacoes_complementares: v('informacoes_complementares'),
@@ -1529,7 +1533,8 @@ async function salvarEmissaoFis(emitir, botao) {
     if (entrada.modelo === 'NFE') {
         const o = entrada.opcoes || {}
         const faltas = []
-        if (form.dataset.fluxoItem && !o.transportador) faltas.push('Escolha a transportadora.')
+        faltas.push(...errosPagamentoFis(form).map(e => `Pagamento: ${e}`))
+        if (form.dataset.fluxoItem && !o.transportador && !o.sem_transporte) faltas.push('Escolha a transportadora (ou "SEM TRANSPORTE").')
         if (form.dataset.fluxoItem && !(Number.isInteger(o.volumes) && o.volumes >= 1)) faltas.push('Informe os volumes (número inteiro, a partir de 1).')
         if (o.transportador && String(o.modalidade_frete) === '9') faltas.push('Com transportadora, escolha por conta de quem é o frete (não pode ser "Sem frete").')
         const rateio = entrada.rateio || []

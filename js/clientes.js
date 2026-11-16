@@ -568,12 +568,46 @@ function iniciaisCliente(nome = '') {
 }
 
 // Foto do cliente ou, sem foto (ou foto quebrada), círculo com as iniciais no lugar do logo.
-function avatarCliente({ foto, nome }) {
+function avatarCliente({ foto, nome, empresa }) {
     const iniciais = `<span class="cliente-foto cliente-iniciais" ${foto ? 'hidden' : ''} aria-hidden="true">${escaparAtributo(iniciaisCliente(nome))}</span>`
+    // Sem foto própria: a da empresa, se houver (preencherFotosEmpresaCliente troca as iniciais por ela).
+    if (!foto && empresa) return `<img class="cliente-foto" data-foto-empresa="${escaparAtributo(empresa)}" hidden alt="" title="Foto da empresa"
+        onerror="this.onerror = null; this.hidden = true; this.nextElementSibling.hidden = false">${iniciais}`
     if (!foto) return iniciais
     return `<img class="cliente-foto" src="${escaparAtributo(urlFotoCliente(foto))}" alt="" loading="lazy"
         onerror="this.onerror = null; this.hidden = true; this.nextElementSibling.hidden = false">${iniciais}`
 }
+
+// Foto da empresa (cadastro em Categorias de Formulário > Empresas): cliente sem foto própria mostra a
+// da empresa a que está vinculado. Lida uma vez por sessão; o avatar da lista é preenchido depois.
+let fotosEmpresasCliente = null
+
+function carregarFotosEmpresasCliente() {
+    fotosEmpresasCliente ??= pesquisarDB({ base: 'empresas', limite: 500 })
+        .then(r => new Map((r?.resultados || []).filter(e => e.foto).map(e => [String(e.id), e.foto])))
+        .catch(() => { fotosEmpresasCliente = null; return new Map() })
+    return fotosEmpresasCliente
+}
+
+function preencherFotosEmpresaCliente(raiz) {
+    const imagens = [...(raiz.querySelectorAll?.('img[data-foto-empresa]:not([data-foto-empresa-lida])') || [])]
+    if (!imagens.length) return
+    carregarFotosEmpresasCliente().then(mapa => {
+        for (const img of imagens) {
+            img.dataset.fotoEmpresaLida = 'sim'
+            const foto = mapa.get(img.dataset.fotoEmpresa)
+            if (!foto) continue
+            img.onload = () => { img.hidden = false; if (img.nextElementSibling) img.nextElementSibling.hidden = true }
+            img.src = urlFotoCliente(foto)
+        }
+    })
+}
+
+new MutationObserver(mutacoes => {
+    for (const mutacao of mutacoes)
+        for (const no of mutacao.addedNodes)
+            if (no.nodeType === Node.ELEMENT_NODE) preencherFotosEmpresaCliente(no)
+}).observe(document.documentElement, { childList: true, subtree: true })
 
 function urlFotoCliente(foto) {
     if (!foto) return logo
@@ -598,6 +632,7 @@ function criarLinhaClienteGCS(cliente) {
         tags,
         comentario,
         cadastrais,
+        empresa,
         ids,
         desligado,
         razao_social,
@@ -646,7 +681,7 @@ function criarLinhaClienteGCS(cliente) {
         <td><button type="button" title="Abrir cadastro" aria-label="Abrir cadastro"
             data-cliente="${escaparAtributo(id)}" onclick="formularioCliente(Number(this.dataset.cliente))"
             style="padding: 0; border: none; background: transparent; cursor: pointer;">
-            ${avatarCliente({ foto, nome })}
+            ${avatarCliente({ foto, nome, empresa })}
         </button></td>
 
         <td>
@@ -800,8 +835,8 @@ async function formularioCliente(idCliente) {
             </label>`)
         .join('')
 
-    const { nome: nomeEmpresa } = empresa
-        ? await recuperarDado('empresas', empresa)
+    const { nome: nomeEmpresa, foto: fotoEmpresa } = empresa
+        ? await recuperarDado('empresas', empresa) || {}
         : {}
 
     controlesCxOpcoes.empresa = {
@@ -845,9 +880,10 @@ async function formularioCliente(idCliente) {
             elemento: `<div data-foto-cliente class="${foto ? 'tem-foto' : ''}" style="${vertical}; align-items: center; width: 100%; gap: 8px;">
                 <button type="button" class="cliente-foto-escolher" title="Clique para trocar a foto" aria-label="Escolher foto do cliente"
                     onclick="this.closest('[data-foto-cliente]').querySelector('[name=arquivo_foto]').click()">
-                    <img class="cliente-foto" src="${escaparAtributo(urlFotoCliente(foto))}" alt=""
+                    <img class="cliente-foto" src="${escaparAtributo(urlFotoCliente(foto || fotoEmpresa))}" alt=""
                         onerror="if (this.src !== logo) this.src = logo; this.closest('[data-foto-cliente]').classList.remove('tem-foto')">
                 </button>
+                ${!foto && fotoEmpresa ? `<small class="cliente-foto-empresa-aviso">Foto da empresa ${escaparAtributo(nomeEmpresa || '')} (o cliente não tem foto própria)</small>` : ''}
                 <input type="hidden" name="foto" value="${escaparAtributo(foto || '')}">
                 <input type="file" name="arquivo_foto" accept="image/*" hidden onchange="previaFotoCliente(this)">
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">

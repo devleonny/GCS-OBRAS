@@ -1136,7 +1136,8 @@ async function painelClientes(idOrcamento = null) {
         email_analista,
         telefone_analista,
         omie_cliente,
-        condicoes
+        condicoes,
+        condicao_pagamento
     } = orcamento?.dados_orcam || {}
 
     const { ate: validadeAte } = validadeOrcamento(orcamento?.dados_orcam || {})
@@ -1146,6 +1147,15 @@ async function painelClientes(idOrcamento = null) {
         recuperarDado('clientes', omie_cliente),
         recuperarDado('clientes', venda_direta)
     ])
+
+    // Ponte com o cadastro da empresa do cliente (Categorias de Formulário > Empresas): o que o orçamento
+    // ainda não tem vem de lá — empresa de faturamento e condição de pagamento (a mesma peça do pedido,
+    // js/condicao_pagamento.js). Orçamento antigo: "AC SOLUÇÕES" abre como AC e o texto da lista antiga
+    // ("3x", "30 dias") vira a condição. O limite de faturamento aparece abaixo.
+    const empresaCliente = cliente?.empresa ? await recuperarDado('empresas', cliente.empresa) || {} : {}
+    const emissorAtual = codigoEmpresaFat(emissor) || codigoEmpresaFat(empresaCliente.empresa_faturamento) || 'AC'
+    const condicaoOrcamento = normalizarCondicaoPag(condicao_pagamento) || normalizarCondicaoPag(condicoes)
+        || normalizarCondicaoPag(empresaCliente.condicao_pagamento)
 
     const botoes = [
         {
@@ -1254,14 +1264,6 @@ async function painelClientes(idOrcamento = null) {
                 name="venda_direta">${clienteVendaDireta?.nome || 'Selecionar'}</span>`
         },
         {
-            texto: 'Condições de Pagamento',
-            elemento: `
-            <select id="condicoes">
-                ${parcelas.map(op => `<option ${condicoes == op ? 'selected' : ''}>${op}</option>`).join('')}
-            </select>
-            `
-        },
-        {
             texto: 'Tipo de Frete',
             elemento: `
             <select id="tipo_de_frete">
@@ -1325,9 +1327,17 @@ async function painelClientes(idOrcamento = null) {
             texto: 'Empresa',
             elemento: `
                 <select id="emissor">
-                    ${['AC SOLUÇÕES', 'IAC', 'HNW', 'HNK'].map(op => `<option ${emissor == op ? 'selected' : ''}>${op}</option>`).join('')}
+                    ${EMPRESAS_FATURAMENTO.map(([v, t]) => `<option value="${v}" ${emissorAtual == v ? 'selected' : ''}>${t}</option>`).join('')}
                 </select>
             `
+        },
+        {
+            texto: 'Condição de pagamento',
+            elemento: `<div id="condicao_orcamento" style="width: 100%;">${htmlCondicaoPag(condicaoOrcamento)}</div>`
+        },
+        {
+            texto: 'Limite de faturamento',
+            elemento: `<span id="limite_faturamento_info">${infoFaturamentoEmpresa(empresaCliente)}</span>`
         }
     ]
 
@@ -1347,6 +1357,7 @@ async function painelClientes(idOrcamento = null) {
 
     const identificacao = contrato && contrato !== 'sequencial' ? ` · ${contrato}` : ''
     popup({ linhas, botoes, titulo: `Dados do Cliente${identificacao}`, autoDestruicao: ['cliente', 'tecnico'] })
+    iniciarCondicoesPag(document.getElementById('condicao_orcamento'))
     const painelDados = document.getElementById('emissor')?.closest('.painel-padrao')
     if (painelDados) painelDados.dataset.orcamento = idOrcParaTag
 
@@ -1372,6 +1383,13 @@ function toggleVendaDireta() {
 
 }
 
+// Texto do limite de faturamento do cadastro da empresa do cliente (vazio: "sem limite").
+function infoFaturamentoEmpresa(empresa) {
+    const limite = textoLimiteFaturamento(empresa?.limite_faturamento_dia)
+    if (!empresa?.nome) return '<small style="color: #6b7a71;">Cliente sem empresa vinculada</small>'
+    return `${limite ? escaparAtributo(limite) : 'Sem limite'} <small style="color: #6b7a71;">(${escaparAtributo(empresa.nome)})</small>`
+}
+
 async function buscarDadosCliente() {
     const clienteName = document.querySelector('[name="cliente"]')
     if (!clienteName) return
@@ -1384,6 +1402,20 @@ async function buscarDadosCliente() {
         const el = document.getElementById(campo)
         if (el) el.textContent = cliente?.[campo] || ''
     }
+
+    // Cliente escolhido: empresa de faturamento, condição de pagamento e limite vêm do cadastro da empresa dele.
+    const empresaCliente = cliente?.empresa ? await recuperarDado('empresas', cliente.empresa) || {} : {}
+    const emissorEmpresa = codigoEmpresaFat(empresaCliente.empresa_faturamento)
+    const selectEmissor = document.getElementById('emissor')
+    if (selectEmissor && emissorEmpresa) selectEmissor.value = emissorEmpresa
+    const condicaoEmpresa = normalizarCondicaoPag(empresaCliente.condicao_pagamento)
+    const caixaCondicao = document.getElementById('condicao_orcamento')
+    if (caixaCondicao && condicaoEmpresa) {
+        caixaCondicao.innerHTML = htmlCondicaoPag(condicaoEmpresa)
+        iniciarCondicoesPag(caixaCondicao)
+    }
+    const infoLimite = document.getElementById('limite_faturamento_info')
+    if (infoLimite) infoLimite.innerHTML = infoFaturamentoEmpresa(empresaCliente)
 
     // O orçamento é o do formulário aberto (data-orcamento), não o último que alguém tentou abrir.
     const idOrcamento = document.getElementById('emissor')?.closest('.painel-padrao')?.dataset.orcamento
@@ -1493,6 +1525,11 @@ async function salvarDadosCliente(idOrcamento) {
         if (tecnico.length == 0 && ['LPU PEÇAS', 'LPU FERRAMENTAS'].includes(orcamentoBase.lpu_ativa))
             return popup({ mensagem: 'LPU PEÇAS & FERRAMENTAS > O campo técnico não fica em branco!' })
 
+        // Condição de pagamento (mesma peça do pedido): "condicoes" guarda o texto (PDF e telas antigas).
+        const { condicao: condicao_pagamento, erros: errosCondicao } = lerCondicaoPag(document.querySelector('#condicao_orcamento [data-condicao-pag]'))
+        if (errosCondicao.length)
+            return popup({ mensagem: `Condição de pagamento: ${errosCondicao[0]}` })
+
         // Antes de "data" ser sobrescrita: orçamento antigo usa a última data gravada como registro.
         garantirValidadeOrcamento(orcamentoBase.dados_orcam ??= {})
 
@@ -1500,7 +1537,8 @@ async function salvarDadosCliente(idOrcamento) {
             ...orcamentoBase.dados_orcam,
             omie_cliente,
             venda_direta,
-            condicoes: el('condicoes').value,
+            condicoes: resumoCondicaoPag(condicao_pagamento),
+            condicao_pagamento,
             consideracoes: String(el('consideracoes').value).toUpperCase(),
             data: dataServidor().toLocaleString('pt-BR'),
             garantia: el('garantia').value,
