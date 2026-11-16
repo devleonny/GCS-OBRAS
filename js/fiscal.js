@@ -1071,7 +1071,7 @@ async function formularioEmissaoNFe(inicial = {}) {
                     ${campoFis('Frete por conta de', `<select class="fis-input" name="modalidade_frete">${opcoesFis([['9', 'Sem frete'], ['0', 'Emitente (CIF)'], ['1', 'Destinatário (FOB)'], ['2', 'Terceiros']], o.modalidade_frete ?? (inicial.fluxo_item ? '0' : '9'))}</select>`)}
                     ${campoFis(`Transportadora${inicial.fluxo_item ? ' *' : ''}`, `<select class="fis-input" name="transportadora" onchange="trocarTransportadoraNFe(this)">
                         <option value="">Selecione</option>
-                        ${inicial.fluxo_item ? `<option value="SEM_TRANSPORTE" ${o.sem_transporte ? 'selected' : ''}>SEM TRANSPORTE</option>` : ''}
+                        <option value="SEM_TRANSPORTE" ${o.sem_transporte ? 'selected' : ''}>SEM TRANSPORTE</option>
                         ${(op.transportadoras || []).map(t => `<option value="${escFis(t.id)}" ${String(o.transportador?.id || '') === String(t.id) ? 'selected' : ''}>${escFis(t.razao_social || t.nome)}${t.cnpj ? ` · ${escFis(docFormatadoFis(t.cnpj))}` : ''}</option>`).join('')}
                     </select>`, 'fis-largo')}
                     ${campoFis(`Volumes${inicial.fluxo_item ? ' *' : ''}`, inputFis('volumes', o.volumes || '', 'type="number" min="1" step="1" inputmode="numeric"'))}
