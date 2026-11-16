@@ -829,21 +829,28 @@ async function novoVeiculo(idVeiculo) {
 
 function confirmarExcluirVeiculo(idVeiculo) {
 
+    // Fecha só a confirmação e o "Gerenciar Veículo" (a janela de onde veio o clique),
+    // sem derrubar as outras janelas abertas.
+    const popups = [...document.querySelectorAll('.popup')]
+    const idFormulario = popups[popups.length - 1]?.id || ''
+
     const botoes = [
         {
             fechar: true,
             texto: 'Confirmar',
             img: 'concluido',
-            funcao: `excluirVeiculo('${idVeiculo}')`
+            funcao: `excluirVeiculo('${idVeiculo}', '${idFormulario}')`
         }
     ]
 
-    popup({ mensagem: 'Excluir Veículo', botoes, removerAnteriores: true })
+    popup({ mensagem: 'Excluir Veículo', botoes })
 }
 
-async function excluirVeiculo(idVeiculo) {
+async function excluirVeiculo(idVeiculo, idFormulario) {
 
     await deletar(`veiculos/${idVeiculo}`)
+
+    if (idFormulario) removerPopup(idFormulario)
 
 }
 

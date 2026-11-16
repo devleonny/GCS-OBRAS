@@ -348,6 +348,10 @@ async function executarAtualizacaoWS() {
         if ((tabelas.has('dados_composicoes') || atualizarTodas) && typeof recarregarPrecosVencidos === 'function')
             tarefas.push(() => recarregarPrecosVencidos())
 
+        // Foto da empresa trocada: avatares dos clientes sem foto própria se atualizam (js/clientes.js).
+        if ((atualizarTodas || tabelas.has('empresas')) && typeof atualizarFotosEmpresasCliente === 'function')
+            tarefas.push(() => atualizarFotosEmpresasCliente())
+
         if (tabelas.has('colaboradores') || tabelas.has('requisicoes'))
             tarefas.push(() => atualizarColaboradoresWS())
 

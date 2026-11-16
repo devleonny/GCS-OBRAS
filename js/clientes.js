@@ -603,6 +603,32 @@ function preencherFotosEmpresaCliente(raiz) {
     })
 }
 
+// Empresa salva (por qualquer pessoa; aviso "empresas" do websocket ou o próprio salvar do cadastro):
+// relê as fotos e troca na hora os avatares já desenhados (foto nova, trocada ou removida → iniciais).
+function atualizarFotosEmpresasCliente() {
+    fotosEmpresasCliente = null
+    const imagens = [...document.querySelectorAll('img[data-foto-empresa]')]
+    if (!imagens.length) return
+    carregarFotosEmpresasCliente().then(mapa => {
+        for (const img of imagens) {
+            img.dataset.fotoEmpresaLida = 'sim'
+            const foto = mapa.get(img.dataset.fotoEmpresa)
+            const iniciais = img.nextElementSibling
+            if (!foto) {
+                img.hidden = true
+                img.removeAttribute('src')
+                if (iniciais) iniciais.hidden = false
+                continue
+            }
+            const url = urlFotoCliente(foto)
+            if (img.getAttribute('src') === url) continue
+            img.onload = () => { img.hidden = false; if (iniciais) iniciais.hidden = true }
+            img.onerror = () => { img.hidden = true; if (iniciais) iniciais.hidden = false }
+            img.src = url
+        }
+    })
+}
+
 new MutationObserver(mutacoes => {
     for (const mutacao of mutacoes)
         for (const no of mutacao.addedNodes)

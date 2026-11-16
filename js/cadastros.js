@@ -284,4 +284,8 @@ async function salvarNomeAuxiliar(nomeBase, id = crypto.randomUUID()) {
 
     removerPopup()
 
+    // Foto da empresa: a lista de clientes aberta troca os avatares sem esperar o aviso do websocket.
+    if (basesCadastro[nomeBase]?.completo && typeof atualizarFotosEmpresasCliente === 'function')
+        atualizarFotosEmpresasCliente()
+
 }
