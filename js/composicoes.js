@@ -142,15 +142,15 @@ async function criarLinhaComposicao(produto) {
         .map(lpu => {
             const tabela = produto[lpu] || {}
             const cotacao = tabela?.historico?.[tabela?.ativo] || {}
-            return { lpu, valor: Number(conversor(cotacao.valor || 0)) || 0, data: cotacao.data, validade: validades[lpu] }
+            return { lpu, valor: Number(conversor(cotacao.valor || 0)) || 0, data: cotacao.data, validade: validades[lpu], gerada: tabela?.gerada }
         })
         .sort((a, b) => (b.valor > 0) - (a.valor > 0))
 
     const comPreco = precosLPU.filter(p => p.valor > 0).length
 
     const cartoesLPU = precosLPU
-        .map(({ lpu, valor, data, validade }) => {
-            const nome = String(lpu).replace(/^lpu\s+/i, '').toUpperCase()
+        .map(({ lpu, valor, data, validade, gerada }) => {
+            const nome = `${gerada ? '🔒 ' : ''}${String(lpu).replace(/^lpu\s+/i, '').toUpperCase()}`
             const vencido = valor > 0 && validade && validade < hojeISO
             const rodape = valor > 0
                 ? `${data ? String(data).split(',')[0] : ''}${vencido ? ' <b class="composicao-lpu-vencido">vencido</b>' : ''}`
@@ -162,7 +162,7 @@ async function criarLinhaComposicao(produto) {
             const classe = `composicao-lpu${valor > 0 ? '' : ' sem-valor'}${vencido ? ' vencido' : ''}`
 
             return podeEditar
-                ? `<button type="button" class="${classe}" title="Ver histórico de preços" onclick="abrirHistoricoPrecos('${id}', '${lpu}')">${conteudo}</button>`
+                ? `<button type="button" class="${classe}" title="${gerada ? escaparAtributo(descreverLpuDerivada(lpu, gerada)) : 'Ver histórico de preços'}" onclick="abrirHistoricoPrecos('${id}', '${lpu}')">${conteudo}</button>`
                 : `<div class="${classe}">${conteudo}</div>`
         }).join('')
 
@@ -244,6 +244,16 @@ function fecharPopupsHistoricoPrecos() {
     removerOverlay()
 }
 
+// gerada = { base: 'LPU HOPE', fator: 1.1 } (servidor) ou true (marca antiga).
+function descreverLpuDerivada(lpu, gerada) {
+    const nome = String(lpu).toUpperCase()
+    const fator = Number(gerada?.fator)
+    if (!gerada?.base || !Number.isFinite(fator))
+        return `${nome} é calculada automaticamente e não aceita preço manual.`
+    const pct = Math.round((fator - 1) * 10000) / 100
+    return `${nome} é calculada a partir da ${gerada.base} (${pct >= 0 ? '+' : ''}${String(pct).replace('.', ',')}%) e não aceita preço manual.`
+}
+
 async function abrirHistoricoPrecos(codigo, tabela) {
 
     overlayAguarde()
@@ -257,10 +267,11 @@ async function abrirHistoricoPrecos(codigo, tabela) {
     const produto = await recuperarDado('dados_composicoes', codigo) || {}
     const linhas = []
 
+    // LPU derivada (o servidor calcula a partir da base e recusa preço manual).
     const gerada = produto?.[tabela]?.gerada
 
     if (gerada)
-        return popup({ mensagem: 'Esta coluna é automática e por isso não é editável!' })
+        return popup({ mensagem: descreverLpuDerivada(tabela, gerada) })
 
     for (const [id, cotacao] of Object.entries(produto?.[tabela]?.historico || {})) {
 
