@@ -110,7 +110,9 @@ async function contadoresFiscal() {
     const alvo = document.querySelector('[data-cartoes-recebidas], [data-cartoes-emitidas]')
     if (!alvo) return
     try {
-        const { contadores: c } = await apiFiscal('painel')
+        const { contadores: todos } = await apiFiscal('painel')
+        // Telas presas a um modelo (NF-e ou NFS-e Emitidas) contam só os documentos daquele modelo.
+        const c = (alvo.dataset.cartoesEmitidas !== undefined && modeloEmitidasFis && todos.saida_por_modelo?.[modeloEmitidasFis]) || todos
         const cartao = (n, texto, cor, acao) => `
             <button type="button" class="fis-cartao" style="--cor: ${cor}" ${acao ? `onclick="${acao}"` : 'disabled'}>
                 <b>${n || 0}</b><span>${texto}</span></button>`
@@ -681,18 +683,18 @@ async function telaNotasEmitidas(modelo = null) {
 }
 
 async function abrirTabelaEmitidas(filtroExtra = null) {
-    // fiscal_documentos.modelo é sempre NFE, NFSE, CTE ou NFCE (CHECK no banco).
+    // vw_fiscal_emitidas: notas de saída do GCS + notas emitidas pelo Omie (fonte OMIE; serviço = NFSE).
     const filtroModelo = modeloEmitidasFis ? { modelo: { op: '=', value: modeloEmitidasFis } } : {}
     try {
         delete controles.notasEmitidas
         document.querySelector('.fis-conteudo').innerHTML = await modTab({
-            base: 'vw_fiscal_documentos',
+            base: 'vw_fiscal_emitidas',
             pag: 'notasEmitidas',
             body: 'bodyNotasEmitidas',
             criarLinha: 'criarLinhaNotaEmitida',
             topoEmLinha: true,
             caber: true,
-            filtrosFixos: { direcao: { op: '=', value: 'saida' }, ...filtroModelo, ...(filtroExtra || {}) },
+            filtrosFixos: { ...filtroModelo, ...(filtroExtra || {}) },
             btnExtras: `
                 <div class="fis-acoes">
                     ${modeloEmitidasFis !== 'NFSE' && !PERFIS_SO_CONSULTA_FIS.includes(acesso?.permissao) ? '<button type="button" onclick="formularioEmissaoNFe()">+ NF-e</button>' : ''}
@@ -725,7 +727,9 @@ async function abrirTabelaEmitidas(filtroExtra = null) {
 function criarLinhaNotaEmitida(d) {
     return `
         <tr>
-            <td class="fis-acoes-linha"><img src="imagens/pesquisar.svg" title="Abrir" onclick="abrirDocumentoFiscal('${escFis(d.id)}')"></td>
+            <td class="fis-acoes-linha">${d.fonte === 'OMIE'
+                ? `<img src="imagens/pesquisar.svg" title="Nota emitida pelo Omie: abrir o PDF" onclick="abrirDANFE('${escFis(d.id)}')">`
+                : `<img src="imagens/pesquisar.svg" title="Abrir" onclick="abrirDocumentoFiscal('${escFis(d.id)}')">`}</td>
             <td>${dataFis(d.emissao || d.criado_em)}</td>
             <td>${escFis(d.app)}</td>
             ${modeloEmitidasFis ? '' : `<td>${d.modelo === 'NFSE' ? 'NFS-e' : 'NF-e'}</td>`}
@@ -735,7 +739,7 @@ function criarLinhaNotaEmitida(d) {
             <td class="fis-num">${d.valor_total != null ? dinheiro(d.valor_total) : ''}</td>
             <td>${etiquetaFis(STATUS_FISCAL, d.status)}</td>
             <td>${etiquetaFis(ESTOQUE_FISCAL, d.estoque_status)}</td>
-            <td>${d.ambiente === 'homologacao' ? etiquetaEst('Homologação', '#d97706') : d.ambiente === 'producao' ? etiquetaEst('Produção', '#15803d') : escFis(d.ambiente || '')}</td>
+            <td>${d.ambiente === 'homologacao' ? etiquetaEst('Homologação', '#d97706') : d.ambiente === 'producao' ? etiquetaEst('Produção', '#15803d') : d.ambiente === 'omie' ? etiquetaEst('Omie', '#7c3aed') : escFis(d.ambiente || '')}</td>
         </tr>`
 }
 
