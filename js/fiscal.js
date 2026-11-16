@@ -702,8 +702,8 @@ async function abrirTabelaEmitidas(filtroExtra = null) {
             filtrosFixos: { direcao: { op: '=', value: 'saida' }, ...filtroModelo, ...(filtroExtra || {}) },
             btnExtras: `
                 <div class="fis-acoes">
-                    ${modeloEmitidasFis !== 'NFSE' ? '<button type="button" onclick="formularioEmissaoNFe()">+ NF-e</button>' : ''}
-                    ${modeloEmitidasFis !== 'NFE' ? '<button type="button" onclick="formularioEmissaoNFSe()">+ NFS-e</button>' : ''}
+                    ${modeloEmitidasFis !== 'NFSE' && acesso?.permissao !== 'log' ? '<button type="button" onclick="formularioEmissaoNFe()">+ NF-e</button>' : ''}
+                    ${modeloEmitidasFis !== 'NFE' && acesso?.permissao !== 'log' ? '<button type="button" onclick="formularioEmissaoNFSe()">+ NFS-e</button>' : ''}
                     ${filtroExtra ? '<button type="button" onclick="abrirTabelaEmitidas()">Limpar filtro</button>' : ''}
                 </div>`,
             ordenar: [{ path: 'criado_em', direcao: 'desc' }],
@@ -751,7 +751,10 @@ function criarLinhaNotaEmitida(d) {
 function htmlNotaEmitida({ documento: d, itens, movimentos }, contexto = null) {
     const entrada = d.payload?.entrada || {}
     const o = entrada.opcoes || {}
-    const editavel = ['RASCUNHO', 'REJEITADA'].includes(d.status)
+    // Acesso log: só consulta (DANFE, XML, espelho, situação, histórico). O transporte da separação ele
+    // ajusta pelo menu ⋮ do cartão ("Editar NF-e"), que abre o formulário travado.
+    const soConsulta = acesso?.permissao === 'log'
+    const editavel = !soConsulta && ['RASCUNHO', 'REJEITADA'].includes(d.status)
     const nfse = d.modelo === 'NFSE'
     const t = d.valor_impostos || {}
     const impostos = nfse
@@ -801,9 +804,9 @@ function htmlNotaEmitida({ documento: d, itens, movimentos }, contexto = null) {
                 ${!nfse && d.status !== 'AUTORIZADA' && entrada.itens ? botao('Espelho', `espelhoNotaItemFluxo('${escFis(d.id)}')`) : ''}
                 ${d.status === 'PROCESSANDO' || d.status === 'AUTORIZADA' ? botao('Atualizar situação', `consultarDocumentoFiscal('${escFis(d.id)}')`) : ''}
                 ${contexto?.item?.orcamento_id ? botao('Histórico do Orçamento', `abrirEsquema('${escFis(contexto.item.orcamento_id)}')`) : /^ORC_/.test(orc) ? botao('Histórico do Orçamento', `abrirEsquemaPorContratoFis('${escFis(orc)}')`) : ''}
-                ${!editavel ? botao('Duplicar', `duplicarDocumentoFiscal('${escFis(d.id)}')`) : ''}
+                ${!editavel && !soConsulta ? botao('Duplicar', `duplicarDocumentoFiscal('${escFis(d.id)}')`) : ''}
                 <span class="fis-separador"></span>
-                ${d.status === 'AUTORIZADA' ? botao('Cancelar nota', `cancelarDocumentoFiscal('${escFis(d.id)}')`) : ''}
+                ${d.status === 'AUTORIZADA' && !soConsulta ? botao('Cancelar nota', `cancelarDocumentoFiscal('${escFis(d.id)}')`) : ''}
                 ${editavel ? botao('Excluir rascunho', `excluirRascunhoFiscal('${escFis(d.id)}')`) : ''}
             </div>
 
