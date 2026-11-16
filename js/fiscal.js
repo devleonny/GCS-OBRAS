@@ -760,7 +760,8 @@ function htmlNotaEmitida({ documento: d, itens, movimentos }, contexto = null) {
     const tom = { AUTORIZADA: 'ok', REJEITADA: 'erro', DENEGADA: 'erro', CANCELADA: 'neutro', PROCESSANDO: 'andando' }[d.status] || 'rascunho'
     const transp = o.transportador
     const infos = [o.informacoes_complementares, o.numero_pedido ? `Pedido de compra nº ${o.numero_pedido}.` : ''].filter(Boolean).join(' ')
-    const orc = String(d.orcamento || '')
+    // Sem ORC gravado na nota (rascunho antigo editado fora do kanban): o do item do fluxo, se houver.
+    const orc = String(d.orcamento || contexto?.item?.contrato || '')
     const botao = (texto, acao, principal = false) => `<button type="button" class="${principal ? 'fis-botao' : 'fis-mini'}" onclick="${acao}">${texto}</button>`
     const fretes = { 9: 'Sem frete', 0: 'Emitente (CIF)', 1: 'Destinatário (FOB)', 2: 'Terceiros' }
 

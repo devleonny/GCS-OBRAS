@@ -431,3 +431,39 @@
 .fluxo-chave-empresa button:hover { background: #e8efeb; color: #1f2d25; }
 .fluxo-chave-empresa button.ativo { background: #2f7d4f; color: #fff; }
 .fluxo-chave-empresa button:focus-visible { outline: 2px solid #2f7d4f; outline-offset: 1px; }
+
+/* Movimento recusado pelo servidor (js/fluxo_kanban.js moverOtimistaFluxo): o cartão volta e pisca em vermelho. */
+.fluxo-cartao.fluxo-item.recusado { animation: fluxo-recusado 0.5s ease-in-out 3; border-left-color: #d63a3a; }
+@keyframes fluxo-recusado {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(214, 58, 58, 0); }
+    50% { box-shadow: 0 0 0 3px rgba(214, 58, 58, 0.45); }
+}
+
+/* Legenda da cor dos cartões (quadro novo), no espaço entre o título e os filtros. Mesmas cores da lateral. */
+.fluxo-legenda {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 18px;
+    margin-right: auto;
+    padding: 6px 14px;
+    color: #3d4b43;
+    font-size: 12.5px;
+}
+.fluxo-legenda span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+/* Bolinha como a da legenda do RH: anel branco e contorno fino. */
+.fluxo-bolinha { display: inline-block; flex-shrink: 0; width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 0 2px #fff, 0 0 0 3px #10201926; }
+.fluxo-bolinha.emitida { background: #2f9e44; }
+.fluxo-bolinha.cancelada { background: #d63a3a; }
+.fluxo-bolinha.sem-nota { background: #2f6fdc; }
+
+/* Fluxo de Serviços (quadro antigo) com a lateral do Fluxo de Vendas: 4px, azul sem nota, verde com nota
+   (vale também parado e na coluna final, como no quadro novo). */
+.fluxo-cartao.fluxo-cor-nota,
+.fluxo-cartao.fluxo-cor-nota.parado,
+.fluxo-coluna.final .fluxo-cartao.fluxo-cor-nota,
+.fluxo-cartao.fluxo-cor-nota:hover { border-left: 4px solid #2f6fdc; }
+.fluxo-cartao.fluxo-cor-nota.faturada,
+.fluxo-cartao.fluxo-cor-nota.faturada.parado,
+.fluxo-coluna.final .fluxo-cartao.fluxo-cor-nota.faturada,
+.fluxo-cartao.fluxo-cor-nota.faturada:hover { border-left-color: #2f9e44; }
