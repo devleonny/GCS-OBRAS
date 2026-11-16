@@ -1040,8 +1040,16 @@ async function formularioEmissaoNFe(inicial = {}) {
     const empresas = op.empresas.filter(e => e.emite_nfe)
     const app = inicial.app || empresas.find(e => e.app === 'AC')?.app || empresas[0]?.app
     const o = inicial.opcoes || {}
+    // Kanban: "previa" = clique no cartão em Requisição (só olhar, o cartão não anda);
+    // "logistica" = separação feita pelo acesso log (só transportadora e volumes ficam abertos).
+    const trava = inicial.fluxo_item ? (inicial.previa ? 'previa' : acesso?.permissao === 'log' ? 'logistica' : '') : ''
+    const avisoTrava = {
+        previa: 'Prévia da separação: nada é salvo e o cartão continua em Requisição. Para separar, arraste o cartão para Separado.',
+        logistica: 'Acesso de logística: só a transportadora e os volumes podem ser alterados; os dados da nota e os tributários ficam travados.'
+    }[trava]
     const elemento = `
-        <div class="fis-form fis-form-emissao" data-form-nfe data-id="${escFis(inicial.id || '')}" data-fluxo-item="${escFis(inicial.fluxo_item || '')}" oninput="agendarPreviaFis()" onchange="agendarPreviaFis()">
+        <div class="fis-form fis-form-emissao" data-form-nfe data-id="${escFis(inicial.id || '')}" data-fluxo-item="${escFis(inicial.fluxo_item || '')}" data-trava="${trava}" oninput="agendarPreviaFis()" onchange="agendarPreviaFis()">
+            ${avisoTrava ? `<div class="fis-aviso fis-aviso-trava">${escFis(avisoTrava)}</div>` : ''}
             <fieldset class="fis-passo">
                 <legend><span class="fis-num-passo">1</span> Empresa e operação</legend>
                 <div class="fis-grade">
@@ -1092,10 +1100,12 @@ async function formularioEmissaoNFe(inicial = {}) {
             <div class="fis-previa" data-previa></div>
         </div>`
     popup({
-        titulo: inicial.fluxo_item ? 'Separar: dados da NF-e' : inicial.id ? 'Editar NF-e' : 'Emitir NF-e',
+        titulo: trava === 'previa' ? 'Prévia da separação' : inicial.fluxo_item ? 'Separar: dados da NF-e' : inicial.id ? 'Editar NF-e' : 'Emitir NF-e',
         linhas: [{ elemento }],
         // Aberta pelo kanban (Requisição → Separado): só salva; a emissão é o arraste para Faturado.
-        botoes: inicial.fluxo_item
+        botoes: trava === 'previa'
+            ? [{ texto: 'Espelho', img: 'pdf', funcao: 'espelhoEmissaoFis(this)' }]
+            : inicial.fluxo_item
             ? [
                 { texto: 'Espelho', img: 'pdf', funcao: 'espelhoEmissaoFis(this)' },
                 { texto: 'Salvar', img: 'salvo', funcao: 'salvarEmissaoFis(false, this)' }
@@ -1110,7 +1120,17 @@ async function formularioEmissaoNFe(inicial = {}) {
     trocarEmpresaNFe(form.querySelector('[name="app"]'), inicial.operacao_id)
     for (const item of inicial.itens?.length ? inicial.itens : [{}]) adicionarItemNFe(item)
     previaPagamentoFis(form.querySelector('[name="pag_forma"]'))
+    if (trava) travarFormNFe(form, trava === 'logistica' ? ['transportadora', 'volumes'] : [])
     agendarPreviaFis()
+}
+
+// Trava o formulário: campos só leitura (menos os liberados) e sem os botões de incluir/remover.
+// O servidor confere de novo (gcs: /fluxo-itens/logistica usa só transportadora e volumes da tela).
+function travarFormNFe(form, liberados = []) {
+    form.querySelectorAll('input:not([type="hidden"]), select, textarea').forEach(el => {
+        if (!liberados.includes(el.name)) el.disabled = true
+    })
+    form.querySelectorAll('button').forEach(b => { b.style.display = 'none' })
 }
 
 function trocarEmpresaNFe(select, operacaoInicial) {
@@ -1496,7 +1516,8 @@ async function salvarEmissaoFis(emitir, botao) {
         const faltas = []
         if (form.dataset.fluxoItem && !o.transportador) faltas.push('Escolha a transportadora.')
         if (form.dataset.fluxoItem && !(Number.isInteger(o.volumes) && o.volumes >= 1)) faltas.push('Informe os volumes (número inteiro, a partir de 1).')
-        if (o.transportador && String(o.modalidade_frete) === '9') faltas.push('Com transportadora, escolha por conta de quem é o frete (não pode ser "Sem frete").')
+        // Logística não escolhe o frete (travado): o servidor usa "Emitente" quando estiver "Sem frete".
+        if (o.transportador && String(o.modalidade_frete) === '9' && form.dataset.trava !== 'logistica') faltas.push('Com transportadora, escolha por conta de quem é o frete (não pode ser "Sem frete").')
         const rateio = entrada.rateio || []
         if (rateio.length) {
             const soma = Math.round(rateio.reduce((s, l) => s + l.percentual, 0) * 100) / 100
@@ -1505,8 +1526,17 @@ async function salvarEmissaoFis(emitir, botao) {
         }
         if (faltas.length) return popup({ mensagem: `<ul class="fis-lista-erros">${faltas.map(f => `<li>${escFis(f)}</li>`).join('')}</ul>` })
     }
+    if (form.dataset.trava === 'previa') return
     try {
         overlayAguarde()
+        // Separação pelo acesso log: o servidor monta a nota e só aproveita transportadora e volumes.
+        if (form.dataset.trava === 'logistica') {
+            const r = await apiModuloFiscal('fluxo-itens/logistica', { id: form.dataset.fluxoItem, fiscal_id: id, entrada })
+            form.dataset.id = r.id
+            removerOverlay()
+            removerPopup(botao?.closest('.popup')?.id)
+            return popup({ mensagem: 'Separação salva.', imagem: 'imagens/concluido.png', tempo: 3 })
+        }
         const r = await apiFiscal('emissao/rascunho', { id, ...entrada })
         form.dataset.id = r.id
         // Kanban (js/fluxo_kanban.js): o rascunho salvo leva o item para Separado.

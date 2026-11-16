@@ -548,6 +548,16 @@ textarea.fis-input {
     display: none;
 }
 
+/* Kanban: prévia da separação / acesso de logística (formulário travado) */
+.fis-aviso-trava {
+    margin: 0 0 10px;
+    padding: 8px 12px;
+    border-left: 4px solid #d97706;
+    border-radius: 6px;
+    background: #fff7ed;
+    color: #7c2d12;
+}
+
 .fis-item-cel {
     min-width: 16rem;
 }

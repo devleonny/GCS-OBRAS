@@ -38,6 +38,23 @@ const QUADROS_FLUXO = {
 const PERIODOS_FLUXO = [[30, 'Últimos 30 dias'], [60, 'Últimos 60 dias'], [90, 'Últimos 90 dias'], [180, 'Últimos 6 meses'], [365, 'Último ano'], [0, 'Todo o período']]
 const estadoFluxo = { quadro: 'vendas', periodo: 30, busca: '', empresa: '', linhas: [], abertos: new Set(), carregando: 0 }
 const EMPRESAS_FLUXO = [['', 'Todas as empresas'], ['AC', 'AC'], ['IAC', 'IAC'], ['HNK', 'HNK'], ['HNW', 'HNW'], ['-', 'Sem empresa']]
+// Compras: chave no topo (Todos | AC | IAC | HNK | HNW), pela empresa destinatária da nota (app).
+const EMPRESAS_COMPRAS_FLUXO = [['', 'Todos'], ['AC', 'AC'], ['IAC', 'IAC'], ['HNK', 'HNK'], ['HNW', 'HNW']]
+function chaveEmpresaFluxoHtml() {
+    return `<div class="fluxo-chave-empresa" role="group" aria-label="Empresa">${EMPRESAS_COMPRAS_FLUXO.map(([v, t]) =>
+        `<button type="button" data-empresa="${v}" class="${estadoFluxo.empresa === v ? 'ativo' : ''}" aria-pressed="${estadoFluxo.empresa === v}"
+            onclick="escolherEmpresaFluxo(this.dataset.empresa)">${t}</button>`).join('')}</div>`
+}
+function escolherEmpresaFluxo(empresa) {
+    estadoFluxo.empresa = empresa
+    estadoFluxo.abertos.clear()
+    document.querySelectorAll('.fluxo-chave-empresa button').forEach(b => {
+        const ativo = b.dataset.empresa === empresa
+        b.classList.toggle('ativo', ativo)
+        b.setAttribute('aria-pressed', ativo)
+    })
+    renderizarFluxo()
+}
 
 const reaisFluxo = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const dataBrFluxo = iso => iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : ''
@@ -66,7 +83,7 @@ function etapaCompraFluxo(d) {
 // Linhas cruas → cartões no formato comum: { id, etapa, data (do período), desde (na etapa), ... }.
 function cartoesFluxo(quadro, linhas) {
     if (quadro === 'compras')
-        return linhas.filter(d => !d.excluido).map(d => ({ ...d, etapa: etapaCompraFluxo(d), data: d.dia, desde: d.dia })).filter(c => c.etapa)
+        return linhas.filter(d => !d.excluido).map(d => ({ ...d, empresa: d.app, etapa: etapaCompraFluxo(d), data: d.dia, desde: d.dia })).filter(c => c.etapa)
     if (QUADROS_FLUXO[quadro]?.novo)
         return linhas.map(c => ({ ...c, data: c.data, desde: c.data }))
     const desde = {
@@ -106,6 +123,8 @@ async function telaFluxo(quadro) {
     estadoFluxo.quadro = quadro
     estadoFluxo.abertos.clear()
     const novo = QUADROS_FLUXO[quadro].novo
+    // A empresa é compartilhada entre os quadros; "Sem empresa" não existe em Compras.
+    if (quadro === 'compras' && !EMPRESAS_COMPRAS_FLUXO.some(([v]) => v === estadoFluxo.empresa)) estadoFluxo.empresa = ''
     const lupa = '<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="m13 13 4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
     tela.innerHTML = `
         <div class="pagina-conteudo fluxo-pagina" data-quadro="${quadro}">
@@ -117,6 +136,7 @@ async function telaFluxo(quadro) {
                         : `${quadro === 'compras' ? 'Período pela emissão da nota' : 'Período pela data do pedido'} · os cartões andam sozinhos conforme os dados; clique para abrir`}</small>
                 </div>
                 <div class="fluxo-controles">
+                    ${quadro === 'compras' ? chaveEmpresaFluxoHtml() : ''}
                     ${novo ? `
                     <label class="fluxo-campo fluxo-empresa">
                         <select aria-label="Empresa" onchange="estadoFluxo.empresa = this.value; estadoFluxo.abertos.clear(); renderizarFluxo()">
@@ -364,6 +384,19 @@ async function abrirNotaFluxo(c) {
         popup({ mensagem: 'As requisições deste item não têm produtos: inclua os itens da nota antes de salvar.' })
 }
 
+// Clique no cartão em Requisição: o mesmo formulário da separação, só para conferir (somente leitura).
+async function abrirPreviaSeparacaoFluxo(id) {
+    try {
+        overlayAguarde()
+        const dados = await apiModuloFiscal('fluxo-itens/nota', { id })
+        removerOverlay()
+        await formularioEmissaoNFe({ ...dados, fluxo_item: id, previa: true })
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
 // "Faturar todas" (topo de Separado): emite em fila só os cartões VISÍVEIS (empresa, busca e período do filtro).
 async function faturarTodasFluxo() {
     const empresa = estadoFluxo.empresa
@@ -430,6 +463,8 @@ function blocoItemFluxoHtml(d) {
 // Clique no cartão: tela única da venda. Com NF-e do GCS, é a tela da nota (com o bloco da venda no fim);
 // sem NF-e, a mesma tela só com os dados do item.
 async function abrirItemFluxo(id) {
+    // Em Requisição o clique mostra a prévia da separação (formulário travado, sem salvar: o cartão fica).
+    if (itemFluxo(id)?.etapa === 'requisicao') return abrirPreviaSeparacaoFluxo(id)
     let d, dadosNota
     try {
         overlayAguarde()

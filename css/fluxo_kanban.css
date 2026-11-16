@@ -403,3 +403,31 @@
 }
 
 @keyframes fluxo-girar { to { transform: rotate(360deg); } }
+
+/* Compras: chave de empresa (Todos | AC | IAC | HNK | HNW). */
+.fluxo-chave-empresa {
+    display: inline-flex;
+    height: 36px;
+    padding: 3px;
+    gap: 2px;
+    border: 1px solid #d3ddd7;
+    border-radius: 8px;
+    background: #f7f9f8;
+    box-sizing: border-box;
+}
+.fluxo-chave-empresa button {
+    min-width: 44px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #5f6f66;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color .15s, color .15s;
+}
+.fluxo-chave-empresa button:hover { background: #e8efeb; color: #1f2d25; }
+.fluxo-chave-empresa button.ativo { background: #2f7d4f; color: #fff; }
+.fluxo-chave-empresa button:focus-visible { outline: 2px solid #2f7d4f; outline-offset: 1px; }

@@ -339,3 +339,72 @@
         width: min(300px, calc(100vw - 58px));
     }
 }
+
+/* Formulário do post-it (novo/editar): largura fixa, não cresce nem encolhe com o texto ou os
+   anexos. Identificado pela área de anexos (.pit-anexos); o texto longo rola dentro do editor. */
+.popup-janela-fora:has(.pit-anexos) {
+    width: min(560px, calc(100vw - 24px));
+    max-width: none;
+}
+
+.popup-janela-fora:has(.pit-anexos) .painel-padrao {
+    max-width: none;
+    padding: 12px;
+}
+
+.popup-janela-fora:has(.pit-anexos) .linha-padrao {
+    min-width: 0;
+}
+
+.popup-janela-fora:has(.pit-anexos) .editor-container {
+    max-width: none;
+}
+
+.popup-janela-fora:has(.pit-anexos) .editor-conteudo {
+    max-height: 35vh;
+    overflow-wrap: anywhere;
+}
+
+.popup-janela-fora:has(.pit-anexos) .editor-conteudo img {
+    max-width: 100%;
+    height: auto;
+}
+
+.popup-janela-fora:has(.pit-anexos) .local-anexos {
+    width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.popup-janela-fora:has(.pit-anexos) .rodape-padrao {
+    align-self: stretch;
+}
+
+@media (max-width: 600px) {
+    .popup-janela-fora:has(.pit-anexos) {
+        width: calc(100vw - 16px);
+    }
+
+    .popup-janela-fora:has(.pit-anexos) .painel-padrao {
+        padding: 8px;
+        max-height: none;
+        flex: 1 1 auto;
+    }
+
+    .popup-janela-fora:has(.pit-anexos) .linha-padrao {
+        padding: 10px;
+    }
+
+    /* Prazo, Status e Usuário continuam rótulo | campo na mesma linha. */
+    .popup-janela-fora:has(.pit-anexos) .linha-padrao:not(.linha-editor) {
+        flex-wrap: nowrap;
+    }
+
+    .popup-janela-fora:has(.pit-anexos) .editor-conteudo {
+        max-height: 30vh;
+    }
+
+    .popup-janela-fora:has(.pit-anexos) .rh-anexo-area {
+        padding: 10px;
+    }
+}
