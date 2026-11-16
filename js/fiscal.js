@@ -1045,7 +1045,7 @@ async function formularioEmissaoNFe(inicial = {}) {
     const trava = inicial.fluxo_item ? (inicial.previa ? 'previa' : acesso?.permissao === 'log' ? 'logistica' : '') : ''
     const avisoTrava = {
         previa: 'Prévia da separação: nada é salvo e o cartão continua em Requisição. Para separar, arraste o cartão para Separado.',
-        logistica: 'Informe a transportadora e os volumes. Os dados da nota e os tributários ficam com o faturamento.'
+        logistica: 'Informe o frete, a transportadora e os volumes. Os dados da nota e os tributários ficam com o faturamento.'
     }[trava]
     const elemento = `
         <div class="fis-form fis-form-emissao" data-form-nfe data-id="${escFis(inicial.id || '')}" data-fluxo-item="${escFis(inicial.fluxo_item || '')}" data-trava="${trava}" oninput="agendarPreviaFis()" onchange="agendarPreviaFis()">
@@ -1120,7 +1120,7 @@ async function formularioEmissaoNFe(inicial = {}) {
     trocarEmpresaNFe(form.querySelector('[name="app"]'), inicial.operacao_id)
     for (const item of inicial.itens?.length ? inicial.itens : [{}]) adicionarItemNFe(item)
     previaPagamentoFis(form.querySelector('[name="pag_forma"]'))
-    if (trava) travarFormNFe(form, trava === 'logistica' ? ['transportadora', 'volumes'] : [])
+    if (trava) travarFormNFe(form, trava === 'logistica' ? ['modalidade_frete', 'transportadora', 'volumes'] : [])
     // Logística vê só o passo 4 (Transporte); os demais continuam no formulário (travados) para salvar.
     if (trava === 'logistica')
         form.querySelectorAll('.fis-passo, [data-previa]').forEach(el => {
@@ -1526,8 +1526,7 @@ async function salvarEmissaoFis(emitir, botao) {
         const faltas = []
         if (form.dataset.fluxoItem && !o.transportador) faltas.push('Escolha a transportadora.')
         if (form.dataset.fluxoItem && !(Number.isInteger(o.volumes) && o.volumes >= 1)) faltas.push('Informe os volumes (número inteiro, a partir de 1).')
-        // Logística não escolhe o frete (travado): o servidor usa "Emitente" quando estiver "Sem frete".
-        if (o.transportador && String(o.modalidade_frete) === '9' && form.dataset.trava !== 'logistica') faltas.push('Com transportadora, escolha por conta de quem é o frete (não pode ser "Sem frete").')
+        if (o.transportador && String(o.modalidade_frete) === '9') faltas.push('Com transportadora, escolha por conta de quem é o frete (não pode ser "Sem frete").')
         const rateio = entrada.rateio || []
         if (rateio.length) {
             const soma = Math.round(rateio.reduce((s, l) => s + l.percentual, 0) * 100) / 100
