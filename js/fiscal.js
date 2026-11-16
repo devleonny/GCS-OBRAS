@@ -1045,7 +1045,7 @@ async function formularioEmissaoNFe(inicial = {}) {
     const trava = inicial.fluxo_item ? (inicial.previa ? 'previa' : acesso?.permissao === 'log' ? 'logistica' : '') : ''
     const avisoTrava = {
         previa: 'Prévia da separação: nada é salvo e o cartão continua em Requisição. Para separar, arraste o cartão para Separado.',
-        logistica: 'Acesso de logística: só a transportadora e os volumes podem ser alterados; os dados da nota e os tributários ficam travados.'
+        logistica: 'Informe a transportadora e os volumes. Os dados da nota e os tributários ficam com o faturamento.'
     }[trava]
     const elemento = `
         <div class="fis-form fis-form-emissao" data-form-nfe data-id="${escFis(inicial.id || '')}" data-fluxo-item="${escFis(inicial.fluxo_item || '')}" data-trava="${trava}" oninput="agendarPreviaFis()" onchange="agendarPreviaFis()">
@@ -1063,7 +1063,7 @@ async function formularioEmissaoNFe(inicial = {}) {
                 <legend><span class="fis-num-passo">3</span> Itens <small>— do cadastro do GCS (NCM e origem vêm do item)</small></legend>
                 <div class="fis-tabela-rolagem">
                     <table class="fis-tabela fis-itens-emissao">
-                        <thead><tr><th>Item</th><th>NCM</th><th>Origem</th><th>Un.</th><th>Qtd</th><th>Valor unit.</th><th>Desconto</th><th>Total</th><th></th></tr></thead>
+                        <thead><tr><th>Cód.</th><th>Item</th><th>NCM</th><th>Origem</th><th>Un.</th><th>Qtd</th><th>Valor unit.</th><th>Desconto</th><th>Total</th><th></th></tr></thead>
                         <tbody data-itens-nfe></tbody>
                     </table>
                 </div>
@@ -1089,7 +1089,7 @@ async function formularioEmissaoNFe(inicial = {}) {
                         // Separação (kanban): o departamento é o do pedido que originou o item, fixo.
                         ? campoFis('Departamento <small>(origem do pedido)</small>', inputFis('orcamento', inicial.orcamento, 'readonly title="Fixo: departamento do pedido de origem"'))
                         : ''}
-                    ${campoFis(`Nº do pedido do cliente <small>(vai no rodapé${inicial.fluxo_item ? '; atualiza o pedido' : ''})</small>`,
+                    ${campoFis('Nº do pedido do cliente',
                         inputFis('numero_pedido', o.numero_pedido ?? inicial.numero_pedido ?? '',
                             `maxlength="60" placeholder="${escFis(inicial.situacao_pedido ? `${inicial.situacao_pedido}: informe o número, se houver` : 'Se houver')}"`))}
                 </div>
@@ -1121,6 +1121,11 @@ async function formularioEmissaoNFe(inicial = {}) {
     for (const item of inicial.itens?.length ? inicial.itens : [{}]) adicionarItemNFe(item)
     previaPagamentoFis(form.querySelector('[name="pag_forma"]'))
     if (trava) travarFormNFe(form, trava === 'logistica' ? ['transportadora', 'volumes'] : [])
+    // Logística vê só o passo 4 (Transporte); os demais continuam no formulário (travados) para salvar.
+    if (trava === 'logistica')
+        form.querySelectorAll('.fis-passo, [data-previa]').forEach(el => {
+            if (!el.querySelector('[name="transportadora"]')) el.style.display = 'none'
+        })
     agendarPreviaFis()
 }
 
@@ -1158,13 +1163,15 @@ function adicionarItemNFe(item = {}) {
     const n = ++sequenciaItemFis
     const tr = document.createElement('tr')
     tr.dataset.linha = n
+    // Código numa coluna própria (antes ficava embaixo da descrição e desalinhava as linhas);
+    // saldo e "sem NCM" ficam na dica do código.
     tr.innerHTML = `
+        <td class="fis-item-cod" data-item-info>${item.item_id ? escFis(item.codigo || item.item_id) : ''}</td>
         <td class="fis-item-cel">
             <input type="hidden" name="item_id" value="${escFis(item.item_id || '')}">
             <input type="hidden" name="codigo" value="${escFis(item.codigo || '')}">
             <input class="fis-input" name="descricao" value="${escFis(item.descricao || '')}" placeholder="Buscar item do cadastro…"
                 onkeydown="if (event.key === 'Enter') { event.preventDefault(); buscarItemEmissaoFis(this) }" onchange="if (!this.closest('tr').querySelector('[name=item_id]').value) buscarItemEmissaoFis(this)">
-            <small data-item-info>${item.item_id ? escFis(item.codigo || item.item_id) : ''}</small>
         </td>
         <td><input class="fis-input fis-curto" name="ncm" value="${escFis(item.ncm || '')}" maxlength="10" inputmode="numeric"></td>
         <td><select class="fis-input fis-curto" name="origem">${opcoesFis(Object.entries(ORIGENS_MERCADORIA), item.origem ?? '0')}</select></td>
@@ -1217,7 +1224,10 @@ function usarItemEmissaoFis(linha, indice, botao) {
     set('descricao', c.descricao)
     set('ncm', c.ncm || '')
     set('unidade', c.unidade || 'UN')
-    tr.querySelector('[data-item-info]').textContent = `${c.codigo}${c.saldo != null ? ` · saldo ${qtdEst(c.saldo)}` : ''}${c.ncm ? '' : ' · SEM NCM no cadastro'}`
+    const info = tr.querySelector('[data-item-info]')
+    info.textContent = c.codigo || ''
+    info.title = [c.saldo != null ? `Saldo ${qtdEst(c.saldo)}` : '', c.ncm ? '' : 'SEM NCM no cadastro'].filter(Boolean).join(' · ')
+    info.classList.toggle('fis-negativo', !c.ncm)
     agendarPreviaFis()
 }
 

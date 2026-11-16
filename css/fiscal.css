@@ -562,9 +562,10 @@ textarea.fis-input {
     min-width: 16rem;
 }
 
-.fis-item-cel small {
-    display: block;
-    margin-top: 2px;
+.fis-item-cod {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    color: #475569;
 }
 
 .fis-itens-emissao {
