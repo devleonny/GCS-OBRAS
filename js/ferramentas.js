@@ -1083,3 +1083,50 @@ function validarCpfCnpj(val) {
 
     return false // Se não tem 11 nem 14 números
 }
+
+// Preferências de tela do usuário, salvas no perfil (servidor: /preferencias, tabela usuarios_preferencias)
+// e lembradas em qualquer computador. Lidas uma vez por sessão da página; a cópia local só adianta a
+// primeira tela enquanto o servidor responde.
+let promessaPreferenciasUsuario = null
+const chavePreferenciasLocal = () => `gcs_preferencias_${acesso?.usuario || ''}`
+
+async function rotaPreferencias(caminho, corpo = {}) {
+    const { token } = JSON.parse(localStorage.getItem('acesso') || '{}')
+    const resposta = await fetch(`${api}/preferencias/${caminho}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(corpo)
+    })
+    const dados = await resposta.json().catch(() => ({}))
+    if (!resposta.ok) throw new Error(dados.mensagem || `Falha nas preferências (${resposta.status})`)
+    return dados.preferencias || {}
+}
+
+function preferenciasUsuario() {
+    promessaPreferenciasUsuario ??= rotaPreferencias('ler')
+        .then(p => {
+            try { localStorage.setItem(chavePreferenciasLocal(), JSON.stringify(p)) } catch { }
+            return p
+        })
+        .catch(() => {
+            promessaPreferenciasUsuario = null
+            try { return JSON.parse(localStorage.getItem(chavePreferenciasLocal()) || '{}') } catch { return {} }
+        })
+    return promessaPreferenciasUsuario
+}
+
+async function preferenciaUsuario(chave, padrao = null) {
+    const p = await preferenciasUsuario()
+    return p[chave] ?? padrao
+}
+
+async function salvarPreferenciaUsuario(chave, valor) {
+    const atual = { ...(await preferenciasUsuario()), [chave]: valor }
+    promessaPreferenciasUsuario = Promise.resolve(atual)
+    try { localStorage.setItem(chavePreferenciasLocal(), JSON.stringify(atual)) } catch { }
+    try {
+        await rotaPreferencias('salvar', { chave, valor })
+    } catch (err) {
+        console.error('[PREFERENCIAS]', err)
+    }
+}

@@ -37,11 +37,11 @@ const QUADROS_FLUXO = {
 }
 const PERIODOS_FLUXO = [[30, 'Últimos 30 dias'], [60, 'Últimos 60 dias'], [90, 'Últimos 90 dias'], [180, 'Últimos 6 meses'], [365, 'Último ano'], [0, 'Todo o período']]
 const estadoFluxo = { quadro: 'vendas', periodo: 30, busca: '', empresa: '', linhas: [], abertos: new Set(), carregando: 0 }
-const EMPRESAS_FLUXO = [['', 'Todas as empresas'], ['AC', 'AC'], ['IAC', 'IAC'], ['HNK', 'HNK'], ['HNW', 'HNW'], ['-', 'Sem empresa']]
-// Compras: chave no topo (Todos | AC | IAC | HNK | HNW), pela empresa destinatária da nota (app).
-const EMPRESAS_COMPRAS_FLUXO = [['', 'Todos'], ['AC', 'AC'], ['IAC', 'IAC'], ['HNK', 'HNK'], ['HNW', 'HNW']]
+// Chave no topo de todos os quadros (Todos | AC | IAC | HNK | HNW). Compras: empresa destinatária da nota (app);
+// Vendas: empresa do item; Serviços: empresa do pedido (ou da nota) pela vw_fluxo_comercial.empresa.
+const EMPRESAS_FLUXO = [['', 'Todos'], ['AC', 'AC'], ['IAC', 'IAC'], ['HNK', 'HNK'], ['HNW', 'HNW']]
 function chaveEmpresaFluxoHtml() {
-    return `<div class="fluxo-chave-empresa" role="group" aria-label="Empresa">${EMPRESAS_COMPRAS_FLUXO.map(([v, t]) =>
+    return `<div class="fluxo-chave-empresa" role="group" aria-label="Empresa">${EMPRESAS_FLUXO.map(([v, t]) =>
         `<button type="button" data-empresa="${v}" class="${estadoFluxo.empresa === v ? 'ativo' : ''}" aria-pressed="${estadoFluxo.empresa === v}"
             onclick="escolherEmpresaFluxo(this.dataset.empresa)">${t}</button>`).join('')}</div>`
 }
@@ -126,8 +126,8 @@ async function telaFluxo(quadro) {
     estadoFluxo.quadro = quadro
     estadoFluxo.abertos.clear()
     const novo = QUADROS_FLUXO[quadro].novo
-    // A empresa é compartilhada entre os quadros; "Sem empresa" não existe em Compras.
-    if (quadro === 'compras' && !EMPRESAS_COMPRAS_FLUXO.some(([v]) => v === estadoFluxo.empresa)) estadoFluxo.empresa = ''
+    // A empresa é compartilhada entre os quadros.
+    if (!EMPRESAS_FLUXO.some(([v]) => v === estadoFluxo.empresa)) estadoFluxo.empresa = ''
     const lupa = '<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="m13 13 4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
     tela.innerHTML = `
         <div class="pagina-conteudo fluxo-pagina" data-quadro="${quadro}">
@@ -145,13 +145,7 @@ async function telaFluxo(quadro) {
                     <span><i class="fluxo-bolinha sem-nota"></i> Não emitida</span>
                 </div>` : ''}
                 <div class="fluxo-controles">
-                    ${quadro === 'compras' ? chaveEmpresaFluxoHtml() : ''}
-                    ${novo ? `
-                    <label class="fluxo-campo fluxo-empresa">
-                        <select aria-label="Empresa" onchange="estadoFluxo.empresa = this.value; estadoFluxo.abertos.clear(); renderizarFluxo()">
-                            ${EMPRESAS_FLUXO.map(([v, t]) => `<option value="${v}" ${estadoFluxo.empresa === v ? 'selected' : ''}>${t}</option>`).join('')}
-                        </select>
-                    </label>` : ''}
+                    ${chaveEmpresaFluxoHtml()}
                     <label class="fluxo-campo fluxo-busca">
                         ${lupa}
                         <input type="search" placeholder="${quadro === 'compras' ? 'Fornecedor ou número da nota' : 'Cliente, ORC, pedido, NF ou cidade'}"

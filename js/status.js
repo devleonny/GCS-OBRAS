@@ -884,18 +884,33 @@ async function abrirEsquema(id) {
             .map(st => formatacaoTipoCorrecao(st))
             .join('')
 
+        // Visão escolhida pelo usuário (salva no perfil): 'secoes' (a de sempre) ou 'esquema'.
+        const visao = await preferenciaUsuario(PREF_VISAO_HISTORICO, 'secoes') === 'esquema' ? 'esquema' : 'secoes'
+
         const elemento = `
-            <div class="painel-historico">
+            <div class="painel-historico" data-historico-orc="${escaparAtributo(id)}" data-contrato="${escaparAtributo(contrato)}" data-visao="${visao}">
 
                 <div class="historico-cabecalho">
                     <div class="historico-identificacao">
                         <span class="historico-contrato">${escaparAtributo(contrato || '')}</span>
                         <span class="historico-cliente">${escaparAtributo(cliente || 'Cliente não informado')}</span>
                     </div>
-                    <button class="historico-ver-status" onclick="verHistoricoStatus('${id}')">
-                        <img src="imagens/historico.png" alt="">
-                        Histórico de status
-                    </button>
+                    <div class="historico-cabecalho-acoes">
+                        <div class="historico-visao" role="radiogroup" aria-label="Visualização">
+                            <button type="button" role="radio" data-visao-opcao="secoes" aria-checked="${visao === 'secoes'}"
+                                onclick="trocarVisaoHistorico(this, 'secoes')" title="Pedidos, requisições, notas e demais seções lado a lado">
+                                <span aria-hidden="true">▦</span> Seções
+                            </button>
+                            <button type="button" role="radio" data-visao-opcao="esquema" aria-checked="${visao === 'esquema'}"
+                                onclick="trocarVisaoHistorico(this, 'esquema')" title="Cada pedido com as requisições e notas que nasceram dele">
+                                <span aria-hidden="true">⤷</span> Esquema
+                            </button>
+                        </div>
+                        <button class="historico-ver-status" onclick="verHistoricoStatus('${id}')">
+                            <img src="imagens/historico.png" alt="">
+                            Histórico de status
+                        </button>
+                    </div>
                 </div>
 
                 <div class="historico-resumo">
@@ -913,7 +928,8 @@ async function abrirEsquema(id) {
                     </div>
                 </div>
 
-                <div class="bloco-st"></div>
+                <div class="bloco-st"${visao === 'secoes' ? '' : ' hidden'}></div>
+                <div class="bloco-esquema-historico"${visao === 'esquema' ? '' : ' hidden'}></div>
 
             </div>
         `
@@ -923,8 +939,46 @@ async function abrirEsquema(id) {
         // Checklist Chamado;
         await checklistChamado(id, chamado)
 
-        const local = document.querySelector('.bloco-st')
+        const painel = [...document.querySelectorAll(`[data-historico-orc="${CSS.escape(id)}"]`)].pop()
+        await carregarVisaoHistorico(painel, visao)
 
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: 'Falha ao abrir o esquema: Fale com o suporte.' })
+    }
+
+
+}
+
+// ---------------------------------------------------------------- Histórico: visões
+
+const PREF_VISAO_HISTORICO = 'historico_orcamento_visao'
+
+// Troca de visão no cabeçalho: mostra a escolhida (carrega na primeira vez) e lembra no perfil.
+async function trocarVisaoHistorico(botao, visao) {
+    const painel = botao.closest('.painel-historico')
+    if (!painel || painel.dataset.visao === visao) return
+    painel.dataset.visao = visao
+    painel.querySelectorAll('[data-visao-opcao]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.visaoOpcao === visao)))
+    painel.querySelector('.bloco-st').hidden = visao !== 'secoes'
+    painel.querySelector('.bloco-esquema-historico').hidden = visao !== 'esquema'
+    salvarPreferenciaUsuario(PREF_VISAO_HISTORICO, visao)
+    await carregarVisaoHistorico(painel, visao)
+}
+
+async function carregarVisaoHistorico(painel, visao) {
+    if (!painel || painel.dataset[`carregado_${visao}`]) return
+    painel.dataset[`carregado_${visao}`] = '1'
+    if (visao === 'esquema') return carregarEsquemaHistorico(painel)
+    await carregarSecoesHistorico(painel)
+}
+
+// Visão "Seções" (a original): uma tabela por assunto filtrada pelo ORC.
+async function carregarSecoesHistorico(painel) {
+    const contrato = painel.dataset.contrato
+    const local = painel.querySelector('.bloco-st')
+
+    try {
         await Promise.all(
             esquemaBtnStatus
                 .map(async (botao) => {
@@ -981,10 +1035,128 @@ async function abrirEsquema(id) {
 
     } catch (err) {
         console.error(err)
+        delete painel.dataset.carregado_secoes
         popup({ mensagem: 'Falha ao abrir o esquema: Fale com o suporte.' })
     }
+}
 
+// Visão "Esquema": cada pedido do ORC com as requisições e notas que nasceram dele (fluxo_itens no
+// servidor, rota /fluxo-itens/esquema). O que não tem pedido de origem fica de fora.
+const ETAPAS_ESQUEMA_HIST = [
+    ['PEDIDO', 'Pedido'], ['REQUISICAO', 'Requisição'], ['SEPARADO', 'Separado'],
+    ['FATURADO', 'Faturado'], ['ENTREGUE', 'Entregue'], ['CONCLUIDO', 'Concluído']
+]
 
+async function carregarEsquemaHistorico(painel) {
+    const local = painel.querySelector('.bloco-esquema-historico')
+    local.innerHTML = '<div class="esq-hist-carregando">Montando o esquema…</div>'
+    try {
+        const { token } = JSON.parse(localStorage.getItem('acesso') || '{}')
+        const resposta = await fetch(`${api}/fluxo-itens/esquema`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ contrato: painel.dataset.contrato })
+        })
+        const dados = await resposta.json().catch(() => ({}))
+        if (!resposta.ok) throw new Error(dados.mensagem || `Falha (${resposta.status})`)
+        local.innerHTML = htmlEsquemaHistorico(dados.itens || [])
+    } catch (err) {
+        delete painel.dataset.carregado_esquema
+        local.innerHTML = `<div class="esq-hist-vazio">Não foi possível montar o esquema: ${escaparAtributo(err.message)}
+            <button type="button" onclick="recarregarEsquemaHistorico(this)">Tentar de novo</button></div>`
+    }
+}
+
+function recarregarEsquemaHistorico(botao) {
+    const painel = botao.closest('.painel-historico')
+    if (!painel) return
+    painel.dataset.carregado_esquema = '1'
+    carregarEsquemaHistorico(painel)
+}
+
+function htmlEsquemaHistorico(itens) {
+    const esc = escaparAtributo
+    const barra = `
+        <div class="esq-hist-topo">
+            <div class="esq-hist-resumo">
+                <span><b>${itens.length}</b> ${itens.length === 1 ? 'pedido' : 'pedidos'}</span>
+                <span>Pedidos <b>${dinheiro(itens.reduce((s, i) => s + (i.pedido.valor || 0), 0))}</b></span>
+                <span>Notas <b>${dinheiro(itens.reduce((s, i) => s + i.notas.filter(n => !n.cancelada).reduce((t, n) => t + (n.total || 0), 0), 0))}</b></span>
+            </div>
+            <button type="button" class="esq-hist-atualizar" onclick="recarregarEsquemaHistorico(this)" title="Buscar de novo">↻ Atualizar</button>
+        </div>`
+
+    if (!itens.length)
+        return `${barra}<div class="esq-hist-vazio">Nenhum pedido neste orçamento.<br><small>Requisições e notas sem pedido de origem não aparecem nesta visão; veja em Seções.</small></div>`
+
+    const vazio = texto => `<div class="esq-no esq-no-vazio">${texto}</div>`
+    const etapas = etapa => {
+        const atual = ETAPAS_ESQUEMA_HIST.findIndex(([k]) => k === etapa)
+        return `<ol class="esq-hist-etapas" aria-label="Etapa: ${esc(ETAPAS_ESQUEMA_HIST[atual]?.[1] || etapa)}">${ETAPAS_ESQUEMA_HIST
+            .map(([, nome], i) => `<li class="${i < atual ? 'feita' : i === atual ? 'atual' : ''}">${nome}</li>`).join('')}</ol>`
+    }
+
+    const noNota = n => {
+        const gcs = n.origem === 'GCS'
+        const situacao = gcs
+            ? ({ AUTORIZADA: 'Autorizada', RASCUNHO: 'Rascunho', PROCESSANDO: 'Processando', REJEITADA: 'Rejeitada', CANCELADA: 'Cancelada', DENEGADA: 'Denegada' }[n.status] || n.status)
+            : n.cancelada ? 'Cancelada' : ''
+        const tom = n.cancelada ? 'cancelada' : gcs && n.status !== 'AUTORIZADA' ? 'pendente' : 'ok'
+        const titulo = gcs
+            ? `${n.modelo === 'NFSE' ? 'NFS-e' : 'NF-e'} ${n.numero ? esc(n.numero) : '(sem número)'}`
+            : `NF ${esc(n.numero || '—')}`
+        const data = gcs && n.data ? new Date(n.data).toLocaleDateString('pt-BR') : esc(n.data || '')
+        const acao = gcs ? `abrirDocumentoFiscal('${esc(n.id)}')` : `abrirDANFE('${esc(n.id)}')`
+        return `
+            <button type="button" class="esq-no esq-no-nota ${tom}" onclick="${acao}" title="${gcs ? 'Abrir a nota' : 'Abrir o DANFE'}">
+                <span class="esq-no-tipo">${gcs ? 'GCS' : 'Omie'}${n.categoria ? ` · ${esc(n.categoria)}` : ''}${n.app ? ` · ${esc(n.app)}` : ''}</span>
+                <b>${titulo}</b>
+                <span class="esq-no-linha"><span>${data}</span><b>${dinheiro(n.total || 0)}</b></span>
+                ${situacao ? `<span class="esq-no-situacao">${esc(situacao)}</span>` : ''}
+            </button>`
+    }
+
+    const noRequisicao = r => `
+        <button type="button" class="esq-no esq-no-req" onclick="gerarPdfRequisicao('${esc(r.id)}', true)" title="Visualizar a requisição">
+            <span class="esq-no-tipo">Requisição${r.avulso ? ' · avulsa' : ''}</span>
+            <b>${r.itens} ${r.itens === 1 ? 'item' : 'itens'}</b>
+            <span class="esq-no-linha"><span>${esc(String(r.data).slice(0, 10))}</span><b>${dinheiro(r.total || 0)}</b></span>
+            ${r.executor ? `<span class="esq-no-quem">${esc(r.executor)}</span>` : ''}
+        </button>`
+
+    const cadeias = itens.map(i => {
+        const p = i.pedido
+        const verde = i.emissao_status === 'OK' || i.notas.some(n => !n.cancelada && (n.origem === 'OMIE' || n.status === 'AUTORIZADA'))
+        return `
+            <article class="esq-cadeia${verde ? ' faturada' : ''}${i.emissao_status === 'ERRO' ? ' erro' : ''}">
+                <header class="esq-cadeia-topo">
+                    <span class="esq-cadeia-titulo">Pedido ${esc(p.numero || 'sem número')}${p.tipo ? ` <small>${esc(p.tipo)}</small>` : ''}${i.empresa ? ` <small class="esq-empresa">${esc(i.empresa)}</small>` : ''}</span>
+                    ${etapas(i.etapa)}
+                </header>
+                <div class="esq-cadeia-corpo">
+                    <div class="esq-coluna esq-col-pedido">
+                        <button type="button" class="esq-no esq-no-pedido" onclick="painelAdicionarPedido('${esc(p.id)}')" title="Abrir o pedido">
+                            <span class="esq-no-tipo">Pedido</span>
+                            <b>${esc(p.numero || 'Sem número')}</b>
+                            <span class="esq-no-linha"><span>${esc(String(p.data).slice(0, 10))}</span><b>${dinheiro(p.valor || 0)}</b></span>
+                            ${p.executor ? `<span class="esq-no-quem">${esc(p.executor)}</span>` : ''}
+                        </button>
+                    </div>
+                    <div class="esq-seta" aria-hidden="true"></div>
+                    <div class="esq-coluna esq-col-ramo${i.requisicoes.length > 1 ? ' varios' : ''}">
+                        ${i.requisicoes.length ? i.requisicoes.map(noRequisicao).join('') : vazio('Sem requisição')}
+                    </div>
+                    <div class="esq-seta" aria-hidden="true"></div>
+                    <div class="esq-coluna esq-col-ramo${i.notas.length > 1 ? ' varios' : ''}">
+                        ${i.notas.length ? i.notas.map(noNota).join('') : vazio('Sem nota')}
+                    </div>
+                </div>
+            </article>`
+    }).join('')
+
+    return `${barra}
+        <div class="esq-hist-legenda"><span>Pedido</span><span>Requisições</span><span>Notas</span></div>
+        <div class="esq-hist-lista">${cadeias}</div>`
 }
 
 async function painelFotos(id, tabela) {

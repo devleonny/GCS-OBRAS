@@ -786,7 +786,7 @@ function htmlNotaEmitida({ documento: d, itens, movimentos, devolucoes = [], ori
     const infos = [o.informacoes_complementares, o.numero_pedido ? `Pedido de compra nº ${o.numero_pedido}.` : ''].filter(Boolean).join(' ')
     // Sem ORC gravado na nota (rascunho antigo editado fora do kanban): o do item do fluxo, se houver.
     const orc = String(d.orcamento || contexto?.item?.contrato || '')
-    const botao = (texto, acao, principal = false) => `<button type="button" class="${principal ? 'fis-botao' : 'fis-mini'}" onclick="${acao}">${texto}</button>`
+    const botao = (texto, acao, principal = false) => `<button type="button" class="${principal === 'perigo' ? 'fis-mini fis-perigo' : principal ? 'fis-botao' : 'fis-mini'}" onclick="${acao}">${texto}</button>`
     const fretes = { 9: 'Sem frete', 0: 'Emitente (CIF)', 1: 'Destinatário (FOB)', 2: 'Terceiros' }
 
     return `
@@ -836,8 +836,8 @@ function htmlNotaEmitida({ documento: d, itens, movimentos, devolucoes = [], ori
                 ${!nfse && d.status === 'AUTORIZADA' && !d.devolucao_tipo && !soConsulta
                     ? botao('Registrar devolução', `abrirDevolucaoFis({ id: '${escFis(d.id)}', lado: 'VENDA' })`) : ''}
                 <span class="fis-separador"></span>
-                ${d.status === 'AUTORIZADA' && !soConsulta ? botao('Cancelar nota', `cancelarDocumentoFiscal('${escFis(d.id)}')`) : ''}
-                ${editavel ? botao('Excluir rascunho', `excluirRascunhoFiscal('${escFis(d.id)}')`) : ''}
+                ${d.status === 'AUTORIZADA' && !soConsulta ? botao('Cancelar nota', `cancelarDocumentoFiscal('${escFis(d.id)}')`, 'perigo') : ''}
+                ${editavel ? botao('Excluir rascunho', `excluirRascunhoFiscal('${escFis(d.id)}')`, 'perigo') : ''}
             </div>
 
             ${itens.length ? `
@@ -1198,7 +1198,14 @@ async function buscarParticipanteFis(input) {
 
 // ---------------------------------------------------------------- NF-e
 
+// Um formulário de NF-e por vez: o código lê [data-form-nfe] / [data-itens-nfe] da página e um
+// segundo aberto misturaria os itens. Se já existe um (mesmo minimizado), ele volta para a frente.
+let abrindoEmissaoNFe = false
 async function formularioEmissaoNFe(inicial = {}) {
+    const aberto = document.querySelector('[data-form-nfe]')
+    if (aberto) return trazerJanelaParaFrente(aberto)
+    if (abrindoEmissaoNFe) return
+    abrindoEmissaoNFe = true
     let op
     try {
         overlayAguarde()
@@ -1207,6 +1214,8 @@ async function formularioEmissaoNFe(inicial = {}) {
     } catch (err) {
         removerOverlay()
         return popup({ mensagem: mensagemErroEst(err) })
+    } finally {
+        abrindoEmissaoNFe = false
     }
     const empresas = op.empresas.filter(e => e.emite_nfe)
     const app = inicial.app || empresas.find(e => e.app === 'AC')?.app || empresas[0]?.app
@@ -1275,6 +1284,7 @@ async function formularioEmissaoNFe(inicial = {}) {
     popup({
         titulo: trava === 'previa' ? 'Prévia da separação' : inicial.fluxo_item ? 'Separar: dados da NF-e' : inicial.id ? 'Editar NF-e' : 'Emitir NF-e',
         linhas: [{ elemento }],
+        conteudoRodape: '<div class="fis-rodape-nfe" data-rodape-total-nfe></div>',
         // Aberta pelo kanban (Requisição → Separado): só salva; a emissão é o arraste para Faturado.
         botoes: trava === 'previa'
             ? [{ texto: 'Espelho', img: 'pdf', funcao: 'espelhoEmissaoFis(this)' }]
@@ -1372,28 +1382,111 @@ function adicionarItemNFe(item = {}) {
 // Última lista de itens buscados na emissão (o botão "Usar" aponta pelo índice).
 let itensBuscadosEmissaoFis = []
 
-async function buscarItemEmissaoFis(input) {
+// Janela "Escolher item": busca no topo (refaz a pesquisa sem fechar), cartões clicáveis com
+// código, descrição, fabricante/modelo, NCM e saldo; ↑/↓ escolhem e Enter usa o item marcado.
+function cartoesItensEmissaoFis(itens, linha, termo) {
+    if (!itens.length) return `<div class="fis-escolha-vazio">Nada encontrado para <b>${escFis(termo)}</b>.<br><small>Tente outra parte do nome, o código ou o modelo.</small></div>`
+    return itens.map((c, i) => {
+        const extra = [c.fabricante, c.modelo].filter(Boolean).map(escFis).join(' · ')
+        const saldo = c.saldo != null ? Number(c.saldo) : null
+        return `
+            <button type="button" class="fis-escolha-item${i === 0 ? ' ativo' : ''}" data-indice="${i}"
+                onclick="usarItemEmissaoFis('${linha}', ${i}, this)" onmouseenter="marcarEscolhaItemFis(this)">
+                <span class="fis-escolha-cod">${escFis(c.codigo || '—')}</span>
+                <span class="fis-escolha-texto">
+                    <b>${escFis(c.descricao)}</b>
+                    ${extra ? `<small>${extra}</small>` : ''}
+                </span>
+                <span class="fis-escolha-dados">
+                    ${c.ncm ? `<span class="fis-escolha-ncm" title="NCM">NCM ${escFis(c.ncm)}</span>` : '<span class="fis-escolha-ncm sem" title="Item sem NCM no cadastro">sem NCM</span>'}
+                    ${saldo != null ? `<span class="fis-escolha-saldo${saldo > 0 ? ' tem' : ''}" title="Saldo em estoque">${qtdEst(saldo)} ${escFis(c.unidade || 'UN')}</span>` : ''}
+                </span>
+                <span class="fis-escolha-usar">Usar →</span>
+            </button>`
+    }).join('')
+}
+
+function marcarEscolhaItemFis(el) {
+    el.parentElement.querySelectorAll('.fis-escolha-item.ativo').forEach(b => b.classList.remove('ativo'))
+    el.classList.add('ativo')
+}
+
+async function pesquisarEscolhaItemFis(input) {
+    const caixa = input.closest('[data-escolher-item]')
     const termo = input.value.trim()
-    if (termo.length < 2) return
+    if (!caixa || termo.length < 2) return
+    const lista = caixa.querySelector('[data-escolha-lista]')
+    lista.classList.add('carregando')
     try {
         const { itens } = await apiFiscal('itens/sugestoes', { texto: termo, limite: 12 })
         itensBuscadosEmissaoFis = itens
-        const linha = soDigFis(input.closest('tr').dataset.linha)
-        const lista = itens.map((c, i) => `
-            <tr>
-                <td><b>${escFis(c.codigo)}</b></td>
-                <td class="fis-descricao">${escFis(c.descricao)}<small>${[c.fabricante, c.modelo].filter(Boolean).map(escFis).join(' · ')}</small></td>
-                <td><small>${escFis(c.ncm || 'sem NCM')}</small></td>
-                <td class="fis-num">${c.saldo != null ? qtdEst(c.saldo) : ''}</td>
-                <td><button type="button" class="fis-botao" onclick="usarItemEmissaoFis('${linha}', ${i}, this)">Usar</button></td>
-            </tr>`).join('')
-        popup({
-            titulo: 'Escolher item',
-            elemento: `<div class="fis-painel"><table class="fis-tabela"><thead><tr><th>Código</th><th>Descrição</th><th>NCM</th><th>Saldo</th><th></th></tr></thead>
-                <tbody>${lista || '<tr><td colspan="5" class="fis-vazio">Nada encontrado.</td></tr>'}</tbody></table></div>`
-        })
+        lista.innerHTML = cartoesItensEmissaoFis(itens, caixa.dataset.escolherItem, termo)
+        caixa.querySelector('[data-escolha-contagem]').textContent = contagemEscolhaFis(itens.length)
     } catch (err) {
         popup({ mensagem: mensagemErroEst(err) })
+    } finally {
+        lista.classList.remove('carregando')
+    }
+}
+
+function teclaEscolhaItemFis(event, input) {
+    const lista = input.closest('[data-escolher-item]')?.querySelector('[data-escolha-lista]')
+    if (!lista) return
+    const cartoes = [...lista.querySelectorAll('.fis-escolha-item')]
+    const atual = cartoes.findIndex(b => b.classList.contains('ativo'))
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault()
+        if (!cartoes.length) return
+        const prox = cartoes[Math.max(0, Math.min(cartoes.length - 1, atual + (event.key === 'ArrowDown' ? 1 : -1)))]
+        marcarEscolhaItemFis(prox)
+        prox.scrollIntoView({ block: 'nearest' })
+    } else if (event.key === 'Enter') {
+        event.preventDefault()
+        // Texto mudou desde a última busca: pesquisa de novo; senão usa o cartão marcado.
+        if (input.value.trim() !== input.dataset.ultimo) {
+            input.dataset.ultimo = input.value.trim()
+            pesquisarEscolhaItemFis(input)
+        } else if (atual >= 0) cartoes[atual].click()
+    }
+}
+
+const contagemEscolhaFis = n => n ? `${n} ${n === 1 ? 'item' : 'itens'}${n >= 12 ? ' (refine a busca para ver outros)' : ''}` : ''
+
+async function buscarItemEmissaoFis(input) {
+    const termo = input.value.trim()
+    if (termo.length < 2) return
+    const linha = soDigFis(input.closest('tr').dataset.linha)
+    // Enter abre a janela e o foco vai para a busca dela; o campo da linha perde o foco e dispara o
+    // onchange, que chamaria esta função de novo. Uma janela por linha: se já existe (ou está abrindo), não abre outra.
+    const aberta = document.querySelector(`[data-escolher-item="${linha}"]`)
+    if (input.dataset.buscando || aberta) {
+        aberta?.querySelector('.fis-escolha-busca input')?.focus()
+        return
+    }
+    input.dataset.buscando = '1'
+    try {
+        const { itens } = await apiFiscal('itens/sugestoes', { texto: termo, limite: 12 })
+        itensBuscadosEmissaoFis = itens
+        popup({
+            titulo: 'Escolher item',
+            elemento: `
+                <div class="fis-escolha" data-escolher-item="${linha}">
+                    <div class="fis-escolha-busca">
+                        <input class="fis-input" value="${escFis(termo)}" data-ultimo="${escFis(termo)}" placeholder="Nome, código ou modelo…"
+                            autocomplete="off" onkeydown="teclaEscolhaItemFis(event, this)">
+                        <span data-escolha-contagem>${contagemEscolhaFis(itens.length)}</span>
+                    </div>
+                    <div class="fis-escolha-lista" data-escolha-lista>${cartoesItensEmissaoFis(itens, linha, termo)}</div>
+                    <div class="fis-escolha-dica"><kbd>↑</kbd><kbd>↓</kbd> escolher · <kbd>Enter</kbd> usar ou buscar de novo</div>
+                </div>`
+        })
+        const campo = [...document.querySelectorAll(`[data-escolher-item="${linha}"] .fis-escolha-busca input`)].pop()
+        campo?.focus()
+        campo?.select()
+    } catch (err) {
+        popup({ mensagem: mensagemErroEst(err) })
+    } finally {
+        delete input.dataset.buscando
     }
 }
 
@@ -1931,6 +2024,27 @@ function lerEmissaoNFSe(form) {
 
 // ---------------------------------------------------------------- prévia e salvar
 
+// Rodapé do formulário de NF-e (lado esquerdo): quantos itens e o total da nota. Na hora mostra a soma
+// das linhas (produtos − desconto); quando a prévia do servidor volta, troca pelo total com frete,
+// ST, IPI etc. ("totalServidor").
+function rodapeTotalNFeFis(form, totalServidor) {
+    const alvo = form.closest('.popup')?.querySelector('[data-rodape-total-nfe]')
+    if (!alvo) return
+    let itens = 0, soma = 0
+    form.querySelectorAll('[data-itens-nfe] tr').forEach(tr => {
+        const v = n => Number(tr.querySelector(`[name="${n}"]`)?.value) || 0
+        if (!tr.querySelector('[name="item_id"]')?.value && !tr.querySelector('[name="descricao"]')?.value.trim()) return
+        itens++
+        soma += v('quantidade') * v('valor_unitario') - v('desconto')
+    })
+    const total = totalServidor != null && Number.isFinite(Number(totalServidor)) ? Number(totalServidor) : soma
+    alvo.innerHTML = `
+        <span class="fis-rodape-itens"><b>${itens}</b> ${itens === 1 ? 'item' : 'itens'}</span>
+        <span class="fis-rodape-total" title="${totalServidor != null ? 'Total da nota (prévia com impostos e frete)' : 'Soma dos itens; a prévia confirma o total'}">
+            <small>Total da nota</small><b>${dinheiro(total)}</b>
+        </span>`
+}
+
 let temporizadorPreviaFis = null
 function agendarPreviaFis() {
     clearTimeout(temporizadorPreviaFis)
@@ -1959,6 +2073,7 @@ async function atualizarPreviaFis() {
         const d = Number(tr.querySelector('[name="desconto"]').value) || 0
         tr.querySelector('[data-total-item]').textContent = q && u ? dinheiroTexto(q * u - d) : ''
     })
+    rodapeTotalNFeFis(form)
     // Devolução: total de cada linha (quantidade × valor unitário da origem); sem quantidade, nada a calcular.
     form.querySelectorAll('[data-devolver]').forEach(input => {
         const q = Number(input.value) || 0
@@ -1982,6 +2097,7 @@ async function atualizarPreviaFis() {
         // Valor de cada departamento: o que vai virar recebimento (NFS-e: líquido; NF-e: total da nota).
         totalRateioFis = Number(r.modelo === 'NFSE' ? (t.liquido ?? t.servico) : t.nota) || null
         somarRateioFis(form)
+        if (r.modelo !== 'NFSE') rodapeTotalNFeFis(form, t.nota)
         const linhas = r.modelo === 'NFSE'
             ? [['Serviço', t.servico], ['ISS', t.iss], ...Object.entries(t.retencoes || {}).filter(([, x]) => x.valor).map(([k, x]) => [`${k.toUpperCase()}${x.reter ? ' (retido)' : ''}`, x.valor]), ['Total retido', t.total_retido], ['Líquido a receber', t.liquido]]
             : [['Produtos', t.produtos], ['Desconto', t.desconto], ['Frete', t.frete], ['Seguro', t.seguro], ['Outras despesas', t.outras], ['ICMS', t.icms], ['ICMS ST', t.st], ['IPI devolvido', t.ipi_devolvido], ['DIFAL', t.difal], ['PIS', t.pis], ['COFINS', t.cofins], ['IBS', t.ibs], ['CBS', t.cbs], ['Total da nota', t.nota]]
