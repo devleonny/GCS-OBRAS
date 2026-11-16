@@ -582,9 +582,18 @@ function avatarCliente({ foto, nome, empresa }) {
 // da empresa a que está vinculado. Lida uma vez por sessão; o avatar da lista é preenchido depois.
 let fotosEmpresasCliente = null
 
+// A lista (vw_2_clientes) traz em "empresa" o NOME da empresa; o cadastro do cliente, o id.
+// O mapa responde pelos dois (nome sem espaços nas pontas e em maiúsculas).
+const chaveEmpresaFoto = valor => String(valor ?? '').trim().toUpperCase()
+
+function fotoDaEmpresa(mapa, empresa) {
+    return mapa.get(String(empresa)) || mapa.get(chaveEmpresaFoto(empresa))
+}
+
 function carregarFotosEmpresasCliente() {
     fotosEmpresasCliente ??= pesquisarDB({ base: 'empresas', limite: 500 })
-        .then(r => new Map((r?.resultados || []).filter(e => e.foto).map(e => [String(e.id), e.foto])))
+        .then(r => new Map((r?.resultados || []).filter(e => e.foto)
+            .flatMap(e => [[chaveEmpresaFoto(e.nome), e.foto], [String(e.id), e.foto]])))
         .catch(() => { fotosEmpresasCliente = null; return new Map() })
     return fotosEmpresasCliente
 }
@@ -595,7 +604,7 @@ function preencherFotosEmpresaCliente(raiz) {
     carregarFotosEmpresasCliente().then(mapa => {
         for (const img of imagens) {
             img.dataset.fotoEmpresaLida = 'sim'
-            const foto = mapa.get(img.dataset.fotoEmpresa)
+            const foto = fotoDaEmpresa(mapa, img.dataset.fotoEmpresa)
             if (!foto) continue
             img.onload = () => { img.hidden = false; if (img.nextElementSibling) img.nextElementSibling.hidden = true }
             img.src = urlFotoCliente(foto)
@@ -612,7 +621,7 @@ function atualizarFotosEmpresasCliente() {
     carregarFotosEmpresasCliente().then(mapa => {
         for (const img of imagens) {
             img.dataset.fotoEmpresaLida = 'sim'
-            const foto = mapa.get(img.dataset.fotoEmpresa)
+            const foto = fotoDaEmpresa(mapa, img.dataset.fotoEmpresa)
             const iniciais = img.nextElementSibling
             if (!foto) {
                 img.hidden = true
