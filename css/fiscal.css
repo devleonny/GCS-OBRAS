@@ -713,31 +713,50 @@ textarea.fis-input {
     }
 }
 
-/* Rateio entre departamentos (nota livre): uma linha por departamento + percentual. */
+/* Departamentos (rateio) da NF-e avulsa e da NFS-e: busca na lista do Financeiro (.fin-escolha, css/financeiro.css),
+   percentual, valor em R$ (da prévia) e lixeira. Os recebimentos da nota saem divididos assim. */
 .fis-rateio {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    margin-top: 8px;
-    padding: 8px 10px;
-    border: 1px dashed #c4cec8;
-    border-radius: 8px;
-    background: #fbfcfb;
 }
 
-.fis-rateio-titulo { font-size: 0.8rem; font-weight: 600; color: #1f2a24; }
-.fis-rateio-titulo small { font-weight: 400; color: #6b7a71; }
-
+.fis-rateio-cab,
 .fis-rateio-linha {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 6.5rem auto;
+    grid-template-columns: minmax(0, 1fr) 7rem 9rem 2rem;
     gap: 6px;
     align-items: center;
 }
 
-.fis-rateio-linha .fis-input.fis-curto { min-width: 0; }
+.fis-rateio-cab { font-size: 0.72rem; font-weight: 600; color: #6b7a71; }
+.fis-rateio-cab span:nth-child(3) { text-align: right; }
 
-.fis-rateio-rodape { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.fis-rateio-linha .fis-input.fis-curto { min-width: 0; width: 100%; }
+.fis-rateio-linha .fis-input[readonly] { background: #f3f6f4; color: #4b5a51; }
+.fis-rateio-linha [name="rateio_valor"] { text-align: right; }
+/* O campo que manda na linha (último mexido) fica em negrito; o outro é calculado. */
+.fis-rateio-linha[data-modo="pct"] [name="rateio_percentual"],
+.fis-rateio-linha[data-modo="valor"] [name="rateio_valor"] { font-weight: 600; }
+
+/* Popup "Colar departamentos da planilha". */
+.fis-colar-rateio {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: min(640px, 80vw);
+    box-sizing: border-box;
+    padding: 14px 18px 16px;
+    text-align: left;
+}
+.fis-colar-rateio > small { line-height: 1.5; color: #3d4b43; }
+.fis-colar-rateio textarea { padding: 10px 12px; font-family: Consolas, monospace; font-size: 0.8rem; line-height: 1.5; resize: vertical; }
+.fis-colar-rateio [data-colar-previa] { display: flex; flex-direction: column; gap: 6px; }
+.fis-colar-rateio [data-colar-previa]:empty { display: none; }
+.fis-colar-rateio .fis-tabela { font-size: 0.78rem; }
+
+.fis-rateio-rodape { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.fis-rateio-rodape > span { display: flex; gap: 6px; }
 
 /* "+ Item" abaixo da tabela de itens da NF-e: afastado da tabela. */
 .fis-tabela-rolagem + .fis-mini { margin-top: 10px; }
@@ -923,3 +942,44 @@ textarea.fis-input {
 .fis-remover-linha:hover { color: #c0392b; background: #fdecea; border-color: #f5c6c0; }
 .fis-remover-linha:focus { outline: none; }
 .fis-remover-linha:focus-visible { border-color: #c0392b; }
+
+/* Sugestões do destinatário/tomador (js/fiscal.js mostrarSugestoesFis): fixa no body, acima dos popups. */
+.fis-sugestoes {
+    position: fixed;
+    z-index: 1000000;
+    max-height: 280px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #c9d6cd;
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    font-size: 0.8rem;
+}
+
+.fis-sugestoes[hidden] {
+    display: none;
+}
+
+.fis-sugestao {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 6px 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #eef2ef;
+    color: #1f2d25;
+}
+
+.fis-sugestao small {
+    color: #6b7a71;
+}
+
+.fis-sugestao:hover,
+.fis-sugestao.ativa {
+    background: #e8f3ec;
+}
+
+.fis-sugestao-vazia {
+    padding: 8px 10px;
+    color: #6b7a71;
+}

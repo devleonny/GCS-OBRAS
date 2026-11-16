@@ -785,7 +785,10 @@ function htmlNotaEmitida({ documento: d, itens, movimentos }, contexto = null) {
             ${resumoDocumentoFis(d, [
                 ['Destinatário', `${escFis(d.participante_nome || '—')} <small>${docFormatadoFis(d.participante_documento)}${d.participante_uf ? ` · ${escFis(d.participante_uf)}` : ''}</small>`],
                 ['Empresa', escFis(d.app)],
-                ['Orçamento', escFis(orc || '—')],
+                // Rateio: cada departamento com o percentual (é assim que os recebimentos foram divididos).
+                Array.isArray(entrada.rateio) && entrada.rateio.length > 1
+                    ? ['Departamentos', entrada.rateio.map(r => `${escFis(r.departamento)} <small>${Number(r.percentual).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%${r.modo === 'valor' && r.valor ? ` · ${dinheiro(r.valor)}` : ''}</small>`).join(' · ')]
+                    : ['Orçamento', escFis(orc || '—')],
                 ['Criada', `${dataHoraFis(d.criado_em)} <small>${escFis(d.criado_por || '')}</small>`],
                 ['Autorizada', d.emissao ? dataHoraFis(d.emissao) : '']
             ])}
@@ -961,11 +964,11 @@ function indicadorPadraoFis(dest = {}) {
 
 function blocoDestinatarioFis(dest = {}, { nfse = false } = {}) {
     return `
-        <fieldset class="fis-passo">
+        <fieldset class="fis-passo" data-bloco-destinatario data-preenchido="${escFis(soDigFis(dest.documento || ''))}">
             <legend><span class="fis-num-passo">2</span> ${nfse ? 'Tomador' : 'Destinatário'} <small>— digite o CPF/CNPJ: o GCS completa pelo cadastro e pelas notas anteriores</small></legend>
             <div class="fis-grade">
-                ${campoFis('CPF / CNPJ', inputFis('d_documento', docFormatadoFis(dest.documento), 'inputmode="numeric" onchange="buscarParticipanteFis(this)"'), 'fis-destaque')}
-                ${campoFis('Nome / razão social', inputFis('d_nome', dest.nome), 'fis-largo')}
+                ${campoFis('CPF / CNPJ', inputFis('d_documento', docFormatadoFis(dest.documento), `inputmode="numeric" onchange="buscarParticipanteFis(this)" ${ATRIBUTOS_SUGESTAO_FIS}`), 'fis-destaque')}
+                ${campoFis('Nome / razão social', inputFis('d_nome', dest.nome, `placeholder="Digite para buscar no cadastro…" ${ATRIBUTOS_SUGESTAO_FIS}`), 'fis-largo')}
                 ${nfse ? '' : campoFis('Contribuinte do ICMS?', `<select class="fis-input" name="d_indicador_ie" onchange="agendarPreviaFis()">${opcoesFis([['1', '1 · Contribuinte (tem IE)'], ['2', '2 · Isento'], ['9', '9 · Não contribuinte']], dest.indicador_ie || indicadorPadraoFis(dest))}</select>`)}
                 ${nfse ? '' : campoFis('Inscrição estadual', inputFis('d_inscricao_estadual', dest.inscricao_estadual))}
                 ${campoFis('CEP', inputFis('d_cep', dest.cep, 'inputmode="numeric" maxlength="9"'))}
@@ -984,6 +987,120 @@ function blocoDestinatarioFis(dest = {}, { nfse = false } = {}) {
         </fieldset>`
 }
 
+// ---------------- sugestões do destinatário/tomador enquanto digita (nome, razão social ou CPF/CNPJ)
+// A lista fica no body com posição fixa (os popups rolam e cortariam um menu dentro do formulário).
+const ATRIBUTOS_SUGESTAO_FIS = 'autocomplete="off" oninput="sugerirParticipanteFis(this)" onkeydown="teclaSugestaoFis(event, this)" onblur="fecharSugestoesFis()"'
+let sugestaoFis = { timer: null, seq: 0, input: null, lista: [], ativo: -1 }
+
+function sugerirParticipanteFis(input) {
+    clearTimeout(sugestaoFis.timer)
+    const termo = input.value.trim()
+    // Apagou o nome ou o CPF/CNPJ: o cliente saiu, então o resto do bloco sai junto.
+    if (!termo) {
+        fecharSugestoesFis()
+        return limparDestinatarioFis(input.closest('.fis-form'))
+    }
+    // CPF/CNPJ completo segue pelo onchange (buscarParticipanteFis); aqui só o começo do número.
+    if (input.name === 'd_documento' && [11, 14].includes(soDigFis(termo).length)) return fecharSugestoesFis()
+    if (termo.length < 2 || (input.name === 'd_documento' && soDigFis(termo).length < 3)) return fecharSugestoesFis()
+    sugestaoFis.timer = setTimeout(async () => {
+        const seq = ++sugestaoFis.seq
+        try {
+            const { participantes = [] } = await apiFiscal('participante', { texto: termo })
+            if (seq !== sugestaoFis.seq || document.activeElement !== input) return
+            mostrarSugestoesFis(input, participantes)
+        } catch (err) {
+            console.error(err)
+        }
+    }, 250)
+}
+
+function mostrarSugestoesFis(input, lista) {
+    sugestaoFis = { ...sugestaoFis, input, lista, ativo: -1 }
+    let caixa = document.getElementById('fis-sugestoes')
+    if (!caixa) {
+        caixa = document.createElement('div')
+        caixa.id = 'fis-sugestoes'
+        caixa.className = 'fis-sugestoes'
+        // mousedown (antes do blur do campo) para o clique valer.
+        caixa.addEventListener('mousedown', e => {
+            e.preventDefault()
+            const item = e.target.closest('[data-indice]')
+            if (item) escolherSugestaoFis(Number(item.dataset.indice))
+        })
+        document.body.appendChild(caixa)
+        // Rolou a janela/popup: a lista (fixa) ficaria solta longe do campo.
+        window.addEventListener('scroll', e => { if (!caixa.hidden && !caixa.contains(e.target)) fecharSugestoesFis() }, true)
+        window.addEventListener('resize', () => fecharSugestoesFis())
+    }
+    caixa.innerHTML = lista.length
+        ? lista.map((p, i) => `
+            <div class="fis-sugestao" data-indice="${i}">
+                <b>${escFis(p.nome || '')}</b>${p.inativo ? ' <small class="fis-negativo">inativo</small>' : ''}
+                <small>${[docFormatadoFis(p.documento), p.fantasia, p.cidade].filter(Boolean).map(escFis).join(' · ')}</small>
+            </div>`).join('')
+        : '<div class="fis-sugestao-vazia">Nada encontrado no cadastro nem em notas anteriores.</div>'
+    const r = input.getBoundingClientRect()
+    const largura = Math.max(r.width, 360)
+    caixa.style.left = `${Math.max(4, Math.min(r.left, window.innerWidth - largura - 4))}px`
+    caixa.style.width = `${largura}px`
+    const embaixo = window.innerHeight - r.bottom
+    if (embaixo < 240 && r.top > embaixo) {
+        caixa.style.top = ''
+        caixa.style.bottom = `${window.innerHeight - r.top + 2}px`
+    } else {
+        caixa.style.bottom = ''
+        caixa.style.top = `${r.bottom + 2}px`
+    }
+    caixa.hidden = false
+}
+
+function fecharSugestoesFis() {
+    clearTimeout(sugestaoFis.timer)
+    sugestaoFis.seq++
+    const caixa = document.getElementById('fis-sugestoes')
+    if (caixa) caixa.hidden = true
+    sugestaoFis.lista = []
+    sugestaoFis.ativo = -1
+}
+
+function teclaSugestaoFis(e, input) {
+    const caixa = document.getElementById('fis-sugestoes')
+    const aberta = caixa && !caixa.hidden && sugestaoFis.input === input && sugestaoFis.lista.length
+    if (!aberta) return
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        const n = sugestaoFis.lista.length
+        sugestaoFis.ativo = (sugestaoFis.ativo + (e.key === 'ArrowDown' ? 1 : -1) + n) % n
+        caixa.querySelectorAll('.fis-sugestao').forEach((el, i) => el.classList.toggle('ativa', i === sugestaoFis.ativo))
+        caixa.querySelector('.fis-sugestao.ativa')?.scrollIntoView({ block: 'nearest' })
+    } else if (e.key === 'Enter' && sugestaoFis.ativo >= 0) {
+        e.preventDefault()
+        escolherSugestaoFis(sugestaoFis.ativo)
+    } else if (e.key === 'Escape') {
+        e.preventDefault()
+        e.stopPropagation()
+        fecharSugestoesFis()
+    }
+}
+
+// Escolhido: grava o CPF/CNPJ e completa o resto como se tivesse digitado o documento.
+function escolherSugestaoFis(indice) {
+    const p = sugestaoFis.lista[indice]
+    const input = sugestaoFis.input
+    fecharSugestoesFis()
+    if (!p || !input) return
+    const form = input.closest('.fis-form')
+    const doc = form?.querySelector('[name="d_documento"]')
+    const nome = form?.querySelector('[name="d_nome"]')
+    if (!doc) return
+    if (nome) nome.value = p.nome || ''
+    const clienteId = form.querySelector('[name="d_cliente_id"]')
+    if (clienteId) clienteId.value = ''
+    doc.value = docFormatadoFis(p.documento)
+    buscarParticipanteFis(doc)
+}
+
 function lerDestinatarioFis(form) {
     const v = n => form.querySelector(`[name="d_${n}"]`)?.value?.trim() ?? ''
     return {
@@ -993,6 +1110,21 @@ function lerDestinatarioFis(form) {
         codigo_municipio: soDigFis(v('codigo_municipio')), email: v('email'), telefone: soDigFis(v('telefone')),
         cliente_id: v('cliente_id') || undefined
     }
+}
+
+// Esvazia o bloco Destinatário/Tomador (menos os campos em "manter") e volta o indicador de IE ao padrão.
+function limparDestinatarioFis(form, manter = []) {
+    if (!form) return
+    form.querySelectorAll('[name^="d_"]').forEach(campo => {
+        if (manter.includes(campo.name.slice(2))) return
+        if (campo.name === 'd_indicador_ie') campo.value = '9'
+        else campo.value = ''
+    })
+    const aviso = form.querySelector('[data-aviso-destinatario]')
+    if (aviso) aviso.innerHTML = ''
+    const bloco = form.querySelector('[data-bloco-destinatario]')
+    if (bloco) bloco.dataset.preenchido = ''
+    agendarPreviaFis()
 }
 
 async function buscarParticipanteFis(input) {
@@ -1007,6 +1139,12 @@ async function buscarParticipanteFis(input) {
     try {
         const { participante: p } = await apiFiscal('participante', { documento: doc })
         input.value = docFormatadoFis(doc)
+        // Os dados do cliente anterior não podem ficar misturados com os do novo documento.
+        // Sem cadastro, o nome digitado fica se não veio do cliente anterior.
+        const bloco = form.querySelector('[data-bloco-destinatario]')
+        const anterior = bloco?.dataset.preenchido
+        if (anterior && anterior !== doc) limparDestinatarioFis(form, ['documento'])
+        else if (p?.fonte) limparDestinatarioFis(form, ['documento', 'nome'])
         if (!p?.fonte) {
             aviso.innerHTML = '<small>Não encontrado no cadastro nem em notas anteriores: preencha os dados.</small>'
             return
@@ -1018,6 +1156,7 @@ async function buscarParticipanteFis(input) {
         // Sem indicador no cadastro: pelo IE (com IE = 1, ISENTO = 2, sem IE = 9).
         const indicador = form.querySelector('[name="d_indicador_ie"]')
         if (indicador && !p.indicador_ie) indicador.value = indicadorPadraoFis({ ...p, documento: doc })
+        if (bloco) bloco.dataset.preenchido = doc
         aviso.innerHTML = `<small class="fis-positivo">Dados ${p.fonte === 'fiscal' ? 'de notas anteriores' : 'do cadastro de clientes'}: confira.</small>`
         agendarPreviaFis()
     } catch (err) {
@@ -1082,19 +1221,20 @@ async function formularioEmissaoNFe(inicial = {}) {
                 </div>
             </fieldset>
             ${blocoPagamentoFis(5, o.pagamento || inicial.pagamento || {})}
+            ${blocoRateioFis(6, rateioInicialFis(inicial))}
             <fieldset class="fis-passo">
-                <legend><span class="fis-num-passo">6</span> Complementos</legend>
+                <legend><span class="fis-num-passo">7</span> Complementos</legend>
                 <div class="fis-grade">
                     ${campoFis('Consumidor final', `<select class="fis-input" name="consumidor_final">${opcoesFis([['', 'Automático (pela IE)'], ['1', 'Sim'], ['0', 'Não']], o.consumidor_final ?? '')}</select>`)}
                     ${inicial.fluxo_item
-                        // Separação (kanban): o departamento é o do pedido que originou o item, fixo.
-                        ? campoFis('Departamento <small>(origem do pedido)</small>', inputFis('orcamento', inicial.orcamento, 'readonly title="Fixo: departamento do pedido de origem"'))
+                        // Separação (kanban): o orçamento da nota é o do pedido que originou o item (liga a nota ao
+                        // ORC). Os Departamentos (passo 6) já nascem com ele em 100% e podem ser rateados.
+                        ? campoFis('Orçamento <small>(origem do pedido)</small>', inputFis('orcamento', inicial.orcamento, 'readonly title="Fixo: orçamento do pedido de origem"'))
                         : ''}
                     ${campoFis('Nº do pedido do cliente',
                         inputFis('numero_pedido', o.numero_pedido ?? inicial.numero_pedido ?? '',
                             `maxlength="60" placeholder="${escFis(inicial.situacao_pedido ? `${inicial.situacao_pedido}: informe o número, se houver` : 'Se houver')}"`))}
                 </div>
-                ${inicial.fluxo_item ? '' : blocoRateioFis(op.destinos || [], inicial.rateio?.length ? inicial.rateio : (inicial.orcamento ? [{ departamento: inicial.orcamento, percentual: 100 }] : []))}
                 ${campoFis('Chave(s) da NF-e referenciada <small>(retorno, devolução; uma por linha)</small>', `<textarea class="fis-input" name="referenciadas" rows="2">${escFis((o.referenciadas || []).join('\n'))}</textarea>`)}
                 ${campoFis('Informações complementares', `<textarea class="fis-input" name="informacoes_complementares" rows="2">${escFis(o.informacoes_complementares || '')}</textarea>`)}
             </fieldset>
@@ -1118,6 +1258,8 @@ async function formularioEmissaoNFe(inicial = {}) {
             ]
     })
     const form = document.querySelector('[data-form-nfe]')
+    totalRateioFis = null
+    somarRateioFis(form)
     trocarEmpresaNFe(form.querySelector('[name="app"]'), inicial.operacao_id)
     for (const item of inicial.itens?.length ? inicial.itens : [{}]) adicionarItemNFe(item)
     previaPagamentoFis(form.querySelector('[name="pag_forma"]'))
@@ -1254,7 +1396,7 @@ function lerEmissaoNFe(form) {
     }).filter(i => i.descricao || i.item_id)
     const transportadora = (opcoesEmissaoFiscal?.transportadoras || []).find(t => String(t.id) === v('transportadora'))
     const semTransporte = v('transportadora') === 'SEM_TRANSPORTE'
-    const rateio = lerRateioFis(form)
+    const rateio = lerRateioFis(form.querySelector('[data-rateio]'))
     return {
         modelo: 'NFE',
         app: v('app'),
@@ -1279,60 +1421,362 @@ function lerEmissaoNFe(form) {
             // Forma e parcelas: fatura/duplicatas da nota e contas a receber no Financeiro.
             pagamento: lerPagamentoFis(form)
         },
-        // Separação: departamento fixo do pedido. Nota livre: rateio entre departamentos (contratos do GCS).
+        // Separação: o orçamento fica o do pedido (mesmo com rateio). Nota avulsa: o departamento ou 'RATEIO'.
         orcamento: form.querySelector('[name="orcamento"]') ? v('orcamento') : (rateio.length === 1 ? rateio[0].departamento : rateio.length ? 'RATEIO' : ''),
-        rateio: rateio.length ? rateio : undefined
+        rateio
     }
 }
 
-// ---------------------------------------------------------------- rateio (nota livre)
-// Divide a nota entre departamentos (contratos do GCS e setores, mesma lista do rateio da Localiza:
-// vw_localiza_destinos). Percentuais somam 100%.
+// ---------------------------------------------------------------- departamentos (rateio)
+// Seção própria da NF-e avulsa e da NFS-e: divide a nota entre departamentos (contratos ORC e setores da
+// lista do Financeiro, vw_fin_departamentos). As faturas a receber da nota autorizada saem divididas por
+// este rateio (gcs SCRIPTS/financeiro.js gerarReceberDaNota). Lista FECHADA como no Financeiro: o texto
+// só busca; o departamento entra clicando num item. Um só = 100%.
+// Cada linha aceita % ou R$: o que o usuário mexeu por último manda (data-modo) e o outro é calculado
+// sobre o total da nota; se o total mudar, a linha em R$ mantém o valor e a linha em % mantém o percentual.
+// O percentual vai com 6 casas (o valor em R$ bate no centavo). "Colar da planilha": várias linhas de uma vez.
 
-function blocoRateioFis(destinos, linhas = []) {
-    const opcoes = destinos.map(d => [d.id, `${d.id}${d.cliente ? ` · ${d.cliente}` : ''}`])
-    const linha = (l = {}) => `
-        <div class="fis-rateio-linha">
-            <select class="fis-input" name="rateio_departamento">${opcoesFis([['', 'Departamento'], ...opcoes], l.departamento || '')}</select>
-            <input class="fis-input fis-curto" name="rateio_percentual" type="number" min="0" max="100" step="0.01" placeholder="%" value="${escFis(l.percentual ?? '')}">
-            <button type="button" class="fis-remover-linha" title="Remover" aria-label="Remover" onclick="this.closest('.fis-rateio-linha').remove(); somarRateioFis(this)">${iconeLixeiraFis}</button>
-        </div>`
+const normalFis = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+const destinosFis = () => opcoesEmissaoFiscal?.destinos || []
+const rotuloDestinoFis = d => d ? `${d.id}${d.cliente ? ` · ${d.cliente}` : d.tipo === 'SETOR' ? ' · setor' : ''}${d.cidade ? ` (${d.cidade})` : ''}` : ''
+const r2Fis = v => Math.round((Number(v) + Number.EPSILON) * 100) / 100
+const r6Fis = v => Math.round(Number(v) * 1e6) / 1e6
+// Percentual no campo: até 4 casas (o cálculo usa a precisão toda).
+const pctCampoFis = v => String(Number(Number(v).toFixed(4)))
+const pctTextoFis = v => Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 4 })
+// Base do valor por departamento: o que a prévia calculou (NF-e: total da nota; NFS-e: líquido a receber).
+let totalRateioFis = null
+
+function rateioInicialFis(inicial = {}) {
+    if (Array.isArray(inicial.rateio) && inicial.rateio.length) return inicial.rateio
+    return inicial.orcamento && inicial.orcamento !== 'RATEIO' ? [{ departamento: inicial.orcamento, percentual: 100 }] : []
+}
+
+function blocoRateioFis(numero, linhas = []) {
+    const lista = linhas.length ? linhas : [{ departamento: '', percentual: 100 }]
     return `
-        <div class="fis-rateio" data-rateio data-opcoes="${escFis(JSON.stringify(opcoes))}">
-            <span class="fis-rateio-titulo">Departamentos <small>— rateio do valor da nota (contratos do GCS); somar 100%</small></span>
-            <div data-rateio-linhas>${(linhas.length ? linhas : [{}]).map(linha).join('')}</div>
-            <div class="fis-rateio-rodape">
-                <button type="button" class="fis-mini" onclick="adicionarRateioFis(this)">+ Departamento</button>
-                <small data-rateio-soma></small>
+        <fieldset class="fis-passo" data-rateio>
+            <legend><span class="fis-num-passo">${numero}</span> Departamentos <small>— contrato (ORC) ou setor; vários = rateio em % ou em R$. Os recebimentos desta nota são divididos assim</small></legend>
+            <div class="fis-rateio">
+                <div class="fis-rateio-cab"><span>Departamento</span><span>%</span><span>Valor (R$)</span><span></span></div>
+                <div data-rateio-linhas>${lista.map(linhaRateioFis).join('')}</div>
+                <div class="fis-rateio-rodape">
+                    <span>
+                        <button type="button" class="fis-mini" onclick="adicionarRateioFis(this)">+ Departamento</button>
+                        <button type="button" class="fis-mini" onclick="abrirColarRateioFis()" title="Colar várias linhas (ORC e valor) de uma planilha">Colar da planilha</button>
+                        <button type="button" class="fis-mini" onclick="dividirRateioFis(this)" title="Mesmo percentual para todos os departamentos">Dividir igual</button>
+                    </span>
+                    <small data-rateio-soma></small>
+                </div>
             </div>
+        </fieldset>`
+}
+
+function linhaRateioFis(l = {}) {
+    const dep = destinosFis().find(d => d.id === l.departamento)
+    // Departamento salvo que saiu da lista: fica visível (o servidor recusa ao salvar e diz qual é).
+    const id = dep ? dep.id : (l.departamento || '')
+    const modo = l.modo === 'valor' && l.valor != null ? 'valor' : 'pct'
+    return `
+        <div class="fis-rateio-linha" data-modo="${modo}">
+            <div class="fin-escolha" data-valor="${escFis(id)}">
+                <input class="fis-input" name="rateio_busca" value="${escFis(dep ? rotuloDestinoFis(dep) : id)}" placeholder="Buscar contrato, cliente ou setor…" autocomplete="off"
+                    onfocus="this.select(); buscarDestinoFis(this)" oninput="buscarDestinoFis(this)" onblur="setTimeout(() => fecharBuscaDestinoFis(this), 150)">
+                <div class="fin-escolha-lista" hidden></div>
+            </div>
+            <input class="fis-input fis-curto" name="rateio_percentual" type="number" min="0" max="100" step="any" placeholder="%"
+                value="${l.percentual != null && l.percentual !== '' ? pctCampoFis(l.percentual) : ''}" oninput="editarRateioFis(this, 'pct')">
+            <input class="fis-input fis-curto fis-num" name="rateio_valor" type="number" min="0" step="0.01" placeholder="R$"
+                value="${modo === 'valor' ? escFis(l.valor) : ''}" oninput="editarRateioFis(this, 'valor')">
+            <button type="button" class="fis-remover-linha" title="Tirar departamento" aria-label="Tirar departamento" onclick="removerRateioFis(this)">${iconeLixeiraFis}</button>
         </div>`
+}
+
+// Mexeu no % ou no R$: essa linha passa a ser guiada por ele; o outro campo é recalculado.
+function editarRateioFis(input, modo) {
+    input.closest('.fis-rateio-linha').dataset.modo = modo
+    somarRateioFis(input)
 }
 
 function adicionarRateioFis(botao) {
     const bloco = botao.closest('[data-rateio]')
-    const opcoes = JSON.parse(bloco.dataset.opcoes || '[]')
-    bloco.querySelector('[data-rateio-linhas]').insertAdjacentHTML('beforeend', `
-        <div class="fis-rateio-linha">
-            <select class="fis-input" name="rateio_departamento">${opcoesFis([['', 'Departamento'], ...opcoes], '')}</select>
-            <input class="fis-input fis-curto" name="rateio_percentual" type="number" min="0" max="100" step="0.01" placeholder="%">
-            <button type="button" class="fis-remover-linha" title="Remover" aria-label="Remover" onclick="this.closest('.fis-rateio-linha').remove(); somarRateioFis(this)">${iconeLixeiraFis}</button>
-        </div>`)
+    const linhas = bloco.querySelector('[data-rateio-linhas]')
+    // A linha nova já vem com o que falta para 100%.
+    const soma = lerRateioFis(bloco, true).reduce((s, l) => s + l.percentual, 0)
+    linhas.insertAdjacentHTML('beforeend', linhaRateioFis({ departamento: '', percentual: soma < 100 ? r6Fis(100 - soma) : '' }))
+    somarRateioFis(bloco)
+    linhas.lastElementChild.querySelector('[name="rateio_busca"]').focus()
 }
 
-function lerRateioFis(form) {
-    return [...form.querySelectorAll('[data-rateio] .fis-rateio-linha')]
-        .map(l => ({ departamento: l.querySelector('[name="rateio_departamento"]').value, percentual: Number(l.querySelector('[name="rateio_percentual"]').value) || 0 }))
-        .filter(l => l.departamento)
+function removerRateioFis(botao) {
+    const bloco = botao.closest('[data-rateio]')
+    botao.closest('.fis-rateio-linha').remove()
+    if (!bloco.querySelector('.fis-rateio-linha')) bloco.querySelector('[data-rateio-linhas]').insertAdjacentHTML('beforeend', linhaRateioFis({ percentual: 100 }))
+    somarRateioFis(bloco)
+    agendarPreviaFis()
+}
+
+function dividirRateioFis(botao) {
+    const bloco = botao.closest('[data-rateio]')
+    const linhas = [...bloco.querySelectorAll('.fis-rateio-linha')]
+    if (!linhas.length) return
+    const parte = r6Fis(100 / linhas.length)
+    linhas.forEach((l, i) => {
+        l.dataset.modo = 'pct'
+        l.querySelector('[name="rateio_percentual"]').value = pctCampoFis(i === linhas.length - 1 ? r6Fis(100 - parte * (linhas.length - 1)) : parte)
+    })
+    somarRateioFis(bloco)
+}
+
+function buscarDestinoFis(input) {
+    const caixa = input.closest('.fin-escolha')
+    const lista = caixa.querySelector('.fin-escolha-lista')
+    const termo = normalFis(input.value).trim()
+    const todos = destinosFis()
+    // O que já está escolhido não filtra (ao focar, mostra tudo de novo). Os já usados em outra linha saem.
+    const filtro = termo && termo !== normalFis(rotuloDestinoFis(todos.find(d => d.id === caixa.dataset.valor))) ? termo.split(/\s+/) : []
+    const usados = new Set([...input.closest('[data-rateio]').querySelectorAll('.fin-escolha')].filter(c => c !== caixa).map(c => c.dataset.valor))
+    const achados = todos
+        .filter(d => !usados.has(d.id) && filtro.every(p => normalFis(`${d.id} ${d.cliente || ''} ${d.cidade || ''}`).includes(p)))
+        .slice(0, 40)
+    lista.innerHTML = achados.map(d => `
+        <button type="button" class="fin-escolha-item" onmousedown="event.preventDefault(); escolherDestinoFis(this, '${escFis(d.id)}')">
+            <b>${escFis(d.id)}</b> <span>${escFis(d.cliente || (d.tipo === 'SETOR' ? 'Setor' : ''))}${d.cidade ? ` · ${escFis(d.cidade)}` : ''}</span>
+        </button>`).join('') || '<div class="fin-escolha-vazio">Nada encontrado: só contratos e setores da lista do Financeiro.</div>'
+    lista.hidden = false
+}
+
+function escolherDestinoFis(botao, id) {
+    const caixa = botao.closest('.fin-escolha')
+    caixa.dataset.valor = id
+    caixa.querySelector('input').value = rotuloDestinoFis(destinosFis().find(d => d.id === id))
+    caixa.querySelector('.fin-escolha-lista').hidden = true
+    somarRateioFis(caixa)
+    agendarPreviaFis()
+}
+
+// Saiu do campo sem escolher: volta para o que estava escolhido (texto solto não fica).
+function fecharBuscaDestinoFis(input) {
+    const caixa = input.closest('.fin-escolha')
+    if (!caixa) return
+    caixa.querySelector('.fin-escolha-lista').hidden = true
+    const dep = destinosFis().find(d => d.id === caixa.dataset.valor)
+    input.value = dep ? rotuloDestinoFis(dep) : (caixa.dataset.valor || '')
+}
+
+// Linhas do rateio. todas = true: inclui as sem departamento e não arredonda (para somar e conferir).
+// Senão: só as com departamento, percentual em 6 casas e o resíduo do arredondamento no maior (soma 100 exato).
+function lerRateioFis(raiz, todas = false) {
+    const total = totalRateioFis
+    const linhas = [...(raiz?.querySelectorAll('.fis-rateio-linha') || [])].map(l => {
+        const modo = l.dataset.modo === 'valor' ? 'valor' : 'pct'
+        const valorCampo = Number(l.querySelector('[name="rateio_valor"]')?.value) || 0
+        const pctCampo = Number(l.querySelector('[name="rateio_percentual"]')?.value) || 0
+        const percentual = modo === 'valor' ? (total ? valorCampo * 100 / total : null) : pctCampo
+        return {
+            departamento: l.querySelector('.fin-escolha')?.dataset.valor || '',
+            modo,
+            percentual: percentual ?? 0,
+            semTotal: percentual == null,
+            valor: modo === 'valor' ? r2Fis(valorCampo) : total ? r2Fis(total * pctCampo / 100) : null
+        }
+    })
+    if (todas) return linhas
+    const r = linhas.filter(l => l.departamento)
+    if (r.length === 1) return [{ departamento: r[0].departamento, percentual: 100 }]
+    r.forEach(l => l.percentual = r6Fis(l.percentual))
+    const soma = r.reduce((s, l) => s + l.percentual, 0)
+    if (r.length && Math.abs(100 - soma) < 0.001) {
+        const maior = r.reduce((a, l) => l.percentual > a.percentual ? l : a)
+        maior.percentual = r6Fis(maior.percentual + 100 - soma)
+    }
+    // modo/valor voltam no Editar (a linha em R$ reabre em R$).
+    return r.map(l => ({ departamento: l.departamento, percentual: l.percentual, ...(l.modo === 'valor' ? { modo: 'valor', valor: l.valor } : {}) }))
 }
 
 function somarRateioFis(el) {
     const form = el?.closest?.('.fis-form') || formEmissaoAberto()
-    const alvo = form?.querySelector('[data-rateio-soma]')
-    if (!alvo) return
-    const linhas = lerRateioFis(form)
-    const soma = Math.round(linhas.reduce((s, l) => s + l.percentual, 0) * 100) / 100
-    alvo.textContent = linhas.length ? `Soma: ${soma.toLocaleString('pt-BR')}%` : ''
-    alvo.className = linhas.length && soma !== 100 ? 'fis-negativo' : ''
+    const bloco = form?.querySelector('[data-rateio]')
+    if (!bloco) return
+    const total = totalRateioFis
+    const ativo = document.activeElement
+    const linhas = [...bloco.querySelectorAll('.fis-rateio-linha')]
+    const unica = linhas.length === 1
+    for (const l of linhas) {
+        const pct = l.querySelector('[name="rateio_percentual"]')
+        const val = l.querySelector('[name="rateio_valor"]')
+        // Um departamento só: 100% do total, sem o que digitar.
+        pct.readOnly = val.readOnly = unica
+        if (unica) {
+            l.dataset.modo = 'pct'
+            pct.value = 100
+            val.value = total != null ? total.toFixed(2) : ''
+            continue
+        }
+        if (total == null) continue
+        // Recalcula só o campo que não manda (e nunca o que o usuário está digitando).
+        if (l.dataset.modo === 'valor') {
+            if (pct !== ativo) pct.value = val.value === '' ? '' : pctCampoFis((Number(val.value) || 0) * 100 / total)
+        } else if (val !== ativo) {
+            val.value = pct.value === '' ? '' : r2Fis(total * (Number(pct.value) || 0) / 100).toFixed(2)
+        }
+    }
+    const todas = lerRateioFis(bloco, true)
+    const alvo = bloco.querySelector('[data-rateio-soma]')
+    if (todas.some(l => l.semTotal)) {
+        alvo.className = 'fis-pendente'
+        alvo.textContent = 'Aguardando o total da nota para converter os valores em %…'
+        return
+    }
+    const soma = todas.reduce((s, l) => s + l.percentual, 0)
+    const ok = Math.abs(soma - 100) < 0.001
+    const somaValor = total != null ? r2Fis(total * soma / 100) : null
+    alvo.className = ok ? 'fis-positivo' : 'fis-negativo'
+    alvo.textContent = ok
+        ? `Soma 100% ✓${total != null ? ` · ${dinheiroTexto(total)}` : ''}`
+        : `Soma ${pctTextoFis(soma)}%${total != null ? ` (${dinheiroTexto(somaValor)} de ${dinheiroTexto(total)})` : ''} · ${soma < 100 ? 'faltam' : 'sobram'} ${pctTextoFis(Math.abs(100 - soma))}%${total != null ? ` (${dinheiroTexto(Math.abs(r2Fis(total - somaValor)))})` : ''}`
+}
+
+// Erros do rateio antes de salvar (o servidor confere de novo).
+function errosRateioFis(form) {
+    const bloco = form.querySelector('[data-rateio]')
+    if (!bloco) return []
+    const todas = lerRateioFis(bloco, true)
+    const preenchidas = todas.filter(l => l.departamento)
+    const erros = []
+    if (todas.length > 1 && preenchidas.length < todas.length)
+        erros.push('Há linha de departamento sem departamento escolhido: escolha na lista ou tire a linha.')
+    if (preenchidas.length > 1) {
+        if (preenchidas.some(l => l.semTotal)) erros.push('O rateio está em R$ e o total da nota ainda não foi calculado: confira os dados da nota e tente de novo.')
+        else {
+            const soma = preenchidas.reduce((s, l) => s + l.percentual, 0)
+            if (Math.abs(soma - 100) >= 0.001) erros.push(`O rateio entre departamentos precisa somar 100% do total (está em ${pctTextoFis(soma)}%).`)
+            if (preenchidas.some(l => !(l.percentual > 0))) erros.push('Cada departamento do rateio precisa de um percentual ou valor maior que zero.')
+        }
+    }
+    return erros
+}
+
+// ---------------- colar da planilha
+// Uma linha por departamento: o ORC (orc123, ORC 123, ORC_123) ou o nome do setor e o valor em R$
+// (1.234,56 · 1234.56 · R$ 1.234,56) ou o percentual (com %). Colunas separadas por tab (Excel), ; ou espaço.
+// Departamento repetido soma. A colagem substitui as linhas da seção.
+
+function numeroColadoFis(texto) {
+    let t = String(texto || '').replace(/R\$|\s/gi, '')
+    if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.')
+    else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '')
+    const n = Number(t)
+    return Number.isFinite(n) ? n : null
+}
+
+function interpretarColagemRateioFis(texto) {
+    const deps = destinosFis()
+    const chave = id => normalFis(id).replace(/[\s_-]/g, '')
+    const porChave = new Map(deps.map(d => [chave(d.id), d]))
+    // Setores pelo nome (o mais longo primeiro: "ASSISTENCIA TECNICA" antes de "ASSISTENCIA").
+    const setores = deps.filter(d => d.tipo === 'SETOR').sort((a, b) => b.id.length - a.id.length)
+    const linhas = []
+    for (const bruta of String(texto || '').split(/\r?\n/)) {
+        const original = bruta.trim()
+        if (!original) continue
+        let id = null, dep = null, resto = original
+        const orc = original.match(/orc[\s_-]*(\d+)/i)
+        if (orc) {
+            id = `ORC_${orc[1]}`
+            dep = porChave.get(chave(id)) || null
+            resto = original.replace(orc[0], ' ')
+        } else {
+            const norm = normalFis(original)
+            dep = setores.find(s => norm.startsWith(normalFis(s.id))) || null
+            if (dep) { id = dep.id; resto = original.slice(dep.id.length) }
+        }
+        const num = resto.match(/(R\$\s*)?-?\d[\d.,]*\s*(%)?/i)
+        const valor = num ? numeroColadoFis(num[0].replace('%', '')) : null
+        const modo = num?.[2] ? 'pct' : 'valor'
+        // Linha sem departamento e sem número (cabeçalho, título): ignora.
+        if (!id && valor == null) continue
+        let erro = ''
+        if (!id) erro = 'departamento não reconhecido'
+        else if (!dep) erro = 'fora da lista do Financeiro'
+        else if (valor == null) erro = 'sem valor'
+        else if (!(valor > 0)) erro = 'valor tem que ser maior que zero'
+        linhas.push({ original, id: dep?.id || id, dep, valor, modo, erro })
+    }
+    // Repetidos: soma (no mesmo tipo: R$ com R$, % com %).
+    const juntas = []
+    for (const l of linhas) {
+        const igual = !l.erro && juntas.find(j => !j.erro && j.id === l.id)
+        if (!igual) { juntas.push({ ...l, vezes: 1 }); continue }
+        if (igual.modo !== l.modo) { juntas.push({ ...l, erro: 'repetido com R$ e % misturados' }); continue }
+        igual.valor = igual.modo === 'pct' ? r6Fis(igual.valor + l.valor) : r2Fis(igual.valor + l.valor)
+        igual.vezes++
+    }
+    return juntas
+}
+
+function abrirColarRateioFis() {
+    popup({
+        titulo: 'Colar departamentos da planilha',
+        elemento: `
+            <div class="fis-colar-rateio" data-colar-rateio>
+                <small>Uma linha por departamento: o ORC (ex.: <b>orc123</b>, <b>ORC_123</b>) ou o nome do setor e o valor em R$
+                    (<b>1.234,56</b>) ou o percentual (<b>25%</b>). Copie as duas colunas do Excel e cole aqui.
+                    Departamento repetido soma. Substitui o rateio atual.</small>
+                <textarea class="fis-input" rows="10" placeholder="ORC_6224&#9;12.500,00&#10;ORC_6231&#9;7.500,00" oninput="previaColarRateioFis(this)"></textarea>
+                <div data-colar-previa></div>
+            </div>`,
+        botoes: [{ texto: 'Usar estas linhas', img: 'concluido', funcao: 'aplicarColarRateioFis(this)' }]
+    })
+    setTimeout(() => document.querySelector('[data-colar-rateio] textarea')?.focus(), 50)
+}
+
+function previaColarRateioFis(area) {
+    const alvo = area.closest('[data-colar-rateio]').querySelector('[data-colar-previa]')
+    const linhas = interpretarColagemRateioFis(area.value)
+    if (!linhas.length) { alvo.innerHTML = ''; return }
+    const boas = linhas.filter(l => !l.erro)
+    const somaValor = r2Fis(boas.filter(l => l.modo === 'valor').reduce((s, l) => s + l.valor, 0))
+    const somaPct = r6Fis(boas.filter(l => l.modo === 'pct').reduce((s, l) => s + l.valor, 0))
+    const total = totalRateioFis
+    const resumo = [
+        somaValor ? `${dinheiroTexto(somaValor)} em R$` : '',
+        somaPct ? `${pctTextoFis(somaPct)}% em percentual` : '',
+        total != null ? `total da nota ${dinheiroTexto(total)}` : 'total da nota ainda não calculado'
+    ].filter(Boolean).join(' · ')
+    alvo.innerHTML = `
+        <table class="fis-tabela">
+            <thead><tr><th>Departamento</th><th>Cliente</th><th class="fis-num">Valor</th><th></th></tr></thead>
+            <tbody>${linhas.map(l => `
+                <tr>
+                    <td><b>${escFis(l.id || '—')}</b>${l.vezes > 1 ? ` <small>(${l.vezes} linhas somadas)</small>` : ''}</td>
+                    <td><small>${escFis(l.dep?.cliente || (l.dep?.tipo === 'SETOR' ? 'Setor' : ''))}</small></td>
+                    <td class="fis-num">${l.valor == null ? '' : l.modo === 'pct' ? `${pctTextoFis(l.valor)}%` : dinheiroTexto(l.valor)}</td>
+                    <td>${l.erro ? `<small class="fis-negativo">${escFis(l.erro)}: “${escFis(l.original)}”</small>` : '<small class="fis-positivo">✓</small>'}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table>
+        <small>${boas.length} de ${linhas.length} linha(s) reconhecida(s) · ${resumo}</small>`
+}
+
+function aplicarColarRateioFis(botao) {
+    const caixa = botao.closest('.popup')?.querySelector('[data-colar-rateio]')
+    const linhas = interpretarColagemRateioFis(caixa?.querySelector('textarea')?.value)
+    const form = formEmissaoAberto()
+    const bloco = form?.querySelector('[data-rateio]')
+    if (!bloco) return popup({ mensagem: 'O formulário da nota foi fechado.' })
+    if (!linhas.length) return popup({ mensagem: 'Cole pelo menos uma linha com o departamento e o valor.' })
+    const ruins = linhas.filter(l => l.erro)
+    if (ruins.length)
+        return popup({ mensagem: `Corrija antes de usar:<ul class="fis-lista-erros">${ruins.map(l => `<li>“${escFis(l.original)}”: ${escFis(l.erro)}</li>`).join('')}</ul>` })
+    bloco.querySelector('[data-rateio-linhas]').innerHTML = linhas
+        .map(l => linhaRateioFis(l.modo === 'pct'
+            ? { departamento: l.id, percentual: l.valor }
+            : { departamento: l.id, modo: 'valor', valor: l.valor, percentual: totalRateioFis ? l.valor * 100 / totalRateioFis : '' }))
+        .join('')
+    removerPopup(caixa.closest('.popup')?.id)
+    somarRateioFis(bloco)
+    agendarPreviaFis()
 }
 
 // ---------------------------------------------------------------- NFS-e
@@ -1367,13 +1811,13 @@ async function formularioEmissaoNFSe(inicial = {}) {
                     ${campoFis('Valor do serviço (R$)', inputFis('valor', d.valor || '', 'type="number" min="0" step="0.01"'), 'fis-destaque')}
                     ${campoFis('Competência', inputFis('data_competencia', d.data_competencia || new Date().toLocaleDateString('en-CA'), 'type="date"'))}
                     ${campoFis('Município da prestação (IBGE)', inputFis('codigo_municipio_prestacao', d.codigo_municipio_prestacao || '', 'inputmode="numeric" maxlength="7" placeholder="vazio = do tomador"'))}
-                    ${campoFis('Orçamento / departamento', inputFis('orcamento', inicial.orcamento))}
                     ${campoFis('Chamado', inputFis('chamado', inicial.chamado))}
                 </div>
                 ${campoFis('Discriminação do serviço', `<textarea class="fis-input" name="descricao" rows="4">${escFis(d.descricao || '')}</textarea>`)}
                 <div class="fis-retencoes" data-retencoes></div>
             </fieldset>
             ${blocoPagamentoFis(4, d.pagamento || inicial.pagamento || {})}
+            ${blocoRateioFis(5, rateioInicialFis(inicial))}
             <div class="fis-previa" data-previa></div>
         </div>`
     popup({
@@ -1385,6 +1829,8 @@ async function formularioEmissaoNFSe(inicial = {}) {
         ]
     })
     const form = document.querySelector('[data-form-nfse]')
+    totalRateioFis = null
+    somarRateioFis(form)
     trocarEmpresaNFSe(form.querySelector('[name="app"]'), inicial.servico_id, d)
     previaPagamentoFis(form.querySelector('[name="pag_forma"]'))
 }
@@ -1423,6 +1869,7 @@ function lerEmissaoNFSe(form) {
     const v = n => form.querySelector(`[name="${n}"]`)?.value?.trim() ?? ''
     const marcado = n => form.querySelector(`[name="${n}"]`)?.checked
     const destinatario = lerDestinatarioFis(form)
+    const rateio = lerRateioFis(form.querySelector('[data-rateio]'))
     const retencoes = {}
     for (const t of ['pis', 'cofins', 'csll', 'ir', 'inss']) {
         const el = form.querySelector(`[name="reter_${t}"]`)
@@ -1443,7 +1890,9 @@ function lerEmissaoNFSe(form) {
             // Vencimentos vão no texto da NFS-e (a DPS nacional não tem grupo de cobrança) e viram contas a receber.
             pagamento: lerPagamentoFis(form)
         },
-        orcamento: v('orcamento'),
+        // Departamentos: o servidor grava orcamento = o departamento (um só) ou 'RATEIO' (vários).
+        orcamento: rateio.length === 1 ? rateio[0].departamento : rateio.length ? 'RATEIO' : '',
+        rateio,
         chamado: v('chamado')
     }
 }
@@ -1477,11 +1926,19 @@ async function atualizarPreviaFis() {
         const d = Number(tr.querySelector('[name="desconto"]').value) || 0
         tr.querySelector('[data-total-item]').textContent = q && u ? dinheiroTexto(q * u - d) : ''
     })
-    if (!entrada.app || (entrada.modelo === 'NFE' && !entrada.itens.length)) { alvo.innerHTML = ''; return }
+    if (!entrada.app || (entrada.modelo === 'NFE' && !entrada.itens.length)) {
+        alvo.innerHTML = ''
+        totalRateioFis = null
+        somarRateioFis(form)
+        return
+    }
     try {
         const r = await apiFiscal('emissao/previa', entrada)
         if (formEmissaoAberto() !== form) return
         const t = r.totais || {}
+        // Valor de cada departamento: o que vai virar recebimento (NFS-e: líquido; NF-e: total da nota).
+        totalRateioFis = Number(r.modelo === 'NFSE' ? (t.liquido ?? t.servico) : t.nota) || null
+        somarRateioFis(form)
         const linhas = r.modelo === 'NFSE'
             ? [['Serviço', t.servico], ['ISS', t.iss], ...Object.entries(t.retencoes || {}).filter(([, x]) => x.valor).map(([k, x]) => [`${k.toUpperCase()}${x.reter ? ' (retido)' : ''}`, x.valor]), ['Total retido', t.total_retido], ['Líquido a receber', t.liquido]]
             : [['Produtos', t.produtos], ['Desconto', t.desconto], ['Frete', t.frete], ['ICMS', t.icms], ['DIFAL', t.difal], ['PIS', t.pis], ['COFINS', t.cofins], ['IBS', t.ibs], ['CBS', t.cbs], ['Total da nota', t.nota]]
@@ -1541,12 +1998,11 @@ async function salvarEmissaoFis(emitir, botao) {
         if (form.dataset.fluxoItem && !o.transportador && !o.sem_transporte) faltas.push('Escolha a transportadora (ou "SEM TRANSPORTE").')
         if (form.dataset.fluxoItem && !(Number.isInteger(o.volumes) && o.volumes >= 1)) faltas.push('Informe os volumes (número inteiro, a partir de 1).')
         if (o.transportador && String(o.modalidade_frete) === '9') faltas.push('Com transportadora, escolha por conta de quem é o frete (não pode ser "Sem frete").')
-        const rateio = entrada.rateio || []
-        if (rateio.length) {
-            const soma = Math.round(rateio.reduce((s, l) => s + l.percentual, 0) * 100) / 100
-            if (soma !== 100) faltas.push(`O rateio entre departamentos precisa somar 100% (está em ${soma.toLocaleString('pt-BR')}%).`)
-            if (new Set(rateio.map(l => l.departamento)).size !== rateio.length) faltas.push('Departamento repetido no rateio.')
-        }
+        faltas.push(...errosRateioFis(form))
+        if (faltas.length) return popup({ mensagem: `<ul class="fis-lista-erros">${faltas.map(f => `<li>${escFis(f)}</li>`).join('')}</ul>` })
+    }
+    if (entrada.modelo === 'NFSE') {
+        const faltas = errosRateioFis(form)
         if (faltas.length) return popup({ mensagem: `<ul class="fis-lista-erros">${faltas.map(f => `<li>${escFis(f)}</li>`).join('')}</ul>` })
     }
     if (form.dataset.trava === 'previa') return

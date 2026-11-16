@@ -298,9 +298,19 @@ function pedidoCartaoFluxo(numero) {
 //   Separado → Faturado: emite; autorizada = verde e anda; erro = vermelho e fica em Separado.
 //   Faturado → Entregue → Concluído: confirmação.
 // Só por arraste (o botão "→" no cartão foi retirado a pedido em 13/11/2026).
+// Também (16/11/2026, a pedido): VOLTAR para qualquer coluna anterior e CONCLUIR direto de qualquer etapa.
+// O que o item já tem fica: ao avançar de novo, a requisição já existe (só anda ou cria outra), a NF-e abre
+// o rascunho já preenchido e a nota autorizada só anda o cartão.
 const ORDEM_ITENS_FLUXO = ['pedido', 'requisicao', 'separado', 'faturado', 'entregue', 'concluido']
 const ACAO_ITENS_FLUXO = { pedido: 'Requisição', requisicao: 'Separar (NF-e)', separado: 'Faturar', faturado: 'Entregue', entregue: 'Concluir' }
 const proximaEtapaFluxo = etapa => ORDEM_ITENS_FLUXO[ORDEM_ITENS_FLUXO.indexOf(etapa) + 1] || null
+// Para onde o cartão pode ser solto: a próxima etapa, qualquer anterior e Concluído.
+const destinosItemFluxo = etapa => {
+    const i = ORDEM_ITENS_FLUXO.indexOf(etapa)
+    if (i < 0) return []
+    return ORDEM_ITENS_FLUXO.filter((e, j) => j !== i && (j < i || j === i + 1 || e === 'concluido'))
+}
+const NOME_COLUNA_FLUXO = { pedido: 'Pedido de Venda', requisicao: 'Requisição', separado: 'Separado', faturado: 'Faturado', entregue: 'Entregue', concluido: 'Concluído' }
 const itemFluxo = id => estadoFluxo.linhas.find(c => c.id === id)
 let arrasteFluxo = null
 
@@ -308,8 +318,8 @@ function iniciarArrasteFluxo(evento, id) {
     arrasteFluxo = id
     evento.dataTransfer.effectAllowed = 'move'
     evento.dataTransfer.setData('text/plain', id)
-    const alvo = proximaEtapaFluxo(itemFluxo(id)?.etapa)
-    document.querySelector(`.fluxo-pagina .fluxo-coluna[data-etapa="${alvo}"]`)?.classList.add('fluxo-alvo')
+    for (const alvo of destinosItemFluxo(itemFluxo(id)?.etapa))
+        document.querySelector(`.fluxo-pagina .fluxo-coluna[data-etapa="${alvo}"]`)?.classList.add('fluxo-alvo')
 }
 
 function terminarArrasteFluxo() {
@@ -318,7 +328,7 @@ function terminarArrasteFluxo() {
 }
 
 function permitirSoltarFluxo(evento, etapa) {
-    if (proximaEtapaFluxo(itemFluxo(arrasteFluxo)?.etapa) !== etapa) return
+    if (!destinosItemFluxo(itemFluxo(arrasteFluxo)?.etapa).includes(etapa)) return
     evento.preventDefault()
     evento.currentTarget.classList.add('fluxo-alvo-sobre')
 }
@@ -333,16 +343,86 @@ async function soltarFluxo(evento, etapa) {
     terminarArrasteFluxo()
     const c = itemFluxo(id)
     if (!c) return
-    if (proximaEtapaFluxo(c.etapa) !== etapa) return popup({ mensagem: 'O cartão só anda para a próxima etapa.' })
-    await avancarItemFluxo(id)
+    if (!destinosItemFluxo(c.etapa).includes(etapa)) return
+    // Próxima etapa: o que ela pede (formulário, emissão, confirmação). Concluído direto e volta: confirmação.
+    if (proximaEtapaFluxo(c.etapa) === etapa) return avancarItemFluxo(id)
+    await moverItemFluxo(c, etapa)
+}
+
+function nomeItemFluxo(c) {
+    return `<b>${escaparAtributo(c.cliente || 'cliente não informado')}</b> (${escaparAtributo(c.contrato || c.departamento || 'sem orçamento')})`
+}
+
+// Volta para uma etapa anterior ou conclui direto (gcs /fluxo-itens/mover).
+async function moverItemFluxo(c, etapa) {
+    const volta = ORDEM_ITENS_FLUXO.indexOf(etapa) < ORDEM_ITENS_FLUXO.indexOf(c.etapa)
+    const ok = await confirmarPopup({
+        titulo: volta ? 'Voltar o cartão' : 'Concluir',
+        mensagem: volta
+            ? `Voltar ${nomeItemFluxo(c)} para <b>${NOME_COLUNA_FLUXO[etapa]}</b>?<br><small>O que já foi feito (requisições, nota) continua no item: ao avançar de novo, vem preenchido.</small>`
+            : `Concluir ${nomeItemFluxo(c)} direto, sem passar pelas etapas que faltam?<br><small>Para itens que já passaram desse fluxo ou que não vão ter nota.</small>`,
+        textoConfirmar: volta ? 'Voltar' : 'Concluir'
+    })
+    if (!ok) return
+    try {
+        overlayAguarde()
+        await apiModuloFiscal('fluxo-itens/mover', { id: c.id, para: etapa.toUpperCase() })
+        removerOverlay()
+        carregarFluxo()
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+// Pedido → Requisição quando o item já tem requisição (voltou): só andar ou criar outra.
+function escolherRequisicaoFluxo(c) {
+    return new Promise(resolve => {
+        const id = popup({
+            titulo: 'Requisição',
+            mensagem: `${nomeItemFluxo(c)} já tem ${Number(c.requisicoes)} requisição(ões).<br>Só avançar o cartão ou criar outra requisição?`,
+            botoes: [
+                { texto: 'Nova requisição', img: 'adicionar', funcao: `respostaRequisicaoFluxo(this, 'nova')` },
+                { texto: 'Só avançar', img: 'concluido', funcao: `respostaRequisicaoFluxo(this, 'avancar')` }
+            ]
+        })
+        respostasRequisicaoFluxo.set(id, resolve)
+        const observador = new MutationObserver(() => {
+            if (document.getElementById(id)) return
+            observador.disconnect()
+            respostasRequisicaoFluxo.get(id)?.(null)
+            respostasRequisicaoFluxo.delete(id)
+        })
+        observador.observe(document.body, { childList: true })
+    })
+}
+const respostasRequisicaoFluxo = new Map()
+function respostaRequisicaoFluxo(botao, resposta) {
+    const id = botao.closest('.popup')?.id
+    const resolver = respostasRequisicaoFluxo.get(id)
+    respostasRequisicaoFluxo.delete(id)
+    removerPopup(id)
+    resolver?.(resposta)
 }
 
 async function avancarItemFluxo(id) {
     const c = itemFluxo(id)
     if (!c) return
-    const nome = `<b>${escaparAtributo(c.cliente || 'cliente não informado')}</b> (${escaparAtributo(c.contrato || c.departamento || 'sem orçamento')})`
+    const nome = nomeItemFluxo(c)
     try {
-        if (c.etapa === 'pedido') return await abrirRequisicaoFluxo(c)
+        if (c.etapa === 'pedido') {
+            if (Number(c.requisicoes) > 0) {
+                const escolha = await escolherRequisicaoFluxo(c)
+                if (!escolha) return
+                if (escolha === 'avancar') {
+                    overlayAguarde()
+                    await apiModuloFiscal('fluxo-itens/mover', { id, para: 'REQUISICAO' })
+                    removerOverlay()
+                    return carregarFluxo()
+                }
+            }
+            return await abrirRequisicaoFluxo(c)
+        }
         if (c.etapa === 'requisicao') return await abrirNotaFluxo(c)
         if (c.etapa === 'separado') {
             if (!await confirmarPopup({ titulo: 'Faturar', mensagem: `Emitir agora a NF-e de ${nome}?`, textoConfirmar: 'Emitir' })) return
@@ -382,6 +462,15 @@ async function abrirNotaFluxo(c) {
     overlayAguarde()
     const dados = await apiModuloFiscal('fluxo-itens/nota', { id: c.id })
     removerOverlay()
+    // Voltou com a nota já autorizada: não há o que separar, o cartão só anda.
+    if (dados.autorizada) {
+        if (!await confirmarPopup({ titulo: 'Separado', mensagem: `${nomeItemFluxo(c)} já tem a NF-e autorizada. Avançar o cartão para Separado?`, textoConfirmar: 'Avançar' })) return
+        overlayAguarde()
+        await apiModuloFiscal('fluxo-itens/mover', { id: c.id, para: 'SEPARADO' })
+        removerOverlay()
+        return carregarFluxo()
+    }
+    // Com rascunho (voltou): abre o rascunho, com tudo o que já foi preenchido.
     await formularioEmissaoNFe({ ...dados, fluxo_item: c.id })
     if (!dados.itens?.length)
         popup({ mensagem: 'As requisições deste item não têm produtos: inclua os itens da nota antes de salvar.' })
@@ -393,6 +482,7 @@ async function abrirPreviaSeparacaoFluxo(id) {
         overlayAguarde()
         const dados = await apiModuloFiscal('fluxo-itens/nota', { id })
         removerOverlay()
+        if (dados.autorizada) return abrirDocumentoFiscal(dados.autorizada.id)
         await formularioEmissaoNFe({ ...dados, fluxo_item: id, previa: true })
     } catch (err) {
         removerOverlay()
@@ -613,13 +703,15 @@ function cartaoItemFluxo(c, parado, tempo) {
     // fica só no "title", ao passar o mouse). Enquanto emite, só a marquinha "Emitindo…".
     // NF-e do GCS cancelada: balão "Cancelada" e sem o verde de faturada.
     const cancelada = c.nota_status === 'CANCELADA'
-    const faturada = !cancelada && (c.emissao_status === 'OK' || (nfs.length > 0 && ['faturado', 'entregue', 'concluido'].includes(c.etapa)))
+    // Verde só com nota (do GCS autorizada ou do Omie), em qualquer coluna; sem nota fica azul, mesmo
+    // concluído direto (16/11/2026, a pedido).
+    const faturada = !cancelada && (c.nota_status === 'AUTORIZADA' || c.emissao_status === 'OK' || nfs.length > 0)
     const estado = c.emissao_status === 'ERRO' ? 'erro' : cancelada ? 'cancelada' : faturada ? 'faturada' : ''
     const dica = c.emissao_status === 'ERRO' && c.emissao_mensagem ? `title="${escaparAtributo(`Emissão recusada: ${c.emissao_mensagem}`)}"` : ''
     const emissao = ['EMITINDO', 'PROCESSANDO'].includes(c.emissao_status) ? '<small class="fluxo-emissao andando">Emitindo…</small>' : ''
     const id = escaparAtributo(c.id)
-    // Avança só arrastando para a coluna seguinte (sem botão no cartão, a pedido).
-    const podeAvancar = ACAO_ITENS_FLUXO[c.etapa] && !['EMITINDO', 'PROCESSANDO'].includes(c.emissao_status)
+    // Anda só arrastando (sem botão no cartão, a pedido): próxima coluna, qualquer anterior ou Concluído.
+    const podeAvancar = ORDEM_ITENS_FLUXO.includes(c.etapa) && !['EMITINDO', 'PROCESSANDO'].includes(c.emissao_status)
     const arrastavel = podeAvancar ? `draggable="true" ondragstart="iniciarArrasteFluxo(event, '${id}')" ondragend="terminarArrasteFluxo()"` : ''
     // Clique: painel do item (nota, histórico da SEFAZ, histórico do cartão e o orçamento).
     const abrir = `onclick="abrirItemFluxo('${id}')" onkeydown="if (event.key === 'Enter') abrirItemFluxo('${id}')"`

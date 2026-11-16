@@ -456,7 +456,7 @@ async function baixarExcelFaturasFin() {
         }
         const departamentos = d => {
             const lista = Array.isArray(d.rateio) ? d.rateio : []
-            return lista.length > 1 ? lista.map(r => `${r.departamento} (${Number(r.percentual)}%)`).join(' / ') : (d.departamentos || '')
+            return lista.length > 1 ? lista.map(r => `${r.departamento} (${Number(r.percentual).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%)`).join(' / ') : (d.departamentos || '')
         }
         // Data "pura" no Excel (meio-dia UTC: não muda de dia por fuso).
         const data = v => v ? new Date(`${String(v).slice(0, 10)}T12:00:00Z`) : null
