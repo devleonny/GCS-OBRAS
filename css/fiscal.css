@@ -1047,3 +1047,14 @@ textarea.fis-input {
     padding: 8px 10px;
     color: #6b7a71;
 }
+
+/* Devolução: quantidade a devolver por item da nota de origem */
+.fis-qtd-devolver {
+    width: 6.5rem;
+    text-align: right;
+}
+
+/* Backup de XMLs (Configuração fiscal) */
+.fis-backup-tabela td.fis-num b {
+    color: #15803d;
+}
