@@ -181,6 +181,7 @@ async function criarLinhaComposicao(produto) {
                 <img name="${id}" 
                 onclick="abrirImagem('${id}')" 
                 style="width: 5rem;" referrerpolicy="no-referrer" onerror="this.onerror = null; this.src = logo" src="${imagem || logo}">
+                ${avisoImagemIlustrativa(produto)}
             </td>
             <td style="text-align: left; min-width: 200px;">${descricao || ''}${linkDatasheetItem(produto) ? `<br>${linkDatasheetItem(produto)}` : ''}</td>
             <td>${familia || ''}</td>
@@ -238,6 +239,13 @@ function linkDatasheetItem(item) {
     const url = datasheet_arquivo ? urlArquivoItem(datasheet_arquivo) : datasheet_link
     if (!url) return ''
     return `<a class="link-datasheet" href="${escaparAtributo(url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-size: 0.75rem; text-decoration: underline; color: #24729d; white-space: nowrap;">Ficha técnica</a>`
+}
+
+// Imagem de referência da família (imagem_origem = REFERENCIA_FAMILIA): não é a foto do modelo.
+function avisoImagemIlustrativa(item) {
+    return item?.imagem_origem === 'REFERENCIA_FAMILIA'
+        ? '<small title="Imagem de referência da família, não é a foto deste modelo" style="display: block; font-size: 0.65rem; color: #888; text-align: center;">ilustrativa</small>'
+        : ''
 }
 
 // Orçamento: os itens não trazem o datasheet, então a lista (vw_composicoes_datasheet, poucos itens) vem uma vez.

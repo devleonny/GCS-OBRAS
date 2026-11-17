@@ -699,6 +699,7 @@ function carregarLinhaOrcamento(produto) {
             <div>
                 <img class="imagem-orc" name="${codigo}" ${ehItemAvulso(produto) ? '' : `data-composicao="${escaparAtributo(codigo)}"`}
                     onclick="abrirImagem('${codigo}')" referrerpolicy="no-referrer" onerror="this.onerror = null; this.src = logo" src="${logo}">
+                ${avisoImagemIlustrativa(DATASHEETS_ITEM?.[String(codigo)])}
             </div>
             
             <div>
@@ -1426,6 +1427,7 @@ function linhasComposicoesOrcamento(produto) {
         </td>
         <td>
             <img name="${codigo}" onclick="abrirImagem('${codigo}')" referrerpolicy="no-referrer" onerror="this.onerror = null; this.src = logo" src="${produto?.imagem || logo}" style="width: 4rem;">
+            ${avisoImagemIlustrativa(produto)}
         </td>
         `
 
