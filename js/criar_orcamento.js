@@ -518,6 +518,8 @@ async function carregarTabelasOrcamento(resposta = 'S') {
         })
     }
     const pag = 'criarOrcamento'
+    // Link do datasheet embaixo da descrição: a lista dos itens com PDF vem antes de desenhar as linhas.
+    await carregarDatasheetsItens()
     const tabelaOrcamento = await modTab({
         base: itensOrcamento,
         consultarDados: pesquisarItensOrcamentoLocal,
@@ -662,6 +664,7 @@ function carregarLinhaOrcamento(produto) {
 
             <div style="${vertical}">
                 <span name="descricao">${descricao || 'N/A'}</span>
+                ${linkDatasheetItem(DATASHEETS_ITEM?.[String(codigo)])}
                 ${produto._grupoOrigem ? `<small class="orcamento-origem">Componente do grupo ${escaparAtributo(produto._grupoOrigem)}</small>` : ''}
                 <b><span name="tipo" style="font-size: 0.7rem">${tipo}</span></b>
                 <div name="descVD" style="${horizontal}; display: none; gap: 2px;">
@@ -1403,6 +1406,7 @@ function linhasComposicoesOrcamento(produto) {
                 <b>Descrição</b>
                 ${produto?.descricao || ''}<br>
                 ${fabricante}
+                ${linkDatasheetItem(produto)}
             </div>
         </td>
         <td>

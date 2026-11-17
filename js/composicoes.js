@@ -182,7 +182,7 @@ async function criarLinhaComposicao(produto) {
                 onclick="abrirImagem('${id}')" 
                 style="width: 5rem;" referrerpolicy="no-referrer" onerror="this.onerror = null; this.src = logo" src="${imagem || logo}">
             </td>
-            <td style="text-align: left; min-width: 200px;">${descricao || ''}</td>
+            <td style="text-align: left; min-width: 200px;">${descricao || ''}${linkDatasheetItem(produto) ? `<br>${linkDatasheetItem(produto)}` : ''}</td>
             <td>${familia || ''}</td>
 
             <td>${omie || ''}</td>
@@ -230,6 +230,29 @@ async function criarLinhaComposicao(produto) {
 function urlArquivoItem(arquivo) {
     if (!arquivo) return ''
     return /^https?:\/\//i.test(arquivo) ? arquivo : `${api}/uploads/${arquivo}`
+}
+
+// Link curto do PDF embaixo da descrição (composições e orçamentos). Sem PDF copiado, usa o link do fabricante.
+function linkDatasheetItem(item) {
+    const { datasheet_link, datasheet_arquivo } = item || {}
+    const url = datasheet_arquivo ? urlArquivoItem(datasheet_arquivo) : datasheet_link
+    if (!url) return ''
+    return `<a class="link-datasheet" href="${escaparAtributo(url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-size: 0.75rem; text-decoration: underline; color: #24729d; white-space: nowrap;">📄 Datasheet do fabricante</a>`
+}
+
+// Orçamento: os itens não trazem o datasheet, então a lista (vw_composicoes_datasheet, poucos itens) vem uma vez.
+let DATASHEETS_ITEM = null
+
+async function carregarDatasheetsItens() {
+    if (DATASHEETS_ITEM) return DATASHEETS_ITEM
+    try {
+        const { resultados } = await pesquisarDB({ base: 'vw_composicoes_datasheet', limite: 10000 }) || {}
+        DATASHEETS_ITEM = Object.fromEntries((resultados || []).map(r => [String(r.id), r]))
+    } catch (err) {
+        console.error(err)
+        DATASHEETS_ITEM = {}
+    }
+    return DATASHEETS_ITEM
 }
 
 function blocoDocumentacaoItem(produto) {
