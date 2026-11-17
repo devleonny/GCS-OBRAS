@@ -2885,3 +2885,27 @@ input[type="file"]#input-anexos:hover {
     .esq-seta::before { top: 2px; bottom: 8px; left: 50%; right: auto; border-top: 0; border-left: 2px solid #b8d0c0; }
     .esq-seta::after { top: auto; bottom: 0; left: calc(50% - 5px); right: auto; border: 6px solid transparent; border-top: 8px solid #b8d0c0; border-bottom: 0; }
 }
+
+/* Esquema: etiqueta do tipo (pedido e notas) e cabeça do bloco. */
+.esq-no-cabeca { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; }
+.esq-tipo {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 9px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.4;
+    white-space: nowrap;
+    color: #475569;
+    background: #eef2f6;
+    border: 1px solid #d5dde6;
+    border-radius: 999px;
+}
+.esq-cadeia-titulo .esq-tipo { margin-left: 6px; vertical-align: 1px; }
+.esq-tipo.venda { color: #1d4ed8; background: #e8effd; border-color: #c5d6fa; }
+.esq-tipo.servico { color: #7c3aed; background: #f1eafd; border-color: #dccbfa; }
+.esq-tipo.misto { color: #0f766e; background: #e3f5f2; border-color: #b8e3dc; }
+.esq-tipo.remessa { color: #b45309; background: #fdf3e2; border-color: #f4d9a8; }
+.esq-tipo.locacao { color: #92400e; background: #f8eee4; border-color: #e7cfb6; }
+.esq-tipo.devolucao { color: #b42318; background: #fef0ee; border-color: #f5c6c0; }
+.esq-tipo.avulsa { color: #9a3412; background: #fff1e6; border-color: #fbd0ae; }

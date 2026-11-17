@@ -1090,10 +1090,30 @@ function htmlEsquemaHistorico(itens) {
         return `${barra}<div class="esq-hist-vazio">Nenhum pedido neste orçamento.<br><small>Requisições e notas sem pedido de origem não aparecem nesta visão; veja em Seções.</small></div>`
 
     const vazio = texto => `<div class="esq-no esq-no-vazio">${texto}</div>`
+    // Etiqueta do tipo (pedido e nota): cor pela família, para comparar de relance o que foi pedido com o que foi faturado.
+    const tipoEsq = (tipo, titulo = '') => {
+        if (!tipo) return ''
+        const t = String(tipo).normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase()
+        const cls = t.includes('VENDA') && t.includes('SERVICO') ? 'misto'
+            : t.includes('DEVOLUCAO') ? 'devolucao'
+            : t.includes('SERVICO') ? 'servico'
+            : t.includes('VENDA') ? 'venda'
+            : t.includes('REMESSA') || t.includes('RETORNO') ? 'remessa'
+            : t.includes('LOCACAO') ? 'locacao' : 'outro'
+        return `<span class="esq-tipo ${cls}"${titulo ? ` title="${esc(titulo)}"` : ''}>${esc(tipo)}</span>`
+    }
     const etapas = etapa => {
         const atual = ETAPAS_ESQUEMA_HIST.findIndex(([k]) => k === etapa)
         return `<ol class="esq-hist-etapas" aria-label="Etapa: ${esc(ETAPAS_ESQUEMA_HIST[atual]?.[1] || etapa)}">${ETAPAS_ESQUEMA_HIST
             .map(([, nome], i) => `<li class="${i < atual ? 'feita' : i === atual ? 'atual' : ''}">${nome}</li>`).join('')}</ol>`
+    }
+
+    // Tipo da nota vem da própria nota: Omie = categoria (venda, serviço, remessa); NF-e do GCS = tipo da
+    // operação (quando o servidor manda) e NFS-e = Serviço.
+    const tipoNotaEsq = n => {
+        const t = String(n.tipo || n.categoria || '').trim()
+        if (t) return t[0].toUpperCase() + t.slice(1).toLowerCase()
+        return n.modelo === 'NFSE' ? 'Serviço' : ''
     }
 
     const noNota = n => {
@@ -1109,8 +1129,12 @@ function htmlEsquemaHistorico(itens) {
         const acao = gcs ? `abrirDocumentoFiscal('${esc(n.id)}')` : `abrirDANFE('${esc(n.id)}')`
         return `
             <button type="button" class="esq-no esq-no-nota ${tom}" onclick="${acao}" title="${gcs ? 'Abrir a nota' : 'Abrir o DANFE'}">
-                <span class="esq-no-tipo">${gcs ? 'GCS' : 'Omie'}${n.categoria ? ` · ${esc(n.categoria)}` : ''}${n.app ? ` · ${esc(n.app)}` : ''}</span>
+                <span class="esq-no-cabeca">
+                    ${tipoEsq(tipoNotaEsq(n) || 'Tipo não informado', n.detalhe)}
+                    <span class="esq-no-tipo">${gcs ? 'GCS' : 'Omie'}${n.app ? ` · ${esc(n.app)}` : ''}</span>
+                </span>
                 <b>${titulo}</b>
+                ${n.detalhe && n.detalhe !== n.tipo ? `<span class="esq-no-quem">${esc(n.detalhe)}</span>` : ''}
                 <span class="esq-no-linha"><span>${data}</span><b>${dinheiro(n.total || 0)}</b></span>
                 ${situacao ? `<span class="esq-no-situacao">${esc(situacao)}</span>` : ''}
             </button>`
@@ -1118,7 +1142,10 @@ function htmlEsquemaHistorico(itens) {
 
     const noRequisicao = r => `
         <button type="button" class="esq-no esq-no-req" onclick="gerarPdfRequisicao('${esc(r.id)}', true)" title="Visualizar a requisição">
-            <span class="esq-no-tipo">Requisição${r.avulso ? ' · avulsa' : ''}</span>
+            <span class="esq-no-cabeca">
+                <span class="esq-no-tipo">Requisição</span>
+                ${r.avulso ? '<span class="esq-tipo avulsa">Avulsa</span>' : ''}
+            </span>
             <b>${r.itens} ${r.itens === 1 ? 'item' : 'itens'}</b>
             <span class="esq-no-linha"><span>${esc(String(r.data).slice(0, 10))}</span><b>${dinheiro(r.total || 0)}</b></span>
             ${r.executor ? `<span class="esq-no-quem">${esc(r.executor)}</span>` : ''}
@@ -1130,13 +1157,16 @@ function htmlEsquemaHistorico(itens) {
         return `
             <article class="esq-cadeia${verde ? ' faturada' : ''}${i.emissao_status === 'ERRO' ? ' erro' : ''}">
                 <header class="esq-cadeia-topo">
-                    <span class="esq-cadeia-titulo">Pedido ${esc(p.numero || 'sem número')}${p.tipo ? ` <small>${esc(p.tipo)}</small>` : ''}${i.empresa ? ` <small class="esq-empresa">${esc(i.empresa)}</small>` : ''}</span>
+                    <span class="esq-cadeia-titulo">Pedido ${esc(p.numero || 'sem número')}${p.tipo ? ` ${tipoEsq(p.tipo)}` : ''}${i.empresa ? ` <small class="esq-empresa">${esc(i.empresa)}</small>` : ''}</span>
                     ${etapas(i.etapa)}
                 </header>
                 <div class="esq-cadeia-corpo">
                     <div class="esq-coluna esq-col-pedido">
                         <button type="button" class="esq-no esq-no-pedido" onclick="painelAdicionarPedido('${esc(p.id)}')" title="Abrir o pedido">
-                            <span class="esq-no-tipo">Pedido</span>
+                            <span class="esq-no-cabeca">
+                                <span class="esq-no-tipo">Pedido</span>
+                                ${tipoEsq(p.tipo || 'Tipo não informado')}
+                            </span>
                             <b>${esc(p.numero || 'Sem número')}</b>
                             <span class="esq-no-linha"><span>${esc(String(p.data).slice(0, 10))}</span><b>${dinheiro(p.valor || 0)}</b></span>
                             ${p.executor ? `<span class="esq-no-quem">${esc(p.executor)}</span>` : ''}
