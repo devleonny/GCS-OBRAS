@@ -276,7 +276,7 @@ function campoDatasheetItem(produto) {
             <input name="datasheet_link" placeholder="Link do fabricante (página ou PDF)" value="${escaparAtributo(produto?.datasheet_link || '')}">
             <div style="${horizontal}; gap: 0.5rem; justify-content: start;">
                 <input type="hidden" name="datasheet_arquivo" value="${escaparAtributo(arquivo)}">
-                <a name="datasheet_ver" href="${escaparAtributo(urlArquivoItem(arquivo))}" target="_blank" rel="noopener" ${arquivo ? '' : 'hidden'}>📄 PDF atual</a>
+                <a name="datasheet_ver" href="${escaparAtributo(urlArquivoItem(arquivo))}" target="_blank" rel="noopener" ${arquivo ? '' : 'hidden'}>PDF atual</a>
                 <label style="cursor: pointer; text-decoration: underline;">${arquivo ? 'Trocar PDF' : 'Enviar PDF'}
                     <input type="file" accept="application/pdf" hidden onchange="enviarDatasheetItem(this)">
                 </label>
