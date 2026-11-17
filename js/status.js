@@ -1,9 +1,7 @@
 let unidadeOrc = null
 const altNumOrc = ['adm', 'analista']
-// Desde 13/11/2026 só Venda e Serviço (cada pedido vira um item e uma nota: NF-e ou NFS-e). Locação entra
-// como Serviço; Venda + Serviço vira dois pedidos; POC saiu (nunca gerou nota). Pedido antigo com outro
-// tipo continua mostrando o dele ao editar.
-const opcoesPedidos = ['', 'Venda', 'Serviço']
+// Pedido sem tipo desde 17/11/2026: o pedido é a OC do cliente e a natureza (venda/serviço) sai de cada
+// rodada de faturamento (requisição e nota; gcs migrations/pedido-rodadas.sql). Pedido antigo guarda o tipo dele.
 const opcoesRequisicao = ['SERVIÇO', 'VENDA', 'USO E CONSUMO', 'LOCAÇÃO']
 const permAtalhos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
 const permAltStatus = ['adm', 'diretoria']
@@ -176,6 +174,10 @@ function marcarStatusPedido(clicou = false) {
 // até ter número (ou "Aprovado por E-mail"), valor e a OC anexada. Enquanto for promessa, a nota do orçamento
 // não é emitida e o orçamento não é concluído (gcs vw_pedido_promessas). Valor ≤ R$ 10 também é promessa.
 const PEDIDO_PROMETIDO = 'Pedido pendente'
+// Formulário do pedido aberto: OCs que o orçamento já tem (gcs /fluxo-itens/saldo → pedidos).
+let estadoFormPedido = null
+// Igual a fluxo_norm_pedido do banco: só letras e números, maiúsculo, sem zeros à esquerda.
+const normPedidoCliente = t => String(t || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase().replace(/^0+/, '')
 const ehPromessaPedido = (situacao, valor) =>
     ['sem pedido', 'pedido pendente', ''].includes(String(situacao || '').trim().toLowerCase()) || !(Number(valor) > 10)
 
@@ -184,7 +186,7 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
     overlayAguarde()
 
     const registro = await recuperarDado('pedidos', id) || {}
-    const { pedido, tipo, valor, comentario, pagamento, departamento, condicao_pagamento } = registro
+    const { pedido, valor, comentario, pagamento, departamento, condicao_pagamento } = registro
     let { empresa, limite_faturamento_dia } = registro
     const depAtivo = controles?.ocorrencias?.ativo
 
@@ -241,25 +243,20 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
             `)
         .join('')
     // Valor previsto da promessa: o total do orçamento, se o pedido ainda não tem valor de verdade.
+    // Valor sugerido: o que ainda está "sem pedido" no orçamento (orçamento − OCs já lançadas); no 1º pedido,
+    // o total do orçamento. As OCs já lançadas também servem para recusar a mesma OC duas vezes.
+    const saldoOrc = await apiModuloFiscal('fluxo-itens/saldo', { contrato: departamento || depAtivo }).catch(() => null)
+    estadoFormPedido = { id, outros: (saldoOrc?.pedidos || []).filter(p => p.id !== id) }
     let valorInicial = Number(valor) > 10 ? valor : ''
     if (!valorInicial) {
-        const s = await apiModuloFiscal('fluxo-itens/saldo', { contrato: departamento || depAtivo }).catch(() => null)
-        if (Number(s?.total_orcamento) > 10) valorInicial = s.total_orcamento
+        const sugerido = estadoFormPedido.outros.length ? Number(saldoOrc?.saldo?.sem_pedido) : Number(saldoOrc?.total_orcamento)
+        if (sugerido > 10) valorInicial = sugerido
     }
 
     const linhas = [
         {
             texto: 'Departamento',
             elemento: `<input id="departamento" value="${departamento || depAtivo}" readOnly>`
-        },
-        {
-            texto: 'Tipo de Pedido',
-            elemento: `
-                <select id="tipo">
-                    ${[...opcoesPedidos, ...(tipo && !opcoesPedidos.some(op => op.toUpperCase() === String(tipo).toUpperCase()) ? [tipo] : [])]
-                        .map(op => `<option ${String(tipo || '').toUpperCase() === op.toUpperCase() ? 'selected' : ''}>${op}</option>`).join('')}
-                </select>
-            `
         },
         {
             texto: 'Status do Pedido',
@@ -362,13 +359,12 @@ async function salvarPedido(id) {
         const departamento = document.getElementById('departamento').value
         const comentario_status = document.getElementById('comentario_status')
         const valor = document.getElementById('valor')
-        const tipo = document.getElementById('tipo')
         const pedido = document.getElementById('pedido')
         const empresa = document.getElementById('empresa')
         const linhaOc = document.getElementById('linha-oc-pedido')
         const arquivosOc = document.getElementById('oc_pedido')
 
-        if (!valor.value || !tipo.value || !pedido.value)
+        if (!valor.value || !pedido.value)
             return popup({ mensagem: 'Existem campos em Branco' })
 
         // Valor simbólico (R$ 1, R$ 10) não é mais aceito: sem o pedido, marque "Pedido pendente" com o valor previsto.
@@ -379,6 +375,12 @@ async function salvarPedido(id) {
         const comNumero = !ehPromessaPedido(pedido.value, valor.value) && !/e-?mail/i.test(pedido.value)
         if (comNumero && linhaOc?.dataset.eraPromessa === 'S' && linhaOc?.dataset.temAnexo !== 'S' && !arquivosOc?.files?.length)
             return popup({ mensagem: 'Anexe a OC (pedido de compra) do cliente para completar o pedido pendente.' })
+
+        // Uma OC = um pedido (17/11/2026): a mesma OC não entra duas vezes no orçamento (antes era lançada uma vez
+        // por tipo). Venda e serviço da mesma OC saem como rodadas do mesmo pedido.
+        const repetida = comNumero && (estadoFormPedido?.outros || []).find(p => normPedidoCliente(p.numero) && normPedidoCliente(p.numero) === normPedidoCliente(pedido.value))
+        if (repetida)
+            return popup({ mensagem: `A OC ${escaparAtributo(pedido.value)} já está lançada neste orçamento. Edite o pedido existente (valor total da OC): venda e serviço saem como rodadas do mesmo pedido.` })
 
         // Sem empresa pré-escolhida: antes vinha AC e o pedido saía como AC sem ninguém decidir.
         if (!empresa.value)
@@ -403,7 +405,6 @@ async function salvarPedido(id) {
             condicao_pagamento: condicao,
             limite_faturamento_dia,
             valor: Number(valor.value),
-            tipo: tipo.value,
             pedido: pedido.value,
             empresa: empresa.value
         }
@@ -1203,7 +1204,7 @@ function htmlEsquemaHistorico(itens) {
         return `
             <article class="esq-cadeia${verde ? ' faturada' : ''}${i.emissao_status === 'ERRO' ? ' erro' : ''}">
                 <header class="esq-cadeia-topo">
-                    <span class="esq-cadeia-titulo">Pedido ${esc(p.numero || 'sem número')}${p.tipo ? ` ${tipoEsq(p.tipo)}` : ''}${i.empresa ? ` <small class="esq-empresa">${esc(i.empresa)}</small>` : ''}</span>
+                    <span class="esq-cadeia-titulo">Pedido ${esc(p.numero || 'sem número')}${i.rodada != null ? ` <small class="esq-empresa">Rodada ${esc(i.rodada)}</small>` : ''}${p.tipo ? ` ${tipoEsq(p.tipo)}` : ''}${i.empresa ? ` <small class="esq-empresa">${esc(i.empresa)}</small>` : ''}</span>
                     ${etapas(i.etapa)}
                 </header>
                 <div class="esq-cadeia-corpo">
@@ -1211,7 +1212,7 @@ function htmlEsquemaHistorico(itens) {
                         <button type="button" class="esq-no esq-no-pedido" onclick="painelAdicionarPedido('${esc(p.id)}')" title="Abrir o pedido">
                             <span class="esq-no-cabeca">
                                 <span class="esq-no-tipo">Pedido</span>
-                                ${tipoEsq(p.tipo || 'Tipo não informado')}
+                                ${tipoEsq(p.tipo || (i.rodada != null ? 'Natureza pela nota' : 'Tipo não informado'))}
                             </span>
                             <b>${esc(p.numero || 'Sem número')}</b>
                             <span class="esq-no-linha"><span>${esc(String(p.data).slice(0, 10))}</span><b>${dinheiro(p.valor || 0)}</b></span>

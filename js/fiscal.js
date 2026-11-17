@@ -1920,7 +1920,7 @@ async function formularioEmissaoNFSe(inicial = {}) {
     const app = inicial.app || empresas.find(e => e.app === 'AC')?.app || empresas[0]?.app
     const d = inicial.dados || {}
     const elemento = `
-        <div class="fis-form fis-form-emissao" data-form-nfse data-id="${escFis(inicial.id || '')}" oninput="agendarPreviaFis()" onchange="agendarPreviaFis()">
+        <div class="fis-form fis-form-emissao" data-form-nfse data-id="${escFis(inicial.id || '')}" data-fluxo-item="${escFis(inicial.fluxo_item || '')}" oninput="agendarPreviaFis()" onchange="agendarPreviaFis()">
             <fieldset class="fis-passo">
                 <legend><span class="fis-num-passo">1</span> Empresa e serviço</legend>
                 <div class="fis-grade">
@@ -1945,13 +1945,16 @@ async function formularioEmissaoNFSe(inicial = {}) {
             ${blocoRateioFis(5, rateioInicialFis(inicial))}
             <div class="fis-previa" data-previa></div>
         </div>`
+    // Rodada de serviço do Fluxo (js/fluxo_kanban.js): só salva; o cartão vai para Separado e Faturar emite.
     popup({
-        titulo: inicial.id ? 'Editar NFS-e' : 'Emitir NFS-e',
+        titulo: inicial.fluxo_item ? 'Faturar serviço: dados da NFS-e' : inicial.id ? 'Editar NFS-e' : 'Emitir NFS-e',
         linhas: [{ elemento }],
-        botoes: [
-            { texto: 'Salvar rascunho', img: 'salvo', funcao: 'salvarEmissaoFis(false, this)' },
-            { texto: 'Emitir', img: 'concluido', funcao: 'salvarEmissaoFis(true, this)' }
-        ]
+        botoes: inicial.fluxo_item
+            ? [{ texto: 'Salvar', img: 'concluido', funcao: 'salvarEmissaoFis(false, this)' }]
+            : [
+                { texto: 'Salvar rascunho', img: 'salvo', funcao: 'salvarEmissaoFis(false, this)' },
+                { texto: 'Emitir', img: 'concluido', funcao: 'salvarEmissaoFis(true, this)' }
+            ]
     })
     const form = document.querySelector('[data-form-nfse]')
     totalRateioFis = null

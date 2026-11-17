@@ -302,13 +302,15 @@ function pedidoCartaoFluxo(numero) {
 // O que o item já tem fica: ao avançar de novo, a requisição já existe (só anda ou cria outra), a NF-e abre
 // o rascunho já preenchido e a nota autorizada só anda o cartão.
 const ORDEM_ITENS_FLUXO = ['pedido', 'requisicao', 'separado', 'faturado', 'entregue', 'concluido']
-const ACAO_ITENS_FLUXO = { pedido: 'Requisição', requisicao: 'Separar (NF-e)', separado: 'Faturar', faturado: 'Entregue', entregue: 'Concluir' }
+const ACAO_ITENS_FLUXO = { pedido: 'Requisição', requisicao: 'Separar (NF-e ou NFS-e)', separado: 'Faturar', faturado: 'Entregue', entregue: 'Concluir' }
 const proximaEtapaFluxo = etapa => ORDEM_ITENS_FLUXO[ORDEM_ITENS_FLUXO.indexOf(etapa) + 1] || null
-// Para onde o cartão pode ser solto: a próxima etapa, qualquer anterior e Concluído.
-const destinosItemFluxo = etapa => {
+// Para onde o cartão pode ser solto: a próxima etapa, qualquer anterior e Concluído. Rodada (modelo novo) em
+// Pedido também vai direto para Separado: serviço sem requisição, pela NFS-e.
+const destinosItemFluxo = (etapa, c = null) => {
     const i = ORDEM_ITENS_FLUXO.indexOf(etapa)
     if (i < 0) return []
-    return ORDEM_ITENS_FLUXO.filter((e, j) => j !== i && (j < i || j === i + 1 || e === 'concluido'))
+    return ORDEM_ITENS_FLUXO.filter((e, j) => j !== i && (j < i || j === i + 1 || e === 'concluido'
+        || (etapa === 'pedido' && e === 'separado' && c?.rodada != null)))
 }
 const NOME_COLUNA_FLUXO = { pedido: 'Pedido de Venda', requisicao: 'Requisição', separado: 'Separado', faturado: 'Faturado', entregue: 'Entregue', concluido: 'Concluído' }
 const itemFluxo = id => estadoFluxo.linhas.find(c => c.id === id)
@@ -318,7 +320,7 @@ function iniciarArrasteFluxo(evento, id) {
     arrasteFluxo = id
     evento.dataTransfer.effectAllowed = 'move'
     evento.dataTransfer.setData('text/plain', id)
-    for (const alvo of destinosItemFluxo(itemFluxo(id)?.etapa))
+    for (const alvo of destinosItemFluxo(itemFluxo(id)?.etapa, itemFluxo(id)))
         document.querySelector(`.fluxo-pagina .fluxo-coluna[data-etapa="${alvo}"]`)?.classList.add('fluxo-alvo')
 }
 
@@ -328,7 +330,8 @@ function terminarArrasteFluxo() {
 }
 
 function permitirSoltarFluxo(evento, etapa) {
-    if (!destinosItemFluxo(itemFluxo(arrasteFluxo)?.etapa).includes(etapa)) return
+    const arrastado = itemFluxo(arrasteFluxo)
+    if (!destinosItemFluxo(arrastado?.etapa, arrastado).includes(etapa)) return
     evento.preventDefault()
     evento.currentTarget.classList.add('fluxo-alvo-sobre')
 }
@@ -343,7 +346,9 @@ async function soltarFluxo(evento, etapa) {
     terminarArrasteFluxo()
     const c = itemFluxo(id)
     if (!c) return
-    if (!destinosItemFluxo(c.etapa).includes(etapa)) return
+    if (!destinosItemFluxo(c.etapa, c).includes(etapa)) return
+    // Pedido → Separado (rodada de serviço): NFS-e direto, sem requisição.
+    if (c.etapa === 'pedido' && etapa === 'separado') return abrirNfseFluxo(c).catch(err => { removerOverlay(); popup({ mensagem: mensagemErroEst(err) }) })
     // Próxima etapa: o que ela pede (formulário, emissão, confirmação). Concluído direto e volta: confirmação.
     if (proximaEtapaFluxo(c.etapa) === etapa) return avancarItemFluxo(id)
     await moverItemFluxo(c, etapa)
@@ -397,12 +402,12 @@ async function tratarPendenciaFluxo(err, c) {
     if (err?.codigo === 'SALDO_ABERTO' && c?.orcamento_id) {
         const motivo = await pedirTextoPopup({
             titulo: 'Concluir com saldo a faturar',
-            mensagem: `${escEst(err.message)}<br><br>Motivo da baixa (desconto, item cancelado, faturado em outro ORC...):`,
+            mensagem: `${escEst(err.message)}<br><br>Motivo da baixa (${err.saldo?.escopo === 'SEM_PEDIDO' ? 'OC menor que o orçamento, item retirado na negociação...' : 'desconto, item cancelado, faturado em outro ORC...'}):`,
             textoConfirmar: 'Dar baixa e concluir', minimo: 10, maximo: 500
         })
         if (!motivo) return false
         try {
-            await apiModuloFiscal('fluxo-itens/baixa', { orcamento_id: c.orcamento_id, motivo })
+            await apiModuloFiscal('fluxo-itens/baixa', { orcamento_id: c.orcamento_id, motivo, escopo: err.saldo?.escopo, pedido_id: err.saldo?.pedido_id })
             return true
         } catch (e) {
             popup({ mensagem: mensagemErroEst(e) })
@@ -466,7 +471,16 @@ async function avancarItemFluxo(id) {
             }
             return await abrirRequisicaoFluxo(c)
         }
-        if (c.etapa === 'requisicao') return await abrirNotaFluxo(c)
+        if (c.etapa === 'requisicao') {
+            // Rodada do modelo novo: a nota dá a natureza (NF-e = venda; NFS-e = serviço, com o uso e consumo dentro).
+            if (c.rodada != null) {
+                const escolha = await escolherOpcaoFluxo('Separar', `Qual nota sai nesta rodada de ${nomeItemFluxo(c)}?`,
+                    [['nfse', 'NFS-e (serviço)', 'servicos_nfse'], ['nfe', 'NF-e (venda)', 'concluido']])
+                if (!escolha) return
+                if (escolha === 'nfse') return await abrirNfseFluxo(c)
+            }
+            return await abrirNotaFluxo(c)
+        }
         if (c.etapa === 'separado') {
             if (!await confirmarPopup({ titulo: 'Faturar', mensagem: `Emitir agora a NF-e de ${nome}?`, textoConfirmar: 'Emitir' })) return
             // O cartão vai na hora para Faturado ("emitindo"); se a nota for recusada, volta para Separado em vermelho.
@@ -500,6 +514,45 @@ async function abrirRequisicaoFluxo(c) {
     controles.ocorrencias = { ...(controles.ocorrencias || {}), ativo: c.contrato }
     requisicaoPedidoPadrao = c.pedido_id || null
     try { await formularioRequisicao() } finally { requisicaoPedidoPadrao = null }
+}
+
+// Escolha simples num popup (promessa com o valor do botão; fechar = null).
+function escolherOpcaoFluxo(titulo, mensagem, opcoes) {
+    return new Promise(resolve => {
+        const chave = crypto.randomUUID()
+        respostasRequisicaoFluxo.set(chave, resolve)
+        const id = popup({
+            titulo, mensagem,
+            botoes: opcoes.map(([valor, texto, img]) => ({ texto, img: img || 'concluido', funcao: `respostaOpcaoFluxo('${chave}', '${valor}', this)` }))
+        })
+        const observador = new MutationObserver(() => {
+            if (document.getElementById(id)) return
+            observador.disconnect()
+            respostasRequisicaoFluxo.get(chave)?.(null)
+            respostasRequisicaoFluxo.delete(chave)
+        })
+        observador.observe(document.body, { childList: true })
+    })
+}
+function respostaOpcaoFluxo(chave, valor, botao) {
+    const resolver = respostasRequisicaoFluxo.get(chave)
+    respostasRequisicaoFluxo.delete(chave)
+    removerPopup(botao.closest('.popup')?.id)
+    resolver?.(valor)
+}
+
+// Rodada de serviço → Separado: NFS-e montada pelo servidor (gcs /fluxo-itens/nfse: tomador, ORC, condição e o
+// saldo do pedido); salvar leva o cartão para Separado e Faturar emite. O Omie segue emitindo também: a NFS-e
+// que chegar de lá pela sincronização fatura a rodada do mesmo jeito.
+async function abrirNfseFluxo(c) {
+    overlayAguarde()
+    const dados = await apiModuloFiscal('fluxo-itens/nfse', { id: c.id })
+    removerOverlay()
+    if (dados.autorizada) {
+        if (!await confirmarPopup({ titulo: 'Separado', mensagem: `${nomeItemFluxo(c)} já tem a nota autorizada. Avançar o cartão para Separado?`, textoConfirmar: 'Avançar' })) return
+        return moverOtimistaFluxo(c.id, 'separado')
+    }
+    await formularioEmissaoNFSe({ ...dados, fluxo_item: c.id })
 }
 
 // Requisição → Separado: NF-e preenchida pelo servidor; salvar o rascunho leva o cartão para Separado.
@@ -733,13 +786,31 @@ async function espelhoNotaItemFluxo(notaId) {
 // Saldo a faturar do orçamento (gcs orcamento_saldo: pedidos − notas de venda/serviço − baixas). Só aparece
 // quando passa da tolerância (R$ 10 ou 0,5% dos pedidos); acima do pedido costuma ser pedido com valor errado.
 function saldoCartaoFluxo(c) {
-    if (c.orcamento_saldo == null) return ''
+    // "Sem pedido": parte do orçamento que ainda não tem OC (ex.: o serviço cuja OC chega no fim da obra).
+    const total = Number(c.orcamento_total) || 0, semPedido = Number(c.orcamento_sem_pedido) || 0
+    const htmlSemPedido = Number(c.orcamento_pedidos) > 0 && semPedido > Math.max(10, total * 0.005)
+        ? `<small class="fluxo-saldo" title="${escaparAtributo(`Orçamento ${reaisFluxo(total)} · pedidos ${reaisFluxo(c.orcamento_pedidos)}`)}">Sem pedido ${reaisFluxo(semPedido)}</small>`
+        : ''
+    // Rodada (modelo novo): o valor do cartão já é o saldo (aberta) ou o faturado (fechada).
+    if (c.rodada != null) return htmlSemPedido
+    if (c.orcamento_saldo == null) return htmlSemPedido
     const saldo = Number(c.orcamento_saldo) || 0, pedidos = Number(c.orcamento_pedidos) || 0
     if (Math.abs(saldo) <= Math.max(10, pedidos * 0.005)) return ''
     const dica = escaparAtributo(`Pedidos do orçamento ${reaisFluxo(pedidos)} · faturado ${reaisFluxo(c.orcamento_faturado)}`)
-    return saldo > 0
+    return (saldo > 0
         ? `<small class="fluxo-saldo" title="${dica}">Saldo a faturar ${reaisFluxo(saldo)}</small>`
-        : `<small class="fluxo-saldo acima" title="${dica}">Faturado acima do pedido em ${reaisFluxo(-saldo)}</small>`
+        : `<small class="fluxo-saldo acima" title="${dica}">Faturado acima do pedido em ${reaisFluxo(-saldo)}</small>`) + htmlSemPedido
+}
+
+// Rodada de faturamento do pedido (modelo novo): "R2" e a natureza que a nota deu (ou "a definir").
+function rodadaCartaoFluxo(c) {
+    if (c.rodada == null) return ''
+    const natureza = String(c.tipo || '').toUpperCase()
+    const nome = natureza.startsWith('SERVI') ? 'Serviço' : natureza === 'VENDA' ? 'Venda' : ''
+    const conferir = (Array.isArray(c.notas) ? c.notas : []).some(n => n.atribuicao === 'CONFERIR' && n.cancelado !== 'S')
+    return `<span class="fluxo-cartao-balao" title="Rodada ${Number(c.rodada)} de faturamento do pedido">
+        ${etiquetaEst(`Rodada ${Number(c.rodada)}${nome ? ` · ${nome}` : ''}`, nome === 'Serviço' ? '#7c3aed' : nome === 'Venda' ? '#2563eb' : '#6b7280')}
+        ${conferir ? etiquetaEst('Conferir pedido da nota', '#b91c1c') : ''}</span>`
 }
 
 // Cartão do quadro novo (vw_fluxo_itens): item que anda até Concluído; marca verde/vermelha da emissão.
@@ -748,7 +819,7 @@ function cartaoItemFluxo(c, parado, tempo) {
         .filter(n => n.n_nota && n.cancelado !== 'S' && n.categoria !== 'remessa')
         .map(n => String(n.n_nota).replace(/^0+/, ''))
     const contexto = [
-        c.tipo && c.tipo !== 'VENDA' ? c.tipo : '',
+        c.rodada == null && c.tipo && c.tipo !== 'VENDA' ? c.tipo : '',
         Number(c.requisicoes) ? `${c.requisicoes} requisição(ões)` : '',
         nfs.length ? `NF ${nfs.join(', ')}` : '',
         Number(c.envios) ? `${c.envios} envio(s)` : ''
@@ -776,6 +847,7 @@ function cartaoItemFluxo(c, parado, tempo) {
                     onclick="abrirMenuItemFluxo(event, '${id}')">⋮</button></span></span>
             <b class="fluxo-cartao-nome">${escaparAtributo(c.cliente || 'Cliente não informado')}</b>
             ${cancelada ? `<span class="fluxo-cartao-balao">${etiquetaEst('Cancelada', '#b91c1c')}</span>` : ''}
+            ${rodadaCartaoFluxo(c)}
             ${c.pedido_prometido ? `<span class="fluxo-cartao-balao" title="Sem o pedido do cliente (ou com valor simbólico): a nota não sai até o pedido ser completado">${etiquetaEst('Pedido pendente', '#b45309')}</span>` : ''}
             ${c.cidade ? `<small>${escaparAtributo(c.cidade)}</small>` : ''}
             ${contexto ? `<small class="fluxo-cartao-contexto">${escaparAtributo(contexto)}</small>` : ''}

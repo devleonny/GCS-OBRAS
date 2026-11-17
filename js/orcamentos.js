@@ -663,15 +663,19 @@ async function liberarConclusaoOrcamento(orcamentoId) {
         return false
     }
     const s = r?.saldo
-    if (!s?.aberto) return true
+    if (!s?.aberto && !s?.sem_pedido_aberto) return true
+    const partes = [
+        s.aberto ? `<b>${dinheiro(s.saldo)}</b> a faturar (pedidos ${dinheiro(s.pedidos)}, faturado ${dinheiro(s.faturado)})` : '',
+        s.sem_pedido_aberto ? `<b>${dinheiro(s.sem_pedido)}</b> sem pedido (orçamento ${dinheiro(s.total)}, pedidos ${dinheiro(s.pedidos)})` : ''
+    ].filter(Boolean)
     const motivo = await pedirTextoPopup({
-        titulo: 'Concluir com saldo a faturar',
-        mensagem: `Ainda há <b>${dinheiro(s.saldo)}</b> a faturar (pedidos ${dinheiro(s.pedidos)}, faturado ${dinheiro(s.faturado)}).<br><br>Motivo da baixa (desconto, item cancelado, faturado em outro ORC...):`,
+        titulo: 'Concluir com saldo',
+        mensagem: `Este orçamento ainda tem ${partes.join(' e ')}.<br><br>Motivo da baixa (desconto, item cancelado, OC menor que o orçamento...):`,
         textoConfirmar: 'Dar baixa e concluir', minimo: 10, maximo: 500
     })
     if (!motivo) return false
     try {
-        await apiModuloFiscal('fluxo-itens/baixa', { orcamento_id: orcamentoId, motivo })
+        await apiModuloFiscal('fluxo-itens/baixa', { orcamento_id: orcamentoId, motivo, escopo: 'TUDO' })
         return true
     } catch (err) {
         popup({ mensagem: mensagemErroEst(err) })
