@@ -386,8 +386,41 @@ async function moverOtimistaFluxo(id, etapa) {
         cartao?.classList.add('recusado')
         cartao?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
         setTimeout(() => cartao?.classList.remove('recusado'), 2500)
-        popup({ titulo: 'Não foi possível mover', mensagem: mensagemErroEst(err) })
+        if (await tratarPendenciaFluxo(err, c)) return moverOtimistaFluxo(id, etapa)
     }
+}
+
+// Recusas do servidor com pendência do orçamento (gcs /fluxo-itens/mover e /faturar):
+//   SALDO_ABERTO: concluir pede a baixa do saldo com motivo (fica registrada) e tenta de novo (devolve true).
+//   PROMESSA_PEDIDO: o pedido ainda é promessa: oferece abrir o pedido para completar.
+async function tratarPendenciaFluxo(err, c) {
+    if (err?.codigo === 'SALDO_ABERTO' && c?.orcamento_id) {
+        const motivo = await pedirTextoPopup({
+            titulo: 'Concluir com saldo a faturar',
+            mensagem: `${escEst(err.message)}<br><br>Motivo da baixa (desconto, item cancelado, faturado em outro ORC...):`,
+            textoConfirmar: 'Dar baixa e concluir', minimo: 10, maximo: 500
+        })
+        if (!motivo) return false
+        try {
+            await apiModuloFiscal('fluxo-itens/baixa', { orcamento_id: c.orcamento_id, motivo })
+            return true
+        } catch (e) {
+            popup({ mensagem: mensagemErroEst(e) })
+            return false
+        }
+    }
+    if (err?.codigo === 'PROMESSA_PEDIDO') {
+        popup({
+            titulo: 'Falta o pedido do cliente',
+            mensagem: escEst(err.message),
+            botoes: c?.pedido_id && c?.contrato
+                ? [{ texto: 'Completar pedido', img: 'editar', funcao: `removerPopup(); completarPedidoPrometido('${escaparAtributo(c.pedido_id)}', '${escaparAtributo(c.contrato)}')` }]
+                : []
+        })
+        return false
+    }
+    popup({ titulo: 'Não foi possível mover', mensagem: mensagemErroEst(err) })
+    return false
 }
 
 // Pedido → Requisição quando o item já tem requisição (voltou): só andar ou criar outra.
@@ -437,7 +470,12 @@ async function avancarItemFluxo(id) {
         if (c.etapa === 'separado') {
             if (!await confirmarPopup({ titulo: 'Faturar', mensagem: `Emitir agora a NF-e de ${nome}?`, textoConfirmar: 'Emitir' })) return
             // O cartão vai na hora para Faturado ("emitindo"); se a nota for recusada, volta para Separado em vermelho.
-            await apiModuloFiscal('fluxo-itens/faturar', { id })
+            try {
+                await apiModuloFiscal('fluxo-itens/faturar', { id })
+            } catch (err) {
+                if (err?.codigo === 'PROMESSA_PEDIDO') return tratarPendenciaFluxo(err, c)
+                throw err
+            }
             return carregarFluxo()
         }
         if (c.etapa === 'faturado' || c.etapa === 'entregue') {
@@ -692,6 +730,18 @@ async function espelhoNotaItemFluxo(notaId) {
     }
 }
 
+// Saldo a faturar do orçamento (gcs orcamento_saldo: pedidos − notas de venda/serviço − baixas). Só aparece
+// quando passa da tolerância (R$ 10 ou 0,5% dos pedidos); acima do pedido costuma ser pedido com valor errado.
+function saldoCartaoFluxo(c) {
+    if (c.orcamento_saldo == null) return ''
+    const saldo = Number(c.orcamento_saldo) || 0, pedidos = Number(c.orcamento_pedidos) || 0
+    if (Math.abs(saldo) <= Math.max(10, pedidos * 0.005)) return ''
+    const dica = escaparAtributo(`Pedidos do orçamento ${reaisFluxo(pedidos)} · faturado ${reaisFluxo(c.orcamento_faturado)}`)
+    return saldo > 0
+        ? `<small class="fluxo-saldo" title="${dica}">Saldo a faturar ${reaisFluxo(saldo)}</small>`
+        : `<small class="fluxo-saldo acima" title="${dica}">Faturado acima do pedido em ${reaisFluxo(-saldo)}</small>`
+}
+
 // Cartão do quadro novo (vw_fluxo_itens): item que anda até Concluído; marca verde/vermelha da emissão.
 function cartaoItemFluxo(c, parado, tempo) {
     const nfs = (Array.isArray(c.notas) ? c.notas : [])
@@ -726,9 +776,11 @@ function cartaoItemFluxo(c, parado, tempo) {
                     onclick="abrirMenuItemFluxo(event, '${id}')">⋮</button></span></span>
             <b class="fluxo-cartao-nome">${escaparAtributo(c.cliente || 'Cliente não informado')}</b>
             ${cancelada ? `<span class="fluxo-cartao-balao">${etiquetaEst('Cancelada', '#b91c1c')}</span>` : ''}
+            ${c.pedido_prometido ? `<span class="fluxo-cartao-balao" title="Sem o pedido do cliente (ou com valor simbólico): a nota não sai até o pedido ser completado">${etiquetaEst('Pedido pendente', '#b45309')}</span>` : ''}
             ${c.cidade ? `<small>${escaparAtributo(c.cidade)}</small>` : ''}
             ${contexto ? `<small class="fluxo-cartao-contexto">${escaparAtributo(contexto)}</small>` : ''}
             <span class="fluxo-cartao-valor">${reaisFluxo(c.valor)} <small>${c.empresa ? `${escaparAtributo(c.empresa)} · ` : ''}desde ${dataBrFluxo(c.data)}</small></span>
+            ${saldoCartaoFluxo(c)}
             ${emissao}
         </article>`
 }

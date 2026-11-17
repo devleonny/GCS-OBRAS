@@ -27,6 +27,9 @@ async function apiModuloFiscal(caminho, corpo = {}) {
         const erro = new Error(retorno.mensagem || retorno.erro || `Falha (${resposta.status})`)
         erro.erros = retorno.erros
         erro.status = resposta.status
+        // Pendências do orçamento (fluxo-itens): SALDO_ABERTO / PROMESSA_PEDIDO e o saldo.
+        erro.codigo = retorno.codigo
+        erro.saldo = retorno.saldo
         throw erro
     }
     return retorno

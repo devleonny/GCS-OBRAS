@@ -647,6 +647,38 @@ function seletorStatus({ id, status = null, emTabela = false, contrato = null })
 
 }
 
+// Saldo a faturar e promessa do orçamento (gcs /fluxo-itens/saldo e /fluxo-itens/baixa). Devolve true se pode concluir.
+async function liberarConclusaoOrcamento(orcamentoId) {
+    let r
+    try { r = await apiModuloFiscal('fluxo-itens/saldo', { orcamento_id: orcamentoId }) }
+    catch { return true }   // sem a consulta (offline/permissão) não trava a troca de status
+    removerOverlay()
+    if (r?.promessas?.length) {
+        const p = r.promessas[0]
+        popup({
+            titulo: 'Falta o pedido do cliente',
+            mensagem: `${escaparAtributo(p.contrato || 'Este orçamento')} ainda tem pedido pendente. Complete o pedido (número ou "Aprovado por E-mail", valor e a OC anexada) antes de concluir.`,
+            botoes: p.pedido_id ? [{ texto: 'Completar pedido', img: 'editar', funcao: `removerPopup(); completarPedidoPrometido('${escaparAtributo(p.pedido_id)}', '${escaparAtributo(p.contrato)}')` }] : []
+        })
+        return false
+    }
+    const s = r?.saldo
+    if (!s?.aberto) return true
+    const motivo = await pedirTextoPopup({
+        titulo: 'Concluir com saldo a faturar',
+        mensagem: `Ainda há <b>${dinheiro(s.saldo)}</b> a faturar (pedidos ${dinheiro(s.pedidos)}, faturado ${dinheiro(s.faturado)}).<br><br>Motivo da baixa (desconto, item cancelado, faturado em outro ORC...):`,
+        textoConfirmar: 'Dar baixa e concluir', minimo: 10, maximo: 500
+    })
+    if (!motivo) return false
+    try {
+        await apiModuloFiscal('fluxo-itens/baixa', { orcamento_id: orcamentoId, motivo })
+        return true
+    } catch (err) {
+        popup({ mensagem: mensagemErroEst(err) })
+        return false
+    }
+}
+
 async function alterarStatus(id, idStatus = crypto.randomUUID()) {
 
     try {
@@ -670,6 +702,9 @@ async function alterarStatus(id, idStatus = crypto.randomUUID()) {
                 ? Number(timestamp)
                 : agoraServidor()
         }
+
+        // CONCLUÍDO com pendência (16/11/2026, a pedido): pedido pendente não deixa; saldo a faturar pede baixa com motivo.
+        if (status === 'CONCLUÍDO' && !await liberarConclusaoOrcamento(id)) return removerOverlay()
 
         await enviar(`dados_orcamentos/${id}/historico_status/${idStatus}`, dado)
 

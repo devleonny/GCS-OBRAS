@@ -524,6 +524,10 @@ async function carregarControles() {
         barraStatus.push(`
             <div id="atalhoReprovados" style="display: none;">
                 ${modelo('pagamento', 'abrirPagamentosReprovados()', 'contadorReprovados')}
+            </div>`,
+            // Pedidos pendentes de quem está logado (js/promessas_pedido.js): só aparece se houver algum.
+            `<div id="atalhoPromessas" style="display: none;" title="Pedidos pendentes sem o pedido do cliente">
+                ${modelo('alerta', 'abrirPromessasPedido()', 'contadorPromessas')}
             </div>`)
 
     if (!['cliente', 'técnico'].includes(permissao)) {
@@ -557,6 +561,7 @@ async function carregarControles() {
         usuariosToolbar(),
         verificarPendencias(),
         verificarPostIts(),
-        verificarPagamentosReprovados()
+        verificarPagamentosReprovados(),
+        typeof iniciarCobrancaPromessas === 'function' ? iniciarCobrancaPromessas() : null
     ])
 }

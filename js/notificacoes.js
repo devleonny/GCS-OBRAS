@@ -256,6 +256,8 @@ async function abrirAcaoNotificacao(acao, titulo = '') {
         if (tipo === 'precos') return await abrirPrecosVencidos(acao.lpu || null)
         // Conta da Localiza a ratear (gcs SCRIPTS/notificacoes.js, fonte localiza): abre a tela na aba A ratear.
         if (tipo === 'localiza') return await telaLocalizaDespesas('A RATEAR')
+        // Pedidos pendentes (gcs notificacoes.js, fonte promessas): lista do usuário; gestor vê a de todos.
+        if (tipo === 'promessas') return await abrirPromessasPedido(!!acao.todas)
         // Aviso manual com mensagem formatada (editor): abre a mensagem completa.
         if (tipo === 'aviso') return abrirAvisoNotificacao(acao, titulo)
         // Push de aviso formatado traz só o id (limite de tamanho do push): busca na caixa e abre.

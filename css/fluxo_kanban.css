@@ -465,3 +465,7 @@
 .fluxo-cartao.fluxo-cor-nota.faturada.parado,
 .fluxo-coluna.final .fluxo-cartao.fluxo-cor-nota.faturada,
 .fluxo-cartao.fluxo-cor-nota.faturada:hover { border-left-color: #2f9e44; }
+
+/* Saldo a faturar do orçamento (pedidos − notas − baixas) e promessa de pedido no cartão. */
+.fluxo-saldo { color: #b45309 !important; font-weight: 600; }
+.fluxo-saldo.acima { color: #6b7280 !important; font-weight: 500; }

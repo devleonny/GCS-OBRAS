@@ -132,7 +132,8 @@ const blocoFotosCompleto = ({ id, tabela, fotos }) => {
     `
 }
 
-function marcarStatusPedido() {
+// clicou: veio do clique na opção (ao abrir o formulário não alerta).
+function marcarStatusPedido(clicou = false) {
 
     const opcao = [...document.querySelectorAll('[name="status-pedido"]:checked')][0]
 
@@ -140,21 +141,43 @@ function marcarStatusPedido() {
         return
 
     const pedido = document.getElementById('pedido')
-    const autorizado = document.getElementById('autorizado')
     const retorno = opcao.dataset.campo
     pedido.readOnly = true
     pedido.value = retorno
 
     if (retorno.includes('número')) {
-        pedido.value = ''
+        // Voltando para "com número" num pedido que já tem número: mantém o que estava.
+        pedido.value = pedido.dataset.numero || ''
         pedido.readOnly = false
     }
 
-    autorizado.style.display = retorno == 'Sem Pedido'
-        ? 'flex'
-        : 'none'
+    // Promessa: explica a cobrança; com número: pede a OC (obrigatória quando cumpre uma promessa).
+    const aviso = document.getElementById('aviso-promessa')
+    if (aviso) aviso.style.display = retorno === PEDIDO_PROMETIDO ? '' : 'none'
+    const oc = document.getElementById('linha-oc-pedido')
+    if (oc) oc.closest('.linha-padrao').style.display = retorno.includes('número') ? '' : 'none'
+
+    // Alerta ao escolher "Pedido pendente" (a pedido): quem lança será cobrado depois pelo pedido do cliente.
+    if (clicou && retorno === PEDIDO_PROMETIDO)
+        popup({
+            titulo: 'Atenção: pedido pendente',
+            mensagem: `
+                Você está lançando o pedido <b>sem o pedido do cliente</b>.<br><br>
+                <b>Você será cobrado por ele:</b> o GCS vai lembrar você todos os dias (e avisar o gestor)
+                até o pedido ser completado com o número (ou "Aprovado por E-mail"), o valor e a OC anexada.<br><br>
+                Enquanto isso, a nota fiscal deste orçamento não é emitida e ele não pode ser concluído.`,
+            botoes: [{ texto: 'Entendi', img: 'concluido', fechar: true }]
+        })
 
 }
+
+// Promessa de pedido (16/11/2026, a pedido; antes "Sem Pedido" com autorizador): o pedido entra sem o pedido do
+// cliente, com o valor previsto, e o GCS cobra (aviso diário e janela de hora em hora, js/promessas_pedido.js)
+// até ter número (ou "Aprovado por E-mail"), valor e a OC anexada. Enquanto for promessa, a nota do orçamento
+// não é emitida e o orçamento não é concluído (gcs vw_pedido_promessas). Valor ≤ R$ 10 também é promessa.
+const PEDIDO_PROMETIDO = 'Pedido pendente'
+const ehPromessaPedido = (situacao, valor) =>
+    ['sem pedido', 'pedido pendente', ''].includes(String(situacao || '').trim().toLowerCase()) || !(Number(valor) > 10)
 
 async function painelAdicionarPedido(id = crypto.randomUUID()) {
 
@@ -203,25 +226,25 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
     condicao = { ...(condicao || { modo: 'MESES', parcelas: 1, base: 'EMISSAO' }) }
     if (!condicao.forma) condicao.forma = '15'
 
-    const opcoes = ['Sem Pedido', 'Aprovado por E-mail', 'Aprovado com número']
+    // Situação salva → opção marcada ("Sem Pedido" antigo = promessa; número = "com número").
+    const situacao = String(pedido || '').trim()
+    const marcada = !registro.id ? '' : /^(sem pedido|pedido pendente)$/i.test(situacao) || !situacao ? PEDIDO_PROMETIDO
+        : /e-?mail/i.test(situacao) ? 'Aprovado por E-mail' : 'Aprovado com número'
+    const eraPromessa = !!registro.id && ehPromessaPedido(situacao, valor)
+    const temAnexo = Object.keys(registro.anexos || {}).length > 0
+    const opcoes = [PEDIDO_PROMETIDO, 'Aprovado por E-mail', 'Aprovado com número']
         .map(op => `
             <div style="${horizontal}; gap: 1rem;">
-                <input ${op == pedido ? 'checked' : ''} name="status-pedido" data-campo="${op}" type="radio" style="box-shadow: none; width: 2rem; height: 2rem;" onclick="marcarStatusPedido()">
+                <input ${op == marcada ? 'checked' : ''} name="status-pedido" data-campo="${op}" type="radio" style="box-shadow: none; width: 2rem; height: 2rem;" onclick="marcarStatusPedido(true)">
                 <span>${op}</span>
             </div>
             `)
         .join('')
-
-    controlesCxOpcoes.autorizado_por = {
-        base: 'clientes',
-        retornar: ['usuario'],
-        filtros: {
-            usuario: { op: 'NOT_EMPTY' }
-        },
-        colunas: {
-            'Usuário': { chave: 'usuario' },
-            'Permissão': { chave: 'permissao' }
-        }
+    // Valor previsto da promessa: o total do orçamento, se o pedido ainda não tem valor de verdade.
+    let valorInicial = Number(valor) > 10 ? valor : ''
+    if (!valorInicial) {
+        const s = await apiModuloFiscal('fluxo-itens/saldo', { contrato: departamento || depAtivo }).catch(() => null)
+        if (Number(s?.total_orcamento) > 10) valorInicial = s.total_orcamento
     }
 
     const linhas = [
@@ -243,19 +266,27 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
             elemento: `
             <div style="${vertical}; gap: 5px;">
                 ${opcoes}
-                <div id="autorizado" style="${horizontal}; display: none; gap: 1rem;">
-                    <span>Autorizado por?</span>
-                    <span name="autorizado_por" class="opcoes" onclick="cxOpcoes('autorizado_por')">Selecione</span>
-                </div>
+                <small id="aviso-promessa" style="display: none; color: #b45309; max-width: 26rem; text-align: left;">
+                    Sem o pedido do cliente por enquanto. O GCS vai cobrar você (e o gestor) até o pedido ser completado
+                    com número (ou e-mail), valor e a OC anexada, e a nota deste orçamento não sai antes disso.
+                </small>
             </div>`
         },
         {
             texto: 'Número do Pedido',
-            elemento: `<input type="text" id="pedido" value="${pedido || ''}" readOnly>`
+            elemento: `<input type="text" id="pedido" value="${escaparAtributo(pedido || '')}" data-numero="${marcada === 'Aprovado com número' ? escaparAtributo(situacao) : ''}" readOnly>`
         },
         {
             texto: 'Valor do Pedido',
-            elemento: `<input type="number" id="valor" value="${valor || ''}">`
+            elemento: `<input type="number" id="valor" min="0" step="0.01" value="${valorInicial}" placeholder="Valor do pedido (previsto, se for promessa)">`
+        },
+        {
+            texto: 'OC do cliente (anexo)',
+            elemento: `
+            <div id="linha-oc-pedido" style="${vertical}; gap: 2px; width: 100%;" data-era-promessa="${eraPromessa ? 'S' : 'N'}" data-tem-anexo="${temAnexo ? 'S' : 'N'}">
+                <input type="file" id="oc_pedido" multiple>
+                <small style="color: #6b7a71;">${temAnexo ? 'Este pedido já tem anexo. Envie outro só se quiser acrescentar.' : eraPromessa ? 'Obrigatório para completar o pedido pendente.' : 'Opcional.'}</small>
+            </div>`
         },
         {
             texto: 'Empresa a faturar',
@@ -334,13 +365,20 @@ async function salvarPedido(id) {
         const tipo = document.getElementById('tipo')
         const pedido = document.getElementById('pedido')
         const empresa = document.getElementById('empresa')
-        const autorizado_por = document.querySelector('[name="autorizado_por"]').id
+        const linhaOc = document.getElementById('linha-oc-pedido')
+        const arquivosOc = document.getElementById('oc_pedido')
 
         if (!valor.value || !tipo.value || !pedido.value)
             return popup({ mensagem: 'Existem campos em Branco' })
 
-        if (pedido.value == 'Sem Pedido' && autorizado_por == '')
-            return popup({ mensagem: 'Quem autorizou este pedido?' })
+        // Valor simbólico (R$ 1, R$ 10) não é mais aceito: sem o pedido, marque "Pedido pendente" com o valor previsto.
+        if (!(Number(valor.value) > 10))
+            return popup({ mensagem: 'Informe o valor do pedido (acima de R$ 10). Ainda sem o pedido do cliente? Marque "Pedido pendente" e informe o valor previsto.' })
+
+        // Cumprindo a promessa com número: a OC do cliente vai anexada.
+        const comNumero = !ehPromessaPedido(pedido.value, valor.value) && !/e-?mail/i.test(pedido.value)
+        if (comNumero && linhaOc?.dataset.eraPromessa === 'S' && linhaOc?.dataset.temAnexo !== 'S' && !arquivosOc?.files?.length)
+            return popup({ mensagem: 'Anexe a OC (pedido de compra) do cliente para completar o pedido pendente.' })
 
         // Sem empresa pré-escolhida: antes vinha AC e o pedido saía como AC sem ninguém decidir.
         if (!empresa.value)
@@ -367,11 +405,19 @@ async function salvarPedido(id) {
             valor: Number(valor.value),
             tipo: tipo.value,
             pedido: pedido.value,
-            autorizado_por,
             empresa: empresa.value
         }
 
         await enviar(`pedidos/${id}`, dados)
+
+        if (arquivosOc?.files?.length) {
+            const anexos = await importarAnexos({ input: arquivosOc })
+            if (Array.isArray(anexos))
+                await Promise.all(anexos.map(anexo => enviar(`pedidos/${id}/anexos/${crypto.randomUUID()}`, anexo)))
+        }
+
+        // Cobrança atualizada (some do contador/janela quando o pedido deixa de ser promessa).
+        if (typeof verificarPedidosPrometidos === 'function') setTimeout(() => verificarPedidosPrometidos({ silencioso: true }), 1500)
 
         removerPopup()
 
