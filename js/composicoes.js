@@ -219,10 +219,61 @@ async function criarLinhaComposicao(produto) {
                     ? `<div class="composicao-lpus">${cartoesLPU}</div>`
                     : '<p class="composicao-vazio">Nenhuma tabela disponível.</p>'}
             </section>
+            ${blocoDocumentacaoItem(produto)}
         </div>
     `
     return { linha, detalhes }
 
+}
+
+// ---- Documentação do fabricante (datasheet): link oficial e/ou cópia do PDF no servidor (/uploads).
+function urlArquivoItem(arquivo) {
+    if (!arquivo) return ''
+    return /^https?:\/\//i.test(arquivo) ? arquivo : `${api}/uploads/${arquivo}`
+}
+
+function blocoDocumentacaoItem(produto) {
+    const { datasheet_link, datasheet_arquivo } = produto || {}
+    if (!datasheet_link && !datasheet_arquivo) return ''
+    const botoes = [
+        datasheet_arquivo ? `<a class="composicao-agrupamento" href="${escaparAtributo(urlArquivoItem(datasheet_arquivo))}" target="_blank" rel="noopener">📄 PDF do fabricante</a>` : '',
+        datasheet_link ? `<a class="composicao-agrupamento" href="${escaparAtributo(datasheet_link)}" target="_blank" rel="noopener noreferrer">🔗 Página do fabricante</a>` : ''
+    ].join('')
+    return `
+        <section class="composicao-bloco">
+            <div class="composicao-bloco-topo"><h3>Documentação</h3></div>
+            <div style="${horizontal}; gap: 0.5rem; justify-content: start; flex-wrap: wrap;">${botoes}</div>
+        </section>`
+}
+
+function campoDatasheetItem(produto) {
+    const arquivo = produto?.datasheet_arquivo || ''
+    return `
+        <div style="${vertical}; gap: 0.35rem; width: 100%;">
+            <input name="datasheet_link" placeholder="Link do fabricante (página ou PDF)" value="${escaparAtributo(produto?.datasheet_link || '')}">
+            <div style="${horizontal}; gap: 0.5rem; justify-content: start;">
+                <input type="hidden" name="datasheet_arquivo" value="${escaparAtributo(arquivo)}">
+                <a name="datasheet_ver" href="${escaparAtributo(urlArquivoItem(arquivo))}" target="_blank" rel="noopener" ${arquivo ? '' : 'hidden'}>📄 PDF atual</a>
+                <label style="cursor: pointer; text-decoration: underline;">${arquivo ? 'Trocar PDF' : 'Enviar PDF'}
+                    <input type="file" accept="application/pdf" hidden onchange="enviarDatasheetItem(this)">
+                </label>
+            </div>
+        </div>`
+}
+
+async function enviarDatasheetItem(input) {
+    const painel = input.closest('.painel-padrao')
+    overlayAguarde()
+    try {
+        const [arquivo] = await importarAnexos({ input }) || []
+        if (!arquivo?.link) return
+        painel.querySelector('[name="datasheet_arquivo"]').value = arquivo.link
+        const ver = painel.querySelector('[name="datasheet_ver"]')
+        ver.href = urlArquivoItem(arquivo.link)
+        ver.hidden = false
+    } finally {
+        removerOverlay()
+    }
 }
 
 // Popup que fica por baixo do histórico de preços quando ele abre de dentro de outro
@@ -977,7 +1028,8 @@ async function cadastrarItem(codigo) {
         const linhas = [
             { texto: 'Descrição', elemento: `<textarea name="descricao" rows="5" oninput="sugerirFamiliaNoCadastro(this)">${produto?.descricao || ''}</textarea>` },
             { texto: 'Família', elemento: campoFamiliaItem(produto) },
-            { texto: 'Fabricante', elemento: `<input name="fabricante" value="${produto?.fabricante || ''}">` },
+            // Lista com busca (vw_fabricantes) para não nascer grafia nova da mesma marca; marca nova ainda pode ser digitada.
+            { texto: 'Fabricante', elemento: `<input name="fabricante" list="lista-fabricantes" autocomplete="off" value="${escaparAtributo(produto?.fabricante || '')}">${await listaFabricantesItem()}` },
             { texto: 'Modelo', elemento: `<input name="modelo" value="${produto?.modelo || ''}">` },
             { texto: 'Unidade', elemento: `<input name="unidade" value="${produto?.unidade || 'UN'}">` },
             { texto: 'ncm', elemento: `<input name="ncm" value="${produto?.ncm || ''}">` },
@@ -986,6 +1038,7 @@ async function cadastrarItem(codigo) {
             { texto: 'Sistema', elemento: `<select name="sistema">${sistemas}</select>` },
             // Obrigatória para produtos: só EQUIPAMENTO entra no orçamento de locação; MATERIAL vai em orçamento comum.
             { texto: 'Classificação *', elemento: campoClassificacaoItem(produto) },
+            { texto: 'Datasheet', elemento: campoDatasheetItem(produto) },
         ]
 
         popup({ linhas, botoes, titulo: 'Dados do Item' })
@@ -995,6 +1048,21 @@ async function cadastrarItem(codigo) {
         popup({ mensagem: 'Falha ao abrir o item: Fale com o suporte.' })
     }
 
+}
+
+let FABRICANTES_ITEM = null
+
+async function listaFabricantesItem() {
+    if (!FABRICANTES_ITEM) {
+        try {
+            const { resultados } = await pesquisarDB({ base: 'vw_fabricantes', limite: 2000 }) || {}
+            FABRICANTES_ITEM = (resultados || []).sort((a, b) => (b.itens || 0) - (a.itens || 0)).map(f => f.nome)
+        } catch (err) {
+            console.error(err)
+            FABRICANTES_ITEM = []
+        }
+    }
+    return `<datalist id="lista-fabricantes">${FABRICANTES_ITEM.map(n => `<option value="${escaparAtributo(n)}"></option>`).join('')}</datalist>`
 }
 
 // ---- Família do item (tabela "familias"; a mesma regra de SCRIPTS/familias/familias.js no servidor).
@@ -1170,6 +1238,14 @@ async function salvarComposicao(codigo) {
                     .replace(/[\u0300-\u036f]/g, '')
                     .toUpperCase()
                 : el?.value || ''
+        }
+        // Espaço sobrando criava outra marca ("DAHUA " ≠ "DAHUA").
+        produto.fabricante = produto.fabricante.replace(/\s+/g, ' ').trim()
+
+        // Link e arquivo do fabricante: sem a normalização dos campos de texto (URL é sensível a maiúsculas).
+        for (const campo of ['datasheet_link', 'datasheet_arquivo']) {
+            const el = painel.querySelector(`[name="${campo}"]`)
+            if (el) produto[campo] = el.value.trim() || null
         }
 
         await enviar(`dados_composicoes/${codigo || '0000'}`, produto)
