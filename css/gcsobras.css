@@ -2909,3 +2909,32 @@ input[type="file"]#input-anexos:hover {
 .esq-tipo.locacao { color: #92400e; background: #f8eee4; border-color: #e7cfb6; }
 .esq-tipo.devolucao { color: #b42318; background: #fef0ee; border-color: #f5c6c0; }
 .esq-tipo.avulsa { color: #9a3412; background: #fff1e6; border-color: #fbd0ae; }
+
+/* Pedidos pendentes (js/promessas_pedido.js): cartões em vez de tabela. */
+.promessas-pedido { display: flex; flex-direction: column; gap: 12px; padding: 14px; width: min(46rem, 90vw); text-align: left; box-sizing: border-box; }
+.promessas-aviso { display: flex; gap: 12px; align-items: flex-start; background: #fff7ed; border: 1px solid #fed7aa; border-left: 4px solid #c2410c; border-radius: 8px; padding: 10px 14px; }
+.promessas-aviso img { width: 26px; height: 26px; flex-shrink: 0; margin-top: 2px; }
+.promessas-aviso div { display: flex; flex-direction: column; gap: 3px; }
+.promessas-aviso b { color: #7c2d12; font-size: 15px; }
+.promessas-aviso small { color: #6b4a33; font-size: 12.5px; line-height: 1.4; }
+.promessas-lista { display: flex; flex-direction: column; gap: 8px; max-height: 52vh; overflow-y: auto; padding-right: 4px; }
+.promessa-cartao { display: flex; justify-content: space-between; align-items: center; gap: 14px; background: #fff; border: 1px solid #e5e7eb; border-left: 4px solid #d97706; border-radius: 8px; padding: 10px 14px; }
+.promessa-cartao.critico { border-left-color: #b91c1c; }
+.promessa-cartao.recente { border-left-color: #2563eb; }
+.promessa-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.promessa-titulo { display: flex; align-items: center; gap: 8px; }
+.promessa-titulo b { font-size: 15px; color: #1f2937; }
+.promessa-mais { font-size: 11px; color: #4b5563; background: #f3f4f6; border-radius: 10px; padding: 1px 8px; cursor: help; }
+.promessa-cliente { font-size: 12px; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.promessa-faltas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.promessa-falta { font-size: 11.5px; color: #991b1b; background: #fee2e2; border-radius: 10px; padding: 2px 9px; font-weight: 600; }
+.promessa-valor { font-size: 11.5px; color: #374151; background: #f3f4f6; border-radius: 10px; padding: 2px 9px; }
+.promessa-lado { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.promessa-dias { font-size: 12px; font-weight: 700; border-radius: 10px; padding: 3px 10px; white-space: nowrap; background: #fef3c7; color: #92400e; }
+.promessa-cartao.critico .promessa-dias { background: #fee2e2; color: #991b1b; }
+.promessa-cartao.recente .promessa-dias { background: #dbeafe; color: #1e40af; }
+.promessa-completar { white-space: nowrap; }
+@media (max-width: 560px) {
+    .promessa-cartao { flex-direction: column; align-items: stretch; }
+    .promessa-lado { justify-content: space-between; }
+}

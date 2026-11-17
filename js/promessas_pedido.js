@@ -71,29 +71,44 @@ async function abrirPromessasPedido(todas = false) {
 function abrirJanelaPromessas(promessas, { cobranca = false, todas = false } = {}) {
     if (estadoPromessas.aberta) removerPopup(estadoPromessas.aberta)
     const esc = v => escaparAtributo(v ?? '')
-    const linhas = promessas.map(p => `
-        <tr>
-            <td><b>${esc(p.contrato)}</b><br><small>${esc(p.cliente || '')}</small></td>
-            ${todas ? `<td>${esc(p.executor || '—')}</td>` : ''}
-            <td style="text-align: right; white-space: nowrap;">${Number(p.valor) > 10 ? dinheiro(p.valor) : '<span style="color: #b91c1c;">sem valor</span>'}</td>
-            <td style="white-space: nowrap; color: ${Number(p.dias) > 7 ? '#b91c1c' : '#b45309'}; font-weight: 600;">${Number(p.dias) || 0} dia(s)</td>
-            <td><small>Falta: ${esc(faltasPromessaTexto(p.faltas))}</small></td>
-            <td><button type="button" onclick="completarPedidoPrometido('${esc(p.pedido_id)}', '${esc(p.contrato)}')">Completar</button></td>
-        </tr>`).join('')
+    const FALTAS = { numero: 'Pedido do cliente', valor: 'Valor' }
+    const cartoes = promessas.map(p => {
+        // Departamento com vários ORCs (texto do Omie): o primeiro em destaque e "+N" com a lista no title.
+        const orcs = String(p.contrato || '').split(/\s+/).filter(Boolean)
+        const principal = orcs[0] || 'Sem orçamento'
+        const dias = Number(p.dias) || 0
+        const nivel = dias > 30 ? 'critico' : dias > 7 ? 'atrasado' : 'recente'
+        return `
+        <article class="promessa-cartao ${nivel}">
+            <div class="promessa-info">
+                <div class="promessa-titulo">
+                    <b>${esc(principal)}</b>
+                    ${orcs.length > 1 ? `<span class="promessa-mais" title="${esc(orcs.join(', '))}">+${orcs.length - 1} ORCs</span>` : ''}
+                </div>
+                <span class="promessa-cliente">${esc(p.cliente || (p.orcamento_id ? 'Cliente não informado' : 'Sem orçamento no GCS'))}${todas && p.executor ? ` · lançado por ${esc(p.executor)}` : ''}</span>
+                <div class="promessa-faltas">
+                    ${(p.faltas || []).map(f => `<span class="promessa-falta">Falta ${esc((FALTAS[f] || f).toLowerCase())}</span>`).join('')}
+                    ${Number(p.valor) > 10 ? `<span class="promessa-valor">Previsto ${dinheiro(p.valor)}</span>` : ''}
+                </div>
+            </div>
+            <div class="promessa-lado">
+                <span class="promessa-dias" title="Desde o lançamento do pedido">${dias} ${dias === 1 ? 'dia' : 'dias'}</span>
+                <button type="button" class="promessa-completar" onclick="completarPedidoPrometido('${esc(p.pedido_id)}', '${esc(principal)}')">Completar</button>
+            </div>
+        </article>`
+    }).join('')
     const espera = cobranca ? ESPERA_LEMBRAR_PROMESSAS_S : 0
     const elemento = `
-        <div class="promessas-pedido" style="display: flex; flex-direction: column; gap: 0.75rem; padding: 1rem; max-width: min(56rem, 92vw); text-align: left;">
-            <div style="background: #fff7ed; border-left: 4px solid #b45309; padding: 0.6rem 0.8rem; border-radius: 4px;">
-                <b>${todas ? `${promessas.length} pedido(s) pendente(s) em aberto` : promessas.length === 1 ? 'Você tem 1 pedido pendente sem o pedido do cliente' : `Você tem ${promessas.length} pedidos pendentes sem o pedido do cliente`}</b><br>
-                <small>A nota fiscal destes orçamentos não é emitida e eles não podem ser concluídos enquanto o pedido for promessa.
-                Complete com o número (ou "Aprovado por E-mail"), o valor e a OC anexada.${todas ? '' : ' O gestor também recebe este aviso.'}</small>
+        <div class="promessas-pedido">
+            <div class="promessas-aviso">
+                <img src="imagens/alerta.png" alt="">
+                <div>
+                    <b>${todas ? `${promessas.length} pedido(s) pendente(s) em aberto` : promessas.length === 1 ? 'Você tem 1 pedido pendente sem o pedido do cliente' : `Você tem ${promessas.length} pedidos pendentes sem o pedido do cliente`}</b>
+                    <small>Enquanto o pedido estiver pendente, a nota fiscal não é emitida e o orçamento não pode ser concluído.
+                    Complete com o número (ou "Aprovado por E-mail"), o valor e a OC anexada.${todas ? '' : ' O gestor também recebe este aviso.'}</small>
+                </div>
             </div>
-            <div style="max-height: 55vh; overflow: auto;">
-                <table class="tabela" style="width: 100%;">
-                    <thead><tr><th>Orçamento</th>${todas ? '<th>Lançado por</th>' : ''}<th>Valor</th><th>Há</th><th></th><th></th></tr></thead>
-                    <tbody>${linhas}</tbody>
-                </table>
-            </div>
+            <div class="promessas-lista">${cartoes}</div>
         </div>`
     const id = popup({
         titulo: 'Pedidos pendentes',
