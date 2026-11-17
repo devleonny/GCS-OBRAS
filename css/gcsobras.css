@@ -2451,6 +2451,19 @@ input[type="file"]#input-anexos:hover {
     background: #edf5f0;
 }
 
+/* Lote de orçamentos (gcs /fluxo-itens/lote): uma OC cobrindo várias lojas. */
+.historico-lote { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 12px 14px; border: 1px solid #c7d2fe; border-left: 4px solid #4f46e5; border-radius: 10px; background: #eef2ff; }
+.historico-lote[hidden] { display: none; }
+.historico-lote-info { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.historico-lote-titulo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; color: #1e1b4b; }
+.historico-lote-etiqueta { font-size: 11px; font-weight: 700; color: #fff; background: #4f46e5; border-radius: 10px; padding: 2px 9px; }
+.historico-lote-texto { font-size: 12.5px; color: #374151; }
+.historico-lote-numeros { display: flex; flex-wrap: wrap; gap: 6px; }
+.historico-lote-numeros span { font-size: 12px; color: #312e81; background: #fff; border: 1px solid #c7d2fe; border-radius: 10px; padding: 2px 9px; }
+.historico-lote-numeros span.ok { color: #065f46; border-color: #a7f3d0; background: #ecfdf5; }
+.historico-lote-numeros span.alerta { color: #991b1b; border-color: #fecaca; background: #fef2f2; font-weight: 600; }
+.historico-lote button { margin: 0; }
+
 .historico-rotulo {
     font-size: 11px;
     font-weight: 600;

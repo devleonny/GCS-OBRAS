@@ -975,6 +975,8 @@ async function abrirEsquema(id) {
                     </div>
                 </div>
 
+                <div class="historico-lote" hidden></div>
+
                 <div class="bloco-st"${visao === 'secoes' ? '' : ' hidden'}></div>
                 <div class="bloco-esquema-historico"${visao === 'esquema' ? '' : ' hidden'}></div>
 
@@ -998,6 +1000,7 @@ async function abrirEsquema(id) {
         await checklistChamado(id, chamado)
 
         const painel = document.getElementById(idJanela)?.querySelector('.painel-historico')
+        carregarLoteHistorico(painel, id)
         await carregarVisaoHistorico(painel, visao)
 
     } catch (err) {
@@ -1006,6 +1009,40 @@ async function abrirEsquema(id) {
     }
 
 
+}
+
+// Lote de orçamentos (gcs /fluxo-itens/lote): uma OC do cliente cobrindo várias lojas, cada loja com o seu
+// orçamento (a tag do lote ocupa uma vaga). Referência = a proposta que guarda as OCs e as notas.
+async function carregarLoteHistorico(painel, orcamentoId) {
+    const local = painel?.querySelector('.historico-lote')
+    if (!local) return
+    const { lote } = await apiModuloFiscal('fluxo-itens/lote', { orcamento_id: orcamentoId }).catch(() => ({}))
+    if (!lote) return
+    const esc = escaparAtributo
+    const ocs = (lote.pedidos || [])
+        .map(p => `<span class="${p.saldo > 10 ? '' : 'ok'}" title="OC ${esc(dinheiro(p.valor))} · faturado ${esc(dinheiro(p.faturado))}">${esc(p.numero || 'OC')} ${p.saldo > 10 ? `· falta faturar ${dinheiro(p.saldo)}` : '· faturada'}</span>`)
+        .join('')
+    const verRef = lote.papel === 'LOJA' && lote.orcamento_ref
+        ? `<button type="button" onclick="abrirEsquema('${esc(lote.orcamento_ref)}')">Ver ${esc(lote.contrato_ref || 'proposta')}</button>` : ''
+    const texto = lote.papel === 'LOJA'
+        ? `Esta loja ocupa uma das ${lote.vagas} vagas do lote e está coberta pelas OCs da proposta ${esc(lote.contrato_ref || '')}: não precisa de pedido nem de nota própria.`
+        : `Proposta do lote: as OCs e as notas ficam aqui. Cada orçamento com a tag ${esc(lote.nome)} ocupa uma vaga; as vagas livres viram chamados e orçamentos novos.`
+    local.innerHTML = `
+        <div class="historico-lote-info">
+            <div class="historico-lote-titulo"><span class="historico-lote-etiqueta">Lote</span><b>${esc(lote.nome)}</b></div>
+            <span class="historico-lote-texto">${texto}</span>
+            <div class="historico-lote-numeros">
+                <span>${lote.ocupadas} de ${lote.vagas} lojas com orçamento</span>
+                ${lote.excedente > 0
+                    ? `<span class="alerta">${lote.excedente} além das vagas</span>`
+                    : `<span class="${lote.livres ? '' : 'ok'}">${lote.livres} ${lote.livres === 1 ? 'vaga livre' : 'vagas livres'}</span>`}
+                ${lote.livres ? `<span title="Vagas livres × ${esc(dinheiro(lote.valor_vaga_venda))}">Venda a usar ${dinheiro(lote.saldo_venda)}</span>
+                <span title="Vagas livres × ${esc(dinheiro(lote.valor_vaga_servico))}">Serviço a usar ${dinheiro(lote.saldo_servico)}</span>` : ''}
+                ${ocs}
+            </div>
+        </div>
+        ${verRef}`
+    local.hidden = false
 }
 
 // ---------------------------------------------------------------- Histórico: visões
