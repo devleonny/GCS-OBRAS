@@ -237,7 +237,7 @@ function linkDatasheetItem(item) {
     const { datasheet_link, datasheet_arquivo } = item || {}
     const url = datasheet_arquivo ? urlArquivoItem(datasheet_arquivo) : datasheet_link
     if (!url) return ''
-    return `<a class="link-datasheet" href="${escaparAtributo(url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-size: 0.75rem; text-decoration: underline; color: #24729d; white-space: nowrap;">📄 Ficha técnica</a>`
+    return `<a class="link-datasheet" href="${escaparAtributo(url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-size: 0.75rem; text-decoration: underline; color: #24729d; white-space: nowrap;">Ficha técnica</a>`
 }
 
 // Orçamento: os itens não trazem o datasheet, então a lista (vw_composicoes_datasheet, poucos itens) vem uma vez.
@@ -259,7 +259,7 @@ function blocoDocumentacaoItem(produto) {
     const { datasheet_link, datasheet_arquivo } = produto || {}
     if (!datasheet_link && !datasheet_arquivo) return ''
     const botoes = [
-        datasheet_arquivo ? `<a class="composicao-agrupamento" href="${escaparAtributo(urlArquivoItem(datasheet_arquivo))}" target="_blank" rel="noopener">📄 Ficha técnica (PDF)</a>` : '',
+        datasheet_arquivo ? `<a class="composicao-agrupamento" href="${escaparAtributo(urlArquivoItem(datasheet_arquivo))}" target="_blank" rel="noopener">Ficha técnica (PDF)</a>` : '',
         datasheet_link ? `<a class="composicao-agrupamento" href="${escaparAtributo(datasheet_link)}" target="_blank" rel="noopener noreferrer">🔗 Página do fabricante</a>` : ''
     ].join('')
     return `
