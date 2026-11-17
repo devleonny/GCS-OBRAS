@@ -746,13 +746,15 @@ async function abrirTabelaEmitidas(filtroExtra = null) {
     }
 }
 
+// Linhas do Omie da página aberta, para a janela de detalhes da lupa (sem ida ao servidor).
+const notasOmieEmitidasFis = new Map()
+
 function criarLinhaNotaEmitida(d) {
+    if (d.fonte === 'OMIE') notasOmieEmitidasFis.set(String(d.id), d)
     return `
         <tr>
             <td class="fis-acoes-linha">${d.fonte === 'OMIE'
-                ? `<img src="imagens/pesquisar.svg" title="Nota emitida pelo Omie: abrir o PDF" onclick="abrirDANFE('${escFis(d.id)}')">${
-                    d.modelo === 'NFE' && d.status === 'AUTORIZADA' && /^venda/i.test(d.natureza_operacao || '') && !PERFIS_SO_CONSULTA_FIS.includes(acesso?.permissao)
-                        ? `<img src="imagens/voltar.png" title="Registrar devolução desta venda (nota de entrada própria)" onclick="abrirDevolucaoFis({ id: '${escFis(d.id)}', lado: 'VENDA' })">` : ''}`
+                ? `<img src="imagens/pesquisar.svg" title="Nota emitida pelo Omie" onclick="abrirNotaOmieFis('${escFis(d.id)}')">`
                 : `<img src="imagens/pesquisar.svg" title="Abrir" onclick="abrirDocumentoFiscal('${escFis(d.id)}')">`}</td>
             <td>${dataFis(d.emissao || d.criado_em)}</td>
             <td>${escFis(d.app)}</td>
@@ -765,6 +767,32 @@ function criarLinhaNotaEmitida(d) {
             <td>${etiquetaFis(ESTOQUE_FISCAL, d.estoque_status)}</td>
             <td>${d.ambiente === 'homologacao' ? etiquetaEst('Homologação', '#d97706') : d.ambiente === 'producao' ? etiquetaEst('Produção', '#15803d') : d.ambiente === 'omie' ? etiquetaEst('Omie', '#7c3aed') : escFis(d.ambiente || '')}</td>
         </tr>`
+}
+
+// Lupa da nota emitida pelo Omie: resumo com "Abrir PDF" e, nas vendas autorizadas, "Registrar devolução".
+function abrirNotaOmieFis(id) {
+    const d = notasOmieEmitidasFis.get(String(id))
+    if (!d) return abrirDANFE(id)
+    const nfse = d.modelo === 'NFSE'
+    const podeDevolver = !nfse && d.status === 'AUTORIZADA' && /^venda/i.test(d.natureza_operacao || '') &&
+        !PERFIS_SO_CONSULTA_FIS.includes(acesso?.permissao)
+    const html = `
+        <div class="fis-painel fis-doc" data-nota-omie="${escFis(d.id)}">
+            ${resumoDocumentoFis(d, [
+                ['Nota', `${nfse ? 'NFS-e' : 'NF-e'} nº ${escFis(d.numero || '')}`],
+                ['Emissão', dataFis(d.emissao || d.criado_em)],
+                ['Empresa', escFis(d.app || '')],
+                ['Destinatário', `${escFis(d.participante_nome || '')} ${docFormatadoFis(d.participante_documento)}`],
+                ['Operação', escFis(d.natureza_operacao || '')],
+                ['Valor', d.valor_total != null ? dinheiro(d.valor_total) : ''],
+                ['Situação', etiquetaFis(STATUS_FISCAL, d.status)]
+            ])}
+            <div class="fis-acoes-claras fis-nota-acoes" style="margin-top: 12px;">
+                <button type="button" class="fis-mini" onclick="abrirDANFE('${escFis(d.id)}')">${nfse ? 'DANFSe' : 'DANFE'}</button>
+                ${podeDevolver ? `<button type="button" class="fis-mini" title="Nota de entrada própria com os itens desta venda" onclick="removerPopup(this.closest('.popup')?.id); abrirDevolucaoFis({ id: '${escFis(d.id)}', lado: 'VENDA' })">Registrar devolução</button>` : ''}
+            </div>
+        </div>`
+    popup({ titulo: 'Nota emitida pelo Omie', elemento: html })
 }
 
 // contexto (opcional): detalhe do item do Fluxo de Vendas (gcs /fluxo-itens/detalhe) — acrescenta o bloco

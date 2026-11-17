@@ -130,9 +130,28 @@
     font-size: 0.7rem;
 }
 
-.fis-acoes-linha img {
+/* Ícones da linha lado a lado, no meio da célula. A regra geral "td img[src=pesquisar.svg]"
+   (estilo.css) põe a lupa em display: block; com um segundo ícone junto, ele caía para baixo e a
+   lupa ficava presa no topo. A devolução da venda do Omie fica na janela da lupa (abrirNotaOmieFis). */
+.fis-acoes-linha {
+    vertical-align: middle;
+    text-align: center;
+    white-space: nowrap;
+    line-height: 0;
+}
+
+td.fis-acoes-linha img {
+    display: inline-block;
     width: 1.4rem;
+    height: 1.4rem;
+    margin: 0;
     cursor: pointer;
+    vertical-align: middle;
+    object-fit: contain;
+}
+
+td.fis-acoes-linha img + img {
+    margin-left: 6px;
 }
 
 .fis-link {
