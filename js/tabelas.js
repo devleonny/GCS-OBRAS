@@ -19,6 +19,10 @@ async function modTab(configuracoes) {
         // true: a tabela cabe na largura da tela (filtros acompanham a coluna, células mais justas,
         // texto quebra). Ver .tabela.caber em css/tabelas.css.
         caber = false,
+        // Celular (tela estreita): cada linha vira um cartão "rótulo: valor" e os filtros ficam
+        // atrás do botão "Filtrar". false = mantém a tabela com rolagem lateral (ex.: células com campos).
+        // Por coluna: { celular: false } esconde no cartão; { principal: true } vira o título do cartão.
+        cartoesCelular = true,
         criarLinha,
         base,
         colunas = {},
@@ -42,9 +46,12 @@ async function modTab(configuracoes) {
         ? structuredClone(configuracoes.filtrosFixos)
         : null
 
+    // Cartões só fazem sentido com colunas nomeadas (o rótulo de cada valor) e sem edição na linha.
+    const usarCartoes = cartoesCelular && Object.keys(colunas).length > 0 && !configuracoes.editavel
+
     const ths = Object.entries(colunas)
         .map(([th, query]) => `
-        <th onclick="ordenarColuna({ pag: '${pag}', path: '${query.chave || ''}' })" style="cursor: pointer;">
+        <th onclick="ordenarColuna({ pag: '${pag}', path: '${query.chave || ''}' })" style="cursor: pointer;"${query.celular === false ? ' data-celular="nao"' : ''}${query.principal ? ' data-principal="S"' : ''}>
             <div style="${horizontal}; width: 100%; justify-content: space-between; gap: 1rem;">
                 <span>${th}</span>
                 <span data-ordem="${query.chave || ''}"></span>
@@ -121,14 +128,13 @@ async function modTab(configuracoes) {
     )).join('')
 
     const modelo = `
-        <div class="modtab${nude ? ' nude' : ''}" style="${vertical}; width: 100%;">
+        <div class="modtab${nude ? ' nude' : ''}${usarCartoes ? ' cartoes-celular' : ''}" style="${vertical}; width: 100%;">
 
             <div class="topo-tabela${nude ? ' nude' : ''}${topoEmLinha ? ' em-linha' : ''}" ${cor ? `style="background: ${cor};"` : ''}>
                 ${detalhes === true ? `<button type="button" class="tabela-expandir" data-expandir-todos data-body="${escaparAtributo(body)}" aria-expanded="false" aria-label="Expandir todos os detalhes" title="Expandir todos os detalhes" onclick="alternarTodosDetalhes(this)">+</button>` : ''}
                 <div id="paginacao_${pag}"></div>
-                <div style="padding: 0 1rem;">
-                    ${btnExtras || ''}
-                </div>
+                ${usarCartoes && !ocultarPesquisa ? `<button type="button" class="tabela-botao-filtros" aria-expanded="false" onclick="alternarFiltrosCelular(this)">Filtrar<span data-contador-filtros></span></button>` : ''}
+                <div class="topo-tabela-extras" style="padding: 0 1rem;">${btnExtras || ''}</div>
             </div>
 
             <div data-altura-adaptavel="${scroll && !nude}" style="--altura-minima-tabela: ${escaparAtributo(typeof alturaMinima === 'number' ? `${alturaMinima}px` : alturaMinima)}; ${!scroll ? `max-height: max-content` : ''};" class="div-tabela${nude ? ' nude' : ''}">
@@ -434,11 +440,16 @@ function assinaturaPagina(resultados = []) {
 }
 
 async function paginacao(pag) {
-    if (pag)
-        return ativarPaginacao(pag)
+    if (pag) {
+        const retorno = await ativarPaginacao(pag)
+        atualizarContadorFiltros(pag)
+        return retorno
+    }
 
-    for (const pag of Object.keys(controles))
+    for (const pag of Object.keys(controles)) {
         await ativarPaginacao(pag)
+        atualizarContadorFiltros(pag)
+    }
 
     async function ativarPaginacao(pag) {
         const {
@@ -464,6 +475,8 @@ async function paginacao(pag) {
 
         if (!tbody)
             return
+
+        prepararCartoesCelular(tbody)
 
         const baseResolvida = typeof base === 'function'
             ? await base()
@@ -777,6 +790,95 @@ function criarDino(cols) {
 
     tr.appendChild(td)
     return tr
+}
+
+// ---------------------------------------------------------------- Celular: linhas em cartões
+// O CSS (tabelas.css, .modtab.cartoes-celular em tela estreita) desmonta a tabela: cada <tr> vira um
+// cartão e cada <td> mostra o nome da coluna antes do valor (data-rotulo, tirado do cabeçalho). Os
+// rótulos são postos aqui, para nenhuma criarLinha precisar mudar; o observador cobre as linhas
+// trocadas depois (atualização em tempo real, edição de uma linha só).
+function prepararCartoesCelular(tbody) {
+    if (!tbody || tbody.observadorCartoes || !tbody.closest('.modtab.cartoes-celular')) return
+    tbody.observadorCartoes = new MutationObserver(mutacoes => {
+        if (mutacoes.some(m => m.target === tbody || m.target.parentElement === tbody))
+            rotularCelulasCartao(tbody)
+    })
+    tbody.observadorCartoes.observe(tbody, { childList: true, subtree: true })
+    rotularCelulasCartao(tbody)
+}
+
+const ROTULOS_ACOES = /^(a[çc][õo]es|a[çc][aã]o|editar|excluir|op[çc][õo]es)$/i
+
+function rotularCelulasCartao(tbody) {
+    const [linhaTitulo, linhaPesquisa] = tbody.closest('table')?.tHead?.rows || []
+    if (!linhaTitulo) return
+
+    const colunas = [...linhaTitulo.cells].map(th => ({
+        detalhes: th.classList.contains('tabela-coluna-detalhes'),
+        rotulo: th.classList.contains('tabela-coluna-detalhes') ? '' : th.textContent.replace(/\s+/g, ' ').trim(),
+        ocultar: th.dataset.celular === 'nao',
+        principal: th.dataset.principal === 'S'
+    }))
+    const totalColunas = colunas.length
+
+    // Rótulo também nos filtros (painel "Filtrar" do celular).
+    if (linhaPesquisa)
+        [...linhaPesquisa.cells].forEach((th, i) => {
+            if (colunas[i]?.rotulo && th.dataset.rotulo !== colunas[i].rotulo) th.dataset.rotulo = colunas[i].rotulo
+        })
+
+    for (const tr of tbody.rows) {
+        if (tr.classList.contains('tabela-linha-detalhes')) continue
+        let posicao = 0
+        for (const td of tr.cells) {
+            const coluna = colunas[posicao] || {}
+            const largura = td.colSpan || 1
+            posicao += largura
+
+            // Linha de uma célula só (carregando, sem resultados, erro): ocupa o cartão inteiro.
+            if (largura >= totalColunas && totalColunas > 1) {
+                td.classList.add('celula-cartao-inteira')
+                continue
+            }
+
+            if (coluna.rotulo) td.dataset.rotulo = coluna.rotulo
+            else delete td.dataset.rotulo
+
+            const texto = td.textContent.trim()
+            const interativo = !!td.querySelector('img, button, input, select, a, [onclick]')
+            td.classList.toggle('celula-cartao-detalhes', !!coluna.detalhes)
+            td.classList.toggle('celula-cartao-acoes', !coluna.detalhes && (ROTULOS_ACOES.test(coluna.rotulo || '') || (!texto && interativo)))
+            td.classList.toggle('celula-cartao-principal', !!coluna.principal)
+            td.classList.toggle('celula-cartao-oculta', !!coluna.ocultar)
+            td.classList.toggle('celula-cartao-vazia', !texto && !interativo && !coluna.detalhes)
+        }
+    }
+}
+
+// Botão "Filtrar" do topo (só aparece no celular): abre/fecha a linha de filtros como um painel.
+function alternarFiltrosCelular(botao) {
+    const modtab = botao.closest('.modtab')
+    if (!modtab) return
+    const abrir = !modtab.classList.contains('filtros-abertos')
+    modtab.classList.toggle('filtros-abertos', abrir)
+    botao.setAttribute('aria-expanded', String(abrir))
+    if (abrir) modtab.querySelector('.div-tabela')?.scrollTo({ top: 0 })
+}
+
+// Botão "⋮" do topo (só no celular, hoje só em Ocorrências): mostra/esconde o que fica atrás dele.
+function alternarExtrasCelular(botao) {
+    const modtab = botao.closest('.modtab')
+    if (!modtab) return
+    const abrir = !modtab.classList.contains('extras-abertos')
+    modtab.classList.toggle('extras-abertos', abrir)
+    botao.setAttribute('aria-expanded', String(abrir))
+}
+
+function atualizarContadorFiltros(pag) {
+    const contador = document.getElementById(`paginacao_${pag}`)?.closest('.topo-tabela')?.querySelector('[data-contador-filtros]')
+    if (!contador) return
+    const total = Object.keys(controles[pag]?.filtros || {}).length
+    contador.textContent = total ? ` (${total})` : ''
 }
 
 function achou() {

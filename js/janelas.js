@@ -224,6 +224,7 @@ if (janelasIndependentesLigadas()) {
             marcarFoco()
             encaixarJanela(el)
             if (caixa) observadorTamanho.observe(caixa)
+            if (opcoes.etiquetaBarra) etiquetarJanela(id, opcoes.etiquetaBarra)
         }
         return id
     }
@@ -380,13 +381,17 @@ if (janelasIndependentesLigadas()) {
         }
         barra.innerHTML = janelas.map(j => {
             const titulo = j.querySelector('.popup-top label')?.textContent.trim() || 'GCS'
+            const { barraCodigo: codigo = '', barraNome: nome = '' } = j.dataset
+            const etiquetada = Boolean(codigo || nome)
             const minimizada = j.classList.contains('janela-minimizada')
-            const estado = minimizada ? ' minimizada' : j.id === janelaEmFoco ? ' em-foco' : ''
-            const dica = minimizada ? `${titulo} (minimizada — clique para abrir)` : titulo
+            const estado = (minimizada ? ' minimizada' : j.id === janelaEmFoco ? ' em-foco' : '') + (etiquetada ? ' com-etiqueta' : '')
+            const nomeCompleto = [titulo, codigo, nome].filter(Boolean).join(' · ')
+            const dica = minimizada ? `${nomeCompleto} (minimizada — clique para abrir)` : nomeCompleto
             return `
                 <div class="barra-janela${estado}" data-janela="${j.id}" title="${escaparAtributo(dica)}">
                     <span class="barra-janela-icone" aria-hidden="true"></span>
-                    <span class="barra-janela-titulo">${escaparAtributo(titulo)}</span>
+                    ${codigo ? `<span class="barra-janela-codigo">${escaparAtributo(codigo)}</span>` : ''}
+                    <span class="barra-janela-titulo">${escaparAtributo(etiquetada ? (nome || titulo) : titulo)}</span>
                     <span class="barra-janela-fechar" title="Fechar">×</span>
                 </div>`
         }).join('')
@@ -456,6 +461,12 @@ if (janelasIndependentesLigadas()) {
         if (id === janelaEmFoco && !el.classList.contains('janela-minimizada')) minimizarJanela(id)
         else focarJanela(id)
     })
+
+    const etiquetarJanelaOriginal = etiquetarJanela
+    etiquetarJanela = (id, etiqueta) => {
+        etiquetarJanelaOriginal(id, etiqueta)
+        atualizarBarraJanelas()
+    }
 
     trazerJanelaParaFrente = elemento => {
         const janela = elemento?.closest?.('body > .popup')

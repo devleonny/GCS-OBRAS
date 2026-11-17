@@ -5,10 +5,31 @@ let configPopupGlobal = {}
 // traz para frente a janela que contém o elemento (aqui não faz nada; o janelas.js substitui).
 let trazerJanelaParaFrente = () => { }
 
+// Etiqueta da janela na barra do rodapé (js/janelas.js): código em destaque + nome no lugar do título
+// (o título fica na dica). Também pela opção do popup: popup({ ..., etiquetaBarra: { codigo, nome } }).
+// Ex.: etiquetarJanela(idJanela, { codigo: 'ORC_5880', nome: 'NBA STORE ARENA CURITIBA' })
+let etiquetarJanela = (id, { codigo = '', nome = '' } = {}) => {
+    const el = id ? document.getElementById(id) : null
+    if (!el) return
+    el.dataset.barraCodigo = codigo || ''
+    el.dataset.barraNome = nome || ''
+}
+
 // Janela (.popup) que abriu a que contém o elemento — ex.: o formulário dono de uma lista do cxOpcoes.
 let janelaQueAbriu = elemento => {
     const id = elemento?.closest?.('.popup')?.dataset?.janelaPai
     return id ? document.getElementById(id) : null
+}
+
+// Texto de identificação no rodapé da janela (conteudoRodape do popup): o ORC em destaque e,
+// depois dele, o texto (cliente, descrição...). Ex.: popup({ ..., conteudoRodape: rodapeOrcamento(contrato, cliente) })
+function rodapeOrcamento(orc, texto = '') {
+    if (!orc && !texto) return ''
+    return `
+        <div class="rodape-orcamento">
+            ${orc ? `<span class="rodape-orcamento-orc">${escaparAtributo(orc)}</span>` : ''}
+            ${texto ? `<span class="rodape-orcamento-texto" title="${escaparAtributo(texto)}">${escaparAtributo(texto)}</span>` : ''}
+        </div>`
 }
 
 function confirmarPopup({ mensagem, titulo = 'Confirmar', textoConfirmar = 'Confirmar' }) {

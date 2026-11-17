@@ -228,6 +228,72 @@
     .fluxo-cartoes { overflow-y: visible; }
 }
 
+/* Celular: topo recolhido no "⋮" — fica só o título (menor); a explicação, a legenda e os controles
+   (empresa, busca, período, atualizar) aparecem ao tocar nele. */
+.fluxo-topo-mais { display: none; }
+
+@media (max-width: 700px) {
+    .fluxo-pagina { gap: 8px; }
+
+    .fluxo-topo {
+        position: relative;
+        gap: 8px;
+        padding-right: 36px;
+    }
+
+    .fluxo-titulo h2 { font-size: 15px; }
+
+    .fluxo-topo:not(.aberto) .fluxo-titulo small,
+    .fluxo-topo:not(.aberto) > .fluxo-legenda,
+    .fluxo-topo:not(.aberto) > .fluxo-controles {
+        display: none;
+    }
+
+    .fluxo-topo.aberto > .fluxo-legenda { padding: 0; font-size: 11.5px; }
+    .fluxo-topo.aberto > .fluxo-controles { width: 100%; }
+    .fluxo-topo.aberto .fluxo-busca { flex: 1 1 100%; width: auto; }
+
+    .fluxo-topo-mais {
+        position: absolute;
+        top: 50%;
+        right: 0;
+        translate: 0 -50%;
+        display: inline-grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        margin: 0;
+        padding: 0;
+        border: none;
+        border-radius: 6px;
+        background: transparent;
+        color: #1f3a2b;
+        font-size: 20px;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
+        box-shadow: none;
+    }
+
+    .fluxo-topo.aberto > .fluxo-topo-mais {
+        top: 0;
+        translate: none;
+        background: #e8f1ec;
+    }
+
+    /* Busca ativa com o topo recolhido: bolinha no "⋮" para lembrar que há filtro. */
+    .fluxo-topo:not(.aberto):has(.fluxo-busca input:not(:placeholder-shown)) > .fluxo-topo-mais::after {
+        content: '';
+        position: absolute;
+        top: 3px;
+        right: 4px;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #d97706;
+    }
+}
+
 /* Quadro novo (fluxo_itens): "Faturar todas" logo abaixo do cabeçalho de Separado (mesmo lugar do
    "+N parados") e marca da emissão no cartão. */
 .fluxo-faturar-todas {

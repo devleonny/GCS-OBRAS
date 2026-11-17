@@ -1143,6 +1143,29 @@ input:focus {
     overflow-wrap: anywhere;
 }
 
+/* Celular: título da página bem menor, numa linha só (reticências se não couber). */
+@media (max-width: 700px) {
+    /* Tela inicial: a saudação vai para baixo da logo, texto à esquerda (lado a lado espremia o texto). */
+    .inicio-saudacao {
+        flex-direction: column;
+        gap: 0 !important;
+    }
+
+    .inicio-saudacao > span {
+        align-self: stretch;
+        padding: 0.5rem 1rem 1rem !important;
+        text-align: left;
+    }
+
+    .cabecalho-pagina h2 {
+        font-size: 15px;
+        line-height: 1.3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
 .side-menu {
     background: linear-gradient(180deg, #21392c, #17251e);
     color: #e5eee8;
@@ -2012,12 +2035,12 @@ img[src$="loading-gcs.png"] {
 
 /* Toolbar no celular: os ícones da direita saíam da tela e o círculo de usuários cobria o
    título. Aqui vira grade: menu, título, botão de técnicos livres (só o ícone, sem os nomes
-   rolando) e ícones numa linha; o aviso de aniversário, quando há, numa segunda linha.
+   rolando), o bolo do aniversário (quando há) e ícones numa linha.
    O conteúdo (.layout) passa a ocupar o que sobrar da altura, em vez de 94vh fixos. */
 @media (max-width: 760px) {
     .toolbar-top {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto auto;
+        grid-template-columns: auto minmax(0, 1fr) auto auto auto;
         align-items: center;
         gap: 2px 8px;
         height: auto;
@@ -2045,8 +2068,14 @@ img[src$="loading-gcs.png"] {
         font-size: 0.95rem;
     }
 
+    /* Com o bolo do aniversário na barra o título não cabe (sobrava só "G…"): some, e a coluna
+       dele continua ocupando o espaço entre o menu e os ícones. */
+    .toolbar-top:has(.aniversario-aviso:not([hidden])) .toolbar-interno > [name="titulo"] {
+        visibility: hidden;
+    }
+
     .toolbar-top > .cabecalho-usuario {
-        grid-column: 4;
+        grid-column: 5;
         grid-row: 1;
         gap: 2px;
         margin-right: 0;
@@ -2055,7 +2084,7 @@ img[src$="loading-gcs.png"] {
 
     /* Só o botão do calendário, ao lado dos ícones; os nomes rolando ficam desligados no celular. */
     .toolbar-top .tecnicos-livres {
-        grid-column: 3;
+        grid-column: 4;
         grid-row: 1;
         flex: none;
         margin: 0;
@@ -2079,14 +2108,31 @@ img[src$="loading-gcs.png"] {
         white-space: nowrap;
     }
 
+    /* Aniversário: só o bolo, redondo, ao lado do botão de técnicos livres (o texto não cabia e
+       o aviso ficava espremido). O texto continua para leitores de tela; o toque abre a lista. */
     .toolbar-top .aniversario-aviso {
-        grid-column: 1 / -1;
-        grid-row: 2;
-        justify-self: start;
-        max-width: 100%;
-        min-width: 0;
-        margin: 0 0 4px;
-        contain: inline-size;
+        grid-column: 3;
+        grid-row: 1;
+        justify-self: end;
+        margin: 0;
+        padding: 3px;
+        max-width: none;
+        gap: 0;
+    }
+
+    .toolbar-top .aniversario-aviso span:last-child {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .toolbar-top .aniversario-aviso-icone {
+        width: 24px;
+        height: 24px;
+        font-size: 15px;
     }
 
     /* Ícones menores, com o contador como selo no canto (antes ficava ao lado e dobrava a largura). */

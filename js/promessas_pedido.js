@@ -93,6 +93,7 @@ function abrirJanelaPromessas(promessas, { cobranca = false, todas = false } = {
             </div>
             <div class="promessa-lado">
                 <span class="promessa-dias" title="Desde o lançamento do pedido">${dias} ${dias === 1 ? 'dia' : 'dias'}</span>
+                ${p.orcamento_id ? `<button type="button" class="promessa-historico" title="Abrir o histórico do orçamento" onclick="abrirHistoricoPrometido('${esc(p.orcamento_id)}')">Histórico</button>` : ''}
                 <button type="button" class="promessa-completar" onclick="completarPedidoPrometido('${esc(p.pedido_id)}', '${esc(principal)}')">Completar</button>
             </div>
         </article>`
@@ -147,4 +148,10 @@ async function completarPedidoPrometido(pedidoId, contrato) {
     if (estadoPromessas.aberta) { removerPopup(estadoPromessas.aberta); estadoPromessas.aberta = null }
     controles.ocorrencias = { ...(controles.ocorrencias || {}), ativo: contrato }
     await painelAdicionarPedido(pedidoId)
+}
+
+// Histórico (Esquema) do orçamento; a janela fecha antes para o histórico não ficar por baixo dela.
+function abrirHistoricoPrometido(orcamentoId) {
+    if (estadoPromessas.aberta) { removerPopup(estadoPromessas.aberta); estadoPromessas.aberta = null }
+    abrirEsquema(orcamentoId)
 }

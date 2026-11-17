@@ -132,6 +132,8 @@ async function telaFluxo(quadro) {
     tela.innerHTML = `
         <div class="pagina-conteudo fluxo-pagina" data-quadro="${quadro}">
             <header class="fluxo-topo">
+                <button type="button" class="fluxo-topo-mais" aria-expanded="false" aria-label="Mostrar filtros e legenda" title="Filtros e legenda"
+                    onclick="alternarTopoFluxo(this)">⋮</button>
                 <div class="fluxo-titulo">
                     <h2>${QUADROS_FLUXO[quadro].titulo}</h2>
                     <small>${novo
@@ -248,6 +250,15 @@ function renderizarFluxo() {
 
 // O quadro ocupa só a altura que sobra na tela, do topo dele até o fim da janela (sem barra vertical
 // no quadro: os cartões rolam dentro de cada coluna). No celular as colunas crescem e a página rola.
+// "⋮" do topo (só no celular): mostra/esconde a explicação, a legenda e os controles (busca, período...).
+function alternarTopoFluxo(botao) {
+    const topo = botao.closest('.fluxo-topo')
+    if (!topo) return
+    const abrir = !topo.classList.contains('aberto')
+    topo.classList.toggle('aberto', abrir)
+    botao.setAttribute('aria-expanded', String(abrir))
+}
+
 function ajustarAlturaFluxo() {
     const quadro = document.querySelector('.fluxo-pagina .fluxo-quadro')
     if (!quadro) return window.removeEventListener('resize', ajustarAlturaFluxo)

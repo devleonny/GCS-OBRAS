@@ -1075,6 +1075,14 @@ async function telaOcorrencias() {
         </div>`
 
     tela.innerHTML = acumulado
+
+    // Celular: "⋮" no topo da tabela recolhe o painel de filtros e o mapa (que ficam acima da
+    // tabela, não dentro dela). Fora do celular o botão nem aparece (tabelas.css); o painel some
+    // pela regra em ocorrencias.css enquanto a tabela não tiver .extras-abertos.
+    document.querySelector('.tela-ocorrencias .modtab > .topo-tabela > [id^="paginacao_"]')
+        ?.insertAdjacentHTML('afterend', `<button type="button" class="tabela-botao-mais" aria-expanded="false"
+            aria-label="Filtros e mapa" title="Filtros e mapa" onclick="alternarExtrasCelular(this)">⋮</button>`)
+
     observarBotaoSubirFiltros('ocorrencias',
         document.querySelector('.tela-ocorrencias > .painel-filtros'),
         document.querySelector('.tela-ocorrencias .botao-subir-filtros'))

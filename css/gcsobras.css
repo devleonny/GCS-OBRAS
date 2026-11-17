@@ -2934,6 +2934,9 @@ input[type="file"]#input-anexos:hover {
 .promessa-cartao.critico .promessa-dias { background: #fee2e2; color: #991b1b; }
 .promessa-cartao.recente .promessa-dias { background: #dbeafe; color: #1e40af; }
 .promessa-completar { white-space: nowrap; }
+.promessa-historico { margin: 5px 0; background-color: #fff; color: #356443; border-color: #356443; }
+.promessa-historico:hover { background-color: #eef5f0; }
+.promessa-lado .promessa-historico + .promessa-completar { margin-left: 0; }
 @media (max-width: 560px) {
     .promessa-cartao { flex-direction: column; align-items: stretch; }
     .promessa-lado { justify-content: space-between; }

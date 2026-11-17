@@ -707,9 +707,31 @@ textarea.fis-input {
         padding: 8px;
     }
 
+    /* Contadores compactos: todos numa linha (3 nas emitidas, 4 nas recebidas quebram em 2+2 se
+       não couber), número menor e rótulo curto embaixo. */
+    .fis-cartoes {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+        gap: 6px;
+        margin-bottom: 8px;
+    }
+
     .fis-cartao {
-        flex: 1 1 140px;
         min-width: 0;
+        gap: 0;
+        padding: 6px 8px;
+        border-left-width: 3px;
+        border-radius: 6px;
+    }
+
+    .fis-cartao b {
+        font-size: 1.05rem;
+        line-height: 1.2;
+    }
+
+    .fis-cartao span {
+        font-size: 0.68rem;
+        line-height: 1.25;
     }
 }
 

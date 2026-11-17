@@ -37,6 +37,7 @@ async function telaComposicoes() {
                 'Editar': {},
                 'Imagem': {},
                 'Descrição': { chave: 'descricao' },
+                'Família': { chave: 'familia' },
                 'Cod Omie': { chave: 'omie' },
                 'ncm': { chave: 'ncm' },
                 'Tipo': { chave: 'tipo' },
@@ -116,6 +117,7 @@ async function criarLinhaComposicao(produto) {
         modelo,
         sistema,
         fabricante,
+        familia,
         tempo
     } = produto
 
@@ -181,6 +183,7 @@ async function criarLinhaComposicao(produto) {
                 style="width: 5rem;" referrerpolicy="no-referrer" onerror="this.onerror = null; this.src = logo" src="${imagem || logo}">
             </td>
             <td style="text-align: left; min-width: 200px;">${descricao || ''}</td>
+            <td>${familia || ''}</td>
 
             <td>${omie || ''}</td>
             <td>${ncm || ''}</td>
@@ -969,14 +972,17 @@ async function cadastrarItem(codigo) {
             .map(op => `<option ${op == produto?.sistema ? 'selected' : ''}>${op}</option>`)
             .join('')
 
+        await carregarFamiliasItem()
+
         const linhas = [
-            { texto: 'Descrição', elemento: `<textarea name="descricao" rows="5">${produto?.descricao || ''}</textarea>` },
+            { texto: 'Descrição', elemento: `<textarea name="descricao" rows="5" oninput="sugerirFamiliaNoCadastro(this)">${produto?.descricao || ''}</textarea>` },
+            { texto: 'Família', elemento: campoFamiliaItem(produto) },
             { texto: 'Fabricante', elemento: `<input name="fabricante" value="${produto?.fabricante || ''}">` },
             { texto: 'Modelo', elemento: `<input name="modelo" value="${produto?.modelo || ''}">` },
             { texto: 'Unidade', elemento: `<input name="unidade" value="${produto?.unidade || 'UN'}">` },
             { texto: 'ncm', elemento: `<input name="ncm" value="${produto?.ncm || ''}">` },
             { texto: 'Omie', elemento: `<input name="omie" value="${produto?.omie || ''}">` },
-            { texto: 'Tipo', elemento: `<select name="tipo" onchange="alternarClassificacaoItem(this)">${tipos}</select>` },
+            { texto: 'Tipo', elemento: `<select name="tipo" onchange="alternarClassificacaoItem(this); sugerirFamiliaNoCadastro(this)">${tipos}</select>` },
             { texto: 'Sistema', elemento: `<select name="sistema">${sistemas}</select>` },
             // Obrigatória para produtos: só EQUIPAMENTO entra no orçamento de locação; MATERIAL vai em orçamento comum.
             { texto: 'Classificação *', elemento: campoClassificacaoItem(produto) },
@@ -989,6 +995,119 @@ async function cadastrarItem(codigo) {
         popup({ mensagem: 'Falha ao abrir o item: Fale com o suporte.' })
     }
 
+}
+
+// ---- Família do item (tabela "familias"; a mesma regra de SCRIPTS/familias/familias.js no servidor).
+// A palavra que ABRE a descrição decide a família ("SUPORTE PARA CAMERA" é SUPORTE). Antes de comparar,
+// pula prefixo de marca/código (DHI, DS, GCS00...); em "MARCA - MODELO - DETALHES" vale o 1º trecho que casar.
+// A sugestão só preenche enquanto a pessoa não escolheu a família à mão.
+let FAMILIAS_ITEM = null
+
+const FAMILIA_MODELOS = [
+    [/^(I?DS 2C[DE]|DH IPC|IPC|DH HAC|HAC|DHI ITC|DS TCG|DH DAE|DS 2XS|DS 2DE|DS 2SE|THC B|LENTE BODYCAM)/, 'CÂMERA'],
+    [/^(DSCON|[0-9]K DECODER)/, 'BALUN / CONVERSOR DE VÍDEO'],
+    [/^(LS100[0-9]G|D LINK ETHERNET SWITCH)/, 'SWITCH'],
+    [/^(DHI NVR|DH NVR|NVR|DHI MNVR|DS 7[0-9]{3}|DS 9[0-9]{3})/, 'NVR / DVR'],
+    [/^(DS K1T|DS K1A|DHI ASI|DS K2|ID FACE)/, 'CONTROLE DE ACESSO / LEITOR'],
+    [/^(DS D[0-9]|DS DN|DS 69[0-9]{2}UDI|DECODER)/, 'MONITOR / TV'],
+    [/^(DHI ISC E|DHI ISC ET|DHI ISC H|DHI ISC D)/, 'EAS / ANTIFURTO'],
+    [/^(DHI ARC|DH ARM|DHI ARK|ARA[0-9]+)/, 'CENTRAL DE ALARME'],
+    [/^(DH ARD|DHI ARD)/, 'SENSOR'],
+    [/^(HPE ARUBA|ARUBA|DH PFS|DH S[0-9])/, 'SWITCH'],
+    [/^(DS QAZ)/, 'SIRENE / SINALIZAÇÃO'],
+    [/^(CAT PLA|DS K3|DS TMG)/, 'CATRACA / CANCELA'],
+    [/^(TL SM)/, 'MÓDULO SFP / CONVERSOR ÓPTICO'],
+    [/^(2F FCON)/, 'CONECTOR'],
+]
+const FAMILIA_PREFIXOS = /^(DHI|DH|DS|IDS|DAHUA|HIKVISION|HIKIVISION|HIK|INTELBRAS|ITB|TENDA|UBIQUITI|FURUKAWA|SAMSUNG|LG|HPE|TP LINK|TPLINK|LS\d+\w*|GCS\d+|HOEA\d+|QX\d+|THC|BB|BR\d+|B04|CP\d+|\d{3,}|\d+X|COPIA DE|COPIA|NOVO|NOVA|HW)\b\s*/
+
+const limparTextoFamilia = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim()
+
+async function carregarFamiliasItem() {
+    if (FAMILIAS_ITEM) return FAMILIAS_ITEM
+    try {
+        const { resultados } = await pesquisarDB({ base: 'familias', limite: 500 }) || {}
+        FAMILIAS_ITEM = (resultados || []).filter(f => f.ativa !== false).sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
+    } catch (err) {
+        console.error(err)
+        FAMILIAS_ITEM = []
+    }
+    return FAMILIAS_ITEM
+}
+
+// Índice por tipo (PRODUTO/SERVIÇO): palavra mais longa primeiro.
+function indiceFamilias(tipoFamilia) {
+    return (FAMILIAS_ITEM || [])
+        .filter(f => f.tipo === tipoFamilia)
+        .flatMap(f => (f.palavras || []).map(p => ({ chave: limparTextoFamilia(p), nome: f.nome })))
+        .sort((a, b) => b.chave.length - a.chave.length)
+}
+
+function familiaPelaAbertura(descricao, tipoFamilia) {
+    const indice = indiceFamilias(tipoFamilia)
+    const abre = txt => indice.find(k => txt === k.chave || txt.startsWith(k.chave + ' '))
+    const modelo = txt => tipoFamilia === 'PRODUTO' ? FAMILIA_MODELOS.find(([re]) => re.test(txt))?.[1] : null
+
+    const texto = limparTextoFamilia(descricao)
+    if (!texto) return null
+    if (modelo(texto)) return modelo(texto)
+
+    const trechos = String(descricao).normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().split(/\s+-\s+/).map(limparTextoFamilia).filter(Boolean)
+    if (trechos.length > 1 && !abre(trechos[0]))
+        for (const tr of trechos.slice(1)) if (abre(tr)) return abre(tr).nome
+
+    let atual = texto
+    if (abre(atual)) return abre(atual).nome
+    for (let i = 0; i < 3 && FAMILIA_PREFIXOS.test(atual); i++) {
+        atual = atual.replace(FAMILIA_PREFIXOS, '').trim()
+        if (modelo(atual)) return modelo(atual)
+        if (abre(atual)) return abre(atual).nome
+    }
+    return null
+}
+
+function sugerirFamiliaItem(descricao, tipo) {
+    const tipoFamilia = tipo === 'SERVIÇO' ? 'SERVIÇO' : 'PRODUTO'
+    // Serviço cadastrado com nome de produto (ou o contrário): tenta o outro grupo.
+    return familiaPelaAbertura(descricao, tipoFamilia)
+        || familiaPelaAbertura(descricao, tipoFamilia === 'SERVIÇO' ? 'PRODUTO' : 'SERVIÇO')
+}
+
+function campoFamiliaItem(produto) {
+    const atual = produto?.familia || ''
+    const origem = produto?.familia_origem || (atual ? 'SUGERIDA' : '')
+    const grupos = ['PRODUTO', 'SERVIÇO'].map(tipo => {
+        const opcoes = (FAMILIAS_ITEM || []).filter(f => f.tipo === tipo)
+            .map(f => `<option value="${escaparAtributo(f.nome)}" ${f.nome === atual ? 'selected' : ''}>${f.nome}</option>`).join('')
+        return opcoes ? `<optgroup label="${tipo === 'PRODUTO' ? 'Produtos' : 'Serviços'}">${opcoes}</optgroup>` : ''
+    }).join('')
+    // Família antiga que saiu da lista continua visível até alguém trocar.
+    const fora = atual && !(FAMILIAS_ITEM || []).some(f => f.nome === atual) ? `<option selected value="${escaparAtributo(atual)}">${atual}</option>` : ''
+    return `
+        <div style="${horizontal}; gap: 0.5rem; justify-content: start;">
+            <select name="familia" data-origem="${origem}" onchange="this.dataset.origem = this.value ? 'MANUAL' : ''; marcarOrigemFamilia(this)">
+                <option value=""></option>${fora}${grupos}
+            </select>
+            <span name="familia_aviso" style="font-size: 0.75rem; color: #666;">${origem === 'SUGERIDA' && atual ? 'sugerida' : ''}</span>
+        </div>`
+}
+
+function marcarOrigemFamilia(select) {
+    const aviso = select.closest('div')?.querySelector('[name="familia_aviso"]')
+    if (aviso) aviso.textContent = select.dataset.origem === 'SUGERIDA' && select.value ? 'sugerida' : ''
+}
+
+// Chamado ao digitar a descrição ou trocar o tipo: preenche a família enquanto ela não for escolha manual.
+function sugerirFamiliaNoCadastro(elemento) {
+    const painel = elemento.closest('.painel-padrao')
+    const select = painel?.querySelector('[name="familia"]')
+    if (!select || select.dataset.origem === 'MANUAL') return
+    const descricao = painel.querySelector('[name="descricao"]')?.value || ''
+    const tipo = painel.querySelector('[name="tipo"]')?.value || ''
+    const sugerida = sugerirFamiliaItem(descricao, tipo)
+    select.value = sugerida || ''
+    select.dataset.origem = sugerida ? 'SUGERIDA' : ''
+    marcarOrigemFamilia(select)
 }
 
 const CLASSIFICACOES_ITEM = { EQUIPAMENTO: 'Equipamento', MATERIAL: 'Material' }
@@ -1034,6 +1153,13 @@ async function salvarComposicao(codigo) {
         overlayAguarde()
 
         produto.classificacao = itemPrecisaClassificacao(tipo) ? classificacao : null
+
+        // Família fica com acento (é o nome da tabela "familias"); a origem diz se foi sugerida ou escolhida.
+        const selectFamilia = painel.querySelector('[name="familia"]')
+        if (selectFamilia) {
+            produto.familia = selectFamilia.value || null
+            produto.familia_origem = selectFamilia.value ? (selectFamilia.dataset.origem || 'MANUAL') : null
+        }
 
         for (const campo of campos) {
             const el = painel.querySelector(`[name="${campo}"]`)

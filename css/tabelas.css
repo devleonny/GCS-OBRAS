@@ -422,3 +422,350 @@ tr.item-em-exclusao,
     white-space: nowrap;
     cursor: pointer;
 }
+
+/* ---------------------------------------------------------------- Celular: linhas em cartões
+   modTab({ cartoesCelular }) — padrão ligado. Em tela estreita a tabela é desmontada: cada linha
+   vira um cartão e cada célula mostra "rótulo: valor" (data-rotulo, posto por rotularCelulasCartao
+   em tabelas.js). Ações e o + de detalhes ficam no pé do cartão; filtros atrás do botão "Filtrar". */
+.tabela-botao-filtros,
+.tabela-botao-mais {
+    display: none;
+}
+
+@media (max-width: 700px) {
+
+    /* Topo: paginação e "Filtrar" na primeira linha, botões extras embaixo ocupando a largura. */
+    .modtab .topo-tabela {
+        flex-direction: row;
+        flex-wrap: wrap;
+        row-gap: 6px;
+    }
+
+    /* Ordem fixa: [+] paginação ... [Filtrar] [⋯] — a paginação estica, então "Filtrar" e o "⋮"
+       ficam sempre no canto direito; os extras abertos vão para a linha de baixo. */
+    .modtab .topo-tabela {
+        flex-wrap: wrap !important;
+    }
+
+    .modtab .topo-tabela > [id^="paginacao_"] {
+        order: 1;
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .modtab .topo-tabela > .tabela-botao-filtros { order: 2; }
+    .modtab .topo-tabela > .tabela-botao-mais { order: 3; }
+    .modtab .topo-tabela > .topo-tabela-extras { order: 4; }
+
+    /* Paginação compacta: as setas com "1 de 151" e, logo embaixo, a quantidade de itens. */
+    .modtab .topo-tabela > [id^="paginacao_"] > div {
+        flex-direction: column;
+        gap: 0 !important;
+        padding: 0 !important;
+        line-height: 1.2;
+    }
+
+    .modtab .topo-tabela > [id^="paginacao_"] img {
+        width: 1.6rem !important;
+    }
+
+    .modtab .topo-tabela > [id^="paginacao_"] [id^="resultados_"] {
+        font-size: 12px !important;
+    }
+
+    .modtab .topo-tabela > [id^="paginacao_"] > div > span {
+        font-size: 12px;
+        opacity: 0.85;
+    }
+
+    .modtab .topo-tabela > .topo-tabela-extras {
+        flex: 1 1 100%;
+        min-width: 0;
+        padding: 0 !important;
+        overflow-wrap: anywhere;
+    }
+
+    .modtab .topo-tabela > .topo-tabela-extras:empty {
+        display: none;
+    }
+
+    /* Botões extras atrás do "⋮": fechados por padrão, abrem embaixo, na largura toda. */
+    .modtab .tabela-botao-mais {
+        display: inline-grid;
+        place-items: center;
+        flex: 0 0 auto;
+        width: 28px;
+        height: 30px;
+        margin: 0;
+        padding: 0;
+        border: none;
+        border-radius: 6px;
+        background: transparent;
+        color: #fff;
+        font-size: 20px;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    .modtab.extras-abertos .tabela-botao-mais {
+        background: #fff;
+        color: #1f5133;
+    }
+
+    .modtab:not(.extras-abertos) .topo-tabela > .tabela-botao-mais + .topo-tabela-extras {
+        display: none;
+    }
+
+    .modtab.extras-abertos .topo-tabela > .topo-tabela-extras {
+        padding: 8px 0 4px !important;
+        border-top: 1px solid #ffffff33;
+    }
+
+    .modtab.cartoes-celular .tabela-botao-filtros {
+        display: inline-flex;
+        align-items: center;
+        flex: 0 0 auto;
+        margin: 0;
+        padding: 5px 14px;
+        border: 1px solid #fff;
+        border-radius: 999px;
+        background: transparent;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .modtab.cartoes-celular .tabela-botao-filtros[aria-expanded="true"] {
+        background: #fff;
+        color: #1f5133;
+    }
+
+    /* Tabela desmontada */
+    .modtab.cartoes-celular .div-tabela:not(.nude) {
+        background-color: #f1f5f2;
+    }
+
+    .modtab.cartoes-celular .tabela,
+    .modtab.cartoes-celular .tabela > tbody {
+        display: block;
+        width: 100%;
+    }
+
+    .modtab.cartoes-celular .tabela > thead {
+        display: none;
+    }
+
+    /* Cartão: cada célula numa linha inteira; o + de detalhes e as ações dividem a última. */
+    .modtab.cartoes-celular .tabela > tbody > tr:not(.tabela-linha-detalhes) {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 8px;
+        padding: 4px 0;
+        border: 1px solid #dfe7e2;
+        border-radius: 8px;
+        /* Sem !important: linhas com cor própria (style da criarLinha) mantêm a cor. */
+        background-color: #fff;
+        box-shadow: 0 1px 3px #243b2e14;
+    }
+
+    /* Valor alinhado à esquerda, logo depois do rótulo, quebrando à vontade; rótulo preso à
+       esquerda (fora do fluxo do conteúdo, então células com vários elementos continuam como eram). */
+    .modtab.cartoes-celular .tabela > tbody > tr > td {
+        position: relative;
+        display: block;
+        flex: 1 1 100%;
+        box-sizing: border-box;
+        min-width: 0;
+        width: 100%;
+        min-height: 1.6rem;
+        padding: 5px 12px;
+        border: none !important;
+        font-size: 12px;
+        text-align: left;
+        overflow-wrap: anywhere;
+    }
+
+    .modtab.cartoes-celular .tabela > tbody > tr > td[data-rotulo] {
+        padding-left: calc(38% + 18px);
+    }
+
+    .modtab.cartoes-celular .tabela > tbody > tr > td[data-rotulo]::before {
+        content: attr(data-rotulo);
+        position: absolute;
+        top: 5px;
+        left: 12px;
+        width: 38%;
+        color: #5b6f62;
+        font-weight: 600;
+        text-align: left;
+    }
+
+    /* Blocos dentro da célula (etiquetas, fotos, grupos em flex) também começam na esquerda. */
+    .modtab.cartoes-celular .tabela > tbody > tr > td > * {
+        max-width: 100%;
+    }
+
+    /* !important: várias criarLinha centralizam a célula no style (ex.: Vol., Tipo, UF no
+       controle logístico); no cartão o valor sempre começa logo depois do rótulo. */
+    .modtab.cartoes-celular .tabela > tbody > tr > td[data-rotulo]:not(.celula-cartao-acoes):not(.celula-cartao-detalhes),
+    .modtab.cartoes-celular .tabela > tbody > tr > td[data-rotulo]:not(.celula-cartao-acoes):not(.celula-cartao-detalhes) > * {
+        text-align: left !important;
+        justify-content: flex-start !important;
+    }
+
+    /* Título do cartão: coluna { principal: true } */
+    .modtab.cartoes-celular .tabela > tbody > tr > td.celula-cartao-principal {
+        order: -1;
+        padding: 6px 12px 8px;
+        margin-bottom: 2px;
+        border-bottom: 1px solid #eef3f0 !important;
+        font-size: 14px;
+        font-weight: 600;
+        text-align: left;
+    }
+
+    .modtab.cartoes-celular .tabela > tbody > tr > td.celula-cartao-principal::before {
+        display: none;
+    }
+
+    /* Pé do cartão: + de detalhes à esquerda, ações à direita, na mesma linha */
+    .modtab.cartoes-celular .tabela > tbody > tr > td.celula-cartao-detalhes,
+    .modtab.cartoes-celular .tabela > tbody > tr > td.celula-cartao-acoes {
+        order: 99;
+        display: flex;
+        flex: 1 1 auto;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
+        width: auto;
+        margin-top: 4px;
+        padding: 6px 12px 2px;
+        border-top: 1px solid #eef3f0 !important;
+    }
+
+    .modtab.cartoes-celular .tabela > tbody > tr > td.celula-cartao-detalhes {
+        order: 98;
+        flex: 0 0 auto;
+        justify-content: flex-start;
+    }
+
+    .modtab.cartoes-celular .tabela > tbody > tr > td.celula-cartao-acoes::before,
+    .modtab.cartoes-celular .tabela > tbody > tr > td.celula-cartao-detalhes::before {
+        display: none;
+    }
+
+    .modtab.cartoes-celular .tabela > tbody > tr > td.celula-cartao-oculta,
+    .modtab.cartoes-celular .tabela > tbody > tr > td.celula-cartao-vazia,
+    .modtab.cartoes-celular .tabela > tbody > tr > td.celula-cartao-detalhes:empty {
+        display: none;
+    }
+
+    /* Carregando / sem resultados / erro */
+    .modtab.cartoes-celular .tabela > tbody > tr > td.celula-cartao-inteira {
+        display: block;
+        text-align: center;
+    }
+
+    .modtab.cartoes-celular .tabela > tbody > tr#loading-tabela,
+    .modtab.cartoes-celular .tabela > tbody > tr#dinossauro {
+        border: none;
+        box-shadow: none;
+        background-color: transparent !important;
+    }
+
+    /* Detalhes (+) abertos: grudados embaixo do cartão */
+    .modtab.cartoes-celular .tabela > tbody > tr.tabela-linha-detalhes:not([hidden]) {
+        display: block;
+        margin: -9px 8px 8px;
+        border: 1px solid #dfe7e2;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        overflow: hidden;
+    }
+
+    .modtab.cartoes-celular .tabela > tbody > tr.tabela-linha-detalhes > td {
+        display: block;
+        text-align: left;
+    }
+
+    .modtab.cartoes-celular .tabela-detalhes-conteudo {
+        position: static;
+        width: auto !important;
+    }
+
+    /* Painel de filtros (botão "Filtrar"): a linha de pesquisa do cabeçalho em lista, um campo por
+       coluna com o nome em cima. São os mesmos campos da tabela: a pesquisa segue igual. */
+    .modtab.cartoes-celular.filtros-abertos .tabela > thead {
+        display: block;
+        position: static;
+        padding: 6px 12px 12px;
+        background-color: #fff;
+        border-bottom: 1px solid #dfe7e2;
+    }
+
+    .modtab.cartoes-celular.filtros-abertos .tabela > thead > tr:first-child {
+        display: none;
+    }
+
+    .modtab.cartoes-celular.filtros-abertos .tabela > thead > tr:nth-child(2) {
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        padding-top: 18px;
+        background: transparent;
+    }
+
+    .modtab.cartoes-celular.filtros-abertos .tabela > thead > tr:nth-child(2) > th {
+        position: relative;
+        display: block;
+        min-height: 1.4rem;
+        padding: 6px 10px;
+        border: 1px solid #cddbd2 !important;
+        border-radius: 6px;
+        background-color: #fff !important;
+        font-size: 13px;
+        font-weight: 400;
+        text-align: left !important;
+    }
+
+    .modtab.cartoes-celular.filtros-abertos .tabela > thead > tr:nth-child(2) > th[data-rotulo]::before {
+        content: attr(data-rotulo);
+        position: absolute;
+        left: 2px;
+        bottom: calc(100% + 3px);
+        color: #5b6f62;
+        font-size: 12px;
+        font-weight: 600;
+        pointer-events: none;
+    }
+
+    /* Coluna sem pesquisa (ícone de alerta) e a de detalhes: fora do painel */
+    .modtab.cartoes-celular.filtros-abertos .tabela > thead > tr:nth-child(2) > th:has(> img),
+    .modtab.cartoes-celular.filtros-abertos .tabela > thead > tr:nth-child(2) > th.tabela-coluna-detalhes {
+        display: none;
+    }
+
+    .modtab.cartoes-celular.filtros-abertos .tabela > thead > tr:nth-child(2) > th select,
+    .modtab.cartoes-celular.filtros-abertos .tabela > thead > tr:nth-child(2) > th input {
+        width: 100% !important;
+        box-sizing: border-box;
+        border: none;
+        padding: 0;
+    }
+
+    .modtab.cartoes-celular.filtros-abertos .tabela > thead > tr:nth-child(2) > th > div {
+        flex-direction: row !important;
+        gap: 8px !important;
+    }
+
+    .modtab.cartoes-celular.filtros-abertos .tabela > thead > tr:nth-child(2) > th > div > input[type="date"] {
+        flex: 1 1 0;
+        width: auto !important;
+        height: auto !important;
+        padding: 2px 0 !important;
+        font-size: 13px !important;
+    }
+}

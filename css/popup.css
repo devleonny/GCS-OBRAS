@@ -491,6 +491,31 @@
     color: #324b3c;
 }
 
+.rodape-orcamento {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    font-size: 13px;
+}
+
+.rodape-orcamento-orc {
+    flex-shrink: 0;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background-color: #356443;
+    color: #fff;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.rodape-orcamento-texto {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .rodape-acoes {
     display: flex;
     flex: 0 1 auto;
@@ -839,6 +864,27 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* Janela etiquetada (etiquetarJanela / popup({ etiquetaBarra })): código em destaque + nome. */
+#barra-janelas .barra-janela.com-etiqueta {
+    flex-basis: 320px;
+}
+
+#barra-janelas .barra-janela-codigo {
+    flex-shrink: 0;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: #2a5c3d;
+    color: #fff;
+    font-size: 0.8em;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+}
+
+#barra-janelas .barra-janela.minimizada .barra-janela-codigo {
+    background: #5c4300;
 }
 
 /* × desenhado (duas barras), centralizado de verdade: o caractere "×" fica torto conforme a fonte. */

@@ -858,7 +858,7 @@ async function checklistChamado(id, chamadoConsultado = undefined) {
         <button onclick="confirmarProspeccao('${id}')">Chamado Prospecção</button>
     `
 
-    const local = document.querySelector('.status-check-ocorrencias')
+    const local = [...document.querySelectorAll('.status-check-ocorrencias')].pop()
 
     if (local)
         local.innerHTML = pChamado
@@ -981,12 +981,23 @@ async function abrirEsquema(id) {
             </div>
         `
 
-        popup({ elemento, titulo: 'Histórico do Orçamento' })
+        // Só um histórico por vez: as tabelas das seções (modTab/paginacao) e o checklist do chamado
+        // usam ids/controles fixos por página, e com dois abertos o segundo desenhava no primeiro.
+        // Abrir outro substitui o anterior.
+        document.querySelectorAll('body > .popup .painel-historico')
+            .forEach(p => removerPopup(p.closest('.popup').id))
+
+        const idJanela = popup({
+            elemento,
+            titulo: 'Histórico do Orçamento',
+            etiquetaBarra: { codigo: contrato, nome: cliente },
+            conteudoRodape: rodapeOrcamento(contrato, cliente || 'Cliente não informado')
+        })
 
         // Checklist Chamado;
         await checklistChamado(id, chamado)
 
-        const painel = [...document.querySelectorAll(`[data-historico-orc="${CSS.escape(id)}"]`)].pop()
+        const painel = document.getElementById(idJanela)?.querySelector('.painel-historico')
         await carregarVisaoHistorico(painel, visao)
 
     } catch (err) {

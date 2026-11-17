@@ -211,7 +211,7 @@ async function criarElementosIniciais() {
         : 'Não existem pendências para você!'
 
     pFundo.innerHTML = `
-        <div style="${horizontal}; gap: 1rem;">
+        <div class="inicio-saudacao" style="${horizontal}; gap: 1rem;">
             <img src="imagens/BG.png" style="width: 10rem;">
             <span style="padding: 1rem; font-size: 1rem; color: white;">
                 <b>${saudacao}</b>,<br> ${mensagem}
