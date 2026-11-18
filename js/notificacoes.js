@@ -258,6 +258,8 @@ async function abrirAcaoNotificacao(acao, titulo = '') {
         if (tipo === 'localiza') return await telaLocalizaDespesas('A RATEAR')
         // Pedidos pendentes (gcs notificacoes.js, fonte promessas): lista do usuário; gestor vê a de todos.
         if (tipo === 'promessas') return await abrirPromessasPedido(!!acao.todas)
+        // Remessa a retornar (gcs notificacoes.js, fontes remessas/remessas_resumo): tela das remessas, já na remessa do aviso.
+        if (tipo === 'remessas') return await telaRemessasRetorno(acao.id || null)
         // Aviso manual com mensagem formatada (editor): abre a mensagem completa.
         if (tipo === 'aviso') return abrirAvisoNotificacao(acao, titulo)
         // Push de aviso formatado traz só o id (limite de tamanho do push): busca na caixa e abre.

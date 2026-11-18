@@ -404,7 +404,7 @@ function htmlEntradaNotaFis(d, { pendentes, titulos, locais, cobranca, opcoesFin
             </div>
             ${dups.length ? `<small class="fis-dica">Parcelas que o fornecedor pôs na nota (${dups.length}): confira.</small>` : '<small class="fis-dica">A nota não traz parcelas: informe os vencimentos.</small>'}
             ${editorParcelasFin(dups.map(x => ({ vencimento: x.vencimento, valor: x.valor })), total)}
-            ${editorRateioFin(opcoesFin.departamentos, [])}`
+            ${editorRateioFin(opcoesFin.departamentos, [], { total })}`
     return `
         <div class="fis-secao fin-entrada" data-entrada-nota="${escFis(d.id)}" data-devolucao="${escFis(d.devolucao_tipo || '')}">
             <div class="fis-secao-topo"><b>Dar entrada</b> <small>responda as duas perguntas</small></div>
@@ -1606,7 +1606,7 @@ async function formularioEmissaoNFe(inicial = {}) {
                 <legend><span class="fis-num-passo">1</span> Empresa e operação</legend>
                 <div class="fis-grade">
                     ${campoFis('Empresa', `<select class="fis-input" name="app" onchange="trocarEmpresaNFe(this)">${opcoesFis(empresas.map(e => [e.app, `${e.app} · ${e.razao_social}`]), app)}</select>`, 'fis-largo')}
-                    ${campoFis('Operação', `<select class="fis-input" name="operacao_id"></select>`, 'fis-largo')}
+                    ${campoFis('Operação', `<select class="fis-input" name="operacao_id" onchange="mostrarPrazoRetornoNFe(this)"></select>`, 'fis-largo')}
                 </div>
                 <div class="fis-aviso" data-aviso-empresa></div>
             </fieldset>
@@ -1647,6 +1647,9 @@ async function formularioEmissaoNFe(inicial = {}) {
                     ${campoFis('Nº do pedido do cliente',
                         inputFis('numero_pedido', o.numero_pedido ?? inicial.numero_pedido ?? '',
                             `maxlength="60" placeholder="${escFis(inicial.situacao_pedido ? `${inicial.situacao_pedido}: informe o número, se houver` : 'Se houver')}"`))}
+                    <span data-prazo-retorno style="display: none">
+                        ${campoFis('Prazo de retorno <small>(fim do contrato; controle em Remessas a retornar)</small>', inputFis('prazo_retorno', o.prazo_retorno || '', 'type="date"'))}
+                    </span>
                 </div>
                 ${campoFis('Chave(s) da NF-e referenciada <small>(retorno, devolução; uma por linha)</small>', `<textarea class="fis-input" name="referenciadas" rows="2">${escFis((o.referenciadas || []).join('\n'))}</textarea>`)}
                 ${campoFis('Informações complementares', `<textarea class="fis-input" name="informacoes_complementares" rows="2">${escFis(o.informacoes_complementares || '')}</textarea>`)}
@@ -1714,6 +1717,17 @@ function trocarEmpresaNFe(select, operacaoInicial) {
     const atual = operacaoInicial || form.querySelector('[name="operacao_id"]').value?.replace(/^[A-Z]+_/, `${app}_`)
     form.querySelector('[name="operacao_id"]').innerHTML = opcoesFis(lista.map(o => [o.id, `${o.descricao} (${o.cfop_interno}/${o.cfop_interestadual})`]), lista.some(o => o.id === atual) ? atual : lista[0]?.id)
     form.querySelector('[data-aviso-empresa]').innerHTML = avisoEmpresaFis(empresa)
+    mostrarPrazoRetornoNFe(form.querySelector('[name="operacao_id"]'))
+}
+
+// Remessa em comodato/locação: o prazo de retorno é o do contrato (demonstração e conserto têm o legal,
+// 60 e 180 dias, calculado no servidor). Vai em opcoes.prazo_retorno e alimenta Remessas a retornar.
+function mostrarPrazoRetornoNFe(select) {
+    const form = select?.closest('.fis-form') || select?.closest('[data-form-nfe]')
+    const caixa = form?.querySelector('[data-prazo-retorno]')
+    if (!caixa) return
+    const op = (opcoesEmissaoFiscal?.operacoes || []).find(o => o.id === select.value)
+    caixa.style.display = op?.codigo === 'REMESSA_COMODATO' ? '' : 'none'
 }
 
 function avisoEmpresaFis(empresa) {
@@ -1906,6 +1920,8 @@ function lerEmissaoNFe(form) {
             consumidor_final: v('consumidor_final') === '' ? undefined : v('consumidor_final'),
             referenciadas: v('referenciadas').split(/\s+/).map(soDigFis).filter(Boolean),
             informacoes_complementares: v('informacoes_complementares'),
+            // Só na remessa em comodato/locação (campo visível só nela).
+            prazo_retorno: form.querySelector('[data-prazo-retorno]')?.style.display !== 'none' ? (v('prazo_retorno') || undefined) : undefined,
             // Bloco de transporte da nota (o valor do frete é calculado depois, no envio).
             transportador: transportadora ? {
                 id: transportadora.id, nome: transportadora.razao_social || transportadora.nome, documento: soDigFis(transportadora.cnpj),

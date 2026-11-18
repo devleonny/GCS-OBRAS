@@ -155,35 +155,106 @@ function somarParcelasFin(el) {
     const confere = total == null || Math.abs(total - soma) <= 0.01
     alvo.className = confere ? 'fis-positivo' : 'fis-negativo'
     alvo.innerHTML = `Soma ${dinheiro(soma)}${total == null ? '' : confere ? ' ✓' : ` · falta ${dinheiro(r2Fin(total - soma))}`}`
+    // Rateio em R$ ao lado (entrada de nota): a base é a soma das parcelas.
+    const rateio = caixa.parentElement?.querySelector('[data-rateio][data-com-valor]')
+    if (rateio) somarRateioFin(rateio)
 }
 
 // Rateio por departamento (contratos ORC + setores). Lista FECHADA: o texto digitado só busca; o departamento
 // só entra clicando num item da lista (data-valor). Linhas: departamento + %.
+// Com { total } (entrada de nota, 18/11/2026, a pedido): cada linha também tem R$. Preencheu o valor, o % é
+// recalculado; preencheu o %, o valor é recalculado (data-modo = o que foi mexido por último). A base é a
+// soma das parcelas da mesma caixa (ou o total informado, sem parcelas); se ela mudar, a linha em R$ mantém
+// o valor e a linha em % mantém o percentual. O servidor recebe só o % (6 casas, soma 100 exata).
 const normalFin = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 const rotuloDepFin = d => d ? `${d.id}${d.cliente ? ` · ${d.cliente}` : d.tipo === 'SETOR' ? ' · setor' : ''}${d.cidade ? ` (${d.cidade})` : ''}` : ''
+const r6Fin = v => Math.round(Number(v) * 1e6) / 1e6
+const pctCampoFin = v => String(Number(Number(v).toFixed(4)))
 
-function editorRateioFin(departamentos, rateio = []) {
+function editorRateioFin(departamentos, rateio = [], { total = null } = {}) {
+    const comValor = total != null
     const lista = rateio.length ? rateio : [{ departamento: '', percentual: 100 }]
     return `
-        <div class="fin-rateio" data-rateio>
-            <div class="fin-parcelas-topo"><b>Departamento</b> <small>contrato (ORC) ou setor da lista; vários = rateio em %</small></div>
-            <div data-linhas-rateio>${lista.map(r => linhaRateioFin(r)).join('')}</div>
-            <button type="button" class="fis-mini" onclick="this.previousElementSibling.insertAdjacentHTML('beforeend', linhaRateioFin({ departamento: '', percentual: '' }))">+ Departamento</button>
+        <div class="fin-rateio" data-rateio ${comValor ? `data-com-valor data-total="${escFin(r2Fin(total))}"` : ''}>
+            <div class="fin-parcelas-topo"><b>Departamento</b> <small>contrato (ORC) ou setor da lista; vários = rateio em %${comValor ? ' ou em R$' : ''}</small></div>
+            <div data-linhas-rateio>${lista.map(r => linhaRateioFin(r, comValor)).join('')}</div>
+            <div class="fin-parcelas-rodape">
+                <button type="button" class="fis-mini" onclick="adicionarRateioFin(this)">+ Departamento</button>
+                ${comValor ? '<small data-soma-rateio></small>' : ''}
+            </div>
         </div>`
 }
 
-function linhaRateioFin(r) {
+function linhaRateioFin(r, comValor = false) {
     const dep = (opcoesFinCache?.departamentos || []).find(d => d.id === r.departamento)
+    const recalcular = comValor ? ` oninput="editarRateioFin(this, 'pct')"` : ''
     return `
-        <div class="fin-rateio-linha">
+        <div class="fin-rateio-linha" data-modo="pct">
             <div class="fin-escolha" data-valor="${escFin(dep ? dep.id : '')}">
                 <input class="fis-input" name="departamento_busca" value="${escFin(rotuloDepFin(dep))}" placeholder="Buscar contrato, cliente ou setor…" autocomplete="off"
                     onfocus="this.select(); buscarDepFin(this)" oninput="buscarDepFin(this)" onblur="setTimeout(() => fecharBuscaDepFin(this), 150)">
                 <div class="fin-escolha-lista" hidden></div>
             </div>
-            <input class="fis-input fis-num" type="number" min="0" max="100" step="0.01" name="percentual" value="${r.percentual ?? ''}"> %
-            <button type="button" class="fis-remover-linha" title="Tirar departamento" aria-label="Tirar departamento" onclick="this.parentElement.remove()">${iconeLixeiraFis}</button>
+            <input class="fis-input fis-num" type="number" min="0" max="100" step="any" name="percentual" value="${r.percentual ?? ''}"${recalcular}> %
+            ${comValor ? `<input class="fis-input fis-num" type="number" min="0" step="0.01" name="valor_rateio" placeholder="R$" oninput="editarRateioFin(this, 'valor')">` : ''}
+            <button type="button" class="fis-remover-linha" title="Tirar departamento" aria-label="Tirar departamento" onclick="removerRateioFin(this)">${iconeLixeiraFis}</button>
         </div>`
+}
+
+// Base do rateio em R$: soma das parcelas da mesma caixa; sem parcelas, o total informado.
+function totalRateioFin(bloco) {
+    const parcelas = bloco.parentElement?.querySelector('[data-parcelas]')
+    const soma = parcelas ? r2Fin(lerParcelasFin(parcelas).reduce((a, p) => a + p.valor, 0)) : 0
+    return soma > 0 ? soma : Number(bloco.dataset.total) || 0
+}
+
+function editarRateioFin(input, modo) {
+    input.closest('.fin-rateio-linha').dataset.modo = modo
+    somarRateioFin(input)
+}
+
+function adicionarRateioFin(botao) {
+    const bloco = botao.closest('[data-rateio]')
+    const comValor = bloco.hasAttribute('data-com-valor')
+    // A linha nova já vem com o que falta para 100%.
+    const soma = lerRateioFin(bloco, true).reduce((s, l) => s + l.percentual, 0)
+    bloco.querySelector('[data-linhas-rateio]').insertAdjacentHTML('beforeend', linhaRateioFin({ departamento: '', percentual: soma < 100 ? pctCampoFin(100 - soma) : '' }, comValor))
+    if (comValor) somarRateioFin(bloco)
+    bloco.querySelector('[data-linhas-rateio]').lastElementChild.querySelector('[name="departamento_busca"]').focus()
+}
+
+function removerRateioFin(botao) {
+    const bloco = botao.closest('[data-rateio]')
+    botao.closest('.fin-rateio-linha').remove()
+    if (bloco.hasAttribute('data-com-valor')) somarRateioFin(bloco)
+}
+
+// Recalcula o campo que não manda em cada linha (nunca o que está sendo digitado) e mostra a soma.
+function somarRateioFin(el) {
+    const bloco = el?.closest?.('[data-rateio]') || el
+    if (!bloco?.hasAttribute?.('data-com-valor')) return
+    const total = totalRateioFin(bloco)
+    const ativo = document.activeElement
+    const linhas = [...bloco.querySelectorAll('.fin-rateio-linha')]
+    for (const l of linhas) {
+        const pct = l.querySelector('[name="percentual"]')
+        const val = l.querySelector('[name="valor_rateio"]')
+        if (!pct || !val) continue
+        if (l.dataset.modo === 'valor') {
+            if (pct !== ativo) pct.value = val.value === '' ? '' : total ? pctCampoFin((Number(val.value) || 0) * 100 / total) : ''
+        } else if (val !== ativo) {
+            val.value = pct.value === '' ? '' : r2Fin(total * (Number(pct.value) || 0) / 100).toFixed(2)
+        }
+    }
+    const alvo = bloco.querySelector('[data-soma-rateio]')
+    if (!alvo) return
+    const soma = lerRateioFin(bloco, true).reduce((s, l) => s + l.percentual, 0)
+    const ok = Math.abs(soma - 100) < 0.001
+    const somaValor = r2Fin(total * soma / 100)
+    alvo.className = ok ? 'fis-positivo' : 'fis-negativo'
+    alvo.textContent = ok
+        ? `Soma 100% ✓ · ${dinheiroTexto(total)}`
+        : `Soma ${Number(soma.toFixed(4)).toLocaleString('pt-BR')}% (${dinheiroTexto(somaValor)} de ${dinheiroTexto(total)}) · ${soma < 100 ? 'faltam' : 'sobram'} ${dinheiroTexto(Math.abs(r2Fin(total - somaValor)))}`
 }
 
 function buscarDepFin(input) {
@@ -219,9 +290,30 @@ function fecharBuscaDepFin(input) {
     input.value = rotuloDepFin(dep)
 }
 
-const lerRateioFin = raiz => [...raiz.querySelectorAll('.fin-rateio-linha')]
-    .map(l => ({ departamento: l.querySelector('.fin-escolha').dataset.valor, percentual: Number(l.querySelector('[name="percentual"]').value) || 0 }))
-    .filter(r => r.departamento)
+// todas = true: inclui as linhas sem departamento e não arredonda (para somar). Com R$, a linha guiada pelo
+// valor manda o % calculado sobre a base; o resíduo do arredondamento vai para o maior (soma 100 exata).
+function lerRateioFin(raiz, todas = false) {
+    const bloco = raiz.matches?.('[data-rateio]') ? raiz : raiz.querySelector('[data-rateio]') || raiz
+    const comValor = bloco.hasAttribute?.('data-com-valor')
+    const total = comValor ? totalRateioFin(bloco) : 0
+    const linhas = [...raiz.querySelectorAll('.fin-rateio-linha')].map(l => {
+        const valor = Number(l.querySelector('[name="valor_rateio"]')?.value) || 0
+        const percentual = comValor && l.dataset.modo === 'valor' && total
+            ? valor * 100 / total
+            : Number(l.querySelector('[name="percentual"]').value) || 0
+        return { departamento: l.querySelector('.fin-escolha').dataset.valor, percentual }
+    })
+    if (todas) return linhas
+    const r = linhas.filter(l => l.departamento)
+    if (!comValor) return r
+    r.forEach(l => l.percentual = r6Fin(l.percentual))
+    const soma = r.reduce((s, l) => s + l.percentual, 0)
+    if (r.length && Math.abs(100 - soma) < 0.001) {
+        const maior = r.reduce((a, l) => l.percentual > a.percentual ? l : a)
+        maior.percentual = r6Fin(maior.percentual + 100 - soma)
+    }
+    return r
+}
 
 // ---------------------------------------------------------------- faturas
 // Janela no padrão "Contas a Pagar": barra (Incluir, Repetições), tabela com filtros por coluna, total do

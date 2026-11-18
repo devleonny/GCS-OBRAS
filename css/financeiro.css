@@ -138,6 +138,8 @@
 
 .fin-rateio-linha [name="departamento"] { flex: 1 1 auto; min-width: 0; }
 .fin-rateio-linha [name="percentual"] { width: 5.5rem; }
+.fin-rateio-linha [name="valor_rateio"] { width: 8rem; }
+.fin-rateio [data-soma-rateio] { margin-left: auto; }
 
 .fin-sub {
     display: block;

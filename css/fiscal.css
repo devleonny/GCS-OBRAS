@@ -93,6 +93,21 @@
     color: #5b6b61;
 }
 
+/* Remessas a retornar (js/remessas_retorno.js) */
+.rem-explica { margin: 0 0 12px; font-size: 0.8rem; }
+.fis-cartao.rem-cartao-ativo { background: color-mix(in srgb, var(--cor) 12%, white); box-shadow: 0 0 0 2px var(--cor); }
+.rem-filtros { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+.rem-filtros .fis-input { width: auto; }
+.rem-filtros .rem-busca { flex: 1; min-width: 220px; }
+.rem-tabela td small, .rem-prazo small { display: block; color: #5b6b61; font-size: 0.72rem; }
+.rem-detalhe { display: flex; flex-direction: column; gap: 10px; min-width: min(46rem, 90vw); padding: 12px; text-align: left; }
+.rem-etiquetas { display: flex; flex-wrap: wrap; gap: 6px; }
+.rem-resumo { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.rem-resumo > div { display: flex; flex-direction: column; padding: 8px 10px; background: #f5f7f6; border-radius: 6px; }
+.rem-resumo small { color: #5b6b61; font-size: 0.72rem; }
+.rem-baixa { padding: 8px 10px; background: #f1f5f9; border-left: 4px solid #64748b; border-radius: 6px; }
+.rem-form-baixa { display: flex; flex-direction: column; gap: 8px; min-width: min(30rem, 85vw); padding: 12px; text-align: left; }
+
 /* ---------- etiquetas, números */
 
 .fis-etiqueta {

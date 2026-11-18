@@ -261,6 +261,8 @@ const esquemaBotoes = {
                 // Quadro com arraste sobre fluxo_itens (desde 13/11/2026; o antigo, calculado por view, saiu do menu).
                 { nome: 'Fluxo de Vendas', funcao: 'telaFluxoItensVendas', img: 'kanban', permitido: PERFIS_FLUXO_MENU },
                 { nome: 'NF-e Emitidas', funcao: 'telaNotasNFe', img: 'up_estoque', permitido: PERFIS_FISCAL_MENU },
+                // Demonstração, conserto e comodato que precisam voltar (js/remessas_retorno.js, 18/11/2026).
+                { nome: 'Remessas a retornar', funcao: 'telaRemessasRetorno', img: 'lista', permitido: PERFIS_FISCAL_MENU },
                 { nome: 'Emitir NF-e', funcao: 'formularioEmissaoNFe', img: 'baixar', permitido: ['adm', 'diretoria', 'fin'] },
                 { nome: 'Configuração Fiscal', funcao: 'telaConfigFiscal', img: 'engrenagem', permitido: ['adm', 'diretoria', 'fin'] }
             ]
