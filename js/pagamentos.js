@@ -75,6 +75,7 @@ async function alternarIntegracaoPagamentos(mostrar) {
 async function telaPagamentos() {
 
     const pag = 'pagamentos'
+    tagsPorContratoPagamentos.clear()
     const tabela = await modTab({
         pag,
         detalhes: true,
@@ -88,6 +89,12 @@ async function telaPagamentos() {
                 <input type="search" placeholder="Pesquisar departamento" aria-label="Pesquisar departamento"
                     onkeydown="confirmarPesquisa({ event, chave: 'snapshots.departamentos.*.departamento', op: 'includes', elemento: this, pag: 'pagamentos' })"
                     onchange="confirmarPesquisa({ chave: 'snapshots.departamentos.*.departamento', op: 'includes', elemento: this, pag: 'pagamentos' })">
+            </label>
+            <label>Tags
+                <input type="search" placeholder="Pesquisar tag do orçamento" aria-label="Pesquisar tag do orçamento"
+                    title="Pagamentos com departamento de orçamento/chamado que tem esta tag"
+                    onkeydown="confirmarPesquisa({ event, chave: 'snapshots.departamentos', op: 'tag_orcamento', elemento: this, pag: 'pagamentos' })"
+                    onchange="confirmarPesquisa({ chave: 'snapshots.departamentos', op: 'tag_orcamento', elemento: this, pag: 'pagamentos' })">
             </label>
             <label class="pagamentos-mostrar-integracao" title="Inclui os títulos que vieram do Omie (Solicitante: Integração); os da Localiza já aparecem sempre">
                 <input type="checkbox" ${mostrarIntegracaoPagamentos ? 'checked' : ''} onchange="alternarIntegracaoPagamentos(this.checked)">
@@ -104,7 +111,7 @@ async function telaPagamentos() {
             'Detalhes': {}
         },
         filtros: mostrarIntegracaoPagamentos ? {} : { 'snapshots.criado': { ...FILTRO_SEM_INTEGRACAO } },
-        funcaoAdicional: ['atualizarPainelEsquerdo'],
+        funcaoAdicional: ['atualizarPainelEsquerdo', 'preencherTagsPagamentos'],
         body: 'bodyPagamentos',
         base: 'lista_pagamentos',
         criarLinha: 'criarLinhaPagamento'
@@ -219,6 +226,7 @@ async function criarLinhaPagamento(pagamento) {
             return `<span onclick="painelCustos(this.dataset.departamento)" data-departamento="${escaparAtributo(departamento || '')}" class="tag-pendencias pagamento-balao pagamento-balao-departamento">${escaparAtributo(departamento || '')}</span>`
         })
         .join('')
+    const departamentosTags = [...new Set((snapshots?.departamentos || []).map(d => String(d?.departamento || '').trim()).filter(Boolean))]
 
     const categorias = Object.values(snapshots?.categorias || {})
         .map(({ categoria }) => categoria)
@@ -246,10 +254,56 @@ async function criarLinhaPagamento(pagamento) {
     return {
         linha: `<tr>${tds}</tr>`,
         detalhes: `<div class="pagamentos-referencias-detalhes">
-            <div><strong>Categorias</strong><div class="pagamento-lista-baloes">${spanCategorias || 'Sem categorias'}</div></div>
-            <div><strong>Departamentos</strong><div class="listagem-departamentos">${deps || 'Sem departamentos'}</div></div>
+            <section><strong>Categorias</strong>${spanCategorias ? `<div class="pagamento-lista-baloes">${spanCategorias}</div>` : '<small class="pagamento-detalhe-vazio">Sem categorias</small>'}</section>
+            <section><strong>Departamentos</strong>${deps ? `<div class="listagem-departamentos">${deps}</div>` : '<small class="pagamento-detalhe-vazio">Sem departamentos</small>'}</section>
+            ${departamentosTags.length ? `<section hidden><strong>Tags dos orçamentos</strong><div class="pagamento-tags-orcamento" data-departamentos="${escaparAtributo(JSON.stringify(departamentosTags))}"></div></section>` : ''}
         </div>
         ${detalhesExtrasPagamento(pagamento)}`
+    }
+}
+
+// funcaoAdicional da lista: tags dos orçamentos/chamados cujo contrato é departamento do pagamento,
+// numa consulta só por página (mvw_dados_orcamentos, com as regras de segurança). O bloco "Tags"
+// fica escondido quando nenhum departamento tem tag. Cache por contrato enquanto a tela está aberta.
+const tagsPorContratoPagamentos = new Map()
+
+async function preencherTagsPagamentos() {
+    const caixas = [...document.querySelectorAll('.pagamento-tags-orcamento[data-departamentos]')]
+    if (!caixas.length) return
+
+    const departamentosDe = caixa => { try { return JSON.parse(caixa.dataset.departamentos) } catch { return [] } }
+    const faltam = [...new Set(caixas.flatMap(departamentosDe))].filter(d => !tagsPorContratoPagamentos.has(d))
+
+    if (faltam.length) {
+        try {
+            const { resultados = [] } = await pesquisarDB({
+                base: 'mvw_dados_orcamentos',
+                filtros: { 'dados_orcam.contrato': { modo: 'OR', regras: faltam.map(value => ({ op: '=', value })) } },
+                limite: Math.min(faltam.length * 3, 500)
+            }) || {}
+            for (const d of faltam) tagsPorContratoPagamentos.set(d, [])
+            for (const orc of resultados) {
+                const contrato = String(orc?.dados_orcam?.contrato || '').trim()
+                if (!tagsPorContratoPagamentos.has(contrato)) continue
+                tagsPorContratoPagamentos.get(contrato).push(...(Array.isArray(orc?.tags) ? orc.tags : []))
+            }
+        } catch (erro) {
+            return console.error('[PAGAMENTOS] tags dos orçamentos', erro)
+        }
+    }
+
+    const corTag = cor => /^#[0-9a-f]{3,8}$/i.test(String(cor || '')) ? cor : '#94a3b8'
+    for (const caixa of caixas) {
+        const vistas = new Map()
+        for (const tag of departamentosDe(caixa).flatMap(d => tagsPorContratoPagamentos.get(d) || [])) {
+            const nome = String(tag?.nome || '').trim()
+            if (nome && !vistas.has(nome)) vistas.set(nome, tag)
+        }
+        caixa.innerHTML = [...vistas.values()]
+            .sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'))
+            .map(tag => `<span class="pag-orc-tag" style="--cor: ${corTag(tag.cor)}">${escaparAtributo(String(tag.nome).trim())}</span>`)
+            .join('')
+        caixa.parentElement.hidden = !vistas.size
     }
 }
 
@@ -413,7 +467,7 @@ async function abrirDetalhesPagamentos(id) {
             .join('')
 
         // Edição de Status;
-        const divStatus = (permissao == 'adm')
+        const divStatus = pode('reembolsos.alterar_status')
             ? `
                 <select onchange="alterarStatusPagamento('${id}', this)">
                     ${opcoesStatus.map(op => `<option ${pagamento.status == op ? 'selected' : ''}>${op}</option>`).join('')}
@@ -693,7 +747,7 @@ async function autorizarPagamentos(resposta, id) {
 // não se aplica; reprovar exclui o título do Omie (/pagamentos/reprovar-lancado, só adm, diretoria e fin).
 // O servidor aplica as mesmas regras (pagamento_aprovacao.js e pagamentos.js).
 const STATUS_LANCADO_OMIE_PAGAMENTO = ['A VENCER', 'VENCE HOJE', 'ATRASADO']
-const PERFIS_REPROVAM_LANCADO = ['adm', 'diretoria', 'fin']
+// Reprovar pagamento já lançado: reembolsos.reprovar_lancado (Central de Acessos).
 
 function situacaoPagamentoProcessado(pagamento = {}) {
     const status = String(pagamento.status || '')
@@ -713,7 +767,7 @@ function avisoPagamentoProcessado(resposta, id, pagamento, situacao) {
         return aviso(`Este pagamento foi excluído (${status}).<br>Não há o que aprovar ou reprovar.`)
     if (resposta == 'S')
         return aviso(`Este pagamento já foi processado e está lançado no Omie (${status}).<br>Não precisa de aprovação.`)
-    if (!PERFIS_REPROVAM_LANCADO.includes(acesso?.permissao))
+    if (!pode('reembolsos.reprovar_lancado'))
         return aviso(`Este pagamento já está lançado no Omie (${status}).<br>Para reprová-lo, o título precisa ser excluído do Omie: peça ao financeiro (adm, diretoria ou fin).`)
 
     popup({

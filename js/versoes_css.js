@@ -32,7 +32,7 @@ const VERSOES_CSS = {
     "ocorrencias": "12c1c4be",
     "orcamento": "0192e200",
     "os": "423f800a",
-    "pagamentos": "879d20dc",
+    "pagamentos": "a90ea1d7",
     "pdf": "e66db2e0",
     "planos_diarios": "c1524a7b",
     "popup": "67f44417",

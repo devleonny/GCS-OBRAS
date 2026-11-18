@@ -234,7 +234,7 @@
 }
 
 /* Chip da tag: fundo claro na cor da tag e bolinha na cor cheia (--cor vem do inline). */
-.tela-detalhes .pag-orc-tag {
+:is(.tela-detalhes, .pagamentos-referencias-detalhes) .pag-orc-tag {
     display: inline-flex;
     align-items: center;
     gap: 5px;
@@ -250,7 +250,7 @@
     overflow-wrap: anywhere;
 }
 
-.tela-detalhes .pag-orc-tag::before {
+:is(.tela-detalhes, .pagamentos-referencias-detalhes) .pag-orc-tag::before {
     content: '';
     flex-shrink: 0;
     width: 7px;
@@ -785,36 +785,50 @@
     font-size: 11px;
     box-sizing: border-box;
 }
-/* Detalhe da linha: blocos e etiquetas em uma linha só; a rolagem horizontal
-   do detalhe (tabelas.css) mostra o que passar da largura. */
+/* Detalhe da linha: Categorias, Departamentos e Tags em cartões, no mesmo visual de
+   Observação/Aprovações/Anexos logo abaixo; as etiquetas quebram linha dentro do cartão. */
 .pagamentos-referencias-detalhes {
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: center;
-    gap: 32px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    text-align: left;
 }
 
-.pagamentos-referencias-detalhes > div {
+/* Vence a regra geral .tabela-detalhes-conteudo > * (width: max-content). */
+.tabela-detalhes-conteudo > .pagamentos-referencias-detalhes {
+    width: 0;
+    min-width: 100%;
+    box-sizing: border-box;
+}
+
+.pagamentos-referencias-detalhes > section {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid #dfe7e2;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.pagamentos-referencias-detalhes > section[hidden] {
+    display: none;
 }
 
 .pagamentos-referencias-detalhes strong {
-    white-space: nowrap;
+    color: #324b3c;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
 }
 
 .pagamentos-referencias-detalhes .pagamento-lista-baloes,
 .pagamentos-referencias-detalhes .listagem-departamentos {
-    flex-wrap: nowrap;
-    max-height: none;
-    overflow: visible;
-}
-
-.pagamentos-referencias-detalhes .pagamento-balao.tag-pendencias {
-    max-width: none;
-    white-space: nowrap;
+    flex-wrap: wrap;
+    gap: 5px;
+    max-height: 120px;
+    overflow-y: auto;
 }
 
 .divPagamentos .pagamentos-status-lateral {
@@ -1365,4 +1379,17 @@
 .autorizacao-dep-rastreio {
     color: #24723a;
     margin: 0 0 4px 0;
+}
+
+/* Tags dos orçamentos/chamados do pagamento no detalhe da linha (preenchidas por preencherTagsPagamentos). */
+.pagamentos-referencias-detalhes .pagamento-tags-orcamento {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.pagamentos-referencias-detalhes .pag-orc-tag {
+    white-space: nowrap;
+    padding: 3px 9px 3px 7px;
+    font-size: 11px;
 }
