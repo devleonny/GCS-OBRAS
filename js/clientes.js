@@ -39,6 +39,11 @@ const tagCliente = nome => {
 }
 
 // Último painel
+// Endereço sempre em CAIXA ALTA (o banco também força: trigger trg_clientes_endereco_maiusculas).
+function maiusculas(valor) {
+    return String(valor ?? '').trim().toUpperCase()
+}
+
 function obVal(n) {
     const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
 
@@ -989,20 +994,20 @@ async function formularioCliente(idCliente) {
         },
         {
             texto: 'Endereço',
-            elemento: `<textarea maxlength="60" name="endereco">${endereco || ''}</textarea>`
+            elemento: `<textarea maxlength="60" name="endereco" style="text-transform: uppercase;">${endereco || ''}</textarea>`
         },
         {
             // Colunas próprias desde 18/11/2026 (antes iam junto no texto do endereço).
             texto: 'Número',
-            elemento: `<input maxlength="20" name="numero" placeholder="Número ou S/N" value="${escaparAtributo(numero || '')}">`
+            elemento: `<input maxlength="20" name="numero" style="text-transform: uppercase;" placeholder="Número ou S/N" value="${escaparAtributo(numero || '')}">`
         },
         {
             texto: 'Complemento',
-            elemento: `<input maxlength="60" name="complemento" placeholder="Loja, sala, bloco..." value="${escaparAtributo(complemento || '')}">`
+            elemento: `<input maxlength="60" name="complemento" style="text-transform: uppercase;" placeholder="Loja, sala, bloco..." value="${escaparAtributo(complemento || '')}">`
         },
         {
             texto: 'Bairro',
-            elemento: `<textarea name="bairro">${bairro || ''}</textarea>`
+            elemento: `<textarea name="bairro" style="text-transform: uppercase;">${bairro || ''}</textarea>`
         },
         { elemento: '<span class="cliente-secao">Dados de contato</span>' },
         editarPermissao,
@@ -1054,19 +1059,19 @@ async function formularioCliente(idCliente) {
         },
         {
             texto: 'Endereço',
-            elemento: `<textarea name="e_endereco">${endereco_entrega?.endereco || ''}</textarea>`
+            elemento: `<textarea name="e_endereco" style="text-transform: uppercase;">${endereco_entrega?.endereco || ''}</textarea>`
         },
         {
             texto: 'Número',
-            elemento: `<input maxlength="20" name="e_numero" placeholder="Número ou S/N" value="${escaparAtributo(endereco_entrega?.numero || '')}">`
+            elemento: `<input maxlength="20" name="e_numero" style="text-transform: uppercase;" placeholder="Número ou S/N" value="${escaparAtributo(endereco_entrega?.numero || '')}">`
         },
         {
             texto: 'Complemento',
-            elemento: `<input maxlength="60" name="e_complemento" placeholder="Loja, sala, bloco..." value="${escaparAtributo(endereco_entrega?.complemento || '')}">`
+            elemento: `<input maxlength="60" name="e_complemento" style="text-transform: uppercase;" placeholder="Loja, sala, bloco..." value="${escaparAtributo(endereco_entrega?.complemento || '')}">`
         },
         {
             texto: 'Bairro',
-            elemento: `<textarea name="e_bairro">${endereco_entrega?.bairro || ''}</textarea>`
+            elemento: `<textarea name="e_bairro" style="text-transform: uppercase;">${endereco_entrega?.bairro || ''}</textarea>`
         }
     ]
 
@@ -1458,7 +1463,7 @@ async function datalistCidades(estado, local) {
 
         const cidades = await resposta.json()
         const opcoes = cidades
-            .map(c => `<option>${c.nome}</option>`)
+            .map(c => `<option>${String(c.nome || '').toUpperCase()}</option>`)
             .join('')
 
         document.querySelector(`[name="${local}"]`).innerHTML = opcoes
@@ -1560,25 +1565,25 @@ async function salvarCliente(idCliente = null) {
             inscricao_estadual: String(obVal('inscricao_estadual') || '').trim().toUpperCase() || null,
             inscricao_municipal: String(obVal('inscricao_municipal') || '').trim().toUpperCase() || null,
             nome: obVal('nome').toUpperCase(),
-            endereco: obVal('endereco'),
+            endereco: maiusculas(obVal('endereco')),
             numero: String(obVal('numero') || '').trim().toUpperCase() || null,
-            complemento: String(obVal('complemento') || '').trim() || null,
-            bairro: obVal('bairro'),
+            complemento: maiusculas(obVal('complemento')) || null,
+            bairro: maiusculas(obVal('bairro')),
             cep: obVal('cep'),
             cargo: obVal('cargo'),
-            cidade: obVal('cidade'),
-            estado: obVal('estado'),
+            cidade: maiusculas(obVal('cidade')),
+            estado: maiusculas(obVal('estado')),
             comentario: obVal('comentario'),
             chave_pix: obVal('chave_pix'),
             tags,
             endereco_entrega: {
-                endereco: obVal('e_endereco'),
+                endereco: maiusculas(obVal('e_endereco')),
                 numero: String(obVal('e_numero') || '').trim().toUpperCase(),
-                complemento: String(obVal('e_complemento') || '').trim(),
-                bairro: obVal('e_bairro'),
+                complemento: maiusculas(obVal('e_complemento')),
+                bairro: maiusculas(obVal('e_bairro')),
                 cep: obVal('e_cep'),
-                cidade: obVal('e_cidade'),
-                estado: obVal('e_estado'),
+                cidade: maiusculas(obVal('e_cidade')),
+                estado: maiusculas(obVal('e_estado')),
             },
 
             /// Novos campos 07/2026;
@@ -1664,9 +1669,9 @@ async function formatarCep(input, campo) {
         overlayAguarde()
         const { city, street, neighborhood, state } = await buscarEndereco(v)
 
-        document.querySelector(`[name="${ajuste}endereco"]`).value = street || ''
-        document.querySelector(`[name="${ajuste}bairro"]`).value = neighborhood || ''
-        document.querySelector(`[name="${ajuste}cidade"]`).innerHTML = `<option>${city || ''}</option>`
+        document.querySelector(`[name="${ajuste}endereco"]`).value = String(street || '').toUpperCase()
+        document.querySelector(`[name="${ajuste}bairro"]`).value = String(neighborhood || '').toUpperCase()
+        document.querySelector(`[name="${ajuste}cidade"]`).innerHTML = `<option>${String(city || '').toUpperCase()}</option>`
         document.querySelector(`[name="${ajuste}estado"]`).value = state || ''
 
         removerOverlay()
