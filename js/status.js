@@ -522,7 +522,7 @@ async function abrirAtalhos(id) {
         let avisoMaster = ''
 
         if (estaVinculado) {
-            botoesDisponiveis.push(modeloBotoes('exclamacao', 'Desvincular Orçamento', `confirmarRemoverVinculo('${contrato}')`))
+            botoesDisponiveis.push(modeloBotoes('imagens/desvincular.svg', 'Desvincular Orçamento', `confirmarRemoverVinculo('${contrato}')`))
         } else if (!pesqMaster.resultados.length) {
             botoesDisponiveis.push(modeloBotoes('link', 'Vincular Orçamento', `vincularOrcamento('${contrato}')`))
         } else {
