@@ -35,7 +35,8 @@ const QUADROS_FLUXO = {
         finais: ['lancada']
     }
 }
-const PERIODOS_FLUXO = [[30, 'Últimos 30 dias'], [60, 'Últimos 60 dias'], [90, 'Últimos 90 dias'], [180, 'Últimos 6 meses'], [365, 'Último ano'], [0, 'Todo o período']]
+// -1 = Hoje (18/11/2026, a pedido): só o que tem a data de hoje.
+const PERIODOS_FLUXO = [[-1, 'Hoje'], [30, 'Últimos 30 dias'], [60, 'Últimos 60 dias'], [90, 'Últimos 90 dias'], [180, 'Últimos 6 meses'], [365, 'Último ano'], [0, 'Todo o período']]
 const estadoFluxo = { quadro: 'vendas', periodo: 30, busca: '', empresa: '', linhas: [], abertos: new Set(), carregando: 0 }
 // Chave no topo de todos os quadros (Todos | AC | IAC | HNK | HNW). Compras: empresa destinatária da nota (app);
 // Vendas: empresa do item; Serviços: empresa do pedido (ou da nota) pela vw_fluxo_comercial.empresa.
@@ -106,8 +107,9 @@ function colunasFluxo(quadro, cartoes, { periodo = 30, busca = '', empresa = '',
     return config.colunas.map(([etapa, titulo]) => {
         const daEtapa = cartoes.filter(c => c.etapa === etapa && combina(c))
             .sort((a, b) => String(b.data || '').localeCompare(String(a.data || '')))
-        const noPeriodo = periodo ? daEtapa.filter(c => (diasDesdeFluxo(c.data, hoje) ?? 0) <= periodo) : daEtapa
-        const parados = periodo && !config.finais.includes(etapa) ? daEtapa.filter(c => (diasDesdeFluxo(c.data, hoje) ?? 0) > periodo) : []
+        const limite = periodo === -1 ? 0 : periodo  // Hoje: 0 dia
+        const noPeriodo = periodo ? daEtapa.filter(c => (diasDesdeFluxo(c.data, hoje) ?? 0) <= limite) : daEtapa
+        const parados = periodo && !config.finais.includes(etapa) ? daEtapa.filter(c => (diasDesdeFluxo(c.data, hoje) ?? 0) > limite) : []
         // Total do cabeçalho: só o que está no período (os parados têm a contagem no botão deles).
         const valor = noPeriodo.reduce((s, c) => s + Number(c.valor_pedido ?? c.valor_total ?? c.valor ?? 0), 0)
         return { etapa, titulo, cartoes: noPeriodo, parados, valor, final: config.finais.includes(etapa) }
@@ -723,7 +725,8 @@ function abrirMenuItemFluxo(evento, id) {
     if (!c) return
     const nota = notasItemFluxo(c).at(-1)
     const opcoes = [
-        c.orcamento_id ? ['Histórico do Orçamento', `abrirEsquema('${escaparAtributo(c.orcamento_id)}')`] : null,
+        // Opções do orçamento (18/11/2026, a pedido): os atalhos completos (Histórico, Painel de Custos, PDF, OS...).
+        c.orcamento_id ? ['Opções do Orçamento', `abrirAtalhos('${escaparAtributo(c.orcamento_id)}')`] : null,
         nota && c.etapa === 'separado' ? ['Editar NF-e', `editarNotaItemFluxo('${id}')`] : null,
         nota && c.emissao_status !== 'OK' ? ['Espelho', `espelhoNotaItemFluxo('${escaparAtributo(nota)}')`] : null,
         nota && c.emissao_status === 'OK' ? ['DANFE', `baixarArquivoFiscal('${escaparAtributo(nota)}', 'danfe')`] : null,
