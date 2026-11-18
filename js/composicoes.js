@@ -1021,13 +1021,18 @@ async function excluirItemComposicao(codigo) {
 
 }
 
-async function cadastrarItem(codigo) {
+// Item que nasce dentro de outra tela (ex.: nota recebida): opcoes.previa preenche o formulário e
+// opcoes.depois(id) roda com o id do item novo depois de salvar (cadastroItemDepois).
+let cadastroItemDepois = null
+
+async function cadastrarItem(codigo, opcoes = {}) {
 
     try {
 
         overlayAguarde()
 
-        const produto = await recuperarDado('dados_composicoes', codigo) || {}
+        const produto = { ...(codigo ? await recuperarDado('dados_composicoes', codigo) || {} : {}), ...(opcoes.previa || {}) }
+        cadastroItemDepois = !codigo && typeof opcoes.depois === 'function' ? opcoes.depois : null
 
         const botoes = [
             {
@@ -1279,9 +1284,20 @@ async function salvarComposicao(codigo) {
             if (el) produto[campo] = el.value.trim() || null
         }
 
-        await enviar(`dados_composicoes/${codigo || '0000'}`, produto)
+        const resposta = await enviar(`dados_composicoes/${codigo || '0000'}`, produto)
+
+        const depois = !codigo ? cadastroItemDepois : null
+        if (depois) {
+            if (!resposta?.success || !resposta.id) {
+                removerOverlay()
+                return popup({ mensagem: escaparAtributo(resposta?.mensagem || 'Não foi possível cadastrar o item.') })
+            }
+            cadastroItemDepois = null
+        }
 
         removerPopup()
+
+        if (depois) await depois(resposta.id)
 
     } catch (err) {
         console.error(err)

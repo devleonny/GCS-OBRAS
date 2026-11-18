@@ -282,6 +282,10 @@ function formularioAlterado(alvo) {
 async function fecharPopupUsuario(id, fechar = removerPopup) {
     const alvo = document.getElementById(id)
     if (!alvo) return
+    // Janela que só fecha quando uma pendência é resolvida (ex.: nota recebida com itens a vincular):
+    // o conteúdo marca data-guarda-fechar="nomeDaFuncao"; a função recebe a janela e devolve true para fechar.
+    const guarda = alvo.querySelector('[data-guarda-fechar]')?.dataset.guardaFechar
+    if (guarda && typeof window[guarda] === 'function' && !(await window[guarda](alvo))) return
     if (alvo.dataset.confirmarFechar === 'S' && formularioAlterado(alvo)) {
         if (confirmacoesFechar.has(id)) return
         confirmacoesFechar.add(id)

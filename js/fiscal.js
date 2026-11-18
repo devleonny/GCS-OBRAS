@@ -1,7 +1,8 @@
 // Fiscal (servidor: SCRIPTS/fiscal.js, SCRIPTS/fiscal/*; banco: migrations/fiscal-estoque.sql).
 // - Notas recebidas: importar XML ou buscar na SEFAZ (Focus), ligar cada item ao cadastro do GCS
 //   (o de-para aprende: a próxima nota do fornecedor já vem ligada), manifestar e lançar no estoque.
-//   A entrada nunca cria item novo.
+//   A entrada não cria item sozinha: a pessoa liga a um item do cadastro ou cria o item (formulário do
+//   cadastro, já com os dados da nota). Cada item tem o seu CFOP de entrada, editável até a entrada.
 // - Notas emitidas: NF-e e NFS-e pela Focus NFe, com prévia dos impostos (perfis de operação copiados
 //   das notas do Omie), rascunho, emissão, consulta e cancelamento. NF-e autorizada dá saída no estoque.
 // - Configuração: empresas, perfis de operação (CFOP/CST/alíquotas) e serviços (LC 116/ISS/retenções).
@@ -231,9 +232,14 @@ function resumoDocumentoFis(d, campos) {
 function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos, titulos = [], locais = [], cobranca = null, devolucoes = [], origem_devolucao = null }, opcoesFin = null) {
     const lancada = d.estoque_status === 'LANCADO' || Boolean(d.entrada_em)
     const pendentes = itens.filter(i => i.vinculo === 'PENDENTE').length
+    const editavel = !PERFIS_SO_CONSULTA_FIS.includes(acesso?.permissao)
+    // Guarda os itens para o assistente de vínculo e o "criar item" (sem nova ida ao servidor).
+    for (const i of itens) ITENS_NOTA_FIS.set(String(i.id), { ...i, documento_id: d.id, participante_uf: d.participante_uf })
     const linhas = itens.map(i => {
         let vinculo
-        if (i.vinculo === 'VINCULADO') {
+        if (i.vinculo === 'PENDENTE' && !lancada && editavel) {
+            vinculo = htmlPendenteFis(i, d)
+        } else if (i.vinculo === 'VINCULADO') {
             const qtdEstoque = Number(i.quantidade) * Number(i.fator || 1)
             vinculo = `
                 <div class="fis-vinculo ok">
@@ -247,20 +253,21 @@ function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos, titulos
             vinculo = `<div class="fis-vinculo ignorado">Não é item de estoque
                 ${lancada ? '' : `<button type="button" class="fis-mini" onclick="vincularItemFiscal('${escFis(i.id)}', '${escFis(d.id)}', 'DESVINCULAR')">Desfazer</button>`}</div>`
         } else {
-            vinculo = `<div class="fis-vinculo pendente">
-                <button type="button" class="fis-botao" onclick="painelVincularItem('${escFis(i.id)}', '${escFis(d.id)}')">Vincular ao cadastro</button>
-                <button type="button" class="fis-mini" onclick="vincularItemFiscal('${escFis(i.id)}', '${escFis(d.id)}', 'IGNORAR')" title="Frete, serviço, material de uso imediato…">Não é estoque</button></div>`
+            vinculo = `<div class="fis-vinculo pendente"><small class="fis-pendente">Sem vínculo</small></div>`
         }
         return `
-            <tr>
+            <tr ${i.vinculo === 'PENDENTE' ? `data-item-pendente="${escFis(i.id)}"` : ''}>
                 <td class="fis-num">${i.n_item}</td>
-                <td class="fis-descricao">${escFis(i.descricao)}<small>${i.codigo ? `Cód. ${escFis(i.codigo)} · ` : ''}NCM ${escFis(i.ncm || '—')} · CFOP ${escFis(i.cfop || '—')}${i.ean ? ` · EAN ${escFis(i.ean)}` : ''}</small></td>
+                <td class="fis-descricao">${escFis(i.descricao)}<small>${i.codigo ? `Cód. ${escFis(i.codigo)} · ` : ''}NCM ${escFis(i.ncm || '—')}${i.ean ? ` · EAN ${escFis(i.ean)}` : ''}</small></td>
+                <td>${celulaCfopEntradaFis(i, { editavel: editavel && !lancada && d.status !== 'CANCELADA' })}</td>
                 <td class="fis-num">${qtdEst(i.quantidade)} ${escFis(i.unidade)}</td>
                 <td class="fis-num">${i.valor_unitario != null ? dinheiro(i.valor_unitario) : ''}</td>
                 <td class="fis-num">${i.valor_total != null ? dinheiro(i.valor_total) : ''}</td>
                 <td>${vinculo}</td>
             </tr>`
     }).join('')
+    // Só sai da nota com todos os itens resolvidos (quem pode vincular; nota ainda sem entrada no estoque).
+    const guarda = pendentes && !lancada && editavel && !['RESUMO', 'CANCELADA'].includes(d.status)
 
     const manifestar = ['CIENCIA', 'CONFIRMACAO', 'DESCONHECIMENTO', 'NAO_REALIZADA']
         .filter(t => t !== d.manifestacao)
@@ -270,7 +277,7 @@ function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos, titulos
     // laranja = itens a vincular, cinza = cancelada, azul = demais), grade, faixa de ações e cartões.
     const tom = d.status === 'CANCELADA' ? 'neutro' : lancada ? 'ok' : pendentes ? 'andando' : 'rascunho'
     return `
-        <div class="fis-painel fis-doc fis-nota" data-doc-fiscal="${escFis(d.id)}">
+        <div class="fis-painel fis-doc fis-nota" data-doc-fiscal="${escFis(d.id)}" ${guarda ? 'data-guarda-fechar="podeFecharNotaRecebidaFis"' : ''}>
             <div class="fis-nota-topo ${tom}">
                 <div class="fis-nota-titulo">
                     <b>${escFis(d.participante_nome || 'Fornecedor')}</b>
@@ -308,6 +315,15 @@ function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos, titulos
                 <small class="fis-nota-acoes-rotulo">Manifestar</small> ${manifestar}
             </div>
 
+            ${guarda ? `
+                <div class="fis-faixa-vinculo">
+                    <div>
+                        <b>${pendentes} ${pendentes === 1 ? 'item ainda não está ligado' : 'itens ainda não estão ligados'} ao cadastro do GCS</b>
+                        <small>Ligue cada um a um item do cadastro, crie o item com os dados da nota ou marque "não é estoque". A entrada só é feita com tudo resolvido.</small>
+                    </div>
+                    <button type="button" class="fis-botao" onclick="assistenteVinculoFis('${escFis(d.id)}')">Resolver agora</button>
+                </div>` : ''}
+
             ${blocoDevolucaoFis(d, devolucoes, origem_devolucao)}
 
             ${htmlEntradaNotaFis(d, { pendentes, titulos, locais, cobranca, opcoesFin })}
@@ -318,11 +334,13 @@ function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos, titulos
             <div class="fis-secao">
                 <div class="fis-secao-topo">
                     <b>Itens</b> <span class="fis-contador">${itens.length}</span>
-                    ${pendentes ? `<small class="fis-pendente">${pendentes} sem vínculo: para gerar estoque, todos precisam estar resolvidos</small>` : '<small class="fis-secao-info">todos resolvidos</small>'}
+                    ${pendentes ? `<small class="fis-pendente">${pendentes} sem vínculo: todos precisam estar resolvidos para dar entrada</small>` : '<small class="fis-secao-info">todos resolvidos</small>'}
+                    ${editavel && !lancada && d.status !== 'CANCELADA' && itens.length > 1
+                        ? `<button type="button" class="fis-mini fis-direita" onclick="cfopTodosItensFis('${escFis(d.id)}')" title="Mesmo CFOP de entrada em todos os itens">CFOP igual para todos</button>` : ''}
                 </div>
                 <div class="fis-tabela-rolagem">
                     <table class="fis-tabela">
-                        <thead><tr><th>#</th><th>Descrição na nota</th><th class="fis-num">Qtd</th><th class="fis-num">Unit.</th><th class="fis-num">Total</th><th>Item do GCS</th></tr></thead>
+                        <thead><tr><th>#</th><th>Descrição na nota</th><th title="CFOP da nossa entrada (o do fornecedor fica embaixo)">CFOP entrada</th><th class="fis-num">Qtd</th><th class="fis-num">Unit.</th><th class="fis-num">Total</th><th>Item do GCS</th></tr></thead>
                         <tbody>${linhas}</tbody>
                     </table>
                 </div>
@@ -426,11 +444,21 @@ async function darEntradaNotaFis(id) {
     if (gerar_faturas === null) faltas.push(devolucaoCliente ? 'Responda: abater nas faturas a receber da venda?' : 'Responda: gerar faturas a pagar?')
     const v = n => caixa.querySelector(`[name="${n}"]`)?.value || ''
     if (gerar_faturas && !devolucaoCliente && !v('categoria_id')) faltas.push('Escolha a categoria das faturas.')
+    // Itens: todos resolvidos e com CFOP de entrada válido (o que está na tela vai junto).
+    const nota = caixa.closest('[data-doc-fiscal]')
+    const pendentes = nota?.querySelectorAll('[data-item-pendente]').length || 0
+    if (pendentes) faltas.push(`Resolva ${pendentes === 1 ? 'o item sem vínculo' : `os ${pendentes} itens sem vínculo`} (vincular, criar o item ou "não é estoque").`)
+    const cfops = {}
+    for (const input of nota?.querySelectorAll('[data-cfop-entrada]') || []) {
+        const c = soDigFis(input.value)
+        if (!CFOP_ENTRADA_FIS.test(c)) { faltas.push(`CFOP de entrada do item ${input.dataset.nItem}: 4 dígitos começando por 1, 2 ou 3.`); continue }
+        cfops[input.dataset.cfopEntrada] = c
+    }
     if (faltas.length) return popup({ mensagem: `<ul class="fis-lista-erros">${faltas.map(f => `<li>${escFis(f)}</li>`).join('')}</ul>` })
     try {
         overlayAguarde()
         const r = await apiFiscal('recebidas/dar-entrada', {
-            id, gerar_estoque, gerar_faturas, local_id: gerar_estoque ? v('local_id') : undefined,
+            id, gerar_estoque, gerar_faturas, cfops, local_id: gerar_estoque ? v('local_id') : undefined,
             ...(gerar_faturas && !devolucaoCliente ? {
                 categoria_id: v('categoria_id'), forma_pagamento: v('forma_pagamento'), conta_id: v('conta_id') || null,
                 parcelas: lerParcelasFin(caixa), rateio: lerRateioFin(caixa)
@@ -538,88 +566,404 @@ async function baixarArquivoFiscal(id, tipo) {
 }
 
 // ---------------------------------------------------------------- vínculo de itens
+// Cada item da nota recebida termina resolvido: ligado a um item do cadastro (sugestão, busca ou item criado
+// com os dados da nota) ou marcado "não é estoque". Quem pode vincular não fecha a nota com item pendente
+// (data-guarda-fechar → podeFecharNotaRecebidaFis). O servidor manda as 3 melhores sugestões de cada pendente.
 
-async function painelVincularItem(documentoItemId, documentoId, texto = '') {
+const ITENS_NOTA_FIS = new Map()
+const CFOP_ENTRADA_FIS = /^[123]\d{3}$/
+const ORIGEM_CFOP_FIS = {
+    PRODUTO: 'o mesmo usado antes neste produto do fornecedor',
+    HISTORICO: 'o mais usado na empresa para este CFOP do fornecedor',
+    PADRAO: 'convertido do CFOP do fornecedor'
+}
+
+const pendentesDaNotaFis = documentoId =>
+    [...document.querySelectorAll(`[data-doc-fiscal="${CSS.escape(documentoId)}"] [data-item-pendente]`)].map(tr => tr.dataset.itemPendente)
+
+// Unidades que querem dizer a mesma coisa (UN = UND = PC...): aí o fator é 1 e o vínculo sai num clique.
+function unidadeNormalFis(u) {
+    const s = String(u || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z]/g, '')
+    const grupos = { UN: ['UN', 'UND', 'UNID', 'UNIDADE', 'UNIDADES', 'UNI', 'U', 'PC', 'PCS', 'PECA', 'PECAS', 'PEC'], M: ['M', 'MT', 'MTS', 'METRO', 'METROS', 'MTR'],
+        CX: ['CX', 'CAIXA', 'CXA'], RL: ['RL', 'ROLO', 'ROL'], KG: ['KG', 'QUILO', 'KILO'], PAR: ['PAR', 'PR', 'PARES'], KIT: ['KIT', 'KT', 'CJ', 'CONJ', 'CONJUNTO'] }
+    return Object.entries(grupos).find(([, l]) => l.includes(s))?.[0] || s
+}
+const unidadesIguaisFis = (a, b) => !b || unidadeNormalFis(a) === unidadeNormalFis(b)
+
+// Por que o item foi sugerido (comparando com o produto da nota) e o quanto ele parece.
+function motivosSugestaoFis(s, i) {
+    const so = v => String(v ?? '').replace(/\D/g, '')
+    const cod = String(i.codigo || '').trim().toUpperCase()
+    const motivos = []
+    if (i.ean && s.ean && so(i.ean) === so(s.ean)) motivos.push(['forte', 'EAN igual'])
+    if (cod && [s.partnumber, s.modelo, s.codigo].some(v => String(v || '').trim().toUpperCase() === cod)) motivos.push(['forte', 'código do fornecedor'])
+    if (i.ncm && s.ncm && so(i.ncm) === so(s.ncm)) motivos.push(['', 'NCM igual'])
+    return motivos
+}
+
+function forcaSugestaoFis(s, i) {
+    if (motivosSugestaoFis(s, i).some(([t]) => t === 'forte')) return { classe: 'alta', texto: 'Mesmo produto' }
+    const p = Number(s.pontos || 0)
+    if (p >= 55) return { classe: 'alta', texto: 'Muito parecido' }
+    if (p >= 35) return { classe: 'media', texto: 'Parecido' }
+    return { classe: 'baixa', texto: 'Pouco parecido' }
+}
+
+function chipsMotivosFis(s, i) {
+    const chips = motivosSugestaoFis(s, i).map(([tipo, texto]) => `<span class="fis-chip-motivo ${tipo}">${escFis(texto)}</span>`)
+    if (!unidadesIguaisFis(i.unidade, s.unidade))
+        chips.push(`<span class="fis-chip-motivo aviso" title="A nota vem em ${escFis(i.unidade)} e o estoque controla em ${escFis(s.unidade)}">${escFis(i.unidade)} → ${escFis(s.unidade)}</span>`)
+    return chips.join('')
+}
+
+// Célula "Item do GCS" de um item pendente: a melhor sugestão já na linha, com "Usar".
+function htmlPendenteFis(i, d) {
+    const s = i.sugestoes?.[0]
+    const args = `'${escFis(i.id)}', '${escFis(d.id)}'`
+    const forca = s ? forcaSugestaoFis(s, i) : null
+    return `
+        <div class="fis-vinculo pendente">
+            ${s ? `
+            <div class="fis-sug-linha ${forca.classe}" title="Sugestão do GCS para este produto">
+                <span class="fis-forca ${forca.classe}">${forca.texto}</span>
+                <span class="fis-sug-item"><b>${escFis(s.codigo)}</b> ${escFis(s.descricao)}</span>
+                <span class="fis-sug-chips">${chipsMotivosFis(s, i)}</span>
+                <button type="button" class="fis-botao" onclick="usarSugestaoFis(${args}, '${escFis(s.id)}')">Usar</button>
+            </div>` : '<small class="fis-sug-nada">Nenhum item parecido no cadastro: busque ou crie o item.</small>'}
+            <div class="fis-vinculo-acoes">
+                <button type="button" class="fis-mini" onclick="painelVincularItem(${args})">${s ? 'Ver outras opções' : 'Buscar no cadastro'}</button>
+                <button type="button" class="fis-mini" onclick="criarItemDaNotaFis(${args})" title="Cadastra o item com a descrição, unidade e NCM da nota e já liga">Criar item</button>
+                <button type="button" class="fis-mini" onclick="vincularItemFiscal(${args}, 'IGNORAR')" title="Frete, serviço, material de uso imediato…">Não é estoque</button>
+            </div>
+        </div>`
+}
+
+// "Usar" da linha: mesma unidade → liga direto (fator 1); unidade diferente → assistente com o item escolhido.
+async function usarSugestaoFis(documentoItemId, documentoId, itemId) {
+    const i = ITENS_NOTA_FIS.get(String(documentoItemId))
+    const s = i?.sugestoes?.find(x => String(x.id) === String(itemId))
+    if (s && unidadesIguaisFis(i.unidade, s.unidade))
+        return vincularItemFiscal(documentoItemId, documentoId, 'VINCULAR', { item_id: itemId, fator: 1, lembrar: true })
+    return painelVincularItem(documentoItemId, documentoId, '', itemId)
+}
+
+function assistenteVinculoFis(documentoId) {
+    const [primeiro] = pendentesDaNotaFis(documentoId)
+    if (primeiro) painelVincularItem(primeiro, documentoId)
+}
+
+// × da nota recebida com item pendente: não fecha; oferece resolver.
+async function podeFecharNotaRecebidaFis(janela) {
+    const id = janela.querySelector('[data-doc-fiscal]')?.dataset.docFiscal
+    const pendentes = id ? pendentesDaNotaFis(id) : []
+    if (!pendentes.length) return true
+    // Três saídas: resolver (abre o assistente), sair sem dar entrada (a nota fica pendente, no cartão
+    // "com itens a vincular") ou continuar na nota (× do aviso). Dar entrada continua exigindo tudo resolvido.
+    const escolha = await new Promise(resolve => {
+        const chave = crypto.randomUUID()
+        const aviso = popup({
+            titulo: 'Ainda há itens sem vínculo',
+            mensagem: `${pendentes.length === 1 ? 'Falta <b>1 item</b>' : `Faltam <b>${pendentes.length} itens</b>`} desta nota sem ligação com o cadastro do GCS.<br>
+                <small>Para dar entrada, ligue cada um a um item do cadastro, crie o item ou marque "não é estoque".
+                Se não for dar entrada agora, saia: a nota fica em "com itens a vincular".</small>`,
+            botoes: [
+                { id: `sair-${chave}`, texto: 'Sair sem dar entrada', img: 'cancel' },
+                { id: `resolver-${chave}`, texto: 'Resolver agora' }
+            ]
+        })
+        let feito = false
+        const finalizar = valor => {
+            if (feito) return
+            feito = true
+            observador.disconnect()
+            removerPopup(aviso)
+            resolve(valor)
+        }
+        const observador = new MutationObserver(() => { if (!document.getElementById(aviso)) finalizar('ficar') })
+        observador.observe(document.body, { childList: true })
+        document.getElementById(`sair-${chave}`).addEventListener('click', () => finalizar('sair'), { once: true })
+        document.getElementById(`resolver-${chave}`).addEventListener('click', () => finalizar('resolver'), { once: true })
+    })
+    if (escolha === 'resolver') assistenteVinculoFis(id)
+    return escolha === 'sair'
+}
+
+// ---- assistente (um item por vez, com sugestões, busca, conversão de unidade e "criar item")
+
+function htmlCandidatosFis(lista, nota, args) {
+    if (!lista.length) return `
+        <div class="fis-assist-vazio">
+            <b>Nada parecido no cadastro.</b>
+            <span>Tente outro termo (modelo, part number, marca) ou crie o item com os dados da nota.</span>
+            <button type="button" class="fis-botao" onclick="criarItemDaNotaFis(${args})">Criar item com os dados da nota</button>
+        </div>`
+    return lista.map((c, n) => {
+        const forca = forcaSugestaoFis(c, nota)
+        const info = [c.fabricante, c.modelo, c.partnumber && c.partnumber !== c.modelo ? `PN ${c.partnumber}` : ''].filter(Boolean).map(escFis).join(' · ')
+        return `
+            <button type="button" class="fis-cand${n === 0 ? ' primeiro' : ''}" data-cand="${escFis(c.id)}" data-unidade="${escFis(c.unidade || '')}"
+                data-rotulo="${escFis(`${c.codigo} · ${c.descricao}`)}" onclick="selecionarCandidatoFis(this)" ondblclick="selecionarCandidatoFis(this, true)">
+                <span class="fis-cand-marca" aria-hidden="true"></span>
+                <span class="fis-cand-corpo">
+                    <span class="fis-cand-topo"><b>${escFis(c.codigo)}</b><span class="fis-forca ${forca.classe}">${forca.texto}</span></span>
+                    <span class="fis-cand-desc">${escFis(c.descricao)}</span>
+                    ${info ? `<span class="fis-cand-info">${info}</span>` : ''}
+                    <span class="fis-cand-chips">
+                        ${chipsMotivosFis(c, nota)}
+                        <span class="fis-chip">Un. ${escFis(c.unidade || '—')}</span>
+                        ${c.ncm ? `<span class="fis-chip">NCM ${escFis(c.ncm)}</span>` : ''}
+                        ${c.saldo != null ? `<span class="fis-chip">Saldo ${qtdEst(c.saldo)}</span>` : ''}
+                    </span>
+                </span>
+            </button>`
+    }).join('')
+}
+
+async function painelVincularItem(documentoItemId, documentoId, texto = '', escolhido = '') {
     overlayAguarde()
     try {
-        const { itens } = await apiFiscal('itens/sugestoes', { documento_item_id: documentoItemId, texto: texto || undefined })
+        const { itens, item } = await apiFiscal('itens/sugestoes', { documento_item_id: documentoItemId, texto: texto || undefined })
         removerOverlay()
+        const nota = { ...(ITENS_NOTA_FIS.get(String(documentoItemId)) || {}), ...(item || {}) }
         const anterior = document.querySelector('[data-painel-vinculo]')?.closest('.popup')?.id
         if (anterior) removerPopup(anterior)
-        const lista = itens.map(c => `
-            <tr>
-                <td><b>${escFis(c.codigo)}</b></td>
-                <td class="fis-descricao">${escFis(c.descricao)}<small>${[c.fabricante, c.modelo, c.partnumber].filter(Boolean).map(escFis).join(' · ')}</small></td>
-                <td>${escFis(c.unidade || '')}</td>
-                <td><small>${escFis(c.ncm || '')}</small></td>
-                <td class="fis-num">${c.saldo != null ? qtdEst(c.saldo) : ''}</td>
-                <td class="fis-num"><small>${c.pontos}</small></td>
-                <td><button type="button" class="fis-botao" onclick="escolherItemVinculo('${escFis(documentoItemId)}', '${escFis(documentoId)}', '${escFis(c.id)}', this)">Usar</button></td>
-            </tr>`).join('')
+
+        const args = `'${escFis(documentoItemId)}', '${escFis(documentoId)}'`
+        const pendentes = pendentesDaNotaFis(documentoId)
+        const pos = pendentes.indexOf(String(documentoItemId))
+        // Pular: o seguinte; no último, volta ao primeiro que ainda falta.
+        const proximo = (pos >= 0 ? pendentes[pos + 1] : null) || pendentes.find(p => p !== String(documentoItemId)) || null
+        const anteriorItem = pos > 0 ? pendentes[pos - 1] : null
+        const nav = (alvo, rotulo) => `<button type="button" class="fis-mini" ${alvo ? `onclick="painelVincularItem('${escFis(alvo)}', '${escFis(documentoId)}')"` : 'disabled'}>${rotulo}</button>`
+        const chip = (r, v) => v ? `<span class="fis-chip"><small>${r}</small> ${v}</span>` : ''
+
         popup({
-            titulo: 'Vincular ao cadastro do GCS',
+            titulo: 'Ligar item da nota ao cadastro',
             elemento: `
-                <div class="fis-painel" data-painel-vinculo>
-                    <div class="fis-barra-clara">
-                        <input class="fis-input fis-busca" value="${escFis(texto)}" placeholder="Buscar por descrição, código, modelo, part number…"
-                            onkeydown="if (event.key === 'Enter') painelVincularItem('${escFis(documentoItemId)}', '${escFis(documentoId)}', this.value)">
-                        <button type="button" class="fis-mini" onclick="painelVincularItem('${escFis(documentoItemId)}', '${escFis(documentoId)}', this.previousElementSibling.value)">Buscar</button>
+                <div class="fis-painel fis-assist" data-painel-vinculo data-doc="${escFis(documentoId)}" data-item="${escFis(documentoItemId)}">
+                    ${pendentes.length ? `
+                    <div class="fis-assist-passo">
+                        <span>${pos >= 0 ? `<b>${pos + 1}</b> de <b>${pendentes.length}</b> itens a resolver` : `${pendentes.length} item(ns) a resolver`}</span>
+                        <div class="fis-assist-passo-barra"><i style="width: ${pos >= 0 ? Math.round(((pos + 1) / pendentes.length) * 100) : 0}%"></i></div>
+                        <div class="fis-assist-nav">${nav(anteriorItem, '‹ Anterior')}${nav(proximo, 'Pular ›')}</div>
+                    </div>` : ''}
+
+                    <div class="fis-assist-nota">
+                        <span class="fis-assist-rotulo">Item ${escFis(nota.n_item ?? '')} na nota do fornecedor</span>
+                        <b class="fis-assist-desc">${escFis(nota.descricao || '')}</b>
+                        <div class="fis-assist-chips">
+                            ${chip('Cód.', escFis(nota.codigo || ''))}
+                            ${chip('Qtd', nota.quantidade != null ? `${qtdEst(nota.quantidade)} ${escFis(nota.unidade || '')}` : '')}
+                            ${chip('Unit.', nota.valor_unitario != null ? dinheiro(nota.valor_unitario) : '')}
+                            ${chip('NCM', escFis(nota.ncm || ''))}
+                            ${chip('EAN', escFis(nota.ean || ''))}
+                            ${chip('CFOP forn.', escFis(nota.cfop || ''))}
+                        </div>
                     </div>
-                    <div class="fis-tabela-rolagem">
-                        <table class="fis-tabela">
-                            <thead><tr><th>Código</th><th>Descrição</th><th>Un.</th><th>NCM</th><th>Saldo</th><th>Afinidade</th><th></th></tr></thead>
-                            <tbody>${lista || '<tr><td colspan="7" class="fis-vazio">Nada parecido no cadastro. Busque por outro termo; se o item não existir, cadastre-o em Composições e volte aqui.</td></tr>'}</tbody>
-                        </table>
+
+                    <label class="fis-assist-busca">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                        <input class="fis-input" data-busca-vinculo value="${escFis(texto)}" autocomplete="off"
+                            placeholder="Buscar no cadastro: descrição, código, modelo, part number, marca…"
+                            oninput="buscarCandidatosFis(this)" onkeydown="if (event.key === 'Enter') buscarCandidatosFis(this, true)">
+                    </label>
+
+                    <div class="fis-assist-titulo-lista">
+                        <b data-titulo-lista>${texto ? 'Resultado da busca' : 'Sugestões do GCS'}</b>
+                        <small data-qtd-lista>${itens.length ? `${itens.length} item(ns) · clique para escolher, duplo clique liga direto` : ''}</small>
                     </div>
-                    <small class="fis-dica">A entrada nunca cria item novo: escolha o item do cadastro que corresponde ao produto do fornecedor.</small>
+                    <div class="fis-assist-lista" data-lista-vinculo>${htmlCandidatosFis(itens, nota, args)}</div>
+
+                    <div class="fis-assist-conf" data-conf-vinculo hidden>
+                        <div class="fis-assist-escolhido"><small>Escolhido</small> <b data-escolhido-texto></b></div>
+                        <div class="fis-assist-fator">
+                            <span>1 <b>${escFis(nota.unidade || 'un.')}</b> da nota =</span>
+                            <input class="fis-input" name="fator" type="number" min="0.0001" step="any" value="1">
+                            <span><b data-unidade-item></b> no estoque</span>
+                        </div>
+                        <small class="fis-dica" data-dica-fator></small>
+                        <label class="fis-check"><input type="checkbox" name="lembrar" checked> Lembrar nas próximas notas deste fornecedor (a próxima já chega ligada)</label>
+                    </div>
+
+                    <div class="fis-assist-rodape">
+                        <button type="button" class="fis-mini" onclick="criarItemDaNotaFis(${args})" title="Cadastra o item com a descrição, unidade e NCM da nota e já liga">+ Criar item com os dados da nota</button>
+                        <button type="button" class="fis-mini" onclick="vincularItemFiscal(${args}, 'IGNORAR', {}, { seguir: true })" title="Frete, serviço, material de uso imediato…">Não é estoque</button>
+                        <span class="fis-separador"></span>
+                        <button type="button" class="fis-botao" data-confirmar-vinculo disabled onclick="confirmarVinculoItem(this)">Ligar ao item</button>
+                    </div>
                 </div>`
         })
+        const painel = document.querySelector('[data-painel-vinculo]')
+        const alvo = escolhido && painel?.querySelector(`[data-cand="${CSS.escape(String(escolhido))}"]`)
+        if (alvo) selecionarCandidatoFis(alvo)
+        else if (texto) painel?.querySelector('[data-busca-vinculo]')?.focus()
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
     }
 }
 
-function escolherItemVinculo(documentoItemId, documentoId, itemId, botao) {
-    const painelBusca = botao.closest('.popup')?.id
-    popup({
-        titulo: 'Conversão de unidade',
-        linhas: [{
-            elemento: `
-                <div class="fis-form" data-fator-vinculo>
-                    <label class="fis-campo"><span>1 unidade da nota do fornecedor = quantas unidades no estoque?</span>
-                        <input class="fis-input" name="fator" type="number" min="0.0001" step="any" value="1"></label>
-                    <small class="fis-dica">Ex.: fornecedor vende CAIXA com 10 e o estoque controla UNIDADE → 10.</small>
-                    <label class="fis-check"><input type="checkbox" name="lembrar" checked> Lembrar para as próximas notas deste fornecedor (de-para)</label>
-                </div>`
-        }],
-        botoes: [{
-            texto: 'Vincular', img: 'concluido',
-            funcao: `confirmarVinculoItem('${escFis(documentoItemId)}', '${escFis(documentoId)}', '${escFis(itemId)}', '${escFis(painelBusca || '')}', this)`
-        }]
+// Busca enquanto digita (espera a pessoa parar 350 ms); Enter busca na hora.
+let buscaVinculoFis = null
+function buscarCandidatosFis(input, agora = false) {
+    clearTimeout(buscaVinculoFis)
+    buscaVinculoFis = setTimeout(async () => {
+        const painel = input.closest('[data-painel-vinculo]')
+        if (!painel) return
+        const { item: documentoItemId, doc: documentoId } = painel.dataset
+        const texto = input.value.trim()
+        const lista = painel.querySelector('[data-lista-vinculo]')
+        lista.classList.add('carregando')
+        try {
+            const { itens, item } = await apiFiscal('itens/sugestoes', { documento_item_id: documentoItemId, texto: texto || undefined })
+            if (input.value.trim() !== texto) return
+            const nota = { ...(ITENS_NOTA_FIS.get(String(documentoItemId)) || {}), ...(item || {}) }
+            lista.innerHTML = htmlCandidatosFis(itens, nota, `'${escFis(documentoItemId)}', '${escFis(documentoId)}'`)
+            painel.querySelector('[data-titulo-lista]').textContent = texto ? 'Resultado da busca' : 'Sugestões do GCS'
+            painel.querySelector('[data-qtd-lista]').textContent = itens.length ? `${itens.length} item(ns) · clique para escolher, duplo clique liga direto` : ''
+            painel.querySelector('[data-conf-vinculo]').hidden = true
+            painel.querySelector('[data-confirmar-vinculo]').disabled = true
+        } catch (err) {
+            lista.innerHTML = `<div class="fis-alerta">${escFis(err.message)}</div>`
+        } finally {
+            lista.classList.remove('carregando')
+        }
+    }, agora ? 0 : 350)
+}
+
+function selecionarCandidatoFis(botao, ligar = false) {
+    const painel = botao.closest('[data-painel-vinculo]')
+    painel.querySelectorAll('.fis-cand.selecionado').forEach(b => b.classList.remove('selecionado'))
+    botao.classList.add('selecionado')
+    const nota = ITENS_NOTA_FIS.get(String(painel.dataset.item)) || {}
+    const unidadeItem = botao.dataset.unidade || 'UN'
+    const iguais = unidadesIguaisFis(nota.unidade, botao.dataset.unidade)
+    const conf = painel.querySelector('[data-conf-vinculo]')
+    conf.hidden = false
+    conf.classList.toggle('pede-fator', !iguais)
+    conf.querySelector('[data-escolhido-texto]').textContent = botao.dataset.rotulo
+    conf.querySelector('[data-unidade-item]').textContent = unidadeItem
+    const fator = conf.querySelector('[name="fator"]')
+    fator.value = 1
+    conf.querySelector('[data-dica-fator]').textContent = iguais ? ''
+        : `A nota vem em ${nota.unidade || '?'} e o estoque controla em ${unidadeItem}: quantas ${unidadeItem} vêm em 1 ${nota.unidade || 'unidade da nota'}? (ex.: caixa com 10 → 10)`
+    painel.querySelector('[data-confirmar-vinculo]').disabled = false
+    if (!iguais) { fator.focus(); fator.select() }
+    else conf.scrollIntoView({ block: 'nearest' })
+    if (ligar && iguais) confirmarVinculoItem(painel.querySelector('[data-confirmar-vinculo]'))
+}
+
+async function confirmarVinculoItem(botao) {
+    const painel = botao.closest('[data-painel-vinculo]')
+    const escolhido = painel.querySelector('.fis-cand.selecionado')?.dataset.cand
+    if (!escolhido) return
+    const fator = Number(painel.querySelector('[name="fator"]').value)
+    if (!(fator > 0)) return popup({ mensagem: 'Informe quantas unidades do estoque vêm em 1 unidade da nota (maior que zero).' })
+    const lembrar = painel.querySelector('[name="lembrar"]').checked
+    const { item: documentoItemId, doc: documentoId } = painel.dataset
+    removerPopup(painel.closest('.popup')?.id)
+    await vincularItemFiscal(documentoItemId, documentoId, 'VINCULAR', { item_id: escolhido, fator, lembrar }, { seguir: true })
+}
+
+// Cadastro do item com os dados da nota (composicoes.js → cadastrarItem); salvo, já liga e segue para o próximo.
+async function criarItemDaNotaFis(documentoItemId, documentoId) {
+    const i = ITENS_NOTA_FIS.get(String(documentoItemId))
+    if (!i) return popup({ mensagem: 'Reabra a nota e tente de novo.' })
+    const assistente = document.querySelector('[data-painel-vinculo]')?.closest('.popup')?.id
+    if (assistente) removerPopup(assistente)
+    const limpo = v => escaparAtributo(String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/\s+/g, ' ').trim())
+    await cadastrarItem(null, {
+        previa: { descricao: limpo(i.descricao), unidade: limpo(i.unidade) || 'UN', ncm: soDigFis(i.ncm), tipo: 'VENDA' },
+        depois: id => vincularItemFiscal(documentoItemId, documentoId, 'VINCULAR', { item_id: id, fator: 1, lembrar: true }, { seguir: true })
     })
 }
 
-async function confirmarVinculoItem(documentoItemId, documentoId, itemId, painelBusca, botao) {
-    const form = document.querySelector('[data-fator-vinculo]')
-    const fator = form.querySelector('[name="fator"]').value
-    const lembrar = form.querySelector('[name="lembrar"]').checked
-    removerPopup(botao?.closest('.popup')?.id)
-    if (painelBusca) removerPopup(painelBusca)
-    await vincularItemFiscal(documentoItemId, documentoId, 'VINCULAR', { item_id: itemId, fator, lembrar })
-}
-
-async function vincularItemFiscal(documentoItemId, documentoId, acao, extra = {}) {
+// seguir: depois de resolver, o assistente abre o próximo item pendente da nota (ou avisa que acabou).
+async function vincularItemFiscal(documentoItemId, documentoId, acao, extra = {}, { seguir = false } = {}) {
     try {
         overlayAguarde()
         const r = await apiFiscal('itens/vincular', { documento_item_id: documentoItemId, acao, lembrar: true, ...extra })
         removerOverlay()
+        if (seguir) {
+            const assistente = document.querySelector('[data-painel-vinculo]')?.closest('.popup')?.id
+            if (assistente) removerPopup(assistente)
+        }
         await abrirDocumentoFiscal(documentoId)
         const avisos = []
         if (r.outras) avisos.push(`O de-para também ligou ${r.outras} item(ns) pendente(s) em outras notas deste fornecedor.`)
         if (r.completou?.length) avisos.push(`O cadastro do item ganhou ${r.completou.join(', ')} vindo(s) da nota.`)
+        const restantes = pendentesDaNotaFis(documentoId)
+        if (seguir && restantes.length) await painelVincularItem(restantes[0], documentoId)
+        else if (seguir) avisos.unshift('<b>Todos os itens da nota estão resolvidos.</b> Agora é só dar entrada.')
         if (avisos.length) popup({ mensagem: avisos.join('<br>'), imagem: 'imagens/concluido.png', tempo: 6 })
         if (controles.notasRecebidas) paginacao('notasRecebidas')
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+// ---- CFOP de entrada por item (o do fornecedor fica embaixo, só para consulta)
+
+function celulaCfopEntradaFis(i, { editavel }) {
+    const fornecedor = `<small class="fis-cfop-forn" title="CFOP que o fornecedor pôs na nota">forn. ${escFis(i.cfop || '—')}</small>`
+    if (!editavel) return `<div class="fis-cfop"><b>${escFis(i.cfop_entrada || '—')}</b>${fornecedor}</div>`
+    const valor = i.cfop_entrada || i.cfop_entrada_sugerido || ''
+    const dica = i.cfop_entrada ? 'CFOP de entrada deste item' : ORIGEM_CFOP_FIS[i.cfop_entrada_origem] ? `Sugestão: ${ORIGEM_CFOP_FIS[i.cfop_entrada_origem]}` : 'Informe o CFOP de entrada'
+    return `
+        <div class="fis-cfop">
+            <input class="fis-input fis-cfop-input${i.cfop_entrada ? '' : ' sugerido'}" data-cfop-entrada="${escFis(i.id)}" data-n-item="${escFis(i.n_item)}"
+                data-salvo="${escFis(i.cfop_entrada || '')}" value="${escFis(valor)}" inputmode="numeric" maxlength="4" placeholder="1102"
+                title="${escFis(dica)}" oninput="this.value = this.value.replace(/\\D/g, '')" onchange="salvarCfopEntradaFis(this)">
+            ${fornecedor}
+        </div>`
+}
+
+async function salvarCfopEntradaFis(input) {
+    const cfop = soDigFis(input.value)
+    input.classList.remove('invalido', 'salvo')
+    if (!CFOP_ENTRADA_FIS.test(cfop)) {
+        input.classList.add('invalido')
+        input.title = 'CFOP de entrada: 4 dígitos começando por 1 (dentro do estado), 2 (outro estado) ou 3 (exterior)'
+        return
+    }
+    try {
+        await apiFiscal('itens/cfop', { documento_item_id: input.dataset.cfopEntrada, cfop })
+        input.dataset.salvo = cfop
+        input.classList.remove('sugerido')
+        input.classList.add('salvo')
+        input.title = 'CFOP de entrada deste item'
+        const item = ITENS_NOTA_FIS.get(String(input.dataset.cfopEntrada))
+        if (item) item.cfop_entrada = cfop
+    } catch (err) {
+        input.classList.add('invalido')
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+async function cfopTodosItensFis(documentoId) {
+    const nota = document.querySelector(`[data-doc-fiscal="${CSS.escape(documentoId)}"]`)
+    const primeiro = nota?.querySelector('[data-cfop-entrada]')?.value || ''
+    const texto = await pedirTextoPopup({
+        titulo: 'CFOP igual para todos',
+        mensagem: 'CFOP de entrada para <b>todos</b> os itens desta nota (4 dígitos, começando por 1, 2 ou 3):',
+        textoConfirmar: 'Aplicar', minimo: 4, maximo: 4, valor: primeiro
+    })
+    if (texto === null) return
+    const cfop = soDigFis(texto)
+    if (!CFOP_ENTRADA_FIS.test(cfop)) return popup({ mensagem: 'CFOP de entrada: 4 dígitos começando por 1 (dentro do estado), 2 (outro estado) ou 3 (exterior).' })
+    try {
+        overlayAguarde()
+        await apiFiscal('itens/cfop', { documento_id: documentoId, todos: true, cfop })
+        removerOverlay()
+        for (const input of nota?.querySelectorAll('[data-cfop-entrada]') || []) {
+            input.value = cfop
+            input.dataset.salvo = cfop
+            input.classList.remove('sugerido', 'invalido')
+            input.classList.add('salvo')
+            const item = ITENS_NOTA_FIS.get(String(input.dataset.cfopEntrada))
+            if (item) item.cfop_entrada = cfop
+        }
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
