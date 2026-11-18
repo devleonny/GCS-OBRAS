@@ -428,6 +428,9 @@
 .fin-tela .div-tabela { border-inline: none; }
 
 .fin-tela .tabela tbody tr.fin-linha { cursor: pointer; }
+.fin-tela .tabela td.fin-doc { white-space: nowrap; }
+/* Sem zebrado: todas as linhas brancas (o hover e a linha escolhida continuam com cor). */
+.fin-tela .tabela:not(.nude) tbody tr.fin-linha:not(:hover):not(.fin-linha-ativa) { background-color: #fff; }
 .fin-tela .tabela tbody tr.fin-linha td { padding-block: 6px; }
 .fin-tela .tabela:not(.nude) tbody tr.fin-linha-ativa,
 .fin-tela .tabela:not(.nude) tbody tr.fin-linha-ativa:hover {
@@ -476,6 +479,31 @@
 }
 
 .fin-sigma { color: #6b7a71; font-weight: 400; margin-right: 2px; }
+
+/* Total das faturas marcadas (no lugar do total do filtro). */
+.fin-tela .tabela tfoot td.fin-total-selecao { background: #e3effb; color: #1d4f7c; }
+.fin-total-rotulo { font-weight: 400; color: #4a6d8c; margin-right: 4px; }
+
+/* Faixa colada no topo do bloco da tabela (dentro do .modtab) ao marcar a página toda pelo cabeçalho. */
+.fin-aviso-selecao {
+    flex: 0 0 auto;
+    align-self: stretch;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 12px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px;
+    color: #31708f;
+    background: linear-gradient(#e3f1fb, #cfe6f6);
+    border-bottom: 1px solid #a9cbe3;
+    border-radius: 6px 6px 0 0;
+}
+.fin-aviso-selecao[hidden] { display: none; }
+.fin-aviso-selecao a { color: #1f2f3d; font-weight: 700; text-decoration: none; }
+.fin-aviso-selecao a:hover { text-decoration: underline; }
 
 .fin-rodape {
     display: flex;
@@ -912,5 +940,22 @@
 
 /* Coluna Observação da lista: uma linha só, cortada com "..." (o texto inteiro fica no título, ao passar o mouse). */
 .fin-tela td.fin-obs { max-width: 300px; overflow: hidden; }
+.fin-tela td.fin-deps { max-width: 200px; }
+.fin-tela td.fin-nome { max-width: 260px; }
 .fin-tela td.fin-obs > .fin-obs-txt,
 .fin-tela td.fin-obs > small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Até o cabeçalho avançado (funil, ordem e colunas recolhidas do usuário) ficar pronto, a tabela não aparece:
+   sem o "pisca" dos filtros antigos nem das colunas trocando de lugar. O carregando continua visível. */
+.fin-tela .tabela:not(.cab-avancado) > thead,
+.fin-tela .tabela:not(.cab-avancado) > tfoot,
+.fin-tela .tabela:not(.cab-avancado) > tbody > tr:not(#loading-tabela) { visibility: hidden; }
+
+/* Títulos das colunas numa linha só ("Nota fiscal", "Recebido em"...). */
+.fin-tela .tabela > thead > tr:first-child > th,
+.fin-tela .tabela > thead > tr:first-child > th span { white-space: nowrap; }
+
+/* Cabeçalho mais justo: títulos e filtros com menos respiro. */
+.fin-tela .tabela > thead > tr:first-child > th { padding: 5px 6px; }
+.fin-tela .tabela > thead > tr:first-child > th > div { gap: 4px !important; }
+.fin-tela .tabela.cab-avancado > thead > tr > th.cab-filtro-th { padding: 2px 3px; }

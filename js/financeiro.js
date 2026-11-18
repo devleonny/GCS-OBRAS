@@ -392,9 +392,11 @@ async function telaFaturasFin(tipo, filtroExtra = null, manterFiltros = false) {
         painelFinAberto = false
         faturaAtivaFin = null
         selecaoFin.clear()
+        valoresSelecaoFin.clear()
     }
     dadosFaturasFin.clear()
     assinaturaTotaisFin = null
+    somasFiltroFin = null
     const pagar = tipo === 'PAGAR'
     tela.innerHTML = `
         <div class="fis-pagina fin-tela">
@@ -403,7 +405,7 @@ async function telaFaturasFin(tipo, filtroExtra = null, manterFiltros = false) {
                     <h2>Faturas a ${pagar ? 'pagar' : 'receber'}</h2>
                     <div class="fin-barra">
                     <button type="button" onclick="formularioFaturaFin('${tipo}')">${iconeFin('incluir')} Incluir</button>
-                    <button type="button" onclick="baixarExcelFaturasFin()" title="Baixa todos os resultados, com os filtros aplicados">${iconeFin('excel')} Excel</button>
+                    <button type="button" onclick="baixarExcelFaturasFin()" title="Com faturas marcadas, baixa só as marcadas; sem marcação, todos os resultados dos filtros aplicados">${iconeFin('excel')} Excel</button>
                     ${filtroExtra ? `<button type="button" onclick="telaFaturasFin('${tipo}')">${iconeFin('fechar')} Limpar filtro</button>` : ''}
                     </div>
                 </header>
@@ -421,7 +423,7 @@ async function telaFaturasFin(tipo, filtroExtra = null, manterFiltros = false) {
     try {
         const anterior = manterFiltros ? controles.faturasFin : null
         delete controles.faturasFin
-        if (anterior) controles.faturasFin = { filtros: anterior.filtros, pagina: anterior.pagina || 1 }
+        if (anterior) controles.faturasFin = { filtros: anterior.filtros, filtrosMeta: anterior.filtrosMeta, pagina: anterior.pagina || 1 }
         const area = document.querySelector('[data-tabela-fin]')
         area.innerHTML = await modTab({
             base: 'vw_fin_titulos',
@@ -439,16 +441,26 @@ async function telaFaturasFin(tipo, filtroExtra = null, manterFiltros = false) {
                 'Vencimento': { chave: 'dia_vencimento', tipoPesquisa: 'data' },
                 [pagar ? 'Pago em' : 'Recebido em']: { chave: 'dia_pagamento', tipoPesquisa: 'data' },
                 'Empresa': { chave: 'app', tipoPesquisa: 'select' },
-                [pagar ? 'Fornecedor' : 'Cliente']: { chave: 'participante_nome' },
-                'Observação': { chave: 'observacao' },
-                'Categoria': { chave: 'categoria', tipoPesquisa: 'select' },
+                'Nota fiscal': { chave: 'nota_fiscal' },
                 'Parcela': { chave: 'parcela_texto' },
-                'Valor': { chave: 'valor', op: '>=', tipoOrdenacao: 'numero' },
+                [pagar ? 'Fornecedor' : 'Cliente']: { chave: 'participante_nome' },
+                'CPF/CNPJ': { chave: 'participante_documento' },
+                'Valor da conta': { chave: 'valor', tipoOrdenacao: 'numero' },
+                'Valor líquido': { chave: 'valor_liquido', tipoOrdenacao: 'numero' },
+                'Impostos retidos': { chave: 'impostos_retidos', tipoOrdenacao: 'numero' },
+                'Desconto': { chave: 'desconto', tipoOrdenacao: 'numero' },
+                'Juros e multas': { chave: 'juros_multa', tipoOrdenacao: 'numero' },
+                'Valor pago': { chave: 'valor_pago', tipoOrdenacao: 'numero' },
+                'Observação': { chave: 'observacao' },
+                'Departamento': { chave: 'departamentos' },
+                'Categorias': { chave: 'categorias_texto' },
                 'Origem': { chave: 'origem', tipoPesquisa: 'select' }
             }
         })
         // Paginação própria no rodapé (a do modTab fica escondida no topo, só para os contadores).
         area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-fin></div>')
+        // Faixa de "selecionar todos do filtro": colada no topo do bloco da tabela, dentro dele.
+        area.querySelector('.modtab')?.insertAdjacentHTML('afterbegin', '<div class="fin-aviso-selecao" data-aviso-selecao-fin hidden></div>')
         await paginacao('faturasFin')
     } catch (err) {
         console.error(err)
@@ -457,9 +469,11 @@ async function telaFaturasFin(tipo, filtroExtra = null, manterFiltros = false) {
 }
 
 // Gancho da tabela (modTab funcaoAdicional), depois de cada carga.
-function aposCarregarFaturasFin() {
+async function aposCarregarFaturasFin() {
     prepararTotaisFin()
     prepararSelecaoFin()
+    // Funil nos filtros, recolher e arrastar colunas (js/tabelas-cabecalho.js); a pagar e a receber dividem o layout.
+    await cabecalhoAvancadoTabela('faturasFin', { prefKey: 'faturas_fin' })
     marcarLinhaAtivaFin()
     desenharRodapeFin()
     return totaisFaturasFin(false)
@@ -477,9 +491,37 @@ function alternarPainelFin(abrir = null) {
 }
 
 // ---------------------------------------------------------------- totais embaixo das colunas de valor
-// Somam TODO o filtro da tabela (todas as páginas), não só a página aberta; só recalculam quando o filtro muda.
-const COLUNAS_TOTAL_FIN = ['valor']
+// Com faturas marcadas, somam só as marcadas (de qualquer página). Sem nenhuma marcada, somam TODO o filtro
+// da tabela (todas as páginas), não só a página aberta; a soma do filtro só recalcula quando o filtro muda.
+const COLUNAS_TOTAL_FIN = ['valor', 'valor_liquido', 'impostos_retidos', 'desconto', 'juros_multa', 'valor_pago']
+// Só as colunas somadas de uma fatura (guardadas para a soma das marcadas de outras páginas).
+const valoresTotaisFin = d => Object.fromEntries(COLUNAS_TOTAL_FIN.map(k => [k, d[k]]))
 let assinaturaTotaisFin = null
+let somasFiltroFin = null
+// Valores das faturas marcadas (id -> { valor }): a seleção atravessa páginas e o dadosFaturasFin só tem a aberta.
+const valoresSelecaoFin = new Map()
+
+function escreverTotaisFin() {
+    const marcadas = selecaoFin.size
+    COLUNAS_TOTAL_FIN.forEach((path, i) => {
+        const td = document.querySelector(`[data-total-fin="${path}"]`)
+        if (!td) return
+        if (marcadas) {
+            let soma = 0, faltam = 0
+            selecaoFin.forEach(id => {
+                const v = (dadosFaturasFin.get(id) || valoresSelecaoFin.get(id))?.[path]
+                v == null ? faltam++ : soma += Number(v) || 0
+            })
+            td.title = `Soma das ${marcadas} fatura(s) marcada(s)${faltam ? ` (${faltam} sem valor carregado)` : ''}. Desmarque todas para ver o total do filtro.`
+            td.innerHTML = `${i === 0 ? `<small class="fin-total-rotulo">${marcadas} marcada${marcadas === 1 ? '' : 's'}</small> ` : ''}<span class="fin-sigma">Σ</span> ${dinheiro(r2Fin(soma))}`
+            td.classList.add('fin-total-selecao')
+        } else {
+            td.title = 'Total de todas as faturas do filtro'
+            td.innerHTML = `<span class="fin-sigma">Σ</span> ${somasFiltroFin?.[i] == null ? '—' : dinheiro(somasFiltroFin[i])}`
+            td.classList.remove('fin-total-selecao')
+        }
+    })
+}
 
 function prepararTotaisFin() {
     const tabela = document.getElementById('bodyFaturasFin')?.closest('table')
@@ -512,13 +554,12 @@ async function totaisFaturasFin(forcar = true) {
         try { return Number((await contarPorCampo({ base: 'vw_fin_titulos', path, modo: 'soma', filtros }))?.total || 0) } catch { return null }
     }))
     if (assinatura !== assinaturaTotaisFin) return
-    COLUNAS_TOTAL_FIN.forEach((path, i) => {
-        const td = document.querySelector(`[data-total-fin="${path}"]`)
-        if (td) td.innerHTML = `<span class="fin-sigma">Σ</span> ${somas[i] == null ? '—' : dinheiro(somas[i])}`
-    })
+    somasFiltroFin = somas
+    escreverTotaisFin()
 }
 
-// ---------------------------------------------------------------- Excel da lista (todos os resultados com os filtros)
+// ---------------------------------------------------------------- Excel da lista
+// Com faturas marcadas: só as marcadas (de qualquer página, mesmo fora do filtro). Sem marcação: tudo do filtro ativo.
 // Cabeçalho com a logo do GCS, o tipo do relatório, quando/quem gerou e os filtros; tabela com autofiltro,
 // moeda/data formatadas, totais por fórmula (SUBTOTAL: ignora o que for filtrado no Excel) e linhas zebradas.
 async function baixarExcelFaturasFin() {
@@ -528,7 +569,10 @@ async function baixarExcelFaturasFin() {
     const pagar = tipo === 'PAGAR'
     overlayAguarde()
     try {
-        const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        const marcadas = [...selecaoFin].map(Number).filter(Number.isFinite)
+        const filtros = marcadas.length
+            ? { id: { modo: 'OR', regras: marcadas.map(id => ({ op: '=', value: id })) } }
+            : combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
         const ordenar = ctrl.ordenar || [{ path: 'vencimento', direcao: 'asc' }]
         const linhas = []
         let pagina = 1, paginas = 1
@@ -559,18 +603,23 @@ async function baixarExcelFaturasFin() {
             { titulo: 'Vencimento', largura: 12, tipo: 'data', valor: d => data(d.vencimento) },
             { titulo: pagar ? 'Pago em' : 'Recebido em', largura: 12, tipo: 'data', valor: d => data(d.dia_pagamento) },
             { titulo: 'Empresa', largura: 9, centro: true, valor: d => d.app || '' },
+            { titulo: 'Nota fiscal', largura: 12, centro: true, valor: d => d.nota_fiscal || '' },
+            { titulo: 'Parcela', largura: 9, centro: true, valor: d => d.parcela_texto || '' },
             { titulo: pagar ? 'Fornecedor' : 'Cliente', largura: 38, valor: d => d.participante_nome || '' },
             { titulo: 'CPF/CNPJ', largura: 19, valor: d => d.participante_documento ? docFormatadoFis(d.participante_documento) : '' },
+            { titulo: 'Valor da conta', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.valor) || 0 },
+            { titulo: 'Valor líquido', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.valor_liquido) || 0 },
+            { titulo: 'Impostos retidos', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.impostos_retidos) || 0 },
+            { titulo: 'Desconto', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.desconto) || 0 },
+            { titulo: 'Juros e multas', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.juros_multa) || 0 },
+            { titulo: 'Valor pago', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.valor_pago) || 0 },
             { titulo: 'Observação', largura: 40, quebra: true, valor: d => d.observacao || '' },
             { titulo: 'Categoria', largura: 34, quebra: true, valor: categorias },
             { titulo: 'Departamento', largura: 22, quebra: true, valor: departamentos },
-            { titulo: 'Parcela', largura: 9, centro: true, valor: d => d.parcela_texto || '' },
             { titulo: 'Nº documento', largura: 14, valor: d => d.numero_documento || d.documento_numero || '' },
             { titulo: 'Forma', largura: 18, valor: d => (FORMAS_FIN.find(([v]) => v === d.forma_pagamento) || [])[1] || '' },
             { titulo: 'Conta corrente', largura: 22, valor: d => d.conta || '' },
             { titulo: 'Origem', largura: 14, valor: d => ORIGENS_FIN[d.origem] || d.origem || '' },
-            { titulo: 'Valor', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.valor) || 0 },
-            { titulo: pagar ? 'Pago' : 'Recebido', largura: 15, tipo: 'moeda', soma: true, valor: d => r2Fin((Number(d.pago) || 0) + (Number(d.acrescimos) || 0)) },
             { titulo: 'Saldo', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.saldo) || 0 }
         ]
         const n = colunas.length
@@ -609,7 +658,7 @@ async function baixarExcelFaturasFin() {
         const agora = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' })
         linhaTopo(1, `Relatório · ${titulo}`, { size: 18, bold: true, color: { argb: VERDE } })
         linhaTopo(2, `Gerado em ${agora}${acesso?.usuario ? ` por ${acesso.usuario}` : ''} · ${linhas.length} fatura(s)`, { size: 10, color: { argb: CINZA } })
-        linhaTopo(3, `Filtros: ${descreverFiltrosFin(ctrl)}`, { size: 10, color: { argb: CINZA } })
+        linhaTopo(3, marcadas.length ? `Faturas marcadas na tela: ${marcadas.length}` : `Filtros: ${descreverFiltrosFin(ctrl)}`, { size: 10, color: { argb: CINZA } })
         // Faixa verde fina embaixo do cabeçalho e um respiro.
         ws.getRow(4).height = 5
         for (let i = 1; i <= n; i++) ws.getCell(4, i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE } }
@@ -686,6 +735,8 @@ function descreverFiltrosFin(ctrl) {
         const lista = (Array.isArray(f) ? f : [f]).filter(x => x && x.value !== '' && x.value != null)
         if (!lista.length) return ''
         const [nome, coluna] = colunas.find(([, c]) => c.chave === chave) || [chave, {}]
+        // Filtro escolhido pelo funil (js/tabelas-cabecalho.js): já vem descrito ("Entre ... e ...", "Esse mês"...).
+        if (ctrl.filtrosMeta?.[chave] && typeof textoFiltroCab === 'function') return `${nome}: ${textoFiltroCab('faturasFin', chave)}`
         const rotulos = coluna.rotulos || {}
         return `${nome}: ${lista.map(x => `${ops[x.op] ?? ''} ${rotulos[String(x.value).toUpperCase()] || valor(x.value)}`.trim()).join(' e ')}`
     }).filter(Boolean)
@@ -765,7 +816,7 @@ function desenharPainelFin() {
             <hr>
             ${acao('cancelar', `Cancelar ${termoFin('pagamento')}`, 'cancelarPagamentosFin()', { perigo: true })}
             ${acao('excluir', 'Excluir', 'excluirLoteFin()', { perigo: true })}
-            ${acao('fechar', 'Desmarcar todas', 'selecaoFin.clear(); prepararSelecaoFin()')}`
+            ${acao('fechar', 'Desmarcar todas', 'limparSelecaoFin()')}`
         return
     }
 
@@ -824,8 +875,62 @@ async function cancelarPagamentosFin(id = null) {
 }
 
 // ---------------------------------------------------------------- seleção e ações em várias faturas
-// A seleção vale entre páginas (ids). "Marcar todas" (cabeçalho) marca as da página aberta.
+// A seleção vale entre páginas (ids). "Marcar todas" (cabeçalho) marca as da página aberta e mostra o aviso
+// acima da tabela, que oferece marcar todas as do filtro (todas as páginas) ou limpar a seleção.
 const selecaoFin = new Set()
+
+function guardarValorSelecaoFin(id) {
+    const d = dadosFaturasFin.get(id)
+    if (d) valoresSelecaoFin.set(id, valoresTotaisFin(d))
+}
+
+function limparSelecaoFin() {
+    selecaoFin.clear()
+    valoresSelecaoFin.clear()
+    prepararSelecaoFin()
+}
+
+const totalFiltroFin = () => Number(document.getElementById('resultados_faturasFin')?.textContent) || 0
+
+// Marca todas as faturas do filtro aplicado (todas as páginas), buscando ids e valores no banco.
+async function selecionarTodasFiltroFin() {
+    const ctrl = controles.faturasFin
+    if (!ctrl) return
+    overlayAguarde()
+    try {
+        const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        let pagina = 1, paginas = 1
+        do {
+            const r = await pesquisarDB({ base: 'vw_fin_titulos', filtros, ordenar: ctrl.ordenar || [{ path: 'vencimento', direcao: 'asc' }], pagina, limite: 2000 })
+            ;(r?.resultados || []).forEach(d => {
+                const id = String(d.id)
+                selecaoFin.add(id)
+                valoresSelecaoFin.set(id, valoresTotaisFin(d))
+            })
+            paginas = Number(r?.paginas) || 1
+            pagina++
+        } while (pagina <= paginas && pagina <= 50)
+        removerOverlay()
+        prepararSelecaoFin()
+        if (selecaoFin.size) alternarPainelFin(true)
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: `Falha ao marcar as faturas do filtro: ${escFin(err.message)}` })
+    }
+}
+
+function desenharAvisoSelecaoFin(paginaToda) {
+    const aviso = document.querySelector('[data-aviso-selecao-fin]')
+    if (!aviso) return
+    const n = selecaoFin.size, total = totalFiltroFin()
+    if (!n || !paginaToda) { aviso.hidden = true; aviso.innerHTML = ''; return }
+    const plural = (q, s, p) => `${q.toLocaleString('pt-BR')} ${q === 1 ? s : p}`
+    const limpar = '<a href="#" onclick="event.preventDefault(); limparSelecaoFin()">limpar a seleção</a>'
+    aviso.hidden = false
+    aviso.innerHTML = n < total
+        ? `Você selecionou ${plural(n, 'registro', 'registros')}. Você pode ${limpar} ou <a href="#" onclick="event.preventDefault(); selecionarTodasFiltroFin()">selecionar todos ${plural(total, 'registro', 'registros')} deste filtro</a>`
+        : `Você selecionou ${n === total ? 'todos os ' : ''}${plural(n, 'registro', 'registros')}${n === total ? ' deste filtro' : ''}. Você pode ${limpar}`
+}
 
 function prepararSelecaoFin() {
     const th = document.querySelector('.fin-tela .tabela thead tr:first-child th:first-child')
@@ -838,7 +943,8 @@ function prepararSelecaoFin() {
 }
 
 function marcarFaturaFin(caixa) {
-    caixa.checked ? selecaoFin.add(caixa.value) : selecaoFin.delete(caixa.value)
+    if (caixa.checked) { selecaoFin.add(caixa.value); guardarValorSelecaoFin(caixa.value) }
+    else selecaoFin.delete(caixa.value)
     desenharSelecaoFin()
     if (selecaoFin.size) alternarPainelFin(true)
 }
@@ -846,7 +952,8 @@ function marcarFaturaFin(caixa) {
 function marcarTodasFin(caixa) {
     document.querySelectorAll('#bodyFaturasFin [data-marcar-fin]').forEach(c => {
         c.checked = caixa.checked
-        caixa.checked ? selecaoFin.add(c.value) : selecaoFin.delete(c.value)
+        if (caixa.checked) { selecaoFin.add(c.value); guardarValorSelecaoFin(c.value) }
+        else selecaoFin.delete(c.value)
     })
     desenharSelecaoFin()
     if (selecaoFin.size) alternarPainelFin(true)
@@ -855,11 +962,14 @@ function marcarTodasFin(caixa) {
 function desenharSelecaoFin() {
     const pagina = [...document.querySelectorAll('#bodyFaturasFin [data-marcar-fin]')]
     const todas = document.querySelector('[data-marcar-todas-fin]')
+    const marcadas = pagina.filter(c => c.checked).length
+    const paginaToda = pagina.length > 0 && marcadas === pagina.length
     if (todas) {
-        const marcadas = pagina.filter(c => c.checked).length
-        todas.checked = pagina.length > 0 && marcadas === pagina.length
+        todas.checked = paginaToda
         todas.indeterminate = marcadas > 0 && marcadas < pagina.length
     }
+    desenharAvisoSelecaoFin(paginaToda)
+    escreverTotaisFin()
     desenharPainelFin()
 }
 
@@ -934,7 +1044,7 @@ async function executarLoteFin(corpo, botao = null, ids = null) {
             mensagem: `<b>${r.feitas} fatura(s) ${verbo}.</b>${r.puladas.length ? `<br>${r.puladas.length} ficaram de fora:<ul class="fis-lista">${r.puladas.map(p => `<li>${escFin(p.fatura)}: ${escFin(p.motivo)}</li>`).join('')}</ul>` : ''}`,
             imagem: r.puladas.length ? undefined : 'imagens/concluido.png'
         })
-        if (!ids) selecaoFin.clear()
+        if (!ids) { selecaoFin.clear(); valoresSelecaoFin.clear() }
         if (controles.faturasFin) await paginacao('faturasFin')
         prepararSelecaoFin()
         totaisFaturasFin()
@@ -957,11 +1067,19 @@ function criarLinhaFaturaFin(d) {
             <td class="fin-centro">${dataFin(d.vencimento)}</td>
             <td class="fin-centro">${d.dia_pagamento ? dataFin(d.dia_pagamento) : '<span class="fin-vazio">&lt;não informado&gt;</span>'}</td>
             <td>${escFin(d.app)}</td>
-            <td class="fis-descricao">${escFin(d.participante_nome || '')}${d.participante_documento ? `<small>${docFormatadoFis(d.participante_documento)}</small>` : ''}</td>
-            <td class="fin-obs" title="${escFin(d.observacao || '')}"><span class="fin-obs-txt">${escFin(d.observacao || '')}</span>${d.departamentos ? `<small class="fin-sub">${escFin(d.departamentos)}</small>` : ''}</td>
-            <td><small>${escFin(d.categoria || '—')}${Array.isArray(d.categorias) && d.categorias.length > 1 ? ` <b class="fin-mais" title="Rateio em ${d.categorias.length} categorias">+${d.categorias.length - 1}</b>` : ''}</small></td>
+            <td class="fin-centro fin-doc">${escFin(d.nota_fiscal || '')}</td>
             <td class="fin-centro">${escFin(d.parcela_texto)}</td>
+            <td class="fin-obs fin-nome" title="${escFin(d.participante_nome || '')}"><span class="fin-obs-txt">${escFin(d.participante_nome || '')}</span></td>
+            <td class="fin-centro fin-doc">${d.participante_documento ? docFormatadoFis(d.participante_documento) : ''}</td>
             <td class="fis-num">${dinheiro(d.valor)}</td>
+            <td class="fis-num">${dinheiro(d.valor_liquido)}</td>
+            <td class="fis-num">${dinheiro(d.impostos_retidos)}</td>
+            <td class="fis-num">${dinheiro(d.desconto)}</td>
+            <td class="fis-num">${dinheiro(d.juros_multa)}</td>
+            <td class="fis-num">${dinheiro(d.valor_pago)}</td>
+            <td class="fin-obs" title="${escFin(d.observacao || '')}"><span class="fin-obs-txt">${escFin(d.observacao || '')}</span></td>
+            <td class="fin-obs fin-deps" title="${escFin(d.departamentos || '')}"><span class="fin-obs-txt">${escFin(d.departamentos || '')}</span></td>
+            <td class="fin-obs fin-deps" title="${escFin(d.categorias_texto || '')}"><span class="fin-obs-txt">${escFin(d.categorias_texto || '')}</span></td>
             <td><small>${escFin(ORIGENS_FIN[d.origem] || d.origem)}</small></td>
         </tr>`
 }
