@@ -141,9 +141,9 @@ async function cancelarSolicitacaoParceiro(id, idSolicitacao, confirmar = false)
 function podeAjustarValorParceiro(parceiro, linha) {
     if (linha.encerrada || /^(PAGO|RECEBIDO)$/i.test(String(linha.statusAtual).trim())) return false
     if (linha.pagamento ? !linha.pagamento.param_estavel : linha.legado) return false
-    const { usuario, permissao } = acesso || {}
+    const { usuario } = acesso || {}
     const analistas = [linha.usuario, linha.pagamento?.criado, parceiro?.executor]
-    return ['gerente', 'adm', 'fin', 'diretoria'].includes(permissao) || analistas.includes(usuario)
+    return pode('reembolsos.ajustar_parceiro') || analistas.includes(usuario)
 }
 
 function redistribuirValorParceiro(lista = [], campo, novoTotal) {

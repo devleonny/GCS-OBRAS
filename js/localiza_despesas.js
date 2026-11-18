@@ -345,8 +345,7 @@ function criarLinhaLocaliza(d) {
     return { linha, detalhes: detalhesLocaliza(d) }
 }
 
-const PERFIS_EDITAR_LOCALIZA = ['adm', 'diretoria', 'fin']
-const podeEditarLocaliza = () => PERFIS_EDITAR_LOCALIZA.includes(acesso?.permissao)
+const podeEditarLocaliza = () => pode('veiculos.localiza.editar')
 
 // Envio do rateio ao Omie em segundo plano (localiza_rateio_fila): o rateio já vale no GCS; o selo mostra o
 // andamento. ERRO traz a mensagem do Omie e "Reenviar"; OK some depois de um dia.

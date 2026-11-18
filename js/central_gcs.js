@@ -766,10 +766,7 @@ async function verPedidoAprovacao(idOrcamento) {
 
     overlayAguarde()
 
-    const permissao = acesso.permissao
-    const pessoasPermitidas = ['adm', 'diretoria']
-
-    if (!pessoasPermitidas.includes(permissao))
+    if (!pode('orcamentos.aprovacoes'))
         return popup({ mensagem: 'Você não tem acesso' })
 
     // Um painel por orçamento, cada um com a sua tabela de itens (antes o id era fixo: o segundo

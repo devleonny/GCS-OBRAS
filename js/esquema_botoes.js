@@ -3,25 +3,24 @@ let menusAbertos = {}
 function criarMenus(chave) {
 
     const botoesMenu = document.querySelector('.botoesMenu')
-    const { permissao } = JSON.parse(localStorage.getItem('acesso')) || {}
     const lista = esquemaBotoes[chave] || []
 
     const html = lista
-        .map((item, i) => renderMenuItem(item, `menu_${i}`, 0, permissao))
+        .map((item, i) => renderMenuItem(item, `menu_${i}`, 0))
         .join('')
 
     botoesMenu.innerHTML = html
 }
 
-function renderMenuItem(item, id, nivel, permissao) {
-    const permitido = item.permitido || []
-    const bloqueio = item.bloqueio || []
-
-    if (permitido.length > 0 && !permitido.includes(permissao)) return ''
-    if (permitido.length === 0 && bloqueio.includes(permissao)) return ''
+// Quem vê cada item: a chave "acesso" na Central de Acessos (js/acessos.js, gcs SCRIPTS/acessos_catalogo.js).
+// Item sem chave aparece se algum filho aparecer (ou para todos, se não tiver filhos: Início, Sair...).
+// soAdm: só o perfil adm (a própria Central de Acessos).
+function renderMenuItem(item, id, nivel) {
+    if (item.soAdm && acesso?.permissao !== 'adm') return ''
+    if (item.acesso && !pode(item.acesso)) return ''
 
     const filhos = (item.sub || [])
-        .map((sub, i) => renderMenuItem(sub, `${id}_${i}`, nivel + 1, permissao))
+        .map((sub, i) => renderMenuItem(sub, `${id}_${i}`, nivel + 1))
         .join('')
     const temFilhos = Boolean(filhos)
 
@@ -145,18 +144,11 @@ async function acaoMenu(id, funcao, temFilhos) {
 
 }
 
-// Quem vê os kanbans de Vendas/Serviços (base vw_fluxo_comercial) e as notas (vw_fiscal_documentos).
-const PERFIS_FLUXO_MENU = ['adm', 'diretoria', 'fin', 'gerente', 'analista', 'log', 'user']
-const PERFIS_FISCAL_MENU = ['adm', 'diretoria', 'fin', 'log', 'gerente', 'coordenacao', 'analista']
-// Menus Vendas e NF-e, Serviços e NFS-e e Compras e Estoque: só estes perfis (pedido de 14/11/2026).
-// Gerente entrou em 16/11/2026 com o acesso do log. Financeiro: adm, diretoria e fin.
-const PERFIS_MENUS_COMERCIAIS = ['adm', 'diretoria', 'fin', 'log', 'gerente']
-
 const esquemaBotoes = {
     inicial: [
         {
             nome: 'Checklist',
-            bloqueio: ['cliente'],
+            acesso: 'checklist.ver',
             img: 'prancheta',
             especial: true,
             funcao: 'telaPlanosDiarios'
@@ -169,12 +161,12 @@ const esquemaBotoes = {
         {
             nome: 'Orçamentos',
             img: 'projeto',
-            bloqueio: ['cliente', 'técnico'],
             sub: [
-                { nome: 'Ver Orçamentos', funcao: 'telaOrcamentos', img: 'projeto' },
-                { nome: 'Dashboard', funcao: 'telaDashboardOrcamentos', img: 'dashboard' },
+                { nome: 'Ver Orçamentos', funcao: 'telaOrcamentos', acesso: 'orcamentos.ver', img: 'projeto' },
+                { nome: 'Dashboard', funcao: 'telaDashboardOrcamentos', acesso: 'orcamentos.dashboard', img: 'dashboard' },
                 {
                     nome: 'Criar Orçamento',
+                    acesso: 'orcamentos.criar',
                     img: 'projeto',
                     sub: [
                         { nome: 'Em edição', funcao: 'painelEdicao', img: 'projeto' },
@@ -183,147 +175,141 @@ const esquemaBotoes = {
                         { nome: 'Apagar Orçamento', funcao: 'apagarOrcamento', img: 'cancel' }
                     ]
                 },
-                { nome: 'Baixar em Excel', funcao: 'baixarExcelOrcamentos', img: 'excel' }
+                { nome: 'Baixar em Excel', funcao: 'baixarExcelOrcamentos', acesso: 'orcamentos.excel', img: 'excel' }
             ]
         },
         {
             nome: 'Ocorrências',
             img: 'alerta',
             sub: [
-                { nome: 'Ver Ocorrências', funcao: 'telaOcorrencias', img: 'alerta' },
-                { nome: 'Dashboard', funcao: 'telaDashboardChamados', img: 'dashboard' },
-                { nome: 'Criar Ocorrência', funcao: 'formularioOcorrencia', img: 'baixar' },
+                { nome: 'Ver Ocorrências', funcao: 'telaOcorrencias', acesso: 'ocorrencias.ver', img: 'alerta' },
+                { nome: 'Dashboard', funcao: 'telaDashboardChamados', acesso: 'ocorrencias.dashboard', img: 'dashboard' },
+                { nome: 'Criar Ocorrência', funcao: 'formularioOcorrencia', acesso: 'ocorrencias.criar', img: 'baixar' },
                 {
                     nome: 'Relatório de Ocorrências',
                     funcao: 'telaRelatorio',
+                    acesso: 'ocorrencias.relatorio',
                     img: 'planilha',
                     sub: [
-                        { nome: 'Baixar em Excel', funcao: 'baixarExcelRelatorioOcorrencias', img: 'excel' }
+                        { nome: 'Baixar em Excel', funcao: 'baixarExcelRelatorioOcorrencias', acesso: 'ocorrencias.relatorio.excel', img: 'excel' }
                     ]
                 },
                 {
                     nome: 'Relatório de Correções',
                     funcao: 'telaRelatorioCorrecoes',
+                    acesso: 'ocorrencias.relatorio_correcoes',
                     img: 'planilha',
                     sub: [
-                        { nome: 'Baixar em Excel', funcao: 'baixarExcelRelatorioCorrecoes', img: 'excel' }
+                        { nome: 'Baixar em Excel', funcao: 'baixarExcelRelatorioCorrecoes', acesso: 'ocorrencias.relatorio_correcoes.excel', img: 'excel' }
                     ]
                 },
                 {
                     nome: 'Relatório de Peças',
                     funcao: 'telaRelatorioPecas',
+                    acesso: 'ocorrencias.relatorio_pecas',
                     img: 'planilha',
                     sub: [
-                        { nome: 'Baixar em Excel', funcao: 'baixarExcelRelatorioPecas', img: 'excel' }
+                        { nome: 'Baixar em Excel', funcao: 'baixarExcelRelatorioPecas', acesso: 'ocorrencias.relatorio_pecas.excel', img: 'excel' }
                     ]
                 }
             ]
         },
         {
             nome: 'Cadastros',
-            bloqueio: ['cliente', 'técnico'],
             img: 'prancheta',
             sub: [
-                { nome: 'Criar Cadastro', funcao: 'formularioCliente', img: 'baixar' },
-                { nome: 'Link de Cadastro', funcao: 'formularioLinkCadastro', img: 'link' },
-                { nome: 'Categorias de Formulário', funcao: 'telaCadastros', img: 'prancheta' },
-                { nome: 'Clientes, Usuários & Fornecedores', funcao: 'telaClientes', img: 'prancheta' }
+                { nome: 'Criar Cadastro', funcao: 'formularioCliente', acesso: 'cadastros.criar', img: 'baixar' },
+                { nome: 'Link de Cadastro', funcao: 'formularioLinkCadastro', acesso: 'cadastros.link', img: 'link' },
+                { nome: 'Categorias de Formulário', funcao: 'telaCadastros', acesso: 'cadastros.categorias', img: 'prancheta' },
+                { nome: 'Clientes, Usuários & Fornecedores', funcao: 'telaClientes', acesso: 'cadastros.clientes', img: 'prancheta' }
             ]
         },
         {
             nome: 'Contratos',
-            bloqueio: ['cliente', 'técnico'],
             img: 'contratos',
             sub: [
-                { nome: 'Adicionar Contrato', funcao: 'gerenciarContrato', img: 'baixar' },
-                { nome: 'Ver Contratos', funcao: 'telaContratos', img: 'contratos' }
+                { nome: 'Adicionar Contrato', funcao: 'gerenciarContrato', acesso: 'contratos.adicionar', img: 'baixar' },
+                { nome: 'Ver Contratos', funcao: 'telaContratos', acesso: 'contratos.ver', img: 'contratos' }
             ]
         },
         {
             nome: 'Logística',
-            bloqueio: ['cliente', 'técnico', 'visitante'],
             img: 'logistica',
             sub: [
-                { nome: 'Controle Logístico', funcao: 'telaLogistica', img: 'logistica' },
-                { nome: 'Novo Envio', funcao: 'formularioEnvioLogistica', img: 'baixar' },
-                { nome: 'NFs sem Envio', funcao: 'painelNotasSemEnvio', img: 'frete' },
-                { nome: 'Requisições sem Envio', funcao: 'painelRequisicoesSemEnvio', img: 'frete' }
+                { nome: 'Controle Logístico', funcao: 'telaLogistica', acesso: 'logistica.controle', img: 'logistica' },
+                { nome: 'Novo Envio', funcao: 'formularioEnvioLogistica', acesso: 'logistica.novo_envio', img: 'baixar' },
+                { nome: 'NFs sem Envio', funcao: 'painelNotasSemEnvio', acesso: 'logistica.nfs_sem_envio', img: 'frete' },
+                { nome: 'Requisições sem Envio', funcao: 'painelRequisicoesSemEnvio', acesso: 'logistica.requisicoes_sem_envio', img: 'frete' }
             ]
         },
         // Como as abas do Omie: Vendas e NF-e / Serviços e NFS-e / Compras e Estoque (antes: menu Fiscal).
-        // Menu aparece para quem vê o kanban OU as notas; cada item tem a própria permissão:
-        //   kanban (vw_fluxo_comercial): PERFIS_FLUXO_MENU; notas (vw_fiscal_documentos): PERFIS_FISCAL_MENU.
+        // Menu aparece para quem tem alguma das telas dele (Central de Acessos).
         {
             nome: 'Vendas e NF-e',
-            permitido: PERFIS_MENUS_COMERCIAIS,
             img: 'vendas_nfe',
             sub: [
                 // Quadro com arraste sobre fluxo_itens (desde 13/11/2026; o antigo, calculado por view, saiu do menu).
-                { nome: 'Fluxo de Vendas', funcao: 'telaFluxoItensVendas', img: 'kanban', permitido: PERFIS_FLUXO_MENU },
-                { nome: 'NF-e Emitidas', funcao: 'telaNotasNFe', img: 'up_estoque', permitido: PERFIS_FISCAL_MENU },
+                { nome: 'Fluxo de Vendas', funcao: 'telaFluxoItensVendas', img: 'kanban', acesso: 'vendas.fluxo' },
+                { nome: 'NF-e Emitidas', funcao: 'telaNotasNFe', img: 'up_estoque', acesso: 'vendas.nfe_emitidas' },
                 // Demonstração, conserto e comodato que precisam voltar (js/remessas_retorno.js, 18/11/2026).
-                { nome: 'Remessas a retornar', funcao: 'telaRemessasRetorno', img: 'lista', permitido: PERFIS_FISCAL_MENU },
-                { nome: 'Emitir NF-e', funcao: 'formularioEmissaoNFe', img: 'baixar', permitido: ['adm', 'diretoria', 'fin'] },
-                { nome: 'Configuração Fiscal', funcao: 'telaConfigFiscal', img: 'engrenagem', permitido: ['adm', 'diretoria', 'fin'] }
+                { nome: 'Remessas a retornar', funcao: 'telaRemessasRetorno', img: 'lista', acesso: 'vendas.remessas' },
+                { nome: 'Emitir NF-e', funcao: 'formularioEmissaoNFe', img: 'baixar', acesso: 'vendas.emitir_nfe' },
+                { nome: 'Configuração Fiscal', funcao: 'telaConfigFiscal', img: 'engrenagem', acesso: 'fiscal.config' }
             ]
         },
         {
             nome: 'Serviços e NFS-e',
-            permitido: PERFIS_MENUS_COMERCIAIS,
             img: 'servicos_nfse',
             sub: [
-                { nome: 'Fluxo de Serviços', funcao: 'telaFluxoServicos', img: 'kanban', permitido: PERFIS_FLUXO_MENU },
-                { nome: 'NFS-e Emitidas', funcao: 'telaNotasNFSe', img: 'up_estoque', permitido: PERFIS_FISCAL_MENU },
-                { nome: 'Emitir NFS-e', funcao: 'formularioEmissaoNFSe', img: 'baixar', permitido: ['adm', 'diretoria', 'fin'] },
-                { nome: 'Configuração Fiscal', funcao: 'telaConfigFiscal', img: 'engrenagem', permitido: ['adm', 'diretoria', 'fin'] }
+                { nome: 'Fluxo de Serviços', funcao: 'telaFluxoServicos', img: 'kanban', acesso: 'servicos.fluxo' },
+                { nome: 'NFS-e Emitidas', funcao: 'telaNotasNFSe', img: 'up_estoque', acesso: 'servicos.nfse_emitidas' },
+                { nome: 'Emitir NFS-e', funcao: 'formularioEmissaoNFSe', img: 'baixar', acesso: 'servicos.emitir_nfse' },
+                { nome: 'Configuração Fiscal', funcao: 'telaConfigFiscal', img: 'engrenagem', acesso: 'fiscal.config' }
             ]
         },
         {
             nome: 'Compras e Estoque',
-            permitido: PERFIS_MENUS_COMERCIAIS,
             img: 'estoque',
             sub: [
-                { nome: 'Fluxo de Compras', funcao: 'telaFluxoCompras', img: 'kanban', permitido: PERFIS_FISCAL_MENU },
-                { nome: 'Notas Recebidas', funcao: 'telaNotasRecebidas', img: 'down_estoque', permitido: PERFIS_FISCAL_MENU },
-                { nome: 'Saldos', funcao: 'telaEstoque', img: 'estoque' },
-                { nome: 'Movimentações', funcao: 'telaMovimentosEstoque', img: 'lista' },
-                { nome: 'Locais', funcao: 'telaLocaisEstoque', img: 'estoque' },
-                { nome: 'Inventário', funcao: 'telaInventarios', img: 'prancheta' }
+                { nome: 'Fluxo de Compras', funcao: 'telaFluxoCompras', img: 'kanban', acesso: 'compras.fluxo' },
+                { nome: 'Notas Recebidas', funcao: 'telaNotasRecebidas', img: 'down_estoque', acesso: 'compras.notas_recebidas' },
+                { nome: 'Saldos', funcao: 'telaEstoque', acesso: 'compras.saldos', img: 'estoque' },
+                { nome: 'Movimentações', funcao: 'telaMovimentosEstoque', acesso: 'compras.movimentacoes', img: 'lista' },
+                { nome: 'Locais', funcao: 'telaLocaisEstoque', acesso: 'compras.locais', img: 'estoque' },
+                { nome: 'Inventário', funcao: 'telaInventarios', acesso: 'compras.inventario', img: 'prancheta' }
             ]
         },
         {
             nome: 'Agenda',
-            bloqueio: ['cliente', 'técnico'],
+            acesso: 'agenda.ver',
             img: 'reagendar',
             funcao: 'telaAgenda'
         },
         {
             nome: 'Ferramentas e Materiais',
-            bloqueio: ['cliente', 'técnico'],
+            acesso: 'ferramentas.ver',
             img: 'furadeira',
             funcao: 'telaColaboradores'
         },
         {
             nome: 'Veículos',
-            bloqueio: ['cliente', 'técnico'],
             img: 'veiculo',
             sub: [
-                { nome: 'Ver Combustíveis', funcao: 'telaVeiculos', img: 'veiculo' },
-                { nome: 'Adicionar Combustível', funcao: 'painelValores', img: 'combustivel' },
-                { nome: 'Veículos', funcao: 'auxVeiculos', img: 'veiculo' },
-                { nome: 'Despesas Localiza', funcao: 'telaLocalizaDespesas', img: 'dinheiro' }
+                { nome: 'Ver Combustíveis', funcao: 'telaVeiculos', acesso: 'veiculos.combustiveis', img: 'veiculo' },
+                { nome: 'Adicionar Combustível', funcao: 'painelValores', acesso: 'veiculos.adicionar', img: 'combustivel' },
+                { nome: 'Veículos', funcao: 'auxVeiculos', acesso: 'veiculos.cadastro', img: 'veiculo' },
+                { nome: 'Despesas Localiza', funcao: 'telaLocalizaDespesas', acesso: 'veiculos.localiza', img: 'dinheiro' }
             ]
         },
         {
             nome: 'Reembolsos',
-            bloqueio: ['cliente', 'técnico'],
             img: 'reembolso',
             sub: [
-                { nome: 'Ver Pagamentos', funcao: 'telaPagamentos', img: 'reembolso' },
-                { nome: 'Solicitar Pagamento', funcao: 'formularioPagamento', img: 'dinheiro' },
+                { nome: 'Ver Pagamentos', funcao: 'telaPagamentos', acesso: 'reembolsos.ver', img: 'reembolso' },
+                { nome: 'Solicitar Pagamento', funcao: 'formularioPagamento', acesso: 'reembolsos.solicitar', img: 'dinheiro' },
                 {
                     nome: 'Baixar Excel',
-                    permitido: ['fin', 'diretoria', 'adm'],
+                    acesso: 'reembolsos.excel',
                     funcao: 'baixarExcelRelatorioPagamentos',
                     img: 'excel'
                 }
@@ -332,55 +318,58 @@ const esquemaBotoes = {
         // Financeiro próprio do GCS (js/financeiro.js, gcs migrations/financeiro.sql). O Dashboard veio de Reembolsos.
         {
             nome: 'Financeiro',
-            permitido: ['fin', 'diretoria', 'adm'],
             img: 'dinheiro',
             sub: [
-                { nome: 'Faturas a Pagar', funcao: 'telaFaturasPagar', img: 'pagar' },
-                { nome: 'Faturas a Receber', funcao: 'telaFaturasReceber', img: 'receber' },
-                { nome: 'Contas Correntes', funcao: 'telaContasFin', img: 'planilha' },
-                { nome: 'Categorias', funcao: 'telaCategoriasFin', img: 'prancheta' },
-                { nome: 'Dashboard', funcao: 'telaDashboardReembolsos', img: 'dashboard' },
+                { nome: 'Faturas a Pagar', funcao: 'telaFaturasPagar', acesso: 'financeiro.faturas_pagar', img: 'pagar' },
+                { nome: 'Faturas a Receber', funcao: 'telaFaturasReceber', acesso: 'financeiro.faturas_receber', img: 'receber' },
+                { nome: 'Contas Correntes', funcao: 'telaContasFin', acesso: 'financeiro.contas', img: 'planilha' },
+                { nome: 'Categorias', funcao: 'telaCategoriasFin', acesso: 'financeiro.categorias', img: 'prancheta' },
+                { nome: 'Dashboard', funcao: 'telaDashboardReembolsos', acesso: 'financeiro.dashboard', img: 'dashboard' },
                 // Relatórios (antes num menu próprio, com as mesmas permissões).
-                { nome: 'Custos por Departamento', funcao: 'telaCustosDepartamentos', img: 'dashboard' },
-                { nome: 'Custos de Pessoal', funcao: 'telaCustosPessoal', img: 'dashboard' }
+                { nome: 'Custos por Departamento', funcao: 'telaCustosDepartamentos', acesso: 'financeiro.custos_departamento', img: 'dashboard' },
+                { nome: 'Custos de Pessoal', funcao: 'telaCustosPessoal', acesso: 'financeiro.custos_pessoal', img: 'dashboard' }
             ]
         },
         {
             nome: 'Post-it',
-            bloqueio: ['cliente', 'técnico'],
             img: 'kanban',
             sub: [
-                { nome: 'Ver Post-its', funcao: 'telaPIT', img: 'kanban' },
-                { nome: 'Criar Post-it', funcao: 'criarPIT', img: 'baixar' },
-                { nome: 'Criar Quadro', funcao: 'criarQuadro', img: 'baixar' }
+                { nome: 'Ver Post-its', funcao: 'telaPIT', acesso: 'postit.ver', img: 'kanban' },
+                { nome: 'Criar Post-it', funcao: 'criarPIT', acesso: 'postit.criar', img: 'baixar' },
+                { nome: 'Criar Quadro', funcao: 'criarQuadro', acesso: 'postit.quadro', img: 'baixar' }
             ]
         },
         {
             nome: 'RH',
-            bloqueio: ['cliente', 'técnico'],
             img: 'gerente',
             sub: [
-                { nome: 'Ver Documentos', funcao: 'telaRH', img: 'gerente' },
-                { nome: 'Incluir Documento', funcao: 'incluirDocumento', img: 'baixar' }
+                { nome: 'Ver Documentos', funcao: 'telaRH', acesso: 'rh.ver', img: 'gerente' },
+                { nome: 'Incluir Documento', funcao: 'incluirDocumento', acesso: 'rh.incluir', img: 'baixar' }
             ]
         },
         {
             nome: 'Composições',
-            bloqueio: ['cliente', 'técnico'],
             img: 'composicoes',
             sub: [
-                { nome: 'Ver Composições', funcao: 'telaComposicoes', img: 'composicoes' },
-                { nome: 'Cadastrar Item', funcao: 'cadastrarItem', img: 'baixar' },
-                { nome: 'Baixar em Excel', funcao: 'baixarExcelComposicoes', img: 'excel' }
+                { nome: 'Ver Composições', funcao: 'telaComposicoes', acesso: 'composicoes.ver', img: 'composicoes' },
+                { nome: 'Cadastrar Item', funcao: 'cadastrarItem', acesso: 'composicoes.cadastrar', img: 'baixar' },
+                { nome: 'Baixar em Excel', funcao: 'baixarExcelComposicoes', acesso: 'composicoes.excel', img: 'excel' }
             ]
         },
         {
             nome: 'Histórico de Uso GCS',
             img: 'pesquisar5',
-            permitido: ['adm', 'diretoria'],
+            acesso: 'sistema.historico',
             sub: [
                 { nome: 'Ver histórico', funcao: 'daily', img: 'pesquisar5' }
             ]
+        },
+        // Quem vê e faz o quê (js/acessos.js): só o adm.
+        {
+            nome: 'Central de Acessos',
+            img: 'cadeado',
+            soAdm: true,
+            funcao: 'telaCentralAcessos'
         },
         {
             nome: 'GCS no celular',

@@ -383,7 +383,7 @@ function carregarCorrecoes(ocorrencia) {
         const aprovacaoParceiro = descricao && descricao.includes('🟢 Pagamento aprovado')
         const pagamentoParceiro = tipoCorrecaoNome === 'PAGAMENTO DE PARCEIRO'
 
-        const btnAprovar = (['gerente', 'adm'].includes(permissao) && pagamentoParceiro && !parceiroCancelado)
+        const btnAprovar = (pode('ocorrencias.aprovar_pag_parceiro') && pagamentoParceiro && !parceiroCancelado)
             ? `
                 <span 
                     class="alerta-piscando"
@@ -1345,7 +1345,7 @@ async function linPedidos(ped) {
     const tabela = 'pedidos'
     const cor = '#4CAF50'
 
-    const excluir = (executor == acesso.usuario || acesso.permissao == 'adm')
+    const excluir = (executor == acesso.usuario || pode('ocorrencias.excluir_de_outros'))
         ? `<span 
             class="close" 
             style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
@@ -1412,7 +1412,7 @@ async function linRequisicoes(req) {
             ? await recuperarDado('pedidos', pedido) || {}
             : {}
 
-    const excluir = (executor == acesso.usuario || acesso.permissao == 'adm')
+    const excluir = (executor == acesso.usuario || pode('ocorrencias.excluir_de_outros'))
         ? `<span 
             class="close" 
             style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
@@ -1484,7 +1484,7 @@ async function linNotas(nota) {
 
     const cor = '#ff4500'
     const tabela = 'notas'
-    const excluir = (executor == acesso.usuario || acesso.permissao == 'adm')
+    const excluir = (executor == acesso.usuario || pode('ocorrencias.excluir_de_outros'))
         ? `<span 
             class="close" 
             style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
@@ -1554,7 +1554,7 @@ async function linParceiros(par) {
 
     const cor = '#0062d5'
     const tabela = 'parceiros'
-    const excluir = !travada && (executor == acesso.usuario || acesso.permissao == 'adm')
+    const excluir = !travada && (executor == acesso.usuario || pode('ocorrencias.excluir_de_outros'))
         ? `<span 
             class="close" 
             style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
@@ -1637,7 +1637,7 @@ async function linMateriais(mat) {
 
     const cor = '#b17724'
     const tabela = 'materiais'
-    const excluir = (executor == acesso.usuario || acesso.permissao == 'adm')
+    const excluir = (executor == acesso.usuario || pode('ocorrencias.excluir_de_outros'))
         ? `<span 
             class="close" 
             style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
@@ -1841,7 +1841,7 @@ function camposListaOcorrencias() {
 }
 
 const podeUsarVisoesOcorrencias = () => !['cliente', 'tecnico'].includes(acesso?.permissao)
-const podeEditarVisoesOcorrencias = () => ['diretoria', 'adm'].includes(acesso?.permissao)
+const podeEditarVisoesOcorrencias = () => pode('ocorrencias.visoes_editar')
 
 // ---------- Cache (memória + localStorage, por usuário) ----------
 const memoriaFiltrosOcorrencias = {}

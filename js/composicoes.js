@@ -138,7 +138,7 @@ async function criarLinhaComposicao(produto) {
     // Um cartão por LPU: com preço primeiro, sem preço apagados no fim.
     const hojeISO = dataServidor().toLocaleDateString('en-CA') // AAAA-MM-DD no fuso local
     const validades = Object.fromEntries((produto?.snapshots?.validades || []).map(v => [v.lpu, v.validade]))
-    const podeEditar = usuariosPermitidosParaEditar.includes(acesso.permissao)
+    const podeEditar = pode('composicoes.editar')
 
     const precosLPU = (LPUS || [])
         .map(lpu => {
@@ -172,7 +172,7 @@ async function criarLinhaComposicao(produto) {
         <tr>
             <td>${id}</td>
             <td style="text-align: center;">
-                ${usuariosPermitidosParaEditar.includes(acesso.permissao)
+                ${pode('composicoes.editar')
             ? `<img src="imagens/pesquisar.svg" style="width: 1.5rem; cursor: pointer;" onclick="cadastrarItem('${id}')">`
             : ''}
             </td>
@@ -375,7 +375,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
             <td>${cotacao?.fornecedor || ''}</td>
 
             <td>
-                ${usuariosPermitidosParaEditar.includes(acesso.permissao)
+                ${pode('composicoes.editar')
                 ? `<input type="radio" name="preco" style="width: 35px; height: 35px; cursor: pointer;" onclick="salvarPrecoAtivo('${codigo}', '${id}', '${tabela}')" ${marcado ? 'checked' : ''}>`
                 : ''}
             </td>
@@ -384,7 +384,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
                 <div style="white-space: pre;">${cotacao?.comentario || ''}</div>
             </td>
             <td style="text-align: center;">
-                ${usuariosPermitidosParaEditar.includes(acesso.permissao)
+                ${pode('composicoes.editar')
                 ? `<img src="imagens/cancel.png" style="width: 1.7rem; cursor: pointer;" onclick="excluirCotacao('${codigo}', '${tabela}', '${id}')">`
                 : ''}
             </td>
@@ -404,7 +404,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
         const preco = historico[ativo]?.valor || 0
         const tabelaAtiva = lpu == tabela
 
-        const copiar = preco !== 0 && !tabelaAtiva && permComposicoes.includes(acesso?.permissao)
+        const copiar = preco !== 0 && !tabelaAtiva && pode('composicoes.criar_item')
             ? `<img src="imagens/duplicar.png" onclick="confirmarCopiarPreco('${codigo}', '${lpu}', '${ativo}', '${tabela}')">`
             : ''
 

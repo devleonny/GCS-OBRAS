@@ -1,6 +1,7 @@
 // Gerado por scripts/versionar.js; não editar à mão.
 // Versão (hash do conteúdo) de cada CSS, para URLs montadas fora do HTML, como no pdf().
 const VERSOES_CSS = {
+    "acessos": "f8bd2b19",
     "agenda": "f5a251d9",
     "assinatura": "0c1634b9",
     "cadastro_publico": "a4259015",

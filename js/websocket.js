@@ -208,6 +208,10 @@ async function validarAcesso(tentouRenovar = false) {
         const anterior = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
         acesso = { ...anterior, ...dados, token }
         localStorage.setItem('acesso', JSON.stringify(acesso))
+        // Chaves da Central de Acessos mudaram desde o último carregamento: refaz o menu.
+        if (JSON.stringify([...(anterior.acessos || [])].sort()) !== JSON.stringify([...(dados.acessos || [])].sort())
+            && document.querySelector('.botoesMenu'))
+            criarMenus('inicial')
 
         msg({
             tipo: 'validar',
@@ -463,6 +467,12 @@ async function comunicacao() {
                 return
             }
 
+            // O adm mudou o que este usuário vê/faz (Central de Acessos, js/acessos.js).
+            if (tipo === 'acessos_alterados') {
+                if (typeof recarregarMeusAcessos === 'function') recarregarMeusAcessos()
+                return
+            }
+
             // Pedido/resposta de autorização de departamento de setor (js/autorizacao_departamento.js).
             if (typeof tipo === 'string' && tipo.startsWith('autorizacao_departamento')) {
                 if (typeof receberAutorizacaoDepartamento === 'function')
@@ -537,7 +547,7 @@ async function carregarControles() {
         )
     }
 
-    if (['adm', 'diretoria'].includes(permissao))
+    if (pode('sistema.ferramentas_adm'))
         barraStatus.push(modelo('construcao', 'f2()', ''))
 
     // Sino das notificações do PWA: último, na ponta direita (js/notificacoes.js).

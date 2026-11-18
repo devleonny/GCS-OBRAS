@@ -254,7 +254,7 @@ async function tabPagamentosCusto(contrato) {
 
         selecaoPagamentosCusto.contrato = contrato
         selecaoPagamentosCusto.ids = new Set()
-        const podeMover = PERFIS_MOVER_DEPARTAMENTO.includes(acesso?.permissao)
+        const podeMover = pode('financeiro.mover_departamento')
 
         const pag = 'custosPagamentos'
         const tabela = await modTab({
@@ -309,7 +309,7 @@ async function criarLinhaCustoPagamento(pagamento) {
     const imagem = iconePagamento(status)
 
     const idPagamento = escaparAtributo(String(pagamento.pagamento_id))
-    const selecao = PERFIS_MOVER_DEPARTAMENTO.includes(acesso?.permissao)
+    const selecao = pode('financeiro.mover_departamento')
         ? `<td><input type="checkbox" class="pc-mover-check" data-pagamento="${idPagamento}" aria-label="Selecionar pagamento"
             ${selecaoPagamentosCusto.ids.has(String(pagamento.pagamento_id)) ? 'checked' : ''} onchange="marcarPagamentoCusto(this)"></td>`
         : ''
@@ -347,7 +347,7 @@ async function criarLinhaCustoPagamento(pagamento) {
 // departamento muda; valores e as outras partes ficam como estão.
 // ---------------------------------------------------------------------------
 
-const PERFIS_MOVER_DEPARTAMENTO = ['adm', 'diretoria', 'fin']
+// Mover pagamentos de departamento: financeiro.mover_departamento (Central de Acessos).
 // Linhas são pagamento x categoria: a seleção guarda o pagamento, e marcar uma linha marca todas dele.
 const selecaoPagamentosCusto = { contrato: null, ids: new Set() }
 

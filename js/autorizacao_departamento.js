@@ -2,7 +2,7 @@
 // Setor = nome que não é contrato (ORC_...) nem G...: ao salvar um pagamento com setor novo no rateio,
 // o pedido vai para quem é diretoria/adm/fin e está online; o primeiro que responder decide.
 
-const PERFIS_APROVADORES_DEP = ['diretoria', 'adm', 'fin']
+// Quem aprova (e lança sem pedir): reembolsos.aprovar_setor na Central de Acessos (js/acessos.js).
 const esperasAutorizacaoDep = new Map()   // id do pedido → função que recebe a resposta
 const popupsAutorizacaoDep = new Map()    // id do pedido → id do popup aberto para o aprovador
 
@@ -79,7 +79,7 @@ async function autorizarSetoresCombustivel(dados) {
 // Pede e espera. Devolve null se não precisa, o pedido se aprovado; lança erro se negado/expirado.
 async function autorizarSetores({ origem, referenciaId, departamentos, contexto }) {
     if (!departamentos.some(ehSetorDepartamento)) return null
-    if (PERFIS_APROVADORES_DEP.includes(acesso?.permissao)) return null
+    if (pode('reembolsos.aprovar_setor')) return null
 
     const pedido = await apiAutorizacaoDep('solicitar', { origem, referencia_id: referenciaId, departamentos, contexto })
     if (!pedido.necessaria) return null

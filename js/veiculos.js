@@ -34,7 +34,7 @@ async function telaVeiculos() {
             'Editar': {}
         }
 
-        const btnExtras = ['adm', 'fin'].includes(acesso.permissao)
+        const btnExtras = pode('veiculos.editar_combustivel')
             ? `<div id="viabilidade"></div>`
             : ''
 
@@ -134,7 +134,7 @@ async function criarLinhaCusto(custo) {
 
     const { veiculo, id, usuario, data_pagamento, comentario, data, realizado, custo_total, distribuicao = {} } = custo
     const { cartao, placa, modelo, status } = veiculo || {}
-    const editavel = ['adm', 'fin'].includes(acesso.permissao)
+    const editavel = pode('veiculos.editar_combustivel')
 
     const nomes = (custo.nomes_motoristas || [])
         .map(nome => `<b>${escaparAtributo(nome)}</b>`)
@@ -454,7 +454,7 @@ async function painelAtalhos(idCusto) {
         { texto: 'Editar Pagamento', img: 'editar', funcao: `painelValores('${idCusto}')` },
     ]
 
-    if ((acesso.permissao == 'adm' || acesso.usuario == usuario))
+    if ((pode('veiculos.excluir') || acesso.usuario == usuario))
         botoes.push({ texto: 'Excluir Pagamento', img: 'cancel', funcao: `painelExcluir('${idCusto}')` })
 
     popup({ botoes, mensagem: 'Escolha uma opção', titulo: 'Atalhos' })
@@ -820,7 +820,7 @@ async function novoVeiculo(idVeiculo) {
         }
     ]
 
-    if (acesso.permissao == 'adm' && idVeiculo)
+    if (pode('veiculos.excluir') && idVeiculo)
         botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirVeiculo('${idVeiculo}')` })
 
     popup({ linhas, botoes, titulo: 'Gerenciar Veículo' })

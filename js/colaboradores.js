@@ -999,7 +999,7 @@ async function renderizarItensRequisicaoColab() {
     delete controles.reqColab
 
     // Mesmo atalho do orçamento: cadastra a composição sem sair da requisição.
-    const criarItem = permComposicoes.includes(acesso.permissao)
+    const criarItem = pode('composicoes.criar_item')
         ? `<button type="button" class="colab-criar-item" onclick="cadastrarItem()">
                 <img src="imagens/baixar.png" alt="">Criar item
             </button>`
@@ -1047,7 +1047,7 @@ function linhaComposicaoColab(produto) {
                         const valor = valorLpuColab(produto, lpu)
                         return `
                             <td class="composicao-numero">
-                                ${usuariosPermitidosParaEditar.includes(acesso.permissao)
+                                ${pode('composicoes.editar')
                                     ? `<button type="button" class="composicao-preco ${valor > 0 ? '' : 'sem-valor'}" title="Ver histórico de preços"
                                         onclick="abrirHistoricoPrecosSobre('${escaparAtributo(codigo)}', '${lpu}')">${dinheiro(valor)}</button>`
                                     : `<span class="composicao-preco ${valor > 0 ? '' : 'sem-valor'}">${dinheiro(valor)}</span>`}

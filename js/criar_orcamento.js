@@ -1339,7 +1339,7 @@ async function tabelaProdutosOrcamentos() {
     const acumulado = `
         <div style="position: relative; display: flex; justify-content: center; width: 100%; margin-top: 30px; gap: 10px;">
             ${toolbar}
-            ${permComposicoes.includes(acesso.permissao) ? criarItem : ''}
+            ${pode('composicoes.criar_item') ? criarItem : ''}
         </div>
 
         ${tabela}

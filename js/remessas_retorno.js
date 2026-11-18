@@ -32,7 +32,7 @@ const BAIXAS_REMESSA = {
 }
 
 const estadoRemessas = { situacao: 'ABERTAS', tipo: '', prazo: '', busca: '', lista: [], resumo: [], timer: null }
-const podeEditarRemessas = () => ['adm', 'diretoria', 'fin'].includes(acesso?.permissao)
+const podeEditarRemessas = () => pode('vendas.remessas.editar')
 const escRem = v => escaparAtributo(v ?? '')
 const dataRem = v => v ? new Date(String(v).slice(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR') : ''
 

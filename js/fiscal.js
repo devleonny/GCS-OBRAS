@@ -9,7 +9,8 @@
 // Chamadas pelas rotas em apiModuloFiscal (js/estoque.js).
 
 // Perfis que nas notas só consultam e na separação só escolhem o transporte (gerente desde 16/11/2026).
-const PERFIS_SO_CONSULTA_FIS = ['log', 'gerente']
+// Sem fiscal.operar (Central de Acessos): só consulta e separa frete/volumes (antes: perfis log e gerente).
+const soConsultaFis = () => !pode('fiscal.operar')
 const escFis = valor => escaparAtributo(valor ?? '')
 const apiFiscal = (rota, corpo) => apiModuloFiscal(`fiscal/${rota}`, corpo)
 const soDigFis = v => String(v ?? '').replace(/\D/g, '')
@@ -89,7 +90,7 @@ async function abrirTabelaRecebidas(filtroExtra = null) {
                 <div class="fis-acoes">
                     <button type="button" onclick="document.querySelector('[data-arquivos-xml]').click()">Importar XML</button>
                     <button type="button" onclick="buscarNotasSefaz()" title="Busca na SEFAZ (pela Focus NFe) as notas emitidas contra os CNPJs do grupo">Buscar na SEFAZ</button>
-                    ${PERFIS_SO_CONSULTA_FIS.includes(acesso?.permissao) ? '' : '<button type="button" onclick="devolucaoPorChaveFis()" title="Devolver uma compra ao fornecedor ou registrar a devolução de uma venda, pela chave da nota">Devolução</button>'}
+                    ${soConsultaFis() ? '' : '<button type="button" onclick="devolucaoPorChaveFis()" title="Devolver uma compra ao fornecedor ou registrar a devolução de uma venda, pela chave da nota">Devolução</button>'}
                     ${filtroExtra ? '<button type="button" onclick="abrirTabelaRecebidas()">Limpar filtro</button>' : ''}
                 </div>`,
             ordenar: [{ path: 'emissao', direcao: 'desc' }],
@@ -232,7 +233,7 @@ function resumoDocumentoFis(d, campos) {
 function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos, titulos = [], locais = [], cobranca = null, devolucoes = [], origem_devolucao = null }, opcoesFin = null) {
     const lancada = d.estoque_status === 'LANCADO' || Boolean(d.entrada_em)
     const pendentes = itens.filter(i => i.vinculo === 'PENDENTE').length
-    const editavel = !PERFIS_SO_CONSULTA_FIS.includes(acesso?.permissao)
+    const editavel = !soConsultaFis()
     // Guarda os itens para o assistente de vínculo e o "criar item" (sem nova ida ao servidor).
     for (const i of itens) ITENS_NOTA_FIS.set(String(i.id), { ...i, documento_id: d.id, participante_uf: d.participante_uf })
     const linhas = itens.map(i => {
@@ -309,7 +310,7 @@ function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos, titulos
             <div class="fis-acoes-claras fis-nota-acoes">
                 ${d.tem_xml ? `<button type="button" class="fis-mini" onclick="baixarArquivoFiscal('${escFis(d.id)}', 'xml')">XML</button>` : ''}
                 <button type="button" class="fis-mini" onclick="baixarArquivoFiscal('${escFis(d.id)}', 'danfe')">DANFE</button>
-                ${d.status === 'COMPLETA' && d.devolucao_tipo !== 'CLIENTE' && !PERFIS_SO_CONSULTA_FIS.includes(acesso?.permissao)
+                ${d.status === 'COMPLETA' && d.devolucao_tipo !== 'CLIENTE' && !soConsultaFis()
                     ? `<button type="button" class="fis-mini" onclick="abrirDevolucaoFis({ id: '${escFis(d.id)}', lado: 'COMPRA' })" title="Emite a NF-e de devolução com os impostos desta compra">Devolver ao fornecedor</button>` : ''}
                 <span class="fis-separador"></span>
                 <small class="fis-nota-acoes-rotulo">Manifestar</small> ${manifestar}
@@ -1062,9 +1063,9 @@ async function abrirTabelaEmitidas(filtroExtra = null) {
             filtrosFixos: { ...filtroModelo, ...(filtroExtra || {}) },
             btnExtras: `
                 <div class="fis-acoes">
-                    ${modeloEmitidasFis !== 'NFSE' && !PERFIS_SO_CONSULTA_FIS.includes(acesso?.permissao) ? '<button type="button" onclick="formularioEmissaoNFe()">+ NF-e</button>' : ''}
-                    ${modeloEmitidasFis !== 'NFE' && !PERFIS_SO_CONSULTA_FIS.includes(acesso?.permissao) ? '<button type="button" onclick="formularioEmissaoNFSe()">+ NFS-e</button>' : ''}
-                    ${modeloEmitidasFis !== 'NFSE' && !PERFIS_SO_CONSULTA_FIS.includes(acesso?.permissao) ? '<button type="button" onclick="devolucaoPorChaveFis()" title="Devolução de uma venda (nota de entrada própria) ou de uma compra, pela chave da nota">Devolução</button>' : ''}
+                    ${modeloEmitidasFis !== 'NFSE' && !soConsultaFis() ? '<button type="button" onclick="formularioEmissaoNFe()">+ NF-e</button>' : ''}
+                    ${modeloEmitidasFis !== 'NFE' && !soConsultaFis() ? '<button type="button" onclick="formularioEmissaoNFSe()">+ NFS-e</button>' : ''}
+                    ${modeloEmitidasFis !== 'NFSE' && !soConsultaFis() ? '<button type="button" onclick="devolucaoPorChaveFis()" title="Devolução de uma venda (nota de entrada própria) ou de uma compra, pela chave da nota">Devolução</button>' : ''}
                     ${filtroExtra ? '<button type="button" onclick="abrirTabelaEmitidas()">Limpar filtro</button>' : ''}
                 </div>`,
             ordenar: [{ path: 'criado_em', direcao: 'desc' }],
@@ -1119,7 +1120,7 @@ function abrirNotaOmieFis(id) {
     if (!d) return abrirDANFE(id)
     const nfse = d.modelo === 'NFSE'
     const podeDevolver = !nfse && d.status === 'AUTORIZADA' && /^venda/i.test(d.natureza_operacao || '') &&
-        !PERFIS_SO_CONSULTA_FIS.includes(acesso?.permissao)
+        !soConsultaFis()
     const html = `
         <div class="fis-painel fis-doc" data-nota-omie="${escFis(d.id)}">
             ${resumoDocumentoFis(d, [
@@ -1146,7 +1147,7 @@ function htmlNotaEmitida({ documento: d, itens, movimentos, devolucoes = [], ori
     const o = entrada.opcoes || {}
     // Acesso log: só consulta (DANFE, XML, espelho, situação, histórico). O transporte da separação ele
     // ajusta pelo menu ⋮ do cartão ("Editar NF-e"), que abre o formulário travado.
-    const soConsulta = PERFIS_SO_CONSULTA_FIS.includes(acesso?.permissao)
+    const soConsulta = soConsultaFis()
     const editavel = !soConsulta && ['RASCUNHO', 'REJEITADA'].includes(d.status)
     const nfse = d.modelo === 'NFSE'
     const t = d.valor_impostos || {}
@@ -1594,7 +1595,7 @@ async function formularioEmissaoNFe(inicial = {}) {
     const o = inicial.opcoes || {}
     // Kanban: "previa" = clique no cartão em Requisição (só olhar, o cartão não anda);
     // "logistica" = separação feita pelo acesso log (só transportadora e volumes ficam abertos).
-    const trava = inicial.fluxo_item ? (inicial.previa ? 'previa' : PERFIS_SO_CONSULTA_FIS.includes(acesso?.permissao) ? 'logistica' : '') : ''
+    const trava = inicial.fluxo_item ? (inicial.previa ? 'previa' : soConsultaFis() ? 'logistica' : '') : ''
     const avisoTrava = {
         previa: 'Prévia da separação: nada é salvo e o cartão continua em Requisição. Para separar, arraste o cartão para Separado.',
         logistica: 'Informe o frete, a transportadora e os volumes. Os dados da nota e os tributários ficam com o faturamento.'

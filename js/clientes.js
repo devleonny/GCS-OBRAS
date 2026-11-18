@@ -893,19 +893,24 @@ async function formularioCliente(idCliente) {
     let editarPermissao = {}
     const { permissao: permissaoUsuario } = acesso || {}
 
-    if (['adm', 'diretoria'].includes(permissaoUsuario)) {
-
+    // Perfil de acesso: só o adm (o servidor ignora o campo de quem não é adm). O que cada perfil e
+    // cada pessoa vê/faz fica na Central de Acessos (js/acessos.js); o botão abre a central na pessoa.
+    if (permissaoUsuario === 'adm') {
+        const opcoes = permissoes.includes(permissao) || !permissao ? permissoes : [...permissoes, permissao]
         editarPermissao = {
-            texto: 'Permissão',
-            elemento: `<select name="permissao">${permissoes.map(p => `<option ${permissao == p ? 'selected' : ''}>${p}</option>`).join('')}</select>`
+            texto: 'Perfil de acesso',
+            elemento: `
+                <div style="${horizontal}; gap: 0.5rem;">
+                    <select name="permissao">${opcoes.map(p => `<option ${permissao == p ? 'selected' : ''}>${p}</option>`).join('')}</select>
+                    ${usuario ? `<button type="button" onclick="abrirAcessosDoUsuario('${escaparAtributo(usuario)}')">Acessos…</button>` : ''}
+                </div>`
         }
-
     }
 
     // Desligado (só adm, diretoria e fin): bloqueia o acesso, tira das pendências de documentos do RH
     // e, com ferramentas em mãos, abre a recuperação (servidor: clientes.desligado).
     let linhaDesligado = {}
-    if (['adm', 'diretoria', 'fin'].includes(permissaoUsuario)) {
+    if (pode('cadastros.desligar')) {
         const desde = desligado?.data ? desligado.data.split('-').reverse().join('/') : ''
         linhaDesligado = {
             texto: 'Desligado',
@@ -1077,10 +1082,10 @@ async function formularioCliente(idCliente) {
 
     const botoes = []
 
-    if (idCliente && usuario && ['adm', 'diretoria'].includes(permissaoUsuario))
+    if (idCliente && usuario && pode('cadastros.senha_provisoria'))
         botoes.push({ texto: 'Senha provisória', img: 'chave', funcao: `confirmarSenhaProvisoria(${idCliente})` })
 
-    if (idCliente && ['adm', 'diretoria'].includes(permissaoUsuario))
+    if (idCliente && pode('cadastros.excluir'))
         botoes.push({ texto: 'Excluir', img: 'cancel', funcao: `confirmarExcluirCliente(${idCliente})` })
 
     // Salvar sempre por último (à direita).

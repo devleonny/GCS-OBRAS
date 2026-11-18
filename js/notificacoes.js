@@ -6,7 +6,7 @@
 // Sino ligado: o clique abre a caixa de avisos; o contador mostra os não lidos.
 
 const estadoNotificacoes = { ativo: false, naoLidas: 0, verificado: false, temporizador: null }
-const PERFIS_ENVIO_NOTIFICACAO = ['adm', 'diretoria']
+// Enviar aviso manual: sistema.enviar_notificacao (Central de Acessos).
 
 async function chamarNotificacoes(rota, corpo = {}) {
     const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
@@ -198,7 +198,7 @@ async function abrirCaixaNotificacoes() {
             </div>`).join('')
 
         const botoes = [{ texto: 'Desativar neste aparelho', img: 'cancel', funcao: 'desativarNotificacoes()' }]
-        if (PERFIS_ENVIO_NOTIFICACAO.includes(acesso?.permissao))
+        if (pode('sistema.enviar_notificacao'))
             botoes.push({ texto: 'Enviar aviso', img: 'baixar', funcao: 'formularioEnviarNotificacao()' })
         if (naoLidas)
             botoes.push({ texto: 'Marcar todas como lidas', img: 'concluido', funcao: 'marcarTodasNotificacoesLidas()' })

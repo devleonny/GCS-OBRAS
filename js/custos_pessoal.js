@@ -36,8 +36,8 @@ async function chamarCustosPessoal(rota, corpo = {}) {
 
 async function telaCustosPessoal() {
 
-    if (!['adm', 'diretoria', 'fin'].includes(acesso?.permissao))
-        return popup({ mensagem: 'Acesso restrito a administração, diretoria e financeiro.' })
+    if (!pode('financeiro.custos_pessoal'))
+        return popup({ mensagem: 'Você não tem acesso aos Custos de Pessoal.' })
 
     // Salário pago em outubro é de setembro: começa no mês anterior.
     estadoCustosPessoal.mes ??= mesAtualCustos(-1)

@@ -18,7 +18,6 @@ const PERMISSOES_CORRECAO = ['', 'analista', 'gerente', 'diretoria', 'adm', 'fin
 const tagsClientes = ['', 'FUNCIONÁRIO', 'CLIENTE', 'MOTORISTA', 'TÉCNICO', 'TÉCNICO PARCEIRO', 'FORNECEDOR', 'TRANSPORTADORA', 'EMPRESA', 'MATRIZ', 'CFTV', 'CATRACAS', 'INFRA', 'ALARME']
 const parcelas = ["--", "15 dias", "20 dias", "21 dias", "30 dias", "35 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
 const empresas = ['AC', 'IAC', 'HNK', 'HNW']
-const permComposicoes = ['adm', 'log', 'gerente', 'diretoria', 'editor']
 let moduloComposicoes = null
 const permCham = ['técnico', 'cliente', 'visitante']
 const extensoes = ['jpg', 'jpeg', 'png']
@@ -37,7 +36,8 @@ let sOverlay = false
 let ignorarMenus = false
 let controlesCxOpcoes = {}
 const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
-const usuariosPermitidosParaEditar = ['log', 'editor', 'adm', 'gerente', 'diretoria', 'coordenacao']
+// Editar preços/itens: pode('composicoes.editar') (Central de Acessos, js/acessos.js).
+const usuariosPermitidosParaEditar = true
 let LPUS = null
 let overlayTimeout = null;
 

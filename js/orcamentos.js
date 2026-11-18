@@ -547,7 +547,7 @@ async function carregarHistoricoStatus(id) {
         .sort(([, a], [, b]) => b.timestamp - a.timestamp)
         .map(([idStatus, { status, usuario, observacao, timestamp }]) => {
 
-            const fechar = (acesso.usuario == usuario || ['adm', 'diretoria'].includes(acesso?.permissao))
+            const fechar = (acesso.usuario == usuario || pode('orcamentos.excluir_status'))
                 ? `<span class="close" onclick="excluirStatus('${id}', '${idStatus}')">×</span>`
                 : ''
 
