@@ -1258,7 +1258,7 @@ function criarLinhaOcorrencia(ocorrencia) {
             <div style="${vertical}; width: 100%;">
                 ${existeAntigo}
                 ${modeloCampos('Unidade', cliente?.nome)}
-                ${modeloCampos('Endereço', cliente?.endereco)}
+                ${modeloCampos('Endereço', enderecoComNumero(cliente))}
                 ${modeloCampos('Bairro', cliente?.bairro)}
                 ${modeloCampos('Cidade', cliente?.cidade)}
                 ${modeloCampos('Cep', cliente?.cep)}

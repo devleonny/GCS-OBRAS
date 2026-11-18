@@ -855,7 +855,7 @@ async function tooltipChamadoTecnicos(elemento) {
 
     const { ocorrencia, cliente, ultima, tipo } = resumo
     const texto = valor => escaparAtributo(String(valor ?? '').trim())
-    const local = [cliente.endereco, cliente.bairro, [cliente.cidade, cliente.estado].filter(Boolean).join('/')]
+    const local = [enderecoComNumero(cliente), cliente.bairro, [cliente.cidade, cliente.estado].filter(Boolean).join('/')]
         .filter(Boolean).map(texto).join(' · ')
     const tecnicos = [ultima?.tecnico].flat().filter(Boolean).map(texto).join(', ')
     const linha = (rotulo, valor) => valor ? `<div class="tooltip-chamado-linha"><b>${rotulo}</b><span>${valor}</span></div>` : ''

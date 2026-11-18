@@ -1925,7 +1925,7 @@ function lerEmissaoNFe(form) {
             // Bloco de transporte da nota (o valor do frete é calculado depois, no envio).
             transportador: transportadora ? {
                 id: transportadora.id, nome: transportadora.razao_social || transportadora.nome, documento: soDigFis(transportadora.cnpj),
-                inscricao_estadual: transportadora.inscricao_estadual || '', endereco: transportadora.endereco || '',
+                inscricao_estadual: transportadora.inscricao_estadual || '', endereco: enderecoComNumero(transportadora),
                 municipio: String(transportadora.cidade || '').replace(/\s*\([A-Z]{2}\)\s*$/, ''), uf: transportadora.estado || ''
             } : undefined,
             volumes: Number(v('volumes')) || undefined,
@@ -2764,7 +2764,7 @@ function lerDevolucaoFis(form) {
             informacoes_complementares: v('informacoes_complementares'),
             transportador: transportadora ? {
                 id: transportadora.id, nome: transportadora.razao_social || transportadora.nome, documento: soDigFis(transportadora.cnpj),
-                inscricao_estadual: transportadora.inscricao_estadual || '', endereco: transportadora.endereco || '',
+                inscricao_estadual: transportadora.inscricao_estadual || '', endereco: enderecoComNumero(transportadora),
                 municipio: String(transportadora.cidade || '').replace(/\s*\([A-Z]{2}\)\s*$/, ''), uf: transportadora.estado || ''
             } : undefined,
             volumes: Number(v('volumes')) || undefined

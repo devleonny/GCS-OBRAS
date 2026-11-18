@@ -4,6 +4,15 @@ const botaoRodape = (funcao, texto, img) => `
             <span>${texto}</span>
         </div>`
 
+// Endereço do cadastro de clientes para exibir: "Logradouro, número - complemento". Desde 18/11/2026
+// número e complemento têm campos próprios (clientes.numero/complemento; no endereco_entrega, as chaves).
+function enderecoComNumero(c) {
+    const endereco = String(c?.endereco || '').trim()
+    const numero = String(c?.numero || '').trim()
+    const complemento = String(c?.complemento || '').trim()
+    return [[endereco, numero].filter(Boolean).join(', '), complemento].filter(Boolean).join(' - ')
+}
+
 const modelo = (valor1, valor2) => `
     <div class="modelo">
         <label>${valor1}</label>
@@ -1231,7 +1240,7 @@ async function painelClientes(idOrcamento = null) {
         },
         {
             texto: 'Endereço',
-            elemento: `<span id="endereco">${cliente?.endereco || ''}</span>`
+            elemento: `<span id="endereco">${enderecoComNumero(cliente)}</span>`
         },
         {
             texto: 'Bairro',

@@ -2,7 +2,9 @@ async function carregarOS(id) {
 
     const { dados_orcam } = await recuperarDado('dados_orcamentos', id) || {}
     const { omie_cliente, consideracoes, tecnico, contrato } = dados_orcam || {}
-    const { nome, cidade, endereco, cnpj } = await recuperarDado('clientes', omie_cliente) || {}
+    const clienteOS = await recuperarDado('clientes', omie_cliente) || {}
+    const { nome, cidade, cnpj } = clienteOS
+    const endereco = enderecoComNumero(clienteOS)
 
     const nomesTecnicos = await Promise.all(
         (tecnico || [])

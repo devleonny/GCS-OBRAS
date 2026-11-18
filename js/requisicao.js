@@ -71,6 +71,8 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
         nome,
         cidade,
         endereco,
+        numero,
+        complemento,
         bairro
     } = await recuperarDado('clientes', orcamento?.dados_orcam?.omie_cliente) || {}
 
@@ -231,7 +233,7 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
         {
             linha: 2,
             v1: 'Endereço',
-            v2: endereco
+            v2: enderecoComNumero({ endereco, numero, complemento })
         },
         {
             linha: 2,
@@ -745,6 +747,8 @@ async function gerarPdfRequisicao(id, visualizar) {
         cidade,
         bairro,
         endereco,
+        numero,
+        complemento,
         cep
     } = await recuperarDado('clientes', dados_orcam?.omie_cliente) || {}
 
@@ -753,7 +757,7 @@ async function gerarPdfRequisicao(id, visualizar) {
         chamado: dados_orcam?.chamado,
         nome,
         cnpj,
-        endereco,
+        endereco: enderecoComNumero({ endereco, numero, complemento }),
         bairro,
         cidade,
         cep

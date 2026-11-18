@@ -142,7 +142,7 @@ async function montarPdfOrcamento(idRecebido, raiz = document) {
                 { chave: 'Razão Social ou Nome Fantasia', valor: nome || '--' },
                 { chave: 'CNPJ', valor: cnpj || '--' },
                 { chave: 'CEP', valor: cep || '--' },
-                { chave: 'Endereço', valor: endereco || '--' },
+                { chave: 'Endereço', valor: enderecoComNumero(cliente) || '--' },
                 { chave: 'Bairro', valor: bairro || '--' },
                 { chave: 'Cidade', valor: cidade || '--' },
                 { chave: 'Estado', valor: estado || '--' }
@@ -169,7 +169,7 @@ async function montarPdfOrcamento(idRecebido, raiz = document) {
             dados: [
                 { chave: 'Empresa', valor: clienteVendaDireta?.nome || '' },
                 { chave: 'CNPJ', valor: clienteVendaDireta?.cnpj || '' },
-                { chave: 'Endereço', valor: clienteVendaDireta?.endereco || '' },
+                { chave: 'Endereço', valor: enderecoComNumero(clienteVendaDireta) },
                 { chave: 'Estado', valor: clienteVendaDireta?.estado || '' }
             ]
         }

@@ -684,7 +684,8 @@ function criarLinhaClienteGCS(cliente) {
         ? `<div class="cliente-detalhes-grupo"><span class="cliente-detalhes-titulo">${titulo}</span>${conteudo}</div>`
         : ''
     const blocoEndereco = e => [
-        dado('Endereço', e?.endereco), dado('Bairro', e?.bairro), dado('CEP', e?.cep),
+        dado('Endereço', e?.endereco), dado('Número', e?.numero), dado('Complemento', e?.complemento),
+        dado('Bairro', e?.bairro), dado('CEP', e?.cep),
         dado('Cidade', [e?.cidade, e?.estado].filter(Boolean).join(' / '))
     ].join('')
 
@@ -829,6 +830,8 @@ async function formularioCliente(idCliente) {
         aniversario,
         email,
         endereco,
+        numero,
+        complemento,
         bairro,
         estado,
         cidade,
@@ -989,6 +992,15 @@ async function formularioCliente(idCliente) {
             elemento: `<textarea maxlength="60" name="endereco">${endereco || ''}</textarea>`
         },
         {
+            // Colunas próprias desde 18/11/2026 (antes iam junto no texto do endereço).
+            texto: 'Número',
+            elemento: `<input maxlength="20" name="numero" placeholder="Número ou S/N" value="${escaparAtributo(numero || '')}">`
+        },
+        {
+            texto: 'Complemento',
+            elemento: `<input maxlength="60" name="complemento" placeholder="Loja, sala, bloco..." value="${escaparAtributo(complemento || '')}">`
+        },
+        {
             texto: 'Bairro',
             elemento: `<textarea name="bairro">${bairro || ''}</textarea>`
         },
@@ -1043,6 +1055,14 @@ async function formularioCliente(idCliente) {
         {
             texto: 'Endereço',
             elemento: `<textarea name="e_endereco">${endereco_entrega?.endereco || ''}</textarea>`
+        },
+        {
+            texto: 'Número',
+            elemento: `<input maxlength="20" name="e_numero" placeholder="Número ou S/N" value="${escaparAtributo(endereco_entrega?.numero || '')}">`
+        },
+        {
+            texto: 'Complemento',
+            elemento: `<input maxlength="60" name="e_complemento" placeholder="Loja, sala, bloco..." value="${escaparAtributo(endereco_entrega?.complemento || '')}">`
         },
         {
             texto: 'Bairro',
@@ -1541,6 +1561,8 @@ async function salvarCliente(idCliente = null) {
             inscricao_municipal: String(obVal('inscricao_municipal') || '').trim().toUpperCase() || null,
             nome: obVal('nome').toUpperCase(),
             endereco: obVal('endereco'),
+            numero: String(obVal('numero') || '').trim().toUpperCase() || null,
+            complemento: String(obVal('complemento') || '').trim() || null,
             bairro: obVal('bairro'),
             cep: obVal('cep'),
             cargo: obVal('cargo'),
@@ -1551,6 +1573,8 @@ async function salvarCliente(idCliente = null) {
             tags,
             endereco_entrega: {
                 endereco: obVal('e_endereco'),
+                numero: String(obVal('e_numero') || '').trim().toUpperCase(),
+                complemento: String(obVal('e_complemento') || '').trim(),
                 bairro: obVal('e_bairro'),
                 cep: obVal('e_cep'),
                 cidade: obVal('e_cidade'),
@@ -1802,12 +1826,14 @@ async function preencherClientePorCnpj(input, cnpj) {
 
     const nome = (dados.nome_fantasia || dados.razao_social || '').toUpperCase().slice(0, 60)
     const logradouro = [dados.descricao_tipo_de_logradouro, dados.logradouro].filter(Boolean).join(' ')
-    const endereco = [logradouro, dados.numero, dados.complemento].filter(Boolean).join(', ').toUpperCase().slice(0, 60)
     const cep = String(dados.cep || '').replace(/\D/g, '').replace(/(\d{5})(\d{3})/, '$1-$2')
+    const numeroReceita = String(dados.numero || '').trim().toUpperCase()
 
     definir('nome', nome)
     definir('razao_social', (dados.razao_social || '').toUpperCase())
-    definir('endereco', endereco)
+    definir('endereco', logradouro.toUpperCase().slice(0, 60))
+    definir('numero', /^S\.?\/?N$/.test(numeroReceita) ? 'S/N' : numeroReceita.slice(0, 20))
+    definir('complemento', String(dados.complemento || '').trim().toUpperCase().slice(0, 60))
     definir('bairro', (dados.bairro || '').toUpperCase())
     definir('cep', cep)
     definir('email', (dados.email || '').toLowerCase())
