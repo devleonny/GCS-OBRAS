@@ -178,14 +178,17 @@ async function carregarFluxo() {
         const filtros = quadro === 'compras' ? { direcao: { op: '=', value: 'entrada' } }
             : novo ? { quadro_vendas: { op: '=', value: 'S' }, relevante: { op: '=', value: 'S' } }
                 : { quadro: { op: '=', value: quadro } }
-        const linhas = []
-        let pagina = 1, paginas = 1
-        do {
-            const resposta = await pesquisarDB({ base, filtros, pagina, limite: 500 })
-            linhas.push(...(resposta?.resultados || []))
-            paginas = Number(resposta?.paginas) || 1
-            pagina++
-        } while (pagina <= paginas)
+        // Página grande: cada página recalcula a view inteira no servidor (COUNT(*) OVER()); com 500 por página
+        // o Fluxo de Vendas fazia 7 consultas seguidas de ~2 s. Se ainda vier mais de uma, as demais vão juntas.
+        const LIMITE = 5000
+        const primeira = await pesquisarDB({ base, filtros, pagina: 1, limite: LIMITE })
+        const linhas = [...(primeira?.resultados || [])]
+        const paginas = Number(primeira?.paginas) || 1
+        if (paginas > 1) {
+            const resto = await Promise.all(Array.from({ length: paginas - 1 },
+                (_, i) => pesquisarDB({ base, filtros, pagina: i + 2, limite: LIMITE })))
+            resto.forEach(r => linhas.push(...(r?.resultados || [])))
+        }
         if (consulta !== estadoFluxo.carregando || quadro !== estadoFluxo.quadro) return true
         estadoFluxo.linhas = cartoesFluxo(quadro, linhas)
         renderizarFluxo()
