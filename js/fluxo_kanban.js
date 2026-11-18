@@ -817,7 +817,8 @@ function saldoCartaoFluxo(c) {
 function rodadaCartaoFluxo(c) {
     if (c.rodada == null) return ''
     const natureza = String(c.tipo || '').toUpperCase()
-    const nome = natureza.startsWith('SERVI') ? 'Serviço' : natureza === 'VENDA' ? 'Venda' : ''
+    // Rodada com NF-e e NFS-e: aqui (Fluxo de Vendas) vale a venda; a NFS-e aparece no Fluxo de Serviços.
+    const nome = natureza.startsWith('SERVI') ? 'Serviço' : natureza.includes('VENDA') ? 'Venda' : ''
     const conferir = (Array.isArray(c.notas) ? c.notas : []).some(n => n.atribuicao === 'CONFERIR' && n.cancelado !== 'S')
     return `<span class="fluxo-cartao-balao" title="Rodada ${Number(c.rodada)} de faturamento do pedido">
         ${etiquetaEst(`Rodada ${Number(c.rodada)}${nome ? ` · ${nome}` : ''}`, nome === 'Serviço' ? '#7c3aed' : nome === 'Venda' ? '#2563eb' : '#6b7280')}
@@ -826,8 +827,10 @@ function rodadaCartaoFluxo(c) {
 
 // Cartão do quadro novo (vw_fluxo_itens): item que anda até Concluído; marca verde/vermelha da emissão.
 function cartaoItemFluxo(c, parado, tempo) {
+    // Rodada com venda e serviço (18/11/2026): no Fluxo de Vendas só a NF-e; a NFS-e fica no Fluxo de Serviços.
+    const soVenda = c.rodada != null && String(c.tipo || '').toUpperCase().includes('VENDA')
     const nfs = (Array.isArray(c.notas) ? c.notas : [])
-        .filter(n => n.n_nota && n.cancelado !== 'S' && n.categoria !== 'remessa')
+        .filter(n => n.n_nota && n.cancelado !== 'S' && n.categoria !== 'remessa' && !(soVenda && n.categoria === 'serviço'))
         .map(n => String(n.n_nota).replace(/^0+/, ''))
     const contexto = [
         c.rodada == null && c.tipo && c.tipo !== 'VENDA' ? c.tipo : '',
