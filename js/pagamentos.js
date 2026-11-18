@@ -56,10 +56,11 @@ function imagemEspecifica(justificativa) {
 
 }
 
-// Títulos que vieram do Omie (criado = 'Integração', ~9x os lançados pelo GCS) ficam fora por padrão;
-// a caixa "Mostrar integração" no topo inclui na lista e na contagem do painel lateral.
+// Títulos que vieram do Omie (criado = 'Integração', ~9x os lançados pelo GCS) ficam fora por padrão,
+// menos os do fornecedor Localiza, que aparecem sempre (op 'integracao_so_localiza' em pesquisa-db.js);
+// a caixa "Mostrar integração" no topo inclui o resto na lista e na contagem do painel lateral.
 let mostrarIntegracaoPagamentos = false
-const FILTRO_SEM_INTEGRACAO = { op: '!=', value: 'Integração' }
+const FILTRO_SEM_INTEGRACAO = { op: 'integracao_so_localiza', value: 'Integração' }
 
 async function alternarIntegracaoPagamentos(mostrar) {
     mostrarIntegracaoPagamentos = !!mostrar
@@ -88,7 +89,7 @@ async function telaPagamentos() {
                     onkeydown="confirmarPesquisa({ event, chave: 'snapshots.departamentos.*.departamento', op: 'includes', elemento: this, pag: 'pagamentos' })"
                     onchange="confirmarPesquisa({ chave: 'snapshots.departamentos.*.departamento', op: 'includes', elemento: this, pag: 'pagamentos' })">
             </label>
-            <label class="pagamentos-mostrar-integracao" title="Inclui os títulos que vieram do Omie (Solicitante: Integração)">
+            <label class="pagamentos-mostrar-integracao" title="Inclui os títulos que vieram do Omie (Solicitante: Integração); os da Localiza já aparecem sempre">
                 <input type="checkbox" ${mostrarIntegracaoPagamentos ? 'checked' : ''} onchange="alternarIntegracaoPagamentos(this.checked)">
                 Mostrar integração (Omie)
             </label>
