@@ -1113,7 +1113,7 @@ async function carregarSecoesHistorico(painel) {
                     const tabela = await modTab(dados)
 
                     local.insertAdjacentHTML('beforeend', `
-                        <section class="historico-secao" style="--cor-secao: ${cor};">
+                        <section class="historico-secao" data-secao="${chave}" style="--cor-secao: ${cor};">
                             <button
                                 class="historico-secao-acao"
                                 style="background-color: ${cor};" 
@@ -1127,12 +1127,58 @@ async function carregarSecoesHistorico(painel) {
                     await paginacao(chave)
                 })
         )
+        await carregarNotasGcsHistorico(painel, contrato)
 
     } catch (err) {
         console.error(err)
         delete painel.dataset.carregado_secoes
         popup({ mensagem: 'Falha ao abrir o esquema: Fale com o suporte.' })
     }
+}
+
+// Notas emitidas pelo GCS (18/11/2026): a seção Nota Avulsa lista só as do Omie; estas vêm do Fiscal
+// (rota /fluxo-itens/notas-gcs) — com o ORC, com o ORC no rateio ou ligadas a um cartão dele. Com rateio, o
+// valor é a parte deste orçamento e o total da nota vai embaixo.
+async function carregarNotasGcsHistorico(painel, contrato) {
+    const secao = painel.querySelector('.historico-secao[data-secao="notas"]')
+    if (!secao || !contrato) return
+    const { notas = [] } = await apiModuloFiscal('fluxo-itens/notas-gcs', { contrato }).catch(err => (console.error(err), {}))
+    if (!notas.length) return
+    const cor = '#ff4500'
+    const situacao = { AUTORIZADA: 'Autorizada', PROCESSANDO: 'Processando', CANCELADA: 'Cancelada', DENEGADA: 'Denegada' }
+    const blocos = notas.map(n => {
+        const nfse = n.modelo === 'NFSE'
+        const titulo = `${nfse ? 'NFS-e' : 'NF-e'} ${n.numero || '(sem número)'}`
+        const rateio = n.percentual != null
+            ? `${String(n.percentual).replace('.', ',')}% de ${dinheiro(n.total_nota)}`
+            : ''
+        return `
+            <div class="bloco-status-interno" style="border: 1px solid ${cor}; background-color: ${cor}1f;${n.status === 'CANCELADA' ? ' opacity: .6;' : ''}">
+                ${labelDestaque('Nota', `${titulo} · GCS${n.app ? ` · ${n.app}` : ''}`)}
+                ${labelDestaque('Tipo', n.detalhe || n.tipo)}
+                ${labelDestaque(n.percentual != null ? 'Valor deste orçamento' : 'Valor', dinheiro(n.total))}
+                ${labelDestaque('Rateio', rateio)}
+                ${labelDestaque('Data Emissão', n.data ? new Date(n.data).toLocaleDateString('pt-BR') : '')}
+                ${labelDestaque('Situação', situacao[n.status] || n.status)}
+                ${labelDestaque('Executor', n.executor)}
+                <div class="painel-botoes">
+                    <div style="background-color: ${cor};" class="contorno-botoes" onclick="abrirDocumentoFiscal('${n.id}')">
+                        <img src="imagens/pdfw.png" style="width: 1.5rem;">
+                        <label>Abrir nota</label>
+                    </div>
+                    ${n.status === 'AUTORIZADA' ? `
+                    <div style="background-color: ${cor};" class="contorno-botoes" onclick="baixarArquivoFiscal('${n.id}', 'danfe')">
+                        <img src="imagens/pdfw.png" style="width: 1.5rem;">
+                        <label>${nfse ? 'DANFSe' : 'DANFE'}</label>
+                    </div>` : ''}
+                </div>
+            </div>`
+    }).join('')
+    secao.insertAdjacentHTML('beforeend', `
+        <div style="display: flex; flex-direction: column; gap: 5px; padding: 5px;">
+            <b style="color: ${cor};">Emitidas pelo GCS</b>
+            ${blocos}
+        </div>`)
 }
 
 // Visão "Esquema": cada pedido do ORC com as requisições e notas que nasceram dele (fluxo_itens no
@@ -1230,6 +1276,7 @@ function htmlEsquemaHistorico(itens) {
                 </span>
                 <b>${titulo}</b>
                 ${n.detalhe && n.detalhe !== n.tipo ? `<span class="esq-no-quem">${esc(n.detalhe)}</span>` : ''}
+                ${n.percentual != null ? `<span class="esq-no-quem">Rateio ${esc(String(n.percentual).replace('.', ','))}% de ${dinheiro(n.total_nota || 0)}</span>` : ''}
                 <span class="esq-no-linha"><span>${data}</span><b>${dinheiro(n.total || 0)}</b></span>
                 ${situacao ? `<span class="esq-no-situacao">${esc(situacao)}</span>` : ''}
             </button>`
