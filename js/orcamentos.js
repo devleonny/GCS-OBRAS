@@ -647,8 +647,8 @@ function seletorStatus({ id, status = null, emTabela = false, contrato = null })
 
 }
 
-// Saldo a faturar e promessa do orçamento (gcs /fluxo-itens/saldo e /fluxo-itens/baixa). Devolve true se pode concluir.
-async function liberarConclusaoOrcamento(orcamentoId) {
+// Saldo a faturar e promessa do orçamento (gcs /fluxo-itens/saldo e /fluxo-itens/baixa). Devolve true se pode ir para FATURADO.
+async function liberarFaturadoOrcamento(orcamentoId) {
     let r
     try { r = await apiModuloFiscal('fluxo-itens/saldo', { orcamento_id: orcamentoId }) }
     catch { return true }   // sem a consulta (offline/permissão) não trava a troca de status
@@ -657,7 +657,7 @@ async function liberarConclusaoOrcamento(orcamentoId) {
         const p = r.promessas[0]
         popup({
             titulo: 'Falta o pedido do cliente',
-            mensagem: `${escaparAtributo(p.contrato || 'Este orçamento')} ainda tem pedido pendente. Complete o pedido (número ou "Aprovado por E-mail", valor e a OC anexada) antes de concluir.`,
+            mensagem: `${escaparAtributo(p.contrato || 'Este orçamento')} ainda tem pedido pendente. Complete o pedido (número ou "Aprovado por E-mail", valor e a OC anexada) antes de marcar como faturado.`,
             botoes: p.pedido_id ? [{ texto: 'Completar pedido', img: 'editar', funcao: `removerPopup(); completarPedidoPrometido('${escaparAtributo(p.pedido_id)}', '${escaparAtributo(p.contrato)}')` }] : []
         })
         return false
@@ -669,9 +669,9 @@ async function liberarConclusaoOrcamento(orcamentoId) {
         s.sem_pedido_aberto ? `<b>${dinheiro(s.sem_pedido)}</b> sem pedido (orçamento ${dinheiro(s.total)}, pedidos ${dinheiro(s.pedidos)})` : ''
     ].filter(Boolean)
     const motivo = await pedirTextoPopup({
-        titulo: 'Concluir com saldo',
+        titulo: 'Faturado com saldo',
         mensagem: `Este orçamento ainda tem ${partes.join(' e ')}.<br><br>Motivo da baixa (desconto, item cancelado, OC menor que o orçamento...):`,
-        textoConfirmar: 'Dar baixa e concluir', minimo: 10, maximo: 500
+        textoConfirmar: 'Dar baixa e marcar faturado', minimo: 10, maximo: 500
     })
     if (!motivo) return false
     try {
@@ -707,8 +707,9 @@ async function alterarStatus(id, idStatus = crypto.randomUUID()) {
                 : agoraServidor()
         }
 
-        // CONCLUÍDO com pendência (16/11/2026, a pedido): pedido pendente não deixa; saldo a faturar pede baixa com motivo.
-        if (status === 'CONCLUÍDO' && !await liberarConclusaoOrcamento(id)) return removerOverlay()
+        // FATURADO com pendência (16/11/2026; saiu do CONCLUÍDO em 18/11/2026, a pedido): pedido pendente não deixa;
+        // saldo a faturar pede baixa com motivo. CONCLUÍDO passa livre.
+        if (status === 'FATURADO' && !await liberarFaturadoOrcamento(id)) return removerOverlay()
 
         await enviar(`dados_orcamentos/${id}/historico_status/${idStatus}`, dado)
 
