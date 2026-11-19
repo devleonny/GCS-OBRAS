@@ -913,7 +913,7 @@ async function abrirLocalEstoque(localId) {
                     </div>
                     ${negativos.length ? `
                     <div class="est-local-aviso">
-                        <span class="est-local-aviso-icone">!</span>
+                        <svg class="est-local-aviso-icone" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="#b91c1c"/><rect x="7" y="3.5" width="2" height="6" rx="1" fill="#fff"/><circle cx="8" cy="12" r="1.2" fill="#fff"/></svg>
                         <span><strong>${negativos.length} item(ns) negativos:</strong> saíram (nota emitida, requisição) sem entrada registrada aqui,
                         normalmente porque o estoque ainda não teve o marco zero. Um <span class="fis-link" onclick="removerTodosPopups(); telaInventarios()">inventário deste local</span> acerta os saldos.</span>
                     </div>` : ''}

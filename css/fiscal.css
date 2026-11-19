@@ -1663,10 +1663,7 @@ button.fis-cred-ind {
     border-radius: 6px; padding: 6px 10px; font-size: 12px; line-height: 1.45;
 }
 .est-local-aviso strong { font-size: 12px; font-weight: 700; }
-.est-local-aviso-icone {
-    flex: 0 0 auto; width: 16px; height: 16px; margin-top: 1px; border-radius: 50%;
-    background: #b91c1c; color: #fff; font-size: 11px; font-weight: 700; line-height: 16px; text-align: center;
-}
+.est-local-aviso-icone { flex: 0 0 auto; width: 16px; height: 16px; margin-top: 1px; }
 .est-local-rolagem { max-height: 56vh; overflow: auto; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; }
 .est-local-tabela { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .est-local-tabela thead th {
