@@ -745,6 +745,9 @@ function abrirMenuItemFluxo(evento, id) {
         // Opções do orçamento (18/11/2026, a pedido): os atalhos completos (Histórico, Painel de Custos, PDF, OS...).
         c.orcamento_id ? ['Opções do Orçamento', `abrirAtalhos('${escaparAtributo(c.orcamento_id)}')`] : null,
         nota && c.etapa === 'separado' ? ['Editar NF-e', `editarNotaItemFluxo('${id}')`] : null,
+        // Fluxo de Serviços: NFS-e em preparação e o recebimento das parcelas (19/11/2026, a pedido).
+        c.etapa === 'preparacao' ? ['Editar NFS-e', `abrirNfseFluxo(itemFluxo('${id}')).catch(err => { removerOverlay(); popup({ mensagem: mensagemErroEst(err) }) })`] : null,
+        podeReceberFluxo(c) ? ['Registrar recebimento', `abrirRecebimentoFluxo('${id}')`] : null,
         nota && c.emissao_status !== 'OK' ? ['Espelho', `espelhoNotaItemFluxo('${escaparAtributo(nota)}')`] : null,
         nota && c.emissao_status === 'OK' ? ['DANFE', `baixarArquivoFiscal('${escaparAtributo(nota)}', 'danfe')`] : null,
         nota && c.emissao_status === 'OK' ? ['XML', `baixarArquivoFiscal('${escaparAtributo(nota)}', 'xml')`] : null,
@@ -948,8 +951,10 @@ const hojeIsoFluxo = () => {
 // Coluna do "Faturar todas": Separado (Vendas) / Em preparação (Serviços).
 const colunaEmissaoFluxo = quadro => QUADROS_FLUXO[quadro]?.servico ? 'preparacao' : 'separado'
 
-// Cartões do quadro: a etapa do serviço; a nota autorizada com parcela pendente (ou sem parcela no financeiro)
-// aparece também em Recebido (espelho, sempre visível enquanto houver o que receber).
+// Cartões do quadro: a etapa do serviço. Nota faturada sem nenhuma parcela recebida fica SÓ em Faturado; com
+// parte recebida e parte pendente aparece também em Recebido (espelho, sempre visível enquanto houver o que
+// receber); tudo recebido, só em Recebido (19/11/2026, a pedido). O recebimento é pelo ⋮ do cartão.
+const parcelasRecebidasFluxo = c => Math.max((Number(c.parcelas_total) || 0) - (Number(c.parcelas_abertas) || 0), 0)
 function cartoesServicoFluxo(linhas) {
     const hoje = hojeIsoFluxo()
     const cartoes = []
@@ -957,17 +962,21 @@ function cartoesServicoFluxo(linhas) {
         const c = { ...l, etapa_item: l.etapa, etapa: l.etapa_servico || 'pedido', desde: l.data }
         if (c.etapa === 'recebido' && c.recebido_em) c.data = String(c.recebido_em).slice(0, 10)
         cartoes.push(c)
-        if (c.etapa === 'faturado' && c.nota_autorizada && (Number(c.parcelas_abertas) > 0 || !Number(c.parcelas_total)))
+        if (c.etapa === 'faturado' && Number(c.parcelas_abertas) > 0 && parcelasRecebidasFluxo(c) > 0)
             cartoes.push({ ...c, etapa: 'recebido', espelho: true, data: hoje, desde: c.proximo_vencimento || c.data })
     }
     return cartoes
 }
 
+// ⋮ do cartão de serviço: "Registrar recebimento" na nota faturada que ainda tem o que receber.
+const podeReceberFluxo = c => QUADROS_FLUXO[estadoFluxo.quadro]?.servico && ['faturado', 'recebido'].includes(c?.etapa)
+    && c.nota_autorizada && c.etapa_item !== 'concluido' && (Number(c.parcelas_abertas) > 0 || !Number(c.parcelas_total))
+
 // Para onde o cartão pode ir no Fluxo de Serviços.
 //   Pedidos → Concluído (marca à mão) ou → Em preparação (NFS-e; pode pular o Concluído);
 //   Concluído → Pedidos (só a marca feita à mão; chamado solucionado não volta) ou → Em preparação;
 //   Em preparação → Faturado (emite) ou → Pedidos (devolve o saldo ao pedido; o rascunho fica guardado);
-//   Faturado → Recebido (abre as parcelas). O espelho em Recebido não se arrasta (clique = parcelas).
+//   Faturado → Recebido não é arraste: vai sozinho ao registrar recebimento (⋮ → Registrar recebimento).
 function destinosServicoFluxo(c) {
     if (!c || c.espelho) return []
     const rodada = c.rodada != null
@@ -975,7 +984,6 @@ function destinosServicoFluxo(c) {
         case 'pedido': return ['concluido', ...(rodada ? ['preparacao'] : [])]
         case 'concluido': return [...(c.servico_concluido_manual && !c.chamado_executado ? ['pedido'] : []), ...(rodada ? ['preparacao'] : [])]
         case 'preparacao': return ['faturado', ...(rodada ? ['pedido'] : [])]
-        case 'faturado': return c.nota_autorizada ? ['recebido'] : []
         default: return []
     }
 }
@@ -987,7 +995,6 @@ async function soltarServicoFluxo(c, etapa) {
     // Formulário (NFS-e / parcelas): o cartão fica na coluna nova enquanto a janela está aberta; fechou sem
     // salvar, o quadro recarrega e ele volta.
     if (etapa === 'preparacao') return janelaServicoFluxo(c, etapa, () => abrirNfseFluxo(c))
-    if (etapa === 'recebido') return janelaServicoFluxo(c, etapa, () => abrirRecebimentoFluxo(c.id))
     if (etapa === 'faturado') {
         if (!await confirmarPopup({ titulo: 'Faturar', mensagem: `Emitir agora a NFS-e de ${nome}?`, textoConfirmar: 'Emitir' })) return
         return otimistaServicoFluxo(c, etapa, () => apiModuloFiscal('fluxo-itens/faturar', { id: c.id }), { emissao_status: 'EMITINDO' })
@@ -1053,7 +1060,7 @@ function servicoCartaoFluxo(c) {
         return `<small class="fluxo-cartao-contexto">${c.chamado_executado ? 'Chamado solucionado · pode faturar' : 'Marcado como concluído · pode faturar'}</small>`
     if (!['faturado', 'recebido'].includes(c.etapa)) return ''
     const total = Number(c.parcelas_total) || 0, abertas = Number(c.parcelas_abertas) || 0
-    if (!total) return c.espelho ? '<small class="fluxo-receber">Sem parcelas no financeiro · clique para marcar recebido</small>' : ''
+    if (!total) return c.etapa === 'faturado' && c.nota_autorizada ? '<small class="fluxo-receber">Sem parcelas no financeiro</small>' : ''
     if (abertas) {
         const atrasada = c.proximo_vencimento && String(c.proximo_vencimento).slice(0, 10) < hojeIsoFluxo()
         return `<small class="fluxo-receber ${atrasada ? 'atrasado' : ''}" ${c.espelho ? 'title="Clique para dar o recebimento"' : ''}>${atrasada ? 'Atrasado: ' : 'A receber: '}${reaisFluxo(c.valor_a_receber)}`
@@ -1091,49 +1098,60 @@ async function abrirRecebimentoFluxo(id) {
         }
         const hoje = r.hoje || hojeIsoFluxo()
         const abertas = parcelas.filter(p => p.aberta)
+        const total = parcelas.reduce((s, p) => s + Number(p.valor || 0), 0)
+        const aReceber = abertas.reduce((s, p) => s + Number(p.saldo || 0), 0)
         const linhas = parcelas.map(p => {
             const venc = String(p.vencimento || '').slice(0, 10)
-            const situacao = p.aberta
-                ? `${venc && venc < hoje ? '<b style="color:#b91c1c">Atrasada</b>' : 'A receber'} ${reaisFluxo(p.saldo)}`
-                : `Recebida${p.recebido_em ? ` em ${dataBrFluxo(p.recebido_em)}` : ''}`
-            return `<tr>
-                <td><input type="checkbox" data-parcela data-titulo="${escaparAtributo(p.titulo_id || '')}" data-recebimento="${escaparAtributo(p.recebimento_id || '')}"
-                    ${p.aberta ? 'checked' : 'disabled'}></td>
-                <td>NF ${escaparAtributo(p.nota || '')}${p.origem === 'OMIE' ? ' <small>(Omie)</small>' : ''}</td>
-                <td>${escaparAtributo(p.parcela || '')}</td>
-                <td>${dataBrFluxo(venc)}</td>
-                <td style="text-align:right">${reaisFluxo(p.valor)}</td>
-                <td>${situacao}</td>
-            </tr>`
+            const atrasada = p.aberta && venc && venc < hoje
+            const selo = !p.aberta ? `Recebida${p.recebido_em ? ` em ${dataBrFluxo(p.recebido_em)}` : ''}` : atrasada ? 'Atrasada' : 'A receber'
+            return `
+                <label class="fluxo-receb-parcela ${p.aberta ? '' : 'recebida'} ${atrasada ? 'atrasada' : ''}">
+                    <input type="checkbox" data-parcela data-saldo="${Number(p.saldo || 0)}" data-titulo="${escaparAtributo(p.titulo_id || '')}"
+                        data-recebimento="${escaparAtributo(p.recebimento_id || '')}" ${p.aberta ? 'checked' : 'disabled checked'}
+                        onchange="atualizarRecebimentoFluxo(this)">
+                    <span class="fluxo-receb-num">${escaparAtributo(String(p.parcela || '').replace(/^0+(\d)/, '$1').replace(/\/0+(\d)/, '/$1'))}</span>
+                    <span class="fluxo-receb-info">
+                        <b>${reaisFluxo(p.aberta ? p.saldo : p.valor)}</b>
+                        <small>NF ${escaparAtributo(p.nota || '')}${p.origem === 'OMIE' ? ' (Omie)' : ''} · vence ${dataBrFluxo(venc)}</small>
+                    </span>
+                    <span class="fluxo-receb-selo">${selo}</span>
+                </label>`
         }).join('')
         // Conta corrente: só pergunta quando a empresa tem mais de uma (senão vai a padrão).
         const porApp = {}
         for (const k of r.contas || []) (porApp[k.app] ||= []).push(k)
         const apps = [...new Set(abertas.map(p => p.app).filter(Boolean))]
         const seletores = apps.filter(a => (porApp[a] || []).length > 1).map(a => `
-            <label style="display:flex; gap:6px; align-items:center">Conta ${escaparAtributo(a)}
+            <label class="fluxo-receb-campo"><span>Conta ${escaparAtributo(a)}</span>
                 <select data-app="${escaparAtributo(a)}">${porApp[a].map(k => `<option value="${k.id}" ${k.padrao ? 'selected' : ''}>${escaparAtributo(k.nome)}</option>`).join('')}</select>
             </label>`).join('')
         const elemento = `
-            <div style="display:flex; flex-direction:column; gap:10px; padding:12px; min-width:min(640px, 90vw)">
-                <span>${nomeItemFluxo(c)}</span>
-                <table class="tabela" style="width:100%">
-                    <thead><tr><th></th><th>Nota</th><th>Parcela</th><th>Vencimento</th><th>Valor</th><th>Situação</th></tr></thead>
-                    <tbody>${linhas}</tbody>
-                </table>
+            <div class="fluxo-receb">
+                <div class="fluxo-receb-topo">
+                    <small>${escaparAtributo(c.contrato || c.departamento || '')}${c.numero_pedido ? ` · Pedido ${escaparAtributo(c.numero_pedido)}` : ''}</small>
+                    <b>${escaparAtributo(c.cliente || 'Cliente não informado')}</b>
+                </div>
+                <div class="fluxo-receb-resumo">
+                    <div><span>Total das parcelas</span><b>${reaisFluxo(total)}</b></div>
+                    <div class="aberto"><span>A receber</span><b>${reaisFluxo(aReceber)}</b></div>
+                    <div class="ok"><span>Recebidas</span><b>${parcelas.length - abertas.length} de ${parcelas.length}</b></div>
+                </div>
+                <div class="fluxo-receb-lista">${linhas}</div>
                 ${abertas.length ? `
-                    <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center">
-                        <label style="display:flex; gap:6px; align-items:center">Recebido em
+                    <div class="fluxo-receb-rodape">
+                        <label class="fluxo-receb-campo"><span>Recebido em</span>
                             <input type="date" name="data-recebimento" value="${hoje}" max="${hoje}">
                         </label>
                         ${seletores}
+                        <div class="fluxo-receb-marcado"><span>Marcado</span><b data-marcado>${reaisFluxo(aReceber)}</b></div>
                     </div>
-                    <small>As parcelas marcadas recebem o saldo inteiro nesta data (Financeiro → Faturas a receber).</small>` : '<small>Todas as parcelas já foram recebidas.</small>'}
+                    <small class="fluxo-receb-nota">As parcelas marcadas são baixadas pelo saldo inteiro nesta data, em Financeiro → Faturas a receber.</small>`
+                : '<p class="fluxo-receb-nota">Todas as parcelas já foram recebidas.</p>'}
             </div>`
         popup({
-            titulo: `Recebimento · ${escaparAtributo(c.contrato || c.departamento || '')}`,
+            titulo: 'Registrar recebimento',
             elemento,
-            botoes: abertas.length ? [{ texto: 'Receber marcadas', img: 'concluido', funcao: `receberParcelasFluxo(this, '${escaparAtributo(id)}')` }] : []
+            botoes: abertas.length ? [{ texto: 'Registrar recebimento', img: 'concluido', funcao: `receberParcelasFluxo(this, '${escaparAtributo(id)}')` }] : []
         })
     } catch (err) {
         removerOverlay()
@@ -1141,10 +1159,19 @@ async function abrirRecebimentoFluxo(id) {
     }
 }
 
+// Soma das parcelas marcadas no rodapé da janela.
+function atualizarRecebimentoFluxo(caixa) {
+    const janela = caixa.closest('.fluxo-receb')
+    if (!janela) return
+    const soma = [...janela.querySelectorAll('input[data-parcela]:checked:not(:disabled)')].reduce((s, i) => s + Number(i.dataset.saldo || 0), 0)
+    const alvo = janela.querySelector('[data-marcado]')
+    if (alvo) alvo.textContent = reaisFluxo(soma)
+}
+
 async function receberParcelasFluxo(botao, id) {
     const janela = botao.closest('.popup')
     if (!janela) return
-    const marcadas = [...janela.querySelectorAll('input[data-parcela]:checked')]
+    const marcadas = [...janela.querySelectorAll('input[data-parcela]:checked:not(:disabled)')]
         .map(i => ({ titulo_id: i.dataset.titulo || null, recebimento_id: i.dataset.recebimento || null }))
     if (!marcadas.length) return popup({ mensagem: 'Marque a(s) parcela(s) recebida(s).' })
     const data = janela.querySelector('[name="data-recebimento"]')?.value

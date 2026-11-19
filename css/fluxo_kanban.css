@@ -535,3 +535,114 @@
 /* Saldo a faturar do orçamento (pedidos − notas − baixas) e promessa de pedido no cartão. */
 .fluxo-saldo { color: #b45309 !important; font-weight: 600; }
 .fluxo-saldo.acima { color: #6b7280 !important; font-weight: 500; }
+
+/* Registrar recebimento (Fluxo de Serviços, ⋮ do cartão): resumo, parcelas e rodapé com data e total marcado. */
+.fluxo-receb {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: min(560px, 92vw);
+    padding: 16px;
+    color: #1f2a24;
+    text-align: left;
+}
+
+.fluxo-receb-topo { display: flex; flex-direction: column; gap: 2px; }
+.fluxo-receb-topo small { color: #5f6f66; font-size: 12px; letter-spacing: .02em; }
+.fluxo-receb-topo b { font-size: 16px; }
+
+.fluxo-receb-resumo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.fluxo-receb-resumo > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    border: 1px solid #e1e8e4;
+    border-radius: 10px;
+    background: #f7faf8;
+}
+.fluxo-receb-resumo span { color: #5f6f66; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.fluxo-receb-resumo b { font-size: 16px; }
+.fluxo-receb-resumo .aberto b { color: #b45309; }
+.fluxo-receb-resumo .ok b { color: #2f7d4f; }
+
+.fluxo-receb-lista { display: flex; flex-direction: column; gap: 6px; max-height: 42vh; overflow-y: auto; }
+
+.fluxo-receb-parcela {
+    display: grid;
+    grid-template-columns: auto auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid #e1e8e4;
+    border-left: 4px solid #2f6fdc;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+}
+.fluxo-receb-parcela:hover { background: #f4f9f6; }
+.fluxo-receb-parcela input { width: 18px; height: 18px; margin: 0; accent-color: #2f7d4f; cursor: pointer; }
+.fluxo-receb-parcela.atrasada { border-left-color: #d63a3a; }
+.fluxo-receb-parcela.recebida { border-left-color: #2f9e44; background: #f7faf8; cursor: default; }
+.fluxo-receb-parcela.recebida input { cursor: default; opacity: .6; }
+
+.fluxo-receb-num {
+    min-width: 42px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #eef3f0;
+    color: #3d5246;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.fluxo-receb-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fluxo-receb-info b { font-size: 15px; }
+.fluxo-receb-info small { color: #5f6f66; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.fluxo-receb-selo {
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: #e8f0fd;
+    color: #2f5fb3;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.fluxo-receb-parcela.atrasada .fluxo-receb-selo { background: #fdecec; color: #b91c1c; }
+.fluxo-receb-parcela.recebida .fluxo-receb-selo { background: #e6f4ea; color: #2f7d4f; }
+
+.fluxo-receb-rodape {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e1e8e4;
+}
+
+.fluxo-receb-campo { display: flex; flex-direction: column; gap: 4px; }
+.fluxo-receb-campo span { color: #5f6f66; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.fluxo-receb-campo input,
+.fluxo-receb-campo select {
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid #cfdad3;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 14px;
+}
+
+.fluxo-receb-marcado { display: flex; flex-direction: column; gap: 4px; margin-left: auto; text-align: right; }
+.fluxo-receb-marcado span { color: #5f6f66; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.fluxo-receb-marcado b { color: #2f7d4f; font-size: 18px; }
+
+.fluxo-receb-nota { margin: 0; color: #6b7a72; font-size: 12px; }
+
+@media (max-width: 520px) {
+    .fluxo-receb-resumo { grid-template-columns: 1fr 1fr; }
+    .fluxo-receb-parcela { grid-template-columns: auto 1fr auto; }
+    .fluxo-receb-num { display: none; }
+}
