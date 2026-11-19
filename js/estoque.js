@@ -273,37 +273,76 @@ async function estornarMovimentoEstoque(movimentoId, itemId) {
 
 // ---------------------------------------------------------------- movimentações
 
-async function telaMovimentosEstoque() {
+// Movimentações no layout das faturas a pagar (.fin-tela): topo só com título e botões, totais no pé das colunas,
+// paginação no rodapé e indicadores no painel lateral retrátil (classes do painel dos Créditos IBS/CBS).
+// vw_estoque_movimentos: valor = quantidade × custo (saída negativa), sentido = ENTRA/SAI (migrations/estoque-movimentos-valor.sql).
+const POR_PAGINA_MOV_EST = 50
+const COLUNAS_TOTAL_MOV_EST = ['quantidade', 'valor']
+let somasMovEst = null, assinaturaMovEst = null
+let painelMovEstAberto = true
+
+async function telaMovimentosEstoque(filtroExtra = null) {
+    if (typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
     tela.innerHTML = `
-        <div class="pagina-conteudo fis-pagina">
-            <div class="cabecalho-pagina"><h2>Movimentações de estoque</h2></div>
-            <div class="fis-conteudo"></div>
+        <div class="fis-pagina fin-tela fis-emitidas">
+            <section class="fin-janela">
+                <header class="fin-janela-topo">
+                    <h2>Movimentações de estoque</h2>
+                    <div class="fin-barra">
+                        <button type="button" onclick="baixarExcelMovimentosEst()" title="Todos os resultados dos filtros aplicados">${iconeFin('excel')} Excel</button>
+                        <button type="button" onclick="telaEstoque()">${iconeFin('ver')} Saldos</button>
+                        <button type="button" onclick="telaLocaisEstoque()">${iconeFin('ver')} Locais</button>
+                        ${filtroExtra ? `<button type="button" onclick="telaMovimentosEstoque()">${iconeFin('fechar')} Limpar filtro</button>` : ''}
+                    </div>
+                </header>
+                <div class="fin-corpo${painelMovEstAberto ? '' : ' recolhido'}" data-corpo-mov-est>
+                    <div class="fin-tabela-area" data-tabela-mov-est></div>
+                    <div class="fin-lateral fis-cred-lateral">
+                        <button type="button" class="fin-recolher" onclick="alternarPainelMovEst()" aria-expanded="${painelMovEstAberto}"
+                            title="${painelMovEstAberto ? 'Recolher' : 'Mostrar'} os indicadores">${iconeFin('seta')}</button>
+                        <aside class="fin-painel fis-cred-painel">
+                            <div class="fin-painel-cabeca" title="Indicadores: seguem os filtros da tabela">
+                                <span class="fin-avatar">Σ</span>
+                                <div class="fin-painel-texto"><b>Indicadores</b><small>Seguem os filtros da tabela. Clique para filtrar.</small></div>
+                            </div>
+                            <div class="fis-cred-inds" data-indicadores-mov-est><small>Calculando…</small></div>
+                        </aside>
+                    </div>
+                </div>
+            </section>
         </div>`
+    const area = document.querySelector('[data-tabela-mov-est]')
     try {
         delete controles.movimentosEstoque
-        document.querySelector('.fis-conteudo').innerHTML = await modTab({
+        somasMovEst = null
+        assinaturaMovEst = null
+        area.innerHTML = await modTab({
             base: 'vw_estoque_movimentos',
             pag: 'movimentosEstoque',
             body: 'bodyMovimentosEstoque',
             criarLinha: 'criarLinhaMovimentoEstoque',
-            topoEmLinha: true,
-            btnExtras: `<div class="fis-acoes"><button type="button" onclick="telaEstoque()">Saldos</button><button type="button" onclick="telaLocaisEstoque()">Locais</button></div>`,
             caber: true,
+            limite: POR_PAGINA_MOV_EST,
+            funcaoAdicional: ['aposCarregarMovimentosEst'],
+            filtrosFixos: { ...(filtroExtra || {}) },
             ordenar: [{ path: 'data', direcao: 'desc' }],
             colunas: {
                 'Data': { chave: 'dia', tipoPesquisa: 'data' },
+                'Empresa': { chave: 'app', tipoPesquisa: 'select' },
                 'Código': { chave: 'codigo' },
                 'Descrição': { chave: 'descricao' },
                 'Tipo': { chave: 'tipo', tipoPesquisa: 'select' },
                 'Local': { chave: 'local_nome', tipoPesquisa: 'select' },
                 'Qtd': { chave: 'quantidade', tipoOrdenacao: 'numero' },
-                'Custo': { chave: 'custo_unitario', tipoOrdenacao: 'numero' },
+                'Custo unit.': { chave: 'custo_unitario', tipoOrdenacao: 'numero' },
+                'Valor': { chave: 'valor', tipoOrdenacao: 'numero' },
                 'Origem': { chave: 'origem', tipoPesquisa: 'select' },
                 'Documento': { chave: 'participante_nome' },
                 'Observação': { chave: 'observacao' },
-                'Usuário': { chave: 'usuario' }
+                'Usuário': { chave: 'usuario', tipoPesquisa: 'select' }
             }
         })
+        area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-mov-est></div>')
         await paginacao('movimentosEstoque')
     } catch (err) {
         console.error(err)
@@ -311,8 +350,198 @@ async function telaMovimentosEstoque() {
     }
 }
 
+function alternarPainelMovEst(abrir = null) {
+    const corpo = document.querySelector('[data-corpo-mov-est]')
+    if (!corpo) return
+    const aberto = abrir ?? corpo.classList.contains('recolhido')
+    corpo.classList.toggle('recolhido', !aberto)
+    const botao = corpo.querySelector('.fin-recolher')
+    botao?.setAttribute('aria-expanded', String(aberto))
+    if (botao) botao.title = `${aberto ? 'Recolher' : 'Mostrar'} os indicadores`
+    painelMovEstAberto = aberto
+}
+
 function criarLinhaMovimentoEstoque(m) {
-    return linhaMovimentoEst(m, { comItem: true, acoes: false })
+    const t = TIPOS_MOVIMENTO[m.tipo] || {}
+    const q = Number(m.quantidade)
+    const v = Number(m.valor)
+    const doc = m.documento_id
+        ? `<span class="fis-link" onclick="abrirDocumentoFiscal('${escEst(m.documento_id)}')">NF ${escEst(m.documento_numero || '')}</span> <small>${escEst(m.participante_nome || '')}</small>`
+        : m.inventario_id ? 'Inventário' : m.origem === 'REQUISICAO' ? 'Requisição' : ''
+    return `
+        <tr class="fin-linha${m.estornado ? ' fis-estornado' : ''}" ondblclick="detalheItemEstoque('${escEst(m.item_id)}')" title="Duplo clique abre o item">
+            <td class="fin-centro">${new Date(m.data).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
+            <td class="fin-centro">${escEst(m.app || '')}</td>
+            <td class="fin-centro fin-doc"><span class="fis-link" onclick="event.stopPropagation(); detalheItemEstoque('${escEst(m.item_id)}')" title="Abrir o item">${escEst(m.codigo)}</span></td>
+            <td class="fin-obs fin-nome" title="${escEst(m.descricao || '')}"><span class="fin-obs-txt">${escEst(m.descricao || '')}</span></td>
+            <td>${etiquetaEst(t.texto || m.tipo, t.cor)}${m.estornado ? ' <small>(estornado)</small>' : ''}</td>
+            <td><small>${escEst(m.local_nome || '')}</small></td>
+            <td class="fis-num ${q < 0 ? 'fis-negativo' : 'fis-positivo'}"><b>${q > 0 ? '+' : ''}${qtdEst(q)}</b></td>
+            <td class="fis-num">${m.custo_unitario != null ? dinheiro(m.custo_unitario) : '<span class="fin-vazio">—</span>'}</td>
+            <td class="fis-num ${v < 0 ? 'fis-negativo' : ''}">${m.valor != null ? dinheiro(v) : '<span class="fin-vazio">—</span>'}</td>
+            <td>${escEst(ORIGENS_MOVIMENTO[m.origem] || m.origem)}</td>
+            <td>${doc}</td>
+            <td class="fin-obs" title="${escEst(m.observacao || '')}"><span class="fin-obs-txt">${escEst(m.observacao || '')}</span></td>
+            <td><small>${escEst(m.usuario || '')}</small></td>
+        </tr>`
+}
+
+async function aposCarregarMovimentosEst() {
+    const tabela = document.getElementById('bodyMovimentosEstoque')?.closest('table')
+    if (!tabela) return
+    if (!tabela.tFoot) {
+        const chaves = Object.values(controles.movimentosEstoque?.colunas || {}).map(c => c.chave || '')
+        const linha = tabela.createTFoot().insertRow()
+        linha.className = 'fin-totais'
+        chaves.forEach(chave => {
+            const td = linha.insertCell()
+            if (COLUNAS_TOTAL_MOV_EST.includes(chave)) { td.dataset.totalMovEst = chave; td.className = 'fis-num' }
+        })
+        const enchimento = document.createElement('tbody')
+        enchimento.className = 'fin-enchimento'
+        enchimento.innerHTML = `<tr><td colspan="${chaves.length}"></td></tr>`
+        tabela.insertBefore(enchimento, tabela.tFoot)
+    }
+    if (typeof cabecalhoAvancadoTabela === 'function')
+        await cabecalhoAvancadoTabela('movimentosEstoque', { prefKey: 'movimentos_estoque' })
+    desenharRodapeMovEst()
+    await somarMovimentosEst()
+}
+
+async function somarMovimentosEst() {
+    const ctrl = controles.movimentosEstoque
+    if (!ctrl) return
+    const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos)
+    const assinatura = JSON.stringify(filtros)
+    if (assinatura !== assinaturaMovEst) {
+        assinaturaMovEst = assinatura
+        indicadoresMovimentosEst(filtros || {})
+        const somas = await Promise.all(COLUNAS_TOTAL_MOV_EST.map(async path => {
+            try { return Number((await contarPorCampo({ base: 'vw_estoque_movimentos', path, modo: 'soma', filtros }))?.total || 0) } catch { return null }
+        }))
+        if (assinatura !== assinaturaMovEst) return
+        somasMovEst = somas
+    }
+    COLUNAS_TOTAL_MOV_EST.forEach((path, i) => {
+        const td = document.querySelector(`[data-total-mov-est="${path}"]`)
+        if (!td) return
+        const v = somasMovEst?.[i]
+        td.title = 'Total de todos os movimentos do filtro'
+        td.innerHTML = `<span class="fin-sigma">Σ</span> ${v == null ? '—' : path === 'valor' ? dinheiro(v) : qtdEst(v)}`
+    })
+}
+
+// Indicadores do painel lateral: mesmos filtros da tabela.
+async function indicadoresMovimentosEst(filtros = {}) {
+    const alvo = document.querySelector('[data-indicadores-mov-est]')
+    if (!alvo) return
+    const base = 'vw_estoque_movimentos'
+    const soma = async (path, extra = {}) => {
+        try { return await contarPorCampo({ base, path, modo: 'soma', filtros: { ...filtros, ...extra } }) } catch { return null }
+    }
+    const contar = async path => {
+        try { return await contarPorCampo({ base, path, filtros }) } catch { return null }
+    }
+    const [entra, sai, total, origens] = await Promise.all([
+        soma('valor', { sentido: { op: '=', value: 'ENTRA' } }),
+        soma('valor', { sentido: { op: '=', value: 'SAI' } }),
+        soma('valor'),
+        contar('origem')
+    ])
+    if (!document.querySelector('[data-indicadores-mov-est]')) return
+    const qtd = n => Number(n || 0).toLocaleString('pt-BR')
+    const din = r => r == null ? '—' : dinheiro(Math.abs(Number(r.total) || 0))
+    const ind = (valor, texto, cor, acao, descricao) => acao
+        ? `<button type="button" class="fis-cred-ind" style="--cor: ${cor}" onclick="${acao}" title="${escEst(descricao)}">
+            <span>${texto}</span><b>${valor}</b><small>${escEst(descricao)}</small></button>`
+        : `<div class="fis-cred-ind" style="--cor: ${cor}" title="${escEst(descricao)}">
+            <span>${texto}</span><b>${valor}</b><small>${escEst(descricao)}</small></div>`
+    const liquido = Number(total?.total) || 0
+    const listaOrigens = Object.entries(origens || {})
+        .filter(([k]) => k !== 'total' && k !== 'todos')
+        .sort((a, b) => b[1] - a[1])
+    alvo.innerHTML = `
+        ${ind(qtd(total?.todos), 'Movimentos', '#334155', '', 'Lançamentos no filtro (entradas, saídas, ajustes e estornos).')}
+        ${ind(din(entra), `Entraram (${qtd(entra?.todos)})`, '#15803d', `telaMovimentosEstoque({ sentido: { op: '=', value: 'ENTRA' } })`, 'Valor que entrou no estoque, pelo custo. Clique para ver só as entradas.')}
+        ${ind(din(sai), `Saíram (${qtd(sai?.todos)})`, '#b91c1c', `telaMovimentosEstoque({ sentido: { op: '=', value: 'SAI' } })`, 'Valor que saiu do estoque, pelo custo. Clique para ver só as saídas.')}
+        ${ind(`${liquido < 0 ? '−' : '+'} ${dinheiro(Math.abs(liquido))}`, 'Saldo do período', liquido < 0 ? '#b91c1c' : '#15803d', '', 'Entradas menos saídas no filtro: quanto o estoque cresceu ou diminuiu.')}
+        ${listaOrigens.map(([origem, n]) => ind(qtd(n), ORIGENS_MOVIMENTO[origem] || origem, '#64748b',
+            `telaMovimentosEstoque({ origem: { op: '=', value: '${escEst(origem)}' } })`, 'Movimentos desta origem. Clique para filtrar.')).join('')}`
+}
+
+function desenharRodapeMovEst() {
+    const alvo = document.querySelector('[data-rodape-mov-est]')
+    const ctrl = controles.movimentosEstoque
+    if (!alvo || !ctrl) return
+    const total = Number(document.getElementById('resultados_movimentosEstoque')?.textContent) || 0
+    const paginas = Math.max(1, Number(ctrl.total) || 1)
+    const pagina = Math.min(ctrl.pagina || 1, paginas)
+    const inicio = total ? (pagina - 1) * POR_PAGINA_MOV_EST + 1 : 0
+    const fim = Math.min(total, pagina * POR_PAGINA_MOV_EST)
+    const botao = (texto, destino, ativo, titulo = '') =>
+        `<button type="button" ${ativo ? `onclick="irPaginaMovEst(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
+    alvo.innerHTML = `
+        <span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} movimento${total === 1 ? '' : 's'}</span>
+        <div class="fin-paginas">
+            ${botao('|‹', 1, pagina > 1, 'Primeira página')}
+            ${botao('‹ anterior', pagina - 1, pagina > 1)}
+            <label>Página <input type="number" min="1" max="${paginas}" value="${pagina}" onchange="irPaginaMovEst(this.value)"></label>
+            <span>de ${paginas.toLocaleString('pt-BR')}</span>
+            ${botao('próximo ›', pagina + 1, pagina < paginas)}
+            ${botao('›|', paginas, pagina < paginas, 'Última página')}
+        </div>`
+}
+
+async function irPaginaMovEst(n) {
+    const ctrl = controles.movimentosEstoque
+    if (!ctrl) return
+    const pagina = Math.min(Math.max(1, parseInt(n) || 1), Math.max(1, Number(ctrl.total) || 1))
+    if (pagina === ctrl.pagina) return desenharRodapeMovEst()
+    ctrl.pagina = pagina
+    await paginacao('movimentosEstoque')
+}
+
+async function baixarExcelMovimentosEst() {
+    const ctrl = controles.movimentosEstoque
+    if (!ctrl) return
+    overlayAguarde()
+    try {
+        const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        const linhas = []
+        let pagina = 1, paginas = 1
+        do {
+            const r = await pesquisarDB({ base: 'vw_estoque_movimentos', filtros, ordenar: ctrl.ordenar || [{ path: 'data', direcao: 'desc' }], pagina, limite: 2000 })
+            linhas.push(...(r?.resultados || []))
+            paginas = Number(r?.paginas) || 1
+            pagina++
+        } while (pagina <= paginas && pagina <= 50)
+        await baixarExcelRelatorioGCS({
+            titulo: 'Movimentações de estoque',
+            resumo: `${linhas.length} movimento(s)`,
+            filtrosTexto: `Filtros: ${typeof descreverFiltrosFin === 'function' ? descreverFiltrosFin(ctrl).replace('nenhum (todas as faturas)', 'nenhum (todos os movimentos)') : ''}`,
+            linhas,
+            colunas: [
+                { titulo: 'Data', largura: 16, valor: d => new Date(d.data).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) },
+                { titulo: 'Empresa', largura: 9, centro: true, valor: d => d.app || '' },
+                { titulo: 'Código', largura: 10, centro: true, valor: d => d.codigo || '' },
+                { titulo: 'Descrição', largura: 42, valor: d => d.descricao || '' },
+                { titulo: 'Tipo', largura: 13, valor: d => TIPOS_MOVIMENTO[d.tipo]?.texto || d.tipo || '' },
+                { titulo: 'Local', largura: 18, valor: d => d.local_nome || '' },
+                { titulo: 'Qtd', largura: 9, soma: true, valor: d => Number(d.quantidade) || 0 },
+                { titulo: 'Custo unit.', largura: 13, tipo: 'moeda', valor: d => Number(d.custo_unitario) || 0 },
+                { titulo: 'Valor', largura: 14, tipo: 'moeda', soma: true, valor: d => Number(d.valor) || 0 },
+                { titulo: 'Origem', largura: 20, valor: d => ORIGENS_MOVIMENTO[d.origem] || d.origem || '' },
+                { titulo: 'Documento', largura: 30, valor: d => d.documento_id ? `NF ${d.documento_numero || ''} ${d.participante_nome || ''}`.trim() : '' },
+                { titulo: 'Observação', largura: 30, valor: d => d.observacao || '' },
+                { titulo: 'Usuário', largura: 14, valor: d => d.usuario || '' }
+            ]
+        })
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: `Falha ao gerar o Excel: ${escEst(err.message)}` })
+    } finally {
+        removerOverlay()
+    }
 }
 
 // ---------------------------------------------------------------- inventário
