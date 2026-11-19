@@ -1605,3 +1605,15 @@ button.fis-cred-ind:hover { background: color-mix(in srgb, var(--cor) 8%, white)
 /* Sem rolagem horizontal: indicador conta o padding na largura e textos longos quebram. */
 .fis-cred-ind { box-sizing: border-box; min-width: 0; overflow-wrap: anywhere; }
 .fis-cred-inds { overflow-x: hidden; }
+/* Tudo alinhado à esquerda: os indicadores que são botão não herdam a margem, o centro e o negrito dos botões. */
+.fis-cred-ind,
+button.fis-cred-ind {
+    margin: 0;
+    align-items: flex-start;
+    justify-content: flex-start;
+    text-align: left;
+    white-space: normal;
+    font-weight: 400;
+    line-height: 1.35;
+}
+.fis-cred-painel .fin-painel-cabeca { align-items: flex-start; text-align: left; }
