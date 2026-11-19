@@ -2000,7 +2000,7 @@ function htmlNotaEmitida({ documento: d, itens, movimentos, devolucoes = [], ori
                 </div>` : ''}
 
             ${infos ? `<div class="fis-secao"><div class="fis-secao-topo"><b>Informações complementares</b></div><div class="fis-texto">${escFis(infos)}</div></div>` : ''}
-            ${nfse && entrada.dados?.descricao ? `<div class="fis-secao"><div class="fis-secao-topo"><b>Serviço</b></div><div class="fis-texto">${escFis(entrada.dados.descricao).replace(/\n/g, '<br>')}</div></div>` : ''}
+            ${nfse && entrada.dados?.descricao ? `<div class="fis-secao"><div class="fis-secao-topo"><b>Serviço</b></div><div class="fis-texto">${escFis(entrada.dados.descricao).replace(/\n/g, '<br>')}</div>${entrada.dados.rodape ? `<div class="fis-texto fis-dica">${escFis(entrada.dados.rodape).replace(/\n/g, '<br>')}</div>` : ''}</div>` : ''}
             ${movimentos?.length ? `
                 <details class="fis-secao"><summary><b>Movimentos de estoque</b> <span class="fis-contador">${movimentos.length}</span></summary>
                     <table class="fis-tabela"><tbody>${movimentos.map(m => linhaMovimentoEst(m, { comItem: true, acoes: false })).join('')}</tbody></table>
@@ -3086,6 +3086,9 @@ async function formularioEmissaoNFSe(inicial = {}) {
                     ${campoFis('Chamado', inputFis('chamado', inicial.chamado))}
                 </div>
                 ${campoFis('Discriminação do serviço', `<textarea class="fis-input" name="descricao" rows="4">${escFis(d.descricao || '')}</textarea>`)}
+                ${campoFis(`Rodapé da nota <small>(padrão da empresa na Configuração fiscal; vai no fim da descrição, depois do pagamento)</small>
+                    <a href="#" class="fis-dica" onclick="event.preventDefault(); rodapePadraoNFSe(this.closest('.fis-form'), true)">usar o padrão da empresa</a>`,
+                    `<textarea class="fis-input" name="rodape" rows="3" maxlength="1000" ${d.rodape == null ? 'data-auto="1"' : ''}>${escFis(d.rodape || '')}</textarea>`)}
                 <div class="fis-retencoes" data-retencoes></div>
             </fieldset>
             ${blocoPagamentoFis(4, d.pagamento || inicial.pagamento || {})}
@@ -3120,7 +3123,25 @@ function trocarEmpresaNFSe(select, servicoInicial, dados = {}) {
     const empresa = op.empresas.find(e => e.app === app)
     form.querySelector('[data-aviso-empresa]').innerHTML = `${avisoEmpresaFis(empresa)}
         ${empresa?.nfse_padrao === 'municipal' ? '<small class="fis-pendente">Esta empresa emite pelo sistema da prefeitura (não pelo padrão nacional).</small>' : ''}`
+    rodapePadraoNFSe(form)
     trocarServicoNFSe(form.querySelector('[name="servico_id"]'), dados)
+}
+
+// Rodapé da NFS-e: traz o texto da empresa (fiscal_empresas.nfse_rodape). Ao trocar de empresa só substitui
+// se o campo ainda estiver com o padrão anterior (ou vazio): o que o usuário escreveu não se perde.
+// "forcar" = link "usar o padrão da empresa".
+function rodapePadraoNFSe(form, forcar = false) {
+    const campo = form?.querySelector('[name="rodape"]')
+    if (!campo) return
+    const app = form.querySelector('[name="app"]')?.value
+    const padrao = opcoesEmissaoFiscal?.empresas?.find(e => e.app === app)?.nfse_rodape || ''
+    const intocado = campo.dataset.auto === '1' || campo.value.trim() === (campo.dataset.padrao || '').trim()
+    if (forcar || intocado) {
+        campo.value = padrao
+        delete campo.dataset.auto
+        agendarPreviaFis()
+    }
+    campo.dataset.padrao = padrao
 }
 
 function trocarServicoNFSe(select, dados = {}) {
@@ -3158,6 +3179,7 @@ function lerEmissaoNFSe(form) {
         dados: {
             valor: Number(v('valor')) || 0,
             descricao: v('descricao'),
+            rodape: v('rodape'),
             data_competencia: v('data_competencia'),
             codigo_municipio_prestacao: soDigFis(v('codigo_municipio_prestacao')) || destinatario.codigo_municipio,
             iss_retido: marcado('iss_retido'),
@@ -3686,6 +3708,7 @@ function htmlConfigEmpresas({ empresas }) {
                 <label class="fis-check"><input type="checkbox" name="recebe_notas" ${e.recebe_notas ? 'checked' : ''}> Busca notas recebidas</label>
                 <label class="fis-check"><input type="checkbox" name="ativo" ${e.ativo ? 'checked' : ''}> Ativa</label>
             </div>
+            ${campoFis('Rodapé padrão da NFS-e <small>(vem pronto na emissão; o usuário pode alterar)</small>', `<textarea class="fis-input" name="nfse_rodape" rows="3" maxlength="1000" placeholder="Ex.: dados bancários, aviso de retenção, texto do Simples Nacional…">${escFis(e.nfse_rodape || '')}</textarea>`)}
             ${e.observacao ? `<small class="fis-dica">${escFis(e.observacao)}</small>` : ''}
             <div class="fis-acoes-claras"><button type="button" class="fis-botao" onclick="salvarEmpresaFiscal('${escFis(e.app)}')">Salvar ${escFis(e.app)}</button></div>
         </div>`).join('')}</div>`
@@ -3702,6 +3725,7 @@ async function salvarEmpresaFiscal(app) {
         ambiente: v('ambiente').value,
         serie_nfe: Number(v('serie_nfe').value) || 1,
         nfse_padrao: v('nfse_padrao').value,
+        nfse_rodape: v('nfse_rodape').value.trim(),
         emite_nfe: v('emite_nfe').checked,
         emite_nfse: v('emite_nfse').checked,
         recebe_notas: v('recebe_notas').checked,
