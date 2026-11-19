@@ -873,8 +873,10 @@ function cartaoItemFluxo(c, parado, tempo) {
     // Verde só com nota (do GCS autorizada ou do Omie), em qualquer coluna; sem nota fica azul, mesmo
     // concluído direto (16/11/2026, a pedido).
     const faturada = !cancelada && (c.nota_status === 'AUTORIZADA' || c.emissao_status === 'OK' || nfs.length > 0)
-    const estado = c.emissao_status === 'ERRO' ? 'erro' : cancelada ? 'cancelada' : faturada ? 'faturada' : ''
-    const dica = c.emissao_status === 'ERRO' && c.emissao_mensagem ? `title="${escaparAtributo(`Emissão recusada: ${c.emissao_mensagem}`)}"` : ''
+    // Nota recusada/denegada pela SEFAZ também é vermelha, mesmo emitida fora do arraste (tela do Fiscal) — 19/11/2026.
+    const recusada = c.emissao_status === 'ERRO' || ['REJEITADA', 'DENEGADA'].includes(c.nota_status)
+    const estado = recusada ? 'erro' : cancelada ? 'cancelada' : faturada ? 'faturada' : ''
+    const dica = recusada ? `title="${escaparAtributo(c.emissao_mensagem ? `Emissão recusada: ${c.emissao_mensagem}` : 'Nota recusada pela SEFAZ: abra o cartão para ver o motivo')}"` : ''
     const emissao = ['EMITINDO', 'PROCESSANDO'].includes(c.emissao_status) ? '<small class="fluxo-emissao andando">Emitindo…</small>' : ''
     const id = escaparAtributo(c.id)
     // Anda só arrastando (sem botão no cartão, a pedido): próxima coluna, qualquer anterior ou Concluído.
@@ -891,6 +893,7 @@ function cartaoItemFluxo(c, parado, tempo) {
                     onclick="abrirMenuItemFluxo(event, '${id}')">⋮</button></span></span>
             <b class="fluxo-cartao-nome">${escaparAtributo(c.cliente || 'Cliente não informado')}</b>
             ${cancelada ? `<span class="fluxo-cartao-balao">${etiquetaEst('Cancelada', '#b91c1c')}</span>` : ''}
+            ${recusada ? `<span class="fluxo-cartao-balao">${etiquetaEst(c.nota_status === 'DENEGADA' ? 'Denegada' : 'Recusada', '#b91c1c')}</span>` : ''}
             ${rodadaCartaoFluxo(c)}
             ${c.pedido_prometido ? `<span class="fluxo-cartao-balao" title="Sem o pedido do cliente (ou com valor simbólico): a nota não sai até o pedido ser completado">${etiquetaEst('Pedido pendente', '#b45309')}</span>` : ''}
             ${c.cidade ? `<small>${escaparAtributo(c.cidade)}</small>` : ''}
@@ -979,37 +982,69 @@ function destinosServicoFluxo(c) {
 
 async function soltarServicoFluxo(c, etapa) {
     const nome = nomeItemFluxo(c)
+    if (etapa === 'concluido' || (etapa === 'pedido' && c.etapa === 'concluido'))
+        return otimistaServicoFluxo(c, etapa, () => apiModuloFiscal('fluxo-itens/servico-concluido', { id: c.id, marcar: etapa === 'concluido' }))
+    // Formulário (NFS-e / parcelas): o cartão fica na coluna nova enquanto a janela está aberta; fechou sem
+    // salvar, o quadro recarrega e ele volta.
+    if (etapa === 'preparacao') return janelaServicoFluxo(c, etapa, () => abrirNfseFluxo(c))
+    if (etapa === 'recebido') return janelaServicoFluxo(c, etapa, () => abrirRecebimentoFluxo(c.id))
+    if (etapa === 'faturado') {
+        if (!await confirmarPopup({ titulo: 'Faturar', mensagem: `Emitir agora a NFS-e de ${nome}?`, textoConfirmar: 'Emitir' })) return
+        return otimistaServicoFluxo(c, etapa, () => apiModuloFiscal('fluxo-itens/faturar', { id: c.id }), { emissao_status: 'EMITINDO' })
+    }
+    if (etapa === 'pedido' && c.etapa === 'preparacao') {
+        const ok = await confirmarPopup({
+            titulo: 'Voltar para Pedidos',
+            mensagem: `Voltar ${nome} para Pedidos?<br><small>O valor volta para o saldo do pedido; a NFS-e em rascunho fica guardada para a próxima vez.</small>`,
+            textoConfirmar: 'Voltar'
+        })
+        if (!ok) return
+        return otimistaServicoFluxo(c, etapa, () => apiModuloFiscal('fluxo-itens/mover', { id: c.id, para: 'PEDIDO' }))
+    }
+}
+
+// Arraste instantâneo no Fluxo de Serviços: o cartão muda de coluna na hora e o servidor confirma por trás.
+// Recusou: volta para onde estava, pisca em vermelho e mostra o motivo (pendência de pedido/saldo como em Vendas).
+async function otimistaServicoFluxo(c, etapa, acao, extra = {}) {
+    const antes = estadoFluxo.linhas.filter(x => x.id === c.id && !x.espelho).map(x => [x, { etapa: x.etapa, emissao_status: x.emissao_status }])
+    antes.forEach(([x]) => Object.assign(x, { etapa }, extra))
+    renderizarFluxo()
     try {
-        if (etapa === 'concluido' || (etapa === 'pedido' && c.etapa === 'concluido')) {
-            await apiModuloFiscal('fluxo-itens/servico-concluido', { id: c.id, marcar: etapa === 'concluido' })
-            return carregarFluxo()
-        }
-        if (etapa === 'preparacao') return await abrirNfseFluxo(c)
-        if (etapa === 'faturado') {
-            if (!await confirmarPopup({ titulo: 'Faturar', mensagem: `Emitir agora a NFS-e de ${nome}?`, textoConfirmar: 'Emitir' })) return
-            try {
-                await apiModuloFiscal('fluxo-itens/faturar', { id: c.id })
-            } catch (err) {
-                if (err?.codigo === 'PROMESSA_PEDIDO') return tratarPendenciaFluxo(err, c)
-                throw err
-            }
-            return carregarFluxo()
-        }
-        if (etapa === 'pedido' && c.etapa === 'preparacao') {
-            const ok = await confirmarPopup({
-                titulo: 'Voltar para Pedidos',
-                mensagem: `Voltar ${nome} para Pedidos?<br><small>O valor volta para o saldo do pedido; a NFS-e em rascunho fica guardada para a próxima vez.</small>`,
-                textoConfirmar: 'Voltar'
-            })
-            if (!ok) return
-            await apiModuloFiscal('fluxo-itens/mover', { id: c.id, para: 'PEDIDO' })
-            return carregarFluxo()
-        }
-        if (etapa === 'recebido') return abrirRecebimentoFluxo(c.id)
+        await acao()
+        carregarFluxo()
     } catch (err) {
         removerOverlay()
-        if (await tratarPendenciaFluxo(err, c)) return soltarServicoFluxo(c, etapa)
+        antes.forEach(([x, v]) => Object.assign(x, v))
+        renderizarFluxo()
+        const cartao = document.querySelector(`.fluxo-pagina .fluxo-cartao[data-id="${CSS.escape(c.id)}"]:not([data-espelho])`)
+        cartao?.classList.add('recusado')
+        cartao?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+        setTimeout(() => cartao?.classList.remove('recusado'), 2500)
+        if (await tratarPendenciaFluxo(err, c)) return otimistaServicoFluxo(c, etapa, acao, extra)
     }
+}
+
+// Arraste que abre uma janela: move na hora, abre e, quando a janela fechar (salva ou não), recarrega o quadro
+// (salvou: o cartão fica onde o servidor pôs; desistiu ou deu erro: volta).
+async function janelaServicoFluxo(c, etapa, abrir) {
+    const antes = estadoFluxo.linhas.filter(x => x.id === c.id && !x.espelho).map(x => [x, x.etapa])
+    antes.forEach(([x]) => { x.etapa = etapa })
+    renderizarFluxo()
+    const abertas = new Set([...document.querySelectorAll('.popup')].map(p => p.id))
+    try {
+        await abrir()
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+    const novas = [...document.querySelectorAll('.popup')].filter(p => p.id && !abertas.has(p.id)).map(p => p.id)
+    if (!novas.length) return carregarFluxo()
+    const observador = new MutationObserver(() => {
+        if (novas.some(id => document.getElementById(id))) return
+        observador.disconnect()
+        carregarFluxo()
+    })
+    observador.observe(document.body, { childList: true, subtree: true })
 }
 
 // Linha do cartão no Fluxo de Serviços: por que está em Concluído; parcelas a receber / recebido.
