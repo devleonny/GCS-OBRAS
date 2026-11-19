@@ -3932,12 +3932,12 @@ async function salvarServicoFiscal(botao) {
 
 // ================================================================ CRÉDITOS IBS/CBS (relatório)
 // IBS/CBS destacado nas notas recebidas (vw_fiscal_credito_ibs_cbs, migrations/fiscal-credito-ibs-cbs.sql), para
-// acompanhar o crédito potencial da reforma (CBS substitui PIS/COFINS em 2027). Combustível é monofásico: a nota
-// do posto não traz valor e o crédito será por litro × alíquota ad rem (ainda não publicada) → somamos os litros.
-// Empresa no Simples (IAC) não aproveita no regime normal. Mesmo layout das listas (.fin-tela).
+// acompanhar o crédito potencial da reforma (CBS substitui PIS/COFINS em 2027). Visão geral: os cartões do topo
+// seguem os filtros da tabela. Monofásico (ex.: combustível) só aparece como tipo de destaque; os litros continuam
+// na view, fora da tela. Empresa no Simples (IAC) não aproveita no regime normal. Mesmo layout das listas (.fin-tela).
 
 const POR_PAGINA_CRED_FIS = 50
-const COLUNAS_TOTAL_CRED_FIS = ['valor_total', 'base_ibs_cbs', 'cbs', 'ibs', 'credito', 'litros_combustivel']
+const COLUNAS_TOTAL_CRED_FIS = ['valor_total', 'base_ibs_cbs', 'cbs', 'ibs', 'credito']
 let somasCredFis = null, assinaturaCredFis = null
 const DESTAQUE_CRED_FIS = {
     DESTACADO: { texto: 'Destacado', cor: '#15803d' },
@@ -3958,12 +3958,11 @@ async function telaCreditosIbsCbs(filtroExtra = null) {
                         <button type="button" onclick="explicarCreditosFis()">${iconeFin('ver')} Como ler</button>
                         ${filtroExtra ? `<button type="button" onclick="telaCreditosIbsCbs()">${iconeFin('fechar')} Limpar filtro</button>` : ''}
                     </div>
-                    <div class="fis-cartoes fis-cartoes-mini" data-cartoes-creditos></div>
+                    <div class="fis-cartoes fis-cartoes-mini" data-cartoes-creditos><small>Calculando…</small></div>
                 </header>
                 <div class="fin-tabela-area" data-tabela-cred-fis></div>
             </section>
         </div>`
-    cartoesCreditosFis()
     const area = document.querySelector('[data-tabela-cred-fis]')
     try {
         delete controles.creditosFis
@@ -3992,8 +3991,6 @@ async function telaCreditosIbsCbs(filtroExtra = null) {
                 'CBS': { chave: 'cbs', tipoOrdenacao: 'numero' },
                 'IBS': { chave: 'ibs', tipoOrdenacao: 'numero' },
                 'Crédito': { chave: 'credito', tipoOrdenacao: 'numero' },
-                'Combustível': { chave: 'combustivel', tipoPesquisa: 'select', rotulos: { S: 'SIM', N: 'NÃO' } },
-                'Litros': { chave: 'litros_combustivel', tipoOrdenacao: 'numero' },
                 'Destaque': { chave: 'destaque', tipoPesquisa: 'select' },
                 'Aproveita': { chave: 'aproveitavel', tipoPesquisa: 'select', rotulos: { S: 'SIM', N: 'NÃO (SIMPLES)' } },
                 'Entrada': { chave: 'entrada', tipoPesquisa: 'select' }
@@ -4007,24 +4004,49 @@ async function telaCreditosIbsCbs(filtroExtra = null) {
     }
 }
 
-async function cartoesCreditosFis() {
+// Cartões do topo: mesmos filtros da tabela (recalculados quando os filtros mudam, em somarCreditosFis).
+async function cartoesCreditosFis(filtros = {}) {
     const alvo = document.querySelector('[data-cartoes-creditos]')
     if (!alvo) return
-    const soma = async (path, filtros) => {
-        try { return Number((await contarPorCampo({ base: 'vw_fiscal_credito_ibs_cbs', path, modo: 'soma', filtros }))?.total || 0) } catch { return null }
+    const base = 'vw_fiscal_credito_ibs_cbs'
+    const com = extra => ({ ...(filtros || {}), ...extra })
+    const soma = async (path, extra = {}) => {
+        try { return await contarPorCampo({ base, path, modo: 'soma', filtros: com(extra) }) } catch { return null }
     }
-    const [aproveitavel, simples, litros] = await Promise.all([
-        soma('credito', { aproveitavel: { op: '=', value: 'S' } }),
-        soma('credito', { aproveitavel: { op: '=', value: 'N' } }),
-        soma('litros_combustivel', { aproveitavel: { op: '=', value: 'S' }, combustivel: { op: '=', value: 'S' } })
+    const contar = async path => {
+        try { return await contarPorCampo({ base, path, filtros }) } catch { return null }
+    }
+    const S = { op: '=', value: 'S' }, N = { op: '=', value: 'N' }
+    const [credito, cbs, ibs, notas, simples, destaques, entradas] = await Promise.all([
+        soma('credito', { aproveitavel: S }),
+        soma('cbs', { aproveitavel: S }),
+        soma('ibs', { aproveitavel: S }),
+        soma('valor_total'),
+        soma('credito', { aproveitavel: N }),
+        contar('destaque'),
+        contar('entrada')
     ])
-    const cartao = (valor, texto, cor, acao, titulo) => `
-        <button type="button" class="fis-cartao" style="--cor: ${cor}" onclick="${acao}" title="${escFis(titulo)}">
+    if (!document.querySelector('[data-cartoes-creditos]')) return
+    const din = r => r == null ? '—' : dinheiro(Number(r.total) || 0)
+    const qtd = n => Number(n || 0).toLocaleString('pt-BR')
+    const totalNotas = Number(notas?.todos) || 0
+    const comDestaque = (Number(destaques?.DESTACADO) || 0) + (Number(destaques?.PARCIAL) || 0)
+    const pct = totalNotas ? Math.round(comDestaque / totalNotas * 100) : 0
+    const pendentes = Number(entradas?.PENDENTE) || 0
+    // Com ação: botão que filtra; sem ação: só informa (div, sem o visual apagado de botão desabilitado).
+    const cartao = (valor, texto, cor, acao, titulo) => acao
+        ? `<button type="button" class="fis-cartao" style="--cor: ${cor}" onclick="${acao}" title="${escFis(titulo)}">
             <b>${valor}</b><span>${texto}</span></button>`
+        : `<div class="fis-cartao" style="--cor: ${cor}; cursor: default" title="${escFis(titulo)}">
+            <b>${valor}</b><span>${texto}</span></div>`
     alvo.innerHTML = `
-        ${cartao(aproveitavel == null ? '—' : dinheiro(aproveitavel), 'destacado (AC/HNK/HNW)', '#15803d', `telaCreditosIbsCbs({ aproveitavel: { op: '=', value: 'S' }, destaque: { op: '=', value: 'DESTACADO' } })`, 'IBS/CBS destacado nas notas das empresas do regime normal')}
-        ${cartao(litros == null ? '—' : `${qtdEst(litros)} L`, 'combustível (monofásico)', '#1e40af', `telaCreditosIbsCbs({ aproveitavel: { op: '=', value: 'S' }, combustivel: { op: '=', value: 'S' } })`, 'Litros comprados: o crédito será litros × alíquota por litro, quando publicada')}
-        ${cartao(simples == null ? '—' : dinheiro(simples), 'IAC (Simples, não aproveita)', '#64748b', `telaCreditosIbsCbs({ aproveitavel: { op: '=', value: 'N' } })`, 'No Simples o crédito não é aproveitado (só optando por recolher IBS/CBS por fora)')}`
+        ${cartao(din(credito), 'crédito (AC/HNK/HNW)', '#15803d', `telaCreditosIbsCbs({ aproveitavel: { op: '=', value: 'S' } })`, 'IBS + CBS destacados nas notas das empresas do regime normal')}
+        ${cartao(din(cbs), 'CBS', '#0f766e', '', 'Parte federal (substitui PIS/COFINS a partir de 2027)')}
+        ${cartao(din(ibs), 'IBS', '#1e40af', '', 'Parte de estados e municípios (cresce até 2033)')}
+        ${cartao(din(notas), `em ${qtd(totalNotas)} nota${totalNotas === 1 ? '' : 's'}`, '#334155', '', 'Valor total das notas recebidas no filtro')}
+        ${cartao(`${pct}%`, `com destaque (${qtd(comDestaque)} de ${qtd(totalNotas)})`, '#d97706', `telaCreditosIbsCbs({ destaque: { op: '=', value: 'SEM_DESTAQUE' } })`, 'Notas em que o fornecedor destacou IBS/CBS. Clique para ver as que vieram sem destaque')}
+        ${cartao(qtd(pendentes), 'sem entrada no GCS', pendentes ? '#b91c1c' : '#64748b', pendentes ? `telaCreditosIbsCbs({ entrada: { op: '=', value: 'PENDENTE' } })` : '', 'Notas que ainda não tiveram entrada: vale lançar todas, são a base do crédito')}
+        ${cartao(din(simples), 'IAC (Simples, não aproveita)', '#64748b', `telaCreditosIbsCbs({ aproveitavel: { op: '=', value: 'N' } })`, 'No Simples o crédito não é aproveitado (só optando por recolher IBS/CBS por fora)')}`
 }
 
 async function aposCarregarCreditosFis() {
@@ -4056,6 +4078,7 @@ async function somarCreditosFis() {
     const assinatura = JSON.stringify(filtros)
     if (assinatura !== assinaturaCredFis) {
         assinaturaCredFis = assinatura
+        cartoesCreditosFis(filtros || {})
         const somas = await Promise.all(COLUNAS_TOTAL_CRED_FIS.map(async path => {
             try { return Number((await contarPorCampo({ base: 'vw_fiscal_credito_ibs_cbs', path, modo: 'soma', filtros }))?.total || 0) } catch { return null }
         }))
@@ -4067,7 +4090,7 @@ async function somarCreditosFis() {
         if (!td) return
         const v = somasCredFis?.[i]
         td.title = 'Total de todas as notas do filtro'
-        td.innerHTML = `<span class="fin-sigma">Σ</span> ${v == null ? '—' : path === 'litros_combustivel' ? `${qtdEst(v)} L` : dinheiro(v)}`
+        td.innerHTML = `<span class="fin-sigma">Σ</span> ${v == null ? '—' : dinheiro(v)}`
     })
 }
 
@@ -4122,8 +4145,6 @@ function criarLinhaCreditoFis(d) {
             <td class="fis-num">${din(d.cbs)}</td>
             <td class="fis-num">${din(d.ibs)}</td>
             <td class="fis-num"><b>${din(d.credito)}</b></td>
-            <td class="fin-centro">${d.combustivel === 'S' ? etiquetaEst('Sim', '#1e40af') : ''}</td>
-            <td class="fis-num">${Number(d.litros_combustivel) ? `${qtdEst(d.litros_combustivel)} L` : ''}</td>
             <td>${etiquetaEst(dest.texto || d.destaque || '', dest.cor)}</td>
             <td class="fin-centro">${d.aproveitavel === 'S' ? 'Sim' : '<small>Não (Simples)</small>'}</td>
             <td>${d.entrada === 'FEITA' ? etiquetaEst('Feita', '#15803d') : etiquetaEst('Pendente', '#d97706')}</td>
@@ -4138,9 +4159,9 @@ function explicarCreditosFis() {
                 <p><b>O que é:</b> o IBS e a CBS que os fornecedores destacaram nas notas que recebemos. A partir de 2027 a CBS
                 substitui o PIS/COFINS com <b>crédito amplo</b> (o IBS cresce até 2033); em 2026 é só teste (CBS 0,9% e IBS 0,1%).</p>
                 <p><b>Destacado:</b> a nota traz o valor; é o crédito de referência. <b>Parcial:</b> só parte dos itens tem destaque.
-                <b>Sem destaque:</b> o fornecedor não informou (Simples ou nota antiga).</p>
-                <p><b>Combustível (monofásico, CST 620):</b> o imposto é recolhido antes e o posto não destaca valor. O crédito de quem
-                compra será <b>litros × alíquota por litro</b>, quando publicada: por isso a coluna <b>Litros</b>.</p>
+                <b>Sem destaque:</b> o fornecedor não informou (Simples ou nota antiga). <b>Monofásico</b> (ex.: combustível):
+                o imposto foi recolhido antes e a nota não traz valor; o crédito segue regra própria, ainda não publicada.</p>
+                <p><b>Cartões do topo:</b> seguem os filtros da tabela. Clique num cartão para filtrar por ele.</p>
                 <p><b>Aproveita:</b> AC, HNK e HNW (regime normal) sim; IAC (Simples) não, a menos que opte por recolher IBS/CBS por fora.</p>
                 <p><b>Entrada pendente:</b> nota que ainda não teve entrada no GCS. Vale lançar todas: são a base do crédito.</p>
                 <p><small>Valores para acompanhamento: confirme o aproveitamento com a contabilidade.</small></p>
@@ -4180,8 +4201,6 @@ async function baixarExcelCreditosFis() {
                 { titulo: 'CBS', largura: 12, tipo: 'moeda', soma: true, valor: d => Number(d.cbs) || 0 },
                 { titulo: 'IBS', largura: 12, tipo: 'moeda', soma: true, valor: d => Number(d.ibs) || 0 },
                 { titulo: 'Crédito', largura: 13, tipo: 'moeda', soma: true, valor: d => Number(d.credito) || 0 },
-                { titulo: 'Combustível', largura: 11, centro: true, valor: d => d.combustivel === 'S' ? 'Sim' : '' },
-                { titulo: 'Litros', largura: 11, valor: d => Number(d.litros_combustivel) || 0 },
                 { titulo: 'Destaque', largura: 14, valor: d => DESTAQUE_CRED_FIS[d.destaque]?.texto || d.destaque || '' },
                 { titulo: 'Aproveita', largura: 14, valor: d => d.aproveitavel === 'S' ? 'Sim' : 'Não (Simples)' },
                 { titulo: 'Entrada', largura: 11, valor: d => d.entrada === 'FEITA' ? 'Feita' : 'Pendente' },
