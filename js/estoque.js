@@ -904,34 +904,34 @@ async function abrirLocalEstoque(localId) {
             titulo: `${l.app} · ${l.nome}`,
             elemento: `
                 <div class="fis-painel est-local" data-local-estoque="${escEst(localId)}">
-                    <div class="est-local-topo">
-                        <div class="est-local-resumo">
+                    <div class="est-local-resumo">
                             ${resumo('Itens', saldos.length.toLocaleString('pt-BR'))}
                             ${resumo('Com saldo', positivos.length.toLocaleString('pt-BR'), '#15803d')}
                             ${resumo('Negativos', negativos.length.toLocaleString('pt-BR'), negativos.length ? '#b91c1c' : '#64748b', 'Saiu mais do que entrou registrado neste local')}
                             ${resumo('Valor em estoque', dinheiro(valor), '#0f766e', semCusto ? `${semCusto} item(ns) com saldo ainda sem custo médio não entram na soma` : 'Saldo positivo × custo médio')}
-                            ${resumo('Último movimento', data(ultimo))}
-                        </div>
+                        ${resumo('Último movimento', data(ultimo))}
+                    </div>
+                    ${negativos.length ? `
+                    <div class="est-local-aviso">
+                        <span class="est-local-aviso-icone">!</span>
+                        <span><strong>${negativos.length} item(ns) negativos:</strong> saíram (nota emitida, requisição) sem entrada registrada aqui,
+                        normalmente porque o estoque ainda não teve o marco zero. Um <span class="fis-link" onclick="removerTodosPopups(); telaInventarios()">inventário deste local</span> acerta os saldos.</span>
+                    </div>` : ''}
+                    <div class="est-local-barra">
+                        ${saldos.length ? `
+                        <input class="fis-input est-local-busca" placeholder="Buscar código ou descrição…" oninput="filtrarItensLocalEst(this)">
+                        <div class="est-local-chips">
+                            <button type="button" class="ativo" data-filtro-local="todos" onclick="filtrarItensLocalEst(this)">Todos <small>${saldos.length}</small></button>
+                            <button type="button" data-filtro-local="negativos" onclick="filtrarItensLocalEst(this)">Negativos <small>${negativos.length}</small></button>
+                            <button type="button" data-filtro-local="positivos" onclick="filtrarItensLocalEst(this)">Com saldo <small>${positivos.length}</small></button>
+                        </div>` : ''}
                         <div class="est-local-acoes">
                             ${saldos.length ? `<button type="button" class="fis-botao" onclick="formularioTransferenciaEstoque('${escEst(localId)}')">Transferir daqui</button>` : ''}
                             ${l.tipo === 'DIVERGENCIA' ? '' : `<button type="button" class="fis-mini" onclick="formularioLocalEstoque('${escEst(localId)}')">Editar local</button>`}
                             ${l.tipo === 'USO_CONSUMO' ? `<button type="button" class="fis-mini" onclick="telaUsoConsumoEstoque()">Requisições a conferir</button>` : ''}
                         </div>
                     </div>
-                    ${negativos.length ? `
-                    <div class="est-local-aviso">
-                        <b>${negativos.length} item(ns) com saldo negativo.</b> Saíram (nota emitida, requisição) sem entrada registrada aqui,
-                        normalmente porque o estoque ainda não teve o marco zero. Um <span class="fis-link" onclick="removerTodosPopups(); telaInventarios()">inventário deste local</span> acerta os saldos.
-                    </div>` : ''}
                     ${saldos.length ? `
-                    <div class="est-local-filtros">
-                        <input class="fis-input est-local-busca" placeholder="Buscar código ou descrição…" oninput="filtrarItensLocalEst(this)">
-                        <div class="est-local-chips">
-                            <button type="button" class="ativo" data-filtro-local="todos" onclick="filtrarItensLocalEst(this)">Todos <small>${saldos.length}</small></button>
-                            <button type="button" data-filtro-local="negativos" onclick="filtrarItensLocalEst(this)">Negativos <small>${negativos.length}</small></button>
-                            <button type="button" data-filtro-local="positivos" onclick="filtrarItensLocalEst(this)">Com saldo <small>${positivos.length}</small></button>
-                        </div>
-                    </div>
                     <div class="est-local-rolagem">
                         <table class="est-local-tabela">
                             <thead><tr><th>Código</th><th>Descrição</th><th>Un.</th><th class="fis-num">Saldo</th><th class="fis-num">Custo médio</th><th class="fis-num">Valor</th><th>Último mov.</th></tr></thead>
