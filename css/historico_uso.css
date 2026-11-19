@@ -306,7 +306,7 @@
 }
 
 /* detalhe de uma alteração (abrirVersaoHU): cabeçalho com quem/quando, um cartão por campo com antes → depois */
-.hu-d { gap: 12px; padding: 4px 2px 2px; min-width: min(760px, 92vw); max-width: 92vw; }
+.hu-d { gap: 12px; padding: 4px 2px 2px; min-width: min(760px, 92vw); max-width: min(900px, 92vw); }
 .hu-d-topo {
     display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
     background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px;

@@ -11,6 +11,15 @@
     width: 5rem;
 }
 
+/* No formulário do pedido, amplia o campo sem alterar os demais inputs da janela. */
+.linha-padrao:has(#limite_faturamento_dia) > div {
+    flex: 1 1 18rem;
+}
+
+#limite_faturamento_dia {
+    width: 100%;
+}
+
 .bloco-st {
     display: flex;
     align-items: start;

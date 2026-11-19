@@ -169,10 +169,8 @@ function marcarStatusPedido(clicou = false) {
 
 }
 
-// Promessa de pedido (16/11/2026, a pedido; antes "Sem Pedido" com autorizador): o pedido entra sem o pedido do
-// cliente, com o valor previsto, e o GCS cobra (aviso diário e janela de hora em hora, js/promessas_pedido.js)
-// até ter número (ou "Aprovado por E-mail"), valor e a OC anexada. Enquanto for promessa, a nota do orçamento
-// não é emitida e o orçamento não é concluído (gcs vw_pedido_promessas). Valor ≤ R$ 10 também é promessa.
+// Pedido pendente: pode ser lançado sem dados comerciais; o GCS cobra depois para completar o pedido do cliente.
+// Enquanto for promessa, a nota do orçamento não é emitida e o orçamento não é concluído.
 const PEDIDO_PROMETIDO = 'Pedido pendente'
 // Formulário do pedido aberto: OCs que o orçamento já tem (gcs /fluxo-itens/saldo → pedidos).
 let estadoFormPedido = null
@@ -242,16 +240,10 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
             </div>
             `)
         .join('')
-    // Valor previsto da promessa: o total do orçamento, se o pedido ainda não tem valor de verdade.
-    // Valor sugerido: o que ainda está "sem pedido" no orçamento (orçamento − OCs já lançadas); no 1º pedido,
-    // o total do orçamento. As OCs já lançadas também servem para recusar a mesma OC duas vezes.
+    // As OCs já lançadas servem para recusar a mesma OC duas vezes.
     const saldoOrc = await apiModuloFiscal('fluxo-itens/saldo', { contrato: departamento || depAtivo }).catch(() => null)
     estadoFormPedido = { id, outros: (saldoOrc?.pedidos || []).filter(p => p.id !== id) }
     let valorInicial = Number(valor) > 10 ? valor : ''
-    if (!valorInicial) {
-        const sugerido = estadoFormPedido.outros.length ? Number(saldoOrc?.saldo?.sem_pedido) : Number(saldoOrc?.total_orcamento)
-        if (sugerido > 10) valorInicial = sugerido
-    }
 
     const linhas = [
         {
@@ -264,8 +256,8 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
             <div style="${vertical}; gap: 5px;">
                 ${opcoes}
                 <small id="aviso-promessa" style="display: none; color: #b45309; max-width: 26rem; text-align: left;">
-                    Sem o pedido do cliente por enquanto. O GCS vai cobrar você (e o gestor) até o pedido ser completado
-                    com número (ou e-mail), valor e a OC anexada, e a nota deste orçamento não sai antes disso.
+                    Sem o pedido do cliente por enquanto. Pode deixar os dados comerciais em branco; o GCS vai cobrar você
+                    (e o gestor) para completar o pedido depois. A nota deste orçamento não sai antes disso.
                 </small>
             </div>`
         },
@@ -275,7 +267,7 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
         },
         {
             texto: 'Valor do Pedido',
-            elemento: `<input type="number" id="valor" min="0" step="0.01" value="${valorInicial}" placeholder="Valor do pedido (previsto, se for promessa)">`
+            elemento: `<input type="number" id="valor" min="0" step="0.01" value="${valorInicial}">`
         },
         {
             texto: 'OC do cliente (anexo)',
@@ -364,12 +356,14 @@ async function salvarPedido(id) {
         const linhaOc = document.getElementById('linha-oc-pedido')
         const arquivosOc = document.getElementById('oc_pedido')
 
-        if (!valor.value || !pedido.value)
-            return popup({ mensagem: 'Existem campos em Branco' })
+        if (!pedido.value)
+            return popup({ mensagem: 'Selecione o status do pedido.' })
 
-        // Valor simbólico (R$ 1, R$ 10) não é mais aceito: sem o pedido, marque "Pedido pendente" com o valor previsto.
-        if (!(Number(valor.value) > 10))
-            return popup({ mensagem: 'Informe o valor do pedido (acima de R$ 10). Ainda sem o pedido do cliente? Marque "Pedido pendente" e informe o valor previsto.' })
+        const pendente = pedido.value === PEDIDO_PROMETIDO
+
+        // Pedido pendente aceita só o status; os dados comerciais ficam para quando o pedido for completado.
+        if (!pendente && !(Number(valor.value) > 10))
+            return popup({ mensagem: 'Informe o valor do pedido (acima de R$ 10).' })
 
         // Cumprindo a promessa com número: a OC do cliente vai anexada.
         const comNumero = !ehPromessaPedido(pedido.value, valor.value) && !/e-?mail/i.test(pedido.value)
@@ -383,16 +377,17 @@ async function salvarPedido(id) {
             return popup({ mensagem: `A OC ${escaparAtributo(pedido.value)} já está lançada neste orçamento. Edite o pedido existente (valor total da OC): venda e serviço saem como rodadas do mesmo pedido.` })
 
         // Sem empresa pré-escolhida: antes vinha AC e o pedido saía como AC sem ninguém decidir.
-        if (!empresa.value)
+        if (!pendente && !empresa.value)
             return popup({ mensagem: 'Escolha a empresa a faturar.' })
 
-        const { condicao, erros } = lerCondicaoPag(document.querySelector('#condicao_pedido [data-condicao-pag]'))
-        if (erros.length)
-            return popup({ mensagem: `Condição de pagamento: ${erros[0]}` })
+        const leituraCondicao = lerCondicaoPag(document.querySelector('#condicao_pedido [data-condicao-pag]'))
+        const condicao = leituraCondicao.condicao
+        if (!pendente && leituraCondicao.erros.length)
+            return popup({ mensagem: `Condição de pagamento: ${leituraCondicao.erros[0]}` })
 
         const limiteTexto = document.getElementById('limite_faturamento_dia').value
-        const limite_faturamento_dia = limiteTexto === '' ? null : Number(limiteTexto)
-        if (limite_faturamento_dia !== null && !(Number.isInteger(limite_faturamento_dia) && limite_faturamento_dia >= 1 && limite_faturamento_dia <= 31))
+        const limite_faturamento_dia = pendente || limiteTexto === '' ? null : Number(limiteTexto)
+        if (!pendente && limite_faturamento_dia !== null && !(Number.isInteger(limite_faturamento_dia) && limite_faturamento_dia >= 1 && limite_faturamento_dia <= 31))
             return popup({ mensagem: 'Limite de faturamento: informe um dia de 1 a 31, ou deixe vazio.' })
 
         const dados = {
@@ -401,12 +396,12 @@ async function salvarPedido(id) {
             executor: acesso.usuario,
             comentario: comentario_status.value,
             // "pagamento" segue com o nº de vezes (telas e relatórios antigos); a condição completa vai junto.
-            pagamento: String(vezesCondicaoPag(condicao)),
-            condicao_pagamento: condicao,
+            pagamento: !pendente && condicao ? String(vezesCondicaoPag(condicao)) : '',
+            condicao_pagamento: pendente ? null : condicao || null,
             limite_faturamento_dia,
-            valor: Number(valor.value),
+            valor: pendente || !valor.value ? null : Number(valor.value),
             pedido: pedido.value,
-            empresa: empresa.value
+            empresa: pendente ? null : empresa.value || null
         }
 
         await enviar(`pedidos/${id}`, dados)
