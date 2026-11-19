@@ -127,3 +127,15 @@
     flex-direction: column;
     border: 1px solid #7d7d7d;
 }
+/* Movimentações (js/estoque.js telaMovimentosEstoque): cada movimento numa linha só, conteúdo encolhido;
+   textos longos cortados com "…" (texto completo no título da célula). */
+.est-mov .tabela th,
+.est-mov .tabela td { white-space: nowrap; }
+.est-mov .tabela > tbody > tr > td { padding-top: 3px; padding-bottom: 3px; font-size: 12px; line-height: 1.25; }
+.est-mov .tabela td small { font-size: 11px; }
+.est-mov .tabela td .fis-etiqueta { font-size: 10.5px; padding: 1px 6px; }
+.est-mov td.fin-obs { max-width: 220px; }
+.est-mov td.fin-nome { max-width: 240px; }
+.est-mov td.est-mov-local { max-width: 130px; }
+.est-mov td.est-mov-origem { max-width: 120px; }
+.est-mov td.est-mov-doc { max-width: 200px; }

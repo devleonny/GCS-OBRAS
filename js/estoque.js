@@ -162,8 +162,8 @@ function linhaMovimentoEst(m, { comItem = false, acoes = true } = {}) {
             <td><small>${escEst(m.app ? `${m.app} · ${m.local_nome || ''}` : m.local_nome || '')}</small></td>
             <td class="fis-num ${q < 0 ? 'fis-negativo' : 'fis-positivo'}"><b>${q > 0 ? '+' : ''}${qtdEst(q)}</b></td>
             <td class="fis-num">${m.custo_unitario != null ? dinheiro(m.custo_unitario) : ''}</td>
-            <td>${escEst(ORIGENS_MOVIMENTO[m.origem] || m.origem)}</td>
-            <td>${doc}</td>
+            <td class="fin-obs est-mov-origem" title="${escEst(ORIGENS_MOVIMENTO[m.origem] || m.origem)}"><span class="fin-obs-txt">${escEst(ORIGENS_MOVIMENTO[m.origem] || m.origem)}</span></td>
+            <td class="fin-obs est-mov-doc" title="${escEst(docTexto)}"><span class="fin-obs-txt">${doc}</span></td>
             <td><small>${escEst(m.observacao || '')}</small></td>
             <td><small>${escEst(m.usuario || '')}</small></td>
             ${acoes ? `<td>${podeEstornar ? `<button type="button" class="fis-mini" onclick="estornarMovimentoEstoque('${escEst(m.id)}', '${escEst(m.item_id)}')">Estornar</button>` : ''}</td>` : ''}
@@ -280,16 +280,18 @@ const POR_PAGINA_MOV_EST = 50
 const COLUNAS_TOTAL_MOV_EST = ['quantidade', 'valor']
 let somasMovEst = null, assinaturaMovEst = null
 let painelMovEstAberto = true
+// Marcados (valem entre páginas): id -> { quantidade, valor }. Com marcados, o pé soma só eles e o Excel baixa só eles.
+const selecaoMovEst = new Map()
 
 async function telaMovimentosEstoque(filtroExtra = null) {
     if (typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
     tela.innerHTML = `
-        <div class="fis-pagina fin-tela fis-emitidas">
+        <div class="fis-pagina fin-tela fis-emitidas est-mov">
             <section class="fin-janela">
                 <header class="fin-janela-topo">
                     <h2>Movimentações de estoque</h2>
                     <div class="fin-barra">
-                        <button type="button" onclick="baixarExcelMovimentosEst()" title="Todos os resultados dos filtros aplicados">${iconeFin('excel')} Excel</button>
+                        <button type="button" onclick="baixarExcelMovimentosEst()" title="Com movimentos marcados, baixa só os marcados; sem marcação, todos os resultados dos filtros aplicados">${iconeFin('excel')} Excel</button>
                         <button type="button" onclick="telaEstoque()">${iconeFin('ver')} Saldos</button>
                         <button type="button" onclick="telaLocaisEstoque()">${iconeFin('ver')} Locais</button>
                         ${filtroExtra ? `<button type="button" onclick="telaMovimentosEstoque()">${iconeFin('fechar')} Limpar filtro</button>` : ''}
@@ -316,6 +318,7 @@ async function telaMovimentosEstoque(filtroExtra = null) {
         delete controles.movimentosEstoque
         somasMovEst = null
         assinaturaMovEst = null
+        selecaoMovEst.clear()
         area.innerHTML = await modTab({
             base: 'vw_estoque_movimentos',
             pag: 'movimentosEstoque',
@@ -327,6 +330,7 @@ async function telaMovimentosEstoque(filtroExtra = null) {
             filtrosFixos: { ...(filtroExtra || {}) },
             ordenar: [{ path: 'data', direcao: 'desc' }],
             colunas: {
+                '': {},
                 'Data': { chave: 'dia', tipoPesquisa: 'data' },
                 'Empresa': { chave: 'app', tipoPesquisa: 'select' },
                 'Código': { chave: 'codigo' },
@@ -343,6 +347,7 @@ async function telaMovimentosEstoque(filtroExtra = null) {
             }
         })
         area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-mov-est></div>')
+        area.querySelector('.modtab')?.insertAdjacentHTML('afterbegin', '<div class="fin-aviso-selecao" data-aviso-mov-est hidden></div>')
         await paginacao('movimentosEstoque')
     } catch (err) {
         console.error(err)
@@ -365,30 +370,42 @@ function criarLinhaMovimentoEstoque(m) {
     const t = TIPOS_MOVIMENTO[m.tipo] || {}
     const q = Number(m.quantidade)
     const v = Number(m.valor)
-    const doc = m.documento_id
-        ? `<span class="fis-link" onclick="abrirDocumentoFiscal('${escEst(m.documento_id)}')">NF ${escEst(m.documento_numero || '')}</span> <small>${escEst(m.participante_nome || '')}</small>`
+    const id = escEst(m.id)
+    const docTexto = m.documento_id ? `NF ${m.documento_numero || ''} ${m.participante_nome || ''}`.trim()
         : m.inventario_id ? 'Inventário' : m.origem === 'REQUISICAO' ? 'Requisição' : ''
+    const doc = m.documento_id
+        ? `<span class="fis-link" onclick="event.stopPropagation(); abrirDocumentoFiscal('${escEst(m.documento_id)}')">NF ${escEst(m.documento_numero || '')}</span> ${escEst(m.participante_nome || '')}`
+        : escEst(docTexto)
     return `
         <tr class="fin-linha${m.estornado ? ' fis-estornado' : ''}" ondblclick="detalheItemEstoque('${escEst(m.item_id)}')" title="Duplo clique abre o item">
+            <td class="fin-col-marcar">
+                <input type="checkbox" class="fin-marcar" data-marcar-mov value="${id}" data-qtd="${Number(m.quantidade) || 0}" data-valor="${Number(m.valor) || 0}" ${selecaoMovEst.has(String(m.id)) ? 'checked' : ''}
+                    onclick="event.stopPropagation(); marcarMovEst(this)" ondblclick="event.stopPropagation()" aria-label="Marcar movimento">
+            </td>
             <td class="fin-centro">${new Date(m.data).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
             <td class="fin-centro">${escEst(m.app || '')}</td>
             <td class="fin-centro fin-doc"><span class="fis-link" onclick="event.stopPropagation(); detalheItemEstoque('${escEst(m.item_id)}')" title="Abrir o item">${escEst(m.codigo)}</span></td>
             <td class="fin-obs fin-nome" title="${escEst(m.descricao || '')}"><span class="fin-obs-txt">${escEst(m.descricao || '')}</span></td>
             <td>${etiquetaEst(t.texto || m.tipo, t.cor)}${m.estornado ? ' <small>(estornado)</small>' : ''}</td>
-            <td><small>${escEst(m.local_nome || '')}</small></td>
+            <td class="fin-obs est-mov-local" title="${escEst(m.local_nome || '')}"><span class="fin-obs-txt">${escEst(m.local_nome || '')}</span></td>
             <td class="fis-num ${q < 0 ? 'fis-negativo' : 'fis-positivo'}"><b>${q > 0 ? '+' : ''}${qtdEst(q)}</b></td>
             <td class="fis-num">${m.custo_unitario != null ? dinheiro(m.custo_unitario) : '<span class="fin-vazio">—</span>'}</td>
             <td class="fis-num ${v < 0 ? 'fis-negativo' : ''}">${m.valor != null ? dinheiro(v) : '<span class="fin-vazio">—</span>'}</td>
             <td>${escEst(ORIGENS_MOVIMENTO[m.origem] || m.origem)}</td>
             <td>${doc}</td>
             <td class="fin-obs" title="${escEst(m.observacao || '')}"><span class="fin-obs-txt">${escEst(m.observacao || '')}</span></td>
-            <td><small>${escEst(m.usuario || '')}</small></td>
+            <td>${escEst(m.usuario || '')}</td>
         </tr>`
 }
 
 async function aposCarregarMovimentosEst() {
     const tabela = document.getElementById('bodyMovimentosEstoque')?.closest('table')
     if (!tabela) return
+    const th = tabela.querySelector('thead tr:first-child th:first-child')
+    if (th && !th.querySelector('[data-marcar-todos-mov]'))
+        th.innerHTML = '<input type="checkbox" class="fin-marcar" data-marcar-todos-mov title="Marcar todos desta página" onclick="event.stopPropagation(); marcarTodosMovEst(this)">'
+    const filtro = tabela.querySelector('thead tr:nth-child(2) th:first-child')
+    if (filtro?.querySelector('img')) filtro.innerHTML = ''
     if (!tabela.tFoot) {
         const chaves = Object.values(controles.movimentosEstoque?.colunas || {}).map(c => c.chave || '')
         const linha = tabela.createTFoot().insertRow()
@@ -405,6 +422,7 @@ async function aposCarregarMovimentosEst() {
     if (typeof cabecalhoAvancadoTabela === 'function')
         await cabecalhoAvancadoTabela('movimentosEstoque', { prefKey: 'movimentos_estoque' })
     desenharRodapeMovEst()
+    desenharSelecaoMovEst()
     await somarMovimentosEst()
 }
 
@@ -422,13 +440,93 @@ async function somarMovimentosEst() {
         if (assinatura !== assinaturaMovEst) return
         somasMovEst = somas
     }
+    escreverTotaisMovEst()
+}
+
+// Pé das colunas: com marcados, soma só eles; sem marcação, o filtro inteiro.
+function escreverTotaisMovEst() {
+    const n = selecaoMovEst.size
     COLUNAS_TOTAL_MOV_EST.forEach((path, i) => {
         const td = document.querySelector(`[data-total-mov-est="${path}"]`)
         if (!td) return
-        const v = somasMovEst?.[i]
-        td.title = 'Total de todos os movimentos do filtro'
-        td.innerHTML = `<span class="fin-sigma">Σ</span> ${v == null ? '—' : path === 'valor' ? dinheiro(v) : qtdEst(v)}`
+        const formatar = v => v == null ? '—' : path === 'valor' ? dinheiro(Math.round(v * 100) / 100) : qtdEst(v)
+        if (n) {
+            const soma = [...selecaoMovEst.values()].reduce((s, m) => s + (Number(path === 'valor' ? m.valor : m.quantidade) || 0), 0)
+            td.title = `Soma dos ${n} movimento(s) marcado(s). Desmarque todos para ver o total do filtro.`
+            td.innerHTML = `${i === 0 ? `<small class="fin-total-rotulo">${n} marcado${n === 1 ? '' : 's'}</small> ` : ''}<span class="fin-sigma">Σ</span> ${formatar(soma)}`
+            td.classList.add('fin-total-selecao')
+        } else {
+            td.title = 'Total de todos os movimentos do filtro'
+            td.innerHTML = `<span class="fin-sigma">Σ</span> ${formatar(somasMovEst?.[i])}`
+            td.classList.remove('fin-total-selecao')
+        }
     })
+}
+
+function marcarMovEst(caixa) {
+    if (caixa.checked) selecaoMovEst.set(caixa.value, { quantidade: Number(caixa.dataset.qtd) || 0, valor: Number(caixa.dataset.valor) || 0 })
+    else selecaoMovEst.delete(caixa.value)
+    desenharSelecaoMovEst()
+}
+
+function marcarTodosMovEst(caixa) {
+    document.querySelectorAll('#bodyMovimentosEstoque [data-marcar-mov]').forEach(c => {
+        c.checked = caixa.checked
+        if (caixa.checked) selecaoMovEst.set(c.value, { quantidade: Number(c.dataset.qtd) || 0, valor: Number(c.dataset.valor) || 0 })
+        else selecaoMovEst.delete(c.value)
+    })
+    desenharSelecaoMovEst()
+}
+
+function limparSelecaoMovEst() {
+    selecaoMovEst.clear()
+    document.querySelectorAll('#bodyMovimentosEstoque [data-marcar-mov]').forEach(c => { c.checked = false })
+    desenharSelecaoMovEst()
+}
+
+async function selecionarTodosFiltroMovEst() {
+    const ctrl = controles.movimentosEstoque
+    if (!ctrl) return
+    overlayAguarde()
+    try {
+        const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        let pagina = 1, paginas = 1
+        do {
+            const r = await pesquisarDB({ base: 'vw_estoque_movimentos', filtros, pagina, limite: 2000 })
+            ;(r?.resultados || []).forEach(m => selecaoMovEst.set(String(m.id), { quantidade: Number(m.quantidade) || 0, valor: Number(m.valor) || 0 }))
+            paginas = Number(r?.paginas) || 1
+            pagina++
+        } while (pagina <= paginas && pagina <= 50)
+        document.querySelectorAll('#bodyMovimentosEstoque [data-marcar-mov]').forEach(c => { c.checked = selecaoMovEst.has(c.value) })
+        desenharSelecaoMovEst()
+    } catch (err) {
+        popup({ mensagem: `Falha ao marcar os movimentos do filtro: ${escEst(err.message)}` })
+    } finally {
+        removerOverlay()
+    }
+}
+
+function desenharSelecaoMovEst() {
+    const pagina = [...document.querySelectorAll('#bodyMovimentosEstoque [data-marcar-mov]')]
+    const marcadas = pagina.filter(c => c.checked).length
+    const paginaToda = pagina.length > 0 && marcadas === pagina.length
+    const todos = document.querySelector('[data-marcar-todos-mov]')
+    if (todos) {
+        todos.checked = paginaToda
+        todos.indeterminate = marcadas > 0 && marcadas < pagina.length
+    }
+    const aviso = document.querySelector('[data-aviso-mov-est]')
+    if (aviso) {
+        const n = selecaoMovEst.size
+        const total = Number(document.getElementById('resultados_movimentosEstoque')?.textContent) || 0
+        const plural = q => `${q.toLocaleString('pt-BR')} ${q === 1 ? 'movimento' : 'movimentos'}`
+        const limpar = '<a href="#" onclick="event.preventDefault(); limparSelecaoMovEst()">limpar a seleção</a>'
+        aviso.hidden = !(n && paginaToda)
+        aviso.innerHTML = aviso.hidden ? '' : n < total
+            ? `Você selecionou ${plural(n)}. Você pode ${limpar} ou <a href="#" onclick="event.preventDefault(); selecionarTodosFiltroMovEst()">selecionar todos os ${plural(total)} deste filtro</a>`
+            : `Você selecionou ${n === total ? 'todos os ' : ''}${plural(n)}${n === total ? ' deste filtro' : ''}. Você pode ${limpar}`
+    }
+    escreverTotaisMovEst()
 }
 
 // Indicadores do painel lateral: mesmos filtros da tabela.
@@ -506,7 +604,10 @@ async function baixarExcelMovimentosEst() {
     if (!ctrl) return
     overlayAguarde()
     try {
-        const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        const marcadas = [...selecaoMovEst.keys()]
+        const filtros = marcadas.length
+            ? { id: { modo: 'OR', regras: marcadas.map(id => ({ op: '=', value: id })) } }
+            : combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
         const linhas = []
         let pagina = 1, paginas = 1
         do {
@@ -518,7 +619,7 @@ async function baixarExcelMovimentosEst() {
         await baixarExcelRelatorioGCS({
             titulo: 'Movimentações de estoque',
             resumo: `${linhas.length} movimento(s)`,
-            filtrosTexto: `Filtros: ${typeof descreverFiltrosFin === 'function' ? descreverFiltrosFin(ctrl).replace('nenhum (todas as faturas)', 'nenhum (todos os movimentos)') : ''}`,
+            filtrosTexto: marcadas.length ? `Movimentos marcados na tela: ${marcadas.length}` : `Filtros: ${typeof descreverFiltrosFin === 'function' ? descreverFiltrosFin(ctrl).replace('nenhum (todas as faturas)', 'nenhum (todos os movimentos)') : ''}`,
             linhas,
             colunas: [
                 { titulo: 'Data', largura: 16, valor: d => new Date(d.data).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) },
