@@ -1654,7 +1654,12 @@ button.fis-cred-ind {
 }
 .est-local-chips button:where(:hover) { background: #e2e8f0; border-color: #cbd5e1; }
 .est-local-chips button.ativo { background: #356443; color: #fff; border-color: #356443; }
-.est-local-chips small { font-size: 11px; opacity: 0.8; margin-left: 2px; }
+.est-local-chips small {
+    display: inline-block; min-width: 18px; margin-left: 4px; padding: 0 6px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; line-height: 16px; text-align: center;
+    background: #e2e8f0; color: #334155 !important; opacity: 1;
+}
+.est-local-chips button.ativo small { background: #fff; color: #356443 !important; }
 .est-local-acoes { display: flex; align-items: center; gap: 6px; margin-left: auto; }
 .est-local-acoes button { margin: 0; }
 .est-local-aviso {
