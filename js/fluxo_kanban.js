@@ -839,7 +839,8 @@ function cartaoItemFluxo(c, parado, tempo) {
         .filter(n => n.n_nota && n.cancelado !== 'S' && n.categoria !== 'remessa' && !(soVenda && n.categoria === 'serviço'))
         .map(n => String(n.n_nota).replace(/^0+/, ''))
     const contexto = [
-        c.rodada == null && c.tipo && c.tipo !== 'VENDA' ? c.tipo : '',
+        // Rodada: a natureza vem da nota ligada (NFS-e = SERVIÇO desde o rascunho; vw_fluxo_itens).
+        c.tipo && c.tipo !== 'VENDA' ? c.tipo : '',
         Number(c.requisicoes) ? `${c.requisicoes} requisição(ões)` : '',
         nfs.length ? `NF ${nfs.join(', ')}` : '',
         Number(c.envios) ? `${c.envios} envio(s)` : ''
