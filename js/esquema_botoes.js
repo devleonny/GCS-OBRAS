@@ -250,7 +250,7 @@ const esquemaBotoes = {
             img: 'estoque',
             sub: [
                 { nome: 'Fluxo de Compras', funcao: 'telaFluxoCompras', img: 'kanban', acesso: 'compras.fluxo' },
-                { nome: 'Notas Recebidas', funcao: 'telaNotasRecebidas', img: 'down_estoque', acesso: 'compras.notas_recebidas' },
+                { nome: 'Notas Recebidas', funcao: 'telaNotasRecebidas', img: 'planilha_notas', acesso: 'compras.notas_recebidas' },
                 { nome: 'Créditos IBS/CBS', funcao: 'telaCreditosIbsCbs', img: 'lista', acesso: 'compras.creditos_ibs_cbs' },
                 { nome: 'Saldos', funcao: 'telaEstoque', acesso: 'compras.saldos', img: 'estoque' },
                 { nome: 'Movimentações', funcao: 'telaMovimentosEstoque', acesso: 'compras.movimentacoes', img: 'lista' },
