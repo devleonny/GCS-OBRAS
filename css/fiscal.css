@@ -1602,3 +1602,6 @@ button.fis-cred-ind:hover { background: color-mix(in srgb, var(--cor) 8%, white)
     .fis-cred-lateral > .fis-cred-painel { position: static; }
     .fis-cred-inds { overflow: visible; }
 }
+/* Sem rolagem horizontal: indicador conta o padding na largura e textos longos quebram. */
+.fis-cred-ind { box-sizing: border-box; min-width: 0; overflow-wrap: anywhere; }
+.fis-cred-inds { overflow-x: hidden; }
