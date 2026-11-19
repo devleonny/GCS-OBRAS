@@ -3939,6 +3939,19 @@ async function salvarServicoFiscal(botao) {
 const POR_PAGINA_CRED_FIS = 50
 const COLUNAS_TOTAL_CRED_FIS = ['valor_total', 'base_ibs_cbs', 'cbs', 'ibs', 'credito']
 let somasCredFis = null, assinaturaCredFis = null
+// Painel lateral dos indicadores (mesmo do Faturas a pagar/receber): aberto até a pessoa recolher.
+let painelCredFisAberto = true
+
+function alternarPainelCredFis(abrir = null) {
+    const corpo = document.querySelector('[data-corpo-cred-fis]')
+    if (!corpo) return
+    const aberto = abrir ?? corpo.classList.contains('recolhido')
+    corpo.classList.toggle('recolhido', !aberto)
+    const botao = corpo.querySelector('.fin-recolher')
+    botao?.setAttribute('aria-expanded', String(aberto))
+    if (botao) botao.title = `${aberto ? 'Recolher' : 'Mostrar'} os indicadores`
+    painelCredFisAberto = aberto
+}
 const DESTAQUE_CRED_FIS = {
     DESTACADO: { texto: 'Destacado', cor: '#15803d' },
     PARCIAL: { texto: 'Parcial', cor: '#d97706' },
@@ -3958,9 +3971,21 @@ async function telaCreditosIbsCbs(filtroExtra = null) {
                         <button type="button" onclick="explicarCreditosFis()">${iconeFin('ver')} Como ler</button>
                         ${filtroExtra ? `<button type="button" onclick="telaCreditosIbsCbs()">${iconeFin('fechar')} Limpar filtro</button>` : ''}
                     </div>
-                    <div class="fis-cartoes fis-cartoes-mini" data-cartoes-creditos><small>Calculando…</small></div>
                 </header>
-                <div class="fin-tabela-area" data-tabela-cred-fis></div>
+                <div class="fin-corpo${painelCredFisAberto ? '' : ' recolhido'}" data-corpo-cred-fis>
+                    <div class="fin-tabela-area" data-tabela-cred-fis></div>
+                    <div class="fin-lateral">
+                        <button type="button" class="fin-recolher" onclick="alternarPainelCredFis()" aria-expanded="${painelCredFisAberto}"
+                            title="${painelCredFisAberto ? 'Recolher' : 'Mostrar'} os indicadores">${iconeFin('seta')}</button>
+                        <aside class="fin-painel fis-cred-painel">
+                            <div class="fin-painel-cabeca" title="Indicadores: seguem os filtros da tabela">
+                                <span class="fin-avatar">Σ</span>
+                                <div class="fin-painel-texto"><b>Indicadores</b><small>Seguem os filtros da tabela. Clique para filtrar.</small></div>
+                            </div>
+                            <div class="fis-cred-inds" data-cartoes-creditos><small>Calculando…</small></div>
+                        </aside>
+                    </div>
+                </div>
             </section>
         </div>`
     const area = document.querySelector('[data-tabela-cred-fis]')
@@ -4033,19 +4058,19 @@ async function cartoesCreditosFis(filtros = {}) {
     const comDestaque = (Number(destaques?.DESTACADO) || 0) + (Number(destaques?.PARCIAL) || 0)
     const pct = totalNotas ? Math.round(comDestaque / totalNotas * 100) : 0
     const pendentes = Number(entradas?.PENDENTE) || 0
-    // Com ação: botão que filtra; sem ação: só informa (div, sem o visual apagado de botão desabilitado).
+    // Com ação: botão que filtra; sem ação: só informa.
     const cartao = (valor, texto, cor, acao, titulo) => acao
-        ? `<button type="button" class="fis-cartao" style="--cor: ${cor}" onclick="${acao}" title="${escFis(titulo)}">
-            <b>${valor}</b><span>${texto}</span></button>`
-        : `<div class="fis-cartao" style="--cor: ${cor}; cursor: default" title="${escFis(titulo)}">
-            <b>${valor}</b><span>${texto}</span></div>`
+        ? `<button type="button" class="fis-cred-ind" style="--cor: ${cor}" onclick="${acao}" title="${escFis(titulo)}">
+            <span>${texto}</span><b>${valor}</b></button>`
+        : `<div class="fis-cred-ind" style="--cor: ${cor}" title="${escFis(titulo)}">
+            <span>${texto}</span><b>${valor}</b></div>`
     alvo.innerHTML = `
-        ${cartao(din(credito), 'crédito (AC/HNK/HNW)', '#15803d', `telaCreditosIbsCbs({ aproveitavel: { op: '=', value: 'S' } })`, 'IBS + CBS destacados nas notas das empresas do regime normal')}
+        ${cartao(din(credito), 'Crédito (AC/HNK/HNW)', '#15803d', `telaCreditosIbsCbs({ aproveitavel: { op: '=', value: 'S' } })`, 'IBS + CBS destacados nas notas das empresas do regime normal')}
         ${cartao(din(cbs), 'CBS', '#0f766e', '', 'Parte federal (substitui PIS/COFINS a partir de 2027)')}
         ${cartao(din(ibs), 'IBS', '#1e40af', '', 'Parte de estados e municípios (cresce até 2033)')}
-        ${cartao(din(notas), `em ${qtd(totalNotas)} nota${totalNotas === 1 ? '' : 's'}`, '#334155', '', 'Valor total das notas recebidas no filtro')}
-        ${cartao(`${pct}%`, `com destaque (${qtd(comDestaque)} de ${qtd(totalNotas)})`, '#d97706', `telaCreditosIbsCbs({ destaque: { op: '=', value: 'SEM_DESTAQUE' } })`, 'Notas em que o fornecedor destacou IBS/CBS. Clique para ver as que vieram sem destaque')}
-        ${cartao(qtd(pendentes), 'sem entrada no GCS', pendentes ? '#b91c1c' : '#64748b', pendentes ? `telaCreditosIbsCbs({ entrada: { op: '=', value: 'PENDENTE' } })` : '', 'Notas que ainda não tiveram entrada: vale lançar todas, são a base do crédito')}
+        ${cartao(din(notas), `Valor de ${qtd(totalNotas)} nota${totalNotas === 1 ? '' : 's'}`, '#334155', '', 'Valor total das notas recebidas no filtro')}
+        ${cartao(`${pct}% <small>(${qtd(comDestaque)} de ${qtd(totalNotas)})</small>`, 'Notas com destaque', '#d97706', `telaCreditosIbsCbs({ destaque: { op: '=', value: 'SEM_DESTAQUE' } })`, 'Notas em que o fornecedor destacou IBS/CBS. Clique para ver as que vieram sem destaque')}
+        ${cartao(qtd(pendentes), 'Sem entrada no GCS', pendentes ? '#b91c1c' : '#64748b', pendentes ? `telaCreditosIbsCbs({ entrada: { op: '=', value: 'PENDENTE' } })` : '', 'Notas que ainda não tiveram entrada: vale lançar todas, são a base do crédito')}
         ${cartao(din(simples), 'IAC (Simples, não aproveita)', '#64748b', `telaCreditosIbsCbs({ aproveitavel: { op: '=', value: 'N' } })`, 'No Simples o crédito não é aproveitado (só optando por recolher IBS/CBS por fora)')}`
 }
 

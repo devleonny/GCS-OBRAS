@@ -1560,3 +1560,33 @@ textarea.fis-input {
 /* Coluna Orçamento das Emitidas: 1º ORC + "+N" (lista completa no título). */
 .fis-emitidas .tabela td.fis-col-orc { width: 7.5rem; max-width: 7.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fis-orc-mais { margin-left: 4px; padding: 0 5px; border-radius: 999px; background: #e7efe9; color: #356443; font-weight: 600; }
+
+/* Créditos IBS/CBS: indicadores no painel lateral retrátil (mesmo do Faturas a pagar/receber, .fin-painel). */
+.fis-cred-painel .fin-avatar { font-size: 18px; }
+.fis-cred-inds { display: flex; flex-direction: column; gap: 2px; }
+.fis-cred-inds > small { color: #6b7a71; padding: 4px 6px; }
+.fis-cred-ind {
+    --cor: #64748b;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    width: 100%;
+    padding: 6px 8px;
+    background: none;
+    border: none;
+    border-left: 3px solid var(--cor);
+    border-radius: 0 6px 6px 0;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+}
+button.fis-cred-ind { cursor: pointer; }
+button.fis-cred-ind:hover { background: color-mix(in srgb, var(--cor) 8%, white); }
+.fis-cred-ind > span { font-size: 11px; color: #6b7a71; }
+.fis-cred-ind > b { font-size: 15px; color: var(--cor); font-variant-numeric: tabular-nums; }
+.fis-cred-ind > b small { font-size: 11px; font-weight: 400; color: #6b7a71; }
+/* Recolhido: só a faixa com o Σ. */
+.fin-corpo.recolhido .fis-cred-inds { display: none; }
+@media (max-width: 800px) {
+    .fin-corpo.recolhido .fis-cred-inds { display: flex; }
+}
