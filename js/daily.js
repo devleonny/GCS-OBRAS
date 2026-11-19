@@ -1,10 +1,9 @@
 // Histórico de Uso GCS (acesso sistema.historico).
 //  - Alterações: versões dos registros (gcs: migrations/versoes.sql, SCRIPTS/versoes_rotas.js).
 //    Quem mudou, quando, o que tinha antes e o que ficou; voltar uma versão (sistema.restaurar_versao).
-//  - Uso do sistema: atividades de logs_rotas e o mapa de calor de dias x horários.
+//  - Uso do sistema (menu próprio, telaUsoSistema): vw_uso_sistema + mapa de calor no painel da direita.
 // abrirVersoesRegistro(tabela, registro) abre a linha do tempo de um registro de qualquer tela.
 
-let chartMapaCalor = null
 
 const estadoHU = {
     aba: 'alteracoes',
@@ -154,18 +153,6 @@ async function daily(filtroExtra = null) {
         </div>`
     estadoHU.aba = 'alteracoes'
     await desenharAlteracoesHU(document.querySelector('[data-hu-corpo]'), filtroExtra)
-}
-
-// Uso do sistema (menu próprio): atividades de logs_rotas e o mapa de calor de dias x horários.
-async function telaUsoSistema() {
-    titulo.innerHTML = 'Uso do sistema'
-    estadoHU.aba = 'uso'
-    tela.innerHTML = `
-        <div class="pagina-conteudo hu">
-            <div class="cabecalho-pagina"><h2>Uso do sistema</h2></div>
-            <div data-hu-corpo></div>
-        </div>`
-    await dailyUso(document.querySelector('[data-hu-corpo]'))
 }
 
 async function desenharAlteracoesHU(corpo, filtroExtra = null) {
@@ -638,409 +625,366 @@ async function abrirVersoesRegistro(tabela, registro) {
     })
 }
 
-// ---------------------------------------------------------------- uso do sistema (logs_rotas)
+// ---------------------------------------------------------------- uso do sistema (vw_uso_sistema)
+// Menu próprio, no layout das faturas a pagar: tabela das ações (logs_rotas já traduzida pelo gatilho
+// uso_preencher, migrations/uso-sistema.sql) e, no painel retrátil da direita, indicadores e o mapa de calor
+// dias x horas do período filtrado (sem filtro de data: últimos 30 dias). Tudo contado no servidor.
 
-async function dailyUso(corpo) {
+const POR_PAGINA_USO = 50
+let painelUsoAberto = true
+const selecaoUso = new Set()
+let assinaturaMapaUso = null
+const HORAS_MAPA_USO = Array.from({ length: 17 }, (_, i) => i + 6)   // 06h a 22h
 
+async function telaUsoSistema(filtroExtra = null) {
+    if (typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
+    titulo.innerHTML = 'Uso do sistema'
+    tela.innerHTML = `
+        <div class="fis-pagina fin-tela hu-tela uso-tela">
+            <section class="fin-janela">
+                <header class="fin-janela-topo">
+                    <h2>Uso do sistema</h2>
+                    <div class="fin-barra">
+                        <button type="button" onclick="baixarExcelUsoSistema()" title="Com ações marcadas, baixa só as marcadas; sem marcação, todos os resultados dos filtros aplicados">${iconeFin('excel')} Excel</button>
+                        ${filtroExtra ? `<button type="button" onclick="telaUsoSistema()">${iconeFin('fechar')} Limpar filtro</button>` : ''}
+                    </div>
+                </header>
+                <div class="fin-corpo${painelUsoAberto ? '' : ' recolhido'}" data-corpo-uso>
+                    <div class="fin-tabela-area" data-tabela-uso></div>
+                    <div class="fin-lateral fis-cred-lateral uso-lateral">
+                        <button type="button" class="fin-recolher" onclick="alternarPainelUso()" aria-expanded="${painelUsoAberto}"
+                            title="${painelUsoAberto ? 'Recolher' : 'Mostrar'} o mapa de uso">${iconeFin('seta')}</button>
+                        <aside class="fin-painel fis-cred-painel uso-painel">
+                            <div class="fin-painel-cabeca" title="Seguem os filtros da tabela">
+                                <span class="fin-avatar">Σ</span>
+                                <div class="fin-painel-texto"><b>Uso no período</b><small data-uso-periodo>Calculando…</small></div>
+                            </div>
+                            <div class="uso-painel-corpo" data-uso-painel><small>Calculando…</small></div>
+                        </aside>
+                    </div>
+                </div>
+            </section>
+        </div>`
+    selecaoUso.clear()
+    assinaturaMapaUso = null
     try {
-
-        overlayAguarde()
-
-        const { criadores } = await recuperarDado('mvw_opcoes_filtros', 1) || {}
-
-        const dropdownUsuarios = montarDropdownCheckbox({
-            titulo: 'Usuários',
-            pag: 'daily',
-            path: 'usuario',
-            opcoes: criadores || []
-        })
-
-        const tabela = await modTab({
-            btnExtras: dropdownUsuarios,
-            base: 'logs_rotas',
-            pag: 'daily',
-            body: 'bodyDaily',
-            funcaoAdicional: ['graficoMapaCalor'],
-            criarLinha: 'linDaily',
-            filtros: {
-                'rota': { op: '!=', value: '/acesso' }
-            },
+        delete controles.usoSistema
+        const area = document.querySelector('[data-tabela-uso]')
+        area.innerHTML = await modTab({
+            base: 'vw_uso_sistema',
+            pag: 'usoSistema',
+            body: 'bodyUsoSistema',
+            criarLinha: 'criarLinhaUsoSistema',
+            caber: true,
+            limite: POR_PAGINA_USO,
+            funcaoAdicional: ['aposCarregarUsoSistema'],
+            filtrosFixos: { ...(filtroExtra || {}) },
+            ordenar: [{ path: 'id', direcao: 'desc' }],
             colunas: {
-                'Usuário': { chave: 'usuario' },
-                'Data': { chave: 'data', tipoPesquisa: 'data' },
-                'Tabela': { chave: 'body.caminho' },
-                'Detalhes': {}
+                '': {},
+                'Quando': { chave: 'dia', tipoPesquisa: 'data' },
+                'Usuário': { chave: 'usuario', tipoPesquisa: 'select' },
+                'Perfil': { chave: 'perfil', tipoPesquisa: 'select' },
+                'Ação': { chave: 'acao', tipoPesquisa: 'select' },
+                'Módulo': { chave: 'modulo', tipoPesquisa: 'select' },
+                'Registro': { chave: 'registro' },
+                'Detalhe': { chave: 'detalhe' },
+                'Aparelho': { chave: 'aparelho', tipoPesquisa: 'select' },
+                'IP': { chave: 'ip' }
             }
         })
-
-        corpo.innerHTML = `
-            <div class="daily">
-                <div class="pagina-conteudo">
-                ${tabela}
-            </div>
-                <div class="mapa-calor">
-                    <h2>Dias x Horários de maior uso do GCS</h2>
-                </div>
-            </div>`
-
-        await paginacao()
-
-        removerOverlay()
-
+        area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-uso></div>')
+        area.querySelector('.modtab')?.insertAdjacentHTML('afterbegin', '<div class="fin-aviso-selecao" data-aviso-uso hidden></div>')
+        await paginacao('usoSistema')
     } catch (err) {
         console.error(err)
+        popup({ mensagem: `Falha ao abrir o uso do sistema: ${escHU(err.message)}` })
+    }
+}
+
+function alternarPainelUso(abrir = null) {
+    const corpo = document.querySelector('[data-corpo-uso]')
+    if (!corpo) return
+    const aberto = abrir ?? corpo.classList.contains('recolhido')
+    corpo.classList.toggle('recolhido', !aberto)
+    const botao = corpo.querySelector('.fin-recolher')
+    botao?.setAttribute('aria-expanded', String(aberto))
+    if (botao) botao.title = `${aberto ? 'Recolher' : 'Mostrar'} o mapa de uso`
+    painelUsoAberto = aberto
+}
+
+const COR_ACAO_USO = {
+    'Entrou no sistema': '#0f766e', 'Salvou registro': '#15803d', 'Alterou': '#1d4ed8', 'Apagou': '#b91c1c',
+    'Baixou Excel': '#7c3aed', 'Voltou versão': '#92400e'
+}
+
+function criarLinhaUsoSistema(d) {
+    const id = Number(d.id)
+    const cor = COR_ACAO_USO[d.acao] || '#64748b'
+    const quando = d.quando ? new Date(d.quando).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''
+    const cel = (valor, classe = '') => `<td class="fin-obs ${classe}" title="${escHU(valor || '')}"><span class="fin-obs-txt">${escHU(valor || '')}</span></td>`
+    return `
+        <tr class="fin-linha" data-id="${id}">
+            <td class="fin-col-marcar">
+                <input type="checkbox" class="fin-marcar" data-marcar-uso value="${id}" ${selecaoUso.has(String(id)) ? 'checked' : ''}
+                    onclick="event.stopPropagation(); marcarUso(this)" aria-label="Marcar ação">
+            </td>
+            <td class="fin-centro">${quando}</td>
+            ${cel(d.usuario, 'uso-col-usuario')}
+            <td class="fin-centro"><small>${escHU(d.perfil || '')}</small></td>
+            <td>${typeof etiquetaEst === 'function' ? etiquetaEst(d.acao || '', cor) : escHU(d.acao || '')}</td>
+            ${cel(d.modulo, 'uso-col-modulo')}
+            <td class="fin-obs uso-col-registro" title="${escHU(d.registro || '')}"><span class="fin-obs-txt"><b>${escHU(d.registro || '')}</b></span></td>
+            ${cel(d.detalhe, 'uso-col-detalhe')}
+            ${cel(d.aparelho, 'uso-col-aparelho')}
+            <td><small>${escHU(d.ip || '')}</small></td>
+        </tr>`
+}
+
+async function aposCarregarUsoSistema() {
+    const tabela = document.getElementById('bodyUsoSistema')?.closest('table')
+    if (!tabela) return
+    const th = tabela.querySelector('thead tr:first-child th:first-child')
+    if (th && !th.querySelector('[data-marcar-todas-uso]'))
+        th.innerHTML = '<input type="checkbox" class="fin-marcar" data-marcar-todas-uso title="Marcar todas desta página" onclick="event.stopPropagation(); marcarTodasUso(this)">'
+    const filtro = tabela.querySelector('thead tr:nth-child(2) th:first-child')
+    if (filtro?.querySelector('img')) filtro.innerHTML = ''
+    if (!tabela.querySelector('tbody.fin-enchimento')) {
+        const enchimento = document.createElement('tbody')
+        enchimento.className = 'fin-enchimento'
+        enchimento.innerHTML = `<tr><td colspan="${Object.keys(controles.usoSistema?.colunas || {}).length || 10}"></td></tr>`
+        tabela.appendChild(enchimento)
+    }
+    if (typeof cabecalhoAvancadoTabela === 'function')
+        await cabecalhoAvancadoTabela('usoSistema', { prefKey: 'uso_sistema' })
+    desenharRodapeUso()
+    desenharSelecaoUso()
+    painelUsoSistema()
+}
+
+function desenharRodapeUso() {
+    const alvo = document.querySelector('[data-rodape-uso]')
+    const ctrl = controles.usoSistema
+    if (!alvo || !ctrl) return
+    const total = Number(document.getElementById('resultados_usoSistema')?.textContent) || 0
+    const paginas = Math.max(1, Number(ctrl.total) || 1)
+    const pagina = Math.min(ctrl.pagina || 1, paginas)
+    const inicio = total ? (pagina - 1) * POR_PAGINA_USO + 1 : 0
+    const fim = Math.min(total, pagina * POR_PAGINA_USO)
+    const botao = (texto, destino, ativo, titulo = '') =>
+        `<button type="button" ${ativo ? `onclick="irPaginaUso(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
+    alvo.innerHTML = `
+        <span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} aç${total === 1 ? 'ão' : 'ões'}</span>
+        <div class="fin-paginas">
+            ${botao('|‹', 1, pagina > 1, 'Primeira página')}
+            ${botao('‹ anterior', pagina - 1, pagina > 1)}
+            <label>Página <input type="number" min="1" max="${paginas}" value="${pagina}" onchange="irPaginaUso(this.value)"></label>
+            <span>de ${paginas.toLocaleString('pt-BR')}</span>
+            ${botao('próximo ›', pagina + 1, pagina < paginas)}
+            ${botao('›|', paginas, pagina < paginas, 'Última página')}
+        </div>`
+}
+
+async function irPaginaUso(n) {
+    const ctrl = controles.usoSistema
+    if (!ctrl) return
+    const pagina = Math.min(Math.max(1, parseInt(n) || 1), Math.max(1, Number(ctrl.total) || 1))
+    if (pagina === ctrl.pagina) return desenharRodapeUso()
+    ctrl.pagina = pagina
+    await paginacao('usoSistema')
+}
+
+// ---------- painel: indicadores e mapa de calor (dias x horas)
+
+const isoDiaUso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+// Período do mapa: o filtro da coluna Quando; sem ele, os últimos 30 dias (no máximo 62 dias desenhados).
+function periodoMapaUso(filtros) {
+    const regras = [filtros?.dia].flat().filter(Boolean)
+    let de = regras.find(r => /^>=?d?$/.test(r.op) || r.op === '>=d' || r.op === '>d')?.value || null
+    let ate = regras.find(r => r.op === '<=d' || r.op === '<d')?.value || null
+    const igual = regras.find(r => r.op === '=d' || r.op === '=')?.value
+    if (igual) de = ate = igual
+    const hoje = typeof dataServidor === 'function' ? dataServidor() : new Date()
+    const fim = ate ? new Date(`${ate}T12:00:00`) : new Date(hoje)
+    let inicio = de ? new Date(`${de}T12:00:00`) : new Date(fim.getTime() - 29 * 86400000)
+    if ((fim - inicio) / 86400000 > 61) inicio = new Date(fim.getTime() - 61 * 86400000)
+    return { de: isoDiaUso(inicio), ate: isoDiaUso(fim), padrao: !de && !ate && !igual }
+}
+
+async function painelUsoSistema() {
+    const ctrl = controles.usoSistema
+    if (!ctrl) return
+    const filtrosTabela = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+    const assinatura = JSON.stringify(filtrosTabela)
+    if (assinatura === assinaturaMapaUso) return
+    assinaturaMapaUso = assinatura
+    const periodo = periodoMapaUso(filtrosTabela)
+    const filtros = { ...filtrosTabela, dia: [{ op: '>=d', value: periodo.de }, { op: '<=d', value: periodo.ate }] }
+    const contar = async path => {
+        try { return await contarPorCampo({ base: 'vw_uso_sistema', path, filtros }) } catch { return null }
+    }
+    const [porHora, porUsuario, porModulo] = await Promise.all([contar('dia_hora'), contar('usuario'), contar('modulo')])
+    if (assinatura !== assinaturaMapaUso) return
+    const rotuloPeriodo = document.querySelector('[data-uso-periodo]')
+    const fmt = iso => iso.split('-').reverse().slice(0, 2).join('/')
+    if (rotuloPeriodo) rotuloPeriodo.textContent = `${fmt(periodo.de)} a ${fmt(periodo.ate)}${periodo.padrao ? ' (últimos 30 dias)' : ''}`
+    desenharPainelUso(periodo, porHora || {}, porUsuario || {}, porModulo || {})
+}
+
+function desenharPainelUso(periodo, porHora, porUsuario, porModulo) {
+    const alvo = document.querySelector('[data-uso-painel]')
+    if (!alvo) return
+    const lista = obj => Object.entries(obj).filter(([k]) => k !== 'todos' && k !== 'EM BRANCO').sort((a, b) => b[1] - a[1])
+    const total = Number(porHora.todos) || 0
+    const usuarios = lista(porUsuario)
+    const modulos = lista(porModulo)
+    const horas = lista(porHora)
+    const pico = horas[0]
+    const qtd = n => Number(n || 0).toLocaleString('pt-BR')
+
+    // Dias do período (mais recente em cima) x 06h–22h
+    const dias = []
+    for (let d = new Date(`${periodo.ate}T12:00:00`); isoDiaUso(d) >= periodo.de; d = new Date(d.getTime() - 86400000)) dias.push(isoDiaUso(d))
+    const mapa = Object.fromEntries(horas)
+    const maximo = Math.max(1, ...HORAS_MAPA_USO.flatMap(h => dias.map(d => Number(mapa[`${d} ${String(h).padStart(2, '0')}`]) || 0)))
+    const semana = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
+    const celula = (dia, h) => {
+        const n = Number(mapa[`${dia} ${String(h).padStart(2, '0')}`]) || 0
+        const nivel = n ? Math.max(1, Math.ceil(n / maximo * 5)) : 0
+        return `<span class="uso-cel n${nivel}" title="${dia.split('-').reverse().join('/')} ${String(h).padStart(2, '0')}h: ${qtd(n)} aç${n === 1 ? 'ão' : 'ões'}"></span>`
+    }
+    const linhas = dias.map(dia => {
+        const dt = new Date(`${dia}T12:00:00`)
+        const fds = dt.getDay() === 0 || dt.getDay() === 6
+        return `<div class="uso-linha${fds ? ' fds' : ''}"><span class="uso-dia">${dia.slice(8)}/${dia.slice(5, 7)} <small>${semana[dt.getDay()]}</small></span>${HORAS_MAPA_USO.map(h => celula(dia, h)).join('')}</div>`
+    }).join('')
+    const ind = (texto, valor, cor, descricao = '') => `
+        <div class="fis-cred-ind" style="--cor: ${cor}" title="${escHU(descricao)}"><span>${texto}</span><b>${valor}</b>${descricao ? `<small>${escHU(descricao)}</small>` : ''}</div>`
+    const top = (titulo, itens, filtroChave) => itens.length ? `
+        <div class="uso-top"><b>${titulo}</b>${itens.slice(0, 5).map(([k, n]) => `
+            <button type="button" class="uso-top-item" title="Filtrar por ${escHU(k)}"
+                onclick="telaUsoSistema({ ${filtroChave}: { op: '=', value: ${escHU(JSON.stringify(k))} } })">
+                <span>${escHU(k)}</span><small>${qtd(n)}</small></button>`).join('')}</div>` : ''
+    alvo.innerHTML = `
+        <div class="uso-inds">
+            ${ind('Ações', qtd(total), '#334155')}
+            ${ind('Pessoas', qtd(usuarios.length), '#15803d')}
+            ${ind('Horário de pico', pico ? `${pico[0].slice(8, 10)}/${pico[0].slice(5, 7)} ${pico[0].slice(11)}h` : '—', '#b45309', pico ? `${qtd(pico[1])} ações nessa hora` : '')}
+        </div>
+        <div class="uso-mapa">
+            <div class="uso-linha uso-cab"><span class="uso-dia"></span>${HORAS_MAPA_USO.map(h => `<span class="uso-hora">${h % 2 === 0 ? h : ''}</span>`).join('')}</div>
+            ${linhas}
+            <div class="uso-legenda">menos ${[0, 1, 2, 3, 4, 5].map(n => `<span class="uso-cel n${n}"></span>`).join('')} mais</div>
+        </div>
+        ${top('Quem mais usou', usuarios, 'usuario')}
+        ${top('Módulos mais usados', modulos, 'modulo')}`
+}
+
+// ---------- seleção e Excel
+
+function marcarUso(caixa) {
+    if (caixa.checked) selecaoUso.add(caixa.value)
+    else selecaoUso.delete(caixa.value)
+    desenharSelecaoUso()
+}
+
+function marcarTodasUso(caixa) {
+    document.querySelectorAll('#bodyUsoSistema [data-marcar-uso]').forEach(c => {
+        c.checked = caixa.checked
+        if (caixa.checked) selecaoUso.add(c.value)
+        else selecaoUso.delete(c.value)
+    })
+    desenharSelecaoUso()
+}
+
+function limparSelecaoUso() {
+    selecaoUso.clear()
+    document.querySelectorAll('#bodyUsoSistema [data-marcar-uso]').forEach(c => { c.checked = false })
+    desenharSelecaoUso()
+}
+
+async function selecionarTodasFiltroUso() {
+    const ctrl = controles.usoSistema
+    if (!ctrl) return
+    overlayAguarde()
+    try {
+        const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        let pagina = 1, paginas = 1
+        do {
+            const r = await pesquisarDB({ base: 'vw_uso_sistema', filtros, pagina, limite: 2000 })
+            ;(r?.resultados || []).forEach(v => selecaoUso.add(String(v.id)))
+            paginas = Number(r?.paginas) || 1
+            pagina++
+        } while (pagina <= paginas && pagina <= 50)
+        document.querySelectorAll('#bodyUsoSistema [data-marcar-uso]').forEach(c => { c.checked = selecaoUso.has(c.value) })
+        desenharSelecaoUso()
+    } catch (err) {
+        popup({ mensagem: `Falha ao marcar as ações do filtro: ${escHU(err.message)}` })
+    } finally {
         removerOverlay()
-        popup({ mensagem: 'Falha ao abrir o histórico de Uso: Fale com o suporte.' })
-    }
-
-}
-
-
-function resumirValor(body) {
-    const { valor, caminho } = body || {}
-
-    // Desde 18/11/2026 o conteúdo das gravações fica nas versões (aba Alterações).
-    if (body?.versionado)
-        return 'O que mudou está na aba Alterações'
-
-    if (!valor)
-        return ''
-
-    if (valor === 'string')
-        return valor
-
-    if (caminho.includes('/tags'))
-        return 'Alterou a tag'
-
-    if (caminho.includes('postit/'))
-        return ''
-
-    if (caminho.includes('historico/') && valor?.justificativa == 'ok')
-        return 'Aprovou um pagamento'
-
-    const candidatos = [
-        valor,
-        valor.para,
-        valor.titulo,
-        valor.nome,
-        valor.descricao,
-        valor.comentario,
-        valor.pedido,
-        valor.contrato,
-        valor.chamado,
-        valor.codigo
-    ].filter(v => typeof v === 'string' || typeof v === 'number')
-
-    const principal = candidatos.find(v => String(v).trim())
-    if (principal)
-        return String(principal).trim()
-
-    return ''
-}
-
-function traducaoLog({ body, rota }) {
-
-    const { caminho = '' } = body || {}
-    const partes = caminho.split('/')
-    const tabela = inicialMaiuscula(partes[0])
-
-    let traducao = ''
-
-    if (rota == '/salvar') {
-
-        traducao = `Editou • ${tabela}`
-
-    } else if (rota == '/deletar') {
-
-        traducao = `Apagou • ${tabela}`
-
-    } else if (rota == '/excel') {
-
-        traducao = `Baixou um relatório em Excel`
-
-    }
-
-    return traducao || rota
-
-}
-
-function linDaily(dados) {
-
-    const { id, usuario, data, body } = dados || {}
-
-    const traducao = traducaoLog(dados)
-    const valorResumido = resumirValor(body)
-    const tabela = inicialMaiuscula(body?.caminho?.split('/')?.[0] || '')
-
-    const tr = `
-        <tr>
-            <td>
-                <div style="${vertical};gap: 1rem;">
-                    <span>${usuario}</span>
-                    <span style="color: #ff2022;">${id}</span>
-                </div>
-            </td>
-            <td>${data}</td>
-            <td>${tabela}</td>
-            <td>    
-                <div style="${vertical}; gap: 1rem;">
-                    <span><b>${traducao}</b></span>
-                    <div style="white-space: pre-wrap;">${valorResumido}</div>
-                </div>
-            </td>
-        </tr>
-    `
-
-    return tr
-
-}
-
-function obterMesAnoFiltroDaily() {
-    const filtrosData = controles?.daily?.filtros?.data || []
-    const hoje = dataServidor()
-
-    let dataInicial = null
-    let dataFinal = null
-
-    for (const item of filtrosData) {
-        if (!item?.value) continue
-
-        if (item.op === '>=d') dataInicial = item.value
-        if (item.op === '<=d') dataFinal = item.value
-    }
-
-    const dataBase = dataInicial || dataFinal
-
-    if (!dataBase) {
-        return {
-            mes: hoje.getMonth() + 1,
-            ano: hoje.getFullYear(),
-            dataInicial: null,
-            dataFinal: null
-        }
-    }
-
-    const [ano, mes] = String(dataBase).split('-').map(Number)
-
-    return {
-        mes,
-        ano,
-        dataInicial,
-        dataFinal
     }
 }
 
-async function graficoMapaCalor() {
-    const filtros = controles?.daily?.filtros || {}
-    const { mes, ano, dataInicial, dataFinal } = obterMesAnoFiltroDaily()
-
-    const contagem = await contarPorCampo({
-        base: 'logs_rotas',
-        filtros,
-        path: 'data'
-    })
-
-    const mapaCalor = document.querySelector('.mapa-calor')
-    if (!mapaCalor) return
-
-    const titulo = mapaCalor.querySelector('h2')
-    if (titulo) {
-        titulo.textContent = dataInicial || dataFinal
-            ? `Dias x Horários de maior uso do GCS (${dataInicial || '...'} até ${dataFinal || '...'})`
-            : 'Dias x Horários de maior uso do GCS'
+function desenharSelecaoUso() {
+    const pagina = [...document.querySelectorAll('#bodyUsoSistema [data-marcar-uso]')]
+    const marcadas = pagina.filter(c => c.checked).length
+    const paginaToda = pagina.length > 0 && marcadas === pagina.length
+    const todas = document.querySelector('[data-marcar-todas-uso]')
+    if (todas) {
+        todas.checked = paginaToda
+        todas.indeterminate = marcadas > 0 && marcadas < pagina.length
     }
-
-    if (!document.getElementById('chart-mapa-calor')) {
-        mapaCalor.insertAdjacentHTML('beforeend', `<div id="chart-mapa-calor"></div>`)
-    }
-
-    const series = montarSeriesMapaCalor(contagem, mes, ano)
-    const ranges = criarFaixasCor(series)
-
-    if (chartMapaCalor) chartMapaCalor.destroy()
-
-    chartMapaCalor = new ApexCharts(
-        document.querySelector('#chart-mapa-calor'),
-        {
-            chart: {
-                type: 'heatmap',
-                height: 220 + (series.length * 12),
-                toolbar: { show: false }
-            },
-            series,
-            dataLabels: {
-                enabled: false
-            },
-            plotOptions: {
-                heatmap: {
-                    shadeIntensity: 0,
-                    colorScale: { ranges }
-                }
-            },
-            stroke: {
-                width: 1,
-                colors: ['#ddd']
-            },
-            xaxis: {
-                type: 'category',
-                categories: Array.from({ length: 19 }, (_, i) => `${String(i + 5).padStart(2, '0')}h`),
-                labels: { rotate: 0 }
-            },
-            yaxis: {
-                reversed: true
-            },
-            tooltip: {
-                y: {
-                    formatter: value => value || 0
-                }
-            },
-            legend: {
-                show: false
-            }
-        }
-    )
-
-    chartMapaCalor.render()
+    const aviso = document.querySelector('[data-aviso-uso]')
+    if (!aviso) return
+    const n = selecaoUso.size
+    const total = Number(document.getElementById('resultados_usoSistema')?.textContent) || 0
+    const plural = q => `${q.toLocaleString('pt-BR')} ${q === 1 ? 'ação' : 'ações'}`
+    const limpar = '<a href="#" onclick="event.preventDefault(); limparSelecaoUso()">limpar a seleção</a>'
+    aviso.hidden = !(n && paginaToda)
+    aviso.innerHTML = aviso.hidden ? '' : n < total
+        ? `Você selecionou ${plural(n)}. Você pode ${limpar} ou <a href="#" onclick="event.preventDefault(); selecionarTodasFiltroUso()">selecionar todas as ${plural(total)} deste filtro</a>`
+        : `Você selecionou ${n === total ? 'todas as ' : ''}${plural(n)}${n === total ? ' deste filtro' : ''}. Você pode ${limpar}`
 }
 
-function criarFaixasCor(series) {
-    const valores = series
-        .flatMap(linha => linha.data.map(p => Number(p.y || 0)))
-        .filter(v => v > 0)
-
-    if (!valores.length) {
-        return [
-            {
-                from: 0,
-                to: 0,
-                color: '#ffffff',
-                name: 'Sem dados'
-            }
-        ]
-    }
-
-    const min = Math.min(...valores)
-    const max = Math.max(...valores)
-
-    if (min === max) {
-        return [
-            {
-                from: 0,
-                to: 0,
-                color: '#ffffff',
-                name: '0'
-            },
-            {
-                from: min,
-                to: max,
-                color: '#ff0000',
-                name: String(max)
-            }
-        ]
-    }
-
-    const faixas = 6
-    const passo = (max - min) / faixas
-
-    const ranges = [
-        {
-            from: 0,
-            to: 0,
-            color: '#ffffff',
-            name: '0'
-        }
-    ]
-
-    for (let i = 0; i < faixas; i++) {
-        const from = i === 0 ? min : (min + passo * i)
-        const to = i === faixas - 1 ? max : (min + passo * (i + 1))
-
-        const intensidade = (i + 1) / faixas
-        const verdeAzul = Math.round(255 * (1 - intensidade))
-
-        ranges.push({
-            from,
-            to,
-            color: `rgb(255, ${verdeAzul}, ${verdeAzul})`,
-            name: `${Math.round(from)} - ${Math.round(to)}`
+async function baixarExcelUsoSistema() {
+    const ctrl = controles.usoSistema
+    if (!ctrl) return
+    overlayAguarde()
+    try {
+        const marcadas = [...selecaoUso]
+        const filtros = marcadas.length
+            ? { id: { modo: 'OR', regras: marcadas.map(id => ({ op: '=', value: id })) } }
+            : combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        const linhas = []
+        let pagina = 1, paginas = 1
+        do {
+            const r = await pesquisarDB({ base: 'vw_uso_sistema', filtros, ordenar: [{ path: 'id', direcao: 'desc' }], pagina, limite: 2000 })
+            linhas.push(...(r?.resultados || []))
+            paginas = Number(r?.paginas) || 1
+            pagina++
+        } while (pagina <= paginas && pagina <= 50)
+        await baixarExcelRelatorioGCS({
+            titulo: 'Uso do sistema',
+            resumo: `${linhas.length} ação(ões)`,
+            filtrosTexto: marcadas.length ? `Ações marcadas na tela: ${marcadas.length}` : `Filtros: ${typeof descreverFiltrosFin === 'function' ? descreverFiltrosFin(ctrl).replace('nenhum (todas as faturas)', 'nenhum (todas as ações)') : ''}`,
+            linhas,
+            colunas: [
+                { titulo: 'Quando', largura: 19, valor: d => d.quando ? new Date(d.quando).toLocaleString('pt-BR') : '' },
+                { titulo: 'Usuário', largura: 18, valor: d => d.usuario || '' },
+                { titulo: 'Perfil', largura: 11, valor: d => d.perfil || '' },
+                { titulo: 'Ação', largura: 20, valor: d => d.acao || '' },
+                { titulo: 'Módulo', largura: 24, valor: d => d.modulo || '' },
+                { titulo: 'Registro', largura: 40, valor: d => d.registro || '' },
+                { titulo: 'Detalhe', largura: 30, valor: d => d.detalhe || '' },
+                { titulo: 'Aparelho', largura: 16, valor: d => d.aparelho || '' },
+                { titulo: 'IP', largura: 16, valor: d => d.ip || '' }
+            ]
         })
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: `Falha ao gerar o Excel: ${escHU(err.message)}` })
+    } finally {
+        removerOverlay()
     }
-
-    return ranges
-}
-
-function montarSeriesMapaCalor(dados, mes, ano) {
-    const diasNoMes = new Date(ano, mes, 0).getDate()
-    const horaInicio = 5
-    const horaFim = 23
-    const mapa = {}
-
-    for (const [dataHora, qtde] of Object.entries(dados || {})) {
-        if (!dataHora)
-            continue
-
-        const [data = '', hora = ''] = String(dataHora).split(', ')
-        const [dia, mesRegistro, anoRegistro] = data.split('/').map(Number)
-        const horaNumero = Number((hora.split(':')[0] || 0))
-
-        if (
-            !dia ||
-            !mesRegistro ||
-            !anoRegistro ||
-            Number.isNaN(horaNumero) ||
-            mesRegistro !== mes ||
-            anoRegistro !== ano ||
-            horaNumero < horaInicio ||
-            horaNumero > horaFim
-        ) continue
-
-        mapa[dia] ??= {}
-        mapa[dia][horaNumero] = (mapa[dia][horaNumero] || 0) + Number(qtde || 0)
-    }
-
-    return Array.from({ length: diasNoMes }, (_, i) => {
-        const dia = i + 1
-
-        return {
-            name: `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}`,
-            data: Array.from({ length: horaFim - horaInicio + 1 }, (_, j) => {
-                const hora = horaInicio + j
-                return {
-                    x: `${String(hora).padStart(2, '0')}h`,
-                    y: mapa?.[dia]?.[hora] || 0
-                }
-            })
-        }
-    })
-}
-
-function criarFaixasCor(series) {
-    const valores = series.flatMap(linha => linha.data.map(p => p.y))
-    const max = Math.max(...valores, 0)
-
-    if (max <= 0) {
-        return [{
-            from: 0,
-            to: 0,
-            color: '#ffffff',
-            name: 'Sem dados'
-        }]
-    }
-
-    const faixas = 6
-    const passo = Math.ceil(max / faixas)
-
-    return Array.from({ length: faixas }, (_, i) => {
-        const from = i * passo
-        const to = i === faixas - 1 ? max : ((i + 1) * passo) - 1
-        const intensidade = (i + 1) / faixas
-        const verdeAzul = Math.round(255 * (1 - intensidade))
-
-        return {
-            from,
-            to,
-            color: `rgb(255, ${verdeAzul}, ${verdeAzul})`,
-            name: `${from} - ${to}`
-        }
-    })
 }
