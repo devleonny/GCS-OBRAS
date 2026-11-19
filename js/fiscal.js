@@ -3085,7 +3085,9 @@ async function formularioEmissaoNFSe(inicial = {}) {
                     ${campoFis('Município da prestação (IBGE)', inputFis('codigo_municipio_prestacao', d.codigo_municipio_prestacao || '', 'inputmode="numeric" maxlength="7" placeholder="vazio = do tomador"'))}
                     ${campoFis('Chamado', inputFis('chamado', inicial.chamado))}
                 </div>
-                ${campoFis('Discriminação do serviço', `<textarea class="fis-input" name="descricao" rows="4">${escFis(d.descricao || '')}</textarea>`)}
+                ${campoFis(`Discriminação do serviço <small>(padrão da empresa na Configuração fiscal)</small>
+                    <a href="#" class="fis-dica" onclick="event.preventDefault(); descricaoPadraoNFSe(this.closest('.fis-form'), true)">usar o padrão da empresa</a>`,
+                    `<textarea class="fis-input" name="descricao" rows="4" data-referencia="${escFis(d.descricao_referencia || '')}" ${d.descricao ? '' : 'data-auto="1"'}>${escFis(d.descricao || '')}</textarea>`)}
                 ${campoFis(`Rodapé da nota <small>(padrão da empresa na Configuração fiscal; vai no fim da descrição, depois do pagamento)</small>
                     <a href="#" class="fis-dica" onclick="event.preventDefault(); rodapePadraoNFSe(this.closest('.fis-form'), true)">usar o padrão da empresa</a>`,
                     `<textarea class="fis-input" name="rodape" rows="3" maxlength="1000" ${d.rodape == null ? 'data-auto="1"' : ''}>${escFis(d.rodape || '')}</textarea>`)}
@@ -3123,6 +3125,7 @@ function trocarEmpresaNFSe(select, servicoInicial, dados = {}) {
     const empresa = op.empresas.find(e => e.app === app)
     form.querySelector('[data-aviso-empresa]').innerHTML = `${avisoEmpresaFis(empresa)}
         ${empresa?.nfse_padrao === 'municipal' ? '<small class="fis-pendente">Esta empresa emite pelo sistema da prefeitura (não pelo padrão nacional).</small>' : ''}`
+    descricaoPadraoNFSe(form)
     rodapePadraoNFSe(form)
     trocarServicoNFSe(form.querySelector('[name="servico_id"]'), dados)
 }
@@ -3135,6 +3138,24 @@ function rodapePadraoNFSe(form, forcar = false) {
     if (!campo) return
     const app = form.querySelector('[name="app"]')?.value
     const padrao = opcoesEmissaoFiscal?.empresas?.find(e => e.app === app)?.nfse_rodape || ''
+    const intocado = campo.dataset.auto === '1' || campo.value.trim() === (campo.dataset.padrao || '').trim()
+    if (forcar || intocado) {
+        campo.value = padrao
+        delete campo.dataset.auto
+        agendarPreviaFis()
+    }
+    campo.dataset.padrao = padrao
+}
+
+// Discriminação do serviço: texto da empresa (fiscal_empresas.nfse_descricao) e, vindo do fluxo, a linha do
+// contrato/pedido (data-referencia), igual ao que o servidor monta. Troca com a empresa só se não foi mexido.
+function descricaoPadraoNFSe(form, forcar = false) {
+    const campo = form?.querySelector('[name="descricao"]')
+    if (!campo) return
+    const app = form.querySelector('[name="app"]')?.value
+    const texto = (opcoesEmissaoFiscal?.empresas?.find(e => e.app === app)?.nfse_descricao || '').trim()
+    const ref = campo.dataset.referencia || ''
+    const padrao = texto ? [texto, ref].filter(Boolean).join('\n') : ref ? `Serviços prestados - ${ref}` : ''
     const intocado = campo.dataset.auto === '1' || campo.value.trim() === (campo.dataset.padrao || '').trim()
     if (forcar || intocado) {
         campo.value = padrao
@@ -3179,6 +3200,7 @@ function lerEmissaoNFSe(form) {
         dados: {
             valor: Number(v('valor')) || 0,
             descricao: v('descricao'),
+            descricao_referencia: form.querySelector('[name="descricao"]')?.dataset.referencia || '',
             rodape: v('rodape'),
             data_competencia: v('data_competencia'),
             codigo_municipio_prestacao: soDigFis(v('codigo_municipio_prestacao')) || destinatario.codigo_municipio,
@@ -3708,6 +3730,7 @@ function htmlConfigEmpresas({ empresas }) {
                 <label class="fis-check"><input type="checkbox" name="recebe_notas" ${e.recebe_notas ? 'checked' : ''}> Busca notas recebidas</label>
                 <label class="fis-check"><input type="checkbox" name="ativo" ${e.ativo ? 'checked' : ''}> Ativa</label>
             </div>
+            ${campoFis('Descrição padrão do serviço na NFS-e <small>(vem pronta na Discriminação do serviço; pelo fluxo, seguida do contrato/pedido; o usuário pode alterar)</small>', `<textarea class="fis-input" name="nfse_descricao" rows="3" maxlength="2000" placeholder="Ex.: Serviços de manutenção predial e instalações elétricas…">${escFis(e.nfse_descricao || '')}</textarea>`)}
             ${campoFis('Rodapé padrão da NFS-e <small>(vem pronto na emissão; o usuário pode alterar)</small>', `<textarea class="fis-input" name="nfse_rodape" rows="3" maxlength="1000" placeholder="Ex.: dados bancários, aviso de retenção, texto do Simples Nacional…">${escFis(e.nfse_rodape || '')}</textarea>`)}
             ${e.observacao ? `<small class="fis-dica">${escFis(e.observacao)}</small>` : ''}
             <div class="fis-acoes-claras"><button type="button" class="fis-botao" onclick="salvarEmpresaFiscal('${escFis(e.app)}')">Salvar ${escFis(e.app)}</button></div>
@@ -3726,6 +3749,7 @@ async function salvarEmpresaFiscal(app) {
         serie_nfe: Number(v('serie_nfe').value) || 1,
         nfse_padrao: v('nfse_padrao').value,
         nfse_rodape: v('nfse_rodape').value.trim(),
+        nfse_descricao: v('nfse_descricao').value.trim(),
         emite_nfe: v('emite_nfe').checked,
         emite_nfse: v('emite_nfse').checked,
         recebe_notas: v('recebe_notas').checked,
