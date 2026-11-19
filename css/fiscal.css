@@ -1647,19 +1647,14 @@ button.fis-cred-ind {
 .est-local-resumo-item > b * { font-size: 17px !important; font-weight: 700; color: var(--cor); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .est-local-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .est-local-busca { flex: 0 1 300px; margin: 0; }
-.est-local-chips { display: flex; gap: 4px; }
-.est-local-chips button {
-    margin: 0; padding: 4px 10px; font-size: 12px; font-weight: 500;
-    background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 999px;
-}
-.est-local-chips button:where(:hover) { background: #e2e8f0; border-color: #cbd5e1; }
-.est-local-chips button.ativo { background: #356443; color: #fff; border-color: #356443; }
+/* Filtros: o seletor segmentado do kanban (.fluxo-chave-empresa, css/fluxo_kanban.css) + selo da contagem. */
+.est-local-chips button { margin: 0; height: 28px; display: inline-flex; align-items: center; gap: 6px; }
 .est-local-chips small {
-    display: inline-block; min-width: 18px; margin-left: 4px; padding: 0 6px; border-radius: 999px;
+    display: inline-block; min-width: 18px; padding: 0 6px; border-radius: 999px;
     font-size: 11px; font-weight: 700; line-height: 16px; text-align: center;
-    background: #e2e8f0; color: #334155 !important; opacity: 1;
+    background: #e8efeb; color: #3f5247 !important; opacity: 1;
 }
-.est-local-chips button.ativo small { background: #fff; color: #356443 !important; }
+.est-local-chips button.ativo small { background: rgba(255, 255, 255, 0.25); color: #fff !important; }
 .est-local-acoes { display: flex; align-items: center; gap: 6px; margin-left: auto; }
 .est-local-acoes button { margin: 0; }
 .est-local-aviso {

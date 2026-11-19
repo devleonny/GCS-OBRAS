@@ -920,7 +920,7 @@ async function abrirLocalEstoque(localId) {
                     <div class="est-local-barra">
                         ${saldos.length ? `
                         <input class="fis-input est-local-busca" placeholder="Buscar código ou descrição…" oninput="filtrarItensLocalEst(this)">
-                        <div class="est-local-chips">
+                        <div class="fluxo-chave-empresa est-local-chips" role="group" aria-label="Filtrar itens">
                             <button type="button" class="ativo" data-filtro-local="todos" onclick="filtrarItensLocalEst(this)">Todos <small>${saldos.length}</small></button>
                             <button type="button" data-filtro-local="negativos" onclick="filtrarItensLocalEst(this)">Negativos <small>${negativos.length}</small></button>
                             <button type="button" data-filtro-local="positivos" onclick="filtrarItensLocalEst(this)">Com saldo <small>${positivos.length}</small></button>
