@@ -891,30 +891,68 @@ async function abrirLocalEstoque(localId) {
         const [locais, { saldos }] = await Promise.all([locaisEstoque(), apiEstoque('locais/saldos', { local_id: localId })])
         removerOverlay()
         const l = locais.find(x => x.id === localId) || {}
+        // Resumo do local: itens, positivos/negativos, valor (saldo positivo × custo médio) e último movimento.
+        const negativos = saldos.filter(s => Number(s.saldo) < 0)
+        const positivos = saldos.filter(s => Number(s.saldo) > 0)
+        const valor = positivos.reduce((t, s) => t + (s.custo_medio != null ? Number(s.saldo) * Number(s.custo_medio) : 0), 0)
+        const semCusto = positivos.filter(s => s.custo_medio == null).length
+        const ultimo = saldos.reduce((m, s) => s.ultimo_movimento && (!m || s.ultimo_movimento > m) ? s.ultimo_movimento : m, null)
+        const data = v => v ? new Date(v).toLocaleDateString('pt-BR') : '—'
+        const resumo = (rotulo, valorTexto, cor = '#334155', dica = '') =>
+            `<div class="est-local-resumo-item" style="--cor: ${cor}" ${dica ? `title="${escEst(dica)}"` : ''}><span>${rotulo}</span><b>${valorTexto}</b></div>`
         popup({
             titulo: `${l.app} · ${l.nome}`,
             elemento: `
-                <div class="fis-painel" data-local-estoque="${escEst(localId)}">
-                    <div class="fis-acoes-claras">
-                        ${saldos.length ? `<button type="button" class="fis-botao" onclick="formularioTransferenciaEstoque('${escEst(localId)}')">Transferir daqui</button>` : ''}
-                        ${l.tipo === 'DIVERGENCIA' ? '' : `<button type="button" class="fis-mini" onclick="formularioLocalEstoque('${escEst(localId)}')">Editar local</button>`}
-                        ${l.tipo === 'USO_CONSUMO' ? `<button type="button" class="fis-mini" onclick="telaUsoConsumoEstoque()">Requisições a conferir</button>` : ''}
+                <div class="fis-painel est-local" data-local-estoque="${escEst(localId)}">
+                    <div class="est-local-topo">
+                        <div class="est-local-resumo">
+                            ${resumo('Itens', saldos.length.toLocaleString('pt-BR'))}
+                            ${resumo('Com saldo', positivos.length.toLocaleString('pt-BR'), '#15803d')}
+                            ${resumo('Negativos', negativos.length.toLocaleString('pt-BR'), negativos.length ? '#b91c1c' : '#64748b', 'Saiu mais do que entrou registrado neste local')}
+                            ${resumo('Valor em estoque', dinheiro(valor), '#0f766e', semCusto ? `${semCusto} item(ns) com saldo ainda sem custo médio não entram na soma` : 'Saldo positivo × custo médio')}
+                            ${resumo('Último movimento', data(ultimo))}
+                        </div>
+                        <div class="est-local-acoes">
+                            ${saldos.length ? `<button type="button" class="fis-botao" onclick="formularioTransferenciaEstoque('${escEst(localId)}')">Transferir daqui</button>` : ''}
+                            ${l.tipo === 'DIVERGENCIA' ? '' : `<button type="button" class="fis-mini" onclick="formularioLocalEstoque('${escEst(localId)}')">Editar local</button>`}
+                            ${l.tipo === 'USO_CONSUMO' ? `<button type="button" class="fis-mini" onclick="telaUsoConsumoEstoque()">Requisições a conferir</button>` : ''}
+                        </div>
                     </div>
+                    ${negativos.length ? `
+                    <div class="est-local-aviso">
+                        <b>${negativos.length} item(ns) com saldo negativo.</b> Saíram (nota emitida, requisição) sem entrada registrada aqui,
+                        normalmente porque o estoque ainda não teve o marco zero. Um <span class="fis-link" onclick="removerTodosPopups(); telaInventarios()">inventário deste local</span> acerta os saldos.
+                    </div>` : ''}
                     ${saldos.length ? `
-                    <div class="fis-tabela-rolagem">
-                        <table class="fis-tabela">
-                            <thead><tr><th>Código</th><th>Descrição</th><th>Un.</th><th class="fis-num">Saldo</th><th class="fis-num">Custo médio</th><th>Último movimento</th></tr></thead>
-                            <tbody>${saldos.map(s => `
-                                <tr>
-                                    <td>${escEst(s.codigo)}</td>
-                                    <td class="fis-descricao"><span class="fis-link" onclick="detalheItemEstoque('${escEst(s.item_id)}')">${escEst(s.descricao)}</span></td>
-                                    <td>${escEst(s.unidade || '')}</td>
-                                    <td class="fis-num ${Number(s.saldo) < 0 ? 'fis-negativo' : ''}"><b>${qtdEst(s.saldo)}</b></td>
-                                    <td class="fis-num">${s.custo_medio != null ? dinheiro(s.custo_medio) : ''}</td>
-                                    <td>${s.ultimo_movimento ? new Date(s.ultimo_movimento).toLocaleDateString('pt-BR') : ''}</td>
-                                </tr>`).join('')}
+                    <div class="est-local-filtros">
+                        <input class="fis-input est-local-busca" placeholder="Buscar código ou descrição…" oninput="filtrarItensLocalEst(this)">
+                        <div class="est-local-chips">
+                            <button type="button" class="ativo" data-filtro-local="todos" onclick="filtrarItensLocalEst(this)">Todos <small>${saldos.length}</small></button>
+                            <button type="button" data-filtro-local="negativos" onclick="filtrarItensLocalEst(this)">Negativos <small>${negativos.length}</small></button>
+                            <button type="button" data-filtro-local="positivos" onclick="filtrarItensLocalEst(this)">Com saldo <small>${positivos.length}</small></button>
+                        </div>
+                    </div>
+                    <div class="est-local-rolagem">
+                        <table class="est-local-tabela">
+                            <thead><tr><th>Código</th><th>Descrição</th><th>Un.</th><th class="fis-num">Saldo</th><th class="fis-num">Custo médio</th><th class="fis-num">Valor</th><th>Último mov.</th></tr></thead>
+                            <tbody>${saldos.map(s => {
+                                const q = Number(s.saldo)
+                                const v = s.custo_medio != null ? q * Number(s.custo_medio) : null
+                                return `
+                                <tr data-sinal="${q < 0 ? 'negativos' : 'positivos'}" data-busca="${escEst(`${s.codigo} ${s.descricao}`.toLowerCase())}"
+                                    onclick="detalheItemEstoque('${escEst(s.item_id)}')" title="Abrir o item">
+                                    <td class="est-local-codigo">${escEst(s.codigo)}</td>
+                                    <td class="est-local-desc" title="${escEst(s.descricao)}">${escEst(s.descricao)}</td>
+                                    <td class="est-local-un">${escEst(s.unidade || '')}</td>
+                                    <td class="fis-num"><span class="est-local-saldo ${q < 0 ? 'neg' : 'pos'}">${q > 0 ? '' : '−'}${qtdEst(Math.abs(q))}</span></td>
+                                    <td class="fis-num">${s.custo_medio != null ? dinheiro(s.custo_medio) : '<span class="est-local-nada">—</span>'}</td>
+                                    <td class="fis-num ${v != null && v < 0 ? 'fis-negativo' : ''}">${v != null ? dinheiro(v) : '<span class="est-local-nada">—</span>'}</td>
+                                    <td>${data(s.ultimo_movimento)}</td>
+                                </tr>`
+                            }).join('')}
                             </tbody>
                         </table>
+                        <div class="fis-vazio" data-local-vazio hidden>Nenhum item com esse filtro.</div>
                     </div>` : '<div class="fis-vazio">Nenhum item com saldo neste local.</div>'}
                 </div>`
         })
@@ -922,6 +960,24 @@ async function abrirLocalEstoque(localId) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
     }
+}
+
+// Busca e filtros (Todos / Negativos / Com saldo) da janela do local, sem ir ao servidor.
+function filtrarItensLocalEst(origem) {
+    const painel = origem.closest('.est-local')
+    if (!painel) return
+    if (origem.dataset.filtroLocal)
+        painel.querySelectorAll('[data-filtro-local]').forEach(b => b.classList.toggle('ativo', b === origem))
+    const filtro = painel.querySelector('[data-filtro-local].ativo')?.dataset.filtroLocal || 'todos'
+    const busca = (painel.querySelector('.est-local-busca')?.value || '').trim().toLowerCase()
+    let visiveis = 0
+    painel.querySelectorAll('.est-local-tabela tbody tr').forEach(tr => {
+        const ok = (filtro === 'todos' || tr.dataset.sinal === filtro) && (!busca || tr.dataset.busca.includes(busca))
+        tr.hidden = !ok
+        if (ok) visiveis++
+    })
+    const vazio = painel.querySelector('[data-local-vazio]')
+    if (vazio) vazio.hidden = visiveis > 0
 }
 
 async function formularioLocalEstoque(localId = null) {
