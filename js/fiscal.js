@@ -3974,7 +3974,7 @@ async function telaCreditosIbsCbs(filtroExtra = null) {
                 </header>
                 <div class="fin-corpo${painelCredFisAberto ? '' : ' recolhido'}" data-corpo-cred-fis>
                     <div class="fin-tabela-area" data-tabela-cred-fis></div>
-                    <div class="fin-lateral">
+                    <div class="fin-lateral fis-cred-lateral">
                         <button type="button" class="fin-recolher" onclick="alternarPainelCredFis()" aria-expanded="${painelCredFisAberto}"
                             title="${painelCredFisAberto ? 'Recolher' : 'Mostrar'} os indicadores">${iconeFin('seta')}</button>
                         <aside class="fin-painel fis-cred-painel">
@@ -4061,17 +4061,17 @@ async function cartoesCreditosFis(filtros = {}) {
     // Com ação: botão que filtra; sem ação: só informa.
     const cartao = (valor, texto, cor, acao, titulo) => acao
         ? `<button type="button" class="fis-cred-ind" style="--cor: ${cor}" onclick="${acao}" title="${escFis(titulo)}">
-            <span>${texto}</span><b>${valor}</b></button>`
+            <span>${texto}</span><b>${valor}</b><small>${escFis(titulo)}</small></button>`
         : `<div class="fis-cred-ind" style="--cor: ${cor}" title="${escFis(titulo)}">
-            <span>${texto}</span><b>${valor}</b></div>`
+            <span>${texto}</span><b>${valor}</b><small>${escFis(titulo)}</small></div>`
     alvo.innerHTML = `
-        ${cartao(din(credito), 'Crédito (AC/HNK/HNW)', '#15803d', `telaCreditosIbsCbs({ aproveitavel: { op: '=', value: 'S' } })`, 'IBS + CBS destacados nas notas das empresas do regime normal')}
-        ${cartao(din(cbs), 'CBS', '#0f766e', '', 'Parte federal (substitui PIS/COFINS a partir de 2027)')}
-        ${cartao(din(ibs), 'IBS', '#1e40af', '', 'Parte de estados e municípios (cresce até 2033)')}
-        ${cartao(din(notas), `Valor de ${qtd(totalNotas)} nota${totalNotas === 1 ? '' : 's'}`, '#334155', '', 'Valor total das notas recebidas no filtro')}
-        ${cartao(`${pct}% <small>(${qtd(comDestaque)} de ${qtd(totalNotas)})</small>`, 'Notas com destaque', '#d97706', `telaCreditosIbsCbs({ destaque: { op: '=', value: 'SEM_DESTAQUE' } })`, 'Notas em que o fornecedor destacou IBS/CBS. Clique para ver as que vieram sem destaque')}
-        ${cartao(qtd(pendentes), 'Sem entrada no GCS', pendentes ? '#b91c1c' : '#64748b', pendentes ? `telaCreditosIbsCbs({ entrada: { op: '=', value: 'PENDENTE' } })` : '', 'Notas que ainda não tiveram entrada: vale lançar todas, são a base do crédito')}
-        ${cartao(din(simples), 'IAC (Simples, não aproveita)', '#64748b', `telaCreditosIbsCbs({ aproveitavel: { op: '=', value: 'N' } })`, 'No Simples o crédito não é aproveitado (só optando por recolher IBS/CBS por fora)')}`
+        ${cartao(din(credito), 'Crédito (AC/HNK/HNW)', '#15803d', `telaCreditosIbsCbs({ aproveitavel: { op: '=', value: 'S' } })`, 'IBS + CBS destacados nas notas das empresas do regime normal. Clique para ver só elas.')}
+        ${cartao(din(cbs), 'CBS', '#0f766e', '', 'Parte federal: substitui o PIS/COFINS a partir de 2027.')}
+        ${cartao(din(ibs), 'IBS', '#1e40af', '', 'Parte de estados e municípios: cresce aos poucos até 2033.')}
+        ${cartao(din(notas), `Valor de ${qtd(totalNotas)} nota${totalNotas === 1 ? '' : 's'}`, '#334155', '', 'Soma de todas as notas recebidas no filtro.')}
+        ${cartao(`${pct}% <small>(${qtd(comDestaque)} de ${qtd(totalNotas)})</small>`, 'Notas com destaque', '#d97706', `telaCreditosIbsCbs({ destaque: { op: '=', value: 'SEM_DESTAQUE' } })`, 'O fornecedor informou o IBS/CBS na nota. Clique para ver as que vieram sem.')}
+        ${cartao(qtd(pendentes), 'Sem entrada no GCS', pendentes ? '#b91c1c' : '#64748b', pendentes ? `telaCreditosIbsCbs({ entrada: { op: '=', value: 'PENDENTE' } })` : '', 'Ainda não lançadas no GCS: vale lançar todas, são a base do crédito.')}
+        ${cartao(din(simples), 'IAC (Simples, não aproveita)', '#64748b', `telaCreditosIbsCbs({ aproveitavel: { op: '=', value: 'N' } })`, 'No Simples não há crédito, a não ser optando por recolher o IBS/CBS por fora.')}`
 }
 
 async function aposCarregarCreditosFis() {
