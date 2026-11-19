@@ -1617,3 +1617,66 @@ button.fis-cred-ind {
     line-height: 1.35;
 }
 .fis-cred-painel .fin-painel-cabeca { align-items: flex-start; text-align: left; }
+
+/* Movimentações (js/estoque.js telaMovimentosEstoque): cada movimento numa linha só, conteúdo encolhido;
+   textos longos cortados com "…" (texto completo no título da célula). */
+.est-mov .tabela th,
+.est-mov .tabela td { white-space: nowrap; }
+.est-mov .tabela > tbody > tr > td { padding-top: 3px; padding-bottom: 3px; font-size: 12px; line-height: 1.25; }
+.est-mov .tabela td small { font-size: 11px; }
+.est-mov .tabela td .fis-etiqueta { font-size: 10.5px; padding: 1px 6px; }
+.est-mov td.fin-obs { max-width: 220px; }
+.est-mov td.fin-nome { max-width: 240px; }
+.est-mov td.est-mov-local { max-width: 130px; }
+.est-mov td.est-mov-origem { max-width: 120px; }
+.est-mov td.est-mov-doc { max-width: 200px; }
+
+/* Janela do local (abrirLocalEstoque): resumo, aviso de negativos, busca/filtros e tabela compacta. */
+.est-local { display: flex; flex-direction: column; gap: 10px; min-width: min(980px, 92vw); }
+.est-local-topo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.est-local-resumo { display: flex; flex-wrap: wrap; gap: 8px; }
+.est-local-resumo-item {
+    --cor: #334155;
+    display: flex; flex-direction: column; gap: 1px;
+    padding: 6px 12px; min-width: 96px;
+    background: #fff; border: 1px solid #e2e8f0; border-left: 3px solid var(--cor); border-radius: 6px;
+}
+.est-local-resumo-item span { font-size: 11px; color: #64748b; }
+.est-local-resumo-item b { font-size: 16px; color: var(--cor); font-variant-numeric: tabular-nums; }
+.est-local-acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.est-local-aviso {
+    background: #fef2f2; border: 1px solid #fecaca; color: #7f1d1d;
+    border-radius: 6px; padding: 7px 10px; font-size: 12px; line-height: 1.4;
+}
+.est-local-filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.est-local-busca { flex: 1 1 240px; max-width: 360px; }
+.est-local-chips { display: flex; gap: 4px; }
+.est-local-chips button {
+    margin: 0; padding: 4px 10px; font-size: 12px; font-weight: 500;
+    background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 999px;
+}
+.est-local-chips button:where(:hover) { background: #e2e8f0; border-color: #cbd5e1; }
+.est-local-chips button.ativo { background: #356443; color: #fff; border-color: #356443; }
+.est-local-chips small { opacity: 0.75; margin-left: 2px; }
+.est-local-rolagem { max-height: 58vh; overflow: auto; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; }
+.est-local-tabela { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.est-local-tabela thead th {
+    position: sticky; top: 0; z-index: 1;
+    background: #f1f5f9; color: #475569; font-weight: 600; font-size: 11.5px;
+    text-align: left; padding: 7px 10px; border-bottom: 1px solid #e2e8f0; white-space: nowrap;
+}
+.est-local-tabela thead th.fis-num { text-align: right; }
+.est-local-tabela td { padding: 5px 10px; border-bottom: 1px solid #f1f5f9; white-space: nowrap; color: #1f2937; }
+.est-local-tabela tbody tr { cursor: pointer; }
+.est-local-tabela tbody tr:hover td { background: #f6fbf8; }
+.est-local-tabela td.fis-num { text-align: right; font-variant-numeric: tabular-nums; }
+.est-local-codigo { color: #64748b; font-variant-numeric: tabular-nums; width: 1%; }
+.est-local-desc { max-width: 420px; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.est-local-un { color: #64748b; width: 1%; }
+.est-local-saldo {
+    display: inline-block; min-width: 34px; padding: 1px 8px; border-radius: 999px;
+    font-weight: 700; font-size: 12px; text-align: center;
+}
+.est-local-saldo.pos { background: #dcfce7; color: #166534; }
+.est-local-saldo.neg { background: #fee2e2; color: #b91c1c; }
+.est-local-nada { color: #cbd5e1; }
