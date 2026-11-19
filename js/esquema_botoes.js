@@ -253,7 +253,7 @@ const esquemaBotoes = {
                 { nome: 'Notas Recebidas', funcao: 'telaNotasRecebidas', img: 'planilha_notas', acesso: 'compras.notas_recebidas' },
                 { nome: 'Créditos IBS/CBS', funcao: 'telaCreditosIbsCbs', img: 'credito', acesso: 'compras.creditos_ibs_cbs' },
                 { nome: 'Saldos', funcao: 'telaEstoque', acesso: 'compras.saldos', img: 'estoque' },
-                { nome: 'Movimentações', funcao: 'telaMovimentosEstoque', acesso: 'compras.movimentacoes', img: 'lista' },
+                { nome: 'Movimentações', funcao: 'telaMovimentosEstoque', acesso: 'compras.movimentacoes', img: 'movimentacoes' },
                 { nome: 'Locais', funcao: 'telaLocaisEstoque', acesso: 'compras.locais', img: 'estoque' },
                 { nome: 'Inventário', funcao: 'telaInventarios', acesso: 'compras.inventario', img: 'prancheta' },
                 { nome: 'Uso e consumo', funcao: 'telaUsoConsumoEstoque', acesso: 'compras.uso_consumo', img: 'prancheta' }
