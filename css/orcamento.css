@@ -89,8 +89,19 @@
     align-items: stretch;
     justify-content: start;
     gap: 12px;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     text-align: left;
+}
+
+/* Sem rolagem horizontal no detalhe: os blocos quebram linha quando falta espaço
+   (vence a regra geral .tabela-detalhes-conteudo > * { width: max-content }). */
+.tabela-detalhes-conteudo:has(> .detalhes-orcamento) {
+    overflow-x: hidden;
+}
+
+.tabela-detalhes-conteudo > .detalhes-orcamento {
+    width: auto;
+    min-width: 0;
 }
 
 .detalhes-orcamento > div:first-child {

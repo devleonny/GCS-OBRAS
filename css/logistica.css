@@ -216,6 +216,29 @@
     grid-column: span 2;
 }
 
+/* "Emitida pelo" (GCS | Omie): o seletor segmentado do kanban, do tamanho das opções. */
+.log-campo .log-chave-origem {
+    align-self: flex-start;
+    align-items: stretch;
+    width: max-content;
+    height: 30px;
+    padding: 2px;
+}
+
+/* Zera o estilo genérico de botão do popup (margem, altura, linha) e centraliza o texto. */
+.log-campo .log-chave-origem button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: auto;
+    min-width: 0;
+    margin: 0;
+    padding: 0 10px;
+    line-height: 1;
+    font-size: 12px;
+    box-shadow: none;
+}
+
 .log-so-compras {
     display: none;
 }

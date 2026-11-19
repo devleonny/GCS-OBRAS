@@ -546,39 +546,59 @@ async function abrirVersaoHU(id) {
     catch (erro) { removerOverlay(); return popup({ mensagem: escHU(erro.message) }) }
     removerOverlay()
     const { versao: v, posteriores, podeRestaurar } = r
-    const [acao] = ACAO_HU[v.operacao] || ['Alterou']
+    const [acao, classeAcao] = ACAO_HU[v.operacao] || ['Alterou', '']
+    const quem = v.usuario || origemHU(v) || '—'
+    const mudancas = v.mudancas || []
     const linhas = v.operacao === 'D'
-        ? '<tr><td colspan="3" class="hu-nada">Registro apagado (a cópia completa está guardada).</td></tr>'
-        : (v.mudancas || []).map(m => `
-            <tr>
-                <td>${escHU(nomeCampoHU(v.tabela, m.c))}<div class="hu-caminho">${escHU((m.c || []).join(' / '))}</div></td>
-                <td class="hu-antes">${valorHU(m.a, !('a' in m))}</td>
-                <td class="hu-depois">${valorHU(m.d, !('d' in m))}</td>
-            </tr>`).join('') || '<tr><td colspan="3" class="hu-nada">Registro criado.</td></tr>'
+        ? '<div class="hu-d-vazio">Registro apagado (a cópia completa está guardada).</div>'
+        : mudancas.map(m => `
+            <div class="hu-d-mud">
+                <div class="hu-d-campo">
+                    <span>${escHU(nomeCampoHU(v.tabela, m.c))}</span>
+                    <code title="${escHU((m.c || []).join(' / '))}">${escHU((m.c || []).join(' / '))}</code>
+                </div>
+                <div class="hu-d-valores">
+                    <div class="hu-d-valor hu-d-antes"><small>Antes</small><span>${valorHU(m.a, !('a' in m))}</span></div>
+                    <svg class="hu-d-seta" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <div class="hu-d-valor hu-d-depois"><small>Depois</small><span>${valorHU(m.d, !('d' in m))}</span></div>
+                </div>
+            </div>`).join('') || '<div class="hu-d-vazio">Registro criado.</div>'
     const outros = posteriores.length
-        ? `<div class="hu-aviso">Depois desta, o registro teve mais ${posteriores.length} alteração(ões):
+        ? `<div class="hu-d-aviso">Depois desta, o registro teve mais ${posteriores.length} alteração(ões):
             ${posteriores.slice(0, 8).map(p => `${escHU(p.usuario || origemHU(p))} (${quandoHU(p.quando)})`).join(', ')}${posteriores.length > 8 ? '…' : ''}.
             Voltar desfaz essas também.</div>` : ''
     const botoes = podeRestaurar ? `
-        <div class="hu-acoes">
-            <button type="button" onclick="voltarVersaoHU(${Number(v.id)}, true)"
-                title="O registro fica como estava logo antes desta alteração">${v.operacao === 'I' ? 'Desfazer a criação (apagar)' : v.operacao === 'D' ? 'Trazer de volta' : 'Desfazer esta alteração'}</button>
-            ${v.operacao !== 'D' && posteriores.length ? `<button type="button" onclick="voltarVersaoHU(${Number(v.id)}, false)"
+        <div class="hu-d-acoes">
+            ${v.operacao !== 'D' && posteriores.length ? `<button type="button" class="hu-d-btn" onclick="voltarVersaoHU(${Number(v.id)}, false)"
                 title="O registro fica como estava logo depois desta alteração">Voltar para como ficou aqui</button>` : ''}
+            <button type="button" class="hu-d-btn hu-d-btn-forte" onclick="voltarVersaoHU(${Number(v.id)}, true)"
+                title="O registro fica como estava logo antes desta alteração">
+                <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                ${v.operacao === 'I' ? 'Desfazer a criação (apagar)' : v.operacao === 'D' ? 'Trazer de volta' : 'Desfazer esta alteração'}</button>
         </div>` : ''
+    const qtd = v.operacao === 'D' ? '' : mudancas.length
+        ? `${mudancas.length} campo${mudancas.length > 1 ? 's' : ''} alterado${mudancas.length > 1 ? 's' : ''}` : ''
     popup({
         titulo: `${acao} · ${nomeTabelaHU(v.tabela)} ${v.rotulo || v.registro}`,
         elemento: `
-            <div class="hu-detalhe">
-                <div class="hu-detalhe-topo">
-                    <span><b>${escHU(v.usuario || origemHU(v))}</b> em ${quandoHU(v.quando)}</span>
-                    ${v.usuario && origemHU(v) ? `<span class="hu-origem">${escHU(origemHU(v))}</span>` : ''}
-                    <a class="hu-registro" onclick="abrirVersoesRegistro(${jsHU(v.tabela)}, ${jsHU(v.registro)})">Todas as versões deste registro</a>
+            <div class="hu-detalhe hu-d">
+                <div class="hu-d-topo">
+                    <div class="hu-d-avatar">${escHU(String(quem).trim().charAt(0).toUpperCase() || '?')}</div>
+                    <div class="hu-d-quem">
+                        <b>${escHU(quem)}</b>
+                        <span>
+                            <span class="hu-acao ${classeAcao}">${acao}</span>
+                            ${quandoHU(v.quando)}
+                            ${v.usuario && origemHU(v) ? `<span class="hu-origem">${escHU(origemHU(v))}</span>` : ''}
+                        </span>
+                    </div>
+                    <span class="hu-espaco"></span>
+                    ${qtd ? `<span class="hu-d-qtd">${qtd}</span>` : ''}
+                    <button type="button" class="hu-d-btn" onclick="abrirVersoesRegistro(${jsHU(v.tabela)}, ${jsHU(v.registro)})">
+                        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 7v5l3 2M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Todas as versões</button>
                 </div>
-                <table class="hu-tabela-mud">
-                    <thead><tr><th>Campo</th><th>Antes</th><th>Depois</th></tr></thead>
-                    <tbody>${linhas}</tbody>
-                </table>
+                <div class="hu-d-lista">${linhas}</div>
                 ${podeRestaurar ? outros : ''}
                 ${botoes}
             </div>`

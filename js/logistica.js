@@ -268,7 +268,7 @@ function criarLinhaLogistica(dado) {
         </div>`
     const celulaNF = nf
         ? nota_id
-            ? `<span class="log-link" onclick="abrirDANFE('${escLog(nota_id)}')" title="Abrir DANFE">${escLog(nf)}</span>`
+            ? `<span class="log-link" onclick="abrirDanfeLog('${escLog(nota_id)}')" title="Abrir DANFE">${escLog(nf)}</span>`
             : escLog(nf)
         : ''
     const celulaSituacao = situacao ? `<span class="log-situacao log-${classeSituacaoLog(situacao)}">${escLog(situacao)}</span>` : ''
@@ -562,6 +562,8 @@ async function formularioEnvioLogistica(id = null, inicial = null) {
         const etapaRastreio = id ? (rastreioOk ? 'encontrado' : 'manual') : 'pendente'
         const etapaNF = id ? (d.nota_id ? 'encontrado' : 'manual') : 'pendente'
         const orcDaNota = d.nota_id && d.orcamento ? 'S' : ''
+        // Onde procurar a NF: GCS (série 2) por padrão; envio já ligado a uma nota do Omie abre no Omie.
+        const origemNF = origemDaNotaLog(d.nota_id) || 'GCS'
 
         const abas = Object.fromEntries(Object.entries(ABAS_LOGISTICA).filter(([k]) => k !== 'TODOS').map(([k, v]) => [k, v.titulo]))
         const metodos = [...new Set(Object.values(ABAS_LOGISTICA).flatMap(a => a.metodos || []))]
@@ -608,6 +610,14 @@ async function formularioEnvioLogistica(id = null, inicial = null) {
                                     <button type="button" class="log-mini" data-add-orc onclick="adicionarOrcamentoLog()">Adicionar</button>
                                 </div>
                             </div>`, 'log-largo')}
+                        ${campo('Emitida pelo', `
+                            <input type="hidden" name="origem_nf" value="${origemNF}">
+                            <div class="fluxo-chave-empresa log-chave-origem" role="group" aria-label="Emitida pelo">
+                                ${[['GCS', 'GCS'], ['OMIE', 'Omie']].map(([v, t]) => `
+                                    <button type="button" data-origem-nf="${v}" class="${v === origemNF ? 'ativo' : ''}"
+                                        title="${v === 'GCS' ? 'Notas emitidas pelo GCS (série 2)' : 'Notas emitidas pelo Omie (série 1)'}"
+                                        onclick="escolherOrigemNFLog('${v}')">${t}</button>`).join('')}
+                            </div>`)}
                     </div>
                     <div class="log-aviso" data-aviso-nf></div>
                     <div class="log-aviso" data-aviso-orc></div>
@@ -726,6 +736,25 @@ async function formularioEnvioLogistica(id = null, inicial = null) {
     }
 }
 
+// Id do Omie é só número; as notas do GCS (fiscal_documentos) são NFE…/NFS….
+function origemDaNotaLog(notaId) {
+    if (!notaId) return ''
+    return /^\d+$/.test(String(notaId)) ? 'OMIE' : 'GCS'
+}
+
+// DANFE da nota do envio: Omie pela rota /danfe; GCS pelo arquivo da Focus.
+function abrirDanfeLog(notaId) {
+    return origemDaNotaLog(notaId) === 'GCS' ? baixarArquivoFiscal(notaId, 'pdf') : abrirDANFE(notaId)
+}
+
+function escolherOrigemNFLog(origem) {
+    const form = formLog()
+    if (!form) return
+    setCampoLog(form, 'origem_nf', origem)
+    form.querySelectorAll('[data-origem-nf]').forEach(b => b.classList.toggle('ativo', b.dataset.origemNf === origem))
+    if (form.querySelector('[name="nf"]').value.replace(/\D/g, '')) buscarNotaLogistica({ forcar: true })
+}
+
 function alternarCamposCompraLog() {
     const form = formLog()
     if (!form) return
@@ -756,20 +785,21 @@ function aplicarNotaLog(form, nota, infoOrcamento = null) {
 
     // Uma informação por linha: NF carregada, envios já lançados, falta de orçamento.
     const avisos = []
-    if (nota.cancelada) avisos.push('<b class="log-alerta">NF cancelada no Omie.</b>')
+    const nomeOrigem = nota.origem === 'GCS' ? 'GCS' : 'Omie'
+    if (nota.cancelada) avisos.push(`<b class="log-alerta">NF cancelada no ${nomeOrigem}.</b>`)
     const outros = (nota.lancamentos || []).filter(l => l.id !== marcador.dataset.id)
     if (outros.length) {
         const lista = outros.map(l => `<li>${escLog(ABAS_LOGISTICA[l.categoria]?.titulo || l.categoria)}${l.data_saida ? ` em ${conversorDt(l.data_saida)}` : ''}${l.rastreio ? ` · ${escLog(l.rastreio)}` : ''}</li>`).join('')
         avisos.push(`<span class="log-alerta">Esta NF já tem ${outros.length === 1 ? '1 envio lançado' : `${outros.length} envios lançados`}:</span><ul class="log-aviso-lista">${lista}</ul>`)
     }
     if (!nota.orcamento && !orcamentosLog(form).length)
-        avisos.push('A NF não traz o orçamento no Omie: adicione o departamento acima.')
+        avisos.push(`A NF não traz o orçamento no ${nomeOrigem}: adicione o departamento acima.`)
     if (!nota.cliente)
         avisos.push('<span class="log-alerta">O CNPJ da NF não está no cadastro de clientes do GCS: escolha a loja no passo 2.</span>')
 
     carregarDestinatarioLog()
     form.querySelector('[data-aviso-nf]').innerHTML = [
-        `<span class="ok">NF ${escLog(nota.nf)} (${escLog(nota.app)} · ${escLog(nota.categoria_nota)} · emitida ${escLog(nota.emissao)}) carregada.</span>`,
+        `<span class="ok">NF ${escLog(nota.nf)} (${escLog(nomeOrigem)} · ${escLog(nota.app)} · ${escLog(nota.categoria_nota)} · emitida ${escLog(nota.emissao)}) carregada.</span>`,
         ...avisos
     ].map(linha => `<div class="log-aviso-linha">${linha}</div>`).join('')
     definirEtapaLog(form, 'nf', 'encontrado')
@@ -782,7 +812,7 @@ function escolherNotaLog(form, sugestoes, infoOrcamento, titulo) {
         <div class="log-opcoes-nf">
             ${sugestoes.map((s, i) => `
                 <button type="button" onclick="escolherSugestaoLog(${i})">
-                    <b>${escLog(s.app)} · NF ${escLog(s.nf)}</b> ${escLog(s.categoria_nota)} · ${dinheiroTexto(s.valor_nota || 0)}
+                    <b>${s.origem === 'GCS' ? 'GCS' : 'Omie'} · ${escLog(s.app)} · NF ${escLog(s.nf)}</b> ${escLog(s.categoria_nota)} · ${dinheiroTexto(s.valor_nota || 0)}
                     <small>${escLog(s.loja || '')} · ${escLog(s.emissao || '')}${s.lancamentos?.length ? ' · já lançada' : ''}</small>
                 </button>`).join('')}
         </div>`
@@ -820,7 +850,9 @@ async function buscarNotaLogistica({ forcar = false } = {}) {
     const form = formLog()
     if (!form) return
     const nf = form.querySelector('[name="nf"]').value.replace(/\D/g, '')
-    const chave = `${form.querySelector('[name="app"]').value}|${nf}`
+    const origem = form.querySelector('[name="origem_nf"]')?.value || 'GCS'
+    const nomeOrigem = origem === 'GCS' ? 'emitidas pelo GCS' : 'do Omie'
+    const chave = `${origem}|${form.querySelector('[name="app"]').value}|${nf}`
     if (!forcar && form._ultimaBuscaNF === chave) return
     form._ultimaBuscaNF = chave
     const aviso = form.querySelector('[data-aviso-nf]')
@@ -835,9 +867,12 @@ async function buscarNotaLogistica({ forcar = false } = {}) {
     try {
         const app = form.querySelector('[name="app"]').value
         const orcamento = orcamentosLog(form)[0] || ''
-        const { sugestoes, orcamento: infoOrcamento } = await apiLogistica('preencher', { nf, app, orcamento })
+        const { sugestoes, orcamento: infoOrcamento } = await apiLogistica('preencher', { nf, app, orcamento, origem })
         if (!sugestoes.length) {
-            aviso.innerHTML = `<span class="log-alerta">NF ${escLog(nf)} ${app ? `da ${escLog(app)} ` : ''}não encontrada nas notas do Omie: departamento e destino liberados para preencher.</span>`
+            const outra = origem === 'GCS' ? 'OMIE' : 'GCS'
+            aviso.innerHTML = `
+                <span class="log-alerta">NF ${escLog(nf)} ${app ? `da ${escLog(app)} ` : ''}não encontrada nas notas ${nomeOrigem}: departamento e destino liberados para preencher.</span>
+                <button type="button" class="log-mini" onclick="escolherOrigemNFLog('${outra}')">Procurar no ${outra === 'GCS' ? 'GCS' : 'Omie'}</button>`
             definirEtapaLog(form, 'nf', 'manual')
             return
         }
@@ -1704,8 +1739,8 @@ async function painelNotasSemEnvio(dias = 30) {
         const linhas = notas.map((n, i) => `
             <tr>
                 <td><input type="checkbox" class="log-sel-nf" value="${i}"></td>
-                <td><span class="log-link" onclick="abrirDANFE('${escLog(n.nota_id)}')">${escLog(n.nf)}</span></td>
-                <td>${escLog(n.app)}</td>
+                <td><span class="log-link" onclick="abrirDanfeLog('${escLog(n.nota_id)}')">${escLog(n.nf)}</span></td>
+                <td>${escLog(n.app)}${n.origem === 'GCS' ? ' <small>· GCS</small>' : ''}</td>
                 <td>${escLog(n.emissao)}</td>
                 <td title="${escLog(n.categoria_nota)}">${escLog(n.tipo)}</td>
                 <td>${dinheiro(n.valor_nota || 0)}</td>
