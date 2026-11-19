@@ -128,90 +128,397 @@ function origemHU(v) {
 
 const quandoHU = q => new Date(q).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
-// ---------------------------------------------------------------- tela
+// ---------------------------------------------------------------- tela (layout das faturas a pagar, .fin-tela)
+// Topo: título, abas (Alterações | Uso do sistema) e botões. Alterações: tabela vw_versoes com filtros no cabeçalho,
+// caixinhas (Excel das marcadas), paginação no rodapé e painel lateral retrátil com a alteração escolhida.
 
-async function daily() {
+const POR_PAGINA_HU = 50
+let painelHUAberto = true
+let versaoAtivaHU = null
+const selecaoHU = new Set()
+
+async function daily(filtroExtra = null) {
+    if (typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
     titulo.innerHTML = 'Histórico de Uso GCS'
     tela.innerHTML = `
-        <div class="pagina-conteudo hu">
-            <div class="cabecalho-pagina"><h2>Histórico de Uso GCS</h2></div>
-            <div class="hu-abas">
-                <button type="button" data-hu-aba="alteracoes" onclick="trocarAbaHU('alteracoes')">Alterações</button>
-                <button type="button" data-hu-aba="uso" onclick="trocarAbaHU('uso')">Uso do sistema</button>
-            </div>
-            <div data-hu-corpo></div>
+        <div class="fis-pagina fin-tela hu-tela">
+            <section class="fin-janela">
+                <header class="fin-janela-topo">
+                    <h2>Histórico de Uso GCS</h2>
+                    <div class="fin-barra">
+                        <div class="fluxo-chave-empresa hu-abas-seg" role="group" aria-label="Visão">
+                            <button type="button" data-hu-aba="alteracoes" onclick="trocarAbaHU('alteracoes')">Alterações</button>
+                            <button type="button" data-hu-aba="uso" onclick="trocarAbaHU('uso')">Uso do sistema</button>
+                        </div>
+                        <span class="hu-botoes" data-hu-botoes></span>
+                    </div>
+                </header>
+                <div class="hu-corpo" data-hu-corpo></div>
+            </section>
         </div>`
-    await trocarAbaHU(estadoHU.aba)
+    await trocarAbaHU(estadoHU.aba, filtroExtra)
 }
 
-async function trocarAbaHU(aba) {
+async function trocarAbaHU(aba, filtroExtra = null) {
     estadoHU.aba = aba
-    document.querySelectorAll('[data-hu-aba]').forEach(b => b.classList.toggle('ativo', b.dataset.huAba === aba))
+    document.querySelectorAll('[data-hu-aba]').forEach(b => {
+        b.classList.toggle('ativo', b.dataset.huAba === aba)
+        b.setAttribute('aria-pressed', b.dataset.huAba === aba)
+    })
     const corpo = document.querySelector('[data-hu-corpo]')
+    const botoes = document.querySelector('[data-hu-botoes]')
     if (!corpo) return
-    if (aba === 'uso') return dailyUso(corpo)
-    await desenharAlteracoesHU(corpo)
+    if (aba === 'uso') {
+        if (botoes) botoes.innerHTML = ''
+        return dailyUso(corpo)
+    }
+    await desenharAlteracoesHU(corpo, filtroExtra)
 }
 
-async function desenharAlteracoesHU(corpo) {
-    if (!estadoHU.opcoes) {
-        try { estadoHU.opcoes = await apiVersoes('opcoes') }
-        catch (erro) { corpo.innerHTML = `<div class="hu-vazio">${escHU(erro.message)}</div>`; return }
-    }
-    const f = estadoHU.filtros
-    const { tabelas = [], usuarios = [] } = estadoHU.opcoes
-    const opcoesTabelas = tabelas.map(t => [t, nomeTabelaHU(t)]).sort((a, b) => a[1].localeCompare(b[1]))
+async function desenharAlteracoesHU(corpo, filtroExtra = null) {
+    const botoes = document.querySelector('[data-hu-botoes]')
+    if (botoes) botoes.innerHTML = `
+        <button type="button" onclick="baixarExcelVersoesHU()" title="Com alterações marcadas, baixa só as marcadas; sem marcação, todos os resultados dos filtros aplicados">${iconeFin('excel')} Excel</button>
+        ${filtroExtra ? `<button type="button" onclick="daily()">${iconeFin('fechar')} Limpar filtro</button>` : ''}`
     corpo.innerHTML = `
-        <div class="hu-filtros">
-            <input class="hu-busca" placeholder="Buscar: ORC_5344, cliente, nº da nota, usuário…" value="${escHU(f.busca)}"
-                onkeydown="if (event.key === 'Enter') { estadoHU.filtros.busca = this.value; buscarHU() }"
-                onchange="estadoHU.filtros.busca = this.value; buscarHU()">
-            <div class="hu-segmento">
-                ${[['pessoas', 'Pessoas'], ['sistema', 'Sistema'], ['todos', 'Todos']].map(([k, t]) =>
-                    `<button type="button" class="${f.quem === k ? 'ativo' : ''}" onclick="estadoHU.filtros.quem = '${k}'; desenharAlteracoesHU(document.querySelector('[data-hu-corpo]'))">${t}</button>`).join('')}
+        <div class="fin-corpo${painelHUAberto ? '' : ' recolhido'}" data-corpo-hu>
+            <div class="fin-tabela-area" data-tabela-hu></div>
+            <div class="fin-lateral fis-cred-lateral hu-lateral">
+                <button type="button" class="fin-recolher" onclick="alternarPainelHU()" aria-expanded="${painelHUAberto}"
+                    title="${painelHUAberto ? 'Recolher' : 'Mostrar'} o painel">${iconeFin('seta')}</button>
+                <aside class="fin-painel fis-cred-painel hu-painel" data-painel-hu></aside>
             </div>
-            <select onchange="estadoHU.filtros.tabelas = this.value ? [this.value] : []; buscarHU()">
-                <option value="">Tudo</option>
-                ${opcoesTabelas.map(([t, n]) => `<option value="${escHU(t)}" ${f.tabelas[0] === t ? 'selected' : ''}>${escHU(n)}</option>`).join('')}
-            </select>
-            <select onchange="estadoHU.filtros.usuarios = this.value ? [this.value] : []; buscarHU()">
-                <option value="">Todos os usuários</option>
-                ${usuarios.map(u => `<option value="${escHU(u)}" ${f.usuarios[0] === u ? 'selected' : ''}>${escHU(u)}</option>`).join('')}
-            </select>
-            <select onchange="estadoHU.filtros.operacao = this.value; buscarHU()">
-                <option value="">Criou, editou ou apagou</option>
-                ${[['U', 'Editou'], ['I', 'Criou'], ['D', 'Apagou']].map(([k, t]) => `<option value="${k}" ${f.operacao === k ? 'selected' : ''}>${t}</option>`).join('')}
-            </select>
-            <label>De <input type="date" value="${escHU(f.de)}" onchange="estadoHU.filtros.de = this.value; buscarHU()"></label>
-            <label>Até <input type="date" value="${escHU(f.ate)}" onchange="estadoHU.filtros.ate = this.value; buscarHU()"></label>
-            <button type="button" class="hu-limpar" onclick="limparFiltrosHU()">Limpar</button>
-        </div>
-        <div class="hu-resumo" data-hu-resumo></div>
-        <div class="hu-lista" data-hu-lista><div class="hu-vazio">Carregando…</div></div>`
-    await buscarHU()
-}
-
-function limparFiltrosHU() {
-    estadoHU.filtros = { busca: '', quem: 'pessoas', tabelas: [], usuarios: [], operacao: '', de: '', ate: '' }
-    desenharAlteracoesHU(document.querySelector('[data-hu-corpo]'))
-}
-
-async function buscarHU(mais = false) {
-    const lista = document.querySelector('[data-hu-lista]')
-    if (!lista) return
-    estadoHU.pagina = mais ? estadoHU.pagina + 1 : 1
-    if (!mais) lista.innerHTML = '<div class="hu-vazio">Carregando…</div>'
+        </div>`
+    versaoAtivaHU = null
+    selecaoHU.clear()
+    desenharPainelHU()
     try {
-        const r = await apiVersoes('lista', { ...estadoHU.filtros, pagina: estadoHU.pagina, por: estadoHU.por })
-        estadoHU.itens = mais ? [...estadoHU.itens, ...r.itens] : r.itens
-        estadoHU.total = r.total
-        estadoHU.podeRestaurar = r.podeRestaurar
-        desenharListaHU()
-    } catch (erro) {
-        lista.innerHTML = `<div class="hu-vazio">${escHU(erro.message)}</div>`
+        delete controles.versoesHU
+        const area = document.querySelector('[data-tabela-hu]')
+        area.innerHTML = await modTab({
+            base: 'vw_versoes',
+            pag: 'versoesHU',
+            body: 'bodyVersoesHU',
+            criarLinha: 'criarLinhaVersaoHU',
+            caber: true,
+            limite: POR_PAGINA_HU,
+            funcaoAdicional: ['aposCarregarVersoesHU'],
+            filtrosFixos: { ...(filtroExtra || {}) },
+            ordenar: [{ path: 'id', direcao: 'desc' }],
+            colunas: {
+                '': {},
+                'Quando': { chave: 'dia', tipoPesquisa: 'data' },
+                'Quem': { chave: 'quem', tipoPesquisa: 'select' },
+                'Autor': { chave: 'autor', tipoPesquisa: 'select', rotulos: { PESSOA: 'PESSOA', SISTEMA: 'SISTEMA' } },
+                'Ação': { chave: 'acao', tipoPesquisa: 'select' },
+                'Módulo': { chave: 'modulo', tipoPesquisa: 'select' },
+                'Registro': { chave: 'rotulo' },
+                'O que mudou': {},
+                'Mudanças': { chave: 'qtd_mudancas', tipoOrdenacao: 'numero' }
+            }
+        })
+        area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-hu></div>')
+        area.querySelector('.modtab')?.insertAdjacentHTML('afterbegin', '<div class="fin-aviso-selecao" data-aviso-hu hidden></div>')
+        await paginacao('versoesHU')
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: `Falha ao abrir o histórico: ${escHU(err.message)}` })
     }
 }
 
+function alternarPainelHU(abrir = null) {
+    const corpo = document.querySelector('[data-corpo-hu]')
+    if (!corpo) return
+    const aberto = abrir ?? corpo.classList.contains('recolhido')
+    corpo.classList.toggle('recolhido', !aberto)
+    const botao = corpo.querySelector('.fin-recolher')
+    botao?.setAttribute('aria-expanded', String(aberto))
+    if (botao) botao.title = `${aberto ? 'Recolher' : 'Mostrar'} o painel`
+    painelHUAberto = aberto
+}
+
+const ACAO_TAB_HU = {
+    CRIOU: ['Criou', '#15803d'], EDITOU: ['Editou', '#1d4ed8'], APAGOU: ['Apagou', '#b91c1c'], VOLTOU: ['Voltou versão', '#92400e']
+}
+
+// Texto simples (sem HTML) de um valor, para a linha e o Excel.
+function valorTextoHU(v, ausente) {
+    if (ausente) return '—'
+    if (v === null || v === '') return '(vazio)'
+    if (v === '[SIGILOSO]' || v === '[OCULTO]') return '•••'
+    if (typeof v === 'boolean') return v ? 'Sim' : 'Não'
+    if (typeof v === 'number') return v.toLocaleString('pt-BR', { maximumFractionDigits: 4 })
+    if (typeof v === 'string') return v.length > 60 ? v.slice(0, 60) + '…' : v
+    const legivel = v && !Array.isArray(v) && (v.status || v.nome || v.descricao || v.justificativa || v.comentario)
+    if (legivel) return String(legivel)
+    const json = JSON.stringify(v)
+    return json.length > 60 ? json.slice(0, 60) + '…' : json
+}
+
+function resumoTextoHU(tabela, mudancas = [], total = 0) {
+    const vistos = new Set()
+    const partes = []
+    for (const m of mudancas || []) {
+        const t = `${nomeCampoHU(tabela, m.c)}: ${valorTextoHU(m.a, !('a' in m))} → ${valorTextoHU(m.d, !('d' in m))}`
+        if (vistos.has(t)) continue
+        vistos.add(t)
+        partes.push(t)
+    }
+    const resto = Number(total || 0) - (mudancas || []).length
+    return partes.join('  ·  ') + (resto > 0 ? `  · +${resto}` : '')
+}
+
+const dadosVersoesHU = new Map()
+
+function criarLinhaVersaoHU(v) {
+    dadosVersoesHU.set(String(v.id), v)
+    const id = Number(v.id)
+    const [acao, cor] = ACAO_TAB_HU[v.acao] || [v.acao, '#64748b']
+    const resumo = v.acao === 'CRIOU' ? 'Registro criado' : v.acao === 'APAGOU' ? 'Registro apagado (cópia guardada)'
+        : v.tabela === 'rh_salarios' ? 'Valor sigiloso' : resumoTextoHU(v.tabela, v.resumo, v.qtd_mudancas)
+    return `
+        <tr class="fin-linha${String(versaoAtivaHU) === String(id) ? ' fin-linha-ativa' : ''}" data-id="${id}"
+            onclick="selecionarVersaoHU(${id}, event)" ondblclick="abrirVersaoHU(${id})" title="Clique para ver no painel; duplo clique abre os detalhes">
+            <td class="fin-col-marcar">
+                <input type="checkbox" class="fin-marcar" data-marcar-hu value="${id}" ${selecaoHU.has(String(id)) ? 'checked' : ''}
+                    onclick="event.stopPropagation(); marcarVersaoHU(this)" ondblclick="event.stopPropagation()" aria-label="Marcar alteração">
+            </td>
+            <td class="fin-centro">${quandoHU(v.quando)}</td>
+            <td class="fin-obs hu-col-quem" title="${escHU(v.quem)}"><span class="fin-obs-txt">${escHU(v.quem)}</span></td>
+            <td class="fin-centro"><small>${v.autor === 'PESSOA' ? 'Pessoa' : 'Sistema'}</small></td>
+            <td>${typeof etiquetaEst === 'function' ? etiquetaEst(acao, cor) : escHU(acao)}</td>
+            <td class="fin-obs hu-col-modulo" title="${escHU(v.modulo)}"><span class="fin-obs-txt">${escHU(v.modulo)}</span></td>
+            <td class="fin-obs hu-col-registro" title="${escHU(v.rotulo)}"><span class="fin-obs-txt"><b>${escHU(v.rotulo)}</b></span></td>
+            <td class="fin-obs hu-col-resumo" title="${escHU(resumo)}"><span class="fin-obs-txt">${escHU(resumo)}</span></td>
+            <td class="fis-num">${Number(v.qtd_mudancas) || ''}</td>
+        </tr>`
+}
+
+async function aposCarregarVersoesHU() {
+    const tabela = document.getElementById('bodyVersoesHU')?.closest('table')
+    if (!tabela) return
+    const th = tabela.querySelector('thead tr:first-child th:first-child')
+    if (th && !th.querySelector('[data-marcar-todas-hu]'))
+        th.innerHTML = '<input type="checkbox" class="fin-marcar" data-marcar-todas-hu title="Marcar todas desta página" onclick="event.stopPropagation(); marcarTodasHU(this)">'
+    const filtro = tabela.querySelector('thead tr:nth-child(2) th:first-child')
+    if (filtro?.querySelector('img')) filtro.innerHTML = ''
+    if (!tabela.querySelector('tbody.fin-enchimento')) {
+        const enchimento = document.createElement('tbody')
+        enchimento.className = 'fin-enchimento'
+        enchimento.innerHTML = `<tr><td colspan="${Object.keys(controles.versoesHU?.colunas || {}).length || 9}"></td></tr>`
+        tabela.appendChild(enchimento)
+    }
+    if (typeof cabecalhoAvancadoTabela === 'function')
+        await cabecalhoAvancadoTabela('versoesHU', { prefKey: 'historico_versoes' })
+    desenharRodapeHU()
+    desenharSelecaoHU()
+}
+
+function desenharRodapeHU() {
+    const alvo = document.querySelector('[data-rodape-hu]')
+    const ctrl = controles.versoesHU
+    if (!alvo || !ctrl) return
+    const total = Number(document.getElementById('resultados_versoesHU')?.textContent) || 0
+    const paginas = Math.max(1, Number(ctrl.total) || 1)
+    const pagina = Math.min(ctrl.pagina || 1, paginas)
+    const inicio = total ? (pagina - 1) * POR_PAGINA_HU + 1 : 0
+    const fim = Math.min(total, pagina * POR_PAGINA_HU)
+    const botao = (texto, destino, ativo, titulo = '') =>
+        `<button type="button" ${ativo ? `onclick="irPaginaHU(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
+    alvo.innerHTML = `
+        <span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} alteraç${total === 1 ? 'ão' : 'ões'}</span>
+        <div class="fin-paginas">
+            ${botao('|‹', 1, pagina > 1, 'Primeira página')}
+            ${botao('‹ anterior', pagina - 1, pagina > 1)}
+            <label>Página <input type="number" min="1" max="${paginas}" value="${pagina}" onchange="irPaginaHU(this.value)"></label>
+            <span>de ${paginas.toLocaleString('pt-BR')}</span>
+            ${botao('próximo ›', pagina + 1, pagina < paginas)}
+            ${botao('›|', paginas, pagina < paginas, 'Última página')}
+        </div>`
+}
+
+async function irPaginaHU(n) {
+    const ctrl = controles.versoesHU
+    if (!ctrl) return
+    const pagina = Math.min(Math.max(1, parseInt(n) || 1), Math.max(1, Number(ctrl.total) || 1))
+    if (pagina === ctrl.pagina) return desenharRodapeHU()
+    ctrl.pagina = pagina
+    await paginacao('versoesHU')
+}
+
+// ---------- seleção (caixinhas) e Excel
+
+function marcarVersaoHU(caixa) {
+    if (caixa.checked) selecaoHU.add(caixa.value)
+    else selecaoHU.delete(caixa.value)
+    desenharSelecaoHU()
+}
+
+function marcarTodasHU(caixa) {
+    document.querySelectorAll('#bodyVersoesHU [data-marcar-hu]').forEach(c => {
+        c.checked = caixa.checked
+        if (caixa.checked) selecaoHU.add(c.value)
+        else selecaoHU.delete(c.value)
+    })
+    desenharSelecaoHU()
+}
+
+function limparSelecaoHU() {
+    selecaoHU.clear()
+    document.querySelectorAll('#bodyVersoesHU [data-marcar-hu]').forEach(c => { c.checked = false })
+    desenharSelecaoHU()
+}
+
+async function selecionarTodasFiltroHU() {
+    const ctrl = controles.versoesHU
+    if (!ctrl) return
+    overlayAguarde()
+    try {
+        const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        let pagina = 1, paginas = 1
+        do {
+            const r = await pesquisarDB({ base: 'vw_versoes', filtros, pagina, limite: 2000 })
+            ;(r?.resultados || []).forEach(v => selecaoHU.add(String(v.id)))
+            paginas = Number(r?.paginas) || 1
+            pagina++
+        } while (pagina <= paginas && pagina <= 50)
+        document.querySelectorAll('#bodyVersoesHU [data-marcar-hu]').forEach(c => { c.checked = selecaoHU.has(c.value) })
+        desenharSelecaoHU()
+    } catch (err) {
+        popup({ mensagem: `Falha ao marcar as alterações do filtro: ${escHU(err.message)}` })
+    } finally {
+        removerOverlay()
+    }
+}
+
+function desenharSelecaoHU() {
+    const pagina = [...document.querySelectorAll('#bodyVersoesHU [data-marcar-hu]')]
+    const marcadas = pagina.filter(c => c.checked).length
+    const paginaToda = pagina.length > 0 && marcadas === pagina.length
+    const todas = document.querySelector('[data-marcar-todas-hu]')
+    if (todas) {
+        todas.checked = paginaToda
+        todas.indeterminate = marcadas > 0 && marcadas < pagina.length
+    }
+    const aviso = document.querySelector('[data-aviso-hu]')
+    if (!aviso) return
+    const n = selecaoHU.size
+    const total = Number(document.getElementById('resultados_versoesHU')?.textContent) || 0
+    const plural = q => `${q.toLocaleString('pt-BR')} ${q === 1 ? 'alteração' : 'alterações'}`
+    const limpar = '<a href="#" onclick="event.preventDefault(); limparSelecaoHU()">limpar a seleção</a>'
+    aviso.hidden = !(n && paginaToda)
+    aviso.innerHTML = aviso.hidden ? '' : n < total
+        ? `Você selecionou ${plural(n)}. Você pode ${limpar} ou <a href="#" onclick="event.preventDefault(); selecionarTodasFiltroHU()">selecionar todas as ${plural(total)} deste filtro</a>`
+        : `Você selecionou ${n === total ? 'todas as ' : ''}${plural(n)}${n === total ? ' deste filtro' : ''}. Você pode ${limpar}`
+}
+
+async function baixarExcelVersoesHU() {
+    const ctrl = controles.versoesHU
+    if (!ctrl) return
+    overlayAguarde()
+    try {
+        const marcadas = [...selecaoHU]
+        const filtros = marcadas.length
+            ? { id: { modo: 'OR', regras: marcadas.map(id => ({ op: '=', value: id })) } }
+            : combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        const linhas = []
+        let pagina = 1, paginas = 1
+        do {
+            const r = await pesquisarDB({ base: 'vw_versoes', filtros, ordenar: [{ path: 'id', direcao: 'desc' }], pagina, limite: 2000 })
+            linhas.push(...(r?.resultados || []))
+            paginas = Number(r?.paginas) || 1
+            pagina++
+        } while (pagina <= paginas && pagina <= 50)
+        await baixarExcelRelatorioGCS({
+            titulo: 'Histórico de Uso GCS · alterações',
+            resumo: `${linhas.length} alteração(ões)`,
+            filtrosTexto: marcadas.length ? `Alterações marcadas na tela: ${marcadas.length}` : `Filtros: ${typeof descreverFiltrosFin === 'function' ? descreverFiltrosFin(ctrl).replace('nenhum (todas as faturas)', 'nenhum (todas as alterações)') : ''}`,
+            linhas,
+            colunas: [
+                { titulo: 'Quando', largura: 19, valor: d => quandoHU(d.quando) },
+                { titulo: 'Quem', largura: 22, valor: d => d.quem || '' },
+                { titulo: 'Autor', largura: 9, centro: true, valor: d => d.autor === 'PESSOA' ? 'Pessoa' : 'Sistema' },
+                { titulo: 'Ação', largura: 13, valor: d => (ACAO_TAB_HU[d.acao] || [d.acao])[0] },
+                { titulo: 'Módulo', largura: 22, valor: d => d.modulo || '' },
+                { titulo: 'Registro', largura: 40, valor: d => d.rotulo || '' },
+                { titulo: 'O que mudou', largura: 80, valor: d => d.acao === 'CRIOU' ? 'Registro criado' : d.acao === 'APAGOU' ? 'Registro apagado' : resumoTextoHU(d.tabela, d.resumo, d.qtd_mudancas) },
+                { titulo: 'Mudanças', largura: 10, valor: d => Number(d.qtd_mudancas) || 0 }
+            ]
+        })
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: `Falha ao gerar o Excel: ${escHU(err.message)}` })
+    } finally {
+        removerOverlay()
+    }
+}
+
+// ---------- painel lateral: a alteração escolhida
+
+async function selecionarVersaoHU(id, event) {
+    if (event?.target?.closest('input, button, a, select')) return
+    versaoAtivaHU = String(id)
+    document.querySelectorAll('#bodyVersoesHU > tr[data-id]').forEach(tr => tr.classList.toggle('fin-linha-ativa', tr.dataset.id === versaoAtivaHU))
+    alternarPainelHU(true)
+    const painel = document.querySelector('[data-painel-hu]')
+    if (painel) painel.innerHTML = '<div class="fin-painel-cabeca"><span class="fin-avatar">…</span><div class="fin-painel-texto"><b>Carregando…</b></div></div>'
+    try {
+        const r = await apiVersoes('detalhe', { id })
+        if (versaoAtivaHU !== String(id)) return
+        desenharPainelHU(r)
+    } catch (err) {
+        if (painel) painel.innerHTML = `<div class="fin-painel-texto"><small>${escHU(err.message)}</small></div>`
+    }
+}
+
+function desenharPainelHU(detalhe = null) {
+    const painel = document.querySelector('[data-painel-hu]')
+    if (!painel) return
+    const cabeca = (circulo, titulo, sub = '') => `
+        <div class="fin-painel-cabeca" title="${escHU(titulo)}">
+            <span class="fin-avatar">${escHU(circulo)}</span>
+            <div class="fin-painel-texto"><b>${escHU(titulo)}</b>${sub}</div>
+        </div>`
+    if (!detalhe) {
+        painel.innerHTML = `
+            ${cabeca('?', 'Nenhuma alteração escolhida', '<small>Clique numa linha para ver aqui o antes → depois e as ações. Duplo clique abre os detalhes.</small>')}`
+        return
+    }
+    const { versao: v, posteriores = [], podeRestaurar } = detalhe
+    const acao = v.origem?.startsWith('restauração') ? 'Voltou versão' : (ACAO_HU[v.operacao] || ['Alterou'])[0]
+    const quem = v.usuario || origemHU(v)
+    const iniciais = typeof iniciaisFin === 'function' ? iniciaisFin(quem) : String(quem || '?').slice(0, 2).toUpperCase()
+    const vistos = new Set()
+    const mudancas = v.operacao === 'D'
+        ? '<div class="hu-p-nada">Registro apagado. A cópia completa está guardada.</div>'
+        : v.operacao === 'I' ? '<div class="hu-p-nada">Registro criado.</div>'
+        : (v.mudancas || []).map(m => {
+            const campo = nomeCampoHU(v.tabela, m.c)
+            const chave = `${campo}|${JSON.stringify(m.a)}|${JSON.stringify(m.d)}`
+            if (vistos.has(chave)) return ''
+            vistos.add(chave)
+            return `
+                <div class="hu-p-mud">
+                    <span class="hu-p-campo">${escHU(campo)}</span>
+                    <span class="hu-p-antes">${valorHU(m.a, !('a' in m))}</span>
+                    <span class="hu-p-depois">${valorHU(m.d, !('d' in m))}</span>
+                </div>`
+        }).join('')
+    const acaoBotao = (icone, texto, funcao, { perigo = false } = {}) => `
+        <button type="button" class="fin-acao${perigo ? ' perigo' : ''}" title="${escHU(texto)}" onclick="${funcao}">${iconeFin(icone)}<span>${texto}</span></button>`
+    painel.innerHTML = `
+        ${cabeca(iniciais, v.rotulo || v.registro, `<small>${escHU(nomeTabelaHU(v.tabela))} · ${acao}</small><small>${escHU(quem)} · ${quandoHU(v.quando)}</small>`)}
+        <div class="hu-p-lista">${mudancas}</div>
+        ${podeRestaurar && posteriores.length ? `<div class="hu-p-aviso">Depois desta, mais ${posteriores.length} alteração(ões) no registro: voltar desfaz essas também.</div>` : ''}
+        <hr>
+        ${acaoBotao('ver', 'Ver detalhes', `abrirVersaoHU(${Number(v.id)})`)}
+        ${acaoBotao('repetir', 'Todas as versões do registro', `daily({ tabela: { op: '=', value: ${escHU(JSON.stringify(v.tabela))} }, registro: { op: '=', value: ${escHU(JSON.stringify(v.registro))} } })`)}
+        ${podeRestaurar ? `
+            ${acaoBotao('cancelar', v.operacao === 'I' ? 'Desfazer a criação' : v.operacao === 'D' ? 'Trazer de volta' : 'Desfazer esta alteração', `voltarVersaoHU(${Number(v.id)}, true)`, { perigo: v.operacao === 'I' })}
+            ${v.operacao !== 'D' && posteriores.length ? acaoBotao('vencimento', 'Voltar para como ficou aqui', `voltarVersaoHU(${Number(v.id)}, false)`) : ''}` : ''}`
+}
+
+// Cartão de uma versão (linha do tempo de um registro: abrirVersoesRegistro).
 function cartaoVersaoHU(v, { mostrarRegistro = true } = {}) {
     const [acao, classe] = ACAO_HU[v.operacao] || ['Alterou', '']
     const origem = origemHU(v)
@@ -249,27 +556,6 @@ function cartaoVersaoHU(v, { mostrarRegistro = true } = {}) {
         </div>`
 }
 
-function desenharListaHU() {
-    const lista = document.querySelector('[data-hu-lista]')
-    const resumo = document.querySelector('[data-hu-resumo]')
-    if (!lista) return
-    if (resumo) resumo.textContent = `${estadoHU.total.toLocaleString('pt-BR')} alteração(ões)` +
-        (estadoHU.filtros.quem === 'pessoas' ? ' feitas por pessoas' : estadoHU.filtros.quem === 'sistema' ? ' automáticas' : '')
-    if (!estadoHU.itens.length) {
-        lista.innerHTML = '<div class="hu-vazio">Nada encontrado com esses filtros. As versões começaram a ser guardadas em 18/11/2026.</div>'
-        return
-    }
-    let dia = ''
-    let html = ''
-    for (const v of estadoHU.itens) {
-        const d = new Date(v.quando).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
-        if (d !== dia) { dia = d; html += `<div class="hu-dia">${escHU(inicialMaiuscula(d))}</div>` }
-        html += cartaoVersaoHU(v)
-    }
-    if (estadoHU.itens.length < estadoHU.total)
-        html += `<button type="button" class="hu-carregar" onclick="buscarHU(true)">Carregar mais (${(estadoHU.total - estadoHU.itens.length).toLocaleString('pt-BR')} restantes)</button>`
-    lista.innerHTML = html
-}
 
 // ---------------------------------------------------------------- detalhe e voltar
 
@@ -334,7 +620,7 @@ async function voltarVersaoHU(id, antes) {
         removerOverlay()
         removerTodosPopups()
         popup({ mensagem: 'Pronto: o registro voltou para a versão escolhida.' })
-        if (estadoHU.aba === 'alteracoes' && document.querySelector('[data-hu-lista]')) buscarHU()
+        if (estadoHU.aba === 'alteracoes' && controles.versoesHU) { await paginacao('versoesHU'); if (versaoAtivaHU) selecionarVersaoHU(Number(versaoAtivaHU)) }
     } catch (erro) {
         removerOverlay()
         popup({ mensagem: escHU(erro.message) })
