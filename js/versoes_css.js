@@ -44,7 +44,7 @@ const VERSOES_CSS = {
     "relatorios": "213abe1a",
     "rh": "f575bac1",
     "seletor-cores": "c0e10ff3",
-    "status": "442894d6",
+    "status": "58249c5d",
     "tabelas-parceiro": "22c15cc9",
     "tabelas": "daf589f8",
     "veiculos": "c85e8b90",

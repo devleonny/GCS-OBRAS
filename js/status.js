@@ -131,7 +131,7 @@ const blocoFotosCompleto = ({ id, tabela, fotos }) => {
 }
 
 // clicou: veio do clique na opção (ao abrir o formulário não alerta).
-function marcarStatusPedido(clicou = false) {
+function marcarStatusPedido() {
 
     const opcao = [...document.querySelectorAll('[name="status-pedido"]:checked')][0]
 
@@ -149,23 +149,19 @@ function marcarStatusPedido(clicou = false) {
         pedido.readOnly = false
     }
 
-    // Promessa: explica a cobrança; com número: pede a OC (obrigatória quando cumpre uma promessa).
+    const pendente = retorno === PEDIDO_PROMETIDO
     const aviso = document.getElementById('aviso-promessa')
-    if (aviso) aviso.style.display = retorno === PEDIDO_PROMETIDO ? '' : 'none'
-    const oc = document.getElementById('linha-oc-pedido')
-    if (oc) oc.closest('.linha-padrao').style.display = retorno.includes('número') ? '' : 'none'
+    if (aviso) aviso.style.display = pendente ? '' : 'none'
 
-    // Alerta ao escolher "Pedido pendente" (a pedido): quem lança será cobrado depois pelo pedido do cliente.
-    if (clicou && retorno === PEDIDO_PROMETIDO)
-        popup({
-            titulo: 'Atenção: pedido pendente',
-            mensagem: `
-                Você está lançando o pedido <b>sem o pedido do cliente</b>.<br><br>
-                <b>Você será cobrado por ele:</b> o GCS vai lembrar você todos os dias (e avisar o gestor)
-                até o pedido ser completado com o número (ou "Aprovado por E-mail"), o valor e a OC anexada.<br><br>
-                Enquanto isso, a nota fiscal deste orçamento não é emitida e ele não pode ser concluído.`,
-            botoes: [{ texto: 'Entendi', img: 'concluido', fechar: true }]
-        })
+    // No pedido pendente, mantém visíveis apenas o status e este aviso.
+    for (const seletor of ['#departamento', '#pedido', '#valor', '#linha-oc-pedido', '#empresa', '#limite_faturamento_dia', '#condicao_pedido', '#comentario_status']) {
+        const campo = document.querySelector(seletor)
+        const linha = campo?.closest('.linha-padrao')
+        if (linha) linha.style.display = pendente ? 'none' : ''
+    }
+
+    const linhaOc = document.getElementById('linha-oc-pedido')?.closest('.linha-padrao')
+    if (linhaOc && !pendente) linhaOc.style.display = retorno.includes('número') ? '' : 'none'
 
 }
 
@@ -235,7 +231,7 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
     const opcoes = [PEDIDO_PROMETIDO, 'Aprovado por E-mail', 'Aprovado com número']
         .map(op => `
             <div style="${horizontal}; gap: 1rem;">
-                <input ${op == marcada ? 'checked' : ''} name="status-pedido" data-campo="${op}" type="radio" style="box-shadow: none; width: 2rem; height: 2rem;" onclick="marcarStatusPedido(true)">
+                <input ${op == marcada ? 'checked' : ''} name="status-pedido" data-campo="${op}" type="radio" style="box-shadow: none; width: 2rem; height: 2rem;" onclick="marcarStatusPedido()">
                 <span>${op}</span>
             </div>
             `)

@@ -13,11 +13,21 @@
 
 /* No formulário do pedido, amplia o campo sem alterar os demais inputs da janela. */
 .linha-padrao:has(#limite_faturamento_dia) > div {
-    flex: 1 1 18rem;
+    flex: 0 1 200px;
 }
 
 #limite_faturamento_dia {
     width: 100%;
+    max-width: 200px;
+}
+
+.linha-padrao:has(#oc_pedido) > div {
+    flex: 0 1 200px;
+}
+
+#oc_pedido {
+    width: 100%;
+    max-width: 200px;
 }
 
 .bloco-st {
