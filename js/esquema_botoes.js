@@ -341,7 +341,8 @@ const esquemaBotoes = {
             img: 'pesquisar5',
             acesso: 'sistema.historico',
             sub: [
-                { nome: 'Ver histórico', funcao: 'daily', img: 'pesquisar5' }
+                { nome: 'Alterações', funcao: 'daily', img: 'pesquisar5' },
+                { nome: 'Uso do sistema', funcao: 'telaUsoSistema', img: 'dashboard' }
             ]
         },
         // Quem vê e faz o quê (js/acessos.js): só o adm.

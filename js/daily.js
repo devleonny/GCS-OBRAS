@@ -146,33 +146,26 @@ async function daily(filtroExtra = null) {
                 <header class="fin-janela-topo">
                     <h2>Histórico de Uso GCS</h2>
                     <div class="fin-barra">
-                        <div class="fluxo-chave-empresa hu-abas-seg" role="group" aria-label="Visão">
-                            <button type="button" data-hu-aba="alteracoes" onclick="trocarAbaHU('alteracoes')">Alterações</button>
-                            <button type="button" data-hu-aba="uso" onclick="trocarAbaHU('uso')">Uso do sistema</button>
-                        </div>
                         <span class="hu-botoes" data-hu-botoes></span>
                     </div>
                 </header>
                 <div class="hu-corpo" data-hu-corpo></div>
             </section>
         </div>`
-    await trocarAbaHU(estadoHU.aba, filtroExtra)
+    estadoHU.aba = 'alteracoes'
+    await desenharAlteracoesHU(document.querySelector('[data-hu-corpo]'), filtroExtra)
 }
 
-async function trocarAbaHU(aba, filtroExtra = null) {
-    estadoHU.aba = aba
-    document.querySelectorAll('[data-hu-aba]').forEach(b => {
-        b.classList.toggle('ativo', b.dataset.huAba === aba)
-        b.setAttribute('aria-pressed', b.dataset.huAba === aba)
-    })
-    const corpo = document.querySelector('[data-hu-corpo]')
-    const botoes = document.querySelector('[data-hu-botoes]')
-    if (!corpo) return
-    if (aba === 'uso') {
-        if (botoes) botoes.innerHTML = ''
-        return dailyUso(corpo)
-    }
-    await desenharAlteracoesHU(corpo, filtroExtra)
+// Uso do sistema (menu próprio): atividades de logs_rotas e o mapa de calor de dias x horários.
+async function telaUsoSistema() {
+    titulo.innerHTML = 'Uso do sistema'
+    estadoHU.aba = 'uso'
+    tela.innerHTML = `
+        <div class="pagina-conteudo hu">
+            <div class="cabecalho-pagina"><h2>Uso do sistema</h2></div>
+            <div data-hu-corpo></div>
+        </div>`
+    await dailyUso(document.querySelector('[data-hu-corpo]'))
 }
 
 async function desenharAlteracoesHU(corpo, filtroExtra = null) {
