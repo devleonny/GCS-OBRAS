@@ -35,28 +35,34 @@ const estadoRemessas = { situacao: 'ABERTAS', tipo: '', prazo: '', busca: '', li
 const podeEditarRemessas = () => pode('vendas.remessas.editar')
 const escRem = v => escaparAtributo(v ?? '')
 const dataRem = v => v ? new Date(String(v).slice(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR') : ''
+// O departamento de algumas notas do Omie vem como o texto 'null'.
+const orcRem = r => { const o = String(r?.orcamento ?? '').trim(); return o && o.toLowerCase() !== 'null' ? o : '' }
 
 async function telaRemessasRetorno(abrirId = null) {
+    // Tudo num quadro branco (a página tem fundo escuro): contadores, filtros e a lista.
+    const situacoes = [['ABERTAS', 'Abertas'], ['ENCERRADAS', 'Encerradas'], ['TODAS', 'Todas']]
     tela.innerHTML = `
         <div class="pagina-conteudo fis-pagina">
             <div class="cabecalho-pagina"><h2>Remessas a retornar</h2></div>
-            <div class="fis-alerta rem-explica">
-                Demonstração volta em <b>60 dias</b> e conserto em <b>180 dias</b>; comodato/locação segue o contrato
-                (informe o prazo na remessa). Passado o prazo sem retorno, o ICMS suspenso fica devido com multa e juros.
-                Remessa não conta como faturamento do orçamento.
+            <div class="rem-quadro">
+                <div class="fis-cartoes rem-cartoes" data-cartoes-remessas></div>
+                <div class="rem-filtros">
+                    <div class="rem-segmentos">
+                        ${situacoes.map(([k, t]) => `<button type="button" class="${estadoRemessas.situacao === k ? 'ativo' : ''}"
+                            onclick="estadoRemessas.situacao = '${k}'; telaRemessasRetorno()">${t}</button>`).join('')}
+                    </div>
+                    <select class="fis-input" onchange="estadoRemessas.tipo = this.value; carregarRemessas()">
+                        ${opcoesFis([['', 'Todos os tipos'], ...Object.entries(TIPOS_REMESSA).map(([k, t]) => [k, t.texto])], estadoRemessas.tipo)}
+                    </select>
+                    <input class="fis-input rem-busca" placeholder="Nº, destinatário, CNPJ, ORC ou item…" value="${escRem(estadoRemessas.busca)}"
+                        oninput="clearTimeout(estadoRemessas.timer); estadoRemessas.busca = this.value; estadoRemessas.timer = setTimeout(carregarRemessas, 400)">
+                </div>
+                <small class="rem-explica">
+                    Demonstração volta em <b>60 dias</b>, conserto em <b>180 dias</b> e comodato/locação no fim do contrato.
+                    Sem retorno no prazo, o ICMS suspenso fica devido com multa e juros. Remessa não conta como faturamento.
+                </small>
+                <div data-lista-remessas></div>
             </div>
-            <div class="fis-cartoes" data-cartoes-remessas></div>
-            <div class="rem-filtros">
-                <select class="fis-input" onchange="estadoRemessas.situacao = this.value; carregarRemessas()">
-                    ${opcoesFis([['ABERTAS', 'Abertas'], ['ENCERRADAS', 'Encerradas'], ['TODAS', 'Todas']], estadoRemessas.situacao)}
-                </select>
-                <select class="fis-input" onchange="estadoRemessas.tipo = this.value; carregarRemessas()">
-                    ${opcoesFis([['', 'Todos os tipos'], ...Object.entries(TIPOS_REMESSA).map(([k, t]) => [k, t.texto])], estadoRemessas.tipo)}
-                </select>
-                <input class="fis-input rem-busca" placeholder="Nº, destinatário, CNPJ, ORC ou item…" value="${escRem(estadoRemessas.busca)}"
-                    oninput="clearTimeout(estadoRemessas.timer); estadoRemessas.busca = this.value; estadoRemessas.timer = setTimeout(carregarRemessas, 400)">
-            </div>
-            <div class="fis-conteudo" data-lista-remessas></div>
         </div>`
     await carregarRemessas()
     if (abrirId) abrirRemessaRetorno(abrirId)
@@ -87,8 +93,10 @@ function desenharCartoesRemessas() {
         const ativo = estadoRemessas.prazo === chave
         return `
             <button type="button" class="fis-cartao${ativo ? ' rem-cartao-ativo' : ''}" style="--cor: ${PRAZOS_REMESSA[chave].cor}"
-                onclick="filtrarPrazoRemessas('${chave}')" title="${r.valor ? `Pendente: ${dinheiro(r.valor)}` : ''}">
-                <b>${r.quantidade || 0}</b><span>${PRAZOS_REMESSA[chave].texto.toLowerCase()}${r.valor ? ` · ${dinheiro(r.valor)}` : ''}</span></button>`
+                onclick="filtrarPrazoRemessas('${chave}')" title="${ativo ? 'Clique para tirar o filtro' : 'Filtrar a lista'}">
+                <span class="rem-cartao-rotulo">${PRAZOS_REMESSA[chave].texto}</span>
+                <b>${r.quantidade || 0}</b>
+                <span>${r.valor ? `${dinheiro(r.valor)} pendente` : '&nbsp;'}</span></button>`
     }
     alvo.innerHTML = ['VENCIDA', 'A_VENCER', 'SEM_PRAZO', 'NO_PRAZO'].map(cartao).join('')
 }
@@ -105,11 +113,18 @@ function filtrarPrazoRemessas(chave) {
 
 function prazoTextoRemessa(r) {
     if (r.prazo_situacao === 'ENCERRADA') return r.prazo ? `<small>${dataRem(r.prazo)}</small>` : ''
-    if (!r.prazo) return `<small>${r.tipo === 'COMODATO' ? 'informe o fim do contrato' : ''}</small>`
-    const d = Number(r.dias_restantes)
-    const quando = d < 0 ? `venceu há ${-d} dia${d === -1 ? '' : 's'}` : d === 0 ? 'vence hoje' : `faltam ${d} dia${d === 1 ? '' : 's'}`
-    return `${dataRem(r.prazo)}<small>${quando}</small>`
+    if (!r.prazo) return `<small>${r.tipo === 'COMODATO' ? 'informe o fim do contrato' : 'sem prazo'}</small>`
+    return `${dataRem(r.prazo)}<small>${quandoRemessa(r)}</small>`
 }
+
+function quandoRemessa(r) {
+    const d = Number(r.dias_restantes)
+    if (!r.prazo || !Number.isFinite(d)) return ''
+    return d < 0 ? `venceu há ${-d} dia${d === -1 ? '' : 's'}` : d === 0 ? 'vence hoje' : `faltam ${d} dia${d === 1 ? '' : 's'}`
+}
+
+// Cor da lateral do cabeçalho do painel (mesmas classes da nota: .fis-nota-topo.ok/.andando/...).
+const TOM_PRAZO_REMESSA = { VENCIDA: 'erro', A_VENCER: 'andando', SEM_PRAZO: 'rascunho', NO_PRAZO: 'ok', ENCERRADA: 'neutro' }
 
 function desenharListaRemessas() {
     const alvo = document.querySelector('[data-lista-remessas]')
@@ -120,25 +135,27 @@ function desenharListaRemessas() {
         return
     }
     alvo.innerHTML = `
-        <div class="fis-tabela-rolagem">
+        <div class="fis-tabela-rolagem rem-rolagem">
             <table class="fis-tabela rem-tabela">
-                <thead><tr><th></th><th>Emissão</th><th>Empresa</th><th>Nº</th><th>Tipo</th><th>Destinatário</th><th>Orçamento</th>
+                <thead><tr><th>Destinatário</th><th>Nota</th><th>Tipo</th><th>Orçamento</th>
                     <th class="fis-num">Pendente</th><th>Prazo</th><th>Situação</th></tr></thead>
-                <tbody>${lista.map(r => `
-                    <tr onclick="abrirRemessaRetorno('${escRem(r.id)}')" style="cursor: pointer">
-                        <td class="fis-acoes-linha"><img src="imagens/pesquisar.svg" title="Abrir"></td>
-                        <td>${dataRem(r.emissao)}</td>
-                        <td>${escRem(r.app)}</td>
-                        <td><b>${escRem(r.numero)}</b><small>${r.origem === 'GCS' ? 'GCS' : 'Omie'} · CFOP ${escRem(r.cfop)}</small></td>
-                        <td>${etiquetaEst(TIPOS_REMESSA[r.tipo]?.texto || r.tipo, TIPOS_REMESSA[r.tipo]?.cor)}</td>
-                        <td class="fis-descricao">${escRem(r.destinatario_nome)}<small>${docFormatadoFis(r.destinatario_documento)}${r.destinatario_uf ? ` · ${escRem(r.destinatario_uf)}` : ''}</small></td>
-                        <td>${escRem(r.orcamento || '')}</td>
-                        <td class="fis-num">${dinheiro(r.valor_pendente)}</td>
+                <tbody>${lista.map(r => {
+                    const prazo = PRAZOS_REMESSA[r.prazo_situacao] || {}
+                    const tipo = TIPOS_REMESSA[r.tipo] || {}
+                    const situacao = r.prazo_situacao === 'ENCERRADA'
+                        ? etiquetaEst(SITUACOES_REMESSA[r.situacao]?.texto, SITUACOES_REMESSA[r.situacao]?.cor)
+                        : `${etiquetaEst(prazo.texto, prazo.cor)}${r.situacao === 'PARCIAL' ? etiquetaEst('Retorno parcial', '#2563eb') : ''}`
+                    return `
+                    <tr onclick="abrirRemessaRetorno('${escRem(r.id)}')" style="--cor: ${prazo.cor || '#64748b'}" title="Abrir a remessa">
+                        <td class="fis-descricao rem-destinatario"><b>${escRem(r.destinatario_nome)}</b><small>${docFormatadoFis(r.destinatario_documento)}${r.destinatario_uf ? ` · ${escRem(r.destinatario_uf)}` : ''}</small></td>
+                        <td class="rem-nota"><b>${escRem(r.app)} ${escRem(r.numero)}</b><small>${dataRem(r.emissao)} · ${r.origem === 'GCS' ? 'GCS' : 'Omie'} · CFOP ${escRem(r.cfop)}</small></td>
+                        <td><span class="rem-tipo" style="--cor: ${tipo.cor || '#64748b'}">${escRem(tipo.texto || r.tipo)}</span></td>
+                        <td>${orcRem(r) ? `<span class="rem-orc">${escRem(orcRem(r))}</span>` : '<small>—</small>'}</td>
+                        <td class="fis-num"><b>${dinheiro(r.valor_pendente)}</b>${Number(r.valor_retornado) > 0 ? `<small>de ${dinheiro(r.valor)}</small>` : ''}</td>
                         <td class="rem-prazo">${prazoTextoRemessa(r)}</td>
-                        <td>${etiquetaEst(PRAZOS_REMESSA[r.prazo_situacao]?.texto, PRAZOS_REMESSA[r.prazo_situacao]?.cor)}
-                            ${r.prazo_situacao === 'ENCERRADA' ? '' : r.situacao === 'PARCIAL' ? etiquetaEst('Retorno parcial', '#2563eb') : ''}
-                            ${r.prazo_situacao === 'ENCERRADA' ? etiquetaEst(SITUACOES_REMESSA[r.situacao]?.texto, SITUACOES_REMESSA[r.situacao]?.cor) : ''}</td>
-                    </tr>`).join('')}</tbody>
+                        <td><div class="rem-etiquetas">${situacao}</div></td>
+                    </tr>`
+                }).join('')}</tbody>
             </table>
         </div>
         ${lista.length >= 1000 ? '<small class="fis-secao-info">Mostrando as 1.000 primeiras: use a busca para achar as demais.</small>' : ''}`
@@ -162,53 +179,87 @@ async function abrirRemessaRetorno(id) {
     const itens = Array.isArray(r.itens) ? r.itens : []
     const retornos = Array.isArray(r.retornos) ? r.retornos : []
     const origemPrazo = { LEI: `legal (${tipo.prazo})`, CONTRATO: 'do contrato', PRORROGADO: 'prorrogado' }[r.prazo_origem] || ''
+    const prazo = PRAZOS_REMESSA[r.prazo_situacao] || {}
+    const pctRetornado = Number(r.valor) > 0 ? Math.min(100, Math.round(Number(r.valor_retornado || 0) / Number(r.valor) * 100)) : 0
+    const docDest = `${docFormatadoFis(r.destinatario_documento)}${r.destinatario_uf ? ` <small>${escRem(r.destinatario_uf)}</small>` : ''}`
+    // Mesmo visual da nota (.fis-nota): cabeçalho com lateral pela situação do prazo, resumo, cartões de seção.
     const elemento = `
-        <div class="fis-painel rem-detalhe" data-remessa="${escRem(r.id)}">
-            <div class="rem-etiquetas">
-                ${etiquetaEst(tipo.texto || r.tipo, tipo.cor)}
-                ${etiquetaEst(PRAZOS_REMESSA[r.prazo_situacao]?.texto, PRAZOS_REMESSA[r.prazo_situacao]?.cor)}
-                ${etiquetaEst(SITUACOES_REMESSA[r.situacao]?.texto, SITUACOES_REMESSA[r.situacao]?.cor)}
-            </div>
-            <div class="rem-resumo">
-                <div><small>Nota</small><b>${escRem(r.app)} ${escRem(r.numero)}</b><small>${r.origem === 'GCS' ? 'emitida pelo GCS' : 'emitida pelo Omie'} · CFOP ${escRem(r.cfop)}</small></div>
-                <div><small>Emissão</small><b>${dataRem(r.emissao)}</b></div>
-                <div><small>Prazo de retorno</small><b>${r.prazo ? dataRem(r.prazo) : 'sem prazo'}</b><small>${escRem(origemPrazo)}${r.prazo_alterado_por ? ` · por ${escRem(r.prazo_alterado_por)}` : ''}</small></div>
-                <div><small>Destinatário</small><b>${escRem(r.destinatario_nome)}</b><small>${docFormatadoFis(r.destinatario_documento)}${r.destinatario_uf ? ` · ${escRem(r.destinatario_uf)}` : ''}</small></div>
-                <div><small>Valor da remessa</small><b>${dinheiro(r.valor)}</b><small>retornado ${dinheiro(r.valor_retornado)}</small></div>
-            </div>
-            ${r.chave ? `<small class="fis-secao-info">Chave: ${escRem(r.chave)}</small>` : ''}
-
-            <div class="fis-secao">
-                <div class="fis-secao-titulo"><b>Itens</b> <span class="fis-contador">${itens.length}</span></div>
-                <table class="fis-tabela">
-                    <thead><tr><th>#</th><th>Código</th><th>Descrição</th><th class="fis-num">Qtd</th><th class="fis-num">Valor</th></tr></thead>
-                    <tbody>${itens.map(i => `<tr><td>${escRem(i.n_item)}</td><td>${escRem(i.codigo)}</td><td>${escRem(i.descricao)}</td>
-                        <td class="fis-num">${escRem(i.quantidade)}</td><td class="fis-num">${i.valor != null ? dinheiro(i.valor) : ''}</td></tr>`).join('')}</tbody>
-                </table>
+        <div class="fis-painel fis-doc fis-nota rem-detalhe" data-remessa="${escRem(r.id)}">
+            <div class="fis-nota-topo ${TOM_PRAZO_REMESSA[r.prazo_situacao] || 'neutro'}">
+                <div class="fis-nota-titulo">
+                    <b>${escRem(r.destinatario_nome || 'Destinatário')}</b>
+                    <div class="fis-nota-etiquetas">
+                        ${etiquetaEst(tipo.texto || r.tipo, tipo.cor)}
+                        ${etiquetaEst(prazo.texto, prazo.cor)}
+                        ${r.prazo_situacao === 'ENCERRADA' || r.situacao === 'PARCIAL' ? etiquetaEst(SITUACOES_REMESSA[r.situacao]?.texto, SITUACOES_REMESSA[r.situacao]?.cor) : ''}
+                    </div>
+                    <small>NF-e ${escRem(r.numero)} · ${escRem(r.app)} · ${r.origem === 'GCS' ? 'emitida pelo GCS' : 'emitida pelo Omie'} · CFOP ${escRem(r.cfop)}</small>
+                </div>
+                <div class="fis-nota-valor">
+                    <span>${aberta ? 'Falta retornar' : 'Valor da remessa'}</span>
+                    <b>${dinheiro(aberta ? r.valor_pendente : r.valor)}</b>
+                </div>
             </div>
 
-            <div class="fis-secao">
-                <div class="fis-secao-titulo"><b>Retornos</b> <span class="fis-contador">${retornos.length}</span>
-                    <small class="fis-secao-info">ligados sozinhos quando a nota referencia a chave desta remessa</small></div>
-                ${retornos.length ? `<table class="fis-tabela"><tbody>${retornos.map(x => `
-                    <tr><td>${dataRem(x.data)}</td><td><b>${escRem(x.numero)}</b></td><td>${escRem(x.emitente)}</td>
-                        <td class="fis-num">${dinheiro(x.valor)}</td>
-                        <td>${x.documento_id ? `<button type="button" class="fis-mini" onclick="abrirDocumentoFiscal('${escRem(x.documento_id)}')">Abrir</button>` : ''}</td></tr>`).join('')}</tbody></table>`
-                    : '<small class="fis-secao-info">Nenhuma nota de retorno ainda.</small>'}
+            ${resumoDocumentoFis(r, [
+                ['Emissão', dataRem(r.emissao)],
+                ['Prazo de retorno', r.prazo ? `${dataRem(r.prazo)}${aberta && quandoRemessa(r) ? ` <small>${quandoRemessa(r)}</small>` : ''}` : 'sem prazo'],
+                ['Origem do prazo', `${escRem(origemPrazo)}${r.prazo_alterado_por ? ` <small>por ${escRem(r.prazo_alterado_por)}</small>` : ''}`],
+                [r.destinatario_documento?.length > 11 ? 'CNPJ' : 'CPF/CNPJ', docDest],
+                ['Orçamento', escRem(orcRem(r) || '—')]
+            ])}
+
+            <div class="fis-secao rem-progresso">
+                <div class="fis-secao-topo"><b>Retornado</b>
+                    <small>${dinheiro(r.valor_retornado)} de ${dinheiro(r.valor)} (${pctRetornado}%)</small></div>
+                <div class="rem-barra"><span style="width: ${pctRetornado}%"></span></div>
             </div>
+
+            ${r.chave ? `<div class="fis-chave">Chave <code>${escRem(r.chave)}</code></div>` : ''}
 
             ${r.baixa_em ? `
-                <div class="fis-secao rem-baixa">
+                <div class="fis-alerta rem-baixa">
                     <b>Baixada</b> em ${dataHoraFis(r.baixa_em)} por ${escRem(r.baixa_por)}: ${escRem(BAIXAS_REMESSA[r.baixa_tipo] || r.baixa_tipo)}
-                    ${r.baixa_documento ? ` · nota ${escRem(r.baixa_documento)}` : ''}<br><small>${escRem(r.baixa_motivo)}</small>
+                    ${r.baixa_documento ? ` · nota ${escRem(r.baixa_documento)}` : ''}${r.baixa_motivo ? `<br><small>${escRem(r.baixa_motivo)}</small>` : ''}
                 </div>` : ''}
 
-            <div class="fis-grade">
-                ${campoFis(`Prazo de retorno${r.tipo === 'COMODATO' ? ' <small>(fim do contrato)</small>' : ' <small>(prorrogação)</small>'}`,
-                    `<input class="fis-input" type="date" name="prazo" value="${escRem(r.prazo ? String(r.prazo).slice(0, 10) : '')}" ${editavel ? '' : 'disabled'}>`)}
-                ${campoFis('Orçamento / departamento', `<input class="fis-input" name="orcamento" value="${escRem(r.orcamento || '')}" maxlength="60" placeholder="ORC_..." ${editavel ? '' : 'disabled'}>`)}
+            <div class="fis-secao">
+                <div class="fis-secao-topo"><b>Itens</b> <span class="fis-contador">${itens.length}</span></div>
+                <div class="fis-tabela-rolagem">
+                    <table class="fis-tabela">
+                        <thead><tr><th>#</th><th>Descrição</th><th class="fis-num">Qtd</th><th class="fis-num">Valor</th></tr></thead>
+                        <tbody>${itens.map(i => `<tr><td class="fis-num">${escRem(i.n_item)}</td>
+                            <td class="fis-descricao">${escRem(i.descricao)}${i.codigo ? `<small>Cód. ${escRem(i.codigo)}</small>` : ''}</td>
+                            <td class="fis-num">${qtdEst(i.quantidade)} ${escRem(i.unidade || '')}</td><td class="fis-num">${i.valor != null ? dinheiro(i.valor) : ''}</td></tr>`).join('')}</tbody>
+                    </table>
+                </div>
             </div>
-            ${campoFis('Observação', `<textarea class="fis-input" name="observacao" rows="2" maxlength="1000" ${editavel ? '' : 'disabled'}>${escRem(r.observacao || '')}</textarea>`)}
+
+            <div class="fis-secao">
+                <div class="fis-secao-topo"><b>Notas de retorno</b> <span class="fis-contador">${retornos.length}</span>
+                    <small>ligadas sozinhas quando a nota referencia a chave desta remessa</small></div>
+                ${retornos.length ? `
+                <div class="fis-tabela-rolagem">
+                    <table class="fis-tabela">
+                        <thead><tr><th>Data</th><th>Nota</th><th>Emitente</th><th class="fis-num">Valor</th><th></th></tr></thead>
+                        <tbody>${retornos.map(x => `
+                        <tr><td>${dataRem(x.data)}</td><td><b>${escRem(x.numero)}</b></td><td>${escRem(x.emitente)}</td>
+                            <td class="fis-num">${dinheiro(x.valor)}</td>
+                            <td class="fis-num">${x.documento_id ? `<button type="button" class="fis-mini" onclick="abrirDocumentoFiscal('${escRem(x.documento_id)}')">Abrir</button>` : ''}</td></tr>`).join('')}</tbody>
+                    </table>
+                </div>`
+                : '<div class="rem-vazio">Nenhuma nota de retorno ainda.</div>'}
+            </div>
+
+            <div class="fis-secao">
+                <div class="fis-secao-topo"><b>Controle</b>${editavel ? '' : ' <small>só adm, diretoria e financeiro alteram</small>'}</div>
+                <div class="fis-grade">
+                    ${campoFis(`Prazo de retorno${r.tipo === 'COMODATO' ? ' <small>(fim do contrato)</small>' : ' <small>(prorrogação)</small>'}`,
+                        `<input class="fis-input" type="date" name="prazo" value="${escRem(r.prazo ? String(r.prazo).slice(0, 10) : '')}" ${editavel ? '' : 'disabled'}>`)}
+                    ${campoFis('Orçamento / departamento', `<input class="fis-input" name="orcamento" value="${escRem(orcRem(r))}" maxlength="60" placeholder="ORC_..." ${editavel ? '' : 'disabled'}>`)}
+                </div>
+                ${campoFis('Observação', `<textarea class="fis-input" name="observacao" rows="2" maxlength="1000" ${editavel ? '' : 'disabled'}>${escRem(r.observacao || '')}</textarea>`)}
+            </div>
         </div>`
     const botoes = []
     if (r.origem === 'GCS' && r.documento_id) botoes.push({ texto: 'Abrir a nota', img: 'pesquisar', funcao: `abrirDocumentoFiscal('${escRem(r.documento_id)}')` })
@@ -222,7 +273,7 @@ async function abrirRemessaRetorno(id) {
         titulo: `Remessa ${r.app} ${r.numero}`,
         elemento,
         botoes,
-        conteudoRodape: typeof rodapeOrcamento === 'function' ? rodapeOrcamento(r.orcamento, r.destinatario_nome) : ''
+        conteudoRodape: typeof rodapeOrcamento === 'function' ? rodapeOrcamento(orcRem(r) || null, r.destinatario_nome) : ''
     })
 }
 

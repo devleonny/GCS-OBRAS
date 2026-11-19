@@ -1226,6 +1226,31 @@ input:focus {
     color: #a7d8b5;
 }
 
+.nomeUsuario .info-usuario-menu {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.nomeUsuario .info-usuario-menu .rotulo-usuario-menu {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.nomeUsuario .trocar-senha-menu {
+    color: #a7d8b5;
+    font-size: 11px;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.nomeUsuario .trocar-senha-menu:hover {
+    color: #ffffff;
+}
+
 .side-menu .menu-atalhos {
     display: flex;
     width: calc(100% - 32px);

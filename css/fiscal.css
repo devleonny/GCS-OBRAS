@@ -1,4 +1,4 @@
-/* Fiscal e Estoque (js/fiscal.js, js/estoque.js). Abas reaproveitam .relatorio-dep-abas. */
+/* Fiscal e Estoque (js/fiscal.js, js/estoque.js). Abas da configuração: .fis-abas. */
 
 .fis-pagina {
     --fis-verde: #356443;
@@ -88,24 +88,62 @@
     font-variant-numeric: tabular-nums;
 }
 
-.fis-cartao span {
+.fis-cartao > span {
     font-size: 0.75rem;
     color: #5b6b61;
 }
 
-/* Remessas a retornar (js/remessas_retorno.js) */
-.rem-explica { margin: 0 0 12px; font-size: 0.8rem; }
-.fis-cartao.rem-cartao-ativo { background: color-mix(in srgb, var(--cor) 12%, white); box-shadow: 0 0 0 2px var(--cor); }
-.rem-filtros { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+/* Remessas a retornar (js/remessas_retorno.js): página num quadro branco (o fundo da página é escuro). */
+.rem-quadro {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(16, 40, 26, 0.12);
+}
+.rem-cartoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin: 0; }
+.rem-quadro { min-width: 0; max-width: 100%; box-sizing: border-box; }
+.rem-cartoes .fis-cartao { min-width: 0; gap: 0; padding: 10px 14px 12px; border-radius: 10px; transition: background 0.15s, box-shadow 0.15s; }
+.rem-cartoes .fis-cartao b { font-size: 1.7rem; line-height: 1.15; }
+.rem-cartoes .fis-cartao .rem-cartao-rotulo { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--cor); }
+.fis-cartao.rem-cartao-ativo { background: color-mix(in srgb, var(--cor) 10%, white); box-shadow: 0 0 0 2px var(--cor); }
+
+.rem-filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .rem-filtros .fis-input { width: auto; }
 .rem-filtros .rem-busca { flex: 1; min-width: 220px; }
-.rem-tabela td small, .rem-prazo small { display: block; color: #5b6b61; font-size: 0.72rem; }
-.rem-detalhe { display: flex; flex-direction: column; gap: 10px; min-width: min(46rem, 90vw); padding: 12px; text-align: left; }
-.rem-etiquetas { display: flex; flex-wrap: wrap; gap: 6px; }
-.rem-resumo { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
-.rem-resumo > div { display: flex; flex-direction: column; padding: 8px 10px; background: #f5f7f6; border-radius: 6px; }
-.rem-resumo small { color: #5b6b61; font-size: 0.72rem; }
-.rem-baixa { padding: 8px 10px; background: #f1f5f9; border-left: 4px solid #64748b; border-radius: 6px; }
+.rem-segmentos { display: inline-flex; padding: 3px; background: #eef2ef; border-radius: 8px; }
+.rem-segmentos button {
+    margin: 0; padding: 5px 14px; font-size: 0.8rem; font-weight: 600; color: #4f6357;
+    cursor: pointer; background: transparent; border: 0; border-radius: 6px;
+}
+.rem-segmentos button.ativo { color: #1f2a24; background: #fff; box-shadow: 0 1px 2px rgba(16, 40, 26, 0.15); }
+.rem-explica { font-size: 0.75rem; line-height: 1.45; color: #6b7a71; }
+
+.rem-rolagem { max-height: 65vh; border-color: #e1e8e3; border-radius: 10px; }
+.rem-tabela th { padding: 8px 10px; background: #f6f8f7; border-bottom: 1px solid #e2e8e4; }
+.rem-tabela td { padding: 9px 10px; vertical-align: middle; }
+.rem-tabela tbody tr { cursor: pointer; }
+.rem-tabela tbody tr td:first-child { box-shadow: inset 4px 0 0 var(--cor); padding-left: 14px; }
+.rem-tabela tbody tr:hover td { background: #f3f8f5; }
+.rem-tabela td small, .rem-prazo small { display: block; color: #6b7a71; font-size: 0.72rem; }
+.rem-tabela td b { color: #1f2a24; }
+.rem-destinatario { min-width: 16rem; }
+.rem-nota { white-space: nowrap; }
+.rem-prazo { white-space: nowrap; }
+.rem-tipo { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 0.78rem; color: #2d3a32; }
+.rem-tipo::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--cor); }
+.rem-orc { padding: 1px 6px; font-size: 0.75rem; font-weight: 600; color: #2d3a32; background: #eef2ef; border-radius: 4px; white-space: nowrap; }
+.rem-etiquetas { display: flex; flex-wrap: wrap; gap: 4px; }
+
+/* Painel da remessa: usa o visual da nota (.fis-nota); aqui só o que é dela. */
+.rem-detalhe { width: min(880px, 92vw); }
+.rem-detalhe .fis-nota-valor { justify-content: center; }
+.rem-barra { height: 8px; overflow: hidden; background: #edf1ee; border-radius: 4px; }
+.rem-barra span { display: block; height: 100%; background: #2f7d4f; border-radius: 4px; }
+.rem-vazio { padding: 14px; font-size: 0.8rem; text-align: center; color: #6b7a71; background: #f8faf9; border: 1px dashed #d7e0da; border-radius: 8px; }
+.fis-nota > .rem-baixa { border-left-color: #64748b; background: #f1f5f9; color: #334155; }
 .rem-form-baixa { display: flex; flex-direction: column; gap: 8px; min-width: min(30rem, 85vw); padding: 12px; text-align: left; }
 
 /* ---------- etiquetas, números */
@@ -216,7 +254,7 @@ td.fis-acoes-linha img + img {
     min-width: 0;
 }
 
-.fis-resumo span {
+.fis-resumo > div > span {
     font-size: 0.7rem;
     color: #5b6b61;
     text-transform: uppercase;
@@ -707,12 +745,35 @@ textarea.fis-input {
 
 /* ---------- configuração */
 
-/* Abas (.relatorio-dep-abas) foram feitas para fundo escuro: aqui o fundo é branco. */
-.fis-painel .relatorio-dep-abas button:not(.ativa) {
-    color: #3d4b43;
-    background: #eef2ef;
-    border-color: #dfe6e2;
+/* Abas da Configuração fiscal: mesmo seletor segmentado do filtro de empresa do kanban (.fluxo-chave-empresa). */
+.fis-abas {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-self: flex-start;
+    max-width: 100%;
+    padding: 3px;
+    gap: 2px;
+    border: 1px solid #d3ddd7;
+    border-radius: 8px;
+    background: #f7f9f8;
+    box-sizing: border-box;
 }
+.fis-abas button {
+    height: 30px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #5f6f66;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color .15s, color .15s;
+}
+.fis-abas button:hover { background: #e8efeb; color: #1f2d25; }
+.fis-abas button.ativa { background: #2f7d4f; color: #fff; }
+.fis-abas button:focus-visible { outline: 2px solid #2f7d4f; outline-offset: 1px; }
 
 .fis-cartoes-empresa {
     display: grid;
@@ -763,7 +824,7 @@ textarea.fis-input {
         line-height: 1.2;
     }
 
-    .fis-cartao span {
+    .fis-cartao > span {
         font-size: 0.68rem;
         line-height: 1.25;
     }
@@ -844,7 +905,7 @@ textarea.fis-input {
 .fis-nota-etiquetas { display: flex; flex-wrap: wrap; gap: 4px; }
 
 .fis-nota-valor { display: flex; flex-direction: column; align-items: flex-end; margin-left: auto; }
-.fis-nota-valor span { font-size: 0.7rem; color: #5b6b61; text-transform: uppercase; letter-spacing: 0.02em; }
+.fis-nota-valor > span { font-size: 0.7rem; color: #5b6b61; text-transform: uppercase; letter-spacing: 0.02em; }
 .fis-nota-valor b { font-size: 1.4rem; color: #1f2a24; font-variant-numeric: tabular-nums; }
 
 /* Impostos em blocos iguais. */
@@ -866,7 +927,7 @@ textarea.fis-input {
     border-radius: 8px;
 }
 
-.fis-nota-impostos span { font-size: 0.68rem; color: #5b6b61; text-transform: uppercase; letter-spacing: 0.02em; }
+.fis-nota-impostos > div > span { font-size: 0.68rem; color: #5b6b61; text-transform: uppercase; letter-spacing: 0.02em; }
 .fis-nota-impostos b { font-size: 0.9rem; color: #1f2a24; font-variant-numeric: tabular-nums; }
 
 /* Ações: uma faixa só; as que desfazem (cancelar/excluir) ficam à direita. */
@@ -999,7 +1060,7 @@ textarea.fis-input {
 .fis-nota > .fis-resumo { padding: 14px 18px; gap: 12px 0; }
 .fis-nota > .fis-resumo > div { padding: 0 16px; border-left: 1px solid #edf1ee; }
 .fis-nota > .fis-resumo > div:first-child { padding-left: 0; border-left: 0; }
-.fis-nota .fis-resumo span { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.06em; color: #6b7a71; }
+.fis-nota .fis-resumo > div > span { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.06em; color: #6b7a71; }
 .fis-nota .fis-resumo b { font-size: 0.95rem; }
 
 /* Impostos: blocos brancos com filete verde em cima; o primeiro (produtos/serviço) em destaque. */
@@ -1012,7 +1073,7 @@ textarea.fis-input {
     box-shadow: 0 1px 2px rgba(16, 40, 26, 0.05);
 }
 .fis-nota > .fis-nota-impostos > div:first-child { border-top-color: #2f7d4f; background: #f6fbf8; }
-.fis-nota > .fis-nota-impostos span { font-weight: 600; letter-spacing: 0.06em; color: #6b7a71; }
+.fis-nota > .fis-nota-impostos > div > span { font-weight: 600; letter-spacing: 0.06em; color: #6b7a71; }
 .fis-nota > .fis-nota-impostos b { font-size: 1.05rem; }
 
 /* Faixa de ações: branca, botões com respiro. */
@@ -1360,6 +1421,23 @@ textarea.fis-input {
 .fis-cfop-input.invalido { border-color: #dc2626; background: #fef2f2; }
 .fis-cfop-forn { color: #64748b; font-size: 0.68rem; white-space: nowrap; }
 
+/* Destino do item na entrada (Estoque / Uso e consumo / Não gerar estoque): dropdown que também troca o CFOP */
+.fis-destino { width: auto; min-width: 9.5rem; padding: 4px 6px; font-size: 0.78rem; font-weight: 600; border-left-width: 4px; }
+.fis-destino[data-tipo="ESTOQUE"] { border-left-color: #15803d; color: #15803d; }
+.fis-destino[data-tipo="USO_CONSUMO"] { border-left-color: #1e40af; color: #1e40af; }
+.fis-destino[data-tipo="NAO_GERAR"] { border-left-color: #64748b; color: #475569; }
+.fis-destino[data-tipo=""] { border-color: #dc2626; color: #b91c1c; }
+.fis-destino option { color: #1e293b; font-weight: 400; }
+.fis-destino.sugerido { border-style: dashed; background: #f8fafc; }
+.fis-destino-fixo { font-size: 0.75rem; font-weight: 600; color: #334155; white-space: nowrap; }
+.fis-sem-estoque .fis-vinculo { opacity: 0.55; }
+.fis-todos-destino { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.fis-destino-resumo { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.fis-destino-chip { font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; background: #f1f5f9; color: #334155; }
+.fis-destino-chip[data-tipo="ESTOQUE"] { background: #f0fdf4; color: #15803d; }
+.fis-destino-chip[data-tipo="USO_CONSUMO"] { background: #eff6ff; color: #1e40af; }
+.fis-destino-chip.falta { background: #fef2f2; color: #b91c1c; }
+
 /* ---------- assistente de vínculo */
 
 .fis-assist { width: min(760px, 94vw); gap: 10px; }
@@ -1451,3 +1529,34 @@ textarea.fis-input {
 }
 .fis-assist-rodape .fis-separador { flex: 1 1 auto; background: none; }
 .fis-assist-rodape .fis-botao { padding: 8px 18px; font-size: 0.85rem; }
+
+@media (max-width: 640px) {
+    .rem-quadro { padding: 10px; gap: 10px; }
+    .rem-cartoes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+    .rem-cartoes .fis-cartao { padding: 6px 10px 8px; }
+    .rem-cartoes .fis-cartao b { font-size: 1.2rem; }
+    .rem-segmentos { flex: 1 1 100%; }
+    .rem-segmentos button { flex: 1; }
+}
+
+/* NF-e / NFS-e Emitidas no layout da janela do Financeiro (.fin-tela): contadores viram chips no topo. */
+.fis-emitidas .fin-janela-topo { gap: 6px 22px; }
+.fis-cartoes.fis-cartoes-mini { margin: 0 0 0 auto; gap: 6px; }
+.fis-cartoes-mini .fis-cartao {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+    padding: 4px 10px;
+    border-left-width: 1px;
+    border-radius: 999px;
+}
+.fis-cartoes-mini .fis-cartao b { font-size: 0.95rem; }
+.fis-cartoes-mini .fis-cartao > span { font-size: 0.72rem; }
+.fis-emitidas .tabela td .fis-link { font-weight: 700; }
+/* Créditos IBS/CBS: empresa no Simples (não aproveita) fica apagada. */
+.fis-creditos .fis-cred-sub { font-size: 0.8rem; font-weight: 400; color: #64748b; }
+.fis-creditos .tabela tbody tr.fis-cred-simples td { color: #64748b; }
+/* Coluna Orçamento das Emitidas: 1º ORC + "+N" (lista completa no título). */
+.fis-emitidas .tabela td.fis-col-orc { width: 7.5rem; max-width: 7.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fis-orc-mais { margin-left: 4px; padding: 0 5px; border-radius: 999px; background: #e7efe9; color: #356443; font-weight: 600; }

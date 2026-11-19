@@ -63,13 +63,34 @@ const docFormatadoFis = v => {
 }
 
 // ================================================================ NOTAS RECEBIDAS
+// Mesmo layout das NF-e/NFS-e emitidas e das faturas (css/financeiro.css, .fin-tela): tela inteira, barra de
+// ações com Excel, cartões compactos, caixinhas na 1ª coluna (seleção atravessa páginas), total do Valor no pé,
+// paginação no rodapé, funil/arrastar colunas (js/tabelas-cabecalho.js) e duplo clique abre a nota.
+
+const POR_PAGINA_REC_FIS = 50
+const selecaoRecFis = new Map()   // id -> valor_total (total das marcadas de outras páginas)
+let somaFiltroRecFis = null, assinaturaSomaRecFis = null
 
 async function telaNotasRecebidas() {
+    if (typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
+    selecaoRecFis.clear()
+    const consulta = soConsultaFis()
     tela.innerHTML = `
-        <div class="pagina-conteudo fis-pagina">
-            <div class="cabecalho-pagina"><h2>Notas recebidas</h2></div>
-            <div class="fis-cartoes" data-cartoes-recebidas></div>
-            <div class="fis-conteudo"></div>
+        <div class="fis-pagina fin-tela fis-emitidas fis-recebidas">
+            <section class="fin-janela">
+                <header class="fin-janela-topo">
+                    <h2>Notas recebidas</h2>
+                    <div class="fin-barra">
+                        <button type="button" onclick="document.querySelector('[data-arquivos-xml]').click()">${iconeFin('salvar')} Importar XML</button>
+                        <button type="button" onclick="buscarNotasSefaz()" title="Busca na SEFAZ (pela Focus NFe) as notas emitidas contra os CNPJs do grupo">${iconeFin('repetir')} Buscar na SEFAZ</button>
+                        ${consulta ? '' : `<button type="button" onclick="devolucaoPorChaveFis()" title="Devolver uma compra ao fornecedor ou registrar a devolução de uma venda, pela chave da nota">${iconeFin('voltar')} Devolução</button>`}
+                        <button type="button" onclick="baixarExcelRecebidasFis()" title="Com notas marcadas, baixa só as marcadas; sem marcação, todos os resultados dos filtros aplicados">${iconeFin('excel')} Excel</button>
+                        <span data-limpar-rec-fis></span>
+                    </div>
+                    <div class="fis-cartoes fis-cartoes-mini" data-cartoes-recebidas></div>
+                </header>
+                <div class="fin-tabela-area" data-tabela-rec-fis></div>
+            </section>
             <input type="file" accept=".xml,text/xml" multiple hidden data-arquivos-xml onchange="importarXmlsRecebidos(this)">
         </div>`
     contadoresFiscal()
@@ -77,22 +98,23 @@ async function telaNotasRecebidas() {
 }
 
 async function abrirTabelaRecebidas(filtroExtra = null) {
+    const area = document.querySelector('[data-tabela-rec-fis]')
+    if (!area) return telaNotasRecebidas()
+    const limpar = document.querySelector('[data-limpar-rec-fis]')
+    if (limpar) limpar.innerHTML = filtroExtra ? `<button type="button" onclick="abrirTabelaRecebidas()">${iconeFin('fechar')} Limpar filtro</button>` : ''
     try {
         delete controles.notasRecebidas
-        document.querySelector('.fis-conteudo').innerHTML = await modTab({
+        somaFiltroRecFis = null
+        assinaturaSomaRecFis = null
+        area.innerHTML = await modTab({
             base: 'vw_fiscal_documentos',
             pag: 'notasRecebidas',
             body: 'bodyNotasRecebidas',
             criarLinha: 'criarLinhaNotaRecebida',
-            topoEmLinha: true,
+            caber: true,
+            limite: POR_PAGINA_REC_FIS,
+            funcaoAdicional: ['aposCarregarRecebidasFis'],
             filtrosFixos: { direcao: { op: '=', value: 'entrada' }, ...(filtroExtra || {}) },
-            btnExtras: `
-                <div class="fis-acoes">
-                    <button type="button" onclick="document.querySelector('[data-arquivos-xml]').click()">Importar XML</button>
-                    <button type="button" onclick="buscarNotasSefaz()" title="Busca na SEFAZ (pela Focus NFe) as notas emitidas contra os CNPJs do grupo">Buscar na SEFAZ</button>
-                    ${soConsultaFis() ? '' : '<button type="button" onclick="devolucaoPorChaveFis()" title="Devolver uma compra ao fornecedor ou registrar a devolução de uma venda, pela chave da nota">Devolução</button>'}
-                    ${filtroExtra ? '<button type="button" onclick="abrirTabelaRecebidas()">Limpar filtro</button>' : ''}
-                </div>`,
             ordenar: [{ path: 'emissao', direcao: 'desc' }],
             colunas: {
                 '': {},
@@ -100,7 +122,7 @@ async function abrirTabelaRecebidas(filtroExtra = null) {
                 'Empresa': { chave: 'app', tipoPesquisa: 'select' },
                 'Nº': { chave: 'numero' },
                 'Fornecedor': { chave: 'participante_nome' },
-                'CNPJ': { chave: 'participante_documento' },
+                'CPF/CNPJ': { chave: 'participante_documento' },
                 'Valor': { chave: 'valor_total', op: '>=', tipoOrdenacao: 'numero' },
                 'Itens': { chave: 'itens_pendentes', tipoOrdenacao: 'numero' },
                 'Estoque': { chave: 'estoque_status', tipoPesquisa: 'select' },
@@ -108,10 +130,216 @@ async function abrirTabelaRecebidas(filtroExtra = null) {
                 'Situação': { chave: 'status', tipoPesquisa: 'select' }
             }
         })
+        area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-rec-fis></div>')
+        area.querySelector('.modtab')?.insertAdjacentHTML('afterbegin', '<div class="fin-aviso-selecao" data-aviso-rec-fis hidden></div>')
         await paginacao('notasRecebidas')
     } catch (err) {
         console.error(err)
         popup({ mensagem: `Falha ao abrir as notas recebidas: ${escFis(err.message)}` })
+    }
+}
+
+async function aposCarregarRecebidasFis() {
+    const tabela = document.getElementById('bodyNotasRecebidas')?.closest('table')
+    if (!tabela) return
+    const th = tabela.querySelector('thead tr:first-child th:first-child')
+    if (th && !th.querySelector('[data-marcar-todas-rec]'))
+        th.innerHTML = '<input type="checkbox" class="fin-marcar" data-marcar-todas-rec title="Marcar todas desta página" onclick="event.stopPropagation(); marcarTodasRecFis(this)">'
+    const filtro = tabela.querySelector('thead tr:nth-child(2) th:first-child')
+    if (filtro?.querySelector('img')) filtro.innerHTML = ''
+    if (!tabela.tFoot) {
+        const chaves = Object.values(controles.notasRecebidas?.colunas || {}).map(c => c.chave || '')
+        const linha = tabela.createTFoot().insertRow()
+        linha.className = 'fin-totais'
+        chaves.forEach(chave => {
+            const td = linha.insertCell()
+            if (chave === 'valor_total') { td.dataset.totalRec = 'S'; td.className = 'fis-num' }
+        })
+        const enchimento = document.createElement('tbody')
+        enchimento.className = 'fin-enchimento'
+        enchimento.innerHTML = `<tr><td colspan="${chaves.length}"></td></tr>`
+        tabela.insertBefore(enchimento, tabela.tFoot)
+    }
+    if (typeof cabecalhoAvancadoTabela === 'function')
+        await cabecalhoAvancadoTabela('notasRecebidas', { prefKey: 'notas_recebidas' })
+    desenharSelecaoRecFis()
+    desenharRodapeRecFis()
+    await somarFiltroRecFis()
+}
+
+async function somarFiltroRecFis() {
+    const ctrl = controles.notasRecebidas
+    if (!ctrl) return
+    const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos)
+    const assinatura = JSON.stringify(filtros)
+    if (assinatura === assinaturaSomaRecFis) return escreverTotalRecFis()
+    assinaturaSomaRecFis = assinatura
+    let soma = null
+    try { soma = Number((await contarPorCampo({ base: 'vw_fiscal_documentos', path: 'valor_total', modo: 'soma', filtros }))?.total || 0) } catch { }
+    if (assinatura !== assinaturaSomaRecFis) return
+    somaFiltroRecFis = soma
+    escreverTotalRecFis()
+}
+
+function escreverTotalRecFis() {
+    const td = document.querySelector('[data-total-rec]')
+    if (!td) return
+    const n = selecaoRecFis.size
+    if (n) {
+        const soma = [...selecaoRecFis.values()].reduce((s, v) => s + (Number(v) || 0), 0)
+        td.title = `Soma das ${n} nota(s) marcada(s). Desmarque todas para ver o total do filtro.`
+        td.innerHTML = `<small class="fin-total-rotulo">${n} marcada${n === 1 ? '' : 's'}</small> <span class="fin-sigma">Σ</span> ${dinheiro(Math.round(soma * 100) / 100)}`
+        td.classList.add('fin-total-selecao')
+    } else {
+        td.title = 'Total de todas as notas do filtro'
+        td.innerHTML = `<span class="fin-sigma">Σ</span> ${somaFiltroRecFis == null ? '—' : dinheiro(somaFiltroRecFis)}`
+        td.classList.remove('fin-total-selecao')
+    }
+}
+
+function marcarNotaRecFis(caixa) {
+    if (caixa.checked) selecaoRecFis.set(caixa.value, Number(caixa.dataset.valor) || 0)
+    else selecaoRecFis.delete(caixa.value)
+    desenharSelecaoRecFis()
+}
+
+function marcarTodasRecFis(caixa) {
+    document.querySelectorAll('#bodyNotasRecebidas [data-marcar-rec]').forEach(c => {
+        c.checked = caixa.checked
+        if (caixa.checked) selecaoRecFis.set(c.value, Number(c.dataset.valor) || 0)
+        else selecaoRecFis.delete(c.value)
+    })
+    desenharSelecaoRecFis()
+}
+
+function limparSelecaoRecFis() {
+    selecaoRecFis.clear()
+    document.querySelectorAll('#bodyNotasRecebidas [data-marcar-rec]').forEach(c => { c.checked = false })
+    desenharSelecaoRecFis()
+}
+
+async function selecionarTodasFiltroRecFis() {
+    const ctrl = controles.notasRecebidas
+    if (!ctrl) return
+    overlayAguarde()
+    try {
+        const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        let pagina = 1, paginas = 1
+        do {
+            const r = await pesquisarDB({ base: 'vw_fiscal_documentos', filtros, pagina, limite: 2000 })
+            ;(r?.resultados || []).forEach(d => selecaoRecFis.set(String(d.id), Number(d.valor_total) || 0))
+            paginas = Number(r?.paginas) || 1
+            pagina++
+        } while (pagina <= paginas && pagina <= 50)
+        document.querySelectorAll('#bodyNotasRecebidas [data-marcar-rec]').forEach(c => { c.checked = selecaoRecFis.has(c.value) })
+        desenharSelecaoRecFis()
+    } catch (err) {
+        popup({ mensagem: `Falha ao marcar as notas do filtro: ${escFis(err.message)}` })
+    } finally {
+        removerOverlay()
+    }
+}
+
+function desenharSelecaoRecFis() {
+    const pagina = [...document.querySelectorAll('#bodyNotasRecebidas [data-marcar-rec]')]
+    const marcadas = pagina.filter(c => c.checked).length
+    const paginaToda = pagina.length > 0 && marcadas === pagina.length
+    const todas = document.querySelector('[data-marcar-todas-rec]')
+    if (todas) {
+        todas.checked = paginaToda
+        todas.indeterminate = marcadas > 0 && marcadas < pagina.length
+    }
+    const aviso = document.querySelector('[data-aviso-rec-fis]')
+    if (aviso) {
+        const n = selecaoRecFis.size
+        const total = Number(document.getElementById('resultados_notasRecebidas')?.textContent) || 0
+        const plural = q => `${q.toLocaleString('pt-BR')} ${q === 1 ? 'nota' : 'notas'}`
+        const limpar = '<a href="#" onclick="event.preventDefault(); limparSelecaoRecFis()">limpar a seleção</a>'
+        aviso.hidden = !(n && paginaToda)
+        aviso.innerHTML = aviso.hidden ? '' : n < total
+            ? `Você selecionou ${plural(n)}. Você pode ${limpar} ou <a href="#" onclick="event.preventDefault(); selecionarTodasFiltroRecFis()">selecionar todas as ${plural(total)} deste filtro</a>`
+            : `Você selecionou ${n === total ? 'todas as ' : ''}${plural(n)}${n === total ? ' deste filtro' : ''}. Você pode ${limpar}`
+    }
+    escreverTotalRecFis()
+}
+
+function desenharRodapeRecFis() {
+    const alvo = document.querySelector('[data-rodape-rec-fis]')
+    const ctrl = controles.notasRecebidas
+    if (!alvo || !ctrl) return
+    const total = Number(document.getElementById('resultados_notasRecebidas')?.textContent) || 0
+    const paginas = Math.max(1, Number(ctrl.total) || 1)
+    const pagina = Math.min(ctrl.pagina || 1, paginas)
+    const inicio = total ? (pagina - 1) * POR_PAGINA_REC_FIS + 1 : 0
+    const fim = Math.min(total, pagina * POR_PAGINA_REC_FIS)
+    const botao = (texto, destino, ativo, titulo = '') =>
+        `<button type="button" ${ativo ? `onclick="irPaginaRecFis(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
+    alvo.innerHTML = `
+        <span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} nota${total === 1 ? '' : 's'}</span>
+        <div class="fin-paginas">
+            ${botao('|‹', 1, pagina > 1, 'Primeira página')}
+            ${botao('‹ anterior', pagina - 1, pagina > 1)}
+            <label>Página <input type="number" min="1" max="${paginas}" value="${pagina}" onchange="irPaginaRecFis(this.value)"></label>
+            <span>de ${paginas.toLocaleString('pt-BR')}</span>
+            ${botao('próximo ›', pagina + 1, pagina < paginas)}
+            ${botao('›|', paginas, pagina < paginas, 'Última página')}
+        </div>`
+}
+
+async function irPaginaRecFis(n) {
+    const ctrl = controles.notasRecebidas
+    if (!ctrl) return
+    const pagina = Math.min(Math.max(1, parseInt(n) || 1), Math.max(1, Number(ctrl.total) || 1))
+    if (pagina === ctrl.pagina) return desenharRodapeRecFis()
+    ctrl.pagina = pagina
+    await paginacao('notasRecebidas')
+}
+
+async function baixarExcelRecebidasFis() {
+    const ctrl = controles.notasRecebidas
+    if (!ctrl) return
+    overlayAguarde()
+    try {
+        const marcadas = [...selecaoRecFis.keys()]
+        const filtros = marcadas.length
+            ? { direcao: { op: '=', value: 'entrada' }, id: { modo: 'OR', regras: marcadas.map(id => ({ op: '=', value: id })) } }
+            : combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        const linhas = []
+        let pagina = 1, paginas = 1
+        do {
+            const r = await pesquisarDB({ base: 'vw_fiscal_documentos', filtros, ordenar: ctrl.ordenar || [{ path: 'emissao', direcao: 'desc' }], pagina, limite: 2000 })
+            linhas.push(...(r?.resultados || []))
+            paginas = Number(r?.paginas) || 1
+            pagina++
+        } while (pagina <= paginas && pagina <= 50)
+        const data = v => v ? new Date(`${String(v).slice(0, 10)}T12:00:00Z`) : null
+        const texto = (mapa, s) => mapa?.[s]?.texto || mapa?.[String(s || '').toLowerCase()]?.texto || s || ''
+        await baixarExcelRelatorioGCS({
+            titulo: 'Notas recebidas',
+            resumo: `${linhas.length} nota(s)`,
+            filtrosTexto: marcadas.length ? `Notas marcadas na tela: ${marcadas.length}` : `Filtros: ${typeof descreverFiltrosFin === 'function' ? descreverFiltrosFin(ctrl).replace('nenhum (todas as faturas)', 'nenhum (todas as notas)') : ''}`,
+            linhas,
+            colunas: [
+                { titulo: 'Emissão', largura: 12, tipo: 'data', valor: d => data(d.emissao) },
+                { titulo: 'Empresa', largura: 9, centro: true, valor: d => d.app || '' },
+                { titulo: 'Nº', largura: 10, centro: true, valor: d => d.numero || '' },
+                { titulo: 'Série', largura: 7, centro: true, valor: d => d.serie || '' },
+                { titulo: 'Fornecedor', largura: 42, valor: d => d.participante_nome || '' },
+                { titulo: 'CPF/CNPJ', largura: 19, valor: d => d.participante_documento ? docFormatadoFis(d.participante_documento) : '' },
+                { titulo: 'Valor', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.valor_total) || 0 },
+                { titulo: 'Itens', largura: 8, centro: true, valor: d => Number(d.itens) || 0 },
+                { titulo: 'A vincular', largura: 10, centro: true, valor: d => Number(d.itens_pendentes) || 0 },
+                { titulo: 'Estoque', largura: 16, valor: d => texto(ESTOQUE_FISCAL, d.estoque_status) },
+                { titulo: 'Manifestação', largura: 16, valor: d => texto(MANIFESTACAO_FISCAL, d.manifestacao) },
+                { titulo: 'Situação', largura: 14, valor: d => texto(STATUS_FISCAL, d.status) },
+                { titulo: 'Chave', largura: 48, valor: d => d.chave || '' }
+            ]
+        })
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: `Falha ao gerar o Excel: ${escFis(err.message)}` })
+    } finally {
+        removerOverlay()
     }
 }
 
@@ -142,16 +370,21 @@ async function contadoresFiscal() {
 
 function criarLinhaNotaRecebida(d) {
     const pend = Number(d.itens_pendentes || 0)
+    const id = escFis(d.id)
+    const abrir = `abrirDocumentoFiscal('${id}')`
     return `
-        <tr>
-            <td class="fis-acoes-linha"><img src="imagens/pesquisar.svg" title="Abrir nota" onclick="abrirDocumentoFiscal('${escFis(d.id)}')"></td>
-            <td>${dataFis(d.emissao)}</td>
-            <td>${escFis(d.app)}</td>
-            <td><b>${escFis(d.numero || '')}</b></td>
-            <td class="fis-descricao">${escFis(d.participante_nome)}${d.devolucao_tipo ? ` ${etiquetaFis(DEVOLUCAO_FISCAL, d.devolucao_tipo)}` : ''}</td>
-            <td><small>${docFormatadoFis(d.participante_documento)}</small></td>
+        <tr class="fin-linha" ondblclick="${abrir}" title="Duplo clique abre a nota">
+            <td class="fin-col-marcar">
+                <input type="checkbox" class="fin-marcar" data-marcar-rec value="${id}" data-valor="${Number(d.valor_total) || 0}" ${selecaoRecFis.has(String(d.id)) ? 'checked' : ''}
+                    onclick="event.stopPropagation(); marcarNotaRecFis(this)" ondblclick="event.stopPropagation()" aria-label="Marcar nota">
+            </td>
+            <td class="fin-centro">${dataFis(d.emissao)}</td>
+            <td class="fin-centro">${escFis(d.app)}</td>
+            <td class="fin-centro fin-doc">${d.numero ? `<span class="fis-link" onclick="event.stopPropagation(); ${abrir}" title="Abrir a nota">${escFis(d.numero)}</span>` : `<span class="fis-link" onclick="event.stopPropagation(); ${abrir}" title="Abrir a nota">abrir</span>`}</td>
+            <td class="fin-obs fin-nome" title="${escFis(d.participante_nome || '')}"><span class="fin-obs-txt">${escFis(d.participante_nome || '')}</span>${d.devolucao_tipo ? ` ${etiquetaFis(DEVOLUCAO_FISCAL, d.devolucao_tipo)}` : ''}</td>
+            <td class="fin-centro fin-doc">${docFormatadoFis(d.participante_documento)}</td>
             <td class="fis-num">${d.valor_total != null ? dinheiro(d.valor_total) : ''}</td>
-            <td class="fis-num">${d.itens}${pend ? ` <small class="fis-pendente">${pend} a vincular</small>` : ''}</td>
+            <td class="fin-centro">${Number(d.itens) || ''}${pend ? ` <small class="fis-pendente">${pend} a vincular</small>` : ''}</td>
             <td>${etiquetaFis(ESTOQUE_FISCAL, d.estoque_status)}</td>
             <td>${etiquetaFis(MANIFESTACAO_FISCAL, d.manifestacao)}</td>
             <td>${etiquetaFis(STATUS_FISCAL, d.status)}</td>
@@ -232,8 +465,10 @@ function resumoDocumentoFis(d, campos) {
 
 function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos, titulos = [], locais = [], cobranca = null, devolucoes = [], origem_devolucao = null }, opcoesFin = null) {
     const lancada = d.estoque_status === 'LANCADO' || Boolean(d.entrada_em)
-    const pendentes = itens.filter(i => i.vinculo === 'PENDENTE').length
+    // Item com "Não gerar estoque" não precisa de vínculo: não conta como pendente.
+    const pendentes = itens.filter(i => i.vinculo === 'PENDENTE' && destinoItemFis(i) !== 'NAO_GERAR').length
     const editavel = !soConsultaFis()
+    const podeMexer = editavel && !lancada && d.status !== 'CANCELADA'
     // Guarda os itens para o assistente de vínculo e o "criar item" (sem nova ida ao servidor).
     for (const i of itens) ITENS_NOTA_FIS.set(String(i.id), { ...i, documento_id: d.id, participante_uf: d.participante_uf })
     const linhas = itens.map(i => {
@@ -256,11 +491,14 @@ function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos, titulos
         } else {
             vinculo = `<div class="fis-vinculo pendente"><small class="fis-pendente">Sem vínculo</small></div>`
         }
+        const semEstoque = destinoItemFis(i) === 'NAO_GERAR'
         return `
-            <tr ${i.vinculo === 'PENDENTE' ? `data-item-pendente="${escFis(i.id)}"` : ''}>
+            <tr data-linha-item="${escFis(i.id)}" data-vinculo="${escFis(i.vinculo)}" class="${semEstoque ? 'fis-sem-estoque' : ''}"
+                ${i.vinculo === 'PENDENTE' && !semEstoque ? `data-item-pendente="${escFis(i.id)}"` : ''}>
                 <td class="fis-num">${i.n_item}</td>
                 <td class="fis-descricao">${escFis(i.descricao)}<small>${i.codigo ? `Cód. ${escFis(i.codigo)} · ` : ''}NCM ${escFis(i.ncm || '—')}${i.ean ? ` · EAN ${escFis(i.ean)}` : ''}</small></td>
-                <td>${celulaCfopEntradaFis(i, { editavel: editavel && !lancada && d.status !== 'CANCELADA' })}</td>
+                <td>${celulaDestinoFis(i, { editavel: podeMexer })}</td>
+                <td>${celulaCfopEntradaFis(i, { editavel: podeMexer })}</td>
                 <td class="fis-num">${qtdEst(i.quantidade)} ${escFis(i.unidade)}</td>
                 <td class="fis-num">${i.valor_unitario != null ? dinheiro(i.valor_unitario) : ''}</td>
                 <td class="fis-num">${i.valor_total != null ? dinheiro(i.valor_total) : ''}</td>
@@ -268,7 +506,9 @@ function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos, titulos
             </tr>`
     }).join('')
     // Só sai da nota com todos os itens resolvidos (quem pode vincular; nota ainda sem entrada no estoque).
-    const guarda = pendentes && !lancada && editavel && !['RESUMO', 'CANCELADA'].includes(d.status)
+    // A guarda fica ligada sempre que dá para mexer: trocar o destino pode criar ou tirar pendências.
+    const podeGuardar = !lancada && editavel && !['RESUMO', 'CANCELADA'].includes(d.status)
+    const guarda = pendentes && podeGuardar
 
     const manifestar = ['CIENCIA', 'CONFIRMACAO', 'DESCONHECIMENTO', 'NAO_REALIZADA']
         .filter(t => t !== d.manifestacao)
@@ -278,7 +518,7 @@ function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos, titulos
     // laranja = itens a vincular, cinza = cancelada, azul = demais), grade, faixa de ações e cartões.
     const tom = d.status === 'CANCELADA' ? 'neutro' : lancada ? 'ok' : pendentes ? 'andando' : 'rascunho'
     return `
-        <div class="fis-painel fis-doc fis-nota" data-doc-fiscal="${escFis(d.id)}" ${guarda ? 'data-guarda-fechar="podeFecharNotaRecebidaFis"' : ''}>
+        <div class="fis-painel fis-doc fis-nota" data-doc-fiscal="${escFis(d.id)}" ${podeGuardar ? 'data-guarda-fechar="podeFecharNotaRecebidaFis"' : ''}>
             <div class="fis-nota-topo ${tom}">
                 <div class="fis-nota-titulo">
                     <b>${escFis(d.participante_nome || 'Fornecedor')}</b>
@@ -320,14 +560,14 @@ function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos, titulos
                 <div class="fis-faixa-vinculo">
                     <div>
                         <b>${pendentes} ${pendentes === 1 ? 'item ainda não está ligado' : 'itens ainda não estão ligados'} ao cadastro do GCS</b>
-                        <small>Ligue cada um a um item do cadastro, crie o item com os dados da nota ou marque "não é estoque". A entrada só é feita com tudo resolvido.</small>
+                        <small>Ligue cada um a um item do cadastro, crie o item com os dados da nota ou escolha "Não gerar estoque" no destino. A entrada só é feita com tudo resolvido.</small>
                     </div>
                     <button type="button" class="fis-botao" onclick="assistenteVinculoFis('${escFis(d.id)}')">Resolver agora</button>
                 </div>` : ''}
 
             ${blocoDevolucaoFis(d, devolucoes, origem_devolucao)}
 
-            ${htmlEntradaNotaFis(d, { pendentes, titulos, locais, cobranca, opcoesFin })}
+            ${htmlEntradaNotaFis(d, { itens, pendentes, titulos, locais, cobranca, opcoesFin })}
 
             ${d.status === 'RESUMO'
                 ? '<div class="fis-vazio">A SEFAZ só mandou o resumo. Dê <b>Ciência</b> para liberar o XML completo, ou importe o XML que o fornecedor enviou.</div>'
@@ -335,13 +575,17 @@ function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos, titulos
             <div class="fis-secao">
                 <div class="fis-secao-topo">
                     <b>Itens</b> <span class="fis-contador">${itens.length}</span>
-                    ${pendentes ? `<small class="fis-pendente">${pendentes} sem vínculo: todos precisam estar resolvidos para dar entrada</small>` : '<small class="fis-secao-info">todos resolvidos</small>'}
-                    ${editavel && !lancada && d.status !== 'CANCELADA' && itens.length > 1
-                        ? `<button type="button" class="fis-mini fis-direita" onclick="cfopTodosItensFis('${escFis(d.id)}')" title="Mesmo CFOP de entrada em todos os itens">CFOP igual para todos</button>` : ''}
+                    ${pendentes ? `<small class="fis-pendente">${pendentes} sem vínculo: os que vão para o estoque precisam estar ligados ao cadastro</small>` : '<small class="fis-secao-info">todos resolvidos</small>'}
+                    ${podeMexer && itens.length > 1 ? `
+                        <span class="fis-direita fis-todos-destino">
+                            <small>Todos:</small>
+                            ${DESTINOS_FIS.map(x => `<button type="button" class="fis-mini" onclick="destinoTodosItensFis('${escFis(d.id)}', '${x.id}')" title="${escFis(x.dica)}">${escFis(x.rotulo)}</button>`).join('')}
+                            <button type="button" class="fis-mini" onclick="cfopTodosItensFis('${escFis(d.id)}')" title="Mesmo CFOP de entrada em todos os itens">CFOP igual</button>
+                        </span>` : ''}
                 </div>
                 <div class="fis-tabela-rolagem">
                     <table class="fis-tabela">
-                        <thead><tr><th>#</th><th>Descrição na nota</th><th title="CFOP da nossa entrada (o do fornecedor fica embaixo)">CFOP entrada</th><th class="fis-num">Qtd</th><th class="fis-num">Unit.</th><th class="fis-num">Total</th><th>Item do GCS</th></tr></thead>
+                        <thead><tr><th>#</th><th>Descrição na nota</th><th title="Para onde o item vai na entrada">Destino</th><th title="CFOP da nossa entrada (o do fornecedor fica embaixo)">CFOP entrada</th><th class="fis-num">Qtd</th><th class="fis-num">Unit.</th><th class="fis-num">Total</th><th>Item do GCS</th></tr></thead>
                         <tbody>${linhas}</tbody>
                     </table>
                 </div>
@@ -355,14 +599,21 @@ function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos, titulos
 }
 
 // ---------------------------------------------------------------- entrada da nota recebida
-// Duas respostas obrigatórias (sem padrão): "Gerar estoque?" e "Gerar faturas a pagar?". Faturas: parcelas do
-// XML (cobr/dup) quando o fornecedor mandou; senão o usuário informa. Desfazer: estorna o estoque e cancela as
-// faturas; se alguma fatura tem pagamento, o servidor bloqueia e diz qual (desfaz-se o pagamento antes).
-function htmlEntradaNotaFis(d, { pendentes, titulos, locais, cobranca, opcoesFin }) {
+// O destino é por item (coluna Destino: Estoque | Uso e consumo | Não gerar estoque) e "Gerar faturas a pagar?"
+// é obrigatória (sem padrão). Faturas: parcelas do XML (cobr/dup) quando o fornecedor mandou; senão o usuário
+// informa. Desfazer: estorna o estoque e cancela as faturas; se alguma fatura tem pagamento, o servidor bloqueia
+// e diz qual (desfaz-se o pagamento antes).
+function htmlEntradaNotaFis(d, { itens = [], pendentes, titulos, locais, cobranca, opcoesFin }) {
     if (d.status === 'RESUMO' || d.status === 'CANCELADA') return ''
     const feita = d.entrada_em || d.estoque_status === 'LANCADO'
+    const conta = x => itens.filter(i => destinoItemFis(i) === x).length
     if (feita) {
-        const local = locais.find(l => l.id === d.estoque_local_id)
+        const local = locais.find(l => l.id === d.estoque_local_id && l.tipo !== 'USO_CONSUMO')
+        const estoque = d.estoque_status === 'LANCADO'
+            ? [conta('ESTOQUE') ? `${conta('ESTOQUE')} no estoque${local ? ` (${escFis(local.nome)})` : ''}` : '',
+               conta('USO_CONSUMO') ? `${conta('USO_CONSUMO')} em uso e consumo` : '',
+               conta('NAO_GERAR') ? `${conta('NAO_GERAR')} sem estoque` : ''].filter(Boolean).join(' · ') || 'Sim'
+            : 'Não'
         return `
             <div class="fis-secao fin-entrada feita">
                 <div class="fis-secao-topo">
@@ -371,7 +622,7 @@ function htmlEntradaNotaFis(d, { pendentes, titulos, locais, cobranca, opcoesFin
                     <button type="button" class="fis-mini" onclick="desfazerEntradaNotaFis('${escFis(d.id)}')">Desfazer entrada</button>
                 </div>
                 <div class="fin-entrada-resumo">
-                    <div><span>Estoque</span><b>${d.estoque_status === 'LANCADO' ? `Sim${local ? ` · ${escFis(local.nome)}` : ''}` : 'Não'}</b></div>
+                    <div><span>Estoque</span><b>${estoque}</b></div>
                     ${d.devolucao_tipo === 'CLIENTE'
                         ? `<div><span>Faturas da venda</span><b>${d.devolucao_financeiro ? 'Acertadas' : d.gerar_faturas === false ? 'Não' : '—'}</b></div>`
                         : `<div><span>Faturas a pagar</span><b>${titulos.length ? `${titulos.length} parcela(s)` : d.gerar_faturas === false ? 'Não' : '—'}</b></div>`}
@@ -408,14 +659,14 @@ function htmlEntradaNotaFis(d, { pendentes, titulos, locais, cobranca, opcoesFin
             ${editorRateioFin(opcoesFin.departamentos, [], { total })}`
     return `
         <div class="fis-secao fin-entrada" data-entrada-nota="${escFis(d.id)}" data-devolucao="${escFis(d.devolucao_tipo || '')}">
-            <div class="fis-secao-topo"><b>Dar entrada</b> <small>responda as duas perguntas</small></div>
+            <div class="fis-secao-topo"><b>Dar entrada</b> <small>escolha o destino de cada item na lista abaixo e responda sobre as faturas</small></div>
             <div class="fin-entrada-grade">
                 <div class="fin-entrada-bloco">
-                    ${simNaoFin('gerar_estoque', 'Gerar estoque?', 'alternarEntradaFis(this)')}
-                    <div data-se="gerar_estoque" hidden>
-                        ${pendentes ? `<div class="fis-alerta">Faltam ${pendentes} item(ns) sem vínculo: vincule ou marque "não é estoque" na lista abaixo.</div>` : ''}
-                        <label class="fis-campo"><span>Local</span><select class="fis-input" name="local_id">${locais.filter(l => l.tipo !== 'DIVERGENCIA').map(l => `<option value="${escFis(l.id)}" ${l.padrao ? 'selected' : ''}>${escFis(l.nome)}${l.padrao ? ' (padrão)' : ''}</option>`).join('')}</select></label>
-                    </div>
+                    <div class="fin-pergunta"><span class="fin-pergunta-rotulo">Estoque <small>(pelo destino de cada item)</small></span></div>
+                    <div class="fis-destino-resumo" data-resumo-destinos="${escFis(d.id)}">${resumoDestinosFis(itens)}</div>
+                    ${pendentes ? `<div class="fis-alerta">Faltam ${pendentes} item(ns) sem vínculo: vincule, crie o item ou escolha "Não gerar estoque".</div>` : ''}
+                    <label class="fis-campo"><span>Local dos itens "Estoque"</span><select class="fis-input" name="local_id">${locais.filter(l => l.tipo === 'NORMAL').map(l => `<option value="${escFis(l.id)}" ${l.padrao ? 'selected' : ''}>${escFis(l.nome)}${l.padrao ? ' (padrão)' : ''}</option>`).join('')}</select></label>
+                    <small class="fis-dica">Os itens "Uso e consumo" vão para o local <b>Uso e consumo</b> da ${escFis(d.app || 'empresa')} e saem pelas requisições conferidas pela Logística.</small>
                 </div>
                 <div class="fin-entrada-bloco">
                     ${simNaoFin('gerar_faturas', devolucaoCliente ? 'Abater nas faturas a receber da venda?' : 'Gerar faturas a pagar?', 'alternarEntradaFis(this)')}
@@ -436,10 +687,8 @@ function alternarEntradaFis(input) {
 
 async function darEntradaNotaFis(id) {
     const caixa = document.querySelector(`[data-entrada-nota="${CSS.escape(id)}"]`)
-    const gerar_estoque = lerSimNaoFin(caixa, 'gerar_estoque')
     const gerar_faturas = lerSimNaoFin(caixa, 'gerar_faturas')
     const faltas = []
-    if (gerar_estoque === null) faltas.push('Responda: gerar estoque?')
     // Devolução do cliente: a pergunta é "abater nas faturas da venda?" (sem categoria nem parcelas).
     const devolucaoCliente = caixa.dataset.devolucao === 'CLIENTE'
     if (gerar_faturas === null) faltas.push(devolucaoCliente ? 'Responda: abater nas faturas a receber da venda?' : 'Responda: gerar faturas a pagar?')
@@ -448,7 +697,15 @@ async function darEntradaNotaFis(id) {
     // Itens: todos resolvidos e com CFOP de entrada válido (o que está na tela vai junto).
     const nota = caixa.closest('[data-doc-fiscal]')
     const pendentes = nota?.querySelectorAll('[data-item-pendente]').length || 0
-    if (pendentes) faltas.push(`Resolva ${pendentes === 1 ? 'o item sem vínculo' : `os ${pendentes} itens sem vínculo`} (vincular, criar o item ou "não é estoque").`)
+    if (pendentes) faltas.push(`Resolva ${pendentes === 1 ? 'o item sem vínculo' : `os ${pendentes} itens sem vínculo`} (vincular, criar o item ou "Não gerar estoque").`)
+    // Destino de cada item: o marcado no toggle (gravado ou sugerido).
+    const destinos = {}
+    for (const caixaDestino of nota?.querySelectorAll('[data-destino-item]') || []) {
+        const ativo = caixaDestino.value
+        if (!ativo) { faltas.push(`Escolha o destino do item ${caixaDestino.dataset.nItem} (Estoque, Uso e consumo ou Não gerar estoque).`); continue }
+        destinos[caixaDestino.dataset.destinoItem] = ativo
+    }
+    const gerar_estoque = Object.values(destinos).some(x => x === 'ESTOQUE')
     const cfops = {}
     for (const input of nota?.querySelectorAll('[data-cfop-entrada]') || []) {
         const c = soDigFis(input.value)
@@ -459,14 +716,17 @@ async function darEntradaNotaFis(id) {
     try {
         overlayAguarde()
         const r = await apiFiscal('recebidas/dar-entrada', {
-            id, gerar_estoque, gerar_faturas, cfops, local_id: gerar_estoque ? v('local_id') : undefined,
+            id, gerar_faturas, destinos, cfops, local_id: gerar_estoque ? v('local_id') : undefined,
             ...(gerar_faturas && !devolucaoCliente ? {
                 categoria_id: v('categoria_id'), forma_pagamento: v('forma_pagamento'), conta_id: v('conta_id') || null,
                 parcelas: lerParcelasFin(caixa), rateio: lerRateioFin(caixa)
             } : {})
         })
         removerOverlay()
-        const partes = [gerar_estoque ? `${r.lancados} item(ns) no estoque` : 'sem estoque',
+        const n = r.destinos || {}
+        const partes = [
+            [n.ESTOQUE ? `${n.ESTOQUE} no estoque` : '', n.USO_CONSUMO ? `${n.USO_CONSUMO} em uso e consumo` : '', n.NAO_GERAR ? `${n.NAO_GERAR} sem estoque` : '']
+                .filter(Boolean).join(', ') || 'sem estoque',
             devolucaoCliente ? (gerar_faturas ? `${r.faturas} fatura(s) acertada(s)` : 'faturas da venda sem mudança')
                 : gerar_faturas ? `${r.faturas} fatura(s) a pagar` : 'sem faturas']
         popup({ mensagem: `Entrada feita: ${partes.join(' · ')}.${r.avisos?.length ? `<br>${r.avisos.map(escFis).join('<br>')}` : ''}`, imagem: 'imagens/concluido.png', tempo: 5 })
@@ -575,6 +835,7 @@ const ITENS_NOTA_FIS = new Map()
 const CFOP_ENTRADA_FIS = /^[123]\d{3}$/
 const ORIGEM_CFOP_FIS = {
     PRODUTO: 'o mesmo usado antes neste produto do fornecedor',
+    CADASTRO: 'item do cadastro é de USO E CONSUMO',
     HISTORICO: 'o mais usado na empresa para este CFOP do fornecedor',
     PADRAO: 'convertido do CFOP do fornecedor'
 }
@@ -665,7 +926,7 @@ async function podeFecharNotaRecebidaFis(janela) {
         const aviso = popup({
             titulo: 'Ainda há itens sem vínculo',
             mensagem: `${pendentes.length === 1 ? 'Falta <b>1 item</b>' : `Faltam <b>${pendentes.length} itens</b>`} desta nota sem ligação com o cadastro do GCS.<br>
-                <small>Para dar entrada, ligue cada um a um item do cadastro, crie o item ou marque "não é estoque".
+                <small>Para dar entrada, ligue cada um a um item do cadastro, crie o item ou escolha "Não gerar estoque" no destino.
                 Se não for dar entrada agora, saia: a nota fica em "com itens a vincular".</small>`,
             botoes: [
                 { id: `sair-${chave}`, texto: 'Sair sem dar entrada', img: 'cancel' },
@@ -904,6 +1165,137 @@ async function vincularItemFiscal(documentoItemId, documentoId, acao, extra = {}
     }
 }
 
+// ---- Destino do item na entrada: Estoque | Uso e consumo | Não gerar estoque (imobilizado entra no último).
+// O toggle também troca o CFOP de entrada: Estoque → x102 (ST x403); Uso e consumo → x556 (ST x407);
+// Não gerar estoque mantém o CFOP (imobilizado: digite 1551/2551).
+const DESTINOS_FIS = [
+    { id: 'ESTOQUE', rotulo: 'Estoque', normal: '102', st: '403', dica: 'Entra no estoque (local escolhido na entrada)' },
+    { id: 'USO_CONSUMO', rotulo: 'Uso e consumo', normal: '556', st: '407', dica: 'Entra no local "Uso e consumo" e sai pelas requisições conferidas pela Logística' },
+    { id: 'NAO_GERAR', rotulo: 'Não gerar estoque', dica: 'Não movimenta estoque e não precisa de vínculo (imobilizado, serviço, material entregue direto)' }
+]
+const ORIGEM_DESTINO_FIS = {
+    IGNORADO: 'item marcado "não é estoque"',
+    PRODUTO: 'o mesmo destino usado antes neste produto do fornecedor',
+    CADASTRO: 'pelo tipo do item no cadastro',
+    CFOP: 'pelo CFOP de entrada'
+}
+const ST_ENTRADA_FIS = new Set(['403', '406', '407'])
+const ST_FORNECEDOR_FIS = new Set(['401', '402', '403', '404', '405'])
+
+const destinoItemFis = i => i.destino || i.destino_sugerido || null
+
+// Novo CFOP para o destino: mantém o 1º dígito (dentro/fora do estado) e o ST do CFOP atual;
+// sem CFOP válido, parte do CFOP do fornecedor (5→1, 6→2, 7→3). null = manter o CFOP.
+function cfopDoDestinoFis(destino, cfopAtual, cfopFornecedor) {
+    const d = DESTINOS_FIS.find(x => x.id === destino)
+    if (!d?.normal) return null
+    const atual = soDigFis(cfopAtual), forn = soDigFis(cfopFornecedor).slice(0, 4)
+    let inicio, st
+    if (CFOP_ENTRADA_FIS.test(atual)) {
+        inicio = atual[0]
+        const conhecido = ['102', '403', '556', '407', '551', '406'].includes(atual.slice(1))
+        st = conhecido ? ST_ENTRADA_FIS.has(atual.slice(1)) : ST_FORNECEDOR_FIS.has(forn.slice(1))
+    } else if (/^[567]\d{3}$/.test(forn)) {
+        inicio = { 5: '1', 6: '2', 7: '3' }[forn[0]]
+        st = ST_FORNECEDOR_FIS.has(forn.slice(1))
+    } else return null
+    return inicio + (st ? d.st : d.normal)
+}
+
+function celulaDestinoFis(i, { editavel }) {
+    const atual = destinoItemFis(i)
+    if (!editavel) {
+        const d = DESTINOS_FIS.find(x => x.id === i.destino)
+        return d ? `<span class="fis-destino-fixo">${escFis(d.rotulo)}</span>` : '<small>—</small>'
+    }
+    const dica = i.destino ? '' : ORIGEM_DESTINO_FIS[i.destino_origem] ? `Sugestão: ${ORIGEM_DESTINO_FIS[i.destino_origem]}` : 'Escolha o destino'
+    return `
+        <select class="fis-input fis-destino${i.destino ? '' : ' sugerido'}" data-destino-item="${escFis(i.id)}" data-n-item="${escFis(i.n_item)}"
+            data-tipo="${escFis(atual || '')}" data-salvo="${escFis(i.destino || '')}" title="${escFis(dica)}" onchange="trocarDestinoFis(this)">
+            ${atual ? '' : '<option value="">Escolha…</option>'}
+            ${DESTINOS_FIS.map(d => `<option value="${d.id}" ${d.id === atual ? 'selected' : ''} title="${escFis(d.dica)}">${escFis(d.rotulo)}</option>`).join('')}
+        </select>`
+}
+
+function resumoDestinosFis(itens) {
+    const conta = x => itens.filter(i => destinoItemFis(i) === x).length
+    const sem = itens.filter(i => !destinoItemFis(i)).length
+    return DESTINOS_FIS.map(d => `<span class="fis-destino-chip" data-tipo="${d.id}">${escFis(d.rotulo)} <b>${conta(d.id)}</b></span>`).join('')
+        + (sem ? `<span class="fis-destino-chip falta">Sem destino <b>${sem}</b></span>` : '')
+}
+
+// Depois de trocar destinos: marca o toggle, o CFOP, a pendência de vínculo da linha e o resumo da entrada.
+function aplicarDestinoNaTelaFis(itemId, destino, cfop) {
+    const item = ITENS_NOTA_FIS.get(String(itemId))
+    if (item) { item.destino = destino; if (cfop) item.cfop_entrada = cfop }
+    const caixa = document.querySelector(`[data-destino-item="${CSS.escape(String(itemId))}"]`)
+    if (caixa) {
+        caixa.classList.remove('sugerido')
+        caixa.querySelector('option[value=""]')?.remove()
+        caixa.value = destino
+        caixa.dataset.tipo = destino
+        caixa.dataset.salvo = destino
+    }
+    const input = document.querySelector(`[data-cfop-entrada="${CSS.escape(String(itemId))}"]`)
+    if (input && cfop) {
+        input.value = cfop
+        input.dataset.salvo = cfop
+        input.classList.remove('sugerido', 'invalido')
+        input.classList.add('salvo')
+    }
+    const tr = document.querySelector(`[data-linha-item="${CSS.escape(String(itemId))}"]`)
+    if (tr) {
+        tr.classList.toggle('fis-sem-estoque', destino === 'NAO_GERAR')
+        if (tr.dataset.vinculo === 'PENDENTE' && destino !== 'NAO_GERAR') tr.setAttribute('data-item-pendente', itemId)
+        else tr.removeAttribute('data-item-pendente')
+    }
+    const nota = tr?.closest('[data-doc-fiscal]')
+    const resumo = nota?.querySelector('[data-resumo-destinos]')
+    if (resumo) {
+        const ids = [...nota.querySelectorAll('[data-linha-item]')].map(l => l.dataset.linhaItem)
+        resumo.innerHTML = resumoDestinosFis(ids.map(id => ITENS_NOTA_FIS.get(String(id))).filter(Boolean))
+    }
+}
+
+async function trocarDestinoFis(caixa) {
+    const itemId = caixa?.dataset.destinoItem
+    const destino = caixa?.value
+    if (!itemId || !destino) return
+    const item = ITENS_NOTA_FIS.get(String(itemId))
+    const input = document.querySelector(`[data-cfop-entrada="${CSS.escape(String(itemId))}"]`)
+    const cfop = cfopDoDestinoFis(destino, input?.value || item?.cfop_entrada, item?.cfop)
+    try {
+        await apiFiscal('itens/destino', { documento_item_id: itemId, destino, cfop: cfop || undefined })
+        aplicarDestinoNaTelaFis(itemId, destino, cfop)
+    } catch (err) {
+        // Volta para o que estava (gravado ou sugerido).
+        caixa.value = caixa.dataset.salvo || caixa.dataset.tipo || ''
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+async function destinoTodosItensFis(documentoId, destino) {
+    const nota = document.querySelector(`[data-doc-fiscal="${CSS.escape(documentoId)}"]`)
+    const caixas = [...(nota?.querySelectorAll('[data-destino-item]') || [])]
+    try {
+        overlayAguarde()
+        await apiFiscal('itens/destino', { documento_id: documentoId, todos: true, destino })
+        // CFOP de cada item conforme o destino (cada um tem o seu 1º dígito e ST).
+        for (const caixa of caixas) {
+            const itemId = caixa.dataset.destinoItem
+            const item = ITENS_NOTA_FIS.get(String(itemId))
+            const input = nota.querySelector(`[data-cfop-entrada="${CSS.escape(String(itemId))}"]`)
+            const cfop = cfopDoDestinoFis(destino, input?.value || item?.cfop_entrada, item?.cfop)
+            if (cfop && cfop !== soDigFis(input?.value)) await apiFiscal('itens/cfop', { documento_item_id: itemId, cfop })
+            aplicarDestinoNaTelaFis(itemId, destino, cfop)
+        }
+        removerOverlay()
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
 // ---- CFOP de entrada por item (o do fornecedor fica embaixo, só para consulta)
 
 function celulaCfopEntradaFis(i, { editavel }) {
@@ -1035,14 +1427,35 @@ let modeloEmitidasFis = null
 function telaNotasNFe() { return telaNotasEmitidas('NFE') }
 function telaNotasNFSe() { return telaNotasEmitidas('NFSE') }
 
+// Layout da janela do Financeiro (css/financeiro.css, .fin-tela): tela inteira, barra de ações com Excel,
+// caixinhas na 1ª coluna (seleção atravessa páginas), total do Valor no pé e paginação no rodapé.
+const POR_PAGINA_EMIT_FIS = 50
+let filtroExtraEmitFis = null
+const selecaoEmitFis = new Map()   // id -> valor_total (para o total das marcadas de outras páginas)
+let somaFiltroEmitFis = null, assinaturaSomaEmitFis = null
+
 async function telaNotasEmitidas(modelo = null) {
     modeloEmitidasFis = ['NFE', 'NFSE'].includes(modelo) ? modelo : null
     const titulo = { NFE: 'NF-e emitidas', NFSE: 'NFS-e emitidas' }[modeloEmitidasFis] || 'Notas emitidas'
+    if (typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
+    selecaoEmitFis.clear()
+    const consulta = soConsultaFis()
     tela.innerHTML = `
-        <div class="pagina-conteudo fis-pagina">
-            <div class="cabecalho-pagina"><h2>${titulo}</h2></div>
-            <div class="fis-cartoes" data-cartoes-emitidas></div>
-            <div class="fis-conteudo"></div>
+        <div class="fis-pagina fin-tela fis-emitidas">
+            <section class="fin-janela">
+                <header class="fin-janela-topo">
+                    <h2>${titulo}</h2>
+                    <div class="fin-barra">
+                        ${modeloEmitidasFis !== 'NFSE' && !consulta ? `<button type="button" onclick="formularioEmissaoNFe()">${iconeFin('incluir')} NF-e</button>` : ''}
+                        ${modeloEmitidasFis !== 'NFE' && !consulta ? `<button type="button" onclick="formularioEmissaoNFSe()">${iconeFin('incluir')} NFS-e</button>` : ''}
+                        ${modeloEmitidasFis !== 'NFSE' && !consulta ? `<button type="button" onclick="devolucaoEmitidasFis()" title="Com uma nota marcada, registra a devolução dela; sem marcação, pede a chave da nota (venda ou compra)">${iconeFin('voltar')} Devolução</button>` : ''}
+                        <button type="button" onclick="baixarExcelEmitidasFis()" title="Com notas marcadas, baixa só as marcadas; sem marcação, todos os resultados dos filtros aplicados">${iconeFin('excel')} Excel</button>
+                        <span data-limpar-emit-fis></span>
+                    </div>
+                    <div class="fis-cartoes fis-cartoes-mini" data-cartoes-emitidas></div>
+                </header>
+                <div class="fin-tabela-area" data-tabela-emit-fis></div>
+            </section>
         </div>`
     contadoresFiscal()
     await abrirTabelaEmitidas()
@@ -1050,24 +1463,26 @@ async function telaNotasEmitidas(modelo = null) {
 
 async function abrirTabelaEmitidas(filtroExtra = null) {
     // vw_fiscal_emitidas: notas de saída do GCS + notas emitidas pelo Omie (fonte OMIE; serviço = NFSE).
+    const area = document.querySelector('[data-tabela-emit-fis]')
+    if (!area) return telaNotasEmitidas(modeloEmitidasFis)
+    filtroExtraEmitFis = filtroExtra
+    const limpar = document.querySelector('[data-limpar-emit-fis]')
+    if (limpar) limpar.innerHTML = filtroExtra ? `<button type="button" onclick="abrirTabelaEmitidas()">${iconeFin('fechar')} Limpar filtro</button>` : ''
     const filtroModelo = modeloEmitidasFis ? { modelo: { op: '=', value: modeloEmitidasFis } } : {}
+    const nfse = modeloEmitidasFis === 'NFSE'
     try {
         delete controles.notasEmitidas
-        document.querySelector('.fis-conteudo').innerHTML = await modTab({
+        somaFiltroEmitFis = null
+        assinaturaSomaEmitFis = null
+        area.innerHTML = await modTab({
             base: 'vw_fiscal_emitidas',
             pag: 'notasEmitidas',
             body: 'bodyNotasEmitidas',
             criarLinha: 'criarLinhaNotaEmitida',
-            topoEmLinha: true,
             caber: true,
+            limite: POR_PAGINA_EMIT_FIS,
+            funcaoAdicional: ['aposCarregarEmitidasFis'],
             filtrosFixos: { ...filtroModelo, ...(filtroExtra || {}) },
-            btnExtras: `
-                <div class="fis-acoes">
-                    ${modeloEmitidasFis !== 'NFSE' && !soConsultaFis() ? '<button type="button" onclick="formularioEmissaoNFe()">+ NF-e</button>' : ''}
-                    ${modeloEmitidasFis !== 'NFE' && !soConsultaFis() ? '<button type="button" onclick="formularioEmissaoNFSe()">+ NFS-e</button>' : ''}
-                    ${modeloEmitidasFis !== 'NFSE' && !soConsultaFis() ? '<button type="button" onclick="devolucaoPorChaveFis()" title="Devolução de uma venda (nota de entrada própria) ou de uma compra, pela chave da nota">Devolução</button>' : ''}
-                    ${filtroExtra ? '<button type="button" onclick="abrirTabelaEmitidas()">Limpar filtro</button>' : ''}
-                </div>`,
             ordenar: [{ path: 'criado_em', direcao: 'desc' }],
             colunas: {
                 '': {},
@@ -1076,14 +1491,18 @@ async function abrirTabelaEmitidas(filtroExtra = null) {
                 // Nas telas presas a um modelo (NF-e ou NFS-e) a coluna repetiria sempre o mesmo valor.
                 ...(modeloEmitidasFis ? {} : { 'Modelo': { chave: 'modelo', tipoPesquisa: 'select' } }),
                 'Nº': { chave: 'numero' },
-                'Destinatário': { chave: 'participante_nome' },
-                'Operação': { chave: 'natureza_operacao' },
+                [nfse ? 'Tomador' : 'Destinatário']: { chave: 'participante_nome' },
+                'CPF/CNPJ': { chave: 'participante_documento' },
+                ...(nfse ? {} : { 'Operação': { chave: 'natureza_operacao' } }),
+                'Orçamento': { chave: 'orcamento' },
                 'Valor': { chave: 'valor_total', op: '>=', tipoOrdenacao: 'numero' },
                 'Situação': { chave: 'status', tipoPesquisa: 'select' },
-                'Estoque': { chave: 'estoque_status', tipoPesquisa: 'select' },
-                'Ambiente': { chave: 'ambiente', tipoPesquisa: 'select' }
+                ...(nfse ? {} : { 'Estoque': { chave: 'estoque_status', tipoPesquisa: 'select' } }),
+                'Origem': { chave: 'ambiente', tipoPesquisa: 'select' }
             }
         })
+        area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-emit-fis></div>')
+        area.querySelector('.modtab')?.insertAdjacentHTML('afterbegin', '<div class="fin-aviso-selecao" data-aviso-emit-fis hidden></div>')
         await paginacao('notasEmitidas')
     } catch (err) {
         console.error(err)
@@ -1091,25 +1510,364 @@ async function abrirTabelaEmitidas(filtroExtra = null) {
     }
 }
 
+async function aposCarregarEmitidasFis() {
+    const tabela = document.getElementById('bodyNotasEmitidas')?.closest('table')
+    if (!tabela) return
+    // Caixinha "marcar a página" no cabeçalho da 1ª coluna (e nada na linha de filtros dela).
+    const th = tabela.querySelector('thead tr:first-child th:first-child')
+    if (th && !th.querySelector('[data-marcar-todas-emit]'))
+        th.innerHTML = '<input type="checkbox" class="fin-marcar" data-marcar-todas-emit title="Marcar todas desta página" onclick="event.stopPropagation(); marcarTodasEmitFis(this)">'
+    const filtro = tabela.querySelector('thead tr:nth-child(2) th:first-child')
+    if (filtro?.querySelector('img')) filtro.innerHTML = ''
+    // Pé com o total do Valor + linha de enchimento (totais e paginação ficam no pé da janela).
+    if (!tabela.tFoot) {
+        const chaves = Object.values(controles.notasEmitidas?.colunas || {}).map(c => c.chave || '')
+        const linha = tabela.createTFoot().insertRow()
+        linha.className = 'fin-totais'
+        chaves.forEach(chave => {
+            const td = linha.insertCell()
+            if (chave === 'valor_total') { td.dataset.totalEmit = 'S'; td.className = 'fis-num' }
+        })
+        const enchimento = document.createElement('tbody')
+        enchimento.className = 'fin-enchimento'
+        enchimento.innerHTML = `<tr><td colspan="${chaves.length}"></td></tr>`
+        tabela.insertBefore(enchimento, tabela.tFoot)
+    }
+    if (typeof cabecalhoAvancadoTabela === 'function')
+        await cabecalhoAvancadoTabela('notasEmitidas', { prefKey: `notas_emitidas_${(modeloEmitidasFis || 'todas').toLowerCase()}` })
+    desenharSelecaoEmitFis()
+    desenharRodapeEmitFis()
+    await somarFiltroEmitFis()
+}
+
+async function somarFiltroEmitFis() {
+    const ctrl = controles.notasEmitidas
+    if (!ctrl) return
+    const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos)
+    const assinatura = JSON.stringify(filtros)
+    if (assinatura === assinaturaSomaEmitFis) return escreverTotalEmitFis()
+    assinaturaSomaEmitFis = assinatura
+    let soma = null
+    try { soma = Number((await contarPorCampo({ base: 'vw_fiscal_emitidas', path: 'valor_total', modo: 'soma', filtros }))?.total || 0) } catch { }
+    if (assinatura !== assinaturaSomaEmitFis) return
+    somaFiltroEmitFis = soma
+    escreverTotalEmitFis()
+}
+
+function escreverTotalEmitFis() {
+    const td = document.querySelector('[data-total-emit]')
+    if (!td) return
+    const n = selecaoEmitFis.size
+    if (n) {
+        const soma = [...selecaoEmitFis.values()].reduce((s, v) => s + (Number(v) || 0), 0)
+        td.title = `Soma das ${n} nota(s) marcada(s). Desmarque todas para ver o total do filtro.`
+        td.innerHTML = `<small class="fin-total-rotulo">${n} marcada${n === 1 ? '' : 's'}</small> <span class="fin-sigma">Σ</span> ${dinheiro(Math.round(soma * 100) / 100)}`
+        td.classList.add('fin-total-selecao')
+    } else {
+        td.title = 'Total de todas as notas do filtro'
+        td.innerHTML = `<span class="fin-sigma">Σ</span> ${somaFiltroEmitFis == null ? '—' : dinheiro(somaFiltroEmitFis)}`
+        td.classList.remove('fin-total-selecao')
+    }
+}
+
+function marcarNotaEmitFis(caixa) {
+    if (caixa.checked) selecaoEmitFis.set(caixa.value, Number(caixa.dataset.valor) || 0)
+    else selecaoEmitFis.delete(caixa.value)
+    desenharSelecaoEmitFis()
+}
+
+function marcarTodasEmitFis(caixa) {
+    document.querySelectorAll('#bodyNotasEmitidas [data-marcar-emit]').forEach(c => {
+        c.checked = caixa.checked
+        if (caixa.checked) selecaoEmitFis.set(c.value, Number(c.dataset.valor) || 0)
+        else selecaoEmitFis.delete(c.value)
+    })
+    desenharSelecaoEmitFis()
+}
+
+function limparSelecaoEmitFis() {
+    selecaoEmitFis.clear()
+    document.querySelectorAll('#bodyNotasEmitidas [data-marcar-emit]').forEach(c => { c.checked = false })
+    desenharSelecaoEmitFis()
+}
+
+async function selecionarTodasFiltroEmitFis() {
+    const ctrl = controles.notasEmitidas
+    if (!ctrl) return
+    overlayAguarde()
+    try {
+        const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        let pagina = 1, paginas = 1
+        do {
+            const r = await pesquisarDB({ base: 'vw_fiscal_emitidas', filtros, pagina, limite: 2000 })
+            ;(r?.resultados || []).forEach(d => selecaoEmitFis.set(String(d.id), Number(d.valor_total) || 0))
+            paginas = Number(r?.paginas) || 1
+            pagina++
+        } while (pagina <= paginas && pagina <= 50)
+        document.querySelectorAll('#bodyNotasEmitidas [data-marcar-emit]').forEach(c => { c.checked = selecaoEmitFis.has(c.value) })
+        desenharSelecaoEmitFis()
+    } catch (err) {
+        popup({ mensagem: `Falha ao marcar as notas do filtro: ${escFis(err.message)}` })
+    } finally {
+        removerOverlay()
+    }
+}
+
+function desenharSelecaoEmitFis() {
+    const pagina = [...document.querySelectorAll('#bodyNotasEmitidas [data-marcar-emit]')]
+    const marcadas = pagina.filter(c => c.checked).length
+    const paginaToda = pagina.length > 0 && marcadas === pagina.length
+    const todas = document.querySelector('[data-marcar-todas-emit]')
+    if (todas) {
+        todas.checked = paginaToda
+        todas.indeterminate = marcadas > 0 && marcadas < pagina.length
+    }
+    const aviso = document.querySelector('[data-aviso-emit-fis]')
+    if (aviso) {
+        const n = selecaoEmitFis.size
+        const total = Number(document.getElementById('resultados_notasEmitidas')?.textContent) || 0
+        const plural = q => `${q.toLocaleString('pt-BR')} ${q === 1 ? 'nota' : 'notas'}`
+        const limpar = '<a href="#" onclick="event.preventDefault(); limparSelecaoEmitFis()">limpar a seleção</a>'
+        aviso.hidden = !(n && paginaToda)
+        aviso.innerHTML = aviso.hidden ? '' : n < total
+            ? `Você selecionou ${plural(n)}. Você pode ${limpar} ou <a href="#" onclick="event.preventDefault(); selecionarTodasFiltroEmitFis()">selecionar todas as ${plural(total)} deste filtro</a>`
+            : `Você selecionou ${n === total ? 'todas as ' : ''}${plural(n)}${n === total ? ' deste filtro' : ''}. Você pode ${limpar}`
+    }
+    escreverTotalEmitFis()
+}
+
+function desenharRodapeEmitFis() {
+    const alvo = document.querySelector('[data-rodape-emit-fis]')
+    const ctrl = controles.notasEmitidas
+    if (!alvo || !ctrl) return
+    const total = Number(document.getElementById('resultados_notasEmitidas')?.textContent) || 0
+    const paginas = Math.max(1, Number(ctrl.total) || 1)
+    const pagina = Math.min(ctrl.pagina || 1, paginas)
+    const inicio = total ? (pagina - 1) * POR_PAGINA_EMIT_FIS + 1 : 0
+    const fim = Math.min(total, pagina * POR_PAGINA_EMIT_FIS)
+    const botao = (texto, destino, ativo, titulo = '') =>
+        `<button type="button" ${ativo ? `onclick="irPaginaEmitFis(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
+    alvo.innerHTML = `
+        <span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} nota${total === 1 ? '' : 's'}</span>
+        <div class="fin-paginas">
+            ${botao('|‹', 1, pagina > 1, 'Primeira página')}
+            ${botao('‹ anterior', pagina - 1, pagina > 1)}
+            <label>Página <input type="number" min="1" max="${paginas}" value="${pagina}" onchange="irPaginaEmitFis(this.value)"></label>
+            <span>de ${paginas.toLocaleString('pt-BR')}</span>
+            ${botao('próximo ›', pagina + 1, pagina < paginas)}
+            ${botao('›|', paginas, pagina < paginas, 'Última página')}
+        </div>`
+}
+
+async function irPaginaEmitFis(n) {
+    const ctrl = controles.notasEmitidas
+    if (!ctrl) return
+    const pagina = Math.min(Math.max(1, parseInt(n) || 1), Math.max(1, Number(ctrl.total) || 1))
+    if (pagina === ctrl.pagina) return desenharRodapeEmitFis()
+    ctrl.pagina = pagina
+    await paginacao('notasEmitidas')
+}
+
+const ORIGEM_EMIT_FIS = { homologacao: 'Homologação', producao: 'Produção', omie: 'Omie' }
+
+async function baixarExcelEmitidasFis() {
+    const ctrl = controles.notasEmitidas
+    if (!ctrl) return
+    const nfse = modeloEmitidasFis === 'NFSE'
+    const titulo = { NFE: 'NF-e emitidas', NFSE: 'NFS-e emitidas' }[modeloEmitidasFis] || 'Notas emitidas'
+    overlayAguarde()
+    try {
+        const marcadas = [...selecaoEmitFis.keys()]
+        const filtros = marcadas.length
+            ? { ...(ctrl.filtrosFixos?.modelo ? { modelo: ctrl.filtrosFixos.modelo } : {}), id: { modo: 'OR', regras: marcadas.map(id => ({ op: '=', value: id })) } }
+            : combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        const linhas = []
+        let pagina = 1, paginas = 1
+        do {
+            const r = await pesquisarDB({ base: 'vw_fiscal_emitidas', filtros, ordenar: ctrl.ordenar || [{ path: 'criado_em', direcao: 'desc' }], pagina, limite: 2000 })
+            linhas.push(...(r?.resultados || []))
+            paginas = Number(r?.paginas) || 1
+            pagina++
+        } while (pagina <= paginas && pagina <= 50)
+        const data = v => v ? new Date(`${String(v).slice(0, 10)}T12:00:00Z`) : null
+        const textoStatus = s => STATUS_FISCAL?.[s]?.texto || STATUS_FISCAL?.[String(s || '').toLowerCase()]?.texto || s || ''
+        const textoEstoque = s => ESTOQUE_FISCAL?.[s]?.texto || ESTOQUE_FISCAL?.[String(s || '').toLowerCase()]?.texto || s || ''
+        await baixarExcelRelatorioGCS({
+            titulo,
+            resumo: `${linhas.length} nota(s)`,
+            filtrosTexto: marcadas.length ? `Notas marcadas na tela: ${marcadas.length}` : `Filtros: ${typeof descreverFiltrosFin === 'function' ? descreverFiltrosFin(ctrl).replace('nenhum (todas as faturas)', 'nenhum (todas as notas)') : ''}`,
+            linhas,
+            colunas: [
+                { titulo: 'Data', largura: 12, tipo: 'data', valor: d => data(d.emissao || d.criado_em) },
+                { titulo: 'Empresa', largura: 9, centro: true, valor: d => d.app || '' },
+                ...(modeloEmitidasFis ? [] : [{ titulo: 'Modelo', largura: 9, centro: true, valor: d => d.modelo === 'NFSE' ? 'NFS-e' : 'NF-e' }]),
+                { titulo: 'Nº', largura: 10, centro: true, valor: d => d.numero || '' },
+                { titulo: 'Série', largura: 7, centro: true, valor: d => d.serie || '' },
+                { titulo: nfse ? 'Tomador' : 'Destinatário', largura: 42, valor: d => d.participante_nome || '' },
+                { titulo: 'CPF/CNPJ', largura: 19, valor: d => d.participante_documento ? docFormatadoFis(d.participante_documento) : '' },
+                ...(nfse ? [] : [{ titulo: 'Operação', largura: 30, quebra: true, valor: d => d.natureza_operacao || '' }]),
+                { titulo: 'Orçamento', largura: 16, valor: d => listaOrcamentosEmitFis(d.orcamento).join(', ') },
+                { titulo: 'Valor', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.valor_total) || 0 },
+                { titulo: 'Situação', largura: 14, valor: d => textoStatus(d.status) },
+                ...(nfse ? [] : [{ titulo: 'Estoque', largura: 14, valor: d => textoEstoque(d.estoque_status) }]),
+                { titulo: 'Origem', largura: 13, valor: d => ORIGEM_EMIT_FIS[d.ambiente] || d.ambiente || '' }
+            ]
+        })
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: `Falha ao gerar o Excel: ${escFis(err.message)}` })
+    } finally {
+        removerOverlay()
+    }
+}
+
+// Excel no padrão do relatório de faturas (logo, título, quem/quando gerou, filtros; cabeçalho verde,
+// autofiltro, moeda/data formatadas, total por SUBTOTAL e linhas zebradas). Serve para qualquer listagem:
+// colunas = [{ titulo, largura, tipo: 'moeda'|'data', soma, centro, quebra, valor: linha => valor }].
+async function baixarExcelRelatorioGCS({ titulo, resumo = '', filtrosTexto = '', colunas, linhas, nomeArquivo = null }) {
+    const n = colunas.length
+    const letra = i => { let s = ''; for (let x = i + 1; x > 0; x = Math.floor((x - 1) / 26)) s = String.fromCharCode(65 + ((x - 1) % 26)) + s; return s }
+    const ultima = letra(n - 1)
+    const VERDE = 'FF1F6B3A', VERDE_CLARO = 'FFF1F7F3', CINZA = 'FF5F6B64', BORDA = 'FFD5DED8'
+    const MOEDA = '"R$" #,##0.00;[Red]-"R$" #,##0.00'
+    const livro = new ExcelJS.Workbook()
+    livro.creator = 'GCS'
+    const ws = livro.addWorksheet(titulo.slice(0, 31), {
+        pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9 },
+        views: [{ state: 'frozen', ySplit: 6, showGridLines: false }]
+    })
+    colunas.forEach((c, i) => { ws.getColumn(i + 1).width = c.largura || 14 })
+    try {
+        const blob = await (await fetch('imagens/logo-gcs-quadrado.png')).blob()
+        const base64 = await new Promise((ok, falha) => {
+            const leitor = new FileReader()
+            leitor.onloadend = () => ok(String(leitor.result).split(',')[1])
+            leitor.onerror = falha
+            leitor.readAsDataURL(blob)
+        })
+        ws.addImage(livro.addImage({ base64, extension: 'png' }), { tl: { col: 0.2, row: 0.05 }, ext: { width: 88, height: 88 } })
+    } catch { }
+    ;[30, 20, 20].forEach((h, i) => { ws.getRow(i + 1).height = h })
+    const linhaTopo = (numero, texto, fonte) => {
+        ws.mergeCells(`C${numero}:${ultima}${numero}`)
+        const cel = ws.getCell(`C${numero}`)
+        cel.value = texto
+        cel.font = fonte
+        cel.alignment = { vertical: 'middle', wrapText: true }
+    }
+    const agora = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' })
+    linhaTopo(1, `Relatório · ${titulo}`, { size: 18, bold: true, color: { argb: VERDE } })
+    linhaTopo(2, `Gerado em ${agora}${acesso?.usuario ? ` por ${acesso.usuario}` : ''}${resumo ? ` · ${resumo}` : ''}`, { size: 10, color: { argb: CINZA } })
+    linhaTopo(3, filtrosTexto, { size: 10, color: { argb: CINZA } })
+    ws.getRow(4).height = 5
+    for (let i = 1; i <= n; i++) ws.getCell(4, i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE } }
+    ws.getRow(5).height = 8
+
+    const LINHA_CAB = 6
+    const cab = ws.getRow(LINHA_CAB)
+    cab.values = colunas.map(c => c.titulo)
+    cab.height = 24
+    cab.eachCell(cel => {
+        cel.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+        cel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE } }
+        cel.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
+    })
+    linhas.forEach((d, k) => {
+        const row = ws.getRow(LINHA_CAB + 1 + k)
+        row.values = colunas.map(c => c.valor(d))
+        colunas.forEach((c, i) => {
+            const cel = row.getCell(i + 1)
+            if (c.tipo === 'moeda') cel.numFmt = MOEDA
+            if (c.tipo === 'data') cel.numFmt = 'dd/mm/yyyy'
+            cel.alignment = { vertical: 'middle', wrapText: !!c.quebra, ...(c.tipo === 'data' || c.centro ? { horizontal: 'center' } : {}) }
+            if (k % 2) cel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE_CLARO } }
+            cel.border = { bottom: { style: 'hair', color: { argb: BORDA } } }
+        })
+    })
+    const fim = LINHA_CAB + linhas.length
+    const tot = ws.getRow(fim + 1)
+    tot.height = 22
+    colunas.forEach((c, i) => {
+        const cel = tot.getCell(i + 1)
+        if (i === 0) cel.value = 'Total'
+        if (c.soma && linhas.length)
+            cel.value = { formula: `SUBTOTAL(9,${letra(i)}${LINHA_CAB + 1}:${letra(i)}${fim})`, result: Math.round(linhas.reduce((s, d) => s + (Number(c.valor(d)) || 0), 0) * 100) / 100 }
+        if (c.tipo === 'moeda') cel.numFmt = MOEDA
+        cel.font = { bold: true, color: { argb: VERDE } }
+        cel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCEBE0' } }
+        cel.border = { top: { style: 'medium', color: { argb: VERDE } } }
+        cel.alignment = { vertical: 'middle' }
+    })
+    ws.autoFilter = { from: { row: LINHA_CAB, column: 1 }, to: { row: Math.max(fim, LINHA_CAB), column: n } }
+    ws.pageSetup.printTitlesRow = `${LINHA_CAB}:${LINHA_CAB}`
+
+    const buffer = await livro.xlsx.writeBuffer()
+    const arquivo = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(arquivo)
+    const hoje = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }).replaceAll('/', '-')
+    a.download = `${nomeArquivo || titulo} ${hoje}.xlsx`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000)
+}
+
+// Orçamento(s) da nota: as notas de lote trazem centenas de ORCs (um por linha). Na célula vai o 1º
+// e "+N"; a lista inteira fica no título (passar o mouse).
+const listaOrcamentosEmitFis = v => String(v || '').split(/[\n,;]+/).map(x => x.trim()).filter(Boolean)
+function celulaOrcamentosEmitFis(v) {
+    const lista = listaOrcamentosEmitFis(v)
+    if (!lista.length) return '<td class="fis-col-orc"></td>'
+    const titulo = lista.length > 1 ? `${lista.length} orçamentos: ${lista.join(', ')}` : lista[0]
+    return `<td class="fis-col-orc" title="${escFis(titulo)}"><span>${escFis(lista[0])}</span>${lista.length > 1 ? `<small class="fis-orc-mais">+${lista.length - 1}</small>` : ''}</td>`
+}
+
 // Linhas do Omie da página aberta, para a janela de detalhes da lupa (sem ida ao servidor).
 const notasOmieEmitidasFis = new Map()
+// Todas as linhas já carregadas (qualquer página), para as ações sobre a nota marcada.
+const dadosEmitFis = new Map()
+
+// Devolução pela barra: uma nota marcada = devolução dela; nenhuma = pede a chave (venda ou compra).
+function devolucaoEmitidasFis() {
+    if (!selecaoEmitFis.size) return devolucaoPorChaveFis()
+    if (selecaoEmitFis.size > 1)
+        return popup({ titulo: 'Devolução', mensagem: `Há ${selecaoEmitFis.size} notas marcadas. Marque só a nota que está voltando (ou desmarque todas para informar a chave).` })
+    const id = [...selecaoEmitFis.keys()][0]
+    const d = dadosEmitFis.get(id)
+    if (d) {
+        const motivo = d.modelo === 'NFSE' ? 'NFS-e não tem devolução: o caminho é cancelar a nota.'
+            : d.status !== 'AUTORIZADA' ? `A nota nº ${escFis(d.numero || '')} não está autorizada (${escFis(STATUS_FISCAL[d.status]?.texto || d.status || '')}).`
+            : d.fonte === 'OMIE' && !/^venda/i.test(d.natureza_operacao || '') ? `A nota nº ${escFis(d.numero || '')} do Omie não é de venda (${escFis(d.natureza_operacao || '')}).`
+            : null
+        if (motivo) return popup({ titulo: 'Devolução', mensagem: motivo })
+    }
+    abrirDevolucaoFis({ id, lado: 'VENDA' })
+}
 
 function criarLinhaNotaEmitida(d) {
     if (d.fonte === 'OMIE') notasOmieEmitidasFis.set(String(d.id), d)
+    dadosEmitFis.set(String(d.id), d)
+    const id = escFis(d.id)
+    const abrir = d.fonte === 'OMIE' ? `abrirNotaOmieFis('${id}')` : `abrirDocumentoFiscal('${id}')`
+    const nfse = modeloEmitidasFis === 'NFSE'
     return `
-        <tr>
-            <td class="fis-acoes-linha">${d.fonte === 'OMIE'
-                ? `<img src="imagens/pesquisar.svg" title="Nota emitida pelo Omie" onclick="abrirNotaOmieFis('${escFis(d.id)}')">`
-                : `<img src="imagens/pesquisar.svg" title="Abrir" onclick="abrirDocumentoFiscal('${escFis(d.id)}')">`}</td>
-            <td>${dataFis(d.emissao || d.criado_em)}</td>
-            <td>${escFis(d.app)}</td>
-            ${modeloEmitidasFis ? '' : `<td>${d.modelo === 'NFSE' ? 'NFS-e' : 'NF-e'}</td>`}
-            <td><b>${escFis(d.numero || '')}</b></td>
-            <td class="fis-descricao">${escFis(d.participante_nome)}<small>${docFormatadoFis(d.participante_documento)}</small></td>
-            <td><small>${escFis(d.natureza_operacao || '')}</small></td>
+        <tr class="fin-linha" ondblclick="${abrir}" title="Duplo clique abre a nota">
+            <td class="fin-col-marcar">
+                <input type="checkbox" class="fin-marcar" data-marcar-emit value="${id}" data-valor="${Number(d.valor_total) || 0}" ${selecaoEmitFis.has(String(d.id)) ? 'checked' : ''}
+                    onclick="event.stopPropagation(); marcarNotaEmitFis(this)" ondblclick="event.stopPropagation()" aria-label="Marcar nota">
+            </td>
+            <td class="fin-centro">${dataFis(d.emissao || d.criado_em)}</td>
+            <td class="fin-centro">${escFis(d.app)}</td>
+            ${modeloEmitidasFis ? '' : `<td class="fin-centro">${d.modelo === 'NFSE' ? 'NFS-e' : 'NF-e'}</td>`}
+            <td class="fin-centro fin-doc">${d.numero ? `<span class="fis-link" onclick="event.stopPropagation(); ${abrir}" title="Abrir a nota">${escFis(d.numero)}</span>` : ''}</td>
+            <td class="fin-obs fin-nome" title="${escFis(d.participante_nome || '')}"><span class="fin-obs-txt">${escFis(d.participante_nome || '')}</span></td>
+            <td class="fin-centro fin-doc">${docFormatadoFis(d.participante_documento)}</td>
+            ${nfse ? '' : `<td class="fin-obs" title="${escFis(d.natureza_operacao || '')}"><span class="fin-obs-txt">${escFis(d.natureza_operacao || '')}</span></td>`}
+            ${celulaOrcamentosEmitFis(d.orcamento)}
             <td class="fis-num">${d.valor_total != null ? dinheiro(d.valor_total) : ''}</td>
             <td>${etiquetaFis(STATUS_FISCAL, d.status)}</td>
-            <td>${etiquetaFis(ESTOQUE_FISCAL, d.estoque_status)}</td>
+            ${nfse ? '' : `<td>${etiquetaFis(ESTOQUE_FISCAL, d.estoque_status)}</td>`}
             <td>${d.ambiente === 'homologacao' ? etiquetaEst('Homologação', '#d97706') : d.ambiente === 'producao' ? etiquetaEst('Produção', '#15803d') : d.ambiente === 'omie' ? etiquetaEst('Omie', '#7c3aed') : escFis(d.ambiente || '')}</td>
         </tr>`
 }
@@ -2821,8 +3579,8 @@ async function telaConfigFiscal(aba = estadoConfigFis.aba) {
         <div class="pagina-conteudo fis-pagina">
             <div class="cabecalho-pagina"><h2>Configuração fiscal</h2></div>
             <div class="fis-painel">
-                <nav class="relatorio-dep-abas" role="tablist">${Object.entries(abas).map(([k, t]) => `
-                    <button type="button" class="${k === aba ? 'ativa' : ''}" onclick="telaConfigFiscal('${k}')">${t}</button>`).join('')}</nav>
+                <nav class="fis-abas" role="group" aria-label="Seção">${Object.entries(abas).map(([k, t]) => `
+                    <button type="button" class="${k === aba ? 'ativa' : ''}" aria-pressed="${k === aba}" onclick="telaConfigFiscal('${k}')">${t}</button>`).join('')}</nav>
                 <div class="fis-explica">${{
                     empresas: 'Dados das empresas emitentes (vieram do cadastro do Omie). <b>Ambiente</b>: homologação emite notas de teste, sem valor fiscal; só adm/diretoria passam para produção. O token da Focus NFe fica no servidor (SCRIPTS/config.js).',
                     operacoes: 'Perfis de operação copiados das notas emitidas pelo Omie (CFOP, CST e alíquotas). Na emissão, o GCS escolhe o CFOP interno ou interestadual pela UF do destinatário e calcula ICMS, PIS/COFINS (base sem ICMS) e IBS/CBS. <b>Confira com a contabilidade antes de ir para produção.</b>',
@@ -3101,6 +3859,7 @@ function formularioServicoFiscal(id = null) {
     const { servicos, empresas } = estadoConfigFis.dados
     const s = servicos.find(x => x.id === id) || { app: 'AC', retencoes: {}, ativo: true }
     const r = s.retencoes || {}
+    const ib = s.ibs_cbs || {}
     popup({
         titulo: id ? `Serviço ${s.descricao}` : 'Novo serviço',
         linhas: [{
@@ -3122,6 +3881,17 @@ function formularioServicoFiscal(id = null) {
                             <div class="fis-com-check">${inputFis(`${t}_aliquota`, r[t]?.aliquota ?? '', 'type="number" step="0.01"')}
                             <label class="fis-check"><input type="checkbox" name="${t}_reter" ${r[t]?.reter ? 'checked' : ''}> reter</label></div>`)).join('')}
                     </div></fieldset>
+                    <fieldset class="fis-passo"><legend>IBS / CBS (regime normal; em branco no Simples)</legend><div class="fis-grade">
+                        ${campoFis('CST', inputFis('ibs_cst', ib.cst, 'maxlength="3" placeholder="000"'))}
+                        ${campoFis('cClassTrib', inputFis('ibs_classificacao', ib.classificacao, 'maxlength="6" placeholder="000001"'))}
+                        ${campoFis('Indicador da operação (cIndOp)', `<select class="fis-input" name="ibs_indicador_operacao">${opcoesFis([
+                            ['', '—'],
+                            ['050102', '050102 · serviço sobre bem móvel, fora do estabelecimento'],
+                            ['050101', '050101 · serviço sobre bem móvel, no estabelecimento'],
+                            ['100301', '100301 · demais serviços (domicílio do tomador)'],
+                            ...(ib.indicador_operacao && !['050102', '050101', '100301'].includes(ib.indicador_operacao) ? [[ib.indicador_operacao, ib.indicador_operacao]] : [])
+                        ], ib.indicador_operacao || '')}</select>`, 'fis-largo')}
+                    </div><p class="fis-dica">Base, alíquotas e valores do IBS/CBS são calculados pelo Sistema Nacional da NFS-e.</p></fieldset>
                     ${campoFis('Discriminação padrão', `<textarea class="fis-input" name="discriminacao_padrao" rows="3">${escFis(s.discriminacao_padrao || '')}</textarea>`)}
                     <label class="fis-check"><input type="checkbox" name="ativo" ${s.ativo ? 'checked' : ''}> Ativo</label>
                 </div>`
@@ -3142,7 +3912,12 @@ async function salvarServicoFiscal(botao) {
         id: f.dataset.id || undefined, app: v('app'), descricao: v('descricao'), codigo_lc116: v('codigo_lc116'),
         codigo_tributacao_nacional: v('codigo_tributacao_nacional'), codigo_tributacao_municipal: v('codigo_tributacao_municipal'),
         codigo_nbs: v('codigo_nbs'), cnae: v('cnae'), aliquota_iss: Number(v('aliquota_iss').replace(',', '.')) || 0,
-        iss_retido: marcado('iss_retido'), retencoes, ibs_cbs: original.ibs_cbs || {}, discriminacao_padrao: v('discriminacao_padrao'),
+        iss_retido: marcado('iss_retido'), retencoes,
+        ibs_cbs: Object.fromEntries(Object.entries({
+            ...(original.ibs_cbs || {}),
+            cst: v('ibs_cst'), classificacao: v('ibs_classificacao'), indicador_operacao: v('ibs_indicador_operacao')
+        }).filter(([, x]) => x !== '' && x != null)),
+        discriminacao_padrao: v('discriminacao_padrao'),
         ativo: marcado('ativo'), ordem: original.ordem
     }
     try {
@@ -3152,5 +3927,271 @@ async function salvarServicoFiscal(botao) {
         telaConfigFiscal('servicos')
     } catch (err) {
         popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+// ================================================================ CRÉDITOS IBS/CBS (relatório)
+// IBS/CBS destacado nas notas recebidas (vw_fiscal_credito_ibs_cbs, migrations/fiscal-credito-ibs-cbs.sql), para
+// acompanhar o crédito potencial da reforma (CBS substitui PIS/COFINS em 2027). Combustível é monofásico: a nota
+// do posto não traz valor e o crédito será por litro × alíquota ad rem (ainda não publicada) → somamos os litros.
+// Empresa no Simples (IAC) não aproveita no regime normal. Mesmo layout das listas (.fin-tela).
+
+const POR_PAGINA_CRED_FIS = 50
+const COLUNAS_TOTAL_CRED_FIS = ['valor_total', 'base_ibs_cbs', 'cbs', 'ibs', 'credito', 'litros_combustivel']
+let somasCredFis = null, assinaturaCredFis = null
+const DESTAQUE_CRED_FIS = {
+    DESTACADO: { texto: 'Destacado', cor: '#15803d' },
+    PARCIAL: { texto: 'Parcial', cor: '#d97706' },
+    MONOFASICO: { texto: 'Monofásico', cor: '#1e40af' },
+    SEM_DESTAQUE: { texto: 'Sem destaque', cor: '#64748b' }
+}
+
+async function telaCreditosIbsCbs(filtroExtra = null) {
+    if (typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
+    tela.innerHTML = `
+        <div class="fis-pagina fin-tela fis-emitidas fis-creditos">
+            <section class="fin-janela">
+                <header class="fin-janela-topo">
+                    <h2>Créditos IBS/CBS <small class="fis-cred-sub">notas recebidas</small></h2>
+                    <div class="fin-barra">
+                        <button type="button" onclick="baixarExcelCreditosFis()" title="Todos os resultados dos filtros aplicados">${iconeFin('excel')} Excel</button>
+                        <button type="button" onclick="explicarCreditosFis()">${iconeFin('ver')} Como ler</button>
+                        ${filtroExtra ? `<button type="button" onclick="telaCreditosIbsCbs()">${iconeFin('fechar')} Limpar filtro</button>` : ''}
+                    </div>
+                    <div class="fis-cartoes fis-cartoes-mini" data-cartoes-creditos></div>
+                </header>
+                <div class="fin-tabela-area" data-tabela-cred-fis></div>
+            </section>
+        </div>`
+    cartoesCreditosFis()
+    const area = document.querySelector('[data-tabela-cred-fis]')
+    try {
+        delete controles.creditosFis
+        somasCredFis = null
+        assinaturaCredFis = null
+        area.innerHTML = await modTab({
+            base: 'vw_fiscal_credito_ibs_cbs',
+            pag: 'creditosFis',
+            body: 'bodyCreditosFis',
+            criarLinha: 'criarLinhaCreditoFis',
+            caber: true,
+            limite: POR_PAGINA_CRED_FIS,
+            funcaoAdicional: ['aposCarregarCreditosFis'],
+            filtrosFixos: { ...(filtroExtra || {}) },
+            ordenar: [{ path: 'emissao', direcao: 'desc' }],
+            colunas: {
+                '': {},
+                'Emissão': { chave: 'dia', tipoPesquisa: 'data' },
+                'Competência': { chave: 'competencia', tipoPesquisa: 'select' },
+                'Empresa': { chave: 'app', tipoPesquisa: 'select' },
+                'Nº': { chave: 'numero' },
+                'Fornecedor': { chave: 'participante_nome' },
+                'CPF/CNPJ': { chave: 'participante_documento' },
+                'Valor da nota': { chave: 'valor_total', tipoOrdenacao: 'numero' },
+                'Base IBS/CBS': { chave: 'base_ibs_cbs', tipoOrdenacao: 'numero' },
+                'CBS': { chave: 'cbs', tipoOrdenacao: 'numero' },
+                'IBS': { chave: 'ibs', tipoOrdenacao: 'numero' },
+                'Crédito': { chave: 'credito', tipoOrdenacao: 'numero' },
+                'Combustível': { chave: 'combustivel', tipoPesquisa: 'select', rotulos: { S: 'SIM', N: 'NÃO' } },
+                'Litros': { chave: 'litros_combustivel', tipoOrdenacao: 'numero' },
+                'Destaque': { chave: 'destaque', tipoPesquisa: 'select' },
+                'Aproveita': { chave: 'aproveitavel', tipoPesquisa: 'select', rotulos: { S: 'SIM', N: 'NÃO (SIMPLES)' } },
+                'Entrada': { chave: 'entrada', tipoPesquisa: 'select' }
+            }
+        })
+        area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-cred-fis></div>')
+        await paginacao('creditosFis')
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: `Falha ao abrir os créditos: ${escFis(err.message)}` })
+    }
+}
+
+async function cartoesCreditosFis() {
+    const alvo = document.querySelector('[data-cartoes-creditos]')
+    if (!alvo) return
+    const soma = async (path, filtros) => {
+        try { return Number((await contarPorCampo({ base: 'vw_fiscal_credito_ibs_cbs', path, modo: 'soma', filtros }))?.total || 0) } catch { return null }
+    }
+    const [aproveitavel, simples, litros] = await Promise.all([
+        soma('credito', { aproveitavel: { op: '=', value: 'S' } }),
+        soma('credito', { aproveitavel: { op: '=', value: 'N' } }),
+        soma('litros_combustivel', { aproveitavel: { op: '=', value: 'S' }, combustivel: { op: '=', value: 'S' } })
+    ])
+    const cartao = (valor, texto, cor, acao, titulo) => `
+        <button type="button" class="fis-cartao" style="--cor: ${cor}" onclick="${acao}" title="${escFis(titulo)}">
+            <b>${valor}</b><span>${texto}</span></button>`
+    alvo.innerHTML = `
+        ${cartao(aproveitavel == null ? '—' : dinheiro(aproveitavel), 'destacado (AC/HNK/HNW)', '#15803d', `telaCreditosIbsCbs({ aproveitavel: { op: '=', value: 'S' }, destaque: { op: '=', value: 'DESTACADO' } })`, 'IBS/CBS destacado nas notas das empresas do regime normal')}
+        ${cartao(litros == null ? '—' : `${qtdEst(litros)} L`, 'combustível (monofásico)', '#1e40af', `telaCreditosIbsCbs({ aproveitavel: { op: '=', value: 'S' }, combustivel: { op: '=', value: 'S' } })`, 'Litros comprados: o crédito será litros × alíquota por litro, quando publicada')}
+        ${cartao(simples == null ? '—' : dinheiro(simples), 'IAC (Simples, não aproveita)', '#64748b', `telaCreditosIbsCbs({ aproveitavel: { op: '=', value: 'N' } })`, 'No Simples o crédito não é aproveitado (só optando por recolher IBS/CBS por fora)')}`
+}
+
+async function aposCarregarCreditosFis() {
+    const tabela = document.getElementById('bodyCreditosFis')?.closest('table')
+    if (!tabela) return
+    if (!tabela.tFoot) {
+        const chaves = Object.values(controles.creditosFis?.colunas || {}).map(c => c.chave || '')
+        const linha = tabela.createTFoot().insertRow()
+        linha.className = 'fin-totais'
+        chaves.forEach(chave => {
+            const td = linha.insertCell()
+            if (COLUNAS_TOTAL_CRED_FIS.includes(chave)) { td.dataset.totalCred = chave; td.className = 'fis-num' }
+        })
+        const enchimento = document.createElement('tbody')
+        enchimento.className = 'fin-enchimento'
+        enchimento.innerHTML = `<tr><td colspan="${chaves.length}"></td></tr>`
+        tabela.insertBefore(enchimento, tabela.tFoot)
+    }
+    if (typeof cabecalhoAvancadoTabela === 'function')
+        await cabecalhoAvancadoTabela('creditosFis', { prefKey: 'creditos_ibs_cbs' })
+    desenharRodapeCredFis()
+    await somarCreditosFis()
+}
+
+async function somarCreditosFis() {
+    const ctrl = controles.creditosFis
+    if (!ctrl) return
+    const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos)
+    const assinatura = JSON.stringify(filtros)
+    if (assinatura !== assinaturaCredFis) {
+        assinaturaCredFis = assinatura
+        const somas = await Promise.all(COLUNAS_TOTAL_CRED_FIS.map(async path => {
+            try { return Number((await contarPorCampo({ base: 'vw_fiscal_credito_ibs_cbs', path, modo: 'soma', filtros }))?.total || 0) } catch { return null }
+        }))
+        if (assinatura !== assinaturaCredFis) return
+        somasCredFis = somas
+    }
+    COLUNAS_TOTAL_CRED_FIS.forEach((path, i) => {
+        const td = document.querySelector(`[data-total-cred="${path}"]`)
+        if (!td) return
+        const v = somasCredFis?.[i]
+        td.title = 'Total de todas as notas do filtro'
+        td.innerHTML = `<span class="fin-sigma">Σ</span> ${v == null ? '—' : path === 'litros_combustivel' ? `${qtdEst(v)} L` : dinheiro(v)}`
+    })
+}
+
+function desenharRodapeCredFis() {
+    const alvo = document.querySelector('[data-rodape-cred-fis]')
+    const ctrl = controles.creditosFis
+    if (!alvo || !ctrl) return
+    const total = Number(document.getElementById('resultados_creditosFis')?.textContent) || 0
+    const paginas = Math.max(1, Number(ctrl.total) || 1)
+    const pagina = Math.min(ctrl.pagina || 1, paginas)
+    const inicio = total ? (pagina - 1) * POR_PAGINA_CRED_FIS + 1 : 0
+    const fim = Math.min(total, pagina * POR_PAGINA_CRED_FIS)
+    const botao = (texto, destino, ativo, titulo = '') =>
+        `<button type="button" ${ativo ? `onclick="irPaginaCredFis(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
+    alvo.innerHTML = `
+        <span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} nota${total === 1 ? '' : 's'}</span>
+        <div class="fin-paginas">
+            ${botao('|‹', 1, pagina > 1, 'Primeira página')}
+            ${botao('‹ anterior', pagina - 1, pagina > 1)}
+            <label>Página <input type="number" min="1" max="${paginas}" value="${pagina}" onchange="irPaginaCredFis(this.value)"></label>
+            <span>de ${paginas.toLocaleString('pt-BR')}</span>
+            ${botao('próximo ›', pagina + 1, pagina < paginas)}
+            ${botao('›|', paginas, pagina < paginas, 'Última página')}
+        </div>`
+}
+
+async function irPaginaCredFis(n) {
+    const ctrl = controles.creditosFis
+    if (!ctrl) return
+    const pagina = Math.min(Math.max(1, parseInt(n) || 1), Math.max(1, Number(ctrl.total) || 1))
+    if (pagina === ctrl.pagina) return desenharRodapeCredFis()
+    ctrl.pagina = pagina
+    await paginacao('creditosFis')
+}
+
+function criarLinhaCreditoFis(d) {
+    const id = escFis(d.id)
+    const abrir = `abrirDocumentoFiscal('${id}')`
+    const din = v => Number(v) ? dinheiro(v) : '<span class="fin-vazio">—</span>'
+    const dest = DESTAQUE_CRED_FIS[d.destaque] || {}
+    return `
+        <tr class="fin-linha${d.aproveitavel === 'N' ? ' fis-cred-simples' : ''}" ondblclick="${abrir}" title="Duplo clique abre a nota">
+            <td class="fin-col-marcar"></td>
+            <td class="fin-centro">${dataFis(d.emissao)}</td>
+            <td class="fin-centro">${escFis(d.competencia || '')}</td>
+            <td class="fin-centro">${escFis(d.app)}</td>
+            <td class="fin-centro fin-doc"><span class="fis-link" onclick="event.stopPropagation(); ${abrir}" title="Abrir a nota">${escFis(d.numero || 'abrir')}</span></td>
+            <td class="fin-obs fin-nome" title="${escFis(d.participante_nome || '')}"><span class="fin-obs-txt">${escFis(d.participante_nome || '')}</span></td>
+            <td class="fin-centro fin-doc">${docFormatadoFis(d.participante_documento)}</td>
+            <td class="fis-num">${din(d.valor_total)}</td>
+            <td class="fis-num">${din(d.base_ibs_cbs)}</td>
+            <td class="fis-num">${din(d.cbs)}</td>
+            <td class="fis-num">${din(d.ibs)}</td>
+            <td class="fis-num"><b>${din(d.credito)}</b></td>
+            <td class="fin-centro">${d.combustivel === 'S' ? etiquetaEst('Sim', '#1e40af') : ''}</td>
+            <td class="fis-num">${Number(d.litros_combustivel) ? `${qtdEst(d.litros_combustivel)} L` : ''}</td>
+            <td>${etiquetaEst(dest.texto || d.destaque || '', dest.cor)}</td>
+            <td class="fin-centro">${d.aproveitavel === 'S' ? 'Sim' : '<small>Não (Simples)</small>'}</td>
+            <td>${d.entrada === 'FEITA' ? etiquetaEst('Feita', '#15803d') : etiquetaEst('Pendente', '#d97706')}</td>
+        </tr>`
+}
+
+function explicarCreditosFis() {
+    popup({
+        titulo: 'Créditos IBS/CBS · como ler',
+        mensagem: `
+            <div class="fis-explica" style="max-width: 640px; text-align: left">
+                <p><b>O que é:</b> o IBS e a CBS que os fornecedores destacaram nas notas que recebemos. A partir de 2027 a CBS
+                substitui o PIS/COFINS com <b>crédito amplo</b> (o IBS cresce até 2033); em 2026 é só teste (CBS 0,9% e IBS 0,1%).</p>
+                <p><b>Destacado:</b> a nota traz o valor; é o crédito de referência. <b>Parcial:</b> só parte dos itens tem destaque.
+                <b>Sem destaque:</b> o fornecedor não informou (Simples ou nota antiga).</p>
+                <p><b>Combustível (monofásico, CST 620):</b> o imposto é recolhido antes e o posto não destaca valor. O crédito de quem
+                compra será <b>litros × alíquota por litro</b>, quando publicada: por isso a coluna <b>Litros</b>.</p>
+                <p><b>Aproveita:</b> AC, HNK e HNW (regime normal) sim; IAC (Simples) não, a menos que opte por recolher IBS/CBS por fora.</p>
+                <p><b>Entrada pendente:</b> nota que ainda não teve entrada no GCS. Vale lançar todas: são a base do crédito.</p>
+                <p><small>Valores para acompanhamento: confirme o aproveitamento com a contabilidade.</small></p>
+            </div>`
+    })
+}
+
+async function baixarExcelCreditosFis() {
+    const ctrl = controles.creditosFis
+    if (!ctrl) return
+    overlayAguarde()
+    try {
+        const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        const linhas = []
+        let pagina = 1, paginas = 1
+        do {
+            const r = await pesquisarDB({ base: 'vw_fiscal_credito_ibs_cbs', filtros, ordenar: ctrl.ordenar || [{ path: 'emissao', direcao: 'desc' }], pagina, limite: 2000 })
+            linhas.push(...(r?.resultados || []))
+            paginas = Number(r?.paginas) || 1
+            pagina++
+        } while (pagina <= paginas && pagina <= 50)
+        const data = v => v ? new Date(`${String(v).slice(0, 10)}T12:00:00Z`) : null
+        await baixarExcelRelatorioGCS({
+            titulo: 'Créditos IBS/CBS (notas recebidas)',
+            resumo: `${linhas.length} nota(s)`,
+            filtrosTexto: `Filtros: ${typeof descreverFiltrosFin === 'function' ? descreverFiltrosFin(ctrl).replace('nenhum (todas as faturas)', 'nenhum (todas as notas)') : ''}`,
+            linhas,
+            colunas: [
+                { titulo: 'Emissão', largura: 12, tipo: 'data', valor: d => data(d.emissao) },
+                { titulo: 'Competência', largura: 11, centro: true, valor: d => d.competencia || '' },
+                { titulo: 'Empresa', largura: 9, centro: true, valor: d => d.app || '' },
+                { titulo: 'Nº', largura: 10, centro: true, valor: d => d.numero || '' },
+                { titulo: 'Fornecedor', largura: 40, valor: d => d.participante_nome || '' },
+                { titulo: 'CPF/CNPJ', largura: 19, valor: d => d.participante_documento ? docFormatadoFis(d.participante_documento) : '' },
+                { titulo: 'Valor da nota', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.valor_total) || 0 },
+                { titulo: 'Base IBS/CBS', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.base_ibs_cbs) || 0 },
+                { titulo: 'CBS', largura: 12, tipo: 'moeda', soma: true, valor: d => Number(d.cbs) || 0 },
+                { titulo: 'IBS', largura: 12, tipo: 'moeda', soma: true, valor: d => Number(d.ibs) || 0 },
+                { titulo: 'Crédito', largura: 13, tipo: 'moeda', soma: true, valor: d => Number(d.credito) || 0 },
+                { titulo: 'Combustível', largura: 11, centro: true, valor: d => d.combustivel === 'S' ? 'Sim' : '' },
+                { titulo: 'Litros', largura: 11, valor: d => Number(d.litros_combustivel) || 0 },
+                { titulo: 'Destaque', largura: 14, valor: d => DESTAQUE_CRED_FIS[d.destaque]?.texto || d.destaque || '' },
+                { titulo: 'Aproveita', largura: 14, valor: d => d.aproveitavel === 'S' ? 'Sim' : 'Não (Simples)' },
+                { titulo: 'Entrada', largura: 11, valor: d => d.entrada === 'FEITA' ? 'Feita' : 'Pendente' },
+                { titulo: 'Chave', largura: 48, valor: d => d.chave || '' }
+            ]
+        })
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: `Falha ao gerar o Excel: ${escFis(err.message)}` })
+    } finally {
+        removerOverlay()
     }
 }

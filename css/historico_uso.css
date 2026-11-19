@@ -1,0 +1,317 @@
+/* Histórico de Uso GCS (js/daily.js): aba Alterações (versões dos registros) */
+.hu {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
+.hu-abas {
+    display: flex;
+    gap: 6px;
+}
+
+.hu-abas > button,
+.hu-segmento > button {
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #334155;
+    border-radius: 6px;
+    padding: 6px 14px;
+    cursor: pointer;
+}
+
+.hu-abas > button.ativo,
+.hu-segmento > button.ativo {
+    background: #1e3a5f;
+    border-color: #1e3a5f;
+    color: #fff;
+}
+
+.hu-segmento {
+    display: flex;
+    gap: 0;
+}
+
+.hu-segmento > button {
+    border-radius: 0;
+}
+
+.hu-segmento > button:first-child {
+    border-radius: 6px 0 0 6px;
+}
+
+.hu-segmento > button:last-child {
+    border-radius: 0 6px 6px 0;
+}
+
+.hu-filtros {
+    background: #fff;
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    color: #1f2937;
+}
+
+.hu-filtros input,
+.hu-filtros select {
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 6px 8px;
+    background: #fff;
+    color: #1f2937;
+    font-size: 0.9rem;
+}
+
+.hu-filtros label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.hu-busca {
+    flex: 1 1 260px;
+    min-width: 200px;
+}
+
+.hu-limpar {
+    border: none;
+    background: none;
+    color: #1e3a5f;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.hu-resumo {
+    color: #f1f5f9;
+    font-size: 0.85rem;
+    padding: 0 4px;
+}
+
+.hu-lista,
+.hu-linha-tempo {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.hu-linha-tempo {
+    max-height: 70vh;
+    overflow: auto;
+    min-width: min(860px, 90vw);
+    padding: 4px;
+}
+
+.hu-dia {
+    color: #f1f5f9;
+    font-weight: bold;
+    margin-top: 8px;
+    padding: 0 4px;
+}
+
+.hu-cartao {
+    background: #fff;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #1f2937;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-left: 4px solid #94a3b8;
+}
+
+.hu-cartao-topo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+}
+
+.hu-hora {
+    color: #64748b;
+    font-variant-numeric: tabular-nums;
+}
+
+.hu-quem {
+    font-weight: bold;
+}
+
+.hu-acao,
+.hu-tabela,
+.hu-origem {
+    border-radius: 999px;
+    padding: 1px 8px;
+    font-size: 0.78rem;
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.hu-criou { background: #dcfce7; color: #166534; }
+.hu-editou { background: #dbeafe; color: #1e40af; }
+.hu-apagou { background: #fee2e2; color: #991b1b; }
+.hu-origem { background: #fef3c7; color: #92400e; }
+
+.hu-registro {
+    color: #1e3a5f;
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.hu-espaco {
+    flex: 1;
+}
+
+.hu-btn,
+.hu-acoes > button,
+.hu-carregar {
+    border: 1px solid #1e3a5f;
+    background: #fff;
+    color: #1e3a5f;
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.hu-btn:hover,
+.hu-acoes > button:hover,
+.hu-carregar:hover {
+    background: #1e3a5f;
+    color: #fff;
+}
+
+.hu-mud {
+    display: grid;
+    grid-template-columns: minmax(160px, 260px) minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 8px;
+    font-size: 0.88rem;
+    align-items: baseline;
+}
+
+.hu-campo {
+    color: #475569;
+}
+
+.hu-antes {
+    color: #991b1b;
+    text-decoration: line-through;
+    text-decoration-color: #fca5a5;
+    overflow-wrap: anywhere;
+}
+
+.hu-depois {
+    color: #166534;
+    overflow-wrap: anywhere;
+}
+
+.hu-seta {
+    color: #94a3b8;
+}
+
+.hu-nada,
+.hu-antes .hu-nada,
+.hu-depois .hu-nada {
+    color: #94a3b8;
+    text-decoration: none;
+    font-style: italic;
+}
+
+.hu-obj {
+    font-family: monospace;
+    font-size: 0.8rem;
+}
+
+.hu-mais {
+    color: #1e3a5f;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.hu-carregar {
+    align-self: center;
+    margin: 8px 0;
+    background: #f8fafc;
+}
+
+.hu-vazio {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px;
+    color: #64748b;
+    text-align: center;
+}
+
+/* detalhe (popup) */
+.hu-detalhe {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 8px;
+    min-width: min(820px, 90vw);
+    max-height: 75vh;
+    overflow: auto;
+    color: #1f2937;
+}
+
+.hu-detalhe-topo {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.hu-tabela-mud {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.88rem;
+}
+
+.hu-tabela-mud th,
+.hu-tabela-mud td {
+    border-bottom: 1px solid #e2e8f0;
+    padding: 6px 8px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.hu-tabela-mud th {
+    background: #f1f5f9;
+}
+
+.hu-caminho {
+    color: #94a3b8;
+    font-size: 0.72rem;
+    font-family: monospace;
+}
+
+.hu-aviso {
+    background: #fef3c7;
+    color: #92400e;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.85rem;
+}
+
+.hu-acoes {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+@media (max-width: 700px) {
+    .hu-mud {
+        grid-template-columns: 1fr;
+        gap: 2px;
+    }
+
+    .hu-seta {
+        display: none;
+    }
+}

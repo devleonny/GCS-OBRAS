@@ -56,19 +56,21 @@ const opcoesContasFin = (contas, app, atual) => `<option value="">${app ? 'Conta
 
 // ---------------------------------------------------------------- componentes
 
-// Sim/Não sem valor padrão: o usuário tem que responder.
+// Sim/Não sem valor padrão (dropdown que começa em "Escolha…"): o usuário tem que responder.
 function simNaoFin(nome, rotulo, onchange = '') {
     return `
         <div class="fin-pergunta" data-pergunta="${escFin(nome)}">
             <span class="fin-pergunta-rotulo">${rotulo} <b class="fin-obrigatorio">*</b></span>
-            <div class="fin-sim-nao" role="radiogroup" aria-label="${escFin(rotulo)}">
-                <label><input type="radio" name="${escFin(nome)}" value="sim" onchange="${onchange}"><span>Sim</span></label>
-                <label><input type="radio" name="${escFin(nome)}" value="nao" onchange="${onchange}"><span>Não</span></label>
-            </div>
+            <select class="fis-input fin-sim-nao" name="${escFin(nome)}" data-valor="" aria-label="${escFin(rotulo)}"
+                onchange="this.dataset.valor = this.value; ${onchange}">
+                <option value="">Escolha…</option>
+                <option value="sim">Sim</option>
+                <option value="nao">Não</option>
+            </select>
         </div>`
 }
 const lerSimNaoFin = (raiz, nome) => {
-    const v = raiz.querySelector(`[name="${nome}"]:checked`)?.value
+    const v = raiz.querySelector(`[name="${nome}"]`)?.value
     return v === 'sim' ? true : v === 'nao' ? false : null
 }
 

@@ -17,36 +17,12 @@
 
 .fin-obrigatorio { color: #b91c1c; }
 
-.fin-sim-nao {
-    display: inline-flex;
-    border: 1px solid #c4cec8;
-    border-radius: 999px;
-    overflow: hidden;
-}
-
-.fin-sim-nao label {
-    position: relative;
-    cursor: pointer;
-}
-
-.fin-sim-nao input {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-}
-
-.fin-sim-nao span {
-    display: inline-block;
-    padding: 6px 18px;
-    font-size: 13px;
-    color: #44544a;
-    background: #fff;
-}
-
-.fin-sim-nao label + label span { border-left: 1px solid #c4cec8; }
-.fin-sim-nao input:checked + span { background: #356443; color: #fff; font-weight: 600; }
-.fin-sim-nao label:last-child input:checked + span { background: #64748b; }
-.fin-sim-nao input:focus-visible + span { outline: 2px solid #52745c; outline-offset: -2px; }
+/* Dropdown no mesmo padrão do destino dos itens: borda lateral colorida pela resposta. */
+.fin-sim-nao { width: auto; min-width: 8rem; padding: 4px 6px; font-size: 0.85rem; font-weight: 600; border-left-width: 4px; }
+.fin-sim-nao[data-valor=""] { border-color: #dc2626; color: #b91c1c; }
+.fin-sim-nao[data-valor="sim"] { border-left-color: #15803d; color: #15803d; }
+.fin-sim-nao[data-valor="nao"] { border-left-color: #64748b; color: #475569; }
+.fin-sim-nao option { color: #1e293b; font-weight: 400; }
 
 /* ---------- entrada da nota recebida */
 .fin-entrada {
@@ -212,6 +188,18 @@
 
 .est-local:hover { background: #f3f8f5; }
 .est-local.divergencia { border-left-color: #d97706; background: #fffaf2; }
+.est-local.uso-consumo { border-left-color: #1e40af; background: #f5f8ff; }
+
+/* Uso e consumo: conferência das requisições (js/estoque.js) */
+.est-comentario-curto { max-width: 340px; font-size: 0.78rem; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.est-conferencia-uso { width: min(980px, 94vw); gap: 10px; }
+.est-comentario { border: 1px solid #e2e8f0; border-left: 3px solid #1e40af; border-radius: 6px; padding: 8px 10px; background: #f8fafc; }
+.est-comentario small { color: #64748b; }
+.est-comentario div { white-space: pre-wrap; font-size: 0.85rem; max-height: 180px; overflow: auto; }
+.est-texto-original { font-size: 0.78rem; color: #334155; white-space: pre-wrap; }
+.est-item-uso { display: flex; flex-direction: column; gap: 3px; min-width: 320px; }
+.est-item-uso select { max-width: 460px; }
+.est-busca-uso { font-size: 0.75rem; padding: 3px 6px; }
 .est-local.inativo { opacity: 0.55; }
 .est-local b { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
 .est-local span { font-size: 12px; color: #5b6b61; }
@@ -297,19 +285,46 @@
 
 
 /* ---------- caixinhas de marcar (tabela das faturas) */
-.fin-marcar {
-    width: 1.05rem;
-    height: 1.05rem;
+/* Desenhada por CSS (a nativa esticada fica com a curva serrilhada e herda o estilo dos filtros no cabeçalho). */
+.fin-marcar,
+.tabela thead input.fin-marcar {
+    -webkit-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
     margin: 0 6px 0 0;
-    accent-color: #356443;
+    padding: 0;
+    vertical-align: middle;
+    background: #fff no-repeat center / 12px 12px;
+    border: 1.5px solid #9fb1a6;
+    border-radius: 4px;
+    box-shadow: none;
     cursor: pointer;
+    transition: background-color 0.12s, border-color 0.12s;
 }
+.fin-marcar:hover { border-color: #356443; }
+.fin-marcar:checked,
+.tabela thead input.fin-marcar:checked {
+    background-color: #356443 !important;
+    border-color: #356443;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+}
+.fin-marcar:indeterminate,
+.tabela thead input.fin-marcar:indeterminate {
+    background-color: #356443 !important;
+    border-color: #356443;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.2' stroke-linecap='round'%3E%3Cpath d='M6 12h12'/%3E%3C/svg%3E");
+}
+.fin-marcar:focus-visible { outline: 2px solid #9cc7a9; outline-offset: 1px; }
 
 /* Sem o contorno de foco dos filtros do cabeçalho (.tabela thead input:focus) nas caixinhas. */
-.tabela thead .fin-marcar:focus,
-.fin-marcar:focus {
+.tabela thead .fin-marcar:focus:not(:checked):not(:indeterminate),
+.fin-marcar:focus:not(:checked):not(:indeterminate) {
     outline: none;
-    background-color: transparent !important;
+    background-color: #fff !important;
 }
 
 .fin-perigo { color: #b91c1c; border-color: #f0b4b4; }
@@ -424,7 +439,15 @@
 .fin-tela .tabela .fin-enchimento td { padding: 0; border: none; }
 .fin-tela .tabela:not(.nude) .fin-enchimento tr,
 .fin-tela .tabela:not(.nude) .fin-enchimento tr:hover { background: #fff; }
-.fin-tela .modtab { border-radius: 6px; }
+/* O conteúdo (fundo da tabela, cabeçalho, faixa de seleção, rodapé) é recortado pela curva da borda:
+   sem isso os cantos retos de dentro passam por cima do arredondamento. Recorte por clip-path, e não por
+   overflow: o cálculo da altura da tabela (calcularAlturaDisponivelTabela em js/tabelas.js) para no primeiro
+   pai com overflow e a tabela encolhia até as linhas que existem. */
+.fin-tela .modtab {
+    border-radius: 8px;
+    clip-path: inset(0 round 8px);
+    background: #fff;
+}
 .fin-tela .div-tabela { border-inline: none; }
 
 .fin-tela .tabela tbody tr.fin-linha { cursor: pointer; }
@@ -447,6 +470,14 @@
 
 .fin-tela .fin-col-marcar .fin-marcar,
 .fin-tela th .fin-marcar { margin: 0; }
+
+/* Relatórios de ocorrências/correções/peças (js/relatorio.js) neste layout: a 1ª coluna é a do "+" dos
+   detalhes (cabe o botão) ou, nas peças, uma coluna de dados comum (não a estreita da caixinha). */
+.rel-oc-tela .tabela thead th.tabela-coluna-detalhes,
+.rel-oc-tela .tabela td.tabela-coluna-detalhes { width: 2rem; min-width: 2rem; padding-inline: 4px; }
+.rel-oc-tela .tabela thead th:first-child:not(.tabela-coluna-detalhes) { width: auto; min-width: 0; text-align: left; }
+.rel-oc-tela .tabela-coluna-detalhes .tabela-expandir { margin: 0; }
+.rel-oc-tela .tabela tbody tr.fin-linha { cursor: default; }
 
 .fin-centro { text-align: center; }
 .fin-vazio { color: #9aa69f; font-style: italic; }
@@ -499,7 +530,7 @@
     color: #31708f;
     background: linear-gradient(#e3f1fb, #cfe6f6);
     border-bottom: 1px solid #a9cbe3;
-    border-radius: 6px 6px 0 0;
+    border-radius: 0;
 }
 .fin-aviso-selecao[hidden] { display: none; }
 .fin-aviso-selecao a { color: #1f2f3d; font-weight: 700; text-decoration: none; }
@@ -959,3 +990,12 @@
 .fin-tela .tabela > thead > tr:first-child > th { padding: 5px 6px; }
 .fin-tela .tabela > thead > tr:first-child > th > div { gap: 4px !important; }
 .fin-tela .tabela.cab-avancado > thead > tr > th.cab-filtro-th { padding: 2px 3px; }
+
+/* .tabela.caber força width: 100% !important nos inputs do cabeçalho: a caixinha mantém o seu tamanho. */
+.tabela.caber thead input.fin-marcar {
+    width: 16px !important;
+    min-width: 16px !important;
+    max-width: 16px !important;
+    height: 16px !important;
+    padding: 0 !important;
+}

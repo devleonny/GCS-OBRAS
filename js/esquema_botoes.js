@@ -185,33 +185,11 @@ const esquemaBotoes = {
                 { nome: 'Ver Ocorrências', funcao: 'telaOcorrencias', acesso: 'ocorrencias.ver', img: 'alerta' },
                 { nome: 'Dashboard', funcao: 'telaDashboardChamados', acesso: 'ocorrencias.dashboard', img: 'dashboard' },
                 { nome: 'Criar Ocorrência', funcao: 'formularioOcorrencia', acesso: 'ocorrencias.criar', img: 'baixar' },
-                {
-                    nome: 'Relatório de Ocorrências',
-                    funcao: 'telaRelatorio',
-                    acesso: 'ocorrencias.relatorio',
-                    img: 'planilha',
-                    sub: [
-                        { nome: 'Baixar em Excel', funcao: 'baixarExcelRelatorioOcorrencias', acesso: 'ocorrencias.relatorio.excel', img: 'excel' }
-                    ]
-                },
-                {
-                    nome: 'Relatório de Correções',
-                    funcao: 'telaRelatorioCorrecoes',
-                    acesso: 'ocorrencias.relatorio_correcoes',
-                    img: 'planilha',
-                    sub: [
-                        { nome: 'Baixar em Excel', funcao: 'baixarExcelRelatorioCorrecoes', acesso: 'ocorrencias.relatorio_correcoes.excel', img: 'excel' }
-                    ]
-                },
-                {
-                    nome: 'Relatório de Peças',
-                    funcao: 'telaRelatorioPecas',
-                    acesso: 'ocorrencias.relatorio_pecas',
-                    img: 'planilha',
-                    sub: [
-                        { nome: 'Baixar em Excel', funcao: 'baixarExcelRelatorioPecas', acesso: 'ocorrencias.relatorio_pecas.excel', img: 'excel' }
-                    ]
-                }
+                // O Excel de cada relatório fica na barra do topo da tela (js/relatorio.js), com o mesmo acesso
+                // (ocorrencias.relatorio*.excel na Central de Acessos).
+                { nome: 'Relatório de Ocorrências', funcao: 'telaRelatorio', acesso: 'ocorrencias.relatorio', img: 'planilha_notas' },
+                { nome: 'Relatório de Correções', funcao: 'telaRelatorioCorrecoes', acesso: 'ocorrencias.relatorio_correcoes', img: 'planilha_notas' },
+                { nome: 'Relatório de Peças', funcao: 'telaRelatorioPecas', acesso: 'ocorrencias.relatorio_pecas', img: 'planilha_notas' }
             ]
         },
         {
@@ -250,7 +228,7 @@ const esquemaBotoes = {
             sub: [
                 // Quadro com arraste sobre fluxo_itens (desde 13/11/2026; o antigo, calculado por view, saiu do menu).
                 { nome: 'Fluxo de Vendas', funcao: 'telaFluxoItensVendas', img: 'kanban', acesso: 'vendas.fluxo' },
-                { nome: 'NF-e Emitidas', funcao: 'telaNotasNFe', img: 'up_estoque', acesso: 'vendas.nfe_emitidas' },
+                { nome: 'NF-e Emitidas', funcao: 'telaNotasNFe', img: 'planilha_notas', acesso: 'vendas.nfe_emitidas' },
                 // Demonstração, conserto e comodato que precisam voltar (js/remessas_retorno.js, 18/11/2026).
                 { nome: 'Remessas a retornar', funcao: 'telaRemessasRetorno', img: 'lista', acesso: 'vendas.remessas' },
                 { nome: 'Emitir NF-e', funcao: 'formularioEmissaoNFe', img: 'baixar', acesso: 'vendas.emitir_nfe' },
@@ -262,7 +240,7 @@ const esquemaBotoes = {
             img: 'servicos_nfse',
             sub: [
                 { nome: 'Fluxo de Serviços', funcao: 'telaFluxoServicos', img: 'kanban', acesso: 'servicos.fluxo' },
-                { nome: 'NFS-e Emitidas', funcao: 'telaNotasNFSe', img: 'up_estoque', acesso: 'servicos.nfse_emitidas' },
+                { nome: 'NFS-e Emitidas', funcao: 'telaNotasNFSe', img: 'planilha_notas', acesso: 'servicos.nfse_emitidas' },
                 { nome: 'Emitir NFS-e', funcao: 'formularioEmissaoNFSe', img: 'baixar', acesso: 'servicos.emitir_nfse' },
                 { nome: 'Configuração Fiscal', funcao: 'telaConfigFiscal', img: 'engrenagem', acesso: 'fiscal.config' }
             ]
@@ -273,10 +251,12 @@ const esquemaBotoes = {
             sub: [
                 { nome: 'Fluxo de Compras', funcao: 'telaFluxoCompras', img: 'kanban', acesso: 'compras.fluxo' },
                 { nome: 'Notas Recebidas', funcao: 'telaNotasRecebidas', img: 'down_estoque', acesso: 'compras.notas_recebidas' },
+                { nome: 'Créditos IBS/CBS', funcao: 'telaCreditosIbsCbs', img: 'lista', acesso: 'compras.creditos_ibs_cbs' },
                 { nome: 'Saldos', funcao: 'telaEstoque', acesso: 'compras.saldos', img: 'estoque' },
                 { nome: 'Movimentações', funcao: 'telaMovimentosEstoque', acesso: 'compras.movimentacoes', img: 'lista' },
                 { nome: 'Locais', funcao: 'telaLocaisEstoque', acesso: 'compras.locais', img: 'estoque' },
-                { nome: 'Inventário', funcao: 'telaInventarios', acesso: 'compras.inventario', img: 'prancheta' }
+                { nome: 'Inventário', funcao: 'telaInventarios', acesso: 'compras.inventario', img: 'prancheta' },
+                { nome: 'Uso e consumo', funcao: 'telaUsoConsumoEstoque', acesso: 'compras.uso_consumo', img: 'prancheta' }
             ]
         },
         {
@@ -375,11 +355,6 @@ const esquemaBotoes = {
             nome: 'GCS no celular',
             funcao: 'abrirGCSNoCelular',
             img: 'celular'
-        },
-        {
-            nome: 'Trocar Senha',
-            funcao: 'formularioTrocarSenha',
-            img: 'cadeado'
         },
         {
             nome: 'Desconectar',

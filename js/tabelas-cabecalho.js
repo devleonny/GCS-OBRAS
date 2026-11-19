@@ -29,12 +29,16 @@ const escCab = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<
 const isoCab = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const dataBrCab = iso => iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : ''
 
+// Com detalhes (modTab detalhes: true) a 1ª célula de cada linha é a do "+": entra aqui como coluna fixa sem
+// chave, para o índice de cada coluna continuar batendo com a posição da célula.
 function colunasCab(pag) {
-    return Object.entries(controles[pag]?.colunas || {}).map(([titulo, c], idx) => ({
-        idx, titulo, chave: c.chave || '',
+    const desloc = controles[pag]?.detalhes ? 1 : 0
+    const cols = Object.entries(controles[pag]?.colunas || {}).map(([titulo, c], i) => ({
+        idx: i + desloc, titulo, chave: c.chave || '',
         tipo: c.filtro || (c.tipoPesquisa === 'data' ? 'data' : c.tipoPesquisa === 'select' ? 'lista' : c.tipoOrdenacao === 'numero' ? 'numero' : 'texto'),
         rotulos: c.rotulos || {}
     }))
+    return desloc ? [{ idx: 0, titulo: '', chave: '', tipo: 'texto', rotulos: {} }, ...cols] : cols
 }
 
 // Intervalo [início, fim] (YYYY-MM-DD) das opções de período.

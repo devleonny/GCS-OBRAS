@@ -322,7 +322,10 @@ async function usuariosToolbar() {
                 <img class="foto-usuario-menu moldura-foto" src="${escaparAtributo(url)}" data-foto="${escaparAtributo(url)}"
                     alt="Foto do usuário" onerror="this.onerror = null; this.src = logo">
             </button>
-            <span class="rotulo-usuario-menu">${rotulo}</span>`
+            <div class="info-usuario-menu">
+                <span class="rotulo-usuario-menu">${rotulo}</span>
+                <a href="#" class="trocar-senha-menu" onclick="event.preventDefault(); formularioTrocarSenha()">Alterar senha</a>
+            </div>`
     }
     mostrarPerfil(foto)
 

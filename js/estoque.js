@@ -52,7 +52,7 @@ const TIPOS_MOVIMENTO = {
     ESTORNO: { cor: '#64748b', texto: 'Estorno' },
     TRANSFERENCIA: { cor: '#0e7490', texto: 'Transferência' }
 }
-const ORIGENS_MOVIMENTO = { NF_ENTRADA: 'Nota recebida', NF_SAIDA: 'Nota emitida', INVENTARIO: 'Inventário', MANUAL: 'Ajuste manual', ESTORNO: 'Estorno', TRANSFERENCIA: 'Transferência' }
+const ORIGENS_MOVIMENTO = { NF_ENTRADA: 'Nota recebida', NF_SAIDA: 'Nota emitida', INVENTARIO: 'Inventário', MANUAL: 'Ajuste manual', ESTORNO: 'Estorno', TRANSFERENCIA: 'Transferência', REQUISICAO: 'Requisição (uso e consumo)' }
 
 // Locais ativos (cache da sessão; recarregado ao criar/editar).
 let locaisEstoqueCache = null
@@ -60,7 +60,7 @@ async function locaisEstoque(recarregar = false) {
     if (!locaisEstoqueCache || recarregar) locaisEstoqueCache = (await apiEstoque('locais')).locais
     return locaisEstoqueCache
 }
-const nomeLocalEst = l => `${l.app} · ${l.nome}${l.tipo === 'DIVERGENCIA' ? ' (diferenças)' : ''}`
+const nomeLocalEst = l => `${l.app} · ${l.nome}${l.tipo === 'DIVERGENCIA' ? ' (diferenças)' : ''}${l.tipo === 'USO_CONSUMO' ? ' (requisições)' : ''}`
 const opcoesLocaisEst = (locais, atual, filtro = () => true) => locais.filter(l => l.ativo && filtro(l))
     .map(l => `<option value="${escEst(l.id)}" ${l.id === atual ? 'selected' : ''}>${escEst(nomeLocalEst(l))}${l.padrao ? ' — padrão' : ''}</option>`).join('')
 
@@ -152,7 +152,7 @@ function linhaMovimentoEst(m, { comItem = false, acoes = true } = {}) {
     const q = Number(m.quantidade)
     const doc = m.documento_id
         ? `<span class="fis-link" onclick="abrirDocumentoFiscal('${escEst(m.documento_id)}')">NF ${escEst(m.documento_numero || '')}</span> <small>${escEst(m.participante_nome || '')}</small>`
-        : m.inventario_id ? 'Inventário' : ''
+        : m.inventario_id ? 'Inventário' : m.origem === 'REQUISICAO' ? 'Requisição' : ''
     const podeEstornar = acoes && !m.estornado && ['MANUAL', 'INVENTARIO'].includes(m.origem) && m.tipo !== 'ESTORNO'
     return `
         <tr class="${m.estornado ? 'fis-estornado' : ''}">
@@ -530,6 +530,7 @@ async function telaLocaisEstoque() {
                         Cada empresa tem os seus locais (Matriz, Galpão…). Transferências só entre locais da <b>mesma empresa</b>:
                         entre empresas a mercadoria passa por nota fiscal (saída numa, entrada na outra).
                         <b>Divergências</b> guarda as faltas encontradas nos inventários até serem achadas (transfira de volta) ou baixadas (ajuste).
+                        <b>Uso e consumo</b> recebe os itens marcados assim na nota recebida e sai pelas requisições conferidas pela Logística.
                     </div>
                     <div class="fis-acoes-claras">
                         <button type="button" class="fis-botao" onclick="formularioLocalEstoque()">+ Local</button>
@@ -540,7 +541,7 @@ async function telaLocaisEstoque() {
                         <div class="est-empresa">
                             <h3>${escEst(app)}</h3>
                             <div class="est-locais">${locais.filter(l => l.app === app).map(l => `
-                                <button type="button" class="est-local ${l.tipo === 'DIVERGENCIA' ? 'divergencia' : ''} ${l.ativo ? '' : 'inativo'}" onclick="abrirLocalEstoque('${escEst(l.id)}')">
+                                <button type="button" class="est-local ${l.tipo === 'DIVERGENCIA' ? 'divergencia' : ''} ${l.tipo === 'USO_CONSUMO' ? 'uso-consumo' : ''} ${l.ativo ? '' : 'inativo'}" onclick="abrirLocalEstoque('${escEst(l.id)}')">
                                     <span class="est-local-nome">${escEst(l.nome)}${l.padrao ? ' <small>padrão</small>' : ''}${l.ativo ? '' : ' <small>desativado</small>'}</span>
                                     <b>${Number(l.itens || 0)}</b><span>item(ns) com saldo</span>
                                 </button>`).join('')}
@@ -567,6 +568,7 @@ async function abrirLocalEstoque(localId) {
                     <div class="fis-acoes-claras">
                         ${saldos.length ? `<button type="button" class="fis-botao" onclick="formularioTransferenciaEstoque('${escEst(localId)}')">Transferir daqui</button>` : ''}
                         ${l.tipo === 'DIVERGENCIA' ? '' : `<button type="button" class="fis-mini" onclick="formularioLocalEstoque('${escEst(localId)}')">Editar local</button>`}
+                        ${l.tipo === 'USO_CONSUMO' ? `<button type="button" class="fis-mini" onclick="telaUsoConsumoEstoque()">Requisições a conferir</button>` : ''}
                     </div>
                     ${saldos.length ? `
                     <div class="fis-tabela-rolagem">
@@ -606,7 +608,7 @@ async function formularioLocalEstoque(localId = null) {
                         ${l ? '' : `<label class="fis-campo"><span>Empresa</span><select class="fis-input" name="app">${empresas.map(a => `<option value="${escEst(a)}">${escEst(a)}</option>`).join('')}</select></label>`}
                         <label class="fis-campo fis-largo"><span>Nome</span><input class="fis-input" name="nome" maxlength="60" value="${escEst(l?.nome || '')}" placeholder="ex.: Galpão, Almoxarifado da obra X"></label>
                     </div>
-                    <label class="fis-check"><input type="checkbox" name="padrao" ${l?.padrao ? 'checked disabled' : ''}> Local padrão da empresa <small>(notas emitidas saem daqui; as recebidas sugerem este)</small></label>
+                    ${l?.tipo === 'USO_CONSUMO' ? '' : `<label class="fis-check"><input type="checkbox" name="padrao" ${l?.padrao ? 'checked disabled' : ''}> Local padrão da empresa <small>(notas emitidas saem daqui; as recebidas sugerem este)</small></label>`}
                     ${l && !l.padrao ? `<label class="fis-check"><input type="checkbox" name="ativo" ${l.ativo ? 'checked' : ''}> Ativo</label>` : ''}
                     <label class="fis-campo"><span>Observação</span><input class="fis-input" name="observacao" maxlength="300" value="${escEst(l?.observacao || '')}"></label>
                 </div>`
@@ -622,7 +624,7 @@ async function salvarLocalEstoque(botao) {
         overlayAguarde()
         await apiEstoque('locais/salvar', {
             id: form.dataset.id || undefined, app: v('app')?.value, nome: v('nome').value,
-            padrao: v('padrao').checked, ativo: v('ativo') ? v('ativo').checked : undefined, observacao: v('observacao').value
+            padrao: Boolean(v('padrao')?.checked), ativo: v('ativo') ? v('ativo').checked : undefined, observacao: v('observacao').value
         })
         removerOverlay()
         removerPopup(botao?.closest('.popup')?.id)
@@ -706,6 +708,253 @@ async function salvarTransferenciaEstoque(botao) {
         document.querySelectorAll('[data-local-estoque]').forEach(p => removerPopup(p.closest('.popup')?.id))
         popup({ mensagem: `Transferência feita: ${r.itens} item(ns).`, imagem: 'imagens/concluido.png' })
         if (document.querySelector('.est-locais')) telaLocaisEstoque()
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+// ---------------------------------------------------------------- uso e consumo (requisições)
+// A Logística confere cada requisição: os itens USO E CONSUMO dela e o que foi escrito no comentário (o sistema
+// lê as linhas com quantidade e sugere o item do cadastro; quem confere decide). Confirmar dá a baixa no local
+// "Uso e consumo" da empresa; "Sem material" tira da fila sem mexer no estoque; desfazer estorna e devolve à fila.
+// Servidor: SCRIPTS/fiscal.js → rotasUsoConsumo (migrations/estoque-uso-consumo.sql).
+
+const estadoUsoConsumo = { aba: 'pendentes', conferencia: null }
+const dataCurtaEst = v => v ? new Date(v).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : ''
+
+async function telaUsoConsumoEstoque(aba = estadoUsoConsumo.aba) {
+    estadoUsoConsumo.aba = aba
+    overlayAguarde()
+    try {
+        const { pendentes, conferidas } = await apiEstoque('uso-consumo/requisicoes')
+        removerOverlay()
+        const linhasPendentes = pendentes.map(r => `
+            <tr>
+                <td>${dataCurtaEst(r.criada_em)}</td>
+                <td>${escEst(r.app || '')}</td>
+                <td>${escEst(r.departamento || r.orcamento_id || '')}${r.baixa_status === 'DESFEITA' ? ' <small>(conferência desfeita)</small>' : ''}</td>
+                <td>${escEst(r.executor || '')}</td>
+                <td class="fis-num">${Number(r.itens) || ''}</td>
+                <td class="est-comentario-curto">${escEst(r.comentario || '')}</td>
+                <td><button type="button" class="fis-botao" onclick="conferirRequisicaoUso('${escEst(r.requisicao_id)}')">Conferir</button></td>
+            </tr>`).join('') || '<tr><td colspan="7" class="fis-vazio">Nenhuma requisição esperando conferência.</td></tr>'
+        const linhasConferidas = conferidas.map(r => `
+            <tr>
+                <td>${dataCurtaEst(r.confirmado_em)}</td>
+                <td>${escEst(r.departamento || r.orcamento_id || '')} <small>${dataCurtaEst(r.criada_em)}</small></td>
+                <td>${r.baixa_status === 'CONFIRMADA' ? etiquetaEst('Baixada', '#15803d') : etiquetaEst('Sem material', '#64748b')}</td>
+                <td>${escEst(r.local_app ? `${r.local_app} · ${r.local_nome}` : '')}</td>
+                <td class="fis-num">${Number(r.itens) || ''}</td>
+                <td><small>${escEst(r.confirmado_por || '')}</small></td>
+                <td><button type="button" class="fis-mini" onclick="desfazerConferenciaUso('${escEst(r.requisicao_id)}')">Desfazer</button></td>
+            </tr>`).join('') || '<tr><td colspan="7" class="fis-vazio">Nada conferido ainda.</td></tr>'
+        tela.innerHTML = `
+            <div class="pagina-conteudo fis-pagina">
+                <div class="cabecalho-pagina"><h2>Uso e consumo · requisições</h2></div>
+                <div class="fis-painel">
+                    <div class="fis-explica">
+                        Cada requisição traz os itens de <b>uso e consumo</b> dela e o que o pessoal escreveu no comentário.
+                        Confira, ajuste os itens e as quantidades e <b>confirme</b>: a baixa sai do local <b>Uso e consumo</b> da empresa.
+                        Se não saiu nada de uso e consumo, marque <b>Sem material</b>.
+                    </div>
+                    <div class="fis-acoes-claras">
+                        <button type="button" class="${aba === 'pendentes' ? 'fis-botao' : 'fis-mini'}" onclick="telaUsoConsumoEstoque('pendentes')">A conferir <b>${pendentes.length}</b></button>
+                        <button type="button" class="${aba === 'conferidas' ? 'fis-botao' : 'fis-mini'}" onclick="telaUsoConsumoEstoque('conferidas')">Conferidas</button>
+                        <button type="button" class="fis-mini" onclick="telaLocaisEstoque()">Locais</button>
+                    </div>
+                    <div class="fis-tabela-rolagem">
+                        ${aba === 'pendentes' ? `
+                        <table class="fis-tabela">
+                            <thead><tr><th>Feita em</th><th>Empresa</th><th>Departamento</th><th>Por</th><th class="fis-num">Itens U&amp;C</th><th>Comentário</th><th></th></tr></thead>
+                            <tbody>${linhasPendentes}</tbody>
+                        </table>` : `
+                        <table class="fis-tabela">
+                            <thead><tr><th>Conferida em</th><th>Requisição</th><th>Situação</th><th>Local</th><th class="fis-num">Itens</th><th>Por</th><th></th></tr></thead>
+                            <tbody>${linhasConferidas}</tbody>
+                        </table>`}
+                    </div>
+                </div>
+            </div>`
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+function saldoUsoEst(itemId, localId) {
+    const s = estadoUsoConsumo.conferencia?.saldos.get(`${localId}:${itemId}`)
+    return s == null ? 0 : Number(s)
+}
+
+function opcaoItemUso(i, selecionado) {
+    estadoUsoConsumo.conferencia?.itens.set(String(i.id), i)
+    return `<option value="${escEst(i.id)}" ${selecionado ? 'selected' : ''}>${escEst(i.codigo || i.id)} · ${escEst(i.descricao)}${i.unidade ? ` (${escEst(i.unidade)})` : ''}</option>`
+}
+
+// linha: { origem: 'REQUISICAO' | 'COMENTARIO' | 'MANUAL', texto, quantidade, item?, sugestoes? }
+function linhaConferenciaUso(l) {
+    const opcoes = l.item ? [l.item] : (l.sugestoes || [])
+    const rotulo = { REQUISICAO: 'Item da requisição', COMENTARIO: 'Comentário', MANUAL: 'Incluído na conferência' }[l.origem]
+    return `
+        <tr data-linha-uso data-origem="${escEst(l.origem)}">
+            <td><input type="checkbox" data-incluir ${opcoes.length ? 'checked' : ''}></td>
+            <td class="fis-descricao"><small>${escEst(rotulo)}</small>${l.texto ? `<div class="est-texto-original">${escEst(l.texto)}</div>` : ''}</td>
+            <td class="est-item-uso">
+                <select class="fis-input" data-item onchange="atualizarSaldoLinhaUso(this.closest('tr'))">
+                    ${opcoes.length ? '' : '<option value="">— escolha o item —</option>'}
+                    ${opcoes.map((i, n) => opcaoItemUso(i, n === 0)).join('')}
+                </select>
+                ${l.origem === 'REQUISICAO' ? '' : `<input class="fis-input est-busca-uso" placeholder="buscar outro item…" onchange="buscarItemUso(this)">`}
+            </td>
+            <td><input class="fis-input fis-contagem" type="number" min="0" step="any" data-qtd value="${escEst(l.quantidade ?? '')}"></td>
+            <td class="fis-num" data-saldo></td>
+        </tr>`
+}
+
+function atualizarSaldoLinhaUso(tr) {
+    const caixa = tr.closest('[data-conferencia-uso]')
+    const localId = caixa?.querySelector('[name="local_id"]')?.value
+    const itemId = tr.querySelector('[data-item]')?.value
+    const alvo = tr.querySelector('[data-saldo]')
+    if (!alvo) return
+    if (!itemId) { alvo.textContent = ''; return }
+    const saldo = saldoUsoEst(itemId, localId)
+    const item = estadoUsoConsumo.conferencia?.itens.get(String(itemId))
+    alvo.innerHTML = `<span class="${saldo <= 0 ? 'fis-negativo' : ''}">${qtdEst(saldo)}</span> <small>${escEst(item?.unidade || '')}</small>`
+    if (itemId) tr.querySelector('[data-incluir]').checked = true
+}
+
+function atualizarSaldosConferenciaUso() {
+    document.querySelectorAll('[data-conferencia-uso] [data-linha-uso]').forEach(atualizarSaldoLinhaUso)
+}
+
+async function buscarItemUso(input) {
+    const termo = input.value.trim()
+    if (termo.length < 2) return
+    try {
+        const { itens, saldos } = await apiEstoque('uso-consumo/buscar', { texto: termo })
+        for (const s of saldos) estadoUsoConsumo.conferencia?.saldos.set(`${s.local_id}:${s.item_id}`, s.saldo)
+        const select = input.closest('td').querySelector('[data-item]')
+        if (!itens.length) return popup({ mensagem: `Nada encontrado no cadastro para "${escEst(termo)}".` })
+        select.innerHTML = itens.map((i, n) => opcaoItemUso(i, n === 0)).join('')
+        atualizarSaldoLinhaUso(input.closest('tr'))
+    } catch (err) {
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+function adicionarLinhaUso() {
+    const corpo = document.querySelector('[data-conferencia-uso] [data-linhas-uso]')
+    if (!corpo) return
+    corpo.insertAdjacentHTML('beforeend', linhaConferenciaUso({ origem: 'MANUAL', quantidade: '' }))
+    corpo.lastElementChild.querySelector('.est-busca-uso')?.focus()
+}
+
+async function conferirRequisicaoUso(requisicaoId) {
+    overlayAguarde()
+    try {
+        const { requisicao: r, linhas, locais, local_id, saldos } = await apiEstoque('uso-consumo/requisicao', { requisicao_id: requisicaoId })
+        removerOverlay()
+        estadoUsoConsumo.conferencia = {
+            id: requisicaoId,
+            saldos: new Map(saldos.map(s => [`${s.local_id}:${s.item_id}`, s.saldo])),
+            itens: new Map()
+        }
+        const todas = [
+            ...r.itens_uso_consumo.map(i => ({ origem: 'REQUISICAO', quantidade: i.quantidade, item: { id: i.item_id, codigo: i.codigo, descricao: i.descricao, unidade: i.unidade } })),
+            ...linhas.map(l => ({ origem: 'COMENTARIO', texto: l.texto, quantidade: l.quantidade, sugestoes: l.sugestoes }))
+        ]
+        popup({
+            titulo: 'Conferir requisição · uso e consumo',
+            elemento: `
+                <div class="fis-painel est-conferencia-uso" data-conferencia-uso="${escEst(requisicaoId)}">
+                    <div class="fis-resumo">
+                        <div><span>Departamento</span><b>${escEst(r.departamento || r.orcamento_id || '—')}</b></div>
+                        <div><span>Empresa</span><b>${escEst(r.app || '—')}</b></div>
+                        <div><span>Feita em</span><b>${dataCurtaEst(r.criada_em)}</b></div>
+                        <div><span>Por</span><b>${escEst(r.executor || '—')}</b></div>
+                    </div>
+                    ${r.comentario ? `<div class="est-comentario"><small>Comentário da requisição</small><div>${escEst(r.comentario)}</div></div>` : ''}
+                    <label class="fis-campo"><span>Sai do local</span>
+                        <select class="fis-input" name="local_id" onchange="atualizarSaldosConferenciaUso()">
+                            ${locais.map(l => `<option value="${escEst(l.id)}" ${l.id === local_id ? 'selected' : ''}>${escEst(l.app)} · ${escEst(l.nome)}</option>`).join('')}
+                        </select>
+                    </label>
+                    <div class="fis-tabela-rolagem">
+                        <table class="fis-tabela">
+                            <thead><tr><th></th><th>De onde veio</th><th>Item do cadastro</th><th>Qtd</th><th class="fis-num">Saldo no local</th></tr></thead>
+                            <tbody data-linhas-uso>${todas.map(linhaConferenciaUso).join('')}</tbody>
+                        </table>
+                    </div>
+                    ${todas.length ? '' : '<div class="fis-vazio">Não achei itens nem linhas com quantidade no comentário: inclua os itens que saíram, ou marque "Sem material".</div>'}
+                    <div class="fis-acoes-claras"><button type="button" class="fis-mini" onclick="adicionarLinhaUso()">+ Item</button></div>
+                    <small class="fis-dica">Só as linhas marcadas e com quantidade dão baixa. Saldo zerado não impede a baixa (o material já saiu), mas fica negativo no local até a nota de entrada chegar.</small>
+                    <label class="fis-campo"><span>Observação <small>(opcional)</small></span><input class="fis-input" name="observacao" maxlength="300"></label>
+                </div>`,
+            botoes: [
+                { texto: 'Sem material de uso e consumo', img: 'cancel', funcao: `semMaterialRequisicaoUso('${escEst(requisicaoId)}', this)` },
+                { texto: 'Confirmar baixa', img: 'concluido', funcao: `confirmarConferenciaUso('${escEst(requisicaoId)}', this)` }
+            ]
+        })
+        atualizarSaldosConferenciaUso()
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+async function confirmarConferenciaUso(requisicaoId, botao) {
+    const caixa = document.querySelector(`[data-conferencia-uso="${CSS.escape(requisicaoId)}"]`)
+    if (!caixa) return
+    const itens = [], faltas = []
+    caixa.querySelectorAll('[data-linha-uso]').forEach((tr, n) => {
+        if (!tr.querySelector('[data-incluir]').checked) return
+        const item_id = tr.querySelector('[data-item]').value
+        const quantidade = Number(tr.querySelector('[data-qtd]').value)
+        if (!item_id) return faltas.push(`Linha ${n + 1}: escolha o item (ou desmarque a linha).`)
+        if (!(quantidade > 0)) return faltas.push(`Linha ${n + 1}: informe a quantidade (ou desmarque a linha).`)
+        itens.push({ item_id, quantidade, origem: tr.dataset.origem, texto: tr.querySelector('.est-texto-original')?.textContent || null })
+    })
+    if (faltas.length) return popup({ mensagem: `<ul class="fis-lista-erros">${faltas.map(f => `<li>${escEst(f)}</li>`).join('')}</ul>` })
+    if (!itens.length) return popup({ mensagem: 'Nenhuma linha marcada. Se não saiu nada de uso e consumo, use "Sem material de uso e consumo".' })
+    try {
+        overlayAguarde()
+        const r = await apiEstoque('uso-consumo/confirmar', {
+            requisicao_id: requisicaoId, local_id: caixa.querySelector('[name="local_id"]').value,
+            itens, observacao: caixa.querySelector('[name="observacao"]').value
+        })
+        removerOverlay()
+        removerPopup(botao?.closest('.popup')?.id)
+        popup({ mensagem: `Baixa feita: ${r.itens} item(ns).${r.avisos?.length ? `<br><small>${r.avisos.map(escEst).join('<br>')}</small>` : ''}`, imagem: 'imagens/concluido.png', tempo: r.avisos?.length ? 8 : 4 })
+        telaUsoConsumoEstoque('pendentes')
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+async function semMaterialRequisicaoUso(requisicaoId, botao) {
+    const ok = await confirmarPopup({ titulo: 'Sem material de uso e consumo', mensagem: 'A requisição sai da fila sem mexer no estoque. Dá para desfazer depois em "Conferidas".', textoConfirmar: 'Confirmar' })
+    if (!ok) return
+    try {
+        const caixa = document.querySelector(`[data-conferencia-uso="${CSS.escape(requisicaoId)}"]`)
+        await apiEstoque('uso-consumo/sem-material', { requisicao_id: requisicaoId, observacao: caixa?.querySelector('[name="observacao"]')?.value || '' })
+        removerPopup(botao?.closest('.popup')?.id)
+        telaUsoConsumoEstoque('pendentes')
+    } catch (err) {
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+async function desfazerConferenciaUso(requisicaoId) {
+    const motivo = await pedirTextoPopup({ titulo: 'Desfazer conferência', mensagem: 'Por que desfazer? (a baixa é estornada e a requisição volta para "A conferir")', textoConfirmar: 'Desfazer', minimo: 5 })
+    if (motivo === null) return
+    try {
+        overlayAguarde()
+        await apiEstoque('uso-consumo/desfazer', { requisicao_id: requisicaoId, motivo })
+        removerOverlay()
+        telaUsoConsumoEstoque('conferidas')
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })

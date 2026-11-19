@@ -704,7 +704,9 @@ function adicionarLinhaTabela(fragment, linha) {
 
 function atualizarBotaoTodosDetalhes(tbody) {
     if (!tbody) return
+    // No topo do modTab ou, nas telas no layout do Financeiro (.fin-tela), no título da coluna do "+".
     const botao = tbody.closest('.div-tabela')?.previousElementSibling?.querySelector('[data-expandir-todos]')
+        || tbody.closest('table')?.querySelector(':scope > thead [data-expandir-todos]')
     if (!botao) return
     const linhas = [...tbody.children].filter(linha => linha.detalhesTabela)
     const todosAbertos = linhas.length > 0 && linhas.every(linha => !linha.detalhesTabela.hidden)
