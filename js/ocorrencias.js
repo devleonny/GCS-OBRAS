@@ -466,7 +466,7 @@ function carregarCorrecoes(ocorrencia) {
                     ${modelo('Permissão', [].concat(permissaoCorrecao || []).filter(Boolean).join(', '))}
 
                     ${listaExecutores.length ? modelo('Executores', `<span>${listaExecutores.join(', ')}</span>`) : ''}
-                    ${(tecnico && tecnico.length) ? modelo('Técnicos', `<span>${tecnico.join(', ')}</span>`) : ''}
+                    ${(tecnico && tecnico.length) ? modelo('Técnicos', tecnico.map(t => `<span data-rastreio-usuario="${escaparAtributo(t)}"${/^d{4}-d{2}-d{2}$/.test(dtCorrecao || '') ? ` data-rastreio-de="${dtCorrecao}" data-rastreio-ate="${/^d{4}-d{2}-d{2}$/.test(dtCorrecaoFinal || '') ? dtCorrecaoFinal : dtCorrecao}"` : ''}>${t}</span>`).join(', ')) : ''}
                     ${modelo('Correção', labelTipoCorrecao)}
                     ${modelo('Descrição', `<div style="white-space: pre-wrap;">${descricao || ''}</div>`)}
                     ${modelo('Criado em', `<span>${data || ''}</span>`)}

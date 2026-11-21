@@ -902,7 +902,7 @@ async function abrirDiaTecnicos(iso) {
 
     const linhas = (lista, classe, extra = () => '') => lista.map(l => `
         <tr class="cal-tec-linha ${classe}">
-            <td>${classe === 'indisponivel' ? '<img src="imagens/cadeado.png" alt="Indisponível">' : ''}${escaparAtributo(l.nome || l.usuario)}</td>
+            <td>${classe === 'indisponivel' ? '<img src="imagens/cadeado.png" alt="Indisponível">' : ''}<span data-rastreio-usuario="${escaparAtributo(l.usuario)}" data-rastreio-de="${iso}">${escaparAtributo(l.nome || l.usuario)}</span></td>
             <td>${local(l)}</td>
             <td>${extra(l)}</td>
         </tr>`).join('')

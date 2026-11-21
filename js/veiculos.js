@@ -114,7 +114,7 @@ async function criarLinhaVeiculo(veiculo) {
             <label name="veículo">${veiculo?.modelo || ''}</label>
         </td>
         <td>
-            <label name="veículo">${veiculo?.placa || ''}</label>
+            <label name="veículo" data-rastreio-placa="${escaparAtributo(veiculo?.placa || '')}">${veiculo?.placa || ''}</label>
         </td>
         <td>
             <div style="${horizontal}; justify-content: left; gap: 1rem;">
@@ -177,7 +177,7 @@ async function criarLinhaCusto(custo) {
                 <img src="imagens/${status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1rem;">
                 <div style="${vertical}; text-align: left;">
                     <label>${nomes || ''}</label>
-                    <label>${placa || ''}</label>
+                    <label data-rastreio-placa="${escaparAtributo(placa || '')}" data-rastreio-de="${/^d{4}-d{2}-d{2}$/.test(data || '') ? data : ''}">${placa || ''}</label>
                     <label>${modelo || ''}</label>
                 </div>
             </div>
