@@ -3752,7 +3752,7 @@ async function telaConfigFiscal(aba = estadoConfigFis.aba) {
                     empresas: 'Dados das empresas emitentes (vieram do cadastro do Omie). <b>Ambiente</b>: homologação emite notas de teste, sem valor fiscal; só adm/diretoria passam para produção. O token da Focus NFe fica no servidor (SCRIPTS/config.js).',
                     operacoes: 'Perfis de operação copiados das notas emitidas pelo Omie (CFOP, CST e alíquotas). Na emissão, o GCS escolhe o CFOP interno ou interestadual pela UF do destinatário e calcula ICMS, PIS/COFINS (base sem ICMS) e IBS/CBS. <b>Confira com a contabilidade antes de ir para produção.</b>',
                     servicos: 'Serviços das NFS-e (copiados das notas do Omie de mai–nov/2026): item da LC 116, código de tributação nacional, NBS, alíquota de ISS e retenções federais padrão.',
-                    backup: 'XMLs guardados no GCS: as notas emitidas e recebidas pelo GCS e, como backup, as NF-e emitidas pelo Omie (o servidor baixa uma a uma pelo Omie; as novas entram sozinhas). As NFS-e do Omie ficam de fora: o Omie não entrega o XML delas.'
+                    backup: 'XMLs e PDFs guardados no GCS: as notas emitidas e recebidas pelo GCS e, como backup, as NF-e e NFS-e emitidas pelo Omie (o servidor baixa uma a uma; as novas entram sozinhas). Os PDFs ficam em disco na VPS.'
                 }[aba]}</div>
                 <div data-config-fiscal>${{ empresas: htmlConfigEmpresas, operacoes: htmlConfigOperacoes, servicos: htmlConfigServicos, backup: () => '<div class="fis-vazio">Carregando…</div>' }[aba](estadoConfigFis.dados)}</div>
             </div>
@@ -3773,14 +3773,15 @@ async function carregarBackupXmlsFis() {
         const inicioMes = iso(new Date(hoje.getFullYear(), hoje.getMonth(), 1))
         alvo.innerHTML = `
             <div class="fis-secao">
-                <div class="fis-secao-topo"><b>NF-e emitidas pelo Omie</b> ${r.rodando ? '<small class="fis-secao-info">baixando agora…</small>' : ''}</div>
+                <div class="fis-secao-topo"><b>Notas emitidas pelo Omie</b> ${r.rodando ? '<small class="fis-secao-info">baixando agora…</small>' : ''}</div>
                 <table class="fis-tabela fis-backup-tabela">
-                    <thead><tr><th>Empresa</th><th class="fis-num">Notas</th><th class="fis-num">XMLs no GCS</th><th class="fis-num">Faltam</th><th class="fis-num">Com erro</th></tr></thead>
+                    <thead><tr><th>Empresa</th><th>Modelo</th><th class="fis-num">Notas</th><th class="fis-num">XMLs no GCS</th><th class="fis-num">XMLs faltam</th><th class="fis-num">XML com erro</th><th class="fis-num">PDFs no GCS</th><th class="fis-num">PDFs faltam</th></tr></thead>
                     <tbody>${r.omie.map(x => `
-                        <tr><td>${escFis(x.app)}</td><td class="fis-num">${x.notas}</td><td class="fis-num"><b>${x.guardados}</b></td>
-                            <td class="fis-num">${Number(x.notas) - Number(x.guardados) || ''}</td><td class="fis-num">${Number(x.com_erro) || ''}</td></tr>`).join('')}</tbody>
+                        <tr><td>${escFis(x.app)}</td><td>${x.modelo === 'NFSE' ? 'NFS-e' : 'NF-e'}</td><td class="fis-num">${x.notas}</td><td class="fis-num"><b>${x.guardados}</b></td>
+                            <td class="fis-num">${Number(x.notas) - Number(x.guardados) || ''}</td><td class="fis-num">${Number(x.com_erro) || ''}</td>
+                            <td class="fis-num"><b>${Number(x.pdfs) || 0}</b></td><td class="fis-num">${Number(x.notas) - Number(x.pdfs || 0) || ''}</td></tr>`).join('')}</tbody>
                 </table>
-                <small class="fis-dica">Do GCS: ${r.gcs?.emitidas || 0} emitida(s) e ${r.gcs?.recebidas || 0} recebida(s) com XML.</small>
+                <small class="fis-dica">Do GCS: ${r.gcs?.emitidas || 0} emitida(s) e ${r.gcs?.recebidas || 0} recebida(s) com XML; ${r.gcs?.pdfs || 0} PDF(s) guardados.</small>
             </div>
             <div class="fis-secao" data-exportar-xmls>
                 <div class="fis-secao-topo"><b>Baixar XMLs</b> <small class="fis-secao-info">um ZIP por empresa / emitidas ou recebidas / mês</small></div>
