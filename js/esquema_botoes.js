@@ -278,7 +278,6 @@ const esquemaBotoes = {
                 { nome: 'Ver Combustíveis', funcao: 'telaVeiculos', acesso: 'veiculos.combustiveis', img: 'veiculo' },
                 { nome: 'Adicionar Combustível', funcao: 'painelValores', acesso: 'veiculos.adicionar', img: 'combustivel' },
                 { nome: 'Veículos', funcao: 'auxVeiculos', acesso: 'veiculos.cadastro', img: 'veiculo' },
-                { nome: 'Despesas Localiza', funcao: 'telaLocalizaDespesas', acesso: 'veiculos.localiza', img: 'dinheiro' },
                 { nome: 'Rastreamento', funcao: 'telaRastreioFrota', acesso: 'veiculos.rastreio', img: 'mapa' }
             ]
         },

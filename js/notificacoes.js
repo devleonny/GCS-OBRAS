@@ -254,8 +254,6 @@ async function abrirAcaoNotificacao(acao, titulo = '') {
         // Cadastro feito/atualizado pelo link público: abre o cadastro.
         if (tipo === 'cliente' && acao.id) return await formularioCliente(Number(acao.id) || acao.id)
         if (tipo === 'precos') return await abrirPrecosVencidos(acao.lpu || null)
-        // Conta da Localiza a ratear (gcs SCRIPTS/notificacoes.js, fonte localiza): abre a tela na aba A ratear.
-        if (tipo === 'localiza') return await telaLocalizaDespesas('A RATEAR')
         // Pedidos pendentes (gcs notificacoes.js, fonte promessas): lista do usuário; gestor vê a de todos.
         if (tipo === 'promessas') return await abrirPromessasPedido(!!acao.todas)
         // Remessa a retornar (gcs notificacoes.js, fontes remessas/remessas_resumo): tela das remessas, já na remessa do aviso.

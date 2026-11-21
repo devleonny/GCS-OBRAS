@@ -344,9 +344,6 @@ async function executarAtualizacaoWS() {
                 .some(t => tabelas.has(t))))
             tarefas.push(() => carregarFluxo())
 
-        // Despesas Localiza aberta (js/localiza_despesas.js): rateio gravado ou sincronizado tira o título de "A ratear".
-        if (document.querySelector('.loc-pagina') && (atualizarTodas || tabelas.has('lista_pagamentos') || tabelas.has('localiza_classificacao') || tabelas.has('localiza_rateio_fila')))
-            tarefas.push(async () => { await paginacao('localizaDespesas'); contarAbasLocaliza() })
 
         // Preço salvo/confirmado: o painel "Preços a confirmar" aberto se atualiza (js/precos_vencidos.js).
         if ((tabelas.has('dados_composicoes') || atualizarTodas) && typeof recarregarPrecosVencidos === 'function')

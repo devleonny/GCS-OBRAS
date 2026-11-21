@@ -19,7 +19,9 @@ const SITUACOES_FIN = {
     PAGO: { cor: '#15803d', texto: 'Pago' },
     CANCELADO: { cor: '#64748b', texto: 'Excluída' }
 }
-const ORIGENS_FIN = { MANUAL: 'Manual', NF_ENTRADA: 'Nota recebida', NF_SAIDA: 'Nota emitida', REEMBOLSO: 'Reembolso', RECORRENCIA: 'Repetição' }
+const ORIGENS_FIN = { MANUAL: 'Manual', NF_ENTRADA: 'Nota recebida', NF_SAIDA: 'Nota emitida', REEMBOLSO: 'Reembolso', RECORRENCIA: 'Repetição', OMIE: 'Omie', NF_OMIE: 'NF do Omie', DEVOLUCAO: 'Devolução' }
+// Importadas do Omie (21/11/2026): a origem não existe mais, então se editam e excluem como as lançadas aqui.
+const ORIGENS_EDITAVEIS_FIN = ['MANUAL', 'RECORRENCIA', 'OMIE']
 const FREQUENCIAS_FIN = [['MENSAL', 'Mensal'], ['SEMANAL', 'Semanal'], ['QUINZENAL', 'Quinzenal (14 dias)'], ['BIMESTRAL', 'Bimestral'],
     ['TRIMESTRAL', 'Trimestral'], ['SEMESTRAL', 'Semestral'], ['ANUAL', 'Anual']]
 const nomeFrequenciaFin = f => (FREQUENCIAS_FIN.find(([v]) => v === f) || [])[1] || f || ''
@@ -173,11 +175,12 @@ const rotuloDepFin = d => d ? `${d.id}${d.cliente ? ` · ${d.cliente}` : d.tipo 
 const r6Fin = v => Math.round(Number(v) * 1e6) / 1e6
 const pctCampoFin = v => String(Number(Number(v).toFixed(4)))
 
-function editorRateioFin(departamentos, rateio = [], { total = null } = {}) {
-    const comValor = total != null
+// { valorDoFormulario: true } (fatura, 21/11/2026, a pedido): R$ e % na mesma linha, a base é o Valor do topo.
+function editorRateioFin(departamentos, rateio = [], { total = null, valorDoFormulario = false } = {}) {
+    const comValor = total != null || valorDoFormulario
     const lista = rateio.length ? rateio : [{ departamento: '', percentual: 100 }]
     return `
-        <div class="fin-rateio" data-rateio ${comValor ? `data-com-valor data-total="${escFin(r2Fin(total))}"` : ''}>
+        <div class="fin-rateio" data-rateio ${comValor ? `data-com-valor data-total="${escFin(r2Fin(total || 0))}"` : ''} ${valorDoFormulario ? 'data-total-formulario' : ''}>
             <div class="fin-parcelas-topo"><b>Departamento</b> <small>contrato (ORC) ou setor da lista; vários = rateio em %${comValor ? ' ou em R$' : ''}</small></div>
             <div data-linhas-rateio>${lista.map(r => linhaRateioFin(r, comValor)).join('')}</div>
             <div class="fin-parcelas-rodape">
@@ -205,6 +208,8 @@ function linhaRateioFin(r, comValor = false) {
 
 // Base do rateio em R$: soma das parcelas da mesma caixa; sem parcelas, o total informado.
 function totalRateioFin(bloco) {
+    if (bloco.hasAttribute('data-total-formulario'))
+        return Number(bloco.closest('[data-form-fatura]')?.querySelector('[name="valor"]')?.value) || 0
     const parcelas = bloco.parentElement?.querySelector('[data-parcelas]')
     const soma = parcelas ? r2Fin(lerParcelasFin(parcelas).reduce((a, p) => a + p.valor, 0)) : 0
     return soma > 0 ? soma : Number(bloco.dataset.total) || 0
@@ -828,7 +833,7 @@ function desenharPainelFin() {
     const id = escFin(d?.id || '')
     const cancelada = d?.situacao === 'CANCELADO'
     const aberta = !!d && !['PAGO', 'CANCELADO'].includes(d.situacao)
-    const lancadaAqui = ['MANUAL', 'RECORRENCIA'].includes(d?.origem)
+    const lancadaAqui = ORIGENS_EDITAVEIS_FIN.includes(d?.origem)
     const comPagamento = Number(d?.pago) > 0
     const motivoQuitada = !d ? nada : cancelada ? 'Fatura excluída' : 'Já está quitada'
     const motivoLancada = !d ? nada : !lancadaAqui ? `Veio de ${(ORIGENS_FIN[d.origem] || d.origem).toLowerCase()}: mexa na origem.` : comPagamento ? `Tem ${termoFin('pagamento')}: cancele o ${termoFin('pagamento')} antes.` : ''
@@ -1198,7 +1203,7 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
     const baixas = dados?.baixas || []
     const base = t || rec
     const pagar = tipo === 'PAGAR'
-    const manual = !t || ['MANUAL', 'RECORRENCIA'].includes(t.origem)
+    const manual = !t || ORIGENS_EDITAVEIS_FIN.includes(t.origem)
     const cancelada = t?.situacao === 'CANCELADO'
     const nova = !t && !rec
     const app = base?.app || 'AC'
@@ -1289,7 +1294,7 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
                         </div>
 
                         <div class="fin-aba" data-painel-aba="departamentos" ${aba === 'departamentos' ? '' : 'hidden'}>
-                            ${editorRateioFin(op.departamentos, base?.rateio || [])}
+                            ${editorRateioFin(op.departamentos, base?.rateio || [], { valorDoFormulario: true })}
                         </div>
 
                         ${t ? `
@@ -1366,7 +1371,7 @@ function desenharPainelFormFin(t, rec) {
     const cancelada = t?.situacao === 'CANCELADO'
     const aberta = t && !['PAGO', 'CANCELADO'].includes(t.situacao)
     const comPagamento = Number(t?.pago) > 0
-    const podeExcluir = t && ['MANUAL', 'RECORRENCIA'].includes(t.origem) && !cancelada && !comPagamento
+    const podeExcluir = t && ORIGENS_EDITAVEIS_FIN.includes(t.origem) && !cancelada && !comPagamento
     const acao = (icone, texto, funcao, { perigo = false, ativo = true, motivo = '' } = {}) => `
         <button type="button" class="fin-acao${perigo ? ' perigo' : ''}" title="${escFin(ativo ? texto : `${texto}: ${motivo}`)}" ${ativo ? `onclick="${funcao}"` : 'disabled'}>
             ${iconeFin(icone)}<span>${texto}</span></button>`
@@ -1411,6 +1416,8 @@ function sincronizarTopoFin() {
     }
     simularRepeticoesFin(true)
     somarCategoriasFin()
+    const rateio = form.querySelector('[data-rateio][data-total-formulario]')
+    if (rateio) somarRateioFin(rateio)
 }
 
 // ---------------- aba Parcelas: as faturas do mesmo grupo (clique abre a parcela)
@@ -1561,11 +1568,12 @@ const lerRepeticoesFin = form => [...form.querySelectorAll('[data-simulacao-fin]
     .map(tr => ({ vencimento: tr.querySelector('[name="rep_vencimento"]')?.value, valor: r2Fin(tr.querySelector('[name="rep_valor_linha"]')?.value || 0) }))
     .filter(p => p.vencimento)
 
-// ---------------- categorias (aba): rateio em % sobre o valor do topo
+// ---------------- categorias (aba): rateio em % ou em R$ sobre o valor do topo (21/11/2026, a pedido: digitou o
+// valor, o % se ajusta; digitou o %, o valor se ajusta; mudou o Valor da fatura, a linha em R$ mantém o valor).
 function editorCategoriasFin(lista, tipo, travado = false) {
     return `
         <div class="fin-rateio fin-rateio-categorias" data-categorias-fin data-tipo="${tipo}">
-            <div class="fin-parcelas-topo"><b>Categorias *</b> <small>uma só = 100%; várias = rateio em % sobre o valor (tem que somar 100%)</small></div>
+            <div class="fin-parcelas-topo"><b>Categorias *</b> <small>uma só = 100%; várias = rateio em % ou em R$ sobre o valor (tem que somar 100%)</small></div>
             <div data-linhas-categorias>${lista.map(c => linhaCategoriaFin(c, tipo, travado)).join('')}</div>
             <div class="fin-parcelas-rodape">
                 ${travado ? '<span></span>' : '<button type="button" class="fis-mini" onclick="adicionarCategoriaFin()">+ Categoria</button>'}
@@ -1577,12 +1585,17 @@ function editorCategoriasFin(lista, tipo, travado = false) {
 function linhaCategoriaFin(c, tipo, travado = false) {
     const trava = travado ? 'disabled' : ''
     return `
-        <div class="fin-rateio-linha fin-categoria-linha">
+        <div class="fin-rateio-linha fin-categoria-linha" data-modo="pct">
             <select class="fis-input" name="categoria_rateio" ${trava} onchange="somarCategoriasFin()">${opcoesCategoriasFin(opcoesFinCache?.categorias || [], tipo, c.categoria_id)}</select>
-            <input class="fis-input fis-num" type="number" min="0" max="100" step="0.01" name="percentual_categoria" value="${c.percentual ?? ''}" ${trava} oninput="somarCategoriasFin()"> %
-            <span class="fin-categoria-valor" data-valor-categoria></span>
+            <input class="fis-input fis-num" type="number" min="0" max="100" step="any" name="percentual_categoria" value="${c.percentual ?? ''}" ${trava} oninput="editarCategoriaFin(this, 'pct')"> %
+            <input class="fis-input fis-num" type="number" min="0" step="0.01" name="valor_categoria" placeholder="R$" ${trava} oninput="editarCategoriaFin(this, 'valor')">
             ${travado ? '' : `<button type="button" class="fis-remover-linha" title="Tirar categoria" aria-label="Tirar categoria" onclick="removerCategoriaFin(this)">${iconeLixeiraFis}</button>`}
         </div>`
+}
+
+function editarCategoriaFin(input, modo) {
+    input.closest('.fin-categoria-linha').dataset.modo = modo
+    somarCategoriasFin()
 }
 
 // Nova linha já com o que falta para 100%.
@@ -1607,12 +1620,21 @@ function removerCategoriaFin(botao) {
 // soUmaVale100: com uma linha só, ela vale 100% (o campo de % pode estar vazio ou diferente).
 function lerCategoriasFin(raiz, soUmaVale100 = true) {
     const linhas = [...raiz.querySelectorAll('.fin-categoria-linha')]
-    const lista = linhas.map(l => ({
-        categoria_id: l.querySelector('[name="categoria_rateio"]').value,
-        percentual: r2Fin(l.querySelector('[name="percentual_categoria"]').value || 0)
-    }))
+    const total = Number(document.querySelector('[data-form-fatura] [name="valor"]')?.value) || 0
+    // Linha guiada pelo R$: o % sai do valor (6 casas); o resíduo do arredondamento vai para a maior (soma 100 exata).
+    const lista = linhas.map(l => {
+        const valor = Number(l.querySelector('[name="valor_categoria"]')?.value) || 0
+        const percentual = l.dataset.modo === 'valor' && total ? valor * 100 / total : Number(l.querySelector('[name="percentual_categoria"]').value) || 0
+        return { categoria_id: l.querySelector('[name="categoria_rateio"]').value, percentual: r6Fin(percentual) }
+    })
     if (soUmaVale100 && linhas.length === 1) lista[0].percentual = 100
-    return lista.filter(c => c.categoria_id !== '').map(c => ({ ...c, categoria_id: Number(c.categoria_id) || c.categoria_id }))
+    const r = lista.filter(c => c.categoria_id !== '').map(c => ({ ...c, categoria_id: Number(c.categoria_id) || c.categoria_id }))
+    const soma = r.reduce((a, c) => a + c.percentual, 0)
+    if (r.length > 1 && Math.abs(100 - soma) < 0.001) {
+        const maior = r.reduce((a, c) => c.percentual > a.percentual ? c : a)
+        maior.percentual = r6Fin(maior.percentual + 100 - soma)
+    }
+    return r
 }
 
 function somarCategoriasFin() {
@@ -1621,14 +1643,20 @@ function somarCategoriasFin() {
     const valor = Number(document.querySelector('[data-form-fatura] [name="valor"]')?.value) || 0
     const linhas = [...caixa.querySelectorAll('.fin-categoria-linha')]
     const uma = linhas.length === 1
+    const ativo = document.activeElement
     let soma = 0
     for (const l of linhas) {
         const campo = l.querySelector('[name="percentual_categoria"]')
-        if (uma) campo.value = 100
+        const emReais = l.querySelector('[name="valor_categoria"]')
+        if (uma) { campo.value = 100; l.dataset.modo = 'pct' }
         campo.readOnly = uma
-        const pct = Number(campo.value) || 0
-        soma += pct
-        l.querySelector('[data-valor-categoria]').innerHTML = valor ? dinheiro(r2Fin(valor * pct / 100)) : ''
+        emReais.readOnly = uma
+        if (l.dataset.modo === 'valor') {
+            if (campo !== ativo) campo.value = emReais.value === '' ? '' : valor ? pctCampoFin((Number(emReais.value) || 0) * 100 / valor) : ''
+        } else if (emReais !== ativo) {
+            emReais.value = campo.value === '' || !valor ? '' : r2Fin(valor * (Number(campo.value) || 0) / 100).toFixed(2)
+        }
+        soma += Number(campo.value) || 0
     }
     soma = r2Fin(soma)
     const alvo = caixa.querySelector('[data-soma-categorias]')

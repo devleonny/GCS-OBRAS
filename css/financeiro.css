@@ -921,7 +921,8 @@
 .fin-categoria-linha [name="categoria_rateio"] { flex: 1 1 auto; min-width: 0; }
 .fin-categoria-linha [name="percentual_categoria"] { width: 5.5rem; }
 .fin-categoria-linha [name="percentual_categoria"]:read-only { background: #eef1ef; }
-.fin-categoria-valor { min-width: 7.5rem; text-align: right; font-variant-numeric: tabular-nums; color: #2f3d35; font-size: 13px; }
+.fin-categoria-linha [name="valor_categoria"] { width: 8rem; }
+.fin-categoria-linha [name="valor_categoria"]:read-only { background: #eef1ef; }
 .fin-mais { margin-left: 3px; padding: 0 5px; border-radius: 8px; background: #e4f2dc; color: #2c5a3a; font-size: 10px; }
 
 /* Quadro do favorecido com a foto do cadastro (sem foto: as iniciais no verde). */

@@ -406,19 +406,19 @@ async function salvarPagamentoVeiculo() {
         if (!resultado?.success)
             throw new Error(resultado?.mensagem || 'Falha ao criar pagamento')
 
-        // Dispara no Omie na hora; se falhar, o pagamento fica salvo no GCS com o erro.
+        // Lança na hora (vira fatura a pagar no Financeiro); se falhar, o pagamento fica salvo no GCS com o erro.
         const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
         const resposta = await fetch(`${api}/pagamentos/ticket-log`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ id: idPagamento })
         })
-        const omie = await resposta.json().catch(() => ({}))
+        const lancamento = await resposta.json().catch(() => ({}))
         if (!resposta.ok)
-            throw new Error(`Salvo no GCS, mas não foi lançado no Omie: ${omie.mensagem || `falha ${resposta.status}`}`)
+            throw new Error(`Salvo no GCS, mas não foi lançado: ${lancamento.mensagem || `falha ${resposta.status}`}`)
 
         removerPopup()
-        popup({ mensagem: omie.mensagem || `Lançado no Omie para ${data}`, imagem: 'imagens/concluido.png' })
+        popup({ mensagem: lancamento.mensagem || `Lançado no Financeiro para ${data}`, imagem: 'imagens/concluido.png' })
 
     } catch (err) {
         removerPopup()

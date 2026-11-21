@@ -56,11 +56,10 @@ function imagemEspecifica(justificativa) {
 
 }
 
-// Títulos que vieram do Omie (criado = 'Integração', ~9x os lançados pelo GCS) ficam fora por padrão,
-// menos os do fornecedor Localiza, que aparecem sempre (op 'integracao_so_localiza' em pesquisa-db.js);
-// a caixa "Mostrar integração" no topo inclui o resto na lista e na contagem do painel lateral.
+// Títulos que vieram do Omie (criado = 'Integração', ~9x os lançados pelo GCS) ficam fora por padrão
+// (op 'sem_integracao' em pesquisa-db.js); a caixa "Mostrar integração" no topo inclui o resto na lista e na contagem do painel lateral.
 let mostrarIntegracaoPagamentos = false
-const FILTRO_SEM_INTEGRACAO = { op: 'integracao_so_localiza', value: 'Integração' }
+const FILTRO_SEM_INTEGRACAO = { op: 'sem_integracao', value: 'Integração' }
 
 async function alternarIntegracaoPagamentos(mostrar) {
     mostrarIntegracaoPagamentos = !!mostrar
@@ -96,7 +95,7 @@ async function telaPagamentos() {
                     onkeydown="confirmarPesquisa({ event, chave: 'snapshots.departamentos', op: 'tag_orcamento', elemento: this, pag: 'pagamentos' })"
                     onchange="confirmarPesquisa({ chave: 'snapshots.departamentos', op: 'tag_orcamento', elemento: this, pag: 'pagamentos' })">
             </label>
-            <label class="pagamentos-mostrar-integracao" title="Inclui os títulos que vieram do Omie (Solicitante: Integração); os da Localiza já aparecem sempre">
+            <label class="pagamentos-mostrar-integracao" title="Inclui os títulos que vieram do Omie (Solicitante: Integração)">
                 <input type="checkbox" ${mostrarIntegracaoPagamentos ? 'checked' : ''} onchange="alternarIntegracaoPagamentos(this.checked)">
                 Mostrar integração (Omie)
             </label>
@@ -113,7 +112,8 @@ async function telaPagamentos() {
         filtros: mostrarIntegracaoPagamentos ? {} : { 'snapshots.criado': { ...FILTRO_SEM_INTEGRACAO } },
         funcaoAdicional: ['atualizarPainelEsquerdo', 'preencherTagsPagamentos'],
         body: 'bodyPagamentos',
-        base: 'lista_pagamentos',
+        // vw_reembolsos: lista_pagamentos sem salários/13º (só leitura; gravar continua em lista_pagamentos).
+        base: 'vw_reembolsos',
         criarLinha: 'criarLinhaPagamento'
     })
 
@@ -161,7 +161,7 @@ async function filtrarPagamentos(st) {
 // Mesmo formato da mvw_contagem_pagamentos ([{ status, quantidade }], TODOS primeiro), incluindo a integração.
 async function contagemComIntegracaoPagamentos() {
     try {
-        const dados = await contarPorCampo({ base: 'lista_pagamentos', path: 'status' }) || {}
+        const dados = await contarPorCampo({ base: 'vw_reembolsos', path: 'status' }) || {}
         const lista = Object.entries(dados)
             .filter(([status]) => status !== 'todos' && status !== 'EM BRANCO')
             .map(([status, quantidade]) => ({ status, quantidade }))
@@ -511,7 +511,6 @@ async function abrirDetalhesPagamentos(id) {
 
         if (liberados.includes(permissao))
             acoesRodape.push(
-                { texto: 'Reimportar Anexos no Omie', img: 'anexo', funcao: `reprocessarAnexos('${id}')` },
                 { texto: 'Excluir pagamento', img: 'cancel', funcao: `confirmarExclusaoPagamento('${id}')` }
             )
 
@@ -705,7 +704,7 @@ async function autorizarPagamentos(resposta, id) {
         const pagamento = await recuperarDado('lista_pagamentos', id) || {}
         const { historico } = pagamento
 
-        // Já pago, excluído ou lançado no Omie: aviso (e, para reprovar o lançado, exclusão no Omie).
+        // Já pago, excluído ou lançado no Financeiro: aviso (e, para reprovar o lançado, cancela a fatura).
         const situacao = situacaoPagamentoProcessado(pagamento)
         if (situacao) {
             removerOverlay()
@@ -743,8 +742,8 @@ async function autorizarPagamentos(resposta, id) {
 }
 
 // ---- Aprovar/reprovar pagamento já processado ----
-// PAGO/RECEBIDO ou excluído: nada a decidir. Lançado no Omie (A VENCER, VENCE HOJE, ATRASADO): aprovar
-// não se aplica; reprovar exclui o título do Omie (/pagamentos/reprovar-lancado, só adm, diretoria e fin).
+// PAGO/RECEBIDO ou excluído: nada a decidir. Lançado (A VENCER, VENCE HOJE, ATRASADO; fatura no Financeiro): aprovar
+// não se aplica; reprovar cancela a fatura do Financeiro (/pagamentos/reprovar-lancado, só adm, diretoria e fin).
 // O servidor aplica as mesmas regras (pagamento_aprovacao.js e pagamentos.js).
 const STATUS_LANCADO_OMIE_PAGAMENTO = ['A VENCER', 'VENCE HOJE', 'ATRASADO']
 // Reprovar pagamento já lançado: reembolsos.reprovar_lancado (Central de Acessos).
@@ -766,17 +765,17 @@ function avisoPagamentoProcessado(resposta, id, pagamento, situacao) {
     if (situacao === 'excluido')
         return aviso(`Este pagamento foi excluído (${status}).<br>Não há o que aprovar ou reprovar.`)
     if (resposta == 'S')
-        return aviso(`Este pagamento já foi processado e está lançado no Omie (${status}).<br>Não precisa de aprovação.`)
+        return aviso(`Este pagamento já foi processado e está lançado no Financeiro (${status}).<br>Não precisa de aprovação.`)
     if (!pode('reembolsos.reprovar_lancado'))
-        return aviso(`Este pagamento já está lançado no Omie (${status}).<br>Para reprová-lo, o título precisa ser excluído do Omie: peça ao financeiro (adm, diretoria ou fin).`)
+        return aviso(`Este pagamento já está lançado no Financeiro (${status}).<br>Para reprová-lo, a fatura precisa ser cancelada: peça ao financeiro (adm, diretoria ou fin).`)
 
     popup({
-        titulo: 'Reprovar pagamento lançado no Omie',
+        titulo: 'Reprovar pagamento lançado',
         imagem: 'imagens/alerta.png',
-        mensagem: `Este pagamento já está lançado no Omie (${status}).<br><br>
-            Reprovar vai <b>excluir o título no Omie</b> e marcar o pagamento como reprovado.<br>
-            Se no Omie ele já tiver sido pago, a reprovação é recusada.<br><br>Confirma?`,
-        botoes: [{ texto: 'Excluir do Omie e reprovar', img: 'cancel', funcao: `reprovarPagamentoLancado('${escaparAtributo(id)}')` }]
+        mensagem: `Este pagamento já está lançado no Financeiro (${status}).<br><br>
+            Reprovar vai <b>cancelar a fatura a pagar</b> e marcar o pagamento como reprovado.<br>
+            Se a fatura já tiver pagamento, a reprovação é recusada.<br><br>Confirma?`,
+        botoes: [{ texto: 'Cancelar a fatura e reprovar', img: 'cancel', funcao: `reprovarPagamentoLancado('${escaparAtributo(id)}')` }]
     })
 }
 
@@ -796,7 +795,7 @@ async function reprovarPagamentoLancado(id) {
 
         removerPopup()
         await abrirDetalhesPagamentos(id)
-        popup({ mensagem: 'Título excluído do Omie e pagamento reprovado.', imagem: 'imagens/concluido.png' })
+        popup({ mensagem: 'Fatura cancelada e pagamento reprovado.', imagem: 'imagens/concluido.png' })
     } catch (erro) {
         removerOverlay()
         popup({ mensagem: escaparAtributo(erro.message), imagem: 'imagens/alerta.png' })
@@ -834,11 +833,8 @@ async function salvarPagamento() {
         )
     }
 
-    // Verificar se na observação contém a primeira linha "Solicitante"
-    const observacao = ultimoPagamento.param_estavel.observacao
-    const identificacao = 'Solicitante:'
-    if (!observacao.includes(identificacao))
-        ultimoPagamento.param_estavel.observacao = `${identificacao} ${acesso.usuario} \n ${observacao}`
+    // Sem o "Solicitante: fulano" na observação (era para o Omie): quem solicitou fica no próprio pagamento
+    // (criado) e na fatura do Financeiro (criado_por); a chave Pix tem campo próprio.
 
     ultimoPagamento.status = 'Processando...'
 
@@ -895,7 +891,7 @@ async function formularioPagamento() {
             anexos
         } = ultimoPagamento
 
-        // Verificação se esse pagamento já subiu pro Omie;
+        // Já pago (no Financeiro): não se altera.
         if (status && status.includes('PAGO')) {
             apagarPagamento()
             return popup({ mensagem: 'Este pagamento já foi pago, não pode ser alterado!' })
@@ -1551,7 +1547,7 @@ async function buscarPagamentosReprovados() {
     const { usuario } = acesso || {}
     if (!usuario) return []
     const { resultados } = await pesquisarDB({
-        base: 'lista_pagamentos',
+        base: 'vw_reembolsos',
         filtros: {
             criado: { op: '=', value: usuario },
             status: { op: 'includes', value: 'reprovad' }

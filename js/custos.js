@@ -273,13 +273,13 @@ async function tabPagamentosCusto(contrato) {
                 </div>` : null,
             colunas: {
                 ...(podeMover ? { '': {} } : {}),
-                'Data': { chave: 'param.*.data_previsao', tipoPesquisa: 'data' },
+                'Data': { chave: 'vencimento', tipoPesquisa: 'data' },
                 'Valor': { chave: 'valor' },
                 'Categoria': { chave: 'categoria' },
                 'Status': { chave: 'status' },
                 'Solicitante': { chave: 'criado' },
-                'Recebedor': { chave: 'snapshots.cliente' },
-                'Observação': { chave: 'param.*.observacao' },
+                'Recebedor': { chave: 'recebedor' },
+                'Observação': { chave: 'observacao' },
                 'Ações': {}
             }
         })
@@ -301,17 +301,18 @@ async function tabPagamentosCusto(contrato) {
 
 async function criarLinhaCustoPagamento(pagamento) {
 
-    const { criado, param, status, snapshots, valor, categoria } = pagamento || {}
-    const { data_previsao, observacao } = param?.[0] || {}
-
-    const cliente = snapshots?.cliente || ''
+    // vw_pagamentos_categorias: faturas do Financeiro (e reembolsos em aprovação) por departamento × categoria,
+    // sem salários/13º (migrations/financeiro-custos-relatorios.sql). titulo_id = fatura (ou "R:" + reembolso).
+    const { criado, status, recebedor, observacao, valor, categoria, vencimento, pagamento_id, fatura_id } = pagamento || {}
+    const data_previsao = vencimento ? new Date(`${String(vencimento).slice(0, 10)}T12:00:00`).toLocaleDateString('pt-BR') : ''
+    const cliente = recebedor || ''
 
     const imagem = iconePagamento(status)
 
-    const idPagamento = escaparAtributo(String(pagamento.pagamento_id))
+    const idPagamento = escaparAtributo(String(pagamento.titulo_id))
     const selecao = pode('financeiro.mover_departamento')
         ? `<td><input type="checkbox" class="pc-mover-check" data-pagamento="${idPagamento}" aria-label="Selecionar pagamento"
-            ${selecaoPagamentosCusto.ids.has(String(pagamento.pagamento_id)) ? 'checked' : ''} onchange="marcarPagamentoCusto(this)"></td>`
+            ${selecaoPagamentosCusto.ids.has(String(pagamento.titulo_id)) ? 'checked' : ''} onchange="marcarPagamentoCusto(this)"></td>`
         : ''
 
     const tds = `
@@ -327,13 +328,13 @@ async function criarLinhaCustoPagamento(pagamento) {
                 <span>${status || ''}</span>
             </div>
         </td>
-        <td>${criado || ''}</td>
-        <td>${cliente || ''}</td>
+        <td>${escaparAtributo(criado || '')}</td>
+        <td>${escaparAtributo(cliente || '')}</td>
         <td>
-            <div style="white-space: pre-wrap;">${observacao || ''}</div>
+            <div style="white-space: pre-wrap;">${escaparAtributo(observacao || '')}</div>
         </td>
         <td>
-            <img src="imagens/pesquisar.svg" onclick="abrirDetalhesPagamentos('${pagamento.pagamento_id}')">
+            <img src="imagens/pesquisar.svg" onclick="${pagamento_id ? `abrirDetalhesPagamentos('${escaparAtributo(pagamento_id)}')` : `abrirFaturaFin('${escaparAtributo(fatura_id)}')`}">
         </td>
         `
 
@@ -343,7 +344,7 @@ async function criarLinhaCustoPagamento(pagamento) {
 
 // ---------------------------------------------------------------------------
 // Mudar departamento: move os pagamentos selecionados do centro de custo aberto para outro
-// departamento, no Omie (/pagamentos/trocar-departamento). Só a parte do rateio deste
+// departamento (/pagamentos/trocar-departamento: a fatura do Financeiro e o pagamento ligado). Só a parte do rateio deste
 // departamento muda; valores e as outras partes ficam como estão.
 // ---------------------------------------------------------------------------
 
@@ -397,12 +398,12 @@ async function formularioMoverDepartamento() {
                 <input name="departamentoDestino" list="listaDepartamentosDestino" placeholder="Digite para buscar" autocomplete="off" style="min-width: 320px;">
                 <datalist id="listaDepartamentosDestino">${nomes.map(n => `<option value="${escaparAtributo(n)}"></option>`).join('')}</datalist>`
         },
-        { elemento: '<small style="text-align: left; color: #65756b;">A alteração é feita direto no Omie, um pagamento por vez.</small>' }
+        { elemento: '<small style="text-align: left; color: #65756b;">A alteração é feita na fatura do Financeiro (e no pagamento ligado a ela).</small>' }
     ]
 
     popup({
         linhas,
-        botoes: [{ texto: 'Mudar no Omie', img: 'concluido', funcao: 'confirmarMoverDepartamento()' }],
+        botoes: [{ texto: 'Mudar departamento', img: 'concluido', funcao: 'confirmarMoverDepartamento()' }],
         titulo: 'Mudar departamento'
     })
     removerOverlay()

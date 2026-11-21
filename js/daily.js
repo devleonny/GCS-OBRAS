@@ -44,7 +44,7 @@ const TABELAS_HU = {
     fin_titulos: 'Fatura (financeiro)', fin_baixas: 'Baixa (financeiro)', fin_categorias: 'Categoria (financeiro)',
     fin_contas: 'Conta (financeiro)', fin_setores: 'Setor (financeiro)', fin_parametros: 'Parâmetro (financeiro)',
     fin_recorrencias: 'Recorrência (financeiro)', custos_pessoal_manuais: 'Custo de pessoal', custos_pessoal_categorias: 'Categoria de custo de pessoal',
-    localiza_classificacao: 'Classificação Localiza', fiscal_documentos: 'Nota fiscal', fiscal_documento_itens: 'Item de nota fiscal',
+    fiscal_documentos: 'Nota fiscal', fiscal_documento_itens: 'Item de nota fiscal',
     fiscal_operacoes: 'Operação fiscal', fiscal_participantes: 'Participante fiscal', fiscal_servicos: 'Serviço fiscal',
     fiscal_empresas: 'Empresa emissora', fiscal_depara: 'De-para fiscal', fiscal_remessas: 'Remessa',
     estoque_locais: 'Local de estoque', estoque_movimentos: 'Movimento de estoque', estoque_inventarios: 'Inventário',
