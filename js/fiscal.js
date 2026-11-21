@@ -70,6 +70,7 @@ const docFormatadoFis = v => {
 const POR_PAGINA_REC_FIS = 50
 const selecaoRecFis = new Map()   // id -> valor_total (total das marcadas de outras páginas)
 let somaFiltroRecFis = null, assinaturaSomaRecFis = null
+let filtroExtraRecFis = null
 
 async function telaNotasRecebidas() {
     if (typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
@@ -84,12 +85,12 @@ async function telaNotasRecebidas() {
                         <button type="button" onclick="document.querySelector('[data-arquivos-xml]').click()">${iconeFin('salvar')} Importar XML</button>
                         <button type="button" onclick="buscarNotasSefaz()" title="Busca na SEFAZ (pela Focus NFe) as notas emitidas contra os CNPJs do grupo">${iconeFin('repetir')} Buscar na SEFAZ</button>
                         ${consulta ? '' : `<button type="button" onclick="devolucaoPorChaveFis()" title="Devolver uma compra ao fornecedor ou registrar a devolução de uma venda, pela chave da nota">${iconeFin('voltar')} Devolução</button>`}
+                        <button type="button" onclick="baixarLoteDocsFis('recebidas')" title="Baixa num ZIP o PDF (DANFE) e o XML das notas marcadas">${iconeFin('baixar')} PDF/XML</button>
                         <button type="button" onclick="baixarExcelRecebidasFis()" title="Com notas marcadas, baixa só as marcadas; sem marcação, todos os resultados dos filtros aplicados">${iconeFin('excel')} Excel</button>
                         <span data-limpar-rec-fis></span>
                     </div>
-                    <div class="fis-cartoes fis-cartoes-mini" data-cartoes-recebidas></div>
                 </header>
-                <div class="fin-tabela-area" data-tabela-rec-fis></div>
+                ${corpoComIndicadoresFis('recebidas', 'data-tabela-rec-fis')}
             </section>
             <input type="file" accept=".xml,text/xml" multiple hidden data-arquivos-xml onchange="importarXmlsRecebidos(this)">
         </div>`
@@ -100,6 +101,8 @@ async function telaNotasRecebidas() {
 async function abrirTabelaRecebidas(filtroExtra = null) {
     const area = document.querySelector('[data-tabela-rec-fis]')
     if (!area) return telaNotasRecebidas()
+    filtroExtraRecFis = filtroExtra
+    marcarIndicadoresFis()
     const limpar = document.querySelector('[data-limpar-rec-fis]')
     if (limpar) limpar.innerHTML = filtroExtra ? `<button type="button" onclick="abrirTabelaRecebidas()">${iconeFin('fechar')} Limpar filtro</button>` : ''
     try {
@@ -182,6 +185,9 @@ async function somarFiltroRecFis() {
 }
 
 function escreverTotalRecFis() {
+    // Indicador "Valor no filtro" do painel lateral: sempre o total do filtro (a seleção fica só no pé).
+    const ind = document.querySelector('[data-ind-valor-recebidas]')
+    if (ind) ind.innerHTML = somaFiltroRecFis == null ? '—' : dinheiro(somaFiltroRecFis)
     const td = document.querySelector('[data-total-rec]')
     if (!td) return
     const n = selecaoRecFis.size
@@ -343,26 +349,87 @@ async function baixarExcelRecebidasFis() {
     }
 }
 
+// ---------------------------------------------------------------- Painel lateral dos indicadores
+// Notas recebidas e NF-e/NFS-e emitidas: os contadores ficam no painel retrátil da direita, o mesmo do
+// Créditos IBS/CBS e das Faturas (.fin-painel). Aberto até a pessoa recolher (lembrado por tela).
+const painelIndFisAberto = { recebidas: true, emitidas: true }
+
+function corpoComIndicadoresFis(chave, atributoTabela) {
+    const aberto = painelIndFisAberto[chave] !== false
+    return `
+        <div class="fin-corpo${aberto ? '' : ' recolhido'}" data-corpo-ind-fis="${chave}">
+            <div class="fin-tabela-area" ${atributoTabela}></div>
+            <div class="fin-lateral fis-cred-lateral">
+                <button type="button" class="fin-recolher" onclick="alternarPainelIndFis('${chave}')" aria-expanded="${aberto}"
+                    title="${aberto ? 'Recolher' : 'Mostrar'} os indicadores">${iconeFin('seta')}</button>
+                <aside class="fin-painel fis-cred-painel">
+                    <div class="fin-painel-cabeca" title="Indicadores">
+                        <span class="fin-avatar">Σ</span>
+                        <div class="fin-painel-texto"><b>Indicadores</b><small>Pendências de todas as notas. Clique para filtrar.</small></div>
+                    </div>
+                    <div class="fis-cred-inds" data-cartoes-${chave}><small>Calculando…</small></div>
+                </aside>
+            </div>
+        </div>`
+}
+
+function alternarPainelIndFis(chave) {
+    const corpo = document.querySelector(`[data-corpo-ind-fis="${chave}"]`)
+    if (!corpo) return
+    const aberto = corpo.classList.contains('recolhido')
+    corpo.classList.toggle('recolhido', !aberto)
+    const botao = corpo.querySelector('.fin-recolher')
+    botao?.setAttribute('aria-expanded', String(aberto))
+    if (botao) botao.title = `${aberto ? 'Recolher' : 'Mostrar'} os indicadores`
+    painelIndFisAberto[chave] = aberto
+}
+
+// Clique no indicador filtra a tabela; clicar de novo no que está ativo tira o filtro.
+function filtrarIndFis(chave, campo, valor) {
+    const atual = chave === 'emitidas' ? filtroExtraEmitFis : filtroExtraRecFis
+    const mesmo = atual && Object.keys(atual).length === 1 && atual[campo]?.value === valor
+    const filtro = mesmo ? null : { [campo]: { op: '=', value: valor } }
+    return chave === 'emitidas' ? abrirTabelaEmitidas(filtro) : abrirTabelaRecebidas(filtro)
+}
+
+function marcarIndicadoresFis() {
+    document.querySelectorAll('[data-ind-fis]').forEach(b => {
+        const atual = b.dataset.indFis === 'emitidas' ? filtroExtraEmitFis : filtroExtraRecFis
+        const ativo = Boolean(atual && Object.keys(atual).length === 1 && atual[b.dataset.campo]?.value === b.dataset.valor)
+        b.classList.toggle('ativo', ativo)
+        b.setAttribute('aria-pressed', String(ativo))
+    })
+}
+
 async function contadoresFiscal() {
     const alvo = document.querySelector('[data-cartoes-recebidas], [data-cartoes-emitidas]')
     if (!alvo) return
+    const recebidas = alvo.dataset.cartoesRecebidas !== undefined
     try {
         const { contadores: todos } = await apiFiscal('painel')
         // Telas presas a um modelo (NF-e ou NFS-e Emitidas) contam só os documentos daquele modelo.
-        const c = (alvo.dataset.cartoesEmitidas !== undefined && modeloEmitidasFis && todos.saida_por_modelo?.[modeloEmitidasFis]) || todos
-        const cartao = (n, texto, cor, acao) => `
-            <button type="button" class="fis-cartao" style="--cor: ${cor}" ${acao ? `onclick="${acao}"` : 'disabled'}>
-                <b>${n || 0}</b><span>${texto}</span></button>`
-        alvo.innerHTML = alvo.dataset.cartoesRecebidas !== undefined
+        const c = (!recebidas && modeloEmitidasFis && todos.saida_por_modelo?.[modeloEmitidasFis]) || todos
+        const chave = recebidas ? 'recebidas' : 'emitidas'
+        const qtd = n => Number(n || 0).toLocaleString('pt-BR')
+        const cartao = (n, texto, cor, campo, valor, explica) => `
+            <button type="button" class="fis-cred-ind" style="--cor: ${cor}" data-ind-fis="${chave}" data-campo="${campo}" data-valor="${valor}"
+                onclick="filtrarIndFis('${chave}', '${campo}', '${valor}')" title="${escFis(explica)} Clique para filtrar (de novo, tira o filtro).">
+                <span>${texto}</span><b>${qtd(n)}</b><small>${escFis(explica)}</small></button>`
+        const orgao = modeloEmitidasFis === 'NFSE' ? 'da prefeitura' : modeloEmitidasFis === 'NFE' ? 'da SEFAZ' : 'da SEFAZ/prefeitura'
+        alvo.innerHTML = (recebidas
             ? `
-                ${cartao(c.entrada_pendente_vinculo, 'com itens a vincular', '#d97706', `abrirTabelaRecebidas({ estoque_status: { op: '=', value: 'pendente_vinculo' } })`)}
-                ${cartao(c.entrada_pronta, 'prontas para lançar', '#2563eb', `abrirTabelaRecebidas({ estoque_status: { op: '=', value: 'pronto' } })`)}
-                ${cartao(c.entrada_sem_manifestacao, 'sem confirmação', '#7c3aed', `abrirTabelaRecebidas({ manifestacao: { op: '=', value: 'pendente' } })`)}
-                ${cartao(c.entrada_resumo, 'só com resumo (falta XML)', '#64748b', `abrirTabelaRecebidas({ status: { op: '=', value: 'resumo' } })`)}`
+                ${cartao(c.entrada_pendente_vinculo, 'Com itens a vincular', '#d97706', 'estoque_status', 'pendente_vinculo', 'Itens da nota ainda sem o produto do cadastro.')}
+                ${cartao(c.entrada_pronta, 'Prontas para lançar', '#2563eb', 'estoque_status', 'pronto', 'Itens vinculados; falta dar a entrada no estoque.')}
+                ${cartao(c.entrada_sem_manifestacao, 'Sem confirmação', '#7c3aed', 'manifestacao', 'pendente', 'Falta a manifestação do destinatário.')}
+                ${cartao(c.entrada_resumo, 'Só com resumo', '#64748b', 'status', 'resumo', 'Veio só o resumo da SEFAZ: falta o XML completo.')}`
             : `
-                ${cartao(c.saida_rascunho, 'rascunhos', '#64748b', `abrirTabelaEmitidas({ status: { op: '=', value: 'rascunho' } })`)}
-                ${cartao(c.saida_processando, 'processando', '#2563eb', `abrirTabelaEmitidas({ status: { op: '=', value: 'processando' } })`)}
-                ${cartao(c.saida_rejeitada, 'rejeitadas', '#b91c1c', `abrirTabelaEmitidas({ status: { op: '=', value: 'rejeitada' } })`)}`
+                ${cartao(c.saida_rascunho, 'Rascunhos', '#64748b', 'status', 'rascunho', 'Notas começadas e ainda não enviadas.')}
+                ${cartao(c.saida_processando, 'Processando', '#2563eb', 'status', 'processando', `Enviadas, aguardando a resposta ${orgao}.`)}
+                ${cartao(c.saida_rejeitada, 'Rejeitadas', '#b91c1c', 'status', 'rejeitada', 'Voltaram com erro: corrigir e reenviar.')}`)
+            + `<div class="fis-cred-ind" style="--cor: #15803d" title="Soma do Valor de todas as notas dos filtros da tabela">
+                <span>Valor no filtro</span><b data-ind-valor-${chave}>—</b><small>Soma das notas dos filtros da tabela.</small></div>`
+        marcarIndicadoresFis()
+        if (recebidas) escreverTotalRecFis(); else escreverTotalEmitFis()
     } catch (err) {
         alvo.innerHTML = `<div class="fis-alerta">${escFis(err.message)}</div>`
     }
@@ -1449,12 +1516,12 @@ async function telaNotasEmitidas(modelo = null) {
                         ${modeloEmitidasFis !== 'NFSE' && !consulta ? `<button type="button" onclick="formularioEmissaoNFe()">${iconeFin('incluir')} NF-e</button>` : ''}
                         ${modeloEmitidasFis !== 'NFE' && !consulta ? `<button type="button" onclick="formularioEmissaoNFSe()">${iconeFin('incluir')} NFS-e</button>` : ''}
                         ${modeloEmitidasFis !== 'NFSE' && !consulta ? `<button type="button" onclick="devolucaoEmitidasFis()" title="Com uma nota marcada, registra a devolução dela; sem marcação, pede a chave da nota (venda ou compra)">${iconeFin('voltar')} Devolução</button>` : ''}
+                        <button type="button" onclick="baixarLoteDocsFis('emitidas')" title="Baixa num ZIP o PDF (DANFE/DANFSe) e o XML das notas marcadas">${iconeFin('baixar')} PDF/XML</button>
                         <button type="button" onclick="baixarExcelEmitidasFis()" title="Com notas marcadas, baixa só as marcadas; sem marcação, todos os resultados dos filtros aplicados">${iconeFin('excel')} Excel</button>
                         <span data-limpar-emit-fis></span>
                     </div>
-                    <div class="fis-cartoes fis-cartoes-mini" data-cartoes-emitidas></div>
                 </header>
-                <div class="fin-tabela-area" data-tabela-emit-fis></div>
+                ${corpoComIndicadoresFis('emitidas', 'data-tabela-emit-fis')}
             </section>
         </div>`
     contadoresFiscal()
@@ -1466,6 +1533,7 @@ async function abrirTabelaEmitidas(filtroExtra = null) {
     const area = document.querySelector('[data-tabela-emit-fis]')
     if (!area) return telaNotasEmitidas(modeloEmitidasFis)
     filtroExtraEmitFis = filtroExtra
+    marcarIndicadoresFis()
     const limpar = document.querySelector('[data-limpar-emit-fis]')
     if (limpar) limpar.innerHTML = filtroExtra ? `<button type="button" onclick="abrirTabelaEmitidas()">${iconeFin('fechar')} Limpar filtro</button>` : ''
     const filtroModelo = modeloEmitidasFis ? { modelo: { op: '=', value: modeloEmitidasFis } } : {}
@@ -1555,6 +1623,9 @@ async function somarFiltroEmitFis() {
 }
 
 function escreverTotalEmitFis() {
+    // Indicador "Valor no filtro" do painel lateral: sempre o total do filtro (a seleção fica só no pé).
+    const ind = document.querySelector('[data-ind-valor-emitidas]')
+    if (ind) ind.innerHTML = somaFiltroEmitFis == null ? '—' : dinheiro(somaFiltroEmitFis)
     const td = document.querySelector('[data-total-emit]')
     if (!td) return
     const n = selecaoEmitFis.size
@@ -1718,6 +1789,58 @@ async function baixarExcelEmitidasFis() {
         popup({ mensagem: `Falha ao gerar o Excel: ${escFis(err.message)}` })
     } finally {
         removerOverlay()
+    }
+}
+
+// ZIP com PDF e/ou XML das notas marcadas (rota fiscal/lote). A seleção atravessa páginas e o aviso
+// "selecionar todas deste filtro" marca o filtro inteiro. O que não veio (NFS-e do Omie, nota sem XML no
+// backup...) fica listado no LEIA-ME.txt dentro do ZIP.
+function baixarLoteDocsFis(lista) {
+    const selecao = lista === 'recebidas' ? selecaoRecFis : selecaoEmitFis
+    const n = selecao.size
+    if (!n) return popup({ titulo: 'Baixar PDF/XML', mensagem: 'Marque as notas nas caixinhas da 1ª coluna.<br><small>Para pegar todas de um filtro, marque a página toda e clique em "selecionar todas deste filtro".</small>' })
+    const chave = crypto.randomUUID()
+    const opcao = (valor, texto, marcado = false) =>
+        `<label class="fis-check" style="margin-top:4px"><input type="radio" name="arquivos-${chave}" value="${valor}" ${marcado ? 'checked' : ''}> ${texto}</label>`
+    const idPopup = popup({
+        titulo: 'Baixar PDF/XML',
+        mensagem: `<div style="text-align:left; display:flex; flex-direction:column">
+            <b>${n.toLocaleString('pt-BR')} nota${n === 1 ? '' : 's'} marcada${n === 1 ? '' : 's'}</b>
+            ${opcao('ambos', 'PDF e XML', true)}${opcao('xml', 'Só XML (rápido)')}${opcao('pdf', 'Só PDF')}
+            <small style="margin-top:8px">O PDF vem um a um da Focus/Omie: muitas notas levam alguns minutos.<br>O que faltar fica listado no LEIA-ME.txt do ZIP.</small></div>`,
+        botoes: [{ texto: 'Baixar ZIP', img: 'baixar', funcao: `executarLoteDocsFis('${lista}', '${chave}')` }]
+    })
+    document.getElementById(idPopup)?.setAttribute('data-lote-docs', chave)
+}
+
+async function executarLoteDocsFis(lista, chave) {
+    const arquivos = document.querySelector(`input[name="arquivos-${chave}"]:checked`)?.value || 'ambos'
+    const janela = document.querySelector(`[data-lote-docs="${chave}"]`)
+    if (janela) removerPopup(janela.id)
+    const ids = [...(lista === 'recebidas' ? selecaoRecFis : selecaoEmitFis).keys()]
+    try {
+        overlayAguarde()
+        const { token } = JSON.parse(localStorage.getItem('acesso') || '{}')
+        const r = await fetch(`${api}/fiscal/lote`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ ids, arquivos })
+        })
+        if (!r.ok) {
+            const j = await r.json().catch(() => ({}))
+            throw new Error(j.mensagem || `Falha ao gerar o ZIP (${r.status})`)
+        }
+        const blob = await r.blob()
+        removerOverlay()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = (r.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/) || [])[1] || 'notas.zip'
+        a.click()
+        setTimeout(() => URL.revokeObjectURL(url), 60000)
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: escFis(err.message) })
     }
 }
 

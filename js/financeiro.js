@@ -343,6 +343,7 @@ const ICONES_FIN = {
     excluir: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
     encerrar: '<circle cx="12" cy="12" r="9"/><rect x="9" y="9" width="6" height="6"/>',
     fechar: '<path d="M6 6l12 12M18 6L6 18"/>',
+    baixar: '<path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/>',
     raio: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
     seta: '<path d="M10 7l5 5-5 5"/>',
     salvar: '<path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9a4 4 0 0 1 0 9"/><path d="M12 12v8M9 15l3-3 3 3"/>',
