@@ -87,6 +87,8 @@
     display: flex; flex-direction: column; align-items: flex-start; gap: 2px; margin: 0;
     padding: 6px 10px; border: 1px solid #e3ebe6; border-radius: 8px; background: #fff; cursor: pointer; text-align: left;
 }
+/* Botões do GCS vêm com texto branco: cor fixa aqui. */
+.rastreio-viagem, .rastreio-viagem b { color: #1f2d25; }
 .rastreio-viagem span { font-size: .78rem; color: #5d6b63; }
 .rastreio-viagem:hover, .rastreio-viagem.ativo { border-color: #e8590c; background: #fff4e6; }
 
@@ -140,6 +142,7 @@
     background: transparent; text-align: left; cursor: pointer; border-radius: 6px;
 }
 .rastreio-item-principal:hover { background: #f4f8f5; }
+.rastreio-item-principal, .rastreio-item-principal b { color: #1f2d25; }
 .rastreio-item-principal span { display: flex; flex-direction: column; }
 .rastreio-item-principal small { color: #5d6b63; }
 .rastreio-item-abrir {
