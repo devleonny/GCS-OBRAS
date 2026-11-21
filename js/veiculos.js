@@ -100,8 +100,9 @@ function origemRateioCombustivel(r) {
 // Coluna Departamentos (formulário simples ou divisão manual): só os departamentos conhecidos, com R$
 // (ou % sem Realizado); o resto como "sem divisão"; botão Dividir para quem edita combustível.
 function htmlDepsSimplesCombustivel(id, editavel) {
-    const botao = editavel ? `<button type="button" class="comb-dividir" onclick="dividirCombustivel('${escaparAtributo(id)}')">Dividir</button>` : ''
     const d = divisaoCombustivel(id)
+    const dica = d.origem === 'manual' ? 'Dividido à mão' : origemRateioCombustivel(d.rateio)
+    const botao = editavel ? `<button type="button" class="comb-dividir" title="${escaparAtributo(dica)}" onclick="dividirCombustivel('${escaparAtributo(id)}')">Dividir</button>` : ''
     if (d.origem === 'carregando')
         return editavel ? '<small class="comb-uso">Calculando a divisão…</small>' : '<small class="comb-uso">Divisão pelo uso</small>'
     const pesos = d.pesos || {}
@@ -114,11 +115,8 @@ function htmlDepsSimplesCombustivel(id, editavel) {
             <span>${escaparAtributo(dep)}</span>
             <strong style="margin-left: 6px; white-space: nowrap;">${valorOuPct(dep, peso)}</strong>
         </div>`).join('')
-    const origem = d.origem === 'manual' ? 'dividido à mão'
-        : d.origem === 'rastreio' ? 'pelo rastreio' : d.origem === 'chamados' ? 'pelos chamados' : ''
     const semDivisao = resto ? `<small class="comb-uso">sem divisão ${valorOuPct(SEM_DESTINO_COMBUSTIVEL, resto)}</small>` : ''
-    const dica = d.origem === 'manual' ? 'Dividido à mão' : origemRateioCombustivel(d.rateio)
-    return `${tags}${semDivisao}<div class="comb-uso-linha"><small class="comb-uso" title="${escaparAtributo(dica)}">${origem}</small>${botao}</div>`
+    return `<div class="comb-deps-lista">${tags}${semDivisao}</div>${botao}`
 }
 
 const FILA_RATEIO_COMBUSTIVEL = new Set()
@@ -406,7 +404,9 @@ async function criarLinhaCusto(custo) {
             </div>`)
     }
     // Distribuição antiga digitada: também pode ser refeita pelo divisor.
-    if (antiga && editavel) deps.push(`<div class="comb-uso-linha"><small class="comb-uso">digitado no pedido</small><button type="button" class="comb-dividir" onclick="dividirCombustivel('${escaparAtributo(id)}')">Dividir</button></div>`)
+    const botaoAntiga = antiga && editavel
+        ? `<button type="button" class="comb-dividir" title="Digitado no pedido" onclick="dividirCombustivel('${escaparAtributo(id)}')">Dividir</button>`
+        : ''
 
     const tds = `
         <td>${data || ''}</td>
@@ -449,7 +449,7 @@ async function criarLinhaCusto(custo) {
 
 
         <td>
-            <div class="comb-deps" style="${vertical}; gap: 1px;" data-deps-custo="${escaparAtributo(id)}" data-realizado="${Number(realizado) || 0}">${deps.join('')}</div>
+            <div class="comb-deps" data-deps-custo="${escaparAtributo(id)}" data-realizado="${Number(realizado) || 0}">${antiga ? `<div class="comb-deps-lista">${deps.join('')}</div>${botaoAntiga}` : deps.join('')}</div>
         </td>
 
         <td>
