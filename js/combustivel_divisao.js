@@ -40,13 +40,6 @@ async function telaDivisaoCombustivel() {
                 <button type="button" onclick="carregarDivisaoCombustivel()">Atualizar</button>
                 <small class="comb-calculado" data-comb-calculado></small>
             </div>
-            <p class="comb-explica">
-                O km de cada carro com rastreador é dividido pelo que aconteceu no dia: paradas perto de lojas e obras com
-                chamado ou orçamento, chamados que o motorista corrigiu, e o resto do dia (deslocamento, almoço) dividido
-                entre esses destinos. Dia sem destino fica <b>a classificar</b> (horário comercial) ou como
-                <b>possível uso particular</b> (fora do horário ou fim de semana). O R$ é estimado: combustível do carro no
-                período ÷ km rodados.
-            </p>
             </header>
             <div data-comb-corpo></div>
         </div>`
