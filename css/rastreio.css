@@ -172,3 +172,41 @@
     .rastreio-lado { width: auto; max-height: 40%; }
     .rastreio-mapa { min-height: 260px; }
 }
+
+/* Veículos → Divisão do combustível (js/combustivel_divisao.js) */
+.comb-div { padding-bottom: 48px; }
+.comb-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 6px 0 4px; }
+.comb-topo label { display: flex; align-items: center; gap: 6px; font-size: .85rem; }
+.comb-topo button { margin: 0; }
+.comb-calculado { color: #5d6b63; }
+.comb-explica { max-width: 980px; margin: 6px 0 12px; color: #3d4b43; font-size: .82rem; line-height: 1.5; }
+.comb-cartoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.comb-cartao { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 10px; background: #fff; border: 1px solid #e3e9e5; border-left: 4px solid #8a9a90; }
+.comb-cartao span { font-size: .78rem; color: #5d6b63; }
+.comb-cartao b { font-size: 1.35rem; color: #1f2d25; }
+.comb-cartao small { font-size: .74rem; color: #5d6b63; }
+.comb-cartao.trabalho { border-left-color: var(--rastreio-movimento); }
+.comb-cartao.classificar { border-left-color: var(--rastreio-ligado); }
+.comb-cartao.particular { border-left-color: var(--rastreio-sem-sinal); }
+.comb-bloco { background: #fff; border: 1px solid #e3e9e5; border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; }
+.comb-bloco > header { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.comb-bloco h3 { margin: 0 0 8px; font-size: 1rem; color: #1f2d25; }
+.comb-bloco h3 small { font-weight: 400; color: #5d6b63; font-size: .8rem; margin-left: 6px; }
+.comb-abas { display: flex; gap: 4px; }
+.comb-abas button { margin: 0; background: #eef2ef; color: #2f3d35; border-color: #dbe3de; }
+.comb-abas button.ativa { background: #356443; color: #fff; }
+.comb-tabela-rolagem { max-height: 420px; overflow: auto; }
+.comb-tabela { width: 100%; border-collapse: collapse; font-size: .82rem; color: #1f2d25; }
+.comb-tabela th { position: sticky; top: 0; background: #f4f7f5; text-align: left; padding: 6px 8px; font-weight: 600; white-space: nowrap; }
+.comb-tabela td { padding: 6px 8px; border-top: 1px solid #eef2ef; vertical-align: middle; }
+.comb-tabela .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.comb-lojas { color: #5d6b63; max-width: 320px; }
+.comb-situacao small { display: block; color: #5d6b63; }
+.comb-acoes { white-space: nowrap; text-align: right; }
+.comb-mini { margin: 0 0 0 4px; padding: 2px 10px; font-size: .74rem; }
+.comb-tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: .74rem; font-weight: 600; }
+.comb-tag.classificar { background: #fff1d6; color: #a6520c; }
+.comb-tag.particular { background: #fde7e7; color: #b42318; }
+.comb-alerta { font-size: .7rem; color: #a6520c; background: #fff1d6; padding: 0 6px; border-radius: 999px; }
+.comb-destaque { color: #b42318; font-weight: 700; }
+.comb-vazio { color: #7b8a81; margin: 6px 0; }
