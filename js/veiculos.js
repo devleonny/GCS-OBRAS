@@ -102,7 +102,7 @@ function origemRateioCombustivel(r) {
 function htmlDepsSimplesCombustivel(id, editavel) {
     const d = divisaoCombustivel(id)
     const dica = d.origem === 'manual' ? 'Dividido à mão' : origemRateioCombustivel(d.rateio)
-    const botao = editavel ? `<button type="button" class="comb-dividir" title="${escaparAtributo(dica)}" onclick="dividirCombustivel('${escaparAtributo(id)}')">Dividir</button>` : ''
+    const botao = editavel ? `<img class="comb-dividir" src="imagens/dividir.svg" title="${escaparAtributo(`Dividir entre departamentos · ${dica}`)}" onclick="dividirCombustivel('${escaparAtributo(id)}')">` : ''
     if (d.origem === 'carregando')
         return editavel ? '<small class="comb-uso">Calculando a divisão…</small>' : '<small class="comb-uso">Divisão pelo uso</small>'
     const pesos = d.pesos || {}
@@ -405,7 +405,7 @@ async function criarLinhaCusto(custo) {
     }
     // Distribuição antiga digitada: também pode ser refeita pelo divisor.
     const botaoAntiga = antiga && editavel
-        ? `<button type="button" class="comb-dividir" title="Digitado no pedido" onclick="dividirCombustivel('${escaparAtributo(id)}')">Dividir</button>`
+        ? `<img class="comb-dividir" src="imagens/dividir.svg" title="Dividir entre departamentos · Digitado no pedido" onclick="dividirCombustivel('${escaparAtributo(id)}')">`
         : ''
 
     const tds = `
