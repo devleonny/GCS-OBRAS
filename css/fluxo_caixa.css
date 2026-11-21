@@ -225,3 +225,8 @@
 .cx-lote-rolagem { border: 1px solid #e2e8e4; border-radius: 10px; }
 .cx-lote-rodape { background: #f6f8f7; border: 1px solid #e2e8e4; border-radius: 10px; padding: 10px 12px; }
 .cx-lote-rodape > div:first-child { font-size: 14px; }
+
+/* Respiro no fim da página: a .tela é coluna flex e encolhia a página até a altura visível,
+   então o padding de baixo sumia e o último bloco colava no rodapé. */
+.cx-pagina { flex-shrink: 0; height: auto; padding-bottom: 64px; }
+.cx-pagina::after { content: ''; display: block; height: 24px; flex-shrink: 0; }
