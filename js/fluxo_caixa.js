@@ -39,6 +39,8 @@ const sinalCx = v => Number(v) < 0 ? 'cx-neg' : ''
 
 async function telaFluxoCaixa() {
     if (typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
+    // Overlay desde o clique no menu: a consulta leva alguns segundos e a tela parecia travada.
+    overlayAguarde()
     let op = { empresas: [] }
     try { op = await carregarOpcoesFin() } catch { }
     tela.innerHTML = `
@@ -75,8 +77,9 @@ async function telaFluxoCaixa() {
 
 async function carregarFluxoCaixa() {
     const corpo = document.querySelector('[data-cx-corpo]')
-    if (!corpo) return
+    if (!corpo) return removerOverlay()
     corpo.classList.add('cx-atualizando')
+    overlayAguarde()
     try {
         estadoCx.dados = await apiFin('fluxo', { app: estadoCx.app || null, futuro: estadoCx.futuro, passado: estadoCx.passado })
         desenharFluxoCaixa()
@@ -85,6 +88,7 @@ async function carregarFluxoCaixa() {
             <button type="button" class="fis-mini" onclick="carregarFluxoCaixa()">Tentar de novo</button></div>`
     } finally {
         corpo.classList.remove('cx-atualizando')
+        removerOverlay()
     }
 }
 
