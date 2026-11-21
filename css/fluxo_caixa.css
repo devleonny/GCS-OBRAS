@@ -177,3 +177,51 @@
 .popup-janela-fora:has([data-lote-sal]) { width: min(1440px, calc(100vw - 24px)); max-width: none; }
 .popup-janela-fora:has([data-cx-conferir]) { width: min(1020px, calc(100vw - 24px)); max-width: none; }
 .cx-lote, .cx-conferir { width: 100%; }
+
+/* ---------- tela branca (pedido de 21/11/2026: o fundo verde do sistema apagava os elementos) ---------- */
+.tela:has(> .cx-pagina) { background: #f4f6f5; padding: 0; }
+.cx-pagina {
+    background: #f4f6f5;
+    min-height: 100%;
+    padding: 18px 22px 48px;
+}
+.cx-topo {
+    background: #fff;
+    border: 1px solid #dfe5e1;
+    border-radius: 12px;
+    padding: 14px 18px;
+    box-shadow: 0 1px 3px rgba(16, 24, 20, .06);
+}
+.cx-topo h2 { color: #14231a; font-size: 22px; }
+.cx-cartao, .cx-bloco, .cx-pagina > .fis-painel {
+    background: #fff;
+    border: 1px solid #dfe5e1;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(16, 24, 20, .06), 0 4px 12px rgba(16, 24, 20, .04);
+}
+.cx-cartao { padding: 14px 16px; }
+.cx-cartao-destaque { border-color: #2a78d6; box-shadow: inset 4px 0 0 #2a78d6, 0 4px 14px rgba(42, 120, 214, .14); }
+.cx-cartao-valor { font-size: 26px; }
+.cx-mini { background: #fff; border-color: #dfe5e1; box-shadow: 0 1px 2px rgba(16, 24, 20, .05); }
+.cx-mini-atencao { background: #fffaf0; border-color: #f0d49a; }
+.cx-bloco { padding: 14px 18px; }
+.cx-bloco-topo h3 { color: #14231a; }
+.cx-pagina .fis-tabela thead th { background: #f4f6f5; color: #3f5247; }
+.cx-pagina .fis-tabela-rolagem { border: 1px solid #e6ebe8; border-radius: 8px; }
+
+/* Popups do fluxo e do lote: painel branco no lugar do degradê verde. */
+.popup-janela-fora:has([data-lote-sal]) .painel-padrao,
+.popup-janela-fora:has([data-cx-conferir]) .painel-padrao,
+.popup-janela-fora:has([data-cx-plan]) .painel-padrao { background: #fff; color: #1f2a24; }
+.cx-lote-cab {
+    background: #f6f8f7;
+    border: 1px solid #e2e8e4;
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+.cx-lote-tabela thead th { background: #eef2ef; color: #3f5247; position: sticky; top: 0; z-index: 1; }
+.cx-lote-tabela tbody tr:nth-child(even) td { background: #fafbfa; }
+.cx-lote-tabela tbody tr:hover td { background: #eef6f0; }
+.cx-lote-rolagem { border: 1px solid #e2e8e4; border-radius: 10px; }
+.cx-lote-rodape { background: #f6f8f7; border: 1px solid #e2e8e4; border-radius: 10px; padding: 10px 12px; }
+.cx-lote-rodape > div:first-child { font-size: 14px; }
