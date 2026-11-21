@@ -1,0 +1,179 @@
+/* Financeiro → Fluxo de Caixa e Lote de Salários (js/fluxo_caixa.js, js/lote_salarios.js). */
+.cx-pagina {
+    --cx-tinta: #1f2a24;
+    --cx-tinta-2: #52514e;
+    --cx-tinta-3: #8a8984;
+    --cx-borda: #e2e6e3;
+    --cx-fundo: #fcfcfb;
+    --cx-perigo: #c62828;
+    --cx-alerta: #a15c00;
+    --cx-ok: #1f7a3a;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 14px 18px 40px;
+    color: var(--cx-tinta);
+    box-sizing: border-box;
+    width: 100%;
+}
+.cx-topo { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.cx-topo h2 { margin: 0; font-size: 20px; }
+.cx-topo small { color: var(--cx-tinta-2); }
+.cx-filtros { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.cx-filtros label { display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; color: var(--cx-tinta-2); }
+.cx-filtros select { height: 30px; border: 1px solid #c4cec8; border-radius: 6px; padding: 0 8px; background: #fff; font-size: 13px; }
+.cx-acoes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.cx-acoes button { margin: 0; }
+.cx-carregando { padding: 40px; text-align: center; color: var(--cx-tinta-2); }
+.cx-atualizando { opacity: .55; pointer-events: none; transition: opacity .15s; }
+[data-cx-corpo] { display: flex; flex-direction: column; gap: 14px; }
+
+.cx-neg { color: var(--cx-perigo) !important; }
+.cx-ruim { color: var(--cx-perigo); font-weight: 600; }
+.cx-bom { color: var(--cx-ok); font-weight: 600; }
+
+/* avisos */
+.cx-avisos { display: flex; flex-direction: column; gap: 6px; }
+.cx-aviso {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    padding: 8px 12px; border-radius: 8px; border: 1px solid; font-size: 13px; line-height: 1.4;
+}
+.cx-aviso button { margin: 0; }
+.cx-aviso-info { background: #eef4fc; border-color: #c4d8f2; color: #1c3f6e; }
+.cx-aviso-alerta { background: #fff6e5; border-color: #f0d49a; color: #6b4300; }
+.cx-aviso-perigo { background: #fdecec; border-color: #f2b8b8; color: #8a1c1c; }
+.cx-aviso-perigo::before { content: '▲'; font-size: 11px; }
+
+/* respostas (cartões grandes) */
+.cx-respostas { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.cx-cartao {
+    display: flex; flex-direction: column; gap: 4px; padding: 12px 14px;
+    background: #fff; border: 1px solid var(--cx-borda); border-radius: 10px; min-width: 0;
+}
+.cx-cartao-destaque { border-color: #9ec5f4; box-shadow: inset 4px 0 0 #2a78d6; }
+.cx-cartao-titulo { font-size: 12px; color: var(--cx-tinta-2); }
+.cx-cartao-valor { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--cx-tinta); }
+.cx-cartao small { color: var(--cx-tinta-2); font-size: 12px; line-height: 1.35; }
+
+.cx-indicadores { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
+.cx-mini {
+    display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; min-width: 0;
+    background: var(--cx-fundo); border: 1px solid var(--cx-borda); border-radius: 8px;
+}
+.cx-mini > span { font-size: 11.5px; color: var(--cx-tinta-2); }
+.cx-mini > b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.cx-mini > b small { font-weight: 400; color: var(--cx-tinta-2); }
+.cx-mini > small { font-size: 11.5px; color: var(--cx-tinta-3); line-height: 1.3; }
+.cx-mini-atencao { border-color: #f0d49a; background: #fffaf0; }
+
+/* blocos e gráficos */
+.cx-bloco { background: #fff; border: 1px solid var(--cx-borda); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+.cx-bloco-topo { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 8px; }
+.cx-bloco-topo h3 { margin: 0; font-size: 15px; }
+.cx-bloco-topo small { color: var(--cx-tinta-2); font-size: 12px; }
+.cx-grafico { position: relative; height: 260px; }
+.cx-grafico-alto { height: 320px; }
+.cx-duas { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 14px; }
+.cx-bloco details summary { cursor: pointer; font-size: 14px; }
+.cx-explica ul { margin: 8px 0 0; padding-left: 18px; color: var(--cx-tinta-2); font-size: 13px; line-height: 1.5; }
+
+.cx-tabela-semanas { margin-top: 10px; max-height: 360px; }
+.cx-tabela-semanas td, .cx-tabela-semanas th { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cx-tabela-provaveis { max-height: 340px; margin-top: 8px; }
+.cx-selo { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.cx-selo-ok { background: #e7f4ea; color: var(--cx-ok); }
+.cx-selo-alerta { background: #fff1d6; color: var(--cx-alerta); }
+.cx-selo-perigo { background: #fde3e3; color: var(--cx-perigo); }
+
+.cx-proximos { list-style: none; margin: 0; padding: 0; }
+.cx-proximos li { display: grid; grid-template-columns: 78px 1fr auto; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid #f0f2f1; font-size: 13px; }
+.cx-proximos li:last-child { border-bottom: 0; }
+.cx-proximo-dia { font-variant-numeric: tabular-nums; color: var(--cx-tinta-2); }
+.cx-proximo-dia small, .cx-proximo-nome small { display: block; color: var(--cx-tinta-3); font-size: 11.5px; }
+.cx-proximo-nome { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cx-proximos b { font-variant-numeric: tabular-nums; }
+
+.cx-barras { display: flex; flex-direction: column; gap: 6px; }
+.cx-barra { display: grid; grid-template-columns: minmax(120px, 38%) 1fr auto; gap: 8px; align-items: center; font-size: 12.5px; }
+.cx-barra-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cx-barra-nome small { color: var(--cx-tinta-3); }
+.cx-barra-trilho { height: 10px; background: #f1f2ef; border-radius: 4px; overflow: hidden; }
+.cx-barra-trilho > span { display: block; height: 100%; background: #eb6834; border-radius: 0 4px 4px 0; }
+.cx-barra-valor { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cx-barra-valor small { color: var(--cx-tinta-3); }
+.cx-atrasos { width: 100%; }
+
+/* planejamento / conferência (popups) */
+.cx-plan, .cx-conferir { width: min(760px, 92vw); }
+
+.cx-plan h4 { margin: 10px 0 4px; font-size: 13.5px; }
+.cx-plan small { color: var(--cx-tinta-2, #52514e); font-size: 11.5px; line-height: 1.35; }
+.cx-radios { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
+.cx-plan-nota { font-size: 12.5px; color: #52514e; line-height: 1.45; margin: 6px 0; }
+.cx-conferir .fis-tabela-rolagem { max-height: 60vh; }
+.cx-conferir td { vertical-align: middle; }
+.cx-conferir input[type="number"] { width: 140px; }
+.cx-conferir .cx-grupo td { background: #f4f6f5; font-weight: 700; font-size: 12px; }
+.cx-conferir td small { color: #6b7a71; }
+
+/* aviso da trava no pedido de pagamento (js/pagamentos.js) */
+.cx-trava-aviso {
+    display: flex; flex-direction: column; gap: 2px; margin: 0 0 8px; padding: 8px 12px;
+    background: #fdecec; border: 1px solid #f2b8b8; border-radius: 8px; color: #8a1c1c; font-size: 13px; text-align: left;
+}
+
+/* lote de salários */
+.cx-lote-linha { cursor: pointer; }
+.cx-lote-linha:hover td { background: #f3f8f5; }
+.cx-lote { display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.cx-lote-cab { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+.cx-lote-cab .fis-campo { margin: 0; }
+.cx-lote-cab small { color: #6b7a71; font-size: 11px; }
+.cx-lote-obs { grid-column: span 2; }
+.cx-lote-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.cx-lote-barra > input { flex: 0 1 260px; margin: 0; }
+.cx-lote-barra button { margin: 0; }
+.cx-lote-busca { flex: 1 1 280px; position: relative; }
+.cx-lote-busca input { width: 100%; box-sizing: border-box; }
+.cx-lote-rolagem { max-height: 52vh; }
+.cx-lote-tabela { font-size: 12.5px; }
+.cx-lote-tabela td { vertical-align: middle; padding-top: 3px; padding-bottom: 3px; }
+.cx-lote-tabela .fis-input { height: 28px; min-width: 0; font-size: 12.5px; }
+.cx-lote-tabela [name="valor"] { width: 110px; }
+.cx-lote-tabela [name="app"] { width: 72px; }
+.cx-lote-tabela .cx-lote-cat { width: 200px; }
+.cx-lote-tabela [name="departamento"] { width: 130px; }
+.cx-lote-tabela [name="vencimento"] { width: 130px; }
+.cx-lote-pessoa { min-width: 200px; }
+.cx-lote-pessoa b, .cx-lote-pessoa small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; }
+.cx-lote-pessoa small, .cx-lote-tabela td.fis-num small { display: block; color: #6b7a71; font-size: 11px; }
+.cx-lote-fora td { opacity: .5; }
+.cx-lote-fora td:first-child { opacity: 1; }
+.cx-lote-acoes { white-space: nowrap; }
+.cx-lote-acoes button { margin: 0 2px; }
+.cx-lote-rodape {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+    padding-top: 8px; border-top: 1px solid #e2e6e3;
+}
+.cx-lote-rodape small { display: block; color: #6b7a71; }
+.cx-lote-status { font-size: 12px; color: #6b7a71; }
+.cx-lote-botoes { display: flex; gap: 6px; }
+.cx-lote-botoes button { margin: 0; }
+.cx-lotes td { vertical-align: middle; }
+
+/* Popups largos (lote, conferência, planejamento): o painel padrão para em 900px e 60vh. */
+.popup-janela-fora:has([data-lote-sal]) .painel-padrao,
+.popup-janela-fora:has([data-cx-conferir]) .painel-padrao { max-width: none; max-height: calc(100dvh - 140px); }
+.popup-janela-fora:has([data-lote-sal]) .linha-padrao,
+.popup-janela-fora:has([data-cx-conferir]) .linha-padrao,
+.popup-janela-fora:has([data-cx-plan]) .linha-padrao { display: block; }
+.painel-padrao .cx-lote-tabela select.fis-input,
+.painel-padrao .cx-lote-tabela input.fis-input,
+.painel-padrao .cx-lote-cab select.fis-input,
+.painel-padrao .cx-lote-cab input.fis-input,
+.painel-padrao .cx-conferir input.fis-input { padding: 4px 8px; height: 30px; }
+.painel-padrao .cx-lote-tabela select.fis-input { padding-right: 2px; }
+.cx-lote-rolagem { max-height: calc(100dvh - 420px); min-height: 200px; }
+.popup-janela-fora:has([data-lote-sal]) { width: min(1440px, calc(100vw - 24px)); max-width: none; }
+.popup-janela-fora:has([data-cx-conferir]) { width: min(1020px, calc(100vw - 24px)); max-width: none; }
+.cx-lote, .cx-conferir { width: 100%; }

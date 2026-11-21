@@ -19,7 +19,7 @@ const SITUACOES_FIN = {
     PAGO: { cor: '#15803d', texto: 'Pago' },
     CANCELADO: { cor: '#64748b', texto: 'Excluída' }
 }
-const ORIGENS_FIN = { MANUAL: 'Manual', NF_ENTRADA: 'Nota recebida', NF_SAIDA: 'Nota emitida', REEMBOLSO: 'Reembolso', RECORRENCIA: 'Repetição', OMIE: 'Omie', NF_OMIE: 'NF do Omie', DEVOLUCAO: 'Devolução' }
+const ORIGENS_FIN = { MANUAL: 'Manual', NF_ENTRADA: 'Nota recebida', NF_SAIDA: 'Nota emitida', REEMBOLSO: 'Reembolso', RECORRENCIA: 'Repetição', OMIE: 'Omie', NF_OMIE: 'NF do Omie', DEVOLUCAO: 'Devolução', LOTE: 'Lote de salários' }
 // Importadas do Omie (21/11/2026): a origem não existe mais, então se editam e excluem como as lançadas aqui.
 const ORIGENS_EDITAVEIS_FIN = ['MANUAL', 'RECORRENCIA', 'OMIE']
 const FREQUENCIAS_FIN = [['MENSAL', 'Mensal'], ['SEMANAL', 'Semanal'], ['QUINZENAL', 'Quinzenal (14 dias)'], ['BIMESTRAL', 'Bimestral'],
@@ -1103,7 +1103,9 @@ async function abrirFaturaFin(id) {
         const vivas = baixas.filter(b => !b.estornada)
         const origem = t.documento_id
             ? `<span class="fis-link" onclick="abrirDocumentoFiscal('${escFin(t.documento_id)}')">${escFin(ORIGENS_FIN[t.origem])} ${escFin(t.documento_numero || '')}</span>`
-            : escFin(ORIGENS_FIN[t.origem] || t.origem)
+            : t.origem === 'LOTE' && /^LOTE:\d+:/.test(t.origem_id || '') && typeof abrirLoteSalarios === 'function'
+                ? `<span class="fis-link" onclick="abrirLoteSalarios(${Number(t.origem_id.split(':')[1])})">${escFin(ORIGENS_FIN.LOTE)}: ${escFin(t.descricao || 'abrir')}</span>`
+                : escFin(ORIGENS_FIN[t.origem] || t.origem)
         popup({
             titulo: `Fatura a ${pagar ? 'pagar' : 'receber'}`,
             elemento: `
@@ -1582,11 +1584,61 @@ function editorCategoriasFin(lista, tipo, travado = false) {
         </div>`
 }
 
+// Categoria com busca (21/11/2026, a pedido): lista FECHADA como o departamento; o texto só busca, a categoria
+// só entra clicando num item (data-valor). Saiu sem escolher, volta para a que estava.
+const categoriaFinPorId = id => (opcoesFinCache?.categorias || []).find(c => String(c.id) === String(id ?? ''))
+const rotuloCatFin = c => c ? `${c.codigo} · ${c.nome}${c.excluida ? ' (excluída)' : ''}` : ''
+const aceitaCatFin = (c, tipo) => !c.grupo && (tipo === 'PAGAR' ? c.tipo !== 'RECEITA' : c.tipo !== 'DESPESA')
+
+function buscarCatFin(input) {
+    const caixa = input.closest('.fin-escolha')
+    const lista = caixa.querySelector('.fin-escolha-lista')
+    const tipo = input.closest('[data-categorias-fin]')?.dataset.tipo
+    const termo = normalFin(input.value)
+    const filtro = termo && termo !== normalFin(rotuloCatFin(categoriaFinPorId(caixa.dataset.valor))) ? termo : ''
+    const achados = (opcoesFinCache?.categorias || [])
+        .filter(c => aceitaCatFin(c, tipo))
+        .filter(c => !filtro || normalFin(`${c.codigo} ${c.nome} ${c.grupo_codigo || ''} ${c.grupo_nome || ''}`).includes(filtro))
+        .slice(0, 60)
+    let grupoAnterior = null
+    lista.innerHTML = achados.map(c => {
+        const g = c.grupo_nome ? `${c.grupo_codigo || ''} ${c.grupo_nome}`.trim() : 'Sem grupo'
+        const cab = g !== grupoAnterior ? `<div class="fin-escolha-grupo">${escFin(g)}</div>` : ''
+        grupoAnterior = g
+        return `${cab}
+        <button type="button" class="fin-escolha-item" onmousedown="event.preventDefault(); escolherCatFin(this, '${escFin(c.id)}')">
+            <b>${escFin(c.codigo)}</b> <span>${escFin(c.nome)}${c.excluida ? ' (excluída)' : ''}</span>
+        </button>`
+    }).join('') || '<div class="fin-escolha-vazio">Nada encontrado: só categorias da lista.</div>'
+    lista.hidden = false
+}
+
+function escolherCatFin(botao, id) {
+    const caixa = botao.closest('.fin-escolha')
+    caixa.dataset.valor = id
+    caixa.querySelector('input').value = rotuloCatFin(categoriaFinPorId(id))
+    caixa.querySelector('.fin-escolha-lista').hidden = true
+    caixa.classList.remove('invalido')
+    somarCategoriasFin()
+}
+
+function fecharBuscaCatFin(input) {
+    const caixa = input.closest('.fin-escolha')
+    if (!caixa) return
+    caixa.querySelector('.fin-escolha-lista').hidden = true
+    input.value = rotuloCatFin(categoriaFinPorId(caixa.dataset.valor))
+}
+
 function linhaCategoriaFin(c, tipo, travado = false) {
     const trava = travado ? 'disabled' : ''
+    const cat = categoriaFinPorId(c.categoria_id)
     return `
         <div class="fin-rateio-linha fin-categoria-linha" data-modo="pct">
-            <select class="fis-input" name="categoria_rateio" ${trava} onchange="somarCategoriasFin()">${opcoesCategoriasFin(opcoesFinCache?.categorias || [], tipo, c.categoria_id)}</select>
+            <div class="fin-escolha" data-categoria-escolha data-valor="${escFin(cat ? cat.id : '')}">
+                <input class="fis-input" name="categoria_busca" value="${escFin(rotuloCatFin(cat))}" placeholder="Buscar código ou nome da categoria…" autocomplete="off" ${trava}
+                    onfocus="this.select(); buscarCatFin(this)" oninput="buscarCatFin(this)" onblur="setTimeout(() => fecharBuscaCatFin(this), 150)">
+                <div class="fin-escolha-lista" hidden></div>
+            </div>
             <input class="fis-input fis-num" type="number" min="0" max="100" step="any" name="percentual_categoria" value="${c.percentual ?? ''}" ${trava} oninput="editarCategoriaFin(this, 'pct')"> %
             <input class="fis-input fis-num" type="number" min="0" step="0.01" name="valor_categoria" placeholder="R$" ${trava} oninput="editarCategoriaFin(this, 'valor')">
             ${travado ? '' : `<button type="button" class="fis-remover-linha" title="Tirar categoria" aria-label="Tirar categoria" onclick="removerCategoriaFin(this)">${iconeLixeiraFis}</button>`}
@@ -1611,7 +1663,9 @@ function adicionarCategoriaFin() {
 function removerCategoriaFin(botao) {
     const linhas = botao.closest('[data-linhas-categorias]')
     if (linhas.children.length === 1) {
-        linhas.querySelector('select').value = ''
+        const caixa = linhas.querySelector('[data-categoria-escolha]')
+        caixa.dataset.valor = ''
+        caixa.querySelector('input').value = ''
         linhas.querySelector('[name="percentual_categoria"]').value = 100
     } else botao.closest('.fin-categoria-linha').remove()
     somarCategoriasFin()
@@ -1625,7 +1679,7 @@ function lerCategoriasFin(raiz, soUmaVale100 = true) {
     const lista = linhas.map(l => {
         const valor = Number(l.querySelector('[name="valor_categoria"]')?.value) || 0
         const percentual = l.dataset.modo === 'valor' && total ? valor * 100 / total : Number(l.querySelector('[name="percentual_categoria"]').value) || 0
-        return { categoria_id: l.querySelector('[name="categoria_rateio"]').value, percentual: r6Fin(percentual) }
+        return { categoria_id: l.querySelector('[data-categoria-escolha]').dataset.valor || '', percentual: r6Fin(percentual) }
     })
     if (soUmaVale100 && linhas.length === 1) lista[0].percentual = 100
     const r = lista.filter(c => c.categoria_id !== '').map(c => ({ ...c, categoria_id: Number(c.categoria_id) || c.categoria_id }))
@@ -2127,20 +2181,45 @@ async function extratoContaFin(contaId) {
                         ['Entradas', dinheiro(k.entradas)], ['Saídas', dinheiro(k.saidas)],
                         ['Saldo inicial', `${dinheiro(k.saldo_inicial)}${k.data_saldo_inicial ? ` <small>em ${dataFin(k.data_saldo_inicial)}</small>` : ''}`]
                     ])}
-                    <div class="fis-acoes-claras"><button type="button" class="fis-mini" onclick="formularioContaFin('${escFin(contaId)}')">Editar conta</button></div>
+                    <div class="fin-extrato-barra">
+                        <input type="search" class="fis-input fin-extrato-busca" placeholder="Buscar fornecedor, categoria, observação..." oninput="filtrarExtratoFin(this)">
+                        <div class="fin-extrato-chips" data-tipo="">
+                            <button type="button" class="ativo" data-filtro="" onclick="filtrarExtratoFin(this)">Todos <small>${movimentos.length}</small></button>
+                            <button type="button" data-filtro="E" onclick="filtrarExtratoFin(this)">Entradas <small>${movimentos.filter(m => Number(m.movimento) >= 0).length}</small></button>
+                            <button type="button" data-filtro="S" onclick="filtrarExtratoFin(this)">Saídas <small>${movimentos.filter(m => Number(m.movimento) < 0).length}</small></button>
+                        </div>
+                        <button type="button" class="fis-mini fin-extrato-editar" onclick="formularioContaFin('${escFin(contaId)}')">Editar conta</button>
+                    </div>
                     ${movimentos.length ? `
-                    <div class="fis-tabela-rolagem">
-                        <table class="fis-tabela">
-                            <thead><tr><th>Data</th><th>Fornecedor / cliente</th><th>Observação</th><th>Categoria</th><th>Forma</th><th class="fis-num">Valor</th></tr></thead>
-                            <tbody>${movimentos.map(m => `
-                                <tr>
-                                    <td>${dataFin(m.data)}</td>
-                                    <td class="fis-descricao"><span class="fis-link" onclick="abrirFaturaFin('${escFin(m.titulo_id)}')">${escFin(m.participante_nome || '—')}</span></td>
-                                    <td>${escFin(m.fatura_observacao || '')} <small>${escFin(m.parcela_texto)}</small></td>
-                                    <td><small>${escFin(m.categoria || '')}</small></td>
-                                    <td><small>${escFin(nomeFormaFin(m.forma))}</small></td>
+                    <div class="fis-tabela-rolagem fin-extrato-rolagem">
+                        <table class="fis-tabela fin-extrato">
+                            <thead><tr><th>Data</th><th>Fornecedor / cliente</th><th>Parcela</th><th>Categoria</th><th>Forma</th><th class="fis-num">Valor</th><th class="fis-num">Saldo</th></tr></thead>
+                            <tbody>${(() => {
+                                // Saldo depois de cada lançamento: parte do saldo atual (linha mais recente) e volta no tempo.
+                                // Lançamentos antes da data do saldo inicial não entram no saldo da conta, então ficam sem saldo.
+                                let saldo = Number(k.saldo) || 0
+                                const inicio = k.data_saldo_inicial ? String(k.data_saldo_inicial).slice(0, 10) : ''
+                                return movimentos.map(m => {
+                                    const conta = !inicio || String(m.data).slice(0, 10) >= inicio
+                                    const saldoLinha = conta ? saldo : null
+                                    if (conta) saldo -= Number(m.movimento) || 0
+                                    const obs = m.fatura_observacao || m.descricao || ''
+                                    const busca = [m.participante_nome, obs, m.categoria, nomeFormaFin(m.forma), m.parcela_texto].join(' ').toLowerCase()
+                                    return `
+                                <tr data-tipo="${Number(m.movimento) < 0 ? 'S' : 'E'}" data-busca="${escFin(busca)}">
+                                    <td class="fin-extrato-data">${dataFin(m.data)}</td>
+                                    <td class="fin-extrato-quem">
+                                        <span class="fis-link" onclick="abrirFaturaFin('${escFin(m.titulo_id)}')" title="${escFin(m.participante_nome || '')}">${escFin(m.participante_nome || '—')}</span>
+                                        ${obs ? `<small title="${escFin(obs)}">${escFin(obs)}</small>` : ''}
+                                    </td>
+                                    <td class="fin-extrato-parcela">${escFin(m.parcela_texto || '')}</td>
+                                    <td class="fin-extrato-cat" title="${escFin(m.categoria || '')}">${escFin(m.categoria || '—')}</td>
+                                    <td class="fin-extrato-forma">${escFin(nomeFormaFin(m.forma))}</td>
                                     <td class="fis-num ${Number(m.movimento) < 0 ? 'fis-negativo' : 'fis-positivo'}"><b>${dinheiro(m.movimento)}</b></td>
-                                </tr>`).join('')}
+                                    <td class="fis-num fin-extrato-saldo ${saldoLinha < 0 ? 'fis-negativo' : ''}">${saldoLinha === null ? '—' : dinheiro(saldoLinha)}</td>
+                                </tr>`
+                                }).join('')
+                            })()}
                             </tbody>
                         </table>
                     </div>` : '<div class="fis-vazio">Nenhum movimento nesta conta.</div>'}
@@ -2150,6 +2229,20 @@ async function extratoContaFin(contaId) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
     }
+}
+
+function filtrarExtratoFin(el) {
+    const painel = el.closest('[data-conta-fin]')
+    const chips = painel.querySelector('.fin-extrato-chips')
+    if (el.dataset.filtro !== undefined) {
+        chips.dataset.tipo = el.dataset.filtro
+        chips.querySelectorAll('button').forEach(b => b.classList.toggle('ativo', b === el))
+    }
+    const tipo = chips.dataset.tipo
+    const termo = painel.querySelector('.fin-extrato-busca').value.trim().toLowerCase()
+    painel.querySelectorAll('.fin-extrato tbody tr').forEach(tr => {
+        tr.style.display = (!tipo || tr.dataset.tipo === tipo) && (!termo || tr.dataset.busca.includes(termo)) ? '' : 'none'
+    })
 }
 
 async function formularioContaFin(contaId = null) {

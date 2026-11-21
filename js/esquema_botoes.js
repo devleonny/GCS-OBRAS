@@ -300,8 +300,10 @@ const esquemaBotoes = {
             nome: 'Financeiro',
             img: 'dinheiro',
             sub: [
+                { nome: 'Fluxo de Caixa', funcao: 'telaFluxoCaixa', acesso: 'financeiro.fluxo_caixa', img: 'dashboard' },
                 { nome: 'Faturas a Pagar', funcao: 'telaFaturasPagar', acesso: 'financeiro.faturas_pagar', img: 'pagar' },
                 { nome: 'Faturas a Receber', funcao: 'telaFaturasReceber', acesso: 'financeiro.faturas_receber', img: 'receber' },
+                { nome: 'Lote de Salários', funcao: 'telaLotesSalarios', acesso: 'financeiro.lote_salarios', img: 'dinheiro' },
                 { nome: 'Contas Correntes', funcao: 'telaContasFin', acesso: 'financeiro.contas', img: 'planilha' },
                 { nome: 'Categorias', funcao: 'telaCategoriasFin', acesso: 'financeiro.categorias', img: 'prancheta' },
                 { nome: 'Dashboard', funcao: 'telaDashboardReembolsos', acesso: 'financeiro.dashboard', img: 'dashboard' },

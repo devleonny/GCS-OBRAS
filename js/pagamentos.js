@@ -802,6 +802,27 @@ async function reprovarPagamentoLancado(id) {
     }
 }
 
+// Trava do financeiro (Financeiro → Fluxo de Caixa → Planejamento): avisa no topo do pedido NOVO antes de
+// preencher. Quem é liberado (financeiro.lancar_com_trava) só vê o aviso; o servidor recusa os demais (423).
+async function avisarTravaPagamento(novo) {
+    if (!novo) return
+    try {
+        const t = await apiModuloFiscal('financeiro/trava')
+        const total = document.getElementById('totalPagamento')
+        const popupForm = total?.closest('.popup')
+        if (!popupForm || !t.travado || popupForm.querySelector('.cx-trava-aviso')) return
+        const aviso = document.createElement('div')
+        aviso.className = 'cx-trava-aviso'
+        aviso.setAttribute('role', 'alert')
+        aviso.innerHTML = `<b>${t.liberado ? 'Trava do financeiro ligada (você está liberado).' : 'Novos pedidos de pagamento estão suspensos.'}</b>
+            <span>${escaparAtributo(t.mensagem || '')}${t.liberado ? '' : ' Fale com o financeiro se for urgente.'}</span>`
+        const painel = popupForm.querySelector('.painel-padrao')
+        if (painel) painel.prepend(aviso)
+    } catch (erro) {
+        console.warn('[PAGAMENTO] trava', erro.message)
+    }
+}
+
 let idPagamentoNovo = null
 
 async function salvarPagamento() {
@@ -1060,6 +1081,7 @@ async function formularioPagamento() {
 
         // Verificação inicial;
         await calculadoraPagamento()
+        avisarTravaPagamento(!id)
 
     } catch (err) {
         console.log(err)
