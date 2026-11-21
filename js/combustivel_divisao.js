@@ -32,7 +32,8 @@ async function telaDivisaoCombustivel() {
 
     tela.innerHTML = `
         <div class="pagina-conteudo comb-div">
-            <div class="cabecalho-pagina"><h2>Divisão do combustível</h2></div>
+            <header class="comb-cabeca">
+            <h2>Divisão do combustível</h2>
             <div class="comb-topo">
                 <label>De <input type="date" id="comb-de" value="${DIVISAO_COMB.de}"></label>
                 <label>Até <input type="date" id="comb-ate" value="${DIVISAO_COMB.ate}"></label>
@@ -46,6 +47,7 @@ async function telaDivisaoCombustivel() {
                 <b>possível uso particular</b> (fora do horário ou fim de semana). O R$ é estimado: combustível do carro no
                 período ÷ km rodados.
             </p>
+            </header>
             <div data-comb-corpo></div>
         </div>`
     await carregarDivisaoCombustivel()

@@ -174,12 +174,23 @@
 }
 
 /* Veículos → Divisão do combustível (js/combustivel_divisao.js) */
-.comb-div { padding-bottom: 48px; }
-.comb-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 6px 0 4px; }
+/* Fundo claro na página toda, como o Fluxo de Caixa: no verde do sistema o texto escuro sumia. */
+.tela:has(> .comb-div) { background: #f4f6f5; padding: 0; }
+.comb-div { background: #f4f6f5; min-height: 100%; padding: 18px 22px 64px; box-sizing: border-box; color: #1f2d25; gap: 14px; }
+.comb-cabeca {
+    background: #fff; border: 1px solid #dfe5e1; border-radius: 12px; padding: 14px 18px;
+    box-shadow: 0 1px 3px rgba(16, 24, 20, .06);
+}
+.comb-cabeca h2 { margin: 0 0 6px; color: #14231a; font-size: 22px; }
+.comb-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 6px 0 4px; color: #1f2d25; }
 .comb-topo label { display: flex; align-items: center; gap: 6px; font-size: .85rem; }
+.comb-topo input[type="date"] { padding: 4px 8px; border: 1px solid #cfd8d2; border-radius: 6px; background: #fff; color: #1f2d25; }
 .comb-topo button { margin: 0; }
 .comb-calculado { color: #5d6b63; }
-.comb-explica { max-width: 980px; margin: 6px 0 12px; color: #3d4b43; font-size: .82rem; line-height: 1.5; }
+.comb-explica { max-width: 980px; margin: 8px 0 0; color: #3d4b43; font-size: .82rem; line-height: 1.5; }
+.comb-div .comb-cartoes, .comb-div .comb-bloco { margin-bottom: 0; }
+.comb-div .comb-cartao, .comb-div .comb-bloco { border-color: #dfe5e1; box-shadow: 0 1px 3px rgba(16, 24, 20, .06); }
+.comb-div .comb-bloco { border-radius: 12px; padding: 12px 16px; }
 .comb-cartoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-bottom: 14px; }
 .comb-cartao { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 10px; background: #fff; border: 1px solid #e3e9e5; border-left: 4px solid #8a9a90; }
 .comb-cartao span { font-size: .78rem; color: #5d6b63; }
