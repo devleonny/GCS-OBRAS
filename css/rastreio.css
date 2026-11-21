@@ -9,29 +9,27 @@
     --rastreio-sem-sinal: #c92a2a;
 }
 
-/* Carrinho ao lado do nome/placa */
+/* Carrinho ao lado do nome/placa. Hover sem aumentar o ícone (num círculo de 22px o scale deixava o
+   desenho tremido e parecendo fora do centro): só escurece um pouco e ganha um anel em volta. */
 .rastreio-icone {
     display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;
-    width: 22px; height: 22px; margin: 0 0 0 4px; padding: 0; border: 0; border-radius: 50%;
-    background: var(--rastreio-parado); cursor: pointer; flex-shrink: 0;
+    width: 22px; height: 22px; min-width: 22px; min-height: 22px; margin: 0 0 0 4px; padding: 0; border: 0; border-radius: 50%;
+    background: var(--rastreio-parado); cursor: pointer; flex-shrink: 0; box-sizing: border-box;
+    line-height: 0; font-size: 0; overflow: visible; transform: none;
     box-shadow: 0 0 0 2px #fff, 0 1px 3px #0004;
+    transition: filter .12s ease, box-shadow .12s ease;
 }
-.rastreio-icone svg { width: 15px; height: 15px; fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.rastreio-icone svg { display: block; flex-shrink: 0; width: 15px; height: 15px; fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .rastreio-icone.movimento { background: var(--rastreio-movimento); animation: rastreio-pulso 1.6s infinite; }
 .rastreio-icone.ligado { background: var(--rastreio-ligado); }
 .rastreio-icone.parado { background: var(--rastreio-parado); }
 .rastreio-icone.sem-sinal { background: var(--rastreio-sem-sinal); opacity: .75; }
-.rastreio-icone {
-    line-height: 0; font-size: 0; box-sizing: border-box; overflow: visible;
-    transform-origin: 50% 50%; transition: transform .12s ease;
-}
-.rastreio-icone svg { display: block; flex-shrink: 0; }
+.rastreio-icone:hover { transform: none; filter: brightness(.9); box-shadow: 0 0 0 2px #fff, 0 0 0 4px #1f2d2533; }
 /* Sem o quadrado do foco global (button:focus-visible): o foco do teclado vira um anel redondo. */
 .rastreio-icone:focus, .rastreio-icone:focus-visible { outline: none; }
 .rastreio-icone:focus-visible { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #527d60; }
-.rastreio-icone:hover { transform: scale(1.12); }
 .rastreio-icone.sem-rastreador { background: #adb5bd; cursor: default; box-shadow: 0 0 0 2px #fff; }
-.rastreio-icone.sem-rastreador:hover { transform: none; }
+.rastreio-icone.sem-rastreador:hover { filter: none; box-shadow: 0 0 0 2px #fff; }
 @keyframes rastreio-pulso {
     0% { box-shadow: 0 0 0 2px #fff, 0 0 0 2px #2f9e4499; }
     70% { box-shadow: 0 0 0 2px #fff, 0 0 0 9px #2f9e4400; }
