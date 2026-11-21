@@ -230,3 +230,9 @@
    então o padding de baixo sumia e o último bloco colava no rodapé. */
 .cx-pagina { flex-shrink: 0; height: auto; padding-bottom: 64px; }
 .cx-pagina::after { content: ''; display: block; height: 24px; flex-shrink: 0; }
+
+/* Lote de salários em tela cheia (21/11/2026), no molde da fatura aberta com dois cliques:
+   conteúdo à esquerda, painel de ações à direita. */
+.cx-lote-tela .fin-corpo > .cx-lote { flex: 1 1 auto; min-width: 0; width: auto; }
+.cx-lote-tela .fin-lateral { align-self: flex-start; position: sticky; top: 8px; }
+.cx-lote-tela .cx-lote-rolagem { max-height: calc(100dvh - 380px); }

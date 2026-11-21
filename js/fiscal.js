@@ -1806,8 +1806,7 @@ function baixarLoteDocsFis(lista) {
         titulo: 'Baixar PDF/XML',
         mensagem: `<div style="text-align:left; display:flex; flex-direction:column">
             <b>${n.toLocaleString('pt-BR')} nota${n === 1 ? '' : 's'} marcada${n === 1 ? '' : 's'}</b>
-            ${opcao('ambos', 'PDF e XML', true)}${opcao('xml', 'Só XML (rápido)')}${opcao('pdf', 'Só PDF')}
-            <small style="margin-top:8px">O PDF vem um a um da Focus/Omie: muitas notas levam alguns minutos.<br>O que faltar fica listado no LEIA-ME.txt do ZIP.</small></div>`,
+            ${opcao('ambos', 'PDF e XML', true)}${opcao('xml', 'Só XML (rápido)')}${opcao('pdf', 'Só PDF')}</div>`,
         botoes: [{ texto: 'Baixar ZIP', img: 'baixar', funcao: `executarLoteDocsFis('${lista}', '${chave}')` }]
     })
     document.getElementById(idPopup)?.setAttribute('data-lote-docs', chave)

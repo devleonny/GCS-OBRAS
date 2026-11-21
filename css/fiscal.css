@@ -427,6 +427,9 @@ details.fis-secao summary {
     background: #eef2ef;
 }
 
+/* Título de coluna numérica alinhado à direita, junto com os valores. */
+.fis-tabela th.fis-num { text-align: right; }
+
 .fis-tabela td {
     padding: 6px 8px;
     vertical-align: top;
@@ -1690,3 +1693,8 @@ button.fis-cred-ind {
     .est-local-resumo { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .est-local-acoes { margin-left: 0; }
 }
+
+/* Notas recebidas e NF-e/NFS-e emitidas: indicadores no mesmo painel lateral (js/fiscal.js corpoComIndicadoresFis).
+   O que está filtrando a tabela fica com fundo da sua cor. */
+button.fis-cred-ind.ativo { background: color-mix(in srgb, var(--cor) 12%, white); }
+button.fis-cred-ind:focus-visible { outline: 2px solid var(--cor); outline-offset: -2px; }

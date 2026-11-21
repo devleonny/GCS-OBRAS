@@ -1,5 +1,5 @@
 // ---------------- Financeiro → Lote de Salários (21/11/2026) ----------------
-// Popup com todas as pessoas (tag FUNCIONÁRIO + quem recebeu salário nos últimos 75 dias), pré-preenchido com
+// Tela cheia (igual à fatura aberta com dois cliques) com todas as pessoas (tag FUNCIONÁRIO + quem recebeu salário nos últimos 75 dias), pré-preenchido com
 // o último salário lançado (empresa, conta, valor, forma) ou o salário do RH. Salva sozinho no servidor a cada
 // mudança (gcs fin_lotes): fecha e abre igual, até alguém lançar. Lançar = uma fatura a pagar por linha marcada
 // (origem LOTE). Lote lançado abre igual e continua editável: as mudanças ficam pendentes até "Aplicar"
@@ -9,7 +9,7 @@
 const estadoLoteSal = {
     id: null, versao: null, situacao: 'RASCUNHO', emEdicao: false, titulo: '', competencia: '', cabecalho: {}, itens: [],
     faturas: {}, base: new Map(), op: null, categoriaSalario: null, filtro: '',
-    timer: null, salvando: null, pendente: false, erro: null, salvoEm: null, popupId: null, observador: null
+    timer: null, salvando: null, pendente: false, erro: null, salvoEm: null, observador: null
 }
 const SITUACAO_LOTE_SAL = { RASCUNHO: 'Rascunho', LANCADO: 'Lançado' }
 
@@ -98,6 +98,8 @@ function linhaDaPessoaSal(p, cab) {
 async function abrirLoteSalarios(id = null, copiarDe = null) {
     overlayAguarde()
     try {
+        // Vindo de outro lote aberto (Novo lote / Copiar): grava o dele antes de trocar o estado.
+        await guardarAntesDeSairLoteSal()
         const [op, base, atual] = await Promise.all([
             carregarOpcoesFin(), apiFin('salarios/base'), id || copiarDe ? apiFin('salarios/lote', { id: id || copiarDe }) : null
         ])
@@ -135,18 +137,29 @@ async function abrirLoteSalarios(id = null, copiarDe = null) {
                 titulo: `Salários ${mesSal(competencia)}`, cabecalho: cab, itens
             })
         }
-        estadoLoteSal.popupId = popup({
-            titulo: 'Lote de salários',
-            confirmarFechar: false,
-            linhas: [{ elemento: '<div class="cx-lote" data-lote-sal></div>' }]
-        })
-        // Ao fechar o popup, grava o que estiver pendente.
+        if (typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
+        // Aberto pelo link de uma fatura: o popup dela sai da frente.
+        document.querySelectorAll('[data-fatura-fin]').forEach(p => removerPopup(p.closest('.popup')?.id))
+        tela.innerHTML = `
+            <div class="fis-pagina fin-tela cx-lote-tela">
+                <section class="fin-janela">
+                    <header class="fin-janela-topo"><h2>Lote de salários</h2></header>
+                    <div class="fin-corpo" data-corpo-lote>
+                        <div class="cx-lote" data-lote-sal></div>
+                        <div class="fin-lateral">
+                            <button type="button" class="fin-recolher" onclick="alternarPainelLoteSal()" aria-expanded="true"
+                                title="Recolher as ações">${iconeFin('seta')}</button>
+                            <aside class="fin-painel" data-painel-lote></aside>
+                        </div>
+                    </div>
+                </section>
+            </div>`
+        // Ao sair da tela (voltar ou ir para outro menu), grava o que estiver pendente.
         estadoLoteSal.observador?.disconnect()
         estadoLoteSal.observador = new MutationObserver(() => {
-            if (document.getElementById(estadoLoteSal.popupId)) return
+            if (document.querySelector('[data-lote-sal]')) return
             estadoLoteSal.observador.disconnect()
             if (estadoLoteSal.pendente) salvarLoteSal()
-            if (document.querySelector('[data-tela-lotes]')) setTimeout(() => telaLotesSalarios(), 400)
         })
         estadoLoteSal.observador.observe(document.body, { childList: true, subtree: true })
         desenharLoteSal()
@@ -211,8 +224,8 @@ function desenharLoteSal() {
         <footer class="cx-lote-rodape">
             <div data-totais-lote></div>
             <div class="cx-lote-status" data-status-lote role="status"></div>
-            <div class="cx-lote-botoes">${botoesLoteSal()}</div>
         </footer>`
+    desenharPainelLoteSal()
     filtrarLoteSal()
     escreverTotaisLoteSal()
     escreverStatusLoteSal()
@@ -246,17 +259,51 @@ function linhaLoteSal(i) {
 
 const situacaoTextoSal = f => f.situacao === 'PAGO' ? 'Paga' : Number(f.pago) > 0 ? 'Paga em parte' : f.situacao === 'ATRASADO' ? 'Atrasada' : 'A pagar'
 
-function botoesLoteSal() {
+// Painel à direita, no padrão da fatura: Lançar/Aplicar, Descartar, Novo lote, Copiar, Desfazer/Excluir, Voltar.
+function desenharPainelLoteSal() {
+    const painel = document.querySelector('[data-painel-lote]')
+    if (!painel) return
     const e = estadoLoteSal
     const n = marcadasSal().length
-    if (e.situacao === 'RASCUNHO') return `
-        ${e.id ? '<button type="button" class="fis-mini" onclick="excluirLoteSal()">Excluir rascunho</button>' : ''}
-        <button type="button" class="fis-botao" onclick="lancarLoteSal()">Lançar ${n} fatura${n === 1 ? '' : 's'}</button>`
-    return `
-        <button type="button" class="fis-mini" onclick="desfazerLoteSal()">Desfazer lançamento</button>
-        ${e.emEdicao ? `
-        <button type="button" class="fis-mini" onclick="descartarLoteSal()">Descartar alterações</button>
-        <button type="button" class="fis-botao" onclick="lancarLoteSal()">Aplicar alterações</button>` : ''}`
+    const rascunho = e.situacao === 'RASCUNHO'
+    const acao = (icone, texto, funcao, { perigo = false, ativo = true, motivo = '' } = {}) => `
+        <button type="button" class="fin-acao${perigo ? ' perigo' : ''}" title="${escFin(ativo ? texto : `${texto}: ${motivo}`)}" ${ativo ? `onclick="${funcao}"` : 'disabled'}>
+            ${iconeFin(icone)}<span>${texto}</span></button>`
+    painel.innerHTML = `
+        ${rascunho
+            ? acao('raio', `Lançar ${n} fatura${n === 1 ? '' : 's'}`, 'lancarLoteSal()', { ativo: n > 0, motivo: 'Nenhuma linha marcada com valor' })
+            : acao('salvar', 'Aplicar alterações', 'lancarLoteSal()', { ativo: e.emEdicao, motivo: 'Nada pendente' })}
+        ${rascunho ? '' : acao('cancelar', 'Descartar alterações', 'descartarLoteSal()', { ativo: e.emEdicao, motivo: 'Nada pendente' })}
+        ${acao('incluir', 'Novo lote', 'abrirLoteSalarios()')}
+        ${acao('repetir', 'Copiar para novo mês', `abrirLoteSalarios(null, ${Number(e.id) || 0})`, { ativo: Boolean(e.id), motivo: 'Ainda guardando' })}
+        <hr>
+        ${rascunho
+            ? acao('excluir', 'Excluir rascunho', 'excluirLoteSal()', { perigo: true, ativo: Boolean(e.id), motivo: 'Ainda guardando' })
+            : acao('encerrar', 'Desfazer lançamento', 'desfazerLoteSal()', { perigo: true })}
+        ${acao('voltar', 'Voltar à lista', 'voltarLotesSal()')}`
+}
+
+async function guardarAntesDeSairLoteSal() {
+    clearTimeout(estadoLoteSal.timer)
+    if (document.querySelector('[data-lote-sal]') && (estadoLoteSal.pendente || estadoLoteSal.salvando))
+        await garantirSalvoLoteSal().catch(() => { })
+}
+
+async function voltarLotesSal() {
+    overlayAguarde()
+    await guardarAntesDeSairLoteSal()
+    removerOverlay()
+    telaLotesSalarios()
+}
+
+function alternarPainelLoteSal() {
+    const corpo = document.querySelector('[data-corpo-lote]')
+    if (!corpo) return
+    const aberto = corpo.classList.contains('recolhido')
+    corpo.classList.toggle('recolhido', !aberto)
+    const botao = corpo.querySelector('.fin-recolher')
+    botao?.setAttribute('aria-expanded', String(aberto))
+    if (botao) botao.title = `${aberto ? 'Recolher' : 'Mostrar'} as ações`
 }
 
 function escreverTotaisLoteSal() {
@@ -268,8 +315,7 @@ function escreverTotaisLoteSal() {
     const total = m.reduce((a, i) => a + Number(i.valor), 0)
     el.innerHTML = `<b>${m.length}</b> de ${estadoLoteSal.itens.length} linhas · total <b>${dinheiro(total)}</b>
         ${porApp.size > 1 ? `<small>${[...porApp].map(([a, v]) => `${escFin(a)} ${dinheiro(v)}`).join(' · ')}</small>` : ''}`
-    const botoes = document.querySelector('.cx-lote-botoes')
-    if (botoes) botoes.innerHTML = botoesLoteSal()
+    desenharPainelLoteSal()
 }
 
 function escreverStatusLoteSal() {
@@ -453,6 +499,7 @@ async function salvarLoteSal() {
     } finally {
         e.salvando = null
         escreverStatusLoteSal()
+        desenharPainelLoteSal() // lote novo ganhou id: libera Copiar/Excluir
         if (e.pendente && !e.erro) agendarSalvarLoteSal()
     }
 }
@@ -506,7 +553,6 @@ async function recarregarLoteSal() {
         cabecalho: { ...(fonte.cabecalho || {}) }, itens: (fonte.itens || []).map(i => ({ ...i })), pendente: false, erro: null
     })
     desenharLoteSal()
-    if (document.querySelector('[data-tela-lotes]')) telaLotesSalarios()
 }
 
 async function descartarLoteSal() {
@@ -554,8 +600,7 @@ async function excluirLoteSal() {
         if (estadoLoteSal.salvando) await estadoLoteSal.salvando.catch(() => { })
         await apiFin('salarios/excluir', { id: estadoLoteSal.id })
         removerOverlay()
-        removerPopup(estadoLoteSal.popupId)
-        if (document.querySelector('[data-tela-lotes]')) telaLotesSalarios()
+        telaLotesSalarios()
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
