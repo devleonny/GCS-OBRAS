@@ -132,6 +132,9 @@ function marcarRastreio() {
         el.dataset.rastreioOk = 'S'
         const v = veiculoDoElementoRastreio(el)
         if (v) el.insertAdjacentHTML('afterend', iconeRastreio(v, el.dataset.rastreioDe, el.dataset.rastreioAte))
+        // data-rastreio-sem="cinza": sem carro com rastreador, mostra o carrinho apagado em vez de nada.
+        else if (el.dataset.rastreioSem === 'cinza') el.insertAdjacentHTML('afterend',
+            `<span class="rastreio-icone sem-rastreador" title="Sem rastreador neste carro">${SVG_CARRO_RASTREIO}</span>`)
     }
 }
 
@@ -515,7 +518,8 @@ function desenharFrotaRastreio(estado) {
                 <button type="button" class="rastreio-item-principal" onclick="focarCarroFrotaRastreio('${estado.chave}', '${escaparAtributo(v.id)}')">
                     <i class="rastreio-bolinha ${classe}"></i>
                     <span>
-                        <b>${escaparAtributo(v.placa)}</b> ${escaparAtributo(v.motoristas_nomes || v.motorista || v.apelido || '')}
+                        <b>${escaparAtributo(v.placa)}</b>
+                        <em class="rastreio-item-nome" style="font-style:normal" title="${escaparAtributo(v.motoristas_nomes || v.motorista || v.apelido || '')}">${escaparAtributo(v.motoristas_nomes || v.motorista || v.apelido || '—')}</em>
                         <small>${escaparAtributo(texto)}${v.regiao ? ` · ${escaparAtributo(v.regiao)}` : ''}</small>
                     </span>
                 </button>

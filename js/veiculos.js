@@ -1,5 +1,34 @@
 let totalDepartamentos = {}
 
+// Combustíveis marcados para o pagamento da Ticket Log: id do custo → { deps: { departamento: R$ }, pronto }.
+// Fica fora do DOM porque a tabela redesenha sozinha as linhas que mudam (websocket → paginacao()) e a
+// linha nova perderia o "checked"; criarLinhaCusto devolve a marcação e atualiza os valores daqui.
+const MARCADOS_COMBUSTIVEL = new Map()
+
+const centavos = n => Math.round((Number(n) || 0) * 100) / 100
+
+// Realizado dividido pelos km de cada departamento (base = soma dos km da própria distribuição).
+function valoresDepsCombustivel(distribuicao, realizado) {
+    const itens = Object.values(distribuicao || {}).map(d => ({
+        departamento: String(d?.departamento || d?.nomeDepartamento || ''),
+        km: Number(d?.km) || 0
+    }))
+    const kmTotal = itens.reduce((s, d) => s + d.km, 0)
+    const valor = Number(realizado) || 0
+    const deps = {}
+    for (const { departamento, km } of itens)
+        deps[departamento] = centavos((deps[departamento] || 0) + (kmTotal && valor ? valor * km / kmTotal : 0))
+    // Arredondamento: a diferença de centavos fica no maior departamento, para a soma bater com o realizado.
+    const chaves = Object.keys(deps)
+    if (chaves.length && valor && kmTotal) {
+        const soma = chaves.reduce((s, k) => s + deps[k], 0)
+        const maior = chaves.reduce((a, b) => deps[a] >= deps[b] ? a : b)
+        deps[maior] = centavos(deps[maior] + valor - soma)
+    }
+    const pronto = valor > 0 && kmTotal > 0 && chaves.length > 0 && !chaves.includes('')
+    return { deps, pronto }
+}
+
 const modeloLabel = (valor1, elemento) => `
 <div style="text-align: left; width: 100%; display: flex; align-items: start; justify-content: start; flex-direction: column; gap: 5px;">
     <label>${valor1}</label>
@@ -38,6 +67,9 @@ async function telaVeiculos() {
             ? `<div id="viabilidade"></div>`
             : ''
 
+        MARCADOS_COMBUSTIVEL.clear()
+        totalDepartamentos = {}
+
         // vw_custo_veiculos = custo_veiculos + nomes_motoristas (nomes do cadastro, pesquisáveis).
         // As gravações continuam em custo_veiculos.
         const tabela = await modTab({
@@ -58,6 +90,7 @@ async function telaVeiculos() {
         `
 
         await paginacao()
+        viabilidadeOmie()
 
         removerOverlay()
 
@@ -76,7 +109,6 @@ async function auxVeiculos() {
         'Motoristas': { chave: 'nomes_motoristas' },
         'Modelo': { chave: 'modelo' },
         'Placa': { chave: 'placa' },
-        'Status': { chave: 'status' },
         'Editar': {}
     }
 
@@ -117,12 +149,6 @@ async function criarLinhaVeiculo(veiculo) {
             <label name="veículo" data-rastreio-placa="${escaparAtributo(veiculo?.placa || '')}">${veiculo?.placa || ''}</label>
         </td>
         <td>
-            <div style="${horizontal}; justify-content: left; gap: 1rem;">
-                <img src="imagens/${veiculo.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1.5rem;">
-                <label name="veículo">${veiculo.status}</label>
-            </div>
-        </td>
-        <td>
             <img src="imagens/pesquisar.svg" onclick="novoVeiculo('${veiculo.id}')">
         </td>
     </tr>
@@ -133,7 +159,7 @@ async function criarLinhaVeiculo(veiculo) {
 async function criarLinhaCusto(custo) {
 
     const { veiculo, id, usuario, data_pagamento, comentario, data, realizado, custo_total, distribuicao = {} } = custo
-    const { cartao, placa, modelo, status } = veiculo || {}
+    const { cartao, placa, modelo } = veiculo || {}
     const editavel = pode('veiculos.editar_combustivel')
 
     const nomes = (custo.nomes_motoristas || [])
@@ -141,29 +167,34 @@ async function criarLinhaCusto(custo) {
         .join('<br>')
 
     const deps = []
+    const { deps: valoresDeps, pronto } = valoresDepsCombustivel(distribuicao, realizado)
+
+    // Linha redesenhada (websocket) de um custo marcado: mantém a marcação com os valores novos.
+    const marcado = MARCADOS_COMBUSTIVEL.has(id)
+    if (marcado) {
+        MARCADOS_COMBUSTIVEL.set(id, { deps: valoresDeps, pronto })
+        setTimeout(viabilidadeOmie)
+    }
 
     for (const dados of Object.values(distribuicao || {})) {
 
-        const { km, nomeDepartamento, departamento, autorizacao } = dados || {}
+        const { nomeDepartamento, departamento, autorizacao } = dados || {}
         const departamentoEstavel = String(departamento || nomeDepartamento || '')
         // Setor autorizado (js/autorizacao_departamento.js): quem, quando e o comentário na dica.
         const dicaAutorizacao = autorizacao?.aprovado_por
             ? `title="${escaparAtributo(`✔ Autorizado por ${autorizacao.aprovado_por} às ${new Date(Number(autorizacao.aprovado_em)).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}${autorizacao.comentario ? ` — ${autorizacao.comentario}` : ''}`)}"`
             : ''
 
-        const porcentagem = km / custo.km
-        const valor = realizado
-            ? porcentagem * realizado
-            : ''
+        const valor = valoresDeps[departamentoEstavel] || 0
 
         deps.push(`
             <div style="${horizontal}; gap: 2px;">
                 <div class="tag-pendencias pagamento-balao pagamento-balao-departamento"
                 name="departamento"
                 data-departamento="${escaparAtributo(departamentoEstavel)}"
-                data-valor="${valor}"
                 data-codigo="${escaparAtributo(departamentoEstavel)}" ${dicaAutorizacao}>
                     <span>${escaparAtributo(departamentoEstavel || '...')}${autorizacao?.aprovado_por ? ' ✔' : ''}</span>
+                    ${valor ? `<strong style="margin-left: 6px; white-space: nowrap;">${dinheiro(valor)}</strong>` : ''}
                 </div>
             </div>`)
     }
@@ -174,10 +205,10 @@ async function criarLinhaCusto(custo) {
 
         <td>
             <div style="${horizontal}; justify-content: start; gap: 0.5rem; width: 300px;">
-                <img src="imagens/${status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1rem;">
+                <span data-rastreio-placa="${escaparAtributo(placa || '')}" data-rastreio-sem="cinza" data-rastreio-de="${/^\d{4}-\d{2}-\d{2}$/.test(data || '') ? data : ''}"></span>
                 <div style="${vertical}; text-align: left;">
                     <label>${nomes || ''}</label>
-                    <label data-rastreio-placa="${escaparAtributo(placa || '')}" data-rastreio-de="${/^d{4}-d{2}-d{2}$/.test(data || '') ? data : ''}">${placa || ''}</label>
+                    <label>${placa || ''}</label>
                     <label>${modelo || ''}</label>
                 </div>
             </div>
@@ -188,7 +219,9 @@ async function criarLinhaCusto(custo) {
         </td>
 
         <td style="text-align: center;">
-            <input type="checkbox" name="marcador" onchange="viabilidadeOmie()" style="width: 2rem; height: 2rem;">
+            <input type="checkbox" name="marcador" ${marcado ? 'checked' : ''}
+                data-deps="${escaparAtributo(JSON.stringify(valoresDeps))}" data-pronto="${pronto ? 'S' : ''}"
+                onchange="marcarCustoVeiculo(this, '${escaparAtributo(id)}')" style="width: 2rem; height: 2rem;">
         </td>
 
         <td>
@@ -198,8 +231,8 @@ async function criarLinhaCusto(custo) {
         <td>
             <div style="${horizontal}; gap: 2px;">
                 <span>R$</span>
-                <input oninput="mostrarBtn(this)" class="realizado" type="number" value="${realizado || ''}" ${editavel ? '' : 'readOnly'}>
-                <img onclick="atualizarRealizado(this, '${id}')" style="display: none; width: 1.5rem;" src="imagens/concluido.png">
+                <input oninput="mostrarBtn(this)" class="realizado" type="number" min="0" step="0.01" value="${realizado || ''}" ${editavel ? '' : 'readOnly'}>
+                <img onclick="atualizarRealizado(this, '${escaparAtributo(id)}')" style="display: none; width: 1.5rem; cursor: pointer;" src="imagens/concluido.png" title="Salvar realizado">
             </div>
         </td>
 
@@ -224,54 +257,58 @@ async function criarLinhaCusto(custo) {
     return { linha: `<tr>${tds}</tr>`, detalhes }
 }
 
+function marcarCustoVeiculo(caixa, id) {
+    if (caixa.checked) {
+        let deps = {}
+        try { deps = JSON.parse(caixa.dataset.deps || '{}') } catch { }
+        MARCADOS_COMBUSTIVEL.set(id, { deps, pronto: caixa.dataset.pronto === 'S' })
+    } else {
+        MARCADOS_COMBUSTIVEL.delete(id)
+    }
+    viabilidadeOmie()
+}
+
+// Botão "Criar pagamento": soma o que está marcado (mesmo em outra página da tabela).
 function viabilidadeOmie() {
 
     const viabilidade = document.getElementById('viabilidade')
     if (!viabilidade) return
 
-    let possibilidade = true
     totalDepartamentos = {}
     let total = 0
+    let semValor = 0
 
-    const linhas = document.querySelectorAll('#bodyCustoVeiculos tr:not(.tabela-linha-detalhes)')
-    for (const linha of linhas) {
-
-        const deps = linha.querySelectorAll('[name="departamento"]')
-
-        const marcador = linha.querySelector('[name="marcador"]').checked
-
-        if (!marcador)
-            continue
-
-        if (deps.length == 0)
-            possibilidade = false
-
-        for (const dep of deps) {
-            const departamento = dep.dataset.departamento
-            const valor = Number(dep.dataset.valor)
-
-            if (valor == 0)
-                continue
-
-            totalDepartamentos[departamento] ??= 0
-            totalDepartamentos[departamento] += valor
-
-            total += valor
+    for (const { deps, pronto } of MARCADOS_COMBUSTIVEL.values()) {
+        if (!pronto) semValor++
+        for (const [departamento, valor] of Object.entries(deps || {})) {
+            if (!valor) continue
+            totalDepartamentos[departamento] = centavos((totalDepartamentos[departamento] || 0) + valor)
+            total = centavos(total + valor)
         }
-
     }
 
-    if (total == 0)
-        possibilidade = false
+    const marcados = MARCADOS_COMBUSTIVEL.size
+    const possibilidade = marcados > 0 && semValor === 0 && total > 0
+    const dica = !marcados
+        ? 'Marque os combustíveis que entram no pagamento'
+        : semValor
+            ? `${semValor} marcado(s) sem Realizado ou sem departamento: preencha e salve o Realizado (✔)`
+            : `${marcados} combustível(is) marcado(s)`
 
     viabilidade.innerHTML = `
-        <div ${possibilidade ? `onclick="criarPagamentoVeiculo()"` : ''} 
-            class="botao-criar-pagamento">
+        <div ${possibilidade ? `onclick="criarPagamentoVeiculo()"` : ''} title="${escaparAtributo(dica)}"
+            class="botao-criar-pagamento" style="${possibilidade ? '' : 'cursor: not-allowed; opacity: .7;'}">
             <img src="imagens/${possibilidade ? 'concluido' : 'proibido'}.png">
-            <span>Criar pagamento</span>
+            <span>Criar pagamento${marcados ? ` (${marcados})` : ''}</span>
             <span style="white-space: nowrap;">${dinheiro(total)}</span>
         </div>
     `
+}
+
+function limparMarcadosCombustivel() {
+    MARCADOS_COMBUSTIVEL.clear()
+    document.querySelectorAll('#bodyCustoVeiculos [name="marcador"]').forEach(c => c.checked = false)
+    viabilidadeOmie()
 }
 
 async function criarPagamentoVeiculo() {
@@ -300,21 +337,21 @@ async function criarPagamentoVeiculo() {
                 </div>`
         },
         { texto: 'Valor', elemento: `<span id="total" data-total="${totalDeps}">${dinheiro(totalDeps)}</span>` },
-        // Vem com o dia de hoje; a data escolhida vai ao Omie como está (sem ajuste de dia útil).
+        // Vem com o dia de hoje; vira o vencimento da fatura no Financeiro como está (sem ajuste de dia útil).
         { texto: 'Data', elemento: `<input id="data" type="date" value="${dataServidor().toLocaleDateString('en-CA')}">` },
         { texto: 'Observação', elemento: `<textarea id="observacao"></textarea>` },
         { texto: 'Departamentos', elemento: `<div style="${vertical}; gap: 1px;">${deps.join('')}</div>` }
     ]
 
     const botoes = [
-        { img: 'salvo', funcao: 'salvarPagamentoVeiculo()', texto: 'Lançar no Omie' }
+        { img: 'salvo', funcao: 'salvarPagamentoVeiculo()', texto: 'Lançar no Financeiro' }
     ]
 
     popup({ linhas, botoes, titulo: 'Pagamento Ticket Log' })
 
 }
 
-// Ticket Log: sem aprovação, direto ao Omie com a data informada. O servidor confere de novo
+// Ticket Log: sem aprovação, direto ao Financeiro (fatura a pagar) com a data informada. O servidor confere de novo
 // a permissão e o fornecedor (gcs/SCRIPTS/pagamento_aprovacao.js).
 const perfisTicketLog = ['fin', 'diretoria', 'adm']
 
@@ -329,11 +366,14 @@ async function salvarPagamentoVeiculo() {
 
     const app = el('app')
     const observacao = el('observacao')
-    const taxa = Number(el('taxa'))
+    const taxa = centavos(el('taxa'))
     const inpData = el('data')
 
     if (!Number.isFinite(taxa) || taxa < 0 || !inpData)
         return popup({ mensagem: 'Preencha a data e/ou o valor da taxa' })
+
+    if (!Object.keys(totalDepartamentos).length)
+        return popup({ mensagem: 'Nenhum combustível marcado. Feche e marque de novo.' })
 
     overlayAguarde()
 
@@ -364,8 +404,8 @@ async function salvarPagamentoVeiculo() {
                 distribuicaoAgrupada[cCodDep] = { cCodDep, nValDep: 0 }
             }
 
-            distribuicaoAgrupada[cCodDep].nValDep += nValDep
-            totalGeral += nValDep
+            distribuicaoAgrupada[cCodDep].nValDep = centavos(distribuicaoAgrupada[cCodDep].nValDep + nValDep)
+            totalGeral = centavos(totalGeral + nValDep)
         }
 
         const distribuicao = Object.values(distribuicaoAgrupada)
@@ -418,6 +458,7 @@ async function salvarPagamentoVeiculo() {
             throw new Error(`Salvo no GCS, mas não foi lançado: ${lancamento.mensagem || `falha ${resposta.status}`}`)
 
         removerPopup()
+        limparMarcadosCombustivel()
         popup({ mensagem: lancamento.mensagem || `Lançado no Financeiro para ${data}`, imagem: 'imagens/concluido.png' })
 
     } catch (err) {
@@ -431,18 +472,38 @@ async function salvarPagamentoVeiculo() {
 function somarTaxa(input) {
     const elemTotal = document.getElementById('total')
     const total = Number(elemTotal.dataset.total)
-    elemTotal.innerHTML = dinheiro(total + Number(input.value || 0))
+    elemTotal.innerHTML = dinheiro(centavos(total + (Number(input.value) || 0)))
 }
 
 async function atualizarRealizado(img, idCusto) {
 
     const input = img.previousElementSibling
-    const realizado = Number(input.value)
+    const realizado = centavos(input.value)
+
+    if (!Number.isFinite(realizado) || realizado < 0)
+        return popup({ mensagem: 'Realizado inválido.' })
 
     img.style.display = 'none'
 
-    await enviar(`custo_veiculos/${idCusto}/realizado`, realizado)
+    const resultado = await enviar(`custo_veiculos/${idCusto}/realizado`, realizado)
+    if (resultado && resultado.success === false) {
+        img.style.display = ''
+        return popup({ mensagem: resultado.mensagem || 'Falha ao salvar o realizado. Tente novamente.' })
+    }
 
+    // Atualiza já a marcação e os valores da linha (sem esperar a tabela redesenhar).
+    const custo = await recuperarDado('custo_veiculos', idCusto).catch(() => null)
+    if (!custo) return
+    const { deps, pronto } = valoresDepsCombustivel(custo.distribuicao, realizado)
+    const caixa = input.closest('tr')?.querySelector('[name="marcador"]')
+    if (caixa) {
+        caixa.dataset.deps = JSON.stringify(deps)
+        caixa.dataset.pronto = pronto ? 'S' : ''
+    }
+    if (MARCADOS_COMBUSTIVEL.has(idCusto)) {
+        MARCADOS_COMBUSTIVEL.set(idCusto, { deps, pronto })
+        viabilidadeOmie()
+    }
 }
 
 async function painelAtalhos(idCusto) {
@@ -699,6 +760,10 @@ async function salvarValores(idCusto = crypto.randomUUID()) {
 
     const painel = document.querySelector('.painel-padrao')
     const idVeiculo = painel.querySelector('[name="veiculo"]').id
+
+    if (!idVeiculo)
+        return popup({ mensagem: `Preencha o Veículo` })
+
     const veiculo = await recuperarDado('veiculos', idVeiculo)
     // Edição mantém quem registrou e quando; novo (ou duplicado, que ganha outro id) usa agora.
     const { usuario, data, data_pagamento: dataAnterior } = await recuperarDado('custo_veiculos', idCusto) || {}
@@ -706,10 +771,10 @@ async function salvarValores(idCusto = crypto.randomUUID()) {
     const custo_total = obterValores('custo_total')
     const data_pagamento = obterValores('data_pagamento')
 
-    if (!idVeiculo)
-        return popup({ mensagem: `Preencha o Veículo` })
+    if (!veiculo)
+        return popup({ mensagem: `Veículo não encontrado no cadastro. Selecione de novo.` })
 
-    if (custo_total == '')
+    if (!(custo_total > 0))
         return popup({ mensagem: `Preencha o valor do pagamento` })
 
     if (data_pagamento == '')
@@ -758,8 +823,8 @@ async function salvarValores(idCusto = crypto.randomUUID()) {
         comentario: obterValores('comentario'),
         data_pagamento,
         data: data || dataServidor().toLocaleString(),
-        km: obterValores('km'),
-        litros: obterValores('litros'),
+        km: Number(obterValores('km')) || 0,
+        litros: Number(obterValores('litros')) || 0,
         usuario: usuario || acesso.usuario
     }
 
@@ -785,22 +850,20 @@ async function novoVeiculo(idVeiculo) {
 
     const veiculo = await recuperarDado('veiculos', idVeiculo) || {}
 
-    const opcoes = ['Locado', 'Devolvido']
-        .map(op => `<option ${veiculo?.status == op ? 'selected' : ''}>${op}</opcoes>`)
-        .join('')
-
     const motoristas = []
 
-    for (const { id } of (veiculo.motoristas || [])) {
-        const motorista = await recuperarDado('clientes', id)
-        motoristas.push(adicionarMotorista(motorista))
+    for (const m of (veiculo.motoristas || [])) {
+        const id = typeof m === 'object' ? m?.id : m
+        if (!id) continue
+        // Motorista apagado do cadastro: mostra o código em vez de travar a tela.
+        const motorista = await recuperarDado('clientes', id).catch(() => null)
+        motoristas.push(adicionarMotorista({ id, nome: motorista?.nome || `Cadastro ${id} não encontrado` }))
     }
 
     const linhas = [
         { texto: 'Placa', elemento: `<input value="${veiculo?.placa || ''}" id="placa" placeholder="Placa">` },
         { texto: 'Modelo', elemento: `<input value="${veiculo?.modelo || ''}" id="modelo" placeholder="Modelo">` },
         { texto: 'Final do Cartão', elemento: `<input value="${veiculo?.cartao || ''}" id="cartao" placeholder="Final do Cartão">` },
-        { texto: 'Status', elemento: `<select id="status">${opcoes}</select>` },
         {
             texto: `<div style="${horizontal}; gap: 1rem;"><span>Motoristas</span> <img src="imagens/baixar.png" onclick="adicionarMotorista()"></div>`,
             elemento: `
@@ -915,12 +978,13 @@ async function salvarVeiculo(idVeiculo = crypto.randomUUID()) {
         id: idVeiculo,
         modelo: obterValores('modelo'),
         placa: obterValores('placa'),
-        status: obterValores('status'),
         cartao: obterValores('cartao'),
         motoristas
     }
 
-    await enviar(`veiculos/${idVeiculo}`, veiculo)
+    const resultado = await enviar(`veiculos/${idVeiculo}`, veiculo)
+    if (resultado && resultado.success === false)
+        return popup({ mensagem: resultado.mensagem || 'Falha ao salvar o veículo. Tente novamente.' })
 
     removerPopup()
 }
