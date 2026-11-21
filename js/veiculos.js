@@ -7,26 +7,226 @@ const MARCADOS_COMBUSTIVEL = new Map()
 
 const centavos = n => Math.round((Number(n) || 0) * 100) / 100
 
-// Realizado dividido pelos km de cada departamento (base = soma dos km da própria distribuição).
-function valoresDepsCombustivel(distribuicao, realizado) {
-    const itens = Object.values(distribuicao || {}).map(d => ({
-        departamento: String(d?.departamento || d?.nomeDepartamento || ''),
-        km: Number(d?.km) || 0
-    }))
-    const kmTotal = itens.reduce((s, d) => s + d.km, 0)
-    const valor = Number(realizado) || 0
+// Valor dividido na proporção dos pesos ({ departamento: peso }); a diferença de centavos fica no maior,
+// para a soma bater com o valor.
+function distribuirPorPesos(pesos, valor) {
+    const total = Object.values(pesos || {}).reduce((s, p) => s + (Number(p) || 0), 0)
     const deps = {}
-    for (const { departamento, km } of itens)
-        deps[departamento] = centavos((deps[departamento] || 0) + (kmTotal && valor ? valor * km / kmTotal : 0))
-    // Arredondamento: a diferença de centavos fica no maior departamento, para a soma bater com o realizado.
+    if (!total || !valor) return deps
+    for (const [departamento, peso] of Object.entries(pesos))
+        if (Number(peso) > 0) deps[departamento] = centavos((deps[departamento] || 0) + valor * peso / total)
     const chaves = Object.keys(deps)
-    if (chaves.length && valor && kmTotal) {
+    if (chaves.length) {
         const soma = chaves.reduce((s, k) => s + deps[k], 0)
         const maior = chaves.reduce((a, b) => deps[a] >= deps[b] ? a : b)
         deps[maior] = centavos(deps[maior] + valor - soma)
     }
-    const pronto = valor > 0 && kmTotal > 0 && chaves.length > 0 && !chaves.includes('')
+    return deps
+}
+
+// Lançamento antigo (com distribuição digitada): realizado dividido pelos km de cada departamento.
+function valoresDepsCombustivel(distribuicao, realizado) {
+    const pesos = {}
+    for (const d of Object.values(distribuicao || {})) {
+        const departamento = String(d?.departamento || d?.nomeDepartamento || '')
+        pesos[departamento] = (pesos[departamento] || 0) + (Number(d?.km) || 0)
+    }
+    const valor = Number(realizado) || 0
+    const deps = distribuirPorPesos(pesos, valor)
+    const chaves = Object.keys(deps)
+    const pronto = valor > 0 && chaves.length > 0 && !chaves.includes('')
     return { deps, pronto }
+}
+
+const temDistribuicaoCombustivel = distribuicao => Object.keys(distribuicao || {}).length > 0
+
+// Divisão de cada combustível por departamento, nesta ordem (21/11/2026):
+//   1. rateio_manual: dividido à mão pelo botão "Dividir" (mesmo editor das faturas, em % ou R$);
+//   2. distribuição antiga, digitada no formulário de antes (km por departamento);
+//   3. automática pelo uso depois do abastecimento (gcs SCRIPTS/combustivel_rotas.js → /veiculos/combustivel/rateio:
+//      km do rastreio, senão chamados dos motoristas).
+// Na tela aparecem só os departamentos conhecidos; o que a automática não soube para onde foi fica como
+// "sem divisão" (no pagamento da Ticket Log essa parte vai para EMPRESA).
+const SEM_DESTINO_COMBUSTIVEL = 'EMPRESA'
+const RATEIOS_COMBUSTIVEL = new Map() // id do custo → { pesos, fonte, de, ate, motivo, sem_departamento }
+const LINHAS_COMBUSTIVEL = new Map()  // id do custo → { distribuicao, rateio_manual, realizado, custo_total }
+const DIVISOR_COMBUSTIVEL_POPUP = new Map()
+
+const temManualCombustivel = r => Array.isArray(r) && r.some(l => l?.departamento && Number(l.percentual) > 0)
+
+async function buscarRateiosCombustivel(ids) {
+    const faltam = ids.filter(id => !RATEIOS_COMBUSTIVEL.has(id))
+    if (!faltam.length) return
+    const { token } = JSON.parse(localStorage.getItem('acesso') || '{}')
+    const resposta = await fetch(`${api}/veiculos/combustivel/rateio`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ids: faltam })
+    })
+    const dados = await resposta.json().catch(() => ({}))
+    if (!resposta.ok) throw new Error(dados.mensagem || 'Falha ao buscar a divisão do combustível.')
+    for (const [id, r] of Object.entries(dados.rateios || {})) RATEIOS_COMBUSTIVEL.set(id, r)
+}
+
+// { deps (R$ por departamento, somando o valor; a parte sem destino em EMPRESA), pesos, pronto, origem, rateio }
+function divisaoCombustivel(id, linha = LINHAS_COMBUSTIVEL.get(id) || {}) {
+    const { distribuicao, rateio_manual, realizado } = linha
+    const valor = Number(realizado) || 0
+    if (temManualCombustivel(rateio_manual)) {
+        const pesos = Object.fromEntries(rateio_manual.filter(l => l.departamento).map(l => [l.departamento, Number(l.percentual) || 0]))
+        return { deps: distribuirPorPesos(pesos, valor), pesos, pronto: valor > 0, origem: 'manual' }
+    }
+    if (temDistribuicaoCombustivel(distribuicao)) {
+        const { deps, pronto } = valoresDepsCombustivel(distribuicao, realizado)
+        return { deps, pronto, origem: 'antiga' }
+    }
+    const r = RATEIOS_COMBUSTIVEL.get(id)
+    if (!r) return { deps: {}, pesos: {}, pronto: false, origem: 'carregando' }
+    const pesos = Object.keys(r.pesos || {}).length ? r.pesos : { [SEM_DESTINO_COMBUSTIVEL]: 1 }
+    return { deps: distribuirPorPesos(pesos, valor), pesos, pronto: valor > 0, origem: r.fonte || 'sem', rateio: r }
+}
+
+// Texto da origem da divisão automática, para a dica.
+function origemRateioCombustivel(r) {
+    if (!r) return 'Calculando a divisão…'
+    if (!r.fonte) return `${r.motivo} No pagamento, vai para ${SEM_DESTINO_COMBUSTIVEL}.`
+    const periodo = r.de === r.ate ? conversorData(r.de) : `${conversorData(r.de)} a ${conversorData(r.ate)}`
+    const semDep = r.sem_departamento?.length
+        ? ` · ${r.sem_departamento.join(', ')} sem departamento no Financeiro (fica sem divisão)`
+        : ''
+    return `${r.fonte === 'rastreio' ? 'Km do rastreio' : 'Chamados dos motoristas'} em ${periodo}${r.ampliada ? ' (7 dias após o abastecimento)' : ''}${semDep}`
+}
+
+// Coluna Departamentos (formulário simples ou divisão manual): só os departamentos conhecidos, com R$
+// (ou % sem Realizado); o resto como "sem divisão"; botão Dividir para quem edita combustível.
+function htmlDepsSimplesCombustivel(id, editavel) {
+    const botao = editavel ? `<button type="button" class="comb-dividir" onclick="dividirCombustivel('${escaparAtributo(id)}')">Dividir</button>` : ''
+    const d = divisaoCombustivel(id)
+    if (d.origem === 'carregando')
+        return editavel ? '<small class="comb-uso">Calculando a divisão…</small>' : '<small class="comb-uso">Divisão pelo uso</small>'
+    const pesos = d.pesos || {}
+    const totalPeso = Object.values(pesos).reduce((s, p) => s + p, 0) || 1
+    const conhecidos = Object.entries(pesos).filter(([dep]) => d.origem === 'manual' || dep !== SEM_DESTINO_COMBUSTIVEL)
+    const resto = d.origem === 'manual' ? 0 : (pesos[SEM_DESTINO_COMBUSTIVEL] || 0)
+    const valorOuPct = (dep, peso) => d.deps[dep] ? dinheiro(d.deps[dep]) : `${Math.round(100 * peso / totalPeso)}%`
+    const tags = conhecidos.sort((a, b) => b[1] - a[1]).map(([dep, peso]) => `
+        <div class="tag-pendencias pagamento-balao pagamento-balao-departamento" name="departamento" data-departamento="${escaparAtributo(dep)}">
+            <span>${escaparAtributo(dep)}</span>
+            <strong style="margin-left: 6px; white-space: nowrap;">${valorOuPct(dep, peso)}</strong>
+        </div>`).join('')
+    const origem = d.origem === 'manual' ? 'dividido à mão'
+        : d.origem === 'rastreio' ? 'pelo rastreio' : d.origem === 'chamados' ? 'pelos chamados' : ''
+    const semDivisao = resto ? `<small class="comb-uso">sem divisão ${valorOuPct(SEM_DESTINO_COMBUSTIVEL, resto)}</small>` : ''
+    const dica = d.origem === 'manual' ? 'Dividido à mão' : origemRateioCombustivel(d.rateio)
+    return `${tags}${semDivisao}<div class="comb-uso-linha"><small class="comb-uso" title="${escaparAtributo(dica)}">${origem}</small>${botao}</div>`
+}
+
+const FILA_RATEIO_COMBUSTIVEL = new Set()
+let timerRateioCombustivel = null
+
+// As linhas pedem a divisão em lote (uma consulta para a página toda) e se atualizam quando ela chega.
+function agendarRateioCombustivel(id) {
+    FILA_RATEIO_COMBUSTIVEL.add(id)
+    clearTimeout(timerRateioCombustivel)
+    timerRateioCombustivel = setTimeout(async () => {
+        const ids = [...FILA_RATEIO_COMBUSTIVEL]
+        FILA_RATEIO_COMBUSTIVEL.clear()
+        try {
+            await buscarRateiosCombustivel(ids)
+        } catch (erro) {
+            console.error(erro)
+            return
+        }
+        ids.forEach(aplicarRateioNaLinhaCombustivel)
+        viabilidadeOmie()
+    }, 80)
+}
+
+function aplicarRateioNaLinhaCombustivel(id) {
+    const container = document.querySelector(`[data-deps-custo="${CSS.escape(id)}"]`)
+    const { deps, pronto, origem } = divisaoCombustivel(id)
+    // Distribuição antiga: a coluna mostra as tags dela (com a autorização); a tabela redesenha a linha.
+    if (container && origem !== 'antiga') container.innerHTML = htmlDepsSimplesCombustivel(id, pode('veiculos.editar_combustivel'))
+    const caixa = document.querySelector(`[name="marcador"][data-custo="${CSS.escape(id)}"]`)
+    if (caixa) {
+        caixa.dataset.deps = JSON.stringify(deps)
+        caixa.dataset.pronto = pronto ? 'S' : ''
+    }
+    if (MARCADOS_COMBUSTIVEL.has(id)) MARCADOS_COMBUSTIVEL.set(id, { deps, pronto })
+}
+
+// Botão "Dividir": editor de rateio das faturas (js/financeiro.js editorRateioFin), em % ou R$, base = Realizado
+// (ou o valor pedido, sem Realizado). Vem preenchido com a divisão de agora (sem a parte sem destino).
+async function dividirCombustivel(id) {
+    const linha = LINHAS_COMBUSTIVEL.get(id)
+    if (!linha) return
+    overlayAguarde()
+    try {
+        await carregarOpcoesFin()
+    } catch (erro) {
+        return popup({ mensagem: erro.message || 'Falha ao carregar os departamentos.' })
+    }
+    removerOverlay()
+    const total = centavos(Number(linha.realizado) || Number(linha.custo_total) || 0)
+    const manual = temManualCombustivel(linha.rateio_manual)
+    let atual = linha.rateio_manual || []
+    if (!manual) {
+        const d = divisaoCombustivel(id)
+        const pesos = d.origem === 'antiga'
+            ? Object.fromEntries(Object.entries(d.deps).map(([dep, v]) => [dep, v || 1]))
+            : (d.pesos || {})
+        const soma = Object.values(pesos).reduce((s, p) => s + p, 0)
+        atual = Object.entries(pesos)
+            .filter(([dep]) => dep && dep !== SEM_DESTINO_COMBUSTIVEL)
+            .map(([departamento, peso]) => ({ departamento, percentual: soma ? pctCampoFin(100 * peso / soma) : '' }))
+    }
+    const idPopup = popup({
+        titulo: `Dividir combustível · ${dinheiro(total)}`,
+        confirmarFechar: false,
+        elemento: `
+            <div class="comb-divisor" data-divisor-comb="${escaparAtributo(id)}">
+                ${editorRateioFin(null, atual, { total })}
+                <small class="comb-uso">A divisão feita aqui vale no lugar da automática.</small>
+            </div>`,
+        botoes: [
+            ...(manual ? [{ texto: 'Voltar à automática', img: 'cancel', funcao: `salvarDivisaoCombustivel('${escaparAtributo(id)}', true)` }] : []),
+            { texto: 'Salvar divisão', img: 'concluido', funcao: `salvarDivisaoCombustivel('${escaparAtributo(id)}')` }
+        ]
+    })
+    const bloco = document.querySelector(`[data-divisor-comb="${CSS.escape(id)}"] [data-rateio]`)
+    if (bloco) somarRateioFin(bloco)
+    DIVISOR_COMBUSTIVEL_POPUP.set(id, idPopup)
+}
+
+async function salvarDivisaoCombustivel(id, voltarAutomatica = false) {
+    let lista = null
+    if (!voltarAutomatica) {
+        const raiz = document.querySelector(`[data-divisor-comb="${CSS.escape(id)}"]`)
+        if (!raiz) return
+        if (lerRateioFin(raiz, true).some(l => !l.departamento && l.percentual))
+            return popup({ mensagem: 'Escolha o departamento de todas as linhas (clique num item da lista).' })
+        lista = lerRateioFin(raiz).filter(l => l.percentual > 0)
+        const soma = lista.reduce((s, l) => s + l.percentual, 0)
+        if (!lista.length) return popup({ mensagem: 'Escolha pelo menos um departamento.' })
+        if (Math.abs(soma - 100) > 0.01)
+            return popup({ mensagem: `A divisão precisa somar 100% (está em ${Number(soma.toFixed(2)).toLocaleString('pt-BR')}%).` })
+    }
+    overlayAguarde()
+    const resultado = await enviar(`custo_veiculos/${id}/rateio_manual`, lista)
+    if (resultado && resultado.success === false)
+        return popup({ mensagem: resultado.mensagem || 'Falha ao salvar a divisão. Tente novamente.' })
+    const linha = LINHAS_COMBUSTIVEL.get(id)
+    if (linha) linha.rateio_manual = lista
+    if (!lista && linha && !temDistribuicaoCombustivel(linha.distribuicao)) {
+        RATEIOS_COMBUSTIVEL.delete(id)
+        agendarRateioCombustivel(id)
+    }
+    aplicarRateioNaLinhaCombustivel(id)
+    viabilidadeOmie()
+    removerOverlay()
+    const idPopup = DIVISOR_COMBUSTIVEL_POPUP.get(id)
+    DIVISOR_COMBUSTIVEL_POPUP.delete(id)
+    if (idPopup) removerPopup(idPopup)
 }
 
 const modeloLabel = (valor1, elemento) => `
@@ -68,6 +268,7 @@ async function telaVeiculos() {
             : ''
 
         MARCADOS_COMBUSTIVEL.clear()
+        RATEIOS_COMBUSTIVEL.clear() // a divisão é recalculada de hora em hora no servidor
         totalDepartamentos = {}
 
         // vw_custo_veiculos = custo_veiculos + nomes_motoristas (nomes do cadastro, pesquisáveis).
@@ -167,7 +368,11 @@ async function criarLinhaCusto(custo) {
         .join('<br>')
 
     const deps = []
-    const { deps: valoresDeps, pronto } = valoresDepsCombustivel(distribuicao, realizado)
+    // Divisão da linha (manual > distribuição antiga > automática pelo uso; ver divisaoCombustivel).
+    LINHAS_COMBUSTIVEL.set(id, { distribuicao, rateio_manual: custo.rateio_manual, realizado, custo_total })
+    const { deps: valoresDeps, pronto, origem } = divisaoCombustivel(id)
+    const antiga = origem === "antiga"
+    if (origem === "carregando" && editavel) agendarRateioCombustivel(id)
 
     // Linha redesenhada (websocket) de um custo marcado: mantém a marcação com os valores novos.
     const marcado = MARCADOS_COMBUSTIVEL.has(id)
@@ -176,7 +381,9 @@ async function criarLinhaCusto(custo) {
         setTimeout(viabilidadeOmie)
     }
 
-    for (const dados of Object.values(distribuicao || {})) {
+    if (!antiga) deps.push(htmlDepsSimplesCombustivel(id, editavel))
+
+    for (const dados of Object.values(antiga ? distribuicao : {})) {
 
         const { nomeDepartamento, departamento, autorizacao } = dados || {}
         const departamentoEstavel = String(departamento || nomeDepartamento || '')
@@ -198,6 +405,8 @@ async function criarLinhaCusto(custo) {
                 </div>
             </div>`)
     }
+    // Distribuição antiga digitada: também pode ser refeita pelo divisor.
+    if (antiga && editavel) deps.push(`<div class="comb-uso-linha"><small class="comb-uso">digitado no pedido</small><button type="button" class="comb-dividir" onclick="dividirCombustivel('${escaparAtributo(id)}')">Dividir</button></div>`)
 
     const tds = `
         <td>${data || ''}</td>
@@ -219,7 +428,7 @@ async function criarLinhaCusto(custo) {
         </td>
 
         <td style="text-align: center;">
-            <input type="checkbox" name="marcador" ${marcado ? 'checked' : ''}
+            <input type="checkbox" name="marcador" ${marcado ? 'checked' : ''} data-custo="${escaparAtributo(id)}"
                 data-deps="${escaparAtributo(JSON.stringify(valoresDeps))}" data-pronto="${pronto ? 'S' : ''}"
                 onchange="marcarCustoVeiculo(this, '${escaparAtributo(id)}')" style="width: 2rem; height: 2rem;">
         </td>
@@ -240,7 +449,7 @@ async function criarLinhaCusto(custo) {
 
 
         <td>
-            <div style="${vertical}; gap: 1px;">${deps.join('')}</div>
+            <div style="${vertical}; gap: 1px;" data-deps-custo="${escaparAtributo(id)}" data-realizado="${Number(realizado) || 0}">${deps.join('')}</div>
         </td>
 
         <td>
@@ -492,18 +701,10 @@ async function atualizarRealizado(img, idCusto) {
     }
 
     // Atualiza já a marcação e os valores da linha (sem esperar a tabela redesenhar).
-    const custo = await recuperarDado('custo_veiculos', idCusto).catch(() => null)
-    if (!custo) return
-    const { deps, pronto } = valoresDepsCombustivel(custo.distribuicao, realizado)
-    const caixa = input.closest('tr')?.querySelector('[name="marcador"]')
-    if (caixa) {
-        caixa.dataset.deps = JSON.stringify(deps)
-        caixa.dataset.pronto = pronto ? 'S' : ''
-    }
-    if (MARCADOS_COMBUSTIVEL.has(idCusto)) {
-        MARCADOS_COMBUSTIVEL.set(idCusto, { deps, pronto })
-        viabilidadeOmie()
-    }
+    const linha = LINHAS_COMBUSTIVEL.get(idCusto)
+    if (linha) linha.realizado = realizado
+    aplicarRateioNaLinhaCombustivel(idCusto)
+    viabilidadeOmie()
 }
 
 async function painelAtalhos(idCusto) {
@@ -580,6 +781,9 @@ function erroPrazoCombustivel(dataPagamento) {
     return null
 }
 
+// Formulário simples (21/11/2026): só carro, valor, data e comentário. A divisão por departamento é feita
+// depois, pelo uso do carro (rastreio e chamados; gcs SCRIPTS/combustivel_rotas.js → rateio). Lançamento
+// antigo editado mantém a distribuição digitada que já tinha (não aparece mais no formulário).
 async function painelValores(idCusto, duplicar) {
 
     await sincronizarRelogioServidor().catch(() => { })
@@ -601,50 +805,7 @@ async function painelValores(idCusto, duplicar) {
         veiculo?.modelo
     ].filter(Boolean)
 
-    const distribuicaoVisual = `
-        <div class="distribuicao-combustivel">
-            <div class="distribuicao-combustivel-topo">
-                <span>Divisão dos quilômetros por departamento</span>
-                <button type="button" onclick="linDist()">+ Adicionar departamento</button>
-            </div>
-            <div id="distribuicao" class="distribuicao-combustivel-lista vazio"></div>
-        </div>
-    `
-
     const linhas = [
-        { texto: 'Comentário', elemento: `<textarea rows="5" style="padding: 0.5rem;" id="comentario">${custo?.comentario || ''}</textarea>` },
-        {
-            texto: 'Data Pagamento', elemento: `
-            <div style="${vertical}; align-items: start; gap: 2px;">
-                <input id="data_pagamento" type="date" min="${minimoData}"
-                    value="${novoLancamento && (custo?.data_pagamento || '') < minimoData ? '' : custo?.data_pagamento || ''}">
-                <small style="opacity: 0.75;">Para o mesmo dia, solicite até ${HORA_LIMITE_COMBUSTIVEL}.</small>
-            </div>` },
-        { texto: 'KM/L', elemento: `<input oninput="calcularValorCombustivel()" value="${custo?.kml || ''}" type="number" id="kml" type="number">` },
-        {
-            texto: 'Valor Combustível', elemento: `
-                <div class="campo-moeda-combustivel">
-                    <span>R$</span>
-                    <input oninput="calcularValorCombustivel()" value="${custo?.combustivel || ''}" type="number" id="combustivel">
-                </div>`
-        },
-        { texto: 'Distribuição', elemento: distribuicaoVisual },
-        {
-            texto: 'Total KM', elemento: `
-            <div style="${horizontal}; gap: 0.5rem;">
-                <input value="${custo?.km || ''}" style="width: 5rem;" id="km" readOnly>
-                km 
-            </div>
-            ` },
-        { texto: 'Litros', elemento: `<input value="${custo?.litros || ''}" style="width: 5rem;" id="litros" readOnly>` },
-        {
-            texto: 'Custo Total',
-            elemento: `
-            <div style="${horizontal}; gap: 0.5rem;">
-                R$ 
-                <input value="${custo?.custo_total || ''}" id="custo_total" type="number">
-            </div>
-            ` },
         {
             texto: 'Motorista & Veículo',
             elemento: `
@@ -654,15 +815,33 @@ async function painelValores(idCusto, duplicar) {
                     onclick="cxOpcoes('veiculo')">
                         ${veiculo?.id ? termos.join('<br>') : 'Selecionar'}
                 </span>`
+        },
+        {
+            texto: 'Valor',
+            elemento: `
+                <div class="campo-moeda-combustivel">
+                    <span>R$</span>
+                    <input value="${custo?.custo_total || ''}" id="custo_total" type="number" min="0" step="0.01" placeholder="0,00">
+                </div>`
+        },
+        {
+            texto: 'Data Pagamento', elemento: `
+            <div style="${vertical}; align-items: start; gap: 2px;">
+                <input id="data_pagamento" type="date" min="${minimoData}"
+                    value="${novoLancamento && (custo?.data_pagamento || '') < minimoData ? '' : custo?.data_pagamento || ''}">
+                <small style="opacity: 0.75;">Para o mesmo dia, solicite até ${HORA_LIMITE_COMBUSTIVEL}.</small>
+            </div>` },
+        { texto: 'Comentário', elemento: `<textarea rows="4" style="padding: 0.5rem;" id="comentario">${custo?.comentario || ''}</textarea>` },
+        {
+            elemento: `<small style="opacity: .75; text-align: left;">A divisão por departamento é feita depois, pelo uso do carro (rastreio e chamados).</small>`
         }
-
     ]
 
     const botoes = [
         { texto: 'Salvar', img: 'concluido', funcao: (!idCusto || duplicar) ? `salvarValores()` : `salvarValores('${idCusto}')` }
     ]
 
-    popup({ linhas, botoes, titulo: 'Gerenciar Custo' })
+    popup({ linhas, botoes, titulo: 'Solicitar combustível' })
 
     // Controles;
     controlesCxOpcoes.veiculo = {
@@ -675,84 +854,7 @@ async function painelValores(idCusto, duplicar) {
             'Motoristas': { chave: 'nomes_motoristas' }
         }
     }
-
-    for (const [codigo, { km }] of Object.entries(custo.distribuicao || {})) {
-        linDist({ codigo, km, descricao: codigo })
-    }
-
 }
-
-function linDist({ descricao, codigo, km } = {}) {
-
-    const lista = document.getElementById('distribuicao')
-    if (!lista) return
-    const chave = crypto.randomUUID()
-    lista.classList.remove('vazio')
-
-    lista.insertAdjacentHTML('beforeend', `
-        <div class="distribuicao-combustivel-item">
-            <div class="distribuicao-combustivel-campo departamento">
-                <label>Departamento</label>
-                <span 
-                class="opcoes" 
-                name="${chave}" 
-                    data-campo="departamento"
-                ${codigo ? `id="${escaparAtributo(String(codigo))}"` : ''}
-                onclick="cxOpcoes('${chave}')">
-                    ${escaparAtributo(descricao || 'Selecione')}
-                </span>
-            </div>
-            <div class="distribuicao-combustivel-campo km">
-                <label>KM</label>
-                <input value="${km || ''}" min="0" step="0.01" oninput="calcularValorCombustivel()" name="km" type="number" placeholder="0">
-            </div>
-            <span class="close"
-                onclick="removerDistribuicaoCombustivel(this)"
-                role="button" tabindex="0" aria-label="Remover departamento">&times;</span>
-        </div>`
-    )
-
-    controlesCxOpcoes[chave] = {
-        base: 'mesc_departamentos',
-        retornar: ['id'],
-        colunas: {
-            'Descrição': { chave: 'id' }
-        }
-    }
-
-}
-
-function removerDistribuicaoCombustivel(botao) {
-    const lista = document.getElementById('distribuicao')
-    botao.closest('.distribuicao-combustivel-item')?.remove()
-    lista?.classList.toggle('vazio', !lista.querySelector('.distribuicao-combustivel-item'))
-    calcularValorCombustivel()
-}
-
-function calcularValorCombustivel() {
-    const linhas = document.querySelectorAll('#distribuicao .distribuicao-combustivel-item')
-    const kml = Number(document.getElementById('kml').value)
-    const combustivel = Number(document.getElementById('combustivel').value)
-
-    let totalKM = 0
-
-    for (const linha of linhas) {
-        const km = Number(linha.querySelector('[name="km"]').value)
-        totalKM += km
-    }
-
-    const calculoValido = kml > 0 && combustivel > 0
-    const litros = calculoValido ? totalKM / kml : 0
-    const valor = litros * combustivel
-
-    document.getElementById('km').value = totalKM
-    document.getElementById('litros').value = totalKM ? Math.ceil(litros) : 0
-
-    const ct = document.getElementById('custo_total')
-
-    ct.value = valor ? Math.ceil(valor / 10) * 10 : 0
-}
-
 
 async function salvarValores(idCusto = crypto.randomUUID()) {
 
@@ -765,82 +867,58 @@ async function salvarValores(idCusto = crypto.randomUUID()) {
         return popup({ mensagem: `Preencha o Veículo` })
 
     const veiculo = await recuperarDado('veiculos', idVeiculo)
-    // Edição mantém quem registrou e quando; novo (ou duplicado, que ganha outro id) usa agora.
-    const { usuario, data, data_pagamento: dataAnterior } = await recuperarDado('custo_veiculos', idCusto) || {}
+    // Edição mantém o que já estava gravado (quem registrou, quando e a distribuição antiga, se tiver);
+    // novo (ou duplicado, que ganha outro id) nasce sem distribuição.
+    const anterior = await recuperarDado('custo_veiculos', idCusto) || {}
 
-    const custo_total = obterValores('custo_total')
+    const custo_total = centavos(obterValores('custo_total'))
     const data_pagamento = obterValores('data_pagamento')
 
     if (!veiculo)
         return popup({ mensagem: `Veículo não encontrado no cadastro. Selecione de novo.` })
 
     if (!(custo_total > 0))
-        return popup({ mensagem: `Preencha o valor do pagamento` })
+        return popup({ mensagem: `Preencha o valor` })
 
     if (data_pagamento == '')
         return popup({ mensagem: `Preencha a data de pagamento` })
 
-    if (data_pagamento !== dataAnterior) {
+    if (data_pagamento !== anterior.data_pagamento) {
         await sincronizarRelogioServidor().catch(() => { })
         const erroPrazo = erroPrazoCombustivel(data_pagamento)
         if (erroPrazo) return popup({ mensagem: erroPrazo })
     }
 
-    const distribuicao = {}
-    const linhas = document.querySelectorAll('#distribuicao .distribuicao-combustivel-item')
-
-    for (const linha of linhas) {
-        const span = linha.querySelector('[data-campo="departamento"]')
-
-        if (!span.id)
-            return popup({ mensagem: 'Departamento em branco' })
-
-        const departamento = span.id
-        const km = Number(linha.querySelector('[name="km"]').value)
-
-        if (km == 0)
-            return popup({ mensagem: 'KM não pode ser 0' })
-
-        distribuicao[departamento] ??= {
-            departamento,
-            km: 0
-        }
-
-        distribuicao[departamento].km += km
-    }
-
-    if (!Object.keys(distribuicao).length)
-        return popup({ mensagem: `Preencha pelo menos 1 departamento` })
-
     const dados = {
+        ...anterior,
         id: idCusto,
-        distribuicao,
+        distribuicao: anterior.distribuicao || {},
         veiculo,
         categoria: 'Combustível',
         custo_total,
-        combustivel: obterValores('combustivel'),
-        kml: obterValores('kml'),
         comentario: obterValores('comentario'),
         data_pagamento,
-        data: data || dataServidor().toLocaleString(),
-        km: Number(obterValores('km')) || 0,
-        litros: Number(obterValores('litros')) || 0,
-        usuario: usuario || acesso.usuario
+        data: anterior.data || dataServidor().toLocaleString(),
+        usuario: anterior.usuario || acesso.usuario
     }
+    // Campos que vêm da view (vw_custo_veiculos) e não são da tabela.
+    delete dados.nomes_motoristas
 
-    // Setor (não ORC_/G...) no rateio: espera alguém da diretoria/adm/fin online autorizar
-    // (js/autorizacao_departamento.js); o servidor grava o rastreio no item da distribuição.
-    try {
-        await autorizarSetoresCombustivel(dados)
-    } catch (erro) {
-        return popup({ mensagem: erro.message || 'Falha na autorização do departamento.' })
+    // Lançamento antigo com setor no rateio: a autorização já gravada é mantida pelo servidor.
+    if (temDistribuicaoCombustivel(dados.distribuicao)) {
+        try {
+            await autorizarSetoresCombustivel(dados)
+        } catch (erro) {
+            return popup({ mensagem: erro.message || 'Falha na autorização do departamento.' })
+        }
+        overlayAguarde()
     }
-    overlayAguarde()
 
     const resultado = await enviar(`custo_veiculos/${idCusto}`, dados)
     if (!resultado?.success)
         return popup({ mensagem: resultado?.mensagem || 'Falha ao salvar o combustível. Tente novamente.' })
 
+    RATEIOS_COMBUSTIVEL.delete(idCusto)
     removerPopup()
 }
 

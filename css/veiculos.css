@@ -261,3 +261,10 @@
     width: 100%;
     display: flex;
 }
+
+/* Combustível do formulário simples: de onde veio a divisão (js/veiculos.js htmlDepsSimplesCombustivel). */
+.comb-uso { display: block; font-size: .72rem; color: #5d6b63; text-align: left; margin-top: 2px; }
+.comb-uso.aviso { color: #a6520c; font-weight: 600; }
+.comb-uso-linha { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 2px; }
+.comb-dividir { margin: 0; padding: 1px 10px; font-size: .72rem; line-height: 1.5; }
+.comb-divisor { padding: 12px 14px; min-width: min(560px, 86vw); display: flex; flex-direction: column; gap: 8px; text-align: left; }
