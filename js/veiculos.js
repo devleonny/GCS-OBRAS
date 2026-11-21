@@ -449,7 +449,7 @@ async function criarLinhaCusto(custo) {
 
 
         <td>
-            <div style="${vertical}; gap: 1px;" data-deps-custo="${escaparAtributo(id)}" data-realizado="${Number(realizado) || 0}">${deps.join('')}</div>
+            <div class="comb-deps" style="${vertical}; gap: 1px;" data-deps-custo="${escaparAtributo(id)}" data-realizado="${Number(realizado) || 0}">${deps.join('')}</div>
         </td>
 
         <td>

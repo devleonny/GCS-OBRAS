@@ -268,3 +268,9 @@
 .comb-uso-linha { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 2px; }
 .comb-dividir { margin: 0; padding: 1px 10px; font-size: .72rem; line-height: 1.5; }
 .comb-divisor { padding: 12px 14px; min-width: min(560px, 86vw); display: flex; flex-direction: column; gap: 8px; text-align: left; }
+
+/* Coluna Departamentos de Ver Combustíveis: larga o bastante para "ORC_1234  R$ 1.234,56" numa linha. */
+.comb-deps { min-width: 250px; align-items: stretch !important; }
+.comb-deps .pagamento-balao-departamento { display: flex; justify-content: space-between; align-items: center; gap: 8px; white-space: nowrap; width: 100%; box-sizing: border-box; }
+.comb-deps .pagamento-balao-departamento span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.comb-deps .comb-uso { white-space: nowrap; }
