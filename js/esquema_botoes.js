@@ -279,7 +279,7 @@ const esquemaBotoes = {
                 { nome: 'Adicionar Combustível', funcao: 'painelValores', acesso: 'veiculos.adicionar', img: 'combustivel' },
                 { nome: 'Veículos', funcao: 'auxVeiculos', acesso: 'veiculos.cadastro', img: 'veiculo' },
                 { nome: 'Rastreamento', funcao: 'telaRastreioFrota', acesso: 'veiculos.rastreio', img: 'mapa' },
-                { nome: 'Divisão do combustível', funcao: 'telaDivisaoCombustivel', acesso: 'veiculos.divisao', img: 'combustivel' }
+                { nome: 'Divisão do combustível', funcao: 'telaDivisaoCombustivel', acesso: 'veiculos.divisao', img: 'divisao_combustivel' }
             ]
         },
         {
