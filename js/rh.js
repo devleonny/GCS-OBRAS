@@ -1442,7 +1442,8 @@ async function abrirAcessoPastaRH(pasta) {
                 <div class="rh2-acesso-gestores-opcoes">
                     ${GESTORES_PASTA_RH.map(([valor, texto]) => `<label><input type="radio" name="gestores-${escaparAtributo(pasta)}" data-gestores value="${valor}" ${atual.gestores === valor ? 'checked' : ''} onchange="sincronizarAcessoPastaRH(this)"> ${texto}</label>`).join('')}
                 </div>
-                <small>Pela hierarquia (visão Hierarquia): o gestor vê nesta pasta os documentos de quem está abaixo dele, nunca os próprios. Para valer, a permissão dele não pode estar marcada abaixo, senão ele vê a pasta de todos.</small>
+                <small>Cada gestor vê os documentos da equipe dele, montada na aba Hierarquia. Os documentos dele mesmo ele não vê.</small>
+                <small>Atenção: se a permissão do gestor (ex.: gerente) estiver marcada em Permissões, ele volta a ver os de todo mundo.</small>
             </fieldset>
             <div class="rh2-acesso-colunas">
                 <fieldset ${bloqueio}>
