@@ -1229,7 +1229,7 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
         ['categorias', 'Categorias', true],
         ['departamentos', 'Departamentos', true],
         ['parcelas', 'Parcelas', Boolean(t)],
-        ['repeticoes', 'Repetições', nova || Boolean(t && t.origem === 'MANUAL' && !cancelada)],
+        ['repeticoes', 'Repetições', nova || Boolean(t && !cancelada)],
         ['repeticao', 'Repetição', Boolean(rec)],
         ['pagamentos', pagar ? 'Pagamentos' : 'Recebimentos', Boolean(t)]
     ].filter(a => a[2])
@@ -1305,7 +1305,7 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
                             ${tabelaParcelasFin(t, dados?.irmas || [], tipo)}
                         </div>` : ''}
 
-                        ${nova || (t && t.origem === 'MANUAL' && !cancelada) ? `
+                        ${nova || (t && !cancelada) ? `
                         <div class="fin-aba" data-painel-aba="repeticoes" ${aba === 'repeticoes' ? '' : 'hidden'}>
                             ${ferramentaRepeticoesFin(t, dados?.irmas || [])}
                         </div>` : ''}
@@ -1474,9 +1474,11 @@ function ajustarDiaUtilFin(iso, regra) {
 }
 
 // grupo: parcelas que já existem (fatura aberta + irmãs). A repetição parte do último vencimento do grupo.
+// Fatura que veio de nota/Omie/lote (21/11/2026: toda fatura se repete): as repetições são manuais (grupo
+// REPETE:<id> no servidor) e ela conta como a parcela 1; as irmãs da origem dela não entram na conta.
 function ferramentaRepeticoesFin(t, irmas) {
-    const grupo = t ? [t, ...irmas] : []
-    const ultimaParcela = t ? Math.max(...grupo.map(p => Number(p.parcela) || 1)) : 1
+    const grupo = !t ? [] : t.origem === 'MANUAL' ? [t, ...irmas] : [t, ...irmas.filter(p => p.origem === 'MANUAL')]
+    const ultimaParcela = t ? Math.max(1, ...grupo.map(p => p.origem === 'MANUAL' ? Number(p.parcela) || 1 : 1)) : 1
     const ultimoVenc = t ? grupo.map(p => String(p.vencimento).slice(0, 10)).sort().at(-1) : ''
     const dia = Number((ultimoVenc || '').slice(8, 10)) || ''
     return `
