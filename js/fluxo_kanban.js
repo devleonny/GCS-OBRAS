@@ -144,6 +144,8 @@ function telaFluxoItensVendas() { return telaFluxo('itens_vendas') }
 async function telaFluxo(quadro) {
     estadoFluxo.quadro = quadro
     estadoFluxo.abertos.clear()
+    // Fluxo de Vendas e de Serviços: menu lateral recolhido ao abrir (o quadro precisa da largura).
+    if (QUADROS_FLUXO[quadro].novo && typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
     const novo = QUADROS_FLUXO[quadro].novo
     // A empresa é compartilhada entre os quadros.
     if (!EMPRESAS_FLUXO.some(([v]) => v === estadoFluxo.empresa)) estadoFluxo.empresa = ''
