@@ -213,7 +213,12 @@ async function carregarFluxo() {
     } catch (erro) {
         console.error('[FLUXO]', erro)
         const area = document.querySelector('.fluxo-quadro')
-        if (area) area.innerHTML = '<button type="button" onclick="carregarFluxo()">Falha ao carregar. Tentar de novo</button>'
+        if (area) area.innerHTML = `
+            <div class="fluxo-erro" role="alert">
+                <strong>Não foi possível carregar o quadro</strong>
+                <span>O servidor não respondeu agora. Tente de novo em alguns segundos.</span>
+                <button type="button" class="fluxo-atualizar" onclick="atualizarFluxoBotao(this)">Tentar de novo</button>
+            </div>`
         return false
     }
 }
