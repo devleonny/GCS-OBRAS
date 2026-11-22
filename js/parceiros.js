@@ -20,15 +20,49 @@ async function validarSaldoPagamentoParceiro(pagamento, id) {
         throw new Error('Saldo insuficiente na LPU para liberar este pagamento.')
 }
 
+// ---------------------------------------------------------------------------
+// Fluxo do pagamento de parceiro no chamado (aba = id da solicitação parcial):
+//   PAGAMENTO DE PARCEIRO (aguardando gerente) → SOLUCIONADA (gerente aprovou, pagamento na Diretoria)
+//   Reprovação (gerente ou diretoria):
+//     - "Devolver para correção": PAGAMENTO DE PARCEIRO REPROVADO, executor = quem pediu; a solicitação fica
+//       "Devolvida para correção" e o valor continua reservado na LPU. Quem pediu corrige (comentários, anexos,
+//       data, valor) e reenvia: volta para quem reprovou; se o valor mudou depois do gerente, volta ao gerente
+//       (fila "Aguardando aprovação da Gerência" do pagamento). Também pode cancelar e liberar o saldo.
+//     - "Reprovar de vez": PAGAMENTO DE PARCEIRO REPROVADO sem executor; solicitação encerrada, saldo liberado.
+// Registros automáticos usam chaves `${id}_<evento>_<ms>` para saber a ordem sem depender do texto da data.
+// Nada disso aparece para o cliente (ocorrencias.js).
+// ---------------------------------------------------------------------------
+const TIPO_PARCEIRO_PAGAMENTO = '24e1ea27-1bd8-451a-b5bf-edda134cfdd6'
+const TIPO_PARCEIRO_REPROVADO = '2bfa34c1-1c48-4570-8b12-6ed8e58807c4'
+const STATUS_PARCEIRO_DEVOLVIDA = 'Devolvida para correção'
+
+// Último evento automático da aba: { evento, ts } (a aprovação sem número conta pelo campo ts, se houver).
+function ultimoEventoParceiro(correcoes = {}, id) {
+    const padrao = new RegExp(`^${id}_(aprovacao|reprovacao|reaprovacao|reenvio|devolucao)(?:_(\\d+))?$`)
+    return Object.entries(correcoes)
+        .map(([chave, c]) => {
+            const m = chave.match(padrao)
+            return m ? { evento: m[1], ts: Number(m[2] || c?.ts || 0) } : null
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.ts - a.ts)[0] || null
+}
+
 async function concluirAprovacaoParceiro(id, idLpu, idOcorrencia, pagamento) {
-    const idRegistro = `${id}_aprovacao`
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
-    if (!ocorrencia?.correcoes?.[idRegistro]) {
+    const correcoes = ocorrencia?.correcoes || {}
+    const ultimo = ultimoEventoParceiro(correcoes, id)
+    // Primeira aprovação usa a chave de sempre; depois de uma devolução/reenvio, um registro novo.
+    const idRegistro = !correcoes[`${id}_aprovacao`]
+        ? `${id}_aprovacao`
+        : ['reenvio', 'devolucao', 'reprovacao'].includes(ultimo?.evento) ? `${id}_aprovacao_${Date.now()}` : null
+    if (idRegistro) {
         const valor = (pagamento.param_estavel ? [pagamento.param_estavel] : pagamento.param || []).reduce((soma, item) => soma + Number(item.valor_documento || 0), 0)
         await salvarEtapaParceiro(`dados_ocorrencias/${idOcorrencia}/correcoes/${idRegistro}`, {
             usuario: pagamento.aprovado_gerente_por || acesso.usuario,
-            data: pagamento.data_registro,
-            aba: id,
+            data: idRegistro === `${id}_aprovacao` ? pagamento.data_registro : dataServidor().toLocaleString(),
+            ts: Date.now(),
+            aba: correcoes[id]?.aba || id,
             descricao: `🟢 Pagamento aprovado por ${pagamento.aprovado_gerente_por || acesso.usuario} no valor de ${dinheiroTexto(valor)}`,
             dtCorrecao: '', tipoCorrecao: 'WRuo2'
         })
@@ -37,6 +71,305 @@ async function concluirAprovacaoParceiro(id, idLpu, idOcorrencia, pagamento) {
         const parceiro = await recuperarDado('parceiros', idLpu)
         if (parceiro?.solicitacoes?.[id]?.status === 'Aguardando gerente')
             await salvarEtapaParceiro(`parceiros/${idLpu}/solicitacoes/${id}/status`, 'Enviada ao financeiro')
+    }
+}
+
+// Chamado que recebe os registros do pagamento do parceiro: o da solicitação parcial ou, no legado,
+// o master do departamento da LPU (mesma regra do envio em parceiros.js e da aprovação do gerente).
+async function ocorrenciaDoPagamentoParceiro(pagamento) {
+    const parceiro = await recuperarDado('parceiros', pagamento.lpu_parceiro_id)
+    const solicitacao = parceiro?.solicitacoes?.[pagamento.solicitacao_parceiro_id]
+    if (solicitacao?.ocorrencia_id) return { parceiro, solicitacao, idOcorrencia: solicitacao.ocorrencia_id }
+    const { master } = await recuperarDado('contratos_vinculados', parceiro?.departamento) || {}
+    return { parceiro, solicitacao, idOcorrencia: master || parceiro?.departamento }
+}
+
+// Reprovação (gerente no chamado ou diretoria no pagamento). modo: 'devolver' | 'definitiva'.
+// Legado (sem solicitação parcial) só tem a reprovação definitiva.
+async function registrarReprovacaoParceiro({ idOcorrencia, id, idLpu, solicitacao, modo, etapa, motivo, executor }) {
+    const { usuario, permissao } = acesso || {}
+    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
+    if (!ocorrencia) return
+    const aba = ocorrencia.correcoes?.[id]?.aba || id
+    const devolver = modo === 'devolver' && Boolean(solicitacao) && id !== idLpu
+    const ts = Date.now()
+    const textoMotivo = String(motivo || '').trim()
+
+    await salvarEtapaParceiro(`dados_ocorrencias/${idOcorrencia}/correcoes/${id}_${devolver ? 'devolucao' : 'reprovacao'}_${ts}`, {
+        usuario, aba, ts, lpu_id: idLpu, solicitacao_id: id,
+        tipoCorrecao: TIPO_PARCEIRO_REPROVADO,
+        devolvida: devolver,
+        etapa,
+        executor: devolver ? [executor].filter(Boolean) : [],
+        data: dataServidor().toLocaleString(),
+        descricao: devolver
+            ? `🟠 Pagamento devolvido para correção por ${usuario} (${permissao}).\nMotivo: ${escaparAtributo(textoMotivo) || '—'}\nQuem pediu corrige e reenvia pelo botão "Corrigir e reenviar".`
+            : `🔴 Pagamento reprovado de vez por ${usuario} (${permissao}); saldo liberado na LPU.${textoMotivo ? `\nMotivo: ${escaparAtributo(textoMotivo)}` : ''}`
+    })
+
+    if (solicitacao && id !== idLpu)
+        await salvarEtapaParceiro(`parceiros/${idLpu}/solicitacoes/${id}`, {
+            ...solicitacao,
+            status: devolver ? STATUS_PARCEIRO_DEVOLVIDA : `Reprovada por ${permissao}`,
+            devolucao: devolver ? { etapa, usuario, permissao, motivo: textoMotivo, data: dataServidor().toLocaleString(), ts } : null
+        })
+}
+
+// Decisão da diretoria (lista_pagamentos, js/pagamentos.js) volta para o chamado.
+async function registrarDecisaoDiretoriaParceiro(id, pagamento, aprovado, justificativa = '', modo = 'definitiva') {
+    if (!pagamento?.lpu_parceiro_id) return
+    const { solicitacao, idOcorrencia } = await ocorrenciaDoPagamentoParceiro(pagamento)
+    if (!idOcorrencia) return
+    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
+    if (!ocorrencia) return
+    const correcoes = ocorrencia.correcoes || {}
+    const { usuario, permissao } = acesso || {}
+
+    if (aprovado) {
+        // Só registra quando a aba está num reenvio/devolução; a aprovação normal da diretoria não muda o chamado.
+        const ultimo = ultimoEventoParceiro(correcoes, id)
+        if (!['reprovacao', 'devolucao', 'reenvio'].includes(ultimo?.evento)) return
+        const ts = Date.now()
+        await salvarEtapaParceiro(`dados_ocorrencias/${idOcorrencia}/correcoes/${id}_reaprovacao_${ts}`, {
+            usuario, aba: correcoes[id]?.aba || id, ts, tipoCorrecao: 'WRuo2', dtCorrecao: '',
+            data: dataServidor().toLocaleString(),
+            descricao: `🟢 Pagamento aprovado por ${usuario} (${permissao}) depois da correção.`
+        })
+        if (solicitacao && pagamento.solicitacao_parceiro_id !== pagamento.lpu_parceiro_id && solicitacao.status !== 'Enviada ao financeiro')
+            await salvarEtapaParceiro(`parceiros/${pagamento.lpu_parceiro_id}/solicitacoes/${pagamento.solicitacao_parceiro_id}/status`, 'Enviada ao financeiro')
+        return
+    }
+
+    await registrarReprovacaoParceiro({
+        idOcorrencia, id, idLpu: pagamento.lpu_parceiro_id, solicitacao, modo,
+        // Gerente reprovando na fila do pagamento (reenvio com valor alterado): a correção volta para o gerente.
+        etapa: permissao === 'gerente' ? 'gerente' : 'diretoria', motivo: justificativa,
+        executor: correcoes[id]?.usuario || solicitacao?.usuario || pagamento.criado
+    })
+}
+
+// Quem pode corrigir e reenviar: quem pediu a parcela, quem montou a LPU, quem criou o pagamento, adm/gerente/diretoria.
+function podeCorrigirParceiro(parceiro, solicitacao, pagamento) {
+    const { usuario, permissao } = acesso || {}
+    return ['adm', 'gerente', 'diretoria'].includes(permissao)
+        || [solicitacao?.usuario, parceiro?.executor, pagamento?.criado].includes(usuario)
+}
+
+async function formularioCorrecaoParceiro(idLpu, id) {
+    try {
+        overlayAguarde()
+        const c = await obterControlePagamentosParceiro(idLpu, id)
+        const solicitacao = c.parceiro.solicitacoes?.[id]
+        const pagamento = c.linhas.find(l => l.id === id)?.pagamento
+        if (!solicitacao || solicitacao.status !== STATUS_PARCEIRO_DEVOLVIDA)
+            return popup({ mensagem: 'Esta solicitação não está aguardando correção.' })
+        if (!podeCorrigirParceiro(c.parceiro, solicitacao, pagamento))
+            return popup({ mensagem: 'Só quem pediu o pagamento (ou adm, gerente e diretoria) pode corrigir.' })
+
+        const { devolucao = {} } = solicitacao
+        const anexosAtuais = Object.values(c.parceiro.anexos || {})
+            .filter(a => a?.link)
+            .map(a => criarAnexoVisual(escaparAtributo(a.nome || a.link), escaparAtributo(a.link)))
+            .join('')
+        const etapa = devolucao?.etapa === 'diretoria' ? 'diretoria' : 'gerente'
+
+        popup({
+            titulo: 'Corrigir e reenviar pagamento',
+            linhas: [
+                {
+                    elemento: `<div style="display: flex; flex-direction: column; gap: 4px; text-align: left; max-width: 480px; padding: 0.5rem; border-left: 4px solid #e67e22; background: rgba(230, 126, 34, 0.08);">
+                        <b>Devolvido por ${escaparAtributo(devolucao?.usuario || '—')} (${escaparAtributo(devolucao?.permissao || etapa)})${devolucao?.data ? ` em ${escaparAtributo(devolucao.data)}` : ''}</b>
+                        <div style="white-space: pre-wrap;">${escaparAtributo(devolucao?.motivo || 'Sem motivo informado.')}</div>
+                    </div>`
+                },
+                { texto: 'Valor da parcela', elemento: `<input name="corr_valor" type="number" min="0.01" step="0.01" max="${c.disponivel}" value="${arredondarValorParceiro(solicitacao.valor)}">` },
+                { elemento: `<small>Disponível na LPU para esta parcela: <b>${dinheiro(c.disponivel)}</b>${etapa === 'diretoria' ? '. Se mudar o valor, o pagamento volta para o gerente aprovar.' : ''}</small>` },
+                { texto: 'Data do pagamento', elemento: `<input name="corr_data" type="date" value="${solicitacao.data_pagamento || ''}">` },
+                { texto: 'Comentário desta parcela', elemento: `<textarea name="corr_comentario_parcela" rows="2">${escaparAtributo(solicitacao.comentario || '')}</textarea>` },
+                { texto: 'Comentário da LPU', elemento: `<textarea name="corr_comentario_lpu" rows="2">${escaparAtributo(c.parceiro.comentario || '')}</textarea>` },
+                {
+                    texto: 'Anexos da LPU', elemento: `<div style="display: flex; flex-direction: column; gap: 4px; align-items: start;">
+                    ${anexosAtuais ? `<div style="display: flex; flex-wrap: wrap; gap: 4px;">${anexosAtuais}</div>` : '<small>Nenhum anexo ainda.</small>'}
+                    <input name="corr_anexos" type="file" multiple>
+                </div>`
+                },
+                { texto: 'O que foi corrigido', elemento: '<textarea name="corr_resposta" rows="3" placeholder="Responda ao motivo da devolução"></textarea>' }
+            ],
+            botoes: [
+                { texto: `Reenviar ${etapa === 'diretoria' ? 'à diretoria' : 'ao gerente'}`, img: 'concluido', funcao: `reenviarPagamentoParceiro('${idLpu}', '${id}')` },
+                { texto: 'Cancelar solicitação', img: 'cancel', funcao: `cancelarSolicitacaoDevolvidaParceiro('${idLpu}', '${id}')` }
+            ]
+        })
+    } catch (erro) {
+        console.error(erro)
+        popup({ mensagem: erro.message || 'Falha ao abrir a correção do pagamento.' })
+    }
+}
+
+async function reenviarPagamentoParceiro(idLpu, id) {
+    try {
+        const resposta = document.querySelector('[name="corr_resposta"]')?.value.trim() || ''
+        if (!resposta) return popup({ mensagem: 'Descreva o que foi corrigido.' })
+        const novoValor = arredondarValorParceiro(Number(document.querySelector('[name="corr_valor"]')?.value))
+        const novaData = document.querySelector('[name="corr_data"]')?.value || null
+        const comentarioParcela = document.querySelector('[name="corr_comentario_parcela"]')?.value.trim() || ''
+        const comentarioLpu = document.querySelector('[name="corr_comentario_lpu"]')?.value.trim() || ''
+        const inputAnexos = document.querySelector('[name="corr_anexos"]')
+
+        overlayAguarde()
+        const c = await obterControlePagamentosParceiro(idLpu, id)
+        const solicitacao = c.parceiro.solicitacoes?.[id]
+        const pagamento = c.linhas.find(l => l.id === id)?.pagamento
+        if (!solicitacao || solicitacao.status !== STATUS_PARCEIRO_DEVOLVIDA)
+            return popup({ mensagem: 'Esta solicitação não está mais aguardando correção.' })
+        if (!podeCorrigirParceiro(c.parceiro, solicitacao, pagamento))
+            return popup({ mensagem: 'Só quem pediu o pagamento (ou adm, gerente e diretoria) pode corrigir.' })
+        if (!Number.isFinite(novoValor) || novoValor <= 0 || novoValor > c.disponivel)
+            return popup({ mensagem: `Informe um valor positivo dentro do disponível da LPU (${dinheiroTexto(c.disponivel)}).` })
+
+        const { usuario } = acesso
+        const data = dataServidor().toLocaleString()
+        const ts = Date.now()
+        const valorAnterior = arredondarValorParceiro(solicitacao.valor)
+        const mudouValor = novoValor !== valorAnterior
+        const etapa = solicitacao.devolucao?.etapa === 'diretoria' ? 'diretoria' : 'gerente'
+        const idOcorrencia = solicitacao.ocorrencia_id
+
+        // Anexos novos vão para a LPU (gerente e diretoria veem os "Anexos da LPU") e para o pagamento, se existir.
+        let anexosNovos = {}
+        if (inputAnexos?.files?.length) {
+            const enviados = await importarAnexos({ input: inputAnexos })
+            if (!Array.isArray(enviados) || !enviados.length) return
+            anexosNovos = Object.fromEntries(enviados.map(a => [crypto.randomUUID(), a]))
+            await salvarEtapaParceiro(`parceiros/${idLpu}/anexos`, { ...(c.parceiro.anexos || {}), ...anexosNovos })
+        }
+        const mudouComentarioLpu = comentarioLpu !== String(c.parceiro.comentario || '').trim()
+        if (mudouComentarioLpu)
+            await salvarEtapaParceiro(`parceiros/${idLpu}/comentario`, comentarioLpu)
+
+        const mudancas = [
+            mudouValor ? `valor de ${dinheiroTexto(valorAnterior)} para ${dinheiroTexto(novoValor)}` : '',
+            novaData !== (solicitacao.data_pagamento || null) ? `data do pagamento para ${novaData ? dtFormatada(novaData) : 'a regra da modalidade'}` : '',
+            comentarioParcela !== String(solicitacao.comentario || '').trim() ? 'comentário da parcela' : '',
+            mudouComentarioLpu ? 'comentário da LPU' : '',
+            Object.keys(anexosNovos).length ? `${Object.keys(anexosNovos).length} anexo(s): ${Object.values(anexosNovos).map(a => a.nome || a.link).join(', ')}` : ''
+        ].filter(Boolean)
+
+        // Destino: sem pagamento ainda → gerente no chamado. Com pagamento → diretoria; com valor mudado → gerente
+        // pela fila de aprovação do pagamento (Reembolsos), que depois segue para a diretoria.
+        let destino = 'gerente'
+        if (pagamento) {
+            destino = etapa === 'diretoria' && !mudouValor ? 'diretoria' : 'gerente_pagamento'
+            const status = destino === 'diretoria' ? 'Aguardando aprovação da Diretoria' : 'Aguardando aprovação da Gerência'
+            const { param_estavel = {}, snapshots = {} } = pagamento
+            const dataEstipulada = novaData ? dtFormatada(novaData) : null
+            await salvarEtapaParceiro(`lista_pagamentos/${id}/param_estavel`, {
+                ...param_estavel,
+                ...(dataEstipulada ? { data_previsao: dataEstipulada, data_vencimento: dataEstipulada } : {}),
+                ...(mudouValor ? {
+                    valor_documento: novoValor,
+                    categorias: redistribuirValorParceiro(param_estavel.categorias, 'valor', novoValor),
+                    distribuicao: redistribuirValorParceiro(param_estavel.distribuicao, 'nValDep', novoValor)
+                } : {})
+            })
+            if (mudouValor)
+                await salvarEtapaParceiro(`lista_pagamentos/${id}/snapshots`, {
+                    ...snapshots,
+                    valor: novoValor,
+                    categorias: redistribuirValorParceiro(snapshots.categorias, 'valor', novoValor),
+                    departamentos: redistribuirValorParceiro(snapshots.departamentos, 'valor', novoValor)
+                })
+            if (Object.keys(anexosNovos).length)
+                await salvarEtapaParceiro(`lista_pagamentos/${id}/anexos`, { ...(pagamento.anexos || {}), ...anexosNovos })
+            await salvarEtapaParceiro(`lista_pagamentos/${id}/historico/${crypto.randomUUID()}`, {
+                status, usuario, data,
+                justificativa: `Corrigido e reenviado. ${mudancas.length ? `Alterado: ${mudancas.join('; ')}. ` : ''}Resposta: ${resposta}`
+            })
+            await salvarEtapaParceiro(`lista_pagamentos/${id}/status`, status)
+        }
+
+        await salvarEtapaParceiro(`parceiros/${idLpu}/solicitacoes/${id}`, {
+            ...solicitacao,
+            valor: novoValor,
+            comentario: comentarioParcela,
+            data_pagamento: novaData,
+            status: pagamento ? 'Enviada ao financeiro' : 'Aguardando gerente',
+            devolucao: null,
+            correcoes: {
+                ...(solicitacao.correcoes || {}),
+                [ts]: { usuario, data, resposta, mudancas, devolucao: solicitacao.devolucao || null, destino }
+            }
+        })
+
+        if (idOcorrencia) {
+            // A correção original guarda o valor e a data que o gerente vê ao aprovar no chamado.
+            const origem = (await recuperarDado('dados_ocorrencias', idOcorrencia))?.correcoes?.[id]
+            if (origem) {
+                await salvarEtapaParceiro(`dados_ocorrencias/${idOcorrencia}/correcoes/${id}/valor_parcial`, novoValor)
+                await salvarEtapaParceiro(`dados_ocorrencias/${idOcorrencia}/correcoes/${id}/data_pagamento`, novaData)
+            }
+            const textoDestino = { gerente: 'ao gerente', diretoria: 'à diretoria', gerente_pagamento: 'ao gerente (valor alterado)' }[destino]
+            await salvarEtapaParceiro(`dados_ocorrencias/${idOcorrencia}/correcoes/${id}_reenvio_${ts}`, {
+                usuario, aba: origem?.aba || id, ts, data,
+                lpu_id: idLpu, solicitacao_id: id, valor_parcial: novoValor, data_pagamento: novaData,
+                tecnico: origem?.tecnico || c.parceiro.tecnicos,
+                permissao: [destino === 'diretoria' ? 'diretoria' : 'gerente'],
+                aguardando: destino,
+                tipoCorrecao: TIPO_PARCEIRO_PAGAMENTO,
+                descricao: `🔁 Corrigido e reenviado ${textoDestino} por ${usuario}.${mudancas.length ? `\nAlterado: ${escaparAtributo(mudancas.join('; '))}.` : ''}\nResposta: ${escaparAtributo(resposta)}`
+            })
+        }
+
+        removerTodosPopups()
+        popup({
+            mensagem: {
+                gerente: 'Correção enviada: aguardando o gerente aprovar no chamado.',
+                diretoria: 'Correção enviada: pagamento aguardando a aprovação da Diretoria.',
+                gerente_pagamento: 'Correção enviada: com o valor alterado, o pagamento aguarda a aprovação da Gerência e depois a da Diretoria.'
+            }[destino],
+            imagem: 'imagens/concluido.png'
+        })
+        if (typeof verificarPagamentosReprovados === 'function') verificarPagamentosReprovados()
+    } catch (erro) {
+        console.error(erro)
+        popup({ mensagem: erro.message || 'Falha ao reenviar a correção.' })
+    }
+}
+
+// Quem pediu desiste da parcela devolvida: encerra e libera o saldo. O pagamento (se houver) fica reprovado.
+async function cancelarSolicitacaoDevolvidaParceiro(idLpu, id, confirmar = false) {
+    if (!confirmar)
+        return popup({
+            mensagem: 'Cancelar esta solicitação? O valor volta a ficar disponível na LPU e ela não poderá ser reenviada.',
+            botoes: [{ texto: 'Confirmar cancelamento', img: 'cancel', funcao: `cancelarSolicitacaoDevolvidaParceiro('${idLpu}', '${id}', true)` }]
+        })
+    try {
+        overlayAguarde()
+        const c = await obterControlePagamentosParceiro(idLpu)
+        const solicitacao = c.parceiro.solicitacoes?.[id]
+        const pagamento = c.linhas.find(l => l.id === id)?.pagamento
+        if (!solicitacao || solicitacao.status !== STATUS_PARCEIRO_DEVOLVIDA)
+            return popup({ mensagem: 'Esta solicitação não está mais aguardando correção.' })
+        if (!podeCorrigirParceiro(c.parceiro, solicitacao, pagamento))
+            return popup({ mensagem: 'Só quem pediu o pagamento (ou adm, gerente e diretoria) pode cancelar.' })
+
+        if (solicitacao.ocorrencia_id) {
+            const origem = (await recuperarDado('dados_ocorrencias', solicitacao.ocorrencia_id))?.correcoes?.[id]
+            await salvarEtapaParceiro(`dados_ocorrencias/${solicitacao.ocorrencia_id}/correcoes/${id}_cancelamento`, {
+                aba: origem?.aba || id, tipoCorrecao: 'WRuo2', data: dataServidor().toLocaleString(), ts: Date.now(),
+                usuario: acesso.usuario, descricao: 'Solicitação devolvida cancelada por quem pediu; saldo liberado.'
+            })
+        }
+        await salvarEtapaParceiro(`parceiros/${idLpu}/solicitacoes/${id}`, {
+            ...solicitacao, status: 'Cancelada', devolucao: null,
+            cancelado_por: acesso.usuario, cancelado_em: dataServidor().toLocaleString()
+        })
+        removerTodosPopups()
+        popup({ mensagem: 'Solicitação cancelada; o saldo voltou para a LPU.', imagem: 'imagens/concluido.png' })
+        if (typeof verificarPagamentosReprovados === 'function') verificarPagamentosReprovados()
+    } catch (erro) {
+        console.error(erro)
+        popup({ mensagem: erro.message || 'Falha ao cancelar a solicitação.' })
     }
 }
 
@@ -63,8 +396,10 @@ async function obterControlePagamentosParceiro(id, ignorarSolicitacao = null) {
     let pago = 0, reservado = 0
     for (const linha of linhas) {
         const pagamento = linha.pagamento
-        const status = String(pagamento?.status || linha.status || '')
-        const liberado = pagamento?.excluido || /reprovad|cancelad|excluíd|excluid|falha na solicitação/i.test(status)
+        // Devolvida para correção: o pagamento pode estar "Reprovado por ...", mas o valor segue reservado.
+        const devolvida = linha.status === STATUS_PARCEIRO_DEVOLVIDA && !pagamento?.excluido
+        const status = devolvida ? STATUS_PARCEIRO_DEVOLVIDA : String(pagamento?.status || linha.status || '')
+        const liberado = !devolvida && (pagamento?.excluido || /reprovad|cancelad|excluíd|excluid|falha na solicitação/i.test(status))
         const valor = arredondarValorParceiro(pagamento
             ? (pagamento.param_estavel ? [pagamento.param_estavel] : pagamento.param || []).reduce((soma, item) => soma + Number(item.valor_documento || 0), 0)
             : linha.valor)
@@ -94,7 +429,8 @@ async function historicoPagamentosParceiro(id) {
             <td>
                 ${linha.pagamento ? `<button onclick="abrirDetalhesPagamentos('${linha.id}')">Ver pagamento</button>` : ''}
                 ${linha.ocorrencia_id ? `<button onclick="irOcorrenciaParceiro('${linha.ocorrencia_id}', '${linha.id}')">Ver correções</button>` : ''}
-                ${!linha.legado && !linha.pagamento && !linha.encerrada ? `<button onclick="cancelarSolicitacaoParceiro('${id}', '${linha.id}')">Cancelar solicitação</button>` : ''}
+                ${linha.status === STATUS_PARCEIRO_DEVOLVIDA ? `<button onclick="removerTodosPopups(); formularioCorrecaoParceiro('${id}', '${linha.id}')">Corrigir e reenviar</button>` : ''}
+                ${!linha.legado && !linha.pagamento && !linha.encerrada && linha.status !== STATUS_PARCEIRO_DEVOLVIDA ? `<button onclick="cancelarSolicitacaoParceiro('${id}', '${linha.id}')">Cancelar solicitação</button>` : ''}
                 ${podeAjustarValorParceiro(c.parceiro, linha) ? `<button onclick="ajustarValorParceiro('${id}', '${linha.id}')">Ajustar valor</button>` : ''}
                 ${/^(PAGO|RECEBIDO)$/i.test(String(linha.statusAtual).trim()) ? `<span title="Pagamento já pago: o valor não pode mais ser alterado. Para pagar a diferença, solicite um pagamento parcial complementar." style="opacity: 0.75;">🔒 Pago, sem ajuste</span>` : ''}
             </td></tr>`).join('')
@@ -139,7 +475,8 @@ async function cancelarSolicitacaoParceiro(id, idSolicitacao, confirmar = false)
 // Ajuste de valor (ex.: aprovado 350, precisa ser 400) sem refazer LPU e solicitação.
 // Pagamento já lançado volta para a Diretoria com o novo valor; PAGO não se ajusta (vira complemento).
 function podeAjustarValorParceiro(parceiro, linha) {
-    if (linha.encerrada || /^(PAGO|RECEBIDO)$/i.test(String(linha.statusAtual).trim())) return false
+    // Devolvida para correção: o valor muda pelo "Corrigir e reenviar".
+    if (linha.encerrada || linha.status === STATUS_PARCEIRO_DEVOLVIDA || /^(PAGO|RECEBIDO)$/i.test(String(linha.statusAtual).trim())) return false
     if (linha.pagamento ? !linha.pagamento.param_estavel : linha.legado) return false
     const { usuario } = acesso || {}
     const analistas = [linha.usuario, linha.pagamento?.criado, parceiro?.executor]

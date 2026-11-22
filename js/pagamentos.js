@@ -681,7 +681,29 @@ async function removerAnexoParceiro(id, campo, anx) {
 
 }
 
-async function autorizarPagamentos(resposta, id) {
+// Parcela de LPU de parceiro (solicitação parcial): a reprovação pode devolver para correção (js/parceiros.js).
+const ehParcelaParceiro = p => Boolean(p?.lpu_parceiro_id && p.solicitacao_parceiro_id && p.solicitacao_parceiro_id !== p.lpu_parceiro_id)
+
+function escolherReprovacaoParceiro(id, lancado = false) {
+    const acao = modo => lancado
+        ? `reprovarPagamentoLancado('${escaparAtributo(id)}', '${modo}')`
+        : `autorizarPagamentos('N', '${escaparAtributo(id)}', '${modo}')`
+    popup({
+        titulo: 'Reprovar pagamento de parceiro',
+        mensagem: `<div style="max-width: 440px; text-align: left;">
+            ${lancado ? 'A <b>fatura a pagar será cancelada</b> no Financeiro (se já tiver pagamento, a reprovação é recusada).<br><br>' : ''}
+            <b>Devolver para correção</b>: volta para quem pediu corrigir (anexo, comentário, data...) e reenviar à diretoria. O valor continua reservado na LPU.<br><br>
+            <b>Reprovar de vez</b>: encerra a parcela e libera o saldo da LPU, sem reenvio.<br><br>
+            O motivo é o texto da justificativa.
+        </div>`,
+        botoes: [
+            { texto: 'Devolver para correção', img: 'editar', funcao: acao('devolver') },
+            { texto: 'Reprovar de vez', img: 'cancel', funcao: acao('definitiva') }
+        ]
+    })
+}
+
+async function autorizarPagamentos(resposta, id, modoParceiro = null) {
 
     try {
 
@@ -707,6 +729,17 @@ async function autorizarPagamentos(resposta, id) {
 
         if (resposta == 'S') await validarSaldoPagamentoParceiro(pagamento, id)
 
+        if (resposta != 'S' && ehParcelaParceiro(pagamento)) {
+            if (!modoParceiro) {
+                removerOverlay()
+                return escolherReprovacaoParceiro(id)
+            }
+            if (modoParceiro === 'devolver' && !String(justificativa || '').trim()) {
+                removerOverlay()
+                return popup({ mensagem: 'Escreva na justificativa o que precisa ser corrigido.' })
+            }
+        }
+
         const retorno = await enviar(`lista_pagamentos/${id}`, {
             status,
             historico: {
@@ -726,13 +759,26 @@ async function autorizarPagamentos(resposta, id) {
             return popup({ mensagem: escaparAtributo(retorno.mensagem), imagem: 'imagens/alerta.png' })
         }
 
+        if (modoParceiro) removerPopup() // escolha devolver / reprovar de vez
         await abrirDetalhesPagamentos(id)
+        await avisarChamadoDoParceiro(id, pagamento, resposta == 'S', justificativa, modoParceiro || 'definitiva')
 
 
     } catch (err) {
         popup({ mensagem: err.message || 'Ocorreu um erro ao processar a solicitação. Tente novamente.' })
     }
 
+}
+
+// Pagamento de parceiro: a decisão já foi salva; o registro no chamado não desfaz nada se falhar, só avisa.
+async function avisarChamadoDoParceiro(id, pagamento, aprovado, justificativa, modo = 'definitiva') {
+    if (!pagamento?.lpu_parceiro_id) return
+    try {
+        await registrarDecisaoDiretoriaParceiro(id, pagamento, aprovado, justificativa, modo)
+    } catch (erro) {
+        console.error(erro)
+        popup({ mensagem: 'A decisão foi salva, mas não foi possível registrá-la no chamado do parceiro: fale com o suporte.', imagem: 'imagens/alerta.png' })
+    }
 }
 
 // ---- Aprovar/reprovar pagamento já processado ----
@@ -763,6 +809,9 @@ function avisoPagamentoProcessado(resposta, id, pagamento, situacao) {
     if (!pode('reembolsos.reprovar_lancado'))
         return aviso(`Este pagamento já está lançado no Financeiro (${status}).<br>Para reprová-lo, a fatura precisa ser cancelada: peça ao financeiro (adm, diretoria ou fin).`)
 
+    if (ehParcelaParceiro(pagamento))
+        return escolherReprovacaoParceiro(id, true)
+
     popup({
         titulo: 'Reprovar pagamento lançado',
         imagem: 'imagens/alerta.png',
@@ -773,10 +822,14 @@ function avisoPagamentoProcessado(resposta, id, pagamento, situacao) {
     })
 }
 
-async function reprovarPagamentoLancado(id) {
+async function reprovarPagamentoLancado(id, modoParceiro = null) {
     overlayAguarde()
     try {
         const justificativa = document.getElementById('justificativa')?.value || ''
+        if (modoParceiro === 'devolver' && !justificativa.trim()) {
+            removerOverlay()
+            return popup({ mensagem: 'Escreva na justificativa o que precisa ser corrigido.' })
+        }
         const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
         const resposta = await fetch(`${api}/pagamentos/reprovar-lancado`, {
             method: 'POST',
@@ -790,6 +843,7 @@ async function reprovarPagamentoLancado(id) {
         removerPopup()
         await abrirDetalhesPagamentos(id)
         popup({ mensagem: 'Fatura cancelada e pagamento reprovado.', imagem: 'imagens/concluido.png' })
+        await avisarChamadoDoParceiro(id, await recuperarDado('lista_pagamentos', id), false, justificativa, modoParceiro || 'definitiva')
     } catch (erro) {
         removerOverlay()
         popup({ mensagem: escaparAtributo(erro.message), imagem: 'imagens/alerta.png' })
@@ -1569,7 +1623,14 @@ async function buscarPagamentosReprovados() {
         limite: 200
     }) || {}
     // O filtro "=" ignora maiúsculas/acentos: confirma o solicitante exato.
-    return (resultados || []).filter(p => p.criado === usuario && /^reprovad/i.test(p.status || ''))
+    const lista = (resultados || []).filter(p => p.criado === usuario && /^reprovad/i.test(p.status || ''))
+    // Parcela de parceiro só entra enquanto estiver devolvida para correção (reprovada de vez já encerrou).
+    const comParceiro = await Promise.all(lista.map(async p => {
+        if (!ehParcelaParceiro(p)) return p
+        const parceiro = await recuperarDado('parceiros', p.lpu_parceiro_id)
+        return parceiro?.solicitacoes?.[p.solicitacao_parceiro_id]?.status === STATUS_PARCEIRO_DEVOLVIDA ? p : null
+    }))
+    return comParceiro.filter(Boolean)
 }
 
 async function verificarPagamentosReprovados() {
@@ -1661,8 +1722,10 @@ async function abrirPagamentosReprovados() {
                 <div class="reprovado-historico">${historicoJustificativasReprovado(p)}</div>
                 <div class="reprovado-acoes">
                     <button type="button" class="secundario" onclick="abrirDetalhesPagamentos('${id}')">Ver detalhes</button>
-                    <button type="button" class="secundario" onclick="editarPagamento('${id}')">Editar e reenviar</button>
-                    <button type="button" class="reprovado-excluir" onclick="confirmarExcluirReprovado('${id}')">Excluir</button>
+                    ${ehParcelaParceiro(p)
+                        ? `<button type="button" class="secundario" onclick="removerTodosPopups(); formularioCorrecaoParceiro('${escaparAtributo(p.lpu_parceiro_id)}', '${id}')">Corrigir e reenviar</button>`
+                        : `<button type="button" class="secundario" onclick="editarPagamento('${id}')">Editar e reenviar</button>
+                    <button type="button" class="reprovado-excluir" onclick="confirmarExcluirReprovado('${id}')">Excluir</button>`}
                 </div>
             </div>`
     }).join('')

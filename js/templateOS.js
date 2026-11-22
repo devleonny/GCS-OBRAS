@@ -12,7 +12,7 @@ async function montarOS(idOcorrencia) {
     const { tipo, sistema, prioridade, nomesStatus } = ocorrencia?.snapshots || {}
 
     const labelTipoCorrecao = (nomesStatus || [])
-        .filter(st => st !== 'PAGAMENTO DE PARCEIRO')
+        .filter(st => !String(st || '').includes('PAGAMENTO DE PARCEIRO'))
         .map(st => formatacaoTipoCorrecao(st))
         .join('')
 

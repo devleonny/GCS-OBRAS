@@ -18,9 +18,13 @@ const temFluxoAberto = (ultimaCorrecao) => {
 
 const formatacaoTipoCorrecao = (tipoCorrecaoNome) => {
 
+    // Status do fluxo de pagamento de parceiro (inclusive o REPROVADO) nunca aparecem para o cliente.
+    if (acesso?.permissao == 'cliente' && String(tipoCorrecaoNome || '').includes('PAGAMENTO DE PARCEIRO'))
+        return ''
+
     const estilo = statusSolucionados.includes(tipoCorrecaoNome)
         ? 'fin'
-        : tipoCorrecaoNome == 'CANCELADO'
+        : ['CANCELADO', 'PAGAMENTO DE PARCEIRO REPROVADO'].includes(tipoCorrecaoNome)
             ? 'na'
             : 'and'
 
@@ -327,9 +331,10 @@ function carregarCorrecoes(ocorrencia) {
             executor = []
         } = correcao
 
-        const ehPagParceiro = tipoCorrecaoNome.includes('PAGAMENTO DE PARCEIRO')
+        const ehPagParceiro = String(tipoCorrecaoNome || '').includes('PAGAMENTO DE PARCEIRO')
 
-        if (ehPagParceiro && permissao == 'cliente')
+        // Cliente não vê nada da aba do pagamento de parceiro (aprovação, reprovação, cancelamento).
+        if ((ehPagParceiro || abasParceiro.has(aba)) && permissao == 'cliente')
             continue
 
         const listaExecutores = Array.isArray(executor)
@@ -337,6 +342,7 @@ function carregarCorrecoes(ocorrencia) {
             : [executor]
 
         const fluxoParceiro = ehPagParceiro || abasParceiro.has(aba)
+        // Cancelado (financeiro ou quem pediu): não há mais o que aprovar nesta aba.
         const parceiroCancelado = Boolean(correcoes?.[`${aba}_cancelamento`])
 
         const edicao = !fluxoParceiro && (usuario == acesso.usuario || autE.includes(acesso.permissao))
@@ -383,21 +389,43 @@ function carregarCorrecoes(ocorrencia) {
         const aprovacaoParceiro = descricao && descricao.includes('🟢 Pagamento aprovado')
         const pagamentoParceiro = tipoCorrecaoNome === 'PAGAMENTO DE PARCEIRO'
 
-        const btnAprovar = (pode('ocorrencias.aprovar_pag_parceiro') && pagamentoParceiro && !parceiroCancelado)
-            ? `
-                <span 
+        // Os botões do fluxo só aparecem no registro mais recente da aba (snapshot do servidor).
+        const idUltimaDaAba = abas?.[aba]?.idCorrecao
+        const ultimaDaAba = idUltimaDaAba ? idUltimaDaAba === idCorrecao : true
+        const idSolicitacaoParceiro = correcao.solicitacao_id || idCorrecao
+        const pill = (texto, acao) => `
+                <span
                     class="alerta-piscando"
-                    onclick="confirmarAprovarPagamentoPaceiro('${idOcorrencia}', '${idCorrecao}')"
+                    onclick="${acao}"
                     style="padding: 0 1rem;">
-                    Aprovar Pagamento
+                    ${texto}
                 </span>
                 <br>
                 `
+
+        // Reenvio que já tem pagamento: a aprovação é no próprio pagamento (Reembolsos).
+        let btnAprovar = ''
+        if (pagamentoParceiro && ultimaDaAba && !parceiroCancelado) {
+            if (correcao.aguardando === 'diretoria') {
+                if (['diretoria', 'adm'].includes(permissao))
+                    btnAprovar = pill('Abrir pagamento para aprovar', `abrirDetalhesPagamentos('${idSolicitacaoParceiro}')`)
+            } else if (correcao.aguardando === 'gerente_pagamento') {
+                if (pode('ocorrencias.aprovar_pag_parceiro'))
+                    btnAprovar = pill('Abrir pagamento para aprovar', `abrirDetalhesPagamentos('${idSolicitacaoParceiro}')`)
+            } else if (pode('ocorrencias.aprovar_pag_parceiro')) {
+                btnAprovar = pill('Aprovar Pagamento', `confirmarAprovarPagamentoPaceiro('${idOcorrencia}', '${idSolicitacaoParceiro}')`)
+            }
+        }
+
+        // Devolvido para correção: quem pediu (executor) ou adm/gerente/diretoria corrige e reenvia.
+        const btnCorrigir = (tipoCorrecaoNome === 'PAGAMENTO DE PARCEIRO REPROVADO' && correcao.devolvida && ultimaDaAba && correcao.lpu_id
+            && (listaExecutores.includes(acesso.usuario) || autE.includes(permissao)))
+            ? pill('Corrigir e reenviar', `formularioCorrecaoParceiro('${correcao.lpu_id}', '${idSolicitacaoParceiro}')`)
             : ''
 
-        // Registros automáticos do fluxo do parceiro (js/parceiros.js): ajuste de valor e
-        // cancelamento da solicitação. Só informam; não recebem anexo nem foto.
-        const registroAutomaticoParceiro = /_(ajuste_\d+|cancelamento)$/.test(idCorrecao)
+        // Registros automáticos do fluxo do parceiro (js/parceiros.js): ajuste de valor, cancelamento,
+        // devolução, reprovação, reenvio e aprovações. Só informam; não recebem anexo nem foto.
+        const registroAutomaticoParceiro = /_(ajuste_\d+|cancelamento|(?:re)?aprovacao_\d+|reprovacao_\d+|devolucao_\d+|reenvio_\d+)$/.test(idCorrecao)
 
         // Rodapé só funciona se for != de pagamento de parceiro, aprovação ou registro automático;
         const blocoRodape = (pagamentoParceiro || aprovacaoParceiro || registroAutomaticoParceiro)
@@ -437,6 +465,7 @@ function carregarCorrecoes(ocorrencia) {
                 <div style="${vertical}; width: 90%; padding: 0.5rem;">
 
                     ${btnAprovar}
+                    ${btnCorrigir}
 
                     ${pagamentoParceiro ? modelo('Ver LPU Parceiro', `<img src="imagens/cotacao.png" onclick="gerarPdfParceiro('${correcao.lpu_id || idCorrecao}', true)">`) : ''}
 
@@ -498,8 +527,8 @@ function carregarCorrecoes(ocorrencia) {
         .map(c => {
 
             const aba = c?.aba || 'geral'
-            const st = abas?.[aba]?.nome
-            if (st.includes('PAGAMENTO DE PARCEIRO') && permissao == 'cliente')
+            const st = String(abas?.[aba]?.nome || '')
+            if ((st.includes('PAGAMENTO DE PARCEIRO') || abasParceiro.has(aba)) && permissao == 'cliente')
                 return ''
 
             return `<div 
@@ -639,10 +668,16 @@ async function confirmarAprovarPagamentoPaceiro(idOcorrencia, idCorrecaoLpuParce
                 img: 'concluido',
                 funcao: `aprovarPagamentoParceiro('${idCorrecaoLpuParceiro}', '${idOcorrencia}')`
             },
+            // Parcela nova (com LPU): pode voltar para quem pediu corrigir; legado só reprova de vez.
+            ...(lpu_id ? [{
+                texto: 'Devolver para correção',
+                img: 'editar',
+                funcao: `reprovarPagamentoParceiro('${idOcorrencia}', '${idCorrecaoLpuParceiro}', 'devolver')`
+            }] : []),
             {
-                texto: 'Reprovar',
+                texto: 'Reprovar de vez',
                 img: 'cancel',
-                funcao: `reprovarPagamentoParceiro('${idOcorrencia}', '${idCorrecaoLpuParceiro}')`
+                funcao: `reprovarPagamentoParceiro('${idOcorrencia}', '${idCorrecaoLpuParceiro}', 'definitiva')`
             }
         ]
 
@@ -659,7 +694,9 @@ async function confirmarAprovarPagamentoPaceiro(idOcorrencia, idCorrecaoLpuParce
 
 }
 
-async function reprovarPagamentoParceiro(idOcorrencia, idCorrecaoLpuParceiro) {
+// Gerente reprova no chamado. modo 'devolver': volta para quem pediu corrigir (valor segue reservado);
+// 'definitiva': encerra a parcela e libera o saldo. Registro em js/parceiros.js (registrarReprovacaoParceiro).
+async function reprovarPagamentoParceiro(idOcorrencia, idCorrecaoLpuParceiro, modo = 'definitiva') {
 
     try {
 
@@ -668,27 +705,29 @@ async function reprovarPagamentoParceiro(idOcorrencia, idCorrecaoLpuParceiro) {
         overlayAguarde()
 
         const { correcoes } = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
-        const { usuario } = correcoes[idCorrecaoLpuParceiro] || {} // Deve retornar como executor para receber a pendência;
+        const { usuario } = correcoes?.[idCorrecaoLpuParceiro] || {} // Recebe a pendência para corrigir;
+        const devolver = modo === 'devolver'
 
         const linhas = [
             {
-                editor: ''
+                elemento: `<span style="max-width: 420px; text-align: left;">${devolver
+                    ? `A solicitação volta para <b>${escaparAtributo(usuario || 'quem pediu')}</b> corrigir e reenviar. O valor continua reservado na LPU.`
+                    : 'A solicitação é <b>encerrada</b> e o valor volta a ficar disponível na LPU. Não há reenvio.'}</span>`
             },
             {
-                texto: 'Executor',
-                elemento: `<input name="executor" value="${usuario}" readOnly>`
+                editor: ''
             }
         ]
 
         const botoes = [
             {
-                texto: 'Reprovar',
-                img: 'cancel',
-                funcao: `confirmarReprovacaoParceiro('${idOcorrencia}', '${idCorrecaoLpuParceiro}')`
+                texto: devolver ? 'Devolver para correção' : 'Reprovar de vez',
+                img: devolver ? 'editar' : 'cancel',
+                funcao: `confirmarReprovacaoParceiro('${idOcorrencia}', '${idCorrecaoLpuParceiro}', '${devolver ? 'devolver' : 'definitiva'}')`
             }
         ]
 
-        popup({ titulo: 'Motivo da Reprovação', linhas, botoes })
+        popup({ titulo: devolver ? 'O que precisa ser corrigido?' : 'Motivo da reprovação', linhas, botoes })
 
     } catch (err) {
         console.error(err)
@@ -697,40 +736,38 @@ async function reprovarPagamentoParceiro(idOcorrencia, idCorrecaoLpuParceiro) {
 
 }
 
-async function confirmarReprovacaoParceiro(idOcorrencia, idCorrecaoLpuParceiro) { //29
+async function confirmarReprovacaoParceiro(idOcorrencia, idCorrecaoLpuParceiro, modo = 'definitiva') {
 
     try {
+
+        const editor = document.querySelector('.editor-conteudo')
+        const motivo = String(editor?.innerText || '').trim()
+        if (modo === 'devolver' && !motivo)
+            return popup({ mensagem: 'Descreva o que precisa ser corrigido.' })
 
         overlayAguarde()
 
         const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
         const origem = ocorrencia?.correcoes?.[idCorrecaoLpuParceiro]
+        let solicitacao = null
         if (origem?.lpu_id) {
             const controle = await obterControlePagamentosParceiro(origem.lpu_id)
-            const solicitacao = controle.linhas.find(item => item.id === idCorrecaoLpuParceiro)
-            if (!solicitacao || solicitacao.pagamento || solicitacao.encerrada)
+            const linha = controle.linhas.find(item => item.id === idCorrecaoLpuParceiro)
+            if (!linha || linha.pagamento || linha.encerrada || linha.status === STATUS_PARCEIRO_DEVOLVIDA)
                 return popup({ mensagem: 'Esta solicitação já foi processada.' })
+            solicitacao = controle.parceiro.solicitacoes?.[idCorrecaoLpuParceiro] || null
         }
 
-        const { usuario } = acesso
-        const correcao = {
-            usuario,
-            aba: idCorrecaoLpuParceiro, // Ficar na mesma aba que a do pagamento;
-            tipoCorrecao: '2bfa34c1-1c48-4570-8b12-6ed8e58807c4',
-            executor: [
-                obVal('executor')
-            ],
-            data: dataServidor().toLocaleString(),
-            descricao: document.querySelector('.editor-conteudo')?.innerHTML || ''
-        }
-
-        const { success } = await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${crypto.randomUUID()}`, correcao)
-
-        if (!success)
-            throw new Error('Falha ao tentar Reprovar: Fale com o suporte.')
-
-        if (origem?.lpu_id)
-            await salvarEtapaParceiro(`parceiros/${origem.lpu_id}/solicitacoes/${idCorrecaoLpuParceiro}/status`, 'Reprovada pelo gerente')
+        await registrarReprovacaoParceiro({
+            idOcorrencia,
+            id: idCorrecaoLpuParceiro,
+            idLpu: origem?.lpu_id || idCorrecaoLpuParceiro,
+            solicitacao,
+            modo,
+            etapa: 'gerente',
+            motivo,
+            executor: origem?.usuario
+        })
 
         removerTodosPopups()
 
