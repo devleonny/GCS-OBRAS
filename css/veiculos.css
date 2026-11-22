@@ -265,8 +265,7 @@
 /* Combustível do formulário simples: de onde veio a divisão (js/veiculos.js htmlDepsSimplesCombustivel). */
 .comb-uso { display: block; font-size: .72rem; color: #5d6b63; text-align: left; margin-top: 2px; }
 .comb-uso.aviso { color: #a6520c; font-weight: 600; }
-.comb-dividir { width: 1.5rem; height: 1.5rem; padding: 3px; border-radius: 6px; cursor: pointer; box-sizing: content-box; }
-.comb-dividir:hover { background: #e6efe8; }
+.comb-dividir { margin: 0; padding: 1px 10px; font-size: .72rem; line-height: 1.5; }
 .comb-divisor { padding: 12px 14px; min-width: min(560px, 86vw); display: flex; flex-direction: column; gap: 8px; text-align: left; }
 
 /* Coluna Departamentos de Ver Combustíveis: departamentos à esquerda (código e valor numa linha), botão

@@ -48,6 +48,6 @@ const VERSOES_CSS = {
     "status": "58249c5d",
     "tabelas-parceiro": "22c15cc9",
     "tabelas": "daf589f8",
-    "veiculos": "ee66238a",
+    "veiculos": "54f612ef",
     "velocimetro": "2cfa4cff"
 }
