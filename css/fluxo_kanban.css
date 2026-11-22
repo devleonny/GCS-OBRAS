@@ -711,3 +711,21 @@
 }
 .fluxo-rec-prazo.hoje { color: #b45309; font-weight: 700; }
 .fluxo-rec-prazo.atrasado { color: #b91c1c; font-weight: 700; }
+
+/* "Só recorrentes" (Fluxo de Serviços): liga/desliga no topo, ao lado da chave de empresa. */
+.fluxo-so-recorrentes {
+    height: 36px;
+    padding: 0 12px;
+    border: 1px dashed #5eaaa0;
+    border-radius: 8px;
+    background: #f3fbf9;
+    color: #0f766e;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.fluxo-so-recorrentes:hover { background: #e8f6f3; }
+.fluxo-so-recorrentes.ativo { border-style: solid; border-color: #0f766e; background: #0f766e; color: #fff; }
+.fluxo-so-recorrentes:focus-visible { outline: 2px solid #0f766e; outline-offset: 1px; }

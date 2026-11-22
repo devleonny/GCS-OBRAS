@@ -113,11 +113,13 @@ function cartoesFluxo(quadro, linhas) {
 
 // Distribui nas colunas: no período (pela data) ou, se a coluna está em aberto, "parado" (mais antigo).
 // Colunas finais só mostram o período. busca: cliente, ORC, pedido, NF, cidade, fornecedor.
-function colunasFluxo(quadro, cartoes, { periodo = 30, busca = '', empresa = '', hoje = dataServidor() } = {}) {
+// soRecorrentes (Fluxo de Serviços): só os cartões previstos e os gerados por nota recorrente.
+function colunasFluxo(quadro, cartoes, { periodo = 30, busca = '', empresa = '', soRecorrentes = false, hoje = dataServidor() } = {}) {
     const config = QUADROS_FLUXO[quadro]
     const termo = normalFluxo(busca).trim()
     const daEmpresa = c => !empresa || (empresa === '-' ? !c.empresa : c.empresa === empresa)
-    const combina = c => daEmpresa(c) && (!termo || normalFluxo([c.contrato, c.departamento, c.cliente, c.cidade, c.numero_pedido, c.participante_nome, c.numero,
+    const daRecorrencia = c => !soRecorrentes || c.recorrente || String(c.origem || '').toUpperCase() === 'RECORRENCIA'
+    const combina = c => daEmpresa(c) && daRecorrencia(c) &&(!termo || normalFluxo([c.contrato, c.departamento, c.cliente, c.cidade, c.numero_pedido, c.participante_nome, c.numero,
         ...(Array.isArray(c.notas) ? c.notas.map(n => n.n_nota) : [])].join(' ')).includes(termo))
     return config.colunas.map(([etapa, titulo]) => {
         const daEtapa = cartoes.filter(c => c.etapa === etapa && combina(c))
@@ -165,6 +167,9 @@ async function telaFluxo(quadro) {
                 </div>` : ''}
                 <div class="fluxo-controles">
                     ${chaveEmpresaFluxoHtml()}
+                    ${QUADROS_FLUXO[quadro].servico && pode('servicos.recorrencias') ? `
+                    <button type="button" class="fluxo-so-recorrentes ${estadoFluxo.soRecorrentes ? 'ativo' : ''}" aria-pressed="${!!estadoFluxo.soRecorrentes}"
+                        title="Mostrar só as notas recorrentes (previstas do mês e as já geradas)" onclick="alternarSoRecorrentesFluxo(this)">Só recorrentes</button>` : ''}
                     <label class="fluxo-campo fluxo-busca">
                         ${lupa}
                         <input type="search" placeholder="${quadro === 'compras' ? 'Fornecedor ou número da nota' : 'Cliente, ORC, pedido, NF ou cidade'}"
@@ -255,7 +260,7 @@ function renderizarFluxo() {
     const area = document.querySelector('.fluxo-pagina .fluxo-quadro')
     if (!area) return
     const quadro = estadoFluxo.quadro
-    const colunas = colunasFluxo(quadro, estadoFluxo.linhas, { periodo: estadoFluxo.periodo, busca: estadoFluxo.busca, empresa: estadoFluxo.empresa })
+    const colunas = colunasFluxo(quadro, estadoFluxo.linhas, { periodo: estadoFluxo.periodo, busca: estadoFluxo.busca, empresa: estadoFluxo.empresa, soRecorrentes: soRecorrentesAtivoFluxo() })
     const novo = QUADROS_FLUXO[quadro].novo
     area.innerHTML = colunas.map(col => {
         // Só o que está no período do filtro (os botões "+N parados" saíram: o filtro de período resolve).
@@ -633,7 +638,7 @@ async function abrirPreviaSeparacaoFluxo(id) {
 async function faturarTodasFluxo() {
     const empresa = estadoFluxo.empresa
     const separado = colunasFluxo(estadoFluxo.quadro, estadoFluxo.linhas,
-        { periodo: estadoFluxo.periodo, busca: estadoFluxo.busca, empresa }).find(col => col.etapa === colunaEmissaoFluxo(estadoFluxo.quadro))
+        { periodo: estadoFluxo.periodo, busca: estadoFluxo.busca, empresa, soRecorrentes: soRecorrentesAtivoFluxo() }).find(col => col.etapa === colunaEmissaoFluxo(estadoFluxo.quadro))
     const prontos = (separado?.cartoes || []).filter(c => !['EMITINDO', 'PROCESSANDO'].includes(c.emissao_status))
     if (!prontos.length) return popup({ mensagem: `Nenhum cartão em ${separado?.titulo || 'Separado'} para faturar.` })
     const ok = await confirmarPopup({
@@ -1229,6 +1234,15 @@ const ehItemRecorrenteFluxo = c => !c?.recorrente && String(c?.origem || '').toU
 const recorrenciaDoItemFluxo = c => { const m = String(c?.id || '').match(/^IT_R_(\d+)_(\d{4})(\d{2})$/); return m ? { id: Number(m[1]), mes: `${m[2]}-${m[3]}-01` } : null }
 const mesItemRecorrenteFluxo = c => mesCurtoFluxo(recorrenciaDoItemFluxo(c)?.mes)
 const ativaDoContratoFluxo = c => (estadoFluxo.recorrencias?.ativas || []).find(r => r.contrato === (c?.contrato || c?.departamento) && (!c?.empresa || r.app === c.empresa))
+
+// Botão "Só recorrentes" do topo (vale só no Fluxo de Serviços, para quem tem o acesso; fica ligado ao voltar).
+const soRecorrentesAtivoFluxo = () => !!estadoFluxo.soRecorrentes && !!QUADROS_FLUXO[estadoFluxo.quadro]?.servico && pode('servicos.recorrencias')
+function alternarSoRecorrentesFluxo(botao) {
+    estadoFluxo.soRecorrentes = !estadoFluxo.soRecorrentes
+    botao.classList.toggle('ativo', estadoFluxo.soRecorrentes)
+    botao.setAttribute('aria-pressed', String(estadoFluxo.soRecorrentes))
+    renderizarFluxo()
+}
 
 function cartoesRecorrentesFluxo(recorrencias) {
     const hoje = hojeIsoFluxo()
