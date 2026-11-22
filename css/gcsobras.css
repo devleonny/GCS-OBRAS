@@ -2503,6 +2503,44 @@ input[type="file"]#input-anexos:hover {
 .painel-pend-num small { font-size: 10.5px !important; }
 .painel-pend-vazio { color: #7a877f; padding: 16px; text-align: center; }
 @media (max-width: 760px) { .painel-pend-resumo { grid-template-columns: repeat(2, minmax(0, 1fr)); } .painel-pend-tabela th.num, .painel-pend-tabela td.num { width: auto; } }
+.painel-pend-kpi small { font-size: 11px; color: #7a877f; margin-top: 2px; line-height: 1.3; }
+
+/* Gráficos do painel: barras em HTML, cores fixas por tipo (COR_PAINEL_PEND), dica flutuante em .painel-pend-tip. */
+.painel-pend-indicadores > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: #2f4a3a; padding: 2px 0; user-select: none; }
+.painel-pend-graficos { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 10px; margin-top: 8px; }
+.pp-cartao { background: #fff; border: 1px solid #e1e9e4; border-radius: 10px; padding: 12px 14px 14px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.pp-cartao header h3 { margin: 0; font-size: 13.5px; font-weight: 600; color: #16271d; }
+.pp-cartao header p { margin: 2px 0 0; font-size: 11.5px; color: #7a877f; }
+.pp-legenda { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11.5px; color: #52514e; margin: 2px 0 4px; }
+.pp-legenda span { display: inline-flex; align-items: center; gap: 5px; }
+.pp-legenda i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.pp-linha { display: grid; grid-template-columns: minmax(90px, 34%) 1fr auto; align-items: center; gap: 10px; padding: 3px 4px; border-radius: 6px; font-size: 12px; }
+.pp-linha:hover { background: #f3f6f4; }
+.pp-linha.clicavel { cursor: pointer; }
+.pp-rot { color: #2b3830; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pp-trilho { height: 14px; display: flex; align-items: center; }
+.pp-barra { height: 12px; display: flex; gap: 2px; min-width: 3px; }
+.pp-barra i { display: block; min-width: 2px; height: 100%; }
+.pp-barra i:first-child { border-radius: 2px 0 0 2px; }
+.pp-barra i:last-child { border-radius: 0 4px 4px 0; }
+.pp-barra i:only-child { border-radius: 2px 4px 4px 2px; }
+.pp-val { font-variant-numeric: tabular-nums; font-weight: 600; color: #16271d; text-align: right; white-space: nowrap; min-width: 44px; }
+.pp-val small { font-weight: 400; color: #7a877f; margin-left: 6px; font-size: 11px; }
+.pp-frase { margin: 0 0 4px; font-size: 12px; color: #44544a; }
+.pp-vazio { margin: 8px 0; font-size: 12px; color: #7a877f; }
+.pp-idade { display: flex; flex-direction: column; gap: 4px; padding: 4px 0 6px; }
+.pp-idade + .pp-idade { border-top: 1px solid #f0f3f1; padding-top: 8px; }
+.pp-idade-topo { display: flex; justify-content: space-between; font-size: 12px; color: #2b3830; }
+.pp-idade-topo span { font-variant-numeric: tabular-nums; color: #7a877f; }
+.pp-idade-barra { display: flex; gap: 2px; height: 20px; }
+.pp-idade-barra i { display: flex; align-items: center; justify-content: center; min-width: 3px; font-style: normal; font-size: 10.5px; font-weight: 600; color: #fff; overflow: hidden; }
+.pp-idade-barra i:first-child { border-radius: 4px 0 0 4px; }
+.pp-idade-barra i:last-child { border-radius: 0 4px 4px 0; }
+.pp-idade-barra i span.escuro { color: #0b0b0b; }
+.pp-idade .pp-legenda { margin: 0; font-size: 11px; }
+.painel-pend-tip { position: fixed; z-index: 10000; pointer-events: none; max-width: 300px; padding: 7px 10px; border-radius: 8px; background: #1f2a24; color: #fff; font-size: 12px; line-height: 1.45; white-space: pre-line; box-shadow: 0 6px 18px rgb(0 0 0 / 22%); }
+@media (max-width: 760px) { .painel-pend-graficos { grid-template-columns: 1fr; } }
+
 /* Em tela inteira (fundo escuro da página): cartão claro ocupando a largura, lista até o fim da janela. */
 .painel-pend-tela { width: 100%; background: #f6f8f7; border-radius: 10px; padding: 16px 18px 18px; }
 .painel-pend-tela .painel-pend-lista { max-height: calc(100vh - 300px); min-height: 240px; }
