@@ -532,8 +532,8 @@ function resumoDocumentoFis(d, campos) {
 
 function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos, titulos = [], locais = [], cobranca = null, devolucoes = [], origem_devolucao = null }, opcoesFin = null) {
     const lancada = d.estoque_status === 'LANCADO' || Boolean(d.entrada_em)
-    // Item com "Não gerar estoque" não precisa de vínculo: não conta como pendente.
-    const pendentes = itens.filter(i => i.vinculo === 'PENDENTE' && destinoItemFis(i) !== 'NAO_GERAR').length
+    // Item com "Não gerar estoque" ou "Aplicação em serviço" não precisa de vínculo: não conta como pendente.
+    const pendentes = itens.filter(i => i.vinculo === 'PENDENTE' && !semEstoqueFis(destinoItemFis(i))).length
     const editavel = !soConsultaFis()
     const podeMexer = editavel && !lancada && d.status !== 'CANCELADA'
     // Guarda os itens para o assistente de vínculo e o "criar item" (sem nova ida ao servidor).
@@ -558,7 +558,7 @@ function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos, titulos
         } else {
             vinculo = `<div class="fis-vinculo pendente"><small class="fis-pendente">Sem vínculo</small></div>`
         }
-        const semEstoque = destinoItemFis(i) === 'NAO_GERAR'
+        const semEstoque = semEstoqueFis(destinoItemFis(i))
         return `
             <tr data-linha-item="${escFis(i.id)}" data-vinculo="${escFis(i.vinculo)}" class="${semEstoque ? 'fis-sem-estoque' : ''}"
                 ${i.vinculo === 'PENDENTE' && !semEstoque ? `data-item-pendente="${escFis(i.id)}"` : ''}>
@@ -666,7 +666,7 @@ function htmlNotaRecebida({ documento: d, itens, movimentos, pagamentos, titulos
 }
 
 // ---------------------------------------------------------------- entrada da nota recebida
-// O destino é por item (coluna Destino: Estoque | Uso e consumo | Não gerar estoque) e "Gerar faturas a pagar?"
+// O destino é por item (coluna Destino: Estoque | Uso e consumo | Aplicação em serviço | Não gerar estoque) e "Gerar faturas a pagar?"
 // é obrigatória (sem padrão). Faturas: parcelas do XML (cobr/dup) quando o fornecedor mandou; senão o usuário
 // informa. Desfazer: estorna o estoque e cancela as faturas; se alguma fatura tem pagamento, o servidor bloqueia
 // e diz qual (desfaz-se o pagamento antes).
@@ -679,6 +679,7 @@ function htmlEntradaNotaFis(d, { itens = [], pendentes, titulos, locais, cobranc
         const estoque = d.estoque_status === 'LANCADO'
             ? [conta('ESTOQUE') ? `${conta('ESTOQUE')} no estoque${local ? ` (${escFis(local.nome)})` : ''}` : '',
                conta('USO_CONSUMO') ? `${conta('USO_CONSUMO')} em uso e consumo` : '',
+               conta('SERVICO') ? `${conta('SERVICO')} para aplicação em serviço` : '',
                conta('NAO_GERAR') ? `${conta('NAO_GERAR')} sem estoque` : ''].filter(Boolean).join(' · ') || 'Sim'
             : 'Não'
         return `
@@ -769,7 +770,7 @@ async function darEntradaNotaFis(id) {
     const destinos = {}
     for (const caixaDestino of nota?.querySelectorAll('[data-destino-item]') || []) {
         const ativo = caixaDestino.value
-        if (!ativo) { faltas.push(`Escolha o destino do item ${caixaDestino.dataset.nItem} (Estoque, Uso e consumo ou Não gerar estoque).`); continue }
+        if (!ativo) { faltas.push(`Escolha o destino do item ${caixaDestino.dataset.nItem} (Estoque, Uso e consumo, Aplicação em serviço ou Não gerar estoque).`); continue }
         destinos[caixaDestino.dataset.destinoItem] = ativo
     }
     const gerar_estoque = Object.values(destinos).some(x => x === 'ESTOQUE')
@@ -792,7 +793,7 @@ async function darEntradaNotaFis(id) {
         removerOverlay()
         const n = r.destinos || {}
         const partes = [
-            [n.ESTOQUE ? `${n.ESTOQUE} no estoque` : '', n.USO_CONSUMO ? `${n.USO_CONSUMO} em uso e consumo` : '', n.NAO_GERAR ? `${n.NAO_GERAR} sem estoque` : '']
+            [n.ESTOQUE ? `${n.ESTOQUE} no estoque` : '', n.USO_CONSUMO ? `${n.USO_CONSUMO} em uso e consumo` : '', n.SERVICO ? `${n.SERVICO} para aplicação em serviço` : '', n.NAO_GERAR ? `${n.NAO_GERAR} sem estoque` : '']
                 .filter(Boolean).join(', ') || 'sem estoque',
             devolucaoCliente ? (gerar_faturas ? `${r.faturas} fatura(s) acertada(s)` : 'faturas da venda sem mudança')
                 : gerar_faturas ? `${r.faturas} fatura(s) a pagar` : 'sem faturas']
@@ -1234,10 +1235,11 @@ async function vincularItemFiscal(documentoItemId, documentoId, acao, extra = {}
 
 // ---- Destino do item na entrada: Estoque | Uso e consumo | Não gerar estoque (imobilizado entra no último).
 // O toggle também troca o CFOP de entrada: Estoque → x102 (ST x403); Uso e consumo → x556 (ST x407);
-// Não gerar estoque mantém o CFOP (imobilizado: digite 1551/2551).
+// Aplicação em serviço → x128 (não há variante com ST); Não gerar estoque mantém o CFOP (imobilizado: digite 1551/2551).
 const DESTINOS_FIS = [
     { id: 'ESTOQUE', rotulo: 'Estoque', normal: '102', st: '403', dica: 'Entra no estoque (local escolhido na entrada)' },
     { id: 'USO_CONSUMO', rotulo: 'Uso e consumo', normal: '556', st: '407', dica: 'Entra no local "Uso e consumo" e sai pelas requisições conferidas pela Logística' },
+    { id: 'SERVICO', rotulo: 'Aplicação em serviço', normal: '128', st: '128', dica: 'Material comprado para aplicar na prestação de serviço (CFOP 1128/2128). Não movimenta estoque e não precisa de vínculo' },
     { id: 'NAO_GERAR', rotulo: 'Não gerar estoque', dica: 'Não movimenta estoque e não precisa de vínculo (imobilizado, serviço, material entregue direto)' }
 ]
 const ORIGEM_DESTINO_FIS = {
@@ -1250,6 +1252,8 @@ const ST_ENTRADA_FIS = new Set(['403', '406', '407'])
 const ST_FORNECEDOR_FIS = new Set(['401', '402', '403', '404', '405'])
 
 const destinoItemFis = i => i.destino || i.destino_sugerido || null
+// Destinos que não movimentam estoque (e dispensam o vínculo ao cadastro).
+const semEstoqueFis = destino => destino === 'NAO_GERAR' || destino === 'SERVICO'
 
 // Novo CFOP para o destino: mantém o 1º dígito (dentro/fora do estado) e o ST do CFOP atual;
 // sem CFOP válido, parte do CFOP do fornecedor (5→1, 6→2, 7→3). null = manter o CFOP.
@@ -1312,8 +1316,8 @@ function aplicarDestinoNaTelaFis(itemId, destino, cfop) {
     }
     const tr = document.querySelector(`[data-linha-item="${CSS.escape(String(itemId))}"]`)
     if (tr) {
-        tr.classList.toggle('fis-sem-estoque', destino === 'NAO_GERAR')
-        if (tr.dataset.vinculo === 'PENDENTE' && destino !== 'NAO_GERAR') tr.setAttribute('data-item-pendente', itemId)
+        tr.classList.toggle('fis-sem-estoque', semEstoqueFis(destino))
+        if (tr.dataset.vinculo === 'PENDENTE' && !semEstoqueFis(destino)) tr.setAttribute('data-item-pendente', itemId)
         else tr.removeAttribute('data-item-pendente')
     }
     const nota = tr?.closest('[data-doc-fiscal]')
