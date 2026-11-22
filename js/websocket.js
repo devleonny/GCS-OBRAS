@@ -547,6 +547,10 @@ async function carregarControles() {
     if (pode('sistema.ferramentas_adm'))
         barraStatus.push(modelo('construcao', 'f2()', ''))
 
+    // Painel de pendências de todos os usuários (só adm; js/painel_pendencias.js): só leitura.
+    if (pode('sistema.painel_pendencias'))
+        barraStatus.push(`<div title="Pendências dos usuários (só ver)">${modelo('pessoas', 'abrirPainelPendencias()', '')}</div>`)
+
     // Sino das notificações do PWA: último, na ponta direita (js/notificacoes.js).
     barraStatus.push('<div id="sinoNotificacoes"></div>')
 

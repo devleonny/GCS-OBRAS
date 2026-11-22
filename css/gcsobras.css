@@ -2464,6 +2464,34 @@ input[type="file"]#input-anexos:hover {
 .historico-lote-numeros span.alerta { color: #991b1b; border-color: #fecaca; background: #fef2f2; font-weight: 600; }
 .historico-lote button { margin: 0; }
 
+/* Painel de pendências dos usuários (js/painel_pendencias.js, só adm). */
+.painel-pend { display: flex; flex-direction: column; gap: 10px; padding: 12px; min-width: min(980px, 92vw); max-width: 100%; box-sizing: border-box; text-align: left; }
+.painel-pend-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.painel-pend-barra input[type="search"] { flex: 1 1 260px; padding: 6px 10px; border: 1px solid #c6dacd; border-radius: 8px; }
+.painel-pend-barra label { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.painel-pend-barra button { margin: 0; }
+.painel-pend-resumo { display: flex; flex-wrap: wrap; gap: 6px; }
+.painel-pend-resumo span { font-size: 12.5px; color: #1f3b2c; background: #edf5f0; border: 1px solid #c6dacd; border-radius: 10px; padding: 3px 10px; }
+.painel-pend-nota { color: #6b7a71; font-size: 12px; }
+.painel-pend-lista { max-height: 62vh; overflow: auto; border: 1px solid #e2e8e4; border-radius: 8px; }
+.painel-pend-tabela { width: 100%; border-collapse: collapse; font-size: 13px; }
+.painel-pend-tabela th { position: sticky; top: 0; background: #f4f8f5; text-align: left; font-size: 11.5px; color: #536e5d; padding: 7px 10px; border-bottom: 1px solid #d7e3db; }
+.painel-pend-tabela td { padding: 7px 10px; border-bottom: 1px solid #eef2ef; vertical-align: top; }
+.painel-pend-tabela td small { display: block; color: #6b7a71; font-size: 11.5px; }
+.painel-pend-tabela td .zero { color: #b8c4bc; }
+.painel-pend-lista tbody tr, .painel-pend-tabela tr.clicavel { cursor: pointer; }
+.painel-pend-lista tbody tr:hover, .painel-pend-tabela tr.clicavel:hover { background: #f2f8f4; }
+.painel-pend-tabela tr.desligado td { background: #fafafa; color: #6b7280; }
+.painel-pend-pessoa { display: flex; align-items: center; gap: 6px; }
+.painel-pend-pessoa .presenca { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; flex: none; }
+.painel-pend-pessoa .presenca.on { background: #16a34a; }
+.painel-pend-tabela td small.painel-pend-deslig { color: #b45309; font-weight: 600; }
+.painel-pend-vazio { color: #6b7a71; padding: 10px; text-align: center; }
+.painel-pend-detalhe { min-width: min(820px, 92vw); max-height: 78vh; overflow: auto; }
+.painel-pend-secao { border: 1px solid #e2e8e4; border-radius: 8px; padding: 6px 10px; }
+.painel-pend-secao summary { cursor: pointer; font-weight: 600; color: #1f3b2c; padding: 4px 0; }
+.painel-pend-secao summary b { margin-left: 6px; background: #edf5f0; border-radius: 10px; padding: 1px 8px; font-size: 12px; }
+
 /* Liberação do orçamento (gcs /fluxo-itens/liberacao): pedido, lote ou liberação sem pedido com motivo. */
 .historico-liberacao { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; max-width: 100%; }
 .historico-liberacao-etiqueta { font-size: 11px; font-weight: 700; color: #fff; background: #6b7280; border-radius: 10px; padding: 2px 9px; }
