@@ -1809,6 +1809,26 @@ button.rh-arquivo-acao:hover { background: #1c8235; }
     opacity: .8;
 }
 
+/* Gestores veem a equipe: as 3 opções numa linha, com a explicação embaixo. */
+.rh2-acesso-gestores-opcoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+}
+
+.rh2-acesso-gestores-opcoes label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 4px;
+    cursor: pointer;
+}
+
+.rh2-acesso-gestores small {
+    color: #6b7f72;
+    font-size: 12px;
+}
+
 .rh2-acesso-busca {
     padding: 6px 8px;
     border: 1px solid #c8d6cd;

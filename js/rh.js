@@ -323,15 +323,17 @@ function detalhePessoaRH(p) {
                     ondragleave="if (!this.contains(event.relatedTarget)) this.classList.remove('soltar')"
                     ondrop="soltarDocumentoPastaRH(event, this)">
                     <div class="rh2-pasta-titulo"><span aria-hidden="true">📁</span> ${escaparAtributo(pasta)} ${pasta === 'SEM PASTA' ? '' : botaoCadeadoRH(pasta)}
-                        ${podeVerPastaRH(pasta) && docs.some(d => d.anexo?.link) ? botaoZipPastaRH(p.id, pasta, docs.filter(d => d.anexo?.link).length) : ''}
-                        <small>${podeVerPastaRH(pasta) ? docs.length : '—'}</small></div>
-                    ${podeVerPastaRH(pasta) ? listaArquivosRH(docs) : '<small class="rh2-pasta-vazia rh2-pasta-restrita">Pasta restrita: você não tem acesso ao conteúdo.</small>'}
+                        ${podeVerPastaRH(pasta, p.id) && docs.some(d => d.anexo?.link) ? botaoZipPastaRH(p.id, pasta, docs.filter(d => d.anexo?.link).length) : ''}
+                        <small>${podeVerPastaRH(pasta, p.id) ? docs.length : '—'}</small></div>
+                    ${podeVerPastaRH(pasta, p.id) ? listaArquivosRH(docs) : `<small class="rh2-pasta-vazia rh2-pasta-restrita">${acessoPastaRH(pasta).gestores && String(p.id) === String(acesso?.id || '') ? 'Pasta restrita: os seus próprios documentos desta pasta não aparecem para você.' : 'Pasta restrita: você não tem acesso ao conteúdo.'}</small>`}
                 </div>`
             }).join('')}
         </div>
         <div class="rh2-detalhe-rodape">
             ${p.faltantes.length ? `<span class="rh-pendencia-titulo">Faltam (obrigatórios):</span> ${p.faltantes.map(d => `<span class="docs-faltantes">${escaparAtributo(d)}</span>`).join('')}` : p.tecnico ? '<span class="rh-sem-pendencias">Obrigatórios registrados</span>' : '<span class="rh2-arq-cinza">Sem documentos obrigatórios (não é técnico)</span>'}
-            <span class="rh2-gestor">Gestor: <button type="button" class="rh2-gestor-botao" onclick="escolherGestorRH('${escaparAtributo(p.id)}')">${escaparAtributo(gestor?.nome || 'Definir gestor')}</button></span>
+            <span class="rh2-gestor">Gestor: ${podeMudarGestorRH()
+                ? `<button type="button" class="rh2-gestor-botao" onclick="escolherGestorRH('${escaparAtributo(p.id)}')">${escaparAtributo(gestor?.nome || 'Definir gestor')}</button>`
+                : `<b title="Só adm e diretoria mudam o gestor">${escaparAtributo(gestor?.nome || '—')}</b>`}</span>
             <button type="button" class="rh-filtro-tempo" data-funcionario="${escaparAtributo(p.id)}" onclick="incluirDocumento(null, this.dataset.funcionario)">+ Documento</button>
         </div>
         ${typeof fichaPessoaRH === 'function' ? fichaPessoaRH(p, undefined, { compacto: true }) : ''}`
@@ -434,7 +436,7 @@ async function salvarArquivosPastaRH(funcionario, pasta, arquivos) {
         }
         const resumo = relatorioArquivosPastaRH(relatorio)
         // Pasta com cadeado sem acesso: o arquivo entra, mas some da vista de quem enviou.
-        const restrita = pasta && !podeVerPastaRH(pasta)
+        const restrita = pasta && !podeVerPastaRH(pasta, funcionario)
             ? `<p>Arquivo enviado para a pasta ${escaparAtributo(pasta)}. Ela é restrita e você não tem acesso ao conteúdo dela.</p>` : ''
         if (resumo || restrita) popup({ titulo: 'Arquivos recebidos', mensagem: `${restrita}${resumo}` })
     } catch (erro) {
@@ -594,10 +596,12 @@ function hierarquiaRH() {
         vistos.add(p.id)
         return visiveis.has(p.id) || (filhos.get(p.id) || []).some(f => temVisivel(f, vistos))
     }
+    // Arrastar para mudar o gestor: só adm e diretoria (podeMudarGestorRH).
+    const arrasta = podeMudarGestorRH()
     const cartao = p => `
         <button type="button" class="rh2-org-cartao ${visiveis.has(p.id) ? '' : 'caminho'}" data-pessoa="${escaparAtributo(p.id)}"
-            onclick="abrirPessoaRH(this.dataset.pessoa)" title="${escaparAtributo(p.situacao.texto)} · arraste para outra pessoa para mudar o gestor"
-            draggable="true" ondragstart="arrastarPessoaRH(event, this)" ondragend="document.querySelectorAll('.rh2-alvo').forEach(e => e.classList.remove('rh2-alvo'))"
+            onclick="abrirPessoaRH(this.dataset.pessoa)" title="${escaparAtributo(p.situacao.texto)}${arrasta ? ' · arraste para outra pessoa para mudar o gestor' : ''}"
+            draggable="${arrasta}" ondragstart="arrastarPessoaRH(event, this)" ondragend="document.querySelectorAll('.rh2-alvo').forEach(e => e.classList.remove('rh2-alvo'))"
             ondragover="sobrePessoaRH(event, this)" ondragleave="this.classList.remove('rh2-alvo')" ondrop="soltarPessoaRH(event, this.dataset.pessoa, this)">
             <img class="rh2-org-foto" src="${escaparAtributo(urlFotoCliente(p.foto))}" alt="" loading="lazy" onerror="this.onerror = null; this.src = logo">
             ${bolinhaRH(p.situacao)}
@@ -757,6 +761,7 @@ function pessoaEAbaixoRH(id) {
 // Arrastar na hierarquia: soltar em cima de alguém = entra na equipe dele; soltar em
 // "Sem hierarquia" = fica sem gestor.
 function arrastarPessoaRH(event, cartao) {
+    if (!podeMudarGestorRH()) return event.preventDefault()
     event.dataTransfer.setData('text/plain', cartao.dataset.pessoa)
     event.dataTransfer.setData('application/x-gcs-pessoa', cartao.dataset.pessoa)
     event.dataTransfer.effectAllowed = 'move'
@@ -787,6 +792,7 @@ async function soltarPessoaRH(event, gestor, alvo) {
 }
 
 async function salvarGestorRH(id, gestor) {
+    if (!podeMudarGestorRH()) { popup({ mensagem: 'Só adm e diretoria mudam o gestor.' }); return false }
     const pessoa = estadoRH.porId.get(String(id))
     const anterior = pessoa?.gestor ?? null
     if (pessoa) pessoa.gestor = gestor
@@ -804,6 +810,7 @@ async function salvarGestorRH(id, gestor) {
 }
 
 function escolherGestorRH(id) {
+    if (!podeMudarGestorRH()) return popup({ mensagem: 'Só adm e diretoria mudam o gestor.' })
     const abaixo = pessoaEAbaixoRH(id)
     const opcoes = estadoRH.pessoas.filter(p => !abaixo.has(p.id) && !p.desligado)
     const pessoa = estadoRH.porId.get(String(id))
@@ -1336,22 +1343,53 @@ function listaJsonRH(valor) {
     return Array.isArray(valor) ? valor.map(String) : []
 }
 
+// gestores: '' (não), 'direto' (equipe direta) ou 'todos' (toda a linha abaixo, pela clientes.gestor).
+// O gestor vê os documentos da equipe, nunca os próprios por esse caminho. Ligado = pasta restrita.
+const GESTORES_PASTA_RH = [['', 'Não'], ['direto', 'Só a equipe direta'], ['todos', 'Toda a linha abaixo']]
+
 function acessoPastaRH(pasta) {
     const a = estadoRH.acessoPastas.get(pasta) || {}
-    return { permissoes: listaJsonRH(a.permissoes), usuarios: listaJsonRH(a.usuarios) }
+    const gestores = ['direto', 'todos'].includes(a.gestores) ? a.gestores : ''
+    return { permissoes: listaJsonRH(a.permissoes), usuarios: listaJsonRH(a.usuarios), gestores }
 }
 
-const pastaRestritaRH = pasta => { const a = acessoPastaRH(pasta); return a.permissoes.length + a.usuarios.length > 0 }
+const pastaRestritaRH = pasta => { const a = acessoPastaRH(pasta); return a.permissoes.length + a.usuarios.length > 0 || !!a.gestores }
 
-function podeVerPastaRH(pasta) {
+// Pela lista da pasta (vale para os documentos de todos os funcionários).
+function vePelaListaRH(pasta) {
     const a = acessoPastaRH(pasta)
     return !pastaRestritaRH(pasta) || a.permissoes.includes(acesso?.permissao) || a.usuarios.includes(acesso?.usuario)
 }
 
+// Quem está abaixo do usuário logado (acesso.id = id do cadastro), sem ele mesmo.
+function minhaEquipeRH(todaLinha) {
+    const eu = String(acesso?.id || '')
+    if (!eu) return new Set()
+    const equipe = new Set()
+    let novos = [eu]
+    while (novos.length) {
+        const chefes = new Set(novos)
+        novos = estadoRH.pessoas.filter(p => p.gestor && chefes.has(String(p.gestor)) && !equipe.has(p.id) && p.id !== eu).map(p => p.id)
+        novos.forEach(id => equipe.add(id))
+        if (!todaLinha) break
+    }
+    return equipe
+}
+
+// Com idPessoa: a lista da pasta ou ser gestor dessa pessoa (o servidor confere o mesmo).
+function podeVerPastaRH(pasta, idPessoa = null) {
+    if (vePelaListaRH(pasta)) return true
+    const { gestores } = acessoPastaRH(pasta)
+    return !!(gestores && idPessoa != null && minhaEquipeRH(gestores === 'todos').has(String(idPessoa)))
+}
+
+// Gestor dá acesso aos documentos da equipe: só adm e diretoria mudam (o servidor também trava).
+const podeMudarGestorRH = () => ['adm', 'diretoria'].includes(acesso?.permissao)
+
 function botaoCadeadoRH(pasta) {
     const ligado = pastaRestritaRH(pasta)
     const titulo = ligado
-        ? `Pasta restrita${podeVerPastaRH(pasta) ? ' (você tem acesso)' : ' (você não tem acesso)'}. Clique para ver quem pode ver.`
+        ? `Pasta restrita${vePelaListaRH(pasta) ? ' (você tem acesso)' : acessoPastaRH(pasta).gestores ? ' (você vê só a da sua equipe)' : ' (você não tem acesso)'}. Clique para ver quem pode ver.`
         : 'Pasta livre: todos veem. Clique para ver ou restringir.'
     return `
         <button type="button" class="rh2-cadeado ${ligado ? 'ligado' : ''}" data-pasta="${escaparAtributo(pasta)}" title="${escaparAtributo(titulo)}"
@@ -1395,10 +1433,17 @@ async function abrirAcessoPastaRH(pasta) {
         <div class="rh2-acesso" data-pasta="${escaparAtributo(pasta)}">
             <p class="rh2-acesso-resumo">
                 ${pastaRestritaRH(pasta)
-                    ? `<b>Pasta restrita.</b> Só as permissões e os usuários marcados veem os documentos desta pasta, de todos os funcionários. ${podeVerPastaRH(pasta) ? 'Você tem acesso.' : 'Você não tem acesso ao conteúdo.'}`
+                    ? `<b>Pasta restrita.</b> Só as permissões e os usuários marcados veem os documentos desta pasta, de todos os funcionários${atual.gestores ? '; os gestores veem também os da própria equipe' : ''}. ${vePelaListaRH(pasta) ? 'Você tem acesso.' : atual.gestores ? 'Você vê só os da sua equipe.' : 'Você não tem acesso ao conteúdo.'}`
                     : '<b>Pasta livre.</b> Todos que acessam o RH veem os documentos desta pasta. Marque abaixo para restringir.'}
             </p>
             <p class="rh2-acesso-nota">Um documento arrastado para fora desta pasta passa a seguir o acesso da pasta de destino.</p>
+            <fieldset class="rh2-acesso-gestores" ${bloqueio}>
+                <legend>Gestores veem a equipe</legend>
+                <div class="rh2-acesso-gestores-opcoes">
+                    ${GESTORES_PASTA_RH.map(([valor, texto]) => `<label><input type="radio" name="gestores-${escaparAtributo(pasta)}" data-gestores value="${valor}" ${atual.gestores === valor ? 'checked' : ''} onchange="sincronizarAcessoPastaRH(this)"> ${texto}</label>`).join('')}
+                </div>
+                <small>Pela hierarquia (visão Hierarquia): o gestor vê nesta pasta os documentos de quem está abaixo dele, nunca os próprios. Para valer, a permissão dele não pode estar marcada abaixo, senão ele vê a pasta de todos.</small>
+            </fieldset>
             <div class="rh2-acesso-colunas">
                 <fieldset ${bloqueio}>
                     <legend>Permissões</legend>
@@ -1446,7 +1491,7 @@ function sincronizarAcessoPastaRH(input) {
     const proprio = caixa.querySelector('input[data-proprio]')
     if (proprio) {
         const outros = [...caixa.querySelectorAll('input[name="permissao"]:checked, input[name="usuario"]:checked')].filter(i => i !== proprio).length
-        proprio.checked = outros > 0
+        proprio.checked = outros > 0 || !!caixa.querySelector('input[data-gestores]:checked')?.value
     }
     caixa.querySelectorAll('input[name="usuario"]').forEach(i => i.parentElement.classList.toggle('marcado', i.checked))
     contarUsuariosAcessoRH(input)
@@ -1462,8 +1507,9 @@ async function salvarAcessoPastaRH(pasta) {
     const caixa = [...document.querySelectorAll('.rh2-acesso')].find(c => c.dataset.pasta === pasta)
     if (!caixa) return
     const valores = nome => [...caixa.querySelectorAll(`input[name="${nome}"]:checked`)].map(i => i.value)
-    const registro = { id: pasta, permissoes: valores('permissao'), usuarios: valores('usuario'), usuario: acesso.usuario }
-    const restrita = registro.permissoes.length + registro.usuarios.length > 0
+    const gestores = caixa.querySelector('input[data-gestores]:checked')?.value || ''
+    const registro = { id: pasta, permissoes: valores('permissao'), usuarios: valores('usuario'), gestores, usuario: acesso.usuario }
+    const restrita = registro.permissoes.length + registro.usuarios.length > 0 || !!gestores
     if (restrita && !registro.usuarios.includes(acesso.usuario)) registro.usuarios.unshift(acesso.usuario)
     const euVejo = !restrita || registro.permissoes.includes(acesso.permissao) || registro.usuarios.includes(acesso.usuario)
 
@@ -1473,7 +1519,7 @@ async function salvarAcessoPastaRH(pasta) {
         if (!resposta?.success) throw new Error(resposta?.mensagem || 'falha ao salvar')
         estadoRH.acessoPastas.set(pasta, registro)
         removerPopup()
-        if (!euVejo) popup({ mensagem: `Acesso salvo. Você não está na lista: os documentos da pasta ${escaparAtributo(pasta)} deixam de aparecer para você.` })
+        if (!euVejo) popup({ mensagem: `Acesso salvo. Você não está na lista: os documentos da pasta ${escaparAtributo(pasta)} deixam de aparecer para você${gestores ? ' (fora os da sua equipe)' : ''}.` })
         carregarRH()
     } catch (erro) {
         popup({ mensagem: `Não foi possível salvar o acesso: ${escaparAtributo(erro.message || 'erro desconhecido')}` })
