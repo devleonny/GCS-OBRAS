@@ -150,10 +150,6 @@ async function f2() {
             `
         },
         {
-            texto: 'Sincronizar notas',
-            elemento: `<button onclick="sincronizarNotas()">Sincronizar</button>`
-        },
-        {
             texto: 'Criar uma LPU',
             elemento: `<button onclick="formularioLPU()">Criar</button>`
         }
@@ -957,30 +953,6 @@ async function criarLPU(nomeLPU) {
     }
 
     return await resposta.json()
-}
-
-async function sincronizarNotas() {
-
-    overlayAguarde()
-
-    const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
-
-    const resposta = await fetch(`${api}/sincronizar-notas`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        }
-    })
-
-    if (!resposta.ok) {
-        const erro = await resposta.text()
-        throw new Error(erro || 'Erro ao contar por campo')
-    }
-
-    const { mensagem = 'Falha ao sincronizar notas' } = await resposta.json()
-    return popup({ mensagem })
-
 }
 
 async function formularioLPU() {
