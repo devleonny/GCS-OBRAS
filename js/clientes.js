@@ -923,6 +923,7 @@ async function formularioCliente(idCliente) {
                     ${desligado?.transferencia ? `<small>${desligado.transferencia.para
                         ? `Pendências com ${escaparAtributo(desligado.transferencia.para)}${desligado.substituto ? '' : ' (gestor)'} · ${Number(desligado.transferencia.orcamentos) || 0} orçamento(s) em andamento passaram para ${escaparAtributo(desligado.transferencia.para)}`
                         : escaparAtributo(desligado.transferencia.observacao || 'Pendências sem responsável')}</small>` : ''}
+                    ${desligado && usuario ? `<button type="button" onclick="trocarQuemAssume('${escaparAtributo(idCliente)}')">Trocar quem assume</button>` : ''}
                     <small class="cliente-desligado-aviso">Bloqueia o acesso ao GCS, sai das pendências de documentos, abre a recuperação das ferramentas em mãos e passa avisos e pendências para quem assume (substituto ou gestor).</small>
                 </div>`
         }
@@ -1689,7 +1690,15 @@ async function salvarCliente(idCliente = null) {
                     ...(escolha.substituto ? { substituto: escolha.substituto } : {})
                 }
             }
-            if (!caixaDesligado.checked)
+            // Religar: pergunta se os orçamentos em andamento que foram para quem assumiu voltam (gcs: o
+            // gatilho grava null e devolve só os que ainda estão com o responsável).
+            if (!caixaDesligado.checked && cliente.desligado) {
+                removerOverlay()
+                const escolha = await confirmarReligamento(cliente)
+                if (!escolha) return
+                overlayAguarde()
+                cliente.desligado = { religar: true, devolver: escolha.devolver, por: acesso.usuario }
+            } else if (!caixaDesligado.checked)
                 cliente.desligado = null
         }
 
@@ -1720,6 +1729,73 @@ async function confirmarDesligamento(cliente) {
         })
         return ok ? { substituto: '' } : null
     }
+    return escolherQuemAssume(cliente, {
+        cabecalho: `<span>Marcar <b>${escaparAtributo(cliente.nome || '')}</b> como desligado?</span><small>${aviso}</small>`,
+        botao: 'Desligar'
+    })
+}
+
+// Já desligado: troca quem assume. Grava só o campo desligado (gcs: os orçamentos transferidos que ainda
+// estão com o responsável anterior passam ao novo; avisos e cobrança seguem na hora).
+async function trocarQuemAssume(idCliente) {
+    const cliente = await recuperarDado('clientes', idCliente)
+    if (!cliente?.desligado) return popup({ mensagem: 'Este cadastro não está desligado.' })
+    const escolha = await escolherQuemAssume(cliente, {
+        cabecalho: `<span>Quem assume as pendências de <b>${escaparAtributo(cliente.nome || '')}</b>?</span>
+            <small>Hoje: ${escaparAtributo(cliente.desligado.responsavel || 'ninguém')}. Os orçamentos em andamento que passaram para essa pessoa e continuam com ela vão para quem você escolher.</small>`,
+        botao: 'Trocar',
+        atual: cliente.desligado.substituto || ''
+    })
+    if (!escolha) return
+    if ((escolha.substituto || '') === (cliente.desligado.substituto || ''))
+        return popup({ mensagem: 'Nada mudou: é a mesma pessoa.' })
+    overlayAguarde()
+    const desligado = { ...cliente.desligado, substituto: escolha.substituto || '', por: acesso.usuario }
+    const resultado = await enviar(`clientes/${idCliente}/desligado`, desligado)
+    if (resultado?.success === false) return popup({ mensagem: resultado.mensagem || 'Não foi possível trocar.' })
+    removerPopup()
+    popup({ imagem: 'imagens/concluido.png', mensagem: 'Pronto: as pendências passam para quem você escolheu. Abra o cadastro de novo para ver o resumo.' })
+}
+
+async function confirmarReligamento(cliente) {
+    const transferidos = Number(cliente.desligado?.transferencia?.orcamentos) || 0
+    const para = cliente.desligado?.responsavel || ''
+    return new Promise(resolve => {
+        const chave = crypto.randomUUID()
+        let fim = false
+        const id = popup({
+            titulo: 'Religar funcionário', modal: true,
+            elemento: `
+                <div style="display: flex; flex-direction: column; gap: 0.7rem; padding: 1rem; max-width: 32rem; text-align: left;">
+                    <span>Religar <b>${escaparAtributo(cliente.nome || '')}</b>? O acesso ao GCS volta e os avisos voltam a ir para ela(e).</span>
+                    ${transferidos && para ? `<label style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                        <input type="checkbox" id="devolver-${chave}" checked style="box-shadow: none; width: 1.2rem; height: 1.2rem;">
+                        <span>Devolver os orçamentos em andamento que passaram para ${escaparAtributo(para)} (${transferidos}).
+                            <small style="display: block; color: #6b7a71;">Só voltam os que ainda estão com ${escaparAtributo(para)} e não foram fechados.</small></span>
+                    </label>` : ''}
+                </div>`,
+            botoes: [
+                { id: `cancelar-${chave}`, texto: 'Cancelar', img: 'cancel' },
+                { id: `confirmar-${chave}`, texto: 'Religar' }
+            ]
+        })
+        const terminar = valor => {
+            if (fim) return
+            fim = true
+            observador.disconnect()
+            removerPopup(id)
+            resolve(valor)
+        }
+        const observador = new MutationObserver(() => { if (!document.getElementById(id)) terminar(null) })
+        document.getElementById(`cancelar-${chave}`).addEventListener('click', () => terminar(null), { once: true })
+        document.getElementById(`confirmar-${chave}`).addEventListener('click', () =>
+            terminar({ devolver: !!document.getElementById(`devolver-${chave}`)?.checked }), { once: true })
+        observador.observe(document.body, { childList: true })
+    })
+}
+
+// Popup com a escolha de quem assume (padrão: o gestor). Resolve com { substituto } ('' = gestor) ou null.
+async function escolherQuemAssume(cliente, { cabecalho, botao, atual = '' }) {
     overlayAguarde()
     const { resultados = [] } = await pesquisarDB({ base: 'clientes', filtros: { usuario: { op: 'NOT_EMPTY' } }, limite: 2000 }).catch(() => ({}))
     removerOverlay()
@@ -1735,12 +1811,11 @@ async function confirmarDesligamento(cliente) {
             titulo: 'Funcionário desligado', modal: true,
             elemento: `
                 <div style="display: flex; flex-direction: column; gap: 0.7rem; padding: 1rem; max-width: 32rem; text-align: left;">
-                    <span>Marcar <b>${escaparAtributo(cliente.nome || '')}</b> como desligado?</span>
-                    <small>${aviso}</small>
+                    ${cabecalho}
                     <label for="substituto-${chave}"><b>Quem assume as pendências?</b></label>
                     <select id="substituto-${chave}">
                         <option value="">${escaparAtributo(textoGestor)}</option>
-                        ${ativos.map(c => `<option value="${escaparAtributo(c.usuario)}">${escaparAtributo(c.nome || c.usuario)} (${escaparAtributo(c.usuario)})</option>`).join('')}
+                        ${ativos.map(c => `<option value="${escaparAtributo(c.usuario)}" ${c.usuario === atual ? 'selected' : ''}>${escaparAtributo(c.nome || c.usuario)} (${escaparAtributo(c.usuario)})</option>`).join('')}
                     </select>
                     <small style="color: #6b7a71;">Quem assume passa a receber os avisos e a cobrança dos pedidos pendentes dessa pessoa,
                         e vira analista dos orçamentos em andamento. O histórico continua com o nome de quem fez.</small>
@@ -1748,7 +1823,7 @@ async function confirmarDesligamento(cliente) {
                 </div>`,
             botoes: [
                 { id: `cancelar-${chave}`, texto: 'Cancelar', img: 'cancel' },
-                { id: `confirmar-${chave}`, texto: 'Desligar' }
+                { id: `confirmar-${chave}`, texto: botao }
             ]
         })
         const terminar = valor => {
