@@ -1437,9 +1437,8 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+    /* Sem rolagem própria: quem rola é o corpo do popup (evita a barra dupla). */
     width: min(760px, 90vw);
-    max-height: 75vh;
-    overflow-y: auto;
     padding: 0.5rem;
     box-sizing: border-box;
     text-align: left;
