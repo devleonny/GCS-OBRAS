@@ -4,7 +4,7 @@
 // analista (pelo e-mail do contato). SÓ LEITURA: nada aqui marca aviso como lido (gcs /notificacoes/painel
 // e /notificacoes/painel-usuario).
 
-const estadoPainelPend = { usuarios: [], busca: '', ordem: 'pendencias', desligados: false }
+const estadoPainelPend = { usuarios: [], busca: '', ordem: 'pendencias', desligados: false, permissao: '' }
 
 const FONTES_PAINEL_PEND = {
     pendencias: 'Etapas de chamado', promessas: 'Pedidos pendentes', pagamentos: 'Pagamentos', rh: 'RH',
@@ -32,12 +32,13 @@ async function abrirPainelPendencias() {
             <div class="cabecalho-pagina"><h2>Pendências dos usuários</h2></div>
             <div class="painel-pend painel-pend-tela">
                 <div class="painel-pend-barra">
-                    <input type="search" placeholder="Buscar pessoa, login, permissão ou setor" value="${esc(estadoPainelPend.busca)}"
+                    <input type="search" placeholder="Buscar pessoa ou login" value="${esc(estadoPainelPend.busca)}"
                         oninput="estadoPainelPend.busca = this.value; desenharPainelPend()">
                     <select onchange="estadoPainelPend.ordem = this.value; desenharPainelPend()">
                         ${[['pendencias', 'Mais pendências'], ['avisos', 'Mais avisos não lidos'], ['nome', 'Nome']]
                             .map(([v, t]) => `<option value="${v}" ${estadoPainelPend.ordem === v ? 'selected' : ''}>${t}</option>`).join('')}
                     </select>
+                    <select data-permissao onchange="estadoPainelPend.permissao = this.value; desenharPainelPend()"></select>
                     <label><input type="checkbox" ${estadoPainelPend.desligados ? 'checked' : ''}
                         onchange="estadoPainelPend.desligados = this.checked; desenharPainelPend()"> Mostrar desligados</label>
                     <button type="button" onclick="abrirPainelPendencias()">Atualizar</button>
@@ -48,7 +49,7 @@ async function abrirPainelPendencias() {
                     <summary>Gráficos: de onde vêm as pendências</summary>
                     <div class="painel-pend-graficos"></div>
                 </details>
-                <small class="painel-pend-nota">Só para ver: abrir este painel não marca nenhum aviso como lido. Os gráficos acompanham a busca; clique num setor para filtrar por ele.</small>
+                <small class="painel-pend-nota">Só para ver: abrir este painel não marca nenhum aviso como lido. Os gráficos acompanham a busca; clique numa permissão para filtrar por ela.</small>
                 <div class="painel-pend-lista"></div>
                 <div class="painel-pend-tip" role="tooltip" hidden></div>
             </div>
@@ -128,25 +129,25 @@ function desenharGraficosPend(lista) {
         <section class="pp-cartao ${extra}"><header><h3>${titulo}</h3>${sub ? `<p>${sub}</p>` : ''}</header>${corpo}</section>`
     const vazio = '<p class="pp-vazio">Nada nesta seleção.</p>'
 
-    // 1. Por setor: etapas de chamado + pedidos + orçamentos (empilhado).
-    const setores = {}
+    // 1. Por permissão (quem recebe as etapas de chamado): etapas + pedidos + orçamentos (empilhado).
+    const grupos = {}
     for (const u of lista) {
-        const s = String(u.setor || '').trim() || 'Sem setor'
-        const x = setores[s] ||= { chamados: 0, pedidos: 0, orcamentos: 0, pessoas: 0 }
+        const s = String(u.permissao || '').trim() || 'sem permissão'
+        const x = grupos[s] ||= { chamados: 0, pedidos: 0, orcamentos: 0, pessoas: 0 }
         x.chamados += Number(u.chamados) || 0
         x.pedidos += (Number(u.pedidos_pendentes) || 0) + (Number(u.pedidos_assumidos) || 0)
         x.orcamentos += Number(u.orcamentos) || 0
         if (totalPendPainel(u)) x.pessoas++
     }
-    const setLista = Object.entries(setores).map(([s, x]) => [s, x, x.chamados + x.pedidos + x.orcamentos])
+    const permLista = Object.entries(grupos).map(([s, x]) => [s, x, x.chamados + x.pedidos + x.orcamentos])
         .filter(([, , t]) => t > 0).sort((a, b) => b[2] - a[2]).slice(0, 10)
-    const maxSet = Math.max(1, ...setLista.map(([, , t]) => t))
-    const gSetor = setLista.length ? legenda([[C.chamados, 'Etapas de chamado'], [C.pedidos, 'Pedidos pendentes'], [C.orcamentos, 'Orçamentos']]) +
-        setLista.map(([s, x, t]) => linha({
-            rotulo: s, maximo: maxSet,
+    const maxPerm = Math.max(1, ...permLista.map(([, , t]) => t))
+    const gPerm = permLista.length ? legenda([[C.chamados, 'Etapas de chamado'], [C.pedidos, 'Pedidos pendentes'], [C.orcamentos, 'Orçamentos']]) +
+        permLista.map(([s, x, t]) => linha({
+            rotulo: s, maximo: maxPerm,
             segs: [{ n: x.chamados, cor: C.chamados }, { n: x.pedidos, cor: C.pedidos }, { n: x.orcamentos, cor: C.orcamentos }],
             dica: `${s} · ${x.pessoas} pessoa(s) com pendência\nEtapas de chamado: ${milhar(x.chamados)}\nPedidos pendentes: ${milhar(x.pedidos)}\nOrçamentos em andamento: ${milhar(x.orcamentos)}\nTotal: ${milhar(t)}\n(clique para filtrar)`,
-            clique: s === 'Sem setor' ? '' : `filtrarSetorPainelPend('${esc(s)}')`
+            clique: s === 'sem permissão' ? '' : `filtrarPermissaoPainelPend('${esc(s)}')`
         })).join('') : vazio
 
     // 2. Etapas de chamado: vencidas × no prazo.
@@ -208,7 +209,7 @@ function desenharGraficosPend(lista) {
         dica: `${f}\n${milhar(n)} aviso(s) não lido(s) · ${pct(n, totalAv)}`
     })).join('') : vazio
 
-    // 6. Concentração: quem segura mais pendências (top 8 pessoas, empilhado como no setor).
+    // 6. Concentração: quem segura mais pendências (top 8 pessoas, empilhado como na permissão).
     const pessoas = [...lista].filter(u => totalPendPainel(u) > 0).sort((a, b) => totalPendPainel(b) - totalPendPainel(a))
     const totalGeral = pessoas.reduce((s, u) => s + totalPendPainel(u), 0)
     const top = pessoas.slice(0, 8)
@@ -221,13 +222,13 @@ function desenharGraficosPend(lista) {
             return linha({
                 rotulo: nome, maximo: maxP,
                 segs: [{ n: Number(u.chamados) || 0, cor: C.chamados }, { n: ped, cor: C.pedidos }, { n: Number(u.orcamentos) || 0, cor: C.orcamentos }],
-                dica: `${nome}${u.setor ? ` · ${u.setor}` : ''}\nEtapas de chamado: ${milhar(u.chamados)}\nPedidos pendentes: ${milhar(ped)}\nOrçamentos em andamento: ${milhar(u.orcamentos)}\n(clique para ver o detalhe)`,
+                dica: `${nome}${u.permissao ? ` · ${u.permissao}` : ''}\nEtapas de chamado: ${milhar(u.chamados)}\nPedidos pendentes: ${milhar(ped)}\nOrçamentos em andamento: ${milhar(u.orcamentos)}\n(clique para ver o detalhe)`,
                 clique: `abrirPendenciasUsuario('${esc(u.usuario)}')`
             })
         }).join('') : vazio
 
     alvo.innerHTML =
-        cartao('Pendências por setor', 'Etapas de chamado, pedidos pendentes e orçamentos em andamento de quem está em cada setor', gSetor) +
+        cartao('Pendências por permissão', 'Etapas de chamado, pedidos pendentes e orçamentos em andamento de cada permissão', gPerm) +
         cartao('Quem concentra', 'Pessoas com mais pendências (mesmas cores)', gPessoas) +
         cartao('Etapas de chamado travadas', 'Em que etapa estão os chamados e quantos já passaram do prazo', gEtapas) +
         cartao('Orçamentos em andamento por status', 'SEM STATUS = sem chamado ligado', gStatus) +
@@ -235,10 +236,8 @@ function desenharGraficosPend(lista) {
         cartao('Avisos não lidos por tipo', 'De onde vêm os avisos que ninguém abriu', gAvisos)
 }
 
-function filtrarSetorPainelPend(setor) {
-    estadoPainelPend.busca = setor
-    const campo = tela.querySelector('.painel-pend-barra input[type="search"]')
-    if (campo) campo.value = setor
+function filtrarPermissaoPainelPend(permissao) {
+    estadoPainelPend.permissao = estadoPainelPend.permissao === permissao ? '' : permissao
     desenharPainelPend()
 }
 
@@ -247,9 +246,23 @@ function desenharPainelPend() {
     if (!painel) return
     const esc = escaparAtributo
     const termo = String(estadoPainelPend.busca || '').trim().toLowerCase()
+
+    // Filtro de permissão: opções das pessoas carregadas (com quantas pessoas), marcada a escolhida.
+    const selPerm = painel.querySelector('select[data-permissao]')
+    if (selPerm) {
+        const contagem = {}
+        for (const u of estadoPainelPend.usuarios) {
+            const p = String(u.permissao || '').trim()
+            if (p && (estadoPainelPend.desligados || !u.desligado)) contagem[p] = (contagem[p] || 0) + 1
+        }
+        selPerm.innerHTML = `<option value="">Todas as permissões</option>` + Object.keys(contagem).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+            .map(p => `<option value="${esc(p)}" ${p === estadoPainelPend.permissao ? 'selected' : ''}>${esc(p)} (${contagem[p]})</option>`).join('')
+    }
+
     const lista = estadoPainelPend.usuarios
         .filter(u => estadoPainelPend.desligados || !u.desligado || totalPendPainel(u) > 0)
-        .filter(u => !termo || [u.nome, u.usuario, u.permissao, u.setor].some(v => String(v || '').toLowerCase().includes(termo)))
+        .filter(u => !estadoPainelPend.permissao || String(u.permissao || '').trim() === estadoPainelPend.permissao)
+        .filter(u => !termo || [u.nome, u.usuario].some(v => String(v || '').toLowerCase().includes(termo)))
         .sort((a, b) => estadoPainelPend.ordem === 'nome'
             ? String(a.nome || a.usuario).localeCompare(String(b.nome || b.usuario), 'pt-BR')
             : estadoPainelPend.ordem === 'avisos'
@@ -313,7 +326,7 @@ function desenharPainelPend() {
                             <span class="painel-pend-avatar">${esc(iniciais(u.nome || u.usuario))}<i class="presenca ${u.presenca === 'online' ? 'on' : ''}" title="${u.presenca === 'online' ? 'Online' : 'Offline'}"></i></span>
                             <div class="painel-pend-pessoa-texto">
                                 <b title="${esc(u.nome || u.usuario)}">${esc(u.nome || u.usuario)}</b>
-                                <small>${esc(u.usuario)}${u.permissao ? ` · ${esc(u.permissao)}` : ''}${u.setor ? ` · ${esc(u.setor)}` : ''}</small>
+                                <small>${esc(u.usuario)}${u.permissao ? ` · ${esc(u.permissao)}` : ''}</small>
                                 ${u.desligado ? `<small class="painel-pend-deslig">Desligado${u.responsavel ? ` · pendências com ${esc(u.responsavel)}` : ' · sem responsável'}</small>` : ''}
                             </div>
                         </div>

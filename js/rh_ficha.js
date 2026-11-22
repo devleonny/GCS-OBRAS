@@ -201,7 +201,7 @@ function fichaPessoaRH(p, ficha = montarFichaRH(p), { compacto = false } = {}) {
     const gestor = p.gestor ? estadoRH.porId.get(String(p.gestor)) : null
     const salario = estadoFichaRH.salarios.get(String(p.id))
     const dados = [
-        p.cnpj, p.cargo, p.setor, p.estado
+        p.cnpj, p.cargo, p.estado
     ].filter(Boolean).map(escaparAtributo)
     const chipAmbiente = `<button type="button" class="rhf-chip rhf-ambiente ${ficha.ambiente === 'CAMPO' ? 'campo' : ''}" title="Ambiente: define os exames e EPIs exigidos. Clique para trocar ou dispensar dos exames"
         onclick="escolherAmbienteRH('${id}')">${ficha.ambiente}</button>`

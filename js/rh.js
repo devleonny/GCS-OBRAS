@@ -63,7 +63,7 @@ function montarDadosRH(documentosBrutos = [], funcionarios = [], hoje = dataServ
     const pessoa = (id, dados = {}) => {
         const chave = String(id)
         const atual = pessoas.get(chave) || { id: chave, documentos: [] }
-        for (const campo of ['nome', 'cargo', 'cnpj', 'estado', 'cidade', 'foto', 'gestor', 'desligado', 'setor'])
+        for (const campo of ['nome', 'cargo', 'cnpj', 'estado', 'cidade', 'foto', 'gestor', 'desligado'])
             if (atual[campo] == null && dados[campo] != null && dados[campo] !== '') atual[campo] = dados[campo]
         pessoas.set(chave, atual)
         return atual
