@@ -620,10 +620,6 @@ async function confirmarExclusaoPagamento(id) {
 
 }
 
-function respostaPositivaExclusaoOmie(mensagem) {
-    return /pagamento\s+(?:j[aá]\s+inexistente|exclu[ií]do)\s+no\s+omie/i.test(String(mensagem || ''))
-}
-
 async function excluirPagamento(id) {
 
     removerTodosPopups()
@@ -636,10 +632,8 @@ async function excluirPagamento(id) {
         if (!pagamento)
             throw new Error('Pagamento não localizado.')
 
-        const resposta = await excluirPagamentoOmie(id, pagamento.app)
-
-        if (resposta?.mensagem && !respostaPositivaExclusaoOmie(resposta.mensagem))
-            throw new Error(resposta.mensagem)
+        // Cancela a fatura no Financeiro antes (com a fatura já paga, o servidor recusa com o motivo).
+        await cancelarFaturaDoPagamento(id)
 
         if (pagamento.lpu_parceiro_id && pagamento.solicitacao_parceiro_id !== pagamento.lpu_parceiro_id) {
             const parceiro = await recuperarDado('parceiros', pagamento.lpu_parceiro_id)
@@ -745,14 +739,14 @@ async function autorizarPagamentos(resposta, id) {
 // PAGO/RECEBIDO ou excluído: nada a decidir. Lançado (A VENCER, VENCE HOJE, ATRASADO; fatura no Financeiro): aprovar
 // não se aplica; reprovar cancela a fatura do Financeiro (/pagamentos/reprovar-lancado, só adm, diretoria e fin).
 // O servidor aplica as mesmas regras (pagamento_aprovacao.js e pagamentos.js).
-const STATUS_LANCADO_OMIE_PAGAMENTO = ['A VENCER', 'VENCE HOJE', 'ATRASADO']
+const STATUS_LANCADO_PAGAMENTO = ['A VENCER', 'VENCE HOJE', 'ATRASADO']
 // Reprovar pagamento já lançado: reembolsos.reprovar_lancado (Central de Acessos).
 
 function situacaoPagamentoProcessado(pagamento = {}) {
     const status = String(pagamento.status || '')
     if (['PAGO', 'RECEBIDO'].includes(status)) return 'pago'
     if (pagamento.excluido || /exclu[ií]d/i.test(status)) return 'excluido'
-    if (STATUS_LANCADO_OMIE_PAGAMENTO.includes(status)) return 'lancado'
+    if (STATUS_LANCADO_PAGAMENTO.includes(status)) return 'lancado'
     return null
 }
 
@@ -1242,8 +1236,8 @@ async function calculadoraPagamento() {
         ? `
             <div class="alerta-piscando">
                 <img src="gifs/alerta.gif">
-                <span>Este pagamento já foi lançado no OMIE, <br>
-                então editando agora ele pode precisar ser aprovado de novo!</span>
+                <span>Este pagamento já foi lançado no Financeiro: <br>
+                ao salvar a edição, a fatura é cancelada e ele volta para aprovação.</span>
             </div>
         `
         : ''
@@ -1528,7 +1522,7 @@ async function baixarExcelRelatorioPagamentos() {
     }
 }
 
-async function excluirPagamentoOmie(id, app) {
+async function cancelarFaturaDoPagamento(id) {
 
     const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
 
@@ -1538,7 +1532,7 @@ async function excluirPagamentoOmie(id, app) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ id, app })
+        body: JSON.stringify({ id })
     })
 
     if (!resposta.ok) {
@@ -1547,8 +1541,6 @@ async function excluirPagamentoOmie(id, app) {
         try {
             mensagem = JSON.parse(texto)?.mensagem || texto
         } catch (_) { }
-        if (respostaPositivaExclusaoOmie(mensagem))
-            return { success: true, mensagem, inexistente_no_omie: true }
         throw new Error(mensagem || 'Falha ao excluir pagamento no servidor.')
     }
 

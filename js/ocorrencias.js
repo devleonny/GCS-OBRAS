@@ -794,11 +794,8 @@ async function aprovarPagamentoParceiro(idCorrecaoLpuParceiro, idOcorrencia) {
             ? dtFormatada(dataPagamento)
             : dataRegras(dataServidor().toLocaleDateString(), modalidade)
 
-        const observacao = `
-            Solicitante: ${criado}\n 
-            Pagamento de parceiro, LPU disponível
-            ${chave_pix ? `Chave Pix: ${chave_pix}` : ''}
-        `
+        // Quem solicitou fica no próprio pagamento (criado) e na fatura (criado_por); a chave Pix tem campo próprio.
+        const observacao = 'Pagamento de parceiro, LPU disponível'
 
         const pagamento = {
             lpu_parceiro_id: idLpu,

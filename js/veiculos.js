@@ -655,7 +655,8 @@ async function salvarPagamentoVeiculo() {
         if (!resultado?.success)
             throw new Error(resultado?.mensagem || 'Falha ao criar pagamento')
 
-        // Lança na hora (vira fatura a pagar no Financeiro); se falhar, o pagamento fica salvo no GCS com o erro.
+        // Já salvo aprovado, vira fatura a pagar no Financeiro na hora; a rota garante o lançamento e devolve a fatura.
+        // Se falhar, o pagamento fica salvo no GCS com o erro e a varredura do servidor tenta de novo.
         const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
         const resposta = await fetch(`${api}/pagamentos/ticket-log`, {
             method: 'POST',
@@ -668,7 +669,15 @@ async function salvarPagamentoVeiculo() {
 
         removerPopup()
         limparMarcadosCombustivel()
-        popup({ mensagem: lancamento.mensagem || `Lançado no Financeiro para ${data}`, imagem: 'imagens/concluido.png' })
+        // Atalho para a fatura no Financeiro (só fin, diretoria e adm lançam Ticket Log, e eles abrem o Financeiro).
+        const faturaId = lancamento.fatura_id ?? resultado?.pagamento?.fatura_id
+        popup({
+            mensagem: `Lançado no Financeiro para ${data}${faturaId ? ` (fatura nº ${faturaId})` : ''}`,
+            imagem: 'imagens/concluido.png',
+            botoes: faturaId && typeof abrirFaturaFin === 'function'
+                ? [{ texto: 'Abrir no Financeiro', img: 'financeiro', funcao: `abrirFaturaFin('${escaparAtributo(String(faturaId))}')`, fechar: true }]
+                : []
+        })
 
     } catch (err) {
         removerPopup()

@@ -158,9 +158,9 @@ function redistribuirValorParceiro(lista = [], campo, novoTotal) {
     })
 }
 
-// Confere o pagamento direto no Omie (gcs/server.js, /pagamentos/parceiro/ajuste): pago lá é recusado
-// com o motivo. Com executar, exclui o título ainda aberto para o pagamento voltar à aprovação.
-async function conferirAjusteNoOmieParceiro(idPagamento, executar = false) {
+// Confere a fatura no Financeiro (gcs/server.js, /pagamentos/parceiro/ajuste): com pagamento é recusado
+// com o motivo. Com executar, cancela a fatura ainda aberta para o pagamento voltar à aprovação.
+async function conferirAjusteFinanceiroParceiro(idPagamento, executar = false) {
     const { token } = JSON.parse(localStorage.getItem('acesso') || 'null') || {}
     const resposta = await fetch(`${api}/pagamentos/parceiro/ajuste`, {
         method: 'POST',
@@ -168,7 +168,7 @@ async function conferirAjusteNoOmieParceiro(idPagamento, executar = false) {
         body: JSON.stringify({ id: idPagamento, executar })
     })
     const retorno = await resposta.json().catch(() => ({}))
-    if (!resposta.ok) throw new Error(retorno.mensagem || `Não foi possível conferir o pagamento no Omie (${resposta.status}).`)
+    if (!resposta.ok) throw new Error(retorno.mensagem || `Não foi possível conferir a fatura no Financeiro (${resposta.status}).`)
     return retorno
 }
 
@@ -179,7 +179,7 @@ async function ajustarValorParceiro(id, idSolicitacao) {
         const linha = c.linhas.find(item => item.id === idSolicitacao)
         if (!linha || !podeAjustarValorParceiro(c.parceiro, linha))
             throw new Error('Este pagamento não pode ser ajustado. Se já foi pago, solicite um pagamento parcial complementar.')
-        const conferencia = linha.pagamento ? await conferirAjusteNoOmieParceiro(idSolicitacao) : {}
+        const conferencia = linha.pagamento ? await conferirAjusteFinanceiroParceiro(idSolicitacao) : {}
         popup({
             titulo: 'Ajustar valor do pagamento',
             linhas: [
@@ -187,7 +187,7 @@ async function ajustarValorParceiro(id, idSolicitacao) {
                 { elemento: `<div class="rodape-resumo"><span>Disponível na LPU</span><strong>${dinheiro(c.disponivel)}</strong></div>` },
                 { texto: 'Novo valor', elemento: `<input name="valor_ajuste" type="number" min="0.01" step="0.01" value="${linha.valor}">` },
                 { texto: 'Motivo do ajuste', elemento: '<textarea name="motivo_ajuste" rows="2"></textarea>' },
-                { elemento: `<span style="max-width: 360px; text-align: left;">${linha.pagamento ? 'O pagamento volta para <b>aprovação da Diretoria</b> com o novo valor.' : 'A solicitação segue para o gerente com o novo valor.'}${conferencia.tituloAberto ? ' O título atual (com o valor antigo) será <b>excluído do Omie</b>; ao aprovar, um novo é lançado.' : ''} Se faltar saldo, o total da LPU é aumentado com a diferença.</span>` }
+                { elemento: `<span style="max-width: 360px; text-align: left;">${linha.pagamento ? 'O pagamento volta para <b>aprovação da Diretoria</b> com o novo valor.' : 'A solicitação segue para o gerente com o novo valor.'}${conferencia.tituloAberto ? ' A fatura atual (com o valor antigo) será <b>cancelada no Financeiro</b>; ao aprovar, uma nova é criada.' : ''} Se faltar saldo, o total da LPU é aumentado com a diferença.</span>` }
             ],
             botoes: [{ texto: 'Confirmar ajuste', img: 'concluido', funcao: `confirmarAjusteValorParceiro('${id}', '${idSolicitacao}')` }]
         })
@@ -209,9 +209,9 @@ async function confirmarAjusteValorParceiro(id, idSolicitacao) {
         const valorAnterior = linha.valor
         if (novoValor === valorAnterior) return popup({ mensagem: 'O novo valor é igual ao atual.' })
 
-        // Primeiro o Omie: pago lá recusa sem mudar nada aqui; título aberto é excluído.
+        // Primeiro o Financeiro: fatura com pagamento recusa sem mudar nada aqui; fatura aberta é cancelada.
         if (linha.pagamento)
-            await conferirAjusteNoOmieParceiro(idSolicitacao, true)
+            await conferirAjusteFinanceiroParceiro(idSolicitacao, true)
 
         const data = dataServidor().toLocaleString()
         const { usuario } = acesso
