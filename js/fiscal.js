@@ -2311,6 +2311,7 @@ function mostrarSugestoesFis(input, lista) {
         caixa = document.createElement('div')
         caixa.id = 'fis-sugestoes'
         caixa.className = 'fis-sugestoes'
+        caixa.dataset.flutuante = 'S' // janelas.js: clicar aqui não minimiza a janela
         // mousedown (antes do blur do campo) para o clique valer.
         caixa.addEventListener('mousedown', e => {
             e.preventDefault()
@@ -2491,7 +2492,7 @@ async function formularioEmissaoNFe(inicial = {}) {
                 <legend><span class="fis-num-passo">1</span> Empresa e operação</legend>
                 <div class="fis-grade">
                     ${campoFis('Empresa', `<select class="fis-input" name="app" onchange="trocarEmpresaNFe(this)">${opcoesFis(empresas.map(e => [e.app, `${e.app} · ${e.razao_social}`]), app)}</select>`, 'fis-largo')}
-                    ${campoFis('Operação', `<select class="fis-input" name="operacao_id" onchange="mostrarPrazoRetornoNFe(this)"></select>`, 'fis-largo')}
+                    ${campoFis('Operação', comAjustePerfilFis(`<select class="fis-input" name="operacao_id" onchange="mostrarPrazoRetornoNFe(this)"></select>`, 'operacao'), 'fis-largo')}
                 </div>
                 <div class="fis-aviso" data-aviso-empresa></div>
             </fieldset>
@@ -2591,6 +2592,66 @@ function travarFormNFe(form, liberados = []) {
         if (!liberados.includes(el.name)) el.disabled = true
     })
     form.querySelectorAll('button').forEach(b => { b.style.display = 'none' })
+}
+
+// ---------------------------------------------------------------- ajustar o perfil sem sair da nota
+// Botão "Ajustar" ao lado de Operação (NF-e/devolução) e Serviço (NFS-e), só para quem tem a Configuração
+// fiscal (o servidor confere de novo no config/salvar). Abre o mesmo formulário da Configuração, com o aviso
+// de que muda o PERFIL: vale para todas as notas daqui em diante. A nota aberta já sai com o ajuste porque a
+// prévia e a emissão recalculam pelo cadastro do momento (emitirDocumento → salvarRascunho no servidor).
+function comAjustePerfilFis(select, tipo) {
+    if (typeof pode !== 'function' || !pode('fiscal.config')) return select
+    const titulo = tipo === 'servico' ? 'Ajustar a configuração fiscal deste serviço' : 'Ajustar a configuração fiscal desta operação'
+    return `<div class="fis-com-ajuste">${select}<button type="button" class="fis-mini" title="${titulo} (vale para as próximas notas também)" onclick="ajustarPerfilDaNotaFis(this, '${tipo}')">Ajustar</button></div>`
+}
+
+function avisoPerfilDaNotaFis(nome) {
+    return `<div class="fis-alerta fis-alerta-perfil">⚠️ <b>Esta é a configuração do perfil, não só desta nota.</b>
+        O que você salvar vale para <b>todas as notas emitidas com “${escFis(nome || 'este perfil')}” daqui em diante</b>, por qualquer pessoa.
+        As notas já emitidas não mudam. A nota aberta já sai com o ajuste.</div>`
+}
+
+async function ajustarPerfilDaNotaFis(botao, tipo) {
+    const form = botao.closest('.fis-form')
+    const id = form?.querySelector(`[name="${tipo === 'servico' ? 'servico_id' : 'operacao_id'}"]`)?.value
+    if (!id) return popup({ mensagem: tipo === 'servico' ? 'Escolha o serviço primeiro.' : 'Escolha a operação primeiro.' })
+    overlayAguarde()
+    try {
+        estadoConfigFis.dados = await apiFiscal('config')
+        removerOverlay()
+    } catch (err) {
+        removerOverlay()
+        return popup({ mensagem: mensagemErroEst(err) })
+    }
+    if (tipo === 'servico') formularioServicoFiscal(id, true)
+    else formularioOperacaoFiscal(id, true)
+}
+
+// Depois de salvar o perfil pela nota: recarrega as opções e refaz a nota aberta com o perfil novo.
+async function voltarParaNotaFis(tipo, anterior) {
+    const form = formEmissaoAberto()
+    await carregarOpcoesEmissao(true).catch(() => null)
+    if (!form || !opcoesEmissaoFiscal) return
+    if (tipo === 'servico') {
+        const select = form.querySelector('[name="servico_id"]')
+        const novo = opcoesEmissaoFiscal.servicos.find(s => s.id === select?.value)
+        if (!select || !novo) return agendarPreviaFis()
+        const chave = s => JSON.stringify([Number(s?.aliquota_iss), !!s?.iss_retido, s?.retencoes || {}])
+        // Retenções mudaram no perfil: a nota passa a seguir o padrão novo; senão mantém o que a pessoa marcou.
+        const dados = chave(anterior) !== chave(novo) ? {} : {
+            iss_retido: !!form.querySelector('[name="iss_retido"]')?.checked,
+            retencoes: Object.fromEntries(['pis', 'cofins', 'csll', 'ir', 'inss']
+                .map(t => [t, form.querySelector(`[name="reter_${t}"]`)?.checked]).filter(([, x]) => x !== undefined))
+        }
+        trocarEmpresaNFSe(form.querySelector('[name="app"]'), select.value, dados)
+    } else {
+        const select = form.querySelector('[name="operacao_id"]')
+        const o = opcoesEmissaoFiscal.operacoes.find(x => x.id === select?.value)
+        const opcao = select?.selectedOptions?.[0]
+        if (o && opcao) opcao.textContent = `${o.descricao} (${o.cfop_interno}/${o.cfop_interestadual})`
+    }
+    agendarPreviaFis()
+    popup({ mensagem: 'Perfil salvo. A prévia da nota foi refeita com a configuração nova.', imagem: 'imagens/concluido.png', tempo: 3 })
 }
 
 function trocarEmpresaNFe(select, operacaoInicial) {
@@ -3198,7 +3259,7 @@ async function formularioEmissaoNFSe(inicial = {}) {
                 <legend><span class="fis-num-passo">1</span> Empresa e serviço</legend>
                 <div class="fis-grade">
                     ${campoFis('Empresa', `<select class="fis-input" name="app" onchange="trocarEmpresaNFSe(this)">${opcoesFis(empresas.map(e => [e.app, `${e.app} · ${e.razao_social}`]), app)}</select>`, 'fis-largo')}
-                    ${campoFis('Serviço', `<select class="fis-input" name="servico_id" onchange="trocarServicoNFSe(this)"></select>`, 'fis-largo')}
+                    ${campoFis('Serviço', comAjustePerfilFis(`<select class="fis-input" name="servico_id" onchange="trocarServicoNFSe(this)"></select>`, 'servico'), 'fis-largo')}
                 </div>
                 <div class="fis-aviso" data-aviso-empresa></div>
             </fieldset>
@@ -3620,7 +3681,7 @@ function formularioDevolucaoFis({ origem, participante: part = {}, itens, operac
             <fieldset class="fis-passo">
                 <legend><span class="fis-num-passo">2</span> Operação</legend>
                 <div class="fis-grade">
-                    ${campoFis('Operação', `<select class="fis-input" name="operacao_id">${opcoesFis(operacoes.map(x => [x.id, `${x.descricao} (${x.cfop_interno}/${x.cfop_interestadual})`]), inicial.operacao_id || operacao_sugerida)}</select>`, 'fis-largo')}
+                    ${campoFis('Operação', comAjustePerfilFis(`<select class="fis-input" name="operacao_id">${opcoesFis(operacoes.map(x => [x.id, `${x.descricao} (${x.cfop_interno}/${x.cfop_interestadual})`]), inicial.operacao_id || operacao_sugerida)}</select>`, 'operacao'), 'fis-largo')}
                 </div>
                 ${operacoes.length ? '' : '<div class="fis-erros">Nenhuma operação de devolução cadastrada para esta empresa (Configuração fiscal → Operações).</div>'}
             </fieldset>
@@ -3926,7 +3987,7 @@ function htmlConfigOperacoes({ operacoes, empresas }) {
         </table></div>`
 }
 
-function formularioOperacaoFiscal(id = null) {
+function formularioOperacaoFiscal(id = null, daNota = false) {
     const { operacoes, empresas } = estadoConfigFis.dados
     const o = operacoes.find(x => x.id === id) || { app: 'AC', regras: {}, ativo: true, tipo_documento: 1, finalidade: 1, movimenta_estoque: 'SAIDA' }
     const r = o.regras || {}
@@ -3935,7 +3996,8 @@ function formularioOperacaoFiscal(id = null) {
         titulo: id ? `Operação ${o.descricao}` : 'Nova operação',
         linhas: [{
             elemento: `
-                <div class="fis-form" data-form-operacao data-id="${escFis(o.id || '')}">
+                <div class="fis-form" data-form-operacao data-id="${escFis(o.id || '')}" data-da-nota="${daNota ? '1' : ''}">
+                    ${daNota ? avisoPerfilDaNotaFis(o.descricao) : ''}
                     <div class="fis-grade">
                         ${campoFis('Empresa', `<select class="fis-input" name="app" ${id ? 'disabled' : ''}>${opcoesFis(empresas.map(e => [e.app, e.app]), o.app)}</select>`)}
                         ${campoFis('Código', inputFis('codigo', o.codigo, id ? 'disabled' : 'placeholder="ex.: VENDA_DEMO"'))}
@@ -4006,7 +4068,8 @@ async function salvarOperacaoFiscal(botao) {
         await apiFiscal('config/salvar', { tipo: 'operacao', dados })
         opcoesEmissaoFiscal = null
         removerPopup(botao?.closest('.popup')?.id)
-        telaConfigFiscal('operacoes')
+        if (f.dataset.daNota) await voltarParaNotaFis('operacao', original)
+        else telaConfigFiscal('operacoes')
     } catch (err) {
         popup({ mensagem: mensagemErroEst(err) })
     }
@@ -4030,7 +4093,7 @@ function htmlConfigServicos({ servicos }) {
         </table></div>`
 }
 
-function formularioServicoFiscal(id = null) {
+function formularioServicoFiscal(id = null, daNota = false) {
     const { servicos, empresas } = estadoConfigFis.dados
     const s = servicos.find(x => x.id === id) || { app: 'AC', retencoes: {}, ativo: true }
     const r = s.retencoes || {}
@@ -4039,7 +4102,8 @@ function formularioServicoFiscal(id = null) {
         titulo: id ? `Serviço ${s.descricao}` : 'Novo serviço',
         linhas: [{
             elemento: `
-                <div class="fis-form" data-form-servico data-id="${escFis(s.id || '')}">
+                <div class="fis-form" data-form-servico data-id="${escFis(s.id || '')}" data-da-nota="${daNota ? '1' : ''}">
+                    ${daNota ? avisoPerfilDaNotaFis(s.descricao) : ''}
                     <div class="fis-grade">
                         ${campoFis('Empresa', `<select class="fis-input" name="app" ${id ? 'disabled' : ''}>${opcoesFis(empresas.map(e => [e.app, e.app]), s.app)}</select>`)}
                         ${campoFis('Descrição', inputFis('descricao', s.descricao), 'fis-largo')}
@@ -4099,7 +4163,8 @@ async function salvarServicoFiscal(botao) {
         await apiFiscal('config/salvar', { tipo: 'servico', dados })
         opcoesEmissaoFiscal = null
         removerPopup(botao?.closest('.popup')?.id)
-        telaConfigFiscal('servicos')
+        if (f.dataset.daNota) await voltarParaNotaFis('servico', original)
+        else telaConfigFiscal('servicos')
     } catch (err) {
         popup({ mensagem: mensagemErroEst(err) })
     }

@@ -337,7 +337,9 @@ if (janelasIndependentesLigadas()) {
     //   click (mousedown e mouseup deixam de "casar"), então só a barra de título (arrastar) move já.
     // - click (captura): leva a janela para o fim do DOM antes dos handlers antigos rodarem.
     document.addEventListener('pointerdown', evento => {
-        if (evento.target.closest?.('#barra-janelas, .aguarde')) return
+        // [data-flutuante]: listas/menus de um campo da janela que ficam no body (posição fixa),
+        // fora do .popup; clicar neles é usar a janela, não clicar na página.
+        if (evento.target.closest?.('#barra-janelas, .aguarde, [data-flutuante]')) return
         const janela = evento.target.closest?.('body > .popup')
         if (!janela) {
             // Clique na página (fora das janelas): minimiza todas para a barra do rodapé.

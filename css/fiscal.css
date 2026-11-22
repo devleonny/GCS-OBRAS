@@ -605,6 +605,23 @@ textarea.fis-input {
     gap: 6px;
 }
 
+/* Operação/Serviço na emissão com o botão "Ajustar" (perfil fiscal sem sair da nota). */
+.fis-com-ajuste {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.fis-com-ajuste > select { flex: 1; min-width: 0; }
+.fis-com-ajuste > .fis-mini { flex: none; }
+
+/* Balão do formulário do perfil aberto pela nota: o ajuste vale para as próximas notas. */
+.fis-alerta-perfil {
+    margin-bottom: 10px;
+    border-left: 4px solid #f59e0b;
+    border-radius: 8px;
+    line-height: 1.45;
+}
+
 .fis-retencoes {
     display: flex;
     flex-wrap: wrap;
