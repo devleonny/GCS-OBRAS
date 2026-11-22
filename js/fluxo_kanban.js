@@ -872,6 +872,9 @@ function rodadaCartaoFluxo(c) {
         ${conferir ? etiquetaEst('Conferir pedido da nota', '#b91c1c') : ''}</span>`
 }
 
+// Liberação sem pedido do cartão (vw_fluxo_itens.liberacao; js/status.js formularioLiberacao).
+const LIBERACAO_CARTAO_FLUXO = { POC: 'POC · demonstração', GARANTIA: 'Garantia', INTERNO: 'Uso interno' }
+
 // Cartão do quadro novo (vw_fluxo_itens): item que anda até Concluído; marca verde/vermelha da emissão.
 function cartaoItemFluxo(c, parado, tempo) {
     // Rodada com venda e serviço (18/11/2026): no Fluxo de Vendas só a NF-e; a NFS-e fica no Fluxo de Serviços.
@@ -921,6 +924,7 @@ function cartaoItemFluxo(c, parado, tempo) {
             ${rodadaCartaoFluxo(c)}
             ${ehItemRecorrenteFluxo(c) ? `<span class="fluxo-cartao-balao" title="NFS-e gerada pela nota recorrente">${etiquetaEst(`Recorrente${mesItemRecorrenteFluxo(c) ? ` · ${mesItemRecorrenteFluxo(c)}` : ''}`, '#0f766e')}</span>` : ''}
             ${c.pedido_prometido ? `<span class="fluxo-cartao-balao" title="Sem o pedido do cliente (ou com valor simbólico): a nota não sai até o pedido ser completado">${etiquetaEst('Pedido pendente', '#b45309')}</span>` : ''}
+            ${c.liberacao ? `<span class="fluxo-cartao-balao" title="Orçamento liberado sem pedido: sai como remessa, não conta como faturamento">${etiquetaEst(LIBERACAO_CARTAO_FLUXO[c.liberacao] || 'Sem pedido', '#0e7490')}</span>` : ''}
             ${c.cidade ? `<small>${escaparAtributo(c.cidade)}</small>` : ''}
             ${contexto ? `<small class="fluxo-cartao-contexto">${escaparAtributo(contexto)}</small>` : ''}
             <span class="fluxo-cartao-valor">${reaisFluxo(c.valor)} <small>${c.empresa ? `${escaparAtributo(c.empresa)} · ` : ''}desde ${dataBrFluxo(c.data)}</small></span>

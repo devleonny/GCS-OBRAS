@@ -8,6 +8,8 @@ async function chamadoDaRequisicao(departamento) {
 
 // Pedido já escolhido quando o formulário é aberto pelo kanban (js/fluxo_kanban.js).
 let requisicaoPedidoPadrao = null
+// Opção do seletor de pedido para orçamento liberado sem pedido: grava a requisição com pedido vazio.
+const REQUISICAO_SEM_PEDIDO = '__SEM_PEDIDO__'
 
 // Ferramentas e materiais de funcionários e parceiros têm fluxo próprio (js/colaboradores.js).
 async function formularioRequisicao(id = crypto.randomUUID()) {
@@ -47,8 +49,14 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
         limite: 500
     })
 
-    if (!pedidos.resultados.length)
+    // Sem pedido: lote ou liberação sem pedido (POC, garantia, uso interno — js/status.js) também liberam.
+    // A requisição sem pedido de um orçamento liberado vira um cartão próprio (remessa) no Fluxo de Vendas.
+    const liberacao = await apiModuloFiscal('fluxo-itens/liberacao', { contrato: ativo }).catch(() => null)
+    const semPedidoLiberado = !!(liberacao?.liberacao || (liberacao?.lote && !pedidos.resultados.length))
+    if (!pedidos.resultados.length && !semPedidoLiberado) {
+        if (liberacao?.orcamento_id) return avisoSemLiberacao(liberacao.orcamento_id, 'requisicao')
         return popup({ mensagem: 'Crie um pedido antes de criar uma requisição!' })
+    }
 
     const orcamentos = await pesquisarDB({
         base: 'dados_orcamentos',
@@ -106,6 +114,9 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
             return `<option value="${idPedido}" ${idPedido == escolhido ? 'selected' : ''}>${texto}</option>`
         })
         .join('')
+        + (semPedidoLiberado
+            ? `<option value="${REQUISICAO_SEM_PEDIDO}" ${(id && !pedido && requisicao) || (!pedidos.resultados.length) ? 'selected' : ''}>Sem pedido · ${escaparAtributo(liberacao.liberacao?.nome || `lote ${liberacao.lote?.nome || ''}`)}${liberacao.liberacao?.tipo === 'POC' ? ' (remessa para demonstração)' : ''}</option>`
+            : '')
 
     const salvos = requisicao || {}
 
@@ -597,11 +608,12 @@ async function salvarRequisicao(id) {
 
         const { idChamado } = controles.requisicao
         const requisicao = await recuperarDado('requisicoes', id) || {}
-        const pedido = document.querySelector('[name="pedido"]')?.value
+        const escolhaPedido = document.querySelector('[name="pedido"]')?.value
         const campoFluxo = document.querySelector('#fluxoRequisicao')
 
-        if (!pedido)
+        if (!escolhaPedido)
             return popup({ mensagem: 'Escolha um pedido' })
+        const pedido = escolhaPedido === REQUISICAO_SEM_PEDIDO ? '' : escolhaPedido
 
         if (campoFluxo && !campoFluxo.value)
             return popup({ mensagem: 'Escolha o fluxo da requisição: um existente ou "Novo fluxo"' })

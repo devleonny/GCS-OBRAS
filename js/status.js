@@ -237,6 +237,10 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
                     Sem o pedido do cliente por enquanto. Pode deixar os dados comerciais em branco; o GCS vai cobrar você
                     (e o gestor) para completar o pedido depois. A nota deste orçamento não sai antes disso.
                 </small>
+                <small style="color: #6b7a71; max-width: 26rem; text-align: left;">
+                    Não vai ter OC porque é POC/demonstração, garantia ou uso interno? Não lance pedido: use
+                    "Liberar sem pedido" no Histórico do orçamento.
+                </small>
             </div>`
         },
         {
@@ -861,13 +865,180 @@ async function auxAberturaChamado(id) {
         }
     })
 
-    if (!pedidos.resultados.length)
-        return popup({ mensagem: 'Abra um pedido antes de abrir a ocorrência!' })
+    // Sem pedido: lote ou liberação sem pedido (POC, garantia, uso interno) também liberam o chamado.
+    if (!pedidos.resultados.length) {
+        const lib = await apiModuloFiscal('fluxo-itens/liberacao', { orcamento_id: id }).catch(() => null)
+        if (!lib?.liberado) return avisoSemLiberacao(id, 'chamado')
+    }
 
     unidadeOrc = omie_cliente
 
     await formularioOcorrencia(contrato)
 
+}
+
+// ---- Liberação do orçamento (gcs /fluxo-itens/liberacao, 22/11/2026) ----
+// O que deixa abrir chamado e criar requisição: o pedido do cliente (OC, e-mail ou pendente), o lote ou uma
+// liberação sem pedido com motivo (POC/demonstração, garantia, uso interno). Liberação não é OC: não entra
+// no saldo a faturar. A requisição de um orçamento liberado sai num cartão próprio (remessa).
+
+// Sem nada que libere: lançar o pedido ou liberar sem pedido. depois = 'chamado' | 'requisicao' (continua).
+function avisoSemLiberacao(orcamentoId, depois) {
+    const acao = depois === 'requisicao' ? 'criar a requisição' : 'abrir o chamado'
+    popup({
+        titulo: 'Orçamento sem pedido',
+        mensagem: `Para ${acao}, lance o pedido do cliente (OC, aprovado por e-mail ou pedido pendente).<br><br>
+            Sem OC porque é POC/demonstração, garantia ou uso interno? Libere sem pedido, com o motivo: o material sai como remessa e não conta como faturamento.`,
+        botoes: [
+            { texto: 'Lançar pedido', img: 'concluido', fechar: true, funcao: 'painelAdicionarPedido()' },
+            { texto: 'Liberar sem pedido', img: 'alerta', fechar: true, funcao: `formularioLiberacao('${escaparAtributo(orcamentoId)}', '${depois || ''}')` }
+        ]
+    })
+}
+
+let tiposLiberacaoCache = null
+
+async function formularioLiberacao(orcamentoId, depois = '') {
+    overlayAguarde()
+    const lib = await apiModuloFiscal('fluxo-itens/liberacao', { orcamento_id: orcamentoId }).catch(err => ({ erro: err.message }))
+    if (lib.erro) return popup({ mensagem: lib.erro })
+    if (lib.liberacao) return popup({ mensagem: `Este orçamento já está liberado sem pedido (${escaparAtributo(lib.liberacao.nome)}).` })
+    tiposLiberacaoCache = lib.tipos || []
+    const opcoes = tiposLiberacaoCache.map((t, i) => `
+        <label style="${horizontal}; gap: 0.6rem; cursor: pointer;">
+            <input type="radio" name="tipo-liberacao" value="${t.tipo}" ${i === 0 ? 'checked' : ''} onchange="trocarTipoLiberacao()" style="box-shadow: none; width: 1.4rem; height: 1.4rem;">
+            <span>${escaparAtributo(t.nome)}</span>
+        </label>`).join('')
+    const linhas = [
+        { texto: 'Tipo', elemento: `<div style="${vertical}; gap: 6px; align-items: flex-start;">${opcoes}</div>` },
+        { texto: 'Motivo', elemento: `<textarea id="motivo-liberacao" rows="4" maxlength="500" placeholder="Ex.: POC de 2 câmeras aprovada pelo cliente por e-mail; se aprovar, manda a OC"></textarea>` },
+        { texto: 'Decidir até', elemento: `<div style="${vertical}; gap: 2px; width: 100%;"><input type="date" id="prazo-liberacao"><small id="dica-prazo-liberacao" style="color: #6b7a71;"></small></div>` }
+    ]
+    popup({
+        titulo: 'Liberar sem pedido', linhas,
+        botoes: [{ texto: 'Liberar', img: 'concluido', funcao: `salvarLiberacao('${escaparAtributo(orcamentoId)}', '${depois}')` }]
+    })
+    trocarTipoLiberacao()
+}
+
+function trocarTipoLiberacao() {
+    const tipo = document.querySelector('[name="tipo-liberacao"]:checked')?.value
+    const def = (tiposLiberacaoCache || []).find(t => t.tipo === tipo)
+    const campo = document.getElementById('prazo-liberacao')
+    const linha = campo?.closest('.linha-padrao')
+    if (!campo) return
+    if (linha) linha.style.display = def?.prazo_dias ? '' : 'none'
+    if (def?.prazo_dias && !campo.value) {
+        const d = dataServidor()
+        d.setDate(d.getDate() + def.prazo_dias)
+        campo.value = d.toISOString().slice(0, 10)
+    }
+    const dica = document.getElementById('dica-prazo-liberacao')
+    if (dica) dica.textContent = def?.prazo_dias ? `A remessa para demonstração tem ${def.prazo_dias} dias para voltar ou virar venda.` : ''
+}
+
+async function salvarLiberacao(orcamentoId, depois) {
+    const tipo = document.querySelector('[name="tipo-liberacao"]:checked')?.value
+    const motivo = document.getElementById('motivo-liberacao')?.value.trim() || ''
+    const def = (tiposLiberacaoCache || []).find(t => t.tipo === tipo)
+    const prazo = def?.prazo_dias ? document.getElementById('prazo-liberacao')?.value || '' : ''
+    if (!tipo) return popup({ mensagem: 'Escolha o tipo da liberação.' })
+    if (motivo.length < 10) return popup({ mensagem: 'Explique por que este orçamento anda sem pedido (pelo menos 10 caracteres).' })
+    overlayAguarde()
+    try {
+        await apiModuloFiscal('fluxo-itens/liberar', { orcamento_id: orcamentoId, tipo, motivo, prazo })
+    } catch (err) {
+        return popup({ mensagem: err.message || 'Falha ao liberar.' })
+    }
+    removerPopup()
+    atualizarLiberacaoHistorico(orcamentoId)
+    if (depois === 'chamado') return auxAberturaChamado(orcamentoId)
+    if (depois === 'requisicao') return formularioRequisicao()
+}
+
+function atualizarLiberacaoHistorico(orcamentoId) {
+    document.querySelectorAll(`.painel-historico[data-historico-orc="${CSS.escape(orcamentoId)}"]`)
+        .forEach(p => carregarLiberacaoHistorico(p, orcamentoId))
+}
+
+async function encerrarLiberacao(id, orcamentoId) {
+    const linhas = [
+        {
+            texto: 'Como terminou',
+            elemento: `<select id="status-fim-liberacao">
+                <option value="VIROU_PEDIDO">Virou pedido (o cliente mandou a OC)</option>
+                <option value="DEVOLVIDO">Material devolvido</option>
+                <option value="ENCERRADA">Encerrada por outro motivo</option>
+            </select>`
+        },
+        { texto: 'Observação', elemento: `<textarea id="motivo-fim-liberacao" rows="3" maxlength="500" placeholder="Obrigatória quando não virou pedido"></textarea>` }
+    ]
+    popup({
+        titulo: 'Encerrar liberação', linhas,
+        botoes: [{ texto: 'Encerrar', img: 'concluido', funcao: `salvarFimLiberacao('${escaparAtributo(id)}', '${escaparAtributo(orcamentoId)}')` }]
+    })
+}
+
+async function salvarFimLiberacao(id, orcamentoId) {
+    const status = document.getElementById('status-fim-liberacao')?.value
+    const motivo = document.getElementById('motivo-fim-liberacao')?.value.trim() || ''
+    if (status !== 'VIROU_PEDIDO' && motivo.length < 10) return popup({ mensagem: 'Explique como terminou (pelo menos 10 caracteres).' })
+    overlayAguarde()
+    try {
+        await apiModuloFiscal('fluxo-itens/liberacao-encerrar', { id, status, motivo })
+    } catch (err) {
+        return popup({ mensagem: err.message || 'Falha ao encerrar.' })
+    }
+    removerPopup()
+    atualizarLiberacaoHistorico(orcamentoId)
+}
+
+async function carregarLiberacaoHistorico(painel, orcamentoId) {
+    const local = painel?.querySelector('.historico-liberacao')
+    if (!local) return
+    const esc = escaparAtributo
+    let lib
+    try {
+        lib = await apiModuloFiscal('fluxo-itens/liberacao', { orcamento_id: orcamentoId })
+    } catch {
+        local.innerHTML = '<span class="historico-liberacao-texto">Não foi possível consultar.</span>'
+        return
+    }
+    const id = esc(orcamentoId)
+    const etiqueta = (texto, classe = '') => `<span class="historico-liberacao-etiqueta ${classe}">${esc(texto)}</span>`
+    const dataBr = d => d ? new Date(`${String(d).slice(0, 10)}T12:00:00`).toLocaleDateString('pt-BR') : ''
+    const comOc = (lib.pedidos || []).filter(p => !p.pendente)
+    const partes = []
+
+    if (comOc.length)
+        partes.push(`${etiqueta('Pedido do cliente', 'ok')}<span class="historico-liberacao-texto">${comOc.map(p => esc(p.numero || 'OC')).join(', ')}</span>`)
+    else if ((lib.pedidos || []).length)
+        partes.push(`${etiqueta('Pedido pendente', 'pendente')}<span class="historico-liberacao-texto">Falta a OC do cliente.</span>`)
+    else if (lib.lote)
+        partes.push(`${etiqueta('Lote', 'lote')}<span class="historico-liberacao-texto">${esc(lib.lote.nome)}: coberto pelas OCs do lote.</span>`)
+
+    const l = lib.liberacao
+    if (l) {
+        const hoje = dataServidor().toISOString().slice(0, 10)
+        const vencido = l.prazo && l.prazo < hoje
+        partes.push(`
+            ${etiqueta(`Sem pedido · ${l.nome}`, 'sem-pedido')}
+            <span class="historico-liberacao-texto" title="${esc(l.motivo)}">${esc(l.motivo)}</span>
+            <small class="historico-liberacao-texto">por ${esc(l.criado_por || '')} em ${dataBr(l.criado_em)}${l.prazo ? ` · <span class="${vencido ? 'vencido' : ''}">decidir até ${dataBr(l.prazo)}${vencido ? ' (vencido)' : ''}</span>` : ''}</small>
+            ${comOc.length ? '<small class="historico-liberacao-texto aviso">Chegou o pedido: encerre como "Virou pedido".</small>' : ''}
+            <button type="button" onclick="encerrarLiberacao('${esc(l.id)}', '${id}')">Encerrar liberação</button>`)
+    }
+
+    if (!partes.length)
+        partes.push(`${etiqueta('Sem pedido', 'nada')}<span class="historico-liberacao-texto">Chamado e requisição esperam o pedido ou uma liberação.</span>`)
+
+    if (!l && !comOc.length)
+        partes.push(`<button type="button" onclick="formularioLiberacao('${id}')">Liberar sem pedido</button>`)
+
+    const anteriores = (lib.anteriores || []).map(a =>
+        `<small class="historico-liberacao-texto" title="${esc(a.encerrado_motivo || a.motivo)}">${esc(a.nome)}: ${esc(a.status_nome)} em ${dataBr(a.encerrado_em)}</small>`).join('')
+
+    local.innerHTML = partes.join('') + anteriores
 }
 
 async function abrirEsquema(id) {
@@ -941,6 +1112,10 @@ async function abrirEsquema(id) {
                         <label class="historico-rotulo">Status</label>
                         <div class="historico-status-lista">${labelTipoCorrecao || '<span class="and">SEM STATUS</span>'}</div>
                     </div>
+                    <div class="historico-resumo-item">
+                        <label class="historico-rotulo">Liberação</label>
+                        <div class="historico-liberacao"><span class="historico-liberacao-texto">Carregando…</span></div>
+                    </div>
                 </div>
 
                 <div class="historico-lote" hidden></div>
@@ -969,6 +1144,7 @@ async function abrirEsquema(id) {
 
         const painel = document.getElementById(idJanela)?.querySelector('.painel-historico')
         carregarLoteHistorico(painel, id)
+        carregarLiberacaoHistorico(painel, id)
         await carregarVisaoHistorico(painel, visao)
 
     } catch (err) {
