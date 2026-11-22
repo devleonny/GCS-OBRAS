@@ -21,7 +21,9 @@ const fluxograma = [
     'PENDENTE PEDIDO',
     'REPROVADO PELO FINANCEIRO',
     'CONCLUÍDO',
-    'FATURADO'
+    'FATURADO PARCIAL',
+    'FATURADO',
+    'VENCIDO'
 ]
 
 const esquemaBtnStatus = [

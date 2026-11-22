@@ -2951,7 +2951,9 @@ function faixaGarantia(garantia, correcao) {
     return `<div class="garantia-faixa">Chamado ainda não concluído: a garantia começa na primeira nota ou na solução.${desta}</div>`
 }
 
-async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
+// preset (opcional): { tipoCorrecao, nome } abre a correção nova com o status já escolhido (ex.: atalho
+// REPROVADO PELO FINANCEIRO do orçamento, que vai na aba do orçamento: novoFluxo = id do orçamento).
+async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null, preset = null) {
 
     overlayAguarde()
 
@@ -2994,7 +2996,10 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
         }
     }
 
-    const { nome } = await recuperarDado('correcoes', correcao?.tipoCorrecao) || {}
+    const { nome: nomeSalvo } = await recuperarDado('correcoes', correcao?.tipoCorrecao) || {}
+    const tipoInicial = preset?.tipoCorrecao || correcao?.tipoCorrecao
+    const nome = preset?.nome || nomeSalvo
+    if (preset && !correcao.dtCorrecao) correcao.dtCorrecao = dataServidor().toISOString().slice(0, 10)
     const { turno, executor, tecnico, autorizacao } = correcao
     // Destino por permissão (substitui o antigo "Setor"): gravado como lista, como lê a vw_correcoes_por_permissao.
     const permissaoAtual = [].concat(correcao?.permissao || [])[0] || ''
@@ -3015,7 +3020,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
                 elemento: `
                     <div style="${horizontal}; gap: 1rem;" id="novoFluxo" data-aba="${novoFluxo}">
                         <img src="imagens/alerta.png">
-                        <span>Múltiplas ocorrências</span>
+                        <span>${preset ? `${nome}: descreva o motivo e escolha quem precisa resolver.` : 'Múltiplas ocorrências'}</span>
                     </div>
                     `
             }]
@@ -3047,7 +3052,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null) {
         {
             texto: 'Status da Correção',
             elemento: `<span 
-                class="opcoes" ${correcao?.tipoCorrecao ? `id="${correcao?.tipoCorrecao}"` : ''} 
+                class="opcoes" ${tipoInicial ? `id="${tipoInicial}"` : ''}
                 name="tipoCorrecao" onclick="cxOpcoes('tipoCorrecao')">
                     ${nome || 'Selecione'}
                 </span>`

@@ -243,7 +243,7 @@ async function criarLinhaOrcamento(orcamento) {
             <td>
                 <div style="${vertical}; gap: 5px;">
                     <div style="${horizontal}; gap: 5px;">
-                        ${seletorStatus({ id, emTabela: true, status: status_atual, contrato })}
+                        <span class="status-orcamento-auto" title="Status automático, pelo chamado">${status_atual || 'SEM STATUS'}</span>
                     </div>
                     <div style="${horizontal}; width: 100%; justify-content: end; gap: 5px;">
                         <img onclick="verHistoricoStatus('${id}', '${contrato}')" src="imagens/historico.png"
@@ -486,25 +486,35 @@ async function baixarExcelOrcamentos() {
 
 }
 
+// Status pelo chamado (22/11/2026, a pedido): o status do orçamento é calculado das correções do chamado
+// (gcs SCRIPTS/status_chamado.js) e só aparece aqui. Quem muda o andamento lança a correção no chamado.
+// REPROVADO PELO FINANCEIRO: atalho daqui para a correção no chamado (só fin, adm e diretoria).
+const PERFIS_REPROVADO_FIN = ['fin', 'adm', 'diretoria']
+
 async function verHistoricoStatus(id, contrato) {
 
     try {
 
         overlayAguarde()
 
+        const { historico_status } = await recuperarDado('dados_orcamentos', id) || {}
+        // Chamado: o da última entrada automática (vínculo usa o chamado do mestre) ou o próprio contrato.
+        const ultimaAuto = Object.values(historico_status || {})
+            .filter(h => h?.chamado)
+            .sort((a, b) => b.timestamp - a.timestamp)[0]
+        const chamado = ultimaAuto?.chamado || contrato
+        let existente = null
+        try { existente = chamado && chamado !== 'sequencial' ? await consultarChamadoOrcamento(chamado) : null } catch { }
+        const ativo = existente && existente.excluido == null
+
         const linhas = [
-            {
-                texto: 'Status',
-                elemento: seletorStatus({ id, contrato })
-            },
-            {
-                editor: ''
-            },
             {
                 elemento: `
                     <div style="${horizontal}; gap: 1rem;">
                         <img src="imagens/alerta.png">
-                        <span>Para editar algum status, basta clicar nele.</span>
+                        <span>${ativo
+                        ? `O status vem do chamado <b>${escaparAtributo(chamado)}</b>. Para mudar o andamento, lance a correção no chamado.`
+                        : 'Este orçamento ainda não tem chamado. O chamado é aberto sozinho alguns minutos depois do orçamento salvo.'}</span>
                     </div>
                     `
             },
@@ -513,17 +523,18 @@ async function verHistoricoStatus(id, contrato) {
             }
         ]
 
-        const botoes = [
-            {
-                texto: 'Alterar Status',
-                img: 'observacao',
-                funcao: `alterarStatus('${id}')`
-            }
-        ]
+        const botoes = ativo
+            ? [
+                { texto: 'Abrir chamado', img: 'alerta', funcao: `abrirChamadoDoStatus('${escaparAtributo(chamado)}')` },
+                ...(PERFIS_REPROVADO_FIN.includes(acesso.permissao)
+                    ? [{ texto: 'Reprovado pelo financeiro', img: 'cancel', funcao: `reprovarPeloFinanceiro('${escaparAtributo(chamado)}', '${escaparAtributo(id)}')` }]
+                    : [])
+            ]
+            : []
 
         popup({ linhas, botoes, titulo: 'Histórico de Status' })
 
-        carregarHistoricoStatus(id)
+        carregarHistoricoStatus(id, historico_status)
 
     } catch (err) {
         console.error(err)
@@ -532,7 +543,7 @@ async function verHistoricoStatus(id, contrato) {
 
 }
 
-async function carregarHistoricoStatus(id) {
+async function carregarHistoricoStatus(id, historico = null) {
 
     const local = document.getElementById('historico')
 
@@ -541,191 +552,37 @@ async function carregarHistoricoStatus(id) {
 
     local.innerHTML = `<img src="gifs/loading-gcs.png" style="width: 5rem;">`
 
-    const { historico_status } = await recuperarDado('dados_orcamentos', id) || {}
+    const historico_status = historico || (await recuperarDado('dados_orcamentos', id) || {}).historico_status
 
-    const listagem = Object.entries(historico_status || {})
-        .sort(([, a], [, b]) => b.timestamp - a.timestamp)
-        .map(([idStatus, { status, usuario, observacao, timestamp }]) => {
-
-            const fechar = (acesso.usuario == usuario || pode('orcamentos.excluir_status'))
-                ? `<span class="close" onclick="excluirStatus('${id}', '${idStatus}')">×</span>`
-                : ''
-
-            return `
-                    <div onclick="confirmarEdicaoStatus('${id}', '${idStatus}')" class="balao-status">
-
-                        ${fechar}
-
+    const listagem = Object.values(historico_status || {})
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .map(({ status, usuario, observacao, timestamp, automatico }) => `
+                    <div class="balao-status">
                         <span class="and">${status}</span>
-
                         <div style="display: flex; flex-wrap: wrap;">${observacao || ''}</div>
-                    
-                        <span style="font-style: italic;"><small><b>${usuario}</b>, ${new Date(timestamp).toLocaleString()}</small></span>
-                        
+                        <span style="font-style: italic;"><small><b>${automatico ? 'Automático' : usuario}</b>, ${new Date(timestamp).toLocaleString()}</small></span>
                     </div>
-                `
-        })
+                `)
         .join('')
 
     local.innerHTML = listagem || `
         <div style="${horizontal}; width: stretch;">
-            <img style="width: 5rem;" src="gifs/offline.gif">
+            <span>Nenhum status ainda.</span>
         </div>
         `
 
 }
 
-async function confirmarEdicaoStatus(idOrcamento, idStatus) {
-
-    overlayAguarde()
-
-    const { historico_status, dados_orcam } = await recuperarDado('dados_orcamentos', idOrcamento) || {}
-    const { contrato } = dados_orcam || {}
-    const { observacao, timestamp, status } = historico_status?.[idStatus] || {}
-
-    const linhas = [
-        {
-            elemento: seletorStatus({ id: idOrcamento, status, contrato })
-        },
-        {
-            editor: observacao || ''
-        },
-        {
-            elemento: `<span style="font-style: italic;">Alterado por: <b>${acesso.usuario}</b></span>`
-        },
-        {
-            elemento: `
-                <span style="font-style: italic;">${new Date(timestamp).toLocaleString()}</span>
-                <input name="timestamp" value="${timestamp}" type="number" style="display: none;">
-            `
-        }
-    ]
-
-    const botoes = [
-        {
-            texto: 'Salvar',
-            img: 'concluido',
-            funcao: `alterarStatus('${idOrcamento}', '${idStatus}')`
-        }
-    ]
-
-    popup({ linhas, botoes, titulo: 'Alterar Observação' })
-
+async function abrirChamadoDoStatus(chamado) {
+    removerPopup()
+    controles.ocorrencias ??= {}
+    controles.ocorrencias.filtros = { 'chamados': { op: 'includes', value: chamado } }
+    await telaOcorrencias()
 }
 
-async function excluirStatus(idOrcamento, idStatus) {
-
-    try {
-
-        overlayAguarde()
-
-        await deletar(`dados_orcamentos/${idOrcamento}/historico_status/${idStatus}`)
-
-        carregarHistoricoStatus(idOrcamento)
-
-        removerOverlay()
-
-    } catch (err) {
-        console.error(err)
-        popup({ mensagem: 'Falha ao excluir o status: Fale com o suporte.' })
-    }
-
+// Abre a correção do chamado já com REPROVADO PELO FINANCEIRO, na aba do orçamento: lá entram os detalhes,
+// os executores e a permissão de quem tem que resolver.
+async function reprovarPeloFinanceiro(chamado, idOrcamento) {
+    await formularioCorrecao(chamado, null, idOrcamento, { tipoCorrecao: 'stFinRep', nome: 'REPROVADO PELO FINANCEIRO' })
 }
 
-function seletorStatus({ id, status = null, emTabela = false, contrato = null }) {
-
-    const opcoes = ['', ...fluxograma]
-        .sort((a, b) => a.localeCompare(b))
-        .map(fluxo => `<option ${status == fluxo ? 'selected' : ''}>${fluxo}</option>`)
-        .join('')
-
-    return `
-        <select data-contrato="${contrato}" name="status_${id}" class="opcoes-select" ${emTabela ? `onchange="alterarStatus('${id}')"` : ''}>
-            ${opcoes}
-        </select>
-    `
-
-}
-
-// Saldo a faturar e promessa do orçamento (gcs /fluxo-itens/saldo e /fluxo-itens/baixa). Devolve true se pode ir para FATURADO.
-async function liberarFaturadoOrcamento(orcamentoId) {
-    let r
-    try { r = await apiModuloFiscal('fluxo-itens/saldo', { orcamento_id: orcamentoId }) }
-    catch { return true }   // sem a consulta (offline/permissão) não trava a troca de status
-    removerOverlay()
-    if (r?.promessas?.length) {
-        const p = r.promessas[0]
-        popup({
-            titulo: 'Falta o pedido do cliente',
-            mensagem: `${escaparAtributo(p.contrato || 'Este orçamento')} ainda tem pedido pendente. Complete o pedido (número ou "Aprovado por E-mail", valor e a OC anexada) antes de marcar como faturado.`,
-            botoes: p.pedido_id ? [{ texto: 'Completar pedido', img: 'editar', funcao: `removerPopup(); completarPedidoPrometido('${escaparAtributo(p.pedido_id)}', '${escaparAtributo(p.contrato)}')` }] : []
-        })
-        return false
-    }
-    const s = r?.saldo
-    if (!s?.aberto && !s?.sem_pedido_aberto) return true
-    const partes = [
-        s.aberto ? `<b>${dinheiro(s.saldo)}</b> a faturar (pedidos ${dinheiro(s.pedidos)}, faturado ${dinheiro(s.faturado)})` : '',
-        s.sem_pedido_aberto ? `<b>${dinheiro(s.sem_pedido)}</b> sem pedido (orçamento ${dinheiro(s.total)}, pedidos ${dinheiro(s.pedidos)})` : ''
-    ].filter(Boolean)
-    const motivo = await pedirTextoPopup({
-        titulo: 'Faturado com saldo',
-        mensagem: `Este orçamento ainda tem ${partes.join(' e ')}.<br><br>Motivo da baixa (desconto, item cancelado, OC menor que o orçamento...):`,
-        textoConfirmar: 'Dar baixa e marcar faturado', minimo: 10, maximo: 500
-    })
-    if (!motivo) return false
-    try {
-        await apiModuloFiscal('fluxo-itens/baixa', { orcamento_id: orcamentoId, motivo, escopo: 'TUDO' })
-        return true
-    } catch (err) {
-        popup({ mensagem: mensagemErroEst(err) })
-        return false
-    }
-}
-
-async function alterarStatus(id, idStatus = crypto.randomUUID()) {
-
-    try {
-
-        overlayAguarde()
-
-        const observacao = [...document.querySelectorAll(`.editor-conteudo`)].at(-1)?.innerHTML
-        const select = [...document.querySelectorAll(`[name="status_${id}"]`)].at(-1)
-        const status = select.value
-        const contrato = select.dataset.contrato
-        const timestamp = obVal('timestamp')
-
-        if (!status)
-            return popup({ mensagem: 'Não deixe o status em braco!' })
-
-        const dado = {
-            observacao,
-            status,
-            usuario: acesso.usuario,
-            timestamp: timestamp
-                ? Number(timestamp)
-                : agoraServidor()
-        }
-
-        // FATURADO com pendência (16/11/2026; saiu do CONCLUÍDO em 18/11/2026, a pedido): pedido pendente não deixa;
-        // saldo a faturar pede baixa com motivo. CONCLUÍDO passa livre.
-        if (status === 'FATURADO' && !await liberarFaturadoOrcamento(id)) return removerOverlay()
-
-        await enviar(`dados_orcamentos/${id}/historico_status/${idStatus}`, dado)
-
-        // Caso seja edição;
-        if (timestamp)
-            removerPopup()
-
-        removerOverlay()
-        carregarHistoricoStatus(id)
-
-        if (status == 'ORC APROVADO')
-            criarDepartamento(contrato)
-
-    } catch (err) {
-        console.error(err)
-        popup({ mensagem: 'Falha ao salvar o status: Fale com o suporte.' })
-    }
-
-}
