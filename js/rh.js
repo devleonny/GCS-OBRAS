@@ -1345,7 +1345,25 @@ function listaJsonRH(valor) {
 
 // gestores: '' (não), 'direto' (equipe direta) ou 'todos' (toda a linha abaixo, pela clientes.gestor).
 // O gestor vê os documentos da equipe, nunca os próprios por esse caminho. Ligado = pasta restrita.
-const GESTORES_PASTA_RH = [['', 'Não'], ['direto', 'Só a equipe direta'], ['todos', 'Toda a linha abaixo']]
+const GESTORES_PASTA_RH = [['', 'Não usar'], ['direto', 'Equipe direta'], ['todos', 'Equipe completa']]
+
+// Mini-organograma de cada opção: o gestor no topo (vazado: não vê os próprios), equipe direta
+// embaixo e a equipe dos gestores de baixo no último nível. Acesas = o que o gestor vê.
+function ilustracaoGestoresRH(modo) {
+    const gestor = [60, 10]
+    const diretos = [[25, 36], [60, 36], [95, 36]]
+    const abaixo = [[13, 62], [37, 62], [83, 62], [107, 62]]
+    const chefeDe = [0, 0, 2, 2]   // cada um do último nível fica sob este direto
+    const linha = ([x1, y1], [x2, y2]) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`
+    const bola = ([x, y], acesa) => `<circle cx="${x}" cy="${y}" r="6" class="${acesa ? 'acesa' : ''}"/>`
+    return `
+        <svg class="rh2-gestores-desenho" viewBox="0 0 120 72" aria-hidden="true">
+            <g class="linhas">${diretos.map(d => linha(gestor, d)).join('')}${abaixo.map((a, i) => linha(diretos[chefeDe[i]], a)).join('')}</g>
+            <circle cx="${gestor[0]}" cy="${gestor[1]}" r="6" class="gestor"/>
+            ${diretos.map(d => bola(d, modo === 'direto' || modo === 'todos')).join('')}
+            ${abaixo.map(a => bola(a, modo === 'todos')).join('')}
+        </svg>`
+}
 
 function acessoPastaRH(pasta) {
     const a = estadoRH.acessoPastas.get(pasta) || {}
@@ -1440,10 +1458,12 @@ async function abrirAcessoPastaRH(pasta) {
             <fieldset class="rh2-acesso-gestores" ${bloqueio}>
                 <legend>Gestores veem a equipe</legend>
                 <div class="rh2-acesso-gestores-opcoes">
-                    ${GESTORES_PASTA_RH.map(([valor, texto]) => `<label><input type="radio" name="gestores-${escaparAtributo(pasta)}" data-gestores value="${valor}" ${atual.gestores === valor ? 'checked' : ''} onchange="sincronizarAcessoPastaRH(this)"> ${texto}</label>`).join('')}
+                    ${GESTORES_PASTA_RH.map(([valor, texto]) => `
+                        <label>
+                            ${ilustracaoGestoresRH(valor)}
+                            <span><input type="radio" name="gestores-${escaparAtributo(pasta)}" data-gestores value="${valor}" ${atual.gestores === valor ? 'checked' : ''} onchange="sincronizarAcessoPastaRH(this)"> ${texto}</span>
+                        </label>`).join('')}
                 </div>
-                <small>Cada gestor vê os documentos da equipe dele, montada na aba Hierarquia. Os documentos dele mesmo ele não vê.</small>
-                <small>Atenção: se a permissão do gestor (ex.: gerente) estiver marcada em Permissões, ele volta a ver os de todo mundo.</small>
             </fieldset>
             <div class="rh2-acesso-colunas">
                 <fieldset ${bloqueio}>

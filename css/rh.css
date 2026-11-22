@@ -1809,24 +1809,68 @@ button.rh-arquivo-acao:hover { background: #1c8235; }
     opacity: .8;
 }
 
-/* Gestores veem a equipe: as 3 opções numa linha, com a explicação embaixo. */
+/* Gestores veem a equipe: 3 cartões com um mini-organograma (bolinhas acesas = o que o gestor vê). */
 .rh2-acesso-gestores-opcoes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 14px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
 }
 
 .rh2-acesso-gestores-opcoes label {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 6px;
-    padding: 3px 4px;
+    gap: 4px;
+    padding: 8px 6px 6px;
+    border: 1px solid #d3dfd7;
+    border-radius: 8px;
     cursor: pointer;
 }
 
-.rh2-acesso-gestores small {
-    color: #6b7f72;
-    font-size: 12px;
+.rh2-acesso-gestores-opcoes label:has(input:checked) {
+    border-color: #1f7a4d;
+    background: #eef6f1;
+}
+
+.rh2-acesso-gestores-opcoes label > span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 600;
+}
+
+.rh2-acesso-gestores-opcoes input[type="radio"] {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+}
+
+.rh2-gestores-desenho {
+    width: 100%;
+    max-width: 120px;
+    height: auto;
+}
+
+.rh2-gestores-desenho .linhas line {
+    stroke: #b9cabf;
+    stroke-width: 1.5;
+}
+
+.rh2-gestores-desenho circle {
+    fill: #dfe8e2;
+    stroke: #b9cabf;
+    stroke-width: 1.5;
+}
+
+.rh2-gestores-desenho circle.acesa {
+    fill: #1f7a4d;
+    stroke: #1f7a4d;
+}
+
+.rh2-gestores-desenho circle.gestor {
+    fill: #fff;
+    stroke: #2d3d33;
+    stroke-width: 2;
 }
 
 .rh2-acesso-busca {
