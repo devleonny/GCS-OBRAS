@@ -920,7 +920,10 @@ async function formularioCliente(idCliente) {
                 <div class="cliente-desligado">
                     <label><input type="checkbox" name="desligado" ${desligado ? 'checked' : ''}> Funcionário desligado</label>
                     ${desligado ? `<small>Desde ${escaparAtributo(desde)}${desligado.usuario ? ` · por ${escaparAtributo(desligado.usuario)}` : ''}</small>` : ''}
-                    <small class="cliente-desligado-aviso">Bloqueia o acesso ao GCS, sai das pendências de documentos e abre a recuperação das ferramentas em mãos.</small>
+                    ${desligado?.transferencia ? `<small>${desligado.transferencia.para
+                        ? `Pendências com ${escaparAtributo(desligado.transferencia.para)}${desligado.substituto ? '' : ' (gestor)'} · ${Number(desligado.transferencia.orcamentos) || 0} orçamento(s) em andamento passaram para ${escaparAtributo(desligado.transferencia.para)}`
+                        : escaparAtributo(desligado.transferencia.observacao || 'Pendências sem responsável')}</small>` : ''}
+                    <small class="cliente-desligado-aviso">Bloqueia o acesso ao GCS, sai das pendências de documentos, abre a recuperação das ferramentas em mãos e passa avisos e pendências para quem assume (substituto ou gestor).</small>
                 </div>`
         }
     }
@@ -1675,19 +1678,15 @@ async function salvarCliente(idCliente = null) {
         if (caixaDesligado) {
             if (caixaDesligado.checked && !cliente.desligado) {
                 removerOverlay()
-                const confirmado = await confirmarPopup({
-                    titulo: 'Funcionário desligado',
-                    mensagem: `Marcar <b>${escaparAtributo(cliente.nome || '')}</b> como desligado?<br>
-                        <small>O acesso ao GCS é bloqueado na hora, ele sai das pendências de documentos do RH e,
-                        se tiver ferramentas em mãos, a recuperação vira pendência para a logística.</small>`,
-                    textoConfirmar: 'Desligar'
-                })
-                if (!confirmado) return
+                const escolha = await confirmarDesligamento(cliente)
+                if (!escolha) return
                 overlayAguarde()
                 cliente.desligado = {
                     data: new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(dataServidor()),
                     usuario: acesso.usuario,
-                    em: dataServidor().toLocaleString('pt-BR')
+                    em: dataServidor().toLocaleString('pt-BR'),
+                    // Quem assume as pendências (gcs usuario_responsavel): vazio = o gestor do cadastro.
+                    ...(escolha.substituto ? { substituto: escolha.substituto } : {})
                 }
             }
             if (!caixaDesligado.checked)
@@ -1705,6 +1704,66 @@ async function salvarCliente(idCliente = null) {
         popup({ mensagem: 'Não foi possível salvar o cliente. Fale com o suporte.' })
     }
 
+}
+
+// Desligamento (22/11/2026): confirma e, se a pessoa usa o GCS, escolhe quem assume as pendências — avisos,
+// cobrança dos pedidos pendentes e os orçamentos em andamento dela (gcs migrations/usuarios-substituto.sql).
+// Sem escolha, assume o gestor do cadastro. Resolve com { substituto } ou null (cancelou).
+async function confirmarDesligamento(cliente) {
+    const aviso = `O acesso ao GCS é bloqueado na hora, ele sai das pendências de documentos do RH e,
+        se tiver ferramentas em mãos, a recuperação vira pendência para a logística.`
+    if (!cliente.usuario) {
+        const ok = await confirmarPopup({
+            titulo: 'Funcionário desligado',
+            mensagem: `Marcar <b>${escaparAtributo(cliente.nome || '')}</b> como desligado?<br><small>${aviso}</small>`,
+            textoConfirmar: 'Desligar'
+        })
+        return ok ? { substituto: '' } : null
+    }
+    overlayAguarde()
+    const { resultados = [] } = await pesquisarDB({ base: 'clientes', filtros: { usuario: { op: 'NOT_EMPTY' } }, limite: 2000 }).catch(() => ({}))
+    removerOverlay()
+    const ativos = resultados
+        .filter(c => c.usuario && c.usuario !== cliente.usuario && !c.desligado && !c.excluido)
+        .sort((a, b) => String(a.nome || a.usuario).localeCompare(String(b.nome || b.usuario), 'pt-BR'))
+    const gestor = resultados.find(c => String(c.id) === String(cliente.gestor || '') && c.usuario && !c.desligado)
+    const textoGestor = gestor ? `O gestor: ${gestor.nome || gestor.usuario}` : 'O gestor (não cadastrado)'
+    return new Promise(resolve => {
+        const chave = crypto.randomUUID()
+        let fim = false
+        const id = popup({
+            titulo: 'Funcionário desligado', modal: true,
+            elemento: `
+                <div style="display: flex; flex-direction: column; gap: 0.7rem; padding: 1rem; max-width: 32rem; text-align: left;">
+                    <span>Marcar <b>${escaparAtributo(cliente.nome || '')}</b> como desligado?</span>
+                    <small>${aviso}</small>
+                    <label for="substituto-${chave}"><b>Quem assume as pendências?</b></label>
+                    <select id="substituto-${chave}">
+                        <option value="">${escaparAtributo(textoGestor)}</option>
+                        ${ativos.map(c => `<option value="${escaparAtributo(c.usuario)}">${escaparAtributo(c.nome || c.usuario)} (${escaparAtributo(c.usuario)})</option>`).join('')}
+                    </select>
+                    <small style="color: #6b7a71;">Quem assume passa a receber os avisos e a cobrança dos pedidos pendentes dessa pessoa,
+                        e vira analista dos orçamentos em andamento. O histórico continua com o nome de quem fez.</small>
+                    ${!gestor ? '<small style="color: #b91c1c;">Sem gestor cadastrado: escolha alguém, senão as pendências ficam sem responsável.</small>' : ''}
+                </div>`,
+            botoes: [
+                { id: `cancelar-${chave}`, texto: 'Cancelar', img: 'cancel' },
+                { id: `confirmar-${chave}`, texto: 'Desligar' }
+            ]
+        })
+        const terminar = valor => {
+            if (fim) return
+            fim = true
+            observador.disconnect()
+            removerPopup(id)
+            resolve(valor)
+        }
+        const observador = new MutationObserver(() => { if (!document.getElementById(id)) terminar(null) })
+        document.getElementById(`cancelar-${chave}`).addEventListener('click', () => terminar(null), { once: true })
+        document.getElementById(`confirmar-${chave}`).addEventListener('click', () =>
+            terminar({ substituto: document.getElementById(`substituto-${chave}`).value || '' }), { once: true })
+        observador.observe(document.body, { childList: true })
+    })
 }
 
 async function formatarCep(input, campo) {

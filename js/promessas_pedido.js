@@ -85,7 +85,7 @@ function abrirJanelaPromessas(promessas, { cobranca = false, todas = false } = {
                     <b>${esc(principal)}</b>
                     ${orcs.length > 1 ? `<span class="promessa-mais" title="${esc(orcs.join(', '))}">+${orcs.length - 1} ORCs</span>` : ''}
                 </div>
-                <span class="promessa-cliente">${esc(p.cliente || (p.orcamento_id ? 'Cliente não informado' : 'Sem orçamento no GCS'))}${todas && p.executor ? ` · lançado por ${esc(p.executor)}` : ''}</span>
+                <span class="promessa-cliente">${esc(p.cliente || (p.orcamento_id ? 'Cliente não informado' : 'Sem orçamento no GCS'))}${p.executor && (todas || String(p.executor).toLowerCase() !== String(acesso?.usuario || '').toLowerCase()) ? ` · lançado por ${esc(p.executor)}` : ''}${p.responsavel && String(p.responsavel).toLowerCase() !== String(p.executor || '').toLowerCase() ? ` · assumido por ${esc(p.responsavel)}` : ''}</span>
                 <div class="promessa-faltas">
                     ${(p.faltas || []).map(f => `<span class="promessa-falta">Falta ${esc((FALTAS[f] || f).toLowerCase())}</span>`).join('')}
                     ${Number(p.valor) > 10 ? `<span class="promessa-valor">Previsto ${dinheiro(p.valor)}</span>` : ''}
