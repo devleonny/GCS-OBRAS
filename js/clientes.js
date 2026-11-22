@@ -691,7 +691,8 @@ function criarLinhaClienteGCS(cliente) {
     const blocoEndereco = e => [
         dado('Endereço', e?.endereco), dado('Número', e?.numero), dado('Complemento', e?.complemento),
         dado('Bairro', e?.bairro), dado('CEP', e?.cep),
-        dado('Cidade', [e?.cidade, e?.estado].filter(Boolean).join(' / '))
+        dado('Cidade', [e?.cidade, e?.estado].filter(Boolean).join(' / ')),
+        dado('Código IBGE', e?.codigo_ibge)
     ].join('')
 
     const conteudoDetalhes = [
@@ -840,6 +841,7 @@ async function formularioCliente(idCliente) {
         bairro,
         estado,
         cidade,
+        codigo_ibge,
         cep,
         nome,
         usuario,
@@ -995,7 +997,13 @@ async function formularioCliente(idCliente) {
         },
         {
             texto: 'Cidade',
-            elemento: `<select name="cidade">${cidade ? `<option>${cidade}</option>` : ''}</select>`
+            elemento: `<select name="cidade" onchange="atualizarIbgeCliente()">${cidade ? `<option>${cidade}</option>` : ''}</select>`
+        },
+        {
+            // Vem sozinho pela cidade (lista do IBGE), pelo CEP ou pela Receita; o banco também
+            // recalcula pela cidade + UF quando ela muda (gatilho trg_clientes_codigo_ibge).
+            texto: 'Código IBGE',
+            elemento: `<input name="codigo_ibge" inputmode="numeric" maxlength="7" placeholder="Preenchido pela cidade" oninput="this.value = this.value.replace(/\\D/g, '')" value="${escaparAtributo(codigo_ibge || '')}">`
         },
         {
             texto: 'Endereço',
@@ -1467,16 +1475,60 @@ async function datalistCidades(estado, local) {
             throw new Error(`Erro na requisição: ${resposta.status} ${resposta.statusText}`)
 
         const cidades = await resposta.json()
+        cidadesIbgePorUf.set(String(estado).toUpperCase(), cidades)
         const opcoes = cidades
-            .map(c => `<option>${String(c.nome || '').toUpperCase()}</option>`)
+            .map(c => `<option data-ibge="${c.id}">${String(c.nome || '').toUpperCase()}</option>`)
             .join('')
 
         document.querySelector(`[name="${local}"]`).innerHTML = opcoes
+        if (local === 'cidade') atualizarIbgeCliente()
 
     } catch (err) {
         console.log(err)
     }
 
+}
+
+// Municípios do IBGE por UF (os mesmos da lista de cidades), para achar o código pelo nome.
+const cidadesIbgePorUf = new Map()
+const semAcentoIbge = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase()
+    .replace(/\s*\([A-Z]{2}\)\s*$/, '').replace(/[^A-Z0-9]+/g, ' ').trim()
+
+// Código IBGE do endereço de cadastro: pela opção escolhida na lista de cidades; se a cidade veio de
+// fora da lista (CEP, Receita, cadastro antigo), procura o nome na lista da UF. Sem casamento, fica vazio.
+async function atualizarIbgeCliente() {
+    const painel = [...document.querySelectorAll('.painel-padrao')].at(-1) || document
+    const campoIbge = painel.querySelector('[name="codigo_ibge"]')
+    const cidade = painel.querySelector('[name="cidade"]')
+    const uf = String(painel.querySelector('[name="estado"]')?.value || '').toUpperCase()
+    if (!campoIbge || !cidade) return
+
+    let codigo = cidade.selectedOptions?.[0]?.dataset?.ibge || ''
+    if (!codigo && cidade.value && /^[A-Z]{2}$/.test(uf)) {
+        if (!cidadesIbgePorUf.has(uf)) {
+            try {
+                const resposta = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`)
+                if (resposta.ok) cidadesIbgePorUf.set(uf, await resposta.json())
+            } catch (err) {
+                console.log(err)
+            }
+        }
+        const nome = semAcentoIbge(cidade.value)
+        codigo = String((cidadesIbgePorUf.get(uf) || []).find(c => semAcentoIbge(c.nome) === nome)?.id || '')
+    }
+    campoIbge.value = codigo
+}
+
+// Depois do CEP/Receita: escolhe a cidade na lista do IBGE da UF (com o código); se não achar, fica o nome recebido.
+async function escolherCidadeIbge(uf, municipio) {
+    const painel = [...document.querySelectorAll('.painel-padrao')].at(-1) || document
+    const cidade = painel.querySelector('[name="cidade"]')
+    if (!cidade || !uf) return
+    await datalistCidades(uf, 'cidade')
+    const opcao = [...cidade.options].find(o => semAcentoIbge(o.value) === semAcentoIbge(municipio))
+    if (opcao) cidade.value = opcao.value
+    else cidade.innerHTML = municipio ? `<option>${escaparAtributo(String(municipio).toUpperCase())}</option>` : ''
+    await atualizarIbgeCliente()
 }
 
 function confirmarExcluirCliente(idCliente) {
@@ -1578,6 +1630,7 @@ async function salvarCliente(idCliente = null) {
             cargo: obVal('cargo'),
             cidade: maiusculas(obVal('cidade')),
             estado: maiusculas(obVal('estado')),
+            codigo_ibge: String(obVal('codigo_ibge') || '').replace(/\D/g, '') || null,
             comentario: obVal('comentario'),
             chave_pix: obVal('chave_pix'),
             tags,
@@ -1678,6 +1731,8 @@ async function formatarCep(input, campo) {
         document.querySelector(`[name="${ajuste}bairro"]`).value = String(neighborhood || '').toUpperCase()
         document.querySelector(`[name="${ajuste}cidade"]`).innerHTML = `<option>${String(city || '').toUpperCase()}</option>`
         document.querySelector(`[name="${ajuste}estado"]`).value = state || ''
+        // Endereço de cadastro: cidade da lista do IBGE, que traz o código junto.
+        if (!ajuste && state) await escolherCidadeIbge(state, city)
 
         removerOverlay()
     }
@@ -1858,6 +1913,13 @@ async function preencherClientePorCnpj(input, cnpj) {
         if (opcao) campo('cidade').value = opcao.value
         else if (dados.municipio) campo('cidade').innerHTML = `<option>${escaparAtributo(dados.municipio)}</option>`
         preenchidos.cidade = campo('cidade').value
+        // Código IBGE: o da Receita; senão o da cidade escolhida na lista.
+        if (campo('codigo_ibge')) {
+            const ibgeReceita = String(dados.codigo_municipio_ibge || '').replace(/\D/g, '')
+            if (ibgeReceita.length === 7) campo('codigo_ibge').value = ibgeReceita
+            else await atualizarIbgeCliente()
+            preenchidos.codigo_ibge = campo('codigo_ibge').value
+        }
     }
 
     preenchidosPorCnpj.set(input, preenchidos)
