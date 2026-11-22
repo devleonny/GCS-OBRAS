@@ -3,7 +3,7 @@ function formatacaoPagina() {
     const pag = 'orcamentos'
     let status = ''
 
-    const pesq = controles?.[pag]?.filtros?.['status_atual']
+    const pesq = controles?.[pag]?.filtros?.['nomes_status']
     status = pesq?.op == 'IS_EMPTY'
         ? 'SEM STATUS'
         : pesq?.value || 'TODOS'
@@ -27,8 +27,8 @@ async function telaOrcamentos() {
         funcaoAdicional: ['formatacaoPagina', 'carregarToolbar'],
         colunas: {
             'Última alteração': { chave: 'lpu_ativa' },
-            'Status do Orçamento': { chave: 'status_atual' },
-            'Status em Ocorrências': { chave: 'nomesStatus' },
+            // Status do orçamento = status do chamado (22/11/2026): os das abas do chamado; sem chamado, SEM STATUS.
+            'Status': { chave: 'nomes_status' },
             //'Pedido': { chave: 'pedidos.*.pedido' },
             //'Notas': { chave: 'notas.*.n_nota' },
             //'Parcelas': {},
@@ -74,11 +74,8 @@ async function carregarPesquisaOrcamento() {
 
     const listagens = await recuperarDado('mvw_opcoes_filtros', 1) || {}
 
+    // Status: pela barra de cima (status dos chamados).
     const camposFechados = {
-        'Status': {
-            chave: 'status_orcamentos', // Chave na tabela ref de opções;
-            path: 'status_atual'
-        },
         'Empresa': {
             chave: 'empresas',
             path: 'empresa'
@@ -132,8 +129,7 @@ async function criarLinhaOrcamento(orcamento) {
         total_pagamentos,
         notas,
         pedidos,
-        parcelas,
-        status_atual
+        parcelas
     } = orcamento || {}
 
     const { contrato, executor, venda_direta } = dados_orcam || {}
@@ -242,8 +238,8 @@ async function criarLinhaOrcamento(orcamento) {
 
             <td>
                 <div style="${vertical}; gap: 5px;">
-                    <div style="${horizontal}; gap: 5px;">
-                        <span class="status-orcamento-auto" title="Status automático, pelo chamado">${status_atual || 'SEM STATUS'}</span>
+                    <div style="${vertical}; gap: 2px;">
+                        ${labelTipoCorrecao || '<span>SEM STATUS</span>'}
                     </div>
                     <div style="${horizontal}; width: 100%; justify-content: end; gap: 5px;">
                         <img onclick="verHistoricoStatus('${id}', '${contrato}')" src="imagens/historico.png"
@@ -251,12 +247,6 @@ async function criarLinhaOrcamento(orcamento) {
                         <span>Dep</span>
                         <img src="imagens/${departamento_existente ? 'concluido' : 'cancel'}.png" style="width: 1.5rem;">
                     </div>
-                </div>
-            </td>
-
-            <td>
-                <div style="${vertical}; gap: 2px;">
-                    ${labelTipoCorrecao}
                 </div>
             </td>
 
@@ -414,35 +404,26 @@ async function carregarToolbar() {
 
         const { resultado } = await contagemStatus()
 
-        const contToolbar = Object.fromEntries(
-            resultado.map(res => [res.status, res.quantidade])
-        )
+        // Status dos chamados (gcs mw_qtde_status_orcamentos): TODOS e SEM STATUS primeiro, o resto pela quantidade.
+        const fixos = ['TODOS', 'SEM STATUS']
+        const lista = [...(resultado || [])]
+            .sort((a, b) => (fixos.includes(b.status) - fixos.includes(a.status))
+                || (fixos.indexOf(a.status) - fixos.indexOf(b.status))
+                || (Number(b.quantidade) - Number(a.quantidade)))
 
         const toolbar = document.getElementById('toolbar')
-        const fluxogramaCompleto = ['TODOS', ...fluxograma]
-
-        for (const campo of fluxogramaCompleto) {
-
-            const contagem = contToolbar[campo] || 0
-
-            const tool = toolbar.querySelector(`[name="${campo}"]`)
-            if (tool) {
-                tool.querySelector('span').textContent = contagem
-                continue
-            }
-
-            const novaTool = `
+        toolbar.innerHTML = lista
+            .map(({ status, quantidade }) => `
             <button type="button"
                 class="aba-toolbar"
-                data-status="${campo}"
-                name="${campo}"
-                onclick="filtrarToolbar('${campo}')">
-                <label>${campo.toUpperCase()}</label>
-                <span>${contagem}</span>
+                data-status="${escaparAtributo(status)}"
+                name="${escaparAtributo(status)}"
+                onclick="filtrarToolbar(this.dataset.status)">
+                <label>${escaparAtributo(status)}</label>
+                <span>${quantidade}</span>
             </button>
-            `
-            toolbar.insertAdjacentHTML('beforeend', novaTool)
-        }
+            `)
+            .join('')
         formatacaoPagina()
 
     } catch (err) {
@@ -454,11 +435,15 @@ async function carregarToolbar() {
 
 async function filtrarToolbar(campo) {
 
-    const chave = 'status_atual'
-    controles.orcamentos ?? {}
-    controles.orcamentos.filtros ?? {}
+    // Status do chamado: item exato da lista (gcs pesquisa-db op "contem"); sem chamado = lista vazia.
+    const chave = 'nomes_status'
+    controles.orcamentos ??= {}
+    controles.orcamentos.filtros ??= {}
+    delete controles.orcamentos.filtros.status_atual
 
-    controles.orcamentos.filtros[chave] = { op: '=', value: campo }
+    controles.orcamentos.filtros[chave] = campo == 'SEM STATUS'
+        ? { op: 'IS_EMPTY' }
+        : { op: 'contem', value: campo }
 
     if (campo == 'TODOS')
         delete controles.orcamentos.filtros[chave]
@@ -486,9 +471,10 @@ async function baixarExcelOrcamentos() {
 
 }
 
-// Status pelo chamado (22/11/2026, a pedido): o status do orçamento é calculado das correções do chamado
-// (gcs SCRIPTS/status_chamado.js) e só aparece aqui. Quem muda o andamento lança a correção no chamado.
-// REPROVADO PELO FINANCEIRO: atalho daqui para a correção no chamado (só fin, adm e diretoria).
+// Status do orçamento = status do chamado (22/11/2026, a pedido): o orçamento mostra os status das abas do
+// chamado (o dele ou o do mestre do vínculo); sem chamado, SEM STATUS. Quem muda o andamento lança a correção
+// no chamado. REPROVADO PELO FINANCEIRO: atalho daqui para a correção no chamado (só fin, adm e diretoria).
+// O historico_status do orçamento fica só como registro do que era marcado à mão antes.
 const PERFIS_REPROVADO_FIN = ['fin', 'adm', 'diretoria']
 
 async function verHistoricoStatus(id, contrato) {
@@ -497,31 +483,41 @@ async function verHistoricoStatus(id, contrato) {
 
         overlayAguarde()
 
-        const { historico_status } = await recuperarDado('dados_orcamentos', id) || {}
-        // Chamado: o da última entrada automática (vínculo usa o chamado do mestre) ou o próprio contrato.
-        const ultimaAuto = Object.values(historico_status || {})
-            .filter(h => h?.chamado)
-            .sort((a, b) => b.timestamp - a.timestamp)[0]
-        const chamado = ultimaAuto?.chamado || contrato
-        let existente = null
-        try { existente = chamado && chamado !== 'sequencial' ? await consultarChamadoOrcamento(chamado) : null } catch { }
-        const ativo = existente && existente.excluido == null
+        const [{ historico_status } = {}, { nomes_status, vinculados } = {}] = await Promise.all([
+            recuperarDado('dados_orcamentos', id).then(r => r || {}),
+            recuperarDado('mvw_dados_orcamentos', id).then(r => r || {})
+        ])
+
+        // Chamado: o do próprio contrato; senão o do mestre do vínculo.
+        let chamado = null
+        for (const candidato of [contrato, ...(vinculados || []).filter(v => v !== contrato)]) {
+            if (!candidato || candidato === 'sequencial') continue
+            let existente = null
+            try { existente = await consultarChamadoOrcamento(candidato) } catch { }
+            if (existente && existente.excluido == null) { chamado = candidato; break }
+        }
+
+        const statusChamado = (nomes_status || []).map(st => formatacaoTipoCorrecao(st)).join('')
 
         const linhas = [
             {
                 elemento: `
                     <div style="${horizontal}; gap: 1rem;">
                         <img src="imagens/alerta.png">
-                        <span>${ativo
-                        ? `O status vem do chamado <b>${escaparAtributo(chamado)}</b>. Para mudar o andamento, lance a correção no chamado.`
-                        : 'Este orçamento ainda não tem chamado. O chamado é aberto sozinho alguns minutos depois do orçamento salvo.'}</span>
+                        <span>${chamado
+                        ? `O status é o do chamado <b>${escaparAtributo(chamado)}</b>. Para mudar o andamento, lance a correção no chamado.`
+                        : 'Sem chamado, o orçamento fica SEM STATUS. O chamado é aberto sozinho alguns minutos depois do orçamento salvo.'}</span>
                     </div>
                     `
             },
+            ...(chamado ? [{ texto: 'Status do chamado', elemento: `<div style="${vertical}; gap: 2px;">${statusChamado || 'NÃO ANALISADA'}</div>` }] : []),
             {
+                texto: 'Marcado no orçamento (antes do status pelo chamado)',
                 elemento: `<div id="historico" style="${vertical}; gap: 0.5rem; width: 100%;"></div>`
             }
         ]
+
+        const ativo = Boolean(chamado)
 
         const botoes = ativo
             ? [
@@ -556,18 +552,18 @@ async function carregarHistoricoStatus(id, historico = null) {
 
     const listagem = Object.values(historico_status || {})
         .sort((a, b) => b.timestamp - a.timestamp)
-        .map(({ status, usuario, observacao, timestamp, automatico }) => `
+        .map(({ status, usuario, observacao, timestamp }) => `
                     <div class="balao-status">
                         <span class="and">${status}</span>
                         <div style="display: flex; flex-wrap: wrap;">${observacao || ''}</div>
-                        <span style="font-style: italic;"><small><b>${automatico ? 'Automático' : usuario}</b>, ${new Date(timestamp).toLocaleString()}</small></span>
+                        <span style="font-style: italic;"><small><b>${usuario}</b>, ${new Date(timestamp).toLocaleString()}</small></span>
                     </div>
                 `)
         .join('')
 
     local.innerHTML = listagem || `
         <div style="${horizontal}; width: stretch;">
-            <span>Nenhum status ainda.</span>
+            <span>Nada marcado.</span>
         </div>
         `
 

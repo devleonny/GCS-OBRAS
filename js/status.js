@@ -6,25 +6,6 @@ const opcoesRequisicao = ['SERVIÇO', 'VENDA', 'USO E CONSUMO', 'LOCAÇÃO']
 const permAtalhos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
 const permAltStatus = ['adm', 'diretoria']
 const statusExclusivosLog = ['ENVIADO', 'ENTREGUE']
-const fluxograma = [
-    'SEM STATUS',
-    'ORC PENDENTE',
-    'ORC ENVIADO',
-    'ORC APROVADO',
-    'ORC REPROVADO',
-    'REQUISIÇÃO',
-    'ENVIADO',
-    'ENTREGUE',
-    'AGENDAMENTO',
-    'EM ANDAMENTO',
-    'PENDENTE OS/RELATÓRIO',
-    'PENDENTE PEDIDO',
-    'REPROVADO PELO FINANCEIRO',
-    'CONCLUÍDO',
-    'FATURADO PARCIAL',
-    'FATURADO',
-    'VENCIDO'
-]
 
 const esquemaBtnStatus = [
     {
@@ -898,8 +879,7 @@ async function abrirEsquema(id) {
         const {
             dados_orcam,
             nomes_status,
-            cliente,
-            status_atual
+            cliente
         } = await recuperarDado('mvw_dados_orcamentos', id) || {}
 
         const contrato = dados_orcam?.contrato
@@ -958,12 +938,8 @@ async function abrirEsquema(id) {
                         <div class="status-check-ocorrencias"></div>
                     </div>
                     <div class="historico-resumo-item">
-                        <label class="historico-rotulo">Status da Ocorrência</label>
-                        <div class="historico-status-lista">${labelTipoCorrecao}</div>
-                    </div>
-                    <div class="historico-resumo-item">
-                        <label class="historico-rotulo">Status do Orçamento</label>
-                        <span class="and">${escaparAtributo(status_atual || 'Sem status')}</span>
+                        <label class="historico-rotulo">Status</label>
+                        <div class="historico-status-lista">${labelTipoCorrecao || '<span class="and">SEM STATUS</span>'}</div>
                     </div>
                 </div>
 

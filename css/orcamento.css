@@ -712,13 +712,3 @@
     background-color: #42a5f563;
     padding: 0 8px;
 }
-
-/* Status do orçamento: automático, pelo chamado (só leitura). */
-.status-orcamento-auto {
-    font-weight: bold;
-    font-size: 0.8rem;
-    padding: 2px 8px;
-    border-radius: 6px;
-    border: solid 1px #b3b3b3;
-    white-space: nowrap;
-}
