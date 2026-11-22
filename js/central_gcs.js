@@ -1531,9 +1531,6 @@ async function salvarDadosCliente(idOrcamento) {
             .filter(span => span.id)
             .map(span => span.textContent)
 
-        if (tecnico.length == 0 && ['LPU PEÇAS', 'LPU FERRAMENTAS'].includes(orcamentoBase.lpu_ativa))
-            return popup({ mensagem: 'LPU PEÇAS & FERRAMENTAS > O campo técnico não fica em branco!' })
-
         // Condição de pagamento (mesma peça do pedido): "condicoes" guarda o texto (PDF e telas antigas).
         const { condicao: condicao_pagamento, erros: errosCondicao } = lerCondicaoPag(document.querySelector('#condicao_orcamento [data-condicao-pag]'))
         if (errosCondicao.length)

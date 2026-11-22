@@ -204,7 +204,7 @@ function desenharDashOrcamentos({ empresa, periodo, empresas, usuario, usuarios 
             </div>
         </section>
 
-        <p class="dash-nota">Fora da análise: orçamentos reprovados e pedidos internos de ferramenta. Faturamento conta só notas de venda e serviço
+        <p class="dash-nota">Fora da análise: orçamentos reprovados. Faturamento conta só notas de venda e serviço
             ligadas a orçamentos, pela parte de cada orçamento; antes de nov/2025 a maioria das notas não tem esse vínculo.</p>`
 
     ligarTooltipsDash(conteudo)

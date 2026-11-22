@@ -443,7 +443,10 @@ async function atualizarOpcoesLPU() {
 
     const orcamentoBase = baseOrcamento() || {}
 
-    const lpusOrdenadas = [...LPUS].sort((a, b) => {
+    // LPU FERRAMENTAS / PEÇAS: só preço de referência de Ferramentas e materiais (js/colaboradores.js);
+    // entrega para técnico não é mais orçamento. Continua na lista só no orçamento antigo que já a usa.
+    const atual = orcamentoBase?.lpu_ativa?.toLowerCase()
+    const lpusOrdenadas = LPUS.filter(lpu => !['lpu ferramentas', 'lpu peças'].includes(lpu) || lpu == atual).sort((a, b) => {
         if (a === 'lpu hope') return -1
         if (b === 'lpu hope') return 1
         return a.localeCompare(b)
@@ -1171,26 +1174,6 @@ async function enviarDadosOrcamento() {
                         tipoCorrecao: 'WiGZl',
                         usuario: acesso.usuario
                     }
-                }
-
-                // Correção para Logística;
-                if (['LPU FERRAMENTAS', 'LPU PEÇAS'].includes(orcamentoBase.lpu_ativa)) {
-
-                    const dataMais1s = new Date(dataRegistro.getTime() + 1000)
-
-                    const idLog = crypto.randomUUID()
-
-                    correcoes[idLog] = {
-                        aba: idLog,
-                        data: dataMais1s.toLocaleString(),
-                        datas: {},
-                        descricao: `Requisição de materiais para o Funcionário`,
-                        dtCorrecao: dataServidor().toISOString().slice(0, 10),
-                        permissao: ['log'],
-                        tipoCorrecao: '4Zmd3',
-                        usuario: acesso.usuario
-                    }
-
                 }
 
                 // Salvamento da ocorrência, observar bifurcação (ORC ou G);
