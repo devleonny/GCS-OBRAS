@@ -1813,10 +1813,15 @@ async function escolherQuemAssume(cliente, { cabecalho, botao, atual = '' }) {
                 <div style="display: flex; flex-direction: column; gap: 0.7rem; padding: 1rem; max-width: 32rem; text-align: left;">
                     ${cabecalho}
                     <label for="substituto-${chave}"><b>Quem assume as pendências?</b></label>
-                    <select id="substituto-${chave}">
-                        <option value="">${escaparAtributo(textoGestor)}</option>
-                        ${ativos.map(c => `<option value="${escaparAtributo(c.usuario)}" ${c.usuario === atual ? 'selected' : ''}>${escaparAtributo(c.nome || c.usuario)} (${escaparAtributo(c.usuario)})</option>`).join('')}
-                    </select>
+                    <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                        <input id="substituto-${chave}" type="text" autocomplete="off" placeholder="Digite o nome ou o login…"
+                            style="width: 100%; box-sizing: border-box; padding: 0.6rem 0.8rem; font-size: 1rem;
+                                border: 1px solid #b9c7bf; border-radius: 6px; background: white; box-shadow: none; outline: none;"
+                            onfocus="this.style.borderColor='#2e7d4f'; this.style.boxShadow='0 0 0 3px rgba(46,125,79,0.15)'"
+                            onblur="this.style.borderColor='#b9c7bf'; this.style.boxShadow='none'">
+                        <div id="substituto-lista-${chave}" style="max-height: 13rem; overflow-y: auto; border: 1px solid #d5ddd8; border-radius: 6px; background: white;"></div>
+                        <small id="substituto-escolhido-${chave}" style="color: #14532d;"></small>
+                    </div>
                     <small style="color: #6b7a71;">Quem assume passa a receber os avisos e a cobrança dos pedidos pendentes dessa pessoa,
                         e vira analista dos orçamentos em andamento. O histórico continua com o nome de quem fez.</small>
                     ${!gestor ? '<small style="color: #b91c1c;">Sem gestor cadastrado: escolha alguém, senão as pendências ficam sem responsável.</small>' : ''}
@@ -1834,9 +1839,71 @@ async function escolherQuemAssume(cliente, { cabecalho, botao, atual = '' }) {
             resolve(valor)
         }
         const observador = new MutationObserver(() => { if (!document.getElementById(id)) terminar(null) })
+
+        // Busca com lista: '' = gestor (primeira linha, sempre visível); filtra por nome ou login, sem acento.
+        const campo = document.getElementById(`substituto-${chave}`)
+        const lista = document.getElementById(`substituto-lista-${chave}`)
+        const rotuloEscolhido = document.getElementById(`substituto-escolhido-${chave}`)
+        const opcoes = [
+            { usuario: '', texto: textoGestor, busca: '' },
+            ...ativos.map(c => ({
+                usuario: c.usuario,
+                texto: `${c.nome || c.usuario} (${c.usuario})`,
+                busca: normalizarBuscaDropdown(`${c.nome || ''} ${c.usuario}`)
+            }))
+        ]
+        let escolhido = ativos.some(c => c.usuario === atual) ? atual : ''
+        let visiveis = []
+        let destaque = 0
+        const mostrarEscolhido = () => {
+            const opcao = opcoes.find(o => o.usuario === escolhido)
+            rotuloEscolhido.innerHTML = `Assume: <b>${escaparAtributo(opcao?.texto || textoGestor)}</b>`
+        }
+        const desenhar = () => {
+            const termo = normalizarBuscaDropdown(campo.value)
+            visiveis = opcoes.filter(o => !o.usuario || !termo || o.busca.includes(termo))
+            destaque = Math.min(destaque, visiveis.length - 1)
+            lista.innerHTML = visiveis.map((o, i) => `
+                <div data-i="${i}" style="padding: 0.4rem 0.6rem; cursor: pointer;
+                    ${i === destaque ? 'background: #e6f2eb;' : ''}
+                    ${o.usuario === escolhido ? 'font-weight: bold;' : ''}
+                    ${!o.usuario ? 'border-bottom: 1px solid #e3e8e5; color: #4b5b52;' : ''}">${escaparAtributo(o.texto)}</div>`).join('')
+                + (visiveis.length === 1 && termo ? '<div style="padding: 0.4rem 0.6rem; color: #8a968f;">Ninguém com esse nome.</div>' : '')
+        }
+        const escolher = i => {
+            const opcao = visiveis[i]
+            if (!opcao) return
+            escolhido = opcao.usuario
+            campo.value = ''
+            destaque = 0
+            desenhar()
+            mostrarEscolhido()
+        }
+        campo.addEventListener('input', () => { destaque = campo.value.trim() && visiveis.length > 1 ? 1 : 0; desenhar() })
+        campo.addEventListener('keydown', e => {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault()
+                destaque = Math.max(0, Math.min(visiveis.length - 1, destaque + (e.key === 'ArrowDown' ? 1 : -1)))
+                desenhar()
+                lista.querySelector(`[data-i="${destaque}"]`)?.scrollIntoView({ block: 'nearest' })
+            } else if (e.key === 'Enter') {
+                e.preventDefault()
+                escolher(destaque)
+            }
+        })
+        lista.addEventListener('mousedown', e => {
+            const linha = e.target.closest('[data-i]')
+            if (!linha) return
+            e.preventDefault()
+            escolher(Number(linha.dataset.i))
+        })
+        desenhar()
+        mostrarEscolhido()
+        campo.focus()
+
         document.getElementById(`cancelar-${chave}`).addEventListener('click', () => terminar(null), { once: true })
         document.getElementById(`confirmar-${chave}`).addEventListener('click', () =>
-            terminar({ substituto: document.getElementById(`substituto-${chave}`).value || '' }), { once: true })
+            terminar({ substituto: escolhido || '' }), { once: true })
         observador.observe(document.body, { childList: true })
     })
 }
