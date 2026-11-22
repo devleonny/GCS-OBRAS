@@ -663,3 +663,49 @@
     .fluxo-receb-parcela { grid-template-columns: auto 1fr auto; }
     .fluxo-receb-num { display: none; }
 }
+
+/* Notas recorrentes (22/11/2026): cartão previsto tracejado em Pedidos e as janelas de detalhe/edição. */
+.fluxo-cartao.fluxo-recorrente {
+    border: 1px dashed #5eaaa0;
+    border-left: 3px dashed #0f766e;
+    background: #f3fbf9;
+}
+.fluxo-cartao.fluxo-recorrente:hover { border-color: #0f766e; border-left-color: #0f766e; background: #e8f6f3; }
+
+.fluxo-rec,
+.fluxo-rec-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: min(620px, 92vw);
+    padding: 16px;
+    color: #1f2a24;
+    text-align: left;
+    box-sizing: border-box;
+}
+.fluxo-rec-bloco { display: flex; flex-direction: column; gap: 4px; }
+.fluxo-rec-bloco > span { color: #5f6f66; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.fluxo-rec-descricao {
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid #e1e8e4;
+    border-radius: 8px;
+    background: #f8faf9;
+    font: inherit;
+    font-size: 12.5px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 220px;
+    overflow-y: auto;
+}
+.fluxo-rec-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.fluxo-rec-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border: 1px solid #cfdad3;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 13px;
+    resize: vertical;
+}

@@ -198,7 +198,12 @@ async function carregarFluxo() {
         // Página grande: cada página recalcula a view inteira no servidor (COUNT(*) OVER()); com 500 por página
         // o Fluxo de Vendas fazia 7 consultas seguidas de ~2 s. Se ainda vier mais de uma, as demais vão juntas.
         const LIMITE = 5000
-        const primeira = await pesquisarDB({ base, filtros, pagina: 1, limite: LIMITE })
+        // Notas recorrentes previstas do mês (só fin/adm/diretoria): vêm junto; falha nelas não derruba o quadro.
+        const recorrentes = QUADROS_FLUXO[quadro].servico && pode('servicos.recorrencias')
+        const [primeira, recorrencias] = await Promise.all([
+            pesquisarDB({ base, filtros, pagina: 1, limite: LIMITE }),
+            recorrentes ? apiModuloFiscal('fluxo-itens/recorrencias', {}).catch(err => (console.error('[FLUXO recorrências]', err), null)) : null
+        ])
         const linhas = [...(primeira?.resultados || [])]
         const paginas = Number(primeira?.paginas) || 1
         if (paginas > 1) {
@@ -207,7 +212,8 @@ async function carregarFluxo() {
             resto.forEach(r => linhas.push(...(r?.resultados || [])))
         }
         if (consulta !== estadoFluxo.carregando || quadro !== estadoFluxo.quadro) return true
-        estadoFluxo.linhas = cartoesFluxo(quadro, linhas)
+        estadoFluxo.recorrencias = recorrencias
+        estadoFluxo.linhas = [...cartoesFluxo(quadro, linhas), ...cartoesRecorrentesFluxo(recorrencias)]
         renderizarFluxo()
         return true
     } catch (erro) {
@@ -746,7 +752,8 @@ function abrirMenuItemFluxo(evento, id) {
     const c = itemFluxo(id)
     if (!c) return
     const nota = notasItemFluxo(c).at(-1)
-    const opcoes = [
+    const opcoes = c.recorrente ? opcoesRecorrenteFluxo(c) : [
+        ...opcoesRecorrenciaItemFluxo(c),
         // Opções do orçamento (18/11/2026, a pedido): os atalhos completos (Histórico, Painel de Custos, PDF, OS...).
         c.orcamento_id ? ['Opções do Orçamento', `abrirAtalhos('${escaparAtributo(c.orcamento_id)}')`] : null,
         nota && c.etapa === 'separado' ? ['Editar NF-e', `editarNotaItemFluxo('${id}')`] : null,
@@ -828,6 +835,8 @@ async function espelhoNotaItemFluxo(notaId) {
 // Saldo a faturar do orçamento (gcs orcamento_saldo: pedidos − notas de venda/serviço − baixas). Só aparece
 // quando passa da tolerância (R$ 10 ou 0,5% dos pedidos); acima do pedido costuma ser pedido com valor errado.
 function saldoCartaoFluxo(c) {
+    // Nota recorrente: valor por período, não abate saldo de OC (o "faturado acima do pedido" não vale aqui).
+    if (ehItemRecorrenteFluxo(c)) return ''
     // "Sem pedido": parte do orçamento que ainda não tem OC (ex.: o serviço cuja OC chega no fim da obra).
     const total = Number(c.orcamento_total) || 0, semPedido = Number(c.orcamento_sem_pedido) || 0
     const htmlSemPedido = Number(c.orcamento_pedidos) > 0 && semPedido > Math.max(10, total * 0.005)
@@ -903,6 +912,7 @@ function cartaoItemFluxo(c, parado, tempo) {
             ${cancelada ? `<span class="fluxo-cartao-balao">${etiquetaEst('Cancelada', '#b91c1c')}</span>` : ''}
             ${recusada ? `<span class="fluxo-cartao-balao">${etiquetaEst(c.nota_status === 'DENEGADA' ? 'Denegada' : 'Recusada', '#b91c1c')}</span>` : ''}
             ${rodadaCartaoFluxo(c)}
+            ${ehItemRecorrenteFluxo(c) ? `<span class="fluxo-cartao-balao" title="NFS-e gerada pela nota recorrente">${etiquetaEst(`Recorrente${mesItemRecorrenteFluxo(c) ? ` · ${mesItemRecorrenteFluxo(c)}` : ''}`, '#0f766e')}</span>` : ''}
             ${c.pedido_prometido ? `<span class="fluxo-cartao-balao" title="Sem o pedido do cliente (ou com valor simbólico): a nota não sai até o pedido ser completado">${etiquetaEst('Pedido pendente', '#b45309')}</span>` : ''}
             ${c.cidade ? `<small>${escaparAtributo(c.cidade)}</small>` : ''}
             ${contexto ? `<small class="fluxo-cartao-contexto">${escaparAtributo(contexto)}</small>` : ''}
@@ -914,6 +924,7 @@ function cartaoItemFluxo(c, parado, tempo) {
 }
 
 function cartaoFluxo(quadro, c, parado) {
+    if (c.recorrente) return cartaoRecorrenteFluxo(c)
     const dias = diasDesdeFluxo(c.desde)
     const final = QUADROS_FLUXO[quadro].finais.includes(c.etapa)
     const tempo = !final && dias != null ? `<span class="fluxo-dias ${dias > 30 ? 'velho' : dias > 7 ? 'morno' : ''}" title="Dias nesta etapa">${dias} d</span>` : ''
@@ -983,6 +994,7 @@ const podeReceberFluxo = c => QUADROS_FLUXO[estadoFluxo.quadro]?.servico && ['fa
 //   Em preparação → Faturado (emite) ou → Pedidos (devolve o saldo ao pedido; o rascunho fica guardado);
 //   Faturado → Recebido não é arraste: vai sozinho ao registrar recebimento (⋮ → Registrar recebimento).
 function destinosServicoFluxo(c) {
+    if (c?.recorrente) return ['preparacao']  // nota recorrente prevista: soltar em Em preparação gera a NFS-e
     if (!c || c.espelho) return []
     const rodada = c.rodada != null
     switch (c.etapa) {
@@ -994,6 +1006,7 @@ function destinosServicoFluxo(c) {
 }
 
 async function soltarServicoFluxo(c, etapa) {
+    if (c.recorrente) return etapa === 'preparacao' ? gerarRecorrenciaFluxo(c.recorrencia_id) : undefined
     const nome = nomeItemFluxo(c)
     if (etapa === 'concluido' || (etapa === 'pedido' && c.etapa === 'concluido'))
         return otimistaServicoFluxo(c, etapa, () => apiModuloFiscal('fluxo-itens/servico-concluido', { id: c.id, marcar: etapa === 'concluido' }))
@@ -1193,6 +1206,337 @@ async function receberParcelasFluxo(botao, id) {
                 : `Recebimento registrado (${Number(r.recebidas) || 0} parcela(s)).`
         })
         carregarFluxo()
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+// ---------------- Notas recorrentes (22/11/2026, a pedido) ----------------
+// gcs: SCRIPTS/fluxo_itens.js (rotas /fluxo-itens/recorrencia*) e migrations/fluxo-recorrencias.sql.
+// Contrato mensal, preventiva e locação: no mês devido o Fluxo de Serviços mostra, em Pedidos, o cartão PREVISTO
+// (tracejado) com os dados copiados da nota anterior. Só fin/adm/diretoria (acesso servicos.recorrencias).
+//   Arrastar para Em preparação (ou ⋮ → Gerar NFS-e): rascunho da NFS-e + cartão real, que segue o fluxo de sempre.
+//   ⋮ → Descartar este mês: some só neste mês. ⋮ → Desativar recorrência: para de vez (recorrência sem fim
+//   conhecido o usuário encerra assim; "PARCELA 19/36" termina sozinha). Passou o mês: o previsto some.
+// Cartão de serviço faturado: ⋮ → Repetir todo mês (a última NFS-e dele vira o modelo).
+const MESES_CURTOS_FLUXO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+const MESES_LONGOS_FLUXO = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+const mesCurtoFluxo = iso => { const m = String(iso || '').match(/^(\d{4})-(\d{2})/); return m ? `${MESES_CURTOS_FLUXO[Number(m[2]) - 1]}/${m[1]}` : '' }
+const mesLongoFluxo = iso => { const m = String(iso || '').match(/^(\d{4})-(\d{2})/); return m ? `${MESES_LONGOS_FLUXO[Number(m[2]) - 1]}/${m[1]}` : '' }
+const ehItemRecorrenteFluxo = c => !c?.recorrente && String(c?.origem || '').toUpperCase() === 'RECORRENCIA'
+// Cartão gerado: id IT_R_<recorrência>_<AAAAMM>.
+const recorrenciaDoItemFluxo = c => { const m = String(c?.id || '').match(/^IT_R_(\d+)_(\d{4})(\d{2})$/); return m ? { id: Number(m[1]), mes: `${m[2]}-${m[3]}-01` } : null }
+const mesItemRecorrenteFluxo = c => mesCurtoFluxo(recorrenciaDoItemFluxo(c)?.mes)
+const ativaDoContratoFluxo = c => (estadoFluxo.recorrencias?.ativas || []).find(r => r.contrato === (c?.contrato || c?.departamento) && (!c?.empresa || r.app === c.empresa))
+
+function cartoesRecorrentesFluxo(recorrencias) {
+    const hoje = hojeIsoFluxo()
+    return (recorrencias?.previstas || []).map(p => ({
+        id: `REC_${p.recorrencia_id}`, recorrente: true, recorrencia_id: Number(p.recorrencia_id),
+        etapa: 'pedido', data: hoje, desde: hoje, mes: String(p.mes || '').slice(0, 10),
+        contrato: p.contrato, orcamento_id: p.orcamento_id, empresa: p.empresa, cliente: p.cliente, cidade: p.cidade,
+        valor: Number(p.valor) || 0, valor_pedido: 0,  // não soma no total de Pedidos: ainda não é nota
+        parcela: p.parcela, parcelas_total: p.parcelas_total, base_texto: p.base_texto
+    }))
+}
+
+function cartaoRecorrenteFluxo(c) {
+    const id = escaparAtributo(c.id)
+    const acao = `abrirRecorrenciaFluxo(${Number(c.recorrencia_id)})`
+    const parcela = c.parcela ? `Parcela ${c.parcela}${c.parcelas_total ? `/${c.parcelas_total}` : ''} · ` : ''
+    return `
+        <article class="fluxo-cartao fluxo-item fluxo-recorrente clicavel" data-id="${id}" tabindex="0"
+            title="Nota recorrente prevista para ${escaparAtributo(mesLongoFluxo(c.mes))}: arraste para Em preparação para gerar a NFS-e"
+            draggable="true" ondragstart="iniciarArrasteFluxo(event, '${id}')" ondragend="terminarArrasteFluxo()"
+            onclick="${acao}" onkeydown="if (event.key === 'Enter') ${acao}">
+            <span class="fluxo-cartao-linha"><span>${escaparAtributo(c.contrato || 'Sem orçamento')}</span>
+                <span class="fluxo-cartao-cantos"><button type="button" class="fluxo-menu-btn" title="Mais opções" aria-label="Mais opções"
+                    onclick="abrirMenuItemFluxo(event, '${id}')">⋮</button></span></span>
+            <b class="fluxo-cartao-nome">${escaparAtributo(c.cliente || 'Cliente não informado')}</b>
+            <span class="fluxo-cartao-balao">${etiquetaEst(`Recorrente · ${mesCurtoFluxo(c.mes)}`, '#0f766e')}</span>
+            ${c.cidade ? `<small>${escaparAtributo(c.cidade)}</small>` : ''}
+            <small class="fluxo-cartao-contexto">${parcela}Prevista: gere a NFS-e ou descarte este mês</small>
+            <span class="fluxo-cartao-valor">${reaisFluxo(c.valor)} <small>${c.empresa ? `${escaparAtributo(c.empresa)} · ` : ''}como a nota anterior</small></span>
+        </article>`
+}
+
+function opcoesRecorrenteFluxo(c) {
+    const r = Number(c.recorrencia_id)
+    return [
+        ['Gerar NFS-e', `gerarRecorrenciaFluxo(${r})`],
+        ['Descartar este mês', `descartarRecorrenciaFluxo(${r})`],
+        ['Detalhes da recorrência', `abrirRecorrenciaFluxo(${r})`],
+        ['Desativar recorrência', `desativarRecorrenciaFluxo(${r})`],
+        c.orcamento_id ? ['Opções do Orçamento', `abrirAtalhos('${escaparAtributo(c.orcamento_id)}')`] : null
+    ].filter(Boolean)
+}
+
+// ⋮ dos cartões reais do Fluxo de Serviços: os da recorrência (detalhes, descartar o gerado, desativar) e o
+// "Repetir todo mês" na nota de serviço faturada de um orçamento que ainda não repete.
+function opcoesRecorrenciaItemFluxo(c) {
+    if (!QUADROS_FLUXO[estadoFluxo.quadro]?.servico || !pode('servicos.recorrencias') || c.espelho) return []
+    const id = escaparAtributo(c.id)
+    const ativa = ativaDoContratoFluxo(c)
+    const daRecorrencia = recorrenciaDoItemFluxo(c)
+    if (ehItemRecorrenteFluxo(c) && daRecorrencia) return [
+        ['Detalhes da recorrência', `abrirRecorrenciaFluxo(${daRecorrencia.id})`],
+        c.etapa === 'preparacao' && !['EMITINDO', 'PROCESSANDO'].includes(c.emissao_status) ? ['Descartar NFS-e recorrente', `descartarItemRecorrenteFluxo('${id}')`] : null,
+        ativa?.id === daRecorrencia.id ? ['Desativar recorrência', `desativarRecorrenciaFluxo(${daRecorrencia.id})`] : null
+    ].filter(Boolean)
+    if (ativa) return [['Detalhes da recorrência', `abrirRecorrenciaFluxo(${Number(ativa.id)})`]]
+    if (['faturado', 'recebido'].includes(c.etapa) && c.nota_autorizada && (c.contrato || c.departamento))
+        return [['Repetir todo mês (recorrente)', `criarRecorrenciaFluxo('${id}')`]]
+    return []
+}
+
+// Gera a NFS-e do mês (rascunho) e o cartão em Em preparação; oferece conferir a nota na hora.
+async function gerarRecorrenciaFluxo(recorrenciaId) {
+    const c = estadoFluxo.linhas.find(x => x.recorrente && x.recorrencia_id === Number(recorrenciaId))
+    if (c) { c.etapa = 'preparacao'; renderizarFluxo() }
+    try {
+        overlayAguarde()
+        const r = await apiModuloFiscal('fluxo-itens/recorrencia-gerar', { id: recorrenciaId })
+        removerOverlay()
+        await carregarFluxo()
+        const item = itemFluxo(r.item_id)
+        const pendencias = [...(r.erros || []), ...(r.avisos || [])]
+        const conferir = item
+            ? [{ texto: 'Conferir NFS-e', img: 'editar', funcao: `removerPopup(this.closest('.popup')?.id); conferirNfseRecorrenteFluxo('${escaparAtributo(item.id)}')` }]
+            : []
+        popup({
+            titulo: 'NFS-e recorrente gerada',
+            mensagem: `${item ? nomeItemFluxo(item) : 'A nota'} está em <b>Em preparação</b>, com os dados da nota anterior.`
+                + (pendencias.length
+                    ? `<br><br>Antes de faturar, confira:<ul class="fis-lista-erros">${pendencias.map(p => `<li>${escEst(p)}</li>`).join('')}</ul>`
+                    : '<br>Confira o valor e a descrição e fature.'),
+            botoes: conferir
+        })
+    } catch (err) {
+        removerOverlay()
+        if (c) { c.etapa = 'pedido'; renderizarFluxo() }
+        popup({ titulo: 'Não foi possível gerar', mensagem: mensagemErroEst(err) })
+    }
+}
+
+async function conferirNfseRecorrenteFluxo(id) {
+    const c = itemFluxo(id)
+    if (!c) return
+    try {
+        await abrirNfseFluxo(c)
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+// Fecha a janela de detalhes da recorrência (se aberta) depois de descartar/desativar.
+function fecharDetalheRecorrenciaFluxo(recorrenciaId) {
+    document.querySelectorAll('.popup [data-recorrencia]').forEach(el => {
+        if (Number(el.dataset.recorrencia) === Number(recorrenciaId)) removerPopup(el.closest('.popup')?.id)
+    })
+}
+
+async function descartarRecorrenciaFluxo(recorrenciaId) {
+    const c = estadoFluxo.linhas.find(x => x.recorrente && x.recorrencia_id === Number(recorrenciaId))
+    const ok = await confirmarPopup({
+        titulo: 'Descartar este mês',
+        mensagem: `Descartar a nota recorrente de ${escEst(mesLongoFluxo(c?.mes) || 'este mês')}${c ? ` de ${nomeItemFluxo(c)}` : ''}?`
+            + '<br><small>Só este mês: no próximo ela volta. Para parar de vez, use "Desativar recorrência".</small>',
+        textoConfirmar: 'Descartar'
+    })
+    if (!ok) return
+    try {
+        await apiModuloFiscal('fluxo-itens/recorrencia-descartar', { id: recorrenciaId })
+        fecharDetalheRecorrenciaFluxo(recorrenciaId)
+        carregarFluxo()
+    } catch (err) {
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+async function descartarItemRecorrenteFluxo(id) {
+    const c = itemFluxo(id)
+    if (!c) return
+    const mes = mesItemRecorrenteFluxo(c)
+    const ok = await confirmarPopup({
+        titulo: 'Descartar NFS-e recorrente',
+        mensagem: `Descartar a NFS-e recorrente de ${nomeItemFluxo(c)}${mes ? ` (${escEst(mes)})` : ''}?`
+            + '<br><small>O rascunho é apagado e a nota não sai neste mês. A recorrência continua nos próximos.</small>',
+        textoConfirmar: 'Descartar'
+    })
+    if (!ok) return
+    try {
+        await apiModuloFiscal('fluxo-itens/recorrencia-descartar', { item_id: id })
+        carregarFluxo()
+    } catch (err) {
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+async function desativarRecorrenciaFluxo(recorrenciaId) {
+    const motivo = await pedirTextoPopup({
+        titulo: 'Desativar recorrência',
+        mensagem: 'A nota para de aparecer nos próximos meses (o que já foi emitido fica como está).<br>Motivo (contrato encerrado, cliente cancelou...):',
+        textoConfirmar: 'Desativar', minimo: 3, maximo: 300
+    })
+    if (!motivo) return
+    try {
+        await apiModuloFiscal('fluxo-itens/recorrencia-desativar', { id: recorrenciaId, motivo })
+        fecharDetalheRecorrenciaFluxo(recorrenciaId)
+        carregarFluxo()
+    } catch (err) {
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+const textoPeriodicidadeFluxo = p => Number(p) === 1 ? 'Todo mês' : `A cada ${Number(p)} meses`
+const opcoesPeriodicidadeFluxo = atual => [1, 2, 3, 4, 6, 12]
+    .map(p => `<option value="${p}" ${Number(atual) === p ? 'selected' : ''}>${textoPeriodicidadeFluxo(p)}</option>`).join('')
+
+// Detalhes: o previsto do mês, a regra (valor, a cada quantos meses, até quando), a descrição e o histórico.
+async function abrirRecorrenciaFluxo(recorrenciaId) {
+    let d
+    try {
+        overlayAguarde()
+        d = await apiModuloFiscal('fluxo-itens/recorrencia', { id: recorrenciaId })
+        removerOverlay()
+    } catch (err) {
+        removerOverlay()
+        return popup({ mensagem: mensagemErroEst(err) })
+    }
+    const r = d.recorrencia, p = d.previsto, esc = escEst
+    const fim = r.parcelas_total ? `Até a parcela ${r.parcelas_total}`
+        : r.meses ? `${r.meses} nota(s) desde ${mesLongoFluxo(String(r.inicio).slice(0, 10))}` : 'Até desativar'
+    const situacao = !r.ativo ? etiquetaEst('Desativada', '#64748b')
+        : p ? etiquetaEst(`Prevista para ${mesCurtoFluxo(String(p.mes).slice(0, 10))}`, '#0f766e')
+            : etiquetaEst('Nada previsto neste mês', '#475569')
+    const SIT = { GERADO: ['Gerada', '#15803d'], DESCARTADO: ['Descartada', '#b45309'] }
+    const historico = [
+        ...(d.meses || []).map(m => `<li><small>${esc(mesCurtoFluxo(String(m.mes).slice(0, 10)))}</small> ${etiquetaEst(...(SIT[m.situacao] || [m.situacao, '#475569']))}`
+            + `${m.por ? ` <small>por ${esc(m.por)}</small>` : ''}${m.motivo ? ` <small>— ${esc(m.motivo)}</small>` : ''}</li>`),
+        ...(d.notas || []).map(n => `<li><small>${esc(dataBrFluxo(String(n.emissao).slice(0, 10)))}</small> NFS-e ${esc(String(n.numero || n.ref || '').replace(/^0+/, ''))}`
+            + `${n.origem === 'OMIE' ? ' (Omie)' : ''} · ${reaisFluxo(n.valor)}</li>`)
+    ]
+    const parcela = p?.parcela ? ` · parcela ${esc(p.parcela)}${r.parcelas_total ? `/${esc(r.parcelas_total)}` : ''}` : ''
+    const desativada = !r.ativo && r.desativado_em
+        ? `<br>Desativada em ${esc(dataHoraItemFluxo(r.desativado_em))}${r.desativado_por ? ` por ${esc(r.desativado_por)}` : ''}${r.desativado_motivo ? `: ${esc(r.desativado_motivo)}` : ''}.`
+        : ''
+    const elemento = `
+        <div class="fis-painel fluxo-rec" data-recorrencia="${Number(r.id)}">
+            <div class="fluxo-receb-topo">
+                <small>${esc([r.contrato, r.app, r.cidade].filter(Boolean).join(' · '))}</small>
+                <b>${esc(r.cliente || 'Cliente não informado')}</b>
+                <div>${situacao}</div>
+            </div>
+            <div class="fluxo-receb-resumo">
+                <div><span>${p ? 'Valor previsto' : 'Valor'}</span><b>${reaisFluxo(p?.valor ?? r.valor)}</b></div>
+                <div><span>Periodicidade</span><b>${esc(textoPeriodicidadeFluxo(r.periodicidade_meses))}</b></div>
+                <div><span>Até quando</span><b>${esc(fim)}</b></div>
+            </div>
+            ${p ? `<div class="fluxo-rec-bloco"><span>Descrição da nota de ${esc(mesLongoFluxo(String(p.mes).slice(0, 10)))}${parcela}</span>
+                <pre class="fluxo-rec-descricao">${esc(p.descricao || '')}</pre></div>` : ''}
+            <small class="fluxo-receb-nota">Copiada da ${esc(r.base_texto || 'nota anterior')}. Cada nota nova da série vira o modelo da próxima.${desativada}</small>
+            ${historico.length ? `<details class="fis-secao"><summary><b>Histórico</b> <span class="fis-contador">${historico.length}</span></summary><ul class="fis-lista">${historico.join('')}</ul></details>` : ''}
+        </div>`
+    const id = Number(r.id)
+    const fechar = `removerPopup(this.closest('.popup')?.id); `
+    popup({
+        titulo: 'Nota recorrente',
+        elemento,
+        botoes: !r.ativo ? [] : [
+            ...(p ? [
+                { texto: 'Gerar NFS-e', img: 'concluido', funcao: `${fechar}gerarRecorrenciaFluxo(${id})` },
+                { texto: 'Descartar este mês', img: 'cancel', funcao: `descartarRecorrenciaFluxo(${id})` }
+            ] : []),
+            { texto: 'Editar', img: 'editar', funcao: `${fechar}editarRecorrenciaFluxo(${id})` },
+            { texto: 'Desativar', img: 'excluir', funcao: `desativarRecorrenciaFluxo(${id})` }
+        ]
+    })
+}
+
+// Ajuste da regra: valor, periodicidade, quantidade de notas, parcelas e a descrição (modelo).
+async function editarRecorrenciaFluxo(recorrenciaId) {
+    let d
+    try {
+        overlayAguarde()
+        d = await apiModuloFiscal('fluxo-itens/recorrencia', { id: recorrenciaId })
+        removerOverlay()
+    } catch (err) {
+        removerOverlay()
+        return popup({ mensagem: mensagemErroEst(err) })
+    }
+    const r = d.recorrencia, esc = escEst
+    const parcelaProxima = d.previsto?.parcela ?? (r.parcela_base != null ? Number(r.parcela_base) + 1 : '')
+    const elemento = `
+        <div class="fis-form fluxo-rec-form" data-recorrencia="${Number(r.id)}">
+            <div class="fluxo-receb-topo"><small>${esc([r.contrato, r.app].filter(Boolean).join(' · '))}</small><b>${esc(r.cliente || '')}</b></div>
+            <div class="fluxo-rec-grade">
+                <label class="fluxo-receb-campo"><span>Valor da nota (R$)</span><input name="valor" type="number" min="0.01" step="0.01" value="${esc(Number(r.valor))}"></label>
+                <label class="fluxo-receb-campo"><span>Periodicidade</span><select name="periodicidade_meses">${opcoesPeriodicidadeFluxo(r.periodicidade_meses)}</select></label>
+                <label class="fluxo-receb-campo"><span>Quantidade de notas</span><input name="meses" type="number" min="1" step="1" value="${esc(r.meses ?? '')}" placeholder="vazio = até desativar"></label>
+                <label class="fluxo-receb-campo"><span>Parcela da próxima nota</span><input name="parcela_atual" type="number" min="1" step="1" value="${esc(parcelaProxima)}" placeholder="sem parcela"></label>
+                <label class="fluxo-receb-campo"><span>Total de parcelas</span><input name="parcelas_total" type="number" min="1" step="1" value="${esc(r.parcelas_total ?? '')}" placeholder="sem fim"></label>
+            </div>
+            <label class="fluxo-receb-campo"><span>Descrição da nota</span>
+                <textarea name="descricao_modelo" rows="7">${esc(r.descricao_modelo || '')}</textarea></label>
+            <small class="fluxo-receb-nota">Na descrição, {MES} vira o mês da nota, {MES_ANTERIOR} o mês anterior (com {ANO} e {ANO_MES_ANTERIOR}) e {PARCELA} o número da parcela.</small>
+        </div>`
+    popup({ titulo: 'Editar nota recorrente', elemento, botoes: [{ texto: 'Salvar', img: 'concluido', funcao: `salvarRecorrenciaFluxo(this, ${Number(r.id)})` }] })
+}
+
+async function salvarRecorrenciaFluxo(botao, recorrenciaId) {
+    const janela = botao.closest('.popup')
+    if (!janela) return
+    const campo = nome => janela.querySelector(`[name="${nome}"]`)?.value ?? ''
+    try {
+        overlayAguarde()
+        await apiModuloFiscal('fluxo-itens/recorrencia-editar', {
+            id: recorrenciaId, valor: Number(campo('valor')), periodicidade_meses: Number(campo('periodicidade_meses')),
+            meses: campo('meses'), parcela_atual: campo('parcela_atual'), parcelas_total: campo('parcelas_total'),
+            descricao_modelo: campo('descricao_modelo')
+        })
+        removerOverlay()
+        removerPopup(janela.id)
+        await carregarFluxo()
+        abrirRecorrenciaFluxo(recorrenciaId)
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+// "Repetir todo mês" num cartão de serviço faturado: a última NFS-e dele vira o modelo das próximas.
+function criarRecorrenciaFluxo(id) {
+    const c = itemFluxo(id)
+    if (!c) return
+    const elemento = `
+        <div class="fis-form fluxo-rec-form">
+            <div class="fluxo-receb-topo"><small>${escEst([c.contrato || c.departamento, c.empresa].filter(Boolean).join(' · '))}</small><b>${escEst(c.cliente || '')}</b></div>
+            <p class="fluxo-receb-nota">A última NFS-e deste cartão vira o modelo: no mês devido aparece em Pedidos uma nota prevista, com o mesmo
+                cliente, valor e descrição (o mês e a parcela são trocados sozinhos), para gerar ou descartar.</p>
+            <div class="fluxo-rec-grade">
+                <label class="fluxo-receb-campo"><span>Periodicidade</span><select name="periodicidade_meses">${opcoesPeriodicidadeFluxo(1)}</select></label>
+                <label class="fluxo-receb-campo"><span>Quantidade de notas</span><input name="meses" type="number" min="1" step="1" placeholder="vazio = até desativar"></label>
+            </div>
+        </div>`
+    popup({ titulo: 'Repetir esta nota', elemento, botoes: [{ texto: 'Tornar recorrente', img: 'concluido', funcao: `confirmarCriarRecorrenciaFluxo(this, '${escaparAtributo(id)}')` }] })
+}
+
+async function confirmarCriarRecorrenciaFluxo(botao, id) {
+    const janela = botao.closest('.popup')
+    if (!janela) return
+    try {
+        overlayAguarde()
+        const r = await apiModuloFiscal('fluxo-itens/recorrencia-criar', {
+            item_id: id,
+            periodicidade_meses: Number(janela.querySelector('[name="periodicidade_meses"]')?.value) || 1,
+            meses: janela.querySelector('[name="meses"]')?.value ?? ''
+        })
+        removerOverlay()
+        removerPopup(janela.id)
+        await carregarFluxo()
+        abrirRecorrenciaFluxo(r.id)
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
