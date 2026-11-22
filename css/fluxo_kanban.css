@@ -709,3 +709,5 @@
     font-size: 13px;
     resize: vertical;
 }
+.fluxo-rec-prazo.hoje { color: #b45309; font-weight: 700; }
+.fluxo-rec-prazo.atrasado { color: #b91c1c; font-weight: 700; }

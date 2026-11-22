@@ -1237,14 +1237,34 @@ function cartoesRecorrentesFluxo(recorrencias) {
         etapa: 'pedido', data: hoje, desde: hoje, mes: String(p.mes || '').slice(0, 10),
         contrato: p.contrato, orcamento_id: p.orcamento_id, empresa: p.empresa, cliente: p.cliente, cidade: p.cidade,
         valor: Number(p.valor) || 0, valor_pedido: 0,  // não soma no total de Pedidos: ainda não é nota
-        parcela: p.parcela, parcelas_total: p.parcelas_total, base_texto: p.base_texto
+        parcela: p.parcela, parcelas_total: p.parcelas_total, base_texto: p.base_texto,
+        dia: Number(p.dia) || null, data_emissao: dataEmissaoRecorrenteFluxo(p.mes, p.dia)
     }))
+}
+
+// Dia da emissão no mês (31 em fevereiro = último dia do mês). Sem dia: null.
+function dataEmissaoRecorrenteFluxo(mes, dia) {
+    const m = String(mes || '').match(/^(\d{4})-(\d{2})/)
+    if (!m || !(Number(dia) >= 1)) return null
+    const ultimo = new Date(Date.UTC(Number(m[1]), Number(m[2]), 0)).getUTCDate()
+    return `${m[1]}-${m[2]}-${String(Math.min(Number(dia), ultimo)).padStart(2, '0')}`
+}
+
+// "Emitir dia 15 · faltam 3 dias" / "Emitir hoje" / "Atrasada desde dia 15".
+function prazoRecorrenteFluxo(c) {
+    if (!c.data_emissao) return { texto: 'Prevista: gere a NFS-e ou descarte este mês', classe: '' }
+    const dia = Number(c.data_emissao.slice(8, 10))
+    const faltam = -diasDesdeFluxo(c.data_emissao)
+    if (faltam > 0) return { texto: `Emitir dia ${dia} · falta${faltam > 1 ? 'm' : ''} ${faltam} dia${faltam > 1 ? 's' : ''}`, classe: '' }
+    if (faltam === 0) return { texto: 'Emitir hoje', classe: 'hoje' }
+    return { texto: `Atrasada desde dia ${dia}`, classe: 'atrasado' }
 }
 
 function cartaoRecorrenteFluxo(c) {
     const id = escaparAtributo(c.id)
     const acao = `abrirRecorrenciaFluxo(${Number(c.recorrencia_id)})`
     const parcela = c.parcela ? `Parcela ${c.parcela}${c.parcelas_total ? `/${c.parcelas_total}` : ''} · ` : ''
+    const prazo = prazoRecorrenteFluxo(c)
     return `
         <article class="fluxo-cartao fluxo-item fluxo-recorrente clicavel" data-id="${id}" tabindex="0"
             title="Nota recorrente prevista para ${escaparAtributo(mesLongoFluxo(c.mes))}: arraste para Em preparação para gerar a NFS-e"
@@ -1256,7 +1276,7 @@ function cartaoRecorrenteFluxo(c) {
             <b class="fluxo-cartao-nome">${escaparAtributo(c.cliente || 'Cliente não informado')}</b>
             <span class="fluxo-cartao-balao">${etiquetaEst(`Recorrente · ${mesCurtoFluxo(c.mes)}`, '#0f766e')}</span>
             ${c.cidade ? `<small>${escaparAtributo(c.cidade)}</small>` : ''}
-            <small class="fluxo-cartao-contexto">${parcela}Prevista: gere a NFS-e ou descarte este mês</small>
+            <small class="fluxo-cartao-contexto">${parcela}<span class="fluxo-rec-prazo ${prazo.classe}">${escaparAtributo(prazo.texto)}</span></small>
             <span class="fluxo-cartao-valor">${reaisFluxo(c.valor)} <small>${c.empresa ? `${escaparAtributo(c.empresa)} · ` : ''}como a nota anterior</small></span>
         </article>`
 }
@@ -1431,7 +1451,7 @@ async function abrirRecorrenciaFluxo(recorrenciaId) {
             </div>
             <div class="fluxo-receb-resumo">
                 <div><span>${p ? 'Valor previsto' : 'Valor'}</span><b>${reaisFluxo(p?.valor ?? r.valor)}</b></div>
-                <div><span>Periodicidade</span><b>${esc(textoPeriodicidadeFluxo(r.periodicidade_meses))}</b></div>
+                <div><span>Periodicidade</span><b>${esc(textoPeriodicidadeFluxo(r.periodicidade_meses))}${r.dia ? `, dia ${esc(r.dia)}` : ''}</b></div>
                 <div><span>Até quando</span><b>${esc(fim)}</b></div>
             </div>
             ${p ? `<div class="fluxo-rec-bloco"><span>Descrição da nota de ${esc(mesLongoFluxo(String(p.mes).slice(0, 10)))}${parcela}</span>
@@ -1474,13 +1494,13 @@ async function editarRecorrenciaFluxo(recorrenciaId) {
             <div class="fluxo-rec-grade">
                 <label class="fluxo-receb-campo"><span>Valor da nota (R$)</span><input name="valor" type="number" min="0.01" step="0.01" value="${esc(Number(r.valor))}"></label>
                 <label class="fluxo-receb-campo"><span>Periodicidade</span><select name="periodicidade_meses">${opcoesPeriodicidadeFluxo(r.periodicidade_meses)}</select></label>
+                <label class="fluxo-receb-campo"><span>Dia da emissão</span><input name="dia" type="number" min="1" max="31" step="1" value="${esc(r.dia ?? '')}" placeholder="qualquer dia"></label>
                 <label class="fluxo-receb-campo"><span>Quantidade de notas</span><input name="meses" type="number" min="1" step="1" value="${esc(r.meses ?? '')}" placeholder="vazio = até desativar"></label>
                 <label class="fluxo-receb-campo"><span>Parcela da próxima nota</span><input name="parcela_atual" type="number" min="1" step="1" value="${esc(parcelaProxima)}" placeholder="sem parcela"></label>
                 <label class="fluxo-receb-campo"><span>Total de parcelas</span><input name="parcelas_total" type="number" min="1" step="1" value="${esc(r.parcelas_total ?? '')}" placeholder="sem fim"></label>
             </div>
             <label class="fluxo-receb-campo"><span>Descrição da nota</span>
                 <textarea name="descricao_modelo" rows="7">${esc(r.descricao_modelo || '')}</textarea></label>
-            <small class="fluxo-receb-nota">Na descrição, {MES} vira o mês da nota, {MES_ANTERIOR} o mês anterior (com {ANO} e {ANO_MES_ANTERIOR}) e {PARCELA} o número da parcela.</small>
         </div>`
     popup({ titulo: 'Editar nota recorrente', elemento, botoes: [{ texto: 'Salvar', img: 'concluido', funcao: `salvarRecorrenciaFluxo(this, ${Number(r.id)})` }] })
 }
@@ -1493,7 +1513,7 @@ async function salvarRecorrenciaFluxo(botao, recorrenciaId) {
         overlayAguarde()
         await apiModuloFiscal('fluxo-itens/recorrencia-editar', {
             id: recorrenciaId, valor: Number(campo('valor')), periodicidade_meses: Number(campo('periodicidade_meses')),
-            meses: campo('meses'), parcela_atual: campo('parcela_atual'), parcelas_total: campo('parcelas_total'),
+            meses: campo('meses'), dia: campo('dia'), parcela_atual: campo('parcela_atual'), parcelas_total: campo('parcelas_total'),
             descricao_modelo: campo('descricao_modelo')
         })
         removerOverlay()
@@ -1517,6 +1537,7 @@ function criarRecorrenciaFluxo(id) {
                 cliente, valor e descrição (o mês e a parcela são trocados sozinhos), para gerar ou descartar.</p>
             <div class="fluxo-rec-grade">
                 <label class="fluxo-receb-campo"><span>Periodicidade</span><select name="periodicidade_meses">${opcoesPeriodicidadeFluxo(1)}</select></label>
+                <label class="fluxo-receb-campo"><span>Dia da emissão</span><input name="dia" type="number" min="1" max="31" step="1" placeholder="o da nota"></label>
                 <label class="fluxo-receb-campo"><span>Quantidade de notas</span><input name="meses" type="number" min="1" step="1" placeholder="vazio = até desativar"></label>
             </div>
         </div>`
@@ -1531,7 +1552,8 @@ async function confirmarCriarRecorrenciaFluxo(botao, id) {
         const r = await apiModuloFiscal('fluxo-itens/recorrencia-criar', {
             item_id: id,
             periodicidade_meses: Number(janela.querySelector('[name="periodicidade_meses"]')?.value) || 1,
-            meses: janela.querySelector('[name="meses"]')?.value ?? ''
+            meses: janela.querySelector('[name="meses"]')?.value ?? '',
+            dia: janela.querySelector('[name="dia"]')?.value ?? ''
         })
         removerOverlay()
         removerPopup(janela.id)
