@@ -4,7 +4,7 @@
 // analista (pelo e-mail do contato). SÓ LEITURA: nada aqui marca aviso como lido (gcs /notificacoes/painel
 // e /notificacoes/painel-usuario).
 
-const estadoPainelPend = { usuarios: [], busca: '', ordem: 'pendencias', desligados: false, idJanela: null }
+const estadoPainelPend = { usuarios: [], busca: '', ordem: 'pendencias', desligados: false }
 
 const FONTES_PAINEL_PEND = {
     pendencias: 'Etapas de chamado', promessas: 'Pedidos pendentes', pagamentos: 'Pagamentos', rh: 'RH',
@@ -19,16 +19,17 @@ async function abrirPainelPendencias() {
     try {
         const { usuarios } = await chamarNotificacoes('painel')
         estadoPainelPend.usuarios = usuarios || []
+        removerOverlay()
     } catch (err) {
+        removerOverlay()
         return popup({ mensagem: err.message || 'Não foi possível abrir o painel.' })
     }
     const esc = escaparAtributo
-    const janelaAberta = estadoPainelPend.idJanela && document.getElementById(estadoPainelPend.idJanela)
-    if (janelaAberta) removerPopup(estadoPainelPend.idJanela)
-    estadoPainelPend.idJanela = popup({
-        titulo: 'Pendências dos usuários',
-        elemento: `
-            <div class="painel-pend">
+    // Tela inteira (antes era popup); o detalhe de cada pessoa continua abrindo por cima, em popup.
+    tela.innerHTML = `
+        <div class="pagina-conteudo">
+            <div class="cabecalho-pagina"><h2>Pendências dos usuários</h2></div>
+            <div class="painel-pend painel-pend-tela">
                 <div class="painel-pend-barra">
                     <input type="search" placeholder="Buscar pessoa, login, permissão ou setor" value="${esc(estadoPainelPend.busca)}"
                         oninput="estadoPainelPend.busca = this.value; desenharPainelPend()">
@@ -43,13 +44,13 @@ async function abrirPainelPendencias() {
                 <div class="painel-pend-resumo"></div>
                 <small class="painel-pend-nota">Só para ver: abrir este painel não marca nenhum aviso como lido.</small>
                 <div class="painel-pend-lista"></div>
-            </div>`
-    })
+            </div>
+        </div>`
     desenharPainelPend()
 }
 
 function desenharPainelPend() {
-    const painel = document.getElementById(estadoPainelPend.idJanela)?.querySelector('.painel-pend')
+    const painel = tela.querySelector('.painel-pend-tela')
     if (!painel) return
     const esc = escaparAtributo
     const termo = String(estadoPainelPend.busca || '').trim().toLowerCase()
@@ -63,21 +64,35 @@ function desenharPainelPend() {
                 : (totalPendPainel(b) - totalPendPainel(a)) || (b.avisos - a.avisos))
 
     const soma = campo => lista.reduce((s, u) => s + (Number(u[campo]) || 0), 0)
-    painel.querySelector('.painel-pend-resumo').innerHTML = `
-        <span><b>${lista.length}</b> pessoas</span>
-        <span><b>${soma('pedidos_pendentes')}</b> pedidos pendentes</span>
-        <span><b>${soma('chamados')}</b> etapas de chamado</span>
-        <span><b>${soma('orcamentos')}</b> orçamentos em andamento</span>
-        <span><b>${soma('avisos')}</b> avisos não lidos</span>`
+    const milhar = n => Number(n || 0).toLocaleString('pt-BR')
+    // Cor de cada coluna, repetida no cartão do resumo e na barrinha da tabela.
+    const COR = { pedidos: '#d97706', chamados: '#2563eb', orcamentos: '#2f6b45', avisos: '#94a3b8' }
+    const kpi = (n, rotulo, cor = '#2f6b45') => `<div class="painel-pend-kpi" style="--cor: ${cor}"><b>${milhar(n)}</b><span>${rotulo}</span></div>`
+    painel.querySelector('.painel-pend-resumo').innerHTML =
+        kpi(lista.length, 'pessoas', '#475569') +
+        kpi(soma('pedidos_pendentes'), 'pedidos pendentes', COR.pedidos) +
+        kpi(soma('chamados'), 'etapas de chamado', COR.chamados) +
+        kpi(soma('orcamentos'), 'orçamentos em andamento', COR.orcamentos) +
+        kpi(soma('avisos'), 'avisos não lidos', COR.avisos)
 
-    const numero = (n, extra = '') => Number(n) ? `<b>${Number(n)}</b>${extra}` : '<span class="zero">—</span>'
+    // Barrinha proporcional ao maior valor da coluna na lista filtrada: mostra de relance quem está mais carregado.
+    const maior = campo => Math.max(1, ...lista.map(u => Number(u[campo]) || 0))
+    const max = { pedidos_pendentes: maior('pedidos_pendentes'), chamados: maior('chamados'), orcamentos: maior('orcamentos'), avisos: maior('avisos') }
+    const numero = (u, campo, cor, extra = '') => {
+        const n = Number(u[campo]) || 0
+        if (!n) return '<span class="zero">—</span>'
+        return `<span class="painel-pend-num"><b>${milhar(n)}</b><i style="--cor: ${cor}; --p: ${(n / max[campo]).toFixed(3)}"></i>${extra}</span>`
+    }
+    const iniciais = nome => String(nome || '').trim().split(/\s+/).filter(Boolean)
+        .filter((p, i, a) => i === 0 || i === a.length - 1).map(p => p[0]).join('').toUpperCase() || '?'
+
     painel.querySelector('.painel-pend-lista').innerHTML = `
         <table class="painel-pend-tabela">
             <thead><tr>
-                <th>Pessoa</th><th title="Lançados pela pessoa (+ assumidos de quem saiu)">Pedidos pendentes</th>
-                <th title="Chamados em que a pessoa é executora da etapa atual">Etapas de chamado</th>
-                <th title="Orçamentos em andamento com o contato da pessoa como analista">Orçamentos</th>
-                <th>Avisos não lidos</th>
+                <th>Pessoa</th><th class="num" title="Lançados pela pessoa (+ assumidos de quem saiu)">Pedidos pend.</th>
+                <th class="num" title="Chamados em que a pessoa é executora da etapa atual">Etapas chamado</th>
+                <th class="num" title="Orçamentos em andamento com o contato da pessoa como analista">Orçamentos</th>
+                <th class="num">Avisos não lidos</th>
             </tr></thead>
             <tbody>${lista.map(u => {
                 const fontes = Object.entries(u.avisos_fontes || {}).sort((a, b) => b[1] - a[1])
@@ -86,15 +101,19 @@ function desenharPainelPend() {
                 <tr class="${u.desligado ? 'desligado' : ''}" tabindex="0" onclick="abrirPendenciasUsuario('${esc(u.usuario)}')"
                     onkeydown="if (event.key === 'Enter') abrirPendenciasUsuario('${esc(u.usuario)}')">
                     <td>
-                        <span class="painel-pend-pessoa"><i class="presenca ${u.presenca === 'online' ? 'on' : ''}" title="${u.presenca === 'online' ? 'Online' : 'Offline'}"></i>
-                            <b>${esc(u.nome || u.usuario)}</b></span>
-                        <small>${esc(u.usuario)}${u.permissao ? ` · ${esc(u.permissao)}` : ''}${u.setor ? ` · ${esc(u.setor)}` : ''}</small>
-                        ${u.desligado ? `<small class="painel-pend-deslig">Desligado${u.responsavel ? ` · pendências com ${esc(u.responsavel)}` : ' · sem responsável'}</small>` : ''}
+                        <div class="painel-pend-pessoa">
+                            <span class="painel-pend-avatar">${esc(iniciais(u.nome || u.usuario))}<i class="presenca ${u.presenca === 'online' ? 'on' : ''}" title="${u.presenca === 'online' ? 'Online' : 'Offline'}"></i></span>
+                            <div class="painel-pend-pessoa-texto">
+                                <b title="${esc(u.nome || u.usuario)}">${esc(u.nome || u.usuario)}</b>
+                                <small>${esc(u.usuario)}${u.permissao ? ` · ${esc(u.permissao)}` : ''}${u.setor ? ` · ${esc(u.setor)}` : ''}</small>
+                                ${u.desligado ? `<small class="painel-pend-deslig">Desligado${u.responsavel ? ` · pendências com ${esc(u.responsavel)}` : ' · sem responsável'}</small>` : ''}
+                            </div>
+                        </div>
                     </td>
-                    <td>${numero(u.pedidos_pendentes, Number(u.pedidos_assumidos) ? ` <small>+${u.pedidos_assumidos} assumidos</small>` : '')}</td>
-                    <td>${numero(u.chamados)}</td>
-                    <td>${numero(u.orcamentos)}</td>
-                    <td title="${esc(fontes)}">${numero(u.avisos)}</td>
+                    <td class="num">${numero(u, 'pedidos_pendentes', COR.pedidos, Number(u.pedidos_assumidos) ? `<small>+${u.pedidos_assumidos} assumidos</small>` : '')}</td>
+                    <td class="num">${numero(u, 'chamados', COR.chamados)}</td>
+                    <td class="num">${numero(u, 'orcamentos', COR.orcamentos)}</td>
+                    <td class="num" title="${esc(fontes)}">${numero(u, 'avisos', COR.avisos)}</td>
                 </tr>`
             }).join('') || '<tr><td colspan="5" class="painel-pend-vazio">Ninguém encontrado.</td></tr>'}</tbody>
         </table>`
