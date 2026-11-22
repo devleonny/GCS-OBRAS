@@ -157,6 +157,22 @@ const normPedidoCliente = t => String(t || '').replace(/[^A-Za-z0-9]/g, '').toUp
 const ehPromessaPedido = (situacao, valor) =>
     ['sem pedido', 'pedido pendente', ''].includes(String(situacao || '').trim().toLowerCase()) || !(Number(valor) > 10)
 
+function avisoValorPedido(valor, totalOrcamento) {
+    const total = Number(totalOrcamento) || 0
+    if (!(valor > 0)) return ''
+    if (total <= 10)
+        return `O orçamento está com ${dinheiro(total)}: ainda não tem preço.<br><br>
+            Se o cliente ainda não mandou a OC, marque <b>Pedido pendente</b> (o GCS cobra a OC depois).
+            Se a OC chegou, precifique o orçamento antes de lançar o pedido.`
+    if (Math.abs(valor * 1000 - total) <= Math.max(1, total * 0.01))
+        return `O pedido ficou com ${dinheiro(valor)} e o orçamento é de ${dinheiro(total)}.<br><br>
+            Parece que o ponto de milhar virou decimal: o valor certo não seria <b>${dinheiro(valor * 1000)}</b>?`
+    if (valor < total * 0.05)
+        return `O pedido (${dinheiro(valor)}) é menos de 5% do orçamento (${dinheiro(total)}).<br><br>
+            Confira o valor. Se a OC cobre só uma parte, tudo bem: o restante fica como "sem pedido".`
+    return ''
+}
+
 async function painelAdicionarPedido(id = crypto.randomUUID()) {
 
     overlayAguarde()
@@ -220,7 +236,7 @@ async function painelAdicionarPedido(id = crypto.randomUUID()) {
         .join('')
     // As OCs já lançadas servem para recusar a mesma OC duas vezes.
     const saldoOrc = await apiModuloFiscal('fluxo-itens/saldo', { contrato: departamento || depAtivo }).catch(() => null)
-    estadoFormPedido = { id, outros: (saldoOrc?.pedidos || []).filter(p => p.id !== id) }
+    estadoFormPedido = { id, outros: (saldoOrc?.pedidos || []).filter(p => p.id !== id), total: Number(saldoOrc?.total_orcamento) || 0 }
     let valorInicial = Number(valor) > 10 ? valor : ''
 
     const linhas = [
@@ -346,6 +362,15 @@ async function salvarPedido(id) {
         // Pedido pendente aceita só o status; os dados comerciais ficam para quando o pedido for completado.
         if (!pendente && !(Number(valor.value) > 10))
             return popup({ mensagem: 'Informe o valor do pedido (acima de R$ 10).' })
+
+        // Valor que não bate com o orçamento (22/11/2026): ponto de milhar digitado como decimal (12.333 → R$ 12,33),
+        // orçamento sem preço (R$ 1 só para abrir chamado) ou pedido muito abaixo do orçamento. Avisa e deixa salvar.
+        const avisoValor = pendente ? '' : avisoValorPedido(Number(valor.value), estadoFormPedido?.total)
+        if (avisoValor) {
+            const seguir = await confirmarPopup({ titulo: 'Confira o valor do pedido', mensagem: avisoValor, textoConfirmar: 'Salvar assim mesmo' })
+            if (!seguir) return
+            overlayAguarde()
+        }
 
         // Cumprindo a promessa com número: a OC do cliente vai anexada.
         const comNumero = !ehPromessaPedido(pedido.value, valor.value) && !/e-?mail/i.test(pedido.value)
