@@ -591,6 +591,18 @@ async function confirmarAprovarPagamentoPaceiro(idOcorrencia, idCorrecaoLpuParce
         if (!usuarioTecnico)
             return popup({ mensagem: 'Por alguma razão o técnico não existe na LPU: Fale com o suporte.' })
 
+        // O que quem montou a LPU escreveu e anexou, e o comentário desta parcela, para o gerente decidir.
+        const lpu = await recuperarDado('parceiros', lpu_id || idCorrecaoLpuParceiro) || {}
+        const comentarioLpu = String(lpu.comentario || '').trim()
+        const comentarioParcela = String(lpu.solicitacoes?.[idCorrecaoLpuParceiro]?.comentario || '').trim()
+        const anexosLpu = Object.values(lpu.anexos || {})
+            .filter(a => a?.link)
+            .map(a => criarAnexoVisual(escaparAtributo(a.nome || a.link), escaparAtributo(a.link)))
+            .join('')
+        const blocoTexto = (titulo, texto) => texto
+            ? `<div style="text-align: left; width: 100%;"><b>${titulo}</b><div style="white-space: pre-wrap; margin-top: 2px;">${escaparAtributo(texto)}</div></div>`
+            : ''
+
         const linhas = [
             {
                 elemento: `
@@ -599,6 +611,14 @@ async function confirmarAprovarPagamentoPaceiro(idOcorrencia, idCorrecaoLpuParce
                     <button onclick="gerarPdfParceiro('${lpu_id || idCorrecaoLpuParceiro}', true)">Ver LPU</button>
                     `
             },
+            ...(comentarioLpu || comentarioParcela || anexosLpu ? [{
+                elemento: `
+                    <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 480px;">
+                        ${blocoTexto('Comentário da LPU', comentarioLpu)}
+                        ${blocoTexto('Comentário desta parcela', comentarioParcela)}
+                        ${anexosLpu ? `<div style="text-align: left; width: 100%;"><b>Anexos da LPU</b><div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">${anexosLpu}</div></div>` : ''}
+                    </div>`
+            }] : []),
             {
                 texto: '(7 dias) Adiantamento de Parceiro',
                 elemento: `<input data-modalidade="1" name="modalidade" type="radio">`
