@@ -69,10 +69,13 @@ async function modTab(configuracoes) {
                     </th>`
 
             if (query.tipoPesquisa == 'select') {
-                const dados = await contarPorCampo({
-                    base,
-                    path: query.chave
-                })
+                // opcoes (opcional): lista fixa, sem contar a base inteira antes de abrir a tela.
+                const dados = Array.isArray(query.opcoes)
+                    ? Object.fromEntries(query.opcoes.map(op => [op, 0]))
+                    : await contarPorCampo({
+                        base,
+                        path: query.chave
+                    })
 
                 const opcoes = Object.keys(dados)
                     .filter(r => r != 'todos' && r != 'EM BRANCO')
