@@ -118,7 +118,6 @@ async function criarLinhaOrcamento(orcamento) {
         id,
         usuario,
         dados_orcam,
-        departamento_existente,
         vinculados,
         nomes_status,
         timestamp,
@@ -240,12 +239,6 @@ async function criarLinhaOrcamento(orcamento) {
                 <div style="${vertical}; gap: 5px;">
                     <div style="${vertical}; gap: 2px;">
                         ${labelTipoCorrecao || '<span>SEM STATUS</span>'}
-                    </div>
-                    <div style="${horizontal}; width: 100%; justify-content: end; gap: 5px;">
-                        <img onclick="verHistoricoStatus('${id}', '${contrato}')" src="imagens/historico.png"
-                            title="Histórico" alt="Histórico" style="width: 1.5rem; cursor: pointer;">
-                        <span>Dep</span>
-                        <img src="imagens/${departamento_existente ? 'concluido' : 'cancel'}.png" style="width: 1.5rem;">
                     </div>
                 </div>
             </td>

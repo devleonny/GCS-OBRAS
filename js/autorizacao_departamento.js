@@ -34,19 +34,35 @@ function rastreioAutorizacaoDepartamento(autorizacao) {
 
 // Chamado por salvarPagamento antes de enviar. Resolve quando não precisa ou foi aprovado (marca os
 // itens do rateio com o id do pedido; o servidor troca pelo rastreio); lança erro se negado/expirado.
-async function autorizarSetoresPagamento(pagamento, idPagamento) {
+// statusAnterior: o status antes do "Processando..." do salvar (edição de pagamento já existente).
+async function autorizarSetoresPagamento(pagamento, idPagamento, statusAnterior = '') {
     const estavel = pagamento?.param_estavel || {}
     const distribuicao = Array.isArray(estavel.distribuicao) ? estavel.distribuicao : []
     distribuicao.forEach(d => delete d.autorizacao)
 
+    const departamentos = distribuicao.map(d => d.cCodDep)
+    // Só monta o resto do formulário quando vai mesmo pedir (evita a consulta do cadastro à toa).
+    const precisa = departamentos.some(ehSetorDepartamento) && !pode('reembolsos.aprovar_setor')
+    const recebedor = precisa && estavel.codigo_cliente_fornecedor
+        ? await recuperarDado('clientes', estavel.codigo_cliente_fornecedor).catch(() => null)
+        : null
+
     const pedido = await autorizarSetores({
         origem: 'pagamento',
         referenciaId: idPagamento,
-        departamentos: distribuicao.map(d => d.cCodDep),
+        departamentos,
         contexto: {
             fornecedor: pagamento.snapshots?.cliente || '',
+            documento: recebedor?.cnpj || '',
+            empresa: pagamento.app || '',
             valor: estavel.valor_documento,
+            data_pagamento: estavel.data_vencimento || '',
+            chave_pix: estavel.chave_pix || '',
             observacao: estavel.observacao || '',
+            edicao: !!pagamento.id,
+            status_atual: statusAnterior || '',
+            categorias: (estavel.categorias || []).map(c => ({ categoria: c.codigo_categoria, valor: c.valor })),
+            anexos: Object.values(pagamento.anexos || {}).map(a => ({ nome: a.nome, link: a.link })),
             rateio: distribuicao.map(d => ({ departamento: d.cCodDep, valor: d.nValDep }))
         }
     })
@@ -67,6 +83,9 @@ async function autorizarSetoresCombustivel(dados) {
         contexto: {
             veiculo: [dados.veiculo?.placa, dados.veiculo?.modelo].filter(Boolean).join(' - '),
             valor: dados.custo_total,
+            data_pagamento: /^\d{4}-\d{2}-\d{2}$/.test(dados.data_pagamento || '')
+                ? dados.data_pagamento.split('-').reverse().join('/') : String(dados.data_pagamento || ''),
+            motoristas: [dados.veiculo?.nomes_motoristas, dados.veiculo?.snapshots?.motoristas].find(Array.isArray) || [],
             observacao: dados.comentario || '',
             rateio: itens.map(d => ({ departamento: d.departamento, km: d.km }))
         }
@@ -180,19 +199,33 @@ function mostrarPedidoAutorizacaoDep({ id, solicitante, departamentos = [], cont
         return `<li class="${setor ? 'autorizacao-dep-setor' : ''}">${escaparAtributo(r.departamento)} → ${quanto}</li>`
     }).join('')
 
+    const categorias = (contexto.categorias || [])
+        .map(c => `<li>${escaparAtributo(c.categoria)} → ${dinheiro(c.valor)}</li>`).join('')
+    const anexos = (contexto.anexos || [])
+        .map(a => `<a href="${api}/uploads/${encodeURIComponent(a.link)}" target="_blank" rel="noopener">📎 ${escaparAtributo(a.nome || a.link)}</a>`)
+        .join('')
+    const linha = (rotulo, valor) => valor ? `<span>${rotulo}: <b>${escaparAtributo(valor)}</b></span>` : ''
+    const recebedor = [contexto.fornecedor, contexto.documento].filter(Boolean).join(' — ')
+
     const idPopup = popup({
         titulo: 'Pedido de autorização',
         modal: true,
         confirmarFechar: false,
         elemento: `
             <div class="autorizacao-dep" style="align-items: stretch; text-align: left;">
-                <span><b>${escaparAtributo(solicitante)}</b> quer lançar ${combustivel ? 'um abastecimento' : 'um pagamento'} em
+                <span><b>${escaparAtributo(solicitante)}</b> quer ${contexto.edicao ? 'editar' : 'lançar'} ${combustivel ? 'um abastecimento' : 'um pagamento'} em
                     <b>${escaparAtributo(departamentos.join(', '))}</b> (departamento de setor).</span>
-                ${contexto.fornecedor ? `<span>Recebedor: <b>${escaparAtributo(contexto.fornecedor)}</b></span>` : ''}
-                ${contexto.veiculo ? `<span>Veículo: <b>${escaparAtributo(contexto.veiculo)}</b></span>` : ''}
-                <span>Valor: <b>${dinheiro(contexto.valor || 0)}</b></span>
-                ${rateio ? `<ul class="autorizacao-dep-rateio">${rateio}</ul>` : ''}
-                ${contexto.observacao ? `<small style="white-space: pre-wrap;">${escaparAtributo(contexto.observacao)}</small>` : ''}
+                ${contexto.edicao && contexto.status_atual ? `<small>Pagamento já existente, hoje <b>${escaparAtributo(contexto.status_atual)}</b>.</small>` : ''}
+                ${linha('Empresa', contexto.empresa)}
+                ${linha('Recebedor', recebedor)}
+                ${linha('Chave PIX', contexto.chave_pix)}
+                ${linha('Veículo', contexto.veiculo)}
+                ${linha('Motoristas', (contexto.motoristas || []).join(', '))}
+                <span>Valor: <b>${dinheiro(contexto.valor || 0)}</b>${contexto.data_pagamento ? ` · Pagamento em <b>${escaparAtributo(contexto.data_pagamento)}</b>` : ''}</span>
+                ${rateio ? `<span>Centro de custo:</span><ul class="autorizacao-dep-rateio">${rateio}</ul>` : ''}
+                ${categorias ? `<span>Categorias:</span><ul class="autorizacao-dep-rateio">${categorias}</ul>` : ''}
+                ${contexto.observacao ? `<span>Observação:</span><small style="white-space: pre-wrap;">${escaparAtributo(contexto.observacao)}</small>` : ''}
+                ${anexos ? `<span>Anexos:</span><div class="autorizacao-dep-anexos">${anexos}</div>` : ''}
                 <textarea id="comentario-autorizacao-${id}" rows="3" placeholder="Comentário (obrigatório para negar)"></textarea>
             </div>`,
         botoes: [

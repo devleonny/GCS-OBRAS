@@ -492,6 +492,7 @@ async function abrirDetalhesPagamentos(id) {
                         </div>
                         <span class="pag-orc-cliente">${escaparAtributo(cliente || '...')}</span>
                         ${listaTags ? `<div class="pag-orc-tags">${listaTags}</div>` : ''}
+                        ${botaoChamadoPagamento(contrato || dados_orcam?.contrato)}
                     </div>`
             })
             .join('')
@@ -522,6 +523,7 @@ async function abrirDetalhesPagamentos(id) {
                 return `
                     <div style="${horizontal}; justify-content: start; gap: 2px;">
                         <button onclick="painelCustos('${departamento}')">Ver Custos</button>
+                        ${botaoChamadoPagamento(departamento)}
                         <span><b>${departamento}</b> → ${dinheiro(valor)}</span>
                     </div>
                     ${rastreioAutorizacaoDepartamento(autorizacoesDep.get(String(departamento)))}
@@ -587,16 +589,177 @@ async function abrirDetalhesPagamentos(id) {
         const telaDetalhes = document.querySelector('.tela-detalhes')
         if (telaDetalhes) {
             removerOverlay()
-            return telaDetalhes.innerHTML = acumulado
+            telaDetalhes.innerHTML = acumulado
+            return mostrarBotoesChamadoPagamento(telaDetalhes)
         }
 
         popup({ elemento: `<div class="tela-detalhes">${acumulado}</div>`, titulo: 'Detalhes do Pagamento', botoes: acoesRodape })
+        mostrarBotoesChamadoPagamento(document.querySelector('.tela-detalhes'))
 
     } catch (err) {
         console.error(err)
         popup({ mensagem: 'Falha ao abrir detalhes do pagamento: Fale com o suporte.' })
     }
 
+}
+
+// ---------- Chamado do departamento (ORC_xxx / Gxxx) direto no pagamento ----------
+// O diretor vê dados, anexos, fotos e correções do chamado num popup só de leitura,
+// sem sair dos Detalhes do Pagamento. O botão nasce escondido e só aparece quando o
+// chamado existe (id do chamado = código do departamento).
+const chamadosPagamentoCache = new Map()
+
+function botaoChamadoPagamento(departamento) {
+    const dep = String(departamento || '').trim()
+    if (!dep) return ''
+    return `<button type="button" class="pag-chamado-btn" hidden data-chamado-pag="${escaparAtributo(dep)}"
+        title="Ver o chamado ${escaparAtributo(dep)} sem sair do pagamento"
+        onclick="event.stopPropagation(); abrirChamadoPagamento(this.dataset.chamadoPag)"
+        onkeydown="event.stopPropagation()">Ver chamado</button>`
+}
+
+async function buscarChamadoPagamento(id, recarregar = false) {
+    if (!recarregar && chamadosPagamentoCache.has(id)) return chamadosPagamentoCache.get(id)
+    const busca = recuperarDado('vw_dados_ocorrencias', id)
+        .then(chamado => chamado?.id ? chamado : null)
+        .catch(() => null)
+    chamadosPagamentoCache.set(id, busca)
+    const chamado = await busca
+    if (!chamado) chamadosPagamentoCache.delete(id) // pode ser criado depois
+    return chamado
+}
+
+async function mostrarBotoesChamadoPagamento(container) {
+    if (!container) return
+    const botoes = [...container.querySelectorAll('[data-chamado-pag]')]
+    const ids = [...new Set(botoes.map(b => b.dataset.chamadoPag))]
+    await Promise.all(ids.map(async id => {
+        const chamado = await buscarChamadoPagamento(id, true)
+        if (chamado) botoes.filter(b => b.dataset.chamadoPag === id).forEach(b => b.hidden = false)
+    }))
+}
+
+async function abrirChamadoPagamento(id) {
+    overlayAguarde()
+    const chamado = await buscarChamadoPagamento(id)
+    if (!chamado) {
+        removerOverlay()
+        return popup({ mensagem: `Não há chamado para ${escaparAtributo(id)} (ou você não tem acesso a ele).` })
+    }
+
+    const texto = v => escaparAtributo(v ?? '')
+    const campo = (rotulo, valor) => valor
+        ? `<div class="pag-chamado-campo"><b>${rotulo}</b><div>${valor}</div></div>`
+        : ''
+    const anexosDe = anexos => Object.values(anexos || {})
+        .filter(a => a?.link)
+        .map(a => criarAnexoVisual(a.nome || 'arquivo', a.link, false))
+        .join('')
+    const fotosDe = fotos => Object.keys(fotos || {})
+        .map(link => `<img class="foto" src="${api}/uploads/${texto(link)}" onclick="ampliarImagem(this)">`)
+        .join('')
+    const data = d => /^\d{4}-\d{2}-\d{2}$/.test(d || '') ? dtFormatada(d) : texto(d)
+
+    const { cliente, correcoes, snapshots, equipamentos, contratos_vinculados } = chamado
+    const anexos = anexosDe(chamado.anexos)
+    const fotos = fotosDe(chamado.fotos)
+    const vinculados = (contratos_vinculados || []).map(c => c?.contrato).filter(c => c && c !== chamado.id)
+
+    const dados = `
+        <div class="pag-chamado-dados">
+            ${campo('Unidade', texto(cliente?.nome || chamado.unidade))}
+            ${campo('Endereço', texto([enderecoComNumero(cliente), cliente?.bairro, [cliente?.cidade, cliente?.estado].filter(Boolean).join('/')].filter(Boolean).join(' · ')))}
+            ${campo('Descrição', `<div class="pag-chamado-texto">${chamado.descricao || 'Em branco'}</div>`)}
+            ${campo('Criado por', texto(chamado.usuario))}
+            ${campo('Gestor responsável', texto(chamado.gestor_responsavel))}
+            ${campo('Data solicitação', chamado.data_solicitacao ? texto(conversorDt(chamado.data_solicitacao)) : '')}
+            ${campo('Data registro', texto(chamado.data_registro))}
+            ${campo('Empresa', texto(chamado.empresa))}
+            ${campo('Tipo', texto(chamado.tipo))}
+            ${campo('Sistema', texto(chamado.sistema))}
+            ${campo('Prioridade', texto(chamado.prioridade))}
+            ${campo('Vinculados', texto(vinculados.join(', ')))}
+            ${campo('Anexos', anexos ? `<div class="local-anexos">${anexos}</div>` : '<small>Sem anexos</small>')}
+            ${fotos ? campo('Fotos', `<div class="fotos">${fotos}</div>`) : ''}
+        </div>
+        ${Object.keys(equipamentos || {}).length ? tabEquipamentos(equipamentos) : ''}
+    `
+
+    // Descrições vêm do editor (HTML) e são exibidas como na tela de chamados.
+    // Correções por aba (fluxo), a mais recente primeiro; aba inicial = a do último registro.
+    const ordenadas = Object.entries(correcoes || {})
+        .sort(([, a], [, b]) => toTimestamp(b?.data) - toTimestamp(a?.data))
+    const porAba = new Map()
+    for (const [idCorrecao, c] of ordenadas) {
+        const aba = c?.aba || 'geral'
+        if (!porAba.has(aba)) porAba.set(aba, [])
+        porAba.get(aba).push([idCorrecao, c])
+    }
+    const chave = String(chamado.id).replace(/[^\w-]/g, '_')
+
+    const cartaoCorrecao = (c) => {
+        const executores = [].concat(c.executor || []).filter(Boolean)
+        const tecnicos = [].concat(c.tecnico || []).filter(Boolean)
+        const inicio = c.dtCorrecao ? data(c.dtCorrecao) : ''
+        const fim = c.dtCorrecaoFinal && c.dtCorrecaoFinal !== c.dtCorrecao ? ` até ${data(c.dtCorrecaoFinal)}` : ''
+        const anexosC = anexosDe(c.anexos)
+        const fotosC = fotosDe(c.fotos)
+        return `
+            <div class="pag-chamado-correcao">
+                <div class="pag-chamado-correcao-topo">
+                    ${formatacaoTipoCorrecao(texto(c.tipoCorrecaoNome || 'Correção'))}
+                    <small>${texto(c.data)}</small>
+                </div>
+                ${campo('Descrição', c.descricao ? `<div class="pag-chamado-texto">${c.descricao}</div>` : '')}
+                ${campo('Solicitante', texto(c.usuario))}
+                ${campo('Executores', texto(executores.join(', ')))}
+                ${campo('Técnicos', texto(tecnicos.join(', ')))}
+                ${campo('Execução', inicio ? `${inicio}${fim}${c.turno ? ` · ${texto(c.turno)}` : ''}` : '')}
+                ${campo('Autorização', texto(c.autorizacao))}
+                ${anexosC ? campo('Anexos', `<div class="local-anexos">${anexosC}</div>`) : ''}
+                ${fotosC ? campo('Fotos', `<div class="fotos">${fotosC}</div>`) : ''}
+                ${Object.keys(c.equipamentos || {}).length ? tabEquipamentos(c.equipamentos) : ''}
+            </div>`
+    }
+
+    const abas = [...porAba.keys()]
+    const abaInicial = abas[0]
+    const botoesAbas = abas.map(aba => `
+        <button type="button" class="pag-chamado-aba ${aba === abaInicial ? 'ativa' : ''}" data-aba="${texto(aba)}"
+            onclick="trocarAbaChamadoPagamento(this)">
+            ${texto(snapshots?.abas?.[aba]?.nome || (aba === 'geral' ? 'GERAL' : 'FLUXO'))}
+            <small>${porAba.get(aba).length}</small>
+        </button>`).join('')
+    const conteudoAbas = abas.map(aba => `
+        <div class="pag-chamado-aba-conteudo" data-aba="${texto(aba)}" ${aba === abaInicial ? '' : 'hidden'}>
+            ${porAba.get(aba).map(([, c]) => cartaoCorrecao(c || {})).join('')}
+        </div>`).join('')
+
+    const elemento = `
+        <div class="pag-chamado" id="pag-chamado-${chave}">
+            ${dados}
+            <div class="pag-chamado-correcoes">
+                <b>Correções</b>
+                ${abas.length
+            ? `<div class="pag-chamado-abas">${botoesAbas}</div>${conteudoAbas}`
+            : '<small>Nenhuma correção registrada.</small>'}
+            </div>
+        </div>`
+
+    removerOverlay()
+    popup({
+        elemento,
+        titulo: `Chamado ${texto(chamado.id)}`,
+        botoes: [{ texto: 'OS em PDF', img: 'pdf', funcao: `baixarPdfOS('${texto(chamado.id)}')` }]
+    })
+}
+
+function trocarAbaChamadoPagamento(botao) {
+    const raiz = botao.closest('.pag-chamado')
+    if (!raiz) return
+    const aba = botao.dataset.aba
+    raiz.querySelectorAll('.pag-chamado-aba').forEach(b => b.classList.toggle('ativa', b === botao))
+    raiz.querySelectorAll('.pag-chamado-aba-conteudo').forEach(d => d.hidden = d.dataset.aba !== aba)
 }
 
 async function alterarStatusPagamento(idPagamento, select) {
@@ -905,6 +1068,7 @@ async function salvarPagamento() {
     // Sem o "Solicitante: fulano" na observação (era para o Omie): quem solicitou fica no próprio pagamento
     // (criado) e na fatura do Financeiro (criado_por); a chave Pix tem campo próprio.
 
+    const statusAnterior = ultimoPagamento.status || ''
     ultimoPagamento.status = 'Processando...'
 
     try {
@@ -912,7 +1076,7 @@ async function salvarPagamento() {
         // Mesmo id entre tentativas: a autorização de setor fica presa a este pagamento.
         const id = ultimoPagamento.id || (idPagamentoNovo ||= crypto.randomUUID())
         // Setor (não ORC_/G...) no rateio: espera alguém da diretoria/adm/fin online autorizar.
-        await autorizarSetoresPagamento(ultimoPagamento, id)
+        await autorizarSetoresPagamento(ultimoPagamento, id, statusAnterior)
         overlayAguarde()
         await validarSaldoPagamentoParceiro(ultimoPagamento, id)
         const resultado = await enviar(`lista_pagamentos/${id}`, ultimoPagamento)
