@@ -687,16 +687,18 @@
     display: none;
 }
 
-/* Colunas Empresa / Usuário / Permissão / Matrícula da lista de clientes */
-.cliente-id {
+/* Colunas Tags / Empresa / Usuário / Permissão / Matrícula da lista de clientes */
+.cliente-tags-coluna {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    min-width: 8rem;
+}
+
+.fin.cliente-id {
     display: inline-block;
     max-width: 14rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 0.85rem;
-}
-
-.cliente-id.vazio {
-    color: #9aa5a0;
 }

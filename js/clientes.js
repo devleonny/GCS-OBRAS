@@ -342,6 +342,7 @@ async function telaClientes() {
                 'Ações': {},
                 'Foto': {},
                 'Nome': { chave: 'cadastrais', op: 'includes' },
+                'Tags': { chave: 'tags', op: 'includes' },
                 'Empresa': { chave: 'empresa' },
                 'Usuário': { chave: 'usuario' },
                 'Permissão': { chave: 'permissao' },
@@ -664,8 +665,8 @@ function criarLinhaClienteGCS(cliente) {
         .map(item => tagCliente(item.tag))
         .join('')
 
-    // Empresa, usuário, permissão e matrícula em colunas próprias (antes juntos na coluna IDs).
-    const celulaId = valor => `<td><span class="cliente-id${valor ? '' : ' vazio'}" title="${escaparAtributo(valor || '')}">${escaparAtributo(valor || '—')}</span></td>`
+    // Empresa, usuário, permissão e matrícula em colunas próprias (antes juntos na coluna IDs), com a mesma etiqueta.
+    const celulaId = valor => `<td>${valor ? `<span class="fin cliente-id" title="${escaparAtributo(valor)}">${escaparAtributo(valor)}</span>` : ''}</td>`
 
     const tds = `
         <td>
@@ -686,15 +687,13 @@ function criarLinhaClienteGCS(cliente) {
                     ${(cadastrais || []).filter(c => c && (c === nome || c !== razao_social)).map(c => `<span>${c}</span>`).join('')}
                     ${razao_social && razao_social !== nome ? `<small class="cliente-razao" title="Razão social">${escaparAtributo(razao_social)}</small>` : ''}
 
-                    <div style="display: flex; flex-wrap: wrap; gap: 2px;">
-                        ${desligado ? etiquetaDesligado(desligado) : ''}
-                        ${tags1}
-                    </div>
+                    ${desligado ? `<div>${etiquetaDesligado(desligado)}</div>` : ''}
                 </div>
 
             </div>
         </td>
         
+        <td><div class="cliente-tags-coluna">${tags1}</div></td>
         ${celulaId(empresa)}
         ${celulaId(usuario)}
         ${celulaId(permissao)}
