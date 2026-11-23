@@ -325,13 +325,6 @@ async function telaClientes() {
                 <button type="button" class="clientes-adicionar" onclick="formularioLinkCadastro()">Link de cadastro</button>
                 ${dropdownTags}
                 ${dropdownEstados}
-                <div style="${horizontal}; gap: 1rem;">
-                    <label class="interruptor">
-                        <input onchange="mostrarMapa()" type="checkbox">
-                        <span class="trilho"></span>
-                    </label>
-                    <label style="color: white;">Mapa</label>
-                </div>
             </div>
         `
 
@@ -364,13 +357,22 @@ async function telaClientes() {
             pag,
             base: 'clientes',
             unidade: ['cadastro', 'cadastros'],
+            ativo: true,
             barras: 10
         })
 
         tela.innerHTML = `
         <div class="clientes-layout">
             <div class="pagina-conteudo">
-                <div class="cabecalho-pagina"><h2>Clientes, Usuários & Fornecedores</h2></div>
+                <div class="cabecalho-pagina clientes-cabecalho">
+                    <h2>Clientes, Usuários & Fornecedores</h2>
+                    <!-- Mapa já nasce aberto; o interruptor esconde/mostra (mostrarMapa, js/mapa.js). -->
+                    <label class="interruptor clientes-chave-mapa" title="Mostrar ou esconder o mapa por estado">
+                        <input type="checkbox" checked onchange="mostrarMapa()">
+                        <span class="trilho"></span>
+                        <span>Mapa</span>
+                    </label>
+                </div>
                 ${tabela}
             </div>
             ${mapa}

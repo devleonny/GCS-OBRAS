@@ -717,3 +717,17 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* Título com o interruptor do mapa ao lado. */
+.clientes-cabecalho {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+}
+
+.clientes-chave-mapa {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+}
