@@ -29,7 +29,7 @@ const VERSOES_CSS = {
     "layout_os": "1349cc5e",
     "lembrete_combustivel": "4bbad5d0",
     "logistica": "b488b0ff",
-    "mapa": "2a3b2db5",
+    "mapa": "565b7d1b",
     "notificacoes": "3a3eec54",
     "ocorrencias": "12c1c4be",
     "orcamento": "a3892972",

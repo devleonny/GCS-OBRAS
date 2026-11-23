@@ -121,3 +121,94 @@
     }
 
 }
+
+/* Barras dos estados com mais registros, embaixo do mapa (criarMapa({ barras })). */
+.mapa-barras {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 6px;
+    padding-top: 10px;
+    border-top: 1px solid #e3e8e5;
+}
+
+.mapa-barras:empty {
+    display: none;
+}
+
+.mapa-barras-titulo {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+    color: #1d2a22;
+    font-size: 0.85rem;
+}
+
+.mapa-barras-titulo small,
+.mapa-barras-resto {
+    color: #4f5d55;
+    font-size: 0.72rem;
+}
+
+.mapa-barras-resto {
+    margin-top: 4px;
+}
+
+.fundo-mapa .mapa-barra {
+    display: grid;
+    grid-template-columns: 2.2rem 1fr 3.6rem;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 22px;
+    margin: 0;
+    padding: 2px 4px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #1d2a22;
+    font: inherit;
+    cursor: pointer;
+    box-shadow: none;
+    transition: opacity 0.15s;
+}
+
+.fundo-mapa .mapa-barra:hover,
+.fundo-mapa .mapa-barra:focus-visible {
+    background: #f1f5f3;
+    outline: none;
+}
+
+.mapa-barra-uf {
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-align: left;
+}
+
+.mapa-barra-trilho {
+    display: block;
+    height: 12px;
+}
+
+.mapa-barra-trilho i {
+    display: block;
+    height: 100%;
+    background: #256abf;
+    border-radius: 0 4px 4px 0;
+}
+
+.mapa-barra-valor {
+    font-size: 0.75rem;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.mapa-barra.marcada .mapa-barra-trilho i {
+    background: #184f95;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px #1d2a22;
+}
+
+.mapa-barra.apagada {
+    opacity: 0.45;
+}

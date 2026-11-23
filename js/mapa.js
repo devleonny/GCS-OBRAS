@@ -13,8 +13,9 @@ const posicoesEstados = Object.fromEntries(['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 
 
 // base: tabela contada; path: campo do estado; unidade: [singular, plural] da dica.
 // ativo: já nasce aberto (sem interruptor), como nas ocorrências.
-function criarMapa({ apenasMapa, path, pag, base = null, unidade = ['chamado', 'chamados'], ativo = false } = {}) {
-    controles.mapa = { path, pag, base, unidade, chave: null, dados: {} }
+// barras: quantos estados (os de maior contagem) vão num gráfico de barras embaixo do mapa; 0 = sem gráfico.
+function criarMapa({ apenasMapa, path, pag, base = null, unidade = ['chamado', 'chamados'], ativo = false, barras = 0 } = {}) {
+    controles.mapa = { path, pag, base, unidade, barras, chave: null, dados: {} }
 
     const mapa = `
         <div class="fundo-mapa ${ativo ? 'ativo' : ''}">
@@ -23,6 +24,7 @@ function criarMapa({ apenasMapa, path, pag, base = null, unidade = ['chamado', '
                 <small id="mapaResumo"></small>
             </div>
             <div id="mapaOverlay" class="mapa-br"></div>
+            ${barras ? '<div id="mapaBarras" class="mapa-barras"></div>' : ''}
         </div>`
 
     return apenasMapa ? mapa : `<div class="painel-mapa">${mapa}</div>`
@@ -127,6 +129,53 @@ function auxMapa(dados = {}) {
         local.addEventListener('keydown', ev => {
             const uf = ev.target.closest?.('[data-uf]')?.dataset.uf
             if (uf && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); alternarEstadoMapa(uf) }
+        })
+    }
+    if (typeof ligarTooltipsDash === 'function') ligarTooltipsDash(local)
+
+    barrasMapa({ valores, geral, marcadas, numero, um, varios })
+}
+
+// Gráfico de barras embaixo do mapa: os estados com mais registros, do maior para o menor.
+// Mesma dica e mesmo clique do mapa (liga/desliga o estado no filtro). Uma série só: uma cor.
+function barrasMapa({ valores, geral, marcadas, numero, um, varios }) {
+    const local = document.getElementById('mapaBarras')
+    const quantos = controles.mapa?.barras || 0
+    if (!local || !quantos) return
+
+    const ordem = Object.entries(valores).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])
+    const maiores = ordem.slice(0, quantos)
+    if (!maiores.length) {
+        local.innerHTML = ''
+        return
+    }
+    const maximo = maiores[0][1]
+    const resto = ordem.slice(quantos)
+    const somaResto = resto.reduce((s, [, v]) => s + v, 0)
+    const pct = v => geral ? `${(v / geral * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%` : ''
+
+    const linhas = maiores.map(([uf, v]) => {
+        const marcada = marcadas.includes(uf)
+        const dica = `${uf} · ${numero(v)} ${v === 1 ? um : varios}${geral ? ` (${pct(v)})` : ''} · clique para ${marcada ? 'tirar do' : 'pôr no'} filtro`
+        const classes = ['mapa-barra', marcada ? 'marcada' : '', marcadas.length && !marcada ? 'apagada' : ''].filter(Boolean).join(' ')
+        return `
+            <button type="button" class="${classes}" data-uf="${uf}" aria-pressed="${marcada}" aria-label="${dica}" data-dica="${dica}">
+                <span class="mapa-barra-uf">${uf}</span>
+                <span class="mapa-barra-trilho"><i style="width: ${Math.max(1.5, v / maximo * 100)}%"></i></span>
+                <span class="mapa-barra-valor">${numero(v)}</span>
+            </button>`
+    }).join('')
+
+    local.innerHTML = `
+        <div class="mapa-barras-titulo"><b>Estados com mais ${varios}</b><small>${maiores.length} de ${ordem.length}</small></div>
+        ${linhas}
+        ${somaResto ? `<div class="mapa-barras-resto">Outros ${resto.length} estados: ${numero(somaResto)} (${pct(somaResto)})</div>` : ''}`
+
+    if (!local.dataset.ligado) {
+        local.dataset.ligado = 'S'
+        local.addEventListener('click', ev => {
+            const uf = ev.target.closest?.('[data-uf]')?.dataset.uf
+            if (uf) alternarEstadoMapa(uf)
         })
     }
     if (typeof ligarTooltipsDash === 'function') ligarTooltipsDash(local)

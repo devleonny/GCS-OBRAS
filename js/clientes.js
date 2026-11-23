@@ -363,7 +363,8 @@ async function telaClientes() {
             path: 'estado',
             pag,
             base: 'clientes',
-            unidade: ['cadastro', 'cadastros']
+            unidade: ['cadastro', 'cadastros'],
+            barras: 10
         })
 
         tela.innerHTML = `
