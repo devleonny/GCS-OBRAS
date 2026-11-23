@@ -258,6 +258,7 @@ async function abrirAcaoNotificacao(acao, titulo = '') {
         if (tipo === 'promessas') return await abrirPromessasPedido(!!acao.todas)
         // Remessa a retornar (gcs notificacoes.js, fontes remessas/remessas_resumo): tela das remessas, já na remessa do aviso.
         if (tipo === 'remessas') return await telaRemessasRetorno(acao.id || null)
+        if (tipo === 'cartoes') return acao.id ? await telaFaturaCartaoFin(acao.id) : await telaFaturasCartaoFin()
         // Aviso manual com mensagem formatada (editor): abre a mensagem completa.
         if (tipo === 'aviso') return abrirAvisoNotificacao(acao, titulo)
         // Push de aviso formatado traz só o id (limite de tamanho do push): busca na caixa e abre.

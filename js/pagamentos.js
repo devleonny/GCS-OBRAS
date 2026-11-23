@@ -1504,6 +1504,9 @@ async function calculadoraPagamento() {
         return { mensagem: 'Escolha o cartão em que foi pago.' }
     if (forma === 'CARTAO' && recebedorEhCartaoPag(obVal('recebedor').textContent))
         return { mensagem: 'No cartão, o recebedor é onde a compra foi feita (hotel, loja, posto…), não o cartão. O cartão você escolhe no campo Cartão.' }
+    // Fatura do cartão se paga em Financeiro → Faturas do cartão: pedido novo para "CARTÃO ..." não passa (o servidor também recusa).
+    if (forma !== 'CARTAO' && !(JSON.parse(localStorage.getItem('ultimoPagamento') || '{}').id) && recebedorEhCartaoPag(obVal('recebedor').textContent))
+        return { mensagem: 'A fatura do cartão agora é paga em Financeiro → Faturas do cartão. Aqui o recebedor é quem recebe o reembolso.' }
     const app = cartaoEscolhido?.app || obVal('app').value
     const categorias = Object.create(null)
     const distribuicao = Object.create(null)
