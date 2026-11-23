@@ -1256,14 +1256,16 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
                                 <label class="fin-campo"><span>Valor *${t ? ` <small class="fin-parcela">${escFin(t.parcela_texto)}</small>` : ''}</span>
                                     <input class="fis-input fis-num" type="number" step="0.01" min="0.01" name="valor" value="${valor}" ${manual && !cancelada ? '' : 'readonly'} oninput="sincronizarTopoFin()"></label>
                                 <label class="fin-campo"><span>Empresa</span>
-                                    <select class="fis-input" name="app" ${nova ? '' : 'disabled'} onchange="this.closest('[data-form-fatura]').querySelector('[name=conta_id]').innerHTML = opcoesContasFin(opcoesFinCache.contas, this.value)">
+                                    <select class="fis-input" name="app" ${cancelada || rec ? 'disabled' : ''} data-app-original="${escFin(t ? app : '')}"
+                                        data-pagamentos="${baixas.filter(b => !b.estornada).length}" onchange="trocarEmpresaFormFin(this)">
                                         ${op.empresas.map(e => `<option value="${escFin(e.app)}" ${e.app === app ? 'selected' : ''}>${escFin(e.app)}</option>`).join('')}
                                     </select></label>
                                 <label class="fin-campo"><span>Conta corrente</span>
-                                    <select class="fis-input" name="conta_id" ${cancelada ? 'disabled' : ''}>${opcoesContasFin(op.contas, app, base?.conta_id)}</select></label>
+                                    <select class="fis-input" name="conta_id" data-conta-original="${escFin(base?.conta_id || '')}" ${cancelada ? 'disabled' : ''}>${opcoesContasFin(op.contas, app, base?.conta_id)}</select></label>
                             </div>
                         </div>
                         ${avisos.map(a => `<div class="fis-info">${a}</div>`).join('')}
+                        <div class="fis-info" data-aviso-empresa-fin hidden></div>
                         <div class="fin-abas" role="tablist">
                             ${abas.map(([chave, nome]) => `<button type="button" role="tab" data-aba="${chave}" aria-selected="${chave === aba}" onclick="mostrarAbaFin('${chave}')">${nome}</button>`).join('')}
                         </div>
@@ -1389,6 +1391,27 @@ function desenharPainelFormFin(t, rec) {
         ${t ? acao('excluir', 'Excluir', `excluirFaturaFin('${escFin(t.id)}', true)`,
             { perigo: true, ativo: podeExcluir, motivo: cancelada ? 'Já excluída' : comPagamento ? `Tem ${termoFin('pagamento', tipo)}: cancele antes` : 'Veio de outra origem' }) : ''}
         ${acao('voltar', 'Voltar à lista', 'voltarFaturasFin()')}`
+}
+
+// Empresa trocada no formulário: as contas passam a ser as da empresa escolhida e, numa fatura que já existe,
+// o aviso diz o que acontece com os pagamentos ao salvar (vão para a conta escolhida ou a padrão da nova empresa).
+function trocarEmpresaFormFin(select) {
+    const form = select.closest('[data-form-fatura]')
+    const conta = form.querySelector('[name=conta_id]')
+    conta.innerHTML = opcoesContasFin(opcoesFinCache.contas, select.value)
+    const aviso = form.querySelector('[data-aviso-empresa-fin]')
+    const original = select.dataset.appOriginal
+    if (!aviso) return
+    if (!original || select.value === original) {
+        aviso.hidden = true
+        if (original) conta.innerHTML = opcoesContasFin(opcoesFinCache.contas, original, conta.dataset.contaOriginal)
+        return
+    }
+    const n = Number(select.dataset.pagamentos) || 0
+    const tipo = form.dataset.tipo
+    aviso.innerHTML = `Ao salvar, a fatura passa da <b>${escFin(original)}</b> para a <b>${escFin(select.value)}</b>.`
+        + (n ? ` ${n === 1 ? `O ${termoFin('pagamento', tipo)} registrado vai` : `Os ${n} ${termoFin('pagamento', tipo)}s registrados vão`} para a conta escolhida acima (ou a padrão da ${escFin(select.value)}).` : '')
+    aviso.hidden = false
 }
 
 function mostrarAbaFin(chave) {
@@ -1914,7 +1937,9 @@ async function salvarFaturaFin() {
             popup({ mensagem: `Repetição salva${partes.length ? `: ${partes.join(', ')}` : ''}.`, imagem: 'imagens/concluido.png', tempo: 4 })
         } else {
             const n = r.ids?.length || 1
-            popup({ mensagem: corpo.id ? `Fatura salva${repetidas ? ` e ${repetidas} repetição(ões) criada(s)` : ''}.` : `${n > 1 ? `${n} faturas lançadas` : 'Fatura lançada'}.`, imagem: 'imagens/concluido.png', tempo: 3 })
+            const troca = r.empresa_trocada
+            const textoTroca = troca ? ` Empresa: ${escFin(troca.de)} → ${escFin(troca.para)}${troca.pagamentos ? ` (${troca.pagamentos} ${termoFin('pagamento', corpo.tipo)}(s) mudaram de conta)` : ''}.` : ''
+            popup({ mensagem: corpo.id ? `Fatura salva${repetidas ? ` e ${repetidas} repetição(ões) criada(s)` : ''}.${textoTroca}` : `${n > 1 ? `${n} faturas lançadas` : 'Fatura lançada'}.`, imagem: 'imagens/concluido.png', tempo: troca ? 5 : 3 })
         }
         voltarFaturasFin()
     } catch (err) {
