@@ -1552,3 +1552,7 @@
         text-align: left;
     }
 }
+
+/* Pago no cartão de crédito: aviso no lugar do balão de Aprovar/Reprovar */
+.balao.pag-cartao-aviso { justify-content: flex-start; text-align: left; padding: 10px 14px; background: #eef6f0; border: 1px solid #b9d6c2; color: #1f3a29; }
+.balao.pag-cartao-aviso small { color: #4b5a51; }

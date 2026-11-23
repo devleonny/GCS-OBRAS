@@ -531,8 +531,15 @@ async function abrirDetalhesPagamentos(id) {
             `
             }).join('')
 
+        // Pago no cartão de crédito: não passa por aprovação, então o balão de Aprovar/Reprovar não aparece.
+        const pagoNoCartao = parametroPagamento(pagamento).forma === 'CARTAO'
         const acumulado = `
-        
+
+            ${pagoNoCartao ? `
+            <div class="balao pag-cartao-aviso">
+                <span>💳 <b>Pago no cartão ${escaparAtributo(parametroPagamento(pagamento).cartao_nome || '')}</b><br>
+                <small>Sem aprovação: já entrou como pago na conta do cartão. O Financeiro paga a fatura do cartão no vencimento.</small></span>
+            </div>` : `
             <div class="balao">
 
                 <div style="${vertical}; gap: 2px;">
@@ -542,7 +549,7 @@ async function abrirDetalhesPagamentos(id) {
 
                 <textarea id="justificativa" placeholder="Descreva o motivo da aprovação ou reprovação"></textarea>
 
-            </div>
+            </div>`}
 
             <div class="detalhes-pagamento">
 
@@ -564,8 +571,11 @@ async function abrirDetalhesPagamentos(id) {
                     ${modelo('Status Atual', divStatus)}
                     ${modelo('Quem recebe', pagamento?.snapshots?.cliente || '')}
                     ${modelo('Data de Solicitação', pagamento?.data_registro || '')}
-                    ${modelo('Data de Pagamento', parametroPagamento(pagamento).data_vencimento)}
-                    ${modelo('Chave PIX', escaparAtributo(parametroPagamento(pagamento).chave_pix || ''))}
+                    ${pagoNoCartao
+            ? `${modelo('Data da compra', parametroPagamento(pagamento).data_vencimento)}
+                    ${modelo('Pago no cartão', escaparAtributo(parametroPagamento(pagamento).cartao_nome || ''))}`
+            : `${modelo('Data de Pagamento', parametroPagamento(pagamento).data_vencimento)}
+                    ${modelo('Chave PIX', escaparAtributo(parametroPagamento(pagamento).chave_pix || ''))}`}
                     ${modelo('Observação', parametroPagamento(pagamento).observacao)}
                     ${modelo('Anexos', `
                         <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0;">
@@ -1048,11 +1058,14 @@ async function salvarPagamento() {
         return popup({ mensagem: resposta.mensagem })
 
     const ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
-    const pix = document.querySelector('[name="chave_pix"]')
-    if (!pix.value.trim() || !document.querySelector('[name="confirmar_pix"]').checked)
-        return popup({ mensagem: 'Informe e confirme a chave PIX do recebedor.' })
-    if (pix.dataset.cliente !== document.querySelector('[name="recebedor"]').id)
-        return popup({ mensagem: 'Aguarde a consulta PIX ou selecione o recebedor novamente.' })
+    // Pago no cartão não tem Pix (ninguém recebe reembolso).
+    if (formaAtualPagamento() !== 'CARTAO') {
+        const pix = document.querySelector('[name="chave_pix"]')
+        if (!pix.value.trim() || !document.querySelector('[name="confirmar_pix"]').checked)
+            return popup({ mensagem: 'Informe e confirme a chave PIX do recebedor.' })
+        if (pix.dataset.cliente !== document.querySelector('[name="recebedor"]').id)
+            return popup({ mensagem: 'Aguarde a consulta PIX ou selecione o recebedor novamente.' })
+    }
     const anexoPagamento = document.getElementById('aPagamentos')
     const anexos = await importarAnexos({ input: anexoPagamento })
 
@@ -1077,7 +1090,9 @@ async function salvarPagamento() {
         // Mesmo id entre tentativas: a autorização de setor fica presa a este pagamento.
         const id = ultimoPagamento.id || (idPagamentoNovo ||= crypto.randomUUID())
         // Setor (não ORC_/G...) no rateio: espera alguém da diretoria/adm/fin online autorizar.
-        await autorizarSetoresPagamento(ultimoPagamento, id, statusAnterior)
+        // Pago no cartão não passa por aprovação (nem a de setor): o servidor dispensa.
+        if (ultimoPagamento.param_estavel?.forma !== 'CARTAO')
+            await autorizarSetoresPagamento(ultimoPagamento, id, statusAnterior)
         overlayAguarde()
         await validarSaldoPagamentoParceiro(ultimoPagamento, id)
         const resultado = await enviar(`lista_pagamentos/${id}`, ultimoPagamento)
@@ -1137,8 +1152,13 @@ async function formularioPagamento() {
             distribuicao = [],
             valor_documento = 0,
             data_vencimento,
-            codigo_cliente_fornecedor
+            codigo_cliente_fornecedor,
+            forma = 'REEMBOLSO',
+            cartao_conta_id = ''
         } = ultimoPagamento.param_estavel || {}
+
+        // Cartões ativos (Financeiro → Contas correntes, tipo Cartão) para a forma "Cartão de crédito".
+        cartoesPagamento = await apiFin('cartoes').then(r => r.cartoes || []).catch(() => [])
 
         const { nome, chave_pix: pixCadastro = '' } = codigo_cliente_fornecedor
             ? await recuperarDado('clientes', codigo_cliente_fornecedor) || {}
@@ -1167,9 +1187,28 @@ async function formularioPagamento() {
 
         const linhas = [
             {
+                texto: 'Forma',
+                elemento: `
+                <div class="fluxo-chave-empresa" role="group" aria-label="Forma" data-forma-pagamento="${forma === 'CARTAO' ? 'CARTAO' : 'REEMBOLSO'}">
+                    <button type="button" data-forma="REEMBOLSO" onclick="formaPagamento('REEMBOLSO')">Reembolso (Pix)</button>
+                    <button type="button" data-forma="CARTAO" onclick="formaPagamento('CARTAO')">Cartão de crédito</button>
+                </div>`
+            },
+            {
+                texto: 'Cartão',
+                elemento: `
+                <div data-so-cartao style="${vertical}; gap: 4px;">
+                    <select name="cartao_conta_id" onchange="calculadoraPagamento()">
+                        <option value="">Selecione o cartão</option>
+                        ${cartoesPagamento.map(c => `<option value="${c.id}" ${String(c.id) === String(cartao_conta_id) ? 'selected' : ''}>${escaparAtributo(c.nome)}</option>`).join('')}
+                    </select>
+                    <small>Pago no cartão já entra como <b>pago</b>, sem aprovação. O Financeiro paga a fatura do cartão no vencimento.</small>
+                </div>`
+            },
+            {
                 texto: '<span style="padding-right: 2rem;"><b>IAC</b> Apenas reembolso para funcionário</span>',
                 elemento: `
-                <select name="app" onchange="calculadoraPagamento()">
+                <select name="app" data-so-reembolso onchange="calculadoraPagamento()">
                     ${empresas.map(op => `<option ${app == op ? 'selected' : ''}>${op}</option>`).join('')}
                 </select>
             `
@@ -1188,7 +1227,7 @@ async function formularioPagamento() {
             },
             {
                 texto: 'Chave PIX',
-                elemento: `<div style="${vertical}; gap: 5px;">
+                elemento: `<div data-so-reembolso style="${vertical}; gap: 5px;">
                     <textarea name="chave_pix" rows="3" style="resize: vertical; width: 100%; box-sizing: border-box;" data-cliente="${escaparAtributo(codigo_cliente_fornecedor || '')}"
                         placeholder="Informe a chave PIX" oninput="document.querySelector('[name=confirmar_pix]').checked = false; calculadoraPagamento()">${escaparAtributo(ultimoPagamento.param_estavel?.chave_pix ?? pixCadastro)}</textarea>
                     <label><input type="checkbox" name="confirmar_pix" onchange="calculadoraPagamento()"> Conferi com o recebedor e confirmo esta chave PIX.</label>
@@ -1222,7 +1261,7 @@ async function formularioPagamento() {
                 elemento: `<div id="totalPagamento">${dinheiro(valor_documento)}</div>`
             },
             {
-                texto: 'Data de Pagamento',
+                texto: '<span data-rotulo-data-pagamento>Data de Pagamento</span>',
                 elemento: `
             <div style="${horizontal}; gap: 5px;">
                 <input type="date" name="dataPagamento" data-editada="${!!ultimoPagamento.data_modificada || !!id}" value="${dtVencimento || ''}" oninput="this.dataset.editada = 'true'; calculadoraPagamento()">
@@ -1293,6 +1332,7 @@ async function formularioPagamento() {
         if (!distribuicao.length) await maisCampo({ base: 'departamentos', atualizar: false })
 
         // Verificação inicial;
+        aplicarFormaPagamento()
         await calculadoraPagamento()
         avisarTravaPagamento(!id)
 
@@ -1349,9 +1389,42 @@ function dataRegras(data, atraso) {
     return dataFinal.toLocaleDateString('pt-BR')
 }
 
+// Forma do pedido: Reembolso (Pix para quem pagou, passa pelas aprovações) ou Cartão de crédito (a compra já
+// foi paga no cartão: sem Pix, sem aprovação, entra PAGO na conta do cartão no Financeiro — SCRIPTS/pagamentos.js).
+let cartoesPagamento = []
+
+function formaAtualPagamento() {
+    return document.querySelector('[data-forma-pagamento]')?.dataset.formaPagamento === 'CARTAO' ? 'CARTAO' : 'REEMBOLSO'
+}
+
+function formaPagamento(forma) {
+    const grupo = document.querySelector('[data-forma-pagamento]')
+    if (!grupo) return
+    grupo.dataset.formaPagamento = forma
+    aplicarFormaPagamento()
+    const data = document.querySelector('[name="dataPagamento"]')
+    if (data && data.dataset.editada !== 'true') data.value = ''
+    calculadoraPagamento()
+}
+
+function aplicarFormaPagamento() {
+    const cartao = formaAtualPagamento() === 'CARTAO'
+    document.querySelectorAll('[data-forma-pagamento] button').forEach(b => b.classList.toggle('ativo', b.dataset.forma === (cartao ? 'CARTAO' : 'REEMBOLSO')))
+    document.querySelectorAll('[data-so-cartao]').forEach(e => { const l = e.closest('.linha-padrao'); if (l) l.style.display = cartao ? '' : 'none' })
+    document.querySelectorAll('[data-so-reembolso]').forEach(e => { const l = e.closest('.linha-padrao'); if (l) l.style.display = cartao ? 'none' : '' })
+    const rotulo = document.querySelector('[data-rotulo-data-pagamento]')
+    if (rotulo) rotulo.textContent = cartao ? 'Data da compra' : 'Data de Pagamento'
+}
+
 function atualizarDataSugeridaPagamento() {
     const campo = document.querySelector('[name="dataPagamento"]')
     if (!campo || campo.dataset.editada === 'true') return
+    // Cartão: a data é a da compra (hoje, se a pessoa não mudar).
+    if (formaAtualPagamento() === 'CARTAO') {
+        const hoje = dataServidor()
+        campo.value = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`
+        return
+    }
     let modalidade = 0
     for (const input of document.querySelectorAll('[name="categorias"]')) {
         const nome = (input.parentElement.nextElementSibling?.textContent || '')
@@ -1383,7 +1456,13 @@ async function calculadoraPagamento() {
         return { mensagem: 'Recebedor em branco' }
 
     const observacao = obVal('observacao').value
-    const app = obVal('app').value
+    // Cartão: a empresa é a do cartão (a dívida é dela); o Financeiro pode trocar depois na fatura.
+    const forma = formaAtualPagamento()
+    const cartaoId = forma === 'CARTAO' ? obVal('cartao_conta_id')?.value || '' : ''
+    const cartaoEscolhido = cartoesPagamento.find(c => String(c.id) === String(cartaoId))
+    if (forma === 'CARTAO' && !cartaoEscolhido)
+        return { mensagem: 'Escolha o cartão em que foi pago.' }
+    const app = cartaoEscolhido?.app || obVal('app').value
     const categorias = Object.create(null)
     const distribuicao = Object.create(null)
     let valor_documento = 0
@@ -1469,7 +1548,9 @@ async function calculadoraPagamento() {
         data_registro: dataServidor().toLocaleString(),
         param_estavel: {
                 codigo_cliente_fornecedor,
-                chave_pix: obVal('chave_pix').value.trim(),
+                chave_pix: forma === 'CARTAO' ? '' : obVal('chave_pix').value.trim(),
+                forma,
+                ...(forma === 'CARTAO' ? { cartao_conta_id: Number(cartaoId), cartao_nome: cartaoEscolhido.nome } : {}),
                 observacao,
                 data_previsao: dataFinal,
                 data_vencimento: dataFinal,
