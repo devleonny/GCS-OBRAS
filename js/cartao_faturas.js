@@ -7,7 +7,8 @@
 // seguinte, até a diferença zerar; aí "Fechar fatura". Pagar (total ou parcial) = transferência da conta que paga
 // para a conta do cartão: não é custo. O que não foi pago vira o saldo anterior da fatura seguinte.
 
-const estadoCartoesFin = { todas: false }
+// painel: painel lateral (ações e informações) aberto; começa recolhido sempre que a tela é aberta pelo menu/lista.
+const estadoCartoesFin = { todas: false, painel: false }
 let faturaCartaoAtual = null
 let anexosCartaoFin = []
 
@@ -28,7 +29,70 @@ const mesCartaoFin = v => {
 }
 const diasAteFin = iso => Math.round((new Date(`${String(iso).slice(0, 10)}T12:00:00`) - new Date(new Date().toDateString() + ' 12:00')) / 86400000)
 
+// ------------------------------------------------------------ painel lateral (como o das Faturas a pagar)
+
+// Título em cima; o resto (ações e informações) no painel da direita, recolhível pela seta da borda.
+function janelaCartaoFin(titulo, principal, painel) {
+    return `
+        <div class="fis-pagina fin-tela">
+            <section class="fin-janela">
+                <header class="fin-janela-topo"><h2>${titulo}</h2></header>
+                <div class="fin-corpo${estadoCartoesFin.painel ? '' : ' recolhido'}" data-corpo-cartao>
+                    <div class="fin-tabela-area">${principal}</div>
+                    <div class="fin-lateral">
+                        <button type="button" class="fin-recolher" onclick="alternarPainelCartaoFin()" aria-expanded="${estadoCartoesFin.painel}"
+                            title="${estadoCartoesFin.painel ? 'Recolher' : 'Mostrar'} as ações e informações">${iconeFin('seta')}</button>
+                        <aside class="fin-painel cf-painel">${painel}</aside>
+                    </div>
+                </div>
+            </section>
+        </div>`
+}
+
+// Tabela até o rodapé da tela: altura = espaço até o fim da janela, menos o que vem embaixo dela na mesma área
+// (na fatura: "Lançar o que falta" e pagamentos). Recalcula ao desenhar e ao redimensionar a janela.
+function ajustarAlturaCartaoFin() {
+    const rolagem = document.querySelector('[data-corpo-cartao] .cf-rolagem, [data-corpo-cartao] .cf-rolagem-compras')
+    if (!rolagem) return
+    let depois = 0
+    for (let el = rolagem.nextElementSibling; el; el = el.nextElementSibling) {
+        const estilo = getComputedStyle(el)
+        depois += el.getBoundingClientRect().height + parseFloat(estilo.marginTop) + parseFloat(estilo.marginBottom)
+    }
+    const altura = window.innerHeight - rolagem.getBoundingClientRect().top - depois - 16
+    rolagem.style.height = `${Math.max(altura, 220)}px`
+}
+window.addEventListener('resize', () => ajustarAlturaCartaoFin())
+
+function alternarPainelCartaoFin() {
+    const corpo = document.querySelector('[data-corpo-cartao]')
+    if (!corpo) return
+    estadoCartoesFin.painel = corpo.classList.contains('recolhido')
+    corpo.classList.toggle('recolhido', !estadoCartoesFin.painel)
+    const botao = corpo.querySelector('.fin-recolher')
+    botao?.setAttribute('aria-expanded', String(estadoCartoesFin.painel))
+    if (botao) botao.title = `${estadoCartoesFin.painel ? 'Recolher' : 'Mostrar'} as ações e informações`
+}
+
+const acaoPainelCartaoFin = (icone, texto, funcao, { ativo = true, motivo = '' } = {}) => `
+    <button type="button" class="fin-acao" title="${escFin(ativo ? texto : `${texto}: ${motivo}`)}" ${ativo ? `onclick="${funcao}"` : 'disabled'}>
+        ${iconeFin(icone)}<span>${texto}</span></button>`
+// Informação do painel: some quando o painel está recolhido (fica só nos títulos dos ícones).
+const infoPainelCartaoFin = (rotulo, valor, classe = '') => `<div class="cf-info ${classe}"><small>${rotulo}</small><b>${valor}</b></div>`
+const cabecaPainelCartaoFin = (circulo, titulo, detalhe = '') => `
+    <div class="fin-painel-cabeca" title="${escFin(titulo)}">
+        <span class="fin-avatar">${escFin(circulo)}</span>
+        <div class="fin-painel-texto"><b>${escFin(titulo)}</b>${detalhe}</div>
+    </div>`
+
 // ------------------------------------------------------------ lista
+
+// Pelo menu: recolhe o menu principal e começa com o painel recolhido.
+function abrirFaturasCartaoFin() {
+    recolherMenuPrincipalFin()
+    estadoCartoesFin.painel = false
+    return telaFaturasCartaoFin()
+}
 
 async function telaFaturasCartaoFin() {
     overlayAguarde()
@@ -37,22 +101,18 @@ async function telaFaturasCartaoFin() {
         removerOverlay()
         const abertas = faturas.filter(f => !['PAGA', 'PAGA PARCIAL'].includes(f.situacao))
         const somaAPagar = abertas.reduce((a, f) => a + Number(f.a_pagar || 0), 0)
-        tela.innerHTML = `
-            <div class="fis-pagina fin-tela">
-                <section class="fin-janela">
-                    <header class="fin-janela-topo">
-                        <h2>Faturas do cartão</h2>
-                        <div class="fin-barra">
-                            <button type="button" onclick="estadoCartoesFin.todas = !estadoCartoesFin.todas; telaFaturasCartaoFin()">
-                                ${iconeFin(estadoCartoesFin.todas ? 'fechar' : 'ver')} ${estadoCartoesFin.todas ? 'Esconder as pagas antigas' : 'Mostrar todas as pagas'}</button>
-                            <button type="button" onclick="telaContasFin()">${iconeFin('editar')} Cadastro dos cartões</button>
-                        </div>
-                    </header>
-                    <div class="cf-resumo">
-                        <div><small>Faturas em aberto</small><b>${abertas.length}</b></div>
-                        <div><small>A pagar (conferido + estimado)</small><b>${dinheiro(somaAPagar)}</b></div>
-                        <div><small>Vencendo em 7 dias</small><b>${abertas.filter(f => diasAteFin(f.vencimento) <= 7).length}</b></div>
-                    </div>
+        const vencendo = abertas.filter(f => diasAteFin(f.vencimento) <= 7).length
+        const painel = `
+            ${cabecaPainelCartaoFin(String(abertas.length), 'Faturas do cartão', `<small>${abertas.length} em aberto</small>`)}
+            <div class="cf-infos">
+                ${infoPainelCartaoFin('A pagar (conferido + estimado)', dinheiro(somaAPagar))}
+                ${infoPainelCartaoFin('Vencendo em 7 dias', vencendo, vencendo ? 'cf-falta' : '')}
+            </div>
+            <hr>
+            ${acaoPainelCartaoFin(estadoCartoesFin.todas ? 'fechar' : 'ver', estadoCartoesFin.todas ? 'Esconder as pagas antigas' : 'Mostrar todas as pagas',
+                'estadoCartoesFin.todas = !estadoCartoesFin.todas; telaFaturasCartaoFin()')}
+            ${acaoPainelCartaoFin('editar', 'Cadastro dos cartões', 'telaContasFin()')}`
+        tela.innerHTML = janelaCartaoFin('Faturas do cartão', `
                     ${semVencimento.length ? `<div class="cf-aviso">Cartões ativos sem dia de vencimento (não geram fatura):
                         ${semVencimento.map(k => `<span class="fis-link" onclick="formularioContaFin('${escFin(k.id)}')">${escFin(k.nome)}</span>`).join(', ')}</div>` : ''}
                     <div class="fis-tabela-rolagem cf-rolagem">
@@ -66,7 +126,7 @@ async function telaFaturasCartaoFin() {
                                 const d = diasAteFin(f.vencimento)
                                 const alerta = !['PAGA', 'PAGA PARCIAL'].includes(f.situacao) && d <= 7
                                 return `
-                                <tr class="cf-linha ${alerta ? 'cf-alerta' : ''}" onclick="telaFaturaCartaoFin('${escFin(f.id)}')">
+                                <tr class="cf-linha ${alerta ? 'cf-alerta' : ''}" onclick="abrirFaturaCartaoFin('${escFin(f.id)}')">
                                     <td>${dataFin(f.vencimento)}${alerta ? `<small class="cf-dias">${d < 0 ? `venceu há ${-d} d` : d === 0 ? 'hoje' : `em ${d} d`}</small>` : ''}</td>
                                     <td><b>${escFin(f.cartao)}</b><small class="cf-sub">${escFin(f.app)}${f.conta_pagadora_nome ? ` · paga pelo ${escFin(f.conta_pagadora_nome)}` : ''}</small></td>
                                     <td>${mesCartaoFin(f.mes)}</td>
@@ -79,9 +139,8 @@ async function telaFaturasCartaoFin() {
                                 </tr>`
                             }).join('') || '<tr><td colspan="9" class="fis-vazio">Nenhuma fatura de cartão.</td></tr>'}</tbody>
                         </table>
-                    </div>
-                </section>
-            </div>`
+                    </div>`, painel)
+        ajustarAlturaCartaoFin()
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
@@ -89,6 +148,13 @@ async function telaFaturasCartaoFin() {
 }
 
 // ------------------------------------------------------------ uma fatura (conferência e pagamento)
+
+// Pela lista ou pelo aviso: recolhe o menu principal e começa com o painel recolhido.
+function abrirFaturaCartaoFin(id) {
+    recolherMenuPrincipalFin()
+    estadoCartoesFin.painel = false
+    return telaFaturaCartaoFin(id)
+}
 
 async function telaFaturaCartaoFin(id) {
     overlayAguarde()
@@ -112,37 +178,35 @@ function desenharFaturaCartaoFin() {
     const falta = Math.max(Number(f.total_banco || 0) - Number(f.pago || 0), 0)
     const dica = c => [c.cliente_documento && `CPF/CNPJ ${c.cliente_documento}`, [c.cliente_cidade, c.cliente_uf].filter(Boolean).join('/'),
         c.cliente_telefone, c.cliente_email].filter(Boolean).join(' · ')
-    tela.innerHTML = `
-        <div class="fis-pagina fin-tela">
-            <section class="fin-janela">
-                <header class="fin-janela-topo">
-                    <h2>Fatura ${escFin(f.cartao)} · ${mesCartaoFin(f.mes)}</h2>
-                    <div class="fin-barra">
-                        <button type="button" onclick="telaFaturasCartaoFin()">${iconeFin('voltar')} Faturas do cartão</button>
-                        ${anterior ? `<button type="button" onclick="telaFaturaCartaoFin('${escFin(anterior.id)}')">${iconeFin('seta')} ${mesCartaoFin(anterior.mes)}</button>` : ''}
-                        ${proxima ? `<button type="button" onclick="telaFaturaCartaoFin('${escFin(proxima.id)}')">${mesCartaoFin(proxima.mes)} ${iconeFin('seta')}</button>` : ''}
-                        ${aberta ? `<button type="button" ${zerada ? '' : 'disabled title="A diferença tem que estar zerada (e o total do banco informado)"'} onclick="fecharFaturaCartaoFin()">${iconeFin('check')} Fechar fatura</button>` : ''}
-                        ${!aberta && !Number(f.pago) ? `<button type="button" onclick="reabrirFaturaCartaoFin()">${iconeFin('editar')} Reabrir</button>` : ''}
-                        ${f.estado === 'FECHADA' && falta > 0.005 && !Number(f.pago) ? `<button type="button" onclick="formularioPagarCartaoFin()">${iconeFin('baixa')} Pagar</button>` : ''}
-                    </div>
-                </header>
-
-                <div class="cf-resumo">
-                    <div><small>Vence</small><b>${dataFin(f.vencimento)}</b>${chipCartaoFin(f.situacao)}</div>
-                    <div class="cf-total-banco"><small>Fatura do banco</small>
-                        ${aberta
-                            ? `<input class="fis-input fis-num" type="number" step="0.01" min="0" value="${f.total_banco ?? ''}" placeholder="total do PDF" onchange="salvarTotalCartaoFin(this.value)">`
-                            : `<b>${dinheiro(f.total_banco)}</b>`}
-                        <label class="cf-anexar">${iconeFin('anexo')} PDF<input type="file" multiple hidden onchange="anexarCartaoFin(this)"></label>
-                        <div class="cf-anexos">${anexosCartaoFin.map((a, i) => criarAnexoVisual(a.nome || a.link, a.link, `removerAnexoCartaoFin(${i})`)).join('')}</div>
-                    </div>
-                    <div><small>Saldo anterior não pago</small><b>${dinheiro(f.saldo_anterior)}</b></div>
-                    <div><small>Compras (${compras.length})</small><b>${dinheiro(f.compras)}</b></div>
-                    <div class="${f.total_banco == null ? '' : zerada ? 'cf-ok' : 'cf-falta'}"><small>${f.total_banco == null ? 'Diferença' : zerada ? 'Conferida' : 'Falta explicar'}</small>
-                        <b>${f.total_banco == null ? '—' : zerada ? '✔ R$ 0,00' : dinheiro(dif)}</b></div>
-                    <div><small>Pago</small><b>${dinheiro(f.pago)}</b>${f.estimado != null && aberta ? `<small>estimado ~${dinheiro(f.estimado)}</small>` : ''}</div>
-                </div>
-
+    const situacaoConferencia = f.total_banco == null ? '' : zerada ? 'cf-ok' : 'cf-falta'
+    const painel = `
+        ${cabecaPainelCartaoFin(f.cartao_final || '💳', `${f.cartao} · ${mesCartaoFin(f.mes)}`, chipCartaoFin(f.situacao))}
+        <div class="cf-infos">
+            ${infoPainelCartaoFin('Vence', dataFin(f.vencimento))}
+            <div class="cf-info cf-total-banco"><small>Fatura do banco</small>
+                ${aberta
+                    ? `<input class="fis-input fis-num" type="number" step="0.01" min="0" value="${f.total_banco ?? ''}" placeholder="total do PDF" onchange="salvarTotalCartaoFin(this.value)">`
+                    : `<b>${dinheiro(f.total_banco)}</b>`}
+                <label class="cf-anexar">${iconeFin('anexo')} Anexar PDF<input type="file" multiple hidden onchange="anexarCartaoFin(this)"></label>
+                <div class="cf-anexos">${anexosCartaoFin.map((a, i) => criarAnexoVisual(a.nome || a.link, a.link, `removerAnexoCartaoFin(${i})`)).join('')}</div>
+            </div>
+            ${infoPainelCartaoFin('Saldo anterior não pago', dinheiro(f.saldo_anterior))}
+            ${infoPainelCartaoFin(`Compras (${compras.length})`, dinheiro(f.compras))}
+            ${infoPainelCartaoFin(f.total_banco == null ? 'Diferença' : zerada ? 'Conferida' : 'Falta explicar',
+                f.total_banco == null ? '—' : zerada ? '✔ R$ 0,00' : dinheiro(dif), situacaoConferencia)}
+            ${infoPainelCartaoFin('Pago', dinheiro(f.pago))}
+            ${f.estimado != null && aberta ? infoPainelCartaoFin('Estimado (média de 3 meses)', `~${dinheiro(f.estimado)}`) : ''}
+        </div>
+        <hr>
+        ${aberta ? acaoPainelCartaoFin('check', 'Fechar fatura', 'fecharFaturaCartaoFin()', { ativo: zerada, motivo: 'a diferença tem que estar zerada (e o total do banco informado)' }) : ''}
+        ${f.estado === 'FECHADA' && falta > 0.005 && !Number(f.pago) ? acaoPainelCartaoFin('baixa', 'Pagar', 'formularioPagarCartaoFin()') : ''}
+        ${!aberta && !Number(f.pago) ? acaoPainelCartaoFin('editar', 'Reabrir', 'reabrirFaturaCartaoFin()') : ''}
+        ${anterior ? acaoPainelCartaoFin('voltar', `Fatura de ${mesCartaoFin(anterior.mes)}`, `telaFaturaCartaoFin('${escFin(anterior.id)}')`) : ''}
+        ${proxima ? acaoPainelCartaoFin('seta', `Fatura de ${mesCartaoFin(proxima.mes)}`, `telaFaturaCartaoFin('${escFin(proxima.id)}')`) : ''}
+        ${acaoPainelCartaoFin('voltar', 'Todas as faturas do cartão', 'telaFaturasCartaoFin()')}`
+    tela.innerHTML = janelaCartaoFin(`Fatura ${escFin(f.cartao)} · ${mesCartaoFin(f.mes)}`, `
+                ${f.total_banco == null && aberta ? `<div class="cf-faixa">Informe o total da fatura do banco no painel <span class="fis-link" onclick="if (!estadoCartoesFin.painel) alternarPainelCartaoFin()">ao lado ▸</span></div>` : ''}
+                ${f.total_banco != null ? `<div class="cf-faixa ${situacaoConferencia}">${zerada ? '✔ Conferida com a fatura do banco' : `Falta explicar <b>${dinheiro(dif)}</b> de ${dinheiro(f.total_banco)}`}</div>` : ''}
                 <div class="fis-tabela-rolagem cf-rolagem-compras">
                     <table class="fis-tabela fin-extrato cf-tabela">
                         <thead><tr><th>Data</th><th>Fornecedor</th><th>Categoria</th><th>Departamento</th><th>Origem</th><th class="fis-num">Valor</th><th></th></tr></thead>
@@ -199,9 +263,8 @@ function desenharFaturaCartaoFin() {
                             <button type="button" class="fis-mini" onclick="desfazerPagamentoCartaoFin('${escFin(p.grupo)}')">Desfazer</button>
                         </div>`).join('')}
                     ${f.situacao === 'PAGA PARCIAL' ? `<small>Pagamento parcial: o restante (${dinheiro(falta)}) passa para a fatura seguinte como saldo anterior; os juros entram lá.</small>` : ''}
-                </div>` : ''}
-            </section>
-        </div>`
+                </div>` : ''}`, painel)
+        ajustarAlturaCartaoFin()
 }
 
 async function acaoCartaoFin(rota, corpo, mensagemOk = null) {

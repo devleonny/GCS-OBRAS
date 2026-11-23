@@ -12,8 +12,8 @@
 .cf-anexar .fin-icone { width: 16px; height: 16px; }
 .cf-anexos { display: flex; flex-direction: column; gap: 2px; }
 .cf-aviso { margin-bottom: 8px; padding: 8px 12px; border-radius: 8px; background: #fff8e6; border: 1px solid #f1d58a; font-size: 12.5px; }
-.cf-rolagem { max-height: calc(100dvh - 260px); border: 1px solid var(--fin-borda, #d6e0da); border-radius: 8px; background: #fff; }
-.cf-rolagem-compras { max-height: 46dvh; border: 1px solid var(--fin-borda, #d6e0da); border-radius: 8px; background: #fff; }
+.cf-rolagem { border: 1px solid var(--fin-borda, #d6e0da); border-radius: 8px; background: #fff; }
+.cf-rolagem-compras { border: 1px solid var(--fin-borda, #d6e0da); border-radius: 8px; background: #fff; }
 .cf-tabela { table-layout: auto; }
 .cf-tabela thead th { position: sticky; top: 0; z-index: 1; }
 .cf-tabela td { white-space: nowrap; }
@@ -34,3 +34,20 @@
 .cf-pagamentos { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
 .cf-pagamento { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--fin-borda, #d6e0da); border-radius: 8px; background: #fff; }
 .cf-pagamento .fis-mini { margin-left: auto; }
+
+/* Painel lateral (ações e informações), igual ao das Faturas a pagar; recolhido mostra só os ícones */
+.cf-painel { width: 250px; }
+.cf-infos { display: flex; flex-direction: column; gap: 8px; padding: 4px 6px; }
+.cf-info { display: flex; flex-direction: column; gap: 2px; }
+.cf-info small { color: #5b6b62; font-size: 11px; }
+.cf-info b { font-size: 14px; color: #1f2a24; font-variant-numeric: tabular-nums; }
+.cf-info.cf-ok b { color: #1f7a3d; }
+.cf-info.cf-falta b { color: #b42318; }
+.cf-painel .cf-total-banco input { width: 100%; box-sizing: border-box; }
+.cf-painel .fin-painel-texto .cf-chip { align-self: flex-start; }
+.fin-corpo.recolhido .cf-infos,
+.fin-corpo.recolhido .cf-painel hr { display: none; }
+.cf-faixa { margin-bottom: 8px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--fin-borda, #d6e0da); background: #fff; font-size: 13px; }
+.cf-faixa.cf-ok { border-color: #9fd3ae; background: #f0faf3; color: #1f7a3d; }
+.cf-faixa.cf-falta { border-color: #f1b8b3; background: #fff5f4; color: #b42318; }
+@media (max-width: 800px) { .fin-corpo.recolhido .cf-infos { display: flex; } }
