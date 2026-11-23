@@ -71,9 +71,24 @@ const POR_PAGINA_REC_FIS = 50
 const selecaoRecFis = new Map()   // id -> valor_total (total das marcadas de outras páginas)
 let somaFiltroRecFis = null, assinaturaSomaRecFis = null
 let filtroExtraRecFis = null
+// Seletor do topo: NF-e (notas de compra) ou CT-e (fretes, gcs migrations/fiscal-ctes.sql). Lembrado na sessão.
+let modoRecFis = 'NFE'
+
+function seletorModoRecFis() {
+    return `<div class="fis-modo-rec" role="tablist" aria-label="Tipo de documento">
+        ${[['NFE', 'NF-e'], ['CTE', 'CT-e']].map(([m, nome]) => `<button type="button" role="tab" aria-selected="${modoRecFis === m}"
+            onclick="trocarModoRecFis('${m}')">${nome}</button>`).join('')}</div>`
+}
+
+function trocarModoRecFis(modo) {
+    if (modo === modoRecFis) return
+    modoRecFis = modo
+    telaNotasRecebidas()
+}
 
 async function telaNotasRecebidas() {
     if (typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
+    if (modoRecFis === 'CTE') return telaCtesRecebidosFis()
     selecaoRecFis.clear()
     const consulta = soConsultaFis()
     tela.innerHTML = `
@@ -81,6 +96,7 @@ async function telaNotasRecebidas() {
             <section class="fin-janela">
                 <header class="fin-janela-topo">
                     <h2>Notas recebidas</h2>
+                    ${seletorModoRecFis()}
                     <div class="fin-barra">
                         <button type="button" onclick="document.querySelector('[data-arquivos-xml]').click()">${iconeFin('salvar')} Importar XML</button>
                         <button type="button" onclick="buscarNotasSefaz()" title="Busca na SEFAZ (pela Focus NFe) as notas emitidas contra os CNPJs do grupo">${iconeFin('repetir')} Buscar na SEFAZ</button>
@@ -386,15 +402,15 @@ function alternarPainelIndFis(chave) {
 
 // Clique no indicador filtra a tabela; clicar de novo no que está ativo tira o filtro.
 function filtrarIndFis(chave, campo, valor) {
-    const atual = chave === 'emitidas' ? filtroExtraEmitFis : filtroExtraRecFis
+    const atual = chave === 'emitidas' ? filtroExtraEmitFis : chave === 'ctes' ? filtroExtraCteFis : filtroExtraRecFis
     const mesmo = atual && Object.keys(atual).length === 1 && atual[campo]?.value === valor
     const filtro = mesmo ? null : { [campo]: { op: '=', value: valor } }
-    return chave === 'emitidas' ? abrirTabelaEmitidas(filtro) : abrirTabelaRecebidas(filtro)
+    return chave === 'emitidas' ? abrirTabelaEmitidas(filtro) : chave === 'ctes' ? abrirTabelaCtesFis(filtro) : abrirTabelaRecebidas(filtro)
 }
 
 function marcarIndicadoresFis() {
     document.querySelectorAll('[data-ind-fis]').forEach(b => {
-        const atual = b.dataset.indFis === 'emitidas' ? filtroExtraEmitFis : filtroExtraRecFis
+        const atual = b.dataset.indFis === 'emitidas' ? filtroExtraEmitFis : b.dataset.indFis === 'ctes' ? filtroExtraCteFis : filtroExtraRecFis
         const ativo = Boolean(atual && Object.keys(atual).length === 1 && atual[b.dataset.campo]?.value === b.dataset.valor)
         b.classList.toggle('ativo', ativo)
         b.setAttribute('aria-pressed', String(ativo))
@@ -488,17 +504,378 @@ async function importarXmlsRecebidos(input) {
 async function buscarNotasSefaz() {
     overlayAguarde()
     try {
-        const { resultado } = await apiFiscal('recebidas/sincronizar')
+        const { resultado, ctes = [] } = await apiFiscal('recebidas/sincronizar')
         removerOverlay()
-        const linhas = resultado.map(r => `<li><b>${escFis(r.app)}</b>: ${r.mensagem
-            ? escFis(r.mensagem)
-            : `${r.novas} novas, ${r.completas} com XML completo, ${r.canceladas} canceladas`}</li>`).join('')
+        const porApp = new Map(ctes.filter(r => r.app).map(r => [r.app, r]))
+        const linhas = resultado.map(r => {
+            const c = porApp.get(r.app)
+            const cte = !c ? '' : c.mensagem ? ` · CT-e: ${escFis(c.mensagem)}` : ` · CT-e: ${c.novos} novos${c.completos ? `, ${c.completos} com XML completo` : ''}`
+            return `<li><b>${escFis(r.app)}</b>: ${r.mensagem
+                ? escFis(r.mensagem)
+                : `NF-e: ${r.novas} novas, ${r.completas} com XML completo, ${r.canceladas} canceladas`}${cte}</li>`
+        }).join('')
         popup({ titulo: 'Busca na SEFAZ', mensagem: `<ul class="fis-lista">${linhas}</ul>` })
-        contadoresFiscal()
-        if (controles.notasRecebidas) paginacao('notasRecebidas')
+        if (modoRecFis === 'CTE') {
+            contadoresCtesFis()
+            if (controles.ctesRecebidos) paginacao('ctesRecebidos')
+        } else {
+            contadoresFiscal()
+            if (controles.notasRecebidas) paginacao('notasRecebidas')
+        }
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+// ================================================================ CT-e RECEBIDOS
+// Aba CT-e da tela de Notas Recebidas (gcs: fiscal_ctes / vw_fiscal_ctes, rotas fiscal/cte e fiscal/cte/arquivo).
+// Vêm da Focus junto com as NF-e ("Buscar na SEFAZ" e a rotina de 30 min). Não mexem no estoque nem pedem
+// vínculo de itens: ficam guardados com o XML e o DACTE, ligados às NF-e que transportam.
+
+const POR_PAGINA_CTE_FIS = 50
+let filtroExtraCteFis = null
+let somaFiltroCteFis = null, assinaturaSomaCteFis = null
+
+const SITUACAO_CTE_FIS = {
+    AUTORIZADO: { cor: '#15803d', texto: 'Autorizado' },
+    CANCELADO: { cor: '#b91c1c', texto: 'Cancelado' },
+    DENEGADO: { cor: '#7f1d1d', texto: 'Denegado' }
+}
+const XML_CTE_FIS = {
+    COMPLETO: { cor: '#15803d', texto: 'XML completo' },
+    RESUMO: { cor: '#d97706', texto: 'Só resumo' }
+}
+const PAGA_FRETE_FIS = {
+    GRUPO: { cor: '#2563eb', texto: 'Empresa do grupo' },
+    TERCEIRO: { cor: '#64748b', texto: 'Terceiro' }
+}
+const PAPEL_TOMADOR_FIS = { REMETENTE: 'Remetente', EXPEDIDOR: 'Expedidor', RECEBEDOR: 'Recebedor', DESTINATARIO: 'Destinatário', OUTROS: 'Outro' }
+const TIPO_CTE_FIS = { 0: 'Normal', 1: 'Complemento de valores', 2: 'Anulação', 3: 'Substituto' }
+const MODAL_CTE_FIS = { '01': 'Rodoviário', '02': 'Aéreo', '03': 'Aquaviário', '04': 'Ferroviário', '05': 'Dutoviário', '06': 'Multimodal' }
+
+async function telaCtesRecebidosFis() {
+    tela.innerHTML = `
+        <div class="fis-pagina fin-tela fis-emitidas fis-recebidas">
+            <section class="fin-janela">
+                <header class="fin-janela-topo">
+                    <h2>Notas recebidas</h2>
+                    ${seletorModoRecFis()}
+                    <div class="fin-barra">
+                        <button type="button" onclick="buscarNotasSefaz()" title="Busca na SEFAZ (pela Focus NFe) as NF-e e os CT-e emitidos contra os CNPJs do grupo">${iconeFin('repetir')} Buscar na SEFAZ</button>
+                        <button type="button" onclick="baixarExcelCtesFis()" title="Todos os CT-e dos filtros aplicados">${iconeFin('excel')} Excel</button>
+                        <span data-limpar-cte-fis></span>
+                    </div>
+                </header>
+                ${corpoComIndicadoresFis('ctes', 'data-tabela-cte-fis')}
+            </section>
+        </div>`
+    contadoresCtesFis()
+    await abrirTabelaCtesFis()
+}
+
+async function abrirTabelaCtesFis(filtroExtra = null) {
+    const area = document.querySelector('[data-tabela-cte-fis]')
+    if (!area) return telaCtesRecebidosFis()
+    filtroExtraCteFis = filtroExtra
+    marcarIndicadoresFis()
+    const limpar = document.querySelector('[data-limpar-cte-fis]')
+    if (limpar) limpar.innerHTML = filtroExtra ? `<button type="button" onclick="abrirTabelaCtesFis()">${iconeFin('fechar')} Limpar filtro</button>` : ''
+    try {
+        delete controles.ctesRecebidos
+        assinaturaSomaCteFis = null
+        area.innerHTML = await modTab({
+            base: 'vw_fiscal_ctes',
+            pag: 'ctesRecebidos',
+            body: 'bodyCtesRecebidos',
+            criarLinha: 'criarLinhaCteFis',
+            caber: true,
+            limite: POR_PAGINA_CTE_FIS,
+            funcaoAdicional: ['aposCarregarCtesFis'],
+            filtrosFixos: filtroExtra || null,
+            ordenar: [{ path: 'emissao', direcao: 'desc' }],
+            colunas: {
+                'Emissão': { chave: 'dia', tipoPesquisa: 'data' },
+                'Empresa': { chave: 'app', tipoPesquisa: 'select' },
+                'Nº': { chave: 'numero' },
+                'Transportadora': { chave: 'emitente_nome', principal: true },
+                'Trajeto': { chave: 'trajeto' },
+                'Quem paga': { chave: 'paga_frete', tipoPesquisa: 'select', opcoes: ['GRUPO', 'TERCEIRO'], rotulos: { GRUPO: 'Empresa do grupo', TERCEIRO: 'Terceiro' } },
+                'Tomador': { chave: 'tomador_nome' },
+                'NF-e': { chave: 'notas_numeros' },
+                'Valor': { chave: 'valor_total', op: '>=', tipoOrdenacao: 'numero' },
+                'XML': { chave: 'status', tipoPesquisa: 'select', opcoes: ['COMPLETO', 'RESUMO'], rotulos: { COMPLETO: 'XML completo', RESUMO: 'Só resumo' } },
+                'Situação': { chave: 'situacao', tipoPesquisa: 'select', opcoes: ['AUTORIZADO', 'CANCELADO', 'DENEGADO'], rotulos: { AUTORIZADO: 'Autorizado', CANCELADO: 'Cancelado', DENEGADO: 'Denegado' } }
+            }
+        })
+        area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-cte-fis></div>')
+        await paginacao('ctesRecebidos')
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: `Falha ao abrir os CT-e: ${escFis(err.message)}` })
+    }
+}
+
+function criarLinhaCteFis(d) {
+    const id = escFis(d.id)
+    const abrir = `abrirCteFis('${id}')`
+    const qtd = Number(d.qtd_nfes) || 0
+    const noGcs = Number(d.notas_gcs) || 0
+    // Só as notas do GCS têm número aqui; as do Omie (vendas) aparecem ao abrir o CT-e.
+    const outras = qtd - noGcs
+    const nfes = `${noGcs ? escFis(d.notas_numeros) : ''}${outras > 0
+        ? ` <small title="Abra o CT-e para ver as notas (as vendas emitidas pelo Omie aparecem lá)">${noGcs ? '+' : ''}${outras} NF-e</small>` : ''}`
+    return `
+        <tr class="fin-linha" ondblclick="${abrir}" title="Duplo clique abre o CT-e">
+            <td class="fin-centro">${dataFis(d.emissao)}</td>
+            <td class="fin-centro">${escFis(d.app)}</td>
+            <td class="fin-centro fin-doc"><span class="fis-link" onclick="event.stopPropagation(); ${abrir}" title="Abrir o CT-e">${escFis(d.numero || 'abrir')}</span></td>
+            <td class="fin-obs fin-nome" title="${escFis(d.emitente_nome || '')}"><span class="fin-obs-txt">${escFis(d.emitente_nome || '')}</span></td>
+            <td class="fin-obs" title="${escFis(d.trajeto || '')}"><span class="fin-obs-txt">${escFis(d.trajeto || '')}</span></td>
+            <td>${etiquetaFis(PAGA_FRETE_FIS, d.paga_frete)}</td>
+            <td class="fin-obs" title="${escFis(`${d.tomador_nome || ''}${d.tomador_papel ? ` (${PAPEL_TOMADOR_FIS[d.tomador_papel] || d.tomador_papel})` : ''}`)}"><span class="fin-obs-txt">${escFis(d.tomador_nome || '')}</span></td>
+            <td class="fin-centro">${nfes}</td>
+            <td class="fis-num">${d.valor_total != null ? dinheiro(d.valor_total) : ''}</td>
+            <td>${etiquetaFis(XML_CTE_FIS, d.status)}</td>
+            <td>${etiquetaFis(SITUACAO_CTE_FIS, d.situacao)}</td>
+        </tr>`
+}
+
+async function aposCarregarCtesFis() {
+    const tabela = document.getElementById('bodyCtesRecebidos')?.closest('table')
+    if (!tabela) return
+    if (!tabela.tFoot) {
+        const chaves = Object.values(controles.ctesRecebidos?.colunas || {}).map(c => c.chave || '')
+        const linha = tabela.createTFoot().insertRow()
+        linha.className = 'fin-totais'
+        chaves.forEach(chave => {
+            const td = linha.insertCell()
+            if (chave === 'valor_total') { td.dataset.totalCte = 'S'; td.className = 'fis-num' }
+        })
+        const enchimento = document.createElement('tbody')
+        enchimento.className = 'fin-enchimento'
+        enchimento.innerHTML = `<tr><td colspan="${chaves.length}"></td></tr>`
+        tabela.insertBefore(enchimento, tabela.tFoot)
+    }
+    if (typeof cabecalhoAvancadoTabela === 'function')
+        await cabecalhoAvancadoTabela('ctesRecebidos', { prefKey: 'ctes_recebidos' })
+    desenharRodapeCteFis()
+    await somarFiltroCteFis()
+}
+
+async function somarFiltroCteFis() {
+    const ctrl = controles.ctesRecebidos
+    if (!ctrl) return
+    const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos)
+    const assinatura = JSON.stringify(filtros)
+    if (assinatura !== assinaturaSomaCteFis) {
+        assinaturaSomaCteFis = assinatura
+        let soma = null
+        try { soma = Number((await contarPorCampo({ base: 'vw_fiscal_ctes', path: 'valor_total', modo: 'soma', filtros }))?.total || 0) } catch { }
+        if (assinatura !== assinaturaSomaCteFis) return
+        somaFiltroCteFis = soma
+    }
+    const texto = somaFiltroCteFis == null ? '—' : dinheiro(somaFiltroCteFis)
+    const ind = document.querySelector('[data-ind-valor-ctes]')
+    if (ind) ind.innerHTML = texto
+    const td = document.querySelector('[data-total-cte]')
+    if (td) {
+        td.title = 'Total de todos os CT-e do filtro'
+        td.innerHTML = `<span class="fin-sigma">Σ</span> ${texto}`
+    }
+}
+
+function desenharRodapeCteFis() {
+    const alvo = document.querySelector('[data-rodape-cte-fis]')
+    const ctrl = controles.ctesRecebidos
+    if (!alvo || !ctrl) return
+    const total = Number(document.getElementById('resultados_ctesRecebidos')?.textContent) || 0
+    const paginas = Math.max(1, Number(ctrl.total) || 1)
+    const pagina = Math.min(ctrl.pagina || 1, paginas)
+    const inicio = total ? (pagina - 1) * POR_PAGINA_CTE_FIS + 1 : 0
+    const fim = Math.min(total, pagina * POR_PAGINA_CTE_FIS)
+    const botao = (texto, destino, ativo, titulo = '') =>
+        `<button type="button" ${ativo ? `onclick="irPaginaCteFis(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
+    alvo.innerHTML = `
+        <span class="fin-rodape-info"><span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} CT-e</span>${filtrosAtivosRodapeCab(ctrl.pag)}</span>
+        <div class="fin-paginas">
+            ${botao('|‹', 1, pagina > 1, 'Primeira página')}
+            ${botao('‹ anterior', pagina - 1, pagina > 1)}
+            <label>Página <input type="number" min="1" max="${paginas}" value="${pagina}" onchange="irPaginaCteFis(this.value)"></label>
+            <span>de ${paginas.toLocaleString('pt-BR')}</span>
+            ${botao('próximo ›', pagina + 1, pagina < paginas)}
+            ${botao('›|', paginas, pagina < paginas, 'Última página')}
+        </div>`
+}
+
+async function irPaginaCteFis(n) {
+    const ctrl = controles.ctesRecebidos
+    if (!ctrl) return
+    const pagina = Math.min(Math.max(1, parseInt(n) || 1), Math.max(1, Number(ctrl.total) || 1))
+    if (pagina === ctrl.pagina) return desenharRodapeCteFis()
+    ctrl.pagina = pagina
+    await paginacao('ctesRecebidos')
+}
+
+async function contadoresCtesFis() {
+    const alvo = document.querySelector('[data-cartoes-ctes]')
+    if (!alvo) return
+    try {
+        const { contadores: c } = await apiFiscal('painel')
+        const n = c.ctes || {}
+        const qtd = v => Number(v || 0).toLocaleString('pt-BR')
+        const cartao = (v, texto, cor, campo, valor, explica) => `
+            <button type="button" class="fis-cred-ind" style="--cor: ${cor}" data-ind-fis="ctes" data-campo="${campo}" data-valor="${valor}"
+                onclick="filtrarIndFis('ctes', '${campo}', '${valor}')" title="${escFis(explica)} Clique para filtrar (de novo, tira o filtro).">
+                <span>${texto}</span><b>${qtd(v)}</b><small>${escFis(explica)}</small></button>`
+        alvo.innerHTML = `
+            ${cartao(n.pagos_grupo, 'Frete pago pelo grupo', '#2563eb', 'paga_frete', 'grupo', 'O tomador do frete é uma empresa do grupo.')}
+            ${cartao(n.pagos_terceiro, 'Frete pago por terceiro', '#64748b', 'paga_frete', 'terceiro', 'Fornecedor ou cliente pagou (só informativo).')}
+            ${cartao(n.resumo, 'Só com resumo', '#d97706', 'status', 'resumo', 'O XML ainda não veio; a próxima busca tenta de novo.')}
+            ${cartao(n.cancelados, 'Cancelados', '#b91c1c', 'situacao', 'cancelado', 'Cancelados pela transportadora.')}
+            <div class="fis-cred-ind" style="--cor: #15803d" title="Soma do Valor de todos os CT-e dos filtros da tabela">
+                <span>Valor no filtro</span><b data-ind-valor-ctes>—</b><small>Soma dos fretes dos filtros da tabela.</small></div>`
+        marcarIndicadoresFis()
+        somarFiltroCteFis()
+    } catch (err) {
+        alvo.innerHTML = `<div class="fis-alerta">${escFis(err.message)}</div>`
+    }
+}
+
+async function abrirCteFis(id) {
+    overlayAguarde()
+    try {
+        const { cte: c, nfes } = await apiFiscal('cte', { id })
+        removerOverlay()
+        const anterior = document.querySelector(`[data-cte-fis="${CSS.escape(id)}"]`)?.closest('.popup')?.id
+        if (anterior) removerPopup(anterior)
+        const pessoa = (nome, doc) => nome ? `${escFis(nome)}${doc ? ` <small>${docFormatadoFis(doc)}</small>` : ''}` : ''
+        const tomador = c.tomador_nome
+            ? `${pessoa(c.tomador_nome, c.tomador_documento)}${c.tomador_papel ? ` <small>(${PAPEL_TOMADOR_FIS[c.tomador_papel] || c.tomador_papel})</small>` : ''}`
+            : ''
+        const linhaNota = ({ chave, nota }) => {
+            if (!nota) return `<tr><td class="fin-doc">${escFis(chave)}</td><td colspan="3"><small>Não está no GCS</small></td></tr>`
+            const abrir = nota.fonte === 'OMIE' ? `abrirDANFE('${escFis(nota.id)}')` : `abrirDocumentoFiscal('${escFis(nota.id)}')`
+            const tipo = nota.fonte === 'OMIE' ? 'Emitida (Omie)' : nota.direcao === 'SAIDA' ? 'Emitida' : 'Recebida'
+            return `<tr>
+                <td class="fin-doc"><span class="fis-link" onclick="${abrir}" title="Abrir a nota">${escFis(nota.numero || 'abrir')}</span> <small>${tipo}</small></td>
+                <td>${escFis(nota.participante_nome || '')}</td>
+                <td class="fis-num">${nota.valor_total != null ? dinheiro(nota.valor_total) : ''}</td>
+                <td class="fin-doc"><small>${escFis(chave)}</small></td></tr>`
+        }
+        const componentes = Array.isArray(c.componentes) ? c.componentes : []
+        const tom = { AUTORIZADO: 'ok', CANCELADO: 'neutro', DENEGADO: 'erro' }[c.situacao] || 'rascunho'
+        const botao = (texto, acao) => `<button type="button" class="fis-mini" onclick="${acao}">${texto}</button>`
+        const impostos = [['Frete', c.valor_total], ['A receber', Number(c.valor_receber) !== Number(c.valor_total) ? c.valor_receber : null],
+            ['ICMS', c.valor_icms], ['IBS', c.valor_ibs], ['CBS', c.valor_cbs], ['Valor da carga', c.valor_carga]]
+        const html = `
+            <div class="fis-painel fis-doc fis-nota" data-cte-fis="${escFis(c.id)}">
+                <div class="fis-nota-topo ${tom}">
+                    <div class="fis-nota-titulo">
+                        <b>CT-e ${c.numero ? `nº ${escFis(c.numero)}${c.serie ? ` <small>série ${escFis(c.serie)}</small>` : ''}` : '<small>(só o resumo)</small>'}</b>
+                        <div class="fis-nota-etiquetas">
+                            ${etiquetaFis(SITUACAO_CTE_FIS, c.situacao)} ${etiquetaFis(XML_CTE_FIS, c.status)} ${etiquetaFis(PAGA_FRETE_FIS, c.paga_frete)}
+                        </div>
+                        <small>${escFis([c.natureza_operacao, MODAL_CTE_FIS[c.modal], c.tipo_cte != null && String(c.tipo_cte) !== '0' ? TIPO_CTE_FIS[c.tipo_cte] : ''].filter(Boolean).join(' · '))}</small>
+                    </div>
+                    <div class="fis-nota-valor">
+                        <span>Valor do frete</span>
+                        <b>${c.valor_total != null ? dinheiro(c.valor_total) : '—'}</b>
+                    </div>
+                </div>
+
+                ${resumoDocumentoFis(c, [
+                    ['Transportadora', pessoa(c.emitente_nome, c.emitente_documento)],
+                    ['Quem paga (tomador)', tomador],
+                    ['Empresa', escFis(c.app)],
+                    ['Emissão', dataHoraFis(c.emissao)],
+                    ['Remetente', pessoa(c.remetente_nome, c.remetente_documento)],
+                    ['Destinatário', pessoa(c.destinatario_nome, c.destinatario_documento)],
+                    ['Trajeto', escFis(c.trajeto || '')],
+                    ['CFOP', escFis(c.cfop || '')],
+                    ['Produto', escFis(c.produto_predominante || '')]
+                ])}
+
+                <div class="fis-chave">Chave <code>${escFis(c.chave)}</code></div>
+
+                <div class="fis-nota-impostos">${impostos.filter(([, v]) => v != null && v !== '').map(([k, v]) => `<div><span>${k}</span><b>${dinheiro(v)}</b></div>`).join('')}</div>
+
+                <div class="fis-acoes-claras fis-nota-acoes">
+                    ${botao('DACTE', `baixarArquivoFiscal('${escFis(c.id)}', 'pdf', 'cte/arquivo')`)}
+                    ${c.tem_xml ? botao('XML', `baixarArquivoFiscal('${escFis(c.id)}', 'xml', 'cte/arquivo')`) : ''}
+                </div>
+
+                <div class="fis-secao">
+                    <div class="fis-secao-topo"><b>NF-e transportadas</b> <span class="fis-contador">${nfes.length}</span></div>
+                    ${nfes.length
+                        ? `<div class="fis-tabela-rolagem"><table class="fis-tabela">
+                            <thead><tr><th>Nota</th><th>Participante</th><th class="fis-num">Valor</th><th>Chave</th></tr></thead>
+                            <tbody>${nfes.map(linhaNota).join('')}</tbody></table></div>`
+                        : `<div class="fis-info">${c.status === 'RESUMO' ? 'O XML ainda não veio: as notas aparecem quando ele chegar.' : 'O CT-e não informa NF-e (pode transportar outro tipo de documento).'}</div>`}
+                </div>
+
+                ${componentes.length ? `
+                <div class="fis-secao">
+                    <div class="fis-secao-topo"><b>Composição do frete</b></div>
+                    <div class="fis-tabela-rolagem"><table class="fis-tabela"><tbody>
+                        ${componentes.map(p => `<tr><td>${escFis(p.nome)}</td><td class="fis-num">${dinheiro(p.valor || 0)}</td></tr>`).join('')}
+                    </tbody></table></div>
+                </div>` : ''}
+
+                ${c.observacao ? `<div class="fis-secao"><div class="fis-secao-topo"><b>Observações</b></div><div class="fis-info">${escFis(c.observacao)}</div></div>` : ''}
+            </div>`
+        popup({ titulo: 'CT-e recebido', elemento: html })
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+async function baixarExcelCtesFis() {
+    const ctrl = controles.ctesRecebidos
+    if (!ctrl) return
+    overlayAguarde()
+    try {
+        const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        const linhas = []
+        let pagina = 1, paginas = 1
+        do {
+            const r = await pesquisarDB({ base: 'vw_fiscal_ctes', filtros, ordenar: ctrl.ordenar || [{ path: 'emissao', direcao: 'desc' }], pagina, limite: 2000 })
+            linhas.push(...(r?.resultados || []))
+            paginas = Number(r?.paginas) || 1
+            pagina++
+        } while (pagina <= paginas && pagina <= 50)
+        const data = v => v ? new Date(`${String(v).slice(0, 10)}T12:00:00Z`) : null
+        const texto = (mapa, s) => mapa?.[s]?.texto || s || ''
+        await baixarExcelRelatorioGCS({
+            titulo: 'CT-e recebidos',
+            resumo: `${linhas.length} CT-e`,
+            filtrosTexto: `Filtros: ${typeof descreverFiltrosFin === 'function' ? descreverFiltrosFin(ctrl).replace('nenhum (todas as faturas)', 'nenhum (todos os CT-e)') : ''}`,
+            linhas,
+            colunas: [
+                { titulo: 'Emissão', largura: 12, tipo: 'data', valor: d => data(d.dia) },
+                { titulo: 'Empresa', largura: 9, centro: true, valor: d => d.app || '' },
+                { titulo: 'Nº', largura: 11, centro: true, valor: d => d.numero || '' },
+                { titulo: 'Transportadora', largura: 38, valor: d => d.emitente_nome || '' },
+                { titulo: 'CNPJ transportadora', largura: 19, valor: d => d.emitente_documento ? docFormatadoFis(d.emitente_documento) : '' },
+                { titulo: 'Trajeto', largura: 36, valor: d => d.trajeto || '' },
+                { titulo: 'Quem paga', largura: 16, valor: d => texto(PAGA_FRETE_FIS, d.paga_frete) },
+                { titulo: 'Tomador', largura: 36, valor: d => d.tomador_nome || '' },
+                { titulo: 'Remetente', largura: 36, valor: d => d.remetente_nome || '' },
+                { titulo: 'Destinatário', largura: 36, valor: d => d.destinatario_nome || '' },
+                { titulo: 'NF-e no GCS', largura: 14, valor: d => d.notas_numeros || '' },
+                { titulo: 'Qtd. NF-e', largura: 9, centro: true, valor: d => Number(d.qtd_nfes) || 0 },
+                { titulo: 'Valor', largura: 14, tipo: 'moeda', soma: true, valor: d => Number(d.valor_total) || 0 },
+                { titulo: 'ICMS', largura: 12, tipo: 'moeda', soma: true, valor: d => Number(d.valor_icms) || 0 },
+                { titulo: 'Situação', largura: 12, valor: d => texto(SITUACAO_CTE_FIS, d.situacao) },
+                { titulo: 'Chave', largura: 48, valor: d => d.chave || '' }
+            ]
+        })
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: `Falha ao gerar o Excel: ${escFis(err.message)}` })
+    } finally {
+        removerOverlay()
     }
 }
 
@@ -863,11 +1240,11 @@ function historicoFiscal(d) {
         </details>`
 }
 
-async function baixarArquivoFiscal(id, tipo) {
+async function baixarArquivoFiscal(id, tipo, rota = 'arquivo') {
     try {
         overlayAguarde()
         const { token } = JSON.parse(localStorage.getItem('acesso') || '{}')
-        const r = await fetch(`${api}/fiscal/arquivo`, {
+        const r = await fetch(`${api}/fiscal/${rota}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ id, tipo })
