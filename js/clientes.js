@@ -783,6 +783,21 @@ function mostrarDesligadoCliente(painel) {
     linha.style.display = visivel ? '' : 'none'
 }
 
+// Cadastro de FUNCIONÁRIO (sem a tag EMPRESA e sem CNPJ): oculta o que é de empresa — razão social,
+// inscrições e garantia dos chamados. Só esconde: o valor que já existir continua e é salvo igual.
+const CAMPOS_EMPRESA_CLIENTE = ['razao_social', 'inscricao_estadual', 'inscricao_municipal', 'garantia_meses']
+
+function mostrarCamposEmpresaCliente(painel) {
+    if (!painel) return
+    const tags = tagsMarcadasCliente(painel)
+    const cnpj = String(painel.querySelector('[name="cnpj"]')?.value || '').replace(/\D/g, '')
+    const ocultar = tags.includes('FUNCIONÁRIO') && !tags.includes('EMPRESA') && cnpj.length !== 14
+    CAMPOS_EMPRESA_CLIENTE.forEach(nome => {
+        const linha = painel.querySelector(`[name="${nome}"]`)?.closest('.linha-padrao')
+        if (linha) linha.style.display = ocultar ? 'none' : ''
+    })
+}
+
 // Tags marcadas na lista de checkbox do formulário de clientes.
 function tagsMarcadasCliente(painel) {
     return [...(painel?.querySelectorAll('[name="tags"] input[type="checkbox"]:checked') || [])]
@@ -875,7 +890,7 @@ async function formularioCliente(idCliente) {
         .map(tag => `
             <label class="cliente-tag-opcao">
                 <input type="checkbox" value="${escaparAtributo(tag)}" ${marcadas.has(tag) ? 'checked' : ''}
-                    onchange="alternarTagTecnicoCliente(this); mostrarDesligadoCliente(this.closest('.painel-padrao')); verificarDisponibilidade(this.closest('.painel-padrao').querySelector('[name=nome]'))">
+                    onchange="alternarTagTecnicoCliente(this); mostrarDesligadoCliente(this.closest('.painel-padrao')); mostrarCamposEmpresaCliente(this.closest('.painel-padrao')); verificarDisponibilidade(this.closest('.painel-padrao').querySelector('[name=nome]'))">
                 <span>${escaparAtributo(tag)}</span>
             </label>`)
         .join('')
@@ -1132,6 +1147,7 @@ async function formularioCliente(idCliente) {
         .forEach(campo => campo.setAttribute('autocomplete', 'gcs-cadastro-cliente'))
 
     mostrarDesligadoCliente(painelCliente)
+    mostrarCamposEmpresaCliente(painelCliente)
 
     // Cadastro sem usuário: já avalia ao abrir (antes só ao digitar o nome ou mexer nas tags).
     if (!usuario)
@@ -2001,6 +2017,7 @@ function formatarCnpj(input) {
     const caixaEmpresa = painelCliente.querySelector('[name="tags"] input[type="checkbox"][value="EMPRESA"]')
     if (temEndereco && caixaEmpresa && digitos.length === 14 && !caixaEmpresa.checked)
         caixaEmpresa.checked = true
+    if (temEndereco) mostrarCamposEmpresaCliente(input.closest('.painel-padrao'))
 
     if (temEndereco && digitos.length === 14 && validarCpfCnpj(v) && input.dataset.cnpjConsultado !== digitos) {
         input.dataset.cnpjConsultado = digitos

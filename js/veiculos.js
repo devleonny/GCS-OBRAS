@@ -459,7 +459,9 @@ async function criarLinhaCusto(custo) {
     const detalhes = `
         <div class="veiculo-detalhes">
             <div><strong>Data de Registro</strong><span>${escaparAtributo(data || 'Sem data')}</span></div>
-            <div><strong>Comentário</strong><span>${escaparAtributo(comentario || 'Sem comentário')}</span></div>
+            <div><strong>Comentário</strong>${comentario && textoComentarioCombustivel(comentario)
+                ? `<div class="veiculo-comentario">${htmlComentarioCombustivel(comentario)}</div>`
+                : '<span>Sem comentário</span>'}</div>
         </div>
     `
 
@@ -826,6 +828,22 @@ async function painelValores(idCusto, duplicar) {
                 </span>`
         },
         {
+            // Calculadora (a mesma do formulário antigo, sem a divisão por departamento): km ÷ KM/L = litros;
+            // litros × preço do litro = valor, arredondado para cima de R$ 10 em R$ 10. Só ajuda a chegar
+            // no Valor, que continua podendo ser digitado direto.
+            texto: 'Calculadora',
+            elemento: `
+                <div class="calc-combustivel">
+                    <label>KM <input oninput="calcularValorCombustivel()" value="${custo?.km || ''}" type="number" min="0" step="1" id="km" placeholder="0"></label>
+                    <label>KM/L <input oninput="calcularValorCombustivel()" value="${custo?.kml || ''}" type="number" min="0" step="0.1" id="kml" placeholder="0"></label>
+                    <label>Preço do litro
+                        <span class="campo-moeda-combustivel"><span>R$</span>
+                        <input oninput="calcularValorCombustivel()" value="${custo?.combustivel || ''}" type="number" min="0" step="0.01" id="combustivel" placeholder="0,00"></span>
+                    </label>
+                    <label>Litros <input value="${custo?.litros || ''}" id="litros" readonly tabindex="-1"></label>
+                </div>`
+        },
+        {
             texto: 'Valor',
             elemento: `
                 <div class="campo-moeda-combustivel">
@@ -840,7 +858,7 @@ async function painelValores(idCusto, duplicar) {
                     value="${novoLancamento && (custo?.data_pagamento || '') < minimoData ? '' : custo?.data_pagamento || ''}">
                 <small style="opacity: 0.75;">Para o mesmo dia, solicite até ${HORA_LIMITE_COMBUSTIVEL}.</small>
             </div>` },
-        { texto: 'Comentário', elemento: `<textarea rows="4" style="padding: 0.5rem;" id="comentario">${custo?.comentario || ''}</textarea>` },
+        { texto: 'Comentário', editor: htmlComentarioCombustivel(custo?.comentario) },
         {
             elemento: `<small style="opacity: .75; text-align: left;">A divisão por departamento é feita depois, pelo uso do carro (rastreio e chamados).</small>`
         }
@@ -863,6 +881,44 @@ async function painelValores(idCusto, duplicar) {
             'Motoristas': { chave: 'nomes_motoristas' }
         }
     }
+}
+
+// Comentário do combustível (23/11/2026): editor de texto do popup (negrito, cor, listas…), gravado em HTML.
+// Os antigos são texto puro: mostrados escapados, com as quebras de linha. Todo HTML passa pela limpeza
+// dos comunicados (sem script, iframe, on*=, javascript:) antes de ir para a tela.
+const ehHtmlComentarioCombustivel = c => /<\/?[a-z][^>]*>/i.test(String(c || ''))
+
+function htmlComentarioCombustivel(comentario) {
+    const c = String(comentario || '')
+    if (!c) return ''
+    return ehHtmlComentarioCombustivel(c)
+        ? htmlSeguroComunicadoGCS(c)
+        : escaparAtributo(c).replace(/\r?\n/g, '<br>')
+}
+
+// Texto puro (para quem não mostra HTML: autorização de departamento, conferir se está vazio).
+function textoComentarioCombustivel(comentario) {
+    const c = String(comentario || '')
+    if (!ehHtmlComentarioCombustivel(c)) return c.trim()
+    const doc = new DOMParser().parseFromString(c.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|li)>/gi, '$&\n'), 'text/html')
+    return (doc.body.textContent || '').replace(/ /g, ' ').replace(/\n{3,}/g, '\n\n').trim()
+}
+
+// Calculadora do formulário: preenche Litros e Valor (arredondado para cima de 10 em 10, como antes).
+function calcularValorCombustivel() {
+    const km = Number(document.getElementById('km')?.value) || 0
+    const kml = Number(document.getElementById('kml')?.value) || 0
+    const preco = Number(document.getElementById('combustivel')?.value) || 0
+    const litros = kml > 0 ? km / kml : 0
+    const valor = litros * preco
+    document.getElementById('litros').value = litros ? Math.ceil(litros) : ''
+    if (valor > 0) document.getElementById('custo_total').value = Math.ceil(valor / 10) * 10
+}
+
+// Editor sem texto (só <br> ou espaços) grava vazio, para "Sem comentário" continuar valendo.
+function comentarioDoEditorCombustivel(painel) {
+    const html = painel?.querySelector('.editor-conteudo')?.innerHTML.trim() || ''
+    return textoComentarioCombustivel(html) ? htmlSeguroComunicadoGCS(html) : ''
 }
 
 async function salvarValores(idCusto = crypto.randomUUID()) {
@@ -905,7 +961,12 @@ async function salvarValores(idCusto = crypto.randomUUID()) {
         veiculo,
         categoria: 'Combustível',
         custo_total,
-        comentario: obterValores('comentario'),
+        // Dados da calculadora (opcionais): guardam a base usada para chegar no valor.
+        km: Number(obterValores('km')) || 0,
+        kml: Number(obterValores('kml')) || 0,
+        combustivel: Number(obterValores('combustivel')) || 0,
+        litros: Number(obterValores('litros')) || 0,
+        comentario: comentarioDoEditorCombustivel(painel),
         data_pagamento,
         data: anterior.data || dataServidor().toLocaleString(),
         usuario: anterior.usuario || acesso.usuario

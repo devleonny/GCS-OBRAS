@@ -119,6 +119,18 @@
     width: 9rem;
 }
 
+/* Comentário com formatação (editor) nos detalhes da linha de Combustíveis. */
+.veiculo-comentario { overflow-wrap: anywhere; text-align: left; }
+.veiculo-comentario ul, .veiculo-comentario ol { margin: 2px 0; padding-left: 1.2rem; }
+.veiculo-comentario p { margin: 0; }
+
+/* Calculadora do "Solicitar combustível" (js/veiculos.js calcularValorCombustivel). */
+.calc-combustivel { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: end; text-align: left; }
+.calc-combustivel label { display: flex; flex-direction: column; gap: 2px; font-size: .8rem; }
+.calc-combustivel input { width: 6rem; }
+.calc-combustivel input#combustivel { width: 6rem; }
+.calc-combustivel input#litros { background: #f1f3f2; }
+
 .pagamento-veiculo-resumo {
     justify-content: space-between;
     gap: 14px;

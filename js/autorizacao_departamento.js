@@ -86,7 +86,10 @@ async function autorizarSetoresCombustivel(dados) {
             data_pagamento: /^\d{4}-\d{2}-\d{2}$/.test(dados.data_pagamento || '')
                 ? dados.data_pagamento.split('-').reverse().join('/') : String(dados.data_pagamento || ''),
             motoristas: [dados.veiculo?.nomes_motoristas, dados.veiculo?.snapshots?.motoristas].find(Array.isArray) || [],
-            observacao: dados.comentario || '',
+            // Comentário do combustível agora é HTML do editor: a autorização mostra só o texto.
+            observacao: typeof textoComentarioCombustivel === 'function'
+                ? textoComentarioCombustivel(dados.comentario)
+                : (dados.comentario || ''),
             rateio: itens.map(d => ({ departamento: d.departamento, km: d.km }))
         }
     })
