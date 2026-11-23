@@ -1190,7 +1190,7 @@ async function formularioPagamento() {
                 texto: 'Forma',
                 elemento: `
                 <div class="fluxo-chave-empresa" role="group" aria-label="Forma" data-forma-pagamento="${forma === 'CARTAO' ? 'CARTAO' : 'REEMBOLSO'}">
-                    <button type="button" data-forma="REEMBOLSO" onclick="formaPagamento('REEMBOLSO')">Reembolso (Pix)</button>
+                    <button type="button" data-forma="REEMBOLSO" onclick="formaPagamento('REEMBOLSO')">Reembolso</button>
                     <button type="button" data-forma="CARTAO" onclick="formaPagamento('CARTAO')">Cartão de crédito</button>
                 </div>`
             },
