@@ -603,11 +603,14 @@ async function salvarPIT(id) {
     }
 
     // Arquivo novo precisa terminar de subir antes de fechar, senão se perderia.
+    // Do painel deste post-it: obter() pega o primeiro painel do DOM, que com outra janela aberta
+    // é de outro formulário, e o print colado era descartado sem aviso.
+    const inputAnexos = painel.querySelector('[name="anexos"]')
     let anexos = {}
-    if (obter('anexos')?.files?.length) {
+    if (inputAnexos?.files?.length) {
         overlayAguarde()
         try {
-            anexos = await anexosOcorrencias(obter('anexos'))
+            anexos = await anexosOcorrencias(inputAnexos)
         } catch (err) {
             console.log(err)
             removerOverlay()
