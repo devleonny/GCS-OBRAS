@@ -342,7 +342,10 @@ async function telaClientes() {
                 'Ações': {},
                 'Foto': {},
                 'Nome': { chave: 'cadastrais', op: 'includes' },
-                'IDs': { chave: 'ids', op: 'includes' },
+                'Empresa': { chave: 'empresa' },
+                'Usuário': { chave: 'usuario' },
+                'Permissão': { chave: 'permissao' },
+                'Matrícula': { chave: 'matricula' },
                 'Cidade / UF': { chave: 'snapshots.enderecoCadastro' },
                 'Comentário': { chave: 'comentario' }
             },
@@ -623,7 +626,9 @@ function criarLinhaClienteGCS(cliente) {
         comentario,
         cadastrais,
         empresa,
-        ids,
+        usuario,
+        permissao,
+        matricula,
         desligado,
         razao_social,
         inscricao_estadual,
@@ -659,10 +664,8 @@ function criarLinhaClienteGCS(cliente) {
         .map(item => tagCliente(item.tag))
         .join('')
 
-    const tags2 = (ids || [])
-        .filter(Boolean)
-        .map(t => `<span class="fin">${t}</span>`)
-        .join('')
+    // Empresa, usuário, permissão e matrícula em colunas próprias (antes juntos na coluna IDs).
+    const celulaId = valor => `<td><span class="cliente-id${valor ? '' : ' vazio'}" title="${escaparAtributo(valor || '')}">${escaparAtributo(valor || '—')}</span></td>`
 
     const tds = `
         <td>
@@ -692,9 +695,10 @@ function criarLinhaClienteGCS(cliente) {
             </div>
         </td>
         
-        <td>
-            <div style="display: flex; flex-wrap: wrap; gap: 2px;">${tags2}</div>
-        </td>
+        ${celulaId(empresa)}
+        ${celulaId(usuario)}
+        ${celulaId(permissao)}
+        ${celulaId(matricula)}
 
         <td>${eCadastro}</td>
         <td>
