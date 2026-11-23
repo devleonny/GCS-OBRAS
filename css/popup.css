@@ -968,3 +968,108 @@
 .janelas-independentes .btnRodape {
     bottom: calc(10px + var(--barra-janelas-altura, 0px));
 }
+
+/* Balão de aviso (js/popup.js → balaoAviso): desce do topo; a barra verde regressiva marca o tempo e,
+   quando acaba, o balão some. Mouse em cima pausa. */
+.balao-pilha {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2147483000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: min(460px, calc(100vw - 24px));
+    pointer-events: none;
+}
+
+.balao-aviso {
+    pointer-events: auto;
+    width: 100%;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgb(0 0 0 / 22%);
+    border-left: 5px solid #249f41;
+    overflow: hidden;
+    animation: balao-descer 0.28s ease-out;
+}
+
+.balao-aviso.balao-erro {
+    border-left-color: #c0392b;
+}
+
+.balao-aviso.saindo {
+    animation: balao-subir 0.25s ease-in forwards;
+}
+
+.balao-corpo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 12px 12px 14px;
+}
+
+.balao-corpo img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    flex: none;
+}
+
+.balao-texto {
+    flex: 1;
+    color: #222;
+    font-size: 0.95rem;
+    line-height: 1.35;
+    text-align: left;
+    overflow-wrap: anywhere;
+    max-height: 40vh;
+    overflow-y: auto;
+}
+
+.balao-fechar {
+    flex: none;
+    align-self: flex-start;
+    border: none;
+    background: none;
+    color: #888;
+    font-size: 1.3rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 2px;
+}
+
+.balao-fechar:hover {
+    color: #222;
+}
+
+.balao-barra {
+    height: 5px;
+    margin: 0 12px 10px;
+    border-radius: 5px;
+    background: linear-gradient(90deg, #356443, #249f41);
+    transform-origin: left center;
+    animation-name: balao-contagem;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+}
+
+.balao-aviso:hover .balao-barra {
+    animation-play-state: paused;
+}
+
+@keyframes balao-contagem {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0); }
+}
+
+@keyframes balao-descer {
+    from { transform: translateY(-120%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes balao-subir {
+    to { transform: translateY(-120%); opacity: 0; }
+}

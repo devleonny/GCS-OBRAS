@@ -303,7 +303,8 @@ function lerRateioFin(raiz, todas = false) {
     const bloco = raiz.matches?.('[data-rateio]') ? raiz : raiz.querySelector('[data-rateio]') || raiz
     const comValor = bloco.hasAttribute?.('data-com-valor')
     const total = comValor ? totalRateioFin(bloco) : 0
-    const linhas = [...raiz.querySelectorAll('.fin-rateio-linha')].map(l => {
+    // Só as linhas de departamento: as da aba Categorias usam a mesma classe e ficam no mesmo formulário.
+    const linhas = [...bloco.querySelectorAll('.fin-rateio-linha:not(.fin-categoria-linha)')].map(l => {
         const valor = Number(l.querySelector('[name="valor_rateio"]')?.value) || 0
         const percentual = comValor && l.dataset.modo === 'valor' && total
             ? valor * 100 / total

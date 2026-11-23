@@ -208,7 +208,8 @@ if (janelasIndependentesLigadas()) {
         const naBarra = !opcoes.modal && !sobreModal && (opcoes.barraJanelas ?? Boolean(opcoes.linhas?.length || opcoes.elemento))
         const id = popupOriginal(opcoes)
         document.body.style.overflow = ''
-        const el = janelaPorId(id)
+        // Mensagem simples vira balão (popup.js → balaoAviso): não é janela.
+        const el = janelaAberta(id)
         if (el) {
             el.dataset.janelaPai = pai
             if (!naBarra) el.dataset.semBarra = 'S'

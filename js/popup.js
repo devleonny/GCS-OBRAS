@@ -135,6 +135,10 @@ function popup({
     if (!elemento && !mensagem)
         mensagem = 'Função <b>inativa</b>. <br>Fale com o suporte para reativação.'
 
+    // Mensagem simples (sem formulário, painel, botões nem rodapé): vira o balão que desce do topo.
+    if (mensagem && !elemento && !linhas.length && !botoes.length && !conteudoRodape && !modal)
+        return balaoAviso({ mensagem, imagem, tempo })
+
     const idPopup = crypto.randomUUID()
 
     autoDestruicaoGlobal[idPopup] = autoDestruicao
@@ -235,6 +239,44 @@ function popup({
         setTimeout(() => removerPopup(idPopup), tempo * 1000)
 
     return idPopup
+}
+
+// Balão de aviso (23/11/2026): desce do topo, com a barra verde regressiva; quando a barra acaba, o balão some.
+// Salvo/concluído (imagem concluido) = verde; o resto (erro, alerta) = vermelho. Mouse em cima pausa a contagem;
+// o × fecha na hora. Vários ficam empilhados. Devolve o id (removerPopup(id) também o fecha).
+function balaoAviso({ mensagem, imagem, tempo = null }) {
+    const ok = /concluido/i.test(imagem || '')
+    let pilha = document.querySelector('.balao-pilha')
+    if (!pilha) {
+        pilha = document.createElement('div')
+        pilha.className = 'balao-pilha'
+        document.body.appendChild(pilha)
+    }
+    document.querySelector('.aguarde')?.remove()
+    // Tempo: o pedido pelo código, senão 4 s (ok) / 7 s (erro), mais um pouco para texto longo.
+    const tamanho = String(mensagem).replace(/<[^>]*>/g, '').length
+    const segundos = Number(tempo) > 0 ? Number(tempo) : Math.min(15, (ok ? 4 : 7) + Math.floor(tamanho / 60))
+    const id = crypto.randomUUID()
+    const balao = document.createElement('div')
+    balao.id = id
+    balao.className = `balao-aviso ${ok ? 'balao-ok' : 'balao-erro'}`
+    balao.setAttribute('role', ok ? 'status' : 'alert')
+    balao.innerHTML = `
+        <div class="balao-corpo">
+            <img src="${imagem || 'gifs/alerta.gif'}" alt="">
+            <div class="balao-texto">${mensagem}</div>
+            <button type="button" class="balao-fechar" aria-label="Fechar">×</button>
+        </div>
+        <div class="balao-barra" style="animation-duration: ${segundos}s"></div>`
+    const fechar = () => {
+        if (balao.classList.contains('saindo')) return
+        balao.classList.add('saindo')
+        setTimeout(() => balao.remove(), 250)
+    }
+    balao.querySelector('.balao-fechar').addEventListener('click', fechar)
+    balao.querySelector('.balao-barra').addEventListener('animationend', fechar)
+    pilha.appendChild(balao)
+    return id
 }
 
 // × do usuário: formulários perguntam antes, mas só se algo mudou (o que foi preenchido se perde).

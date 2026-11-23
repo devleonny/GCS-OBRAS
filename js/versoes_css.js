@@ -37,7 +37,7 @@ const VERSOES_CSS = {
     "pagamentos": "97463b89",
     "pdf": "e66db2e0",
     "planos_diarios": "c1524a7b",
-    "popup": "67f44417",
+    "popup": "bf577b29",
     "postit": "f5ad4a47",
     "rastreio": "31231677",
     "relatorio": "9fc99329",
