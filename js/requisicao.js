@@ -124,12 +124,12 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
     const itensOrcamento = Object.entries(orcamento?.dados_composicoes || {})
         .filter(([, { tipo }]) => tipo !== 'SERVIÇO')
         .map(([id, dados]) => {
-            const { qtde_enviar, origem, omie, tipo, custo } = salvos[dados.codigo] || {}
+            const { qtde_enviar, origem, tipo, custo } = salvos[dados.codigo] || {}
             return {
                 id,
                 ...dados,
                 ...Object.fromEntries(
-                    Object.entries({ qtde_enviar, origem, omie, tipo, custo })
+                    Object.entries({ qtde_enviar, origem, tipo, custo })
                         .filter(([, valor]) => valor !== undefined)
                 ),
                 avulso: false
@@ -155,7 +155,6 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
         colunas: {
             'Imagem': {},
             'Cod GCS': { chave: 'codigo' },
-            'Cod OMIE': {},
             'Informações do Item': { chave: 'descricao' },
             'Tipo': { chave: 'tipo' },
             'Origem': { chave: 'origem' },
@@ -164,15 +163,6 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
             'Valor Unitário': {},
             'Valor Total': {}
         },
-        substituicoes: [
-            {
-                path: 'codigo',
-                campoBusca: 'codigo',
-                tabela: 'dados_composicoes',
-                retorno: 'omie',
-                destino: 'omie'
-            }
-        ],
         criarLinha: 'criarLinhaRequisicao'
     })
 
@@ -402,7 +392,6 @@ async function criarLinhaRequisicao(item) {
         origem,
         tipo,
         descricao,
-        omie,
         qtde_enviar = 0,
         qtde
     } = item || {}
@@ -455,10 +444,6 @@ async function criarLinhaRequisicao(item) {
                 </div>
             </td>
 
-            <td>
-                <input type="text" oninput="calcularRequisicao()" name="omie" value="${omie || ''}">
-            </td>
-            
             <td>
                 <div style="${vertical}; gap: 2px; text-align: left;">
                     <label><b>DESCRIÇÃO</b></label>
@@ -578,7 +563,6 @@ async function calcularRequisicao() {
         Object.assign(item, {
             custo,
             origem: obVal('origem'),
-            omie: obVal('omie'),
             tipo: obVal('tipo'),
             qtde_enviar: qtdeEnviar
         })
@@ -783,7 +767,6 @@ async function gerarPdfRequisicao(id, visualizar) {
     const colunas = [
         'Imagem',
         'Código GCS',
-        'Código OMIE',
         'Descrição',
         'Unidade',
         'Tipo',
@@ -802,7 +785,6 @@ async function gerarPdfRequisicao(id, visualizar) {
             const {
                 imagem,
                 codigo,
-                omie,
                 descricao,
                 modelo,
                 fabricante,
@@ -828,7 +810,6 @@ async function gerarPdfRequisicao(id, visualizar) {
                     <img src="${imagem || logo}" style="width: 4rem;" onerror="this.onerror = null; this.src = logo">
                 </td>
                 <td>${codigo}</td>
-                <td>${omie || ''}</td>
                 <td>
                     <div style="${vertical}; text-align: start;">
                         ${descFinal}
