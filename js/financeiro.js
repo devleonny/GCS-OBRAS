@@ -1210,7 +1210,8 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
     const baixas = dados?.baixas || []
     const base = t || rec
     const pagar = tipo === 'PAGAR'
-    const manual = !t || ORIGENS_EDITAVEIS_FIN.includes(t.origem)
+    // Reembolso: o Financeiro edita livre (valor, vencimento, favorecido); depois disso o reembolso não sobrescreve.
+    const manual = !t || ORIGENS_EDITAVEIS_FIN.includes(t.origem) || t.origem === 'REEMBOLSO'
     const cancelada = t?.situacao === 'CANCELADO'
     const nova = !t && !rec
     const app = base?.app || 'AC'
