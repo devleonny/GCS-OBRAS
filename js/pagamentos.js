@@ -1197,12 +1197,11 @@ async function formularioPagamento() {
             {
                 texto: 'Cartão',
                 elemento: `
-                <div data-so-cartao style="${vertical}; gap: 4px;">
-                    <select name="cartao_conta_id" onchange="calculadoraPagamento()">
-                        <option value="">Selecione o cartão</option>
-                        ${cartoesPagamento.map(c => `<option value="${c.id}" ${String(c.id) === String(cartao_conta_id) ? 'selected' : ''}>${escaparAtributo(c.nome)}</option>`).join('')}
-                    </select>
-                    <small>Pago no cartão já entra como <b>pago</b>, sem aprovação. O Financeiro paga a fatura do cartão no vencimento.</small>
+                <div data-so-cartao class="fin-escolha pag-cartao-escolha" data-cartao-escolha data-valor="${escaparAtributo(cartoesPagamento.some(c => String(c.id) === String(cartao_conta_id)) ? cartao_conta_id : '')}">
+                    <input name="cartao_busca" value="${escaparAtributo(cartoesPagamento.find(c => String(c.id) === String(cartao_conta_id))?.nome || '')}"
+                        placeholder="Buscar cartão (emissor, final ou titular)…" autocomplete="off"
+                        onfocus="this.select(); buscarCartaoPag(this)" oninput="buscarCartaoPag(this)" onblur="setTimeout(() => fecharBuscaCartaoPag(this), 150)">
+                    <div class="fin-escolha-lista" hidden></div>
                 </div>`
             },
             {
@@ -1216,13 +1215,16 @@ async function formularioPagamento() {
             {
                 texto: 'Recebedor',
                 elemento: `
-            <span
-                class="opcoes"
-                name="recebedor"
-                ${codigo_cliente_fornecedor ? `id="${escaparAtributo(codigo_cliente_fornecedor)}"` : ''}
-                onclick="cxOpcoes('recebedor')">
-                    ${escaparAtributo(nome || 'Selecione')}
-            </span>
+            <div style="${vertical}; gap: 3px;">
+                <span
+                    class="opcoes"
+                    name="recebedor"
+                    ${codigo_cliente_fornecedor ? `id="${escaparAtributo(codigo_cliente_fornecedor)}"` : ''}
+                    onclick="cxOpcoes('recebedor')">
+                        ${escaparAtributo(nome || 'Selecione')}
+                </span>
+                <small class="pag-dica-recebedor" data-dica-cartao hidden>Quem recebeu o pagamento? Hotel, elétrica, restaurante, posto…</small>
+            </div>
             `
             },
             {
@@ -1393,6 +1395,43 @@ function dataRegras(data, atraso) {
 // foi paga no cartão: sem Pix, sem aprovação, entra PAGO na conta do cartão no Financeiro — SCRIPTS/pagamentos.js).
 let cartoesPagamento = []
 
+// Cartão com busca de lista FECHADA (mesmo componente .fin-escolha do Financeiro): o texto só busca; o cartão
+// só entra clicando num item. Saiu sem escolher, volta para o que estava.
+const normalPag = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+const cartaoPagPorId = id => cartoesPagamento.find(c => String(c.id) === String(id ?? ''))
+
+function buscarCartaoPag(input) {
+    const caixa = input.closest('[data-cartao-escolha]')
+    const lista = caixa.querySelector('.fin-escolha-lista')
+    const termo = normalPag(input.value)
+    const filtro = termo && termo !== normalPag(cartaoPagPorId(caixa.dataset.valor)?.nome) ? termo : ''
+    const achados = cartoesPagamento.filter(c => !filtro || normalPag(`${c.nome} ${c.titular || ''} ${c.cartao_final || ''}`).includes(filtro))
+    lista.innerHTML = achados.map(c => `
+        <button type="button" class="fin-escolha-item" onmousedown="event.preventDefault(); escolherCartaoPag(this, '${escaparAtributo(c.id)}')">
+            <span>${escaparAtributo(c.nome)}</span>
+        </button>`).join('') || '<div class="fin-escolha-vazio">Nada encontrado: só cartões cadastrados no Financeiro.</div>'
+    lista.hidden = false
+}
+
+function escolherCartaoPag(botao, id) {
+    const caixa = botao.closest('[data-cartao-escolha]')
+    caixa.dataset.valor = id
+    caixa.querySelector('input').value = cartaoPagPorId(id)?.nome || ''
+    caixa.querySelector('.fin-escolha-lista').hidden = true
+    calculadoraPagamento()
+}
+
+function fecharBuscaCartaoPag(input) {
+    const caixa = input.closest('[data-cartao-escolha]')
+    if (!caixa) return
+    caixa.querySelector('.fin-escolha-lista').hidden = true
+    input.value = cartaoPagPorId(caixa.dataset.valor)?.nome || ''
+}
+
+// No cartão o recebedor é onde a compra foi feita (hotel, loja, posto), não o cartão: os cadastros antigos
+// "CARTÃO ..." (de quando a fatura era paga ao cartão) ficam bloqueados.
+const recebedorEhCartaoPag = nome => /(^|\s)cart[aã]o(\s|$)/i.test(String(nome || ''))
+
 function formaAtualPagamento() {
     return document.querySelector('[data-forma-pagamento]')?.dataset.formaPagamento === 'CARTAO' ? 'CARTAO' : 'REEMBOLSO'
 }
@@ -1412,6 +1451,7 @@ function aplicarFormaPagamento() {
     document.querySelectorAll('[data-forma-pagamento] button').forEach(b => b.classList.toggle('ativo', b.dataset.forma === (cartao ? 'CARTAO' : 'REEMBOLSO')))
     document.querySelectorAll('[data-so-cartao]').forEach(e => { const l = e.closest('.linha-padrao'); if (l) l.style.display = cartao ? '' : 'none' })
     document.querySelectorAll('[data-so-reembolso]').forEach(e => { const l = e.closest('.linha-padrao'); if (l) l.style.display = cartao ? 'none' : '' })
+    document.querySelectorAll('[data-dica-cartao]').forEach(e => { e.hidden = !cartao })
     const rotulo = document.querySelector('[data-rotulo-data-pagamento]')
     if (rotulo) rotulo.textContent = cartao ? 'Data da compra' : 'Data de Pagamento'
 }
@@ -1458,10 +1498,12 @@ async function calculadoraPagamento() {
     const observacao = obVal('observacao').value
     // Cartão: a empresa é a do cartão (a dívida é dela); o Financeiro pode trocar depois na fatura.
     const forma = formaAtualPagamento()
-    const cartaoId = forma === 'CARTAO' ? obVal('cartao_conta_id')?.value || '' : ''
-    const cartaoEscolhido = cartoesPagamento.find(c => String(c.id) === String(cartaoId))
+    const cartaoId = forma === 'CARTAO' ? document.querySelector('[data-cartao-escolha]')?.dataset.valor || '' : ''
+    const cartaoEscolhido = cartaoPagPorId(cartaoId)
     if (forma === 'CARTAO' && !cartaoEscolhido)
         return { mensagem: 'Escolha o cartão em que foi pago.' }
+    if (forma === 'CARTAO' && recebedorEhCartaoPag(obVal('recebedor').textContent))
+        return { mensagem: 'No cartão, o recebedor é onde a compra foi feita (hotel, loja, posto…), não o cartão. O cartão você escolhe no campo Cartão.' }
     const app = cartaoEscolhido?.app || obVal('app').value
     const categorias = Object.create(null)
     const distribuicao = Object.create(null)
