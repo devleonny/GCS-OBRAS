@@ -394,7 +394,8 @@ function desenharDiaRastreio(estado) {
 
     const viagens = percursos.map((p, i) => `
         <button type="button" class="rastreio-viagem" onclick="focarViagemRastreio('${estado.chave}', ${i})">
-            <b>${horaRastreio(p.inicio)} → ${horaRastreio(p.fim)}</b>
+            <b>${horaRastreio(p.inicio)} → ${p.em_andamento ? 'agora' : horaRastreio(p.fim)}</b>
+            ${p.provisorio ? `<em class="rastreio-provisoria">${p.em_andamento ? 'em andamento' : 'aguardando a Mobi7 fechar a viagem'}</em>` : ''}
             <span>${kmRastreio(p.distancia_km)} · ${duracaoRastreio(p.duracao_s)} · máx ${p.velocidade_max ?? '—'} km/h</span>
         </button>`).join('')
 

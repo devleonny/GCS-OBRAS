@@ -99,6 +99,7 @@
 .rastreio-viagem, .rastreio-viagem b { color: #1f2d25; }
 .rastreio-viagem span { font-size: .78rem; color: #5d6b63; }
 .rastreio-viagem:hover, .rastreio-viagem.ativo { border-color: #e8590c; background: #fff4e6; }
+.rastreio-provisoria { font-size: .72rem; font-style: normal; color: #1c7ed6; }
 
 .rastreio-ofensas { margin-top: 6px; padding: 6px 10px; border-radius: 8px; background: #fff9db; }
 .rastreio-ofensas summary { cursor: pointer; }
