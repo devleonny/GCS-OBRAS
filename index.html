@@ -204,11 +204,14 @@
     <script>
 
         // Carimbado por scripts/versionar.js no commit; comparado com versao.json publicado.
-        const versaoAtual = 'c937a93c'
+        const versaoAtual = 'd1c49355'
         // Mesma versão sem os CSS: se só ela bate com a publicada, a mudança foi só de CSS.
-        const versaoBase = '3fc9ef3d'
-e        // Versão em uso: muda quando a página troca os CSS sozinha.
+        const versaoBase = 'e6eeef67'
+        // Versão em uso: muda quando a página troca os CSS sozinha.
         let versaoCarregada = versaoAtual
+        // Fechado pelo X ou por "Lembrar mais tarde", o aviso só volta depois de 30 min
+        // (vale também para a volta à aba, que confere a versão de novo).
+        let versaoAdiadaAte = 0
 
         verificarVersao()
 
@@ -219,9 +222,6 @@ e        // Versão em uso: muda quando a página troca os CSS sozinha.
                 verificarVersao()
         })
 
-        // Fechado pelo X ou por "Lembrar mais tarde", o aviso só volta depois de 30 min
-        // (vale também para a volta à aba, que confere a versão de novo).
-        let versaoAdiadaAte = 0
         function adiarAvisoVersao(botao) {
             versaoAdiadaAte = Date.now() + 30 * 60 * 1000
             botao.closest('.popup-mensagem')?.remove()
