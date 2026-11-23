@@ -281,7 +281,7 @@ function desenharRodapeRecFis() {
     const botao = (texto, destino, ativo, titulo = '') =>
         `<button type="button" ${ativo ? `onclick="irPaginaRecFis(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
     alvo.innerHTML = `
-        <span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} nota${total === 1 ? '' : 's'}</span>
+        <span class="fin-rodape-info"><span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} nota${total === 1 ? '' : 's'}</span>${filtrosAtivosRodapeCab(ctrl.pag)}</span>
         <div class="fin-paginas">
             ${botao('|‹', 1, pagina > 1, 'Primeira página')}
             ${botao('‹ anterior', pagina - 1, pagina > 1)}
@@ -1723,7 +1723,7 @@ function desenharRodapeEmitFis() {
     const botao = (texto, destino, ativo, titulo = '') =>
         `<button type="button" ${ativo ? `onclick="irPaginaEmitFis(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
     alvo.innerHTML = `
-        <span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} nota${total === 1 ? '' : 's'}</span>
+        <span class="fin-rodape-info"><span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} nota${total === 1 ? '' : 's'}</span>${filtrosAtivosRodapeCab(ctrl.pag)}</span>
         <div class="fin-paginas">
             ${botao('|‹', 1, pagina > 1, 'Primeira página')}
             ${botao('‹ anterior', pagina - 1, pagina > 1)}
@@ -4371,7 +4371,7 @@ function desenharRodapeCredFis() {
     const botao = (texto, destino, ativo, titulo = '') =>
         `<button type="button" ${ativo ? `onclick="irPaginaCredFis(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
     alvo.innerHTML = `
-        <span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} nota${total === 1 ? '' : 's'}</span>
+        <span class="fin-rodape-info"><span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} nota${total === 1 ? '' : 's'}</span>${filtrosAtivosRodapeCab(ctrl.pag)}</span>
         <div class="fin-paginas">
             ${botao('|‹', 1, pagina > 1, 'Primeira página')}
             ${botao('‹ anterior', pagina - 1, pagina > 1)}

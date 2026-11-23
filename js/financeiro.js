@@ -463,7 +463,8 @@ async function telaFaturasFin(tipo, filtroExtra = null, manterFiltros = false) {
                 'Observação': { chave: 'observacao' },
                 'Departamento': { chave: 'departamentos' },
                 'Categorias': { chave: 'categorias_texto' },
-                'Origem': { chave: 'origem', tipoPesquisa: 'select' }
+                'Origem': { chave: 'origem', tipoPesquisa: 'select' },
+                'Criado por': { chave: 'criado_por' }
             }
         })
         // Paginação própria no rodapé (a do modTab fica escondida no topo, só para os contadores).
@@ -629,6 +630,7 @@ async function baixarExcelFaturasFin() {
             { titulo: 'Forma', largura: 18, valor: d => (FORMAS_FIN.find(([v]) => v === d.forma_pagamento) || [])[1] || '' },
             { titulo: 'Conta corrente', largura: 22, valor: d => d.conta || '' },
             { titulo: 'Origem', largura: 14, valor: d => ORIGENS_FIN[d.origem] || d.origem || '' },
+            { titulo: 'Criado por', largura: 18, valor: d => d.criado_por || '' },
             { titulo: 'Saldo', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.saldo) || 0 }
         ]
         const n = colunas.length
@@ -766,7 +768,7 @@ function desenharRodapeFin() {
     const botao = (texto, destino, ativo, titulo = '') =>
         `<button type="button" ${ativo ? `onclick="irPaginaFin(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
     alvo.innerHTML = `
-        <span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} registro${total === 1 ? '' : 's'}</span>
+        <span class="fin-rodape-info"><span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} registro${total === 1 ? '' : 's'}</span>${filtrosAtivosRodapeCab(ctrl.pag)}</span>
         <div class="fin-paginas">
             ${botao('|‹', 1, pagina > 1, 'Primeira página')}
             ${botao('‹ anterior', pagina - 1, pagina > 1)}
@@ -1090,6 +1092,7 @@ function criarLinhaFaturaFin(d) {
             <td class="fin-obs fin-deps" title="${escFin(d.departamentos || '')}"><span class="fin-obs-txt">${escFin(d.departamentos || '')}</span></td>
             <td class="fin-obs fin-deps" title="${escFin(d.categorias_texto || '')}"><span class="fin-obs-txt">${escFin(d.categorias_texto || '')}</span></td>
             <td><small>${escFin(ORIGENS_FIN[d.origem] || d.origem)}</small></td>
+            <td class="fin-obs" title="${escFin(d.criado_por || '')}"><span class="fin-obs-txt">${escFin(d.criado_por || '')}</span></td>
         </tr>`
 }
 
@@ -2163,36 +2166,131 @@ async function estornarBaixaFin(baixaId, tituloId) {
 
 // ---------------------------------------------------------------- contas correntes
 
+// Tabela de contas: filtros (empresa, tipo, busca) e ordenação no próprio navegador.
+// Contas desativadas ficam escondidas; o botão mostra para reativar (abrir a conta → Editar conta → "Ativa").
+let mostrarInativasContasFin = false
+let contasTelaFin = []
+const filtroContasFin = { app: '', tipo: '', busca: '', ordem: 'app', desc: false }
+
+function alternarInativasContasFin() {
+    mostrarInativasContasFin = !mostrarInativasContasFin
+    desenharContasFin()
+}
+
+function filtrarContasFin(campo, valor) {
+    filtroContasFin[campo] = valor
+    if (campo === 'busca') return desenharLinhasContasFin()
+    desenharContasFin()
+}
+
+function ordenarContasFin(chave) {
+    if (filtroContasFin.ordem === chave) filtroContasFin.desc = !filtroContasFin.desc
+    else Object.assign(filtroContasFin, { ordem: chave, desc: ['saldo', 'entradas', 'saidas', 'ultimo_movimento'].includes(chave) })
+    desenharContasFin()
+}
+
 async function telaContasFin() {
     overlayAguarde()
     try {
         const { contas } = await apiFin('contas')
         removerOverlay()
-        const empresas = [...new Set(contas.map(k => k.app))]
-        tela.innerHTML = `
-            <div class="pagina-conteudo fis-pagina fin-pagina">
-                <div class="cabecalho-pagina"><h2>Contas correntes</h2></div>
-                <div class="fis-painel">
-                    <div class="fis-explica">Saldo = saldo inicial + recebimentos − pagamentos registrados nas faturas (a partir da data do saldo inicial).
-                        A conta <b>padrão</b> de cada empresa é sugerida nos pagamentos.</div>
-                    <div class="fis-acoes-claras"><button type="button" class="fis-botao" onclick="formularioContaFin()">+ Conta</button></div>
-                    ${empresas.map(app => `
-                        <div class="est-empresa">
-                            <h3>${escFin(app)}</h3>
-                            <div class="est-locais">${contas.filter(k => k.app === app).map(k => `
-                                <button type="button" class="est-local fin-conta ${k.ativo ? '' : 'inativo'}" onclick="extratoContaFin('${k.id}')">
-                                    <span class="est-local-nome">${escFin(k.nome)}${k.padrao ? ' <small>padrão</small>' : ''}${k.ativo ? '' : ' <small>desativada</small>'}</span>
-                                    <b class="${Number(k.saldo) < 0 ? 'fis-negativo' : ''}">${dinheiro(k.saldo)}</b>
-                                    <span>${escFin(TIPOS_CONTA_FIN[k.tipo] || k.tipo)}${k.banco ? ` · ${escFin(k.banco)}` : ''}${k.agencia ? ` · ag ${escFin(k.agencia)}` : ''}${k.conta ? ` · cc ${escFin(k.conta)}` : ''}</span>
-                                </button>`).join('')}
-                            </div>
-                        </div>`).join('') || '<div class="fis-vazio">Nenhuma conta cadastrada.</div>'}
-                </div>
-            </div>`
+        contasTelaFin = contas
+        desenharContasFin()
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
     }
+}
+
+function contasVisiveisFin({ ignorar = '' } = {}) {
+    const f = filtroContasFin
+    return contasTelaFin.filter(k => (mostrarInativasContasFin || k.ativo)
+        && (ignorar === 'app' || !f.app || k.app === f.app)
+        && (ignorar === 'tipo' || !f.tipo || k.tipo === f.tipo))
+}
+
+function desenharContasFin() {
+    const f = filtroContasFin
+    const inativas = contasTelaFin.filter(k => !k.ativo).length
+    // Toggle do layout financeiro: .fluxo-chave-empresa (css/fluxo_kanban.css), ativo verde preenchido.
+    const chips = (campo, opcoes, base) => `
+        <div class="fluxo-chave-empresa" role="group">${opcoes.map(([valor, rotulo]) => `
+            <button type="button" class="${f[campo] === valor ? 'ativo' : ''}" onclick="filtrarContasFin('${campo}', '${valor}')"
+                title="${base.filter(k => !valor || k[campo] === valor).length} conta(s)">${escFin(rotulo)}</button>`).join('')}
+        </div>`
+    const apps = [...new Set(contasTelaFin.map(k => k.app))].sort()
+    const tipos = Object.keys(TIPOS_CONTA_FIN).filter(t => contasTelaFin.some(k => k.tipo === t))
+    const th = (chave, texto, num = false) => {
+        const seta = f.ordem === chave ? (f.desc ? ' ▼' : ' ▲') : ''
+        return `<th class="${num ? 'fis-num ' : ''}fin-contas-ordem" onclick="ordenarContasFin('${chave}')">${texto}${seta}</th>`
+    }
+    // Layout do Financeiro (fin-tela: fundo branco, título verde, barra de ações com ícones), igual às Faturas.
+    tela.innerHTML = `
+        <div class="fis-pagina fin-tela">
+            <section class="fin-janela">
+                <header class="fin-janela-topo">
+                    <h2>Contas correntes</h2>
+                    <div class="fin-barra">
+                        <button type="button" onclick="formularioContaFin()">${iconeFin('incluir')} Incluir</button>
+                        ${inativas ? `<button type="button" onclick="alternarInativasContasFin()">${iconeFin(mostrarInativasContasFin ? 'fechar' : 'ver')} ${mostrarInativasContasFin ? 'Esconder desativadas' : `Mostrar desativadas (${inativas})`}</button>` : ''}
+                    </div>
+                </header>
+                <div class="fin-extrato-barra fin-contas-barra">
+                    <input type="search" class="fis-input fin-extrato-busca" placeholder="Buscar conta, banco, agência..." value="${escFin(f.busca)}" oninput="filtrarContasFin('busca', this.value)">
+                    ${chips('app', [['', 'Todas'], ...apps.map(a => [a, a])], contasVisiveisFin({ ignorar: 'app' }))}
+                    ${chips('tipo', [['', 'Todos'], ...tipos.map(t => [t, TIPOS_CONTA_FIN[t]])], contasVisiveisFin({ ignorar: 'tipo' }))}
+                    <span class="fin-contas-dica">Saldo = saldo inicial + recebimentos − pagamentos (a partir da data do saldo inicial). Clique na conta para ver o extrato.</span>
+                </div>
+                <div class="fis-tabela-rolagem fin-contas-rolagem">
+                    <table class="fis-tabela fin-extrato fin-contas">
+                        <thead><tr>
+                            ${th('app', 'Empresa')}${th('nome', 'Conta')}${th('tipo', 'Tipo')}${th('banco', 'Banco · agência · conta / cartão')}
+                            ${th('ultimo_movimento', 'Último movimento')}${th('entradas', 'Entradas', true)}${th('saidas', 'Saídas', true)}${th('saldo', 'Saldo', true)}
+                        </tr></thead>
+                        <tbody id="bodyContasFin"></tbody>
+                        <tfoot id="peContasFin"></tfoot>
+                    </table>
+                </div>
+            </section>
+        </div>`
+    desenharLinhasContasFin()
+}
+
+function desenharLinhasContasFin() {
+    const corpo = document.getElementById('bodyContasFin')
+    if (!corpo) return
+    const f = filtroContasFin
+    const termo = (f.busca || '').trim().toLowerCase()
+    const num = ['saldo', 'entradas', 'saidas']
+    // Cartão: fecha/vence/quem paga no lugar de banco/agência/conta.
+    const bancoTexto = k => k.tipo === 'CARTAO'
+        ? [k.dia_fechamento && `fecha ${k.dia_fechamento}`, k.dia_vencimento && `vence ${k.dia_vencimento}`, k.conta_pagadora_nome && `paga pelo ${k.conta_pagadora_nome}`].filter(Boolean).join(' · ')
+        : [k.banco, k.agencia && `ag ${k.agencia}`, k.conta && `cc ${k.conta}`].filter(Boolean).join(' · ')
+    const linhas = contasVisiveisFin()
+        .filter(k => !termo || [k.app, k.nome, k.titular, k.banco, bancoTexto(k), TIPOS_CONTA_FIN[k.tipo]].join(' ').toLowerCase().includes(termo))
+        .sort((a, b) => {
+            const va = a[f.ordem], vb = b[f.ordem]
+            const r = num.includes(f.ordem) ? (Number(va) || 0) - (Number(vb) || 0)
+                : String(va ?? '').localeCompare(String(vb ?? ''), 'pt-BR', { numeric: true })
+            return (f.desc ? -r : r) || String(a.app).localeCompare(b.app) || (b.padrao - a.padrao) || String(a.nome).localeCompare(b.nome, 'pt-BR')
+        })
+    const sinal = v => Number(v) < 0 ? 'fis-negativo' : ''
+    corpo.innerHTML = linhas.map(k => `
+        <tr class="fin-contas-linha ${k.ativo ? '' : 'inativo'}" onclick="extratoContaFin('${escFin(k.id)}')">
+            <td>${escFin(k.app)}</td>
+            <td class="fin-contas-nome" title="${escFin(k.nome)}">${escFin(k.nome)}${k.padrao ? ' <small class="fin-contas-tag">padrão</small>' : ''}${k.ativo ? '' : ' <small class="fin-contas-tag inativa">desativada</small>'}</td>
+            <td>${escFin(TIPOS_CONTA_FIN[k.tipo] || k.tipo)}</td>
+            <td title="${escFin(bancoTexto(k))}">${escFin(bancoTexto(k) || '—')}</td>
+            <td>${k.ultimo_movimento ? dataFin(k.ultimo_movimento) : '—'}</td>
+            <td class="fis-num">${dinheiro(k.entradas)}</td>
+            <td class="fis-num">${dinheiro(k.saidas)}</td>
+            <td class="fis-num ${sinal(k.saldo)}"><b>${dinheiro(k.saldo)}</b></td>
+        </tr>`).join('') || `<tr><td colspan="8" class="fis-vazio">Nenhuma conta com esse filtro.</td></tr>`
+    const soma = c => linhas.reduce((a, k) => a + (Number(k[c]) || 0), 0)
+    document.getElementById('peContasFin').innerHTML = linhas.length ? `
+        <tr><td colspan="5">${linhas.length} conta${linhas.length === 1 ? '' : 's'}</td>
+            <td class="fis-num">${dinheiro(soma('entradas'))}</td><td class="fis-num">${dinheiro(soma('saidas'))}</td>
+            <td class="fis-num ${sinal(soma('saldo'))}"><b>${dinheiro(soma('saldo'))}</b></td></tr>` : ''
 }
 
 async function extratoContaFin(contaId) {
@@ -2204,7 +2302,7 @@ async function extratoContaFin(contaId) {
         popup({
             titulo: `${k.app} · ${k.nome}`,
             elemento: `
-                <div class="fis-painel" data-conta-fin="${escFin(contaId)}">
+                <div class="fis-painel popup-consulta" data-conta-fin="${escFin(contaId)}">
                     ${resumoDocumentoFis(k, [
                         ['Saldo', `<span class="${Number(k.saldo) < 0 ? 'fis-negativo' : ''}">${dinheiro(k.saldo)}</span>`],
                         ['Entradas', dinheiro(k.entradas)], ['Saídas', dinheiro(k.saidas)],
@@ -2243,7 +2341,7 @@ async function extratoContaFin(contaId) {
                                     </td>
                                     <td class="fin-extrato-parcela">${escFin(m.parcela_texto || '')}</td>
                                     <td class="fin-extrato-cat" title="${escFin(m.categoria || '')}">${escFin(m.categoria || '—')}</td>
-                                    <td class="fin-extrato-forma">${escFin(nomeFormaFin(m.forma))}</td>
+                                    <td class="fin-extrato-forma">${m.forma ? `<span title="${escFin(nomeFormaFin(m.forma))}">${escFin(nomeFormaFin(m.forma))}</span>` : '—'}</td>
                                     <td class="fis-num ${Number(m.movimento) < 0 ? 'fis-negativo' : 'fis-positivo'}"><b>${dinheiro(m.movimento)}</b></td>
                                     <td class="fis-num fin-extrato-saldo ${saldoLinha < 0 ? 'fis-negativo' : ''}">${saldoLinha === null ? '—' : dinheiro(saldoLinha)}</td>
                                 </tr>`
@@ -2260,8 +2358,10 @@ async function extratoContaFin(contaId) {
     }
 }
 
+// Filtro dos popups de consulta (.popup-consulta): busca + chips Todos/Entradas/Saídas sobre as linhas
+// com data-tipo (E/S) e data-busca. Usado pelo extrato da conta e pelo estoque do item.
 function filtrarExtratoFin(el) {
-    const painel = el.closest('[data-conta-fin]')
+    const painel = el.closest('.popup-consulta')
     const chips = painel.querySelector('.fin-extrato-chips')
     if (el.dataset.filtro !== undefined) {
         chips.dataset.tipo = el.dataset.filtro
@@ -2276,45 +2376,89 @@ function filtrarExtratoFin(el) {
 
 async function formularioContaFin(contaId = null) {
     let contas, op
-    try { [{ contas }, op] = await Promise.all([apiFin('contas'), carregarOpcoesFin()]) } catch (err) { return popup({ mensagem: mensagemErroEst(err) }) }
+    overlayAguarde()
+    try { [{ contas }, op] = await Promise.all([apiFin('contas'), carregarOpcoesFin()]) } catch (err) { removerOverlay(); return popup({ mensagem: mensagemErroEst(err) }) }
+    removerOverlay()
     const k = contaId ? contas.find(c => String(c.id) === String(contaId)) : null
+    const cartao = k?.tipo === 'CARTAO'
+    // Contas que podem pagar a fatura do cartão: bancos e caixas ativos (de qualquer empresa).
+    const pagadoras = contas.filter(c => c.tipo !== 'CARTAO' && (c.ativo || String(c.id) === String(k?.conta_pagadora_id)))
+    const padraoPagadora = k ? k.conta_pagadora_id : contas.find(c => c.app === 'AC' && c.padrao && c.ativo)?.id
     popup({
-        titulo: k ? 'Editar conta' : 'Nova conta corrente',
+        titulo: k ? (cartao ? 'Editar cartão' : 'Editar conta') : 'Nova conta corrente',
         linhas: [{
             elemento: `
-                <div class="fis-form" data-form-conta data-id="${escFin(contaId || '')}">
+                <div class="fis-form" data-form-conta data-id="${escFin(contaId || '')}" data-cartao="${cartao ? 'S' : ''}">
                     <div class="fis-grade">
                         <label class="fis-campo"><span>Empresa</span><select class="fis-input" name="app">${op.empresas.map(e => `<option value="${escFin(e.app)}" ${e.app === (k?.app || 'AC') ? 'selected' : ''}>${escFin(e.app)}</option>`).join('')}</select></label>
-                        <label class="fis-campo fis-largo"><span>Nome</span><input class="fis-input" name="nome" maxlength="80" value="${escFin(k?.nome || '')}" placeholder="ex.: Itaú, Caixa da obra, Cartão corporativo"></label>
-                        <label class="fis-campo"><span>Tipo</span><select class="fis-input" name="tipo">${Object.entries(TIPOS_CONTA_FIN).map(([v, n]) => `<option value="${v}" ${(k?.tipo || 'BANCO') === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+                        <label class="fis-campo fis-largo fin-so-conta"><span>Nome</span><input class="fis-input" name="nome" maxlength="80" value="${escFin(k?.nome || '')}" placeholder="ex.: Itaú, Caixa da obra"></label>
+                        <label class="fis-campo"><span>Tipo</span><select class="fis-input" name="tipo" onchange="tipoContaFin(this)">${Object.entries(TIPOS_CONTA_FIN).map(([v, n]) => `<option value="${v}" ${(k?.tipo || 'BANCO') === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
                     </div>
-                    <div class="fis-grade">
-                        <label class="fis-campo"><span>Banco (código)</span><input class="fis-input" name="banco" maxlength="10" value="${escFin(k?.banco || '')}"></label>
+                    <div class="fis-grade fin-so-conta">
+                        <label class="fis-campo"><span>Banco</span><input class="fis-input" name="banco" maxlength="30" value="${escFin(k?.banco || '')}"></label>
                         <label class="fis-campo"><span>Agência</span><input class="fis-input" name="agencia" maxlength="20" value="${escFin(k?.agencia || '')}"></label>
                         <label class="fis-campo"><span>Conta</span><input class="fis-input" name="conta" maxlength="30" value="${escFin(k?.conta || '')}"></label>
+                    </div>
+                    <div class="fin-so-cartao">
+                        <div class="fis-grade">
+                            <label class="fis-campo"><span>Emissor</span><input class="fis-input" name="emissor" maxlength="30" list="emissoresCartaoFin" value="${escFin(cartao ? k?.banco || '' : '')}" placeholder="Santander, Caixa, Itaú…" oninput="nomeCartaoFin()"></label>
+                            <label class="fis-campo"><span>Final</span><input class="fis-input" name="cartao_final" maxlength="4" inputmode="numeric" value="${escFin(k?.cartao_final || '')}" placeholder="1234" oninput="this.value = this.value.replace(/\\D/g, ''); nomeCartaoFin()"></label>
+                            <label class="fis-campo fis-largo"><span>Titular</span><input class="fis-input" name="titular" maxlength="60" value="${escFin(k?.titular || '')}" placeholder="quem está com o cartão" oninput="nomeCartaoFin()"></label>
+                        </div>
+                        <datalist id="emissoresCartaoFin">${[...new Set(contas.filter(c => c.tipo === 'CARTAO' && c.banco).map(c => c.banco))].sort().map(b => `<option value="${escFin(b)}">`).join('')}</datalist>
+                        <div class="fis-grade">
+                            <label class="fis-campo"><span>Fecha dia</span><input class="fis-input" type="number" min="1" max="31" name="dia_fechamento" value="${escFin(k?.dia_fechamento ?? '')}"></label>
+                            <label class="fis-campo"><span>Vence dia</span><input class="fis-input" type="number" min="1" max="31" name="dia_vencimento" value="${escFin(k?.dia_vencimento ?? '')}"></label>
+                            <label class="fis-campo"><span>Limite</span><input class="fis-input" type="number" step="0.01" min="0" name="limite" value="${escFin(k?.limite ?? '')}" placeholder="opcional"></label>
+                        </div>
+                        <label class="fis-campo"><span>Fatura paga pela conta</span><select class="fis-input" name="conta_pagadora_id">
+                            <option value="">—</option>
+                            ${pagadoras.map(c => `<option value="${escFin(c.id)}" ${String(c.id) === String(padraoPagadora) ? 'selected' : ''}>${escFin(c.app)} · ${escFin(c.nome)}</option>`).join('')}
+                        </select></label>
+                        <div class="fin-nome-cartao">Nome da conta: <b data-nome-cartao-fin></b></div>
                     </div>
                     <div class="fis-grade">
                         <label class="fis-campo"><span>Saldo inicial</span><input class="fis-input" type="number" step="0.01" name="saldo_inicial" value="${k?.saldo_inicial ?? 0}"></label>
                         <label class="fis-campo"><span>Data do saldo inicial</span><input class="fis-input" type="date" name="data_saldo_inicial" value="${escFin(k?.data_saldo_inicial ? String(k.data_saldo_inicial).slice(0, 10) : '')}"></label>
                     </div>
-                    <label class="fis-check"><input type="checkbox" name="padrao" ${k?.padrao ? 'checked' : ''}> Conta padrão da empresa</label>
+                    <label class="fis-check fin-so-conta"><input type="checkbox" name="padrao" ${k?.padrao ? 'checked' : ''}> Conta padrão da empresa</label>
                     <label class="fis-check"><input type="checkbox" name="ativo" ${!k || k.ativo ? 'checked' : ''}> Ativa</label>
                     <label class="fis-campo"><span>Observação</span><input class="fis-input" name="observacao" maxlength="500" value="${escFin(k?.observacao || '')}"></label>
                 </div>`
         }],
         botoes: [{ texto: 'Salvar', img: 'salvo', funcao: 'salvarContaFin(this)' }]
     })
+    nomeCartaoFin()
+}
+
+// Tipo Cartão: troca banco/agência/conta pelos campos do cartão (css: [data-cartao] .fin-so-conta / .fin-so-cartao).
+function tipoContaFin(select) {
+    const form = select.closest('[data-form-conta]')
+    form.dataset.cartao = select.value === 'CARTAO' ? 'S' : ''
+    nomeCartaoFin()
+}
+
+// Mesmo nome que o servidor monta: "<emissor> <final> · <titular>".
+function nomeCartaoFin() {
+    const form = document.querySelector('[data-form-conta]')
+    const alvo = form?.querySelector('[data-nome-cartao-fin]')
+    if (!alvo) return
+    const v = n => form.querySelector(`[name="${n}"]`).value.trim()
+    alvo.textContent = [[v('emissor') || 'Cartão', v('cartao_final')].filter(Boolean).join(' '), v('titular')].filter(Boolean).join(' · ')
 }
 
 async function salvarContaFin(botao) {
     const form = document.querySelector('[data-form-conta]')
     const v = n => form.querySelector(`[name="${n}"]`)
+    const cartao = v('tipo').value === 'CARTAO'
     try {
         overlayAguarde()
         await apiFin('conta/salvar', {
             id: form.dataset.id || undefined, app: v('app').value, nome: v('nome').value, tipo: v('tipo').value,
-            banco: v('banco').value, agencia: v('agencia').value, conta: v('conta').value, saldo_inicial: v('saldo_inicial').value,
-            data_saldo_inicial: v('data_saldo_inicial').value, padrao: v('padrao').checked, ativo: v('ativo').checked, observacao: v('observacao').value
+            banco: cartao ? v('emissor').value : v('banco').value, agencia: v('agencia').value, conta: v('conta').value, saldo_inicial: v('saldo_inicial').value,
+            data_saldo_inicial: v('data_saldo_inicial').value, padrao: v('padrao').checked, ativo: v('ativo').checked, observacao: v('observacao').value,
+            cartao_final: v('cartao_final').value, titular: v('titular').value, dia_fechamento: v('dia_fechamento').value,
+            dia_vencimento: v('dia_vencimento').value, conta_pagadora_id: v('conta_pagadora_id').value, limite: v('limite').value
         })
         removerOverlay()
         removerPopup(botao?.closest('.popup')?.id)

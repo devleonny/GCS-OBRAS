@@ -168,7 +168,7 @@ function desenharRodapeRelOc(pag) {
     const botao = (texto, destino, ativo, titulo = '') =>
         `<button type="button" ${ativo ? `onclick="irPaginaRelOc('${pag}', ${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
     alvo.innerHTML = `
-        <span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} ${total === 1 ? um : varios}</span>
+        <span class="fin-rodape-info"><span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} ${total === 1 ? um : varios}</span>${filtrosAtivosRodapeCab(ctrl.pag)}</span>
         <div class="fin-paginas">
             ${botao('|‹', 1, pagina > 1, 'Primeira página')}
             ${botao('‹ anterior', pagina - 1, pagina > 1)}

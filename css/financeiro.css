@@ -568,6 +568,36 @@
     color: #44544a;
 }
 
+.fin-rodape-info {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 14px;
+}
+
+.rodape-filtros-ativos {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.rodape-filtros-ativos svg {
+    width: 13px;
+    height: 13px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linejoin: round;
+}
+
+.rodape-limpar-filtros {
+    color: var(--fin-verde, #24a148);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.rodape-limpar-filtros:hover { text-decoration: underline; }
+
 .fin-paginas {
     display: flex;
     flex-wrap: wrap;
@@ -1019,37 +1049,114 @@
     padding: 0 !important;
 }
 
-/* ---------- extrato da conta corrente (js/financeiro.js → extratoContaFin) */
-[data-conta-fin] { width: min(1120px, 92vw); }
-.fin-extrato-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 8px; }
-.fin-extrato-busca { flex: 0 1 320px; margin: 0; }
-.fin-extrato-chips { display: inline-flex; border: 1px solid #c9d8ce; border-radius: 999px; overflow: hidden; }
+/* ---------- extrato da conta corrente (js/financeiro.js → extratoContaFin)
+   Modelo de popup de consulta (23/11/2026): fundo branco, resumo em cartões, barra de filtros
+   e tabela com cabeçalho fixo, linhas brancas com zebra leve e valores alinhados à direita. */
+.janela:has(> .popup-consulta) { background-color: #fff !important; }
+.popup-consulta {
+    width: min(1120px, 92vw); padding: 16px 18px 18px; gap: 14px;
+    background: #fff; color: #1f2a24;
+}
+.janelas-independentes .popup.janela-maximizada .popup-consulta { height: 100%; }
+.janelas-independentes .popup.janela-maximizada .fin-extrato-rolagem { max-height: none; flex: 1 1 auto; min-height: 0; }
+
+/* Resumo: cartões lado a lado; o primeiro (Saldo) em destaque. */
+.popup-consulta > .fis-resumo {
+    grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;
+    padding: 0; background: transparent; border: 0;
+}
+.popup-consulta > .fis-resumo > div {
+    padding: 12px 14px; gap: 4px;
+    background: #fff; border: 1px solid #e3e9e5; border-radius: 10px;
+    box-shadow: 0 1px 2px rgba(16, 24, 20, .04);
+}
+.popup-consulta > .fis-resumo > div:first-child { background: #f4f8f5; border-color: #cfe0d5; box-shadow: inset 3px 0 0 #356443; }
+.popup-consulta > .fis-resumo > div > span { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.06em; color: #6b7a71; }
+.popup-consulta > .fis-resumo b { font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.popup-consulta > .fis-resumo > div:first-child b { font-size: 1.2rem; }
+[data-conta-fin] > .fis-resumo > div:nth-child(2) b { color: #1f7a3d; }
+[data-conta-fin] > .fis-resumo > div:nth-child(3) b { color: #b42318; }
+.popup-consulta > .fis-resumo b .fis-negativo { color: #b42318; }
+@media (max-width: 720px) { .popup-consulta > .fis-resumo { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Barra: busca à esquerda, filtros no meio, ação à direita. */
+.fin-extrato-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0; }
+.popup-consulta .fin-extrato-busca {
+    flex: 0 1 340px; margin: 0; height: 34px; padding: 0 12px 0 34px;
+    border: 1px solid #d5ded8; border-radius: 8px; font-size: 13px;
+    background: #fff no-repeat 11px center / 15px
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7a71' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");
+}
+.popup-consulta .fin-extrato-busca:focus { outline: none; border-color: #76a987; box-shadow: 0 0 0 3px #76a98726; }
+.fin-extrato-chips { display: inline-flex; gap: 2px; padding: 3px; background: #eef2ef; border-radius: 9px; }
 .fin-extrato-chips button {
-    margin: 0; border: 0; border-radius: 0; height: 28px; padding: 0 12px;
-    background: #fff; color: #3f5247; display: inline-flex; align-items: center; gap: 6px;
+    margin: 0; border: 0; border-radius: 7px; height: 28px; padding: 0 12px; cursor: pointer;
+    background: transparent; color: #3f5247; font-size: 13px; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 6px;
 }
-.fin-extrato-chips button + button { border-left: 1px solid #c9d8ce; }
-.fin-extrato-chips button:hover { background: #f3f8f5; }
-.fin-extrato-chips button.ativo { background: #356443; color: #fff; }
+.fin-extrato-chips button:hover { background: rgba(255, 255, 255, .7); }
+.fin-extrato-chips button.ativo { background: #fff; color: #1f3a29; font-weight: 600; box-shadow: 0 1px 3px rgba(16, 24, 20, .12); }
 .fin-extrato-chips small {
-    min-width: 18px; padding: 0 6px; border-radius: 999px; font-size: 11px; line-height: 16px; text-align: center;
-    background: #e8efeb; color: #3f5247;
+    min-width: 18px; padding: 0 6px; border-radius: 999px; font-size: 11px; line-height: 17px; text-align: center;
+    background: #dde5e0; color: #3f5247; font-variant-numeric: tabular-nums;
 }
-.fin-extrato-chips button.ativo small { background: rgba(255, 255, 255, 0.25); color: #fff; }
-.fin-extrato-editar { margin-left: auto !important; }
-.fin-extrato-rolagem { max-height: 58vh; }
-.fin-extrato { table-layout: fixed; width: 100%; font-size: 12.5px; }
-.fin-extrato th:nth-child(1) { width: 88px; }
-.fin-extrato th:nth-child(3) { width: 64px; }
-.fin-extrato th:nth-child(4) { width: 24%; }
-.fin-extrato th:nth-child(5) { width: 110px; }
-.fin-extrato th:nth-child(6), .fin-extrato th:nth-child(7) { width: 120px; }
-.fin-extrato td { vertical-align: middle; }
+.fin-extrato-chips button.ativo small { background: #356443; color: #fff; }
+.fin-extrato-editar { margin-left: auto !important; height: 32px; padding: 0 14px; border-radius: 8px; font-size: 12.5px; background: #fff; }
+.fin-extrato-editar:hover { background: #f3f6f4; }
+
+/* Tabela */
+.fin-extrato-rolagem { max-height: 58vh; border: 1px solid #e3e9e5; border-radius: 10px; background: #fff; }
+.fin-extrato { table-layout: fixed; width: 100%; font-size: 12.5px; border-collapse: separate; border-spacing: 0; }
+[data-conta-fin] .fin-extrato th:nth-child(1) { width: 92px; }
+[data-conta-fin] .fin-extrato th:nth-child(3) { width: 64px; text-align: center; }
+[data-conta-fin] .fin-extrato th:nth-child(4) { width: 22%; }
+[data-conta-fin] .fin-extrato th:nth-child(5) { width: 120px; }
+[data-conta-fin] .fin-extrato th:nth-child(6), [data-conta-fin] .fin-extrato th:nth-child(7) { width: 130px; }
+.fin-extrato thead th {
+    padding: 9px 12px; background: #f6f8f7; border-bottom: 1px solid #e3e9e5;
+    font-size: 0.66rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #6b7a71;
+}
+.fin-extrato td { padding: 8px 12px; vertical-align: middle; border-top: 0; border-bottom: 1px solid #f0f3f1; background: #fff; }
+.fin-extrato tbody tr:nth-child(even) td { background: #fbfcfb; }
+.fin-extrato tbody tr:hover td { background: #f1f7f3; }
+.fin-extrato tbody tr:last-child td { border-bottom: 0; }
 .fin-extrato td:not(.fin-extrato-quem) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fin-extrato-data { font-variant-numeric: tabular-nums; color: #334155; }
+.fin-extrato-data { font-variant-numeric: tabular-nums; color: #475569; }
 .fin-extrato-quem > * { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fin-extrato-quem .fis-link { font-weight: 600; }
-.fin-extrato-quem small { color: #64748b; font-size: 11.5px; }
-.fin-extrato-parcela { color: #64748b; font-variant-numeric: tabular-nums; }
-.fin-extrato-cat, .fin-extrato-forma { color: #475569; }
-.fin-extrato-saldo { color: #334155; font-variant-numeric: tabular-nums; }
+.fin-extrato-quem .fis-link { font-weight: 600; color: #1f3a29; text-decoration: none; }
+.fin-extrato-quem .fis-link:hover { color: #1d4ed8; text-decoration: underline; }
+.fin-extrato-quem small { margin-top: 1px; color: #7a8a80; font-size: 11.5px; }
+.fin-extrato-parcela { color: #64748b; font-variant-numeric: tabular-nums; text-align: center; }
+.fin-extrato-cat { color: #334155; }
+.fin-extrato-forma span {
+    display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;
+    padding: 2px 8px; border-radius: 999px; background: #eef2ef; color: #3f5247; font-size: 11.5px;
+}
+.fin-extrato td.fis-num { text-align: right; font-variant-numeric: tabular-nums; }
+.fin-extrato td.fis-positivo b { color: #1f7a3d; }
+.fin-extrato td.fis-negativo b { color: #b42318; }
+.fin-extrato-saldo { color: #475569; }
+.fin-extrato-saldo.fis-negativo { color: #b42318; opacity: .85; }
+
+/* Contas correntes em tabela */
+.fin-contas-barra .fin-extrato-busca { width: 260px; }
+.fin-contas-dica { margin-left: auto; font-size: 12px; color: #6b7a71; }
+.fin-contas-rolagem { max-height: calc(100dvh - 190px); border: 1px solid var(--fin-borda, #d6e0da); border-radius: 8px; background: #fff; }
+.fin-contas { table-layout: auto; }
+.fin-contas thead th { position: sticky; top: 0; z-index: 1; }
+.fin-contas .fin-contas-ordem { cursor: pointer; user-select: none; white-space: nowrap; }
+.fin-contas .fin-contas-ordem:hover { color: #1f3a29; }
+.fin-contas td { white-space: nowrap; }
+.fin-contas .fin-contas-nome { white-space: normal; min-width: 220px; }
+.fin-contas-linha { cursor: pointer; }
+.fin-contas-linha.inativo td { color: #8a948e; }
+.fin-contas-tag { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 9px; font-size: 10.5px; background: #e4f2dc; color: #356443; vertical-align: middle; }
+.fin-contas-tag.inativa { background: #eef0ef; color: #7a837e; }
+.fin-contas tfoot td { position: sticky; bottom: 0; background: #f3f6f4; font-weight: 600; border-top: 1px solid #dfe6e1; padding: 9px 12px; }
+
+/* Formulário de conta: tipo Cartão troca banco/agência/conta pelos campos do cartão */
+[data-form-conta] .fin-so-cartao { display: none; }
+[data-form-conta][data-cartao="S"] .fin-so-cartao { display: flex; flex-direction: column; gap: 10px; }
+[data-form-conta][data-cartao="S"] .fin-so-conta { display: none; }
+.fin-nome-cartao { font-size: 12.5px; color: #4b5a51; }
+.fin-nome-cartao b { color: #1f3a29; }

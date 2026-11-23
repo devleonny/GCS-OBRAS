@@ -306,7 +306,7 @@ function desenharRodapeHU() {
     const botao = (texto, destino, ativo, titulo = '') =>
         `<button type="button" ${ativo ? `onclick="irPaginaHU(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
     alvo.innerHTML = `
-        <span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} alteraç${total === 1 ? 'ão' : 'ões'}</span>
+        <span class="fin-rodape-info"><span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} alteraç${total === 1 ? 'ão' : 'ões'}</span>${filtrosAtivosRodapeCab(ctrl.pag)}</span>
         <div class="fin-paginas">
             ${botao('|‹', 1, pagina > 1, 'Primeira página')}
             ${botao('‹ anterior', pagina - 1, pagina > 1)}
@@ -794,7 +794,7 @@ function desenharRodapeUso() {
     const botao = (texto, destino, ativo, titulo = '') =>
         `<button type="button" ${ativo ? `onclick="irPaginaUso(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
     alvo.innerHTML = `
-        <span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} aç${total === 1 ? 'ão' : 'ões'}</span>
+        <span class="fin-rodape-info"><span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} aç${total === 1 ? 'ão' : 'ões'}</span>${filtrosAtivosRodapeCab(ctrl.pag)}</span>
         <div class="fin-paginas">
             ${botao('|‹', 1, pagina > 1, 'Primeira página')}
             ${botao('‹ anterior', pagina - 1, pagina > 1)}

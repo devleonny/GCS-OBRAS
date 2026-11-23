@@ -1653,6 +1653,28 @@ button.fis-cred-ind {
 .est-mov td.est-mov-origem { max-width: 120px; }
 .est-mov td.est-mov-doc { max-width: 200px; }
 
+/* Saldos (telaEstoque) no layout das Movimentações. */
+.est-saldos td.fin-nome { max-width: 360px; }
+.est-saldos td.fin-nome small { color: #7a8a80; }
+
+/* Popup do item (detalheItemEstoque) no modelo .popup-consulta (css/financeiro.css, extrato da conta). */
+.est-item .fis-resumo .fis-etiqueta { font-size: 0.8rem; }
+.est-item .fis-resumo b small { font-size: 0.75rem; font-weight: 500; color: #6b7a71; }
+.est-item-onde { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.est-item-onde > span:first-child { margin-right: 4px; font-size: 0.66rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #6b7a71; }
+.est-item-onde .est-local-chip { margin: 0; }
+.est-item-limite { color: #6b7a71; font-size: 11.5px; }
+.est-item-mov th:nth-child(1) { width: 112px; }
+.est-item-mov th:nth-child(2) { width: 110px; }
+.est-item-mov th:nth-child(3) { width: 130px; }
+.est-item-mov th:nth-child(4) { width: 80px; }
+.est-item-mov th:nth-child(5) { width: 110px; }
+.est-item-mov th:nth-child(7) { width: 18%; }
+.est-item-mov th:nth-child(8) { width: 100px; }
+.est-item-mov th:nth-child(9) { width: 82px; }
+.est-item-mov td .fis-etiqueta { font-size: 10.5px; padding: 1px 6px; }
+.est-item-mov td .fis-mini { margin: 0; }
+
 /* Janela do local (abrirLocalEstoque): resumo em grade, barra (busca + filtros | botões), aviso dos negativos
    e tabela compacta ocupando toda a largura. */
 .est-local { display: flex; flex-direction: column; gap: 10px; font-size: 13px; }

@@ -70,30 +70,60 @@ function etiquetaEst(texto, cor) {
 
 // ---------------------------------------------------------------- saldos
 
-async function telaEstoque() {
+// Saldos no mesmo layout das Movimentações (.fin-tela): topo com título e botões, marcar linhas, total no pé
+// da coluna Valor, paginação no rodapé e indicadores no painel lateral retrátil.
+const POR_PAGINA_SALDOS_EST = 50
+let somaSaldosEst = null, assinaturaSaldosEst = null
+let painelSaldosEstAberto = true
+// Marcados (valem entre páginas): id -> valor em estoque.
+const selecaoSaldosEst = new Map()
+
+async function telaEstoque(filtroExtra = null) {
+    if (typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
     tela.innerHTML = `
-        <div class="pagina-conteudo fis-pagina">
-            <div class="cabecalho-pagina"><h2>Estoque</h2></div>
-            <div class="fis-conteudo"></div>
+        <div class="fis-pagina fin-tela fis-emitidas est-mov est-saldos">
+            <section class="fin-janela">
+                <header class="fin-janela-topo">
+                    <h2>Saldos de estoque</h2>
+                    <div class="fin-barra">
+                        <button type="button" onclick="baixarExcelSaldosEst()" title="Com itens marcados, baixa só os marcados; sem marcação, todos os resultados dos filtros aplicados">${iconeFin('excel')} Excel</button>
+                        <button type="button" onclick="telaMovimentosEstoque()">${iconeFin('ver')} Movimentações</button>
+                        <button type="button" onclick="telaLocaisEstoque()">${iconeFin('ver')} Locais</button>
+                        <button type="button" onclick="telaInventarios()">${iconeFin('ver')} Inventário</button>
+                        ${filtroExtra ? `<button type="button" onclick="telaEstoque()">${iconeFin('fechar')} Limpar filtro</button>` : ''}
+                    </div>
+                </header>
+                <div class="fin-corpo${painelSaldosEstAberto ? '' : ' recolhido'}" data-corpo-saldos-est>
+                    <div class="fin-tabela-area" data-tabela-saldos-est></div>
+                    <div class="fin-lateral fis-cred-lateral">
+                        <button type="button" class="fin-recolher" onclick="alternarPainelSaldosEst()" aria-expanded="${painelSaldosEstAberto}"
+                            title="${painelSaldosEstAberto ? 'Recolher' : 'Mostrar'} os indicadores">${iconeFin('seta')}</button>
+                        <aside class="fin-painel fis-cred-painel">
+                            <div class="fin-painel-cabeca" title="Indicadores: seguem os filtros da tabela">
+                                <span class="fin-avatar">Σ</span>
+                                <div class="fin-painel-texto"><b>Indicadores</b><small>Seguem os filtros da tabela. Clique para filtrar.</small></div>
+                            </div>
+                            <div class="fis-cred-inds" data-indicadores-saldos-est><small>Calculando…</small></div>
+                        </aside>
+                    </div>
+                </div>
+            </section>
         </div>`
+    const area = document.querySelector('[data-tabela-saldos-est]')
     try {
         delete controles.estoque
-        document.querySelector('.fis-conteudo').innerHTML = await modTab({
+        somaSaldosEst = null
+        assinaturaSaldosEst = null
+        selecaoSaldosEst.clear()
+        area.innerHTML = await modTab({
             base: 'vw_estoque_saldos',
             pag: 'estoque',
             body: 'bodyEstoque',
             criarLinha: 'criarLinhaEstoque',
-            topoEmLinha: true,
-            btnExtras: `
-                <div class="fis-barra">
-                    <span class="fis-total">Valor em estoque: <b data-total-estoque>…</b></span>
-                    <div class="fis-acoes">
-                        <button type="button" onclick="telaLocaisEstoque()">Locais</button>
-                        <button type="button" onclick="telaMovimentosEstoque()">Movimentações</button>
-                        <button type="button" onclick="telaInventarios()">Inventário</button>
-                    </div>
-                </div>`,
-            funcaoAdicional: ['totalValorEstoque'],
+            caber: true,
+            limite: POR_PAGINA_SALDOS_EST,
+            funcaoAdicional: ['aposCarregarSaldosEst'],
+            filtrosFixos: { ...(filtroExtra || {}) },
             ordenar: [{ path: 'descricao', direcao: 'asc' }],
             colunas: {
                 '': {},
@@ -108,6 +138,8 @@ async function telaEstoque() {
                 'Último movimento': { chave: 'ultimo_movimento' }
             }
         })
+        area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-saldos-est></div>')
+        area.querySelector('.modtab')?.insertAdjacentHTML('afterbegin', '<div class="fin-aviso-selecao" data-aviso-saldos-est hidden></div>')
         await paginacao('estoque')
     } catch (err) {
         console.error(err)
@@ -115,41 +147,272 @@ async function telaEstoque() {
     }
 }
 
-async function totalValorEstoque() {
-    const alvo = document.querySelector('[data-total-estoque]')
-    const ctrl = controles.estoque
-    if (!alvo || !ctrl) return
-    try {
-        const { total } = await contarPorCampo({
-            base: 'vw_estoque_saldos', path: 'valor_estoque', modo: 'soma',
-            filtros: combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
-        })
-        alvo.textContent = dinheiroTexto(total || 0)
-    } catch {
-        alvo.textContent = '—'
-    }
+function alternarPainelSaldosEst() {
+    const corpo = document.querySelector('[data-corpo-saldos-est]')
+    if (!corpo) return
+    const aberto = corpo.classList.contains('recolhido')
+    corpo.classList.toggle('recolhido', !aberto)
+    const botao = corpo.querySelector('.fin-recolher')
+    botao?.setAttribute('aria-expanded', String(aberto))
+    if (botao) botao.title = `${aberto ? 'Recolher' : 'Mostrar'} os indicadores`
+    painelSaldosEstAberto = aberto
 }
 
 function criarLinhaEstoque(d) {
     const saldo = Number(d.saldo || 0)
+    const id = escEst(d.id)
     return `
-        <tr>
-            <td class="fis-acoes-linha"><img src="imagens/pesquisar.svg" title="Movimentos e ajuste" onclick="detalheItemEstoque('${escEst(d.id)}')"></td>
-            <td>${escEst(d.codigo)}</td>
-            <td class="fis-descricao">${escEst(d.descricao)}${d.modelo ? `<small>${escEst(d.modelo)}</small>` : ''}</td>
-            <td>${escEst(d.unidade)}</td>
-            <td>${escEst(d.tipo)}</td>
+        <tr class="fin-linha" ondblclick="detalheItemEstoque('${id}')" title="Duplo clique abre o item">
+            <td class="fin-col-marcar">
+                <input type="checkbox" class="fin-marcar" data-marcar-saldo value="${id}" data-valor="${Number(d.valor_estoque) || 0}" ${selecaoSaldosEst.has(String(d.id)) ? 'checked' : ''}
+                    onclick="event.stopPropagation(); marcarSaldoEst(this)" ondblclick="event.stopPropagation()" aria-label="Marcar item">
+            </td>
+            <td class="fin-centro fin-doc"><span class="fis-link" onclick="event.stopPropagation(); detalheItemEstoque('${id}')" title="Abrir o item">${escEst(d.codigo)}</span></td>
+            <td class="fin-obs fin-nome" title="${escEst([d.descricao, d.modelo].filter(Boolean).join(' · '))}"><span class="fin-obs-txt">${escEst(d.descricao || '')}${d.modelo ? ` <small>${escEst(d.modelo)}</small>` : ''}</span></td>
+            <td class="fin-centro">${escEst(d.unidade || '')}</td>
+            <td>${escEst(d.tipo || '')}</td>
             <td class="fis-num ${saldo < 0 ? 'fis-negativo' : ''}"><b>${qtdEst(saldo)}</b></td>
-            <td class="fis-num">${d.custo_medio != null ? dinheiro(d.custo_medio) : ''}</td>
-            <td class="fis-num">${d.valor_estoque ? dinheiro(d.valor_estoque) : ''}</td>
+            <td class="fis-num">${d.custo_medio != null ? dinheiro(d.custo_medio) : '<span class="fin-vazio">—</span>'}</td>
+            <td class="fis-num">${d.valor_estoque ? dinheiro(d.valor_estoque) : '<span class="fin-vazio">—</span>'}</td>
             <td>${etiquetaEst(d.situacao, SITUACOES_ESTOQUE[d.situacao])}</td>
-            <td>${d.ultimo_movimento ? new Date(d.ultimo_movimento).toLocaleDateString('pt-BR') : ''}</td>
+            <td class="fin-centro">${d.ultimo_movimento ? new Date(d.ultimo_movimento).toLocaleDateString('pt-BR') : '<span class="fin-vazio">—</span>'}</td>
         </tr>`
+}
+
+async function aposCarregarSaldosEst() {
+    const tabela = document.getElementById('bodyEstoque')?.closest('table')
+    if (!tabela) return
+    const th = tabela.querySelector('thead tr:first-child th:first-child')
+    if (th && !th.querySelector('[data-marcar-todos-saldo]'))
+        th.innerHTML = '<input type="checkbox" class="fin-marcar" data-marcar-todos-saldo title="Marcar todos desta página" onclick="event.stopPropagation(); marcarTodosSaldosEst(this)">'
+    const filtro = tabela.querySelector('thead tr:nth-child(2) th:first-child')
+    if (filtro?.querySelector('img')) filtro.innerHTML = ''
+    if (!tabela.tFoot) {
+        const chaves = Object.values(controles.estoque?.colunas || {}).map(c => c.chave || '')
+        const linha = tabela.createTFoot().insertRow()
+        linha.className = 'fin-totais'
+        chaves.forEach(chave => {
+            const td = linha.insertCell()
+            if (chave === 'valor_estoque') { td.dataset.totalSaldosEst = chave; td.className = 'fis-num' }
+        })
+        const enchimento = document.createElement('tbody')
+        enchimento.className = 'fin-enchimento'
+        enchimento.innerHTML = `<tr><td colspan="${chaves.length}"></td></tr>`
+        tabela.insertBefore(enchimento, tabela.tFoot)
+    }
+    if (typeof cabecalhoAvancadoTabela === 'function')
+        await cabecalhoAvancadoTabela('estoque', { prefKey: 'saldos_estoque' })
+    desenharRodapeSaldosEst()
+    desenharSelecaoSaldosEst()
+    await somarSaldosEst()
+}
+
+async function somarSaldosEst() {
+    const ctrl = controles.estoque
+    if (!ctrl) return
+    const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos)
+    const assinatura = JSON.stringify(filtros)
+    if (assinatura !== assinaturaSaldosEst) {
+        assinaturaSaldosEst = assinatura
+        indicadoresSaldosEst(filtros || {})
+        let soma = null
+        try { soma = Number((await contarPorCampo({ base: 'vw_estoque_saldos', path: 'valor_estoque', modo: 'soma', filtros }))?.total || 0) } catch { }
+        if (assinatura !== assinaturaSaldosEst) return
+        somaSaldosEst = soma
+    }
+    escreverTotalSaldosEst()
+}
+
+// Pé da coluna Valor: com marcados, soma só eles; sem marcação, o filtro inteiro.
+function escreverTotalSaldosEst() {
+    const td = document.querySelector('[data-total-saldos-est]')
+    if (!td) return
+    const n = selecaoSaldosEst.size
+    const formatar = v => v == null ? '—' : dinheiro(Math.round(v * 100) / 100)
+    if (n) {
+        const soma = [...selecaoSaldosEst.values()].reduce((s, v) => s + v, 0)
+        td.title = `Soma dos ${n} item(ns) marcado(s). Desmarque todos para ver o total do filtro.`
+        td.innerHTML = `<small class="fin-total-rotulo">${n} marcado${n === 1 ? '' : 's'}</small> <span class="fin-sigma">Σ</span> ${formatar(soma)}`
+        td.classList.add('fin-total-selecao')
+    } else {
+        td.title = 'Valor em estoque de todos os itens do filtro'
+        td.innerHTML = `<span class="fin-sigma">Σ</span> ${formatar(somaSaldosEst)}`
+        td.classList.remove('fin-total-selecao')
+    }
+}
+
+function marcarSaldoEst(caixa) {
+    if (caixa.checked) selecaoSaldosEst.set(caixa.value, Number(caixa.dataset.valor) || 0)
+    else selecaoSaldosEst.delete(caixa.value)
+    desenharSelecaoSaldosEst()
+}
+
+function marcarTodosSaldosEst(caixa) {
+    document.querySelectorAll('#bodyEstoque [data-marcar-saldo]').forEach(c => {
+        c.checked = caixa.checked
+        if (caixa.checked) selecaoSaldosEst.set(c.value, Number(c.dataset.valor) || 0)
+        else selecaoSaldosEst.delete(c.value)
+    })
+    desenharSelecaoSaldosEst()
+}
+
+function limparSelecaoSaldosEst() {
+    selecaoSaldosEst.clear()
+    document.querySelectorAll('#bodyEstoque [data-marcar-saldo]').forEach(c => { c.checked = false })
+    desenharSelecaoSaldosEst()
+}
+
+async function selecionarTodosFiltroSaldosEst() {
+    const ctrl = controles.estoque
+    if (!ctrl) return
+    overlayAguarde()
+    try {
+        const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        let pagina = 1, paginas = 1
+        do {
+            const r = await pesquisarDB({ base: 'vw_estoque_saldos', filtros, pagina, limite: 2000 })
+            ;(r?.resultados || []).forEach(d => selecaoSaldosEst.set(String(d.id), Number(d.valor_estoque) || 0))
+            paginas = Number(r?.paginas) || 1
+            pagina++
+        } while (pagina <= paginas && pagina <= 50)
+        document.querySelectorAll('#bodyEstoque [data-marcar-saldo]').forEach(c => { c.checked = selecaoSaldosEst.has(c.value) })
+        desenharSelecaoSaldosEst()
+    } catch (err) {
+        popup({ mensagem: `Falha ao marcar os itens do filtro: ${escEst(err.message)}` })
+    } finally {
+        removerOverlay()
+    }
+}
+
+function desenharSelecaoSaldosEst() {
+    const pagina = [...document.querySelectorAll('#bodyEstoque [data-marcar-saldo]')]
+    const marcadas = pagina.filter(c => c.checked).length
+    const paginaToda = pagina.length > 0 && marcadas === pagina.length
+    const todos = document.querySelector('[data-marcar-todos-saldo]')
+    if (todos) {
+        todos.checked = paginaToda
+        todos.indeterminate = marcadas > 0 && marcadas < pagina.length
+    }
+    const aviso = document.querySelector('[data-aviso-saldos-est]')
+    if (aviso) {
+        const n = selecaoSaldosEst.size
+        const total = Number(document.getElementById('resultados_estoque')?.textContent) || 0
+        const plural = q => `${q.toLocaleString('pt-BR')} ${q === 1 ? 'item' : 'itens'}`
+        const limpar = '<a href="#" onclick="event.preventDefault(); limparSelecaoSaldosEst()">limpar a seleção</a>'
+        aviso.hidden = !(n && paginaToda)
+        aviso.innerHTML = aviso.hidden ? '' : n < total
+            ? `Você selecionou ${plural(n)}. Você pode ${limpar} ou <a href="#" onclick="event.preventDefault(); selecionarTodosFiltroSaldosEst()">selecionar todos os ${plural(total)} deste filtro</a>`
+            : `Você selecionou ${n === total ? 'todos os ' : ''}${plural(n)}${n === total ? ' deste filtro' : ''}. Você pode ${limpar}`
+    }
+    escreverTotalSaldosEst()
+}
+
+// Indicadores do painel lateral: mesmos filtros da tabela.
+async function indicadoresSaldosEst(filtros = {}) {
+    const alvo = document.querySelector('[data-indicadores-saldos-est]')
+    if (!alvo) return
+    const base = 'vw_estoque_saldos'
+    const [valor, situacoes, tipos] = await Promise.all([
+        contarPorCampo({ base, path: 'valor_estoque', modo: 'soma', filtros }).catch(() => null),
+        contarPorCampo({ base, path: 'situacao', filtros }).catch(() => null),
+        contarPorCampo({ base, path: 'tipo', filtros }).catch(() => null)
+    ])
+    if (!document.querySelector('[data-indicadores-saldos-est]')) return
+    const qtd = n => Number(n || 0).toLocaleString('pt-BR')
+    const lista = r => Object.entries(r || {}).filter(([k]) => k !== 'total' && k !== 'todos').sort((a, b) => b[1] - a[1])
+    const ind = (valorTxt, texto, cor, acao, descricao) => acao
+        ? `<button type="button" class="fis-cred-ind" style="--cor: ${cor}" onclick="${acao}" title="${escEst(descricao)}">
+            <span>${texto}</span><b>${valorTxt}</b><small>${escEst(descricao)}</small></button>`
+        : `<div class="fis-cred-ind" style="--cor: ${cor}" title="${escEst(descricao)}">
+            <span>${texto}</span><b>${valorTxt}</b><small>${escEst(descricao)}</small></div>`
+    const filtrar = (campo, v) => `telaEstoque({ ${campo}: { op: '=', value: '${escEst(v)}' } })`
+    alvo.innerHTML = `
+        ${ind(qtd(valor?.todos), 'Itens', '#334155', '', 'Itens no filtro.')}
+        ${ind(valor == null ? '—' : dinheiro(Number(valor.total) || 0), 'Valor em estoque', '#15803d', '', 'Saldo × custo médio dos itens do filtro.')}
+        ${lista(situacoes).map(([s, n]) => ind(qtd(n), escEst(s), SITUACOES_ESTOQUE[s] || '#64748b', filtrar('situacao', s), 'Itens nesta situação. Clique para filtrar.')).join('')}
+        ${lista(tipos).map(([t, n]) => ind(qtd(n), escEst(t || 'Sem tipo'), '#64748b', t ? filtrar('tipo', t) : '', 'Itens deste tipo. Clique para filtrar.')).join('')}`
+}
+
+function desenharRodapeSaldosEst() {
+    const alvo = document.querySelector('[data-rodape-saldos-est]')
+    const ctrl = controles.estoque
+    if (!alvo || !ctrl) return
+    const total = Number(document.getElementById('resultados_estoque')?.textContent) || 0
+    const paginas = Math.max(1, Number(ctrl.total) || 1)
+    const pagina = Math.min(ctrl.pagina || 1, paginas)
+    const inicio = total ? (pagina - 1) * POR_PAGINA_SALDOS_EST + 1 : 0
+    const fim = Math.min(total, pagina * POR_PAGINA_SALDOS_EST)
+    const botao = (texto, destino, ativo, titulo = '') =>
+        `<button type="button" ${ativo ? `onclick="irPaginaSaldosEst(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
+    alvo.innerHTML = `
+        <span class="fin-rodape-info"><span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} ${total === 1 ? 'item' : 'itens'}</span>${filtrosAtivosRodapeCab(ctrl.pag)}</span>
+        <div class="fin-paginas">
+            ${botao('|‹', 1, pagina > 1, 'Primeira página')}
+            ${botao('‹ anterior', pagina - 1, pagina > 1)}
+            <label>Página <input type="number" min="1" max="${paginas}" value="${pagina}" onchange="irPaginaSaldosEst(this.value)"></label>
+            <span>de ${paginas.toLocaleString('pt-BR')}</span>
+            ${botao('próximo ›', pagina + 1, pagina < paginas)}
+            ${botao('›|', paginas, pagina < paginas, 'Última página')}
+        </div>`
+}
+
+async function irPaginaSaldosEst(n) {
+    const ctrl = controles.estoque
+    if (!ctrl) return
+    const pagina = Math.min(Math.max(1, parseInt(n) || 1), Math.max(1, Number(ctrl.total) || 1))
+    if (pagina === ctrl.pagina) return desenharRodapeSaldosEst()
+    ctrl.pagina = pagina
+    await paginacao('estoque')
+}
+
+async function baixarExcelSaldosEst() {
+    const ctrl = controles.estoque
+    if (!ctrl) return
+    overlayAguarde()
+    try {
+        const marcadas = [...selecaoSaldosEst.keys()]
+        const filtros = marcadas.length
+            ? { id: { modo: 'OR', regras: marcadas.map(id => ({ op: '=', value: id })) } }
+            : combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        const linhas = []
+        let pagina = 1, paginas = 1
+        do {
+            const r = await pesquisarDB({ base: 'vw_estoque_saldos', filtros, ordenar: ctrl.ordenar || [{ path: 'descricao', direcao: 'asc' }], pagina, limite: 2000 })
+            linhas.push(...(r?.resultados || []))
+            paginas = Number(r?.paginas) || 1
+            pagina++
+        } while (pagina <= paginas && pagina <= 50)
+        await baixarExcelRelatorioGCS({
+            titulo: 'Saldos de estoque',
+            resumo: `${linhas.length} item(ns)`,
+            filtrosTexto: marcadas.length ? `Itens marcados na tela: ${marcadas.length}` : `Filtros: ${typeof descreverFiltrosFin === 'function' ? descreverFiltrosFin(ctrl).replace('nenhum (todas as faturas)', 'nenhum (todos os itens)') : ''}`,
+            linhas,
+            colunas: [
+                { titulo: 'Código', largura: 10, centro: true, valor: d => d.codigo || '' },
+                { titulo: 'Descrição', largura: 46, valor: d => d.descricao || '' },
+                { titulo: 'Modelo', largura: 18, valor: d => d.modelo || '' },
+                { titulo: 'Un.', largura: 6, centro: true, valor: d => d.unidade || '' },
+                { titulo: 'Tipo', largura: 14, valor: d => d.tipo || '' },
+                { titulo: 'Saldo', largura: 10, valor: d => Number(d.saldo) || 0 },
+                { titulo: 'Custo médio', largura: 13, tipo: 'moeda', valor: d => Number(d.custo_medio) || 0 },
+                { titulo: 'Valor', largura: 14, tipo: 'moeda', soma: true, valor: d => Number(d.valor_estoque) || 0 },
+                { titulo: 'Situação', largura: 16, valor: d => d.situacao || '' },
+                { titulo: 'Último movimento', largura: 14, valor: d => d.ultimo_movimento ? new Date(d.ultimo_movimento).toLocaleDateString('pt-BR') : '' }
+            ]
+        })
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: `Falha ao gerar o Excel: ${escEst(err.message)}` })
+    } finally {
+        removerOverlay()
+    }
 }
 
 function linhaMovimentoEst(m, { comItem = false, acoes = true } = {}) {
     const t = TIPOS_MOVIMENTO[m.tipo] || {}
     const q = Number(m.quantidade)
+    const docTexto = m.documento_id ? `NF ${m.documento_numero || ''} ${m.participante_nome || ''}`.trim()
+        : m.inventario_id ? 'Inventário' : m.origem === 'REQUISICAO' ? 'Requisição' : ''
     const doc = m.documento_id
         ? `<span class="fis-link" onclick="abrirDocumentoFiscal('${escEst(m.documento_id)}')">NF ${escEst(m.documento_numero || '')}</span> <small>${escEst(m.participante_nome || '')}</small>`
         : m.inventario_id ? 'Inventário' : m.origem === 'REQUISICAO' ? 'Requisição' : ''
@@ -170,41 +433,67 @@ function linhaMovimentoEst(m, { comItem = false, acoes = true } = {}) {
         </tr>`
 }
 
+// Linha do popup do item (modelo .popup-consulta): data-tipo E/S e data-busca para filtrarExtratoFin.
+function linhaMovimentoItemEst(m) {
+    const t = TIPOS_MOVIMENTO[m.tipo] || {}
+    const q = Number(m.quantidade)
+    const origem = ORIGENS_MOVIMENTO[m.origem] || m.origem || ''
+    const doc = m.documento_id
+        ? `<span class="fis-link" onclick="abrirDocumentoFiscal('${escEst(m.documento_id)}')" title="${escEst(`NF ${m.documento_numero || ''} ${m.participante_nome || ''}`.trim())}">NF ${escEst(m.documento_numero || '')} ${escEst(m.participante_nome || '')}</span>`
+        : ''
+    const podeEstornar = !m.estornado && ['MANUAL', 'INVENTARIO'].includes(m.origem) && m.tipo !== 'ESTORNO'
+    const busca = [t.texto || m.tipo, m.local_nome, origem, m.documento_numero, m.participante_nome, m.observacao, m.usuario].join(' ').toLowerCase()
+    return `
+        <tr class="${m.estornado ? 'fis-estornado' : ''}" data-tipo="${q < 0 ? 'S' : 'E'}" data-busca="${escEst(busca)}">
+            <td class="fin-extrato-data">${new Date(m.data).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
+            <td>${etiquetaEst(t.texto || m.tipo, t.cor)}${m.estornado ? ' <small>(estornado)</small>' : ''}</td>
+            <td title="${escEst(m.local_nome || '')}">${escEst(m.local_nome || '')}</td>
+            <td class="fis-num ${q < 0 ? 'fis-negativo' : 'fis-positivo'}"><b>${q > 0 ? '+' : ''}${qtdEst(q)}</b></td>
+            <td class="fis-num">${m.custo_unitario != null ? dinheiro(m.custo_unitario) : '—'}</td>
+            <td class="fin-extrato-quem">${doc || `<span title="${escEst(origem)}">${escEst(origem)}</span>`}${doc ? `<small title="${escEst(origem)}">${escEst(origem)}</small>` : ''}</td>
+            <td title="${escEst(m.observacao || '')}">${escEst(m.observacao || '') || '—'}</td>
+            <td title="${escEst(m.usuario || '')}">${escEst(m.usuario || '')}</td>
+            <td>${podeEstornar ? `<button type="button" class="fis-mini" onclick="estornarMovimentoEstoque('${escEst(m.id)}', '${escEst(m.item_id)}')">Estornar</button>` : ''}</td>
+        </tr>`
+}
+
 async function detalheItemEstoque(itemId) {
     overlayAguarde()
     try {
         const { saldo: s, movimentos, locais } = await apiEstoque('item', { item_id: itemId })
         removerOverlay()
+        const entradas = movimentos.filter(m => Number(m.quantidade) >= 0).length
         const elemento = `
-            <div class="fis-painel" data-item-estoque="${escEst(itemId)}">
+            <div class="fis-painel popup-consulta est-item" data-item-estoque="${escEst(itemId)}">
                 <div class="fis-resumo">
-                    <div><span>Item</span><b>${escEst(s.codigo)} · ${escEst(s.descricao)}</b></div>
-                    <div><span>Saldo</span><b class="${Number(s.saldo) < 0 ? 'fis-negativo' : ''}">${qtdEst(s.saldo)} ${escEst(s.unidade || '')}</b></div>
+                    <div><span>Saldo</span><b class="${Number(s.saldo) < 0 ? 'fis-negativo' : ''}">${qtdEst(s.saldo)} <small>${escEst(s.unidade || '')}</small></b></div>
                     <div><span>Custo médio</span><b>${s.custo_medio != null ? dinheiro(s.custo_medio) : '—'}</b></div>
                     <div><span>Valor em estoque</span><b>${dinheiro(s.valor_estoque || 0)}</b></div>
-                    <div><span>Situação</span>${etiquetaEst(s.situacao, SITUACOES_ESTOQUE[s.situacao])}</div>
+                    <div><span>Situação</span><b>${etiquetaEst(s.situacao, SITUACOES_ESTOQUE[s.situacao])}</b></div>
                 </div>
                 ${locais?.length ? `
-                <div class="fis-secao">
-                    <div class="fis-secao-topo"><b>Onde está</b></div>
-                    <div class="est-locais-item">${locais.map(l => `
-                        <span class="est-local-chip ${l.local_tipo === 'DIVERGENCIA' ? 'divergencia' : ''}">${escEst(l.app)} · ${escEst(l.local_nome)} <b>${qtdEst(l.saldo)}</b></span>`).join('')}
-                    </div>
+                <div class="est-item-onde"><span>Onde está</span>${locais.map(l => `
+                    <span class="est-local-chip ${l.local_tipo === 'DIVERGENCIA' ? 'divergencia' : ''}">${escEst(l.app)} · ${escEst(l.local_nome)} <b>${qtdEst(l.saldo)}</b></span>`).join('')}
                 </div>` : ''}
-                <div class="fis-secao">
-                    <div class="fis-secao-topo"><b>Movimentos</b> <small>últimos 200</small>
-                        <button type="button" class="fis-botao" onclick="formularioAjusteEstoque('${escEst(itemId)}')">Ajustar saldo</button>
+                <div class="fin-extrato-barra">
+                    <input type="search" class="fis-input fin-extrato-busca" placeholder="Buscar local, origem, nota, observação..." oninput="filtrarExtratoFin(this)">
+                    <div class="fin-extrato-chips" data-tipo="">
+                        <button type="button" class="ativo" data-filtro="" onclick="filtrarExtratoFin(this)">Todos <small>${movimentos.length}</small></button>
+                        <button type="button" data-filtro="E" onclick="filtrarExtratoFin(this)">Entradas <small>${entradas}</small></button>
+                        <button type="button" data-filtro="S" onclick="filtrarExtratoFin(this)">Saídas <small>${movimentos.length - entradas}</small></button>
                     </div>
-                    ${movimentos.length ? `
-                    <div class="fis-tabela-rolagem">
-                        <table class="fis-tabela">
-                            <thead><tr><th>Data</th><th>Tipo</th><th>Local</th><th>Qtd</th><th>Custo</th><th>Origem</th><th>Documento</th><th>Observação</th><th>Usuário</th><th></th></tr></thead>
-                            <tbody>${movimentos.map(m => linhaMovimentoEst(m)).join('')}</tbody>
-                        </table>
-                    </div>` : '<div class="fis-vazio">Nenhum movimento ainda. O saldo começa no inventário ou na primeira nota de entrada.</div>'}
+                    ${movimentos.length >= 200 ? '<small class="est-item-limite">últimos 200 movimentos</small>' : ''}
+                    <button type="button" class="fis-mini fin-extrato-editar" onclick="formularioAjusteEstoque('${escEst(itemId)}')">Ajustar saldo</button>
                 </div>
+                ${movimentos.length ? `
+                <div class="fis-tabela-rolagem fin-extrato-rolagem">
+                    <table class="fis-tabela fin-extrato est-item-mov">
+                        <thead><tr><th>Data</th><th>Tipo</th><th>Local</th><th class="fis-num">Qtd</th><th class="fis-num">Custo unit.</th><th>Origem / documento</th><th>Observação</th><th>Usuário</th><th></th></tr></thead>
+                        <tbody>${movimentos.map(linhaMovimentoItemEst).join('')}</tbody>
+                    </table>
+                </div>` : '<div class="fis-vazio">Nenhum movimento ainda. O saldo começa no inventário ou na primeira nota de entrada.</div>'}
             </div>`
-        popup({ titulo: 'Estoque do item', elemento })
+        popup({ titulo: `${s.codigo || ''} · ${s.descricao || 'Estoque do item'}`, elemento })
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
@@ -579,7 +868,7 @@ function desenharRodapeMovEst() {
     const botao = (texto, destino, ativo, titulo = '') =>
         `<button type="button" ${ativo ? `onclick="irPaginaMovEst(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
     alvo.innerHTML = `
-        <span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} movimento${total === 1 ? '' : 's'}</span>
+        <span class="fin-rodape-info"><span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} movimento${total === 1 ? '' : 's'}</span>${filtrosAtivosRodapeCab(ctrl.pag)}</span>
         <div class="fin-paginas">
             ${botao('|‹', 1, pagina > 1, 'Primeira página')}
             ${botao('‹ anterior', pagina - 1, pagina > 1)}

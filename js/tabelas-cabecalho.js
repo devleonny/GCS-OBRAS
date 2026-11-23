@@ -129,6 +129,35 @@ async function aplicarFiltroCab(pag, chave, meta) {
     await paginacao(pag)
 }
 
+// Rodapé das tabelas (layout financeiro): "N filtros ativos · limpar os filtros e exibir todos os registros".
+// Conta só os filtros que a pessoa pôs (ctrl.filtros); os fixos da tela ficam.
+function filtrosAtivosRodapeCab(pag) {
+    const n = Object.keys(controles[pag]?.filtros || {}).length
+    if (!pag || !n) return ''
+    return `
+        <span class="rodape-filtros-ativos">${ICONE_FUNIL_CAB} ${n} filtro${n === 1 ? '' : 's'} ativo${n === 1 ? '' : 's'}</span>
+        <a href="#" class="rodape-limpar-filtros" onclick="event.preventDefault(); limparTodosFiltrosCab('${escCab(pag)}')">limpar os filtros e exibir todos os registros</a>`
+}
+
+async function limparTodosFiltrosCab(pag) {
+    const ctrl = controles[pag]
+    if (!ctrl) return
+    delete ctrl.filtros
+    delete ctrl.filtrosMeta
+    const tabela = document.getElementById(ctrl.body)?.closest('table')
+    // Cabeçalho avançado: redesenha cada campo vazio; cabeçalho simples: esvazia os campos da linha de pesquisa.
+    tabela?.querySelectorAll('thead th.cab-filtro-th[data-cab-chave]').forEach(th => {
+        delete th.dataset.cabOp
+        desenharFiltroCab(pag, th.dataset.cabChave)
+    })
+    tabela?.querySelectorAll('thead tr:nth-child(2) [data-chave]').forEach(el => {
+        if (el.matches('input, select')) el.value = ''
+        else if (el.isContentEditable) el.textContent = ''
+    })
+    ctrl.pagina = 1
+    await paginacao(pag)
+}
+
 // ---------------------------------------------------------------- campo do filtro
 function desenharFiltroCab(pag, chave) {
     const tabela = document.getElementById(controles[pag]?.body)?.closest('table')
