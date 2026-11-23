@@ -299,54 +299,6 @@ async function vincularEmpresas() {
 
 }
 
-function renderAppsCircle(id, apps = []) {
-    const ativos = new Set(
-        (Array.isArray(apps) ? apps : Object.keys(apps || {}))
-            .map(v => String(v).toUpperCase().trim())
-    )
-    const setores = [
-        { sigla: 'AC', x: 67, y: 32, caminho: 'M50 50V7a43 43 0 0 1 43 43Z' },
-        { sigla: 'IAC', x: 68, y: 67, caminho: 'M50 50h43a43 43 0 0 1-43 43Z' },
-        { sigla: 'HNK', x: 32, y: 68, caminho: 'M50 50v43A43 43 0 0 1 7 50Z' },
-        { sigla: 'HNW', x: 32, y: 32, caminho: 'M50 50H7A43 43 0 0 1 50 7Z' }
-    ]
-    const resumo = setores.map(({ sigla }) => sigla + ': ' + (ativos.has(sigla) ? 'cadastrado' : 'sem cadastro')).join(' ? ')
-    const fatias = setores.map(({ sigla, x, y, caminho }) => {
-        const ativo = ativos.has(sigla)
-        return `
-            <g>
-                <title>${sigla}: ${ativo ? 'Cadastrado no Omie' : 'Sem cadastro no Omie'}</title>
-                <path d="${caminho}" fill="${ativo ? '#527d60' : '#e8eeea'}" stroke="#fff" stroke-width="2.5"></path>
-                <text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle"
-                    font-size="11" font-weight="600" fill="${ativo ? '#fff' : '#65756b'}">${sigla}</text>
-            </g>`
-    }).join('')
-
-    return `
-        <button type="button" class="pizza-apps" title="${resumo}. Clique para solicitar cadastro no Omie."
-            aria-label="${resumo}. Solicitar cadastro no Omie" onclick="ativarCadastro(${id})">
-            <svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">
-                <circle cx="50" cy="50" r="47" fill="#fff" stroke="#d5e2d9" stroke-width="1.5"></circle>
-                ${fatias}
-                <circle cx="50" cy="50" r="3" fill="#fff"></circle>
-            </svg>
-        </button>
-    `
-}
-
-async function ativarCadastro(id) {
-
-    overlayAguarde()
-
-    if (!id)
-        return popup({ mensagem: 'Cliente sem cnpj/cpf' })
-
-    await enviar(`clientes/${id}/cadastrar_omie`, true)
-
-    popup({ mensagem: 'Cadastramento Omie solicitado, aguarde pelo menos 1 min' })
-
-}
-
 async function telaClientes() {
 
     try {
@@ -388,7 +340,6 @@ async function telaClientes() {
             base: 'vw_2_clientes',
             colunas: {
                 'Ações': {},
-                'Disp. em': {},
                 'Foto': {},
                 'Nome': { chave: 'cadastrais', op: 'includes' },
                 'IDs': { chave: 'ids', op: 'includes' },
@@ -664,7 +615,6 @@ function criarLinhaClienteGCS(cliente) {
 
     const {
         id,
-        apps,
         foto,
         nome,
         cnpj,
@@ -719,7 +669,6 @@ function criarLinhaClienteGCS(cliente) {
             <img src="imagens/pesquisar.svg" onclick="formularioCliente(${id})">
         </td>
 
-        <td>${renderAppsCircle(cnpj ? id : null, Object.keys(apps || []))}</td>
         <td><button type="button" title="Abrir cadastro" aria-label="Abrir cadastro"
             data-cliente="${escaparAtributo(id)}" onclick="formularioCliente(Number(this.dataset.cliente))"
             style="padding: 0; border: none; background: transparent; cursor: pointer;">
@@ -980,7 +929,6 @@ async function formularioCliente(idCliente) {
             elemento: `<input placeholder="CPF ou CNPJ" oninput="formatarCnpj(this)" name="cnpj" value="${cnpj || ''}">`
         },
         {
-            // Vêm do Omie quando existem lá (servidor: SCRIPTS/clientes.js, só preenche se estiver vazio aqui).
             texto: 'Inscrição estadual',
             elemento: `<input placeholder="Inscrição estadual ou ISENTO" maxlength="20" name="inscricao_estadual" value="${escaparAtributo(inscricao_estadual || '')}">`
         },
@@ -1001,7 +949,7 @@ async function formularioCliente(idCliente) {
             <input type="hidden" name="usuario" value="${escaparAtributo(usuario || '')}" data-form-cliente>`
         },
         {
-            // Nome = nome fantasia; a razão social vem do Omie (varredura/sincronização) ou da Receita ao digitar o CNPJ.
+            // Nome = nome fantasia; a razão social vem da Receita ao digitar o CNPJ.
             texto: 'Razão social',
             elemento: `<textarea placeholder="Razão social" maxlength="120" name="razao_social">${escaparAtributo(razao_social || '')}</textarea>`
         },
@@ -1682,10 +1630,6 @@ async function salvarCliente(idCliente = null) {
 
         // Permissão;
         const permissao = obVal('permissao')
-
-        // Cadastrar Omie;
-        if (!idCliente && cliente.cnpj)
-            cliente.cadastrar_omie = true
 
         if (permissao)
             cliente.permissao = permissao
