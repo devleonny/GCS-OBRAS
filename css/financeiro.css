@@ -1160,3 +1160,4 @@
 [data-form-conta][data-cartao="S"] .fin-so-conta { display: none; }
 .fin-nome-cartao { font-size: 12.5px; color: #4b5a51; }
 .fin-nome-cartao b { color: #1f3a29; }
+.fin-contas-tag.tecnica { background: #fff1d6; color: #92400e; }

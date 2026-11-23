@@ -2279,7 +2279,7 @@ function desenharLinhasContasFin() {
     corpo.innerHTML = linhas.map(k => `
         <tr class="fin-contas-linha ${k.ativo ? '' : 'inativo'}" onclick="extratoContaFin('${escFin(k.id)}')">
             <td>${escFin(k.app)}</td>
-            <td class="fin-contas-nome" title="${escFin(k.nome)}">${escFin(k.nome)}${k.padrao ? ' <small class="fin-contas-tag">padrão</small>' : ''}${k.ativo ? '' : ' <small class="fin-contas-tag inativa">desativada</small>'}</td>
+            <td class="fin-contas-nome" title="${escFin(k.nome)}">${escFin(k.nome)}${k.padrao ? ' <small class="fin-contas-tag">padrão</small>' : ''}${k.ativo ? '' : ' <small class="fin-contas-tag inativa">desativada</small>'}${k.caixa === false && k.tipo !== 'CARTAO' ? ' <small class="fin-contas-tag tecnica" title="Conta técnica: baixa sem mexer em banco, fica fora do Fluxo de Caixa">técnica</small>' : ''}</td>
             <td>${escFin(TIPOS_CONTA_FIN[k.tipo] || k.tipo)}</td>
             <td title="${escFin(bancoTexto(k))}">${escFin(bancoTexto(k) || '—')}</td>
             <td>${k.ultimo_movimento ? dataFin(k.ultimo_movimento) : '—'}</td>
@@ -2423,6 +2423,7 @@ async function formularioContaFin(contaId = null) {
                         <label class="fis-campo"><span>Data do saldo inicial</span><input class="fis-input" type="date" name="data_saldo_inicial" value="${escFin(k?.data_saldo_inicial ? String(k.data_saldo_inicial).slice(0, 10) : '')}"></label>
                     </div>
                     <label class="fis-check fin-so-conta"><input type="checkbox" name="padrao" ${k?.padrao ? 'checked' : ''}> Conta padrão da empresa</label>
+                    <label class="fis-check fin-so-conta" title="Spark Pay, Empréstimo Mútuo, Caixinha...: o que é baixado nela não entra no Fluxo de Caixa"><input type="checkbox" name="tecnica" ${k && k.caixa === false ? 'checked' : ''}> Conta técnica (não é dinheiro de verdade: fica fora do Fluxo de Caixa)</label>
                     <label class="fis-check"><input type="checkbox" name="ativo" ${!k || k.ativo ? 'checked' : ''}> Ativa</label>
                     <label class="fis-campo"><span>Observação</span><input class="fis-input" name="observacao" maxlength="500" value="${escFin(k?.observacao || '')}"></label>
                 </div>`
@@ -2457,7 +2458,7 @@ async function salvarContaFin(botao) {
         await apiFin('conta/salvar', {
             id: form.dataset.id || undefined, app: v('app').value, nome: v('nome').value, tipo: v('tipo').value,
             banco: cartao ? v('emissor').value : v('banco').value, agencia: v('agencia').value, conta: v('conta').value, saldo_inicial: v('saldo_inicial').value,
-            data_saldo_inicial: v('data_saldo_inicial').value, padrao: v('padrao').checked, ativo: v('ativo').checked, observacao: v('observacao').value,
+            data_saldo_inicial: v('data_saldo_inicial').value, padrao: v('padrao').checked, ativo: v('ativo').checked, observacao: v('observacao').value, caixa: !v('tecnica').checked,
             cartao_final: v('cartao_final').value, titular: v('titular').value, dia_fechamento: v('dia_fechamento').value,
             dia_vencimento: v('dia_vencimento').value, conta_pagadora_id: v('conta_pagadora_id').value, limite: v('limite').value
         })
