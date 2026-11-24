@@ -928,7 +928,8 @@ function cartaoItemFluxo(c, parado, tempo) {
             ${c.liberacao ? `<span class="fluxo-cartao-balao" title="Orçamento liberado sem pedido: sai como remessa, não conta como faturamento">${etiquetaEst(LIBERACAO_CARTAO_FLUXO[c.liberacao] || 'Sem pedido', '#0e7490')}</span>` : ''}
             ${c.cidade ? `<small>${escaparAtributo(c.cidade)}</small>` : ''}
             ${contexto ? `<small class="fluxo-cartao-contexto">${escaparAtributo(contexto)}</small>` : ''}
-            <span class="fluxo-cartao-valor">${reaisFluxo(c.valor)} <small>${c.empresa ? `${escaparAtributo(c.empresa)} · ` : ''}desde ${dataBrFluxo(c.data)}</small></span>
+            <span class="fluxo-cartao-valor" ${c.valor_misto != null && !c.sem_nfse ? `title="${escaparAtributo(`Só a NFS-e · cartão com venda e serviço: ${reaisFluxo(c.valor_misto)}`)}"` : ''}>${reaisFluxo(c.valor)} <small>${c.empresa ? `${escaparAtributo(c.empresa)} · ` : ''}desde ${dataBrFluxo(c.data)}</small></span>
+            ${c.sem_nfse ? '<small class="fluxo-cartao-motivo" title="Cartão com venda e serviço sem NFS-e ligada: o valor é o da venda/pedido">Sem NFS-e ligada · valor com a venda</small>' : ''}
             ${saldoCartaoFluxo(c)}
             ${servico ? servicoCartaoFluxo(c) : ''}
             ${emissao}
@@ -988,6 +989,13 @@ function cartoesServicoFluxo(linhas) {
     const cartoes = []
     for (const l of linhas) {
         const c = { ...l, etapa_item: l.etapa, etapa: l.etapa_servico || 'pedido', desde: l.data }
+        // Venda + serviço com nota (Faturado/Recebido): aqui vale só a NFS-e (vw_fluxo_itens.valor_servico,
+        // 24/11/2026, a pedido). Sem NFS-e ligada, fica o valor do cartão com o aviso.
+        if (l.valor_servico != null) {
+            c.valor_misto = Number(l.valor) || 0
+            if (Number(l.valor_servico) > 0) c.valor = Number(l.valor_servico)
+            else c.sem_nfse = true
+        }
         if (c.etapa === 'recebido' && c.recebido_em) c.data = String(c.recebido_em).slice(0, 10)
         cartoes.push(c)
         if (c.etapa === 'faturado' && Number(c.parcelas_abertas) > 0 && parcelasRecebidasFluxo(c) > 0)
