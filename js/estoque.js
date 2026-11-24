@@ -617,10 +617,10 @@ async function excluirItemEstoque(itemId) {
             </div>
             <div class="est-excluir-destino" data-destino-exclusao>
                 <label class="fis-campo"><span>Item que recebe o saldo</span>
-                    <input type="search" class="fis-input" placeholder="Buscar por código, descrição ou modelo (Enter)"
-                        onkeydown="if (event.key === 'Enter') { event.preventDefault(); buscarDestinoExclusaoEst(this) }" onchange="buscarDestinoExclusaoEst(this)">
+                    <input type="search" class="fis-input" placeholder="Digite código, descrição ou modelo do item que fica"
+                        onkeydown="if (event.key === 'Enter') { event.preventDefault(); buscarDestinoExclusaoEst(this) }" oninput="buscarDestinoDepoisEst(this, buscarDestinoExclusaoEst)">
                 </label>
-                <select class="fis-input" name="destino_id" onchange="avisoUnidadeExclusaoEst()"><option value="">Busque o item acima</option></select>
+                <select class="fis-input" name="destino_id" onchange="avisoUnidadeExclusaoEst()"><option value="">↑ digite acima para buscar</option></select>
                 <small class="fis-dica" data-aviso-unidade></small>
                 <small class="fis-dica">O saldo de cada local passa para ele com o custo médio deste item. O de-para de fornecedor e as ligações com o Omie também passam, para as próximas notas já entrarem no item certo.</small>
             </div>
@@ -754,12 +754,16 @@ async function excluirMarcadosEstoque() {
                 <div><span>Com saldo</span><b class="${comSaldo ? 'fis-negativo' : ''}">${comSaldo.toLocaleString('pt-BR')}${valorSaldo ? ` <small>${dinheiro(valorSaldo)}</small>` : ''}</b></div>
             </div>
             ${comSaldo ? `
-            <div class="est-lote-destino">
-                <label class="fis-campo"><span>Item que recebe os saldos</span>
-                    <input type="search" class="fis-input" placeholder="Buscar por código, descrição ou modelo (Enter)"
-                        onkeydown="if (event.key === 'Enter') { event.preventDefault(); buscarDestinoLoteEst(this) }" onchange="buscarDestinoLoteEst(this)">
+            <div class="est-lote-destino" data-caixa-destino-lote>
+                <label class="fis-campo"><span>1. Busque o item que fica (recebe os saldos)</span>
+                    <input type="search" class="fis-input" placeholder="Digite código, descrição ou modelo"
+                        oninput="buscarDestinoDepoisEst(this, buscarDestinoLoteEst)"
+                        onkeydown="if (event.key === 'Enter') { event.preventDefault(); buscarDestinoLoteEst(this) }">
                 </label>
-                <select class="fis-input" data-destino-lote onchange="escolherDestinoLoteEst(this)"><option value="">Busque o item ao lado</option></select>
+                <label class="fis-campo"><span>2. Escolha na lista</span>
+                    <select class="fis-input" data-destino-lote onchange="escolherDestinoLoteEst(this)"><option value="">← digite ao lado para buscar</option></select>
+                </label>
+                <div class="est-lote-escolhido" data-destino-escolhido-lote></div>
                 <div class="est-lote-todos">
                     <span>Todos com saldo:</span>
                     <button type="button" class="fis-mini" onclick="acaoTodosLoteEst('MIGRAR')">Passar para o destino</button>
@@ -838,7 +842,15 @@ function desenharLoteExclusaoEst() {
     })
     painel.querySelector('[data-linhas-lote]').innerHTML = visiveis.join('') || '<tr><td colspan="7" class="fis-vazio">Nada neste filtro</td></tr>'
     const envio = itensEnvioLoteEst()
-    const migrar = envio.filter(i => i.destino_id).length
+    const migrar = envio.filter(i => 'destino_id' in i).length
+    const caixa = painel.querySelector('[data-caixa-destino-lote]')
+    if (caixa) {
+        const d = loteExclusaoEst.destino
+        caixa.classList.toggle('pendente', migrar > 0 && !d)
+        caixa.querySelector('[data-destino-escolhido-lote]').innerHTML = d
+            ? `<span class="est-lote-tag destino">Destino: ${escEst(d.codigo || d.id)} · ${escEst(d.descricao || '')}${d.unidade ? ` (${escEst(d.unidade)})` : ''}</span>`
+            : migrar ? `<span class="fis-negativo">Falta escolher o item que recebe ${migrar === 1 ? 'o saldo' : 'os saldos'} (ou mude a linha para "Dar baixa")</span>` : ''
+    }
     const baixar = envio.filter(i => i.zerar).length
     const partes = [`${envio.length.toLocaleString('pt-BR')} ${envio.length === 1 ? 'item será excluído' : 'itens serão excluídos'}`]
     if (migrar) partes.push(`${migrar} passam o saldo para ${loteExclusaoEst.destino ? escEst(loteExclusaoEst.destino.codigo || loteExclusaoEst.destino.id) : '<b class="fis-negativo">escolha o destino</b>'}`)
@@ -892,11 +904,18 @@ async function buscarDestinoLoteEst(input) {
         const lista = itens.filter(i => String(i.tipo || '').toUpperCase() !== 'SERVIÇO')
         loteExclusaoEst.opcoesDestino = new Map(lista.map(i => [String(i.id), i]))
         select.innerHTML = lista.length
-            ? '<option value="">Escolha o item</option>' + lista.map(i => `<option value="${escEst(i.id)}">${escEst(i.codigo || i.id)} · ${escEst(i.descricao || '')}${i.unidade ? ` (${escEst(i.unidade)})` : ''}</option>`).join('')
+            ? `<option value="">▼ ${lista.length} encontrado${lista.length === 1 ? '' : 's'}: escolha aqui</option>` + lista.map(i => `<option value="${escEst(i.id)}">${escEst(i.codigo || i.id)} · ${escEst(i.descricao || '')}${i.unidade ? ` (${escEst(i.unidade)})` : ''}</option>`).join('')
             : '<option value="">Nada encontrado</option>'
     } catch (err) {
         popup({ mensagem: mensagemErroEst(err) })
     }
+}
+
+// Busca do item destino enquanto digita (espera a pessoa parar 400 ms).
+let esperaBuscaDestinoEst = null
+function buscarDestinoDepoisEst(input, buscar) {
+    clearTimeout(esperaBuscaDestinoEst)
+    esperaBuscaDestinoEst = setTimeout(() => buscar(input), 400)
 }
 
 function escolherDestinoLoteEst(select) {

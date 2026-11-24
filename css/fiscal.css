@@ -1781,3 +1781,7 @@ button.fis-cred-ind:focus-visible { outline: 2px solid var(--cor); outline-offse
 .est-lote-rodape { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .est-btn-excluir-forte { height: 36px; padding: 0 18px; border-radius: 8px; border: none; background: #b91c1c; color: #fff; font-weight: 600; cursor: pointer; }
 .est-btn-excluir-forte:disabled { background: #e5b4b4; cursor: default; }
+.est-lote-destino.pendente { border-color: #f3c4c4; background: #fff7f7; }
+.est-lote-escolhido { grid-column: 1 / -1; font-size: 0.85rem; }
+.est-lote-escolhido:empty { display: none; }
+.est-lote-escolhido .est-lote-tag { font-size: 12.5px; padding: 4px 10px; white-space: normal; }
