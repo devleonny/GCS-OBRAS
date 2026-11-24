@@ -52,8 +52,24 @@ function opcoesCategoriasFin(categorias, tipo, atual) {
         </optgroup>`).join('')
 }
 
+// Apps de sócio (ALEX, COSTA — fin_apps.tipo SOCIO): fatura do sócio aceita conta de empresa (a empresa banca)
+// e compra da empresa aceita o cartão do sócio. Empresa × outra empresa, não. Mesma regra do servidor.
+const tipoAppFin = app => (opcoesFinCache?.empresas || []).find(e => e.app === app)?.tipo || 'EMPRESA'
+const contaAceitaFin = (k, app) => !app || k.app === app || tipoAppFin(k.app) !== tipoAppFin(app)
+const contaPadraoAppFin = (contas, app) => {
+    const pagaPor = (opcoesFinCache?.empresas || []).find(e => e.app === app && e.tipo === 'SOCIO')?.paga_por
+    return contas.find(k => k.app === (pagaPor || app) && k.padrao)
+}
+// <option>s do seletor de empresa: empresas e, separados, os sócios.
+const opcoesEmpresasFin = (empresas, atual) => {
+    const op = e => `<option value="${escFin(e.app)}" ${e.app === atual ? 'selected' : ''}>${escFin(e.app)}</option>`
+    const socios = empresas.filter(e => e.tipo === 'SOCIO')
+    return empresas.filter(e => e.tipo !== 'SOCIO').map(op).join('')
+        + (socios.length ? `<optgroup label="Sócios">${socios.map(op).join('')}</optgroup>` : '')
+}
+
 const opcoesContasFin = (contas, app, atual) => `<option value="">${app ? 'Conta padrão da empresa' : 'Selecione'}</option>` + contas
-    .filter(k => !app || k.app === app)
+    .filter(k => contaAceitaFin(k, app))
     .map(k => `<option value="${k.id}" ${String(k.id) === String(atual ?? '') ? 'selected' : ''}>${escFin(k.app)} · ${escFin(k.nome)}${k.padrao ? ' (padrão)' : ''}</option>`).join('')
 
 // ---------------------------------------------------------------- componentes
@@ -1288,7 +1304,7 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
                                 <label class="fin-campo"><span>Empresa</span>
                                     <select class="fis-input" name="app" ${cancelada || rec ? 'disabled' : ''} data-app-original="${escFin(t ? app : '')}"
                                         data-pagamentos="${baixas.filter(b => !b.estornada).length}" onchange="trocarEmpresaFormFin(this)">
-                                        ${op.empresas.map(e => `<option value="${escFin(e.app)}" ${e.app === app ? 'selected' : ''}>${escFin(e.app)}</option>`).join('')}
+                                        ${opcoesEmpresasFin(op.empresas, app)}
                                     </select></label>
                                 <label class="fin-campo"><span>Conta corrente</span>
                                     <select class="fis-input" name="conta_id" data-conta-original="${escFin(base?.conta_id || '')}" ${cancelada ? 'disabled' : ''}>${opcoesContasFin(op.contas, app, base?.conta_id)}</select></label>
@@ -2058,7 +2074,7 @@ async function formularioBaixaFin(id) {
         return popup({ mensagem: mensagemErroEst(err) })
     }
     const pagar = t.tipo === 'PAGAR'
-    const padrao = t.conta_id || op.contas.find(k => k.app === t.app && k.padrao)?.id
+    const padrao = t.conta_id || contaPadraoAppFin(op.contas, t.app)?.id
     popup({
         titulo: `Registrar ${pagar ? 'pagamento' : 'recebimento'}`,
         linhas: [{
@@ -2075,7 +2091,7 @@ async function formularioBaixaFin(id) {
                         <label class="fis-campo"><span>Desconto</span><input class="fis-input" type="number" step="0.01" min="0" name="desconto" value="0"></label>
                     </div>
                     <div class="fis-grade">
-                        <label class="fis-campo fis-largo"><span>Conta</span><select class="fis-input" name="conta_id">${op.contas.filter(k => k.app === t.app).map(k => `<option value="${k.id}" ${k.id === padrao ? 'selected' : ''}>${escFin(k.nome)}</option>`).join('')}</select></label>
+                        <label class="fis-campo fis-largo"><span>Conta</span><select class="fis-input" name="conta_id">${op.contas.filter(k => contaAceitaFin(k, t.app)).map(k => `<option value="${k.id}" ${k.id === padrao ? 'selected' : ''}>${escFin(k.app !== t.app ? `${k.app} · ${k.nome}` : k.nome)}</option>`).join('')}</select></label>
                         <label class="fis-campo"><span>Forma</span><select class="fis-input" name="forma">${FORMAS_FIN.filter(([v]) => v !== 'OMIE').map(([v, n]) => `<option value="${v}" ${(t.forma_pagamento || '15') === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
                     </div>
                     <label class="fis-campo"><span>Observação</span><input class="fis-input" name="observacao" maxlength="500"></label>
@@ -2097,8 +2113,8 @@ async function formularioBaixaRapidaFin(id) {
         return popup({ mensagem: mensagemErroEst(err) })
     }
     const pagar = t.tipo === 'PAGAR'
-    const contas = op.contas.filter(k => k.app === t.app)
-    const padrao = t.conta_id || contas.find(k => k.padrao)?.id
+    const contas = op.contas.filter(k => contaAceitaFin(k, t.app))
+    const padrao = t.conta_id || contaPadraoAppFin(contas, t.app)?.id
     popup({
         titulo: `Dar baixa: ${pagar ? 'pago' : 'recebido'}`,
         linhas: [{
@@ -2421,7 +2437,7 @@ async function formularioContaFin(contaId = null) {
             elemento: `
                 <div class="fis-form" data-form-conta data-id="${escFin(contaId || '')}" data-cartao="${cartao ? 'S' : ''}">
                     <div class="fis-grade">
-                        <label class="fis-campo"><span>Empresa</span><select class="fis-input" name="app">${op.empresas.map(e => `<option value="${escFin(e.app)}" ${e.app === (k?.app || 'AC') ? 'selected' : ''}>${escFin(e.app)}</option>`).join('')}</select></label>
+                        <label class="fis-campo"><span>Empresa</span><select class="fis-input" name="app">${opcoesEmpresasFin(op.empresas, k?.app || 'AC')}</select></label>
                         <label class="fis-campo fis-largo fin-so-conta"><span>Nome</span><input class="fis-input" name="nome" maxlength="80" value="${escFin(k?.nome || '')}" placeholder="ex.: Itaú, Caixa da obra"></label>
                         <label class="fis-campo"><span>Tipo</span><select class="fis-input" name="tipo" onchange="tipoContaFin(this)">${Object.entries(TIPOS_CONTA_FIN).map(([v, n]) => `<option value="${v}" ${(k?.tipo || 'BANCO') === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
                     </div>

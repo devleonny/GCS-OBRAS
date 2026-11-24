@@ -245,7 +245,7 @@ function linhaLoteSal(i) {
             <td class="fis-num">${p.salario_rh != null ? dinheiro(p.salario_rh) : '—'}</td>
             <td class="fis-num">${p.ultimo_valor != null ? `${dinheiro(p.ultimo_valor)}<small>${escFin(dataFin(p.ultimo_vencimento))}</small>` : '—'}</td>
             <td class="fis-num"><input class="fis-input fis-num" type="number" min="0" step="0.01" name="valor" value="${Number(i.valor) || ''}" ${trava} oninput="editarLinhaLoteSal(this)"></td>
-            <td><select class="fis-input" name="app" ${trava} onchange="editarLinhaLoteSal(this)">${(e.op.empresas || []).map(x => `<option value="${escFin(x.app)}" ${x.app === i.app ? 'selected' : ''}>${escFin(x.app)}</option>`).join('')}</select></td>
+            <td><select class="fis-input" name="app" ${trava} onchange="editarLinhaLoteSal(this)">${(e.op.empresas || []).filter(x => x.tipo !== 'SOCIO').map(x => `<option value="${escFin(x.app)}" ${x.app === i.app ? 'selected' : ''}>${escFin(x.app)}</option>`).join('')}</select></td>
             <td><select class="fis-input cx-lote-cat" name="categoria_id" ${trava} onchange="editarLinhaLoteSal(this)">${opcoesCategoriasFin(e.op.categorias || [], 'PAGAR', i.categoria_id)}</select></td>
             <td><input class="fis-input" name="departamento" list="lote-sal-deps" value="${escFin(i.departamento || '')}" placeholder="sem" onchange="editarLinhaLoteSal(this)"></td>
             <td><input class="fis-input" type="date" name="vencimento" value="${escFin(i.vencimento || '')}" title="Em branco: o vencimento do lote" ${trava} onchange="editarLinhaLoteSal(this)"></td>

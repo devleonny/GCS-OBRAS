@@ -1,3 +1,5 @@
+// Apps de sócio do Financeiro (fin_apps tipo SOCIO, 24/11/2026): o pagamento em nome do Alex/Costa só muda a chave.
+const APPS_SOCIOS_PAG = ['ALEX', 'COSTA']
 function parametroPagamento(p) { return p?.param_estavel || p?.param?.[0] || {} }
 
 async function atualizarPixPagamento() {
@@ -103,7 +105,7 @@ async function telaPagamentos() {
         colunas: {
             'Data de Vencimento': { chave: 'param_estavel.data_vencimento', tipoPesquisa: 'data' },
             // Opções fixas: contar por app na vw_reembolsos segurava a abertura da tela.
-            'APP': { chave: 'app', op: '=', tipoPesquisa: 'select', opcoes: ['AC', 'IAC', 'HNK', 'HNW'] },
+            'APP': { chave: 'app', op: '=', tipoPesquisa: 'select', opcoes: ['AC', 'IAC', 'HNK', 'HNW', ...APPS_SOCIOS_PAG] },
             'Valor': { chave: 'snapshots.valor' },
             'Status': { chave: 'status' },
             'Solicitante': { chave: 'criado' },
@@ -1209,6 +1211,7 @@ async function formularioPagamento() {
                 elemento: `
                 <select name="app" data-so-reembolso onchange="calculadoraPagamento()">
                     ${empresas.map(op => `<option ${app == op ? 'selected' : ''}>${op}</option>`).join('')}
+                    <optgroup label="Sócios">${APPS_SOCIOS_PAG.map(op => `<option ${app == op ? 'selected' : ''}>${op}</option>`).join('')}</optgroup>
                 </select>
             `
             },

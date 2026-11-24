@@ -54,7 +54,7 @@ async function telaFluxoCaixa() {
                     <label>Empresa
                         <select onchange="estadoCx.app = this.value; carregarFluxoCaixa()">
                             <option value="">Todas (consolidado)</option>
-                            ${(op.empresas || []).map(e => `<option value="${escFin(e.app)}" ${estadoCx.app === e.app ? 'selected' : ''}>${escFin(e.app)}</option>`).join('')}
+                            ${(op.empresas || []).filter(e => e.tipo !== 'SOCIO').map(e => `<option value="${escFin(e.app)}" ${estadoCx.app === e.app ? 'selected' : ''}>${escFin(e.app)}</option>`).join('')}
                         </select>
                     </label>
                     <label>Olhar para frente
