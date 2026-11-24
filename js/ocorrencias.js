@@ -1539,17 +1539,12 @@ async function linNotas(nota) {
 
     const cor = '#ff4500'
     const tabela = 'notas'
-    const excluir = (executor == acesso.usuario || pode('ocorrencias.excluir_de_outros'))
-        ? `<span 
-            class="close" 
-            style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" 
-            onclick="apagarGenerico('${id}', 'notas')">&times;</span>`
-        : ''
+    // Nota é só consulta (24/11/2026, a pedido): entra pela emissão do GCS ou por importação, e o tipo é o
+    // da natureza da nota. Sem excluir, editar, anexar ou foto (o servidor também recusa).
 
     const bloco = `
         <div class="bloco-status-interno" style="border: 1px solid ${cor}; background-color: ${cor}1f;">
 
-            ${excluir}
             ${labelDestaque('Executor', executor || 'Integração')}
             ${labelDestaque('Data', data)}
             ${labelDestaque('Comentário', comentario)}
@@ -1557,14 +1552,6 @@ async function linNotas(nota) {
             ${labelDestaque('Tipo', categoria)}
             ${labelDestaque('Valor', dinheiro(total))}
             ${labelDestaque('Data Emissão', d_emi_inicial)}
-
-            <div class="painel-botoes">
-                ${botaoAnexoStatus({ id, tabela: 'notas', cor })}
-                ${botaoFotoStatus({ id, tabela, cor })}
-                ${botaoEditarStatus({ id, cor, funcao: `adicionarNotaAvulsa('${id}')` })}
-            </div>
-
-            <br>
 
             ${pdfDanfe({ categoria, n_nota, id, total })}
 

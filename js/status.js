@@ -22,9 +22,9 @@ const esquemaBtnStatus = [
     },
     {
         chave: 'notas',
-        titulo: 'Nota Avulsa',
+        titulo: 'Notas',
         cor: '#ff4500',
-        funcao: `adicionarNotaAvulsa()`
+        funcao: null  // só consulta (24/11/2026): notas entram pela emissão do GCS ou por importação
     },
     {
         chave: 'parceiros',
@@ -428,69 +428,6 @@ async function salvarPedido(id) {
         console.error(err)
         popup({ mensagem: 'Falha ao salvar o pedido: Fale com o suporte.' })
     }
-
-}
-
-async function adicionarNotaAvulsa(id = crypto.randomUUID()) {
-
-    overlayAguarde()
-
-    const {
-        categoria,
-        n_nota,
-        total,
-        d_emi_inicial,
-    } = await recuperarDado('notas', id) || {}
-
-    const linhas = [
-        {
-            texto: 'Número da nota',
-            elemento: `<input id="nf"  value="${n_nota || ''}">`
-        },
-        {
-            texto: 'Data de Emissão',
-            elemento: `<input id="d_emi_inicial" type="date" value="${conversorDt(d_emi_inicial, 'input')}">`
-        },
-        {
-            texto: 'Tipo',
-            elemento: `<select id="tipo">${['venda', 'serviço', 'remessa'].map(op => `<option ${categoria == op ? 'selected' : ''} value="${op}">${inicialMaiuscula(op)}</option>`).join('')}</select>`
-        },
-        {
-            texto: 'Valor',
-            elemento: `<div>R$ <input type="number" id="valor" placeholder="0,00" value="${total || ''}"></div>`
-        }
-    ]
-
-    const botoes = [
-        { texto: 'Salvar', img: 'concluido', funcao: `salvarNotaAvulsa('${id}')` }
-    ]
-
-    popup({ linhas, botoes, titulo: 'Nota Fiscal Avulsa' })
-
-}
-
-async function salvarNotaAvulsa(id) {
-
-    overlayAguarde()
-
-    const contrato = controles.ocorrencias.ativo
-
-    const valor = (id) => {
-        return document.getElementById(id).value
-    }
-
-    const nota = {
-        executor: acesso.usuario,
-        d_emi_inicial: conversorDt(valor('d_emi_inicial')),
-        n_nota: valor('nf'),
-        categoria: String(valor('tipo')).toLocaleLowerCase(),
-        total: Number(valor('valor')),
-        departamento: contrato
-    }
-
-    await enviar(`notas/${id}`, nota)
-
-    removerPopup()
 
 }
 
@@ -1283,12 +1220,9 @@ async function carregarSecoesHistorico(painel) {
 
                     local.insertAdjacentHTML('beforeend', `
                         <section class="historico-secao" data-secao="${chave}" style="--cor-secao: ${cor};">
-                            <button
-                                class="historico-secao-acao"
-                                style="background-color: ${cor};" 
-                                onclick="${funcao}">
-                                ${titulo}
-                            </button>
+                            ${funcao
+                                ? `<button class="historico-secao-acao" style="background-color: ${cor};" onclick="${funcao}">${titulo}</button>`
+                                : `<span class="historico-secao-acao" style="background-color: ${cor}; cursor: default;">${titulo}</span>`}
                             ${tabela}
                         </section>
                     `)
@@ -1305,7 +1239,7 @@ async function carregarSecoesHistorico(painel) {
     }
 }
 
-// Notas emitidas pelo GCS (18/11/2026): a seção Nota Avulsa lista só as do Omie; estas vêm do Fiscal
+// Notas emitidas pelo GCS (18/11/2026): a seção Notas lista só as do Omie; estas vêm do Fiscal
 // (rota /fluxo-itens/notas-gcs) — com o ORC, com o ORC no rateio ou ligadas a um cartão dele. Com rateio, o
 // valor é a parte deste orçamento e o total da nota vai embaixo.
 async function carregarNotasGcsHistorico(painel, contrato) {
