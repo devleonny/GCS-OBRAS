@@ -670,7 +670,9 @@ textarea.fis-input {
 
 .fis-itens-emissao [name="ncm"] { width: 7.5rem; }
 .fis-itens-emissao [name="origem"] { width: 9rem; }
-.fis-itens-emissao [name="unidade"] { width: 4.5rem; min-width: 4.5rem; }
+.fis-itens-emissao [name="unidade"] { width: 4.5rem; min-width: 4.5rem; background: #f3f4f6; color: #4b5563; cursor: default; }
+/* Descrição/NCM digitados e ainda não escolhidos na busca (ao sair do campo voltam ao escolhido). */
+.fis-itens-emissao .fis-pendente-busca { border-color: #d97706; background: #fffbeb; }
 .fis-itens-emissao [name="quantidade"] { width: 5.5rem; }
 .fis-itens-emissao [name="valor_unitario"] { width: 7.5rem; }
 .fis-itens-emissao [name="desconto"] { width: 6rem; }

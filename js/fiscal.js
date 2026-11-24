@@ -3074,18 +3074,136 @@ function adicionarItemNFe(item = {}) {
         <td class="fis-item-cel">
             <input type="hidden" name="item_id" value="${escFis(item.item_id || '')}">
             <input type="hidden" name="codigo" value="${escFis(item.codigo || '')}">
-            <input class="fis-input" name="descricao" value="${escFis(item.descricao || '')}" placeholder="Buscar item do cadastro…"
-                onkeydown="if (event.key === 'Enter') { event.preventDefault(); buscarItemEmissaoFis(this) }" onchange="if (!this.closest('tr').querySelector('[name=item_id]').value) buscarItemEmissaoFis(this)">
+            <input class="fis-input" name="descricao" value="${escFis(item.descricao || '')}" placeholder="Buscar item do cadastro…" autocomplete="off"
+                data-escolhida="${item.item_id ? escFis(item.descricao || '') : ''}" title="Só itens do cadastro: digite e tecle Enter para buscar"
+                oninput="marcarPendenteFis(this)" onkeydown="if (event.key === 'Enter') { event.preventDefault(); buscarItemEmissaoFis(this) }"
+                onchange="if (this.value.trim() !== this.dataset.escolhida) buscarItemEmissaoFis(this)" onblur="voltarEscolhidoFis(this)">
         </td>
-        <td><input class="fis-input fis-curto" name="ncm" value="${escFis(item.ncm || '')}" maxlength="10" inputmode="numeric"></td>
+        <td><input class="fis-input fis-curto" name="ncm" value="${escFis(item.ncm || '')}" maxlength="10" autocomplete="off" placeholder="Buscar…"
+                data-escolhida="${escFis(item.ncm || '')}" title="Só NCM da tabela oficial: digite o código ou parte da descrição e tecle Enter"
+                oninput="marcarPendenteFis(this)" onkeydown="if (event.key === 'Enter') { event.preventDefault(); buscarNcmEmissaoFis(this) }"
+                onchange="if (this.value.trim() !== this.dataset.escolhida) buscarNcmEmissaoFis(this)" onblur="voltarEscolhidoFis(this)"></td>
         <td><select class="fis-input fis-curto" name="origem">${opcoesFis(Object.entries(ORIGENS_MERCADORIA), item.origem ?? '0')}</select></td>
-        <td><input class="fis-input fis-curto" name="unidade" value="${escFis(item.unidade || 'UN')}" maxlength="6"></td>
+        <td><input class="fis-input fis-curto" name="unidade" value="${escFis(item.unidade || 'UN')}" readonly tabindex="-1" title="Unidade do cadastro do item"></td>
         <td><input class="fis-input fis-curto" name="quantidade" type="number" min="0" step="any" value="${escFis(item.quantidade || 1)}"></td>
         <td><input class="fis-input fis-curto" name="valor_unitario" type="number" min="0" step="0.0001" value="${escFis(item.valor_unitario || '')}"></td>
         <td><input class="fis-input fis-curto" name="desconto" type="number" min="0" step="0.01" value="${escFis(item.desconto || '')}"></td>
         <td class="fis-num" data-total-item></td>
         <td><button type="button" class="fis-remover-linha" title="Remover" aria-label="Remover" onclick="this.closest('tr').remove(); agendarPreviaFis()">${iconeLixeiraFis}</button></td>`
     corpo.appendChild(tr)
+}
+
+// Descrição e NCM da linha só valem escolhidos na busca (cadastro / tabela oficial). Digitar só serve para
+// pesquisar: o texto fica marcado enquanto não for escolhido e, ao sair do campo, volta ao que estava escolhido.
+function marcarPendenteFis(input) {
+    input.classList.toggle('fis-pendente-busca', input.value.trim() !== (input.dataset.escolhida || ''))
+}
+
+function voltarEscolhidoFis(input) {
+    if (input.value.trim() === (input.dataset.escolhida || '')) return
+    input.value = input.dataset.escolhida || ''
+    input.classList.remove('fis-pendente-busca')
+}
+
+// NCM: janela de escolha só com a tabela oficial (8 dígitos vigentes), por código ou descrição.
+let ncmsBuscadosEmissaoFis = []
+
+function cartoesNcmEmissaoFis(ncms, linha, termo) {
+    if (!ncms.length) return `<div class="fis-escolha-vazio">Nenhum NCM vigente para <b>${escFis(termo)}</b>.<br><small>Tente o começo do código (ex.: 8517) ou outra palavra.</small></div>`
+    return ncms.map((n, i) => `
+        <button type="button" class="fis-escolha-item${i === 0 ? ' ativo' : ''}" data-indice="${i}"
+            onclick="usarNcmEmissaoFis('${linha}', ${i}, this)" onmouseenter="marcarEscolhaItemFis(this)">
+            <span class="fis-escolha-cod">${escFis(n.formatado || n.codigo)}</span>
+            <span class="fis-escolha-texto">
+                <b>${escFis(String(n.descricao || '').replace(/^[-\s]+/, ''))}</b>
+                ${n.posicao ? `<small>${escFis(n.posicao.length > 140 ? n.posicao.slice(0, 140) + '…' : n.posicao)}</small>` : ''}
+            </span>
+            <span class="fis-escolha-usar">Usar →</span>
+        </button>`).join('')
+}
+
+async function pesquisarEscolhaNcmFis(input) {
+    const caixa = input.closest('[data-escolher-ncm]')
+    const termo = input.value.trim()
+    if (!caixa || termo.length < 2) return
+    const lista = caixa.querySelector('[data-escolha-lista]')
+    lista.classList.add('carregando')
+    try {
+        const { ncms } = await apiFiscal('ncm', { texto: termo, limite: 30 })
+        ncmsBuscadosEmissaoFis = ncms
+        lista.innerHTML = cartoesNcmEmissaoFis(ncms, caixa.dataset.escolherNcm, termo)
+    } catch (err) {
+        popup({ mensagem: mensagemErroEst(err) })
+    } finally {
+        lista.classList.remove('carregando')
+    }
+}
+
+function teclaEscolhaNcmFis(event, input) {
+    const lista = input.closest('[data-escolher-ncm]')?.querySelector('[data-escolha-lista]')
+    if (!lista) return
+    const cartoes = [...lista.querySelectorAll('.fis-escolha-item')]
+    const atual = cartoes.findIndex(b => b.classList.contains('ativo'))
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault()
+        if (!cartoes.length) return
+        const prox = cartoes[Math.max(0, Math.min(cartoes.length - 1, atual + (event.key === 'ArrowDown' ? 1 : -1)))]
+        marcarEscolhaItemFis(prox)
+        prox.scrollIntoView({ block: 'nearest' })
+    } else if (event.key === 'Enter') {
+        event.preventDefault()
+        if (input.value.trim() !== input.dataset.ultimo) {
+            input.dataset.ultimo = input.value.trim()
+            pesquisarEscolhaNcmFis(input)
+        } else if (atual >= 0) cartoes[atual].click()
+    }
+}
+
+async function buscarNcmEmissaoFis(input) {
+    const termo = input.value.trim()
+    if (termo.length < 2) return
+    const linha = soDigFis(input.closest('tr').dataset.linha)
+    const aberta = document.querySelector(`[data-escolher-ncm="${linha}"]`)
+    if (input.dataset.buscando || aberta) {
+        aberta?.querySelector('.fis-escolha-busca input')?.focus()
+        return
+    }
+    input.dataset.buscando = '1'
+    try {
+        const { ncms } = await apiFiscal('ncm', { texto: termo, limite: 30 })
+        ncmsBuscadosEmissaoFis = ncms
+        popup({
+            titulo: 'Escolher NCM',
+            elemento: `
+                <div class="fis-escolha" data-escolher-ncm="${linha}">
+                    <div class="fis-escolha-busca">
+                        <input class="fis-input" value="${escFis(termo)}" data-ultimo="${escFis(termo)}" placeholder="Código (ex.: 8517) ou descrição…"
+                            autocomplete="off" onkeydown="teclaEscolhaNcmFis(event, this)">
+                    </div>
+                    <div class="fis-escolha-lista" data-escolha-lista>${cartoesNcmEmissaoFis(ncms, linha, termo)}</div>
+                    <div class="fis-escolha-dica"><kbd>↑</kbd><kbd>↓</kbd> escolher · <kbd>Enter</kbd> usar ou buscar de novo · só a tabela oficial vigente</div>
+                </div>`
+        })
+        const campo = [...document.querySelectorAll(`[data-escolher-ncm="${linha}"] .fis-escolha-busca input`)].pop()
+        campo?.focus()
+        campo?.select()
+    } catch (err) {
+        popup({ mensagem: mensagemErroEst(err) })
+    } finally {
+        delete input.dataset.buscando
+    }
+}
+
+function usarNcmEmissaoFis(linha, indice, botao) {
+    const n = ncmsBuscadosEmissaoFis[indice]
+    removerPopup(botao.closest('.popup')?.id)
+    if (!n) return
+    const campo = document.querySelector(`[data-itens-nfe] tr[data-linha="${CSS.escape(linha)}"] [name="ncm"]`)
+    if (!campo) return
+    campo.value = n.formatado || n.codigo
+    campo.dataset.escolhida = campo.value
+    campo.classList.remove('fis-pendente-busca')
+    agendarPreviaFis()
 }
 
 // Última lista de itens buscados na emissão (o botão "Usar" aponta pelo índice).
@@ -3211,6 +3329,12 @@ function usarItemEmissaoFis(linha, indice, botao) {
     set('descricao', c.descricao)
     set('ncm', c.ncm || '')
     set('unidade', c.unidade || 'UN')
+    if (c.origem != null && c.origem !== '') set('origem', String(c.origem))
+    for (const n of ['descricao', 'ncm']) {
+        const el = tr.querySelector(`[name="${n}"]`)
+        el.dataset.escolhida = el.value
+        el.classList.remove('fis-pendente-busca')
+    }
     const info = tr.querySelector('[data-item-info]')
     info.textContent = c.codigo || ''
     info.title = [c.saldo != null ? `Saldo ${qtdEst(c.saldo)}` : '', c.ncm ? '' : 'SEM NCM no cadastro'].filter(Boolean).join(' · ')
